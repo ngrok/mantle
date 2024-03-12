@@ -30,7 +30,7 @@ const buttonVariants = cva(
 				ghost:
 					"inline-flex h-11 border border-transparent px-3 font-medium text-accent-600 hover:bg-accent-500/10 hover:text-accent-700 focus-visible:ring-focus-accent active:bg-accent-500/15 active:text-accent-700 sm:h-9",
 				outlined:
-					"inline-flex h-11 border border-accent-600 bg-form px-3 font-medium text-accent-600 hover:border-accent-700 hover:bg-accent-500/10 hover:text-accent-700 focus-visible:ring-focus-accent active:border-accent-700 active:bg-accent-500/15 active:text-accent-700 sm:h-9",
+					"inline-flex h-11 border border-accent-600 bg-form px-3 font-medium text-accent-600 hover:border-accent-700 hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-focus-accent active:border-accent-700 active:bg-accent-100 active:text-accent-700 sm:h-9",
 				link: "group inline cursor-pointer border-transparent text-accent-600 hover:underline focus-visible:ring-focus-accent",
 			},
 			/**
@@ -77,7 +77,7 @@ const buttonVariants = cva(
 				appearance: "outlined",
 				priority: "danger",
 				class:
-					"border-danger-600 bg-form text-danger-600 hover:border-danger-700 hover:bg-danger-500/10 hover:text-danger-700 focus-visible:ring-focus-danger active:border-danger-700 active:bg-danger-500/15 active:text-danger-700",
+					"border-danger-600 bg-form text-danger-600 hover:border-danger-700 hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-focus-danger active:border-danger-700 active:bg-danger-100 active:text-danger-700",
 			},
 			{
 				appearance: "filled",
@@ -100,7 +100,7 @@ const buttonVariants = cva(
 				appearance: "outlined",
 				priority: "neutral",
 				class:
-					"border-form bg-form text-strong hover:border-neutral-400 hover:bg-form-hover hover:text-strong focus-visible:border-accent-600 focus-visible:ring-focus-accent active:border-neutral-400 active:bg-neutral-500/10 active:text-strong focus-visible:active:border-accent-600",
+					"border-form bg-form text-strong hover:border-neutral-400 hover:bg-form-hover hover:text-strong focus-visible:border-accent-600 focus-visible:ring-focus-accent active:border-neutral-400 active:bg-form-active active:text-strong focus-visible:active:border-accent-600",
 			},
 			{
 				appearance: "filled",

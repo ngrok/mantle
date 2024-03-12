@@ -34,7 +34,7 @@ const selectTriggerVariants = cva(
 				danger:
 					"border-danger-600 focus:border-danger-600 focus:ring-focus-danger aria-expanded:border-danger-600 aria-expanded:ring-focus-danger",
 				default:
-					"borderpform text-strong placeholder:text-placeholder focus:border-accent-600 focus:ring-focus-accent aria-expanded:border-accent-600 aria-expanded:ring-focus-accent",
+					"text-strong placeholder:text-placeholder hover:border-neutral-400 focus:border-accent-600 focus:ring-focus-accent aria-expanded:border-accent-600 aria-expanded:ring-focus-accent",
 			},
 		},
 		defaultVariants: {
