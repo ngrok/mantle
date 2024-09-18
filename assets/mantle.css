@@ -52,8 +52,10 @@
 	--ngrok-grayple-600: 228 11% 34.9%;
 	--ngrok-grayple-700: 230 14% 27.1%;
 	--ngrok-grayple-800: 232 16% 21%;
-	--ngrok-grayple-900: 234 18% 17%;
-	--ngrok-grayple-950: 236 20% 11.5%;
+	--ngrok-grayple-900: 234 17% 17%;
+	--ngrok-grayple-950: 235 18% 14.1%;
+
+	--ngrok-black: 236 19% 9.5%;
 
 	/**
 	* Tailwind palette.
@@ -258,7 +260,7 @@
 
 	/* mantle palette */
 
-	--black: var(--tw-black);
+	--black: var(--ngrok-black);
 	--white: var(--tw-white);
 
 	--gray-50: var(--ngrok-grayple-50);
@@ -625,7 +627,7 @@
 	color-scheme: dark;
 	/* mantle palette (dark) */
 
-	--white: var(--tw-black);
+	--white: var(--ngrok-black);
 	--black: var(--tw-white);
 
 	--gray-50: var(--ngrok-grayple-950);
@@ -846,15 +848,15 @@
 
 	/* elevation tokens */
 
-	--bg-base: var(--neutral-50);
-	--bg-card: var(--neutral-100);
-	--bg-popover: var(--neutral-100);
+	--bg-base: var(--white);
+	--bg-card: var(--neutral-50);
 	--bg-dialog: var(--neutral-50);
+	--bg-popover: var(--neutral-100);
 
-	--bg-base-hover: var(--neutral-100);
-	--bg-card-hover: var(--neutral-200);
-	--bg-popover-hover: var(--neutral-200);
+	--bg-base-hover: var(--neutral-50);
+	--bg-card-hover: var(--neutral-100);
 	--bg-dialog-hover: var(--neutral-100);
+	--bg-popover-hover: var(--neutral-200);
 
 	--border-base: var(--neutral-300);
 	--border-card: var(--neutral-300);

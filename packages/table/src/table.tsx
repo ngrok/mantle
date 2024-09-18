@@ -10,13 +10,15 @@ const Table = forwardRef<HTMLTableElement, HTMLAttributes<HTMLTableElement>>(({ 
 Table.displayName = "Table";
 
 const TableHeader = forwardRef<HTMLTableSectionElement, HTMLAttributes<HTMLTableSectionElement>>(
-	({ className, ...props }, ref) => <thead ref={ref} className={cx("bg-base [&_tr]:border-b", className)} {...props} />,
+	({ className, ...props }, ref) => (
+		<thead ref={ref} className={cx("bg-card [&_tr]:border-b [&_tr]:border-card-muted", className)} {...props} />
+	),
 );
 TableHeader.displayName = "TableHeader";
 
 const TableBody = forwardRef<HTMLTableSectionElement, HTMLAttributes<HTMLTableSectionElement>>(
 	({ className, ...props }, ref) => (
-		<tbody ref={ref} className={cx("[&_tr:last-child]:border-0", className)} {...props} />
+		<tbody ref={ref} className={cx("text-strong [&_tr:last-child]:border-0", className)} {...props} />
 	),
 );
 TableBody.displayName = "TableBody";
@@ -25,7 +27,7 @@ const TableFooter = forwardRef<HTMLTableSectionElement, HTMLAttributes<HTMLTable
 	({ className, ...props }, ref) => (
 		<tfoot
 			ref={ref}
-			className={cx("border-t border-gray-300 bg-gray-50/50 font-medium [&>tr]:last:border-b-0", className)}
+			className={cx("border-t border-card-muted bg-card-hover/60 font-medium [&>tr]:last:border-b-0", className)}
 			{...props}
 		/>
 	),
@@ -36,7 +38,7 @@ const TableRow = forwardRef<HTMLTableRowElement, HTMLAttributes<HTMLTableRowElem
 	({ className, ...props }, ref) => (
 		<tr
 			ref={ref}
-			className={cx("border-b border-gray-300 hover:bg-gray-200/50 data-state-selected:bg-gray-200", className)}
+			className={cx("border-b border-card-muted hover:bg-card-hover data-state-selected:bg-neutral-200", className)}
 			{...props}
 		/>
 	),
@@ -48,7 +50,7 @@ const TableHead = forwardRef<HTMLTableCellElement, ThHTMLAttributes<HTMLTableCel
 		<th
 			ref={ref}
 			className={cx(
-				"text-muted-foreground h-12 px-4 text-left align-middle font-medium [&:has([role=checkbox])]:pr-0",
+				"h-12 px-4 text-left align-middle font-medium text-strong [&:has([role=checkbox])]:pr-0",
 				className,
 			)}
 			{...props}
@@ -66,7 +68,7 @@ TableCell.displayName = "TableCell";
 
 const TableCaption = forwardRef<HTMLTableCaptionElement, HTMLAttributes<HTMLTableCaptionElement>>(
 	({ className, ...props }, ref) => (
-		<caption ref={ref} className={cx("border-t border-gray-300 py-4 text-sm text-gray-500", className)} {...props} />
+		<caption ref={ref} className={cx("border-t border-card-muted py-4 text-sm text-muted", className)} {...props} />
 	),
 );
 TableCaption.displayName = "TableCaption";
