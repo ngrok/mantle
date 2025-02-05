@@ -20,7 +20,6 @@ export const headers: HeadersFunction = () => {
 export default function Page() {
 	return (
 		<div className="space-y-4">
-			<h1 className="text-5xl font-medium">Inline Code</h1>
 			<PageHeader id="inline-code">Inline Code</PageHeader>
 			<p className="font-body text-body text-xl">Marks text to signify a short fragment of inline computer code.</p>
 

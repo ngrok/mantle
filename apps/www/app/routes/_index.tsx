@@ -8,9 +8,10 @@ import {
 	fmtCode,
 } from "@ngrok/mantle/code-block";
 import { InlineCode } from "@ngrok/mantle/inline-code";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@ngrok/mantle/table";
+import { Table, TableBody, TableCell, TableRow } from "@ngrok/mantle/table";
 import type { HeadersFunction, MetaFunction } from "@remix-run/node";
 import { Link } from "~/components/link";
+import { PageHeader } from "~/components/page-header";
 
 export const meta: MetaFunction = () => {
 	return [
@@ -28,7 +29,7 @@ export const headers: HeadersFunction = () => {
 export default function Page() {
 	return (
 		<div>
-			<h1 className="text-5xl font-medium">Mantle</h1>
+			<PageHeader id="mantle">Mantle</PageHeader>
 			<p className="font-weight font-body text-body mt-4 text-xl">
 				Mantle is <Anchor href="https://ngrok.com">ngrok</Anchor>
 				&rsquo;s UI library and design system that powers its front-end.
