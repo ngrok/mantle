@@ -1,0 +1,351 @@
+---
+title: Selectable List
+description: A filterable, virtualized, multi-select list of checkbox rows.
+---
+
+import { Button } from "@ngrok/mantle/button";
+import { SelectableList } from "@ngrok/mantle/selectable-list";
+import { KeyIcon } from "@phosphor-icons/react/Key";
+import { useState } from "react";
+import { Example } from "~/components/example";
+import { PageHeader } from "~/components/page-header";
+
+export const accessKeyOptions = Array.from({ length: 60 }, (_, index) => {
+	const names = [
+		"Onboarding Key",
+		"prod",
+		"staging",
+		"CI deploy",
+		"edge worker",
+		"analytics",
+		"backup",
+		"webhook relay",
+	];
+	const name = names[index % names.length];
+	return {
+		value: `key-${index}`,
+		label: index < names.length ? name : `${name} ${Math.floor(index / names.length) + 1}`,
+		description: `ng-${index.toString(36).padStart(6, "0")}***${(index * 7).toString(36).padStart(4, "0")}`,
+		// A disabled row renders dimmed and can't be toggled or "select all"-ed.
+		disabled: index === 2,
+	};
+});
+
+export const keyOptions = [
+	{ value: "onboarding", label: "Onboarding Key", description: "ng-3FbZthp***xcc3" },
+	{ value: "prod", label: "prod", description: "ng-3FaThZL***8xiA" },
+	{ value: "staging", label: "staging", description: "ng-7HkLmNp***1q2w" },
+	{ value: "ci", label: "CI deploy", description: "ng-9XyZ012***3r4t" },
+	{ value: "edge", label: "edge worker", description: "ng-4QrStUv***5w6x" },
+];
+
+export function SelectableListExample() {
+	const [selected, setSelected] = useState(["key-0", "key-1"]);
+	return (
+		<div className="w-full max-w-md">
+			<SelectableList.Root options={accessKeyOptions} value={selected} onValueChange={setSelected}>
+				<SelectableList.Filter placeholder="Filter access keys…" aria-label="Filter access keys" />
+				<SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+				<SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
+				<SelectableList.Empty>No access keys found.</SelectableList.Empty>
+			</SelectableList.Root>
+			<p className="text-muted mt-3 text-sm">{selected.length} selected</p>
+		</div>
+	);
+}
+
+export function CustomRowsExample() {
+	const [selected, setSelected] = useState(["prod"]);
+	return (
+		<div className="w-full max-w-md">
+			<SelectableList.Root options={keyOptions} value={selected} onValueChange={setSelected}>
+				<SelectableList.Viewport aria-label="Access keys" className="max-h-80">
+					{(option) => (
+						<SelectableList.Item value={option.value}>
+							<div className="flex items-center gap-2">
+								<KeyIcon className="text-muted size-4 shrink-0" weight="duotone" />
+								<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+							</div>
+							<SelectableList.ItemDescription className="ml-6">
+								{option.description}
+							</SelectableList.ItemDescription>
+						</SelectableList.Item>
+					)}
+				</SelectableList.Viewport>
+			</SelectableList.Root>
+		</div>
+	);
+}
+
+export function ControlledExample() {
+	const [selected, setSelected] = useState(["onboarding"]);
+	return (
+		<div className="w-full max-w-md space-y-3">
+			<SelectableList.Root options={keyOptions} value={selected} onValueChange={setSelected}>
+				<SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+				<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
+			</SelectableList.Root>
+			<div className="flex items-center justify-between text-sm">
+				<span className="text-muted">{selected.length} selected</span>
+				<Button
+					type="button"
+					appearance="outlined"
+					priority="neutral"
+					onClick={() => setSelected([])}
+					disabled={selected.length === 0}
+				>
+					Clear
+				</Button>
+			</div>
+		</div>
+	);
+}
+
+export function UncontrolledExample() {
+	return (
+		<div className="w-full max-w-md">
+			<SelectableList.Root options={keyOptions} defaultValue={["prod"]}>
+				<SelectableList.Filter placeholder="Filter access keys…" aria-label="Filter access keys" />
+				<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
+				<SelectableList.Empty>No access keys found.</SelectableList.Empty>
+			</SelectableList.Root>
+		</div>
+	);
+}
+
+<PageHeader id="selectable-list" isPreview>
+	Selectable List
+</PageHeader>
+
+A filterable, virtualized, multi-select list of checkbox rows — the inline (non-popover) counterpart to [`MultiSelect`](/components/multi-select) and [`Combobox`](/components/combobox). Map your data into `options` once; the list owns filtering, virtualization, and selection. The default row is a fully-clickable checkbox with a title and an optional de-emphasized sub-line — or render your own row layout (see [Custom rows](#custom-rows)). The example below has a disabled row (`staging`).
+
+<Example>
+	<SelectableListExample />
+</Example>
+
+```tsx
+import { SelectableList } from "@ngrok/mantle/selectable-list";
+import { useState } from "react";
+
+const options = [
+	{ value: "onboarding", label: "Onboarding Key", description: "ng-3FbZthp***xcc3" },
+	{ value: "prod", label: "prod", description: "ng-3FaThZL***8xiA" },
+	{ value: "staging", label: "staging", description: "ng-7HkLmNp***1q2w", disabled: true },
+];
+
+function Example() {
+	const [selected, setSelected] = useState<string[]>([]);
+
+	return (
+		<SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+			<SelectableList.Filter placeholder="Filter access keys…" aria-label="Filter access keys" />
+			<SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+			<SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
+			<SelectableList.Empty>No access keys found.</SelectableList.Empty>
+		</SelectableList.Root>
+	);
+}
+```
+
+## Composition
+
+`SelectableList` is a compound. `Root` owns selection + filter state and the derived filtered options; the parts below it read from that shared state.
+
+```text showLineNumbers=false
+SelectableList.Root
+├── SelectableList.Filter
+├── SelectableList.SelectAll
+├── SelectableList.Viewport
+│   └── SelectableList.Item              (optional render-prop; auto-rendered by default)
+│       ├── SelectableList.ItemTitle
+│       └── SelectableList.ItemDescription
+└── SelectableList.Empty
+```
+
+- **`Filter`** drives a case-insensitive substring match over each option's `label`. Omit it for a non-filterable list.
+- **`SelectAll`** reflects and toggles the selection of the **currently filtered** options (checked / indeterminate / unchecked), reusing [`selectAllChecked`](/components/checkbox#select-all-helper).
+- **`Viewport`** renders only the rows in view via [`@tanstack/react-virtual`](https://tanstack.com/virtual) as a `<ul role="list">` of `<li>` rows. It's styled like the [`MultiSelect`](/components/multi-select) popover: a bordered, rounded `bg-popover` container whose rows highlight on hover / selection as an inset, rounded pill (the selected row picks up the accent tint, alongside its checked checkbox). The scroll container has a styled `scrollbar` and clips rows against its rounded edge as they scroll. Give it an `aria-label` (or `aria-labelledby`) so the list has an accessible name. **Bound its height** so virtualization engages — pass a `max-h-*` / `h-*` utility, or `min-h-0 flex-1` inside a flex parent (e.g. a `Sheet.Body`); with an auto height it renders every row.
+- **`Empty`** renders its children in place of the viewport when no options match the filter.
+
+Mark an option `disabled` to render its row dimmed and exclude it from toggling and "select all" — the list at the top of this page includes one:
+
+```tsx
+const options = [
+	{ value: "prod", label: "prod", description: "ng-3FaThZL***8xiA" },
+	{ value: "legacy", label: "legacy", description: "ng-1AbCdEf***0000", disabled: true },
+];
+```
+
+## Custom rows
+
+The default row (a title over a description) is a convenience. To render **your own layout**, pass a render-prop child to `SelectableList.Viewport` and compose a `SelectableList.Item` — add icons, badges, anything. `Item` reads its selection and disabled state from the list by `value`, so you only describe the content. `SelectableList.ItemTitle` and `SelectableList.ItemDescription` are optional styled spans that match the default typography.
+
+<Example>
+	<CustomRowsExample />
+</Example>
+
+```tsx
+import { SelectableList } from "@ngrok/mantle/selectable-list";
+import { KeyIcon } from "@phosphor-icons/react/Key";
+import { useState } from "react";
+
+const options = [
+	{ value: "onboarding", label: "Onboarding Key", description: "ng-3FbZthp***xcc3" },
+	{ value: "prod", label: "prod", description: "ng-3FaThZL***8xiA" },
+	{ value: "staging", label: "staging", description: "ng-7HkLmNp***1q2w" },
+];
+
+function Example() {
+	const [selected, setSelected] = useState<string[]>(["prod"]);
+
+	return (
+		<SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+			<SelectableList.Viewport aria-label="Access keys" className="max-h-80">
+				{(option) => (
+					<SelectableList.Item value={option.value}>
+						<div className="flex items-center gap-2">
+							<KeyIcon className="text-muted size-4 shrink-0" weight="duotone" />
+							<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+						</div>
+						<SelectableList.ItemDescription className="ml-6">
+							{option.description}
+						</SelectableList.ItemDescription>
+					</SelectableList.Item>
+				)}
+			</SelectableList.Viewport>
+		</SelectableList.Root>
+	);
+}
+```
+
+Keep row content **non-interactive**, since the whole row is a `<label>`.
+
+> **Why `options` is still data.** `Root` needs the full item set up front because the list virtualizes (off-screen rows unmount) and supports "select all" over the filtered set — neither can be derived from rendered children, since unmounted rows can't report themselves. So `options` is the lightweight **data layer** (a `value`, the filter text, and `disabled`); `Viewport`'s render-prop is the **rendering layer**. For rich rows, look your own data up by `option.value`.
+
+## Controlled
+
+Pass `value` + `onValueChange` to own the selection state — e.g. to show a count and a clear button.
+
+<Example>
+	<ControlledExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { SelectableList } from "@ngrok/mantle/selectable-list";
+import { useState } from "react";
+
+const options = [
+	{ value: "onboarding", label: "Onboarding Key", description: "ng-3FbZthp***xcc3" },
+	{ value: "prod", label: "prod", description: "ng-3FaThZL***8xiA" },
+	{ value: "staging", label: "staging", description: "ng-7HkLmNp***1q2w" },
+];
+
+function Example() {
+	const [selected, setSelected] = useState<string[]>(["onboarding"]);
+
+	return (
+		<div className="space-y-3">
+			<SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+				<SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+				<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
+			</SelectableList.Root>
+			<div className="flex items-center justify-between text-sm">
+				<span className="text-muted">{selected.length} selected</span>
+				<Button
+					type="button"
+					appearance="outlined"
+					priority="neutral"
+					onClick={() => setSelected([])}
+					disabled={selected.length === 0}
+				>
+					Clear
+				</Button>
+			</div>
+		</div>
+	);
+}
+```
+
+## Uncontrolled
+
+Pass `defaultValue` instead and let the list manage selection internally.
+
+<Example>
+	<UncontrolledExample />
+</Example>
+
+```tsx
+import { SelectableList } from "@ngrok/mantle/selectable-list";
+
+const options = [
+	{ value: "onboarding", label: "Onboarding Key", description: "ng-3FbZthp***xcc3" },
+	{ value: "prod", label: "prod", description: "ng-3FaThZL***8xiA" },
+	{ value: "staging", label: "staging", description: "ng-7HkLmNp***1q2w" },
+];
+
+<SelectableList.Root options={options} defaultValue={["prod"]}>
+	<SelectableList.Filter placeholder="Filter access keys…" aria-label="Filter access keys" />
+	<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
+	<SelectableList.Empty>No access keys found.</SelectableList.Empty>
+</SelectableList.Root>;
+```
+
+## Accessibility
+
+The viewport renders a `<ul role="list">` of native checkboxes — provide `aria-label` (or `aria-labelledby`) on `SelectableList.Viewport` so the list has an accessible name. Each row is a `<li>` whose `<label>` wraps a real `<input type="checkbox">`, so clicking anywhere on the row toggles it and the row's text is the checkbox's accessible name. Selection is conveyed by each checkbox's checked state (not `aria-selected`), which is the correct semantic for a multi-select group of checkboxes.
+
+> **Preview / unstable API.** Keyboard support is currently the native checkbox tab order within the rendered window. Roving arrow-key navigation across the full virtualized list is a planned enhancement, so the API may change.
+
+## Helpers
+
+These pure functions back the component and are exported for custom filtering or select-all logic:
+
+- `filterSelectableOptions(options, query)` — case-insensitive substring filter over `label`.
+- `toggleSelectionValue(values, value)` — add/remove a value, returning a new array.
+- `summarizeSelection(options, selected)` — `{ allSelected, someSelected }` (ignoring disabled options), ready for `selectAllChecked`.
+
+## API Reference
+
+### SelectableList.Root
+
+Accepts all `<div>` props, plus:
+
+| Prop             | Type                         | Default | Description                                            |
+| ---------------- | ---------------------------- | ------- | ------------------------------------------------------ |
+| `options`        | `SelectableListOption[]`     |         | The full set of selectable rows.                       |
+| `value?`         | `string[]`                   |         | Controlled selected values. Pair with `onValueChange`. |
+| `defaultValue?`  | `string[]`                   |         | Initial selected values for the uncontrolled case.     |
+| `onValueChange?` | `(values: string[]) => void` |         | Called with the next selection whenever it changes.    |
+
+### SelectableListOption
+
+| Field          | Type        | Description                                                              |
+| -------------- | ----------- | ------------------------------------------------------------------------ |
+| `value`        | `string`    | Stable, unique selection value (flows through `value`/`onValueChange`).  |
+| `label`        | `string`    | Title text; also the text matched by the filter and the accessible name. |
+| `description?` | `ReactNode` | Optional de-emphasized sub-line under the title in the default row.      |
+| `disabled?`    | `boolean`   | Renders the row dimmed and excludes it from toggling and "select all".   |
+
+### SelectableList.Viewport
+
+Accepts all `<div>` props (except `children`, which is the render-prop below), plus:
+
+| Prop                 | Type                                          | Default | Description                                                                                            |
+| -------------------- | --------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------ |
+| `children?`          | `(option: SelectableListOption) => ReactNode` |         | Render-prop for custom row content, called per filtered option. Defaults to a title + description row. |
+| `estimateRowHeight?` | `number`                                      | `54`    | Estimated row height (px) used to seed the virtualizer before measure.                                 |
+
+### SelectableList.Item
+
+A fully-clickable row for custom `Viewport` rendering. Accepts all `<label>` props, plus:
+
+| Prop        | Type        | Default            | Description                                                                               |
+| ----------- | ----------- | ------------------ | ----------------------------------------------------------------------------------------- |
+| `value`     | `string`    |                    | The option's selection value; selection and disabled state are read from the list.        |
+| `disabled?` | `boolean`   | the option's value | Force the row's disabled state. Defaults to the matching option's `disabled`.             |
+| `children`  | `ReactNode` |                    | Row content (e.g. `ItemTitle` + `ItemDescription`, or your own). Must be non-interactive. |
+
+### SelectableList.ItemTitle / SelectableList.ItemDescription
+
+Styled `<span>`s for the title and de-emphasized sub-line inside a custom `SelectableList.Item`. Both accept all `<span>` props. Use them to match the default row's typography, or bring your own elements.

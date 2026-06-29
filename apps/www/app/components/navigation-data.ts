@@ -71,6 +71,8 @@ export const prodReadyComponents = [
 export const previewComponents = [
 	//,
 	"Calendar",
+	"Scrollable List",
+	"Selectable List",
 ] as const;
 
 /** Route lookup for production-ready component pages. */
@@ -135,6 +137,8 @@ export const prodReadyComponentRouteLookup = {
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
 	Calendar: "/components/preview/calendar",
+	"Scrollable List": "/components/preview/scrollable-list",
+	"Selectable List": "/components/preview/selectable-list",
 } as const satisfies Record<(typeof previewComponents)[number], Route>;
 
 /** Welcome section pages. */

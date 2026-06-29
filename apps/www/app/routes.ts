@@ -108,6 +108,8 @@ export default [
 		...docRoute("components/password-input"),
 		...docRoute("components/popover"),
 		...docRoute("components/preview/calendar"),
+		...docRoute("components/preview/scrollable-list"),
+		...docRoute("components/preview/selectable-list"),
 		...docRoute("components/progress-bar"),
 		...docRoute("components/progress-donut"),
 		...docRoute("components/qr-code"),

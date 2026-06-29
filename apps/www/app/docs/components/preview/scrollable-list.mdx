@@ -1,0 +1,339 @@
+---
+title: Scrollable List
+description: A virtualized, scrollable list of clickable rows.
+---
+
+import { cx } from "@ngrok/mantle/cx";
+import { MediaObject } from "@ngrok/mantle/media-object";
+import { ScrollableList } from "@ngrok/mantle/scrollable-list";
+import { BuildingsIcon } from "@phosphor-icons/react/Buildings";
+import { FingerprintIcon } from "@phosphor-icons/react/Fingerprint";
+import { KeyIcon } from "@phosphor-icons/react/Key";
+import { LockKeyIcon } from "@phosphor-icons/react/LockKey";
+import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
+import { useState } from "react";
+import { Example } from "~/components/example";
+import { PageHeader } from "~/components/page-header";
+
+export const accounts = Array.from({ length: 14 }, (_, index) => {
+	const names = [
+		"Cody Price",
+		"cody@ngrok.com",
+		"corp@ngrok.com",
+		"dogfood@ngrok.com",
+		"ngrok eng (dev)",
+		"acme corp",
+		"globex",
+	];
+	const plans = ["All Subscription", "Enterprise Subscription", "Free"];
+	const name = names[index % names.length];
+	return {
+		id: `account-${index}`,
+		name: index < names.length ? name : `${name} ${Math.floor(index / names.length) + 1}`,
+		plan: plans[index % plans.length],
+		memberCount: (index * 7 + 1) % 120,
+	};
+});
+
+export function ScrollableListExample() {
+	const [activeId, setActiveId] = useState("account-2");
+	return (
+		<div className="w-full max-w-md">
+			<ScrollableList.Root aria-label="Your accounts" className="max-h-80">
+				{accounts.map((account) => (
+					<ScrollableList.Item
+						key={account.id}
+						selected={account.id === activeId}
+						onClick={() => setActiveId(account.id)}
+					>
+						<ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+						<ScrollableList.ItemDescription>
+							{account.plan} · {account.memberCount} members
+						</ScrollableList.ItemDescription>
+					</ScrollableList.Item>
+				))}
+			</ScrollableList.Root>
+		</div>
+	);
+}
+
+export const simpleAccounts = [
+	{ id: "personal", name: "Cody Price", plan: "All Subscription" },
+	{ id: "corp", name: "corp@ngrok.com", plan: "Enterprise Subscription" },
+	{ id: "dogfood", name: "dogfood@ngrok.com", plan: "Free" },
+];
+
+export function ScrollableListMinimalExample() {
+	return (
+		<div className="w-full max-w-md">
+			<ScrollableList.Root aria-label="Switch account" className="max-h-80">
+				{simpleAccounts.map((account) => (
+					<ScrollableList.Item key={account.id} onClick={() => {}}>
+						<ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+						<ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
+					</ScrollableList.Item>
+				))}
+			</ScrollableList.Root>
+		</div>
+	);
+}
+
+export function ScrollableListIsolatedExample() {
+	return (
+		<div className="w-full max-w-md">
+			<ul className="border-popover bg-popover scrollbar m-0 max-h-80 list-none overflow-y-auto overflow-x-hidden rounded-md border px-0 py-1">
+				{simpleAccounts.map((account) => (
+					<li key={account.id} className="px-1 pb-px last:pb-0">
+						<button
+							type="button"
+							onClick={() => {}}
+							className={cx(
+								"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
+								"hover:bg-active-menu-item",
+								"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
+							)}
+						>
+							<span className="text-strong font-medium">{account.name}</span>
+							<span className="text-body leading-4">{account.plan}</span>
+						</button>
+					</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+
+export const providers = [
+	{
+		id: "okta",
+		name: "Okta Workforce",
+		owner: "ngrok eng (dev)",
+		Icon: ShieldCheckIcon,
+		tint: "text-blue-600",
+	},
+	{
+		id: "entra",
+		name: "Microsoft Entra ID",
+		owner: "corp@ngrok.com",
+		Icon: BuildingsIcon,
+		tint: "text-sky-500",
+	},
+	{
+		id: "onelogin",
+		name: "OneLogin",
+		owner: "Cody Price",
+		Icon: FingerprintIcon,
+		tint: "text-orange-500",
+	},
+	{
+		id: "google",
+		name: "Google Workspace",
+		owner: "platform@ngrok.com",
+		Icon: KeyIcon,
+		tint: "text-red-500",
+	},
+	{
+		id: "auth0",
+		name: "Auth0",
+		owner: "security@ngrok.com",
+		Icon: LockKeyIcon,
+		tint: "text-violet-600",
+	},
+];
+
+export function ScrollableListLinkExample() {
+	return (
+		<div className="w-full max-w-md">
+			<ScrollableList.Root aria-label="Identity providers" className="max-h-72">
+				{providers.map((provider) => (
+					<ScrollableList.Item key={provider.id} asChild className="py-2.5">
+						<a href={`#${provider.id}`}>
+							<MediaObject.Root className="items-center gap-3">
+								<MediaObject.Media>
+									<provider.Icon weight="duotone" className={cx("size-8", provider.tint)} />
+								</MediaObject.Media>
+								<MediaObject.Content className="flex flex-col gap-0.5">
+									<ScrollableList.ItemTitle>{provider.name}</ScrollableList.ItemTitle>
+									<ScrollableList.ItemDescription>{provider.owner}</ScrollableList.ItemDescription>
+								</MediaObject.Content>
+							</MediaObject.Root>
+						</a>
+					</ScrollableList.Item>
+				))}
+			</ScrollableList.Root>
+		</div>
+	);
+}
+
+<PageHeader id="scrollable-list" isPreview>
+	Scrollable List
+</PageHeader>
+
+A virtualized, scrollable list of clickable rows — the action / navigation counterpart to [`SelectableList`](/components/preview/selectable-list). Compose `ScrollableList.Item` rows directly; each is a `<button>` (with `onClick`) or your own element via `asChild` (e.g. an `<a>`), with an optional `selected` highlight. It shares `SelectableList`'s look — styled like the [`MultiSelect`](/components/multi-select) popover, with rows that highlight on hover / selection as an inset, rounded pill inside a bordered `bg-popover` container — and handles long lists: an account switcher, an SSO provider picker.
+
+<Example>
+	<ScrollableListExample />
+</Example>
+
+```tsx
+import { ScrollableList } from "@ngrok/mantle/scrollable-list";
+import { useState } from "react";
+
+function Example() {
+	const [activeId, setActiveId] = useState("account-2");
+
+	return (
+		<ScrollableList.Root aria-label="Your accounts" className="max-h-80">
+			{accounts.map((account) => (
+				<ScrollableList.Item
+					key={account.id}
+					selected={account.id === activeId}
+					onClick={() => setActiveId(account.id)}
+				>
+					<ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+					<ScrollableList.ItemDescription>
+						{account.plan} · {account.memberCount} members
+					</ScrollableList.ItemDescription>
+				</ScrollableList.Item>
+			))}
+		</ScrollableList.Root>
+	);
+}
+```
+
+A minimal version — three rows, no `selected` state:
+
+<Example>
+	<ScrollableListMinimalExample />
+</Example>
+
+```tsx
+import { ScrollableList } from "@ngrok/mantle/scrollable-list";
+
+const accounts = [
+	{ id: "personal", name: "Cody Price", plan: "All Subscription" },
+	{ id: "corp", name: "corp@ngrok.com", plan: "Enterprise Subscription" },
+	{ id: "dogfood", name: "dogfood@ngrok.com", plan: "Free" },
+];
+
+<ScrollableList.Root aria-label="Switch account" className="max-h-80">
+	{accounts.map((account) => (
+		<ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>
+			<ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+			<ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
+		</ScrollableList.Item>
+	))}
+</ScrollableList.Root>;
+```
+
+The same three rows hand-built without `ScrollableList` — same chrome, no virtualization (fine for short, static lists):
+
+<Example>
+	<ScrollableListIsolatedExample />
+</Example>
+
+```tsx
+import { cx } from "@ngrok/mantle/cx";
+
+const accounts = [
+	{ id: "personal", name: "Cody Price", plan: "All Subscription" },
+	{ id: "corp", name: "corp@ngrok.com", plan: "Enterprise Subscription" },
+	{ id: "dogfood", name: "dogfood@ngrok.com", plan: "Free" },
+];
+
+<ul className="border-popover bg-popover scrollbar m-0 max-h-80 list-none overflow-y-auto overflow-x-hidden rounded-md border px-0 py-1">
+	{accounts.map((account) => (
+		<li key={account.id} className="px-1 pb-px last:pb-0">
+			<button
+				type="button"
+				onClick={() => switchTo(account.id)}
+				className={cx(
+					"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
+					"hover:bg-active-menu-item",
+					"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
+				)}
+			>
+				<span className="text-strong font-medium">{account.name}</span>
+				<span className="text-body leading-4">{account.plan}</span>
+			</button>
+		</li>
+	))}
+</ul>;
+```
+
+## Composition
+
+```text showLineNumbers=false
+ScrollableList.Root
+└── ScrollableList.Item
+    ├── ScrollableList.ItemTitle
+    └── ScrollableList.ItemDescription
+```
+
+- **`Root`** virtualizes its `Item` children and renders the rounded, scrollable `bg-popover` container. Reads each item's `selected` / `disabled` to style its row. **Bound its height** (`max-h-*`, `h-*`, or `min-h-0 flex-1` in a flex parent) so virtualization engages; with an auto height it renders every row.
+- **`Item`** is a clickable row — a `<button>` by default (`onClick`), or your own element via `asChild`. `selected` gives the tinted pill.
+- **`ItemTitle` / `ItemDescription`** are optional styled spans for the emphasized title and de-emphasized sub-line.
+
+## Navigation rows with `asChild`
+
+Render rows as links by passing `asChild` and an `<a>` — the row chrome (hover pill, focus ring) applies to your element, so clicking navigates. Rows compose freely: each one here is a [`MediaObject`](/components/media-object) with the provider icon on the left and the name over a de-emphasized owner on the right — an SSO identity-provider picker, as a list rather than a stack of cards.
+
+<Example>
+	<ScrollableListLinkExample />
+</Example>
+
+```tsx
+import { cx } from "@ngrok/mantle/cx";
+import { MediaObject } from "@ngrok/mantle/media-object";
+import { ScrollableList } from "@ngrok/mantle/scrollable-list";
+
+<ScrollableList.Root aria-label="Identity providers" className="max-h-72">
+	{providers.map((provider) => (
+		<ScrollableList.Item key={provider.id} asChild className="py-2.5">
+			<a href={`/sso/${provider.id}`}>
+				<MediaObject.Root className="items-center gap-3">
+					<MediaObject.Media>
+						<provider.Icon weight="duotone" className={cx("size-8", provider.tint)} />
+					</MediaObject.Media>
+					<MediaObject.Content className="flex flex-col gap-0.5">
+						<ScrollableList.ItemTitle>{provider.name}</ScrollableList.ItemTitle>
+						<ScrollableList.ItemDescription>{provider.owner}</ScrollableList.ItemDescription>
+					</MediaObject.Content>
+				</MediaObject.Root>
+			</a>
+		</ScrollableList.Item>
+	))}
+</ScrollableList.Root>;
+```
+
+## Accessibility
+
+The list is a `<ul role="list">` of `<li>` rows; each `Item` is a focusable `<button>` (or your `asChild` element). Provide an `aria-label` (or `aria-labelledby`) on `ScrollableList.Root` so the list has an accessible name. Disabled rows set the control's `disabled` (button) or `aria-disabled` (`asChild`) and are dimmed.
+
+> **Preview / unstable API.** Keyboard support is the native tab order of the rendered rows; roving arrow-key navigation across the full virtualized list is a planned enhancement, so the API may change.
+
+## API Reference
+
+### ScrollableList.Root
+
+Accepts all `<div>` props, plus:
+
+| Prop       | Type        | Default | Description                                            |
+| ---------- | ----------- | ------- | ------------------------------------------------------ |
+| `children` | `ReactNode` |         | `ScrollableList.Item` rows. The list virtualizes them. |
+
+Bound the height (e.g. `className="max-h-80"`) so virtualization engages.
+
+### ScrollableList.Item
+
+A clickable row. Accepts all `<button>` props (minus `type`), plus:
+
+| Prop        | Type      | Default | Description                                                                           |
+| ----------- | --------- | ------- | ------------------------------------------------------------------------------------- |
+| `selected?` | `boolean` | `false` | Marks the row selected/active (tinted pill). Omit for a plain action/navigation list. |
+| `disabled?` | `boolean` | `false` | Disables the row (dimmed; `disabled` on the button, `aria-disabled` when `asChild`).  |
+| `asChild?`  | `boolean` | `false` | Render the row as the provided child element (e.g. an `<a>`) instead of a `<button>`. |
+
+### ScrollableList.ItemTitle / ScrollableList.ItemDescription
+
+Styled `<span>`s for the title and de-emphasized sub-line inside an `Item`. Both accept all `<span>` props.
