@@ -387,7 +387,7 @@
 		"typecheck": "tsgo"
 	},
 	"dependencies": {
-		"@ariakit/react": "0.4.29",
+		"@ariakit/react": "0.4.31",
 		"@headlessui/react": "2.2.10",
 		"@radix-ui/react-dialog": "1.1.17",
 		"@radix-ui/react-dropdown-menu": "2.1.18",
