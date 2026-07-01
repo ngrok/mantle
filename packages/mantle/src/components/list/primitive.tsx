@@ -111,20 +111,25 @@ const GridNavContext = createContext<GridNavContextValue | null>(null);
 /**
  * Scroll-viewport chrome — a bordered, rounded `bg-popover` box that rows scroll
  * inside of and clip against, styled after the `MultiSelect` popover (minus its
- * shadow). **Bound its height** (`max-h-*`, `h-*`, or `min-h-0 flex-1`) so a
- * `VirtualRoot` has a viewport to measure.
+ * shadow). The `p-1` inset (rather than `px-1` on the collection) is what gives
+ * every row's rounded pill its breathing room from the border: it insets the
+ * collection itself, so a `VirtualRoot`'s absolutely-positioned rows — whose
+ * `left: 0` / `width: 100%` resolve against the collection's *padding* box —
+ * clear the border by the same amount as a plain `Root`'s in-flow rows.
+ * **Bound its height** (`max-h-*`, `h-*`, or `min-h-0 flex-1`) so a `VirtualRoot`
+ * has a viewport to measure.
  */
 const listViewportClassName =
-	"border-popover bg-popover scrollbar overscroll-none overflow-x-hidden overflow-y-auto rounded-md border py-1";
+	"border-popover bg-popover scrollbar overscroll-none overflow-x-hidden overflow-y-auto rounded-md border p-1";
 
 /**
  * Collection chrome (the `role="list"` / `role="grid"` element). `relative`
- * anchors the absolutely-positioned rows a `VirtualRoot` emits; `px-1` insets
- * the rows so their rounded pills clear the viewport border. `outline-hidden`
- * hides the focus ring on the (focusable) grid container — the active *row*
- * shows the ring instead.
+ * anchors the absolutely-positioned rows a `VirtualRoot` emits; the row inset
+ * lives on the viewport (see {@link listViewportClassName}) so in-flow and
+ * windowed rows clear the border identically. `outline-hidden` hides the focus
+ * ring on the (focusable) grid container — the active *row* shows the ring instead.
  */
-const listCollectionClassName = "relative w-full px-1 outline-hidden";
+const listCollectionClassName = "relative w-full outline-hidden";
 
 /**
  * Row pill chrome — the inset, rounded surface that tints on hover / selection
