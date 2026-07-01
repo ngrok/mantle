@@ -103,16 +103,18 @@ VirtualRow.displayName = "ListVirtualRow";
  * `aria-setsize`, and `overscan` keeps the active row mounted. **Bound the
  * height** so the virtualizer has a viewport to measure.
  *
+ * @see https://mantle.ngrok.com/components/list
+ *
  * @example
  * ```tsx
- * <VirtualRoot semantics="grid" aria-label="Access keys" className="max-h-80" onActivate={toggleByIndex}>
+ * <List.VirtualRoot semantics="grid" aria-label="Access keys" className="max-h-80" onActivate={toggleByIndex}>
  *   {keys.map((key) => (
- *     <Row key={key.id} selected={selected.has(key.id)}>
+ *     <List.Row key={key.id} selected={selected.has(key.id)}>
  *       <div role="gridcell"><Checkbox checked={selected.has(key.id)} tabIndex={-1} /></div>
  *       <div role="gridcell">{key.name}</div>
- *     </Row>
+ *     </List.Row>
  *   ))}
- * </VirtualRoot>
+ * </List.VirtualRoot>
  * ```
  */
 const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(

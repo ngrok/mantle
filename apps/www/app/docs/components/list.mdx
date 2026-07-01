@@ -1,0 +1,287 @@
+---
+title: List
+description: The low-level scroll + row primitive behind Scrollable List and Selectable List.
+---
+
+import { cx } from "@ngrok/mantle/cx";
+import { List } from "@ngrok/mantle/list";
+import { useState } from "react";
+import { Example } from "~/components/example";
+import { PageHeader } from "~/components/page-header";
+
+export const environments = [
+	{ id: "prod", name: "Production", region: "us-east-1" },
+	{ id: "staging", name: "Staging", region: "us-west-2" },
+	{ id: "dev", name: "Development", region: "eu-central-1" },
+	{ id: "preview", name: "Preview", region: "ap-south-1" },
+];
+
+export function BasicListExample() {
+	const [activeId, setActiveId] = useState("staging");
+	return (
+		<div className="w-full max-w-md">
+			<List.Root semantics="list" aria-label="Environments" className="max-h-80">
+				{environments.map((environment) => (
+					<List.Row key={environment.id} selected={environment.id === activeId}>
+						<button
+							type="button"
+							onClick={() => setActiveId(environment.id)}
+							className={cx(
+								"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
+								"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
+							)}
+						>
+							<span className="text-strong font-medium">{environment.name}</span>
+							<span className="text-body leading-4">{environment.region}</span>
+						</button>
+					</List.Row>
+				))}
+			</List.Root>
+		</div>
+	);
+}
+
+export function PolymorphismExample() {
+	return (
+		<div className="w-full max-w-md">
+			<List.Root semantics="list" aria-label="Environments" className="max-h-80">
+				{environments.map((environment) => (
+					<List.Row key={environment.id}>
+						<a
+							href={`#${environment.id}`}
+							className={cx(
+								"flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-sm no-underline",
+								"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
+							)}
+						>
+							<span className="text-strong font-medium">{environment.name}</span>
+							<span className="text-body leading-4">{environment.region}</span>
+						</a>
+					</List.Row>
+				))}
+			</List.Root>
+		</div>
+	);
+}
+
+export const manyEnvironments = Array.from({ length: 60 }, (_, index) => ({
+	id: `env-${index}`,
+	name: `Environment ${index + 1}`,
+	region: ["us-east-1", "us-west-2", "eu-central-1", "ap-south-1"][index % 4],
+}));
+
+export function VirtualExample() {
+	const [activeId, setActiveId] = useState("env-2");
+	return (
+		<div className="w-full max-w-md">
+			<List.VirtualRoot semantics="list" aria-label="Environments" className="max-h-80">
+				{manyEnvironments.map((environment) => (
+					<List.Row key={environment.id} selected={environment.id === activeId}>
+						<button
+							type="button"
+							onClick={() => setActiveId(environment.id)}
+							className={cx(
+								"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
+								"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
+							)}
+						>
+							<span className="text-strong font-medium">{environment.name}</span>
+							<span className="text-body leading-4">{environment.region}</span>
+						</button>
+					</List.Row>
+				))}
+			</List.VirtualRoot>
+		</div>
+	);
+}
+
+<PageHeader id="list">List</PageHeader>
+
+The low-level scroll + row **primitive** behind [`ScrollableList`](/components/scrollable-list) and [`SelectableList`](/components/selectable-list): the bordered, rounded `bg-popover` viewport (styled after the [`MultiSelect`](/components/multi-select) popover) and its hover / selected row pills, plus the ARIA wiring. It is composition-based — compose `List.Row` children under a `List.Root` (or the windowed `List.VirtualRoot`) and keep state on the rows.
+
+Reach for it directly only when neither higher-level component fits. **Most lists want `ScrollableList`** (an action / navigation list) **or `SelectableList`** (a multi-select checkbox grid) — they layer data, filtering, and selection on top of this primitive. Use `List` when you need the shared chrome with your own state and layout.
+
+<Example>
+	<BasicListExample />
+</Example>
+
+```tsx
+import { cx } from "@ngrok/mantle/cx";
+import { List } from "@ngrok/mantle/list";
+import { useState } from "react";
+
+const environments = [
+	{ id: "prod", name: "Production", region: "us-east-1" },
+	{ id: "staging", name: "Staging", region: "us-west-2" },
+	{ id: "dev", name: "Development", region: "eu-central-1" },
+];
+
+function Example() {
+	const [activeId, setActiveId] = useState("staging");
+
+	return (
+		<List.Root semantics="list" aria-label="Environments" className="max-h-80">
+			{environments.map((environment) => (
+				<List.Row key={environment.id} selected={environment.id === activeId}>
+					<button
+						type="button"
+						onClick={() => setActiveId(environment.id)}
+						className={cx(
+							"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
+							"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
+						)}
+					>
+						<span className="text-strong font-medium">{environment.name}</span>
+						<span className="text-body leading-4">{environment.region}</span>
+					</button>
+				</List.Row>
+			))}
+		</List.Root>
+	);
+}
+```
+
+## Composition
+
+`List` is a compound. `List.Root` (or `List.VirtualRoot`) renders the scroll viewport and its `List.Row` children; each row owns its own content and state.
+
+```text showLineNumbers=false
+List.Root                          (or List.VirtualRoot)
+└── List.Row
+    └── (your row content — a button, gridcells, a link, …)
+```
+
+- **`Root`** renders the bordered, rounded `bg-popover` viewport and its `Row` children in normal flow — the non-virtualized default. **Bound its height** (`max-h-*`, `h-*`, or `min-h-0 flex-1` in a flex parent) so long lists scroll.
+- **`VirtualRoot`** is the drop-in windowed variant — same `Row` children, only the visible slice mounted via [`@tanstack/react-virtual`](https://tanstack.com/virtual). See [Virtualization](#virtualization).
+- **`Row`** is a single row — a `<div>` pill that tints on hover / when `selected`. It takes its ARIA shape from the root's `semantics` (see [Semantics](#semantics)) and supports `asChild` (see [Polymorphism](#polymorphism)). Give each a React `key`.
+
+## Semantics
+
+`Root` and `VirtualRoot` take a `semantics` prop that chooses the collection's ARIA shape — the tag stays a `<div>` (per WAI-ARIA the _role_, not the tag, carries the semantics), so both flavors share one implementation.
+
+- **`"list"`** (the default) renders a `role="list"` of `role="listitem"` rows: a non-selecting list of actions or links with native tab order and no roving. This is what [`ScrollableList`](/components/scrollable-list) uses.
+- **`"grid"`** renders a `role="grid"` of `role="row"` rows carrying `aria-selected`, driven as a single tab stop with `aria-activedescendant` navigation that works across a virtualized window. Pass `onActivate` to react to `Space` / `Enter` on the active row, and `rowId` to point `aria-activedescendant` at a real element you own (e.g. a row's checkbox). This is what [`SelectableList`](/components/selectable-list) uses.
+
+## Polymorphism
+
+`List.Row` accepts `asChild` to render as your own element instead of a `<div>`, keeping the pill chrome and the selection wiring. Render it as an `<a>` for a navigation row, for example — the whole pill becomes the link.
+
+<Example>
+	<PolymorphismExample />
+</Example>
+
+```tsx
+import { cx } from "@ngrok/mantle/cx";
+import { List } from "@ngrok/mantle/list";
+
+const environments = [
+	{ id: "prod", name: "Production", region: "us-east-1" },
+	{ id: "staging", name: "Staging", region: "us-west-2" },
+	{ id: "dev", name: "Development", region: "eu-central-1" },
+];
+
+function Example() {
+	return (
+		<List.Root semantics="list" aria-label="Environments" className="max-h-80">
+			{environments.map((environment) => (
+				<List.Row key={environment.id}>
+					<a
+						href={`/environments/${environment.id}`}
+						className={cx(
+							"flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-sm no-underline",
+							"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
+						)}
+					>
+						<span className="text-strong font-medium">{environment.name}</span>
+						<span className="text-body leading-4">{environment.region}</span>
+					</a>
+				</List.Row>
+			))}
+		</List.Root>
+	);
+}
+```
+
+## Virtualization
+
+`List.Root` renders every row. For a long collection (hundreds+), swap in `List.VirtualRoot`: it windows the same `Row` children via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. The call site is otherwise identical — same children, same props — so opting in never changes how you author the list. **Bound its height** so the virtualizer has a viewport to measure. The example below has 60 rows; scroll to see them mount and unmount.
+
+<Example>
+	<VirtualExample />
+</Example>
+
+```tsx
+import { cx } from "@ngrok/mantle/cx";
+import { List } from "@ngrok/mantle/list";
+import { useState } from "react";
+
+const environments = Array.from({ length: 60 }, (_, index) => ({
+	id: `env-${index}`,
+	name: `Environment ${index + 1}`,
+	region: ["us-east-1", "us-west-2", "eu-central-1", "ap-south-1"][index % 4],
+}));
+
+// `VirtualRoot` is a drop-in for `Root` — same `Row` children, same props.
+function Example() {
+	const [activeId, setActiveId] = useState("env-2");
+
+	return (
+		<List.VirtualRoot semantics="list" aria-label="Environments" className="max-h-80">
+			{environments.map((environment) => (
+				<List.Row key={environment.id} selected={environment.id === activeId}>
+					<button
+						type="button"
+						onClick={() => setActiveId(environment.id)}
+						className={cx(
+							"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
+							"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
+						)}
+					>
+						<span className="text-strong font-medium">{environment.name}</span>
+						<span className="text-body leading-4">{environment.region}</span>
+					</button>
+				</List.Row>
+			))}
+		</List.VirtualRoot>
+	);
+}
+```
+
+> **Windowing trade-off.** Off-screen rows aren't in the DOM, so Tab and browser find-in-page only reach mounted rows. Grid keyboard navigation still spans the full collection (arrows move the active row and scroll it into view), because focus stays on the collection via `aria-activedescendant` rather than on a row that could unmount.
+
+## Accessibility
+
+Name the collection with `aria-label` (or `aria-labelledby`) on `Root` / `VirtualRoot`. Under `"list"` semantics the rows are a `role="list"` / `role="listitem"` structure with native tab order — put your own focusable control (a `<button>` or an `asChild` `<a>`) inside each row. Under `"grid"` semantics the collection is a single tab stop: `Arrow` / `Home` / `End` move an active row tracked with `aria-activedescendant` (so focus never rides a row and navigation survives virtualization), and `Space` / `Enter` fires `onActivate`. Windowed rows also carry `aria-posinset` / `aria-setsize` so screen-reader counts stay true.
+
+## API Reference
+
+### List.Root
+
+The non-virtualized collection. Accepts all `<div>` props, plus:
+
+| Prop          | Type                        | Default  | Description                                                                                               |
+| ------------- | --------------------------- | -------- | --------------------------------------------------------------------------------------------------------- |
+| `semantics?`  | `"list" \| "grid"`          | `"list"` | ARIA shape for the collection and its rows.                                                               |
+| `onActivate?` | `(index: number) => void`   |          | Called with the active row's index when it is activated by keyboard (`Space` / `Enter`) under `grid`.     |
+| `rowId?`      | `(index: number) => string` |          | The DOM id `aria-activedescendant` resolves to for a row index. Override to reference an element you own. |
+
+Bound the height (e.g. `className="max-h-80"`) so long lists scroll.
+
+### List.VirtualRoot
+
+The windowed collection — same surface as `Root` (compose the same `Row` children), plus the virtualizer knobs:
+
+| Prop                 | Type     | Default | Description                                                            |
+| -------------------- | -------- | ------- | ---------------------------------------------------------------------- |
+| `estimateRowHeight?` | `number` | `44`    | Estimated row height (px) used to seed the virtualizer before measure. |
+| `overscan?`          | `number` | `8`     | Rows rendered beyond the visible window on each side.                  |
+
+### List.Row
+
+A single row. Accepts all `<div>` props (minus `role`, owned by the collection), plus:
+
+| Prop        | Type      | Default | Description                                                                        |
+| ----------- | --------- | ------- | ---------------------------------------------------------------------------------- |
+| `selected?` | `boolean` | `false` | Tints the pill and, under `grid` semantics, sets `aria-selected`.                  |
+| `disabled?` | `boolean` | `false` | Suppresses the hover tint.                                                         |
+| `asChild?`  | `boolean` | `false` | Render the row as the provided child element (e.g. an `<a>`) instead of a `<div>`. |

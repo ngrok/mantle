@@ -296,6 +296,15 @@ Compose the parts of a `<ComponentName>` together to build your own:
 <Description of the component and its props>
 ```
 
+### Examples must be complete and live
+
+Every runnable code example on a docs page MUST satisfy **both** of these — no exceptions, and it applies to every example on the page (the primary one and every secondary one: variants, virtualization, controlled/uncontrolled, polymorphism, etc.):
+
+1. **A live `<Example>` directly above the code block.** Each `tsx`/`jsx` code block that shows usage MUST be immediately preceded by an `<Example>` block that renders that exact usage, so the behavior is visible and interactive in the rendered docs. Define the demo as an `export function <Name>Example() { … }` above the page body and render it inside `<Example><Name>Example /></Example>`. Never ship a usage code block with no live example above it.
+2. **Complete, self-contained code.** The code block must show a full component or render — not a fragment. Define any data, props, state, or handlers it references either inline in the block or in the page's module scope alongside the other examples (a small inline array is fine, and referencing a page-level `const accounts = […]` is fine — that matches existing docs like `multi-select`). Never reference an identifier that appears nowhere on the page (e.g. an undefined `switchTo` — either define it or use a real handler / `() => {}` placeholder). Do **not** write "only this line changes" diff snippets or bare config fragments; write the whole example and let the reader diff it themselves.
+
+Both humans and LLMs consume these pages, so a complete + live example is the difference between guessing and composing correctly. Keep the live `<Example>` and its code block in sync — they should show the same thing. (The live example may use a larger generated dataset for a realistic demo, but the code block must still stand alone.)
+
 For compound components, include a `## Composition` section (as shown above) before `## API Reference` with an ASCII tree showing how the parts nest. Use a `text showLineNumbers=false` fence so the tree renders as plain copy-friendly art. Use real Unicode chars (`├` `─` `└` `│`) and 4-char per-level indentation. The tree here should match the one in the top-level namespace JSDoc.
 
 For simple components with no sub-parts, omit the `## Composition` section — there is no tree to draw.

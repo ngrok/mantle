@@ -113,6 +113,39 @@ export function UncontrolledExample() {
 	);
 }
 
+export const disabledOptions = [
+	{ value: "prod", label: "prod", description: "ng-3FaThZL***8xiA" },
+	{ value: "staging", label: "staging", description: "ng-7HkLmNp***1q2w" },
+	// A disabled row renders dimmed and can't be toggled or "select all"-ed.
+	{ value: "legacy", label: "legacy", description: "ng-1AbCdEf***0000", disabled: true },
+];
+
+export function DisabledRowExample() {
+	const [selected, setSelected] = useState(["prod"]);
+	return (
+		<div className="w-full max-w-md">
+			<SelectableList.Root options={disabledOptions} value={selected} onValueChange={setSelected}>
+				<SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+				<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
+			</SelectableList.Root>
+		</div>
+	);
+}
+
+export function VirtualViewportExample() {
+	const [selected, setSelected] = useState(["key-0", "key-1"]);
+	return (
+		<div className="w-full max-w-md">
+			<SelectableList.Root options={accessKeyOptions} value={selected} onValueChange={setSelected}>
+				<SelectableList.Filter placeholder="Filter access keys…" aria-label="Filter access keys" />
+				<SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+				<SelectableList.VirtualViewport aria-label="Access keys" className="max-h-80" />
+				<SelectableList.Empty>No access keys found.</SelectableList.Empty>
+			</SelectableList.Root>
+		</div>
+	);
+}
+
 <PageHeader id="selectable-list">Selectable List</PageHeader>
 
 A filterable, multi-select **grid** of checkbox rows — the inline (non-popover) counterpart to [`MultiSelect`](/components/multi-select) and [`Combobox`](/components/combobox). Map your data into `options` once; the list owns filtering and selection. Each row is an APG grid `role="row"` (`aria-selected`) whose cells hold a real [`Checkbox`](/components/checkbox) and a [`Choice`](/components/choice)-laid-out title + description — the pattern that lets a selectable row carry a real control and its own interactive content. The default row is fully click-to-toggle with a title and an optional de-emphasized sub-line — or render your own layout (see [Custom rows](#custom-rows)). It renders every row by default; for long lists, swap `Viewport` → [`VirtualViewport`](#virtualization). The example below has a disabled row (`staging`).
@@ -166,13 +199,33 @@ SelectableList.Root
 - **`VirtualViewport`** is the drop-in windowed variant — same rows and props, only the visible slice mounted. See [Virtualization](#virtualization).
 - **`Empty`** renders its children in place of the viewport when no options match the filter.
 
-Mark an option `disabled` to render its row dimmed and exclude it from toggling and "select all" — the list at the top of this page includes one:
+Mark an option `disabled` to render its row dimmed and exclude it from toggling and "select all" (the `legacy` row below, and one in the list at the top of this page):
+
+<Example>
+	<DisabledRowExample />
+</Example>
 
 ```tsx
+import { SelectableList } from "@ngrok/mantle/selectable-list";
+import { useState } from "react";
+
 const options = [
 	{ value: "prod", label: "prod", description: "ng-3FaThZL***8xiA" },
+	{ value: "staging", label: "staging", description: "ng-7HkLmNp***1q2w" },
+	// A disabled row renders dimmed and can't be toggled or "select all"-ed.
 	{ value: "legacy", label: "legacy", description: "ng-1AbCdEf***0000", disabled: true },
 ];
+
+function Example() {
+	const [selected, setSelected] = useState<string[]>(["prod"]);
+
+	return (
+		<SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+			<SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+			<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
+		</SelectableList.Root>
+	);
+}
 ```
 
 ## Custom rows
@@ -223,11 +276,29 @@ The whole row is click-to-toggle, but it is **not** a `<label>` — it's a grid 
 
 ## Virtualization
 
-`SelectableList.Viewport` renders every filtered row. For a large option set (hundreds+), swap in `SelectableList.VirtualViewport`: it windows the rows via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. Same props, same render-prop — only the tag changes — and `@tanstack/react-virtual` is pulled into your bundle only when you use it.
+`SelectableList.Viewport` renders every filtered row. For a large option set (hundreds+), swap in `SelectableList.VirtualViewport`: it windows the rows via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. Same props, same render-prop — only the tag changes — and `@tanstack/react-virtual` is pulled into your bundle only when you use it. The example below has 60 options; scroll to see rows mount and unmount.
+
+<Example>
+	<VirtualViewportExample />
+</Example>
 
 ```tsx
-// Only this line changes to virtualize:
-<SelectableList.VirtualViewport aria-label="Access keys" className="max-h-80" />
+import { SelectableList } from "@ngrok/mantle/selectable-list";
+import { useState } from "react";
+
+// `VirtualViewport` is a drop-in for `Viewport` — same props, same render-prop.
+function Example() {
+	const [selected, setSelected] = useState<string[]>([]);
+
+	return (
+		<SelectableList.Root options={accessKeyOptions} value={selected} onValueChange={setSelected}>
+			<SelectableList.Filter placeholder="Filter access keys…" aria-label="Filter access keys" />
+			<SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+			<SelectableList.VirtualViewport aria-label="Access keys" className="max-h-80" />
+			<SelectableList.Empty>No access keys found.</SelectableList.Empty>
+		</SelectableList.Root>
+	);
+}
 ```
 
 > **Windowing trade-off.** Keyboard grid navigation still works across the **full** list — arrows move the active row and scroll it into view (`aria-activedescendant` + `aria-setsize`/`aria-posinset` keep screen-reader counts true). What windowing does cost: browser find-in-page (Ctrl/⌘-F) only searches mounted rows, and there's no per-checkbox Tab stop. The right trade for a large enough list; prefer `Viewport` until a list is actually long.

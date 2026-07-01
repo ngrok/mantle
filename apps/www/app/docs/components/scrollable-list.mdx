@@ -57,6 +57,28 @@ export function ScrollableListExample() {
 	);
 }
 
+export function ScrollableListVirtualExample() {
+	const [activeId, setActiveId] = useState("account-2");
+	return (
+		<div className="w-full max-w-md">
+			<ScrollableList.VirtualViewport aria-label="Your accounts" className="max-h-80">
+				{accounts.map((account) => (
+					<ScrollableList.Item
+						key={account.id}
+						selected={account.id === activeId}
+						onClick={() => setActiveId(account.id)}
+					>
+						<ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+						<ScrollableList.ItemDescription>
+							{account.plan} · {account.memberCount} members
+						</ScrollableList.ItemDescription>
+					</ScrollableList.Item>
+				))}
+			</ScrollableList.VirtualViewport>
+		</div>
+	);
+}
+
 export const simpleAccounts = [
 	{ id: "personal", name: "Cody Price", plan: "All Subscription" },
 	{ id: "corp", name: "corp@ngrok.com", plan: "Enterprise Subscription" },
@@ -216,7 +238,7 @@ const accounts = [
 
 <ScrollableList.Viewport aria-label="Switch account" className="max-h-80">
 	{accounts.map((account) => (
-		<ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>
+		<ScrollableList.Item key={account.id} onClick={() => {}}>
 			<ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
 			<ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
 		</ScrollableList.Item>
@@ -244,7 +266,7 @@ const accounts = [
 		<li key={account.id} className="px-1 pb-px last:pb-0">
 			<button
 				type="button"
-				onClick={() => switchTo(account.id)}
+				onClick={() => {}}
 				className={cx(
 					"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
 					"hover:bg-active-menu-item",
@@ -277,20 +299,40 @@ ScrollableList.Viewport        (or .VirtualViewport)
 
 `ScrollableList.Viewport` renders every row — simplest, and right for the short lists most action/navigation menus are. For a long list (hundreds+ of rows), swap in `ScrollableList.VirtualViewport`: it windows the same `Item` children via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. The call site is otherwise identical — same children, same props — and `@tanstack/react-virtual` is only pulled into your bundle when you use `VirtualViewport`.
 
+<Example>
+	<ScrollableListVirtualExample />
+</Example>
+
 ```tsx
-// Only this line changes to virtualize:
-<ScrollableList.VirtualViewport aria-label="Your accounts" className="max-h-80">
-	{accounts.map((account) => (
-		<ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>
-			<ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
-		</ScrollableList.Item>
-	))}
-</ScrollableList.VirtualViewport>
+import { ScrollableList } from "@ngrok/mantle/scrollable-list";
+import { useState } from "react";
+
+// `VirtualViewport` is a drop-in for `Viewport` — same `Item` children, same props.
+function Example() {
+	const [activeId, setActiveId] = useState("account-2");
+
+	return (
+		<ScrollableList.VirtualViewport aria-label="Your accounts" className="max-h-80">
+			{accounts.map((account) => (
+				<ScrollableList.Item
+					key={account.id}
+					selected={account.id === activeId}
+					onClick={() => setActiveId(account.id)}
+				>
+					<ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+					<ScrollableList.ItemDescription>
+						{account.plan} · {account.memberCount} members
+					</ScrollableList.ItemDescription>
+				</ScrollableList.Item>
+			))}
+		</ScrollableList.VirtualViewport>
+	);
+}
 ```
 
 > **Windowing trade-off.** Off-screen rows aren't in the DOM, so Tab and browser find-in-page only reach mounted rows — the right trade for a large enough list. Prefer `Viewport` until a list is actually long.
 
-## Navigation rows with `asChild`
+## Polymorphism
 
 Render rows as links by passing `asChild` and an `<a>` — the row chrome (hover pill, focus ring) applies to your element, so clicking navigates. Rows compose freely: each one here is a [`MediaObject`](/components/media-object) with the provider icon on the left and the name over a de-emphasized owner on the right — an SSO identity-provider picker, as a list rather than a stack of cards.
 

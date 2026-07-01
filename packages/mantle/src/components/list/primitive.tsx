@@ -270,16 +270,18 @@ type ListRowProps = Omit<ComponentProps<"div">, "role"> &
  * `VirtualRoot`. Owns the pill chrome and the selected/disabled data attributes;
  * in a grid it also carries the `aria-activedescendant` id and active-row ring,
  * and — when windowed — the absolute placement, measure ref, and
- * `aria-posinset` / `aria-setsize`. Authoring the same `<Row>` works virtualized
- * or not, and even when a consumer's item component wraps it.
+ * `aria-posinset` / `aria-setsize`. Authoring the same `<List.Row>` works
+ * virtualized or not, and even when a consumer's item component wraps it.
+ *
+ * @see https://mantle.ngrok.com/components/list
  *
  * @example
  * ```tsx
  * // grid row (selectable): children are role="gridcell"s
- * <Row selected={isChecked}>
+ * <List.Row selected={isChecked}>
  *   <div role="gridcell"><Checkbox checked={isChecked} tabIndex={-1} /></div>
  *   <div role="gridcell">{label}</div>
- * </Row>
+ * </List.Row>
  * ```
  */
 const Row = forwardRef<ComponentRef<"div">, ListRowProps>(
@@ -342,15 +344,17 @@ PlainRow.displayName = "ListPlainRow";
  * navigation). The default out-of-the-box renderer — reach for the sibling
  * `VirtualRoot` in `./virtual.js` only when a collection needs windowing.
  *
+ * @see https://mantle.ngrok.com/components/list
+ *
  * @example
  * ```tsx
- * <Root semantics="list" aria-label="Accounts" className="max-h-80">
+ * <List.Root semantics="list" aria-label="Accounts" className="max-h-80">
  *   {accounts.map((account) => (
- *     <Row key={account.id} selected={account.id === currentId}>
+ *     <List.Row key={account.id} selected={account.id === currentId}>
  *       <button className="w-full px-2 py-1.5 text-left">{account.name}</button>
- *     </Row>
+ *     </List.Row>
  *   ))}
- * </Root>
+ * </List.Root>
  * ```
  */
 const Root = forwardRef<ComponentRef<"div">, ListRootProps>(

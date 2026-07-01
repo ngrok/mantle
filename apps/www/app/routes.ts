@@ -100,6 +100,7 @@ export default [
 		...docRoute("components/input"),
 		...docRoute("components/kbd"),
 		...docRoute("components/label"),
+		...docRoute("components/list"),
 		...docRoute("components/main"),
 		...docRoute("components/media-object"),
 		...docRoute("components/multi-select"),

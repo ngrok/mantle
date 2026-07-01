@@ -43,6 +43,7 @@ export const MANTLE_COMPONENT_NAMES = [
 	"input",
 	"kbd",
 	"label",
+	"list",
 	"main",
 	"media-object",
 	"multi-select",

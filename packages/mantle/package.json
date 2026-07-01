@@ -210,6 +210,11 @@
 			"types": "./dist/label.d.ts",
 			"import": "./dist/label.js"
 		},
+		"./list": {
+			"@ngrok/src-live-types": "./src/components/list/index.ts",
+			"types": "./dist/list.d.ts",
+			"import": "./dist/list.js"
+		},
 		"./main": {
 			"@ngrok/src-live-types": "./src/components/main/index.ts",
 			"types": "./dist/main.d.ts",

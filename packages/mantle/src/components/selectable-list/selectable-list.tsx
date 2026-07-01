@@ -733,9 +733,9 @@ Empty.displayName = "SelectableListEmpty";
  * content. Non-virtualized by default; swap `Viewport` → `VirtualViewport` (same
  * props) for windowing. Built on the shared `list` primitive.
  *
- * **Preview:** the API is still settling. Keyboard support is the native
- * checkbox tab order plus `Arrow`/`Home`/`End` movement between rows; full
- * roving-focus navigation across a virtualized list is a planned enhancement.
+ * Keyboard: the grid is a single tab stop — `Arrow`/`Home`/`End` move an active
+ * row (tracked via `aria-activedescendant`, so navigation works across the full
+ * option set even when virtualized) and `Space`/`Enter` toggles it.
  *
  * @see https://mantle.ngrok.com/components/selectable-list
  *
