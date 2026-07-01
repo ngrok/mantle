@@ -1,6 +1,6 @@
 ---
 title: Selectable List
-description: A filterable, virtualized, multi-select list of checkbox rows.
+description: A filterable, multi-select grid of checkbox rows.
 ---
 
 import { Button } from "@ngrok/mantle/button";
@@ -113,11 +113,9 @@ export function UncontrolledExample() {
 	);
 }
 
-<PageHeader id="selectable-list" isPreview>
-	Selectable List
-</PageHeader>
+<PageHeader id="selectable-list">Selectable List</PageHeader>
 
-A filterable, virtualized, multi-select list of checkbox rows — the inline (non-popover) counterpart to [`MultiSelect`](/components/multi-select) and [`Combobox`](/components/combobox). Map your data into `options` once; the list owns filtering, virtualization, and selection. The default row is a fully-clickable checkbox with a title and an optional de-emphasized sub-line — or render your own row layout (see [Custom rows](#custom-rows)). The example below has a disabled row (`staging`).
+A filterable, multi-select **grid** of checkbox rows — the inline (non-popover) counterpart to [`MultiSelect`](/components/multi-select) and [`Combobox`](/components/combobox). Map your data into `options` once; the list owns filtering and selection. Each row is an APG grid `role="row"` (`aria-selected`) whose cells hold a real [`Checkbox`](/components/checkbox) and a [`Choice`](/components/choice)-laid-out title + description — the pattern that lets a selectable row carry a real control and its own interactive content. The default row is fully click-to-toggle with a title and an optional de-emphasized sub-line — or render your own layout (see [Custom rows](#custom-rows)). It renders every row by default; for long lists, swap `Viewport` → [`VirtualViewport`](#virtualization). The example below has a disabled row (`staging`).
 
 <Example>
 	<SelectableListExample />
@@ -155,8 +153,8 @@ function Example() {
 SelectableList.Root
 ├── SelectableList.Filter
 ├── SelectableList.SelectAll
-├── SelectableList.Viewport
-│   └── SelectableList.Item              (optional render-prop; auto-rendered by default)
+├── SelectableList.Viewport               (or .VirtualViewport)
+│   └── SelectableList.Item               (optional render-prop; auto-rendered by default)
 │       ├── SelectableList.ItemTitle
 │       └── SelectableList.ItemDescription
 └── SelectableList.Empty
@@ -164,7 +162,8 @@ SelectableList.Root
 
 - **`Filter`** drives a case-insensitive substring match over each option's `label`. Omit it for a non-filterable list.
 - **`SelectAll`** reflects and toggles the selection of the **currently filtered** options (checked / indeterminate / unchecked), reusing [`selectAllChecked`](/components/checkbox#select-all-helper).
-- **`Viewport`** renders only the rows in view via [`@tanstack/react-virtual`](https://tanstack.com/virtual) as a `<ul role="list">` of `<li>` rows. It's styled like the [`MultiSelect`](/components/multi-select) popover: a bordered, rounded `bg-popover` container whose rows highlight on hover / selection as an inset, rounded pill (the selected row picks up the accent tint, alongside its checked checkbox). The scroll container has a styled `scrollbar` and clips rows against its rounded edge as they scroll. Give it an `aria-label` (or `aria-labelledby`) so the list has an accessible name. **Bound its height** so virtualization engages — pass a `max-h-*` / `h-*` utility, or `min-h-0 flex-1` inside a flex parent (e.g. a `Sheet.Body`); with an auto height it renders every row.
+- **`Viewport`** renders the rows as a `role="grid"` of `role="row"` rows (each with `role="gridcell"` cells for the checkbox and the content). It's styled like the [`MultiSelect`](/components/multi-select) popover: a bordered, rounded `bg-popover` container whose rows highlight on hover / selection as an inset, rounded pill (the selected row picks up the accent tint, alongside its checked checkbox). Give it an `aria-label` (or `aria-labelledby`) so the grid has an accessible name, and **bound its height** (`max-h-*` / `h-*`, or `min-h-0 flex-1` inside a flex parent). It renders every row — non-virtualized.
+- **`VirtualViewport`** is the drop-in windowed variant — same rows and props, only the visible slice mounted. See [Virtualization](#virtualization).
 - **`Empty`** renders its children in place of the viewport when no options match the filter.
 
 Mark an option `disabled` to render its row dimmed and exclude it from toggling and "select all" — the list at the top of this page includes one:
@@ -178,7 +177,7 @@ const options = [
 
 ## Custom rows
 
-The default row (a title over a description) is a convenience. To render **your own layout**, pass a render-prop child to `SelectableList.Viewport` and compose a `SelectableList.Item` — add icons, badges, anything. `Item` reads its selection and disabled state from the list by `value`, so you only describe the content. `SelectableList.ItemTitle` and `SelectableList.ItemDescription` are optional styled spans that match the default typography.
+The default row (a title over a description) is a convenience. To render **your own layout**, pass a render-prop child to a viewport and compose a `SelectableList.Item` — add icons, badges, even interactive controls (the grid pattern permits a row to hold its own buttons/links). `Item` reads its selection and disabled state from the list by `value`, so you only describe the content. `SelectableList.ItemTitle` renders a [`Choice.Label`](/components/choice) (the real label wired to the row's checkbox) and `SelectableList.ItemDescription` a `Choice.Description`.
 
 <Example>
 	<CustomRowsExample />
@@ -218,9 +217,20 @@ function Example() {
 }
 ```
 
-Keep row content **non-interactive**, since the whole row is a `<label>`.
+The whole row is click-to-toggle, but it is **not** a `<label>` — it's a grid `role="row"`. A bare click anywhere toggles selection, while clicks on the checkbox, the title label, or any nested control are left to those controls (no double-toggle). So a row **can** hold interactive content (a link, an overflow menu) — each in the content cell as an ordinary sibling.
 
-> **Why `options` is still data.** `Root` needs the full item set up front because the list virtualizes (off-screen rows unmount) and supports "select all" over the filtered set — neither can be derived from rendered children, since unmounted rows can't report themselves. So `options` is the lightweight **data layer** (a `value`, the filter text, and `disabled`); `Viewport`'s render-prop is the **rendering layer**. For rich rows, look your own data up by `option.value`.
+> **Why `options` is still data.** `Root` needs the full item set up front to support "select all" over the filtered set and to window rows under `VirtualViewport` (off-screen rows unmount) — neither can be derived from rendered children, since unmounted rows can't report themselves. So `options` is the lightweight **data layer** (a `value`, the filter text, and `disabled`); a viewport's render-prop is the **rendering layer**. For rich rows, look your own data up by `option.value`.
+
+## Virtualization
+
+`SelectableList.Viewport` renders every filtered row. For a large option set (hundreds+), swap in `SelectableList.VirtualViewport`: it windows the rows via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. Same props, same render-prop — only the tag changes — and `@tanstack/react-virtual` is pulled into your bundle only when you use it.
+
+```tsx
+// Only this line changes to virtualize:
+<SelectableList.VirtualViewport aria-label="Access keys" className="max-h-80" />
+```
+
+> **Windowing trade-off.** Keyboard grid navigation still works across the **full** list — arrows move the active row and scroll it into view (`aria-activedescendant` + `aria-setsize`/`aria-posinset` keep screen-reader counts true). What windowing does cost: browser find-in-page (Ctrl/⌘-F) only searches mounted rows, and there's no per-checkbox Tab stop. The right trade for a large enough list; prefer `Viewport` until a list is actually long.
 
 ## Controlled
 
@@ -293,9 +303,9 @@ const options = [
 
 ## Accessibility
 
-The viewport renders a `<ul role="list">` of native checkboxes — provide `aria-label` (or `aria-labelledby`) on `SelectableList.Viewport` so the list has an accessible name. Each row is a `<li>` whose `<label>` wraps a real `<input type="checkbox">`, so clicking anywhere on the row toggles it and the row's text is the checkbox's accessible name. Selection is conveyed by each checkbox's checked state (not `aria-selected`), which is the correct semantic for a multi-select group of checkboxes.
+The viewport is an APG **grid**: a `role="grid"` of `role="row"` rows, each with `role="gridcell"` cells holding a real `<input type="checkbox">` and the title + description. This is the pattern the [WAI-ARIA grid](https://www.w3.org/WAI/ARIA/apg/patterns/grid/) prescribes for selectable rows that carry their own interactive controls (a plain listbox forbids a real checkbox or nested controls inside an option). Provide `aria-label` (or `aria-labelledby`) on the viewport so the grid has an accessible name. Each row's `aria-selected` conveys its selection alongside the checkbox's checked state; the title is a `Choice.Label`, so it names the checkbox, and the description is wired via `aria-describedby`.
 
-> **Preview / unstable API.** Keyboard support is currently the native checkbox tab order within the rendered window. Roving arrow-key navigation across the full virtualized list is a planned enhancement, so the API may change.
+Keyboard: the grid is a **single tab stop**. Tab into it and `Arrow`↑/`Arrow`↓ / `Home` / `End` move an active row (tracked with `aria-activedescendant`, so focus never rides a row and survives virtualization); `Space` / `Enter` toggles the active row. The active row shows an inset accent ring. This works identically under `VirtualViewport` — arrow keys move across the **full** option set, scrolling off-screen rows into view — because focus stays on the collection, not on a row that could unmount.
 
 ## Helpers
 
@@ -329,23 +339,32 @@ Accepts all `<div>` props, plus:
 
 ### SelectableList.Viewport
 
-Accepts all `<div>` props (except `children`, which is the render-prop below), plus:
+The non-virtualized grid. Accepts all `<div>` props (except `children`, which is the render-prop below), plus:
 
-| Prop                 | Type                                          | Default | Description                                                                                            |
-| -------------------- | --------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------ |
-| `children?`          | `(option: SelectableListOption) => ReactNode` |         | Render-prop for custom row content, called per filtered option. Defaults to a title + description row. |
-| `estimateRowHeight?` | `number`                                      | `54`    | Estimated row height (px) used to seed the virtualizer before measure.                                 |
+| Prop        | Type                                          | Default | Description                                                                                            |
+| ----------- | --------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------ |
+| `children?` | `(option: SelectableListOption) => ReactNode` |         | Render-prop for custom row content, called per filtered option. Defaults to a title + description row. |
+
+### SelectableList.VirtualViewport
+
+The windowed grid — same surface as `Viewport`, plus the virtualizer knobs:
+
+| Prop                 | Type                                          | Default | Description                                                            |
+| -------------------- | --------------------------------------------- | ------- | ---------------------------------------------------------------------- |
+| `children?`          | `(option: SelectableListOption) => ReactNode` |         | Render-prop for custom row content (only the visible window mounts).   |
+| `estimateRowHeight?` | `number`                                      | `44`    | Estimated row height (px) used to seed the virtualizer before measure. |
+| `overscan?`          | `number`                                      | `8`     | Rows rendered beyond the visible window on each side.                  |
 
 ### SelectableList.Item
 
-A fully-clickable row for custom `Viewport` rendering. Accepts all `<label>` props, plus:
+A selectable grid row (`role="row"`) for custom viewport rendering. Accepts all `<div>` props, plus:
 
-| Prop        | Type        | Default            | Description                                                                               |
-| ----------- | ----------- | ------------------ | ----------------------------------------------------------------------------------------- |
-| `value`     | `string`    |                    | The option's selection value; selection and disabled state are read from the list.        |
-| `disabled?` | `boolean`   | the option's value | Force the row's disabled state. Defaults to the matching option's `disabled`.             |
-| `children`  | `ReactNode` |                    | Row content (e.g. `ItemTitle` + `ItemDescription`, or your own). Must be non-interactive. |
+| Prop        | Type        | Default            | Description                                                                                   |
+| ----------- | ----------- | ------------------ | --------------------------------------------------------------------------------------------- |
+| `value`     | `string`    |                    | The option's selection value; selection and disabled state are read from the list.            |
+| `disabled?` | `boolean`   | the option's value | Force the row's disabled state. Defaults to the matching option's `disabled`.                 |
+| `children`  | `ReactNode` |                    | Row content (e.g. `ItemTitle` + `ItemDescription`, or your own; interactive content allowed). |
 
 ### SelectableList.ItemTitle / SelectableList.ItemDescription
 
-Styled `<span>`s for the title and de-emphasized sub-line inside a custom `SelectableList.Item`. Both accept all `<span>` props. Use them to match the default row's typography, or bring your own elements.
+The title and de-emphasized sub-line inside a `SelectableList.Item`. `ItemTitle` renders a [`Choice.Label`](/components/choice) (the real `<label>` wired to the row's checkbox); `ItemDescription` renders a `Choice.Description` (wired via `aria-describedby`). Both forward their respective props.

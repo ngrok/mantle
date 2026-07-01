@@ -2,8 +2,10 @@
 
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import {
+	cloneElement,
 	createContext,
 	forwardRef,
+	isValidElement,
 	useCallback,
 	useContext,
 	useId,
@@ -14,14 +16,16 @@ import type { ComponentProps, ComponentPropsWithoutRef, ComponentRef, ReactNode 
 import invariant from "tiny-invariant";
 import { cx } from "../../utils/cx/cx.js";
 import { Checkbox, selectAllChecked } from "../checkbox/checkbox.js";
+import { Choice } from "../choice/choice.js";
 import { Input, InputCapture } from "../input/input.js";
-import { VirtualList } from "../virtual-list/virtual-list.js";
+import { Root as ListRoot, Row as ListRow } from "../list/primitive.js";
+import { VirtualRoot as ListVirtualRoot } from "../list/virtual.js";
 
 /**
  * A single selectable row in a {@link SelectableList}. The list is data-driven:
  * map your domain objects into these options once, and the list owns filtering,
- * virtualization, and selection. Row *rendering* stays composable — pass a
- * render-prop child to `SelectableList.Viewport` to draw your own layout.
+ * selection, and (optionally) virtualization. Row *rendering* stays composable —
+ * pass a render-prop child to a viewport to draw your own layout.
  */
 type SelectableListOption = {
 	/** Stable, unique selection value. This is what flows through `value` / `onValueChange`. */
@@ -110,7 +114,40 @@ function summarizeSelection(
 	};
 }
 
+/**
+ * Selector for the interactive controls inside a row that handle their own
+ * click — the checkbox, the title's `<label>`, and any nested links/buttons.
+ * A bare row click that lands inside one of these is left alone so selection
+ * isn't toggled twice.
+ */
+const INTERACTIVE_ROW_TARGET_SELECTOR =
+	'a[href], button, input, select, textarea, label, [role="button"], [role="link"], [role="menuitem"], [contenteditable="true"]';
+
+/**
+ * Whether a row click originated on an element (within `row`) that already
+ * handles the click — the checkbox, the title label, or nested interactive
+ * content — so the row's own click-to-toggle should defer to it. Pure over the
+ * DOM; testable in isolation.
+ *
+ * @example
+ * ```ts
+ * // click on the row's checkbox → true (the row must not double-toggle)
+ * isInteractiveRowTarget(checkboxEl, rowEl); // → true
+ * // click on the description text → false (the row toggles)
+ * isInteractiveRowTarget(descriptionEl, rowEl); // → false
+ * ```
+ */
+function isInteractiveRowTarget(target: EventTarget | null, row: Element): boolean {
+	if (!(target instanceof Element)) {
+		return false;
+	}
+	const interactive = target.closest(INTERACTIVE_ROW_TARGET_SELECTOR);
+	return interactive != null && row.contains(interactive);
+}
+
 type SelectableListContextValue = {
+	/** A stable id namespace for the list's control ids. */
+	listId: string;
 	/** Options after the active filter is applied. Drives the viewport and select-all. */
 	filteredOptions: SelectableListOption[];
 	/** Current filter query (controlled by `SelectableList.Filter`). */
@@ -146,7 +183,7 @@ function useSelectableListContext(part: string): SelectableListContextValue {
  * which is replaced by `onValueChange`) with the option set and the
  * controlled/uncontrolled selection state.
  *
- * @see https://mantle.ngrok.com/components/preview/selectable-list
+ * @see https://mantle.ngrok.com/components/selectable-list
  *
  * @example
  * ```tsx
@@ -169,17 +206,17 @@ type SelectableListRootProps = Omit<ComponentProps<"div">, "onChange"> & {
 const EMPTY_SELECTION: readonly string[] = [];
 
 /**
- * Root of a `SelectableList` — a filterable, virtualized, multi-select list of
- * checkbox rows. Owns selection state (controlled via `value`/`onValueChange`
- * or uncontrolled via `defaultValue`), the filter query, and the derived
- * filtered options, and shares them with the parts below it.
+ * Root of a `SelectableList` — a filterable, multi-select **grid** of checkbox
+ * rows. Owns selection state (controlled via `value`/`onValueChange` or
+ * uncontrolled via `defaultValue`), the filter query, and the derived filtered
+ * options, and shares them with the parts below it.
  *
  * Compose it with `SelectableList.Filter` (optional search box),
- * `SelectableList.SelectAll` (optional tri-state header), `SelectableList.Viewport`
- * (the virtualized, scrollable rows), and `SelectableList.Empty` (shown when the
- * filter matches nothing).
+ * `SelectableList.SelectAll` (optional tri-state header), a viewport
+ * (`SelectableList.Viewport`, or the windowed `SelectableList.VirtualViewport`),
+ * and `SelectableList.Empty` (shown when the filter matches nothing).
  *
- * @see https://mantle.ngrok.com/components/preview/selectable-list
+ * @see https://mantle.ngrok.com/components/selectable-list
  *
  * @example
  * ```tsx
@@ -199,6 +236,7 @@ const EMPTY_SELECTION: readonly string[] = [];
  */
 const Root = forwardRef<ComponentRef<"div">, SelectableListRootProps>(
 	({ className, defaultValue, onValueChange, options, value, ...props }, ref) => {
+		const listId = useId();
 		const isControlled = value != null;
 		const [internalValue, setInternalValue] = useState<readonly string[]>(
 			defaultValue ?? EMPTY_SELECTION,
@@ -228,6 +266,7 @@ const Root = forwardRef<ComponentRef<"div">, SelectableListRootProps>(
 
 		const context = useMemo<SelectableListContextValue>(
 			() => ({
+				listId,
 				filteredOptions,
 				query,
 				setQuery,
@@ -242,7 +281,7 @@ const Root = forwardRef<ComponentRef<"div">, SelectableListRootProps>(
 				},
 				setSelection: commitSelection,
 			}),
-			[filteredOptions, query, selectedValues, selectedSet, disabledSet, commitSelection],
+			[listId, filteredOptions, query, selectedValues, selectedSet, disabledSet, commitSelection],
 		);
 
 		return (
@@ -265,16 +304,11 @@ Root.displayName = "SelectableListRoot";
  * case-insensitive substring match over each option's `label`). Optional — omit
  * it for a non-filterable list.
  *
- * @see https://mantle.ngrok.com/components/preview/selectable-list
+ * @see https://mantle.ngrok.com/components/selectable-list
  *
  * @example
  * ```tsx
- * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
- *   <SelectableList.Filter placeholder="Filter access keys…" />
- *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
- *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
- *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
- * </SelectableList.Root>
+ * <SelectableList.Filter placeholder="Filter access keys…" />
  * ```
  */
 const Filter = forwardRef<
@@ -307,16 +341,11 @@ Filter.displayName = "SelectableListFilter";
  * indeterminate when only some are, unchecked when none are — and toggling it
  * selects or clears that filtered set. Optional. Children are the visible label.
  *
- * @see https://mantle.ngrok.com/components/preview/selectable-list
+ * @see https://mantle.ngrok.com/components/selectable-list
  *
  * @example
  * ```tsx
- * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
- *   <SelectableList.Filter placeholder="Filter access keys…" />
- *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
- *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
- *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
- * </SelectableList.Root>
+ * <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
  * ```
  */
 const SelectAll = forwardRef<ComponentRef<"label">, Omit<ComponentProps<"label">, "htmlFor">>(
@@ -367,7 +396,17 @@ const SelectAll = forwardRef<ComponentRef<"label">, Omit<ComponentProps<"label">
 );
 SelectAll.displayName = "SelectableListSelectAll";
 
-type SelectableListItemProps = Omit<ComponentProps<"label">, "children"> & {
+/**
+ * The DOM id of a row's checkbox, derived from the list id and the option value.
+ * The grid's `aria-activedescendant` resolves to this — the row element itself is
+ * a `Choice.Root`, which reserves `id` for the control, so the checkbox is the
+ * real element that carries the id.
+ */
+function controlIdFor(listId: string, value: string): string {
+	return `${listId}-control-${value}`;
+}
+
+type SelectableListItemProps = Omit<ComponentProps<"div">, "children"> & {
 	/** The option's selection value. Selection state is read from, and toggled in, the list. */
 	value: string;
 	/**
@@ -377,22 +416,25 @@ type SelectableListItemProps = Omit<ComponentProps<"label">, "children"> & {
 	disabled?: boolean;
 	/**
 	 * Row content — typically `SelectableList.ItemTitle` over a
-	 * `SelectableList.ItemDescription`, or any layout you like. Must be
-	 * non-interactive (it lives inside the row's `<label>`).
+	 * `SelectableList.ItemDescription`, or any layout you like. It fills the row's
+	 * content `gridcell`; nested interactive content (links, buttons) is allowed.
 	 */
 	children: ReactNode;
 };
 
 /**
- * A single, fully-clickable selectable row. The whole row is a `<label>`
- * wrapping a real checkbox, so clicking anywhere toggles selection and the
- * row's text is the checkbox's accessible name. Selection and disabled state
- * are read from the list by `value`.
+ * A single selectable grid row. Renders a `role="row"` (via the `list`
+ * primitive) laid out with `Choice` — a `role="gridcell"` holding a real
+ * `Checkbox`, and a `role="gridcell"` holding the title + description. The whole
+ * row is click-to-toggle: a bare click anywhere toggles selection, while clicks
+ * on the checkbox, the title label, or any nested interactive content are left
+ * to those controls (no double-toggle). Selection and disabled state are read
+ * from the list by `value`.
  *
- * Render it from `SelectableList.Viewport`'s render-prop child when you want a
- * custom row layout; the default row (title + description) uses it under the hood.
+ * Render it from a viewport's render-prop child for a custom row layout; the
+ * default row (title + description) uses it under the hood.
  *
- * @see https://mantle.ngrok.com/components/preview/selectable-list
+ * @see https://mantle.ngrok.com/components/selectable-list
  *
  * @example
  * ```tsx
@@ -406,52 +448,61 @@ type SelectableListItemProps = Omit<ComponentProps<"label">, "children"> & {
  * </SelectableList.Viewport>
  * ```
  */
-const Item = forwardRef<ComponentRef<"label">, SelectableListItemProps>(
+const Item = forwardRef<ComponentRef<"div">, SelectableListItemProps>(
 	({ children, className, disabled: disabledProp, value, ...props }, ref) => {
-		const { selectedSet, disabledSet, toggle } = useSelectableListContext("Item");
-		const controlId = useId();
+		const { listId, selectedSet, disabledSet, toggle } = useSelectableListContext("Item");
+		const controlId = controlIdFor(listId, value);
 		const selected = selectedSet.has(value);
 		const disabled = disabledProp ?? disabledSet.has(value);
 
 		return (
-			<label
+			<ListRow
 				ref={ref}
-				htmlFor={controlId}
-				data-slot="selectable-list-item"
+				asChild
+				selected={selected}
+				disabled={disabled}
+				data-value={value}
 				aria-disabled={disabled || undefined}
-				// The row's rounded hover / selected pill lives on the wrapping <li> (see
-				// VirtualList); this label is the fully-clickable content area.
 				className={cx(
-					"flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-sm",
+					"px-2 py-1.5 text-sm",
 					"cursor-pointer aria-disabled:cursor-default",
 					className,
 				)}
+				onClick={(event) => {
+					// Forward a bare row click to selection, but defer to anything that already
+					// handles its own click — the checkbox, the title's <label>, or nested
+					// interactive content — so the row never double-toggles.
+					if (
+						event.defaultPrevented ||
+						disabled ||
+						isInteractiveRowTarget(event.target, event.currentTarget)
+					) {
+						return;
+					}
+					toggle(value);
+				}}
 				{...props}
 			>
-				{/* h-lh centers the box on the leading of the title's first line. */}
-				<span className="flex h-lh items-center">
-					<Checkbox
-						id={controlId}
-						checked={selected}
-						onChange={() => toggle(value)}
-						disabled={disabled}
-					/>
-				</span>
-				<span className={cx("flex min-w-0 flex-1 flex-col gap-0.5", disabled && "opacity-50")}>
-					{children}
-				</span>
-			</label>
+				<Choice.Root id={controlId} disabled={disabled}>
+					<Choice.Indicator role="gridcell">
+						{/* tabIndex -1: the grid collection is the single tab stop; Space/Enter there
+						    activates the active row. The checkbox stays click-toggleable. */}
+						<Checkbox checked={selected} onChange={() => toggle(value)} tabIndex={-1} />
+					</Choice.Indicator>
+					<Choice.Content role="gridcell">{children}</Choice.Content>
+				</Choice.Root>
+			</ListRow>
 		);
 	},
 );
 Item.displayName = "SelectableListItem";
 
 /**
- * The emphasized title line inside a `SelectableList.Item`, in the stronger
- * foreground color. A styled `<span>` — drop it into your custom row to match
- * the default row's typography.
+ * The emphasized title of a `SelectableList.Item`, rendered as `Choice.Label` —
+ * a real `<label>` wired to the row's checkbox, so clicking it toggles the row
+ * and it supplies the checkbox's accessible name.
  *
- * @see https://mantle.ngrok.com/components/preview/selectable-list
+ * @see https://mantle.ngrok.com/components/selectable-list
  *
  * @example
  * ```tsx
@@ -461,23 +512,20 @@ Item.displayName = "SelectableListItem";
  * </SelectableList.Item>
  * ```
  */
-const ItemTitle = forwardRef<ComponentRef<"span">, ComponentProps<"span">>(
-	({ className, ...props }, ref) => (
-		<span
-			ref={ref}
-			data-slot="selectable-list-item-title"
-			className={cx("text-strong font-medium", className)}
-			{...props}
-		/>
-	),
-);
+const ItemTitle = forwardRef<
+	ComponentRef<typeof Choice.Label>,
+	ComponentProps<typeof Choice.Label>
+>(({ className, ...props }, ref) => (
+	<Choice.Label ref={ref} data-slot="selectable-list-item-title" className={className} {...props} />
+));
 ItemTitle.displayName = "SelectableListItemTitle";
 
 /**
- * The de-emphasized sub-line inside a `SelectableList.Item`, in the muted body
- * color. A styled `<span>` for custom rows that want the default look.
+ * The de-emphasized sub-line of a `SelectableList.Item`, rendered as
+ * `Choice.Description` — wired to the row's checkbox via `aria-describedby`
+ * (never a second label).
  *
- * @see https://mantle.ngrok.com/components/preview/selectable-list
+ * @see https://mantle.ngrok.com/components/selectable-list
  *
  * @example
  * ```tsx
@@ -487,21 +535,22 @@ ItemTitle.displayName = "SelectableListItemTitle";
  * </SelectableList.Item>
  * ```
  */
-const ItemDescription = forwardRef<ComponentRef<"span">, ComponentProps<"span">>(
-	({ className, ...props }, ref) => (
-		<span
-			ref={ref}
-			data-slot="selectable-list-item-description"
-			className={cx("text-body leading-4", className)}
-			{...props}
-		/>
-	),
-);
+const ItemDescription = forwardRef<
+	ComponentRef<typeof Choice.Description>,
+	ComponentProps<typeof Choice.Description>
+>(({ className, ...props }, ref) => (
+	<Choice.Description
+		ref={ref}
+		data-slot="selectable-list-item-description"
+		className={className}
+		{...props}
+	/>
+));
 ItemDescription.displayName = "SelectableListItemDescription";
 
 /**
  * The default row renderer: a title (and description, if present) from the
- * option. Used by `Viewport` when no render-prop child is supplied.
+ * option. Used by a viewport when no render-prop child is supplied.
  */
 function renderDefaultOption(option: SelectableListOption): ReactNode {
 	return (
@@ -512,9 +561,22 @@ function renderDefaultOption(option: SelectableListOption): ReactNode {
 	);
 }
 
+/**
+ * Map the filtered options into keyed `Item` rows, using the render-prop child
+ * when supplied or the default title/description row otherwise. Each row is
+ * re-keyed by its option `value` so composed rows stay stable across filtering.
+ */
+function renderRows(
+	filteredOptions: readonly SelectableListOption[],
+	renderOption: (option: SelectableListOption) => ReactNode,
+): ReactNode[] {
+	return filteredOptions.map((option) => {
+		const row = renderOption(option);
+		return isValidElement(row) ? cloneElement(row, { key: option.value }) : row;
+	});
+}
+
 type SelectableListViewportProps = Omit<ComponentProps<"div">, "children"> & {
-	/** Estimated row height in pixels, used to seed the virtualizer before rows are measured. */
-	estimateRowHeight?: number;
 	/**
 	 * Optional render-prop for custom row content, called per filtered option.
 	 * Return a `SelectableList.Item` with your own layout. Defaults to a
@@ -524,79 +586,118 @@ type SelectableListViewportProps = Omit<ComponentProps<"div">, "children"> & {
 };
 
 /**
- * The scrollable, virtualized body of a `SelectableList`, styled like the
- * `MultiSelect` popover: a bordered, rounded `bg-popover` container whose rows
- * highlight on hover / selection with an inset, rounded pill. Renders only the
- * rows in view (via `@tanstack/react-virtual`) as a `<ul role="list">` of `<li>`
- * rows, measuring each so rows with and without a description size correctly.
- * Renders nothing when the filtered list is empty — pair with `SelectableList.Empty`.
+ * The scrollable body of a `SelectableList`: a `role="grid"` of `role="row"`
+ * checkbox rows inside the bordered, rounded `bg-popover` viewport. Renders
+ * **every** filtered row — the non-virtualized default; for long lists, swap in
+ * `SelectableList.VirtualViewport`. Renders nothing when the filter matches
+ * nothing — pair with `SelectableList.Empty`. Provide an `aria-label` (or
+ * `aria-labelledby`) and **bound the height** (`max-h-*`, `h-*`, or
+ * `min-h-0 flex-1`).
  *
- * By default it draws a title + description row from each option. Pass a
- * render-prop child to render your own row layout. Provide an `aria-label` (or
- * `aria-labelledby`) so the list has an accessible name. **Bound its height**
- * for virtualization to engage — e.g. `className="max-h-80"`, a fixed `h-*`, or
- * `min-h-0 flex-1` inside a flex parent; with an auto height it renders every row.
- *
- * @see https://mantle.ngrok.com/components/preview/selectable-list
+ * @see https://mantle.ngrok.com/components/selectable-list
  *
  * @example
  * ```tsx
- * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
- *   <SelectableList.Filter placeholder="Filter access keys…" />
- *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
- *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
- *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
- * </SelectableList.Root>
+ * <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
  * ```
  */
 const Viewport = forwardRef<ComponentRef<"div">, SelectableListViewportProps>(
 	({ children, ...props }, ref) => {
-		const { filteredOptions, selectedSet, disabledSet } = useSelectableListContext("Viewport");
+		const { filteredOptions, listId, toggle } = useSelectableListContext("Viewport");
 		const renderOption = children ?? renderDefaultOption;
 
-		// Delegates the scroll viewport, virtualization, and row chrome to the shared
-		// VirtualList shell; this layer only maps options -> per-row state + content.
+		if (filteredOptions.length === 0) {
+			return null;
+		}
+
 		return (
-			<VirtualList
+			<ListRoot
 				ref={ref}
 				data-slot="selectable-list-viewport"
+				semantics="grid"
 				{...props}
-				count={filteredOptions.length}
-				getItemKey={(index) => filteredOptions[index]?.value ?? String(index)}
-				isItemSelected={(index) => {
+				onActivate={(index) => {
 					const option = filteredOptions[index];
-					return option != null && selectedSet.has(option.value);
+					if (option != null) {
+						toggle(option.value);
+					}
 				}}
-				isItemDisabled={(index) => {
+				rowId={(index) => {
 					const option = filteredOptions[index];
-					return option != null && disabledSet.has(option.value);
+					return option != null ? controlIdFor(listId, option.value) : "";
 				}}
 			>
-				{(index) => {
-					const option = filteredOptions[index];
-					return option == null ? null : renderOption(option);
-				}}
-			</VirtualList>
+				{renderRows(filteredOptions, renderOption)}
+			</ListRoot>
 		);
 	},
 );
 Viewport.displayName = "SelectableListViewport";
+
+type SelectableListVirtualViewportProps = SelectableListViewportProps & {
+	/** Estimated row height in px, used to seed the virtualizer before rows are measured. */
+	estimateRowHeight?: number;
+	/** Rows rendered beyond the visible window on each side. */
+	overscan?: number;
+};
+
+/**
+ * The windowed counterpart to `SelectableList.Viewport`: renders only the
+ * visible slice of filtered rows via `@tanstack/react-virtual`, sharing the
+ * same grid semantics and row layout. Authored identically to `Viewport` — same
+ * `aria-label`, same optional render-prop — so opting into virtualization never
+ * changes the call site. **Bound the height** so the virtualizer has a viewport.
+ *
+ * @see https://mantle.ngrok.com/components/selectable-list
+ *
+ * @example
+ * ```tsx
+ * <SelectableList.VirtualViewport aria-label="Access keys" className="max-h-80" />
+ * ```
+ */
+const VirtualViewport = forwardRef<ComponentRef<"div">, SelectableListVirtualViewportProps>(
+	({ children, ...props }, ref) => {
+		const { filteredOptions, listId, toggle } = useSelectableListContext("VirtualViewport");
+		const renderOption = children ?? renderDefaultOption;
+
+		if (filteredOptions.length === 0) {
+			return null;
+		}
+
+		return (
+			<ListVirtualRoot
+				ref={ref}
+				data-slot="selectable-list-viewport"
+				semantics="grid"
+				{...props}
+				onActivate={(index) => {
+					const option = filteredOptions[index];
+					if (option != null) {
+						toggle(option.value);
+					}
+				}}
+				rowId={(index) => {
+					const option = filteredOptions[index];
+					return option != null ? controlIdFor(listId, option.value) : "";
+				}}
+			>
+				{renderRows(filteredOptions, renderOption)}
+			</ListVirtualRoot>
+		);
+	},
+);
+VirtualViewport.displayName = "SelectableListVirtualViewport";
 
 /**
  * Shown in place of the viewport when the active filter matches no options.
  * Renders its children (e.g. "No results found.") in muted, centered text;
  * renders nothing while there are matching options.
  *
- * @see https://mantle.ngrok.com/components/preview/selectable-list
+ * @see https://mantle.ngrok.com/components/selectable-list
  *
  * @example
  * ```tsx
- * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
- *   <SelectableList.Filter placeholder="Filter access keys…" />
- *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
- *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
- *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
- * </SelectableList.Root>
+ * <SelectableList.Empty>No access keys found.</SelectableList.Empty>
  * ```
  */
 const Empty = forwardRef<ComponentRef<"div">, ComponentProps<"div">>(
@@ -623,18 +724,20 @@ const Empty = forwardRef<ComponentRef<"div">, ComponentProps<"div">>(
 Empty.displayName = "SelectableListEmpty";
 
 /**
- * A filterable, virtualized, multi-select list of checkbox rows — the inline
+ * A filterable, multi-select **grid** of checkbox rows — the inline
  * (non-popover) counterpart to `MultiSelect`/`Combobox`. Map your data into
- * `options` once; the list owns filtering, virtualization, and selection. By
- * default each row is a fully-clickable checkbox with a title and optional
- * sub-line — or pass a `Viewport` render-prop child to draw your own row layout
- * with `SelectableList.Item`.
+ * `options` once; the list owns filtering, selection, and (optionally)
+ * virtualization. Each row is an APG grid `role="row"` (`aria-selected`) whose
+ * cells hold a real `Checkbox` and a `Choice`-laid-out title + description — the
+ * pattern that lets a selectable row carry a real control and nested interactive
+ * content. Non-virtualized by default; swap `Viewport` → `VirtualViewport` (same
+ * props) for windowing. Built on the shared `list` primitive.
  *
- * **Preview:** the API is still settling. Keyboard support is currently the
- * native checkbox tab order within the rendered window; roving arrow-key
- * navigation across the full virtualized list is a planned enhancement.
+ * **Preview:** the API is still settling. Keyboard support is the native
+ * checkbox tab order plus `Arrow`/`Home`/`End` movement between rows; full
+ * roving-focus navigation across a virtualized list is a planned enhancement.
  *
- * @see https://mantle.ngrok.com/components/preview/selectable-list
+ * @see https://mantle.ngrok.com/components/selectable-list
  *
  * @example
  * Composition:
@@ -642,8 +745,8 @@ Empty.displayName = "SelectableListEmpty";
  * SelectableList.Root
  * ├── SelectableList.Filter
  * ├── SelectableList.SelectAll
- * ├── SelectableList.Viewport
- * │   └── SelectableList.Item              (optional render-prop; auto-rendered by default)
+ * ├── SelectableList.Viewport            (or .VirtualViewport)
+ * │   └── SelectableList.Item            (optional render-prop; auto-rendered by default)
  * │       ├── SelectableList.ItemTitle
  * │       └── SelectableList.ItemDescription
  * └── SelectableList.Empty
@@ -669,15 +772,12 @@ const SelectableList = {
 	/**
 	 * Root: owns selection + filter state and the derived filtered options.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/selectable-list
+	 * @see https://mantle.ngrok.com/components/selectable-list
 	 *
 	 * @example
 	 * ```tsx
 	 * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
-	 *   <SelectableList.Filter placeholder="Filter access keys…" />
-	 *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
 	 *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
-	 *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
 	 * </SelectableList.Root>
 	 * ```
 	 */
@@ -685,120 +785,93 @@ const SelectableList = {
 	/**
 	 * Optional filter/search box (mantle `Input` + magnifying-glass icon).
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/selectable-list
+	 * @see https://mantle.ngrok.com/components/selectable-list
 	 *
 	 * @example
 	 * ```tsx
-	 * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
-	 *   <SelectableList.Filter placeholder="Filter access keys…" />
-	 *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
-	 *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
-	 *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
-	 * </SelectableList.Root>
+	 * <SelectableList.Filter placeholder="Filter access keys…" />
 	 * ```
 	 */
 	Filter,
 	/**
 	 * Optional tri-state "select all" header over the filtered options.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/selectable-list
+	 * @see https://mantle.ngrok.com/components/selectable-list
 	 *
 	 * @example
 	 * ```tsx
-	 * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
-	 *   <SelectableList.Filter placeholder="Filter access keys…" />
-	 *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
-	 *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
-	 *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
-	 * </SelectableList.Root>
+	 * <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
 	 * ```
 	 */
 	SelectAll,
 	/**
-	 * The scrollable, virtualized rows. Give it an `aria-label`. Pass a
-	 * render-prop child for custom row layout, or omit it for the default row.
+	 * The scrollable grid of rows (non-virtualized). Give it an `aria-label`;
+	 * pass a render-prop child for a custom row layout, or omit it for the default.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/selectable-list
+	 * @see https://mantle.ngrok.com/components/selectable-list
 	 *
 	 * @example
 	 * ```tsx
-	 * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
-	 *   <SelectableList.Filter placeholder="Filter access keys…" />
-	 *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
-	 *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
-	 *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
-	 * </SelectableList.Root>
+	 * <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
 	 * ```
 	 */
 	Viewport,
 	/**
-	 * A fully-clickable row for custom `Viewport` rendering. Reads its selection
-	 * and disabled state from the list by `value`.
+	 * The windowed grid of rows — same surface as `Viewport`, for long lists.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/selectable-list
+	 * @see https://mantle.ngrok.com/components/selectable-list
 	 *
 	 * @example
 	 * ```tsx
-	 * <SelectableList.Viewport aria-label="Access keys">
-	 *   {(option) => (
-	 *     <SelectableList.Item value={option.value}>
-	 *       <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
-	 *       <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
-	 *     </SelectableList.Item>
-	 *   )}
-	 * </SelectableList.Viewport>
+	 * <SelectableList.VirtualViewport aria-label="Access keys" className="max-h-80" />
+	 * ```
+	 */
+	VirtualViewport,
+	/**
+	 * A selectable grid row for custom viewport rendering. Reads its selection
+	 * and disabled state from the list by `value`.
+	 *
+	 * @see https://mantle.ngrok.com/components/selectable-list
+	 *
+	 * @example
+	 * ```tsx
+	 * <SelectableList.Item value={option.value}>
+	 *   <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+	 *   <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
+	 * </SelectableList.Item>
 	 * ```
 	 */
 	Item,
 	/**
-	 * Emphasized title line for a custom `SelectableList.Item`.
+	 * Emphasized title (`Choice.Label`) for a `SelectableList.Item`.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/selectable-list
+	 * @see https://mantle.ngrok.com/components/selectable-list
 	 *
 	 * @example
 	 * ```tsx
-	 * <SelectableList.Viewport aria-label="Access keys">
-	 *   {(option) => (
-	 *     <SelectableList.Item value={option.value}>
-	 *       <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
-	 *       <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
-	 *     </SelectableList.Item>
-	 *   )}
-	 * </SelectableList.Viewport>
+	 * <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
 	 * ```
 	 */
 	ItemTitle,
 	/**
-	 * De-emphasized sub-line for a custom `SelectableList.Item`.
+	 * De-emphasized sub-line (`Choice.Description`) for a `SelectableList.Item`.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/selectable-list
+	 * @see https://mantle.ngrok.com/components/selectable-list
 	 *
 	 * @example
 	 * ```tsx
-	 * <SelectableList.Viewport aria-label="Access keys">
-	 *   {(option) => (
-	 *     <SelectableList.Item value={option.value}>
-	 *       <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
-	 *       <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
-	 *     </SelectableList.Item>
-	 *   )}
-	 * </SelectableList.Viewport>
+	 * <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
 	 * ```
 	 */
 	ItemDescription,
 	/**
 	 * Shown when the filter matches no options.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/selectable-list
+	 * @see https://mantle.ngrok.com/components/selectable-list
 	 *
 	 * @example
 	 * ```tsx
-	 * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
-	 *   <SelectableList.Filter placeholder="Filter access keys…" />
-	 *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
-	 *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
-	 *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
-	 * </SelectableList.Root>
+	 * <SelectableList.Empty>No access keys found.</SelectableList.Empty>
 	 * ```
 	 */
 	Empty,
@@ -807,6 +880,7 @@ const SelectableList = {
 export {
 	//,
 	filterSelectableOptions,
+	isInteractiveRowTarget,
 	SelectableList,
 	summarizeSelection,
 	toggleSelectionValue,
@@ -817,4 +891,6 @@ export type {
 	SelectableListItemProps,
 	SelectableListOption,
 	SelectableListRootProps,
+	SelectableListViewportProps,
+	SelectableListVirtualViewportProps,
 };

@@ -45,7 +45,9 @@ export const prodReadyComponents = [
 	"QR Code",
 	"Radio Group",
 	"SandboxedOnClick",
+	"Scrollable List",
 	"Select",
+	"Selectable List",
 	"Separator",
 	"Sheet",
 	"Skeleton",
@@ -71,8 +73,6 @@ export const prodReadyComponents = [
 export const previewComponents = [
 	//,
 	"Calendar",
-	"Scrollable List",
-	"Selectable List",
 ] as const;
 
 /** Route lookup for production-ready component pages. */
@@ -116,7 +116,9 @@ export const prodReadyComponentRouteLookup = {
 	"QR Code": "/components/qr-code",
 	"Radio Group": "/components/radio-group",
 	SandboxedOnClick: "/components/sandboxed-on-click",
+	"Scrollable List": "/components/scrollable-list",
 	Select: "/components/select",
+	"Selectable List": "/components/selectable-list",
 	Separator: "/components/separator",
 	Sheet: "/components/sheet",
 	Skeleton: "/components/skeleton",
@@ -137,8 +139,6 @@ export const prodReadyComponentRouteLookup = {
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
 	Calendar: "/components/preview/calendar",
-	"Scrollable List": "/components/preview/scrollable-list",
-	"Selectable List": "/components/preview/selectable-list",
 } as const satisfies Record<(typeof previewComponents)[number], Route>;
 
 /** Welcome section pages. */

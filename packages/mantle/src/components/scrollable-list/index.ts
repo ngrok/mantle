@@ -1,7 +1,7 @@
 /**
  * Re-exports for the ScrollableList component.
  *
- * @see https://mantle.ngrok.com/components/preview/scrollable-list
+ * @see https://mantle.ngrok.com/components/scrollable-list
  */
 
 export {
@@ -12,5 +12,6 @@ export {
 export type {
 	//,
 	ScrollableListItemProps,
-	ScrollableListRootProps,
+	ScrollableListViewportProps,
+	ScrollableListVirtualViewportProps,
 } from "./scrollable-list.js";

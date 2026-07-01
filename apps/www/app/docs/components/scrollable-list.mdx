@@ -1,6 +1,6 @@
 ---
 title: Scrollable List
-description: A virtualized, scrollable list of clickable rows.
+description: A scrollable, optionally-virtualized list of clickable rows.
 ---
 
 import { cx } from "@ngrok/mantle/cx";
@@ -39,7 +39,7 @@ export function ScrollableListExample() {
 	const [activeId, setActiveId] = useState("account-2");
 	return (
 		<div className="w-full max-w-md">
-			<ScrollableList.Root aria-label="Your accounts" className="max-h-80">
+			<ScrollableList.Viewport aria-label="Your accounts" className="max-h-80">
 				{accounts.map((account) => (
 					<ScrollableList.Item
 						key={account.id}
@@ -52,7 +52,7 @@ export function ScrollableListExample() {
 						</ScrollableList.ItemDescription>
 					</ScrollableList.Item>
 				))}
-			</ScrollableList.Root>
+			</ScrollableList.Viewport>
 		</div>
 	);
 }
@@ -66,14 +66,14 @@ export const simpleAccounts = [
 export function ScrollableListMinimalExample() {
 	return (
 		<div className="w-full max-w-md">
-			<ScrollableList.Root aria-label="Switch account" className="max-h-80">
+			<ScrollableList.Viewport aria-label="Switch account" className="max-h-80">
 				{simpleAccounts.map((account) => (
 					<ScrollableList.Item key={account.id} onClick={() => {}}>
 						<ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
 						<ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
 					</ScrollableList.Item>
 				))}
-			</ScrollableList.Root>
+			</ScrollableList.Viewport>
 		</div>
 	);
 }
@@ -144,7 +144,7 @@ export const providers = [
 export function ScrollableListLinkExample() {
 	return (
 		<div className="w-full max-w-md">
-			<ScrollableList.Root aria-label="Identity providers" className="max-h-72">
+			<ScrollableList.Viewport aria-label="Identity providers" className="max-h-72">
 				{providers.map((provider) => (
 					<ScrollableList.Item key={provider.id} asChild className="py-2.5">
 						<a href={`#${provider.id}`}>
@@ -160,16 +160,14 @@ export function ScrollableListLinkExample() {
 						</a>
 					</ScrollableList.Item>
 				))}
-			</ScrollableList.Root>
+			</ScrollableList.Viewport>
 		</div>
 	);
 }
 
-<PageHeader id="scrollable-list" isPreview>
-	Scrollable List
-</PageHeader>
+<PageHeader id="scrollable-list">Scrollable List</PageHeader>
 
-A virtualized, scrollable list of clickable rows — the action / navigation counterpart to [`SelectableList`](/components/preview/selectable-list). Compose `ScrollableList.Item` rows directly; each is a `<button>` (with `onClick`) or your own element via `asChild` (e.g. an `<a>`), with an optional `selected` highlight. It shares `SelectableList`'s look — styled like the [`MultiSelect`](/components/multi-select) popover, with rows that highlight on hover / selection as an inset, rounded pill inside a bordered `bg-popover` container — and handles long lists: an account switcher, an SSO provider picker.
+A scrollable list of clickable rows — the action / navigation counterpart to [`SelectableList`](/components/selectable-list). Compose `ScrollableList.Item` rows directly inside a `ScrollableList.Viewport`; each is a `<button>` (with `onClick`) or your own element via `asChild` (e.g. an `<a>`), with an optional `selected` highlight. It shares `SelectableList`'s look — styled like the [`MultiSelect`](/components/multi-select) popover, with rows that highlight on hover / selection as an inset, rounded pill inside a bordered `bg-popover` container — and suits an account switcher or an SSO provider picker. It renders every row by default; for long lists, swap `Viewport` → [`VirtualViewport`](#virtualization) to window them.
 
 <Example>
 	<ScrollableListExample />
@@ -183,7 +181,7 @@ function Example() {
 	const [activeId, setActiveId] = useState("account-2");
 
 	return (
-		<ScrollableList.Root aria-label="Your accounts" className="max-h-80">
+		<ScrollableList.Viewport aria-label="Your accounts" className="max-h-80">
 			{accounts.map((account) => (
 				<ScrollableList.Item
 					key={account.id}
@@ -196,7 +194,7 @@ function Example() {
 					</ScrollableList.ItemDescription>
 				</ScrollableList.Item>
 			))}
-		</ScrollableList.Root>
+		</ScrollableList.Viewport>
 	);
 }
 ```
@@ -216,14 +214,14 @@ const accounts = [
 	{ id: "dogfood", name: "dogfood@ngrok.com", plan: "Free" },
 ];
 
-<ScrollableList.Root aria-label="Switch account" className="max-h-80">
+<ScrollableList.Viewport aria-label="Switch account" className="max-h-80">
 	{accounts.map((account) => (
 		<ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>
 			<ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
 			<ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
 		</ScrollableList.Item>
 	))}
-</ScrollableList.Root>;
+</ScrollableList.Viewport>;
 ```
 
 The same three rows hand-built without `ScrollableList` — same chrome, no virtualization (fine for short, static lists):
@@ -264,15 +262,33 @@ const accounts = [
 ## Composition
 
 ```text showLineNumbers=false
-ScrollableList.Root
+ScrollableList.Viewport        (or .VirtualViewport)
 └── ScrollableList.Item
     ├── ScrollableList.ItemTitle
     └── ScrollableList.ItemDescription
 ```
 
-- **`Root`** virtualizes its `Item` children and renders the rounded, scrollable `bg-popover` container. Reads each item's `selected` / `disabled` to style its row. **Bound its height** (`max-h-*`, `h-*`, or `min-h-0 flex-1` in a flex parent) so virtualization engages; with an auto height it renders every row.
+- **`Viewport`** renders the rounded, scrollable `bg-popover` container and its `Item` children (all of them — non-virtualized). Reads each item's `selected` / `disabled` to style its row. **Bound its height** (`max-h-*`, `h-*`, or `min-h-0 flex-1` in a flex parent) so long lists scroll.
+- **`VirtualViewport`** is the drop-in windowed variant — same `Item` children, only the visible slice mounted. See [Virtualization](#virtualization).
 - **`Item`** is a clickable row — a `<button>` by default (`onClick`), or your own element via `asChild`. `selected` gives the tinted pill.
 - **`ItemTitle` / `ItemDescription`** are optional styled spans for the emphasized title and de-emphasized sub-line.
+
+## Virtualization
+
+`ScrollableList.Viewport` renders every row — simplest, and right for the short lists most action/navigation menus are. For a long list (hundreds+ of rows), swap in `ScrollableList.VirtualViewport`: it windows the same `Item` children via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. The call site is otherwise identical — same children, same props — and `@tanstack/react-virtual` is only pulled into your bundle when you use `VirtualViewport`.
+
+```tsx
+// Only this line changes to virtualize:
+<ScrollableList.VirtualViewport aria-label="Your accounts" className="max-h-80">
+	{accounts.map((account) => (
+		<ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>
+			<ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+		</ScrollableList.Item>
+	))}
+</ScrollableList.VirtualViewport>
+```
+
+> **Windowing trade-off.** Off-screen rows aren't in the DOM, so Tab and browser find-in-page only reach mounted rows — the right trade for a large enough list. Prefer `Viewport` until a list is actually long.
 
 ## Navigation rows with `asChild`
 
@@ -287,7 +303,7 @@ import { cx } from "@ngrok/mantle/cx";
 import { MediaObject } from "@ngrok/mantle/media-object";
 import { ScrollableList } from "@ngrok/mantle/scrollable-list";
 
-<ScrollableList.Root aria-label="Identity providers" className="max-h-72">
+<ScrollableList.Viewport aria-label="Identity providers" className="max-h-72">
 	{providers.map((provider) => (
 		<ScrollableList.Item key={provider.id} asChild className="py-2.5">
 			<a href={`/sso/${provider.id}`}>
@@ -303,26 +319,36 @@ import { ScrollableList } from "@ngrok/mantle/scrollable-list";
 			</a>
 		</ScrollableList.Item>
 	))}
-</ScrollableList.Root>;
+</ScrollableList.Viewport>;
 ```
 
 ## Accessibility
 
-The list is a `<ul role="list">` of `<li>` rows; each `Item` is a focusable `<button>` (or your `asChild` element). Provide an `aria-label` (or `aria-labelledby`) on `ScrollableList.Root` so the list has an accessible name. Disabled rows set the control's `disabled` (button) or `aria-disabled` (`asChild`) and are dimmed.
+The list is a `role="list"` of `role="listitem"` rows (the tag is a `<div>` — per WAI-ARIA the role, not the tag, carries the semantics); each `Item` is a focusable `<button>` (or your `asChild` element) inside its row. It is a **non-selecting** list, not a selection widget — that's [`SelectableList`](/components/selectable-list)'s job. Provide an `aria-label` (or `aria-labelledby`) on the `Viewport` so the list has an accessible name. Disabled rows set the control's `disabled` (button) or `aria-disabled` (`asChild`) and are dimmed.
 
-> **Preview / unstable API.** Keyboard support is the native tab order of the rendered rows; roving arrow-key navigation across the full virtualized list is a planned enhancement, so the API may change.
+Keyboard support is the native tab order of the rendered rows. Under `VirtualViewport`, off-screen rows aren't reachable by Tab (see [Virtualization](#virtualization)) — the windowing trade-off for a long list.
 
 ## API Reference
 
-### ScrollableList.Root
+### ScrollableList.Viewport
 
-Accepts all `<div>` props, plus:
+The non-virtualized container. Accepts all `<div>` props, plus:
 
-| Prop       | Type        | Default | Description                                            |
-| ---------- | ----------- | ------- | ------------------------------------------------------ |
-| `children` | `ReactNode` |         | `ScrollableList.Item` rows. The list virtualizes them. |
+| Prop       | Type        | Default | Description                                    |
+| ---------- | ----------- | ------- | ---------------------------------------------- |
+| `children` | `ReactNode` |         | `ScrollableList.Item` rows (all are rendered). |
 
-Bound the height (e.g. `className="max-h-80"`) so virtualization engages.
+Bound the height (e.g. `className="max-h-80"`) so long lists scroll.
+
+### ScrollableList.VirtualViewport
+
+The windowed container — same surface as `Viewport` (compose the same `Item` children), plus the virtualizer knobs:
+
+| Prop                 | Type        | Default | Description                                                            |
+| -------------------- | ----------- | ------- | ---------------------------------------------------------------------- |
+| `children`           | `ReactNode` |         | `ScrollableList.Item` rows (only the visible window is mounted).       |
+| `estimateRowHeight?` | `number`    | `44`    | Estimated row height (px) used to seed the virtualizer before measure. |
+| `overscan?`          | `number`    | `8`     | Rows rendered beyond the visible window on each side.                  |
 
 ### ScrollableList.Item
 

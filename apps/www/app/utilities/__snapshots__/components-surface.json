@@ -463,14 +463,14 @@
   },
   {
     "name": "Scrollable List",
-    "slug": "components/preview/scrollable-list",
-    "status": "preview",
+    "slug": "components/scrollable-list",
+    "status": "stable",
     "importPath": "@ngrok/mantle/scrollable-list",
-    "summary": "A virtualized, scrollable list of clickable rows.",
-    "jsdoc": "A virtualized, scrollable list of clickable rows — the action/navigation counterpart to `SelectableList`.",
+    "summary": "A scrollable, optionally-virtualized list of clickable rows.",
+    "jsdoc": "A scrollable, optionally-virtualized list of clickable rows — the action / navigation counterpart to `SelectableList` (e.g. an account switcher or SSO provider picker).",
     "examples": [
-      "Composition:\n```\nScrollableList.Root\n└── ScrollableList.Item\n    ├── ScrollableList.ItemTitle\n    └── ScrollableList.ItemDescription\n```",
-      "```tsx\n<ScrollableList.Root aria-label=\"Your accounts\" className=\"max-h-80\">\n  {accounts.map((account) => (\n    <ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>\n      <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>\n      <ScrollableList.ItemDescription>\n        {account.plan} · {account.memberCount} members\n      </ScrollableList.ItemDescription>\n    </ScrollableList.Item>\n  ))}\n</ScrollableList.Root>\n```"
+      "Composition:\n```\nScrollableList.Viewport   (or .VirtualViewport)\n└── ScrollableList.Item\n    ├── ScrollableList.ItemTitle\n    └── ScrollableList.ItemDescription\n```",
+      "```tsx\n<ScrollableList.Viewport aria-label=\"Your accounts\" className=\"max-h-80\">\n  {accounts.map((account) => (\n    <ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>\n      <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>\n      <ScrollableList.ItemDescription>\n        {account.plan} · {account.memberCount} members\n      </ScrollableList.ItemDescription>\n    </ScrollableList.Item>\n  ))}\n</ScrollableList.Viewport>\n```"
     ]
   },
   {
@@ -487,13 +487,13 @@
   },
   {
     "name": "Selectable List",
-    "slug": "components/preview/selectable-list",
-    "status": "preview",
+    "slug": "components/selectable-list",
+    "status": "stable",
     "importPath": "@ngrok/mantle/selectable-list",
-    "summary": "A filterable, virtualized, multi-select list of checkbox rows.",
-    "jsdoc": "A filterable, virtualized, multi-select list of checkbox rows — the inline (non-popover) counterpart to `MultiSelect`/`Combobox`.",
+    "summary": "A filterable, multi-select grid of checkbox rows.",
+    "jsdoc": "A filterable, multi-select **grid** of checkbox rows — the inline (non-popover) counterpart to `MultiSelect`/`Combobox`.",
     "examples": [
-      "Composition:\n```\nSelectableList.Root\n├── SelectableList.Filter\n├── SelectableList.SelectAll\n├── SelectableList.Viewport\n│   └── SelectableList.Item              (optional render-prop; auto-rendered by default)\n│       ├── SelectableList.ItemTitle\n│       └── SelectableList.ItemDescription\n└── SelectableList.Empty\n```",
+      "Composition:\n```\nSelectableList.Root\n├── SelectableList.Filter\n├── SelectableList.SelectAll\n├── SelectableList.Viewport            (or .VirtualViewport)\n│   └── SelectableList.Item            (optional render-prop; auto-rendered by default)\n│       ├── SelectableList.ItemTitle\n│       └── SelectableList.ItemDescription\n└── SelectableList.Empty\n```",
       "```tsx\nconst options = accessKeys.map((key) => ({\n  value: key.id,\n  label: key.name,\n  description: key.maskedToken,\n}));\n\n<SelectableList.Root options={options} value={selected} onValueChange={setSelected}>\n  <SelectableList.Filter placeholder=\"Filter access keys…\" />\n  <SelectableList.SelectAll>Select all</SelectableList.SelectAll>\n  <SelectableList.Viewport aria-label=\"Access keys\" className=\"max-h-80\" />\n  <SelectableList.Empty>No access keys found.</SelectableList.Empty>\n</SelectableList.Root>\n```"
     ]
   },

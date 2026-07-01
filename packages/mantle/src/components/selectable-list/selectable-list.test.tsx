@@ -3,6 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import {
 	filterSelectableOptions,
+	isInteractiveRowTarget,
 	SelectableList,
 	summarizeSelection,
 	toggleSelectionValue,
@@ -73,6 +74,42 @@ describe("summarizeSelection", () => {
 			allSelected: false,
 			someSelected: false,
 		});
+	});
+});
+
+describe("isInteractiveRowTarget", () => {
+	test("returns true for a control or label inside the row (the row must not double-toggle)", () => {
+		const row = document.createElement("div");
+		const button = document.createElement("button");
+		row.append(button);
+		expect(isInteractiveRowTarget(button, row)).toBe(true);
+
+		const label = document.createElement("label");
+		row.append(label);
+		expect(isInteractiveRowTarget(label, row)).toBe(true);
+	});
+
+	test("returns false for non-interactive row content (the row toggles)", () => {
+		const row = document.createElement("div");
+		const description = document.createElement("p");
+		row.append(description);
+		expect(isInteractiveRowTarget(description, row)).toBe(false);
+	});
+
+	test("returns false for a non-element target", () => {
+		const row = document.createElement("div");
+		expect(isInteractiveRowTarget(null, row)).toBe(false);
+	});
+
+	test("ignores interactive ancestors outside the row", () => {
+		// The row is nested inside a button; a click on the row's own text must not
+		// be treated as interactive just because an ancestor is.
+		const outerButton = document.createElement("button");
+		const row = document.createElement("div");
+		const text = document.createElement("p");
+		outerButton.append(row);
+		row.append(text);
+		expect(isInteractiveRowTarget(text, row)).toBe(false);
 	});
 });
 

@@ -1,7 +1,7 @@
 /**
  * Re-exports for the SelectableList component.
  *
- * @see https://mantle.ngrok.com/components/preview/selectable-list
+ * @see https://mantle.ngrok.com/components/selectable-list
  */
 
 export {
@@ -14,6 +14,9 @@ export {
 
 export type {
 	//,
+	SelectableListItemProps,
 	SelectableListOption,
 	SelectableListRootProps,
+	SelectableListViewportProps,
+	SelectableListVirtualViewportProps,
 } from "./selectable-list.js";

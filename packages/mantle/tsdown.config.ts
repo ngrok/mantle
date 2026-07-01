@@ -13,11 +13,11 @@ const DOCS_ORIGIN = "https://mantle.ngrok.com";
 /**
  * A set of package names that should not be published to npm.
  *
- * `virtual-list` is an internal shared shell (used by `selectable-list` and
- * `scrollable-list`); it has no `@ngrok/mantle/*` subpath, so it is bundled
- * into those consumers rather than emitted as its own entry.
+ * `list` is the internal shared shell behind `selectable-list` and
+ * `scrollable-list`; it has no `@ngrok/mantle/*` subpath, so it is bundled into
+ * those consumers rather than emitted as its own entry.
  */
-const doNotPublish = new Set<string>(["portal", "virtual-list"]);
+const doNotPublish = new Set<string>(["portal", "list"]);
 
 /**
  * A set of package names that shouldn't be released yet
