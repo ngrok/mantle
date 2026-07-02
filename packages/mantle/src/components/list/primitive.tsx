@@ -126,18 +126,25 @@ const listViewportClassName =
  * Collection chrome (the `role="list"` / `role="grid"` element). `relative`
  * anchors the absolutely-positioned rows a `VirtualRoot` emits; the row inset
  * lives on the viewport (see {@link listViewportClassName}) so in-flow and
- * windowed rows clear the border identically. `outline-hidden` hides the focus
- * ring on the (focusable) grid container — the active *row* shows the ring instead.
+ * windowed rows clear the border identically. `flex flex-col gap-px` gives the
+ * `MultiSelect`-style 1px gap between in-flow rows so adjacent selected pills
+ * read as distinct (windowed rows are out of flow, so `VirtualRoot` reproduces
+ * the same gap via the virtualizer's `gap` option). `outline-hidden` hides the
+ * focus ring on the (focusable) grid container — the active *row* tints instead.
  */
-const listCollectionClassName = "relative w-full outline-hidden";
+const listCollectionClassName = "relative flex w-full flex-col gap-px outline-hidden";
 
 /**
  * Row pill chrome — the inset, rounded surface that tints on hover / selection
- * with the shared menu-item tokens. The active grid row (keyboard) shows an
- * inset accent ring so sighted users can see the `aria-activedescendant` target.
+ * with the shared menu-item tokens, matching the `MultiSelect` popover options.
+ * The active grid row (keyboard `aria-activedescendant` target) tints with the
+ * same hover color rather than a ring — `bg-active-menu-item` when unselected,
+ * `bg-active-selected-menu-item` when also selected — so `data-[active]` reads
+ * exactly like `:hover`. The active+selected rule carries an extra attribute
+ * selector, so it wins over the plain selected tint by specificity.
  */
 const listRowClassName =
-	"rounded-md data-[state=selected]:bg-selected-menu-item data-[active]:ring-focus-accent data-[active]:ring-2 data-[active]:ring-inset";
+	"rounded-md data-[state=selected]:bg-selected-menu-item data-[active]:bg-active-menu-item data-[active]:data-[state=selected]:bg-active-selected-menu-item";
 
 /**
  * Props for {@link Root} / `VirtualRoot`. Standard `<div>` props (on the scroll
@@ -273,7 +280,7 @@ type ListRowProps = Omit<ComponentProps<"div">, "role"> &
  * A single composed row — a `<div role="listitem">` (list) or `<div role="row">`
  * with `aria-selected` (grid), taking its semantics from the enclosing `Root` /
  * `VirtualRoot`. Owns the pill chrome and the selected/disabled data attributes;
- * in a grid it also carries the `aria-activedescendant` id and active-row ring,
+ * in a grid it also carries the `aria-activedescendant` id and active-row tint,
  * and — when windowed — the absolute placement, measure ref, and
  * `aria-posinset` / `aria-setsize`. Authoring the same `<List.Row>` works
  * virtualized or not, and even when a consumer's item component wraps it.

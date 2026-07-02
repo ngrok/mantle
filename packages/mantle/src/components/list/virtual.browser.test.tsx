@@ -35,6 +35,9 @@ const UTILITY_SHIM = `
 	.py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
 	.relative { position: relative; }
 	.w-full { width: 100%; }
+	.flex { display: flex; }
+	.flex-col { flex-direction: column; }
+	.gap-px { gap: 1px; }
 `;
 
 let shimStyle: HTMLStyleElement;

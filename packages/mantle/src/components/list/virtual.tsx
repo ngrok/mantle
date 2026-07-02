@@ -142,6 +142,9 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 			getScrollElement: () => scrollRef.current,
 			estimateSize: () => estimateRowHeight,
 			overscan,
+			// Reproduce the plain collection's `gap-px` between windowed rows, which
+			// are out of flow and so can't inherit the flex gap.
+			gap: 1,
 		});
 		const listContext = useMemo<ListContextValue>(() => ({ semantics }), [semantics]);
 		const resolveRowId = useMemo(
