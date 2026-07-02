@@ -198,4 +198,59 @@ describe("List grid navigation", () => {
 		await user.keyboard("{ArrowUp}");
 		expect(document.activeElement).toBe(grid);
 	});
+
+	test("keyboard navigation skips rows whose `disabled` prop is set", async () => {
+		// Index 2 is disabled — arrowing should step over it, reading the flag from
+		// the row element's `disabled` prop (not the DOM), so it works windowed too.
+		render(
+			<List.VirtualRoot
+				semantics="grid"
+				aria-label="grid"
+				style={{ maxHeight: 400 }}
+				onActivate={() => {}}
+			>
+				{gridRows.slice(0, 6).map((row, index) => (
+					<List.Row key={row.id} disabled={index === 2}>
+						<div role="gridcell">
+							<button type="button" tabIndex={-1}>
+								{row.name}
+							</button>
+						</div>
+					</List.Row>
+				))}
+			</List.VirtualRoot>,
+		);
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
+
+		const grid = document.querySelector<HTMLElement>("[data-slot='list'] [role='grid']");
+		if (grid == null) {
+			throw new Error("grid not found");
+		}
+		const activeIndex = () =>
+			document
+				.querySelector("[data-slot='list'] [role='row'][data-active]")
+				?.getAttribute("data-index") ?? null;
+
+		const user = userEvent.setup();
+		grid.focus(); // activates the first enabled row (0)
+		// Let the focus-driven state update flush before reading the active row.
+		await new Promise((resolve) => {
+			requestAnimationFrame(() => resolve(null));
+		});
+		const sequence = [activeIndex()];
+		for (let step = 0; step < 4; step++) {
+			await user.keyboard("{ArrowDown}");
+			sequence.push(activeIndex());
+		}
+
+		// 0 → 1 → (skip disabled 2) → 3 → 4 → 5, never landing on 2.
+		expect(sequence).toEqual(["0", "1", "3", "4", "5"]);
+		expect(
+			document
+				.querySelector("[data-slot='list'] [role='row'][data-index='2']")
+				?.hasAttribute("data-active"),
+		).toBe(false);
+	});
 });

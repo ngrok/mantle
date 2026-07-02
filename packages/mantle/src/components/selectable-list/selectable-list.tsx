@@ -564,7 +564,10 @@ function renderDefaultOption(option: SelectableListOption): ReactNode {
 /**
  * Map the filtered options into keyed `Item` rows, using the render-prop child
  * when supplied or the default title/description row otherwise. Each row is
- * re-keyed by its option `value` so composed rows stay stable across filtering.
+ * re-keyed by its option `value` so composed rows stay stable across filtering,
+ * and the option's `disabled` is surfaced onto the row element so the grid can
+ * skip it during keyboard navigation without reading the (windowed) DOM. An
+ * explicitly-disabled row from a render-prop stays disabled.
  */
 function renderRows(
 	filteredOptions: readonly SelectableListOption[],
@@ -572,7 +575,11 @@ function renderRows(
 ): ReactNode[] {
 	return filteredOptions.map((option) => {
 		const row = renderOption(option);
-		return isValidElement(row) ? cloneElement(row, { key: option.value }) : row;
+		if (!isValidElement<{ disabled?: boolean }>(row)) {
+			return row;
+		}
+		const disabled = row.props.disabled === true || option.disabled === true;
+		return cloneElement(row, { key: option.value, disabled });
 	});
 }
 

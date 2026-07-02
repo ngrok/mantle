@@ -8,6 +8,7 @@ import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import {
 	GridNavContext,
+	isRowChildDisabled,
 	ListContext,
 	ListRowContext,
 	listCollectionClassName,
@@ -158,6 +159,9 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 		const { activeIndex, collectionProps } = useGridNavigation({
 			count,
 			enabled: semantics === "grid",
+			// Windowed rows aren't all mounted, so read `disabled` from the row
+			// elements (which we hold in full) rather than the DOM.
+			isRowDisabled: (index) => isRowChildDisabled(rows[index]),
 			onActivate,
 			rowId: resolveRowId,
 			scrollToIndex,
