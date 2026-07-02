@@ -223,20 +223,30 @@ function useGridNavigation({
 			tabIndex: 0,
 			"aria-activedescendant": clampedActiveIndex >= 0 ? rowId(clampedActiveIndex) : undefined,
 			onFocus: (event: FocusEvent<HTMLDivElement>) => {
-				// Focus entered the grid — from a Tab, or from clicking a row (whose
-				// checkbox/label takes focus). Make the row that received focus active
-				// so arrow keys continue from there, falling back to the first row when
-				// focus landed on the collection itself. Never scroll here: only
-				// keyboard navigation moves the viewport, so a click can't reset scroll.
-				const focusedRow =
-					event.target instanceof Element ? event.target.closest("[data-index]") : null;
-				const focusedIndex = focusedRow
-					? Number(focusedRow.getAttribute("data-index"))
-					: Number.NaN;
-				if (Number.isInteger(focusedIndex) && focusedIndex >= 0) {
-					setActiveIndex(focusedIndex);
-				} else if (clampedActiveIndex < 0 && count > 0) {
-					setActiveIndex(0);
+				// Focus entered the grid. The collection is the single tab stop, so the
+				// active row is shown by its tint / `aria-activedescendant` — never a
+				// real focus ring on a control. If focus landed on a descendant (e.g. a
+				// clicked checkbox), make its row active and pull focus back to the
+				// collection so a later arrow press doesn't light up that control with
+				// `:focus-visible`. Never scroll here — only keyboard navigation moves
+				// the viewport, so a click can't reset scroll.
+				if (event.target !== event.currentTarget) {
+					const focusedRow =
+						event.target instanceof Element ? event.target.closest("[data-index]") : null;
+					const focusedIndex = focusedRow
+						? Number(focusedRow.getAttribute("data-index"))
+						: Number.NaN;
+					if (Number.isInteger(focusedIndex) && focusedIndex >= 0) {
+						setActiveIndex(focusedIndex);
+					}
+					event.currentTarget.focus({ preventScroll: true });
+					return;
+				}
+				// Focus is on the collection itself (a Tab-in): default to the first row.
+				// The functional update keeps the re-entrant focus() above from
+				// clobbering a just-set active index back to 0.
+				if (count > 0) {
+					setActiveIndex((previous) => (previous < 0 ? 0 : previous));
 				}
 			},
 			onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {

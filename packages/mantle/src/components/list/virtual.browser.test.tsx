@@ -182,10 +182,20 @@ describe("List grid navigation", () => {
 
 		// The scroll must stay put (the bug snapped it back to the top)...
 		expect(Math.abs(viewport.scrollTop - scrollBefore)).toBeLessThan(20);
-		// ...and the clicked row — not row 0 — becomes the active descendant.
+
 		const grid = viewport.querySelector("[role='grid']");
+		// ...focus must move to the collection (the single tab stop), not linger on
+		// the clicked control — otherwise a later arrow press lights the control
+		// with a `:focus-visible` ring...
+		expect(document.activeElement).toBe(grid);
+		// ...and the clicked row — not row 0 — becomes the active descendant.
 		expect(grid?.getAttribute("aria-activedescendant")).toBe(
 			grid?.querySelector(`[data-index='${clickedIndex}']`)?.id,
 		);
+
+		// Arrowing after the click keeps focus on the collection (never a ring on
+		// the previously-clicked control).
+		await user.keyboard("{ArrowUp}");
+		expect(document.activeElement).toBe(grid);
 	});
 });
