@@ -6,7 +6,6 @@ import {
 	forwardRef,
 	useCallback,
 	useContext,
-	useEffect,
 	useId,
 	useMemo,
 	useState,
@@ -15,6 +14,7 @@ import type {
 	ComponentProps,
 	ComponentRef,
 	CSSProperties,
+	FocusEvent,
 	KeyboardEvent,
 	ReactNode,
 	Ref,
@@ -176,8 +176,11 @@ type ListRootProps = ComponentProps<"div"> & {
  *
  * `Space` / `Enter` fire {@link onActivate}; arrows / `Home` / `End` move the
  * active index across the **full** `count` (not just the mounted window), and
- * `scrollToIndex` reveals + mounts it. Because focus stays on the collection
- * (never on a row), navigation survives virtualization.
+ * `scrollToIndex` reveals + mounts it. Scrolling happens **only** on keyboard
+ * navigation — focus (from a Tab or a row click) just makes the focused row
+ * active without moving the viewport, so clicking a row never yanks the scroll.
+ * Because keyboard navigation keeps focus on the collection (never on a row), it
+ * survives virtualization.
  */
 function useGridNavigation({
 	count,
@@ -203,20 +206,15 @@ function useGridNavigation({
 	// Keep the active index in range as the collection shrinks (e.g. filtering).
 	const clampedActiveIndex = activeIndex >= count ? count - 1 : activeIndex;
 
-	// Reveal + mount the active row whenever it changes. Focus never leaves the
-	// collection, so nothing to re-focus — the row just needs to be scrolled in.
-	useEffect(() => {
-		if (enabled && clampedActiveIndex >= 0) {
-			scrollToIndex(clampedActiveIndex);
-		}
-	}, [enabled, clampedActiveIndex, scrollToIndex]);
-
 	if (!enabled) {
 		return { activeIndex: -1, collectionProps: {} };
 	}
 
 	const move = (nextIndex: number) => {
-		setActiveIndex(Math.max(0, Math.min(nextIndex, count - 1)));
+		const clamped = Math.max(0, Math.min(nextIndex, count - 1));
+		setActiveIndex(clamped);
+		// Only keyboard navigation scrolls — reveal + mount the newly active row.
+		scrollToIndex(clamped);
 	};
 
 	return {
@@ -224,8 +222,20 @@ function useGridNavigation({
 		collectionProps: {
 			tabIndex: 0,
 			"aria-activedescendant": clampedActiveIndex >= 0 ? rowId(clampedActiveIndex) : undefined,
-			onFocus: () => {
-				if (clampedActiveIndex < 0 && count > 0) {
+			onFocus: (event: FocusEvent<HTMLDivElement>) => {
+				// Focus entered the grid — from a Tab, or from clicking a row (whose
+				// checkbox/label takes focus). Make the row that received focus active
+				// so arrow keys continue from there, falling back to the first row when
+				// focus landed on the collection itself. Never scroll here: only
+				// keyboard navigation moves the viewport, so a click can't reset scroll.
+				const focusedRow =
+					event.target instanceof Element ? event.target.closest("[data-index]") : null;
+				const focusedIndex = focusedRow
+					? Number(focusedRow.getAttribute("data-index"))
+					: Number.NaN;
+				if (Number.isInteger(focusedIndex) && focusedIndex >= 0) {
+					setActiveIndex(focusedIndex);
+				} else if (clampedActiveIndex < 0 && count > 0) {
 					setActiveIndex(0);
 				}
 			},

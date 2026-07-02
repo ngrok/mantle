@@ -1,6 +1,7 @@
 "use client";
 
 import { render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { List } from "./list.js";
 
@@ -38,6 +39,7 @@ const UTILITY_SHIM = `
 	.flex { display: flex; }
 	.flex-col { flex-direction: column; }
 	.gap-px { gap: 1px; }
+	.overflow-y-auto { overflow-y: auto; }
 `;
 
 let shimStyle: HTMLStyleElement;
@@ -116,5 +118,74 @@ describe("List virtualization spacing", () => {
 		expect(virtualGeometry.leftInset).toBeCloseTo(plainGeometry.leftInset, 0);
 		expect(virtualGeometry.rightInset).toBeCloseTo(plainGeometry.rightInset, 0);
 		expect(virtualGeometry.leftInset).toBeGreaterThan(0);
+	});
+});
+
+const gridRows = Array.from({ length: 40 }, (_, index) => ({
+	id: `g-${index}`,
+	name: `Grid row ${index}`,
+}));
+
+describe("List grid navigation", () => {
+	test("clicking a windowed row selects it without resetting the scroll position", async () => {
+		render(
+			<List.VirtualRoot
+				semantics="grid"
+				aria-label="grid"
+				style={{ maxHeight: 200 }}
+				onActivate={() => {}}
+			>
+				{gridRows.map((row) => (
+					<List.Row key={row.id}>
+						<div role="gridcell">
+							{/* tabIndex -1 mirrors SelectableList's checkbox: focusable by click, not Tab. */}
+							<button type="button" tabIndex={-1}>
+								{row.name}
+							</button>
+						</div>
+					</List.Row>
+				))}
+			</List.VirtualRoot>,
+		);
+		// Let the virtualizer measure so the viewport is scrollable.
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
+
+		const viewport = document.querySelector("[data-slot='list']");
+		if (viewport == null) {
+			throw new Error("viewport not found");
+		}
+		viewport.scrollTop = 150;
+		await new Promise((resolve) => {
+			requestAnimationFrame(() => resolve(null));
+		});
+		const scrollBefore = viewport.scrollTop;
+		// Sanity: the list actually scrolled, otherwise the assertion is meaningless.
+		expect(scrollBefore).toBeGreaterThan(50);
+
+		// Click a row that is currently within the visible window.
+		const viewportRect = viewport.getBoundingClientRect();
+		const button = Array.from(viewport.querySelectorAll("button")).find((candidate) => {
+			const rect = candidate.getBoundingClientRect();
+			return rect.top >= viewportRect.top && rect.bottom <= viewportRect.bottom;
+		});
+		if (button == null) {
+			throw new Error("no fully-visible row button found");
+		}
+		const clickedIndex = button.closest("[data-index]")?.getAttribute("data-index");
+		const user = userEvent.setup();
+		await user.click(button);
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
+
+		// The scroll must stay put (the bug snapped it back to the top)...
+		expect(Math.abs(viewport.scrollTop - scrollBefore)).toBeLessThan(20);
+		// ...and the clicked row — not row 0 — becomes the active descendant.
+		const grid = viewport.querySelector("[role='grid']");
+		expect(grid?.getAttribute("aria-activedescendant")).toBe(
+			grid?.querySelector(`[data-index='${clickedIndex}']`)?.id,
+		);
 	});
 });
