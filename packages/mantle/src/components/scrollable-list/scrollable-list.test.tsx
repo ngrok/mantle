@@ -49,7 +49,7 @@ describe("ScrollableList.Item", () => {
 		expect(link).toHaveAttribute("data-slot", "scrollable-list-item");
 	});
 
-	test("asChild conveys disabled via aria-disabled (since <a> has no disabled)", () => {
+	test("asChild conveys disabled inertly (aria-disabled + removed from tab order + no pointer events)", () => {
 		render(
 			<ScrollableList.Viewport aria-label="Accounts">
 				<ScrollableList.Item asChild disabled>
@@ -57,7 +57,13 @@ describe("ScrollableList.Item", () => {
 				</ScrollableList.Item>
 			</ScrollableList.Viewport>,
 		);
-		expect(screen.getByRole("link", { name: "Account" })).toHaveAttribute("aria-disabled", "true");
+		// `aria-disabled` alone is advisory, so a disabled <a> (which can't take the
+		// real `disabled` attribute) is also pulled out of the tab order and has its
+		// pointer events blocked, so it can't be clicked or Enter-activated.
+		const link = screen.getByRole("link", { name: "Account" });
+		expect(link).toHaveAttribute("aria-disabled", "true");
+		expect(link).toHaveAttribute("tabindex", "-1");
+		expect(link.className).toContain("aria-disabled:pointer-events-none");
 	});
 
 	test("reflects selected as a data attribute", () => {

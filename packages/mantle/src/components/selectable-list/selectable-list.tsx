@@ -98,18 +98,22 @@ function summarizeSelection(
 	options: readonly SelectableListOption[],
 	selected: ReadonlySet<string>,
 ): { allSelected: boolean; someSelected: boolean } {
-	const selectable = options.filter((option) => !option.disabled);
-	if (selectable.length === 0) {
-		return { allSelected: false, someSelected: false };
-	}
+	let selectableCount = 0;
 	let selectedCount = 0;
-	for (const option of selectable) {
+	for (const option of options) {
+		if (option.disabled) {
+			continue;
+		}
+		selectableCount += 1;
 		if (selected.has(option.value)) {
 			selectedCount += 1;
 		}
 	}
+	if (selectableCount === 0) {
+		return { allSelected: false, someSelected: false };
+	}
 	return {
-		allSelected: selectedCount === selectable.length,
+		allSelected: selectedCount === selectableCount,
 		someSelected: selectedCount > 0,
 	};
 }
@@ -356,12 +360,13 @@ const SelectAll = forwardRef<ComponentRef<"label">, Omit<ComponentProps<"label">
 
 		const { allSelected, someSelected } = summarizeSelection(filteredOptions, selectedSet);
 		const checked = selectAllChecked({ allSelected, someSelected });
-
-		const selectableFilteredValues = filteredOptions
-			.filter((option) => !option.disabled)
-			.map((option) => option.value);
+		const hasSelectable = filteredOptions.some((option) => !option.disabled);
 
 		const handleChange = () => {
+			// Materialize the selectable values only on toggle, not on every render.
+			const selectableFilteredValues = filteredOptions
+				.filter((option) => !option.disabled)
+				.map((option) => option.value);
 			if (allSelected) {
 				// Clear only the filtered values, preserving any selection outside the filter.
 				const filteredSet = new Set(selectableFilteredValues);
@@ -387,7 +392,7 @@ const SelectAll = forwardRef<ComponentRef<"label">, Omit<ComponentProps<"label">
 					id={controlId}
 					checked={checked}
 					onChange={handleChange}
-					disabled={selectableFilteredValues.length === 0}
+					disabled={!hasSelectable}
 				/>
 				{children}
 			</label>
@@ -449,7 +454,7 @@ type SelectableListItemProps = Omit<ComponentProps<"div">, "children"> & {
  * ```
  */
 const Item = forwardRef<ComponentRef<"div">, SelectableListItemProps>(
-	({ children, className, disabled: disabledProp, value, ...props }, ref) => {
+	({ children, className, disabled: disabledProp, onClick, value, ...props }, ref) => {
 		const { listId, selectedSet, disabledSet, toggle } = useSelectableListContext("Item");
 		const controlId = controlIdFor(listId, value);
 		const selected = selectedSet.has(value);
@@ -461,14 +466,19 @@ const Item = forwardRef<ComponentRef<"div">, SelectableListItemProps>(
 				asChild
 				selected={selected}
 				disabled={disabled}
-				data-value={value}
-				aria-disabled={disabled || undefined}
 				className={cx(
 					"px-2 py-1.5 text-sm",
 					"cursor-pointer aria-disabled:cursor-default",
 					className,
 				)}
+				{...props}
+				data-value={value}
+				aria-disabled={disabled || undefined}
 				onClick={(event) => {
+					// Run a consumer-supplied handler first so it composes with (and can
+					// `preventDefault` to opt out of) the row's click-to-toggle, rather than
+					// silently replacing it via the `{...props}` spread.
+					onClick?.(event);
 					// Forward a bare row click to selection, but defer to anything that already
 					// handles its own click — the checkbox, the title's <label>, or nested
 					// interactive content — so the row never double-toggles.
@@ -481,7 +491,6 @@ const Item = forwardRef<ComponentRef<"div">, SelectableListItemProps>(
 					}
 					toggle(value);
 				}}
-				{...props}
 			>
 				<Choice.Root id={controlId} disabled={disabled}>
 					<Choice.Indicator role="gridcell">
@@ -568,19 +577,32 @@ function renderDefaultOption(option: SelectableListOption): ReactNode {
  * and the option's `disabled` is surfaced onto the row element so the grid can
  * skip it during keyboard navigation without reading the (windowed) DOM. An
  * explicitly-disabled row from a render-prop stays disabled.
+ *
+ * Returns the rendered rows alongside the `options` that produced them, in the
+ * same order. Non-element render-prop results (e.g. a conditional `null`) are
+ * skipped from *both* arrays, so `options[i]` always corresponds to the rendered
+ * `rows[i]` — and to the index the list primitive assigns that row (it derives
+ * indices from the elements it renders via `Children.toArray`). The viewport
+ * resolves grid activation/`rowId` by that index against `options`, so keeping
+ * them aligned is what stops keyboard nav from toggling or labeling the wrong
+ * option when a render-prop drops a row.
  */
 function renderRows(
 	filteredOptions: readonly SelectableListOption[],
 	renderOption: (option: SelectableListOption) => ReactNode,
-): ReactNode[] {
-	return filteredOptions.map((option) => {
+): { rows: ReactNode[]; options: SelectableListOption[] } {
+	const rows: ReactNode[] = [];
+	const options: SelectableListOption[] = [];
+	for (const option of filteredOptions) {
 		const row = renderOption(option);
 		if (!isValidElement<{ disabled?: boolean }>(row)) {
-			return row;
+			continue;
 		}
 		const disabled = row.props.disabled === true || option.disabled === true;
-		return cloneElement(row, { key: option.value, disabled });
-	});
+		rows.push(cloneElement(row, { key: option.value, disabled }));
+		options.push(option);
+	}
+	return { rows, options };
 }
 
 type SelectableListViewportProps = Omit<ComponentProps<"div">, "children"> & {
@@ -612,6 +634,15 @@ const Viewport = forwardRef<ComponentRef<"div">, SelectableListViewportProps>(
 	({ children, ...props }, ref) => {
 		const { filteredOptions, listId, toggle } = useSelectableListContext("Viewport");
 		const renderOption = children ?? renderDefaultOption;
+		// Memoized so a selection toggle (which leaves `filteredOptions` and the default
+		// renderer untouched) doesn't re-map + re-clone every row. `rowOptions` are the
+		// options that actually produced a rendered row, so resolving activation/`rowId`
+		// by the primitive's row index against them stays aligned. A fresh inline
+		// render-prop each render opts out of the memo — memoize it to keep the win.
+		const { rows, options: rowOptions } = useMemo(
+			() => renderRows(filteredOptions, renderOption),
+			[filteredOptions, renderOption],
+		);
 
 		if (filteredOptions.length === 0) {
 			return null;
@@ -623,18 +654,19 @@ const Viewport = forwardRef<ComponentRef<"div">, SelectableListViewportProps>(
 				data-slot="selectable-list-viewport"
 				semantics="grid"
 				{...props}
+				aria-multiselectable
 				onActivate={(index) => {
-					const option = filteredOptions[index];
+					const option = rowOptions[index];
 					if (option != null) {
 						toggle(option.value);
 					}
 				}}
 				rowId={(index) => {
-					const option = filteredOptions[index];
+					const option = rowOptions[index];
 					return option != null ? controlIdFor(listId, option.value) : "";
 				}}
 			>
-				{renderRows(filteredOptions, renderOption)}
+				{rows}
 			</ListRoot>
 		);
 	},
@@ -666,6 +698,16 @@ const VirtualViewport = forwardRef<ComponentRef<"div">, SelectableListVirtualVie
 	({ children, ...props }, ref) => {
 		const { filteredOptions, listId, toggle } = useSelectableListContext("VirtualViewport");
 		const renderOption = children ?? renderDefaultOption;
+		// Only the windowed slice mounts, but without this every filtered option is
+		// still re-mapped + cloned on each selection toggle — memoize past that.
+		// `rowOptions` mirror the rendered rows (non-element results dropped) so the
+		// index-based activation/`rowId` below can't drift from the mounted rows. A
+		// fresh inline render-prop each render opts out of the memo — memoize it to keep
+		// the win.
+		const { rows, options: rowOptions } = useMemo(
+			() => renderRows(filteredOptions, renderOption),
+			[filteredOptions, renderOption],
+		);
 
 		if (filteredOptions.length === 0) {
 			return null;
@@ -677,18 +719,19 @@ const VirtualViewport = forwardRef<ComponentRef<"div">, SelectableListVirtualVie
 				data-slot="selectable-list-viewport"
 				semantics="grid"
 				{...props}
+				aria-multiselectable
 				onActivate={(index) => {
-					const option = filteredOptions[index];
+					const option = rowOptions[index];
 					if (option != null) {
 						toggle(option.value);
 					}
 				}}
 				rowId={(index) => {
-					const option = filteredOptions[index];
+					const option = rowOptions[index];
 					return option != null ? controlIdFor(listId, option.value) : "";
 				}}
 			>
-				{renderRows(filteredOptions, renderOption)}
+				{rows}
 			</ListVirtualRoot>
 		);
 	},

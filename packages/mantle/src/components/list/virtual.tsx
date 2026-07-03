@@ -123,6 +123,7 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 		{
 			"aria-label": ariaLabel,
 			"aria-labelledby": ariaLabelledby,
+			"aria-multiselectable": ariaMultiselectable,
 			children,
 			className,
 			estimateRowHeight = 44,
@@ -136,7 +137,10 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 	) => {
 		const baseId = useId();
 		const scrollRef = useRef<HTMLDivElement>(null);
-		const rows = Children.toArray(children).filter(isValidElement);
+		// Memoized so a scroll or keyboard-nav re-render (`useVirtualizer` re-renders
+		// on every offset change) doesn't re-walk + re-filter the full child set each
+		// frame — only the windowed slice below needs to re-render.
+		const rows = useMemo(() => Children.toArray(children).filter(isValidElement), [children]);
 		const count = rows.length;
 		const virtualizer = useVirtualizer({
 			count,
@@ -184,6 +188,7 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 							role={semantics === "grid" ? "grid" : "list"}
 							aria-label={ariaLabel}
 							aria-labelledby={ariaLabelledby}
+							aria-multiselectable={ariaMultiselectable}
 							className={listCollectionClassName}
 							style={{ height: `${virtualizer.getTotalSize()}px` }}
 							{...collectionProps}
@@ -197,7 +202,7 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 									<VirtualRow
 										key={virtualRow.key}
 										virtualRow={virtualRow}
-										count={rows.length}
+										count={count}
 										measureRef={virtualizer.measureElement}
 									>
 										{row}
@@ -215,7 +220,6 @@ VirtualRoot.displayName = "ListVirtualRoot";
 
 export {
 	//,
-	buildRowPlacement,
 	VirtualRoot,
 };
 

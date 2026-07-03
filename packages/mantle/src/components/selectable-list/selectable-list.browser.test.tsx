@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import axe from "axe-core";
 import { useState } from "react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { SelectableList } from "./selectable-list.js";
 
 const options = [
@@ -26,12 +26,15 @@ function Harness() {
 }
 
 describe("SelectableList (browser)", () => {
-	test("renders a labeled grid of rows; clicking the checkbox toggles selection", async () => {
+	test("renders a labeled multi-select grid of rows; clicking the checkbox toggles selection", async () => {
 		const user = userEvent.setup();
 		render(<Harness />);
 
 		// The grid is named by the viewport's aria-label; one row per option.
-		expect(await screen.findByRole("grid", { name: "Fruit" })).toBeInTheDocument();
+		const grid = await screen.findByRole("grid", { name: "Fruit" });
+		expect(grid).toBeInTheDocument();
+		// A multi-select grid must advertise multi-selection to assistive tech.
+		expect(grid).toHaveAttribute("aria-multiselectable", "true");
 		expect(screen.getAllByRole("row")).toHaveLength(options.length);
 
 		// The checkbox's accessible name is its title (Choice.Label), not the description.
@@ -161,6 +164,76 @@ describe("SelectableList (browser)", () => {
 		const apple = screen.getByRole<HTMLInputElement>("checkbox", { name: "Apple" });
 		await user.click(apple);
 		expect(apple.checked).toBe(true);
+	});
+
+	test("Item composes a consumer onClick with the row's click-to-toggle", async () => {
+		const user = userEvent.setup();
+		const onItemClick = vi.fn<() => void>();
+		function ComposeHarness() {
+			const [selected, setSelected] = useState<string[]>([]);
+			return (
+				<SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+					<SelectableList.Viewport aria-label="Fruit">
+						{(option) => (
+							<SelectableList.Item value={option.value} onClick={onItemClick}>
+								<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+								<span>bare: {option.description}</span>
+							</SelectableList.Item>
+						)}
+					</SelectableList.Viewport>
+				</SelectableList.Root>
+			);
+		}
+		render(<ComposeHarness />);
+
+		// Click bare row content (not the checkbox/label): the consumer handler runs
+		// AND selection still toggles — the built-in onClick isn't silently replaced.
+		await user.click(await screen.findByText("bare: fruit-a"));
+		expect(onItemClick).toHaveBeenCalledOnce();
+		expect(screen.getByRole<HTMLInputElement>("checkbox", { name: "Apple" }).checked).toBe(true);
+	});
+
+	test("a render-prop that drops a row keeps keyboard activation aligned with the visible rows", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(values: string[]) => void>();
+		function SparseHarness() {
+			const [selected, setSelected] = useState<string[]>([]);
+			return (
+				<SelectableList.Root
+					options={options}
+					value={selected}
+					onValueChange={(next) => {
+						onValueChange(next);
+						setSelected(next);
+					}}
+				>
+					<SelectableList.Viewport aria-label="Fruit">
+						{/* Drop the middle option (Banana) — rendered rows are Apple, then Cherry. */}
+						{(option) =>
+							option.value === "b" ? null : (
+								<SelectableList.Item value={option.value}>
+									<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+								</SelectableList.Item>
+							)
+						}
+					</SelectableList.Viewport>
+				</SelectableList.Root>
+			);
+		}
+		render(<SparseHarness />);
+
+		const grid = await screen.findByRole("grid", { name: "Fruit" });
+		expect(screen.getAllByRole("row")).toHaveLength(2);
+		expect(screen.queryByRole("checkbox", { name: "Banana" })).not.toBeInTheDocument();
+
+		// Focus activates the first visible row (Apple); ArrowDown moves to the second
+		// visible row (Cherry). Space must toggle Cherry — the row it visibly lands on —
+		// not the dropped Banana that previously sat at that index.
+		grid.focus();
+		await user.keyboard("{ArrowDown}");
+		await user.keyboard(" ");
+		await waitFor(() => expect(onValueChange).toHaveBeenCalledWith(["c"]));
+		expect(screen.getByRole<HTMLInputElement>("checkbox", { name: "Cherry" }).checked).toBe(true);
 	});
 
 	test("VirtualViewport renders the same grid, windowed", async () => {

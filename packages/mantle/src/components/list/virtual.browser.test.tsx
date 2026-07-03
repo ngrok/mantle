@@ -199,6 +199,42 @@ describe("List grid navigation", () => {
 		expect(document.activeElement).toBe(grid);
 	});
 
+	test("a genuinely tabbable control inside a grid row keeps focus (no keyboard trap)", async () => {
+		render(
+			<List.VirtualRoot
+				semantics="grid"
+				aria-label="grid"
+				style={{ maxHeight: 200 }}
+				onActivate={() => {}}
+			>
+				{gridRows.slice(0, 5).map((row) => (
+					<List.Row key={row.id}>
+						<div role="gridcell">
+							{/* A naturally-tabbable control (default tabIndex 0), as the docs permit. */}
+							<a href="/x">{row.name}</a>
+						</div>
+					</List.Row>
+				))}
+			</List.VirtualRoot>,
+		);
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
+
+		const link = document.querySelector<HTMLAnchorElement>("[data-slot='list'] a[href]");
+		if (link == null) {
+			throw new Error("link not found");
+		}
+		// Focusing a tabbable in-row control must NOT bounce focus back to the grid —
+		// otherwise the control is keyboard-unreachable and forward-Tab is trapped.
+		// (The row's own tabIndex=-1 controls are still reclaimed; see the click test.)
+		link.focus();
+		await new Promise((resolve) => {
+			requestAnimationFrame(() => resolve(null));
+		});
+		expect(document.activeElement).toBe(link);
+	});
+
 	test("keyboard navigation skips rows whose `disabled` prop is set", async () => {
 		// Index 2 is disabled — arrowing should step over it, reading the flag from
 		// the row element's `disabled` prop (not the DOM), so it works windowed too.

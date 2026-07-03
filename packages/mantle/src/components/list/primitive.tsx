@@ -178,13 +178,10 @@ type ListRootProps = ComponentProps<"div"> & {
  * arbitrary node: non-elements and rows without the prop read as enabled.
  */
 function isRowChildDisabled(node: ReactNode): boolean {
-	if (!isValidElement(node)) {
+	if (!isValidElement<{ disabled?: boolean }>(node)) {
 		return false;
 	}
-	const props: unknown = node.props;
-	return (
-		typeof props === "object" && props !== null && "disabled" in props && props.disabled === true
-	);
+	return node.props.disabled === true;
 }
 
 /**
@@ -279,7 +276,16 @@ function useGridNavigation({
 					if (Number.isInteger(focusedIndex) && focusedIndex >= 0 && !isDisabled(focusedIndex)) {
 						setActiveIndex(focusedIndex);
 					}
-					event.currentTarget.focus({ preventScroll: true });
+					// Pull focus back to the collection only when the focused descendant
+					// isn't itself a tab stop — e.g. the row's own `tabIndex={-1}` control
+					// that took focus from a click — so a later arrow press doesn't ring it
+					// with `:focus-visible`. A genuinely tabbable control the row hosts (a
+					// link, an overflow-menu button) keeps its focus so keyboard users can
+					// reach and operate it instead of being bounced straight back to the
+					// collection (which would otherwise trap forward-Tab inside the grid).
+					if (!(event.target instanceof HTMLElement && event.target.tabIndex >= 0)) {
+						event.currentTarget.focus({ preventScroll: true });
+					}
 					return;
 				}
 				// Focus is on the collection itself (a Tab-in): default to the first
@@ -440,6 +446,7 @@ const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
 		{
 			"aria-label": ariaLabel,
 			"aria-labelledby": ariaLabelledby,
+			"aria-multiselectable": ariaMultiselectable,
 			children,
 			className,
 			onActivate,
@@ -450,10 +457,18 @@ const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
 		ref,
 	) => {
 		const baseId = useId();
-		// The row elements, in order — used both to render and to read each row's
-		// `disabled` prop for grid navigation. `Children.map` below assigns the same
-		// indices, so the disabled lookup by index lines up.
-		const rowChildren = Children.toArray(children);
+		// The row elements, in order — the single array we both render from and read
+		// each row's `disabled` prop off for grid navigation, so the disabled lookup
+		// by index always lines up with what's rendered. Filtered to elements (as
+		// `VirtualRoot` does) so a non-element child — a bare string, or a render-prop
+		// that returned `null` for an option — can't be counted/indexed as a navigable
+		// row here while the windowed shell drops it, which would desync grid
+		// navigation between the two. Memoized so a keyboard-nav re-render (which only
+		// changes `activeIndex`) doesn't re-walk the children.
+		const rowChildren = useMemo(
+			() => Children.toArray(children).filter(isValidElement),
+			[children],
+		);
 		const count = rowChildren.length;
 		const context = useMemo<ListContextValue>(() => ({ semantics }), [semantics]);
 		const resolveRowId = useMemo(
@@ -493,11 +508,16 @@ const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
 							role={semantics === "grid" ? "grid" : "list"}
 							aria-label={ariaLabel}
 							aria-labelledby={ariaLabelledby}
+							aria-multiselectable={ariaMultiselectable}
 							className={listCollectionClassName}
 							{...collectionProps}
 						>
-							{Children.map(children, (row, index) => (
-								<PlainRow index={index}>{row}</PlainRow>
+							{rowChildren.map((row, index) => (
+								// Key off the child's own key (assigned by `Children.toArray`) so
+								// reconciliation follows the consumer's keys across reorder/filter.
+								<PlainRow key={row.key ?? index} index={index}>
+									{row}
+								</PlainRow>
 							))}
 						</div>
 					</div>
@@ -515,7 +535,6 @@ export {
 	ListContext,
 	ListRowContext,
 	listCollectionClassName,
-	listRowClassName,
 	listViewportClassName,
 	Root,
 	Row,

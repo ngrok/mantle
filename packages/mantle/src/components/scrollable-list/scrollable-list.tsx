@@ -129,15 +129,21 @@ const Item = forwardRef<ComponentRef<"button">, ScrollableListItemProps>(
 					ref={ref}
 					data-slot="scrollable-list-item"
 					data-selected={selected || undefined}
-					// A real <button> for the default; for asChild the consumer owns the element
-					// (e.g. <a>), where `disabled` isn't valid — convey it with aria-disabled.
-					{...(asChild ? { "aria-disabled": disabled || undefined } : { type: "button", disabled })}
+					// A real <button> for the default (fully inert when `disabled`). For asChild
+					// the consumer owns the element (e.g. <a>), where the `disabled` attribute
+					// isn't valid — so convey state with `aria-disabled` and actually make it
+					// inert: drop it from the tab order (`tabIndex={-1}`) and block pointer
+					// events (`aria-disabled:pointer-events-none` below), since `aria-disabled`
+					// alone is advisory and wouldn't stop a click or Enter from activating it.
+					{...(asChild
+						? { "aria-disabled": disabled || undefined, tabIndex: disabled ? -1 : undefined }
+						: { type: "button", disabled })}
 					className={cx(
 						// `rounded-md` matches the pill so the focus ring follows its shape. The
 						// hover / selected tint lives on the enclosing row; this is the
 						// transparent, clickable content area that fills it.
 						"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
-						"disabled:cursor-default disabled:opacity-50 aria-disabled:cursor-default aria-disabled:opacity-50",
+						"disabled:cursor-default disabled:opacity-50 aria-disabled:cursor-default aria-disabled:opacity-50 aria-disabled:pointer-events-none",
 						"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
 						className,
 					)}
