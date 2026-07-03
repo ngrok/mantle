@@ -12,9 +12,22 @@ import { Slot } from "../slot/index.js";
 
 /**
  * Props for `ScrollableList.Viewport` — the `list` primitive's `Root` props,
- * minus `semantics` (a `ScrollableList` is always a `role="list"`).
+ * minus `semantics` (a `ScrollableList` is always a `role="list"`) and the
+ * grid-only `onActivate` / `rowId` knobs (inert under list semantics).
+ *
+ * @see https://mantle.ngrok.com/components/scrollable-list
+ *
+ * @example
+ * ```tsx
+ * <ScrollableList.Viewport aria-label="Your accounts" className="max-h-80">
+ *   <ScrollableList.Item onClick={() => {}}>
+ *     <ScrollableList.ItemTitle>Acme Inc</ScrollableList.ItemTitle>
+ *     <ScrollableList.ItemDescription>Pay-as-you-go</ScrollableList.ItemDescription>
+ *   </ScrollableList.Item>
+ * </ScrollableList.Viewport>
+ * ```
  */
-type ScrollableListViewportProps = Omit<ListRootProps, "semantics">;
+type ScrollableListViewportProps = Omit<ListRootProps, "semantics" | "onActivate" | "rowId">;
 
 /**
  * The scrollable container for a `ScrollableList`: a `role="list"` of clickable
@@ -41,16 +54,31 @@ type ScrollableListViewportProps = Omit<ListRootProps, "semantics">;
  * ```
  */
 const Viewport = forwardRef<ComponentRef<"div">, ScrollableListViewportProps>((props, ref) => (
-	<ListRoot ref={ref} data-slot="scrollable-list" semantics="list" {...props} />
+	<ListRoot ref={ref} data-slot="scrollable-list-viewport" semantics="list" {...props} />
 ));
 Viewport.displayName = "ScrollableListViewport";
 
 /**
  * Props for `ScrollableList.VirtualViewport` — the `list` primitive's
  * `VirtualRoot` props (viewport props plus `estimateRowHeight` / `overscan`),
- * minus `semantics`.
+ * minus `semantics` and the grid-only `onActivate` / `rowId` knobs.
+ *
+ * @see https://mantle.ngrok.com/components/scrollable-list
+ *
+ * @example
+ * ```tsx
+ * <ScrollableList.VirtualViewport aria-label="Your accounts" className="max-h-80" estimateRowHeight={44}>
+ *   <ScrollableList.Item onClick={() => {}}>
+ *     <ScrollableList.ItemTitle>Acme Inc</ScrollableList.ItemTitle>
+ *     <ScrollableList.ItemDescription>Pay-as-you-go</ScrollableList.ItemDescription>
+ *   </ScrollableList.Item>
+ * </ScrollableList.VirtualViewport>
+ * ```
  */
-type ScrollableListVirtualViewportProps = Omit<VirtualRootProps, "semantics">;
+type ScrollableListVirtualViewportProps = Omit<
+	VirtualRootProps,
+	"semantics" | "onActivate" | "rowId"
+>;
 
 /**
  * The windowed counterpart to `ScrollableList.Viewport`: renders only the
@@ -68,6 +96,7 @@ type ScrollableListVirtualViewportProps = Omit<VirtualRootProps, "semantics">;
  *   {accounts.map((account) => (
  *     <ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>
  *       <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+ *       <ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
  *     </ScrollableList.Item>
  *   ))}
  * </ScrollableList.VirtualViewport>
@@ -75,7 +104,7 @@ type ScrollableListVirtualViewportProps = Omit<VirtualRootProps, "semantics">;
  */
 const VirtualViewport = forwardRef<ComponentRef<"div">, ScrollableListVirtualViewportProps>(
 	(props, ref) => (
-		<ListVirtualRoot ref={ref} data-slot="scrollable-list" semantics="list" {...props} />
+		<ListVirtualRoot ref={ref} data-slot="scrollable-list-viewport" semantics="list" {...props} />
 	),
 );
 VirtualViewport.displayName = "ScrollableListVirtualViewport";
@@ -83,11 +112,24 @@ VirtualViewport.displayName = "ScrollableListVirtualViewport";
 /**
  * Props for `ScrollableList.Item`. Extends `<button>` props (minus `type`, which
  * is fixed to `"button"`) with `asChild` and the optional `selected` accent.
+ *
+ * @see https://mantle.ngrok.com/components/scrollable-list
+ *
+ * @example
+ * ```tsx
+ * <ScrollableList.Viewport aria-label="Your accounts" className="max-h-80">
+ *   <ScrollableList.Item selected onClick={() => {}}>
+ *     <ScrollableList.ItemTitle>Acme Inc</ScrollableList.ItemTitle>
+ *     <ScrollableList.ItemDescription>Pay-as-you-go</ScrollableList.ItemDescription>
+ *   </ScrollableList.Item>
+ * </ScrollableList.Viewport>
+ * ```
  */
 type ScrollableListItemProps = Omit<ComponentProps<"button">, "type"> &
 	WithAsChild & {
 		/**
-		 * Marks the row as selected/active — gives its pill the accent tint.
+		 * Marks the row as the selected/current one — gives its pill the accent
+		 * tint and sets `aria-current` so the state is announced, not just shown.
 		 * Optional; omit it for a plain action/navigation list.
 		 */
 		selected?: boolean;
@@ -105,22 +147,34 @@ type ScrollableListItemProps = Omit<ComponentProps<"button">, "type"> &
  *
  * @example
  * ```tsx
- * // Action row.
- * <ScrollableList.Item onClick={() => switchTo(account.id)}>
- *   <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
- *   <ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
- * </ScrollableList.Item>
+ * // Action rows.
+ * <ScrollableList.Viewport aria-label="Your accounts" className="max-h-80">
+ *   {accounts.map((account) => (
+ *     <ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>
+ *       <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+ *       <ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
+ *     </ScrollableList.Item>
+ *   ))}
+ * </ScrollableList.Viewport>
+ * ```
  *
- * // Navigation row via asChild.
- * <ScrollableList.Item asChild>
- *   <a href={`/accounts/${account.id}`}>
- *     <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
- *   </a>
- * </ScrollableList.Item>
+ * @example
+ * ```tsx
+ * // Navigation rows via asChild.
+ * <ScrollableList.Viewport aria-label="SSO providers" className="max-h-80">
+ *   {providers.map((provider) => (
+ *     <ScrollableList.Item key={provider.id} asChild>
+ *       <a href={`/sso/${provider.id}`}>
+ *         <ScrollableList.ItemTitle>{provider.name}</ScrollableList.ItemTitle>
+ *         <ScrollableList.ItemDescription>{provider.domain}</ScrollableList.ItemDescription>
+ *       </a>
+ *     </ScrollableList.Item>
+ *   ))}
+ * </ScrollableList.Viewport>
  * ```
  */
 const Item = forwardRef<ComponentRef<"button">, ScrollableListItemProps>(
-	({ asChild, className, disabled, selected, ...props }, ref) => {
+	({ asChild, className, disabled, onClick, selected, ...props }, ref) => {
 		const Comp = asChild ? Slot : "button";
 
 		return (
@@ -128,16 +182,29 @@ const Item = forwardRef<ComponentRef<"button">, ScrollableListItemProps>(
 				<Comp
 					ref={ref}
 					data-slot="scrollable-list-item"
-					data-selected={selected || undefined}
+					// `role="list"` rows carry no aria-selected; announce the selected /
+					// current row (e.g. the active account) with aria-current instead so the
+					// state isn't conveyed by the pill tint alone.
+					aria-current={selected || undefined}
 					// A real <button> for the default (fully inert when `disabled`). For asChild
 					// the consumer owns the element (e.g. <a>), where the `disabled` attribute
 					// isn't valid — so convey state with `aria-disabled` and actually make it
-					// inert: drop it from the tab order (`tabIndex={-1}`) and block pointer
-					// events (`aria-disabled:pointer-events-none` below), since `aria-disabled`
-					// alone is advisory and wouldn't stop a click or Enter from activating it.
+					// inert: drop it from the tab order (`tabIndex={-1}`), block pointer events
+					// (`aria-disabled:pointer-events-none` below), and swallow the click in the
+					// onClick handler below, because assistive tech dispatches clicks directly
+					// (no hit testing) so `pointer-events` alone wouldn't stop an SR-activated
+					// link.
 					{...(asChild
 						? { "aria-disabled": disabled || undefined, tabIndex: disabled ? -1 : undefined }
 						: { type: "button", disabled })}
+					onClick={(event) => {
+						if (asChild && disabled) {
+							event.preventDefault();
+							event.stopPropagation();
+							return;
+						}
+						onClick?.(event);
+					}}
 					className={cx(
 						// `rounded-md` matches the pill so the focus ring follows its shape. The
 						// hover / selected tint lives on the enclosing row; this is the
@@ -163,10 +230,14 @@ Item.displayName = "ScrollableListItem";
  *
  * @example
  * ```tsx
- * <ScrollableList.Item onClick={() => switchTo(account.id)}>
- *   <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
- *   <ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
- * </ScrollableList.Item>
+ * <ScrollableList.Viewport aria-label="Your accounts" className="max-h-80">
+ *   {accounts.map((account) => (
+ *     <ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>
+ *       <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+ *       <ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
+ *     </ScrollableList.Item>
+ *   ))}
+ * </ScrollableList.Viewport>
  * ```
  */
 const ItemTitle = forwardRef<ComponentRef<"span">, ComponentProps<"span">>(
@@ -189,10 +260,14 @@ ItemTitle.displayName = "ScrollableListItemTitle";
  *
  * @example
  * ```tsx
- * <ScrollableList.Item onClick={() => switchTo(account.id)}>
- *   <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
- *   <ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
- * </ScrollableList.Item>
+ * <ScrollableList.Viewport aria-label="Your accounts" className="max-h-80">
+ *   {accounts.map((account) => (
+ *     <ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>
+ *       <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+ *       <ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
+ *     </ScrollableList.Item>
+ *   ))}
+ * </ScrollableList.Viewport>
  * ```
  */
 const ItemDescription = forwardRef<ComponentRef<"span">, ComponentProps<"span">>(
@@ -257,6 +332,7 @@ const ScrollableList = {
 	 *   {accounts.map((account) => (
 	 *     <ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>
 	 *       <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+	 *       <ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
 	 *     </ScrollableList.Item>
 	 *   ))}
 	 * </ScrollableList.Viewport>
@@ -275,6 +351,7 @@ const ScrollableList = {
 	 *   {accounts.map((account) => (
 	 *     <ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>
 	 *       <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+	 *       <ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
 	 *     </ScrollableList.Item>
 	 *   ))}
 	 * </ScrollableList.VirtualViewport>
@@ -289,10 +366,14 @@ const ScrollableList = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <ScrollableList.Item onClick={() => switchTo(account.id)}>
-	 *   <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
-	 *   <ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
-	 * </ScrollableList.Item>
+	 * <ScrollableList.Viewport aria-label="Your accounts" className="max-h-80">
+	 *   {accounts.map((account) => (
+	 *     <ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>
+	 *       <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+	 *       <ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
+	 *     </ScrollableList.Item>
+	 *   ))}
+	 * </ScrollableList.Viewport>
 	 * ```
 	 */
 	Item,
@@ -303,9 +384,14 @@ const ScrollableList = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <ScrollableList.Item onClick={() => switchTo(account.id)}>
-	 *   <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
-	 * </ScrollableList.Item>
+	 * <ScrollableList.Viewport aria-label="Your accounts" className="max-h-80">
+	 *   {accounts.map((account) => (
+	 *     <ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>
+	 *       <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+	 *       <ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
+	 *     </ScrollableList.Item>
+	 *   ))}
+	 * </ScrollableList.Viewport>
 	 * ```
 	 */
 	ItemTitle,
@@ -316,9 +402,14 @@ const ScrollableList = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <ScrollableList.Item onClick={() => switchTo(account.id)}>
-	 *   <ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
-	 * </ScrollableList.Item>
+	 * <ScrollableList.Viewport aria-label="Your accounts" className="max-h-80">
+	 *   {accounts.map((account) => (
+	 *     <ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>
+	 *       <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+	 *       <ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
+	 *     </ScrollableList.Item>
+	 *   ))}
+	 * </ScrollableList.Viewport>
 	 * ```
 	 */
 	ItemDescription,

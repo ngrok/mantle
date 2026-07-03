@@ -17,6 +17,7 @@ import type {
 	CSSProperties,
 	FocusEvent,
 	KeyboardEvent,
+	MouseEvent,
 	ReactNode,
 	Ref,
 } from "react";
@@ -38,6 +39,17 @@ import { Slot } from "../slot/index.js";
  *   `aria-selected`, whose children are the `role="gridcell"`s (e.g.
  *   `SelectableList`): a single tab stop with `aria-activedescendant`
  *   navigation that works across a virtualized window.
+ *
+ * @see https://mantle.ngrok.com/components/list
+ *
+ * @example
+ * ```tsx
+ * <List.Root semantics="grid" aria-label="Access keys" onActivate={toggleByIndex}>
+ *   <List.Row selected>
+ *     <div role="gridcell">Onboarding key</div>
+ *   </List.Row>
+ * </List.Root>
+ * ```
  */
 type ListSemantics = "list" | "grid";
 
@@ -55,7 +67,10 @@ const ListContext = createContext<ListContextValue | null>(null);
  */
 function useListContext(part: string): ListContextValue {
 	const context = useContext(ListContext);
-	invariant(context, `List.${part} must be rendered inside List.Root or List.VirtualRoot.`);
+	invariant(
+		context,
+		`List.${part} must be rendered inside List.Root or List.VirtualRoot (for ScrollableList/SelectableList, compose items inside their Viewport).`,
+	);
 	return context;
 }
 
@@ -66,9 +81,9 @@ function useListContext(part: string): ListContextValue {
  * non-virtualized {@link Root}, where rows render in normal flow.
  */
 type ListRowPlacement = {
-	/** 1-based position within the full collection (`aria-posinset`). */
+	/** 1-based position within the full collection (`aria-posinset` on a listitem, `aria-rowindex` on a grid row). */
 	posInSet: number;
-	/** Full collection length (`aria-setsize`). */
+	/** Full collection length (`aria-setsize` on a listitem; a grid exposes it as `aria-rowcount` on the collection instead). */
 	setSize: number;
 	/** Absolute position + `translateY` transform for the windowed row. */
 	style: CSSProperties;
@@ -105,6 +120,14 @@ type GridNavContextValue = {
 	 * because its row element (a `Choice.Root`) reserves `id` for the control.
 	 */
 	rowId: (index: number) => string;
+	/**
+	 * Whether {@link rowId} is the collection's own default. When it is, each
+	 * {@link Row} stamps `rowId(index)` as its DOM id so `aria-activedescendant`
+	 * resolves; when a consumer overrides `rowId`, the id belongs to an element
+	 * the consumer owns, so the row keeps its own `id` prop instead (stamping
+	 * would duplicate the consumer's id onto the row).
+	 */
+	ownsRowIds: boolean;
 };
 
 const GridNavContext = createContext<GridNavContextValue | null>(null);
@@ -152,6 +175,17 @@ const listRowClassName =
  * viewport) plus the collection `semantics` and the grid activation callback;
  * `aria-label` / `aria-labelledby` name the inner collection element, and
  * `children` are the composed {@link Row}s.
+ *
+ * @see https://mantle.ngrok.com/components/list
+ *
+ * @example
+ * ```tsx
+ * <List.Root semantics="list" aria-label="Accounts" className="max-h-80">
+ *   <List.Row>
+ *     <button type="button">Acme Inc</button>
+ *   </List.Row>
+ * </List.Root>
+ * ```
  */
 type ListRootProps = ComponentProps<"div"> & {
 	/** ARIA semantics for the collection and its rows. Defaults to `"list"`. */
@@ -198,6 +232,12 @@ function isRowChildDisabled(node: ReactNode): boolean {
  * row active without moving the viewport, so clicking a row never yanks the
  * scroll. Because keyboard navigation keeps focus on the collection (never on a
  * row), it survives virtualization.
+ *
+ * Keys are handled only while the collection itself has focus: when a tabbable
+ * in-row control (a link, an overflow-menu button) holds focus, its keys belong
+ * to it — Enter must activate the control, not toggle the row. A press anywhere
+ * on a row makes that row active *before* focus reaches the collection, so the
+ * active row always tracks what the user last pointed at.
  */
 function useGridNavigation({
 	count,
@@ -218,7 +258,7 @@ function useGridNavigation({
 	activeIndex: number;
 	collectionProps: Pick<
 		ComponentProps<"div">,
-		"tabIndex" | "aria-activedescendant" | "onKeyDown" | "onFocus"
+		"tabIndex" | "aria-activedescendant" | "onKeyDown" | "onFocus" | "onMouseDown"
 	>;
 } {
 	const [activeIndex, setActiveIndex] = useState(-1);
@@ -259,6 +299,22 @@ function useGridNavigation({
 		collectionProps: {
 			tabIndex: 0,
 			"aria-activedescendant": clampedActiveIndex >= 0 ? rowId(clampedActiveIndex) : undefined,
+			onMouseDown: (event: MouseEvent<HTMLDivElement>) => {
+				// A press on row content makes that row active *before* focus lands on
+				// the collection, so the Tab-in branch of onFocus below (which would
+				// otherwise default to the first enabled row) keeps it. Without this, a
+				// click on non-focusable content (e.g. a row's description) focuses the
+				// collection directly and the active row desyncs from the clicked row —
+				// the next Space would toggle the wrong row.
+				const pressedRow =
+					event.target instanceof Element ? event.target.closest("[data-index]") : null;
+				const pressedIndex = pressedRow
+					? Number(pressedRow.getAttribute("data-index"))
+					: Number.NaN;
+				if (Number.isInteger(pressedIndex) && pressedIndex >= 0 && !isDisabled(pressedIndex)) {
+					setActiveIndex(pressedIndex);
+				}
+			},
 			onFocus: (event: FocusEvent<HTMLDivElement>) => {
 				// Focus entered the grid. The collection is the single tab stop, so the
 				// active row is shown by its tint / `aria-activedescendant` — never a
@@ -296,6 +352,13 @@ function useGridNavigation({
 				}
 			},
 			onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
+				// Keys from a focused tabbable in-row control (a link, an overflow-menu
+				// button) belong to that control: bail so Enter/Space activate it instead
+				// of being preventDefault-ed into a row toggle. Grid navigation only ever
+				// drives keys while the collection itself holds focus.
+				if (event.target !== event.currentTarget) {
+					return;
+				}
 				switch (event.key) {
 					case "ArrowDown":
 						event.preventDefault();
@@ -339,22 +402,34 @@ function useGridNavigation({
  * collection semantics) plus its selection/disabled state. Compose one per item
  * and give it a React `key`; `Root` / `VirtualRoot` inject its index, grid id,
  * and (when windowed) placement.
+ *
+ * @see https://mantle.ngrok.com/components/list
+ *
+ * @example
+ * ```tsx
+ * <List.Root semantics="list" aria-label="Accounts" className="max-h-80">
+ *   <List.Row selected>
+ *     <button type="button">Acme Inc</button>
+ *   </List.Row>
+ * </List.Root>
+ * ```
  */
 type ListRowProps = Omit<ComponentProps<"div">, "role"> &
 	WithAsChild & {
 		/** Whether the row is selected — tints the pill and, in a grid, sets `aria-selected`. */
 		selected?: boolean;
-		/** Whether the row is disabled — suppresses the hover tint. */
+		/** Whether the row is disabled — suppresses the hover tint; grid keyboard navigation skips it and it carries `aria-disabled`. */
 		disabled?: boolean;
 	};
 
 /**
  * A single composed row — a `<div role="listitem">` (list) or `<div role="row">`
- * with `aria-selected` (grid), taking its semantics from the enclosing `Root` /
- * `VirtualRoot`. Owns the pill chrome and the selected/disabled data attributes;
- * in a grid it also carries the `aria-activedescendant` id and active-row tint,
- * and — when windowed — the absolute placement, measure ref, and
- * `aria-posinset` / `aria-setsize`. Authoring the same `<List.Row>` works
+ * with `aria-selected` / `aria-disabled` (grid), taking its semantics from the
+ * enclosing `Root` / `VirtualRoot`. Owns the pill chrome and the
+ * selected/disabled data attributes; in a grid it also carries the
+ * `aria-activedescendant` id and active-row tint, and — when windowed — the
+ * absolute placement, measure ref, and `aria-posinset` / `aria-setsize`
+ * (list) or `aria-rowindex` (grid). Authoring the same `<List.Row>` works
  * virtualized or not, and even when a consumer's item component wraps it.
  *
  * @see https://mantle.ngrok.com/components/list
@@ -378,21 +453,40 @@ const Row = forwardRef<ComponentRef<"div">, ListRowProps>(
 		const placement = rowContext?.placement ?? null;
 		const index = rowContext?.index;
 		const isActive = isGrid && gridNav != null && index != null && gridNav.activeIndex === index;
+		const measureRef = placement?.measureRef ?? null;
+		// Memoized so a keyboard-nav re-render doesn't cycle the virtualizer's
+		// measureElement (a fresh callback ref detaches + reattaches per render).
+		const composedRef = useMemo(() => composeRefs(ref, measureRef), [ref, measureRef]);
 
 		return (
 			<Comp
-				ref={composeRefs(ref, placement?.measureRef ?? null)}
-				{...props}
-				id={isGrid && gridNav != null && index != null ? gridNav.rowId(index) : props.id}
+				ref={composedRef}
+				// Before the spread so a wrapping component can brand its rows (e.g.
+				// SelectableList.Item passes "selectable-list-item"); `data-index` and the
+				// role/ARIA wiring below stay enforced.
 				data-slot="list-row"
+				{...props}
+				// Stamp the grid's default aria-activedescendant target id; when a
+				// consumer overrides `rowId`, the id belongs to an element they own, so
+				// keep their own `id` instead of duplicating theirs onto the row.
+				id={
+					isGrid && gridNav != null && index != null && gridNav.ownsRowIds
+						? gridNav.rowId(index)
+						: props.id
+				}
 				data-index={index}
 				data-state={selected ? "selected" : "unselected"}
 				data-disabled={disabled || undefined}
 				data-active={isActive || undefined}
 				role={isGrid ? "row" : "listitem"}
 				aria-selected={isGrid ? selected : undefined}
-				aria-posinset={placement?.posInSet}
-				aria-setsize={placement?.setSize}
+				aria-disabled={isGrid && disabled ? true : props["aria-disabled"]}
+				// Windowed placement: listitems take aria-posinset/aria-setsize; grid
+				// rows take aria-rowindex (posinset/setsize are invalid on grid rows per
+				// WAI-ARIA 1.2 — the collection carries aria-rowcount instead).
+				aria-rowindex={isGrid ? placement?.posInSet : undefined}
+				aria-posinset={isGrid ? undefined : placement?.posInSet}
+				aria-setsize={isGrid ? undefined : placement?.setSize}
 				className={cx(
 					listRowClassName,
 					!disabled &&
@@ -478,7 +572,12 @@ const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
 
 		const scrollToIndex = useCallback(
 			(index: number) => {
-				document.getElementById(resolveRowId(index))?.scrollIntoView({ block: "nearest" });
+				const target = document.getElementById(resolveRowId(index));
+				// A custom `rowId` may resolve to a control inside the row (e.g. its
+				// checkbox); reveal the whole row — scrolling just the control can leave
+				// the row's edges clipped against the viewport.
+				const row = target?.closest("[data-index]") ?? target;
+				row?.scrollIntoView({ block: "nearest" });
 			},
 			[resolveRowId],
 		);
@@ -491,8 +590,8 @@ const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
 			scrollToIndex,
 		});
 		const gridNav = useMemo<GridNavContextValue>(
-			() => ({ activeIndex, rowId: resolveRowId }),
-			[activeIndex, resolveRowId],
+			() => ({ activeIndex, rowId: resolveRowId, ownsRowIds: rowId == null }),
+			[activeIndex, resolveRowId, rowId],
 		);
 
 		return (
@@ -505,6 +604,7 @@ const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
 						{...props}
 					>
 						<div
+							data-slot="list-collection"
 							role={semantics === "grid" ? "grid" : "list"}
 							aria-label={ariaLabel}
 							aria-labelledby={ariaLabelledby}

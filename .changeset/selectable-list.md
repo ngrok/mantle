@@ -36,13 +36,27 @@ const options = accessKeys.map((key) => ({
 - **Composable rows.** Default title + description row, or pass a render-prop
   child to a viewport and compose `SelectableList.Item` / `ItemTitle`
   (`Choice.Label`) / `ItemDescription` (`Choice.Description`).
+- **Filtering.** The query is uncontrolled by default (seed it with
+  `defaultQuery`) or controlled via `query`/`onQueryChange` on `Root`; pass
+  `filter` for a custom predicate (`(option, query) => boolean` — the default
+  is a trimmed, case-insensitive substring match over each option's `label`).
+- **Disabled rows.** `options[].disabled` is the single source of truth —
+  `SelectableList.Item` has no `disabled` prop. Disabled rows render dimmed,
+  carry `aria-disabled`, are excluded from toggling and "select all", and are
+  skipped by keyboard navigation.
 - **Non-virtualized by default.** Swap `Viewport` → `VirtualViewport` (same props)
-  to window long lists; `@tanstack/react-virtual` is only pulled in when used, and
-  Mantle emits `aria-setsize`/`aria-posinset` on windowed rows.
+  to window long lists. `@tanstack/react-virtual` ships with every list
+  entrypoint; it is small — a few kB gzipped — and does no windowing work until
+  a `VirtualViewport` renders. Windowed rows carry `aria-rowindex` with
+  `aria-rowcount` on the grid, keeping screen-reader counts true.
+- `SelectableList.Empty` is an always-mounted polite `role="status"` live region
+  (visually hidden while options match), so an emptied filter is announced
+  rather than the grid silently vanishing.
 - `SelectableList.SelectAll` reuses `selectAllChecked` to drive a tri-state header
   over the **filtered** options.
-- Pure helpers `filterSelectableOptions`, `toggleSelectionValue`, and
-  `summarizeSelection` are exported for custom filtering/selection logic.
+- Pure helpers `filterSelectableOptions`, `toggleSelectionValue`,
+  `summarizeSelection`, and `isInteractiveRowTarget` are exported for custom
+  filtering/selection logic.
 - Built on a shared internal `list` primitive (scroll + row chrome and ARIA behind
   both list components).
 - **Keyboard.** The grid is a single tab stop with `aria-activedescendant`

@@ -5,8 +5,9 @@
  *
  * The public `List` compound is assembled in `./list.js`. The plain `Root` /
  * `Row` live in `./primitive.js` and the windowed `VirtualRoot` in `./virtual.js`
- * — the higher-level components import those internal modules directly, so
- * `@tanstack/react-virtual` is only pulled in where virtualization is used.
+ * — the split keeps the plain shell free of virtualizer code, though every list
+ * entrypoint re-exports `VirtualRoot`, so `@tanstack/react-virtual` (small, and
+ * inert until a `VirtualRoot` renders) ships with each of them.
  *
  * @see https://mantle.ngrok.com/components/list
  */

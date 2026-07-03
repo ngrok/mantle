@@ -46,11 +46,11 @@ export function PolymorphismExample() {
 		<div className="w-full max-w-md">
 			<List.Root semantics="list" aria-label="Environments" className="max-h-80">
 				{environments.map((environment) => (
-					<List.Row key={environment.id}>
+					<List.Row key={environment.id} asChild>
 						<a
 							href={`#${environment.id}`}
 							className={cx(
-								"flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-sm no-underline",
+								"flex w-full flex-col gap-0.5 px-2 py-1.5 text-sm no-underline",
 								"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
 							)}
 						>
@@ -114,6 +114,7 @@ const environments = [
 	{ id: "prod", name: "Production", region: "us-east-1" },
 	{ id: "staging", name: "Staging", region: "us-west-2" },
 	{ id: "dev", name: "Development", region: "eu-central-1" },
+	{ id: "preview", name: "Preview", region: "ap-south-1" },
 ];
 
 function Example() {
@@ -178,17 +179,18 @@ const environments = [
 	{ id: "prod", name: "Production", region: "us-east-1" },
 	{ id: "staging", name: "Staging", region: "us-west-2" },
 	{ id: "dev", name: "Development", region: "eu-central-1" },
+	{ id: "preview", name: "Preview", region: "ap-south-1" },
 ];
 
 function Example() {
 	return (
 		<List.Root semantics="list" aria-label="Environments" className="max-h-80">
 			{environments.map((environment) => (
-				<List.Row key={environment.id}>
+				<List.Row key={environment.id} asChild>
 					<a
-						href={`/environments/${environment.id}`}
+						href={`#${environment.id}`}
 						className={cx(
-							"flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-sm no-underline",
+							"flex w-full flex-col gap-0.5 px-2 py-1.5 text-sm no-underline",
 							"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
 						)}
 					>
@@ -251,7 +253,7 @@ function Example() {
 
 ## Accessibility
 
-Name the collection with `aria-label` (or `aria-labelledby`) on `Root` / `VirtualRoot`. Under `"list"` semantics the rows are a `role="list"` / `role="listitem"` structure with native tab order — put your own focusable control (a `<button>` or an `asChild` `<a>`) inside each row. Under `"grid"` semantics the collection is a single tab stop: `Arrow` / `Home` / `End` move an active row tracked with `aria-activedescendant` (so focus never rides a row and navigation survives virtualization), and `Space` / `Enter` fires `onActivate`. Windowed rows also carry `aria-posinset` / `aria-setsize` so screen-reader counts stay true.
+Name the collection with `aria-label` (or `aria-labelledby`) on `Root` / `VirtualRoot`. Under `"list"` semantics the rows are a `role="list"` / `role="listitem"` structure with native tab order — put your own focusable control (a `<button>` or an `asChild` `<a>`) inside each row. Under `"grid"` semantics the collection is a single tab stop: `Arrow` / `Home` / `End` move an active row tracked with `aria-activedescendant` (so focus never rides a row and navigation survives virtualization), skipping `disabled` rows, and `Space` / `Enter` fires `onActivate`. Pressing or clicking anywhere on a row also makes it the active row. Keys pressed while a nested tabbable control (a link, an overflow-menu button) has focus are handled by that control, not the grid — `Enter` activates the control instead of toggling the row. Under virtualization, screen-reader counts stay true: windowed `list` rows carry `aria-posinset` / `aria-setsize`, while windowed `grid` rows carry `aria-rowindex` with `aria-rowcount` on the grid.
 
 ## API Reference
 
@@ -280,8 +282,8 @@ The windowed collection — same surface as `Root` (compose the same `Row` child
 
 A single row. Accepts all `<div>` props (minus `role`, owned by the collection), plus:
 
-| Prop        | Type      | Default | Description                                                                        |
-| ----------- | --------- | ------- | ---------------------------------------------------------------------------------- |
-| `selected?` | `boolean` | `false` | Tints the pill and, under `grid` semantics, sets `aria-selected`.                  |
-| `disabled?` | `boolean` | `false` | Suppresses the hover tint.                                                         |
-| `asChild?`  | `boolean` | `false` | Render the row as the provided child element (e.g. an `<a>`) instead of a `<div>`. |
+| Prop        | Type      | Default | Description                                                                                                              |
+| ----------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `selected?` | `boolean` | `false` | Tints the pill and, under `grid` semantics, sets `aria-selected`.                                                        |
+| `disabled?` | `boolean` | `false` | Suppresses the hover tint; under `grid` semantics the row carries `aria-disabled` and grid keyboard navigation skips it. |
+| `asChild?`  | `boolean` | `false` | Render the row as the provided child element (e.g. an `<a>`) instead of a `<div>`.                                       |

@@ -284,7 +284,7 @@ const accounts = [
 ## Composition
 
 ```text showLineNumbers=false
-ScrollableList.Viewport        (or .VirtualViewport)
+ScrollableList.Viewport   (or .VirtualViewport)
 └── ScrollableList.Item
     ├── ScrollableList.ItemTitle
     └── ScrollableList.ItemDescription
@@ -297,7 +297,7 @@ ScrollableList.Viewport        (or .VirtualViewport)
 
 ## Virtualization
 
-`ScrollableList.Viewport` renders every row — simplest, and right for the short lists most action/navigation menus are. For a long list (hundreds+ of rows), swap in `ScrollableList.VirtualViewport`: it windows the same `Item` children via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. The call site is otherwise identical — same children, same props — and `@tanstack/react-virtual` is only pulled into your bundle when you use `VirtualViewport`.
+`ScrollableList.Viewport` renders every row — simplest, and right for the short lists most action/navigation menus are. For a long list (hundreds+ of rows), swap in `ScrollableList.VirtualViewport`: it windows the same `Item` children via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. The call site is otherwise identical — same children, same props. (`@tanstack/react-virtual` ships with every list entrypoint; it is small — a few kB gzipped — and does no windowing work until a `VirtualViewport` renders.)
 
 <Example>
 	<ScrollableListVirtualExample />
@@ -348,7 +348,7 @@ import { ScrollableList } from "@ngrok/mantle/scrollable-list";
 <ScrollableList.Viewport aria-label="Identity providers" className="max-h-72">
 	{providers.map((provider) => (
 		<ScrollableList.Item key={provider.id} asChild className="py-2.5">
-			<a href={`/sso/${provider.id}`}>
+			<a href={`#${provider.id}`}>
 				<MediaObject.Root className="items-center gap-3">
 					<MediaObject.Media>
 						<provider.Icon weight="duotone" className={cx("size-8", provider.tint)} />
@@ -366,7 +366,7 @@ import { ScrollableList } from "@ngrok/mantle/scrollable-list";
 
 ## Accessibility
 
-The list is a `role="list"` of `role="listitem"` rows (the tag is a `<div>` — per WAI-ARIA the role, not the tag, carries the semantics); each `Item` is a focusable `<button>` (or your `asChild` element) inside its row. It is a **non-selecting** list, not a selection widget — that's [`SelectableList`](/components/selectable-list)'s job. Provide an `aria-label` (or `aria-labelledby`) on the `Viewport` so the list has an accessible name. Disabled rows set the control's `disabled` (button) or `aria-disabled` (`asChild`) and are dimmed.
+The list is a `role="list"` of `role="listitem"` rows (the tag is a `<div>` — per WAI-ARIA the role, not the tag, carries the semantics); each `Item` is a focusable `<button>` (or your `asChild` element) inside its row. It is a **non-selecting** list, not a selection widget — that's [`SelectableList`](/components/selectable-list)'s job. Provide an `aria-label` (or `aria-labelledby`) on the `Viewport` so the list has an accessible name. A `selected` row is announced via `aria-current`, not just tinted. Disabled rows are dimmed: a `<button>` row sets the native `disabled`, while an `asChild` row is conveyed with `aria-disabled`, removed from the tab order, and swallows clicks — but prefer omitting or removing the `href` for a genuinely disabled link.
 
 Keyboard support is the native tab order of the rendered rows. Under `VirtualViewport`, off-screen rows aren't reachable by Tab (see [Virtualization](#virtualization)) — the windowing trade-off for a long list.
 
@@ -396,11 +396,11 @@ The windowed container — same surface as `Viewport` (compose the same `Item` c
 
 A clickable row. Accepts all `<button>` props (minus `type`), plus:
 
-| Prop        | Type      | Default | Description                                                                           |
-| ----------- | --------- | ------- | ------------------------------------------------------------------------------------- |
-| `selected?` | `boolean` | `false` | Marks the row selected/active (tinted pill). Omit for a plain action/navigation list. |
-| `disabled?` | `boolean` | `false` | Disables the row (dimmed; `disabled` on the button, `aria-disabled` when `asChild`).  |
-| `asChild?`  | `boolean` | `false` | Render the row as the provided child element (e.g. an `<a>`) instead of a `<button>`. |
+| Prop        | Type      | Default | Description                                                                                                                                                                               |
+| ----------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `selected?` | `boolean` | `false` | Marks the row selected/current (tinted pill) and sets `aria-current`, so the state is announced, not just shown. Omit for a plain action/navigation list.                                 |
+| `disabled?` | `boolean` | `false` | Disables the row (dimmed). `disabled` on the button; with `asChild`, `aria-disabled` + removal from the tab order, and clicks are swallowed — prefer omitting `href` for a disabled link. |
+| `asChild?`  | `boolean` | `false` | Render the row as the provided child element (e.g. an `<a>`) instead of a `<button>`.                                                                                                     |
 
 ### ScrollableList.ItemTitle / ScrollableList.ItemDescription
 

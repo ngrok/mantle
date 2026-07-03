@@ -113,6 +113,41 @@ export function UncontrolledExample() {
 	);
 }
 
+export function ControlledQueryExample() {
+	const [query, setQuery] = useState("ng-3f");
+	const [selected, setSelected] = useState(["prod"]);
+	return (
+		<div className="w-full max-w-md space-y-3">
+			<SelectableList.Root
+				options={keyOptions}
+				value={selected}
+				onValueChange={setSelected}
+				query={query}
+				onQueryChange={setQuery}
+				filter={(option, query) => {
+					const needle = query.trim().toLowerCase();
+					if (needle === "") {
+						return true;
+					}
+					const description = typeof option.description === "string" ? option.description : "";
+					return (
+						option.label.toLowerCase().includes(needle) ||
+						description.toLowerCase().includes(needle)
+					);
+				}}
+			>
+				<SelectableList.Filter
+					placeholder="Filter by name or key…"
+					aria-label="Filter access keys"
+				/>
+				<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
+				<SelectableList.Empty>No access keys found.</SelectableList.Empty>
+			</SelectableList.Root>
+			<p className="text-muted text-sm">query: “{query}”</p>
+		</div>
+	);
+}
+
 export const disabledOptions = [
 	{ value: "prod", label: "prod", description: "ng-3FaThZL***8xiA" },
 	{ value: "staging", label: "staging", description: "ng-7HkLmNp***1q2w" },
@@ -186,8 +221,8 @@ function Example() {
 SelectableList.Root
 ├── SelectableList.Filter
 ├── SelectableList.SelectAll
-├── SelectableList.Viewport               (or .VirtualViewport)
-│   └── SelectableList.Item               (optional render-prop; auto-rendered by default)
+├── SelectableList.Viewport            (or .VirtualViewport)
+│   └── SelectableList.Item            (optional render-prop; auto-rendered by default)
 │       ├── SelectableList.ItemTitle
 │       └── SelectableList.ItemDescription
 └── SelectableList.Empty
@@ -197,7 +232,9 @@ SelectableList.Root
 - **`SelectAll`** reflects and toggles the selection of the **currently filtered** options (checked / indeterminate / unchecked), reusing [`selectAllChecked`](/components/checkbox#select-all-helper).
 - **`Viewport`** renders the rows as a `role="grid"` of `role="row"` rows (each with `role="gridcell"` cells for the checkbox and the content). It's styled like the [`MultiSelect`](/components/multi-select) popover: a bordered, rounded `bg-popover` container whose rows highlight on hover / selection as an inset, rounded pill (the selected row picks up the accent tint, alongside its checked checkbox). Give it an `aria-label` (or `aria-labelledby`) so the grid has an accessible name, and **bound its height** (`max-h-*` / `h-*`, or `min-h-0 flex-1` inside a flex parent). It renders every row — non-virtualized.
 - **`VirtualViewport`** is the drop-in windowed variant — same rows and props, only the visible slice mounted. See [Virtualization](#virtualization).
-- **`Empty`** renders its children in place of the viewport when no options match the filter.
+- **`Empty`** renders its children in place of the viewport when no options match the filter. It is an always-mounted polite `role="status"` live region — visually hidden while options match — so the empty state is announced, not just shown.
+
+> **Empty and loading states.** With zero `options` and no `Empty` composed, the component renders nothing — the viewport unmounts entirely. Compose `SelectableList.Empty` so the list always has a message; its copy serves both "no data yet" (e.g. still loading) and "no filter matches".
 
 Mark an option `disabled` to render its row dimmed and exclude it from toggling and "select all" (the `legacy` row below, and one in the list at the top of this page):
 
@@ -276,7 +313,7 @@ The whole row is click-to-toggle, but it is **not** a `<label>` — it's a grid 
 
 ## Virtualization
 
-`SelectableList.Viewport` renders every filtered row. For a large option set (hundreds+), swap in `SelectableList.VirtualViewport`: it windows the rows via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. Same props, same render-prop — only the tag changes — and `@tanstack/react-virtual` is pulled into your bundle only when you use it. The example below has 60 options; scroll to see rows mount and unmount.
+`SelectableList.Viewport` renders every filtered row. For a large option set (hundreds+), swap in `SelectableList.VirtualViewport`: it windows the rows via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. Same props, same render-prop — only the tag changes. (`@tanstack/react-virtual` ships with every list entrypoint; it is small — a few kB gzipped — and does no windowing work until a `VirtualViewport` renders.) The example below has 60 options; scroll to see rows mount and unmount.
 
 <Example>
 	<VirtualViewportExample />
@@ -301,7 +338,7 @@ function Example() {
 }
 ```
 
-> **Windowing trade-off.** Keyboard grid navigation still works across the **full** list — arrows move the active row and scroll it into view (`aria-activedescendant` + `aria-setsize`/`aria-posinset` keep screen-reader counts true). What windowing does cost: browser find-in-page (Ctrl/⌘-F) only searches mounted rows, and there's no per-checkbox Tab stop. The right trade for a large enough list; prefer `Viewport` until a list is actually long.
+> **Windowing trade-off.** Keyboard grid navigation still works across the **full** list — arrows move the active row and scroll it into view (`aria-activedescendant`, plus `aria-rowcount` on the grid and `aria-rowindex` on each windowed row, keep screen-reader counts true). What windowing does cost: browser find-in-page (Ctrl/⌘-F) only searches mounted rows, and there's no per-checkbox Tab stop. The right trade for a large enough list; prefer `Viewport` until a list is actually long.
 
 ## Controlled
 
@@ -372,11 +409,68 @@ const options = [
 </SelectableList.Root>;
 ```
 
+## Controlled query and custom filter
+
+Like selection, the filter query is uncontrolled by default (seed it with `defaultQuery`) or controlled: pass `query` + `onQueryChange` to own it — e.g. to sync the filter with URL search params so a filtered view is shareable, or to clear it from outside the list. Pass `filter` to replace the default match (a trimmed, case-insensitive substring test over each option's `label`) with your own predicate — it's called per option with the raw query; return `true` to keep the option. The example below controls the query and filters over the masked key `description` as well as the `label`: the initial query `ng-3f` matches two keys by description alone (the default filter would match none).
+
+<Example>
+	<ControlledQueryExample />
+</Example>
+
+```tsx
+import { SelectableList } from "@ngrok/mantle/selectable-list";
+import { useState } from "react";
+
+const options = [
+	{ value: "onboarding", label: "Onboarding Key", description: "ng-3FbZthp***xcc3" },
+	{ value: "prod", label: "prod", description: "ng-3FaThZL***8xiA" },
+	{ value: "staging", label: "staging", description: "ng-7HkLmNp***1q2w" },
+	{ value: "ci", label: "CI deploy", description: "ng-9XyZ012***3r4t" },
+	{ value: "edge", label: "edge worker", description: "ng-4QrStUv***5w6x" },
+];
+
+function Example() {
+	const [query, setQuery] = useState("ng-3f");
+	const [selected, setSelected] = useState(["prod"]);
+
+	return (
+		<div className="space-y-3">
+			<SelectableList.Root
+				options={options}
+				value={selected}
+				onValueChange={setSelected}
+				query={query}
+				onQueryChange={setQuery}
+				filter={(option, query) => {
+					const needle = query.trim().toLowerCase();
+					if (needle === "") {
+						return true;
+					}
+					const description = typeof option.description === "string" ? option.description : "";
+					return (
+						option.label.toLowerCase().includes(needle) ||
+						description.toLowerCase().includes(needle)
+					);
+				}}
+			>
+				<SelectableList.Filter
+					placeholder="Filter by name or key…"
+					aria-label="Filter access keys"
+				/>
+				<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
+				<SelectableList.Empty>No access keys found.</SelectableList.Empty>
+			</SelectableList.Root>
+			<p className="text-muted text-sm">query: “{query}”</p>
+		</div>
+	);
+}
+```
+
 ## Accessibility
 
-The viewport is an APG **grid**: a `role="grid"` of `role="row"` rows, each with `role="gridcell"` cells holding a real `<input type="checkbox">` and the title + description. This is the pattern the [WAI-ARIA grid](https://www.w3.org/WAI/ARIA/apg/patterns/grid/) prescribes for selectable rows that carry their own interactive controls (a plain listbox forbids a real checkbox or nested controls inside an option). Provide `aria-label` (or `aria-labelledby`) on the viewport so the grid has an accessible name. Each row's `aria-selected` conveys its selection alongside the checkbox's checked state; the title is a `Choice.Label`, so it names the checkbox, and the description is wired via `aria-describedby`.
+The viewport is an APG **grid**: a `role="grid"` of `role="row"` rows, each with `role="gridcell"` cells holding a real `<input type="checkbox">` and the title + description. This is the pattern the [WAI-ARIA grid](https://www.w3.org/WAI/ARIA/apg/patterns/grid/) prescribes for selectable rows that carry their own interactive controls (a plain listbox forbids a real checkbox or nested controls inside an option). Provide `aria-label` (or `aria-labelledby`) on the viewport so the grid has an accessible name. Each row's `aria-selected` conveys its selection alongside the checkbox's checked state; the title is a `Choice.Label`, so it names the checkbox, and the description is wired via `aria-describedby`. Disabled rows carry `aria-disabled`. `SelectableList.Empty` is an always-mounted polite `role="status"` live region, so an empty result is announced as the filter narrows rather than the grid silently vanishing.
 
-Keyboard: the grid is a **single tab stop**. Tab into it and `Arrow`↑/`Arrow`↓ / `Home` / `End` move an active row (tracked with `aria-activedescendant`, so focus never rides a row and survives virtualization); `Space` / `Enter` toggles the active row. The active row takes the hover tint (`bg-active-menu-item`, or `bg-active-selected-menu-item` when it's also selected), matching the [`MultiSelect`](/components/multi-select) popover. This works identically under `VirtualViewport` — arrow keys move across the **full** option set, scrolling off-screen rows into view — because focus stays on the collection, not on a row that could unmount.
+Keyboard: the grid is a **single tab stop**. Tab into it and `Arrow`↑/`Arrow`↓ / `Home` / `End` move an active row (tracked with `aria-activedescendant`, so focus never rides a row and survives virtualization), skipping disabled rows; `Space` / `Enter` toggles the active row. Keys pressed while a nested control inside a row (a link, an overflow-menu button — reached with Tab) has focus operate that control; the grid does not intercept them. The active row takes the hover tint (`bg-active-menu-item`, or `bg-active-selected-menu-item` when it's also selected), matching the [`MultiSelect`](/components/multi-select) popover. This works identically under `VirtualViewport` — arrow keys move across the **full** option set, scrolling off-screen rows into view — because focus stays on the collection, not on a row that could unmount. The keyboard model deliberately deviates from the full APG grid pattern: there is no `Arrow`←/`Arrow`→ per-cell navigation — the row is the unit of interaction.
 
 ## Helpers
 
@@ -385,6 +479,7 @@ These pure functions back the component and are exported for custom filtering or
 - `filterSelectableOptions(options, query)` — case-insensitive substring filter over `label`.
 - `toggleSelectionValue(values, value)` — add/remove a value, returning a new array.
 - `summarizeSelection(options, selected)` — `{ allSelected, someSelected }` (ignoring disabled options), ready for `selectAllChecked`.
+- `isInteractiveRowTarget(target, row)` — whether a row click landed on an element that already handles its own click (the checkbox, the title label, a nested link/button), so custom row click handlers can defer instead of double-toggling.
 
 ## API Reference
 
@@ -392,12 +487,16 @@ These pure functions back the component and are exported for custom filtering or
 
 Accepts all `<div>` props, plus:
 
-| Prop             | Type                         | Default | Description                                            |
-| ---------------- | ---------------------------- | ------- | ------------------------------------------------------ |
-| `options`        | `SelectableListOption[]`     |         | The full set of selectable rows.                       |
-| `value?`         | `string[]`                   |         | Controlled selected values. Pair with `onValueChange`. |
-| `defaultValue?`  | `string[]`                   |         | Initial selected values for the uncontrolled case.     |
-| `onValueChange?` | `(values: string[]) => void` |         | Called with the next selection whenever it changes.    |
+| Prop             | Type                                                       | Default | Description                                                                                                                                                                          |
+| ---------------- | ---------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `options`        | `SelectableListOption[]`                                   |         | The full set of selectable rows.                                                                                                                                                     |
+| `value?`         | `string[]`                                                 |         | Controlled selected values. Pair with `onValueChange`.                                                                                                                               |
+| `defaultValue?`  | `string[]`                                                 |         | Initial selected values for the uncontrolled case.                                                                                                                                   |
+| `onValueChange?` | `(values: string[]) => void`                               |         | Called with the next selection whenever it changes.                                                                                                                                  |
+| `query?`         | `string`                                                   |         | Controlled filter query. Pair with `onQueryChange`.                                                                                                                                  |
+| `defaultQuery?`  | `string`                                                   |         | Initial filter query for the uncontrolled case.                                                                                                                                      |
+| `onQueryChange?` | `(query: string) => void`                                  |         | Called with the next query whenever it changes (e.g. typing in `SelectableList.Filter`).                                                                                             |
+| `filter?`        | `(option: SelectableListOption, query: string) => boolean` |         | Custom filter predicate, called per option with the raw query; return `true` to keep the option. Defaults to a trimmed, case-insensitive substring match over each option's `label`. |
 
 ### SelectableListOption
 
@@ -407,6 +506,24 @@ Accepts all `<div>` props, plus:
 | `label`        | `string`    | Title text; also the text matched by the filter and the accessible name. |
 | `description?` | `ReactNode` | Optional de-emphasized sub-line under the title in the default row.      |
 | `disabled?`    | `boolean`   | Renders the row dimmed and excludes it from toggling and "select all".   |
+
+### SelectableList.Filter
+
+The optional filter/search box — the mantle [`Input`](/components/input) with a leading magnifying-glass icon, wired to the list's filter query. Accepts all `Input` props except `value`, `onChange`, `type`, and `children`, plus:
+
+| Prop          | Type     | Default    | Description                                                                                        |
+| ------------- | -------- | ---------- | -------------------------------------------------------------------------------------------------- |
+| `aria-label?` | `string` | `"Filter"` | Accessible name for the filter input. Prefer passing a specific one (e.g. `"Filter access keys"`). |
+
+### SelectableList.SelectAll
+
+The optional tri-state "select all" header over the currently filtered options. Accepts all `<label>` props except `htmlFor` (it is wired to its own checkbox), plus:
+
+| Prop       | Type        | Default | Description                            |
+| ---------- | ----------- | ------- | -------------------------------------- |
+| `children` | `ReactNode` |         | The visible label (e.g. "Select all"). |
+
+Its checkbox is automatically disabled when no filtered option is selectable.
 
 ### SelectableList.Viewport
 
@@ -428,14 +545,22 @@ The windowed grid — same surface as `Viewport`, plus the virtualizer knobs:
 
 ### SelectableList.Item
 
-A selectable grid row (`role="row"`) for custom viewport rendering. Accepts all `<div>` props, plus:
+A selectable grid row (`role="row"`) for custom viewport rendering. Selection and disabled state are read from the list by `value` — the row has no `disabled` prop; disabled state comes exclusively from the matching option's `disabled` (`options[].disabled`). Accepts all `<div>` props, plus:
 
-| Prop        | Type        | Default            | Description                                                                                   |
-| ----------- | ----------- | ------------------ | --------------------------------------------------------------------------------------------- |
-| `value`     | `string`    |                    | The option's selection value; selection and disabled state are read from the list.            |
-| `disabled?` | `boolean`   | the option's value | Force the row's disabled state. Defaults to the matching option's `disabled`.                 |
-| `children`  | `ReactNode` |                    | Row content (e.g. `ItemTitle` + `ItemDescription`, or your own; interactive content allowed). |
+| Prop       | Type        | Default | Description                                                                                   |
+| ---------- | ----------- | ------- | --------------------------------------------------------------------------------------------- |
+| `value`    | `string`    |         | The option's selection value; selection and disabled state are read from the list.            |
+| `children` | `ReactNode` |         | Row content (e.g. `ItemTitle` + `ItemDescription`, or your own; interactive content allowed). |
 
 ### SelectableList.ItemTitle / SelectableList.ItemDescription
 
-The title and de-emphasized sub-line inside a `SelectableList.Item`. `ItemTitle` renders a [`Choice.Label`](/components/choice) (the real `<label>` wired to the row's checkbox); `ItemDescription` renders a `Choice.Description` (wired via `aria-describedby`). Both forward their respective props.
+The title and de-emphasized sub-line inside a `SelectableList.Item`. `ItemTitle` renders a [`Choice.Label`](/components/choice) (the real `<label>` wired to the row's checkbox); `ItemDescription` renders a `Choice.Description` (wired via `aria-describedby`).
+
+| Component         | Base props                                            |
+| ----------------- | ----------------------------------------------------- |
+| `ItemTitle`       | All [`Choice.Label`](/components/choice) props.       |
+| `ItemDescription` | All [`Choice.Description`](/components/choice) props. |
+
+### SelectableList.Empty
+
+Shown in place of the viewport when no options match the filter. Accepts all `<div>` props; `children` are the message (e.g. "No access keys found."). It is an always-mounted polite `role="status"` live region — visually hidden while options match — so the empty state is announced as the filter narrows.

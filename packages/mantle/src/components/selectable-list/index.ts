@@ -7,6 +7,7 @@
 export {
 	//,
 	filterSelectableOptions,
+	isInteractiveRowTarget,
 	SelectableList,
 	summarizeSelection,
 	toggleSelectionValue,

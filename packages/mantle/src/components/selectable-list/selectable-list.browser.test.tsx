@@ -301,6 +301,65 @@ describe("SelectableList (browser)", () => {
 		expect(banana.checked).toBe(false);
 	});
 
+	test("clicking bare row content makes that row active — a following Space toggles the same row", async () => {
+		// Regression: clicking non-focusable content (the description) focuses the
+		// grid directly, and the active row used to default to row 0 — so the click
+		// toggled Cherry while Space then toggled Apple.
+		const user = userEvent.setup();
+		render(<Harness />);
+
+		const cherry = await screen.findByRole<HTMLInputElement>("checkbox", { name: "Cherry" });
+		const apple = screen.getByRole<HTMLInputElement>("checkbox", { name: "Apple" });
+
+		await user.click(screen.getByText("fruit-c"));
+		expect(cherry.checked).toBe(true);
+
+		const grid = screen.getByRole("grid", { name: "Fruit" });
+		await waitFor(() => expect(grid).toHaveAttribute("aria-activedescendant", cherry.id));
+
+		await user.keyboard(" ");
+		expect(cherry.checked).toBe(false);
+		expect(apple.checked).toBe(false);
+	});
+
+	test("keyboard navigation reveals the whole active row, not just its checkbox", async () => {
+		// Regression: the plain grid's scrollToIndex used to scrollIntoView the
+		// checkbox (the aria-activedescendant target), which could leave the taller
+		// row partially clipped below the viewport edge.
+		const user = userEvent.setup();
+		const tallOptions = Array.from({ length: 20 }, (_unused, index) => ({
+			value: `t${index}`,
+			label: `Item ${index}`,
+			description: `description ${index}`,
+		}));
+		function TallHarness() {
+			const [selected, setSelected] = useState<string[]>([]);
+			return (
+				<SelectableList.Root options={tallOptions} value={selected} onValueChange={setSelected}>
+					{/* Inline height so scrolling is deterministic without the CSS bundle. */}
+					<SelectableList.Viewport aria-label="Tall" style={{ height: 150, overflowY: "auto" }} />
+				</SelectableList.Root>
+			);
+		}
+		render(<TallHarness />);
+
+		const grid = await screen.findByRole("grid", { name: "Tall" });
+		grid.focus();
+		for (let step = 0; step < 6; step++) {
+			await user.keyboard("{ArrowDown}");
+		}
+
+		const viewport = grid.closest("[data-slot='selectable-list-viewport']");
+		const activeRow = document.querySelector("[role='row'][data-active]");
+		if (viewport == null || activeRow == null) {
+			throw new Error("viewport or active row not found");
+		}
+		const viewportRect = viewport.getBoundingClientRect();
+		const rowRect = activeRow.getBoundingClientRect();
+		expect(rowRect.top).toBeGreaterThanOrEqual(viewportRect.top - 1);
+		expect(rowRect.bottom).toBeLessThanOrEqual(viewportRect.bottom + 1);
+	});
+
 	test("has no axe accessibility violations", async () => {
 		const { container } = render(<Harness />);
 		await screen.findByRole("checkbox", { name: "Apple" });

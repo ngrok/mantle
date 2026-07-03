@@ -29,9 +29,14 @@ import { ScrollableList } from "@ngrok/mantle/scrollable-list";
   styled like the `MultiSelect` popover (bordered, rounded `bg-popover`; rows
   highlight on hover / selection with an inset, rounded pill).
 - **Non-virtualized by default.** Swap `Viewport` → `VirtualViewport` (same
-  `Item` children) to window long lists; `@tanstack/react-virtual` is only
-  pulled in when `VirtualViewport` is used.
-- `Item` supports `asChild` for link/navigation rows, `selected`, and `disabled`.
+  `Item` children) to window long lists. `@tanstack/react-virtual` ships with
+  every list entrypoint; it is small — a few kB gzipped — and does no windowing
+  work until a `VirtualViewport` renders.
+- `Item` supports `asChild` for link/navigation rows, `selected`, and
+  `disabled`. `selected` sets `aria-current`, so the selected/current row is
+  announced, not just tinted. A disabled `asChild` row carries `aria-disabled`,
+  is removed from the tab order, and swallows clicks/activation — though
+  consumers should prefer omitting the `href` for a genuinely disabled link.
 - Built on a shared internal `list` primitive (the scroll + row chrome and ARIA
   behind both list components).
 - Keyboard is the native tab order; under `VirtualViewport`, off-screen rows

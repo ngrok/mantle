@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { ScrollableList } from "./scrollable-list.js";
@@ -66,18 +66,38 @@ describe("ScrollableList.Item", () => {
 		expect(link.className).toContain("aria-disabled:pointer-events-none");
 	});
 
-	test("reflects selected as a data attribute", () => {
+	test("a disabled asChild link swallows activation (AT dispatches clicks without hit testing)", () => {
+		// Regression: `pointer-events: none` only blocks hit-tested pointer input —
+		// screen readers and `element.click()` dispatch click events directly, which
+		// would follow the still-present `href`. The item must swallow those too.
+		const onClick = vi.fn<() => void>();
+		render(
+			<ScrollableList.Viewport aria-label="Accounts">
+				<ScrollableList.Item asChild disabled onClick={onClick}>
+					<a href="/accounts/1">Account</a>
+				</ScrollableList.Item>
+			</ScrollableList.Viewport>,
+		);
+
+		// Dispatch the click directly on the element (as AT does) — fireEvent returns
+		// false when a handler called preventDefault, i.e. navigation was blocked.
+		const link = screen.getByRole("link", { name: "Account" });
+		const activationAllowed = fireEvent.click(link);
+		expect(activationAllowed).toBe(false);
+		expect(onClick).not.toHaveBeenCalled();
+	});
+
+	test("reflects selected as aria-current so the state is announced, not just tinted", () => {
 		render(
 			<ScrollableList.Viewport aria-label="Accounts">
 				<ScrollableList.Item selected onClick={() => {}}>
 					Account
 				</ScrollableList.Item>
+				<ScrollableList.Item onClick={() => {}}>Other</ScrollableList.Item>
 			</ScrollableList.Viewport>,
 		);
-		expect(screen.getByRole("button", { name: "Account" })).toHaveAttribute(
-			"data-selected",
-			"true",
-		);
+		expect(screen.getByRole("button", { name: "Account" })).toHaveAttribute("aria-current", "true");
+		expect(screen.getByRole("button", { name: "Other" })).not.toHaveAttribute("aria-current");
 	});
 
 	test("throws a helpful error when rendered outside a Viewport", () => {

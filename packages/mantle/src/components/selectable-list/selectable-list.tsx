@@ -26,6 +26,17 @@ import { VirtualRoot as ListVirtualRoot } from "../list/virtual.js";
  * map your domain objects into these options once, and the list owns filtering,
  * selection, and (optionally) virtualization. Row *rendering* stays composable —
  * pass a render-prop child to a viewport to draw your own layout.
+ *
+ * @see https://mantle.ngrok.com/components/selectable-list
+ *
+ * @example
+ * ```ts
+ * const option: SelectableListOption = {
+ *   value: "key_123",
+ *   label: "Onboarding key",
+ *   description: "sk-…4f2a",
+ * };
+ * ```
  */
 type SelectableListOption = {
 	/** Stable, unique selection value. This is what flows through `value` / `onValueChange`. */
@@ -133,6 +144,8 @@ const INTERACTIVE_ROW_TARGET_SELECTOR =
  * content — so the row's own click-to-toggle should defer to it. Pure over the
  * DOM; testable in isolation.
  *
+ * @see https://mantle.ngrok.com/components/selectable-list
+ *
  * @example
  * ```ts
  * // click on the row's checkbox → true (the row must not double-toggle)
@@ -205,6 +218,18 @@ type SelectableListRootProps = Omit<ComponentProps<"div">, "onChange"> & {
 	defaultValue?: readonly string[];
 	/** Called with the next selection whenever it changes. */
 	onValueChange?: (values: string[]) => void;
+	/** Controlled filter query. Pair with `onQueryChange`. */
+	query?: string;
+	/** Initial filter query for the uncontrolled case. */
+	defaultQuery?: string;
+	/** Called with the next query whenever it changes (e.g. typing in `SelectableList.Filter`). */
+	onQueryChange?: (query: string) => void;
+	/**
+	 * Custom filter predicate, called per option with the raw query; return
+	 * `true` to keep the option. Defaults to a trimmed, case-insensitive
+	 * substring match over each option's `label`.
+	 */
+	filter?: (option: SelectableListOption, query: string) => boolean;
 };
 
 const EMPTY_SELECTION: readonly string[] = [];
@@ -212,8 +237,10 @@ const EMPTY_SELECTION: readonly string[] = [];
 /**
  * Root of a `SelectableList` — a filterable, multi-select **grid** of checkbox
  * rows. Owns selection state (controlled via `value`/`onValueChange` or
- * uncontrolled via `defaultValue`), the filter query, and the derived filtered
- * options, and shares them with the parts below it.
+ * uncontrolled via `defaultValue`), the filter query (likewise controlled via
+ * `query`/`onQueryChange` or uncontrolled via `defaultQuery`), and the derived
+ * filtered options (a case-insensitive `label` substring match by default, or
+ * your own `filter` predicate), and shares them with the parts below it.
  *
  * Compose it with `SelectableList.Filter` (optional search box),
  * `SelectableList.SelectAll` (optional tri-state header), a viewport
@@ -239,14 +266,30 @@ const EMPTY_SELECTION: readonly string[] = [];
  * ```
  */
 const Root = forwardRef<ComponentRef<"div">, SelectableListRootProps>(
-	({ className, defaultValue, onValueChange, options, value, ...props }, ref) => {
+	(
+		{
+			className,
+			defaultQuery,
+			defaultValue,
+			filter,
+			onQueryChange,
+			onValueChange,
+			options,
+			query: queryProp,
+			value,
+			...props
+		},
+		ref,
+	) => {
 		const listId = useId();
 		const isControlled = value != null;
 		const [internalValue, setInternalValue] = useState<readonly string[]>(
 			defaultValue ?? EMPTY_SELECTION,
 		);
 		const selectedValues = isControlled ? value : internalValue;
-		const [query, setQuery] = useState("");
+		const isQueryControlled = queryProp != null;
+		const [internalQuery, setInternalQuery] = useState(defaultQuery ?? "");
+		const query = isQueryControlled ? queryProp : internalQuery;
 
 		const commitSelection = useCallback(
 			(next: string[]) => {
@@ -257,6 +300,15 @@ const Root = forwardRef<ComponentRef<"div">, SelectableListRootProps>(
 			},
 			[isControlled, onValueChange],
 		);
+		const setQuery = useCallback(
+			(next: string) => {
+				if (!isQueryControlled) {
+					setInternalQuery(next);
+				}
+				onQueryChange?.(next);
+			},
+			[isQueryControlled, onQueryChange],
+		);
 
 		const selectedSet = useMemo(() => new Set(selectedValues), [selectedValues]);
 		const disabledSet = useMemo(
@@ -264,8 +316,11 @@ const Root = forwardRef<ComponentRef<"div">, SelectableListRootProps>(
 			[options],
 		);
 		const filteredOptions = useMemo(
-			() => filterSelectableOptions(options, query),
-			[options, query],
+			() =>
+				filter != null
+					? options.filter((option) => filter(option, query))
+					: filterSelectableOptions(options, query),
+			[options, query, filter],
 		);
 
 		const context = useMemo<SelectableListContextValue>(
@@ -285,7 +340,16 @@ const Root = forwardRef<ComponentRef<"div">, SelectableListRootProps>(
 				},
 				setSelection: commitSelection,
 			}),
-			[listId, filteredOptions, query, selectedValues, selectedSet, disabledSet, commitSelection],
+			[
+				listId,
+				filteredOptions,
+				query,
+				setQuery,
+				selectedValues,
+				selectedSet,
+				disabledSet,
+				commitSelection,
+			],
 		);
 
 		return (
@@ -312,7 +376,12 @@ Root.displayName = "SelectableListRoot";
  *
  * @example
  * ```tsx
- * <SelectableList.Filter placeholder="Filter access keys…" />
+ * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+ *   <SelectableList.Filter placeholder="Filter access keys…" />
+ *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+ *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
+ *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+ * </SelectableList.Root>
  * ```
  */
 const Filter = forwardRef<
@@ -349,7 +418,12 @@ Filter.displayName = "SelectableListFilter";
  *
  * @example
  * ```tsx
- * <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+ * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+ *   <SelectableList.Filter placeholder="Filter access keys…" />
+ *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+ *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
+ *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+ * </SelectableList.Root>
  * ```
  */
 const SelectAll = forwardRef<ComponentRef<"label">, Omit<ComponentProps<"label">, "htmlFor">>(
@@ -416,14 +490,24 @@ function controlIdFor(listId: string, value: string): string {
 	return `${listId}-control-${encodeURIComponent(value)}`;
 }
 
+/**
+ * Props for `SelectableList.Item`. Extends `<div>` props with the option
+ * `value` the row represents; selection and disabled state are read from the
+ * list by that value (`options[].disabled` is the single source of truth).
+ *
+ * @see https://mantle.ngrok.com/components/selectable-list
+ *
+ * @example
+ * ```tsx
+ * <SelectableList.Item value={option.value}>
+ *   <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+ *   <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
+ * </SelectableList.Item>
+ * ```
+ */
 type SelectableListItemProps = Omit<ComponentProps<"div">, "children"> & {
 	/** The option's selection value. Selection state is read from, and toggled in, the list. */
 	value: string;
-	/**
-	 * Force the row's disabled state. Defaults to the matching option's `disabled`,
-	 * so you usually don't pass this.
-	 */
-	disabled?: boolean;
 	/**
 	 * Row content — typically `SelectableList.ItemTitle` over a
 	 * `SelectableList.ItemDescription`, or any layout you like. It fills the row's
@@ -448,22 +532,27 @@ type SelectableListItemProps = Omit<ComponentProps<"div">, "children"> & {
  *
  * @example
  * ```tsx
- * <SelectableList.Viewport aria-label="Access keys">
- *   {(option) => (
- *     <SelectableList.Item value={option.value}>
- *       <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
- *       <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
- *     </SelectableList.Item>
- *   )}
- * </SelectableList.Viewport>
+ * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+ *   <SelectableList.Filter placeholder="Filter access keys…" />
+ *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+ *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80">
+ *     {(option) => (
+ *       <SelectableList.Item value={option.value}>
+ *         <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+ *         <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
+ *       </SelectableList.Item>
+ *     )}
+ *   </SelectableList.Viewport>
+ *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+ * </SelectableList.Root>
  * ```
  */
 const Item = forwardRef<ComponentRef<"div">, SelectableListItemProps>(
-	({ children, className, disabled: disabledProp, onClick, value, ...props }, ref) => {
+	({ children, className, onClick, value, ...props }, ref) => {
 		const { listId, selectedSet, disabledSet, toggle } = useSelectableListContext("Item");
 		const controlId = controlIdFor(listId, value);
 		const selected = selectedSet.has(value);
-		const disabled = disabledProp ?? disabledSet.has(value);
+		const disabled = disabledSet.has(value);
 
 		return (
 			<ListRow
@@ -477,8 +566,8 @@ const Item = forwardRef<ComponentRef<"div">, SelectableListItemProps>(
 					className,
 				)}
 				{...props}
+				data-slot="selectable-list-item"
 				data-value={value}
-				aria-disabled={disabled || undefined}
 				onClick={(event) => {
 					// Run a consumer-supplied handler first so it composes with (and can
 					// `preventDefault` to opt out of) the row's click-to-toggle, rather than
@@ -520,10 +609,19 @@ Item.displayName = "SelectableListItem";
  *
  * @example
  * ```tsx
- * <SelectableList.Item value={option.value}>
- *   <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
- *   <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
- * </SelectableList.Item>
+ * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+ *   <SelectableList.Filter placeholder="Filter access keys…" />
+ *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+ *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80">
+ *     {(option) => (
+ *       <SelectableList.Item value={option.value}>
+ *         <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+ *         <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
+ *       </SelectableList.Item>
+ *     )}
+ *   </SelectableList.Viewport>
+ *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+ * </SelectableList.Root>
  * ```
  */
 const ItemTitle = forwardRef<
@@ -543,10 +641,19 @@ ItemTitle.displayName = "SelectableListItemTitle";
  *
  * @example
  * ```tsx
- * <SelectableList.Item value={option.value}>
- *   <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
- *   <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
- * </SelectableList.Item>
+ * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+ *   <SelectableList.Filter placeholder="Filter access keys…" />
+ *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+ *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80">
+ *     {(option) => (
+ *       <SelectableList.Item value={option.value}>
+ *         <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+ *         <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
+ *       </SelectableList.Item>
+ *     )}
+ *   </SelectableList.Viewport>
+ *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+ * </SelectableList.Root>
  * ```
  */
 const ItemDescription = forwardRef<
@@ -579,9 +686,9 @@ function renderDefaultOption(option: SelectableListOption): ReactNode {
  * Map the filtered options into keyed `Item` rows, using the render-prop child
  * when supplied or the default title/description row otherwise. Each row is
  * re-keyed by its option `value` so composed rows stay stable across filtering,
- * and the option's `disabled` is surfaced onto the row element so the grid can
- * skip it during keyboard navigation without reading the (windowed) DOM. An
- * explicitly-disabled row from a render-prop stays disabled.
+ * and the option's `disabled` (the single source of truth) is surfaced onto the
+ * row element so the grid can skip it during keyboard navigation without
+ * reading the (windowed) DOM.
  *
  * Returns the rendered rows alongside the `options` that produced them, in the
  * same order. Non-element render-prop results (e.g. a conditional `null`) are
@@ -603,13 +710,23 @@ function renderRows(
 		if (!isValidElement<{ disabled?: boolean }>(row)) {
 			continue;
 		}
-		const disabled = row.props.disabled === true || option.disabled === true;
-		rows.push(cloneElement(row, { key: option.value, disabled }));
+		rows.push(cloneElement(row, { key: option.value, disabled: option.disabled === true }));
 		options.push(option);
 	}
 	return { rows, options };
 }
 
+/**
+ * Props for `SelectableList.Viewport`. Extends `<div>` props (the scroll
+ * viewport) with an optional render-prop child for custom row layouts.
+ *
+ * @see https://mantle.ngrok.com/components/selectable-list
+ *
+ * @example
+ * ```tsx
+ * <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
+ * ```
+ */
 type SelectableListViewportProps = Omit<ComponentProps<"div">, "children"> & {
 	/**
 	 * Optional render-prop for custom row content, called per filtered option.
@@ -632,7 +749,12 @@ type SelectableListViewportProps = Omit<ComponentProps<"div">, "children"> & {
  *
  * @example
  * ```tsx
- * <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
+ * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+ *   <SelectableList.Filter placeholder="Filter access keys…" />
+ *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+ *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
+ *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+ * </SelectableList.Root>
  * ```
  */
 const Viewport = forwardRef<ComponentRef<"div">, SelectableListViewportProps>(
@@ -678,6 +800,17 @@ const Viewport = forwardRef<ComponentRef<"div">, SelectableListViewportProps>(
 );
 Viewport.displayName = "SelectableListViewport";
 
+/**
+ * Props for `SelectableList.VirtualViewport` — the `Viewport` props plus the
+ * virtualizer knobs.
+ *
+ * @see https://mantle.ngrok.com/components/selectable-list
+ *
+ * @example
+ * ```tsx
+ * <SelectableList.VirtualViewport aria-label="Access keys" className="max-h-80" estimateRowHeight={44} />
+ * ```
+ */
 type SelectableListVirtualViewportProps = SelectableListViewportProps & {
 	/** Estimated row height in px, used to seed the virtualizer before rows are measured. */
 	estimateRowHeight?: number;
@@ -696,7 +829,12 @@ type SelectableListVirtualViewportProps = SelectableListViewportProps & {
  *
  * @example
  * ```tsx
- * <SelectableList.VirtualViewport aria-label="Access keys" className="max-h-80" />
+ * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+ *   <SelectableList.Filter placeholder="Filter access keys…" />
+ *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+ *   <SelectableList.VirtualViewport aria-label="Access keys" className="max-h-80" />
+ *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+ * </SelectableList.Root>
  * ```
  */
 const VirtualViewport = forwardRef<ComponentRef<"div">, SelectableListVirtualViewportProps>(
@@ -745,34 +883,46 @@ VirtualViewport.displayName = "SelectableListVirtualViewport";
 
 /**
  * Shown in place of the viewport when the active filter matches no options.
- * Renders its children (e.g. "No results found.") in muted, centered text;
- * renders nothing while there are matching options.
+ * Renders its children (e.g. "No results found.") in muted, centered text.
+ * It is a polite `role="status"` live region that stays mounted (visually
+ * hidden while there are matches), so screen-reader users hear the message
+ * when their filter empties the list instead of the grid silently vanishing.
  *
  * @see https://mantle.ngrok.com/components/selectable-list
  *
  * @example
  * ```tsx
- * <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+ * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+ *   <SelectableList.Filter placeholder="Filter access keys…" />
+ *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+ *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
+ *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+ * </SelectableList.Root>
  * ```
  */
 const Empty = forwardRef<ComponentRef<"div">, ComponentProps<"div">>(
-	({ className, ...props }, ref) => {
+	({ children, className, ...props }, ref) => {
 		const { filteredOptions } = useSelectableListContext("Empty");
-
-		if (filteredOptions.length > 0) {
-			return null;
-		}
+		const isEmpty = filteredOptions.length === 0;
 
 		return (
+			// Always mounted: a live region only announces reliably when it exists in
+			// the tree *before* its content changes. While options match, it renders
+			// empty and `sr-only` (absolutely positioned, so it adds no layout gap).
 			<div
 				ref={ref}
 				data-slot="selectable-list-empty"
+				role="status"
 				className={cx(
-					"text-muted border-popover bg-popover flex items-center justify-center rounded-md border px-3 py-8 text-center text-sm",
+					!isEmpty && "sr-only",
+					isEmpty &&
+						"text-muted border-popover bg-popover flex items-center justify-center rounded-md border px-3 py-8 text-center text-sm",
 					className,
 				)}
 				{...props}
-			/>
+			>
+				{isEmpty ? children : null}
+			</div>
 		);
 	},
 );
@@ -832,7 +982,10 @@ const SelectableList = {
 	 * @example
 	 * ```tsx
 	 * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+	 *   <SelectableList.Filter placeholder="Filter access keys…" />
+	 *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
 	 *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
+	 *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
 	 * </SelectableList.Root>
 	 * ```
 	 */
@@ -844,7 +997,12 @@ const SelectableList = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <SelectableList.Filter placeholder="Filter access keys…" />
+	 * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+	 *   <SelectableList.Filter placeholder="Filter access keys…" />
+	 *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+	 *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
+	 *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+	 * </SelectableList.Root>
 	 * ```
 	 */
 	Filter,
@@ -855,7 +1013,12 @@ const SelectableList = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+	 * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+	 *   <SelectableList.Filter placeholder="Filter access keys…" />
+	 *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+	 *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
+	 *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+	 * </SelectableList.Root>
 	 * ```
 	 */
 	SelectAll,
@@ -867,7 +1030,12 @@ const SelectableList = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
+	 * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+	 *   <SelectableList.Filter placeholder="Filter access keys…" />
+	 *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+	 *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
+	 *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+	 * </SelectableList.Root>
 	 * ```
 	 */
 	Viewport,
@@ -878,7 +1046,12 @@ const SelectableList = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <SelectableList.VirtualViewport aria-label="Access keys" className="max-h-80" />
+	 * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+	 *   <SelectableList.Filter placeholder="Filter access keys…" />
+	 *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+	 *   <SelectableList.VirtualViewport aria-label="Access keys" className="max-h-80" />
+	 *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+	 * </SelectableList.Root>
 	 * ```
 	 */
 	VirtualViewport,
@@ -890,10 +1063,19 @@ const SelectableList = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <SelectableList.Item value={option.value}>
-	 *   <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
-	 *   <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
-	 * </SelectableList.Item>
+	 * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+	 *   <SelectableList.Filter placeholder="Filter access keys…" />
+	 *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+	 *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80">
+	 *     {(option) => (
+	 *       <SelectableList.Item value={option.value}>
+	 *         <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+	 *         <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
+	 *       </SelectableList.Item>
+	 *     )}
+	 *   </SelectableList.Viewport>
+	 *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+	 * </SelectableList.Root>
 	 * ```
 	 */
 	Item,
@@ -904,7 +1086,19 @@ const SelectableList = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+	 * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+	 *   <SelectableList.Filter placeholder="Filter access keys…" />
+	 *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+	 *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80">
+	 *     {(option) => (
+	 *       <SelectableList.Item value={option.value}>
+	 *         <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+	 *         <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
+	 *       </SelectableList.Item>
+	 *     )}
+	 *   </SelectableList.Viewport>
+	 *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+	 * </SelectableList.Root>
 	 * ```
 	 */
 	ItemTitle,
@@ -915,18 +1109,36 @@ const SelectableList = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
+	 * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+	 *   <SelectableList.Filter placeholder="Filter access keys…" />
+	 *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+	 *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80">
+	 *     {(option) => (
+	 *       <SelectableList.Item value={option.value}>
+	 *         <SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+	 *         <SelectableList.ItemDescription>{option.description}</SelectableList.ItemDescription>
+	 *       </SelectableList.Item>
+	 *     )}
+	 *   </SelectableList.Viewport>
+	 *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+	 * </SelectableList.Root>
 	 * ```
 	 */
 	ItemDescription,
 	/**
-	 * Shown when the filter matches no options.
+	 * Shown when the filter matches no options — a polite `role="status"` live
+	 * region, so the empty state is announced as the filter narrows.
 	 *
 	 * @see https://mantle.ngrok.com/components/selectable-list
 	 *
 	 * @example
 	 * ```tsx
-	 * <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+	 * <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+	 *   <SelectableList.Filter placeholder="Filter access keys…" />
+	 *   <SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+	 *   <SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
+	 *   <SelectableList.Empty>No access keys found.</SelectableList.Empty>
+	 * </SelectableList.Root>
 	 * ```
 	 */
 	Empty,

@@ -2,7 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { List } from "./list.js";
 
 const rows = Array.from({ length: 8 }, (_, index) => ({
@@ -288,5 +288,141 @@ describe("List grid navigation", () => {
 				.querySelector("[data-slot='list'] [role='row'][data-index='2']")
 				?.hasAttribute("data-active"),
 		).toBe(false);
+	});
+
+	test("Enter and Space on a focused nested tabbable control operate the control, not the row", async () => {
+		// Regression: the grid keydown handler used to preventDefault Enter/Space
+		// bubbling from a focused in-row control, so the control could receive focus
+		// but never be operated — the row toggled instead.
+		const onActivate = vi.fn<(index: number) => void>();
+		const onMenuAction = vi.fn<() => void>();
+		render(
+			<List.Root semantics="grid" aria-label="grid" onActivate={onActivate}>
+				<List.Row>
+					<div role="gridcell">Row 0</div>
+				</List.Row>
+				<List.Row>
+					<div role="gridcell">
+						<button type="button" onClick={onMenuAction}>
+							open menu
+						</button>
+					</div>
+				</List.Row>
+			</List.Root>,
+		);
+
+		const menuButton = screen.getByRole("button", { name: "open menu" });
+		menuButton.focus();
+		expect(menuButton).toHaveFocus();
+
+		const user = userEvent.setup();
+		await user.keyboard("{Enter}");
+		expect(onMenuAction).toHaveBeenCalledTimes(1);
+		expect(onActivate).not.toHaveBeenCalled();
+
+		await user.keyboard(" ");
+		expect(onMenuAction).toHaveBeenCalledTimes(2);
+		expect(onActivate).not.toHaveBeenCalled();
+	});
+
+	test("windowed rows expose the ARIA attributes their semantics allow", async () => {
+		// listitem rows: aria-posinset/aria-setsize. Grid rows: aria-rowindex with
+		// aria-rowcount on the collection (posinset/setsize are invalid on grid rows
+		// per WAI-ARIA 1.2).
+		const listRender = render(
+			<List.VirtualRoot semantics="list" aria-label="windowed list" style={{ maxHeight: 200 }}>
+				{gridRows.map((row) => (
+					<List.Row key={row.id}>
+						<button type="button">{row.name}</button>
+					</List.Row>
+				))}
+			</List.VirtualRoot>,
+		);
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
+
+		const firstListItem = document.querySelector("[role='listitem'][data-index='0']");
+		expect(firstListItem).toHaveAttribute("aria-posinset", "1");
+		expect(firstListItem).toHaveAttribute("aria-setsize", String(gridRows.length));
+		expect(firstListItem).not.toHaveAttribute("aria-rowindex");
+		expect(document.querySelector("[role='list']")).not.toHaveAttribute("aria-rowcount");
+		listRender.unmount();
+
+		render(
+			<List.VirtualRoot
+				semantics="grid"
+				aria-label="windowed grid"
+				style={{ maxHeight: 200 }}
+				onActivate={() => {}}
+			>
+				{gridRows.map((row) => (
+					<List.Row key={row.id}>
+						<div role="gridcell">{row.name}</div>
+					</List.Row>
+				))}
+			</List.VirtualRoot>,
+		);
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
+
+		const grid = document.querySelector("[role='grid']");
+		expect(grid).toHaveAttribute("aria-rowcount", String(gridRows.length));
+		const firstGridRow = document.querySelector("[role='row'][data-index='0']");
+		expect(firstGridRow).toHaveAttribute("aria-rowindex", "1");
+		expect(firstGridRow).not.toHaveAttribute("aria-posinset");
+		expect(firstGridRow).not.toHaveAttribute("aria-setsize");
+	});
+
+	test("scrolling the active row out of the window drops aria-activedescendant until keyboard nav restores it", async () => {
+		// `aria-activedescendant` must reference an element in the DOM; once the
+		// active row unmounts (mouse scroll far away), the reference is dropped
+		// rather than left dangling, and the next arrow key restores it.
+		render(
+			<List.VirtualRoot
+				semantics="grid"
+				aria-label="grid"
+				style={{ maxHeight: 200 }}
+				onActivate={() => {}}
+			>
+				{gridRows.map((row) => (
+					<List.Row key={row.id}>
+						<div role="gridcell">{row.name}</div>
+					</List.Row>
+				))}
+			</List.VirtualRoot>,
+		);
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
+
+		const grid = document.querySelector<HTMLElement>("[role='grid']");
+		const viewport = document.querySelector("[data-slot='list']");
+		if (grid == null || viewport == null) {
+			throw new Error("grid or viewport not found");
+		}
+
+		grid.focus(); // activates row 0
+		await new Promise((resolve) => {
+			requestAnimationFrame(() => resolve(null));
+		});
+		expect(grid).toHaveAttribute("aria-activedescendant");
+
+		// Mouse-scroll to the bottom: row 0 leaves the mounted window (+ overscan).
+		viewport.scrollTop = viewport.scrollHeight;
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
+		expect(document.querySelector("[role='row'][data-index='0']")).not.toBeInTheDocument();
+		expect(grid).not.toHaveAttribute("aria-activedescendant");
+
+		// Keyboard nav scrolls the (new) active row back into view and restores the reference.
+		const user = userEvent.setup();
+		await user.keyboard("{ArrowDown}");
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
+		expect(grid).toHaveAttribute("aria-activedescendant");
 	});
 });

@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import {
 	filterSelectableOptions,
@@ -167,6 +168,189 @@ describe("SelectableList.SelectAll", () => {
 	});
 });
 
+describe("SelectableList.SelectAll with an active filter", () => {
+	// Stateful so union/clear behavior across successive toggles is observable.
+	function FilterSelectAllHarness({
+		onValueChange,
+	}: {
+		onValueChange: (values: string[]) => void;
+	}) {
+		const [selected, setSelected] = useState<string[]>(["a"]);
+		const filterableOptions = [
+			{ value: "a", label: "Apple" },
+			{ value: "b", label: "Banana" },
+			{ value: "d", label: "Currant" },
+			{ value: "c", label: "Cranberry", disabled: true },
+		];
+		return (
+			<SelectableList.Root
+				options={filterableOptions}
+				value={selected}
+				onValueChange={(next) => {
+					onValueChange(next);
+					setSelected(next);
+				}}
+			>
+				<SelectableList.Filter aria-label="Filter fruit" />
+				<SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+				<SelectableList.Viewport aria-label="Fruit" />
+			</SelectableList.Root>
+		);
+	}
+
+	test("selects only the filtered enabled options, preserving selection outside the filter", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(values: string[]) => void>();
+		render(<FilterSelectAllHarness onValueChange={onValueChange} />);
+
+		// "ran" matches Currant and Cranberry (disabled); Apple ("a") stays selected
+		// but is filtered out of view.
+		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), "ran");
+		expect(screen.getAllByRole("row")).toHaveLength(2);
+
+		await user.click(screen.getByRole("checkbox", { name: "Select all" }));
+		// Union: the out-of-filter Apple selection is preserved; disabled Cranberry excluded.
+		expect(onValueChange).toHaveBeenLastCalledWith(["a", "d"]);
+	});
+
+	test("clearing removes only the filtered values, keeping the rest of the selection", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(values: string[]) => void>();
+		render(<FilterSelectAllHarness onValueChange={onValueChange} />);
+
+		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), "ran");
+		const selectAll = screen.getByRole("checkbox", { name: "Select all" });
+		await user.click(selectAll); // ["a", "d"] — all filtered selectable selected
+		expect(selectAll).toBeChecked();
+
+		await user.click(selectAll);
+		// Only the filtered value (Currant) is cleared; Apple survives.
+		expect(onValueChange).toHaveBeenLastCalledWith(["a"]);
+	});
+
+	test("is disabled when the filter leaves no selectable options", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(values: string[]) => void>();
+		render(<FilterSelectAllHarness onValueChange={onValueChange} />);
+
+		// "Cranb" matches only the disabled option.
+		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), "Cranb");
+		expect(screen.getByRole("checkbox", { name: "Select all" })).toBeDisabled();
+	});
+});
+
+describe("SelectableList selection state", () => {
+	test("uncontrolled selection seeds from defaultValue, toggles internally, and reports changes", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(values: string[]) => void>();
+		render(
+			<SelectableList.Root options={options} defaultValue={["a"]} onValueChange={onValueChange}>
+				<SelectableList.Viewport aria-label="Fruit" />
+			</SelectableList.Root>,
+		);
+
+		expect(screen.getByRole("checkbox", { name: "Apple" })).toBeChecked();
+
+		await user.click(screen.getByRole("checkbox", { name: "Banana" }));
+		expect(onValueChange).toHaveBeenCalledWith(["a", "b"]);
+		expect(screen.getByRole("checkbox", { name: "Banana" })).toBeChecked();
+	});
+
+	test("a controlled value wins over internal toggles", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(values: string[]) => void>();
+		render(
+			<SelectableList.Root options={options} value={[]} onValueChange={onValueChange}>
+				<SelectableList.Viewport aria-label="Fruit" />
+			</SelectableList.Root>,
+		);
+
+		await user.click(screen.getByRole("checkbox", { name: "Apple" }));
+		// The change is reported, but the un-updated controlled value keeps it unchecked.
+		expect(onValueChange).toHaveBeenCalledWith(["a"]);
+		expect(screen.getByRole("checkbox", { name: "Apple" })).not.toBeChecked();
+	});
+
+	test("a disabled option cannot be toggled by a bare row click", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(values: string[]) => void>();
+		render(
+			<SelectableList.Root options={options} value={[]} onValueChange={onValueChange}>
+				<SelectableList.Viewport aria-label="Fruit" />
+			</SelectableList.Root>,
+		);
+
+		// Cherry is disabled via options[].disabled — the single source of truth.
+		const cherryRow = screen.getByRole("checkbox", { name: "Cherry" }).closest("[role='row']");
+		if (cherryRow == null) {
+			throw new Error("Cherry row not found");
+		}
+		expect(cherryRow).toHaveAttribute("aria-disabled", "true");
+		await user.click(cherryRow);
+		expect(onValueChange).not.toHaveBeenCalled();
+	});
+});
+
+describe("SelectableList filter query", () => {
+	test("a controlled query filters the rows, and typing reports without mutating it", async () => {
+		const user = userEvent.setup();
+		const onQueryChange = vi.fn<(query: string) => void>();
+		render(
+			<SelectableList.Root options={options} query="an" onQueryChange={onQueryChange}>
+				<SelectableList.Filter aria-label="Filter fruit" />
+				<SelectableList.Viewport aria-label="Fruit" />
+			</SelectableList.Root>,
+		);
+
+		// "an" matches only Banana.
+		expect(screen.getAllByRole("row")).toHaveLength(1);
+		expect(screen.getByRole("checkbox", { name: "Banana" })).toBeInTheDocument();
+
+		const input = screen.getByRole<HTMLInputElement>("textbox", { name: "Filter fruit" });
+		await user.type(input, "x");
+		expect(onQueryChange).toHaveBeenCalledWith("anx");
+		// Controlled: the value did not change, so neither did the input or the rows.
+		expect(input.value).toBe("an");
+		expect(screen.getAllByRole("row")).toHaveLength(1);
+	});
+
+	test("defaultQuery seeds the uncontrolled filter", () => {
+		render(
+			<SelectableList.Root options={options} defaultQuery="an">
+				<SelectableList.Filter aria-label="Filter fruit" />
+				<SelectableList.Viewport aria-label="Fruit" />
+			</SelectableList.Root>,
+		);
+
+		expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Filter fruit" }).value).toBe(
+			"an",
+		);
+		expect(screen.getAllByRole("row")).toHaveLength(1);
+	});
+
+	test("a custom filter predicate replaces the label substring match", async () => {
+		const user = userEvent.setup();
+		render(
+			<SelectableList.Root
+				options={options}
+				filter={(option, query) => query === "" || option.value === query}
+			>
+				<SelectableList.Filter aria-label="Filter fruit" />
+				<SelectableList.Viewport aria-label="Fruit" />
+			</SelectableList.Root>,
+		);
+
+		expect(screen.getAllByRole("row")).toHaveLength(options.length);
+
+		// "a" discriminates the predicates: the value match keeps only Apple, while
+		// the default label substring match would also keep Banana ("banana"
+		// contains "a") — so two rows here would mean the custom filter was ignored.
+		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), "a");
+		expect(screen.getAllByRole("row")).toHaveLength(1);
+		expect(screen.getByRole("checkbox", { name: "Apple" })).toBeInTheDocument();
+	});
+});
+
 describe("SelectableList.Empty", () => {
 	test("renders only when the filter matches nothing", async () => {
 		const user = userEvent.setup();
@@ -181,6 +365,28 @@ describe("SelectableList.Empty", () => {
 
 		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), "zzz");
 		expect(screen.getByText("No results found.")).toBeInTheDocument();
+	});
+
+	test("is an always-mounted polite status region, so the empty state is announced", async () => {
+		const user = userEvent.setup();
+		render(
+			<SelectableList.Root options={options} defaultValue={[]}>
+				<SelectableList.Filter aria-label="Filter fruit" />
+				<SelectableList.Empty>No results found.</SelectableList.Empty>
+			</SelectableList.Root>,
+		);
+
+		// The live region must exist in the tree *before* its content changes,
+		// otherwise screen readers won't reliably announce the message.
+		const status = screen.getByRole("status");
+		expect(status).toBeEmptyDOMElement();
+
+		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), "zzz");
+		expect(status).toHaveTextContent("No results found.");
+
+		// Clearing the filter empties the region again without unmounting it.
+		await user.clear(screen.getByRole("textbox", { name: "Filter fruit" }));
+		expect(screen.getByRole("status")).toBeEmptyDOMElement();
 	});
 });
 
