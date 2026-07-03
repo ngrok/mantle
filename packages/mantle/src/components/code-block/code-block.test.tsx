@@ -232,4 +232,31 @@ describe("CodeBlock", () => {
 			expect(onCopy).not.toHaveBeenCalled();
 		});
 	});
+
+	describe("TabList", () => {
+		test("scrolls horizontally on overflow instead of wrapping", () => {
+			render(
+				<CodeBlock.Root defaultTab="a">
+					<CodeBlock.Header>
+						<CodeBlock.TabList>
+							<CodeBlock.TabTrigger value="a">example.ts</CodeBlock.TabTrigger>
+							<CodeBlock.TabTrigger value="b">example.json</CodeBlock.TabTrigger>
+						</CodeBlock.TabList>
+					</CodeBlock.Header>
+				</CodeBlock.Root>,
+			);
+
+			// The list is a scroll container with an edge fade rather than a wrapping row.
+			expect(screen.getByRole("tablist")).toHaveClass(
+				"scroll-fade-x",
+				"overflow-x-auto",
+				"min-w-0",
+			);
+
+			// Triggers keep their intrinsic width so labels never wrap under width pressure.
+			for (const tab of screen.getAllByRole("tab")) {
+				expect(tab).toHaveClass("shrink-0", "whitespace-nowrap");
+			}
+		});
+	});
 });

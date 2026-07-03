@@ -753,6 +753,9 @@ type CodeBlockTabListProps = Omit<ComponentProps<typeof RadixTabsList>, "asChild
  * in `CodeBlock.Body` to conditionally render code based on the active tab.
  * Tab state is managed by `CodeBlock.Root` via `defaultTab` / `activeTab` / `onActiveTabChange`.
  *
+ * When the tabs exceed the available width they scroll horizontally with an edge
+ * fade (`scroll-fade-x`) instead of wrapping to a second row.
+ *
  * @example
  * ```tsx
  * <CodeBlock.Root defaultTab="yml">
@@ -778,7 +781,15 @@ const TabList = forwardRef<ComponentRef<typeof RadixTabsList>, CodeBlockTabListP
 	({ className, ...props }, ref) => (
 		<RadixTabsList
 			data-slot="code-block-tab-list"
-			className={cx("flex items-center gap-1", className)}
+			className={cx(
+				"scroll-fade-x flex min-w-0 items-center gap-1 overflow-x-auto overscroll-x-none",
+				// Reserve room inside the scroll box for each trigger's focus ring: `overflow-x-auto`
+				// promotes `overflow-y` to `auto`, which would otherwise clip the `ring-4` box-shadow.
+				// The negative margin cancels the padding so the header layout is unchanged. `min-w-0`
+				// lets the list shrink (and thus scroll) inside the flex `CodeBlock.Header`.
+				"-m-1 p-1",
+				className,
+			)}
 			ref={ref}
 			{...props}
 		/>
@@ -805,7 +816,7 @@ const TabTrigger = forwardRef<ComponentRef<typeof RadixTabsTrigger>, CodeBlockTa
 		<RadixTabsTrigger
 			data-slot="code-block-tab-trigger"
 			className={cx(
-				"cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium",
+				"shrink-0 cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium whitespace-nowrap",
 				"text-gray-600 outline-hidden",
 				"hover:text-gray-900",
 				"data-[state=active]:bg-neutral-500/15 data-[state=active]:text-strong",
