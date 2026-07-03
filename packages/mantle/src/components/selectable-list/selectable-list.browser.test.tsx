@@ -89,6 +89,30 @@ describe("SelectableList (browser)", () => {
 		expect(grid).toHaveAttribute("aria-activedescendant", checkboxId("Apple"));
 	});
 
+	test("encodes option values with whitespace into a valid, resolvable activedescendant id", async () => {
+		function SpacedHarness() {
+			const [selected, setSelected] = useState<string[]>([]);
+			// A value with whitespace would otherwise produce an invalid HTML id and an
+			// aria-activedescendant IDREF the grid can't resolve.
+			const spacedOptions = [{ value: "with space", label: "Spaced" }];
+			return (
+				<SelectableList.Root options={spacedOptions} value={selected} onValueChange={setSelected}>
+					<SelectableList.Viewport aria-label="Spaced" />
+				</SelectableList.Root>
+			);
+		}
+		render(<SpacedHarness />);
+
+		const grid = await screen.findByRole("grid", { name: "Spaced" });
+		const checkbox = screen.getByRole("checkbox", { name: "Spaced" });
+		// The checkbox id must be a single whitespace-free token so it is a valid IDREF.
+		expect(checkbox.id).not.toMatch(/\s/);
+
+		// Focusing the grid points aria-activedescendant at that id — the association holds.
+		grid.focus();
+		await waitFor(() => expect(grid).toHaveAttribute("aria-activedescendant", checkbox.id));
+	});
+
 	test("VirtualViewport arrow nav crosses the mounted window", async () => {
 		const user = userEvent.setup();
 		const manyOptions = Array.from({ length: 50 }, (_unused, index) => ({

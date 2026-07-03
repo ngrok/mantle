@@ -57,10 +57,10 @@ type SelectableListOption = {
 function filterSelectableOptions(
 	options: readonly SelectableListOption[],
 	query: string,
-): SelectableListOption[] {
+): readonly SelectableListOption[] {
 	const normalized = query.trim().toLowerCase();
 	if (normalized === "") {
-		return [...options];
+		return options;
 	}
 	return options.filter((option) => option.label.toLowerCase().includes(normalized));
 }
@@ -153,7 +153,7 @@ type SelectableListContextValue = {
 	/** A stable id namespace for the list's control ids. */
 	listId: string;
 	/** Options after the active filter is applied. Drives the viewport and select-all. */
-	filteredOptions: SelectableListOption[];
+	filteredOptions: readonly SelectableListOption[];
 	/** Current filter query (controlled by `SelectableList.Filter`). */
 	query: string;
 	setQuery: (query: string) => void;
@@ -408,7 +408,12 @@ SelectAll.displayName = "SelectableListSelectAll";
  * real element that carries the id.
  */
 function controlIdFor(listId: string, value: string): string {
-	return `${listId}-control-${value}`;
+	// `encodeURIComponent` guarantees a whitespace-free, valid HTML id token (and
+	// thus a resolvable `aria-activedescendant` IDREF) for ANY option `value` — e.g.
+	// a display name like "Acme Inc" or an email. The checkbox `id` and the grid's
+	// `aria-activedescendant`/`rowId` all derive from this one function, so encoding
+	// every call site keeps them equal and preserves the accessibility association.
+	return `${listId}-control-${encodeURIComponent(value)}`;
 }
 
 type SelectableListItemProps = Omit<ComponentProps<"div">, "children"> & {

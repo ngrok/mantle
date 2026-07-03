@@ -21,6 +21,12 @@ describe("filterSelectableOptions", () => {
 		expect(filterSelectableOptions(options, "   ")).toEqual(options);
 	});
 
+	test("returns the same array reference for an empty query (does no work)", () => {
+		// The empty-query fast path returns the input untouched rather than copying it.
+		expect(filterSelectableOptions(options, "")).toBe(options);
+		expect(filterSelectableOptions(options, "   ")).toBe(options);
+	});
+
 	test("matches label case-insensitively as a substring", () => {
 		expect(filterSelectableOptions(options, "AN").map((option) => option.value)).toEqual(["b"]);
 	});
