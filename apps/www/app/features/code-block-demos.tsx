@@ -482,6 +482,58 @@ export function TabbedCodeBlockDemo() {
 	);
 }
 
+const helloTs = mantleCode("typescript")`console.log("Hello, ngrok!");`;
+const helloPy = mantleCode("python")`print("Hello, ngrok!")`;
+const helloGo = mantleCode("go")`fmt.Println("Hello, ngrok!")`;
+const helloRs = mantleCode("rust")`println!("Hello, ngrok!");`;
+const helloJava = mantleCode("java")`System.out.println("Hello, ngrok!");`;
+const helloRb = mantleCode("ruby")`puts "Hello, ngrok!"`;
+
+/**
+ * Tabbed code block whose tab strip overflows its (deliberately narrow) container:
+ * the tabs scroll horizontally with an edge fade (`scroll-fade-x`) instead of
+ * wrapping onto a second row.
+ */
+export function ScrollingTabListDemo() {
+	return (
+		<Example>
+			<CodeBlock.Root defaultTab="ts" className="max-w-xs">
+				<CodeBlock.Header>
+					<CodeBlock.TabList>
+						<CodeBlock.TabTrigger value="ts">index.ts</CodeBlock.TabTrigger>
+						<CodeBlock.TabTrigger value="py">server.py</CodeBlock.TabTrigger>
+						<CodeBlock.TabTrigger value="go">main.go</CodeBlock.TabTrigger>
+						<CodeBlock.TabTrigger value="rs">lib.rs</CodeBlock.TabTrigger>
+						<CodeBlock.TabTrigger value="java">App.java</CodeBlock.TabTrigger>
+						<CodeBlock.TabTrigger value="rb">app.rb</CodeBlock.TabTrigger>
+					</CodeBlock.TabList>
+				</CodeBlock.Header>
+				<CodeBlock.Body>
+					<CodeBlock.CopyButton />
+					<CodeBlock.TabContent value="ts">
+						<CodeBlock.Code value={helloTs} />
+					</CodeBlock.TabContent>
+					<CodeBlock.TabContent value="py">
+						<CodeBlock.Code value={helloPy} />
+					</CodeBlock.TabContent>
+					<CodeBlock.TabContent value="go">
+						<CodeBlock.Code value={helloGo} />
+					</CodeBlock.TabContent>
+					<CodeBlock.TabContent value="rs">
+						<CodeBlock.Code value={helloRs} />
+					</CodeBlock.TabContent>
+					<CodeBlock.TabContent value="java">
+						<CodeBlock.Code value={helloJava} />
+					</CodeBlock.TabContent>
+					<CodeBlock.TabContent value="rb">
+						<CodeBlock.Code value={helloRb} />
+					</CodeBlock.TabContent>
+				</CodeBlock.Body>
+			</CodeBlock.Root>
+		</Example>
+	);
+}
+
 /**
  * Code block demonstrating all `mantleCode()` options: `showLineNumbers`, `highlightLines`,
  * `lineNumberStart`, and `indentation`.

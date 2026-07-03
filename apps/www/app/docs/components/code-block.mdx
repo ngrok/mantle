@@ -13,6 +13,7 @@ import {
 	MantleCodeOptionsDemo,
 	OverridingIndentationDemo,
 	TabbedCodeBlockDemo,
+	ScrollingTabListDemo,
 	FoldableJsonDemo,
 	JsonCodeBlockValueDemo,
 	NestedFragmentInterpolationDemo,
@@ -346,6 +347,10 @@ const policyJson = mantleCode("json")`…`;
 	</CodeBlock.Body>
 </CodeBlock.Root>;
 ```
+
+When the tabs are too wide for the header, `CodeBlock.TabList` scrolls horizontally with a [`scroll-fade-x`](/base/scroll-fade#horizontal--scroll-fade-x) edge fade instead of wrapping onto a second row — no extra wiring required.
+
+<ScrollingTabListDemo />
 
 ### Reusing Fragments with Nested Interpolation
 
