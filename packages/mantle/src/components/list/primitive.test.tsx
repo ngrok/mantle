@@ -118,6 +118,33 @@ describe("List grid keyboard navigation edges", () => {
 	});
 });
 
+describe("List list-semantics arrow navigation", () => {
+	test("moves focus between asChild rows that are themselves the control", () => {
+		// Regression: `findRowControl` only searched a row's descendants, so an
+		// `asChild` row that *is* the focusable control (the docs' Polymorphism
+		// example — the row renders as an <a>) was never a navigation target.
+		render(
+			<List.Root semantics="list" aria-label="links">
+				<List.Row asChild>
+					<a href="#one">One</a>
+				</List.Row>
+				<List.Row asChild>
+					<a href="#two">Two</a>
+				</List.Row>
+			</List.Root>,
+		);
+
+		const first = screen.getByText("One");
+		const second = screen.getByText("Two");
+		first.focus();
+		fireEvent.keyDown(first, { key: "ArrowDown" });
+		expect(second).toHaveFocus();
+
+		fireEvent.keyDown(second, { key: "ArrowUp" });
+		expect(first).toHaveFocus();
+	});
+});
+
 describe("List grid pointer activation", () => {
 	test("a bare row click activates; clicks on nested controls or disabled rows do not", async () => {
 		const user = userEvent.setup();

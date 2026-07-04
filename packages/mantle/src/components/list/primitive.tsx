@@ -259,10 +259,12 @@ const ROW_CONTROL_SELECTOR =
 
 /**
  * The focusable control of a mounted row element, or `null` when the row hosts
- * none (a static row is simply not a keyboard-navigation stop).
+ * none (a static row is simply not a keyboard-navigation stop). An `asChild`
+ * row may *be* the control (e.g. `<List.Row asChild><a href…>`), so the row
+ * itself is checked before its descendants.
  */
 function findRowControl(row: Element): HTMLElement | null {
-	const control = row.querySelector(ROW_CONTROL_SELECTOR);
+	const control = row.matches(ROW_CONTROL_SELECTOR) ? row : row.querySelector(ROW_CONTROL_SELECTOR);
 	return control instanceof HTMLElement ? control : null;
 }
 
