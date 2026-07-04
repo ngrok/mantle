@@ -32,11 +32,14 @@ import { List } from "@ngrok/mantle/list";
   `aria-selected` `role="row"`s driven as a single tab stop with
   `aria-activedescendant` navigation that survives virtualization. Grid
   keyboard navigation skips `disabled` rows (which carry `aria-disabled`),
-  pressing or clicking a row makes it the active row, and keys from a focused
-  nested tabbable control (a link, an overflow-menu button) are handled by
-  that control, not the grid. Windowed `list` rows carry
-  `aria-posinset`/`aria-setsize`; windowed `grid` rows carry `aria-rowindex`
-  with `aria-rowcount` on the grid.
+  `Space` / `Enter` or a bare click on a row fires `onActivate` (deferring to
+  nested interactive content that handles its own click), pressing or clicking
+  a row makes it the active row, and keys from a focused nested tabbable
+  control (a link, an overflow-menu button) are handled by that control, not
+  the grid. Disabled state defaults to each row element's `disabled` prop; pass
+  `isRowDisabled` to drive it from your data instead. Windowed `list` rows
+  carry `aria-posinset`/`aria-setsize`; windowed `grid` rows carry
+  `aria-rowindex` with `aria-rowcount` on the grid.
 - **`List.Row`** owns the hover / `selected` pill chrome and supports `asChild`
   (e.g. render it as an `<a>` for a navigation row).
 - **`List.VirtualRoot`** is a drop-in for `List.Root` that windows the same

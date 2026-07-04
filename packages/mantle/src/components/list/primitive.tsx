@@ -24,7 +24,7 @@ import type {
 } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
-import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Slot } from "../slot/index.js";
 
@@ -108,28 +108,22 @@ const ListRowContext = createContext<ListRowContextValue | null>(null);
 
 /**
  * Grid keyboard-navigation state, provided by a grid {@link Root} / `VirtualRoot`
- * and read by each {@link Row} to derive its `id` (the `aria-activedescendant`
- * target) and active state. `null` under `"list"` semantics (no roving).
+ * and read by each {@link Row} to derive its active state and — when the
+ * collection owns row ids — its DOM id (the `aria-activedescendant` target).
+ * `null` under `"list"` semantics (no roving).
  */
 type GridNavContextValue = {
 	/** The active row's index, or `-1` when nothing is active yet. */
 	activeIndex: number;
 	/**
-	 * The DOM id of the row (or its focusable descendant) that
-	 * `aria-activedescendant` resolves to for a given index. Defaults to a stable
-	 * per-collection row id, but a consumer can override it to point at a real
-	 * element it owns — e.g. `SelectableList` points it at the row's checkbox,
-	 * because its row element (a `Choice.Root`) reserves `id` for the control.
+	 * Stamps the collection's default `aria-activedescendant` target id onto the
+	 * {@link Row} at an index. `null` when a consumer overrides `rowId` on the
+	 * root: the referenced id then belongs to an element the consumer owns (e.g.
+	 * `SelectableList` points it at the row's checkbox, because its row element —
+	 * a `Choice.Root` — reserves `id` for the control), so the row keeps its own
+	 * `id` prop instead of duplicating the consumer's id onto itself.
 	 */
-	rowId: (index: number) => string;
-	/**
-	 * Whether {@link rowId} is the collection's own default. When it is, each
-	 * {@link Row} stamps `rowId(index)` as its DOM id so `aria-activedescendant`
-	 * resolves; when a consumer overrides `rowId`, the id belongs to an element
-	 * the consumer owns, so the row keeps its own `id` prop instead (stamping
-	 * would duplicate the consumer's id onto the row).
-	 */
-	ownsRowIds: boolean;
+	stampRowId: ((index: number) => string) | null;
 };
 
 const GridNavContext = createContext<GridNavContextValue | null>(null);
@@ -193,8 +187,10 @@ type ListRootProps = ComponentProps<"div"> & {
 	/** ARIA semantics for the collection and its rows. Defaults to `"list"`. */
 	semantics?: ListSemantics;
 	/**
-	 * Called with the active row's index when it is activated by keyboard
-	 * (`Space` / `Enter`) under `"grid"` semantics. Wire it to selection.
+	 * Called with the active row's index when it is activated under `"grid"`
+	 * semantics — by keyboard (`Space` / `Enter`) or by a bare click anywhere on
+	 * the row that isn't handled by an interactive descendant (a checkbox, a
+	 * label, a nested link/button). Wire it to selection.
 	 */
 	onActivate?: (index: number) => void;
 	/**
@@ -204,14 +200,22 @@ type ListRootProps = ComponentProps<"div"> & {
 	 * element can't take that id.
 	 */
 	rowId?: (index: number) => string;
+	/**
+	 * Whether the row at an index is disabled — skipped by keyboard navigation
+	 * and excluded from grid activation. Defaults to reading the composed row
+	 * element's `disabled` prop (covering `<List.Row disabled>`); pass it when
+	 * disabled state lives in your data rather than on the row elements (e.g.
+	 * `SelectableList` reads it off `options[].disabled`).
+	 */
+	isRowDisabled?: (index: number) => boolean;
 };
 
 /**
  * Whether a composed row child is disabled — read from the `disabled` prop it
- * declares (e.g. `<Row disabled>`). This is what keyboard navigation reads to
- * skip a row, derived from the row *elements* (not the live DOM) so it works
- * for windowed rows that aren't mounted. Safe over an arbitrary node:
- * non-elements and rows without the prop read as enabled.
+ * declares (e.g. `<Row disabled>`). The default keyboard-navigation disabled
+ * source (see `ListRootProps["isRowDisabled"]`), derived from the row *elements*
+ * (not the live DOM) so it works for windowed rows that aren't mounted. Safe
+ * over an arbitrary node: non-elements and rows without the prop read as enabled.
  */
 function isRowChildDisabled(node: ReactNode): boolean {
 	if (!isValidElement<{ disabled?: boolean }>(node)) {
@@ -263,72 +267,122 @@ function findRowControl(row: Element): HTMLElement | null {
 }
 
 /**
- * Arrow-key navigation for `"list"` semantics: `ArrowUp` / `ArrowDown` /
- * `Home` / `End` pressed on a row's focused control move **real focus** to the
- * next enabled row's control (native tab order is otherwise untouched, so this
- * augments — never replaces — Tab). Handled keys are always claimed so they
- * step rows instead of scrolling the viewport, and there is no wrap: arrowing
- * past the last enabled row holds. Inert under `"grid"` semantics, which has
- * its own single-tab-stop `aria-activedescendant` model.
+ * Resolve the composed row an event landed on: the closest `[data-index]`
+ * element and its parsed index. `null` when the target isn't inside a row or
+ * the stamped index isn't a valid non-negative integer. The shared first step
+ * of every handler that maps a DOM event back to a row.
  */
-function useListFocusNavigation({
+function rowFromEventTarget(target: EventTarget | null): { row: Element; index: number } | null {
+	const row = target instanceof Element ? target.closest("[data-index]") : null;
+	if (row == null) {
+		return null;
+	}
+	const index = Number(row.getAttribute("data-index"));
+	if (!Number.isInteger(index) || index < 0) {
+		return null;
+	}
+	return { row, index };
+}
+
+/**
+ * Selector for the interactive elements inside a row that handle their own
+ * click — a checkbox, a `<label>`, nested links/buttons. A bare row click that
+ * lands inside one of these is left alone so grid activation never fires twice.
+ */
+const INTERACTIVE_ROW_TARGET_SELECTOR =
+	'a[href], button, input, select, textarea, label, [role="button"], [role="link"], [role="menuitem"], [contenteditable="true"]';
+
+/**
+ * Whether a row click originated on an element (within `row`) that already
+ * handles the click — a checkbox, a label, or nested interactive content — so
+ * the grid's click-to-activate should defer to it. Pure over the DOM; testable
+ * in isolation.
+ *
+ * @example
+ * ```ts
+ * // click on the row's checkbox → true (activation must not fire twice)
+ * isInteractiveRowTarget(checkboxEl, rowEl); // → true
+ * // click on the row's description text → false (the row activates)
+ * isInteractiveRowTarget(descriptionEl, rowEl); // → false
+ * ```
+ */
+function isInteractiveRowTarget(target: EventTarget | null, row: Element): boolean {
+	if (!(target instanceof Element)) {
+		return false;
+	}
+	const interactive = target.closest(INTERACTIVE_ROW_TARGET_SELECTOR);
+	return interactive != null && row.contains(interactive);
+}
+
+/**
+ * Collection-element props for `"list"` semantics arrow-key navigation:
+ * `ArrowUp` / `ArrowDown` / `Home` / `End` pressed on a row's focused control
+ * move **real focus** to the next enabled row's control (native tab order is
+ * otherwise untouched, so this augments — never replaces — Tab). Handled keys
+ * are always claimed so they step rows instead of scrolling the viewport, and
+ * there is no wrap: arrowing past the last enabled row holds. A plain props
+ * builder (no state), only built under `"list"` semantics — `"grid"` has its
+ * own single-tab-stop `aria-activedescendant` model.
+ */
+function listFocusNavigationProps({
 	count,
-	enabled,
 	isRowDisabled,
 	focusRowAt,
 }: {
 	count: number;
-	enabled: boolean;
 	/** Whether the row at an index is disabled — skipped by arrow navigation. */
 	isRowDisabled: (index: number) => boolean;
 	/** Move focus to the control of the row at `index`, revealing (and, windowed, mounting) it. */
 	focusRowAt: (index: number) => void;
-}): { collectionProps: Pick<ComponentProps<"div">, "onKeyDown"> } {
-	if (!enabled) {
-		return { collectionProps: {} };
-	}
-
+}): Pick<ComponentProps<"div">, "onKeyDown"> {
 	return {
-		collectionProps: {
-			onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
-				// Never steal keys from a text-editing control a row might host —
-				// arrows move its caret and Home/End jump within its value.
-				if (
-					event.target instanceof HTMLElement &&
-					(event.target.isContentEditable ||
-						event.target.tagName === "INPUT" ||
-						event.target.tagName === "TEXTAREA" ||
-						event.target.tagName === "SELECT")
-				) {
+		onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
+			// Never steal keys from a text-editing control a row might host —
+			// arrows move its caret and Home/End jump within its value.
+			if (
+				event.target instanceof HTMLElement &&
+				(event.target.isContentEditable ||
+					event.target.tagName === "INPUT" ||
+					event.target.tagName === "TEXTAREA" ||
+					event.target.tagName === "SELECT")
+			) {
+				return;
+			}
+			const source = rowFromEventTarget(event.target);
+			if (source == null) {
+				return;
+			}
+			let targetIndex = -1;
+			switch (event.key) {
+				case "ArrowDown":
+					targetIndex = findEnabledIndex({
+						start: source.index + 1,
+						step: 1,
+						count,
+						isRowDisabled,
+					});
+					break;
+				case "ArrowUp":
+					targetIndex = findEnabledIndex({
+						start: source.index - 1,
+						step: -1,
+						count,
+						isRowDisabled,
+					});
+					break;
+				case "Home":
+					targetIndex = findEnabledIndex({ start: 0, step: 1, count, isRowDisabled });
+					break;
+				case "End":
+					targetIndex = findEnabledIndex({ start: count - 1, step: -1, count, isRowDisabled });
+					break;
+				default:
 					return;
-				}
-				const row = event.target instanceof Element ? event.target.closest("[data-index]") : null;
-				const rowIndex = row ? Number(row.getAttribute("data-index")) : Number.NaN;
-				if (!Number.isInteger(rowIndex) || rowIndex < 0) {
-					return;
-				}
-				let targetIndex = -1;
-				switch (event.key) {
-					case "ArrowDown":
-						targetIndex = findEnabledIndex({ start: rowIndex + 1, step: 1, count, isRowDisabled });
-						break;
-					case "ArrowUp":
-						targetIndex = findEnabledIndex({ start: rowIndex - 1, step: -1, count, isRowDisabled });
-						break;
-					case "Home":
-						targetIndex = findEnabledIndex({ start: 0, step: 1, count, isRowDisabled });
-						break;
-					case "End":
-						targetIndex = findEnabledIndex({ start: count - 1, step: -1, count, isRowDisabled });
-						break;
-					default:
-						return;
-				}
-				event.preventDefault();
-				if (targetIndex >= 0 && targetIndex !== rowIndex) {
-					focusRowAt(targetIndex);
-				}
-			},
+			}
+			event.preventDefault();
+			if (targetIndex >= 0 && targetIndex !== source.index) {
+				focusRowAt(targetIndex);
+			}
 		},
 	};
 }
@@ -338,15 +392,16 @@ function useListFocusNavigation({
  * track the active row index. Under `"list"` semantics (disabled) it returns an
  * inert `-1` and no collection props, so a plain list keeps its native tab order.
  *
- * `Space` / `Enter` fire {@link onActivate}; arrows / `Home` / `End` move the
- * active index across the **full** `count` (not just the mounted window),
- * **skipping rows flagged by {@link isRowDisabled}** so keyboard navigation
- * only lands on actionable rows (matching the `MultiSelect` popover), and
- * `scrollToIndex` reveals + mounts the target. Scrolling happens **only** on
- * keyboard navigation — focus (from a Tab or a row click) just makes the focused
- * row active without moving the viewport, so clicking a row never yanks the
- * scroll. Because keyboard navigation keeps focus on the collection (never on a
- * row), it survives virtualization.
+ * `Space` / `Enter` — and a bare click on a row, deferring to interactive
+ * descendants that handle their own click — fire {@link onActivate}; arrows /
+ * `Home` / `End` move the active index across the **full** `count` (not just
+ * the mounted window), **skipping rows flagged by {@link isRowDisabled}** so
+ * keyboard navigation only lands on actionable rows (matching the `MultiSelect`
+ * popover), and `scrollToIndex` reveals + mounts the target. Scrolling happens
+ * **only** on keyboard navigation — focus (from a Tab or a row click) just makes
+ * the focused row active without moving the viewport, so clicking a row never
+ * yanks the scroll. Because keyboard navigation keeps focus on the collection
+ * (never on a row), it survives virtualization.
  *
  * Keys are handled only while the collection itself has focus: when a tabbable
  * in-row control (a link, an overflow-menu button) holds focus, its keys belong
@@ -373,7 +428,7 @@ function useGridNavigation({
 	activeIndex: number;
 	collectionProps: Pick<
 		ComponentProps<"div">,
-		"tabIndex" | "aria-activedescendant" | "onKeyDown" | "onFocus" | "onMouseDown"
+		"tabIndex" | "aria-activedescendant" | "onKeyDown" | "onFocus" | "onMouseDown" | "onClick"
 	>;
 } {
 	const [activeIndex, setActiveIndex] = useState(-1);
@@ -413,14 +468,32 @@ function useGridNavigation({
 				// click on non-focusable content (e.g. a row's description) focuses the
 				// collection directly and the active row desyncs from the clicked row —
 				// the next Space would toggle the wrong row.
-				const pressedRow =
-					event.target instanceof Element ? event.target.closest("[data-index]") : null;
-				const pressedIndex = pressedRow
-					? Number(pressedRow.getAttribute("data-index"))
-					: Number.NaN;
-				if (Number.isInteger(pressedIndex) && pressedIndex >= 0 && !isDisabled(pressedIndex)) {
-					setActiveIndex(pressedIndex);
+				const pressed = rowFromEventTarget(event.target);
+				if (pressed != null && !isDisabled(pressed.index)) {
+					setActiveIndex(pressed.index);
 				}
+			},
+			onClick: (event: MouseEvent<HTMLDivElement>) => {
+				// A bare click anywhere on a row activates it, matching Space/Enter —
+				// but defer to anything that already handles its own click (a checkbox,
+				// a label, nested links/buttons) so activation never fires twice, and
+				// to a consumer handler earlier in the bubble that preventDefault-ed
+				// to opt out.
+				if (event.defaultPrevented) {
+					return;
+				}
+				const clicked = rowFromEventTarget(event.target);
+				if (
+					clicked == null ||
+					isDisabled(clicked.index) ||
+					isInteractiveRowTarget(event.target, clicked.row)
+				) {
+					return;
+				}
+				// Clicks that arrive without a mousedown (assistive tech dispatches
+				// them directly) still land on the row they activated.
+				setActiveIndex(clicked.index);
+				onActivate?.(clicked.index);
 			},
 			onFocus: (event: FocusEvent<HTMLDivElement>) => {
 				// Focus entered the grid. The collection is the single tab stop, so the
@@ -431,13 +504,9 @@ function useGridNavigation({
 				// `:focus-visible`. Never scroll here — only keyboard navigation moves
 				// the viewport, so a click can't reset scroll.
 				if (event.target !== event.currentTarget) {
-					const focusedRow =
-						event.target instanceof Element ? event.target.closest("[data-index]") : null;
-					const focusedIndex = focusedRow
-						? Number(focusedRow.getAttribute("data-index"))
-						: Number.NaN;
-					if (Number.isInteger(focusedIndex) && focusedIndex >= 0 && !isDisabled(focusedIndex)) {
-						setActiveIndex(focusedIndex);
+					const focused = rowFromEventTarget(event.target);
+					if (focused != null && !isDisabled(focused.index)) {
+						setActiveIndex(focused.index);
 					}
 					// Pull focus back to the collection only when the focused descendant
 					// isn't itself a tab stop — e.g. the row's own `tabIndex={-1}` control
@@ -505,6 +574,127 @@ function useGridNavigation({
 }
 
 /**
+ * The state + wiring shared by {@link Root} and `VirtualRoot`: the collection
+ * contexts, the resolved row-id function, and the semantics-appropriate
+ * keyboard-navigation props for the collection element. The flavor-specific
+ * pieces — how to reveal a row and how to move real focus to a (possibly
+ * unmounted) row — come in as callbacks, so shell-level fixes land in one place.
+ */
+function useListShell({
+	count,
+	focusRowAt,
+	isRowDisabled,
+	onActivate,
+	rowId,
+	scrollToIndex,
+	semantics,
+}: {
+	count: number;
+	/** Move focus to the control of the row at `index`, revealing (and, windowed, mounting) it. */
+	focusRowAt: (index: number) => void;
+	/** Whether the row at an index is disabled — skipped by keyboard navigation. */
+	isRowDisabled: (index: number) => boolean;
+	onActivate: ((index: number) => void) | undefined;
+	rowId: ((index: number) => string) | undefined;
+	/** Reveal the row at `index` (and, windowed, mount it). */
+	scrollToIndex: (index: number) => void;
+	semantics: ListSemantics;
+}): {
+	/** The active grid row's index (`-1` under `"list"` semantics or before navigation). */
+	activeIndex: number;
+	/** The semantics-appropriate ARIA + keyboard props for the collection element. */
+	collectionProps: Pick<
+		ComponentProps<"div">,
+		"tabIndex" | "aria-activedescendant" | "onKeyDown" | "onFocus" | "onMouseDown" | "onClick"
+	>;
+	gridNav: GridNavContextValue;
+	listContext: ListContextValue;
+} {
+	const baseId = useId();
+	const listContext = useMemo<ListContextValue>(() => ({ semantics }), [semantics]);
+	const resolveRowId = useMemo(
+		() => rowId ?? ((index: number) => `${baseId}-row-${index}`),
+		[rowId, baseId],
+	);
+	const { activeIndex, collectionProps: gridNavProps } = useGridNavigation({
+		count,
+		enabled: semantics === "grid",
+		isRowDisabled,
+		onActivate,
+		rowId: resolveRowId,
+		scrollToIndex,
+	});
+	const gridNav = useMemo<GridNavContextValue>(
+		() => ({ activeIndex, stampRowId: rowId == null ? resolveRowId : null }),
+		[activeIndex, resolveRowId, rowId],
+	);
+	const collectionProps =
+		semantics === "list"
+			? listFocusNavigationProps({ count, isRowDisabled, focusRowAt })
+			: gridNavProps;
+
+	return { activeIndex, collectionProps, gridNav, listContext };
+}
+
+/**
+ * The markup shared by {@link Root} and `VirtualRoot`: the context providers
+ * around the scroll viewport and the named collection element. Flavor-specific
+ * collection attributes (the windowed shell's sizing style, `aria-rowcount`,
+ * and its mount-guarded `aria-activedescendant`) arrive merged into
+ * `collectionProps`.
+ */
+function ListShell({
+	"aria-label": ariaLabel,
+	"aria-labelledby": ariaLabelledby,
+	"aria-multiselectable": ariaMultiselectable,
+	children,
+	className,
+	collectionProps,
+	gridNav,
+	listContext,
+	viewportProps,
+	viewportRef,
+}: {
+	"aria-label": string | undefined;
+	"aria-labelledby": string | undefined;
+	"aria-multiselectable": ComponentProps<"div">["aria-multiselectable"];
+	children: ReactNode;
+	className: string | undefined;
+	collectionProps: ComponentProps<"div">;
+	gridNav: GridNavContextValue;
+	listContext: ListContextValue;
+	viewportProps: ComponentProps<"div">;
+	/** A plain prop (not `ref`) so the internal shell stays React 18-compatible without forwardRef ceremony. */
+	viewportRef: Ref<HTMLDivElement>;
+}) {
+	return (
+		<ListContext.Provider value={listContext}>
+			<GridNavContext.Provider value={gridNav}>
+				<div
+					ref={viewportRef}
+					data-slot="list"
+					className={cx(listViewportClassName, className)}
+					{...viewportProps}
+				>
+					<div
+						data-slot="list-collection"
+						role={listContext.semantics === "grid" ? "grid" : "list"}
+						aria-label={ariaLabel}
+						aria-labelledby={ariaLabelledby}
+						aria-multiselectable={ariaMultiselectable}
+						className={listCollectionClassName}
+						{...collectionProps}
+					>
+						{children}
+					</div>
+				</div>
+			</GridNavContext.Provider>
+		</ListContext.Provider>
+	);
+}
+ListShell.displayName = "ListShell";
+
+/**
  * Props for a {@link Row}. Standard `<div>` props (minus `role`, owned by the
  * collection semantics) plus its selection/disabled state. Compose one per item
  * and give it a React `key`; `Root` / `VirtualRoot` inject its index, grid id,
@@ -561,9 +751,9 @@ const Row = forwardRef<ComponentRef<"div">, ListRowProps>(
 		const index = rowContext?.index;
 		const isActive = isGrid && gridNav != null && index != null && gridNav.activeIndex === index;
 		const measureRef = placement?.measureRef ?? null;
-		// Memoized so a keyboard-nav re-render doesn't cycle the virtualizer's
-		// measureElement (a fresh callback ref detaches + reattaches per render).
-		const composedRef = useMemo(() => composeRefs(ref, measureRef), [ref, measureRef]);
+		// Identity-stable composition so a keyboard-nav re-render doesn't cycle the
+		// virtualizer's measureElement (detaching + reattaching it per render).
+		const composedRef = useComposedRefs(ref, measureRef);
 
 		return (
 			<Comp
@@ -573,12 +763,12 @@ const Row = forwardRef<ComponentRef<"div">, ListRowProps>(
 				// role/ARIA wiring below stay enforced.
 				data-slot="list-row"
 				{...props}
-				// Stamp the grid's default aria-activedescendant target id; when a
-				// consumer overrides `rowId`, the id belongs to an element they own, so
-				// keep their own `id` instead of duplicating theirs onto the row.
+				// Stamp the grid's default aria-activedescendant target id; when the
+				// collection doesn't own row ids (a consumer `rowId` override), keep the
+				// row's own `id` prop instead.
 				id={
-					isGrid && gridNav != null && index != null && gridNav.ownsRowIds
-						? gridNav.rowId(index)
+					isGrid && index != null && gridNav?.stampRowId != null
+						? gridNav.stampRowId(index)
 						: props.id
 				}
 				data-index={index}
@@ -656,6 +846,7 @@ const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
 			"aria-multiselectable": ariaMultiselectable,
 			children,
 			className,
+			isRowDisabled,
 			onActivate,
 			rowId,
 			semantics = "list",
@@ -663,47 +854,28 @@ const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
 		},
 		ref,
 	) => {
-		const baseId = useId();
 		const viewportRef = useRef<HTMLDivElement>(null);
+		const composedViewportRef = useComposedRefs(viewportRef, ref);
 		// The row elements, in order — the single array we both render from and read
-		// each row's `disabled` prop off for grid navigation, so the disabled lookup
-		// by index always lines up with what's rendered. Filtered to elements (as
-		// `VirtualRoot` does) so a non-element child — a bare string, or a render-prop
-		// that returned `null` for an option — can't be counted/indexed as a navigable
-		// row here while the windowed shell drops it, which would desync grid
-		// navigation between the two. Memoized so a keyboard-nav re-render (which only
-		// changes `activeIndex`) doesn't re-walk the children.
+		// each row's `disabled` prop off (the `isRowDisabled` default), so the
+		// disabled lookup by index always lines up with what's rendered. Filtered to
+		// elements (as `VirtualRoot` does) so a non-element child — a bare string, or
+		// a render-prop that returned `null` for an option — can't be counted/indexed
+		// as a navigable row here while the windowed shell drops it, which would
+		// desync grid navigation between the two. Memoized so a keyboard-nav
+		// re-render (which only changes `activeIndex`) doesn't re-walk the children.
 		const rowChildren = useMemo(
 			() => Children.toArray(children).filter(isValidElement),
 			[children],
 		);
-		const count = rowChildren.length;
-		const context = useMemo<ListContextValue>(() => ({ semantics }), [semantics]);
-		const resolveRowId = useMemo(
-			() => rowId ?? ((index: number) => `${baseId}-row-${index}`),
-			[rowId, baseId],
-		);
-
-		const scrollToIndex = useCallback(
-			(index: number) => {
-				const target = document.getElementById(resolveRowId(index));
-				// A custom `rowId` may resolve to a control inside the row (e.g. its
-				// checkbox); reveal the whole row — scrolling just the control can leave
-				// the row's edges clipped against the viewport.
-				const row = target?.closest("[data-index]") ?? target;
-				row?.scrollIntoView({ block: "nearest" });
-			},
-			[resolveRowId],
-		);
-		const isRowDisabled = (index: number) => isRowChildDisabled(rowChildren[index]);
-		const { activeIndex, collectionProps } = useGridNavigation({
-			count,
-			enabled: semantics === "grid",
-			isRowDisabled,
-			onActivate,
-			rowId: resolveRowId,
-			scrollToIndex,
-		});
+		const scrollToIndex = useCallback((index: number) => {
+			// Reveal the whole row (every Row stamps `data-index`, so this holds for
+			// default and custom `rowId` alike) — scrolling just its control could
+			// leave the row's edges clipped against the viewport.
+			viewportRef.current
+				?.querySelector(`[data-index="${index}"]`)
+				?.scrollIntoView({ block: "nearest" });
+		}, []);
 		const focusRowAt = useCallback((index: number) => {
 			const row = viewportRef.current?.querySelector(`[data-index="${index}"]`);
 			if (row == null) {
@@ -713,47 +885,36 @@ const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
 			// Reveal the whole row, not just its control (mirrors the grid's scroll fix).
 			row.scrollIntoView({ block: "nearest" });
 		}, []);
-		const { collectionProps: listNavProps } = useListFocusNavigation({
-			count,
-			enabled: semantics === "list",
-			isRowDisabled,
+		const { collectionProps, gridNav, listContext } = useListShell({
+			count: rowChildren.length,
 			focusRowAt,
+			isRowDisabled: isRowDisabled ?? ((index) => isRowChildDisabled(rowChildren[index])),
+			onActivate,
+			rowId,
+			scrollToIndex,
+			semantics,
 		});
-		const gridNav = useMemo<GridNavContextValue>(
-			() => ({ activeIndex, rowId: resolveRowId, ownsRowIds: rowId == null }),
-			[activeIndex, resolveRowId, rowId],
-		);
 
 		return (
-			<ListContext.Provider value={context}>
-				<GridNavContext.Provider value={gridNav}>
-					<div
-						ref={composeRefs(viewportRef, ref)}
-						data-slot="list"
-						className={cx(listViewportClassName, className)}
-						{...props}
-					>
-						<div
-							data-slot="list-collection"
-							role={semantics === "grid" ? "grid" : "list"}
-							aria-label={ariaLabel}
-							aria-labelledby={ariaLabelledby}
-							aria-multiselectable={ariaMultiselectable}
-							className={listCollectionClassName}
-							{...collectionProps}
-							{...listNavProps}
-						>
-							{rowChildren.map((row, index) => (
-								// Key off the child's own key (assigned by `Children.toArray`) so
-								// reconciliation follows the consumer's keys across reorder/filter.
-								<PlainRow key={row.key ?? index} index={index}>
-									{row}
-								</PlainRow>
-							))}
-						</div>
-					</div>
-				</GridNavContext.Provider>
-			</ListContext.Provider>
+			<ListShell
+				aria-label={ariaLabel}
+				aria-labelledby={ariaLabelledby}
+				aria-multiselectable={ariaMultiselectable}
+				className={className}
+				collectionProps={collectionProps}
+				gridNav={gridNav}
+				listContext={listContext}
+				viewportProps={props}
+				viewportRef={composedViewportRef}
+			>
+				{rowChildren.map((row, index) => (
+					// Key off the child's own key (assigned by `Children.toArray`) so
+					// reconciliation follows the consumer's keys across reorder/filter.
+					<PlainRow key={row.key ?? index} index={index}>
+						{row}
+					</PlainRow>
+				))}
+			</ListShell>
 		);
 	},
 );
@@ -762,22 +923,17 @@ Root.displayName = "ListRoot";
 export {
 	//,
 	findRowControl,
-	GridNavContext,
+	isInteractiveRowTarget,
 	isRowChildDisabled,
-	ListContext,
 	ListRowContext,
-	listCollectionClassName,
-	listViewportClassName,
+	ListShell,
 	Root,
 	Row,
-	useGridNavigation,
-	useListFocusNavigation,
+	useListShell,
 };
 
 export type {
 	//,
-	GridNavContextValue,
-	ListContextValue,
 	ListRootProps,
 	ListRowContextValue,
 	ListRowPlacement,

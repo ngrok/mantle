@@ -54,9 +54,8 @@ const options = accessKeys.map((key) => ({
   rather than the grid silently vanishing.
 - `SelectableList.SelectAll` reuses `selectAllChecked` to drive a tri-state header
   over the **filtered** options.
-- Pure helpers `filterSelectableOptions`, `toggleSelectionValue`,
-  `summarizeSelection`, and `isInteractiveRowTarget` are exported for custom
-  filtering/selection logic.
+- Pure helpers `filterSelectableOptions`, `toggleSelectionValue`, and
+  `summarizeSelection` are exported for custom filtering/selection logic.
 - Built on a shared internal `list` primitive (scroll + row chrome and ARIA behind
   both list components).
 - **Keyboard.** The grid is a single tab stop with `aria-activedescendant`

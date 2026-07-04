@@ -129,39 +129,6 @@ function summarizeSelection(
 	};
 }
 
-/**
- * Selector for the interactive controls inside a row that handle their own
- * click — the checkbox, the title's `<label>`, and any nested links/buttons.
- * A bare row click that lands inside one of these is left alone so selection
- * isn't toggled twice.
- */
-const INTERACTIVE_ROW_TARGET_SELECTOR =
-	'a[href], button, input, select, textarea, label, [role="button"], [role="link"], [role="menuitem"], [contenteditable="true"]';
-
-/**
- * Whether a row click originated on an element (within `row`) that already
- * handles the click — the checkbox, the title label, or nested interactive
- * content — so the row's own click-to-toggle should defer to it. Pure over the
- * DOM; testable in isolation.
- *
- * @see https://mantle.ngrok.com/components/selectable-list
- *
- * @example
- * ```ts
- * // click on the row's checkbox → true (the row must not double-toggle)
- * isInteractiveRowTarget(checkboxEl, rowEl); // → true
- * // click on the description text → false (the row toggles)
- * isInteractiveRowTarget(descriptionEl, rowEl); // → false
- * ```
- */
-function isInteractiveRowTarget(target: EventTarget | null, row: Element): boolean {
-	if (!(target instanceof Element)) {
-		return false;
-	}
-	const interactive = target.closest(INTERACTIVE_ROW_TARGET_SELECTOR);
-	return interactive != null && row.contains(interactive);
-}
-
 type SelectableListContextValue = {
 	/** A stable id namespace for the list's control ids. */
 	listId: string;
@@ -520,10 +487,10 @@ type SelectableListItemProps = Omit<ComponentProps<"div">, "children"> & {
  * A single selectable grid row. Renders a `role="row"` (via the `list`
  * primitive) laid out with `Choice` — a `role="gridcell"` holding a real
  * `Checkbox`, and a `role="gridcell"` holding the title + description. The whole
- * row is click-to-toggle: a bare click anywhere toggles selection, while clicks
- * on the checkbox, the title label, or any nested interactive content are left
- * to those controls (no double-toggle). Selection and disabled state are read
- * from the list by `value`.
+ * row is click-to-toggle: the enclosing grid forwards a bare click anywhere on
+ * the row to activation, while clicks on the checkbox, the title label, or any
+ * nested interactive content are left to those controls (no double-toggle).
+ * Selection and disabled state are read from the list by `value`.
  *
  * Render it from a viewport's render-prop child for a custom row layout; the
  * default row (title + description) uses it under the hood.
@@ -548,12 +515,17 @@ type SelectableListItemProps = Omit<ComponentProps<"div">, "children"> & {
  * ```
  */
 const Item = forwardRef<ComponentRef<"div">, SelectableListItemProps>(
-	({ children, className, onClick, value, ...props }, ref) => {
+	({ children, className, value, ...props }, ref) => {
 		const { listId, selectedSet, disabledSet, toggle } = useSelectableListContext("Item");
 		const controlId = controlIdFor(listId, value);
 		const selected = selectedSet.has(value);
 		const disabled = disabledSet.has(value);
 
+		// Click-to-toggle lives on the enclosing grid (the list primitive's
+		// click-to-activate → the viewport's `onActivate` → `toggle`), which already
+		// defers to the checkbox/label/nested controls and skips disabled rows. A
+		// consumer `onClick` spread onto the row composes naturally: it runs first
+		// in the bubble and can `preventDefault` to opt out of the toggle.
 		return (
 			<ListRow
 				ref={ref}
@@ -568,23 +540,6 @@ const Item = forwardRef<ComponentRef<"div">, SelectableListItemProps>(
 				{...props}
 				data-slot="selectable-list-item"
 				data-value={value}
-				onClick={(event) => {
-					// Run a consumer-supplied handler first so it composes with (and can
-					// `preventDefault` to opt out of) the row's click-to-toggle, rather than
-					// silently replacing it via the `{...props}` spread.
-					onClick?.(event);
-					// Forward a bare row click to selection, but defer to anything that already
-					// handles its own click — the checkbox, the title's <label>, or nested
-					// interactive content — so the row never double-toggles.
-					if (
-						event.defaultPrevented ||
-						disabled ||
-						isInteractiveRowTarget(event.target, event.currentTarget)
-					) {
-						return;
-					}
-					toggle(value);
-				}}
 			>
 				<Choice.Root id={controlId} disabled={disabled}>
 					<Choice.Indicator role="gridcell">
@@ -685,19 +640,16 @@ function renderDefaultOption(option: SelectableListOption): ReactNode {
 /**
  * Map the filtered options into keyed `Item` rows, using the render-prop child
  * when supplied or the default title/description row otherwise. Each row is
- * re-keyed by its option `value` so composed rows stay stable across filtering,
- * and the option's `disabled` (the single source of truth) is surfaced onto the
- * row element so the grid can skip it during keyboard navigation without
- * reading the (windowed) DOM.
+ * re-keyed by its option `value` so composed rows stay stable across filtering.
  *
  * Returns the rendered rows alongside the `options` that produced them, in the
  * same order. Non-element render-prop results (e.g. a conditional `null`) are
  * skipped from *both* arrays, so `options[i]` always corresponds to the rendered
  * `rows[i]` — and to the index the list primitive assigns that row (it derives
  * indices from the elements it renders via `Children.toArray`). The viewport
- * resolves grid activation/`rowId` by that index against `options`, so keeping
- * them aligned is what stops keyboard nav from toggling or labeling the wrong
- * option when a render-prop drops a row.
+ * resolves activation, `rowId`, and disabled state by that index against
+ * `options`, so keeping them aligned is what stops keyboard nav from toggling
+ * or labeling the wrong option when a render-prop drops a row.
  */
 function renderRows(
 	filteredOptions: readonly SelectableListOption[],
@@ -707,13 +659,64 @@ function renderRows(
 	const options: SelectableListOption[] = [];
 	for (const option of filteredOptions) {
 		const row = renderOption(option);
-		if (!isValidElement<{ disabled?: boolean }>(row)) {
+		if (!isValidElement(row)) {
 			continue;
 		}
-		rows.push(cloneElement(row, { key: option.value, disabled: option.disabled === true }));
+		rows.push(cloneElement(row, { key: option.value }));
 		options.push(option);
 	}
 	return { rows, options };
+}
+
+/**
+ * The shared body of `Viewport` / `VirtualViewport`: memoizes the rendered rows
+ * and the option array that stays index-aligned with them, plus the index-based
+ * callbacks (`onActivate`, `rowId`, `isRowDisabled`) the list primitive
+ * consumes. One implementation so the row/option alignment contract keyboard
+ * navigation depends on exists once — and the callbacks are identity-stable so
+ * the primitive's row-level render bail-outs hold across unrelated re-renders.
+ */
+function useViewportRows(
+	part: string,
+	renderPropChild: ((option: SelectableListOption) => ReactNode) | undefined,
+): {
+	isEmpty: boolean;
+	isRowDisabled: (index: number) => boolean;
+	onActivate: (index: number) => void;
+	rowId: (index: number) => string;
+	rows: ReactNode[];
+} {
+	const { filteredOptions, listId, toggle } = useSelectableListContext(part);
+	const renderOption = renderPropChild ?? renderDefaultOption;
+	// Memoized so a selection toggle (which leaves `filteredOptions` and the
+	// renderer untouched) doesn't re-map + re-clone every row. A fresh inline
+	// render-prop each render opts out of the memo — memoize it to keep the win.
+	const { rows, options: rowOptions } = useMemo(
+		() => renderRows(filteredOptions, renderOption),
+		[filteredOptions, renderOption],
+	);
+	const onActivate = useCallback(
+		(index: number) => {
+			const option = rowOptions[index];
+			if (option != null) {
+				toggle(option.value);
+			}
+		},
+		[rowOptions, toggle],
+	);
+	const rowId = useCallback(
+		(index: number) => {
+			const option = rowOptions[index];
+			return option != null ? controlIdFor(listId, option.value) : "";
+		},
+		[rowOptions, listId],
+	);
+	const isRowDisabled = useCallback(
+		(index: number) => rowOptions[index]?.disabled === true,
+		[rowOptions],
+	);
+
+	return { isEmpty: filteredOptions.length === 0, isRowDisabled, onActivate, rowId, rows };
 }
 
 /**
@@ -759,19 +762,12 @@ type SelectableListViewportProps = Omit<ComponentProps<"div">, "children"> & {
  */
 const Viewport = forwardRef<ComponentRef<"div">, SelectableListViewportProps>(
 	({ children, ...props }, ref) => {
-		const { filteredOptions, listId, toggle } = useSelectableListContext("Viewport");
-		const renderOption = children ?? renderDefaultOption;
-		// Memoized so a selection toggle (which leaves `filteredOptions` and the default
-		// renderer untouched) doesn't re-map + re-clone every row. `rowOptions` are the
-		// options that actually produced a rendered row, so resolving activation/`rowId`
-		// by the primitive's row index against them stays aligned. A fresh inline
-		// render-prop each render opts out of the memo — memoize it to keep the win.
-		const { rows, options: rowOptions } = useMemo(
-			() => renderRows(filteredOptions, renderOption),
-			[filteredOptions, renderOption],
+		const { isEmpty, isRowDisabled, onActivate, rowId, rows } = useViewportRows(
+			"Viewport",
+			children,
 		);
 
-		if (filteredOptions.length === 0) {
+		if (isEmpty) {
 			return null;
 		}
 
@@ -782,16 +778,9 @@ const Viewport = forwardRef<ComponentRef<"div">, SelectableListViewportProps>(
 				semantics="grid"
 				{...props}
 				aria-multiselectable
-				onActivate={(index) => {
-					const option = rowOptions[index];
-					if (option != null) {
-						toggle(option.value);
-					}
-				}}
-				rowId={(index) => {
-					const option = rowOptions[index];
-					return option != null ? controlIdFor(listId, option.value) : "";
-				}}
+				isRowDisabled={isRowDisabled}
+				onActivate={onActivate}
+				rowId={rowId}
 			>
 				{rows}
 			</ListRoot>
@@ -839,20 +828,12 @@ type SelectableListVirtualViewportProps = SelectableListViewportProps & {
  */
 const VirtualViewport = forwardRef<ComponentRef<"div">, SelectableListVirtualViewportProps>(
 	({ children, ...props }, ref) => {
-		const { filteredOptions, listId, toggle } = useSelectableListContext("VirtualViewport");
-		const renderOption = children ?? renderDefaultOption;
-		// Only the windowed slice mounts, but without this every filtered option is
-		// still re-mapped + cloned on each selection toggle — memoize past that.
-		// `rowOptions` mirror the rendered rows (non-element results dropped) so the
-		// index-based activation/`rowId` below can't drift from the mounted rows. A
-		// fresh inline render-prop each render opts out of the memo — memoize it to keep
-		// the win.
-		const { rows, options: rowOptions } = useMemo(
-			() => renderRows(filteredOptions, renderOption),
-			[filteredOptions, renderOption],
+		const { isEmpty, isRowDisabled, onActivate, rowId, rows } = useViewportRows(
+			"VirtualViewport",
+			children,
 		);
 
-		if (filteredOptions.length === 0) {
+		if (isEmpty) {
 			return null;
 		}
 
@@ -863,16 +844,9 @@ const VirtualViewport = forwardRef<ComponentRef<"div">, SelectableListVirtualVie
 				semantics="grid"
 				{...props}
 				aria-multiselectable
-				onActivate={(index) => {
-					const option = rowOptions[index];
-					if (option != null) {
-						toggle(option.value);
-					}
-				}}
-				rowId={(index) => {
-					const option = rowOptions[index];
-					return option != null ? controlIdFor(listId, option.value) : "";
-				}}
+				isRowDisabled={isRowDisabled}
+				onActivate={onActivate}
+				rowId={rowId}
 			>
 				{rows}
 			</ListVirtualRoot>
@@ -1147,7 +1121,6 @@ const SelectableList = {
 export {
 	//,
 	filterSelectableOptions,
-	isInteractiveRowTarget,
 	SelectableList,
 	summarizeSelection,
 	toggleSelectionValue,

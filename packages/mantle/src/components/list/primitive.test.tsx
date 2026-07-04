@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { List } from "./list.js";
+import { isInteractiveRowTarget } from "./primitive.js";
 
 /**
  * Focus the grid the way a Tab-in would. happy-dom's `focus()` moves
@@ -114,6 +115,122 @@ describe("List grid keyboard navigation edges", () => {
 		expect(activeIndex()).toBe("0");
 		await user.keyboard(" ");
 		expect(onActivate).toHaveBeenCalledExactlyOnceWith(0);
+	});
+});
+
+describe("List grid pointer activation", () => {
+	test("a bare row click activates; clicks on nested controls or disabled rows do not", async () => {
+		const user = userEvent.setup();
+		const onActivate = vi.fn<(index: number) => void>();
+		render(
+			<List.Root semantics="grid" aria-label="grid" onActivate={onActivate}>
+				<List.Row>
+					<div role="gridcell">Row 0</div>
+				</List.Row>
+				<List.Row>
+					<div role="gridcell">
+						<button type="button" tabIndex={-1}>
+							nested control
+						</button>
+					</div>
+				</List.Row>
+				<List.Row disabled>
+					<div role="gridcell">Row 2</div>
+				</List.Row>
+			</List.Root>,
+		);
+
+		await user.click(screen.getByText("Row 0"));
+		expect(onActivate).toHaveBeenCalledExactlyOnceWith(0);
+
+		// The nested control handles its own click — activation must not fire twice.
+		await user.click(screen.getByRole("button", { name: "nested control" }));
+		expect(onActivate).toHaveBeenCalledTimes(1);
+
+		await user.click(screen.getByText("Row 2"));
+		expect(onActivate).toHaveBeenCalledTimes(1);
+	});
+
+	test("a consumer onClick on the row can preventDefault to opt out of activation", async () => {
+		const user = userEvent.setup();
+		const onActivate = vi.fn<(index: number) => void>();
+		render(
+			<List.Root semantics="grid" aria-label="grid" onActivate={onActivate}>
+				<List.Row onClick={(event) => event.preventDefault()}>
+					<div role="gridcell">Row 0</div>
+				</List.Row>
+			</List.Root>,
+		);
+
+		await user.click(screen.getByText("Row 0"));
+		expect(onActivate).not.toHaveBeenCalled();
+	});
+});
+
+describe("List isRowDisabled", () => {
+	test("drives disabled state from data instead of row-element props", async () => {
+		const user = userEvent.setup();
+		const onActivate = vi.fn<(index: number) => void>();
+		render(
+			<List.Root
+				semantics="grid"
+				aria-label="grid"
+				onActivate={onActivate}
+				isRowDisabled={(index) => index === 0}
+			>
+				<List.Row>
+					<div role="gridcell">Row 0</div>
+				</List.Row>
+				<List.Row>
+					<div role="gridcell">Row 1</div>
+				</List.Row>
+			</List.Root>,
+		);
+
+		const grid = screen.getByRole("grid", { name: "grid" });
+		focusGrid(grid);
+		// No row element carries `disabled`; the callback alone makes navigation
+		// skip row 0 and default to row 1.
+		expect(activeIndex()).toBe("1");
+
+		await user.click(screen.getByText("Row 0"));
+		expect(onActivate).not.toHaveBeenCalled();
+	});
+});
+
+describe("isInteractiveRowTarget", () => {
+	test("returns true for a control or label inside the row (activation must not fire twice)", () => {
+		const row = document.createElement("div");
+		const button = document.createElement("button");
+		row.append(button);
+		expect(isInteractiveRowTarget(button, row)).toBe(true);
+
+		const label = document.createElement("label");
+		row.append(label);
+		expect(isInteractiveRowTarget(label, row)).toBe(true);
+	});
+
+	test("returns false for non-interactive row content (the row activates)", () => {
+		const row = document.createElement("div");
+		const description = document.createElement("p");
+		row.append(description);
+		expect(isInteractiveRowTarget(description, row)).toBe(false);
+	});
+
+	test("returns false for a non-element target", () => {
+		const row = document.createElement("div");
+		expect(isInteractiveRowTarget(null, row)).toBe(false);
+	});
+
+	test("ignores interactive ancestors outside the row", () => {
+		// The row is nested inside a button; a click on the row's own text must not
+		// be treated as interactive just because an ancestor is.
+		const outerButton = document.createElement("button");
+		const row = document.createElement("div");
+		const text = document.createElement("p");
+		outerButton.append(row);
+		row.append(text);
+		expect(isInteractiveRowTarget(text, row)).toBe(false);
 	});
 });
 

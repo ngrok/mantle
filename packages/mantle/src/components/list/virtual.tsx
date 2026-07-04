@@ -2,28 +2,17 @@
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { VirtualItem, Virtualizer } from "@tanstack/react-virtual";
-import { Children, forwardRef, isValidElement, useCallback, useId, useMemo, useRef } from "react";
+import { Children, forwardRef, isValidElement, useCallback, useMemo, useRef } from "react";
 import type { ComponentRef, ReactNode } from "react";
-import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
-import { cx } from "../../utils/cx/cx.js";
+import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import {
 	findRowControl,
-	GridNavContext,
 	isRowChildDisabled,
-	ListContext,
 	ListRowContext,
-	listCollectionClassName,
-	listViewportClassName,
-	useGridNavigation,
-	useListFocusNavigation,
+	ListShell,
+	useListShell,
 } from "./primitive.js";
-import type {
-	GridNavContextValue,
-	ListContextValue,
-	ListRootProps,
-	ListRowContextValue,
-	ListRowPlacement,
-} from "./primitive.js";
+import type { ListRootProps, ListRowContextValue, ListRowPlacement } from "./primitive.js";
 
 /**
  * Props for {@link VirtualRoot}. The same surface as the plain `Root` plus the
@@ -147,6 +136,7 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 			children,
 			className,
 			estimateRowHeight = 44,
+			isRowDisabled,
 			onActivate,
 			overscan = 8,
 			rowId,
@@ -155,8 +145,8 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 		},
 		ref,
 	) => {
-		const baseId = useId();
 		const scrollRef = useRef<HTMLDivElement>(null);
+		const composedViewportRef = useComposedRefs(scrollRef, ref);
 		// Memoized so a scroll or keyboard-nav re-render (`useVirtualizer` re-renders
 		// on every offset change) doesn't re-walk + re-filter the full child set each
 		// frame — only the windowed slice below needs to re-render.
@@ -171,26 +161,10 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 			// are out of flow and so can't inherit the flex gap.
 			gap: 1,
 		});
-		const listContext = useMemo<ListContextValue>(() => ({ semantics }), [semantics]);
-		const resolveRowId = useMemo(
-			() => rowId ?? ((index: number) => `${baseId}-row-${index}`),
-			[rowId, baseId],
-		);
 		const scrollToIndex = useCallback(
 			(index: number) => virtualizer.scrollToIndex(index, { align: "auto" }),
 			[virtualizer],
 		);
-		// Windowed rows aren't all mounted, so read `disabled` from the row
-		// elements (which we hold in full) rather than the DOM.
-		const isRowDisabled = (index: number) => isRowChildDisabled(rows[index]);
-		const { activeIndex, collectionProps } = useGridNavigation({
-			count,
-			enabled: semantics === "grid",
-			isRowDisabled,
-			onActivate,
-			rowId: resolveRowId,
-			scrollToIndex,
-		});
 		const focusRowAt = useCallback(
 			(index: number) => {
 				virtualizer.scrollToIndex(index, { align: "auto" });
@@ -214,72 +188,62 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 			},
 			[virtualizer],
 		);
-		const { collectionProps: listNavProps } = useListFocusNavigation({
+		const { activeIndex, collectionProps, gridNav, listContext } = useListShell({
 			count,
-			enabled: semantics === "list",
-			isRowDisabled,
 			focusRowAt,
+			// Windowed rows aren't all mounted, so the default reads `disabled` off
+			// the row elements (which we hold in full) rather than the DOM.
+			isRowDisabled: isRowDisabled ?? ((index) => isRowChildDisabled(rows[index])),
+			onActivate,
+			rowId,
+			scrollToIndex,
+			semantics,
 		});
-		const gridNav = useMemo<GridNavContextValue>(
-			() => ({ activeIndex, rowId: resolveRowId, ownsRowIds: rowId == null }),
-			[activeIndex, resolveRowId, rowId],
-		);
 		const virtualItems = virtualizer.getVirtualItems();
 		// `aria-activedescendant` must reference an element in the DOM: when the
 		// user mouse-scrolls the active row outside the mounted window, drop the
 		// reference rather than leave a dangling IDREF (the active index is kept, so
 		// the next arrow key scrolls the row back into view and restores it).
 		const activeRowIsMounted = virtualItems.some((item) => item.index === activeIndex);
-		const windowedCollectionProps = {
-			...collectionProps,
-			"aria-activedescendant": activeRowIsMounted
-				? collectionProps["aria-activedescendant"]
-				: undefined,
-		};
 
 		return (
-			<ListContext.Provider value={listContext}>
-				<GridNavContext.Provider value={gridNav}>
-					<div
-						ref={composeRefs(scrollRef, ref)}
-						data-slot="list"
-						className={cx(listViewportClassName, className)}
-						{...props}
-					>
-						<div
-							data-slot="list-collection"
-							role={semantics === "grid" ? "grid" : "list"}
-							aria-label={ariaLabel}
-							aria-labelledby={ariaLabelledby}
-							aria-multiselectable={ariaMultiselectable}
-							// Only the windowed slice is in the DOM, so tell AT how many rows
-							// the grid really has (rows carry the matching aria-rowindex).
-							aria-rowcount={semantics === "grid" ? count : undefined}
-							className={listCollectionClassName}
-							style={{ height: `${virtualizer.getTotalSize()}px` }}
-							{...windowedCollectionProps}
-							{...listNavProps}
+			<ListShell
+				aria-label={ariaLabel}
+				aria-labelledby={ariaLabelledby}
+				aria-multiselectable={ariaMultiselectable}
+				className={className}
+				collectionProps={{
+					...collectionProps,
+					"aria-activedescendant": activeRowIsMounted
+						? collectionProps["aria-activedescendant"]
+						: undefined,
+					// Only the windowed slice is in the DOM, so tell AT how many rows
+					// the grid really has (rows carry the matching aria-rowindex).
+					"aria-rowcount": semantics === "grid" ? count : undefined,
+					style: { height: `${virtualizer.getTotalSize()}px` },
+				}}
+				gridNav={gridNav}
+				listContext={listContext}
+				viewportProps={props}
+				viewportRef={composedViewportRef}
+			>
+				{virtualItems.map((virtualRow) => {
+					const row = rows[virtualRow.index];
+					if (row == null) {
+						return null;
+					}
+					return (
+						<VirtualRow
+							key={virtualRow.key}
+							virtualRow={virtualRow}
+							count={count}
+							measureRef={virtualizer.measureElement}
 						>
-							{virtualItems.map((virtualRow) => {
-								const row = rows[virtualRow.index];
-								if (row == null) {
-									return null;
-								}
-								return (
-									<VirtualRow
-										key={virtualRow.key}
-										virtualRow={virtualRow}
-										count={count}
-										measureRef={virtualizer.measureElement}
-									>
-										{row}
-									</VirtualRow>
-								);
-							})}
-						</div>
-					</div>
-				</GridNavContext.Provider>
-			</ListContext.Provider>
+							{row}
+						</VirtualRow>
+					);
+				})}
+			</ListShell>
 		);
 	},
 );
