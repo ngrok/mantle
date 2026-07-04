@@ -99,8 +99,17 @@ function pruneCustomConditions(exportsValue, trail) {
 /**
  * Back up the pristine `package.json`, then rewrite it with all custom export
  * conditions removed so the manifest that lands in the tarball is clean.
+ * Fails fast if a backup already exists — that means a previous pack aborted
+ * before its `restore` ran, and overwriting the backup with the (possibly
+ * already-pruned) working copy would destroy the only pristine manifest.
  */
 function prune() {
+	if (fs.existsSync(backupPath)) {
+		throw new Error(
+			`Refusing to overwrite the existing backup at ${backupPath}; a previous prepack run never completed its postpack restore, so package.json may still be pruned. Run the "restore" command to put the pristine manifest back (or restore package.json from git and delete the stale backup), then re-run the pack.`,
+		);
+	}
+
 	const original = fs.readFileSync(packageJsonPath, "utf8");
 	const packageJson = JSON.parse(original);
 
