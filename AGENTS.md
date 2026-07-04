@@ -43,6 +43,8 @@ For non-interactive environments without shell activation, prefix workspace comm
 
 ## Code Style & Conventions
 
+All rules live in [CONVENTIONS.md](./CONVENTIONS.md) and are mandatory. The `@./CONVENTIONS.md` directive below inlines it automatically for Claude Code; other harnesses should follow the link.
+
 @./CONVENTIONS.md
 
 ## Project Structure
