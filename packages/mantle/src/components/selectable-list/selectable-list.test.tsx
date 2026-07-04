@@ -4,10 +4,12 @@ import { useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import {
 	filterSelectableOptions,
+	optionLabelText,
 	SelectableList,
 	summarizeSelection,
 	toggleSelectionValue,
 } from "./selectable-list.js";
+import type { SelectableListOption } from "./selectable-list.js";
 
 const options = [
 	{ value: "a", label: "Apple" },
@@ -33,6 +35,32 @@ describe("filterSelectableOptions", () => {
 
 	test("returns an empty array when nothing matches", () => {
 		expect(filterSelectableOptions(options, "zzz")).toEqual([]);
+	});
+
+	test("matches a rich (ReactNode) label through its labelText", () => {
+		const richOptions: SelectableListOption[] = [
+			{ value: "a", label: <em>Apple</em>, labelText: "Apple" },
+			{ value: "b", label: "Banana" },
+		];
+		expect(filterSelectableOptions(richOptions, "app").map((option) => option.value)).toEqual([
+			"a",
+		]);
+	});
+
+	test("labelText replaces a string label as the match target", () => {
+		// labelText is THE plain-text form of the label, not an additional alias —
+		// when present, the string label is no longer matched.
+		const aliased: SelectableListOption[] = [{ value: "a", label: "Apple", labelText: "malus" }];
+		expect(filterSelectableOptions(aliased, "malus")).toHaveLength(1);
+		expect(filterSelectableOptions(aliased, "apple")).toHaveLength(0);
+	});
+});
+
+describe("optionLabelText", () => {
+	test("returns a string label as-is and prefers labelText when provided", () => {
+		expect(optionLabelText({ value: "a", label: "Apple" })).toBe("Apple");
+		expect(optionLabelText({ value: "a", label: "Apple", labelText: "malus" })).toBe("malus");
+		expect(optionLabelText({ value: "b", label: <em>prod</em>, labelText: "prod" })).toBe("prod");
 	});
 });
 
@@ -289,6 +317,30 @@ describe("SelectableList filter query", () => {
 			"an",
 		);
 		expect(screen.getAllByRole("row")).toHaveLength(1);
+	});
+
+	test("renders a rich label (naming the checkbox) and filters it via labelText", async () => {
+		const user = userEvent.setup();
+		render(
+			<SelectableList.Root
+				options={[
+					{ value: "prod", label: <em>prod</em>, labelText: "production" },
+					{ value: "b", label: "Banana" },
+				]}
+				defaultValue={[]}
+			>
+				<SelectableList.Filter aria-label="Filter options" />
+				<SelectableList.Viewport aria-label="Options" />
+			</SelectableList.Root>,
+		);
+
+		// The rich label renders inside the row's <label> and names the checkbox.
+		expect(screen.getByRole("checkbox", { name: "prod" })).toBeInTheDocument();
+
+		// The default filter matches the labelText, not the rendered markup.
+		await user.type(screen.getByRole("textbox", { name: "Filter options" }), "production");
+		expect(screen.getAllByRole("row")).toHaveLength(1);
+		expect(screen.getByRole("checkbox", { name: "prod" })).toBeInTheDocument();
 	});
 
 	test("a custom filter predicate replaces the label substring match", async () => {

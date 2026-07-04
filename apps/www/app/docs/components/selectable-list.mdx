@@ -4,7 +4,7 @@ description: A filterable, multi-select grid of checkbox rows.
 ---
 
 import { Button } from "@ngrok/mantle/button";
-import { SelectableList } from "@ngrok/mantle/selectable-list";
+import { optionLabelText, SelectableList } from "@ngrok/mantle/selectable-list";
 import { KeyIcon } from "@phosphor-icons/react/Key";
 import { useState } from "react";
 import { Example } from "~/components/example";
@@ -131,7 +131,7 @@ export function ControlledQueryExample() {
 					}
 					const description = typeof option.description === "string" ? option.description : "";
 					return (
-						option.label.toLowerCase().includes(needle) ||
+						optionLabelText(option).toLowerCase().includes(needle) ||
 						description.toLowerCase().includes(needle)
 					);
 				}}
@@ -228,7 +228,7 @@ SelectableList.Root
 └── SelectableList.Empty
 ```
 
-- **`Filter`** drives a case-insensitive substring match over each option's `label`. Omit it for a non-filterable list.
+- **`Filter`** drives a case-insensitive substring match over each option's plain text (`labelText`, or a string `label`). Omit it for a non-filterable list.
 - **`SelectAll`** reflects and toggles the selection of the **currently filtered** options (checked / indeterminate / unchecked), reusing [`selectAllChecked`](/components/checkbox#select-all-helper).
 - **`Viewport`** renders the rows as a `role="grid"` of `role="row"` rows (each with `role="gridcell"` cells for the checkbox and the content). It's styled like the [`MultiSelect`](/components/multi-select) popover: a bordered, rounded `bg-popover` container whose rows highlight on hover / selection as an inset, rounded pill (the selected row picks up the accent tint, alongside its checked checkbox). Give it an `aria-label` (or `aria-labelledby`) so the grid has an accessible name, and **bound its height** (`max-h-*` / `h-*`, or `min-h-0 flex-1` inside a flex parent). It renders every row — non-virtualized.
 - **`VirtualViewport`** is the drop-in windowed variant — same rows and props, only the visible slice mounted. See [Virtualization](#virtualization).
@@ -411,14 +411,14 @@ const options = [
 
 ## Controlled query and custom filter
 
-Like selection, the filter query is uncontrolled by default (seed it with `defaultQuery`) or controlled: pass `query` + `onQueryChange` to own it — e.g. to sync the filter with URL search params so a filtered view is shareable, or to clear it from outside the list. Pass `filter` to replace the default match (a trimmed, case-insensitive substring test over each option's `label`) with your own predicate — it's called per option with the raw query; return `true` to keep the option. The example below controls the query and filters over the masked key `description` as well as the `label`: the initial query `ng-3f` matches two keys by description alone (the default filter would match none).
+Like selection, the filter query is uncontrolled by default (seed it with `defaultQuery`) or controlled: pass `query` + `onQueryChange` to own it — e.g. to sync the filter with URL search params so a filtered view is shareable, or to clear it from outside the list. Pass `filter` to replace the default match (a trimmed, case-insensitive substring test over each option's plain text — see the exported `optionLabelText` helper) with your own predicate — it's called per option with the raw query; return `true` to keep the option. The example below controls the query and filters over the masked key `description` as well as the label text: the initial query `ng-3f` matches two keys by description alone (the default filter would match none).
 
 <Example>
 	<ControlledQueryExample />
 </Example>
 
 ```tsx
-import { SelectableList } from "@ngrok/mantle/selectable-list";
+import { optionLabelText, SelectableList } from "@ngrok/mantle/selectable-list";
 import { useState } from "react";
 
 const options = [
@@ -448,7 +448,7 @@ function Example() {
 					}
 					const description = typeof option.description === "string" ? option.description : "";
 					return (
-						option.label.toLowerCase().includes(needle) ||
+						optionLabelText(option).toLowerCase().includes(needle) ||
 						description.toLowerCase().includes(needle)
 					);
 				}}
@@ -476,7 +476,8 @@ Keyboard: the grid is a **single tab stop**. Tab into it and `Arrow`↑/`Arrow`�
 
 These pure functions back the component and are exported for custom filtering or select-all logic:
 
-- `filterSelectableOptions(options, query)` — case-insensitive substring filter over `label`.
+- `filterSelectableOptions(options, query)` — case-insensitive substring filter over each option's plain text (`labelText`, or a string `label`).
+- `optionLabelText(option)` — that plain text for one option; reuse it in a custom `filter` predicate to keep label matching consistent while adding your own criteria.
 - `toggleSelectionValue(values, value)` — add/remove a value, returning a new array.
 - `summarizeSelection(options, selected)` — `{ allSelected, someSelected }` (ignoring disabled options), ready for `selectAllChecked`.
 
@@ -486,25 +487,26 @@ These pure functions back the component and are exported for custom filtering or
 
 Accepts all `<div>` props, plus:
 
-| Prop             | Type                                                       | Default | Description                                                                                                                                                                          |
-| ---------------- | ---------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `options`        | `SelectableListOption[]`                                   |         | The full set of selectable rows.                                                                                                                                                     |
-| `value?`         | `string[]`                                                 |         | Controlled selected values. Pair with `onValueChange`.                                                                                                                               |
-| `defaultValue?`  | `string[]`                                                 |         | Initial selected values for the uncontrolled case.                                                                                                                                   |
-| `onValueChange?` | `(values: string[]) => void`                               |         | Called with the next selection whenever it changes.                                                                                                                                  |
-| `query?`         | `string`                                                   |         | Controlled filter query. Pair with `onQueryChange`.                                                                                                                                  |
-| `defaultQuery?`  | `string`                                                   |         | Initial filter query for the uncontrolled case.                                                                                                                                      |
-| `onQueryChange?` | `(query: string) => void`                                  |         | Called with the next query whenever it changes (e.g. typing in `SelectableList.Filter`).                                                                                             |
-| `filter?`        | `(option: SelectableListOption, query: string) => boolean` |         | Custom filter predicate, called per option with the raw query; return `true` to keep the option. Defaults to a trimmed, case-insensitive substring match over each option's `label`. |
+| Prop             | Type                                                       | Default | Description                                                                                                                                                                                                                |
+| ---------------- | ---------------------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `options`        | `SelectableListOption[]`                                   |         | The full set of selectable rows.                                                                                                                                                                                           |
+| `value?`         | `string[]`                                                 |         | Controlled selected values. Pair with `onValueChange`.                                                                                                                                                                     |
+| `defaultValue?`  | `string[]`                                                 |         | Initial selected values for the uncontrolled case.                                                                                                                                                                         |
+| `onValueChange?` | `(values: string[]) => void`                               |         | Called with the next selection whenever it changes.                                                                                                                                                                        |
+| `query?`         | `string`                                                   |         | Controlled filter query. Pair with `onQueryChange`.                                                                                                                                                                        |
+| `defaultQuery?`  | `string`                                                   |         | Initial filter query for the uncontrolled case.                                                                                                                                                                            |
+| `onQueryChange?` | `(query: string) => void`                                  |         | Called with the next query whenever it changes (e.g. typing in `SelectableList.Filter`).                                                                                                                                   |
+| `filter?`        | `(option: SelectableListOption, query: string) => boolean` |         | Custom filter predicate, called per option with the raw query; return `true` to keep the option. Defaults to a trimmed, case-insensitive substring match over each option's plain text (`labelText`, or a string `label`). |
 
 ### SelectableListOption
 
-| Field          | Type        | Description                                                              |
-| -------------- | ----------- | ------------------------------------------------------------------------ |
-| `value`        | `string`    | Stable, unique selection value (flows through `value`/`onValueChange`).  |
-| `label`        | `string`    | Title text; also the text matched by the filter and the accessible name. |
-| `description?` | `ReactNode` | Optional de-emphasized sub-line under the title in the default row.      |
-| `disabled?`    | `boolean`   | Renders the row dimmed and excludes it from toggling and "select all".   |
+| Field          | Type        | Description                                                                                                                   |
+| -------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `value`        | `string`    | Stable, unique selection value (flows through `value`/`onValueChange`).                                                       |
+| `label`        | `ReactNode` | The title — rendered in the default row and, as the checkbox's `<label>`, its accessible name (keep readable text inside).    |
+| `labelText`    | `string`    | Plain-text form of the label — what the default filter matches. Optional for a string `label`; **required** for a rich label. |
+| `description?` | `ReactNode` | Optional de-emphasized sub-line under the title in the default row.                                                           |
+| `disabled?`    | `boolean`   | Renders the row dimmed and excludes it from toggling and "select all".                                                        |
 
 ### SelectableList.Filter
 

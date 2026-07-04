@@ -39,7 +39,10 @@ const options = accessKeys.map((key) => ({
 - **Filtering.** The query is uncontrolled by default (seed it with
   `defaultQuery`) or controlled via `query`/`onQueryChange` on `Root`; pass
   `filter` for a custom predicate (`(option, query) => boolean` — the default
-  is a trimmed, case-insensitive substring match over each option's `label`).
+  is a trimmed, case-insensitive substring match over each option's plain text:
+  `labelText`, or a string `label`). A `label` may be any ReactNode; a rich
+  label requires `labelText` (enforced by the option type) so the filter has
+  text to match.
 - **Disabled rows.** `options[].disabled` is the single source of truth —
   `SelectableList.Item` has no `disabled` prop. Disabled rows render dimmed,
   carry `aria-disabled`, are excluded from toggling and "select all", and are
@@ -54,8 +57,9 @@ const options = accessKeys.map((key) => ({
   rather than the grid silently vanishing.
 - `SelectableList.SelectAll` reuses `selectAllChecked` to drive a tri-state header
   over the **filtered** options.
-- Pure helpers `filterSelectableOptions`, `toggleSelectionValue`, and
-  `summarizeSelection` are exported for custom filtering/selection logic.
+- Pure helpers `filterSelectableOptions`, `optionLabelText`,
+  `toggleSelectionValue`, and `summarizeSelection` are exported for custom
+  filtering/selection logic.
 - Built on a shared internal `list` primitive (scroll + row chrome and ARIA behind
   both list components).
 - **Keyboard.** The grid is a single tab stop with `aria-activedescendant`

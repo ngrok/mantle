@@ -27,6 +27,9 @@ import { VirtualRoot as ListVirtualRoot } from "../list/virtual.js";
  * selection, and (optionally) virtualization. Item *rendering* stays composable —
  * pass a render-prop child to a viewport to draw your own layout.
  *
+ * A `label` may be any ReactNode; when it isn't a plain string, `labelText` is
+ * required so the default filter has text to match.
+ *
  * @see https://mantle.ngrok.com/components/selectable-list
  *
  * @example
@@ -37,23 +40,74 @@ import { VirtualRoot as ListVirtualRoot } from "../list/virtual.js";
  *   description: "sk-…4f2a",
  * };
  * ```
+ *
+ * @example
+ * ```tsx
+ * // A rich label pairs with labelText (the filter's match target).
+ * const option: SelectableListOption = {
+ *   value: "key_123",
+ *   label: (
+ *     <>
+ *       <KeyIcon /> Onboarding key
+ *     </>
+ *   ),
+ *   labelText: "Onboarding key",
+ * };
+ * ```
  */
 type SelectableListOption = {
 	/** Stable, unique selection value. This is what flows through `value` / `onValueChange`. */
 	value: string;
-	/**
-	 * Plain-text title. The text matched by the filter and, in the default row,
-	 * the title and the checkbox's accessible name — so keep it human-readable.
-	 */
-	label: string;
 	/** Optional de-emphasized sub-line under the title in the default row (e.g. a masked identifier). */
 	description?: ReactNode;
 	/** When `true`, the row renders dimmed and cannot be toggled or selected by "select all". */
 	disabled?: boolean;
-};
+} & (
+	| {
+			/**
+			 * Plain-text title — rendered in the default row and, as the checkbox's
+			 * `<label>`, its accessible name. Also what the default filter matches
+			 * (override that with `labelText`).
+			 */
+			label: string;
+			/** Optional plain-text override for what the default filter matches. */
+			labelText?: string;
+	  }
+	| {
+			/**
+			 * A rich title (any ReactNode). Keep readable text inside — the rendered
+			 * content is the checkbox's accessible name.
+			 */
+			label: ReactNode;
+			/** The plain-text form of the label. Required for a rich label so the default filter has text to match. */
+			labelText: string;
+	  }
+);
 
 /**
- * Case-insensitive substring filter over an option's `label`. Returns the input
+ * The plain-text form of an option's label: `labelText` when provided,
+ * otherwise the `label` itself when it is a string. This is what the default
+ * filter matches; reuse it in a custom `filter` predicate to keep label
+ * matching consistent while adding your own criteria. The option type requires
+ * `labelText` whenever `label` isn't a string, so the empty-string fallback
+ * only guards untyped callers.
+ *
+ * @example
+ * ```ts
+ * optionLabelText({ value: "a", label: "Onboarding key" }); // → "Onboarding key"
+ * optionLabelText({ value: "b", label: <em>prod</em>, labelText: "prod" }); // → "prod"
+ * ```
+ */
+function optionLabelText(option: SelectableListOption): string {
+	if (option.labelText != null) {
+		return option.labelText;
+	}
+	return typeof option.label === "string" ? option.label : "";
+}
+
+/**
+ * Case-insensitive substring filter over each option's plain text (see
+ * {@link optionLabelText}: `labelText`, or a string `label`). Returns the input
  * untouched for an empty/whitespace query so the common "no filter" path does no
  * work. Pure — safe to unit test and to call from `useMemo`.
  *
@@ -73,7 +127,7 @@ function filterSelectableOptions(
 	if (normalized === "") {
 		return options;
 	}
-	return options.filter((option) => option.label.toLowerCase().includes(normalized));
+	return options.filter((option) => optionLabelText(option).toLowerCase().includes(normalized));
 }
 
 /**
@@ -194,7 +248,8 @@ type SelectableListRootProps = Omit<ComponentProps<"div">, "onChange"> & {
 	/**
 	 * Custom filter predicate, called per option with the raw query; return
 	 * `true` to keep the option. Defaults to a trimmed, case-insensitive
-	 * substring match over each option's `label`.
+	 * substring match over each option's plain text (`labelText`, or a string
+	 * `label`).
 	 */
 	filter?: (option: SelectableListOption, query: string) => boolean;
 };
@@ -336,8 +391,8 @@ Root.displayName = "SelectableListRoot";
 /**
  * The filter/search box for a `SelectableList`. Renders the mantle `Input` with
  * a leading magnifying-glass icon and drives the list's filter query (a
- * case-insensitive substring match over each option's `label`). Optional — omit
- * it for a non-filterable list.
+ * case-insensitive substring match over each option's plain text — `labelText`,
+ * or a string `label`). Optional — omit it for a non-filterable list.
  *
  * @see https://mantle.ngrok.com/components/selectable-list
  *
@@ -1122,6 +1177,7 @@ const SelectableList = {
 export {
 	//,
 	filterSelectableOptions,
+	optionLabelText,
 	SelectableList,
 	summarizeSelection,
 	toggleSelectionValue,

@@ -7,6 +7,7 @@
 export {
 	//,
 	filterSelectableOptions,
+	optionLabelText,
 	SelectableList,
 	summarizeSelection,
 	toggleSelectionValue,
