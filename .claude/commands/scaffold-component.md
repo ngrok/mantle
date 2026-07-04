@@ -31,7 +31,19 @@ Examples of normalization:
 | `button group` | `button-group`     | `ButtonGroup`     | `Button Group`   |
 | `button-group` | `button-group`     | `ButtonGroup`     | `Button Group`   |
 
-## 0.a. Ask: compound or simple?
+## 0.a. API-design gate
+
+Before scaffolding anything, check the proposed component against
+[CONVENTIONS.md → Component API Design](../../CONVENTIONS.md#component-api-design)
+and raise any conflicts with the user **now**, not at review time:
+
+- Does it duplicate an existing component's user intent (one component per intent)?
+- Should any of it be a private primitive (module-internal, unexported) instead of public API?
+- Are the part names the web-standards terms for what they render (List→Item, Table→Row)? Is the outermost part named `Root`?
+- Composition or data-driven — do any behaviors (filtering, select-all, virtualization) need data about items that may not be mounted?
+- Do prop names read as the ARIA/DOM they emit?
+
+## 0.b. Ask: compound or simple?
 
 After normalizing the name (step 0), ask the user:
 

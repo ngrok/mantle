@@ -6,9 +6,9 @@ import { List } from "./list.js";
 describe("List.Item", () => {
 	test("renders a type=button by default", () => {
 		render(
-			<List.Viewport aria-label="Accounts">
+			<List.Root aria-label="Accounts">
 				<List.Item onClick={() => {}}>Account</List.Item>
-			</List.Viewport>,
+			</List.Root>,
 		);
 		expect(screen.getByRole("button", { name: "Account" })).toHaveAttribute("type", "button");
 	});
@@ -17,9 +17,9 @@ describe("List.Item", () => {
 		const user = userEvent.setup();
 		const onClick = vi.fn<() => void>();
 		render(
-			<List.Viewport aria-label="Accounts">
+			<List.Root aria-label="Accounts">
 				<List.Item onClick={onClick}>Account</List.Item>
-			</List.Viewport>,
+			</List.Root>,
 		);
 
 		await user.click(screen.getByRole("button", { name: "Account" }));
@@ -28,20 +28,20 @@ describe("List.Item", () => {
 
 	test("a disabled button is disabled", () => {
 		render(
-			<List.Viewport aria-label="Accounts">
+			<List.Root aria-label="Accounts">
 				<List.Item disabled>Account</List.Item>
-			</List.Viewport>,
+			</List.Root>,
 		);
 		expect(screen.getByRole("button", { name: "Account" })).toBeDisabled();
 	});
 
 	test("asChild renders the provided element (e.g. a link) with the control slot", () => {
 		render(
-			<List.Viewport aria-label="Accounts">
+			<List.Root aria-label="Accounts">
 				<List.Item asChild>
 					<a href="/accounts/1">Account</a>
 				</List.Item>
-			</List.Viewport>,
+			</List.Root>,
 		);
 
 		const link = screen.getByRole("link", { name: "Account" });
@@ -51,11 +51,11 @@ describe("List.Item", () => {
 
 	test("asChild conveys disabled inertly (aria-disabled + removed from tab order + no pointer events)", () => {
 		render(
-			<List.Viewport aria-label="Accounts">
+			<List.Root aria-label="Accounts">
 				<List.Item asChild disabled>
 					<a href="/accounts/1">Account</a>
 				</List.Item>
-			</List.Viewport>,
+			</List.Root>,
 		);
 		// `aria-disabled` alone is advisory, so a disabled <a> (which can't take the
 		// real `disabled` attribute) is also pulled out of the tab order and has its
@@ -72,11 +72,11 @@ describe("List.Item", () => {
 		// would follow the still-present `href`. The item must swallow those too.
 		const onClick = vi.fn<() => void>();
 		render(
-			<List.Viewport aria-label="Accounts">
+			<List.Root aria-label="Accounts">
 				<List.Item asChild disabled onClick={onClick}>
 					<a href="/accounts/1">Account</a>
 				</List.Item>
-			</List.Viewport>,
+			</List.Root>,
 		);
 
 		// Dispatch the click directly on the element (as AT does) — fireEvent returns
@@ -87,24 +87,24 @@ describe("List.Item", () => {
 		expect(onClick).not.toHaveBeenCalled();
 	});
 
-	test("reflects selected as aria-current so the state is announced, not just tinted", () => {
+	test("reflects current as aria-current so the state is announced, not just tinted", () => {
 		render(
-			<List.Viewport aria-label="Accounts">
-				<List.Item selected onClick={() => {}}>
+			<List.Root aria-label="Accounts">
+				<List.Item current onClick={() => {}}>
 					Account
 				</List.Item>
 				<List.Item onClick={() => {}}>Other</List.Item>
-			</List.Viewport>,
+			</List.Root>,
 		);
 		expect(screen.getByRole("button", { name: "Account" })).toHaveAttribute("aria-current", "true");
 		expect(screen.getByRole("button", { name: "Other" })).not.toHaveAttribute("aria-current");
 	});
 
-	test("throws a helpful error when rendered outside a Viewport", () => {
+	test("throws a helpful error when rendered outside a Root", () => {
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 		try {
 			expect(() => render(<List.Item>Account</List.Item>)).toThrow(
-				/must be composed inside a list viewport/,
+				/must be composed inside List\.Root/,
 			);
 		} finally {
 			errorSpy.mockRestore();

@@ -332,8 +332,8 @@
     "summary": "A scrollable, optionally-virtualized list of clickable items.",
     "jsdoc": "A scrollable, optionally-virtualized list of clickable items — the action / navigation counterpart to `SelectableList` (e.g. an account switcher or SSO provider picker).",
     "examples": [
-      "Composition:\n```\nList.Viewport   (or .VirtualViewport)\n└── List.Item\n    ├── List.ItemTitle\n    └── List.ItemDescription\n```",
-      "```tsx\n<List.Viewport aria-label=\"Your accounts\" className=\"max-h-80\">\n  {accounts.map((account) => (\n    <List.Item key={account.id} onClick={() => switchTo(account.id)}>\n      <List.ItemTitle>{account.name}</List.ItemTitle>\n      <List.ItemDescription>\n        {account.plan} · {account.memberCount} members\n      </List.ItemDescription>\n    </List.Item>\n  ))}\n</List.Viewport>\n```"
+      "Composition:\n```\nList.Root   (or .VirtualRoot)\n└── List.Item\n    ├── List.ItemTitle\n    └── List.ItemDescription\n```",
+      "```tsx\n<List.Root aria-label=\"Your accounts\" className=\"max-h-80\">\n  {accounts.map((account) => (\n    <List.Item key={account.id} onClick={() => switchTo(account.id)}>\n      <List.ItemTitle>{account.name}</List.ItemTitle>\n      <List.ItemDescription>\n        {account.plan} · {account.memberCount} members\n      </List.ItemDescription>\n    </List.Item>\n  ))}\n</List.Root>\n```"
     ]
   },
   {

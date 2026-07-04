@@ -75,7 +75,7 @@ function useListContext(part: string): ListContextValue {
 	const context = useContext(ListContext);
 	invariant(
 		context,
-		`List.${part} must be composed inside a list viewport (List.Viewport, List.VirtualViewport, or a SelectableList viewport).`,
+		`List.${part} must be composed inside List.Root / List.VirtualRoot (or a SelectableList viewport).`,
 	);
 	return context;
 }

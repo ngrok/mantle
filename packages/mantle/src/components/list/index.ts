@@ -18,6 +18,6 @@ export {
 export type {
 	//,
 	ListItemProps,
-	ListViewportProps,
-	ListVirtualViewportProps,
+	ListRootProps,
+	ListVirtualRootProps,
 } from "./list.js";

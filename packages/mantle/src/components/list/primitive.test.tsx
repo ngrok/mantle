@@ -342,7 +342,7 @@ describe("List semantics and attributes", () => {
 						<button type="button">stray</button>
 					</ListItem>,
 				),
-			).toThrow(/must be composed inside a list viewport/);
+			).toThrow(/must be composed inside List\.Root/);
 		} finally {
 			errorSpy.mockRestore();
 		}

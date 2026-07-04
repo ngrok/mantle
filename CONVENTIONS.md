@@ -131,6 +131,19 @@ const Command = {
 3. Do not re-export another component's namespace under your namespace. If consumers need that primitive, they can import it directly.
 4. Each member of a compound namespace must be a directly-defined component or `forwardRef` result whose type has an explicit name (`forwardRef<…, …>(…)`, `ComponentType<…>`, etc.) — not an inferred literal whose shape depends on chasing types through external packages.
 5. When wrapping a third-party namespace primitive (e.g. Radix), explicitly annotate the enclosing namespace object's type so `.d.ts` emit doesn't have to synthesize it: `const Foo: { Root: typeof Root; … } = { … }`.
+6. Every compound's outermost part is named `Root` — even when the compound has no separate state owner and `Root` is the whole component. Consumers should never have to learn which part is outermost per component.
+
+## Component API Design
+
+Distilled from the list-family design review (see [`decisions/2026-07-04-list-family-api-design.md`](./decisions/2026-07-04-list-family-api-design.md)). Answer these questions **before scaffolding** a component, not at review time.
+
+- **Ship the smallest public surface.** A primitive that exists to back other components stays module-internal (`dialog/primitive`, `list/primitive`): imported by relative path, absent from `package.json` exports, undocumented. Publishing later is additive and non-breaking; un-shipping after release is breaking. Corollary: if a component's docs would mostly redirect readers to siblings, it should not be public.
+- **One component per user intent.** Name the intent in a sentence ("click an item to act/navigate" vs "check items to select"). If two proposed components answer the same intent, merge them; a variant is a prop or a sibling part, not a new public component.
+- **Name parts after the component's own noun and the web-standards term** for what they render: a List has `Item`s (`<li>`, `role="listitem"`), a Table has `Row`s (`<tr>`, `role="row"`). Follow the standards vocabulary, not other libraries' conventions. Rename all the way through (props, types, slots, internals) — a half-renamed API is worse than either name.
+- **Props should read as the ARIA/DOM they emit** where practical (`current` → `aria-current`), and must not collide semantically with sibling props (`textValue` next to `value` was rejected for `labelText`).
+- **Composition vs data-driven**: compose children when every behavior derives from the authored children (Table, List). Take a data prop when collection-level behavior — filtering, select-all, virtualization — must operate over items that may not be mounted or even created (DataTable, SelectableList); keep _rendering_ composable via a render-prop. Never read collection facts off children via prop-sniffing or `cloneElement` injection — pass data or index-based callbacks; element sniffing only sees the outermost composed child and fails silently when a consumer wraps it.
+- **ARIA for list-shaped UI**: `role="list"` for action/navigation items — interactive content and multiple tab stops per item are fine (the no-interactive-content restriction belongs to `listbox`, not `list`). Reach for the APG grid only when rows carry selection state with real controls (`aria-selected` is invalid on `listitem`) or need single-tab-stop navigation over a large virtualized collection. Do not default to grid: screen readers treat grids as tables (coordinate announcements, table navigation), and short lists of links belong in the page's tab order.
+- **Make invalid states unrepresentable** with union types instead of runtime checks — e.g. a rich `label: ReactNode` requires `labelText: string` at the type level, so misuse is a compile error rather than a filter that silently stops matching.
 
 ## Testing
 

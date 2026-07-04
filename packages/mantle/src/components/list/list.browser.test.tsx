@@ -16,18 +16,18 @@ const accounts = [
 function Harness() {
 	const [activeId, setActiveId] = useState("a");
 	return (
-		<List.Viewport aria-label="Accounts" className="max-h-40">
+		<List.Root aria-label="Accounts" className="max-h-40">
 			{accounts.map((account) => (
 				<List.Item
 					key={account.id}
-					selected={account.id === activeId}
+					current={account.id === activeId}
 					onClick={() => setActiveId(account.id)}
 				>
 					<List.ItemTitle>{account.name}</List.ItemTitle>
 					<List.ItemDescription>{account.plan}</List.ItemDescription>
 				</List.Item>
 			))}
-		</List.Viewport>
+		</List.Root>
 	);
 }
 
@@ -40,7 +40,7 @@ describe("List (browser)", () => {
 		expect(screen.getAllByRole("listitem")).toHaveLength(accounts.length);
 	});
 
-	test("clicking an item selects it (drives the item's selected state)", async () => {
+	test("clicking an item makes it current (drives the pill's selected state)", async () => {
 		const user = userEvent.setup();
 		render(<Harness />);
 
@@ -54,7 +54,7 @@ describe("List (browser)", () => {
 	test("asChild renders items as links", async () => {
 		function LinkHarness() {
 			return (
-				<List.Viewport aria-label="Providers" className="max-h-40">
+				<List.Root aria-label="Providers" className="max-h-40">
 					{accounts.map((account) => (
 						<List.Item key={account.id} asChild>
 							<a href={`#${account.id}`}>
@@ -62,7 +62,7 @@ describe("List (browser)", () => {
 							</a>
 						</List.Item>
 					))}
-				</List.Viewport>
+				</List.Root>
 			);
 		}
 		render(<LinkHarness />);
@@ -71,21 +71,21 @@ describe("List (browser)", () => {
 		expect(link).toHaveAttribute("href", "#b");
 	});
 
-	test("VirtualViewport windows the same Item children behind a labeled list", async () => {
+	test("VirtualRoot windows the same Item children behind a labeled list", async () => {
 		function VirtualHarness() {
 			const [activeId, setActiveId] = useState("a");
 			return (
-				<List.VirtualViewport aria-label="Accounts" className="max-h-40">
+				<List.VirtualRoot aria-label="Accounts" className="max-h-40">
 					{accounts.map((account) => (
 						<List.Item
 							key={account.id}
-							selected={account.id === activeId}
+							current={account.id === activeId}
 							onClick={() => setActiveId(account.id)}
 						>
 							<List.ItemTitle>{account.name}</List.ItemTitle>
 						</List.Item>
 					))}
-				</List.VirtualViewport>
+				</List.VirtualRoot>
 			);
 		}
 		const user = userEvent.setup();
@@ -102,12 +102,12 @@ describe("List (browser)", () => {
 		// flip the focused item's ring to :focus-visible).
 		const user = userEvent.setup();
 		render(
-			<List.Viewport aria-label="Accounts">
+			<List.Root aria-label="Accounts">
 				<List.Item onClick={() => {}}>Item 0</List.Item>
 				<List.Item onClick={() => {}}>Item 1</List.Item>
 				<List.Item disabled>Item 2</List.Item>
 				<List.Item onClick={() => {}}>Item 3</List.Item>
-			</List.Viewport>,
+			</List.Root>,
 		);
 
 		const item = (name: string) => screen.getByRole("button", { name });
@@ -134,10 +134,10 @@ describe("List (browser)", () => {
 	test("keyboard focus is conveyed by the pill tint, not a focus ring on the item", async () => {
 		const user = userEvent.setup();
 		render(
-			<List.Viewport aria-label="Accounts">
+			<List.Root aria-label="Accounts">
 				<List.Item onClick={() => {}}>Item 0</List.Item>
 				<List.Item onClick={() => {}}>Item 1</List.Item>
-			</List.Viewport>,
+			</List.Root>,
 		);
 
 		screen.getByRole("button", { name: "Item 0" }).focus();
@@ -162,13 +162,13 @@ describe("List (browser)", () => {
 		const manyAccounts = Array.from({ length: 50 }, (_unused, index) => `Account ${index}`);
 		render(
 			// Inline height so windowing is deterministic without the CSS bundle.
-			<List.VirtualViewport aria-label="Accounts" style={{ height: 120, overflowY: "auto" }}>
+			<List.VirtualRoot aria-label="Accounts" style={{ height: 120, overflowY: "auto" }}>
 				{manyAccounts.map((account) => (
 					<List.Item key={account} onClick={() => {}}>
 						{account}
 					</List.Item>
 				))}
-			</List.VirtualViewport>,
+			</List.VirtualRoot>,
 		);
 		// Let the virtualizer measure and mount the first window.
 		await new Promise((resolve) => {
