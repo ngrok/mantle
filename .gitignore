@@ -34,5 +34,6 @@ build
 .turbo
 .react-router
 tmp
+local
 .playwright-mcp
 mise.local.toml

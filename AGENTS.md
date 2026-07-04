@@ -104,7 +104,7 @@ Run these from the workspace root once a coherent chunk of work is done and befo
 
 ## Read-Only Directories
 
-- **`tmp/`** (gitignored; may not exist in every checkout): reference code from other repositories. **Never modify files in `tmp/`** — treat it as read-only.
+- **`local/`** (gitignored; may not exist in every checkout): the encouraged location for read-only reference clones of related repos (e.g. `git@github.com:ngrok-private/frontend.git` → `local/frontend`). Treat these checkouts as read-only references — **never modify files in `local/`**, and do not edit, build, or commit from them as part of mantle work.
 
 ## Common Issues & Solutions
 
