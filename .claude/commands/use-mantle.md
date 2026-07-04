@@ -10,7 +10,7 @@ Load a primer into the current context so subsequent code generation correctly u
 
 Read these files in order. Skip any that don't exist (the user may not be in the mantle monorepo).
 
-1. `AGENT.md` — top-level agent guide (project structure, commands, dependencies).
+1. `AGENTS.md` — top-level agent guide (project structure, commands, dependencies).
 2. `CONVENTIONS.md` — code style, file naming, JSDoc requirements, the `cx` rule, the no-`as` rule, and exact-version pinning.
 3. `apps/www/app/docs/for-ai-agents.mdx` — agent-specific entry point with the suggested system-prompt snippet and composition patterns.
 

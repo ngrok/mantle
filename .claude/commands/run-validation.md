@@ -4,7 +4,7 @@ description: "Run the project's full verification suite (lint, fmt:check, typech
 
 # Run validation
 
-Run the standard verification commands from `AGENT.md` in order, report pass/fail per command, and exit non-zero on the first failure.
+Run the standard verification commands from `AGENTS.md` in order, report pass/fail per command, and exit non-zero on the first failure.
 
 ## 1. Decide whether to run mantle tests
 
