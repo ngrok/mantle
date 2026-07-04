@@ -127,6 +127,42 @@ const gridRows = Array.from({ length: 40 }, (_, index) => ({
 	name: `Grid row ${index}`,
 }));
 
+describe("List virtualization row identity", () => {
+	test("row identity follows consumer keys across a reorder, matching the plain Root", async () => {
+		// Regression: windowed rows used to be keyed by the virtualizer's default
+		// key (the index), so a reorder remounted every moved row — losing its DOM
+		// node and any state inside it — instead of following the consumer's `key`s
+		// the way the non-virtualized `Root` does.
+		const keyedRows = gridRows.slice(0, 5);
+		function KeyedList({ order }: { order: typeof keyedRows }) {
+			return (
+				<ListVirtualRoot semantics="list" aria-label="keyed" style={{ maxHeight: 400 }}>
+					{order.map((row) => (
+						<ListItem key={row.id}>
+							<button type="button">{row.name}</button>
+						</ListItem>
+					))}
+				</ListVirtualRoot>
+			);
+		}
+		const { rerender } = render(<KeyedList order={keyedRows} />);
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
+		const buttonBefore = screen.getByRole("button", { name: "Grid row 0" });
+
+		rerender(<KeyedList order={keyedRows.toReversed()} />);
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
+
+		// The same DOM node still renders "Grid row 0" — moved, not remounted...
+		expect(screen.getByRole("button", { name: "Grid row 0" })).toBe(buttonBefore);
+		// ...and its row now sits at the end of the reversed collection.
+		expect(buttonBefore.closest("[data-index]")?.getAttribute("data-index")).toBe("4");
+	});
+});
+
 describe("List grid navigation", () => {
 	test("clicking a windowed row selects it without resetting the scroll position", async () => {
 		render(

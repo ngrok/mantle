@@ -156,6 +156,11 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 			count,
 			getScrollElement: () => scrollRef.current,
 			estimateSize: () => estimateItemHeight,
+			// Key windowed rows by the child's own key (assigned by `Children.toArray`)
+			// so row identity — React reconciliation via `virtualItem.key` below AND
+			// the virtualizer's measurement cache — follows the consumer's keys across
+			// reorder/filter, matching the plain `Root`, instead of tracking position.
+			getItemKey: (index) => items[index]?.key ?? index,
 			overscan,
 			// Reproduce the plain collection's `gap-px` between windowed rows, which
 			// are out of flow and so can't inherit the flex gap.
