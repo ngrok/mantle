@@ -24,6 +24,8 @@
   },
   "scripts": {
     "build": "tsdown",
+    "prepack": "node ../../scripts/prune-custom-export-conditions.js prune",
+    "postpack": "node ../../scripts/prune-custom-export-conditions.js restore",
     "test": "TZ=UTC vitest run",
     "test:watch": "TZ=UTC vitest watch",
     "typecheck": "tsgo"

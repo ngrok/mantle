@@ -25,6 +25,8 @@
   "scripts": {
     "build": "tsx scripts/generate-component-names.ts && tsdown",
     "generate": "tsx scripts/generate-component-names.ts",
+    "prepack": "node ../../scripts/prune-custom-export-conditions.js prune",
+    "postpack": "node ../../scripts/prune-custom-export-conditions.js restore",
     "test": "TZ=UTC vitest run",
     "test:watch": "TZ=UTC vitest watch",
     "typecheck": "tsx scripts/generate-component-names.ts && tsgo"
