@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import {
@@ -415,5 +416,27 @@ describe("SelectableList parts outside Root", () => {
 		} finally {
 			errorSpy.mockRestore();
 		}
+	});
+});
+
+describe("SelectableList.Viewport render-prop typing", () => {
+	test("requires the render-prop to return an element or null, not any ReactNode", () => {
+		type ViewportRenderProp = ComponentProps<typeof SelectableList.Viewport>["children"];
+
+		// renderItems drops non-element results at runtime, so the type rejects
+		// strings/numbers up front instead of silently rendering nothing.
+		// @ts-expect-error -- a string return is not an element or null
+		const returnsString: ViewportRenderProp = (option) => option.value;
+
+		// Conditionally dropping a row via `null` stays allowed.
+		const dropsRows: ViewportRenderProp = (option) =>
+			option.disabled ? null : (
+				<SelectableList.Item value={option.value}>
+					<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+				</SelectableList.Item>
+			);
+
+		expect(returnsString).toBeTypeOf("function");
+		expect(dropsRows).toBeTypeOf("function");
 	});
 });

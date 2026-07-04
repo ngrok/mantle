@@ -12,7 +12,13 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import type { ComponentProps, ComponentPropsWithoutRef, ComponentRef, ReactNode } from "react";
+import type {
+	ComponentProps,
+	ComponentPropsWithoutRef,
+	ComponentRef,
+	ReactElement,
+	ReactNode,
+} from "react";
 import invariant from "tiny-invariant";
 import { cx } from "../../utils/cx/cx.js";
 import { Checkbox, selectAllChecked } from "../checkbox/checkbox.js";
@@ -683,7 +689,7 @@ ItemDescription.displayName = "SelectableListItemDescription";
  * The default row renderer: a title (and description, if present) from the
  * option. Used by a viewport when no render-prop child is supplied.
  */
-function renderDefaultOption(option: SelectableListOption): ReactNode {
+function renderDefaultOption(option: SelectableListOption): ReactElement {
 	return (
 		<Item value={option.value}>
 			<ItemTitle>{option.label}</ItemTitle>
@@ -708,7 +714,7 @@ function renderDefaultOption(option: SelectableListOption): ReactNode {
  */
 function renderItems(
 	filteredOptions: readonly SelectableListOption[],
-	renderOption: (option: SelectableListOption) => ReactNode,
+	renderOption: (option: SelectableListOption) => ReactElement | null,
 ): { items: ReactNode[]; options: SelectableListOption[] } {
 	const items: ReactNode[] = [];
 	const options: SelectableListOption[] = [];
@@ -734,7 +740,7 @@ function renderItems(
  */
 function useViewportItems(
 	part: string,
-	renderPropChild: ((option: SelectableListOption) => ReactNode) | undefined,
+	renderPropChild: ((option: SelectableListOption) => ReactElement | null) | undefined,
 ): {
 	isEmpty: boolean;
 	isItemDisabled: (index: number) => boolean;
@@ -789,10 +795,12 @@ function useViewportItems(
 type SelectableListViewportProps = Omit<ComponentProps<"div">, "children"> & {
 	/**
 	 * Optional render-prop for custom row content, called per filtered option.
-	 * Return a `SelectableList.Item` with your own layout. Defaults to a
+	 * Return a `SelectableList.Item` with your own layout, or `null` to skip
+	 * the row. Non-element returns are dropped at runtime, so the type requires
+	 * an element (or `null`) rather than any `ReactNode`. Defaults to a
 	 * title + description row built from the option.
 	 */
-	children?: (option: SelectableListOption) => ReactNode;
+	children?: (option: SelectableListOption) => ReactElement | null;
 };
 
 /**

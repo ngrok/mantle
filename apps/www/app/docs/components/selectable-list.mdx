@@ -530,19 +530,19 @@ Its checkbox is automatically disabled when no filtered option is selectable.
 
 The non-virtualized grid. Accepts all `<div>` props (except `children`, which is the render-prop below), plus:
 
-| Prop        | Type                                          | Default | Description                                                                                            |
-| ----------- | --------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------ |
-| `children?` | `(option: SelectableListOption) => ReactNode` |         | Render-prop for custom row content, called per filtered option. Defaults to a title + description row. |
+| Prop        | Type                                                     | Default | Description                                                                                                                         |
+| ----------- | -------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `children?` | `(option: SelectableListOption) => ReactElement \| null` |         | Render-prop for custom row content, called per filtered option; return `null` to skip a row. Defaults to a title + description row. |
 
 ### SelectableList.VirtualViewport
 
 The windowed grid — same surface as `Viewport`, plus the virtualizer knobs:
 
-| Prop                  | Type                                          | Default | Description                                                             |
-| --------------------- | --------------------------------------------- | ------- | ----------------------------------------------------------------------- |
-| `children?`           | `(option: SelectableListOption) => ReactNode` |         | Render-prop for custom row content (only the visible window mounts).    |
-| `estimateItemHeight?` | `number`                                      | `44`    | Estimated item height (px) used to seed the virtualizer before measure. |
-| `overscan?`           | `number`                                      | `8`     | Rows rendered beyond the visible window on each side.                   |
+| Prop                  | Type                                                     | Default | Description                                                             |
+| --------------------- | -------------------------------------------------------- | ------- | ----------------------------------------------------------------------- |
+| `children?`           | `(option: SelectableListOption) => ReactElement \| null` |         | Render-prop for custom row content (only the visible window mounts).    |
+| `estimateItemHeight?` | `number`                                                 | `44`    | Estimated item height (px) used to seed the virtualizer before measure. |
+| `overscan?`           | `number`                                                 | `8`     | Rows rendered beyond the visible window on each side.                   |
 
 ### SelectableList.Item
 
