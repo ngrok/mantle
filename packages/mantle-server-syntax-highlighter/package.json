@@ -24,6 +24,8 @@
   },
   "scripts": {
     "build": "tsdown",
+    "prepack": "node ../../scripts/clean-publish-manifest.js clean",
+    "postpack": "node ../../scripts/clean-publish-manifest.js restore",
     "test": "TZ=UTC vitest run",
     "test:watch": "TZ=UTC vitest watch",
     "typecheck": "tsgo"

@@ -355,6 +355,8 @@
 		"build": "NODE_OPTIONS='--max-old-space-size=16384' tsdown",
 		"clean": "rm -rf dist",
 		"prebuild": "pnpm run clean",
+		"prepack": "node ../../scripts/clean-publish-manifest.js clean",
+		"postpack": "node ../../scripts/clean-publish-manifest.js restore",
 		"test:watch": "TZ=UTC vitest watch",
 		"test": "TZ=UTC vitest run",
 		"typecheck": "tsgo"
