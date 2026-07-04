@@ -1,8 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
-import { List } from "./list.js";
-import { isInteractiveItemTarget } from "./primitive.js";
+import { isInteractiveItemTarget, Item as ListItem, Root as ListRoot } from "./primitive.js";
 
 /**
  * Focus the grid the way a Tab-in would. happy-dom's `focus()` moves
@@ -28,13 +27,13 @@ function Grid({
 	onActivate?: (index: number) => void;
 }) {
 	return (
-		<List.Root semantics="grid" aria-label="grid" onActivate={onActivate}>
+		<ListRoot semantics="grid" aria-label="grid" onActivate={onActivate}>
 			{Array.from({ length: count }, (_unused, index) => (
-				<List.Item key={`row-${index}`} disabled={disabled.includes(index)}>
+				<ListItem key={`row-${index}`} disabled={disabled.includes(index)}>
 					<div role="gridcell">Item {index}</div>
-				</List.Item>
+				</ListItem>
 			))}
-		</List.Root>
+		</ListRoot>
 	);
 }
 
@@ -124,14 +123,14 @@ describe("List list-semantics arrow navigation", () => {
 		// `asChild` row that *is* the focusable control (the docs' Polymorphism
 		// example — the row renders as an <a>) was never a navigation target.
 		render(
-			<List.Root semantics="list" aria-label="links">
-				<List.Item asChild>
+			<ListRoot semantics="list" aria-label="links">
+				<ListItem asChild>
 					<a href="#one">One</a>
-				</List.Item>
-				<List.Item asChild>
+				</ListItem>
+				<ListItem asChild>
 					<a href="#two">Two</a>
-				</List.Item>
-			</List.Root>,
+				</ListItem>
+			</ListRoot>,
 		);
 
 		const first = screen.getByText("One");
@@ -150,21 +149,21 @@ describe("List grid pointer activation", () => {
 		const user = userEvent.setup();
 		const onActivate = vi.fn<(index: number) => void>();
 		render(
-			<List.Root semantics="grid" aria-label="grid" onActivate={onActivate}>
-				<List.Item>
+			<ListRoot semantics="grid" aria-label="grid" onActivate={onActivate}>
+				<ListItem>
 					<div role="gridcell">Item 0</div>
-				</List.Item>
-				<List.Item>
+				</ListItem>
+				<ListItem>
 					<div role="gridcell">
 						<button type="button" tabIndex={-1}>
 							nested control
 						</button>
 					</div>
-				</List.Item>
-				<List.Item disabled>
+				</ListItem>
+				<ListItem disabled>
 					<div role="gridcell">Item 2</div>
-				</List.Item>
-			</List.Root>,
+				</ListItem>
+			</ListRoot>,
 		);
 
 		await user.click(screen.getByText("Item 0"));
@@ -182,11 +181,11 @@ describe("List grid pointer activation", () => {
 		const user = userEvent.setup();
 		const onActivate = vi.fn<(index: number) => void>();
 		render(
-			<List.Root semantics="grid" aria-label="grid" onActivate={onActivate}>
-				<List.Item onClick={(event) => event.preventDefault()}>
+			<ListRoot semantics="grid" aria-label="grid" onActivate={onActivate}>
+				<ListItem onClick={(event) => event.preventDefault()}>
 					<div role="gridcell">Item 0</div>
-				</List.Item>
-			</List.Root>,
+				</ListItem>
+			</ListRoot>,
 		);
 
 		await user.click(screen.getByText("Item 0"));
@@ -199,19 +198,19 @@ describe("List isItemDisabled", () => {
 		const user = userEvent.setup();
 		const onActivate = vi.fn<(index: number) => void>();
 		render(
-			<List.Root
+			<ListRoot
 				semantics="grid"
 				aria-label="grid"
 				onActivate={onActivate}
 				isItemDisabled={(index) => index === 0}
 			>
-				<List.Item>
+				<ListItem>
 					<div role="gridcell">Item 0</div>
-				</List.Item>
-				<List.Item>
+				</ListItem>
+				<ListItem>
 					<div role="gridcell">Item 1</div>
-				</List.Item>
-			</List.Root>,
+				</ListItem>
+			</ListRoot>,
 		);
 
 		const grid = screen.getByRole("grid", { name: "grid" });
@@ -280,15 +279,15 @@ describe("List grid row ids", () => {
 		// the consumer's itemId pointed at an element *inside* the row — producing
 		// duplicate ids — and silently discarded a consumer-provided row id.
 		render(
-			<List.Root semantics="grid" aria-label="grid" itemId={(index) => `ctrl-${index}`}>
-				<List.Item id="consumer-row">
+			<ListRoot semantics="grid" aria-label="grid" itemId={(index) => `ctrl-${index}`}>
+				<ListItem id="consumer-row">
 					<div role="gridcell">
 						<button type="button" tabIndex={-1} id="ctrl-0">
 							Item 0
 						</button>
 					</div>
-				</List.Item>
-			</List.Root>,
+				</ListItem>
+			</ListRoot>,
 		);
 
 		const grid = screen.getByRole("grid", { name: "grid" });
@@ -308,11 +307,11 @@ describe("List semantics and attributes", () => {
 		gridRender.unmount();
 
 		render(
-			<List.Root semantics="list" aria-label="list">
-				<List.Item disabled>
+			<ListRoot semantics="list" aria-label="list">
+				<ListItem disabled>
 					<button type="button">Item 0</button>
-				</List.Item>
-			</List.Root>,
+				</ListItem>
+			</ListRoot>,
 		);
 		const listRow = screen.getByRole("listitem");
 		expect(listRow).not.toHaveAttribute("aria-disabled");
@@ -321,11 +320,11 @@ describe("List semantics and attributes", () => {
 
 	test("a list-semantics collection is not a tab stop and tracks no active descendant", () => {
 		render(
-			<List.Root semantics="list" aria-label="list">
-				<List.Item>
+			<ListRoot semantics="list" aria-label="list">
+				<ListItem>
 					<button type="button">Item 0</button>
-				</List.Item>
-			</List.Root>,
+				</ListItem>
+			</ListRoot>,
 		);
 
 		const collection = screen.getByRole("list");
@@ -334,16 +333,16 @@ describe("List semantics and attributes", () => {
 		expect(collection).toHaveAttribute("data-slot", "list-collection");
 	});
 
-	test("List.Item outside a Root throws a helpful error", () => {
+	test("ListItem outside a Root throws a helpful error", () => {
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 		try {
 			expect(() =>
 				render(
-					<List.Item>
+					<ListItem>
 						<button type="button">stray</button>
-					</List.Item>,
+					</ListItem>,
 				),
-			).toThrow(/must be rendered inside List.Root or List.VirtualRoot/);
+			).toThrow(/must be composed inside a list viewport/);
 		} finally {
 			errorSpy.mockRestore();
 		}

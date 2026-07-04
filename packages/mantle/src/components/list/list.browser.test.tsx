@@ -5,7 +5,7 @@ import { userEvent } from "@testing-library/user-event";
 import axe from "axe-core";
 import { useState } from "react";
 import { describe, expect, test } from "vitest";
-import { ScrollableList } from "./scrollable-list.js";
+import { List } from "./list.js";
 
 const accounts = [
 	{ id: "a", name: "Alpha", plan: "All Subscription" },
@@ -16,23 +16,23 @@ const accounts = [
 function Harness() {
 	const [activeId, setActiveId] = useState("a");
 	return (
-		<ScrollableList.Viewport aria-label="Accounts" className="max-h-40">
+		<List.Viewport aria-label="Accounts" className="max-h-40">
 			{accounts.map((account) => (
-				<ScrollableList.Item
+				<List.Item
 					key={account.id}
 					selected={account.id === activeId}
 					onClick={() => setActiveId(account.id)}
 				>
-					<ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
-					<ScrollableList.ItemDescription>{account.plan}</ScrollableList.ItemDescription>
-				</ScrollableList.Item>
+					<List.ItemTitle>{account.name}</List.ItemTitle>
+					<List.ItemDescription>{account.plan}</List.ItemDescription>
+				</List.Item>
 			))}
-		</ScrollableList.Viewport>
+		</List.Viewport>
 	);
 }
 
-describe("ScrollableList (browser)", () => {
-	test("renders a labeled list of clickable rows", async () => {
+describe("List (browser)", () => {
+	test("renders a labeled list of clickable items", async () => {
 		render(<Harness />);
 		await screen.findByRole("button", { name: /Alpha/ });
 
@@ -40,7 +40,7 @@ describe("ScrollableList (browser)", () => {
 		expect(screen.getAllByRole("listitem")).toHaveLength(accounts.length);
 	});
 
-	test("clicking a row selects it (drives the row's selected state)", async () => {
+	test("clicking an item selects it (drives the item's selected state)", async () => {
 		const user = userEvent.setup();
 		render(<Harness />);
 
@@ -51,18 +51,18 @@ describe("ScrollableList (browser)", () => {
 		expect(bravo.closest("[data-slot='list-item']")).toHaveAttribute("data-state", "selected");
 	});
 
-	test("asChild renders rows as links", async () => {
+	test("asChild renders items as links", async () => {
 		function LinkHarness() {
 			return (
-				<ScrollableList.Viewport aria-label="Providers" className="max-h-40">
+				<List.Viewport aria-label="Providers" className="max-h-40">
 					{accounts.map((account) => (
-						<ScrollableList.Item key={account.id} asChild>
+						<List.Item key={account.id} asChild>
 							<a href={`#${account.id}`}>
-								<ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
+								<List.ItemTitle>{account.name}</List.ItemTitle>
 							</a>
-						</ScrollableList.Item>
+						</List.Item>
 					))}
-				</ScrollableList.Viewport>
+				</List.Viewport>
 			);
 		}
 		render(<LinkHarness />);
@@ -75,17 +75,17 @@ describe("ScrollableList (browser)", () => {
 		function VirtualHarness() {
 			const [activeId, setActiveId] = useState("a");
 			return (
-				<ScrollableList.VirtualViewport aria-label="Accounts" className="max-h-40">
+				<List.VirtualViewport aria-label="Accounts" className="max-h-40">
 					{accounts.map((account) => (
-						<ScrollableList.Item
+						<List.Item
 							key={account.id}
 							selected={account.id === activeId}
 							onClick={() => setActiveId(account.id)}
 						>
-							<ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>
-						</ScrollableList.Item>
+							<List.ItemTitle>{account.name}</List.ItemTitle>
+						</List.Item>
 					))}
-				</ScrollableList.VirtualViewport>
+				</List.VirtualViewport>
 			);
 		}
 		const user = userEvent.setup();
@@ -97,17 +97,17 @@ describe("ScrollableList (browser)", () => {
 		expect(alpha.closest("[data-slot='list-item']")).toHaveAttribute("data-state", "selected");
 	});
 
-	test("ArrowUp/ArrowDown/Home/End move focus between rows, skipping disabled ones", async () => {
+	test("ArrowUp/ArrowDown/Home/End move focus between items, skipping disabled ones", async () => {
 		// Regression: arrow keys used to do nothing but scroll the viewport (and
 		// flip the focused item's ring to :focus-visible).
 		const user = userEvent.setup();
 		render(
-			<ScrollableList.Viewport aria-label="Accounts">
-				<ScrollableList.Item onClick={() => {}}>Item 0</ScrollableList.Item>
-				<ScrollableList.Item onClick={() => {}}>Item 1</ScrollableList.Item>
-				<ScrollableList.Item disabled>Item 2</ScrollableList.Item>
-				<ScrollableList.Item onClick={() => {}}>Item 3</ScrollableList.Item>
-			</ScrollableList.Viewport>,
+			<List.Viewport aria-label="Accounts">
+				<List.Item onClick={() => {}}>Item 0</List.Item>
+				<List.Item onClick={() => {}}>Item 1</List.Item>
+				<List.Item disabled>Item 2</List.Item>
+				<List.Item onClick={() => {}}>Item 3</List.Item>
+			</List.Viewport>,
 		);
 
 		const item = (name: string) => screen.getByRole("button", { name });
@@ -116,11 +116,11 @@ describe("ScrollableList (browser)", () => {
 		await user.keyboard("{ArrowDown}");
 		expect(item("Item 1")).toHaveFocus();
 
-		// Skips the disabled row in both directions.
+		// Skips the disabled item in both directions.
 		await user.keyboard("{ArrowDown}");
 		expect(item("Item 3")).toHaveFocus();
 		await user.keyboard("{ArrowDown}");
-		// No wrap — holds on the last enabled row.
+		// No wrap — holds on the last enabled item.
 		expect(item("Item 3")).toHaveFocus();
 		await user.keyboard("{ArrowUp}");
 		expect(item("Item 1")).toHaveFocus();
@@ -131,13 +131,13 @@ describe("ScrollableList (browser)", () => {
 		expect(item("Item 0")).toHaveFocus();
 	});
 
-	test("keyboard focus is conveyed by the row tint, not a focus ring on the item", async () => {
+	test("keyboard focus is conveyed by the pill tint, not a focus ring on the item", async () => {
 		const user = userEvent.setup();
 		render(
-			<ScrollableList.Viewport aria-label="Accounts">
-				<ScrollableList.Item onClick={() => {}}>Item 0</ScrollableList.Item>
-				<ScrollableList.Item onClick={() => {}}>Item 1</ScrollableList.Item>
-			</ScrollableList.Viewport>,
+			<List.Viewport aria-label="Accounts">
+				<List.Item onClick={() => {}}>Item 0</List.Item>
+				<List.Item onClick={() => {}}>Item 1</List.Item>
+			</List.Viewport>,
 		);
 
 		screen.getByRole("button", { name: "Item 0" }).focus();
@@ -145,45 +145,42 @@ describe("ScrollableList (browser)", () => {
 
 		const focused = screen.getByRole("button", { name: "Item 1" });
 		expect(focused).toHaveFocus();
-		// The item suppresses its own ring/outline; the enclosing row lights up via
-		// the has-[:focus-visible] tint instead (same treatment as hover).
+		// The control suppresses its own ring/outline; the enclosing pill lights up
+		// via the has-[:focus-visible] tint instead (same treatment as hover).
 		expect(focused.className).not.toContain("focus-visible:ring");
 		expect(focused.className).toContain("focus-visible:outline-hidden");
-		const row = focused.closest("[data-slot='list-item']");
-		if (row == null) {
-			throw new Error("row not found");
+		const pill = focused.closest("[data-slot='list-item']");
+		if (pill == null) {
+			throw new Error("list item pill not found");
 		}
-		expect(row.matches(":has(:focus-visible)")).toBe(true);
-		expect(row.className).toContain("has-[:focus-visible]:bg-active-menu-item");
+		expect(pill.matches(":has(:focus-visible)")).toBe(true);
+		expect(pill.className).toContain("has-[:focus-visible]:bg-active-menu-item");
 	});
 
-	test("arrow navigation crosses the virtual window (End mounts and focuses the last row)", async () => {
+	test("arrow navigation crosses the virtual window (End mounts and focuses the last item)", async () => {
 		const user = userEvent.setup();
 		const manyAccounts = Array.from({ length: 50 }, (_unused, index) => `Account ${index}`);
 		render(
 			// Inline height so windowing is deterministic without the CSS bundle.
-			<ScrollableList.VirtualViewport
-				aria-label="Accounts"
-				style={{ height: 120, overflowY: "auto" }}
-			>
+			<List.VirtualViewport aria-label="Accounts" style={{ height: 120, overflowY: "auto" }}>
 				{manyAccounts.map((account) => (
-					<ScrollableList.Item key={account} onClick={() => {}}>
+					<List.Item key={account} onClick={() => {}}>
 						{account}
-					</ScrollableList.Item>
+					</List.Item>
 				))}
-			</ScrollableList.VirtualViewport>,
+			</List.VirtualViewport>,
 		);
 		// Let the virtualizer measure and mount the first window.
 		await new Promise((resolve) => {
 			setTimeout(resolve, 100);
 		});
 
-		// The last row isn't mounted under a small window.
+		// The last item isn't mounted under a small window.
 		expect(screen.queryByRole("button", { name: "Account 49" })).not.toBeInTheDocument();
 
 		screen.getByRole("button", { name: "Account 0" }).focus();
 		await user.keyboard("{End}");
-		// End scrolls + mounts the last row, then moves focus onto it.
+		// End scrolls + mounts the last item, then moves focus onto it.
 		await waitFor(() => expect(screen.getByRole("button", { name: "Account 49" })).toHaveFocus());
 
 		await user.keyboard("{ArrowUp}");

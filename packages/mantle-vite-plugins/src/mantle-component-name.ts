@@ -54,7 +54,6 @@ export const MANTLE_COMPONENT_NAMES = [
 	"qr-code",
 	"radio-group",
 	"sandboxed-on-click",
-	"scrollable-list",
 	"select",
 	"selectable-list",
 	"separator",

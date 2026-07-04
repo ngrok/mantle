@@ -28,13 +28,17 @@ import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Slot } from "../slot/index.js";
 
+// This module is internal shared implementation — it is not exported from the
+// package. The public components built on it are `List` (./list.js) and
+// `SelectableList`, mirroring how `dialog/primitive` backs the dialog family.
+
 /**
  * ARIA semantics for a {@link Root} / `VirtualRoot` collection and its
  * {@link Item}s. The element is always a `<div>` — per WAI-ARIA the *role*
  * carries the semantics, not the tag — so both flavors share one implementation.
  *
  * - `"list"` → `<div role="list">` of `<div role="listitem">` rows: a
- *   non-selecting list of actions/links (e.g. `ScrollableList`). Native tab
+ *   non-selecting list of actions/links (e.g. `List`). Native tab
  *   order, with `ArrowUp` / `ArrowDown` / `Home` / `End` moving real focus
  *   between the rows' controls (skipping disabled rows).
  * - `"grid"` → `<div role="grid">` of `<div role="row">` rows carrying
@@ -46,11 +50,11 @@ import { Slot } from "../slot/index.js";
  *
  * @example
  * ```tsx
- * <List.Root semantics="grid" aria-label="Access keys" onActivate={toggleByIndex}>
- *   <List.Item selected>
+ * <Root semantics="grid" aria-label="Access keys" onActivate={toggleByIndex}>
+ *   <Item selected>
  *     <div role="gridcell">Onboarding key</div>
- *   </List.Item>
- * </List.Root>
+ *   </Item>
+ * </Root>
  * ```
  */
 type ListSemantics = "list" | "grid";
@@ -71,7 +75,7 @@ function useListContext(part: string): ListContextValue {
 	const context = useContext(ListContext);
 	invariant(
 		context,
-		`List.${part} must be rendered inside List.Root or List.VirtualRoot (for ScrollableList/SelectableList, compose items inside their Viewport).`,
+		`List.${part} must be composed inside a list viewport (List.Viewport, List.VirtualViewport, or a SelectableList viewport).`,
 	);
 	return context;
 }
@@ -176,11 +180,11 @@ const listItemClassName =
  *
  * @example
  * ```tsx
- * <List.Root semantics="list" aria-label="Accounts" className="max-h-80">
- *   <List.Item>
+ * <Root semantics="list" aria-label="Accounts" className="max-h-80">
+ *   <Item>
  *     <button type="button">Acme Inc</button>
- *   </List.Item>
- * </List.Root>
+ *   </Item>
+ * </Root>
  * ```
  */
 type ListRootProps = ComponentProps<"div"> & {
@@ -203,7 +207,7 @@ type ListRootProps = ComponentProps<"div"> & {
 	/**
 	 * Whether the row at an index is disabled — skipped by keyboard navigation
 	 * and excluded from grid activation. Defaults to reading the composed row
-	 * element's `disabled` prop (covering `<List.Item disabled>`); pass it when
+	 * element's `disabled` prop (covering `<Item disabled>`); pass it when
 	 * disabled state lives in your data rather than on the row elements (e.g.
 	 * `SelectableList` reads it off `options[].disabled`).
 	 */
@@ -250,7 +254,7 @@ function findEnabledIndex({
 
 /**
  * The keyboard-focusable control inside a composed row — where list-semantics
- * arrow navigation moves focus (a `ScrollableList.Item`'s button or link).
+ * arrow navigation moves focus (a `List.Item`'s button or link).
  * Excludes disabled buttons and anything pulled out of the tab order with
  * `tabIndex={-1}` (e.g. a disabled `asChild` link).
  */
@@ -260,7 +264,7 @@ const ITEM_CONTROL_SELECTOR =
 /**
  * The focusable control of a mounted row element, or `null` when the row hosts
  * none (a static row is simply not a keyboard-navigation stop). An `asChild`
- * row may *be* the control (e.g. `<List.Item asChild><a href…>`), so the row
+ * row may *be* the control (e.g. `<Item asChild><a href…>`), so the row
  * itself is checked before its descendants.
  */
 function findItemControl(item: Element): HTMLElement | null {
@@ -696,7 +700,7 @@ function ListShell({
 		</ListContext.Provider>
 	);
 }
-ListShell.displayName = "ListShell";
+ListShell.displayName = "ListPrimitiveShell";
 
 /**
  * Props for a {@link Item}. Standard `<div>` props (minus `role`, owned by the
@@ -708,11 +712,11 @@ ListShell.displayName = "ListShell";
  *
  * @example
  * ```tsx
- * <List.Root semantics="list" aria-label="Accounts" className="max-h-80">
- *   <List.Item selected>
+ * <Root semantics="list" aria-label="Accounts" className="max-h-80">
+ *   <Item selected>
  *     <button type="button">Acme Inc</button>
- *   </List.Item>
- * </List.Root>
+ *   </Item>
+ * </Root>
  * ```
  */
 type ListItemProps = Omit<ComponentProps<"div">, "role"> &
@@ -730,7 +734,7 @@ type ListItemProps = Omit<ComponentProps<"div">, "role"> &
  * selected/disabled data attributes; in a grid it also carries the
  * `aria-activedescendant` id and active-row tint, and — when windowed — the
  * absolute placement, measure ref, and `aria-posinset` / `aria-setsize`
- * (list) or `aria-rowindex` (grid). Authoring the same `<List.Item>` works
+ * (list) or `aria-rowindex` (grid). Authoring the same `<Item>` works
  * virtualized or not, and even when a consumer's item component wraps it.
  *
  * @see https://mantle.ngrok.com/components/list
@@ -738,10 +742,10 @@ type ListItemProps = Omit<ComponentProps<"div">, "role"> &
  * @example
  * ```tsx
  * // grid row (selectable): children are role="gridcell"s
- * <List.Item selected={isChecked}>
+ * <Item selected={isChecked}>
  *   <div role="gridcell"><Checkbox checked={isChecked} tabIndex={-1} /></div>
  *   <div role="gridcell">{label}</div>
- * </List.Item>
+ * </Item>
  * ```
  */
 const Item = forwardRef<ComponentRef<"div">, ListItemProps>(
@@ -763,7 +767,7 @@ const Item = forwardRef<ComponentRef<"div">, ListItemProps>(
 			<Comp
 				ref={composedRef}
 				// Before the spread so a wrapping component can brand its rows (e.g.
-				// SelectableList.Item passes "selectable-list-item"); `data-index` and the
+				// SelectableItem passes "selectable-list-item"); `data-index` and the
 				// role/ARIA wiring below stay enforced.
 				data-slot="list-item"
 				{...props}
@@ -807,7 +811,7 @@ const Item = forwardRef<ComponentRef<"div">, ListItemProps>(
 		);
 	},
 );
-Item.displayName = "ListItem";
+Item.displayName = "ListPrimitiveItem";
 
 /**
  * Provides one non-virtualized row its index through {@link ListItemContext}
@@ -820,7 +824,7 @@ function PlainItem({ children, index }: { children: ReactNode; index: number }) 
 
 	return <ListItemContext.Provider value={value}>{children}</ListItemContext.Provider>;
 }
-PlainItem.displayName = "ListPlainItem";
+PlainItem.displayName = "ListPrimitivePlainItem";
 
 /**
  * The non-virtualized list shell: renders its composed {@link Item} children in
@@ -833,13 +837,13 @@ PlainItem.displayName = "ListPlainItem";
  *
  * @example
  * ```tsx
- * <List.Root semantics="list" aria-label="Accounts" className="max-h-80">
+ * <Root semantics="list" aria-label="Accounts" className="max-h-80">
  *   {accounts.map((account) => (
- *     <List.Item key={account.id} selected={account.id === currentId}>
+ *     <Item key={account.id} selected={account.id === currentId}>
  *       <button className="w-full px-2 py-1.5 text-left">{account.name}</button>
- *     </List.Item>
+ *     </Item>
  *   ))}
- * </List.Root>
+ * </Root>
  * ```
  */
 const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
@@ -922,7 +926,7 @@ const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
 		);
 	},
 );
-Root.displayName = "ListRoot";
+Root.displayName = "ListPrimitiveRoot";
 
 export {
 	//,

@@ -3,7 +3,8 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { List } from "./list.js";
+import { Item as ListItem, Root as ListRoot } from "./primitive.js";
+import { VirtualRoot as ListVirtualRoot } from "./virtual.js";
 
 const rows = Array.from({ length: 8 }, (_, index) => ({
 	id: `row-${index}`,
@@ -13,12 +14,12 @@ const rows = Array.from({ length: 8 }, (_, index) => ({
 
 function Item({ row }: { row: (typeof rows)[number] }) {
 	return (
-		<List.Item key={row.id}>
+		<ListItem key={row.id}>
 			<button type="button" className="flex w-full flex-col gap-0.5 px-2 py-1.5 text-left text-sm">
 				<span className="font-medium">{row.name}</span>
 				<span className="leading-4">{row.sub}</span>
 			</button>
-		</List.Item>
+		</ListItem>
 	);
 }
 
@@ -85,11 +86,11 @@ async function firstRowGeometry(): Promise<{
 describe("List virtualization spacing", () => {
 	test("windowed rows match non-virtualized rows in pitch and border inset", async () => {
 		const plain = render(
-			<List.Root semantics="list" aria-label="plain" className="max-h-60">
+			<ListRoot semantics="list" aria-label="plain" className="max-h-60">
 				{rows.map((row) => (
 					<Item key={row.id} row={row} />
 				))}
-			</List.Root>,
+			</ListRoot>,
 		);
 		await new Promise((resolve) => {
 			requestAnimationFrame(() => resolve(null));
@@ -98,11 +99,11 @@ describe("List virtualization spacing", () => {
 		plain.unmount();
 
 		const virtual = render(
-			<List.VirtualRoot semantics="list" aria-label="virtual" className="max-h-60">
+			<ListVirtualRoot semantics="list" aria-label="virtual" className="max-h-60">
 				{rows.map((row) => (
 					<Item key={row.id} row={row} />
 				))}
-			</List.VirtualRoot>,
+			</ListVirtualRoot>,
 		);
 		// Give the virtualizer time to measure and reposition.
 		await new Promise((resolve) => {
@@ -129,23 +130,23 @@ const gridRows = Array.from({ length: 40 }, (_, index) => ({
 describe("List grid navigation", () => {
 	test("clicking a windowed row selects it without resetting the scroll position", async () => {
 		render(
-			<List.VirtualRoot
+			<ListVirtualRoot
 				semantics="grid"
 				aria-label="grid"
 				style={{ maxHeight: 200 }}
 				onActivate={() => {}}
 			>
 				{gridRows.map((row) => (
-					<List.Item key={row.id}>
+					<ListItem key={row.id}>
 						<div role="gridcell">
 							{/* tabIndex -1 mirrors SelectableList's checkbox: focusable by click, not Tab. */}
 							<button type="button" tabIndex={-1}>
 								{row.name}
 							</button>
 						</div>
-					</List.Item>
+					</ListItem>
 				))}
-			</List.VirtualRoot>,
+			</ListVirtualRoot>,
 		);
 		// Let the virtualizer measure so the viewport is scrollable.
 		await new Promise((resolve) => {
@@ -201,21 +202,21 @@ describe("List grid navigation", () => {
 
 	test("a genuinely tabbable control inside a grid row keeps focus (no keyboard trap)", async () => {
 		render(
-			<List.VirtualRoot
+			<ListVirtualRoot
 				semantics="grid"
 				aria-label="grid"
 				style={{ maxHeight: 200 }}
 				onActivate={() => {}}
 			>
 				{gridRows.slice(0, 5).map((row) => (
-					<List.Item key={row.id}>
+					<ListItem key={row.id}>
 						<div role="gridcell">
 							{/* A naturally-tabbable control (default tabIndex 0), as the docs permit. */}
 							<a href="/x">{row.name}</a>
 						</div>
-					</List.Item>
+					</ListItem>
 				))}
-			</List.VirtualRoot>,
+			</ListVirtualRoot>,
 		);
 		await new Promise((resolve) => {
 			setTimeout(resolve, 100);
@@ -239,22 +240,22 @@ describe("List grid navigation", () => {
 		// Index 2 is disabled — arrowing should step over it, reading the flag from
 		// the row element's `disabled` prop (not the DOM), so it works windowed too.
 		render(
-			<List.VirtualRoot
+			<ListVirtualRoot
 				semantics="grid"
 				aria-label="grid"
 				style={{ maxHeight: 400 }}
 				onActivate={() => {}}
 			>
 				{gridRows.slice(0, 6).map((row, index) => (
-					<List.Item key={row.id} disabled={index === 2}>
+					<ListItem key={row.id} disabled={index === 2}>
 						<div role="gridcell">
 							<button type="button" tabIndex={-1}>
 								{row.name}
 							</button>
 						</div>
-					</List.Item>
+					</ListItem>
 				))}
-			</List.VirtualRoot>,
+			</ListVirtualRoot>,
 		);
 		await new Promise((resolve) => {
 			setTimeout(resolve, 100);
@@ -297,18 +298,18 @@ describe("List grid navigation", () => {
 		const onActivate = vi.fn<(index: number) => void>();
 		const onMenuAction = vi.fn<() => void>();
 		render(
-			<List.Root semantics="grid" aria-label="grid" onActivate={onActivate}>
-				<List.Item>
+			<ListRoot semantics="grid" aria-label="grid" onActivate={onActivate}>
+				<ListItem>
 					<div role="gridcell">Item 0</div>
-				</List.Item>
-				<List.Item>
+				</ListItem>
+				<ListItem>
 					<div role="gridcell">
 						<button type="button" onClick={onMenuAction}>
 							open menu
 						</button>
 					</div>
-				</List.Item>
-			</List.Root>,
+				</ListItem>
+			</ListRoot>,
 		);
 
 		const menuButton = screen.getByRole("button", { name: "open menu" });
@@ -330,13 +331,13 @@ describe("List grid navigation", () => {
 		// aria-rowcount on the collection (posinset/setsize are invalid on grid rows
 		// per WAI-ARIA 1.2).
 		const listRender = render(
-			<List.VirtualRoot semantics="list" aria-label="windowed list" style={{ maxHeight: 200 }}>
+			<ListVirtualRoot semantics="list" aria-label="windowed list" style={{ maxHeight: 200 }}>
 				{gridRows.map((row) => (
-					<List.Item key={row.id}>
+					<ListItem key={row.id}>
 						<button type="button">{row.name}</button>
-					</List.Item>
+					</ListItem>
 				))}
-			</List.VirtualRoot>,
+			</ListVirtualRoot>,
 		);
 		await new Promise((resolve) => {
 			setTimeout(resolve, 100);
@@ -350,18 +351,18 @@ describe("List grid navigation", () => {
 		listRender.unmount();
 
 		render(
-			<List.VirtualRoot
+			<ListVirtualRoot
 				semantics="grid"
 				aria-label="windowed grid"
 				style={{ maxHeight: 200 }}
 				onActivate={() => {}}
 			>
 				{gridRows.map((row) => (
-					<List.Item key={row.id}>
+					<ListItem key={row.id}>
 						<div role="gridcell">{row.name}</div>
-					</List.Item>
+					</ListItem>
 				))}
-			</List.VirtualRoot>,
+			</ListVirtualRoot>,
 		);
 		await new Promise((resolve) => {
 			setTimeout(resolve, 100);
@@ -380,18 +381,18 @@ describe("List grid navigation", () => {
 		// active row unmounts (mouse scroll far away), the reference is dropped
 		// rather than left dangling, and the next arrow key restores it.
 		render(
-			<List.VirtualRoot
+			<ListVirtualRoot
 				semantics="grid"
 				aria-label="grid"
 				style={{ maxHeight: 200 }}
 				onActivate={() => {}}
 			>
 				{gridRows.map((row) => (
-					<List.Item key={row.id}>
+					<ListItem key={row.id}>
 						<div role="gridcell">{row.name}</div>
-					</List.Item>
+					</ListItem>
 				))}
-			</List.VirtualRoot>,
+			</ListVirtualRoot>,
 		);
 		await new Promise((resolve) => {
 			setTimeout(resolve, 100);

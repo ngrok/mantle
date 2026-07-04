@@ -114,7 +114,6 @@ export default [
 		...docRoute("components/qr-code"),
 		...docRoute("components/radio-group"),
 		...docRoute("components/sandboxed-on-click"),
-		...docRoute("components/scrollable-list"),
 		...docRoute("components/select"),
 		...docRoute("components/selectable-list"),
 		...docRoute("components/separator"),

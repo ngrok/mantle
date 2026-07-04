@@ -329,11 +329,11 @@
     "slug": "components/list",
     "status": "stable",
     "importPath": "@ngrok/mantle/list",
-    "summary": "The low-level scroll + row primitive behind Scrollable List and Selectable List.",
-    "jsdoc": "A low-level, composition-based **list primitive**: the shared scroll + row chrome and ARIA semantics behind `ScrollableList` and `SelectableList`.",
+    "summary": "A scrollable, optionally-virtualized list of clickable items.",
+    "jsdoc": "A scrollable, optionally-virtualized list of clickable items — the action / navigation counterpart to `SelectableList` (e.g. an account switcher or SSO provider picker).",
     "examples": [
-      "Composition:\n```\nList.Root                          (or List.VirtualRoot)\n└── List.Item\n    └── (your row content — a button, gridcells, a link, …)\n```",
-      "```tsx\n<List.Root semantics=\"list\" aria-label=\"Accounts\" className=\"max-h-80\">\n  {accounts.map((account) => (\n    <List.Item key={account.id} selected={account.id === currentId}>\n      <button type=\"button\" className=\"w-full px-2 py-1.5 text-left\">\n        {account.name}\n      </button>\n    </List.Item>\n  ))}\n</List.Root>\n```"
+      "Composition:\n```\nList.Viewport   (or .VirtualViewport)\n└── List.Item\n    ├── List.ItemTitle\n    └── List.ItemDescription\n```",
+      "```tsx\n<List.Viewport aria-label=\"Your accounts\" className=\"max-h-80\">\n  {accounts.map((account) => (\n    <List.Item key={account.id} onClick={() => switchTo(account.id)}>\n      <List.ItemTitle>{account.name}</List.ItemTitle>\n      <List.ItemDescription>\n        {account.plan} · {account.memberCount} members\n      </List.ItemDescription>\n    </List.Item>\n  ))}\n</List.Viewport>\n```"
     ]
   },
   {
@@ -471,18 +471,6 @@
     "jsdoc": "A container that prevents the click event from bubbling out of it.",
     "examples": [
       "```tsx\n<TableRow onClick={() => navigate(\"/somewhere\")}>\n  <TableRowCell>\n    <SandboxedOnClick allowClickEventDefault>\n      <Anchor href=\"https://ngrok.com/docs\">\n        See ngrok docs\n      </Anchor>\n    </SandboxedOnClick>\n  </TableRowCell>\n</TableRow>\n```"
-    ]
-  },
-  {
-    "name": "Scrollable List",
-    "slug": "components/scrollable-list",
-    "status": "stable",
-    "importPath": "@ngrok/mantle/scrollable-list",
-    "summary": "A scrollable, optionally-virtualized list of clickable rows.",
-    "jsdoc": "A scrollable, optionally-virtualized list of clickable rows — the action / navigation counterpart to `SelectableList` (e.g. an account switcher or SSO provider picker).",
-    "examples": [
-      "Composition:\n```\nScrollableList.Viewport   (or .VirtualViewport)\n└── ScrollableList.Item\n    ├── ScrollableList.ItemTitle\n    └── ScrollableList.ItemDescription\n```",
-      "```tsx\n<ScrollableList.Viewport aria-label=\"Your accounts\" className=\"max-h-80\">\n  {accounts.map((account) => (\n    <ScrollableList.Item key={account.id} onClick={() => switchTo(account.id)}>\n      <ScrollableList.ItemTitle>{account.name}</ScrollableList.ItemTitle>\n      <ScrollableList.ItemDescription>\n        {account.plan} · {account.memberCount} members\n      </ScrollableList.ItemDescription>\n    </ScrollableList.Item>\n  ))}\n</ScrollableList.Viewport>\n```"
     ]
   },
   {

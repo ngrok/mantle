@@ -1,290 +1,407 @@
 ---
 title: List
-description: The low-level scroll + row primitive behind Scrollable List and Selectable List.
+description: A scrollable, optionally-virtualized list of clickable items.
 ---
 
 import { cx } from "@ngrok/mantle/cx";
+import { MediaObject } from "@ngrok/mantle/media-object";
 import { List } from "@ngrok/mantle/list";
+import { BuildingsIcon } from "@phosphor-icons/react/Buildings";
+import { FingerprintIcon } from "@phosphor-icons/react/Fingerprint";
+import { KeyIcon } from "@phosphor-icons/react/Key";
+import { LockKeyIcon } from "@phosphor-icons/react/LockKey";
+import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
 import { useState } from "react";
 import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
 
-export const environments = [
-	{ id: "prod", name: "Production", region: "us-east-1" },
-	{ id: "staging", name: "Staging", region: "us-west-2" },
-	{ id: "dev", name: "Development", region: "eu-central-1" },
-	{ id: "preview", name: "Preview", region: "ap-south-1" },
-];
+export const accounts = Array.from({ length: 14 }, (_, index) => {
+	const names = [
+		"Cody Price",
+		"cody@ngrok.com",
+		"corp@ngrok.com",
+		"dogfood@ngrok.com",
+		"ngrok eng (dev)",
+		"acme corp",
+		"globex",
+	];
+	const plans = ["All Subscription", "Enterprise Subscription", "Free"];
+	const name = names[index % names.length];
+	return {
+		id: `account-${index}`,
+		name: index < names.length ? name : `${name} ${Math.floor(index / names.length) + 1}`,
+		plan: plans[index % plans.length],
+		memberCount: (index * 7 + 1) % 120,
+	};
+});
 
-export function BasicListExample() {
-	const [activeId, setActiveId] = useState("staging");
+export function ListExample() {
+	const [activeId, setActiveId] = useState("account-2");
 	return (
 		<div className="w-full max-w-md">
-			<List.Root semantics="list" aria-label="Environments" className="max-h-80">
-				{environments.map((environment) => (
-					<List.Item key={environment.id} selected={environment.id === activeId}>
-						<button
-							type="button"
-							onClick={() => setActiveId(environment.id)}
-							className={cx(
-								"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
-								"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
-							)}
-						>
-							<span className="text-strong font-medium">{environment.name}</span>
-							<span className="text-body leading-4">{environment.region}</span>
-						</button>
+			<List.Viewport aria-label="Your accounts" className="max-h-80">
+				{accounts.map((account) => (
+					<List.Item
+						key={account.id}
+						selected={account.id === activeId}
+						onClick={() => setActiveId(account.id)}
+					>
+						<List.ItemTitle>{account.name}</List.ItemTitle>
+						<List.ItemDescription>
+							{account.plan} · {account.memberCount} members
+						</List.ItemDescription>
 					</List.Item>
 				))}
-			</List.Root>
+			</List.Viewport>
 		</div>
 	);
 }
 
-export function PolymorphismExample() {
+export function ListVirtualExample() {
+	const [activeId, setActiveId] = useState("account-2");
 	return (
 		<div className="w-full max-w-md">
-			<List.Root semantics="list" aria-label="Environments" className="max-h-80">
-				{environments.map((environment) => (
-					<List.Item key={environment.id} asChild>
-						<a
-							href={`#${environment.id}`}
+			<List.VirtualViewport aria-label="Your accounts" className="max-h-80">
+				{accounts.map((account) => (
+					<List.Item
+						key={account.id}
+						selected={account.id === activeId}
+						onClick={() => setActiveId(account.id)}
+					>
+						<List.ItemTitle>{account.name}</List.ItemTitle>
+						<List.ItemDescription>
+							{account.plan} · {account.memberCount} members
+						</List.ItemDescription>
+					</List.Item>
+				))}
+			</List.VirtualViewport>
+		</div>
+	);
+}
+
+export const simpleAccounts = [
+	{ id: "personal", name: "Cody Price", plan: "All Subscription" },
+	{ id: "corp", name: "corp@ngrok.com", plan: "Enterprise Subscription" },
+	{ id: "dogfood", name: "dogfood@ngrok.com", plan: "Free" },
+];
+
+export function ListMinimalExample() {
+	return (
+		<div className="w-full max-w-md">
+			<List.Viewport aria-label="Switch account" className="max-h-80">
+				{simpleAccounts.map((account) => (
+					<List.Item key={account.id} onClick={() => {}}>
+						<List.ItemTitle>{account.name}</List.ItemTitle>
+						<List.ItemDescription>{account.plan}</List.ItemDescription>
+					</List.Item>
+				))}
+			</List.Viewport>
+		</div>
+	);
+}
+
+export function ListIsolatedExample() {
+	return (
+		<div className="w-full max-w-md">
+			<ul className="border-popover bg-popover scrollbar m-0 max-h-80 list-none overflow-y-auto overflow-x-hidden rounded-md border px-0 py-1">
+				{simpleAccounts.map((account) => (
+					<li key={account.id} className="px-1 pb-px last:pb-0">
+						<button
+							type="button"
+							onClick={() => {}}
 							className={cx(
-								"flex w-full flex-col gap-0.5 px-2 py-1.5 text-sm no-underline",
-								"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
+								"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
+								"hover:bg-active-menu-item",
+								"focus-visible:bg-active-menu-item focus-visible:outline-hidden",
 							)}
 						>
-							<span className="text-strong font-medium">{environment.name}</span>
-							<span className="text-body leading-4">{environment.region}</span>
+							<span className="text-strong font-medium">{account.name}</span>
+							<span className="text-body leading-4">{account.plan}</span>
+						</button>
+					</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+
+export const providers = [
+	{
+		id: "okta",
+		name: "Okta Workforce",
+		owner: "ngrok eng (dev)",
+		Icon: ShieldCheckIcon,
+		tint: "text-blue-600",
+	},
+	{
+		id: "entra",
+		name: "Microsoft Entra ID",
+		owner: "corp@ngrok.com",
+		Icon: BuildingsIcon,
+		tint: "text-sky-500",
+	},
+	{
+		id: "onelogin",
+		name: "OneLogin",
+		owner: "Cody Price",
+		Icon: FingerprintIcon,
+		tint: "text-orange-500",
+	},
+	{
+		id: "google",
+		name: "Google Workspace",
+		owner: "platform@ngrok.com",
+		Icon: KeyIcon,
+		tint: "text-red-500",
+	},
+	{
+		id: "auth0",
+		name: "Auth0",
+		owner: "security@ngrok.com",
+		Icon: LockKeyIcon,
+		tint: "text-violet-600",
+	},
+];
+
+export function ListLinkExample() {
+	return (
+		<div className="w-full max-w-md">
+			<List.Viewport aria-label="Identity providers" className="max-h-72">
+				{providers.map((provider) => (
+					<List.Item key={provider.id} asChild className="py-2.5">
+						<a href={`#${provider.id}`}>
+							<MediaObject.Root className="items-center gap-3">
+								<MediaObject.Media>
+									<provider.Icon weight="duotone" className={cx("size-8", provider.tint)} />
+								</MediaObject.Media>
+								<MediaObject.Content className="flex flex-col gap-0.5">
+									<List.ItemTitle>{provider.name}</List.ItemTitle>
+									<List.ItemDescription>{provider.owner}</List.ItemDescription>
+								</MediaObject.Content>
+							</MediaObject.Root>
 						</a>
 					</List.Item>
 				))}
-			</List.Root>
-		</div>
-	);
-}
-
-export const manyEnvironments = Array.from({ length: 60 }, (_, index) => ({
-	id: `env-${index}`,
-	name: `Environment ${index + 1}`,
-	region: ["us-east-1", "us-west-2", "eu-central-1", "ap-south-1"][index % 4],
-}));
-
-export function VirtualExample() {
-	const [activeId, setActiveId] = useState("env-2");
-	return (
-		<div className="w-full max-w-md">
-			<List.VirtualRoot semantics="list" aria-label="Environments" className="max-h-80">
-				{manyEnvironments.map((environment) => (
-					<List.Item key={environment.id} selected={environment.id === activeId}>
-						<button
-							type="button"
-							onClick={() => setActiveId(environment.id)}
-							className={cx(
-								"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
-								"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
-							)}
-						>
-							<span className="text-strong font-medium">{environment.name}</span>
-							<span className="text-body leading-4">{environment.region}</span>
-						</button>
-					</List.Item>
-				))}
-			</List.VirtualRoot>
+			</List.Viewport>
 		</div>
 	);
 }
 
 <PageHeader id="list">List</PageHeader>
 
-The low-level scroll + row **primitive** behind [`ScrollableList`](/components/scrollable-list) and [`SelectableList`](/components/selectable-list): the bordered, rounded `bg-popover` viewport (styled after the [`MultiSelect`](/components/multi-select) popover) and its hover / selected row pills, plus the ARIA wiring. It is composition-based — compose `List.Item` children under a `List.Root` (or the windowed `List.VirtualRoot`) and keep state on the rows.
-
-Reach for it directly only when neither higher-level component fits. **Most lists want `ScrollableList`** (an action / navigation list) **or `SelectableList`** (a multi-select checkbox grid) — they layer data, filtering, and selection on top of this primitive. Use `List` when you need the shared chrome with your own state and layout.
+A scrollable list of clickable rows — the action / navigation counterpart to [`SelectableList`](/components/selectable-list). Compose `List.Item` rows directly inside a `List.Viewport`; each is a `<button>` (with `onClick`) or your own element via `asChild` (e.g. an `<a>`), with an optional `selected` highlight. It shares `SelectableList`'s look — styled like the [`MultiSelect`](/components/multi-select) popover, with rows that highlight on hover / selection as an inset, rounded pill inside a bordered `bg-popover` container — and suits an account switcher or an SSO provider picker. It renders every row by default; for long lists, swap `Viewport` → [`VirtualViewport`](#virtualization) to window them.
 
 <Example>
-	<BasicListExample />
+	<ListExample />
+</Example>
+
+```tsx
+import { List } from "@ngrok/mantle/list";
+import { useState } from "react";
+
+function Example() {
+	const [activeId, setActiveId] = useState("account-2");
+
+	return (
+		<List.Viewport aria-label="Your accounts" className="max-h-80">
+			{accounts.map((account) => (
+				<List.Item
+					key={account.id}
+					selected={account.id === activeId}
+					onClick={() => setActiveId(account.id)}
+				>
+					<List.ItemTitle>{account.name}</List.ItemTitle>
+					<List.ItemDescription>
+						{account.plan} · {account.memberCount} members
+					</List.ItemDescription>
+				</List.Item>
+			))}
+		</List.Viewport>
+	);
+}
+```
+
+A minimal version — three rows, no `selected` state:
+
+<Example>
+	<ListMinimalExample />
+</Example>
+
+```tsx
+import { List } from "@ngrok/mantle/list";
+
+const accounts = [
+	{ id: "personal", name: "Cody Price", plan: "All Subscription" },
+	{ id: "corp", name: "corp@ngrok.com", plan: "Enterprise Subscription" },
+	{ id: "dogfood", name: "dogfood@ngrok.com", plan: "Free" },
+];
+
+<List.Viewport aria-label="Switch account" className="max-h-80">
+	{accounts.map((account) => (
+		<List.Item key={account.id} onClick={() => {}}>
+			<List.ItemTitle>{account.name}</List.ItemTitle>
+			<List.ItemDescription>{account.plan}</List.ItemDescription>
+		</List.Item>
+	))}
+</List.Viewport>;
+```
+
+The same three rows hand-built without `List` — same chrome, no virtualization (fine for short, static lists):
+
+<Example>
+	<ListIsolatedExample />
 </Example>
 
 ```tsx
 import { cx } from "@ngrok/mantle/cx";
-import { List } from "@ngrok/mantle/list";
-import { useState } from "react";
 
-const environments = [
-	{ id: "prod", name: "Production", region: "us-east-1" },
-	{ id: "staging", name: "Staging", region: "us-west-2" },
-	{ id: "dev", name: "Development", region: "eu-central-1" },
-	{ id: "preview", name: "Preview", region: "ap-south-1" },
+const accounts = [
+	{ id: "personal", name: "Cody Price", plan: "All Subscription" },
+	{ id: "corp", name: "corp@ngrok.com", plan: "Enterprise Subscription" },
+	{ id: "dogfood", name: "dogfood@ngrok.com", plan: "Free" },
 ];
 
-function Example() {
-	const [activeId, setActiveId] = useState("staging");
-
-	return (
-		<List.Root semantics="list" aria-label="Environments" className="max-h-80">
-			{environments.map((environment) => (
-				<List.Item key={environment.id} selected={environment.id === activeId}>
-					<button
-						type="button"
-						onClick={() => setActiveId(environment.id)}
-						className={cx(
-							"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
-							"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
-						)}
-					>
-						<span className="text-strong font-medium">{environment.name}</span>
-						<span className="text-body leading-4">{environment.region}</span>
-					</button>
-				</List.Item>
-			))}
-		</List.Root>
-	);
-}
+<ul className="border-popover bg-popover scrollbar m-0 max-h-80 list-none overflow-y-auto overflow-x-hidden rounded-md border px-0 py-1">
+	{accounts.map((account) => (
+		<li key={account.id} className="px-1 pb-px last:pb-0">
+			<button
+				type="button"
+				onClick={() => {}}
+				className={cx(
+					"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
+					"hover:bg-active-menu-item",
+					"focus-visible:bg-active-menu-item focus-visible:outline-hidden",
+				)}
+			>
+				<span className="text-strong font-medium">{account.name}</span>
+				<span className="text-body leading-4">{account.plan}</span>
+			</button>
+		</li>
+	))}
+</ul>;
 ```
 
 ## Composition
 
-`List` is a compound. `List.Root` (or `List.VirtualRoot`) renders the scroll viewport and its `List.Item` children; each row owns its own content and state.
-
 ```text showLineNumbers=false
-List.Root                          (or List.VirtualRoot)
+List.Viewport   (or .VirtualViewport)
 └── List.Item
-    └── (your row content — a button, gridcells, a link, …)
+    ├── List.ItemTitle
+    └── List.ItemDescription
 ```
 
-- **`Root`** renders the bordered, rounded `bg-popover` viewport and its `Item` children in normal flow — the non-virtualized default. **Bound its height** (`max-h-*`, `h-*`, or `min-h-0 flex-1` in a flex parent) so long lists scroll.
-- **`VirtualRoot`** is the drop-in windowed variant — same `Item` children, only the visible slice mounted via [`@tanstack/react-virtual`](https://tanstack.com/virtual). See [Virtualization](#virtualization).
-- **`Item`** is a single row — a `<div>` pill that tints on hover / when `selected`. It takes its ARIA shape from the root's `semantics` (see [Semantics](#semantics)) and supports `asChild` (see [Polymorphism](#polymorphism)). Give each a React `key`.
-
-## Semantics
-
-`Root` and `VirtualRoot` take a `semantics` prop that chooses the collection's ARIA shape — the tag stays a `<div>` (per WAI-ARIA the _role_, not the tag, carries the semantics), so both flavors share one implementation.
-
-- **`"list"`** (the default) renders a `role="list"` of `role="listitem"` rows: a non-selecting list of actions or links with native tab order, plus `Arrow`↑/`Arrow`↓ / `Home` / `End` moving focus between the rows' controls. This is what [`ScrollableList`](/components/scrollable-list) uses.
-- **`"grid"`** renders a `role="grid"` of `role="row"` rows carrying `aria-selected`, driven as a single tab stop with `aria-activedescendant` navigation that works across a virtualized window. Pass `onActivate` to react to `Space` / `Enter` on the active row (a bare click on a row fires it too, deferring to nested interactive content), and `itemId` to point `aria-activedescendant` at a real element you own (e.g. a row's checkbox). This is what [`SelectableList`](/components/selectable-list) uses.
-
-## Polymorphism
-
-`List.Item` accepts `asChild` to render as your own element instead of a `<div>`, keeping the pill chrome and the selection wiring. Render it as an `<a>` for a navigation row, for example — the whole pill becomes the link.
-
-<Example>
-	<PolymorphismExample />
-</Example>
-
-```tsx
-import { cx } from "@ngrok/mantle/cx";
-import { List } from "@ngrok/mantle/list";
-
-const environments = [
-	{ id: "prod", name: "Production", region: "us-east-1" },
-	{ id: "staging", name: "Staging", region: "us-west-2" },
-	{ id: "dev", name: "Development", region: "eu-central-1" },
-	{ id: "preview", name: "Preview", region: "ap-south-1" },
-];
-
-function Example() {
-	return (
-		<List.Root semantics="list" aria-label="Environments" className="max-h-80">
-			{environments.map((environment) => (
-				<List.Item key={environment.id} asChild>
-					<a
-						href={`#${environment.id}`}
-						className={cx(
-							"flex w-full flex-col gap-0.5 px-2 py-1.5 text-sm no-underline",
-							"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
-						)}
-					>
-						<span className="text-strong font-medium">{environment.name}</span>
-						<span className="text-body leading-4">{environment.region}</span>
-					</a>
-				</List.Item>
-			))}
-		</List.Root>
-	);
-}
-```
+- **`Viewport`** renders the rounded, scrollable `bg-popover` container and its `Item` children (all of them — non-virtualized). Reads each item's `selected` / `disabled` to style its row. **Bound its height** (`max-h-*`, `h-*`, or `min-h-0 flex-1` in a flex parent) so long lists scroll.
+- **`VirtualViewport`** is the drop-in windowed variant — same `Item` children, only the visible slice mounted. See [Virtualization](#virtualization).
+- **`Item`** is a clickable row — a `<button>` by default (`onClick`), or your own element via `asChild`. `selected` gives the tinted pill.
+- **`ItemTitle` / `ItemDescription`** are optional styled spans for the emphasized title and de-emphasized sub-line.
 
 ## Virtualization
 
-`List.Root` renders every row. For a long collection (hundreds+), swap in `List.VirtualRoot`: it windows the same `Item` children via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. The call site is otherwise identical — same children, same props — so opting in never changes how you author the list. **Bound its height** so the virtualizer has a viewport to measure. The example below has 60 rows; scroll to see them mount and unmount.
+`List.Viewport` renders every row — simplest, and right for the short lists most action/navigation menus are. For a long list (hundreds+ of rows), swap in `List.VirtualViewport`: it windows the same `Item` children via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. The call site is otherwise identical — same children, same props. (`@tanstack/react-virtual` ships with every list entrypoint; it is small — a few kB gzipped — and does no windowing work until a `VirtualViewport` renders.)
 
 <Example>
-	<VirtualExample />
+	<ListVirtualExample />
 </Example>
 
 ```tsx
-import { cx } from "@ngrok/mantle/cx";
 import { List } from "@ngrok/mantle/list";
 import { useState } from "react";
 
-const environments = Array.from({ length: 60 }, (_, index) => ({
-	id: `env-${index}`,
-	name: `Environment ${index + 1}`,
-	region: ["us-east-1", "us-west-2", "eu-central-1", "ap-south-1"][index % 4],
-}));
-
-// `VirtualRoot` is a drop-in for `Root` — same `Item` children, same props.
+// `VirtualViewport` is a drop-in for `Viewport` — same `Item` children, same props.
 function Example() {
-	const [activeId, setActiveId] = useState("env-2");
+	const [activeId, setActiveId] = useState("account-2");
 
 	return (
-		<List.VirtualRoot semantics="list" aria-label="Environments" className="max-h-80">
-			{environments.map((environment) => (
-				<List.Item key={environment.id} selected={environment.id === activeId}>
-					<button
-						type="button"
-						onClick={() => setActiveId(environment.id)}
-						className={cx(
-							"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
-							"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
-						)}
-					>
-						<span className="text-strong font-medium">{environment.name}</span>
-						<span className="text-body leading-4">{environment.region}</span>
-					</button>
+		<List.VirtualViewport aria-label="Your accounts" className="max-h-80">
+			{accounts.map((account) => (
+				<List.Item
+					key={account.id}
+					selected={account.id === activeId}
+					onClick={() => setActiveId(account.id)}
+				>
+					<List.ItemTitle>{account.name}</List.ItemTitle>
+					<List.ItemDescription>
+						{account.plan} · {account.memberCount} members
+					</List.ItemDescription>
 				</List.Item>
 			))}
-		</List.VirtualRoot>
+		</List.VirtualViewport>
 	);
 }
 ```
 
-> **Windowing trade-off.** Off-screen rows aren't in the DOM, so Tab and browser find-in-page only reach mounted rows. Grid keyboard navigation still spans the full collection (arrows move the active row and scroll it into view), because focus stays on the collection via `aria-activedescendant` rather than on a row that could unmount.
+> **Windowing trade-off.** Off-screen rows aren't in the DOM, so Tab and browser find-in-page only reach mounted rows (arrow keys still span the full list — they mount the target row before focusing it) — the right trade for a large enough list. Prefer `Viewport` until a list is actually long.
+
+## Polymorphism
+
+Render rows as links by passing `asChild` and an `<a>` — the row chrome (hover pill, keyboard-focus tint) applies to your element, so clicking navigates. Rows compose freely: each one here is a [`MediaObject`](/components/media-object) with the provider icon on the left and the name over a de-emphasized owner on the right — an SSO identity-provider picker, as a list rather than a stack of cards.
+
+<Example>
+	<ListLinkExample />
+</Example>
+
+```tsx
+import { cx } from "@ngrok/mantle/cx";
+import { MediaObject } from "@ngrok/mantle/media-object";
+import { List } from "@ngrok/mantle/list";
+
+<List.Viewport aria-label="Identity providers" className="max-h-72">
+	{providers.map((provider) => (
+		<List.Item key={provider.id} asChild className="py-2.5">
+			<a href={`#${provider.id}`}>
+				<MediaObject.Root className="items-center gap-3">
+					<MediaObject.Media>
+						<provider.Icon weight="duotone" className={cx("size-8", provider.tint)} />
+					</MediaObject.Media>
+					<MediaObject.Content className="flex flex-col gap-0.5">
+						<List.ItemTitle>{provider.name}</List.ItemTitle>
+						<List.ItemDescription>{provider.owner}</List.ItemDescription>
+					</MediaObject.Content>
+				</MediaObject.Root>
+			</a>
+		</List.Item>
+	))}
+</List.Viewport>;
+```
 
 ## Accessibility
 
-Name the collection with `aria-label` (or `aria-labelledby`) on `Root` / `VirtualRoot`. Under `"list"` semantics the rows are a `role="list"` / `role="listitem"` structure with native tab order — put your own focusable control (a `<button>` or an `asChild` `<a>`) inside each row; `Arrow`↑/`Arrow`↓ / `Home` / `End` also move real focus between those controls (skipping `disabled` rows, no wrap), and the focused row tints like hover instead of ringing the control. Under `"grid"` semantics the collection is a single tab stop: `Arrow` / `Home` / `End` move an active row tracked with `aria-activedescendant` (so focus never rides a row and navigation survives virtualization), skipping `disabled` rows, and `Space` / `Enter` — or a bare click on a row (clicks on a nested control, label, or link are left to that control) — fires `onActivate`. Pressing or clicking anywhere on a row also makes it the active row. Keys pressed while a nested tabbable control (a link, an overflow-menu button) has focus are handled by that control, not the grid — `Enter` activates the control instead of toggling the row. Under virtualization, screen-reader counts stay true: windowed `list` rows carry `aria-posinset` / `aria-setsize`, while windowed `grid` rows carry `aria-rowindex` with `aria-rowcount` on the grid.
+The list is a `role="list"` of `role="listitem"` rows (the tag is a `<div>` — per WAI-ARIA the role, not the tag, carries the semantics); each `Item` is a focusable `<button>` (or your `asChild` element) inside its row. It is a **non-selecting** list, not a selection widget — that's [`SelectableList`](/components/selectable-list)'s job. Provide an `aria-label` (or `aria-labelledby`) on the `Viewport` so the list has an accessible name. A `selected` row is announced via `aria-current`, not just tinted. Disabled rows are dimmed: a `<button>` row sets the native `disabled`, while an `asChild` row is conveyed with `aria-disabled`, removed from the tab order, and swallows clicks — but prefer omitting or removing the `href` for a genuinely disabled link.
+
+Keyboard: rows keep their native tab order, and `Arrow`↑/`Arrow`↓ / `Home` / `End` also move focus between rows, skipping disabled ones (no wrap — arrowing past the last row holds). The focused row lights up with the same tint as hover instead of drawing a focus ring on the item, matching the [`SelectableList`](/components/selectable-list) active row. Arrow navigation works under `VirtualViewport` too — a jump scrolls the target row into view and mounts it before moving focus — though off-screen rows still aren't reachable by Tab alone (see [Virtualization](#virtualization)).
 
 ## API Reference
 
-### List.Root
+### List.Viewport
 
-The non-virtualized collection. Accepts all `<div>` props, plus:
+The non-virtualized container. Accepts all `<div>` props, plus:
 
-| Prop              | Type                         | Default  | Description                                                                                                            |
-| ----------------- | ---------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `semantics?`      | `"list" \| "grid"`           | `"list"` | ARIA shape for the collection and its rows.                                                                            |
-| `onActivate?`     | `(index: number) => void`    |          | Called with the active row's index when it is activated under `grid` — by `Space` / `Enter` or a bare row click.       |
-| `itemId?`         | `(index: number) => string`  |          | The DOM id `aria-activedescendant` resolves to for a row index. Override to reference an element you own.              |
-| `isItemDisabled?` | `(index: number) => boolean` |          | Whether the row at an index is disabled. Defaults to the row element's `disabled` prop; pass it for data-driven state. |
+| Prop       | Type        | Default | Description                          |
+| ---------- | ----------- | ------- | ------------------------------------ |
+| `children` | `ReactNode` |         | `List.Item` rows (all are rendered). |
 
 Bound the height (e.g. `className="max-h-80"`) so long lists scroll.
 
-### List.VirtualRoot
+### List.VirtualViewport
 
-The windowed collection — same surface as `Root` (compose the same `Item` children), plus the virtualizer knobs:
+The windowed container — same surface as `Viewport` (compose the same `Item` children), plus the virtualizer knobs:
 
-| Prop                  | Type     | Default | Description                                                             |
-| --------------------- | -------- | ------- | ----------------------------------------------------------------------- |
-| `estimateItemHeight?` | `number` | `44`    | Estimated item height (px) used to seed the virtualizer before measure. |
-| `overscan?`           | `number` | `8`     | Rows rendered beyond the visible window on each side.                   |
+| Prop                  | Type        | Default | Description                                                             |
+| --------------------- | ----------- | ------- | ----------------------------------------------------------------------- |
+| `children`            | `ReactNode` |         | `List.Item` rows (only the visible window is mounted).                  |
+| `estimateItemHeight?` | `number`    | `44`    | Estimated item height (px) used to seed the virtualizer before measure. |
+| `overscan?`           | `number`    | `8`     | Rows rendered beyond the visible window on each side.                   |
 
 ### List.Item
 
-A single row. Accepts all `<div>` props (minus `role`, owned by the collection), plus:
+A clickable row. Accepts all `<button>` props (minus `type`), plus:
 
-| Prop        | Type      | Default | Description                                                                                                              |
-| ----------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `selected?` | `boolean` | `false` | Tints the pill and, under `grid` semantics, sets `aria-selected`.                                                        |
-| `disabled?` | `boolean` | `false` | Suppresses the hover tint; under `grid` semantics the row carries `aria-disabled` and grid keyboard navigation skips it. |
-| `asChild?`  | `boolean` | `false` | Render the row as the provided child element (e.g. an `<a>`) instead of a `<div>`.                                       |
+| Prop        | Type      | Default | Description                                                                                                                                                                               |
+| ----------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `selected?` | `boolean` | `false` | Marks the row selected/current (tinted pill) and sets `aria-current`, so the state is announced, not just shown. Omit for a plain action/navigation list.                                 |
+| `disabled?` | `boolean` | `false` | Disables the row (dimmed). `disabled` on the button; with `asChild`, `aria-disabled` + removal from the tab order, and clicks are swallowed — prefer omitting `href` for a disabled link. |
+| `asChild?`  | `boolean` | `false` | Render the row as the provided child element (e.g. an `<a>`) instead of a `<button>`.                                                                                                     |
+
+### List.ItemTitle / List.ItemDescription
+
+Styled `<span>`s for the title and de-emphasized sub-line inside an `Item`. Both accept all `<span>` props.

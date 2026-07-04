@@ -265,11 +265,6 @@
 			"types": "./dist/sandboxed-on-click.d.ts",
 			"import": "./dist/sandboxed-on-click.js"
 		},
-		"./scrollable-list": {
-			"@ngrok/src-live-types": "./src/components/scrollable-list/index.ts",
-			"types": "./dist/scrollable-list.d.ts",
-			"import": "./dist/scrollable-list.js"
-		},
 		"./select": {
 			"@ngrok/src-live-types": "./src/components/select/index.ts",
 			"types": "./dist/select.d.ts",

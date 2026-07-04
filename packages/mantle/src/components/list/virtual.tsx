@@ -22,11 +22,11 @@ import type { ListRootProps, ListItemContextValue, ListItemPlacement } from "./p
  *
  * @example
  * ```tsx
- * <List.VirtualRoot aria-label="Accounts" className="max-h-80" estimateItemHeight={36} overscan={12}>
- *   <List.Item>
+ * <VirtualRoot aria-label="Accounts" className="max-h-80" estimateItemHeight={36} overscan={12}>
+ *   <Item>
  *     <button type="button">Acme Inc</button>
- *   </List.Item>
- * </List.VirtualRoot>
+ *   </Item>
+ * </VirtualRoot>
  * ```
  */
 type VirtualRootProps = ListRootProps & {
@@ -89,7 +89,7 @@ function WindowedItem({
 
 	return <ListItemContext.Provider value={value}>{children}</ListItemContext.Provider>;
 }
-WindowedItem.displayName = "ListWindowedItem";
+WindowedItem.displayName = "ListPrimitiveWindowedItem";
 
 /**
  * The windowed counterpart to `Root`: renders only the visible slice of its
@@ -117,14 +117,14 @@ WindowedItem.displayName = "ListWindowedItem";
  *
  * @example
  * ```tsx
- * <List.VirtualRoot semantics="grid" aria-label="Access keys" className="max-h-80" onActivate={toggleByIndex}>
+ * <VirtualRoot semantics="grid" aria-label="Access keys" className="max-h-80" onActivate={toggleByIndex}>
  *   {keys.map((key) => (
- *     <List.Item key={key.id} selected={selected.has(key.id)}>
+ *     <Item key={key.id} selected={selected.has(key.id)}>
  *       <div role="gridcell"><Checkbox checked={selected.has(key.id)} tabIndex={-1} /></div>
  *       <div role="gridcell">{key.name}</div>
- *     </List.Item>
+ *     </Item>
  *   ))}
- * </List.VirtualRoot>
+ * </VirtualRoot>
  * ```
  */
 const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
@@ -247,7 +247,7 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 		);
 	},
 );
-VirtualRoot.displayName = "ListVirtualRoot";
+VirtualRoot.displayName = "ListPrimitiveVirtualRoot";
 
 export {
 	//,

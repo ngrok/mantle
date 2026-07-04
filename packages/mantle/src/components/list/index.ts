@@ -1,13 +1,11 @@
 /**
- * Re-exports for the List component — the low-level scroll + row primitive that
- * also backs `ScrollableList` and `SelectableList` (mirroring how
- * `dialog/primitive` backs the dialog family).
+ * Re-exports for the List component — a scrollable, optionally-virtualized
+ * list of clickable items (account switchers, SSO provider pickers).
  *
- * The public `List` compound is assembled in `./list.js`. The plain `Root` /
- * `Item` live in `./primitive.js` and the windowed `VirtualRoot` in `./virtual.js`
- * — the split keeps the plain shell free of virtualizer code, though every list
- * entrypoint re-exports `VirtualRoot`, so `@tanstack/react-virtual` (small, and
- * inert until a `VirtualRoot` renders) ships with each of them.
+ * The list primitive backing it (and `SelectableList`) lives in
+ * `./primitive.js` / `./virtual.js` and is deliberately **not** exported — it
+ * is internal shared implementation, mirroring how `dialog/primitive` backs
+ * the dialog family.
  *
  * @see https://mantle.ngrok.com/components/list
  */
@@ -19,12 +17,7 @@ export {
 
 export type {
 	//,
-	ListRootProps,
 	ListItemProps,
-	ListSemantics,
-} from "./primitive.js";
-
-export type {
-	//,
-	VirtualRootProps,
-} from "./virtual.js";
+	ListViewportProps,
+	ListVirtualViewportProps,
+} from "./list.js";
