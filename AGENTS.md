@@ -11,6 +11,7 @@ This file and [CONVENTIONS.md](./CONVENTIONS.md) are active instructions, not ba
 Before editing:
 
 - Read the relevant [CONVENTIONS.md](./CONVENTIONS.md) sections for the files being changed.
+- When designing new components, hooks, or public API, also read the [Philosophy page](./apps/www/app/docs/philosophy.mdx) (published at [mantle.ngrok.com/philosophy](https://mantle.ngrok.com/philosophy)) — it explains the design rationale the conventions distill. It is context, not a rulebook: where the two differ, CONVENTIONS.md governs.
 - Search before creating helpers, hooks, components, parsers, formatters, utilities, or dependencies — prefer existing tested code and package subpath exports over reimplementation. Inspect the smallest relevant scope first (`packages/mantle/src`, then the owning app).
 - For dependency changes, check `pnpm-workspace.yaml` and follow the catalog / exact-version rules.
 
