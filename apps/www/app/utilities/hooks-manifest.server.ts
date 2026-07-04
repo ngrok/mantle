@@ -133,7 +133,15 @@ function firstSentenceFromJsDoc(jsdoc: string): string | undefined {
 		return undefined;
 	}
 
-	const flattened = description.replace(/\s+/g, " ").trim();
+	// Inline `{@link Target}` / `{@link Target label}` tags read as raw JSDoc
+	// syntax in plain-text summaries — render them as their label (or target).
+	const flattened = description
+		.replace(/\s+/g, " ")
+		.replace(
+			/\{@link\s+([^}|\s]+)(?:[|\s]+([^}]+))?\}/g,
+			(_match, target: string, label?: string) => (label ?? target).trim(),
+		)
+		.trim();
 	const sentenceEnd = flattened.search(/\.\s+(?=[A-Z])|\.$/);
 	if (sentenceEnd === -1) {
 		return flattened;

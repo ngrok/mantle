@@ -18,6 +18,16 @@ describe("agent manifests", () => {
 		expect(useComposedRefs?.summary).toContain("composes multiple refs");
 	});
 
+	// Regression: summaries previously leaked raw JSDoc syntax like
+	// "{@link ScrollBehavior}" into llms.txt and /api/hooks.json.
+	it("renders inline {@link} tags as plain text in summaries", async () => {
+		const manifest = await buildHooksManifest();
+		const useScrollBehavior = manifest.hooks.find((hook) => hook.name === "useScrollBehavior");
+
+		expect(useScrollBehavior?.summary).toContain("ScrollBehavior");
+		expect(useScrollBehavior?.summary).not.toContain("{@link");
+	});
+
 	it("builds utility summaries from bundled Mantle source", async () => {
 		const manifest = await buildUtilitiesManifest();
 		const cx = manifest.utilities.find((utility) => utility.name === "cx");
