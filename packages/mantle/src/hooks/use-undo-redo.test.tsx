@@ -3,6 +3,19 @@ import { describe, expect, test } from "vitest";
 import { useUndoRedo } from "./use-undo-redo.js";
 
 describe("useUndoRedo", () => {
+	test("rejects nullish snapshot types at the type level", () => {
+		// `undefined` is reserved as the "stack is empty" sentinel, so the
+		// generic must not admit nullish snapshot types.
+		// @ts-expect-error — undefined is not a valid snapshot type
+		const withUndefined = renderHook(() => useUndoRedo<string | undefined>());
+		// @ts-expect-error — null is not a valid snapshot type
+		const withNull = renderHook(() => useUndoRedo<string | null>());
+
+		// the generic is erased at runtime — both still mount fine
+		expect(withUndefined.result.current.canUndo).toBe(false);
+		expect(withNull.result.current.canUndo).toBe(false);
+	});
+
 	test("starts with empty history", () => {
 		const { result } = renderHook(() => useUndoRedo<string>());
 

@@ -28,8 +28,10 @@ type UseUndoRedoReturn<T> = {
  * call sees the result of the previous one.
  *
  * @typeParam T - The type of the value being snapshotted (e.g. a list of
- *   items, a serialized form value, etc.). `undefined` is reserved as the
- *   "stack is empty" sentinel and cannot itself be stored as a snapshot.
+ *   items, a serialized form value, etc.). Constrained to non-nullish
+ *   values: `undefined` is reserved as the "stack is empty" sentinel and
+ *   cannot itself be stored as a snapshot, and `null` snapshots would
+ *   defeat the truthiness checks used at typical call sites.
  *
  * @returns An object with the current undo/redo capability flags and
  *   actions:
@@ -79,7 +81,7 @@ type UseUndoRedoReturn<T> = {
  *   </div>
  * );
  */
-function useUndoRedo<T>(): UseUndoRedoReturn<T> {
+function useUndoRedo<T extends NonNullable<unknown>>(): UseUndoRedoReturn<T> {
 	/**
 	 * Why refs instead of reducer state: `undo`/`redo` must both mutate the
 	 * history *and* return the popped snapshot. With reducer state, the
