@@ -19,14 +19,17 @@ Custom React hooks exported from `@ngrok/mantle/hooks`.
 | `useCallbackRef`            | Returns a memoized callback that always refers to the latest function passed to it. |
 | `useComposedRefs`           | Composes multiple React refs into a single callback ref.                            |
 | `useCopyToClipboard`        | Copies a string to the clipboard.                                                   |
+| `useDebounce`               | Returns a debounced copy of a value that updates after changes pause.               |
 | `useDebouncedCallback`      | Creates a debounced version of a callback function.                                 |
 | `useIsHydrated`             | Returns whether the component tree has been hydrated on the client.                 |
 | `useIsomorphicLayoutEffect` | Uses `useLayoutEffect` on the client and `useEffect` on the server.                 |
+| `useLocalStorage`           | SSR-safe localStorage string state, synced across hook instances and tabs.          |
+| `useSessionStorage`         | SSR-safe sessionStorage string state for per-tab persistence.                       |
 | `useMatchesMediaQuery`      | Subscribes to and returns the result of a CSS media query.                          |
 | `usePrefersReducedMotion`   | Returns `true` when the user prefers reduced motion.                                |
-| `useRandomStableId`         | Generates a random, stable ID safe for CSS selectors and element IDs.               |
 | `useScrollBehavior`         | Returns a `ScrollBehavior` that respects the user's reduced motion preference.      |
 | `useInView`                 | Returns `true` when a DOM element is visible within the viewport.                   |
+| `useUndoRedo`               | Generic undo/redo history stacks for snapshotting state.                            |
 
 ## useBreakpoint
 
@@ -101,17 +104,51 @@ const MyInput = forwardRef<HTMLInputElement>((props, forwardedRef) => {
 ## useCopyToClipboard
 
 ```tsx
-const [copiedValue, copy] = useCopyToClipboard();
+const copy = useCopyToClipboard();
 ```
 
-Copies a string to the clipboard. Returns a tuple of the last copied value and a copy function. Includes a fallback for older browsers.
+Returns a stable async function that copies a string to the clipboard. Uses the Clipboard API when available and falls back to a polyfill for older browsers. `await` the call to observe success — it throws when copying fails.
 
 ```tsx
 import { useCopyToClipboard } from "@ngrok/mantle/hooks";
+import { useState } from "react";
 
 function CopyButton({ text }: { text: string }) {
-	const [copiedValue, copy] = useCopyToClipboard();
-	return <button onClick={() => copy(text)}>{copiedValue === text ? "Copied!" : "Copy"}</button>;
+	const copy = useCopyToClipboard();
+	const [copied, setCopied] = useState(false);
+
+	return (
+		<button
+			onClick={async () => {
+				await copy(text);
+				setCopied(true);
+			}}
+		>
+			{copied ? "Copied!" : "Copy"}
+		</button>
+	);
+}
+```
+
+## useDebounce
+
+```tsx
+const debouncedValue = useDebounce(value, { waitMs: 300 });
+```
+
+Returns a debounced copy of a value: it only updates after the value has stopped changing for `waitMs` milliseconds. Rapid successive changes collapse into a single trailing update. To debounce a function instead of a value, use `useDebouncedCallback`.
+
+```tsx
+import { useDebounce } from "@ngrok/mantle/hooks";
+import { useState } from "react";
+
+function Search() {
+	const [query, setQuery] = useState("");
+	const debouncedQuery = useDebounce(query, { waitMs: 300 });
+	// fetches keyed on debouncedQuery fire once per typing pause
+	const results = useSearchResults(debouncedQuery);
+
+	return <input value={query} onChange={(event) => setQuery(event.target.value)} />;
 }
 ```
 
@@ -175,6 +212,56 @@ function MeasureElement() {
 }
 ```
 
+## useLocalStorage
+
+```tsx
+const [value, setValue] = useLocalStorage("key", "default");
+```
+
+SSR-safe localStorage-backed string state. Server rendering returns the default and never touches localStorage. Values are JSON-encoded on write and decoded on read. The setter keeps every same-key hook instance in the tab in sync, and cross-tab changes arrive via the native `storage` event. Missing or corrupt entries resolve to the default instead of throwing.
+
+```tsx
+import { useLocalStorage } from "@ngrok/mantle/hooks";
+
+function DateFormatPicker() {
+	const [dateFormat, setDateFormat] = useLocalStorage("dateFormat", "MMM d, y");
+
+	return (
+		<select value={dateFormat} onChange={(event) => setDateFormat(event.target.value)}>
+			<option value="MMM d, y">Aug 9, 2025</option>
+			<option value="y-MM-dd">2025-08-09</option>
+		</select>
+	);
+}
+```
+
+## useSessionStorage
+
+```tsx
+const [value, setValue] = useSessionStorage("key", "default");
+```
+
+The per-tab sibling of `useLocalStorage` with the same contract, backed by sessionStorage: values persist for the rest of the tab session and every same-key hook instance in the tab stays in sync.
+
+```tsx
+import { useSessionStorage } from "@ngrok/mantle/hooks";
+
+function MfaWarningBanner() {
+	const [dismissed, setDismissed] = useSessionStorage("mfa-warning-dismissed", "false");
+
+	if (dismissed === "true") {
+		return null;
+	}
+
+	return (
+		<div role="alert">
+			Enable MFA to secure your account.
+			<button onClick={() => setDismissed("true")}>Dismiss</button>
+		</div>
+	);
+}
+```
+
 ## useMatchesMediaQuery
 
 ```tsx
@@ -228,24 +315,6 @@ function shakeElement(element: HTMLElement) {
 		return;
 	}
 	element.animate(/* ... */);
-}
-```
-
-## useRandomStableId
-
-```tsx
-const id = useRandomStableId("prefix");
-```
-
-Generates a random, stable ID. Similar to `useId`, but produces an ID that is safe for use in CSS selectors and as element IDs. Accepts an optional prefix (defaults to `"mantle"`).
-
-```tsx
-import { useRandomStableId } from "@ngrok/mantle/hooks";
-import type { PropsWithChildren } from "react";
-
-function Tooltip({ children }: PropsWithChildren) {
-	const id = useRandomStableId("tooltip");
-	return <div id={id}>{children}</div>;
 }
 ```
 
@@ -320,6 +389,61 @@ A scrollable container where the observed element transitions between in-view an
 <Example className="p-0 overflow-hidden">
 	<UseInViewDemo />
 </Example>
+
+## useUndoRedo
+
+```tsx
+const { canUndo, canRedo, push, undo, redo } = useUndoRedo<T>();
+```
+
+Generic undo/redo hook that maintains two history stacks (undo and redo). The hook does not own your application state — it helps you snapshot it. Call `push(snapshot)` _before_ mutating state, then `undo(current)` or `redo(current)` return the snapshot to apply, or `undefined` when their stack is empty. Pushing a new snapshot clears the redo stack, matching standard editor semantics.
+
+```tsx
+import { useUndoRedo } from "@ngrok/mantle/hooks";
+import { useState } from "react";
+
+function TagEditor() {
+	const [tags, setTags] = useState<string[]>([]);
+	const { push, undo, redo, canUndo, canRedo } = useUndoRedo<string[]>();
+
+	function removeTag(tag: string) {
+		push(tags); // snapshot before mutation
+		setTags((previous) => previous.filter((entry) => entry !== tag));
+	}
+
+	return (
+		<div>
+			<button
+				disabled={!canUndo}
+				onClick={() => {
+					const previous = undo(tags);
+					if (previous) {
+						setTags(previous);
+					}
+				}}
+			>
+				Undo
+			</button>
+			<button
+				disabled={!canRedo}
+				onClick={() => {
+					const next = redo(tags);
+					if (next) {
+						setTags(next);
+					}
+				}}
+			>
+				Redo
+			</button>
+			{tags.map((tag) => (
+				<button key={tag} onClick={() => removeTag(tag)}>
+					{tag} ✕
+				</button>
+			))}
+		</div>
+	);
+}
+```
 
 ```tsx
 "use client";

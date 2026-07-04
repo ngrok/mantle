@@ -1,6 +1,7 @@
 import { canonicalHref } from "~/utilities/canonical-origin";
 import { loadFrontmatter, urlToFileMap } from "~/utilities/docs";
 import { etagFor } from "~/utilities/etag";
+import { buildHooksManifest } from "~/utilities/hooks-manifest.server";
 import type { Route } from "./+types/llms[.]txt";
 
 type DocEntry = {
@@ -113,6 +114,8 @@ async function buildBody(): Promise<string> {
 		"",
 	];
 
+	const hooksManifest = await buildHooksManifest();
+
 	for (const section of sections) {
 		lines.push(`## ${section.title}`, "");
 		for (const entry of section.entries) {
@@ -120,6 +123,17 @@ async function buildBody(): Promise<string> {
 			const mdUrl = canonicalHref(pathForSlug(entry.slug, ".md"));
 			const summary = entry.description ? `: ${entry.description}` : "";
 			lines.push(`- [${entry.title}](${url}) ([md](${mdUrl}))${summary}`);
+		}
+		// The hooks docs live on a single page, which would otherwise surface
+		// as one opaque entry here. List every exported hook individually
+		// (sourced from the same manifest as /api/hooks.json) so agents can
+		// discover each one and deep-link to its heading anchor.
+		if (section.id === "hooks") {
+			for (const hook of hooksManifest.hooks) {
+				const url = `${canonicalHref("/hooks")}#${hook.name.toLowerCase()}`;
+				const summary = hook.summary ? `: ${hook.summary}` : "";
+				lines.push(`- [${hook.name}](${url})${summary}`);
+			}
 		}
 		lines.push("");
 	}

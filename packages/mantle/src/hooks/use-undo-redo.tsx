@@ -1,53 +1,4 @@
-import { useCallback, useMemo, useReducer } from "react";
-
-type UndoRedoState<T> = {
-	undoStack: T[];
-	redoStack: T[];
-};
-
-type UndoRedoAction<T> =
-	| { type: "push"; snapshot: T }
-	| { type: "undo"; current: T }
-	| { type: "redo"; current: T };
-
-function undoRedoReducer<T>(state: UndoRedoState<T>, action: UndoRedoAction<T>): UndoRedoState<T> {
-	switch (action.type) {
-		case "push": {
-			return {
-				undoStack: [...state.undoStack, action.snapshot],
-				redoStack: [],
-			};
-		}
-		case "undo": {
-			if (state.undoStack.length === 0) {
-				return state;
-			}
-			const undoStack = state.undoStack.slice(0, -1);
-			const previous = state.undoStack[state.undoStack.length - 1];
-			if (previous === undefined) {
-				return state;
-			}
-			return {
-				undoStack,
-				redoStack: [...state.redoStack, action.current],
-			};
-		}
-		case "redo": {
-			if (state.redoStack.length === 0) {
-				return state;
-			}
-			const redoStack = state.redoStack.slice(0, -1);
-			const next = state.redoStack[state.redoStack.length - 1];
-			if (next === undefined) {
-				return state;
-			}
-			return {
-				undoStack: [...state.undoStack, action.current],
-				redoStack,
-			};
-		}
-	}
-}
+import { useCallback, useMemo, useReducer, useRef } from "react";
 
 type UseUndoRedoReturn<T> = {
 	/** Whether there are actions to undo. */
@@ -63,8 +14,7 @@ type UseUndoRedoReturn<T> = {
 };
 
 /**
- * Generic undo/redo hook backed by a reducer that maintains two history
- * stacks (undo and redo).
+ * Generic undo/redo hook that maintains two history stacks (undo and redo).
  *
  * The hook does not own your application state — instead it helps you
  * snapshot it. Call `push(snapshot)` *before* mutating state to capture
@@ -73,8 +23,15 @@ type UseUndoRedoReturn<T> = {
  * the snapshot to apply, or `undefined` if their stack is empty. Pushing a
  * new snapshot clears the redo stack, matching standard editor semantics.
  *
+ * `push`, `undo`, and `redo` operate on the live history, so calling them
+ * multiple times within a single event handler works as expected — each
+ * call sees the result of the previous one.
+ *
  * @typeParam T - The type of the value being snapshotted (e.g. a list of
- *   items, a serialized form value, etc.).
+ *   items, a serialized form value, etc.). Constrained to non-nullish
+ *   values: `undefined` is reserved as the "stack is empty" sentinel and
+ *   cannot itself be stored as a snapshot, and `null` snapshots would
+ *   defeat the truthiness checks used at typical call sites.
  *
  * @returns An object with the current undo/redo capability flags and
  *   actions:
@@ -124,49 +81,59 @@ type UseUndoRedoReturn<T> = {
  *   </div>
  * );
  */
-function useUndoRedo<T>(): UseUndoRedoReturn<T> {
-	const [state, dispatch] = useReducer(undoRedoReducer<T>, {
-		undoStack: [],
-		redoStack: [],
-	});
+function useUndoRedo<T extends NonNullable<unknown>>(): UseUndoRedoReturn<T> {
+	/**
+	 * Why refs instead of reducer state: `undo`/`redo` must both mutate the
+	 * history *and* return the popped snapshot. With reducer state, the
+	 * callbacks close over the stacks from the last committed render, so two
+	 * calls within the same event handler would both pop (and return) the
+	 * same snapshot. Refs are always current; the version counter below
+	 * re-renders consumers so `canUndo`/`canRedo` stay in sync.
+	 */
+	const undoStackRef = useRef<T[]>([]);
+	const redoStackRef = useRef<T[]>([]);
+	const [, bumpVersion] = useReducer((version: number) => version + 1, 0);
 
 	const push = useCallback((snapshot: T) => {
-		dispatch({ type: "push", snapshot });
+		undoStackRef.current.push(snapshot);
+		redoStackRef.current = [];
+		bumpVersion();
 	}, []);
 
-	const undo = useCallback(
-		(current: T): T | undefined => {
-			const previous = state.undoStack[state.undoStack.length - 1];
-			if (previous === undefined) {
-				return undefined;
-			}
-			dispatch({ type: "undo", current });
-			return previous;
-		},
-		[state.undoStack],
-	);
+	const undo = useCallback((current: T): T | undefined => {
+		const previous = undoStackRef.current[undoStackRef.current.length - 1];
+		if (previous === undefined) {
+			return undefined;
+		}
+		undoStackRef.current.pop();
+		redoStackRef.current.push(current);
+		bumpVersion();
+		return previous;
+	}, []);
 
-	const redo = useCallback(
-		(current: T): T | undefined => {
-			const next = state.redoStack[state.redoStack.length - 1];
-			if (next === undefined) {
-				return undefined;
-			}
-			dispatch({ type: "redo", current });
-			return next;
-		},
-		[state.redoStack],
-	);
+	const redo = useCallback((current: T): T | undefined => {
+		const next = redoStackRef.current[redoStackRef.current.length - 1];
+		if (next === undefined) {
+			return undefined;
+		}
+		redoStackRef.current.pop();
+		undoStackRef.current.push(current);
+		bumpVersion();
+		return next;
+	}, []);
+
+	const canUndo = undoStackRef.current.length > 0;
+	const canRedo = redoStackRef.current.length > 0;
 
 	return useMemo(
 		() => ({
-			canUndo: state.undoStack.length > 0,
-			canRedo: state.redoStack.length > 0,
+			canUndo,
+			canRedo,
 			push,
 			undo,
 			redo,
 		}),
-		[state.undoStack.length, state.redoStack.length, push, undo, redo],
+		[canUndo, canRedo, push, undo, redo],
 	);
 }
 

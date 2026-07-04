@@ -341,7 +341,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/media-object",
     "summary": "The Media Object is an image/icon (media) to the left, with descriptive content (title and subtitle/description) to the right.",
-    "jsdoc": "A small, reusable layout primitive for \"image/icon on one side, descriptive content on the other\" — the foundational {@link https://www.stubbornella.org/2010/06/25/the-media-object-saves-hundreds-of-lines-of-code/ \"media object\" pattern}.",
+    "jsdoc": "A small, reusable layout primitive for \"image/icon on one side, descriptive content on the other\" — the foundational \"media object\" pattern.",
     "examples": [
       "Composition:\n```\nMediaObject.Root\n├── MediaObject.Media\n└── MediaObject.Content\n```",
       "```tsx\nimport { MediaObject } from \"@ngrok/mantle/media-object\";\n\n<MediaObject.Root>\n  <MediaObject.Media>\n    <Avatar src={user.avatarUrl} alt=\"\" />\n  </MediaObject.Media>\n  <MediaObject.Content>\n    <p className=\"font-medium\">{user.name}</p>\n    <p className=\"text-muted text-sm\">{comment}</p>\n  </MediaObject.Content>\n</MediaObject.Root>\n```"
