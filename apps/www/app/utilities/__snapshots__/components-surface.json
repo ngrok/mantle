@@ -332,8 +332,8 @@
     "summary": "The low-level scroll + row primitive behind Scrollable List and Selectable List.",
     "jsdoc": "A low-level, composition-based **list primitive**: the shared scroll + row chrome and ARIA semantics behind `ScrollableList` and `SelectableList`.",
     "examples": [
-      "Composition:\n```\nList.Root                          (or List.VirtualRoot)\n└── List.Row\n    └── (your row content — a button, gridcells, a link, …)\n```",
-      "```tsx\n<List.Root semantics=\"list\" aria-label=\"Accounts\" className=\"max-h-80\">\n  {accounts.map((account) => (\n    <List.Row key={account.id} selected={account.id === currentId}>\n      <button type=\"button\" className=\"w-full px-2 py-1.5 text-left\">\n        {account.name}\n      </button>\n    </List.Row>\n  ))}\n</List.Root>\n```"
+      "Composition:\n```\nList.Root                          (or List.VirtualRoot)\n└── List.Item\n    └── (your row content — a button, gridcells, a link, …)\n```",
+      "```tsx\n<List.Root semantics=\"list\" aria-label=\"Accounts\" className=\"max-h-80\">\n  {accounts.map((account) => (\n    <List.Item key={account.id} selected={account.id === currentId}>\n      <button type=\"button\" className=\"w-full px-2 py-1.5 text-left\">\n        {account.name}\n      </button>\n    </List.Item>\n  ))}\n</List.Root>\n```"
     ]
   },
   {

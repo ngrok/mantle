@@ -4,7 +4,7 @@ import { forwardRef } from "react";
 import type { ComponentProps, ComponentRef } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
-import { Root as ListRoot, Row as ListRow } from "../list/primitive.js";
+import { Root as ListRoot, Item as ListItem } from "../list/primitive.js";
 import type { ListRootProps } from "../list/primitive.js";
 import { VirtualRoot as ListVirtualRoot } from "../list/virtual.js";
 import type { VirtualRootProps } from "../list/virtual.js";
@@ -13,7 +13,7 @@ import { Slot } from "../slot/index.js";
 /**
  * Props for `ScrollableList.Viewport` — the `list` primitive's `Root` props,
  * minus `semantics` (a `ScrollableList` is always a `role="list"`) and the
- * grid-only `onActivate` / `rowId` knobs (inert under list semantics).
+ * grid-only `onActivate` / `itemId` knobs (inert under list semantics).
  *
  * @see https://mantle.ngrok.com/components/scrollable-list
  *
@@ -27,7 +27,7 @@ import { Slot } from "../slot/index.js";
  * </ScrollableList.Viewport>
  * ```
  */
-type ScrollableListViewportProps = Omit<ListRootProps, "semantics" | "onActivate" | "rowId">;
+type ScrollableListViewportProps = Omit<ListRootProps, "semantics" | "onActivate" | "itemId">;
 
 /**
  * The scrollable container for a `ScrollableList`: a `role="list"` of clickable
@@ -64,14 +64,14 @@ Viewport.displayName = "ScrollableListViewport";
 
 /**
  * Props for `ScrollableList.VirtualViewport` — the `list` primitive's
- * `VirtualRoot` props (viewport props plus `estimateRowHeight` / `overscan`),
- * minus `semantics` and the grid-only `onActivate` / `rowId` knobs.
+ * `VirtualRoot` props (viewport props plus `estimateItemHeight` / `overscan`),
+ * minus `semantics` and the grid-only `onActivate` / `itemId` knobs.
  *
  * @see https://mantle.ngrok.com/components/scrollable-list
  *
  * @example
  * ```tsx
- * <ScrollableList.VirtualViewport aria-label="Your accounts" className="max-h-80" estimateRowHeight={44}>
+ * <ScrollableList.VirtualViewport aria-label="Your accounts" className="max-h-80" estimateItemHeight={44}>
  *   <ScrollableList.Item onClick={() => {}}>
  *     <ScrollableList.ItemTitle>Acme Inc</ScrollableList.ItemTitle>
  *     <ScrollableList.ItemDescription>Pay-as-you-go</ScrollableList.ItemDescription>
@@ -81,7 +81,7 @@ Viewport.displayName = "ScrollableListViewport";
  */
 type ScrollableListVirtualViewportProps = Omit<
 	VirtualRootProps,
-	"semantics" | "onActivate" | "rowId"
+	"semantics" | "onActivate" | "itemId"
 >;
 
 /**
@@ -182,7 +182,7 @@ const Item = forwardRef<ComponentRef<"button">, ScrollableListItemProps>(
 		const Comp = asChild ? Slot : "button";
 
 		return (
-			<ListRow selected={selected} disabled={disabled}>
+			<ListItem selected={selected} disabled={disabled}>
 				<Comp
 					ref={ref}
 					data-slot="scrollable-list-item"
@@ -222,7 +222,7 @@ const Item = forwardRef<ComponentRef<"button">, ScrollableListItemProps>(
 					)}
 					{...props}
 				/>
-			</ListRow>
+			</ListItem>
 		);
 	},
 );

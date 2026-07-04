@@ -536,20 +536,20 @@ The non-virtualized grid. Accepts all `<div>` props (except `children`, which is
 
 The windowed grid — same surface as `Viewport`, plus the virtualizer knobs:
 
-| Prop                 | Type                                          | Default | Description                                                            |
-| -------------------- | --------------------------------------------- | ------- | ---------------------------------------------------------------------- |
-| `children?`          | `(option: SelectableListOption) => ReactNode` |         | Render-prop for custom row content (only the visible window mounts).   |
-| `estimateRowHeight?` | `number`                                      | `44`    | Estimated row height (px) used to seed the virtualizer before measure. |
-| `overscan?`          | `number`                                      | `8`     | Rows rendered beyond the visible window on each side.                  |
+| Prop                  | Type                                          | Default | Description                                                             |
+| --------------------- | --------------------------------------------- | ------- | ----------------------------------------------------------------------- |
+| `children?`           | `(option: SelectableListOption) => ReactNode` |         | Render-prop for custom row content (only the visible window mounts).    |
+| `estimateItemHeight?` | `number`                                      | `44`    | Estimated item height (px) used to seed the virtualizer before measure. |
+| `overscan?`           | `number`                                      | `8`     | Rows rendered beyond the visible window on each side.                   |
 
 ### SelectableList.Item
 
 A selectable grid row (`role="row"`) for custom viewport rendering. Selection and disabled state are read from the list by `value` — the row has no `disabled` prop; disabled state comes exclusively from the matching option's `disabled` (`options[].disabled`). Accepts all `<div>` props, plus:
 
-| Prop       | Type        | Default | Description                                                                                   |
-| ---------- | ----------- | ------- | --------------------------------------------------------------------------------------------- |
-| `value`    | `string`    |         | The option's selection value; selection and disabled state are read from the list.            |
-| `children` | `ReactNode` |         | Row content (e.g. `ItemTitle` + `ItemDescription`, or your own; interactive content allowed). |
+| Prop       | Type        | Default | Description                                                                                    |
+| ---------- | ----------- | ------- | ---------------------------------------------------------------------------------------------- |
+| `value`    | `string`    |         | The option's selection value; selection and disabled state are read from the list.             |
+| `children` | `ReactNode` |         | Item content (e.g. `ItemTitle` + `ItemDescription`, or your own; interactive content allowed). |
 
 ### SelectableList.ItemTitle / SelectableList.ItemDescription
 

@@ -22,7 +22,7 @@ export function BasicListExample() {
 		<div className="w-full max-w-md">
 			<List.Root semantics="list" aria-label="Environments" className="max-h-80">
 				{environments.map((environment) => (
-					<List.Row key={environment.id} selected={environment.id === activeId}>
+					<List.Item key={environment.id} selected={environment.id === activeId}>
 						<button
 							type="button"
 							onClick={() => setActiveId(environment.id)}
@@ -34,7 +34,7 @@ export function BasicListExample() {
 							<span className="text-strong font-medium">{environment.name}</span>
 							<span className="text-body leading-4">{environment.region}</span>
 						</button>
-					</List.Row>
+					</List.Item>
 				))}
 			</List.Root>
 		</div>
@@ -46,7 +46,7 @@ export function PolymorphismExample() {
 		<div className="w-full max-w-md">
 			<List.Root semantics="list" aria-label="Environments" className="max-h-80">
 				{environments.map((environment) => (
-					<List.Row key={environment.id} asChild>
+					<List.Item key={environment.id} asChild>
 						<a
 							href={`#${environment.id}`}
 							className={cx(
@@ -57,7 +57,7 @@ export function PolymorphismExample() {
 							<span className="text-strong font-medium">{environment.name}</span>
 							<span className="text-body leading-4">{environment.region}</span>
 						</a>
-					</List.Row>
+					</List.Item>
 				))}
 			</List.Root>
 		</div>
@@ -76,7 +76,7 @@ export function VirtualExample() {
 		<div className="w-full max-w-md">
 			<List.VirtualRoot semantics="list" aria-label="Environments" className="max-h-80">
 				{manyEnvironments.map((environment) => (
-					<List.Row key={environment.id} selected={environment.id === activeId}>
+					<List.Item key={environment.id} selected={environment.id === activeId}>
 						<button
 							type="button"
 							onClick={() => setActiveId(environment.id)}
@@ -88,7 +88,7 @@ export function VirtualExample() {
 							<span className="text-strong font-medium">{environment.name}</span>
 							<span className="text-body leading-4">{environment.region}</span>
 						</button>
-					</List.Row>
+					</List.Item>
 				))}
 			</List.VirtualRoot>
 		</div>
@@ -97,7 +97,7 @@ export function VirtualExample() {
 
 <PageHeader id="list">List</PageHeader>
 
-The low-level scroll + row **primitive** behind [`ScrollableList`](/components/scrollable-list) and [`SelectableList`](/components/selectable-list): the bordered, rounded `bg-popover` viewport (styled after the [`MultiSelect`](/components/multi-select) popover) and its hover / selected row pills, plus the ARIA wiring. It is composition-based — compose `List.Row` children under a `List.Root` (or the windowed `List.VirtualRoot`) and keep state on the rows.
+The low-level scroll + row **primitive** behind [`ScrollableList`](/components/scrollable-list) and [`SelectableList`](/components/selectable-list): the bordered, rounded `bg-popover` viewport (styled after the [`MultiSelect`](/components/multi-select) popover) and its hover / selected row pills, plus the ARIA wiring. It is composition-based — compose `List.Item` children under a `List.Root` (or the windowed `List.VirtualRoot`) and keep state on the rows.
 
 Reach for it directly only when neither higher-level component fits. **Most lists want `ScrollableList`** (an action / navigation list) **or `SelectableList`** (a multi-select checkbox grid) — they layer data, filtering, and selection on top of this primitive. Use `List` when you need the shared chrome with your own state and layout.
 
@@ -123,7 +123,7 @@ function Example() {
 	return (
 		<List.Root semantics="list" aria-label="Environments" className="max-h-80">
 			{environments.map((environment) => (
-				<List.Row key={environment.id} selected={environment.id === activeId}>
+				<List.Item key={environment.id} selected={environment.id === activeId}>
 					<button
 						type="button"
 						onClick={() => setActiveId(environment.id)}
@@ -135,7 +135,7 @@ function Example() {
 						<span className="text-strong font-medium">{environment.name}</span>
 						<span className="text-body leading-4">{environment.region}</span>
 					</button>
-				</List.Row>
+				</List.Item>
 			))}
 		</List.Root>
 	);
@@ -144,28 +144,28 @@ function Example() {
 
 ## Composition
 
-`List` is a compound. `List.Root` (or `List.VirtualRoot`) renders the scroll viewport and its `List.Row` children; each row owns its own content and state.
+`List` is a compound. `List.Root` (or `List.VirtualRoot`) renders the scroll viewport and its `List.Item` children; each row owns its own content and state.
 
 ```text showLineNumbers=false
 List.Root                          (or List.VirtualRoot)
-└── List.Row
+└── List.Item
     └── (your row content — a button, gridcells, a link, …)
 ```
 
-- **`Root`** renders the bordered, rounded `bg-popover` viewport and its `Row` children in normal flow — the non-virtualized default. **Bound its height** (`max-h-*`, `h-*`, or `min-h-0 flex-1` in a flex parent) so long lists scroll.
-- **`VirtualRoot`** is the drop-in windowed variant — same `Row` children, only the visible slice mounted via [`@tanstack/react-virtual`](https://tanstack.com/virtual). See [Virtualization](#virtualization).
-- **`Row`** is a single row — a `<div>` pill that tints on hover / when `selected`. It takes its ARIA shape from the root's `semantics` (see [Semantics](#semantics)) and supports `asChild` (see [Polymorphism](#polymorphism)). Give each a React `key`.
+- **`Root`** renders the bordered, rounded `bg-popover` viewport and its `Item` children in normal flow — the non-virtualized default. **Bound its height** (`max-h-*`, `h-*`, or `min-h-0 flex-1` in a flex parent) so long lists scroll.
+- **`VirtualRoot`** is the drop-in windowed variant — same `Item` children, only the visible slice mounted via [`@tanstack/react-virtual`](https://tanstack.com/virtual). See [Virtualization](#virtualization).
+- **`Item`** is a single row — a `<div>` pill that tints on hover / when `selected`. It takes its ARIA shape from the root's `semantics` (see [Semantics](#semantics)) and supports `asChild` (see [Polymorphism](#polymorphism)). Give each a React `key`.
 
 ## Semantics
 
 `Root` and `VirtualRoot` take a `semantics` prop that chooses the collection's ARIA shape — the tag stays a `<div>` (per WAI-ARIA the _role_, not the tag, carries the semantics), so both flavors share one implementation.
 
 - **`"list"`** (the default) renders a `role="list"` of `role="listitem"` rows: a non-selecting list of actions or links with native tab order, plus `Arrow`↑/`Arrow`↓ / `Home` / `End` moving focus between the rows' controls. This is what [`ScrollableList`](/components/scrollable-list) uses.
-- **`"grid"`** renders a `role="grid"` of `role="row"` rows carrying `aria-selected`, driven as a single tab stop with `aria-activedescendant` navigation that works across a virtualized window. Pass `onActivate` to react to `Space` / `Enter` on the active row (a bare click on a row fires it too, deferring to nested interactive content), and `rowId` to point `aria-activedescendant` at a real element you own (e.g. a row's checkbox). This is what [`SelectableList`](/components/selectable-list) uses.
+- **`"grid"`** renders a `role="grid"` of `role="row"` rows carrying `aria-selected`, driven as a single tab stop with `aria-activedescendant` navigation that works across a virtualized window. Pass `onActivate` to react to `Space` / `Enter` on the active row (a bare click on a row fires it too, deferring to nested interactive content), and `itemId` to point `aria-activedescendant` at a real element you own (e.g. a row's checkbox). This is what [`SelectableList`](/components/selectable-list) uses.
 
 ## Polymorphism
 
-`List.Row` accepts `asChild` to render as your own element instead of a `<div>`, keeping the pill chrome and the selection wiring. Render it as an `<a>` for a navigation row, for example — the whole pill becomes the link.
+`List.Item` accepts `asChild` to render as your own element instead of a `<div>`, keeping the pill chrome and the selection wiring. Render it as an `<a>` for a navigation row, for example — the whole pill becomes the link.
 
 <Example>
 	<PolymorphismExample />
@@ -186,7 +186,7 @@ function Example() {
 	return (
 		<List.Root semantics="list" aria-label="Environments" className="max-h-80">
 			{environments.map((environment) => (
-				<List.Row key={environment.id} asChild>
+				<List.Item key={environment.id} asChild>
 					<a
 						href={`#${environment.id}`}
 						className={cx(
@@ -197,7 +197,7 @@ function Example() {
 						<span className="text-strong font-medium">{environment.name}</span>
 						<span className="text-body leading-4">{environment.region}</span>
 					</a>
-				</List.Row>
+				</List.Item>
 			))}
 		</List.Root>
 	);
@@ -206,7 +206,7 @@ function Example() {
 
 ## Virtualization
 
-`List.Root` renders every row. For a long collection (hundreds+), swap in `List.VirtualRoot`: it windows the same `Row` children via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. The call site is otherwise identical — same children, same props — so opting in never changes how you author the list. **Bound its height** so the virtualizer has a viewport to measure. The example below has 60 rows; scroll to see them mount and unmount.
+`List.Root` renders every row. For a long collection (hundreds+), swap in `List.VirtualRoot`: it windows the same `Item` children via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. The call site is otherwise identical — same children, same props — so opting in never changes how you author the list. **Bound its height** so the virtualizer has a viewport to measure. The example below has 60 rows; scroll to see them mount and unmount.
 
 <Example>
 	<VirtualExample />
@@ -223,14 +223,14 @@ const environments = Array.from({ length: 60 }, (_, index) => ({
 	region: ["us-east-1", "us-west-2", "eu-central-1", "ap-south-1"][index % 4],
 }));
 
-// `VirtualRoot` is a drop-in for `Root` — same `Row` children, same props.
+// `VirtualRoot` is a drop-in for `Root` — same `Item` children, same props.
 function Example() {
 	const [activeId, setActiveId] = useState("env-2");
 
 	return (
 		<List.VirtualRoot semantics="list" aria-label="Environments" className="max-h-80">
 			{environments.map((environment) => (
-				<List.Row key={environment.id} selected={environment.id === activeId}>
+				<List.Item key={environment.id} selected={environment.id === activeId}>
 					<button
 						type="button"
 						onClick={() => setActiveId(environment.id)}
@@ -242,7 +242,7 @@ function Example() {
 						<span className="text-strong font-medium">{environment.name}</span>
 						<span className="text-body leading-4">{environment.region}</span>
 					</button>
-				</List.Row>
+				</List.Item>
 			))}
 		</List.VirtualRoot>
 	);
@@ -261,25 +261,25 @@ Name the collection with `aria-label` (or `aria-labelledby`) on `Root` / `Virtua
 
 The non-virtualized collection. Accepts all `<div>` props, plus:
 
-| Prop             | Type                         | Default  | Description                                                                                                            |
-| ---------------- | ---------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `semantics?`     | `"list" \| "grid"`           | `"list"` | ARIA shape for the collection and its rows.                                                                            |
-| `onActivate?`    | `(index: number) => void`    |          | Called with the active row's index when it is activated under `grid` — by `Space` / `Enter` or a bare row click.       |
-| `rowId?`         | `(index: number) => string`  |          | The DOM id `aria-activedescendant` resolves to for a row index. Override to reference an element you own.              |
-| `isRowDisabled?` | `(index: number) => boolean` |          | Whether the row at an index is disabled. Defaults to the row element's `disabled` prop; pass it for data-driven state. |
+| Prop              | Type                         | Default  | Description                                                                                                            |
+| ----------------- | ---------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `semantics?`      | `"list" \| "grid"`           | `"list"` | ARIA shape for the collection and its rows.                                                                            |
+| `onActivate?`     | `(index: number) => void`    |          | Called with the active row's index when it is activated under `grid` — by `Space` / `Enter` or a bare row click.       |
+| `itemId?`         | `(index: number) => string`  |          | The DOM id `aria-activedescendant` resolves to for a row index. Override to reference an element you own.              |
+| `isItemDisabled?` | `(index: number) => boolean` |          | Whether the row at an index is disabled. Defaults to the row element's `disabled` prop; pass it for data-driven state. |
 
 Bound the height (e.g. `className="max-h-80"`) so long lists scroll.
 
 ### List.VirtualRoot
 
-The windowed collection — same surface as `Root` (compose the same `Row` children), plus the virtualizer knobs:
+The windowed collection — same surface as `Root` (compose the same `Item` children), plus the virtualizer knobs:
 
-| Prop                 | Type     | Default | Description                                                            |
-| -------------------- | -------- | ------- | ---------------------------------------------------------------------- |
-| `estimateRowHeight?` | `number` | `44`    | Estimated row height (px) used to seed the virtualizer before measure. |
-| `overscan?`          | `number` | `8`     | Rows rendered beyond the visible window on each side.                  |
+| Prop                  | Type     | Default | Description                                                             |
+| --------------------- | -------- | ------- | ----------------------------------------------------------------------- |
+| `estimateItemHeight?` | `number` | `44`    | Estimated item height (px) used to seed the virtualizer before measure. |
+| `overscan?`           | `number` | `8`     | Rows rendered beyond the visible window on each side.                   |
 
-### List.Row
+### List.Item
 
 A single row. Accepts all `<div>` props (minus `role`, owned by the collection), plus:
 

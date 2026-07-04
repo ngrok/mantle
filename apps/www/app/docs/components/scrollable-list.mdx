@@ -386,11 +386,11 @@ Bound the height (e.g. `className="max-h-80"`) so long lists scroll.
 
 The windowed container — same surface as `Viewport` (compose the same `Item` children), plus the virtualizer knobs:
 
-| Prop                 | Type        | Default | Description                                                            |
-| -------------------- | ----------- | ------- | ---------------------------------------------------------------------- |
-| `children`           | `ReactNode` |         | `ScrollableList.Item` rows (only the visible window is mounted).       |
-| `estimateRowHeight?` | `number`    | `44`    | Estimated row height (px) used to seed the virtualizer before measure. |
-| `overscan?`          | `number`    | `8`     | Rows rendered beyond the visible window on each side.                  |
+| Prop                  | Type        | Default | Description                                                             |
+| --------------------- | ----------- | ------- | ----------------------------------------------------------------------- |
+| `children`            | `ReactNode` |         | `ScrollableList.Item` rows (only the visible window is mounted).        |
+| `estimateItemHeight?` | `number`    | `44`    | Estimated item height (px) used to seed the virtualizer before measure. |
+| `overscan?`           | `number`    | `8`     | Rows rendered beyond the visible window on each side.                   |
 
 ### ScrollableList.Item
 

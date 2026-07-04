@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { List } from "./list.js";
-import { isInteractiveRowTarget } from "./primitive.js";
+import { isInteractiveItemTarget } from "./primitive.js";
 
 /**
  * Focus the grid the way a Tab-in would. happy-dom's `focus()` moves
@@ -30,9 +30,9 @@ function Grid({
 	return (
 		<List.Root semantics="grid" aria-label="grid" onActivate={onActivate}>
 			{Array.from({ length: count }, (_unused, index) => (
-				<List.Row key={`row-${index}`} disabled={disabled.includes(index)}>
-					<div role="gridcell">Row {index}</div>
-				</List.Row>
+				<List.Item key={`row-${index}`} disabled={disabled.includes(index)}>
+					<div role="gridcell">Item {index}</div>
+				</List.Item>
 			))}
 		</List.Root>
 	);
@@ -120,17 +120,17 @@ describe("List grid keyboard navigation edges", () => {
 
 describe("List list-semantics arrow navigation", () => {
 	test("moves focus between asChild rows that are themselves the control", () => {
-		// Regression: `findRowControl` only searched a row's descendants, so an
+		// Regression: `findItemControl` only searched a row's descendants, so an
 		// `asChild` row that *is* the focusable control (the docs' Polymorphism
 		// example — the row renders as an <a>) was never a navigation target.
 		render(
 			<List.Root semantics="list" aria-label="links">
-				<List.Row asChild>
+				<List.Item asChild>
 					<a href="#one">One</a>
-				</List.Row>
-				<List.Row asChild>
+				</List.Item>
+				<List.Item asChild>
 					<a href="#two">Two</a>
-				</List.Row>
+				</List.Item>
 			</List.Root>,
 		);
 
@@ -151,30 +151,30 @@ describe("List grid pointer activation", () => {
 		const onActivate = vi.fn<(index: number) => void>();
 		render(
 			<List.Root semantics="grid" aria-label="grid" onActivate={onActivate}>
-				<List.Row>
-					<div role="gridcell">Row 0</div>
-				</List.Row>
-				<List.Row>
+				<List.Item>
+					<div role="gridcell">Item 0</div>
+				</List.Item>
+				<List.Item>
 					<div role="gridcell">
 						<button type="button" tabIndex={-1}>
 							nested control
 						</button>
 					</div>
-				</List.Row>
-				<List.Row disabled>
-					<div role="gridcell">Row 2</div>
-				</List.Row>
+				</List.Item>
+				<List.Item disabled>
+					<div role="gridcell">Item 2</div>
+				</List.Item>
 			</List.Root>,
 		);
 
-		await user.click(screen.getByText("Row 0"));
+		await user.click(screen.getByText("Item 0"));
 		expect(onActivate).toHaveBeenCalledExactlyOnceWith(0);
 
 		// The nested control handles its own click — activation must not fire twice.
 		await user.click(screen.getByRole("button", { name: "nested control" }));
 		expect(onActivate).toHaveBeenCalledTimes(1);
 
-		await user.click(screen.getByText("Row 2"));
+		await user.click(screen.getByText("Item 2"));
 		expect(onActivate).toHaveBeenCalledTimes(1);
 	});
 
@@ -183,18 +183,18 @@ describe("List grid pointer activation", () => {
 		const onActivate = vi.fn<(index: number) => void>();
 		render(
 			<List.Root semantics="grid" aria-label="grid" onActivate={onActivate}>
-				<List.Row onClick={(event) => event.preventDefault()}>
-					<div role="gridcell">Row 0</div>
-				</List.Row>
+				<List.Item onClick={(event) => event.preventDefault()}>
+					<div role="gridcell">Item 0</div>
+				</List.Item>
 			</List.Root>,
 		);
 
-		await user.click(screen.getByText("Row 0"));
+		await user.click(screen.getByText("Item 0"));
 		expect(onActivate).not.toHaveBeenCalled();
 	});
 });
 
-describe("List isRowDisabled", () => {
+describe("List isItemDisabled", () => {
 	test("drives disabled state from data instead of row-element props", async () => {
 		const user = userEvent.setup();
 		const onActivate = vi.fn<(index: number) => void>();
@@ -203,14 +203,14 @@ describe("List isRowDisabled", () => {
 				semantics="grid"
 				aria-label="grid"
 				onActivate={onActivate}
-				isRowDisabled={(index) => index === 0}
+				isItemDisabled={(index) => index === 0}
 			>
-				<List.Row>
-					<div role="gridcell">Row 0</div>
-				</List.Row>
-				<List.Row>
-					<div role="gridcell">Row 1</div>
-				</List.Row>
+				<List.Item>
+					<div role="gridcell">Item 0</div>
+				</List.Item>
+				<List.Item>
+					<div role="gridcell">Item 1</div>
+				</List.Item>
 			</List.Root>,
 		);
 
@@ -220,33 +220,33 @@ describe("List isRowDisabled", () => {
 		// skip row 0 and default to row 1.
 		expect(activeIndex()).toBe("1");
 
-		await user.click(screen.getByText("Row 0"));
+		await user.click(screen.getByText("Item 0"));
 		expect(onActivate).not.toHaveBeenCalled();
 	});
 });
 
-describe("isInteractiveRowTarget", () => {
+describe("isInteractiveItemTarget", () => {
 	test("returns true for a control or label inside the row (activation must not fire twice)", () => {
 		const row = document.createElement("div");
 		const button = document.createElement("button");
 		row.append(button);
-		expect(isInteractiveRowTarget(button, row)).toBe(true);
+		expect(isInteractiveItemTarget(button, row)).toBe(true);
 
 		const label = document.createElement("label");
 		row.append(label);
-		expect(isInteractiveRowTarget(label, row)).toBe(true);
+		expect(isInteractiveItemTarget(label, row)).toBe(true);
 	});
 
 	test("returns false for non-interactive row content (the row activates)", () => {
 		const row = document.createElement("div");
 		const description = document.createElement("p");
 		row.append(description);
-		expect(isInteractiveRowTarget(description, row)).toBe(false);
+		expect(isInteractiveItemTarget(description, row)).toBe(false);
 	});
 
 	test("returns false for a non-element target", () => {
 		const row = document.createElement("div");
-		expect(isInteractiveRowTarget(null, row)).toBe(false);
+		expect(isInteractiveItemTarget(null, row)).toBe(false);
 	});
 
 	test("ignores interactive ancestors outside the row", () => {
@@ -257,12 +257,12 @@ describe("isInteractiveRowTarget", () => {
 		const text = document.createElement("p");
 		outerButton.append(row);
 		row.append(text);
-		expect(isInteractiveRowTarget(text, row)).toBe(false);
+		expect(isInteractiveItemTarget(text, row)).toBe(false);
 	});
 });
 
 describe("List grid row ids", () => {
-	test("the default rowId is stamped on the row and referenced by aria-activedescendant", () => {
+	test("the default itemId is stamped on the row and referenced by aria-activedescendant", () => {
 		render(<Grid count={2} />);
 
 		const grid = screen.getByRole("grid", { name: "grid" });
@@ -275,19 +275,19 @@ describe("List grid row ids", () => {
 		expect(grid).toHaveAttribute("aria-activedescendant", firstRow.id);
 	});
 
-	test("a custom rowId leaves the row's own id alone instead of duplicating the referenced id", () => {
-		// Regression: the row used to stamp rowId(index) as its own DOM id even when
-		// the consumer's rowId pointed at an element *inside* the row — producing
+	test("a custom itemId leaves the row's own id alone instead of duplicating the referenced id", () => {
+		// Regression: the row used to stamp itemId(index) as its own DOM id even when
+		// the consumer's itemId pointed at an element *inside* the row — producing
 		// duplicate ids — and silently discarded a consumer-provided row id.
 		render(
-			<List.Root semantics="grid" aria-label="grid" rowId={(index) => `ctrl-${index}`}>
-				<List.Row id="consumer-row">
+			<List.Root semantics="grid" aria-label="grid" itemId={(index) => `ctrl-${index}`}>
+				<List.Item id="consumer-row">
 					<div role="gridcell">
 						<button type="button" tabIndex={-1} id="ctrl-0">
-							Row 0
+							Item 0
 						</button>
 					</div>
-				</List.Row>
+				</List.Item>
 			</List.Root>,
 		);
 
@@ -309,9 +309,9 @@ describe("List semantics and attributes", () => {
 
 		render(
 			<List.Root semantics="list" aria-label="list">
-				<List.Row disabled>
-					<button type="button">Row 0</button>
-				</List.Row>
+				<List.Item disabled>
+					<button type="button">Item 0</button>
+				</List.Item>
 			</List.Root>,
 		);
 		const listRow = screen.getByRole("listitem");
@@ -322,9 +322,9 @@ describe("List semantics and attributes", () => {
 	test("a list-semantics collection is not a tab stop and tracks no active descendant", () => {
 		render(
 			<List.Root semantics="list" aria-label="list">
-				<List.Row>
-					<button type="button">Row 0</button>
-				</List.Row>
+				<List.Item>
+					<button type="button">Item 0</button>
+				</List.Item>
 			</List.Root>,
 		);
 
@@ -334,14 +334,14 @@ describe("List semantics and attributes", () => {
 		expect(collection).toHaveAttribute("data-slot", "list-collection");
 	});
 
-	test("List.Row outside a Root throws a helpful error", () => {
+	test("List.Item outside a Root throws a helpful error", () => {
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 		try {
 			expect(() =>
 				render(
-					<List.Row>
+					<List.Item>
 						<button type="button">stray</button>
-					</List.Row>,
+					</List.Item>,
 				),
 			).toThrow(/must be rendered inside List.Root or List.VirtualRoot/);
 		} finally {

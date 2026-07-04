@@ -6,13 +6,13 @@ import { Children, forwardRef, isValidElement, useCallback, useMemo, useRef } fr
 import type { ComponentRef, ReactNode } from "react";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import {
-	findRowControl,
-	isRowChildDisabled,
-	ListRowContext,
+	findItemControl,
+	isItemChildDisabled,
+	ListItemContext,
 	ListShell,
 	useListShell,
 } from "./primitive.js";
-import type { ListRootProps, ListRowContextValue, ListRowPlacement } from "./primitive.js";
+import type { ListRootProps, ListItemContextValue, ListItemPlacement } from "./primitive.js";
 
 /**
  * Props for {@link VirtualRoot}. The same surface as the plain `Root` plus the
@@ -22,16 +22,16 @@ import type { ListRootProps, ListRowContextValue, ListRowPlacement } from "./pri
  *
  * @example
  * ```tsx
- * <List.VirtualRoot aria-label="Accounts" className="max-h-80" estimateRowHeight={36} overscan={12}>
- *   <List.Row>
+ * <List.VirtualRoot aria-label="Accounts" className="max-h-80" estimateItemHeight={36} overscan={12}>
+ *   <List.Item>
  *     <button type="button">Acme Inc</button>
- *   </List.Row>
+ *   </List.Item>
  * </List.VirtualRoot>
  * ```
  */
 type VirtualRootProps = ListRootProps & {
-	/** Estimated row height in px, used to seed the virtualizer before rows are measured. */
-	estimateRowHeight?: number;
+	/** Estimated item height in px, used to seed the virtualizer before items are measured. */
+	estimateItemHeight?: number;
 	/** Rows rendered beyond the visible window on each side. The buffer keeps the active row mounted for `aria-activedescendant`. */
 	overscan?: number;
 };
@@ -43,13 +43,13 @@ type VirtualRootProps = ListRootProps & {
  * on a listitem, `aria-rowindex` on a grid row) and the absolute `translateY`
  * come straight from the virtual item and full count.
  */
-function buildRowPlacement(
-	virtualRow: VirtualItem,
+function buildItemPlacement(
+	virtualItem: VirtualItem,
 	count: number,
 	measureRef: Virtualizer<HTMLDivElement, Element>["measureElement"],
-): ListRowPlacement {
+): ListItemPlacement {
 	return {
-		posInSet: virtualRow.index + 1,
+		posInSet: virtualItem.index + 1,
 		setSize: count,
 		measureRef,
 		style: {
@@ -57,45 +57,45 @@ function buildRowPlacement(
 			left: 0,
 			top: 0,
 			width: "100%",
-			transform: `translateY(${virtualRow.start}px)`,
+			transform: `translateY(${virtualItem.start}px)`,
 		},
 	};
 }
 
 /**
- * One windowed row: memoizes its {@link ListRowContextValue} (index + placement)
- * and hands it to the composed `Row` (wherever it sits, even inside a consumer's
+ * One windowed row: memoizes its {@link ListItemContextValue} (index + placement)
+ * and hands it to the composed `Item` (wherever it sits, even inside a consumer's
  * item wrapper). Extracted so the provider value is a `useMemo` result rather
  * than reconstructed inline — a `.map()` body can't call hooks itself.
  */
-function VirtualRow({
+function WindowedItem({
 	children,
 	count,
 	measureRef,
-	virtualRow,
+	virtualItem,
 }: {
 	children: ReactNode;
 	count: number;
 	measureRef: Virtualizer<HTMLDivElement, Element>["measureElement"];
-	virtualRow: VirtualItem;
+	virtualItem: VirtualItem;
 }) {
-	const value = useMemo<ListRowContextValue>(
+	const value = useMemo<ListItemContextValue>(
 		() => ({
-			index: virtualRow.index,
-			placement: buildRowPlacement(virtualRow, count, measureRef),
+			index: virtualItem.index,
+			placement: buildItemPlacement(virtualItem, count, measureRef),
 		}),
-		[virtualRow, count, measureRef],
+		[virtualItem, count, measureRef],
 	);
 
-	return <ListRowContext.Provider value={value}>{children}</ListRowContext.Provider>;
+	return <ListItemContext.Provider value={value}>{children}</ListItemContext.Provider>;
 }
-VirtualRow.displayName = "ListVirtualRow";
+WindowedItem.displayName = "ListWindowedItem";
 
 /**
  * The windowed counterpart to `Root`: renders only the visible slice of its
- * composed `Row` children via `@tanstack/react-virtual`, sharing the plain
+ * composed `Item` children via `@tanstack/react-virtual`, sharing the plain
  * shell's chrome, semantics, and — for a grid — `aria-activedescendant`
- * keyboard navigation. Authored identically to `Root` (you still compose `<Row>`
+ * keyboard navigation. Authored identically to `Root` (you still compose `<Item>`
  * children), so swapping in virtualization never changes the call site. This
  * module is the sole importer of `@tanstack/react-virtual`; because the `List`
  * namespace (and both higher-level list components) re-export `VirtualRoot`,
@@ -119,10 +119,10 @@ VirtualRow.displayName = "ListVirtualRow";
  * ```tsx
  * <List.VirtualRoot semantics="grid" aria-label="Access keys" className="max-h-80" onActivate={toggleByIndex}>
  *   {keys.map((key) => (
- *     <List.Row key={key.id} selected={selected.has(key.id)}>
+ *     <List.Item key={key.id} selected={selected.has(key.id)}>
  *       <div role="gridcell"><Checkbox checked={selected.has(key.id)} tabIndex={-1} /></div>
  *       <div role="gridcell">{key.name}</div>
- *     </List.Row>
+ *     </List.Item>
  *   ))}
  * </List.VirtualRoot>
  * ```
@@ -135,11 +135,11 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 			"aria-multiselectable": ariaMultiselectable,
 			children,
 			className,
-			estimateRowHeight = 44,
-			isRowDisabled,
+			estimateItemHeight = 44,
+			isItemDisabled,
 			onActivate,
 			overscan = 8,
-			rowId,
+			itemId,
 			semantics = "list",
 			...props
 		},
@@ -150,12 +150,12 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 		// Memoized so a scroll or keyboard-nav re-render (`useVirtualizer` re-renders
 		// on every offset change) doesn't re-walk + re-filter the full child set each
 		// frame — only the windowed slice below needs to re-render.
-		const rows = useMemo(() => Children.toArray(children).filter(isValidElement), [children]);
-		const count = rows.length;
+		const items = useMemo(() => Children.toArray(children).filter(isValidElement), [children]);
+		const count = items.length;
 		const virtualizer = useVirtualizer({
 			count,
 			getScrollElement: () => scrollRef.current,
-			estimateSize: () => estimateRowHeight,
+			estimateSize: () => estimateItemHeight,
 			overscan,
 			// Reproduce the plain collection's `gap-px` between windowed rows, which
 			// are out of flow and so can't inherit the flex gap.
@@ -165,7 +165,7 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 			(index: number) => virtualizer.scrollToIndex(index, { align: "auto" }),
 			[virtualizer],
 		);
-		const focusRowAt = useCallback(
+		const focusItemAt = useCallback(
 			(index: number) => {
 				virtualizer.scrollToIndex(index, { align: "auto" });
 				// A jump target (Home/End) may not be mounted until the virtualizer
@@ -173,8 +173,8 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 				// that never mounts can't loop forever.
 				let attempts = 0;
 				const tryFocus = () => {
-					const row = scrollRef.current?.querySelector(`[data-index="${index}"]`);
-					const control = row == null ? null : findRowControl(row);
+					const item = scrollRef.current?.querySelector(`[data-index="${index}"]`);
+					const control = item == null ? null : findItemControl(item);
 					if (control != null) {
 						control.focus({ preventScroll: true });
 						return;
@@ -190,12 +190,12 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 		);
 		const { activeIndex, collectionProps, gridNav, listContext } = useListShell({
 			count,
-			focusRowAt,
-			// Windowed rows aren't all mounted, so the default reads `disabled` off
-			// the row elements (which we hold in full) rather than the DOM.
-			isRowDisabled: isRowDisabled ?? ((index) => isRowChildDisabled(rows[index])),
+			focusItemAt,
+			// Windowed items aren't all mounted, so the default reads `disabled` off
+			// the item elements (which we hold in full) rather than the DOM.
+			isItemDisabled: isItemDisabled ?? ((index) => isItemChildDisabled(items[index])),
 			onActivate,
-			rowId,
+			itemId,
 			scrollToIndex,
 			semantics,
 		});
@@ -204,7 +204,7 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 		// user mouse-scrolls the active row outside the mounted window, drop the
 		// reference rather than leave a dangling IDREF (the active index is kept, so
 		// the next arrow key scrolls the row back into view and restores it).
-		const activeRowIsMounted = virtualItems.some((item) => item.index === activeIndex);
+		const activeItemIsMounted = virtualItems.some((item) => item.index === activeIndex);
 
 		return (
 			<ListShell
@@ -214,7 +214,7 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 				className={className}
 				collectionProps={{
 					...collectionProps,
-					"aria-activedescendant": activeRowIsMounted
+					"aria-activedescendant": activeItemIsMounted
 						? collectionProps["aria-activedescendant"]
 						: undefined,
 					// Only the windowed slice is in the DOM, so tell AT how many rows
@@ -227,20 +227,20 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 				viewportProps={props}
 				viewportRef={composedViewportRef}
 			>
-				{virtualItems.map((virtualRow) => {
-					const row = rows[virtualRow.index];
-					if (row == null) {
+				{virtualItems.map((virtualItem) => {
+					const item = items[virtualItem.index];
+					if (item == null) {
 						return null;
 					}
 					return (
-						<VirtualRow
-							key={virtualRow.key}
-							virtualRow={virtualRow}
+						<WindowedItem
+							key={virtualItem.key}
+							virtualItem={virtualItem}
 							count={count}
 							measureRef={virtualizer.measureElement}
 						>
-							{row}
-						</VirtualRow>
+							{item}
+						</WindowedItem>
 					);
 				})}
 			</ListShell>

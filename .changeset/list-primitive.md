@@ -7,7 +7,7 @@ feat(mantle): publish the `List` primitive as `@ngrok/mantle/list`
 `List` is the low-level scroll + row primitive that already backs
 `ScrollableList` and `SelectableList` — now exported as its own subpath for
 consumers who need the shared viewport / row chrome and ARIA wiring with their
-own state and layout. Compose `List.Row` children under a `List.Root` (or the
+own state and layout. Compose `List.Item` children under a `List.Root` (or the
 windowed `List.VirtualRoot`); `semantics` chooses the ARIA shape.
 
 ```tsx
@@ -15,11 +15,11 @@ import { List } from "@ngrok/mantle/list";
 
 <List.Root semantics="list" aria-label="Environments" className="max-h-80">
 	{environments.map((environment) => (
-		<List.Row key={environment.id} selected={environment.id === activeId}>
+		<List.Item key={environment.id} selected={environment.id === activeId}>
 			<button type="button" onClick={() => setActiveId(environment.id)}>
 				{environment.name}
 			</button>
-		</List.Row>
+		</List.Item>
 	))}
 </List.Root>;
 ```
@@ -37,13 +37,13 @@ import { List } from "@ngrok/mantle/list";
   a row makes it the active row, and keys from a focused nested tabbable
   control (a link, an overflow-menu button) are handled by that control, not
   the grid. Disabled state defaults to each row element's `disabled` prop; pass
-  `isRowDisabled` to drive it from your data instead. Windowed `list` rows
+  `isItemDisabled` to drive it from your data instead. Windowed `list` rows
   carry `aria-posinset`/`aria-setsize`; windowed `grid` rows carry
   `aria-rowindex` with `aria-rowcount` on the grid.
-- **`List.Row`** owns the hover / `selected` pill chrome and supports `asChild`
+- **`List.Item`** owns the hover / `selected` pill chrome and supports `asChild`
   (e.g. render it as an `<a>` for a navigation row).
 - **`List.VirtualRoot`** is a drop-in for `List.Root` that windows the same
-  `Row` children via `@tanstack/react-virtual`. The dependency ships with every
+  `Item` children via `@tanstack/react-virtual`. The dependency ships with every
   list entrypoint (the `List` namespace re-exports `VirtualRoot`); it is small —
   a few kB gzipped — and does no windowing work until a `VirtualRoot` renders.
 - Most lists still want `ScrollableList` (action / navigation) or

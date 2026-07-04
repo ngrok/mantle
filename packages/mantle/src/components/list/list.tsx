@@ -1,6 +1,6 @@
 "use client";
 
-import { Root, Row } from "./primitive.js";
+import { Root, Item } from "./primitive.js";
 import { VirtualRoot } from "./virtual.js";
 
 /**
@@ -10,14 +10,14 @@ import { VirtualRoot } from "./virtual.js";
  * want the bordered, rounded `bg-popover` viewport and its hover / selected row
  * pills, but with your own state, layout, and (optionally) windowing.
  *
- * Compose `List.Row` children under a `List.Root` (or the windowed
+ * Compose `List.Item` children under a `List.Root` (or the windowed
  * `List.VirtualRoot`); state lives on the rows, not the list. `semantics`
  * chooses the ARIA shape: `"list"` renders a `role="list"` of `role="listitem"`
  * rows with native tab order plus `ArrowUp` / `ArrowDown` / `Home` / `End`
  * moving focus between rows (like `ScrollableList`), while `"grid"` renders a
  * `role="grid"` of `aria-selected` `role="row"`s with a single tab stop and
  * `aria-activedescendant` keyboard navigation that survives virtualization (like
- * `SelectableList`). `List.VirtualRoot` windows the same `Row` children via
+ * `SelectableList`). `List.VirtualRoot` windows the same `Item` children via
  * `@tanstack/react-virtual`, so opting into virtualization never changes the
  * call site — **bound the height** so it has a viewport to measure.
  *
@@ -27,7 +27,7 @@ import { VirtualRoot } from "./virtual.js";
  * Composition:
  * ```
  * List.Root                          (or List.VirtualRoot)
- * └── List.Row
+ * └── List.Item
  *     └── (your row content — a button, gridcells, a link, …)
  * ```
  *
@@ -35,18 +35,18 @@ import { VirtualRoot } from "./virtual.js";
  * ```tsx
  * <List.Root semantics="list" aria-label="Accounts" className="max-h-80">
  *   {accounts.map((account) => (
- *     <List.Row key={account.id} selected={account.id === currentId}>
+ *     <List.Item key={account.id} selected={account.id === currentId}>
  *       <button type="button" className="w-full px-2 py-1.5 text-left">
  *         {account.name}
  *       </button>
- *     </List.Row>
+ *     </List.Item>
  *   ))}
  * </List.Root>
  * ```
  */
 const List = {
 	/**
-	 * The non-virtualized list shell: renders its composed `List.Row` children in
+	 * The non-virtualized list shell: renders its composed `List.Item` children in
 	 * normal flow inside the scroll-viewport chrome, with the `role="list"` /
 	 * `role="grid"` semantics (and, for a grid, `aria-activedescendant` keyboard
 	 * navigation). The default renderer — reach for `List.VirtualRoot` only when a
@@ -58,11 +58,11 @@ const List = {
 	 * ```tsx
 	 * <List.Root semantics="list" aria-label="Accounts" className="max-h-80">
 	 *   {accounts.map((account) => (
-	 *     <List.Row key={account.id} selected={account.id === currentId}>
+	 *     <List.Item key={account.id} selected={account.id === currentId}>
 	 *       <button type="button" className="w-full px-2 py-1.5 text-left">
 	 *         {account.name}
 	 *       </button>
-	 *     </List.Row>
+	 *     </List.Item>
 	 *   ))}
 	 * </List.Root>
 	 * ```
@@ -70,7 +70,7 @@ const List = {
 	Root,
 	/**
 	 * The windowed counterpart to `List.Root`: renders only the visible slice of
-	 * its `List.Row` children via `@tanstack/react-virtual`, sharing the plain
+	 * its `List.Item` children via `@tanstack/react-virtual`, sharing the plain
 	 * shell's chrome, semantics, and — for a grid — `aria-activedescendant`
 	 * keyboard navigation. Authored identically to `List.Root`. **Bound the
 	 * height** so the virtualizer has a viewport to measure.
@@ -81,10 +81,10 @@ const List = {
 	 * ```tsx
 	 * <List.VirtualRoot semantics="grid" aria-label="Access keys" className="max-h-80" onActivate={toggleByIndex}>
 	 *   {keys.map((key) => (
-	 *     <List.Row key={key.id} selected={selected.has(key.id)}>
+	 *     <List.Item key={key.id} selected={selected.has(key.id)}>
 	 *       <div role="gridcell"><Checkbox checked={selected.has(key.id)} tabIndex={-1} /></div>
 	 *       <div role="gridcell">{key.name}</div>
-	 *     </List.Row>
+	 *     </List.Item>
 	 *   ))}
 	 * </List.VirtualRoot>
 	 * ```
@@ -103,16 +103,16 @@ const List = {
 	 * ```tsx
 	 * <List.Root semantics="list" aria-label="Accounts" className="max-h-80">
 	 *   {accounts.map((account) => (
-	 *     <List.Row key={account.id} selected={account.id === currentId}>
+	 *     <List.Item key={account.id} selected={account.id === currentId}>
 	 *       <button type="button" className="w-full px-2 py-1.5 text-left">
 	 *         {account.name}
 	 *       </button>
-	 *     </List.Row>
+	 *     </List.Item>
 	 *   ))}
 	 * </List.Root>
 	 * ```
 	 */
-	Row,
+	Item,
 } as const;
 
 export {

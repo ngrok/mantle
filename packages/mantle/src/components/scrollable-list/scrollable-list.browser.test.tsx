@@ -45,10 +45,10 @@ describe("ScrollableList (browser)", () => {
 		render(<Harness />);
 
 		const bravo = await screen.findByRole("button", { name: /Bravo/ });
-		expect(bravo.closest("[data-slot='list-row']")).toHaveAttribute("data-state", "unselected");
+		expect(bravo.closest("[data-slot='list-item']")).toHaveAttribute("data-state", "unselected");
 
 		await user.click(bravo);
-		expect(bravo.closest("[data-slot='list-row']")).toHaveAttribute("data-state", "selected");
+		expect(bravo.closest("[data-slot='list-item']")).toHaveAttribute("data-state", "selected");
 	});
 
 	test("asChild renders rows as links", async () => {
@@ -94,7 +94,7 @@ describe("ScrollableList (browser)", () => {
 		expect(screen.getByRole("list", { name: "Accounts" })).toBeInTheDocument();
 		const alpha = await screen.findByRole("button", { name: /Alpha/ });
 		await user.click(alpha);
-		expect(alpha.closest("[data-slot='list-row']")).toHaveAttribute("data-state", "selected");
+		expect(alpha.closest("[data-slot='list-item']")).toHaveAttribute("data-state", "selected");
 	});
 
 	test("ArrowUp/ArrowDown/Home/End move focus between rows, skipping disabled ones", async () => {
@@ -149,7 +149,7 @@ describe("ScrollableList (browser)", () => {
 		// the has-[:focus-visible] tint instead (same treatment as hover).
 		expect(focused.className).not.toContain("focus-visible:ring");
 		expect(focused.className).toContain("focus-visible:outline-hidden");
-		const row = focused.closest("[data-slot='list-row']");
+		const row = focused.closest("[data-slot='list-item']");
 		if (row == null) {
 			throw new Error("row not found");
 		}

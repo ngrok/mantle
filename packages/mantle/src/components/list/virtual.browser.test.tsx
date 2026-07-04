@@ -7,18 +7,18 @@ import { List } from "./list.js";
 
 const rows = Array.from({ length: 8 }, (_, index) => ({
 	id: `row-${index}`,
-	name: `Row ${index}`,
+	name: `Item ${index}`,
 	sub: `sub ${index}`,
 }));
 
-function Row({ row }: { row: (typeof rows)[number] }) {
+function Item({ row }: { row: (typeof rows)[number] }) {
 	return (
-		<List.Row key={row.id}>
+		<List.Item key={row.id}>
 			<button type="button" className="flex w-full flex-col gap-0.5 px-2 py-1.5 text-left text-sm">
 				<span className="font-medium">{row.name}</span>
 				<span className="leading-4">{row.sub}</span>
 			</button>
-		</List.Row>
+		</List.Item>
 	);
 }
 
@@ -87,7 +87,7 @@ describe("List virtualization spacing", () => {
 		const plain = render(
 			<List.Root semantics="list" aria-label="plain" className="max-h-60">
 				{rows.map((row) => (
-					<Row key={row.id} row={row} />
+					<Item key={row.id} row={row} />
 				))}
 			</List.Root>,
 		);
@@ -100,7 +100,7 @@ describe("List virtualization spacing", () => {
 		const virtual = render(
 			<List.VirtualRoot semantics="list" aria-label="virtual" className="max-h-60">
 				{rows.map((row) => (
-					<Row key={row.id} row={row} />
+					<Item key={row.id} row={row} />
 				))}
 			</List.VirtualRoot>,
 		);
@@ -136,14 +136,14 @@ describe("List grid navigation", () => {
 				onActivate={() => {}}
 			>
 				{gridRows.map((row) => (
-					<List.Row key={row.id}>
+					<List.Item key={row.id}>
 						<div role="gridcell">
 							{/* tabIndex -1 mirrors SelectableList's checkbox: focusable by click, not Tab. */}
 							<button type="button" tabIndex={-1}>
 								{row.name}
 							</button>
 						</div>
-					</List.Row>
+					</List.Item>
 				))}
 			</List.VirtualRoot>,
 		);
@@ -208,12 +208,12 @@ describe("List grid navigation", () => {
 				onActivate={() => {}}
 			>
 				{gridRows.slice(0, 5).map((row) => (
-					<List.Row key={row.id}>
+					<List.Item key={row.id}>
 						<div role="gridcell">
 							{/* A naturally-tabbable control (default tabIndex 0), as the docs permit. */}
 							<a href="/x">{row.name}</a>
 						</div>
-					</List.Row>
+					</List.Item>
 				))}
 			</List.VirtualRoot>,
 		);
@@ -246,13 +246,13 @@ describe("List grid navigation", () => {
 				onActivate={() => {}}
 			>
 				{gridRows.slice(0, 6).map((row, index) => (
-					<List.Row key={row.id} disabled={index === 2}>
+					<List.Item key={row.id} disabled={index === 2}>
 						<div role="gridcell">
 							<button type="button" tabIndex={-1}>
 								{row.name}
 							</button>
 						</div>
-					</List.Row>
+					</List.Item>
 				))}
 			</List.VirtualRoot>,
 		);
@@ -298,16 +298,16 @@ describe("List grid navigation", () => {
 		const onMenuAction = vi.fn<() => void>();
 		render(
 			<List.Root semantics="grid" aria-label="grid" onActivate={onActivate}>
-				<List.Row>
-					<div role="gridcell">Row 0</div>
-				</List.Row>
-				<List.Row>
+				<List.Item>
+					<div role="gridcell">Item 0</div>
+				</List.Item>
+				<List.Item>
 					<div role="gridcell">
 						<button type="button" onClick={onMenuAction}>
 							open menu
 						</button>
 					</div>
-				</List.Row>
+				</List.Item>
 			</List.Root>,
 		);
 
@@ -332,9 +332,9 @@ describe("List grid navigation", () => {
 		const listRender = render(
 			<List.VirtualRoot semantics="list" aria-label="windowed list" style={{ maxHeight: 200 }}>
 				{gridRows.map((row) => (
-					<List.Row key={row.id}>
+					<List.Item key={row.id}>
 						<button type="button">{row.name}</button>
-					</List.Row>
+					</List.Item>
 				))}
 			</List.VirtualRoot>,
 		);
@@ -357,9 +357,9 @@ describe("List grid navigation", () => {
 				onActivate={() => {}}
 			>
 				{gridRows.map((row) => (
-					<List.Row key={row.id}>
+					<List.Item key={row.id}>
 						<div role="gridcell">{row.name}</div>
-					</List.Row>
+					</List.Item>
 				))}
 			</List.VirtualRoot>,
 		);
@@ -387,9 +387,9 @@ describe("List grid navigation", () => {
 				onActivate={() => {}}
 			>
 				{gridRows.map((row) => (
-					<List.Row key={row.id}>
+					<List.Item key={row.id}>
 						<div role="gridcell">{row.name}</div>
-					</List.Row>
+					</List.Item>
 				))}
 			</List.VirtualRoot>,
 		);
