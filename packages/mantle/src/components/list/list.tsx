@@ -13,7 +13,8 @@ import { VirtualRoot } from "./virtual.js";
  * Compose `List.Row` children under a `List.Root` (or the windowed
  * `List.VirtualRoot`); state lives on the rows, not the list. `semantics`
  * chooses the ARIA shape: `"list"` renders a `role="list"` of `role="listitem"`
- * rows with native tab order (like `ScrollableList`), while `"grid"` renders a
+ * rows with native tab order plus `ArrowUp` / `ArrowDown` / `Home` / `End`
+ * moving focus between rows (like `ScrollableList`), while `"grid"` renders a
  * `role="grid"` of `aria-selected` `role="row"`s with a single tab stop and
  * `aria-activedescendant` keyboard navigation that survives virtualization (like
  * `SelectableList`). `List.VirtualRoot` windows the same `Row` children via

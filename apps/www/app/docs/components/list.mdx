@@ -160,7 +160,7 @@ List.Root                          (or List.VirtualRoot)
 
 `Root` and `VirtualRoot` take a `semantics` prop that chooses the collection's ARIA shape — the tag stays a `<div>` (per WAI-ARIA the _role_, not the tag, carries the semantics), so both flavors share one implementation.
 
-- **`"list"`** (the default) renders a `role="list"` of `role="listitem"` rows: a non-selecting list of actions or links with native tab order and no roving. This is what [`ScrollableList`](/components/scrollable-list) uses.
+- **`"list"`** (the default) renders a `role="list"` of `role="listitem"` rows: a non-selecting list of actions or links with native tab order, plus `Arrow`↑/`Arrow`↓ / `Home` / `End` moving focus between the rows' controls. This is what [`ScrollableList`](/components/scrollable-list) uses.
 - **`"grid"`** renders a `role="grid"` of `role="row"` rows carrying `aria-selected`, driven as a single tab stop with `aria-activedescendant` navigation that works across a virtualized window. Pass `onActivate` to react to `Space` / `Enter` on the active row, and `rowId` to point `aria-activedescendant` at a real element you own (e.g. a row's checkbox). This is what [`SelectableList`](/components/selectable-list) uses.
 
 ## Polymorphism
@@ -253,7 +253,7 @@ function Example() {
 
 ## Accessibility
 
-Name the collection with `aria-label` (or `aria-labelledby`) on `Root` / `VirtualRoot`. Under `"list"` semantics the rows are a `role="list"` / `role="listitem"` structure with native tab order — put your own focusable control (a `<button>` or an `asChild` `<a>`) inside each row. Under `"grid"` semantics the collection is a single tab stop: `Arrow` / `Home` / `End` move an active row tracked with `aria-activedescendant` (so focus never rides a row and navigation survives virtualization), skipping `disabled` rows, and `Space` / `Enter` fires `onActivate`. Pressing or clicking anywhere on a row also makes it the active row. Keys pressed while a nested tabbable control (a link, an overflow-menu button) has focus are handled by that control, not the grid — `Enter` activates the control instead of toggling the row. Under virtualization, screen-reader counts stay true: windowed `list` rows carry `aria-posinset` / `aria-setsize`, while windowed `grid` rows carry `aria-rowindex` with `aria-rowcount` on the grid.
+Name the collection with `aria-label` (or `aria-labelledby`) on `Root` / `VirtualRoot`. Under `"list"` semantics the rows are a `role="list"` / `role="listitem"` structure with native tab order — put your own focusable control (a `<button>` or an `asChild` `<a>`) inside each row; `Arrow`↑/`Arrow`↓ / `Home` / `End` also move real focus between those controls (skipping `disabled` rows, no wrap), and the focused row tints like hover instead of ringing the control. Under `"grid"` semantics the collection is a single tab stop: `Arrow` / `Home` / `End` move an active row tracked with `aria-activedescendant` (so focus never rides a row and navigation survives virtualization), skipping `disabled` rows, and `Space` / `Enter` fires `onActivate`. Pressing or clicking anywhere on a row also makes it the active row. Keys pressed while a nested tabbable control (a link, an overflow-menu button) has focus are handled by that control, not the grid — `Enter` activates the control instead of toggling the row. Under virtualization, screen-reader counts stay true: windowed `list` rows carry `aria-posinset` / `aria-setsize`, while windowed `grid` rows carry `aria-rowindex` with `aria-rowcount` on the grid.
 
 ## API Reference
 

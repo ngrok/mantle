@@ -39,5 +39,9 @@ import { ScrollableList } from "@ngrok/mantle/scrollable-list";
   consumers should prefer omitting the `href` for a genuinely disabled link.
 - Built on a shared internal `list` primitive (the scroll + row chrome and ARIA
   behind both list components).
-- Keyboard is the native tab order; under `VirtualViewport`, off-screen rows
-  aren't Tab-reachable (the windowing trade-off).
+- **Keyboard.** Rows keep their native tab order, and `Arrow`↑/`Arrow`↓ /
+  `Home` / `End` also move focus between rows (skipping disabled ones, no
+  wrap); the focused row lights up with the hover tint instead of a focus ring
+  on the item. Arrow navigation spans a `VirtualViewport`'s full list — jump
+  targets are scrolled into view and mounted before focus moves — though
+  off-screen rows still aren't Tab-reachable (the windowing trade-off).

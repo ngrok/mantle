@@ -9,6 +9,7 @@ import {
 	useContext,
 	useId,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
 import type {
@@ -34,7 +35,8 @@ import { Slot } from "../slot/index.js";
  *
  * - `"list"` → `<div role="list">` of `<div role="listitem">` rows: a
  *   non-selecting list of actions/links (e.g. `ScrollableList`). Native tab
- *   order; no roving.
+ *   order, with `ArrowUp` / `ArrowDown` / `Home` / `End` moving real focus
+ *   between the rows' controls (skipping disabled rows).
  * - `"grid"` → `<div role="grid">` of `<div role="row">` rows carrying
  *   `aria-selected`, whose children are the `role="gridcell"`s (e.g.
  *   `SelectableList`): a single tab stop with `aria-activedescendant`
@@ -206,16 +208,129 @@ type ListRootProps = ComponentProps<"div"> & {
 
 /**
  * Whether a composed row child is disabled — read from the `disabled` prop it
- * declares (e.g. `<Row disabled>`). Under `"grid"` semantics this is what
- * keyboard navigation reads to skip a row, derived from the row *elements* (not
- * the live DOM) so it works for windowed rows that aren't mounted. Safe over an
- * arbitrary node: non-elements and rows without the prop read as enabled.
+ * declares (e.g. `<Row disabled>`). This is what keyboard navigation reads to
+ * skip a row, derived from the row *elements* (not the live DOM) so it works
+ * for windowed rows that aren't mounted. Safe over an arbitrary node:
+ * non-elements and rows without the prop read as enabled.
  */
 function isRowChildDisabled(node: ReactNode): boolean {
 	if (!isValidElement<{ disabled?: boolean }>(node)) {
 		return false;
 	}
 	return node.props.disabled === true;
+}
+
+/**
+ * First index at or after `start`, stepping by `step` (+1 down, -1 up), whose
+ * row is enabled; `-1` when no enabled row remains in that direction. The
+ * shared skip-disabled walk behind both keyboard-navigation flavors.
+ */
+function findEnabledIndex({
+	start,
+	step,
+	count,
+	isRowDisabled,
+}: {
+	start: number;
+	step: number;
+	count: number;
+	isRowDisabled: (index: number) => boolean;
+}): number {
+	for (let index = start; index >= 0 && index < count; index += step) {
+		if (!isRowDisabled(index)) {
+			return index;
+		}
+	}
+	return -1;
+}
+
+/**
+ * The keyboard-focusable control inside a composed row — where list-semantics
+ * arrow navigation moves focus (a `ScrollableList.Item`'s button or link).
+ * Excludes disabled buttons and anything pulled out of the tab order with
+ * `tabIndex={-1}` (e.g. a disabled `asChild` link).
+ */
+const ROW_CONTROL_SELECTOR =
+	'a[href]:not([tabindex="-1"]), button:not(:disabled):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * The focusable control of a mounted row element, or `null` when the row hosts
+ * none (a static row is simply not a keyboard-navigation stop).
+ */
+function findRowControl(row: Element): HTMLElement | null {
+	const control = row.querySelector(ROW_CONTROL_SELECTOR);
+	return control instanceof HTMLElement ? control : null;
+}
+
+/**
+ * Arrow-key navigation for `"list"` semantics: `ArrowUp` / `ArrowDown` /
+ * `Home` / `End` pressed on a row's focused control move **real focus** to the
+ * next enabled row's control (native tab order is otherwise untouched, so this
+ * augments — never replaces — Tab). Handled keys are always claimed so they
+ * step rows instead of scrolling the viewport, and there is no wrap: arrowing
+ * past the last enabled row holds. Inert under `"grid"` semantics, which has
+ * its own single-tab-stop `aria-activedescendant` model.
+ */
+function useListFocusNavigation({
+	count,
+	enabled,
+	isRowDisabled,
+	focusRowAt,
+}: {
+	count: number;
+	enabled: boolean;
+	/** Whether the row at an index is disabled — skipped by arrow navigation. */
+	isRowDisabled: (index: number) => boolean;
+	/** Move focus to the control of the row at `index`, revealing (and, windowed, mounting) it. */
+	focusRowAt: (index: number) => void;
+}): { collectionProps: Pick<ComponentProps<"div">, "onKeyDown"> } {
+	if (!enabled) {
+		return { collectionProps: {} };
+	}
+
+	return {
+		collectionProps: {
+			onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
+				// Never steal keys from a text-editing control a row might host —
+				// arrows move its caret and Home/End jump within its value.
+				if (
+					event.target instanceof HTMLElement &&
+					(event.target.isContentEditable ||
+						event.target.tagName === "INPUT" ||
+						event.target.tagName === "TEXTAREA" ||
+						event.target.tagName === "SELECT")
+				) {
+					return;
+				}
+				const row = event.target instanceof Element ? event.target.closest("[data-index]") : null;
+				const rowIndex = row ? Number(row.getAttribute("data-index")) : Number.NaN;
+				if (!Number.isInteger(rowIndex) || rowIndex < 0) {
+					return;
+				}
+				let targetIndex = -1;
+				switch (event.key) {
+					case "ArrowDown":
+						targetIndex = findEnabledIndex({ start: rowIndex + 1, step: 1, count, isRowDisabled });
+						break;
+					case "ArrowUp":
+						targetIndex = findEnabledIndex({ start: rowIndex - 1, step: -1, count, isRowDisabled });
+						break;
+					case "Home":
+						targetIndex = findEnabledIndex({ start: 0, step: 1, count, isRowDisabled });
+						break;
+					case "End":
+						targetIndex = findEnabledIndex({ start: count - 1, step: -1, count, isRowDisabled });
+						break;
+					default:
+						return;
+				}
+				event.preventDefault();
+				if (targetIndex >= 0 && targetIndex !== rowIndex) {
+					focusRowAt(targetIndex);
+				}
+			},
+		},
+	};
 }
 
 /**
@@ -272,16 +387,8 @@ function useGridNavigation({
 
 	const isDisabled = (index: number) => isRowDisabled?.(index) ?? false;
 
-	// First non-disabled index at or after `start`, stepping by `step` (+1 down,
-	// -1 up); `-1` when there is no enabled row left in that direction.
-	const enabledIndexFrom = (start: number, step: number): number => {
-		for (let index = start; index >= 0 && index < count; index += step) {
-			if (!isDisabled(index)) {
-				return index;
-			}
-		}
-		return -1;
-	};
+	const enabledIndexFrom = (start: number, step: number): number =>
+		findEnabledIndex({ start, step, count, isRowDisabled: isDisabled });
 
 	// Make an enabled row active and scroll it into view; ignore `-1` (no target,
 	// e.g. arrowing past the last enabled row) so the active row simply holds.
@@ -491,6 +598,12 @@ const Row = forwardRef<ComponentRef<"div">, ListRowProps>(
 					listRowClassName,
 					!disabled &&
 						"hover:bg-active-menu-item hover:data-[state=selected]:bg-active-selected-menu-item",
+					// List rows convey keyboard focus with the same tint as hover (matching
+					// the grid's active row) rather than a focus ring on the inner control —
+					// the control suppresses its own outline and the row lights up instead.
+					!isGrid &&
+						!disabled &&
+						"has-[:focus-visible]:bg-active-menu-item has-[:focus-visible]:data-[state=selected]:bg-active-selected-menu-item",
 					className,
 				)}
 				style={placement ? { ...style, ...placement.style } : style}
@@ -551,6 +664,7 @@ const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
 		ref,
 	) => {
 		const baseId = useId();
+		const viewportRef = useRef<HTMLDivElement>(null);
 		// The row elements, in order — the single array we both render from and read
 		// each row's `disabled` prop off for grid navigation, so the disabled lookup
 		// by index always lines up with what's rendered. Filtered to elements (as
@@ -581,13 +695,29 @@ const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
 			},
 			[resolveRowId],
 		);
+		const isRowDisabled = (index: number) => isRowChildDisabled(rowChildren[index]);
 		const { activeIndex, collectionProps } = useGridNavigation({
 			count,
 			enabled: semantics === "grid",
-			isRowDisabled: (index) => isRowChildDisabled(rowChildren[index]),
+			isRowDisabled,
 			onActivate,
 			rowId: resolveRowId,
 			scrollToIndex,
+		});
+		const focusRowAt = useCallback((index: number) => {
+			const row = viewportRef.current?.querySelector(`[data-index="${index}"]`);
+			if (row == null) {
+				return;
+			}
+			findRowControl(row)?.focus({ preventScroll: true });
+			// Reveal the whole row, not just its control (mirrors the grid's scroll fix).
+			row.scrollIntoView({ block: "nearest" });
+		}, []);
+		const { collectionProps: listNavProps } = useListFocusNavigation({
+			count,
+			enabled: semantics === "list",
+			isRowDisabled,
+			focusRowAt,
 		});
 		const gridNav = useMemo<GridNavContextValue>(
 			() => ({ activeIndex, rowId: resolveRowId, ownsRowIds: rowId == null }),
@@ -598,7 +728,7 @@ const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
 			<ListContext.Provider value={context}>
 				<GridNavContext.Provider value={gridNav}>
 					<div
-						ref={ref}
+						ref={composeRefs(viewportRef, ref)}
 						data-slot="list"
 						className={cx(listViewportClassName, className)}
 						{...props}
@@ -611,6 +741,7 @@ const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
 							aria-multiselectable={ariaMultiselectable}
 							className={listCollectionClassName}
 							{...collectionProps}
+							{...listNavProps}
 						>
 							{rowChildren.map((row, index) => (
 								// Key off the child's own key (assigned by `Children.toArray`) so
@@ -630,6 +761,7 @@ Root.displayName = "ListRoot";
 
 export {
 	//,
+	findRowControl,
 	GridNavContext,
 	isRowChildDisabled,
 	ListContext,
@@ -639,6 +771,7 @@ export {
 	Root,
 	Row,
 	useGridNavigation,
+	useListFocusNavigation,
 };
 
 export type {

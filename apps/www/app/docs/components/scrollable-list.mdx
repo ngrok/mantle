@@ -112,7 +112,7 @@ export function ScrollableListIsolatedExample() {
 							className={cx(
 								"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
 								"hover:bg-active-menu-item",
-								"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
+								"focus-visible:bg-active-menu-item focus-visible:outline-hidden",
 							)}
 						>
 							<span className="text-strong font-medium">{account.name}</span>
@@ -270,7 +270,7 @@ const accounts = [
 				className={cx(
 					"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
 					"hover:bg-active-menu-item",
-					"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
+					"focus-visible:bg-active-menu-item focus-visible:outline-hidden",
 				)}
 			>
 				<span className="text-strong font-medium">{account.name}</span>
@@ -330,11 +330,11 @@ function Example() {
 }
 ```
 
-> **Windowing trade-off.** Off-screen rows aren't in the DOM, so Tab and browser find-in-page only reach mounted rows — the right trade for a large enough list. Prefer `Viewport` until a list is actually long.
+> **Windowing trade-off.** Off-screen rows aren't in the DOM, so Tab and browser find-in-page only reach mounted rows (arrow keys still span the full list — they mount the target row before focusing it) — the right trade for a large enough list. Prefer `Viewport` until a list is actually long.
 
 ## Polymorphism
 
-Render rows as links by passing `asChild` and an `<a>` — the row chrome (hover pill, focus ring) applies to your element, so clicking navigates. Rows compose freely: each one here is a [`MediaObject`](/components/media-object) with the provider icon on the left and the name over a de-emphasized owner on the right — an SSO identity-provider picker, as a list rather than a stack of cards.
+Render rows as links by passing `asChild` and an `<a>` — the row chrome (hover pill, keyboard-focus tint) applies to your element, so clicking navigates. Rows compose freely: each one here is a [`MediaObject`](/components/media-object) with the provider icon on the left and the name over a de-emphasized owner on the right — an SSO identity-provider picker, as a list rather than a stack of cards.
 
 <Example>
 	<ScrollableListLinkExample />
@@ -368,7 +368,7 @@ import { ScrollableList } from "@ngrok/mantle/scrollable-list";
 
 The list is a `role="list"` of `role="listitem"` rows (the tag is a `<div>` — per WAI-ARIA the role, not the tag, carries the semantics); each `Item` is a focusable `<button>` (or your `asChild` element) inside its row. It is a **non-selecting** list, not a selection widget — that's [`SelectableList`](/components/selectable-list)'s job. Provide an `aria-label` (or `aria-labelledby`) on the `Viewport` so the list has an accessible name. A `selected` row is announced via `aria-current`, not just tinted. Disabled rows are dimmed: a `<button>` row sets the native `disabled`, while an `asChild` row is conveyed with `aria-disabled`, removed from the tab order, and swallows clicks — but prefer omitting or removing the `href` for a genuinely disabled link.
 
-Keyboard support is the native tab order of the rendered rows. Under `VirtualViewport`, off-screen rows aren't reachable by Tab (see [Virtualization](#virtualization)) — the windowing trade-off for a long list.
+Keyboard: rows keep their native tab order, and `Arrow`↑/`Arrow`↓ / `Home` / `End` also move focus between rows, skipping disabled ones (no wrap — arrowing past the last row holds). The focused row lights up with the same tint as hover instead of drawing a focus ring on the item, matching the [`SelectableList`](/components/selectable-list) active row. Arrow navigation works under `VirtualViewport` too — a jump scrolls the target row into view and mounts it before moving focus — though off-screen rows still aren't reachable by Tab alone (see [Virtualization](#virtualization)).
 
 ## API Reference
 

@@ -36,6 +36,10 @@ type ScrollableListViewportProps = Omit<ListRootProps, "semantics" | "onActivate
  * Compose `ScrollableList.Item` children directly. **Bound its height**
  * (`max-h-*`, `h-*`, or `min-h-0 flex-1`) so long lists scroll.
  *
+ * Keyboard: rows keep their native tab order, and `ArrowUp` / `ArrowDown` /
+ * `Home` / `End` also move focus between rows (skipping disabled ones); the
+ * focused row lights up with the hover tint rather than a focus ring.
+ *
  * For very long lists, swap in `ScrollableList.VirtualViewport`, which windows
  * the same `Item` children — the call site is otherwise identical.
  *
@@ -206,12 +210,14 @@ const Item = forwardRef<ComponentRef<"button">, ScrollableListItemProps>(
 						onClick?.(event);
 					}}
 					className={cx(
-						// `rounded-md` matches the pill so the focus ring follows its shape. The
-						// hover / selected tint lives on the enclosing row; this is the
-						// transparent, clickable content area that fills it.
+						// The hover / selected tint lives on the enclosing row; this is the
+						// transparent, clickable content area that fills it. Keyboard focus is
+						// conveyed by the row's tint (it lights up like hover via
+						// `has-[:focus-visible]`), so the control suppresses its own outline
+						// instead of drawing a focus ring.
 						"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
 						"disabled:cursor-default disabled:opacity-50 aria-disabled:cursor-default aria-disabled:opacity-50 aria-disabled:pointer-events-none",
-						"focus-visible:ring-focus-accent focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-hidden",
+						"focus-visible:outline-hidden",
 						className,
 					)}
 					{...props}
@@ -292,7 +298,9 @@ ItemDescription.displayName = "ScrollableListItemDescription";
  * It is a **non-selecting** semantic list (`role="list"` of `role="listitem"`),
  * not a selection widget — selection is `SelectableList`'s job. Non-virtualized
  * by default; swap `Viewport` → `VirtualViewport` (same children) for windowing.
- * Both are built on the shared `list` primitive.
+ * Both are built on the shared `list` primitive. Rows keep their native tab
+ * order, and `ArrowUp` / `ArrowDown` / `Home` / `End` also move focus between
+ * them — the focused row tints like hover instead of drawing a focus ring.
  *
  * @see https://mantle.ngrok.com/components/scrollable-list
  *

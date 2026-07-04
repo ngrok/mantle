@@ -25,7 +25,10 @@ import { List } from "@ngrok/mantle/list";
 ```
 
 - **`semantics="list"`** renders a `role="list"` of `role="listitem"` rows
-  (native tab order); **`semantics="grid"`** renders a `role="grid"` of
+  (native tab order, with `Arrow`↑/`Arrow`↓ / `Home` / `End` moving focus
+  between the rows' controls, skipping `disabled` rows; the focused row tints
+  like hover instead of ringing the control); **`semantics="grid"`** renders a
+  `role="grid"` of
   `aria-selected` `role="row"`s driven as a single tab stop with
   `aria-activedescendant` navigation that survives virtualization. Grid
   keyboard navigation skips `disabled` rows (which carry `aria-disabled`),

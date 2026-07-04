@@ -7,6 +7,7 @@ import type { ComponentRef, ReactNode } from "react";
 import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import {
+	findRowControl,
 	GridNavContext,
 	isRowChildDisabled,
 	ListContext,
@@ -14,6 +15,7 @@ import {
 	listCollectionClassName,
 	listViewportClassName,
 	useGridNavigation,
+	useListFocusNavigation,
 } from "./primitive.js";
 import type {
 	GridNavContextValue,
@@ -178,15 +180,45 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 			(index: number) => virtualizer.scrollToIndex(index, { align: "auto" }),
 			[virtualizer],
 		);
+		// Windowed rows aren't all mounted, so read `disabled` from the row
+		// elements (which we hold in full) rather than the DOM.
+		const isRowDisabled = (index: number) => isRowChildDisabled(rows[index]);
 		const { activeIndex, collectionProps } = useGridNavigation({
 			count,
 			enabled: semantics === "grid",
-			// Windowed rows aren't all mounted, so read `disabled` from the row
-			// elements (which we hold in full) rather than the DOM.
-			isRowDisabled: (index) => isRowChildDisabled(rows[index]),
+			isRowDisabled,
 			onActivate,
 			rowId: resolveRowId,
 			scrollToIndex,
+		});
+		const focusRowAt = useCallback(
+			(index: number) => {
+				virtualizer.scrollToIndex(index, { align: "auto" });
+				// A jump target (Home/End) may not be mounted until the virtualizer
+				// renders the new window — retry across a few frames, bounded so a row
+				// that never mounts can't loop forever.
+				let attempts = 0;
+				const tryFocus = () => {
+					const row = scrollRef.current?.querySelector(`[data-index="${index}"]`);
+					const control = row == null ? null : findRowControl(row);
+					if (control != null) {
+						control.focus({ preventScroll: true });
+						return;
+					}
+					attempts += 1;
+					if (attempts < 10) {
+						requestAnimationFrame(tryFocus);
+					}
+				};
+				tryFocus();
+			},
+			[virtualizer],
+		);
+		const { collectionProps: listNavProps } = useListFocusNavigation({
+			count,
+			enabled: semantics === "list",
+			isRowDisabled,
+			focusRowAt,
 		});
 		const gridNav = useMemo<GridNavContextValue>(
 			() => ({ activeIndex, rowId: resolveRowId, ownsRowIds: rowId == null }),
@@ -226,6 +258,7 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 							className={listCollectionClassName}
 							style={{ height: `${virtualizer.getTotalSize()}px` }}
 							{...windowedCollectionProps}
+							{...listNavProps}
 						>
 							{virtualItems.map((virtualRow) => {
 								const row = rows[virtualRow.index];
