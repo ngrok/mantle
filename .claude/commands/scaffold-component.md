@@ -67,7 +67,7 @@ Use real Unicode box-drawing chars (`├` U+251C, `─` U+2500, `└` U+2514, `�
 
 Follow these steps exactly.
 
-## 0.b. Add external dependencies (only if wrapping a 3rd-party library)
+## 0.c. Add external dependencies (only if wrapping a 3rd-party library)
 
 If the component wraps a 3rd-party primitive (e.g. Radix, Ariakit, `input-otp`, `cmdk`), add the dependency to `@ngrok/mantle` with an **exact pinned version** before writing code:
 
@@ -79,7 +79,7 @@ pnpm -w add -E <package-name> -F @ngrok/mantle
 - If the dep will be shared across multiple workspace packages, add it to `pnpm-workspace.yaml`'s `catalog:` first and reference it as `catalog:`.
 - Skip this step entirely for components built only from React + existing mantle utilities.
 
-## 0.c. Decide on `"use client"`
+## 0.d. Decide on `"use client"`
 
 If the component uses any of the following, the file MUST start with `"use client";` on its first line for React Server Component compatibility:
 
