@@ -3,9 +3,9 @@ title: Selectable List
 description: A filterable, multi-select grid of checkbox rows.
 ---
 
+import { Badge } from "@ngrok/mantle/badge";
 import { Button } from "@ngrok/mantle/button";
 import { optionLabelText, SelectableList } from "@ngrok/mantle/selectable-list";
-import { KeyIcon } from "@phosphor-icons/react/Key";
 import { useState } from "react";
 import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
@@ -54,23 +54,39 @@ export function SelectableListExample() {
 	);
 }
 
+export const keyStatus = {
+	onboarding: "expiring soon",
+	prod: "active",
+	staging: "active",
+	ci: "active",
+	edge: "expiring soon",
+};
+
 export function CustomRowsExample() {
 	const [selected, setSelected] = useState(["prod"]);
 	return (
 		<div className="w-full max-w-md">
 			<SelectableList.Root options={keyOptions} value={selected} onValueChange={setSelected}>
 				<SelectableList.Viewport aria-label="Access keys" className="max-h-80">
-					{(option) => (
-						<SelectableList.Item value={option.value}>
-							<div className="flex items-center gap-2">
-								<KeyIcon className="text-muted size-4 shrink-0" weight="duotone" />
-								<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
-							</div>
-							<SelectableList.ItemDescription className="ml-6">
-								{option.description}
-							</SelectableList.ItemDescription>
-						</SelectableList.Item>
-					)}
+					{(option) => {
+						// Rich row data that isn't part of the option — look it up by `option.value`.
+						const status = keyStatus[option.value];
+						return (
+							<SelectableList.Item value={option.value}>
+								{/* Stopgap: inside Item you are hand-rolling the row's content cell.
+								    Keep ItemTitle — it is the label that names the row's checkbox. */}
+								<div className="flex items-center gap-2">
+									<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+									<Badge appearance="muted" color={status === "active" ? "success" : "warning"}>
+										{status}
+									</Badge>
+								</div>
+								<SelectableList.ItemDescription className="font-mono">
+									{option.description}
+								</SelectableList.ItemDescription>
+							</SelectableList.Item>
+						);
+					}}
 				</SelectableList.Viewport>
 			</SelectableList.Root>
 		</div>
@@ -183,7 +199,7 @@ export function VirtualViewportExample() {
 
 <PageHeader id="selectable-list">Selectable List</PageHeader>
 
-A filterable, multi-select **grid** of checkbox rows — the inline (non-popover) counterpart to [`MultiSelect`](/components/multi-select) and [`Combobox`](/components/combobox). Map your data into `options` once; the list owns filtering and selection. Each row is an APG grid `role="row"` (`aria-selected`) whose cells hold a real [`Checkbox`](/components/checkbox) and a [`Choice`](/components/choice)-laid-out title + description — the pattern that lets a selectable row carry a real control and its own interactive content. The default row is fully click-to-toggle with a title and an optional de-emphasized sub-line — or render your own layout (see [Custom rows](#custom-rows)). It renders every row by default; for long lists, swap `Viewport` → [`VirtualViewport`](#virtualization). The example below has a disabled row (`staging`).
+A filterable, multi-select **grid** of checkbox rows — the inline (non-popover) counterpart to [`MultiSelect`](/components/multi-select) and [`Combobox`](/components/combobox). Map your data into `options` once; the list owns filtering and selection. Each row is an APG grid `role="row"` (`aria-selected`) whose cells hold a real [`Checkbox`](/components/checkbox) and a [`Choice`](/components/choice)-laid-out title + description — the pattern that lets a selectable row carry a real control and its own interactive content. The default row is fully click-to-toggle with a title and an optional de-emphasized sub-line — or, as a stopgap, break out with your own row content (see [Custom rows](#custom-rows)). It renders every row by default; for long lists, swap `Viewport` → [`VirtualViewport`](#virtualization). The example below has a disabled row (`staging`).
 
 <Example>
 	<SelectableListExample />
@@ -267,15 +283,30 @@ function Example() {
 
 ## Custom rows
 
-The default row (a title over a description) is a convenience. To render **your own layout**, pass a render-prop child to a viewport and compose a `SelectableList.Item` — add icons, badges, even interactive controls (the grid pattern permits a row to hold its own buttons/links). `Item` reads its selection and disabled state from the list by `value`, so you only describe the content. `SelectableList.ItemTitle` renders a [`Choice.Label`](/components/choice) (the real label wired to the row's checkbox) and `SelectableList.ItemDescription` a `Choice.Description`.
+The default row (a title over a description) is the design-system row — prefer it. When a row must carry content the default shape can't express — a status badge, extra metadata, even interactive controls (the grid pattern permits a row to hold its own buttons/links) — pass a render-prop child to a viewport and compose a `SelectableList.Item`.
+
+Treat custom children as a **stopgap, not a second design system**. `Item` keeps owning the row — the `role="row"` chrome, click-to-toggle, `aria-selected`, and the checkbox `gridcell` — and renders your children into the content `gridcell`, a flex column beside the checkbox laid out by [`Choice`](/components/choice). Everything inside that column is yours: hand-rolled, one-off layout for this row shape, not a mantle-styled surface.
+
+```text showLineNumbers=false
+SelectableList.Item                     role="row" — selection + disabled read from the list by `value`
+├── checkbox gridcell                   provided by Item — the row's real Checkbox
+└── content gridcell (flex column)      your children render here
+    ├── SelectableList.ItemTitle        the row's Choice.Label — names the checkbox; always render it
+    └── SelectableList.ItemDescription  a Choice.Description — associated via aria-describedby
+```
+
+Two rules keep the row's accessibility wiring intact:
+
+- **Always render `SelectableList.ItemTitle`.** It is the row's [`Choice.Label`](/components/choice) — the real `<label>` that gives the checkbox its accessible name and makes the title click-to-toggle.
+- **Never nest a `Choice.Root` inside an `Item`.** The row already provides one; a nested root silently re-wires the title and description away from the row's checkbox.
 
 <Example>
 	<CustomRowsExample />
 </Example>
 
 ```tsx
+import { Badge } from "@ngrok/mantle/badge";
 import { SelectableList } from "@ngrok/mantle/selectable-list";
-import { KeyIcon } from "@phosphor-icons/react/Key";
 import { useState } from "react";
 
 const options = [
@@ -284,23 +315,37 @@ const options = [
 	{ value: "staging", label: "staging", description: "ng-7HkLmNp***1q2w" },
 ];
 
+const keyStatus: Record<string, "active" | "expiring soon"> = {
+	onboarding: "expiring soon",
+	prod: "active",
+	staging: "active",
+};
+
 function Example() {
 	const [selected, setSelected] = useState<string[]>(["prod"]);
 
 	return (
 		<SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
 			<SelectableList.Viewport aria-label="Access keys" className="max-h-80">
-				{(option) => (
-					<SelectableList.Item value={option.value}>
-						<div className="flex items-center gap-2">
-							<KeyIcon className="text-muted size-4 shrink-0" weight="duotone" />
-							<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
-						</div>
-						<SelectableList.ItemDescription className="ml-6">
-							{option.description}
-						</SelectableList.ItemDescription>
-					</SelectableList.Item>
-				)}
+				{(option) => {
+					// Rich row data that isn't part of the option — look it up by `option.value`.
+					const status = keyStatus[option.value];
+					return (
+						<SelectableList.Item value={option.value}>
+							{/* Stopgap: inside Item you are hand-rolling the row's content cell.
+							    Keep ItemTitle — it is the label that names the row's checkbox. */}
+							<div className="flex items-center gap-2">
+								<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+								<Badge appearance="muted" color={status === "active" ? "success" : "warning"}>
+									{status}
+								</Badge>
+							</div>
+							<SelectableList.ItemDescription className="font-mono">
+								{option.description}
+							</SelectableList.ItemDescription>
+						</SelectableList.Item>
+					);
+				}}
 			</SelectableList.Viewport>
 		</SelectableList.Root>
 	);
