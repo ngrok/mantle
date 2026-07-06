@@ -1,5 +1,194 @@
 # @ngrok/mantle
 
+## 0.77.0
+
+### Minor Changes
+
+- [#1305](https://github.com/ngrok/mantle/pull/1305) [`d9fe81f`](https://github.com/ngrok/mantle/commit/d9fe81f030dd8bccc73e8d33ea82152d791085e7) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - feat(mantle): add `useDebounce`, `useLocalStorage`, and `useSessionStorage` hooks
+
+  - `useDebounce(value, { waitMs })` returns a debounced copy of a value that only updates after the value stops changing for `waitMs` milliseconds. The sibling of `useDebouncedCallback` for values instead of functions.
+  - `useLocalStorage(key, defaultValue)` is SSR-safe, `useSyncExternalStore`-backed localStorage string state. The setter keeps every same-key hook instance in the tab in sync, cross-tab changes arrive via the native `storage` event, and corrupt entries resolve to the default instead of throwing.
+  - `useSessionStorage(key, defaultValue)` is the per-tab sibling of `useLocalStorage` with the same contract, backed by sessionStorage.
+
+- [#1291](https://github.com/ngrok/mantle/pull/1291) [`aaa0247`](https://github.com/ngrok/mantle/commit/aaa02479cc25ae7693b1d95d2822c057df7fe46b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - feat(mantle): add `Choice` layout primitive
+
+  `Choice` is a reusable indicator-left / content-right layout for a single
+  choice — a control (checkbox, radio, switch) beside an emphasized title and an
+  optional de-emphasized description. Use it to pair a `Checkbox` or `RadioGroup`
+  option with a rich, titled label, or reach for it directly for your own rows.
+
+  ```tsx
+  import { Checkbox } from "@ngrok/mantle/checkbox";
+  import { Choice } from "@ngrok/mantle/choice";
+
+  <Choice.Root name="notify">
+  	<Choice.Indicator>
+  		<Checkbox />
+  	</Choice.Indicator>
+  	<Choice.Content>
+  		<Choice.Label>Email</Choice.Label>
+  		<Choice.Description>Get notified by email.</Choice.Description>
+  	</Choice.Content>
+  </Choice.Root>;
+  ```
+
+  - Pure layout + association: `Choice.Root` owns the control's `id` and the
+    description's `id` and wires them (`htmlFor`, `aria-describedby`) without
+    threading ids. Drop your own control into `Choice.Indicator` — it is cloned
+    with the shared `id` / `name` / `aria-*` / `disabled`.
+  - `Choice.Label` renders a real `<label htmlFor>` (use when the `Choice` owns the
+    labeling); `Choice.Title` renders label-less text (use when an ancestor — a
+    clickable row, a Headless radio item, or a `Field.Label` — owns it). Mirrors
+    `Field.Label` / `Field.LabelText`.
+  - **Field interop:** inside a `Field.Control`, the field's `id` / `name` /
+    `aria-*` flow onto the control and the field's `aria-describedby` is merged
+    (never duplicated) with the `Choice`'s own description. Outside a `Field` it
+    uses its own generated ids — the two are decoupled; neither requires the other.
+
+- [#1303](https://github.com/ngrok/mantle/pull/1303) [`65eb57b`](https://github.com/ngrok/mantle/commit/65eb57b4104d00f16dd62d4f92f626532d70ce0c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - feat(mantle): add `List` component
+
+  `List` is a scrollable list of **clickable** items — the action / navigation
+  counterpart to `SelectableList`. Compose `List.Item`s inside a `List.Root`;
+  each is a `<button>` (`onClick`) by default or your own element via `asChild`
+  (e.g. an `<a>` for navigation), with an optional `current` accent. Suits
+  account switchers, SSO provider pickers.
+
+  ```tsx
+  import { List } from "@ngrok/mantle/list";
+
+  <List.Root aria-label="Your accounts" className="max-h-80">
+  	{accounts.map((account) => (
+  		<List.Item key={account.id} onClick={() => switchTo(account.id)}>
+  			<List.ItemTitle>{account.name}</List.ItemTitle>
+  			<List.ItemDescription>
+  				{account.plan} · {account.memberCount} members
+  			</List.ItemDescription>
+  		</List.Item>
+  	))}
+  </List.Root>;
+  ```
+
+  - A **non-selecting** semantic list: `role="list"` of `role="listitem"` items,
+    styled like the `MultiSelect` popover (bordered, rounded `bg-popover`; items
+    highlight on hover / selection with an inset, rounded pill).
+  - **Non-virtualized by default.** Swap `Root` → `VirtualRoot` (same
+    `Item` children) to window long lists. `@tanstack/react-virtual` ships with
+    both list entrypoints; it is small — a few kB gzipped — and does no windowing
+    work until a `VirtualRoot` renders.
+  - `Item` supports `asChild` for link/navigation items, `current`, and
+    `disabled`. `current` sets `aria-current`, so the current item is
+    announced, not just tinted. A disabled `asChild` item carries `aria-disabled`,
+    is removed from the tab order, and swallows clicks/activation — though
+    consumers should prefer omitting the `href` for a genuinely disabled link.
+  - Built on a shared internal list primitive (the scroll + item chrome and ARIA
+    wiring behind both `List` and `SelectableList`); the primitive itself is
+    deliberately not exported.
+  - **Keyboard.** Items keep their native tab order, and `Arrow`↑/`Arrow`↓ /
+    `Home` / `End` also move focus between items (skipping disabled ones, no
+    wrap); the focused item lights up with the hover tint instead of a focus ring
+    on the control. Arrow navigation spans a `VirtualRoot`'s full list — jump
+    targets are scrolled into view and mounted before focus moves — though
+    off-screen items still aren't Tab-reachable (the windowing trade-off).
+
+- [#1303](https://github.com/ngrok/mantle/pull/1303) [`65eb57b`](https://github.com/ngrok/mantle/commit/65eb57b4104d00f16dd62d4f92f626532d70ce0c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - feat(mantle): add `SelectableList` component
+
+  `SelectableList` is a filterable, multi-select **grid** of checkbox rows — the
+  inline (non-popover) counterpart to `MultiSelect` / `Combobox`. Map your data
+  into `options` once; the list owns filtering and selection. Each row is an APG
+  grid `role="row"` (`aria-selected`) whose cells hold a real `Checkbox` and a
+  `Choice`-laid-out title + description — the pattern that lets a selectable row
+  carry a real control and its own interactive content.
+
+  ```tsx
+  import { SelectableList } from "@ngrok/mantle/selectable-list";
+
+  const options = accessKeys.map((key) => ({
+  	value: key.id,
+  	label: key.name,
+  	description: key.maskedToken,
+  }));
+
+  <SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
+  	<SelectableList.Filter placeholder="Filter access keys…" />
+  	<SelectableList.SelectAll>Select all</SelectableList.SelectAll>
+  	<SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
+  	<SelectableList.Empty>No access keys found.</SelectableList.Empty>
+  </SelectableList.Root>;
+  ```
+
+  - **Grid, not a checkbox-group.** `role="grid"` / `role="row"` / `role="gridcell"`
+    with `aria-selected`, a real `Checkbox` in the selection cell, and the title as
+    a `Choice.Label` naming it — the WAI-ARIA grid pattern for selectable rows with
+    interactive content. The whole row is click-to-toggle (deferring to the
+    checkbox, the label, and any nested control — no double-toggle).
+  - **Composable rows.** Default title + description row, or pass a render-prop
+    child to a viewport and compose `SelectableList.Item` / `ItemTitle`
+    (`Choice.Label`) / `ItemDescription` (`Choice.Description`).
+  - **Filtering.** The query is uncontrolled by default (seed it with
+    `defaultQuery`) or controlled via `query`/`onQueryChange` on `Root`; pass
+    `filter` for a custom predicate (`(option, query) => boolean` — the default
+    is a trimmed, case-insensitive substring match over each option's plain text:
+    `labelText`, or a string `label`). A `label` may be any ReactNode; a rich
+    label requires `labelText` (enforced by the option type) so the filter has
+    text to match.
+  - **Disabled rows.** `options[].disabled` is the single source of truth —
+    `SelectableList.Item` has no `disabled` prop. Disabled rows render dimmed,
+    carry `aria-disabled`, are excluded from toggling and "select all", and are
+    skipped by keyboard navigation.
+  - **Non-virtualized by default.** Swap `Viewport` → `VirtualViewport` (same props)
+    to window long lists. `@tanstack/react-virtual` ships with every list
+    entrypoint; it is small — a few kB gzipped — and does no windowing work until
+    a `VirtualViewport` renders. Windowed rows carry `aria-rowindex` with
+    `aria-rowcount` on the grid, keeping screen-reader counts true.
+  - `SelectableList.Empty` is an always-mounted polite `role="status"` live region
+    (visually hidden while options match), so an emptied filter is announced
+    rather than the grid silently vanishing.
+  - `SelectableList.SelectAll` reuses `selectAllChecked` to drive a tri-state header
+    over the **filtered** options.
+  - Pure helpers `filterSelectableOptions`, `optionLabelText`,
+    `toggleSelectionValue`, and `summarizeSelection` are exported for custom
+    filtering/selection logic.
+  - Built on a shared internal `list` primitive (scroll + row chrome and ARIA behind
+    both list components).
+  - **Keyboard.** The grid is a single tab stop with `aria-activedescendant`
+    navigation: `Arrow`/`Home`/`End` move the active row and `Space`/`Enter`
+    toggles it. Because focus stays on the collection (never on a row), it works
+    across the **full** set under `VirtualViewport` too — arrows scroll off-screen
+    rows into view rather than stopping at the mounted window.
+
+### Patch Changes
+
+- [#1306](https://github.com/ngrok/mantle/pull/1306) [`2e589b4`](https://github.com/ngrok/mantle/commit/2e589b4220910d01a2406e3a4a40d97247e3b0f3) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - fix: publish a lean package.json — prune custom export conditions and slim the manifest
+
+  The `@ngrok/src-live-types` custom export condition only exists so workspace apps can resolve live source files during local development, but it was shipping in the published `package.json#exports` and pointing npm consumers at `./src/...` paths that are excluded from the tarball. A new `prepack`/`postpack` lifecycle pair now rewrites the manifest while the tarball is created and restores the pristine `package.json` afterwards:
+
+  - strips all custom (`@`-namespaced) export conditions
+  - collapses `{ types, import }` export entries to plain string targets (TypeScript resolves the sibling `.d.ts` automatically)
+  - drops `import` conditions that duplicate `default` (the CSS entries)
+  - removes `devDependencies` and `scripts`, which consumers never install or run
+
+  Published packages now expose only standard conditions pointing at `dist`, and each release permanently adds roughly half as much metadata to the npm packument.
+
+- [#1304](https://github.com/ngrok/mantle/pull/1304) [`5bd39ed`](https://github.com/ngrok/mantle/commit/5bd39ed6f784e0bc7025ca1e60c41fea601602a0) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - fix(mantle): scroll `CodeBlock.TabList` on overflow instead of wrapping
+
+  `CodeBlock.TabList` now scrolls horizontally with an edge fade
+  ([`scroll-fade-x`](https://mantle.ngrok.com/base/scroll-fade#horizontal--scroll-fade-x)
+  plus `overflow-x-auto`) when its tabs exceed the header width, rather than
+  wrapping the tab strip onto a second row. `CodeBlock.TabTrigger` gains
+  `shrink-0 whitespace-nowrap` so each label keeps its intrinsic width under width
+  pressure. The list reserves room (`-m-1 p-1`) for each trigger's focus ring so
+  the scroll container never clips it. No API changes — consumers who hand-wired
+  this on `className` can drop the workaround.
+
+- [#1305](https://github.com/ngrok/mantle/pull/1305) [`d9fe81f`](https://github.com/ngrok/mantle/commit/d9fe81f030dd8bccc73e8d33ea82152d791085e7) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - fix(mantle): hooks bug fixes, JSDoc gaps, and `useRandomStableId` removal
+
+  - `useUndoRedo`: calling `undo`/`redo`/`push` multiple times within a single event handler now works correctly. Previously the callbacks read the previous render's stacks, so back-to-back `undo` calls returned the same snapshot twice and corrupted the history.
+  - Remove `useRandomStableId`. It had no consumers and React's built-in `useId` is the right tool; the hook also produced different ids on the server and client, making it a hydration-mismatch hazard.
+  - `composeRefs`/`useComposedRefs`: drop the deprecated `MutableRefObject` type and internal type assertions; document both with proper JSDoc.
+  - Add test coverage for `useCallbackRef`, `useIsomorphicLayoutEffect`, `useMatchesMediaQuery`, `usePrefersReducedMotion`/`getPrefersReducedMotion`, `useScrollBehavior`, `useUndoRedo`, and `useComposedRefs`.
+
+- [#1305](https://github.com/ngrok/mantle/pull/1305) [`d9fe81f`](https://github.com/ngrok/mantle/commit/d9fe81f030dd8bccc73e8d33ea82152d791085e7) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - refactor(mantle): hoist `useIsHydrated` snapshot functions to named module-level functions and clarify JSDoc; add unit tests covering client and server rendering
+
 ## 0.76.11
 
 ### Patch Changes

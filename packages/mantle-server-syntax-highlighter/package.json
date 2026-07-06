@@ -1,6 +1,6 @@
 {
   "name": "@ngrok/mantle-server-syntax-highlighter",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Server-side syntax highlighting for @ngrok/mantle, powered by Shiki.",
   "homepage": "https://mantle.ngrok.com",
   "license": "MIT",

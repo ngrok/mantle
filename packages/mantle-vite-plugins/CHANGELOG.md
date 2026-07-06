@@ -1,5 +1,23 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.0.16
+
+### Patch Changes
+
+- [#1306](https://github.com/ngrok/mantle/pull/1306) [`2e589b4`](https://github.com/ngrok/mantle/commit/2e589b4220910d01a2406e3a4a40d97247e3b0f3) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - fix: publish a lean package.json — prune custom export conditions and slim the manifest
+
+  The `@ngrok/src-live-types` custom export condition only exists so workspace apps can resolve live source files during local development, but it was shipping in the published `package.json#exports` and pointing npm consumers at `./src/...` paths that are excluded from the tarball. A new `prepack`/`postpack` lifecycle pair now rewrites the manifest while the tarball is created and restores the pristine `package.json` afterwards:
+
+  - strips all custom (`@`-namespaced) export conditions
+  - collapses `{ types, import }` export entries to plain string targets (TypeScript resolves the sibling `.d.ts` automatically)
+  - drops `import` conditions that duplicate `default` (the CSS entries)
+  - removes `devDependencies` and `scripts`, which consumers never install or run
+
+  Published packages now expose only standard conditions pointing at `dist`, and each release permanently adds roughly half as much metadata to the npm packument.
+
+- Updated dependencies [[`2e589b4`](https://github.com/ngrok/mantle/commit/2e589b4220910d01a2406e3a4a40d97247e3b0f3)]:
+  - @ngrok/mantle-server-syntax-highlighter@1.1.6
+
 ## 1.0.15
 
 ### Patch Changes
