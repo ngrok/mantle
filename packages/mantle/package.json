@@ -210,6 +210,11 @@
 			"types": "./dist/label.d.ts",
 			"import": "./dist/label.js"
 		},
+		"./list": {
+			"@ngrok/src-live-types": "./src/components/list/index.ts",
+			"types": "./dist/list.d.ts",
+			"import": "./dist/list.js"
+		},
 		"./main": {
 			"@ngrok/src-live-types": "./src/components/main/index.ts",
 			"types": "./dist/main.d.ts",
@@ -264,6 +269,11 @@
 			"@ngrok/src-live-types": "./src/components/select/index.ts",
 			"types": "./dist/select.d.ts",
 			"import": "./dist/select.js"
+		},
+		"./selectable-list": {
+			"@ngrok/src-live-types": "./src/components/selectable-list/index.ts",
+			"types": "./dist/selectable-list.d.ts",
+			"import": "./dist/selectable-list.js"
 		},
 		"./separator": {
 			"@ngrok/src-live-types": "./src/components/separator/index.ts",
@@ -376,6 +386,7 @@
 		"@radix-ui/react-tabs": "1.1.15",
 		"@radix-ui/react-tooltip": "1.2.10",
 		"@tanstack/react-table": "8.21.3",
+		"@tanstack/react-virtual": "3.14.4",
 		"class-variance-authority": "0.7.1",
 		"cmdk": "1.1.1",
 		"input-otp": "1.4.2",

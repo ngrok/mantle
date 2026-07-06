@@ -325,6 +325,18 @@
     ]
   },
   {
+    "name": "List",
+    "slug": "components/list",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/list",
+    "summary": "A scrollable, optionally-virtualized list of clickable items.",
+    "jsdoc": "A scrollable, optionally-virtualized list of clickable items — the action / navigation counterpart to `SelectableList` (e.g. an account switcher or SSO provider picker).",
+    "examples": [
+      "Composition:\n```\nList.Root   (or .VirtualRoot)\n└── List.Item\n    ├── List.ItemTitle\n    └── List.ItemDescription\n```",
+      "```tsx\n<List.Root aria-label=\"Your accounts\" className=\"max-h-80\">\n  {accounts.map((account) => (\n    <List.Item key={account.id} onClick={() => switchTo(account.id)}>\n      <List.ItemTitle>{account.name}</List.ItemTitle>\n      <List.ItemDescription>\n        {account.plan} · {account.memberCount} members\n      </List.ItemDescription>\n    </List.Item>\n  ))}\n</List.Root>\n```"
+    ]
+  },
+  {
     "name": "Main",
     "slug": "components/main",
     "status": "stable",
@@ -471,6 +483,18 @@
     "examples": [
       "Composition:\n```\nSelect.Root\n├── Select.Trigger\n│   └── Select.Value\n└── Select.Content\n    ├── Select.Group\n    │   ├── Select.Label\n    │   └── Select.Item\n    └── Select.Separator\n```",
       "```tsx\n<Select.Root>\n  <Select.Trigger>\n    <Select.Value placeholder=\"Select a fruit\" />\n  </Select.Trigger>\n  <Select.Content>\n    <Select.Group>\n      <Select.Label>Fruits</Select.Label>\n      <Select.Item value=\"apple\">Apple</Select.Item>\n      <Select.Item value=\"banana\">Banana</Select.Item>\n      <Select.Item value=\"cherry\">Cherry</Select.Item>\n    </Select.Group>\n    <Select.Separator />\n    <Select.Group>\n      <Select.Label>Veggies</Select.Label>\n      <Select.Item value=\"carrot\">Carrot</Select.Item>\n      <Select.Item value=\"cucumber\">Cucumber</Select.Item>\n    </Select.Group>\n  </Select.Content>\n</Select.Root>\n```"
+    ]
+  },
+  {
+    "name": "Selectable List",
+    "slug": "components/selectable-list",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/selectable-list",
+    "summary": "A filterable, multi-select grid of checkbox rows.",
+    "jsdoc": "A filterable, multi-select **grid** of checkbox rows — the inline (non-popover) counterpart to `MultiSelect`/`Combobox`.",
+    "examples": [
+      "Composition:\n```\nSelectableList.Root\n├── SelectableList.Filter\n├── SelectableList.SelectAll\n├── SelectableList.Viewport            (or .VirtualViewport)\n│   └── SelectableList.Item            (optional render-prop; auto-rendered by default)\n│       ├── SelectableList.ItemTitle\n│       └── SelectableList.ItemDescription\n└── SelectableList.Empty\n```",
+      "```tsx\nconst options = accessKeys.map((key) => ({\n  value: key.id,\n  label: key.name,\n  description: key.maskedToken,\n}));\n\n<SelectableList.Root options={options} value={selected} onValueChange={setSelected}>\n  <SelectableList.Filter placeholder=\"Filter access keys…\" />\n  <SelectableList.SelectAll>Select all</SelectableList.SelectAll>\n  <SelectableList.Viewport aria-label=\"Access keys\" className=\"max-h-80\" />\n  <SelectableList.Empty>No access keys found.</SelectableList.Empty>\n</SelectableList.Root>\n```"
     ]
   },
   {

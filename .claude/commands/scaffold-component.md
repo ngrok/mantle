@@ -31,7 +31,19 @@ Examples of normalization:
 | `button group` | `button-group`     | `ButtonGroup`     | `Button Group`   |
 | `button-group` | `button-group`     | `ButtonGroup`     | `Button Group`   |
 
-## 0.a. Ask: compound or simple?
+## 0.a. API-design gate
+
+Before scaffolding anything, check the proposed component against
+[CONVENTIONS.md → Component API Design](../../CONVENTIONS.md#component-api-design)
+and raise any conflicts with the user **now**, not at review time:
+
+- Does it duplicate an existing component's user intent (one component per intent)?
+- Should any of it be a private primitive (module-internal, unexported) instead of public API?
+- Are the part names the web-standards terms for what they render (List→Item, Table→Row)? Is the outermost part named `Root`?
+- Composition or data-driven — do any behaviors (filtering, select-all, virtualization) need data about items that may not be mounted?
+- Do prop names read as the ARIA/DOM they emit?
+
+## 0.b. Ask: compound or simple?
 
 After normalizing the name (step 0), ask the user:
 
@@ -55,7 +67,7 @@ Use real Unicode box-drawing chars (`├` U+251C, `─` U+2500, `└` U+2514, `�
 
 Follow these steps exactly.
 
-## 0.b. Add external dependencies (only if wrapping a 3rd-party library)
+## 0.c. Add external dependencies (only if wrapping a 3rd-party library)
 
 If the component wraps a 3rd-party primitive (e.g. Radix, Ariakit, `input-otp`, `cmdk`), add the dependency to `@ngrok/mantle` with an **exact pinned version** before writing code:
 
@@ -67,7 +79,7 @@ pnpm -w add -E <package-name> -F @ngrok/mantle
 - If the dep will be shared across multiple workspace packages, add it to `pnpm-workspace.yaml`'s `catalog:` first and reference it as `catalog:`.
 - Skip this step entirely for components built only from React + existing mantle utilities.
 
-## 0.c. Decide on `"use client"`
+## 0.d. Decide on `"use client"`
 
 If the component uses any of the following, the file MUST start with `"use client";` on its first line for React Server Component compatibility:
 
@@ -295,6 +307,15 @@ Compose the parts of a `<ComponentName>` together to build your own:
 
 <Description of the component and its props>
 ```
+
+### Examples must be complete and live
+
+Every runnable code example on a docs page MUST satisfy **both** of these — no exceptions, and it applies to every example on the page (the primary one and every secondary one: variants, virtualization, controlled/uncontrolled, polymorphism, etc.):
+
+1. **A live `<Example>` directly above the code block.** Each `tsx`/`jsx` code block that shows usage MUST be immediately preceded by an `<Example>` block that renders that exact usage, so the behavior is visible and interactive in the rendered docs. Define the demo as an `export function <Name>Example() { … }` above the page body and render it inside `<Example><Name>Example /></Example>`. Never ship a usage code block with no live example above it.
+2. **Complete, self-contained code.** The code block must show a full component or render — not a fragment. Define any data, props, state, or handlers it references either inline in the block or in the page's module scope alongside the other examples (a small inline array is fine, and referencing a page-level `const accounts = […]` is fine — that matches existing docs like `multi-select`). Never reference an identifier that appears nowhere on the page (e.g. an undefined `switchTo` — either define it or use a real handler / `() => {}` placeholder). Do **not** write "only this line changes" diff snippets or bare config fragments; write the whole example and let the reader diff it themselves.
+
+Both humans and LLMs consume these pages, so a complete + live example is the difference between guessing and composing correctly. Keep the live `<Example>` and its code block in sync — they should show the same thing. (The live example may use a larger generated dataset for a realistic demo, but the code block must still stand alone.)
 
 For compound components, include a `## Composition` section (as shown above) before `## API Reference` with an ASCII tree showing how the parts nest. Use a `text showLineNumbers=false` fence so the tree renders as plain copy-friendly art. Use real Unicode chars (`├` `─` `└` `│`) and 4-char per-level indentation. The tree here should match the one in the top-level namespace JSDoc.
 
