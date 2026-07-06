@@ -131,6 +131,75 @@ describe("List (browser)", () => {
 		expect(item("Item 0")).toHaveFocus();
 	});
 
+	test("arrow navigation skips a row that hosts no focusable control instead of dead-ending on it", async () => {
+		// Regression: a static row (a bare divider, or an asChild link with no href)
+		// was counted as a navigable index, so arrow nav targeted it, found no
+		// control to focus, and silently stuck there — leaving every row past it
+		// unreachable by the keyboard.
+		const user = userEvent.setup();
+		render(
+			<List.Root aria-label="Accounts">
+				<List.Item onClick={() => {}}>Item 0</List.Item>
+				{/* A static row with no focusable control (e.g. a visual divider):
+				    asChild renders the bare span, so there's no button to focus. */}
+				<List.Item asChild>
+					<span>Divider</span>
+				</List.Item>
+				<List.Item onClick={() => {}}>Item 2</List.Item>
+			</List.Root>,
+		);
+
+		screen.getByRole("button", { name: "Item 0" }).focus();
+		await user.keyboard("{ArrowDown}");
+		// Steps past the control-less middle row to the next real stop.
+		expect(screen.getByRole("button", { name: "Item 2" })).toHaveFocus();
+		await user.keyboard("{ArrowUp}");
+		expect(screen.getByRole("button", { name: "Item 0" })).toHaveFocus();
+	});
+
+	test("Ctrl/Meta + Arrow is left to the browser, not hijacked into row navigation", async () => {
+		// Regression: modifier chords (Ctrl+Home to jump to top of page, etc.) were
+		// preventDefault-ed and reinterpreted as plain row moves.
+		const user = userEvent.setup();
+		render(
+			<List.Root aria-label="Accounts">
+				<List.Item onClick={() => {}}>Item 0</List.Item>
+				<List.Item onClick={() => {}}>Item 1</List.Item>
+			</List.Root>,
+		);
+
+		screen.getByRole("button", { name: "Item 0" }).focus();
+		await user.keyboard("{Control>}{ArrowDown}{/Control}");
+		// Focus stays put — the chord belongs to the browser/OS.
+		expect(screen.getByRole("button", { name: "Item 0" })).toHaveFocus();
+	});
+
+	test("a disabled asChild link cannot navigate or act, even on a programmatic click", async () => {
+		// Regression: the disabled swallow ran in the bubble phase, after the
+		// slotted child's own onClick (Radix Slot composes it first), so a
+		// screen-reader / programmatic click still fired the child handler.
+		let activated = 0;
+		render(
+			<List.Root aria-label="Providers">
+				<List.Item asChild disabled>
+					<a
+						href="#nav"
+						onClick={() => {
+							activated += 1;
+						}}
+					>
+						Disabled provider
+					</a>
+				</List.Item>
+			</List.Root>,
+		);
+
+		const link = await screen.findByRole("link", { name: "Disabled provider" });
+		// Dispatch directly (assistive tech / .click() bypass pointer-events hit testing).
+		link.click();
+		expect(activated).toBe(0);
+	});
+
 	test("keyboard focus is conveyed by the pill tint, not a focus ring on the item", async () => {
 		const user = userEvent.setup();
 		render(

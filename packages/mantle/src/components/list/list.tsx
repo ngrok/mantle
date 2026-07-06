@@ -27,7 +27,10 @@ import { Slot } from "../slot/index.js";
  * </List.Root>
  * ```
  */
-type ListRootProps = Omit<ListPrimitiveRootProps, "semantics" | "onActivate" | "itemId">;
+type ListRootProps = Omit<
+	ListPrimitiveRootProps,
+	"semantics" | "onActivate" | "itemId" | "isItemDisabled"
+>;
 
 /**
  * The scrollable container for a `List`: a `role="list"` of clickable items
@@ -81,7 +84,7 @@ Root.displayName = "ListRoot";
  */
 type ListVirtualRootProps = Omit<
 	ListPrimitiveVirtualRootProps,
-	"semantics" | "onActivate" | "itemId"
+	"semantics" | "onActivate" | "itemId" | "isItemDisabled"
 >;
 
 /**
@@ -219,6 +222,21 @@ const Item = forwardRef<ComponentRef<"button">, ListItemProps>(
 						className,
 					)}
 					{...props}
+					// After the spread so a consumer's own capture handler can't shadow the
+					// disabled guard. Radix Slot composes the child's own onClick FIRST (in
+					// the bubble phase), so the bubble-phase swallow above lands too late to
+					// stop a router <Link> / consumer handler on the child. A capture-phase
+					// preventDefault runs before any bubble onClick, so the child sees
+					// defaultPrevented — blocking screen-reader / programmatic clicks (which
+					// bypass the `pointer-events:none` hit-test block) from navigating.
+					onClickCapture={
+						asChild && disabled
+							? (event) => {
+									event.preventDefault();
+									event.stopPropagation();
+								}
+							: props.onClickCapture
+					}
 				/>
 			</ListPrimitiveItem>
 		);

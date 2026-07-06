@@ -2,7 +2,15 @@
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { VirtualItem, Virtualizer } from "@tanstack/react-virtual";
-import { Children, forwardRef, isValidElement, useCallback, useMemo, useRef } from "react";
+import {
+	Children,
+	forwardRef,
+	isValidElement,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+} from "react";
 import type { ComponentRef, ReactNode } from "react";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import {
@@ -43,11 +51,15 @@ type VirtualRootProps = ListRootProps & {
  * on a listitem, `aria-rowindex` on a grid row) and the absolute `translateY`
  * come straight from the virtual item and full count.
  */
-function buildItemPlacement(
-	virtualItem: VirtualItem,
-	count: number,
-	measureRef: Virtualizer<HTMLDivElement, Element>["measureElement"],
-): ListItemPlacement {
+function buildItemPlacement({
+	virtualItem,
+	count,
+	measureRef,
+}: {
+	virtualItem: VirtualItem;
+	count: number;
+	measureRef: Virtualizer<HTMLDivElement, Element>["measureElement"];
+}): ListItemPlacement {
 	return {
 		posInSet: virtualItem.index + 1,
 		setSize: count,
@@ -82,7 +94,7 @@ function WindowedItem({
 	const value = useMemo<ListItemContextValue>(
 		() => ({
 			index: virtualItem.index,
-			placement: buildItemPlacement(virtualItem, count, measureRef),
+			placement: buildItemPlacement({ virtualItem, count, measureRef }),
 		}),
 		[virtualItem, count, measureRef],
 	);
@@ -170,30 +182,60 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 			(index: number) => virtualizer.scrollToIndex(index, { align: "auto" }),
 			[virtualizer],
 		);
+		const focusFrameRef = useRef<number | null>(null);
+		// Cancel any in-flight focus poll when the list unmounts, so a row that was
+		// still mounting can't schedule frames (or steal focus) after teardown.
+		useEffect(
+			() => () => {
+				if (focusFrameRef.current != null) {
+					cancelAnimationFrame(focusFrameRef.current);
+				}
+			},
+			[],
+		);
 		const focusItemAt = useCallback(
-			(index: number) => {
-				virtualizer.scrollToIndex(index, { align: "auto" });
-				// A jump target (Home/End) may not be mounted until the virtualizer
-				// renders the new window — retry across a few frames, bounded so a row
-				// that never mounts can't loop forever.
+			(index: number, step: number) => {
+				// Supersede any focus poll still chasing an earlier target so overlapping
+				// keypresses don't race to move focus.
+				if (focusFrameRef.current != null) {
+					cancelAnimationFrame(focusFrameRef.current);
+					focusFrameRef.current = null;
+				}
+				let target = index;
 				let attempts = 0;
 				const tryFocus = () => {
-					const item = scrollRef.current?.querySelector(`[data-index="${index}"]`);
-					const control = item == null ? null : findItemControl(item);
-					if (control != null) {
-						control.focus({ preventScroll: true });
+					focusFrameRef.current = null;
+					const viewport = scrollRef.current;
+					if (viewport == null || target < 0 || target >= count) {
 						return;
 					}
+					// A jump target (Home/End) may not be mounted until the virtualizer
+					// renders the new window — scroll it in, then poll for its control.
+					virtualizer.scrollToIndex(target, { align: "auto" });
+					const item = viewport.querySelector(`[data-index="${target}"]`);
+					if (item != null) {
+						const control = findItemControl(item);
+						if (control != null) {
+							control.focus({ preventScroll: true });
+							return;
+						}
+						// The row is mounted but hosts no focusable control (a static row):
+						// step to the next candidate rather than dead-ending on it.
+						target += step;
+						attempts = 0;
+					}
 					attempts += 1;
+					// Bounded so a row that never mounts (or a run of static rows) can't
+					// loop forever.
 					if (attempts < 10) {
-						requestAnimationFrame(tryFocus);
+						focusFrameRef.current = requestAnimationFrame(tryFocus);
 					}
 				};
 				tryFocus();
 			},
-			[virtualizer],
+			[count, virtualizer],
 		);
-		const { activeIndex, collectionProps, gridNav, listContext } = useListShell({
+		const { collectionProps, gridNav, listContext } = useListShell({
 			count,
 			focusItemAt,
 			// Windowed items aren't all mounted, so the default reads `disabled` off
@@ -209,7 +251,7 @@ const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
 		// user mouse-scrolls the active row outside the mounted window, drop the
 		// reference rather than leave a dangling IDREF (the active index is kept, so
 		// the next arrow key scrolls the row back into view and restores it).
-		const activeItemIsMounted = virtualItems.some((item) => item.index === activeIndex);
+		const activeItemIsMounted = virtualItems.some((item) => item.index === gridNav.activeIndex);
 
 		return (
 			<ListShell

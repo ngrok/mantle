@@ -7,6 +7,7 @@ import {
 	isValidElement,
 	useCallback,
 	useContext,
+	useEffect,
 	useId,
 	useMemo,
 	useRef,
@@ -340,8 +341,13 @@ function listFocusNavigationProps({
 	count: number;
 	/** Whether the row at an index is disabled — skipped by arrow navigation. */
 	isItemDisabled: (index: number) => boolean;
-	/** Move focus to the control of the row at `index`, revealing (and, windowed, mounting) it. */
-	focusItemAt: (index: number) => void;
+	/**
+	 * Move focus to the control of the first row at/after `index` in the `step`
+	 * direction that actually hosts one, revealing (and, windowed, mounting) it.
+	 * Passing the travel direction lets it skip a static row (a divider, an
+	 * `asChild` link with no href) that has no keyboard stop.
+	 */
+	focusItemAt: (index: number, step: number) => void;
 }): Pick<ComponentProps<"div">, "onKeyDown"> {
 	return {
 		onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
@@ -356,40 +362,39 @@ function listFocusNavigationProps({
 			) {
 				return;
 			}
+			// Leave browser/OS shortcuts (Ctrl/Cmd/Alt + Arrow/Home/End) alone.
+			if (event.altKey || event.ctrlKey || event.metaKey) {
+				return;
+			}
 			const source = itemFromEventTarget(event.target);
 			if (source == null) {
 				return;
 			}
 			let targetIndex = -1;
+			let step = 1;
 			switch (event.key) {
 				case "ArrowDown":
-					targetIndex = findEnabledIndex({
-						start: source.index + 1,
-						step: 1,
-						count,
-						isItemDisabled,
-					});
+					step = 1;
+					targetIndex = findEnabledIndex({ start: source.index + 1, step, count, isItemDisabled });
 					break;
 				case "ArrowUp":
-					targetIndex = findEnabledIndex({
-						start: source.index - 1,
-						step: -1,
-						count,
-						isItemDisabled,
-					});
+					step = -1;
+					targetIndex = findEnabledIndex({ start: source.index - 1, step, count, isItemDisabled });
 					break;
 				case "Home":
-					targetIndex = findEnabledIndex({ start: 0, step: 1, count, isItemDisabled });
+					step = 1;
+					targetIndex = findEnabledIndex({ start: 0, step, count, isItemDisabled });
 					break;
 				case "End":
-					targetIndex = findEnabledIndex({ start: count - 1, step: -1, count, isItemDisabled });
+					step = -1;
+					targetIndex = findEnabledIndex({ start: count - 1, step, count, isItemDisabled });
 					break;
 				default:
 					return;
 			}
 			event.preventDefault();
 			if (targetIndex >= 0 && targetIndex !== source.index) {
-				focusItemAt(targetIndex);
+				focusItemAt(targetIndex, step);
 			}
 		},
 	};
@@ -436,13 +441,31 @@ function useGridNavigation({
 	activeIndex: number;
 	collectionProps: Pick<
 		ComponentProps<"div">,
-		"tabIndex" | "aria-activedescendant" | "onKeyDown" | "onFocus" | "onMouseDown" | "onClick"
+		| "tabIndex"
+		| "aria-activedescendant"
+		| "onKeyDown"
+		| "onFocus"
+		| "onBlur"
+		| "onMouseDown"
+		| "onClick"
 	>;
 } {
 	const [activeIndex, setActiveIndex] = useState(-1);
+	// A pointer press that shouldn't arm a row (a disabled row, or the padding
+	// around the rows) still focuses the collection; this flag tells the Tab-in
+	// branch of `onFocus` not to fall back to the first enabled row in that case.
+	const suppressFocusDefaultRef = useRef(false);
 
 	// Keep the active index in range as the collection shrinks (e.g. filtering).
 	const clampedActiveIndex = activeIndex >= count ? count - 1 : activeIndex;
+	// Write the clamp back so a stale, out-of-range index can't resurface if the
+	// collection grows again (filter cleared) and silently re-target a row the
+	// user never navigated to in the current view.
+	useEffect(() => {
+		if (activeIndex >= count) {
+			setActiveIndex(count - 1);
+		}
+	}, [activeIndex, count]);
 
 	if (!enabled) {
 		return { activeIndex: -1, collectionProps: {} };
@@ -479,7 +502,13 @@ function useGridNavigation({
 				const pressed = itemFromEventTarget(event.target);
 				if (pressed != null && !isDisabled(pressed.index)) {
 					setActiveIndex(pressed.index);
+					suppressFocusDefaultRef.current = false;
+					return;
 				}
+				// Pressed a disabled row, or the padding around the rows — this still
+				// focuses the collection, but must not arm the first enabled row (the
+				// user never pointed at it). The Tab-in branch of onFocus honors this.
+				suppressFocusDefaultRef.current = true;
 			},
 			onClick: (event: MouseEvent<HTMLDivElement>) => {
 				// A bare click anywhere on a row activates it, matching Space/Enter —
@@ -526,13 +555,31 @@ function useGridNavigation({
 					if (!(event.target instanceof HTMLElement && event.target.tabIndex >= 0)) {
 						event.currentTarget.focus({ preventScroll: true });
 					}
+					// A descendant took focus, so the interaction is accounted for — clear
+					// the pointer flag so it can't linger onto a later Tab-in.
+					suppressFocusDefaultRef.current = false;
 					return;
 				}
 				// Focus is on the collection itself (a Tab-in): default to the first
 				// enabled row. The functional update keeps the re-entrant focus() above
-				// from clobbering a just-set active index.
-				if (count > 0) {
+				// from clobbering a just-set active index. A pointer press on a disabled
+				// row / the padding sets the suppress flag so we don't arm row 0 for a
+				// row the user never pointed at.
+				const suppressDefault = suppressFocusDefaultRef.current;
+				suppressFocusDefaultRef.current = false;
+				if (count > 0 && !suppressDefault) {
 					setActiveIndex((previous) => (previous < 0 ? enabledIndexFrom(0, 1) : previous));
+				}
+			},
+			onBlur: (event: FocusEvent<HTMLDivElement>) => {
+				// Focus left the grid entirely — drop the active-row tint and
+				// `aria-activedescendant` so a row the user last navigated to doesn't
+				// stay lit while the grid is unfocused (and a stale index can't be
+				// activated on a later Space). `relatedTarget` inside the collection
+				// (e.g. focus moving to a row's checkbox) is not a leave.
+				if (!event.currentTarget.contains(event.relatedTarget)) {
+					setActiveIndex(-1);
+					suppressFocusDefaultRef.current = false;
 				}
 			},
 			onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
@@ -543,6 +590,13 @@ function useGridNavigation({
 				if (event.target !== event.currentTarget) {
 					return;
 				}
+				// Leave browser/OS shortcuts (Ctrl/Cmd/Alt + Arrow/Home/End) alone rather
+				// than preventDefault-ing them into plain row navigation.
+				if (event.altKey || event.ctrlKey || event.metaKey) {
+					return;
+				}
+				// A keyboard interaction supersedes any pending pointer press.
+				suppressFocusDefaultRef.current = false;
 				switch (event.key) {
 					case "ArrowDown":
 						event.preventDefault();
@@ -566,9 +620,11 @@ function useGridNavigation({
 						break;
 					case " ":
 					case "Enter":
+						// Ignore auto-repeat so holding the key doesn't fire onActivate over
+						// and over (toggling the active row's selection on every repeat).
 						// Arrow nav never lands on a disabled row, but guard anyway so a
 						// disabled active row (e.g. after filtering) can't be activated.
-						if (clampedActiveIndex >= 0 && !isDisabled(clampedActiveIndex)) {
+						if (!event.repeat && clampedActiveIndex >= 0 && !isDisabled(clampedActiveIndex)) {
 							event.preventDefault();
 							onActivate?.(clampedActiveIndex);
 						}
@@ -598,8 +654,11 @@ function useListShell({
 	semantics,
 }: {
 	count: number;
-	/** Move focus to the control of the row at `index`, revealing (and, windowed, mounting) it. */
-	focusItemAt: (index: number) => void;
+	/**
+	 * Move focus to the first row at/after `index` in the `step` direction that
+	 * hosts a control, revealing (and, windowed, mounting) it.
+	 */
+	focusItemAt: (index: number, step: number) => void;
 	/** Whether the row at an index is disabled — skipped by keyboard navigation. */
 	isItemDisabled: (index: number) => boolean;
 	onActivate: ((index: number) => void) | undefined;
@@ -608,12 +667,16 @@ function useListShell({
 	scrollToIndex: (index: number) => void;
 	semantics: ListSemantics;
 }): {
-	/** The active grid row's index (`-1` under `"list"` semantics or before navigation). */
-	activeIndex: number;
 	/** The semantics-appropriate ARIA + keyboard props for the collection element. */
 	collectionProps: Pick<
 		ComponentProps<"div">,
-		"tabIndex" | "aria-activedescendant" | "onKeyDown" | "onFocus" | "onMouseDown" | "onClick"
+		| "tabIndex"
+		| "aria-activedescendant"
+		| "onKeyDown"
+		| "onFocus"
+		| "onBlur"
+		| "onMouseDown"
+		| "onClick"
 	>;
 	gridNav: GridNavContextValue;
 	listContext: ListContextValue;
@@ -641,7 +704,7 @@ function useListShell({
 			? listFocusNavigationProps({ count, isItemDisabled, focusItemAt })
 			: gridNavProps;
 
-	return { activeIndex, collectionProps, gridNav, listContext };
+	return { collectionProps, gridNav, listContext };
 }
 
 /**
@@ -884,15 +947,33 @@ const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
 				?.querySelector(`[data-index="${index}"]`)
 				?.scrollIntoView({ block: "nearest" });
 		}, []);
-		const focusItemAt = useCallback((index: number) => {
-			const item = viewportRef.current?.querySelector(`[data-index="${index}"]`);
-			if (item == null) {
-				return;
-			}
-			findItemControl(item)?.focus({ preventScroll: true });
-			// Reveal the whole row, not just its control (mirrors the grid's scroll fix).
-			item.scrollIntoView({ block: "nearest" });
-		}, []);
+		const focusItemAt = useCallback(
+			(index: number, step: number) => {
+				const viewport = viewportRef.current;
+				if (viewport == null) {
+					return;
+				}
+				// Walk in the travel direction to the first row that actually hosts a
+				// focusable control. A static row (a bare divider, an `asChild` link with
+				// no href, a consumer wrapper whose disabled control is out of the tab
+				// order) is not a keyboard stop, so step past it — otherwise navigation
+				// dead-ends there and every row beyond it is silently unreachable.
+				for (let current = index; current >= 0 && current < itemChildren.length; current += step) {
+					const item = viewport.querySelector(`[data-index="${current}"]`);
+					if (item == null) {
+						continue;
+					}
+					const control = findItemControl(item);
+					if (control != null) {
+						control.focus({ preventScroll: true });
+						// Reveal the whole row, not just its control (mirrors the grid's scroll fix).
+						item.scrollIntoView({ block: "nearest" });
+						return;
+					}
+				}
+			},
+			[itemChildren.length],
+		);
 		const { collectionProps, gridNav, listContext } = useListShell({
 			count: itemChildren.length,
 			focusItemAt,

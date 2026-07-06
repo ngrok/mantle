@@ -1,6 +1,6 @@
 "use client";
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import axe from "axe-core";
 import { useState } from "react";
@@ -87,6 +87,72 @@ describe("SelectableList (browser)", () => {
 
 		await user.keyboard("{ArrowUp}");
 		expect(grid).toHaveAttribute("aria-activedescendant", checkboxId("Apple"));
+	});
+
+	test("blurring the grid clears the active-row tint and aria-activedescendant", async () => {
+		// Regression: the active index / tint / activedescendant were derived from
+		// state that never reset, so a row stayed lit after focus left the grid.
+		render(
+			<>
+				<button type="button">outside</button>
+				<Harness />
+			</>,
+		);
+
+		const grid = await screen.findByRole("grid", { name: "Fruit" });
+		grid.focus();
+		await waitFor(() => expect(grid).toHaveAttribute("aria-activedescendant"));
+		const appleRow = screen.getByRole("checkbox", { name: "Apple" }).closest("[role='row']");
+		expect(appleRow).toHaveAttribute("data-active");
+
+		screen.getByRole("button", { name: "outside" }).focus();
+		await waitFor(() => expect(grid).not.toHaveAttribute("aria-activedescendant"));
+		expect(appleRow).not.toHaveAttribute("data-active");
+	});
+
+	test("clicking a disabled row does not arm the first enabled row", async () => {
+		// Regression: a pointer press on a disabled row still focused the collection,
+		// whose Tab-in default lit up the first enabled row the user never pointed at.
+		const user = userEvent.setup();
+		const withDisabled = [
+			{ value: "a", label: "Apple" },
+			{ value: "b", label: "Banana", description: "fruit-b", disabled: true },
+		];
+		function DisabledHarness() {
+			const [selected, setSelected] = useState<string[]>([]);
+			return (
+				<SelectableList.Root options={withDisabled} value={selected} onValueChange={setSelected}>
+					<SelectableList.Viewport aria-label="Fruit" />
+				</SelectableList.Root>
+			);
+		}
+		render(<DisabledHarness />);
+
+		const grid = await screen.findByRole("grid", { name: "Fruit" });
+		// Press the disabled row's bare content (not a control) — this focuses the grid.
+		await user.click(screen.getByText("fruit-b"));
+		expect(grid).not.toHaveAttribute("aria-activedescendant");
+		expect(
+			screen.getByRole("checkbox", { name: "Apple" }).closest("[role='row']"),
+		).not.toHaveAttribute("data-active");
+	});
+
+	test("holding Space (auto-repeat) toggles the active row only once", async () => {
+		// Regression: activation fired on every keydown with no event.repeat guard,
+		// so holding the key flip-flopped the active row's selection.
+		render(<Harness />);
+
+		const grid = await screen.findByRole("grid", { name: "Fruit" });
+		grid.focus();
+		await waitFor(() => expect(grid).toHaveAttribute("aria-activedescendant"));
+
+		const apple = screen.getByRole<HTMLInputElement>("checkbox", { name: "Apple" });
+		fireEvent.keyDown(grid, { key: " " });
+		expect(apple.checked).toBe(true);
+		// Auto-repeats must be ignored, not toggle the row back off.
+		fireEvent.keyDown(grid, { key: " ", repeat: true });
+		fireEvent.keyDown(grid, { key: " ", repeat: true });
+		expect(apple.checked).toBe(true);
 	});
 
 	test("encodes option values with whitespace into a valid, resolvable activedescendant id", async () => {

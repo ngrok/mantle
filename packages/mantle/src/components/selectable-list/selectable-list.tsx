@@ -414,8 +414,13 @@ Root.displayName = "SelectableListRoot";
  */
 const Filter = forwardRef<
 	ComponentRef<typeof Input>,
-	Omit<ComponentPropsWithoutRef<typeof Input>, "value" | "onChange" | "type" | "children">
->(({ "aria-label": ariaLabel = "Filter", className, ...props }, ref) => {
+	Omit<
+		ComponentPropsWithoutRef<typeof Input>,
+		// The input is always controlled by the list's `query`, so `defaultValue`
+		// would typecheck yet be silently ignored — omit it too.
+		"value" | "defaultValue" | "onChange" | "type" | "children"
+	>
+>(({ "aria-label": ariaLabel = "Filter", ...props }, ref) => {
 	const { query, setQuery } = useSelectableListContext("Filter");
 
 	return (
@@ -426,7 +431,6 @@ const Filter = forwardRef<
 			aria-label={ariaLabel}
 			value={query}
 			onChange={(event) => setQuery(event.target.value)}
-			className={className}
 			{...props}
 		>
 			<MagnifyingGlassIcon />
@@ -533,7 +537,7 @@ function controlIdFor(listId: string, value: string): string {
  * </SelectableList.Item>
  * ```
  */
-type SelectableListItemProps = Omit<ComponentProps<"div">, "children"> & {
+type SelectableListItemProps = Omit<ComponentProps<"div">, "children" | "id"> & {
 	/** The option's selection value. Selection state is read from, and toggled in, the list. */
 	value: string;
 	/**
@@ -643,9 +647,7 @@ Item.displayName = "SelectableListItem";
 const ItemTitle = forwardRef<
 	ComponentRef<typeof Choice.Label>,
 	ComponentProps<typeof Choice.Label>
->(({ className, ...props }, ref) => (
-	<Choice.Label ref={ref} data-slot="selectable-list-item-title" className={className} {...props} />
-));
+>((props, ref) => <Choice.Label ref={ref} data-slot="selectable-list-item-title" {...props} />);
 ItemTitle.displayName = "SelectableListItemTitle";
 
 /**
@@ -675,13 +677,8 @@ ItemTitle.displayName = "SelectableListItemTitle";
 const ItemDescription = forwardRef<
 	ComponentRef<typeof Choice.Description>,
 	ComponentProps<typeof Choice.Description>
->(({ className, ...props }, ref) => (
-	<Choice.Description
-		ref={ref}
-		data-slot="selectable-list-item-description"
-		className={className}
-		{...props}
-	/>
+>((props, ref) => (
+	<Choice.Description ref={ref} data-slot="selectable-list-item-description" {...props} />
 ));
 ItemDescription.displayName = "SelectableListItemDescription";
 
@@ -778,7 +775,10 @@ function useViewportItems(
 		[itemOptions],
 	);
 
-	return { isEmpty: filteredOptions.length === 0, isItemDisabled, onActivate, itemId, items };
+	// Emptiness is measured by the rows that actually rendered, not the filtered
+	// options: a render-prop that returns `null` for every match would otherwise
+	// leave an empty, keyboard-focusable grid chrome mounted.
+	return { isEmpty: items.length === 0, isItemDisabled, onActivate, itemId, items };
 }
 
 /**
