@@ -299,15 +299,18 @@ function UserDialog({ onClose, scenario, userId }: UserOverlayProps) {
 			}}
 		>
 			<Dialog.Content preferredWidth="max-w-xl">
+				{/* Dialog.Header is a single flex row — Title + CloseIconButton only.
+				    The description lives at the top of the Body (Radix wires
+				    aria-describedby from anywhere inside Content). */}
 				<Dialog.Header>
 					<Dialog.Title>User details</Dialog.Title>
+					<Dialog.CloseIconButton />
+				</Dialog.Header>
+				<Dialog.Body className="space-y-4">
 					<Dialog.Description>
 						Loading <span className="font-mono">{userId}</span> through the{" "}
 						{scenarioLabels[scenario]} case.
 					</Dialog.Description>
-					<Dialog.CloseIconButton />
-				</Dialog.Header>
-				<Dialog.Body>
 					<UserDetailsBody query={query} />
 				</Dialog.Body>
 				<Dialog.Footer>
@@ -653,7 +656,7 @@ export function UserOverlayDemo() {
 	const [selection, setSelection] = useState<SelectedUserOverlay | null>(null);
 	const queryClient = useQueryClient();
 	const isHappyPathCached = useIsHappyPathCached();
-	const overlayPickerId = useId();
+	const overlayPickerLabelId = useId();
 
 	/** Opens a fresh overlay for the selected demo case. */
 	const openOverlay = (scenario: UserRequestScenario) => {
@@ -673,10 +676,12 @@ export function UserOverlayDemo() {
 	return (
 		<div className="flex flex-col gap-3">
 			<div className="flex flex-col gap-1.5">
-				<Label htmlFor={overlayPickerId}>Overlay</Label>
-				<RadioGroup.Root
-					id={overlayPickerId}
-					aria-label="Overlay type"
+				<Label id={overlayPickerLabelId}>Overlay</Label>
+				{/* ButtonGroup renders the radio group itself — do not nest it inside
+				    RadioGroup.Root, or the buttons bind to an inner, uncontrolled group. */}
+				<RadioGroup.ButtonGroup
+					aria-labelledby={overlayPickerLabelId}
+					className="w-fit"
 					value={overlay}
 					onChange={(value: string) => {
 						if (isOverlayKind(value)) {
@@ -684,14 +689,12 @@ export function UserOverlayDemo() {
 						}
 					}}
 				>
-					<RadioGroup.ButtonGroup>
-						{overlayKinds.map((kind) => (
-							<RadioGroup.Button key={kind} value={kind}>
-								{overlayKindLabels[kind]}
-							</RadioGroup.Button>
-						))}
-					</RadioGroup.ButtonGroup>
-				</RadioGroup.Root>
+					{overlayKinds.map((kind) => (
+						<RadioGroup.Button key={kind} value={kind} className="whitespace-nowrap">
+							{overlayKindLabels[kind]}
+						</RadioGroup.Button>
+					))}
+				</RadioGroup.ButtonGroup>
 			</div>
 			<div className="flex flex-wrap items-center gap-2">
 				<Button

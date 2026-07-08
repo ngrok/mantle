@@ -15,6 +15,9 @@ catalogs:
     '@testing-library/jest-dom':
       specifier: 6.9.1
       version: 6.9.1
+    '@testing-library/react':
+      specifier: 16.3.2
+      version: 16.3.2
     '@tsdown/css':
       specifier: 0.22.3
       version: 0.22.3
@@ -187,6 +190,9 @@ importers:
       '@tailwindcss/vite':
         specifier: 'catalog:'
         version: 4.3.1(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      '@testing-library/react':
+        specifier: 'catalog:'
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@types/hast':
         specifier: 3.0.4
         version: 3.0.4
@@ -202,6 +208,9 @@ importers:
       estree-util-value-to-estree:
         specifier: 3.5.0
         version: 3.5.0
+      happy-dom:
+        specifier: 'catalog:'
+        version: 20.10.6
       rehype-slug:
         specifier: 6.0.0
         version: 6.0.0

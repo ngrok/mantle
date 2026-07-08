@@ -552,7 +552,7 @@
     "jsdoc": "A group of radio items.",
     "examples": [
       "Composition:\n```\n# Default radios\nRadioGroup.Root\n└── RadioGroup.Item\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# List layout with descriptions\nRadioGroup.List\n└── RadioGroup.ListItem\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# Segmented button group\nRadioGroup.ButtonGroup\n└── RadioGroup.Button\n\n# Card-style radios\nRadioGroup.Root\n└── RadioGroup.Card\n    └── RadioGroup.Indicator\n```",
-      "```tsx\n<RadioGroup value={value} onValueChange={setValue}>\n  <RadioGroup.Item value=\"option1\">\n    <RadioGroup.Indicator />\n    <span>Option 1</span>\n  </RadioGroup.Item>\n  <RadioGroup.Item value=\"option2\">\n    <RadioGroup.Indicator />\n    <span>Option 2</span>\n  </RadioGroup.Item>\n</RadioGroup>\n```"
+      "```tsx\n<RadioGroup.Root value={value} onChange={setValue}>\n  <RadioGroup.Item value=\"option1\">\n    <RadioGroup.Indicator />\n    <span>Option 1</span>\n  </RadioGroup.Item>\n  <RadioGroup.Item value=\"option2\">\n    <RadioGroup.Indicator />\n    <span>Option 2</span>\n  </RadioGroup.Item>\n</RadioGroup.Root>\n```"
     ]
   },
   {

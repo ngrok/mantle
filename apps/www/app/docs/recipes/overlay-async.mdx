@@ -558,15 +558,18 @@ export function UserDialog({ onClose, scenario, userId }: UserOverlayProps) {
 			}}
 		>
 			<Dialog.Content preferredWidth="max-w-xl">
+				{/* Dialog.Header is a single flex row — Title + CloseIconButton only.
+				    The description lives at the top of the Body (Radix wires
+				    aria-describedby from anywhere inside Content). */}
 				<Dialog.Header>
 					<Dialog.Title>User details</Dialog.Title>
+					<Dialog.CloseIconButton />
+				</Dialog.Header>
+				<Dialog.Body className="space-y-4">
 					<Dialog.Description>
 						Loading <span className="font-mono">{userId}</span> through the{" "}
 						{scenarioLabels[scenario]} case.
 					</Dialog.Description>
-					<Dialog.CloseIconButton />
-				</Dialog.Header>
-				<Dialog.Body>
 					<UserDetailsBody query={query} />
 				</Dialog.Body>
 				<Dialog.Footer>

@@ -40,7 +40,7 @@ type RadioGroupProps = PropsWithChildren<Omit<HeadlessRadioGroupProps, "as" | "c
  *
  * @example
  * ```tsx
- * <RadioGroup value={value} onValueChange={setValue}>
+ * <RadioGroup.Root value={value} onChange={setValue}>
  *   <RadioGroup.Item value="option1">
  *     <RadioGroup.Indicator />
  *     <span>Option 1</span>
@@ -49,7 +49,7 @@ type RadioGroupProps = PropsWithChildren<Omit<HeadlessRadioGroupProps, "as" | "c
  *     <RadioGroup.Indicator />
  *     <span>Option 2</span>
  *   </RadioGroup.Item>
- * </RadioGroup>
+ * </RadioGroup.Root>
  * ```
  */
 const Root = forwardRef<ComponentRef<typeof HeadlessRadioGroup>, RadioGroupProps>((props, ref) => (
@@ -96,12 +96,12 @@ type RadioItemProps = Omit<HeadlessRadioProps, "children"> & PropsWithChildren;
  *
  * @example
  * ```tsx
- * <RadioGroup value={value} onValueChange={setValue}>
+ * <RadioGroup.Root value={value} onChange={setValue}>
  *   <RadioGroup.Item value="option1">
  *     <RadioGroup.Indicator />
  *     <span>Option 1</span>
  *   </RadioGroup.Item>
- * </RadioGroup>
+ * </RadioGroup.Root>
  * ```
  */
 const Item = forwardRef<ComponentRef<"div">, RadioItemProps>(
@@ -324,6 +324,9 @@ ItemContent.displayName = "RadioItemContent";
 
 /**
  * An inline group of radio buttons. Use RadioGroup.Button as direct children.
+ * Renders the radio group itself (it wraps `Root`) — use it *in place of*
+ * `RadioGroup.Root`, never nested inside one, or the buttons bind to an
+ * inner, uncontrolled group and outer `value`/`onChange` props are ignored.
  */
 const ButtonGroup = forwardRef<ComponentRef<typeof Root>, RadioGroupProps>(
 	({ className, ...props }, ref) => {
@@ -478,7 +481,7 @@ InputSandbox.displayName = "RadioInputSandbox";
  *
  * @example
  * ```tsx
- * <RadioGroup value={value} onValueChange={setValue}>
+ * <RadioGroup.Root value={value} onChange={setValue}>
  *   <RadioGroup.Item value="option1">
  *     <RadioGroup.Indicator />
  *     <span>Option 1</span>
@@ -487,7 +490,7 @@ InputSandbox.displayName = "RadioInputSandbox";
  *     <RadioGroup.Indicator />
  *     <span>Option 2</span>
  *   </RadioGroup.Item>
- * </RadioGroup>
+ * </RadioGroup.Root>
  * ```
  */
 const RadioGroup = {
@@ -498,31 +501,28 @@ const RadioGroup = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <RadioGroup.Root defaultValue="option1">
-	 *   <RadioGroup.ButtonGroup>
-	 *     <RadioGroup.Button value="option1">Option 1</RadioGroup.Button>
-	 *     <RadioGroup.Button value="option2">Option 2</RadioGroup.Button>
-	 *     <RadioGroup.Button value="option3">Option 3</RadioGroup.Button>
-	 *   </RadioGroup.ButtonGroup>
-	 * </RadioGroup.Root>
+	 * <RadioGroup.ButtonGroup defaultValue="option1">
+	 *   <RadioGroup.Button value="option1">Option 1</RadioGroup.Button>
+	 *   <RadioGroup.Button value="option2">Option 2</RadioGroup.Button>
+	 *   <RadioGroup.Button value="option3">Option 3</RadioGroup.Button>
+	 * </RadioGroup.ButtonGroup>
 	 * ```
 	 */
 	Button,
 	/**
 	 * An inline group of radio buttons. Use RadioGroup.Button as direct children for horizontal radio layouts.
+	 * Renders the radio group itself — use it in place of `RadioGroup.Root`, never nested inside one.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupbuttongroup
 	 *
 	 * @example
 	 * ```tsx
-	 * <RadioGroup.Root defaultValue="small">
-	 *   <Label htmlFor="size-group">Size</Label>
-	 *   <RadioGroup.ButtonGroup>
-	 *     <RadioGroup.Button value="small">Small</RadioGroup.Button>
-	 *     <RadioGroup.Button value="medium">Medium</RadioGroup.Button>
-	 *     <RadioGroup.Button value="large">Large</RadioGroup.Button>
-	 *   </RadioGroup.ButtonGroup>
-	 * </RadioGroup.Root>
+	 * <Label id="size-label">Size</Label>
+	 * <RadioGroup.ButtonGroup aria-labelledby="size-label" defaultValue="small">
+	 *   <RadioGroup.Button value="small">Small</RadioGroup.Button>
+	 *   <RadioGroup.Button value="medium">Medium</RadioGroup.Button>
+	 *   <RadioGroup.Button value="large">Large</RadioGroup.Button>
+	 * </RadioGroup.ButtonGroup>
 	 * ```
 	 */
 	ButtonGroup,
@@ -677,7 +677,7 @@ const RadioGroup = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <RadioGroup.Root value={value} onValueChange={setValue}>
+	 * <RadioGroup.Root value={value} onChange={setValue}>
 	 *   <RadioGroup.Item value="option1">
 	 *     <RadioGroup.Indicator />
 	 *     <span>Option 1</span>
