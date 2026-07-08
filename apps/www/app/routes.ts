@@ -162,7 +162,7 @@ export default [
 	// recipes layout — compositional how-tos spanning multiple primitives
 	layout("./routes/recipes-layout.tsx", [
 		route("recipes", "./routes/recipes.tsx"),
-		...recipeRoute("sheet-async"),
+		...recipeRoute("overlay-async"),
 	]),
 
 	// migrations layout

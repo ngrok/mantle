@@ -1,24 +1,27 @@
 ---
-title: Sheet + Async Data (React Query)
-description: Render a Sheet immediately, then swap its body between pending, success, 404, and 500 states with TanStack Query.
+title: Overlays + Async Data (React Query)
+description: Render a Sheet, Dialog, or Alert Dialog immediately, then swap its body between pending, success, 404, and 500 states with TanStack Query.
 ---
 
 import { Example } from "~/components/example";
-import { UserSheetDemo } from "~/features/sheet-async-demo";
+import { UserOverlayDemo } from "~/features/overlay-async-demo";
 
-# Sheet + Async Data (React Query)
+# Overlays + Async Data (React Query)
 
-Opening a [`Sheet`](/components/overlays/sheet) is a navigation — the user has already committed to seeing more context by clicking the trigger. When the body needs remote data, fetching before opening turns a 404 or 500 into a silent drop back to the parent view, and a spinner on the trigger leaves the click feeling unregistered. This recipe mounts the shell immediately and resolves data inside it, so every click produces forward motion and every error stays in the place the user navigated to.
+Opening a floating overlay — a [`Sheet`](/components/overlays/sheet), a [`Dialog`](/components/overlays/dialog), or an [`Alert Dialog`](/components/overlays/alert-dialog) — is a navigation: the user has already committed to seeing more context by clicking the trigger. When the overlay's body needs remote data, fetching before opening turns a 404 or 500 into a silent drop back to the parent view, and a spinner on the trigger leaves the click feeling unregistered. This recipe mounts the shell immediately and resolves data inside it, so every click produces forward motion and every error stays in the place the user navigated to.
+
+The pattern is identical across all three overlays — only the shell changes. The query hook, the body-state components, and the retry policy below are shared verbatim; the demo lets you host them in any of the three shells.
 
 <Example className="rounded-b-lg border-b">
-	<UserSheetDemo />
+	<UserOverlayDemo />
 </Example>
 
-## Why open the sheet first?
+## Why open the overlay first?
 
 - **The open should feel instant, especially on slow networks.** The user already committed to the navigation by clicking the trigger. Waiting for the request to resolve before opening means dead air at the parent view, and the wait scales with request latency — long-running endpoints or slow connections turn into seconds where users can't tell whether the click registered. Mounting the shell immediately decouples click feedback from request time.
-- **No flashing across the open → load → close → reopen cycle.** Within a single open, only `Sheet.Body` branches between pending, success, and error, so header, close, and footer stay mounted and layout shift is contained to one region. Across opens, TanStack Query's cache lets a re-trigger after a successful fetch skip the pending state entirely — fetch-then-open does the opposite, re-running the request on every trigger and flashing the chrome in only after each fetch resolves.
-- **Errors stay where the user intended to be.** An inline error inside the sheet preserves the navigation and keeps recovery actions in reach. Closing on error forces a re-trigger and re-orientation from the parent view.
+- **No flashing across the open → load → close → reopen cycle.** Within a single open, only the overlay's `Body` region branches between pending, success, and error, so header, close, and footer stay mounted and layout shift is contained to one region. Across opens, TanStack Query's cache lets a re-trigger after a successful fetch skip the pending state entirely — fetch-then-open does the opposite, re-running the request on every trigger and flashing the chrome in only after each fetch resolves.
+- **Errors stay where the user intended to be.** An inline error inside the overlay preserves the navigation and keeps recovery actions in reach. Closing on error forces a re-trigger and re-orientation from the parent view.
+- **Actions gate on data, not hope.** The footer's primary action — "Save changes" in a sheet or dialog, the destructive confirm in an alert dialog — stays disabled until the query succeeds. This matters most for `AlertDialog`: confirming a destructive action against a record that failed to load is never safe.
 - **Retry is a product decision, not a default.** Transient `500` responses are worth another attempt; a definitive `404` is not. The query hook owns that policy so the view stays free of conditional retry logic and the intent stays reviewable in one place.
 
 ## What this covers
@@ -29,33 +32,34 @@ Opening a [`Sheet`](/components/overlays/sheet) is a navigation — the user has
 | 404 error  | Waits 1.5 seconds once, then renders a not-found empty state.                     |
 | 500 error  | Waits 1.5 seconds per request, retries twice, then renders a service empty state. |
 
-The route is also available as plain markdown at [`/recipes/sheet-async.md`](/recipes/sheet-async.md), so humans and LLM tools can fetch the same recipe without scraping the rendered page.
+The demo's segmented control picks which shell hosts the async body — the same three scenarios run identically in a `Sheet`, a `Dialog`, and an `AlertDialog`.
+
+The route is also available as plain markdown at [`/recipes/overlay-async.md`](/recipes/overlay-async.md), so humans and LLM tools can fetch the same recipe without scraping the rendered page.
 
 ## Anatomy
 
 ```text showLineNumbers=false
 Parent selection state
-└── UserSheet (mounted immediately)
+└── Overlay shell: Sheet | Dialog | AlertDialog (mounted immediately)
     └── useUserQuery({ userId, scenario })
-        └── Sheet.Content
-            ├── Sheet.Header        stable
-            ├── Sheet.Body          pending | success | error
-            └── Sheet.Footer        stable; disable actions until success
+        ├── Header             stable
+        ├── Body               pending | success | error   ← the only region that branches
+        └── Footer             stable; gate actions on success
 ```
 
 ## Implementation
 
 The "Why" section above is the user-perceived case for the pattern. These rules are how to wire it up so the code stays consistent with that intent.
 
-1. **Mount the sheet on the click event.** Set selection state synchronously in the handler — never gate it on a fetch result.
-2. **Branch only `Sheet.Body` on query state.** `query.isPending`, `query.isError`, and `query.isSuccess` belong inside the body. Header, close button, and footer stay outside the conditional.
-3. **Factor the query into a hook.** `useUserQuery` owns fetching, retry, stale-time, and cancellation. The components that render query results (`UserSheet`, `UserSheetBody`) consume a `UseQueryResult` and never reach into TanStack Query directly. The cache-observability bits in `UserSheetDemo` (the `useQueryClient` subscription and `removeQueries` reset) are demo-only — production sheets shouldn't touch the cache.
+1. **Mount the overlay on the click event.** Set selection state synchronously in the handler — never gate it on a fetch result.
+2. **Branch only the body on query state.** `query.isPending`, `query.isError`, and `query.isSuccess` belong inside the overlay's `Body` region. Header, close button, and footer stay outside the conditional.
+3. **Factor the query into a hook.** `useUserQuery` owns fetching, retry, stale-time, and cancellation. The components that render query results (the shells, `UserDetailsBody`) consume a `UseQueryResult` and never reach into TanStack Query directly. The cache-observability bits in `UserOverlayDemo` (the `useQueryClient` subscription and `removeQueries` reset) are demo-only — production overlays shouldn't touch the cache.
 4. **Encode the retry policy in `useQuery`.** Return `false` from `retry` for terminal errors like `404`. Return a bounded `failureCount` check for transient ones like `500`.
 5. **Match the retry UI to the retry policy.** Show a retry button on recoverable errors. Omit it on terminal ones — retrying a definitive not-found is just latency without recovery.
 
 ## Complete Recipe
 
-Copy the UI recipe into a client component that already has a `QueryClientProvider` mounted near the app root. The demo-only mock API is shown in the appendix below; in production, replace that import with your real API client and error type.
+The worked example below uses `Sheet` as the shell; the [next section](#swapping-the-shell) shows the `Dialog` and `AlertDialog` shells consuming the exact same hook and body components. Copy the UI recipe into a client component that already has a `QueryClientProvider` mounted near the app root. The demo-only mock API is shown in the appendix below; in production, replace that import with your real API client and error type.
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -79,31 +83,31 @@ import {
 	RequestCancelledError,
 	UserRequestError,
 	type User,
-	type UserSheetScenario,
+	type UserRequestScenario,
 } from "./mock-user-api";
 
 const SERVER_ERROR_RETRY_LIMIT = 2;
 const USER_QUERY_RETRY_DELAY_MS = 500;
-const USER_QUERY_KEY_ROOT = ["sheet-async-user"];
+const USER_QUERY_KEY_ROOT = ["overlay-async-user"];
 
-const scenarioLabels: Record<UserSheetScenario, string> = {
+const scenarioLabels: Record<UserRequestScenario, string> = {
 	success: "happy path",
 	"not-found": "404",
 	"server-error": "500",
 };
 
-/** Props for the controlled async sheet. */
-type UserSheetProps = {
-	/** User identifier requested by the sheet. */
+/** Props shared by every controlled async overlay shell. */
+type UserOverlayProps = {
+	/** User identifier requested by the overlay. */
 	userId: string;
 	/** Demo scenario selected by the user. */
-	scenario: UserSheetScenario;
-	/** Called when the user dismisses the sheet. */
+	scenario: UserRequestScenario;
+	/** Called when the user dismisses the overlay. */
 	onClose: () => void;
 };
 
 /** Renders immediately, then swaps the sheet body from pending to success or error. */
-export function UserSheet({ onClose, scenario, userId }: UserSheetProps) {
+export function UserSheet({ onClose, scenario, userId }: UserOverlayProps) {
 	const query = useUserQuery({ scenario, userId });
 
 	return (
@@ -129,7 +133,7 @@ export function UserSheet({ onClose, scenario, userId }: UserSheetProps) {
 					</Sheet.Description>
 				</Sheet.Header>
 				<Sheet.Body>
-					<UserSheetBody query={query} />
+					<UserDetailsBody query={query} />
 				</Sheet.Body>
 				<Sheet.Footer>
 					<Sheet.Close asChild>
@@ -147,13 +151,13 @@ export function UserSheet({ onClose, scenario, userId }: UserSheetProps) {
 }
 
 /** Props for selecting which body state to render. */
-type UserSheetBodyProps = {
+type UserDetailsBodyProps = {
 	/** TanStack Query result that drives the body state. */
 	query: UseQueryResult<User, Error>;
 };
 
-/** Keeps the sheet chrome stable while only the body content changes. */
-function UserSheetBody({ query }: UserSheetBodyProps) {
+/** Keeps the overlay chrome stable while only the body content changes. */
+function UserDetailsBody({ query }: UserDetailsBodyProps) {
 	if (query.isPending) {
 		return <UserDetailsLoading failureCount={query.failureCount} />;
 	}
@@ -183,7 +187,7 @@ type UserDetailsLoadingProps = {
 	failureCount: number;
 };
 
-/** Mirrors the successful layout so the sheet body does not jump when data arrives. */
+/** Mirrors the successful layout so the overlay body does not jump when data arrives. */
 function UserDetailsLoading({ failureCount }: UserDetailsLoadingProps) {
 	return (
 		<div className="space-y-4" aria-busy="true" aria-label="Loading user details">
@@ -221,7 +225,7 @@ type UserDetailsErrorProps = {
 	onRetry: () => void;
 };
 
-/** Renders a recoverable inline error instead of closing the sheet. */
+/** Renders a recoverable inline error instead of closing the overlay. */
 function UserDetailsError({ error, isRetrying, onRetry }: UserDetailsErrorProps) {
 	const copy = getUserErrorCopy(error);
 
@@ -286,7 +290,7 @@ function getUserErrorCopy(error: Error): UserErrorCopy {
 			icon: <SmileyMeltingIcon />,
 			title: "User service unavailable",
 			description:
-				"The service failed after retrying. Keep the sheet open so the user can try again.",
+				"The service failed after retrying. Keep the overlay open so the user can try again.",
 			requestId: error.requestId,
 		};
 	}
@@ -351,12 +355,12 @@ function UserDetails({ user }: UserDetailsProps) {
 	);
 }
 
-/** Selected sheet state owned by the parent list/page. */
-type SelectedUserSheet = {
-	/** User identifier requested by the sheet. */
+/** Selected overlay state owned by the parent list/page. */
+type SelectedUserOverlay = {
+	/** User identifier requested by the overlay. */
 	userId: string;
 	/** Demo scenario selected by the user. */
-	scenario: UserSheetScenario;
+	scenario: UserRequestScenario;
 };
 
 /** Query key for the success scenario, used to observe and clear just the happy-path cache entry. */
@@ -404,26 +408,26 @@ function describeCacheState(isCached: boolean): string {
 	if (isCached) {
 		return `Happy path is cached. Reopening it now skips the pending state and renders the result immediately. Click "Clear cache" to reset.`;
 	}
-	return "No successful response is cached. Clicking happy path will fetch from scratch and show pending; closing the sheet keeps the result so reopening skips pending. The 404 and 500 scenarios throw, so reopening them always re-fetches.";
+	return "No successful response is cached. Clicking happy path will fetch from scratch and show pending; closing the overlay keeps the result so reopening skips pending. The 404 and 500 scenarios throw, so reopening them always re-fetches.";
 }
 
-/** Opens the three async sheet states from parent-owned selection state. */
-export function UserSheetDemo() {
-	const [selection, setSelection] = useState<SelectedUserSheet | null>(null);
+/** Opens the three async body states from parent-owned selection state. */
+export function UserOverlayDemo() {
+	const [selection, setSelection] = useState<SelectedUserOverlay | null>(null);
 	const queryClient = useQueryClient();
 	const isHappyPathCached = useIsHappyPathCached();
 
-	/** Opens a fresh sheet for the selected demo case. */
-	const openSheet = (scenario: UserSheetScenario) => {
+	/** Opens a fresh overlay for the selected demo case. */
+	const openOverlay = (scenario: UserRequestScenario) => {
 		setSelection({ scenario, userId: userIdForScenario(scenario) });
 	};
 
-	/** Dismisses the sheet without clearing the cache so reopening can demonstrate skip-pending. */
-	const closeSheet = () => {
+	/** Dismisses the overlay without clearing the cache so reopening can demonstrate skip-pending. */
+	const closeOverlay = () => {
 		setSelection(null);
 	};
 
-	/** Removes every cached sheet-async response so the next click shows the pending state again. */
+	/** Removes every cached response so the next click shows the pending state again. */
 	const clearCache = () => {
 		queryClient.removeQueries({ queryKey: USER_QUERY_KEY_ROOT });
 	};
@@ -435,7 +439,7 @@ export function UserSheetDemo() {
 					type="button"
 					appearance="filled"
 					priority="neutral"
-					onClick={() => openSheet("success")}
+					onClick={() => openOverlay("success")}
 				>
 					Happy path
 				</Button>
@@ -443,7 +447,7 @@ export function UserSheetDemo() {
 					type="button"
 					appearance="outlined"
 					priority="neutral"
-					onClick={() => openSheet("not-found")}
+					onClick={() => openOverlay("not-found")}
 				>
 					404 error
 				</Button>
@@ -451,7 +455,7 @@ export function UserSheetDemo() {
 					type="button"
 					appearance="filled"
 					priority="danger"
-					onClick={() => openSheet("server-error")}
+					onClick={() => openOverlay("server-error")}
 				>
 					500 error
 				</Button>
@@ -471,14 +475,14 @@ export function UserSheetDemo() {
 				{describeCacheState(isHappyPathCached)}
 			</p>
 			{selection && (
-				<UserSheet userId={selection.userId} scenario={selection.scenario} onClose={closeSheet} />
+				<UserSheet userId={selection.userId} scenario={selection.scenario} onClose={closeOverlay} />
 			)}
 		</div>
 	);
 }
 
 /** Returns the user id that makes the selected scenario readable in the UI. */
-function userIdForScenario(scenario: UserSheetScenario): string {
+function userIdForScenario(scenario: UserRequestScenario): string {
 	if (scenario === "not-found") {
 		return "user_missing";
 	}
@@ -488,13 +492,13 @@ function userIdForScenario(scenario: UserSheetScenario): string {
 
 /** Options passed to the demo query hook. */
 type UseUserQueryOptions = {
-	/** User identifier requested by the sheet. */
+	/** User identifier requested by the overlay. */
 	userId: string;
 	/** Demo scenario selected by the user. */
-	scenario: UserSheetScenario;
+	scenario: UserRequestScenario;
 };
 
-/** Fetches user details for the sheet with TanStack Query and an explicit retry policy. */
+/** Fetches user details for the overlay with TanStack Query and an explicit retry policy. */
 function useUserQuery({ scenario, userId }: UseUserQueryOptions): UseQueryResult<User, Error> {
 	return useQuery<User, Error>({
 		queryKey: [...USER_QUERY_KEY_ROOT, userId, scenario],
@@ -528,21 +532,127 @@ function shouldRetryUserQuery({ error, failureCount }: ShouldRetryUserQueryOptio
 }
 ```
 
+## Swapping the Shell
+
+Everything above the shell — `useUserQuery`, `UserDetailsBody`, the loading/error/success components, the retry policy — is overlay-agnostic. To host the same async body in a different overlay, swap only the shell component. The live demo at the top of this page renders all three shells from the same parent selection state behind a segmented control.
+
+### Dialog
+
+The `Dialog` shell is a one-for-one structural swap with `Sheet`: header and footer stay mounted, only `Dialog.Body` branches, and the primary action gates on `query.isSuccess`.
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Dialog } from "@ngrok/mantle/dialog";
+
+/** Renders immediately, then swaps the dialog body from pending to success or error. */
+export function UserDialog({ onClose, scenario, userId }: UserOverlayProps) {
+	const query = useUserQuery({ scenario, userId });
+
+	return (
+		<Dialog.Root
+			open
+			onOpenChange={(nextOpen) => {
+				if (!nextOpen) {
+					onClose();
+				}
+			}}
+		>
+			<Dialog.Content preferredWidth="max-w-xl">
+				<Dialog.Header>
+					<Dialog.Title>User details</Dialog.Title>
+					<Dialog.Description>
+						Loading <span className="font-mono">{userId}</span> through the{" "}
+						{scenarioLabels[scenario]} case.
+					</Dialog.Description>
+					<Dialog.CloseIconButton />
+				</Dialog.Header>
+				<Dialog.Body>
+					<UserDetailsBody query={query} />
+				</Dialog.Body>
+				<Dialog.Footer>
+					<Dialog.Close asChild>
+						<Button type="button" appearance="outlined" priority="neutral">
+							Close
+						</Button>
+					</Dialog.Close>
+					<Button type="button" appearance="filled" priority="neutral" disabled={!query.isSuccess}>
+						Save changes
+					</Button>
+				</Dialog.Footer>
+			</Dialog.Content>
+		</Dialog.Root>
+	);
+}
+```
+
+### Alert Dialog
+
+An `AlertDialog` confirms a consequential — usually destructive — action, which sharpens the pattern's stakes: the record the user is about to act on is exactly the thing being fetched. Two rules are non-negotiable here:
+
+- **The destructive `Action` stays disabled until the query succeeds.** Confirming against a record that hasn't loaded (or definitively doesn't exist) is never safe. On a 404, the disabled action plus the inline not-found state is the correct terminal UI.
+- **Errors never auto-close the confirmation.** The user chose to act; an inline error with a retry (for transient failures) keeps them in that intent instead of silently dropping it.
+
+```tsx
+import { AlertDialog } from "@ngrok/mantle/alert-dialog";
+
+/**
+ * Renders immediately and loads the record the user is about to act on. The
+ * destructive action stays disabled until the data resolves.
+ */
+export function UserAlertDialog({ onClose, scenario, userId }: UserOverlayProps) {
+	const query = useUserQuery({ scenario, userId });
+
+	return (
+		<AlertDialog.Root
+			priority="danger"
+			open
+			onOpenChange={(nextOpen) => {
+				if (!nextOpen) {
+					onClose();
+				}
+			}}
+		>
+			<AlertDialog.Content preferredWidth="max-w-xl">
+				<AlertDialog.Icon />
+				<AlertDialog.Body>
+					<AlertDialog.Header>
+						<AlertDialog.Title>Remove this user?</AlertDialog.Title>
+						<AlertDialog.Description>
+							Review <span className="font-mono">{userId}</span> before removing them — loaded
+							through the {scenarioLabels[scenario]} case.
+						</AlertDialog.Description>
+					</AlertDialog.Header>
+					<div className="mt-4">
+						<UserDetailsBody query={query} />
+					</div>
+					<AlertDialog.Footer>
+						<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>
+						<AlertDialog.Action type="button" disabled={!query.isSuccess}>
+							Remove user
+						</AlertDialog.Action>
+					</AlertDialog.Footer>
+				</AlertDialog.Body>
+			</AlertDialog.Content>
+		</AlertDialog.Root>
+	);
+}
+```
+
 ## Mock API Appendix
 
-The code above imports a mock API module so the sheet can demonstrate happy, 404, and 500 states without a backend. In production, replace this file with your real API client and preserve the same query behavior: accept `signal`, throw typed errors, and let the UI decide which errors are retryable.
+The code above imports a mock API module so the overlays can demonstrate happy, 404, and 500 states without a backend. In production, replace this file with your real API client and preserve the same query behavior: accept `signal`, throw typed errors, and let the UI decide which errors are retryable.
 
 ```ts
 const SIMULATED_USER_API_LATENCY_MS = 1_500;
 
 /** Scenario names used by the docs demo controls. */
-export type UserSheetScenario = "success" | "not-found" | "server-error";
+export type UserRequestScenario = "success" | "not-found" | "server-error";
 
 /** The typed user record returned by the demo API. */
 export type User = {
 	/** Stable user identifier from the backend. */
 	id: string;
-	/** Display name shown in the sheet header content. */
+	/** Display name shown in the overlay header content. */
 	name: string;
 	/** Primary email address for the account. */
 	email: string;
@@ -587,7 +697,7 @@ export class UserRequestError extends Error {
 	}
 }
 
-/** Error used when TanStack Query aborts a request after the sheet unmounts. */
+/** Error used when TanStack Query aborts a request after the overlay unmounts. */
 export class RequestCancelledError extends Error {
 	/** Creates a cancellation error that the retry policy can ignore. */
 	constructor() {
@@ -604,7 +714,7 @@ type WaitForDemoApiOptions = {
 	signal?: AbortSignal;
 };
 
-/** Waits before resolving so the sheet can show the pending state. */
+/** Waits before resolving so the overlay can show the pending state. */
 function waitForDemoApi({ durationMs, signal }: WaitForDemoApiOptions): Promise<void> {
 	return new Promise((resolve, reject) => {
 		if (signal?.aborted) {
@@ -630,10 +740,10 @@ function waitForDemoApi({ durationMs, signal }: WaitForDemoApiOptions): Promise<
 
 /** Options accepted by the simulated user fetcher. */
 type FetchUserOptions = {
-	/** User identifier requested by the sheet. */
+	/** User identifier requested by the overlay. */
 	userId: string;
 	/** Demo scenario selected by the user. */
-	scenario: UserSheetScenario;
+	scenario: UserRequestScenario;
 	/** Abort signal passed by TanStack Query. */
 	signal?: AbortSignal;
 };
@@ -674,7 +784,7 @@ export async function fetchUser({ scenario, signal, userId }: FetchUserOptions):
 type CreateDemoRequestIdOptions = {
 	/** HTTP status returned by the simulated endpoint. */
 	status: UserRequestErrorStatus;
-	/** User identifier requested by the sheet. */
+	/** User identifier requested by the overlay. */
 	userId: string;
 };
 
@@ -686,8 +796,9 @@ function createDemoRequestId({ status, userId }: CreateDemoRequestIdOptions): st
 
 ## Production Notes
 
-- Keep the sheet UI in one component and keep API details behind `fetchUser` or your app's equivalent data client.
+- Keep each overlay shell in one component and keep API details behind `fetchUser` or your app's equivalent data client. The shell is the only overlay-specific code — everything else is shared.
 - Use the `signal` argument from TanStack Query's `queryFn` when your API client supports cancellation.
 - Tune `retry` by status code. This demo does not retry 404 because the server already answered definitively. Retry not-found responses only when eventual consistency is expected.
-- Let `staleTime` and `gcTime` govern cache lifetime; the sheet does not need to manually evict on close. The demo's "Clear cache" button only exists to make the cache state observable in docs — production sheets typically don't surface a manual reset.
-- Prefer explicit query state branches here over `useSuspenseQuery`. Suspense works, but error recovery requires an additional reset boundary and is harder to copy into route-controlled sheets.
+- Gate footer actions on `query.isSuccess`. For `AlertDialog` specifically, never enable the destructive `Action` while the query is pending or errored — the confirmation is only meaningful against loaded data.
+- Let `staleTime` and `gcTime` govern cache lifetime; the overlay does not need to manually evict on close. The demo's "Clear cache" button only exists to make the cache state observable in docs — production overlays typically don't surface a manual reset.
+- Prefer explicit query state branches here over `useSuspenseQuery`. Suspense works, but error recovery requires an additional reset boundary and is harder to copy into route-controlled overlays.

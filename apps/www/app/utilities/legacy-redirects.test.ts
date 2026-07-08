@@ -20,12 +20,12 @@ describe("legacyRedirectFor", () => {
 
 	it("preserves the .md suffix so raw-markdown URLs keep serving markdown", () => {
 		expect(legacyRedirectFor("/components/button.md")).toBe("/components/actions/button.md");
-		expect(legacyRedirectFor("/blocks/sheet-async.md")).toBe("/recipes/sheet-async.md");
+		expect(legacyRedirectFor("/blocks/sheet-async.md")).toBe("/recipes/overlay-async.md");
 	});
 
 	it("drops the .mdx suffix, matching the sitewide .mdx → canonical redirect", () => {
 		expect(legacyRedirectFor("/components/button.mdx")).toBe("/components/actions/button");
-		expect(legacyRedirectFor("/blocks/sheet-async.mdx")).toBe("/recipes/sheet-async");
+		expect(legacyRedirectFor("/blocks/sheet-async.mdx")).toBe("/recipes/overlay-async");
 	});
 
 	it("redirects the code-block sub-page", () => {
@@ -36,7 +36,12 @@ describe("legacyRedirectFor", () => {
 
 	it("redirects the renamed blocks section to recipes", () => {
 		expect(legacyRedirectFor("/blocks")).toBe("/recipes");
-		expect(legacyRedirectFor("/blocks/sheet-async")).toBe("/recipes/sheet-async");
+		expect(legacyRedirectFor("/blocks/sheet-async")).toBe("/recipes/overlay-async");
+	});
+
+	it("redirects the generalized sheet-async recipe to overlay-async", () => {
+		expect(legacyRedirectFor("/recipes/sheet-async")).toBe("/recipes/overlay-async");
+		expect(legacyRedirectFor("/recipes/sheet-async.md")).toBe("/recipes/overlay-async.md");
 	});
 
 	it("returns null for canonical, unknown, and preview paths", () => {

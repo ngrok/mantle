@@ -24,13 +24,16 @@ function buildLegacySlugMap(): Map<string, string> {
 		map.set(`${components}/${leaf}`, route.slice(1));
 	}
 
-	// Doc sub-pages and renamed sections, which the derivation above can't see.
+	// Doc sub-pages and renamed sections/pages, which the derivation above
+	// can't see. The sheet-async recipe was generalized to overlay-async
+	// (Sheet, Dialog, and Alert Dialog) in the same reorg.
 	map.set(
 		"components/code-block/folding-by-language",
 		"components/data-display/code-block/folding-by-language",
 	);
 	map.set("blocks", "recipes");
-	map.set("blocks/sheet-async", "recipes/sheet-async");
+	map.set("blocks/sheet-async", "recipes/overlay-async");
+	map.set("recipes/sheet-async", "recipes/overlay-async");
 
 	return map;
 }
@@ -46,7 +49,7 @@ const legacySlugMap = buildLegacySlugMap();
  * @example
  * legacyRedirectFor("/components/button"); // "/components/actions/button"
  * legacyRedirectFor("/components/button.md"); // "/components/actions/button.md"
- * legacyRedirectFor("/blocks/sheet-async.mdx"); // "/recipes/sheet-async"
+ * legacyRedirectFor("/blocks/sheet-async.mdx"); // "/recipes/overlay-async"
  * legacyRedirectFor("/components/actions/button"); // null (already canonical)
  */
 export function legacyRedirectFor(pathname: string): string | null {

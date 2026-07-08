@@ -42,7 +42,7 @@ Structure is deliberately distinct from both Data Display and the top-level Layo
 
 `/layouts` shipped as scaffolding only (routes, nav, index page, manifest support). The first residents (`CenteredLayout`, later `AppShell`, `Sidebar`, …) land as they graduate from app-side incubation. `Main` and `SkipToMainLink` stay under Components → Primitives for now, cross-linked from the layouts index; they migrate only once the section has enough mass that the move reads as consolidation.
 
-`/blocks` was renamed to `/recipes` ("Sheet + Async Data" is the charter member).
+`/blocks` was renamed to `/recipes` ("Overlays + Async Data" is the charter member — generalized from the original sheet-only recipe to cover Sheet, Dialog, and Alert Dialog).
 
 ### Imports stay flat
 

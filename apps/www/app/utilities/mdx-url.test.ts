@@ -6,7 +6,7 @@ describe("mdxUrlToCanonicalPath", () => {
 		expect(mdxUrlToCanonicalPath("/docs/components/actions/button.mdx")).toBe(
 			"/docs/components/actions/button",
 		);
-		expect(mdxUrlToCanonicalPath("/recipes/sheet-async.mdx")).toBe("/recipes/sheet-async");
+		expect(mdxUrlToCanonicalPath("/recipes/overlay-async.mdx")).toBe("/recipes/overlay-async");
 	});
 
 	test("leaves non-.mdx paths unchanged", () => {

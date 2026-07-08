@@ -278,24 +278,24 @@ export const layoutDescriptions = {} as const satisfies Record<
 
 /**
  * Recipe pages — compositional how-tos that wire multiple mantle primitives
- * together with state, data, or routing (e.g. a Sheet driven by async data
- * with loading and error states). Recipes are documentation, not published
- * API: they transcend any single component or layout.
+ * together with state, data, or routing (e.g. a floating overlay driven by
+ * async data with loading and error states). Recipes are documentation, not
+ * published API: they transcend any single component or layout.
  */
 export const recipePages = [
 	//,
-	"Sheet + Async Data",
+	"Overlays + Async Data",
 ] as const;
 
 /** Route lookup for recipe pages. */
 export const recipeRoutes = {
-	"Sheet + Async Data": "/recipes/sheet-async",
+	"Overlays + Async Data": "/recipes/overlay-async",
 } as const satisfies Record<(typeof recipePages)[number], Route>;
 
 /** Short descriptions for recipe index pages. */
 export const recipeDescriptions = {
-	"Sheet + Async Data":
-		"Open a Sheet immediately, then swap the body between pending, loaded, 404, and 500 states with TanStack Query.",
+	"Overlays + Async Data":
+		"Open a Sheet, Dialog, or Alert Dialog immediately, then swap the body between pending, loaded, 404, and 500 states with TanStack Query.",
 } as const satisfies Record<(typeof recipePages)[number], string>;
 
 /** Migration guide pages. */
