@@ -12,6 +12,9 @@ Opening a floating overlay — a [`Sheet`](/components/overlays/sheet), a [`Dial
 
 The pattern is identical across all three overlays — only the shell changes. The query hook, the body-state components, and the retry policy below are shared verbatim; the demo lets you host them in any of the three shells.
 
+> [!IMPORTANT]
+> Don't copy this UI verbatim. This recipe teaches how to **reason about asynchronous server state** — mount the shell on the click, branch only the body, encode the retry policy, gate actions on success — so the overlay paints immediately and perceived loading time stays low. The user-details layout, copy, and demo controls are deliberately plain stand-ins (the dialog and alert-dialog bodies in particular are not layouts you'd ship as-is); swap them for your product's real content and visual design, and keep the state structure.
+
 <Example className="rounded-b-lg border-b">
 	<UserOverlayDemo />
 </Example>
@@ -60,6 +63,8 @@ The "Why" section above is the user-perceived case for the pattern. These rules 
 ## Complete Recipe
 
 The worked example below uses `Sheet` as the shell; the [next section](#swapping-the-shell) shows the `Dialog` and `AlertDialog` shells consuming the exact same hook and body components. Copy the UI recipe into a client component that already has a `QueryClientProvider` mounted near the app root. The demo-only mock API is shown in the appendix below; in production, replace that import with your real API client and error type.
+
+What transfers is the **structure**: the synchronous mount, the single branching region, the hook-owned retry policy, and the success-gated actions. What doesn't is the markup inside each state — `UserDetails`, the skeleton shapes, and the header/footer copy are demo content standing in for your real UI.
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
