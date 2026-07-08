@@ -1,0 +1,612 @@
+---
+title: Code Block
+description: Code blocks render and apply syntax highlighting to blocks of code using Shiki at build time.
+---
+
+import {
+	PrimaryCodeBlockDemo,
+	SingleLineWithHeaderDemo,
+	HorizontalScrollingDemo,
+	NoHeaderOrCopyButtonDemo,
+	SingleLineHorizontalScrollingDemo,
+	ServerRenderedHighlightingDemo,
+	MantleCodeOptionsDemo,
+	OverridingIndentationDemo,
+	TabbedCodeBlockDemo,
+	ScrollingTabListDemo,
+	FoldableJsonDemo,
+	JsonCodeBlockValueDemo,
+	NestedFragmentInterpolationDemo,
+} from "~/features/code-block-demos";
+
+# Code Block
+
+Code blocks render and apply syntax highlighting to blocks of code. Syntax highlighting is performed at build time using [Shiki](https://shiki.style/) via the `mantleCodeBlockPlugins()` Vite plugin, so there is zero highlighting cost in the browser.
+
+Use `mantleCode("language")` tagged template literals to define code values. The Vite plugin transforms these at build time, inlining pre-rendered HTML.
+
+<PrimaryCodeBlockDemo />
+
+```tsx
+import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
+
+<CodeBlock.Root>
+	<CodeBlock.Header>
+		<CodeBlock.Icon preset="file" />
+		<CodeBlock.Title>…</CodeBlock.Title>
+	</CodeBlock.Header>
+	<CodeBlock.Body>
+		<CodeBlock.CopyButton />
+		<CodeBlock.Code value={mantleCode("javascript")`…`} />
+	</CodeBlock.Body>
+	<CodeBlock.ExpanderButton />
+</CodeBlock.Root>;
+```
+
+## Examples
+
+### Single Line with a Header
+
+Many code blocks will be single line command line prompts and should be able to render with a header and copy button. This makes it absolutely clear that this example is a command line prompt and not a code sample.
+
+<SingleLineWithHeaderDemo />
+
+```tsx
+<CodeBlock.Root>
+	<CodeBlock.Header>
+		<CodeBlock.Icon preset="cli" />
+		<CodeBlock.Title>Command Line</CodeBlock.Title>
+	</CodeBlock.Header>
+	<CodeBlock.Body>
+		<CodeBlock.CopyButton />
+		<CodeBlock.Code
+			value={mantleCode(
+				"bash",
+			)`sudo unzip ~/Downloads/ngrok-v3-stable-darwin.zip -d /usr/local/bin`}
+		/>
+	</CodeBlock.Body>
+</CodeBlock.Root>
+```
+
+### Horizontal Scrolling
+
+This example is included to demonstrate that code blocks can scroll horizontally if the content is too wide. Mantle attempts to normalize scrollbar styling across browsers and platforms.
+
+<HorizontalScrollingDemo />
+
+```tsx
+<CodeBlock.Root>
+	<CodeBlock.Header>
+		<CodeBlock.Icon preset="file" />
+		<CodeBlock.Title>ngrok-example.js</CodeBlock.Title>
+	</CodeBlock.Header>
+	<CodeBlock.Body>
+		<CodeBlock.CopyButton />
+		<CodeBlock.Code
+			value={mantleCode("javascript")`
+				const http = require('http');
+				const ngrok = require("@ngrok/ngrok");
+				const server = http.createServer((req, res) => {
+					res.writeHead(200);
+					res.end("Hello!");
+					setTimeout(() => {
+						Promise.resolve().then(() => {
+							console.log("url:", server.tunnel.url());
+						});
+					}, timeout);
+				});
+				// Consumes authtoken from env automatically
+				ngrok.listen(server).then(() => {
+					console.log("url:", server.tunnel.url());
+				});
+				// really long line here that should wrap around and stuff Officia ipsum sint eu labore esse deserunt aliqua quis irure.
+			`}
+		/>
+	</CodeBlock.Body>
+</CodeBlock.Root>
+```
+
+### No Header or Copy Button
+
+This is the most simple example of our code block component. While very useful, the copy button is optional. It is also perfectly acceptable to render a code block without a header, especially if context is provided in the surrounding content or the code block is self-explanatory eg. "In your index.js file, paste the following:".
+
+<NoHeaderOrCopyButtonDemo />
+
+```tsx
+<CodeBlock.Root>
+	<CodeBlock.Body>
+		<CodeBlock.Code
+			value={mantleCode("javascript")`
+				const http = require('http');
+				const ngrok = require("@ngrok/ngrok");
+				const server = http.createServer((req, res) => {
+					res.writeHead(200);
+					res.end("Hello!");
+				});
+				ngrok.listen(server).then(() => {
+					console.log("url:", server.tunnel.url());
+				});
+			`}
+		/>
+	</CodeBlock.Body>
+</CodeBlock.Root>
+```
+
+### Single Line with Horizontal Scrolling
+
+This example is included to show the interaction between the copy button and horizontal scrolling on a single verbose terminal command.
+
+<SingleLineHorizontalScrollingDemo />
+
+```tsx
+<CodeBlock.Root>
+	<CodeBlock.Body>
+		<CodeBlock.CopyButton />
+		<CodeBlock.Code
+			value={mantleCode(
+				"bash",
+			)`ffmpeg -i multichannel.mxf -map 0:v:0 -map 0:a:0 -map 0:a:0 -c:a:0 ac3 -b:a:0 640k -ac:a:1 2 -c:a:1 aac -b:2 128k out.mp4`}
+		/>
+	</CodeBlock.Body>
+</CodeBlock.Root>
+```
+
+### Server-Rendered Syntax Highlighting
+
+The `CodeBlock` supports server-rendered syntax highlighting for dynamic or user-provided code. Use `createMantleCodeBlockValue()` to construct a value from server-highlighted HTML and pass it to `CodeBlock.Code`. This is useful when the code to highlight isn't known at build time — for example, user input or API responses.
+
+<ServerRenderedHighlightingDemo />
+
+```tsx
+import {
+	CodeBlock,
+	createMantleCodeBlockValue,
+	type MantleCodeBlockValue,
+} from "@ngrok/mantle/code-block";
+
+// Fetch highlighted HTML from your server
+const response = await fetch("/api/shiki-highlight", {
+	method: "POST",
+	headers: { "Content-Type": "application/json" },
+	body: JSON.stringify({ code, language: "typescript", showLineNumbers: true }),
+});
+const data = await response.json();
+
+// Create a MantleCodeBlockValue from the server response
+const value: MantleCodeBlockValue = createMantleCodeBlockValue({
+	code: data.code,
+	language: "typescript",
+	preHtml: data.html,
+	showLineNumbers: data.showLineNumbers,
+	highlightLines: data.highlightLines,
+	lineNumberStart: data.lineNumberStart,
+});
+
+<CodeBlock.Root>
+	<CodeBlock.Body>
+		<CodeBlock.CopyButton />
+		<CodeBlock.Code value={value} />
+	</CodeBlock.Body>
+</CodeBlock.Root>;
+```
+
+### Highlight Microservice (for Go / non-Node.js backends)
+
+For frontends backed by non-Node.js services (Go, Python, etc.), deploy a small Node.js highlight service as a sidecar or shared microservice. This gives you the same server-rendered highlighting without shipping Shiki to the browser — the frontend just calls the API with `fetch`.
+
+Create a highlight server using `createMantleServerSyntaxHighlighter`:
+
+```ts
+// highlight-service.ts — deploy as a sidecar alongside your Go service
+import { createServer } from "node:http";
+import { createMantleServerSyntaxHighlighter } from "@ngrok/mantle-server-syntax-highlighter";
+
+const highlighter = createMantleServerSyntaxHighlighter();
+
+createServer(async (req, res) => {
+	// Handle CORS
+	res.setHeader("Access-Control-Allow-Origin", "*");
+	res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+	res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+	if (req.method === "OPTIONS") {
+		res.writeHead(204).end();
+		return;
+	}
+
+	const chunks: Buffer[] = [];
+	for await (const chunk of req) chunks.push(chunk);
+	const { code, language, showLineNumbers, highlightLines, lineNumberStart } = JSON.parse(
+		Buffer.concat(chunks).toString(),
+	);
+
+	const result = await highlighter.highlight({
+		code,
+		language,
+		showLineNumbers,
+		highlightLines,
+		lineNumberStart,
+	});
+	res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(result));
+}).listen(4444, () => console.log("Highlight server on :4444"));
+```
+
+Then use it from any frontend the same way as the [server-rendered example](#server-rendered-syntax-highlighting) above, pointing at the highlight service URL:
+
+```tsx
+const response = await fetch("http://localhost:4444", {
+	method: "POST",
+	headers: { "Content-Type": "application/json" },
+	body: JSON.stringify({ code, language: "json", showLineNumbers: true }),
+});
+const data = await response.json();
+
+const value = createMantleCodeBlockValue({
+	code: data.code,
+	language: data.language,
+	preHtml: data.html,
+	showLineNumbers: data.showLineNumbers,
+});
+```
+
+### Foldable code blocks
+
+Code blocks automatically render editor-style fold carets in the gutter for any block whose language has a folding strategy — AST-based (JS/TS/JSX/TSX, HTML, XML), raw-source (JSON, CSS), bracket-paired (Go, Java, C#, Rust), indentation-based (Python, YAML), keyword-paired (Bash/Shell), or bracket + keyword (Ruby). Click the caret (or focus and press `Enter` / `Space`) to collapse the inner lines; the opener and closer lines stay visible, and a `⋯` placeholder marks the collapsed region.
+
+Folding is computed before the block reaches the browser, and the entire interaction runs through a single delegated click handler per code block — no per-line listeners and no React re-renders on toggle. This keeps fold/unfold cheap even for code blobs with thousands of lines.
+
+The `mantleCode()` Vite transform, MDX code fences, and `createMantleServerSyntaxHighlighter()` use the full server-side folding dispatcher. The lower-level `computeFoldRanges({ language, tokens })` export from `@ngrok/mantle/highlight-utils` is intentionally token-only for custom integrations; it covers bracket, indentation, and tag folds only. Use `@ngrok/mantle-server-syntax-highlighter` for AST, raw-source, or keyword strategies.
+
+For one example per supported language plus a list of caveats, see [folding by language](/components/data-display/code-block/folding-by-language).
+
+<FoldableJsonDemo />
+
+```tsx
+import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
+
+<CodeBlock.Root>
+	<CodeBlock.Header>
+		<CodeBlock.Icon preset="file" />
+		<CodeBlock.Title>package.json</CodeBlock.Title>
+	</CodeBlock.Header>
+	<CodeBlock.Body>
+		<CodeBlock.CopyButton />
+		<CodeBlock.Code
+			value={mantleCode("json")`
+				{
+					"name": "@ngrok/mantle",
+					"scripts": {
+						"build": "tsdown",
+						"test": "vitest run"
+					},
+					"pnpm": {
+						"onlyBuiltDependencies": [
+							"esbuild",
+							"@tailwindcss/oxide"
+						]
+					}
+				}
+			`}
+		/>
+	</CodeBlock.Body>
+</CodeBlock.Root>;
+```
+
+### Highlighting runtime JSON on the client
+
+`mantleCode()` highlights at **build time**, so it can't highlight a value you only have at runtime — an API response, a table row's underlying record, anything fetched or computed in the browser. For that, use `jsonCodeBlockValue(value)`: it serializes the value with `JSON.stringify` (2-space indent), tokenizes it, and returns a `MantleCodeBlockValue` you pass straight to `CodeBlock.Code` — **entirely on the client, with no Shiki runtime, grammar, or WASM shipped to the browser** (~1 KB). Because Mantle highlights with a CSS-variables theme the colors already live in CSS, so only tokenization happens at runtime; the output is byte-for-byte identical to a server/build-time highlighted block and adapts to light/dark themes for free.
+
+Multi-line objects and arrays are collapsible by default — the same fold runtime as every other JSON block — so pass `{ foldable: false }` for a flat panel, or `{ showLineNumbers: true }` for a gutter. Serialization is safe and never throws: `BigInt` renders as its decimal string, circular/repeated references collapse to `"[Circular]"`, and values that serialize to `undefined` render as an empty string. It's ideal for inspecting a record inside a [`DataTable.ExpandedRow`](/components/data-display/data-table#expandable-rows).
+
+<JsonCodeBlockValueDemo />
+
+```tsx
+import { CodeBlock, jsonCodeBlockValue } from "@ngrok/mantle/code-block";
+
+// `record` is any runtime value — an API response, a table row's object, etc.
+<CodeBlock.Root>
+	<CodeBlock.Body>
+		<CodeBlock.CopyButton />
+		<CodeBlock.Code value={jsonCodeBlockValue(record)} />
+	</CodeBlock.Body>
+</CodeBlock.Root>;
+
+// Opt out of folding, or show a line-number gutter:
+jsonCodeBlockValue(record, { foldable: false });
+jsonCodeBlockValue(record, { showLineNumbers: true });
+```
+
+For lower-level control, `jsonToShikiHtml(code)` returns just the Shiki-identical inner HTML for a `<code>` element (no line-number or fold decoration); `jsonCodeBlockValue` builds on it.
+
+### Tabbed Code Block
+
+Use `CodeBlock.TabList`, `CodeBlock.TabTrigger`, and `CodeBlock.TabContent` to create a tabbed code block. Pass `defaultTab` (or `activeTab` / `onActiveTabChange` for controlled mode) to `CodeBlock.Root`, place the tab triggers in the `CodeBlock.Header`, and wrap each `CodeBlock.Code` in a `CodeBlock.TabContent`. The copy button automatically copies whichever code is currently displayed.
+
+<TabbedCodeBlockDemo />
+
+```tsx
+import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
+
+const policyYml = mantleCode("yaml")`…`;
+const policyJson = mantleCode("json")`…`;
+
+<CodeBlock.Root defaultTab="yml">
+	<CodeBlock.Header>
+		<CodeBlock.TabList>
+			<CodeBlock.TabTrigger value="yml">policy.yml</CodeBlock.TabTrigger>
+			<CodeBlock.TabTrigger value="json">policy.json</CodeBlock.TabTrigger>
+		</CodeBlock.TabList>
+	</CodeBlock.Header>
+	<CodeBlock.Body>
+		<CodeBlock.CopyButton />
+		<CodeBlock.TabContent value="yml">
+			<CodeBlock.Code value={policyYml} />
+		</CodeBlock.TabContent>
+		<CodeBlock.TabContent value="json">
+			<CodeBlock.Code value={policyJson} />
+		</CodeBlock.TabContent>
+	</CodeBlock.Body>
+</CodeBlock.Root>;
+```
+
+When the tabs are too wide for the header, `CodeBlock.TabList` scrolls horizontally with a [`scroll-fade-x`](/base/scroll-fade#horizontal--scroll-fade-x) edge fade instead of wrapping onto a second row — no extra wiring required.
+
+<ScrollingTabListDemo />
+
+### Reusing Fragments with Nested Interpolation
+
+A `mantleCode` value can be embedded into another `mantleCode` template by interpolating its `.code` property. When the Vite plugin recognizes the reference, it inlines the fragment's source **at build time** — so the embedded code is highlighted line-for-line in its host language (correct line numbers, folding, and copy text) with **no runtime substitution cost**.
+
+This is ideal for sharing a Traffic Policy or config snippet across multiple SDK examples without duplicating it. The fragment can live at the top level of the same module, or be imported from another module:
+
+<NestedFragmentInterpolationDemo />
+
+```tsx
+// shared-policies.ts — author the reusable policy once.
+import { mantleCode } from "@ngrok/mantle/code-block";
+
+export const oauthPolicyFragment = mantleCode("yaml")`on_http_request:
+  - actions:
+      - type: oauth
+        config:
+          provider: google`;
+```
+
+```tsx
+// listener-demo.tsx — embed it into a Java text block.
+import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
+import { oauthPolicyFragment } from "./shared-policies";
+
+// `${oauthPolicyFragment.code}` is resolved and inlined at build time.
+const javaSdkSnippet = mantleCode("java")`var policy = """
+${oauthPolicyFragment.code}
+""";
+
+var listener = agent.listen(policy);`;
+```
+
+The fragment must be a top-level `mantleCode` `const` referenced as `.code` — either declared earlier in the same module, or a named import of a directly-exported top-level `const` from another module. Nested fragments are resolved recursively. Interpolations that can't be resolved statically (dynamic values, re-exports, bare identifiers without `.code`) fall back to runtime placeholder substitution, and an unresolved imported `.code` reference emits a build warning. Note that the embedded source is highlighted using the **outer** language's grammar — e.g. the YAML above is highlighted as Java text-block content, not as YAML.
+
+### `mantleCode()` Options
+
+The `mantleCode()` tagged template accepts an optional second argument with the following options:
+
+- **`showLineNumbers`** — Whether to show line numbers. Defaults to `true` for most languages, but `false` for single-line shell snippets (`bash`, `sh`, `shell`). Pass `false` to hide them or `true` to force them on.
+- **`highlightLines`** — An array of line numbers or ranges (e.g. `[2, "4-5"]`) to visually highlight.
+- **`lineNumberStart`** — The starting line number when line numbers are displayed. Defaults to `1`.
+- **`indentation`** — Override the default indentation style (`"tabs"` or `"spaces"`).
+
+<MantleCodeOptionsDemo />
+
+```tsx
+import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
+
+<CodeBlock.Root>
+	<CodeBlock.Header>
+		<CodeBlock.Icon preset="file" />
+		<CodeBlock.Title>all-options.ts</CodeBlock.Title>
+	</CodeBlock.Header>
+	<CodeBlock.Body>
+		<CodeBlock.CopyButton />
+		<CodeBlock.Code
+			value={mantleCode("typescript", {
+				showLineNumbers: false,
+				highlightLines: [11, "13-14"],
+				lineNumberStart: 10,
+				indentation: "spaces",
+			})`
+				import { serve } from "bun";
+
+				const server = serve({
+					port: 3000,
+					fetch(req) {
+						return new Response("Hello from Bun!");
+					},
+				});
+
+				console.log(\`Listening on \${server.url}\`);
+			`}
+		/>
+	</CodeBlock.Body>
+</CodeBlock.Root>;
+```
+
+### Overriding Defaults
+
+The `mantleCode()` options let you customize how code is displayed. By default, line numbers are shown starting at 1 and indentation is inferred from the language. You can also specify highlighted lines per code block. The first example below uses the defaults (YAML auto-detects space indentation), while the second overrides all options: custom indentation, line number start, highlighted lines, and visible line numbers.
+
+<OverridingIndentationDemo />
+
+```tsx
+{
+	/* yaml auto-detects space indentation, all other defaults apply */
+}
+<CodeBlock.Code
+	value={mantleCode("yaml")`
+		on_http_request:
+			actions:
+				type: custom-response
+				config:
+					status_code: 200
+					content: Hello, World!
+	`}
+/>;
+
+{
+	/* override all mantleCode() options */
+}
+<CodeBlock.Code
+	value={mantleCode("javascript", {
+		indentation: "spaces",
+		showLineNumbers: true,
+		highlightLines: [42, "46-48"],
+		lineNumberStart: 42,
+	})`
+		const http = require('http');
+		const ngrok = require("@ngrok/ngrok");
+		const server = http.createServer((req, res) => {
+			res.writeHead(200);
+			res.end("Hello!");
+		});
+	`}
+/>;
+```
+
+## API Reference
+
+The `CodeBlock` renders and applies syntax highlighting to blocks of code and is composed of several sub-components.
+
+### CodeBlock.Root
+
+Root container for all `CodeBlock` sub-components. For tabbed code blocks, pass `defaultTab` (uncontrolled) or `activeTab` / `onActiveTabChange` (controlled) to enable tab switching.
+
+All props from [standard HTML div attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop                 | Type                      | Default | Description                                                                                                                              |
+| :------------------- | :------------------------ | :------ | :--------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?`           | `boolean`                 | `false` | Use the `asChild` prop to compose the `CodeBlock` styling and functionality onto alternative element types or your own React components. |
+| `defaultTab?`        | `string`                  |         | The default active tab value (uncontrolled). Only relevant when using `TabList` / `TabContent`.                                          |
+| `activeTab?`         | `string`                  |         | The controlled active tab value. Only relevant when using `TabList` / `TabContent`.                                                      |
+| `onActiveTabChange?` | `(value: string) => void` |         | Callback fired when the active tab changes. Only relevant when using `TabList` / `TabContent`.                                           |
+
+### CodeBlock.Body
+
+The body of the `CodeBlock`. This is where the `CodeBlock.Code` and optional `CodeBlock.CopyButton` are rendered as direct children.
+
+All props from [standard HTML div attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                                   |
+| :--------- | :-------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `CodeBlock.Body` styling and functionality onto alternative element types or your own React components. |
+
+### CodeBlock.Code
+
+The `CodeBlock` content. This is where the code is rendered with pre-highlighted Shiki HTML.
+
+All props from [standard HTML pre attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/pre#attributes), plus:
+
+| Prop    | Type                   | Default | Description                                                                                        |
+| :------ | :--------------------- | :------ | :------------------------------------------------------------------------------------------------- |
+| `value` | `MantleCodeBlockValue` |         | The code value produced by `mantleCode("lang")` tagged template or `createMantleCodeBlockValue()`. |
+
+### CodeBlock.Header
+
+An optional header slot of the `CodeBlock`. This is where things like the `CodeBlock.Icon` and `CodeBlock.Title` are rendered.
+
+All props from [standard HTML div attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                                     |
+| :--------- | :-------- | :------ | :---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `CodeBlock.Header` styling and functionality onto alternative element types or your own React components. |
+
+### CodeBlock.Title
+
+The (optional) title of a `CodeBlock`. Default renders as an `h3` element; use `asChild` to render something else.
+
+All props from [standard HTML h3 attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                                    |
+| :--------- | :-------- | :------ | :--------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `CodeBlock.Title` styling and functionality onto alternative element types or your own React components. |
+
+### CodeBlock.CopyButton
+
+The (optional) copy button of the `CodeBlock`. Render this as a child of the `CodeBlock.Body` to allow users to copy the code block contents to their clipboard.
+
+All props from [standard HTML button attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
+
+| Prop           | Type                       | Default       | Description                                                                                                                                         |
+| :------------- | :------------------------- | :------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `label?`       | `string`                   | `"Copy code"` | The accessible label for the copy button. Visually hidden but announced to screen reader users.                                                     |
+| `onCopy?`      | `(value: string) => void`  |               | Callback fired when the copy button is clicked, passes the copied text as an argument.                                                              |
+| `onCopyError?` | `(error: unknown) => void` |               | Callback fired when an error occurs during copying.                                                                                                 |
+| `asChild?`     | `boolean`                  | `false`       | Use the `asChild` prop to compose the `CodeBlock.CopyButton` styling and functionality onto alternative element types or your own React components. |
+
+### CodeBlock.ExpanderButton
+
+The (optional) expander button of the `CodeBlock`. Render this as a child of the `CodeBlock.Root` to allow users to expand/collapse the code block contents.
+
+All props from [standard HTML button attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                                             |
+| :--------- | :-------- | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `CodeBlock.ExpanderButton` styling and functionality onto alternative element types or your own React components. |
+
+### CodeBlock.Icon
+
+A small icon that represents the type of code block being displayed, rendered as an SVG next to the code block title in the code block header. You can pass in a custom SVG component or use one of the presets (you can exclusively pass one of `svg` or `preset`).
+
+All props from [Icon](/components/data-display/icon), plus:
+
+| Prop      | Type                                      | Default | Description                                                                                          |
+| :-------- | :---------------------------------------- | :------ | :--------------------------------------------------------------------------------------------------- |
+| `svg?`    | `ReactNode`                               |         | A custom icon to display in the code block header. You can exclusively pass one of `svg` or `preset` |
+| `preset?` | `"cli"` \| `"file"` \| `"traffic-policy"` |         | A preset icon to display in the code block header. You can exclusively pass one of `svg` or `preset` |
+
+### CodeBlock.TabList
+
+A tab list for the `CodeBlock` header. Renders pill-styled tab triggers that switch which code is displayed. Place this inside `CodeBlock.Header` and pair with `CodeBlock.TabContent` in `CodeBlock.Body`. Tab state is managed by `CodeBlock.Root` via `defaultTab` / `activeTab` / `onActiveTabChange`.
+
+All props from [standard HTML div attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
+
+### CodeBlock.TabTrigger
+
+A pill-styled tab trigger for the `CodeBlock` header. Must be rendered within a `CodeBlock.TabList`.
+
+All props from [standard HTML button attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
+
+| Prop    | Type     | Default | Description                                                                                   |
+| :------ | :------- | :------ | :-------------------------------------------------------------------------------------------- |
+| `value` | `string` |         | The tab value this trigger activates. Must match the `value` of a corresponding `TabContent`. |
+
+### CodeBlock.TabContent
+
+Conditionally renders its children when the associated tab is active. Pair with `CodeBlock.TabList` and `CodeBlock.TabTrigger` in the header, and set `defaultTab` / `activeTab` on `CodeBlock.Root`.
+
+All props from [standard HTML div attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop    | Type     | Default | Description                                                                                    |
+| :------ | :------- | :------ | :--------------------------------------------------------------------------------------------- |
+| `value` | `string` |         | The tab value this content is associated with. Only rendered when this matches the active tab. |
+
+### jsonCodeBlockValue
+
+Builds a `MantleCodeBlockValue` that renders any value as syntax-highlighted JSON entirely on the client — no Shiki runtime, build-time plugin, or server roundtrip (see [Highlighting runtime JSON on the client](#highlighting-runtime-json-on-the-client)). Pass the result to `CodeBlock.Code`'s `value` prop. Serialization is safe and never throws: `BigInt` → decimal string, circular/repeated references → `"[Circular]"`, and values that serialize to `undefined` → `""`.
+
+```ts
+jsonCodeBlockValue(value: unknown, options?: JsonCodeBlockValueOptions): MantleCodeBlockValue
+```
+
+| Option             | Type      | Default | Description                                                                                                |
+| :----------------- | :-------- | :------ | :--------------------------------------------------------------------------------------------------------- |
+| `foldable?`        | `boolean` | `true`  | Give multi-line objects/arrays collapsible fold toggles (the same fold runtime as every other JSON block). |
+| `showLineNumbers?` | `boolean` | `false` | Render a line-number gutter. Detail panels usually read better without one.                                |
+
+Byte-for-byte parity with server/build-time Shiki output is guaranteed for canonical `JSON.stringify` shapes — which is exactly what this function produces.
+
+### jsonToShikiHtml
+
+The lower-level primitive behind `jsonCodeBlockValue`. Tokenizes a JSON string into the same CSS-variable-colored `<code>` inner HTML that Mantle's server/build-time Shiki highlighter produces, without shipping Shiki to the browser. Returns an HTML string with **no** line-number or fold decoration — feed it through `decorateHighlightedHtml` for that, as `jsonCodeBlockValue` does. Reach for it only when you need the raw markup; most consumers want `jsonCodeBlockValue`.
+
+```ts
+jsonToShikiHtml(code: string): string
+```

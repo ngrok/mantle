@@ -15,7 +15,7 @@ type SvgOnlyProps = Omit<SvgAttributes, "children"> & {
  * Accepts a single SVG icon element and decorates it with `shrink-0` class.
  * You probably want to use the `Icon` component instead.
  *
- * @see https://mantle.ngrok.com/components/icon
+ * @see https://mantle.ngrok.com/components/data-display/icon
  *
  * @example
  * ```tsx

@@ -14,13 +14,15 @@ import type { UtilitiesManifest } from "~/utilities/utils-manifest.server";
  */
 export type SearchEntry = {
 	name: string;
-	kind: "component" | "hook" | "utility";
+	kind: "component" | "layout" | "hook" | "utility";
 	importPath: string;
 	docsUrl: string;
 	markdownUrl: string;
 	summary?: string;
 	/** Set on components only — hooks/utilities don't carry a lifecycle. */
 	status?: "stable" | "preview";
+	/** Docs sidebar category (e.g. "Data Display"). Components only. */
+	category?: string;
 	/** Lower-cased tokens derived from name + slug + summary, deduplicated. */
 	keywords: string[];
 };
@@ -68,13 +70,20 @@ export function buildSearchEntries({
 	for (const component of components.components) {
 		entries.push({
 			name: component.name,
-			kind: "component",
+			kind: component.kind,
 			importPath: component.importPath,
 			docsUrl: component.docsUrl,
 			markdownUrl: component.markdownUrl,
 			summary: component.summary ?? component.jsdoc,
 			status: component.status,
-			keywords: keywordsFrom(component.name, component.slug, component.summary, component.jsdoc),
+			category: component.category,
+			keywords: keywordsFrom(
+				component.name,
+				component.slug,
+				component.category,
+				component.summary,
+				component.jsdoc,
+			),
 		});
 	}
 

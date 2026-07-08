@@ -8,7 +8,7 @@ describe("isStaticResourcePath", () => {
 		expect(isStaticResourcePath("/api/components.json")).toBe(true);
 		expect(isStaticResourcePath("/api/hooks.json")).toBe(true);
 		expect(isStaticResourcePath("/changelog.md")).toBe(true);
-		expect(isStaticResourcePath("/components/button.md")).toBe(true);
+		expect(isStaticResourcePath("/components/actions/button.md")).toBe(true);
 		expect(isStaticResourcePath("/sitemap.xml")).toBe(true);
 		expect(isStaticResourcePath("/data.csv")).toBe(true);
 		expect(isStaticResourcePath("/config.yaml")).toBe(true);
@@ -18,7 +18,7 @@ describe("isStaticResourcePath", () => {
 	test("accepts paths with query strings or fragments", () => {
 		expect(isStaticResourcePath("/llms.txt?v=1")).toBe(true);
 		expect(isStaticResourcePath("/api/components.json#anchor")).toBe(true);
-		expect(isStaticResourcePath("/components/button.md?foo=bar#baz")).toBe(true);
+		expect(isStaticResourcePath("/components/actions/button.md?foo=bar#baz")).toBe(true);
 	});
 
 	test("is case-insensitive on the extension", () => {
@@ -28,7 +28,7 @@ describe("isStaticResourcePath", () => {
 
 	test("rejects regular SPA route paths", () => {
 		expect(isStaticResourcePath("/")).toBe(false);
-		expect(isStaticResourcePath("/components/button")).toBe(false);
+		expect(isStaticResourcePath("/components/actions/button")).toBe(false);
 		expect(isStaticResourcePath("/changelog")).toBe(false);
 		expect(isStaticResourcePath("/hooks")).toBe(false);
 	});

@@ -55,7 +55,7 @@ type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
  *   primitive ({@link https://reactrouter.com/en/main/components/link `react-router` `<Link>`})
  *   so client-side navigation kicks in. You can keep mantle's styling by
  *   composing: `<Anchor asChild><Link to="/foo">…</Link></Anchor>`.
- * - For triggering an action — use a {@link https://mantle.ngrok.com/components/button Button}
+ * - For triggering an action — use a {@link https://mantle.ngrok.com/components/actions/button Button}
  *   instead. If it doesn't navigate, it's not a link.
  *
  * **Icons.** Pass `icon` (a phosphor or custom SVG) and optionally
@@ -71,7 +71,7 @@ type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
  * here" / "read more". For purely decorative icons, no extra labeling is
  * needed; for icon-only links, provide an `aria-label`.
  *
- * @see https://mantle.ngrok.com/components/anchor
+ * @see https://mantle.ngrok.com/components/navigation/anchor
  *
  * @example
  * ```tsx

@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Checkbox component.
  *
- * @see https://mantle.ngrok.com/components/checkbox
+ * @see https://mantle.ngrok.com/components/forms/checkbox
  */
 
 export {

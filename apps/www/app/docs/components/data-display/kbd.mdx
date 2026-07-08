@@ -1,0 +1,108 @@
+---
+title: Kbd
+description: A square, centered keyboard "key" chip for rendering keyboard shortcut hints.
+---
+
+import { Kbd } from "@ngrok/mantle/kbd";
+import { Example } from "~/components/example";
+
+# Kbd
+
+A square, centered keyboard "key" chip for rendering shortcut hints — `K`, `⌘`, `⌃`, `Enter`. Renders a native `<kbd>` element so screen readers announce it as keyboard input. Sized so letters and modifier symbols share a consistent visual height, width, and baseline.
+
+## When to use
+
+- Documenting keyboard shortcuts in copy or tooltips.
+- Inside menu items and command palettes alongside the action label.
+- Inline with prose: "Press <Kbd>K</Kbd> to open search."
+
+## When not to use
+
+- For arbitrary monospace text — use [`Code`](/components/data-display/code).
+- For chord-style multi-key shortcuts as a single chip — render multiple `<Kbd>` elements separated by `+` text instead.
+
+<Example>
+	<div className="flex items-center gap-2">
+		<Kbd>K</Kbd>
+		<Kbd>⌘</Kbd>
+		<Kbd>⌃</Kbd>
+		<Kbd>⇧</Kbd>
+		<Kbd>⌥</Kbd>
+	</div>
+</Example>
+
+```tsx
+import { Kbd } from "@ngrok/mantle/kbd";
+
+<div className="flex items-center gap-2">
+	<Kbd>K</Kbd>
+	<Kbd>⌘</Kbd>
+	<Kbd>⌃</Kbd>
+	<Kbd>⇧</Kbd>
+	<Kbd>⌥</Kbd>
+</div>;
+```
+
+## Keyboard Shortcuts
+
+Combine multiple `Kbd` components to display keyboard shortcuts.
+
+<Example>
+	<div className="flex flex-col gap-4">
+		<div className="flex items-center gap-2">
+			<Kbd>⌘</Kbd>
+			<span>+</span>
+			<Kbd>K</Kbd>
+		</div>
+		<div className="flex items-center gap-2">
+			<Kbd>⌃</Kbd>
+			<span>+</span>
+			<Kbd>⇧</Kbd>
+			<span>+</span>
+			<Kbd>P</Kbd>
+		</div>
+	</div>
+</Example>
+
+```tsx
+import { Kbd } from "@ngrok/mantle/kbd";
+
+<div className="flex items-center gap-2">
+	<Kbd>⌘</Kbd>
+	<span>+</span>
+	<Kbd>K</Kbd>
+</div>;
+```
+
+## Accessibility
+
+Symbol-only glyphs (`⌘`, `⌃`, `↵`) are not announced meaningfully by screen readers. Provide an accessible name via `aria-label` on the `<Kbd>` or include a visually-hidden label inside, and mark the visible glyph `aria-hidden`.
+
+<Example>
+	<div className="flex items-center gap-2">
+		<Kbd aria-label="Command">⌘</Kbd>
+		<span>+</span>
+		<Kbd>K</Kbd>
+	</div>
+</Example>
+
+```tsx
+import { Kbd } from "@ngrok/mantle/kbd";
+
+<div className="flex items-center gap-2">
+	<Kbd aria-label="Command">⌘</Kbd>
+	<span>+</span>
+	<Kbd>K</Kbd>
+</div>;
+```
+
+## API Reference
+
+### Kbd
+
+The `Kbd` accepts the following props in addition to the [standard HTML kbd attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/kbd).
+
+| Prop         | Type        | Default | Description                                                  |
+| :----------- | :---------- | :------ | :----------------------------------------------------------- |
+| `children`   | `ReactNode` |         | The keyboard key or symbol to display (e.g., "K", "⌘", "⌃"). |
+| `className?` | `string`    |         | Additional CSS classes to apply to the kbd element.          |

@@ -9,7 +9,7 @@ type Props = ComponentProps<typeof RadixSlot>;
  * components that can be rendered as different elements. Automatically merges
  * className props using `cx` for proper Tailwind class handling.
  *
- * @see https://mantle.ngrok.com/components/slot
+ * @see https://mantle.ngrok.com/components/primitives/slot
  *
  * @example
  * ```tsx

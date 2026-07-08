@@ -11,10 +11,11 @@ This page is the canonical entry point for AI assistants — Claude Code, Cursor
 
 ```
 Use the @ngrok/mantle design system. Components live at @ngrok/mantle/<name>
-(e.g. @ngrok/mantle/button). All pages have a plain-markdown twin at
-<page>.md. The full library index is at /llms.txt and a structured
-component manifest is at /api/components.json. Hooks and utilities have
-their own manifests at /api/hooks.json and /api/utils.json.
+(e.g. @ngrok/mantle/button). Import subpaths are flat even though docs URLs
+group components by category (/components/<category>/<name>). All pages have
+a plain-markdown twin at <page>.md. The full library index is at /llms.txt
+and a structured component manifest is at /api/components.json. Hooks and
+utilities have their own manifests at /api/hooks.json and /api/utils.json.
 ```
 
 ## Machine-readable entry points
@@ -23,7 +24,7 @@ their own manifests at /api/hooks.json and /api/utils.json.
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`/llms.txt`](/llms.txt)                           | Curated index of every docs page (title, description, html + markdown URLs). Follows the [llms.txt convention](https://llmstxt.org).                           |
 | [`/llms-full.txt`](/llms-full.txt)                 | Concatenated plain-markdown of every docs page. Drop into a context window when full coverage is needed.                                                       |
-| [`/api/components.json`](/api/components.json)     | Structured component manifest. Each entry has `name`, `slug`, `status`, `importPath`, `docsUrl`, `markdownUrl`, and a one-line `summary`.                      |
+| [`/api/components.json`](/api/components.json)     | Structured component manifest. Each entry has `name`, `slug`, `kind`, `category`, `status`, `importPath`, `docsUrl`, `markdownUrl`, and a one-line `summary`.  |
 | [`/api/hooks.json`](/api/hooks.json)               | Structured hooks manifest. Each entry has `name`, `importPath`, `docsUrl`, `markdownUrl`, and an optional `summary`.                                           |
 | [`/api/utils.json`](/api/utils.json)               | Structured utilities manifest. Same shape as hooks.                                                                                                            |
 | [`/api/package.json`](/api/package.json)           | Curated `@ngrok/mantle` package info: version, peer/dev deps, full list of importable subpaths.                                                                |
@@ -32,7 +33,9 @@ their own manifests at /api/hooks.json and /api/utils.json.
 | [`/api/schema.json`](/api/schema.json)             | JSON Schema (draft-07) definitions for every endpoint above. Use it to validate payloads.                                                                      |
 | [`/changelog.md`](/changelog.md)                   | The published `@ngrok/mantle` `CHANGELOG.md` as plain markdown.                                                                                                |
 | [`/migrations`](/migrations)                       | Step-by-step migration guides for new APIs/behaviors. Each is reachable as HTML and as raw markdown (append `.md`), written to feed directly to coding agents. |
-| `/<page>.md`                                       | Every docs page (e.g. [`/components/button.md`](/components/button.md)) is also served as plain markdown by appending `.md`.                                   |
+| [`/layouts`](/layouts)                             | Published primitives that own page/viewport structure (app shells, centered flows). New section — the first residents are still graduating from incubation.    |
+| [`/recipes`](/recipes)                             | Compositional how-tos that wire multiple primitives together with state, data, or routing. Formerly `/blocks`; old URLs permanently redirect.                  |
+| `/<page>.md`                                       | Every docs page (e.g. [`/components/actions/button.md`](/components/actions/button.md)) is also served as plain markdown by appending `.md`.                   |
 
 ## Suggested system-prompt snippet
 
@@ -64,13 +67,13 @@ design system. Conventions:
 
 ## Conventions agents should know
 
-- **Polymorphism via `asChild`.** Most components accept `asChild` (powered by [`Slot`](/components/slot)). Use it to render the component as a different element — for example, render a `Button` as a `react-router` `Link` — without losing the component's styling or behavior.
-- **Import paths by category.** Components import from `@ngrok/mantle/<name>` (e.g. `@ngrok/mantle/button`). Hooks live at [`@ngrok/mantle/hooks`](/hooks) (e.g. `import { useBreakpoint } from "@ngrok/mantle/hooks"`). Utilities live at their own subpaths — `@ngrok/mantle/cx`, `@ngrok/mantle/color`, etc.
+- **Polymorphism via `asChild`.** Most components accept `asChild` (powered by [`Slot`](/components/primitives/slot)). Use it to render the component as a different element — for example, render a `Button` as a `react-router` `Link` — without losing the component's styling or behavior.
+- **Flat import paths, categorized docs URLs.** Components import from `@ngrok/mantle/<name>` (e.g. `@ngrok/mantle/button`) — the docs URL's category segment (`/components/actions/button`) never appears in import paths. Hooks live at [`@ngrok/mantle/hooks`](/hooks) (e.g. `import { useBreakpoint } from "@ngrok/mantle/hooks"`). Utilities live at their own subpaths — `@ngrok/mantle/cx`, `@ngrok/mantle/color`, etc.
 - **Docs slug ≠ import subpath (sometimes).** Most components import from a subpath that matches their docs slug (e.g., `Button` from `@ngrok/mantle/button`). A few are exported from a parent's subpath: `IconButton` from `@ngrok/mantle/button`, `PasswordInput` from `@ngrok/mantle/input`, `ProgressBar` and `ProgressDonut` from `@ngrok/mantle/progress`. The structured manifest at [`/api/components.json`](/api/components.json) is the source of truth — its `importPath` field is always correct.
 - **`cx` over string interpolation.** Compose class names with [`cx`](/utils/cx). It merges Tailwind classes and de-duplicates conflicts.
 - **Nullish checks use `== null` / `!= null`.** The codebase prefers these over `=== undefined` / `!== undefined`, since `== null` covers both `null` and `undefined`.
-- **Theme + provider setup.** Apps must mount [`ThemeProvider`](/components/theme) and [`Toaster`](/components/toast) at the root. Add [`TooltipProvider`](/components/tooltip) once when using shared tooltip delay or hover settings. Without `ThemeProvider`, theme tokens are unstyled and there's a flash of unstyled content.
-- **Phosphor icons by default.** Import icons from `@phosphor-icons/react/<IconName>` (e.g. `@phosphor-icons/react/Fire`). Custom ngrok icons live at [`@ngrok/mantle/icons`](/components/icons).
+- **Theme + provider setup.** Apps must mount [`ThemeProvider`](/components/primitives/theme) and [`Toaster`](/components/feedback/toast) at the root. Add [`TooltipProvider`](/components/overlays/tooltip) once when using shared tooltip delay or hover settings. Without `ThemeProvider`, theme tokens are unstyled and there's a flash of unstyled content.
+- **Phosphor icons by default.** Import icons from `@phosphor-icons/react/<IconName>` (e.g. `@phosphor-icons/react/Fire`). Custom ngrok icons live at [`@ngrok/mantle/icons`](/components/data-display/icons).
 - **No `as` casts in app code.** Use proper null checks and type narrowing. Type assertions are restricted to `as const` and dedicated type guards (see [Conventions](https://github.com/ngrok/mantle/blob/main/CONVENTIONS.md)).
 - **Exact-pinned versions.** When adding a dependency, pin it. No `^` or `~` ranges.
 - **Tailwind 4.** Custom classes use the design tokens defined in `mantle.css`. Prefer semantic tokens (`text-strong`, `bg-form`, `border-accent-600`) over raw color names where they exist.
@@ -131,15 +134,15 @@ async function save() {
 Every mantle component is built on semantic HTML and tested ARIA patterns. Agents should:
 
 - Render real form controls (`Input`, `Checkbox`, `RadioGroup`) — never style a `<div>` with click handlers as a button.
-- Pair every form control with a [`Label`](/components/label).
-- Use [`SkipToMainLink`](/components/skip-to-main-link) + [`Main`](/components/main) at the top of the document tree.
-- Provide accessible names for icon-only buttons via `aria-label` on [`IconButton`](/components/icon-button).
+- Pair every form control with a [`Label`](/components/forms/label).
+- Use [`SkipToMainLink`](/components/primitives/skip-to-main-link) + [`Main`](/components/primitives/main) at the top of the document tree.
+- Provide accessible names for icon-only buttons via `aria-label` on [`IconButton`](/components/actions/icon-button).
 - See the [Accessibility](/accessibility) page for a full keyboard / ARIA reference per component.
 
 ## When to ask vs. when to act
 
 - If the user asks for "a primary button," generate a `Button` with `appearance="filled" priority="default"`. The library's defaults should be safe.
-- If choosing between `Tooltip`, `Popover`, and `HoverCard`, follow [the JSDoc guidance](https://mantle.ngrok.com/components/tooltip) — `Tooltip` for short label hints, `Popover` for interactive content, `HoverCard` for non-essential preview cards.
+- If choosing between `Tooltip`, `Popover`, and `HoverCard`, follow [the JSDoc guidance](https://mantle.ngrok.com/components/overlays/tooltip) — `Tooltip` for short label hints, `Popover` for interactive content, `HoverCard` for non-essential preview cards.
 - If choosing between `DataTable` and `Table`: `DataTable` for dynamic, sortable, filterable, paginated tabular data; `Table` for static layout.
 - When uncertain, prefer to fetch the relevant `/<page>.md` and read the full doc rather than guessing.
 

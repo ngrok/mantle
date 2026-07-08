@@ -84,7 +84,7 @@ type MultiSelectProps = Primitive.ComboboxProviderProps<string[]>;
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/multi-select#multiselectroot
+ * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectroot
  *
  * @example
  * ```tsx
@@ -132,7 +132,7 @@ type MultiSelectTriggerProps = ComponentPropsWithoutRef<"div"> & WithValidation;
  * The trigger container for the multi-select. Wraps the input and selected
  * value tags in a styled container that looks like a form input.
  *
- * @see https://mantle.ngrok.com/components/multi-select#multiselecttrigger
+ * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttrigger
  *
  * @example
  * ```tsx
@@ -237,7 +237,7 @@ type TagProps = Omit<ComponentProps<"span">, "children"> & {
  * Use this when building a custom `TagValues`-like component and you want the
  * default tag chrome with consistent styling.
  *
- * @see https://mantle.ngrok.com/components/multi-select#multiselecttag
+ * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttag
  *
  * @example
  * ```tsx
@@ -363,7 +363,7 @@ type MultiSelectTagValuesProps = {
  * Renders the selected values as removable tags. Place this inside
  * `MultiSelect.Trigger`, followed by `MultiSelect.Input`.
  *
- * @see https://mantle.ngrok.com/components/multi-select#multiselecttagvalues
+ * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttagvalues
  *
  * @example
  * ```tsx
@@ -623,7 +623,7 @@ type MultiSelectInputProps = Omit<Primitive.ComboboxProps, "render"> & {
  * `id`, `aria-invalid`, `aria-describedby`, and `aria-errormessage` flow onto
  * the input here via `FieldControlContext`.
  *
- * @see https://mantle.ngrok.com/components/multi-select#multiselectinput
+ * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectinput
  *
  * @example
  * ```tsx
@@ -714,7 +714,7 @@ type MultiSelectContentProps = Omit<Primitive.ComboboxPopoverProps, "render"> & 
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/multi-select#multiselectcontent
+ * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontent
  *
  * @example
  * ```tsx
@@ -813,7 +813,7 @@ type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render"> & WithAs
  * Renders a selectable item inside a `MultiSelect.Content` component.
  * Items display a checkbox indicator when selected.
  *
- * @see https://mantle.ngrok.com/components/multi-select#multiselectitem
+ * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectitem
  *
  * @example
  * ```tsx
@@ -881,7 +881,7 @@ type MultiSelectGroupProps = Omit<Primitive.ComboboxGroupProps, "render"> & With
 /**
  * Renders a group for MultiSelect.Item elements.
  *
- * @see https://mantle.ngrok.com/components/multi-select#multiselectgroup
+ * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectgroup
  *
  * @example
  * ```tsx
@@ -924,7 +924,7 @@ type MultiSelectGroupLabelProps = Omit<Primitive.ComboboxGroupLabelProps, "rende
 /**
  * Renders a label in a multi-select group.
  *
- * @see https://mantle.ngrok.com/components/multi-select#multiselectgrouplabel
+ * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectgrouplabel
  *
  * @example
  * ```tsx
@@ -967,7 +967,7 @@ type MultiSelectGroupDescriptionProps = ComponentPropsWithoutRef<"p">;
  * Renders a description below a `MultiSelect.GroupLabel` inside a `MultiSelect.Group`.
  * Provides context about the group's purpose or constraints.
  *
- * @see https://mantle.ngrok.com/components/multi-select#multiselectgroupdescription
+ * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectgroupdescription
  *
  * @example
  * ```tsx
@@ -1007,7 +1007,7 @@ GroupDescription.displayName = "MultiSelectGroupDescription";
 /**
  * Renders a separator between MultiSelect.Items or MultiSelect.Groups.
  *
- * @see https://mantle.ngrok.com/components/multi-select#multiselectseparator
+ * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectseparator
  *
  * @example
  * ```tsx
@@ -1046,7 +1046,7 @@ type MultiSelectEmptyProps = ComponentPropsWithoutRef<"div">;
 /**
  * Renders a message when no items match the current filter.
  *
- * @see https://mantle.ngrok.com/components/multi-select#multiselectempty
+ * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectempty
  *
  * @example
  * ```tsx
@@ -1086,7 +1086,7 @@ type MultiSelectContentFooterProps = ComponentPropsWithoutRef<"div">;
  * Renders a sticky footer pinned to the bottom inside `MultiSelect.Content`,
  * with a separator border at the top.
  *
- * @see https://mantle.ngrok.com/components/multi-select#multiselectcontentfooter
+ * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontentfooter
  *
  * @example
  * ```tsx
@@ -1137,9 +1137,9 @@ ContentFooter.displayName = "MultiSelectContentFooter";
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/multi-select
+ * @see https://mantle.ngrok.com/components/forms/multi-select
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
- * @see https://ariakit.org/components/combobox
+ * @see https://ariakit.org/components/forms/combobox
  *
  * @example
  * Composition:
@@ -1186,7 +1186,7 @@ const MultiSelect = {
 	 * floating z-index. When multiple shared layers are open, the most recently
 	 * mounted layer renders on top.
 	 *
-	 * @see https://mantle.ngrok.com/components/multi-select#multiselectroot
+	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectroot
 	 *
 	 * @example
 	 * ```tsx
@@ -1206,7 +1206,7 @@ const MultiSelect = {
 	 * The trigger container for the multi-select. Wraps the tags and input
 	 * in a styled container.
 	 *
-	 * @see https://mantle.ngrok.com/components/multi-select#multiselecttrigger
+	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttrigger
 	 *
 	 * @example
 	 * ```tsx
@@ -1229,7 +1229,7 @@ const MultiSelect = {
 	 * Use `lockedValues` to prevent specific tags from being removed. Locked tags
 	 * have their remove button disabled and shake when Backspace is pressed.
 	 *
-	 * @see https://mantle.ngrok.com/components/multi-select#multiselecttagvalues
+	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttagvalues
 	 *
 	 * @example
 	 * ```tsx
@@ -1265,7 +1265,7 @@ const MultiSelect = {
 	 * The combobox input for filtering items. Place this inside
 	 * `MultiSelect.Trigger`, after `MultiSelect.TagValues`.
 	 *
-	 * @see https://mantle.ngrok.com/components/multi-select#multiselectinput
+	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectinput
 	 *
 	 * @example
 	 * ```tsx
@@ -1285,7 +1285,7 @@ const MultiSelect = {
 	 * The default tag rendered inside `MultiSelect.TagValues` for each selected value.
 	 * Displays the value label with a remove button and keyboard navigation support.
 	 *
-	 * @see https://mantle.ngrok.com/components/multi-select#multiselecttag
+	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttag
 	 *
 	 * @example
 	 * ```tsx
@@ -1310,7 +1310,7 @@ const MultiSelect = {
 	 * floating z-index. When multiple shared layers are open, the most recently
 	 * mounted layer renders on top.
 	 *
-	 * @see https://mantle.ngrok.com/components/multi-select#multiselectcontent
+	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -1331,7 +1331,7 @@ const MultiSelect = {
 	 * Renders a sticky footer pinned to the bottom inside `MultiSelect.Content`,
 	 * with a separator border at the top.
 	 *
-	 * @see https://mantle.ngrok.com/components/multi-select#multiselectcontentfooter
+	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontentfooter
 	 *
 	 * @example
 	 * ```tsx
@@ -1353,7 +1353,7 @@ const MultiSelect = {
 	/**
 	 * Renders a selectable item with a checkbox indicator inside a `MultiSelect.Content`.
 	 *
-	 * @see https://mantle.ngrok.com/components/multi-select#multiselectitem
+	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectitem
 	 *
 	 * @example
 	 * ```tsx
@@ -1373,7 +1373,7 @@ const MultiSelect = {
 	/**
 	 * Renders a group for MultiSelect.Item elements.
 	 *
-	 * @see https://mantle.ngrok.com/components/multi-select#multiselectgroup
+	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectgroup
 	 *
 	 * @example
 	 * ```tsx
@@ -1395,7 +1395,7 @@ const MultiSelect = {
 	/**
 	 * Renders a label in a multi-select group.
 	 *
-	 * @see https://mantle.ngrok.com/components/multi-select#multiselectgrouplabel
+	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectgrouplabel
 	 *
 	 * @example
 	 * ```tsx
@@ -1417,7 +1417,7 @@ const MultiSelect = {
 	/**
 	 * Renders a description below a `MultiSelect.GroupLabel` inside a `MultiSelect.Group`.
 	 *
-	 * @see https://mantle.ngrok.com/components/multi-select#multiselectgroupdescription
+	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectgroupdescription
 	 *
 	 * @example
 	 * ```tsx
@@ -1442,7 +1442,7 @@ const MultiSelect = {
 	/**
 	 * Renders a separator between items or groups.
 	 *
-	 * @see https://mantle.ngrok.com/components/multi-select#multiselectseparator
+	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectseparator
 	 *
 	 * @example
 	 * ```tsx
@@ -1467,7 +1467,7 @@ const MultiSelect = {
 	/**
 	 * Renders a message when no items match the current filter.
 	 *
-	 * @see https://mantle.ngrok.com/components/multi-select#multiselectempty
+	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectempty
 	 *
 	 * @example
 	 * ```tsx

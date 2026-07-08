@@ -85,7 +85,7 @@ type SelectProps = PropsWithChildren & {
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/select#selectroot
+ * @see https://mantle.ngrok.com/components/forms/select#selectroot
  *
  * @example
  * ```tsx
@@ -153,7 +153,7 @@ Root.displayName = "Select";
  * A group of related options within a select menu. Similar to an html `<optgroup>` element.
  * Use in conjunction with Select.Label to ensure good accessibility via automatic labelling.
  *
- * @see https://mantle.ngrok.com/components/select#selectgroup
+ * @see https://mantle.ngrok.com/components/forms/select#selectgroup
  *
  * @example
  * ```tsx
@@ -194,7 +194,7 @@ Group.displayName = "SelectGroup";
 /**
  * The part that reflects the selected value. By default the selected item's text will be rendered. if you require more control, you can instead control the select and pass your own children. It should not be styled to ensure correct positioning. An optional placeholder prop is also available for when the select has no value.
  *
- * @see https://mantle.ngrok.com/components/select#selectvalue
+ * @see https://mantle.ngrok.com/components/forms/select#selectvalue
  *
  * @example
  * ```tsx
@@ -233,7 +233,7 @@ type SelectTriggerProps = ComponentPropsWithoutRef<typeof SelectPrimitive.Trigge
  * the hidden form input gets the field name), and the trigger reads
  * `aria-describedby` / `aria-errormessage` from `FieldControlContext`.
  *
- * @see https://mantle.ngrok.com/components/select#selecttrigger
+ * @see https://mantle.ngrok.com/components/forms/select#selecttrigger
  *
  * @example
  * ```tsx
@@ -375,7 +375,7 @@ type SelectContentProps = ComponentPropsWithoutRef<typeof SelectPrimitive.Conten
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/select#selectcontent
+ * @see https://mantle.ngrok.com/components/forms/select#selectcontent
  *
  * @example
  * ```tsx
@@ -436,7 +436,7 @@ Content.displayName = "SelectContent";
 /**
  * Used to render the label of a group. It won't be focusable using arrow keys.
  *
- * @see https://mantle.ngrok.com/components/select#selectlabel
+ * @see https://mantle.ngrok.com/components/forms/select#selectlabel
  *
  * @example
  * ```tsx
@@ -483,7 +483,7 @@ type SelectItemProps = ComponentPropsWithoutRef<typeof SelectPrimitive.Item> & {
  * Has a required `value` prop that will be passed to the `onChange` handler of the `Select` component when this item is selected.
  * Displays the children as the option's text.
  *
- * @see https://mantle.ngrok.com/components/select#selectitem
+ * @see https://mantle.ngrok.com/components/forms/select#selectitem
  *
  * @example
  * ```tsx
@@ -536,7 +536,7 @@ Item.displayName = "SelectItem";
 /**
  * Used to visually separate items or groups of items in the select content.
  *
- * @see https://mantle.ngrok.com/components/select#selectseparator
+ * @see https://mantle.ngrok.com/components/forms/select#selectseparator
  *
  * @example
  * ```tsx
@@ -585,7 +585,7 @@ SelectSeparatorComponent.displayName = "SelectSeparator";
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/select
+ * @see https://mantle.ngrok.com/components/forms/select
  *
  * @example
  * Composition:
@@ -635,7 +635,7 @@ const Select = {
 	 * z-index. When multiple shared layers are open, the most recently mounted
 	 * layer renders on top.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selectroot
+	 * @see https://mantle.ngrok.com/components/forms/select#selectroot
 	 *
 	 * @example
 	 * ```tsx
@@ -669,7 +669,7 @@ const Select = {
 	 * z-index. When multiple shared layers are open, the most recently mounted
 	 * layer renders on top.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selectcontent
+	 * @see https://mantle.ngrok.com/components/forms/select#selectcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -699,7 +699,7 @@ const Select = {
 	 * A group of related options within a select menu. Similar to an html `<optgroup>` element.
 	 * Use in conjunction with Select.Label to ensure good accessibility via automatic labelling.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selectgroup
+	 * @see https://mantle.ngrok.com/components/forms/select#selectgroup
 	 *
 	 * @example
 	 * ```tsx
@@ -730,7 +730,7 @@ const Select = {
 	 * Has a required `value` prop that will be passed to the `onChange` handler of the `Select` component when this item is selected.
 	 * Displays the children as the option's text.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selectitem
+	 * @see https://mantle.ngrok.com/components/forms/select#selectitem
 	 *
 	 * @example
 	 * ```tsx
@@ -759,7 +759,7 @@ const Select = {
 	/**
 	 * Used to render the label of a group. It won't be focusable using arrow keys.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selectlabel
+	 * @see https://mantle.ngrok.com/components/forms/select#selectlabel
 	 *
 	 * @example
 	 * ```tsx
@@ -788,7 +788,7 @@ const Select = {
 	/**
 	 * Used to visually separate items or groups of items in the select content.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selectseparator
+	 * @see https://mantle.ngrok.com/components/forms/select#selectseparator
 	 *
 	 * @example
 	 * ```tsx
@@ -817,7 +817,7 @@ const Select = {
 	/**
 	 * The button that toggles the select. The Select.Content will position itself adjacent to the trigger.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selecttrigger
+	 * @see https://mantle.ngrok.com/components/forms/select#selecttrigger
 	 *
 	 * @example
 	 * ```tsx
@@ -846,7 +846,7 @@ const Select = {
 	/**
 	 * The part that reflects the selected value. By default the selected item's text will be rendered. if you require more control, you can instead control the select and pass your own children. It should not be styled to ensure correct positioning. An optional placeholder prop is also available for when the select has no value.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selectvalue
+	 * @see https://mantle.ngrok.com/components/forms/select#selectvalue
 	 *
 	 * @example
 	 * ```tsx

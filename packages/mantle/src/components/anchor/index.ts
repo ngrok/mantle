@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Anchor component.
  *
- * @see https://mantle.ngrok.com/components/anchor
+ * @see https://mantle.ngrok.com/components/navigation/anchor
  */
 
 export {

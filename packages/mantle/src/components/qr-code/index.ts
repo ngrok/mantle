@@ -1,7 +1,7 @@
 /**
  * Re-exports for the QrCode component.
  *
- * @see https://mantle.ngrok.com/components/qr-code
+ * @see https://mantle.ngrok.com/components/data-display/qr-code
  */
 
 export {

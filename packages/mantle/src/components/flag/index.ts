@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Flag component.
  *
- * @see https://mantle.ngrok.com/components/flag
+ * @see https://mantle.ngrok.com/components/data-display/flag
  */
 
 export {

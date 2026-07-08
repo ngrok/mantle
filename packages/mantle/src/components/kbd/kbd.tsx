@@ -13,7 +13,7 @@ import { cx } from "../../utils/cx/cx.js";
  * - Inline with prose: "Press `Kbd K` to open search."
  *
  * **When not to use**
- * - For arbitrary monospace text — use {@link https://mantle.ngrok.com/components/code Code}.
+ * - For arbitrary monospace text — use {@link https://mantle.ngrok.com/components/data-display/code Code}.
  * - For chord-style multi-key shortcuts as a single chip — render multiple
  *   `<Kbd>` elements separated by `+` text instead.
  *
@@ -22,7 +22,7 @@ import { cx } from "../../utils/cx/cx.js";
  * `aria-label` on the `<Kbd>` or include a visually-hidden label inside,
  * and mark the visible glyph `aria-hidden`.
  *
- * @see https://mantle.ngrok.com/components/kbd
+ * @see https://mantle.ngrok.com/components/data-display/kbd
  *
  * @example
  * ```tsx

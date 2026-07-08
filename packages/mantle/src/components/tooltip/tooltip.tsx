@@ -9,7 +9,7 @@ import { cx } from "../../utils/cx/cx.js";
  * your app when you want app-wide tooltip defaults. Children render
  * `Tooltip.Root` / `Tooltip.Trigger` / `Tooltip.Content` trees as usual.
  *
- * @see https://mantle.ngrok.com/components/tooltip#tooltipprovider
+ * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltipprovider
  *
  * @example
  * ```tsx
@@ -49,7 +49,7 @@ TooltipProvider.displayName = "Tooltip.Provider";
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/tooltip#tooltiproot
+ * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltiproot
  *
  * @example
  * ```tsx
@@ -73,7 +73,7 @@ Root.displayName = "Tooltip.Root";
 /**
  * The trigger button that opens the tooltip.
  *
- * @see https://mantle.ngrok.com/components/tooltip#tooltiptrigger
+ * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltiptrigger
  *
  * @example
  * ```tsx
@@ -101,7 +101,7 @@ Trigger.displayName = "Tooltip.Trigger";
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/tooltip#tooltipcontent
+ * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltipcontent
  *
  * @example
  * ```tsx
@@ -160,7 +160,7 @@ Content.displayName = "Tooltip.Content";
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/tooltip
+ * @see https://mantle.ngrok.com/components/overlays/tooltip
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/
  *
  * @example
@@ -196,7 +196,7 @@ const Tooltip = {
 	 * z-index. When multiple shared layers are open, the most recently mounted
 	 * layer renders on top.
 	 *
-	 * @see https://mantle.ngrok.com/components/tooltip#tooltiproot
+	 * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltiproot
 	 *
 	 * @example
 	 * ```tsx
@@ -220,7 +220,7 @@ const Tooltip = {
 	 * z-index. When multiple shared layers are open, the most recently mounted
 	 * layer renders on top.
 	 *
-	 * @see https://mantle.ngrok.com/components/tooltip#tooltipcontent
+	 * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltipcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -240,7 +240,7 @@ const Tooltip = {
 	/**
 	 * The trigger button that opens the tooltip.
 	 *
-	 * @see https://mantle.ngrok.com/components/tooltip#tooltiptrigger
+	 * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltiptrigger
 	 *
 	 * @example
 	 * ```tsx

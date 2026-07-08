@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Slot component.
  *
- * @see https://mantle.ngrok.com/components/slot
+ * @see https://mantle.ngrok.com/components/primitives/slot
  */
 
 export {

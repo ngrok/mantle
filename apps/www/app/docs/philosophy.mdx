@@ -13,32 +13,32 @@ docs themselves.
 
 ## Semantic HTML, Then Everything Else
 
-The right HTML element is always the starting point. A [Button](/components/button)
+The right HTML element is always the starting point. A [Button](/components/actions/button)
 renders a `<button>`, not a styled `<div>` with click handlers.
-[Checkbox](/components/checkbox) is a real `<input type="checkbox">` styled entirely with
+[Checkbox](/components/forms/checkbox) is a real `<input type="checkbox">` styled entirely with
 CSS, so it participates in native forms without wrapper elements or a scripted check icon.
-[DescriptionList](/components/description-list) is real `<dl>`/`<dt>`/`<dd>`, and
-[Kbd](/components/kbd) is a real `<kbd>`. From that foundation, Mantle progressively
+[DescriptionList](/components/data-display/description-list) is real `<dl>`/`<dt>`/`<dd>`, and
+[Kbd](/components/data-display/kbd) is a real `<kbd>`. From that foundation, Mantle progressively
 enhances. A button is still a button—but with loading states, icon slots, and variant
 styling layered on top. The underlying element always does the heavy lifting.
 
-Enhancement is deliberate, and so is degradation. [Accordion](/components/accordion)
+Enhancement is deliberate, and so is degradation. [Accordion](/components/data-display/accordion)
 keeps collapsed content in the DOM with `hidden="until-found"`, so find-in-page can
 reveal matches inside closed sections; its height animation rides CSS `interpolate-size`
-and simply snaps in engines without it. [SkipToMainLink](/components/skip-to-main-link)
+and simply snaps in engines without it. [SkipToMainLink](/components/primitives/skip-to-main-link)
 is a plain `href="#main"` anchor that works with JavaScript disabled, then enhances with
 `history.replaceState` and scroll-free focus. The [scroll fade](/base/scroll-fade)
 utilities are pure CSS scroll-driven animations: where a browser lacks support, the fade
 is absent and content is never clipped. Every enhancement names its fallback.
 
 This extends to how components are _named_. Parts take the web platform's vocabulary for
-what they actually render: a [List](/components/list) contains `Item`s because `<li>` is
-literally a list item, a [Table](/components/table) contains `Row`s because that's what
+what they actually render: a [List](/components/data-display/list) contains `Item`s because `<li>` is
+literally a list item, a [Table](/components/data-display/table) contains `Row`s because that's what
 `<tr>` is, and every compound's outermost part is `Root`. Props read as the semantics
 they emit—`List.Item`'s `current` prop sets `aria-current`—so the API tells the truth
 about the markup. And where WAI-ARIA offers competing patterns, the component makes the
 choice for you: List is a semantic `role="list"` so every item keeps its natural tab
-stop, while [SelectableList](/components/selectable-list) is an APG grid because
+stop, while [SelectableList](/components/data-display/selectable-list) is an APG grid because
 selectable rows carrying real controls require it. You never pick a role; you pick an
 intent.
 
@@ -46,44 +46,44 @@ intent.
 
 Mantle is not "built on Radix." Where the platform is enough, components are native:
 Accordion is hand-rolled precisely because a headless collapsible would lose the
-find-in-page behavior above, and [Field](/components/field) is real
+find-in-page behavior above, and [Field](/components/forms/field) is real
 `<fieldset>`/`<legend>`/`<label>` elements with mantle-owned wiring. Where the behavior
 is genuinely hard, Mantle wraps the best engine for that specific problem:
-[Radix](https://www.radix-ui.com) for [Dialog](/components/dialog),
-[Ariakit](https://ariakit.org) for [Combobox](/components/combobox),
-[Headless UI](https://headlessui.com) for [RadioGroup](/components/radio-group), cmdk for
-[Command](/components/command), TanStack Table for [DataTable](/components/data-table),
-sonner (mounted unstyled) for [Toast](/components/toast).
+[Radix](https://www.radix-ui.com) for [Dialog](/components/overlays/dialog),
+[Ariakit](https://ariakit.org) for [Combobox](/components/forms/combobox),
+[Headless UI](https://headlessui.com) for [RadioGroup](/components/forms/radio-group), cmdk for
+[Command](/components/navigation/command), TanStack Table for [DataTable](/components/data-display/data-table),
+sonner (mounted unstyled) for [Toast](/components/feedback/toast).
 
 You cannot tell which is which from the outside, and that is the point. Every foundation
 is normalized behind one house API: flat compound namespaces, `asChild` polymorphism, a
 `data-slot` attribute on every rendered part, and consumer `className` merged last with
 [cx](/utils/cx). A vendor is a starting point, not a ceiling:
-[Switch](/components/switch) adds the read-only state Radix lacks, the dialog primitive
+[Switch](/components/forms/switch) adds the read-only state Radix lacks, the dialog primitive
 strips Radix's dangling `aria-describedby` when no description is mounted, and
-[Slot](/components/slot) re-implements Radix's className merge so your classes beat the
+[Slot](/components/primitives/slot) re-implements Radix's className merge so your classes beat the
 component's. If you understand how one Mantle component works, you can predict how the
 rest behave. Learn the system once; apply it everywhere.
 
 ## One Component Per Intent
 
 Every public component answers a distinct question. "Click an item to go somewhere or do
-something" is [List](/components/list); "check items to select them" is
-[SelectableList](/components/selectable-list). "Pick one of a few known options" is
-[Select](/components/select); "type to filter many" is [Combobox](/components/combobox);
-"pick several" is [MultiSelect](/components/multi-select)—and the JSDoc on each names
+something" is [List](/components/data-display/list); "check items to select them" is
+[SelectableList](/components/data-display/selectable-list). "Pick one of a few known options" is
+[Select](/components/forms/select); "type to filter many" is [Combobox](/components/forms/combobox);
+"pick several" is [MultiSelect](/components/forms/multi-select)—and the JSDoc on each names
 its siblings, so the boundary ships with the component. When two designs answer the same
 question, they become one component: a variant is a prop or a sibling part
-([RadioGroup](/components/radio-group)'s card and segmented arrangements are parts, not
+([RadioGroup](/components/forms/radio-group)'s card and segmented arrangements are parts, not
 new components), never a second thing to choose between.
 
 The same discipline keeps shared machinery private. One unexported dialog primitive backs
-[Dialog](/components/dialog), [Sheet](/components/sheet), and
-[AlertDialog](/components/alert-dialog); one unexported list primitive backs both list
+[Dialog](/components/overlays/dialog), [Sheet](/components/overlays/sheet), and
+[AlertDialog](/components/overlays/alert-dialog); one unexported list primitive backs both list
 components. Publishing a primitive later is an additive, non-breaking change; un-shipping
 one is a breaking change forever. Refusing surface applies to props, too: when DataTable
 needed empty states and pagination, the answer was documented recipes built from existing
-parts ([Empty](/components/empty) drops straight into a table's empty row), not a new
+parts ([Empty](/components/feedback/empty) drops straight into a table's empty row), not a new
 built-in API—the gap was documentation, not primitives. Mantle ships the smallest
 surface that solves the problem and grows it only when real usage demands: the API you
 learn is the API that stays.
@@ -91,24 +91,24 @@ learn is the API that stays.
 ## Composition Over Configuration
 
 Components compose with each other and with your code. The `asChild` pattern, powered by
-[Slot](/components/slot), swaps the rendered element entirely—internal navigation is
+[Slot](/components/primitives/slot), swaps the rendered element entirely—internal navigation is
 `<Anchor asChild><Link to="…" /></Anchor>`, not an `href` prop with router flags—so
 Mantle never forces a DOM structure on you. Configuration props handle the common case;
 composition handles everything else. Composition is also how new components get built:
-[SplitButton](/components/split-button) is nothing but Button, IconButton, and
+[SplitButton](/components/actions/split-button) is nothing but Button, IconButton, and
 DropdownMenu with the seams styled.
 
 Multi-part components ship as flat, single-level namespaces (`Dialog.Root`,
 `Dialog.Content`, never `Command.Dialog.Root`) so the whole API surfaces in one
 autocomplete. That was a recorded trade: we gave up per-file tree-shaking of compound
 internals for discoverability, and kept leaf components like
-[Button](/components/button) and [Icon](/components/icon) as standalone exports so they
+[Button](/components/actions/button) and [Icon](/components/data-display/icon) as standalone exports so they
 still shake cleanly.
 
 The exception is deliberate: a component takes a **data** prop instead of children only
 when its behavior must reach items that aren't rendered yet.
-[DataTable](/components/data-table) takes `data` and
-[SelectableList](/components/selectable-list) takes `options` because filtering, "select
+[DataTable](/components/data-display/data-table) takes `data` and
+[SelectableList](/components/data-display/selectable-list) takes `options` because filtering, "select
 all", and virtualization operate over the whole collection—including rows that are
 windowed out of the DOM—which no children-based API can see. Even then, _rendering_
 stays composable: a render-prop draws each row, and the data stays a thin description (a
@@ -118,16 +118,16 @@ presentation is always composition.
 ## Make Invalid States Unrepresentable
 
 Where a contract can live in the type system, it does.
-[Accordion](/components/accordion)'s `type` prop is a discriminated union that retypes
+[Accordion](/components/data-display/accordion)'s `type` prop is a discriminated union that retypes
 `value` and `onValueChange` as `string` or `string[]` per mode.
-[SelectableList](/components/selectable-list) requires `labelText` the moment `label`
+[SelectableList](/components/data-display/selectable-list) requires `labelText` the moment `label`
 becomes a rich ReactNode, so a filter that would silently stop matching becomes a compile
-error instead. And [Badge](/components/badge)'s palette tables are exhaustiveness-checked
+error instead. And [Badge](/components/data-display/badge)'s palette tables are exhaustiveness-checked
 with `satisfies Record<Color, string>` against the [color](/utils/color) vocabulary, so a
 new color cannot ship half-styled.
 
 What the compiler cannot catch fails loudly at runtime. Compound parts rendered outside
-their `Root`—[Choice](/components/choice)'s, [QrCode](/components/qr-code)'s,
+their `Root`—[Choice](/components/forms/choice)'s, [QrCode](/components/data-display/qr-code)'s,
 SelectableList's—throw a descriptive invariant instead of rendering an inert shell.
 Utilities treat errors as control flow: `copyToClipboard` throws when both clipboard
 strategies fail rather than no-oping. A silent fallback is a bug you find in production;
@@ -143,20 +143,20 @@ raw IntersectionObserver and [`useInView`](/hooks) is its hook,
 uses. The vocabulary utilities, [color](/utils/color) and [sorting](/utils/sorting),
 derive their union types, type guards, and helpers from single const arrays, so runtime
 values and TypeScript types cannot drift apart. Components obey the same layering:
-[SelectableList](/components/selectable-list)'s filtering and selection math are exported
+[SelectableList](/components/data-display/selectable-list)'s filtering and selection math are exported
 pure functions, tested apart from rendering.
 
 ## Accessibility Is Engineered, Then Given Away
 
 The promise is not that semantic markup makes accessibility free. The promise is that
-Mantle does the engineering so you get it free. [Field](/components/field) generates
+Mantle does the engineering so you get it free. [Field](/components/forms/field) generates
 control, description, and error ids and flows them through context, so `htmlFor`,
 `aria-describedby`, and `aria-errormessage` always resolve without hand-threading—and
-its help affordance is a [Popover](/components/popover) rather than a tooltip, so touch
-users can reach it. [List](/components/list)'s disabled `asChild` items swallow clicks
+its help affordance is a [Popover](/components/overlays/popover) rather than a tooltip, so touch
+users can reach it. [List](/components/data-display/list)'s disabled `asChild` items swallow clicks
 because assistive technology dispatches clicks without hit testing. Virtualized rows
 announce `aria-posinset` and `aria-setsize`, so a windowed list still reads as the whole
-collection. [IconButton](/components/icon-button) makes its screen-reader label a
+collection. [IconButton](/components/actions/icon-button) makes its screen-reader label a
 required prop. And motion defaults are conservative:
 [`usePrefersReducedMotion`](/hooks) returns `true` on the server and first paint, so
 nothing animates until the user's real preference is known.
@@ -169,7 +169,7 @@ faith from a vendor.
 ## The First Paint Is Part of the API
 
 Mantle assumes a server, and if it renders wrong for one frame, that's a bug. The
-[theme](/components/theme) preference persists in a cookie, not just localStorage, so SSR
+[theme](/components/primitives/theme) preference persists in a cookie, not just localStorage, so SSR
 renders the correct `<html>` class; a blocking inline script—written as a plain
 TypeScript function and stringified into the `<head>`—resolves the cookie and OS
 preferences before first paint, and theme changes sync across open tabs. The three
@@ -178,7 +178,7 @@ and font preloads can ship as HTTP `Link` headers so fetches start before the HT
 parses.
 
 Hydration safety is a shipped primitive, not an app-side hack.
-[BrowserOnly](/components/browser-only) takes children as a render function so
+[BrowserOnly](/components/primitives/browser-only) takes children as a render function so
 client-only code cannot even evaluate during SSR. Every browser-API hook declares its
 server answer: [`useBreakpoint`](/hooks) returns `"default"`,
 [`useMatchesMediaQuery`](/hooks) returns `false`, and [`useIsHydrated`](/hooks)—built on
@@ -208,7 +208,7 @@ actually emit (`data-state-*`, `aria-*`), and key internal defaults are wrapped 
 ## Performance Happens Before the Browser
 
 The fastest code is the code that never runs, and the most reliable code is the code
-that doesn't exist. [CodeBlock](/components/code-block) highlights with Shiki at build
+that doesn't exist. [CodeBlock](/components/data-display/code-block) highlights with Shiki at build
 time, so no highlighter JavaScript ships to the browser—and its React-free core is
 published as [highlight-utils](/utils/highlight-utils) so servers, workers, and build
 tools can produce the same HTML. The Tailwind source plugin scopes the utility scan to
@@ -216,9 +216,9 @@ the mantle components an app actually imports, so unused components cost no CSS,
 non-active theme stylesheets never block rendering.
 
 The runtime work that remains gets moved to the platform or measured down.
-[Tabs](/components/tabs)' edge fade and the [scroll fade](/base/scroll-fade) utilities
+[Tabs](/components/navigation/tabs)' edge fade and the [scroll fade](/base/scroll-fade) utilities
 are CSS scroll-driven animations with zero scroll listeners.
-[Table](/components/table) coalesces resize, mutation, and scroll into one
+[Table](/components/data-display/table) coalesces resize, mutation, and scroll into one
 `requestAnimationFrame` layout read to drive its overflow affordance. And
 [`useBreakpoint`](/hooks) shares a single app-wide set of `matchMedia` subscriptions
 across every caller—its subscribe functions are cached because unstable references
@@ -227,11 +227,11 @@ measurably made window resizing sluggish.
 ## Safe, Ecosystem-Normal Defaults
 
 A default is the library exercising judgment on your behalf, so Mantle's are safe and
-unsurprising. [Button](/components/button) defaults `type="button"`, matching the
-ecosystem and ending accidental form submits. [AlertDialog](/components/alert-dialog)'s
+unsurprising. [Button](/components/actions/button) defaults `type="button"`, matching the
+ecosystem and ending accidental form submits. [AlertDialog](/components/overlays/alert-dialog)'s
 `Action` deliberately does not close the dialog, so destructive handlers must opt in to
-dismissal. [Anchor](/components/anchor)'s `rel` accepts an array it merges and de-dupes,
-so `noopener` and `noreferrer` compose safely. [QrCode](/components/qr-code) renders
+dismissal. [Anchor](/components/navigation/anchor)'s `rel` accepts an array it merges and de-dupes,
+so `noopener` and `noreferrer` compose safely. [QrCode](/components/data-display/qr-code) renders
 static black-on-white in every theme because inverted codes fail real scanners. And
 wrapped event handlers run your callback first and bail if you called
 `event.preventDefault()`.

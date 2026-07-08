@@ -13,7 +13,7 @@ If no argument is provided, ask the user what they're looking for.
 
 The manifest lives in two places. Prefer the local one when working in this repo, fall back to the public one otherwise.
 
-- **Local (this repo):** Generate it on demand by reading `apps/www/app/components/navigation-data.ts` (the `prodReadyComponents` and `previewComponents` arrays plus their route lookups).
+- **Local (this repo):** Generate it on demand by reading `apps/www/app/components/navigation-data.ts` (the `componentsByCategory` map and `previewComponents` array plus their route lookups).
 - **Public:** `https://mantle.ngrok.com/api/components.json` — fetch with `WebFetch` if a network is available.
 
 Each manifest entry has:
@@ -21,11 +21,13 @@ Each manifest entry has:
 ```jsonc
 {
   "name": "Data Table",
-  "slug": "components/data-table",
+  "slug": "components/data-display/data-table",
+  "kind": "component" | "layout",
+  "category": "Data Display",
   "status": "stable" | "preview",
   "importPath": "@ngrok/mantle/data-table",
-  "docsUrl": "https://mantle.ngrok.com/components/data-table",
-  "markdownUrl": "https://mantle.ngrok.com/components/data-table.md",
+  "docsUrl": "https://mantle.ngrok.com/components/data-display/data-table",
+  "markdownUrl": "https://mantle.ngrok.com/components/data-display/data-table.md",
   "summary": "..."
 }
 ```

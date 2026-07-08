@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Skip to Main Link component.
  *
- * @see https://mantle.ngrok.com/components/skip-to-main-link
+ * @see https://mantle.ngrok.com/components/primitives/skip-to-main-link
  */
 
 export {

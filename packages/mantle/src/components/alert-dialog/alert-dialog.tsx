@@ -53,7 +53,7 @@ type AlertDialogProps = ComponentProps<typeof AlertDialogPrimitive.Root> & {
  * shared floating z-index. When multiple shared layers are open, the most
  * recently mounted layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogroot
+ * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogroot
  *
  * @example
  * ```tsx
@@ -99,7 +99,7 @@ Root.displayName = "AlertDialog";
 /**
  * A button that opens the Alert Dialog.
  *
- * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogtrigger
+ * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogtrigger
  *
  * @example
  * ```tsx
@@ -189,7 +189,7 @@ type AlertDialogContentProps = ComponentPropsWithoutRef<typeof AlertDialogPrimit
  * Mantle's shared floating z-index. When multiple shared layers are open, the
  * most recently mounted layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogcontent
+ * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogcontent
  *
  * @example
  * ```tsx
@@ -251,7 +251,7 @@ Content.displayName = "AlertDialogContent";
 /**
  * Contains the main content of the alert dialog.
  *
- * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogbody
+ * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogbody
  *
  * @example
  * ```tsx
@@ -302,7 +302,7 @@ Body.displayName = "AlertDialogBody";
 /**
  * Contains the header content of the dialog, including the title and description.
  *
- * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogheader
+ * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogheader
  *
  * @example
  * ```tsx
@@ -353,7 +353,7 @@ Header.displayName = "AlertDialogHeader";
 /**
  * Contains the footer content of the dialog, including the action and cancel buttons.
  *
- * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogfooter
+ * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogfooter
  *
  * @example
  * ```tsx
@@ -407,7 +407,7 @@ Footer.displayName = "AlertDialogFooter";
  * Alternatively, you can provide `aria-label` or `aria-labelledby` to
  * `AlertDialogContent` and exclude this component.
  *
- * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogtitle
+ * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogtitle
  *
  * @example
  * ```tsx
@@ -460,7 +460,7 @@ Title.displayName = "AlertDialogTitle";
  * Alternatively, you can provide `aria-describedby` to `AlertDialogContent` and
  * exclude this component.
  *
- * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogdescription
+ * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogdescription
  *
  * @example
  * ```tsx
@@ -514,7 +514,7 @@ Description.displayName = "AlertDialogDescription";
  *
  * Composes around the mantle Button component.
  *
- * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogaction
+ * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogaction
  *
  * @example
  * ```tsx
@@ -583,7 +583,7 @@ Action.displayName = "AlertDialogAction";
  *
  * Composes around the mantle Button component.
  *
- * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogcancel
+ * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogcancel
  *
  * @example
  * ```tsx
@@ -652,7 +652,7 @@ type AlertDialogIconProps = Omit<SvgAttributes, "children"> & {
  *
  * Can be overridden with a custom icon using the `svg` prop.
  *
- * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogicon
+ * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogicon
  *
  * @example
  * ```tsx
@@ -711,7 +711,7 @@ Icon.displayName = "AlertDialogIcon";
  * element (typically wrapping `AlertDialog.Action` with `asChild` so the
  * action both performs the operation and dismisses the dialog).
  *
- * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogclose
+ * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogclose
  *
  * @example
  * ```tsx
@@ -766,7 +766,7 @@ Close.displayName = "AlertDialogClose";
  * shared floating z-index. When multiple shared layers are open, the most
  * recently mounted layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/alert-dialog
+ * @see https://mantle.ngrok.com/components/overlays/alert-dialog
  *
  * @example
  * Composition:
@@ -826,7 +826,7 @@ const AlertDialog = {
 	 * shared floating z-index. When multiple shared layers are open, the most
 	 * recently mounted layer renders on top.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogroot
+	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogroot
 	 *
 	 * @example
 	 * ```tsx
@@ -865,7 +865,7 @@ const AlertDialog = {
 	 * `AlertDialog.Root`. Does not close the dialog by default — wrap with
 	 * `AlertDialog.Close asChild` if the action should also dismiss.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogaction
+	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogaction
 	 *
 	 * @example
 	 * ```tsx
@@ -902,7 +902,7 @@ const AlertDialog = {
 	 * Contains the main content of the alert dialog. Wraps the header and footer
 	 * inside `AlertDialog.Content` next to `AlertDialog.Icon`.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogbody
+	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogbody
 	 *
 	 * @example
 	 * ```tsx
@@ -940,7 +940,7 @@ const AlertDialog = {
 	 * `appearance="outlined"` and `priority="neutral"` so it visually
 	 * de-emphasizes against `AlertDialog.Action`.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogcancel
+	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogcancel
 	 *
 	 * @example
 	 * ```tsx
@@ -978,7 +978,7 @@ const AlertDialog = {
 	 * around `AlertDialog.Action` with `asChild` so the action both performs
 	 * the operation and dismisses the dialog.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogclose
+	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogclose
 	 *
 	 * @example
 	 * ```tsx
@@ -1021,7 +1021,7 @@ const AlertDialog = {
 	 * Mantle's shared floating z-index. When multiple shared layers are open,
 	 * the most recently mounted layer renders on top.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogcontent
+	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -1058,7 +1058,7 @@ const AlertDialog = {
 	 * An accessible description to be announced when the dialog is opened.
 	 * Renders as a `div` by default; can be changed via the `asChild` prop.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogdescription
+	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogdescription
 	 *
 	 * @example
 	 * ```tsx
@@ -1095,7 +1095,7 @@ const AlertDialog = {
 	 * Contains the footer content of the dialog, including the action and
 	 * cancel buttons.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogfooter
+	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogfooter
 	 *
 	 * @example
 	 * ```tsx
@@ -1132,7 +1132,7 @@ const AlertDialog = {
 	 * Contains the header content of the dialog, including the title and
 	 * description.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogheader
+	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogheader
 	 *
 	 * @example
 	 * ```tsx
@@ -1170,7 +1170,7 @@ const AlertDialog = {
 	 * Defaults to a warning icon for `danger` and an info icon for `info`. Can
 	 * be overridden via the `svg` prop.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogicon
+	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogicon
 	 *
 	 * @example
 	 * ```tsx
@@ -1208,7 +1208,7 @@ const AlertDialog = {
 	 * Alternatively, provide `aria-label` or `aria-labelledby` to
 	 * `AlertDialog.Content` and exclude this component.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogtitle
+	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogtitle
 	 *
 	 * @example
 	 * ```tsx
@@ -1244,7 +1244,7 @@ const AlertDialog = {
 	/**
 	 * A button that opens the Alert Dialog.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert-dialog#alertdialogtrigger
+	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogtrigger
 	 *
 	 * @example
 	 * ```tsx

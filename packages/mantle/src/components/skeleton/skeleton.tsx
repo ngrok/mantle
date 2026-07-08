@@ -19,7 +19,7 @@ type Props = Exclude<ComponentProps<"div">, "children"> & SelfClosingWithAsChild
  * **When not to use**
  * - For very short fetches (< 200 ms) — a flash of skeleton is more
  *   distracting than helpful.
- * - To convey error or empty states. Use {@link https://mantle.ngrok.com/components/empty Empty} instead.
+ * - To convey error or empty states. Use {@link https://mantle.ngrok.com/components/feedback/empty Empty} instead.
  * - As a permanent decorative shape.
  *
  * **Sizing.** Default height is `1rem`. Override `className` with `h-*`,
@@ -31,7 +31,7 @@ type Props = Exclude<ComponentProps<"div">, "children"> & SelfClosingWithAsChild
  * announce it to screen readers — e.g. wrap in an element with
  * `role="status"` and a visually-hidden "Loading…" label.
  *
- * @see https://mantle.ngrok.com/components/skeleton
+ * @see https://mantle.ngrok.com/components/feedback/skeleton
  *
  * @example
  * ```tsx

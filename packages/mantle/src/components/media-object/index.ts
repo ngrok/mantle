@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Media Object component.
  *
- * @see https://mantle.ngrok.com/components/media-object
+ * @see https://mantle.ngrok.com/components/structure/media-object
  */
 
 export {

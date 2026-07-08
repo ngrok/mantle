@@ -13,8 +13,9 @@ type PageLayoutProps = ComponentProps<"div"> & {
 
 const mobileDrawerLinks = [
 	{ to: href("/"), label: "Docs" },
-	{ to: href("/components/alert-dialog"), label: "Components" },
-	{ to: href("/blocks"), label: "Blocks" },
+	{ to: href("/components/actions/button"), label: "Components" },
+	{ to: href("/layouts"), label: "Layouts" },
+	{ to: href("/recipes"), label: "Recipes" },
 	{ to: href("/migrations"), label: "Migrations" },
 ];
 

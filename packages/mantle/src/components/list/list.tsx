@@ -15,7 +15,7 @@ import { Slot } from "../slot/index.js";
  * `semantics` (a `List` is always a `role="list"`) and the grid-only
  * `onActivate` / `itemId` knobs (inert under list semantics).
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * ```tsx
@@ -46,7 +46,7 @@ type ListRootProps = Omit<
  * For very long lists, swap in `List.VirtualRoot`, which windows the same
  * `Item` children — the call site is otherwise identical.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * ```tsx
@@ -70,7 +70,7 @@ Root.displayName = "ListRoot";
  * `VirtualRoot` props (viewport props plus `estimateItemHeight` / `overscan`),
  * minus `semantics` and the grid-only `onActivate` / `itemId` knobs.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * ```tsx
@@ -95,7 +95,7 @@ type ListVirtualRootProps = Omit<
  * long enough to need it; **bound its height** so the virtualizer has a
  * viewport to measure.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * ```tsx
@@ -118,7 +118,7 @@ VirtualRoot.displayName = "ListVirtualRoot";
  * Props for `List.Item`. Extends `<button>` props (minus `type`, which is fixed
  * to `"button"`) with `asChild` and the optional `current` accent.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * ```tsx
@@ -148,7 +148,7 @@ type ListItemProps = Omit<ComponentProps<"button">, "type"> &
  * clicking anywhere on the item triggers it, and the pill's hover / `current`
  * accent is provided by the enclosing listitem.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * ```tsx
@@ -248,7 +248,7 @@ Item.displayName = "ListItem";
  * The emphasized title line inside a `List.Item`, in the stronger foreground
  * color. A styled `<span>`.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * ```tsx
@@ -278,7 +278,7 @@ ItemTitle.displayName = "ListItemTitle";
  * The de-emphasized sub-line inside a `List.Item`, in the muted body color. A
  * styled `<span>`.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * ```tsx
@@ -320,7 +320,7 @@ ItemDescription.displayName = "ListItemDescription";
  * also move focus between them — the focused item tints like hover instead of
  * drawing a focus ring.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * Composition:
@@ -350,7 +350,7 @@ const List = {
 	 * The scrollable container (non-virtualized). Give it an `aria-label` and
 	 * bound its height. Compose `Item` children.
 	 *
-	 * @see https://mantle.ngrok.com/components/list
+	 * @see https://mantle.ngrok.com/components/data-display/list
 	 *
 	 * @example
 	 * ```tsx
@@ -369,7 +369,7 @@ const List = {
 	 * The virtualized container — windows the same `Item` children. Opt in for
 	 * long lists; authored identically to `Root`.
 	 *
-	 * @see https://mantle.ngrok.com/components/list
+	 * @see https://mantle.ngrok.com/components/data-display/list
 	 *
 	 * @example
 	 * ```tsx
@@ -388,7 +388,7 @@ const List = {
 	 * A clickable item — a `<button>` by default, or your own element via
 	 * `asChild` (e.g. an `<a>`). Optional `current` gives the accent treatment.
 	 *
-	 * @see https://mantle.ngrok.com/components/list
+	 * @see https://mantle.ngrok.com/components/data-display/list
 	 *
 	 * @example
 	 * ```tsx
@@ -406,7 +406,7 @@ const List = {
 	/**
 	 * Emphasized title line inside a `List.Item`.
 	 *
-	 * @see https://mantle.ngrok.com/components/list
+	 * @see https://mantle.ngrok.com/components/data-display/list
 	 *
 	 * @example
 	 * ```tsx
@@ -424,7 +424,7 @@ const List = {
 	/**
 	 * De-emphasized sub-line inside a `List.Item`.
 	 *
-	 * @see https://mantle.ngrok.com/components/list
+	 * @see https://mantle.ngrok.com/components/data-display/list
 	 *
 	 * @example
 	 * ```tsx

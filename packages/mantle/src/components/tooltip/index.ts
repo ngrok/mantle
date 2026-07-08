@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Tooltip component.
  *
- * @see https://mantle.ngrok.com/components/tooltip
+ * @see https://mantle.ngrok.com/components/overlays/tooltip
  */
 
 export {

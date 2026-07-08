@@ -1,0 +1,212 @@
+---
+title: Pagination
+description: Components and hooks for navigating through paged data with cursor-based and offset-based pagination strategies.
+---
+
+import { CursorPagination } from "@ngrok/mantle/pagination";
+import { Example } from "~/components/example";
+
+# Pagination
+
+Components and hooks for navigating through paged data with cursor-based and offset-based pagination strategies.
+
+## Cursor Pagination
+
+A pagination component for use with cursor-based pagination. Cursor-based pagination loads data in chunks by using a cursor from the last item on the current page to know where to start the next set. It doesn't let you jump to a specific page or know how many total pages there are, but it's more efficient for large or real-time data sets.
+
+<Example className="flex flex-col gap-6">
+	<CursorPagination.Root defaultPageSize={100}>
+		<CursorPagination.PageSizeSelect />
+		<CursorPagination.Buttons hasNextPage hasPreviousPage />
+	</CursorPagination.Root>
+	<CursorPagination.Root defaultPageSize={100}>
+		<CursorPagination.PageSizeValue />
+		<CursorPagination.Buttons hasNextPage hasPreviousPage />
+	</CursorPagination.Root>
+	<CursorPagination.Root defaultPageSize={100}>
+		<CursorPagination.Buttons hasNextPage hasPreviousPage={false} />
+	</CursorPagination.Root>
+</Example>
+
+```tsx
+import { CursorPagination } from "@ngrok/mantle/pagination";
+
+<CursorPagination.Root defaultPageSize={100}>
+	<CursorPagination.PageSizeSelect />
+	<CursorPagination.Buttons hasNextPage hasPreviousPage />
+</CursorPagination.Root>
+
+<CursorPagination.Root defaultPageSize={100}>
+	<CursorPagination.PageSizeValue />
+	<CursorPagination.Buttons hasNextPage hasPreviousPage />
+</CursorPagination.Root>
+
+<CursorPagination.Root defaultPageSize={20}>
+	<CursorPagination.Buttons hasNextPage hasPreviousPage={false} />
+</CursorPagination.Root>
+```
+
+## Within a data table
+
+`CursorPagination` pairs with a [`DataTable`](/components/data-display/data-table) — drive its `Buttons` and `PageSizeSelect` from a TanStack Table instance.
+
+**Client-paginated** — the table holds every row and `getPaginationRowModel()` slices them. Read `getCanPreviousPage()` / `getCanNextPage()` for the buttons and call `setPageSize()` / `setPageIndex(0)` when the size changes:
+
+```tsx
+import {
+	DataTable,
+	getCoreRowModel,
+	getPaginationRowModel,
+	useReactTable,
+} from "@ngrok/mantle/data-table";
+import { CursorPagination } from "@ngrok/mantle/pagination";
+
+// defaultPageSize seeds an UNCONTROLLED <Select>, so keep it stable — a module
+// const (or the table's INITIAL page size), never the live page size.
+const DEFAULT_PAGE_SIZE = 10;
+
+function PaginatedTable({ data }: { data: Payment[] }) {
+	const table = useReactTable({
+		data,
+		columns,
+		getCoreRowModel: getCoreRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+		initialState: { pagination: { pageSize: DEFAULT_PAGE_SIZE } },
+	});
+
+	return (
+		<>
+			<DataTable.Root table={table}>{/* … Head + Body … */}</DataTable.Root>
+			<CursorPagination.Root className="flex justify-end" defaultPageSize={DEFAULT_PAGE_SIZE}>
+				<CursorPagination.PageSizeSelect
+					onChangePageSize={(size) => {
+						table.setPageSize(size);
+						table.setPageIndex(0); // reset to the first page when the size changes
+					}}
+				/>
+				<CursorPagination.Buttons
+					hasPreviousPage={table.getCanPreviousPage()}
+					hasNextPage={table.getCanNextPage()}
+					onPreviousPage={() => table.previousPage()}
+					onNextPage={() => table.nextPage()}
+				/>
+			</CursorPagination.Root>
+		</>
+	);
+}
+```
+
+**Server / cursor data** — the server returns one page at a time, so there is no `getPaginationRowModel` and no total count. Wire `Buttons` to your fetch's has-next / has-prev and load callbacks, and show the fixed, server-controlled page size with the read-only `PageSizeValue` instead of `PageSizeSelect`:
+
+```tsx
+import { CursorPagination } from "@ngrok/mantle/pagination";
+
+<CursorPagination.Root className="flex justify-end" defaultPageSize={pageSize}>
+	<CursorPagination.PageSizeValue />
+	<CursorPagination.Buttons
+		hasPreviousPage={Boolean(previousCursor)}
+		hasNextPage={Boolean(nextCursor)}
+		onPreviousPage={() => loadPage(previousCursor)}
+		onNextPage={() => loadPage(nextCursor)}
+	/>
+</CursorPagination.Root>;
+```
+
+See the [DataTable pagination recipe](/components/data-display/data-table#pagination-controls) for the full table markup.
+
+## Composition
+
+Compose the parts of a `CursorPagination` together to build your own:
+
+```text showLineNumbers=false
+CursorPagination.Root
+├── CursorPagination.PageSizeSelect
+├── CursorPagination.PageSizeValue
+└── CursorPagination.Buttons
+```
+
+## API Reference
+
+### CursorPagination.Root
+
+The root container for cursor-based pagination. Manages the page size state.
+
+All props from the HTML `div` element, plus:
+
+| Prop              | Type     | Default | Description                           |
+| :---------------- | :------- | :------ | :------------------------------------ |
+| `defaultPageSize` | `number` |         | The default number of items per page. |
+
+### CursorPagination.Buttons
+
+A pair of previous/next buttons for navigating between pages.
+
+| Prop              | Type         | Default | Description                                               |
+| :---------------- | :----------- | :------ | :-------------------------------------------------------- |
+| `hasNextPage`     | `boolean`    |         | Whether there is a next page of data to load.             |
+| `hasPreviousPage` | `boolean`    |         | Whether there is a previous page of data to load.         |
+| `onNextPage?`     | `() => void` |         | Callback called when the next page button is clicked.     |
+| `onPreviousPage?` | `() => void` |         | Callback called when the previous page button is clicked. |
+
+### CursorPagination.PageSizeSelect
+
+A select input for changing the number of items per page.
+
+| Prop                | Type                      | Default                | Description                                    |
+| :------------------ | :------------------------ | :--------------------- | :--------------------------------------------- |
+| `pageSizes?`        | `readonly number[]`       | `[5, 10, 20, 50, 100]` | A list of page sizes to choose from.           |
+| `onChangePageSize?` | `(value: number) => void` |                        | Callback called when the page size is changed. |
+
+### CursorPagination.PageSizeValue
+
+Displays the current page size as a read-only value (e.g. "100 per page").
+
+| Prop       | Type      | Default | Description                                                           |
+| :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+
+## Offset Pagination
+
+### useOffsetPagination
+
+A headless hook for managing offset-based pagination state. Offset-based pagination lets you jump to a specific page and know the total number of pages.
+
+```tsx
+import { useOffsetPagination } from "@ngrok/mantle/pagination";
+
+const pagination = useOffsetPagination({
+	listSize: 150,
+	pageSize: 10,
+});
+
+// pagination.currentPage — current page number (1-indexed)
+// pagination.totalPages — total number of pages
+// pagination.hasNextPage — whether there is a next page
+// pagination.hasPreviousPage — whether there is a previous page
+// pagination.nextPage() — go to next page
+// pagination.previousPage() — go to previous page
+// pagination.goToPage(n) — go to a specific page
+// pagination.goToFirstPage() — go to the first page
+// pagination.goToLastPage() — go to the last page
+// pagination.offset — the offset of the current page
+// pagination.pageSize — the current page size
+// pagination.setPageSize(n) — set the page size (resets to page 1)
+```
+
+| Parameter  | Type     | Description                            |
+| :--------- | :------- | :------------------------------------- |
+| `listSize` | `number` | The total number of items in the list. |
+| `pageSize` | `number` | The number of items per page.          |
+
+### getOffsetPaginatedSlice
+
+A utility function to get a paginated slice of a list based on the current offset pagination state.
+
+```tsx
+import { getOffsetPaginatedSlice, useOffsetPagination } from "@ngrok/mantle/pagination";
+
+const data = ["a", "b", "c", "d", "e", "f"];
+const pagination = useOffsetPagination({ listSize: data.length, pageSize: 2 });
+const currentPageData = getOffsetPaginatedSlice(data, pagination);
+// Returns: ['a', 'b'] for page 1, ['c', 'd'] for page 2, etc.
+```

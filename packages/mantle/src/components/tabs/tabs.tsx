@@ -42,7 +42,7 @@ const TabsStateContext = createContext<TabsStateContextValue>({
  * A set of layered sections of content—known as tab panels—that are displayed one at a time.
  * The root component that provides context for all tab components.
  *
- * @see https://mantle.ngrok.com/components/tabs#tabsroot
+ * @see https://mantle.ngrok.com/components/navigation/tabs#tabsroot
  *
  * @example
  * ```tsx
@@ -129,7 +129,7 @@ const listVariants = cva("flex", {
  * Contains the triggers that are aligned along the edge of the active content.
  * The container for tab triggers that provides the visual layout for tab navigation.
  *
- * @see https://mantle.ngrok.com/components/tabs#tabslist
+ * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
  *
  * @example
  * ```tsx
@@ -267,7 +267,7 @@ const triggerVariants = cva(
  * The button that activates its associated content.
  * A clickable tab trigger that switches between different tab content panels.
  *
- * @see https://mantle.ngrok.com/components/tabs#tabstrigger
+ * @see https://mantle.ngrok.com/components/navigation/tabs#tabstrigger
  *
  * @example
  * ```tsx
@@ -356,7 +356,7 @@ Trigger.displayName = "TabsTrigger";
  * A badge component that can be used inside tab triggers to display additional information.
  * Typically used to show counts or status indicators within tab headers.
  *
- * @see https://mantle.ngrok.com/components/tabs#tabsbadge
+ * @see https://mantle.ngrok.com/components/navigation/tabs#tabsbadge
  *
  * @example
  * ```tsx
@@ -390,7 +390,7 @@ Badge.displayName = "TabBadge";
  * Contains the content associated with each trigger.
  * The content panel that displays when its corresponding tab trigger is active.
  *
- * @see https://mantle.ngrok.com/components/tabs#tabscontent
+ * @see https://mantle.ngrok.com/components/navigation/tabs#tabscontent
  *
  * @example
  * ```tsx
@@ -425,7 +425,7 @@ Content.displayName = "TabsContent";
  * A set of layered sections of content—known as tab panels—that are displayed one at a time.
  * The root component that provides context for all tab components.
  *
- * @see https://mantle.ngrok.com/components/tabs
+ * @see https://mantle.ngrok.com/components/navigation/tabs
  *
  * @example
  * Composition:
@@ -458,7 +458,7 @@ const Tabs = {
 	 * The root container of the tabs component that provides context for all tab components.
 	 * A set of layered sections of content—known as tab panels—that are displayed one at a time.
 	 *
-	 * @see https://mantle.ngrok.com/components/tabs#tabsroot
+	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabsroot
 	 *
 	 * @example
 	 * ```tsx
@@ -478,7 +478,7 @@ const Tabs = {
 	 * Contains the content associated with each trigger.
 	 * The content panel that displays when its corresponding tab trigger is active.
 	 *
-	 * @see https://mantle.ngrok.com/components/tabs#tabscontent
+	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabscontent
 	 *
 	 * @example
 	 * ```tsx
@@ -497,7 +497,7 @@ const Tabs = {
 	 * Contains the triggers that are aligned along the edge of the active content.
 	 * The container for tab triggers that provides the visual layout for tab navigation.
 	 *
-	 * @see https://mantle.ngrok.com/components/tabs#tabslist
+	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
 	 *
 	 * @example
 	 * ```tsx
@@ -514,7 +514,7 @@ const Tabs = {
 	 * The button that activates its associated content.
 	 * A clickable tab trigger that switches between different tab content panels.
 	 *
-	 * @see https://mantle.ngrok.com/components/tabs#tabstrigger
+	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabstrigger
 	 *
 	 * @example
 	 * ```tsx
@@ -531,7 +531,7 @@ const Tabs = {
 	 * A badge component that can be used inside tab triggers to display additional information.
 	 * Typically used to show counts or status indicators within tab headers.
 	 *
-	 * @see https://mantle.ngrok.com/components/tabs#tabsbadge
+	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabsbadge
 	 *
 	 * @example
 	 * ```tsx

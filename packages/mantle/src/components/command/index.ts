@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Command component.
  *
- * @see https://mantle.ngrok.com/components/command
+ * @see https://mantle.ngrok.com/components/navigation/command
  */
 
 export {

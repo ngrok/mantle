@@ -124,7 +124,7 @@ type AlertProps = ComponentProps<"div"> & {
 /**
  * Displays a callout for user attention. Root container for all Alert sub-components.
  *
- * @see https://mantle.ngrok.com/components/alert#alertroot
+ * @see https://mantle.ngrok.com/components/feedback/alert#alertroot
  *
  * @example
  * ```tsx
@@ -182,7 +182,7 @@ const defaultIcons = {
  *
  * The default rendered icon be overridden with a custom icon using the `svg` prop.
  *
- * @see https://mantle.ngrok.com/components/alert#alerticon
+ * @see https://mantle.ngrok.com/components/feedback/alert#alerticon
  *
  * @example
  * ```tsx
@@ -219,7 +219,7 @@ Icon.displayName = "AlertIcon";
 /**
  * The container for the content slot of an alert. Place the title and description as direct children.
  *
- * @see https://mantle.ngrok.com/components/alert#alertcontent
+ * @see https://mantle.ngrok.com/components/feedback/alert#alertcontent
  *
  * @example
  * ```tsx
@@ -252,7 +252,7 @@ type AlertTitleProps = HTMLAttributes<HTMLHeadingElement> & WithAsChild;
 /**
  * The title of an alert. Default renders as an h5 element, use asChild to render something else.
  *
- * @see https://mantle.ngrok.com/components/alert#alerttitle
+ * @see https://mantle.ngrok.com/components/feedback/alert#alerttitle
  *
  * @example
  * ```tsx
@@ -291,7 +291,7 @@ type AlertDescriptionProps = ComponentProps<"div"> & WithAsChild;
  * Renders as a `div` by default, but can be changed to any other element using
  * the `asChild` prop.
  *
- * @see https://mantle.ngrok.com/components/alert#alertdescription
+ * @see https://mantle.ngrok.com/components/feedback/alert#alertdescription
  *
  * @example
  * ```tsx
@@ -380,7 +380,7 @@ DismissIconButton.displayName = "AlertDismissIconButton";
 /**
  * Displays a callout for user attention.
  *
- * @see https://mantle.ngrok.com/components/alert
+ * @see https://mantle.ngrok.com/components/feedback/alert
  *
  * @example
  * Composition:
@@ -411,7 +411,7 @@ const Alert = {
 	/**
 	 * The root container of the alert component.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert#alertroot
+	 * @see https://mantle.ngrok.com/components/feedback/alert#alertroot
 	 *
 	 * @example
 	 * ```tsx
@@ -428,7 +428,7 @@ const Alert = {
 	/**
 	 * The container for the content slot of an alert.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert#alertcontent
+	 * @see https://mantle.ngrok.com/components/feedback/alert#alertcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -445,7 +445,7 @@ const Alert = {
 	/**
 	 * The optional description of an alert.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert#alertdescription
+	 * @see https://mantle.ngrok.com/components/feedback/alert#alertdescription
 	 *
 	 * @example
 	 * ```tsx
@@ -462,7 +462,7 @@ const Alert = {
 	/**
 	 * An optional dismiss button that can be used to close the alert.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert#alertdismissiconbutton
+	 * @see https://mantle.ngrok.com/components/feedback/alert#alertdismissiconbutton
 	 *
 	 * @example
 	 * ```tsx
@@ -480,7 +480,7 @@ const Alert = {
 	/**
 	 * An optional icon that visually represents the priority of the Alert.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert#alerticon
+	 * @see https://mantle.ngrok.com/components/feedback/alert#alerticon
 	 *
 	 * @example
 	 * ```tsx
@@ -497,7 +497,7 @@ const Alert = {
 	/**
 	 * The title of an alert.
 	 *
-	 * @see https://mantle.ngrok.com/components/alert#alerttitle
+	 * @see https://mantle.ngrok.com/components/feedback/alert#alerttitle
 	 *
 	 * @example
 	 * ```tsx

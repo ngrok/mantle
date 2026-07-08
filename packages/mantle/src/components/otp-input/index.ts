@@ -1,7 +1,7 @@
 /**
  * Re-exports for the OtpInput component.
  *
- * @see https://mantle.ngrok.com/components/otp-input
+ * @see https://mantle.ngrok.com/components/forms/otp-input
  */
 
 export {

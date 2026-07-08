@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Skeleton component.
  *
- * @see https://mantle.ngrok.com/components/skeleton
+ * @see https://mantle.ngrok.com/components/feedback/skeleton
  */
 
 export {

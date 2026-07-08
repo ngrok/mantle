@@ -1,0 +1,139 @@
+---
+title: Code Block Folding by Language
+description: One foldable code block per supported language, showing how each folding strategy behaves.
+---
+
+import {
+	FoldingBashDemo,
+	FoldingCSharpDemo,
+	FoldingCssDemo,
+	FoldingGoDemo,
+	FoldingHtmlDemo,
+	FoldingHtmlMultilineTagDemo,
+	FoldingJavaDemo,
+	FoldingJavaScriptDemo,
+	FoldingJsonDemo,
+	FoldingJsxDemo,
+	FoldingPythonDemo,
+	FoldingRubyDemo,
+	FoldingRustDemo,
+	FoldingTsxDemo,
+	FoldingTypeScriptDemo,
+	FoldingXmlDemo,
+	FoldingYamlDemo,
+} from "~/features/code-block-folding-demos";
+
+# Code Block Folding by Language
+
+Mantle dispatches each supported language to the folding strategy that best fits its syntax. Most strategies run server- or build-side; only the toggle interaction runs in the browser.
+
+- **AST-based (JS / TS / JSX / TSX)** — `oxc-parser` walks the AST and emits folds for block/class/switch bodies, object/array literals and patterns, JSX elements and fragments, multi-line template literals, and TypeScript constructs such as interfaces, type literals, enums, modules, and mapped types.
+- **AST-based (HTML / XML)** — `parse5` tokenizes the source with `sourceCodeLocationInfo`, so void elements never open folds, self-closing XML tags are honored, and nested content inside `<template>` folds normally. Multi-line opening tags fold their attribute list into the tag name.
+- **Raw-source (CSS / JSON)** — single-pass, parser-quality delimiter matchers. CSS folds `{ … }`; JSON folds `{ … }` and `[ … ]`; both skip strings and escapes, and CSS also skips comments.
+- **Indentation-based (Python / YAML)** — blocks are detected by leading whitespace; the opener line stays visible and child lines collapse.
+- **Bracket-paired (Go / Rust / Java / C#)** — multi-line `{ … }` / `[ … ]` ranges fold via TextMate-scope-aware token walking; brackets inside strings, comments, or regular expressions are ignored.
+- **Keyword-paired (Bash / Shell)** — opener / closer keyword pairs from VS Code's grammars: `if … fi`, `case … esac`, `for|while|until|select … do … done`, and brace-form function bodies. Same-line close markers are command-boundary aware, so variables or arguments named `done`, `fi`, or `esac` do not suppress valid folds.
+- **Bracket + keyword (Ruby)** — combines bracket-paired folding (block-style `{ … }`, arrays) with Ruby's keyword pairs: `def`, `class`, `module`, `begin`, `do`, `if`, `case`, etc., all closing on `end`.
+
+Plain text (`text`, `txt`, `plain`, `plaintext`) intentionally has no folds.
+
+The examples on this page use the full server highlighter pipeline. If you're building custom highlighting with `@ngrok/mantle/highlight-utils`, `computeFoldRanges({ language, tokens })` is a lower-level token helper for bracket, indentation, and tag folds. Use `@ngrok/mantle-server-syntax-highlighter` when you need the AST, raw-source, or keyword strategies listed here.
+
+← [Back to Code Block](/components/data-display/code-block)
+
+## AST-based languages
+
+### JavaScript
+
+<FoldingJavaScriptDemo />
+
+### TypeScript
+
+<FoldingTypeScriptDemo />
+
+### TSX
+
+JSX elements (`<Foo>…</Foo>`), fragments (`<>…</>`), and multi-line template literals all fold in addition to function bodies and object/array literals.
+
+<FoldingTsxDemo />
+
+### JSX
+
+<FoldingJsxDemo />
+
+### HTML
+
+<FoldingHtmlDemo />
+
+#### Multi-line opening tag
+
+`parse5` emits `startTag.startLine`/`endLine` for multi-line opening tags, so the attribute list collapses into the tag name (matching VS Code).
+
+<FoldingHtmlMultilineTagDemo />
+
+### XML
+
+XML-mode parsing routes through `parse5`'s SVG fragment context for XML-like (foreign-content) tokenizer rules — so `<empty/>` and `<other />` are correctly self-closing.
+
+<FoldingXmlDemo />
+
+## Raw-source languages
+
+### JSON
+
+<FoldingJsonDemo />
+
+### CSS
+
+<FoldingCssDemo />
+
+## Indentation-based languages
+
+### Python
+
+<FoldingPythonDemo />
+
+### YAML
+
+<FoldingYamlDemo />
+
+## Bracket-paired languages
+
+### Go
+
+<FoldingGoDemo />
+
+### Java
+
+<FoldingJavaDemo />
+
+### C#
+
+<FoldingCSharpDemo />
+
+### Rust
+
+<FoldingRustDemo />
+
+## Keyword-paired languages
+
+### Ruby
+
+Ruby combines bracket folding (block-style `{ … }`, arrays) with keyword pairs — `def`, `class`, `module`, `begin`, `do`, `if`, `case`, etc., all closing on `end`.
+
+<FoldingRubyDemo />
+
+### Bash / Shell
+
+`if … fi`, `case … esac`, `for|while|until|select … do … done`, and brace-form function bodies all fold.
+
+<FoldingBashDemo />
+
+## Caveats
+
+- **JSX / TSX self-closing elements** (`<Foo />`) get a toggle only when their attributes span multiple lines; collapsing hides the attribute lines while keeping the opening line and self-closing `/>` line visible.
+- **Bracket strategy ignores `(…)`** — argument lists and tuple / parenthesized expressions never fold. This mirrors VS Code's default bracket folding.
+- **Indentation strategy assumes consistent leading whitespace** within a block. Mixing tabs and spaces inside the same block can produce wrong spans.
+- **Single-line spans never fold** — if a construct's opener and closer resolve to the same line, it emits no range. Inline objects/arrays inside a multi-line parent don't get their own toggle.
+- **CSS folding is brace-only** — `@import url(…)` and other no-body at-rules don't have their own toggle (there's nothing to fold).
+- **Shell same-line close detection is conservative** — line-leading closers and command-separated closers such as `; fi` suppress single-line folds, but ordinary data like `$done` or `echo done` does not.

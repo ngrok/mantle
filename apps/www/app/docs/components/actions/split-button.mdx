@@ -1,0 +1,166 @@
+---
+title: Split Button
+description: A button group which provides a default action with one click while revealing related alternatives through a dropdown menu.
+---
+
+import { CopyIcon, FileTextIcon, PlusIcon, DownloadIcon } from "@phosphor-icons/react";
+import { Icon } from "@ngrok/mantle/icon";
+import { SplitButton } from "@ngrok/mantle/split-button";
+import { Example } from "~/components/example";
+
+# Split Button
+
+A button group which provides a default action with one click while revealing related alternatives through a dropdown menu. Best for when users typically want one action but occasionally need variants.
+
+<Example>
+	<SplitButton.Root>
+		<SplitButton.PrimaryAction icon={<CopyIcon />}>Copy page</SplitButton.PrimaryAction>
+		<SplitButton.MenuTrigger label="Open actions menu" />
+		<SplitButton.MenuContent>
+			<SplitButton.MenuItem>
+				<Icon svg={<CopyIcon />} />
+				Copy page
+			</SplitButton.MenuItem>
+			<SplitButton.MenuItem>
+				<Icon svg={<FileTextIcon />} />
+				View as Markdown
+			</SplitButton.MenuItem>
+		</SplitButton.MenuContent>
+	</SplitButton.Root>
+</Example>
+
+```tsx
+import { CopyIcon, FileTextIcon } from "@phosphor-icons/react";
+import { Icon } from "@ngrok/mantle/icon";
+import { SplitButton } from "@ngrok/mantle/split-button";
+
+<SplitButton.Root>
+	<SplitButton.PrimaryAction icon={<CopyIcon />}>Copy page</SplitButton.PrimaryAction>
+	<SplitButton.MenuTrigger label="Open actions menu" />
+	<SplitButton.MenuContent>
+		<SplitButton.MenuItem>
+			<Icon svg={<CopyIcon />} />
+			Copy page
+		</SplitButton.MenuItem>
+		<SplitButton.MenuItem>
+			<Icon svg={<FileTextIcon />} />
+			View as Markdown
+		</SplitButton.MenuItem>
+	</SplitButton.MenuContent>
+</SplitButton.Root>;
+```
+
+## Composition
+
+Compose the parts of a `SplitButton` together to build your own:
+
+```text showLineNumbers=false
+SplitButton.Root
+├── SplitButton.PrimaryAction
+├── SplitButton.MenuTrigger
+└── SplitButton.MenuContent
+    └── SplitButton.MenuItem
+```
+
+## Polymorphism
+
+When you want to render _something else_ as a `SplitButton.MenuItem`, you can use the `asChild` prop to compose. This is useful for rendering links as menu items.
+
+<Example>
+	<SplitButton.Root>
+		<SplitButton.PrimaryAction icon={<DownloadIcon />}>Download</SplitButton.PrimaryAction>
+		<SplitButton.MenuTrigger label="Open download options" />
+		<SplitButton.MenuContent>
+			<SplitButton.MenuItem>
+				<Icon svg={<DownloadIcon />} />
+				Download as PDF
+			</SplitButton.MenuItem>
+			<SplitButton.MenuItem asChild>
+				<a href="https://example.com" target="_blank">
+					<Icon svg={<FileTextIcon />} />
+					Open in new tab
+				</a>
+			</SplitButton.MenuItem>
+		</SplitButton.MenuContent>
+	</SplitButton.Root>
+</Example>
+
+```tsx
+import { DownloadIcon, FileTextIcon } from "@phosphor-icons/react";
+import { Icon } from "@ngrok/mantle/icon";
+import { SplitButton } from "@ngrok/mantle/split-button";
+
+<SplitButton.Root>
+	<SplitButton.PrimaryAction icon={<DownloadIcon />}>Download</SplitButton.PrimaryAction>
+	<SplitButton.MenuTrigger label="Open download options" />
+	<SplitButton.MenuContent>
+		<SplitButton.MenuItem>
+			<Icon svg={<DownloadIcon />} />
+			Download as PDF
+		</SplitButton.MenuItem>
+		<SplitButton.MenuItem asChild>
+			<a href="https://example.com" target="_blank">
+				<Icon svg={<FileTextIcon />} />
+				Open in new tab
+			</a>
+		</SplitButton.MenuItem>
+	</SplitButton.MenuContent>
+</SplitButton.Root>;
+```
+
+## API Reference
+
+### SplitButton.Root
+
+A button group which provides a default action with one click while revealing related alternatives through a dropdown menu.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop            | Type                      | Default | Description                                                        |
+| --------------- | ------------------------- | ------- | ------------------------------------------------------------------ |
+| `dir?`          | `"ltr"` \| `"rtl"`        |         | The reading direction of the dropdown menu.                        |
+| `open?`         | `boolean`                 |         | The controlled open state of the dropdown menu.                    |
+| `defaultOpen?`  | `boolean`                 |         | The open state of the dropdown menu when it is initially rendered. |
+| `onOpenChange?` | `(open: boolean) => void` |         | Event handler called when the open state of the dropdown changes.  |
+| `modal?`        | `boolean`                 |         | Whether the dropdown menu is modal.                                |
+
+### SplitButton.PrimaryAction
+
+The most common action users can trigger with a single click. Renders as a `Button` with `appearance="outlined"` and `priority="neutral"`.
+
+All props from [`Button`](/components/actions/button), except `appearance` and `priority`.
+
+| Prop    | Type                                  | Default    | Description                       |
+| ------- | ------------------------------------- | ---------- | --------------------------------- |
+| `type?` | `"button"` \| `"submit"` \| `"reset"` | `"button"` | The type attribute of the button. |
+
+### SplitButton.MenuTrigger
+
+The button that opens the split button dropdown menu. Renders as an `IconButton` with a caret-down icon that rotates when the menu is open.
+
+All props from [`IconButton`](/components/actions/icon-button), except `appearance`, `size`, `asChild`, and `icon` (which is redefined as optional below).
+
+| Prop    | Type                                  | Default         | Description                                              |
+| ------- | ------------------------------------- | --------------- | -------------------------------------------------------- |
+| `icon?` | `ReactNode`                           | Caret-down icon | Custom icon to render instead of the default caret-down. |
+| `type?` | `"button"` \| `"submit"` \| `"reset"` | `"button"`      | The type attribute of the button.                        |
+
+### SplitButton.MenuContent
+
+The container for the split button dropdown menu content. Appears in a portal with scrolling and animations. Wraps `DropdownMenu.Content`.
+
+All props from [`DropdownMenu.Content`](/components/overlays/dropdown-menu).
+
+| Prop     | Type                               | Default | Description                                  |
+| -------- | ---------------------------------- | ------- | -------------------------------------------- |
+| `align?` | `"start"` \| `"center"` \| `"end"` | `"end"` | The preferred alignment against the trigger. |
+
+### SplitButton.MenuItem
+
+A standard item in the split button dropdown menu that can be selected or activated. Wraps `DropdownMenu.Item` with `gap-2` styling.
+
+All props from [`DropdownMenu.Item`](/components/overlays/dropdown-menu).
+
+| Prop       | Type      | Default | Description                                                                                         |
+| ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose onto alternative element types like anchors or custom components. |

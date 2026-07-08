@@ -22,7 +22,7 @@ const horizontalSeparatorGroupContextValue: SeparatorGroupContextShape = {
  * A container to layout a group of horizontal separators and other children.
  * Overrides all children `Separator`s to be `orientation="horizontal"`.
  *
- * @see https://mantle.ngrok.com/components/separator
+ * @see https://mantle.ngrok.com/components/structure/separator
  *
  * @example
  * ```tsx
@@ -95,7 +95,7 @@ type SeparatorProps = ComponentProps<"div"> &
  * your own dividers with `bg-separator` / `border-separator` / `divide-separator`
  * so they stay consistent with separators across the system.
  *
- * @see https://mantle.ngrok.com/components/separator
+ * @see https://mantle.ngrok.com/components/structure/separator
  *
  * @example
  * ```tsx

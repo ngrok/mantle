@@ -26,7 +26,7 @@ type ButtonGroupProps = ComponentProps<"div"> & ButtonGroupVariants & WithAsChil
 /**
  * A contained group of related buttons.
  *
- * @see https://mantle.ngrok.com/components/button-group#api-button-group
+ * @see https://mantle.ngrok.com/components/actions/button
  *
  * @example
  * ```tsx

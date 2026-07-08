@@ -1,0 +1,329 @@
+---
+title: Alert
+description: Displays a callout for user attention.
+---
+
+import { Alert } from "@ngrok/mantle/alert";
+import { Card } from "@ngrok/mantle/card";
+import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
+import { Example } from "~/components/example";
+
+# Alert
+
+Displays a callout for user attention.
+
+<Example className="flex-col gap-2">
+	<Alert.Root priority="danger">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>Danger</Alert.Title>
+			<Alert.Description>This is a danger Alert.</Alert.Description>
+		</Alert.Content>
+	</Alert.Root>
+	<Alert.Root priority="info">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>Info</Alert.Title>
+			<Alert.DismissIconButton />
+			<Alert.Description>This is an info Alert.</Alert.Description>
+		</Alert.Content>
+	</Alert.Root>
+	<Alert.Root priority="important">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>Important</Alert.Title>
+			<Alert.Description>This is an important Alert.</Alert.Description>
+		</Alert.Content>
+	</Alert.Root>
+	<Alert.Root priority="success">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>Success</Alert.Title>
+			<Alert.Description>This is a success Alert.</Alert.Description>
+		</Alert.Content>
+	</Alert.Root>
+	<Alert.Root priority="warning">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>Warning</Alert.Title>
+			<Alert.Description>This is a warning Alert.</Alert.Description>
+		</Alert.Content>
+	</Alert.Root>
+	<Alert.Root priority="danger">
+		<Alert.Icon svg={<ShrimpIcon />} />
+		<Alert.Content>
+			<Alert.Title>Danger w/ custom icon</Alert.Title>
+			<Alert.Description>This is a danger Alert.</Alert.Description>
+		</Alert.Content>
+	</Alert.Root>
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
+
+<Alert.Root priority="danger">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Danger</Alert.Title>
+		<Alert.Description>This is a danger Alert.</Alert.Description>
+	</Alert.Content>
+</Alert.Root>
+<Alert.Root priority="info">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Info</Alert.Title>
+		<Alert.DismissIconButton />
+		<Alert.Description>This is an info Alert.</Alert.Description>
+	</Alert.Content>
+</Alert.Root>
+<Alert.Root priority="important">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Important</Alert.Title>
+		<Alert.Description>This is an important Alert.</Alert.Description>
+	</Alert.Content>
+</Alert.Root>
+<Alert.Root priority="success">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Success</Alert.Title>
+		<Alert.Description>This is a success Alert.</Alert.Description>
+	</Alert.Content>
+</Alert.Root>
+<Alert.Root priority="warning">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Warning</Alert.Title>
+		<Alert.Description>This is a warning Alert.</Alert.Description>
+	</Alert.Content>
+</Alert.Root>
+<Alert.Root priority="danger">
+	<Alert.Icon svg={<ShrimpIcon />} />
+	<Alert.Content>
+		<Alert.Title>Danger w/ custom icon</Alert.Title>
+		<Alert.Description>This is a danger Alert.</Alert.Description>
+	</Alert.Content>
+</Alert.Root>
+```
+
+## Composition
+
+Compose the parts of an `Alert` together to build your own:
+
+```text showLineNumbers=false
+Alert.Root
+├── Alert.Icon
+└── Alert.Content
+    ├── Alert.Title
+    ├── Alert.Description
+    └── Alert.DismissIconButton
+```
+
+You can mix and match what you put inside the `Alert` component to create different types of Alert layouts.
+
+<Example className="flex-col gap-4">
+	<div className="w-full max-w-screen-sm space-y-2">
+		<Alert.Root priority="danger">
+			<Alert.Icon />
+			<Alert.Content>
+				<Alert.Title>Danger Will Robinson</Alert.Title>
+				<Alert.DismissIconButton />
+				<Alert.Description>
+					Cupidatat ullamco commodo laborum consectetur ut mollit et nostrud amet elit ut Lorem
+					culpa.
+				</Alert.Description>
+			</Alert.Content>
+		</Alert.Root>
+	</div>
+	<div className="w-full max-w-screen-sm space-y-2">
+		<Alert.Root priority="danger">
+			<Alert.Content>
+				<Alert.Title>Danger Will Robinson</Alert.Title>
+				<Alert.Description>
+					Cupidatat ullamco commodo laborum consectetur ut mollit et nostrud amet elit ut Lorem
+					culpa.
+				</Alert.Description>
+			</Alert.Content>
+		</Alert.Root>
+	</div>
+	<div className="w-full max-w-screen-sm space-y-2">
+		<Alert.Root priority="danger">
+			<Alert.Icon />
+			<Alert.Content>
+				<Alert.Title>Danger Will Robinson</Alert.Title>
+			</Alert.Content>
+		</Alert.Root>
+	</div>
+	<div className="w-full max-w-screen-sm space-y-2">
+		<Alert.Root priority="danger">
+			<Alert.Content>
+				<Alert.Title>Danger Will Robinson</Alert.Title>
+				<Alert.DismissIconButton />
+			</Alert.Content>
+		</Alert.Root>
+	</div>
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+
+// Danger Alert with icon and Dismiss Icon Button
+<Alert.Root priority="danger">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Danger Will Robinson</Alert.Title>
+		<Alert.DismissIconButton />
+		<Alert.Description>This is a danger alert.</Alert.Description>
+	</Alert.Content>
+</Alert.Root>
+
+// Danger Alert without icon
+<Alert.Root priority="danger">
+	<Alert.Content>
+		<Alert.Title>Danger Will Robinson</Alert.Title>
+		<Alert.Description>This is a danger alert.</Alert.Description>
+	</Alert.Content>
+</Alert.Root>
+
+// Danger Alert with icon and no description
+<Alert.Root priority="danger">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Danger Will Robinson</Alert.Title>
+	</Alert.Content>
+</Alert.Root>
+
+// Danger Alert without icon or description, but including a Dismiss Icon Button
+<Alert.Root priority="danger">
+	<Alert.Content>
+		<Alert.Title>Danger Will Robinson</Alert.Title>
+		<Alert.DismissIconButton />
+	</Alert.Content>
+</Alert.Root>
+```
+
+## Banners
+
+For banner-like alerts, use the `appearance="banner"` prop. This automatically removes the top, left, and right border, leaving only the bottom border.
+
+<Example>
+	<div className="border-card min-h-56 space-y-4 border">
+		<Alert.Root priority="info" appearance="banner">
+			<Alert.Icon />
+			<Alert.Content>
+				<Alert.Title>This is an info Alert as a page banner</Alert.Title>
+			</Alert.Content>
+		</Alert.Root>
+		<div className="px-4">
+			<Card.Root className="mx-auto max-w-screen-sm">
+				<Card.Body>
+					<p className="my-4">Laboris commodo Lorem anim consequat ut dolore proident.</p>
+				</Card.Body>
+			</Card.Root>
+		</div>
+	</div>
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+
+<Alert.Root priority="info" appearance="banner">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>This is an info Alert as a page banner</Alert.Title>
+	</Alert.Content>
+</Alert.Root>;
+```
+
+## Custom Dismiss Icon
+
+Use the `icon` prop on `Alert.DismissIconButton` to render a custom icon in place of the default `X`.
+
+<Example>
+	<Alert.Root priority="warning">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>Custom Dismiss Icon</Alert.Title>
+			<Alert.DismissIconButton icon={<ShrimpIcon />} />
+			<Alert.Description>This dismiss button uses a custom icon.</Alert.Description>
+		</Alert.Content>
+	</Alert.Root>
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
+
+<Alert.Root priority="warning">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Custom Dismiss Icon</Alert.Title>
+		<Alert.DismissIconButton icon={<ShrimpIcon />} />
+		<Alert.Description>This dismiss button uses a custom icon.</Alert.Description>
+	</Alert.Content>
+</Alert.Root>;
+```
+
+## API Reference
+
+### Alert.Root
+
+Displays a callout for user attention. Root container for all `Alert` sub-components.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop          | Type                                                 | Default     | Description                                                                                                                                                                                                    |
+| ------------- | ---------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance?` | `"default"` \| `"banner"`                            | `"default"` | Controls the visual style. `"default"` provides standard rounded corners and borders. `"banner"` creates a banner-style alert with no rounded corners, sticky positioning, and no top, left, or right borders. |
+| `priority`    | `"danger"` \| `"info"` \| `"success"` \| `"warning"` |             | Indicates the importance or impact level of the `Alert`, affecting its color and styling to communicate its purpose.                                                                                           |
+
+### Alert.Content
+
+The container for the content slot of an `Alert`. Place `Alert.Title`, `Alert.Description`, and `Alert.DismissIconButton` as direct children.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
+
+### Alert.Description
+
+The optional description of an `Alert`. Renders as a `div` by default, but can be changed to any other element using the `asChild` prop.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                   |
+| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AlertDescription` styling onto alternative element types or your own React components. |
+
+### Alert.Icon
+
+An optional icon that visually represents the priority of the `Alert`. The default rendered icon can be overridden with a custom icon using the `svg` prop.
+
+All props from [svg](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/svg#attributes), plus:
+
+| Prop   | Type        | Default | Description                                                                          |
+| ------ | ----------- | ------- | ------------------------------------------------------------------------------------ |
+| `svg?` | `ReactNode` |         | An optional icon that renders in place of the default icon for the `Alert` priority. |
+
+### Alert.Title
+
+The title of an `Alert`. Renders as an `h5` element by default; use `asChild` to render something else.
+
+All props from [h5](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                             |
+| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AlertTitle` styling onto alternative element types or your own React components. |
+
+### Alert.DismissIconButton
+
+A dismiss icon button that closes the alert when clicked.
+
+All props from [IconButton](/components/actions/icon-button#api-reference), with the following overridden defaults:
+
+| Prop          | Type                                  | Default           | Description                                                                    |
+| ------------- | ------------------------------------- | ----------------- | ------------------------------------------------------------------------------ |
+| `appearance?` | `"ghost"` \| `"outlined"`             | `"ghost"`         | The visual style of the button.                                                |
+| `icon?`       | `ReactNode`                           | `<XIcon />`       | An optional icon to render inside the dismiss button. Defaults to an `X` icon. |
+| `label?`      | `string`                              | `"Dismiss Alert"` | The accessible label for the button, announced to screen readers.              |
+| `size?`       | `"xs"` \| `"sm"` \| `"md"`            | `"sm"`            | The size of the button.                                                        |
+| `type?`       | `"button"` \| `"submit"` \| `"reset"` | `"button"`        | The default behavior of the button.                                            |

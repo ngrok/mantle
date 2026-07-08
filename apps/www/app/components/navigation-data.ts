@@ -3,67 +3,111 @@ import type { href } from "react-router";
 type Route = Parameters<typeof href>[0];
 
 /**
- * Components that are ready for production use cases.
+ * The component categories, alphabetical (the sidebar display order). Each
+ * category is a subheading in the docs sidebar and a URL segment (see
+ * {@link componentCategorySlugs}) — component docs live at
+ * `/components/<category-slug>/<component-slug>`.
+ *
+ * Categories describe what a component *is* in the UI (an action, a form
+ * control, an overlay, …). Page/viewport structure primitives graduate to
+ * the top-level Layouts section instead. Membership tests (and their
+ * precedence order for ambiguous components) live in
+ * `decisions/2026-07-08-docs-information-architecture.md`.
  */
-export const prodReadyComponents = [
-	"Accordion",
-	"Alert Dialog",
-	"Alert",
-	"Anchor",
-	"Badge",
-	"Browser Only",
-	"Button",
-	"Card",
-	"Checkbox",
-	"Choice",
-	"Code Block",
-	"Code",
-	"Combobox",
-	"Command",
-	"Data Table",
-	"Description List",
-	"Dialog",
-	"Dropdown Menu",
-	"Empty",
-	"Field",
-	"Flag",
-	"Hover Card",
-	"Icon Button",
-	"Icon",
-	"Icons",
-	"Input",
-	"Label",
-	"List",
-	"Main",
-	"Media Object",
-	"Multi Select",
-	"OTP Input",
-	"Pagination",
-	"Password Input",
-	"Popover",
-	"Progress Bar",
-	"Progress Donut",
-	"QR Code",
-	"Radio Group",
-	"SandboxedOnClick",
-	"Select",
-	"Selectable List",
-	"Separator",
-	"Sheet",
-	"Skeleton",
-	"Skip to Main Link",
-	"Slider",
-	"Slot",
-	"Split Button",
-	"Switch",
-	"Table",
-	"Tabs",
-	"Text Area",
-	"Theme",
-	"Toast",
-	"Tooltip",
-	"Well",
+export const componentCategories = [
+	"Actions",
+	"Data Display",
+	"Feedback",
+	"Forms",
+	"Navigation",
+	"Overlays",
+	"Primitives",
+	"Structure",
 ] as const;
+
+/** One of the docs sidebar component categories. */
+export type ComponentCategory = (typeof componentCategories)[number];
+
+/** URL segment for each component category. */
+export const componentCategorySlugs = {
+	Actions: "actions",
+	"Data Display": "data-display",
+	Feedback: "feedback",
+	Forms: "forms",
+	Navigation: "navigation",
+	Overlays: "overlays",
+	Primitives: "primitives",
+	Structure: "structure",
+} as const satisfies Record<ComponentCategory, string>;
+
+/**
+ * Production-ready components grouped by category, alphabetical within each
+ * group. This is the source of truth for the docs sidebar, the command
+ * palette, and the component manifest — a component missing here is
+ * invisible to humans and agents alike.
+ */
+export const componentsByCategory = {
+	Actions: ["Button", "Icon Button", "Split Button"],
+	"Data Display": [
+		"Accordion",
+		"Badge",
+		"Code",
+		"Code Block",
+		"Data Table",
+		"Description List",
+		"Flag",
+		"Icon",
+		"Icons",
+		"Kbd",
+		"List",
+		"QR Code",
+		"Selectable List",
+		"Table",
+	],
+	Feedback: ["Alert", "Empty", "Progress Bar", "Progress Donut", "Skeleton", "Toast"],
+	Forms: [
+		"Checkbox",
+		"Choice",
+		"Combobox",
+		"Field",
+		"Input",
+		"Label",
+		"Multi Select",
+		"OTP Input",
+		"Password Input",
+		"Radio Group",
+		"Select",
+		"Slider",
+		"Switch",
+		"Text Area",
+	],
+	Navigation: ["Anchor", "Command", "Pagination", "Tabs"],
+	Overlays: [
+		"Alert Dialog",
+		"Dialog",
+		"Dropdown Menu",
+		"Hover Card",
+		"Popover",
+		"Sheet",
+		"Tooltip",
+	],
+	Primitives: ["Browser Only", "Main", "SandboxedOnClick", "Skip to Main Link", "Slot", "Theme"],
+	// Structure: contains, divides, or arranges arbitrary content — vs Data
+	// Display, which presents specific content. Page/viewport structure
+	// belongs to the top-level Layouts section, not here.
+	Structure: ["Card", "Media Object", "Separator", "Well"],
+} as const satisfies Record<ComponentCategory, readonly string[]>;
+
+/** Display name of a production-ready component. */
+export type ProdReadyComponent = (typeof componentsByCategory)[ComponentCategory][number];
+
+/**
+ * Components that are ready for production use cases, flattened from
+ * {@link componentsByCategory} and sorted by display name.
+ */
+export const prodReadyComponents: readonly ProdReadyComponent[] = componentCategories
+	.flatMap((category) => componentsByCategory[category])
+	.toSorted((a, b) => a.localeCompare(b));
 
 /**
  * Components that are still in "preview" and not recommended for production use cases yet.
@@ -77,69 +121,79 @@ export const previewComponents = [
 
 /** Route lookup for production-ready component pages. */
 export const prodReadyComponentRouteLookup = {
-	Accordion: "/components/accordion",
-	Alert: "/components/alert",
-	"Alert Dialog": "/components/alert-dialog",
-	Anchor: "/components/anchor",
-	Badge: "/components/badge",
-	"Browser Only": "/components/browser-only",
-	Button: "/components/button",
-	Card: "/components/card",
-	Checkbox: "/components/checkbox",
-	Choice: "/components/choice",
-	Code: "/components/code",
-	"Code Block": "/components/code-block",
-	Combobox: "/components/combobox",
-	Command: "/components/command",
-	"Data Table": "/components/data-table",
-	"Description List": "/components/description-list",
-	Dialog: "/components/dialog",
-	"Dropdown Menu": "/components/dropdown-menu",
-	Empty: "/components/empty",
-	Field: "/components/field",
-	Flag: "/components/flag",
-	"Hover Card": "/components/hover-card",
-	Icon: "/components/icon",
-	Icons: "/components/icons",
-	"Icon Button": "/components/icon-button",
-	Input: "/components/input",
-	Label: "/components/label",
-	List: "/components/list",
-	Main: "/components/main",
-	"Media Object": "/components/media-object",
-	"Multi Select": "/components/multi-select",
-	"OTP Input": "/components/otp-input",
-	Pagination: "/components/pagination",
-	"Password Input": "/components/password-input",
-	Popover: "/components/popover",
-	"Progress Donut": "/components/progress-donut",
-	"Progress Bar": "/components/progress-bar",
-	"QR Code": "/components/qr-code",
-	"Radio Group": "/components/radio-group",
-	SandboxedOnClick: "/components/sandboxed-on-click",
-	Select: "/components/select",
-	"Selectable List": "/components/selectable-list",
-	Separator: "/components/separator",
-	Sheet: "/components/sheet",
-	Skeleton: "/components/skeleton",
-	"Skip to Main Link": "/components/skip-to-main-link",
-	Slider: "/components/slider",
-	Slot: "/components/slot",
-	"Split Button": "/components/split-button",
-	Switch: "/components/switch",
-	Table: "/components/table",
-	Tabs: "/components/tabs",
-	"Text Area": "/components/text-area",
-	Theme: "/components/theme",
-	Toast: "/components/toast",
-	Tooltip: "/components/tooltip",
-	Well: "/components/well",
-} as const satisfies Record<(typeof prodReadyComponents)[number], Route>;
+	Accordion: "/components/data-display/accordion",
+	Alert: "/components/feedback/alert",
+	"Alert Dialog": "/components/overlays/alert-dialog",
+	Anchor: "/components/navigation/anchor",
+	Badge: "/components/data-display/badge",
+	"Browser Only": "/components/primitives/browser-only",
+	Button: "/components/actions/button",
+	Card: "/components/structure/card",
+	Checkbox: "/components/forms/checkbox",
+	Choice: "/components/forms/choice",
+	Code: "/components/data-display/code",
+	"Code Block": "/components/data-display/code-block",
+	Combobox: "/components/forms/combobox",
+	Command: "/components/navigation/command",
+	"Data Table": "/components/data-display/data-table",
+	"Description List": "/components/data-display/description-list",
+	Dialog: "/components/overlays/dialog",
+	"Dropdown Menu": "/components/overlays/dropdown-menu",
+	Empty: "/components/feedback/empty",
+	Field: "/components/forms/field",
+	Flag: "/components/data-display/flag",
+	"Hover Card": "/components/overlays/hover-card",
+	Icon: "/components/data-display/icon",
+	Icons: "/components/data-display/icons",
+	"Icon Button": "/components/actions/icon-button",
+	Input: "/components/forms/input",
+	Kbd: "/components/data-display/kbd",
+	Label: "/components/forms/label",
+	List: "/components/data-display/list",
+	Main: "/components/primitives/main",
+	"Media Object": "/components/structure/media-object",
+	"Multi Select": "/components/forms/multi-select",
+	"OTP Input": "/components/forms/otp-input",
+	Pagination: "/components/navigation/pagination",
+	"Password Input": "/components/forms/password-input",
+	Popover: "/components/overlays/popover",
+	"Progress Donut": "/components/feedback/progress-donut",
+	"Progress Bar": "/components/feedback/progress-bar",
+	"QR Code": "/components/data-display/qr-code",
+	"Radio Group": "/components/forms/radio-group",
+	SandboxedOnClick: "/components/primitives/sandboxed-on-click",
+	Select: "/components/forms/select",
+	"Selectable List": "/components/data-display/selectable-list",
+	Separator: "/components/structure/separator",
+	Sheet: "/components/overlays/sheet",
+	Skeleton: "/components/feedback/skeleton",
+	"Skip to Main Link": "/components/primitives/skip-to-main-link",
+	Slider: "/components/forms/slider",
+	Slot: "/components/primitives/slot",
+	"Split Button": "/components/actions/split-button",
+	Switch: "/components/forms/switch",
+	Table: "/components/data-display/table",
+	Tabs: "/components/navigation/tabs",
+	"Text Area": "/components/forms/text-area",
+	Theme: "/components/primitives/theme",
+	Toast: "/components/feedback/toast",
+	Tooltip: "/components/overlays/tooltip",
+	Well: "/components/structure/well",
+} as const satisfies Record<ProdReadyComponent, Route>;
 
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
 	Calendar: "/components/preview/calendar",
 } as const satisfies Record<(typeof previewComponents)[number], Route>;
+
+/**
+ * Category lookup for preview components. Preview pages live under the
+ * `/components/preview/` URL namespace (lifecycle, not category), but each
+ * still belongs to a category in the manifest so agents can group them.
+ */
+export const previewComponentCategoryLookup = {
+	Calendar: "Forms",
+} as const satisfies Record<(typeof previewComponents)[number], ComponentCategory>;
 
 /** Welcome section pages. */
 export const welcomePages = [
@@ -204,22 +258,45 @@ export const utilsRoutes = {
 	sorting: "/utils/sorting",
 } as const satisfies Record<(typeof utilsPages)[number], Route>;
 
-/** Block recipe pages. */
-export const blockPages = [
+/**
+ * Layout pages — published primitives that own page/viewport structure and
+ * regions (app shells, centered flows, …). None have shipped yet; the first
+ * residents land as they graduate from app-side incubation. The section
+ * scaffolding (routes, nav, index page, manifest support) is already wired
+ * so shipping a layout is purely additive.
+ */
+export const layoutPages = [] as const;
+
+/** Route lookup for layout pages. */
+export const layoutRoutes = {} as const satisfies Record<(typeof layoutPages)[number], Route>;
+
+/** Short descriptions for the layouts index page. */
+export const layoutDescriptions = {} as const satisfies Record<
+	(typeof layoutPages)[number],
+	string
+>;
+
+/**
+ * Recipe pages — compositional how-tos that wire multiple mantle primitives
+ * together with state, data, or routing (e.g. a Sheet driven by async data
+ * with loading and error states). Recipes are documentation, not published
+ * API: they transcend any single component or layout.
+ */
+export const recipePages = [
 	//,
 	"Sheet + Async Data",
 ] as const;
 
-/** Route lookup for block recipe pages. */
-export const blockRoutes = {
-	"Sheet + Async Data": "/blocks/sheet-async",
-} as const satisfies Record<(typeof blockPages)[number], Route>;
+/** Route lookup for recipe pages. */
+export const recipeRoutes = {
+	"Sheet + Async Data": "/recipes/sheet-async",
+} as const satisfies Record<(typeof recipePages)[number], Route>;
 
-/** Short descriptions for block recipe index pages. */
-export const blockDescriptions = {
+/** Short descriptions for recipe index pages. */
+export const recipeDescriptions = {
 	"Sheet + Async Data":
 		"Open a Sheet immediately, then swap the body between pending, loaded, 404, and 500 states with TanStack Query.",
-} as const satisfies Record<(typeof blockPages)[number], string>;
+} as const satisfies Record<(typeof recipePages)[number], string>;
 
 /** Migration guide pages. */
 export const migrationPages = [
@@ -248,7 +325,7 @@ export const migrationDescriptions = {
 /**
  * Override map for components whose docs URL slug does not match their
  * package import subpath. For example, "Icon Button" is documented at
- * /components/icon-button but is exported from `@ngrok/mantle/button`
+ * /components/actions/icon-button but is exported from `@ngrok/mantle/button`
  * (alongside `Button`). Used by the manifest builder to emit correct
  * `importPath` values in /api/components.json.
  *
@@ -256,8 +333,8 @@ export const migrationDescriptions = {
  * `@ngrok/mantle/*` import subpath where the component is actually exported.
  */
 export const componentImportPathOverrides = {
-	"/components/icon-button": "@ngrok/mantle/button",
-	"/components/password-input": "@ngrok/mantle/input",
-	"/components/progress-bar": "@ngrok/mantle/progress",
-	"/components/progress-donut": "@ngrok/mantle/progress",
+	"/components/actions/icon-button": "@ngrok/mantle/button",
+	"/components/forms/password-input": "@ngrok/mantle/input",
+	"/components/feedback/progress-bar": "@ngrok/mantle/progress",
+	"/components/feedback/progress-donut": "@ngrok/mantle/progress",
 } as const satisfies Record<string, string>;

@@ -14,14 +14,14 @@ import { Slot } from "../slot/index.js";
  * - Wrap technical terms that should visually stand apart from running text.
  *
  * **When not to use**
- * - For multi-line or syntax-highlighted blocks. Use {@link https://mantle.ngrok.com/components/code-block CodeBlock} instead.
- * - For keyboard shortcuts. Use {@link https://mantle.ngrok.com/components/kbd Kbd}.
+ * - For multi-line or syntax-highlighted blocks. Use {@link https://mantle.ngrok.com/components/data-display/code-block CodeBlock} instead.
+ * - For keyboard shortcuts. Use {@link https://mantle.ngrok.com/components/data-display/kbd Kbd}.
  * - For arbitrary monospace text that isn't code (use a plain monospace utility class).
  *
  * **Polymorphism.** Pass `asChild` to render `Code` styling on a different
  * element (e.g. a link wrapping a code-styled label).
  *
- * @see https://mantle.ngrok.com/components/code
+ * @see https://mantle.ngrok.com/components/data-display/code
  *
  * @example
  * ```tsx

@@ -28,11 +28,11 @@ type Props = Omit<ComponentPropsWithoutRef<"input">, "type" | "checked" | "defau
  * A form control that allows the user to toggle between checked and not checked.
  * Supports indeterminate state.
  *
- * Pair it with a [`Label`](/components/label) for a single-line caption, or
- * compose it inside [`Choice`](/components/choice) for a titled, multi-line
+ * Pair it with a [`Label`](/components/forms/label) for a single-line caption, or
+ * compose it inside [`Choice`](/components/forms/choice) for a titled, multi-line
  * label with a supplementary description.
  *
- * @see https://mantle.ngrok.com/components/checkbox
+ * @see https://mantle.ngrok.com/components/forms/checkbox
  *
  * @example
  * ```tsx

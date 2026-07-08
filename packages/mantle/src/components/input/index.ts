@@ -1,8 +1,8 @@
 /**
  * Re-exports for the Input component family.
  *
- * @see https://mantle.ngrok.com/components/input
- * @see https://mantle.ngrok.com/components/password-input
+ * @see https://mantle.ngrok.com/components/forms/input
+ * @see https://mantle.ngrok.com/components/forms/password-input
  */
 
 export {

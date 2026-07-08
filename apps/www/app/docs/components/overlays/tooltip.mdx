@@ -1,0 +1,120 @@
+---
+title: Tooltip
+description: A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.
+---
+
+import { Button } from "@ngrok/mantle/button";
+import { Tooltip } from "@ngrok/mantle/tooltip";
+import { Example } from "~/components/example";
+
+# Tooltip
+
+A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.
+
+## When to use
+
+A `Tooltip` shows a short, non-interactive label when a control receives keyboard focus or a pointer hover. Reach for it to clarify the purpose of an icon-only button, surface a keyboard shortcut, or provide a brief hint about a control. Do NOT put buttons, links, or form controls inside a `Tooltip`.
+
+- Prefer [`Popover`](/components/overlays/popover) when the floating content needs buttons, links, inputs, or anything else focusable.
+- Prefer [`HoverCard`](/components/overlays/hover-card) for a sighted-only preview of content that already lives behind a link.
+
+Mount `TooltipProvider` once at the app root when you want shared tooltip behavior, such as consistent delay and hover settings.
+
+> [!WARNING]
+> Per the [WAI-ARIA tooltip pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/), tooltips must not contain interactive or focusable content — the tooltip itself never receives focus, so anything inside it is unreachable for keyboard users. If the floating content needs to be interactive, use [`Popover`](/components/overlays/popover) instead.
+
+<Example>
+	<Tooltip.Root>
+		<Tooltip.Trigger asChild>
+			<Button type="button" appearance="filled" priority="neutral">
+				Hover me
+			</Button>
+		</Tooltip.Trigger>
+		<Tooltip.Content>
+			<p>This feature is part of your plan</p>
+		</Tooltip.Content>
+	</Tooltip.Root>
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Tooltip } from "@ngrok/mantle/tooltip";
+
+<Tooltip.Root>
+	<Tooltip.Trigger asChild>
+		<Button type="button" appearance="filled" priority="neutral">
+			Hover me
+		</Button>
+	</Tooltip.Trigger>
+	<Tooltip.Content>
+		<p>This feature is part of your plan</p>
+	</Tooltip.Content>
+</Tooltip.Root>;
+```
+
+## Layering and z-index
+
+`Tooltip.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+
+`Tooltip` does not render a backdrop. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
+
+## Composition
+
+Compose the parts of a `Tooltip` together to build your own:
+
+```text showLineNumbers=false
+Tooltip.Root
+├── Tooltip.Trigger
+└── Tooltip.Content
+```
+
+## API Reference
+
+> [!NOTE]
+> Wrap your app with `TooltipProvider` once at the root to share global tooltip behavior — such as consistent delay and hover settings — across your application.
+
+### TooltipProvider
+
+Wraps your app to provide global functionality to your tooltips. Only one instance of this component should be rendered in your app, preferably at the root.
+
+| Prop                       | Type      | Default | Description                                                                                                  |
+| -------------------------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------ |
+| `delayDuration?`           | `number`  | `0`     | The duration from when the mouse enters a tooltip trigger until the tooltip opens, in milliseconds.          |
+| `skipDelayDuration?`       | `number`  | `300`   | How much time a user has to enter another trigger without incurring a delay again, in milliseconds.          |
+| `disableHoverableContent?` | `boolean` | `false` | Prevents `Tooltip.Content` from remaining open when hovering. Disabling this has accessibility consequences. |
+
+### Tooltip.Root
+
+The root component that manages the open/closed state of the tooltip. Wrap your app in `TooltipProvider` when you want shared app-wide delay and hover settings.
+
+Its floating `Tooltip.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
+
+| Prop                       | Type                      | Default | Description                                                                                                             |
+| -------------------------- | ------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `defaultOpen?`             | `boolean`                 | `false` | The open state of the tooltip when it is initially rendered. Use when you do not need to control its open state.        |
+| `open?`                    | `boolean`                 |         | The controlled open state of the tooltip. Must be used in conjunction with `onOpenChange`.                              |
+| `onOpenChange?`            | `(open: boolean) => void` |         | Event handler called when the open state of the tooltip changes.                                                        |
+| `delayDuration?`           | `number`                  |         | Override the duration given to the `TooltipProvider` to customize the open delay for a specific tooltip.                |
+| `disableHoverableContent?` | `boolean`                 |         | Override the `disableHoverableContent` given to the `TooltipProvider` to customize the behavior for a specific tooltip. |
+
+### Tooltip.Trigger
+
+The button that toggles the tooltip. By default, the `Tooltip.Content` will position itself against the trigger.
+
+| Prop       | Type      | Default | Description                                                                        |
+| ---------- | --------- | ------- | ---------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the tooltip trigger onto an alternative element. |
+
+### Tooltip.Content
+
+The component that pops out when the tooltip is open.
+
+Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+
+| Prop               | Type                                     | Default    | Description                                                                                                                             |
+| ------------------ | ---------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `side?`            | `"top" \| "right" \| "bottom" \| "left"` | `"top"`    | The preferred side of the trigger to render against when open. Will be reversed when collisions occur and `avoidCollisions` is enabled. |
+| `sideOffset?`      | `number`                                 | `4`        | The distance in pixels from the trigger.                                                                                                |
+| `align?`           | `"start" \| "center" \| "end"`           | `"center"` | The preferred alignment against the trigger. May change when collisions occur.                                                          |
+| `alignOffset?`     | `number`                                 | `0`        | An offset in pixels from the `start` or `end` alignment options.                                                                        |
+| `avoidCollisions?` | `boolean`                                | `true`     | When `true`, overrides the `side` and `align` preferences to prevent collisions with boundary edges.                                    |

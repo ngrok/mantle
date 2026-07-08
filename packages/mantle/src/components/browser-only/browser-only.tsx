@@ -28,7 +28,7 @@ type Props = {
  *   the `fallback` is rendered.
  * - On the client, after hydration, the `children` render function is called.
  *
- * @see https://mantle.ngrok.com/components/browser-only
+ * @see https://mantle.ngrok.com/components/primitives/browser-only
  *
  * @example
  * ```tsx

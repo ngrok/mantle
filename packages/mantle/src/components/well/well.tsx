@@ -15,7 +15,7 @@ type WellProps = ComponentProps<"div"> & WithAsChild;
  * or your own component, forwarding all class names, `data-*` attributes, and
  * the ref onto that child.
  *
- * @see https://mantle.ngrok.com/components/well
+ * @see https://mantle.ngrok.com/components/structure/well
  *
  * @example
  * ```tsx

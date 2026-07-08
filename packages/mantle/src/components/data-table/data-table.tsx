@@ -61,7 +61,7 @@ type DataTableProps<TData> = ComponentProps<typeof Table.Root> & {
  * any sorting / filtering / pagination state — the wrapper components read
  * from it.
  *
- * @see https://mantle.ngrok.com/components/data-table#datatableroot
+ * @see https://mantle.ngrok.com/components/data-display/data-table#datatableroot
  *
  * @example
  * ```tsx
@@ -157,7 +157,7 @@ type DataTableHeaderSortButtonProps<TData, TValue> = Omit<ComponentProps<typeof 
  * For right-aligned numeric columns, pass `className="justify-end"` and
  * `iconPlacement="start"` so the sort icon stays paired with the label.
  *
- * @see https://mantle.ngrok.com/components/data-table#datatableheadersortbutton
+ * @see https://mantle.ngrok.com/components/data-display/data-table#datatableheadersortbutton
  *
  * @example
  * ```tsx
@@ -244,7 +244,7 @@ type DataTableHeaderProps = ComponentProps<typeof Table.Header>;
  * this; for sortable columns, nest a `DataTable.HeaderSortButton` inside.
  * Non-sortable columns can render plain text.
  *
- * @see https://mantle.ngrok.com/components/data-table#datatableheader
+ * @see https://mantle.ngrok.com/components/data-display/data-table#datatableheader
  *
  * @example
  * ```tsx
@@ -277,7 +277,7 @@ function Header({ children, className, ...props }: DataTableHeaderProps) {
  * The `<tbody>` container for rows of data. Typically wraps a map of
  * `DataTable.Row`, with a `DataTable.EmptyRow` fallback when there is no data.
  *
- * @see https://mantle.ngrok.com/components/data-table#datatablebody
+ * @see https://mantle.ngrok.com/components/data-display/data-table#datatablebody
  *
  * @example
  * ```tsx
@@ -307,7 +307,7 @@ type DataTableHeadProps = Omit<ComponentProps<typeof Table.Head>, "children">;
  * `table.getHeaderGroups()`. Does not accept children — headers come from each
  * column's `header` definition on the TanStack Table column config.
  *
- * @see https://mantle.ngrok.com/components/data-table#datatablehead
+ * @see https://mantle.ngrok.com/components/data-display/data-table#datatablehead
  *
  * @example
  * ```tsx
@@ -376,7 +376,7 @@ type DataTableRowProps<TData> = Omit<ComponentProps<typeof Table.Row>, "children
  * holding the returned content. Pair it with a `DataTable.RowExpandButton` toggle
  * and configure the table for expansion (`getExpandedRowModel`, `getRowCanExpand`).
  *
- * @see https://mantle.ngrok.com/components/data-table#datatablerow
+ * @see https://mantle.ngrok.com/components/data-display/data-table#datatablerow
  *
  * @example
  * Clickable row navigating to a detail page:
@@ -458,8 +458,8 @@ type DataTableEmptyRowProps = ComponentProps<typeof Table.Row>;
  * Host an `Empty` for a real empty state, and branch on whether a filter is
  * active so the user sees the right message (and a way out when filtered):
  *
- * @see https://mantle.ngrok.com/components/data-table#datatableemptyrow
- * @see https://mantle.ngrok.com/components/empty
+ * @see https://mantle.ngrok.com/components/data-display/data-table#datatableemptyrow
+ * @see https://mantle.ngrok.com/components/feedback/empty
  *
  * @example
  * ```tsx
@@ -557,7 +557,7 @@ type DataTableActionCellProps = ComponentProps<typeof Table.Cell>;
  * on this cell so clicks on action controls don't bubble and fire the row
  * handler.
  *
- * @see https://mantle.ngrok.com/components/data-table#datatableactioncell
+ * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactioncell
  *
  * @example
  * ```tsx
@@ -603,7 +603,7 @@ type DataTableActionHeaderProps = ComponentProps<typeof Table.Header>;
  * header for the action column so the pinned column visually aligns across the
  * header and every body row when the table scrolls horizontally.
  *
- * @see https://mantle.ngrok.com/components/data-table#datatableactionheader
+ * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactionheader
  *
  * @example
  * ```tsx
@@ -682,7 +682,7 @@ type DataTableExpandHeaderProps = Omit<ComponentProps<typeof Table.Header>, "chi
  * column is announced to assistive tech while staying visually empty; pass
  * `children` to render an "expand all" control instead.
  *
- * @see https://mantle.ngrok.com/components/data-table#datatableexpandheader
+ * @see https://mantle.ngrok.com/components/data-display/data-table#datatableexpandheader
  *
  * @example
  * ```tsx
@@ -760,7 +760,7 @@ type DataTableRowExpandButtonProps<TData> = Omit<
  * pass `onClick` to run side effects before the toggle (call
  * `event.preventDefault()` to veto it).
  *
- * @see https://mantle.ngrok.com/components/data-table#datatablerowexpandbutton
+ * @see https://mantle.ngrok.com/components/data-display/data-table#datatablerowexpandbutton
  *
  * @example
  * ```tsx
@@ -850,7 +850,7 @@ type DataTableExpandedRowProps<TData> = Omit<ComponentProps<typeof Table.Row>, "
  * the parent data row reacts to hover). Exposes `data-expanded-content` for
  * styling hooks.
  *
- * @see https://mantle.ngrok.com/components/data-table#datatableexpandedrow
+ * @see https://mantle.ngrok.com/components/data-display/data-table#datatableexpandedrow
  *
  * @example
  * Render the row's underlying object as JSON (a common detail-panel use case).
@@ -934,7 +934,7 @@ RowExpandButton.displayName = "DataTableRowExpandButton";
  * For STATIC, layout-driven tables (read-only data dumps, simple key/value
  * displays, plain markup tables with no interactivity), use `Table` instead.
  *
- * @see https://mantle.ngrok.com/components/data-table
+ * @see https://mantle.ngrok.com/components/data-display/data-table
  *
  * @example
  * Composition:
@@ -1245,7 +1245,7 @@ const DataTable = {
 	 * from `@ngrok/mantle/data-table`) via the `table` prop — every other
 	 * `DataTable.*` part reads from it through context.
 	 *
-	 * @see https://mantle.ngrok.com/components/data-table#datatableroot
+	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableroot
 	 *
 	 * @example
 	 * ```tsx
@@ -1270,7 +1270,7 @@ const DataTable = {
 	 * If the row has `onClick`, stop propagation on this cell so clicks on action
 	 * controls don't bubble up and fire the row handler.
 	 *
-	 * @see https://mantle.ngrok.com/components/data-table#datatableactioncell
+	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactioncell
 	 *
 	 * @example
 	 * ```tsx
@@ -1291,7 +1291,7 @@ const DataTable = {
 	 * action column aligned across the header and body when scrolling horizontally.
 	 * Use as the `header` for a `columnHelper.display` action column.
 	 *
-	 * @see https://mantle.ngrok.com/components/data-table#datatableactionheader
+	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactionheader
 	 *
 	 * @example
 	 * ```tsx
@@ -1312,7 +1312,7 @@ const DataTable = {
 	 * `Table.Cell`. Every cell rendered by a column's `cell` function should
 	 * be wrapped in this — a raw `<td>` skips mantle typography and padding.
 	 *
-	 * @see https://mantle.ngrok.com/components/data-table#datatablecell
+	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatablecell
 	 *
 	 * @example
 	 * ```tsx
@@ -1329,7 +1329,7 @@ const DataTable = {
 	 * `DataTable.Row`, with a `DataTable.EmptyRow` fallback when there is
 	 * no data.
 	 *
-	 * @see https://mantle.ngrok.com/components/data-table#datatablebody
+	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatablebody
 	 *
 	 * @example
 	 * ```tsx
@@ -1350,8 +1350,8 @@ const DataTable = {
 	 * every column and `Empty.Root` centers itself, so no `<td>` or centering
 	 * markup is needed.
 	 *
-	 * @see https://mantle.ngrok.com/components/data-table#datatableemptyrow
-	 * @see https://mantle.ngrok.com/components/empty
+	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableemptyrow
+	 * @see https://mantle.ngrok.com/components/feedback/empty
 	 *
 	 * @example
 	 * ```tsx
@@ -1373,7 +1373,7 @@ const DataTable = {
 	 * `table.getHeaderGroups()`. Does not accept children — headers come from
 	 * each column's `header` definition.
 	 *
-	 * @see https://mantle.ngrok.com/components/data-table#datatablehead
+	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatablehead
 	 *
 	 * @example
 	 * ```tsx
@@ -1388,7 +1388,7 @@ const DataTable = {
 	 * A `<th>` optimized for header actions. Wrap each column's header content
 	 * in this; for sortable columns, nest a `DataTable.HeaderSortButton` inside.
 	 *
-	 * @see https://mantle.ngrok.com/components/data-table#datatableheader
+	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableheader
 	 *
 	 * @example
 	 * ```tsx
@@ -1414,7 +1414,7 @@ const DataTable = {
 	 * Pass `className="justify-end"` and `iconPlacement="start"` for
 	 * right-aligned numeric columns so the sort icon stays paired with the label.
 	 *
-	 * @see https://mantle.ngrok.com/components/data-table#datatableheadersortbutton
+	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableheadersortbutton
 	 *
 	 * @example
 	 * ```tsx
@@ -1444,7 +1444,7 @@ const DataTable = {
 	 * renders a sibling `DataTable.ExpandedRow` (only while expanded) holding the
 	 * returned content. Pair with `DataTable.RowExpandButton`.
 	 *
-	 * @see https://mantle.ngrok.com/components/data-table#datatablerow
+	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatablerow
 	 *
 	 * @example
 	 * ```tsx
@@ -1472,7 +1472,7 @@ const DataTable = {
 	 * `DataTable.ActionHeader`. Renders a screen-reader-only label by default so
 	 * the column is announced while staying visually empty.
 	 *
-	 * @see https://mantle.ngrok.com/components/data-table#datatableexpandheader
+	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableexpandheader
 	 *
 	 * @example
 	 * ```tsx
@@ -1496,7 +1496,7 @@ const DataTable = {
 	 * a row-level `onClick`, and renders nothing when `row.getCanExpand()` is
 	 * false.
 	 *
-	 * @see https://mantle.ngrok.com/components/data-table#datatablerowexpandbutton
+	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatablerowexpandbutton
 	 *
 	 * @example
 	 * ```tsx
@@ -1514,7 +1514,7 @@ const DataTable = {
 	 * and sits on an opaque card surface so it coexists with a sticky action
 	 * column.
 	 *
-	 * @see https://mantle.ngrok.com/components/data-table#datatableexpandedrow
+	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableexpandedrow
 	 *
 	 * @example
 	 * ```tsx

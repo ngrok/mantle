@@ -1,3 +1,4 @@
+import { componentCategories, componentCategorySlugs } from "~/components/navigation-data";
 import { canonicalHref } from "~/utilities/canonical-origin";
 import { loadFrontmatter, urlToFileMap } from "~/utilities/docs";
 import { etagFor } from "~/utilities/etag";
@@ -10,33 +11,46 @@ type DocEntry = {
 	description: string;
 };
 
-const SECTION_ORDER = [
+type Section = {
+	id: string;
+	title: string;
+	match: (slug: string) => boolean;
+};
+
+const SECTION_ORDER: readonly Section[] = [
 	{
 		id: "welcome",
 		title: "Welcome",
-		match: (slug: string) => slug === "index" || slug === "philosophy",
+		match: (slug) =>
+			slug === "index" ||
+			slug === "philosophy" ||
+			slug === "accessibility" ||
+			slug === "for-ai-agents" ||
+			slug === "changelog",
 	},
-	{ id: "base", title: "Base", match: (slug: string) => slug.startsWith("base/") },
-	{
-		id: "components",
-		title: "Components",
-		match: (slug: string) =>
-			slug.startsWith("components/") && !slug.startsWith("components/preview/"),
-	},
+	{ id: "base", title: "Base", match: (slug) => slug.startsWith("base/") },
+	...componentCategories.map(
+		(category): Section => ({
+			id: `components-${componentCategorySlugs[category]}`,
+			title: `Components: ${category}`,
+			match: (slug) => slug.startsWith(`components/${componentCategorySlugs[category]}/`),
+		}),
+	),
 	{
 		id: "preview",
 		title: "Preview Components",
-		match: (slug: string) => slug.startsWith("components/preview/"),
+		match: (slug) => slug.startsWith("components/preview/"),
 	},
-	{ id: "blocks", title: "Blocks", match: (slug: string) => slug.startsWith("blocks/") },
+	{ id: "layouts", title: "Layouts", match: (slug) => slug.startsWith("layouts/") },
+	{ id: "recipes", title: "Recipes", match: (slug) => slug.startsWith("recipes/") },
 	{
 		id: "migrations",
 		title: "Migrations",
-		match: (slug: string) => slug.startsWith("migrations/"),
+		match: (slug) => slug.startsWith("migrations/"),
 	},
-	{ id: "hooks", title: "Hooks", match: (slug: string) => slug === "hooks" },
-	{ id: "utils", title: "Utilities", match: (slug: string) => slug.startsWith("utils/") },
-] as const;
+	{ id: "hooks", title: "Hooks", match: (slug) => slug === "hooks" },
+	{ id: "utils", title: "Utilities", match: (slug) => slug.startsWith("utils/") },
+];
 
 const CACHE_CONTROL = "public, max-age=300, s-maxage=300, stale-while-revalidate=3600";
 
@@ -110,7 +124,7 @@ async function buildBody(): Promise<string> {
 		`Schemas: ${canonicalHref("/api/schema.json")}`,
 		`Full text: ${canonicalHref("/llms-full.txt")}`,
 		"",
-		"Every docs page is also available as plain markdown by appending `.md` to its URL (e.g. `/components/button.md`).",
+		"Every docs page is also available as plain markdown by appending `.md` to its URL (e.g. `/components/actions/button.md`).",
 		"",
 	];
 

@@ -1,8 +1,8 @@
 /**
  * Re-exports for the Progress component family.
  *
- * @see https://mantle.ngrok.com/components/progress-bar
- * @see https://mantle.ngrok.com/components/progress-donut
+ * @see https://mantle.ngrok.com/components/feedback/progress-bar
+ * @see https://mantle.ngrok.com/components/feedback/progress-donut
  */
 
 export {

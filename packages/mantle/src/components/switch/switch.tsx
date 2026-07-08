@@ -18,11 +18,11 @@ type SwitchProps = ComponentPropsWithoutRef<typeof SwitchPrimitiveRoot> &
 /**
  * A form control that allows the user to toggle between checked and not checked.
  *
- * Pair it with a [`Label`](/components/label) for a single-line caption, or
- * compose it inside [`Choice`](/components/choice) for a titled, multi-line
+ * Pair it with a [`Label`](/components/forms/label) for a single-line caption, or
+ * compose it inside [`Choice`](/components/forms/choice) for a titled, multi-line
  * label with a supplementary description.
  *
- * @see https://mantle.ngrok.com/components/switch
+ * @see https://mantle.ngrok.com/components/forms/switch
  *
  * @example
  * ```tsx

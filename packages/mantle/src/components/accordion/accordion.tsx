@@ -172,7 +172,7 @@ type AccordionRootProps = (AccordionSingleProps | AccordionMultipleProps) &
  * other divider in the system. Disable the dividers with `divide-y-0` on the root
  * (e.g. pair it with `space-y-*` for a spaced-card layout).
  *
- * @see https://mantle.ngrok.com/components/accordion#api-accordion
+ * @see https://mantle.ngrok.com/components/data-display/accordion#api-accordion
  *
  * @example
  * <Accordion.Root type="single" defaultValue="shipping">
@@ -263,7 +263,7 @@ Root.displayName = "Accordion";
  * Because the item is just a `<div>`, its header can be any layout — e.g. a flex
  * row with the {@link Trigger} alongside a separate, non-toggling action button.
  *
- * @see https://mantle.ngrok.com/components/accordion#api-accordion-item
+ * @see https://mantle.ngrok.com/components/data-display/accordion#api-accordion-item
  *
  * @example
  * <Accordion.Root type="single" defaultValue="item-1">
@@ -323,7 +323,7 @@ Item.displayName = "AccordionItem";
  * role varies). Place the {@link TriggerIcon} as the last child so the default
  * `justify-between` layout pushes it to the trailing edge.
  *
- * @see https://mantle.ngrok.com/components/accordion#api-accordion-trigger
+ * @see https://mantle.ngrok.com/components/data-display/accordion#api-accordion-trigger
  *
  * @example
  * <Accordion.Root type="single" defaultValue="item-1">
@@ -392,7 +392,7 @@ const defaultTriggerIcon = <CaretDownIcon weight="bold" />;
  * override it with any icon (the rotation-on-open still applies; override
  * `className` to change that).
  *
- * @see https://mantle.ngrok.com/components/accordion#api-accordion-trigger-icon
+ * @see https://mantle.ngrok.com/components/data-display/accordion#api-accordion-trigger-icon
  *
  * @example
  * // Default caret
@@ -455,7 +455,7 @@ TriggerIcon.displayName = "AccordionTriggerIcon";
  * the section when the browser reveals a match. It is flow content, so it may
  * contain anything — including interactive elements.
  *
- * @see https://mantle.ngrok.com/components/accordion#api-accordion-content
+ * @see https://mantle.ngrok.com/components/data-display/accordion#api-accordion-content
  *
  * @example
  * <Accordion.Root type="single" defaultValue="item-1">
@@ -565,7 +565,7 @@ Content.displayName = "AccordionContent";
  * Override `className` to retune the padding (e.g. `pb-0`, `px-6`); `cx` resolves
  * last-wins.
  *
- * @see https://mantle.ngrok.com/components/accordion#api-accordion-body
+ * @see https://mantle.ngrok.com/components/data-display/accordion#api-accordion-body
  *
  * @example
  * <Accordion.Root type="single" defaultValue="item-1">
@@ -603,7 +603,7 @@ Body.displayName = "AccordionBody";
  * `Accordion.Root` defaults to `type="multiple"` (sections open independently);
  * pass `type="single"` when opening one section should auto-close the others.
  *
- * @see https://mantle.ngrok.com/components/accordion
+ * @see https://mantle.ngrok.com/components/data-display/accordion
  *
  * @example
  * Composition:

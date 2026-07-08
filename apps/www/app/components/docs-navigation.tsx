@@ -4,10 +4,11 @@ import { NavLink } from "./nav-link";
 import {
 	basePages,
 	baseRoutes,
+	componentCategories,
+	componentsByCategory,
 	hooksRoute,
 	previewComponents,
 	previewComponentsRouteLookup,
-	prodReadyComponents,
 	prodReadyComponentRouteLookup,
 	utilsPages,
 	utilsRoutes,
@@ -43,15 +44,22 @@ export function DocsNavigation({ className, style }: WithStyleProps) {
 				</ul>
 
 				<li className="mt-6 text-xs font-medium uppercase tracking-wider font-mono">Components</li>
-				<ul className="mt-2">
-					{prodReadyComponents.map((component) => (
-						<li key={component}>
-							<NavLink to={prodReadyComponentRouteLookup[component]} prefetch="intent">
-								{component}
-							</NavLink>
-						</li>
-					))}
-				</ul>
+				{componentCategories.map((category) => (
+					<li key={category}>
+						<p className="mt-3 text-xs font-medium uppercase tracking-wider font-mono">
+							{category}
+						</p>
+						<ul className="mt-1">
+							{componentsByCategory[category].map((component) => (
+								<li key={component}>
+									<NavLink to={prodReadyComponentRouteLookup[component]} prefetch="intent">
+										{component}
+									</NavLink>
+								</li>
+							))}
+						</ul>
+					</li>
+				))}
 
 				<li className="mt-6 text-xs font-medium uppercase tracking-wider font-mono">
 					Preview Components

@@ -43,7 +43,7 @@ type LabelProps = ComponentPropsWithoutRef<"label"> & {
  * passing a font-weight utility on the `Label` itself, e.g.
  * `<Label className="font-bold">`.
  *
- * @see https://mantle.ngrok.com/components/label
+ * @see https://mantle.ngrok.com/components/forms/label
  *
  * @example
  * ```tsx
