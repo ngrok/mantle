@@ -387,7 +387,7 @@ Select.Root
 
 ## API Reference
 
-The `Select` components are built on top of [Radix Select](https://www.radix-ui.com/primitives/docs/components/forms/select).
+The `Select` components are built on top of [Radix Select](https://www.radix-ui.com/primitives/docs/components/select).
 
 ### Select.Root
 
@@ -399,7 +399,7 @@ Set `validation` on `Select.Root` when the whole select has an explicit state; t
 
 Rendered `Field.Errors` or `Field.ErrorList` still force the trigger into the error state because `Field.Control` sets `aria-invalid="true"` on the focusable trigger, and an explicit invalid ARIA value always wins. If a non-error `Select.Root` state needs to win even when errors are rendered, pass `validation` on `Field.Item` to suppress the inferred error.
 
-All props from Radix [Select.Root](https://www.radix-ui.com/primitives/docs/components/forms/select#root), plus:
+All props from Radix [Select.Root](https://www.radix-ui.com/primitives/docs/components/select#root), plus:
 
 | Prop             | Type                                                                                               | Default | Description                                                                                                                                                                                                                                                                                                                               |
 | ---------------- | -------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -412,7 +412,7 @@ The button that toggles the `Select`. The `Select.Content` will position itself 
 
 When composing with `Field.Item`, wrap `Select.Root` (not the trigger) in `Field.Control`. The generated `id`, `name`, and `aria-invalid` flow onto `Select.Root` — so the hidden form input picks up the field name — and the trigger reads `aria-describedby` / `aria-errormessage` from `FieldControlContext`. Validation resolves from explicit `Select.Root`, then `Select.Trigger`, then the nearest `Field.Item`.
 
-All props from Radix [Select.Trigger](https://www.radix-ui.com/primitives/docs/components/forms/select#trigger), plus:
+All props from Radix [Select.Trigger](https://www.radix-ui.com/primitives/docs/components/select#trigger), plus:
 
 | Prop          | Type                                                                                               | Default | Description                                                                                                                                                                                                                                                                                                                               |
 | ------------- | -------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -422,7 +422,7 @@ All props from Radix [Select.Trigger](https://www.radix-ui.com/primitives/docs/c
 
 The part that reflects the selected value. By default the selected item's text will be rendered. If you require more control, you can instead control the `Select` and pass your own children. It should not be styled to ensure correct positioning. An optional placeholder prop is also available for when the `Select` has no value.
 
-Radix [Select.Value](https://www.radix-ui.com/primitives/docs/components/forms/select#value) props.
+Radix [Select.Value](https://www.radix-ui.com/primitives/docs/components/select#value) props.
 
 ### Select.Content
 
@@ -430,7 +430,7 @@ The component that pops out when the `Select` is open as a portal adjacent to th
 
 Renders at Tailwind `z-50`, Mantle's shared floating z-index.
 
-All props from Radix [Select.Content](https://www.radix-ui.com/primitives/docs/components/forms/select#content), plus:
+All props from Radix [Select.Content](https://www.radix-ui.com/primitives/docs/components/select#content), plus:
 
 | Prop     | Type                     | Default     | Description                                                                                                                                                                                  |
 | -------- | ------------------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -440,7 +440,7 @@ All props from Radix [Select.Content](https://www.radix-ui.com/primitives/docs/c
 
 A group of related options within a select menu. Similar to an html `optgroup` element. Use in conjunction with `Select.Label` to ensure good accessibility via automatic labelling.
 
-Radix [Select.Group](https://www.radix-ui.com/primitives/docs/components/forms/select#group) props.
+Radix [Select.Group](https://www.radix-ui.com/primitives/docs/components/select#group) props.
 
 ### Select.Separator
 
@@ -450,10 +450,10 @@ Used to visually separate items in the select. Composed from [Mantle Separator](
 
 An option within a select menu. Similar to an html `option` element. Has a required `value` prop that will be passed to the `onValueChange` handler of the `Select` component when this item is selected. Displays the children as the option's text.
 
-Radix [Select.Item](https://www.radix-ui.com/primitives/docs/components/forms/select#item) props.
+Radix [Select.Item](https://www.radix-ui.com/primitives/docs/components/select#item) props.
 
 ### Select.Label
 
 Used to render the label of a group. It won't be focusable using arrow keys. Use in conjunction with `Select.Group` to ensure good accessibility via automatic labelling of a group.
 
-Radix [Select.Label](https://www.radix-ui.com/primitives/docs/components/forms/select#label) props.
+Radix [Select.Label](https://www.radix-ui.com/primitives/docs/components/select#label) props.

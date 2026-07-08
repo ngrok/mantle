@@ -371,7 +371,7 @@ Sheet.Root
 
 ## API Reference
 
-The `Sheet` components are built on top of [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/overlays/dialog).
+The `Sheet` components are built on top of [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/dialog).
 
 ### Sheet.Root
 
@@ -379,19 +379,19 @@ The root component for a `Sheet`. Should compose the `Sheet.Trigger` and `Sheet.
 
 Its floating `Sheet.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
 
-All props from Radix [Dialog.Root](https://www.radix-ui.com/primitives/docs/components/overlays/dialog#root).
+All props from Radix [Dialog.Root](https://www.radix-ui.com/primitives/docs/components/dialog#root).
 
 ### Sheet.Trigger
 
 The button trigger for a `Sheet`. Should be rendered as a child of the `Sheet` component. Renders an unstyled `button` by default, but can be customized with the `asChild` prop.
 
-All props from Radix [Dialog.Trigger](https://www.radix-ui.com/primitives/docs/components/overlays/dialog#trigger).
+All props from Radix [Dialog.Trigger](https://www.radix-ui.com/primitives/docs/components/dialog#trigger).
 
 ### Sheet.Close
 
 The close button for a `Sheet`. Should be rendered as a child of the `Sheet.Content` component. Usually contained within the `Sheet.Footer` component. Renders an unstyled `button` by default, but can be customized with the `asChild` prop.
 
-Radix [Dialog.Close](https://www.radix-ui.com/primitives/docs/components/overlays/dialog#close) props.
+Radix [Dialog.Close](https://www.radix-ui.com/primitives/docs/components/dialog#close) props.
 
 ### Sheet.Content
 
@@ -399,7 +399,7 @@ The main container for a `Sheet`. Should be rendered as a child of the `Sheet` c
 
 Renders at Tailwind `z-50`, Mantle's shared floating z-index.
 
-All props from Radix [Dialog.Content](https://www.radix-ui.com/primitives/docs/components/overlays/dialog#content), plus:
+All props from Radix [Dialog.Content](https://www.radix-ui.com/primitives/docs/components/dialog#content), plus:
 
 | Prop              | Type                                     | Default              | Description                                                                                                                                                                                                                                                                   |
 | ----------------- | ---------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -434,7 +434,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 The title for a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`. Defaults to an `h2` element, but can be changed via the `asChild` prop.
 
-All props from Radix [Dialog.Title](https://www.radix-ui.com/primitives/docs/components/overlays/dialog#title).
+All props from Radix [Dialog.Title](https://www.radix-ui.com/primitives/docs/components/dialog#title).
 
 ### Sheet.TitleGroup
 
@@ -446,7 +446,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 A description for a `Sheet`. Typically rendered as a child of `Sheet.Header`.
 
-All props from Radix [Dialog.Description](https://www.radix-ui.com/primitives/docs/components/overlays/dialog#description).
+All props from Radix [Dialog.Description](https://www.radix-ui.com/primitives/docs/components/dialog#description).
 
 ### Sheet.Actions
 
