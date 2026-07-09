@@ -9,6 +9,7 @@ import { Sheet } from "@ngrok/mantle/sheet";
 import { Tooltip } from "@ngrok/mantle/tooltip";
 import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 import { Example } from "~/components/example";
+import { TanStackFormDemo } from "~/examples/dialog/dialog-tanstack-form-demo";
 
 # Dialog
 
@@ -330,6 +331,135 @@ import { Button } from "@ngrok/mantle/button";
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>;
+```
+
+## With TanStack Form
+
+Use [TanStack Form](https://tanstack.com/form) with [`Field`](/components/forms/field) to gather validated input in a dialog. `Dialog.Content` is a flex column, so wrap `Dialog.Body` and `Dialog.Footer` in a `display: contents` form — the footer's submit button participates in the form while the body keeps its scrollable layout. Close the dialog from the form's `onSubmit` (it only runs once validation passes) and reset the form when the dialog closes so a cancelled draft doesn't leak into the next open. The form sets `noValidate` so the browser's native `type="email"` validation doesn't block the submit event — the schema owns validation and errors render consistently through `Field.Errors`.
+
+If password managers or browser autofill overlays interfere with outside-click dismissal, see [Handling Autofill Overlays](#handling-autofill-overlays).
+
+<Example className="w-full">
+	<TanStackFormDemo />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Dialog } from "@ngrok/mantle/dialog";
+import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { Input } from "@ngrok/mantle/input";
+import { Select } from "@ngrok/mantle/select";
+import { useForm } from "@tanstack/react-form";
+import { useState } from "react";
+import { z } from "zod";
+
+const formSchema = z.object({
+	email: z.email("Enter a valid email address."),
+	role: z.string().min(1, "Choose a role."),
+});
+
+function Example() {
+	const [open, setOpen] = useState(false);
+	const form = useForm({
+		defaultValues: {
+			email: "",
+			role: "",
+		},
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmit: ({ value }) => {
+			// Handle the invite with `value`, then close the dialog
+			handleOpenChange(false);
+		},
+	});
+
+	const handleOpenChange = (nextOpen: boolean) => {
+		setOpen(nextOpen);
+		if (!nextOpen) {
+			form.reset();
+		}
+	};
+
+	return (
+		<Dialog.Root open={open} onOpenChange={handleOpenChange}>
+			<Dialog.Trigger asChild>
+				<Button type="button" appearance="filled" priority="neutral">
+					Invite a teammate
+				</Button>
+			</Dialog.Trigger>
+			<Dialog.Content>
+				<Dialog.Header>
+					<Dialog.Title>Invite a teammate</Dialog.Title>
+					<Dialog.CloseIconButton />
+				</Dialog.Header>
+				<form
+					className="contents"
+					noValidate
+					onSubmit={(event) => {
+						event.preventDefault();
+						event.stopPropagation();
+						void form.handleSubmit();
+					}}
+				>
+					<Dialog.Body className="space-y-4">
+						<form.Field name="email">
+							{(field) => (
+								<Field.Item name={field.name}>
+									<Field.Label>Email</Field.Label>
+									<Field.Control>
+										<Input
+											type="email"
+											placeholder="teammate@example.com"
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(event) => field.handleChange(event.target.value)}
+										/>
+									</Field.Control>
+									<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+								</Field.Item>
+							)}
+						</form.Field>
+						<form.Field name="role">
+							{(field) => (
+								<Field.Item name={field.name}>
+									<Field.Label>Role</Field.Label>
+									<Field.Control>
+										<Select.Root
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onValueChange={field.handleChange}
+										>
+											<Select.Trigger>
+												<Select.Value placeholder="Select a role" />
+											</Select.Trigger>
+											<Select.Content width="trigger">
+												<Select.Item value="admin">Admin</Select.Item>
+												<Select.Item value="developer">Developer</Select.Item>
+												<Select.Item value="read-only">Read-only</Select.Item>
+											</Select.Content>
+										</Select.Root>
+									</Field.Control>
+									<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+								</Field.Item>
+							)}
+						</form.Field>
+					</Dialog.Body>
+					<Dialog.Footer>
+						<Dialog.Close asChild>
+							<Button type="button" appearance="outlined" priority="neutral">
+								Cancel
+							</Button>
+						</Dialog.Close>
+						<Button type="submit" appearance="filled" priority="neutral">
+							Send invite
+						</Button>
+					</Dialog.Footer>
+				</form>
+			</Dialog.Content>
+		</Dialog.Root>
+	);
+}
 ```
 
 ## API Reference
