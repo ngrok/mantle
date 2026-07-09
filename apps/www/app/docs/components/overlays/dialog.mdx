@@ -335,7 +335,7 @@ import { Button } from "@ngrok/mantle/button";
 
 ## With TanStack Form
 
-Use [TanStack Form](https://tanstack.com/form) with [`Field`](/components/forms/field) to gather validated input in a dialog. `Dialog.Content` is a flex column, so wrap `Dialog.Body` and `Dialog.Footer` in a `display: contents` form — the footer's submit button participates in the form while the body keeps its scrollable layout. Close the dialog from the form's `onSubmit` (it only runs once validation passes) and reset the form when the dialog closes so a cancelled draft doesn't leak into the next open.
+Use [TanStack Form](https://tanstack.com/form) with [`Field`](/components/forms/field) to gather validated input in a dialog. `Dialog.Content` is a flex column, so wrap `Dialog.Body` and `Dialog.Footer` in a `display: contents` form — the footer's submit button participates in the form while the body keeps its scrollable layout. Close the dialog from the form's `onSubmit` (it only runs once validation passes) and reset the form when the dialog closes so a cancelled draft doesn't leak into the next open. The form sets `noValidate` so the browser's native `type="email"` validation doesn't block the submit event — the schema owns validation and errors render consistently through `Field.Errors`.
 
 If password managers or browser autofill overlays interfere with outside-click dismissal, see [Handling Autofill Overlays](#handling-autofill-overlays).
 
@@ -395,6 +395,7 @@ function Example() {
 				</Dialog.Header>
 				<form
 					className="contents"
+					noValidate
 					onSubmit={(event) => {
 						event.preventDefault();
 						event.stopPropagation();

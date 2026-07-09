@@ -58,6 +58,7 @@ export function TanStackFormDemo() {
 				</Dialog.Header>
 				<form
 					className="contents"
+					noValidate
 					onSubmit={(event) => {
 						event.preventDefault();
 						event.stopPropagation();
