@@ -11,6 +11,7 @@ import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
 import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 import { useState } from "react";
 import { Example } from "~/components/example";
+import { TanStackFormDemo } from "~/examples/sheet/sheet-tanstack-form-demo";
 
 export function WithoutTriggerExample() {
 	const [isOpen, setIsOpen] = useState(false);
@@ -349,6 +350,133 @@ import { Sheet } from "@ngrok/mantle/sheet";
 		</Sheet.Footer>
 	</Sheet.Content>
 </Sheet.Root>;
+```
+
+### With TanStack Form
+
+Sheets often host small create/edit forms. Use [TanStack Form](https://tanstack.com/form) with [`Field`](/components/forms/field) for label, description, and error wiring. `Sheet.Content` is a flex column, so wrap `Sheet.Body` and `Sheet.Footer` in a `display: contents` form — the footer's submit button participates in the form while the body keeps its scrollable layout. Close the sheet from the form's `onSubmit` (it only runs once validation passes) and reset the form when the sheet closes so a cancelled draft doesn't leak into the next open.
+
+<Example className="w-full">
+	<TanStackFormDemo />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { Input } from "@ngrok/mantle/input";
+import { Sheet } from "@ngrok/mantle/sheet";
+import { TextArea } from "@ngrok/mantle/text-area";
+import { useForm } from "@tanstack/react-form";
+import { useState } from "react";
+import { z } from "zod";
+
+const formSchema = z.object({
+	name: z.string().min(1, "Name your API key."),
+	note: z.string().max(280, "Keep the note under 280 characters."),
+});
+
+function Example() {
+	const [open, setOpen] = useState(false);
+	const form = useForm({
+		defaultValues: {
+			name: "",
+			note: "",
+		},
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmit: ({ value }) => {
+			// Handle the create with `value`, then close the sheet
+			handleOpenChange(false);
+		},
+	});
+
+	const handleOpenChange = (nextOpen: boolean) => {
+		setOpen(nextOpen);
+		if (!nextOpen) {
+			form.reset();
+		}
+	};
+
+	return (
+		<Sheet.Root open={open} onOpenChange={handleOpenChange}>
+			<Sheet.Trigger asChild>
+				<Button type="button" appearance="filled" priority="neutral">
+					New API key
+				</Button>
+			</Sheet.Trigger>
+			<Sheet.Content>
+				<Sheet.Header>
+					<Sheet.TitleGroup>
+						<Sheet.Title>New API key</Sheet.Title>
+						<Sheet.Actions>
+							<Sheet.CloseIconButton />
+						</Sheet.Actions>
+					</Sheet.TitleGroup>
+					<Sheet.Description>
+						Create a key for programmatic access to the ngrok API.
+					</Sheet.Description>
+				</Sheet.Header>
+				<form
+					className="contents"
+					onSubmit={(event) => {
+						event.preventDefault();
+						event.stopPropagation();
+						void form.handleSubmit();
+					}}
+				>
+					<Sheet.Body className="space-y-4">
+						<form.Field name="name">
+							{(field) => (
+								<Field.Item name={field.name}>
+									<Field.Label>Name</Field.Label>
+									<Field.Control>
+										<Input
+											placeholder="production-deploys"
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(event) => field.handleChange(event.target.value)}
+										/>
+									</Field.Control>
+									<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+								</Field.Item>
+							)}
+						</form.Field>
+						<form.Field name="note">
+							{(field) => (
+								<Field.Item name={field.name}>
+									<Field.Label>Note</Field.Label>
+									<Field.Control>
+										<TextArea
+											placeholder="What is this key used for?"
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(event) => field.handleChange(event.target.value)}
+										/>
+									</Field.Control>
+									<Field.Description>
+										Optional. Help your team know where this key is used.
+									</Field.Description>
+									<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+								</Field.Item>
+							)}
+						</form.Field>
+					</Sheet.Body>
+					<Sheet.Footer>
+						<Sheet.Close asChild>
+							<Button type="button" appearance="outlined" priority="neutral">
+								Cancel
+							</Button>
+						</Sheet.Close>
+						<Button type="submit" appearance="filled" priority="neutral">
+							Create key
+						</Button>
+					</Sheet.Footer>
+				</form>
+			</Sheet.Content>
+		</Sheet.Root>
+	);
+}
 ```
 
 ## Composition
