@@ -100,6 +100,24 @@ function PaymentsExample() {
 }
 ```
 
+## Composition
+
+Compose the parts of a `DataTable` together to build your own:
+
+```text showLineNumbers=false
+DataTable.Root
+├── DataTable.Head
+│   └── DataTable.Row
+│       ├── DataTable.Header
+│       │   └── DataTable.HeaderSortButton
+│       └── DataTable.ActionHeader
+└── DataTable.Body
+    ├── DataTable.Row
+    │   ├── DataTable.Cell
+    │   └── DataTable.ActionCell
+    └── DataTable.EmptyRow
+```
+
 ## API Reference
 
 The `DataTable` components are built on top of [TanStack Table](https://tanstack.com/table/latest/docs/introduction). All TanStack Table utilities (`createColumnHelper`, `getCoreRowModel`, `getSortedRowModel`, etc.) are re-exported from `@ngrok/mantle/data-table`.

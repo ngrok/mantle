@@ -78,6 +78,17 @@ import { DescriptionList } from "@ngrok/mantle/description-list";
 </DescriptionList.Root>;
 ```
 
+## Composition
+
+Compose the parts of a `DescriptionList` together to build your own:
+
+```text showLineNumbers=false
+DescriptionList.Root
+└── DescriptionList.Item
+    ├── DescriptionList.Label
+    └── DescriptionList.Value
+```
+
 ## API Reference
 
 ### DescriptionList.Root

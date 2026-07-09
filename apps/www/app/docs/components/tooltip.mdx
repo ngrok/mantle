@@ -3,25 +3,23 @@ title: Tooltip
 description: A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.
 ---
 
-import { Alert } from "@ngrok/mantle/alert";
 import { Button } from "@ngrok/mantle/button";
 import { Tooltip } from "@ngrok/mantle/tooltip";
-import { LightbulbIcon } from "@phosphor-icons/react";
 import { Example } from "~/components/example";
 
 # Tooltip
 
 A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.
 
-<Alert.Root priority="warning">
-	<Alert.Icon svg={<LightbulbIcon />} />
-	<Alert.Content>
-		<Alert.Title>
-			<strong>Note:</strong> Wrap your app with `TooltipProvider` once at the root to enable
-			tooltips throughout your application.
-		</Alert.Title>
-	</Alert.Content>
-</Alert.Root>
+## When to use
+
+A `Tooltip` shows a short, non-interactive label when a control receives keyboard focus or a pointer hover. Reach for it to clarify the purpose of an icon-only button or provide a brief hint about a control.
+
+- Prefer [`Popover`](/components/popover) when the floating content needs buttons, links, inputs, or anything else focusable.
+- Prefer [`HoverCard`](/components/hover-card) for a sighted-only preview of content that already lives behind a link.
+
+> [!WARNING]
+> Per the [WAI-ARIA tooltip pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/), tooltips must not contain interactive or focusable content — the tooltip itself never receives focus, so anything inside it is unreachable for keyboard users. If the floating content needs to be interactive, use [`Popover`](/components/popover) instead.
 
 <Example>
 	<Tooltip.Root>
@@ -52,7 +50,20 @@ import { Tooltip } from "@ngrok/mantle/tooltip";
 </Tooltip.Root>;
 ```
 
+## Composition
+
+Compose the parts of a `Tooltip` together to build your own:
+
+```text showLineNumbers=false
+Tooltip.Root
+├── Tooltip.Trigger
+└── Tooltip.Content
+```
+
 ## API Reference
+
+> [!NOTE]
+> Wrap your app with `TooltipProvider` once at the root to share global tooltip behavior — such as consistent delay and hover settings — across your application.
 
 ### TooltipProvider
 

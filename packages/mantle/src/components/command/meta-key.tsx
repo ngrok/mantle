@@ -25,6 +25,7 @@ function MetaKey({ className, ...props }: Props) {
 		<Kbd
 			{...props}
 			suppressHydrationWarning
+			data-slot="meta-key"
 			className={cx(glyph === "⌃" && "font-medium", className)}
 		>
 			<span className="sr-only">{label}</span>

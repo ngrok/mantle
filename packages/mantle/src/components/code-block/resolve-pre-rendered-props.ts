@@ -84,7 +84,7 @@ function normalizeValue(value: string | undefined) {
 	return trimmed;
 }
 
-/** Splits a metastring into space-delimited tokens, respecting double-quoted segments. */
+/** Splits a metastring into whitespace-delimited tokens, respecting double-quoted segments. */
 function tokenizeMetastring(value: string | undefined): string[] {
 	const input = value?.trim() ?? "";
 	const result: string[] = [];
@@ -94,7 +94,7 @@ function tokenizeMetastring(value: string | undefined): string[] {
 
 	for (let i = 0; i < input.length; i++) {
 		const char = input[i] ?? "";
-		if (char === " " && !inQuotes) {
+		if (!inQuotes && isMetastringWhitespace(char)) {
 			if (current) {
 				result.push(current);
 				current = "";
@@ -112,6 +112,11 @@ function tokenizeMetastring(value: string | undefined): string[] {
 	}
 
 	return result;
+}
+
+/** Returns `true` for the ASCII whitespace characters a metastring may use to separate tokens. */
+function isMetastringWhitespace(char: string): boolean {
+	return char === " " || char === "\t" || char === "\n" || char === "\r";
 }
 
 /** Type predicate: checks if a value is a valid code block `Mode`. */

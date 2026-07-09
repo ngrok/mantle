@@ -22,23 +22,30 @@ type CommandRootProps = ComponentPropsWithoutRef<typeof CommandPrimitive>;
  *
  * @example
  * ```tsx
- * <Command.Root>
- *   <Command.Input placeholder="Type a command or search..." />
- *   <Command.List>
- *     <Command.Empty>No results found.</Command.Empty>
- *     <Command.Group heading="Suggestions">
- *       <Command.Item>
- *         <span>Calendar</span>
- *       </Command.Item>
- *     </Command.Group>
- *     <Command.Separator />
- *     <Command.Group heading="Settings">
- *       <Command.Item>
- *         <span>Profile</span>
- *       </Command.Item>
- *     </Command.Group>
- *   </Command.List>
- * </Command.Root>
+ * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+ *   <Command.Dialog.Trigger asChild>
+ *     <Button type="button">Open Command Palette</Button>
+ *   </Command.Dialog.Trigger>
+ *   <Command.Dialog.Content>
+ *     <Command.Input placeholder="Type a command or search..." />
+ *     <Command.List>
+ *       <Command.Empty>No results found.</Command.Empty>
+ *       <Command.Group heading="Suggestions">
+ *         <Command.Item>
+ *           <span>Calendar</span>
+ *         </Command.Item>
+ *       </Command.Group>
+ *       <Command.Separator />
+ *       <Command.Group heading="Settings">
+ *         <Command.Item>
+ *           <span>Profile</span>
+ *           <Command.Shortcut>⌘,</Command.Shortcut>
+ *         </Command.Item>
+ *       </Command.Group>
+ *     </Command.List>
+ *   </Command.Dialog.Content>
+ * </Command.Dialog.Root>
+ * ```
  */
 const CommandRoot = forwardRef<ComponentRef<"div">, CommandRootProps>(
 	({ className, ...props }, ref) => (
@@ -107,10 +114,25 @@ type CommandDialogContentProps = {
  * @example
  * ```tsx
  * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+ *   <Command.Dialog.Trigger asChild>
+ *     <Button type="button">Open Command Palette</Button>
+ *   </Command.Dialog.Trigger>
  *   <Command.Dialog.Content>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
  *       <Command.Empty>No results found.</Command.Empty>
+ *       <Command.Group heading="Suggestions">
+ *         <Command.Item>
+ *           <span>Calendar</span>
+ *         </Command.Item>
+ *       </Command.Group>
+ *       <Command.Separator />
+ *       <Command.Group heading="Settings">
+ *         <Command.Item>
+ *           <span>Profile</span>
+ *           <Command.Shortcut>⌘,</Command.Shortcut>
+ *         </Command.Item>
+ *       </Command.Group>
  *     </Command.List>
  *   </Command.Dialog.Content>
  * </Command.Dialog.Root>
@@ -166,6 +188,13 @@ CommandDialogContent.displayName = "CommandDialogContent";
  *           <span>Calendar</span>
  *         </Command.Item>
  *       </Command.Group>
+ *       <Command.Separator />
+ *       <Command.Group heading="Settings">
+ *         <Command.Item>
+ *           <span>Profile</span>
+ *           <Command.Shortcut>⌘,</Command.Shortcut>
+ *         </Command.Item>
+ *       </Command.Group>
  *     </Command.List>
  *   </Command.Dialog.Content>
  * </Command.Dialog.Root>
@@ -176,18 +205,99 @@ const CommandDialog = {
 	 * The root stateful component for the CommandDialog. Manages open/closed state.
 	 *
 	 * @see https://mantle.ngrok.com/components/command#commanddialogroot
+	 *
+	 * @example
+	 * ```tsx
+	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+	 *   <Command.Dialog.Trigger asChild>
+	 *     <Button type="button">Open Command Palette</Button>
+	 *   </Command.Dialog.Trigger>
+	 *   <Command.Dialog.Content>
+	 *     <Command.Input placeholder="Type a command or search..." />
+	 *     <Command.List>
+	 *       <Command.Empty>No results found.</Command.Empty>
+	 *       <Command.Group heading="Suggestions">
+	 *         <Command.Item>
+	 *           <span>Calendar</span>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *       <Command.Separator />
+	 *       <Command.Group heading="Settings">
+	 *         <Command.Item>
+	 *           <span>Profile</span>
+	 *           <Command.Shortcut>⌘,</Command.Shortcut>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *     </Command.List>
+	 *   </Command.Dialog.Content>
+	 * </Command.Dialog.Root>
+	 * ```
 	 */
 	Root: Dialog.Root,
 	/**
 	 * A button that opens the CommandDialog when clicked.
 	 *
 	 * @see https://mantle.ngrok.com/components/command#commanddialogtrigger
+	 *
+	 * @example
+	 * ```tsx
+	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+	 *   <Command.Dialog.Trigger asChild>
+	 *     <Button type="button">Open Command Palette</Button>
+	 *   </Command.Dialog.Trigger>
+	 *   <Command.Dialog.Content>
+	 *     <Command.Input placeholder="Type a command or search..." />
+	 *     <Command.List>
+	 *       <Command.Empty>No results found.</Command.Empty>
+	 *       <Command.Group heading="Suggestions">
+	 *         <Command.Item>
+	 *           <span>Calendar</span>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *       <Command.Separator />
+	 *       <Command.Group heading="Settings">
+	 *         <Command.Item>
+	 *           <span>Profile</span>
+	 *           <Command.Shortcut>⌘,</Command.Shortcut>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *     </Command.List>
+	 *   </Command.Dialog.Content>
+	 * </Command.Dialog.Root>
+	 * ```
 	 */
 	Trigger: Dialog.Trigger,
 	/**
 	 * The visible content of the CommandDialog. Renders inside the dialog portal.
 	 *
 	 * @see https://mantle.ngrok.com/components/command#commanddialogcontent
+	 *
+	 * @example
+	 * ```tsx
+	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+	 *   <Command.Dialog.Trigger asChild>
+	 *     <Button type="button">Open Command Palette</Button>
+	 *   </Command.Dialog.Trigger>
+	 *   <Command.Dialog.Content>
+	 *     <Command.Input placeholder="Type a command or search..." />
+	 *     <Command.List>
+	 *       <Command.Empty>No results found.</Command.Empty>
+	 *       <Command.Group heading="Suggestions">
+	 *         <Command.Item>
+	 *           <span>Calendar</span>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *       <Command.Separator />
+	 *       <Command.Group heading="Settings">
+	 *         <Command.Item>
+	 *           <span>Profile</span>
+	 *           <Command.Shortcut>⌘,</Command.Shortcut>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *     </Command.List>
+	 *   </Command.Dialog.Content>
+	 * </Command.Dialog.Root>
+	 * ```
 	 */
 	Content: CommandDialogContent,
 } as const;
@@ -200,6 +310,9 @@ const CommandDialog = {
  * @example
  * ```tsx
  * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+ *   <Command.Dialog.Trigger asChild>
+ *     <Button type="button">Open Command Palette</Button>
+ *   </Command.Dialog.Trigger>
  *   <Command.Dialog.Content>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -213,11 +326,13 @@ const CommandDialog = {
  *       <Command.Group heading="Settings">
  *         <Command.Item>
  *           <span>Profile</span>
+ *           <Command.Shortcut>⌘,</Command.Shortcut>
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
  *   </Command.Dialog.Content>
  * </Command.Dialog.Root>
+ * ```
  */
 const CommandInput = forwardRef<
 	ComponentRef<"div">,
@@ -249,6 +364,9 @@ CommandInput.displayName = "CommandInput";
  * @example
  * ```tsx
  * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+ *   <Command.Dialog.Trigger asChild>
+ *     <Button type="button">Open Command Palette</Button>
+ *   </Command.Dialog.Trigger>
  *   <Command.Dialog.Content>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -262,11 +380,13 @@ CommandInput.displayName = "CommandInput";
  *       <Command.Group heading="Settings">
  *         <Command.Item>
  *           <span>Profile</span>
+ *           <Command.Shortcut>⌘,</Command.Shortcut>
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
  *   </Command.Dialog.Content>
  * </Command.Dialog.Root>
+ * ```
  */
 const CommandList = forwardRef<
 	ComponentRef<"div">,
@@ -289,6 +409,9 @@ CommandList.displayName = "CommandList";
  * @example
  * ```tsx
  * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+ *   <Command.Dialog.Trigger asChild>
+ *     <Button type="button">Open Command Palette</Button>
+ *   </Command.Dialog.Trigger>
  *   <Command.Dialog.Content>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -302,11 +425,13 @@ CommandList.displayName = "CommandList";
  *       <Command.Group heading="Settings">
  *         <Command.Item>
  *           <span>Profile</span>
+ *           <Command.Shortcut>⌘,</Command.Shortcut>
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
  *   </Command.Dialog.Content>
  * </Command.Dialog.Root>
+ * ```
  */
 const CommandEmpty = forwardRef<
 	ComponentRef<"div">,
@@ -329,6 +454,9 @@ CommandEmpty.displayName = "CommandEmpty";
  * @example
  * ```tsx
  * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+ *   <Command.Dialog.Trigger asChild>
+ *     <Button type="button">Open Command Palette</Button>
+ *   </Command.Dialog.Trigger>
  *   <Command.Dialog.Content>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -342,11 +470,13 @@ CommandEmpty.displayName = "CommandEmpty";
  *       <Command.Group heading="Settings">
  *         <Command.Item>
  *           <span>Profile</span>
+ *           <Command.Shortcut>⌘,</Command.Shortcut>
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
  *   </Command.Dialog.Content>
  * </Command.Dialog.Root>
+ * ```
  */
 const CommandGroup = forwardRef<
 	ComponentRef<"div">,
@@ -372,6 +502,9 @@ CommandGroup.displayName = "CommandGroup";
  * @example
  * ```tsx
  * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+ *   <Command.Dialog.Trigger asChild>
+ *     <Button type="button">Open Command Palette</Button>
+ *   </Command.Dialog.Trigger>
  *   <Command.Dialog.Content>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -385,11 +518,13 @@ CommandGroup.displayName = "CommandGroup";
  *       <Command.Group heading="Settings">
  *         <Command.Item>
  *           <span>Profile</span>
+ *           <Command.Shortcut>⌘,</Command.Shortcut>
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
  *   </Command.Dialog.Content>
  * </Command.Dialog.Root>
+ * ```
  */
 const CommandSeparator = forwardRef<
 	ComponentRef<typeof CommandPrimitive.Separator>,
@@ -409,6 +544,9 @@ CommandSeparator.displayName = "CommandSeparator";
  * @example
  * ```tsx
  * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+ *   <Command.Dialog.Trigger asChild>
+ *     <Button type="button">Open Command Palette</Button>
+ *   </Command.Dialog.Trigger>
  *   <Command.Dialog.Content>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -422,11 +560,13 @@ CommandSeparator.displayName = "CommandSeparator";
  *       <Command.Group heading="Settings">
  *         <Command.Item>
  *           <span>Profile</span>
+ *           <Command.Shortcut>⌘,</Command.Shortcut>
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
  *   </Command.Dialog.Content>
  * </Command.Dialog.Root>
+ * ```
  */
 const CommandItem = forwardRef<
 	ComponentRef<"div">,
@@ -452,6 +592,9 @@ CommandItem.displayName = "CommandItem";
  * @example
  * ```tsx
  * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+ *   <Command.Dialog.Trigger asChild>
+ *     <Button type="button">Open Command Palette</Button>
+ *   </Command.Dialog.Trigger>
  *   <Command.Dialog.Content>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -471,6 +614,7 @@ CommandItem.displayName = "CommandItem";
  *     </Command.List>
  *   </Command.Dialog.Content>
  * </Command.Dialog.Root>
+ * ```
  */
 const CommandShortcut = forwardRef<ComponentRef<"span">, ComponentPropsWithoutRef<"span">>(
 	({ className, ...props }, ref) => (
@@ -490,8 +634,26 @@ CommandShortcut.displayName = "CommandShortcut";
  * @see https://mantle.ngrok.com/components/command
  *
  * @example
+ * Composition:
+ * ```
+ * Command.Dialog.Root
+ * ├── Command.Dialog.Trigger
+ * └── Command.Dialog.Content
+ *     ├── Command.Input
+ *     └── Command.List
+ *         ├── Command.Empty
+ *         ├── Command.Group
+ *         │   └── Command.Item
+ *         │       └── Command.Shortcut
+ *         └── Command.Separator
+ * ```
+ *
+ * @example
  * ```tsx
  * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+ *   <Command.Dialog.Trigger asChild>
+ *     <Button type="button">Open Command Palette</Button>
+ *   </Command.Dialog.Trigger>
  *   <Command.Dialog.Content>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -505,11 +667,13 @@ CommandShortcut.displayName = "CommandShortcut";
  *       <Command.Group heading="Settings">
  *         <Command.Item>
  *           <span>Profile</span>
+ *           <Command.Shortcut>⌘,</Command.Shortcut>
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
  *   </Command.Dialog.Content>
  * </Command.Dialog.Root>
+ * ```
  */
 const Command = {
 	/**
@@ -519,12 +683,29 @@ const Command = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Root>
-	 *   <Command.Input placeholder="Type a command or search..." />
-	 *   <Command.List>
-	 *     <Command.Empty>No results found.</Command.Empty>
-	 *   </Command.List>
-	 * </Command.Root>
+	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+	 *   <Command.Dialog.Trigger asChild>
+	 *     <Button type="button">Open Command Palette</Button>
+	 *   </Command.Dialog.Trigger>
+	 *   <Command.Dialog.Content>
+	 *     <Command.Input placeholder="Type a command or search..." />
+	 *     <Command.List>
+	 *       <Command.Empty>No results found.</Command.Empty>
+	 *       <Command.Group heading="Suggestions">
+	 *         <Command.Item>
+	 *           <span>Calendar</span>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *       <Command.Separator />
+	 *       <Command.Group heading="Settings">
+	 *         <Command.Item>
+	 *           <span>Profile</span>
+	 *           <Command.Shortcut>⌘,</Command.Shortcut>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *     </Command.List>
+	 *   </Command.Dialog.Content>
+	 * </Command.Dialog.Root>
 	 * ```
 	 */
 	Root: CommandRoot,
@@ -538,12 +719,24 @@ const Command = {
 	 * ```tsx
 	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
 	 *   <Command.Dialog.Trigger asChild>
-	 *     <Button type="button">Open</Button>
+	 *     <Button type="button">Open Command Palette</Button>
 	 *   </Command.Dialog.Trigger>
 	 *   <Command.Dialog.Content>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
 	 *       <Command.Empty>No results found.</Command.Empty>
+	 *       <Command.Group heading="Suggestions">
+	 *         <Command.Item>
+	 *           <span>Calendar</span>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *       <Command.Separator />
+	 *       <Command.Group heading="Settings">
+	 *         <Command.Item>
+	 *           <span>Profile</span>
+	 *           <Command.Shortcut>⌘,</Command.Shortcut>
+	 *         </Command.Item>
+	 *       </Command.Group>
 	 *     </Command.List>
 	 *   </Command.Dialog.Content>
 	 * </Command.Dialog.Root>
@@ -557,7 +750,29 @@ const Command = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Input placeholder="Type a command or search..." />
+	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+	 *   <Command.Dialog.Trigger asChild>
+	 *     <Button type="button">Open Command Palette</Button>
+	 *   </Command.Dialog.Trigger>
+	 *   <Command.Dialog.Content>
+	 *     <Command.Input placeholder="Type a command or search..." />
+	 *     <Command.List>
+	 *       <Command.Empty>No results found.</Command.Empty>
+	 *       <Command.Group heading="Suggestions">
+	 *         <Command.Item>
+	 *           <span>Calendar</span>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *       <Command.Separator />
+	 *       <Command.Group heading="Settings">
+	 *         <Command.Item>
+	 *           <span>Profile</span>
+	 *           <Command.Shortcut>⌘,</Command.Shortcut>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *     </Command.List>
+	 *   </Command.Dialog.Content>
+	 * </Command.Dialog.Root>
 	 * ```
 	 */
 	Input: CommandInput,
@@ -568,9 +783,30 @@ const Command = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.List>
-	 *   <Command.Empty>No results found.</Command.Empty>
-	 * </Command.List>
+	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+	 *   <Command.Dialog.Trigger asChild>
+	 *     <Button type="button">Open Command Palette</Button>
+	 *   </Command.Dialog.Trigger>
+	 *   <Command.Dialog.Content>
+	 *     <Command.Input placeholder="Type a command or search..." />
+	 *     <Command.List>
+	 *       <Command.Empty>No results found.</Command.Empty>
+	 *       <Command.Group heading="Suggestions">
+	 *         <Command.Item>
+	 *           <span>Calendar</span>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *       <Command.Separator />
+	 *       <Command.Group heading="Settings">
+	 *         <Command.Item>
+	 *           <span>Profile</span>
+	 *           <Command.Shortcut>⌘,</Command.Shortcut>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *     </Command.List>
+	 *   </Command.Dialog.Content>
+	 * </Command.Dialog.Root>
+	 * ```
 	 */
 	List: CommandList,
 	/**
@@ -580,7 +816,29 @@ const Command = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Empty>No results found.</Command.Empty>
+	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+	 *   <Command.Dialog.Trigger asChild>
+	 *     <Button type="button">Open Command Palette</Button>
+	 *   </Command.Dialog.Trigger>
+	 *   <Command.Dialog.Content>
+	 *     <Command.Input placeholder="Type a command or search..." />
+	 *     <Command.List>
+	 *       <Command.Empty>No results found.</Command.Empty>
+	 *       <Command.Group heading="Suggestions">
+	 *         <Command.Item>
+	 *           <span>Calendar</span>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *       <Command.Separator />
+	 *       <Command.Group heading="Settings">
+	 *         <Command.Item>
+	 *           <span>Profile</span>
+	 *           <Command.Shortcut>⌘,</Command.Shortcut>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *     </Command.List>
+	 *   </Command.Dialog.Content>
+	 * </Command.Dialog.Root>
 	 * ```
 	 */
 	Empty: CommandEmpty,
@@ -591,11 +849,29 @@ const Command = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Group heading="Suggestions">
-	 *   <Command.Item>
-	 *     Calendar
-	 *   </Command.Item>
-	 * </Command.Group>
+	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+	 *   <Command.Dialog.Trigger asChild>
+	 *     <Button type="button">Open Command Palette</Button>
+	 *   </Command.Dialog.Trigger>
+	 *   <Command.Dialog.Content>
+	 *     <Command.Input placeholder="Type a command or search..." />
+	 *     <Command.List>
+	 *       <Command.Empty>No results found.</Command.Empty>
+	 *       <Command.Group heading="Suggestions">
+	 *         <Command.Item>
+	 *           <span>Calendar</span>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *       <Command.Separator />
+	 *       <Command.Group heading="Settings">
+	 *         <Command.Item>
+	 *           <span>Profile</span>
+	 *           <Command.Shortcut>⌘,</Command.Shortcut>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *     </Command.List>
+	 *   </Command.Dialog.Content>
+	 * </Command.Dialog.Root>
 	 * ```
 	 */
 	Group: CommandGroup,
@@ -606,9 +882,29 @@ const Command = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Item>
-	 *   Calendar
-	 * </Command.Item>
+	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+	 *   <Command.Dialog.Trigger asChild>
+	 *     <Button type="button">Open Command Palette</Button>
+	 *   </Command.Dialog.Trigger>
+	 *   <Command.Dialog.Content>
+	 *     <Command.Input placeholder="Type a command or search..." />
+	 *     <Command.List>
+	 *       <Command.Empty>No results found.</Command.Empty>
+	 *       <Command.Group heading="Suggestions">
+	 *         <Command.Item>
+	 *           <span>Calendar</span>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *       <Command.Separator />
+	 *       <Command.Group heading="Settings">
+	 *         <Command.Item>
+	 *           <span>Profile</span>
+	 *           <Command.Shortcut>⌘,</Command.Shortcut>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *     </Command.List>
+	 *   </Command.Dialog.Content>
+	 * </Command.Dialog.Root>
 	 * ```
 	 */
 	Item: CommandItem,
@@ -619,7 +915,29 @@ const Command = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Shortcut>⌘,</Command.Shortcut>
+	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+	 *   <Command.Dialog.Trigger asChild>
+	 *     <Button type="button">Open Command Palette</Button>
+	 *   </Command.Dialog.Trigger>
+	 *   <Command.Dialog.Content>
+	 *     <Command.Input placeholder="Type a command or search..." />
+	 *     <Command.List>
+	 *       <Command.Empty>No results found.</Command.Empty>
+	 *       <Command.Group heading="Suggestions">
+	 *         <Command.Item>
+	 *           <span>Calendar</span>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *       <Command.Separator />
+	 *       <Command.Group heading="Settings">
+	 *         <Command.Item>
+	 *           <span>Profile</span>
+	 *           <Command.Shortcut>⌘,</Command.Shortcut>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *     </Command.List>
+	 *   </Command.Dialog.Content>
+	 * </Command.Dialog.Root>
 	 * ```
 	 */
 	Shortcut: CommandShortcut,
@@ -630,7 +948,29 @@ const Command = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Separator />
+	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
+	 *   <Command.Dialog.Trigger asChild>
+	 *     <Button type="button">Open Command Palette</Button>
+	 *   </Command.Dialog.Trigger>
+	 *   <Command.Dialog.Content>
+	 *     <Command.Input placeholder="Type a command or search..." />
+	 *     <Command.List>
+	 *       <Command.Empty>No results found.</Command.Empty>
+	 *       <Command.Group heading="Suggestions">
+	 *         <Command.Item>
+	 *           <span>Calendar</span>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *       <Command.Separator />
+	 *       <Command.Group heading="Settings">
+	 *         <Command.Item>
+	 *           <span>Profile</span>
+	 *           <Command.Shortcut>⌘,</Command.Shortcut>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *     </Command.List>
+	 *   </Command.Dialog.Content>
+	 * </Command.Dialog.Root>
 	 * ```
 	 */
 	Separator: CommandSeparator,

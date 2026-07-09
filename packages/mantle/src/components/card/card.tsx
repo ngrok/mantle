@@ -40,6 +40,7 @@ const Root = forwardRef<ComponentRef<"div">, CardProps>(
 		return (
 			<Component
 				ref={ref}
+				data-slot="card"
 				className={cx("border-card bg-card relative rounded-md border", className)}
 				{...rest}
 			>
@@ -83,6 +84,7 @@ const Body = forwardRef<ComponentRef<"div">, CardProps>(
 		return (
 			<Component
 				ref={ref}
+				data-slot="card-body"
 				className={cx("p-6 border-t border-card-muted first:border-t-0", className)}
 				{...rest}
 			>
@@ -120,6 +122,7 @@ const Footer = forwardRef<ComponentRef<"div">, CardProps>(
 		return (
 			<Component
 				ref={ref}
+				data-slot="card-footer"
 				className={cx("px-6 py-3 border-t border-card-muted first:border-t-0", className)}
 				{...rest}
 			>
@@ -157,6 +160,7 @@ const Header = forwardRef<ComponentRef<"div">, CardProps>(
 		return (
 			<Component
 				ref={ref}
+				data-slot="card-header"
 				className={cx("px-6 py-3 border-t border-card-muted first:border-t-0", className)}
 				{...rest}
 			>
@@ -197,7 +201,12 @@ const Title = forwardRef<HTMLHeadingElement, CardTitleProps>(
 	({ className, asChild, ...props }, ref) => {
 		const Comp = asChild ? Slot : "h3";
 		return (
-			<Comp ref={ref} className={cx("text-strong text-base font-medium", className)} {...props} />
+			<Comp
+				ref={ref}
+				data-slot="card-title"
+				className={cx("text-strong text-base font-medium", className)}
+				{...props}
+			/>
 		);
 	},
 );
@@ -208,6 +217,16 @@ Title.displayName = "CardTitle";
  * physical card.
  *
  * @see https://mantle.ngrok.com/components/card
+ *
+ * @example
+ * Composition:
+ * ```
+ * Card.Root
+ * ├── Card.Header
+ * │   └── Card.Title
+ * ├── Card.Body
+ * └── Card.Footer
+ * ```
  *
  * @example
  * ```tsx

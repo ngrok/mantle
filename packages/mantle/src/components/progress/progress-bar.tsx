@@ -87,7 +87,7 @@ function Root({ className, children, max: _max = defaultMax, value: _value, ...p
 	return (
 		<ProgressContext.Provider value={ctx}>
 			<ProgressPrimitive.Root
-				data-slot="progress"
+				data-slot="progress-bar"
 				className={cx(
 					"bg-base-hover dark:bg-base shadow-inner relative h-3 w-full overflow-hidden rounded-md",
 					className,
@@ -133,7 +133,7 @@ function Indicator({ className, style, ...props }: IndicatorProps) {
 
 	return (
 		<ProgressPrimitive.Indicator
-			data-slot="progress-indicator"
+			data-slot="progress-bar-indicator"
 			className={cx("bg-accent-600 h-full w-full flex-1 transition-all", className)}
 			style={{ ...style, transform: `translateX(-${translatePercent}%)` }}
 			{...props}
@@ -149,6 +149,13 @@ Indicator.displayName = "Indicator";
  * Use this component for linear progress indication.
  *
  * @see https://mantle.ngrok.com/components/progress
+ *
+ * @example
+ * Composition:
+ * ```
+ * ProgressBar.Root
+ * └── ProgressBar.Indicator
+ * ```
  *
  * @example
  * ```tsx

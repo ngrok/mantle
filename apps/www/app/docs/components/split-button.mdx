@@ -52,6 +52,18 @@ import { SplitButton } from "@ngrok/mantle/split-button";
 
 ## Composition
 
+Compose the parts of a `SplitButton` together to build your own:
+
+```text showLineNumbers=false
+SplitButton.Root
+├── SplitButton.PrimaryAction
+├── SplitButton.MenuTrigger
+└── SplitButton.MenuContent
+    └── SplitButton.MenuItem
+```
+
+## Polymorphism
+
 When you want to render _something else_ as a `SplitButton.MenuItem`, you can use the `asChild` prop to compose. This is useful for rendering links as menu items.
 
 <Example>

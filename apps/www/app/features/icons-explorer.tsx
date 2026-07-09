@@ -45,7 +45,12 @@ export function IconsExplorer() {
 					<p className="text-strong">
 						No results found for <Code>{query}</Code>
 					</p>
-					<Button type="button" appearance="outlined" onClick={() => setQuery("")}>
+					<Button
+						type="button"
+						appearance="outlined"
+						priority="neutral"
+						onClick={() => setQuery("")}
+					>
 						Clear Search
 					</Button>
 				</div>

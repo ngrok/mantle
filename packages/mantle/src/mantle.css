@@ -165,6 +165,8 @@ MARK: THEME
 	--shadow-inner: inset 0px 2px 4px 0px --alpha(var(--shadow-color) / var(--shadow-first-opacity));
 
 	--spacing-em: 1em;
+
+	--z-index-max: 2147483647;
 }
 
 @theme inline {

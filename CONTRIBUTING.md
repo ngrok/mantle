@@ -72,6 +72,26 @@ pnpm -w run start
 
 This will spin up the react-router documentation site, and is configured to watch for changes to components (so your changes will be instantly reflected).
 
+## Scaffolding a New Component
+
+If you use [Claude Code](https://claude.com/claude-code), the repo ships a `/scaffold-component` slash command that scaffolds a new mantle component end-to-end — component files, package.json export, docs page, route registration, navigation entry, and a changeset:
+
+```
+/scaffold-component <component-name>
+```
+
+The command definition lives at [`.claude/commands/scaffold-component.md`](./.claude/commands/scaffold-component.md) and is also a useful reference if you'd rather scaffold a component by hand — it captures the full set of steps and conventions a new component needs.
+
+## Auditing an Existing Component
+
+To validate that an existing component's docs, JSDoc, and scaffold wiring still match the conventions in `/scaffold-component` — and to auto-fix common drift like missing `@see` links, missing composition trees, mislabeled `Composition` headings, or missing nav/route entries — run the `/audit-component` slash command:
+
+```
+/audit-component <component-name>
+```
+
+Omit the name (or pass `all`) to sweep every component in `packages/mantle/src/components/`. The command definition lives at [`.claude/commands/audit-component.md`](./.claude/commands/audit-component.md) and doubles as a checklist if you'd rather audit by hand.
+
 ## Submitting a Pull Request
 
 Before working on a large change, it is best to open an issue first to discuss.

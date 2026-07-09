@@ -113,6 +113,7 @@ const InputCapture = forwardRef<HTMLInputElement, InputCaptureProps>(
 		return (
 			<input
 				aria-invalid={ariaInvalid}
+				data-slot="input-capture"
 				data-validation={validationValue}
 				className={cx(
 					"placeholder:text-placeholder min-w-0 flex-1 bg-transparent text-left autofill:shadow-[inset_0_0_0px_1000px_var(--color-blue-50)] focus:outline-hidden",
@@ -161,6 +162,7 @@ type InputContainerProps = InputHTMLAttributes<HTMLInputElement> &
 const InputContainer = ({
 	"aria-invalid": _ariaInvalid,
 	"aria-disabled": _ariaDisabled,
+	"data-slot": dataSlot = "input",
 	children,
 	className,
 	disabled,
@@ -170,7 +172,7 @@ const InputContainer = ({
 	type,
 	validation: _validation,
 	...props
-}: InputContainerProps) => {
+}: InputContainerProps & { "data-slot"?: string }) => {
 	const isInvalid = _ariaInvalid != null && _ariaInvalid !== "false";
 	const validation = isInvalid
 		? "error"
@@ -192,6 +194,7 @@ const InputContainer = ({
 		>
 			<div
 				role="none"
+				data-slot={dataSlot}
 				data-disabled={(disabled ?? _ariaDisabled) || undefined}
 				data-validation={validation || undefined}
 				className={cx(

@@ -43,7 +43,7 @@ The `Slot` component is the foundation of the `asChild` pattern used throughout 
 		<Button appearance="filled" asChild>
 			<a href="https://ngrok.com">Visit ngrok</a>
 		</Button>
-		<Button appearance="outlined" asChild>
+		<Button appearance="outlined" priority="neutral" asChild>
 			<a href="https://github.com/ngrok/ngrok">View on GitHub</a>
 		</Button>
 	</div>
@@ -56,7 +56,7 @@ import { Button } from "@ngrok/mantle/button";
 	<a href="https://ngrok.com">Visit ngrok</a>
 </Button>
 
-<Button appearance="outlined" asChild>
+<Button appearance="outlined" priority="neutral" asChild>
 	<a href="https://github.com/ngrok/ngrok">View on GitHub</a>
 </Button>
 ```

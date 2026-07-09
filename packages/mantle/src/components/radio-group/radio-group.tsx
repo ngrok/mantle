@@ -44,7 +44,7 @@ type RadioGroupProps = PropsWithChildren<Omit<HeadlessRadioGroupProps, "as" | "c
  * ```
  */
 const Root = forwardRef<ComponentRef<typeof HeadlessRadioGroup>, RadioGroupProps>((props, ref) => (
-	<HeadlessRadioGroup {...props} ref={ref} />
+	<HeadlessRadioGroup data-slot="radio-group" {...props} ref={ref} />
 ));
 Root.displayName = "RadioGroup";
 
@@ -93,6 +93,7 @@ type RadioItemProps = Omit<HeadlessRadioProps, "children"> & PropsWithChildren;
 const Item = forwardRef<ComponentRef<"div">, RadioItemProps>(
 	({ children, className, ...props }, ref) => (
 		<HeadlessRadio
+			data-slot="radio-group-item"
 			className={cx(
 				"group/radio cursor-pointer aria-disabled:cursor-default [&_label]:cursor-inherit flex gap-2 py-1 text-sm focus:outline-hidden",
 				className,
@@ -152,6 +153,7 @@ const Indicator = ({ children, className, ...props }: RadioIndicatorProps) => {
 
 	return (
 		<div
+			data-slot="radio-group-indicator"
 			className={cx(
 				"radio-indicator inline-flex size-5 select-none items-center justify-center shrink-0",
 				className,
@@ -175,7 +177,14 @@ Indicator.displayName = "RadioIndicator";
  */
 const List = forwardRef<ComponentRef<typeof Root>, RadioGroupProps>(
 	({ className, ...props }, ref) => {
-		return <Root className={clsx("-space-y-px", className)} {...props} ref={ref} />;
+		return (
+			<Root
+				data-slot="radio-group-list"
+				className={clsx("-space-y-px", className)}
+				{...props}
+				ref={ref}
+			/>
+		);
 	},
 );
 List.displayName = "RadioGroupList";
@@ -190,6 +199,7 @@ const ListItem = forwardRef<ComponentRef<"div">, RadioListItemProps>(
 		return (
 			<HeadlessRadio
 				as="div"
+				data-slot="radio-group-list-item"
 				className={cx(
 					"group/radio border-form [&_label]:cursor-inherit relative flex select-none gap-2 border px-3 py-2 text-sm",
 					"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
@@ -226,6 +236,7 @@ const Card = forwardRef<ComponentRef<"div">, RadioCardProps>(
 		return (
 			<HeadlessRadio
 				as="div"
+				data-slot="radio-group-card"
 				className={clsx(
 					"group/radio border-card bg-card [&_label]:cursor-inherit relative rounded-md border p-4 text-sm",
 					"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
@@ -259,6 +270,7 @@ const ItemContent = ({ asChild = false, children, className, ...props }: RadioIt
 
 	return (
 		<Component
+			data-slot="radio-group-item-content"
 			className={clsx("min-w-0 flex-1", ctx.disabled && "opacity-50", className)}
 			{...props}
 		>
@@ -275,6 +287,7 @@ const ButtonGroup = forwardRef<ComponentRef<typeof Root>, RadioGroupProps>(
 	({ className, ...props }, ref) => {
 		return (
 			<Root
+				data-slot="radio-group-button-group"
 				className={clsx("flex flex-row flex-nowrap -space-x-px", className)}
 				{...props}
 				ref={ref}
@@ -294,6 +307,7 @@ const Button = forwardRef<ComponentRef<"div">, RadioButtonProps>(
 		return (
 			<HeadlessRadio
 				as="div"
+				data-slot="radio-group-button"
 				className={cx(
 					"group/radio border-form [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 border px-3 text-sm",
 					"h-9",
@@ -337,6 +351,7 @@ const InputSandbox = ({ children, onClick, onKeyDown, ...props }: RadioInputSand
 	return (
 		<div
 			role="none"
+			data-slot="radio-group-input-sandbox"
 			ref={ref}
 			onKeyDown={(event) => {
 				if (ctx.disabled) {
@@ -384,6 +399,31 @@ InputSandbox.displayName = "RadioInputSandbox";
  * A group of radio items. It manages the state of the children radios.
  *
  * @see https://mantle.ngrok.com/components/radio-group#radiogrouproot
+ *
+ * @example
+ * Composition:
+ * ```
+ * # Default radios
+ * RadioGroup.Root
+ * └── RadioGroup.Item
+ *     ├── RadioGroup.Indicator
+ *     └── RadioGroup.ItemContent
+ *
+ * # List layout with descriptions
+ * RadioGroup.List
+ * └── RadioGroup.ListItem
+ *     ├── RadioGroup.Indicator
+ *     └── RadioGroup.ItemContent
+ *
+ * # Segmented button group
+ * RadioGroup.ButtonGroup
+ * └── RadioGroup.Button
+ *
+ * # Card-style radios
+ * RadioGroup.Root
+ * └── RadioGroup.Card
+ *     └── RadioGroup.Indicator
+ * ```
  *
  * @example
  * ```tsx

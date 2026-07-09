@@ -73,6 +73,7 @@ const Root = forwardRef<HTMLDivElement, CursorPaginationProps>(
 		return (
 			<CursorPaginationContext.Provider value={{ defaultPageSize, pageSize, setPageSize }}>
 				<div
+					data-slot="cursor-pagination"
 					className={cx("inline-flex items-center justify-between gap-2", className)}
 					ref={ref}
 					{...props}
@@ -124,8 +125,9 @@ const Buttons = forwardRef<ComponentRef<typeof ButtonGroup>, CursorButtonsProps>
 		// TODO(cody): this _feels_ like a good spot for left and right arrow keys to navigate between pages when focused on the buttons
 
 		return (
-			<ButtonGroup appearance="panel" ref={ref} {...props}>
+			<ButtonGroup data-slot="cursor-pagination-buttons" appearance="panel" ref={ref} {...props}>
 				<IconButton
+					data-slot="cursor-pagination-previous"
 					appearance="ghost"
 					disabled={!hasPreviousPage}
 					icon={<CaretLeftIcon />}
@@ -134,8 +136,13 @@ const Buttons = forwardRef<ComponentRef<typeof ButtonGroup>, CursorButtonsProps>
 					size="sm"
 					type="button"
 				/>
-				<Separator orientation="vertical" className="min-h-5" />
+				<Separator
+					data-slot="cursor-pagination-separator"
+					orientation="vertical"
+					className="min-h-5"
+				/>
 				<IconButton
+					data-slot="cursor-pagination-next"
 					appearance="ghost"
 					disabled={!hasNextPage}
 					icon={<CaretRightIcon />}
@@ -206,6 +213,7 @@ const PageSizeSelect = forwardRef<ComponentRef<typeof Select.Trigger>, CursorPag
 			>
 				<Select.Trigger
 					ref={ref}
+					data-slot="cursor-pagination-page-size-select"
 					className={cx("w-auto min-w-36", className)}
 					value={ctx.pageSize}
 					{...rest}
@@ -248,7 +256,11 @@ function PageSizeValue({ asChild = false, className, ...props }: CursorPageSizeV
 	const Component = asChild ? Slot : "span";
 
 	return (
-		<Component className={cx("text-muted text-sm font-normal", className)} {...props}>
+		<Component
+			data-slot="cursor-pagination-page-size-value"
+			className={cx("text-muted text-sm font-normal", className)}
+			{...props}
+		>
 			{ctx.pageSize} per page
 		</Component>
 	);
@@ -265,6 +277,15 @@ PageSizeValue.displayName = "CursorPageSizeValue";
  * there are, but it's more efficient for large or real-time data sets.
  *
  * @see https://mantle.ngrok.com/components/pagination
+ *
+ * @example
+ * Composition:
+ * ```
+ * CursorPagination.Root
+ * ├── CursorPagination.PageSizeSelect
+ * ├── CursorPagination.PageSizeValue
+ * └── CursorPagination.Buttons
+ * ```
  *
  * @example
  * ```tsx

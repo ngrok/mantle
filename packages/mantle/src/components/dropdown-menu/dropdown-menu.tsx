@@ -50,14 +50,24 @@ Root.displayName = "DropdownMenu";
  * </DropdownMenu.Root>
  * ```
  */
-const Trigger = DropdownMenuPrimitive.Trigger;
+const Trigger = forwardRef<
+	ComponentRef<typeof DropdownMenuPrimitive.Trigger>,
+	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Trigger>
+>((props, ref) => (
+	<DropdownMenuPrimitive.Trigger ref={ref} data-slot="dropdown-menu-trigger" {...props} />
+));
 Trigger.displayName = "DropdownMenuTrigger";
 
 const Group = forwardRef<
 	ComponentRef<typeof DropdownMenuPrimitive.Group>,
 	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Group>
 >(({ className, ...props }, ref) => (
-	<DropdownMenuPrimitive.Group ref={ref} className={cx("space-y-px", className)} {...props} />
+	<DropdownMenuPrimitive.Group
+		ref={ref}
+		data-slot="dropdown-menu-group"
+		className={cx("space-y-px", className)}
+		{...props}
+	/>
 ));
 Group.displayName = "DropdownMenuGroup";
 
@@ -74,7 +84,12 @@ const RadioGroup = forwardRef<
 	ComponentRef<typeof DropdownMenuPrimitive.RadioGroup>,
 	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.RadioGroup>
 >(({ className, ...props }, ref) => (
-	<DropdownMenuPrimitive.RadioGroup ref={ref} className={cx("space-y-px", className)} {...props} />
+	<DropdownMenuPrimitive.RadioGroup
+		ref={ref}
+		data-slot="dropdown-menu-radio-group"
+		className={cx("space-y-px", className)}
+		{...props}
+	/>
 ));
 RadioGroup.displayName = "DropdownMenuRadioGroup";
 
@@ -90,6 +105,7 @@ const SubTrigger = forwardRef<
 	}
 >(({ className, inset, children, ...props }, ref) => (
 	<DropdownMenuPrimitive.SubTrigger
+		data-slot="dropdown-menu-sub-trigger"
 		className={cx(
 			"focus:bg-accent data-state-open:bg-accent relative flex select-none items-center rounded-md py-1.5 pl-2 pr-9 text-sm outline-hidden",
 			"data-highlighted:bg-active-menu-item data-state-open:bg-active-menu-item",
@@ -119,6 +135,7 @@ const SubContent = forwardRef<
 >(({ className, loop = true, ...props }, ref) => (
 	<Portal>
 		<DropdownMenuPrimitive.SubContent
+			data-slot="dropdown-menu-sub-content"
 			className={cx(
 				"scrollbar",
 				"text-popover-foreground border-popover bg-popover p-1.25 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 z-50 min-w-32 overflow-hidden rounded-md border shadow-xl space-y-px font-sans",
@@ -167,6 +184,7 @@ const Content = forwardRef<
 	<Portal>
 		<DropdownMenuPrimitive.Content
 			ref={ref}
+			data-slot="dropdown-menu-content"
 			className={cx(
 				"scrollbar",
 				"text-popover-foreground border-popover bg-popover p-1.25 z-50 min-w-32 overflow-hidden rounded-md border shadow-xl outline-hidden space-y-px font-sans",
@@ -218,6 +236,7 @@ const Item = forwardRef<
 >(({ className, inset, ...props }, ref) => (
 	<DropdownMenuPrimitive.Item
 		ref={ref}
+		data-slot="dropdown-menu-item"
 		className={cx(
 			"relative flex cursor-pointer select-none items-center rounded-md px-2 py-1.5 text-strong text-sm font-normal outline-hidden transition-colors",
 			"data-highlighted:bg-active-menu-item",
@@ -243,6 +262,7 @@ const CheckboxItem = forwardRef<
 >(({ className, children, checked, ...props }, ref) => (
 	<DropdownMenuPrimitive.CheckboxItem
 		ref={ref}
+		data-slot="dropdown-menu-checkbox-item"
 		className={cx(
 			"text-strong data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 pl-2 pr-9 text-sm font-normal outline-hidden",
 			"data-highlighted:bg-active-menu-item",
@@ -280,6 +300,7 @@ type DropdownMenuRadioItemProps = ComponentPropsWithoutRef<
 const RadioItem = forwardRef<ComponentRef<"input">, DropdownMenuRadioItemProps>(
 	({ className, children, ...props }, ref) => (
 		<DropdownMenuPrimitive.RadioItem
+			data-slot="dropdown-menu-radio-item"
 			className={cx(
 				"group/dropdown-menu-radio-item",
 				"text-strong data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 px-2 text-sm font-normal outline-none",
@@ -316,6 +337,7 @@ const Label = forwardRef<
 >(({ className, inset, ...props }, ref) => (
 	<DropdownMenuPrimitive.Label
 		ref={ref}
+		data-slot="dropdown-menu-label"
 		className={cx("px-2 py-1.5 text-sm font-medium", inset && "pl-8", className)}
 		{...props}
 	/>
@@ -331,13 +353,22 @@ const DropdownSeparator = forwardRef<
 	ComponentRef<typeof Separator>,
 	ComponentPropsWithoutRef<typeof Separator>
 >(({ className, ...props }, ref) => (
-	<Separator ref={ref} className={cx("-mx-1.25 my-1 w-auto", className)} {...props} />
+	<Separator
+		ref={ref}
+		data-slot="dropdown-menu-separator"
+		className={cx("-mx-1.25 my-1 w-auto", className)}
+		{...props}
+	/>
 ));
 DropdownSeparator.displayName = "DropdownMenuSeparator";
 
 const Shortcut = ({ className, ...props }: ComponentProps<"span">) => {
 	return (
-		<span className={cx("ml-auto text-xs tracking-widest opacity-60", className)} {...props} />
+		<span
+			data-slot="dropdown-menu-shortcut"
+			className={cx("ml-auto text-xs tracking-widest opacity-60", className)}
+			{...props}
+		/>
 	);
 };
 Shortcut.displayName = "DropdownMenuShortcut";
@@ -346,6 +377,25 @@ Shortcut.displayName = "DropdownMenuShortcut";
  * A menu of options or actions, triggered by a button.
  *
  * @see https://mantle.ngrok.com/components/dropdown-menu
+ *
+ * @example
+ * Composition:
+ * ```
+ * DropdownMenu.Root
+ * ├── DropdownMenu.Trigger
+ * └── DropdownMenu.Content
+ *     ├── DropdownMenu.Group
+ *     │   ├── DropdownMenu.Label
+ *     │   ├── DropdownMenu.Item
+ *     │   │   └── DropdownMenu.Shortcut
+ *     │   ├── DropdownMenu.CheckboxItem
+ *     │   └── DropdownMenu.RadioGroup
+ *     │       └── DropdownMenu.RadioItem
+ *     ├── DropdownMenu.Separator
+ *     └── DropdownMenu.Sub
+ *         ├── DropdownMenu.SubTrigger
+ *         └── DropdownMenu.SubContent
+ * ```
  *
  * @example
  * ```tsx

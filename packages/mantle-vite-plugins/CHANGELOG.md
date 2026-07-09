@@ -1,5 +1,36 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.0.7
+
+### Patch Changes
+
+- [#1107](https://github.com/ngrok-oss/mantle/pull/1107) [`4d35209`](https://github.com/ngrok-oss/mantle/commit/4d35209cd3ec2b15215e51107aec3de007768aa6) Thanks [@forzalupo](https://github.com/forzalupo)! - Internal: switch `=== undefined` / `!== undefined` checks to `== null` / `!= null` for consistency with the project's nullish-equality style. No behavior change.
+
+- Updated dependencies []:
+  - @ngrok/mantle-server-syntax-highlighter@1.0.4
+
+## 1.0.6
+
+### Patch Changes
+
+- [#1126](https://github.com/ngrok-oss/mantle/pull/1126) [`545a09d`](https://github.com/ngrok-oss/mantle/commit/545a09d77c0503f7dfdffe5eb1cde69d59aa65f4) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump oxc-parser from 0.124.0 to 0.125.0
+
+- Updated dependencies []:
+  - @ngrok/mantle-server-syntax-highlighter@1.0.4
+
+## 1.0.5
+
+### Patch Changes
+
+- [#1141](https://github.com/ngrok-oss/mantle/pull/1141) [`f82feb8`](https://github.com/ngrok-oss/mantle/commit/f82feb81f2da67d332962cd16e138bd0de9ae45b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix several code fence metastring parsing bugs in `mantleCodeRehypePlugin`:
+  - `mantleShowLineNumbers`, `mantleCollapsible`, and `mantleDisableCopy` are now stringified on HAST `<pre>` properties. Previously, boolean `false` values were dropped during HAST→JSX compilation, causing `showLineNumbers=false` fence meta to be silently ignored (the rendered `<pre>` ended up with `data-mantle-line-numbers="true"` and no left padding).
+  - `collapsible=true`, `collapsible=false`, and `collapsible="true"` in fence meta are no longer silently dropped. The `collapsible` key now accepts the same bare-flag, key-value, and quoted-value forms as `disableCopy`.
+  - When a key appears multiple times in fence meta (e.g. `title="first" title="second"`), `getMetaValue` now returns the last value, matching `parseMetastring` semantics. Previously it returned the first.
+  - `tokenizeMetastring` now splits on tabs, newlines, and carriage returns in addition to spaces. Previously only literal spaces were treated as token separators, so meta like `title="Foo"\tcollapsible` was lexed as a single token.
+
+- Updated dependencies []:
+  - @ngrok/mantle-server-syntax-highlighter@1.0.4
+
 ## 1.0.4
 
 ### Patch Changes

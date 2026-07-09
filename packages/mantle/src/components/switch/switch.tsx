@@ -33,6 +33,7 @@ const Switch = forwardRef<ComponentRef<typeof SwitchPrimitiveRoot>, SwitchProps>
 
 		return (
 			<SwitchPrimitiveRoot
+				data-slot="switch"
 				aria-readonly={readOnly}
 				className={cx(
 					"peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full outline-hidden",

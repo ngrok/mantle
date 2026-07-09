@@ -63,6 +63,7 @@ const TextArea = forwardRef<ComponentRef<"textarea">, Props>(
 			<textarea
 				aria-invalid={ariaInvalid}
 				data-validation={validation || undefined}
+				data-slot="text-area"
 				className={cx(
 					appearance === "monospaced" &&
 						"pointer-coarse:text-[0.9375rem] font-mono text-[0.8125rem]",

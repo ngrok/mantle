@@ -63,6 +63,7 @@ const Toaster = ({
 
 	return (
 		<ToastPrimitive.Toaster
+			data-slot="toaster"
 			className={cx("toaster overlay-prompt pointer-events-auto *:duration-200", className)}
 			containerAriaLabel={containerAriaLabel}
 			dir={dir}
@@ -186,6 +187,7 @@ const Root = forwardRef<ComponentRef<"div">, ToastProps>(
 		return (
 			<ToastStateContext.Provider value={{ priority }}>
 				<Component
+					data-slot="toast"
 					className={cx(
 						"relative flex items-start gap-2 text-sm font-sans",
 						"p-3 pl-3.75",
@@ -233,6 +235,7 @@ const Icon = forwardRef<ComponentRef<"svg">, ToastIconProps>(
 			case "danger":
 				return (
 					<IconComponent
+						data-slot="toast-icon"
 						className={cx("text-danger-600", className)}
 						ref={ref}
 						svg={svg ?? <WarningIcon weight="fill" />}
@@ -242,6 +245,7 @@ const Icon = forwardRef<ComponentRef<"svg">, ToastIconProps>(
 			case "warning":
 				return (
 					<IconComponent
+						data-slot="toast-icon"
 						className={cx("text-warning-600", className)}
 						ref={ref}
 						svg={svg ?? <WarningDiamondIcon weight="fill" />}
@@ -251,6 +255,7 @@ const Icon = forwardRef<ComponentRef<"svg">, ToastIconProps>(
 			case "success":
 				return (
 					<IconComponent
+						data-slot="toast-icon"
 						className={cx("text-success-600", className)}
 						ref={ref}
 						svg={svg ?? <CheckCircleIcon weight="fill" />}
@@ -261,6 +266,7 @@ const Icon = forwardRef<ComponentRef<"svg">, ToastIconProps>(
 				return (
 					<IconComponent
 						//
+						data-slot="toast-icon"
 						className={cx("text-accent-600", className)}
 						ref={ref}
 						svg={<InfoIcon weight="fill" />}
@@ -299,6 +305,7 @@ const Action = forwardRef<ComponentRef<"button">, ToastActionProps>(
 
 		return (
 			<Component
+				data-slot="toast-action"
 				className={cx(
 					//,
 					"shrink-0",
@@ -343,6 +350,7 @@ const Message = forwardRef<ComponentRef<"p">, ToastMessageProps>(
 		return (
 			<Component
 				//
+				data-slot="toast-message"
 				className={cx("text-strong flex-1 text-sm font-body", className)}
 				ref={ref}
 				{...props}
@@ -357,6 +365,15 @@ Message.displayName = "ToastMessage";
  * feedback to the user without interrupting their workflow.
  *
  * @see https://mantle.ngrok.com/components/toast
+ *
+ * @example
+ * Composition:
+ * ```
+ * Toast.Root
+ * ├── Toast.Icon
+ * ├── Toast.Message
+ * └── Toast.Action
+ * ```
  *
  * @example
  * ```tsx

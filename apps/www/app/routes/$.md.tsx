@@ -1,5 +1,6 @@
 import type { Route } from "./+types/$.md";
 import { rawDocContent, urlToFileMap } from "~/utilities/docs";
+import { renderMdxToMarkdown } from "~/utilities/render-mdx-to-markdown.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
 	const url = new URL(request.url);
@@ -23,9 +24,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 	const filename = cleanSlug.split("/").pop() || "document";
 
-	// Return raw markdown with text/markdown content-type
-	// This completely bypasses React rendering and the root layout
-	return new Response(rawContent, {
+	// Render MDX source to plain markdown: JSX elements are routed through
+	// per-component handlers (e.g. `<Example>` is dropped; unregistered tags
+	// are replaced with an HTML comment placeholder), code fences are
+	// preserved as-is, and ESM imports are stripped.
+	const rendered = renderMdxToMarkdown(rawContent);
+
+	return new Response(rendered, {
 		headers: {
 			"Content-Type": "text/markdown; charset=utf-8",
 			"Content-Disposition": `inline; filename="${filename}.md"`,

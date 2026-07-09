@@ -51,15 +51,15 @@ const alertVariants = cva(
 			 */
 			priority: {
 				danger:
-					"border-danger-500/50 bg-danger-500/10 text-danger-700 [&_code]:bg-danger-500/10 [&_code]:border-danger-500/20 [&_code]:text-danger-900",
+					"border-danger-500/50 bg-danger-500/10 text-danger-700 [&_code]:bg-danger-500/10 [&_code]:border-danger-500/20 [&_code]:text-danger-900 [&_a]:text-danger-700 [&_a]:underline",
 				important:
-					"border-important-500/50 bg-important-500/10 text-important-700 [&_code]:bg-important-500/10 [&_code]:border-important-500/20 [&_code]:text-important-900",
-				info: "border-info-500/50 bg-info-500/10 text-info-700 [&_code]:bg-info-500/10 [&_code]:border-info-500/20 [&_code]:text-info-900",
+					"border-important-500/50 bg-important-500/10 text-important-700 [&_code]:bg-important-500/10 [&_code]:border-important-500/20 [&_code]:text-important-900 [&_a]:text-important-700 [&_a]:underline",
+				info: "border-info-500/50 bg-info-500/10 text-info-700 [&_code]:bg-info-500/10 [&_code]:border-info-500/20 [&_code]:text-info-900 [&_a]:text-info-700 [&_a]:underline",
 				// neutral: "border-neutral-500/50 bg-neutral-500/10 text-neutral-700",
 				success:
-					"border-success-500/50 bg-success-500/10 text-success-700 [&_code]:bg-success-500/10 [&_code]:border-success-500/20 [&_code]:text-success-900",
+					"border-success-500/50 bg-success-500/10 text-success-700 [&_code]:bg-success-500/10 [&_code]:border-success-500/20 [&_code]:text-success-900 [&_a]:text-success-700 [&_a]:underline",
 				warning:
-					"border-warning-500/50 bg-warning-500/10 text-warning-700 [&_code]:bg-warning-500/10 [&_code]:border-warning-500/20 [&_code]:text-warning-900",
+					"border-warning-500/50 bg-warning-500/10 text-warning-700 [&_code]:bg-warning-500/10 [&_code]:border-warning-500/20 [&_code]:text-warning-900 [&_a]:text-warning-700 [&_a]:underline",
 			} as const satisfies Record<Priority, string>,
 			/**
 			 * Controls the visual style of the Alert.
@@ -146,6 +146,7 @@ const Root = forwardRef<ComponentRef<"div">, AlertProps>(
 			<AlertContext.Provider value={context}>
 				<div
 					ref={ref}
+					data-slot="alert"
 					className={cx(alertVariants({ appearance, priority }), className)}
 					{...props}
 				/>
@@ -201,7 +202,13 @@ const Icon = forwardRef<ComponentRef<"svg">, AlertIconProps>(
 		const defaultIcon = defaultIcons[ctx.priority];
 
 		return (
-			<SvgOnly ref={ref} className={cx("size-5", className)} svg={svg ?? defaultIcon} {...props} />
+			<SvgOnly
+				ref={ref}
+				data-slot="alert-icon"
+				className={cx("size-5", className)}
+				svg={svg ?? defaultIcon}
+				{...props}
+			/>
 		);
 	},
 );
@@ -230,6 +237,7 @@ const Content = forwardRef<ComponentRef<"div">, ComponentProps<"div">>(
 	({ className, ...props }, ref) => (
 		<div
 			ref={ref}
+			data-slot="alert-content"
 			className={cx("min-w-0 flex-1 has-data-alert-dismiss:pr-6", className)}
 			{...props}
 		/>
@@ -262,7 +270,14 @@ const Title = forwardRef<HTMLHeadingElement, AlertTitleProps>(
 	({ asChild = false, className, ...props }, ref) => {
 		const Component = asChild ? Slot : "h5";
 
-		return <Component ref={ref} className={cx("font-medium", className)} {...props} />;
+		return (
+			<Component
+				ref={ref}
+				data-slot="alert-title"
+				className={cx("font-medium", className)}
+				{...props}
+			/>
+		);
 	},
 );
 Title.displayName = "AlertTitle";
@@ -294,7 +309,14 @@ const Description = forwardRef<ComponentRef<"div">, AlertDescriptionProps>(
 	({ asChild = false, className, ...props }, ref) => {
 		const Component = asChild ? Slot : "div";
 
-		return <Component ref={ref} className={cx("text-sm", className)} {...props} />;
+		return (
+			<Component
+				ref={ref}
+				data-slot="alert-description"
+				className={cx("text-sm", className)}
+				{...props}
+			/>
+		);
 	},
 );
 Description.displayName = "AlertDescription";
@@ -332,6 +354,7 @@ const DismissIconButton = ({
 			icon={icon}
 			label={label}
 			size={size}
+			data-slot="alert-dismiss-icon-button"
 			data-alert-dismiss
 			className={cx(
 				"right-1.5 top-1.5 absolute",
@@ -356,6 +379,17 @@ DismissIconButton.displayName = "AlertDismissIconButton";
  * Displays a callout for user attention.
  *
  * @see https://mantle.ngrok.com/components/alert
+ *
+ * @example
+ * Composition:
+ * ```
+ * Alert.Root
+ * ├── Alert.Icon
+ * └── Alert.Content
+ *     ├── Alert.Title
+ *     ├── Alert.Description
+ *     └── Alert.DismissIconButton
+ * ```
  *
  * @example
  * ```tsx

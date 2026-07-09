@@ -14,6 +14,16 @@ import { Example } from "~/components/example";
 
 For sighted users to preview content available behind a link.
 
+## When to use
+
+A `HoverCard` shows a preview of richer content (a user card, link preview, etc.) when a sighted user hovers a link or trigger.
+
+- Prefer [`Tooltip`](/components/tooltip) for short, non-interactive labels on controls.
+- Prefer [`Popover`](/components/popover) when the content must be reachable by all users and may contain interactive elements.
+
+> [!WARNING]
+> Do not rely on a `HoverCard` as the only accessible path to important content. Because it opens on pointer hover, it is not a reliable path for keyboard or screen reader users. Any information inside a `HoverCard` must also be available through another fully accessible path (usually the underlying link).
+
 <Example className="gap-2">
 	<HoverCard.Root>
 		<HoverCard.Trigger asChild>
@@ -68,6 +78,16 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 		</div>
 	</HoverCard.Content>
 </HoverCard.Root>;
+```
+
+## Composition
+
+Compose the parts of a `HoverCard` together to build your own:
+
+```text showLineNumbers=false
+HoverCard.Root
+├── HoverCard.Trigger
+└── HoverCard.Content
 ```
 
 ## API Reference

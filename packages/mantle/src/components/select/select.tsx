@@ -129,7 +129,10 @@ Root.displayName = "Select";
  * A group of related options within a select menu. Similar to an html `<optgroup>` element.
  * Use in conjunction with Select.Label to ensure good accessibility via automatic labelling.
  *
+ * @see https://mantle.ngrok.com/components/select#selectgroup
+ *
  * @example
+ * ```tsx
  * <Select.Root>
  *   <Select.Trigger>
  *     <Select.Value placeholder="Select a fruit" />
@@ -141,6 +144,7 @@ Root.displayName = "Select";
  *       <Select.Item value="banana">Banana</Select.Item>
  *       <Select.Item value="cherry">Cherry</Select.Item>
  *     </Select.Group>
+ *     <Select.Separator />
  *     <Select.Group>
  *       <Select.Label>Veggies</Select.Label>
  *       <Select.Item value="carrot">Carrot</Select.Item>
@@ -148,33 +152,48 @@ Root.displayName = "Select";
  *     </Select.Group>
  *   </Select.Content>
  * </Select.Root>
- *
- * @see https://mantle.ngrok.com/components/select#selectgroup
+ * ```
  */
 const Group = forwardRef<
 	ComponentRef<typeof SelectPrimitive.Group>,
 	ComponentPropsWithoutRef<typeof SelectPrimitive.Group>
 >(({ className, ...props }, ref) => (
-	<SelectPrimitive.Group ref={ref} className={cx("space-y-px", className)} {...props} />
+	<SelectPrimitive.Group
+		ref={ref}
+		data-slot="select-group"
+		className={cx("space-y-px", className)}
+		{...props}
+	/>
 ));
 Group.displayName = "SelectGroup";
 
 /**
  * The part that reflects the selected value. By default the selected item's text will be rendered. if you require more control, you can instead control the select and pass your own children. It should not be styled to ensure correct positioning. An optional placeholder prop is also available for when the select has no value.
  *
+ * @see https://mantle.ngrok.com/components/select#selectvalue
+ *
  * @example
+ * ```tsx
  * <Select.Root>
  *   <Select.Trigger>
  *     <Select.Value placeholder="Select a fruit" />
  *   </Select.Trigger>
  *   <Select.Content>
- *     <Select.Item value="apple">Apple</Select.Item>
- *     <Select.Item value="banana">Banana</Select.Item>
- *     <Select.Item value="cherry">Cherry</Select.Item>
+ *     <Select.Group>
+ *       <Select.Label>Fruits</Select.Label>
+ *       <Select.Item value="apple">Apple</Select.Item>
+ *       <Select.Item value="banana">Banana</Select.Item>
+ *       <Select.Item value="cherry">Cherry</Select.Item>
+ *     </Select.Group>
+ *     <Select.Separator />
+ *     <Select.Group>
+ *       <Select.Label>Veggies</Select.Label>
+ *       <Select.Item value="carrot">Carrot</Select.Item>
+ *       <Select.Item value="cucumber">Cucumber</Select.Item>
+ *     </Select.Group>
  *   </Select.Content>
  * </Select.Root>
- *
- * @see https://mantle.ngrok.com/components/select#selectvalue
+ * ```
  */
 const Value = SelectPrimitive.Value;
 Value.displayName = "SelectValue";
@@ -195,9 +214,18 @@ type SelectTriggerProps = ComponentPropsWithoutRef<typeof SelectPrimitive.Trigge
  *     <Select.Value placeholder="Select a fruit" />
  *   </Select.Trigger>
  *   <Select.Content>
- *     <Select.Item value="apple">Apple</Select.Item>
- *     <Select.Item value="banana">Banana</Select.Item>
- *     <Select.Item value="cherry">Cherry</Select.Item>
+ *     <Select.Group>
+ *       <Select.Label>Fruits</Select.Label>
+ *       <Select.Item value="apple">Apple</Select.Item>
+ *       <Select.Item value="banana">Banana</Select.Item>
+ *       <Select.Item value="cherry">Cherry</Select.Item>
+ *     </Select.Group>
+ *     <Select.Separator />
+ *     <Select.Group>
+ *       <Select.Label>Veggies</Select.Label>
+ *       <Select.Item value="carrot">Carrot</Select.Item>
+ *       <Select.Item value="cucumber">Cucumber</Select.Item>
+ *     </Select.Group>
  *   </Select.Content>
  * </Select.Root>
  * ```
@@ -229,6 +257,7 @@ const Trigger = forwardRef<ComponentRef<typeof SelectPrimitive.Trigger>, SelectT
 		return (
 			<SelectPrimitive.Trigger
 				aria-invalid={ariaInvalid}
+				data-slot="select-trigger"
 				className={cx(
 					"h-9 text-sm",
 					"border-form bg-form text-strong font-sans placeholder:text-placeholder hover:bg-form-hover hover:text-strong flex w-full items-center justify-between gap-1.5 rounded-md border px-3 py-2 disabled:pointer-events-none disabled:opacity-50 [&>span]:line-clamp-1 [&>span]:text-left",
@@ -304,25 +333,37 @@ type SelectContentProps = ComponentPropsWithoutRef<typeof SelectPrimitive.Conten
  * The component that pops out when the select is open as a portal adjacent to the trigger button.
  * It contains a scrolling viewport of the select items.
  *
+ * @see https://mantle.ngrok.com/components/select#selectcontent
+ *
  * @example
+ * ```tsx
  * <Select.Root>
  *   <Select.Trigger>
  *     <Select.Value placeholder="Select a fruit" />
  *   </Select.Trigger>
  *   <Select.Content>
- *     <Select.Item value="apple">Apple</Select.Item>
- *     <Select.Item value="banana">Banana</Select.Item>
- *     <Select.Item value="cherry">Cherry</Select.Item>
+ *     <Select.Group>
+ *       <Select.Label>Fruits</Select.Label>
+ *       <Select.Item value="apple">Apple</Select.Item>
+ *       <Select.Item value="banana">Banana</Select.Item>
+ *       <Select.Item value="cherry">Cherry</Select.Item>
+ *     </Select.Group>
+ *     <Select.Separator />
+ *     <Select.Group>
+ *       <Select.Label>Veggies</Select.Label>
+ *       <Select.Item value="carrot">Carrot</Select.Item>
+ *       <Select.Item value="cucumber">Cucumber</Select.Item>
+ *     </Select.Group>
  *   </Select.Content>
  * </Select.Root>
- *
- * @see https://mantle.ngrok.com/components/select#selectcontent
+ * ```
  */
 const Content = forwardRef<ComponentRef<typeof SelectPrimitive.Content>, SelectContentProps>(
 	({ className, children, position = "popper", width = "trigger", ...props }, ref) => (
 		<SelectPrimitive.Portal>
 			<SelectPrimitive.Content
 				ref={ref}
+				data-slot="select-content"
 				className={cx(
 					"border-popover data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 relative z-50 max-h-96 min-w-32 overflow-hidden rounded-md border shadow-md",
 					"bg-popover font-sans",
@@ -353,7 +394,10 @@ Content.displayName = "SelectContent";
 /**
  * Used to render the label of a group. It won't be focusable using arrow keys.
  *
+ * @see https://mantle.ngrok.com/components/select#selectlabel
+ *
  * @example
+ * ```tsx
  * <Select.Root>
  *   <Select.Trigger>
  *     <Select.Value placeholder="Select a fruit" />
@@ -365,6 +409,7 @@ Content.displayName = "SelectContent";
  *       <Select.Item value="banana">Banana</Select.Item>
  *       <Select.Item value="cherry">Cherry</Select.Item>
  *     </Select.Group>
+ *     <Select.Separator />
  *     <Select.Group>
  *       <Select.Label>Veggies</Select.Label>
  *       <Select.Item value="carrot">Carrot</Select.Item>
@@ -372,8 +417,7 @@ Content.displayName = "SelectContent";
  *     </Select.Group>
  *   </Select.Content>
  * </Select.Root>
- *
- * @see https://mantle.ngrok.com/components/select#selectlabel
+ * ```
  */
 const Label = forwardRef<
 	ComponentRef<typeof SelectPrimitive.Label>,
@@ -381,6 +425,7 @@ const Label = forwardRef<
 >(({ className, ...props }, ref) => (
 	<SelectPrimitive.Label
 		ref={ref}
+		data-slot="select-label"
 		className={cx("px-2 py-1.5 text-sm font-medium", className)}
 		{...props}
 	/>
@@ -396,24 +441,36 @@ type SelectItemProps = ComponentPropsWithoutRef<typeof SelectPrimitive.Item> & {
  * Has a required `value` prop that will be passed to the `onChange` handler of the `Select` component when this item is selected.
  * Displays the children as the option's text.
  *
+ * @see https://mantle.ngrok.com/components/select#selectitem
+ *
  * @example
+ * ```tsx
  * <Select.Root>
  *   <Select.Trigger>
  *     <Select.Value placeholder="Select a fruit" />
  *   </Select.Trigger>
  *   <Select.Content>
- *     <Select.Item value="apple">Apple</Select.Item>
- *     <Select.Item value="banana">Banana</Select.Item>
- *     <Select.Item value="cherry">Cherry</Select.Item>
+ *     <Select.Group>
+ *       <Select.Label>Fruits</Select.Label>
+ *       <Select.Item value="apple">Apple</Select.Item>
+ *       <Select.Item value="banana">Banana</Select.Item>
+ *       <Select.Item value="cherry">Cherry</Select.Item>
+ *     </Select.Group>
+ *     <Select.Separator />
+ *     <Select.Group>
+ *       <Select.Label>Veggies</Select.Label>
+ *       <Select.Item value="carrot">Carrot</Select.Item>
+ *       <Select.Item value="cucumber">Cucumber</Select.Item>
+ *     </Select.Group>
  *   </Select.Content>
  * </Select.Root>
- *
- * @see https://mantle.ngrok.com/components/select#selectitem
+ * ```
  */
 const Item = forwardRef<ComponentRef<typeof SelectPrimitive.Item>, SelectItemProps>(
 	({ className, children, icon, ...props }, ref) => (
 		<SelectPrimitive.Item
 			ref={ref}
+			data-slot="select-item"
 			className={cx(
 				"relative flex gap-2 w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-8 text-strong text-sm outline-hidden",
 				"focus:bg-active-menu-item",
@@ -437,7 +494,10 @@ Item.displayName = "SelectItem";
 /**
  * Used to visually separate items or groups of items in the select content.
  *
+ * @see https://mantle.ngrok.com/components/select#selectseparator
+ *
  * @example
+ * ```tsx
  * <Select.Root>
  *   <Select.Trigger>
  *     <Select.Value placeholder="Select a fruit" />
@@ -457,14 +517,18 @@ Item.displayName = "SelectItem";
  *     </Select.Group>
  *   </Select.Content>
  * </Select.Root>
- *
- * @see https://mantle.ngrok.com/components/select#selectseparator
+ * ```
  */
 const SelectSeparatorComponent = forwardRef<
 	ComponentRef<typeof Separator>,
 	ComponentPropsWithoutRef<typeof Separator>
 >(({ className, ...props }, ref) => (
-	<Separator ref={ref} className={cx("-mx-1 my-1 h-px w-auto", className)} {...props} />
+	<Separator
+		ref={ref}
+		data-slot="select-separator"
+		className={cx("-mx-1 my-1 h-px w-auto", className)}
+		{...props}
+	/>
 ));
 SelectSeparatorComponent.displayName = "SelectSeparator";
 
@@ -472,6 +536,19 @@ SelectSeparatorComponent.displayName = "SelectSeparator";
  * Displays a list of options for the user to pick from—triggered by a button.
  *
  * @see https://mantle.ngrok.com/components/select
+ *
+ * @example
+ * Composition:
+ * ```
+ * Select.Root
+ * ├── Select.Trigger
+ * │   └── Select.Value
+ * └── Select.Content
+ *     ├── Select.Group
+ *     │   ├── Select.Label
+ *     │   └── Select.Item
+ *     └── Select.Separator
+ * ```
  *
  * @example
  * ```tsx
@@ -533,97 +610,7 @@ const Select = {
 	 * @see https://mantle.ngrok.com/components/select#selectcontent
 	 *
 	 * @example
-	 * <Select.Root>
-	 *   <Select.Trigger>
-	 *     <Select.Value placeholder="Select a fruit" />
-	 *   </Select.Trigger>
-	 *   <Select.Content>
-	 *     <Select.Item value="apple">Apple</Select.Item>
-	 *     <Select.Item value="banana">Banana</Select.Item>
-	 *     <Select.Item value="cherry">Cherry</Select.Item>
-	 *   </Select.Content>
-	 * </Select.Root>
-	 */
-	Content,
-	/**
-	 * A group of related options within a select menu. Similar to an html `<optgroup>` element.
-	 * Use in conjunction with Select.Label to ensure good accessibility via automatic labelling.
-	 *
-	 * @see https://mantle.ngrok.com/components/select#selectgroup
-	 *
-	 * @example
-	 * <Select.Root>
-	 *   <Select.Trigger>
-	 *     <Select.Value placeholder="Select a fruit" />
-	 *   </Select.Trigger>
-	 *   <Select.Content>
-	 *     <Select.Group>
-	 *       <Select.Label>Fruits</Select.Label>
-	 *       <Select.Item value="apple">Apple</Select.Item>
-	 *       <Select.Item value="banana">Banana</Select.Item>
-	 *       <Select.Item value="cherry">Cherry</Select.Item>
-	 *     </Select.Group>
-	 *     <Select.Group>
-	 *       <Select.Label>Veggies</Select.Label>
-	 *       <Select.Item value="carrot">Carrot</Select.Item>
-	 *       <Select.Item value="cucumber">Cucumber</Select.Item>
-	 *     </Select.Group>
-	 *   </Select.Content>
-	 * </Select.Root>
-	 */
-	Group,
-	/**
-	 * An option within a select menu. Similar to an html `<option>` element.
-	 * Has a required `value` prop that will be passed to the `onChange` handler of the `Select` component when this item is selected.
-	 * Displays the children as the option's text.
-	 *
-	 * @see https://mantle.ngrok.com/components/select#selectitem
-	 *
-	 * @example
-	 * <Select.Root>
-	 *   <Select.Trigger>
-	 *     <Select.Value placeholder="Select a fruit" />
-	 *   </Select.Trigger>
-	 *   <Select.Content>
-	 *     <Select.Item value="apple">Apple</Select.Item>
-	 *     <Select.Item value="banana">Banana</Select.Item>
-	 *     <Select.Item value="cherry">Cherry</Select.Item>
-	 *   </Select.Content>
-	 * </Select.Root>
-	 */
-	Item,
-	/**
-	 * Used to render the label of a group. It won't be focusable using arrow keys.
-	 *
-	 * @see https://mantle.ngrok.com/components/select#selectlabel
-	 *
-	 * @example
-	 * <Select.Root>
-	 *   <Select.Trigger>
-	 *     <Select.Value placeholder="Select a fruit" />
-	 *   </Select.Trigger>
-	 *   <Select.Content>
-	 *     <Select.Group>
-	 *       <Select.Label>Fruits</Select.Label>
-	 *       <Select.Item value="apple">Apple</Select.Item>
-	 *       <Select.Item value="banana">Banana</Select.Item>
-	 *       <Select.Item value="cherry">Cherry</Select.Item>
-	 *     </Select.Group>
-	 *     <Select.Group>
-	 *       <Select.Label>Veggies</Select.Label>
-	 *       <Select.Item value="carrot">Carrot</Select.Item>
-	 *       <Select.Item value="cucumber">Cucumber</Select.Item>
-	 *     </Select.Group>
-	 *   </Select.Content>
-	 * </Select.Root>
-	 */
-	Label,
-	/**
-	 * Used to visually separate items or groups of items in the select content.
-	 *
-	 * @see https://mantle.ngrok.com/components/select#selectseparator
-	 *
-	 * @example
+	 * ```tsx
 	 * <Select.Root>
 	 *   <Select.Trigger>
 	 *     <Select.Value placeholder="Select a fruit" />
@@ -643,6 +630,126 @@ const Select = {
 	 *     </Select.Group>
 	 *   </Select.Content>
 	 * </Select.Root>
+	 * ```
+	 */
+	Content,
+	/**
+	 * A group of related options within a select menu. Similar to an html `<optgroup>` element.
+	 * Use in conjunction with Select.Label to ensure good accessibility via automatic labelling.
+	 *
+	 * @see https://mantle.ngrok.com/components/select#selectgroup
+	 *
+	 * @example
+	 * ```tsx
+	 * <Select.Root>
+	 *   <Select.Trigger>
+	 *     <Select.Value placeholder="Select a fruit" />
+	 *   </Select.Trigger>
+	 *   <Select.Content>
+	 *     <Select.Group>
+	 *       <Select.Label>Fruits</Select.Label>
+	 *       <Select.Item value="apple">Apple</Select.Item>
+	 *       <Select.Item value="banana">Banana</Select.Item>
+	 *       <Select.Item value="cherry">Cherry</Select.Item>
+	 *     </Select.Group>
+	 *     <Select.Separator />
+	 *     <Select.Group>
+	 *       <Select.Label>Veggies</Select.Label>
+	 *       <Select.Item value="carrot">Carrot</Select.Item>
+	 *       <Select.Item value="cucumber">Cucumber</Select.Item>
+	 *     </Select.Group>
+	 *   </Select.Content>
+	 * </Select.Root>
+	 * ```
+	 */
+	Group,
+	/**
+	 * An option within a select menu. Similar to an html `<option>` element.
+	 * Has a required `value` prop that will be passed to the `onChange` handler of the `Select` component when this item is selected.
+	 * Displays the children as the option's text.
+	 *
+	 * @see https://mantle.ngrok.com/components/select#selectitem
+	 *
+	 * @example
+	 * ```tsx
+	 * <Select.Root>
+	 *   <Select.Trigger>
+	 *     <Select.Value placeholder="Select a fruit" />
+	 *   </Select.Trigger>
+	 *   <Select.Content>
+	 *     <Select.Group>
+	 *       <Select.Label>Fruits</Select.Label>
+	 *       <Select.Item value="apple">Apple</Select.Item>
+	 *       <Select.Item value="banana">Banana</Select.Item>
+	 *       <Select.Item value="cherry">Cherry</Select.Item>
+	 *     </Select.Group>
+	 *     <Select.Separator />
+	 *     <Select.Group>
+	 *       <Select.Label>Veggies</Select.Label>
+	 *       <Select.Item value="carrot">Carrot</Select.Item>
+	 *       <Select.Item value="cucumber">Cucumber</Select.Item>
+	 *     </Select.Group>
+	 *   </Select.Content>
+	 * </Select.Root>
+	 * ```
+	 */
+	Item,
+	/**
+	 * Used to render the label of a group. It won't be focusable using arrow keys.
+	 *
+	 * @see https://mantle.ngrok.com/components/select#selectlabel
+	 *
+	 * @example
+	 * ```tsx
+	 * <Select.Root>
+	 *   <Select.Trigger>
+	 *     <Select.Value placeholder="Select a fruit" />
+	 *   </Select.Trigger>
+	 *   <Select.Content>
+	 *     <Select.Group>
+	 *       <Select.Label>Fruits</Select.Label>
+	 *       <Select.Item value="apple">Apple</Select.Item>
+	 *       <Select.Item value="banana">Banana</Select.Item>
+	 *       <Select.Item value="cherry">Cherry</Select.Item>
+	 *     </Select.Group>
+	 *     <Select.Separator />
+	 *     <Select.Group>
+	 *       <Select.Label>Veggies</Select.Label>
+	 *       <Select.Item value="carrot">Carrot</Select.Item>
+	 *       <Select.Item value="cucumber">Cucumber</Select.Item>
+	 *     </Select.Group>
+	 *   </Select.Content>
+	 * </Select.Root>
+	 * ```
+	 */
+	Label,
+	/**
+	 * Used to visually separate items or groups of items in the select content.
+	 *
+	 * @see https://mantle.ngrok.com/components/select#selectseparator
+	 *
+	 * @example
+	 * ```tsx
+	 * <Select.Root>
+	 *   <Select.Trigger>
+	 *     <Select.Value placeholder="Select a fruit" />
+	 *   </Select.Trigger>
+	 *   <Select.Content>
+	 *     <Select.Group>
+	 *       <Select.Label>Fruits</Select.Label>
+	 *       <Select.Item value="apple">Apple</Select.Item>
+	 *       <Select.Item value="banana">Banana</Select.Item>
+	 *       <Select.Item value="cherry">Cherry</Select.Item>
+	 *     </Select.Group>
+	 *     <Select.Separator />
+	 *     <Select.Group>
+	 *       <Select.Label>Veggies</Select.Label>
+	 *       <Select.Item value="carrot">Carrot</Select.Item>
+	 *       <Select.Item value="cucumber">Cucumber</Select.Item>
+	 *     </Select.Group>
+	 *   </Select.Content>
+	 * </Select.Root>
+	 * ```
 	 */
 	Separator: SelectSeparatorComponent,
 	/**
@@ -657,9 +764,18 @@ const Select = {
 	 *     <Select.Value placeholder="Select a fruit" />
 	 *   </Select.Trigger>
 	 *   <Select.Content>
-	 *     <Select.Item value="apple">Apple</Select.Item>
-	 *     <Select.Item value="banana">Banana</Select.Item>
-	 *     <Select.Item value="cherry">Cherry</Select.Item>
+	 *     <Select.Group>
+	 *       <Select.Label>Fruits</Select.Label>
+	 *       <Select.Item value="apple">Apple</Select.Item>
+	 *       <Select.Item value="banana">Banana</Select.Item>
+	 *       <Select.Item value="cherry">Cherry</Select.Item>
+	 *     </Select.Group>
+	 *     <Select.Separator />
+	 *     <Select.Group>
+	 *       <Select.Label>Veggies</Select.Label>
+	 *       <Select.Item value="carrot">Carrot</Select.Item>
+	 *       <Select.Item value="cucumber">Cucumber</Select.Item>
+	 *     </Select.Group>
 	 *   </Select.Content>
 	 * </Select.Root>
 	 * ```
@@ -671,16 +787,27 @@ const Select = {
 	 * @see https://mantle.ngrok.com/components/select#selectvalue
 	 *
 	 * @example
+	 * ```tsx
 	 * <Select.Root>
 	 *   <Select.Trigger>
 	 *     <Select.Value placeholder="Select a fruit" />
 	 *   </Select.Trigger>
 	 *   <Select.Content>
-	 *     <Select.Item value="apple">Apple</Select.Item>
-	 *     <Select.Item value="banana">Banana</Select.Item>
-	 *     <Select.Item value="cherry">Cherry</Select.Item>
+	 *     <Select.Group>
+	 *       <Select.Label>Fruits</Select.Label>
+	 *       <Select.Item value="apple">Apple</Select.Item>
+	 *       <Select.Item value="banana">Banana</Select.Item>
+	 *       <Select.Item value="cherry">Cherry</Select.Item>
+	 *     </Select.Group>
+	 *     <Select.Separator />
+	 *     <Select.Group>
+	 *       <Select.Label>Veggies</Select.Label>
+	 *       <Select.Item value="carrot">Carrot</Select.Item>
+	 *       <Select.Item value="cucumber">Cucumber</Select.Item>
+	 *     </Select.Group>
 	 *   </Select.Content>
 	 * </Select.Root>
+	 * ```
 	 */
 	Value,
 } as const;

@@ -1,6 +1,6 @@
 {
   "name": "@ngrok/mantle-vite-plugins",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "description": "Vite plugins for @ngrok/mantle.",
   "homepage": "https://mantle.ngrok.com",
   "license": "MIT",
@@ -32,7 +32,7 @@
   "dependencies": {
     "@ngrok/mantle-server-syntax-highlighter": "workspace:*",
     "magic-string": "0.30.21",
-    "oxc-parser": "0.124.0"
+    "oxc-parser": "0.126.0"
   },
   "devDependencies": {
     "@cfg/tsconfig": "workspace:*",

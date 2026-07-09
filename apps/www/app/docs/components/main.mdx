@@ -1,0 +1,38 @@
+---
+title: Main
+description: A focusable `<main>` landmark for the page's primary content, designed to be paired with a skip link.
+---
+
+import { Main } from "@ngrok/mantle/main";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { Example } from "~/components/example";
+
+# Main
+
+A focusable `<main>` landmark for the page's primary content. Renders with `id="main"` and `tabIndex={-1}` so a skip link (or any programmatic focus call) can send keyboard users directly to the main content without exposing a visible focus ring on the region itself.
+
+Pair with the [`SkipToMainLink`](/components/skip-to-main-link) component at the top of the document.
+
+<Example className="flex-col gap-4">
+	<Main>
+		<h1 className="text-lg font-medium">Page title</h1>
+		<p className="text-sm text-muted">Primary page content goes here.</p>
+	</Main>
+</Example>
+
+```tsx
+import { Main } from "@ngrok/mantle/main";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+
+<SkipToMainLink />
+<Header />
+<Main>
+	<h1>Page title</h1>
+</Main>
+```
+
+## API Reference
+
+### Main
+
+Renders a `<main>` element with `id="main"`, `tabIndex={-1}`, and `focus:outline-hidden`. Accepts all standard `<main>` HTML attributes. Additional class names passed via `className` are merged with the defaults.

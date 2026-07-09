@@ -1021,6 +1021,23 @@ ContentFooter.displayName = "MultiSelectContentFooter";
  * @see https://ariakit.org/components/combobox
  *
  * @example
+ * Composition:
+ * ```
+ * MultiSelect.Root
+ * ├── MultiSelect.Trigger
+ * │   ├── MultiSelect.TagValues
+ * │   └── MultiSelect.Input
+ * └── MultiSelect.Content
+ *     ├── MultiSelect.Group
+ *     │   ├── MultiSelect.GroupLabel
+ *     │   ├── MultiSelect.GroupDescription
+ *     │   └── MultiSelect.Item
+ *     ├── MultiSelect.Separator
+ *     ├── MultiSelect.Empty
+ *     └── MultiSelect.ContentFooter
+ * ```
+ *
+ * @example
  * ```tsx
  * <MultiSelect.Root>
  *   <MultiSelect.Trigger>

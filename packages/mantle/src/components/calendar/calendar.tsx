@@ -38,6 +38,7 @@ type CalendarProps = ComponentProps<typeof DayPicker>;
 function Calendar({ className, classNames, showOutsideDays = false, ...props }: CalendarProps) {
 	return (
 		<DayPicker
+			data-slot="calendar"
 			animate={false}
 			components={{
 				Chevron: (iconProps) => {

@@ -46,7 +46,7 @@ export function CommandDialogDemo() {
 					J
 				</kbd>
 				or
-				<Button type="button" onClick={toggle}>
+				<Button type="button" appearance="outlined" priority="neutral" onClick={toggle}>
 					Open Command Dialog
 				</Button>
 			</p>

@@ -32,6 +32,7 @@ const SvgOnly = forwardRef<ComponentRef<"svg">, SvgOnlyProps>(
 		);
 
 		return cloneElement(svg, {
+			"data-slot": "svg-only",
 			...props,
 			className: cx(
 				"shrink-0", // the SvgOnly base classes

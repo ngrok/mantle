@@ -26,13 +26,13 @@
     "@changesets/changelog-github": "0.6.0",
     "@changesets/cli": "2.30.0",
     "@types/node": "catalog:",
-    "@typescript/native-preview": "7.0.0-dev.20260409.1",
+    "@typescript/native-preview": "7.0.0-dev.20260416.1",
     "husky": "9.1.7",
     "lint-staged": "16.4.0",
-    "oxfmt": "0.44.0",
-    "oxlint": "1.59.0",
+    "oxfmt": "0.45.0",
+    "oxlint": "1.60.0",
     "tsx": "catalog:",
-    "turbo": "2.9.5",
+    "turbo": "2.9.6",
     "vitest": "4.1.4"
   },
   "engines": {

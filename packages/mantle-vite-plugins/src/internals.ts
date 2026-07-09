@@ -185,7 +185,7 @@ export function writeSourcesToCssFile(
 		// Insert the block immediately after the last @import line so Tailwind
 		// sees the @source directives right alongside the other imports.
 		const lastImportMatch = [...withoutBlock.matchAll(/^@import\s+[^;]+;/gm)].at(-1);
-		if (lastImportMatch?.index !== undefined) {
+		if (lastImportMatch?.index != null) {
 			const insertAt = lastImportMatch.index + lastImportMatch[0].length;
 			const before = withoutBlock.slice(0, insertAt);
 			const after = withoutBlock.slice(insertAt).trimStart();

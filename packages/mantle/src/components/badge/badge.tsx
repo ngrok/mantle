@@ -67,7 +67,7 @@ const Badge = ({
 		const grandchildren = singleChild.props?.children;
 
 		return (
-			<Slot className={badgeClasses} {...props}>
+			<Slot data-slot="badge" className={badgeClasses} {...props}>
 				{cloneElement(
 					singleChild,
 					{},
@@ -81,7 +81,7 @@ const Badge = ({
 	}
 
 	return (
-		<span className={badgeClasses} {...props}>
+		<span data-slot="badge" className={badgeClasses} {...props}>
 			{icon && <SvgOnly className="size-4" svg={icon} />}
 			{children}
 		</span>

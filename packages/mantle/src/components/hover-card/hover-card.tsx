@@ -53,7 +53,12 @@ Root.displayName = "HoverCard";
  * </HoverCard.Root>
  * ```
  */
-const Trigger = HoverCardPrimitive.Trigger;
+const Trigger = forwardRef<
+	ComponentRef<typeof HoverCardPrimitive.Trigger>,
+	ComponentPropsWithoutRef<typeof HoverCardPrimitive.Trigger>
+>((props, ref) => (
+	<HoverCardPrimitive.Trigger ref={ref} data-slot="hover-card-trigger" {...props} />
+));
 Trigger.displayName = "HoverCardTrigger";
 
 /**
@@ -91,6 +96,7 @@ const Content = forwardRef<
 	<Portal>
 		<HoverCardPrimitive.Content
 			ref={ref}
+			data-slot="hover-card-content"
 			align={align}
 			sideOffset={sideOffset}
 			className={cx(
@@ -114,7 +120,23 @@ Content.displayName = HoverCardPrimitive.Content.displayName;
 /**
  * A floating card that appears when a user hovers over a trigger element.
  *
+ * `HoverCard` is intended primarily for sighted users — it is not a
+ * reliably discoverable path for keyboard or screen reader users, since it
+ * opens on pointer hover. Use it for supplemental previews of content that
+ * is already available through another accessible path (typically the
+ * underlying link). Prefer `Popover` when the floating content must be
+ * reachable by all users, or `Tooltip` for short, non-interactive labels on
+ * controls.
+ *
  * @see https://mantle.ngrok.com/components/hover-card
+ *
+ * @example
+ * Composition:
+ * ```
+ * HoverCard.Root
+ * ├── HoverCard.Trigger
+ * └── HoverCard.Content
+ * ```
  *
  * @example
  * ```tsx

@@ -100,6 +100,21 @@ describe("tokenizeMetastring", () => {
 		const tokens = tokenizeMetastring('title="Terminal Example "one"" disableCopy mode="cli"');
 		expect(tokens).toEqual(['title="Terminal Example "one""', "disableCopy", 'mode="cli"']);
 	});
+
+	test("splits on tabs in addition to spaces", () => {
+		const tokens = tokenizeMetastring('title="Tabby"\tcollapsible\tmode="cli"');
+		expect(tokens).toEqual(['title="Tabby"', "collapsible", 'mode="cli"']);
+	});
+
+	test("splits on newlines and carriage returns", () => {
+		const tokens = tokenizeMetastring('title="Hello"\ncollapsible\r\nmode="cli"');
+		expect(tokens).toEqual(['title="Hello"', "collapsible", 'mode="cli"']);
+	});
+
+	test("preserves whitespace inside quoted values", () => {
+		const tokens = tokenizeMetastring('title="Hello\tWorld"');
+		expect(tokens).toEqual(['title="Hello\tWorld"']);
+	});
 });
 
 describe("normalizeValue", () => {

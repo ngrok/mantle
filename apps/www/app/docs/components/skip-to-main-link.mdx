@@ -1,0 +1,44 @@
+---
+title: SkipToMainLink
+description: A visually-hidden-until-focused "skip link" that lets keyboard users jump to the page's main content landmark.
+---
+
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { Main } from "@ngrok/mantle/main";
+import { Example } from "~/components/example";
+
+# SkipToMainLink
+
+A visually-hidden-until-focused "skip link" that lets keyboard users jump past repeated navigation and land directly on the page's main content landmark. When activated, it focuses the element identified by `targetId` (defaulting to `"main"`) without scrolling, and updates the URL hash using the browser History API — so it works in any framework, including React Router, Next.js, or plain HTML.
+
+Pair with the [`Main`](/components/main) component (or any element with a matching `id` and `tabIndex={-1}`) so it can receive focus.
+
+<Example className="flex-col gap-4">
+	<p className="text-sm text-muted">
+		Tab into the example below — the skip link appears fixed to the top-left of the viewport when
+		focused.
+	</p>
+	<SkipToMainLink />
+</Example>
+
+```tsx
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { Main } from "@ngrok/mantle/main";
+
+<SkipToMainLink />
+<Header />
+<Main>
+	<h1>Page title</h1>
+</Main>
+```
+
+## API Reference
+
+### SkipToMainLink
+
+Renders an anchor element that is visually hidden until focused. Accepts all standard `<a>` HTML attributes except `href`, which is derived from `targetId`.
+
+| Prop        | Type        | Default                  | Description                                                                                  |
+| ----------- | ----------- | ------------------------ | -------------------------------------------------------------------------------------------- |
+| `targetId?` | `string`    | `"main"`                 | The `id` of the element to focus when activated. The link's `href` is set to `#${targetId}`. |
+| `children?` | `ReactNode` | `"Skip to main content"` | The label displayed when the link is focused.                                                |

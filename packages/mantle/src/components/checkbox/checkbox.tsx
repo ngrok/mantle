@@ -80,6 +80,7 @@ const Checkbox = forwardRef<ComponentRef<"input">, Props>(
 			<input
 				aria-checked={isIndeterminate(_checked) ? "mixed" : _checked}
 				aria-invalid={ariaInvalid}
+				data-slot="checkbox"
 				className={clsx(
 					"border-form bg-form shrink-0 cursor-pointer select-none appearance-none rounded border disabled:cursor-default disabled:opacity-50",
 					"bg-center bg-no-repeat focus:outline-hidden",

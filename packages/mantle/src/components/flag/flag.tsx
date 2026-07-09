@@ -74,6 +74,7 @@ function Flag({
 
 	return (
 		<div
+			data-slot="flag"
 			className={cx("flag relative overflow-hidden", borderRadius, sizing, className)}
 			{...props}
 		>

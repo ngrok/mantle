@@ -145,6 +145,7 @@ const Content = forwardRef<ComponentRef<"div">, PopoverContentProps>(
 		<PopoverPrimitive.Portal>
 			<PopoverPrimitive.Content
 				align={align}
+				data-slot="popover-content"
 				className={cx(
 					"text-popover-foreground border-popover bg-popover data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 z-50 rounded-md border p-4 shadow-md outline-hidden",
 					preferredWidth,
@@ -170,7 +171,29 @@ Content.displayName = "PopoverContent";
 /**
  * A floating overlay that displays rich content in a portal, triggered by a button.
  *
+ * `Popover` is a non-modal dialog by default: focus moves into the content
+ * when it opens, `Escape` closes and returns focus to the trigger, clicking
+ * outside dismisses, and the page (body and any scroll containers) continues
+ * to scroll normally. Pass `modal` on `Popover.Root` to trap focus inside
+ * the content, block interaction with the rest of the page, and lock body
+ * scroll while the popover is open. Use a `Popover` when the floating
+ * content must be interactive — forms, action menus, filters, settings.
+ * Prefer `Tooltip` for short, non-interactive labels on controls, or
+ * `HoverCard` for a sighted-only preview of content that already lives
+ * behind a link.
+ *
  * @see https://mantle.ngrok.com/components/popover
+ * @see https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/
+ *
+ * @example
+ * Composition:
+ * ```
+ * Popover.Root
+ * ├── Popover.Trigger
+ * ├── Popover.Anchor
+ * └── Popover.Content
+ *     └── Popover.Close
+ * ```
  *
  * @example
  * ```tsx
@@ -217,10 +240,13 @@ const Popover = {
 	 *     <div>Position relative to this element</div>
 	 *   </Popover.Anchor>
 	 *   <Popover.Trigger asChild>
-	 *     <Button type="button">Open Popover</Button>
+	 *     <Button type="button" appearance="outlined">Open Popover</Button>
 	 *   </Popover.Trigger>
 	 *   <Popover.Content>
-	 *     <Text>This popover is positioned relative to the anchor.</Text>
+	 *     <p>This popover is positioned relative to the anchor.</p>
+	 *     <Popover.Close asChild>
+	 *       <Button type="button">Close</Button>
+	 *     </Popover.Close>
 	 *   </Popover.Content>
 	 * </Popover.Root>
 	 * ```

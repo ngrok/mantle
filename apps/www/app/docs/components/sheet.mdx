@@ -17,7 +17,7 @@ export function WithoutTriggerExample() {
 
     return (
     	<>
-    		<Button type="button" onClick={() => setIsOpen(true)}>
+    		<Button type="button" appearance="outlined" priority="neutral" onClick={() => setIsOpen(true)}>
     			Open Sheet
     		</Button>
     		{isOpen && (
@@ -43,7 +43,7 @@ export function WithoutTriggerExample() {
     					</Sheet.Body>
     					<Sheet.Footer>
     						<Sheet.Close asChild>
-    							<Button type="button">Close</Button>
+    							<Button type="button" appearance="outlined" priority="neutral">Close</Button>
     						</Sheet.Close>
     					</Sheet.Footer>
     				</Sheet.Content>
@@ -139,7 +139,9 @@ A container that overlays the current view from the edge of the screen. It is a 
 			</Sheet.Body>
 			<Sheet.Footer>
 				<Sheet.Close asChild>
-					<Button type="button">Close</Button>
+					<Button type="button" appearance="outlined" priority="neutral">
+						Close
+					</Button>
 				</Sheet.Close>
 				<Button type="button" appearance="filled">
 					Save
@@ -195,7 +197,9 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 		</Sheet.Body>
 		<Sheet.Footer>
 			<Sheet.Close asChild>
-				<Button type="button">Close</Button>
+				<Button type="button" appearance="outlined" priority="neutral">
+					Close
+				</Button>
 			</Sheet.Close>
 		</Sheet.Footer>
 	</Sheet.Content>
@@ -244,7 +248,9 @@ export default function Component() {
 				</Sheet.Body>
 				<Sheet.Footer>
 					<Sheet.Close asChild>
-						<Button type="button">Close</Button>
+						<Button type="button" appearance="outlined" priority="neutral">
+							Close
+						</Button>
 					</Sheet.Close>
 				</Sheet.Footer>
 			</Sheet.Content>
@@ -282,7 +288,9 @@ By default, a `Sheet`'s content width is responsive with a default _preferred wi
 			</Sheet.Body>
 			<Sheet.Footer>
 				<Sheet.Close asChild>
-					<Button type="button">Close</Button>
+					<Button type="button" appearance="outlined" priority="neutral">
+						Close
+					</Button>
 				</Sheet.Close>
 				<Button type="button" appearance="filled">
 					Save
@@ -321,7 +329,9 @@ import { Sheet } from "@ngrok/mantle/sheet";
 		</Sheet.Body>
 		<Sheet.Footer>
 			<Sheet.Close asChild>
-				<Button type="button">Close</Button>
+				<Button type="button" appearance="outlined" priority="neutral">
+					Close
+				</Button>
 			</Sheet.Close>
 			<Button type="button" appearance="filled">
 				Save
@@ -329,6 +339,24 @@ import { Sheet } from "@ngrok/mantle/sheet";
 		</Sheet.Footer>
 	</Sheet.Content>
 </Sheet.Root>;
+```
+
+## Composition
+
+Compose the parts of a `Sheet` together to build your own:
+
+```text showLineNumbers=false
+Sheet.Root
+├── Sheet.Trigger
+└── Sheet.Content
+    ├── Sheet.Header
+    │   ├── Sheet.TitleGroup
+    │   │   ├── Sheet.Title
+    │   │   └── Sheet.Actions
+    │   └── Sheet.Description
+    ├── Sheet.Body
+    └── Sheet.Footer
+        └── Sheet.Close
 ```
 
 ## API Reference

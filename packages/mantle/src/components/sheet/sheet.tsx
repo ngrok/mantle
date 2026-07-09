@@ -116,17 +116,29 @@ Root.displayName = "Sheet";
  * ```tsx
  * <Sheet.Root>
  *   <Sheet.Trigger asChild>
- *     <Button type="button" appearance="filled">
- *       Open Sheet
- *     </Button>
+ *     <Button type="button" appearance="filled">Open Sheet</Button>
  *   </Sheet.Trigger>
  *   <Sheet.Content>
- *     <p>
- *       Consequat do voluptate culpa fugiat consequat nostrud duis
- *       aliqua minim. Tempor voluptate cillum elit velit. Voluptate
- *       aliqua ipsum aliqua dolore in nisi ea fugiat aliqua velit
- *       proident amet.
- *     </p>
+ *     <Sheet.Header>
+ *       <Sheet.TitleGroup>
+ *         <Sheet.Title>Are you absolutely sure?</Sheet.Title>
+ *         <Sheet.Actions>
+ *           <Sheet.CloseIconButton />
+ *         </Sheet.Actions>
+ *       </Sheet.TitleGroup>
+ *       <Sheet.Description>
+ *         This action cannot be undone.
+ *       </Sheet.Description>
+ *     </Sheet.Header>
+ *     <Sheet.Body>
+ *       <p>Sheet content.</p>
+ *     </Sheet.Body>
+ *     <Sheet.Footer>
+ *       <Sheet.Close asChild>
+ *         <Button type="button">Close</Button>
+ *       </Sheet.Close>
+ *       <Button type="button" appearance="filled">Save</Button>
+ *     </Sheet.Footer>
  *   </Sheet.Content>
  * </Sheet.Root>
  * ```
@@ -145,21 +157,28 @@ Trigger.displayName = "SheetTrigger";
  * ```tsx
  * <Sheet.Root>
  *   <Sheet.Trigger asChild>
- *     <Button type="button" appearance="filled">
- *       Open Sheet
- *     </Button>
+ *     <Button type="button" appearance="filled">Open Sheet</Button>
  *   </Sheet.Trigger>
  *   <Sheet.Content>
- *     <p>
- *       Consequat do voluptate culpa fugiat consequat nostrud duis
- *       aliqua minim. Tempor voluptate cillum elit velit. Voluptate
- *       aliqua ipsum aliqua dolore in nisi ea fugiat aliqua velit
- *       proident amet.
- *     </p>
+ *     <Sheet.Header>
+ *       <Sheet.TitleGroup>
+ *         <Sheet.Title>Are you absolutely sure?</Sheet.Title>
+ *         <Sheet.Actions>
+ *           <Sheet.CloseIconButton />
+ *         </Sheet.Actions>
+ *       </Sheet.TitleGroup>
+ *       <Sheet.Description>
+ *         This action cannot be undone.
+ *       </Sheet.Description>
+ *     </Sheet.Header>
+ *     <Sheet.Body>
+ *       <p>Sheet content.</p>
+ *     </Sheet.Body>
  *     <Sheet.Footer>
  *       <Sheet.Close asChild>
  *         <Button type="button">Close</Button>
  *       </Sheet.Close>
+ *       <Button type="button" appearance="filled">Save</Button>
  *     </Sheet.Footer>
  *   </Sheet.Content>
  * </Sheet.Root>
@@ -189,6 +208,7 @@ const SheetOverlay = forwardRef<
 	ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
 	<SheetPrimitive.Overlay
+		data-slot="sheet-overlay"
 		className={cx(
 			"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 fixed inset-0 z-40 backdrop-blur-xs",
 			className,
@@ -287,6 +307,7 @@ const Content = forwardRef<ComponentRef<"div">, SheetContentProps>(
 		<SheetPortal>
 			<SheetOverlay />
 			<SheetPrimitive.Content
+				data-slot="sheet-content"
 				data-mantle-modal-content
 				className={cx(SheetVariants({ side }), preferredWidth, className)}
 				ref={ref}
@@ -359,6 +380,7 @@ const CloseIconButton = ({
 }: SheetCloseIconButtonProps) => (
 	<SheetPrimitive.Close asChild>
 		<IconButton
+			data-slot="sheet-close-icon-button"
 			appearance={appearance}
 			icon={<XIcon />}
 			label={label}
@@ -420,7 +442,11 @@ CloseIconButton.displayName = "SheetCloseIconButton";
  * ```
  */
 const Body = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
-	<div className={cx("scrollbar text-body flex-1 overflow-y-auto p-6", className)} {...props} />
+	<div
+		data-slot="sheet-body"
+		className={cx("scrollbar text-body flex-1 overflow-y-auto p-6", className)}
+		{...props}
+	/>
 );
 Body.displayName = "SheetBody";
 
@@ -475,6 +501,7 @@ Body.displayName = "SheetBody";
  */
 const Header = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
 	<div
+		data-slot="sheet-header"
 		className={cx(
 			"border-dialog-muted flex shrink-0 flex-col gap-2 border-b py-4 pl-6 pr-4",
 			"has-[.icon-button]:pr-4", // when there are actions in the header, shorten the padding
@@ -536,6 +563,7 @@ Header.displayName = "SheetHeader";
  */
 const Footer = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
 	<div
+		data-slot="sheet-footer"
 		className={cx(
 			"border-dialog-muted flex shrink-0 justify-end gap-2 border-t px-6 py-2.5",
 			className,
@@ -599,6 +627,7 @@ const Title = forwardRef<
 	ComponentPropsWithoutRef<typeof SheetPrimitive.Title>
 >(({ className, ...props }, ref) => (
 	<SheetPrimitive.Title
+		data-slot="sheet-title"
 		ref={ref}
 		className={cx("text-strong flex-1 truncate text-lg font-medium", className)}
 		{...props}
@@ -656,7 +685,12 @@ Title.displayName = SheetPrimitive.Title.displayName;
  */
 const TitleGroup = forwardRef<ComponentRef<"div">, HTMLAttributes<HTMLDivElement>>(
 	({ children, className, ...props }, ref) => (
-		<div className={cx("flex items-center justify-between gap-2", className)} {...props} ref={ref}>
+		<div
+			data-slot="sheet-title-group"
+			className={cx("flex items-center justify-between gap-2", className)}
+			{...props}
+			ref={ref}
+		>
 			{children}
 		</div>
 	),
@@ -715,7 +749,12 @@ const Description = forwardRef<
 	ComponentRef<typeof SheetPrimitive.Description>,
 	ComponentPropsWithoutRef<typeof SheetPrimitive.Description>
 >(({ className, ...props }, ref) => (
-	<SheetPrimitive.Description ref={ref} className={cx("text-body text-sm", className)} {...props} />
+	<SheetPrimitive.Description
+		data-slot="sheet-description"
+		ref={ref}
+		className={cx("text-body text-sm", className)}
+		{...props}
+	/>
 ));
 Description.displayName = SheetPrimitive.Description.displayName;
 
@@ -769,7 +808,12 @@ Description.displayName = SheetPrimitive.Description.displayName;
  */
 const Actions = forwardRef<ComponentRef<"div">, HTMLAttributes<HTMLDivElement>>(
 	({ children, className, ...props }, ref) => (
-		<div className={cx("flex h-full items-center gap-2", className)} {...props} ref={ref}>
+		<div
+			data-slot="sheet-actions"
+			className={cx("flex h-full items-center gap-2", className)}
+			{...props}
+			ref={ref}
+		>
 			{children}
 		</div>
 	),
@@ -782,6 +826,22 @@ Actions.displayName = "SheetActions";
  * contextual information of the view beneath it.
  *
  * @see https://mantle.ngrok.com/components/sheet
+ *
+ * @example
+ * Composition:
+ * ```
+ * Sheet.Root
+ * ├── Sheet.Trigger
+ * └── Sheet.Content
+ *     ├── Sheet.Header
+ *     │   ├── Sheet.TitleGroup
+ *     │   │   ├── Sheet.Title
+ *     │   │   └── Sheet.Actions
+ *     │   └── Sheet.Description
+ *     ├── Sheet.Body
+ *     └── Sheet.Footer
+ *         └── Sheet.Close
+ * ```
  *
  * @example
  * ```tsx
@@ -883,12 +943,9 @@ const Sheet = {
 	 *
 	 * @example
 	 * ```tsx
-	 * // Triggering a stateful sheet
 	 * <Sheet.Root>
 	 *   <Sheet.Trigger asChild>
-	 *     <Button type="button" appearance="filled">
-	 *       Open Sheet
-	 *     </Button>
+	 *     <Button type="button" appearance="filled">Open Sheet</Button>
 	 *   </Sheet.Trigger>
 	 *   <Sheet.Content>
 	 *     <Sheet.Header>
@@ -898,7 +955,19 @@ const Sheet = {
 	 *           <Sheet.CloseIconButton />
 	 *         </Sheet.Actions>
 	 *       </Sheet.TitleGroup>
+	 *       <Sheet.Description>
+	 *         This action cannot be undone.
+	 *       </Sheet.Description>
 	 *     </Sheet.Header>
+	 *     <Sheet.Body>
+	 *       <p>Sheet content.</p>
+	 *     </Sheet.Body>
+	 *     <Sheet.Footer>
+	 *       <Sheet.Close asChild>
+	 *         <Button type="button">Close</Button>
+	 *       </Sheet.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Sheet.Footer>
 	 *   </Sheet.Content>
 	 * </Sheet.Root>
 	 * ```
@@ -911,12 +980,33 @@ const Sheet = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Sheet.TitleGroup>
-	 *   <Sheet.Title>Are you absolutely sure?</Sheet.Title>
-	 *   <Sheet.Actions>
-	 *     <Sheet.CloseIconButton />
-	 *   </Sheet.Actions>
-	 * </Sheet.TitleGroup>
+	 * <Sheet.Root>
+	 *   <Sheet.Trigger asChild>
+	 *     <Button type="button" appearance="filled">Open Sheet</Button>
+	 *   </Sheet.Trigger>
+	 *   <Sheet.Content>
+	 *     <Sheet.Header>
+	 *       <Sheet.TitleGroup>
+	 *         <Sheet.Title>Are you absolutely sure?</Sheet.Title>
+	 *         <Sheet.Actions>
+	 *           <Sheet.CloseIconButton />
+	 *         </Sheet.Actions>
+	 *       </Sheet.TitleGroup>
+	 *       <Sheet.Description>
+	 *         This action cannot be undone.
+	 *       </Sheet.Description>
+	 *     </Sheet.Header>
+	 *     <Sheet.Body>
+	 *       <p>Sheet content.</p>
+	 *     </Sheet.Body>
+	 *     <Sheet.Footer>
+	 *       <Sheet.Close asChild>
+	 *         <Button type="button">Close</Button>
+	 *       </Sheet.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Sheet.Footer>
+	 *   </Sheet.Content>
+	 * </Sheet.Root>
 	 * ```
 	 */
 	Actions,
@@ -928,19 +1018,33 @@ const Sheet = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Sheet.Content>
-	 *   <Sheet.Header>
-	 *     <Sheet.TitleGroup>
-	 *       <Sheet.Title>Sheet Title</Sheet.Title>
-	 *       <Sheet.Actions>
-	 *         <Sheet.CloseIconButton />
-	 *       </Sheet.Actions>
-	 *     </Sheet.TitleGroup>
-	 *   </Sheet.Header>
-	 *   <Sheet.Body>
-	 *     <p>This is the sheet content.</p>
-	 *   </Sheet.Body>
-	 * </Sheet.Content>
+	 * <Sheet.Root>
+	 *   <Sheet.Trigger asChild>
+	 *     <Button type="button" appearance="filled">Open Sheet</Button>
+	 *   </Sheet.Trigger>
+	 *   <Sheet.Content>
+	 *     <Sheet.Header>
+	 *       <Sheet.TitleGroup>
+	 *         <Sheet.Title>Are you absolutely sure?</Sheet.Title>
+	 *         <Sheet.Actions>
+	 *           <Sheet.CloseIconButton />
+	 *         </Sheet.Actions>
+	 *       </Sheet.TitleGroup>
+	 *       <Sheet.Description>
+	 *         This action cannot be undone.
+	 *       </Sheet.Description>
+	 *     </Sheet.Header>
+	 *     <Sheet.Body>
+	 *       <p>Sheet content.</p>
+	 *     </Sheet.Body>
+	 *     <Sheet.Footer>
+	 *       <Sheet.Close asChild>
+	 *         <Button type="button">Close</Button>
+	 *       </Sheet.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Sheet.Footer>
+	 *   </Sheet.Content>
+	 * </Sheet.Root>
 	 * ```
 	 */
 	Body,
@@ -953,11 +1057,33 @@ const Sheet = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Sheet.Footer>
-	 *   <Sheet.Close asChild>
-	 *     <Button type="button">Close</Button>
-	 *   </Sheet.Close>
-	 * </Sheet.Footer>
+	 * <Sheet.Root>
+	 *   <Sheet.Trigger asChild>
+	 *     <Button type="button" appearance="filled">Open Sheet</Button>
+	 *   </Sheet.Trigger>
+	 *   <Sheet.Content>
+	 *     <Sheet.Header>
+	 *       <Sheet.TitleGroup>
+	 *         <Sheet.Title>Are you absolutely sure?</Sheet.Title>
+	 *         <Sheet.Actions>
+	 *           <Sheet.CloseIconButton />
+	 *         </Sheet.Actions>
+	 *       </Sheet.TitleGroup>
+	 *       <Sheet.Description>
+	 *         This action cannot be undone.
+	 *       </Sheet.Description>
+	 *     </Sheet.Header>
+	 *     <Sheet.Body>
+	 *       <p>Sheet content.</p>
+	 *     </Sheet.Body>
+	 *     <Sheet.Footer>
+	 *       <Sheet.Close asChild>
+	 *         <Button type="button">Close</Button>
+	 *       </Sheet.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Sheet.Footer>
+	 *   </Sheet.Content>
+	 * </Sheet.Root>
 	 * ```
 	 */
 	Close,
@@ -969,14 +1095,33 @@ const Sheet = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Sheet.Header>
-	 *   <Sheet.TitleGroup>
-	 *     <Sheet.Title>Sheet Title</Sheet.Title>
-	 *     <Sheet.Actions>
-	 *       <Sheet.CloseIconButton />
-	 *     </Sheet.Actions>
-	 *   </Sheet.TitleGroup>
-	 * </Sheet.Header>
+	 * <Sheet.Root>
+	 *   <Sheet.Trigger asChild>
+	 *     <Button type="button" appearance="filled">Open Sheet</Button>
+	 *   </Sheet.Trigger>
+	 *   <Sheet.Content>
+	 *     <Sheet.Header>
+	 *       <Sheet.TitleGroup>
+	 *         <Sheet.Title>Are you absolutely sure?</Sheet.Title>
+	 *         <Sheet.Actions>
+	 *           <Sheet.CloseIconButton />
+	 *         </Sheet.Actions>
+	 *       </Sheet.TitleGroup>
+	 *       <Sheet.Description>
+	 *         This action cannot be undone.
+	 *       </Sheet.Description>
+	 *     </Sheet.Header>
+	 *     <Sheet.Body>
+	 *       <p>Sheet content.</p>
+	 *     </Sheet.Body>
+	 *     <Sheet.Footer>
+	 *       <Sheet.Close asChild>
+	 *         <Button type="button">Close</Button>
+	 *       </Sheet.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Sheet.Footer>
+	 *   </Sheet.Content>
+	 * </Sheet.Root>
 	 * ```
 	 */
 	CloseIconButton,
@@ -991,22 +1136,29 @@ const Sheet = {
 	 * ```tsx
 	 * <Sheet.Root>
 	 *   <Sheet.Trigger asChild>
-	 *     <Button type="button" appearance="filled">
-	 *       Open Sheet
-	 *     </Button>
+	 *     <Button type="button" appearance="filled">Open Sheet</Button>
 	 *   </Sheet.Trigger>
 	 *   <Sheet.Content>
 	 *     <Sheet.Header>
 	 *       <Sheet.TitleGroup>
-	 *         <Sheet.Title>Sheet Title</Sheet.Title>
+	 *         <Sheet.Title>Are you absolutely sure?</Sheet.Title>
 	 *         <Sheet.Actions>
 	 *           <Sheet.CloseIconButton />
 	 *         </Sheet.Actions>
 	 *       </Sheet.TitleGroup>
+	 *       <Sheet.Description>
+	 *         This action cannot be undone.
+	 *       </Sheet.Description>
 	 *     </Sheet.Header>
 	 *     <Sheet.Body>
-	 *       <p>This is the sheet content.</p>
+	 *       <p>Sheet content.</p>
 	 *     </Sheet.Body>
+	 *     <Sheet.Footer>
+	 *       <Sheet.Close asChild>
+	 *         <Button type="button">Close</Button>
+	 *       </Sheet.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Sheet.Footer>
 	 *   </Sheet.Content>
 	 * </Sheet.Root>
 	 * ```
@@ -1019,17 +1171,33 @@ const Sheet = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Sheet.Header>
-	 *   <Sheet.TitleGroup>
-	 *     <Sheet.Title>Sheet Title</Sheet.Title>
-	 *     <Sheet.Actions>
-	 *       <Sheet.CloseIconButton />
-	 *     </Sheet.Actions>
-	 *   </Sheet.TitleGroup>
-	 *   <Sheet.Description>
-	 *     This action cannot be undone.
-	 *   </Sheet.Description>
-	 * </Sheet.Header>
+	 * <Sheet.Root>
+	 *   <Sheet.Trigger asChild>
+	 *     <Button type="button" appearance="filled">Open Sheet</Button>
+	 *   </Sheet.Trigger>
+	 *   <Sheet.Content>
+	 *     <Sheet.Header>
+	 *       <Sheet.TitleGroup>
+	 *         <Sheet.Title>Are you absolutely sure?</Sheet.Title>
+	 *         <Sheet.Actions>
+	 *           <Sheet.CloseIconButton />
+	 *         </Sheet.Actions>
+	 *       </Sheet.TitleGroup>
+	 *       <Sheet.Description>
+	 *         This action cannot be undone.
+	 *       </Sheet.Description>
+	 *     </Sheet.Header>
+	 *     <Sheet.Body>
+	 *       <p>Sheet content.</p>
+	 *     </Sheet.Body>
+	 *     <Sheet.Footer>
+	 *       <Sheet.Close asChild>
+	 *         <Button type="button">Close</Button>
+	 *       </Sheet.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Sheet.Footer>
+	 *   </Sheet.Content>
+	 * </Sheet.Root>
 	 * ```
 	 */
 	Description,
@@ -1041,27 +1209,33 @@ const Sheet = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Sheet.Content>
-	 *   <Sheet.Header>
-	 *     <Sheet.TitleGroup>
-	 *       <Sheet.Title>Sheet Title</Sheet.Title>
-	 *       <Sheet.Actions>
-	 *         <Sheet.CloseIconButton />
-	 *       </Sheet.Actions>
-	 *     </Sheet.TitleGroup>
-	 *   </Sheet.Header>
-	 *   <Sheet.Body>
-	 *     <p>This is the sheet content.</p>
-	 *   </Sheet.Body>
-	 *   <Sheet.Footer>
-	 *     <Sheet.Close asChild>
-	 *       <Button type="button">Close</Button>
-	 *     </Sheet.Close>
-	 *     <Button type="button" appearance="filled">
-	 *       Save
-	 *     </Button>
-	 *   </Sheet.Footer>
-	 * </Sheet.Content>
+	 * <Sheet.Root>
+	 *   <Sheet.Trigger asChild>
+	 *     <Button type="button" appearance="filled">Open Sheet</Button>
+	 *   </Sheet.Trigger>
+	 *   <Sheet.Content>
+	 *     <Sheet.Header>
+	 *       <Sheet.TitleGroup>
+	 *         <Sheet.Title>Are you absolutely sure?</Sheet.Title>
+	 *         <Sheet.Actions>
+	 *           <Sheet.CloseIconButton />
+	 *         </Sheet.Actions>
+	 *       </Sheet.TitleGroup>
+	 *       <Sheet.Description>
+	 *         This action cannot be undone.
+	 *       </Sheet.Description>
+	 *     </Sheet.Header>
+	 *     <Sheet.Body>
+	 *       <p>Sheet content.</p>
+	 *     </Sheet.Body>
+	 *     <Sheet.Footer>
+	 *       <Sheet.Close asChild>
+	 *         <Button type="button">Close</Button>
+	 *       </Sheet.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Sheet.Footer>
+	 *   </Sheet.Content>
+	 * </Sheet.Root>
 	 * ```
 	 */
 	Footer,
@@ -1073,19 +1247,33 @@ const Sheet = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Sheet.Content>
-	 *   <Sheet.Header>
-	 *     <Sheet.TitleGroup>
-	 *       <Sheet.Title>Sheet Title</Sheet.Title>
-	 *       <Sheet.Actions>
-	 *         <Sheet.CloseIconButton />
-	 *       </Sheet.Actions>
-	 *     </Sheet.TitleGroup>
-	 *     <Sheet.Description>
-	 *       This action cannot be undone.
-	 *     </Sheet.Description>
-	 *   </Sheet.Header>
-	 * </Sheet.Content>
+	 * <Sheet.Root>
+	 *   <Sheet.Trigger asChild>
+	 *     <Button type="button" appearance="filled">Open Sheet</Button>
+	 *   </Sheet.Trigger>
+	 *   <Sheet.Content>
+	 *     <Sheet.Header>
+	 *       <Sheet.TitleGroup>
+	 *         <Sheet.Title>Are you absolutely sure?</Sheet.Title>
+	 *         <Sheet.Actions>
+	 *           <Sheet.CloseIconButton />
+	 *         </Sheet.Actions>
+	 *       </Sheet.TitleGroup>
+	 *       <Sheet.Description>
+	 *         This action cannot be undone.
+	 *       </Sheet.Description>
+	 *     </Sheet.Header>
+	 *     <Sheet.Body>
+	 *       <p>Sheet content.</p>
+	 *     </Sheet.Body>
+	 *     <Sheet.Footer>
+	 *       <Sheet.Close asChild>
+	 *         <Button type="button">Close</Button>
+	 *       </Sheet.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Sheet.Footer>
+	 *   </Sheet.Content>
+	 * </Sheet.Root>
 	 * ```
 	 */
 	Header,
@@ -1097,14 +1285,33 @@ const Sheet = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Sheet.Header>
-	 *   <Sheet.TitleGroup>
-	 *     <Sheet.Title>Sheet Title</Sheet.Title>
-	 *     <Sheet.Actions>
-	 *       <Sheet.CloseIconButton />
-	 *     </Sheet.Actions>
-	 *   </Sheet.TitleGroup>
-	 * </Sheet.Header>
+	 * <Sheet.Root>
+	 *   <Sheet.Trigger asChild>
+	 *     <Button type="button" appearance="filled">Open Sheet</Button>
+	 *   </Sheet.Trigger>
+	 *   <Sheet.Content>
+	 *     <Sheet.Header>
+	 *       <Sheet.TitleGroup>
+	 *         <Sheet.Title>Are you absolutely sure?</Sheet.Title>
+	 *         <Sheet.Actions>
+	 *           <Sheet.CloseIconButton />
+	 *         </Sheet.Actions>
+	 *       </Sheet.TitleGroup>
+	 *       <Sheet.Description>
+	 *         This action cannot be undone.
+	 *       </Sheet.Description>
+	 *     </Sheet.Header>
+	 *     <Sheet.Body>
+	 *       <p>Sheet content.</p>
+	 *     </Sheet.Body>
+	 *     <Sheet.Footer>
+	 *       <Sheet.Close asChild>
+	 *         <Button type="button">Close</Button>
+	 *       </Sheet.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Sheet.Footer>
+	 *   </Sheet.Content>
+	 * </Sheet.Root>
 	 * ```
 	 */
 	Title,
@@ -1115,14 +1322,33 @@ const Sheet = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Sheet.Header>
-	 *   <Sheet.TitleGroup>
-	 *     <Sheet.Title>Sheet Title</Sheet.Title>
-	 *     <Sheet.Actions>
-	 *       <Sheet.CloseIconButton />
-	 *     </Sheet.Actions>
-	 *   </Sheet.TitleGroup>
-	 * </Sheet.Header>
+	 * <Sheet.Root>
+	 *   <Sheet.Trigger asChild>
+	 *     <Button type="button" appearance="filled">Open Sheet</Button>
+	 *   </Sheet.Trigger>
+	 *   <Sheet.Content>
+	 *     <Sheet.Header>
+	 *       <Sheet.TitleGroup>
+	 *         <Sheet.Title>Are you absolutely sure?</Sheet.Title>
+	 *         <Sheet.Actions>
+	 *           <Sheet.CloseIconButton />
+	 *         </Sheet.Actions>
+	 *       </Sheet.TitleGroup>
+	 *       <Sheet.Description>
+	 *         This action cannot be undone.
+	 *       </Sheet.Description>
+	 *     </Sheet.Header>
+	 *     <Sheet.Body>
+	 *       <p>Sheet content.</p>
+	 *     </Sheet.Body>
+	 *     <Sheet.Footer>
+	 *       <Sheet.Close asChild>
+	 *         <Button type="button">Close</Button>
+	 *       </Sheet.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Sheet.Footer>
+	 *   </Sheet.Content>
+	 * </Sheet.Root>
 	 * ```
 	 */
 	TitleGroup,
@@ -1136,12 +1362,29 @@ const Sheet = {
 	 * ```tsx
 	 * <Sheet.Root>
 	 *   <Sheet.Trigger asChild>
-	 *     <Button type="button" appearance="filled">
-	 *       Open Sheet
-	 *     </Button>
+	 *     <Button type="button" appearance="filled">Open Sheet</Button>
 	 *   </Sheet.Trigger>
 	 *   <Sheet.Content>
-	 *     <p>This is the sheet content.</p>
+	 *     <Sheet.Header>
+	 *       <Sheet.TitleGroup>
+	 *         <Sheet.Title>Are you absolutely sure?</Sheet.Title>
+	 *         <Sheet.Actions>
+	 *           <Sheet.CloseIconButton />
+	 *         </Sheet.Actions>
+	 *       </Sheet.TitleGroup>
+	 *       <Sheet.Description>
+	 *         This action cannot be undone.
+	 *       </Sheet.Description>
+	 *     </Sheet.Header>
+	 *     <Sheet.Body>
+	 *       <p>Sheet content.</p>
+	 *     </Sheet.Body>
+	 *     <Sheet.Footer>
+	 *       <Sheet.Close asChild>
+	 *         <Button type="button">Close</Button>
+	 *       </Sheet.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Sheet.Footer>
 	 *   </Sheet.Content>
 	 * </Sheet.Root>
 	 * ```

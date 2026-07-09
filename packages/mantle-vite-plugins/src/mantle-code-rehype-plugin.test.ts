@@ -45,7 +45,7 @@ describe("mantleCodeRehypePlugin", () => {
 		await mantleCodeRehypePlugin()(tree);
 
 		const pre = getPreNode(tree);
-		expect(pre.properties.mantleShowLineNumbers).toBe(true);
+		expect(pre.properties.mantleShowLineNumbers).toBe("true");
 		expect(pre.properties.mantlePreHtml).toContain("mantle-code-line-number");
 	});
 
@@ -54,7 +54,7 @@ describe("mantleCodeRehypePlugin", () => {
 		await mantleCodeRehypePlugin()(tree);
 
 		const pre = getPreNode(tree);
-		expect(pre.properties.mantleShowLineNumbers).toBe(false);
+		expect(pre.properties.mantleShowLineNumbers).toBe("false");
 		expect(pre.properties.mantlePreHtml).not.toContain("mantle-code-line-number");
 	});
 
@@ -63,7 +63,7 @@ describe("mantleCodeRehypePlugin", () => {
 		await mantleCodeRehypePlugin()(tree);
 
 		const pre = getPreNode(tree);
-		expect(pre.properties.mantleShowLineNumbers).toBe(false);
+		expect(pre.properties.mantleShowLineNumbers).toBe("false");
 	});
 
 	test("defaults showLineNumbers to false for single-line shell", async () => {
@@ -71,7 +71,7 @@ describe("mantleCodeRehypePlugin", () => {
 		await mantleCodeRehypePlugin()(tree);
 
 		const pre = getPreNode(tree);
-		expect(pre.properties.mantleShowLineNumbers).toBe(false);
+		expect(pre.properties.mantleShowLineNumbers).toBe("false");
 	});
 
 	test("defaults showLineNumbers to true for multi-line bash", async () => {
@@ -79,7 +79,7 @@ describe("mantleCodeRehypePlugin", () => {
 		await mantleCodeRehypePlugin()(tree);
 
 		const pre = getPreNode(tree);
-		expect(pre.properties.mantleShowLineNumbers).toBe(true);
+		expect(pre.properties.mantleShowLineNumbers).toBe("true");
 		expect(pre.properties.mantlePreHtml).toContain("mantle-code-line-number");
 	});
 
@@ -88,7 +88,7 @@ describe("mantleCodeRehypePlugin", () => {
 		await mantleCodeRehypePlugin()(tree);
 
 		const pre = getPreNode(tree);
-		expect(pre.properties.mantleShowLineNumbers).toBe(true);
+		expect(pre.properties.mantleShowLineNumbers).toBe("true");
 		expect(pre.properties.mantlePreHtml).toContain("mantle-code-line-number");
 	});
 
@@ -101,7 +101,7 @@ describe("mantleCodeRehypePlugin", () => {
 		await mantleCodeRehypePlugin()(tree);
 
 		const pre = getPreNode(tree);
-		expect(pre.properties.mantleShowLineNumbers).toBe(false);
+		expect(pre.properties.mantleShowLineNumbers).toBe("false");
 		expect(pre.properties.mantlePreHtml).not.toContain("mantle-code-line-number");
 	});
 
@@ -111,6 +111,83 @@ describe("mantleCodeRehypePlugin", () => {
 		await mantleCodeRehypePlugin()(tree);
 
 		const pre = getPreNode(tree);
-		expect(pre.properties.mantleShowLineNumbers).toBe(true);
+		expect(pre.properties.mantleShowLineNumbers).toBe("true");
+	});
+
+	test("meta collapsible (bare flag) enables collapsible", async () => {
+		const tree = createCodeFenceTree("typescript", "const a = 1;", "collapsible");
+		await mantleCodeRehypePlugin()(tree);
+
+		const pre = getPreNode(tree);
+		expect(pre.properties.mantleCollapsible).toBe("true");
+	});
+
+	test("meta collapsible=true (key=value) enables collapsible", async () => {
+		const tree = createCodeFenceTree("typescript", "const a = 1;", "collapsible=true");
+		await mantleCodeRehypePlugin()(tree);
+
+		const pre = getPreNode(tree);
+		expect(pre.properties.mantleCollapsible).toBe("true");
+	});
+
+	test("meta collapsible=false (key=value) explicitly disables collapsible", async () => {
+		const tree = createCodeFenceTree("typescript", "const a = 1;", "collapsible=false");
+		await mantleCodeRehypePlugin()(tree);
+
+		const pre = getPreNode(tree);
+		expect(pre.properties.mantleCollapsible).toBe("false");
+	});
+
+	test(`meta collapsible="true" (quoted) enables collapsible`, async () => {
+		const tree = createCodeFenceTree("typescript", "const a = 1;", 'collapsible="true"');
+		await mantleCodeRehypePlugin()(tree);
+
+		const pre = getPreNode(tree);
+		expect(pre.properties.mantleCollapsible).toBe("true");
+	});
+
+	test("meta disableCopy (bare flag) disables copy", async () => {
+		const tree = createCodeFenceTree("typescript", "const a = 1;", "disableCopy");
+		await mantleCodeRehypePlugin()(tree);
+
+		const pre = getPreNode(tree);
+		expect(pre.properties.mantleDisableCopy).toBe("true");
+	});
+
+	test("meta disableCopy=false explicitly enables copy", async () => {
+		const tree = createCodeFenceTree("typescript", "const a = 1;", "disableCopy=false");
+		await mantleCodeRehypePlugin()(tree);
+
+		const pre = getPreNode(tree);
+		expect(pre.properties.mantleDisableCopy).toBe("false");
+	});
+
+	test("meta with duplicate title keys uses the last value (matches parseMetastring)", async () => {
+		const tree = createCodeFenceTree("typescript", "const a = 1;", 'title="first" title="second"');
+		await mantleCodeRehypePlugin()(tree);
+
+		const pre = getPreNode(tree);
+		expect(pre.properties.mantleTitle).toBe("second");
+	});
+
+	test("meta with duplicate showLineNumbers keys uses the last value", async () => {
+		const tree = createCodeFenceTree(
+			"typescript",
+			"const a = 1;\nconst b = 2;",
+			"showLineNumbers=true showLineNumbers=false",
+		);
+		await mantleCodeRehypePlugin()(tree);
+
+		const pre = getPreNode(tree);
+		expect(pre.properties.mantleShowLineNumbers).toBe("false");
+	});
+
+	test("meta tokens separated by tabs are parsed as distinct tokens", async () => {
+		const tree = createCodeFenceTree("typescript", "const a = 1;", 'title="Tabby"\tcollapsible');
+		await mantleCodeRehypePlugin()(tree);
+
+		const pre = getPreNode(tree);
+		expect(pre.properties.mantleTitle).toBe("Tabby");
+		expect(pre.properties.mantleCollapsible).toBe("true");
 	});
 });

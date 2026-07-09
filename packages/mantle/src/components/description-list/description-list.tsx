@@ -31,6 +31,7 @@ const Root = forwardRef<ComponentRef<"dl">, DescriptionListProps>(
 		return (
 			<Component
 				ref={ref}
+				data-slot="description-list"
 				className={cx(
 					"relative scrollbar overflow-x-auto overscroll-x-none rounded-lg border border-card grid grid-cols-[auto_1fr] gap-x-4 [&>*:nth-child(odd)]:bg-neutral-500/5 p-1",
 					className,
@@ -68,6 +69,7 @@ const Item = forwardRef<ComponentRef<"div">, DescriptionListItemProps>(
 		return (
 			<Component
 				ref={ref}
+				data-slot="description-list-item"
 				className={cx("rounded-sm col-span-full grid grid-cols-subgrid items-center", className)}
 				{...rest}
 			>
@@ -97,6 +99,7 @@ const Label = forwardRef<ComponentRef<"dt">, DescriptionListLabelProps>(
 		return (
 			<Component
 				ref={ref}
+				data-slot="description-list-label"
 				className={cx("text-muted text-sm font-sans font-medium min-w-36 p-2", className)}
 				{...rest}
 			>
@@ -130,6 +133,7 @@ const Value = forwardRef<ComponentRef<"dd">, DescriptionListValueProps>(
 		return (
 			<Component
 				ref={ref}
+				data-slot="description-list-value"
 				className={cx("text-body font-mono text-mono py-2 px-3", className)}
 				{...rest}
 			>
@@ -151,6 +155,15 @@ Value.displayName = "DescriptionListValue";
  *
  * @see https://mantle.ngrok.com/components/description-list
  * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dl
+ *
+ * @example
+ * Composition:
+ * ```
+ * DescriptionList.Root
+ * └── DescriptionList.Item
+ *     ├── DescriptionList.Label
+ *     └── DescriptionList.Value
+ * ```
  *
  * @example
  * ```tsx

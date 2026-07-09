@@ -105,6 +105,16 @@ MenuItem.displayName = "SplitButtonMenuItem";
  * @see https://mantle.ngrok.com/components/split-button#splitbuttonroot
  *
  * @example
+ * Composition:
+ * ```
+ * SplitButton.Root
+ * ├── SplitButton.PrimaryAction
+ * ├── SplitButton.MenuTrigger
+ * └── SplitButton.MenuContent
+ *     └── SplitButton.MenuItem
+ * ```
+ *
+ * @example
  * ```tsx
  * <SplitButton.Root>
  *   <SplitButton.PrimaryAction icon={<CopyIcon />} onClick={copyMarkdownPage}>

@@ -15,25 +15,22 @@ import * as DialogPrimitive from "./primitive.js";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
- *       Open Dialog
- *     </Button>
+ *     <Button type="button" appearance="outlined">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
  *       <Dialog.Title>Dialog Title</Dialog.Title>
+ *       <Dialog.Description>This is an optional description.</Dialog.Description>
  *       <Dialog.CloseIconButton />
  *     </Dialog.Header>
  *     <Dialog.Body>
  *       <p>This is the dialog content.</p>
  *     </Dialog.Body>
  *     <Dialog.Footer>
- *       <Button type="button" appearance="outlined">
- *         Cancel
- *       </Button>
- *       <Button type="button" appearance="filled">
- *         Save
- *       </Button>
+ *       <Dialog.Close asChild>
+ *         <Button type="button" appearance="outlined">Cancel</Button>
+ *       </Dialog.Close>
+ *       <Button type="button" appearance="filled">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -51,28 +48,40 @@ Root.displayName = "Dialog";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
- *       Open Dialog
- *     </Button>
+ *     <Button type="button" appearance="outlined">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
  *       <Dialog.Title>Dialog Title</Dialog.Title>
+ *       <Dialog.Description>This is an optional description.</Dialog.Description>
+ *       <Dialog.CloseIconButton />
  *     </Dialog.Header>
  *     <Dialog.Body>
  *       <p>This is the dialog content.</p>
  *     </Dialog.Body>
+ *     <Dialog.Footer>
+ *       <Dialog.Close asChild>
+ *         <Button type="button" appearance="outlined">Cancel</Button>
+ *       </Dialog.Close>
+ *       <Button type="button" appearance="filled">Save</Button>
+ *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
  * ```
  */
-const Trigger = DialogPrimitive.Trigger;
+const Trigger = forwardRef<
+	ComponentRef<typeof DialogPrimitive.Trigger>,
+	ComponentPropsWithoutRef<typeof DialogPrimitive.Trigger>
+>((props, ref) => <DialogPrimitive.Trigger ref={ref} data-slot="dialog-trigger" {...props} />);
 Trigger.displayName = "DialogTrigger";
 
 const Portal = DialogPrimitive.Portal;
 Portal.displayName = "DialogPortal";
 
-const Close = DialogPrimitive.Close;
+const Close = forwardRef<
+	ComponentRef<typeof DialogPrimitive.Close>,
+	ComponentPropsWithoutRef<typeof DialogPrimitive.Close>
+>((props, ref) => <DialogPrimitive.Close ref={ref} data-slot="dialog-close" {...props} />);
 Close.displayName = "DialogClose";
 
 const Overlay = forwardRef<
@@ -81,6 +90,7 @@ const Overlay = forwardRef<
 >(({ className, ...props }, ref) => (
 	<DialogPrimitive.Overlay
 		ref={ref}
+		data-slot="dialog-overlay"
 		className={cx(
 			"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 fixed inset-0 z-50 backdrop-blur-xs",
 			className,
@@ -112,25 +122,22 @@ type ContentProps = ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
- *       Open Dialog
- *     </Button>
+ *     <Button type="button" appearance="outlined">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
  *       <Dialog.Title>Dialog Title</Dialog.Title>
+ *       <Dialog.Description>This is an optional description.</Dialog.Description>
  *       <Dialog.CloseIconButton />
  *     </Dialog.Header>
  *     <Dialog.Body>
  *       <p>This is the dialog content.</p>
  *     </Dialog.Body>
  *     <Dialog.Footer>
- *       <Button type="button" appearance="outlined">
- *         Cancel
- *       </Button>
- *       <Button type="button" appearance="filled">
- *         Save
- *       </Button>
+ *       <Dialog.Close asChild>
+ *         <Button type="button" appearance="outlined">Cancel</Button>
+ *       </Dialog.Close>
+ *       <Button type="button" appearance="filled">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -143,6 +150,7 @@ const Content = forwardRef<ComponentRef<"div">, ContentProps>(
 			<div className="fixed inset-4 z-50 flex items-center justify-center">
 				<DialogPrimitive.Content
 					data-mantle-modal-content
+					data-slot="dialog-content"
 					className={cx(
 						"flex max-h-full w-full flex-1 flex-col",
 						"outline-hidden focus-within:outline-hidden",
@@ -171,24 +179,30 @@ Content.displayName = "DialogContent";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
- *       Open Dialog
- *     </Button>
+ *     <Button type="button" appearance="outlined">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
  *       <Dialog.Title>Dialog Title</Dialog.Title>
+ *       <Dialog.Description>This is an optional description.</Dialog.Description>
  *       <Dialog.CloseIconButton />
  *     </Dialog.Header>
  *     <Dialog.Body>
  *       <p>This is the dialog content.</p>
  *     </Dialog.Body>
+ *     <Dialog.Footer>
+ *       <Dialog.Close asChild>
+ *         <Button type="button" appearance="outlined">Cancel</Button>
+ *       </Dialog.Close>
+ *       <Button type="button" appearance="filled">Save</Button>
+ *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
  * ```
  */
 const Header = ({ className, children, ...props }: ComponentProps<"div">) => (
 	<div
+		data-slot="dialog-header"
 		className={cx(
 			"border-dialog-muted text-strong relative flex shrink-0 items-center justify-between gap-2 border-b px-6 py-4",
 			"has-[.icon-button]:pr-4", // when there are actions in the header, shorten the padding
@@ -212,18 +226,23 @@ type CloseIconButtonProps = Partial<Omit<IconButtonProps, "icon">>;
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
- *       Open Dialog
- *     </Button>
+ *     <Button type="button" appearance="outlined">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
  *       <Dialog.Title>Dialog Title</Dialog.Title>
+ *       <Dialog.Description>This is an optional description.</Dialog.Description>
  *       <Dialog.CloseIconButton />
  *     </Dialog.Header>
  *     <Dialog.Body>
  *       <p>This is the dialog content.</p>
  *     </Dialog.Body>
+ *     <Dialog.Footer>
+ *       <Dialog.Close asChild>
+ *         <Button type="button" appearance="outlined">Cancel</Button>
+ *       </Dialog.Close>
+ *       <Button type="button" appearance="filled">Save</Button>
+ *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
  * ```
@@ -238,6 +257,7 @@ const CloseIconButton = ({
 	<DialogPrimitive.Close asChild>
 		<IconButton
 			appearance={appearance}
+			data-slot="dialog-close-icon-button"
 			icon={<XIcon />}
 			label={label}
 			size={size}
@@ -257,23 +277,33 @@ CloseIconButton.displayName = "DialogCloseIconButton";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
- *       Open Dialog
- *     </Button>
+ *     <Button type="button" appearance="outlined">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
  *       <Dialog.Title>Dialog Title</Dialog.Title>
+ *       <Dialog.Description>This is an optional description.</Dialog.Description>
+ *       <Dialog.CloseIconButton />
  *     </Dialog.Header>
  *     <Dialog.Body>
  *       <p>This is the dialog content.</p>
  *     </Dialog.Body>
+ *     <Dialog.Footer>
+ *       <Dialog.Close asChild>
+ *         <Button type="button" appearance="outlined">Cancel</Button>
+ *       </Dialog.Close>
+ *       <Button type="button" appearance="filled">Save</Button>
+ *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
  * ```
  */
 const Body = ({ className, ...props }: ComponentProps<"div">) => (
-	<div className={cx("scrollbar text-body flex-1 overflow-y-auto p-6", className)} {...props} />
+	<div
+		data-slot="dialog-body"
+		className={cx("scrollbar text-body flex-1 overflow-y-auto p-6", className)}
+		{...props}
+	/>
 );
 Body.displayName = "DialogBody";
 
@@ -286,24 +316,22 @@ Body.displayName = "DialogBody";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
- *       Open Dialog
- *     </Button>
+ *     <Button type="button" appearance="outlined">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
  *       <Dialog.Title>Dialog Title</Dialog.Title>
+ *       <Dialog.Description>This is an optional description.</Dialog.Description>
+ *       <Dialog.CloseIconButton />
  *     </Dialog.Header>
  *     <Dialog.Body>
  *       <p>This is the dialog content.</p>
  *     </Dialog.Body>
  *     <Dialog.Footer>
- *       <Button type="button" appearance="outlined">
- *         Cancel
- *       </Button>
- *       <Button type="button" appearance="filled">
- *         Save
- *       </Button>
+ *       <Dialog.Close asChild>
+ *         <Button type="button" appearance="outlined">Cancel</Button>
+ *       </Dialog.Close>
+ *       <Button type="button" appearance="filled">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -311,6 +339,7 @@ Body.displayName = "DialogBody";
  */
 const Footer = ({ className, ...props }: ComponentProps<"div">) => (
 	<div
+		data-slot="dialog-footer"
 		className={cx(
 			"border-dialog-muted flex shrink-0 flex-row-reverse gap-2 border-t px-6 py-4",
 			className,
@@ -329,18 +358,23 @@ Footer.displayName = "DialogFooter";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
- *       Open Dialog
- *     </Button>
+ *     <Button type="button" appearance="outlined">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
  *       <Dialog.Title>Dialog Title</Dialog.Title>
+ *       <Dialog.Description>This is an optional description.</Dialog.Description>
  *       <Dialog.CloseIconButton />
  *     </Dialog.Header>
  *     <Dialog.Body>
  *       <p>This is the dialog content.</p>
  *     </Dialog.Body>
+ *     <Dialog.Footer>
+ *       <Dialog.Close asChild>
+ *         <Button type="button" appearance="outlined">Cancel</Button>
+ *       </Dialog.Close>
+ *       <Button type="button" appearance="filled">Save</Button>
+ *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
  * ```
@@ -351,6 +385,7 @@ const Title = forwardRef<
 >(({ className, ...props }, ref) => (
 	<DialogPrimitive.Title
 		ref={ref}
+		data-slot="dialog-title"
 		className={cx("text-strong truncate text-lg font-medium", className)}
 		{...props}
 	/>
@@ -368,20 +403,23 @@ Title.displayName = "DialogTitle";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
- *       Open Dialog
- *     </Button>
+ *     <Button type="button" appearance="outlined">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
  *       <Dialog.Title>Dialog Title</Dialog.Title>
- *       <Dialog.Description>
- *         This is an optional description.
- *       </Dialog.Description>
+ *       <Dialog.Description>This is an optional description.</Dialog.Description>
+ *       <Dialog.CloseIconButton />
  *     </Dialog.Header>
  *     <Dialog.Body>
  *       <p>This is the dialog content.</p>
  *     </Dialog.Body>
+ *     <Dialog.Footer>
+ *       <Dialog.Close asChild>
+ *         <Button type="button" appearance="outlined">Cancel</Button>
+ *       </Dialog.Close>
+ *       <Button type="button" appearance="filled">Save</Button>
+ *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
  * ```
@@ -390,7 +428,12 @@ const Description = forwardRef<
 	ComponentRef<typeof DialogPrimitive.Description>,
 	ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
 >(({ className, ...props }, ref) => (
-	<DialogPrimitive.Description ref={ref} className={cx("text-muted", className)} {...props} />
+	<DialogPrimitive.Description
+		ref={ref}
+		data-slot="dialog-description"
+		className={cx("text-muted", className)}
+		{...props}
+	/>
 ));
 Description.displayName = "DialogDescription";
 
@@ -400,28 +443,40 @@ Description.displayName = "DialogDescription";
  * @see https://mantle.ngrok.com/components/dialog
  *
  * @example
+ * Composition:
+ * ```
+ * Dialog.Root
+ * ├── Dialog.Trigger
+ * └── Dialog.Content
+ *     ├── Dialog.Header
+ *     │   ├── Dialog.Title
+ *     │   ├── Dialog.Description
+ *     │   └── Dialog.CloseIconButton
+ *     ├── Dialog.Body
+ *     └── Dialog.Footer
+ *         └── Dialog.Close
+ * ```
+ *
+ * @example
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
- *       Open Dialog
- *     </Button>
+ *     <Button type="button" appearance="outlined">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
  *       <Dialog.Title>Dialog Title</Dialog.Title>
+ *       <Dialog.Description>This is an optional description.</Dialog.Description>
  *       <Dialog.CloseIconButton />
  *     </Dialog.Header>
  *     <Dialog.Body>
  *       <p>This is the dialog content.</p>
  *     </Dialog.Body>
  *     <Dialog.Footer>
- *       <Button type="button" appearance="outlined">
- *         Cancel
- *       </Button>
- *       <Button type="button" appearance="filled">
- *         Save
- *       </Button>
+ *       <Dialog.Close asChild>
+ *         <Button type="button" appearance="outlined">Cancel</Button>
+ *       </Dialog.Close>
+ *       <Button type="button" appearance="filled">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -438,25 +493,22 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
-	 *       Open Dialog
-	 *     </Button>
+	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
 	 *       <Dialog.Title>Dialog Title</Dialog.Title>
+	 *       <Dialog.Description>This is an optional description.</Dialog.Description>
 	 *       <Dialog.CloseIconButton />
 	 *     </Dialog.Header>
 	 *     <Dialog.Body>
 	 *       <p>This is the dialog content.</p>
 	 *     </Dialog.Body>
 	 *     <Dialog.Footer>
-	 *       <Button type="button" appearance="outlined">
-	 *         Cancel
-	 *       </Button>
-	 *       <Button type="button" appearance="filled">
-	 *         Save
-	 *       </Button>
+	 *       <Dialog.Close asChild>
+	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *       </Dialog.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -472,17 +524,23 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
-	 *       Open Dialog
-	 *     </Button>
+	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
 	 *       <Dialog.Title>Dialog Title</Dialog.Title>
+	 *       <Dialog.Description>This is an optional description.</Dialog.Description>
+	 *       <Dialog.CloseIconButton />
 	 *     </Dialog.Header>
 	 *     <Dialog.Body>
 	 *       <p>This is the dialog content.</p>
 	 *     </Dialog.Body>
+	 *     <Dialog.Footer>
+	 *       <Dialog.Close asChild>
+	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *       </Dialog.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
 	 * ```
@@ -497,20 +555,22 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button">Open Dialog</Button>
+	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
-	 *       <Dialog.Title>Confirm Action</Dialog.Title>
+	 *       <Dialog.Title>Dialog Title</Dialog.Title>
+	 *       <Dialog.Description>This is an optional description.</Dialog.Description>
+	 *       <Dialog.CloseIconButton />
 	 *     </Dialog.Header>
 	 *     <Dialog.Body>
-	 *       <Text>Are you sure you want to proceed?</Text>
+	 *       <p>This is the dialog content.</p>
 	 *     </Dialog.Body>
 	 *     <Dialog.Footer>
 	 *       <Dialog.Close asChild>
 	 *         <Button type="button" appearance="outlined">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="submit">Confirm</Button>
+	 *       <Button type="button" appearance="filled">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -526,18 +586,23 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
-	 *       Open Dialog
-	 *     </Button>
+	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
 	 *       <Dialog.Title>Dialog Title</Dialog.Title>
+	 *       <Dialog.Description>This is an optional description.</Dialog.Description>
 	 *       <Dialog.CloseIconButton />
 	 *     </Dialog.Header>
 	 *     <Dialog.Body>
 	 *       <p>This is the dialog content.</p>
 	 *     </Dialog.Body>
+	 *     <Dialog.Footer>
+	 *       <Dialog.Close asChild>
+	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *       </Dialog.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
 	 * ```
@@ -553,25 +618,22 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
-	 *       Open Dialog
-	 *     </Button>
+	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
 	 *       <Dialog.Title>Dialog Title</Dialog.Title>
+	 *       <Dialog.Description>This is an optional description.</Dialog.Description>
 	 *       <Dialog.CloseIconButton />
 	 *     </Dialog.Header>
 	 *     <Dialog.Body>
 	 *       <p>This is the dialog content.</p>
 	 *     </Dialog.Body>
 	 *     <Dialog.Footer>
-	 *       <Button type="button" appearance="outlined">
-	 *         Cancel
-	 *       </Button>
-	 *       <Button type="button" appearance="filled">
-	 *         Save
-	 *       </Button>
+	 *       <Dialog.Close asChild>
+	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *       </Dialog.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -587,20 +649,23 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
-	 *       Open Dialog
-	 *     </Button>
+	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
 	 *       <Dialog.Title>Dialog Title</Dialog.Title>
-	 *       <Dialog.Description>
-	 *         This is an optional description.
-	 *       </Dialog.Description>
+	 *       <Dialog.Description>This is an optional description.</Dialog.Description>
+	 *       <Dialog.CloseIconButton />
 	 *     </Dialog.Header>
 	 *     <Dialog.Body>
 	 *       <p>This is the dialog content.</p>
 	 *     </Dialog.Body>
+	 *     <Dialog.Footer>
+	 *       <Dialog.Close asChild>
+	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *       </Dialog.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
 	 * ```
@@ -615,24 +680,22 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
-	 *       Open Dialog
-	 *     </Button>
+	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
 	 *       <Dialog.Title>Dialog Title</Dialog.Title>
+	 *       <Dialog.Description>This is an optional description.</Dialog.Description>
+	 *       <Dialog.CloseIconButton />
 	 *     </Dialog.Header>
 	 *     <Dialog.Body>
 	 *       <p>This is the dialog content.</p>
 	 *     </Dialog.Body>
 	 *     <Dialog.Footer>
-	 *       <Button type="button" appearance="outlined">
-	 *         Cancel
-	 *       </Button>
-	 *       <Button type="button" appearance="filled">
-	 *         Save
-	 *       </Button>
+	 *       <Dialog.Close asChild>
+	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *       </Dialog.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -648,18 +711,23 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
-	 *       Open Dialog
-	 *     </Button>
+	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
 	 *       <Dialog.Title>Dialog Title</Dialog.Title>
+	 *       <Dialog.Description>This is an optional description.</Dialog.Description>
 	 *       <Dialog.CloseIconButton />
 	 *     </Dialog.Header>
 	 *     <Dialog.Body>
 	 *       <p>This is the dialog content.</p>
 	 *     </Dialog.Body>
+	 *     <Dialog.Footer>
+	 *       <Dialog.Close asChild>
+	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *       </Dialog.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
 	 * ```
@@ -673,15 +741,26 @@ const Dialog = {
 	 * @example
 	 * ```tsx
 	 * <Dialog.Root>
+	 *   <Dialog.Trigger asChild>
+	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
+	 *   </Dialog.Trigger>
 	 *   <Dialog.Portal>
 	 *     <Dialog.Overlay />
 	 *     <Dialog.Content>
 	 *       <Dialog.Header>
 	 *         <Dialog.Title>Dialog Title</Dialog.Title>
+	 *         <Dialog.Description>This is an optional description.</Dialog.Description>
+	 *         <Dialog.CloseIconButton />
 	 *       </Dialog.Header>
 	 *       <Dialog.Body>
-	 *         <Text>Dialog content here.</Text>
+	 *         <p>This is the dialog content.</p>
 	 *       </Dialog.Body>
+	 *       <Dialog.Footer>
+	 *         <Dialog.Close asChild>
+	 *           <Button type="button" appearance="outlined">Cancel</Button>
+	 *         </Dialog.Close>
+	 *         <Button type="button" appearance="filled">Save</Button>
+	 *       </Dialog.Footer>
 	 *     </Dialog.Content>
 	 *   </Dialog.Portal>
 	 * </Dialog.Root>
@@ -697,17 +776,25 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button">Open Dialog</Button>
+	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Portal>
 	 *     <Dialog.Overlay />
 	 *     <Dialog.Content>
 	 *       <Dialog.Header>
-	 *         <Dialog.Title>Portal Dialog</Dialog.Title>
+	 *         <Dialog.Title>Dialog Title</Dialog.Title>
+	 *         <Dialog.Description>This is an optional description.</Dialog.Description>
+	 *         <Dialog.CloseIconButton />
 	 *       </Dialog.Header>
 	 *       <Dialog.Body>
-	 *         <Text>This dialog is rendered in a portal.</Text>
+	 *         <p>This is the dialog content.</p>
 	 *       </Dialog.Body>
+	 *       <Dialog.Footer>
+	 *         <Dialog.Close asChild>
+	 *           <Button type="button" appearance="outlined">Cancel</Button>
+	 *         </Dialog.Close>
+	 *         <Button type="button" appearance="filled">Save</Button>
+	 *       </Dialog.Footer>
 	 *     </Dialog.Content>
 	 *   </Dialog.Portal>
 	 * </Dialog.Root>
@@ -723,18 +810,23 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
-	 *       Open Dialog
-	 *     </Button>
+	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
 	 *       <Dialog.Title>Dialog Title</Dialog.Title>
+	 *       <Dialog.Description>This is an optional description.</Dialog.Description>
 	 *       <Dialog.CloseIconButton />
 	 *     </Dialog.Header>
 	 *     <Dialog.Body>
 	 *       <p>This is the dialog content.</p>
 	 *     </Dialog.Body>
+	 *     <Dialog.Footer>
+	 *       <Dialog.Close asChild>
+	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *       </Dialog.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
 	 * ```
@@ -749,17 +841,23 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
-	 *       Open Dialog
-	 *     </Button>
+	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
 	 *       <Dialog.Title>Dialog Title</Dialog.Title>
+	 *       <Dialog.Description>This is an optional description.</Dialog.Description>
+	 *       <Dialog.CloseIconButton />
 	 *     </Dialog.Header>
 	 *     <Dialog.Body>
 	 *       <p>This is the dialog content.</p>
 	 *     </Dialog.Body>
+	 *     <Dialog.Footer>
+	 *       <Dialog.Close asChild>
+	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *       </Dialog.Close>
+	 *       <Button type="button" appearance="filled">Save</Button>
+	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
 	 * ```

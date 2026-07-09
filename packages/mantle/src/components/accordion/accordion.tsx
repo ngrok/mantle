@@ -33,7 +33,12 @@ const Root = forwardRef<
 	ComponentRef<"div">,
 	ComponentPropsWithoutRef<typeof AccordionPrimitive.Root>
 >(({ className, ...props }, ref) => (
-	<AccordionPrimitive.Root ref={ref} className={cx("w-full space-y-2.5", className)} {...props} />
+	<AccordionPrimitive.Root
+		ref={ref}
+		data-slot="accordion"
+		className={cx("w-full space-y-2.5", className)}
+		{...props}
+	/>
 ));
 Root.displayName = "Accordion";
 
@@ -60,7 +65,12 @@ Root.displayName = "Accordion";
  * </Accordion.Root>
  * ```
  */
-const Item = AccordionPrimitive.Item;
+const Item = forwardRef<
+	ComponentRef<typeof AccordionPrimitive.Item>,
+	ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
+>(({ ...props }, ref) => (
+	<AccordionPrimitive.Item ref={ref} data-slot="accordion-item" {...props} />
+));
 Item.displayName = "AccordionItem";
 
 /**
@@ -92,6 +102,7 @@ const Heading = forwardRef<
 >(({ className, ...props }, ref) => (
 	<AccordionPrimitive.Header
 		ref={ref}
+		data-slot="accordion-heading"
 		className={cx("flex items-center gap-2", className)}
 		{...props}
 	/>
@@ -127,6 +138,7 @@ const Trigger = forwardRef<
 >(({ className, children, ...props }, ref) => (
 	<AccordionPrimitive.Trigger
 		ref={ref}
+		data-slot="accordion-trigger"
 		className={cx("group flex items-center gap-1.5", className)}
 		{...props}
 	>
@@ -161,6 +173,7 @@ Trigger.displayName = "AccordionTrigger";
 const TriggerIcon = ({ className, ...props }: Omit<IconProps, "svg">) => (
 	<Icon
 		{...props}
+		data-slot="accordion-trigger-icon"
 		svg={<CaretDownIcon weight="fill" />}
 		className={cx("group-data-[state=open]:rotate-0 -rotate-90", className)}
 	/>
@@ -196,6 +209,7 @@ const Content = forwardRef<
 >(({ className, children, ...props }, ref) => (
 	<AccordionPrimitive.Content
 		ref={ref}
+		data-slot="accordion-content"
 		className={cx(
 			"data-state-closed:animate-accordion-up data-state-open:animate-accordion-down overflow-hidden *:first:mt-4",
 			className,
@@ -211,6 +225,17 @@ Content.displayName = "AccordionContent";
  * A vertically stacked set of interactive headings that each reveal a section of content.
  *
  * @see https://mantle.ngrok.com/components/accordion
+ *
+ * @example
+ * Composition:
+ * ```
+ * Accordion.Root
+ * ├── Accordion.Item
+ * │   ├── Accordion.Heading
+ * │   │   └── Accordion.Trigger
+ * │   │       └── Accordion.TriggerIcon
+ * │   └── Accordion.Content
+ * ```
  *
  * @example
  * ```tsx

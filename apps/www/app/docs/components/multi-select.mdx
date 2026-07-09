@@ -544,7 +544,9 @@ const filteredVeggies = useMemo(
 			</Sheet.Body>
 			<Sheet.Footer>
 				<Sheet.Close asChild>
-					<Button type="button">Cancel</Button>
+					<Button type="button" appearance="outlined" priority="neutral">
+						Cancel
+					</Button>
 				</Sheet.Close>
 				<form.Subscribe selector={(state) => state.isDirty}>
 					{(isDirty) => (
@@ -986,6 +988,25 @@ function Example() {
 		</div>
 	);
 }
+```
+
+## Composition
+
+Compose the parts of a `MultiSelect` together to build your own:
+
+```text showLineNumbers=false
+MultiSelect.Root
+├── MultiSelect.Trigger
+│   ├── MultiSelect.TagValues
+│   └── MultiSelect.Input
+└── MultiSelect.Content
+    ├── MultiSelect.Group
+    │   ├── MultiSelect.GroupLabel
+    │   ├── MultiSelect.GroupDescription
+    │   └── MultiSelect.Item
+    ├── MultiSelect.Separator
+    ├── MultiSelect.Empty
+    └── MultiSelect.ContentFooter
 ```
 
 ## API Reference

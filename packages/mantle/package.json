@@ -1,6 +1,6 @@
 {
 	"name": "@ngrok/mantle",
-	"version": "0.68.7",
+	"version": "0.70.1",
 	"description": "mantle is ngrok's UI library and design system.",
 	"homepage": "https://mantle.ngrok.com",
 	"license": "MIT",
@@ -154,6 +154,11 @@
 			"types": "./dist/dropdown-menu.d.ts",
 			"import": "./dist/dropdown-menu.js"
 		},
+		"./empty": {
+			"@ngrok/src-live-types": "./src/components/empty/index.ts",
+			"types": "./dist/empty.d.ts",
+			"import": "./dist/empty.js"
+		},
 		"./flag": {
 			"@ngrok/src-live-types": "./src/components/flag/index.ts",
 			"types": "./dist/flag.d.ts",
@@ -193,6 +198,11 @@
 			"@ngrok/src-live-types": "./src/components/label/index.ts",
 			"types": "./dist/label.d.ts",
 			"import": "./dist/label.js"
+		},
+		"./main": {
+			"@ngrok/src-live-types": "./src/components/main/index.ts",
+			"types": "./dist/main.d.ts",
+			"import": "./dist/main.js"
 		},
 		"./media-object": {
 			"@ngrok/src-live-types": "./src/components/media-object/index.ts",
@@ -248,6 +258,11 @@
 			"@ngrok/src-live-types": "./src/components/sidebar/index.ts",
 			"types": "./dist/sidebar.d.ts",
 			"import": "./dist/sidebar.js"
+		},
+		"./skip-to-main-link": {
+			"@ngrok/src-live-types": "./src/components/skip-to-main-link/index.ts",
+			"types": "./dist/skip-to-main-link.d.ts",
+			"import": "./dist/skip-to-main-link.js"
 		},
 		"./skeleton": {
 			"@ngrok/src-live-types": "./src/components/skeleton/index.ts",
@@ -324,7 +339,7 @@
 		"typecheck": "tsgo"
 	},
 	"dependencies": {
-		"@ariakit/react": "0.4.25",
+		"@ariakit/react": "0.4.26",
 		"@headlessui/react": "2.2.10",
 		"@radix-ui/react-accordion": "1.2.12",
 		"@radix-ui/react-dialog": "1.1.15",

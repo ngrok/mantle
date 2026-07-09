@@ -14,7 +14,7 @@ A modal dialog that interrupts the user with important content and expects a res
 <Example className="flex-col gap-6">
 	<AlertDialog.Root priority="info">
 		<AlertDialog.Trigger asChild>
-			<Button type="button" appearance="outlined">
+			<Button type="button" appearance="outlined" priority="neutral">
 				Show Info Alert Dialog
 			</Button>
 		</AlertDialog.Trigger>
@@ -36,7 +36,7 @@ A modal dialog that interrupts the user with important content and expects a res
 	</AlertDialog.Root>
 	<AlertDialog.Root priority="danger">
 		<AlertDialog.Trigger asChild>
-			<Button type="button" appearance="outlined">
+			<Button type="button" appearance="outlined" priority="neutral">
 				Show Danger Alert Dialog
 			</Button>
 		</AlertDialog.Trigger>
@@ -64,7 +64,7 @@ import { Button } from "@ngrok/mantle/button";
 
 <AlertDialog.Root priority="info">
 	<AlertDialog.Trigger asChild>
-		<Button type="button" appearance="outlined">
+		<Button type="button" appearance="outlined" priority="neutral">
 			Show Info Alert Dialog
 		</Button>
 	</AlertDialog.Trigger>
@@ -84,6 +84,24 @@ import { Button } from "@ngrok/mantle/button";
 		</AlertDialog.Body>
 	</AlertDialog.Content>
 </AlertDialog.Root>;
+```
+
+## Composition
+
+Compose the parts of an `AlertDialog` together to build your own:
+
+```text showLineNumbers=false
+AlertDialog.Root
+├── AlertDialog.Trigger
+└── AlertDialog.Content
+    ├── AlertDialog.Icon
+    └── AlertDialog.Body
+        ├── AlertDialog.Header
+        │   ├── AlertDialog.Title
+        │   └── AlertDialog.Description
+        └── AlertDialog.Footer
+            ├── AlertDialog.Cancel
+            └── AlertDialog.Action
 ```
 
 ## API Reference

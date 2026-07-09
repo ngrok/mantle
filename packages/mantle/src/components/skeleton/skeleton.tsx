@@ -29,6 +29,7 @@ const Skeleton = forwardRef<ComponentRef<"div">, Props>(
 
 		return (
 			<Component
+				data-slot="skeleton"
 				className={cx(
 					"dark-high-contrast:bg-black/30 high-contrast:bg-black/30 h-4 animate-pulse rounded-md bg-gray-300/25 dark:bg-gray-950/10",
 					className,

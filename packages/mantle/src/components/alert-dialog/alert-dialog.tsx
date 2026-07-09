@@ -127,7 +127,12 @@ Root.displayName = "AlertDialog";
  * </AlertDialog.Root>
  * ```
  */
-const Trigger = AlertDialogPrimitive.Trigger;
+const Trigger = forwardRef<
+	ComponentRef<typeof AlertDialogPrimitive.Trigger>,
+	ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Trigger>
+>(({ ...props }, ref) => (
+	<AlertDialogPrimitive.Trigger ref={ref} data-slot="alert-dialog-trigger" {...props} />
+));
 Trigger.displayName = "AlertDialogTrigger";
 
 /**
@@ -148,6 +153,7 @@ const AlertDialogOverlay = forwardRef<
 	ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
 	<AlertDialogPrimitive.Overlay
+		data-slot="alert-dialog-overlay"
 		className={cx(
 			"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 bg-overlay fixed inset-0 z-50 backdrop-blur-xs",
 			className,
@@ -215,6 +221,7 @@ const Content = forwardRef<
 		<AlertDialogOverlay />
 		<div className="fixed inset-4 z-50 flex items-center justify-center">
 			<AlertDialogPrimitive.Content
+				data-slot="alert-dialog-content"
 				data-mantle-modal-content
 				ref={ref}
 				className={cx(
@@ -272,7 +279,14 @@ const Body = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild
 	({ asChild = false, className, ...props }, ref) => {
 		const Component = asChild ? Slot : "div";
 
-		return <Component className={cx("flex-1 space-y-4", className)} ref={ref} {...props} />;
+		return (
+			<Component
+				data-slot="alert-dialog-body"
+				className={cx("flex-1 space-y-4", className)}
+				ref={ref}
+				{...props}
+			/>
+		);
 	},
 );
 Body.displayName = "AlertDialogBody";
@@ -318,6 +332,7 @@ const Header = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChi
 
 		return (
 			<Component
+				data-slot="alert-dialog-header"
 				className={cx("flex flex-col space-y-2 text-center sm:text-start", className)}
 				ref={ref}
 				{...props}
@@ -368,6 +383,7 @@ const Footer = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChi
 
 		return (
 			<Component
+				data-slot="alert-dialog-footer"
 				className={cx("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}
 				ref={ref}
 				{...props}
@@ -421,6 +437,7 @@ const Title = forwardRef<
 >(({ className, ...props }, ref) => (
 	<AlertDialogPrimitive.Title
 		ref={ref}
+		data-slot="alert-dialog-title"
 		className={cx("text-strong text-center text-lg font-medium sm:text-start", className)}
 		{...props}
 	/>
@@ -473,6 +490,7 @@ const Description = forwardRef<
 >(({ className, ...props }, ref) => (
 	<AlertDialogPrimitive.Description
 		ref={ref}
+		data-slot="alert-dialog-description"
 		className={cx("text-body text-center text-sm font-normal sm:text-start", className)}
 		{...props}
 	/>
@@ -539,6 +557,7 @@ const Action = forwardRef<ComponentRef<"button">, ButtonProps>(
 			<Button
 				//
 				appearance={appearance}
+				data-slot="alert-dialog-action"
 				priority={buttonPriority}
 				ref={ref}
 				{...props}
@@ -602,6 +621,7 @@ const Cancel = forwardRef<ComponentRef<"button">, ButtonProps>(
 		<AlertDialogPrimitive.Close asChild>
 			<Button
 				appearance={appearance}
+				data-slot="alert-dialog-cancel"
 				className={cx("mt-2 sm:mt-0", className)}
 				priority={priority}
 				ref={ref}
@@ -665,6 +685,7 @@ const Icon = forwardRef<ComponentRef<"svg">, AlertDialogIconProps>(
 		return (
 			<SvgOnly
 				ref={ref}
+				data-slot="alert-dialog-icon"
 				className={cx("size-12 sm:size-7", defaultColor, className)}
 				svg={svg ?? defaultIcon}
 				{...props}
@@ -690,7 +711,12 @@ Icon.displayName = "AlertDialogIcon";
  *   </AlertDialog.Action>
  * </AlertDialog.Close>
  */
-const Close = AlertDialogPrimitive.Close;
+const Close = forwardRef<
+	ComponentRef<typeof AlertDialogPrimitive.Close>,
+	ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Close>
+>(({ ...props }, ref) => (
+	<AlertDialogPrimitive.Close ref={ref} data-slot="alert-dialog-close" {...props} />
+));
 Close.displayName = "AlertDialogClose";
 
 /**
@@ -698,6 +724,22 @@ Close.displayName = "AlertDialogClose";
  * response.
  *
  * @see https://mantle.ngrok.com/components/alert-dialog
+ *
+ * @example
+ * Composition:
+ * ```
+ * AlertDialog.Root
+ * ├── AlertDialog.Trigger
+ * └── AlertDialog.Content
+ *     ├── AlertDialog.Icon
+ *     └── AlertDialog.Body
+ *         ├── AlertDialog.Header
+ *         │   ├── AlertDialog.Title
+ *         │   └── AlertDialog.Description
+ *         └── AlertDialog.Footer
+ *             ├── AlertDialog.Cancel
+ *             └── AlertDialog.Action
+ * ```
  *
  * @example
  * ```tsx

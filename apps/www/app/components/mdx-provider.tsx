@@ -13,6 +13,8 @@ import {
 } from "@ngrok/mantle/code-block";
 import { cx } from "@ngrok/mantle/cx";
 import { Table } from "@ngrok/mantle/table";
+import { Link } from "react-router";
+import { isSafeLocalPath } from "../utilities/is-safe-local-path";
 import { HashLinkHeading } from "./hash-link-heading";
 
 // import { FigCaption, Figure } from "./figure";
@@ -38,8 +40,16 @@ function warnMalformedPreRenderedCodeBlock(rawLanguage: unknown) {
 
 const components = {
 	a: (props) => {
-		const { node: _node, className, ...rest } = props;
-		return <Anchor className={cx("hyphens-auto", className)} {...rest} />;
+		const { node: _node, className, href, ...rest } = props;
+		const mergedClassName = cx("hyphens-auto", className);
+		if (isSafeLocalPath(href)) {
+			return (
+				<Anchor asChild className={mergedClassName}>
+					<Link to={href} {...rest} />
+				</Anchor>
+			);
+		}
+		return <Anchor className={mergedClassName} href={href} {...rest} />;
 	},
 	blockquote: (props) => {
 		const { node: _node, className, ...rest } = props;

@@ -141,7 +141,7 @@ const Root = forwardRef<ComponentRef<"div">, CodeBlockRootProps>(
 			[codeId, hasCodeExpander, isCodeExpanded, registerCodeId, unregisterCodeId],
 		);
 
-		const hasTabs = defaultTab !== undefined || activeTab !== undefined;
+		const hasTabs = defaultTab != null || activeTab != null;
 		const Component = asChild ? Slot : "div";
 
 		const tree = (
@@ -184,17 +184,29 @@ Root.displayName = "CodeBlock";
  * @example
  * ```tsx
  * <CodeBlock.Root>
+ *   <CodeBlock.Header>
+ *     <CodeBlock.Icon preset="file" />
+ *     <CodeBlock.Title>example.ts</CodeBlock.Title>
+ *   </CodeBlock.Header>
  *   <CodeBlock.Body>
  *     <CodeBlock.CopyButton />
  *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
  *   </CodeBlock.Body>
+ *   <CodeBlock.ExpanderButton />
  * </CodeBlock.Root>
  * ```
  */
 const Body = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild>(
 	({ asChild = false, className, ...props }, ref) => {
 		const Component = asChild ? Slot : "div";
-		return <Component className={cx("relative", className)} ref={ref} {...props} />;
+		return (
+			<Component
+				data-slot="code-block-body"
+				className={cx("relative", className)}
+				ref={ref}
+				{...props}
+			/>
+		);
 	},
 );
 Body.displayName = "CodeBlockBody";
@@ -293,10 +305,17 @@ type CodeBlockCodeProps = Omit<ComponentProps<"pre">, "children"> & {
  *
  * @example
  * ```tsx
- * <CodeBlock.Body>
- *   <CodeBlock.CopyButton />
- *   <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
- * </CodeBlock.Body>
+ * <CodeBlock.Root>
+ *   <CodeBlock.Header>
+ *     <CodeBlock.Icon preset="file" />
+ *     <CodeBlock.Title>example.ts</CodeBlock.Title>
+ *   </CodeBlock.Header>
+ *   <CodeBlock.Body>
+ *     <CodeBlock.CopyButton />
+ *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
+ *   </CodeBlock.Body>
+ *   <CodeBlock.ExpanderButton />
+ * </CodeBlock.Root>
  * ```
  */
 const Code = forwardRef<ComponentRef<"pre">, CodeBlockCodeProps>(
@@ -352,6 +371,7 @@ const Code = forwardRef<ComponentRef<"pre">, CodeBlockCodeProps>(
 
 		return (
 			<pre
+				data-slot="code-block-code"
 				aria-expanded={hasCodeExpander ? isCodeExpanded : undefined}
 				className={cx(
 					"scrollbar overflow-x-auto overflow-y-hidden py-4",
@@ -406,6 +426,11 @@ Code.displayName = "CodeBlockCode";
  *     <CodeBlock.Icon preset="file" />
  *     <CodeBlock.Title>example.ts</CodeBlock.Title>
  *   </CodeBlock.Header>
+ *   <CodeBlock.Body>
+ *     <CodeBlock.CopyButton />
+ *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
+ *   </CodeBlock.Body>
+ *   <CodeBlock.ExpanderButton />
  * </CodeBlock.Root>
  * ```
  */
@@ -414,6 +439,7 @@ const Header = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChi
 		const Component = asChild ? Slot : "div";
 		return (
 			<Component
+				data-slot="code-block-header"
 				className={cx(
 					"flex items-center gap-1 border-b border-gray-300 bg-base px-4 py-2 text-gray-700",
 					className,
@@ -432,9 +458,17 @@ Header.displayName = "CodeBlockHeader";
  *
  * @example
  * ```tsx
- * <CodeBlock.Header>
- *   <CodeBlock.Title>example.ts</CodeBlock.Title>
- * </CodeBlock.Header>
+ * <CodeBlock.Root>
+ *   <CodeBlock.Header>
+ *     <CodeBlock.Icon preset="file" />
+ *     <CodeBlock.Title>example.ts</CodeBlock.Title>
+ *   </CodeBlock.Header>
+ *   <CodeBlock.Body>
+ *     <CodeBlock.CopyButton />
+ *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
+ *   </CodeBlock.Body>
+ *   <CodeBlock.ExpanderButton />
+ * </CodeBlock.Root>
  * ```
  */
 const Title = forwardRef<
@@ -444,6 +478,7 @@ const Title = forwardRef<
 	const Component = asChild ? Slot : "h3";
 	return (
 		<Component
+			data-slot="code-block-title"
 			ref={ref}
 			className={cx("text-mono m-0 font-mono font-normal", className)}
 			{...props}
@@ -469,10 +504,17 @@ type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "children" | "typ
  *
  * @example
  * ```tsx
- * <CodeBlock.Body>
- *   <CodeBlock.CopyButton />
- *   <CodeBlock.Code value={mantleCode("typescript")`…`} />
- * </CodeBlock.Body>
+ * <CodeBlock.Root>
+ *   <CodeBlock.Header>
+ *     <CodeBlock.Icon preset="file" />
+ *     <CodeBlock.Title>example.ts</CodeBlock.Title>
+ *   </CodeBlock.Header>
+ *   <CodeBlock.Body>
+ *     <CodeBlock.CopyButton />
+ *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
+ *   </CodeBlock.Body>
+ *   <CodeBlock.ExpanderButton />
+ * </CodeBlock.Root>
  * ```
  */
 const CopyButton = forwardRef<ComponentRef<"button">, CodeBlockCopyButtonProps>(
@@ -491,7 +533,7 @@ const CopyButton = forwardRef<ComponentRef<"button">, CodeBlockCopyButtonProps>(
 		}, []);
 
 		return (
-			<span className="absolute right-2.5 top-2.5 z-10 bg-card">
+			<span data-slot="code-block-copy-button" className="absolute right-2.5 top-2.5 z-10 bg-card">
 				<IconButton
 					type="button"
 					appearance="ghost"
@@ -544,8 +586,13 @@ type CodeBlockExpanderButtonProps = Omit<
  * @example
  * ```tsx
  * <CodeBlock.Root>
+ *   <CodeBlock.Header>
+ *     <CodeBlock.Icon preset="file" />
+ *     <CodeBlock.Title>example.ts</CodeBlock.Title>
+ *   </CodeBlock.Header>
  *   <CodeBlock.Body>
- *     <CodeBlock.Code value={mantleCode("typescript")`…`} />
+ *     <CodeBlock.CopyButton />
+ *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
  *   </CodeBlock.Body>
  *   <CodeBlock.ExpanderButton />
  * </CodeBlock.Root>
@@ -567,6 +614,7 @@ const ExpanderButton = forwardRef<ComponentRef<"button">, CodeBlockExpanderButto
 		return (
 			<Component
 				{...props}
+				data-slot="code-block-expander-button"
 				aria-controls={codeId}
 				aria-expanded={isCodeExpanded}
 				className={cx(
@@ -625,10 +673,17 @@ type CodeBlockIconProps = Omit<SvgAttributes, "children"> &
  *
  * @example
  * ```tsx
- * <CodeBlock.Header>
- *   <CodeBlock.Icon preset="file" />
- *   <CodeBlock.Title>example.ts</CodeBlock.Title>
- * </CodeBlock.Header>
+ * <CodeBlock.Root>
+ *   <CodeBlock.Header>
+ *     <CodeBlock.Icon preset="file" />
+ *     <CodeBlock.Title>example.ts</CodeBlock.Title>
+ *   </CodeBlock.Header>
+ *   <CodeBlock.Body>
+ *     <CodeBlock.CopyButton />
+ *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
+ *   </CodeBlock.Body>
+ *   <CodeBlock.ExpanderButton />
+ * </CodeBlock.Root>
  * ```
  */
 function CodeBlockIconComponent({
@@ -651,7 +706,7 @@ function CodeBlockIconComponent({
 				break;
 		}
 	}
-	return <MantleIcon className={className} svg={svg} {...props} />;
+	return <MantleIcon data-slot="code-block-icon" className={className} svg={svg} {...props} />;
 }
 CodeBlockIconComponent.displayName = "CodeBlockIcon";
 
@@ -688,7 +743,12 @@ type CodeBlockTabListProps = Omit<ComponentProps<typeof RadixTabsList>, "asChild
  */
 const TabList = forwardRef<ComponentRef<typeof RadixTabsList>, CodeBlockTabListProps>(
 	({ className, ...props }, ref) => (
-		<RadixTabsList className={cx("flex items-center gap-1", className)} ref={ref} {...props} />
+		<RadixTabsList
+			data-slot="code-block-tab-list"
+			className={cx("flex items-center gap-1", className)}
+			ref={ref}
+			{...props}
+		/>
 	),
 );
 TabList.displayName = "CodeBlockTabList";
@@ -710,6 +770,7 @@ type CodeBlockTabTriggerProps = Omit<ComponentProps<typeof RadixTabsTrigger>, "a
 const TabTrigger = forwardRef<ComponentRef<typeof RadixTabsTrigger>, CodeBlockTabTriggerProps>(
 	({ className, ...props }, ref) => (
 		<RadixTabsTrigger
+			data-slot="code-block-tab-trigger"
 			className={cx(
 				"cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium",
 				"text-gray-600 outline-hidden",
@@ -749,7 +810,7 @@ type CodeBlockTabContentProps = Omit<
  * ```
  */
 const TabContent = forwardRef<ComponentRef<typeof RadixTabsContent>, CodeBlockTabContentProps>(
-	(props, ref) => <RadixTabsContent ref={ref} {...props} />,
+	(props, ref) => <RadixTabsContent data-slot="code-block-tab-content" ref={ref} {...props} />,
 );
 TabContent.displayName = "CodeBlockTabContent";
 
@@ -757,6 +818,31 @@ TabContent.displayName = "CodeBlockTabContent";
  * Shiki-powered code blocks with build-time syntax highlighting and zero browser bundle.
  *
  * Use `mantleCodeBlockPlugins()` to enable pre-rendering at build time.
+ *
+ * @example
+ * Composition:
+ * ```
+ * # Standard
+ * CodeBlock.Root
+ * ├── CodeBlock.Header
+ * │   ├── CodeBlock.Icon
+ * │   └── CodeBlock.Title
+ * ├── CodeBlock.Body
+ * │   ├── CodeBlock.CopyButton
+ * │   └── CodeBlock.Code
+ * └── CodeBlock.ExpanderButton
+ *
+ * # Tabbed
+ * CodeBlock.Root
+ * ├── CodeBlock.Header
+ * │   └── CodeBlock.TabList
+ * │       └── CodeBlock.TabTrigger
+ * ├── CodeBlock.Body
+ * │   ├── CodeBlock.CopyButton
+ * │   └── CodeBlock.TabContent
+ * │       └── CodeBlock.Code
+ * └── CodeBlock.ExpanderButton
+ * ```
  *
  * @example
  * ```tsx
@@ -794,46 +880,229 @@ TabContent.displayName = "CodeBlockTabContent";
 const CodeBlock = {
 	/**
 	 * The root component of the `CodeBlock`.
+	 *
+	 * @example
+	 * ```tsx
+	 * <CodeBlock.Root>
+	 *   <CodeBlock.Header>
+	 *     <CodeBlock.Icon preset="file" />
+	 *     <CodeBlock.Title>example.ts</CodeBlock.Title>
+	 *   </CodeBlock.Header>
+	 *   <CodeBlock.Body>
+	 *     <CodeBlock.CopyButton />
+	 *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
+	 *   </CodeBlock.Body>
+	 *   <CodeBlock.ExpanderButton />
+	 * </CodeBlock.Root>
+	 * ```
 	 */
 	Root,
 	/**
 	 * The body of the `CodeBlock`. Contains `Code` and optional `CopyButton`.
+	 *
+	 * @example
+	 * ```tsx
+	 * <CodeBlock.Root>
+	 *   <CodeBlock.Header>
+	 *     <CodeBlock.Icon preset="file" />
+	 *     <CodeBlock.Title>example.ts</CodeBlock.Title>
+	 *   </CodeBlock.Header>
+	 *   <CodeBlock.Body>
+	 *     <CodeBlock.CopyButton />
+	 *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
+	 *   </CodeBlock.Body>
+	 *   <CodeBlock.ExpanderButton />
+	 * </CodeBlock.Root>
+	 * ```
 	 */
 	Body,
 	/**
 	 * The code content. Renders pre-highlighted Shiki HTML when the Vite plugin is active.
+	 *
+	 * @example
+	 * ```tsx
+	 * <CodeBlock.Root>
+	 *   <CodeBlock.Header>
+	 *     <CodeBlock.Icon preset="file" />
+	 *     <CodeBlock.Title>example.ts</CodeBlock.Title>
+	 *   </CodeBlock.Header>
+	 *   <CodeBlock.Body>
+	 *     <CodeBlock.CopyButton />
+	 *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
+	 *   </CodeBlock.Body>
+	 *   <CodeBlock.ExpanderButton />
+	 * </CodeBlock.Root>
+	 * ```
 	 */
 	Code,
 	/**
 	 * The optional copy button.
+	 *
+	 * @example
+	 * ```tsx
+	 * <CodeBlock.Root>
+	 *   <CodeBlock.Header>
+	 *     <CodeBlock.Icon preset="file" />
+	 *     <CodeBlock.Title>example.ts</CodeBlock.Title>
+	 *   </CodeBlock.Header>
+	 *   <CodeBlock.Body>
+	 *     <CodeBlock.CopyButton />
+	 *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
+	 *   </CodeBlock.Body>
+	 *   <CodeBlock.ExpanderButton />
+	 * </CodeBlock.Root>
+	 * ```
 	 */
 	CopyButton,
 	/**
 	 * The optional expander button for collapsible code blocks.
+	 *
+	 * @example
+	 * ```tsx
+	 * <CodeBlock.Root>
+	 *   <CodeBlock.Header>
+	 *     <CodeBlock.Icon preset="file" />
+	 *     <CodeBlock.Title>example.ts</CodeBlock.Title>
+	 *   </CodeBlock.Header>
+	 *   <CodeBlock.Body>
+	 *     <CodeBlock.CopyButton />
+	 *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
+	 *   </CodeBlock.Body>
+	 *   <CodeBlock.ExpanderButton />
+	 * </CodeBlock.Root>
+	 * ```
 	 */
 	ExpanderButton,
 	/**
 	 * The optional header slot for icon and title.
+	 *
+	 * @example
+	 * ```tsx
+	 * <CodeBlock.Root>
+	 *   <CodeBlock.Header>
+	 *     <CodeBlock.Icon preset="file" />
+	 *     <CodeBlock.Title>example.ts</CodeBlock.Title>
+	 *   </CodeBlock.Header>
+	 *   <CodeBlock.Body>
+	 *     <CodeBlock.CopyButton />
+	 *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
+	 *   </CodeBlock.Body>
+	 *   <CodeBlock.ExpanderButton />
+	 * </CodeBlock.Root>
+	 * ```
 	 */
 	Header,
 	/**
 	 * A small icon for the code block header. Use `preset` or `svg`.
+	 *
+	 * @example
+	 * ```tsx
+	 * <CodeBlock.Root>
+	 *   <CodeBlock.Header>
+	 *     <CodeBlock.Icon preset="file" />
+	 *     <CodeBlock.Title>example.ts</CodeBlock.Title>
+	 *   </CodeBlock.Header>
+	 *   <CodeBlock.Body>
+	 *     <CodeBlock.CopyButton />
+	 *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
+	 *   </CodeBlock.Body>
+	 *   <CodeBlock.ExpanderButton />
+	 * </CodeBlock.Root>
+	 * ```
 	 */
 	Icon: CodeBlockIconComponent,
 	/**
 	 * Conditionally renders children when the associated tab is active.
+	 *
+	 * @example
+	 * ```tsx
+	 * <CodeBlock.Root defaultTab="yml">
+	 *   <CodeBlock.Header>
+	 *     <CodeBlock.TabList>
+	 *       <CodeBlock.TabTrigger value="yml">policy.yml</CodeBlock.TabTrigger>
+	 *       <CodeBlock.TabTrigger value="json">policy.json</CodeBlock.TabTrigger>
+	 *     </CodeBlock.TabList>
+	 *   </CodeBlock.Header>
+	 *   <CodeBlock.Body>
+	 *     <CodeBlock.CopyButton />
+	 *     <CodeBlock.TabContent value="yml">
+	 *       <CodeBlock.Code value={ymlValue} />
+	 *     </CodeBlock.TabContent>
+	 *     <CodeBlock.TabContent value="json">
+	 *       <CodeBlock.Code value={jsonValue} />
+	 *     </CodeBlock.TabContent>
+	 *   </CodeBlock.Body>
+	 * </CodeBlock.Root>
+	 * ```
 	 */
 	TabContent,
 	/**
 	 * A tab list for the code block header. Renders pill-styled tabs for switching code.
+	 *
+	 * @example
+	 * ```tsx
+	 * <CodeBlock.Root defaultTab="yml">
+	 *   <CodeBlock.Header>
+	 *     <CodeBlock.TabList>
+	 *       <CodeBlock.TabTrigger value="yml">policy.yml</CodeBlock.TabTrigger>
+	 *       <CodeBlock.TabTrigger value="json">policy.json</CodeBlock.TabTrigger>
+	 *     </CodeBlock.TabList>
+	 *   </CodeBlock.Header>
+	 *   <CodeBlock.Body>
+	 *     <CodeBlock.CopyButton />
+	 *     <CodeBlock.TabContent value="yml">
+	 *       <CodeBlock.Code value={ymlValue} />
+	 *     </CodeBlock.TabContent>
+	 *     <CodeBlock.TabContent value="json">
+	 *       <CodeBlock.Code value={jsonValue} />
+	 *     </CodeBlock.TabContent>
+	 *   </CodeBlock.Body>
+	 * </CodeBlock.Root>
+	 * ```
 	 */
 	TabList,
 	/**
 	 * A pill-styled tab trigger for the code block header. Must be inside `TabList`.
+	 *
+	 * @example
+	 * ```tsx
+	 * <CodeBlock.Root defaultTab="yml">
+	 *   <CodeBlock.Header>
+	 *     <CodeBlock.TabList>
+	 *       <CodeBlock.TabTrigger value="yml">policy.yml</CodeBlock.TabTrigger>
+	 *       <CodeBlock.TabTrigger value="json">policy.json</CodeBlock.TabTrigger>
+	 *     </CodeBlock.TabList>
+	 *   </CodeBlock.Header>
+	 *   <CodeBlock.Body>
+	 *     <CodeBlock.CopyButton />
+	 *     <CodeBlock.TabContent value="yml">
+	 *       <CodeBlock.Code value={ymlValue} />
+	 *     </CodeBlock.TabContent>
+	 *     <CodeBlock.TabContent value="json">
+	 *       <CodeBlock.Code value={jsonValue} />
+	 *     </CodeBlock.TabContent>
+	 *   </CodeBlock.Body>
+	 * </CodeBlock.Root>
+	 * ```
 	 */
 	TabTrigger,
 	/**
 	 * The optional title rendered in the header.
+	 *
+	 * @example
+	 * ```tsx
+	 * <CodeBlock.Root>
+	 *   <CodeBlock.Header>
+	 *     <CodeBlock.Icon preset="file" />
+	 *     <CodeBlock.Title>example.ts</CodeBlock.Title>
+	 *   </CodeBlock.Header>
+	 *   <CodeBlock.Body>
+	 *     <CodeBlock.CopyButton />
+	 *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
+	 *   </CodeBlock.Body>
+	 *   <CodeBlock.ExpanderButton />
+	 * </CodeBlock.Root>
+	 * ```
 	 */
 	Title,
 } as const;

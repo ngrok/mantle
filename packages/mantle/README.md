@@ -48,8 +48,6 @@ Mantle ships runtime components from `@ngrok/mantle`, while build-time and serve
 
 This keeps Vite/Shiki/parser dependencies out of frontend installs that only need Mantle's runtime UI package.
 
-For a concrete service implementation, see [`apps/highlight-server`](../../apps/highlight-server/README.md), a Bun + Hono syntax-highlighting API that preloads Shiki and serves highlighted HTML for server-side use cases.
-
 ### Vite + MDX
 
 ```ts
@@ -69,6 +67,24 @@ const result = await highlighter.highlight({
 	language: "typescript",
 });
 ```
+
+## Scaffolding a New Component
+
+If you're contributing a new mantle component and use [Claude Code](https://claude.com/claude-code), run the `/scaffold-component` slash command to scaffold one end-to-end (component files, package.json export, docs page, route, navigation entry, and changeset):
+
+```
+/scaffold-component <component-name>
+```
+
+See [`.claude/commands/scaffold-component.md`](https://github.com/ngrok-oss/mantle/blob/main/.claude/commands/scaffold-component.md) for the full step-by-step reference — it's also useful if you'd rather scaffold by hand.
+
+To validate that an existing component's docs, JSDoc, and scaffold wiring match the conventions (and auto-fix common drift), run `/audit-component`:
+
+```
+/audit-component <component-name>
+```
+
+Omit the name (or pass `all`) to sweep every component. See [`.claude/commands/audit-component.md`](https://github.com/ngrok-oss/mantle/blob/main/.claude/commands/audit-component.md) for the full checklist.
 
 ## Git Hooks
 

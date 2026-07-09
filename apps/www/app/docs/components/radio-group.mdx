@@ -205,6 +205,33 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 </RadioGroup.Root>
 ```
 
+## Composition
+
+`RadioGroup` supports several layout variants. Compose the parts together to build your own:
+
+```text showLineNumbers=false
+# Default radios
+RadioGroup.Root
+└── RadioGroup.Item
+    ├── RadioGroup.Indicator
+    └── RadioGroup.ItemContent
+
+# List layout with descriptions
+RadioGroup.List
+└── RadioGroup.ListItem
+    ├── RadioGroup.Indicator
+    └── RadioGroup.ItemContent
+
+# Segmented button group
+RadioGroup.ButtonGroup
+└── RadioGroup.Button
+
+# Card-style radios
+RadioGroup.Root
+└── RadioGroup.Card
+    └── RadioGroup.Indicator
+```
+
 ## API Reference
 
 ### RadioGroup.Root

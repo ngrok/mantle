@@ -51,7 +51,9 @@ import { Button } from "@ngrok/mantle/button";
 
 <Dialog.Root>
 	<Dialog.Trigger asChild>
-		<Button type="button">Open dialog</Button>
+		<Button type="button" appearance="outlined" priority="neutral">
+			Open dialog
+		</Button>
 	</Dialog.Trigger>
 	<Dialog.Content>
 		<Dialog.Header>
@@ -100,6 +102,23 @@ import { Dialog, isDialogOverlayTarget } from "@ngrok/mantle/dialog";
 ```
 
 ## Composition
+
+Compose the parts of a `Dialog` together to build your own:
+
+```text showLineNumbers=false
+Dialog.Root
+├── Dialog.Trigger
+└── Dialog.Content
+    ├── Dialog.Header
+    │   ├── Dialog.Title
+    │   ├── Dialog.Description
+    │   └── Dialog.CloseIconButton
+    ├── Dialog.Body
+    └── Dialog.Footer
+        └── Dialog.Close
+```
+
+## Combining with a Tooltip
 
 In some cases, you might wish to have a tooltip over the dialog trigger. This is helpful if the dialog trigger is an `IconButton` and you wish to provide more context to what the button does. You can compose them both together to where the dialog trigger is also the tooltip trigger.
 

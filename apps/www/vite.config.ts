@@ -12,6 +12,7 @@ import { defineConfig } from "vite";
 import devtoolsJson from "vite-plugin-devtools-json";
 
 import { remarkMdxNoParagraphWrap } from "@ngrok/remark-mdx-no-paragraph-wrap";
+import { mdxDocComponentImports } from "./vite-plugins/mdx-doc-component-imports";
 import { rawMdxDocs } from "./vite-plugins/raw-mdx-docs";
 
 const codeBlockPlugins = mantleCodeBlockPlugins();
@@ -24,6 +25,7 @@ export default defineConfig({
 		//
 		...codeBlockPlugins.vitePlugins,
 		rawMdxDocs(path.resolve(import.meta.dirname, "app/docs")),
+		mdxDocComponentImports(path.resolve(import.meta.dirname, "app/docs")),
 		devtoolsJson(),
 		tailwindcss(),
 		mdx({

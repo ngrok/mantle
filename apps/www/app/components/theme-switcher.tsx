@@ -1,6 +1,5 @@
 import { BrowserOnly } from "@ngrok/mantle/browser-only";
 import { IconButton } from "@ngrok/mantle/button";
-import { cx } from "@ngrok/mantle/cx";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Icon } from "@ngrok/mantle/icon";
 import { AutoThemeIcon, ThemeIcon } from "@ngrok/mantle/icons";
@@ -11,7 +10,7 @@ import type { ComponentProps } from "react";
 
 type Props = Pick<ComponentProps<typeof IconButton>, "appearance"> & WithStyleProps;
 
-function ThemeSwitcher({ className, ...props }: Props) {
+function ThemeSwitcher(props: Props) {
 	const [currentTheme, setTheme] = useTheme();
 
 	return (
@@ -20,7 +19,6 @@ function ThemeSwitcher({ className, ...props }: Props) {
 				<IconButton
 					type="button"
 					appearance="ghost"
-					className={cx("rounded-full", className)}
 					label="Change Theme"
 					icon={
 						<BrowserOnly fallback={<Skeleton className="rounded-full size-5" />}>

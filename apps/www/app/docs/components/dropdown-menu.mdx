@@ -134,6 +134,27 @@ import { Icon } from "@ngrok/mantle/icon";
 </DropdownMenu.Root>;
 ```
 
+## Composition
+
+Compose the parts of a `DropdownMenu` together to build your own:
+
+```text showLineNumbers=false
+DropdownMenu.Root
+├── DropdownMenu.Trigger
+└── DropdownMenu.Content
+    ├── DropdownMenu.Group
+    │   ├── DropdownMenu.Label
+    │   ├── DropdownMenu.Item
+    │   │   └── DropdownMenu.Shortcut
+    │   ├── DropdownMenu.CheckboxItem
+    │   └── DropdownMenu.RadioGroup
+    │       └── DropdownMenu.RadioItem
+    ├── DropdownMenu.Separator
+    └── DropdownMenu.Sub
+        ├── DropdownMenu.SubTrigger
+        └── DropdownMenu.SubContent
+```
+
 ## API Reference
 
 The `DropdownMenu` components are built on top of [Radix Dropdown Menu](https://www.radix-ui.com/primitives/docs/components/dropdown-menu).

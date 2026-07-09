@@ -127,6 +127,23 @@ import { Table } from "@ngrok/mantle/table";
 </Table.Root>;
 ```
 
+## Composition
+
+Compose the parts of a `Table` together to build your own:
+
+```text showLineNumbers=false
+Table.Root
+└── Table.Element
+    ├── Table.Caption
+    ├── Table.Head
+    │   └── Table.Row
+    │       └── Table.Header
+    ├── Table.Body
+    │   └── Table.Row
+    │       └── Table.Cell
+    └── Table.Foot
+```
+
 ## API Reference
 
 The `Table` is a structured way to display data in rows and columns. The API matches the HTML `table` element 1:1. It is composed of several sub-components.

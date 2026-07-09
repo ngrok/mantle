@@ -240,7 +240,9 @@ import { Tabs } from "@ngrok/mantle/tabs";
 				</div>
 			</Card.Body>
 			<Card.Footer>
-				<Button type="button">Save changes</Button>
+				<Button type="button" appearance="outlined" priority="neutral">
+					Save changes
+				</Button>
 			</Card.Footer>
 		</Card.Root>
 	</Tabs.Content>
@@ -261,7 +263,9 @@ import { Tabs } from "@ngrok/mantle/tabs";
 				</div>
 			</Card.Body>
 			<Card.Footer>
-				<Button type="button">Save password</Button>
+				<Button type="button" appearance="outlined" priority="neutral">
+					Save password
+				</Button>
 			</Card.Footer>
 		</Card.Root>
 	</Tabs.Content>
@@ -559,6 +563,18 @@ import { Tabs } from "@ngrok/mantle/tabs";
 		</Card.Root>
 	</Tabs.Content>
 </Tabs.Root>;
+```
+
+## Composition
+
+Compose the parts of `Tabs` together to build your own:
+
+```text showLineNumbers=false
+Tabs.Root
+├── Tabs.List
+│   └── Tabs.Trigger
+│       └── Tabs.Badge
+└── Tabs.Content
 ```
 
 ## API Reference

@@ -49,6 +49,7 @@ const HorizontalSeparatorGroup = ({
 	return (
 		<SeparatorGroupContext.Provider value={{ orientation: "horizontal" }}>
 			<Comp
+				data-slot="horizontal-separator-group"
 				data-horizontal-separator-group
 				className={cx(
 					"group flex items-center gap-2 [&_*:not([data-separator])]:shrink-0",
@@ -126,6 +127,7 @@ const Separator = forwardRef<ComponentRef<"div">, SeparatorProps>(
 
 		return (
 			<Component
+				data-slot="separator"
 				className={cx(
 					"separator",
 					"dark-high-contrast:bg-black high-contrast:bg-black bg-gray-500/20 dark:bg-gray-600/20",

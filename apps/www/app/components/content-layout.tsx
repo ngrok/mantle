@@ -27,14 +27,14 @@ export function ContentLayout({ children, markdownPath }: ContentLayoutProps) {
 	return (
 		<>
 			<div className="relative">
-				<div className="absolute right-0 top-0 z-10">
+				<div className="mb-4 sm:absolute sm:right-0 sm:top-0 sm:z-10 sm:mb-0">
 					<DocActions markdownPath={markdownPath} />
 				</div>
 				<div ref={contentRef}>
 					<MdxProvider>
 						<Suspense fallback={null}>
 							{/* don't overlap the doc actions */}
-							<div className="[&>h1:first-child]:pr-40">{children}</div>
+							<div className="sm:[&>h1:first-child]:pr-40">{children}</div>
 						</Suspense>
 					</MdxProvider>
 				</div>

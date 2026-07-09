@@ -1,6 +1,8 @@
 import { forwardRef } from "react";
-import type { HTMLAttributes } from "react";
+import type { ComponentProps, ComponentRef } from "react";
+import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import { Slot } from "../slot/index.js";
 
 /**
  * Marks text to signify a short fragment of inline computer code.
@@ -14,17 +16,21 @@ import { cx } from "../../utils/cx/cx.js";
  * </p>
  * ```
  */
-const Code = forwardRef<HTMLSpanElement, HTMLAttributes<HTMLSpanElement>>(
-	({ className, ...props }, ref) => (
-		<code
-			ref={ref}
-			className={cx(
-				"border-gray-500/15 rounded-md border bg-gray-500/5 px-1 font-mono text-[0.8em]",
-				className,
-			)}
-			{...props}
-		/>
-	),
+const Code = forwardRef<ComponentRef<"code">, ComponentProps<"code"> & WithAsChild>(
+	({ asChild, className, ...props }, ref) => {
+		const Comp = asChild ? Slot : "code";
+		return (
+			<Comp
+				ref={ref}
+				data-slot="code"
+				className={cx(
+					"border-gray-500/15 rounded-md border bg-gray-500/5 px-1 font-mono text-[0.8em]",
+					className,
+				)}
+				{...props}
+			/>
+		);
+	},
 );
 Code.displayName = "Code";
 

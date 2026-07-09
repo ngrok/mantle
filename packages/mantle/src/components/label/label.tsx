@@ -37,6 +37,7 @@ const Label = forwardRef<ComponentRef<"label">, LabelProps>(
 		// biome-ignore lint/a11y/noLabelWithoutControl: this is a composable label component
 		<label
 			aria-disabled={disabled ?? _ariaDisabled}
+			data-slot="label"
 			className={cx(
 				"text-strong cursor-pointer text-sm peer-disabled:cursor-default has-disabled:cursor-default aria-disabled:cursor-default font-sans",
 				className,

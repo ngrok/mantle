@@ -109,6 +109,17 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 
 ## Composition
 
+Compose the parts of an `Alert` together to build your own:
+
+```text showLineNumbers=false
+Alert.Root
+├── Alert.Icon
+└── Alert.Content
+    ├── Alert.Title
+    ├── Alert.Description
+    └── Alert.DismissIconButton
+```
+
 You can mix and match what you put inside the `Alert` component to create different types of Alert layouts.
 
 <Example className="flex-col gap-4">

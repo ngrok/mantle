@@ -63,6 +63,8 @@ export function ToastDemo() {
 					<Sheet.Body className="space-y-4">
 						<Button
 							type="button"
+							appearance="outlined"
+							priority="neutral"
 							onClick={() =>
 								makeToast(
 									<Toast.Root priority="warning">
@@ -88,7 +90,9 @@ export function ToastDemo() {
 					</Sheet.Body>
 					<Sheet.Footer>
 						<Sheet.Close asChild>
-							<Button type="button">Close</Button>
+							<Button type="button" appearance="outlined" priority="neutral">
+								Close
+							</Button>
 						</Sheet.Close>
 					</Sheet.Footer>
 				</Sheet.Content>
@@ -107,6 +111,8 @@ export function ToastDemo() {
 					<Dialog.Body>
 						<Button
 							type="button"
+							appearance="outlined"
+							priority="neutral"
 							onClick={() =>
 								makeToast(
 									<Toast.Root priority="danger">
@@ -153,6 +159,8 @@ export function ToastDemo() {
 						</AlertDialog.Header>
 						<Button
 							type="button"
+							appearance="outlined"
+							priority="neutral"
 							onClick={() =>
 								makeToast(
 									<Toast.Root priority="success">
@@ -197,6 +205,8 @@ import { makeToast, Toast } from "@ngrok/mantle/toast";
 
 <Button
 	type="button"
+	appearance="outlined"
+	priority="neutral"
 	onClick={() =>
 		// make some toast! 🍞😋
 		makeToast(
@@ -214,6 +224,17 @@ import { makeToast, Toast } from "@ngrok/mantle/toast";
 >
 	Show Toast
 </Button>
+```
+
+## Composition
+
+Compose the parts of a `Toast` together to build your own:
+
+```text showLineNumbers=false
+Toast.Root
+├── Toast.Icon
+├── Toast.Message
+└── Toast.Action
 ```
 
 ## API Reference

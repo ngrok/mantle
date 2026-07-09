@@ -1,7 +1,9 @@
 import { cva } from "class-variance-authority";
 import { type ComponentProps, type ComponentRef, forwardRef } from "react";
 import type { VariantProps } from "../../types/index.js";
+import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import { Slot } from "../slot/index.js";
 
 const buttonGroupVariants = cva("border-form inline-flex items-center rounded-md", {
 	variants: {
@@ -19,7 +21,7 @@ const buttonGroupVariants = cva("border-form inline-flex items-center rounded-md
 
 type ButtonGroupVariants = VariantProps<typeof buttonGroupVariants>;
 
-type ButtonGroupProps = ComponentProps<"div"> & ButtonGroupVariants;
+type ButtonGroupProps = ComponentProps<"div"> & ButtonGroupVariants & WithAsChild;
 
 /**
  * A contained group of related buttons.
@@ -36,11 +38,17 @@ type ButtonGroupProps = ComponentProps<"div"> & ButtonGroupVariants;
  * ```
  */
 const ButtonGroup = forwardRef<ComponentRef<"div">, ButtonGroupProps>(
-	({ appearance, className, children, ...props }, ref) => {
+	({ appearance, asChild, className, children, ...props }, ref) => {
+		const Comp = asChild ? Slot : "div";
 		return (
-			<div className={cx(buttonGroupVariants({ appearance }), className)} ref={ref} {...props}>
+			<Comp
+				data-slot="button-group"
+				className={cx(buttonGroupVariants({ appearance }), className)}
+				ref={ref}
+				{...props}
+			>
 				{children}
-			</div>
+			</Comp>
 		);
 	},
 );

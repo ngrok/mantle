@@ -7,9 +7,12 @@ import {
 } from "@tanstack/react-table";
 import {
 	type ComponentProps,
+	type ComponentPropsWithoutRef,
+	type ComponentRef,
 	Fragment,
 	type ReactNode,
 	createContext,
+	forwardRef,
 	useContext,
 	useMemo,
 } from "react";
@@ -66,7 +69,7 @@ function Root<TData>({ children, table, ...props }: DataTableProps<TData>) {
 
 	return (
 		<DataTableContext.Provider value={context}>
-			<Table.Root {...props}>
+			<Table.Root data-slot="data-table" {...props}>
 				<Table.Element>{children}</Table.Element>
 			</Table.Root>
 		</DataTableContext.Provider>
@@ -152,6 +155,7 @@ function HeaderSortButton<TData, TValue>({
 	return (
 		<Button
 			appearance="ghost"
+			data-slot="data-table-header-sort-button"
 			className={cx(
 				"flex justify-start w-full h-full rounded-none not-disabled:active:scale-none text-muted",
 				className,
@@ -209,13 +213,21 @@ type DataTableHeaderProps = ComponentProps<typeof Table.Header>;
  */
 function Header({ children, className, ...props }: DataTableHeaderProps) {
 	return (
-		<Table.Header className={cx("has-data-table-header-action:px-0", className)} {...props}>
+		<Table.Header
+			data-slot="data-table-header"
+			className={cx("has-data-table-header-action:px-0", className)}
+			{...props}
+		>
 			{children}
 		</Table.Header>
 	);
 }
 
-const Body = Table.Body;
+const Body = forwardRef<
+	ComponentRef<typeof Table.Body>,
+	ComponentPropsWithoutRef<typeof Table.Body>
+>((props, ref) => <Table.Body ref={ref} data-slot="data-table-body" {...props} />);
+Body.displayName = "DataTableBody";
 
 type DataTableHeadProps = Omit<ComponentProps<typeof Table.Head>, "children">;
 
@@ -223,7 +235,7 @@ function Head<TData>(props: DataTableHeadProps) {
 	const { table } = useDataTableContext<TData>();
 
 	return (
-		<Table.Head {...props}>
+		<Table.Head data-slot="data-table-head" {...props}>
 			{table.getHeaderGroups().map((headerGroup) => (
 				<Table.Row key={headerGroup.id}>
 					{headerGroup.headers.map((header) => (
@@ -247,7 +259,7 @@ type DataTableRowProps<TData> = Omit<ComponentProps<typeof Table.Row>, "children
 
 function Row<TData>({ row, ...props }: DataTableRowProps<TData>) {
 	return (
-		<Table.Row {...props}>
+		<Table.Row data-slot="data-table-row" {...props}>
 			{row.getVisibleCells().map((cell) => (
 				<Fragment key={cell.id}>
 					{flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -264,7 +276,7 @@ function EmptyRow<TData>({ children, ...props }: DataTableEmptyRowProps) {
 	const numberOfColumns = table.getAllColumns().length;
 
 	return (
-		<Table.Row {...props}>
+		<Table.Row data-slot="data-table-empty-row" {...props}>
 			<Table.Cell colSpan={numberOfColumns}>{children}</Table.Cell>
 		</Table.Row>
 	);
@@ -308,6 +320,7 @@ function ActionCell({ children, className, ...props }: DataTableActionCellProps)
 			// Marks this cell as a sticky right-edge column so Table.Root can suppress
 			// its container-level right-side scroll fade (keeping this cell opaque).
 			data-mantle-table-sticky-right
+			data-slot="data-table-action-cell"
 			className={cx(
 				// `bg-inherit` keeps the sticky cell opaque with the row's current bg
 				// (including hover state) so scrolling cells don't show through.
@@ -352,6 +365,7 @@ function ActionHeader({ children, className, ...props }: DataTableActionHeaderPr
 			// Only mark as sticky-right when body rows exist so the empty state
 			// doesn't suppress the container's right-side scroll fade.
 			{...(hasRows ? { "data-mantle-table-sticky-right": true } : {})}
+			data-slot="data-table-action-header"
 			className={cx(
 				// `bg-inherit` keeps the sticky header opaque with the thead's current bg.
 				hasRows && "sticky z-10 right-0 bg-inherit",
@@ -381,6 +395,22 @@ Row.displayName = "DataTableRow";
  * Built on top of TanStack Table for advanced table features.
  *
  * @see https://mantle.ngrok.com/components/data-table
+ *
+ * @example
+ * Composition:
+ * ```
+ * DataTable.Root
+ * ├── DataTable.Head
+ * │   └── DataTable.Row
+ * │       ├── DataTable.Header
+ * │       │   └── DataTable.HeaderSortButton
+ * │       └── DataTable.ActionHeader
+ * └── DataTable.Body
+ *     ├── DataTable.Row
+ *     │   ├── DataTable.Cell
+ *     │   └── DataTable.ActionCell
+ *     └── DataTable.EmptyRow
+ * ```
  *
  * @example
  * ```tsx

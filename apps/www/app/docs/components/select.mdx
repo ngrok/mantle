@@ -207,6 +207,21 @@ import { Select } from "@ngrok/mantle/select";
 </Select.Root>;
 ```
 
+## Composition
+
+Compose the parts of a `Select` together to build your own:
+
+```text showLineNumbers=false
+Select.Root
+├── Select.Trigger
+│   └── Select.Value
+└── Select.Content
+    ├── Select.Group
+    │   ├── Select.Label
+    │   └── Select.Item
+    └── Select.Separator
+```
+
 ## API Reference
 
 The `Select` components are built on top of [Radix Select](https://www.radix-ui.com/primitives/docs/components/select).

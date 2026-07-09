@@ -456,7 +456,7 @@ This is for apps where the frontend is a Vite-built React 18 SPA and the backend
 
 **Option A:** Use `mantleCode` tagged templates for all static code (build-time, via Vite plugin) and skip server highlighting entirely. Code not known at build time renders as plain text (no syntax highlighting).
 
-**Option B:** Run a sidecar highlighting service (the `highlight-server` Bun/Hono app, or your own Node.js endpoint) that the frontend calls directly for dynamic code.
+**Option B:** Run a sidecar Node.js highlighting service that the frontend calls directly for dynamic code, using `@ngrok/mantle-server-syntax-highlighter` to produce highlighted HTML.
 
 ### 1. Install dependencies
 
@@ -543,23 +543,7 @@ function DynamicCodeBlock({ code, language }: { code: string; language: string }
 
 ### 4. Dynamic code highlighting (Option B: sidecar highlight service)
 
-Run the `highlight-server` as a sidecar alongside your Go server:
-
-```bash
-# Using Docker
-docker build -t highlight-server -f apps/highlight-server/Dockerfile .
-docker run --rm -p 4444:4444 \
-  -e CORS_ORIGINS=https://your-app.example.com \
-  highlight-server
-```
-
-Or run it directly with Bun:
-
-```bash
-PORT=4444 bun run apps/highlight-server/src/index.ts
-```
-
-The sidecar exposes a simple HTTP API:
+Run a small Node.js sidecar alongside your Go server that uses `@ngrok/mantle-server-syntax-highlighter` to highlight code on demand. A minimal service should expose an HTTP endpoint like the following:
 
 ```bash
 curl -X POST http://127.0.0.1:4444/ \

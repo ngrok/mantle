@@ -64,6 +64,7 @@ const Anchor = forwardRef<ComponentRef<"a">, AnchorProps>(
 	) => {
 		const rel = resolveRel(propRel);
 		const componentProps = {
+			"data-slot": "anchor",
 			className: anchorClassNames(className),
 			ref,
 			rel,

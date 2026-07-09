@@ -118,6 +118,7 @@ const Root = ({
 		<ProgressContext.Provider value={ctx}>
 			{/* biome-ignore lint/a11y/useFocusableInteractive: progress bars don't need to be focusable */}
 			<svg
+				data-slot="progress-donut"
 				aria-valuemax={max}
 				aria-valuemin={0}
 				aria-valuenow={valueNow}
@@ -191,7 +192,7 @@ const Indicator = ({ className, ...props }: ProgressDonutIndicatorProps) => {
 	const radius = calcRadius(strokeWidthPx);
 
 	return (
-		<g className={cx("text-accent-600", className)} {...props}>
+		<g data-slot="progress-donut-indicator" className={cx("text-accent-600", className)} {...props}>
 			{ctx.value === "indeterminate" && (
 				<defs>
 					<linearGradient id={gradientId}>
@@ -229,6 +230,13 @@ Indicator.displayName = "ProgressDonutIndicator";
  * (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
  *
  * @see https://mantle.ngrok.com/components/progress
+ *
+ * @example
+ * Composition:
+ * ```
+ * ProgressDonut.Root
+ * └── ProgressDonut.Indicator
+ * ```
  *
  * @example
  * ```tsx

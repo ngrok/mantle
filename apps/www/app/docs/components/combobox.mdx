@@ -107,6 +107,21 @@ import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
 </Combobox.Root>;
 ```
 
+## Composition
+
+Compose the parts of a `Combobox` together to build your own:
+
+```text showLineNumbers=false
+Combobox.Root
+├── Combobox.Input
+└── Combobox.Content
+    ├── Combobox.Group
+    │   ├── Combobox.GroupLabel
+    │   └── Combobox.Item
+    │       └── Combobox.ItemValue
+    └── Combobox.Separator
+```
+
 ## API Reference
 
 The `Combobox` components are built on top of [ariakit Combobox](https://ariakit.org/components/combobox).

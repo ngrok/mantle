@@ -123,10 +123,25 @@ Content.displayName = "Tooltip.Content";
 
 /**
  * A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.
- * This is the root, stateful component that manages the open/closed state of the tooltip.
- * Will throw if you have not wrapped your app in a `TooltipProvider`.
+ * Wrapping your app in a `TooltipProvider` is recommended to share global tooltip behavior (delay, hover settings) across your application.
+ *
+ * Use a `Tooltip` for short, non-interactive labels — for example, to clarify
+ * the purpose of an icon-only button. Per the WAI-ARIA tooltip pattern,
+ * tooltips never receive focus, so interactive content inside them is
+ * unreachable for keyboard users. Prefer `Popover` when the floating content
+ * must be interactive, or `HoverCard` for a sighted-only preview of content
+ * that already lives behind a link.
  *
  * @see https://mantle.ngrok.com/components/tooltip
+ * @see https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/
+ *
+ * @example
+ * Composition:
+ * ```
+ * Tooltip.Root
+ * ├── Tooltip.Trigger
+ * └── Tooltip.Content
+ * ```
  *
  * @example
  * ```tsx

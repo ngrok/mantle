@@ -71,6 +71,7 @@ const Root = forwardRef<
 	}
 >(({ className, children, orientation = "horizontal", appearance = "classic", ...props }, ref) => (
 	<TabsPrimitiveRoot
+		data-slot="tabs"
 		className={cx("flex gap-4", orientation === "horizontal" ? "flex-col" : "flex-row", className)}
 		orientation={orientation}
 		ref={ref}
@@ -216,6 +217,7 @@ const List = forwardRef<
 	return (
 		<TabsPrimitiveList
 			aria-orientation={orientation}
+			data-slot="tabs-list"
 			className={cx(listVariants({ orientation, appearance }), className)}
 			ref={composeRefs(scrollRef, ref)}
 			{...props}
@@ -352,7 +354,7 @@ const Trigger = forwardRef<ComponentRef<typeof TabsPrimitiveTrigger>, TabsTrigge
 					{ tabIndex: 0 };
 
 			return (
-				<TabsPrimitiveTrigger asChild {...tabsTriggerProps} ref={ref}>
+				<TabsPrimitiveTrigger asChild data-slot="tabs-trigger" {...tabsTriggerProps} ref={ref}>
 					{cloneElement(
 						disabled ? <button type="button" /> : singleChild,
 						cloneProps,
@@ -366,7 +368,7 @@ const Trigger = forwardRef<ComponentRef<typeof TabsPrimitiveTrigger>, TabsTrigge
 		}
 
 		return (
-			<TabsPrimitiveTrigger ref={ref} {...tabsTriggerProps}>
+			<TabsPrimitiveTrigger data-slot="tabs-trigger" ref={ref} {...tabsTriggerProps}>
 				<TabsTriggerDecoration />
 				{children}
 			</TabsPrimitiveTrigger>
@@ -395,6 +397,7 @@ Trigger.displayName = "TabsTrigger";
  */
 const Badge = ({ className, children, ...props }: HTMLAttributes<HTMLSpanElement>) => (
 	<span
+		data-slot="tabs-badge"
 		className={cx(
 			"rounded-full bg-neutral-500/20 px-1.5 text-xs font-medium text-gray-600",
 			"group-data-state-active/tab-trigger:bg-neutral-950/10 group-data-state-active/tab-trigger:text-strong group-hover/tab-trigger:group-enabled/tab-trigger:group-data-state-active/tab-trigger:text-strong",
@@ -436,6 +439,7 @@ const Content = forwardRef<
 >(({ className, ...props }, ref) => (
 	<TabsPrimitiveContent
 		ref={ref}
+		data-slot="tabs-content"
 		className={cx("focus-visible:ring-focus-accent outline-hidden focus-visible:ring-4", className)}
 		{...props}
 	/>
@@ -447,6 +451,16 @@ Content.displayName = "TabsContent";
  * The root component that provides context for all tab components.
  *
  * @see https://mantle.ngrok.com/components/tabs
+ *
+ * @example
+ * Composition:
+ * ```
+ * Tabs.Root
+ * ├── Tabs.List
+ * │   └── Tabs.Trigger
+ * │       └── Tabs.Badge
+ * └── Tabs.Content
+ * ```
  *
  * @example
  * ```tsx

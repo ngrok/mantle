@@ -130,7 +130,9 @@ export function InSheetDemo() {
 					</Sheet.Body>
 					<Sheet.Footer>
 						<Sheet.Close asChild>
-							<Button type="button">Cancel</Button>
+							<Button type="button" appearance="outlined" priority="neutral">
+								Cancel
+							</Button>
 						</Sheet.Close>
 						<form.Subscribe selector={(state) => state.isDirty}>
 							{(isDirty) => (

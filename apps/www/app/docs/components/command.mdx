@@ -125,7 +125,12 @@ function CommandDialogDemo() {
 					J
 				</kbd>
 				or
-				<Button type="button" onClick={() => setOpen(!open)}>
+				<Button
+					type="button"
+					appearance="outlined"
+					priority="neutral"
+					onClick={() => setOpen(!open)}
+				>
 					Open Command Dialog
 				</Button>
 			</p>
@@ -178,6 +183,23 @@ function CommandDialogDemo() {
 		</>
 	);
 }
+```
+
+## Composition
+
+Compose the parts of a `Command` together to build your own:
+
+```text showLineNumbers=false
+Command.Dialog.Root
+├── Command.Dialog.Trigger
+└── Command.Dialog.Content
+    ├── Command.Input
+    └── Command.List
+        ├── Command.Empty
+        ├── Command.Group
+        │   └── Command.Item
+        │       └── Command.Shortcut
+        └── Command.Separator
 ```
 
 ## API Reference

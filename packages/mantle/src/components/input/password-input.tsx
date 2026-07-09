@@ -54,7 +54,7 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
 		}, [showValue]);
 
 		return (
-			<Input type={type} ref={ref} {...props}>
+			<Input data-slot="password-input" type={type} ref={ref} {...props}>
 				<InputCapture />
 				<button
 					type="button"

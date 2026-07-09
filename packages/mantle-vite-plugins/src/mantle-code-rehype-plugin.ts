@@ -81,12 +81,17 @@ function getCodeFenceMeta(codeNode: HastNode): string | undefined {
 	return undefined;
 }
 
-/** Extracts a named value from a tokenized metastring (e.g. `key=value`). */
+/**
+ * Extracts a named value from a tokenized metastring (e.g. `key=value`).
+ * When the same key appears multiple times, the last value wins to match
+ * `parseMetastring` semantics.
+ */
 function getMetaValue(meta: string | undefined, key: string): string | undefined {
 	if (!meta) {
 		return undefined;
 	}
 	const tokens = tokenizeMetastring(meta);
+	let result: string | undefined = undefined;
 	for (const token of tokens) {
 		const separatorIndex = token.indexOf("=");
 		if (separatorIndex === -1) {
@@ -96,9 +101,9 @@ function getMetaValue(meta: string | undefined, key: string): string | undefined
 		if (tokenKey !== key) {
 			continue;
 		}
-		return normalizeValue(token.slice(separatorIndex + 1));
+		result = normalizeValue(token.slice(separatorIndex + 1));
 	}
-	return undefined;
+	return result;
 }
 
 /** Returns `true` if the metastring contains a bare flag token (e.g. `collapsible`). */
@@ -167,7 +172,12 @@ function mantleCodeRehypePlugin() {
 					parseCodeBlockHighlightLines(getMetaValue(meta, "highlightLines")) ??
 					parseCodeBlockHighlightLines(getMetaValue(meta, "highlight"));
 				const collapsible =
-					preNode.properties?.collapsible ?? (hasMetaFlag(meta, "collapsible") ? true : undefined);
+					typeof preNode.properties?.collapsible === "string" ||
+					typeof preNode.properties?.collapsible === "boolean"
+						? parseBooleanish(preNode.properties.collapsible)
+						: hasMetaFlag(meta, "collapsible")
+							? true
+							: (parseBooleanish(getMetaValue(meta, "collapsible")) ?? undefined);
 				const disableCopy =
 					typeof preNode.properties?.disableCopy === "string" ||
 					typeof preNode.properties?.disableCopy === "boolean"
@@ -197,14 +207,14 @@ function mantleCodeRehypePlugin() {
 					mode,
 					title,
 					mantleCode: highlighted.code,
-					mantleCollapsible: collapsible,
-					mantleDisableCopy: disableCopy,
+					mantleCollapsible: collapsible == null ? undefined : String(collapsible),
+					mantleDisableCopy: disableCopy == null ? undefined : String(disableCopy),
 					mantleHighlightLines: highlighted.highlightLines,
 					mantleLanguage: highlighted.language,
 					mantleLineNumberStart: highlighted.lineNumberStart,
 					mantleMode: mode,
 					mantlePreHtml: highlighted.html,
-					mantleShowLineNumbers: highlighted.showLineNumbers,
+					mantleShowLineNumbers: String(highlighted.showLineNumbers),
 					mantleTitle: title,
 				};
 			}),

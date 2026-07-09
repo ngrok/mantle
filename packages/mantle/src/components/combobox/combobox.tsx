@@ -70,6 +70,7 @@ const Input = forwardRef<ComponentRef<"input">, ComboboxInputProps>(
 				aria-invalid={ariaInvalid}
 				autoComplete={autoComplete}
 				autoSelect={autoSelect}
+				data-slot="combobox-input"
 				className={cx(
 					"pointer-coarse:text-base h-9 text-sm",
 					"bg-form relative block w-full rounded-md border px-3 py-2 border-form text-strong font-sans",
@@ -114,6 +115,7 @@ const Content = forwardRef<ComponentRef<typeof Primitive.ComboboxPopover>, Combo
 	) => {
 		return (
 			<Primitive.ComboboxPopover
+				data-slot="combobox-content"
 				className={cx(
 					"border-popover bg-popover relative z-50 max-h-96 min-w-32 scrollbar overflow-y-scroll overflow-x-hidden rounded-md border shadow-md p-1 my-2 space-y-px font-sans focus:outline-hidden",
 					className,
@@ -155,6 +157,7 @@ const Item = forwardRef<ComponentRef<typeof Primitive.ComboboxItem>, ComboboxIte
 		return (
 			<ComboboxItemValueContext.Provider value={value}>
 				<Primitive.ComboboxItem
+					data-slot="combobox-item"
 					className={cx(
 						"cursor-pointer rounded-md px-2 py-1.5 text-strong text-sm flex min-w-0 gap-2 items-center [&>svg]:size-5 [&_svg]:shrink-0",
 						"data-active-item:bg-active-menu-item",
@@ -202,6 +205,7 @@ const Group = forwardRef<ComponentRef<typeof Primitive.ComboboxGroup>, ComboboxG
 	({ asChild = false, children, className, ...props }, ref) => {
 		return (
 			<Primitive.ComboboxGroup
+				data-slot="combobox-group"
 				className={cx("space-y-px", className)}
 				ref={ref}
 				render={
@@ -243,6 +247,7 @@ const GroupLabel = forwardRef<
 >(({ asChild = false, children, className, ...props }, ref) => {
 	return (
 		<Primitive.ComboboxGroupLabel
+			data-slot="combobox-group-label"
 			className={cx("text-muted px-2 py-1 text-xs font-medium", className)}
 			ref={ref}
 			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
@@ -290,6 +295,7 @@ const ItemValue = forwardRef<
 >(({ asChild = false, className, ...props }, ref) => {
 	return (
 		<Primitive.ComboboxItemValue
+			data-slot="combobox-item-value"
 			className={cx(
 				"*:data-user-value:font-medium flex-1 shrink-0 text-strong font-normal",
 				className,
@@ -324,7 +330,12 @@ const ComboboxSeparatorComponent = forwardRef<
 	ComponentRef<typeof Separator>,
 	ComponentPropsWithoutRef<typeof Separator>
 >(({ className, ...props }, ref) => (
-	<Separator ref={ref} className={cx("-mx-1.25 my-1 w-auto", className)} {...props} />
+	<Separator
+		ref={ref}
+		data-slot="combobox-separator"
+		className={cx("-mx-1.25 my-1 w-auto", className)}
+		{...props}
+	/>
 ));
 ComboboxSeparatorComponent.displayName = "ComboboxSeparator";
 
@@ -338,6 +349,19 @@ ComboboxSeparatorComponent.displayName = "ComboboxSeparator";
  * @see https://ariakit.org/components/combobox
  *
  * @see https://mantle.ngrok.com/components/combobox
+ *
+ * @example
+ * Composition:
+ * ```
+ * Combobox.Root
+ * ├── Combobox.Input
+ * └── Combobox.Content
+ *     ├── Combobox.Group
+ *     │   ├── Combobox.GroupLabel
+ *     │   └── Combobox.Item
+ *     │       └── Combobox.ItemValue
+ *     └── Combobox.Separator
+ * ```
  *
  * @example
  * <Combobox.Root>
