@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Separator component.
  *
- * @see https://mantle.ngrok.com/components/separator
+ * @see https://mantle.ngrok.com/components/structure/separator
  */
 
 export {

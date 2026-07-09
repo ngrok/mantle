@@ -140,7 +140,7 @@ type OtpInputRootProps = Omit<ComponentProps<typeof OTPInput>, "render" | "child
  * and `aria-errormessage` through to the underlying focusable input via
  * `FieldControlContext`.
  *
- * @see https://mantle.ngrok.com/components/otp-input
+ * @see https://mantle.ngrok.com/components/forms/otp-input
  *
  * @example
  * ```tsx
@@ -216,7 +216,7 @@ type OtpInputGroupProps = ComponentProps<"div"> & WithAsChild;
  * Slots inside a group share rounded corners on the outer edges and join with
  * shared borders between adjacent slots.
  *
- * @see https://mantle.ngrok.com/components/otp-input
+ * @see https://mantle.ngrok.com/components/forms/otp-input
  *
  * @example
  * ```tsx
@@ -282,7 +282,7 @@ type OtpInputSlotProps = ComponentProps<"div"> & {
  * the nearest `OtpInput.Root` via context — so this part must always be
  * rendered inside an `OtpInput.Root`.
  *
- * @see https://mantle.ngrok.com/components/otp-input
+ * @see https://mantle.ngrok.com/components/forms/otp-input
  *
  * @example
  * ```tsx
@@ -403,7 +403,7 @@ type OtpInputSeparatorProps = ComponentProps<"div"> &
  * A visual separator between two `OtpInput.Group` segments. Renders a minus
  * icon by default; pass `children` to override the visual.
  *
- * @see https://mantle.ngrok.com/components/otp-input
+ * @see https://mantle.ngrok.com/components/forms/otp-input
  *
  * @example
  * ```tsx
@@ -447,7 +447,7 @@ Separator.displayName = "OtpInputSeparator";
  * single hidden input (handling paste, autofill, and IME) with a row of
  * styled character slots.
  *
- * @see https://mantle.ngrok.com/components/otp-input
+ * @see https://mantle.ngrok.com/components/forms/otp-input
  *
  * @example
  * Composition:
@@ -483,7 +483,7 @@ const OtpInput = {
 	 * keystrokes, paste, and autofill, and provides per-slot state to
 	 * descendant `OtpInput.Slot` parts.
 	 *
-	 * @see https://mantle.ngrok.com/components/otp-input
+	 * @see https://mantle.ngrok.com/components/forms/otp-input
 	 *
 	 * @example
 	 * ```tsx
@@ -507,7 +507,7 @@ const OtpInput = {
 	 * Groups one or more `OtpInput.Slot` parts into a visually-connected
 	 * segment with shared rounded corners and joined borders.
 	 *
-	 * @see https://mantle.ngrok.com/components/otp-input
+	 * @see https://mantle.ngrok.com/components/forms/otp-input
 	 *
 	 * @example
 	 * ```tsx
@@ -532,7 +532,7 @@ const OtpInput = {
 	 * Reads its character, active state, and fake caret position from the
 	 * root via context.
 	 *
-	 * @see https://mantle.ngrok.com/components/otp-input
+	 * @see https://mantle.ngrok.com/components/forms/otp-input
 	 *
 	 * @example
 	 * ```tsx
@@ -556,7 +556,7 @@ const OtpInput = {
 	 * A visual separator between two `OtpInput.Group` segments. Renders a
 	 * minus icon by default; pass `children` to override.
 	 *
-	 * @see https://mantle.ngrok.com/components/otp-input
+	 * @see https://mantle.ngrok.com/components/forms/otp-input
 	 *
 	 * @example
 	 * ```tsx

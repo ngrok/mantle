@@ -14,7 +14,7 @@ import * as SheetPrimitive from "../dialog/primitive.js";
  * floating z-index. When multiple shared layers are open, the most recently
  * mounted layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetroot
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetroot
  *
  * @example
  * ```tsx
@@ -114,7 +114,7 @@ Root.displayName = "Sheet";
  * The button trigger for a `Sheet`. Should be rendered as a child of the `Sheet` component.
  * Renders an unstyled button by default, but can be customized with the `asChild` prop.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheettrigger
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheettrigger
  *
  * @example
  * ```tsx
@@ -155,7 +155,7 @@ Trigger.displayName = "SheetTrigger";
  * Usually contained within the `Sheet.Footer` component.
  * Renders an unstyled button by default, but can be customized with the `asChild` prop.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetclose
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetclose
  *
  * @example
  * ```tsx
@@ -265,7 +265,7 @@ type SheetContentProps = ComponentPropsWithoutRef<typeof SheetPrimitive.Content>
  * shared floating z-index. When multiple shared layers are open, the most
  * recently mounted layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetcontent
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetcontent
  *
  * @example
  * ```tsx
@@ -334,7 +334,7 @@ type SheetCloseIconButtonProps = Partial<Omit<IconButtonProps, "icon">>;
  * An icon button that closes the `Sheet` when clicked.
  * Should be rendered within the `Sheet.Header` as a child of `Sheet.Actions`.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetcloseiconbutton
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetcloseiconbutton
  *
  * @example
  * ```tsx
@@ -404,7 +404,7 @@ CloseIconButton.displayName = "SheetCloseIconButton";
  * The body container for a `Sheet`. This is where you would typically place the main content of the sheet, such as forms or text.
  * Should be rendered as a child of `Sheet.Content`.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetbody
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetbody
  *
  * @example
  * ```tsx
@@ -465,7 +465,7 @@ Body.displayName = "SheetBody";
  * The header container for a `Sheet`. This is where you would typically place the title, description, and actions.
  * Should be rendered as a child of `Sheet.Content`.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetheader
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetheader
  *
  * @example
  * ```tsx
@@ -527,7 +527,7 @@ Header.displayName = "SheetHeader";
  * The footer container for a `Sheet`. This is where you would typically place close and submit buttons.
  * Should be rendered as a child of `Sheet.Content`.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetfooter
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetfooter
  *
  * @example
  * ```tsx
@@ -588,7 +588,7 @@ Footer.displayName = "SheetFooter";
  * The title for a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`.
  * Defaults to an `h2` element, but can be changed via the `asChild` prop.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheettitle
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheettitle
  *
  * @example
  * ```tsx
@@ -649,7 +649,7 @@ Title.displayName = SheetPrimitive.Title.displayName;
 /**
  * A group container for the title and actions of a sheet. Typically rendered as a child of `Sheet.Header`.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheettitlegroup
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheettitlegroup
  *
  * @example
  * ```tsx
@@ -711,7 +711,7 @@ TitleGroup.displayName = "SheetTitleGroup";
 /**
  * A description for a sheet. Typically rendered as a child of `Sheet.Header`.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetdescription
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetdescription
  *
  * @example
  * ```tsx
@@ -772,7 +772,7 @@ Description.displayName = SheetPrimitive.Description.displayName;
 /**
  * A group container for the actions of a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetactions
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetactions
  *
  * @example
  * ```tsx
@@ -844,7 +844,7 @@ Actions.displayName = "SheetActions";
  * floating z-index. When multiple shared layers are open, the most recently
  * mounted layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/sheet
+ * @see https://mantle.ngrok.com/components/overlays/sheet
  *
  * @example
  * Composition:
@@ -962,7 +962,7 @@ const Sheet = {
 	 * floating z-index. When multiple shared layers are open, the most recently
 	 * mounted layer renders on top.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetroot
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetroot
 	 *
 	 * @example
 	 * ```tsx
@@ -999,7 +999,7 @@ const Sheet = {
 	/**
 	 * A group container for the actions of a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetactions
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetactions
 	 *
 	 * @example
 	 * ```tsx
@@ -1037,7 +1037,7 @@ const Sheet = {
 	 * The body container for a `Sheet`. This is where you would typically place the main content of the sheet, such as forms or text.
 	 * Should be rendered as a child of `Sheet.Content`.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetbody
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetbody
 	 *
 	 * @example
 	 * ```tsx
@@ -1076,7 +1076,7 @@ const Sheet = {
 	 * Usually contained within the `Sheet.Footer` component.
 	 * Renders an unstyled button by default, but can be customized with the `asChild` prop.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetclose
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetclose
 	 *
 	 * @example
 	 * ```tsx
@@ -1114,7 +1114,7 @@ const Sheet = {
 	 * An icon button that closes the `Sheet` when clicked.
 	 * Should be rendered within the `Sheet.Header` as a child of `Sheet.Actions`.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetcloseiconbutton
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetcloseiconbutton
 	 *
 	 * @example
 	 * ```tsx
@@ -1157,7 +1157,7 @@ const Sheet = {
 	 * shared floating z-index. When multiple shared layers are open, the most
 	 * recently mounted layer renders on top.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetcontent
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -1194,7 +1194,7 @@ const Sheet = {
 	/**
 	 * A description for a sheet. Typically rendered as a child of `Sheet.Header`.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetdescription
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetdescription
 	 *
 	 * @example
 	 * ```tsx
@@ -1232,7 +1232,7 @@ const Sheet = {
 	 * The footer container for a `Sheet`. This is where you would typically place close and submit buttons.
 	 * Should be rendered as a child of `Sheet.Content`.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetfooter
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetfooter
 	 *
 	 * @example
 	 * ```tsx
@@ -1270,7 +1270,7 @@ const Sheet = {
 	 * The header container for a `Sheet`. This is where you would typically place the title, description, and actions.
 	 * Should be rendered as a child of `Sheet.Content`.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetheader
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetheader
 	 *
 	 * @example
 	 * ```tsx
@@ -1308,7 +1308,7 @@ const Sheet = {
 	 * The title for a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`.
 	 * Defaults to an `h2` element, but can be changed via the `asChild` prop.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheettitle
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheettitle
 	 *
 	 * @example
 	 * ```tsx
@@ -1345,7 +1345,7 @@ const Sheet = {
 	/**
 	 * A group container for the title and actions of a sheet. Typically rendered as a child of `Sheet.Header`.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheettitlegroup
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheettitlegroup
 	 *
 	 * @example
 	 * ```tsx
@@ -1383,7 +1383,7 @@ const Sheet = {
 	 * The button trigger for a `Sheet`. Should be rendered as a child of the `Sheet` component.
 	 * Renders an unstyled button by default, but can be customized with the `asChild` prop.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheettrigger
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheettrigger
 	 *
 	 * @example
 	 * ```tsx

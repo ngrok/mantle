@@ -66,7 +66,7 @@ type SliderProps = SliderBaseProps &
  * pass `aria-label` or `aria-labelledby` to `Slider`; Mantle forwards those
  * labels to the rendered thumb(s).
  *
- * @see https://mantle.ngrok.com/components/slider
+ * @see https://mantle.ngrok.com/components/forms/slider
  *
  * @example
  * ```tsx

@@ -9,7 +9,7 @@ import { Slot } from "../slot/index.js";
  * The root container for an empty state. Centers content horizontally
  * with consistent vertical padding and max-width.
  *
- * @see https://mantle.ngrok.com/components/empty
+ * @see https://mantle.ngrok.com/components/feedback/empty
  *
  * @example
  * ```tsx
@@ -49,7 +49,7 @@ type EmptyIconProps = Omit<SvgAttributes, "children"> & {
  * Renders a large icon for the empty state. Pass a single SVG icon element
  * via the `svg` prop (e.g. from `@phosphor-icons/react`).
  *
- * @see https://mantle.ngrok.com/components/empty
+ * @see https://mantle.ngrok.com/components/feedback/empty
  *
  * @example
  * ```tsx
@@ -79,7 +79,7 @@ Icon.displayName = "EmptyIcon";
  * The heading text for the empty state. Renders as an `h3` by default. Use the
  * `asChild` prop to render as a different heading level (e.g. `h1`, `h2`).
  *
- * @see https://mantle.ngrok.com/components/empty
+ * @see https://mantle.ngrok.com/components/feedback/empty
  *
  * @example
  * ```tsx
@@ -122,7 +122,7 @@ Title.displayName = "EmptyTitle";
  * `space-y-4` so multiple paragraphs can be placed inside. Use the `asChild`
  * prop to render as a different element.
  *
- * @see https://mantle.ngrok.com/components/empty
+ * @see https://mantle.ngrok.com/components/feedback/empty
  *
  * @example
  * ```tsx
@@ -164,7 +164,7 @@ Description.displayName = "EmptyDescription";
 /**
  * A container for action buttons or links in the empty state.
  *
- * @see https://mantle.ngrok.com/components/empty
+ * @see https://mantle.ngrok.com/components/feedback/empty
  *
  * @example
  * ```tsx
@@ -203,7 +203,7 @@ Actions.displayName = "EmptyActions";
  * Compound component for rendering empty states. Use with `Empty.Root`,
  * `Empty.Icon`, `Empty.Title`, `Empty.Description`, and `Empty.Actions`.
  *
- * @see https://mantle.ngrok.com/components/empty
+ * @see https://mantle.ngrok.com/components/feedback/empty
  *
  * @example
  * Composition:
@@ -234,7 +234,7 @@ const Empty = {
 	 * The root container for an empty state. Centers content vertically and
 	 * horizontally with consistent padding and max-width.
 	 *
-	 * @see https://mantle.ngrok.com/components/empty
+	 * @see https://mantle.ngrok.com/components/feedback/empty
 	 *
 	 * @example
 	 * ```tsx
@@ -253,7 +253,7 @@ const Empty = {
 	 * Renders a large icon for the empty state. Pass a single SVG icon element
 	 * via the `svg` prop.
 	 *
-	 * @see https://mantle.ngrok.com/components/empty
+	 * @see https://mantle.ngrok.com/components/feedback/empty
 	 *
 	 * @example
 	 * ```tsx
@@ -272,7 +272,7 @@ const Empty = {
 	 * The heading text for the empty state. Renders as an `h3` by default.
 	 * Use `asChild` to render as a different heading level.
 	 *
-	 * @see https://mantle.ngrok.com/components/empty
+	 * @see https://mantle.ngrok.com/components/feedback/empty
 	 *
 	 * @example
 	 * ```tsx
@@ -296,7 +296,7 @@ const Empty = {
 	 * `space-y-4` for multiple paragraphs. Use `asChild` to render as a
 	 * different element.
 	 *
-	 * @see https://mantle.ngrok.com/components/empty
+	 * @see https://mantle.ngrok.com/components/feedback/empty
 	 *
 	 * @example
 	 * ```tsx
@@ -314,7 +314,7 @@ const Empty = {
 	/**
 	 * A container for action buttons or links in the empty state.
 	 *
-	 * @see https://mantle.ngrok.com/components/empty
+	 * @see https://mantle.ngrok.com/components/feedback/empty
 	 *
 	 * @example
 	 * ```tsx

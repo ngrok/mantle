@@ -47,7 +47,7 @@ Verify `packages/mantle/src/components/<component-name>/<component-name>.tsx` (a
 - **`className` composition** uses `cx` from `../../utils/cx/cx.js` — no string interpolation, `+`, or ternaries to build class names.
 - **JSDoc on every exported component and exported type.** Each JSDoc block must include:
   - A brief description line.
-  - A `@see https://mantle.ngrok.com/components/<component-name>` link.
+  - A `@see https://mantle.ngrok.com/components/<category>/<component-name>` link.
   - At least one `@example` block showing realistic JSX usage.
 
 ### 2.2. Compound-component rules
@@ -89,7 +89,7 @@ If the component exposes `asChild` on any part, the component's doc page must ha
 
 ## 4. Check the docs page
 
-The docs page lives at `apps/www/app/docs/components/<component-name>.mdx`. Verify:
+The docs page lives at `apps/www/app/docs/components/<category>/<component-name>.mdx`. Verify:
 
 ### 4.1. Frontmatter and scaffolding
 
@@ -110,10 +110,10 @@ Optional sections (Examples, Variants, etc.) may appear before `## API Reference
 
 ### 4.3. Route and navigation
 
-- `apps/www/app/routes.ts` contains `...docRoute("components/<component-name>"),` in alphabetical order among component docs.
+- `apps/www/app/routes.ts` contains `...docRoute("components/<category>/<component-name>"),` in alphabetical order among component docs.
 - `apps/www/app/components/navigation-data.ts`:
-  - The `<Display Name>` appears in the `prodReadyComponents` array (alphabetical order).
-  - `prodReadyComponentRouteLookup` has `"<Display Name>": "/components/<component-name>",` (alphabetical order).
+  - The `<Display Name>` appears in its category's array in `componentsByCategory` (alphabetical order within the category; `prodReadyComponents` is derived from it).
+  - `prodReadyComponentRouteLookup` has `"<Display Name>": "/components/<category>/<component-name>",` (alphabetical order) and the category segment matches the `componentsByCategory` placement.
 
 ## 5. Report and fix
 
@@ -128,7 +128,7 @@ Produce a report listing each violation, grouped by area (implementation, JSDoc,
 - Section titled `Composition` but describing unrelated variations → rename to a content-accurate title (ask the user for the new name if unclear).
 - Missing `displayName` on a sub-component → add it using the flat-name pattern.
 - Missing route in `apps/www/app/routes.ts` → insert in alphabetical order.
-- Missing nav entry in `navigation-data.ts` → insert in both `prodReadyComponents` and `prodReadyComponentRouteLookup` in alphabetical order.
+- Missing nav entry in `navigation-data.ts` → insert in both `componentsByCategory` (under the right category) and `prodReadyComponentRouteLookup` in alphabetical order.
 - Missing `package.json` `exports` entry → insert in alphabetical order.
 - JSDoc `@example` on a namespace property or underlying const that uses an abbreviated snippet → replace with the full-tree example already present elsewhere for the same component.
 - Usage code block with no live `<Example>` above it, or written as a partial/fragment ("only this line changes" diffs, bare config objects, references to undefined data) → add a live `<Example>` (an `export function <Name>Example()` rendered via `<Example>…</Example>`) and rewrite the code block to be complete and self-contained. Model the demo data and shape on the page's existing complete examples.

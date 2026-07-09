@@ -1,7 +1,7 @@
 /**
  * Re-exports for the SelectableList component.
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  */
 
 export {

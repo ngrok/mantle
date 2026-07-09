@@ -47,7 +47,7 @@ import { FieldValidationProvider, resolveValidation, type WithValidation } from 
  * answer) or a set of related checkboxes. For laying out unrelated fields
  * with consistent spacing, prefer `Field.Group` on its own.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -86,7 +86,7 @@ FieldSet.displayName = "FieldSet";
  * `<fieldset>` that ignores the parent's flex `gap`. Override the default
  * with any `mb-*` utility on `Field.Legend`.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -132,7 +132,7 @@ Legend.displayName = "FieldLegend";
  * element is rendered outside of `Field.Control` and the auto-generated id
  * never lands on it.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -185,7 +185,7 @@ FieldLabel.displayName = "FieldLabel";
  *   directly. `Field.LabelText` exists specifically to slot into the
  *   `Field.Label` position of a `Field.Item`.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -226,7 +226,7 @@ LabelText.displayName = "FieldLabelText";
  * with only an `(Optional)` suffix, place `Field.Optional` directly inside
  * the `<Field.Label>` instead — no `LabelRow` needed.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -276,7 +276,7 @@ LabelRow.displayName = "FieldLabelRow";
  *
  * Popover (not Tooltip) so the affordance is reachable on touch devices.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -330,7 +330,7 @@ type FieldHelpTriggerProps = Partial<Omit<IconButtonProps, "icon" | "label">> &
  * the `Field.LabelRow` flex line — matching the label's text line-height
  * so the label text is not pushed off-center.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -394,7 +394,7 @@ HelpTrigger.displayName = "FieldHelpTrigger";
  * `field-help-content` so consumers can target it as part of a `Field`
  * subtree without colliding with other popovers.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -434,7 +434,7 @@ HelpContent.displayName = "FieldHelpContent";
  * accessible name (e.g. "Email, Optional, edit text"). Pair with a small
  * `gap` on the label's flex layout, or rely on the natural inline spacing.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -483,7 +483,7 @@ Optional.displayName = "FieldOptional";
  * `Field.Set` + `Field.Legend` only when the grouping carries semantic
  * weight (e.g. a `RadioGroup` or related checkboxes).
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -543,7 +543,7 @@ Group.displayName = "FieldGroup";
  * `Field.Errors`, or multiple `Field.ErrorItem` children to `Field.ErrorList`,
  * instead.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -711,7 +711,7 @@ type FieldControlProps = FieldControlElementProps | FieldControlRenderProps;
  * `Field.Item` itself (e.g. `<Field.Item validation="error">`); to opt out of
  * the contract entirely, render your control without `Field.Control`.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -790,7 +790,7 @@ Control.displayName = "FieldControl";
  * one tight block. Pass any margin utility (`mt-1`, `mt-0`, etc.) to override
  * — the rule's specificity is flattened to `(0,1,0)` so a single user class wins.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -848,7 +848,7 @@ Description.displayName = "FieldDescription";
  * Must be rendered inside a `Field.ErrorList`. Empty or blank children render
  * nothing so message-less validator results do not produce empty list items.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -915,7 +915,7 @@ type FieldErrorsProps = Omit<ComponentProps<"ul">, "children" | "id"> & {
  * `Field.Errors` *or* `Field.ErrorList` per item, not both, and pass multiple
  * messages to one `Field.Errors` instead of rendering it twice.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -966,7 +966,7 @@ FieldErrors.displayName = "FieldErrors";
  * per item, not both, and put multiple `Field.ErrorItem` children inside the
  * single list instead of rendering two `Field.ErrorList`s.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
@@ -1033,7 +1033,7 @@ FieldErrorList.displayName = "FieldErrorList";
  * `Field.Group`; use `Field.Set` + `Field.Legend` for radios / related
  * checkboxes that share one accessible name.
  *
- * @see https://mantle.ngrok.com/components/field
+ * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * Composition:
@@ -1081,7 +1081,7 @@ const Field = {
 	 * A single form field. Provides message IDs and validation state to
 	 * `Field.Control`; rendered errors infer `"error"` validation.
 	 *
-	 * @see https://mantle.ngrok.com/components/field
+	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
 	 * ```tsx
@@ -1114,7 +1114,7 @@ const Field = {
 	 * `<label>`-wrapped native checkbox, or a third-party component that
 	 * needs the props placed manually on an inner input.
 	 *
-	 * @see https://mantle.ngrok.com/components/field
+	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
 	 * ```tsx
@@ -1149,7 +1149,7 @@ const Field = {
 	/**
 	 * Layout container that stacks multiple `Field.Item`s vertically.
 	 *
-	 * @see https://mantle.ngrok.com/components/field
+	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
 	 * ```tsx
@@ -1178,7 +1178,7 @@ const Field = {
 	 * Semantic `<fieldset>` for related controls that share one accessible
 	 * name from `Field.Legend`.
 	 *
-	 * @see https://mantle.ngrok.com/components/field
+	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
 	 * ```tsx
@@ -1195,7 +1195,7 @@ const Field = {
 	/**
 	 * Caption for `Field.Set`. Renders a semantic `<legend>`.
 	 *
-	 * @see https://mantle.ngrok.com/components/field
+	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
 	 * ```tsx
@@ -1218,7 +1218,7 @@ const Field = {
 	 * opt out (e.g. when the focusable element is rendered outside of
 	 * `Field.Control`).
 	 *
-	 * @see https://mantle.ngrok.com/components/label
+	 * @see https://mantle.ngrok.com/components/forms/label
 	 *
 	 * @example
 	 * ```tsx
@@ -1254,7 +1254,7 @@ const Field = {
 	 * status) inside sheets or detail panels. For rows with a real control,
 	 * use `Field.Label` instead so the label-to-control association is wired.
 	 *
-	 * @see https://mantle.ngrok.com/components/field
+	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
 	 * ```tsx
@@ -1271,7 +1271,7 @@ const Field = {
 	 * `<Field.Label>` (which may contain `Field.Optional`) with adjacent affordances
 	 * like a help-icon `Popover.Trigger` on a shared center line with `gap-1`.
 	 *
-	 * @see https://mantle.ngrok.com/components/field
+	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
 	 * ```tsx
@@ -1301,7 +1301,7 @@ const Field = {
 	 * `Field.HelpTrigger` and `Field.HelpContent` to drop a `?` button next to
 	 * a label without manually composing Popover + IconButton + QuestionIcon.
 	 *
-	 * @see https://mantle.ngrok.com/components/field
+	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
 	 * ```tsx
@@ -1331,7 +1331,7 @@ const Field = {
 	 * `QuestionIcon`. Requires a contextual `label`; pass `icon` to swap the
 	 * glyph, or other `IconButton` props (`size`, `appearance`, etc.) to customize.
 	 *
-	 * @see https://mantle.ngrok.com/components/field
+	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
 	 * ```tsx
@@ -1361,7 +1361,7 @@ const Field = {
 	 * positioning / sizing options (`side`, `align`, `preferredWidth`, etc.)
 	 * work as expected.
 	 *
-	 * @see https://mantle.ngrok.com/components/field
+	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
 	 * ```tsx
@@ -1392,7 +1392,7 @@ const Field = {
 	 * the `<Field.Label>` so screen readers announce it as part of the accessible
 	 * name.
 	 *
-	 * @see https://mantle.ngrok.com/components/field
+	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
 	 * ```tsx
@@ -1420,7 +1420,7 @@ const Field = {
 	/**
 	 * Helper / hint text rendered below the control in the muted body color.
 	 *
-	 * @see https://mantle.ngrok.com/components/field
+	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
 	 * ```tsx
@@ -1450,7 +1450,7 @@ const Field = {
 	 * filters empty values, and renders a `Field.ErrorList` with one
 	 * `Field.ErrorItem` for each remaining message.
 	 *
-	 * @see https://mantle.ngrok.com/components/field
+	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
 	 * ```tsx
@@ -1479,7 +1479,7 @@ const Field = {
 	 * Wraps one or more `Field.ErrorItem` children in a semantic `<ul>`.
 	 * Renders nothing when given no renderable children.
 	 *
-	 * @see https://mantle.ngrok.com/components/field
+	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
 	 * ```tsx
@@ -1503,7 +1503,7 @@ const Field = {
 	 * A single error message list item for a field. Renders an `<li>` in
 	 * `text-danger-600` and must be nested inside a `Field.ErrorList`.
 	 *
-	 * @see https://mantle.ngrok.com/components/field
+	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
 	 * ```tsx

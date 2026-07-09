@@ -20,7 +20,7 @@ type Props = ComponentProps<"textarea"> &
  * to enter a sizeable amount of free-form text, for example a comment on a
  * review or feedback form.
  *
- * @see https://mantle.ngrok.com/components/text-area
+ * @see https://mantle.ngrok.com/components/forms/text-area
  *
  * @example
  * ```tsx

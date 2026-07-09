@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Select component.
  *
- * @see https://mantle.ngrok.com/components/select
+ * @see https://mantle.ngrok.com/components/forms/select
  */
 
 export {

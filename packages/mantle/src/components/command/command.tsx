@@ -18,7 +18,7 @@ type CommandRootProps = ComponentPropsWithoutRef<typeof CommandPrimitive>;
 /**
  * The root component for the Command. It provides the context for all other command sub-components.
  *
- * @see https://mantle.ngrok.com/components/command#commandroot
+ * @see https://mantle.ngrok.com/components/navigation/command#commandroot
  *
  * @example
  * ```tsx
@@ -62,7 +62,7 @@ CommandRoot.displayName = "Command";
 /**
  * The props for the CommandDialog.Content component.
  *
- * @see https://mantle.ngrok.com/components/command#commanddialogcontent
+ * @see https://mantle.ngrok.com/components/navigation/command#commanddialogcontent
  */
 type CommandDialogContentProps = {
 	/**
@@ -109,7 +109,7 @@ type CommandDialogContentProps = {
  * The content of the CommandDialog. Renders the accessible title/description,
  * the command palette UI, and an optional close button.
  *
- * @see https://mantle.ngrok.com/components/command#commanddialogcontent
+ * @see https://mantle.ngrok.com/components/navigation/command#commanddialogcontent
  *
  * @example
  * ```tsx
@@ -171,7 +171,7 @@ CommandDialogContent.displayName = "CommandDialogContent";
 /**
  * The input component for the Command. It provides the input for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command#commandinput
+ * @see https://mantle.ngrok.com/components/navigation/command#commandinput
  *
  * @example
  * ```tsx
@@ -225,7 +225,7 @@ CommandInput.displayName = "CommandInput";
 /**
  * The list component for the Command. It provides the list for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command#commandlist
+ * @see https://mantle.ngrok.com/components/navigation/command#commandlist
  *
  * @example
  * ```tsx
@@ -270,7 +270,7 @@ CommandList.displayName = "CommandList";
 /**
  * The empty component for the Command. It provides the empty state for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command#commandempty
+ * @see https://mantle.ngrok.com/components/navigation/command#commandempty
  *
  * @example
  * ```tsx
@@ -315,7 +315,7 @@ CommandEmpty.displayName = "CommandEmpty";
 /**
  * The group component for the Command. It provides the group for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command#commandgroup
+ * @see https://mantle.ngrok.com/components/navigation/command#commandgroup
  *
  * @example
  * ```tsx
@@ -363,7 +363,7 @@ CommandGroup.displayName = "CommandGroup";
 /**
  * The separator component for the Command. It provides the separator for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command#commandseparator
+ * @see https://mantle.ngrok.com/components/navigation/command#commandseparator
  *
  * @example
  * ```tsx
@@ -405,7 +405,7 @@ CommandSeparator.displayName = "CommandSeparator";
 /**
  * The item component for the Command. It provides the item for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command#commanditem
+ * @see https://mantle.ngrok.com/components/navigation/command#commanditem
  *
  * @example
  * ```tsx
@@ -453,7 +453,7 @@ CommandItem.displayName = "CommandItem";
 /**
  * The shortcut component for the Command. It provides the shortcut for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command#commandshortcut
+ * @see https://mantle.ngrok.com/components/navigation/command#commandshortcut
  *
  * @example
  * ```tsx
@@ -497,7 +497,7 @@ CommandShortcut.displayName = "CommandShortcut";
 /**
  * The command component for the Command. It provides the command for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command
+ * @see https://mantle.ngrok.com/components/navigation/command
  *
  * @example
  * Composition:
@@ -545,7 +545,7 @@ const Command = {
 	/**
 	 * The root component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commandroot
+	 * @see https://mantle.ngrok.com/components/navigation/command#commandroot
 	 *
 	 * @example
 	 * ```tsx
@@ -578,7 +578,7 @@ const Command = {
 	/**
 	 * The root stateful component for the Command dialog. Manages open/closed state.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commanddialogroot
+	 * @see https://mantle.ngrok.com/components/navigation/command#commanddialogroot
 	 *
 	 * @example
 	 * ```tsx
@@ -599,7 +599,7 @@ const Command = {
 	/**
 	 * A button that opens the Command dialog when clicked.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commanddialogtrigger
+	 * @see https://mantle.ngrok.com/components/navigation/command#commanddialogtrigger
 	 *
 	 * @example
 	 * ```tsx
@@ -612,7 +612,7 @@ const Command = {
 	/**
 	 * The visible content of the Command dialog. Renders inside the dialog portal.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commanddialogcontent
+	 * @see https://mantle.ngrok.com/components/navigation/command#commanddialogcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -628,7 +628,7 @@ const Command = {
 	/**
 	 * The input component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commandinput
+	 * @see https://mantle.ngrok.com/components/navigation/command#commandinput
 	 *
 	 * @example
 	 * ```tsx
@@ -661,7 +661,7 @@ const Command = {
 	/**
 	 * The list component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commandlist
+	 * @see https://mantle.ngrok.com/components/navigation/command#commandlist
 	 *
 	 * @example
 	 * ```tsx
@@ -694,7 +694,7 @@ const Command = {
 	/**
 	 * The empty component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commandempty
+	 * @see https://mantle.ngrok.com/components/navigation/command#commandempty
 	 *
 	 * @example
 	 * ```tsx
@@ -727,7 +727,7 @@ const Command = {
 	/**
 	 * The group component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commandgroup
+	 * @see https://mantle.ngrok.com/components/navigation/command#commandgroup
 	 *
 	 * @example
 	 * ```tsx
@@ -760,7 +760,7 @@ const Command = {
 	/**
 	 * The item component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commanditem
+	 * @see https://mantle.ngrok.com/components/navigation/command#commanditem
 	 *
 	 * @example
 	 * ```tsx
@@ -793,7 +793,7 @@ const Command = {
 	/**
 	 * The shortcut component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commandshortcut
+	 * @see https://mantle.ngrok.com/components/navigation/command#commandshortcut
 	 *
 	 * @example
 	 * ```tsx
@@ -826,7 +826,7 @@ const Command = {
 	/**
 	 * The separator component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commandseparator
+	 * @see https://mantle.ngrok.com/components/navigation/command#commandseparator
 	 *
 	 * @example
 	 * ```tsx

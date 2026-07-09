@@ -35,8 +35,8 @@ type BadgeProps = ComponentProps<"span"> &
  * - Counts (e.g. `12 new`) when paired with brief context.
  *
  * **When not to use**
- * - For interactive UI. Badges are not buttons or links — use {@link https://mantle.ngrok.com/components/button Button}
- *   or {@link https://mantle.ngrok.com/components/anchor Anchor} (optionally with `asChild` styling) instead.
+ * - For interactive UI. Badges are not buttons or links — use {@link https://mantle.ngrok.com/components/actions/button Button}
+ *   or {@link https://mantle.ngrok.com/components/navigation/anchor Anchor} (optionally with `asChild` styling) instead.
  * - For long-form text. Keep labels to one or two short words.
  * - As the sole signal of meaning. Pair color with a label or icon so the
  *   distinction works without color (color blindness, monochrome themes).
@@ -50,7 +50,7 @@ type BadgeProps = ComponentProps<"span"> &
  * element — useful when the badge wraps a link or other semantic element
  * while keeping the badge styling.
  *
- * @see https://mantle.ngrok.com/components/badge
+ * @see https://mantle.ngrok.com/components/data-display/badge
  *
  * @example
  * ```tsx

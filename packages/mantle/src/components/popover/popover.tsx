@@ -11,7 +11,7 @@ import { cx } from "../../utils/cx/cx.js";
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/popover#popoverroot
+ * @see https://mantle.ngrok.com/components/overlays/popover#popoverroot
  *
  * @example
  * ```tsx
@@ -33,7 +33,7 @@ Root.displayName = "Popover";
 /**
  * The trigger button that opens the popover.
  *
- * @see https://mantle.ngrok.com/components/popover#popovertrigger
+ * @see https://mantle.ngrok.com/components/overlays/popover#popovertrigger
  *
  * @example
  * ```tsx
@@ -55,7 +55,7 @@ Trigger.displayName = "PopoverTrigger";
 /**
  * An optional element to position the PopoverContent against. If this part is not used, the content will position alongside the PopoverTrigger.
  *
- * @see https://mantle.ngrok.com/components/popover#popoveranchor
+ * @see https://mantle.ngrok.com/components/overlays/popover#popoveranchor
  *
  * @example
  * ```tsx
@@ -80,7 +80,7 @@ Anchor.displayName = "PopoverAnchor";
 /**
  * A button that closes an open popover.
  *
- * @see https://mantle.ngrok.com/components/popover#popoverclose
+ * @see https://mantle.ngrok.com/components/overlays/popover#popoverclose
  *
  * @example
  * ```tsx
@@ -121,7 +121,7 @@ type PopoverContentProps = ComponentPropsWithoutRef<typeof PopoverPrimitive.Cont
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/popover#popovercontent
+ * @see https://mantle.ngrok.com/components/overlays/popover#popovercontent
  *
  * @example
  * ```tsx
@@ -196,7 +196,7 @@ Content.displayName = "PopoverContent";
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/popover
+ * @see https://mantle.ngrok.com/components/overlays/popover
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/
  *
  * @example
@@ -231,7 +231,7 @@ const Popover = {
 	 * z-index. When multiple shared layers are open, the most recently mounted
 	 * layer renders on top.
 	 *
-	 * @see https://mantle.ngrok.com/components/popover#popoverroot
+	 * @see https://mantle.ngrok.com/components/overlays/popover#popoverroot
 	 *
 	 * @example
 	 * ```tsx
@@ -249,7 +249,7 @@ const Popover = {
 	/**
 	 * An optional element to position the PopoverContent against. If not used, content positions alongside the trigger.
 	 *
-	 * @see https://mantle.ngrok.com/components/popover#popoveranchor
+	 * @see https://mantle.ngrok.com/components/overlays/popover#popoveranchor
 	 *
 	 * @example
 	 * ```tsx
@@ -273,7 +273,7 @@ const Popover = {
 	/**
 	 * A button that closes an open popover. Can be placed anywhere within the popover content.
 	 *
-	 * @see https://mantle.ngrok.com/components/popover#popoverclose
+	 * @see https://mantle.ngrok.com/components/overlays/popover#popoverclose
 	 *
 	 * @example
 	 * ```tsx
@@ -301,7 +301,7 @@ const Popover = {
 	 * z-index. When multiple shared layers are open, the most recently mounted
 	 * layer renders on top.
 	 *
-	 * @see https://mantle.ngrok.com/components/popover#popovercontent
+	 * @see https://mantle.ngrok.com/components/overlays/popover#popovercontent
 	 *
 	 * @example
 	 * ```tsx
@@ -323,7 +323,7 @@ const Popover = {
 	/**
 	 * The trigger button that opens the popover when clicked or focused.
 	 *
-	 * @see https://mantle.ngrok.com/components/popover#popovertrigger
+	 * @see https://mantle.ngrok.com/components/overlays/popover#popovertrigger
 	 *
 	 * @example
 	 * ```tsx

@@ -130,7 +130,7 @@ type QrCodeRootProps = ComponentProps<"div"> &
  * theme-aware tokens). Consumers can override those styles, but inverting a QR
  * code's colors makes it unreliable for many scanners.
  *
- * @see https://mantle.ngrok.com/components/qr-code
+ * @see https://mantle.ngrok.com/components/data-display/qr-code
  *
  * @example
  * ```tsx
@@ -197,7 +197,7 @@ type QrCodeFrameProps = ComponentProps<"svg">;
  * Does not support `asChild`: the QR pattern must live inside an `svg`, so the
  * frame element is fixed and cannot be swapped.
  *
- * @see https://mantle.ngrok.com/components/qr-code
+ * @see https://mantle.ngrok.com/components/data-display/qr-code
  *
  * @example
  * ```tsx
@@ -246,7 +246,7 @@ type QrCodePatternProps = ComponentProps<"path">;
  * Does not support `asChild`: the modules are a fixed `path` and cannot be
  * swapped for another element.
  *
- * @see https://mantle.ngrok.com/components/qr-code
+ * @see https://mantle.ngrok.com/components/data-display/qr-code
  *
  * @example
  * ```tsx
@@ -287,7 +287,7 @@ type QrCodeOverlayProps = ComponentProps<"div"> & WithAsChild;
  * logo stays legible over the modules beneath it. Because the overlay hides the
  * center modules, use a higher `ecc` (e.g. `"H"`) on the `Root`.
  *
- * @see https://mantle.ngrok.com/components/qr-code
+ * @see https://mantle.ngrok.com/components/data-display/qr-code
  *
  * @example
  * ```tsx
@@ -329,7 +329,7 @@ Overlay.displayName = "QrCodeOverlay";
  * `Root` and `Overlay` support the `asChild` prop for polymorphic composition.
  * `Frame` and `Pattern` render fixed SVG elements and do not.
  *
- * @see https://mantle.ngrok.com/components/qr-code
+ * @see https://mantle.ngrok.com/components/data-display/qr-code
  *
  * @example
  * Composition:
@@ -357,7 +357,7 @@ const QrCode = {
 	 * The root container of a QR code. Encodes `value` and renders a positioned
 	 * white tile. Set `ecc` (e.g. `"H"` when using an `Overlay`).
 	 *
-	 * @see https://mantle.ngrok.com/components/qr-code
+	 * @see https://mantle.ngrok.com/components/data-display/qr-code
 	 *
 	 * @example
 	 * ```tsx
@@ -376,7 +376,7 @@ const QrCode = {
 	 * The `svg` frame that holds the QR `Pattern`. Defaults to `size-48`; resize
 	 * the whole code by passing a different size to `className`.
 	 *
-	 * @see https://mantle.ngrok.com/components/qr-code
+	 * @see https://mantle.ngrok.com/components/data-display/qr-code
 	 *
 	 * @example
 	 * ```tsx
@@ -395,7 +395,7 @@ const QrCode = {
 	 * The encoded QR modules, rendered as a `path` inside the `Frame`. Defaults
 	 * to black fill so the code stays scannable in every theme.
 	 *
-	 * @see https://mantle.ngrok.com/components/qr-code
+	 * @see https://mantle.ngrok.com/components/data-display/qr-code
 	 *
 	 * @example
 	 * ```tsx
@@ -415,7 +415,7 @@ const QrCode = {
 	 * Renders a white rounded "punch-out" so the logo stays legible. Use a higher
 	 * `ecc` on the `Root` when an overlay is present.
 	 *
-	 * @see https://mantle.ngrok.com/components/qr-code
+	 * @see https://mantle.ngrok.com/components/data-display/qr-code
 	 *
 	 * @example
 	 * ```tsx

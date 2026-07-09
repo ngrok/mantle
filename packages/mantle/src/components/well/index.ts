@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Well component.
  *
- * @see https://mantle.ngrok.com/components/well
+ * @see https://mantle.ngrok.com/components/structure/well
  */
 
 export {

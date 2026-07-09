@@ -1,0 +1,141 @@
+---
+title: Hover Card
+description: For sighted users to preview content available behind a link.
+---
+
+import { Button } from "@ngrok/mantle/button";
+import { HoverCard } from "@ngrok/mantle/hover-card";
+import { Icon } from "@ngrok/mantle/icon";
+import { CalendarIcon } from "@phosphor-icons/react/Calendar";
+import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
+import { Example } from "~/components/example";
+
+# Hover Card
+
+For sighted users to preview content available behind a link.
+
+## When to use
+
+A `HoverCard` shows a preview of richer content (a user card, link preview, etc.) when a sighted user hovers a link or trigger.
+
+- Prefer [`Tooltip`](/components/overlays/tooltip) for short, non-interactive labels on controls.
+- Prefer [`Popover`](/components/overlays/popover) when the content must be reachable by all users and may contain interactive elements.
+
+> [!WARNING]
+> Do not rely on a `HoverCard` as the only accessible path to important content. Because it opens on pointer hover, it is not a reliable path for keyboard or screen reader users. Any information inside a `HoverCard` must also be available through another fully accessible path (usually the underlying link).
+
+<Example className="gap-2">
+	<HoverCard.Root>
+		<HoverCard.Trigger asChild>
+			<Button type="button" appearance="link">
+				Open Hover Card
+			</Button>
+		</HoverCard.Trigger>
+		<HoverCard.Content className="w-80">
+			<div className="flex justify-between space-x-4">
+				<div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-pink-300">
+					<Icon svg={<ShrimpIcon />} className="size-12" />
+				</div>
+				<div className="space-y-1">
+					<h4 className="text-sm font-medium">@ngrok/mantle</h4>
+					<p className="text-sm">The Design System – created and maintained by @ngrok.</p>
+					<div className="flex items-center pt-2">
+						<Icon svg={<CalendarIcon />} className="mr-2 h-4 w-4 opacity-70" />{" "}
+						<span className="text-muted-foreground text-xs">Joined November 2023</span>
+					</div>
+				</div>
+			</div>
+		</HoverCard.Content>
+	</HoverCard.Root>
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { HoverCard } from "@ngrok/mantle/hover-card";
+import { Icon } from "@ngrok/mantle/icon";
+import { CalendarIcon } from "@phosphor-icons/react/Calendar";
+import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
+
+<HoverCard.Root>
+	<HoverCard.Trigger asChild>
+		<Button type="button" appearance="link">
+			Open Hover Card
+		</Button>
+	</HoverCard.Trigger>
+	<HoverCard.Content className="w-80">
+		<div className="flex justify-between space-x-4">
+			<div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-pink-300">
+				<Icon svg={<ShrimpIcon />} className="size-12" />
+			</div>
+			<div className="space-y-1">
+				<h4 className="text-sm font-medium">@ngrok/mantle</h4>
+				<p className="text-sm">The Design System – created and maintained by @ngrok.</p>
+				<div className="flex items-center pt-2">
+					<Icon svg={<CalendarIcon />} className="mr-2 h-4 w-4 opacity-70" />{" "}
+					<span className="text-muted-foreground text-xs">Joined November 2023</span>
+				</div>
+			</div>
+		</div>
+	</HoverCard.Content>
+</HoverCard.Root>;
+```
+
+## Layering and z-index
+
+`HoverCard.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+
+`HoverCard` does not render a backdrop. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
+
+## Composition
+
+Compose the parts of a `HoverCard` together to build your own:
+
+```text showLineNumbers=false
+HoverCard.Root
+├── HoverCard.Trigger
+└── HoverCard.Content
+```
+
+## API Reference
+
+The `HoverCard` component is built on top of [Radix UI Hover Card](https://www.radix-ui.com/primitives/docs/components/hover-card).
+
+### HoverCard.Root
+
+The root stateful component that manages the open/closed state of the hover card.
+
+Its floating `HoverCard.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
+
+| Prop           | Type                      | Default | Description                                                                                                         |
+| -------------- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| `open`         | `boolean`                 |         | The controlled open state of the hover card. Must be used in conjunction with `onOpenChange`.                       |
+| `onOpenChange` | `(open: boolean) => void` |         | Event handler called when the open state of the hover card changes.                                                 |
+| `defaultOpen`  | `boolean`                 | `false` | The open state of the hover card when it is initially rendered. Use when you do not need to control its open state. |
+| `openDelay`    | `number`                  | `100`   | The duration in milliseconds from when the mouse enters the trigger until the hover card opens.                     |
+| `closeDelay`   | `number`                  | `300`   | The duration in milliseconds from when the mouse leaves the trigger or content until the hover card closes.         |
+
+### HoverCard.Trigger
+
+The trigger element that opens the hover card when hovered.
+
+| Prop      | Type      | Default | Description                                                                          |
+| --------- | --------- | ------- | ------------------------------------------------------------------------------------ |
+| `asChild` | `boolean` | `false` | Use the `asChild` prop to compose the trigger functionality onto your own component. |
+
+### HoverCard.Content
+
+The content to render inside the hover card. Appears in a portal with rich styling and animations.
+
+Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+
+| Prop                | Type                                           | Default     | Description                                                                                                                             |
+| ------------------- | ---------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `side`              | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | `"bottom"`  | The preferred side of the trigger to render against when open. Will be reversed when collisions occur and `avoidCollisions` is enabled. |
+| `align`             | `"start"` \| `"center"` \| `"end"`             | `"center"`  | The preferred alignment against the trigger. May change when collisions occur.                                                          |
+| `sideOffset`        | `number`                                       | `4`         | The distance in pixels from the trigger.                                                                                                |
+| `alignOffset`       | `number`                                       | `0`         | An offset in pixels from the `start` or `end` alignment options.                                                                        |
+| `avoidCollisions`   | `boolean`                                      | `true`      | When `true`, overrides the `side` and `align` preferences to prevent collisions with boundary edges.                                    |
+| `collisionBoundary` | `Element \| null \| Array<Element \| null>`    | `[]`        | The element used as the collision boundary. By default this is the viewport.                                                            |
+| `collisionPadding`  | `number \| Partial<Record<Side, number>>`      | `0`         | The distance in pixels from the boundary edges where collision detection should occur.                                                  |
+| `sticky`            | `"partial"` \| `"always"`                      | `"partial"` | The sticky behavior on the align axis.                                                                                                  |
+| `hideWhenDetached`  | `boolean`                                      | `false`     | Whether to hide the content when the trigger becomes fully occluded.                                                                    |

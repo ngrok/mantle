@@ -98,7 +98,7 @@ MenuItem.displayName = "SplitButtonMenuItem";
  * related alternatives through a dropdown menu. Best for when users typically
  * want one action but occasionally need variants.
  *
- * @see https://mantle.ngrok.com/components/split-button#splitbuttonroot
+ * @see https://mantle.ngrok.com/components/actions/split-button#splitbuttonroot
  *
  * @example
  * Composition:
@@ -138,7 +138,7 @@ const SplitButton = {
 	 * related alternatives through a dropdown menu. Best for when users typically
 	 * want one action but occasionally need variants.
 	 *
-	 * @see https://mantle.ngrok.com/components/split-button#splitbuttonroot
+	 * @see https://mantle.ngrok.com/components/actions/split-button#splitbuttonroot
 	 *
 	 * @example
 	 * ```tsx
@@ -166,7 +166,7 @@ const SplitButton = {
 	/**
 	 * The most common action users can trigger with a single click.
 	 *
-	 * @see https://mantle.ngrok.com/components/split-button#splitbuttonprimaryaction
+	 * @see https://mantle.ngrok.com/components/actions/split-button#splitbuttonprimaryaction
 	 *
 	 * @example
 	 * ```tsx
@@ -194,7 +194,7 @@ const SplitButton = {
 	/**
 	 * The button that opens the split button dropdown menu.
 	 *
-	 * @see https://mantle.ngrok.com/components/split-button#splitbuttonmenutrigger
+	 * @see https://mantle.ngrok.com/components/actions/split-button#splitbuttonmenutrigger
 	 *
 	 * @example
 	 * ```tsx
@@ -223,7 +223,7 @@ const SplitButton = {
 	 * The container for the split button dropdown menu content. Appears in a
 	 * portal with scrolling and animations.
 	 *
-	 * @see https://mantle.ngrok.com/components/split-button#splitbuttonmenucontent
+	 * @see https://mantle.ngrok.com/components/actions/split-button#splitbuttonmenucontent
 	 *
 	 * @example
 	 * ```tsx
@@ -252,7 +252,7 @@ const SplitButton = {
 	 * A standard item in the split button dropdown menu that can be selected or
 	 * activated.
 	 *
-	 * @see https://mantle.ngrok.com/components/split-button#splitbuttonmenuitem
+	 * @see https://mantle.ngrok.com/components/actions/split-button#splitbuttonmenuitem
 	 *
 	 * @example
 	 * ```tsx

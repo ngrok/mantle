@@ -13,7 +13,7 @@ import { cx } from "../../utils/cx/cx.js";
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/hover-card#hovercardroot
+ * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardroot
  *
  * @example
  * ```tsx
@@ -41,7 +41,7 @@ Root.displayName = "HoverCard";
 /**
  * The trigger element that opens the hover card when hovered.
  *
- * @see https://mantle.ngrok.com/components/hover-card#hovercardtrigger
+ * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardtrigger
  *
  * @example
  * ```tsx
@@ -72,7 +72,7 @@ Trigger.displayName = "HoverCardTrigger";
  * customize portal placement (e.g., pass a `container` prop) or wrap multiple
  * `HoverCard.Content` instances in a shared portal.
  *
- * @see https://mantle.ngrok.com/components/hover-card#hovercardportal
+ * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardportal
  *
  * @example
  * ```tsx
@@ -100,7 +100,7 @@ Portal.displayName = "HoverCardPortal";
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/hover-card#hovercardcontent
+ * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardcontent
  *
  * @example
  * ```tsx
@@ -159,7 +159,7 @@ Content.displayName = HoverCardPrimitive.Content.displayName;
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * @see https://mantle.ngrok.com/components/hover-card
+ * @see https://mantle.ngrok.com/components/overlays/hover-card
  *
  * @example
  * Composition:
@@ -191,7 +191,7 @@ const HoverCard = {
 	 * z-index. When multiple shared layers are open, the most recently mounted
 	 * layer renders on top.
 	 *
-	 * @see https://mantle.ngrok.com/components/hover-card#hovercardroot
+	 * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardroot
 	 *
 	 * @example
 	 * ```tsx
@@ -213,7 +213,7 @@ const HoverCard = {
 	 * z-index. When multiple shared layers are open, the most recently mounted
 	 * layer renders on top.
 	 *
-	 * @see https://mantle.ngrok.com/components/hover-card#hovercardcontent
+	 * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -238,7 +238,7 @@ const HoverCard = {
 	 * do not need to use `HoverCard.Portal` directly. Use it only when you need to
 	 * customize portal placement or wrap multiple `HoverCard.Content` instances.
 	 *
-	 * @see https://mantle.ngrok.com/components/hover-card#hovercardportal
+	 * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardportal
 	 *
 	 * @example
 	 * ```tsx
@@ -260,7 +260,7 @@ const HoverCard = {
 	/**
 	 * The trigger element that opens the hover card when hovered.
 	 *
-	 * @see https://mantle.ngrok.com/components/hover-card#hovercardtrigger
+	 * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardtrigger
 	 *
 	 * @example
 	 * ```tsx

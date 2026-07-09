@@ -11,7 +11,7 @@ type DescriptionListProps = ComponentProps<"dl"> & WithAsChild;
  * Renders a list of label/value pairs with alternating row backgrounds,
  * commonly used in detail views to display metadata about a resource.
  *
- * @see https://mantle.ngrok.com/components/description-list#descriptionlistroot
+ * @see https://mantle.ngrok.com/components/data-display/description-list#descriptionlistroot
  * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dl
  *
  * @example
@@ -52,7 +52,7 @@ type DescriptionListItemProps = ComponentProps<"div"> & WithAsChild;
  * pair. Renders as a `<div>` inside the `<dl>` with a subgrid layout that
  * inherits column tracks from the root.
  *
- * @see https://mantle.ngrok.com/components/description-list#descriptionlistitem
+ * @see https://mantle.ngrok.com/components/data-display/description-list#descriptionlistitem
  *
  * @example
  * ```tsx
@@ -85,7 +85,7 @@ type DescriptionListLabelProps = ComponentProps<"dt"> & WithAsChild;
 /**
  * The label for a description list item. Renders as a `<dt>` element.
  *
- * @see https://mantle.ngrok.com/components/description-list#descriptionlistlabel
+ * @see https://mantle.ngrok.com/components/data-display/description-list#descriptionlistlabel
  *
  * @example
  * ```tsx
@@ -117,7 +117,7 @@ type DescriptionListValueProps = ComponentProps<"dd"> & WithAsChild;
  * Compose any content inside — the component is intentionally "dumb" and
  * imposes no layout on its children.
  *
- * @see https://mantle.ngrok.com/components/description-list#descriptionlistvalue
+ * @see https://mantle.ngrok.com/components/data-display/description-list#descriptionlistvalue
  *
  * @example
  * ```tsx
@@ -153,7 +153,7 @@ Value.displayName = "DescriptionListValue";
  * Compose with `DescriptionList.Item`, `DescriptionList.Label`, and
  * `DescriptionList.Value` as direct children.
  *
- * @see https://mantle.ngrok.com/components/description-list
+ * @see https://mantle.ngrok.com/components/data-display/description-list
  * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dl
  *
  * @example
@@ -185,7 +185,7 @@ const DescriptionList = {
 	/**
 	 * The root container for a description list. Renders a `<dl>` element.
 	 *
-	 * @see https://mantle.ngrok.com/components/description-list#descriptionlistroot
+	 * @see https://mantle.ngrok.com/components/data-display/description-list#descriptionlistroot
 	 *
 	 * @example
 	 * ```tsx
@@ -202,7 +202,7 @@ const DescriptionList = {
 	 * A wrapper that groups a label/value pair. Renders a `<div>` with a default
 	 * subgrid layout.
 	 *
-	 * @see https://mantle.ngrok.com/components/description-list#descriptionlistitem
+	 * @see https://mantle.ngrok.com/components/data-display/description-list#descriptionlistitem
 	 *
 	 * @example
 	 * ```tsx
@@ -216,7 +216,7 @@ const DescriptionList = {
 	/**
 	 * The label for a description list item. Renders a `<dt>` element.
 	 *
-	 * @see https://mantle.ngrok.com/components/description-list#descriptionlistlabel
+	 * @see https://mantle.ngrok.com/components/data-display/description-list#descriptionlistlabel
 	 *
 	 * @example
 	 * ```tsx
@@ -227,7 +227,7 @@ const DescriptionList = {
 	/**
 	 * The value for a description list item. Renders a `<dd>` element.
 	 *
-	 * @see https://mantle.ngrok.com/components/description-list#descriptionlistvalue
+	 * @see https://mantle.ngrok.com/components/data-display/description-list#descriptionlistvalue
 	 *
 	 * @example
 	 * ```tsx

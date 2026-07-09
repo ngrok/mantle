@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Badge component.
  *
- * @see https://mantle.ngrok.com/components/badge
+ * @see https://mantle.ngrok.com/components/data-display/badge
  */
 
 export {

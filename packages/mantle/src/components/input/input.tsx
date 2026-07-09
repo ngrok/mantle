@@ -32,7 +32,7 @@ type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "autoComplete" | "
  * Used to create interactive controls for web-based forms in order to accept data from the user.
  * A versatile input element that supports various types, validation states, and can be composed with other elements.
  *
- * @see https://mantle.ngrok.com/components/input
+ * @see https://mantle.ngrok.com/components/forms/input
  *
  * @example
  * ```tsx
@@ -82,7 +82,7 @@ type InputCaptureProps = Omit<InputHTMLAttributes<HTMLInputElement>, "autoComple
  * The actual <input /> element that captures user input.
  * Used internally by Input component or when you need direct control over the input element.
  *
- * @see https://mantle.ngrok.com/components/input
+ * @see https://mantle.ngrok.com/components/forms/input
  *
  * @example
  * ```tsx

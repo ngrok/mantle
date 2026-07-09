@@ -7,7 +7,7 @@
  * is internal shared implementation, mirroring how `dialog/primitive` backs
  * the dialog family.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  */
 
 export {

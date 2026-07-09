@@ -76,7 +76,7 @@ type Props = SvgAttributes & {
  * The indicator color is inherited via `currentColor`. Override the default
  * (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
  *
- * @see https://mantle.ngrok.com/components/progress#api-progress-donut
+ * @see https://mantle.ngrok.com/components/feedback/progress-donut#api-progress-donut
  *
  * @example
  * ```tsx
@@ -169,7 +169,7 @@ type ProgressDonutIndicatorProps = Omit<ComponentProps<"g">, "children">;
 /**
  * The indicator for the circular progress bar.
  *
- * @see https://mantle.ngrok.com/components/progress#api-progress-donut-indicator
+ * @see https://mantle.ngrok.com/components/feedback/progress-donut#api-progress-donut-indicator
  *
  * @example
  * ```tsx
@@ -228,7 +228,7 @@ Indicator.displayName = "ProgressDonutIndicator";
  * The indicator color is inherited via `currentColor`. Override the default
  * (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
  *
- * @see https://mantle.ngrok.com/components/progress
+ * @see https://mantle.ngrok.com/components/feedback/progress-donut
  *
  * @example
  * Composition:
@@ -255,7 +255,7 @@ const ProgressDonut = {
 	 * The indicator color is inherited via `currentColor`. Override the default
 	 * (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
 	 *
-	 * @see https://mantle.ngrok.com/components/progress#api-progress-donut-root
+	 * @see https://mantle.ngrok.com/components/feedback/progress-donut#api-progress-donut-root
 	 *
 	 * @example
 	 * ```tsx
@@ -272,7 +272,7 @@ const ProgressDonut = {
 	/**
 	 * The indicator for the circular progress bar.
 	 *
-	 * @see https://mantle.ngrok.com/components/progress#api-progress-donut-indicator
+	 * @see https://mantle.ngrok.com/components/feedback/progress-donut#api-progress-donut-indicator
 	 *
 	 * @example
 	 * ```tsx

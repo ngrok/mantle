@@ -16,9 +16,9 @@ function docRoute(path: string) {
 	return markdownRoute(path, "docs");
 }
 
-// Helper to create block routes under /blocks (handles both /blocks/path and /blocks/path.md URLs)
-function blockRoute(path: string) {
-	return markdownRoute(`blocks/${path}`, "blocks", path);
+// Helper to create recipe routes under /recipes (handles both /recipes/path and /recipes/path.md URLs)
+function recipeRoute(path: string) {
+	return markdownRoute(`recipes/${path}`, "recipes", path);
 }
 
 // Helper to create migration routes under /migrations (handles both /migrations/path and /migrations/path.md URLs)
@@ -68,69 +68,79 @@ export default [
 		...docRoute("base/tailwind-variants"),
 		...docRoute("base/typography"),
 
-		// component docs
-		...docRoute("components/accordion"),
-		...docRoute("components/alert-dialog"),
-		...docRoute("components/alert"),
-		...docRoute("components/anchor"),
-		...docRoute("components/badge"),
-		...docRoute("components/browser-only"),
-		...docRoute("components/button"),
-		...docRoute("components/card"),
-		...docRoute("components/checkbox"),
-		...docRoute("components/choice"),
-		...docRoute("components/code-block"),
+		// component docs — /components/<category>/<component>, alphabetical by
+		// full slug (category blocks and entries within each block)
+		// actions
+		...docRoute("components/actions/button"),
+		...docRoute("components/actions/icon-button"),
+		...docRoute("components/actions/split-button"),
+		// data display
+		...docRoute("components/data-display/accordion"),
+		...docRoute("components/data-display/badge"),
+		...docRoute("components/data-display/code"),
+		...docRoute("components/data-display/code-block"),
 		// Sub-page linked from the Code Block doc; intentionally excluded from
 		// the sidebar nav.
-		...docRoute("components/code-block/folding-by-language"),
-		...docRoute("components/code"),
-		...docRoute("components/combobox"),
-		...docRoute("components/command"),
-		...docRoute("components/data-table"),
-		...docRoute("components/description-list"),
-		...docRoute("components/dialog"),
-		...docRoute("components/dropdown-menu"),
-		...docRoute("components/empty"),
-		...docRoute("components/field"),
-		...docRoute("components/flag"),
-		...docRoute("components/hover-card"),
-		...docRoute("components/icon-button"),
-		...docRoute("components/icon"),
-		...docRoute("components/icons"),
-		...docRoute("components/input"),
-		...docRoute("components/kbd"),
-		...docRoute("components/label"),
-		...docRoute("components/list"),
-		...docRoute("components/main"),
-		...docRoute("components/media-object"),
-		...docRoute("components/multi-select"),
-		...docRoute("components/otp-input"),
-		...docRoute("components/pagination"),
-		...docRoute("components/password-input"),
-		...docRoute("components/popover"),
+		...docRoute("components/data-display/code-block/folding-by-language"),
+		...docRoute("components/data-display/data-table"),
+		...docRoute("components/data-display/description-list"),
+		...docRoute("components/data-display/flag"),
+		...docRoute("components/data-display/icon"),
+		...docRoute("components/data-display/icons"),
+		...docRoute("components/data-display/kbd"),
+		...docRoute("components/data-display/list"),
+		...docRoute("components/data-display/qr-code"),
+		...docRoute("components/data-display/selectable-list"),
+		...docRoute("components/data-display/table"),
+		// feedback
+		...docRoute("components/feedback/alert"),
+		...docRoute("components/feedback/empty"),
+		...docRoute("components/feedback/progress-bar"),
+		...docRoute("components/feedback/progress-donut"),
+		...docRoute("components/feedback/skeleton"),
+		...docRoute("components/feedback/toast"),
+		// forms
+		...docRoute("components/forms/checkbox"),
+		...docRoute("components/forms/choice"),
+		...docRoute("components/forms/combobox"),
+		...docRoute("components/forms/field"),
+		...docRoute("components/forms/input"),
+		...docRoute("components/forms/label"),
+		...docRoute("components/forms/multi-select"),
+		...docRoute("components/forms/otp-input"),
+		...docRoute("components/forms/password-input"),
+		...docRoute("components/forms/radio-group"),
+		...docRoute("components/forms/select"),
+		...docRoute("components/forms/slider"),
+		...docRoute("components/forms/switch"),
+		...docRoute("components/forms/text-area"),
+		// navigation
+		...docRoute("components/navigation/anchor"),
+		...docRoute("components/navigation/command"),
+		...docRoute("components/navigation/pagination"),
+		...docRoute("components/navigation/tabs"),
+		// overlays
+		...docRoute("components/overlays/alert-dialog"),
+		...docRoute("components/overlays/dialog"),
+		...docRoute("components/overlays/dropdown-menu"),
+		...docRoute("components/overlays/hover-card"),
+		...docRoute("components/overlays/popover"),
+		...docRoute("components/overlays/sheet"),
+		...docRoute("components/overlays/tooltip"),
+		// preview (lifecycle namespace, not a category)
 		...docRoute("components/preview/calendar"),
-		...docRoute("components/progress-bar"),
-		...docRoute("components/progress-donut"),
-		...docRoute("components/qr-code"),
-		...docRoute("components/radio-group"),
-		...docRoute("components/sandboxed-on-click"),
-		...docRoute("components/select"),
-		...docRoute("components/selectable-list"),
-		...docRoute("components/separator"),
-		...docRoute("components/sheet"),
-		...docRoute("components/skeleton"),
-		...docRoute("components/skip-to-main-link"),
-		...docRoute("components/slider"),
-		...docRoute("components/slot"),
-		...docRoute("components/split-button"),
-		...docRoute("components/switch"),
-		...docRoute("components/table"),
-		...docRoute("components/tabs"),
-		...docRoute("components/text-area"),
-		...docRoute("components/theme"),
-		...docRoute("components/toast"),
-		...docRoute("components/tooltip"),
-		...docRoute("components/well"),
+		// primitives
+		...docRoute("components/primitives/browser-only"),
+		...docRoute("components/primitives/main"),
+		...docRoute("components/primitives/sandboxed-on-click"),
+		...docRoute("components/primitives/skip-to-main-link"),
+		...docRoute("components/primitives/slot"),
+		...docRoute("components/primitives/theme"),
+		// structure
+		...docRoute("components/structure/card"),
+		...docRoute("components/structure/media-object"),
+		...docRoute("components/structure/separator"),
+		...docRoute("components/structure/well"),
 
 		// hooks 🪝
 		...docRoute("hooks"),
@@ -144,10 +154,15 @@ export default [
 		...docRoute("utils/sorting"),
 	]),
 
-	// blocks layout
-	layout("./routes/blocks-layout.tsx", [
-		route("blocks", "./routes/blocks.tsx"),
-		...blockRoute("sheet-async"),
+	// layouts layout — published page/viewport structure primitives.
+	// No layout docs have shipped yet; add `...markdownRoute("layouts/<slug>", "layouts", "<slug>")`
+	// entries here as they graduate (see decisions/2026-07-08-docs-information-architecture.md).
+	layout("./routes/layouts-layout.tsx", [route("layouts", "./routes/layouts.tsx")]),
+
+	// recipes layout — compositional how-tos spanning multiple primitives
+	layout("./routes/recipes-layout.tsx", [
+		route("recipes", "./routes/recipes.tsx"),
+		...recipeRoute("overlay-async"),
 	]),
 
 	// migrations layout
@@ -158,7 +173,9 @@ export default [
 		...migrationRoute("dialog-footer-dom-order-migration"),
 	]),
 
-	// 404 — splat catch-all for any unmatched URL. Matches (so ancestor loaders
-	// run) and returns a 404 status, mirroring the dot-com www 404 route.
+	// 404 + legacy redirects — splat catch-all for any unmatched URL. Matches
+	// (so ancestor loaders run) and 301s known pre-IA-reorg paths (e.g.
+	// /components/button, /blocks/*) to their new homes, returning a 404
+	// status for everything else, mirroring the dot-com www 404 route.
 	route("*", "./routes/catch-all.tsx", { id: "catch-all" }),
 ] satisfies RouteConfig;

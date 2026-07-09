@@ -50,7 +50,7 @@ type RootProps = ComponentProps<"div"> & {
  * A horizontal progress bar that shows the completion progress of a task.
  * Use this component for linear progress indication.
  *
- * @see https://mantle.ngrok.com/components/progress#api-progress-bar
+ * @see https://mantle.ngrok.com/components/feedback/progress-bar#api-progress-bar
  *
  * @example
  * ```tsx
@@ -111,7 +111,7 @@ type IndicatorProps = ComponentProps<typeof ProgressPrimitive.Indicator>;
  * The visual indicator that shows the actual progress within the progress bar.
  * This component should be used inside a ProgressBar.Root component.
  *
- * @see https://mantle.ngrok.com/components/progress#api-progress-bar-indicator
+ * @see https://mantle.ngrok.com/components/feedback/progress-bar#api-progress-bar-indicator
  *
  * @example
  * ```tsx
@@ -148,7 +148,7 @@ Indicator.displayName = "Indicator";
  * A horizontal progress bar that shows the completion progress of a task.
  * Use this component for linear progress indication.
  *
- * @see https://mantle.ngrok.com/components/progress
+ * @see https://mantle.ngrok.com/components/feedback/progress-bar
  *
  * @example
  * Composition:
@@ -180,7 +180,7 @@ const ProgressBar = {
 	 * A horizontal progress bar that shows the completion progress of a task.
 	 * Use this component for linear progress indication.
 	 *
-	 * @see https://mantle.ngrok.com/components/progress#api-progress-bar
+	 * @see https://mantle.ngrok.com/components/feedback/progress-bar#api-progress-bar
 	 *
 	 * @example
 	 * ```tsx
@@ -205,7 +205,7 @@ const ProgressBar = {
 	 * The visual indicator that shows the actual progress within the progress bar.
 	 * This component should be used inside a ProgressBar.Root component.
 	 *
-	 * @see https://mantle.ngrok.com/components/progress#api-progress-bar-indicator
+	 * @see https://mantle.ngrok.com/components/feedback/progress-bar#api-progress-bar-indicator
 	 *
 	 * @example
 	 * ```tsx

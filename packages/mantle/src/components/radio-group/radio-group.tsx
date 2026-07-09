@@ -36,11 +36,11 @@ type RadioGroupProps = PropsWithChildren<Omit<HeadlessRadioGroupProps, "as" | "c
  * propagate through `FieldControlContext`, so helper text wired via `Field.Description`
  * will not be associated automatically in that alternative composition.
  *
- * @see https://mantle.ngrok.com/components/radio-group#radiogrouproot
+ * @see https://mantle.ngrok.com/components/forms/radio-group#radiogrouproot
  *
  * @example
  * ```tsx
- * <RadioGroup value={value} onValueChange={setValue}>
+ * <RadioGroup.Root value={value} onChange={setValue}>
  *   <RadioGroup.Item value="option1">
  *     <RadioGroup.Indicator />
  *     <span>Option 1</span>
@@ -49,7 +49,7 @@ type RadioGroupProps = PropsWithChildren<Omit<HeadlessRadioGroupProps, "as" | "c
  *     <RadioGroup.Indicator />
  *     <span>Option 2</span>
  *   </RadioGroup.Item>
- * </RadioGroup>
+ * </RadioGroup.Root>
  * ```
  */
 const Root = forwardRef<ComponentRef<typeof HeadlessRadioGroup>, RadioGroupProps>((props, ref) => (
@@ -92,16 +92,16 @@ type RadioItemProps = Omit<HeadlessRadioProps, "children"> & PropsWithChildren;
  * `aria-errormessage` from `FieldControlContext`. `aria-describedby` is owned
  * by Headless UI's Radio primitive and does not propagate.
  *
- * @see https://mantle.ngrok.com/components/radio-group#radiogroupitem
+ * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupitem
  *
  * @example
  * ```tsx
- * <RadioGroup value={value} onValueChange={setValue}>
+ * <RadioGroup.Root value={value} onChange={setValue}>
  *   <RadioGroup.Item value="option1">
  *     <RadioGroup.Indicator />
  *     <span>Option 1</span>
  *   </RadioGroup.Item>
- * </RadioGroup>
+ * </RadioGroup.Root>
  * ```
  */
 const Item = forwardRef<ComponentRef<"div">, RadioItemProps>(
@@ -162,7 +162,7 @@ const DefaultRadioIndicator = ({ checked, disabled, focus, hover }: RadioStateCo
  * - a different component
  * - a render-props function that receives the radio state context and should return a component.
  *
- * @see https://mantle.ngrok.com/components/radio-group#radiogroupindicator
+ * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupindicator
  *
  * @example
  * ```tsx
@@ -324,6 +324,9 @@ ItemContent.displayName = "RadioItemContent";
 
 /**
  * An inline group of radio buttons. Use RadioGroup.Button as direct children.
+ * Renders the radio group itself (it wraps `Root`) — use it *in place of*
+ * `RadioGroup.Root`, never nested inside one, or the buttons bind to an
+ * inner, uncontrolled group and outer `value`/`onChange` props are ignored.
  */
 const ButtonGroup = forwardRef<ComponentRef<typeof Root>, RadioGroupProps>(
 	({ className, ...props }, ref) => {
@@ -449,7 +452,7 @@ InputSandbox.displayName = "RadioInputSandbox";
 /**
  * A group of radio items. It manages the state of the children radios.
  *
- * @see https://mantle.ngrok.com/components/radio-group#radiogrouproot
+ * @see https://mantle.ngrok.com/components/forms/radio-group#radiogrouproot
  *
  * @example
  * Composition:
@@ -478,7 +481,7 @@ InputSandbox.displayName = "RadioInputSandbox";
  *
  * @example
  * ```tsx
- * <RadioGroup value={value} onValueChange={setValue}>
+ * <RadioGroup.Root value={value} onChange={setValue}>
  *   <RadioGroup.Item value="option1">
  *     <RadioGroup.Indicator />
  *     <span>Option 1</span>
@@ -487,49 +490,46 @@ InputSandbox.displayName = "RadioInputSandbox";
  *     <RadioGroup.Indicator />
  *     <span>Option 2</span>
  *   </RadioGroup.Item>
- * </RadioGroup>
+ * </RadioGroup.Root>
  * ```
  */
 const RadioGroup = {
 	/**
 	 * A radio button that is used inside a RadioGroup.ButtonGroup for inline grouped radio options.
 	 *
-	 * @see https://mantle.ngrok.com/components/radio-group#radiogroupbutton
+	 * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupbutton
 	 *
 	 * @example
 	 * ```tsx
-	 * <RadioGroup.Root defaultValue="option1">
-	 *   <RadioGroup.ButtonGroup>
-	 *     <RadioGroup.Button value="option1">Option 1</RadioGroup.Button>
-	 *     <RadioGroup.Button value="option2">Option 2</RadioGroup.Button>
-	 *     <RadioGroup.Button value="option3">Option 3</RadioGroup.Button>
-	 *   </RadioGroup.ButtonGroup>
-	 * </RadioGroup.Root>
+	 * <RadioGroup.ButtonGroup defaultValue="option1">
+	 *   <RadioGroup.Button value="option1">Option 1</RadioGroup.Button>
+	 *   <RadioGroup.Button value="option2">Option 2</RadioGroup.Button>
+	 *   <RadioGroup.Button value="option3">Option 3</RadioGroup.Button>
+	 * </RadioGroup.ButtonGroup>
 	 * ```
 	 */
 	Button,
 	/**
 	 * An inline group of radio buttons. Use RadioGroup.Button as direct children for horizontal radio layouts.
+	 * Renders the radio group itself — use it in place of `RadioGroup.Root`, never nested inside one.
 	 *
-	 * @see https://mantle.ngrok.com/components/radio-group#radiogroupbuttongroup
+	 * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupbuttongroup
 	 *
 	 * @example
 	 * ```tsx
-	 * <RadioGroup.Root defaultValue="small">
-	 *   <Label htmlFor="size-group">Size</Label>
-	 *   <RadioGroup.ButtonGroup>
-	 *     <RadioGroup.Button value="small">Small</RadioGroup.Button>
-	 *     <RadioGroup.Button value="medium">Medium</RadioGroup.Button>
-	 *     <RadioGroup.Button value="large">Large</RadioGroup.Button>
-	 *   </RadioGroup.ButtonGroup>
-	 * </RadioGroup.Root>
+	 * <Label id="size-label">Size</Label>
+	 * <RadioGroup.ButtonGroup aria-labelledby="size-label" defaultValue="small">
+	 *   <RadioGroup.Button value="small">Small</RadioGroup.Button>
+	 *   <RadioGroup.Button value="medium">Medium</RadioGroup.Button>
+	 *   <RadioGroup.Button value="large">Large</RadioGroup.Button>
+	 * </RadioGroup.ButtonGroup>
 	 * ```
 	 */
 	ButtonGroup,
 	/**
 	 * A radio card item with enhanced styling. Use it as a child of RadioGroup for card-based radio options.
 	 *
-	 * @see https://mantle.ngrok.com/components/radio-group#radiogroupcard
+	 * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupcard
 	 *
 	 * @example
 	 * ```tsx
@@ -555,7 +555,7 @@ const RadioGroup = {
 	/**
 	 * The selection indicator for any radio item. Shows the checked state with customizable appearance.
 	 *
-	 * @see https://mantle.ngrok.com/components/radio-group#radiogroupindicator
+	 * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupindicator
 	 *
 	 * @example
 	 * ```tsx
@@ -569,7 +569,7 @@ const RadioGroup = {
 	/**
 	 * A sandbox container for input elements composed within radio group items. Prevents default radio behavior.
 	 *
-	 * @see https://mantle.ngrok.com/components/radio-group#radiogroupinputsandbox
+	 * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupinputsandbox
 	 *
 	 * @example
 	 * ```tsx
@@ -590,7 +590,7 @@ const RadioGroup = {
 	/**
 	 * A simple radio item that can be used inside a radio group. The conventional use-case for basic radio options.
 	 *
-	 * @see https://mantle.ngrok.com/components/radio-group#radiogroupitem
+	 * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupitem
 	 *
 	 * @example
 	 * ```tsx
@@ -604,7 +604,7 @@ const RadioGroup = {
 	/**
 	 * The content wrapper for any radio item. Use it to wrap labels, descriptions, or content of a radio item.
 	 *
-	 * @see https://mantle.ngrok.com/components/radio-group#radiogroupitemcontent
+	 * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupitemcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -623,7 +623,7 @@ const RadioGroup = {
 	/**
 	 * A group of radio list items with connected borders. Use RadioGroup.ListItem as direct children.
 	 *
-	 * @see https://mantle.ngrok.com/components/radio-group#radiogrouplist
+	 * @see https://mantle.ngrok.com/components/forms/radio-group#radiogrouplist
 	 *
 	 * @example
 	 * ```tsx
@@ -647,7 +647,7 @@ const RadioGroup = {
 	/**
 	 * A radio list item that is used inside a RadioGroup.List for connected list-style radio options.
 	 *
-	 * @see https://mantle.ngrok.com/components/radio-group#radiogrouplistitem
+	 * @see https://mantle.ngrok.com/components/forms/radio-group#radiogrouplistitem
 	 *
 	 * @example
 	 * ```tsx
@@ -673,11 +673,11 @@ const RadioGroup = {
 	/**
 	 * The root radio group component. Manages the state of the children radios where only one can be selected.
 	 *
-	 * @see https://mantle.ngrok.com/components/radio-group#radiogrouproot
+	 * @see https://mantle.ngrok.com/components/forms/radio-group#radiogrouproot
 	 *
 	 * @example
 	 * ```tsx
-	 * <RadioGroup.Root value={value} onValueChange={setValue}>
+	 * <RadioGroup.Root value={value} onChange={setValue}>
 	 *   <RadioGroup.Item value="option1">
 	 *     <RadioGroup.Indicator />
 	 *     <span>Option 1</span>

@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Toast component.
  *
- * @see https://mantle.ngrok.com/components/toast
+ * @see https://mantle.ngrok.com/components/feedback/toast
  */
 
 export {

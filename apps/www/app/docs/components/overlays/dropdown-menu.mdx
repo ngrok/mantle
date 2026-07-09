@@ -1,0 +1,295 @@
+---
+title: Dropdown Menu
+description: Displays a menu to the user — such as a set of actions or functions — triggered by a button.
+---
+
+import { Button } from "@ngrok/mantle/button";
+import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { Icon } from "@ngrok/mantle/icon";
+import { Tooltip } from "@ngrok/mantle/tooltip";
+import { DesktopIcon } from "@phosphor-icons/react/Desktop";
+import { GearIcon } from "@phosphor-icons/react/Gear";
+import { MoonIcon } from "@phosphor-icons/react/Moon";
+import { SignOutIcon } from "@phosphor-icons/react/SignOut";
+import { SunIcon } from "@phosphor-icons/react/Sun";
+import { useState } from "react";
+import { Example } from "~/components/example";
+
+export const DropdownMenuExample = () => {
+	const [selectedTheme, setSelectedTheme] = useState("system");
+	const [enableNotifications, setEnableNotifications] = useState(false);
+
+    return (
+    	<DropdownMenu.Root>
+    		<DropdownMenu.Trigger asChild>
+    			<Button type="button" appearance="filled" priority="neutral">
+    				Open Menu
+    			</Button>
+    		</DropdownMenu.Trigger>
+    		<DropdownMenu.Content>
+    			<DropdownMenu.Label>corby.pickles@ngork.com</DropdownMenu.Label>
+    			<DropdownMenu.Separator />
+    			<DropdownMenu.RadioGroup
+    				value={selectedTheme}
+    				onValueChange={(value) => {
+    					setSelectedTheme(value);
+    				}}
+    			>
+    				<DropdownMenu.RadioItem value="system">
+    					<Icon svg={<DesktopIcon />} />
+    					System Preference
+    				</DropdownMenu.RadioItem>
+    				<DropdownMenu.RadioItem value="light">
+    					<Icon svg={<SunIcon />} />
+    					Light Mode
+    				</DropdownMenu.RadioItem>
+    				<DropdownMenu.RadioItem value="dark">
+    					<Icon svg={<MoonIcon />} />
+    					Dark Mode
+    				</DropdownMenu.RadioItem>
+    			</DropdownMenu.RadioGroup>
+    			<DropdownMenu.Separator />
+    			<Tooltip.Root>
+    				<Tooltip.Trigger asChild>
+    					<DropdownMenu.Item className="flex items-center gap-2" disabled>
+    						<Icon svg={<GearIcon />} />
+    						User Settings
+    					</DropdownMenu.Item>
+    				</Tooltip.Trigger>
+    				<Tooltip.Content side="left">Only winners get user settings.</Tooltip.Content>
+    			</Tooltip.Root>
+    			<DropdownMenu.Separator />
+    			<DropdownMenu.CheckboxItem
+    				checked={enableNotifications}
+    				onCheckedChange={(value) => {
+    					setEnableNotifications(value);
+    				}}
+    			>
+    				Enable Notifications
+    			</DropdownMenu.CheckboxItem>
+    			<DropdownMenu.Group>
+    				<DropdownMenu.Item>Team</DropdownMenu.Item>
+    				<DropdownMenu.Sub>
+    					<DropdownMenu.SubTrigger>Invite users</DropdownMenu.SubTrigger>
+    					<DropdownMenu.SubContent>
+    						<DropdownMenu.Item>Email</DropdownMenu.Item>
+    						<DropdownMenu.Item>Message</DropdownMenu.Item>
+    						<DropdownMenu.Separator />
+    						<DropdownMenu.Item>More...</DropdownMenu.Item>
+    					</DropdownMenu.SubContent>
+    				</DropdownMenu.Sub>
+    				<DropdownMenu.Item>
+    					New Team
+    					<DropdownMenu.Shortcut>⌘+T</DropdownMenu.Shortcut>
+    				</DropdownMenu.Item>
+    			</DropdownMenu.Group>
+    			<DropdownMenu.Separator />
+    			<DropdownMenu.Item className="flex items-center gap-2">
+    				<Icon svg={<SignOutIcon />} />
+    				Log out
+    			</DropdownMenu.Item>
+    		</DropdownMenu.Content>
+    	</DropdownMenu.Root>
+    );
+
+};
+
+# Dropdown Menu
+
+Displays a menu to the user — such as a set of actions or functions — triggered by a button. Built on top of [Radix Dropdown Menu](https://www.radix-ui.com/primitives/docs/components/dropdown-menu).
+
+<Example className="flex-col gap-6">
+	<DropdownMenuExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { Icon } from "@ngrok/mantle/icon";
+
+<DropdownMenu.Root>
+	<DropdownMenu.Trigger asChild>
+		<Button appearance="filled" priority="neutral" type="button">
+			Open Menu
+		</Button>
+	</DropdownMenu.Trigger>
+	<DropdownMenu.Content>
+		<DropdownMenu.Label>corby.pickles@ngork.com</DropdownMenu.Label>
+		<DropdownMenu.Separator />
+		<DropdownMenu.RadioItem name="theme" value="system">
+			<Icon svg={<DesktopIcon />} />
+			System Preference
+		</DropdownMenu.RadioItem>
+		<DropdownMenu.Separator />
+		<DropdownMenu.Item>
+			<Icon svg={<GearIcon />} />
+			User Settings
+		</DropdownMenu.Item>
+		<DropdownMenu.Separator />
+		<DropdownMenu.Item>
+			<Icon svg={<SignOutIcon />} />
+			Log out
+		</DropdownMenu.Item>
+	</DropdownMenu.Content>
+</DropdownMenu.Root>;
+```
+
+## Layering and z-index
+
+`DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+
+`DropdownMenu` does not render a backdrop by default. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
+
+## Composition
+
+Compose the parts of a `DropdownMenu` together to build your own:
+
+```text showLineNumbers=false
+DropdownMenu.Root
+├── DropdownMenu.Trigger
+└── DropdownMenu.Content
+    ├── DropdownMenu.Group
+    │   ├── DropdownMenu.Label
+    │   ├── DropdownMenu.Item
+    │   │   └── DropdownMenu.Shortcut
+    │   ├── DropdownMenu.CheckboxItem
+    │   └── DropdownMenu.RadioGroup
+    │       └── DropdownMenu.RadioItem
+    ├── DropdownMenu.Separator
+    └── DropdownMenu.Sub
+        ├── DropdownMenu.SubTrigger
+        └── DropdownMenu.SubContent
+```
+
+## API Reference
+
+The `DropdownMenu` components are built on top of [Radix Dropdown Menu](https://www.radix-ui.com/primitives/docs/components/dropdown-menu).
+
+### DropdownMenu.Root
+
+The root, stateful component that manages the open/closed state of the dropdown menu.
+
+Its floating `DropdownMenu.Content` and `DropdownMenu.SubContent` layers render at Tailwind `z-50`, Mantle's shared floating z-index.
+
+| Prop            | Type                      | Default | Description                                                                                                                                                        |
+| :-------------- | :------------------------ | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `open?`         | `boolean`                 |         | The controlled open state of the dropdown menu. Must be used in conjunction with `onOpenChange`.                                                                   |
+| `onOpenChange?` | `(open: boolean) => void` |         | Event handler called when the open state of the dropdown menu changes.                                                                                             |
+| `defaultOpen?`  | `boolean`                 | `false` | The open state of the dropdown menu when it is initially rendered. Use when you do not need to control its open state.                                             |
+| `dir?`          | `"ltr"` \| `"rtl"`        |         | The reading direction of submenus when applicable.                                                                                                                 |
+| `modal?`        | `boolean`                 | `true`  | The modality of the dropdown menu. When set to `true`, interaction with outside elements will be disabled and only menu content will be visible to screen readers. |
+
+### DropdownMenu.Trigger
+
+The trigger button that opens the dropdown menu.
+
+| Prop       | Type      | Default | Description                                                                          |
+| :--------- | :-------- | :------ | :----------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the trigger functionality onto your own component. |
+
+### DropdownMenu.Content
+
+The container for the dropdown menu content. Appears in a portal with scrolling and animations.
+
+Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+
+All props from Radix [DropdownMenu.Content](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#content), plus:
+
+| Prop           | Type                                           | Default    | Description                                                                                                                                                   |
+| :------------- | :--------------------------------------------- | :--------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `width?`       | `"trigger"` \| `"content"`                     |            | `trigger` will ensure the dropdown content is the same width as the trigger button. `content` will make the dropdown content use the intrinsic content width. |
+| `side?`        | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | `"bottom"` | The preferred side of the trigger to render against when open.                                                                                                |
+| `sideOffset?`  | `number`                                       |            | The distance in pixels from the trigger.                                                                                                                      |
+| `align?`       | `"start"` \| `"center"` \| `"end"`             | `"center"` | The preferred alignment against the trigger.                                                                                                                  |
+| `alignOffset?` | `number`                                       | `0`        | An offset in pixels from the `start` or `end` alignment options.                                                                                              |
+| `loop?`        | `boolean`                                      | `true`     | When `true`, keyboard navigation will loop from last item to first, and vice versa.                                                                           |
+
+### DropdownMenu.Item
+
+A standard item in the dropdown menu that can be selected or activated.
+
+| Prop        | Type         | Default | Description                                                            |
+| :---------- | :----------- | :------ | :--------------------------------------------------------------------- |
+| `inset?`    | `boolean`    |         | When `true`, adds left padding to align with items that have icons.    |
+| `disabled?` | `boolean`    |         | When `true`, prevents the user from interacting with the item.         |
+| `onSelect?` | `() => void` |         | Event handler called when the user selects an item (via mouse or key). |
+
+### DropdownMenu.CheckboxItem
+
+A menu item with a checkbox that can be controlled or uncontrolled.
+
+All props from Radix [DropdownMenu.CheckboxItem](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#checkboxitem), including:
+
+| Prop               | Type                           | Default | Description                                                                    |
+| :----------------- | :----------------------------- | :------ | :----------------------------------------------------------------------------- |
+| `checked?`         | `boolean` \| `"indeterminate"` |         | The controlled checked state of the item. Must be used with `onCheckedChange`. |
+| `onCheckedChange?` | `(checked: boolean) => void`   |         | Event handler called when the checked state changes.                           |
+| `disabled?`        | `boolean`                      |         | When `true`, prevents the user from interacting with the item.                 |
+
+### DropdownMenu.RadioGroup
+
+A radio group container for exclusive selection within the dropdown menu.
+
+| Prop             | Type                      | Default | Description                                  |
+| :--------------- | :------------------------ | :------ | :------------------------------------------- |
+| `value?`         | `string`                  |         | The value of the selected item in the group. |
+| `onValueChange?` | `(value: string) => void` |         | Event handler called when the value changes. |
+
+### DropdownMenu.RadioItem
+
+A radio item where only one item in the group can be selected at a time.
+
+All props from Radix [DropdownMenu.RadioItem](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#radioitem), including:
+
+| Prop        | Type      | Default | Description                                                    |
+| :---------- | :-------- | :------ | :------------------------------------------------------------- |
+| `value`     | `string`  |         | The unique value of the item.                                  |
+| `disabled?` | `boolean` |         | When `true`, prevents the user from interacting with the item. |
+
+### DropdownMenu.Label
+
+A label for grouping and describing sections within the dropdown menu.
+
+| Prop     | Type      | Default | Description                                                         |
+| :------- | :-------- | :------ | :------------------------------------------------------------------ |
+| `inset?` | `boolean` |         | When `true`, adds left padding to align with items that have icons. |
+
+### DropdownMenu.Group
+
+A group container for organizing related dropdown menu items. Accepts all props from Radix [DropdownMenu.Group](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#group).
+
+### DropdownMenu.Separator
+
+A visual separator for dividing sections within the dropdown menu. All props from [`Separator`](/components/structure/separator).
+
+### DropdownMenu.Shortcut
+
+A keyboard shortcut indicator for dropdown menu items. All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/span#attributes).
+
+### DropdownMenu.Sub
+
+A submenu container for creating nested dropdown menus. Accepts all props from Radix [DropdownMenu.Sub](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#sub).
+
+| Prop            | Type                      | Default | Description                                                                                |
+| :-------------- | :------------------------ | :------ | :----------------------------------------------------------------------------------------- |
+| `open?`         | `boolean`                 |         | The controlled open state of the submenu. Must be used in conjunction with `onOpenChange`. |
+| `onOpenChange?` | `(open: boolean) => void` |         | Event handler called when the open state of the submenu changes.                           |
+| `defaultOpen?`  | `boolean`                 |         | The open state of the submenu when it is initially rendered.                               |
+
+### DropdownMenu.SubTrigger
+
+The trigger item that opens a submenu when hovered or focused.
+
+| Prop     | Type      | Default | Description                                                         |
+| :------- | :-------- | :------ | :------------------------------------------------------------------ |
+| `inset?` | `boolean` |         | When `true`, adds left padding to align with items that have icons. |
+
+### DropdownMenu.SubContent
+
+The content container for submenu items. Appears in a portal with scrolling and animations.
+
+Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+
+| Prop    | Type      | Default | Description                                                                         |
+| :------ | :-------- | :------ | :---------------------------------------------------------------------------------- |
+| `loop?` | `boolean` | `true`  | When `true`, keyboard navigation will loop from last item to first, and vice versa. |

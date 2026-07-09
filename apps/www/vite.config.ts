@@ -55,7 +55,10 @@ export default defineConfig(({ command }) => ({
 			rehypePlugins: [rehypeSlug, rehypeMdxToc, ...codeBlockPlugins.rehypePlugins],
 			providerImportSource: "@mdx-js/react",
 		}),
-		reactRouter(),
+		// The React Router plugin's Fast Refresh transform injects a preamble
+		// check that throws when .tsx modules load under Vitest, and tests
+		// don't need the framework plugin — component tests render directly.
+		...(process.env.VITEST ? [] : [reactRouter()]),
 	],
 	resolve: {
 		// Ensure Mantle components resolve to source in dev mode (not dist)

@@ -66,7 +66,7 @@ function useChoiceContext(part: string): ChoiceContextValue {
  * with the disabled / id / name controls. Inside a `Field.Control`, the field's
  * `id` / `name` / `aria-*` take precedence over these.
  *
- * @see https://mantle.ngrok.com/components/choice
+ * @see https://mantle.ngrok.com/components/forms/choice
  *
  * @example
  * ```tsx
@@ -106,7 +106,7 @@ type ChoiceRootProps = Omit<ComponentProps<"div">, "id"> & {
  * Outside a `Field` it falls back to its own generated ids, so the two compose
  * but neither requires the other.
  *
- * @see https://mantle.ngrok.com/components/choice
+ * @see https://mantle.ngrok.com/components/forms/choice
  *
  * @example
  * ```tsx
@@ -216,7 +216,7 @@ type ChoiceIndicatorProps = ComponentProps<"span">;
  * title, and centers its child — so the control sits centered on the title's
  * first line and stays put when the title wraps.
  *
- * @see https://mantle.ngrok.com/components/choice
+ * @see https://mantle.ngrok.com/components/forms/choice
  *
  * @example
  * ```tsx
@@ -277,7 +277,7 @@ type ChoiceContentProps = ComponentProps<"div"> & WithAsChild;
  * an optional `Choice.Description`. `min-w-0` so long titles truncate instead of
  * pushing the row wide.
  *
- * @see https://mantle.ngrok.com/components/choice
+ * @see https://mantle.ngrok.com/components/forms/choice
  *
  * @example
  * ```tsx
@@ -329,7 +329,7 @@ type ChoiceLabelProps = Omit<ComponentProps<typeof Label>, "htmlFor" | "disabled
  * row or a Headless radio item), use `Choice.Title` instead — a label-less `<p>`
  * (it accepts `asChild`) — so labels never nest or compete.
  *
- * @see https://mantle.ngrok.com/components/choice
+ * @see https://mantle.ngrok.com/components/forms/choice
  *
  * @example
  * ```tsx
@@ -374,7 +374,7 @@ ChoiceLabel.displayName = "ChoiceLabel";
  * control — or inside a `Field` — where the title can be the label, use
  * `Choice.Label`.
  *
- * @see https://mantle.ngrok.com/components/choice
+ * @see https://mantle.ngrok.com/components/forms/choice
  *
  * @example
  * ```tsx
@@ -415,7 +415,7 @@ Title.displayName = "ChoiceTitle";
  * and wired to the control via `aria-describedby` (never a second label).
  * Renders a `<p>`; pass `asChild` to supply your own element.
  *
- * @see https://mantle.ngrok.com/components/choice
+ * @see https://mantle.ngrok.com/components/forms/choice
  *
  * @example
  * ```tsx
@@ -471,7 +471,7 @@ Description.displayName = "ChoiceDescription";
  * `aria-describedby`. Outside a `Field` it uses its own generated ids — the two
  * are aware of each other but neither is required.
  *
- * @see https://mantle.ngrok.com/components/choice
+ * @see https://mantle.ngrok.com/components/forms/choice
  *
  * @example
  * Composition:
@@ -508,7 +508,7 @@ const Choice: {
 	 * Root: the layout + id/association owner. Reads `FieldControlContext` when
 	 * present so a `Field`'s id/name/aria flow onto the control.
 	 *
-	 * @see https://mantle.ngrok.com/components/choice
+	 * @see https://mantle.ngrok.com/components/forms/choice
 	 *
 	 * @example
 	 * ```tsx
@@ -528,7 +528,7 @@ const Choice: {
 	 * Indicator: the left control slot. Clones its element child with the shared
 	 * id/aria/name so the control is wired without threading ids.
 	 *
-	 * @see https://mantle.ngrok.com/components/choice
+	 * @see https://mantle.ngrok.com/components/forms/choice
 	 *
 	 * @example
 	 * ```tsx
@@ -547,7 +547,7 @@ const Choice: {
 	/**
 	 * Content: the right column that stacks the title over the description.
 	 *
-	 * @see https://mantle.ngrok.com/components/choice
+	 * @see https://mantle.ngrok.com/components/forms/choice
 	 *
 	 * @example
 	 * ```tsx
@@ -567,7 +567,7 @@ const Choice: {
 	 * Label: the title as a real `<label htmlFor>`. Use when the `Choice` owns
 	 * labeling (standalone control); otherwise use `Choice.Title`.
 	 *
-	 * @see https://mantle.ngrok.com/components/choice
+	 * @see https://mantle.ngrok.com/components/forms/choice
 	 *
 	 * @example
 	 * ```tsx
@@ -587,7 +587,7 @@ const Choice: {
 	 * Title: the title as label-less text (`<p>`). Use when an ancestor (a
 	 * clickable row or a Headless radio item) owns labeling.
 	 *
-	 * @see https://mantle.ngrok.com/components/choice
+	 * @see https://mantle.ngrok.com/components/forms/choice
 	 *
 	 * @example
 	 * ```tsx
@@ -606,7 +606,7 @@ const Choice: {
 	/**
 	 * Description: the supplementary line, wired via `aria-describedby`.
 	 *
-	 * @see https://mantle.ngrok.com/components/choice
+	 * @see https://mantle.ngrok.com/components/forms/choice
 	 *
 	 * @example
 	 * ```tsx

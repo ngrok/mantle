@@ -10,7 +10,7 @@ type CardProps = ComponentProps<"div"> & WithAsChild;
  * A container that can be used to display content in a box resembling a
  * physical card. The root component of the all Card components.
  *
- * @see https://mantle.ngrok.com/components/card#cardroot
+ * @see https://mantle.ngrok.com/components/structure/card#cardroot
  *
  * @example
  * ```tsx
@@ -54,7 +54,7 @@ Root.displayName = "Card";
 /**
  * The main content of a card. Usually composed as a direct child of a `Card` component.
  *
- * @see https://mantle.ngrok.com/components/card#cardbody
+ * @see https://mantle.ngrok.com/components/structure/card#cardbody
  *
  * @example
  * ```tsx
@@ -98,7 +98,7 @@ Body.displayName = "CardBody";
 /**
  * The footer container of a card. Usually composed as a direct child of a `Card` component.
  *
- * @see https://mantle.ngrok.com/components/card#cardfooter
+ * @see https://mantle.ngrok.com/components/structure/card#cardfooter
  *
  * @example
  * ```tsx
@@ -136,7 +136,7 @@ Footer.displayName = "CardFooter";
 /**
  * The header container of a card. Usually composed as a direct child of a `Card` component.
  *
- * @see https://mantle.ngrok.com/components/card#cardheader
+ * @see https://mantle.ngrok.com/components/structure/card#cardheader
  *
  * @example
  * ```tsx
@@ -180,7 +180,7 @@ type CardTitleProps = HTMLAttributes<HTMLHeadingElement> & WithAsChild;
  * element by using the `asChild` prop. It is preferred to use a heading element
  * (h1-h6) for accessibility reasons.
  *
- * @see https://mantle.ngrok.com/components/card#cardtitle
+ * @see https://mantle.ngrok.com/components/structure/card#cardtitle
  *
  * @example
  * ```tsx
@@ -216,7 +216,7 @@ Title.displayName = "CardTitle";
  * A container that can be used to display content in a box resembling a
  * physical card.
  *
- * @see https://mantle.ngrok.com/components/card
+ * @see https://mantle.ngrok.com/components/structure/card
  *
  * @example
  * Composition:
@@ -253,7 +253,7 @@ const Card = {
 	/**
 	 * A container that can be used to display content in a box resembling a physical card.
 	 *
-	 * @see https://mantle.ngrok.com/components/card#cardroot
+	 * @see https://mantle.ngrok.com/components/structure/card#cardroot
 	 *
 	 * @example
 	 * ```tsx
@@ -268,7 +268,7 @@ const Card = {
 	/**
 	 * The main content of a card.
 	 *
-	 * @see https://mantle.ngrok.com/components/card#cardbody
+	 * @see https://mantle.ngrok.com/components/structure/card#cardbody
 	 *
 	 * @example
 	 * ```tsx
@@ -283,7 +283,7 @@ const Card = {
 	/**
 	 * The footer container of a card.
 	 *
-	 * @see https://mantle.ngrok.com/components/card#cardfooter
+	 * @see https://mantle.ngrok.com/components/structure/card#cardfooter
 	 *
 	 * @example
 	 * ```tsx
@@ -304,7 +304,7 @@ const Card = {
 	/**
 	 * The header container of a card.
 	 *
-	 * @see https://mantle.ngrok.com/components/card#cardheader
+	 * @see https://mantle.ngrok.com/components/structure/card#cardheader
 	 *
 	 * @example
 	 * ```tsx
@@ -325,7 +325,7 @@ const Card = {
 	/**
 	 * The title of a card.
 	 *
-	 * @see https://mantle.ngrok.com/components/card#cardtitle
+	 * @see https://mantle.ngrok.com/components/structure/card#cardtitle
 	 *
 	 * @example
 	 * ```tsx

@@ -36,7 +36,7 @@ import { VirtualRoot as ListVirtualRoot } from "../list/virtual.js";
  * A `label` may be any ReactNode; when it isn't a plain string, `labelText` is
  * required so the default filter has text to match.
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
  * ```ts
@@ -227,7 +227,7 @@ function useSelectableListContext(part: string): SelectableListContextValue {
  * which is replaced by `onValueChange`) with the option set and the
  * controlled/uncontrolled selection state.
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
  * ```tsx
@@ -275,7 +275,7 @@ const EMPTY_SELECTION: readonly string[] = [];
  * (`SelectableList.Viewport`, or the windowed `SelectableList.VirtualViewport`),
  * and `SelectableList.Empty` (shown when the filter matches nothing).
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
  * ```tsx
@@ -400,7 +400,7 @@ Root.displayName = "SelectableListRoot";
  * case-insensitive substring match over each option's plain text — `labelText`,
  * or a string `label`). Optional — omit it for a non-filterable list.
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
  * ```tsx
@@ -446,7 +446,7 @@ Filter.displayName = "SelectableListFilter";
  * indeterminate when only some are, unchecked when none are — and toggling it
  * selects or clears that filtered set. Optional. Children are the visible label.
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
  * ```tsx
@@ -527,7 +527,7 @@ function controlIdFor(listId: string, value: string): string {
  * `value` the row represents; selection and disabled state are read from the
  * list by that value (`options[].disabled` is the single source of truth).
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
  * ```tsx
@@ -560,7 +560,7 @@ type SelectableListItemProps = Omit<ComponentProps<"div">, "children" | "id"> & 
  * Render it from a viewport's render-prop child for a custom row layout; the
  * default row (title + description) uses it under the hood.
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
  * ```tsx
@@ -625,7 +625,7 @@ Item.displayName = "SelectableListItem";
  * a real `<label>` wired to the row's checkbox, so clicking it toggles the row
  * and it supplies the checkbox's accessible name.
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
  * ```tsx
@@ -655,7 +655,7 @@ ItemTitle.displayName = "SelectableListItemTitle";
  * `Choice.Description` — wired to the row's checkbox via `aria-describedby`
  * (never a second label).
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
  * ```tsx
@@ -785,7 +785,7 @@ function useViewportItems(
  * Props for `SelectableList.Viewport`. Extends `<div>` props (the scroll
  * viewport) with an optional render-prop child for custom row layouts.
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
  * ```tsx
@@ -812,7 +812,7 @@ type SelectableListViewportProps = Omit<ComponentProps<"div">, "children"> & {
  * `aria-labelledby`) and **bound the height** (`max-h-*`, `h-*`, or
  * `min-h-0 flex-1`).
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
  * ```tsx
@@ -857,7 +857,7 @@ Viewport.displayName = "SelectableListViewport";
  * Props for `SelectableList.VirtualViewport` — the `Viewport` props plus the
  * virtualizer knobs.
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
  * ```tsx
@@ -878,7 +878,7 @@ type SelectableListVirtualViewportProps = SelectableListViewportProps & {
  * `aria-label`, same optional render-prop — so opting into virtualization never
  * changes the call site. **Bound the height** so the virtualizer has a viewport.
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
  * ```tsx
@@ -926,7 +926,7 @@ VirtualViewport.displayName = "SelectableListVirtualViewport";
  * hidden while there are matches), so screen-reader users hear the message
  * when their filter empties the list instead of the grid silently vanishing.
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
  * ```tsx
@@ -980,7 +980,7 @@ Empty.displayName = "SelectableListEmpty";
  * row (tracked via `aria-activedescendant`, so navigation works across the full
  * option set even when virtualized) and `Space`/`Enter` toggles it.
  *
- * @see https://mantle.ngrok.com/components/selectable-list
+ * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
  * Composition:
@@ -1015,7 +1015,7 @@ const SelectableList = {
 	/**
 	 * Root: owns selection + filter state and the derived filtered options.
 	 *
-	 * @see https://mantle.ngrok.com/components/selectable-list
+	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
 	 * @example
 	 * ```tsx
@@ -1031,7 +1031,7 @@ const SelectableList = {
 	/**
 	 * Optional filter/search box (mantle `Input` + magnifying-glass icon).
 	 *
-	 * @see https://mantle.ngrok.com/components/selectable-list
+	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
 	 * @example
 	 * ```tsx
@@ -1047,7 +1047,7 @@ const SelectableList = {
 	/**
 	 * Optional tri-state "select all" header over the filtered options.
 	 *
-	 * @see https://mantle.ngrok.com/components/selectable-list
+	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
 	 * @example
 	 * ```tsx
@@ -1064,7 +1064,7 @@ const SelectableList = {
 	 * The scrollable grid of rows (non-virtualized). Give it an `aria-label`;
 	 * pass a render-prop child for a custom row layout, or omit it for the default.
 	 *
-	 * @see https://mantle.ngrok.com/components/selectable-list
+	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
 	 * @example
 	 * ```tsx
@@ -1080,7 +1080,7 @@ const SelectableList = {
 	/**
 	 * The windowed grid of rows — same surface as `Viewport`, for long lists.
 	 *
-	 * @see https://mantle.ngrok.com/components/selectable-list
+	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
 	 * @example
 	 * ```tsx
@@ -1097,7 +1097,7 @@ const SelectableList = {
 	 * A selectable grid row for custom viewport rendering. Reads its selection
 	 * and disabled state from the list by `value`.
 	 *
-	 * @see https://mantle.ngrok.com/components/selectable-list
+	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
 	 * @example
 	 * ```tsx
@@ -1120,7 +1120,7 @@ const SelectableList = {
 	/**
 	 * Emphasized title (`Choice.Label`) for a `SelectableList.Item`.
 	 *
-	 * @see https://mantle.ngrok.com/components/selectable-list
+	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
 	 * @example
 	 * ```tsx
@@ -1143,7 +1143,7 @@ const SelectableList = {
 	/**
 	 * De-emphasized sub-line (`Choice.Description`) for a `SelectableList.Item`.
 	 *
-	 * @see https://mantle.ngrok.com/components/selectable-list
+	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
 	 * @example
 	 * ```tsx
@@ -1167,7 +1167,7 @@ const SelectableList = {
 	 * Shown when the filter matches no options — a polite `role="status"` live
 	 * region, so the empty state is announced as the filter narrows.
 	 *
-	 * @see https://mantle.ngrok.com/components/selectable-list
+	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
 	 * @example
 	 * ```tsx

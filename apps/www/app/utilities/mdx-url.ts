@@ -7,7 +7,7 @@
  * consolidates ranking signals and drops the `.mdx` entries from the index.
  *
  * @example
- * mdxUrlToCanonicalPath("/docs/components/button.mdx"); // "/docs/components/button"
+ * mdxUrlToCanonicalPath("/docs/components/actions/button.mdx"); // "/docs/components/actions/button"
  */
 export function mdxUrlToCanonicalPath(pathname: string): string {
 	return pathname.replace(/\.mdx$/, "");

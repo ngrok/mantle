@@ -73,7 +73,7 @@ const sizingVariants = cva("", {
  * **Loading.** Defaults to `loading="lazy"`. Use `loading="eager"` for flags
  * above the fold or in critical content.
  *
- * @see https://mantle.ngrok.com/components/flag#flag
+ * @see https://mantle.ngrok.com/components/data-display/flag#flag
  *
  * @example
  * ```tsx

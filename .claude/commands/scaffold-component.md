@@ -98,7 +98,7 @@ Create `packages/mantle/src/components/<component-name>/` with:
 
 - Import `cx` from `../../utils/cx/cx.js`
 - Use `ComponentProps` from React for prop types (no `interface`, use `type`)
-- Add JSDoc comments on all exported components with `@see` linking to `https://mantle.ngrok.com/components/<component-name>` and `@example` blocks
+- Add JSDoc comments on all exported components with `@see` linking to `https://mantle.ngrok.com/components/<category>/<component-name>` and `@example` blocks
 - Use named exports (no default exports)
 - **Add a `data-slot` attribute to the rendered root element of every component** (applies to both simple and compound components, and to every sub-part of a compound component). Use kebab-case:
   - Simple component: `data-slot="<component-name>"` (e.g., `data-slot="main"`)
@@ -126,7 +126,7 @@ If the component has sub-parts, follow the POJO namespace pattern from `decision
   /**
    * A brief description of the component.
    *
-   * @see https://mantle.ngrok.com/components/my-component
+   * @see https://mantle.ngrok.com/components/<category>/my-component
    *
    * @example
    * Composition:
@@ -160,7 +160,7 @@ If the component has sub-parts, follow the POJO namespace pattern from `decision
   	/**
   	 * The root container of the component.
   	 *
-  	 * @see https://mantle.ngrok.com/components/my-component
+  	 * @see https://mantle.ngrok.com/components/<category>/my-component
   	 *
   	 * @example
   	 * ```tsx
@@ -176,7 +176,7 @@ If the component has sub-parts, follow the POJO namespace pattern from `decision
   	/**
   	 * The title of the component.
   	 *
-  	 * @see https://mantle.ngrok.com/components/my-component
+  	 * @see https://mantle.ngrok.com/components/<category>/my-component
   	 *
   	 * @example
   	 * ```tsx
@@ -263,7 +263,7 @@ Note: the build system (tsdown) auto-discovers component directories, so no tsdo
 
 ## 3. Create the docs page
 
-Create `apps/www/app/docs/components/<component-name>.mdx` with:
+Create `apps/www/app/docs/components/<category>/<component-name>.mdx` with:
 
 ```mdx
 ---
@@ -348,17 +348,19 @@ Icons in examples should use `@phosphor-icons/react` (the primary icon library f
 Add to `apps/www/app/routes.ts` in alphabetical order among the component docs:
 
 ```ts
-...docRoute("components/<component-name>"),
+...docRoute("components/<category>/<component-name>"),
 ```
 
 ## 5. Add to navigation
 
+Component docs are grouped by category (`Actions`, `Forms`, `Navigation`, `Overlays`, `Structure`, `Data Display`, `Feedback`, `Primitives`) — pick the one matching what the component _is_ in the UI, and use its URL slug (see `componentCategorySlugs`) as the `<category>` segment in every path above. If genuinely ambiguous, ask the user.
+
 In `apps/www/app/components/navigation-data.ts`:
 
-1. Add the display name to the `prodReadyComponents` array (alphabetical order)
+1. Add the display name to the category's array in `componentsByCategory` (alphabetical order within the category). `prodReadyComponents` is derived — do not edit it directly.
 2. Add the route mapping to `prodReadyComponentRouteLookup` (alphabetical order):
    ```ts
-   "<Display Name>": "/components/<component-name>",
+   "<Display Name>": "/components/<category>/<component-name>",
    ```
 
 ## 6. Verify

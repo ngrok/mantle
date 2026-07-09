@@ -41,7 +41,7 @@ type ToasterProps = WithStyleProps &
  * Only one `<Toaster />` should be rendered in an app a time, preferably at the
  * root level of the app.
  *
- * @see https://mantle.ngrok.com/components/toast#toaster
+ * @see https://mantle.ngrok.com/components/feedback/toast#toaster
  *
  * @example
  * ```tsx
@@ -101,7 +101,7 @@ type MakeToastOptions = {
  * Create a toast. Provide a `<Toast.Root>` component as the `children` to be rendered
  * inside the `<Toaster />` section.
  *
- * @see https://mantle.ngrok.com/components/toast#maketoast
+ * @see https://mantle.ngrok.com/components/feedback/toast#maketoast
  *
  * @example
  * ```tsx
@@ -170,7 +170,7 @@ type ToastProps = ComponentProps<"div"> &
  * A succinct message with a priority that is displayed temporarily.
  * Toasts are used to provide feedback to the user without interrupting their workflow.
  *
- * @see https://mantle.ngrok.com/components/toast#toastroot
+ * @see https://mantle.ngrok.com/components/feedback/toast#toastroot
  *
  * @example
  * ```tsx
@@ -219,7 +219,7 @@ type ToastIconProps = Partial<SvgOnlyProps>;
  * An icon that visually represents the priority of the toast.
  * If you do not provide an icon, the default icon and color for the priority is used.
  *
- * @see https://mantle.ngrok.com/components/toast#toasticon
+ * @see https://mantle.ngrok.com/components/feedback/toast#toasticon
  *
  * @example
  * ```tsx
@@ -288,7 +288,7 @@ type ToastActionProps = ComponentProps<"button"> & WithAsChild;
  * A button that dismisses the toast when clicked.
  * You can prevent the toast from being dismissed `onClick` by calling `event.preventDefault()`
  *
- * @see https://mantle.ngrok.com/components/toast#toastaction
+ * @see https://mantle.ngrok.com/components/feedback/toast#toastaction
  *
  * @example
  * ```tsx
@@ -335,7 +335,7 @@ type ToastMessageProps = ComponentProps<"p"> & WithAsChild;
 /**
  * The message content of the toast.
  *
- * @see https://mantle.ngrok.com/components/toast#toastmessage
+ * @see https://mantle.ngrok.com/components/feedback/toast#toastmessage
  *
  * @example
  * ```tsx
@@ -366,7 +366,7 @@ Message.displayName = "ToastMessage";
  * A succinct message that is displayed temporarily. Toasts are used to provide
  * feedback to the user without interrupting their workflow.
  *
- * @see https://mantle.ngrok.com/components/toast
+ * @see https://mantle.ngrok.com/components/feedback/toast
  *
  * @example
  * Composition:
@@ -392,7 +392,7 @@ const Toast = {
 	/**
 	 * A succinct message with a priority that is displayed temporarily.
 	 *
-	 * @see https://mantle.ngrok.com/components/toast#toastroot
+	 * @see https://mantle.ngrok.com/components/feedback/toast#toastroot
 	 *
 	 * @example
 	 * ```tsx
@@ -407,7 +407,7 @@ const Toast = {
 	/**
 	 * A button that dismisses the toast when clicked.
 	 *
-	 * @see https://mantle.ngrok.com/components/toast#toastaction
+	 * @see https://mantle.ngrok.com/components/feedback/toast#toastaction
 	 *
 	 * @example
 	 * ```tsx
@@ -422,7 +422,7 @@ const Toast = {
 	/**
 	 * An icon that visually represents the priority of the toast.
 	 *
-	 * @see https://mantle.ngrok.com/components/toast#toasticon
+	 * @see https://mantle.ngrok.com/components/feedback/toast#toasticon
 	 *
 	 * @example
 	 * ```tsx
@@ -436,7 +436,7 @@ const Toast = {
 	/**
 	 * The message content of the toast.
 	 *
-	 * @see https://mantle.ngrok.com/components/toast#toastmessage
+	 * @see https://mantle.ngrok.com/components/feedback/toast#toastmessage
 	 *
 	 * @example
 	 * ```tsx

@@ -23,6 +23,9 @@ function getDocPaths(): string[] {
 
 	// Routes that aren't backed by an MDX file in app/docs/.
 	paths.add("/changelog");
+	paths.add("/layouts");
+	paths.add("/recipes");
+	paths.add("/migrations");
 
 	return Array.from(paths).toSorted((a, b) => a.localeCompare(b));
 }

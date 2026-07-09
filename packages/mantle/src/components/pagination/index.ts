@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Pagination component.
  *
- * @see https://mantle.ngrok.com/components/pagination
+ * @see https://mantle.ngrok.com/components/navigation/pagination
  */
 
 export {

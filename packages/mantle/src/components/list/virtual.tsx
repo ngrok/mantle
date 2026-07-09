@@ -26,7 +26,7 @@ import type { ListRootProps, ListItemContextValue, ListItemPlacement } from "./p
  * Props for {@link VirtualRoot}. The same surface as the plain `Root` plus the
  * virtualizer knobs.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * ```tsx
@@ -125,7 +125,7 @@ WindowedItem.displayName = "ListPrimitiveWindowedItem";
  * navigation re-mounts it. **Bound the height** so the virtualizer has a
  * viewport to measure.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * ```tsx

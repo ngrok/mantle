@@ -15,11 +15,24 @@ const SCHEMA_VERSION = 1;
  */
 const ComponentEntry = {
 	type: "object",
-	required: ["name", "slug", "status", "importPath", "docsUrl", "markdownUrl"],
+	required: ["name", "slug", "kind", "status", "importPath", "docsUrl", "markdownUrl"],
 	additionalProperties: true,
 	properties: {
 		name: { type: "string", description: "Display name (e.g. 'Data Table')." },
-		slug: { type: "string", description: "Docs slug without leading slash." },
+		slug: {
+			type: "string",
+			description: "Docs slug without leading slash (e.g. 'components/data-display/data-table').",
+		},
+		kind: {
+			type: "string",
+			enum: ["component", "layout"],
+			description:
+				"'component' owns an interaction/widget (documented under /components/<category>/); 'layout' owns page/viewport structure (documented under /layouts/).",
+		},
+		category: {
+			type: "string",
+			description: "Docs sidebar category (e.g. 'Data Display'). Components only.",
+		},
 		status: { type: "string", enum: ["stable", "preview"] },
 		importPath: { type: "string", description: "ESM import path (e.g. '@ngrok/mantle/button')." },
 		docsUrl: { type: "string", format: "uri" },
@@ -61,13 +74,14 @@ const SearchEntry = {
 	additionalProperties: true,
 	properties: {
 		name: { type: "string" },
-		kind: { type: "string", enum: ["component", "hook", "utility"] },
+		kind: { type: "string", enum: ["component", "layout", "hook", "utility"] },
 		importPath: { type: "string" },
 		docsUrl: { type: "string", format: "uri" },
 		markdownUrl: { type: "string", format: "uri" },
 		summary: { type: "string" },
 		keywords: { type: "array", items: { type: "string" } },
 		status: { type: "string", enum: ["stable", "preview"] },
+		category: { type: "string", description: "Docs sidebar category. Components only." },
 	},
 } as const;
 

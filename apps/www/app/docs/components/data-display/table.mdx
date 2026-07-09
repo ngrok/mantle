@@ -1,0 +1,220 @@
+---
+title: Table
+description: A structured way to display data in rows and columns.
+---
+
+import { Table } from "@ngrok/mantle/table";
+import { Example } from "~/components/example";
+
+export const invoices = [
+	{
+		invoice: "INV001",
+		paymentStatus: "Paid",
+		totalAmount: "$250.00",
+		paymentMethod: "Credit Card",
+	},
+	{
+		invoice: "INV002",
+		paymentStatus: "Pending",
+		totalAmount: "$150.00",
+		paymentMethod: "PayPal",
+	},
+	{
+		invoice: "INV003",
+		paymentStatus: "Unpaid",
+		totalAmount: "$350.00",
+		paymentMethod: "Bank Transfer",
+	},
+	{
+		invoice: "INV004",
+		paymentStatus: "Paid",
+		totalAmount: "$450.00",
+		paymentMethod: "Credit Card",
+	},
+	{
+		invoice: "INV005",
+		paymentStatus: "Paid",
+		totalAmount: "$550.00",
+		paymentMethod: "PayPal",
+	},
+	{
+		invoice: "INV006",
+		paymentStatus: "Pending",
+		totalAmount: "$200.00",
+		paymentMethod: "Bank Transfer",
+	},
+	{
+		invoice: "INV007",
+		paymentStatus: "Unpaid",
+		totalAmount: "$300.00",
+		paymentMethod: "Credit Card",
+	},
+];
+
+export const ExampleTable = () => {
+	return (
+		<Table.Root>
+			<Table.Element>
+				<Table.Caption>A list of your recent invoices.</Table.Caption>
+				<Table.Head>
+					<Table.Row>
+						<Table.Header className="w-25">Invoice</Table.Header>
+						<Table.Header>Status</Table.Header>
+						<Table.Header>Method</Table.Header>
+						<Table.Header className="text-right">Amount</Table.Header>
+					</Table.Row>
+				</Table.Head>
+				<Table.Body>
+					{invoices.map((invoice) => (
+						<Table.Row key={invoice.invoice}>
+							<Table.Cell className="font-medium">{invoice.invoice}</Table.Cell>
+							<Table.Cell>{invoice.paymentStatus}</Table.Cell>
+							<Table.Cell>{invoice.paymentMethod}</Table.Cell>
+							<Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+						</Table.Row>
+					))}
+				</Table.Body>
+				<Table.Foot>
+					<Table.Row>
+						<Table.Cell colSpan={3}>Total</Table.Cell>
+						<Table.Cell className="text-right">$2,500.00</Table.Cell>
+					</Table.Row>
+				</Table.Foot>
+			</Table.Element>
+		</Table.Root>
+	);
+};
+
+# Table
+
+A structured way to display data in rows and columns.
+
+## When to use
+
+`Table` is the thin, semantic primitive for static tabular content — invoice summaries, pricing matrices, reference tables in documentation. Rows and cells render exactly what you put in them; there is no sorting, filtering, selection, or pagination built in.
+
+- Prefer [`DataTable`](/components/data-display/data-table) for dynamic, application data — anywhere users need to sort, filter, paginate, select, or click rows. `DataTable` is built on top of `Table` and powered by [TanStack Table](https://tanstack.com/table/latest/docs/introduction).
+- Use `Table` directly only when your data is static and none of those behaviors apply.
+
+<Example className="gap-2">
+	<ExampleTable />
+</Example>
+
+```tsx
+import { Table } from "@ngrok/mantle/table";
+
+<Table.Root>
+	<Table.Element>
+		<Table.Caption>A list of your recent invoices.</Table.Caption>
+		<Table.Head>
+			<Table.Row>
+				<Table.Header className="w-25">Invoice</Table.Header>
+				<Table.Header>Status</Table.Header>
+				<Table.Header>Method</Table.Header>
+				<Table.Header className="text-right">Amount</Table.Header>
+			</Table.Row>
+		</Table.Head>
+		<Table.Body>
+			{invoices.map((invoice) => (
+				<Table.Row key={invoice.invoice}>
+					<Table.Cell className="font-medium">{invoice.invoice}</Table.Cell>
+					<Table.Cell>{invoice.paymentStatus}</Table.Cell>
+					<Table.Cell>{invoice.paymentMethod}</Table.Cell>
+					<Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+				</Table.Row>
+			))}
+		</Table.Body>
+		<Table.Foot>
+			<Table.Row>
+				<Table.Cell colSpan={3}>Total</Table.Cell>
+				<Table.Cell className="text-right">$2,500.00</Table.Cell>
+			</Table.Row>
+		</Table.Foot>
+	</Table.Element>
+</Table.Root>;
+```
+
+## Composition
+
+Compose the parts of a `Table` together to build your own:
+
+```text showLineNumbers=false
+Table.Root
+└── Table.Element
+    ├── Table.Caption
+    ├── Table.Head
+    │   └── Table.Row
+    │       └── Table.Header
+    ├── Table.Body
+    │   └── Table.Row
+    │       └── Table.Cell
+    └── Table.Foot
+```
+
+## API Reference
+
+The `Table` is a structured way to display data in rows and columns. The API matches the HTML `table` element 1:1. It is composed of several sub-components.
+
+### Table.Root
+
+Root container for all `Table` sub-components. Should be the parent of all other table sub-components. It provides styling and additional functionality, such as horizontal overflow detection.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
+
+### Table.Element
+
+The API matches the HTML `table` element 1:1.
+
+Permitted content in this order:
+
+1. optional: `Table.Caption`
+2. 0 or more: `colgroup` elements
+3. optional: `Table.Head`
+4. either one of the following:
+   - 0 or more: `Table.Body`
+   - 0 or more: `Table.Row`
+5. optional: `Table.Foot`
+
+All props from [table](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table#attributes).
+
+### Table.Head
+
+Container for the table's column headers. Encapsulates a set of `Table.Row`s, indicating that they comprise the head of a table with information about the table's columns.
+
+All props from [thead](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/thead#attributes).
+
+### Table.Body
+
+Encapsulates a set of `Table.Row`s, indicating that they comprise the body of a table's (main) data.
+
+All props from [tbody](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/tbody#attributes).
+
+### Table.Foot
+
+Encapsulates a set of `Table.Row`s, indicating that they comprise the foot of a table with information about the table's columns. This is usually a summary of the columns, e.g., a sum of the given numbers in a column.
+
+All props from [tfoot](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/tfoot#attributes).
+
+### Table.Row
+
+Defines a row of cells in a table. The row's cells can then be established using a mix of `Table.Cell` and `Table.Header` components.
+
+All props from [tr](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/tr#attributes).
+
+### Table.Header
+
+Defines a cell as the header of a group of table cells and may be used as a child of a `Table.Row`.
+
+All props from [th](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/th#attributes).
+
+### Table.Cell
+
+Defines a cell of a table that contains data and may be used as a child of a `Table.Row`.
+
+All props from [td](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/td#attributes).
+
+### Table.Caption
+
+Specifies the caption (or title) of a table, providing the table an accessible description.
+
+All props from [caption](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/caption#attributes).

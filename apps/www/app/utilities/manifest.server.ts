@@ -1,8 +1,13 @@
 import mantlePackageJson from "@ngrok/mantle/package.json" with { type: "json" };
 import {
+	componentCategories,
 	componentImportPathOverrides,
+	componentsByCategory,
+	previewComponentCategoryLookup,
+	previewComponents,
 	previewComponentsRouteLookup,
 	prodReadyComponentRouteLookup,
+	type ComponentCategory,
 } from "~/components/navigation-data";
 import { canonicalHref, canonicalOrigin } from "~/utilities/canonical-origin";
 import { loadFrontmatter, urlToFileMap } from "~/utilities/docs";
@@ -20,8 +25,19 @@ import { componentsSrcDir, sourceBasePath } from "~/utilities/mantle-source.serv
 export type ManifestComponent = {
 	/** Display name as used in the docs sidebar (e.g. "Data Table"). */
 	name: string;
-	/** URL slug under the docs site (e.g. "components/data-table"). */
+	/** URL slug under the docs site (e.g. "components/data-display/data-table"). */
 	slug: string;
+	/**
+	 * What the export *is*. `component` owns an interaction or widget and is
+	 * documented under `/components/<category>/`; `layout` owns page/viewport
+	 * structure and is documented under `/layouts/`.
+	 */
+	kind: "component" | "layout";
+	/**
+	 * Docs sidebar category (e.g. "Data Display"). Present on every
+	 * `kind: "component"` entry; layouts are a flat family and carry none.
+	 */
+	category?: ComponentCategory;
 	/** Lifecycle status. `preview` components have unstable APIs. */
 	status: "stable" | "preview";
 	/** ESM import path for the component (e.g. "@ngrok/mantle/data-table"). */
@@ -60,9 +76,14 @@ export type Manifest = {
 };
 
 /**
- * Map a docs slug like `components/button` or `components/preview/calendar`
- * to the package import path consumers should use, or `null` if the page
- * doesn't correspond to an importable module (e.g. `base/colors`).
+ * Map a docs slug like `components/actions/button` or
+ * `components/preview/calendar` to the package import path consumers should
+ * use, or `null` if the page doesn't correspond to an importable module
+ * (e.g. `base/colors`).
+ *
+ * Docs URLs carry a category segment (`components/<category>/<name>`) or the
+ * `layouts/` prefix, but the import namespace stays flat — every module is
+ * `@ngrok/mantle/<name>` regardless of where it is documented.
  *
  * Consults `componentImportPathOverrides` first so components whose docs
  * URL slug differs from their `@ngrok/mantle/*` import subpath (e.g. Icon
@@ -79,7 +100,15 @@ function importPathForSlug(slug: string): string | null {
 		return `@ngrok/mantle/${name}`;
 	}
 	if (slug.startsWith("components/")) {
-		const name = slug.slice("components/".length);
+		const parts = slug.split("/");
+		const leaf = parts[2];
+		if (parts.length !== 3 || leaf == null) {
+			return null;
+		}
+		return `@ngrok/mantle/${leaf}`;
+	}
+	if (slug.startsWith("layouts/")) {
+		const name = slug.slice("layouts/".length);
 		return `@ngrok/mantle/${name}`;
 	}
 	return null;
@@ -124,10 +153,20 @@ function sourceBasesForSlug(slug: string): { basePaths: string[]; leaf: string }
 		leaf = slug.slice("components/preview/".length);
 		dir = leaf;
 	} else if (slug.startsWith("components/")) {
-		leaf = slug.slice("components/".length);
+		// "components/<category>/<name>" — the category is a URL grouping
+		// only; source dirs stay flat under packages/mantle/src/components.
+		const parts = slug.split("/");
+		const last = parts[2];
+		if (parts.length !== 3 || last == null) {
+			return null;
+		}
+		leaf = last;
 		const overrides: Record<string, string> = componentImportPathOverrides;
 		const override = overrides[`/${slug}`];
 		dir = override ? override.replace(/^@ngrok\/mantle\//, "") : leaf;
+	} else if (slug.startsWith("layouts/")) {
+		leaf = slug.slice("layouts/".length);
+		dir = leaf;
 	} else {
 		return null;
 	}
@@ -202,21 +241,27 @@ export async function buildManifest(): Promise<Manifest> {
 		return cachedManifest;
 	}
 
-	const stableEntries = Object.entries(prodReadyComponentRouteLookup).map(([name, route]) => ({
+	const stableEntries = componentCategories.flatMap((category) =>
+		componentsByCategory[category].map((name) => ({
+			name,
+			route: prodReadyComponentRouteLookup[name],
+			status: "stable" as const,
+			category,
+		})),
+	);
+	const previewEntries = previewComponents.map((name) => ({
 		name,
-		route,
-		status: "stable" as const,
-	}));
-	const previewEntries = Object.entries(previewComponentsRouteLookup).map(([name, route]) => ({
-		name,
-		route,
+		route: previewComponentsRouteLookup[name],
 		status: "preview" as const,
+		category: previewComponentCategoryLookup[name],
 	}));
 
+	// When the first layout primitive ships, its nav data (`layoutRoutes`)
+	// feeds a third entry list here with `kind: "layout"` and no category.
 	const all = [...stableEntries, ...previewEntries];
 	const components = (
 		await Promise.all(
-			all.map(async ({ name, route, status }): Promise<ManifestComponent | null> => {
+			all.map(async ({ name, route, status, category }): Promise<ManifestComponent | null> => {
 				const slug = route.startsWith("/") ? route.slice(1) : route;
 				const importPath = importPathForSlug(slug);
 				if (!importPath) {
@@ -233,6 +278,8 @@ export async function buildManifest(): Promise<Manifest> {
 				return {
 					name,
 					slug,
+					kind: "component",
+					category,
 					status,
 					importPath,
 					docsUrl: canonicalHref(`/${slug}`),

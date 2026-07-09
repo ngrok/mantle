@@ -38,7 +38,7 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  *   accurately and may want to verify visually before submitting.
  *
  * **When not to use**
- * - For values that are never sensitive — use a plain {@link https://mantle.ngrok.com/components/input Input}.
+ * - For values that are never sensitive — use a plain {@link https://mantle.ngrok.com/components/forms/input Input}.
  * - For controls where the toggle would be confusing (e.g. masked input
  *   formatting like phone numbers).
  *
@@ -47,7 +47,7 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  * UI control toggles multiple password fields), and `onValueVisibilityChange`
  * to be notified when the user toggles via the built-in button.
  *
- * **Accessibility.** Always pair with a {@link https://mantle.ngrok.com/components/label Label}.
+ * **Accessibility.** Always pair with a {@link https://mantle.ngrok.com/components/forms/label Label}.
  * The toggle button has its own accessible name announcing the current
  * state. The input keeps `autocomplete="current-password"` /
  * `"new-password"` semantics — set `autoComplete` explicitly per flow.
@@ -56,7 +56,7 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  * `type="text"` — some password managers may pause autofill in this state,
  * which is the intended security tradeoff.
  *
- * @see https://mantle.ngrok.com/components/password-input
+ * @see https://mantle.ngrok.com/components/forms/password-input
  *
  * @example
  * ```tsx

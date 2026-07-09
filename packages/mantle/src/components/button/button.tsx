@@ -147,7 +147,7 @@ type ButtonProps = ComponentProps<"button"> &
  * other assistive technology. Once activated, it then performs an action, such
  * as submitting a form or opening a dialog.
  *
- * @see https://mantle.ngrok.com/components/button
+ * @see https://mantle.ngrok.com/components/actions/button
  *
  * @example
  * ```tsx

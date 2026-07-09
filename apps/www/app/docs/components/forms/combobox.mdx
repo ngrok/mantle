@@ -1,0 +1,410 @@
+---
+title: Combobox
+description: Fill in a React input field with autocomplete & autosuggest functionalities. Choose from a list of suggested values with full keyboard support.
+---
+
+import { Button } from "@ngrok/mantle/button";
+import { Combobox } from "@ngrok/mantle/combobox";
+import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
+import { useForm } from "@tanstack/react-form";
+import { z } from "zod";
+import { Example } from "~/components/example";
+
+export const formSchema = z.object({
+region: z.string().min(1, "Choose a region."),
+});
+export function TanStackFormExample() {
+const defaultValues = {
+region: "",
+};
+const form = useForm({
+defaultValues,
+validators: {
+onSubmit: formSchema,
+},
+onSubmit: ({ value }) => {
+window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
+},
+});
+
+    return (
+    	<form
+    		className="w-full max-w-sm space-y-4"
+    		onSubmit={(event) => {
+    			event.preventDefault();
+    			event.stopPropagation();
+    			void form.handleSubmit();
+    		}}
+    	>
+    		<form.Field name="region">
+    			{(field) => (
+    				<Field.Item name={field.name}>
+    					<Field.Label>Region</Field.Label>
+    					<Combobox.Root
+    						value={field.state.value}
+    						setValue={(value) => {
+    							field.handleChange(value);
+    						}}
+    					>
+    						<Field.Control>
+    							<Combobox.Input onBlur={field.handleBlur} placeholder="Choose a region..." />
+    						</Field.Control>
+    						<Combobox.Content>
+    							<Combobox.Item value="us-east-1">US East</Combobox.Item>
+    							<Combobox.Item value="us-west-2">US West</Combobox.Item>
+    							<Combobox.Item value="eu-west-1">EU West</Combobox.Item>
+    						</Combobox.Content>
+    					</Combobox.Root>
+    					<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+    				</Field.Item>
+    			)}
+    		</form.Field>
+    		<Button type="submit" appearance="filled" priority="neutral">
+    			Submit
+    		</Button>
+    	</form>
+    );
+
+}
+
+# Combobox
+
+Fill in a React input field with autocomplete & autosuggest functionalities. Choose from a list of suggested values with full keyboard support. This component is based on the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) and is powered by the [ariakit Combobox](https://ariakit.org/components/combobox).
+
+## When to use
+
+Use `Combobox` for a list where the user types to filter — large static lists, async/server-side data, or any single-select where search is helpful. For small finite lists without filtering, use [`Select`](/components/forms/select). For multi-selection, use [`Multi Select`](/components/forms/multi-select).
+
+Pair with `Field.*` for label/description/error wiring in forms — wrap `Combobox.Input` in `Field.Control`. `Field.Control` flows the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` onto the focusable input.
+
+<Example>
+	<Field.Item name="subdomain" className="max-w-96">
+		<Field.Label>Subdomain</Field.Label>
+		<Combobox.Root>
+			<Field.Control>
+				<Combobox.Input placeholder="Choose an ngrok subdomain..." />
+			</Field.Control>
+			<Combobox.Content>
+				<Combobox.Group>
+					<Combobox.GroupLabel>Available domains</Combobox.GroupLabel>
+					<Combobox.Item value="https://${random}.ngrok.app">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.dev">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.io">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+				</Combobox.Group>
+			</Combobox.Content>
+		</Combobox.Root>
+		<Field.Description>Start typing to filter available domains.</Field.Description>
+	</Field.Item>
+</Example>
+
+```tsx
+import { Combobox } from "@ngrok/mantle/combobox";
+import { Field } from "@ngrok/mantle/field";
+
+<Field.Item name="subdomain">
+	<Field.Label>Subdomain</Field.Label>
+	<Combobox.Root>
+		<Field.Control>
+			<Combobox.Input placeholder="Choose an ngrok subdomain..." />
+		</Field.Control>
+		<Combobox.Content>
+			<Combobox.Group>
+				<Combobox.GroupLabel>Available domains</Combobox.GroupLabel>
+				<Combobox.Item value="https://${random}.ngrok.app">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.dev">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.io">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+			</Combobox.Group>
+		</Combobox.Content>
+	</Combobox.Root>
+	<Field.Description>Start typing to filter available domains.</Field.Description>
+</Field.Item>;
+```
+
+Or render the control on its own:
+
+<Example className="gap-2">
+	<Combobox.Root>
+		<Combobox.Input />
+		<Combobox.Content>
+			<Combobox.Group>
+				<Combobox.GroupLabel>Choose an ngrok subdomain</Combobox.GroupLabel>
+				<Combobox.Item value="https://" disabled>
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.app">
+					<CirclesThreePlusIcon weight="duotone" className="text-accent-600" />
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.dev">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.io">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.free">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.pizza">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.ninja">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.wtf">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.biz">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.online">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.space">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.tld0">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.tld1">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.tld2">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.tld3">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+				<Combobox.Item value="https://${random}.ngrok.tld4">
+					<Combobox.ItemValue />
+				</Combobox.Item>
+			</Combobox.Group>
+			<Combobox.Separator />
+			<Combobox.Item>
+				Sit dolor enim eiusmod nulla nostrud officia in magna deserunt ut ex veniam cillum.
+			</Combobox.Item>
+		</Combobox.Content>
+	</Combobox.Root>
+</Example>
+
+```tsx
+import { Combobox } from "@ngrok/mantle/combobox";
+import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
+
+<Combobox.Root>
+	<Combobox.Input />
+	<Combobox.Content>
+		<Combobox.Group>
+			<Combobox.GroupLabel>Choose an ngrok subdomain</Combobox.GroupLabel>
+			<Combobox.Item value="https://" disabled>
+				<Combobox.ItemValue />
+			</Combobox.Item>
+			<Combobox.Item value="https://${random}.ngrok.app">
+				<CirclesThreePlusIcon weight="duotone" className="text-accent-600" />
+				<Combobox.ItemValue />
+			</Combobox.Item>
+			<Combobox.Item value="https://${random}.ngrok.dev">
+				<Combobox.ItemValue />
+			</Combobox.Item>
+			<Combobox.Item value="https://${random}.ngrok.io">
+				<Combobox.ItemValue />
+			</Combobox.Item>
+		</Combobox.Group>
+		<Combobox.Separator />
+		<Combobox.Item>
+			Sit dolor enim eiusmod nulla nostrud officia in magna deserunt ut ex veniam cillum.
+		</Combobox.Item>
+	</Combobox.Content>
+</Combobox.Root>;
+```
+
+## Layering and z-index
+
+`Combobox.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+
+`Combobox` does not render a backdrop. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
+
+## Examples
+
+### With TanStack Form
+
+Use `@tanstack/react-form` with `zod` to keep the combobox input controlled. Wrap `Combobox.Input` in `Field.Control` so label, name, and validation ARIA are applied to the focusable input.
+
+<Example className="w-full">
+	<TanStackFormExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Combobox } from "@ngrok/mantle/combobox";
+import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { useForm } from "@tanstack/react-form";
+import { z } from "zod";
+
+export const formSchema = z.object({
+	region: z.string().min(1, "Choose a region."),
+});
+function Example() {
+	const defaultValues = {
+		region: "",
+	};
+	const form = useForm({
+		defaultValues,
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmit: ({ value }) => {
+			// Handle form submission here
+		},
+	});
+
+	return (
+		<form
+			onSubmit={(event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				void form.handleSubmit();
+			}}
+		>
+			<form.Field name="region">
+				{(field) => (
+					<Field.Item name={field.name}>
+						<Field.Label>Region</Field.Label>
+						<Combobox.Root
+							value={field.state.value}
+							setValue={(value) => {
+								field.handleChange(value);
+							}}
+						>
+							<Field.Control>
+								<Combobox.Input onBlur={field.handleBlur} placeholder="Choose a region..." />
+							</Field.Control>
+							<Combobox.Content>
+								<Combobox.Item value="us-east-1">US East</Combobox.Item>
+								<Combobox.Item value="us-west-2">US West</Combobox.Item>
+								<Combobox.Item value="eu-west-1">EU West</Combobox.Item>
+							</Combobox.Content>
+						</Combobox.Root>
+						<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+					</Field.Item>
+				)}
+			</form.Field>
+			<Button type="submit" appearance="filled" priority="neutral">
+				Submit
+			</Button>
+		</form>
+	);
+}
+```
+
+## Composition
+
+Compose the parts of a `Combobox` together to build your own:
+
+```text showLineNumbers=false
+Combobox.Root
+├── Combobox.Input
+└── Combobox.Content
+    ├── Combobox.Group
+    │   ├── Combobox.GroupLabel
+    │   └── Combobox.Item
+    │       └── Combobox.ItemValue
+    └── Combobox.Separator
+```
+
+## API Reference
+
+The `Combobox` components are built on top of [ariakit Combobox](https://ariakit.org/components/combobox).
+
+### Combobox.Root
+
+Root component for a combobox. Provides a combobox store that controls the state of Combobox components.
+
+Its floating `Combobox.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
+
+All props from ariakit [ComboboxProvider](https://ariakit.org/reference/combobox-provider).
+
+### Combobox.Input
+
+Renders a combobox input element that can be used to filter a list of items.
+
+All props from ariakit [Combobox](https://ariakit.org/reference/combobox), plus:
+
+| Prop            | Type                                                                                               | Default    | Description                                           |
+| :-------------- | :------------------------------------------------------------------------------------------------- | :--------- | :---------------------------------------------------- |
+| `autoComplete?` | `string`                                                                                           | `"list"`   | The autocomplete behavior of the input.               |
+| `autoSelect?`   | `"always" \| "inline" \| boolean`                                                                  | `"always"` | How the first item is automatically selected.         |
+| `validation?`   | `"error" \| "success" \| "warning" \| false \| (() => "error" \| "success" \| "warning" \| false)` |            | Validation state that changes the border and outline. |
+
+### Combobox.Content
+
+Renders a popover that contains combobox content, e.g. items, groups, and separators.
+
+Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+
+All props from ariakit [ComboboxPopover](https://ariakit.org/reference/combobox-popover), plus:
+
+| Prop             | Type      | Default | Description                                                           |
+| :--------------- | :-------- | :------ | :-------------------------------------------------------------------- |
+| `asChild?`       | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+| `sameWidth?`     | `boolean` | `true`  | Whether the popover should be the same width as the input.            |
+| `unmountOnHide?` | `boolean` | `true`  | Whether the popover should unmount when hidden.                       |
+
+### Combobox.Item
+
+Renders a combobox item inside a `Combobox.Content` component.
+
+All props from ariakit [ComboboxItem](https://ariakit.org/reference/combobox-item), plus:
+
+| Prop            | Type      | Default | Description                                                           |
+| :-------------- | :-------- | :------ | :-------------------------------------------------------------------- |
+| `asChild?`      | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+| `focusOnHover?` | `boolean` | `true`  | Whether the item should receive focus on hover.                       |
+
+### Combobox.ItemValue
+
+Highlights the match between the current `Combobox.Input` value and parent `Combobox.Item` value. Should only be used as a child of `Combobox.Item`.
+
+All props from ariakit [ComboboxItemValue](https://ariakit.org/reference/combobox-item-value), plus:
+
+| Prop       | Type      | Default | Description                                                           |
+| :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+
+### Combobox.Group
+
+Renders a group for `Combobox.Item` elements. Optionally, a `Combobox.GroupLabel` can be rendered as a child to provide a label for the group.
+
+All props from ariakit [ComboboxGroup](https://ariakit.org/reference/combobox-group), plus:
+
+| Prop       | Type      | Default | Description                                                           |
+| :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+
+### Combobox.GroupLabel
+
+Renders a label in a combobox group. Should be wrapped with `Combobox.Group` so the `aria-labelledby` is correctly set on the group element.
+
+All props from ariakit [ComboboxGroupLabel](https://ariakit.org/reference/combobox-group-label), plus:
+
+| Prop       | Type      | Default | Description                                                           |
+| :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+
+### Combobox.Separator
+
+Renders a separator between `Combobox.Item`s or `Combobox.Group`s.
+
+All props from [Separator](/components/structure/separator).

@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Description List component.
  *
- * @see https://mantle.ngrok.com/components/description-list
+ * @see https://mantle.ngrok.com/components/data-display/description-list
  */
 
 export {

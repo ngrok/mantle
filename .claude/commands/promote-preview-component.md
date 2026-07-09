@@ -34,16 +34,15 @@ If it's not in preview (already stable, or doesn't exist), stop and report.
 
 In `apps/www/app/components/navigation-data.ts`:
 
-1. Remove `<Display Name>` from `previewComponents`.
-2. Remove `"<Display Name>": "/components/preview/<component-name>"` from `previewComponentsRouteLookup`.
-3. Add `<Display Name>` to `prodReadyComponents` in alphabetical order.
-4. Add `"<Display Name>": "/components/<component-name>"` (note: no `/preview/` segment) to `prodReadyComponentRouteLookup` in alphabetical order.
+1. Remove `<Display Name>` from `previewComponents`, `previewComponentsRouteLookup`, and `previewComponentCategoryLookup` (note its category — that is where it lands).
+2. Add `<Display Name>` to that category's array in `componentsByCategory` in alphabetical order (`prodReadyComponents` is derived — do not edit it directly).
+3. Add `"<Display Name>": "/components/<category>/<component-name>"` (note: no `/preview/` segment) to `prodReadyComponentRouteLookup` in alphabetical order.
 
 ## 3. Move the docs file
 
 ```bash
 git mv apps/www/app/docs/components/preview/<component-name>.mdx \
-       apps/www/app/docs/components/<component-name>.mdx
+       apps/www/app/docs/components/<category>/<component-name>.mdx
 ```
 
 (Use `git mv` so the move is tracked properly in history.)
@@ -53,11 +52,11 @@ git mv apps/www/app/docs/components/preview/<component-name>.mdx \
 In `apps/www/app/routes.ts`:
 
 1. Find `...docRoute("components/preview/<component-name>"),` and remove it.
-2. Add `...docRoute("components/<component-name>"),` in alphabetical order among the stable component routes.
+2. Add `...docRoute("components/<category>/<component-name>"),` in alphabetical order among the stable component routes.
 
 ## 5. Update intra-doc cross-links (if any)
 
-Grep the docs site for any links pointing at `/components/preview/<component-name>` and rewrite them to `/components/<component-name>`:
+Grep the docs site for any links pointing at `/components/preview/<component-name>` and rewrite them to `/components/<category>/<component-name>`:
 
 ```bash
 grep -rn "components/preview/<component-name>" apps/www/app/docs/

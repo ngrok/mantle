@@ -85,7 +85,7 @@ Content.displayName = "MediaObject.Content";
  * - Feature lists, profile cards, attachment previews.
  *
  * **When not to use**
- * - For complex multi-region layouts — reach for {@link https://mantle.ngrok.com/components/card Card} or build a bespoke flex/grid.
+ * - For complex multi-region layouts — reach for {@link https://mantle.ngrok.com/components/structure/card Card} or build a bespoke flex/grid.
  * - When the media is purely decorative and adds no information — drop it
  *   and use a plain block.
  *
@@ -97,7 +97,7 @@ Content.displayName = "MediaObject.Content";
  * **Polymorphism.** Each part accepts `asChild` for swapping the rendered
  * element (e.g. render `Root` as an `<a>` to make the whole row clickable).
  *
- * @see https://mantle.ngrok.com/components/media-object
+ * @see https://mantle.ngrok.com/components/structure/media-object
  *
  * @example
  * Composition:
@@ -136,7 +136,7 @@ const MediaObject = {
 	 * Compose the media object with the `MediaObject.Media` and `MediaObject.Content`
 	 * components as direct children.
 	 *
-	 * @see https://mantle.ngrok.com/components/media-object#mediaobjectroot
+	 * @see https://mantle.ngrok.com/components/structure/media-object#mediaobjectroot
 	 *
 	 * @example
 	 * ```tsx
@@ -154,7 +154,7 @@ const MediaObject = {
 	/**
 	 * The container for an image or icon to display in the media slot of the media object.
 	 *
-	 * @see https://mantle.ngrok.com/components/media-object#mediaobjectmedia
+	 * @see https://mantle.ngrok.com/components/structure/media-object#mediaobjectmedia
 	 *
 	 * @example
 	 * ```tsx
@@ -172,7 +172,7 @@ const MediaObject = {
 	/**
 	 * The container for the content slot of a media object.
 	 *
-	 * @see https://mantle.ngrok.com/components/media-object#mediaobjectcontent
+	 * @see https://mantle.ngrok.com/components/structure/media-object#mediaobjectcontent
 	 *
 	 * @example
 	 * ```tsx

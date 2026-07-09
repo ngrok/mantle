@@ -1,0 +1,708 @@
+---
+title: Accordion
+description: A vertically stacked set of disclosure sections whose collapsed content stays in the DOM, so browser find-in-page (⌘F) can reveal it.
+---
+
+import { Accordion } from "@ngrok/mantle/accordion";
+import { Badge } from "@ngrok/mantle/badge";
+import { Button } from "@ngrok/mantle/button";
+import { Card } from "@ngrok/mantle/card";
+import { Separator } from "@ngrok/mantle/separator";
+import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
+import { PlusIcon } from "@phosphor-icons/react/Plus";
+import { useState } from "react";
+import { Example } from "~/components/example";
+import { PageHeader } from "~/components/page-header";
+
+export const ControlledAccordionExample = () => {
+	const [value, setValue] = useState("payments");
+	return (
+		<div className="flex w-full flex-col gap-3">
+			<Accordion.Root type="single" value={value} onValueChange={setValue} className="max-w-xl">
+				<Accordion.Item value="payments">
+					<Accordion.Trigger>
+						Payments
+						<Accordion.TriggerIcon />
+					</Accordion.Trigger>
+					<Accordion.Content>
+						<Accordion.Body>Connect a processor and manage payouts.</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+				<Accordion.Item value="members">
+					<Accordion.Trigger>
+						Members
+						<Accordion.TriggerIcon />
+					</Accordion.Trigger>
+					<Accordion.Content>
+						<Accordion.Body>Invite teammates and assign roles.</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+			</Accordion.Root>
+			<p className="text-muted text-sm">
+				Open section: <code>{value || "none"}</code>
+			</p>
+			<div className="flex gap-2">
+				<Button
+					type="button"
+					appearance="outlined"
+					priority="neutral"
+					onClick={() => setValue("members")}
+				>
+					Open “Members”
+				</Button>
+				<Button type="button" appearance="outlined" priority="neutral" onClick={() => setValue("")}>
+					Collapse all
+				</Button>
+			</div>
+		</div>
+	);
+};
+
+<PageHeader id="accordion">Accordion</PageHeader>
+
+A vertically stacked set of disclosure sections, styled after the shadcn / ngrok.com accordion.
+
+Its defining feature: **collapsed content is never removed from the DOM.** Closed sections keep their content with
+`hidden="until-found"` (which applies `content-visibility: hidden` rather than unmounting it), so the browser's
+find-in-page (<kbd>⌘F</kbd> / <kbd>Ctrl+F</kbd>) can find text inside a closed section and automatically expand it.
+The `beforematch` event — fired right before the browser reveals a match — syncs that reveal back into the accordion's
+state. It's built on plain `<div>` and `<button>` elements (matching native `<details>`/`<summary>` accessibility:
+the item is a `role="group"` and the trigger a `<button aria-expanded>`), so a section header can be any layout.
+
+`type` is optional and **defaults to `"multiple"`** — sections open independently, so any number can be open at once
+(open one without collapsing another below).
+
+<Example className="flex-col gap-6">
+	<Accordion.Root defaultValue={["dns"]} className="max-w-xl">
+		<Accordion.Item value="dns">
+			<Accordion.Trigger>
+				How do I point my custom domain at an ngrok endpoint?
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>
+					Add a CNAME record at your DNS provider that targets the CNAME value shown on your
+					reserved domain, then start your tunnel with the matching <code>--domain</code> flag.
+				</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+		<Accordion.Item value="webhooks">
+			<Accordion.Trigger>
+				Can I verify inbound webhook signatures?
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>
+					Yes. ngrok can validate webhook signatures from providers like Stripe, GitHub, and Slack
+					at the edge before the request ever reaches your service.
+				</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+		<Accordion.Item value="pricing">
+			<Accordion.Trigger>
+				Is there a free tier for development?
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>
+					The free plan includes ephemeral endpoints and one reserved domain — enough to demo a
+					deployment or prototype an integration.
+				</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+	</Accordion.Root>
+</Example>
+
+```tsx
+import { Accordion } from "@ngrok/mantle/accordion";
+
+// `type` is optional and defaults to "multiple" — any number of sections can be open at once.
+<Accordion.Root defaultValue={["dns"]} className="max-w-xl">
+	<Accordion.Item value="dns">
+		<Accordion.Trigger>
+			How do I point my custom domain at an ngrok endpoint?
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>
+				Add a CNAME record at your DNS provider that targets the CNAME value shown on your reserved
+				domain, then start your tunnel with the matching <code>--domain</code> flag.
+			</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+	<Accordion.Item value="webhooks">
+		<Accordion.Trigger>
+			Can I verify inbound webhook signatures?
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>
+				Yes. ngrok can validate webhook signatures from providers like Stripe, GitHub, and Slack at
+				the edge before the request ever reaches your service.
+			</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+	<Accordion.Item value="pricing">
+		<Accordion.Trigger>
+			Is there a free tier for development?
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>
+				The free plan includes ephemeral endpoints and one reserved domain — enough to demo a
+				deployment or prototype an integration.
+			</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+</Accordion.Root>;
+```
+
+Set `type="single"` to make opening one section auto-close the previously open one — the classic accordion where at
+most one section is open at a time:
+
+<Example className="flex-col gap-6">
+	<Accordion.Root type="single" defaultValue="dns" className="max-w-xl">
+		<Accordion.Item value="dns">
+			<Accordion.Trigger>
+				How do I point my custom domain at an ngrok endpoint?
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>
+					Add a CNAME record at your DNS provider that targets the CNAME value shown on your
+					reserved domain, then start your tunnel with the matching <code>--domain</code> flag.
+				</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+		<Accordion.Item value="webhooks">
+			<Accordion.Trigger>
+				Can I verify inbound webhook signatures?
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>
+					Yes. ngrok can validate webhook signatures from providers like Stripe, GitHub, and Slack
+					at the edge before the request ever reaches your service.
+				</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+		<Accordion.Item value="pricing">
+			<Accordion.Trigger>
+				Is there a free tier for development?
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>
+					The free plan includes ephemeral endpoints and one reserved domain — enough to demo a
+					deployment or prototype an integration.
+				</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+	</Accordion.Root>
+</Example>
+
+```tsx
+<Accordion.Root type="single" defaultValue="dns" className="max-w-xl">
+	<Accordion.Item value="dns">
+		<Accordion.Trigger>
+			How do I point my custom domain at an ngrok endpoint?
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>
+				Add a CNAME record at your DNS provider that targets the CNAME value shown on your reserved
+				domain, then start your tunnel with the matching <code>--domain</code> flag.
+			</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+	<Accordion.Item value="webhooks">
+		<Accordion.Trigger>
+			Can I verify inbound webhook signatures?
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>
+				Yes. ngrok can validate webhook signatures from providers like Stripe, GitHub, and Slack at
+				the edge before the request ever reaches your service.
+			</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+	<Accordion.Item value="pricing">
+		<Accordion.Trigger>
+			Is there a free tier for development?
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>
+				The free plan includes ephemeral endpoints and one reserved domain — enough to demo a
+				deployment or prototype an integration.
+			</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+</Accordion.Root>
+```
+
+> [!NOTE]
+> Collapse every section above, then press <kbd>⌘F</kbd> and search for a word that only appears inside a closed
+> section (for example **"Stripe"** or **"prototype"**). The matching section expands on its own. Find-in-page reveal
+> requires Chrome 97+, Firefox 139+, or Safari 26.2+; older browsers fall back to a normal collapsed section.
+
+## When to use
+
+- FAQ pages, settings panels, and docs where users scan headings and drill into one topic at a time.
+- Long-form content you still want discoverable: because collapsed sections stay in the DOM, find-in-page matches text inside them and auto-expands the section.
+- Dense layouts — like the dashboard's Traffic Policy GUI — where each section needs its own header controls beside the toggle.
+
+## When not to use
+
+- Switching between mutually exclusive views of the same region — use [`Tabs`](/components/navigation/tabs) instead.
+- A single, always-relevant block of content — don't hide it behind a toggle; just render it.
+- Content a user must not miss — a collapsed section is easy to overlook, so keep critical information visible.
+
+## Examples
+
+### Multiple sections open at once
+
+`type="multiple"` lets any number of sections be open at once — and it's the **default**, so you can omit `type`
+entirely. Pass `defaultValue` (uncontrolled) or `value` + `onValueChange` (controlled) as a `string[]`.
+
+<Example className="flex-col gap-6">
+	<Accordion.Root type="multiple" defaultValue={["one"]} className="max-w-xl">
+		<Accordion.Item value="one">
+			<Accordion.Trigger>
+				First section
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>This section starts expanded.</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+		<Accordion.Item value="two">
+			<Accordion.Trigger>
+				Second section
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>Open me without closing the first one.</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+	</Accordion.Root>
+</Example>
+
+```tsx
+<Accordion.Root type="multiple" defaultValue={["one"]} className="max-w-xl">
+	<Accordion.Item value="one">
+		<Accordion.Trigger>
+			First section
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>This section starts expanded.</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+	<Accordion.Item value="two">
+		<Accordion.Trigger>
+			Second section
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>Open me without closing the first one.</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+</Accordion.Root>
+```
+
+### Controlled
+
+Drive the open state yourself with `value` + `onValueChange` when another control needs to open or collapse sections.
+In `type="single"` the value is a `string` (use `""` for "nothing open"); in `type="multiple"` it's a `string[]`.
+
+<Example className="flex-col gap-6">
+	<ControlledAccordionExample />
+</Example>
+
+```tsx
+import { Accordion } from "@ngrok/mantle/accordion";
+import { Button } from "@ngrok/mantle/button";
+import { useState } from "react";
+
+function ControlledAccordionExample() {
+	const [value, setValue] = useState("payments");
+
+	return (
+		<div className="flex w-full flex-col gap-3">
+			<Accordion.Root type="single" value={value} onValueChange={setValue} className="max-w-xl">
+				<Accordion.Item value="payments">
+					<Accordion.Trigger>
+						Payments
+						<Accordion.TriggerIcon />
+					</Accordion.Trigger>
+					<Accordion.Content>
+						<Accordion.Body>Connect a processor and manage payouts.</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+				<Accordion.Item value="members">
+					<Accordion.Trigger>
+						Members
+						<Accordion.TriggerIcon />
+					</Accordion.Trigger>
+					<Accordion.Content>
+						<Accordion.Body>Invite teammates and assign roles.</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+			</Accordion.Root>
+			<p className="text-muted text-sm">
+				Open section: <code>{value || "none"}</code>
+			</p>
+			<div className="flex gap-2">
+				<Button
+					type="button"
+					appearance="outlined"
+					priority="neutral"
+					onClick={() => setValue("members")}
+				>
+					Open “Members”
+				</Button>
+				<Button type="button" appearance="outlined" priority="neutral" onClick={() => setValue("")}>
+					Collapse all
+				</Button>
+			</div>
+		</div>
+	);
+}
+```
+
+### Custom header with an inline action
+
+The dashboard's Traffic Policy GUI puts a monospace label, a count badge, and an always-visible **Add Rule** action in
+each header. Because the `Item` is a plain `<div>` and the `Trigger` is a real `<button>`, the header is just a flex
+row holding the `Trigger`, a divider, and the action button as **siblings** — a clean composition with no overlay and
+no absolute positioning. The `Trigger` toggles its section; the **Add Rule** button is an independent sibling that
+never toggles it; and the `Content` spans full-width below. Override the defaults (`space-y-*` and `divide-y-0` on
+`Root` to swap the dividers for spacing; `w-auto` on `Trigger` so it sizes to its label; and `data-state-open:pb-4` on
+`Trigger` to keep its padding symmetric so the header row doesn't shift up when the section opens) for the spaced-card
+look.
+
+<Example className="flex-col gap-6">
+	<Accordion.Root
+		type="multiple"
+		defaultValue={["on_tcp_connect", "on_http_response"]}
+		className="space-y-2.5 divide-y-0"
+	>
+		<Accordion.Item value="on_tcp_connect">
+			<div className="mx-4 flex items-center gap-2">
+				<Accordion.Trigger className="w-auto gap-1.5 data-state-open:pb-4">
+					<span className="font-mono text-sm font-medium">on_tcp_connect</span>
+					<Badge appearance="muted" color="neutral" className="rounded-full">
+						3
+					</Badge>
+					<Accordion.TriggerIcon />
+				</Accordion.Trigger>
+				<Separator orientation="horizontal" className="flex-1" />
+				<Button type="button" appearance="link" icon={<PlusIcon />}>
+					<span className="xs:inline hidden">Add Rule</span>
+				</Button>
+			</div>
+			<Accordion.Content>
+				<Accordion.Body>
+					<Card.Root>
+						<Card.Body>Proident irure consequat Lorem incididunt ullamco.</Card.Body>
+					</Card.Root>
+				</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+		<Accordion.Item value="on_http_request">
+			<div className="mx-4 flex items-center gap-2">
+				<Accordion.Trigger className="w-auto gap-1.5 data-state-open:pb-4">
+					<span className="font-mono text-sm font-medium">on_http_request</span>
+					<Badge appearance="muted" color="neutral" className="rounded-full">
+						2
+					</Badge>
+					<Accordion.TriggerIcon />
+				</Accordion.Trigger>
+				<Separator orientation="horizontal" className="flex-1" />
+				<Button type="button" appearance="link" icon={<PlusIcon />}>
+					<span className="xs:inline hidden">Add Rule</span>
+				</Button>
+			</div>
+			<Accordion.Content>
+				<Accordion.Body>
+					<Card.Root>
+						<Card.Body>Excepteur amet laboris occaecat anim minim reprehenderit.</Card.Body>
+					</Card.Root>
+				</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+		<Accordion.Item value="on_http_response">
+			<div className="mx-4 flex items-center gap-2">
+				<Accordion.Trigger className="w-auto gap-1.5 data-state-open:pb-4">
+					<span className="font-mono text-sm font-medium">on_http_response</span>
+					<Badge appearance="muted" color="neutral" className="rounded-full">
+						0
+					</Badge>
+					<Accordion.TriggerIcon />
+				</Accordion.Trigger>
+				<Separator orientation="horizontal" className="flex-1" />
+				<Button type="button" appearance="link" icon={<PlusIcon />}>
+					<span className="xs:inline hidden">Add Rule</span>
+				</Button>
+			</div>
+			<Accordion.Content>
+				<Accordion.Body>
+					<p className="text-center">This phase does not have any rules defined</p>
+				</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+	</Accordion.Root>
+</Example>
+
+```tsx
+// The header is a plain flex row: the Trigger button, a divider, and the action
+// button are siblings — no overlay, no absolute positioning. The Add Rule button
+// is outside the Trigger, so it never toggles the section; Content is full-width.
+import { Accordion } from "@ngrok/mantle/accordion";
+import { Badge } from "@ngrok/mantle/badge";
+import { Button } from "@ngrok/mantle/button";
+import { Card } from "@ngrok/mantle/card";
+import { Separator } from "@ngrok/mantle/separator";
+import { PlusIcon } from "@phosphor-icons/react/Plus";
+
+<Accordion.Root
+	type="multiple"
+	defaultValue={["on_tcp_connect", "on_http_response"]}
+	className="space-y-2.5 divide-y-0"
+>
+	<Accordion.Item value="on_tcp_connect">
+		<div className="mx-4 flex items-center gap-2">
+			<Accordion.Trigger className="w-auto gap-1.5 data-state-open:pb-4">
+				<span className="font-mono text-sm font-medium">on_tcp_connect</span>
+				<Badge appearance="muted" color="neutral" className="rounded-full">
+					3
+				</Badge>
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Separator orientation="horizontal" className="flex-1" />
+			<Button type="button" appearance="link" icon={<PlusIcon />}>
+				<span className="xs:inline hidden">Add Rule</span>
+			</Button>
+		</div>
+		<Accordion.Content>
+			<Accordion.Body>
+				<Card.Root>
+					<Card.Body>Proident irure consequat Lorem incididunt ullamco.</Card.Body>
+				</Card.Root>
+			</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+	<Accordion.Item value="on_http_request">
+		<div className="mx-4 flex items-center gap-2">
+			<Accordion.Trigger className="w-auto gap-1.5 data-state-open:pb-4">
+				<span className="font-mono text-sm font-medium">on_http_request</span>
+				<Badge appearance="muted" color="neutral" className="rounded-full">
+					2
+				</Badge>
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Separator orientation="horizontal" className="flex-1" />
+			<Button type="button" appearance="link" icon={<PlusIcon />}>
+				<span className="xs:inline hidden">Add Rule</span>
+			</Button>
+		</div>
+		<Accordion.Content>
+			<Accordion.Body>
+				<Card.Root>
+					<Card.Body>Excepteur amet laboris occaecat anim minim reprehenderit.</Card.Body>
+				</Card.Root>
+			</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+	<Accordion.Item value="on_http_response">
+		<div className="mx-4 flex items-center gap-2">
+			<Accordion.Trigger className="w-auto gap-1.5 data-state-open:pb-4">
+				<span className="font-mono text-sm font-medium">on_http_response</span>
+				<Badge appearance="muted" color="neutral" className="rounded-full">
+					0
+				</Badge>
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Separator orientation="horizontal" className="flex-1" />
+			<Button type="button" appearance="link" icon={<PlusIcon />}>
+				<span className="xs:inline hidden">Add Rule</span>
+			</Button>
+		</div>
+		<Accordion.Content>
+			<Accordion.Body>
+				<p className="text-center">This phase does not have any rules defined</p>
+			</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+</Accordion.Root>;
+```
+
+### Custom indicator icon
+
+Pass `svg` to `Accordion.TriggerIcon` to replace the default caret. The indicator still rotates 180° on open; override
+its `className` to change that — here a right caret rotates 90° into a downward one for a file-tree feel.
+
+<Example className="flex-col gap-6">
+	<Accordion.Root type="single" defaultValue="logs" className="max-w-xl">
+		<Accordion.Item value="logs">
+			<Accordion.Trigger>
+				Request logs
+				<Accordion.TriggerIcon
+					svg={<CaretRightIcon weight="bold" />}
+					className="group-data-[state=open]:rotate-90"
+				/>
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>Inspect recent requests, status codes, and latency.</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+		<Accordion.Item value="metrics">
+			<Accordion.Trigger>
+				Metrics
+				<Accordion.TriggerIcon
+					svg={<CaretRightIcon weight="bold" />}
+					className="group-data-[state=open]:rotate-90"
+				/>
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>Track throughput and error rates over time.</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+	</Accordion.Root>
+</Example>
+
+```tsx
+import { Accordion } from "@ngrok/mantle/accordion";
+import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
+
+<Accordion.Root type="single" defaultValue="logs" className="max-w-xl">
+	<Accordion.Item value="logs">
+		<Accordion.Trigger>
+			Request logs
+			<Accordion.TriggerIcon
+				svg={<CaretRightIcon weight="bold" />}
+				className="group-data-[state=open]:rotate-90"
+			/>
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>Inspect recent requests, status codes, and latency.</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+	<Accordion.Item value="metrics">
+		<Accordion.Trigger>
+			Metrics
+			<Accordion.TriggerIcon
+				svg={<CaretRightIcon weight="bold" />}
+				className="group-data-[state=open]:rotate-90"
+			/>
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>Track throughput and error rates over time.</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+</Accordion.Root>;
+```
+
+## Accessibility
+
+The accessibility mirrors a native `<details>`/`<summary>`: each `Accordion.Item` is a `role="group"`, and each
+`Accordion.Trigger` is a real `<button>` whose `aria-expanded` reflects its section's open state. Because the trigger
+is a genuine button, keyboard support is the browser's own — there is no custom key handling to get wrong:
+
+- **Tab** / **Shift+Tab** — move focus between triggers (and any other focusable controls in a header).
+- **Enter** / **Space** — toggle the focused section.
+
+Collapsed content stays in the DOM but is hidden via `content-visibility`, so it leaves the accessibility tree exactly
+like a closed `<details>` — and the browser's find-in-page can still match and reveal it. The open/close slide respects
+`prefers-reduced-motion`, and the component is SSR-safe (the `hidden="until-found"` enhancement only activates in
+browsers that support it).
+
+## Composition
+
+Compose the parts of an `Accordion` together to build your own:
+
+```text showLineNumbers=false
+Accordion.Root
+└── Accordion.Item
+    ├── Accordion.Trigger
+    │   └── Accordion.TriggerIcon
+    └── Accordion.Content
+        └── Accordion.Body
+```
+
+## API Reference
+
+The `Accordion` owns its open/closed state and stays in sync whether a section is opened by a click, by keyboard, or by
+the browser's find-in-page.
+
+### Accordion.Root
+
+Owns the accordion state and renders a wrapping `<div>` (or your own element via `asChild`). The `type` prop is a
+discriminated union that shapes the open value:
+
+- `type="multiple"` — **the default.** Any number of sections may be open at once, and opening one never closes
+  another. `value` / `defaultValue` are a `string[]`, and `onValueChange` receives the new list. Omitting `type`
+  entirely is the same as `type="multiple"`.
+- `type="single"` — at most one section open at a time: opening a section auto-closes the previously open one.
+  `value` / `defaultValue` are a `string` (use `""` for none), and `onValueChange` receives the newly open value.
+
+> [!IMPORTANT]
+> `type` defaults to `"multiple"`, so sections open independently. **If you want opening one section to auto-close
+> the others, you must set `type="single"` explicitly.**
+
+Provide `value` + `onValueChange` for controlled usage, or `defaultValue` for uncontrolled usage. Accepts all `<div>`
+props, plus:
+
+| Prop             | Type                                                   | Default      | Description                                                                                                             |
+| :--------------- | :----------------------------------------------------- | :----------- | :---------------------------------------------------------------------------------------------------------------------- |
+| `type?`          | `"single" \| "multiple"`                               | `"multiple"` | Whether at most one section may be open (`"single"`, auto-closes the others) or any number (`"multiple"`, the default). |
+| `value?`         | `string \| string[]`                                   |              | The controlled open value(s). A `string` in `single` mode, a `string[]` in `multiple` mode.                             |
+| `defaultValue?`  | `string \| string[]`                                   |              | The initial open value(s) when uncontrolled. Typed per `type`, like `value`.                                            |
+| `onValueChange?` | `(value: string) => void \| (value: string[]) => void` |              | Called when the open value(s) change. Receives a `string` in `single` mode, a `string[]` in `multiple`.                 |
+| `asChild?`       | `boolean`                                              | `false`      | Render the single child element as the container instead of a `<div>`, merging container props onto it.                 |
+
+### Accordion.Item
+
+A single collapsible section, rendered as a `<div role="group">` — the role a native `<details>` carries. Its open
+state is derived from `Root`. Because the item is a plain `<div>`, its header can be any layout, including a flex row
+with the `Trigger` beside a separate, non-toggling action button. Accepts all `<div>` props, plus:
+
+| Prop    | Type     | Default | Description                                                         |
+| :------ | :------- | :------ | :------------------------------------------------------------------ |
+| `value` | `string` |         | **Required.** Unique identifier for this item within its accordion. |
+
+### Accordion.Trigger
+
+The clickable header that toggles its section, rendered as a `<button aria-expanded>` — the disclosure semantics a
+native `<summary>` provides, via a real button so the role is consistent across browsers. Defaults to full-width with
+the `TriggerIcon` pushed to the trailing edge; set `w-auto` when placing it in a custom header row. A consumer `onClick`
+runs first and the section still toggles afterward (calling `preventDefault()` does not stop the toggle). Accepts all
+`<button>` props except `type`, which is always `"button"`.
+
+### Accordion.TriggerIcon
+
+The indicator icon. Defaults to a downward caret that rotates 180° when its section opens. Accepts all
+[`Icon`](/components/data-display/icon) props (notably `className` and `style`), plus:
+
+| Prop   | Type        | Default          | Description                                                                                     |
+| :----- | :---------- | :--------------- | :---------------------------------------------------------------------------------------------- |
+| `svg?` | `ReactNode` | a downward caret | The icon to render. Rotation-on-open still applies — override `className` to change the motion. |
+
+### Accordion.Content
+
+The collapsible region, rendered as a `<div>` that is always present in the DOM — the zero-padding viewport that slides
+open and closed. When collapsed (in supporting browsers) it carries `hidden="until-found"` so its text stays
+discoverable by find-in-page, and a `beforematch` listener opens the section when the browser reveals a match. It holds
+no padding of its own so its `h-0 ↔ h-auto` slide can collapse to zero height — put the section's content inside an
+`Accordion.Body`. It is flow content, so it may contain **anything** — including interactive elements (buttons, links,
+inputs) or a nested `Accordion`. Accepts all `<div>` props.
+
+### Accordion.Body
+
+The padded inner region of a `Content`, where the section's body content lives. It owns the bottom padding so `Content`
+can stay an unpadded animation viewport (a padded `h-0` border-box can't collapse below its padding, so the closed
+slide would never reach zero height). Text inherits the ambient size rather than being forced to a fixed size — set a
+text class where you need one. Override `className` to retune the spacing — e.g. `pb-0` to remove the bottom padding,
+`px-6` for horizontal padding — and `cx` resolves last-wins over the defaults. Accepts all `<div>` props.

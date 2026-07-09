@@ -26,7 +26,7 @@ import { buildManifest, type ManifestComponent } from "./manifest.server";
 /** The stable, content-bearing projection we guard against drift. */
 type SurfaceEntry = Pick<
 	ManifestComponent,
-	"name" | "slug" | "status" | "importPath" | "summary" | "jsdoc" | "examples"
+	"name" | "slug" | "kind" | "category" | "status" | "importPath" | "summary" | "jsdoc" | "examples"
 >;
 
 /** Project a manifest component down to the drift-guarded {@link SurfaceEntry}. */
@@ -34,6 +34,8 @@ function toSurface(component: ManifestComponent): SurfaceEntry {
 	return {
 		name: component.name,
 		slug: component.slug,
+		kind: component.kind,
+		category: component.category,
 		status: component.status,
 		importPath: component.importPath,
 		summary: component.summary,

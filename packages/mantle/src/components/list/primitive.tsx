@@ -47,7 +47,7 @@ import { Slot } from "../slot/index.js";
  *   `SelectableList`): a single tab stop with `aria-activedescendant`
  *   navigation that works across a virtualized window.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * ```tsx
@@ -177,7 +177,7 @@ const listItemClassName =
  * `aria-label` / `aria-labelledby` name the inner collection element, and
  * `children` are the composed {@link Item}s.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * ```tsx
@@ -771,7 +771,7 @@ ListShell.displayName = "ListPrimitiveShell";
  * and give it a React `key`; `Root` / `VirtualRoot` inject its index, grid id,
  * and (when windowed) placement.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * ```tsx
@@ -800,7 +800,7 @@ type ListItemProps = Omit<ComponentProps<"div">, "role"> &
  * (list) or `aria-rowindex` (grid). Authoring the same `<Item>` works
  * virtualized or not, and even when a consumer's item component wraps it.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * ```tsx
@@ -896,7 +896,7 @@ PlainItem.displayName = "ListPrimitivePlainItem";
  * navigation). The default out-of-the-box renderer — reach for the sibling
  * `VirtualRoot` in `./virtual.js` only when a collection needs windowing.
  *
- * @see https://mantle.ngrok.com/components/list
+ * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example
  * ```tsx
