@@ -114,8 +114,10 @@ export default [
 		...docRoute("components/forms/slider"),
 		...docRoute("components/forms/switch"),
 		...docRoute("components/forms/text-area"),
+		...docRoute("components/forms/theme-switcher"),
 		// navigation
 		...docRoute("components/navigation/anchor"),
+		...docRoute("components/navigation/breadcrumb"),
 		...docRoute("components/navigation/command"),
 		...docRoute("components/navigation/pagination"),
 		...docRoute("components/navigation/tabs"),
@@ -154,10 +156,13 @@ export default [
 		...docRoute("utils/sorting"),
 	]),
 
-	// layouts layout — published page/viewport structure primitives.
-	// No layout docs have shipped yet; add `...markdownRoute("layouts/<slug>", "layouts", "<slug>")`
-	// entries here as they graduate (see decisions/2026-07-08-docs-information-architecture.md).
-	layout("./routes/layouts-layout.tsx", [route("layouts", "./routes/layouts.tsx")]),
+	// layouts layout — published page/viewport structure primitives. Add
+	// `...markdownRoute("layouts/<slug>", "layouts", "<slug>")` entries here as
+	// they graduate (see decisions/2026-07-08-docs-information-architecture.md).
+	layout("./routes/layouts-layout.tsx", [
+		route("layouts", "./routes/layouts.tsx"),
+		...markdownRoute("layouts/centered-layout", "layouts", "centered-layout"),
+	]),
 
 	// recipes layout — compositional how-tos spanning multiple primitives
 	layout("./routes/recipes-layout.tsx", [

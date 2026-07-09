@@ -23,10 +23,9 @@ export default function LayoutsPage() {
 				JSX.
 			</p>
 			<p className="mb-4 leading-relaxed text-pretty text-body">
-				No layouts have shipped yet — the first residents (a centered page flow, an app shell) are
-				incubating in ngrok&rsquo;s apps and will graduate here once their APIs have survived real
-				consumers. In the meantime, two layout-family primitives are already published under
-				components:{" "}
+				More residents (an app shell, a sidebar) are incubating in ngrok&rsquo;s apps and will
+				graduate here once their APIs have survived real consumers. Two layout-family primitives are
+				also published under components:{" "}
 				<Link to={href("/components/primitives/main")} className="text-accent-600 hover:underline">
 					Main
 				</Link>{" "}
@@ -39,8 +38,6 @@ export default function LayoutsPage() {
 				</Link>
 				.
 			</p>
-			{/* Renders nothing until the first layout ships — the empty list would
-			    otherwise paint a stray double border. */}
 			<ul className="mt-8 max-w-3xl divide-y divide-gray-300 border-y border-gray-300 empty:hidden">
 				{layoutPages.map((page) => (
 					<li key={page}>

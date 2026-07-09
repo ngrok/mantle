@@ -4,13 +4,13 @@ import { cx } from "@ngrok/mantle/cx";
 import { Icon } from "@ngrok/mantle/icon";
 import { NgrokWordmarkIcon } from "@ngrok/mantle/icons";
 import { Popover } from "@ngrok/mantle/popover";
+import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 import { CaretDownIcon, RssSimpleIcon, XLogoIcon, YoutubeLogoIcon } from "@phosphor-icons/react";
 import { BlueskyIcon } from "./icons/bluesky";
 import { GitHubIcon } from "./icons/github";
 import { LinkedInIcon } from "./icons/linkedin";
 
 import { DocsLink } from "./docs-link";
-import { ThemeSwitcher } from "~/components/theme-switcher";
 import {
 	getConfigForStatusIndicatorLevel,
 	useStatusPageStatus,

@@ -1,0 +1,260 @@
+---
+title: Breadcrumb
+description: Hierarchy-path navigation — an ordered list of links from a root to the current page, in a labeled nav landmark.
+---
+
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+import { Link, href } from "react-router";
+import { Example } from "~/components/example";
+import { PageHeader } from "~/components/page-header";
+
+export function BreadcrumbExample() {
+	return (
+		<Breadcrumb.Root>
+			<Breadcrumb.List>
+				<Breadcrumb.Item>
+					<Breadcrumb.Link href="#">Home</Breadcrumb.Link>
+				</Breadcrumb.Item>
+				<Breadcrumb.Separator />
+				<Breadcrumb.Item>
+					<Breadcrumb.Link href="#">Endpoints</Breadcrumb.Link>
+				</Breadcrumb.Item>
+				<Breadcrumb.Separator />
+				<Breadcrumb.Item>
+					<Breadcrumb.Page>ep_2h8…</Breadcrumb.Page>
+				</Breadcrumb.Item>
+			</Breadcrumb.List>
+		</Breadcrumb.Root>
+	);
+}
+
+export function BreadcrumbSlashSeparatorExample() {
+	return (
+		<Breadcrumb.Root>
+			<Breadcrumb.List>
+				<Breadcrumb.Item>
+					<Breadcrumb.Link href="#">Home</Breadcrumb.Link>
+				</Breadcrumb.Item>
+				<Breadcrumb.Separator>
+					<span>/</span>
+				</Breadcrumb.Separator>
+				<Breadcrumb.Item>
+					<Breadcrumb.Link href="#">Domains</Breadcrumb.Link>
+				</Breadcrumb.Item>
+				<Breadcrumb.Separator>
+					<span>/</span>
+				</Breadcrumb.Separator>
+				<Breadcrumb.Item>
+					<Breadcrumb.Page>app.example.com</Breadcrumb.Page>
+				</Breadcrumb.Item>
+			</Breadcrumb.List>
+		</Breadcrumb.Root>
+	);
+}
+
+export function BreadcrumbRouterLinkExample() {
+	return (
+		<Breadcrumb.Root>
+			<Breadcrumb.List>
+				<Breadcrumb.Item>
+					<Breadcrumb.Link asChild>
+						<Link to={href("/")}>Home</Link>
+					</Breadcrumb.Link>
+				</Breadcrumb.Item>
+				<Breadcrumb.Separator />
+				<Breadcrumb.Item>
+					<Breadcrumb.Link asChild>
+						<Link to={href("/components/navigation/anchor")}>Anchor</Link>
+					</Breadcrumb.Link>
+				</Breadcrumb.Item>
+				<Breadcrumb.Separator />
+				<Breadcrumb.Item>
+					<Breadcrumb.Page>Breadcrumb</Breadcrumb.Page>
+				</Breadcrumb.Item>
+			</Breadcrumb.List>
+		</Breadcrumb.Root>
+	);
+}
+
+<PageHeader id="breadcrumb">Breadcrumb</PageHeader>
+
+Hierarchy-path navigation per the [WAI-ARIA breadcrumb pattern](https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/): an ordered list of links from a root to the current page, inside a `<nav>` landmark labeled "Breadcrumb". Use it on detail pages inside deep hierarchies — an endpoint under a project under an account — so users can see how they got here and jump back up a level. It answers a different intent than [Tabs](/components/navigation/tabs), which switches _what you're looking at_ within one place; a breadcrumb tells you _where you are_ and offers the way up. It is router-agnostic — each `Breadcrumb.Link` is a plain `<a>` you can compose onto your router's link via `asChild` (see [Polymorphism](#polymorphism)), and [Anchor](/components/navigation/anchor) remains the right primitive for standalone external links.
+
+<Example>
+	<BreadcrumbExample />
+</Example>
+
+```tsx
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+
+<Breadcrumb.Root>
+	<Breadcrumb.List>
+		<Breadcrumb.Item>
+			<Breadcrumb.Link href="/">Home</Breadcrumb.Link>
+		</Breadcrumb.Item>
+		<Breadcrumb.Separator />
+		<Breadcrumb.Item>
+			<Breadcrumb.Link href="/endpoints">Endpoints</Breadcrumb.Link>
+		</Breadcrumb.Item>
+		<Breadcrumb.Separator />
+		<Breadcrumb.Item>
+			<Breadcrumb.Page>ep_2h8…</Breadcrumb.Page>
+		</Breadcrumb.Item>
+	</Breadcrumb.List>
+</Breadcrumb.Root>;
+```
+
+`Breadcrumb.Separator` renders a caret icon by default; pass your own children to replace it — a slash, for instance:
+
+<Example>
+	<BreadcrumbSlashSeparatorExample />
+</Example>
+
+```tsx
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+
+<Breadcrumb.Root>
+	<Breadcrumb.List>
+		<Breadcrumb.Item>
+			<Breadcrumb.Link href="/">Home</Breadcrumb.Link>
+		</Breadcrumb.Item>
+		<Breadcrumb.Separator>
+			<span>/</span>
+		</Breadcrumb.Separator>
+		<Breadcrumb.Item>
+			<Breadcrumb.Link href="/domains">Domains</Breadcrumb.Link>
+		</Breadcrumb.Item>
+		<Breadcrumb.Separator>
+			<span>/</span>
+		</Breadcrumb.Separator>
+		<Breadcrumb.Item>
+			<Breadcrumb.Page>app.example.com</Breadcrumb.Page>
+		</Breadcrumb.Item>
+	</Breadcrumb.List>
+</Breadcrumb.Root>;
+```
+
+## Composition
+
+```text showLineNumbers=false
+Breadcrumb.Root
+└── Breadcrumb.List
+    ├── Breadcrumb.Item
+    │   └── Breadcrumb.Link
+    ├── Breadcrumb.Separator
+    └── Breadcrumb.Item
+        └── Breadcrumb.Page
+```
+
+- **`Root`** is the `<nav>` landmark, labeled `"Breadcrumb"` by default (overridable via `aria-label`). It carries no visual styling of its own.
+- **`List`** is the `<ol>` — an ordered list, because the order of the items **is** the hierarchy, from the root to the current page.
+- **`Item`** is one crumb: an `<li>` wrapping a `Link` or the `Page`.
+- **`Link`** is a plain `<a>` to an ancestor page; compose it onto your router's link via `asChild`.
+- **`Page`** marks the current page — a `<span>` with `aria-current="page"`, not a link.
+- **`Separator`** is a purely visual divider between crumbs (`role="presentation"`, `aria-hidden`), rendering a caret by default.
+
+## Polymorphism
+
+Every part supports `asChild`. The one that matters most is `Breadcrumb.Link`: the component never imports a router, so compose the link styling onto your framework's link — a `react-router` `Link` here — to get client-side navigation:
+
+<Example>
+	<BreadcrumbRouterLinkExample />
+</Example>
+
+```tsx
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+import { Link, href } from "react-router";
+
+<Breadcrumb.Root>
+	<Breadcrumb.List>
+		<Breadcrumb.Item>
+			<Breadcrumb.Link asChild>
+				<Link to={href("/")}>Home</Link>
+			</Breadcrumb.Link>
+		</Breadcrumb.Item>
+		<Breadcrumb.Separator />
+		<Breadcrumb.Item>
+			<Breadcrumb.Link asChild>
+				<Link to={href("/components/navigation/anchor")}>Anchor</Link>
+			</Breadcrumb.Link>
+		</Breadcrumb.Item>
+		<Breadcrumb.Separator />
+		<Breadcrumb.Item>
+			<Breadcrumb.Page>Breadcrumb</Breadcrumb.Page>
+		</Breadcrumb.Item>
+	</Breadcrumb.List>
+</Breadcrumb.Root>;
+```
+
+## Accessibility
+
+Breadcrumb follows the [APG breadcrumb pattern](https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/):
+
+- The trail lives in a `<nav>` landmark labeled `"Breadcrumb"`, so screen reader users can jump straight to it. The label is overridable via `aria-label` on `Root` — do so for localization, or to distinguish multiple breadcrumb trails on one page.
+- The crumbs are an `<ol>`, so assistive technology announces the total count and each item's position — the order conveys the hierarchy.
+- The final crumb is a `Breadcrumb.Page` with `aria-current="page"`, announcing that it represents the current page. It is a `<span>`, not a link — linking to the page you are already on is a trap.
+- Separators are `role="presentation"` and `aria-hidden="true"`: purely visual, never counted as crumbs, never read aloud.
+
+## API Reference
+
+### Breadcrumb.Root
+
+The `<nav>` landmark containing the trail.
+
+All props from [nav](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/nav#attributes), plus:
+
+| Prop          | Type      | Default        | Description                                                                                                             |
+| ------------- | --------- | -------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `aria-label?` | `string`  | `"Breadcrumb"` | The accessible name of the landmark. Override for localization or when a page has multiple breadcrumb trails.           |
+| `asChild?`    | `boolean` | `false`        | Use the `asChild` prop to compose the `Breadcrumb` styling onto alternative element types or your own React components. |
+
+### Breadcrumb.List
+
+The ordered list of crumbs — the order is the hierarchy.
+
+All props from [ol](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                  |
+| ---------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Breadcrumb.List` styling onto alternative element types or your own React components. |
+
+### Breadcrumb.Item
+
+A single crumb wrapping a `Link` or the `Page`.
+
+All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                  |
+| ---------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Breadcrumb.Item` styling onto alternative element types or your own React components. |
+
+### Breadcrumb.Link
+
+A link to an ancestor page in the hierarchy.
+
+All props from [a](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                                                         |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Breadcrumb.Link` styling onto alternative element types or your own React components — most commonly your app router's link. |
+
+### Breadcrumb.Page
+
+The current page — the last crumb. Always emits `aria-current="page"`.
+
+All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/span#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                  |
+| ---------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Breadcrumb.Page` styling onto alternative element types or your own React components. |
+
+### Breadcrumb.Separator
+
+A purely visual divider between crumbs, hidden from assistive technology.
+
+All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes), plus:
+
+| Prop        | Type        | Default              | Description                                                                                                                                                             |
+| ----------- | ----------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `children?` | `ReactNode` | `<CaretRightIcon />` | The separator glyph. Defaults to a caret icon; pass your own children (e.g. a slash) to replace it. Required when `asChild` is set — the child element is what renders. |
+| `asChild?`  | `boolean`   | `false`              | Use the `asChild` prop to compose the `Breadcrumb.Separator` styling onto alternative element types or your own React components. Requires `children`.                  |

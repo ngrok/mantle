@@ -75,6 +75,11 @@
 			"types": "./dist/badge.d.ts",
 			"import": "./dist/badge.js"
 		},
+		"./breadcrumb": {
+			"@ngrok/src-live-types": "./src/components/breadcrumb/index.ts",
+			"types": "./dist/breadcrumb.d.ts",
+			"import": "./dist/breadcrumb.js"
+		},
 		"./browser-only": {
 			"@ngrok/src-live-types": "./src/components/browser-only/index.ts",
 			"types": "./dist/browser-only.d.ts",
@@ -94,6 +99,11 @@
 			"@ngrok/src-live-types": "./src/components/card/index.ts",
 			"types": "./dist/card.d.ts",
 			"import": "./dist/card.js"
+		},
+		"./centered-layout": {
+			"@ngrok/src-live-types": "./src/components/centered-layout/index.ts",
+			"types": "./dist/centered-layout.d.ts",
+			"import": "./dist/centered-layout.js"
 		},
 		"./checkbox": {
 			"@ngrok/src-live-types": "./src/components/checkbox/index.ts",
@@ -334,6 +344,11 @@
 			"@ngrok/src-live-types": "./src/components/theme/index.ts",
 			"types": "./dist/theme.d.ts",
 			"import": "./dist/theme.js"
+		},
+		"./theme-switcher": {
+			"@ngrok/src-live-types": "./src/components/theme-switcher/index.ts",
+			"types": "./dist/theme-switcher.d.ts",
+			"import": "./dist/theme-switcher.js"
 		},
 		"./toast": {
 			"@ngrok/src-live-types": "./src/components/toast/index.ts",

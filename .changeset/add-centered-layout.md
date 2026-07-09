@@ -1,0 +1,5 @@
+---
+"@ngrok/mantle": minor
+---
+
+Add `CenteredLayout` — mantle's first published layout primitive, at `@ngrok/mantle/centered-layout` and documented at https://mantle.ngrok.com/layouts/centered-layout. It is a viewport-filling centered page flow for sign-in, sign-up, onboarding, 404, and other focused full-page states, consolidating the centered "auth shell" duplicated across ngrok's dashboard and login apps. Four parts: `CenteredLayout.Root` (the `min-h-full` flex frame), `CenteredLayout.Body` (the growing centered region — by convention the fully-styled brand mark is its first child; there is deliberately no `Logo` part), `CenteredLayout.Content` (renders the mantle `Main` landmark by default; pass `renderMain={false}` inside a shell that already owns the document's one Main landmark — it deliberately has no `asChild`, since polymorphism is the `renderMain` contract), and `CenteredLayout.Footer` (a pinned semantic `<footer>` utility strip outside the centered region). It owns structure only — app state never enters it; links and brand marks arrive as composed JSX. New export, purely additive: no impact on existing consumers.

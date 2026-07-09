@@ -80,8 +80,9 @@ export const componentsByCategory = {
 		"Slider",
 		"Switch",
 		"Text Area",
+		"Theme Switcher",
 	],
-	Navigation: ["Anchor", "Command", "Pagination", "Tabs"],
+	Navigation: ["Anchor", "Breadcrumb", "Command", "Pagination", "Tabs"],
 	Overlays: [
 		"Alert Dialog",
 		"Dialog",
@@ -126,6 +127,7 @@ export const prodReadyComponentRouteLookup = {
 	"Alert Dialog": "/components/overlays/alert-dialog",
 	Anchor: "/components/navigation/anchor",
 	Badge: "/components/data-display/badge",
+	Breadcrumb: "/components/navigation/breadcrumb",
 	"Browser Only": "/components/primitives/browser-only",
 	Button: "/components/actions/button",
 	Card: "/components/structure/card",
@@ -176,6 +178,7 @@ export const prodReadyComponentRouteLookup = {
 	Tabs: "/components/navigation/tabs",
 	"Text Area": "/components/forms/text-area",
 	Theme: "/components/primitives/theme",
+	"Theme Switcher": "/components/forms/theme-switcher",
 	Toast: "/components/feedback/toast",
 	Tooltip: "/components/overlays/tooltip",
 	Well: "/components/structure/well",
@@ -260,21 +263,25 @@ export const utilsRoutes = {
 
 /**
  * Layout pages — published primitives that own page/viewport structure and
- * regions (app shells, centered flows, …). None have shipped yet; the first
- * residents land as they graduate from app-side incubation. The section
- * scaffolding (routes, nav, index page, manifest support) is already wired
- * so shipping a layout is purely additive.
+ * regions (app shells, centered flows, …). Residents land here as they
+ * graduate from app-side incubation (see
+ * decisions/2026-07-08-docs-information-architecture.md).
  */
-export const layoutPages = [] as const;
+export const layoutPages = [
+	//,
+	"Centered Layout",
+] as const;
 
 /** Route lookup for layout pages. */
-export const layoutRoutes = {} as const satisfies Record<(typeof layoutPages)[number], Route>;
+export const layoutRoutes = {
+	"Centered Layout": "/layouts/centered-layout",
+} as const satisfies Record<(typeof layoutPages)[number], Route>;
 
 /** Short descriptions for the layouts index page. */
-export const layoutDescriptions = {} as const satisfies Record<
-	(typeof layoutPages)[number],
-	string
->;
+export const layoutDescriptions = {
+	"Centered Layout":
+		"A viewport-filling centered page flow — brand mark, centered content in a Main landmark, and a pinned utility footer — for sign-in, onboarding, 404, and other focused full-page states.",
+} as const satisfies Record<(typeof layoutPages)[number], string>;
 
 /**
  * Recipe pages — compositional how-tos that wire multiple mantle primitives

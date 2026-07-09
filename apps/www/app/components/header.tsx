@@ -6,6 +6,7 @@ import type { SvgAttributes } from "@ngrok/mantle/icon";
 import { NgrokLettermarkIcon } from "@ngrok/mantle/icons";
 import { Kbd } from "@ngrok/mantle/kbd";
 import { useTheme } from "@ngrok/mantle/theme";
+import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 import {
 	ArrowRightIcon,
 	ArrowSquareOutIcon,
@@ -22,7 +23,6 @@ import { Fragment, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Link, href, useNavigate } from "react-router";
 import { PreviewBadge } from "~/components/badges";
-import { ThemeSwitcher } from "~/components/theme-switcher";
 import { useNavigation } from "./navigation-context";
 import {
 	basePages,
@@ -30,6 +30,8 @@ import {
 	componentCategories,
 	componentsByCategory,
 	hooksRoute,
+	layoutPages,
+	layoutRoutes,
 	previewComponents,
 	previewComponentsRouteLookup,
 	prodReadyComponentRouteLookup,
@@ -369,6 +371,31 @@ function CommandPalette() {
 								</Command.Group>
 							</Fragment>
 						))}
+						<Command.Separator />
+						<Command.Group heading="Layouts">
+							{layoutPages.map((page) => (
+								<Command.Item
+									key={page}
+									onSelect={() => {
+										navigate(layoutRoutes[page]);
+										setOpen(false);
+									}}
+									asChild
+								>
+									<Link
+										to={layoutRoutes[page]}
+										prefetch="intent"
+										className="flex items-center gap-2 justify-between"
+									>
+										<ItemName>
+											{page}
+											<span className="text-muted text-xs">{layoutRoutes[page]}</span>
+										</ItemName>
+										<ArrowRightIcon />
+									</Link>
+								</Command.Item>
+							))}
+						</Command.Group>
 						<Command.Separator />
 						<Command.Group
 							heading={
