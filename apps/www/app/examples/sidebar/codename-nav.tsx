@@ -1,6 +1,6 @@
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { CpuIcon } from "@phosphor-icons/react/Cpu";
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { SquaresFourIcon } from "@phosphor-icons/react/SquaresFour";
 import { VaultIcon } from "@phosphor-icons/react/Vault";
 import type { ReactNode } from "react";
@@ -9,7 +9,7 @@ const items: ReadonlyArray<{ label: string; icon: ReactNode; path: string }> = [
 	{ label: "Apps", icon: <SquaresFourIcon />, path: "/ship/apps" },
 	{ label: "Compute Pools", icon: <CpuIcon />, path: "/ship/compute-pools" },
 	{ label: "Vaults & Secrets", icon: <VaultIcon />, path: "/ship/vaults" },
-	{ label: "Domains", icon: <GlobeIcon />, path: "/ship/domains" },
+	{ label: "Domains", icon: <GlobeHemisphereWestIcon />, path: "/ship/domains" },
 ];
 
 type Props = {
@@ -24,7 +24,13 @@ export function CodenameNav({ onNavigate, pathname }: Props) {
 	return (
 		<Sidebar.Group>
 			{items.map((item) => (
-				<Sidebar.Item key={item.path} active={pathname === item.path} level="top" asChild>
+				<Sidebar.Item
+					key={item.path}
+					active={pathname === item.path}
+					className="font-normal"
+					level="top"
+					asChild
+				>
 					<a
 						href={item.path}
 						onClick={(event) => {

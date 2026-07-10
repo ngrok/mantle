@@ -2,9 +2,11 @@ import { Sidebar } from "@ngrok/mantle/sidebar";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { LinkIcon } from "@phosphor-icons/react/Link";
 import { ListMagnifyingGlassIcon } from "@phosphor-icons/react/ListMagnifyingGlass";
+import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
 
 const items: ReadonlyArray<{ label: string; icon: React.ReactNode; path: string }> = [
 	{ label: "URLs", icon: <LinkIcon />, path: "/localhost/urls" },
+	{ label: "Agents", icon: <TerminalWindowIcon />, path: "/localhost/agents" },
 	{ label: "Domains", icon: <GlobeHemisphereWestIcon />, path: "/localhost/domains" },
 	{
 		label: "Traffic Inspector",
@@ -27,7 +29,13 @@ export function LocalhostNav({ onNavigate, pathname }: Props) {
 	return (
 		<Sidebar.Group>
 			{items.map((item) => (
-				<Sidebar.Item key={item.path} active={pathname === item.path} level="top" asChild>
+				<Sidebar.Item
+					key={item.path}
+					active={pathname === item.path}
+					className="font-normal"
+					level="top"
+					asChild
+				>
 					<button type="button" onClick={() => onNavigate(item.path)}>
 						{item.icon}
 						{item.label}

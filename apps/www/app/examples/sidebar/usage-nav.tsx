@@ -23,7 +23,13 @@ export function UsageNav({ onNavigate, pathname }: Props) {
 	return (
 		<Sidebar.Group>
 			{items.map((item) => (
-				<Sidebar.Item key={item.path} active={pathname === item.path} level="top" asChild>
+				<Sidebar.Item
+					key={item.path}
+					active={pathname === item.path}
+					className="font-normal"
+					level="top"
+					asChild
+				>
 					<button type="button" onClick={() => onNavigate(item.path)}>
 						{item.icon}
 						{item.label}
