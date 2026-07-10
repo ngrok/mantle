@@ -23,7 +23,7 @@ function normalizeIndentation(value: string, options?: Options): string {
 
 	const minIndent = findMinIndent(normalizedLineEndings);
 	const lines = trimmed.split("\n");
-	const normalizedLines = new Array<string>(lines.length);
+	const normalizedLines = Array.from<string>({ length: lines.length });
 
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];

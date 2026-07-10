@@ -12,24 +12,38 @@ import { usePrefersReducedMotion } from "./use-prefers-reduced-motion.js";
 export type ScrollBehavior = "auto" | "smooth";
 
 /**
- * Returns a `ScrollBehavior` that respects the user's motion preference via `usePrefersReducedMotion`.
+ * React hook that returns a {@link ScrollBehavior} value (`"auto"` or
+ * `"smooth"`) that respects the user's motion preference.
  *
- * - When `usePrefersReducedMotion()` is `true`, returns `"auto"` (no animated scroll).
- * - Otherwise returns `"smooth"`.
+ * Internally calls {@link usePrefersReducedMotion}: when reduced motion is
+ * preferred, this returns `"auto"` (no animated scroll); otherwise it
+ * returns `"smooth"`. Pair this with `window.scrollTo`,
+ * `Element.scrollIntoView`, or any other scroll API that accepts a
+ * `behavior` option to avoid forcing animations on users who have opted
+ * out of motion. The conservative SSR default also prevents "first paint"
+ * scroll animations.
  *
- * Use this with `window.scrollTo`, `Element.scrollIntoView`, etc. It prevents
- * smooth-scrolling for users who opt out of motion and avoids SSR “first paint”
- * animations thanks to the hook’s conservative server default.
+ * @returns `"auto"` when the user prefers reduced motion, otherwise
+ *   `"smooth"`.
  *
  * @example
- * // Scroll to top
+ * // Scroll to the top of the page on a button click
  * const behavior = useScrollBehavior();
- * window.scrollTo({ top: 0, behavior });
+ *
+ * return (
+ *   <button onClick={() => window.scrollTo({ top: 0, behavior })}>
+ *     Back to top
+ *   </button>
+ * );
  *
  * @example
- * // Bring a section into view
+ * // Bring a referenced section into view
  * const behavior = useScrollBehavior();
- * sectionRef.current?.scrollIntoView({ behavior, block: "start" });
+ * const sectionRef = useRef<HTMLElement>(null);
+ *
+ * function focusSection() {
+ *   sectionRef.current?.scrollIntoView({ behavior, block: "start" });
+ * }
  *
  * @see {@link usePrefersReducedMotion}
  * @see CSS `scroll-behavior` property (values: `"auto"`, `"smooth"`).

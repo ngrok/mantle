@@ -33,6 +33,7 @@ build
 .parcel-cache
 .turbo
 .react-router
-.direnv-initialized
 tmp
+local
 .playwright-mcp
+mise.local.toml

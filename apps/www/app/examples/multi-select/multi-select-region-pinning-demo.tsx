@@ -94,7 +94,7 @@ export function RegionPinningDemo() {
 						<MultiSelect.Group>
 							<MultiSelect.GroupLabel>Points of presence</MultiSelect.GroupLabel>
 							<MultiSelect.GroupDescription>
-								If you've included a region, you cannot include PoPs that are within it.
+								If you&apos;ve included a region, you cannot include PoPs that are within it.
 							</MultiSelect.GroupDescription>
 							{filteredPops.map(({ value, location }) => (
 								<MultiSelect.Item key={value} value={value} disabled>
@@ -135,7 +135,7 @@ export function RegionPinningDemo() {
 							<p className="text-accent-600 text-sm font-medium flex-1">
 								Upgrade your plan to specify regions, PoPs, and dedicated IPs.
 							</p>
-							<Button appearance="filled" className="shrink-0" asChild>
+							<Button appearance="filled" priority="neutral" className="shrink-0" asChild>
 								<Link to="#">Upgrade to Pay-as-you-go</Link>
 							</Button>
 						</div>

@@ -13,11 +13,11 @@ const CommandDialogSubject = ({ initialOpen = false }: { initialOpen?: boolean }
 	const [open, setOpen] = useState(initialOpen);
 
 	return (
-		<Command.Dialog.Root open={open} onOpenChange={setOpen}>
+		<Command.DialogRoot open={open} onOpenChange={setOpen}>
 			<button type="button" onClick={() => setOpen(true)}>
 				Open
 			</button>
-			<Command.Dialog.Content title="Test Command Palette">
+			<Command.DialogContent title="Test Command Palette">
 				<Command.Input placeholder="Type a command or search..." />
 				<Command.List>
 					<Command.Empty>No results found.</Command.Empty>
@@ -31,8 +31,8 @@ const CommandDialogSubject = ({ initialOpen = false }: { initialOpen?: boolean }
 						<Command.Item>Billing</Command.Item>
 					</Command.Group>
 				</Command.List>
-			</Command.Dialog.Content>
-		</Command.Dialog.Root>
+			</Command.DialogContent>
+		</Command.DialogRoot>
 	);
 };
 
@@ -53,18 +53,18 @@ describe("Command.Dialog (browser)", () => {
 			});
 		});
 
-		test("Command.Dialog.Trigger opens the dialog without managed state", async () => {
+		test("Command.DialogTrigger opens the dialog without managed state", async () => {
 			const user = userEvent.setup();
 			render(
-				<Command.Dialog.Root>
-					<Command.Dialog.Trigger>Open</Command.Dialog.Trigger>
-					<Command.Dialog.Content title="Test Command Palette">
+				<Command.DialogRoot>
+					<Command.DialogTrigger>Open</Command.DialogTrigger>
+					<Command.DialogContent title="Test Command Palette">
 						<Command.Input placeholder="Type a command or search..." />
 						<Command.List>
 							<Command.Empty>No results found.</Command.Empty>
 						</Command.List>
-					</Command.Dialog.Content>
-				</Command.Dialog.Root>,
+					</Command.DialogContent>
+				</Command.DialogRoot>,
 			);
 
 			expect(screen.queryByText("Test Command Palette")).not.toBeInTheDocument();

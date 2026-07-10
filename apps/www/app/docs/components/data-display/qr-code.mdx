@@ -1,0 +1,215 @@
+---
+title: QR Code
+description: Render a scannable QR code, optionally branded with a centered logo.
+---
+
+import { QrCode } from "@ngrok/mantle/qr-code";
+import { NgrokLettermarkIcon } from "@ngrok/mantle/icons";
+import { Example } from "~/components/example";
+
+# QR Code
+
+Render a scannable QR code from any string — a URL, an `otpauth://` MFA
+enrollment URI, a Wi-Fi credential, and so on. The value is encoded with the
+dependency-free [`uqr`](https://github.com/unjs/uqr) library.
+
+Compose a `QrCode.Frame` (the `svg`) wrapping a `QrCode.Pattern` (the modules)
+inside a `QrCode.Root`, and optionally drop a `QrCode.Overlay` in the center for
+a brand logo.
+
+<Example>
+	<QrCode.Root
+		value="otpauth://totp/ngrok:alice@example.com?secret=JBSWY3DPEHPK3PXP&issuer=ngrok"
+		ecc="H"
+	>
+		<QrCode.Frame>
+			<QrCode.Pattern />
+		</QrCode.Frame>
+		<QrCode.Overlay>
+			<NgrokLettermarkIcon className="size-7" />
+		</QrCode.Overlay>
+	</QrCode.Root>
+</Example>
+
+```tsx
+import { QrCode } from "@ngrok/mantle/qr-code";
+import { NgrokLettermarkIcon } from "@ngrok/mantle/icons";
+
+<QrCode.Root
+	value="otpauth://totp/ngrok:alice@example.com?secret=JBSWY3DPEHPK3PXP&issuer=ngrok"
+	ecc="H"
+>
+	<QrCode.Frame>
+		<QrCode.Pattern />
+	</QrCode.Frame>
+	<QrCode.Overlay>
+		<NgrokLettermarkIcon className="size-7" />
+	</QrCode.Overlay>
+</QrCode.Root>;
+```
+
+The tile is intentionally white with dark modules in every theme — inverting a
+QR code's colors makes it unreliable for many scanners, so it stays
+black-on-white by default for scannability.
+
+## Basic
+
+The minimal QR code is a `Root` with a `Frame` and `Pattern`. The default error
+correction level is `L` (~7% recovery), which is plenty when there is no overlay
+covering modules.
+
+<Example>
+	<QrCode.Root value="https://ngrok.com">
+		<QrCode.Frame>
+			<QrCode.Pattern />
+		</QrCode.Frame>
+	</QrCode.Root>
+</Example>
+
+```tsx
+import { QrCode } from "@ngrok/mantle/qr-code";
+
+<QrCode.Root value="https://ngrok.com">
+	<QrCode.Frame>
+		<QrCode.Pattern />
+	</QrCode.Frame>
+</QrCode.Root>;
+```
+
+## Error correction
+
+A `QrCode.Overlay` hides the modules beneath it, so raise the error correction
+level via the `ecc` prop to keep the code scannable. Levels are `L` (~7%), `M`
+(~15%), `Q` (~25%), and `H` (~30%). Prefer `H` whenever a logo is present.
+
+```tsx
+<QrCode.Root value="https://ngrok.com" ecc="H">
+	<QrCode.Frame>
+		<QrCode.Pattern />
+	</QrCode.Frame>
+	<QrCode.Overlay>
+		<NgrokLettermarkIcon className="size-7" />
+	</QrCode.Overlay>
+</QrCode.Root>
+```
+
+## Sizing
+
+The `Frame` defaults to a square `size-48`. Because the encoded pattern scales
+to the frame's `viewBox`, resize the whole code by passing a different size to
+the `Frame`'s `className`.
+
+<Example>
+	<QrCode.Root value="https://ngrok.com">
+		<QrCode.Frame className="size-32">
+			<QrCode.Pattern />
+		</QrCode.Frame>
+	</QrCode.Root>
+</Example>
+
+```tsx
+<QrCode.Root value="https://ngrok.com">
+	<QrCode.Frame className="size-32">
+		<QrCode.Pattern />
+	</QrCode.Frame>
+</QrCode.Root>
+```
+
+## Quiet zone
+
+A QR code includes a margin of light modules around the pattern — the _quiet
+zone_ — that scanners rely on to locate the code. It's encoded into the grid
+itself, not cosmetic CSS padding, so adjust it with the `quietZone` prop on
+`Root` rather than `className`. It defaults to `4`, the QR spec's recommended
+margin. Lower it to tighten the surrounding whitespace; avoid `0`, which makes
+the code unreliable for many scanners.
+
+<Example>
+	<QrCode.Root value="https://ngrok.com" quietZone={1}>
+		<QrCode.Frame>
+			<QrCode.Pattern />
+		</QrCode.Frame>
+	</QrCode.Root>
+</Example>
+
+```tsx
+<QrCode.Root value="https://ngrok.com" quietZone={1}>
+	<QrCode.Frame>
+		<QrCode.Pattern />
+	</QrCode.Frame>
+</QrCode.Root>
+```
+
+## Composition
+
+Compose the parts of a `QrCode` together to build your own:
+
+```text showLineNumbers=false
+QrCode.Root
+├── QrCode.Frame
+│   └── QrCode.Pattern
+└── QrCode.Overlay
+```
+
+## Polymorphism
+
+`QrCode.Root` and `QrCode.Overlay` support the `asChild` prop. When `asChild` is
+`true`, the part renders its single child instead of its default element,
+forwarding all class names, `data-*` attributes, and behavior onto that child —
+for example, to render the whole code as a link.
+
+`QrCode.Frame` and `QrCode.Pattern` render fixed SVG elements (`svg` and `path`)
+and do not support `asChild` — the QR pattern must live inside an svg, so those
+elements cannot be swapped.
+
+```tsx
+<QrCode.Root asChild value="https://ngrok.com">
+	<a href="https://ngrok.com">
+		<QrCode.Frame>
+			<QrCode.Pattern />
+		</QrCode.Frame>
+	</a>
+</QrCode.Root>
+```
+
+## API Reference
+
+### QrCode.Root
+
+The root container. Encodes `value` and renders a white tile around the code.
+Renders a `div`.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop         | Type                       | Default | Description                                                       |
+| ------------ | -------------------------- | ------- | ----------------------------------------------------------------- |
+| `value`      | `string`                   | —       | The string to encode (required).                                  |
+| `ecc?`       | `"L" \| "M" \| "Q" \| "H"` | `"L"`   | Error correction level. Use `"H"` when an overlay covers modules. |
+| `pixelSize?` | `number`                   | `10`    | The pixel size of each module (affects internal resolution).      |
+| `quietZone?` | `number`                   | `4`     | Light-module margin baked around the code. Lower tightens it.     |
+| `asChild?`   | `boolean`                  | `false` | Render as a different element by passing a child.                 |
+
+### QrCode.Frame
+
+The `svg` frame that holds the `Pattern`. Defaults to `size-48` and scales the
+pattern to fit via its `viewBox`. Renders an `svg`. Does not support `asChild`.
+
+Accepts all props from [svg](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/svg#attributes).
+
+### QrCode.Pattern
+
+The encoded modules, rendered as a single `path` inside the `Frame`. Always
+filled black. Renders a `path`. Does not support `asChild`.
+
+Accepts all props from [path](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path#attributes).
+
+### QrCode.Overlay
+
+A container centered on top of the code, typically holding a brand logo. Renders
+a white rounded "punch-out" so the logo stays legible. Renders a `div`.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                       |
+| ---------- | --------- | ------- | ------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |

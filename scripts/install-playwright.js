@@ -21,4 +21,6 @@ if (process.env.PLAYWRIGHT_WS_ENDPOINT) {
 }
 
 console.log("Installing Playwright Chromium browser...");
-execSync("pnpm --filter @ngrok/mantle exec playwright install chromium", { stdio: "inherit" });
+execSync("pnpm --filter @ngrok/mantle exec playwright install chromium", {
+	stdio: "inherit",
+});

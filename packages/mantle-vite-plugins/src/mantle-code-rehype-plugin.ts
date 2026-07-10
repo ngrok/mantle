@@ -201,7 +201,7 @@ function mantleCodeRehypePlugin() {
 				});
 
 				preNode.properties = {
-					...(preNode.properties ?? {}),
+					...preNode.properties,
 					collapsible,
 					disableCopy,
 					mode,

@@ -25,7 +25,7 @@ type SkipToMainLinkProps = Omit<ComponentProps<"a">, "href"> & {
  * Pair with the `<Main>` component (or any element with a matching `id`
  * and `tabIndex={-1}`) so it can receive focus.
  *
- * @see https://mantle.ngrok.com/components/skip-to-main-link
+ * @see https://mantle.ngrok.com/components/primitives/skip-to-main-link
  *
  * @example
  * ```tsx

@@ -13,11 +13,16 @@ type SeparatorGroupContextShape = {
 
 const SeparatorGroupContext = createContext<SeparatorGroupContextShape>({});
 
+// Module-level constant so the Provider value identity is stable across renders.
+const horizontalSeparatorGroupContextValue: SeparatorGroupContextShape = {
+	orientation: "horizontal",
+};
+
 /**
  * A container to layout a group of horizontal separators and other children.
  * Overrides all children `Separator`s to be `orientation="horizontal"`.
  *
- * @see https://mantle.ngrok.com/components/separator
+ * @see https://mantle.ngrok.com/components/structure/separator
  *
  * @example
  * ```tsx
@@ -47,12 +52,12 @@ const HorizontalSeparatorGroup = ({
 	const Comp = asChild ? Slot : "div";
 
 	return (
-		<SeparatorGroupContext.Provider value={{ orientation: "horizontal" }}>
+		<SeparatorGroupContext.Provider value={horizontalSeparatorGroupContextValue}>
 			<Comp
 				data-slot="horizontal-separator-group"
 				data-horizontal-separator-group
 				className={cx(
-					"group flex items-center gap-2 [&_*:not([data-separator])]:shrink-0",
+					"group flex items-center gap-2 [&>*:not([data-separator])]:shrink-0",
 					className,
 				)}
 				{...props}
@@ -85,7 +90,12 @@ type SeparatorProps = ComponentProps<"div"> &
 /**
  * Visually or semantically separates content.
  *
- * @see https://mantle.ngrok.com/components/separator
+ * Rendered in the shared `separator` color token (`gray-500/20` in light,
+ * `gray-600/20` in dark, `black` in high contrast). Reuse that exact color on
+ * your own dividers with `bg-separator` / `border-separator` / `divide-separator`
+ * so they stay consistent with separators across the system.
+ *
+ * @see https://mantle.ngrok.com/components/structure/separator
  *
  * @example
  * ```tsx
@@ -130,7 +140,7 @@ const Separator = forwardRef<ComponentRef<"div">, SeparatorProps>(
 				data-slot="separator"
 				className={cx(
 					"separator",
-					"dark-high-contrast:bg-black high-contrast:bg-black bg-gray-500/20 dark:bg-gray-600/20",
+					"bg-separator",
 					orientation === "horizontal"
 						? "h-px w-full group-data-horizontal-separator-group:flex-1"
 						: "h-full w-px",

@@ -1,0 +1,98 @@
+# ============================================================
+# Dockerfile.dockerignore — scoped to apps/www/Dockerfile
+# Paths are relative to the repo root (the build context).
+# This file takes precedence over the root .dockerignore when
+# building with: docker build -f apps/www/Dockerfile .
+# ============================================================
+
+# Dependency directories
+**/node_modules
+
+# Build output (regenerated inside Docker)
+**/build
+**/.turbo
+**/.react-router
+**/.vercel
+**/.cache
+
+# TypeScript incremental build info
+**/*.tsbuildinfo
+
+# Exclude source dirs from all apps — pnpm only needs their package.json
+# for workspace resolution, not source or static assets.
+# Glob patterns mean new apps are covered automatically without editing this file.
+apps/*/app
+apps/*/src
+apps/*/public
+apps/*/scripts
+apps/*/vite-plugins
+
+# Re-include www source — it's the app this Dockerfile builds. Its local
+# vite-plugins are imported by apps/www/vite.config.ts, so the build needs them.
+!apps/www/app
+!apps/www/public
+!apps/www/vite-plugins
+
+# Env files — never ship local env into the build context. The www build reads
+# no build-time secrets; runtime env is supplied to the container by the
+# platform. Ignoring every `.env*` (including `.env.production`) keeps local
+# secrets out of build layers and the build cache.
+**/.env
+**/.env.*
+
+# Version control — large and unused by the build; keep it out of the context
+.git
+
+# Dev tool config — not needed inside the build container
+.claude
+.editorconfig
+.gitattributes
+.gitignore
+.grunt
+.husky
+.idea
+.lintstagedrc.json
+.lock-wscript
+mise.lock
+mise.local.toml
+mise.toml
+.node_repl_history
+.npm
+.nvmrc
+.nyc_output
+.oxcfmtrc.json
+.oxlintrc.json
+.playwright-mcp
+.prettierignore
+.vscode
+
+# Docs and meta
+decisions
+scripts
+LICENSE
+**/*.md
+# www bundles packages/mantle/CHANGELOG.md as build input (mantleChangelogMdx
+# vite plugin + `?raw` import), so re-include package changelogs.
+!packages/*/CHANGELOG.md
+
+# Test artifacts
+**/coverage
+**/playwright-report
+**/test-results
+**/bundle-stats.html
+
+# CI
+.github
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker files (no need to ship them into the build context)
+**/Dockerfile
+**/.dockerignore

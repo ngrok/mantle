@@ -1,0 +1,801 @@
+[
+  {
+    "name": "Accordion",
+    "slug": "components/data-display/accordion",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/accordion",
+    "summary": "A vertically stacked set of disclosure sections whose collapsed content stays in the DOM, so browser find-in-page (⌘F) can reveal it.",
+    "jsdoc": "A vertically stacked set of disclosure sections styled after the shadcn / ngrok.com accordion.",
+    "examples": [
+      "Composition:\n```\nAccordion.Root\n└── Accordion.Item\n    ├── Accordion.Trigger\n    │   └── Accordion.TriggerIcon\n    └── Accordion.Content\n        └── Accordion.Body\n```",
+      "<Accordion.Root type=\"single\" defaultValue=\"item-1\">\n  <Accordion.Item value=\"item-1\">\n    <Accordion.Trigger>\n      Is it accessible?\n      <Accordion.TriggerIcon />\n    </Accordion.Trigger>\n    <Accordion.Content>\n      <Accordion.Body>Yes. It adheres to the WAI-ARIA disclosure pattern.</Accordion.Body>\n    </Accordion.Content>\n  </Accordion.Item>\n</Accordion.Root>"
+    ]
+  },
+  {
+    "name": "Alert",
+    "slug": "components/feedback/alert",
+    "kind": "component",
+    "category": "Feedback",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/alert",
+    "summary": "Displays a callout for user attention.",
+    "jsdoc": "Displays a callout for user attention.",
+    "examples": [
+      "Composition:\n```\nAlert.Root\n├── Alert.Icon\n└── Alert.Content\n    ├── Alert.Title\n    ├── Alert.Description\n    └── Alert.DismissIconButton\n```",
+      "```tsx\n<Alert priority=\"info\">\n  <AlertIcon />\n  <AlertContent>\n    <AlertTitle>Alert Title</AlertTitle>\n     <AlertDismissIconButton />\n    <AlertDescription>\n      Alert description text.\n    </AlertDescription>\n  </AlertContent>\n</Alert>\n```"
+    ]
+  },
+  {
+    "name": "Alert Dialog",
+    "slug": "components/overlays/alert-dialog",
+    "kind": "component",
+    "category": "Overlays",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/alert-dialog",
+    "summary": "A modal dialog that interrupts the user with important content and expects a response.",
+    "jsdoc": "A modal dialog that interrupts the user with important content and expects a response.",
+    "examples": [
+      "Composition:\n```\nAlertDialog.Root\n├── AlertDialog.Trigger\n└── AlertDialog.Content\n    ├── AlertDialog.Icon\n    └── AlertDialog.Body\n        ├── AlertDialog.Header\n        │   ├── AlertDialog.Title\n        │   └── AlertDialog.Description\n        └── AlertDialog.Footer\n            ├── AlertDialog.Cancel\n            └── AlertDialog.Action\n```",
+      "```tsx\n<AlertDialog.Root priority=\"danger\">\n  <AlertDialog.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\">\n      Show Danger Alert Dialog\n    </Button>\n  </AlertDialog.Trigger>\n  <AlertDialog.Content>\n    <AlertDialog.Icon />\n    <AlertDialog.Body>\n      <AlertDialog.Header>\n        <AlertDialog.Title>\n          Are you absolutely sure?\n        </AlertDialog.Title>\n        <AlertDialog.Description>\n          Proident quis nisi tempor irure sunt ut minim occaecat mollit sunt.\n        </AlertDialog.Description>\n      </AlertDialog.Header>\n      <AlertDialog.Footer>\n        <AlertDialog.Cancel type=\"button\">Cancel</AlertDialog.Cancel>\n        <AlertDialog.Action type=\"button\">\n          Continue\n        </AlertDialog.Action>\n      </AlertDialog.Footer>\n    </AlertDialog.Body>\n  </AlertDialog.Content>\n</AlertDialog.Root>\n```"
+    ]
+  },
+  {
+    "name": "Anchor",
+    "slug": "components/navigation/anchor",
+    "kind": "component",
+    "category": "Navigation",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/anchor",
+    "summary": "Fundamental component for rendering links to external addresses.",
+    "jsdoc": "A styled hyperlink — a native `<a>` with mantle's link styling, focus treatment, optional leading/trailing icon, and a safer default for the `rel` attribute.",
+    "examples": [
+      "```tsx\nimport { Anchor } from \"@ngrok/mantle/anchor\";\nimport { BookIcon } from \"@phosphor-icons/react/Book\";\nimport { Link } from \"react-router\";\n\n// Basic external link.\n<Anchor href=\"https://ngrok.com/\">ngrok.com</Anchor>\n\n// External link in a new tab with a leading icon.\n<Anchor\n  href=\"https://ngrok.com/docs\"\n  target=\"_blank\"\n  rel={[\"noopener\", \"noreferrer\"]}\n  icon={<BookIcon />}\n>\n  ngrok docs\n</Anchor>\n\n// Compose Anchor styling onto a react-router Link for internal navigation.\n<Anchor asChild>\n  <Link to=\"/dashboard\">Open dashboard</Link>\n</Anchor>\n```"
+    ]
+  },
+  {
+    "name": "Badge",
+    "slug": "components/data-display/badge",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/badge",
+    "summary": "A non-interactive label used to highlight short, scannable information — a status, a category tag, or a count — in the smallest possible footprint.",
+    "jsdoc": "A non-interactive label used to highlight short, scannable information — a status, a category tag, or a count — in the smallest possible footprint. **When to use** - Status indicators: `Succeeded`, `Failed`, `Pending`, `Beta`. - Category or tag chips alongside list items, table rows, or cards. - Counts (e.g. `12 new`) when paired with brief context. **When not to use** - For interactive UI.",
+    "examples": [
+      "```tsx\nimport { Badge } from \"@ngrok/mantle/badge\";\nimport { CheckCircleIcon } from \"@phosphor-icons/react/CheckCircle\";\n\n<Badge appearance=\"muted\" color=\"success\" icon={<CheckCircleIcon />}>\n  Succeeded\n</Badge>\n\n// Polymorphic — render the badge as a link, preserving its styling.\n<Badge appearance=\"muted\" color=\"info\" asChild>\n  <a href=\"/status\">Operational</a>\n</Badge>\n```"
+    ]
+  },
+  {
+    "name": "Browser Only",
+    "slug": "components/primitives/browser-only",
+    "kind": "component",
+    "category": "Primitives",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/browser-only",
+    "summary": "A wrapper component that ensures its children only render in the browser, after hydration has completed.",
+    "jsdoc": "A wrapper component that ensures its children only render in the browser, after hydration has completed.",
+    "examples": [
+      "```tsx\n<BrowserOnly fallback={<div style={{ height: 200 }} />} >\n  {() => <ExpensiveChart />}\n</BrowserOnly>\n```"
+    ]
+  },
+  {
+    "name": "Button",
+    "slug": "components/actions/button",
+    "kind": "component",
+    "category": "Actions",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/button",
+    "summary": "Initiates an action, such as completing a task or submitting information.",
+    "jsdoc": "Renders a button or a component that looks like a button, an interactive element activated by a user with a mouse, keyboard, finger, voice command, or other assistive technology.",
+    "examples": [
+      "```tsx\n<Button appearance=\"filled\" onClick={handleClick}>\n  Click me\n</Button>\n```",
+      "Submit a form — opt in with `type=\"submit\"` (the default `\"button\"` does not submit):\n```tsx\n<Button type=\"submit\" appearance=\"filled\">\n  Save\n</Button>\n```"
+    ]
+  },
+  {
+    "name": "Calendar",
+    "slug": "components/preview/calendar",
+    "kind": "component",
+    "category": "Forms",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/calendar",
+    "summary": "A date field component that allows users to enter and edit date.",
+    "jsdoc": "A calendar component that allows users to select a date or a range of dates.",
+    "examples": [
+      "```tsx\n<Calendar\n  mode=\"single\"\n  selected={selectedDate}\n  onSelect={setSelectedDate}\n/>\n\n<Calendar\n  mode=\"range\"\n  selected={dateRange}\n  onSelect={setDateRange}\n/>\n```\n\nhttps://github.com/ngrok/mantle/issues"
+    ]
+  },
+  {
+    "name": "Card",
+    "slug": "components/structure/card",
+    "kind": "component",
+    "category": "Structure",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/card",
+    "summary": "A container used to display content in a box, resembling a physical card.",
+    "jsdoc": "A container that can be used to display content in a box resembling a physical card.",
+    "examples": [
+      "Composition:\n```\nCard.Root\n├── Card.Header\n│   └── Card.Title\n├── Card.Body\n└── Card.Footer\n```",
+      "```tsx\n<Card.Root>\n  <Card.Body>\n    <p>Laborum in aute officia adipisicing elit velit.</p>\n  </Card.Body>\n</Card.Root>\n\n<Card.Root>\n  <Card.Header>\n    <Card.Title>Card Title Here</Card.Title>\n  </Card.Header>\n  <Card.Body>\n    <p>Laborum in aute officia adipisicing elit velit.</p>\n  </Card.Body>\n  <Card.Footer>\n    <p>Card footer</p>\n  </Card.Footer>\n</Card.Root>\n```"
+    ]
+  },
+  {
+    "name": "Checkbox",
+    "slug": "components/forms/checkbox",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/checkbox",
+    "summary": "A form control that allows the user to toggle between checked and not checked. Supports indeterminate state.",
+    "jsdoc": "A form control that allows the user to toggle between checked and not checked.",
+    "examples": [
+      "```tsx\n<form>\n  <Label htmlFor=\"terms\" className=\"flex items-center gap-2\">\n    <Checkbox name=\"terms\" id=\"terms\" />\n    Accept terms and conditions\n  </Label>\n</form>\n```"
+    ]
+  },
+  {
+    "name": "Choice",
+    "slug": "components/forms/choice",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/choice",
+    "summary": "A reusable indicator-left / content-right layout for a single choice — a control beside a titled, multi-line label.",
+    "jsdoc": "A reusable indicator-left / content-right layout for a single choice: a control (checkbox, radio, switch) beside an emphasized title and an optional de-emphasized description.",
+    "examples": [
+      "Composition:\n```\nChoice.Root\n├── Choice.Indicator\n└── Choice.Content\n    ├── Choice.Label        (or Choice.Title — pick one)\n    └── Choice.Description\n```",
+      "```tsx\n<Choice.Root name=\"notify\">\n  <Choice.Indicator>\n    <Checkbox />\n  </Choice.Indicator>\n  <Choice.Content>\n    <Choice.Label>Email</Choice.Label>\n    <Choice.Description>Get notified by email.</Choice.Description>\n  </Choice.Content>\n</Choice.Root>\n```"
+    ]
+  },
+  {
+    "name": "Code",
+    "slug": "components/data-display/code",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/code",
+    "summary": "Marks a short fragment of inline computer code — a function name, a variable, a CLI flag, a key.",
+    "jsdoc": "Marks a short fragment of inline computer code — a function name, a variable, a CLI flag, a key.",
+    "examples": [
+      "```tsx\nimport { Code } from \"@ngrok/mantle/code\";\n\n<p>\n  Use the <Code>console.log()</Code> function to debug your code.\n</p>\n\n// As a link, preserving Code styling.\n<Code asChild>\n  <a href=\"/api\">/api/components.json</a>\n</Code>\n```"
+    ]
+  },
+  {
+    "name": "Code Block",
+    "slug": "components/data-display/code-block",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/code-block",
+    "summary": "Code blocks render and apply syntax highlighting to blocks of code using Shiki at build time.",
+    "jsdoc": "Shiki-powered code blocks with build-time syntax highlighting and zero browser bundle.",
+    "examples": [
+      "Composition:\n```\n# Standard\nCodeBlock.Root\n├── CodeBlock.Header\n│   ├── CodeBlock.Icon\n│   └── CodeBlock.Title\n├── CodeBlock.Body\n│   ├── CodeBlock.CopyButton\n│   └── CodeBlock.Code\n└── CodeBlock.ExpanderButton\n\n# Tabbed\nCodeBlock.Root\n├── CodeBlock.Header\n│   └── CodeBlock.TabList\n│       └── CodeBlock.TabTrigger\n├── CodeBlock.Body\n│   ├── CodeBlock.CopyButton\n│   └── CodeBlock.TabContent\n│       └── CodeBlock.Code\n└── CodeBlock.ExpanderButton\n```",
+      "```tsx\n<CodeBlock.Root>\n  <CodeBlock.Header>\n    <CodeBlock.Icon preset=\"file\" />\n    <CodeBlock.Title>example.ts</CodeBlock.Title>\n  </CodeBlock.Header>\n  <CodeBlock.Body>\n    <CodeBlock.CopyButton />\n    <CodeBlock.Code value={mantleCode(\"typescript\")`const x = \"hello\";`} />\n  </CodeBlock.Body>\n  <CodeBlock.ExpanderButton />\n</CodeBlock.Root>\n\n// Server-highlighted HTML fetched via an action route + React Query mutation\nconst highlightMutation = useMutation({\n  mutationFn: async () => {\n    const response = await fetch(\"/api/shiki-highlight\", {\n      method: \"POST\",\n      headers: { \"Content-Type\": \"application/json\" },\n      body: JSON.stringify({ code: source, language: \"typescript\" }),\n    });\n    return response.json();\n  },\n});\n\nconst serverValue = createMantleCodeBlockValue({\n  language: \"typescript\",\n  code: source,\n  preHtml: highlightMutation.data?.html,\n});\n```"
+    ]
+  },
+  {
+    "name": "Combobox",
+    "slug": "components/forms/combobox",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/combobox",
+    "summary": "Fill in a React input field with autocomplete & autosuggest functionalities. Choose from a list of suggested values with full keyboard support.",
+    "jsdoc": "Fill in a React input field with autocomplete & autosuggest functionalities.",
+    "examples": [
+      "Composition:\n```\nCombobox.Root\n├── Combobox.Input\n└── Combobox.Content\n    ├── Combobox.Group\n    │   ├── Combobox.GroupLabel\n    │   └── Combobox.Item\n    │       └── Combobox.ItemValue\n    └── Combobox.Separator\n```",
+      "```tsx\n<Combobox.Root>\n  <Combobox.Input />\n  <Combobox.Content>\n    <Combobox.Item value=\"Apple\" />\n    <Combobox.Item value=\"Banana\" />\n  </Combobox.Content>\n</Combobox.Root>\n```"
+    ]
+  },
+  {
+    "name": "Command",
+    "slug": "components/navigation/command",
+    "kind": "component",
+    "category": "Navigation",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/command",
+    "summary": "A command palette that allows users to search and execute commands.",
+    "jsdoc": "The command component for the Command.",
+    "examples": [
+      "Composition:\n```\nCommand.DialogRoot\n├── Command.DialogTrigger\n└── Command.DialogContent\n    ├── Command.Input\n    └── Command.List\n        ├── Command.Empty\n        ├── Command.Group\n        │   └── Command.Item\n        │       └── Command.Shortcut\n        └── Command.Separator\n```",
+      "```tsx\n<Command.DialogRoot open={open} onOpenChange={setOpen}>\n  <Command.DialogTrigger asChild>\n    <Button type=\"button\">Open Command Palette</Button>\n  </Command.DialogTrigger>\n  <Command.DialogContent>\n    <Command.Input placeholder=\"Type a command or search...\" />\n    <Command.List>\n      <Command.Empty>No results found.</Command.Empty>\n      <Command.Group heading=\"Suggestions\">\n        <Command.Item>\n          <span>Calendar</span>\n        </Command.Item>\n      </Command.Group>\n      <Command.Separator />\n      <Command.Group heading=\"Settings\">\n        <Command.Item>\n          <span>Profile</span>\n          <Command.Shortcut>⌘,</Command.Shortcut>\n        </Command.Item>\n      </Command.Group>\n    </Command.List>\n  </Command.DialogContent>\n</Command.DialogRoot>\n```"
+    ]
+  },
+  {
+    "name": "Data Table",
+    "slug": "components/data-display/data-table",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/data-table",
+    "summary": "Tables purposefully designed for dynamic, application data with features like sorting, filtering, and pagination.",
+    "jsdoc": "Use `DataTable` for INTERACTIVE tabular data — sorting, filtering, pagination, row selection, and server-side or client-side data.",
+    "examples": [
+      "Composition:\n```\nDataTable.Root\n├── DataTable.Head\n│   └── DataTable.Row\n│       ├── DataTable.ExpandHeader\n│       ├── DataTable.Header\n│       │   └── DataTable.HeaderSortButton\n│       └── DataTable.ActionHeader\n└── DataTable.Body\n    ├── DataTable.Row\n    │   ├── DataTable.Cell\n    │   │   └── DataTable.RowExpandButton\n    │   └── DataTable.ActionCell\n    ├── DataTable.ExpandedRow\n    └── DataTable.EmptyRow\n```",
+      "Minimal — read-only table with a single sortable column:\n```tsx\nimport {\n  DataTable,\n  createColumnHelper,\n  getCoreRowModel,\n  useReactTable,\n} from \"@ngrok/mantle/data-table\";\n\ntype Row = { id: string; name: string };\n\nconst columnHelper = createColumnHelper<Row>();\nconst columns = [\n  columnHelper.accessor(\"name\", {\n    id: \"name\",\n    header: (props) => (\n      <DataTable.Header>\n        <DataTable.HeaderSortButton column={props.column} sortingMode=\"alphanumeric\">\n          Name\n        </DataTable.HeaderSortButton>\n      </DataTable.Header>\n    ),\n    cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,\n  }),\n];\n\nfunction MyTable({ data }: { data: Row[] }) {\n  const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });\n  const rows = table.getRowModel().rows;\n\n  return (\n    <DataTable.Root table={table}>\n      <DataTable.Head />\n      <DataTable.Body>\n        {rows.length > 0\n          ? rows.map((row) => <DataTable.Row key={row.id} row={row} />)\n          : <DataTable.EmptyRow>No results.</DataTable.EmptyRow>}\n      </DataTable.Body>\n    </DataTable.Root>\n  );\n}\n```",
+      "Sortable, filterable, paginated, with both empty states — a global text\nfilter, the no-data vs. no-results-for-filter empty states (an `Empty`\ndropped into `DataTable.EmptyRow`), and `CursorPagination` with a page-size\ndropdown:\n```tsx\nimport {\n  DataTable,\n  createColumnHelper,\n  getCoreRowModel,\n  getFilteredRowModel,\n  getPaginationRowModel,\n  getSortedRowModel,\n  useReactTable,\n} from \"@ngrok/mantle/data-table\";\nimport { Button } from \"@ngrok/mantle/button\";\nimport { CursorPagination } from \"@ngrok/mantle/pagination\";\nimport { Empty } from \"@ngrok/mantle/empty\";\nimport { Input } from \"@ngrok/mantle/input\";\nimport { MagnifyingGlassIcon } from \"@phosphor-icons/react/MagnifyingGlass\";\nimport { TrayIcon } from \"@phosphor-icons/react/Tray\";\nimport { useState } from \"react\";\n\ntype Payment = { id: string; amount: number; status: \"pending\" | \"succeeded\" | \"failed\"; email: string };\n\n// `defaultPageSize` seeds an UNCONTROLLED <Select>, so keep it stable — a\n// module const (or the table's INITIAL page size), never the live page size.\nconst DEFAULT_PAGE_SIZE = 10;\n\nconst columnHelper = createColumnHelper<Payment>();\nconst columns = [\n  columnHelper.accessor(\"status\", {\n    id: \"status\",\n    header: (props) => (\n      <DataTable.Header>\n        <DataTable.HeaderSortButton column={props.column} sortingMode=\"alphanumeric\">\n          Status\n        </DataTable.HeaderSortButton>\n      </DataTable.Header>\n    ),\n    cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,\n  }),\n  columnHelper.accessor(\"email\", {\n    id: \"email\",\n    header: (props) => (\n      <DataTable.Header>\n        <DataTable.HeaderSortButton column={props.column} sortingMode=\"alphanumeric\">\n          Email\n        </DataTable.HeaderSortButton>\n      </DataTable.Header>\n    ),\n    cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,\n  }),\n  columnHelper.accessor(\"amount\", {\n    id: \"amount\",\n    header: (props) => (\n      <DataTable.Header className=\"text-right\">\n        <DataTable.HeaderSortButton\n          column={props.column}\n          sortingMode=\"alphanumeric\"\n          className=\"justify-end\"\n          iconPlacement=\"start\"\n        >\n          Amount\n        </DataTable.HeaderSortButton>\n      </DataTable.Header>\n    ),\n    cell: (props) => (\n      <DataTable.Cell className=\"text-right tabular-nums\">\n        {new Intl.NumberFormat(\"en-US\", { style: \"currency\", currency: \"USD\" }).format(props.getValue())}\n      </DataTable.Cell>\n    ),\n  }),\n];\n\nfunction PaymentsTable({ data }: { data: Payment[] }) {\n  const [globalFilter, setGlobalFilter] = useState(\"\");\n\n  const table = useReactTable({\n    data,\n    columns,\n    state: { globalFilter },\n    onGlobalFilterChange: setGlobalFilter,\n    getCoreRowModel: getCoreRowModel(),\n    getSortedRowModel: getSortedRowModel(),\n    getFilteredRowModel: getFilteredRowModel(),\n    getPaginationRowModel: getPaginationRowModel(),\n    initialState: { pagination: { pageSize: DEFAULT_PAGE_SIZE } },\n  });\n  const rows = table.getRowModel().rows;\n  const isFiltered = globalFilter.trim() !== \"\";\n\n  return (\n    <div className=\"space-y-4\">\n      <Input\n        placeholder=\"Filter payments…\"\n        value={globalFilter}\n        onChange={(event) => setGlobalFilter(event.target.value)}\n      />\n      <DataTable.Root table={table}>\n        <DataTable.Head />\n        <DataTable.Body>\n          {rows.length > 0 ? (\n            rows.map((row) => <DataTable.Row key={row.id} row={row} />)\n          ) : isFiltered ? (\n            // No results for the active filter — give the user a way out.\n            <DataTable.EmptyRow>\n              <Empty.Root>\n                <Empty.Icon svg={<MagnifyingGlassIcon />} />\n                <Empty.Title>No payments match your filter</Empty.Title>\n                <Empty.Description>\n                  <p>Try a different search, or clear the filter to see everything.</p>\n                </Empty.Description>\n                <Empty.Actions>\n                  <Button\n                    type=\"button\"\n                    appearance=\"outlined\"\n                    priority=\"neutral\"\n                    onClick={() => setGlobalFilter(\"\")}\n                  >\n                    Clear filters\n                  </Button>\n                </Empty.Actions>\n              </Empty.Root>\n            </DataTable.EmptyRow>\n          ) : (\n            // No data yet — informational, optionally a primary \"create\" action.\n            <DataTable.EmptyRow>\n              <Empty.Root>\n                <Empty.Icon svg={<TrayIcon />} />\n                <Empty.Title>No payments yet</Empty.Title>\n                <Empty.Description>\n                  <p>Payments you receive will appear here.</p>\n                </Empty.Description>\n              </Empty.Root>\n            </DataTable.EmptyRow>\n          )}\n        </DataTable.Body>\n      </DataTable.Root>\n      <CursorPagination.Root className=\"flex justify-end\" defaultPageSize={DEFAULT_PAGE_SIZE}>\n        <CursorPagination.PageSizeSelect\n          onChangePageSize={(size) => {\n            table.setPageSize(size);\n            table.setPageIndex(0); // reset to the first page when the size changes\n          }}\n        />\n        <CursorPagination.Buttons\n          hasPreviousPage={table.getCanPreviousPage()}\n          hasNextPage={table.getCanNextPage()}\n          onPreviousPage={() => table.previousPage()}\n          onNextPage={() => table.nextPage()}\n        />\n      </CursorPagination.Root>\n    </div>\n  );\n}\n```",
+      "Row action column — a sticky right-edge cell with a dropdown menu of actions.\nIf the row also has `onClick`, stop propagation on the action cell so clicks\ndon't bubble up and fire the row handler:\n```tsx\nimport { DataTable, createColumnHelper } from \"@ngrok/mantle/data-table\";\nimport { DropdownMenu } from \"@ngrok/mantle/dropdown-menu\";\nimport { IconButton } from \"@ngrok/mantle/icon-button\";\nimport { DotsThreeVerticalIcon } from \"@phosphor-icons/react/DotsThreeVertical\";\n\nconst columnHelper = createColumnHelper<Payment>();\n\nconst columns = [\n  // …other columns…\n  columnHelper.display({\n    id: \"actions\",\n    header: () => <DataTable.ActionHeader />,\n    cell: (props) => (\n      <DataTable.ActionCell onClick={(event) => event.stopPropagation()}>\n        <DropdownMenu.Root>\n          <DropdownMenu.Trigger asChild>\n            <IconButton type=\"button\" label=\"Actions\" icon={<DotsThreeVerticalIcon />} />\n          </DropdownMenu.Trigger>\n          <DropdownMenu.Content align=\"end\">\n            <DropdownMenu.Item onSelect={() => copy(props.row.original.id)}>\n              Copy ID\n            </DropdownMenu.Item>\n            <DropdownMenu.Item onSelect={() => refund(props.row.original.id)}>\n              Refund\n            </DropdownMenu.Item>\n          </DropdownMenu.Content>\n        </DropdownMenu.Root>\n      </DataTable.ActionCell>\n    ),\n  }),\n];\n```",
+      "Clickable row navigating to a detail page — also render a `<Link>` inside the\nprimary cell so the row is reachable by keyboard and screen readers (a `<tr>`\nis not focusable):\n```tsx\nimport { DataTable } from \"@ngrok/mantle/data-table\";\nimport { Link, href, useNavigate } from \"react-router\";\n\nfunction PaymentsTable({ data }: { data: Payment[] }) {\n  const navigate = useNavigate();\n  const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });\n  const rows = table.getRowModel().rows;\n\n  return (\n    <DataTable.Root table={table}>\n      <DataTable.Head />\n      <DataTable.Body>\n        {rows.map((row) => (\n          <DataTable.Row\n            key={row.id}\n            row={row}\n            onClick={() => navigate(href(\"/payments/:id\", { id: row.original.id }))}\n          />\n        ))}\n      </DataTable.Body>\n    </DataTable.Root>\n  );\n}\n\n// The primary column's cell renders a <Link> for keyboard / a11y reachability.\ncolumnHelper.accessor(\"email\", {\n  id: \"email\",\n  header: (props) => <DataTable.Header>Email</DataTable.Header>,\n  cell: (props) => (\n    <DataTable.Cell>\n      <Link to={href(\"/payments/:id\", { id: props.row.original.id })}>\n        {props.getValue()}\n      </Link>\n    </DataTable.Cell>\n  ),\n});\n```"
+    ]
+  },
+  {
+    "name": "Description List",
+    "slug": "components/data-display/description-list",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/description-list",
+    "summary": "A semantically correct description list built on the HTML dl element. Renders a list of label/value pairs, commonly used in detail views to display metadata about a resource.",
+    "jsdoc": "A semantically correct description list built on the HTML `<dl>` element.",
+    "examples": [
+      "Composition:\n```\nDescriptionList.Root\n└── DescriptionList.Item\n    ├── DescriptionList.Label\n    └── DescriptionList.Value\n```",
+      "```tsx\n<DescriptionList.Root>\n  <DescriptionList.Item>\n    <DescriptionList.Label>Name</DescriptionList.Label>\n    <DescriptionList.Value>my-api-key</DescriptionList.Value>\n  </DescriptionList.Item>\n  <DescriptionList.Item>\n    <DescriptionList.Label>ID</DescriptionList.Label>\n    <DescriptionList.Value>\n      aigk_2fKm9x8Hn3QpYT7zKlR0vW5\n    </DescriptionList.Value>\n  </DescriptionList.Item>\n</DescriptionList.Root>\n```"
+    ]
+  },
+  {
+    "name": "Dialog",
+    "slug": "components/overlays/dialog",
+    "kind": "component",
+    "category": "Overlays",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/dialog",
+    "summary": "A window overlaid on either the primary window or another dialog window, rendering the content underneath inert.",
+    "jsdoc": "A window overlaid on either the primary window or another dialog window.",
+    "examples": [
+      "Composition:\n```\nDialog.Root\n├── Dialog.Trigger\n└── Dialog.Content\n    ├── Dialog.Header\n    │   ├── Dialog.Title\n    │   ├── Dialog.Description\n    │   └── Dialog.CloseIconButton\n    ├── Dialog.Body\n    └── Dialog.Footer\n        └── Dialog.Close\n```",
+      "```tsx\n<Dialog.Root>\n  <Dialog.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\">Open Dialog</Button>\n  </Dialog.Trigger>\n  <Dialog.Content>\n    <Dialog.Header>\n      <Dialog.Title>Dialog Title</Dialog.Title>\n      <Dialog.Description>This is an optional description.</Dialog.Description>\n      <Dialog.CloseIconButton />\n    </Dialog.Header>\n    <Dialog.Body>\n      <p>This is the dialog content.</p>\n    </Dialog.Body>\n    <Dialog.Footer>\n      <Dialog.Close asChild>\n        <Button type=\"button\" appearance=\"outlined\">Cancel</Button>\n      </Dialog.Close>\n      <Button type=\"button\" appearance=\"filled\">Save</Button>\n    </Dialog.Footer>\n  </Dialog.Content>\n</Dialog.Root>\n```"
+    ]
+  },
+  {
+    "name": "Dropdown Menu",
+    "slug": "components/overlays/dropdown-menu",
+    "kind": "component",
+    "category": "Overlays",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/dropdown-menu",
+    "summary": "Displays a menu to the user — such as a set of actions or functions — triggered by a button.",
+    "jsdoc": "A menu of options or actions, triggered by a button. `DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind `z-50`, Mantle's shared floating z-index.",
+    "examples": [
+      "Composition:\n```\nDropdownMenu.Root\n├── DropdownMenu.Trigger\n└── DropdownMenu.Content\n    ├── DropdownMenu.Group\n    │   ├── DropdownMenu.Label\n    │   ├── DropdownMenu.Item\n    │   │   └── DropdownMenu.Shortcut\n    │   ├── DropdownMenu.CheckboxItem\n    │   └── DropdownMenu.RadioGroup\n    │       └── DropdownMenu.RadioItem\n    ├── DropdownMenu.Separator\n    └── DropdownMenu.Sub\n        ├── DropdownMenu.SubTrigger\n        └── DropdownMenu.SubContent\n```",
+      "```tsx\n<DropdownMenu.Root>\n  <DropdownMenu.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\">\n      Open Menu\n    </Button>\n  </DropdownMenu.Trigger>\n  <DropdownMenu.Content>\n    <DropdownMenu.Item>Item 1</DropdownMenu.Item>\n    <DropdownMenu.Item>Item 2</DropdownMenu.Item>\n  </DropdownMenu.Content>\n</DropdownMenu.Root>\n```"
+    ]
+  },
+  {
+    "name": "Empty",
+    "slug": "components/feedback/empty",
+    "kind": "component",
+    "category": "Feedback",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/empty",
+    "summary": "Display a placeholder when there is no data or content to show.",
+    "jsdoc": "Compound component for rendering empty states.",
+    "examples": [
+      "Composition:\n```\nEmpty.Root\n├── Empty.Icon\n├── Empty.Title\n├── Empty.Description\n└── Empty.Actions\n```",
+      "```tsx\n<Empty.Root>\n  <Empty.Icon svg={<GhostIcon />} />\n  <Empty.Title>No endpoints yet</Empty.Title>\n  <Empty.Description>\n    Create your first endpoint to get started.\n  </Empty.Description>\n  <Empty.Actions>\n    <Button>Create endpoint</Button>\n  </Empty.Actions>\n</Empty.Root>\n```"
+    ]
+  },
+  {
+    "name": "Field",
+    "slug": "components/forms/field",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/field",
+    "summary": "Layout primitive for a single form field — label, control, helper text, and error messaging stacked together with consistent spacing.",
+    "jsdoc": "Compound component for semantic, accessible form fields.",
+    "examples": [
+      "Composition:\n```\nField.Group\n└── Field.Item\n    ├── Field.LabelRow\n    │   ├── Field.Label            (or Field.LabelText for control-less rows)\n    │   │   └── Field.Optional\n    │   └── Field.Help\n    │       ├── Field.HelpTrigger\n    │       └── Field.HelpContent\n    ├── Field.Control\n    │   └── (control)\n    ├── Field.Errors             (or)\n    ├── Field.ErrorList\n    │   └── Field.ErrorItem\n    └── Field.Description\n```",
+      "```tsx\n<Field.Group>\n  <Field.Item name=\"apiKey\">\n    <Field.LabelRow>\n      <Field.Label>\n        API key <Field.Optional />\n      </Field.Label>\n      <Field.Help>\n        <Field.HelpTrigger label=\"What is an API key?\" />\n        <Field.HelpContent>Copy this from the dashboard.</Field.HelpContent>\n      </Field.Help>\n    </Field.LabelRow>\n    <Field.Control>\n      <Input />\n    </Field.Control>\n    <Field.Errors messages={[\"API key is required.\"]} />\n    <Field.Description>You can find this in the ngrok dashboard.</Field.Description>\n  </Field.Item>\n</Field.Group>\n```"
+    ]
+  },
+  {
+    "name": "Flag",
+    "slug": "components/data-display/flag",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/flag",
+    "summary": "Displays a flag as an svg based on the provided country code.",
+    "jsdoc": "Renders a country flag from an [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, served as an SVG from ngrok's CDN.",
+    "examples": [
+      "```tsx\nimport { Flag } from \"@ngrok/mantle/flag\";\n\n<Flag code=\"US\" />\n<Flag code=\"JP\" size=\"m\" loading=\"eager\" />\n<Flag code=\"CA\" size=\"s\" />\n\n// Inline next to a country label.\n<span className=\"inline-flex items-center gap-2\">\n  <Flag code=\"GB\" size=\"s\" aria-hidden />\n  <span>United Kingdom</span>\n</span>\n```"
+    ]
+  },
+  {
+    "name": "Hover Card",
+    "slug": "components/overlays/hover-card",
+    "kind": "component",
+    "category": "Overlays",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/hover-card",
+    "summary": "For sighted users to preview content available behind a link.",
+    "jsdoc": "A floating card that appears when a user hovers over a trigger element.",
+    "examples": [
+      "Composition:\n```\nHoverCard.Root\n├── HoverCard.Trigger\n└── HoverCard.Content\n```",
+      "```tsx\n<HoverCard.Root>\n  <HoverCard.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\">\n      Hover me\n    </Button>\n  </HoverCard.Trigger>\n  <HoverCard.Content>\n    <p>This is the hover card content.</p>\n  </HoverCard.Content>\n</HoverCard.Root>\n```"
+    ]
+  },
+  {
+    "name": "Icon",
+    "slug": "components/data-display/icon",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/icon",
+    "summary": "Decorates an svg icon with automatic sizing. Useful when applying base styles to phosphor icons.",
+    "jsdoc": "Decorates an svg icon with automatic sizing styles and a `shrink-0` class.",
+    "examples": [
+      "```tsx\nimport { ShrimpIcon } from \"@phosphor-icons/react/Shrimp\";\n\n<Icon svg={<ShrimpIcon />} />\n```"
+    ]
+  },
+  {
+    "name": "Icon Button",
+    "slug": "components/actions/icon-button",
+    "kind": "component",
+    "category": "Actions",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/button",
+    "summary": "Initiates an action, such as completing a task or submitting information. Renders only a single icon as children with an accessible, screen-reader-only label.",
+    "jsdoc": "Renders a button or a component that looks like a button, an interactive element activated by a user with a mouse, keyboard, finger, voice command, or other assistive technology.",
+    "examples": [
+      "```tsx\n<IconButton\n  icon={<TrashIcon />}\n  label=\"Delete item\"\n  appearance=\"ghost\"\n  size=\"sm\"\n  onClick={handleDelete}\n/>\n```",
+      "Submit a form — opt in with `type=\"submit\"` (the default `\"button\"` does not submit):\n```tsx\n<IconButton type=\"submit\" icon={<MagnifyingGlassIcon />} label=\"Search\" />\n```"
+    ]
+  },
+  {
+    "name": "Icons",
+    "slug": "components/data-display/icons",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/icons",
+    "summary": "Custom icons used throughout ngrok UI.",
+    "jsdoc": "Re-exports for the Icons component."
+  },
+  {
+    "name": "Input",
+    "slug": "components/forms/input",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/input",
+    "summary": "Fundamental component for inputs.",
+    "jsdoc": "Used to create interactive controls for web-based forms in order to accept data from the user.",
+    "examples": [
+      "```tsx\n<Input\n  type=\"email\"\n  placeholder=\"Enter your email\"\n  validation=\"success\"\n/>\n```"
+    ]
+  },
+  {
+    "name": "Kbd",
+    "slug": "components/data-display/kbd",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/kbd",
+    "summary": "A square, centered keyboard \"key\" chip for rendering keyboard shortcut hints.",
+    "jsdoc": "A square, centered keyboard \"key\" chip for rendering shortcut hints — \"K\", \"⌘\", \"⌃\", \"Enter\".",
+    "examples": [
+      "```tsx\nimport { Kbd } from \"@ngrok/mantle/kbd\";\n\n// Letter key.\n<Kbd>K</Kbd>\n\n// Chord — render each key separately.\n<span>\n  <Kbd aria-label=\"Command\">⌘</Kbd> + <Kbd>K</Kbd>\n</span>\n\n// Symbol with sr-only label.\n<Kbd>\n  <span className=\"sr-only\">Enter</span>\n  <span aria-hidden>↵</span>\n</Kbd>\n```"
+    ]
+  },
+  {
+    "name": "Label",
+    "slug": "components/forms/label",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/label",
+    "summary": "A Label represents a caption for an item in a user interface. Renders an accessible label associated with controls.",
+    "jsdoc": "A caption for a form control — input, checkbox, radio, switch, select.",
+    "examples": [
+      "```tsx\nimport { Label } from \"@ngrok/mantle/label\";\nimport { Input } from \"@ngrok/mantle/input\";\n\n// Implicit — control nested inside the label.\n<Label className=\"grid gap-1\">\n  <span>Email</span>\n  <Input type=\"email\" name=\"email\" />\n</Label>\n\n// Explicit — htmlFor matches the control's id.\n<div className=\"grid gap-1\">\n  <Label htmlFor=\"api-key\">API key</Label>\n  <Input id=\"api-key\" name=\"apiKey\" />\n</div>\n\n// Inline label for a checkbox.\n<Label className=\"flex items-center gap-2\">\n  <Checkbox name=\"terms\" />\n  <span>I agree to the terms</span>\n</Label>\n```"
+    ]
+  },
+  {
+    "name": "List",
+    "slug": "components/data-display/list",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/list",
+    "summary": "A scrollable, optionally-virtualized list of clickable items.",
+    "jsdoc": "A scrollable, optionally-virtualized list of clickable items — the action / navigation counterpart to `SelectableList` (e.g. an account switcher or SSO provider picker).",
+    "examples": [
+      "Composition:\n```\nList.Root   (or .VirtualRoot)\n└── List.Item\n    ├── List.ItemTitle\n    └── List.ItemDescription\n```",
+      "```tsx\n<List.Root aria-label=\"Your accounts\" className=\"max-h-80\">\n  {accounts.map((account) => (\n    <List.Item key={account.id} onClick={() => switchTo(account.id)}>\n      <List.ItemTitle>{account.name}</List.ItemTitle>\n      <List.ItemDescription>\n        {account.plan} · {account.memberCount} members\n      </List.ItemDescription>\n    </List.Item>\n  ))}\n</List.Root>\n```"
+    ]
+  },
+  {
+    "name": "Main",
+    "slug": "components/primitives/main",
+    "kind": "component",
+    "category": "Primitives",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/main",
+    "summary": "A focusable `<main>` landmark for the page's primary content, designed to be paired with a skip link.",
+    "jsdoc": "A focusable `<main>` landmark for the page's primary content.",
+    "examples": [
+      "```tsx\n<SkipToMainLink />\n<Header />\n<Main>\n  <h1>Page title</h1>\n</Main>\n```"
+    ]
+  },
+  {
+    "name": "Media Object",
+    "slug": "components/structure/media-object",
+    "kind": "component",
+    "category": "Structure",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/media-object",
+    "summary": "The Media Object is an image/icon (media) to the left, with descriptive content (title and subtitle/description) to the right.",
+    "jsdoc": "A small, reusable layout primitive for \"image/icon on one side, descriptive content on the other\" — the foundational \"media object\" pattern.",
+    "examples": [
+      "Composition:\n```\nMediaObject.Root\n├── MediaObject.Media\n└── MediaObject.Content\n```",
+      "```tsx\nimport { MediaObject } from \"@ngrok/mantle/media-object\";\n\n<MediaObject.Root>\n  <MediaObject.Media>\n    <Avatar src={user.avatarUrl} alt=\"\" />\n  </MediaObject.Media>\n  <MediaObject.Content>\n    <p className=\"font-medium\">{user.name}</p>\n    <p className=\"text-muted text-sm\">{comment}</p>\n  </MediaObject.Content>\n</MediaObject.Root>\n```"
+    ]
+  },
+  {
+    "name": "Multi Select",
+    "slug": "components/forms/multi-select",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/multi-select",
+    "summary": "A typeahead multi-select combobox that allows users to select multiple values with filtering. Selected values are displayed as removable tags.",
+    "jsdoc": "A multi-select combobox that allows users to select multiple values with typeahead filtering.",
+    "examples": [
+      "Composition:\n```\nMultiSelect.Root\n├── MultiSelect.Trigger\n│   ├── MultiSelect.TagValues\n│   └── MultiSelect.Input\n└── MultiSelect.Content\n    ├── MultiSelect.Group\n    │   ├── MultiSelect.GroupLabel\n    │   ├── MultiSelect.GroupDescription\n    │   └── MultiSelect.Item\n    ├── MultiSelect.Separator\n    ├── MultiSelect.Empty\n    └── MultiSelect.ContentFooter\n```",
+      "```tsx\n<MultiSelect.Root>\n  <MultiSelect.Trigger>\n    <MultiSelect.TagValues />\n    <MultiSelect.Input placeholder=\"Select items...\" />\n  </MultiSelect.Trigger>\n  <MultiSelect.Content>\n    <MultiSelect.Item value=\"apple\">Apple</MultiSelect.Item>\n    <MultiSelect.Item value=\"banana\">Banana</MultiSelect.Item>\n    <MultiSelect.Item value=\"cherry\">Cherry</MultiSelect.Item>\n  </MultiSelect.Content>\n</MultiSelect.Root>\n```"
+    ]
+  },
+  {
+    "name": "OTP Input",
+    "slug": "components/forms/otp-input",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/otp-input",
+    "summary": "Accessible one-time passcode (OTP) input with paste, autofill, and IME support.",
+    "jsdoc": "Compound component for capturing one-time passcodes (OTP).",
+    "examples": [
+      "Composition:\n```\nOtpInput.Root\n├── OtpInput.Group\n│   └── OtpInput.Slot\n├── OtpInput.Separator\n└── OtpInput.Group\n    └── OtpInput.Slot\n```",
+      "```tsx\n<OtpInput.Root maxLength={6}>\n  <OtpInput.Group>\n    <OtpInput.Slot index={0} />\n    <OtpInput.Slot index={1} />\n    <OtpInput.Slot index={2} />\n  </OtpInput.Group>\n  <OtpInput.Separator />\n  <OtpInput.Group>\n    <OtpInput.Slot index={3} />\n    <OtpInput.Slot index={4} />\n    <OtpInput.Slot index={5} />\n  </OtpInput.Group>\n</OtpInput.Root>\n```"
+    ]
+  },
+  {
+    "name": "Pagination",
+    "slug": "components/navigation/pagination",
+    "kind": "component",
+    "category": "Navigation",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/pagination",
+    "summary": "Components and hooks for navigating through paged data with cursor-based and offset-based pagination strategies.",
+    "jsdoc": "Re-exports for the Pagination component."
+  },
+  {
+    "name": "Password Input",
+    "slug": "components/forms/password-input",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/input",
+    "summary": "Fundamental component for password inputs.",
+    "jsdoc": "An input optimized for password and other sensitive-value entry.",
+    "examples": [
+      "```tsx\nimport { PasswordInput } from \"@ngrok/mantle/input\";\nimport { Label } from \"@ngrok/mantle/label\";\nimport { useState } from \"react\";\n\n// Basic — uncontrolled visibility.\n<Label className=\"grid gap-1\">\n  <span>Password</span>\n  <PasswordInput name=\"password\" autoComplete=\"current-password\" />\n</Label>\n\n// Validation state.\n<PasswordInput validation=\"error\" />\n\n// Controlled visibility — one toggle reveals multiple fields.\nfunction PasswordPair() {\n  const [show, setShow] = useState(false);\n  return (\n    <>\n      <PasswordInput showValue={show} onValueVisibilityChange={setShow} />\n      <PasswordInput showValue={show} onValueVisibilityChange={setShow} />\n    </>\n  );\n}\n```"
+    ]
+  },
+  {
+    "name": "Popover",
+    "slug": "components/overlays/popover",
+    "kind": "component",
+    "category": "Overlays",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/popover",
+    "summary": "Displays rich content in a portal, triggered by a button.",
+    "jsdoc": "A floating overlay that displays rich content in a portal, triggered by a button.",
+    "examples": [
+      "Composition:\n```\nPopover.Root\n├── Popover.Trigger\n├── Popover.Anchor\n└── Popover.Content\n    └── Popover.Close\n```",
+      "```tsx\n<Popover.Root>\n  <Popover.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\">\n      Open Popover\n    </Button>\n  </Popover.Trigger>\n  <Popover.Content>\n    <p>This is the popover content.</p>\n  </Popover.Content>\n</Popover.Root>\n```"
+    ]
+  },
+  {
+    "name": "Progress Bar",
+    "slug": "components/feedback/progress-bar",
+    "kind": "component",
+    "category": "Feedback",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/progress",
+    "summary": "Displays an indicator showing the completion progress of a task as a linear progress bar with customizable colors.",
+    "jsdoc": "Displays an indicator showing the completion progress of a task, typically displayed as a progress bar.",
+    "examples": [
+      "Composition:\n```\nProgressBar.Root\n└── ProgressBar.Indicator\n```",
+      "```tsx\n<ProgressBar.Root value={60}>\n  <ProgressBar.Indicator />\n</ProgressBar.Root>\n\n<ProgressBar.Root value={75} max={100}>\n  <ProgressBar.Indicator />\n</ProgressBar.Root>\n\n// Indeterminate progress\n<ProgressBar.Root value=\"indeterminate\">\n  <ProgressBar.Indicator />\n</ProgressBar.Root>\n```"
+    ]
+  },
+  {
+    "name": "Progress Donut",
+    "slug": "components/feedback/progress-donut",
+    "kind": "component",
+    "category": "Feedback",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/progress",
+    "summary": "Displays an indicator showing the completion progress of a task as a circular progress bar.",
+    "jsdoc": "A simple circular progress bar which shows the completion progress of a task.",
+    "examples": [
+      "Composition:\n```\nProgressDonut.Root\n└── ProgressDonut.Indicator\n```",
+      "```tsx\n<ProgressDonut.Root value={60}>\n  <ProgressDonut.Indicator />\n</ProgressDonut.Root>\n\n<ProgressDonut.Root value={60}>\n  <ProgressDonut.Indicator color=\"text-danger-600\" />\n</ProgressDonut.Root>\n```"
+    ]
+  },
+  {
+    "name": "QR Code",
+    "slug": "components/data-display/qr-code",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/qr-code",
+    "summary": "Render a scannable QR code, optionally branded with a centered logo.",
+    "jsdoc": "A QR code.",
+    "examples": [
+      "Composition:\n```\nQrCode.Root\n├── QrCode.Frame\n│   └── QrCode.Pattern\n└── QrCode.Overlay\n```",
+      "```tsx\n<QrCode.Root value=\"https://ngrok.com\" ecc=\"H\">\n  <QrCode.Frame>\n    <QrCode.Pattern />\n  </QrCode.Frame>\n  <QrCode.Overlay>\n    <NgrokLettermarkIcon className=\"size-7\" />\n  </QrCode.Overlay>\n</QrCode.Root>\n```"
+    ]
+  },
+  {
+    "name": "Radio Group",
+    "slug": "components/forms/radio-group",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/radio-group",
+    "summary": "A set of checkable buttons—known as radio buttons—where no more than one of the buttons can be checked at a time.",
+    "jsdoc": "A group of radio items.",
+    "examples": [
+      "Composition:\n```\n# Default radios\nRadioGroup.Root\n└── RadioGroup.Item\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# List layout with descriptions\nRadioGroup.List\n└── RadioGroup.ListItem\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# Segmented button group\nRadioGroup.ButtonGroup\n└── RadioGroup.Button\n\n# Card-style radios\nRadioGroup.Root\n└── RadioGroup.Card\n    └── RadioGroup.Indicator\n```",
+      "```tsx\n<RadioGroup.Root value={value} onChange={setValue}>\n  <RadioGroup.Item value=\"option1\">\n    <RadioGroup.Indicator />\n    <span>Option 1</span>\n  </RadioGroup.Item>\n  <RadioGroup.Item value=\"option2\">\n    <RadioGroup.Indicator />\n    <span>Option 2</span>\n  </RadioGroup.Item>\n</RadioGroup.Root>\n```"
+    ]
+  },
+  {
+    "name": "SandboxedOnClick",
+    "slug": "components/primitives/sandboxed-on-click",
+    "kind": "component",
+    "category": "Primitives",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/sandboxed-on-click",
+    "summary": "A container that prevents the click event from bubbling out of it.",
+    "jsdoc": "A container that prevents the click event from bubbling out of it.",
+    "examples": [
+      "```tsx\n<TableRow onClick={() => navigate(\"/somewhere\")}>\n  <TableRowCell>\n    <SandboxedOnClick allowClickEventDefault>\n      <Anchor href=\"https://ngrok.com/docs\">\n        See ngrok docs\n      </Anchor>\n    </SandboxedOnClick>\n  </TableRowCell>\n</TableRow>\n```"
+    ]
+  },
+  {
+    "name": "Select",
+    "slug": "components/forms/select",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/select",
+    "summary": "Displays a list of options for the user to pick from—triggered by a button.",
+    "jsdoc": "Displays a list of options for the user to pick from—triggered by a button.",
+    "examples": [
+      "Composition:\n```\nSelect.Root\n├── Select.Trigger\n│   └── Select.Value\n└── Select.Content\n    ├── Select.Group\n    │   ├── Select.Label\n    │   └── Select.Item\n    └── Select.Separator\n```",
+      "```tsx\n<Select.Root>\n  <Select.Trigger>\n    <Select.Value placeholder=\"Select a fruit\" />\n  </Select.Trigger>\n  <Select.Content>\n    <Select.Group>\n      <Select.Label>Fruits</Select.Label>\n      <Select.Item value=\"apple\">Apple</Select.Item>\n      <Select.Item value=\"banana\">Banana</Select.Item>\n      <Select.Item value=\"cherry\">Cherry</Select.Item>\n    </Select.Group>\n    <Select.Separator />\n    <Select.Group>\n      <Select.Label>Veggies</Select.Label>\n      <Select.Item value=\"carrot\">Carrot</Select.Item>\n      <Select.Item value=\"cucumber\">Cucumber</Select.Item>\n    </Select.Group>\n  </Select.Content>\n</Select.Root>\n```"
+    ]
+  },
+  {
+    "name": "Selectable List",
+    "slug": "components/data-display/selectable-list",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/selectable-list",
+    "summary": "A filterable, multi-select grid of checkbox rows.",
+    "jsdoc": "A filterable, multi-select **grid** of checkbox rows — the inline (non-popover) counterpart to `MultiSelect`/`Combobox`.",
+    "examples": [
+      "Composition:\n```\nSelectableList.Root\n├── SelectableList.Filter\n├── SelectableList.SelectAll\n├── SelectableList.Viewport            (or .VirtualViewport)\n│   └── SelectableList.Item            (optional render-prop; auto-rendered by default)\n│       ├── SelectableList.ItemTitle\n│       └── SelectableList.ItemDescription\n└── SelectableList.Empty\n```",
+      "```tsx\nconst options = accessKeys.map((key) => ({\n  value: key.id,\n  label: key.name,\n  description: key.maskedToken,\n}));\n\n<SelectableList.Root options={options} value={selected} onValueChange={setSelected}>\n  <SelectableList.Filter placeholder=\"Filter access keys…\" />\n  <SelectableList.SelectAll>Select all</SelectableList.SelectAll>\n  <SelectableList.Viewport aria-label=\"Access keys\" className=\"max-h-80\" />\n  <SelectableList.Empty>No access keys found.</SelectableList.Empty>\n</SelectableList.Root>\n```"
+    ]
+  },
+  {
+    "name": "Separator",
+    "slug": "components/structure/separator",
+    "kind": "component",
+    "category": "Structure",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/separator",
+    "summary": "Visually or semantically separates content.",
+    "jsdoc": "Visually or semantically separates content.",
+    "examples": [
+      "```tsx\n<Separator className=\"my-4\" />\n\n<Separator className=\"my-4\" semantic />\n\n<div className=\"flex h-5 items-center gap-4 text-sm\">\n  Blog\n  <Separator orientation=\"vertical\" />\n  Docs\n  <Separator orientation=\"vertical\" />\n  Source\n</div>\n```"
+    ]
+  },
+  {
+    "name": "Sheet",
+    "slug": "components/overlays/sheet",
+    "kind": "component",
+    "category": "Overlays",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/sheet",
+    "summary": "A container that overlays the current view from the edge of the screen.",
+    "jsdoc": "A container that overlays the current view from the edge of the screen.",
+    "examples": [
+      "Composition:\n```\nSheet.Root\n├── Sheet.Trigger\n└── Sheet.Content\n    ├── Sheet.Header\n    │   ├── Sheet.TitleGroup\n    │   │   ├── Sheet.Title\n    │   │   └── Sheet.Actions\n    │   └── Sheet.Description\n    ├── Sheet.Body\n    └── Sheet.Footer\n        └── Sheet.Close\n```",
+      "```tsx\n// Triggering a stateful sheet\n<Sheet.Root>\n  <Sheet.Trigger asChild>\n    <Button type=\"button\" appearance=\"filled\">\n      Open Sheet\n    </Button>\n  </Sheet.Trigger>\n  <Sheet.Content>\n    <Sheet.Header>\n      <Sheet.TitleGroup>\n        <Sheet.Title>Are you absolutely sure?</Sheet.Title>\n        <Sheet.Actions>\n          <IconButton\n            appearance=\"ghost\"\n            type=\"button\"\n            icon={<TrashSimple />}\n            label=\"Delete\"\n          />\n          <Separator orientation=\"vertical\" className=\"h-[80%]\" />\n          <Sheet.CloseIconButton />\n        </Sheet.Actions>\n      </Sheet.TitleGroup>\n      <Sheet.Description>\n        This action cannot be undone. This will permanently delete your account and remove your data from our servers.\n      </Sheet.Description>\n    </Sheet.Header>\n    <Sheet.Body>\n      <p>\n        Consequat do voluptate culpa fugiat consequat nostrud duis\n        aliqua minim. Tempor voluptate cillum elit velit. Voluptate\n        aliqua ipsum aliqua dolore in nisi ea fugiat aliqua velit\n        proident amet.\n      </p>\n    </Sheet.Body>\n    <Sheet.Footer>\n      <Sheet.Close asChild>\n        <Button type=\"button\">Close</Button>\n      </Sheet.Close>\n      <Button type=\"button\" appearance=\"filled\">\n        Save\n      </Button>\n    </Sheet.Footer>\n  </Sheet.Content>\n</Sheet.Root>\n```",
+      "```tsx\n// Sheet without a trigger (e.g. router controlled)\n<Sheet open onOpenChange={() => onClose()}>\n  <Sheet.Content>\n    <Sheet.Header>\n      <Sheet.TitleGroup>\n        <Sheet.Title>Are you absolutely sure?</Sheet.Title>\n        <Sheet.Actions>\n          <IconButton\n            appearance=\"ghost\"\n            type=\"button\"\n            icon={<TrashSimple />}\n            label=\"Delete\"\n          />\n          <Separator orientation=\"vertical\" className=\"h-[80%]\" />\n          <Sheet.CloseIconButton />\n        </Sheet.Actions>\n      </Sheet.TitleGroup>\n      <Sheet.Description>\n        This action cannot be undone. This will permanently delete your account and remove your data from our servers.\n      </Sheet.Description>\n    </Sheet.Header>\n    <Sheet.Body>\n      <p>\n        Consequat do voluptate culpa fugiat consequat nostrud duis\n        aliqua minim. Tempor voluptate cillum elit velit. Voluptate\n        aliqua ipsum aliqua dolore in nisi ea fugiat aliqua velit\n        proident amet.\n      </p>\n    </Sheet.Body>\n    <Sheet.Footer>\n      <Sheet.Close asChild>\n        <Button type=\"button\">Close</Button>\n      </Sheet.Close>\n      <Button type=\"button\" appearance=\"filled\">\n        Save\n      </Button>\n    </Sheet.Footer>\n  </Sheet.Content>\n</Sheet.Root>\n```"
+    ]
+  },
+  {
+    "name": "Skeleton",
+    "slug": "components/feedback/skeleton",
+    "kind": "component",
+    "category": "Feedback",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/skeleton",
+    "summary": "Use to show a placeholder while content is loading.",
+    "jsdoc": "A skeleton is a placeholder for content that is loading.",
+    "examples": [
+      "```tsx\nimport { Skeleton } from \"@ngrok/mantle/skeleton\";\n\n// Text-line placeholder.\n<Skeleton className=\"w-1/2\" />\n\n// Avatar placeholder.\n<Skeleton className=\"h-12 w-12 rounded-full\" />\n\n// Announce loading state to assistive tech.\n<div role=\"status\" aria-live=\"polite\">\n  <span className=\"sr-only\">Loading profile…</span>\n  <Skeleton className=\"h-12 w-12 rounded-full\" />\n</div>\n```"
+    ]
+  },
+  {
+    "name": "Skip to Main Link",
+    "slug": "components/primitives/skip-to-main-link",
+    "kind": "component",
+    "category": "Primitives",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/skip-to-main-link",
+    "summary": "A visually-hidden-until-focused \"skip link\" that lets keyboard users jump to the page's main content landmark.",
+    "jsdoc": "A visually-hidden-until-focused \"skip link\" that lets keyboard users jump past repeated navigation and land directly on the page's main content landmark.",
+    "examples": [
+      "```tsx\n<SkipToMainLink />\n<Header />\n<Main>\n  <h1>Page title</h1>\n</Main>\n```"
+    ]
+  },
+  {
+    "name": "Slider",
+    "slug": "components/forms/slider",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/slider",
+    "summary": "An input where the user selects a value from within a given range.",
+    "jsdoc": "An input where the user selects a value from within a given range.",
+    "examples": [
+      "```tsx\n// single thumb\n<Slider\n  aria-label=\"Volume\"\n  defaultValue={75}\n  max={100}\n  step={1}\n/>\n```",
+      "```tsx\n// range\n <Slider\n   aria-label=\"Price\"\n   defaultValue={[25, 50]}\n   max={100}\n   step={5}\n />\n```",
+      "```tsx\n// multiple thumbs\n<Slider\n  aria-label=\"Breakpoint\"\n  defaultValue={[10, 20, 70]}\n  max={100}\n  step={10}\n />\n```"
+    ]
+  },
+  {
+    "name": "Slot",
+    "slug": "components/primitives/slot",
+    "kind": "component",
+    "category": "Primitives",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/slot",
+    "summary": "Merges its props onto its immediate child.",
+    "jsdoc": "Merges its props onto its immediate child.",
+    "examples": [
+      "```tsx\n<Slot className=\"custom-class\">\n  <a href=\"/\">Home</a>\n</Slot>\n```"
+    ]
+  },
+  {
+    "name": "Split Button",
+    "slug": "components/actions/split-button",
+    "kind": "component",
+    "category": "Actions",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/split-button",
+    "summary": "A button group which provides a default action with one click while revealing related alternatives through a dropdown menu.",
+    "jsdoc": "A button group which provides a default action with one click while revealing related alternatives through a dropdown menu.",
+    "examples": [
+      "Composition:\n```\nSplitButton.Root\n├── SplitButton.PrimaryAction\n├── SplitButton.MenuTrigger\n└── SplitButton.MenuContent\n    └── SplitButton.MenuItem\n```",
+      "```tsx\n<SplitButton.Root>\n  <SplitButton.PrimaryAction icon={<CopyIcon />} onClick={copyMarkdownPage}>\n    Copy page\n  </SplitButton.PrimaryAction>\n  <SplitButton.MenuTrigger label=\"Open doc actions menu\" />\n  <SplitButton.MenuContent>\n    <SplitButton.MenuItem onClick={copyMarkdownPage}>\n      <Icon svg={<CopyIcon />} />\n      Copy page\n    </SplitButton.MenuItem>\n    <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>\n      <a href={markdownUrl} target=\"_blank\">\n        <Icon svg={<FileTextIcon />} />\n        View as Markdown\n      </a>\n    </SplitButton.MenuItem>\n  </SplitButton.MenuContent>\n</SplitButton.Root>\n```"
+    ]
+  },
+  {
+    "name": "Switch",
+    "slug": "components/forms/switch",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/switch",
+    "summary": "A control that allows the user to toggle between checked and not checked.",
+    "jsdoc": "A form control that allows the user to toggle between checked and not checked.",
+    "examples": [
+      "```tsx\n<form>\n  <Label htmlFor=\"airplane-mode\" className=\"flex items-center gap-2\">\n    Airplane Mode\n    <Switch name=\"airplane-mode\" id=\"airplane-mode\" />\n  </Label>\n</form>\n```"
+    ]
+  },
+  {
+    "name": "Table",
+    "slug": "components/data-display/table",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/table",
+    "summary": "A structured way to display data in rows and columns.",
+    "jsdoc": "Use `Table` for STATIC, layout-driven tabular data — read-only data dumps, simple key/value displays, plain markup tables.",
+    "examples": [
+      "Composition:\n```\nTable.Root\n└── Table.Element\n    ├── Table.Caption\n    ├── Table.Head\n    │   └── Table.Row\n    │       └── Table.Header\n    ├── Table.Body\n    │   └── Table.Row\n    │       └── Table.Cell\n    └── Table.Foot\n```",
+      "```tsx\n<Table.Root>\n  <Table.Element>\n    <Table.Caption>A list of your recent invoices.</Table.Caption>\n    <Table.Head>\n      <Table.Row>\n        <Table.Header className=\"w-25\">Invoice</Table.Header>\n        <Table.Header>Status</Table.Header>\n        <Table.Header>Method</Table.Header>\n        <Table.Header className=\"text-right\">Amount</Table.Header>\n      </Table.Row>\n    </Table.Head>\n    <Table.Body>\n      {invoices.map((invoice) => (\n        <Table.Row key={invoice.invoice}>\n          <Table.Cell className=\"font-medium\">{invoice.invoice}</Table.Cell>\n          <Table.Cell>{invoice.paymentStatus}</Table.Cell>\n          <Table.Cell>{invoice.paymentMethod}</Table.Cell>\n          <Table.Cell className=\"text-right\">{invoice.totalAmount}</Table.Cell>\n        </Table.Row>\n      ))}\n    </Table.Body>\n    <Table.Foot>\n      <Table.Row>\n        <Table.Cell colSpan={3}>Total</Table.Cell>\n        <Table.Cell className=\"text-right\">$2,500.00</Table.Cell>\n      </Table.Row>\n    </Table.Foot>\n  </Table.Element>\n</Table.Root>\n```"
+    ]
+  },
+  {
+    "name": "Tabs",
+    "slug": "components/navigation/tabs",
+    "kind": "component",
+    "category": "Navigation",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/tabs",
+    "summary": "A set of layered sections of content—known as tab panels—that are displayed one at a time.",
+    "jsdoc": "A set of layered sections of content—known as tab panels—that are displayed one at a time.",
+    "examples": [
+      "Composition:\n```\nTabs.Root\n├── Tabs.List\n│   └── Tabs.Trigger\n│       └── Tabs.Badge\n└── Tabs.Content\n```",
+      "```tsx\n<Tabs.Root defaultValue=\"account\">\n  <Tabs.List>\n    <Tabs.Trigger value=\"account\">Account</Tabs.Trigger>\n    <Tabs.Trigger value=\"password\">Password</Tabs.Trigger>\n  </Tabs.List>\n  <Tabs.Content value=\"account\">\n    <p>Make changes to your account here.</p>\n  </Tabs.Content>\n  <Tabs.Content value=\"password\">\n    <p>Change your password here.</p>\n  </Tabs.Content>\n</Tabs.Root>\n```"
+    ]
+  },
+  {
+    "name": "Text Area",
+    "slug": "components/forms/text-area",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/text-area",
+    "summary": "A multi-line plain-text editing control.",
+    "jsdoc": "A multi-line plain-text editing control, useful when you want to allow users to enter a sizeable amount of free-form text, for example a comment on a review or feedback form.",
+    "examples": [
+      "```tsx\n<form>\n  <div>\n    <Label htmlFor=\"feedback\">Feedback:</Label>\n    <TextArea\n      id=\"feedback\"\n      name=\"feedback\"\n      placeholder=\"Enter your feedback here\"\n    />\n  </div>\n</form>\n```"
+    ]
+  },
+  {
+    "name": "Theme",
+    "slug": "components/primitives/theme",
+    "kind": "component",
+    "category": "Primitives",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/theme",
+    "summary": "Theme primitives — ThemeProvider, MantleStyleSheets, and FOUC prevention — for light, dark, and high-contrast modes.",
+    "jsdoc": "Re-exports for the Theme component."
+  },
+  {
+    "name": "Toast",
+    "slug": "components/feedback/toast",
+    "kind": "component",
+    "category": "Feedback",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/toast",
+    "summary": "A succinct message that is displayed temporarily.",
+    "jsdoc": "A succinct message that is displayed temporarily.",
+    "examples": [
+      "Composition:\n```\nToast.Root\n├── Toast.Icon\n├── Toast.Message\n└── Toast.Action\n```",
+      "```tsx\nmakeToast(\n  <Toast.Root priority=\"success\">\n    <Toast.Icon />\n    <Toast.Message>Operation completed successfully!</Toast.Message>\n    <Toast.Action>Dismiss</Toast.Action>\n  </Toast.Root>\n);\n```"
+    ]
+  },
+  {
+    "name": "Tooltip",
+    "slug": "components/overlays/tooltip",
+    "kind": "component",
+    "category": "Overlays",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/tooltip",
+    "summary": "A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.",
+    "jsdoc": "A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.",
+    "examples": [
+      "Composition:\n```\nTooltip.Root\n├── Tooltip.Trigger\n└── Tooltip.Content\n```",
+      "```tsx\n<Tooltip.Root>\n  <Tooltip.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\">\n      Hover me\n    </Button>\n  </Tooltip.Trigger>\n  <Tooltip.Content>\n    This is a tooltip\n  </Tooltip.Content>\n</Tooltip.Root>\n```"
+    ]
+  },
+  {
+    "name": "Well",
+    "slug": "components/structure/well",
+    "kind": "component",
+    "category": "Structure",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/well",
+    "summary": "A recessed, inset container used to group and de-emphasize content.",
+    "jsdoc": "A recessed, inset container used to visually group and de-emphasize content relative to the surrounding surface, such as code samples, supplementary notes, or read-only summaries.",
+    "examples": [
+      "```tsx\n<Well>\n  <p>Eu ad sint laborum nostrud ullamco esse.</p>\n</Well>\n```",
+      "```tsx\n<Well asChild>\n  <section aria-label=\"Summary\">…</section>\n</Well>\n```"
+    ]
+  }
+]

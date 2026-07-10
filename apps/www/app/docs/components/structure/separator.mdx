@@ -1,0 +1,202 @@
+---
+title: Separator
+description: Visually or semantically separates content.
+---
+
+import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
+import { Example } from "~/components/example";
+
+# Separator
+
+Visually or semantically separates content.
+
+<Example>
+	<div className="space-y-4">
+		<div className="space-y-1">
+			<h4 className="text-sm font-medium leading-none">mantle</h4>
+			<p className="text-muted-foreground text-sm">An open-source UI component library.</p>
+		</div>
+		<Separator className="my-4" />
+		<Separator className="my-4" semantic />
+		<div className="flex h-5 items-center gap-4 text-sm">
+			Blog
+			<Separator orientation="vertical" />
+			Docs
+			<Separator orientation="vertical" />
+			Source
+		</div>
+		<HorizontalSeparatorGroup>
+			<Separator />
+			<h3>ngrok mantle</h3>
+			<Separator />
+		</HorizontalSeparatorGroup>
+		<HorizontalSeparatorGroup>
+			<h3>ngrok mantle</h3>
+			<Separator />
+		</HorizontalSeparatorGroup>
+		<HorizontalSeparatorGroup>
+			<Separator />
+			<h3>ngrok mantle</h3>
+		</HorizontalSeparatorGroup>
+	</div>
+</Example>
+
+```tsx
+import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
+
+<div>
+	<div className="space-y-1">
+		<h4 className="text-sm font-medium leading-none">mantle</h4>
+		<p className="text-muted-foreground text-sm">An open-source UI component library.</p>
+	</div>
+	<Separator className="my-4" />
+	<Separator className="my-4" semantic />
+	<div className="flex h-5 items-center gap-4 text-sm">
+		Blog
+		<Separator orientation="vertical" />
+		Docs
+		<Separator orientation="vertical" />
+		Source
+	</div>
+	<HorizontalSeparatorGroup>
+		<Separator />
+		<h3>ngrok mantle</h3>
+		<Separator />
+	</HorizontalSeparatorGroup>
+	<HorizontalSeparatorGroup>
+		<h3>ngrok mantle</h3>
+		<Separator />
+	</HorizontalSeparatorGroup>
+	<HorizontalSeparatorGroup>
+		<Separator />
+		<h3>ngrok mantle</h3>
+	</HorizontalSeparatorGroup>
+</div>;
+```
+
+## Polymorphism
+
+When you want to render _something else_ as a `HorizontalSeparatorGroup` or `Separator`, you can use the `asChild` prop to compose.
+
+<Example>
+	<div className="flex w-full max-w-96 flex-col space-y-16">
+		<form>
+			<fieldset className="space-y-4">
+				<HorizontalSeparatorGroup className="w-full" asChild>
+					<legend>
+						Choose your favorite fruit!
+						<Separator asChild>
+							<span />
+						</Separator>
+					</legend>
+				</HorizontalSeparatorGroup>
+				<div className="space-y-2">
+					<div className="space-x-2">
+						<input type="radio" id="apple" name="monster" value="apple" />
+						<label htmlFor="apple">Apple</label>
+					</div>
+					<div className="space-x-2">
+						<input type="radio" id="mango" name="monster" value="mango" />
+						<label htmlFor="mango">Mango</label>
+					</div>
+					<div className="space-x-2">
+						<input type="radio" id="pear" name="monster" value="pear" />
+						<label htmlFor="pear">Pear</label>
+					</div>
+				</div>
+			</fieldset>
+		</form>
+		<div className="flex h-5 items-center space-x-4 text-sm">
+			<div>Blog</div>
+			<Separator orientation="vertical" asChild>
+				<span />
+			</Separator>
+			<div>Docs</div>
+			<Separator orientation="vertical" asChild>
+				<span />
+			</Separator>
+			<div>Source</div>
+		</div>
+	</div>
+</Example>
+
+```tsx
+import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
+
+<form>
+	<fieldset className="space-y-4">
+		<HorizontalSeparatorGroup className="w-full" asChild>
+			<legend>
+				Choose your favorite fruit!
+				<Separator asChild>
+					<span />
+				</Separator>
+			</legend>
+		</HorizontalSeparatorGroup>
+		<div className="space-y-2">
+			<div className="space-x-2">
+				<input type="radio" id="apple" name="monster" value="apple" />
+				<label htmlFor="apple">Apple</label>
+			</div>
+			<div className="space-x-2">
+				<input type="radio" id="mango" name="monster" value="mango" />
+				<label htmlFor="mango">Mango</label>
+			</div>
+			<div className="space-x-2">
+				<input type="radio" id="pear" name="monster" value="pear" />
+				<label htmlFor="pear">Pear</label>
+			</div>
+		</div>
+	</fieldset>
+</form>
+
+<div className="flex h-5 items-center space-x-4 text-sm">
+	<div>Blog</div>
+	<Separator orientation="vertical" asChild>
+		<span />
+	</Separator>
+	<div>Docs</div>
+	<Separator orientation="vertical" asChild>
+		<span />
+	</Separator>
+	<div>Source</div>
+</div>
+```
+
+## Color
+
+The separator renders in the semantic `separator` color token — `gray-500/20` in light, `gray-600/20` in dark, and
+`black` in both high-contrast themes. This is the canonical divider color across mantle: `Accordion` dividers,
+`DropdownMenu.Separator`, `Command.Separator`, `Select.Separator`, and the rest all resolve to it.
+
+Reuse the same color on your own dividers instead of hard-coding it:
+
+```tsx
+<div className="border-separator border-b" />
+<ul className="divide-separator divide-y" />
+<span className="bg-separator h-px w-full" />
+```
+
+## API Reference
+
+### Separator
+
+Visually or semantically separates content.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop           | Type                           | Default        | Description                                                                                                                                                                                                                                                                          |
+| -------------- | ------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `orientation?` | `"horizontal"` \| `"vertical"` | `"horizontal"` | The orientation of the separator, does it render horizontally or vertically.                                                                                                                                                                                                         |
+| `semantic?`    | `boolean`                      | `false`        | If `true`, the separator will be rendered with all accessibility-related attributes and `role="separator"`. If `false`, the separator is purely decorative and all accessibility-related attributes are updated so that the rendered element is removed from the accessibility tree. |
+| `asChild?`     | `boolean`                      | `false`        | Use the `asChild` prop to compose the `Separator` styling and functionality onto alternative element types or your own React components.                                                                                                                                             |
+
+### HorizontalSeparatorGroup
+
+A container to layout a group of horizontal separators and other children.
+Overrides all children `Separator`s to be `orientation="horizontal"`.
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                                             |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `HorizontalSeparatorGroup` styling and functionality onto alternative element types or your own React components. |

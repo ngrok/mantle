@@ -1,0 +1,99 @@
+---
+title: Well
+description: A recessed, inset container used to group and de-emphasize content.
+---
+
+import { Well } from "@ngrok/mantle/well";
+import { Empty } from "@ngrok/mantle/empty";
+import { Button } from "@ngrok/mantle/button";
+import { MagnifyingGlassIcon, PlusIcon } from "@phosphor-icons/react";
+import { Example } from "~/components/example";
+
+# Well
+
+A recessed, inset container used to visually group and de-emphasize content
+relative to the surrounding surface. It renders like a `Card.Root` but with an
+inset shadow and the base background, making it feel sunken into the page. Reach
+for it to frame empty states, code samples, supplementary notes, or read-only
+summaries.
+
+<Example>
+	<Well className="w-full">
+		<Empty.Root>
+			<Empty.Icon svg={<MagnifyingGlassIcon />} />
+			<Empty.Title>No results found</Empty.Title>
+			<Empty.Description>
+				<p>Try adjusting your search or filters to find what you're looking for.</p>
+			</Empty.Description>
+			<Empty.Actions>
+				<Button type="button" appearance="outlined" priority="neutral">
+					Clear filters
+				</Button>
+			</Empty.Actions>
+		</Empty.Root>
+	</Well>
+</Example>
+
+```tsx
+import { Well } from "@ngrok/mantle/well";
+import { Empty } from "@ngrok/mantle/empty";
+import { Button } from "@ngrok/mantle/button";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react";
+
+<Well>
+	<Empty.Root>
+		<Empty.Icon svg={<MagnifyingGlassIcon />} />
+		<Empty.Title>No results found</Empty.Title>
+		<Empty.Description>
+			<p>Try adjusting your search or filters to find what you're looking for.</p>
+		</Empty.Description>
+		<Empty.Actions>
+			<Button type="button" appearance="outlined" priority="neutral">
+				Clear filters
+			</Button>
+		</Empty.Actions>
+	</Empty.Root>
+</Well>;
+```
+
+## Polymorphism
+
+`Well` accepts an `asChild` prop. When `true`, it renders its single child
+instead of its default `<div>`, forwarding all class names, `data-*`
+attributes, and the ref onto that child. Reach for this when the recessed
+container should also be a more semantic element, such as a labelled
+`<section>`.
+
+<Example>
+	<Well asChild className="w-full">
+		<section aria-label="Search results">
+			<Empty.Root>
+				<Empty.Icon svg={<MagnifyingGlassIcon />} />
+				<Empty.Title>No results found</Empty.Title>
+				<Empty.Description>
+					<p>Try adjusting your search or filters to find what you're looking for.</p>
+				</Empty.Description>
+				<Empty.Actions>
+					<Button type="button" appearance="filled" priority="neutral">
+						<PlusIcon />
+						Create new
+					</Button>
+				</Empty.Actions>
+			</Empty.Root>
+		</section>
+	</Well>
+</Example>
+
+```tsx
+<Well asChild>
+	<section aria-label="Search results">{/* … */}</section>
+</Well>
+```
+
+## API Reference
+
+### Well
+
+A recessed, inset container. Renders a `<div>` by default and spreads all
+standard `<div>` props onto the rendered element. Supports the `asChild` prop
+for polymorphic rendering.

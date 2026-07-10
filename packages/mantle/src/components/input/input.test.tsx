@@ -3,6 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { act, useEffect, useRef, useState } from "react";
 import type { ComponentRef } from "react";
 import { describe, expect, test } from "vitest";
+import { Field } from "../field/field.js";
 import { Input, InputCapture } from "./input.js";
 
 describe("Input", () => {
@@ -50,6 +51,19 @@ describe("Input", () => {
 		render(<Input validation={false} />);
 		expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "false");
 		expect(screen.getByRole("textbox")).not.toHaveAttribute("data-validation");
+	});
+
+	test("with children, validation={false} on <Input> overrides inherited Field validation", () => {
+		render(
+			<Field.Item name="example" validation="error">
+				<Input validation={false}>
+					<InputCapture aria-label="Email" />
+				</Input>
+			</Field.Item>,
+		);
+
+		expect(screen.getByRole("textbox", { name: "Email" })).toHaveAttribute("aria-invalid", "false");
+		expect(screen.getByRole("textbox", { name: "Email" })).not.toHaveAttribute("data-validation");
 	});
 
 	test('given validation="success", renders an input with aria-invalid="false" and data-validation="success"', () => {

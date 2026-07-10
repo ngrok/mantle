@@ -1,0 +1,216 @@
+---
+title: TextArea
+description: A multi-line plain-text editing control.
+---
+
+import { Button } from "@ngrok/mantle/button";
+import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { TextArea } from "@ngrok/mantle/text-area";
+import { useForm } from "@tanstack/react-form";
+import { z } from "zod";
+import { Example } from "~/components/example";
+
+# TextArea
+
+A multi-line plain-text editing control, useful when you want to allow users to enter a sizeable amount of free-form text, for example a comment on a review or feedback form.
+
+Pair with `Field.*` for label/description/error wiring in forms:
+
+<Example className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+	<Field.Item name="textarea-default">
+		<Field.Label>Default TextArea</Field.Label>
+		<Field.Control>
+			<TextArea placeholder="Tell us about your experience…" />
+		</Field.Control>
+	</Field.Item>
+	<Field.Item name="textarea-monospaced">
+		<Field.Label>Monospaced TextArea</Field.Label>
+		<Field.Control>
+			<TextArea appearance="monospaced" placeholder="Tell us about your experience…" />
+		</Field.Control>
+	</Field.Item>
+	<Field.Item name="textarea-error">
+		<Field.Label>Error TextArea</Field.Label>
+		<Field.Control>
+			<TextArea placeholder="Tell us about your experience…" validation="error" />
+		</Field.Control>
+	</Field.Item>
+	<Field.Item name="textarea-success">
+		<Field.Label>Success TextArea</Field.Label>
+		<Field.Control>
+			<TextArea placeholder="Tell us about your experience…" validation="success" />
+		</Field.Control>
+	</Field.Item>
+	<Field.Item name="textarea-warning">
+		<Field.Label>Warning TextArea</Field.Label>
+		<Field.Control>
+			<TextArea placeholder="Tell us about your experience…" validation="warning" />
+		</Field.Control>
+	</Field.Item>
+</Example>
+
+```tsx
+import { Field } from "@ngrok/mantle/field";
+import { TextArea } from "@ngrok/mantle/text-area";
+
+<Field.Item name="feedback">
+	<Field.Label>Default TextArea</Field.Label>
+	<Field.Control>
+		<TextArea placeholder="Tell us about your experience…" />
+	</Field.Control>
+</Field.Item>
+<Field.Item name="feedback-mono">
+	<Field.Label>Monospaced TextArea</Field.Label>
+	<Field.Control>
+		<TextArea appearance="monospaced" placeholder="Tell us about your experience…" />
+	</Field.Control>
+</Field.Item>
+<Field.Item name="feedback-error">
+	<Field.Label>Error TextArea</Field.Label>
+	<Field.Control>
+		<TextArea placeholder="Tell us about your experience…" validation="error" />
+	</Field.Control>
+</Field.Item>
+```
+
+Or render the control on its own:
+
+<Example>
+	<TextArea aria-label="Feedback" placeholder="Tell us about your experience…" />
+</Example>
+
+```tsx
+import { TextArea } from "@ngrok/mantle/text-area";
+
+<TextArea aria-label="Feedback" placeholder="Tell us about your experience…" />;
+```
+
+## Examples
+
+### TextArea in a form with client-side validation
+
+In this example, the `TextArea` is used in a form with client-side validation. The form is built using [`@tanstack/react-form`](https://tanstack.com/form/latest/docs) and `zod` for validation. The form accepts user feedback and validates the input before submission.
+
+export function FormExample() {
+	const formSchema = z.object({
+		feedback: z.string().trim().min(1, "Please enter your feedback."),
+	});
+	const defaultValues = {
+		feedback: "",
+	};
+	const form = useForm({
+		defaultValues,
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmit: ({ value }) => {
+			window.alert(`Feedback submitted: ${JSON.stringify(value, null, 2)}`);
+		},
+	});
+
+    return (
+    <form
+    	className="space-y-4 w-full"
+    	onSubmit={(event) => {
+    		event.preventDefault();
+    		event.stopPropagation();
+    		void form.handleSubmit();
+    	}}
+    >
+    	<form.Field name="feedback">
+    		{(field) => (
+    			<Field.Item name={field.name}>
+    				<Field.Label>Feedback</Field.Label>
+    				<Field.Control>
+    					<TextArea
+    						onBlur={field.handleBlur}
+    						onChange={(event) => field.handleChange(event.target.value)}
+    						placeholder="Tell us about your experience…"
+    						value={field.state.value}
+    					/>
+    				</Field.Control>
+    				<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+    			</Field.Item>
+    		)}
+    	</form.Field>
+    	<Button type="submit" appearance="filled" priority="neutral">
+    		Submit
+    	</Button>
+    </form>
+    );
+
+}
+
+<Example className="flex-col w-full">
+	<FormExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { TextArea } from "@ngrok/mantle/text-area";
+import { useForm } from "@tanstack/react-form";
+import { z } from "zod";
+
+const formSchema = z.object({
+	feedback: z.string().trim().min(1, "Please enter your feedback."),
+});
+function FormExample() {
+	const defaultValues = {
+		feedback: "",
+	};
+	const form = useForm({
+		defaultValues,
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmit: ({ value }) => {
+			// Handle form submission here
+		},
+	});
+
+	return (
+		<form
+			className="space-y-4"
+			onSubmit={(event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				void form.handleSubmit();
+			}}
+		>
+			<form.Field name="feedback">
+				{(field) => (
+					<Field.Item name={field.name}>
+						<Field.Label>Feedback</Field.Label>
+						<Field.Control>
+							<TextArea
+								onBlur={field.handleBlur}
+								onChange={(event) => field.handleChange(event.target.value)}
+								placeholder="Tell us about your experience…"
+								value={field.state.value}
+							/>
+						</Field.Control>
+						<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+					</Field.Item>
+				)}
+			</form.Field>
+			<Button type="submit" appearance="filled" priority="neutral">
+				Submit
+			</Button>
+		</form>
+	);
+}
+```
+
+## API Reference
+
+### TextArea
+
+A multi-line plain-text editing control.
+
+All props from [textarea](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/textarea), plus:
+
+| Prop          | Type                                                                                                       | Default | Description                                                                                                                                                                                                                                                                                                                   |
+| ------------- | ---------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance?` | `"monospaced"`                                                                                             |         | Defines the visual style of the `TextArea`.                                                                                                                                                                                                                                                                                   |
+| `validation?` | `"error"` \| `"success"` \| `"warning"` \| `false` \| `(() => "error" \| "success" \| "warning" \| false)` |         | Use the `validation` prop to show if the textarea has a specific validation status. This will change the border and outline of the textarea. The `false` type is useful when using short-circuiting logic so that you don't need to use a ternary with `undefined`. Setting `validation` to `error` also sets `aria-invalid`. |

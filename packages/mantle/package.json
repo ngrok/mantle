@@ -1,13 +1,13 @@
 {
 	"name": "@ngrok/mantle",
-	"version": "0.70.1",
+	"version": "0.77.0",
 	"description": "mantle is ngrok's UI library and design system.",
 	"homepage": "https://mantle.ngrok.com",
 	"license": "MIT",
 	"author": "ngrok",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/ngrok-oss/mantle"
+		"url": "https://github.com/ngrok/mantle"
 	},
 	"files": [
 		"dist",
@@ -48,6 +48,8 @@
 			"default": "./dist/source-all.css"
 		},
 		"./package.json": "./package.json",
+		"./agent.json": "./dist/agent.json",
+		"./llms.txt": "./dist/llms.txt",
 		"./accordion": {
 			"@ngrok/src-live-types": "./src/components/accordion/index.ts",
 			"types": "./dist/accordion.d.ts",
@@ -98,6 +100,11 @@
 			"types": "./dist/checkbox.d.ts",
 			"import": "./dist/checkbox.js"
 		},
+		"./choice": {
+			"@ngrok/src-live-types": "./src/components/choice/index.ts",
+			"types": "./dist/choice.d.ts",
+			"import": "./dist/choice.js"
+		},
 		"./code": {
 			"@ngrok/src-live-types": "./src/components/code/index.ts",
 			"types": "./dist/code.d.ts",
@@ -138,7 +145,6 @@
 			"types": "./dist/data-table.d.ts",
 			"import": "./dist/data-table.js"
 		},
-		"./date-picker": {},
 		"./description-list": {
 			"@ngrok/src-live-types": "./src/components/description-list/index.ts",
 			"types": "./dist/description-list.d.ts",
@@ -158,6 +164,11 @@
 			"@ngrok/src-live-types": "./src/components/empty/index.ts",
 			"types": "./dist/empty.d.ts",
 			"import": "./dist/empty.js"
+		},
+		"./field": {
+			"@ngrok/src-live-types": "./src/components/field/index.ts",
+			"types": "./dist/field.d.ts",
+			"import": "./dist/field.js"
 		},
 		"./flag": {
 			"@ngrok/src-live-types": "./src/components/flag/index.ts",
@@ -199,6 +210,11 @@
 			"types": "./dist/label.d.ts",
 			"import": "./dist/label.js"
 		},
+		"./list": {
+			"@ngrok/src-live-types": "./src/components/list/index.ts",
+			"types": "./dist/list.d.ts",
+			"import": "./dist/list.js"
+		},
 		"./main": {
 			"@ngrok/src-live-types": "./src/components/main/index.ts",
 			"types": "./dist/main.d.ts",
@@ -213,6 +229,11 @@
 			"@ngrok/src-live-types": "./src/components/multi-select/index.ts",
 			"types": "./dist/multi-select.d.ts",
 			"import": "./dist/multi-select.js"
+		},
+		"./otp-input": {
+			"@ngrok/src-live-types": "./src/components/otp-input/index.ts",
+			"types": "./dist/otp-input.d.ts",
+			"import": "./dist/otp-input.js"
 		},
 		"./pagination": {
 			"@ngrok/src-live-types": "./src/components/pagination/index.ts",
@@ -229,6 +250,11 @@
 			"types": "./dist/progress.d.ts",
 			"import": "./dist/progress.js"
 		},
+		"./qr-code": {
+			"@ngrok/src-live-types": "./src/components/qr-code/index.ts",
+			"types": "./dist/qr-code.d.ts",
+			"import": "./dist/qr-code.js"
+		},
 		"./radio-group": {
 			"@ngrok/src-live-types": "./src/components/radio-group/index.ts",
 			"types": "./dist/radio-group.d.ts",
@@ -243,6 +269,11 @@
 			"@ngrok/src-live-types": "./src/components/select/index.ts",
 			"types": "./dist/select.d.ts",
 			"import": "./dist/select.js"
+		},
+		"./selectable-list": {
+			"@ngrok/src-live-types": "./src/components/selectable-list/index.ts",
+			"types": "./dist/selectable-list.d.ts",
+			"import": "./dist/selectable-list.js"
 		},
 		"./separator": {
 			"@ngrok/src-live-types": "./src/components/separator/index.ts",
@@ -328,41 +359,47 @@
 			"@ngrok/src-live-types": "./src/utils/index.ts",
 			"types": "./dist/utils.d.ts",
 			"import": "./dist/utils.js"
+		},
+		"./well": {
+			"@ngrok/src-live-types": "./src/components/well/index.ts",
+			"types": "./dist/well.d.ts",
+			"import": "./dist/well.js"
 		}
 	},
 	"scripts": {
 		"build": "NODE_OPTIONS='--max-old-space-size=16384' tsdown",
 		"clean": "rm -rf dist",
 		"prebuild": "pnpm run clean",
+		"prepack": "node ../../scripts/clean-publish-manifest.js clean",
+		"postpack": "node ../../scripts/clean-publish-manifest.js restore",
 		"test:watch": "TZ=UTC vitest watch",
 		"test": "TZ=UTC vitest run",
 		"typecheck": "tsgo"
 	},
 	"dependencies": {
-		"@ariakit/react": "0.4.26",
+		"@ariakit/react": "0.4.29",
 		"@headlessui/react": "2.2.10",
-		"@radix-ui/react-accordion": "1.2.12",
-		"@radix-ui/react-dialog": "1.1.15",
-		"@radix-ui/react-dropdown-menu": "2.1.16",
-		"@radix-ui/react-hover-card": "1.1.15",
-		"@radix-ui/react-popover": "1.1.15",
-		"@radix-ui/react-progress": "1.1.8",
-		"@radix-ui/react-select": "2.2.6",
-		"@radix-ui/react-slider": "1.3.6",
-		"@radix-ui/react-slot": "1.2.4",
-		"@radix-ui/react-switch": "1.2.6",
-		"@radix-ui/react-tabs": "1.1.13",
-		"@radix-ui/react-tooltip": "1.2.8",
+		"@radix-ui/react-dialog": "1.1.17",
+		"@radix-ui/react-dropdown-menu": "2.1.18",
+		"@radix-ui/react-hover-card": "1.1.17",
+		"@radix-ui/react-popover": "1.1.17",
+		"@radix-ui/react-progress": "1.1.10",
+		"@radix-ui/react-select": "2.3.1",
+		"@radix-ui/react-slider": "1.4.1",
+		"@radix-ui/react-slot": "1.3.0",
+		"@radix-ui/react-switch": "1.3.1",
+		"@radix-ui/react-tabs": "1.1.15",
+		"@radix-ui/react-tooltip": "1.2.10",
 		"@tanstack/react-table": "8.21.3",
-		"@uidotdev/usehooks": "2.4.1",
+		"@tanstack/react-virtual": "3.14.4",
 		"class-variance-authority": "0.7.1",
-		"clsx": "2.1.1",
 		"cmdk": "1.1.1",
-		"react-day-picker": "9.14.0",
+		"input-otp": "1.4.2",
+		"react-day-picker": "10.0.1",
 		"sonner": "2.0.7",
-		"tailwind-merge": "3.5.0",
 		"tiny-invariant": "1.3.3",
-		"tw-animate-css": "1.4.0"
+		"tw-animate-css": "1.4.0",
+		"uqr": "0.1.3"
 	},
 	"devDependencies": {
 		"@cfg/tsconfig": "workspace:*",
@@ -372,29 +409,24 @@
 		"@testing-library/react": "16.3.2",
 		"@testing-library/user-event": "14.6.1",
 		"@tsdown/css": "catalog:",
-		"@types/react": "19.2.14",
+		"@types/react": "19.2.17",
 		"@types/react-dom": "19.2.3",
 		"@vitest/browser-playwright": "catalog:",
-		"browserslist": "4.28.2",
-		"date-fns": "4.1.0",
+		"axe-core": "4.12.1",
 		"happy-dom": "catalog:",
 		"playwright": "catalog:",
-		"react": "19.2.5",
-		"react-dom": "19.2.5",
+		"react": "19.2.7",
+		"react-dom": "19.2.7",
 		"tailwindcss": "catalog:",
 		"tsdown": "catalog:",
 		"typescript": "catalog:"
 	},
 	"peerDependencies": {
 		"@phosphor-icons/react": "^2.1.10",
-		"date-fns": "^4.1.0",
 		"react": "^18 || ^19",
 		"react-dom": "^18 || ^19",
-		"tailwindcss": "^4.2.2"
+		"tailwindcss": "^4.3.1"
 	},
-	"browserslist": [
-		"last 2 years, not dead, > 0.2%"
-	],
 	"engines": {
 		"node": "^24.0.0"
 	}

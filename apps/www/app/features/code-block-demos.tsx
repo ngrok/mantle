@@ -2,11 +2,13 @@ import { Button } from "@ngrok/mantle/button";
 import {
 	CodeBlock,
 	createMantleCodeBlockValue,
+	jsonCodeBlockValue,
 	mantleCode,
 	parseCodeBlockHighlightLines,
 	parseLanguage,
 	type MantleCodeBlockValue,
 } from "@ngrok/mantle/code-block";
+import { Field } from "@ngrok/mantle/field";
 import { Input } from "@ngrok/mantle/input";
 import { Label } from "@ngrok/mantle/label";
 import { Switch } from "@ngrok/mantle/switch";
@@ -16,6 +18,7 @@ import { useState } from "react";
 import { href } from "react-router";
 import { z } from "zod";
 import { Example } from "~/components/example";
+import { oauthPolicyFragment } from "~/features/shared-policies";
 
 /**
  * Primary code block demo with a full-featured example showing header, copy button, and expander.
@@ -302,7 +305,7 @@ export function ServerRenderedHighlightingDemo() {
 			>
 				<form.Field name="language">
 					{(field) => (
-						<div className="space-y-2">
+						<Field.Item name={field.name}>
 							<Label htmlFor={field.name}>Language</Label>
 							<select
 								id={field.name}
@@ -319,12 +322,12 @@ export function ServerRenderedHighlightingDemo() {
 								<option value="json">json</option>
 								<option value="bash">bash</option>
 							</select>
-						</div>
+						</Field.Item>
 					)}
 				</form.Field>
 				<form.Field name="code">
 					{(field) => (
-						<div className="space-y-2">
+						<Field.Item name={field.name}>
 							<Label htmlFor={field.name}>Code</Label>
 							<TextArea
 								appearance="monospaced"
@@ -337,7 +340,7 @@ export function ServerRenderedHighlightingDemo() {
 									field.handleChange(event.currentTarget.value);
 								}}
 							/>
-						</div>
+						</Field.Item>
 					)}
 				</form.Field>
 				<div className="flex flex-wrap items-end gap-4">
@@ -359,7 +362,7 @@ export function ServerRenderedHighlightingDemo() {
 					</form.Field>
 					<form.Field name="highlightLines">
 						{(field) => (
-							<div className="space-y-1">
+							<Field.Item name={field.name}>
 								<Label htmlFor={field.name}>Highlight lines</Label>
 								<Input
 									id={field.name}
@@ -372,12 +375,12 @@ export function ServerRenderedHighlightingDemo() {
 										field.handleChange(event.currentTarget.value);
 									}}
 								/>
-							</div>
+							</Field.Item>
 						)}
 					</form.Field>
 					<form.Field name="lineNumberStart">
 						{(field) => (
-							<div className="space-y-1">
+							<Field.Item name={field.name}>
 								<Label htmlFor={field.name}>Line number start</Label>
 								<Input
 									id={field.name}
@@ -390,11 +393,16 @@ export function ServerRenderedHighlightingDemo() {
 										field.handleChange(Number(event.currentTarget.value) || 1);
 									}}
 								/>
-							</div>
+							</Field.Item>
 						)}
 					</form.Field>
 				</div>
-				<Button type="submit" appearance="filled" disabled={status === "loading"}>
+				<Button
+					type="submit"
+					appearance="filled"
+					priority="neutral"
+					disabled={status === "loading"}
+				>
 					{status === "loading" ? "Highlighting..." : "Highlight on Server"}
 				</Button>
 			</form>
@@ -467,6 +475,58 @@ export function TabbedCodeBlockDemo() {
 					</CodeBlock.TabContent>
 					<CodeBlock.TabContent value="json">
 						<CodeBlock.Code value={tabbedPolicyJson} />
+					</CodeBlock.TabContent>
+				</CodeBlock.Body>
+			</CodeBlock.Root>
+		</Example>
+	);
+}
+
+const helloTs = mantleCode("typescript")`console.log("Hello, ngrok!");`;
+const helloPy = mantleCode("python")`print("Hello, ngrok!")`;
+const helloGo = mantleCode("go")`fmt.Println("Hello, ngrok!")`;
+const helloRs = mantleCode("rust")`println!("Hello, ngrok!");`;
+const helloJava = mantleCode("java")`System.out.println("Hello, ngrok!");`;
+const helloRb = mantleCode("ruby")`puts "Hello, ngrok!"`;
+
+/**
+ * Tabbed code block whose tab strip overflows its (deliberately narrow) container:
+ * the tabs scroll horizontally with an edge fade (`scroll-fade-x`) instead of
+ * wrapping onto a second row.
+ */
+export function ScrollingTabListDemo() {
+	return (
+		<Example>
+			<CodeBlock.Root defaultTab="ts" className="max-w-xs">
+				<CodeBlock.Header>
+					<CodeBlock.TabList>
+						<CodeBlock.TabTrigger value="ts">index.ts</CodeBlock.TabTrigger>
+						<CodeBlock.TabTrigger value="py">server.py</CodeBlock.TabTrigger>
+						<CodeBlock.TabTrigger value="go">main.go</CodeBlock.TabTrigger>
+						<CodeBlock.TabTrigger value="rs">lib.rs</CodeBlock.TabTrigger>
+						<CodeBlock.TabTrigger value="java">App.java</CodeBlock.TabTrigger>
+						<CodeBlock.TabTrigger value="rb">app.rb</CodeBlock.TabTrigger>
+					</CodeBlock.TabList>
+				</CodeBlock.Header>
+				<CodeBlock.Body>
+					<CodeBlock.CopyButton />
+					<CodeBlock.TabContent value="ts">
+						<CodeBlock.Code value={helloTs} />
+					</CodeBlock.TabContent>
+					<CodeBlock.TabContent value="py">
+						<CodeBlock.Code value={helloPy} />
+					</CodeBlock.TabContent>
+					<CodeBlock.TabContent value="go">
+						<CodeBlock.Code value={helloGo} />
+					</CodeBlock.TabContent>
+					<CodeBlock.TabContent value="rs">
+						<CodeBlock.Code value={helloRs} />
+					</CodeBlock.TabContent>
+					<CodeBlock.TabContent value="java">
+						<CodeBlock.Code value={helloJava} />
+					</CodeBlock.TabContent>
+					<CodeBlock.TabContent value="rb">
+						<CodeBlock.Code value={helloRb} />
 					</CodeBlock.TabContent>
 				</CodeBlock.Body>
 			</CodeBlock.Root>
@@ -574,6 +634,130 @@ export function OverridingIndentationDemo() {
 							});
 						`}
 					/>
+				</CodeBlock.Body>
+			</CodeBlock.Root>
+		</Example>
+	);
+}
+
+/**
+ * Demonstrates foldable JSON: multi-line `{}` / `[]` ranges get a fold toggle
+ * in the gutter. Click a caret (or focus and press Enter/Space) to collapse
+ * the inner content while keeping the opener and closer lines visible.
+ */
+export function FoldableJsonDemo() {
+	return (
+		<Example>
+			<CodeBlock.Root>
+				<CodeBlock.Header>
+					<CodeBlock.Icon preset="file" />
+					<CodeBlock.Title>package.json</CodeBlock.Title>
+				</CodeBlock.Header>
+				<CodeBlock.Body>
+					<CodeBlock.CopyButton />
+					<CodeBlock.Code
+						value={mantleCode("json")`
+							{
+								"name": "@ngrok/mantle",
+								"version": "0.71.0",
+								"scripts": {
+									"build": "tsdown",
+									"test": "vitest run",
+									"typecheck": "tsgo"
+								},
+								"dependencies": {
+									"@radix-ui/react-tabs": "1.1.13",
+									"clsx": "2.1.1",
+									"tailwind-merge": "3.5.0"
+								},
+								"pnpm": {
+									"onlyBuiltDependencies": [
+										"esbuild",
+										"@tailwindcss/oxide"
+									]
+								}
+							}
+						`}
+					/>
+				</CodeBlock.Body>
+			</CodeBlock.Root>
+		</Example>
+	);
+}
+
+// ngrok Java SDK snippet that embeds the shared policy in a text block via nested interpolation.
+const javaSdkSnippet = mantleCode("java")`var policy = """
+${oauthPolicyFragment.code}
+""";
+
+var agent = Session.withAuthtoken(authtoken).connect();
+var listener = agent.listen(policy);`;
+
+// ngrok Python SDK snippet that embeds the same shared policy via nested interpolation.
+const pythonSdkSnippet = mantleCode("python")`policy = """
+${oauthPolicyFragment.code}
+"""
+
+listener = ngrok.forward(8080, traffic_policy=policy)`;
+
+/**
+ * Demonstrates nested `mantleCode` interpolation: a reusable policy fragment authored once
+ * and embedded into multiple SDK snippets. Each `${oauthPolicyFragment.code}` is inlined at
+ * build time, so the embedded policy is highlighted as real lines of its host language with
+ * correct line numbers — and pays no runtime substitution cost.
+ */
+export function NestedFragmentInterpolationDemo() {
+	return (
+		<Example>
+			<CodeBlock.Root defaultTab="java">
+				<CodeBlock.Header>
+					<CodeBlock.TabList>
+						<CodeBlock.TabTrigger value="java">Listener.java</CodeBlock.TabTrigger>
+						<CodeBlock.TabTrigger value="python">listener.py</CodeBlock.TabTrigger>
+					</CodeBlock.TabList>
+				</CodeBlock.Header>
+				<CodeBlock.Body>
+					<CodeBlock.CopyButton />
+					<CodeBlock.TabContent value="java">
+						<CodeBlock.Code value={javaSdkSnippet} />
+					</CodeBlock.TabContent>
+					<CodeBlock.TabContent value="python">
+						<CodeBlock.Code value={pythonSdkSnippet} />
+					</CodeBlock.TabContent>
+				</CodeBlock.Body>
+			</CodeBlock.Root>
+		</Example>
+	);
+}
+
+// A realistic "runtime" record — the kind of value you only have in the browser
+// (an API response, a table row's underlying object) and therefore can't run
+// through the build-time `mantleCode` transform.
+const exampleRuntimeRecord = {
+	id: "evt_31kPq9aZ",
+	type: "endpoint.created",
+	created_at: "2025-06-18T17:42:10Z",
+	endpoint: {
+		id: "ep_2hYqLm4",
+		region: "us-east-1",
+		url: "https://example.ngrok.app",
+		bindings: ["public", "internal"],
+	},
+	metadata: { source: "api", retries: 0, ok: true },
+};
+
+/**
+ * Demonstrates `jsonCodeBlockValue` highlighting a runtime value entirely on the
+ * client — no Shiki shipped to the browser — and folding multi-line objects/arrays
+ * by default, just like a build-time JSON block.
+ */
+export function JsonCodeBlockValueDemo() {
+	return (
+		<Example>
+			<CodeBlock.Root>
+				<CodeBlock.Body>
+					<CodeBlock.CopyButton />
+					<CodeBlock.Code value={jsonCodeBlockValue(exampleRuntimeRecord)} />
 				</CodeBlock.Body>
 			</CodeBlock.Root>
 		</Example>

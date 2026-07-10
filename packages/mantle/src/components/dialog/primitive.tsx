@@ -8,6 +8,7 @@ import {
 	forwardRef,
 	useContext,
 	useEffect,
+	useMemo,
 	useState,
 } from "react";
 import { Slot } from "../slot/index.js";
@@ -28,9 +29,10 @@ const InternalDialogContext = createContext<InternalDialogContextValue>({
 
 function Root(props: ComponentPropsWithoutRef<typeof DialogPrimitive.Root>) {
 	const [hasDescription, setHasDescription] = useState(false);
+	const contextValue = useMemo(() => ({ hasDescription, setHasDescription }), [hasDescription]);
 
 	return (
-		<InternalDialogContext.Provider value={{ hasDescription, setHasDescription }}>
+		<InternalDialogContext.Provider value={contextValue}>
 			<DialogPrimitive.Root {...props} />
 		</InternalDialogContext.Provider>
 	);

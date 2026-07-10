@@ -24,16 +24,36 @@ catalog:
   "@testing-library/dom": "10.4.1"
   "@testing-library/jest-dom": "6.9.1"
   "@testing-library/react": "16.3.2"
-  "@types/node": "24.12.2"
-  "@tailwindcss/vite": "4.2.2"
-  "@vitest/browser-playwright": "4.1.4"
-  "happy-dom": "20.9.0"
-  "playwright": "1.59.1"
-  "playwright-core": "1.59.1"
-  "@tsdown/css": "0.21.9"
-  "tailwindcss": "4.2.2"
-  "tsdown": "0.21.9"
-  "tsx": "4.21.0"
+  "@types/node": "24.13.2"
+  "@tailwindcss/vite": "4.3.1"
+  "@vitest/browser-playwright": "4.1.9"
+  "happy-dom": "20.10.6"
+  "oxc-parser": "0.137.0"
+  "playwright": "1.61.0"
+  "playwright-core": "1.61.0"
+  "@tsdown/css": "0.22.3"
+  "tailwindcss": "4.3.1"
+  "tsdown": "0.22.3"
+  "tsx": "4.22.4"
   "typescript": "6.0.3"
-  "@vitejs/plugin-react": "6.0.1"
-  "vite": "8.0.8"
+  "vite": "8.0.16"
+
+overrides:
+  "@types/node": "catalog:"
+  "@mjackson/node-fetch-server": "npm:@remix-run/node-fetch-server@0.10.0"
+  "ajv": ">=8.20.0"
+  "cookie": ">=1.1.1"
+  "esbuild": ">=0.28.1"
+  "playwright": "catalog:"
+  "playwright-core": "catalog:"
+  "react": "19.2.7"
+  "react-dom": "19.2.7"
+  # Bumps the only consumer of vulnerable js-yaml 3.x (CVE-2026-53550) up to a
+  # release that depends on patched js-yaml ^4. Capped to 2.x: 3.x is ESM-only
+  # and drops the default/.sync exports that @manypkg/get-packages@1.1.3 requires.
+  "read-yaml-file": "2.1.0"
+  "uuid": ">=14.0.0"
+    
+allowBuilds:
+  "esbuild": true
+  "@tailwindcss/oxide": true

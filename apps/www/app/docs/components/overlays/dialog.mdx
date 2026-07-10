@@ -1,0 +1,558 @@
+---
+title: Dialog
+description: A window overlaid on either the primary window or another dialog window, rendering the content underneath inert.
+---
+
+import { Button, IconButton } from "@ngrok/mantle/button";
+import { Dialog } from "@ngrok/mantle/dialog";
+import { Sheet } from "@ngrok/mantle/sheet";
+import { Tooltip } from "@ngrok/mantle/tooltip";
+import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
+import { Example } from "~/components/example";
+import { TanStackFormDemo } from "~/examples/dialog/dialog-tanstack-form-demo";
+
+# Dialog
+
+A window overlaid on either the primary window or another dialog window, rendering the content underneath inert. Built on top of Radix UI Dialog.
+
+## When to use
+
+Use `Dialog` for a centered modal that interrupts the user to gather input or confirm a non-destructive choice. For destructive confirmations (delete, irreversible actions), use [`AlertDialog`](/components/overlays/alert-dialog). For side-panel content (filter panels, detail/inspector views, navigation drawers), use [`Sheet`](/components/overlays/sheet).
+
+<Example className="flex-col gap-6">
+	<Dialog.Root>
+		<Dialog.Trigger asChild>
+			<Button type="button" appearance="filled" priority="neutral">
+				Open dialog
+			</Button>
+		</Dialog.Trigger>
+		<Dialog.Content>
+			<Dialog.Header>
+				<Dialog.Title>Are you absolutely sure?</Dialog.Title>
+				<Dialog.CloseIconButton />
+			</Dialog.Header>
+			<Dialog.Body>
+				This action cannot be undone. This will permanently delete your account and remove your data
+				from our servers.
+			</Dialog.Body>
+			<Dialog.Footer>
+				<Dialog.Close asChild>
+					<Button type="button" priority="neutral" appearance="outlined">
+						Cancel
+					</Button>
+				</Dialog.Close>
+				<Dialog.Close asChild>
+					<Button type="button" priority="danger" appearance="filled">
+						Delete
+					</Button>
+				</Dialog.Close>
+			</Dialog.Footer>
+		</Dialog.Content>
+	</Dialog.Root>
+</Example>
+
+```tsx
+import { Dialog } from "@ngrok/mantle/dialog";
+import { Button } from "@ngrok/mantle/button";
+
+<Dialog.Root>
+	<Dialog.Trigger asChild>
+		<Button type="button" appearance="filled" priority="neutral">
+			Open dialog
+		</Button>
+	</Dialog.Trigger>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>Are you absolutely sure?</Dialog.Title>
+			<Dialog.CloseIconButton />
+		</Dialog.Header>
+		<Dialog.Body>
+			This action cannot be undone. This will permanently delete your account and remove your data
+			from our servers.
+		</Dialog.Body>
+		<Dialog.Footer>
+			<Dialog.Close asChild>
+				<Button type="button" priority="neutral" appearance="outlined">
+					Cancel
+				</Button>
+			</Dialog.Close>
+			<Dialog.Close asChild>
+				<Button type="button" priority="danger" appearance="filled">
+					Delete
+				</Button>
+			</Dialog.Close>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>;
+```
+
+## Layering and z-index
+
+`Dialog.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+
+`Dialog`, `Sheet`, and `AlertDialog` each render their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
+
+## Handling Autofill Overlays
+
+When a dialog contains form inputs, browser autofill or password-manager plugins (e.g. 1Password) may render overlays as siblings to the dialog content. By default, clicking these overlays triggers `onPointerDownOutside`, which closes the dialog. Use `isDialogOverlayTarget` to prevent this:
+
+```tsx
+import { Dialog, isDialogOverlayTarget } from "@ngrok/mantle/dialog";
+
+<Dialog.Content
+	onPointerDownOutside={(event) => {
+		// Allow closing only when clicking the actual overlay backdrop,
+		// not browser autofill/password-manager popups
+		if (isDialogOverlayTarget(event.target)) {
+			return;
+		}
+		event.preventDefault();
+	}}
+>
+	{/* dialog content with form inputs */}
+</Dialog.Content>;
+```
+
+## Composition
+
+Compose the parts of a `Dialog` together to build your own:
+
+```text showLineNumbers=false
+Dialog.Root
+├── Dialog.Trigger
+└── Dialog.Content
+    ├── Dialog.Header
+    │   ├── Dialog.Title
+    │   ├── Dialog.Description
+    │   └── Dialog.CloseIconButton
+    ├── Dialog.Body
+    └── Dialog.Footer
+        └── Dialog.Close
+```
+
+## Combining with a Tooltip
+
+In some cases, you might wish to have a tooltip over the dialog trigger. This is helpful if the dialog trigger is an `IconButton` and you wish to provide more context to what the button does. You can compose them both together to where the dialog trigger is also the tooltip trigger.
+
+<Example>
+	<Dialog.Root>
+		<Tooltip.Root>
+			<Tooltip.Trigger asChild>
+				<Dialog.Trigger asChild>
+					<IconButton type="button" label="Delete" size="sm" icon={<TrashSimpleIcon />} />
+				</Dialog.Trigger>
+			</Tooltip.Trigger>
+			<Tooltip.Content>
+				<p>Delete</p>
+			</Tooltip.Content>
+		</Tooltip.Root>
+		<Dialog.Content>
+			<Dialog.Header>
+				<Dialog.Title>Are you absolutely sure?</Dialog.Title>
+				<Dialog.CloseIconButton />
+			</Dialog.Header>
+			<Dialog.Body>
+				This action cannot be undone. This will permanently delete your account and remove your data
+				from our servers.
+			</Dialog.Body>
+			<Dialog.Footer>
+				<Dialog.Close asChild>
+					<Button type="button" priority="neutral" appearance="outlined">
+						Cancel
+					</Button>
+				</Dialog.Close>
+				<Dialog.Close asChild>
+					<Button type="button" priority="danger" appearance="filled">
+						Delete
+					</Button>
+				</Dialog.Close>
+			</Dialog.Footer>
+		</Dialog.Content>
+	</Dialog.Root>
+</Example>
+
+```tsx
+import { Dialog } from "@ngrok/mantle/dialog";
+import { Button, IconButton } from "@ngrok/mantle/button";
+import { Tooltip } from "@ngrok/mantle/tooltip";
+import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
+
+<Dialog.Root>
+	<Tooltip.Root>
+		<Tooltip.Trigger asChild>
+			<Dialog.Trigger asChild>
+				<IconButton type="button" label="Delete" size="sm" icon={<TrashSimpleIcon />} />
+			</Dialog.Trigger>
+		</Tooltip.Trigger>
+		<Tooltip.Content>
+			<p>Delete</p>
+		</Tooltip.Content>
+	</Tooltip.Root>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>Are you absolutely sure?</Dialog.Title>
+			<Dialog.CloseIconButton />
+		</Dialog.Header>
+		<Dialog.Body>
+			This action cannot be undone. This will permanently delete your account and remove your data
+			from our servers.
+		</Dialog.Body>
+		<Dialog.Footer>
+			<Dialog.Close asChild>
+				<Button type="button" priority="neutral" appearance="outlined">
+					Cancel
+				</Button>
+			</Dialog.Close>
+			<Dialog.Close asChild>
+				<Button type="button" priority="danger" appearance="filled">
+					Delete
+				</Button>
+			</Dialog.Close>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>;
+```
+
+## Stacking a Sheet over a Dialog
+
+`Dialog` and `Sheet` share the same `z-50` layer, so the most recently mounted layer renders on top. Open the dialog below first, then open the sheet from inside it — the sheet stacks over the dialog rather than disappearing behind it. Each layer renders its own backdrop, so the dialog beneath is dimmed by the sheet's overlay.
+
+<Example>
+	<Dialog.Root>
+		<Dialog.Trigger asChild>
+			<Button type="button" appearance="filled" priority="neutral">
+				Open dialog
+			</Button>
+		</Dialog.Trigger>
+		<Dialog.Content>
+			<Dialog.Header>
+				<Dialog.Title>Dialog</Dialog.Title>
+				<Dialog.CloseIconButton />
+			</Dialog.Header>
+			<Dialog.Body className="space-y-4">
+				<p>Open the sheet below — it stacks on top of this dialog.</p>
+				<Sheet.Root>
+					<Sheet.Trigger asChild>
+						<Button type="button" appearance="outlined" priority="neutral">
+							Open sheet
+						</Button>
+					</Sheet.Trigger>
+					<Sheet.Content>
+						<Sheet.Header>
+							<Sheet.TitleGroup>
+								<Sheet.Title>Sheet over a dialog</Sheet.Title>
+								<Sheet.Actions>
+									<Sheet.CloseIconButton />
+								</Sheet.Actions>
+							</Sheet.TitleGroup>
+							<Sheet.Description>
+								This sheet renders on top of the dialog that opened it.
+							</Sheet.Description>
+						</Sheet.Header>
+						<Sheet.Body>
+							<p>Close this sheet to return to the dialog underneath.</p>
+						</Sheet.Body>
+						<Sheet.Footer>
+							<Sheet.Close asChild>
+								<Button type="button" appearance="outlined" priority="neutral">
+									Close
+								</Button>
+							</Sheet.Close>
+						</Sheet.Footer>
+					</Sheet.Content>
+				</Sheet.Root>
+			</Dialog.Body>
+			<Dialog.Footer>
+				<Dialog.Close asChild>
+					<Button type="button" appearance="outlined" priority="neutral">
+						Close
+					</Button>
+				</Dialog.Close>
+			</Dialog.Footer>
+		</Dialog.Content>
+	</Dialog.Root>
+</Example>
+
+```tsx
+import { Dialog } from "@ngrok/mantle/dialog";
+import { Sheet } from "@ngrok/mantle/sheet";
+import { Button } from "@ngrok/mantle/button";
+
+<Dialog.Root>
+	<Dialog.Trigger asChild>
+		<Button type="button" appearance="filled" priority="neutral">
+			Open dialog
+		</Button>
+	</Dialog.Trigger>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>Dialog</Dialog.Title>
+			<Dialog.CloseIconButton />
+		</Dialog.Header>
+		<Dialog.Body className="space-y-4">
+			<p>Open the sheet below — it stacks on top of this dialog.</p>
+			<Sheet.Root>
+				<Sheet.Trigger asChild>
+					<Button type="button" appearance="outlined" priority="neutral">
+						Open sheet
+					</Button>
+				</Sheet.Trigger>
+				<Sheet.Content>
+					<Sheet.Header>
+						<Sheet.TitleGroup>
+							<Sheet.Title>Sheet over a dialog</Sheet.Title>
+							<Sheet.Actions>
+								<Sheet.CloseIconButton />
+							</Sheet.Actions>
+						</Sheet.TitleGroup>
+						<Sheet.Description>
+							This sheet renders on top of the dialog that opened it.
+						</Sheet.Description>
+					</Sheet.Header>
+					<Sheet.Body>
+						<p>Close this sheet to return to the dialog underneath.</p>
+					</Sheet.Body>
+					<Sheet.Footer>
+						<Sheet.Close asChild>
+							<Button type="button" appearance="outlined" priority="neutral">
+								Close
+							</Button>
+						</Sheet.Close>
+					</Sheet.Footer>
+				</Sheet.Content>
+			</Sheet.Root>
+		</Dialog.Body>
+		<Dialog.Footer>
+			<Dialog.Close asChild>
+				<Button type="button" appearance="outlined" priority="neutral">
+					Close
+				</Button>
+			</Dialog.Close>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>;
+```
+
+## With TanStack Form
+
+Use [TanStack Form](https://tanstack.com/form) with [`Field`](/components/forms/field) to gather validated input in a dialog. `Dialog.Content` is a flex column, so wrap `Dialog.Body` and `Dialog.Footer` in a `display: contents` form — the footer's submit button participates in the form while the body keeps its scrollable layout. Close the dialog from the form's `onSubmit` (it only runs once validation passes) and reset the form when the dialog closes so a cancelled draft doesn't leak into the next open. The form sets `noValidate` so the browser's native `type="email"` validation doesn't block the submit event — the schema owns validation and errors render consistently through `Field.Errors`.
+
+If password managers or browser autofill overlays interfere with outside-click dismissal, see [Handling Autofill Overlays](#handling-autofill-overlays).
+
+<Example className="w-full">
+	<TanStackFormDemo />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Dialog } from "@ngrok/mantle/dialog";
+import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { Input } from "@ngrok/mantle/input";
+import { Select } from "@ngrok/mantle/select";
+import { useForm } from "@tanstack/react-form";
+import { useState } from "react";
+import { z } from "zod";
+
+const formSchema = z.object({
+	email: z.email("Enter a valid email address."),
+	role: z.string().min(1, "Choose a role."),
+});
+
+function Example() {
+	const [open, setOpen] = useState(false);
+	const form = useForm({
+		defaultValues: {
+			email: "",
+			role: "",
+		},
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmit: ({ value }) => {
+			// Handle the invite with `value`, then close the dialog
+			handleOpenChange(false);
+		},
+	});
+
+	const handleOpenChange = (nextOpen: boolean) => {
+		setOpen(nextOpen);
+		if (!nextOpen) {
+			form.reset();
+		}
+	};
+
+	return (
+		<Dialog.Root open={open} onOpenChange={handleOpenChange}>
+			<Dialog.Trigger asChild>
+				<Button type="button" appearance="filled" priority="neutral">
+					Invite a teammate
+				</Button>
+			</Dialog.Trigger>
+			<Dialog.Content>
+				<Dialog.Header>
+					<Dialog.Title>Invite a teammate</Dialog.Title>
+					<Dialog.CloseIconButton />
+				</Dialog.Header>
+				<form
+					className="contents"
+					noValidate
+					onSubmit={(event) => {
+						event.preventDefault();
+						event.stopPropagation();
+						void form.handleSubmit();
+					}}
+				>
+					<Dialog.Body className="space-y-4">
+						<form.Field name="email">
+							{(field) => (
+								<Field.Item name={field.name}>
+									<Field.Label>Email</Field.Label>
+									<Field.Control>
+										<Input
+											type="email"
+											placeholder="teammate@example.com"
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(event) => field.handleChange(event.target.value)}
+										/>
+									</Field.Control>
+									<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+								</Field.Item>
+							)}
+						</form.Field>
+						<form.Field name="role">
+							{(field) => (
+								<Field.Item name={field.name}>
+									<Field.Label>Role</Field.Label>
+									<Field.Control>
+										<Select.Root
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onValueChange={field.handleChange}
+										>
+											<Select.Trigger>
+												<Select.Value placeholder="Select a role" />
+											</Select.Trigger>
+											<Select.Content width="trigger">
+												<Select.Item value="admin">Admin</Select.Item>
+												<Select.Item value="developer">Developer</Select.Item>
+												<Select.Item value="read-only">Read-only</Select.Item>
+											</Select.Content>
+										</Select.Root>
+									</Field.Control>
+									<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+								</Field.Item>
+							)}
+						</form.Field>
+					</Dialog.Body>
+					<Dialog.Footer>
+						<Dialog.Close asChild>
+							<Button type="button" appearance="outlined" priority="neutral">
+								Cancel
+							</Button>
+						</Dialog.Close>
+						<Button type="submit" appearance="filled" priority="neutral">
+							Send invite
+						</Button>
+					</Dialog.Footer>
+				</form>
+			</Dialog.Content>
+		</Dialog.Root>
+	);
+}
+```
+
+## API Reference
+
+### Dialog.Root
+
+The root stateful component that manages the open/closed state of the dialog.
+
+Its floating `Dialog.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
+
+| Prop            | Type                      | Default | Description                                                                                                                                                   |
+| --------------- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `open?`         | `boolean`                 |         | The controlled open state of the dialog. Must be used in conjunction with `onOpenChange`.                                                                     |
+| `onOpenChange?` | `(open: boolean) => void` |         | Event handler called when the open state of the dialog changes.                                                                                               |
+| `defaultOpen?`  | `boolean`                 | `false` | The open state of the dialog when it is initially rendered. Use when you do not need to control its open state.                                               |
+| `modal?`        | `boolean`                 | `true`  | The modality of the dialog. When set to `true`, interaction with outside elements will be disabled and only dialog content will be visible to screen readers. |
+
+### Dialog.Trigger
+
+A button that opens the dialog.
+
+| Prop       | Type      | Default | Description                                                                          |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------ |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the trigger functionality onto your own component. |
+
+### Dialog.Content
+
+The container for the dialog content. Renders on top of the overlay and is centered in the viewport.
+
+Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+
+| Prop                 | Type                             | Default      | Description                                                                                                                |
+| -------------------- | -------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `preferredWidth?`    | `` `max-w-${string}` ``          | `"max-w-lg"` | The preferred width of the dialog content as a Tailwind `max-w-` class. Controls the maximum width of the dialog.          |
+| `onEscapeKeyDown?`   | `(event: KeyboardEvent) => void` |              | Event handler called when the escape key is down. It can be prevented by calling `event.preventDefault`.                   |
+| `onInteractOutside?` | `(event: Event) => void`         |              | Event handler called when the user interacts outside the component. It can be prevented by calling `event.preventDefault`. |
+
+### Dialog.Header
+
+Contains the header content of the dialog, including the title and close button.
+
+| Prop       | Type        | Default | Description                                     |
+| ---------- | ----------- | ------- | ----------------------------------------------- |
+| `children` | `ReactNode` |         | The content to render inside the dialog header. |
+
+### Dialog.Body
+
+Contains the main content of the dialog.
+
+| Prop       | Type        | Default | Description                                   |
+| ---------- | ----------- | ------- | --------------------------------------------- |
+| `children` | `ReactNode` |         | The content to render inside the dialog body. |
+
+### Dialog.Footer
+
+Contains the footer content of the dialog, including action buttons.
+
+| Prop       | Type        | Default | Description                                                                        |
+| ---------- | ----------- | ------- | ---------------------------------------------------------------------------------- |
+| `children` | `ReactNode` |         | The content to render inside the dialog footer. Typically contains action buttons. |
+
+### Dialog.Title
+
+An accessible name to be announced when the dialog is opened.
+
+| Prop       | Type        | Default | Description                                                                       |
+| ---------- | ----------- | ------- | --------------------------------------------------------------------------------- |
+| `children` | `ReactNode` |         | The title text for the dialog.                                                    |
+| `asChild?` | `boolean`   | `false` | Use the `asChild` prop to render a custom element instead of the default heading. |
+
+### Dialog.Description
+
+An accessible description to be announced when the dialog is opened.
+
+| Prop       | Type        | Default | Description                                                                                  |
+| ---------- | ----------- | ------- | -------------------------------------------------------------------------------------------- |
+| `children` | `ReactNode` |         | The description text for the dialog. Enhances accessibility by providing additional context. |
+| `asChild?` | `boolean`   | `false` | Use the `asChild` prop to render a custom element instead of the default paragraph.          |
+
+### Dialog.Close
+
+A button that closes the dialog when clicked.
+
+| Prop       | Type      | Default | Description                                                                        |
+| ---------- | --------- | ------- | ---------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the close functionality onto your own component. |
+
+### Dialog.CloseIconButton
+
+An icon button that closes the dialog when clicked.
+
+| Prop          | Type                       | Default          | Description                                                              |
+| ------------- | -------------------------- | ---------------- | ------------------------------------------------------------------------ |
+| `size?`       | `"sm"` \| `"md"` \| `"lg"` | `"md"`           | The size of the close icon button.                                       |
+| `label?`      | `string`                   | `"Close Dialog"` | The accessible label for the close button. Important for screen readers. |
+| `appearance?` | `"ghost"` \| `"outlined"`  | `"ghost"`        | The visual appearance of the close icon button.                          |

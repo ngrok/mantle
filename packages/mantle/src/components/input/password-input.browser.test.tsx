@@ -24,7 +24,7 @@ describe("PasswordInput (browser)", () => {
 
 	test("clicking the toggle fires onValueVisibilityChange with the new visibility", async () => {
 		const user = userEvent.setup();
-		const handleChange = vi.fn();
+		const handleChange = vi.fn<(visible: boolean) => void>();
 		render(<PasswordInput placeholder="test" onValueVisibilityChange={handleChange} />);
 
 		const toggle = screen.getByRole("button", { name: /turn password visibility/i });
@@ -43,11 +43,11 @@ describe("PasswordInput (browser)", () => {
 			matches: false, // "(prefers-reduced-motion: no-preference)" → false means reduced motion
 			media: query,
 			onchange: null,
-			addListener: vi.fn(),
-			removeListener: vi.fn(),
-			addEventListener: vi.fn(),
-			removeEventListener: vi.fn(),
-			dispatchEvent: vi.fn(),
+			addListener: vi.fn<() => void>(),
+			removeListener: vi.fn<() => void>(),
+			addEventListener: vi.fn<() => void>(),
+			removeEventListener: vi.fn<() => void>(),
+			dispatchEvent: vi.fn<() => boolean>(),
 		}));
 
 		render(<PasswordInput placeholder="test" />);

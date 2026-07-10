@@ -1,0 +1,336 @@
+---
+title: Alert Dialog
+description: A modal dialog that interrupts the user with important content and expects a response.
+---
+
+import { AlertDialog } from "@ngrok/mantle/alert-dialog";
+import { Button } from "@ngrok/mantle/button";
+import { Example } from "~/components/example";
+import { TanStackFormDemo } from "~/examples/alert-dialog/alert-dialog-tanstack-form-demo";
+
+# Alert Dialog
+
+A modal dialog that interrupts the user with important content and expects a response. Built on top of [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/dialog).
+
+## When to use
+
+Use `AlertDialog` for destructive or irreversible confirmations (delete, sign out, leave without saving) where the user must explicitly acknowledge. `AlertDialog` blocks all background interaction. For non-destructive input modals, use [`Dialog`](/components/overlays/dialog).
+
+<Example className="flex-col gap-6">
+	<AlertDialog.Root priority="info">
+		<AlertDialog.Trigger asChild>
+			<Button type="button" appearance="outlined" priority="neutral">
+				Show Info Alert Dialog
+			</Button>
+		</AlertDialog.Trigger>
+		<AlertDialog.Content>
+			<AlertDialog.Icon />
+			<AlertDialog.Body>
+				<AlertDialog.Header>
+					<AlertDialog.Title>Are you absolutely sure?</AlertDialog.Title>
+					<AlertDialog.Description>
+						Proident quis nisi tempor irure sunt ut minim occaecat mollit sunt.
+					</AlertDialog.Description>
+				</AlertDialog.Header>
+				<AlertDialog.Footer>
+					<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>
+					<AlertDialog.Action type="button">Continue</AlertDialog.Action>
+				</AlertDialog.Footer>
+			</AlertDialog.Body>
+		</AlertDialog.Content>
+	</AlertDialog.Root>
+	<AlertDialog.Root priority="danger">
+		<AlertDialog.Trigger asChild>
+			<Button type="button" appearance="outlined" priority="neutral">
+				Show Danger Alert Dialog
+			</Button>
+		</AlertDialog.Trigger>
+		<AlertDialog.Content>
+			<AlertDialog.Icon />
+			<AlertDialog.Body>
+				<AlertDialog.Header>
+					<AlertDialog.Title>Are you absolutely sure?</AlertDialog.Title>
+					<AlertDialog.Description>
+						Proident quis nisi tempor irure sunt ut minim occaecat mollit sunt.
+					</AlertDialog.Description>
+				</AlertDialog.Header>
+				<AlertDialog.Footer>
+					<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>
+					<AlertDialog.Action type="button">Continue</AlertDialog.Action>
+				</AlertDialog.Footer>
+			</AlertDialog.Body>
+		</AlertDialog.Content>
+	</AlertDialog.Root>
+</Example>
+
+```tsx
+import { AlertDialog } from "@ngrok/mantle/alert-dialog";
+import { Button } from "@ngrok/mantle/button";
+
+<AlertDialog.Root priority="info">
+	<AlertDialog.Trigger asChild>
+		<Button type="button" appearance="outlined" priority="neutral">
+			Show Info Alert Dialog
+		</Button>
+	</AlertDialog.Trigger>
+	<AlertDialog.Content>
+		<AlertDialog.Icon />
+		<AlertDialog.Body>
+			<AlertDialog.Header>
+				<AlertDialog.Title>Are you absolutely sure?</AlertDialog.Title>
+				<AlertDialog.Description>
+					Proident quis nisi tempor irure sunt ut minim occaecat mollit sunt.
+				</AlertDialog.Description>
+			</AlertDialog.Header>
+			<AlertDialog.Footer>
+				<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>
+				<AlertDialog.Action type="button">Continue</AlertDialog.Action>
+			</AlertDialog.Footer>
+		</AlertDialog.Body>
+	</AlertDialog.Content>
+</AlertDialog.Root>;
+```
+
+## Layering and z-index
+
+`AlertDialog.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+
+`AlertDialog`, `Dialog`, and `Sheet` each render their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
+
+## Composition
+
+Compose the parts of an `AlertDialog` together to build your own:
+
+```text showLineNumbers=false
+AlertDialog.Root
+├── AlertDialog.Trigger
+└── AlertDialog.Content
+    ├── AlertDialog.Icon
+    └── AlertDialog.Body
+        ├── AlertDialog.Header
+        │   ├── AlertDialog.Title
+        │   └── AlertDialog.Description
+        └── AlertDialog.Footer
+            ├── AlertDialog.Cancel
+            └── AlertDialog.Action
+```
+
+## With TanStack Form
+
+Compose an `AlertDialog` with [TanStack Form](https://tanstack.com/form) and [`Field`](/components/forms/field) when the destructive action requires explicit acknowledgment. Render `AlertDialog.Body` as the `<form>` element with `asChild` so the header, field, and footer keep the alert dialog layout. `AlertDialog.Action` does not close the dialog by default — make it the submit button (`type="submit"`) and close the dialog from the form's `onSubmit`, which only runs once validation passes. Control `AlertDialog.Root` with `open` / `onOpenChange` and reset the form on close so the acknowledgment is required every time the dialog opens.
+
+The acknowledgment row composes [`Choice`](/components/forms/choice) inside `Field.Control`, so the checkbox aligns to the first line of its label and the field's `name` and ARIA wiring flow onto the checkbox automatically.
+
+<Example className="w-full">
+	<TanStackFormDemo />
+</Example>
+
+```tsx
+import { AlertDialog } from "@ngrok/mantle/alert-dialog";
+import { Button } from "@ngrok/mantle/button";
+import { Checkbox } from "@ngrok/mantle/checkbox";
+import { Choice } from "@ngrok/mantle/choice";
+import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { useForm } from "@tanstack/react-form";
+import { useState } from "react";
+import { z } from "zod";
+
+const formSchema = z.object({
+	acknowledged: z.boolean().refine((value) => value, "Acknowledge the consequences to continue."),
+});
+
+function Example() {
+	const [open, setOpen] = useState(false);
+	const form = useForm({
+		defaultValues: {
+			acknowledged: false,
+		},
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmit: ({ value }) => {
+			// Handle the destructive action with `value`, then close the dialog
+			handleOpenChange(false);
+		},
+	});
+
+	const handleOpenChange = (nextOpen: boolean) => {
+		setOpen(nextOpen);
+		if (!nextOpen) {
+			form.reset();
+		}
+	};
+
+	return (
+		<AlertDialog.Root priority="danger" open={open} onOpenChange={handleOpenChange}>
+			<AlertDialog.Trigger asChild>
+				<Button type="button" appearance="outlined" priority="danger">
+					Release domain
+				</Button>
+			</AlertDialog.Trigger>
+			<AlertDialog.Content>
+				<AlertDialog.Icon />
+				<AlertDialog.Body asChild>
+					<form
+						onSubmit={(event) => {
+							event.preventDefault();
+							event.stopPropagation();
+							void form.handleSubmit();
+						}}
+					>
+						<AlertDialog.Header>
+							<AlertDialog.Title>Release this domain?</AlertDialog.Title>
+							<AlertDialog.Description>
+								Releasing example.ngrok.app immediately removes it from your account.
+							</AlertDialog.Description>
+						</AlertDialog.Header>
+						<form.Field name="acknowledged">
+							{(field) => (
+								<Field.Item name={field.name}>
+									<Field.Control>
+										<Choice.Root>
+											<Choice.Indicator>
+												<Checkbox
+													checked={field.state.value}
+													onBlur={field.handleBlur}
+													onChange={(event) => field.handleChange(event.target.checked)}
+												/>
+											</Choice.Indicator>
+											<Choice.Content>
+												<Choice.Label>I understand the consequences</Choice.Label>
+												<Choice.Description>
+													Endpoints still using this domain will go offline, and the domain may be
+													claimed by another account.
+												</Choice.Description>
+											</Choice.Content>
+										</Choice.Root>
+									</Field.Control>
+									<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+								</Field.Item>
+							)}
+						</form.Field>
+						<AlertDialog.Footer>
+							<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>
+							<AlertDialog.Action type="submit">Release domain</AlertDialog.Action>
+						</AlertDialog.Footer>
+					</form>
+				</AlertDialog.Body>
+			</AlertDialog.Content>
+		</AlertDialog.Root>
+	);
+}
+```
+
+## API Reference
+
+### AlertDialog.Root
+
+The root component for the Alert Dialog.
+
+Its floating `AlertDialog.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
+
+All props from Radix [Dialog.Root](https://www.radix-ui.com/primitives/docs/components/dialog#root), plus:
+
+| Prop       | Type                   | Default | Description                                                                                                              |
+| ---------- | ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `priority` | `"info"` \| `"danger"` |         | Indicates the importance or impact level of the AlertDialog, affecting its color and styling to communicate its purpose. |
+
+### AlertDialog.Trigger
+
+A button that opens the Alert Dialog.
+
+Radix [Dialog.Trigger](https://www.radix-ui.com/primitives/docs/components/dialog#trigger) props.
+
+### AlertDialog.Content
+
+The popover Alert Dialog container. Renders on top of the overlay and is centered in the viewport.
+
+Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+
+Radix [Dialog.Content](https://www.radix-ui.com/primitives/docs/components/dialog#content) props, plus:
+
+| Prop              | Type     | Default      | Description                                                                   |
+| ----------------- | -------- | ------------ | ----------------------------------------------------------------------------- |
+| `preferredWidth?` | `string` | `"max-w-md"` | The preferred width of the `AlertDialogContent` as a Tailwind `max-w-` class. |
+
+### AlertDialog.Body
+
+Contains the main content of the alert dialog.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                  |
+| ---------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AlertDialogBody` styling onto alternative element types or your own React components. |
+
+### AlertDialog.Header
+
+Contains the header content of the dialog, including the title and description.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                    |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AlertDialogHeader` styling onto alternative element types or your own React components. |
+
+### AlertDialog.Footer
+
+Contains the footer content of the dialog, including the action and cancel buttons.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                    |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AlertDialogFooter` styling onto alternative element types or your own React components. |
+
+### AlertDialog.Title
+
+An accessible name to be announced when the dialog is opened.
+
+Alternatively, you can provide `aria-label` or `aria-labelledby` to `AlertDialogContent` and exclude this component.
+
+Radix [Dialog.Title](https://www.radix-ui.com/primitives/docs/components/dialog#title) props.
+
+### AlertDialog.Description
+
+An accessible description to be announced when the dialog is opened. Renders as a `div` by default, but can be changed to any other element using the `asChild` prop.
+
+Alternatively, you can provide `aria-describedby` to `AlertDialogContent` and exclude this component.
+
+Radix [Dialog.Description](https://www.radix-ui.com/primitives/docs/components/dialog#description) props.
+
+### AlertDialog.Action
+
+A button that confirms the Alert Dialog action. Defaults to `appearance="filled"` and the priority color from `AlertDialog.Root`. Does not close the alert dialog by default.
+
+These buttons should be distinguished visually from `AlertDialog.Cancel`.
+
+Composes around the mantle [Button](/components/actions/button) component. Same props as [Button](/components/actions/button).
+
+### AlertDialog.Cancel
+
+A button that closes the dialog and cancels the action. Defaults to `appearance="outlined"` and `priority="neutral"`.
+
+This button should be distinguished visually from `AlertDialog.Action`.
+
+Composes around the mantle [Button](/components/actions/button) component. Same props as [Button](/components/actions/button).
+
+### AlertDialog.Icon
+
+An icon displayed in the alert dialog, usually to indicate the type of alert.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                   |
+| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AlertDialog.Icon` styling onto alternative element types or your own React components. |
+
+### AlertDialog.Close
+
+A button that closes the dialog.
+
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                    |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AlertDialog.Close` styling onto alternative element types or your own React components. |

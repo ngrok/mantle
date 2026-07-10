@@ -101,7 +101,6 @@ function useOffsetPagination({
 	}, [pageSize]);
 
 	// Reset the current page to 1 when the list size prop changes
-	// biome-ignore lint/correctness/useExhaustiveDependencies: when the listSize prop changes, we want to reset the current page to the start
 	useEffect(() => {
 		setCurrentPage(1);
 	}, [listSize]);

@@ -66,7 +66,7 @@ export function IconsExplorer() {
 }
 
 function ListItem({ item }: { item: IconData }) {
-	const [, copyToClipboard] = useCopyToClipboard();
+	const copyToClipboard = useCopyToClipboard();
 	const [wasCopied, setWasCopied] = useState(false);
 	const timeoutHandle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 	const copyText = `import { ${item.name} } from "@ngrok/mantle/icons";`;

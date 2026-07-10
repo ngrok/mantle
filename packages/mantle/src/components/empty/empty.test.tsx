@@ -41,7 +41,9 @@ describe("Empty", () => {
 		);
 		const title = screen.getByTestId("title");
 		expect(title.className).toContain("text-2xl");
-		expect(title.className).toContain("text-strong");
+		// Verify base classes are preserved alongside the custom one without
+		// coupling to specific design-token utilities (which change on restyle).
+		expect(title).toHaveAttribute("data-slot", "empty-title");
 	});
 
 	test("Title renders as child element when asChild is true", () => {
@@ -55,7 +57,7 @@ describe("Empty", () => {
 		const title = screen.getByTestId("title");
 		expect(title.tagName).toBe("H1");
 		expect(title).toHaveTextContent("Heading");
-		expect(title.className).toContain("text-strong");
+		expect(title).toHaveAttribute("data-slot", "empty-title");
 	});
 
 	test("Description renders a div element by default", () => {
@@ -81,7 +83,7 @@ describe("Empty", () => {
 		);
 		const description = screen.getByTestId("desc");
 		expect(description.className).toContain("text-xs");
-		expect(description.className).toContain("text-body");
+		expect(description).toHaveAttribute("data-slot", "empty-description");
 	});
 
 	test("Description renders as child element when asChild is true", () => {
@@ -96,7 +98,7 @@ describe("Empty", () => {
 		);
 		const description = screen.getByTestId("desc");
 		expect(description.tagName).toBe("SECTION");
-		expect(description.className).toContain("text-body");
+		expect(description).toHaveAttribute("data-slot", "empty-description");
 	});
 
 	test("Actions renders a div element", () => {

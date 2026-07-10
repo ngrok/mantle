@@ -114,4 +114,152 @@ describe("decorateHighlightedHtml", () => {
 		const lineCount = (result.match(/data-line-number=/g) ?? []).length;
 		expect(lineCount).toBe(1);
 	});
+
+	describe("with foldableRanges", () => {
+		test("renders a fold toggle button on opener lines", () => {
+			const html = shikiHtml(["{", '  "a": 1', "}"]);
+			const result = decorateHighlightedHtml({
+				html,
+				foldableRanges: [{ id: "1", startLine: 1, endLine: 3 }],
+			});
+
+			expect(result).toContain('<button type="button" class="mantle-code-fold-toggle"');
+			expect(result).toContain('data-fold-line="1"');
+			expect(result).toContain('aria-expanded="true"');
+			expect(result).toContain('aria-label="Toggle code folding"');
+		});
+
+		test("annotates inner content lines with parent fold region IDs", () => {
+			const html = shikiHtml(["[", "  1,", "  2", "]"]);
+			const result = decorateHighlightedHtml({
+				html,
+				foldableRanges: [{ id: "1", startLine: 1, endLine: 4 }],
+			});
+
+			expect(result).toContain('data-line-number="2" data-fold-regions="1"');
+			expect(result).toContain('data-line-number="3" data-fold-regions="1"');
+		});
+
+		test("does not annotate the opener or closer lines as descendants", () => {
+			const html = shikiHtml(["[", "  1", "]"]);
+			const result = decorateHighlightedHtml({
+				html,
+				foldableRanges: [{ id: "1", startLine: 1, endLine: 3 }],
+			});
+
+			expect(result).not.toMatch(/data-line-number="1"\s+data-fold-regions=/);
+			expect(result).not.toMatch(/data-line-number="3"\s+data-fold-regions=/);
+		});
+
+		test("renders fold gutter even when lineNumberStart is offset", () => {
+			const html = shikiHtml(["[", "  1", "]"]);
+			const result = decorateHighlightedHtml({
+				html,
+				foldableRanges: [{ id: "1", startLine: 1, endLine: 3 }],
+				lineNumberStart: 100,
+				showLineNumbers: true,
+			});
+
+			// Displayed line numbers reflect lineNumberStart...
+			expect(result).toContain('data-line-number="100"');
+			expect(result).toContain('data-line-number="101"');
+			expect(result).toContain('data-line-number="102"');
+			// ...but the fold opener still resolves against the buffer-relative range.
+			expect(result).toContain('data-fold-line="1"');
+			expect(result).toContain('data-fold-regions="1"');
+		});
+
+		test("tags only opener lines with mantle-code-line-opener so the gutter reset is a flat class, not a per-line :has() probe", () => {
+			const html = shikiHtml(["{", '  "a": 1', "}"]);
+			const result = decorateHighlightedHtml({
+				html,
+				foldableRanges: [{ id: "1", startLine: 1, endLine: 3 }],
+			});
+
+			// Read a line's class list without pinning the exact class string or
+			// `cx()` ordering, so the assertions cover only what matters: which lines
+			// carry the opener tag.
+			const classesForLine = (lineNumber: number) =>
+				result
+					.match(new RegExp(`<span class="([^"]*)" data-line-number="${lineNumber}"`))?.[1]
+					?.split(" ") ?? [];
+
+			// Only the opener line (1) is tagged so CSS can reset its gutter margin
+			// (its button already occupies the gutter); the inner/closer lines reserve
+			// their gutter via the default rule and stay untagged.
+			expect(classesForLine(1)).toContain("mantle-code-line-opener");
+			expect(classesForLine(2)).not.toContain("mantle-code-line-opener");
+			expect(classesForLine(3)).not.toContain("mantle-code-line-opener");
+			// ...and the tag appears exactly once across the whole block.
+			expect(result.match(/mantle-code-line-opener/g) ?? []).toHaveLength(1);
+		});
+
+		test("does not tag any line when folding is disabled", () => {
+			const html = shikiHtml(["{", '  "a": 1', "}"]);
+			const result = decorateHighlightedHtml({ html });
+
+			expect(result).not.toContain("mantle-code-line-opener");
+		});
+
+		test("does not emit per-line fold spacers — gutter alignment is CSS-only", () => {
+			const html = shikiHtml(["[", "  1", "]"]);
+			const result = decorateHighlightedHtml({
+				html,
+				foldableRanges: [{ id: "1", startLine: 1, endLine: 3 }],
+			});
+
+			expect(result).not.toContain("mantle-code-fold-spacer");
+			expect(result).not.toContain('data-slot="fold-spacer"');
+		});
+
+		test("renders a trailing ellipsis only on opener lines", () => {
+			const html = shikiHtml(["[", "  1", "]"]);
+			const result = decorateHighlightedHtml({
+				html,
+				foldableRanges: [{ id: "1", startLine: 1, endLine: 3 }],
+			});
+
+			const ellipsisCount = (result.match(/class="mantle-code-fold-ellipsis"/g) ?? []).length;
+			expect(ellipsisCount).toBe(1);
+		});
+
+		test("nests parent regions on lines that belong to multiple folds", () => {
+			const html = shikiHtml(["{", "  [", "    1", "  ]", "}"]);
+			const result = decorateHighlightedHtml({
+				html,
+				foldableRanges: [
+					{ id: "1", startLine: 1, endLine: 5 },
+					{ id: "2", startLine: 2, endLine: 4 },
+				],
+			});
+
+			expect(result).toContain('data-line-number="3" data-fold-regions="1 2"');
+		});
+
+		test("encodes custom fold IDs before writing them to attributes", () => {
+			const html = shikiHtml(["{", '  "a": 1', "}"]);
+			const result = decorateHighlightedHtml({
+				html,
+				foldableRanges: [{ id: 'fold "1" & inner', startLine: 1, endLine: 3 }],
+			});
+
+			const encoded = "fold%20%221%22%20%26%20inner";
+			expect(result).toContain(`data-fold-line="${encoded}"`);
+			expect(result).toContain(`data-fold-regions="${encoded}"`);
+			expect(result).not.toContain('data-fold-line="fold "1" & inner"');
+		});
+
+		test("does not render fold gutter when no ranges are provided", () => {
+			const html = shikiHtml(["[", "  1", "]"]);
+			const result = decorateHighlightedHtml({ html });
+			expect(result).not.toContain("mantle-code-fold-toggle");
+			expect(result).not.toContain("mantle-code-fold-ellipsis");
+		});
+
+		test("handles an empty foldableRanges array", () => {
+			const html = shikiHtml(["[", "  1", "]"]);
+			const result = decorateHighlightedHtml({ html, foldableRanges: [] });
+			expect(result).not.toContain("mantle-code-fold-toggle");
+		});
+	});
 });

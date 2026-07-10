@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import rawMdxDocs from "virtual:raw-mdx-docs";
+import type { TocEntry } from "../../vite-plugins/rehype-mdx-toc";
 
 type MdxComponent = ComponentType & {
 	frontmatter?: Record<string, unknown>;
@@ -7,7 +8,10 @@ type MdxComponent = ComponentType & {
 
 type MdxModule = {
 	default: MdxComponent;
+	toc?: Array<TocEntry>;
 };
+
+export type { TocEntry };
 
 /**
  * Eager glob imports for production builds. All MDX modules are resolved at
@@ -48,52 +52,69 @@ async function getDocMdxModule(filePath: string): Promise<MdxModule | null> {
 	return mod;
 }
 
+/** A resolved MDX doc — its React component and the table-of-contents entries. */
+export type ResolvedDoc = {
+	Component: ComponentType;
+	toc: Array<TocEntry>;
+};
+
 // Cache promises by filePath so use() sees the same promise across renders.
 // In dev, we clear the cache each time this module re-executes (which Vite
 // triggers when an MDX file changes) so the next render re-imports the
 // updated module.
-const componentPromiseCache = new Map<string, Promise<ComponentType>>();
+const resolvedDocCache = new Map<string, Promise<ResolvedDoc>>();
 
 /**
- * Resolve the React component for a doc MDX module asynchronously.
+ * Resolve a doc MDX module asynchronously, returning its component and toc.
  * Used in dev with `use()` + Suspense for granular HMR.
  *
  * Caches promises so `use()` sees the same promise reference across renders,
  * preventing Suspense from re-suspending.
  *
  * @param filePath - A key from the MDX glob (e.g. "../docs/button.mdx").
- * @returns A promise that resolves to the MDX component.
  */
-export function resolveDocComponent(filePath: string): Promise<ComponentType> {
-	if (!componentPromiseCache.has(filePath)) {
-		const promise = (async () => {
-			const mod = await getDocMdxModule(filePath);
-			if (!mod) {
-				throw Response.json({ message: "Not Found" }, { status: 404 });
-			}
-			return mod.default;
-		})();
-		componentPromiseCache.set(filePath, promise);
+export function resolveDoc(filePath: string): Promise<ResolvedDoc> {
+	const existing = resolvedDocCache.get(filePath);
+	if (existing) {
+		return existing;
 	}
-
-	const componentPromise = componentPromiseCache.get(filePath);
-	if (!componentPromise) {
-		throw Response.json({ message: "Not Found" }, { status: 404 });
-	}
-	return componentPromise;
+	const promise = (async () => {
+		const mod = await getDocMdxModule(filePath);
+		if (!mod) {
+			throw Response.json({ message: "Not Found" }, { status: 404 });
+		}
+		return { Component: mod.default, toc: mod.toc ?? [] };
+	})();
+	resolvedDocCache.set(filePath, promise);
+	return promise;
 }
 
 /**
- * Get the React component for a doc MDX module synchronously.
+ * Get a doc MDX module synchronously, returning its component and toc.
  * Used in production builds where all modules are eagerly imported
  * at build time for prerendering.
  *
  * @param filePath - A key from the MDX glob (e.g. "../docs/button.mdx").
- * @returns The MDX component, or null if not found.
+ * @returns The resolved doc, or null if not found.
  */
-export function getDocComponent(filePath: string): ComponentType | null {
+export function getDoc(filePath: string): ResolvedDoc | null {
 	const mod = eagerDocModules[filePath];
-	return mod?.default ?? null;
+	if (!mod) {
+		return null;
+	}
+	return { Component: mod.default, toc: mod.toc ?? [] };
+}
+
+/**
+ * Loader-side helper: resolves a doc using the eager (prod) or lazy (dev)
+ * path, throwing 404 if the file isn't a known doc module.
+ */
+export async function loadDoc(filePath: string): Promise<ResolvedDoc> {
+	const doc = import.meta.env.PROD ? getDoc(filePath) : await resolveDoc(filePath);
+	if (!doc) {
+		throw Response.json({ message: "Not Found" }, { status: 404 });
+	}
+	return doc;
 }
 
 /**

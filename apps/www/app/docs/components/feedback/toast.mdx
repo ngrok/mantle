@@ -1,0 +1,302 @@
+---
+title: Toast
+description: A succinct message that is displayed temporarily.
+---
+
+import { AlertDialog } from "@ngrok/mantle/alert-dialog";
+import { Button, IconButton } from "@ngrok/mantle/button";
+import { Dialog } from "@ngrok/mantle/dialog";
+import { Sheet } from "@ngrok/mantle/sheet";
+import { Toast, makeToast } from "@ngrok/mantle/toast";
+import { XIcon } from "@phosphor-icons/react/X";
+import { useState } from "react";
+import invariant from "tiny-invariant";
+import { Example } from "~/components/example";
+
+# Toast
+
+A succinct message that is displayed temporarily. Toasts are used to provide feedback to the user without interrupting their workflow.
+
+export function ToastDemo() {
+	const priorities = ["info", "success", "warning", "danger"];
+	const [priorityIndex, setPriorityIndex] = useState(0);
+	const priority = priorities[priorityIndex % priorities.length];
+	invariant(priority, `Invalid priority index: ${priorityIndex}`);
+	return (
+		<Example className="flex-col gap-4">
+			<Button
+				type="button"
+				appearance="filled"
+				priority="neutral"
+				onClick={() => {
+					makeToast(
+						<Toast.Root priority={priority}>
+							<Toast.Icon />
+							<Toast.Message>
+								Laborum ea anim adipisicing in Lorem incididunt mollit ipsum reprehenderit.
+							</Toast.Message>
+							<Toast.Action asChild>
+								<IconButton
+									type="button"
+									appearance="ghost"
+									size="xs"
+									icon={<XIcon />}
+									label="Dismiss toast"
+								/>
+							</Toast.Action>
+						</Toast.Root>,
+					);
+					setPriorityIndex((prev) => prev + 1);
+				}}
+			>
+				Show Toast
+			</Button>
+			<Sheet.Root>
+				<Sheet.Trigger asChild>
+					<Button type="button" appearance="filled" priority="neutral">
+						Open Sheet
+					</Button>
+				</Sheet.Trigger>
+				<Sheet.Content>
+					<Sheet.Header>
+						<Sheet.Title>Are you absolutely sure?</Sheet.Title>
+					</Sheet.Header>
+					<Sheet.Body className="space-y-4">
+						<Button
+							type="button"
+							appearance="outlined"
+							priority="neutral"
+							onClick={() =>
+								makeToast(
+									<Toast.Root priority="warning">
+										<Toast.Icon />
+										<Toast.Message>
+											Laborum ea anim adipisicing in Lorem incididunt mollit ipsum reprehenderit.
+										</Toast.Message>
+										<Toast.Action asChild>
+											<IconButton
+												type="button"
+												appearance="ghost"
+												size="xs"
+												icon={<XIcon />}
+												label="Dismiss toast"
+											/>
+										</Toast.Action>
+									</Toast.Root>,
+								)
+							}
+						>
+							Show Toast
+						</Button>
+					</Sheet.Body>
+					<Sheet.Footer>
+						<Sheet.Close asChild>
+							<Button type="button" appearance="outlined" priority="neutral">
+								Close
+							</Button>
+						</Sheet.Close>
+					</Sheet.Footer>
+				</Sheet.Content>
+			</Sheet.Root>
+			<Dialog.Root>
+				<Dialog.Trigger asChild>
+					<Button type="button" appearance="filled" priority="neutral">
+						Open dialog
+					</Button>
+				</Dialog.Trigger>
+				<Dialog.Content>
+					<Dialog.Header>
+						<Dialog.Title>Are you absolutely sure?</Dialog.Title>
+						<Dialog.CloseIconButton />
+					</Dialog.Header>
+					<Dialog.Body>
+						<Button
+							type="button"
+							appearance="outlined"
+							priority="neutral"
+							onClick={() =>
+								makeToast(
+									<Toast.Root priority="danger">
+										<Toast.Icon />
+										<Toast.Message>
+											Laborum ea anim adipisicing in Lorem incididunt mollit ipsum reprehenderit.
+										</Toast.Message>
+										<Toast.Action asChild>
+											<IconButton
+												type="button"
+												appearance="ghost"
+												size="xs"
+												icon={<XIcon />}
+												label="Dismiss toast"
+											/>
+										</Toast.Action>
+									</Toast.Root>,
+								)
+							}
+						>
+							Show Toast
+						</Button>
+					</Dialog.Body>
+					<Dialog.Footer>
+						<Dialog.Close asChild>
+							<Button type="button" priority="neutral" appearance="outlined">
+								Cancel
+							</Button>
+						</Dialog.Close>
+					</Dialog.Footer>
+				</Dialog.Content>
+			</Dialog.Root>
+			<AlertDialog.Root priority="info">
+				<AlertDialog.Trigger asChild>
+					<Button type="button" appearance="filled" priority="neutral">
+						Show Info Alert Dialog
+					</Button>
+				</AlertDialog.Trigger>
+				<AlertDialog.Content>
+					<AlertDialog.Icon />
+					<AlertDialog.Body>
+						<AlertDialog.Header>
+							<AlertDialog.Title>Are you absolutely sure?</AlertDialog.Title>
+						</AlertDialog.Header>
+						<Button
+							type="button"
+							appearance="outlined"
+							priority="neutral"
+							onClick={() =>
+								makeToast(
+									<Toast.Root priority="success">
+										<Toast.Icon />
+										<Toast.Message>
+											Laborum ea anim adipisicing in Lorem incididunt mollit ipsum reprehenderit.
+										</Toast.Message>
+										<Toast.Action asChild>
+											<IconButton
+												type="button"
+												appearance="ghost"
+												size="xs"
+												icon={<XIcon />}
+												label="Dismiss toast"
+											/>
+										</Toast.Action>
+									</Toast.Root>,
+								)
+							}
+						>
+							Show Toast
+						</Button>
+						<AlertDialog.Footer>
+							<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>
+						</AlertDialog.Footer>
+					</AlertDialog.Body>
+				</AlertDialog.Content>
+			</AlertDialog.Root>
+		</Example>
+	);
+}
+
+<ToastDemo />
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { makeToast, Toast } from "@ngrok/mantle/toast";
+
+// Only one <Toaster /> should be rendered at a time
+// add it to the root of your app
+<Toaster />
+
+<Button
+	type="button"
+	appearance="outlined"
+	priority="neutral"
+	onClick={() =>
+		// make some toast! 🍞😋
+		makeToast(
+			<Toast.Root priority="success">
+				<Toast.Icon />
+				<Toast.Message>
+					Laborum ea anim adipisicing in Lorem incididunt mollit ipsum reprehenderit.
+				</Toast.Message>
+				<Toast.Action asChild>
+					<IconButton type="button" appearance="ghost" size="xs" icon={<XIcon />} label="Dismiss toast" />
+				</Toast.Action>
+			</Toast.Root>,
+		)
+	}
+>
+	Show Toast
+</Button>
+```
+
+## Composition
+
+Compose the parts of a `Toast` together to build your own:
+
+```text showLineNumbers=false
+Toast.Root
+├── Toast.Icon
+├── Toast.Message
+└── Toast.Action
+```
+
+## API Reference
+
+### Toaster
+
+The `Toaster` component renders all toasts. It accepts the following props:
+
+| Prop                  | Type                                                                                              | Default        | Description                                                                                                                                                                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `position?`           | `"top-left" \| "top-center" \| "top-right" \| "bottom-left" \| "bottom-center" \| "bottom-right"` | `"top-center"` | The position where toasts will appear on the screen.                                                                                                                                                                                                         |
+| `duration_ms?`        | `number`                                                                                          | `4000`         | Time in milliseconds that should elapse before automatically dismissing toasts. When set here, this will be the default duration for all toasts. You can keep toasts open until manually dismissed by passing a value &lt;= 0 or `Number.POSITIVE_INFINITY`. |
+| `containerAriaLabel?` | `string`                                                                                          |                | Aria label for the toast container for screen readers.                                                                                                                                                                                                       |
+| `dir?`                | `"ltr" \| "rtl"`                                                                                  |                | Direction of text for internationalization support.                                                                                                                                                                                                          |
+
+### Toast.Root
+
+The `Toast.Root` is the container for a toast message.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div), plus:
+
+| Prop       | Type                                           | Default | Description                                                                                                                               |
+| ---------- | ---------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `priority` | `"info" \| "success" \| "warning" \| "danger"` |         | The priority level of the toast, which determines the visual styling and default icon.                                                    |
+| `asChild?` | `boolean`                                      | `false` | Use the `asChild` prop to compose the `Toast.Root` styling and functionality onto alternative element types or your own React components. |
+
+### Toast.Icon
+
+The `Toast.Icon` displays an icon representing the toast priority. If no custom icon is provided, a default icon for the priority is used.
+
+| Prop   | Type        | Default | Description                                                                                          |
+| ------ | ----------- | ------- | ---------------------------------------------------------------------------------------------------- |
+| `svg?` | `ReactNode` |         | A custom SVG icon to display. If not provided, the default icon for the toast priority will be used. |
+
+### Toast.Message
+
+The `Toast.Message` contains the main text content of the toast.
+
+All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                                  |
+| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Toast.Message` styling and functionality onto alternative element types or your own React components. |
+
+### Toast.Action
+
+The `Toast.Action` is a button that dismisses the toast when clicked.
+
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                                 |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Toast.Action` styling and functionality onto alternative element types or your own React components. |
+
+**Note:** You can prevent the toast from being dismissed on click by calling `event.preventDefault()` in your `onClick` handler.
+
+### makeToast
+
+The `makeToast` function creates and displays a toast. It accepts the following parameters:
+
+| Prop       | Type               | Default | Description                                                                                                                                                                                    |
+| ---------- | ------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `children` | `ReactNode`        |         | The React component to render inside the toast container. Typically a `Toast.Root` component.                                                                                                  |
+| `options?` | `MakeToastOptions` |         | Optional configuration object with the following properties: `duration_ms` (number, optional) — time in milliseconds before auto-dismissal; `id` (string, optional) — custom ID for the toast. |

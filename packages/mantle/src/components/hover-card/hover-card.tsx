@@ -9,7 +9,11 @@ import { cx } from "../../utils/cx/cx.js";
  * A floating card that appears when a user hovers over a trigger element.
  * This is the root, stateful component that manages the open/closed state of the hover card.
  *
- * @see https://mantle.ngrok.com/components/hover-card#hovercardroot
+ * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's shared floating
+ * z-index. When multiple shared layers are open, the most recently mounted
+ * layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardroot
  *
  * @example
  * ```tsx
@@ -37,7 +41,7 @@ Root.displayName = "HoverCard";
 /**
  * The trigger element that opens the hover card when hovered.
  *
- * @see https://mantle.ngrok.com/components/hover-card#hovercardtrigger
+ * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardtrigger
  *
  * @example
  * ```tsx
@@ -62,10 +66,29 @@ const Trigger = forwardRef<
 Trigger.displayName = "HoverCardTrigger";
 
 /**
- * The portal for a HoverCard. Should be rendered as a child of the `HoverCard` component.
- * Renders a portal that the `HoverCard.Content` is rendered into.
+ * The portal container for rendering hover card content outside the normal DOM tree.
+ * `HoverCard.Content` already renders inside this portal internally, so you typically
+ * do not need to use `HoverCard.Portal` directly. Use it only when you need to
+ * customize portal placement (e.g., pass a `container` prop) or wrap multiple
+ * `HoverCard.Content` instances in a shared portal.
  *
- * You likely don't need to use this component directly, as it is used internally by the `HoverCard.Content` component.
+ * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardportal
+ *
+ * @example
+ * ```tsx
+ * <HoverCard.Root>
+ *   <HoverCard.Trigger asChild>
+ *     <Button type="button" appearance="outlined">
+ *       Hover me
+ *     </Button>
+ *   </HoverCard.Trigger>
+ *   <HoverCard.Portal>
+ *     <HoverCard.Content>
+ *       <p>This is the hover card content.</p>
+ *     </HoverCard.Content>
+ *   </HoverCard.Portal>
+ * </HoverCard.Root>
+ * ```
  */
 const Portal = HoverCardPrimitive.Portal;
 Portal.displayName = "HoverCardPortal";
@@ -73,7 +96,11 @@ Portal.displayName = "HoverCardPortal";
 /**
  * The content to render inside the hover card.
  *
- * @see https://mantle.ngrok.com/components/hover-card#hovercardcontent
+ * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's shared floating
+ * z-index. When multiple shared layers are open, the most recently mounted
+ * layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardcontent
  *
  * @example
  * ```tsx
@@ -120,15 +147,19 @@ Content.displayName = HoverCardPrimitive.Content.displayName;
 /**
  * A floating card that appears when a user hovers over a trigger element.
  *
- * `HoverCard` is intended primarily for sighted users — it is not a
- * reliably discoverable path for keyboard or screen reader users, since it
- * opens on pointer hover. Use it for supplemental previews of content that
- * is already available through another accessible path (typically the
- * underlying link). Prefer `Popover` when the floating content must be
- * reachable by all users, or `Tooltip` for short, non-interactive labels on
- * controls.
+ * Use `HoverCard` for non-essential preview content shown on HOVER — user
+ * cards, repo previews, rich link previews. Because hover is not reachable
+ * via keyboard, all content inside a `HoverCard` must be supplemental,
+ * never the only path to information; the trigger is typically a link that
+ * already leads to the same content for keyboard and screen reader users.
+ * For short, non-interactive labels or hints, use `Tooltip`. For
+ * interactive overlays the user opens deliberately, use `Popover`.
  *
- * @see https://mantle.ngrok.com/components/hover-card
+ * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's shared floating
+ * z-index. When multiple shared layers are open, the most recently mounted
+ * layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/hover-card
  *
  * @example
  * Composition:
@@ -156,7 +187,11 @@ const HoverCard = {
 	/**
 	 * The root, stateful component that manages the open/closed state of the hover card.
 	 *
-	 * @see https://mantle.ngrok.com/components/hover-card#hovercardroot
+	 * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's shared floating
+	 * z-index. When multiple shared layers are open, the most recently mounted
+	 * layer renders on top.
+	 *
+	 * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardroot
 	 *
 	 * @example
 	 * ```tsx
@@ -174,7 +209,11 @@ const HoverCard = {
 	/**
 	 * The content to render inside the hover card. Appears in a portal with rich styling and animations.
 	 *
-	 * @see https://mantle.ngrok.com/components/hover-card#hovercardcontent
+	 * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's shared floating
+	 * z-index. When multiple shared layers are open, the most recently mounted
+	 * layer renders on top.
+	 *
+	 * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -195,18 +234,23 @@ const HoverCard = {
 	Content,
 	/**
 	 * The portal container for rendering hover card content outside the normal DOM tree.
+	 * `HoverCard.Content` already renders inside this portal internally, so you typically
+	 * do not need to use `HoverCard.Portal` directly. Use it only when you need to
+	 * customize portal placement or wrap multiple `HoverCard.Content` instances.
 	 *
-	 * @see https://mantle.ngrok.com/components/hover-card#api-reference
+	 * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardportal
 	 *
 	 * @example
 	 * ```tsx
 	 * <HoverCard.Root>
 	 *   <HoverCard.Trigger asChild>
-	 *     <Text>Hover over me</Text>
+	 *     <Button type="button" appearance="outlined">
+	 *       Hover me
+	 *     </Button>
 	 *   </HoverCard.Trigger>
 	 *   <HoverCard.Portal>
 	 *     <HoverCard.Content>
-	 *       <Text>This content is rendered in a portal.</Text>
+	 *       <p>This is the hover card content.</p>
 	 *     </HoverCard.Content>
 	 *   </HoverCard.Portal>
 	 * </HoverCard.Root>
@@ -216,7 +260,7 @@ const HoverCard = {
 	/**
 	 * The trigger element that opens the hover card when hovered.
 	 *
-	 * @see https://mantle.ngrok.com/components/hover-card#hovercardtrigger
+	 * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardtrigger
 	 *
 	 * @example
 	 * ```tsx

@@ -17,7 +17,7 @@ type Props = {
 export function DocActions({ markdownPath }: Props) {
 	const location = useLocation();
 	const markdownUrl = markdownPath ?? `${location.pathname}.md`;
-	const [, copyToClipboard] = useCopyToClipboard();
+	const copyToClipboard = useCopyToClipboard();
 	const queryClient = useQueryClient();
 
 	async function copyMarkdownPage() {

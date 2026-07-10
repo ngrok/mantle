@@ -4,7 +4,8 @@ import type { ComponentProps, ComponentRef } from "react";
 import { forwardRef, useRef, useState } from "react";
 import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
-import type { WithValidation } from "../input/types.js";
+import { parseValidation, useFieldValidation } from "../field/validation.js";
+import type { WithValidation } from "../field/validation.js";
 
 type Props = ComponentProps<"textarea"> &
 	WithValidation & {
@@ -19,7 +20,7 @@ type Props = ComponentProps<"textarea"> &
  * to enter a sizeable amount of free-form text, for example a comment on a
  * review or feedback form.
  *
- * @see https://mantle.ngrok.com/components/text-area
+ * @see https://mantle.ngrok.com/components/forms/text-area
  *
  * @example
  * ```tsx
@@ -49,13 +50,11 @@ const TextArea = forwardRef<ComponentRef<"textarea">, Props>(
 		},
 		ref,
 	) => {
-		const isInvalid = _ariaInvalid != null && _ariaInvalid !== "false";
-		const validation = isInvalid
-			? "error"
-			: typeof _validation === "function"
-				? _validation()
-				: _validation;
-		const ariaInvalid = _ariaInvalid ?? validation === "error";
+		const fieldValidation = useFieldValidation();
+		const { ariaInvalid, validation } = parseValidation({
+			"aria-invalid": _ariaInvalid,
+			validation: _validation ?? fieldValidation,
+		});
 		const [isDragOver, setIsDragOver] = useState(false);
 		const innerRef = useRef<ComponentRef<"textarea">>(null);
 

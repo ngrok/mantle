@@ -48,17 +48,46 @@ const sizingVariants = cva("", {
 });
 
 /**
- * A flag component that displays a flag based on the provided country code.
- * Inspired by [react-flagpack](https://flagpack.xyz/docs/development/react).
+ * Renders a country flag from an [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
+ * country code, served as an SVG from ngrok's CDN. Inspired by
+ * [react-flagpack](https://flagpack.xyz/docs/development/react).
  *
- * @see https://mantle.ngrok.com/components/flag#flag
+ * **When to use**
+ * - Showing the country associated with a region, IP, billing address, or locale.
+ * - Inside a select option, list row, or status pill that needs a quick visual cue.
+ *
+ * **When not to use**
+ * - As a stand-in for language. Flags ≠ languages — Brazilian Portuguese is
+ *   not "Portugal", Spanish is not just "Spain". Use a language label instead.
+ * - As decoration where the country isn't meaningful to the user.
+ *
+ * **Sizing.** `"s"` (16×12), `"m"` (20×15), and `"l"` (32×24, default) match
+ * common inline, list, and table contexts. Pick the size that matches its
+ * neighbors so the flag doesn't dominate or disappear.
+ *
+ * **Accessibility.** The underlying `<img>` is given `alt="flag for {code}"`.
+ * If the country is decorative or already labeled in adjacent text, consider
+ * passing `aria-hidden` via the wrapper `<div>` to avoid duplicate
+ * announcements.
+ *
+ * **Loading.** Defaults to `loading="lazy"`. Use `loading="eager"` for flags
+ * above the fold or in critical content.
+ *
+ * @see https://mantle.ngrok.com/components/data-display/flag#flag
  *
  * @example
  * ```tsx
+ * import { Flag } from "@ngrok/mantle/flag";
+ *
  * <Flag code="US" />
  * <Flag code="JP" size="m" loading="eager" />
- * <Flag code="CA" size="s" loading="lazy" />
- * <Flag code="GB" size="l" />
+ * <Flag code="CA" size="s" />
+ *
+ * // Inline next to a country label.
+ * <span className="inline-flex items-center gap-2">
+ *   <Flag code="GB" size="s" aria-hidden />
+ *   <span>United Kingdom</span>
+ * </span>
  * ```
  */
 function Flag({

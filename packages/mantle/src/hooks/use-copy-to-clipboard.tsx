@@ -1,50 +1,37 @@
-import { useCallback, useState } from "react";
+import { copyToClipboard } from "../utils/copy-to-clipboard.js";
 
 /**
- * A hook that allows you to copy a string to the clipboard.
+ * React hook that returns a stable async function for copying a string to
+ * the system clipboard.
  *
- * The returned `copyToClipboard` function is async — `await` it to know
- * whether the write succeeded. It throws when both the Clipboard API and
- * the `execCommand` polyfill fail.
+ * The returned function uses the Clipboard API when available and falls back
+ * to a `document.execCommand("copy")` polyfill for older browsers. `await`
+ * the call (or attach a `.then()` / `.catch()`) to observe whether the copy
+ * succeeded — the function throws when both the Clipboard API and the
+ * polyfill fail, or when called outside of a DOM environment.
  *
  * Inspired by: https://usehooks.com/usecopytoclipboard
+ *
+ * @returns An async function `(value: string) => Promise<void>` that writes
+ *   `value` to the clipboard and rejects on failure.
+ *
+ * @example
+ * // Copy a token on click and surface a toast on success/failure
+ * const copy = useCopyToClipboard();
+ *
+ * async function handleCopy() {
+ *   try {
+ *     await copy(token);
+ *     toast.success("Copied!");
+ *   } catch {
+ *     toast.error("Could not copy to clipboard");
+ *   }
+ * }
+ *
+ * return <button onClick={handleCopy}>Copy token</button>;
  */
 function useCopyToClipboard() {
-	const [state, setState] = useState<string>("");
-
-	const copyToClipboard = useCallback(async (value: string) => {
-		try {
-			if (typeof window.navigator?.clipboard?.writeText === "function") {
-				await navigator.clipboard.writeText(value);
-			} else {
-				throw new Error("writeText not supported");
-			}
-		} catch (clipboardError) {
-			try {
-				copyToClipboardPolyfill(value);
-			} catch {
-				throw clipboardError; // both approaches failed; propagate
-			}
-		}
-		setState(value);
-	}, []);
-
-	return [state, copyToClipboard] as const;
+	return copyToClipboard;
 }
 
 export { useCopyToClipboard };
-
-/**
- * A fallback copy to clipboard function for older browsers.
- */
-function copyToClipboardPolyfill(text: string) {
-	const tempTextArea = document.createElement("textarea");
-	tempTextArea.value = text;
-	document.body.appendChild(tempTextArea);
-	try {
-		tempTextArea.select();
-		document.execCommand("copy");
-	} finally {
-		document.body.removeChild(tempTextArea);
-	}
-}

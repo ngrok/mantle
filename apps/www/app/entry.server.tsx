@@ -12,9 +12,9 @@ import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
 import type {
 	ActionFunctionArgs,
-	AppLoadContext,
 	EntryContext,
 	LoaderFunctionArgs,
+	RouterContextProvider,
 } from "react-router";
 import { ServerRouter } from "react-router";
 import { assetsCdnOrigin, preloadFontLink } from "@ngrok/mantle/theme";
@@ -43,11 +43,15 @@ export default function handleRequest(
 	responseStatusCode: number,
 	responseHeaders: Headers,
 	routerContext: EntryContext,
-	_loadContext: AppLoadContext,
+	_loadContext: RouterContextProvider,
 ) {
 	// Content negotiation: return raw markdown when Accept: text/markdown is requested
 	const accept = request.headers.get("Accept") ?? "";
 	if (accept.includes("text/markdown")) {
+		// `handleRequest` only receives document requests — single-fetch `.data`
+		// requests are handled before this — so `request.url` never carries a
+		// `.data` suffix here (and the normalized `url` loader arg isn't available
+		// to the entry handler regardless).
 		const url = new URL(request.url);
 		const pathname = url.pathname.replace(/^\//, "");
 		const filePath = urlToFileMap.get(pathname || "index");
@@ -195,7 +199,6 @@ export default function handleRequest(
 					reject(error);
 				},
 				onError(error: unknown) {
-					// biome-ignore lint/style/noParameterAssign: this is react-router code
 					responseStatusCode = 500;
 					// Log streaming rendering errors from inside the shell.  Don't log
 					// errors encountered during initial shell rendering since they'll

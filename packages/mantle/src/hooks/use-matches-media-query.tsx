@@ -1,24 +1,32 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 /**
- * React hook that subscribes to and returns the result of a CSS media query.
+ * React hook that subscribes to a CSS media query and returns whether it
+ * currently matches, re-rendering whenever the result changes.
  *
- * This hook uses `window.matchMedia` under the hood and leverages
- * `useSyncExternalStore` to stay compliant with React's concurrent rendering model.
+ * Uses `window.matchMedia` under the hood and `useSyncExternalStore` for
+ * compatibility with React's concurrent rendering model. Returns `false`
+ * on the server; during hydration React uses that server snapshot before
+ * updating to the client media-query value.
  *
- * @param {string} query - A valid CSS media query string (e.g., `(max-width: 768px)`).
+ * For common viewport breakpoint checks, prefer the more specific
+ * {@link useBreakpoint} or {@link useIsBelowBreakpoint} hooks.
  *
- * @returns {boolean} `true` if the media query currently matches, otherwise `false`.
+ * @param query - A valid CSS media query string
+ *   (e.g. `"(max-width: 768px)"`, `"(prefers-color-scheme: dark)"`).
+ * @returns `true` if the media query currently matches, otherwise `false`.
  *
  * @example
- * // Detect if the user prefers a dark color scheme:
- * const isDarkMode = useMatchesMediaQuery("(prefers-color-scheme: dark)");
+ * // Detect if the user prefers a dark color scheme
+ * const prefersDark = useMatchesMediaQuery("(prefers-color-scheme: dark)");
  *
- * if (isDarkMode) {
- *   document.body.classList.add("dark");
- * } else {
- *   document.body.classList.remove("dark");
- * }
+ * return <div className={prefersDark ? "dark" : "light"}>Hello</div>;
+ *
+ * @example
+ * // Show a different layout on portrait orientation
+ * const isPortrait = useMatchesMediaQuery("(orientation: portrait)");
+ *
+ * return isPortrait ? <PortraitLayout /> : <LandscapeLayout />;
  */
 export function useMatchesMediaQuery(query: string) {
 	const subscribe = useCallback(

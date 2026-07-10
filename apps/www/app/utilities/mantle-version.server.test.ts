@@ -44,10 +44,10 @@ describe("mantleVersionSchema", () => {
 
 	it("uses a helpful error message for invalid versions", () => {
 		const result = mantleVersionSchema.safeParse("nope");
-		expect(result.success).toBe(false);
-		if (!result.success) {
-			expect(result.error.issues[0]?.message).toBe("expected a `major.minor.patch` version string");
+		if (result.success) {
+			throw new Error("expected safeParse to fail for invalid input");
 		}
+		expect(result.error.issues[0]?.message).toBe("expected a `major.minor.patch` version string");
 	});
 });
 

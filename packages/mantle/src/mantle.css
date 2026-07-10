@@ -228,6 +228,7 @@ MARK: THEME
 
 	--color-card-border: var(--color-card-border);
 	--color-card-border-muted: var(--color-card-border-muted);
+	--color-separator: var(--color-separator);
 
 	--color-active-menu-item: var(--color-active-menu-item);
 	--color-selected-menu-item: var(--color-selected-menu-item);
@@ -341,6 +342,7 @@ MARK: LIGHT DEFS
 
 	--color-card-border: var(--color-neutral-300);
 	--color-card-border-muted: var(--color-neutral-200);
+	--color-separator: --alpha(var(--color-gray-500) / 0.2);
 
 	--color-active-menu-item: --alpha(var(--color-neutral-500) / 0.05);
 	--color-selected-menu-item: --alpha(var(--color-accent-500) / 0.1);
@@ -515,12 +517,84 @@ MARK: UTILITIES
 	background-attachment: local, local, scroll, scroll;
 }
 
-@utility scroll-fade-x {
-	/* CSS variables default to black (fully opaque in mask) — data attributes flip them to transparent */
-	--_fade-left: black;
-	--_fade-right: black;
+/*
+ * Animatable mask-edge colors for the `scroll-fade-*` utilities. Registered as
+ * <color> so they can be animated by a scroll-driven animation; default black
+ * means "fully opaque in the mask" = no fade, which is also the resting value
+ * wherever `animation-timeline: scroll()` is unsupported.
+ */
+@property --_scroll-fade-left {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: black;
+}
+@property --_scroll-fade-right {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: black;
+}
+@property --_scroll-fade-top {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: black;
+}
+@property --_scroll-fade-bottom {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: black;
+}
 
-	/* Mask fades the element's edges to transparent instead of painting over them with a background color */
+/*
+ * Each edge gets its own keyframe + scroll range so both edges can fade
+ * independently (e.g. both faded mid-scroll). Black <-> transparent only
+ * changes the mask alpha.
+ */
+@keyframes scroll-fade-x-start {
+	from {
+		--_scroll-fade-left: black;
+	}
+	to {
+		--_scroll-fade-left: transparent;
+	}
+}
+@keyframes scroll-fade-x-end {
+	from {
+		--_scroll-fade-right: transparent;
+	}
+	to {
+		--_scroll-fade-right: black;
+	}
+}
+@keyframes scroll-fade-y-start {
+	from {
+		--_scroll-fade-top: black;
+	}
+	to {
+		--_scroll-fade-top: transparent;
+	}
+}
+@keyframes scroll-fade-y-end {
+	from {
+		--_scroll-fade-bottom: transparent;
+	}
+	to {
+		--_scroll-fade-bottom: black;
+	}
+}
+
+@utility scroll-fade-x {
+	/*
+	 * Fades the inline-start/end edges of a horizontally-scrolling container to
+	 * signal more content in that direction. The element is its own scroll
+	 * timeline, so an edge with nothing beyond it — at the start, at the end, or
+	 * with no overflow at all (inactive timeline => initial value) — renders
+	 * cleanly with no fade. Consumers can pin an edge opaque by overriding
+	 * `--_fade-left` / `--_fade-right` (the animation drives the upstream
+	 * `--_scroll-fade-*` vars, so a static override always wins).
+	 */
+	--_fade-left: var(--_scroll-fade-left);
+	--_fade-right: var(--_scroll-fade-right);
+
 	mask-image: linear-gradient(
 		to right,
 		var(--_fade-left),
@@ -529,12 +603,110 @@ MARK: UTILITIES
 		var(--_fade-right)
 	);
 
-	&[data-scroll-left] {
-		--_fade-left: transparent;
+	@supports (animation-timeline: scroll()) {
+		animation-name: scroll-fade-x-start, scroll-fade-x-end;
+		animation-fill-mode: both;
+		/* Linear so the fade tracks scroll position 1:1 across the range. */
+		animation-timing-function: linear;
+		/* Pixel-precise edge snap, independent of total scroll distance. */
+		animation-range:
+			0 2px,
+			calc(100% - 2px) 100%;
+		animation-timeline: scroll(self inline), scroll(self inline);
+		/* Driven by the scroll timeline; a non-auto duration is required by some engines. */
+		animation-duration: 1ms;
 	}
+}
 
-	&[data-scroll-right] {
-		--_fade-right: transparent;
+@utility scroll-fade-y {
+	/* Vertical sibling of `scroll-fade-x` — see it for how the masking works. */
+	--_fade-top: var(--_scroll-fade-top);
+	--_fade-bottom: var(--_scroll-fade-bottom);
+
+	mask-image: linear-gradient(
+		to bottom,
+		var(--_fade-top),
+		black 1.5rem,
+		black calc(100% - 1.5rem),
+		var(--_fade-bottom)
+	);
+
+	@supports (animation-timeline: scroll()) {
+		animation-name: scroll-fade-y-start, scroll-fade-y-end;
+		animation-fill-mode: both;
+		animation-timing-function: linear;
+		animation-range:
+			0 2px,
+			calc(100% - 2px) 100%;
+		animation-timeline: scroll(self block), scroll(self block);
+		animation-duration: 1ms;
+	}
+}
+
+/*
+ * Single-edge variants of `scroll-fade-x` / `scroll-fade-y`, for when only one
+ * edge should fade (e.g. a sidebar that fades content scrolling under a sticky
+ * header but stays flush at the bottom). Each masks and drives only its own
+ * edge; the opposite edge stays fully opaque. Same scroll-driven mechanics and
+ * fallback behavior as the axis utilities — see `scroll-fade-x` for details.
+ */
+@utility scroll-fade-t {
+	--_fade-top: var(--_scroll-fade-top);
+
+	mask-image: linear-gradient(to bottom, var(--_fade-top), black 1.5rem);
+
+	@supports (animation-timeline: scroll()) {
+		animation-name: scroll-fade-y-start;
+		animation-fill-mode: both;
+		animation-timing-function: linear;
+		animation-range: 0 2px;
+		animation-timeline: scroll(self block);
+		animation-duration: 1ms;
+	}
+}
+
+@utility scroll-fade-b {
+	--_fade-bottom: var(--_scroll-fade-bottom);
+
+	mask-image: linear-gradient(to bottom, black calc(100% - 1.5rem), var(--_fade-bottom));
+
+	@supports (animation-timeline: scroll()) {
+		animation-name: scroll-fade-y-end;
+		animation-fill-mode: both;
+		animation-timing-function: linear;
+		animation-range: calc(100% - 2px) 100%;
+		animation-timeline: scroll(self block);
+		animation-duration: 1ms;
+	}
+}
+
+@utility scroll-fade-l {
+	--_fade-left: var(--_scroll-fade-left);
+
+	mask-image: linear-gradient(to right, var(--_fade-left), black 40px);
+
+	@supports (animation-timeline: scroll()) {
+		animation-name: scroll-fade-x-start;
+		animation-fill-mode: both;
+		animation-timing-function: linear;
+		animation-range: 0 2px;
+		animation-timeline: scroll(self inline);
+		animation-duration: 1ms;
+	}
+}
+
+@utility scroll-fade-r {
+	--_fade-right: var(--_scroll-fade-right);
+
+	mask-image: linear-gradient(to right, black calc(100% - 40px), var(--_fade-right));
+
+	@supports (animation-timeline: scroll()) {
+		animation-name: scroll-fade-x-end;
+		animation-fill-mode: both;
+		animation-timing-function: linear;
+		animation-range: calc(100% - 2px) 100%;
+		animation-timeline: scroll(self inline);
+		animation-duration: 1ms;
 	}
 }
 
@@ -617,6 +789,11 @@ MARK: SHIKI SYNTAX HIGHLIGHT
 	--mantle-code-line-number-color: var(--text-color-muted);
 	--mantle-code-line-number-width: 2rem;
 	--mantle-code-line-number-gap: 1rem;
+	--mantle-code-fold-gutter-width: 1.125rem;
+	--mantle-code-fold-gutter-gap: 0.25rem;
+	--mantle-code-fold-toggle-color: var(--text-color-muted);
+	--mantle-code-fold-toggle-hover-color: var(--text-color-strong);
+	--mantle-code-fold-ellipsis-color: var(--text-color-muted);
 }
 
 .mantle-code-line {
@@ -625,6 +802,10 @@ MARK: SHIKI SYNTAX HIGHLIGHT
 	min-width: 100%;
 	box-sizing: border-box;
 	padding-right: 3.5rem; /* space for the copy button overlay */
+}
+
+.mantle-code-line[data-fold-hidden="true"] {
+	display: none;
 }
 
 .mantle-code-line-highlighted {
@@ -639,6 +820,77 @@ MARK: SHIKI SYNTAX HIGHLIGHT
 	user-select: none;
 	text-align: right;
 	color: var(--mantle-code-line-number-color);
+}
+
+.mantle-code-fold-toggle {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--mantle-code-fold-gutter-width);
+	height: 1.5em; /* match line-height so the button is line-aligned */
+	margin-right: var(--mantle-code-fold-gutter-gap);
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--mantle-code-fold-toggle-color);
+	cursor: pointer;
+	user-select: none;
+	appearance: none;
+	border-radius: 0.125rem;
+}
+
+.mantle-code-fold-toggle:hover {
+	color: var(--mantle-code-fold-toggle-hover-color);
+}
+
+.mantle-code-fold-toggle:focus-visible {
+	outline: 2px solid var(--color-accent-500);
+	outline-offset: 1px;
+}
+
+.mantle-code-fold-caret {
+	width: 0.75rem;
+	height: 0.75rem;
+	transition: transform 120ms ease;
+}
+
+.mantle-code-fold-toggle[aria-expanded="false"] .mantle-code-fold-caret {
+	transform: rotate(-90deg);
+}
+
+/*
+ * Reserve the fold-gutter column so non-opener lines stay aligned with opener
+ * lines (whose toggle button occupies the gutter). A single per-<pre> `:has()`
+ * scopes this to fold-enabled blocks; within them every line's content gets the
+ * gutter margin by default, and opener lines — tagged `mantle-code-line-opener`
+ * at HTML-generation time (see decorate-highlighted-html.ts) — reset it. This
+ * replaces the old *per-line* relational `:not(:has())` probe (whose cost scaled
+ * with line count) with a flat class match, while keeping HTML payload tiny:
+ * only the sparse opener lines carry an extra class.
+ */
+pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-content {
+	margin-left: calc(var(--mantle-code-fold-gutter-width) + var(--mantle-code-fold-gutter-gap));
+}
+pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
+	.mantle-code-line-opener
+	> .mantle-code-line-content {
+	margin-left: 0;
+}
+
+.mantle-code-fold-ellipsis {
+	display: none;
+	margin-left: 0.25rem;
+	padding: 0 0.375rem;
+	border-radius: 0.25rem;
+	background-color: --alpha(var(--text-color-muted) / 18%);
+	color: var(--mantle-code-fold-ellipsis-color);
+	user-select: none;
+}
+
+.mantle-code-line:has(> .mantle-code-fold-toggle[aria-expanded="false"])
+	.mantle-code-fold-ellipsis {
+	display: inline;
 }
 
 .mantle-code-line-content {

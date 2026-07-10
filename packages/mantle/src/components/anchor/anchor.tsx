@@ -41,19 +41,60 @@ type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
 	};
 
 /**
- * Fundamental component for rendering links to external addresses.
+ * A styled hyperlink — a native `<a>` with mantle's link styling, focus
+ * treatment, optional leading/trailing icon, and a safer default for the
+ * `rel` attribute. Use for links that point _outside_ the current
+ * application.
  *
- * @note If you need to link to an internal application route, prefer using the
- * [`react-router` `<Link>`](https://reactrouter.com/en/main/components/link)
+ * **When to use**
+ * - External URLs (docs, marketing pages, third-party sites).
+ * - Links to files or `mailto:` / `tel:` destinations.
  *
- * @see https://mantle.ngrok.com/components/anchor
+ * **When not to use**
+ * - Internal application routes — prefer the framework router's link
+ *   primitive ({@link https://reactrouter.com/en/main/components/link `react-router` `<Link>`})
+ *   so client-side navigation kicks in. You can keep mantle's styling by
+ *   composing: `<Anchor asChild><Link to="/foo">…</Link></Anchor>`.
+ * - For triggering an action — use a {@link https://mantle.ngrok.com/components/actions/button Button}
+ *   instead. If it doesn't navigate, it's not a link.
+ *
+ * **Icons.** Pass `icon` (a phosphor or custom SVG) and optionally
+ * `iconPlacement` (`"start"` default, or `"end"`) to render a small inline
+ * icon — useful for "external link" or "download" affordances. Icons are
+ * decorative; the link text must still describe the destination on its own.
+ *
+ * **Security.** When `target="_blank"`, `rel` should include
+ * `"noopener noreferrer"`. The `rel` prop accepts an array — duplicates
+ * are de-duped and sorted, so it's safe to merge token sets.
+ *
+ * **Accessibility.** Link text must be self-describing — avoid "click
+ * here" / "read more". For purely decorative icons, no extra labeling is
+ * needed; for icon-only links, provide an `aria-label`.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/anchor
  *
  * @example
  * ```tsx
+ * import { Anchor } from "@ngrok/mantle/anchor";
+ * import { BookIcon } from "@phosphor-icons/react/Book";
+ * import { Link } from "react-router";
+ *
+ * // Basic external link.
  * <Anchor href="https://ngrok.com/">ngrok.com</Anchor>
  *
- * <Anchor href="https://ngrok.com/docs" target="_blank" icon={<Book />}>
+ * // External link in a new tab with a leading icon.
+ * <Anchor
+ *   href="https://ngrok.com/docs"
+ *   target="_blank"
+ *   rel={["noopener", "noreferrer"]}
+ *   icon={<BookIcon />}
+ * >
  *   ngrok docs
+ * </Anchor>
+ *
+ * // Compose Anchor styling onto a react-router Link for internal navigation.
+ * <Anchor asChild>
+ *   <Link to="/dashboard">Open dashboard</Link>
  * </Anchor>
  * ```
  */

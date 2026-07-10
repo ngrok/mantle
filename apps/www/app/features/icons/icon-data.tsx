@@ -24,10 +24,10 @@ const iconData = [
 		description: (
 			<div className="text-center space-y-1">
 				<p>
-					<Code>mode="time"</Code>
+					<Code>{'mode="time"'}</Code>
 				</p>
 				<p>
-					<Code>direction="newest-to-oldest"</Code>
+					<Code>{'direction="newest-to-oldest"'}</Code>
 				</p>
 			</div>
 		),
@@ -49,10 +49,10 @@ const iconData = [
 		description: (
 			<div className="text-center space-y-1">
 				<p>
-					<Code>mode="time"</Code>
+					<Code>{'mode="time"'}</Code>
 				</p>
 				<p>
-					<Code>direction="oldest-to-newest"</Code>
+					<Code>{'direction="oldest-to-newest"'}</Code>
 				</p>
 			</div>
 		),
@@ -74,10 +74,10 @@ const iconData = [
 		description: (
 			<div className="text-center space-y-1">
 				<p>
-					<Code>mode="alphanumeric"</Code>
+					<Code>{'mode="alphanumeric"'}</Code>
 				</p>
 				<p>
-					<Code>direction="asc"</Code>
+					<Code>{'direction="asc"'}</Code>
 				</p>
 			</div>
 		),
@@ -98,10 +98,10 @@ const iconData = [
 		description: (
 			<div className="text-center space-y-1">
 				<p>
-					<Code>mode="alphanumeric"</Code>
+					<Code>{'mode="alphanumeric"'}</Code>
 				</p>
 				<p>
-					<Code>direction="desc"</Code>
+					<Code>{'direction="desc"'}</Code>
 				</p>
 			</div>
 		),
@@ -130,7 +130,7 @@ const iconData = [
 	{
 		id: "NgrokLettermarkIcon",
 		name: "NgrokLettermarkIcon",
-		description: <p className="text-muted">The ngrok logo lettermark "n" icon</p>,
+		description: <p className="text-muted">{'The ngrok logo lettermark "n" icon'}</p>,
 		Icon: <NgrokLettermarkIcon />,
 		tags: [
 			//,

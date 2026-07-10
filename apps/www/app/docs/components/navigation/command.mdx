@@ -1,0 +1,304 @@
+---
+title: Command
+description: A command palette that allows users to search and execute commands.
+---
+
+import { Anchor } from "@ngrok/mantle/anchor";
+import { Command, MetaKey } from "@ngrok/mantle/command";
+import { CalculatorIcon, CalendarIcon, SmileyIcon, UserIcon } from "@phosphor-icons/react";
+import { Example } from "~/components/example";
+import { CommandDialogDemo } from "~/features/command-dialog-demo";
+
+# Command
+
+A command palette that allows users to search and execute commands. Built on top of [cmdk](https://cmdk.paco.me/).
+
+### Command Example
+
+<Example className="flex flex-col gap-6">
+	<Command.Root className="rounded-lg border border-dialog shadow-lg bg-dialog md:min-w-112.5">
+		<Command.Input placeholder="Type a command or search..." />
+		<Command.List>
+			<Command.Empty>No results found.</Command.Empty>
+			<Command.Group heading="Suggestions">
+				<Command.Item>
+					<CalendarIcon />
+					<span>Calendar</span>
+				</Command.Item>
+				<Command.Item>
+					<SmileyIcon />
+					<span>Search Emoji</span>
+				</Command.Item>
+				<Command.Item>
+					<CalculatorIcon />
+					<span>Calculator</span>
+				</Command.Item>
+			</Command.Group>
+			<Command.Separator />
+			<Command.Group heading="Settings">
+				<Command.Item>
+					<UserIcon />
+					<span>Profile</span>
+				</Command.Item>
+			</Command.Group>
+		</Command.List>
+	</Command.Root>
+</Example>
+
+```tsx
+import { Command } from "@ngrok/mantle/command";
+import { CalendarIcon, SmileyIcon, CalculatorIcon, UserIcon } from "@phosphor-icons/react";
+
+<Command.Root className="rounded-lg border border-dialog shadow-lg bg-dialog md:min-w-112.5">
+	<Command.Input placeholder="Type a command or search..." />
+	<Command.List>
+		<Command.Empty>No results found.</Command.Empty>
+		<Command.Group heading="Suggestions">
+			<Command.Item>
+				<CalendarIcon />
+				<span>Calendar</span>
+			</Command.Item>
+			<Command.Item>
+				<SmileyIcon />
+				<span>Search Emoji</span>
+			</Command.Item>
+			<Command.Item>
+				<CalculatorIcon />
+				<span>Calculator</span>
+			</Command.Item>
+		</Command.Group>
+		<Command.Separator />
+		<Command.Group heading="Settings">
+			<Command.Item>
+				<UserIcon />
+				<span>Profile</span>
+			</Command.Item>
+		</Command.Group>
+	</Command.List>
+</Command.Root>;
+```
+
+### Command Dialog Example
+
+<Example className="flex flex-col gap-6">
+	<CommandDialogDemo />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Command, MetaKey } from "@ngrok/mantle/command";
+import {
+	CalculatorIcon,
+	CalendarIcon,
+	CreditCardIcon,
+	GearIcon,
+	SmileyIcon,
+	UserIcon,
+} from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+
+function useHotkey(key: string, callback: () => void) {
+	useEffect(() => {
+		const keydown = (event: KeyboardEvent) => {
+			if (event.key === key && (event.metaKey || event.ctrlKey)) {
+				event.preventDefault();
+				callback();
+			}
+		};
+		document.addEventListener("keydown", keydown);
+		return () => document.removeEventListener("keydown", keydown);
+	});
+}
+
+function CommandDialogDemo() {
+	const [open, setOpen] = useState(false);
+	useHotkey("j", () => setOpen(!open));
+
+	return (
+		<>
+			<p className="text-muted-foreground text-sm gap-2 flex items-center">
+				Press{" "}
+				<kbd className="bg-muted text-muted pointer-events-none inline-flex h-5 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100 select-none">
+					<span className="text-xs">
+						<MetaKey />
+					</span>
+					J
+				</kbd>
+				or
+				<Button
+					type="button"
+					appearance="outlined"
+					priority="neutral"
+					onClick={() => setOpen(!open)}
+				>
+					Open Command Dialog
+				</Button>
+			</p>
+			<Command.DialogRoot open={open} onOpenChange={setOpen}>
+				<Command.DialogContent>
+					<Command.Input placeholder="Type a command or search..." />
+					<Command.List>
+						<Command.Empty>No results found.</Command.Empty>
+						<Command.Group heading="Suggestions">
+							<Command.Item>
+								<CalendarIcon />
+								<span>Calendar</span>
+							</Command.Item>
+							<Command.Item>
+								<SmileyIcon />
+								<span>Search Emoji</span>
+							</Command.Item>
+							<Command.Item>
+								<CalculatorIcon />
+								<span>Calculator</span>
+							</Command.Item>
+						</Command.Group>
+						<Command.Separator />
+						<Command.Group heading="Settings">
+							<Command.Item>
+								<UserIcon />
+								<span>Profile</span>
+								<Command.Shortcut>
+									<MetaKey /> P
+								</Command.Shortcut>
+							</Command.Item>
+							<Command.Item>
+								<CreditCardIcon />
+								<span>Billing</span>
+								<Command.Shortcut>
+									<MetaKey /> B
+								</Command.Shortcut>
+							</Command.Item>
+							<Command.Item>
+								<GearIcon />
+								<span>Settings</span>
+								<Command.Shortcut>
+									<MetaKey /> S
+								</Command.Shortcut>
+							</Command.Item>
+						</Command.Group>
+					</Command.List>
+				</Command.DialogContent>
+			</Command.DialogRoot>
+		</>
+	);
+}
+```
+
+## Composition
+
+Compose the parts of a `Command` together to build your own:
+
+```text showLineNumbers=false
+Command.DialogRoot
+├── Command.DialogTrigger
+└── Command.DialogContent
+    ├── Command.Input
+    └── Command.List
+        ├── Command.Empty
+        ├── Command.Group
+        │   └── Command.Item
+        │       └── Command.Shortcut
+        └── Command.Separator
+```
+
+## API Reference
+
+The `Command` component is built on top of [cmdk](https://cmdk.paco.me/) and provides a complete set of sub-components for building command palettes.
+
+### Command.Root
+
+The root component for the Command. It provides the context for all other command sub-components.
+
+All props from cmdk's [Command Root](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#command-cmdk-root).
+
+### Command.DialogRoot
+
+The root stateful component for the Command dialog. Manages open/closed state.
+
+All props from Radix UI's [Dialog.Root](https://www.radix-ui.com/primitives/docs/components/dialog#root).
+
+### Command.DialogTrigger
+
+A button that opens the Command dialog when clicked. Supports `asChild` for custom trigger elements.
+
+All props from Radix UI's [Dialog.Trigger](https://www.radix-ui.com/primitives/docs/components/dialog#trigger).
+
+### Command.DialogContent
+
+The visible content of the Command dialog. Renders inside the dialog portal and wraps the command palette UI.
+
+| Prop               | Type                                        | Default                            | Description                                              |
+| :----------------- | :------------------------------------------ | :--------------------------------- | :------------------------------------------------------- |
+| `title?`           | `string`                                    | `"Command Palette"`                | Accessible title for the dialog (visually hidden).       |
+| `description?`     | `string`                                    | `"Search for a command to run..."` | Accessible description for the dialog (visually hidden). |
+| `className?`       | `string`                                    |                                    | Class name(s) to apply to the dialog content.            |
+| `showCloseButton?` | `boolean`                                   | `true`                             | Whether to show the close button.                        |
+| `filter?`          | `(value: string, search: string) => number` |                                    | Custom filter function for the command list.             |
+| `shouldFilter?`    | `boolean`                                   |                                    | Whether to enable built-in filtering of command items.   |
+
+### Command.Input
+
+The input component for the Command. It provides the input for the command palette.
+
+All props from cmdk's [Command Input](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#input-cmdk-input).
+
+### Command.List
+
+The list component for the Command. It provides the scrollable list for the command palette.
+
+All props from cmdk's [Command List](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#list-cmdk-list).
+
+### Command.Empty
+
+The empty component for the Command. Displayed when no results match the search query.
+
+All props from cmdk's [Command Empty](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#empty-cmdk-empty).
+
+### Command.Group
+
+The group component for the Command. Used to group related command items together.
+
+All props from cmdk's [Command Group](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#group-cmdk-group-hidden).
+
+### Command.Item
+
+The item component for the Command. Represents a selectable command in the palette.
+
+All props from cmdk's [Command Item](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#item-cmdk-item-data-disabled-data-selected).
+
+### Command.Separator
+
+A visual separator between command groups or items. Automatically hidden when there is an active search query.
+
+All props from cmdk's [Command Separator](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#separator-cmdk-separator).
+
+### Command.Shortcut
+
+Displays a keyboard shortcut hint within a command item. Renders as a styled `span` element.
+
+All props from the HTML `span` element.
+
+### MetaKey
+
+Renders the platform-appropriate meta key label (`⌘` for macOS/iOS or `Ctrl` for other platforms). It detects the platform on mount and is SSR-safe, defaulting to `Ctrl` to avoid hydration mismatches.
+
+Use it in keyboard shortcut hints and `Command.Shortcut` labels to ensure the correct modifier key is displayed for each platform.
+
+```tsx
+import { Command, MetaKey } from "@ngrok/mantle/command";
+
+<kbd>
+	<MetaKey /> K
+</kbd>
+
+<Command.Shortcut>
+	<MetaKey /> S
+</Command.Shortcut>
+```
+
+### useCommandState
+
+A hook for accessing the command palette state.
+
+All props from cmdk's [useCommandState](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#usecommandstatestate--stateselectedfield).

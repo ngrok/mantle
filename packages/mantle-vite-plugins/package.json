@@ -1,13 +1,13 @@
 {
   "name": "@ngrok/mantle-vite-plugins",
-  "version": "1.0.7",
+  "version": "1.0.16",
   "description": "Vite plugins for @ngrok/mantle.",
   "homepage": "https://mantle.ngrok.com",
   "license": "MIT",
   "author": "ngrok",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ngrok-oss/mantle"
+    "url": "https://github.com/ngrok/mantle"
   },
   "files": [
     "dist",
@@ -25,6 +25,8 @@
   "scripts": {
     "build": "tsx scripts/generate-component-names.ts && tsdown",
     "generate": "tsx scripts/generate-component-names.ts",
+    "prepack": "node ../../scripts/clean-publish-manifest.js clean",
+    "postpack": "node ../../scripts/clean-publish-manifest.js restore",
     "test": "TZ=UTC vitest run",
     "test:watch": "TZ=UTC vitest watch",
     "typecheck": "tsx scripts/generate-component-names.ts && tsgo"
@@ -32,7 +34,7 @@
   "dependencies": {
     "@ngrok/mantle-server-syntax-highlighter": "workspace:*",
     "magic-string": "0.30.21",
-    "oxc-parser": "0.126.0"
+    "oxc-parser": "catalog:"
   },
   "devDependencies": {
     "@cfg/tsconfig": "workspace:*",
@@ -46,7 +48,7 @@
   },
   "peerDependencies": {
     "@ngrok/mantle": "*",
-    "vite": "^8.0.8"
+    "vite": "^8.0.16"
   },
   "peerDependenciesMeta": {
     "vite": {

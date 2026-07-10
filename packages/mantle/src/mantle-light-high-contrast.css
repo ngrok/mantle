@@ -277,6 +277,7 @@ MARK: LIGHT HICON DEFS
 
 	--color-card-border: var(--color-neutral-300);
 	--color-card-border-muted: var(--color-neutral-300);
+	--color-separator: var(--color-black);
 
 	--color-active-menu-item: var(--color-neutral-100);
 	--color-selected-menu-item: var(--color-accent-50);

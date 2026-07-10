@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
 type NavigationContextType = {
 	showNavigation: boolean;
@@ -10,12 +10,9 @@ const NavigationContext = createContext<NavigationContextType | undefined>(undef
 
 export const NavigationProvider = ({ children }: PropsWithChildren) => {
 	const [showNavigation, setShowNavigation] = useState(false);
+	const contextValue = useMemo(() => ({ showNavigation, setShowNavigation }), [showNavigation]);
 
-	return (
-		<NavigationContext.Provider value={{ showNavigation, setShowNavigation }}>
-			{children}
-		</NavigationContext.Provider>
-	);
+	return <NavigationContext.Provider value={contextValue}>{children}</NavigationContext.Provider>;
 };
 
 export const useNavigation = () => {

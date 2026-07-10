@@ -1,15 +1,22 @@
 import { createHash } from "node:crypto";
+import type { createHighlighter } from "shiki";
 import {
 	decorateHighlightedHtml,
 	inferIndentation,
 	isSupportedLanguage,
 	normalizeIndentation,
 	parseLanguage,
+	type FoldLine,
 	type Indentation,
 	type LineRange,
 	type SupportedLanguage,
 } from "@ngrok/mantle/highlight-utils";
 import { createLruCache } from "./lru-cache.js";
+import {
+	computeServerFoldRanges,
+	serverFoldNeedsTokens,
+	serverFoldStrategyFor,
+} from "./server-fold-ranges.js";
 
 /**
  * Shiki grammar IDs preloaded by Mantle's highlighting engine.
@@ -41,7 +48,7 @@ const mantleShikiLanguageGrammarIds = [
 const mantleShikiThemeName = "mantle-css-variables" as const;
 const mantleHighlightCacheMaxEntries = 1000;
 
-type ShikiHighlighter = Awaited<ReturnType<(typeof import("shiki"))["createHighlighter"]>>;
+type ShikiHighlighter = Awaited<ReturnType<typeof createHighlighter>>;
 
 type MantleHighlightInput = {
 	/**
@@ -211,16 +218,42 @@ async function highlightWithMantleShiki(
 
 	const promise = (async () => {
 		const highlighter = await getMantleShikiHighlighter();
+		// AST and raw-source fold strategies don't need token explanations, so
+		// we skip the `includeExplanation` cost on the JS/TS/HTML/CSS hot path.
+		// Token-based strategies (Python, Ruby, Go, …) still pay for it.
+		const foldStrategy = serverFoldStrategyFor(resolvedLanguage);
+		const wantsTokens = serverFoldNeedsTokens(foldStrategy);
+		let capturedTokens: FoldLine[] | undefined;
 		const fullHtml = highlighter.codeToHtml(normalizedCode, {
 			lang: resolvedLanguage,
 			theme: mantleShikiThemeName,
+			includeExplanation: wantsTokens ? "scopeName" : false,
+			transformers: wantsTokens
+				? [
+						{
+							name: "mantle:capture-tokens",
+							tokens(tokens) {
+								capturedTokens = tokens;
+							},
+						},
+					]
+				: undefined,
 		});
 		const baseHtml = extractHighlightedCodeInnerHtml(fullHtml);
 
 		if (baseHtml == null) {
 			throw new Error("Failed to extract highlighted HTML from Shiki output");
 		}
+		const foldableRanges =
+			foldStrategy === "none"
+				? undefined
+				: computeServerFoldRanges({
+						code: normalizedCode,
+						language: resolvedLanguage,
+						tokens: capturedTokens,
+					});
 		const html = decorateHighlightedHtml({
+			foldableRanges,
 			highlightLines,
 			html: baseHtml,
 			lineNumberStart,

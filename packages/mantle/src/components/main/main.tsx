@@ -9,7 +9,7 @@ import { cx } from "../../utils/cx/cx.js";
  *
  * Pair with the `<SkipToMainLink>` component at the top of the document.
  *
- * @see https://mantle.ngrok.com/components/main
+ * @see https://mantle.ngrok.com/components/primitives/main
  *
  * @example
  * ```tsx

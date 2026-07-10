@@ -151,7 +151,7 @@ export function mantleTwSourcePlugin(options: MantleTwSourcePluginOptions = {}):
 	 */
 	let knownComponents = new Set<string>();
 	/** Components seen via `resolveId` during the current session. */
-	let seenComponents = new Set<string>();
+	const seenComponents = new Set<string>();
 	let isDevMode = false;
 	let resolvedConfig: ResolvedConfig | null = null;
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;

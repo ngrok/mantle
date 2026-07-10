@@ -1,8 +1,8 @@
 import type { ComponentProps, ReactNode } from "react";
-import { href, Link } from "react-router";
+import { href, Link, useMatches } from "react-router";
+import { z } from "zod";
 import { useNavigation } from "./navigation-context";
-import { ScrollMask } from "./scroll-mask";
-import { TOC_PORTAL_ID } from "./table-of-contents";
+import { TableOfContents } from "./table-of-contents";
 import { cx } from "@ngrok/mantle/cx";
 import { Main } from "@ngrok/mantle/main";
 
@@ -13,9 +13,21 @@ type PageLayoutProps = ComponentProps<"div"> & {
 
 const mobileDrawerLinks = [
 	{ to: href("/"), label: "Docs" },
-	{ to: href("/components/alert-dialog"), label: "Components" },
-	{ to: href("/blocks"), label: "Blocks" },
+	{ to: href("/components/actions/button"), label: "Components" },
+	{ to: href("/layouts"), label: "Layouts" },
+	{ to: href("/recipes"), label: "Recipes" },
+	{ to: href("/migrations"), label: "Migrations" },
 ];
+
+const matchDataWithTocSchema = z.object({
+	toc: z.array(
+		z.object({
+			id: z.string(),
+			text: z.string(),
+			level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+		}),
+	),
+});
 
 /**
  * Shared page frame used by section layouts (docs, blocks, …). Renders the
@@ -25,6 +37,9 @@ const mobileDrawerLinks = [
  */
 export function PageLayout({ className, children, sidebar, ...props }: PageLayoutProps) {
 	const { showNavigation, setShowNavigation } = useNavigation();
+	const matches = useMatches();
+	const leafToc =
+		matchDataWithTocSchema.safeParse(matches[matches.length - 1]?.loaderData).data?.toc ?? [];
 
 	const closeMobileNavigation = () => {
 		setShowNavigation(false);
@@ -33,15 +48,17 @@ export function PageLayout({ className, children, sidebar, ...props }: PageLayou
 	return (
 		<>
 			<div className={cx("flex gap-4", className)} {...props}>
-				<ScrollMask className="scrollbar sticky top-15 hidden max-h-[calc(100vh-3.75rem)] w-44 overflow-y-auto px-1 pb-4 md:block">
+				<div className="scroll-fade-y scrollbar sticky top-15 hidden max-h-[calc(100vh-3.75rem)] w-44 overflow-y-auto px-1 pb-4 md:block">
 					{sidebar}
-				</ScrollMask>
+				</div>
 				<Main className="w-0 flex-1 pb-[80vh] sm:px-8">{children}</Main>
-				<aside id={TOC_PORTAL_ID} className="hidden w-40 xl:block" />
+				<aside className="hidden w-40 xl:block">
+					<TableOfContents entries={leafToc} />
+				</aside>
 			</div>
 			{showNavigation && (
 				<div className="bg-card fixed bottom-0 left-0 right-0 top-15 z-50 p-4 md:hidden">
-					<ScrollMask className="scrollbar h-full overflow-auto overscroll-contain px-1">
+					<div className="scroll-fade-y scrollbar h-full overflow-auto overscroll-contain px-1">
 						<nav className="text-sm px-1 mb-6">
 							<ul className="flex flex-col">
 								<li className="mb-2 text-xs font-medium uppercase tracking-wider font-mono">
@@ -62,7 +79,7 @@ export function PageLayout({ className, children, sidebar, ...props }: PageLayou
 							</ul>
 						</nav>
 						{sidebar}
-					</ScrollMask>
+					</div>
 				</div>
 			)}
 		</>

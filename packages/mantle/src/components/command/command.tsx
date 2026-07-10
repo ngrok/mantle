@@ -18,15 +18,15 @@ type CommandRootProps = ComponentPropsWithoutRef<typeof CommandPrimitive>;
 /**
  * The root component for the Command. It provides the context for all other command sub-components.
  *
- * @see https://mantle.ngrok.com/components/command#commandroot
+ * @see https://mantle.ngrok.com/components/navigation/command#commandroot
  *
  * @example
  * ```tsx
- * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
- *   <Command.Dialog.Trigger asChild>
+ * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+ *   <Command.DialogTrigger asChild>
  *     <Button type="button">Open Command Palette</Button>
- *   </Command.Dialog.Trigger>
- *   <Command.Dialog.Content>
+ *   </Command.DialogTrigger>
+ *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
  *       <Command.Empty>No results found.</Command.Empty>
@@ -43,8 +43,8 @@ type CommandRootProps = ComponentPropsWithoutRef<typeof CommandPrimitive>;
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
- *   </Command.Dialog.Content>
- * </Command.Dialog.Root>
+ *   </Command.DialogContent>
+ * </Command.DialogRoot>
  * ```
  */
 const CommandRoot = forwardRef<ComponentRef<"div">, CommandRootProps>(
@@ -62,7 +62,7 @@ CommandRoot.displayName = "Command";
 /**
  * The props for the CommandDialog.Content component.
  *
- * @see https://mantle.ngrok.com/components/command#commanddialogcontent
+ * @see https://mantle.ngrok.com/components/navigation/command#commanddialogcontent
  */
 type CommandDialogContentProps = {
 	/**
@@ -109,15 +109,15 @@ type CommandDialogContentProps = {
  * The content of the CommandDialog. Renders the accessible title/description,
  * the command palette UI, and an optional close button.
  *
- * @see https://mantle.ngrok.com/components/command#commanddialogcontent
+ * @see https://mantle.ngrok.com/components/navigation/command#commanddialogcontent
  *
  * @example
  * ```tsx
- * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
- *   <Command.Dialog.Trigger asChild>
+ * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+ *   <Command.DialogTrigger asChild>
  *     <Button type="button">Open Command Palette</Button>
- *   </Command.Dialog.Trigger>
- *   <Command.Dialog.Content>
+ *   </Command.DialogTrigger>
+ *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
  *       <Command.Empty>No results found.</Command.Empty>
@@ -134,8 +134,8 @@ type CommandDialogContentProps = {
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
- *   </Command.Dialog.Content>
- * </Command.Dialog.Root>
+ *   </Command.DialogContent>
+ * </Command.DialogRoot>
  * ```
  */
 const CommandDialogContent = ({
@@ -169,151 +169,17 @@ const CommandDialogContent = ({
 CommandDialogContent.displayName = "CommandDialogContent";
 
 /**
- * A compound namespace for building a command palette dialog with trigger support.
- *
- * @see https://mantle.ngrok.com/components/command#commanddialog
- *
- * @example
- * ```tsx
- * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
- *   <Command.Dialog.Trigger asChild>
- *     <Button type="button">Open Command Palette</Button>
- *   </Command.Dialog.Trigger>
- *   <Command.Dialog.Content>
- *     <Command.Input placeholder="Type a command or search..." />
- *     <Command.List>
- *       <Command.Empty>No results found.</Command.Empty>
- *       <Command.Group heading="Suggestions">
- *         <Command.Item>
- *           <span>Calendar</span>
- *         </Command.Item>
- *       </Command.Group>
- *       <Command.Separator />
- *       <Command.Group heading="Settings">
- *         <Command.Item>
- *           <span>Profile</span>
- *           <Command.Shortcut>⌘,</Command.Shortcut>
- *         </Command.Item>
- *       </Command.Group>
- *     </Command.List>
- *   </Command.Dialog.Content>
- * </Command.Dialog.Root>
- * ```
- */
-const CommandDialog = {
-	/**
-	 * The root stateful component for the CommandDialog. Manages open/closed state.
-	 *
-	 * @see https://mantle.ngrok.com/components/command#commanddialogroot
-	 *
-	 * @example
-	 * ```tsx
-	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
-	 *   <Command.Dialog.Trigger asChild>
-	 *     <Button type="button">Open Command Palette</Button>
-	 *   </Command.Dialog.Trigger>
-	 *   <Command.Dialog.Content>
-	 *     <Command.Input placeholder="Type a command or search..." />
-	 *     <Command.List>
-	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *     </Command.List>
-	 *   </Command.Dialog.Content>
-	 * </Command.Dialog.Root>
-	 * ```
-	 */
-	Root: Dialog.Root,
-	/**
-	 * A button that opens the CommandDialog when clicked.
-	 *
-	 * @see https://mantle.ngrok.com/components/command#commanddialogtrigger
-	 *
-	 * @example
-	 * ```tsx
-	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
-	 *   <Command.Dialog.Trigger asChild>
-	 *     <Button type="button">Open Command Palette</Button>
-	 *   </Command.Dialog.Trigger>
-	 *   <Command.Dialog.Content>
-	 *     <Command.Input placeholder="Type a command or search..." />
-	 *     <Command.List>
-	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *     </Command.List>
-	 *   </Command.Dialog.Content>
-	 * </Command.Dialog.Root>
-	 * ```
-	 */
-	Trigger: Dialog.Trigger,
-	/**
-	 * The visible content of the CommandDialog. Renders inside the dialog portal.
-	 *
-	 * @see https://mantle.ngrok.com/components/command#commanddialogcontent
-	 *
-	 * @example
-	 * ```tsx
-	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
-	 *   <Command.Dialog.Trigger asChild>
-	 *     <Button type="button">Open Command Palette</Button>
-	 *   </Command.Dialog.Trigger>
-	 *   <Command.Dialog.Content>
-	 *     <Command.Input placeholder="Type a command or search..." />
-	 *     <Command.List>
-	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *     </Command.List>
-	 *   </Command.Dialog.Content>
-	 * </Command.Dialog.Root>
-	 * ```
-	 */
-	Content: CommandDialogContent,
-} as const;
-
-/**
  * The input component for the Command. It provides the input for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command#commandinput
+ * @see https://mantle.ngrok.com/components/navigation/command#commandinput
  *
  * @example
  * ```tsx
- * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
- *   <Command.Dialog.Trigger asChild>
+ * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+ *   <Command.DialogTrigger asChild>
  *     <Button type="button">Open Command Palette</Button>
- *   </Command.Dialog.Trigger>
- *   <Command.Dialog.Content>
+ *   </Command.DialogTrigger>
+ *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
  *       <Command.Empty>No results found.</Command.Empty>
@@ -330,8 +196,8 @@ const CommandDialog = {
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
- *   </Command.Dialog.Content>
- * </Command.Dialog.Root>
+ *   </Command.DialogContent>
+ * </Command.DialogRoot>
  * ```
  */
 const CommandInput = forwardRef<
@@ -359,15 +225,15 @@ CommandInput.displayName = "CommandInput";
 /**
  * The list component for the Command. It provides the list for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command#commandlist
+ * @see https://mantle.ngrok.com/components/navigation/command#commandlist
  *
  * @example
  * ```tsx
- * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
- *   <Command.Dialog.Trigger asChild>
+ * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+ *   <Command.DialogTrigger asChild>
  *     <Button type="button">Open Command Palette</Button>
- *   </Command.Dialog.Trigger>
- *   <Command.Dialog.Content>
+ *   </Command.DialogTrigger>
+ *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
  *       <Command.Empty>No results found.</Command.Empty>
@@ -384,8 +250,8 @@ CommandInput.displayName = "CommandInput";
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
- *   </Command.Dialog.Content>
- * </Command.Dialog.Root>
+ *   </Command.DialogContent>
+ * </Command.DialogRoot>
  * ```
  */
 const CommandList = forwardRef<
@@ -404,15 +270,15 @@ CommandList.displayName = "CommandList";
 /**
  * The empty component for the Command. It provides the empty state for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command#commandempty
+ * @see https://mantle.ngrok.com/components/navigation/command#commandempty
  *
  * @example
  * ```tsx
- * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
- *   <Command.Dialog.Trigger asChild>
+ * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+ *   <Command.DialogTrigger asChild>
  *     <Button type="button">Open Command Palette</Button>
- *   </Command.Dialog.Trigger>
- *   <Command.Dialog.Content>
+ *   </Command.DialogTrigger>
+ *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
  *       <Command.Empty>No results found.</Command.Empty>
@@ -429,8 +295,8 @@ CommandList.displayName = "CommandList";
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
- *   </Command.Dialog.Content>
- * </Command.Dialog.Root>
+ *   </Command.DialogContent>
+ * </Command.DialogRoot>
  * ```
  */
 const CommandEmpty = forwardRef<
@@ -449,15 +315,15 @@ CommandEmpty.displayName = "CommandEmpty";
 /**
  * The group component for the Command. It provides the group for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command#commandgroup
+ * @see https://mantle.ngrok.com/components/navigation/command#commandgroup
  *
  * @example
  * ```tsx
- * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
- *   <Command.Dialog.Trigger asChild>
+ * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+ *   <Command.DialogTrigger asChild>
  *     <Button type="button">Open Command Palette</Button>
- *   </Command.Dialog.Trigger>
- *   <Command.Dialog.Content>
+ *   </Command.DialogTrigger>
+ *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
  *       <Command.Empty>No results found.</Command.Empty>
@@ -474,8 +340,8 @@ CommandEmpty.displayName = "CommandEmpty";
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
- *   </Command.Dialog.Content>
- * </Command.Dialog.Root>
+ *   </Command.DialogContent>
+ * </Command.DialogRoot>
  * ```
  */
 const CommandGroup = forwardRef<
@@ -486,7 +352,7 @@ const CommandGroup = forwardRef<
 		ref={ref}
 		data-slot="command-group"
 		className={cx(
-			"**:[[cmdk-group-heading]]:text-muted overflow-hidden p-1 **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:py-1.5 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-medium",
+			"[&>[cmdk-group-heading]]:text-muted overflow-hidden p-1 [&>[cmdk-group-heading]]:px-2 [&>[cmdk-group-heading]]:py-1.5 [&>[cmdk-group-heading]]:text-xs [&>[cmdk-group-heading]]:font-medium",
 			className,
 		)}
 		{...props}
@@ -497,15 +363,15 @@ CommandGroup.displayName = "CommandGroup";
 /**
  * The separator component for the Command. It provides the separator for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command#commandseparator
+ * @see https://mantle.ngrok.com/components/navigation/command#commandseparator
  *
  * @example
  * ```tsx
- * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
- *   <Command.Dialog.Trigger asChild>
+ * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+ *   <Command.DialogTrigger asChild>
  *     <Button type="button">Open Command Palette</Button>
- *   </Command.Dialog.Trigger>
- *   <Command.Dialog.Content>
+ *   </Command.DialogTrigger>
+ *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
  *       <Command.Empty>No results found.</Command.Empty>
@@ -522,8 +388,8 @@ CommandGroup.displayName = "CommandGroup";
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
- *   </Command.Dialog.Content>
- * </Command.Dialog.Root>
+ *   </Command.DialogContent>
+ * </Command.DialogRoot>
  * ```
  */
 const CommandSeparator = forwardRef<
@@ -539,15 +405,15 @@ CommandSeparator.displayName = "CommandSeparator";
 /**
  * The item component for the Command. It provides the item for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command#commanditem
+ * @see https://mantle.ngrok.com/components/navigation/command#commanditem
  *
  * @example
  * ```tsx
- * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
- *   <Command.Dialog.Trigger asChild>
+ * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+ *   <Command.DialogTrigger asChild>
  *     <Button type="button">Open Command Palette</Button>
- *   </Command.Dialog.Trigger>
- *   <Command.Dialog.Content>
+ *   </Command.DialogTrigger>
+ *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
  *       <Command.Empty>No results found.</Command.Empty>
@@ -564,8 +430,8 @@ CommandSeparator.displayName = "CommandSeparator";
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
- *   </Command.Dialog.Content>
- * </Command.Dialog.Root>
+ *   </Command.DialogContent>
+ * </Command.DialogRoot>
  * ```
  */
 const CommandItem = forwardRef<
@@ -576,7 +442,7 @@ const CommandItem = forwardRef<
 		ref={ref}
 		data-slot="command-item"
 		className={cx(
-			"data-[selected=true]:bg-active-menu-item [&_svg:not([class*='text-'])]:text-muted relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5",
+			"data-[selected=true]:bg-active-menu-item [:where(&_svg)]:text-muted relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [:where(&_svg)]:size-5",
 			className,
 		)}
 		{...props}
@@ -587,15 +453,15 @@ CommandItem.displayName = "CommandItem";
 /**
  * The shortcut component for the Command. It provides the shortcut for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command#commandshortcut
+ * @see https://mantle.ngrok.com/components/navigation/command#commandshortcut
  *
  * @example
  * ```tsx
- * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
- *   <Command.Dialog.Trigger asChild>
+ * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+ *   <Command.DialogTrigger asChild>
  *     <Button type="button">Open Command Palette</Button>
- *   </Command.Dialog.Trigger>
- *   <Command.Dialog.Content>
+ *   </Command.DialogTrigger>
+ *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
  *       <Command.Empty>No results found.</Command.Empty>
@@ -612,8 +478,8 @@ CommandItem.displayName = "CommandItem";
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
- *   </Command.Dialog.Content>
- * </Command.Dialog.Root>
+ *   </Command.DialogContent>
+ * </Command.DialogRoot>
  * ```
  */
 const CommandShortcut = forwardRef<ComponentRef<"span">, ComponentPropsWithoutRef<"span">>(
@@ -631,14 +497,14 @@ CommandShortcut.displayName = "CommandShortcut";
 /**
  * The command component for the Command. It provides the command for the command palette.
  *
- * @see https://mantle.ngrok.com/components/command
+ * @see https://mantle.ngrok.com/components/navigation/command
  *
  * @example
  * Composition:
  * ```
- * Command.Dialog.Root
- * ├── Command.Dialog.Trigger
- * └── Command.Dialog.Content
+ * Command.DialogRoot
+ * ├── Command.DialogTrigger
+ * └── Command.DialogContent
  *     ├── Command.Input
  *     └── Command.List
  *         ├── Command.Empty
@@ -650,11 +516,11 @@ CommandShortcut.displayName = "CommandShortcut";
  *
  * @example
  * ```tsx
- * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
- *   <Command.Dialog.Trigger asChild>
+ * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+ *   <Command.DialogTrigger asChild>
  *     <Button type="button">Open Command Palette</Button>
- *   </Command.Dialog.Trigger>
- *   <Command.Dialog.Content>
+ *   </Command.DialogTrigger>
+ *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
  *       <Command.Empty>No results found.</Command.Empty>
@@ -671,23 +537,23 @@ CommandShortcut.displayName = "CommandShortcut";
  *         </Command.Item>
  *       </Command.Group>
  *     </Command.List>
- *   </Command.Dialog.Content>
- * </Command.Dialog.Root>
+ *   </Command.DialogContent>
+ * </Command.DialogRoot>
  * ```
  */
 const Command = {
 	/**
 	 * The root component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commandroot
+	 * @see https://mantle.ngrok.com/components/navigation/command#commandroot
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
-	 *   <Command.Dialog.Trigger asChild>
+	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+	 *   <Command.DialogTrigger asChild>
 	 *     <Button type="button">Open Command Palette</Button>
-	 *   </Command.Dialog.Trigger>
-	 *   <Command.Dialog.Content>
+	 *   </Command.DialogTrigger>
+	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
 	 *       <Command.Empty>No results found.</Command.Empty>
@@ -704,57 +570,73 @@ const Command = {
 	 *         </Command.Item>
 	 *       </Command.Group>
 	 *     </Command.List>
-	 *   </Command.Dialog.Content>
-	 * </Command.Dialog.Root>
+	 *   </Command.DialogContent>
+	 * </Command.DialogRoot>
 	 * ```
 	 */
 	Root: CommandRoot,
 	/**
-	 * A compound namespace for building a command palette dialog.
-	 * Use `Command.Dialog.Root`, `Command.Dialog.Trigger`, and `Command.Dialog.Content`.
+	 * The root stateful component for the Command dialog. Manages open/closed state.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commanddialog
+	 * @see https://mantle.ngrok.com/components/navigation/command#commanddialogroot
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
-	 *   <Command.Dialog.Trigger asChild>
+	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+	 *   <Command.DialogTrigger asChild>
 	 *     <Button type="button">Open Command Palette</Button>
-	 *   </Command.Dialog.Trigger>
-	 *   <Command.Dialog.Content>
+	 *   </Command.DialogTrigger>
+	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
 	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
 	 *     </Command.List>
-	 *   </Command.Dialog.Content>
-	 * </Command.Dialog.Root>
+	 *   </Command.DialogContent>
+	 * </Command.DialogRoot>
 	 * ```
 	 */
-	Dialog: CommandDialog,
+	DialogRoot: Dialog.Root,
+	/**
+	 * A button that opens the Command dialog when clicked.
+	 *
+	 * @see https://mantle.ngrok.com/components/navigation/command#commanddialogtrigger
+	 *
+	 * @example
+	 * ```tsx
+	 * <Command.DialogTrigger asChild>
+	 *   <Button type="button">Open Command Palette</Button>
+	 * </Command.DialogTrigger>
+	 * ```
+	 */
+	DialogTrigger: Dialog.Trigger,
+	/**
+	 * The visible content of the Command dialog. Renders inside the dialog portal.
+	 *
+	 * @see https://mantle.ngrok.com/components/navigation/command#commanddialogcontent
+	 *
+	 * @example
+	 * ```tsx
+	 * <Command.DialogContent>
+	 *   <Command.Input placeholder="Type a command or search..." />
+	 *   <Command.List>
+	 *     <Command.Empty>No results found.</Command.Empty>
+	 *   </Command.List>
+	 * </Command.DialogContent>
+	 * ```
+	 */
+	DialogContent: CommandDialogContent,
 	/**
 	 * The input component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commandinput
+	 * @see https://mantle.ngrok.com/components/navigation/command#commandinput
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
-	 *   <Command.Dialog.Trigger asChild>
+	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+	 *   <Command.DialogTrigger asChild>
 	 *     <Button type="button">Open Command Palette</Button>
-	 *   </Command.Dialog.Trigger>
-	 *   <Command.Dialog.Content>
+	 *   </Command.DialogTrigger>
+	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
 	 *       <Command.Empty>No results found.</Command.Empty>
@@ -771,23 +653,23 @@ const Command = {
 	 *         </Command.Item>
 	 *       </Command.Group>
 	 *     </Command.List>
-	 *   </Command.Dialog.Content>
-	 * </Command.Dialog.Root>
+	 *   </Command.DialogContent>
+	 * </Command.DialogRoot>
 	 * ```
 	 */
 	Input: CommandInput,
 	/**
 	 * The list component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commandlist
+	 * @see https://mantle.ngrok.com/components/navigation/command#commandlist
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
-	 *   <Command.Dialog.Trigger asChild>
+	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+	 *   <Command.DialogTrigger asChild>
 	 *     <Button type="button">Open Command Palette</Button>
-	 *   </Command.Dialog.Trigger>
-	 *   <Command.Dialog.Content>
+	 *   </Command.DialogTrigger>
+	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
 	 *       <Command.Empty>No results found.</Command.Empty>
@@ -804,23 +686,23 @@ const Command = {
 	 *         </Command.Item>
 	 *       </Command.Group>
 	 *     </Command.List>
-	 *   </Command.Dialog.Content>
-	 * </Command.Dialog.Root>
+	 *   </Command.DialogContent>
+	 * </Command.DialogRoot>
 	 * ```
 	 */
 	List: CommandList,
 	/**
 	 * The empty component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commandempty
+	 * @see https://mantle.ngrok.com/components/navigation/command#commandempty
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
-	 *   <Command.Dialog.Trigger asChild>
+	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+	 *   <Command.DialogTrigger asChild>
 	 *     <Button type="button">Open Command Palette</Button>
-	 *   </Command.Dialog.Trigger>
-	 *   <Command.Dialog.Content>
+	 *   </Command.DialogTrigger>
+	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
 	 *       <Command.Empty>No results found.</Command.Empty>
@@ -837,23 +719,23 @@ const Command = {
 	 *         </Command.Item>
 	 *       </Command.Group>
 	 *     </Command.List>
-	 *   </Command.Dialog.Content>
-	 * </Command.Dialog.Root>
+	 *   </Command.DialogContent>
+	 * </Command.DialogRoot>
 	 * ```
 	 */
 	Empty: CommandEmpty,
 	/**
 	 * The group component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commandgroup
+	 * @see https://mantle.ngrok.com/components/navigation/command#commandgroup
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
-	 *   <Command.Dialog.Trigger asChild>
+	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+	 *   <Command.DialogTrigger asChild>
 	 *     <Button type="button">Open Command Palette</Button>
-	 *   </Command.Dialog.Trigger>
-	 *   <Command.Dialog.Content>
+	 *   </Command.DialogTrigger>
+	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
 	 *       <Command.Empty>No results found.</Command.Empty>
@@ -870,23 +752,23 @@ const Command = {
 	 *         </Command.Item>
 	 *       </Command.Group>
 	 *     </Command.List>
-	 *   </Command.Dialog.Content>
-	 * </Command.Dialog.Root>
+	 *   </Command.DialogContent>
+	 * </Command.DialogRoot>
 	 * ```
 	 */
 	Group: CommandGroup,
 	/**
 	 * The item component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commanditem
+	 * @see https://mantle.ngrok.com/components/navigation/command#commanditem
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
-	 *   <Command.Dialog.Trigger asChild>
+	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+	 *   <Command.DialogTrigger asChild>
 	 *     <Button type="button">Open Command Palette</Button>
-	 *   </Command.Dialog.Trigger>
-	 *   <Command.Dialog.Content>
+	 *   </Command.DialogTrigger>
+	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
 	 *       <Command.Empty>No results found.</Command.Empty>
@@ -903,23 +785,23 @@ const Command = {
 	 *         </Command.Item>
 	 *       </Command.Group>
 	 *     </Command.List>
-	 *   </Command.Dialog.Content>
-	 * </Command.Dialog.Root>
+	 *   </Command.DialogContent>
+	 * </Command.DialogRoot>
 	 * ```
 	 */
 	Item: CommandItem,
 	/**
 	 * The shortcut component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commandshortcut
+	 * @see https://mantle.ngrok.com/components/navigation/command#commandshortcut
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
-	 *   <Command.Dialog.Trigger asChild>
+	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+	 *   <Command.DialogTrigger asChild>
 	 *     <Button type="button">Open Command Palette</Button>
-	 *   </Command.Dialog.Trigger>
-	 *   <Command.Dialog.Content>
+	 *   </Command.DialogTrigger>
+	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
 	 *       <Command.Empty>No results found.</Command.Empty>
@@ -936,23 +818,23 @@ const Command = {
 	 *         </Command.Item>
 	 *       </Command.Group>
 	 *     </Command.List>
-	 *   </Command.Dialog.Content>
-	 * </Command.Dialog.Root>
+	 *   </Command.DialogContent>
+	 * </Command.DialogRoot>
 	 * ```
 	 */
 	Shortcut: CommandShortcut,
 	/**
 	 * The separator component for the Command component.
 	 *
-	 * @see https://mantle.ngrok.com/components/command#commandseparator
+	 * @see https://mantle.ngrok.com/components/navigation/command#commandseparator
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.Dialog.Root open={open} onOpenChange={setOpen}>
-	 *   <Command.Dialog.Trigger asChild>
+	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+	 *   <Command.DialogTrigger asChild>
 	 *     <Button type="button">Open Command Palette</Button>
-	 *   </Command.Dialog.Trigger>
-	 *   <Command.Dialog.Content>
+	 *   </Command.DialogTrigger>
+	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
 	 *       <Command.Empty>No results found.</Command.Empty>
@@ -969,8 +851,8 @@ const Command = {
 	 *         </Command.Item>
 	 *       </Command.Group>
 	 *     </Command.List>
-	 *   </Command.Dialog.Content>
-	 * </Command.Dialog.Root>
+	 *   </Command.DialogContent>
+	 * </Command.DialogRoot>
 	 * ```
 	 */
 	Separator: CommandSeparator,

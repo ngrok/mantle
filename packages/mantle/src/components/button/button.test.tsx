@@ -13,7 +13,7 @@ describe("Button", () => {
 	test("renders a button, with `asChild`", () => {
 		render(
 			<Button asChild type="button">
-				{/* biome-ignore lint/a11y/useButtonType: test */}
+				{/* oxlint-disable-next-line button-has-type */}
 				<button>click me</button>
 			</Button>,
 		);
@@ -30,6 +30,41 @@ describe("Button", () => {
 
 		// Ensure the `type` attribute is not passed to the anchor element
 		expect(screen.getByRole("link")).not.toHaveAttribute("type");
+	});
+
+	describe("type", () => {
+		test(`defaults to type="button" when \`type\` is omitted`, () => {
+			render(<Button>click me</Button>);
+			expect(screen.getByRole("button")).toHaveAttribute("type", "button");
+		});
+
+		test(`renders an explicit type="submit"`, () => {
+			render(<Button type="submit">submit</Button>);
+			expect(screen.getByRole("button")).toHaveAttribute("type", "submit");
+		});
+
+		test(`renders an explicit type="reset"`, () => {
+			render(<Button type="reset">reset</Button>);
+			expect(screen.getByRole("button")).toHaveAttribute("type", "reset");
+		});
+
+		test("does not leak the default `type` onto an `asChild` anchor", () => {
+			render(
+				<Button asChild>
+					<a href="#yolo">click me</a>
+				</Button>,
+			);
+			expect(screen.getByRole("link")).not.toHaveAttribute("type");
+		});
+
+		test("does not forward an explicit `type` to an `asChild` anchor", () => {
+			render(
+				<Button type="submit" asChild>
+					<a href="#yolo">click me</a>
+				</Button>,
+			);
+			expect(screen.getByRole("link")).not.toHaveAttribute("type");
+		});
 	});
 
 	test("when isLoading={false}, allows click and submit events to propagate", async () => {

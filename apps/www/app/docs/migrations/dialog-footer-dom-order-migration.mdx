@@ -1,0 +1,154 @@
+---
+title: Dialog.Footer DOM Order Migration
+description: Dialog.Footer no longer reverses its children — reverse footer children to preserve their visual layout.
+---
+
+# Mantle Dialog.Footer DOM Order Migration Guide
+
+`@ngrok/mantle`'s `Dialog.Footer` no longer reverses its children. Previously it
+applied `flex-row-reverse`, which laid its children out **right-to-left** — so
+the DOM order was the visual mirror of what you wrote. It now uses normal
+`flex` with `justify-end`, so children render **left-to-right in DOM order**,
+matching `Sheet.Footer` and `AlertDialog.Footer`.
+
+**TL;DR:** For every `Dialog.Footer` with two or more children, **reverse the
+order of its direct children**. The conventional layout is the secondary/cancel
+action first and the primary action last (so the primary action stays on the
+right). Footers with a single child need no change.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every `Dialog.Footer` (the footer of `@ngrok/mantle`'s `Dialog`
+   compound component). Search for `Dialog.Footer`, and for any destructured or
+   renamed imports of the same component (e.g. `const { Footer } = Dialog;` or
+   `import { Footer } from "@ngrok/mantle/dialog"`).
+2. For each `Dialog.Footer` with **two or more direct children**, reverse the
+   order of those direct children. Do not touch the children's internals — only
+   their order.
+3. Leave `Dialog.Footer` instances with **zero or one** direct child unchanged.
+4. **Do not** touch `Sheet.Footer` or `AlertDialog.Footer`. They already render
+   in DOM order and are not affected by this change.
+5. After editing, re-run the project's formatter, linter, and type checker.
+
+> **Why reverse?** The visual result must stay the same. Under the old
+> `flex-row-reverse`, the first DOM child rendered on the right. Code was
+> therefore written primary-action-first to put the primary action on the
+> right. Now that children render in DOM order, primary-action-first would put
+> the primary action on the **left**. Reversing restores the intended
+> left-to-right appearance (secondary/cancel on the left, primary on the right).
+
+---
+
+## Before → After
+
+### Two actions (most common)
+
+```tsx
+// BEFORE — primary action written first to land on the right under flex-row-reverse
+<Dialog.Footer>
+	<Button type="button" appearance="filled" priority="neutral">
+		Save
+	</Button>
+	<Dialog.Close asChild>
+		<Button type="button" appearance="outlined">
+			Cancel
+		</Button>
+	</Dialog.Close>
+</Dialog.Footer>
+```
+
+```tsx
+// AFTER — DOM order matches visual order: cancel on the left, primary on the right
+<Dialog.Footer>
+	<Dialog.Close asChild>
+		<Button type="button" appearance="outlined">
+			Cancel
+		</Button>
+	</Dialog.Close>
+	<Button type="button" appearance="filled" priority="neutral">
+		Save
+	</Button>
+</Dialog.Footer>
+```
+
+### Destructive confirmation
+
+```tsx
+// BEFORE
+<Dialog.Footer>
+	<Dialog.Close asChild>
+		<Button type="button" priority="danger" appearance="filled">
+			Delete
+		</Button>
+	</Dialog.Close>
+	<Dialog.Close asChild>
+		<Button type="button" priority="neutral" appearance="outlined">
+			Cancel
+		</Button>
+	</Dialog.Close>
+</Dialog.Footer>
+```
+
+```tsx
+// AFTER
+<Dialog.Footer>
+	<Dialog.Close asChild>
+		<Button type="button" priority="neutral" appearance="outlined">
+			Cancel
+		</Button>
+	</Dialog.Close>
+	<Dialog.Close asChild>
+		<Button type="button" priority="danger" appearance="filled">
+			Delete
+		</Button>
+	</Dialog.Close>
+</Dialog.Footer>
+```
+
+### Single action — no change
+
+```tsx
+// A footer with one child renders identically before and after. Leave it alone.
+<Dialog.Footer>
+	<Dialog.Close asChild>
+		<Button type="button" appearance="outlined">
+			Close
+		</Button>
+	</Dialog.Close>
+</Dialog.Footer>
+```
+
+---
+
+## Edge cases & gotchas
+
+- **More than two children.** The rule is the same: reverse the full child
+  order. A footer rendered `[A, B, C]` under the old reversal appeared as
+  `[C, B, A]`; to preserve that appearance, write `[C, B, A]` now.
+- **Conditional children.** When children are rendered with `&&`, ternaries, or
+  `.map`, reverse the order in which they appear, not just the static JSX. For
+  mapped lists, reverse the array (or render order) so the visual sequence is
+  unchanged.
+- **Custom `className` on `Dialog.Footer`.** If a footer overrode the layout
+  (e.g. added its own `flex-row-reverse`, `flex-row`, or `justify-*`), review it
+  by hand — the base class change may interact with the override. The base now
+  contributes `flex justify-end`.
+- **`Dialog.Footer` with non-action content** (text, links, a left-aligned
+  hint alongside buttons): verify the layout visually. If it relied on the
+  reversal for positioning, adjust with explicit classes rather than DOM order.
+- **Single-child footers and footers you cannot confidently reorder:** leave
+  them and flag them for human review rather than guessing.
+
+---
+
+## How to verify
+
+1. Open each affected dialog and confirm the buttons appear in the same visual
+   order as before the change (typically secondary/cancel on the left, primary
+   on the right).
+2. Confirm tab order now follows visual order left-to-right. (This is a
+   secondary benefit of the change — under the old reversal, keyboard tab order
+   did not match visual order.)
+3. Run the project's formatter, linter, type checker, and tests.

@@ -1,4 +1,4 @@
-import { type ComponentProps, type PropsWithChildren } from "react";
+import type { ComponentProps, PropsWithChildren } from "react";
 
 import { MDXProvider as MdxProviderPrimitive } from "@mdx-js/react";
 import { Alert } from "@ngrok/mantle/alert";
@@ -15,6 +15,7 @@ import { cx } from "@ngrok/mantle/cx";
 import { Table } from "@ngrok/mantle/table";
 import { Link } from "react-router";
 import { isSafeLocalPath } from "../utilities/is-safe-local-path";
+import { isStaticResourcePath } from "../utilities/is-static-resource-path";
 import { HashLinkHeading } from "./hash-link-heading";
 
 // import { FigCaption, Figure } from "./figure";
@@ -42,13 +43,15 @@ const components = {
 	a: (props) => {
 		const { node: _node, className, href, ...rest } = props;
 		const mergedClassName = cx("hyphens-auto", className);
-		if (isSafeLocalPath(href)) {
+
+		if (isSafeLocalPath(href) && !isStaticResourcePath(href)) {
 			return (
 				<Anchor asChild className={mergedClassName}>
 					<Link to={href} {...rest} />
 				</Anchor>
 			);
 		}
+
 		return <Anchor className={mergedClassName} href={href} {...rest} />;
 	},
 	blockquote: (props) => {

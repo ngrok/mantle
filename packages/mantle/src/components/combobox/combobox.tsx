@@ -4,7 +4,8 @@ import * as Primitive from "@ariakit/react";
 import { type ComponentPropsWithoutRef, type ComponentRef, createContext, forwardRef } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
-import type { WithValidation } from "../input/types.js";
+import { parseValidation, useFieldValidation } from "../field/validation.js";
+import type { WithValidation } from "../field/validation.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
 
@@ -13,7 +14,18 @@ type ComboboxProps = Primitive.ComboboxProviderProps;
 /**
  * Root component for a combobox. Provides a combobox store that controls the state of Combobox components.
  *
+ * Use Combobox for a list of options where the user types to filter — large static lists,
+ * async/server-side data, or any single-select where search is helpful. For very small
+ * finite lists with no filtering, prefer Select. For multi-selection, prefer MultiSelect.
+ *
+ * `Combobox.Content` renders at Tailwind `z-50`, Mantle's shared floating
+ * z-index. When multiple shared layers are open, the most recently mounted
+ * layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/forms/combobox#comboboxroot
+ *
  * @example
+ * ```tsx
  * <Combobox.Root>
  *   <Combobox.Input />
  *   <Combobox.Content>
@@ -21,6 +33,7 @@ type ComboboxProps = Primitive.ComboboxProviderProps;
  *     <Combobox.Item value="Banana" />
  *   </Combobox.Content>
  * </Combobox.Root>
+ * ```
  */
 const Root = ({ children, ...props }: ComboboxProps) => {
 	return <Primitive.ComboboxProvider {...props}>{children}</Primitive.ComboboxProvider>;
@@ -36,7 +49,10 @@ type ComboboxInputProps = Omit<
 /**
  * Renders a combobox input element that can be used to filter a list of items.
  *
+ * @see https://mantle.ngrok.com/components/forms/combobox#comboboxinput
+ *
  * @example
+ * ```tsx
  * <Combobox.Root>
  *   <Combobox.Input />
  *   <Combobox.Content>
@@ -44,6 +60,7 @@ type ComboboxInputProps = Omit<
  *     <Combobox.Item value="Banana" />
  *   </Combobox.Content>
  * </Combobox.Root>
+ * ```
  */
 const Input = forwardRef<ComponentRef<"input">, ComboboxInputProps>(
 	(
@@ -57,13 +74,11 @@ const Input = forwardRef<ComponentRef<"input">, ComboboxInputProps>(
 		},
 		ref,
 	) => {
-		const isInvalid = _ariaInvalid != null && _ariaInvalid !== "false";
-		const validation = isInvalid
-			? "error"
-			: typeof _validation === "function"
-				? _validation()
-				: _validation;
-		const ariaInvalid = _ariaInvalid ?? validation === "error";
+		const fieldValidation = useFieldValidation();
+		const { ariaInvalid, validation } = parseValidation({
+			"aria-invalid": _ariaInvalid,
+			validation: _validation ?? fieldValidation,
+		});
 
 		return (
 			<Primitive.Combobox
@@ -99,7 +114,14 @@ type ComboboxContentProps = Omit<Primitive.ComboboxPopoverProps, "render"> & Wit
 /**
  * Renders a popover that contains combobox content, e.g. Combobox.Items, Combobox.Groups, and Combobox.Separators.
  *
+ * `Combobox.Content` renders at Tailwind `z-50`, Mantle's shared floating
+ * z-index. When multiple shared layers are open, the most recently mounted
+ * layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/forms/combobox#comboboxcontent
+ *
  * @example
+ * ```tsx
  * <Combobox.Root>
  *   <Combobox.Input />
  *   <Combobox.Content>
@@ -107,6 +129,7 @@ type ComboboxContentProps = Omit<Primitive.ComboboxPopoverProps, "render"> & Wit
  *     <Combobox.Item value="Banana" />
  *   </Combobox.Content>
  * </Combobox.Root>
+ * ```
  */
 const Content = forwardRef<ComponentRef<typeof Primitive.ComboboxPopover>, ComboboxContentProps>(
 	(
@@ -142,7 +165,10 @@ const ComboboxItemValueContext = createContext<string | undefined>(undefined);
 /**
  * Renders a combobox item inside a Combobox.Content component.
  *
+ * @see https://mantle.ngrok.com/components/forms/combobox#comboboxitem
+ *
  * @example
+ * ```tsx
  * <Combobox.Root>
  *   <Combobox.Input />
  *   <Combobox.Content>
@@ -151,6 +177,7 @@ const ComboboxItemValueContext = createContext<string | undefined>(undefined);
  *     <Combobox.Item value="Orange" />
  *   </Combobox.Content>
  * </Combobox.Root>
+ * ```
  */
 const Item = forwardRef<ComponentRef<typeof Primitive.ComboboxItem>, ComboboxItemProps>(
 	({ asChild = false, children, className, focusOnHover = true, value, ...props }, ref) => {
@@ -189,7 +216,10 @@ type ComboboxGroupProps = Omit<Primitive.ComboboxGroupProps, "render"> & WithAsC
  *
  * You should only reach for this component when it semantically makes sense to group items together, such as when a label is needed.
  *
+ * @see https://mantle.ngrok.com/components/forms/combobox#comboboxgroup
+ *
  * @example
+ * ```tsx
  * <Combobox.Root>
  *   <Combobox.Input />
  *   <Combobox.Content>
@@ -200,6 +230,7 @@ type ComboboxGroupProps = Omit<Primitive.ComboboxGroupProps, "render"> & WithAsC
  *     </Combobox.Group>
  *   </Combobox.Content>
  * </Combobox.Root>
+ * ```
  */
 const Group = forwardRef<ComponentRef<typeof Primitive.ComboboxGroup>, ComboboxGroupProps>(
 	({ asChild = false, children, className, ...props }, ref) => {
@@ -229,7 +260,10 @@ type ComboboxGroupLabelProps = Omit<Primitive.ComboboxGroupLabelProps, "render">
  *
  * You should only reach for this component when it semantically makes sense to group items together, such as when a label is needed.
  *
+ * @see https://mantle.ngrok.com/components/forms/combobox#comboboxgrouplabel
+ *
  * @example
+ * ```tsx
  * <Combobox.Root>
  *   <Combobox.Input />
  *   <Combobox.Content>
@@ -240,6 +274,7 @@ type ComboboxGroupLabelProps = Omit<Primitive.ComboboxGroupLabelProps, "render">
  *     </Combobox.Group>
  *   </Combobox.Content>
  * </Combobox.Root>
+ * ```
  */
 const GroupLabel = forwardRef<
 	ComponentRef<typeof Primitive.ComboboxGroupLabel>,
@@ -274,7 +309,10 @@ type ComboboxItemValueProps = Omit<Primitive.ComboboxItemValueProps<"span">, "re
  * The user input value is automatically set to the combobox store's value state.
  * Both values can be overridden by providing the value and userValue props, respectively.
  *
+ * @see https://mantle.ngrok.com/components/forms/combobox#comboboxitemvalue
+ *
  * @example
+ * ```tsx
  * <Combobox.Root>
  *   <Combobox.Input />
  *   <Combobox.Content>
@@ -288,6 +326,7 @@ type ComboboxItemValueProps = Omit<Primitive.ComboboxItemValueProps<"span">, "re
  *     </Combobox.Item>
  *   </Combobox.Content>
  * </Combobox.Root>
+ * ```
  */
 const ItemValue = forwardRef<
 	ComponentRef<typeof Primitive.ComboboxItemValue>,
@@ -311,7 +350,10 @@ ItemValue.displayName = "ComboboxItemValue";
 /**
  * Renders a separator between Combobox.Items or Combobox.Groups.
  *
+ * @see https://mantle.ngrok.com/components/forms/combobox#comboboxseparator
+ *
  * @example
+ * ```tsx
  * <Combobox.Root>
  *   <Combobox.Input />
  *   <Combobox.Content>
@@ -325,6 +367,7 @@ ItemValue.displayName = "ComboboxItemValue";
  *     </Combobox.Item>
  *   </Combobox.Content>
  * </Combobox.Root>
+ * ```
  */
 const ComboboxSeparatorComponent = forwardRef<
 	ComponentRef<typeof Separator>,
@@ -345,10 +388,18 @@ ComboboxSeparatorComponent.displayName = "ComboboxSeparator";
  * This component is based on the WAI-ARIA Combobox Pattern and is powered by the
  * ariakit Combobox.
  *
+ * Use Combobox for a list of options where the user types to filter — large static lists,
+ * async/server-side data, or any single-select where search is helpful. For very small
+ * finite lists with no filtering, prefer Select. For multi-selection, prefer MultiSelect.
+ *
+ * `Combobox.Content` renders at Tailwind `z-50`, Mantle's shared floating
+ * z-index. When multiple shared layers are open, the most recently mounted
+ * layer renders on top.
+ *
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
  * @see https://ariakit.org/components/combobox
  *
- * @see https://mantle.ngrok.com/components/combobox
+ * @see https://mantle.ngrok.com/components/forms/combobox
  *
  * @example
  * Composition:
@@ -364,6 +415,7 @@ ComboboxSeparatorComponent.displayName = "ComboboxSeparator";
  * ```
  *
  * @example
+ * ```tsx
  * <Combobox.Root>
  *   <Combobox.Input />
  *   <Combobox.Content>
@@ -371,12 +423,21 @@ ComboboxSeparatorComponent.displayName = "ComboboxSeparator";
  *     <Combobox.Item value="Banana" />
  *   </Combobox.Content>
  * </Combobox.Root>
+ * ```
  */
 const Combobox = {
 	/**
 	 * Root component for a combobox. Provides a combobox store that controls the state of Combobox components.
 	 *
-	 * @see https://mantle.ngrok.com/components/combobox#comboboxroot
+	 * Use Combobox for a list of options where the user types to filter — large static lists,
+	 * async/server-side data, or any single-select where search is helpful. For very small
+	 * finite lists with no filtering, prefer Select. For multi-selection, prefer MultiSelect.
+	 *
+	 * `Combobox.Content` renders at Tailwind `z-50`, Mantle's shared floating
+	 * z-index. When multiple shared layers are open, the most recently mounted
+	 * layer renders on top.
+	 *
+	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxroot
 	 *
 	 * @example
 	 * ```tsx
@@ -393,7 +454,11 @@ const Combobox = {
 	/**
 	 * Renders a popover that contains combobox content, e.g. Combobox.Items, Combobox.Groups, and Combobox.Separators.
 	 *
-	 * @see https://mantle.ngrok.com/components/combobox#comboboxcontent
+	 * `Combobox.Content` renders at Tailwind `z-50`, Mantle's shared floating
+	 * z-index. When multiple shared layers are open, the most recently mounted
+	 * layer renders on top.
+	 *
+	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -410,7 +475,7 @@ const Combobox = {
 	/**
 	 * Renders a group for Combobox.Item elements.
 	 *
-	 * @see https://mantle.ngrok.com/components/combobox#comboboxgroup
+	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxgroup
 	 *
 	 * @example
 	 * ```tsx
@@ -430,7 +495,7 @@ const Combobox = {
 	/**
 	 * Renders a label in a combobox group.
 	 *
-	 * @see https://mantle.ngrok.com/components/combobox#comboboxgrouplabel
+	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxgrouplabel
 	 *
 	 * @example
 	 * ```tsx
@@ -450,7 +515,7 @@ const Combobox = {
 	/**
 	 * Renders a combobox input element that can be used to filter a list of items.
 	 *
-	 * @see https://mantle.ngrok.com/components/combobox#comboboxinput
+	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxinput
 	 *
 	 * @example
 	 * ```tsx
@@ -467,7 +532,7 @@ const Combobox = {
 	/**
 	 * Renders a combobox item inside a Combobox.Content component.
 	 *
-	 * @see https://mantle.ngrok.com/components/combobox#comboboxitem
+	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxitem
 	 *
 	 * @example
 	 * ```tsx
@@ -485,7 +550,7 @@ const Combobox = {
 	/**
 	 * Highlights the match between the current Combobox.Input value and parent Combobox.Item value.
 	 *
-	 * @see https://mantle.ngrok.com/components/combobox#comboboxitemvalue
+	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxitemvalue
 	 *
 	 * @example
 	 * ```tsx
@@ -508,7 +573,7 @@ const Combobox = {
 	/**
 	 * Renders a separator between Combobox.Items or Combobox.Groups.
 	 *
-	 * @see https://mantle.ngrok.com/components/combobox#comboboxseparator
+	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxseparator
 	 *
 	 * @example
 	 * ```tsx

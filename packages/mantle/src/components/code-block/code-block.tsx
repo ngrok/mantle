@@ -33,7 +33,8 @@ import {
 } from "@radix-ui/react-tabs";
 import assert from "tiny-invariant";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
-import type { WithAsChild } from "../../types/as-child.js";
+import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
+import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Icon as MantleIcon } from "../icon/icon.js";
 import type { SvgAttributes } from "../icon/types.js";
@@ -41,6 +42,7 @@ import { TrafficPolicyFileIcon } from "../icons/traffic-policy-file.js";
 import { IconButton } from "../button/icon-button.js";
 import { Slot } from "../slot/index.js";
 import { escapeHtml } from "./escape-html.js";
+import { attachFoldHandler, resetFoldState } from "./fold-runtime.js";
 import type { Mode } from "./resolve-pre-rendered-props.js";
 import type { MantleCodeBlockValue } from "./mantle-code.js";
 
@@ -319,8 +321,9 @@ type CodeBlockCodeProps = Omit<ComponentProps<"pre">, "children"> & {
  * ```
  */
 const Code = forwardRef<ComponentRef<"pre">, CodeBlockCodeProps>(
-	({ className, style, tabIndex, value, ...props }, ref) => {
+	({ className, style, value, ...props }, ref) => {
 		const id = useId();
+		const preRef = useRef<HTMLPreElement>(null);
 		const { copyTextRef, hasCodeExpander, isCodeExpanded, registerCodeId, unregisterCodeId } =
 			useCodeBlockContext();
 		const {
@@ -366,8 +369,29 @@ const Code = forwardRef<ComponentRef<"pre">, CodeBlockCodeProps>(
 				: __preHtml;
 		}, [__preHtml, __preValToken, __preVals]);
 
+		// Attach a single delegated click handler per <pre> so fold toggles do
+		// not pay the cost of N React re-renders or N event handlers — see the
+		// performance rationale in `fold-runtime.ts`. Re-attaches when the
+		// rendered HTML changes since `<code>` gets a new dangerouslySetInnerHTML.
+		useEffect(() => {
+			const pre = preRef.current;
+			if (pre == null) {
+				return undefined;
+			}
+			const codeElement = pre.querySelector("code");
+			if (codeElement != null) {
+				resetFoldState(codeElement);
+			}
+			return attachFoldHandler(pre);
+		}, [renderedHtml]);
+
 		const isPreRendered = renderedHtml != null;
 		const displayHtml = renderedHtml ?? escapeHtml(copyText);
+
+		// React diffs `dangerouslySetInnerHTML` by prop reference; a fresh
+		// `{ __html }` literal each render re-applies `innerHTML`, wiping any
+		// runtime-managed DOM state on the children (e.g. fold attributes).
+		const innerHtmlProp = useMemo(() => ({ __html: displayHtml }), [displayHtml]);
 
 		return (
 			<pre
@@ -377,7 +401,7 @@ const Code = forwardRef<ComponentRef<"pre">, CodeBlockCodeProps>(
 					"scrollbar overflow-x-auto overflow-y-hidden py-4",
 					!isPreRendered && "pr-14",
 					"data-[mantle-line-numbers~='false']:pl-4",
-					"text-mono m-0 font-mono",
+					"text-mono m-0 font-mono outline-hidden",
 					"aria-collapsed:max-h-[13.6rem]",
 					className,
 				)}
@@ -393,7 +417,7 @@ const Code = forwardRef<ComponentRef<"pre">, CodeBlockCodeProps>(
 				}
 				data-mantle-line-numbers={isPreRendered && effectiveShowLineNumbers ? "true" : "false"}
 				id={id}
-				ref={ref}
+				ref={composeRefs(preRef, ref)}
 				style={
 					{
 						...style,
@@ -402,12 +426,11 @@ const Code = forwardRef<ComponentRef<"pre">, CodeBlockCodeProps>(
 						MozTabSize: 2,
 					} as ComponentProps<"pre">["style"]
 				}
-				tabIndex={tabIndex ?? -1}
 				{...props}
 			>
 				<code
 					className="text-size-inherit block min-w-full w-max"
-					dangerouslySetInnerHTML={{ __html: displayHtml }}
+					dangerouslySetInnerHTML={innerHtmlProp}
 				/>
 			</pre>
 		);
@@ -487,16 +510,23 @@ const Title = forwardRef<
 });
 Title.displayName = "CodeBlockTitle";
 
-type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "children" | "type"> & {
-	/**
-	 * Callback fired when the copy button is clicked, passes the copied text as an argument.
-	 */
-	onCopy?: (value: string) => void;
-	/**
-	 * Callback fired when an error occurs during copying.
-	 */
-	onCopyError?: (error: unknown) => void;
-};
+type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "children" | "type"> &
+	SelfClosingWithAsChild & {
+		/**
+		 * The accessible label for the copy button. This label will be visually hidden but announced to screen reader users, similar to alt text for img tags.
+		 *
+		 * @default "Copy code"
+		 */
+		label?: string;
+		/**
+		 * Callback fired when the copy button is clicked, passes the copied text as an argument.
+		 */
+		onCopy?: (value: string) => void;
+		/**
+		 * Callback fired when an error occurs during copying.
+		 */
+		onCopyError?: (error: unknown) => void;
+	};
 
 /**
  * The (optional) copy button of the `CodeBlock`. Copies the code content
@@ -518,9 +548,9 @@ type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "children" | "typ
  * ```
  */
 const CopyButton = forwardRef<ComponentRef<"button">, CodeBlockCopyButtonProps>(
-	({ className, onCopy, onCopyError, onClick, ...props }, ref) => {
+	({ className, label = "Copy code", onCopy, onCopyError, onClick, ...props }, ref) => {
 		const { copyTextRef } = useCodeBlockContext();
-		const [, copyToClipboard] = useCopyToClipboard();
+		const copyToClipboard = useCopyToClipboard();
 		const [wasCopied, setWasCopied] = useState(false);
 		const timeoutHandle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -533,12 +563,15 @@ const CopyButton = forwardRef<ComponentRef<"button">, CodeBlockCopyButtonProps>(
 		}, []);
 
 		return (
-			<span data-slot="code-block-copy-button" className="absolute right-2.5 top-2.5 z-10 bg-card">
+			<span
+				data-slot="code-block-copy-button"
+				className="absolute right-3 top-3 z-10 inline-flex size-7 items-center justify-center rounded-[var(--icon-button-border-radius,0.375rem)] bg-card"
+			>
 				<IconButton
 					type="button"
 					appearance="ghost"
 					size="sm"
-					label="Copy code"
+					label={label}
 					icon={wasCopied ? <CheckIcon /> : <CopyIcon />}
 					className={className}
 					ref={ref}
@@ -720,6 +753,9 @@ type CodeBlockTabListProps = Omit<ComponentProps<typeof RadixTabsList>, "asChild
  * in `CodeBlock.Body` to conditionally render code based on the active tab.
  * Tab state is managed by `CodeBlock.Root` via `defaultTab` / `activeTab` / `onActiveTabChange`.
  *
+ * When the tabs exceed the available width they scroll horizontally with an edge
+ * fade (`scroll-fade-x`) instead of wrapping to a second row.
+ *
  * @example
  * ```tsx
  * <CodeBlock.Root defaultTab="yml">
@@ -745,7 +781,15 @@ const TabList = forwardRef<ComponentRef<typeof RadixTabsList>, CodeBlockTabListP
 	({ className, ...props }, ref) => (
 		<RadixTabsList
 			data-slot="code-block-tab-list"
-			className={cx("flex items-center gap-1", className)}
+			className={cx(
+				"scroll-fade-x flex min-w-0 items-center gap-1 overflow-x-auto overscroll-x-none",
+				// Reserve room inside the scroll box for each trigger's focus ring: `overflow-x-auto`
+				// promotes `overflow-y` to `auto`, which would otherwise clip the `ring-4` box-shadow.
+				// The negative margin cancels the padding so the header layout is unchanged. `min-w-0`
+				// lets the list shrink (and thus scroll) inside the flex `CodeBlock.Header`.
+				"-m-1 p-1",
+				className,
+			)}
 			ref={ref}
 			{...props}
 		/>
@@ -772,7 +816,7 @@ const TabTrigger = forwardRef<ComponentRef<typeof RadixTabsTrigger>, CodeBlockTa
 		<RadixTabsTrigger
 			data-slot="code-block-tab-trigger"
 			className={cx(
-				"cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium",
+				"shrink-0 cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium whitespace-nowrap",
 				"text-gray-600 outline-hidden",
 				"hover:text-gray-900",
 				"data-[state=active]:bg-neutral-500/15 data-[state=active]:text-strong",

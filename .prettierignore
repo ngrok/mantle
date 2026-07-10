@@ -11,6 +11,8 @@ node_modules
 public
 */code-gen
 packages/mantle/package.json
+packages/mantle/src/utils/cx/vendor
+packages/mantle/src/utils/cx/__fixtures__
 *.svg
 *.yaml
 bun.lockb

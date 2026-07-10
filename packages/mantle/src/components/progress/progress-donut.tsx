@@ -1,6 +1,7 @@
-import clsx from "clsx";
 import { createContext, useContext, useId, useMemo } from "react";
-import type { CSSProperties, ComponentProps, HTMLAttributes } from "react";
+import type { ComponentProps, HTMLAttributes } from "react";
+import { $cssProperties } from "../../types/index.js";
+import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import { clamp, isNumber, isValidMaxNumber, isValidValueNumber } from "./math.js";
 import type { ValueType } from "./types.js";
@@ -75,7 +76,7 @@ type Props = SvgAttributes & {
  * The indicator color is inherited via `currentColor`. Override the default
  * (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
  *
- * @see https://mantle.ngrok.com/components/progress#api-progress-donut
+ * @see https://mantle.ngrok.com/components/feedback/progress-donut#api-progress-donut
  *
  * @example
  * ```tsx
@@ -116,7 +117,6 @@ const Root = ({
 
 	return (
 		<ProgressContext.Provider value={ctx}>
-			{/* biome-ignore lint/a11y/useFocusableInteractive: progress bars don't need to be focusable */}
 			<svg
 				data-slot="progress-donut"
 				aria-valuemax={max}
@@ -139,7 +139,6 @@ const Root = ({
 				data-min={0}
 				data-value={valueNow}
 				height="100%"
-				// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: this is a radial progress bar, which is possible by SVG
 				role="progressbar"
 				width="100%"
 				{...props}
@@ -151,7 +150,7 @@ const Root = ({
 					fill="transparent"
 					stroke="currentColor"
 					strokeWidth={strokeWidthPx}
-					style={{ "--radius": radius } as CSSProperties}
+					style={$cssProperties({ "--radius": radius })}
 				/>
 				{children}
 			</svg>
@@ -170,7 +169,7 @@ type ProgressDonutIndicatorProps = Omit<ComponentProps<"g">, "children">;
 /**
  * The indicator for the circular progress bar.
  *
- * @see https://mantle.ngrok.com/components/progress#api-progress-donut-indicator
+ * @see https://mantle.ngrok.com/components/feedback/progress-donut#api-progress-donut-indicator
  *
  * @example
  * ```tsx
@@ -215,7 +214,7 @@ const Indicator = ({ className, ...props }: ProgressDonutIndicatorProps) => {
 				strokeDashoffset={100 - percentage}
 				strokeLinecap="round"
 				strokeWidth={strokeWidthPx}
-				style={{ "--radius": radius } as CSSProperties}
+				style={$cssProperties({ "--radius": radius })}
 				transform="rotate(-90)" // rotate -90 degrees so it starts from the top
 			/>
 		</g>
@@ -229,7 +228,7 @@ Indicator.displayName = "ProgressDonutIndicator";
  * The indicator color is inherited via `currentColor`. Override the default
  * (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
  *
- * @see https://mantle.ngrok.com/components/progress
+ * @see https://mantle.ngrok.com/components/feedback/progress-donut
  *
  * @example
  * Composition:
@@ -256,7 +255,7 @@ const ProgressDonut = {
 	 * The indicator color is inherited via `currentColor`. Override the default
 	 * (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
 	 *
-	 * @see https://mantle.ngrok.com/components/progress#api-progress-donut-root
+	 * @see https://mantle.ngrok.com/components/feedback/progress-donut#api-progress-donut-root
 	 *
 	 * @example
 	 * ```tsx
@@ -273,7 +272,7 @@ const ProgressDonut = {
 	/**
 	 * The indicator for the circular progress bar.
 	 *
-	 * @see https://mantle.ngrok.com/components/progress#api-progress-donut-indicator
+	 * @see https://mantle.ngrok.com/components/feedback/progress-donut#api-progress-donut-indicator
 	 *
 	 * @example
 	 * ```tsx

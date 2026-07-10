@@ -1,0 +1,150 @@
+---
+title: Label
+description: A Label represents a caption for an item in a user interface. Renders an accessible label associated with controls.
+---
+
+import { Input } from "@ngrok/mantle/input";
+import { Label } from "@ngrok/mantle/label";
+import { Example } from "~/components/example";
+
+# Label
+
+A caption for a form control — input, checkbox, radio, switch, select. Renders a native `<label>`. Pair every form control with a `Label` so the control has an accessible name, clicks on the label focus the control, and screen readers announce the field correctly.
+
+## When to use
+
+- Every visible form control. Always.
+- Above or beside an input to describe it ("Email", "API key").
+- Wrapping a checkbox or radio next to its descriptive text.
+
+## When not to use
+
+- For static UI text that isn't labeling a control — use a heading or plain `<p>`/`<span>`.
+- As a substitute for `aria-label` on non-`<input>` widgets that don't support `<label for>` association.
+
+## Two ways to associate
+
+Either wrap the control inside the `<Label>` (implicit association — simplest) or set `htmlFor` to the control's `id` (explicit — required when the control isn't a child).
+
+For the explicit form, React's [`useId()`](https://react.dev/reference/react/useId) is the easiest way to generate a unique, SSR-stable id without hand-managing strings:
+
+```tsx
+import { useId } from "react";
+
+function EmailField() {
+	const id = useId();
+	return (
+		<div className="flex flex-col gap-1.5">
+			<Label htmlFor={id}>Email</Label>
+			<Input id={id} type="email" />
+		</div>
+	);
+}
+```
+
+When you're using [TanStack Form](https://tanstack.com/form), `field.name` is already a stable, unique string for each field — pass it as both `htmlFor` on the `Label` and `id` on the input. You get a guaranteed-correct association for free without calling `useId()` separately:
+
+```tsx
+<form.Field name="email">
+	{(field) => (
+		<div className="flex flex-col gap-1.5">
+			<Label htmlFor={field.name}>Email</Label>
+			<Input
+				id={field.name}
+				name={field.name}
+				type="email"
+				value={field.state.value}
+				onBlur={field.handleBlur}
+				onChange={(event) => field.handleChange(event.target.value)}
+			/>
+		</div>
+	)}
+</form.Field>
+```
+
+## Font weight
+
+A `Label` automatically gets `font-medium` when it doesn't contain a nested form control (`<input>`, `<textarea>`, `<select>`, `<button>`, or `[contenteditable]`). The default is detected via `:has()` and applied through a `:where()`-wrapped variant so its specificity is `0` — any font-weight utility you pass on the `Label` itself overrides cleanly:
+
+<Example className="flex flex-col gap-6">
+	<div className="flex flex-col gap-1.5">
+		<Label htmlFor="email-fw-1">Email</Label>
+		<Input id="email-fw-1" type="email" />
+	</div>
+	<div className="flex flex-col gap-1.5">
+		<Label htmlFor="email-fw-2" className="font-bold">
+			Email
+		</Label>
+		<Input id="email-fw-2" type="email" />
+	</div>
+</Example>
+
+```tsx
+<div className="flex flex-col gap-1.5">
+	<Label htmlFor="email">Email</Label>          {/* → font-medium */}
+	<Input id="email" type="email" />
+</div>
+
+<div className="flex flex-col gap-1.5">
+	<Label htmlFor="email" className="font-bold">Email</Label>  {/* → font-bold */}
+	<Input id="email" type="email" />
+</div>
+```
+
+When the `Label` _wraps_ a control, the auto-default is skipped on purpose — otherwise the control's own typography would inherit the medium weight from the label. In that case, apply `font-medium` to your own caption element (a `<span>` or `<p>`) inside the label:
+
+<Example>
+	<Label htmlFor="email-fw-3" className="flex flex-col gap-1.5">
+		<span className="font-medium">Email</span>
+		<Input id="email-fw-3" type="email" />
+	</Label>
+</Example>
+
+```tsx
+<Label htmlFor="email" className="flex flex-col gap-1.5">
+	<span className="font-medium">Email</span>
+	<Input id="email" type="email" />
+</Label>
+```
+
+## Disabled state
+
+Pass `disabled` to render the label in a disabled style. Typically you'll want this to mirror the underlying control's disabled state so the visual treatment stays consistent.
+
+<Example className="flex flex-col gap-6">
+	<div className="flex flex-col gap-1.5">
+		<Label htmlFor="name-disabled" disabled>
+			Name
+		</Label>
+		<Input id="name-disabled" type="text" disabled value="foo" readOnly />
+	</div>
+	<div className="flex items-center gap-2">
+		<Label htmlFor="name-disabled-inline" disabled>
+			Name:
+		</Label>
+		<Input id="name-disabled-inline" type="text" disabled value="foo" readOnly />
+	</div>
+</Example>
+
+```tsx
+import { Input } from "@ngrok/mantle/input";
+import { Label } from "@ngrok/mantle/label";
+
+<div className="flex flex-col gap-1.5">
+	<Label htmlFor="name" disabled>Name</Label>
+	<Input id="name" type="text" disabled readOnly value="foo" />
+</div>
+
+<div className="flex items-center gap-2">
+	<Label htmlFor="name" disabled>Name:</Label>
+	<Input id="name" type="text" disabled readOnly value="foo" />
+</div>
+```
+
+## API Reference
+
+The `Label` accepts the following props in addition to the [standard HTML label attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/label#attributes).
+
+| Prop       | Type      | Default | Description                                                                 |
+| ---------- | --------- | ------- | --------------------------------------------------------------------------- |
+| `disabled` | `boolean` | `false` | Use the `disabled` prop to explicitly render the label in a disabled state. |

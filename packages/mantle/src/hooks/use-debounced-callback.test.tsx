@@ -12,7 +12,7 @@ describe("useDebouncedCallback", () => {
 	});
 
 	test("debounces callback with given delay", () => {
-		const callback = vi.fn();
+		const callback = vi.fn<(...args: unknown[]) => void>();
 		const { result } = renderHook(() => useDebouncedCallback(callback, { waitMs: 100 }));
 		result.current();
 		result.current();
@@ -23,7 +23,7 @@ describe("useDebouncedCallback", () => {
 	});
 
 	test("calls callback with correct arguments", () => {
-		const callback = vi.fn();
+		const callback = vi.fn<(...args: unknown[]) => void>();
 		const { result } = renderHook(() => useDebouncedCallback(callback, { waitMs: 100 }));
 		result.current(1);
 		result.current(2);

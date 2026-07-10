@@ -1,3 +1,9 @@
+/**
+ * Re-exports for the Theme component.
+ *
+ * @see https://mantle.ngrok.com/components/primitives/theme
+ */
+
 export {
 	//,
 	fixMediaScriptContent,

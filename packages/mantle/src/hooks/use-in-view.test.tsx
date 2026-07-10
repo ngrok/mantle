@@ -10,9 +10,9 @@ describe("useInView", () => {
 	let mockDisconnect: ReturnType<typeof vi.fn>;
 
 	beforeEach(() => {
-		mockObserve = vi.fn();
-		mockUnobserve = vi.fn();
-		mockDisconnect = vi.fn();
+		mockObserve = vi.fn<(target: Element) => void>();
+		mockUnobserve = vi.fn<(target: Element) => void>();
+		mockDisconnect = vi.fn<() => void>();
 
 		// vi.fn() produces an arrow function which cannot be used as a constructor with `new`,
 		// so we use a class to create a proper constructor mock.

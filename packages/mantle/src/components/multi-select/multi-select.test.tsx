@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, test } from "vitest";
+import { Field } from "../field/field.js";
 import { Sheet } from "../sheet/sheet.js";
 import { MultiSelect } from "./multi-select.js";
 
@@ -190,7 +191,14 @@ describe("MultiSelect", () => {
 		 * Wrapped in act() so any resulting React state updates are flushed.
 		 */
 		const waitForRaf = () =>
-			act(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+			act(
+				() =>
+					new Promise<void>((resolve) => {
+						requestAnimationFrame(() => {
+							resolve();
+						});
+					}),
+			);
 
 		test("ArrowLeft from input focuses the first tag to the left of the input", () => {
 			render(<Subject />);
@@ -302,5 +310,81 @@ describe("MultiSelect", () => {
 			</MultiSelect.Root>,
 		);
 		expect(screen.getByTestId("trigger")).toHaveAttribute("data-validation", "error");
+	});
+
+	test("inherits validation from Field.Item through Field.Control", () => {
+		render(
+			<Field.Item name="example" validation="warning">
+				<MultiSelect.Root>
+					<Field.Control>
+						<MultiSelect.Trigger data-testid="trigger">
+							<MultiSelect.TagValues />
+							<MultiSelect.Input placeholder="Select items..." />
+						</MultiSelect.Trigger>
+					</Field.Control>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>
+			</Field.Item>,
+		);
+		expect(screen.getByTestId("trigger")).toHaveAttribute("data-validation", "warning");
+	});
+
+	test("Field.Control wrapping MultiSelect.Root applies field ARIA wiring to the input", () => {
+		render(
+			<Field.Item name="example">
+				<Field.Control>
+					<MultiSelect.Root>
+						<MultiSelect.Trigger>
+							<MultiSelect.TagValues />
+							<MultiSelect.Input
+								aria-describedby="ignored-description"
+								aria-errormessage="ignored-error"
+								data-testid="input"
+								id="ignored-input"
+								name="ignored-name"
+								placeholder="Select items..."
+							/>
+						</MultiSelect.Trigger>
+						<MultiSelect.Content>
+							<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+						</MultiSelect.Content>
+					</MultiSelect.Root>
+				</Field.Control>
+				<Field.Errors data-testid="errors" messages={["Required."]} />
+				<Field.Description data-testid="desc">Pick items.</Field.Description>
+			</Field.Item>,
+		);
+
+		const input = screen.getByTestId("input");
+		const errors = screen.getByTestId("errors");
+		const description = screen.getByTestId("desc");
+		expect(input).toHaveAttribute("aria-invalid", "true");
+		expect(input.getAttribute("aria-describedby")).toContain(errors.id);
+		expect(input.getAttribute("aria-describedby")).toContain(description.id);
+		expect(input.getAttribute("aria-describedby")).not.toContain("ignored-description");
+		expect(input).toHaveAttribute("aria-errormessage", errors.id);
+		expect(input).not.toHaveAttribute("id", "ignored-input");
+		expect(input).toHaveAttribute("name", "example");
+	});
+
+	test("lets trigger validation override field validation", () => {
+		render(
+			<Field.Item name="example" validation="success">
+				<MultiSelect.Root>
+					<Field.Control>
+						<MultiSelect.Trigger data-testid="trigger" validation="warning">
+							<MultiSelect.TagValues />
+							<MultiSelect.Input placeholder="Select items..." />
+						</MultiSelect.Trigger>
+					</Field.Control>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>
+			</Field.Item>,
+		);
+		expect(screen.getByTestId("trigger")).toHaveAttribute("data-validation", "warning");
 	});
 });

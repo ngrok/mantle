@@ -3,7 +3,7 @@
   "changelog": [
     "@changesets/changelog-github",
     {
-      "repo": "ngrok-oss/mantle"
+      "repo": "ngrok/mantle"
     }
   ],
   "commit": false,
@@ -12,7 +12,7 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@cfg/*", "www"],
+  "ignore": ["@cfg/*", "@app/*"],
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
     "onlyUpdatePeerDependentsWhenOutOfRange": true
   }

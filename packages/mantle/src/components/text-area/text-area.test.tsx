@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
+import { Field } from "../field/field.js";
 import { TextArea } from "./text-area.js";
 
 describe("TextArea", () => {
@@ -41,6 +42,30 @@ describe("TextArea", () => {
 
 	test('given aria-invalid="true" and validation="error", renders a textarea with aria-invalid="true" and data-validation="error"', () => {
 		render(<TextArea aria-invalid="true" validation="error" />);
+		expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "true");
+		expect(screen.getByRole("textbox")).toHaveAttribute("data-validation", "error");
+	});
+
+	test("inherits validation from Field.Item without a direct validation prop", () => {
+		render(
+			<Field.Item name="example" validation="warning">
+				<TextArea />
+			</Field.Item>,
+		);
+
+		expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "false");
+		expect(screen.getByRole("textbox")).toHaveAttribute("data-validation", "warning");
+	});
+
+	test("inherits Field.Item validation through Field.Control", () => {
+		render(
+			<Field.Item name="example" validation="error">
+				<Field.Control>
+					<TextArea />
+				</Field.Control>
+			</Field.Item>,
+		);
+
 		expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "true");
 		expect(screen.getByRole("textbox")).toHaveAttribute("data-validation", "error");
 	});

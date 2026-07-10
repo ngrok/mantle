@@ -3,8 +3,7 @@ name: Preview Health Check
 on:
   deployment_status:
 
-permissions:
-  statuses: write
+permissions: {}
 
 jobs:
   health-check:
@@ -12,19 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Preview'
     timeout-minutes: 5
+    env:
+      PREVIEW_URL: ${{ github.event.deployment_status.target_url }}
     steps:
-      - name: Get Preview URL
-        id: preview
-        run: |
-          echo "url=${{ github.event.deployment_status.target_url }}" >> $GITHUB_OUTPUT
-
       - name: Wait for deployment to stabilize
         run: sleep 10
 
       - name: Check homepage
         run: |
-          echo "Checking: ${{ steps.preview.outputs.url }}"
-          response=$(curl -sS -o /dev/null -w "%{http_code}" --retry 3 --retry-delay 5 "${{ steps.preview.outputs.url }}")
+          echo "Checking: $PREVIEW_URL"
+          response=$(curl -sS -o /dev/null -w "%{http_code}" --retry 3 --retry-delay 5 "$PREVIEW_URL")
           echo "Response code: $response"
           if [ "$response" -ge 500 ]; then
             echo "❌ Homepage returned $response"
@@ -34,7 +30,7 @@ jobs:
 
       - name: Check key routes
         run: |
-          base_url="${{ steps.preview.outputs.url }}"
+          base_url="$PREVIEW_URL"
           routes=(
             "/components/button"
             "/components/input"

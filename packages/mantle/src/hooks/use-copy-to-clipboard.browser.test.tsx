@@ -1,60 +1,52 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 import { useCopyToClipboard } from "./use-copy-to-clipboard.js";
 
 describe("useCopyToClipboard (browser)", () => {
-	test("initial state is an empty string", () => {
+	test("returns an async copy function", () => {
 		const { result } = renderHook(() => useCopyToClipboard());
-		const [state] = result.current;
-		expect(state).toBe("");
+		expect(typeof result.current).toBe("function");
 	});
 
-	test("updates state to the copied value", async () => {
-		const { result } = renderHook(() => useCopyToClipboard());
-		const [, copyToClipboard] = result.current;
-
-		act(() => {
-			copyToClipboard("hello clipboard");
-		});
-
-		await waitFor(() => {
-			const [state] = result.current;
-			expect(state).toBe("hello clipboard");
-		});
+	test("returns a stable reference across renders", () => {
+		const { result, rerender } = renderHook(() => useCopyToClipboard());
+		const first = result.current;
+		rerender();
+		expect(result.current).toBe(first);
 	});
 
 	test("writes the value to navigator.clipboard", async () => {
+		const writeTextSpy = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+
 		const { result } = renderHook(() => useCopyToClipboard());
-		const [, copyToClipboard] = result.current;
+		const copyToClipboard = result.current;
 
-		act(() => {
-			copyToClipboard("written to clipboard");
+		await act(async () => {
+			await copyToClipboard("written to clipboard");
 		});
 
-		await waitFor(async () => {
-			// Chromium grants clipboard-write by default in Playwright — read it back to verify
-			const text = await navigator.clipboard.readText();
-			expect(text).toBe("written to clipboard");
-		});
+		expect(writeTextSpy).toHaveBeenCalledWith("written to clipboard");
+
+		vi.restoreAllMocks();
 	});
 
-	test("state reflects the most recently copied value", async () => {
+	test("calls writeText with the most recently copied value", async () => {
+		const writeTextSpy = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+
 		const { result } = renderHook(() => useCopyToClipboard());
-		const [, copyToClipboard] = result.current;
+		const copyToClipboard = result.current;
 
-		act(() => {
-			copyToClipboard("first value");
+		await act(async () => {
+			await copyToClipboard("first value");
 		});
-		await waitFor(() => {
-			expect(result.current[0]).toBe("first value");
+		await act(async () => {
+			await copyToClipboard("second value");
 		});
 
-		act(() => {
-			copyToClipboard("second value");
-		});
-		await waitFor(() => {
-			expect(result.current[0]).toBe("second value");
-		});
+		expect(writeTextSpy).toHaveBeenNthCalledWith(1, "first value");
+		expect(writeTextSpy).toHaveBeenNthCalledWith(2, "second value");
+
+		vi.restoreAllMocks();
 	});
 
 	test("polyfill removes the textarea from the DOM even when select() throws", async () => {
@@ -66,7 +58,7 @@ describe("useCopyToClipboard (browser)", () => {
 		});
 
 		const { result } = renderHook(() => useCopyToClipboard());
-		const [, copyToClipboard] = result.current;
+		const copyToClipboard = result.current;
 
 		await act(async () => {
 			await expect(copyToClipboard("cleanup test")).rejects.toThrow("clipboard unavailable");
@@ -78,43 +70,39 @@ describe("useCopyToClipboard (browser)", () => {
 	});
 
 	test("falls back to the polyfill when clipboard.writeText is unavailable", async () => {
-		// Simulate an environment where the Clipboard API is missing.
-		// The hook catches the error and calls the execCommand polyfill, then still sets state.
 		vi.spyOn(navigator.clipboard, "writeText").mockRejectedValueOnce(
 			new Error("clipboard unavailable"),
 		);
+		const execCommandSpy = vi.spyOn(document, "execCommand").mockImplementationOnce(() => true);
 
 		const { result } = renderHook(() => useCopyToClipboard());
-		const [, copyToClipboard] = result.current;
+		const copyToClipboard = result.current;
 
-		act(() => {
-			copyToClipboard("polyfill value");
+		await act(async () => {
+			await copyToClipboard("polyfill value");
 		});
 
-		// State should still update via the polyfill path
-		await waitFor(() => {
-			expect(result.current[0]).toBe("polyfill value");
-		});
+		expect(execCommandSpy).toHaveBeenCalledWith("copy");
 
 		vi.restoreAllMocks();
 	});
 
 	test("awaiting copyToClipboard resolves after the clipboard write completes", async () => {
+		const writeTextSpy = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+
 		const { result } = renderHook(() => useCopyToClipboard());
-		const [, copyToClipboard] = result.current;
+		const copyToClipboard = result.current;
 
 		await act(async () => {
 			await copyToClipboard("awaited value");
 		});
 
-		// State is already updated by the time the promise resolves — no waitFor needed
-		expect(result.current[0]).toBe("awaited value");
+		expect(writeTextSpy).toHaveBeenCalledWith("awaited value");
 
-		const text = await navigator.clipboard.readText();
-		expect(text).toBe("awaited value");
+		vi.restoreAllMocks();
 	});
 
-	test("state is not updated when both clipboard API and polyfill fail", async () => {
+	test("throws when both clipboard API and polyfill fail", async () => {
 		vi.spyOn(navigator.clipboard, "writeText").mockRejectedValueOnce(
 			new Error("clipboard unavailable"),
 		);
@@ -123,14 +111,11 @@ describe("useCopyToClipboard (browser)", () => {
 		});
 
 		const { result } = renderHook(() => useCopyToClipboard());
-		const [, copyToClipboard] = result.current;
+		const copyToClipboard = result.current;
 
 		await act(async () => {
-			await expect(copyToClipboard("should not persist")).rejects.toThrow();
+			await expect(copyToClipboard("should throw")).rejects.toThrow("clipboard unavailable");
 		});
-
-		// State stays at the initial empty string since both paths failed
-		expect(result.current[0]).toBe("");
 
 		vi.restoreAllMocks();
 	});

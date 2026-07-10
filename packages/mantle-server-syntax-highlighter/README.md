@@ -1,6 +1,6 @@
 # @ngrok/mantle-server-syntax-highlighter
 
-Server-side syntax highlighting for [`@ngrok/mantle`](https://github.com/ngrok-oss/mantle), powered by [Shiki](https://shiki.style).
+Server-side syntax highlighting for [`@ngrok/mantle`](https://github.com/ngrok/mantle), powered by [Shiki](https://shiki.style).
 
 Use this package to highlight code in API routes, server actions, or any Node.js context where you need Mantle-compatible highlighted HTML without a browser or Vite.
 
@@ -104,5 +104,5 @@ Type declarations are included. No `@types/*` package is needed.
 
 ## Related Packages
 
-- [`@ngrok/mantle`](https://github.com/ngrok-oss/mantle/tree/main/packages/mantle) — UI component library ([npm](https://www.npmjs.com/package/@ngrok/mantle))
-- [`@ngrok/mantle-vite-plugins`](https://github.com/ngrok-oss/mantle/tree/main/packages/mantle-vite-plugins) — Vite + rehype plugins ([npm](https://www.npmjs.com/package/@ngrok/mantle-vite-plugins))
+- [`@ngrok/mantle`](https://github.com/ngrok/mantle/tree/main/packages/mantle) — UI component library ([npm](https://www.npmjs.com/package/@ngrok/mantle))
+- [`@ngrok/mantle-vite-plugins`](https://github.com/ngrok/mantle/tree/main/packages/mantle-vite-plugins) — Vite + rehype plugins ([npm](https://www.npmjs.com/package/@ngrok/mantle-vite-plugins))

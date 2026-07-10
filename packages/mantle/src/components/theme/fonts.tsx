@@ -1,5 +1,5 @@
 /**
- * @fileoverview Helpers for preloading ngrok brand fonts from the CDN.
+ * @file Helpers for preloading ngrok brand fonts from the CDN.
  * All font URLs resolve to `${assetsCdnOrigin}/fonts`.
  */
 

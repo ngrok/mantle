@@ -1,11 +1,26 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
-import { userEvent } from "@testing-library/user-event";
+import { PointerEventsCheckLevel, userEvent } from "@testing-library/user-event";
 import { type ReactNode, useState } from "react";
 import { describe, expect, test } from "vitest";
 import { AlertDialog } from "../alert-dialog/alert-dialog.js";
 import { Dialog } from "../dialog/dialog.js";
 import { Sheet } from "../sheet/sheet.js";
 import { MultiSelect } from "./multi-select.js";
+
+/**
+ * `userEvent.setup()` with the pre-interaction `pointer-events` assertion turned
+ * off. In browser mode, Ariakit's popover/portal can momentarily compute
+ * `pointer-events: none` while it mounts and animates, so user-event's default
+ * check throws ("Unable to perform pointer interaction…") and flakes the
+ * click-driven tests in CI. None of the behaviors here rely on that CSS guard —
+ * locked tags enforce their lock in the remove handler, not via `pointer-events`
+ * — so disabling the check makes clicks deterministic without weakening intent.
+ *
+ * @example
+ * const user = setupUser();
+ * await user.click(screen.getByRole("combobox"));
+ */
+const setupUser = () => userEvent.setup({ pointerEventsCheck: PointerEventsCheckLevel.Never });
 
 describe("MultiSelect (browser)", () => {
 	/**
@@ -122,7 +137,7 @@ describe("MultiSelect (browser)", () => {
 		] as const;
 
 		test("clicking the input opens the popover", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject />);
 			await user.click(screen.getByRole("combobox"));
 			await waitFor(() => {
@@ -131,7 +146,7 @@ describe("MultiSelect (browser)", () => {
 		});
 
 		test("Escape closes the popover", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject />);
 			await user.click(screen.getByRole("combobox"));
 			await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
@@ -143,7 +158,7 @@ describe("MultiSelect (browser)", () => {
 
 		for (const modal of modalSubjects) {
 			test(`Escape closes only the popover when nested inside a ${modal.name}`, async () => {
-				const user = userEvent.setup();
+				const user = setupUser();
 
 				render(
 					modal.render(
@@ -175,7 +190,7 @@ describe("MultiSelect (browser)", () => {
 			});
 
 			test(`a second Escape closes the parent ${modal.name} after the popover closes`, async () => {
-				const user = userEvent.setup();
+				const user = setupUser();
 
 				render(
 					modal.render(
@@ -207,7 +222,7 @@ describe("MultiSelect (browser)", () => {
 			});
 
 			test(`Escape closes the parent ${modal.name} when the multi-select is not focused`, async () => {
-				const user = userEvent.setup();
+				const user = setupUser();
 
 				render(
 					modal.render(
@@ -236,7 +251,7 @@ describe("MultiSelect (browser)", () => {
 
 	describe("item selection", () => {
 		test("clicking an item adds it as a tag", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject />);
 			await user.click(screen.getByRole("combobox"));
 			await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
@@ -245,7 +260,7 @@ describe("MultiSelect (browser)", () => {
 		});
 
 		test("clicking multiple items adds each as a tag", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject />);
 			await user.click(screen.getByRole("combobox"));
 			await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
@@ -256,7 +271,7 @@ describe("MultiSelect (browser)", () => {
 		});
 
 		test("clicking a selected item deselects it and removes its tag", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject initialValues={["apple"]} />);
 			await user.click(screen.getByRole("combobox"));
 			await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
@@ -266,7 +281,7 @@ describe("MultiSelect (browser)", () => {
 		});
 
 		test("selected items are marked aria-selected in the popover", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject initialValues={["apple", "banana"]} />);
 			await user.click(screen.getByRole("combobox"));
 			await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
@@ -278,7 +293,7 @@ describe("MultiSelect (browser)", () => {
 
 	describe("typeahead filtering", () => {
 		test("typing updates the input value and keeps the popover open", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject />);
 			await user.click(screen.getByRole("combobox"));
 			await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
@@ -290,7 +305,7 @@ describe("MultiSelect (browser)", () => {
 		});
 
 		test("selecting an item clears the input so all items show next time", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject />);
 			await user.click(screen.getByRole("combobox"));
 			await user.type(screen.getByRole("combobox"), "app");
@@ -308,7 +323,7 @@ describe("MultiSelect (browser)", () => {
 
 	describe("tag removal via click", () => {
 		test("clicking the remove button removes only that tag", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject initialValues={["apple", "banana"]} />);
 			await user.click(screen.getByLabelText("Remove apple"));
 			expect(screen.queryByLabelText("Remove apple")).not.toBeInTheDocument();
@@ -316,7 +331,7 @@ describe("MultiSelect (browser)", () => {
 		});
 
 		test("removing a tag can be followed by reopening the popover", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject initialValues={["apple"]} />);
 			await user.click(screen.getByLabelText("Remove apple"));
 			expect(screen.queryByLabelText("Remove apple")).not.toBeInTheDocument();
@@ -328,7 +343,7 @@ describe("MultiSelect (browser)", () => {
 
 	describe("popover stays open while interacting with trigger", () => {
 		test("clicking a tag keeps the popover open", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject initialValues={["apple"]} />);
 			await user.click(screen.getByRole("combobox"));
 			await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
@@ -337,7 +352,7 @@ describe("MultiSelect (browser)", () => {
 		});
 
 		test("clicking one tag then another keeps the popover open", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject initialValues={["apple", "banana"]} />);
 			await user.click(screen.getByRole("combobox"));
 			await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
@@ -355,7 +370,7 @@ describe("MultiSelect (browser)", () => {
 		});
 
 		test("clicking a locked item in the popover does not deselect it", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject initialValues={["apple"]} lockedValues={["apple"]} />);
 			await user.click(screen.getByRole("combobox"));
 			await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
@@ -368,7 +383,7 @@ describe("MultiSelect (browser)", () => {
 		});
 
 		test("Backspace on a locked tag does not remove it", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject initialValues={["apple"]} lockedValues={["apple"]} />);
 			getTagOption("apple").focus();
 			await user.keyboard("{Backspace}");
@@ -376,7 +391,7 @@ describe("MultiSelect (browser)", () => {
 		});
 
 		test("Delete on a locked tag does not remove it", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject initialValues={["apple"]} lockedValues={["apple"]} />);
 			getTagOption("apple").focus();
 			await user.keyboard("{Delete}");
@@ -384,7 +399,7 @@ describe("MultiSelect (browser)", () => {
 		});
 
 		test("Backspace on empty input skips a locked last tag", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject initialValues={["apple"]} lockedValues={["apple"]} />);
 			await user.click(screen.getByRole("combobox"));
 			await user.keyboard("{Backspace}");
@@ -392,7 +407,7 @@ describe("MultiSelect (browser)", () => {
 		});
 
 		test("Backspace on empty input with a locked last tag does not remove any tag", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			// "banana" is last and locked — Backspace shakes it instead of removing anything
 			render(<Subject initialValues={["apple", "banana"]} lockedValues={["banana"]} />);
 			await user.click(screen.getByRole("combobox"));
@@ -452,14 +467,14 @@ describe("MultiSelect (browser)", () => {
 			};
 
 			test("calling onRemove directly on a locked tag does not remove it", async () => {
-				const user = userEvent.setup();
+				const user = setupUser();
 				render(<CustomSubject initialValues={["apple"]} lockedValues={["apple"]} />);
 				await user.click(screen.getByLabelText("Remove apple"));
 				expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
 			});
 
 			test("calling onRemove directly on an unlocked tag removes it", async () => {
-				const user = userEvent.setup();
+				const user = setupUser();
 				render(<CustomSubject initialValues={["apple", "banana"]} lockedValues={["apple"]} />);
 				await user.click(screen.getByLabelText("Remove banana"));
 				expect(screen.queryByLabelText("Remove banana")).not.toBeInTheDocument();
@@ -467,7 +482,7 @@ describe("MultiSelect (browser)", () => {
 			});
 
 			test("Backspace via onKeyDown on a locked custom tag does not remove it", async () => {
-				const user = userEvent.setup();
+				const user = setupUser();
 				render(<CustomSubject initialValues={["apple"]} lockedValues={["apple"]} />);
 				getTagOption("apple").focus();
 				await user.keyboard("{Backspace}");
@@ -475,7 +490,7 @@ describe("MultiSelect (browser)", () => {
 			});
 
 			test("Delete via onKeyDown on a locked custom tag does not remove it", async () => {
-				const user = userEvent.setup();
+				const user = setupUser();
 				render(<CustomSubject initialValues={["apple"]} lockedValues={["apple"]} />);
 				getTagOption("apple").focus();
 				await user.keyboard("{Delete}");
@@ -486,7 +501,7 @@ describe("MultiSelect (browser)", () => {
 
 	describe("printable character jumps focus to input", () => {
 		test("typing a printable char while a tag is focused moves focus to the input", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject initialValues={["apple"]} />);
 			getTagOption("apple").focus();
 			expect(getTagOption("apple")).toHaveFocus();
@@ -495,7 +510,7 @@ describe("MultiSelect (browser)", () => {
 		});
 
 		test("ctrl+key while a tag is focused does not jump to the input", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject initialValues={["apple"]} />);
 			getTagOption("apple").focus();
 			// ctrl+a is a common selection shortcut — should not be hijacked
@@ -504,7 +519,7 @@ describe("MultiSelect (browser)", () => {
 		});
 
 		test("meta+key while a tag is focused does not jump to the input", async () => {
-			const user = userEvent.setup();
+			const user = setupUser();
 			render(<Subject initialValues={["apple"]} />);
 			getTagOption("apple").focus();
 			await user.keyboard("{Meta>}a{/Meta}");

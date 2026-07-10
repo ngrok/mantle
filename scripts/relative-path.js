@@ -7,8 +7,8 @@ import { fileURLToPath } from "node:url";
  * @param  {...string} parts
  */
 function relativePath(...parts) {
-	const __dirname = fileURLToPath(new URL(".", import.meta.url));
-	return path.resolve(__dirname, ...parts);
+	const currentDir = fileURLToPath(new URL(".", import.meta.url));
+	return path.resolve(currentDir, ...parts);
 }
 
 export {

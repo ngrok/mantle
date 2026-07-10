@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ngrok-oss/mantle/HEAD/.github/mantle-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ngrok-oss/mantle/HEAD/.github/mantle-light.svg">
-    <img alt="Mantle" src="https://raw.githubusercontent.com/ngrok-oss/mantle/HEAD/.github/mantle-light.svg" width="176" height="34" style="max-width: 100%;">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ngrok/mantle/HEAD/.github/mantle-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ngrok/mantle/HEAD/.github/mantle-light.svg">
+    <img alt="Mantle" src="https://raw.githubusercontent.com/ngrok/mantle/HEAD/.github/mantle-light.svg" width="176" height="34" style="max-width: 100%;">
   </picture>
 </p>
 <h1 align="center">
@@ -20,12 +20,12 @@
 
 Install `@ngrok/mantle` and all of the required `peerDependencies` with your preferred package manager:
 
-| package manager | command                                                     |
-| --------------- | ----------------------------------------------------------- |
-| npm             | npm install -E @ngrok/mantle @phosphor-icons/react date-fns |
-| pnpm            | pnpm add -E @ngrok/mantle @phosphor-icons/react date-fns    |
-| bun             | bun add -E @ngrok/mantle @phosphor-icons/react date-fns     |
-| yarn            | yarn add -E @ngrok/mantle @phosphor-icons/react date-fns    |
+| package manager | command                                            |
+| --------------- | -------------------------------------------------- |
+| npm             | npm install -E @ngrok/mantle @phosphor-icons/react |
+| pnpm            | pnpm add -E @ngrok/mantle @phosphor-icons/react    |
+| bun             | bun add -E @ngrok/mantle @phosphor-icons/react     |
+| yarn            | yarn add -E @ngrok/mantle @phosphor-icons/react    |
 
 Also install the required `devDependencies`:
 
@@ -37,6 +37,10 @@ Also install the required `devDependencies`:
 | yarn            | yarn add -DE tailwindcss    |
 
 Next, check out the [Overview & Setup](https://mantle.ngrok.com/) docs and start using mantle components in your application!
+
+## Using with AI Agents
+
+Mantle ships machine-readable entry points for coding agents — see [For AI Agents](https://mantle.ngrok.com/for-ai-agents) for the system-prompt snippet, conventions, and the full list of `/api/*.json` and `llms.txt` endpoints. An offline pointer file (`@ngrok/mantle/agent.json`) is included in the published package as a fallback when network access isn't available.
 
 ## Code Block Tooling
 
@@ -68,46 +72,13 @@ const result = await highlighter.highlight({
 });
 ```
 
-## Scaffolding a New Component
-
-If you're contributing a new mantle component and use [Claude Code](https://claude.com/claude-code), run the `/scaffold-component` slash command to scaffold one end-to-end (component files, package.json export, docs page, route, navigation entry, and changeset):
-
-```
-/scaffold-component <component-name>
-```
-
-See [`.claude/commands/scaffold-component.md`](https://github.com/ngrok-oss/mantle/blob/main/.claude/commands/scaffold-component.md) for the full step-by-step reference — it's also useful if you'd rather scaffold by hand.
-
-To validate that an existing component's docs, JSDoc, and scaffold wiring match the conventions (and auto-fix common drift), run `/audit-component`:
-
-```
-/audit-component <component-name>
-```
-
-Omit the name (or pass `all`) to sweep every component. See [`.claude/commands/audit-component.md`](https://github.com/ngrok-oss/mantle/blob/main/.claude/commands/audit-component.md) for the full checklist.
-
-## Git Hooks
-
-Pre-commit hooks run automatically via [husky](https://typicode.github.io/husky/) and [lint-staged](https://github.com/lint-staged/lint-staged). On every commit, staged files are formatted with oxfmt and linted with oxlint.
-
-### Opting Out
-
-If you need to skip the pre-commit hook locally (e.g., WIP commits, rebasing), set the `SKIP_HOOKS` env var:
-
-```bash
-SKIP_HOOKS=1 git commit -m "wip"
-```
-
-> [!NOTE]
-> This is a **local opt-out only**. CI will always run formatting and linting checks against your branch, so any issues will still be caught before merge.
-
 ## Related Packages
 
-| Package                                   | Description                                                                            | Links                                                                                                                                                                            |
-| ----------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@ngrok/mantle-vite-plugins`              | Vite + rehype plugins for code block highlighting and Tailwind CSS source optimization | [GitHub](https://github.com/ngrok-oss/mantle/tree/main/packages/mantle-vite-plugins) · [npm](https://www.npmjs.com/package/@ngrok/mantle-vite-plugins)                           |
-| `@ngrok/mantle-server-syntax-highlighter` | Server-side syntax highlighting engine powered by Shiki                                | [GitHub](https://github.com/ngrok-oss/mantle/tree/main/packages/mantle-server-syntax-highlighter) · [npm](https://www.npmjs.com/package/@ngrok/mantle-server-syntax-highlighter) |
+| Package                                   | Description                                                                            | Links                                                                                                                                                                        |
+| ----------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@ngrok/mantle-vite-plugins`              | Vite + rehype plugins for code block highlighting and Tailwind CSS source optimization | [GitHub](https://github.com/ngrok/mantle/tree/main/packages/mantle-vite-plugins) · [npm](https://www.npmjs.com/package/@ngrok/mantle-vite-plugins)                           |
+| `@ngrok/mantle-server-syntax-highlighter` | Server-side syntax highlighting engine powered by Shiki                                | [GitHub](https://github.com/ngrok/mantle/tree/main/packages/mantle-server-syntax-highlighter) · [npm](https://www.npmjs.com/package/@ngrok/mantle-server-syntax-highlighter) |
 
 ## Contributing
 
-Please read our [contribution guide](https://github.com/ngrok-oss/mantle/blob/main/CONTRIBUTING.md) and [conventions](https://github.com/ngrok-oss/mantle/blob/main/CONVENTIONS.md).
+Please read our [contribution guide](https://github.com/ngrok/mantle/blob/main/CONTRIBUTING.md) and [conventions](https://github.com/ngrok/mantle/blob/main/CONVENTIONS.md).

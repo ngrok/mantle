@@ -1,16 +1,27 @@
 name: Vibe Check
 
 on:
+  # Run on PRs (one run per PR; superseded pushes auto-cancel) and on the branches
+  # that actually gate a merge: `main` (post-merge validation + warms the turbo
+  # remote cache for PRs) and the merge-queue refs. Plain feature-branch pushes no
+  # longer trigger the full matrix on their own — open a PR to get CI.
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
+    branches:
+      - main
+      - "gh-readonly-queue/**"
   workflow_dispatch:
 
 concurrency:
-  group: vibe-check-${{ github.ref }}
-  cancel-in-progress: true
+  # On pull_request, github.ref is refs/pull/<n>/merge (shared shape across PRs), so
+  # key on the PR number; fall back to the ref for push/dispatch. Never cancel main so
+  # a post-merge run always completes.
+  group: vibe-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 env:
   DO_NOT_TRACK: 1
@@ -25,16 +36,18 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
 
+      # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           run_install: false
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -49,21 +62,58 @@ jobs:
       - name: Lint Check 🔍
         run: pnpm run lint
 
+  mise-lock-check:
+    name: Mise Lockfile
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Cache mise binary 🗃️
+        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        with:
+          path: ~/.local/bin/mise
+          key: mise-${{ runner.os }}-${{ hashFiles('scripts/install-mise') }}
+
+      - name: Install mise 🔧
+        run: |
+          # Put the cached binary on PATH first so install-mise's version check finds it
+          # and skips re-downloading the pinned release on a cache hit.
+          export PATH="${HOME}/.local/bin:${PATH}"
+          ./scripts/install-mise
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+
+      - name: Verify mise.lock is in sync 🔒
+        run: |
+          mise trust ./mise.toml
+          mise lock
+          if ! git diff --exit-code mise.lock; then
+            echo "::error::mise.lock is out of sync with .nvmrc / package.json#packageManager."
+            echo "::error::Run 'mise run relock' locally and commit the result."
+            exit 1
+          fi
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
 
+      # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           run_install: false
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -80,16 +130,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
 
+      # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           run_install: false
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -101,54 +153,143 @@ jobs:
       - name: Typecheck 🔎
         run: pnpm run typecheck
 
+  # Happy-dom/unit shards. `@ngrok/mantle` is the only package with browser-mode
+  # tests, so each shard runs non-mantle tests normally and then runs Mantle's
+  # `unit` Vitest project explicitly. PLAYWRIGHT_WS_ENDPOINT is set to a dummy
+  # value so the root //#install:playwright turbo dependency no-ops on this path;
+  # browser tests run in the separate `browser-test` job below.
   test:
+    name: test (shard ${{ matrix.shard }}/${{ matrix.shard_total }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+        shard_total: [4]
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
 
+      # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           run_install: false
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
           cache-dependency-path: "pnpm-lock.yaml"
 
       - name: Install Dependencies 📥
-        run: pnpm install --frozen-lockfile
+        # --trust-lockfile skips the minimumReleaseAge supply-chain re-check on this
+        # gate-binding job. static-checks / typecheck / build still run the full
+        # frozen install, so lockfile bumps keep getting checked every run.
+        run: pnpm install --frozen-lockfile --trust-lockfile
 
-      - name: Start Playwright server 🎭
+      - name: Configure test worker limits
         run: |
-          PLAYWRIGHT_VERSION=$(grep '"playwright"' pnpm-workspace.yaml | awk -F'"' '{print $4}')
-          docker run -d --name playwright-server --network=host \
-            mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble \
-            /bin/sh -c "npx -y playwright@${PLAYWRIGHT_VERSION} run-server --host 0.0.0.0 --port 3000"
-
-      - name: Wait for Playwright server
-        run: |
-          for i in {1..60}; do
-            if curl -s http://127.0.0.1:3000/ > /dev/null 2>&1; then
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "Playwright server did not start in time" && exit 1
+          WORKERS=$(node -e 'const os = require("node:os"); const cores = os.availableParallelism?.() ?? os.cpus().length ?? 2; console.log(Math.max(1, Math.min(cores, 4)));')
+          echo "TURBO_TEST_CONCURRENCY=${WORKERS}" >> "${GITHUB_ENV}"
+          echo "Using ${WORKERS} test worker(s) for this runner"
 
       - name: Test 🧪
         env:
-          PLAYWRIGHT_WS_ENDPOINT: ws://127.0.0.1:3000/
-        run: pnpm run test
+          PLAYWRIGHT_WS_ENDPOINT: skip
+        run: |
+          non_mantle_status=0
+          pnpm exec turbo run test \
+            --concurrency="${TURBO_TEST_CONCURRENCY}" \
+            --continue=always \
+            --filter='!@ngrok/mantle' \
+            -- --shard="${{ matrix.shard }}/${{ matrix.shard_total }}" --maxWorkers="${TURBO_TEST_CONCURRENCY}" || non_mantle_status=$?
 
-      - name: Stop Playwright server
-        if: always()
-        run: docker rm -f playwright-server || true
+          mantle_status=0
+          pnpm exec turbo run test \
+            --concurrency="${TURBO_TEST_CONCURRENCY}" \
+            --continue=always \
+            --filter='@ngrok/mantle' \
+            -- --project=unit --shard="${{ matrix.shard }}/${{ matrix.shard_total }}" --maxWorkers="${TURBO_TEST_CONCURRENCY}" || mantle_status=$?
+
+          echo "non-mantle test status: ${non_mantle_status}"
+          echo "mantle unit test status: ${mantle_status}"
+
+          if [[ "${non_mantle_status}" -ne 0 || "${mantle_status}" -ne 0 ]]; then
+            exit 1
+          fi
+
+  # Browser-mode tests only. Launches a local headless Chromium from a cached
+  # browser build instead of installing Playwright in every unit shard.
+  browser-test:
+    name: browser-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      # Use pnpm version from root package.json#packageManager
+      - name: Install pnpm 📦
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Resolve Playwright version 🎭
+        id: playwright
+        run: |
+          version="$(yq -r '.catalog.playwright' pnpm-workspace.yaml)"
+          if [[ -z "${version}" || "${version}" == "null" ]]; then
+            echo "::error::Could not resolve .catalog.playwright from pnpm-workspace.yaml — refusing to cache an invalid Playwright browser build."
+            exit 1
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Restore Playwright browser cache 🎭
+        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        with:
+          path: ~/.cache/ms-playwright
+          # Key on the Playwright version only, so the cached browser binaries
+          # survive unrelated pnpm-workspace.yaml edits and are reused until the
+          # next genuine Playwright bump.
+          key: playwright-browsers-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Dependencies 📥
+        # See the `test` job for why the gate-binding jobs trust the already-verified
+        # lockfile; the other jobs keep the supply-chain re-check.
+        run: pnpm install --frozen-lockfile --trust-lockfile
+
+      - name: Install Playwright Chromium 🎭
+        # --with-deps re-applies the apt system libraries (not covered by the browser
+        # cache) and skips the browser download itself on a cache hit.
+        run: pnpm -F @ngrok/mantle exec playwright install --with-deps chromium
+
+      - name: Configure test worker limits
+        run: |
+          WORKERS=$(node -e 'const os = require("node:os"); const cores = os.availableParallelism?.() ?? os.cpus().length ?? 2; console.log(Math.max(1, Math.min(cores, 4)));')
+          echo "TURBO_TEST_CONCURRENCY=${WORKERS}" >> "${GITHUB_ENV}"
+          echo "Using ${WORKERS} test worker(s) for this runner"
+
+      - name: Browser Test 🧪
+        run: |
+          pnpm exec turbo run test \
+            --concurrency="${TURBO_TEST_CONCURRENCY}" \
+            --continue=always \
+            --filter='@ngrok/mantle' \
+            -- --project=browser --maxWorkers="${TURBO_TEST_CONCURRENCY}"
 
   vibe-check:
     name: vibe-check
@@ -156,27 +297,35 @@ jobs:
     timeout-minutes: 5
     needs:
       - static-checks
+      - mise-lock-check
       - build
       - typecheck
       - test
-    if: ${{ always() }}
+      - browser-test
+    if: ${{ always() && !cancelled() }}
     steps:
       - name: Verify all vibe check jobs passed
         env:
           STATIC_CHECKS_RESULT: ${{ needs.static-checks.result }}
+          MISE_LOCK_CHECK_RESULT: ${{ needs.mise-lock-check.result }}
           BUILD_RESULT: ${{ needs.build.result }}
           TYPECHECK_RESULT: ${{ needs.typecheck.result }}
           TEST_RESULT: ${{ needs.test.result }}
+          BROWSER_TEST_RESULT: ${{ needs.browser-test.result }}
         run: |
           echo "static-checks: $STATIC_CHECKS_RESULT"
+          echo "mise-lock-check: $MISE_LOCK_CHECK_RESULT"
           echo "build: $BUILD_RESULT"
           echo "typecheck: $TYPECHECK_RESULT"
           echo "test: $TEST_RESULT"
+          echo "browser-test: $BROWSER_TEST_RESULT"
 
           if [[ "$STATIC_CHECKS_RESULT" != "success" || \
+                "$MISE_LOCK_CHECK_RESULT" != "success" || \
                 "$BUILD_RESULT" != "success" || \
                 "$TYPECHECK_RESULT" != "success" || \
-                "$TEST_RESULT" != "success" ]]; then
+                "$TEST_RESULT" != "success" || \
+                "$BROWSER_TEST_RESULT" != "success" ]]; then
             echo "One or more vibe check jobs did not succeed."
             exit 1
           fi

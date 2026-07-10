@@ -8,6 +8,7 @@ import {
 	createContext,
 	forwardRef,
 	useContext,
+	useMemo,
 	useState,
 } from "react";
 import invariant from "tiny-invariant";
@@ -51,7 +52,7 @@ type CursorPaginationProps = ComponentProps<"div"> & {
  * of data. It doesn't let you jump to a specific page or know how many total pages
  * there are, but it's more efficient for large or real-time data sets.
  *
- * @see https://mantle.ngrok.com/components/pagination#cursorpaginationroot
+ * @see https://mantle.ngrok.com/components/navigation/pagination#cursorpaginationroot
  *
  * @example
  * ```tsx
@@ -69,9 +70,13 @@ type CursorPaginationProps = ComponentProps<"div"> & {
 const Root = forwardRef<HTMLDivElement, CursorPaginationProps>(
 	({ className, children, defaultPageSize, ...props }, ref) => {
 		const [pageSize, setPageSize] = useState<number>(defaultPageSize);
+		const contextValue = useMemo(
+			() => ({ defaultPageSize, pageSize, setPageSize }),
+			[defaultPageSize, pageSize],
+		);
 
 		return (
-			<CursorPaginationContext.Provider value={{ defaultPageSize, pageSize, setPageSize }}>
+			<CursorPaginationContext.Provider value={contextValue}>
 				<div
 					data-slot="cursor-pagination"
 					className={cx("inline-flex items-center justify-between gap-2", className)}
@@ -108,7 +113,7 @@ type CursorButtonsProps = Omit<ComponentProps<typeof ButtonGroup>, "appearance">
 /**
  * A pair of buttons for navigating between pages of data when using cursor-based pagination.
  *
- * @see https://mantle.ngrok.com/components/pagination#cursorpaginationbuttons
+ * @see https://mantle.ngrok.com/components/navigation/pagination#cursorpaginationbuttons
  *
  * @example
  * ```tsx
@@ -173,7 +178,7 @@ type CursorPageSizeSelectProps = Omit<ComponentProps<typeof Select.Trigger>, "ch
 /**
  * A select input for changing the number of items per page when using cursor-based pagination.
  *
- * @see https://mantle.ngrok.com/components/pagination#cursorpaginationpagesizeselect
+ * @see https://mantle.ngrok.com/components/navigation/pagination#cursorpaginationpagesizeselect
  *
  * @example
  * ```tsx
@@ -238,7 +243,7 @@ type CursorPageSizeValueProps = Omit<ComponentProps<"span">, "children"> & WithA
 /**
  * Displays the current page size when using cursor-based pagination as a read-only value.
  *
- * @see https://mantle.ngrok.com/components/pagination#cursorpaginationpagesizevalue
+ * @see https://mantle.ngrok.com/components/navigation/pagination#cursorpaginationpagesizevalue
  *
  * @example
  * ```tsx
@@ -276,7 +281,7 @@ PageSizeValue.displayName = "CursorPageSizeValue";
  * of data. It doesn't let you jump to a specific page or know how many total pages
  * there are, but it's more efficient for large or real-time data sets.
  *
- * @see https://mantle.ngrok.com/components/pagination
+ * @see https://mantle.ngrok.com/components/navigation/pagination
  *
  * @example
  * Composition:
@@ -304,7 +309,7 @@ const CursorPagination = {
 	/**
 	 * The root container of the cursor pagination component.
 	 *
-	 * @see https://mantle.ngrok.com/components/pagination#cursorpaginationroot
+	 * @see https://mantle.ngrok.com/components/navigation/pagination#cursorpaginationroot
 	 *
 	 * @example
 	 * ```tsx
@@ -323,7 +328,7 @@ const CursorPagination = {
 	/**
 	 * A pair of buttons for navigating between pages of data when using cursor-based pagination.
 	 *
-	 * @see https://mantle.ngrok.com/components/pagination#cursorpaginationbuttons
+	 * @see https://mantle.ngrok.com/components/navigation/pagination#cursorpaginationbuttons
 	 *
 	 * @example
 	 * ```tsx
@@ -339,7 +344,7 @@ const CursorPagination = {
 	/**
 	 * A select input for changing the number of items per page when using cursor-based pagination.
 	 *
-	 * @see https://mantle.ngrok.com/components/pagination#cursorpaginationpagesizeselect
+	 * @see https://mantle.ngrok.com/components/navigation/pagination#cursorpaginationpagesizeselect
 	 *
 	 * @example
 	 * ```tsx
@@ -353,7 +358,7 @@ const CursorPagination = {
 	/**
 	 * Displays the current page size when using cursor-based pagination as a read-only value.
 	 *
-	 * @see https://mantle.ngrok.com/components/pagination#cursorpaginationpagesizevalue
+	 * @see https://mantle.ngrok.com/components/navigation/pagination#cursorpaginationpagesizevalue
 	 *
 	 * @example
 	 * ```tsx

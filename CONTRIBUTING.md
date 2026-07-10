@@ -15,50 +15,76 @@ cd mantle
 
 ## Installation
 
-The following prerequisites are required to contribute to `@ngrok/mantle`. Install the prerequisites through either the [automated](#automated-installation) or [manual](#manual-installation) installation guides below.
-
-- [Node 24](https://nodejs.org/en/download)
-- [pnpm 10](https://pnpm.io/installation#using-npm)
-- [fnm](https://github.com/Schniz/fnm)
-
-### Automated Installation
-
-We use [direnv](https://direnv.net/) to assist you with setting up all of the required tooling.
-
-Prefer to install and manage the tooling yourself? See [the manual installation instructions below](#manual-installation).
-
-First, install `direnv`:
-
-| OS     | command                 |
-| ------ | ----------------------- |
-| macOS  | brew install direnv     |
-| ubuntu | sudo apt install direnv |
-
-For all other OSes, see the [direnv installation guide](https://direnv.net/docs/installation.html).
-
-> [!NOTE]
-> Don't forget to [set up direnv integration with your shell](https://direnv.net/docs/hook.html).
-
-Next, run:
+From a fresh clone, run:
 
 ```sh
-direnv allow
+./scripts/setup
 ```
 
-> [!WARNING]
-> If `direnv allow` does nothing for you (you should see things happening!), consider following the [guides to integrate direnv with your shell](https://direnv.net/docs/hook.html) and then try `direnv allow` again! As a last resort, you can follow the [manual installation instructions up above](#manual-installation).
+This installs [mise](https://mise.jdx.dev/) (if missing), provisions Node and pnpm at the versions pinned in `.nvmrc` and `package.json#packageManager`, and runs `pnpm install --frozen-lockfile`. The setup is idempotent — re-run it any time to re-sync the toolchain.
 
-This will install `fnm` (if not already installed) as well as set the correct `node` and `pnpm` versions for you. It will also run `pnpm install` at the end to install all `node_modules`.
+### Shell activation
+
+`./scripts/setup` automatically appends the appropriate `mise activate` line to your shell's rc file (`~/.zshrc`, `~/.bashrc`, or fish config) the first time it runs, so tools and environment variables apply automatically when you `cd` into the repo. After setup, open a new terminal (or `source` your rc file) and `pnpm`, `node`, etc. will be on PATH.
+
+If you'd rather add it manually, or your shell wasn't auto-detected:
+
+```sh
+# zsh
+echo 'eval "$(mise activate zsh)"' >> ~/.zshrc
+
+# bash
+echo 'eval "$(mise activate bash)"' >> ~/.bashrc
+
+# fish
+echo 'mise activate fish | source' >> ~/.config/fish/config.fish
+```
+
+Without activation, prefix commands with `mise x --`:
+
+```sh
+mise x -- pnpm --filter @app/www start
+```
+
+This is also the standard form for CI and other non-interactive environments.
+
+### Doctor
+
+To verify the active toolchain matches committed pins at any time:
+
+```sh
+mise run doctor
+```
+
+### Local environment overrides
+
+For machine-specific or secret values (e.g. cache tokens), create a `mise.local.toml` (gitignored) at the repo root:
+
+```toml
+[env]
+TURBO_TOKEN = "…"
+```
+
+These are merged with the committed `mise.toml [env]` whenever mise resolves the environment.
 
 ### Manual Installation
 
-If you prefer to manually manage and install the tooling yourself, follow these steps:
+If you prefer to manage Node and pnpm yourself, match the committed pins:
 
-1. Install [fnm](https://github.com/Schniz/fnm#installation) or your node version manager of choice.
-2. Ensure that `node 24` is installed. With `fnm`, run `fnm install`.
-3. Enable `pnpm` with `corepack`: `corepack enable pnpm`
-4. Install `pnpm` with `corepack`: `corepack install`
-5. Install project dependencies with `pnpm`: `pnpm install`
+1. Install [Node](https://nodejs.org/en/download) at the version listed in `.nvmrc`.
+2. Enable pnpm at the version pinned in `package.json#packageManager`: `corepack enable pnpm && corepack install`.
+3. Install workspace dependencies: `pnpm install --frozen-lockfile`.
+
+### Bumping Node or pnpm
+
+Tool versions are pinned in `.nvmrc` (Node) and `package.json#packageManager` (pnpm); resolved entries with download URLs and SHA256 checksums are locked in `mise.lock`. `mise.toml` sets `[settings] lockfile = true` so installs record into `mise.lock`. CI enforces that the committed lockfile stays in sync with the source pins.
+
+To bump a version:
+
+1. Update `.nvmrc` (Node) or `package.json#packageManager` (pnpm).
+2. Run `mise run relock` to refresh `mise.lock` for all platforms.
+3. Run `mise install` to materialize the new toolchain locally.
+4. Commit `.nvmrc` / `package.json` and `mise.lock` together.
 
 ## Local Development
 
@@ -91,6 +117,19 @@ To validate that an existing component's docs, JSDoc, and scaffold wiring still 
 ```
 
 Omit the name (or pass `all`) to sweep every component in `packages/mantle/src/components/`. The command definition lives at [`.claude/commands/audit-component.md`](./.claude/commands/audit-component.md) and doubles as a checklist if you'd rather audit by hand.
+
+## Git Hooks
+
+Pre-commit hooks run automatically via [husky](https://typicode.github.io/husky/) and [lint-staged](https://github.com/lint-staged/lint-staged). On every commit, staged files are formatted with oxfmt and linted with oxlint.
+
+If you need to skip the pre-commit hook locally (e.g., WIP commits, rebasing), set the `SKIP_HOOKS` env var:
+
+```sh
+SKIP_HOOKS=1 git commit -m "wip"
+```
+
+> [!NOTE]
+> This is a **local opt-out only**. CI always runs formatting and linting checks against your branch, so any issues are still caught before merge.
 
 ## Submitting a Pull Request
 

@@ -1,0 +1,128 @@
+---
+title: Accessibility
+description: How mantle approaches accessibility, the keyboard and ARIA contracts each component honors, and how to build accessible UIs on top of it.
+---
+
+# Accessibility
+
+Mantle is built so the accessible thing and the easy thing are the same thing. Components render real semantic HTML, lean on battle-tested primitives ([Radix](https://www.radix-ui.com), [Ariakit](https://ariakit.org), [Headless UI](https://headlessui.com)) for complex interaction patterns, and ship with the keyboard, focus, and ARIA behavior already wired up. This page collects the cross-cutting guidance that doesn't fit on any single component page.
+
+## Principles
+
+- **Semantic HTML first.** A [`Button`](/components/actions/button) is a `<button>`. A [`Main`](/components/primitives/main) is a `<main>`. Form controls are real `<input>` / `<select>` / `<textarea>` elements. See [Philosophy](/philosophy#semantic-html-then-everything-else) for the full argument.
+- **Composition over re-implementation.** Where the platform doesn't ship a primitive (combobox, dialog, tabs), we wrap a vetted unstyled library — we never re-implement keyboard or ARIA logic from scratch.
+- **Progressive enhancement.** CSS-failure and no-JS rendering should still produce a usable page where possible. The skip link, semantic landmarks, and form constraint validation all work without script.
+- **High contrast and reduced motion are not opt-ins.** Themes ship with high-contrast variants and animations respect `prefers-reduced-motion`.
+
+## Required app-level setup
+
+For full accessibility, an app embedding mantle must:
+
+1. Mount [`<ThemeProvider>`](/components/primitives/theme), [`<TooltipProvider>`](/components/overlays/tooltip), and [`<Toaster>`](/components/feedback/toast) at the root of the document tree.
+2. Place [`<SkipToMainLink />`](/components/primitives/skip-to-main-link) as the very first focusable element in `<body>`, paired with a [`<Main>`](/components/primitives/main) landmark wrapping the page's primary content.
+3. Render a single `<h1>` per page that names the page.
+4. Use real form elements with associated [`<Label>`](/components/forms/label)s.
+5. Provide accessible names on icon-only controls — [`IconButton`](/components/actions/icon-button) requires `aria-label`.
+
+## Skip-to-main and landmarks
+
+Every page should be navigable by landmarks. The minimum structure:
+
+```tsx
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { Main } from "@ngrok/mantle/main";
+
+export default function App() {
+	return (
+		<>
+			<SkipToMainLink />
+			<header>{/* nav */}</header>
+			<Main>
+				<h1>Page title</h1>
+				{/* primary content */}
+			</Main>
+			<footer>{/* … */}</footer>
+		</>
+	);
+}
+```
+
+`SkipToMainLink` is visually hidden until focused and uses the History API directly so it works in any framework. `Main` renders `<main id="main" tabIndex={-1}>` so the skip link can deliver focus without leaving a visible focus ring on the region itself.
+
+## Keyboard interactions per component
+
+The table below summarizes the keyboard contract for the most common interactive components. Underlying primitives (Radix, Ariakit) implement the full WAI-ARIA pattern — these are the keys consumers most often need to remember.
+
+| Component                                                                                                                   | Keys                                                                                                                                              |
+| --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Button](/components/actions/button) / [IconButton](/components/actions/icon-button)                                        | `Tab` to focus, `Enter` or `Space` to activate.                                                                                                   |
+| [Anchor](/components/navigation/anchor)                                                                                     | `Tab` to focus, `Enter` to follow.                                                                                                                |
+| [Checkbox](/components/forms/checkbox) / [Switch](/components/forms/switch)                                                 | `Tab` to focus, `Space` to toggle.                                                                                                                |
+| [RadioGroup](/components/forms/radio-group)                                                                                 | `Tab` to enter the group, `Arrow` keys to move and select within the group.                                                                       |
+| [Tabs](/components/navigation/tabs)                                                                                         | `Tab` to enter the tab list, `Arrow Left`/`Right` to move, `Home`/`End` to jump, `Enter`/`Space` to activate.                                     |
+| [Dialog](/components/overlays/dialog) / [AlertDialog](/components/overlays/alert-dialog)                                    | Focus is trapped inside while open, `Esc` closes (Dialog only — AlertDialog requires explicit confirmation), `Tab`/`Shift+Tab` cycles focus.      |
+| [Sheet](/components/overlays/sheet)                                                                                         | Same as Dialog.                                                                                                                                   |
+| [Popover](/components/overlays/popover) / [HoverCard](/components/overlays/hover-card)                                      | `Esc` closes; `Tab` cycles focusable content. HoverCard opens on hover/focus and is non-essential.                                                |
+| [DropdownMenu](/components/overlays/dropdown-menu) / [Command](/components/navigation/command)                              | `Arrow Up`/`Down` to navigate items, `Enter` to select, `Esc` to close, type-ahead jumps to matching items.                                       |
+| [Combobox](/components/forms/combobox) / [MultiSelect](/components/forms/multi-select) / [Select](/components/forms/select) | `Arrow Up`/`Down` through options, `Enter` selects, type filters, `Esc` closes.                                                                   |
+| [Slider](/components/forms/slider)                                                                                          | `Arrow Left`/`Right` (or `Up`/`Down`) increment/decrement, `Home`/`End` jump to min/max, `PageUp`/`PageDown` for larger steps.                    |
+| [DataTable](/components/data-display/data-table)                                                                            | Row click handlers respond to `Enter` when used with `asChild` rendering of an `<a>` or `<button>`. Header sort buttons follow Button keys above. |
+| [Toast](/components/feedback/toast)                                                                                         | Auto-dismissing toasts respect `prefers-reduced-motion`; `F8` (browser default) cycles to the toast region.                                       |
+
+## Focus management
+
+- **Trap on modal surfaces.** `Dialog`, `AlertDialog`, and `Sheet` trap focus while open and restore it to the trigger on close.
+- **Don't trap on non-modal surfaces.** `Popover` and `HoverCard` allow focus to escape — that's intentional.
+- **Programmatic focus is fine.** When a route changes, focus the page's `<h1>` (or the `<Main>` landmark via `document.getElementById("main")?.focus()`) so screen reader users hear the page change.
+- **Visible focus rings.** Mantle uses `:focus-visible` so focus styles appear for keyboard users without distracting mouse users. Don't override `outline` without providing an equivalent ring.
+
+## ARIA roles and labels
+
+Mantle components emit appropriate roles automatically. Consumers need to add:
+
+- `aria-label` on [`IconButton`](/components/actions/icon-button), and any [`Button`](/components/actions/button) whose label is icon-only.
+- `aria-label` or visually-hidden text on [`Kbd`](/components/data-display/kbd) when the visible glyph is a symbol (e.g. `⌘`).
+- `aria-describedby` linking error/help text to form controls. [`Input`](/components/forms/input) and friends do this for you when you use the validation prop, but custom messages should be wired manually.
+- `aria-current="page"` on the active item in primary navigation (use react-router's `NavLink` for this).
+- Live-region semantics — use [`Toast`](/components/feedback/toast) for transient announcements; use the [`Alert`](/components/feedback/alert) component with `role="alert"` for inline warnings.
+
+## Color contrast and themes
+
+- Color tokens (`text-strong`, `text-muted`, `bg-form`, `border-accent-600`, etc.) target WCAG AA contrast in both light and dark themes.
+- High-contrast variants are provided via dedicated stylesheets — import [`@ngrok/mantle/mantle-light-high-contrast.css`](https://www.npmjs.com/package/@ngrok/mantle?activeTab=code) or `@ngrok/mantle/mantle-dark-high-contrast.css` to opt in.
+- Don't communicate state by color alone. Use color **and** a label, icon, or copy. `Badge` and `Alert` do this by default; custom components should follow suit.
+
+## Reduced motion
+
+Animations across mantle (toasts, transitions, the password-input eye blink) honor `prefers-reduced-motion`. Custom animations should too:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+	.my-animation {
+		animation: none;
+	}
+}
+```
+
+## Testing
+
+Manual smoke checks per page or PR:
+
+1. **Keyboard-only.** Hide your mouse. `Tab` from the top of the page. You should be able to reach every interactive element, see focus on each, activate it with the appropriate key, and never get stuck.
+2. **Skip link.** First `Tab` from the top of the page should reveal the skip link; activating it should land focus inside `<Main>`.
+3. **Screen reader.** A quick pass with VoiceOver (Mac, `Cmd+F5`) or NVDA (Windows) — every interactive element should announce its role and accessible name.
+4. **Reduced motion.** In OS settings, enable Reduce Motion. Repeat any animated flow.
+5. **High contrast.** Switch the imported theme to `*-high-contrast.css`. Confirm legibility.
+6. **Zoom.** Zoom to 200% in Chrome — content should reflow without horizontal scroll.
+
+For automated testing, [`axe-core`](https://github.com/dequelabs/axe-core) integrated via Playwright catches the bulk of WCAG issues. Mantle does not ship a custom axe runner, but the conventions in `CONVENTIONS.md` favor structures that pass it.
+
+## When you can't fix the accessibility issue
+
+If a third-party widget or constraint makes a component temporarily inaccessible:
+
+1. Document it in a code comment that explains the _why_ and links to the tracking issue.
+2. Communicate the limitation to the user — don't ship invisible inaccessibility.
+3. Provide a fallback path (e.g. a plain `<a>` with the same target) so keyboard and screen-reader users are not blocked.
+
+The goal isn't perfect compliance forever — it's making the right choice the default and surfacing the exceptions honestly.

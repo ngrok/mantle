@@ -1,6 +1,6 @@
 # @ngrok/mantle-vite-plugins
 
-Vite plugins for apps built with [`@ngrok/mantle`](https://github.com/ngrok-oss/mantle).
+Vite plugins for apps built with [`@ngrok/mantle`](https://github.com/ngrok/mantle).
 
 ## Requirements
 
@@ -166,5 +166,5 @@ Type declarations are included. No `@types/*` package is needed.
 
 ## Related Packages
 
-- [`@ngrok/mantle`](https://github.com/ngrok-oss/mantle/tree/main/packages/mantle) — UI component library ([npm](https://www.npmjs.com/package/@ngrok/mantle))
-- [`@ngrok/mantle-server-syntax-highlighter`](https://github.com/ngrok-oss/mantle/tree/main/packages/mantle-server-syntax-highlighter) — Server-side highlighting engine ([npm](https://www.npmjs.com/package/@ngrok/mantle-server-syntax-highlighter))
+- [`@ngrok/mantle`](https://github.com/ngrok/mantle/tree/main/packages/mantle) — UI component library ([npm](https://www.npmjs.com/package/@ngrok/mantle))
+- [`@ngrok/mantle-server-syntax-highlighter`](https://github.com/ngrok/mantle/tree/main/packages/mantle-server-syntax-highlighter) — Server-side highlighting engine ([npm](https://www.npmjs.com/package/@ngrok/mantle-server-syntax-highlighter))

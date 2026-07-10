@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+# Install and activate the pinned mise binary used by this repository.
+
+set -euo pipefail
+
+MISE_VERSION="${MISE_VERSION:-v2026.4.28}"
+MISE_EXPECTED_VERSION="${MISE_VERSION#v}"
+
+require_command() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "mantle: missing required command: $1" >&2
+    return 1
+  fi
+}
+
+require_bootstrap_commands() {
+  local missing=0
+
+  for command_name in awk curl install mktemp; do
+    if ! require_command "${command_name}"; then
+      missing=1
+    fi
+  done
+
+  if ! command -v sha256sum >/dev/null 2>&1 && ! command -v shasum >/dev/null 2>&1; then
+    echo "mantle: missing required command: sha256sum or shasum" >&2
+    missing=1
+  fi
+
+  if [ "${missing}" -ne 0 ]; then
+    echo "mantle: install the missing command(s), then re-run ./scripts/setup." >&2
+    exit 1
+  fi
+}
+
+sha256_file() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  else
+    echo "mantle: missing required command: sha256sum or shasum" >&2
+    exit 1
+  fi
+}
+
+# Parse `mise --version` output. mise sometimes prints WARN lines (e.g. about
+# settings deprecations) before the version; positional `awk '{print $1}'`
+# would treat those as the version. Skip WARN lines and return the first
+# semver-shaped token, or empty if none found.
+mise_version() {
+  local mise_bin="${1:-mise}"
+
+  "${mise_bin}" --version 2>/dev/null | awk '
+    $2 == "WARN" { next }
+    {
+      for (i = 1; i <= NF; i++) {
+        version = $i
+        sub(/^v/, "", version)
+        if (version ~ /^[0-9]+[.][0-9]+[.][0-9]+$/) {
+          print version
+          exit
+        }
+      }
+    }
+  ' || true
+}
+
+is_musl_linux() {
+  local ldd_output
+
+  if command -v ldd >/dev/null 2>&1; then
+    ldd_output="$(ldd --version 2>&1 || true)"
+    case "${ldd_output}" in
+      *musl*|*Musl*) return 0 ;;
+    esac
+  fi
+
+  compgen -G "/lib/ld-musl-*.so.*" >/dev/null || compgen -G "/usr/lib/ld-musl-*.so.*" >/dev/null
+}
+
+detect_mise_platform() {
+  local os arch
+
+  os="$(uname -s)"
+  arch="$(uname -m)"
+
+  case "${os}" in
+    Linux)
+      os="linux"
+      if is_musl_linux; then
+        os="linux-musl"
+      fi
+      ;;
+    Darwin) os="macos" ;;
+    MINGW*|MSYS*|CYGWIN*)
+      echo "mantle: automatic mise install is not supported from Windows Git Bash/MSYS/Cygwin." >&2
+      echo "        Use WSL, or install mise ${MISE_VERSION} manually and re-run ./scripts/setup." >&2
+      return 1
+      ;;
+    *)
+      echo "mantle: unsupported OS for automatic mise install: ${os}" >&2
+      return 1
+      ;;
+  esac
+
+  case "${arch}" in
+    x86_64|amd64) arch="x64" ;;
+    arm64|aarch64) arch="arm64" ;;
+    *)
+      echo "mantle: unsupported architecture for automatic mise install: ${arch}" >&2
+      return 1
+      ;;
+  esac
+
+  if [ "${os}" = "linux-musl" ]; then
+    printf 'linux-%s-musl' "${arch}"
+  else
+    printf '%s-%s' "${os}" "${arch}"
+  fi
+}
+
+install_pinned_mise() {
+  local mise_platform mise_asset mise_base_url tmpdir expected_sha256 actual_sha256
+
+  mise_platform="$(detect_mise_platform)"
+  require_bootstrap_commands
+
+  mise_asset="mise-${MISE_VERSION}-${mise_platform}"
+  mise_base_url="https://github.com/jdx/mise/releases/download/${MISE_VERSION}"
+  tmpdir="$(mktemp -d)"
+
+  cleanup() {
+    rm -rf "${tmpdir}"
+  }
+  trap cleanup EXIT
+
+  curl -fsSL "${mise_base_url}/${mise_asset}" -o "${tmpdir}/mise"
+  curl -fsSL "${mise_base_url}/SHASUMS256.txt" -o "${tmpdir}/SHASUMS256.txt"
+
+  expected_sha256="$(awk -v asset="./${mise_asset}" '$2 == asset {print $1}' "${tmpdir}/SHASUMS256.txt")"
+  if [ -z "${expected_sha256}" ]; then
+    echo "mantle: checksum not found for mise release asset ${mise_asset}" >&2
+    exit 1
+  fi
+
+  actual_sha256="$(sha256_file "${tmpdir}/mise")"
+  if [ "${actual_sha256}" != "${expected_sha256}" ]; then
+    echo "mantle: checksum verification failed for mise ${MISE_VERSION}" >&2
+    exit 1
+  fi
+
+  mkdir -p "${HOME}/.local/bin"
+  install -m 0755 "${tmpdir}/mise" "${HOME}/.local/bin/mise"
+  cleanup
+  trap - EXIT
+}
+
+ensure_pinned_mise() {
+  local installed_mise_version active_mise_version
+
+  require_command awk || exit 1
+
+  if ! command -v mise >/dev/null 2>&1; then
+    echo "mantle: installing mise ${MISE_VERSION}..."
+    install_pinned_mise
+    export PATH="${HOME}/.local/bin:${PATH}"
+  else
+    installed_mise_version="$(mise_version mise)"
+    if [ "${installed_mise_version}" != "${MISE_EXPECTED_VERSION}" ]; then
+      if [ -n "${installed_mise_version}" ]; then
+        echo "mantle: found mise ${installed_mise_version}, installing ${MISE_VERSION}..."
+      else
+        echo "mantle: found mise with unknown version, installing ${MISE_VERSION}..."
+      fi
+      install_pinned_mise
+      export PATH="${HOME}/.local/bin:${PATH}"
+    fi
+  fi
+
+  active_mise_version="$(mise_version mise)"
+  if [ "${active_mise_version}" != "${MISE_EXPECTED_VERSION}" ]; then
+    echo "mantle: mise ${MISE_EXPECTED_VERSION} is required, but $(mise --version) is active" >&2
+    echo "        ensure ${HOME}/.local/bin appears before other mise installs on PATH." >&2
+    exit 1
+  fi
+
+  if [ -x "${HOME}/.local/bin/mise" ] && [ "$(mise_version "${HOME}/.local/bin/mise")" = "${MISE_EXPECTED_VERSION}" ]; then
+    export PATH="${HOME}/.local/bin:${PATH}"
+  fi
+}
+
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  ensure_pinned_mise
+fi

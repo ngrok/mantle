@@ -65,7 +65,7 @@ describe("SkipToMainLink", () => {
 
 	test("invokes the consumer `onClick` after performing the core behavior", async () => {
 		const user = userEvent.setup();
-		const handleClick = vi.fn();
+		const handleClick = vi.fn<() => void>();
 		render(
 			<>
 				<SkipToMainLink onClick={handleClick} />

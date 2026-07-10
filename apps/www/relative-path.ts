@@ -6,8 +6,8 @@ import { fileURLToPath } from "node:url";
  * @example `<root>/apps/www/...parts`
  */
 function relativeWwwPath(...parts: string[]) {
-	const __dirname = fileURLToPath(new URL(".", import.meta.url));
-	return path.resolve(__dirname, ...parts);
+	const currentDir = fileURLToPath(new URL(".", import.meta.url));
+	return path.resolve(currentDir, ...parts);
 }
 
 /**

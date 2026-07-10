@@ -1,0 +1,583 @@
+---
+title: Sheet
+description: A container that overlays the current view from the edge of the screen.
+---
+
+import { Button, IconButton } from "@ngrok/mantle/button";
+import { Separator } from "@ngrok/mantle/separator";
+import { Sheet } from "@ngrok/mantle/sheet";
+import { ListMagnifyingGlassIcon } from "@phosphor-icons/react/ListMagnifyingGlass";
+import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
+import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
+import { useState } from "react";
+import { Example } from "~/components/example";
+import { TanStackFormDemo } from "~/examples/sheet/sheet-tanstack-form-demo";
+
+export function WithoutTriggerExample() {
+	const [isOpen, setIsOpen] = useState(false);
+
+    return (
+    	<>
+    		<Button type="button" appearance="outlined" priority="neutral" onClick={() => setIsOpen(true)}>
+    			Open Sheet
+    		</Button>
+    		{isOpen && (
+    			<Sheet.Root open onOpenChange={() => setIsOpen(false)}>
+    				<Sheet.Content>
+    					<Sheet.Header>
+    						<Sheet.TitleGroup>
+    							<Sheet.Title>A controlled Sheet</Sheet.Title>
+    							<Sheet.Actions>
+    								<Sheet.CloseIconButton />
+    							</Sheet.Actions>
+    						</Sheet.TitleGroup>
+    						<Sheet.Description>
+    							This sheet is controlled by a router or state manager.
+    						</Sheet.Description>
+    					</Sheet.Header>
+    					<Sheet.Body>
+    						<p>
+    							Consequat do voluptate culpa fugiat consequat nostrud duis aliqua minim. Tempor
+    							voluptate cillum elit velit. Voluptate aliqua ipsum aliqua dolore in nisi ea fugiat
+    							aliqua velit proident amet.
+    						</p>
+    					</Sheet.Body>
+    					<Sheet.Footer>
+    						<Sheet.Close asChild>
+    							<Button type="button" appearance="outlined" priority="neutral">Close</Button>
+    						</Sheet.Close>
+    					</Sheet.Footer>
+    				</Sheet.Content>
+    			</Sheet.Root>
+    		)}
+    	</>
+    );
+
+}
+
+# Sheet
+
+A container that overlays the current view from the edge of the screen. It is a lightweight way of allowing users to complete a task without losing contextual information of the view beneath it.
+
+## When to use
+
+Use `Sheet` for side-panel content that slides in from any edge — filter panels, detail/inspector views, navigation drawers, mobile menus. For a centered modal, use [`Dialog`](/components/overlays/dialog) or [`AlertDialog`](/components/overlays/alert-dialog) (for destructive confirmations).
+
+<Example>
+	<Sheet.Root>
+		<Sheet.Trigger asChild>
+			<Button type="button" appearance="filled" priority="neutral">
+				Open Sheet
+			</Button>
+		</Sheet.Trigger>
+		<Sheet.Content>
+			<Sheet.Header>
+				<Sheet.TitleGroup>
+					<Sheet.Title>Are you absolutely sure?</Sheet.Title>
+					<Sheet.Actions>
+						<IconButton
+							appearance="ghost"
+							type="button"
+							icon={<TerminalWindowIcon />}
+							label="Start a Tunnel"
+						/>
+						<IconButton
+							appearance="ghost"
+							type="button"
+							icon={<ListMagnifyingGlassIcon />}
+							label="See Traffic"
+						/>
+						<IconButton
+							appearance="ghost"
+							type="button"
+							icon={<TrashSimpleIcon />}
+							label="Delete"
+						/>
+						<Separator orientation="vertical" className="h-[80%]" />
+						<Sheet.CloseIconButton />
+					</Sheet.Actions>
+				</Sheet.TitleGroup>
+				<Sheet.Description>
+					This action cannot be undone. This will permanently delete your account and remove your
+					data from our servers.
+				</Sheet.Description>
+			</Sheet.Header>
+			<Sheet.Body className="space-y-4">
+				<p>
+					Consequat do voluptate culpa fugiat consequat nostrud duis aliqua minim. Tempor voluptate
+					cillum elit velit. Voluptate aliqua ipsum aliqua dolore in nisi ea fugiat aliqua velit
+					proident amet.
+				</p>
+				<p>
+					Et aliquip fugiat laborum id enim velit exercitation tempor irure pariatur commodo dolor
+					tempor eu. Consectetur sunt est occaecat quis eiusmod ea cillum sunt sunt labore consequat
+					aute. Aute ad anim do et enim nisi adipisicing sunt culpa magna reprehenderit.
+					Reprehenderit dolor elit cupidatat veniam dolore. Consectetur occaecat ea est elit ipsum.
+				</p>
+				<p>
+					Est pariatur exercitation commodo in veniam enim dolor. Labore consequat cupidatat ipsum
+					enim deserunt exercitation ipsum Lorem. Ea dolor adipisicing et labore Lorem.
+				</p>
+				<p>
+					Incididunt culpa proident qui in. Nulla do quis pariatur veniam est reprehenderit dolore.
+					Occaecat consectetur incididunt incididunt commodo cillum amet aliqua id pariatur sunt.
+					Laborum amet magna id sunt. Nulla nisi minim et eu incididunt irure fugiat laboris labore
+					nostrud eiusmod irure adipisicing. Exercitation pariatur voluptate occaecat anim irure ad
+					tempor est. Do culpa culpa occaecat ut pariatur elit do exercitation consectetur sint
+					aliqua voluptate.
+				</p>
+				<p>
+					Culpa Lorem fugiat mollit est velit enim fugiat reprehenderit consequat eu. Commodo
+					eiusmod irure anim culpa consequat in commodo ad nostrud amet pariatur. Eiusmod velit qui
+					reprehenderit consequat proident esse amet consequat. Exercitation nostrud laborum labore
+					anim nulla consequat elit quis ullamco nisi minim. Voluptate aliqua magna eu proident qui
+					ipsum officia laboris. Ad veniam eiusmod mollit laborum sit pariatur do eu nostrud quis.
+					Adipisicing ea labore duis laboris ex aute ea ut magna sit nisi dolor.
+				</p>
+				<p>
+					Amet adipisicing quis fugiat cillum do commodo culpa deserunt minim. Fugiat enim veniam ex
+					ullamco minim laboris labore culpa occaecat ut exercitation occaecat culpa quis. Veniam
+					quis velit enim id veniam nisi non consequat laboris. Reprehenderit fugiat nostrud
+					voluptate esse et nulla mollit eiusmod veniam sunt adipisicing. Aute quis mollit non quis
+					ullamco consectetur labore quis do occaecat. Veniam id laboris adipisicing fugiat.
+				</p>
+			</Sheet.Body>
+			<Sheet.Footer>
+				<Sheet.Close asChild>
+					<Button type="button" appearance="outlined" priority="neutral">
+						Close
+					</Button>
+				</Sheet.Close>
+				<Button type="button" appearance="filled" priority="neutral">
+					Save
+				</Button>
+			</Sheet.Footer>
+		</Sheet.Content>
+	</Sheet.Root>
+</Example>
+
+```tsx
+import { Button, IconButton } from "@ngrok/mantle/button";
+import { Separator } from "@ngrok/mantle/separator";
+import { Sheet } from "@ngrok/mantle/sheet";
+import { ListMagnifyingGlassIcon } from "@phosphor-icons/react/ListMagnifyingGlass";
+import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
+import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
+
+<Sheet.Root>
+	<Sheet.Trigger asChild>
+		<Button type="button" appearance="filled" priority="neutral">
+			Open Sheet
+		</Button>
+	</Sheet.Trigger>
+	<Sheet.Content>
+		<Sheet.Header>
+			<Sheet.TitleGroup>
+				<Sheet.Title>Are you absolutely sure?</Sheet.Title>
+				<Sheet.Actions>
+					<IconButton
+						appearance="ghost"
+						type="button"
+						icon={<TerminalWindowIcon />}
+						label="Start a Tunnel"
+					/>
+					<IconButton
+						appearance="ghost"
+						type="button"
+						icon={<ListMagnifyingGlassIcon />}
+						label="See Traffic"
+					/>
+					<IconButton appearance="ghost" type="button" icon={<TrashSimpleIcon />} label="Delete" />
+					<Separator orientation="vertical" className="h-[80%]" />
+					<Sheet.CloseIconButton />
+				</Sheet.Actions>
+			</Sheet.TitleGroup>
+			<Sheet.Description>
+				This action cannot be undone. This will permanently delete your account and remove your data
+				from our servers.
+			</Sheet.Description>
+		</Sheet.Header>
+		<Sheet.Body className="space-y-4">
+			<p>Lorem ipsum</p>
+		</Sheet.Body>
+		<Sheet.Footer>
+			<Sheet.Close asChild>
+				<Button type="button" appearance="outlined" priority="neutral">
+					Close
+				</Button>
+			</Sheet.Close>
+		</Sheet.Footer>
+	</Sheet.Content>
+</Sheet.Root>;
+```
+
+## Layering and z-index
+
+`Sheet.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+
+`Sheet`, `Dialog`, and `AlertDialog` each render their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
+
+## Examples
+
+### Router or state management controlled Sheet
+
+You can control when to render a Sheet with a router or via outside state management. This will allow you to open and close the Sheet programmatically without using a `Sheet.Trigger`.
+
+<Example>
+	<WithoutTriggerExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Sheet } from "@ngrok/mantle/sheet";
+import { useNavigate } from "react-router";
+
+// this is a react-router route module component export
+export default function Component() {
+	const navigate = useNavigate();
+
+	return (
+		<Sheet.Root open onOpenChange={() => navigate("..")}>
+			<Sheet.Content>
+				<Sheet.Header>
+					<Sheet.TitleGroup>
+						<Sheet.Title>A controlled Sheet</Sheet.Title>
+						<Sheet.Actions>
+							<Sheet.CloseIconButton />
+						</Sheet.Actions>
+					</Sheet.TitleGroup>
+					<Sheet.Description>
+						This sheet is controlled by a router or state manager.
+					</Sheet.Description>
+				</Sheet.Header>
+				<Sheet.Body>
+					<p>
+						Consequat do voluptate culpa fugiat consequat nostrud duis aliqua minim. Tempor
+						voluptate cillum elit velit. Voluptate aliqua ipsum aliqua dolore in nisi ea fugiat
+						aliqua velit proident amet.
+					</p>
+				</Sheet.Body>
+				<Sheet.Footer>
+					<Sheet.Close asChild>
+						<Button type="button" appearance="outlined" priority="neutral">
+							Close
+						</Button>
+					</Sheet.Close>
+				</Sheet.Footer>
+			</Sheet.Content>
+		</Sheet.Root>
+	);
+}
+```
+
+### Setting a preferred width of the Sheet
+
+By default, a `Sheet`'s content width is responsive with a default _preferred width_: the maximum width of the `Sheet.Content` when the window viewport is larger than the mobile breakpoint (`sm`). You can control the preferred width of the `Sheet.Content` by using the `preferredWidth` prop:
+
+<Example>
+	<Sheet.Root>
+		<Sheet.Trigger asChild>
+			<Button type="button" appearance="filled" priority="neutral">
+				Open 800px wide Sheet
+			</Button>
+		</Sheet.Trigger>
+		<Sheet.Content preferredWidth="sm:max-w-[800px]">
+			<Sheet.Header>
+				<Sheet.TitleGroup>
+					<Sheet.Title>Tempor pariatur fugiat fugiat cupidatat velit.</Sheet.Title>
+					<Sheet.Actions>
+						<Sheet.CloseIconButton />
+					</Sheet.Actions>
+				</Sheet.TitleGroup>
+			</Sheet.Header>
+			<Sheet.Body className="space-y-4">
+				<p>
+					Consequat do voluptate culpa fugiat consequat nostrud duis aliqua minim. Tempor voluptate
+					cillum elit velit. Voluptate aliqua ipsum aliqua dolore in nisi ea fugiat aliqua velit
+					proident amet.
+				</p>
+			</Sheet.Body>
+			<Sheet.Footer>
+				<Sheet.Close asChild>
+					<Button type="button" appearance="outlined" priority="neutral">
+						Close
+					</Button>
+				</Sheet.Close>
+				<Button type="button" appearance="filled" priority="neutral">
+					Save
+				</Button>
+			</Sheet.Footer>
+		</Sheet.Content>
+	</Sheet.Root>
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Sheet } from "@ngrok/mantle/sheet";
+
+<Sheet.Root>
+	<Sheet.Trigger asChild>
+		<Button type="button" appearance="filled" priority="neutral">
+			Open 800px wide Sheet
+		</Button>
+	</Sheet.Trigger>
+	{/* using the 👇 `preferredWidth` prop */}
+	<Sheet.Content preferredWidth="sm:max-w-[800px]">
+		<Sheet.Header>
+			<Sheet.TitleGroup>
+				<Sheet.Title>Tempor pariatur fugiat fugiat cupidatat velit.</Sheet.Title>
+				<Sheet.Actions>
+					<Sheet.CloseIconButton />
+				</Sheet.Actions>
+			</Sheet.TitleGroup>
+		</Sheet.Header>
+		<Sheet.Body className="space-y-4">
+			<p>
+				Consequat do voluptate culpa fugiat consequat nostrud duis aliqua minim. Tempor voluptate
+				cillum elit velit. Voluptate aliqua ipsum aliqua dolore in nisi ea fugiat aliqua velit
+				proident amet.
+			</p>
+		</Sheet.Body>
+		<Sheet.Footer>
+			<Sheet.Close asChild>
+				<Button type="button" appearance="outlined" priority="neutral">
+					Close
+				</Button>
+			</Sheet.Close>
+			<Button type="button" appearance="filled" priority="neutral">
+				Save
+			</Button>
+		</Sheet.Footer>
+	</Sheet.Content>
+</Sheet.Root>;
+```
+
+### With TanStack Form
+
+Sheets often host small create/edit forms. Use [TanStack Form](https://tanstack.com/form) with [`Field`](/components/forms/field) for label, description, and error wiring. `Sheet.Content` is a flex column, so wrap `Sheet.Body` and `Sheet.Footer` in a `display: contents` form — the footer's submit button participates in the form while the body keeps its scrollable layout. Close the sheet from the form's `onSubmit` (it only runs once validation passes) and reset the form when the sheet closes so a cancelled draft doesn't leak into the next open.
+
+<Example className="w-full">
+	<TanStackFormDemo />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { Input } from "@ngrok/mantle/input";
+import { Sheet } from "@ngrok/mantle/sheet";
+import { TextArea } from "@ngrok/mantle/text-area";
+import { useForm } from "@tanstack/react-form";
+import { useState } from "react";
+import { z } from "zod";
+
+const formSchema = z.object({
+	name: z.string().min(1, "Name your API key."),
+	note: z.string().max(280, "Keep the note under 280 characters."),
+});
+
+function Example() {
+	const [open, setOpen] = useState(false);
+	const form = useForm({
+		defaultValues: {
+			name: "",
+			note: "",
+		},
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmit: ({ value }) => {
+			// Handle the create with `value`, then close the sheet
+			handleOpenChange(false);
+		},
+	});
+
+	const handleOpenChange = (nextOpen: boolean) => {
+		setOpen(nextOpen);
+		if (!nextOpen) {
+			form.reset();
+		}
+	};
+
+	return (
+		<Sheet.Root open={open} onOpenChange={handleOpenChange}>
+			<Sheet.Trigger asChild>
+				<Button type="button" appearance="filled" priority="neutral">
+					New API key
+				</Button>
+			</Sheet.Trigger>
+			<Sheet.Content>
+				<Sheet.Header>
+					<Sheet.TitleGroup>
+						<Sheet.Title>New API key</Sheet.Title>
+						<Sheet.Actions>
+							<Sheet.CloseIconButton />
+						</Sheet.Actions>
+					</Sheet.TitleGroup>
+					<Sheet.Description>
+						Create a key for programmatic access to the ngrok API.
+					</Sheet.Description>
+				</Sheet.Header>
+				<form
+					className="contents"
+					onSubmit={(event) => {
+						event.preventDefault();
+						event.stopPropagation();
+						void form.handleSubmit();
+					}}
+				>
+					<Sheet.Body className="space-y-4">
+						<form.Field name="name">
+							{(field) => (
+								<Field.Item name={field.name}>
+									<Field.Label>Name</Field.Label>
+									<Field.Control>
+										<Input
+											placeholder="production-deploys"
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(event) => field.handleChange(event.target.value)}
+										/>
+									</Field.Control>
+									<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+								</Field.Item>
+							)}
+						</form.Field>
+						<form.Field name="note">
+							{(field) => (
+								<Field.Item name={field.name}>
+									<Field.Label>Note</Field.Label>
+									<Field.Control>
+										<TextArea
+											placeholder="What is this key used for?"
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(event) => field.handleChange(event.target.value)}
+										/>
+									</Field.Control>
+									<Field.Description>
+										Optional. Help your team know where this key is used.
+									</Field.Description>
+									<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+								</Field.Item>
+							)}
+						</form.Field>
+					</Sheet.Body>
+					<Sheet.Footer>
+						<Sheet.Close asChild>
+							<Button type="button" appearance="outlined" priority="neutral">
+								Cancel
+							</Button>
+						</Sheet.Close>
+						<Button type="submit" appearance="filled" priority="neutral">
+							Create key
+						</Button>
+					</Sheet.Footer>
+				</form>
+			</Sheet.Content>
+		</Sheet.Root>
+	);
+}
+```
+
+## Composition
+
+Compose the parts of a `Sheet` together to build your own:
+
+```text showLineNumbers=false
+Sheet.Root
+├── Sheet.Trigger
+└── Sheet.Content
+    ├── Sheet.Header
+    │   ├── Sheet.TitleGroup
+    │   │   ├── Sheet.Title
+    │   │   └── Sheet.Actions
+    │   └── Sheet.Description
+    ├── Sheet.Body
+    └── Sheet.Footer
+        └── Sheet.Close
+```
+
+## API Reference
+
+The `Sheet` components are built on top of [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/dialog).
+
+### Sheet.Root
+
+The root component for a `Sheet`. Should compose the `Sheet.Trigger` and `Sheet.Content`. Acts as a stateful provider for the Sheet's open/closed state.
+
+Its floating `Sheet.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
+
+All props from Radix [Dialog.Root](https://www.radix-ui.com/primitives/docs/components/dialog#root).
+
+### Sheet.Trigger
+
+The button trigger for a `Sheet`. Should be rendered as a child of the `Sheet` component. Renders an unstyled `button` by default, but can be customized with the `asChild` prop.
+
+All props from Radix [Dialog.Trigger](https://www.radix-ui.com/primitives/docs/components/dialog#trigger).
+
+### Sheet.Close
+
+The close button for a `Sheet`. Should be rendered as a child of the `Sheet.Content` component. Usually contained within the `Sheet.Footer` component. Renders an unstyled `button` by default, but can be customized with the `asChild` prop.
+
+Radix [Dialog.Close](https://www.radix-ui.com/primitives/docs/components/dialog#close) props.
+
+### Sheet.Content
+
+The main container for a `Sheet`. Should be rendered as a child of the `Sheet` component. Renders on top of the overlay backdrop. Should contain the `Sheet.Header`, `Sheet.Body`, and `Sheet.Footer`.
+
+Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+
+All props from Radix [Dialog.Content](https://www.radix-ui.com/primitives/docs/components/dialog#content), plus:
+
+| Prop              | Type                                     | Default              | Description                                                                                                                                                                                                                                                                   |
+| ----------------- | ---------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `preferredWidth?` | `string`                                 | `"sm:max-w-[30rem]"` | The preferred width of the `Sheet.Content` as a tailwind `max-w-` class. By default, a `Sheet`'s content width is responsive with a default _preferred width_: the maximum width of the `Sheet.Content` when the window viewport is larger than the mobile breakpoint (`sm`). |
+| `side?`           | `"top" \| "bottom" \| "left" \| "right"` | `"right"`            | The side of the screen from which the sheet will animate in from.                                                                                                                                                                                                             |
+
+### Sheet.CloseIconButton
+
+An icon button that closes the `Sheet` when clicked. Should be rendered within the `Sheet.Header` as a child of `Sheet.Actions`.
+
+Same props as [Mantle IconButton](/components/actions/icon-button).
+
+### Sheet.Body
+
+The body container for a `Sheet`. This is where you would typically place the main content of the sheet, such as forms or text. Should be rendered as a child of `Sheet.Content`.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
+
+### Sheet.Header
+
+The header container for a `Sheet`. This is where you would typically place the title, description, and actions. Should be rendered as a child of `Sheet.Content`.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
+
+### Sheet.Footer
+
+The footer container for a `Sheet`. This is where you would typically place close and submit buttons. Should be rendered as a child of `Sheet.Content`.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
+
+### Sheet.Title
+
+The title for a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`. Defaults to an `h2` element, but can be changed via the `asChild` prop.
+
+All props from Radix [Dialog.Title](https://www.radix-ui.com/primitives/docs/components/dialog#title).
+
+### Sheet.TitleGroup
+
+A group container for the title and actions of a `Sheet`. Typically rendered as a child of `Sheet.Header`.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
+
+### Sheet.Description
+
+A description for a `Sheet`. Typically rendered as a child of `Sheet.Header`.
+
+All props from Radix [Dialog.Description](https://www.radix-ui.com/primitives/docs/components/dialog#description).
+
+### Sheet.Actions
+
+A group container for the actions of a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).

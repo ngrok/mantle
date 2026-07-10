@@ -35,6 +35,14 @@ describe("mantleCode", () => {
 		expect(value["~preVals"]).toEqual(["world"]);
 	});
 
+	test("composing one value's `.code` into another works without the Vite plugin", () => {
+		// The Vite plugin inlines `${fragment.code}` at build time. Without the plugin,
+		// the same source must still produce correct copy text via `String(fragment.code)`.
+		const policy = mantleCode("yaml")`on_http_request:`;
+		const java = mantleCode("java")`String tp = """${policy.code}""";`;
+		expect(java.code).toBe('String tp = """on_http_request:""";');
+	});
+
 	test("~preVals is undefined when there are no interpolated values", () => {
 		const value = mantleCode("typescript")`const x = 1;`;
 		expect(value["~preVals"]).toBeUndefined();

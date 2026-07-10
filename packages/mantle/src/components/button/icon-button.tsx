@@ -55,7 +55,7 @@ const iconButtonVariants = cva(baseIconButtonClasses, {
 type IconButtonVariants = VariantProps<typeof iconButtonVariants>;
 
 /**
- * The props for the `Button` component.
+ * The props for the `IconButton` component.
  */
 type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
 	WithAsChild &
@@ -69,57 +69,25 @@ type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
 		 * the icon will automatically be replaced with a spinner.
 		 */
 		icon: ReactNode;
-	} & (
-		| {
-				/**
-				 * Use the `asChild` prop to compose Radix's functionality onto alternative
-				 * element types or your own React components.
-				 *
-				 * When `asChild` is set to `true`, mantle will not render a default DOM
-				 * element, instead cloning the component's child and passing it the props and
-				 * behavior required to make it functional.
-				 *
-				 * asChild can be used as deeply as you need to. This means it is a great way
-				 * to compose multiple primitive's behavior together.
-				 *
-				 * @see https://www.radix-ui.com/docs/primitives/guides/composition#composition
-				 */
-				asChild: true;
-				/**
-				 * The default behavior of the button. Possible values are: `"button"`, `"submit"`, and `"reset"`.
-				 *
-				 * if `asChild` is NOT used: Unlike the native `<button>` element, this prop is required and has no default value.
-				 *
-				 * If `asChild` IS used: This prop HAS NO EFFECT, is REMOVED, and has no default value. This is because we do not want the `button` `type` to automatically merge with any child anchor `type` attribute because the `anchor` `type` is _strictly different_ than the `button` type, see: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#type
-				 *
-				 * @enum
-				 * - `"button"`: The button has no default behavior, and does nothing when pressed by default. It can have client-side scripts listen to the element's events, which are triggered when the events occur.
-				 * - `"reset"`: The button resets all the controls to their initial values.
-				 * - `"submit"`: The button submits the form data to the server.
-				 *
-				 * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#type
-				 */
-				type?: ButtonHTMLAttributes<HTMLButtonElement>["type"];
-		  }
-		| {
-				asChild?: false | undefined;
-				/**
-				 * The default behavior of the button. Possible values are: `"button"`, `"submit"`, and `"reset"`.
-				 *
-				 * if `asChild` is NOT used: Unlike the native `<button>` element, this prop is required and has no default value.
-				 *
-				 * If `asChild` IS used: This prop HAS NO EFFECT, is REMOVED, and has no default value. This is because we do not want the `button` `type` to automatically merge with any child anchor `type` attribute because the `anchor` `type` is _strictly different_ than the `button` type, see: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#type
-				 *
-				 * @enum
-				 * - `"button"`: The button has no default behavior, and does nothing when pressed by default. It can have client-side scripts listen to the element's events, which are triggered when the events occur.
-				 * - `"reset"`: The button resets all the controls to their initial values.
-				 * - `"submit"`: The button submits the form data to the server.
-				 *
-				 * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#type
-				 */
-				type: Exclude<ButtonHTMLAttributes<HTMLButtonElement>["type"], undefined>;
-		  }
-	);
+		/**
+		 * The behavior of the button when activated. Defaults to `"button"`, so the
+		 * button does not accidentally submit a surrounding `<form>` — pass
+		 * `type="submit"` to submit a form, or `type="reset"` to reset it.
+		 *
+		 * When `asChild` is used, `type` has no effect and is not forwarded to the
+		 * child, so a wrapped anchor never inherits a `button` `type`. See:
+		 * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#type
+		 *
+		 * @default "button"
+		 * @enum
+		 * - `"button"`: The button has no default behavior, and does nothing when pressed by default. It can have client-side scripts listen to the element's events, which are triggered when the events occur.
+		 * - `"reset"`: The button resets all the controls to their initial values.
+		 * - `"submit"`: The button submits the form data to the server.
+		 *
+		 * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#type
+		 */
+		type?: ButtonHTMLAttributes<HTMLButtonElement>["type"];
+	};
 
 /**
  * Renders a button or a component that looks like a button, an interactive
@@ -128,17 +96,23 @@ type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
  * as submitting a form or opening a dialog.
  * Renders only a single icon as children with an accessible, screen-reader-only label.
  *
- * @see https://mantle.ngrok.com/components/button
+ * @see https://mantle.ngrok.com/components/actions/icon-button
  *
  * @example
  * ```tsx
  * <IconButton
- *   type="button"
  *   icon={<TrashIcon />}
  *   label="Delete item"
  *   appearance="ghost"
  *   size="sm"
+ *   onClick={handleDelete}
  * />
+ * ```
+ *
+ * @example
+ * Submit a form — opt in with `type="submit"` (the default `"button"` does not submit):
+ * ```tsx
+ * <IconButton type="submit" icon={<MagnifyingGlassIcon />} label="Search" />
  * ```
  */
 const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
@@ -193,7 +167,8 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
 		}
 
 		return (
-			<button {...buttonProps} type={type}>
+			// oxlint-disable-next-line react/button-has-type -- `type` defaults to "button" at runtime via the `?? "button"` fallback; the static analyzer can't resolve that expression.
+			<button {...buttonProps} type={type ?? "button"}>
 				{innerChildren}
 			</button>
 		);

@@ -1,3 +1,9 @@
+/**
+ * Re-exports for the Icon component.
+ *
+ * @see https://mantle.ngrok.com/components/data-display/icon
+ */
+
 export {
 	//,
 	Icon,

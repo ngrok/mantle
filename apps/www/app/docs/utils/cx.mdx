@@ -7,7 +7,7 @@ description: Class name composition utility from @ngrok/mantle/cx
 
 A class name composition utility that combines conditional class names and resolves Tailwind CSS conflicts using left-to-right merge order.
 
-Wraps [`clsx`](https://github.com/lukeed/clsx) for conditional class handling and [`tailwind-merge`](https://github.com/dcastil/tailwind-merge) for conflict resolution, so later classes override earlier ones (same behavior as inline styles).
+Powered by a vendored, byte-for-byte port of [`clsx`](https://github.com/lukeed/clsx) (conditional class handling) and [`tailwind-merge`](https://github.com/dcastil/tailwind-merge) (conflict resolution), adapted from [`cnfast`](https://github.com/aidenybai/cnfast). Later classes override earlier ones (same behavior as inline styles). Mantle's Tailwind overrides — the `em` spacing scale (`w-em`, `p-em`, …) and the `text-mono` / `text-size-inherit` font-size utilities — are baked in, so neither `clsx` nor `tailwind-merge` is a runtime dependency.
 
 ```ts
 import { cx } from "@ngrok/mantle/cx";
@@ -66,12 +66,24 @@ function Button({ className }: ButtonProps) {
 // → "text-white px-4 py-2 rounded bg-red-500"
 ```
 
+## Tagged template
+
+`cx` can also be called as a tagged template. A tagged template reuses the same static
+strings array on every render, so `cx` caches the result by call-site identity — useful for
+hot re-rendering paths. The behavior is otherwise identical to the call form.
+
+```tsx
+cx`px-2 px-4 ${isActive && "bg-blue-500"}`;
+// → "px-4 bg-blue-500"
+```
+
 ## API
 
 ```ts
 function cx(...inputs: ClassValue[]): string;
+// also callable as a tagged template: cx`px-2 ${cond && "px-4"}`
 
-// ClassValue comes from clsx, looks like this 👇
+// ClassValue, looks like this 👇
 type ClassValue =
 	| ClassArray
 	| ClassDictionary
@@ -99,4 +111,4 @@ The return value is a single deduplicated, conflict-resolved class string.
 ## Convention
 
 All `className` values in Mantle must be built with `cx`.
-String interpolation, `+`, ternaries, or conditional expressions directly on `className` are not allowed — see [CONVENTIONS.md](https://github.com/ngrok-oss/mantle/blob/main/CONVENTIONS.md).
+String interpolation, `+`, ternaries, or conditional expressions directly on `className` are not allowed — see [CONVENTIONS.md](https://github.com/ngrok/mantle/blob/main/CONVENTIONS.md).

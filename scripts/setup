@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+# Bootstrap the Mantle development environment.
+#
+# Installs a pinned mise (if missing), trusts the repo config, installs the
+# tools listed in mise.toml / .nvmrc / package.json#packageManager, and runs
+# the `setup` mise task (which installs workspace dependencies).
+#
+# Idempotent: safe to run repeatedly.
+
+set -euo pipefail
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "${script_dir}/install-mise"
+ensure_pinned_mise
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "${repo_root}"
+
+mise trust ./mise.toml
+mise install
+mise run setup
+
+# If the user's shell isn't already activated for mise, append the activation
+# snippet to their shell rc so a new terminal in this repo "just works" — tools
+# and [env] vars load automatically on cd. mise sets MISE_SHELL when activated;
+# we also skip in CI (no interactive shell) and on unknown shells (print
+# manual instructions instead). Idempotency is keyed on stable markers so the
+# snippet itself can evolve without producing duplicates.
+MISE_RC_BEGIN_MARKER="mise marker: begin mantle/scripts/setup"
+MISE_RC_END_MARKER="mise marker: end mantle/scripts/setup"
+
+if [ -z "${MISE_SHELL:-}" ] && [ -z "${CI:-}" ]; then
+  shell_name="$(basename "${SHELL:-}")"
+  rc=""
+  rc_snippet=""
+  case "${shell_name}" in
+    zsh|bash)
+      if [ "${shell_name}" = "zsh" ]; then
+        rc="${HOME}/.zshrc"
+      else
+        rc="${HOME}/.bashrc"
+      fi
+      rc_snippet='# '"${MISE_RC_BEGIN_MARKER}"'
+if [ -z "${MISE_SHELL:-}" ]; then
+  if [ -x "$HOME/.local/bin/mise" ]; then
+    export PATH="$HOME/.local/bin:$PATH"
+  fi
+  if command -v mise >/dev/null 2>&1; then
+    eval "$(mise activate '"${shell_name}"')"
+  fi
+fi
+# '"${MISE_RC_END_MARKER}"
+      ;;
+    fish)
+      rc="${HOME}/.config/fish/config.fish"
+      rc_snippet='# '"${MISE_RC_BEGIN_MARKER}"'
+if test -z "$MISE_SHELL"
+    if test -x "$HOME/.local/bin/mise"
+        set -gx PATH "$HOME/.local/bin" $PATH
+    end
+    if command -v mise >/dev/null 2>&1
+        mise activate fish | source
+    end
+end
+# '"${MISE_RC_END_MARKER}"
+      ;;
+  esac
+
+  echo ""
+  echo "mantle: setup complete."
+
+  if [ -n "${rc}" ]; then
+    mkdir -p "$(dirname "${rc}")"
+    if [ ! -f "${rc}" ]; then
+      {
+        echo ""
+        echo "${rc_snippet}"
+      } >> "${rc}"
+      echo "mantle: added mise activation to ${rc}"
+      echo "        open a new terminal (or run: source ${rc}) and pnpm/node will be on PATH."
+    elif grep -qF "${MISE_RC_BEGIN_MARKER}" "${rc}"; then
+      tmp_rc="$(mktemp)"
+      tmp_snippet="$(mktemp)"
+      printf '%s\n' "${rc_snippet}" > "${tmp_snippet}"
+      awk -v begin_marker="${MISE_RC_BEGIN_MARKER}" -v end_marker="${MISE_RC_END_MARKER}" -v replacement_file="${tmp_snippet}" '
+        function print_replacement() {
+          while ((getline line < replacement_file) > 0) {
+            print line
+          }
+          close(replacement_file)
+        }
+        index($0, begin_marker) {
+          print_replacement()
+          in_mise_block = 1
+          next
+        }
+        in_mise_block && index($0, end_marker) {
+          in_mise_block = 0
+          next
+        }
+        !in_mise_block { print }
+      ' "${rc}" > "${tmp_rc}"
+      cp "${tmp_rc}" "${rc}"
+      rm -f "${tmp_rc}" "${tmp_snippet}"
+      echo "mantle: updated mise activation in ${rc}"
+      echo "        open a new terminal (or run: source ${rc}) and pnpm/node will be on PATH."
+    elif grep -qF "mise marker: do not remove" "${rc}"; then
+      tmp_rc="$(mktemp)"
+      tmp_snippet="$(mktemp)"
+      printf '%s\n' "${rc_snippet}" > "${tmp_snippet}"
+      awk -v old_marker="mise marker: do not remove" -v replacement_file="${tmp_snippet}" '
+        function print_replacement() {
+          while ((getline line < replacement_file) > 0) {
+            print line
+          }
+          close(replacement_file)
+        }
+        index($0, old_marker) {
+          print_replacement()
+          in_old_mise_block = 1
+          depth = 0
+          next
+        }
+        in_old_mise_block {
+          if ($0 ~ /^[[:space:]]*if([[:space:]].*)?$/) {
+            depth++
+          }
+          if ($0 ~ /^[[:space:]]*(fi|end)[[:space:]]*$/) {
+            if (depth <= 1) {
+              in_old_mise_block = 0
+            } else {
+              depth--
+            }
+          }
+          next
+        }
+        { print }
+      ' "${rc}" > "${tmp_rc}"
+      cp "${tmp_rc}" "${rc}"
+      rm -f "${tmp_rc}" "${tmp_snippet}"
+      echo "mantle: updated mise activation in ${rc}"
+      echo "        open a new terminal (or run: source ${rc}) and pnpm/node will be on PATH."
+    else
+      {
+        echo ""
+        echo "${rc_snippet}"
+      } >> "${rc}"
+      echo "mantle: added mise activation to ${rc}"
+      echo "        open a new terminal (or run: source ${rc}) and pnpm/node will be on PATH."
+    fi
+  else
+    cat <<'EOF'
+
+Could not auto-detect your shell from $SHELL. Add the appropriate line manually
+so tools and env vars apply automatically on cd:
+
+  zsh:  echo 'eval "$(mise activate zsh)"'  >> ~/.zshrc
+  bash: echo 'eval "$(mise activate bash)"' >> ~/.bashrc
+  fish: echo 'mise activate fish | source'  >> ~/.config/fish/config.fish
+
+Without activation, prefix commands with 'mise x --' (e.g.
+'mise x -- pnpm -w run start').
+EOF
+  fi
+else
+  echo ""
+  echo "mantle: setup complete."
+fi

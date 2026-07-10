@@ -1,5 +1,5 @@
 import { Button } from "@ngrok/mantle/button";
-import { Label } from "@ngrok/mantle/label";
+import { Field, toErrorMessages } from "@ngrok/mantle/field";
 import { MultiSelect } from "@ngrok/mantle/multi-select";
 import { Sheet } from "@ngrok/mantle/sheet";
 import { useForm } from "@tanstack/react-form";
@@ -22,12 +22,12 @@ export function InSheetDemo() {
 	const [searchValue, setSearchValue] = useState("");
 	const filteredFruits = useMemo(() => matchSorter(fruits, searchValue), [searchValue]);
 	const filteredVeggies = useMemo(() => matchSorter(vegetables, searchValue), [searchValue]);
+	const defaultValues: FormValues = {
+		favorites: ["Cherry"],
+	};
 	const form = useForm({
-		defaultValues: {
-			favorites: ["Cherry"],
-		} satisfies FormValues as FormValues,
+		defaultValues,
 		validators: {
-			onChange: formSchema,
 			onSubmit: formSchema,
 		},
 		onSubmit: ({ value }) => {
@@ -38,7 +38,7 @@ export function InSheetDemo() {
 	return (
 		<Sheet.Root>
 			<Sheet.Trigger asChild>
-				<Button type="button" appearance="filled">
+				<Button type="button" appearance="filled" priority="neutral">
 					Assign fruits
 				</Button>
 			</Sheet.Trigger>
@@ -66,61 +66,55 @@ export function InSheetDemo() {
 					<Sheet.Body className="space-y-4">
 						<form.Field name="favorites">
 							{(field) => (
-								<div className="space-y-1.5">
-									<Label htmlFor={field.name}>Fruits</Label>
-									<MultiSelect.Root
-										selectedValue={field.state.value}
-										setSelectedValue={field.handleChange}
-										setOpen={() => {
-											setSearchValue("");
-										}}
-									>
-										<MultiSelect.Trigger
-											onBlur={field.handleBlur}
-											validation={field.state.meta.errors.length > 0 ? "error" : false}
+								<Field.Item name={field.name}>
+									<Field.Label>Fruits</Field.Label>
+									<Field.Control>
+										<MultiSelect.Root
+											selectedValue={field.state.value}
+											setSelectedValue={field.handleChange}
+											setOpen={() => {
+												setSearchValue("");
+											}}
 										>
-											<MultiSelect.TagValues />
-											<MultiSelect.Input
-												id={field.name}
-												onValueChange={(value) => startTransition(() => setSearchValue(value))}
-												placeholder="Select fruits and vegetables..."
-											/>
-										</MultiSelect.Trigger>
-										<MultiSelect.Content aria-busy={isPending}>
-											{filteredFruits.length > 0 && (
-												<MultiSelect.Group>
-													<MultiSelect.GroupLabel>Fruits</MultiSelect.GroupLabel>
-													{filteredFruits.map((value) => (
-														<MultiSelect.Item key={value} value={value}>
-															{value}
-														</MultiSelect.Item>
-													))}
-												</MultiSelect.Group>
-											)}
-											{filteredFruits.length > 0 && filteredVeggies.length > 0 && (
-												<MultiSelect.Separator />
-											)}
-											{filteredVeggies.length > 0 && (
-												<MultiSelect.Group>
-													<MultiSelect.GroupLabel>Vegetables</MultiSelect.GroupLabel>
-													{filteredVeggies.map((value) => (
-														<MultiSelect.Item key={value} value={value}>
-															{value}
-														</MultiSelect.Item>
-													))}
-												</MultiSelect.Group>
-											)}
-											{filteredFruits.length === 0 && filteredVeggies.length === 0 && (
-												<MultiSelect.Empty>No results found</MultiSelect.Empty>
-											)}
-										</MultiSelect.Content>
-									</MultiSelect.Root>
-									{field.state.meta.errors.map((error) => (
-										<p key={error?.message} className="text-sm leading-4 text-danger-600">
-											{error?.message}
-										</p>
-									))}
-								</div>
+											<MultiSelect.Trigger onBlur={field.handleBlur}>
+												<MultiSelect.TagValues />
+												<MultiSelect.Input
+													onValueChange={(value) => startTransition(() => setSearchValue(value))}
+													placeholder="Select fruits and vegetables..."
+												/>
+											</MultiSelect.Trigger>
+											<MultiSelect.Content aria-busy={isPending}>
+												{filteredFruits.length > 0 && (
+													<MultiSelect.Group>
+														<MultiSelect.GroupLabel>Fruits</MultiSelect.GroupLabel>
+														{filteredFruits.map((value) => (
+															<MultiSelect.Item key={value} value={value}>
+																{value}
+															</MultiSelect.Item>
+														))}
+													</MultiSelect.Group>
+												)}
+												{filteredFruits.length > 0 && filteredVeggies.length > 0 && (
+													<MultiSelect.Separator />
+												)}
+												{filteredVeggies.length > 0 && (
+													<MultiSelect.Group>
+														<MultiSelect.GroupLabel>Vegetables</MultiSelect.GroupLabel>
+														{filteredVeggies.map((value) => (
+															<MultiSelect.Item key={value} value={value}>
+																{value}
+															</MultiSelect.Item>
+														))}
+													</MultiSelect.Group>
+												)}
+												{filteredFruits.length === 0 && filteredVeggies.length === 0 && (
+													<MultiSelect.Empty>No results found</MultiSelect.Empty>
+												)}
+											</MultiSelect.Content>
+										</MultiSelect.Root>
+									</Field.Control>
+									<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+								</Field.Item>
 							)}
 						</form.Field>
 						<p className="text-muted text-sm">
@@ -136,7 +130,13 @@ export function InSheetDemo() {
 						</Sheet.Close>
 						<form.Subscribe selector={(state) => state.isDirty}>
 							{(isDirty) => (
-								<Button type="submit" form={formId} appearance="filled" disabled={!isDirty}>
+								<Button
+									type="submit"
+									form={formId}
+									appearance="filled"
+									priority="neutral"
+									disabled={!isDirty}
+								>
 									Save
 								</Button>
 							)}

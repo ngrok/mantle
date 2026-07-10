@@ -1,7 +1,7 @@
 import { Suspense, use } from "react";
 import { ContentLayout } from "~/components/content-layout";
 import { canonicalHref } from "~/utilities/canonical-origin";
-import { getDocComponent, resolveDocComponent } from "~/utilities/docs";
+import { getDoc, loadDoc, resolveDoc } from "~/utilities/docs";
 import {
 	jsonLdGraphMetaDescriptor,
 	mantleWebPageJsonLd,
@@ -12,6 +12,11 @@ import type { Route } from "./+types/_index";
 const indexFilePath = "../docs/index.mdx";
 const title = "@ngrok/mantle";
 const description = "mantle is ngrok's UI library and design system";
+
+export async function loader() {
+	const doc = await loadDoc(indexFilePath);
+	return { toc: doc.toc };
+}
 
 export const meta: Route.MetaFunction = () => {
 	const canonicalUrl = canonicalHref("/");
@@ -57,15 +62,16 @@ export default function Page() {
 }
 
 function ProdIndexContent() {
-	const Component = getDocComponent(indexFilePath);
-	if (!Component) {
+	const doc = getDoc(indexFilePath);
+	if (!doc) {
 		throw Response.json({ message: "Not Found" }, { status: 404 });
 	}
+	const { Component } = doc;
 	return <Component />;
 }
 
 function DevIndexContent() {
-	const componentPromise = resolveDocComponent(indexFilePath);
-	const Component = use(componentPromise);
+	const docPromise = resolveDoc(indexFilePath);
+	const { Component } = use(docPromise);
 	return <Component />;
 }

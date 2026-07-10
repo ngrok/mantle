@@ -50,8 +50,8 @@ export function CommandDialogDemo() {
 					Open Command Dialog
 				</Button>
 			</p>
-			<Command.Dialog.Root open={open} onOpenChange={setOpen}>
-				<Command.Dialog.Content>
+			<Command.DialogRoot open={open} onOpenChange={setOpen}>
+				<Command.DialogContent>
 					<Command.Input placeholder="Type a command or search..." />
 					<Command.List>
 						<Command.Empty>No results found.</Command.Empty>
@@ -94,8 +94,8 @@ export function CommandDialogDemo() {
 							</Command.Item>
 						</Command.Group>
 					</Command.List>
-				</Command.Dialog.Content>
-			</Command.Dialog.Root>
+				</Command.DialogContent>
+			</Command.DialogRoot>
 		</>
 	);
 }

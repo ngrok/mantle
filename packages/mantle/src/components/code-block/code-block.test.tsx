@@ -124,9 +124,48 @@ describe("CodeBlock", () => {
 	});
 
 	describe("CopyButton", () => {
+		test("uses the label prop as the accessible name", () => {
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.CopyButton label="Copy TypeScript example" />
+						<CodeBlock.Code value={makeValue("code")} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			expect(screen.getByRole("button", { name: "Copy TypeScript example" })).toBeInTheDocument();
+			expect(screen.queryByRole("button", { name: /copy code/i })).not.toBeInTheDocument();
+		});
+
+		test("supports asChild composition", async () => {
+			const user = userEvent.setup();
+			const onCopy = vi.fn<() => void>();
+			const code = "const x = 1;";
+
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.CopyButton asChild onCopy={onCopy}>
+							<button type="button" data-testid="custom-copy-button" />
+						</CodeBlock.CopyButton>
+						<CodeBlock.Code value={makeValue(code)} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			const button = screen.getByTestId("custom-copy-button");
+			expect(screen.getByRole("button", { name: /copy code/i })).toBe(button);
+			expect(button).toHaveAttribute("data-slot", "icon-button");
+
+			await user.click(button);
+
+			expect(onCopy).toHaveBeenCalledWith(code);
+		});
+
 		test("fires onCopy with the code text after clicking", async () => {
 			const user = userEvent.setup();
-			const onCopy = vi.fn();
+			const onCopy = vi.fn<() => void>();
 			const code = "const x = 1;";
 
 			render(
@@ -149,7 +188,7 @@ describe("CodeBlock", () => {
 			navigator.clipboard.writeText = () => Promise.reject(new Error("clipboard denied"));
 
 			const user = userEvent.setup();
-			const onCopyError = vi.fn();
+			const onCopyError = vi.fn<(error: unknown) => void>();
 
 			render(
 				<CodeBlock.Root>
@@ -171,7 +210,7 @@ describe("CodeBlock", () => {
 
 		test("does not fire onCopy when onClick calls preventDefault", async () => {
 			const user = userEvent.setup();
-			const onCopy = vi.fn();
+			const onCopy = vi.fn<() => void>();
 
 			render(
 				<CodeBlock.Root>
@@ -191,6 +230,33 @@ describe("CodeBlock", () => {
 			await user.click(button);
 
 			expect(onCopy).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("TabList", () => {
+		test("scrolls horizontally on overflow instead of wrapping", () => {
+			render(
+				<CodeBlock.Root defaultTab="a">
+					<CodeBlock.Header>
+						<CodeBlock.TabList>
+							<CodeBlock.TabTrigger value="a">example.ts</CodeBlock.TabTrigger>
+							<CodeBlock.TabTrigger value="b">example.json</CodeBlock.TabTrigger>
+						</CodeBlock.TabList>
+					</CodeBlock.Header>
+				</CodeBlock.Root>,
+			);
+
+			// The list is a scroll container with an edge fade rather than a wrapping row.
+			expect(screen.getByRole("tablist")).toHaveClass(
+				"scroll-fade-x",
+				"overflow-x-auto",
+				"min-w-0",
+			);
+
+			// Triggers keep their intrinsic width so labels never wrap under width pressure.
+			for (const tab of screen.getAllByRole("tab")) {
+				expect(tab).toHaveClass("shrink-0", "whitespace-nowrap");
+			}
 		});
 	});
 });

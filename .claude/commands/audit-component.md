@@ -47,13 +47,15 @@ Verify `packages/mantle/src/components/<component-name>/<component-name>.tsx` (a
 - **`className` composition** uses `cx` from `../../utils/cx/cx.js` — no string interpolation, `+`, or ternaries to build class names.
 - **JSDoc on every exported component and exported type.** Each JSDoc block must include:
   - A brief description line.
-  - A `@see https://mantle.ngrok.com/components/<component-name>` link.
+  - A `@see https://mantle.ngrok.com/components/<category>/<component-name>` link.
   - At least one `@example` block showing realistic JSX usage.
 
 ### 2.2. Compound-component rules
 
 For compound components only:
 
+- **The namespace object is single-level.** No nested namespaces (e.g. `Foo.Bar.Root` is forbidden). If you find a nested namespace, flag it for flattening into top-level members (`Foo.BarRoot`, `Foo.BarTrigger`, …) and recommend removing any pass-through re-exports of other mantle namespaces. See `CONVENTIONS.md#compound-components`.
+- **If any namespace member's type comes from a third-party namespace** (e.g. `Radix.Root`, `Radix.Trigger`), the enclosing namespace declaration must carry an explicit type annotation (`const Foo: { Root: typeof Root; … } = { … }`). Without it, `.d.ts` emit can synthesize types that pull in non-portable `@types/react` paths and break on minor `@types/react` upgrades (`TS2883`).
 - Each sub-component `const Foo = forwardRef(...)` / `const Foo = (props) => ...` has a `displayName` set to the **original flat name** (e.g. `Root.displayName = "MyComponent"`, `Content.displayName = "MyComponentContent"`).
 - The JSDoc **immediately above the top-level namespace declaration** (`const <ComponentName> = {`) contains two `@example` blocks, in this order:
   1. A `Composition` ASCII-tree block — `@example` on one line, `Composition:` on the next, then a plain (no-language) fenced code block containing the tree. Use real Unicode box-drawing chars (`├` U+251C, `─` U+2500, `└` U+2514, `│` U+2502) with 4-char per-level indentation.
@@ -87,7 +89,7 @@ If the component exposes `asChild` on any part, the component's doc page must ha
 
 ## 4. Check the docs page
 
-The docs page lives at `apps/www/app/docs/components/<component-name>.mdx`. Verify:
+The docs page lives at `apps/www/app/docs/components/<category>/<component-name>.mdx`. Verify:
 
 ### 4.1. Frontmatter and scaffolding
 
@@ -96,6 +98,7 @@ The docs page lives at `apps/www/app/docs/components/<component-name>.mdx`. Veri
 - Imports `Example` from `~/components/example`.
 - Has a top-level `# <ComponentName>` heading followed by the description.
 - Has at least one `<Example>` block with a matching `tsx` code block beside it.
+- **Every runnable example is complete and live.** Each `tsx`/`jsx` usage code block on the page MUST (a) be immediately preceded by a live `<Example>` block that renders that same usage, and (b) be complete and self-contained — `import` line(s) present, a full component or render rather than a fragment or a "only this line changes" diff snippet, and any referenced data / props / state / handlers defined on the page (inline in the block or in the page's module scope, as `multi-select` does with its `fruits` const). Reference to an identifier that appears nowhere on the page (e.g. an undefined `switchTo`) counts as a partial — define it or use a real handler / `() => {}` placeholder. Flag any usage code block with no `<Example>` above it, and any partial/fragment snippet. This applies to every example on the page — the primary one and every secondary one (variants, virtualization, controlled/uncontrolled, polymorphism). The live example may use a larger generated dataset for a realistic demo, but the code block must still stand alone.
 
 ### 4.2. Required sections, in this order
 
@@ -107,10 +110,10 @@ Optional sections (Examples, Variants, etc.) may appear before `## API Reference
 
 ### 4.3. Route and navigation
 
-- `apps/www/app/routes.ts` contains `...docRoute("components/<component-name>"),` in alphabetical order among component docs.
-- `apps/www/app/components/layout.tsx`:
-  - The `<Display Name>` appears in the `prodReadyComponents` array (alphabetical order).
-  - `prodReadyComponentRouteLookup` has `"<Display Name>": "/components/<component-name>",` (alphabetical order).
+- `apps/www/app/routes.ts` contains `...docRoute("components/<category>/<component-name>"),` in alphabetical order among component docs.
+- `apps/www/app/components/navigation-data.ts`:
+  - The `<Display Name>` appears in its category's array in `componentsByCategory` (alphabetical order within the category; `prodReadyComponents` is derived from it).
+  - `prodReadyComponentRouteLookup` has `"<Display Name>": "/components/<category>/<component-name>",` (alphabetical order) and the category segment matches the `componentsByCategory` placement.
 
 ## 5. Report and fix
 
@@ -125,9 +128,10 @@ Produce a report listing each violation, grouped by area (implementation, JSDoc,
 - Section titled `Composition` but describing unrelated variations → rename to a content-accurate title (ask the user for the new name if unclear).
 - Missing `displayName` on a sub-component → add it using the flat-name pattern.
 - Missing route in `apps/www/app/routes.ts` → insert in alphabetical order.
-- Missing nav entry in `layout.tsx` → insert in both `prodReadyComponents` and `prodReadyComponentRouteLookup` in alphabetical order.
+- Missing nav entry in `navigation-data.ts` → insert in both `componentsByCategory` (under the right category) and `prodReadyComponentRouteLookup` in alphabetical order.
 - Missing `package.json` `exports` entry → insert in alphabetical order.
 - JSDoc `@example` on a namespace property or underlying const that uses an abbreviated snippet → replace with the full-tree example already present elsewhere for the same component.
+- Usage code block with no live `<Example>` above it, or written as a partial/fragment ("only this line changes" diffs, bare config objects, references to undefined data) → add a live `<Example>` (an `export function <Name>Example()` rendered via `<Example>…</Example>`) and rewrite the code block to be complete and self-contained. Model the demo data and shape on the page's existing complete examples.
 
 ### Needs author judgment (ask before changing)
 
@@ -153,7 +157,7 @@ If the audit modified files under `packages/mantle/`, add a changeset:
 
 - `patch` bump for `@ngrok/mantle` when the changes are doc/JSDoc/`displayName`/comment-only.
 - `minor` bump if you added a new export or behavior (rare for audits — usually indicates the audit uncovered a missing sub-part that needs author judgment).
-- No changeset needed if the audit only modified `apps/www/app/docs/**`, `apps/www/app/components/layout.tsx`, or `apps/www/app/routes.ts` and no published package's source changed. When in doubt, prefer a patch changeset.
+- No changeset needed if the audit only modified `apps/www/app/docs/**`, `apps/www/app/components/navigation-data.ts`, or `apps/www/app/routes.ts` and no published package's source changed. When in doubt, prefer a patch changeset.
 
 ## Reference
 

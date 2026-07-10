@@ -122,34 +122,4 @@ export type WithInputType = {
 	type?: InputType;
 };
 
-/**
- * The validation state of the input.
- *
- * @example
- * the false type is useful when using short-circuiting logic, e.g.
- *
- * ```tsx
- * validation={field.state.meta.errors.length > 0 && "error"}
- * ```
- */
-export type Validation = "error" | "success" | "warning" | false;
-
-/**
- * An input component with a prop for validation state.
- */
-export type WithValidation = {
-	/**
-	 * The validation state of the input.
-	 * Can be a literal `Validation` value or a function that returns
-	 * a `Validation` value.
-	 *
-	 *
-	 * @example
-	 * the false type is useful when using short-circuiting logic, e.g.
-	 *
-	 * ```tsx
-	 * validation={field.state.meta.errors.length > 0 && "error"}
-	 * ```
-	 */
-	validation?: Validation | (() => Validation);
-};
+export type { Validation, WithValidation } from "../field/validation.js";

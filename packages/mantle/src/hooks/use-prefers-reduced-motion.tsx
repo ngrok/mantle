@@ -9,14 +9,30 @@ import { canUseDOM } from "../components/browser-only/browser-only.js";
 const query = "(prefers-reduced-motion: no-preference)";
 
 /**
- * Imperatively reads the current `prefers-reduced-motion` preference.
- * Useful in event handlers and plain functions where a hook cannot be called.
+ * Imperatively reads the current `prefers-reduced-motion` preference once at
+ * the time of the call.
  *
- * Returns `true` when the user has opted out of animations.
+ * Useful in event handlers, animation entrypoints, or plain functions where
+ * a React hook cannot be called. Prefer {@link usePrefersReducedMotion}
+ * inside components — it subscribes to live changes.
+ *
+ * @returns `true` when the user has opted out of animations or when called
+ *   outside a browser environment (SSR), `false` when motion is allowed.
  *
  * @remarks
- * Returns `true` (reduce motion) when called outside a browser environment (SSR),
- * matching the conservative default of {@link usePrefersReducedMotion}.
+ * The conservative SSR default of `true` matches
+ * {@link usePrefersReducedMotion}: animations stay off until we can verify
+ * the user's preference on the client.
+ *
+ * @example
+ * // Skip a one-off entrance animation in a click handler
+ * function onOpen() {
+ *   if (getPrefersReducedMotion()) {
+ *     element.style.opacity = "1";
+ *     return;
+ *   }
+ *   element.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200 });
+ * }
  */
 export function getPrefersReducedMotion(): boolean {
 	if (!canUseDOM()) {
@@ -26,23 +42,35 @@ export function getPrefersReducedMotion(): boolean {
 }
 
 /**
- * Returns `true` when the user has opted out of animations (i.e., prefers reduced motion).
+ * React hook that subscribes to the user's `prefers-reduced-motion` media
+ * query and re-renders when it changes.
  *
- * Implementation notes:
- * - Uses the `(prefers-reduced-motion: no-preference)` media query and inverts it.
- *   This keeps the “default” mental model explicit: if the system hasn’t opted out,
- *   animations are allowed.
- * - Defaults to `true` (reduce motion) on the server/during SSR to avoid animating
- *   before hydration. The initial client effect reads the *real* preference and updates state.
+ * Defaults to `true` (reduce motion) on the server and during the first
+ * client render to avoid animating before hydration. The initial client
+ * effect reads the *real* preference and updates state. The underlying
+ * media query used is `(prefers-reduced-motion: no-preference)` inverted —
+ * "if the system hasn't opted out, animations are allowed."
+ *
+ * @returns `true` when the user prefers reduced motion (animations should be
+ *   shortened or skipped), `false` when full motion is acceptable.
+ *
+ * @remarks
+ * If you need to support very old browsers that lack
+ * `MediaQueryList.addEventListener`, consider falling back to
+ * `addListener` / `removeListener`.
  *
  * @example
  * // Conditionally shorten or skip transitions
- * const reduce = usePrefersReducedMotion();
- * const duration = reduce ? 0 : 200;
+ * const prefersReducedMotion = usePrefersReducedMotion();
+ * const duration = prefersReducedMotion ? 0 : 200;
  *
- * @remarks
- * If you need to support very old browsers that lack `MediaQueryList.addEventListener`,
- * consider falling back to `addListener/removeListener`.
+ * return <Modal transitionDuration={duration} />;
+ *
+ * @example
+ * // Disable an autoplaying carousel when motion is reduced
+ * const prefersReducedMotion = usePrefersReducedMotion();
+ *
+ * return <Carousel autoplay={!prefersReducedMotion} />;
  */
 export function usePrefersReducedMotion(): boolean {
 	// Default to no animations on SSR/first paint; update on mount with the real value.

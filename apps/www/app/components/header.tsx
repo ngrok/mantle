@@ -18,7 +18,7 @@ import {
 import { ListIcon } from "@phosphor-icons/react/List";
 import { XIcon } from "@phosphor-icons/react/X";
 import type { ComponentProps, PropsWithChildren } from "react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Link, href, useNavigate } from "react-router";
 import { PreviewBadge } from "~/components/badges";
@@ -27,10 +27,11 @@ import { useNavigation } from "./navigation-context";
 import {
 	basePages,
 	baseRoutes,
+	componentCategories,
+	componentsByCategory,
 	hooksRoute,
 	previewComponents,
 	previewComponentsRouteLookup,
-	prodReadyComponents,
 	prodReadyComponentRouteLookup,
 	utilsPages,
 	utilsRoutes,
@@ -84,8 +85,10 @@ export function Header({ className, ...props }: Omit<ComponentProps<"header">, "
 
 				<nav className="hidden md:flex items-center gap-1">
 					<HeaderNavLink to={href("/")}>Docs</HeaderNavLink>
-					<HeaderNavLink to={href("/components/alert-dialog")}>Components</HeaderNavLink>
-					<HeaderNavLink to={href("/blocks")}>Blocks</HeaderNavLink>
+					<HeaderNavLink to={href("/components/actions/button")}>Components</HeaderNavLink>
+					<HeaderNavLink to={href("/layouts")}>Layouts</HeaderNavLink>
+					<HeaderNavLink to={href("/recipes")}>Recipes</HeaderNavLink>
+					<HeaderNavLink to={href("/migrations")}>Migrations</HeaderNavLink>
 				</nav>
 
 				<div className="flex items-center ml-auto">
@@ -102,7 +105,7 @@ export function Header({ className, ...props }: Omit<ComponentProps<"header">, "
 							label="ngrok Mantle GitHub repository"
 							icon={<GitHub />}
 						>
-							<a href="https://github.com/ngrok-oss/mantle" target="_blank" rel="noopener" />
+							<a href="https://github.com/ngrok/mantle" target="_blank" rel="noopener" />
 						</IconButton>
 
 						<DropdownMenu.Root>
@@ -131,7 +134,7 @@ export function Header({ className, ...props }: Omit<ComponentProps<"header">, "
 								</DropdownMenu.Item>
 								<DropdownMenu.Item asChild>
 									<a
-										href="https://github.com/ngrok-oss/mantle"
+										href="https://github.com/ngrok/mantle"
 										target="_blank"
 										rel="noopener"
 										className="justify-between gap-4"
@@ -210,8 +213,8 @@ function CommandPalette() {
 					<Kbd>K</Kbd>
 				</span>
 			</Button>
-			<Command.Dialog.Root open={open} onOpenChange={setOpen}>
-				<Command.Dialog.Content>
+			<Command.DialogRoot open={open} onOpenChange={setOpen}>
+				<Command.DialogContent>
 					<Command.Input placeholder="Search Mantle..." />
 					<Command.List>
 						<Command.Empty>No results found.</Command.Empty>
@@ -237,14 +240,14 @@ function CommandPalette() {
 							))}
 							<Command.Item asChild onSelect={() => setOpen(false)}>
 								<a
-									href="https://github.com/ngrok-oss/mantle"
+									href="https://github.com/ngrok/mantle"
 									target="_blank"
 									rel="noopener"
 									className="flex items-center gap-2 justify-between"
 								>
 									<ItemName>
 										GitHub Repo
-										<span className="text-muted text-xs font-mono">ngrok-oss/mantle</span>
+										<span className="text-muted text-xs font-mono">ngrok/mantle</span>
 									</ItemName>
 									<ArrowSquareOutIcon />
 								</a>
@@ -336,32 +339,36 @@ function CommandPalette() {
 								</Command.Item>
 							))}
 						</Command.Group>
-						<Command.Separator />
-						<Command.Group heading="Components">
-							{prodReadyComponents.map((component) => (
-								<Command.Item
-									key={component}
-									onSelect={() => {
-										navigate(prodReadyComponentRouteLookup[component]);
-										setOpen(false);
-									}}
-									asChild
-								>
-									<Link
-										to={prodReadyComponentRouteLookup[component]}
-										className="flex items-center gap-2 justify-between"
-									>
-										<ItemName>
-											{component}
-											<span className="text-muted text-xs">
-												{prodReadyComponentRouteLookup[component]}
-											</span>
-										</ItemName>
-										<ArrowRightIcon />
-									</Link>
-								</Command.Item>
-							))}
-						</Command.Group>
+						{componentCategories.map((category) => (
+							<Fragment key={category}>
+								<Command.Separator />
+								<Command.Group heading={`Components: ${category}`}>
+									{componentsByCategory[category].map((component) => (
+										<Command.Item
+											key={component}
+											onSelect={() => {
+												navigate(prodReadyComponentRouteLookup[component]);
+												setOpen(false);
+											}}
+											asChild
+										>
+											<Link
+												to={prodReadyComponentRouteLookup[component]}
+												className="flex items-center gap-2 justify-between"
+											>
+												<ItemName>
+													{component}
+													<span className="text-muted text-xs">
+														{prodReadyComponentRouteLookup[component]}
+													</span>
+												</ItemName>
+												<ArrowRightIcon />
+											</Link>
+										</Command.Item>
+									))}
+								</Command.Group>
+							</Fragment>
+						))}
 						<Command.Separator />
 						<Command.Group
 							heading={
@@ -448,8 +455,8 @@ function CommandPalette() {
 							</Command.Item>
 						</Command.Group>
 					</Command.List>
-				</Command.Dialog.Content>
-			</Command.Dialog.Root>
+				</Command.DialogContent>
+			</Command.DialogRoot>
 		</>
 	);
 }

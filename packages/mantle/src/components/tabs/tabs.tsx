@@ -5,7 +5,6 @@ import {
 	Trigger as TabsPrimitiveTrigger,
 } from "@radix-ui/react-tabs";
 import { cva } from "class-variance-authority";
-import clsx from "clsx";
 import type { ComponentPropsWithoutRef, ComponentRef, HTMLAttributes } from "react";
 import {
 	Children,
@@ -15,11 +14,13 @@ import {
 	isValidElement,
 	useContext,
 	useEffect,
+	useMemo,
 	useRef,
 } from "react";
 import invariant from "tiny-invariant";
 import { parseBooleanish } from "../../types/booleanish.js";
 import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
+import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import type { ScrollBehavior } from "../../hooks/use-scroll-behavior.js";
@@ -41,7 +42,7 @@ const TabsStateContext = createContext<TabsStateContextValue>({
  * A set of layered sections of content—known as tab panels—that are displayed one at a time.
  * The root component that provides context for all tab components.
  *
- * @see https://mantle.ngrok.com/components/tabs#tabsroot
+ * @see https://mantle.ngrok.com/components/navigation/tabs#tabsroot
  *
  * @example
  * ```tsx
@@ -69,19 +70,24 @@ const Root = forwardRef<
 		 */
 		appearance?: "classic" | "pill";
 	}
->(({ className, children, orientation = "horizontal", appearance = "classic", ...props }, ref) => (
-	<TabsPrimitiveRoot
-		data-slot="tabs"
-		className={cx("flex gap-4", orientation === "horizontal" ? "flex-col" : "flex-row", className)}
-		orientation={orientation}
-		ref={ref}
-		{...props}
-	>
-		<TabsStateContext.Provider value={{ orientation, appearance }}>
-			{children}
-		</TabsStateContext.Provider>
-	</TabsPrimitiveRoot>
-));
+>(({ className, children, orientation = "horizontal", appearance = "classic", ...props }, ref) => {
+	const contextValue = useMemo(() => ({ orientation, appearance }), [orientation, appearance]);
+	return (
+		<TabsPrimitiveRoot
+			data-slot="tabs"
+			className={cx(
+				"flex gap-4",
+				orientation === "horizontal" ? "flex-col" : "flex-row",
+				className,
+			)}
+			orientation={orientation}
+			ref={ref}
+			{...props}
+		>
+			<TabsStateContext.Provider value={contextValue}>{children}</TabsStateContext.Provider>
+		</TabsPrimitiveRoot>
+	);
+});
 Root.displayName = "Tabs";
 
 /**
@@ -123,7 +129,7 @@ const listVariants = cva("flex", {
  * Contains the triggers that are aligned along the edge of the active content.
  * The container for tab triggers that provides the visual layout for tab navigation.
  *
- * @see https://mantle.ngrok.com/components/tabs#tabslist
+ * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
  *
  * @example
  * ```tsx
@@ -152,37 +158,11 @@ const List = forwardRef<
 		}
 
 		const abortController = new AbortController();
-		let maxScrollLeft = 0;
 
-		const updateShadows = () => {
-			element.toggleAttribute("data-scroll-left", element.scrollLeft > 0);
-			element.toggleAttribute(
-				"data-scroll-right",
-				Math.ceil(element.scrollLeft) < maxScrollLeft - 1,
-			);
-		};
-
-		const handleResize = () => {
-			maxScrollLeft = element.scrollWidth - element.clientWidth;
-			updateShadows();
-		};
-
-		// passive: true — lets the browser optimize scroll performance by guaranteeing
-		// we won't call preventDefault() inside this handler.
-		element.addEventListener("scroll", updateShadows, {
-			passive: true,
-			signal: abortController.signal,
-		});
-
-		// ResizeObserver alone won't catch scrollWidth changes caused by content
-		// mutations (e.g. font loading, badge count changes) when the list container
-		// itself doesn't resize. MutationObserver covers those cases.
-		const mutationObserver = new MutationObserver(handleResize);
-		mutationObserver.observe(element, {
-			childList: true,
-			subtree: true, // subtree catches badge/label content changes inside triggers
-		});
-
+		// The edge fade is handled declaratively by the `scroll-fade-x` utility
+		// (a CSS scroll-driven animation), so the only thing left for JS here is
+		// keeping a keyboard-focused trigger scrolled into view.
+		//
 		// When Radix moves focus via arrow keys it calls element.focus(), which doesn't
 		// always scroll the target into view inside an overflow container. We handle it
 		// explicitly here via event delegation so every trigger gets this behavior with
@@ -203,14 +183,9 @@ const List = forwardRef<
 			},
 			{ signal: abortController.signal },
 		);
-		const resizeObserver = new ResizeObserver(handleResize);
-		resizeObserver.observe(element);
-		handleResize();
 
 		return () => {
 			abortController.abort();
-			resizeObserver.disconnect();
-			mutationObserver.disconnect();
 		};
 	}, [orientation]);
 
@@ -292,7 +267,7 @@ const triggerVariants = cva(
  * The button that activates its associated content.
  * A clickable tab trigger that switches between different tab content panels.
  *
- * @see https://mantle.ngrok.com/components/tabs#tabstrigger
+ * @see https://mantle.ngrok.com/components/navigation/tabs#tabstrigger
  *
  * @example
  * ```tsx
@@ -381,7 +356,7 @@ Trigger.displayName = "TabsTrigger";
  * A badge component that can be used inside tab triggers to display additional information.
  * Typically used to show counts or status indicators within tab headers.
  *
- * @see https://mantle.ngrok.com/components/tabs#tabsbadge
+ * @see https://mantle.ngrok.com/components/navigation/tabs#tabsbadge
  *
  * @example
  * ```tsx
@@ -415,7 +390,7 @@ Badge.displayName = "TabBadge";
  * Contains the content associated with each trigger.
  * The content panel that displays when its corresponding tab trigger is active.
  *
- * @see https://mantle.ngrok.com/components/tabs#tabscontent
+ * @see https://mantle.ngrok.com/components/navigation/tabs#tabscontent
  *
  * @example
  * ```tsx
@@ -450,7 +425,7 @@ Content.displayName = "TabsContent";
  * A set of layered sections of content—known as tab panels—that are displayed one at a time.
  * The root component that provides context for all tab components.
  *
- * @see https://mantle.ngrok.com/components/tabs
+ * @see https://mantle.ngrok.com/components/navigation/tabs
  *
  * @example
  * Composition:
@@ -483,7 +458,7 @@ const Tabs = {
 	 * The root container of the tabs component that provides context for all tab components.
 	 * A set of layered sections of content—known as tab panels—that are displayed one at a time.
 	 *
-	 * @see https://mantle.ngrok.com/components/tabs#tabsroot
+	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabsroot
 	 *
 	 * @example
 	 * ```tsx
@@ -503,7 +478,7 @@ const Tabs = {
 	 * Contains the content associated with each trigger.
 	 * The content panel that displays when its corresponding tab trigger is active.
 	 *
-	 * @see https://mantle.ngrok.com/components/tabs#tabscontent
+	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabscontent
 	 *
 	 * @example
 	 * ```tsx
@@ -522,7 +497,7 @@ const Tabs = {
 	 * Contains the triggers that are aligned along the edge of the active content.
 	 * The container for tab triggers that provides the visual layout for tab navigation.
 	 *
-	 * @see https://mantle.ngrok.com/components/tabs#tabslist
+	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
 	 *
 	 * @example
 	 * ```tsx
@@ -539,7 +514,7 @@ const Tabs = {
 	 * The button that activates its associated content.
 	 * A clickable tab trigger that switches between different tab content panels.
 	 *
-	 * @see https://mantle.ngrok.com/components/tabs#tabstrigger
+	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabstrigger
 	 *
 	 * @example
 	 * ```tsx
@@ -556,7 +531,7 @@ const Tabs = {
 	 * A badge component that can be used inside tab triggers to display additional information.
 	 * Typically used to show counts or status indicators within tab headers.
 	 *
-	 * @see https://mantle.ngrok.com/components/tabs#tabsbadge
+	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabsbadge
 	 *
 	 * @example
 	 * ```tsx

@@ -76,6 +76,9 @@ const thresholds = {
  */
 function inView(
 	element: Element,
+	// `void | ViewChangeHandler` mirrors React's `EffectCallback` pattern so callers can
+	// optionally return a cleanup handler without TS complaining about implicit-void returns.
+	// oxlint-disable-next-line typescript/no-invalid-void-type
 	onStart: (element: Element, entry: IntersectionObserverEntry) => void | ViewChangeHandler,
 	{ root, margin: rootMargin, amount = "some" }: InViewOptions = {},
 ): VoidFunction {

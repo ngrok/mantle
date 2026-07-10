@@ -311,6 +311,7 @@ MARK: DARK DEFS
 
 	--color-card-border: var(--color-neutral-300);
 	--color-card-border-muted: var(--color-neutral-200);
+	--color-separator: --alpha(var(--color-gray-600) / 0.2);
 
 	--text-color-strong: #fff;
 	--text-color-body: --alpha(#fff / 0.7);

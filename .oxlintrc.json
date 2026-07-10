@@ -1,17 +1,57 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "react", "jsx-a11y"],
+  "plugins": [
+    "jsdoc",
+    "jsx-a11y",
+    "promise",
+    "react-perf",
+    "react",
+    "typescript",
+    "unicorn",
+    "vitest"
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "warn"
   },
   "rules": {
+    "array-callback-return": "error",
+    "control-has-associated-label": "off",
     "curly": "error",
-    "no-useless-switch-case": "off",
-    "no-shadow": "off",
-    "react/react-in-jsx-scope": "off",
+    "eslint/no-shadow": "off",
+    "eslint/no-underscore-dangle": "off",
+    "jsdoc/check-property-names": "error",
     "jsx-a11y/anchor-has-content": "off",
-    "react/no-danger": "off",
+    "jsx-a11y/no-noninteractive-element-interactions": "off",
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "jsdoc/check-tag-names": [
+      "error",
+      {
+        "definedTags": [
+          "defaultValue",
+          "docs",
+          "note",
+          "preview",
+          "remarks",
+          "required",
+          "typeParam",
+          "warning"
+        ]
+      }
+    ],
+    "jsdoc/empty-tags": "off",
+    "jsdoc/no-defaults": "warn",
+    "jsdoc/require-param-name": "error",
+    "jsdoc/require-property-description": "warn",
+    "jsdoc/require-property-name": "error",
+    "jsdoc/require-property-type": "off",
+    "jsdoc/require-property": "off",
+    "jsdoc/require-throws-description": "warn",
+    "jsdoc/require-yields": "off",
+    "no-explicit-any": "warn",
+    "no-fallthrough": "error",
+    "no-promise-executor-return": "error",
+    "no-prototype-builtins": "error",
     "no-restricted-globals": [
       "error",
       {
@@ -19,8 +59,46 @@
         "message": "Use react-router's useLocation hook instead"
       }
     ],
-    "no-explicit-any": "warn"
+    "no-shadow": "off",
+    "no-throw-literal": "error",
+    "no-useless-switch-case": "off",
+    "no-var": "error",
+    "prefer-const": "error",
+    "promise/always-return": "error",
+    "promise/no-return-wrap": "error",
+    "react/button-has-type": "error",
+    "react/checked-requires-onchange-or-readonly": "error",
+    "react/display-name": "warn",
+    "react/exhaustive-deps": "error",
+    "react/iframe-missing-sandbox": "error",
+    "react/jsx-no-constructed-context-values": "error",
+    "react/jsx-no-script-url": "error",
+    "react/jsx-no-target-blank": ["error", { "allowReferrer": true }],
+    "react/jsx-no-useless-fragment": "error",
+    "react/no-array-index-key": "warn",
+    "react/no-danger": "off",
+    "react/no-object-type-as-default-prop": "error",
+    "react/no-unescaped-entities": "error",
+    "react/no-unknown-property": "error",
+    "react/no-unstable-nested-components": ["warn", { "allowAsProps": true }],
+    "react/react-in-jsx-scope": "off",
+    "react/rules-of-hooks": "error",
+    "react/self-closing-comp": "error",
+    "typescript/consistent-type-imports": "error",
+    "typescript/no-import-type-side-effects": "error",
+    "typescript/no-invalid-void-type": "error",
+    "typescript/no-non-null-assertion": "error",
+    "unicorn/filename-case": ["error", { "case": "kebabCase", "ignore": ["[\\[\\$]"] }]
   },
+  "overrides": [
+    {
+      "files": ["**/*.test.{ts,tsx}", "**/*.browser.test.{ts,tsx}"],
+      "rules": {
+        "react/no-object-type-as-default-prop": "off",
+        "unicorn/consistent-function-scoping": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     ".cache",
     ".changeset",
@@ -32,6 +110,7 @@
     "dist",
     "node_modules",
     "public",
-    "*/code-gen"
+    "*/code-gen",
+    "packages/mantle/src/utils/cx/vendor"
   ]
 }

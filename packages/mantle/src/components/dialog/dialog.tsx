@@ -9,7 +9,11 @@ import * as DialogPrimitive from "./primitive.js";
  * A window overlaid on either the primary window or another dialog window.
  * The root stateful component for the Dialog.
  *
- * @see https://mantle.ngrok.com/components/dialog#dialogroot
+ * `Dialog` renders its floating layer at Tailwind `z-50`, Mantle's shared
+ * floating z-index. When multiple shared layers are open, the most recently
+ * mounted layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/dialog#dialogroot
  *
  * @example
  * ```tsx
@@ -42,7 +46,7 @@ Root.displayName = "Dialog";
 /**
  * A button that opens the dialog.
  *
- * @see https://mantle.ngrok.com/components/dialog#dialogtrigger
+ * @see https://mantle.ngrok.com/components/overlays/dialog#dialogtrigger
  *
  * @example
  * ```tsx
@@ -75,15 +79,122 @@ const Trigger = forwardRef<
 >((props, ref) => <DialogPrimitive.Trigger ref={ref} data-slot="dialog-trigger" {...props} />);
 Trigger.displayName = "DialogTrigger";
 
+/**
+ * The portal container for the dialog. Renders the overlay and content into a
+ * portal so the dialog escapes its parent's stacking context.
+ *
+ * Most consumers should not need to use this directly — `Dialog.Content`
+ * already wraps its children in a portal. Use this only when you need to
+ * customize the portal target or render the overlay yourself.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/dialog#api-reference
+ *
+ * @example
+ * ```tsx
+ * <Dialog.Root>
+ *   <Dialog.Trigger asChild>
+ *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *   </Dialog.Trigger>
+ *   <Dialog.Portal>
+ *     <Dialog.Overlay />
+ *     <Dialog.Content>
+ *       <Dialog.Header>
+ *         <Dialog.Title>Dialog Title</Dialog.Title>
+ *         <Dialog.Description>This is an optional description.</Dialog.Description>
+ *         <Dialog.CloseIconButton />
+ *       </Dialog.Header>
+ *       <Dialog.Body>
+ *         <p>This is the dialog content.</p>
+ *       </Dialog.Body>
+ *       <Dialog.Footer>
+ *         <Dialog.Close asChild>
+ *           <Button type="button" appearance="outlined">Cancel</Button>
+ *         </Dialog.Close>
+ *         <Button type="button" appearance="filled">Save</Button>
+ *       </Dialog.Footer>
+ *     </Dialog.Content>
+ *   </Dialog.Portal>
+ * </Dialog.Root>
+ * ```
+ */
 const Portal = DialogPrimitive.Portal;
 Portal.displayName = "DialogPortal";
 
+/**
+ * A button that closes the dialog when clicked. Wrap an interactive element
+ * with `asChild` to delegate the close behavior to your own button.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/dialog#dialogclose
+ *
+ * @example
+ * ```tsx
+ * <Dialog.Root>
+ *   <Dialog.Trigger asChild>
+ *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *   </Dialog.Trigger>
+ *   <Dialog.Content>
+ *     <Dialog.Header>
+ *       <Dialog.Title>Dialog Title</Dialog.Title>
+ *       <Dialog.Description>This is an optional description.</Dialog.Description>
+ *       <Dialog.CloseIconButton />
+ *     </Dialog.Header>
+ *     <Dialog.Body>
+ *       <p>This is the dialog content.</p>
+ *     </Dialog.Body>
+ *     <Dialog.Footer>
+ *       <Dialog.Close asChild>
+ *         <Button type="button" appearance="outlined">Cancel</Button>
+ *       </Dialog.Close>
+ *       <Button type="button" appearance="filled">Save</Button>
+ *     </Dialog.Footer>
+ *   </Dialog.Content>
+ * </Dialog.Root>
+ * ```
+ */
 const Close = forwardRef<
 	ComponentRef<typeof DialogPrimitive.Close>,
 	ComponentPropsWithoutRef<typeof DialogPrimitive.Close>
 >((props, ref) => <DialogPrimitive.Close ref={ref} data-slot="dialog-close" {...props} />);
 Close.displayName = "DialogClose";
 
+/**
+ * The backdrop overlay for the dialog. Sits between the page and the dialog
+ * content and applies a blur and dim effect.
+ *
+ * Most consumers should not need to use this directly — `Dialog.Content`
+ * renders an overlay automatically. Use this only when composing a custom
+ * `Dialog.Portal` tree.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/dialog#api-reference
+ *
+ * @example
+ * ```tsx
+ * <Dialog.Root>
+ *   <Dialog.Trigger asChild>
+ *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *   </Dialog.Trigger>
+ *   <Dialog.Portal>
+ *     <Dialog.Overlay />
+ *     <Dialog.Content>
+ *       <Dialog.Header>
+ *         <Dialog.Title>Dialog Title</Dialog.Title>
+ *         <Dialog.Description>This is an optional description.</Dialog.Description>
+ *         <Dialog.CloseIconButton />
+ *       </Dialog.Header>
+ *       <Dialog.Body>
+ *         <p>This is the dialog content.</p>
+ *       </Dialog.Body>
+ *       <Dialog.Footer>
+ *         <Dialog.Close asChild>
+ *           <Button type="button" appearance="outlined">Cancel</Button>
+ *         </Dialog.Close>
+ *         <Button type="button" appearance="filled">Save</Button>
+ *       </Dialog.Footer>
+ *     </Dialog.Content>
+ *   </Dialog.Portal>
+ * </Dialog.Root>
+ * ```
+ */
 const Overlay = forwardRef<
 	ComponentRef<"div">,
 	ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
@@ -116,7 +227,11 @@ type ContentProps = ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
  * The container for the dialog content.
  * Renders on top of the overlay and is centered in the viewport.
  *
- * @see https://mantle.ngrok.com/components/dialog#dialogcontent
+ * `Dialog.Content` renders its floating layer at Tailwind `z-50`, Mantle's
+ * shared floating z-index. When multiple shared layers are open, the most
+ * recently mounted layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/dialog#dialogcontent
  *
  * @example
  * ```tsx
@@ -173,7 +288,7 @@ Content.displayName = "DialogContent";
 /**
  * Contains the header content of the dialog, including the title and close button.
  *
- * @see https://mantle.ngrok.com/components/dialog#dialogheader
+ * @see https://mantle.ngrok.com/components/overlays/dialog#dialogheader
  *
  * @example
  * ```tsx
@@ -220,7 +335,7 @@ type CloseIconButtonProps = Partial<Omit<IconButtonProps, "icon">>;
 /**
  * An icon button that closes the dialog when clicked.
  *
- * @see https://mantle.ngrok.com/components/dialog#dialogcloseiconbutton
+ * @see https://mantle.ngrok.com/components/overlays/dialog#dialogcloseiconbutton
  *
  * @example
  * ```tsx
@@ -271,7 +386,7 @@ CloseIconButton.displayName = "DialogCloseIconButton";
 /**
  * Contains the main content of the dialog.
  *
- * @see https://mantle.ngrok.com/components/dialog#dialogbody
+ * @see https://mantle.ngrok.com/components/overlays/dialog#dialogbody
  *
  * @example
  * ```tsx
@@ -301,7 +416,10 @@ CloseIconButton.displayName = "DialogCloseIconButton";
 const Body = ({ className, ...props }: ComponentProps<"div">) => (
 	<div
 		data-slot="dialog-body"
-		className={cx("scrollbar text-body flex-1 overflow-y-auto p-6", className)}
+		className={cx(
+			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto p-6",
+			className,
+		)}
 		{...props}
 	/>
 );
@@ -310,7 +428,7 @@ Body.displayName = "DialogBody";
 /**
  * Contains the footer content of the dialog, including action buttons.
  *
- * @see https://mantle.ngrok.com/components/dialog#dialogfooter
+ * @see https://mantle.ngrok.com/components/overlays/dialog#dialogfooter
  *
  * @example
  * ```tsx
@@ -341,7 +459,7 @@ const Footer = ({ className, ...props }: ComponentProps<"div">) => (
 	<div
 		data-slot="dialog-footer"
 		className={cx(
-			"border-dialog-muted flex shrink-0 flex-row-reverse gap-2 border-t px-6 py-4",
+			"border-dialog-muted flex shrink-0 justify-end gap-2 border-t px-6 py-4",
 			className,
 		)}
 		{...props}
@@ -352,7 +470,7 @@ Footer.displayName = "DialogFooter";
 /**
  * An accessible name to be announced when the dialog is opened.
  *
- * @see https://mantle.ngrok.com/components/dialog#dialogtitle
+ * @see https://mantle.ngrok.com/components/overlays/dialog#dialogtitle
  *
  * @example
  * ```tsx
@@ -397,7 +515,7 @@ Title.displayName = "DialogTitle";
  * Renders as a `div` by default, but can be changed to any other element using
  * the `asChild` prop.
  *
- * @see https://mantle.ngrok.com/components/dialog#dialogdescription
+ * @see https://mantle.ngrok.com/components/overlays/dialog#dialogdescription
  *
  * @example
  * ```tsx
@@ -438,9 +556,18 @@ const Description = forwardRef<
 Description.displayName = "DialogDescription";
 
 /**
- * A window overlaid on either the primary window or another dialog window.
+ * A window overlaid on either the primary window or another dialog window. Use
+ * Dialog for a focused modal that interrupts the user to gather input or
+ * confirm a non-destructive choice. For destructive or irreversible
+ * confirmations (delete, sign out, leave without saving), prefer `AlertDialog`.
+ * For side-panel content that slides in from an edge (filter panels, detail
+ * views, navigation drawers), prefer `Sheet`.
  *
- * @see https://mantle.ngrok.com/components/dialog
+ * `Dialog` renders its floating layer at Tailwind `z-50`, Mantle's shared
+ * floating z-index. When multiple shared layers are open, the most recently
+ * mounted layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/dialog
  *
  * @example
  * Composition:
@@ -487,7 +614,11 @@ const Dialog = {
 	 * A window overlaid on either the primary window or another dialog window.
 	 * The root stateful component for the Dialog.
 	 *
-	 * @see https://mantle.ngrok.com/components/dialog#dialogroot
+	 * `Dialog` renders its floating layer at Tailwind `z-50`, Mantle's shared
+	 * floating z-index. When multiple shared layers are open, the most recently
+	 * mounted layer renders on top.
+	 *
+	 * @see https://mantle.ngrok.com/components/overlays/dialog#dialogroot
 	 *
 	 * @example
 	 * ```tsx
@@ -518,7 +649,7 @@ const Dialog = {
 	/**
 	 * Contains the main content of the dialog.
 	 *
-	 * @see https://mantle.ngrok.com/components/dialog#dialogbody
+	 * @see https://mantle.ngrok.com/components/overlays/dialog#dialogbody
 	 *
 	 * @example
 	 * ```tsx
@@ -549,7 +680,7 @@ const Dialog = {
 	/**
 	 * A button that closes the dialog when clicked.
 	 *
-	 * @see https://mantle.ngrok.com/components/dialog#dialogclose
+	 * @see https://mantle.ngrok.com/components/overlays/dialog#dialogclose
 	 *
 	 * @example
 	 * ```tsx
@@ -580,7 +711,7 @@ const Dialog = {
 	/**
 	 * An icon button that closes the dialog when clicked.
 	 *
-	 * @see https://mantle.ngrok.com/components/dialog#dialogcloseiconbutton
+	 * @see https://mantle.ngrok.com/components/overlays/dialog#dialogcloseiconbutton
 	 *
 	 * @example
 	 * ```tsx
@@ -612,7 +743,11 @@ const Dialog = {
 	 * The container for the dialog content.
 	 * Renders on top of the overlay and is centered in the viewport.
 	 *
-	 * @see https://mantle.ngrok.com/components/dialog#dialogcontent
+	 * `Dialog.Content` renders its floating layer at Tailwind `z-50`, Mantle's
+	 * shared floating z-index. When multiple shared layers are open, the most
+	 * recently mounted layer renders on top.
+	 *
+	 * @see https://mantle.ngrok.com/components/overlays/dialog#dialogcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -643,7 +778,7 @@ const Dialog = {
 	/**
 	 * An accessible description to be announced when the dialog is opened.
 	 *
-	 * @see https://mantle.ngrok.com/components/dialog#dialogdescription
+	 * @see https://mantle.ngrok.com/components/overlays/dialog#dialogdescription
 	 *
 	 * @example
 	 * ```tsx
@@ -674,7 +809,7 @@ const Dialog = {
 	/**
 	 * Contains the footer content of the dialog, including action buttons.
 	 *
-	 * @see https://mantle.ngrok.com/components/dialog#dialogfooter
+	 * @see https://mantle.ngrok.com/components/overlays/dialog#dialogfooter
 	 *
 	 * @example
 	 * ```tsx
@@ -705,7 +840,7 @@ const Dialog = {
 	/**
 	 * Contains the header content of the dialog, including the title and close button.
 	 *
-	 * @see https://mantle.ngrok.com/components/dialog#dialogheader
+	 * @see https://mantle.ngrok.com/components/overlays/dialog#dialogheader
 	 *
 	 * @example
 	 * ```tsx
@@ -736,7 +871,7 @@ const Dialog = {
 	/**
 	 * The overlay backdrop for the dialog.
 	 *
-	 * @see https://mantle.ngrok.com/components/dialog#api-reference
+	 * @see https://mantle.ngrok.com/components/overlays/dialog#api-reference
 	 *
 	 * @example
 	 * ```tsx
@@ -770,7 +905,7 @@ const Dialog = {
 	/**
 	 * The portal container for the dialog.
 	 *
-	 * @see https://mantle.ngrok.com/components/dialog#api-reference
+	 * @see https://mantle.ngrok.com/components/overlays/dialog#api-reference
 	 *
 	 * @example
 	 * ```tsx
@@ -804,7 +939,7 @@ const Dialog = {
 	/**
 	 * An accessible name to be announced when the dialog is opened.
 	 *
-	 * @see https://mantle.ngrok.com/components/dialog#dialogtitle
+	 * @see https://mantle.ngrok.com/components/overlays/dialog#dialogtitle
 	 *
 	 * @example
 	 * ```tsx
@@ -835,7 +970,7 @@ const Dialog = {
 	/**
 	 * A button that opens the dialog.
 	 *
-	 * @see https://mantle.ngrok.com/components/dialog#dialogtrigger
+	 * @see https://mantle.ngrok.com/components/overlays/dialog#dialogtrigger
 	 *
 	 * @example
 	 * ```tsx

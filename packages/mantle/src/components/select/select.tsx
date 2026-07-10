@@ -14,11 +14,13 @@ import type {
 	Ref,
 	SelectHTMLAttributes,
 } from "react";
-import { createContext, forwardRef, useContext } from "react";
+import { createContext, forwardRef, useContext, useMemo } from "react";
 import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import { FieldControlContext } from "../field/field-context.js";
+import { parseValidation, useFieldValidation } from "../field/validation.js";
+import type { WithValidation } from "../field/validation.js";
 import { Icon } from "../icon/icon.js";
-import type { WithValidation } from "../input/types.js";
 import { Separator } from "../separator/separator.js";
 
 type WithAriaInvalid = Pick<SelectHTMLAttributes<HTMLSelectElement>, "aria-invalid">;
@@ -67,7 +69,23 @@ type SelectProps = PropsWithChildren & {
 /**
  * Displays a list of options for the user to pick from—triggered by a button.
  *
- * @see https://mantle.ngrok.com/components/select#selectroot
+ * Use Select for a small, finite list of options (~2-15) where the user picks exactly one
+ * and search/filtering is unnecessary. For larger lists or async/searchable data, use
+ * Combobox. For picking multiple options, use MultiSelect.
+ *
+ * Pass `validation` here when the entire select has an explicit state. That
+ * root state is forwarded to `Select.Trigger` and takes precedence over the
+ * ambient `validation` from `Field.Item`. Note: rendered `Field.Errors` /
+ * `Field.ErrorList` set `aria-invalid="true"` on the trigger via
+ * `Field.Control`'s wiring, which still forces the trigger into the error
+ * state — suppress the inferred error by passing `validation` on `Field.Item`
+ * if a non-error `Select.Root` state needs to win in that case.
+ *
+ * `Select.Content` renders at Tailwind `z-50`, Mantle's shared floating
+ * z-index. When multiple shared layers are open, the most recently mounted
+ * layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/forms/select#selectroot
  *
  * @example
  * ```tsx
@@ -106,6 +124,16 @@ const Root = forwardRef<HTMLButtonElement, SelectProps>(
 		},
 		ref,
 	) => {
+		const contextValue = useMemo(
+			() => ({
+				"aria-invalid": _ariaInvalid,
+				id,
+				validation,
+				onBlur,
+				ref,
+			}),
+			[_ariaInvalid, id, validation, onBlur, ref],
+		);
 		return (
 			<SelectPrimitive.Root
 				{...props}
@@ -114,11 +142,7 @@ const Root = forwardRef<HTMLButtonElement, SelectProps>(
 					onValueChange?.(value);
 				}}
 			>
-				<SelectContext.Provider
-					value={{ "aria-invalid": _ariaInvalid, id, validation, onBlur, ref }}
-				>
-					{children}
-				</SelectContext.Provider>
+				<SelectContext.Provider value={contextValue}>{children}</SelectContext.Provider>
 			</SelectPrimitive.Root>
 		);
 	},
@@ -129,7 +153,7 @@ Root.displayName = "Select";
  * A group of related options within a select menu. Similar to an html `<optgroup>` element.
  * Use in conjunction with Select.Label to ensure good accessibility via automatic labelling.
  *
- * @see https://mantle.ngrok.com/components/select#selectgroup
+ * @see https://mantle.ngrok.com/components/forms/select#selectgroup
  *
  * @example
  * ```tsx
@@ -170,7 +194,7 @@ Group.displayName = "SelectGroup";
 /**
  * The part that reflects the selected value. By default the selected item's text will be rendered. if you require more control, you can instead control the select and pass your own children. It should not be styled to ensure correct positioning. An optional placeholder prop is also available for when the select has no value.
  *
- * @see https://mantle.ngrok.com/components/select#selectvalue
+ * @see https://mantle.ngrok.com/components/forms/select#selectvalue
  *
  * @example
  * ```tsx
@@ -204,8 +228,12 @@ type SelectTriggerProps = ComponentPropsWithoutRef<typeof SelectPrimitive.Trigge
 
 /**
  * The button that toggles the select. The Select.Content will position itself adjacent to the trigger.
+ * When composing with `Field.Item`, wrap `Select.Root` in `Field.Control` —
+ * the generated `id`, `name`, and `aria-invalid` flow onto `Select.Root` (so
+ * the hidden form input gets the field name), and the trigger reads
+ * `aria-describedby` / `aria-errormessage` from `FieldControlContext`.
  *
- * @see https://mantle.ngrok.com/components/select#selecttrigger
+ * @see https://mantle.ngrok.com/components/forms/select#selecttrigger
  *
  * @example
  * ```tsx
@@ -243,20 +271,23 @@ const Trigger = forwardRef<ComponentRef<typeof SelectPrimitive.Trigger>, SelectT
 		ref,
 	) => {
 		const ctx = useContext(SelectContext);
-		const _ariaInvalid = ctx["aria-invalid"] ?? ariaInValidProp;
-		const isInvalid = _ariaInvalid != null && _ariaInvalid !== "false";
-		const _validation = ctx.validation ?? propValidation;
-		const validation = isInvalid
-			? "error"
-			: typeof _validation === "function"
-				? _validation()
-				: _validation;
-		const ariaInvalid = _ariaInvalid ?? validation === "error";
-		const id = ctx.id ?? propId;
+		const fieldControl = useContext(FieldControlContext);
+		const fieldValidation = useFieldValidation();
+		const rawAriaInvalid = fieldControl
+			? fieldControl["aria-invalid"]
+			: (ctx["aria-invalid"] ?? ariaInValidProp);
+		// Explicit Select props win over ambient Field validation. This lets
+		// Field.Control override Field.Item while preserving Select.Root as the
+		// highest-precedence select-level state.
+		const rawValidation = ctx.validation ?? propValidation ?? fieldValidation;
+		const { ariaInvalid, validation } = parseValidation({
+			"aria-invalid": rawAriaInvalid,
+			validation: rawValidation,
+		});
+		const id = fieldControl ? fieldControl.id : (ctx.id ?? propId);
 
 		return (
 			<SelectPrimitive.Trigger
-				aria-invalid={ariaInvalid}
 				data-slot="select-trigger"
 				className={cx(
 					"h-9 text-sm",
@@ -273,6 +304,13 @@ const Trigger = forwardRef<ComponentRef<typeof SelectPrimitive.Trigger>, SelectT
 				id={id}
 				ref={composeRefs(ref, ctx.ref)}
 				{...props}
+				{...(fieldControl
+					? {
+							"aria-describedby": fieldControl["aria-describedby"],
+							"aria-errormessage": fieldControl["aria-errormessage"],
+						}
+					: undefined)}
+				aria-invalid={ariaInvalid}
 			>
 				{children}
 				<SelectPrimitive.Icon asChild>
@@ -333,7 +371,11 @@ type SelectContentProps = ComponentPropsWithoutRef<typeof SelectPrimitive.Conten
  * The component that pops out when the select is open as a portal adjacent to the trigger button.
  * It contains a scrolling viewport of the select items.
  *
- * @see https://mantle.ngrok.com/components/select#selectcontent
+ * `Select.Content` renders at Tailwind `z-50`, Mantle's shared floating
+ * z-index. When multiple shared layers are open, the most recently mounted
+ * layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/forms/select#selectcontent
  *
  * @example
  * ```tsx
@@ -394,7 +436,7 @@ Content.displayName = "SelectContent";
 /**
  * Used to render the label of a group. It won't be focusable using arrow keys.
  *
- * @see https://mantle.ngrok.com/components/select#selectlabel
+ * @see https://mantle.ngrok.com/components/forms/select#selectlabel
  *
  * @example
  * ```tsx
@@ -441,7 +483,7 @@ type SelectItemProps = ComponentPropsWithoutRef<typeof SelectPrimitive.Item> & {
  * Has a required `value` prop that will be passed to the `onChange` handler of the `Select` component when this item is selected.
  * Displays the children as the option's text.
  *
- * @see https://mantle.ngrok.com/components/select#selectitem
+ * @see https://mantle.ngrok.com/components/forms/select#selectitem
  *
  * @example
  * ```tsx
@@ -494,7 +536,7 @@ Item.displayName = "SelectItem";
 /**
  * Used to visually separate items or groups of items in the select content.
  *
- * @see https://mantle.ngrok.com/components/select#selectseparator
+ * @see https://mantle.ngrok.com/components/forms/select#selectseparator
  *
  * @example
  * ```tsx
@@ -535,7 +577,15 @@ SelectSeparatorComponent.displayName = "SelectSeparator";
 /**
  * Displays a list of options for the user to pick from—triggered by a button.
  *
- * @see https://mantle.ngrok.com/components/select
+ * Use Select for a small, finite list of options (~2-15) where the user picks exactly one
+ * and search/filtering is unnecessary. For larger lists or async/searchable data, use
+ * Combobox. For picking multiple options, use MultiSelect.
+ *
+ * `Select.Content` renders at Tailwind `z-50`, Mantle's shared floating
+ * z-index. When multiple shared layers are open, the most recently mounted
+ * layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/forms/select
  *
  * @example
  * Composition:
@@ -577,7 +627,15 @@ const Select = {
 	/**
 	 * Displays a list of options for the user to pick from—triggered by a button.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selectroot
+	 * Use Select for a small, finite list of options (~2-15) where the user picks exactly one
+	 * and search/filtering is unnecessary. For larger lists or async/searchable data, use
+	 * Combobox. For picking multiple options, use MultiSelect.
+	 *
+	 * `Select.Content` renders at Tailwind `z-50`, Mantle's shared floating
+	 * z-index. When multiple shared layers are open, the most recently mounted
+	 * layer renders on top.
+	 *
+	 * @see https://mantle.ngrok.com/components/forms/select#selectroot
 	 *
 	 * @example
 	 * ```tsx
@@ -607,7 +665,11 @@ const Select = {
 	 * The component that pops out when the select is open as a portal adjacent to the trigger button.
 	 * It contains a scrolling viewport of the select items.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selectcontent
+	 * `Select.Content` renders at Tailwind `z-50`, Mantle's shared floating
+	 * z-index. When multiple shared layers are open, the most recently mounted
+	 * layer renders on top.
+	 *
+	 * @see https://mantle.ngrok.com/components/forms/select#selectcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -637,7 +699,7 @@ const Select = {
 	 * A group of related options within a select menu. Similar to an html `<optgroup>` element.
 	 * Use in conjunction with Select.Label to ensure good accessibility via automatic labelling.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selectgroup
+	 * @see https://mantle.ngrok.com/components/forms/select#selectgroup
 	 *
 	 * @example
 	 * ```tsx
@@ -668,7 +730,7 @@ const Select = {
 	 * Has a required `value` prop that will be passed to the `onChange` handler of the `Select` component when this item is selected.
 	 * Displays the children as the option's text.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selectitem
+	 * @see https://mantle.ngrok.com/components/forms/select#selectitem
 	 *
 	 * @example
 	 * ```tsx
@@ -697,7 +759,7 @@ const Select = {
 	/**
 	 * Used to render the label of a group. It won't be focusable using arrow keys.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selectlabel
+	 * @see https://mantle.ngrok.com/components/forms/select#selectlabel
 	 *
 	 * @example
 	 * ```tsx
@@ -726,7 +788,7 @@ const Select = {
 	/**
 	 * Used to visually separate items or groups of items in the select content.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selectseparator
+	 * @see https://mantle.ngrok.com/components/forms/select#selectseparator
 	 *
 	 * @example
 	 * ```tsx
@@ -755,7 +817,7 @@ const Select = {
 	/**
 	 * The button that toggles the select. The Select.Content will position itself adjacent to the trigger.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selecttrigger
+	 * @see https://mantle.ngrok.com/components/forms/select#selecttrigger
 	 *
 	 * @example
 	 * ```tsx
@@ -784,7 +846,7 @@ const Select = {
 	/**
 	 * The part that reflects the selected value. By default the selected item's text will be rendered. if you require more control, you can instead control the select and pass your own children. It should not be styled to ensure correct positioning. An optional placeholder prop is also available for when the select has no value.
 	 *
-	 * @see https://mantle.ngrok.com/components/select#selectvalue
+	 * @see https://mantle.ngrok.com/components/forms/select#selectvalue
 	 *
 	 * @example
 	 * ```tsx

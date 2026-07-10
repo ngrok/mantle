@@ -3,7 +3,6 @@
 import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
 import { WarningIcon } from "@phosphor-icons/react/Warning";
 import { WarningDiamondIcon } from "@phosphor-icons/react/WarningDiamond";
-import clsx from "clsx";
 import type {
 	ComponentRef,
 	ForwardedRef,
@@ -11,11 +10,14 @@ import type {
 	MutableRefObject,
 	PropsWithChildren,
 } from "react";
-import { createContext, forwardRef, useContext, useRef } from "react";
+import { createContext, forwardRef, useContext, useMemo, useRef } from "react";
 import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
+import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
+import { parseValidation, useFieldValidation } from "../field/validation.js";
+import type { Validation, WithValidation } from "../field/validation.js";
 import { Icon } from "../icon/icon.js";
-import type { Validation, WithAutoComplete, WithInputType, WithValidation } from "./types.js";
+import type { WithAutoComplete, WithInputType } from "./types.js";
 
 type BaseProps = WithAutoComplete & WithInputType & WithValidation;
 
@@ -30,7 +32,7 @@ type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "autoComplete" | "
  * Used to create interactive controls for web-based forms in order to accept data from the user.
  * A versatile input element that supports various types, validation states, and can be composed with other elements.
  *
- * @see https://mantle.ngrok.com/components/input
+ * @see https://mantle.ngrok.com/components/forms/input
  *
  * @example
  * ```tsx
@@ -80,7 +82,7 @@ type InputCaptureProps = Omit<InputHTMLAttributes<HTMLInputElement>, "autoComple
  * The actual <input /> element that captures user input.
  * Used internally by Input component or when you need direct control over the input element.
  *
- * @see https://mantle.ngrok.com/components/input
+ * @see https://mantle.ngrok.com/components/forms/input
  *
  * @example
  * ```tsx
@@ -99,11 +101,12 @@ const InputCapture = forwardRef<HTMLInputElement, InputCaptureProps>(
 			validation: ctxValidation,
 			...ctx
 		} = useContext(InputContext);
+		const fieldValidation = useFieldValidation();
 
-		const validation = ctxValidation ?? _validation;
-		const validationValue =
-			(typeof validation === "function" ? validation() : validation) || undefined;
-		const ariaInvalid = ctxAriaInvalid ?? _ariaInvalid ?? validation === "error";
+		const { ariaInvalid, validation } = parseValidation({
+			"aria-invalid": ctxAriaInvalid ?? _ariaInvalid,
+			validation: ctxValidation ?? _validation ?? fieldValidation,
+		});
 		const props = {
 			...ctx,
 			...restProps,
@@ -114,7 +117,7 @@ const InputCapture = forwardRef<HTMLInputElement, InputCaptureProps>(
 			<input
 				aria-invalid={ariaInvalid}
 				data-slot="input-capture"
-				data-validation={validationValue}
+				data-validation={validation}
 				className={cx(
 					"placeholder:text-placeholder min-w-0 flex-1 bg-transparent text-left autofill:shadow-[inset_0_0_0px_1000px_var(--color-blue-50)] focus:outline-hidden",
 					className,
@@ -173,25 +176,26 @@ const InputContainer = ({
 	validation: _validation,
 	...props
 }: InputContainerProps & { "data-slot"?: string }) => {
-	const isInvalid = _ariaInvalid != null && _ariaInvalid !== "false";
-	const validation = isInvalid
-		? "error"
-		: typeof _validation === "function"
-			? _validation()
-			: _validation;
+	const fieldValidation = useFieldValidation();
+	const { validation } = parseValidation({
+		"aria-invalid": _ariaInvalid,
+		validation: _validation ?? fieldValidation,
+	});
+	const contextValue = useMemo(
+		() => ({
+			"aria-invalid": _ariaInvalid,
+			"aria-disabled": _ariaDisabled,
+			disabled,
+			type,
+			validation: _validation,
+			...props,
+			forwardedRef,
+			innerRef,
+		}),
+		[_ariaInvalid, _ariaDisabled, disabled, type, _validation, props, forwardedRef, innerRef],
+	);
 	return (
-		<InputContext.Provider
-			value={{
-				"aria-invalid": _ariaInvalid,
-				"aria-disabled": _ariaDisabled,
-				disabled,
-				type,
-				validation,
-				...props,
-				forwardedRef,
-				innerRef,
-			}}
-		>
+		<InputContext.Provider value={contextValue}>
 			<div
 				role="none"
 				data-slot={dataSlot}

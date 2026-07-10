@@ -4,15 +4,26 @@ import type { ComponentProps, ComponentPropsWithoutRef, ComponentRef } from "rea
 import { cx } from "../../utils/cx/cx.js";
 
 /**
- * Wraps your app to provide global functionality to your tooltips.
- * Only one instance of this component should be rendered in your app, preferably at the root.
+ * Wraps your app to provide shared global behavior for your tooltips, such
+ * as consistent delay and hover settings. Mount one instance at the root of
+ * your app when you want app-wide tooltip defaults. Children render
+ * `Tooltip.Root` / `Tooltip.Trigger` / `Tooltip.Content` trees as usual.
  *
- * @see https://mantle.ngrok.com/components/tooltip#tooltipprovider
+ * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltipprovider
  *
  * @example
  * ```tsx
  * <TooltipProvider>
- *   <App />
+ *   <Tooltip.Root>
+ *     <Tooltip.Trigger asChild>
+ *       <Button type="button" appearance="outlined">
+ *         Hover me
+ *       </Button>
+ *     </Tooltip.Trigger>
+ *     <Tooltip.Content>
+ *       This is a tooltip
+ *     </Tooltip.Content>
+ *   </Tooltip.Root>
  * </TooltipProvider>
  * ```
  */
@@ -30,10 +41,15 @@ TooltipProvider.displayName = "Tooltip.Provider";
 
 /**
  * A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.
- * This is the root, stateful component that manages the open/closed state of the tooltip.
- * Will throw if you have not wrapped your app in a `TooltipProvider`.
+ * This is the root, stateful component that manages the open/closed state of
+ * the tooltip. Wrap your app in `TooltipProvider` when you want shared
+ * app-wide delay and hover settings.
  *
- * @see https://mantle.ngrok.com/components/tooltip#tooltiproot
+ * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's shared floating
+ * z-index. When multiple shared layers are open, the most recently mounted
+ * layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltiproot
  *
  * @example
  * ```tsx
@@ -57,7 +73,7 @@ Root.displayName = "Tooltip.Root";
 /**
  * The trigger button that opens the tooltip.
  *
- * @see https://mantle.ngrok.com/components/tooltip#tooltiptrigger
+ * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltiptrigger
  *
  * @example
  * ```tsx
@@ -81,7 +97,11 @@ Trigger.displayName = "Tooltip.Trigger";
 /**
  * The content to render inside the tooltip.
  *
- * @see https://mantle.ngrok.com/components/tooltip#tooltipcontent
+ * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's shared floating
+ * z-index. When multiple shared layers are open, the most recently mounted
+ * layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltipcontent
  *
  * @example
  * ```tsx
@@ -123,16 +143,24 @@ Content.displayName = "Tooltip.Content";
 
 /**
  * A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.
- * Wrapping your app in a `TooltipProvider` is recommended to share global tooltip behavior (delay, hover settings) across your application.
  *
- * Use a `Tooltip` for short, non-interactive labels — for example, to clarify
- * the purpose of an icon-only button. Per the WAI-ARIA tooltip pattern,
- * tooltips never receive focus, so interactive content inside them is
- * unreachable for keyboard users. Prefer `Popover` when the floating content
- * must be interactive, or `HoverCard` for a sighted-only preview of content
- * that already lives behind a link.
+ * Use `Tooltip` to show a short, non-essential label or hint when the user
+ * hovers or focuses an element — e.g., the meaning of an icon button, a
+ * keyboard shortcut, or a brief explanation. Tooltips are NON-INTERACTIVE:
+ * do not put buttons, links, or form controls inside one. Per the WAI-ARIA
+ * tooltip pattern, tooltips never receive focus, so interactive content
+ * inside them is unreachable for keyboard users. For interactive overlay
+ * content (forms, settings, color pickers), use `Popover`. For non-essential
+ * preview cards (user/repo previews, link previews), use `HoverCard`.
  *
- * @see https://mantle.ngrok.com/components/tooltip
+ * Mount a `<TooltipProvider>` once at the app root when you want shared
+ * tooltip behavior such as consistent delay and hover settings.
+ *
+ * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's shared floating
+ * z-index. When multiple shared layers are open, the most recently mounted
+ * layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/tooltip
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/
  *
  * @example
@@ -160,10 +188,15 @@ Content.displayName = "Tooltip.Content";
 const Tooltip = {
 	/**
 	 * A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.
-	 * This is the root, stateful component that manages the open/closed state of the tooltip.
-	 * Will throw if you have not wrapped your app in a `TooltipProvider`.
+	 * This is the root, stateful component that manages the open/closed state of
+	 * the tooltip. Wrap your app in `TooltipProvider` when you want shared
+	 * app-wide delay and hover settings.
 	 *
-	 * @see https://mantle.ngrok.com/components/tooltip#tooltiproot
+	 * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's shared floating
+	 * z-index. When multiple shared layers are open, the most recently mounted
+	 * layer renders on top.
+	 *
+	 * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltiproot
 	 *
 	 * @example
 	 * ```tsx
@@ -183,7 +216,11 @@ const Tooltip = {
 	/**
 	 * The content to render inside the tooltip.
 	 *
-	 * @see https://mantle.ngrok.com/components/tooltip#tooltipcontent
+	 * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's shared floating
+	 * z-index. When multiple shared layers are open, the most recently mounted
+	 * layer renders on top.
+	 *
+	 * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltipcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -203,7 +240,7 @@ const Tooltip = {
 	/**
 	 * The trigger button that opens the tooltip.
 	 *
-	 * @see https://mantle.ngrok.com/components/tooltip#tooltiptrigger
+	 * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltiptrigger
 	 *
 	 * @example
 	 * ```tsx

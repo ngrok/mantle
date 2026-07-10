@@ -1,0 +1,128 @@
+---
+title: Scroll Fade
+description: Utilities that fade the edges of a scroll container to signal more content.
+---
+
+import { Example } from "~/components/example";
+import { ScrollFadeEdges } from "~/features/scroll-fade-edges";
+
+# Scroll Fade
+
+Edge-fade utilities for scroll containers. They mask the edge of an overflowing
+container so content gently fades out where there is more to scroll, and render
+cleanly once you reach that edge (or when there is no overflow at all).
+
+The fade is driven entirely by a CSS [scroll-driven animation](https://developer.mozilla.org/en-US/docs/Web/CSS/animation-timeline/scroll) —
+there is no scroll listener, `ResizeObserver`, or JavaScript involved. Apply the
+utility directly to the scroll container itself (the element with
+`overflow-*-auto`).
+
+> [!NOTE]
+> Where `animation-timeline: scroll()` is unsupported (Firefox stable as of
+> mid-2026), the fade is simply absent — content is never clipped.
+
+## Both edges
+
+### Vertical — `scroll-fade-y`
+
+Fades the top and bottom edges of a vertically scrolling container. Scroll the
+list to see each edge fade in and out.
+
+<Example>
+	<div className="scroll-fade-y scrollbar h-56 w-64 overflow-y-auto rounded-lg border border-card bg-card px-4 py-3">
+		<ul className="flex flex-col gap-2 text-sm">
+			{[
+				"Getting Started",
+				"Universal Gateway",
+				"Endpoints",
+				"Domains",
+				"TCP Addresses",
+				"TLS Certificates",
+				"Kubernetes Operators",
+				"Vaults & Secrets",
+				"IP Policies",
+				"Traffic Inspector",
+				"Agents",
+				"Team Members",
+				"Service Users",
+				"Authtokens",
+			].map((label) => (
+				<li key={label} className="text-muted-foreground">
+					{label}
+				</li>
+			))}
+		</ul>
+	</div>
+</Example>
+
+```tsx
+<div className="scroll-fade-y h-56 overflow-y-auto">{/* tall content */}</div>
+```
+
+### Horizontal — `scroll-fade-x`
+
+Fades the left and right edges of a horizontally scrolling container.
+
+<Example>
+	<div className="scroll-fade-x scrollbar w-72 overflow-x-auto rounded-lg border border-card bg-card p-3">
+		<div className="flex w-max gap-2 text-sm">
+			{[
+				"Overview",
+				"Endpoints",
+				"Traffic Policy",
+				"Domains",
+				"TCP Addresses",
+				"TLS Certificates",
+				"Event Subscriptions",
+				"API Keys",
+			].map((label) => (
+				<span
+					key={label}
+					className="bg-accent text-muted-foreground whitespace-nowrap rounded-md px-3 py-1.5"
+				>
+					{label}
+				</span>
+			))}
+		</div>
+	</div>
+</Example>
+
+```tsx
+<div className="scroll-fade-x w-72 overflow-x-auto">{/* wide content */}</div>
+```
+
+## Single edge
+
+When only one edge should fade — for example a sidebar that fades content
+scrolling under a sticky header but stays flush at the bottom — use a single-edge
+utility. The opposite edge always stays fully opaque.
+
+| Utility         | Axis       | Fades       |
+| --------------- | ---------- | ----------- |
+| `scroll-fade-t` | vertical   | top edge    |
+| `scroll-fade-b` | vertical   | bottom edge |
+| `scroll-fade-l` | horizontal | left edge   |
+| `scroll-fade-r` | horizontal | right edge  |
+
+Use them exactly like the axis utilities — just put the edge class on the scroll
+container. The sidebar example above becomes:
+
+```tsx
+<nav className="scroll-fade-t h-full overflow-y-auto">{/* tall content */}</nav>
+```
+
+Each box below is pre-scrolled to its midpoint so the single faded edge stands
+out against the flush opposite edge.
+
+<Example>
+	<ScrollFadeEdges />
+</Example>
+
+## Requirements
+
+- Apply the utility to the scroll container itself — the element that has
+  `overflow-x-auto` / `overflow-y-auto`. The fade follows that element's own
+  scroll position.
+- The utility uses `mask-image`, so it composes with the element's background and
+  content but cannot be combined with a different `mask-image` on the same
+  element.

@@ -1,3 +1,5 @@
+export { copyToClipboard } from "./copy-to-clipboard.js";
+
 export { inView } from "./in-view.js";
 export type { InViewOptions, MarginType, ViewChangeHandler } from "./in-view.js";
 

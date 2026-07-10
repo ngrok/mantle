@@ -185,8 +185,8 @@ describe("Slot", () => {
 	});
 
 	it("handles event handlers passed via Slot and child (both are called)", () => {
-		const slotOnClick = vi.fn();
-		const childOnClick = vi.fn();
+		const slotOnClick = vi.fn<() => void>();
+		const childOnClick = vi.fn<() => void>();
 
 		const { getByRole } = render(
 			<Slot onClick={slotOnClick}>

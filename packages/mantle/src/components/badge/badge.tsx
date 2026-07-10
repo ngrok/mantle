@@ -26,15 +26,44 @@ type BadgeProps = ComponentProps<"span"> &
 	};
 
 /**
- * A Badge is a non-interactive component used to highlight important
- * information or to visually indicate the status of an item.
+ * A non-interactive label used to highlight short, scannable information —
+ * a status, a category tag, or a count — in the smallest possible footprint.
  *
- * @see https://mantle.ngrok.com/components/badge
+ * **When to use**
+ * - Status indicators: `Succeeded`, `Failed`, `Pending`, `Beta`.
+ * - Category or tag chips alongside list items, table rows, or cards.
+ * - Counts (e.g. `12 new`) when paired with brief context.
+ *
+ * **When not to use**
+ * - For interactive UI. Badges are not buttons or links — use {@link https://mantle.ngrok.com/components/actions/button Button}
+ *   or {@link https://mantle.ngrok.com/components/navigation/anchor Anchor} (optionally with `asChild` styling) instead.
+ * - For long-form text. Keep labels to one or two short words.
+ * - As the sole signal of meaning. Pair color with a label or icon so the
+ *   distinction works without color (color blindness, monochrome themes).
+ *
+ * **Choosing a `color`.** Prefer functional colors (`success`, `warning`,
+ * `danger`, `info`, `accent`, `neutral`) for status meaning so theming
+ * stays coherent. Reach for named hues only when the badge's semantic role
+ * isn't already covered.
+ *
+ * **Polymorphism.** Pass `asChild` to render the badge as a single child
+ * element — useful when the badge wraps a link or other semantic element
+ * while keeping the badge styling.
+ *
+ * @see https://mantle.ngrok.com/components/data-display/badge
  *
  * @example
  * ```tsx
- * <Badge appearance="muted" color="success">
+ * import { Badge } from "@ngrok/mantle/badge";
+ * import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+ *
+ * <Badge appearance="muted" color="success" icon={<CheckCircleIcon />}>
  *   Succeeded
+ * </Badge>
+ *
+ * // Polymorphic — render the badge as a link, preserving its styling.
+ * <Badge appearance="muted" color="info" asChild>
+ *   <a href="/status">Operational</a>
  * </Badge>
  * ```
  */

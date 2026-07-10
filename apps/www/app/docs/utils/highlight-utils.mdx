@@ -1,0 +1,97 @@
+---
+title: highlight-utils
+description: React-free code highlighting helpers from @ngrok/mantle/highlight-utils
+---
+
+# highlight-utils
+
+React-free helpers for code highlighting pipelines. Use these from build tools, server-side renderers, Web Workers, or small syntax-highlighting services that need Mantle-compatible Code Block HTML without importing React components.
+
+For ordinary React UI, prefer [`CodeBlock`](/components/data-display/code-block) and `mantleCode()` from `@ngrok/mantle/code-block`.
+
+```ts
+import {
+	decorateHighlightedHtml,
+	isSupportedLanguage,
+	normalizeIndentation,
+	parseLanguage,
+} from "@ngrok/mantle/highlight-utils";
+```
+
+## Usage
+
+### Decorate Shiki HTML
+
+`decorateHighlightedHtml` takes trusted Shiki-highlighted HTML and wraps each line in the markup Mantle's `CodeBlock.Code` expects for line numbers and highlighted lines.
+
+```ts
+import { decorateHighlightedHtml } from "@ngrok/mantle/highlight-utils";
+
+const html = `<span class="line">const tunnel = await ngrok.forward();</span>`;
+
+const decoratedHtml = decorateHighlightedHtml({
+	html,
+	showLineNumbers: true,
+	lineNumberStart: 10,
+	highlightLines: [10],
+});
+```
+
+Only pass HTML produced by a trusted highlighter such as Shiki. The returned string is intended to be rendered as HTML by a Code Block pipeline.
+
+### Normalize indentation
+
+`normalizeIndentation` trims leading and trailing blank space, removes the common indentation prefix, and rewrites leading whitespace to tabs or spaces.
+
+```ts
+import { normalizeIndentation } from "@ngrok/mantle/highlight-utils";
+
+const code = normalizeIndentation(
+	`
+		function main() {
+			return "ready";
+		}
+	`,
+	{ indentation: "tabs" },
+);
+```
+
+### Parse languages
+
+Use `parseLanguage` and `isSupportedLanguage` when accepting language names from Markdown fences, user input, or service payloads.
+
+```ts
+import { isSupportedLanguage, parseLanguage } from "@ngrok/mantle/highlight-utils";
+
+parseLanguage("language-tsx"); // "tsx"
+parseLanguage(undefined); // "text"
+isSupportedLanguage("python"); // true
+```
+
+## API
+
+| Export                                 | Description                                                            |
+| -------------------------------------- | ---------------------------------------------------------------------- |
+| `decorateHighlightedHtml`              | Adds Mantle line wrappers, line numbers, and highlighted-line classes. |
+| `normalizeIndentation`                 | Normalizes multiline code indentation to spaces or tabs.               |
+| `inferIndentation`                     | Chooses an indentation style from language and optional preference.    |
+| `isIndentation`                        | Type guard for `"tabs"` or `"spaces"`.                                 |
+| `supportedLanguages`                   | Read-only list of languages Mantle recognizes for code highlighting.   |
+| `isSupportedLanguage`                  | Type guard for supported language strings.                             |
+| `parseLanguage`                        | Parses `language-*` / `lang-*` class names with a `"text"` fallback.   |
+| `defaultShowLineNumbers`               | Returns Mantle's default line-number behavior for a language and code. |
+| `parseCodeBlockHighlightLines`         | Parses line highlight input from arrays or comma-separated strings.    |
+| `parseCodeBlockLineNumberStart`        | Parses a positive line-number start value.                             |
+| `parseCodeBlockShowLineNumbers`        | Parses boolean or `"true"` / `"false"` line-number flags.              |
+| `tokenizeMetastring`, `normalizeValue` | Low-level helpers for code fence metadata parsing.                     |
+
+## Types
+
+```ts
+import type {
+	DecorateHighlightedHtmlInput,
+	Indentation,
+	LineRange,
+	SupportedLanguage,
+} from "@ngrok/mantle/highlight-utils";
+```

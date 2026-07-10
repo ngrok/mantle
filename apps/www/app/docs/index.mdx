@@ -31,7 +31,7 @@ around the following unstyled primitive component libraries:
 
 Mantle uses [Phosphor Icons](https://phosphoricons.com/) as the primary icon library, providing
 a versatile and consistent set of icons. In addition, custom-designed icons tailored to ngrok's
-needs are available through the [`@ngrok/mantle/icons`](/components/icons) module.
+needs are available through the [`@ngrok/mantle/icons`](/components/data-display/icons) module.
 
 ## Status
 
@@ -39,7 +39,7 @@ Mantle is a living design system and the standard UI library for all ngrok user 
 continuously evolving as new components, patterns, and improvements are added.
 
 Mantle is available on [NPM](https://www.npmjs.com/package/@ngrok/mantle) and is open source on
-[GitHub](https://github.com/ngrok-oss/mantle).
+[GitHub](https://github.com/ngrok/mantle).
 
 ## Setup
 
@@ -52,13 +52,13 @@ Install `@ngrok/mantle` and all required `peerDependencies`:
 
 ```sh mode=cli title="install required mantle peerDependencies"
 # npm
-npm install -E @ngrok/mantle @phosphor-icons/react date-fns react react-dom
+npm install -E @ngrok/mantle @phosphor-icons/react react react-dom
 
 # pnpm
-pnpm add -E @ngrok/mantle @phosphor-icons/react date-fns react react-dom
+pnpm add -E @ngrok/mantle @phosphor-icons/react react react-dom
 
 # bun
-bun add -E @ngrok/mantle @phosphor-icons/react date-fns react react-dom
+bun add -E @ngrok/mantle @phosphor-icons/react react react-dom
 ```
 
 Install `tailwindcss` as a dev dependency (all frameworks):
@@ -104,8 +104,8 @@ export default defineConfig({
 ```
 
 In your app's `app/root.tsx`, import `mantle.css` and set up the
-[Theme Provider](/components/theme), [Toaster](/components/toast), and
-[Tooltip Provider](/components/tooltip).
+[Theme Provider](/components/primitives/theme), [Toaster](/components/feedback/toast), and
+[Tooltip Provider](/components/overlays/tooltip).
 
 > [!WARNING]
 > It is critical to include `PreventWrongThemeFlashScript` early in the `<head>` of your app to
@@ -214,7 +214,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 ```
 
 You are now ready to use mantle components in your application! For example, you can use the
-[Button](/components/button).
+[Button](/components/actions/button).
 
 #### SSR Theme Cookie (Optional)
 
@@ -278,8 +278,8 @@ export default defineConfig({
 ```
 
 In your app's `src/main.tsx`, import `mantle.css` and set up the
-[Theme Provider](/components/theme), [Toaster](/components/toast), and
-[Tooltip Provider](/components/tooltip):
+[Theme Provider](/components/primitives/theme), [Toaster](/components/feedback/toast), and
+[Tooltip Provider](/components/overlays/tooltip):
 
 ```tsx
 // src/main.tsx
@@ -334,7 +334,7 @@ output in a `<script>` tag in the `<head>`:
 ```
 
 You are now ready to use mantle components in your application! For example, you can use the
-[Button](/components/button).
+[Button](/components/actions/button).
 
 ### Next.js
 
@@ -345,8 +345,8 @@ You are now ready to use mantle components in your application! For example, you
 ### React SPA
 
 In your app's entry/root file, import `mantle.css` and set up the
-[Theme Provider](/components/theme), [Toaster](/components/toast), and
-[Tooltip Provider](/components/tooltip):
+[Theme Provider](/components/primitives/theme), [Toaster](/components/feedback/toast), and
+[Tooltip Provider](/components/overlays/tooltip):
 
 ```tsx
 // root.tsx
@@ -397,4 +397,4 @@ its output:
 ```
 
 You are now ready to use mantle components in your application! For example, you can use the
-[Button](/components/button).
+[Button](/components/actions/button).

@@ -13,7 +13,7 @@ type IconProps = Omit<SvgAttributes, "children"> & {
 /**
  * Decorates an svg icon with automatic sizing styles and a `shrink-0` class.
  *
- * @see https://mantle.ngrok.com/components/icon
+ * @see https://mantle.ngrok.com/components/data-display/icon
  *
  * @example
  * ```tsx

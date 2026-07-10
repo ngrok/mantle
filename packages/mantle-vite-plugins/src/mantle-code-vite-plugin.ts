@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import MagicString from "magic-string";
 import {
 	defaultShowLineNumbers,
@@ -94,6 +96,26 @@ type OxcTaggedTemplateExpression = OxcNode & {
 
 type MantleCodeTaggedTemplateExpression = OxcTaggedTemplateExpression & {
 	tag: OxcCallExpression;
+};
+
+type OxcMemberExpression = OxcNode & {
+	type: "MemberExpression";
+	object: OxcExpression;
+	property: OxcExpression;
+	computed: boolean;
+	optional: boolean;
+};
+
+type OxcVariableDeclarator = OxcNode & {
+	type: "VariableDeclarator";
+	id: OxcNode;
+	init: OxcNode | null;
+};
+
+type OxcVariableDeclaration = OxcNode & {
+	type: "VariableDeclaration";
+	kind: "const" | "let" | "var";
+	declarations: OxcVariableDeclarator[];
 };
 
 type OxcJSXIdentifier = OxcNode & {
@@ -206,6 +228,21 @@ function isTaggedTemplateExpression(
 	node: OxcNode | null | undefined,
 ): node is OxcTaggedTemplateExpression {
 	return node?.type === "TaggedTemplateExpression";
+}
+
+/** Type predicate: checks if a node is a `MemberExpression`. */
+function isMemberExpression(node: OxcNode | null | undefined): node is OxcMemberExpression {
+	return node?.type === "MemberExpression";
+}
+
+/** Type predicate: checks if a node is a `VariableDeclarator`. */
+function isVariableDeclarator(node: OxcNode | null | undefined): node is OxcVariableDeclarator {
+	return node?.type === "VariableDeclarator";
+}
+
+/** Type predicate: checks if a node is a `VariableDeclaration`. */
+function isVariableDeclaration(node: OxcNode | null | undefined): node is OxcVariableDeclaration {
+	return node?.type === "VariableDeclaration";
 }
 
 /** Type predicate: checks if a node is a `JSXOpeningElement`. */
@@ -548,12 +585,33 @@ type OxcImportDeclaration = OxcNode & {
 	type: "ImportDeclaration";
 	source: OxcLiteral;
 	specifiers: OxcImportSpecifier[];
+	importKind?: string;
 };
 
 type OxcImportSpecifier = OxcNode & {
 	type: "ImportSpecifier" | "ImportDefaultSpecifier" | "ImportNamespaceSpecifier";
 	imported?: OxcIdentifier;
 	local: OxcIdentifier;
+	importKind?: string;
+};
+
+type OxcExportSpecifier = OxcNode & {
+	type: "ExportSpecifier";
+	local: OxcIdentifier;
+	exported: OxcIdentifier;
+	exportKind?: string;
+};
+
+type OxcExportNamedDeclaration = OxcNode & {
+	type: "ExportNamedDeclaration";
+	declaration: OxcNode | null;
+	specifiers: OxcExportSpecifier[];
+	source: OxcLiteral | null;
+};
+
+type OxcProgram = OxcNode & {
+	type: "Program";
+	body: unknown[];
 };
 
 /** Type predicate: checks if a node is an `ImportDeclaration`. */
@@ -561,11 +619,347 @@ function isImportDeclaration(node: OxcNode | null | undefined): node is OxcImpor
 	return node?.type === "ImportDeclaration";
 }
 
+/** Type predicate: checks if a node is an `ExportNamedDeclaration`. */
+function isExportNamedDeclaration(
+	node: OxcNode | null | undefined,
+): node is OxcExportNamedDeclaration {
+	return node?.type === "ExportNamedDeclaration";
+}
+
+/** Type predicate: checks if a node is a parsed program with top-level statements. */
+function isProgram(node: unknown): node is OxcProgram {
+	return isNode(node) && node.type === "Program" && Array.isArray(node.body);
+}
+
+/**
+ * The static `mantleCode` symbol tables extracted from a single module. Used to resolve
+ * `<fragment>.code` interpolations within the module and — for imported fragments — across
+ * module boundaries.
+ */
+type ModuleFragmentContext = {
+	/** Absolute id (Vite resolved id) of the module these symbols came from. */
+	resolvedId: string;
+	/** Local names bound to the imported `mantleCode` tag (e.g. `mantleCode`, or an alias). */
+	mantleCodeNames: Set<string>;
+	/** Top-level `mantleCode` fragment bindings, keyed by their in-module binding name. */
+	fragmentsByName: Map<string, OxcTaggedTemplateExpression>;
+	/** Top-level `mantleCode` fragments exposed to other modules, keyed by their exported name. */
+	exportedFragments: Map<string, OxcTaggedTemplateExpression>;
+	/** Named value imports, keyed by local binding name. */
+	importsByLocal: Map<string, { importedName: string; source: string }>;
+};
+
+/** Resolves + parses an imported module into its fragment context, or `null` if unavailable. */
+type LoadModuleContext = (
+	source: string,
+	importer: string,
+) => Promise<ModuleFragmentContext | null>;
+
+/**
+ * Extracts the `mantleCode` fragment symbol tables from top-level module statements: which
+ * local bindings are `mantleCode` fragments, which of those are exported, and which names are
+ * value imports. Shared by the current-module transform and cross-module fragment resolution so
+ * both surfaces recognize fragments identically.
+ */
+function collectModuleSymbols(program: unknown): Omit<ModuleFragmentContext, "resolvedId"> {
+	const mantleCodeNames = new Set<string>();
+	const importsByLocal = new Map<string, { importedName: string; source: string }>();
+	const fragmentCandidates: { name: string; node: OxcTaggedTemplateExpression }[] = [];
+	const exportedConstNames = new Set<string>();
+	const exportSpecifierLocalByExported = new Map<string, string>();
+
+	function collectConstDeclarationFragments(declaration: OxcVariableDeclaration) {
+		for (const declarator of declaration.declarations) {
+			if (
+				isVariableDeclarator(declarator) &&
+				isIdentifier(declarator.id) &&
+				isTaggedTemplateExpression(declarator.init) &&
+				isCallExpression(declarator.init.tag) &&
+				isIdentifier(declarator.init.tag.callee)
+			) {
+				fragmentCandidates.push({ name: declarator.id.name, node: declarator.init });
+			}
+		}
+	}
+
+	function collectExportedConstNames(declaration: OxcVariableDeclaration) {
+		for (const declarator of declaration.declarations) {
+			if (isVariableDeclarator(declarator) && isIdentifier(declarator.id)) {
+				exportedConstNames.add(declarator.id.name);
+			}
+		}
+	}
+
+	if (isProgram(program)) {
+		for (const statement of program.body) {
+			if (!isNode(statement)) {
+				continue;
+			}
+
+			if (isImportDeclaration(statement)) {
+				if (statement.importKind === "type" || typeof statement.source.value !== "string") {
+					continue;
+				}
+				const source = statement.source.value;
+				for (const specifier of statement.specifiers) {
+					if (
+						specifier.type === "ImportSpecifier" &&
+						specifier.importKind !== "type" &&
+						specifier.imported != null
+					) {
+						importsByLocal.set(specifier.local.name, {
+							importedName: specifier.imported.name,
+							source,
+						});
+						if (isMantleImportSource(source) && specifier.imported.name === "mantleCode") {
+							mantleCodeNames.add(specifier.local.name);
+						}
+					}
+				}
+				continue;
+			}
+
+			if (isExportNamedDeclaration(statement)) {
+				// `export … from "…"` is a re-export — out of scope for v1; skip.
+				if (statement.source != null) {
+					continue;
+				}
+				if (
+					isVariableDeclaration(statement.declaration) &&
+					statement.declaration.kind === "const"
+				) {
+					collectExportedConstNames(statement.declaration);
+					collectConstDeclarationFragments(statement.declaration);
+				}
+				for (const specifier of statement.specifiers) {
+					if (specifier.type === "ExportSpecifier" && specifier.exportKind !== "type") {
+						exportSpecifierLocalByExported.set(specifier.exported.name, specifier.local.name);
+					}
+				}
+				continue;
+			}
+
+			if (isVariableDeclaration(statement) && statement.kind === "const") {
+				collectConstDeclarationFragments(statement);
+			}
+		}
+	}
+
+	const fragmentsByName = new Map<string, OxcTaggedTemplateExpression>();
+	for (const { name, node } of fragmentCandidates) {
+		if (
+			isCallExpression(node.tag) &&
+			isIdentifier(node.tag.callee) &&
+			mantleCodeNames.has(node.tag.callee.name)
+		) {
+			fragmentsByName.set(name, node);
+		}
+	}
+
+	const exportedFragments = new Map<string, OxcTaggedTemplateExpression>();
+	for (const name of exportedConstNames) {
+		const fragment = fragmentsByName.get(name);
+		if (fragment != null) {
+			exportedFragments.set(name, fragment);
+		}
+	}
+	for (const [exported, local] of exportSpecifierLocalByExported) {
+		const fragment = fragmentsByName.get(local);
+		if (fragment != null) {
+			exportedFragments.set(exported, fragment);
+		}
+	}
+
+	return { mantleCodeNames, fragmentsByName, exportedFragments, importsByLocal };
+}
+
+/**
+ * Joins a fragment template's quasis with its (recursively resolved) interpolations into the
+ * exact string that `fragment.code` produces at runtime, or `null` if any interpolation is not
+ * itself a statically resolvable fragment reference.
+ */
+async function resolveFragmentTemplate(
+	fragmentNode: OxcTaggedTemplateExpression,
+	context: ModuleFragmentContext,
+	loadModuleContext: LoadModuleContext,
+	seen: Set<string>,
+): Promise<string | null> {
+	const { quasis, expressions } = fragmentNode.quasi;
+	let result = quasis[0]?.value.cooked ?? quasis[0]?.value.raw ?? "";
+	for (let index = 0; index < expressions.length; index += 1) {
+		const expression = expressions[index];
+		const inlined =
+			expression == null
+				? null
+				: await resolveFragmentReference(expression, context, loadModuleContext, seen);
+		if (inlined == null) {
+			return null;
+		}
+		result += inlined;
+		const nextQuasi = quasis[index + 1];
+		result += nextQuasi?.value.cooked ?? nextQuasi?.value.raw ?? "";
+	}
+	return result;
+}
+
+/**
+ * Resolves an interpolation of the form `someFragment.code` to its static code text.
+ * `someFragment` may be a top-level `mantleCode` `const` declared in the same module, or a named
+ * import of a directly-exported top-level `mantleCode` `const` from another module. Nested
+ * references are resolved recursively across module boundaries.
+ *
+ * Returns `null` — signalling the caller to keep the runtime placeholder path — when the
+ * expression is not a non-computed `.code` member access, the binding is not a resolvable
+ * fragment, the reference is cyclic, a same-module fragment is declared after this reference
+ * (mirroring runtime evaluation order so plugin output matches the no-plugin fallback), or the
+ * imported module/export cannot be statically resolved.
+ *
+ * @example
+ * // import { oauthPolicy } from "./policies";
+ * // …inside mantleCode("java")`String tp = """${oauthPolicy.code}""";`
+ * // resolveFragmentReference(<oauthPolicy.code>, …) === "on_http_request:"
+ */
+async function resolveFragmentReference(
+	expression: OxcExpression,
+	context: ModuleFragmentContext,
+	loadModuleContext: LoadModuleContext,
+	seen: Set<string>,
+): Promise<string | null> {
+	if (!isMemberExpression(expression) || expression.computed || expression.optional) {
+		return null;
+	}
+	if (!isIdentifier(expression.object) || !isIdentifier(expression.property)) {
+		return null;
+	}
+	if (expression.property.name !== "code") {
+		return null;
+	}
+
+	const name = expression.object.name;
+
+	const localFragment = context.fragmentsByName.get(name);
+	if (localFragment != null) {
+		// Same-module: require declaration before use, mirroring runtime evaluation order.
+		if (localFragment.end > expression.start) {
+			return null;
+		}
+		const key = `${context.resolvedId}\0${name}`;
+		if (seen.has(key)) {
+			return null;
+		}
+		return resolveFragmentTemplate(
+			localFragment,
+			context,
+			loadModuleContext,
+			new Set(seen).add(key),
+		);
+	}
+
+	const imported = context.importsByLocal.get(name);
+	if (imported != null) {
+		const target = await loadModuleContext(imported.source, context.resolvedId);
+		if (target == null) {
+			return null;
+		}
+		const exportedFragment = target.exportedFragments.get(imported.importedName);
+		if (exportedFragment == null) {
+			return null;
+		}
+		// Imports are hoisted and the imported module is fully evaluated before the importer
+		// runs, so no declaration-order guard is needed across module boundaries.
+		const key = `${target.resolvedId}\0${imported.importedName}`;
+		if (seen.has(key)) {
+			return null;
+		}
+		return resolveFragmentTemplate(
+			exportedFragment,
+			target,
+			loadModuleContext,
+			new Set(seen).add(key),
+		);
+	}
+
+	return null;
+}
+
+/**
+ * If `expression` is `<importedBinding>.code`, returns the local binding name and import source;
+ * otherwise `null`. Used to warn when an intended cross-module inline could not be resolved.
+ */
+function getImportedFragmentReference(
+	expression: OxcExpression,
+	context: ModuleFragmentContext,
+): { localName: string; source: string } | null {
+	if (!isMemberExpression(expression) || expression.computed || expression.optional) {
+		return null;
+	}
+	if (!isIdentifier(expression.object) || !isIdentifier(expression.property)) {
+		return null;
+	}
+	if (expression.property.name !== "code") {
+		return null;
+	}
+	const localName = expression.object.name;
+	const imported = context.importsByLocal.get(localName);
+	return imported == null ? null : { localName, source: imported.source };
+}
+
+/**
+ * Builds the Shiki input for an outer `mantleCode` template: statically resolvable fragment
+ * references are inlined as real source (highlighted in context, no runtime cost); every other
+ * interpolation keeps a placeholder token and is captured as a runtime `~preVals` entry. Token
+ * indices count only the surviving dynamic expressions so they stay aligned with `~preVals`.
+ */
+async function buildPlaceholderCode({
+	node,
+	preValToken,
+	context,
+	loadModuleContext,
+	warn,
+}: {
+	node: OxcTaggedTemplateExpression;
+	preValToken: string;
+	context: ModuleFragmentContext;
+	loadModuleContext: LoadModuleContext;
+	warn: (message: string) => void;
+}): Promise<{ placeholderCode: string; dynamicExpressions: OxcExpression[] }> {
+	const { quasis, expressions } = node.quasi;
+	let placeholderCode = quasis[0]?.value.cooked ?? quasis[0]?.value.raw ?? "";
+	const dynamicExpressions: OxcExpression[] = [];
+	for (let index = 0; index < expressions.length; index += 1) {
+		const expression = expressions[index];
+		const inlined =
+			expression == null
+				? null
+				: await resolveFragmentReference(expression, context, loadModuleContext, new Set());
+		if (inlined != null) {
+			placeholderCode += inlined;
+		} else if (expression != null) {
+			const importedReference = getImportedFragmentReference(expression, context);
+			if (importedReference != null) {
+				warn(
+					`mantleCodeVitePlugin: could not statically inline imported fragment "${importedReference.localName}.code" from "${importedReference.source}" in ${context.resolvedId}; falling back to runtime substitution`,
+				);
+			}
+			placeholderCode += `${preValToken}${dynamicExpressions.length}__`;
+			dynamicExpressions.push(expression);
+		}
+		const nextQuasi = quasis[index + 1];
+		placeholderCode += nextQuasi?.value.cooked ?? nextQuasi?.value.raw ?? "";
+	}
+	return { placeholderCode, dynamicExpressions };
+}
+
 /**
  * Vite plugin that transforms `mantleCode("lang")\`...\`` tagged template
  * literals at build time, replacing them with pre-rendered Shiki HTML objects.
  */
 function mantleCodeVitePlugin(): Plugin {
+	// Parsed fragment contexts of imported modules, keyed by Vite-resolved id. Persists across
+	// transforms so a shared fragment module is parsed once, and is invalidated by content hash
+	// (the importer re-transforms via `addWatchFile` whenever the fragment module changes).
+	const moduleContextCache = new Map<string, { hash: string; context: ModuleFragmentContext }>();
+
 	return {
 		name: "vite-plugin-mantle-code-block",
 
@@ -585,33 +979,25 @@ function mantleCodeVitePlugin(): Plugin {
 				return;
 			}
 
-			// Single-pass AST walk: collect import names, JSX props, and tagged templates together.
-			// Tagged templates are filtered by import source after the walk completes,
-			// since imports are hoisted and may appear after usage in the source text.
-			const mantleCodeNames = new Set<string>();
+			// Extract the module's `mantleCode` symbol tables (imports, local fragments, exported
+			// fragments). The same extractor runs against imported modules during cross-module
+			// fragment resolution so both surfaces recognize fragments identically.
+			const { mantleCodeNames, fragmentsByName, exportedFragments, importsByLocal } =
+				collectModuleSymbols(parseResult.program);
+
+			if (mantleCodeNames.size === 0) {
+				return;
+			}
+
+			// Collect the nodes to transform: `mantleCode` tagged templates and the
+			// `<CodeBlock.Code>` JSX elements whose static props fold into them.
 			const candidateTaggedTemplates: MantleCodeTaggedTemplateExpression[] = [];
 			const candidateJsxOpeningElements: OxcJSXOpeningElement[] = [];
-
 			walk(parseResult.program, (node) => {
-				if (isImportDeclaration(node)) {
-					if (typeof node.source.value === "string" && isMantleImportSource(node.source.value)) {
-						for (const specifier of node.specifiers) {
-							if (
-								specifier.type === "ImportSpecifier" &&
-								specifier.imported?.name === "mantleCode"
-							) {
-								mantleCodeNames.add(specifier.local.name);
-							}
-						}
-					}
-					return;
-				}
-
 				if (isJSXOpeningElement(node)) {
 					candidateJsxOpeningElements.push(node);
 					return;
 				}
-
 				if (
 					isTaggedTemplateExpression(node) &&
 					isCallExpression(node.tag) &&
@@ -621,11 +1007,6 @@ function mantleCodeVitePlugin(): Plugin {
 				}
 			});
 
-			if (mantleCodeNames.size === 0) {
-				return;
-			}
-
-			// Filter collected nodes against verified import names.
 			const taggedTemplates = candidateTaggedTemplates.filter((node) =>
 				mantleCodeNames.has((node.tag.callee as OxcIdentifier).name),
 			);
@@ -637,9 +1018,55 @@ function mantleCodeVitePlugin(): Plugin {
 				}
 			}
 
+			const currentContext: ModuleFragmentContext = {
+				resolvedId: id,
+				mantleCodeNames,
+				fragmentsByName,
+				exportedFragments,
+				importsByLocal,
+			};
+
+			// Resolves an imported fragment module: resolve the specifier, register it as a watch
+			// dependency (so edits re-transform this importer), then read + parse it once per
+			// content hash. Returns `null` for anything we can't statically read (externals,
+			// non-JS/TS modules, parse errors).
+			const loadModuleContext: LoadModuleContext = async (source, importer) => {
+				const resolved = await this.resolve(source, importer, { skipSelf: true }).catch(() => null);
+				if (resolved == null || resolved.external) {
+					return null;
+				}
+				const filePath = resolved.id.split("?")[0] ?? resolved.id;
+				if (!/\.[jt]sx?$/.test(filePath)) {
+					return null;
+				}
+				this.addWatchFile(filePath);
+				let content: string;
+				try {
+					content = await readFile(filePath, "utf8");
+				} catch {
+					return null;
+				}
+				const hash = createHash("sha1").update(content).digest("hex");
+				const cached = moduleContextCache.get(resolved.id);
+				if (cached != null && cached.hash === hash) {
+					return cached.context;
+				}
+				const parsed = parseSync(filePath, content);
+				if (parsed.errors.length > 0) {
+					return null;
+				}
+				const context: ModuleFragmentContext = {
+					resolvedId: resolved.id,
+					...collectModuleSymbols(parsed.program),
+				};
+				moduleContextCache.set(resolved.id, { hash, context });
+				return context;
+			};
+
 			// Prepare highlight inputs for all valid tagged templates, then run in parallel.
 			type HighlightJob = {
 				componentProps: ParsedJsxCodePropsResult;
+				dynamicExpressions: OxcExpression[];
 				effectiveOptions: ParsedMantleCodeOptions;
 				language: SupportedLanguage;
 				node: MantleCodeTaggedTemplateExpression;
@@ -647,54 +1074,59 @@ function mantleCodeVitePlugin(): Plugin {
 				preValToken: string;
 			};
 
-			const jobs: HighlightJob[] = [];
+			const jobInputs = await Promise.all(
+				taggedTemplates.map(async (node): Promise<HighlightJob | null> => {
+					const languageArg = node.tag.arguments[0];
+					if (!isStringLiteral(languageArg)) {
+						this.warn(
+							`mantleCodeVitePlugin: mantleCode language must be a static string literal in ${id} at offset ${node.start} - skipping`,
+						);
+						return null;
+					}
 
-			for (const node of taggedTemplates) {
-				const languageArg = node.tag.arguments[0];
-				if (!isStringLiteral(languageArg)) {
-					this.warn(
-						`mantleCodeVitePlugin: mantleCode language must be a static string literal in ${id} at offset ${node.start} - skipping`,
-					);
-					continue;
-				}
+					const language = languageArg.value;
+					if (!isSupportedLanguage(language)) {
+						this.warn(
+							`mantleCodeVitePlugin: unsupported language "${language}" in ${id} - skipping`,
+						);
+						return null;
+					}
 
-				const language = languageArg.value;
-				if (!isSupportedLanguage(language)) {
-					this.warn(`mantleCodeVitePlugin: unsupported language "${language}" in ${id} - skipping`);
-					continue;
-				}
+					const parsedOptions = parseMantleCodeOptions(node.tag.arguments[1]);
+					const componentProps = jsxPropsByTaggedTemplateStart.get(node.start) ?? {
+						attributeRemovalRanges: [],
+						highlightLines: undefined,
+						indentation: undefined,
+						lineNumberStart: undefined,
+						showLineNumbers: undefined,
+					};
+					const effectiveOptions = mergeMantleCodeOptions({
+						componentProps,
+						mantleCodeOptions: parsedOptions,
+					});
+					const preValToken = createPreValToken(id, node.start);
 
-				const parsedOptions = parseMantleCodeOptions(node.tag.arguments[1]);
-				const componentProps = jsxPropsByTaggedTemplateStart.get(node.start) ?? {
-					attributeRemovalRanges: [],
-					highlightLines: undefined,
-					indentation: undefined,
-					lineNumberStart: undefined,
-					showLineNumbers: undefined,
-				};
-				const effectiveOptions = mergeMantleCodeOptions({
-					componentProps,
-					mantleCodeOptions: parsedOptions,
-				});
-				const preValToken = createPreValToken(id, node.start);
+					const { placeholderCode, dynamicExpressions } = await buildPlaceholderCode({
+						node,
+						preValToken,
+						context: currentContext,
+						loadModuleContext,
+						warn: (message) => this.warn(message),
+					});
 
-				let placeholderCode =
-					node.quasi.quasis[0]?.value.cooked ?? node.quasi.quasis[0]?.value.raw ?? "";
-				for (let index = 0; index < node.quasi.expressions.length; index += 1) {
-					const nextQuasi = node.quasi.quasis[index + 1];
-					placeholderCode += `${preValToken}${index}__`;
-					placeholderCode += nextQuasi?.value.cooked ?? nextQuasi?.value.raw ?? "";
-				}
+					return {
+						componentProps,
+						dynamicExpressions,
+						effectiveOptions,
+						language,
+						node,
+						placeholderCode,
+						preValToken,
+					};
+				}),
+			);
 
-				jobs.push({
-					componentProps,
-					effectiveOptions,
-					language,
-					node,
-					placeholderCode,
-					preValToken,
-				});
-			}
+			const jobs = jobInputs.filter((job): job is HighlightJob => job != null);
 
 			if (jobs.length === 0) {
 				return;
@@ -735,6 +1167,7 @@ function mantleCodeVitePlugin(): Plugin {
 
 				const {
 					componentProps,
+					dynamicExpressions,
 					effectiveOptions,
 					highlighted,
 					language,
@@ -743,7 +1176,7 @@ function mantleCodeVitePlugin(): Plugin {
 					resolvedShowLineNumbers,
 				} = result;
 
-				for (const range of [...componentProps.attributeRemovalRanges].sort(
+				for (const range of [...componentProps.attributeRemovalRanges].toSorted(
 					(a, b) => b.start - a.start,
 				)) {
 					ms.remove(range.start, range.end);
@@ -751,15 +1184,17 @@ function mantleCodeVitePlugin(): Plugin {
 
 				const escapedHtml = escapeForTemplateLiteral(highlighted.html);
 				const escapedCode = escapeForTemplateLiteral(highlighted.code);
+				// Only the dynamic interpolations remain as runtime `~preVals`; statically
+				// inlined fragments are already baked into the highlighted HTML and code.
 				const preValsArray =
-					node.quasi.expressions.length === 0
+					dynamicExpressions.length === 0
 						? "undefined"
-						: `[${node.quasi.expressions.map((expression) => code.slice(expression.start, expression.end)).join(",")}]`;
+						: `[${dynamicExpressions.map((expression) => code.slice(expression.start, expression.end)).join(",")}]`;
 				const replacementEntries = [
 					`language:${JSON.stringify(language)}`,
 					`code:\`${escapedCode}\``,
 					`"~preHtml":\`${escapedHtml}\``,
-					`"~preValToken":${JSON.stringify(node.quasi.expressions.length === 0 ? undefined : preValToken)}`,
+					`"~preValToken":${JSON.stringify(dynamicExpressions.length === 0 ? undefined : preValToken)}`,
 					`"~preVals":${preValsArray}`,
 					`"~showLineNumbers":${JSON.stringify(resolvedShowLineNumbers)}`,
 					`"~highlightLines":${JSON.stringify(effectiveOptions.highlightLines)}`,

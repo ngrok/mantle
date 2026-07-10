@@ -56,7 +56,7 @@ type ThemeProviderProps = PropsWithChildren;
 /**
  * ThemeProvider is a React Context Provider that provides the current theme and a function to set the theme.
  *
- * @see https://mantle.ngrok.com/components/theme-provider#themeprovider
+ * @see https://mantle.ngrok.com/components/primitives/theme#themeprovider
  *
  * @example
  * ```tsx
@@ -91,12 +91,12 @@ function ThemeProvider({ children }: ThemeProviderProps) {
 		try {
 			if ("BroadcastChannel" in window) {
 				broadcastChannelRef.current = new BroadcastChannel(THEME_STORAGE_KEY);
-				broadcastChannelRef.current.onmessage = (event) => {
+				broadcastChannelRef.current.addEventListener("message", (event) => {
 					const value: unknown = event?.data?.theme;
 					if (isTheme(value)) {
 						syncThemeFromCookie(value);
 					}
-				};
+				});
 			}
 		} catch {
 			// silently swallow errors
@@ -310,8 +310,33 @@ export function determineThemeFromMediaQuery({
 }
 
 /**
- * Script that runs synchronously to prevent FOUC by applying the correct theme
- * before the page renders. This is the actual function that gets stringified and inlined.
+ * The FOUC-prevention bootstrap. This entire function is stringified and inlined
+ * into a blocking `<script>` in the document head; it runs synchronously before
+ * React mounts (and before first paint) so the resolved theme class is on
+ * `<html>` by the time the browser paints, avoiding a light→dark (or vice-versa)
+ * flash.
+ *
+ * Resolution order:
+ *  1. Read the stored preference: cookie first, then `localStorage` (legacy fallback).
+ *  2. Validate it against the configured `themes`; fall back to `defaultTheme` otherwise.
+ *  3. If the preference is `"system"`, resolve against the OS media queries
+ *     (`prefers-color-scheme`, `prefers-contrast`).
+ *  4. Apply the resolved class to `<html>` and refresh the cookie so subsequent
+ *     SSRs see the same value.
+ *
+ * Why nested helpers: this function is serialized verbatim into the inlined
+ * script, so it must be hermetic — every helper it calls has to travel with it.
+ * Hoisting them to module scope would leave dangling references in the inlined
+ * source. All catches are intentionally swallowing to keep the script crash-free
+ * in environments where cookies / `localStorage` / `matchMedia` throw (sandboxed
+ * iframes, privacy modes, SSR-style polyfills).
+ *
+ * @param args.storageKey                    Cookie + localStorage key for the persisted theme.
+ * @param args.defaultTheme                  Theme to use when no valid preference is stored.
+ * @param args.themes                        Allowed `Theme` values (used to validate stored input).
+ * @param args.resolvedThemes                Allowed `ResolvedTheme` class names applied to `<html>`.
+ * @param args.prefersDarkModeMediaQuery     Media query string for OS dark-mode detection.
+ * @param args.prefersHighContrastMediaQuery Media query string for OS high-contrast detection.
  */
 function preventThemeFlash(args: {
 	storageKey: string;
@@ -334,6 +359,10 @@ function preventThemeFlash(args: {
 		return typeof value === "string" && themes.includes(value as Theme);
 	}
 
+	// Nested helpers below must stay inside `preventThemeFlash` so they are
+	// included when the function is stringified into the inlined FOUC-prevention
+	// script. Hoisting them would leave dangling references at runtime.
+	// oxlint-disable-next-line unicorn/consistent-function-scoping
 	function getThemeFromCookie(name: string): string | null {
 		const cookie = document.cookie;
 		if (!cookie) {
@@ -351,6 +380,7 @@ function preventThemeFlash(args: {
 		}
 	}
 
+	// oxlint-disable-next-line unicorn/consistent-function-scoping -- stringified into the inlined FOUC script; see note above.
 	function buildCookie(name: string, val: string): string {
 		const expires = new Date();
 		expires.setFullYear(expires.getFullYear() + 1);
@@ -370,6 +400,7 @@ function preventThemeFlash(args: {
 		}
 	}
 
+	// oxlint-disable-next-line unicorn/consistent-function-scoping -- stringified into the inlined FOUC script; see note above.
 	function resolveThemeValue(
 		theme: Theme,
 		isDark: boolean,
@@ -698,10 +729,13 @@ function notifyOtherTabs(
 	// first try BroadcastChannel
 	try {
 		if (broadcastChannel) {
+			// BroadcastChannel.postMessage has no `targetOrigin` parameter (unlike Window.postMessage); the rule can't distinguish the two.
+			// oxlint-disable unicorn/require-post-message-target-origin
 			broadcastChannel.postMessage({
 				theme,
 				timestamp: Date.now(),
 			});
+			// oxlint-enable unicorn/require-post-message-target-origin
 			return;
 		}
 	} catch {

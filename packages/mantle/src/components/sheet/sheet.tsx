@@ -10,7 +10,11 @@ import * as SheetPrimitive from "../dialog/primitive.js";
  * The root component for a `Sheet`. Should compose the `Sheet.Trigger` and `Sheet.Content`.
  * Acts as a stateful provider for the Sheet's open/closed state.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetroot
+ * `Sheet` renders its floating layer at Tailwind `z-50`, Mantle's shared
+ * floating z-index. When multiple shared layers are open, the most recently
+ * mounted layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetroot
  *
  * @example
  * ```tsx
@@ -63,7 +67,7 @@ import * as SheetPrimitive from "../dialog/primitive.js";
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open opOpenChange={() => onClose()}>
+ * <Sheet open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -110,7 +114,7 @@ Root.displayName = "Sheet";
  * The button trigger for a `Sheet`. Should be rendered as a child of the `Sheet` component.
  * Renders an unstyled button by default, but can be customized with the `asChild` prop.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheettrigger
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheettrigger
  *
  * @example
  * ```tsx
@@ -151,7 +155,7 @@ Trigger.displayName = "SheetTrigger";
  * Usually contained within the `Sheet.Footer` component.
  * Renders an unstyled button by default, but can be customized with the `asChild` prop.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetclose
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetclose
  *
  * @example
  * ```tsx
@@ -210,7 +214,7 @@ const SheetOverlay = forwardRef<
 	<SheetPrimitive.Overlay
 		data-slot="sheet-overlay"
 		className={cx(
-			"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 fixed inset-0 z-40 backdrop-blur-xs",
+			"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 fixed inset-0 z-50 backdrop-blur-xs",
 			className,
 		)}
 		{...props}
@@ -220,7 +224,7 @@ const SheetOverlay = forwardRef<
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const SheetVariants = cva(
-	"bg-dialog border-dialog inset-y-0 h-full w-full fixed z-40 flex flex-col shadow-lg outline-hidden transition ease-in-out focus-within:outline-hidden data-state-closed:duration-100 data-state-closed:animate-out data-state-open:duration-100 data-state-open:animate-in",
+	"bg-dialog border-dialog inset-y-0 h-full w-full fixed z-50 flex flex-col shadow-lg outline-hidden transition ease-in-out focus-within:outline-hidden data-state-closed:duration-100 data-state-closed:animate-out data-state-open:duration-100 data-state-open:animate-in",
 	{
 		variants: {
 			/**
@@ -257,12 +261,16 @@ type SheetContentProps = ComponentPropsWithoutRef<typeof SheetPrimitive.Content>
  * Renders on top of the overlay backdrop.
  * Should contain the `Sheet.Header`, `Sheet.Body`, and `Sheet.Footer`.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetcontent
+ * `Sheet.Content` renders its floating layer at Tailwind `z-50`, Mantle's
+ * shared floating z-index. When multiple shared layers are open, the most
+ * recently mounted layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetcontent
  *
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open opOpenChange={() => onClose()}>
+ * <Sheet open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -326,12 +334,12 @@ type SheetCloseIconButtonProps = Partial<Omit<IconButtonProps, "icon">>;
  * An icon button that closes the `Sheet` when clicked.
  * Should be rendered within the `Sheet.Header` as a child of `Sheet.Actions`.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetcloseiconbutton
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetcloseiconbutton
  *
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open opOpenChange={() => onClose()}>
+ * <Sheet open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -396,12 +404,12 @@ CloseIconButton.displayName = "SheetCloseIconButton";
  * The body container for a `Sheet`. This is where you would typically place the main content of the sheet, such as forms or text.
  * Should be rendered as a child of `Sheet.Content`.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetbody
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetbody
  *
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open opOpenChange={() => onClose()}>
+ * <Sheet open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -444,7 +452,10 @@ CloseIconButton.displayName = "SheetCloseIconButton";
 const Body = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
 	<div
 		data-slot="sheet-body"
-		className={cx("scrollbar text-body flex-1 overflow-y-auto p-6", className)}
+		className={cx(
+			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto p-6",
+			className,
+		)}
 		{...props}
 	/>
 );
@@ -454,12 +465,12 @@ Body.displayName = "SheetBody";
  * The header container for a `Sheet`. This is where you would typically place the title, description, and actions.
  * Should be rendered as a child of `Sheet.Content`.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetheader
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetheader
  *
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open opOpenChange={() => onClose()}>
+ * <Sheet open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -516,12 +527,12 @@ Header.displayName = "SheetHeader";
  * The footer container for a `Sheet`. This is where you would typically place close and submit buttons.
  * Should be rendered as a child of `Sheet.Content`.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetfooter
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetfooter
  *
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open opOpenChange={() => onClose()}>
+ * <Sheet open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -577,12 +588,12 @@ Footer.displayName = "SheetFooter";
  * The title for a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`.
  * Defaults to an `h2` element, but can be changed via the `asChild` prop.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheettitle
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheettitle
  *
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open opOpenChange={() => onClose()}>
+ * <Sheet open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -638,12 +649,12 @@ Title.displayName = SheetPrimitive.Title.displayName;
 /**
  * A group container for the title and actions of a sheet. Typically rendered as a child of `Sheet.Header`.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheettitlegroup
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheettitlegroup
  *
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open opOpenChange={() => onClose()}>
+ * <Sheet open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -700,12 +711,12 @@ TitleGroup.displayName = "SheetTitleGroup";
 /**
  * A description for a sheet. Typically rendered as a child of `Sheet.Header`.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetdescription
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetdescription
  *
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open opOpenChange={() => onClose()}>
+ * <Sheet open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -761,12 +772,12 @@ Description.displayName = SheetPrimitive.Description.displayName;
 /**
  * A group container for the actions of a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`.
  *
- * @see https://mantle.ngrok.com/components/sheet#sheetactions
+ * @see https://mantle.ngrok.com/components/overlays/sheet#sheetactions
  *
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open opOpenChange={() => onClose()}>
+ * <Sheet open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -823,9 +834,17 @@ Actions.displayName = "SheetActions";
 /**
  * A container that overlays the current view from the edge of the screen.
  * It is a lightweight way of allowing users to complete a task without losing
- * contextual information of the view beneath it.
+ * contextual information of the view beneath it. Use Sheet for side-panel
+ * content that slides in from any edge — filter panels, detail/inspector
+ * views, navigation drawers, mobile menus. For a centered modal that
+ * interrupts the user, use `Dialog` (or `AlertDialog` for destructive
+ * confirmations).
  *
- * @see https://mantle.ngrok.com/components/sheet
+ * `Sheet` renders its floating layer at Tailwind `z-50`, Mantle's shared
+ * floating z-index. When multiple shared layers are open, the most recently
+ * mounted layer renders on top.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/sheet
  *
  * @example
  * Composition:
@@ -894,7 +913,7 @@ Actions.displayName = "SheetActions";
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open opOpenChange={() => onClose()}>
+ * <Sheet open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -939,7 +958,11 @@ const Sheet = {
 	 * The root component for a `Sheet`. Should compose the `Sheet.Trigger` and `Sheet.Content`.
 	 * Acts as a stateful provider for the Sheet's open/closed state.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetroot
+	 * `Sheet` renders its floating layer at Tailwind `z-50`, Mantle's shared
+	 * floating z-index. When multiple shared layers are open, the most recently
+	 * mounted layer renders on top.
+	 *
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetroot
 	 *
 	 * @example
 	 * ```tsx
@@ -976,7 +999,7 @@ const Sheet = {
 	/**
 	 * A group container for the actions of a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetactions
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetactions
 	 *
 	 * @example
 	 * ```tsx
@@ -1014,7 +1037,7 @@ const Sheet = {
 	 * The body container for a `Sheet`. This is where you would typically place the main content of the sheet, such as forms or text.
 	 * Should be rendered as a child of `Sheet.Content`.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetbody
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetbody
 	 *
 	 * @example
 	 * ```tsx
@@ -1053,7 +1076,7 @@ const Sheet = {
 	 * Usually contained within the `Sheet.Footer` component.
 	 * Renders an unstyled button by default, but can be customized with the `asChild` prop.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetclose
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetclose
 	 *
 	 * @example
 	 * ```tsx
@@ -1091,7 +1114,7 @@ const Sheet = {
 	 * An icon button that closes the `Sheet` when clicked.
 	 * Should be rendered within the `Sheet.Header` as a child of `Sheet.Actions`.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetcloseiconbutton
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetcloseiconbutton
 	 *
 	 * @example
 	 * ```tsx
@@ -1130,7 +1153,11 @@ const Sheet = {
 	 * Renders on top of the overlay backdrop.
 	 * Should contain the `Sheet.Header`, `Sheet.Body`, and `Sheet.Footer`.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetcontent
+	 * `Sheet.Content` renders its floating layer at Tailwind `z-50`, Mantle's
+	 * shared floating z-index. When multiple shared layers are open, the most
+	 * recently mounted layer renders on top.
+	 *
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -1167,7 +1194,7 @@ const Sheet = {
 	/**
 	 * A description for a sheet. Typically rendered as a child of `Sheet.Header`.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetdescription
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetdescription
 	 *
 	 * @example
 	 * ```tsx
@@ -1205,7 +1232,7 @@ const Sheet = {
 	 * The footer container for a `Sheet`. This is where you would typically place close and submit buttons.
 	 * Should be rendered as a child of `Sheet.Content`.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetfooter
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetfooter
 	 *
 	 * @example
 	 * ```tsx
@@ -1243,7 +1270,7 @@ const Sheet = {
 	 * The header container for a `Sheet`. This is where you would typically place the title, description, and actions.
 	 * Should be rendered as a child of `Sheet.Content`.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheetheader
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetheader
 	 *
 	 * @example
 	 * ```tsx
@@ -1281,7 +1308,7 @@ const Sheet = {
 	 * The title for a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`.
 	 * Defaults to an `h2` element, but can be changed via the `asChild` prop.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheettitle
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheettitle
 	 *
 	 * @example
 	 * ```tsx
@@ -1318,7 +1345,7 @@ const Sheet = {
 	/**
 	 * A group container for the title and actions of a sheet. Typically rendered as a child of `Sheet.Header`.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheettitlegroup
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheettitlegroup
 	 *
 	 * @example
 	 * ```tsx
@@ -1356,7 +1383,7 @@ const Sheet = {
 	 * The button trigger for a `Sheet`. Should be rendered as a child of the `Sheet` component.
 	 * Renders an unstyled button by default, but can be customized with the `asChild` prop.
 	 *
-	 * @see https://mantle.ngrok.com/components/sheet#sheettrigger
+	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheettrigger
 	 *
 	 * @example
 	 * ```tsx
