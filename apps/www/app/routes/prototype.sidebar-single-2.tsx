@@ -170,12 +170,6 @@ const footerActionItems = [
 		icon: utilityItems.find((item) => item.id === "usage")?.icon,
 		path: "/usage",
 	},
-	{
-		id: "billing",
-		label: "Billing",
-		icon: <CreditCardIcon />,
-		path: "/settings/billing",
-	},
 ] as const;
 const iamTabs = [
 	{ label: "Team Members", icon: <UsersThreeIcon />, path: "/iam/team-members" },
@@ -360,6 +354,7 @@ const settingsSections: ReadonlyArray<SettingsNavSection> = [
 		title: "Account",
 		items: [
 			{ label: "General", icon: <GearIcon />, path: "/settings/general" },
+			{ label: "Billing", icon: <CreditCardIcon />, path: "/settings/billing" },
 			{ label: "Auth", icon: <FingerprintIcon />, path: "/settings/auth" },
 			{
 				label: "Data Retention",
@@ -767,6 +762,11 @@ export default function SidebarSingle2Prototype() {
 		setPathname(utilityInitialPaths[utilityId]);
 	};
 
+	const openAccountSettingsPath = (path: string) => {
+		setMode({ type: "utility", utilityId: "account-settings" });
+		setPathname(path);
+	};
+
 	const selectFooterPath = (path: string) => {
 		setMode({ type: "product" });
 		setPathname(path);
@@ -967,15 +967,13 @@ export default function SidebarSingle2Prototype() {
 				</Sidebar.Body>
 
 				<Sidebar.Footer className="border-t-0 pb-3.5">
-					{footerActionItems.map((item) => {
+					{(mode.type === "utility" ? [] : footerActionItems).map((item) => {
 						const active =
 							item.id === "vaults"
 								? pathname.startsWith("/vaults")
 								: item.id === "iam"
 									? pathname.startsWith("/iam")
-									: item.id === "usage"
-										? pathname.startsWith("/usage")
-										: pathname === "/settings/billing";
+									: pathname.startsWith("/usage");
 						return (
 							<Sidebar.Item
 								key={item.id}
@@ -1098,6 +1096,16 @@ export default function SidebarSingle2Prototype() {
 								<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
 									{currentAccount?.name ?? currentAccountId}
 								</DropdownMenu.Label>
+								<DropdownMenu.Item asChild>
+									<button
+										type="button"
+										className="text-strong flex w-full items-center gap-2 whitespace-nowrap"
+										onClick={() => openAccountSettingsPath("/settings/billing")}
+									>
+										<CreditCardIcon className="text-muted" />
+										Billing
+									</button>
+								</DropdownMenu.Item>
 								<DropdownMenu.Item asChild>
 									<button
 										type="button"
