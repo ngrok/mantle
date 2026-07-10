@@ -1,4 +1,3 @@
-import { BrowserOnly } from "@ngrok/mantle/browser-only";
 import { cx } from "@ngrok/mantle/cx";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Icon } from "@ngrok/mantle/icon";
@@ -12,6 +11,7 @@ import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { ChatsIcon } from "@phosphor-icons/react/Chats";
 import { CreditCardIcon } from "@phosphor-icons/react/CreditCard";
 import { DoorOpenIcon } from "@phosphor-icons/react/DoorOpen";
+import { FolderIcon } from "@phosphor-icons/react/Folder";
 import { GearIcon } from "@phosphor-icons/react/Gear";
 import { HeartbeatIcon } from "@phosphor-icons/react/Heartbeat";
 import { MegaphoneIcon } from "@phosphor-icons/react/Megaphone";
@@ -25,7 +25,6 @@ import {
 	AccountSettingsNav,
 	getAccountSettingsPage,
 } from "~/examples/sidebar/account-settings-nav";
-import { AiGatewayNav } from "~/examples/sidebar/ai-gateway-nav";
 import { CodenameNav } from "~/examples/sidebar/codename-nav";
 import { demoAccounts, demoUser } from "~/examples/sidebar/demo-data";
 import { IamNav, getIamPage } from "~/examples/sidebar/iam-nav";
@@ -40,16 +39,24 @@ import { UniversalGatewayNav } from "~/examples/sidebar/universal-gateway-nav";
 import { UsageNav } from "~/examples/sidebar/usage-nav";
 
 type SidebarMode =
-	| {
-			type: "product";
-			productId: Extract<ProductId, "ai-gateway" | "codename" | "localhost" | "universal-gateway">;
-	  }
+	| { type: "product" }
 	| { type: "utility"; utilityId: Extract<ProductId, "account-settings" | "iam" | "usage"> };
 
 type UtilityId = Extract<ProductId, "account-settings" | "iam" | "usage">;
+type ProductSwitcherId = Extract<ProductId, "codename" | "localhost" | "universal-gateway">;
 
 const initialProductId: Extract<ProductId, "universal-gateway"> = "universal-gateway";
 const initialPath = "/endpoints";
+const productSwitcherIds: ReadonlyArray<ProductSwitcherId> = [
+	"universal-gateway",
+	"codename",
+	"localhost",
+];
+const productColorClassNames: Record<ProductSwitcherId, string> = {
+	codename: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
+	localhost: "bg-neutral-100 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300",
+	"universal-gateway": "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
+};
 
 const utilityInitialPaths = {
 	"account-settings": "/settings/general",
@@ -57,12 +64,58 @@ const utilityInitialPaths = {
 	usage: "/usage",
 } as const satisfies Record<UtilityId, string>;
 
+type DemoProject = {
+	id: string;
+	name: string;
+};
+
+const demoProjectsByAccount: Record<string, ReadonlyArray<DemoProject>> = {
+	acc_acme: [
+		{ id: "proj_orion", name: "Project Orion" },
+		{ id: "proj_launchpad", name: "Launchpad" },
+		{ id: "proj_customer_edge", name: "Customer Edge" },
+	],
+	acc_skunkworks: [
+		{ id: "proj_labyrinth", name: "Labyrinth" },
+		{ id: "proj_nightly", name: "Nightly Builds" },
+	],
+	acc_atlas: [
+		{ id: "proj_northstar", name: "Northstar" },
+		{ id: "proj_dataplane", name: "Global Dataplane" },
+	],
+};
+
+function projectsForAccount(accountId: string) {
+	return demoProjectsByAccount[accountId] ?? [];
+}
+
+function initialPathForProduct(productId: ProductSwitcherId) {
+	if (productId === "codename") {
+		return "/ship/apps";
+	}
+	if (productId === "localhost") {
+		return "/localhost";
+	}
+	return "/endpoints";
+}
+
+function isProductSwitcherId(id: ProductId): id is ProductSwitcherId {
+	return productSwitcherIds.includes(id as ProductSwitcherId);
+}
+
 function isFooterUtilityId(id: ProductId): id is UtilityId {
 	return id === "usage" || id === "iam" || id === "account-settings";
 }
 
+function productDisplayName(product: ExampleProduct | undefined) {
+	if (product?.id === "localhost") {
+		return "Localhost";
+	}
+	return product?.label ?? "Gateway";
+}
+
 function navForProduct(
-	productId: Extract<ProductId, "ai-gateway" | "codename" | "localhost" | "universal-gateway">,
+	productId: ProductSwitcherId,
 	pathname: string,
 	onNavigate: (path: string) => void,
 ) {
@@ -71,9 +124,6 @@ function navForProduct(
 	}
 	if (productId === "codename") {
 		return <CodenameNav pathname={pathname} onNavigate={onNavigate} />;
-	}
-	if (productId === "ai-gateway") {
-		return <AiGatewayNav pathname={pathname} onNavigate={onNavigate} />;
 	}
 	return <LocalhostNav pathname={pathname} onNavigate={onNavigate} />;
 }
@@ -92,16 +142,48 @@ function navForUtility(
 	return <UsageNav pathname={pathname} onNavigate={onNavigate} />;
 }
 
+function ProductIconBox({ product }: { product: ExampleProduct }) {
+	const colorClassName = isProductSwitcherId(product.id)
+		? productColorClassNames[product.id]
+		: "bg-neutral-100 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300";
+
+	return (
+		<span
+			className={cx(
+				"flex size-5 shrink-0 items-center justify-center rounded-[0.25rem] [&>svg]:size-4",
+				colorClassName,
+			)}
+			aria-hidden="true"
+		>
+			{product.icon}
+		</span>
+	);
+}
+
 export default function SidebarSinglePrototype() {
-	const [mode, setMode] = useState<SidebarMode>({ type: "product", productId: initialProductId });
+	const [mode, setMode] = useState<SidebarMode>({ type: "product" });
+	const [currentProductId, setCurrentProductId] = useState<ProductSwitcherId>(initialProductId);
 	const [pathname, setPathname] = useState(initialPath);
+	const [productPathById, setProductPathById] = useState<Record<ProductSwitcherId, string>>({
+		codename: initialPathForProduct("codename"),
+		localhost: initialPathForProduct("localhost"),
+		"universal-gateway": initialPath,
+	});
 	const [currentAccountId, setCurrentAccountId] = useState(demoAccounts[0]?.id ?? "");
+	const [currentProjectId, setCurrentProjectId] = useState(
+		projectsForAccount(demoAccounts[0]?.id ?? "")[0]?.id ?? "",
+	);
 	const [currentTheme, setTheme] = useTheme();
 
 	const currentAccount = demoAccounts.find((account) => account.id === currentAccountId);
-	const currentProduct = productItems.find((product) =>
-		mode.type === "product" ? product.id === mode.productId : product.id === initialProductId,
-	);
+	const currentProjects = projectsForAccount(currentAccountId);
+	const currentProject =
+		currentProjects.find((project) => project.id === currentProjectId) ?? currentProjects[0];
+	const currentProduct = productItems.find((product) => product.id === currentProductId);
+	const productSwitcherItems = productSwitcherIds.flatMap((productId) => {
+		const product = productItems.find((item) => item.id === productId);
+		return product && isProductSwitcherId(product.id) ? [product] : [];
+	});
 	const currentUtility =
 		mode.type === "utility" ? utilityItems.find((item) => item.id === mode.utilityId) : undefined;
 
@@ -111,8 +193,27 @@ export default function SidebarSinglePrototype() {
 	};
 
 	const returnToProduct = () => {
-		setMode({ type: "product", productId: initialProductId });
-		setPathname(initialPath);
+		setMode({ type: "product" });
+		setPathname(productPathById[currentProductId]);
+	};
+
+	const switchAccount = (accountId: string) => {
+		setCurrentAccountId(accountId);
+		setCurrentProjectId(projectsForAccount(accountId)[0]?.id ?? "");
+	};
+
+	const switchProduct = (productId: ProductSwitcherId) => {
+		setCurrentProductId(productId);
+		setMode({ type: "product" });
+		setPathname(productPathById[productId]);
+	};
+
+	const navigateProduct = (path: string) => {
+		setPathname(path);
+		setProductPathById((currentPaths) => ({
+			...currentPaths,
+			[currentProductId]: path,
+		}));
 	};
 
 	return (
@@ -125,45 +226,213 @@ export default function SidebarSinglePrototype() {
 				}
 				className="border-r-0 bg-transparent"
 			>
-				<Sidebar.Header className="border-b-0">
+				<Sidebar.Header className="border-b-0 pb-0">
+					{mode.type === "utility" ? (
+						<button
+							type="button"
+							className={cx(
+								"text-body hover:text-strong hover:bg-neutral-500/10 flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-medium",
+								"ring-focus-accent focus:outline-hidden focus-visible:ring-4",
+								"[&>svg]:text-muted hover:[&>svg]:text-strong [&>svg]:size-5 [&>svg]:shrink-0",
+							)}
+							onClick={returnToProduct}
+						>
+							<ArrowLeftIcon />
+							<span className="text-strong min-w-0 flex-1 truncate">
+								{currentUtility?.label ?? "Back"}
+							</span>
+						</button>
+					) : (
+						<DropdownMenu.Root>
+							<DropdownMenu.Trigger
+								className={cx(
+									"text-body hover:text-strong hover:bg-neutral-500/10 flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-medium",
+									"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
+									"ring-focus-accent focus:outline-hidden focus-visible:ring-4",
+								)}
+							>
+								{currentProduct ? <ProductIconBox product={currentProduct} /> : null}
+								<span className="min-w-0 flex-1 truncate text-left">
+									{productDisplayName(currentProduct)}
+								</span>
+								<Icon svg={<CaretDownIcon />} className="text-muted size-4 shrink-0" />
+							</DropdownMenu.Trigger>
+							<DropdownMenu.Content align="start" className="my-0 w-56" sideOffset={4}>
+								<DropdownMenu.RadioGroup
+									value={currentProductId}
+									onValueChange={(value) => switchProduct(value as ProductSwitcherId)}
+								>
+									{productSwitcherItems.map((product) => (
+										<DropdownMenu.RadioItem
+											key={product.id}
+											value={product.id}
+											className="gap-2 whitespace-nowrap"
+										>
+											<ProductIconBox product={product} />
+											{productDisplayName(product)}
+										</DropdownMenu.RadioItem>
+									))}
+								</DropdownMenu.RadioGroup>
+							</DropdownMenu.Content>
+						</DropdownMenu.Root>
+					)}
+				</Sidebar.Header>
+
+				<Sidebar.Body className="pt-1">
+					{mode.type === "utility"
+						? navForUtility(mode.utilityId, pathname, setPathname)
+						: navForProduct(currentProductId, pathname, navigateProduct)}
+				</Sidebar.Body>
+
+				<Sidebar.Footer className="border-t-0">
+					{mode.type === "product" ? (
+						<>
+							<div className="border-popover-muted my-2 border-t" aria-hidden="true" />
+							{utilityItems.map((item) => {
+								if (!isFooterUtilityId(item.id)) {
+									return null;
+								}
+								const utilityId = item.id;
+								return (
+									<Sidebar.Item key={item.id} level="top" asChild>
+										<button type="button" onClick={() => openUtility(utilityId)}>
+											{item.icon}
+											{item.label}
+										</button>
+									</Sidebar.Item>
+								);
+							})}
+							<DropdownMenu.Root modal={false}>
+								<Sidebar.Item className="px-1.5! [&>svg:last-child]:size-4!" level="top" asChild>
+									<DropdownMenu.Trigger className="flex w-full items-center gap-2 data-state-open:bg-neutral-500/15 data-state-open:text-strong">
+										<Icon svg={<QuestionIcon />} className="text-muted" />
+										Help
+										<Icon svg={<CaretDownIcon />} className="text-muted ml-auto size-4 shrink-0" />
+									</DropdownMenu.Trigger>
+								</Sidebar.Item>
+								<DropdownMenu.Content
+									align="start"
+									className="my-0 w-max min-w-48"
+									side="top"
+									sideOffset={4}
+								>
+									<DropdownMenu.Item className="gap-2 whitespace-nowrap">
+										<DoorOpenIcon className="text-muted" />
+										Early Access
+									</DropdownMenu.Item>
+									<DropdownMenu.Item asChild>
+										<a
+											href="https://ngrok.com/docs"
+											rel="noopener"
+											target="_blank"
+											className="flex items-center gap-2 whitespace-nowrap"
+										>
+											<BookIcon className="text-muted" />
+											Documentation
+										</a>
+									</DropdownMenu.Item>
+									<DropdownMenu.Item className="gap-2 whitespace-nowrap">
+										<MegaphoneIcon className="text-muted" />
+										Give feedback
+									</DropdownMenu.Item>
+									<DropdownMenu.Item asChild>
+										<a
+											href="https://ngrok.com/support"
+											rel="noopener"
+											target="_blank"
+											className="flex items-center gap-2 whitespace-nowrap"
+										>
+											<ChatsIcon className="text-muted" />
+											<span className="min-w-0 flex-1">Contact support</span>
+											<span
+												className="bg-accent-600 size-1.5 shrink-0 rounded-full"
+												aria-hidden="true"
+											/>
+										</a>
+									</DropdownMenu.Item>
+									<DropdownMenu.Item asChild>
+										<a
+											href="https://status.ngrok.com/"
+											rel="noopener"
+											target="_blank"
+											className="flex items-center gap-2 whitespace-nowrap"
+										>
+											<HeartbeatIcon className="text-muted" />
+											<span className="min-w-0 flex-1">System status</span>
+											<span
+												className="bg-success-600 size-1.5 shrink-0 rounded-full"
+												aria-hidden="true"
+											/>
+										</a>
+									</DropdownMenu.Item>
+								</DropdownMenu.Content>
+							</DropdownMenu.Root>
+						</>
+					) : null}
+					<div className="border-popover-muted my-2 border-t" aria-hidden="true" />
 					<DropdownMenu.Root>
 						<DropdownMenu.Trigger
 							className={cx(
-								"text-strong flex w-full items-center justify-between gap-1.5 rounded-lg px-1.5 py-1.5",
+								"text-strong flex w-full items-center gap-2 rounded-md px-2 py-1",
 								"hover:bg-popover-hover",
 								"ring-focus-accent focus:outline-hidden focus-visible:ring-4",
 							)}
 						>
-							<div className="flex min-w-0 flex-1 items-center gap-1.5">
-								<Sidebar.AccountAvatar
-									className="shrink-0"
-									accountId={currentAccount?.id}
-									accountName={currentAccount?.name}
-								/>
-								<span className="min-w-0 truncate text-sm font-medium">
-									{currentAccount?.name ?? currentAccount?.id}
-								</span>
-							</div>
-							<div className="flex shrink-0 items-center gap-1">
-								<BrowserOnly fallback={<div className="size-4" />}>
-									{() => <AutoThemeIcon className="size-4" />}
-								</BrowserOnly>
-								<Sidebar.UserAvatar alt={demoUser.name} />
-							</div>
+							<Sidebar.AccountAvatar
+								className="size-5! shrink-0 rounded-[0.25rem] text-[0.625rem]"
+								accountId={currentAccount?.id}
+								accountName={currentAccount?.name}
+							/>
+							<span className="min-w-0 flex-1 truncate text-left text-sm font-medium">
+								{currentProject?.name ?? "Project Orion"}
+							</span>
+							<Sidebar.UserAvatar
+								src={demoUser.pictureUrl}
+								alt={demoUser.name}
+								className="size-5 shrink-0"
+							/>
 						</DropdownMenu.Trigger>
-						<DropdownMenu.Content className="ml-2 w-[calc(var(--radix-dropdown-menu-trigger-width)+1.5rem)]">
+						<DropdownMenu.Content
+							align="start"
+							className="my-0 w-max min-w-56"
+							side="top"
+							sideOffset={4}
+						>
 							<DropdownMenu.Group>
 								<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
-									Account
+									Projects
+								</DropdownMenu.Label>
+								<DropdownMenu.RadioGroup
+									value={currentProject?.id ?? currentProjectId}
+									onValueChange={setCurrentProjectId}
+								>
+									{currentProjects.map((project) => (
+										<DropdownMenu.RadioItem
+											key={project.id}
+											value={project.id}
+											className="gap-2 whitespace-nowrap"
+										>
+											<FolderIcon className="text-muted" />
+											{project.name}
+										</DropdownMenu.RadioItem>
+									))}
+								</DropdownMenu.RadioGroup>
+								<DropdownMenu.Separator />
+								<DropdownMenu.Item className="gap-2">
+									<PlusCircleIcon className="text-muted" />
+									New project
+								</DropdownMenu.Item>
+							</DropdownMenu.Group>
+							<DropdownMenu.Separator />
+							<DropdownMenu.Group>
+								<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
+									{currentAccount?.name ?? currentAccountId}
 								</DropdownMenu.Label>
 								<DropdownMenu.Item asChild>
 									<button
 										type="button"
-										className="text-strong flex w-full items-center gap-2"
-										onClick={() => {
-											setMode({ type: "utility", utilityId: "account-settings" });
-											setPathname("/settings/general");
-										}}
+										className="text-strong flex w-full items-center gap-2 whitespace-nowrap"
+										onClick={() => openUtility("account-settings")}
 									>
 										<Icon svg={<GearIcon />} className="text-muted" />
 										Account settings
@@ -172,7 +441,7 @@ export default function SidebarSinglePrototype() {
 								<DropdownMenu.Item asChild>
 									<button
 										type="button"
-										className="text-strong flex w-full items-center gap-2"
+										className="text-strong flex w-full items-center gap-2 whitespace-nowrap"
 										onClick={() => {
 											setMode({ type: "utility", utilityId: "account-settings" });
 											setPathname("/settings/billing");
@@ -183,24 +452,23 @@ export default function SidebarSinglePrototype() {
 									</button>
 								</DropdownMenu.Item>
 								<DropdownMenu.Sub>
-									<DropdownMenu.SubTrigger className="text-strong flex items-center gap-2">
+									<DropdownMenu.SubTrigger className="text-strong flex items-center gap-2 whitespace-nowrap">
 										<Icon svg={<ArrowsClockwiseIcon />} className="text-muted" />
 										Switch accounts
 									</DropdownMenu.SubTrigger>
 									<DropdownMenu.SubContent>
 										<Sidebar.SwitchAccountsRadioGroup
 											value={currentAccountId}
-											onValueChange={setCurrentAccountId}
+											onValueChange={switchAccount}
 											accounts={demoAccounts.map((account) => ({
 												id: account.id,
 												name: account.name,
 											}))}
 										/>
-										<DropdownMenu.Item asChild>
-											<button type="button" className="flex w-full items-center gap-1">
-												<Icon svg={<PlusCircleIcon />} className="text-muted" />
-												Create Account
-											</button>
+										<DropdownMenu.Separator />
+										<DropdownMenu.Item className="gap-2">
+											<PlusCircleIcon className="text-muted" />
+											New account
 										</DropdownMenu.Item>
 									</DropdownMenu.SubContent>
 								</DropdownMenu.Sub>
@@ -213,7 +481,7 @@ export default function SidebarSinglePrototype() {
 								<DropdownMenu.Item asChild>
 									<button
 										type="button"
-										className="text-strong flex w-full items-center gap-2"
+										className="text-strong flex w-full items-center gap-2 whitespace-nowrap"
 										onClick={() => {
 											setMode({ type: "utility", utilityId: "account-settings" });
 											setPathname("/settings/preferences");
@@ -263,110 +531,13 @@ export default function SidebarSinglePrototype() {
 							</DropdownMenu.Group>
 							<DropdownMenu.Separator />
 							<DropdownMenu.Item asChild>
-								<button type="button" className="text-strong flex w-full items-center gap-2">
+								<button
+									type="button"
+									className="text-strong flex w-full items-center gap-2 whitespace-nowrap"
+								>
 									<Icon svg={<SignOutIcon />} className="text-muted" />
 									Log out
 								</button>
-							</DropdownMenu.Item>
-						</DropdownMenu.Content>
-					</DropdownMenu.Root>
-				</Sidebar.Header>
-
-				<Sidebar.Body className="pt-1">
-					{mode.type === "utility" ? (
-						<>
-							<Sidebar.Group>
-								<Sidebar.Item level="top" asChild>
-									<button type="button" onClick={returnToProduct}>
-										<ArrowLeftIcon />
-										Back to {currentProduct?.label ?? "Gateway"}
-									</button>
-								</Sidebar.Item>
-							</Sidebar.Group>
-							{navForUtility(mode.utilityId, pathname, setPathname)}
-						</>
-					) : (
-						navForProduct(mode.productId, pathname, setPathname)
-					)}
-				</Sidebar.Body>
-
-				<Sidebar.Footer>
-					{utilityItems.map((item) => {
-						if (!isFooterUtilityId(item.id)) {
-							return null;
-						}
-						const utilityId = item.id;
-						return (
-							<Sidebar.Item
-								key={item.id}
-								level="top"
-								active={mode.type === "utility" && mode.utilityId === utilityId}
-								asChild
-							>
-								<button type="button" onClick={() => openUtility(utilityId)}>
-									{item.icon}
-									{item.label}
-								</button>
-							</Sidebar.Item>
-						);
-					})}
-					<Sidebar.Item level="top" asChild>
-						<button type="button">
-							<DoorOpenIcon />
-							Early Access
-						</button>
-					</Sidebar.Item>
-					<DropdownMenu.Root modal={false}>
-						<Sidebar.Item level="top" asChild>
-							<DropdownMenu.Trigger className="flex w-full items-center gap-2 data-state-open:bg-neutral-500/15 data-state-open:text-strong">
-								<QuestionIcon />
-								Help
-								<CaretDownIcon className="text-muted ml-auto size-4 shrink-0" />
-							</DropdownMenu.Trigger>
-						</Sidebar.Item>
-						<DropdownMenu.Content
-							align="start"
-							className="my-0"
-							side="top"
-							sideOffset={4}
-							width="trigger"
-						>
-							<DropdownMenu.Item asChild>
-								<a
-									href="https://ngrok.com/docs"
-									rel="noopener"
-									target="_blank"
-									className="flex items-center gap-2"
-								>
-									<BookIcon className="text-muted" />
-									Documentation
-								</a>
-							</DropdownMenu.Item>
-							<DropdownMenu.Item className="gap-2">
-								<MegaphoneIcon className="text-muted" />
-								Give feedback
-							</DropdownMenu.Item>
-							<DropdownMenu.Item asChild>
-								<a
-									href="https://ngrok.com/support"
-									rel="noopener"
-									target="_blank"
-									className="flex items-center gap-2"
-								>
-									<ChatsIcon className="text-muted" />
-									Contact support
-								</a>
-							</DropdownMenu.Item>
-							<DropdownMenu.Item asChild>
-								<a
-									href="https://status.ngrok.com/"
-									rel="noopener"
-									target="_blank"
-									className="flex items-center gap-2"
-								>
-									<HeartbeatIcon className="text-muted" />
-									System status
-								</a>
 							</DropdownMenu.Item>
 						</DropdownMenu.Content>
 					</DropdownMenu.Root>
@@ -418,7 +589,7 @@ function PagePreview({
 	}
 
 	return (
-		<DetailPreview title={utility?.label ?? product?.label ?? "Gateway"} pathname={pathname} />
+		<DetailPreview title={utility?.label ?? productDisplayName(product)} pathname={pathname} />
 	);
 }
 
