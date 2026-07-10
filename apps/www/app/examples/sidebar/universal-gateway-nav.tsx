@@ -1,67 +1,74 @@
 import { Sidebar } from "@ngrok/mantle/sidebar";
-import { ArrowsLeftRightIcon } from "@phosphor-icons/react/ArrowsLeftRight";
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { BankIcon } from "@phosphor-icons/react/Bank";
+import { CertificateIcon } from "@phosphor-icons/react/Certificate";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { HashIcon } from "@phosphor-icons/react/Hash";
+import { IdentificationCardIcon } from "@phosphor-icons/react/IdentificationCard";
 import { ListMagnifyingGlassIcon } from "@phosphor-icons/react/ListMagnifyingGlass";
-import { RocketIcon } from "@phosphor-icons/react/Rocket";
-import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
+import { MapPinIcon } from "@phosphor-icons/react/MapPin";
+import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { SteeringWheelIcon } from "@phosphor-icons/react/SteeringWheel";
+import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
+import { VaultIcon } from "@phosphor-icons/react/Vault";
+import { WavesIcon } from "@phosphor-icons/react/Waves";
+import type { ReactNode } from "react";
+
+type NavItem = {
+	label: string;
+	icon: ReactNode;
+	path: string;
+};
 
 type NavSection = {
 	title: string;
-	icon: React.ReactNode;
-	items: ReadonlyArray<{ label: string; path: string }>;
+	items: ReadonlyArray<NavItem>;
 };
+
+const topLevelItems: ReadonlyArray<NavItem> = [
+	{ label: "Endpoints", icon: <GraphIcon />, path: "/endpoints" },
+	{ label: "Agents", icon: <TerminalWindowIcon />, path: "/agents" },
+];
 
 const sections: ReadonlyArray<NavSection> = [
 	{
-		title: "Getting Started",
-		icon: <RocketIcon />,
+		title: "Traffic",
 		items: [
-			{ label: "Setup & Installation", path: "/get-started/setup" },
-			{ label: "Your Authtoken", path: "/get-started/your-authtoken" },
+			{
+				label: "Traffic Inspector",
+				icon: <ListMagnifyingGlassIcon />,
+				path: "/observability/traffic-inspector",
+			},
+			{
+				label: "Traffic Identities",
+				icon: <IdentificationCardIcon />,
+				path: "/traffic-identities",
+			},
+			{ label: "Log Export", icon: <WavesIcon />, path: "/event-subscriptions" },
 		],
 	},
 	{
-		title: "Universal Gateway",
-		icon: <GlobeIcon />,
+		title: "Network",
 		items: [
-			{ label: "Endpoints", path: "/endpoints" },
-			{ label: "Domains", path: "/domains" },
-			{ label: "TCP Addresses", path: "/tcp-addresses" },
-			{ label: "TLS Certificates", path: "/tls-certs" },
-			{ label: "Kubernetes Operators", path: "/kubernetes-operators" },
-			{ label: "Vaults & Secrets", path: "/vaults" },
-			{ label: "IP Policies", path: "/ip-policies" },
-			{ label: "TLS Cert Authorities", path: "/tls-cert-authorities" },
-			{ label: "Traffic Identities", path: "/traffic-identities" },
+			{ label: "Domains", icon: <GlobeHemisphereWestIcon />, path: "/domains" },
+			{ label: "TCP Addresses", icon: <HashIcon />, path: "/tcp-addresses" },
 		],
 	},
 	{
-		title: "Traffic Observability",
-		icon: <ListMagnifyingGlassIcon />,
+		title: "Resources",
 		items: [
-			{ label: "Traffic Inspector", path: "/observability/traffic-inspector" },
-			{ label: "Log Exporting", path: "/event-subscriptions" },
+			{ label: "Vaults & Secrets", icon: <VaultIcon />, path: "/vaults" },
+			{ label: "IP Policies", icon: <MapPinIcon />, path: "/ip-policies" },
+			{ label: "TLS Certificates", icon: <CertificateIcon />, path: "/tls-certs" },
+			{
+				label: "TLS Cert Authorities",
+				icon: <BankIcon />,
+				path: "/tls-cert-authorities",
+			},
 		],
 	},
 	{
-		title: "Secure Tunnels",
-		icon: <ArrowsLeftRightIcon />,
-		items: [
-			{ label: "Agents", path: "/agents" },
-			{ label: "Connect URLs", path: "/ingress" },
-		],
-	},
-	{
-		title: "Identity & Access",
-		icon: <UserCircleIcon />,
-		items: [
-			{ label: "Team Members", path: "/team-members" },
-			{ label: "Service Users", path: "/service-users" },
-			{ label: "Authtokens", path: "/authtokens" },
-			{ label: "API Keys", path: "/api-keys" },
-			{ label: "SSH Public Keys", path: "/ssh-keys" },
-			{ label: "IP Restrictions", path: "/ip-restrictions" },
-		],
+		title: "Kubernetes",
+		items: [{ label: "Operators", icon: <SteeringWheelIcon />, path: "/kubernetes-operators" }],
 	},
 ];
 
@@ -79,33 +86,51 @@ type Props = {
 export function UniversalGatewayNav({ onNavigate, pathname }: Props) {
 	return (
 		<>
+			<Sidebar.Group>
+				{topLevelItems.map((item) => (
+					<NavLinkItem key={item.path} item={item} pathname={pathname} onNavigate={onNavigate} />
+				))}
+			</Sidebar.Group>
 			{sections.map((section) => (
 				<Sidebar.Section key={section.title}>
-					<Sidebar.SectionTitle asChild>
-						<button
-							type="button"
-							onClick={() => {
-								const firstPath = section.items[0]?.path;
-								if (firstPath) {
-									onNavigate(firstPath);
-								}
-							}}
-						>
-							{section.icon}
-							{section.title}
-						</button>
+					<Sidebar.SectionTitle className="text-muted hover:bg-transparent px-2 py-1 text-xs font-medium">
+						{section.title}
 					</Sidebar.SectionTitle>
 					<Sidebar.Group>
 						{section.items.map((item) => (
-							<Sidebar.Item key={item.path} active={pathname === item.path} asChild>
-								<button type="button" onClick={() => onNavigate(item.path)}>
-									{item.label}
-								</button>
-							</Sidebar.Item>
+							<NavLinkItem
+								key={item.path}
+								item={item}
+								pathname={pathname}
+								onNavigate={onNavigate}
+							/>
 						))}
 					</Sidebar.Group>
 				</Sidebar.Section>
 			))}
 		</>
+	);
+}
+
+type NavLinkItemProps = {
+	item: NavItem;
+	pathname: string;
+	onNavigate: (path: string) => void;
+};
+
+function NavLinkItem({ item, onNavigate, pathname }: NavLinkItemProps) {
+	return (
+		<Sidebar.Item active={pathname === item.path} level="top" asChild>
+			<a
+				href={item.path}
+				onClick={(event) => {
+					event.preventDefault();
+					onNavigate(item.path);
+				}}
+			>
+				{item.icon}
+				{item.label}
+			</a>
+		</Sidebar.Item>
 	);
 }

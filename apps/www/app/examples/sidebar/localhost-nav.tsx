@@ -1,16 +1,16 @@
 import { Sidebar } from "@ngrok/mantle/sidebar";
-import { ArrowsLeftRightIcon } from "@phosphor-icons/react/ArrowsLeftRight";
-import { GearIcon } from "@phosphor-icons/react/Gear";
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
-import { HouseIcon } from "@phosphor-icons/react/House";
-import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { LinkIcon } from "@phosphor-icons/react/Link";
+import { ListMagnifyingGlassIcon } from "@phosphor-icons/react/ListMagnifyingGlass";
 
 const items: ReadonlyArray<{ label: string; icon: React.ReactNode; path: string }> = [
-	{ label: "Overview", icon: <HouseIcon />, path: "/localhost" },
-	{ label: "Tunnels", icon: <ArrowsLeftRightIcon />, path: "/localhost/tunnels" },
-	{ label: "Connect URLs", icon: <GlobeIcon />, path: "/localhost/urls" },
-	{ label: "Agent", icon: <TerminalWindowIcon />, path: "/localhost/agent" },
-	{ label: "Settings", icon: <GearIcon />, path: "/localhost/settings" },
+	{ label: "URLs", icon: <LinkIcon />, path: "/localhost/urls" },
+	{ label: "Domains", icon: <GlobeHemisphereWestIcon />, path: "/localhost/domains" },
+	{
+		label: "Traffic Inspector",
+		icon: <ListMagnifyingGlassIcon />,
+		path: "/localhost/traffic-inspector",
+	},
 ];
 
 type Props = {

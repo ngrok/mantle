@@ -18,10 +18,11 @@ import { SignOutIcon } from "@phosphor-icons/react/SignOut";
 import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
 import { useState } from "react";
 
-import { AccountSettingsNav } from "./account-settings-nav";
+import { AccountSettingsNav, getAccountSettingsPage } from "./account-settings-nav";
 import { AiGatewayNav } from "./ai-gateway-nav";
 import { CodenameNav } from "./codename-nav";
 import { demoAccounts, demoUser } from "./demo-data";
+import { IamNav, getIamPage } from "./iam-nav";
 import { LocalhostNav } from "./localhost-nav";
 import { type ExampleProduct, type ProductId, productItems, utilityItems } from "./products";
 import { UniversalGatewayNav } from "./universal-gateway-nav";
@@ -43,14 +44,17 @@ function navForProduct(productId: ProductId, pathname: string, onNavigate: (path
 	if (productId === "usage") {
 		return <UsageNav pathname={pathname} onNavigate={onNavigate} />;
 	}
+	if (productId === "iam") {
+		return <IamNav pathname={pathname} onNavigate={onNavigate} />;
+	}
 	if (productId === "universal-gateway") {
 		return <UniversalGatewayNav pathname={pathname} onNavigate={onNavigate} />;
 	}
-	if (productId === "ai-gateway") {
-		return <AiGatewayNav pathname={pathname} onNavigate={onNavigate} />;
-	}
 	if (productId === "codename") {
 		return <CodenameNav pathname={pathname} onNavigate={onNavigate} />;
+	}
+	if (productId === "ai-gateway") {
+		return <AiGatewayNav pathname={pathname} onNavigate={onNavigate} />;
 	}
 	return <LocalhostNav pathname={pathname} onNavigate={onNavigate} />;
 }
@@ -308,14 +312,75 @@ export function MobileSheetDemo() {
 				</Sheet.Content>
 			</Sheet.Root>
 
-			<div className="text-muted">
-				<div className="text-lg font-medium">{currentProduct?.label}</div>
-				<div className="text-sm">{pathname}</div>
-				<div className="mt-2 text-xs">
+			<PagePreview
+				productId={currentProductId}
+				productLabel={currentProduct?.label}
+				pathname={pathname}
+			/>
+		</div>
+	);
+}
+
+function PagePreview({
+	pathname,
+	productId,
+	productLabel,
+}: {
+	pathname: string;
+	productId: ProductId;
+	productLabel: string | undefined;
+}) {
+	if (productId === "account-settings") {
+		const page = getAccountSettingsPage(pathname);
+		return (
+			<div className="w-full max-w-sm">
+				<div className="text-strong text-lg font-medium">{page?.label ?? "Settings"}</div>
+				<div className="text-muted text-sm">{pathname}</div>
+				{page?.details ? (
+					<ul className="mt-3 space-y-1 text-sm text-body">
+						{page.details.map((detail) => (
+							<li key={detail}>{detail}</li>
+						))}
+					</ul>
+				) : null}
+				<div className="text-muted mt-4 text-xs">
 					Tap the menu icon to open the sidebar. In a real app, hide this trigger at the{" "}
 					<code className="bg-neutral-500/10 rounded px-1 py-0.5">sm</code> breakpoint and render
 					the sidebar inline.
 				</div>
+			</div>
+		);
+	}
+	if (productId === "iam") {
+		const page = getIamPage(pathname);
+		return (
+			<div className="w-full max-w-sm">
+				<div className="text-strong text-lg font-medium">{page?.label ?? "IAM"}</div>
+				<div className="text-muted text-sm">{pathname}</div>
+				{page?.details ? (
+					<ul className="mt-3 space-y-1 text-sm text-body">
+						{page.details.map((detail) => (
+							<li key={detail}>{detail}</li>
+						))}
+					</ul>
+				) : null}
+				<div className="text-muted mt-4 text-xs">
+					Tap the menu icon to open the sidebar. In a real app, hide this trigger at the{" "}
+					<code className="bg-neutral-500/10 rounded px-1 py-0.5">sm</code> breakpoint and render
+					the sidebar inline.
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div className="text-muted">
+			<div className="text-lg font-medium">{productLabel}</div>
+			<div className="text-sm">{pathname}</div>
+			<div className="mt-2 text-xs">
+				Tap the menu icon to open the sidebar. In a real app, hide this trigger at the{" "}
+				<code className="bg-neutral-500/10 rounded px-1 py-0.5">sm</code> breakpoint and render the
+				sidebar inline.
 			</div>
 		</div>
 	);

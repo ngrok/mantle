@@ -1,17 +1,17 @@
 import { Sidebar } from "@ngrok/mantle/sidebar";
-import { ChartLineIcon } from "@phosphor-icons/react/ChartLine";
-import { CloudIcon } from "@phosphor-icons/react/Cloud";
+import { ChartLineUpIcon } from "@phosphor-icons/react/ChartLineUp";
+import { CreditCardIcon } from "@phosphor-icons/react/CreditCard";
 import { GearIcon } from "@phosphor-icons/react/Gear";
 import { KeyIcon } from "@phosphor-icons/react/Key";
 import { ListMagnifyingGlassIcon } from "@phosphor-icons/react/ListMagnifyingGlass";
-import { RobotIcon } from "@phosphor-icons/react/Robot";
+import { StackIcon } from "@phosphor-icons/react/Stack";
 
 const items: ReadonlyArray<{ label: string; icon: React.ReactNode; path: string }> = [
-	{ label: "Overview", icon: <RobotIcon />, path: "/ai-gateway" },
-	{ label: "Providers", icon: <CloudIcon />, path: "/ai-gateway/providers" },
-	{ label: "API Keys", icon: <KeyIcon />, path: "/ai-gateway/api-keys" },
-	{ label: "Usage & Cost", icon: <ChartLineIcon />, path: "/ai-gateway/usage" },
-	{ label: "Request Logs", icon: <ListMagnifyingGlassIcon />, path: "/ai-gateway/logs" },
+	{ label: "Overview", icon: <ChartLineUpIcon />, path: "/ai-gateway/overview" },
+	{ label: "Access Keys", icon: <KeyIcon />, path: "/ai-gateway/keys" },
+	{ label: "Providers", icon: <StackIcon />, path: "/ai-gateway/providers" },
+	{ label: "Usage", icon: <ListMagnifyingGlassIcon />, path: "/ai-gateway/usage" },
+	{ label: "Credits", icon: <CreditCardIcon />, path: "/ai-gateway/credits" },
 	{ label: "Settings", icon: <GearIcon />, path: "/ai-gateway/settings" },
 ];
 

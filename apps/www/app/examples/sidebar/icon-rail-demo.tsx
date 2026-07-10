@@ -15,10 +15,11 @@ import { SignOutIcon } from "@phosphor-icons/react/SignOut";
 import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
 import { useState } from "react";
 
-import { AccountSettingsNav } from "./account-settings-nav";
+import { AccountSettingsNav, getAccountSettingsPage } from "./account-settings-nav";
 import { AiGatewayNav } from "./ai-gateway-nav";
 import { CodenameNav } from "./codename-nav";
 import { demoAccounts, demoUser } from "./demo-data";
+import { IamNav, getIamPage } from "./iam-nav";
 import { LocalhostNav } from "./localhost-nav";
 import { type ExampleProduct, type ProductId, productItems, utilityItems } from "./products";
 import { UniversalGatewayNav } from "./universal-gateway-nav";
@@ -40,14 +41,17 @@ function navForProduct(productId: ProductId, pathname: string, onNavigate: (path
 	if (productId === "usage") {
 		return <UsageNav pathname={pathname} onNavigate={onNavigate} />;
 	}
+	if (productId === "iam") {
+		return <IamNav pathname={pathname} onNavigate={onNavigate} />;
+	}
 	if (productId === "universal-gateway") {
 		return <UniversalGatewayNav pathname={pathname} onNavigate={onNavigate} />;
 	}
-	if (productId === "ai-gateway") {
-		return <AiGatewayNav pathname={pathname} onNavigate={onNavigate} />;
-	}
 	if (productId === "codename") {
 		return <CodenameNav pathname={pathname} onNavigate={onNavigate} />;
+	}
+	if (productId === "ai-gateway") {
+		return <AiGatewayNav pathname={pathname} onNavigate={onNavigate} />;
 	}
 	return <LocalhostNav pathname={pathname} onNavigate={onNavigate} />;
 }
@@ -276,11 +280,62 @@ export function IconRailDemo() {
 			</Sidebar.Root>
 
 			<main className="bg-card border-card-muted my-2 mr-2 flex flex-1 items-center justify-center rounded-xl border shadow-sm">
-				<div className="text-muted text-center">
-					<div className="text-lg font-medium">{currentProduct?.label}</div>
-					<div className="text-sm">{pathname}</div>
-				</div>
+				<PagePreview
+					productId={currentProductId}
+					productLabel={currentProduct?.label}
+					pathname={pathname}
+				/>
 			</main>
+		</div>
+	);
+}
+
+function PagePreview({
+	pathname,
+	productId,
+	productLabel,
+}: {
+	pathname: string;
+	productId: ProductId;
+	productLabel: string | undefined;
+}) {
+	if (productId === "account-settings") {
+		const page = getAccountSettingsPage(pathname);
+		return (
+			<div className="w-full max-w-sm px-6">
+				<div className="text-strong text-lg font-medium">{page?.label ?? "Settings"}</div>
+				<div className="text-muted mt-1 text-sm">{pathname}</div>
+				{page?.details ? (
+					<ul className="mt-4 space-y-2 text-sm text-body">
+						{page.details.map((detail) => (
+							<li key={detail}>{detail}</li>
+						))}
+					</ul>
+				) : null}
+			</div>
+		);
+	}
+	if (productId === "iam") {
+		const page = getIamPage(pathname);
+		return (
+			<div className="w-full max-w-sm px-6">
+				<div className="text-strong text-lg font-medium">{page?.label ?? "IAM"}</div>
+				<div className="text-muted mt-1 text-sm">{pathname}</div>
+				{page?.details ? (
+					<ul className="mt-4 space-y-2 text-sm text-body">
+						{page.details.map((detail) => (
+							<li key={detail}>{detail}</li>
+						))}
+					</ul>
+				) : null}
+			</div>
+		);
+	}
+
+	return (
+		<div className="text-muted text-center">
+			<div className="text-lg font-medium">{productLabel}</div>
+			<div className="text-sm">{pathname}</div>
 		</div>
 	);
 }

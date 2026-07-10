@@ -1,14 +1,15 @@
 import { Sidebar } from "@ngrok/mantle/sidebar";
-import { CompassIcon } from "@phosphor-icons/react/Compass";
-import { GearIcon } from "@phosphor-icons/react/Gear";
-import { ListMagnifyingGlassIcon } from "@phosphor-icons/react/ListMagnifyingGlass";
-import { StackIcon } from "@phosphor-icons/react/Stack";
+import { CpuIcon } from "@phosphor-icons/react/Cpu";
+import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { SquaresFourIcon } from "@phosphor-icons/react/SquaresFour";
+import { VaultIcon } from "@phosphor-icons/react/Vault";
+import type { ReactNode } from "react";
 
-const items: ReadonlyArray<{ label: string; icon: React.ReactNode; path: string }> = [
-	{ label: "Overview", icon: <CompassIcon />, path: "/codename" },
-	{ label: "Workloads", icon: <StackIcon />, path: "/codename/workloads" },
-	{ label: "Logs", icon: <ListMagnifyingGlassIcon />, path: "/codename/logs" },
-	{ label: "Settings", icon: <GearIcon />, path: "/codename/settings" },
+const items: ReadonlyArray<{ label: string; icon: ReactNode; path: string }> = [
+	{ label: "Apps", icon: <SquaresFourIcon />, path: "/ship/apps" },
+	{ label: "Compute Pools", icon: <CpuIcon />, path: "/ship/compute-pools" },
+	{ label: "Vaults & Secrets", icon: <VaultIcon />, path: "/ship/vaults" },
+	{ label: "Domains", icon: <GlobeIcon />, path: "/ship/domains" },
 ];
 
 type Props = {
@@ -17,19 +18,23 @@ type Props = {
 };
 
 /**
- * Placeholder navigation for the Codename product. Real nav items will be
- * filled in by the product team — this exists to demonstrate the multi-product
- * pattern without inventing specifics.
+ * Per-product navigation for the Ship example.
  */
 export function CodenameNav({ onNavigate, pathname }: Props) {
 	return (
 		<Sidebar.Group>
 			{items.map((item) => (
 				<Sidebar.Item key={item.path} active={pathname === item.path} level="top" asChild>
-					<button type="button" onClick={() => onNavigate(item.path)}>
+					<a
+						href={item.path}
+						onClick={(event) => {
+							event.preventDefault();
+							onNavigate(item.path);
+						}}
+					>
 						{item.icon}
 						{item.label}
-					</button>
+					</a>
 				</Sidebar.Item>
 			))}
 		</Sidebar.Group>

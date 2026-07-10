@@ -1,11 +1,12 @@
 import type { Product } from "@ngrok/mantle/sidebar";
-import { CpuIcon } from "@phosphor-icons/react/Cpu";
 import { GearIcon } from "@phosphor-icons/react/Gear";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
-import { LaptopIcon } from "@phosphor-icons/react/Laptop";
+import { SailboatIcon } from "@phosphor-icons/react/Sailboat";
+import { ShareFatIcon } from "@phosphor-icons/react/ShareFat";
 import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
 import { SpeedometerIcon } from "@phosphor-icons/react/Speedometer";
 import type { ReactElement } from "react";
+import { UserShieldIcon } from "./user-shield-icon";
 
 /**
  * Rail-section identifiers used by the Sidebar examples. The Sidebar primitives
@@ -20,6 +21,7 @@ type ProductId =
 	| "account-settings"
 	| "ai-gateway"
 	| "codename"
+	| "iam"
 	| "localhost"
 	| "universal-gateway"
 	| "usage";
@@ -36,17 +38,17 @@ const productItems: ReadonlyArray<ExampleProduct> = [
 	{
 		id: "localhost",
 		label: "Share Localhost",
-		icon: <LaptopIcon weight="regular" />,
+		icon: <ShareFatIcon weight="regular" />,
 	},
 	{
 		id: "universal-gateway",
-		label: "Universal Gateway",
+		label: "Gateway",
 		icon: <GlobeIcon weight="regular" />,
 	},
 	{
 		id: "codename",
-		label: "Codename",
-		icon: <CpuIcon weight="regular" />,
+		label: "Ship",
+		icon: <SailboatIcon weight="regular" />,
 	},
 	{
 		id: "ai-gateway",
@@ -60,13 +62,18 @@ const productItems: ReadonlyArray<ExampleProduct> = [
  */
 const utilityItems: ReadonlyArray<ExampleProduct> = [
 	{
+		id: "iam",
+		label: "Identity & Access",
+		icon: <UserShieldIcon />,
+	},
+	{
 		id: "usage",
-		label: "Usage",
+		label: "Usage & Limits",
 		icon: <SpeedometerIcon weight="regular" />,
 	},
 	{
 		id: "account-settings",
-		label: "Account Settings",
+		label: "Settings",
 		icon: <GearIcon weight="regular" />,
 	},
 ];

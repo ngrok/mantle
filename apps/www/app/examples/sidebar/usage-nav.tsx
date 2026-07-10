@@ -1,14 +1,12 @@
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { ChartBarIcon } from "@phosphor-icons/react/ChartBar";
-import { ChartLineIcon } from "@phosphor-icons/react/ChartLine";
-import { ClockCounterClockwiseIcon } from "@phosphor-icons/react/ClockCounterClockwise";
 import { SpeedometerIcon } from "@phosphor-icons/react/Speedometer";
+import { TrendUpIcon } from "@phosphor-icons/react/TrendUp";
 
 const items: ReadonlyArray<{ label: string; icon: React.ReactNode; path: string }> = [
 	{ label: "Overview", icon: <SpeedometerIcon />, path: "/usage" },
-	{ label: "Current Period", icon: <ChartBarIcon />, path: "/usage/current" },
-	{ label: "Trends", icon: <ChartLineIcon />, path: "/usage/trends" },
-	{ label: "History", icon: <ClockCounterClockwiseIcon />, path: "/usage/history" },
+	{ label: "Usage Breakdown", icon: <ChartBarIcon />, path: "/usage/breakdown" },
+	{ label: "Limits", icon: <TrendUpIcon />, path: "/usage/limits" },
 ];
 
 type Props = {

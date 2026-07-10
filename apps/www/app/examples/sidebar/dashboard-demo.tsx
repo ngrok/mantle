@@ -96,6 +96,10 @@ const sections: ReadonlyArray<NavSection> = [
 
 const initialPath = "/endpoints";
 
+type DashboardDemoProps = {
+	fullScreen?: boolean;
+};
+
 /**
  * Mirrors the authenticated dashboard app at `frontend/apps/dashboard`:
  * a single-column sidebar with a custom account switcher in the header
@@ -103,7 +107,7 @@ const initialPath = "/endpoints";
  * account-level and user-level actions. Styled in the linear layout —
  * sidebar flush to the background, content pane as a floating rounded card.
  */
-export function DashboardDemo() {
+export function DashboardDemo({ fullScreen = false }: DashboardDemoProps) {
 	const [pathname, setPathname] = useState(initialPath);
 	const [currentAccountId, setCurrentAccountId] = useState(demoAccounts[0]?.id ?? "");
 	const [currentTheme, setTheme] = useTheme();
@@ -111,7 +115,12 @@ export function DashboardDemo() {
 	const currentAccount = demoAccounts.find((account) => account.id === currentAccountId);
 
 	return (
-		<div className="bg-base border-base-muted flex h-[600px] w-full overflow-hidden rounded-md border">
+		<div
+			className={cx(
+				"bg-base border-base-muted flex w-full overflow-hidden border",
+				fullScreen ? "fixed inset-0 z-50 rounded-none border-0" : "h-[600px] rounded-md",
+			)}
+		>
 			<Sidebar.Root aria-label="Primary navigation" className="border-r-0 bg-transparent">
 				<Sidebar.Header className="border-b-0">
 					<DropdownMenu.Root>

@@ -89,7 +89,7 @@ const Body = forwardRef<ComponentRef<"div">, HTMLAttributes<HTMLDivElement>>(
 		<div
 			ref={ref}
 			className={cx(
-				"scrollbar flex-1 space-y-2 overflow-y-auto overflow-x-hidden px-3 py-4 [scrollbar-gutter:stable]",
+				"scrollbar flex-1 space-y-2 overflow-y-auto overflow-x-hidden px-3 py-4 [scrollbar-gutter:stable] [&>*:first-child]:mt-1.5",
 				className,
 			)}
 			{...props}
@@ -143,7 +143,9 @@ Footer.displayName = "SidebarFooter";
  * ```
  */
 const Section = forwardRef<ComponentRef<"div">, HTMLAttributes<HTMLDivElement>>(
-	({ className, ...props }, ref) => <div ref={ref} className={cx("", className)} {...props} />,
+	({ className, ...props }, ref) => (
+		<div ref={ref} className={cx("pt-0.5", className)} {...props} />
+	),
 );
 Section.displayName = "SidebarSection";
 
@@ -209,9 +211,9 @@ Group.displayName = "SidebarGroup";
 const itemVariants = cva(
 	[
 		"ring-focus-accent group/sidebar-item relative flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-medium transition-none focus:outline-hidden focus-visible:ring-4",
-		"text-muted hover:text-strong hover:bg-neutral-500/10",
+		"text-body hover:text-strong hover:bg-neutral-500/10",
 		"data-active:bg-neutral-500/15 data-active:text-strong",
-		"[&>svg]:size-5 [&>svg]:shrink-0",
+		"[&>svg]:text-muted hover:[&>svg]:text-strong data-active:[&>svg]:text-strong [&>svg]:size-5 [&>svg]:shrink-0",
 	],
 	{
 		variants: {
@@ -350,7 +352,7 @@ const railItemVariants = cva(
 		"ring-focus-accent group/sidebar-rail-item relative flex size-10 shrink-0 items-center justify-center rounded-md transition-none focus:outline-hidden focus-visible:ring-4",
 		"text-muted hover:text-strong hover:bg-neutral-500/10",
 		"data-active:bg-neutral-500/15 data-active:text-strong",
-		"[&>svg]:size-5 [&>svg]:shrink-0",
+		"[&>svg]:text-muted hover:[&>svg]:text-strong data-active:[&>svg]:text-strong [&>svg]:size-5 [&>svg]:shrink-0",
 	],
 	{
 		variants: {},

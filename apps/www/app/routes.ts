@@ -14,6 +14,7 @@ export default [
 	route("sitemap.xml", "./routes/sitemap[.]xml.tsx", { id: "sitemap-xml" }),
 	route("api/shiki-highlight", "./routes/api.shiki-highlight.tsx"),
 	route("prototype/sidebar", "./routes/prototype.sidebar.tsx"),
+	route("prototype/sidebar-single", "./routes/prototype.sidebar-single.tsx"),
 
 	// docs layout
 	layout("./routes/docs-layout.tsx", [
