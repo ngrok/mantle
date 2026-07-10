@@ -195,6 +195,7 @@ export const previewComponentsRouteLookup = {
  */
 export const previewComponentCategoryLookup = {
 	Calendar: "Forms",
+	Sidebar: "Navigation",
 } as const satisfies Record<(typeof previewComponents)[number], ComponentCategory>;
 
 /** Welcome section pages. */

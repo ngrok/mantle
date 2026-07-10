@@ -21,7 +21,7 @@ type Product = {
 	icon: ReactNode;
 };
 
-type ProductSwitcherTriggerProps = Omit<ComponentPropsWithoutRef<"button">, "children"> & {
+type ProductSwitcherTriggerProps = Omit<ComponentPropsWithoutRef<"button">, "children" | "type"> & {
 	/**
 	 * The product currently displayed in the sidebar's body. Drives the trigger
 	 * row's icon and label. When `undefined`, a placeholder dash is shown.
@@ -56,15 +56,15 @@ type ProductSwitcherTriggerProps = Omit<ComponentPropsWithoutRef<"button">, "chi
 const SidebarProductSwitcherTrigger = forwardRef<
 	ComponentRef<"button">,
 	ProductSwitcherTriggerProps
->(({ className, currentProduct, type = "button", ...props }, ref) => (
+>(({ className, currentProduct, ...props }, ref) => (
 	<button
 		ref={ref}
-		type={type}
 		className={cx(
 			"text-strong hover:bg-popover-hover ring-focus-accent flex w-full items-center justify-between gap-1.5 rounded-lg px-1.5 py-1.5 transition-none focus:outline-hidden focus-visible:ring-4",
 			className,
 		)}
 		{...props}
+		type="button"
 	>
 		<span className="flex min-w-0 flex-1 items-center gap-2">
 			<span className="text-muted [&>svg]:size-5 [&>svg]:shrink-0">{currentProduct?.icon}</span>

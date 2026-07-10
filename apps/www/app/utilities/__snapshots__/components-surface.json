@@ -625,6 +625,20 @@
     ]
   },
   {
+    "name": "Sidebar",
+    "slug": "components/preview/sidebar",
+    "kind": "component",
+    "category": "Navigation",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/sidebar",
+    "summary": "A composable left-edge sidebar with account switching, user actions, and per-product navigation that swaps based on the selected product.",
+    "jsdoc": "A composable sidebar primitive for product navigation, account switching, and user actions.",
+    "examples": [
+      "```tsx\n// Single column\n<Sidebar.Root aria-label=\"Primary\">\n  <Sidebar.Header>\n    <Sidebar.AccountSwitcher ... />\n  </Sidebar.Header>\n  <Sidebar.Body>\n    <Sidebar.Section>\n      <Sidebar.SectionTitle>Universal Gateway</Sidebar.SectionTitle>\n      <Sidebar.Group>\n        <Sidebar.Item asChild active>\n          <a href=\"/endpoints\">Endpoints</a>\n        </Sidebar.Item>\n      </Sidebar.Group>\n    </Sidebar.Section>\n  </Sidebar.Body>\n</Sidebar.Root>\n```",
+      "```tsx\n// Two column with rail\n<div className=\"flex h-full\">\n  <Sidebar.Rail>\n    <Sidebar.RailItem\n      icon={<GlobeIcon />}\n      label=\"Universal Gateway\"\n      active\n    />\n  </Sidebar.Rail>\n  <Sidebar.Root>\n    <Sidebar.Header>...</Sidebar.Header>\n    <Sidebar.Body>...</Sidebar.Body>\n  </Sidebar.Root>\n</div>\n```"
+    ]
+  },
+  {
     "name": "Skeleton",
     "slug": "components/feedback/skeleton",
     "kind": "component",

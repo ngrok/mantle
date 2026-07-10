@@ -5,7 +5,7 @@ import type { ComponentPropsWithoutRef, ComponentRef, ReactNode } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import { SidebarAccountAvatar } from "./sidebar-account-avatar.js";
 
-type AccountSwitcherTriggerProps = Omit<ComponentPropsWithoutRef<"button">, "children"> & {
+type AccountSwitcherTriggerProps = Omit<ComponentPropsWithoutRef<"button">, "children" | "type"> & {
 	/**
 	 * The currently-active account's ID. Drives the avatar swatch.
 	 */
@@ -52,15 +52,15 @@ type AccountSwitcherTriggerProps = Omit<ComponentPropsWithoutRef<"button">, "chi
 const SidebarAccountSwitcherTrigger = forwardRef<
 	ComponentRef<"button">,
 	AccountSwitcherTriggerProps
->(({ accountId, accountName, className, trailing, type = "button", ...props }, ref) => (
+>(({ accountId, accountName, className, trailing, ...props }, ref) => (
 	<button
 		ref={ref}
-		type={type}
 		className={cx(
 			"text-strong hover:bg-popover-hover ring-focus-accent flex w-full items-center justify-between gap-1.5 rounded-lg px-1.5 py-1.5 transition-none focus:outline-hidden focus-visible:ring-4",
 			className,
 		)}
 		{...props}
+		type="button"
 	>
 		<span className="flex min-w-0 flex-1 items-center gap-1.5">
 			<SidebarAccountAvatar accountId={accountId} accountName={accountName} className="shrink-0" />
