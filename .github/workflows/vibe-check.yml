@@ -129,7 +129,7 @@ jobs:
           PLAYWRIGHT_VERSION=$(grep '"playwright"' pnpm-workspace.yaml | awk -F'"' '{print $4}')
           docker run -d --name playwright-server --network=host \
             mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble \
-            /bin/sh -c "npx playwright run-server --host 0.0.0.0 --port 3000"
+            /bin/sh -c "npx -y playwright@${PLAYWRIGHT_VERSION} run-server --host 0.0.0.0 --port 3000"
 
       - name: Wait for Playwright server
         run: |
