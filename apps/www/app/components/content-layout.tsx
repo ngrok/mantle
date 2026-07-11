@@ -17,6 +17,27 @@ type ContentLayoutProps = {
 };
 
 /**
+ * Classes a full-width section layout (e.g. /layouts) passes to `PageLayout`
+ * to keep MDX flow content at a readable centered measure while blocks marked
+ * `data-full-bleed` (e.g. `CodeExample`) span the whole canvas. Lives here so
+ * the long-distance selectors stay next to the `data-mdx-content` element
+ * they target.
+ *
+ * @example
+ * ```tsx
+ * <PageLayout className={cx("max-w-full", fullWidthProseMeasure)} sidebar={…}>
+ * ```
+ */
+export const fullWidthProseMeasure = [
+	"[&_[data-mdx-content]>*]:mx-auto [&_[data-mdx-content]>*]:max-w-3xl",
+	"[&_[data-mdx-content]>[data-full-bleed]]:max-w-none",
+	// headings keep w-fit on hover-incapable devices (see HashLinkHeading);
+	// without a width reset the forced mx-auto centers their shrink-to-fit box
+	// within the measure instead of left-aligning them with the prose
+	"[&_[data-mdx-content]>:is(h1,h2,h3,h4,h5,h6)]:w-auto",
+];
+
+/**
  * Shared layout for doc pages. Provides the doc actions button,
  * MdxProvider context, and Suspense boundary.
  */

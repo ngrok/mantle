@@ -280,7 +280,7 @@ export const layoutRoutes = {
 /** Short descriptions for the layouts index page. */
 export const layoutDescriptions = {
 	"Centered Layout":
-		"A viewport-filling centered page flow — brand mark, centered content in a Main landmark, and a pinned utility footer — for sign-in, onboarding, 404, and other focused full-page states.",
+		"A viewport-filling centered page flow — brand mark, centered content, and a pinned utility footer — for sign-in, onboarding, 404, and other focused full-page states.",
 } as const satisfies Record<(typeof layoutPages)[number], string>;
 
 /**

@@ -148,7 +148,9 @@ export function Header({ className, ...props }: Omit<ComponentProps<"header">, "
 							</DropdownMenu.Content>
 						</DropdownMenu.Root>
 
-						<ThemeSwitcher />
+						<ThemeSwitcher
+							contentProps={{ className: "shadow-2xl", collisionPadding: { right: 16 } }}
+						/>
 					</div>
 
 					<Separator orientation="vertical" className="mx-3 h-5 hidden md:block" />
@@ -182,8 +184,48 @@ function ItemName({ children }: PropsWithChildren) {
 	);
 }
 
-function CommandPalette() {
+/**
+ * A command-palette item that navigates to an internal route: an
+ * intent-prefetched `Link` with the shared row layout and trailing arrow.
+ * Keyboard selection mirrors the link click (navigate, then `onNavigate` to
+ * close the palette), so every navigation group renders the same item shape.
+ *
+ * @example
+ * ```tsx
+ * <CommandNavItem to={href("/layouts")} onNavigate={() => setOpen(false)}>
+ *   <ItemName>Layouts</ItemName>
+ * </CommandNavItem>
+ * ```
+ */
+function CommandNavItem({
+	to,
+	onNavigate,
+	children,
+}: PropsWithChildren<{
+	/** The internal route the item navigates to; also the Link target. */
+	to: string;
+	/** Called after keyboard selection navigates — closes the palette. */
+	onNavigate: () => void;
+}>) {
 	const navigate = useNavigate();
+
+	return (
+		<Command.Item
+			onSelect={() => {
+				navigate(to);
+				onNavigate();
+			}}
+			asChild
+		>
+			<Link to={to} prefetch="intent" className="flex items-center gap-2 justify-between">
+				{children}
+				<ArrowRightIcon />
+			</Link>
+		</Command.Item>
+	);
+}
+
+function CommandPalette() {
 	const mantleVersion = useMantleVersion();
 	const [open, setOpen] = useState(false);
 	const [currentTheme, setTheme] = useTheme();
@@ -222,23 +264,13 @@ function CommandPalette() {
 						<Command.Empty>No results found.</Command.Empty>
 						<Command.Group heading="Welcome">
 							{welcomePages.map((page) => (
-								<Command.Item
+								<CommandNavItem
 									key={page}
-									onSelect={() => {
-										navigate(welcomeRoutes[page]);
-										setOpen(false);
-									}}
-									asChild
+									to={welcomeRoutes[page]}
+									onNavigate={() => setOpen(false)}
 								>
-									<Link
-										to={welcomeRoutes[page]}
-										prefetch="intent"
-										className="flex items-center gap-2 justify-between"
-									>
-										{page}
-										<ArrowRightIcon />
-									</Link>
-								</Command.Item>
+									{page}
+								</CommandNavItem>
 							))}
 							<Command.Item asChild onSelect={() => setOpen(false)}>
 								<a
@@ -272,73 +304,32 @@ function CommandPalette() {
 						<Command.Separator />
 						<Command.Group heading="Base">
 							{basePages.map((page) => (
-								<Command.Item
-									key={page}
-									onSelect={() => {
-										navigate(baseRoutes[page]);
-										setOpen(false);
-									}}
-									asChild
-								>
-									<Link
-										to={baseRoutes[page]}
-										prefetch="intent"
-										className="flex items-center gap-2 justify-between"
-									>
-										<ItemName>
-											{page}
-											<span className="text-muted text-xs">{baseRoutes[page]}</span>
-										</ItemName>
-										<ArrowRightIcon />
-									</Link>
-								</Command.Item>
+								<CommandNavItem key={page} to={baseRoutes[page]} onNavigate={() => setOpen(false)}>
+									<ItemName>
+										{page}
+										<span className="text-muted text-xs">{baseRoutes[page]}</span>
+									</ItemName>
+								</CommandNavItem>
 							))}
 						</Command.Group>
 						<Command.Separator />
 						<Command.Group heading="Hooks">
-							<Command.Item
-								onSelect={() => {
-									navigate(hooksRoute);
-									setOpen(false);
-								}}
-								asChild
-							>
-								<Link
-									to={hooksRoute}
-									prefetch="intent"
-									className="flex items-center gap-2 justify-between"
-								>
-									<ItemName>
-										Hooks
-										<span className="text-muted text-xs">{hooksRoute}</span>
-									</ItemName>
-									<ArrowRightIcon />
-								</Link>
-							</Command.Item>
+							<CommandNavItem to={hooksRoute} onNavigate={() => setOpen(false)}>
+								<ItemName>
+									Hooks
+									<span className="text-muted text-xs">{hooksRoute}</span>
+								</ItemName>
+							</CommandNavItem>
 						</Command.Group>
 						<Command.Separator />
 						<Command.Group heading="Utils">
 							{utilsPages.map((page) => (
-								<Command.Item
-									key={page}
-									onSelect={() => {
-										navigate(utilsRoutes[page]);
-										setOpen(false);
-									}}
-									asChild
-								>
-									<Link
-										to={utilsRoutes[page]}
-										prefetch="intent"
-										className="flex items-center gap-2 justify-between"
-									>
-										<ItemName>
-											{page}
-											<span className="text-muted text-xs">{utilsRoutes[page]}</span>
-										</ItemName>
-										<ArrowRightIcon />
-									</Link>
-								</Command.Item>
+								<CommandNavItem key={page} to={utilsRoutes[page]} onNavigate={() => setOpen(false)}>
+									<ItemName>
+										{page}
+										<span className="text-muted text-xs">{utilsRoutes[page]}</span>
+									</ItemName>
+								</CommandNavItem>
 							))}
 						</Command.Group>
 						{componentCategories.map((category) => (
@@ -346,27 +337,18 @@ function CommandPalette() {
 								<Command.Separator />
 								<Command.Group heading={`Components: ${category}`}>
 									{componentsByCategory[category].map((component) => (
-										<Command.Item
+										<CommandNavItem
 											key={component}
-											onSelect={() => {
-												navigate(prodReadyComponentRouteLookup[component]);
-												setOpen(false);
-											}}
-											asChild
+											to={prodReadyComponentRouteLookup[component]}
+											onNavigate={() => setOpen(false)}
 										>
-											<Link
-												to={prodReadyComponentRouteLookup[component]}
-												className="flex items-center gap-2 justify-between"
-											>
-												<ItemName>
-													{component}
-													<span className="text-muted text-xs">
-														{prodReadyComponentRouteLookup[component]}
-													</span>
-												</ItemName>
-												<ArrowRightIcon />
-											</Link>
-										</Command.Item>
+											<ItemName>
+												{component}
+												<span className="text-muted text-xs">
+													{prodReadyComponentRouteLookup[component]}
+												</span>
+											</ItemName>
+										</CommandNavItem>
 									))}
 								</Command.Group>
 							</Fragment>
@@ -374,26 +356,16 @@ function CommandPalette() {
 						<Command.Separator />
 						<Command.Group heading="Layouts">
 							{layoutPages.map((page) => (
-								<Command.Item
+								<CommandNavItem
 									key={page}
-									onSelect={() => {
-										navigate(layoutRoutes[page]);
-										setOpen(false);
-									}}
-									asChild
+									to={layoutRoutes[page]}
+									onNavigate={() => setOpen(false)}
 								>
-									<Link
-										to={layoutRoutes[page]}
-										prefetch="intent"
-										className="flex items-center gap-2 justify-between"
-									>
-										<ItemName>
-											{page}
-											<span className="text-muted text-xs">{layoutRoutes[page]}</span>
-										</ItemName>
-										<ArrowRightIcon />
-									</Link>
-								</Command.Item>
+									<ItemName>
+										{page}
+										<span className="text-muted text-xs">{layoutRoutes[page]}</span>
+									</ItemName>
+								</CommandNavItem>
 							))}
 						</Command.Group>
 						<Command.Separator />
@@ -405,27 +377,18 @@ function CommandPalette() {
 							}
 						>
 							{previewComponents.map((component) => (
-								<Command.Item
+								<CommandNavItem
 									key={component}
-									onSelect={() => {
-										navigate(previewComponentsRouteLookup[component]);
-										setOpen(false);
-									}}
-									asChild
+									to={previewComponentsRouteLookup[component]}
+									onNavigate={() => setOpen(false)}
 								>
-									<Link
-										to={previewComponentsRouteLookup[component]}
-										className="flex items-center gap-2 justify-between"
-									>
-										<ItemName>
-											{component}
-											<span className="text-muted text-xs">
-												{previewComponentsRouteLookup[component]}
-											</span>
-										</ItemName>
-										<ArrowRightIcon />
-									</Link>
-								</Command.Item>
+									<ItemName>
+										{component}
+										<span className="text-muted text-xs">
+											{previewComponentsRouteLookup[component]}
+										</span>
+									</ItemName>
+								</CommandNavItem>
 							))}
 						</Command.Group>
 						<Command.Separator />

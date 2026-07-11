@@ -1,7 +1,11 @@
 import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, ComponentRef, ReactNode } from "react";
+import { cloneElement, forwardRef, isValidElement } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
+import { Icon } from "../icon/icon.js";
 import { Slot } from "../slot/index.js";
 
 /**
@@ -31,15 +35,22 @@ import { Slot } from "../slot/index.js";
  * </Breadcrumb.Root>
  * ```
  */
-const Root = ({ asChild, children, ...props }: ComponentProps<"nav"> & WithAsChild) => {
-	const Comp = asChild ? Slot : "nav";
+const Root = forwardRef<ComponentRef<"nav">, ComponentProps<"nav"> & WithAsChild & WithDataSlot>(
+	({ asChild, children, "data-slot": dataSlot, ...props }, ref) => {
+		const Comp = asChild ? Slot : "nav";
 
-	return (
-		<Comp data-slot="breadcrumb" aria-label="Breadcrumb" {...props}>
-			{children}
-		</Comp>
-	);
-};
+		return (
+			<Comp
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "breadcrumb")}
+				aria-label="Breadcrumb"
+				{...props}
+			>
+				{children}
+			</Comp>
+		);
+	},
+);
 Root.displayName = "Breadcrumb";
 
 /**
@@ -68,19 +79,22 @@ Root.displayName = "Breadcrumb";
  * </Breadcrumb.Root>
  * ```
  */
-const List = ({ asChild, children, className, ...props }: ComponentProps<"ol"> & WithAsChild) => {
-	const Comp = asChild ? Slot : "ol";
+const List = forwardRef<ComponentRef<"ol">, ComponentProps<"ol"> & WithAsChild & WithDataSlot>(
+	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
+		const Comp = asChild ? Slot : "ol";
 
-	return (
-		<Comp
-			data-slot="breadcrumb-list"
-			className={cx("text-muted flex flex-wrap items-center gap-1.5 text-sm", className)}
-			{...props}
-		>
-			{children}
-		</Comp>
-	);
-};
+		return (
+			<Comp
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "breadcrumb-list")}
+				className={cx("text-muted flex flex-wrap items-center gap-1.5 text-sm", className)}
+				{...props}
+			>
+				{children}
+			</Comp>
+		);
+	},
+);
 List.displayName = "BreadcrumbList";
 
 /**
@@ -108,19 +122,22 @@ List.displayName = "BreadcrumbList";
  * </Breadcrumb.Root>
  * ```
  */
-const Item = ({ asChild, children, className, ...props }: ComponentProps<"li"> & WithAsChild) => {
-	const Comp = asChild ? Slot : "li";
+const Item = forwardRef<ComponentRef<"li">, ComponentProps<"li"> & WithAsChild & WithDataSlot>(
+	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
+		const Comp = asChild ? Slot : "li";
 
-	return (
-		<Comp
-			data-slot="breadcrumb-item"
-			className={cx("inline-flex items-center gap-1.5", className)}
-			{...props}
-		>
-			{children}
-		</Comp>
-	);
-};
+		return (
+			<Comp
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "breadcrumb-item")}
+				className={cx("inline-flex items-center gap-1.5", className)}
+				{...props}
+			>
+				{children}
+			</Comp>
+		);
+	},
+);
 Item.displayName = "BreadcrumbItem";
 
 /**
@@ -157,19 +174,22 @@ Item.displayName = "BreadcrumbItem";
  * </Breadcrumb.Link>
  * ```
  */
-const Link = ({ asChild, children, className, ...props }: ComponentProps<"a"> & WithAsChild) => {
-	const Comp = asChild ? Slot : "a";
+const Link = forwardRef<ComponentRef<"a">, ComponentProps<"a"> & WithAsChild & WithDataSlot>(
+	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
+		const Comp = asChild ? Slot : "a";
 
-	return (
-		<Comp
-			data-slot="breadcrumb-link"
-			className={cx("hover:text-strong transition-colors", className)}
-			{...props}
-		>
-			{children}
-		</Comp>
-	);
-};
+		return (
+			<Comp
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "breadcrumb-link")}
+				className={cx("hover:text-strong transition-colors", className)}
+				{...props}
+			>
+				{children}
+			</Comp>
+		);
+	},
+);
 Link.displayName = "BreadcrumbLink";
 
 /**
@@ -199,20 +219,29 @@ Link.displayName = "BreadcrumbLink";
  * </Breadcrumb.Root>
  * ```
  */
-const Page = ({ asChild, children, className, ...props }: ComponentProps<"span"> & WithAsChild) => {
-	const Comp = asChild ? Slot : "span";
+const Page = forwardRef<ComponentRef<"span">, ComponentProps<"span"> & WithAsChild & WithDataSlot>(
+	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
+		const Comp = asChild ? Slot : "span";
+		// Slot merges child props over slot props, so with asChild the enforced
+		// ARIA must be cloned onto the child element itself to stay un-overridable.
+		const content =
+			asChild && isValidElement<ComponentProps<"span">>(children)
+				? cloneElement(children, { "aria-current": "page" })
+				: children;
 
-	return (
-		<Comp
-			data-slot="breadcrumb-page"
-			className={cx("text-strong", className)}
-			{...props}
-			aria-current="page"
-		>
-			{children}
-		</Comp>
-	);
-};
+		return (
+			<Comp
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "breadcrumb-page")}
+				className={cx("text-strong", className)}
+				{...props}
+				aria-current="page"
+			>
+				{content}
+			</Comp>
+		);
+	},
+);
 Page.displayName = "BreadcrumbPage";
 
 /**
@@ -262,21 +291,30 @@ type BreadcrumbSeparatorProps = Omit<ComponentProps<"li">, "children"> &
  * </Breadcrumb.Root>
  * ```
  */
-const Separator = ({ asChild, children, className, ...props }: BreadcrumbSeparatorProps) => {
-	const Comp = asChild ? Slot : "li";
+const Separator = forwardRef<ComponentRef<"li">, BreadcrumbSeparatorProps & WithDataSlot>(
+	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
+		const Comp = asChild ? Slot : "li";
+		// Slot merges child props over slot props, so with asChild the enforced
+		// ARIA must be cloned onto the child element itself to stay un-overridable.
+		const content =
+			asChild && isValidElement<ComponentProps<"li">>(children)
+				? cloneElement(children, { role: "presentation", "aria-hidden": "true" })
+				: (children ?? <Icon svg={<CaretRightIcon />} className="size-3.5" />);
 
-	return (
-		<Comp
-			data-slot="breadcrumb-separator"
-			className={cx("[&>svg]:size-3.5", className)}
-			{...props}
-			role="presentation"
-			aria-hidden="true"
-		>
-			{children ?? <CaretRightIcon />}
-		</Comp>
-	);
-};
+		return (
+			<Comp
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "breadcrumb-separator")}
+				className={className}
+				{...props}
+				role="presentation"
+				aria-hidden="true"
+			>
+				{content}
+			</Comp>
+		);
+	},
+);
 Separator.displayName = "BreadcrumbSeparator";
 
 /**

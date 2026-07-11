@@ -175,55 +175,28 @@ describe("CenteredLayout", () => {
 		expect(ref.current).toBe(header);
 	});
 
-	test("Content renders a plain div with data-slot, not a landmark", () => {
+	test("asChild composition accumulates the data-slot chain in DOM order", () => {
 		render(
-			<CenteredLayout.Content data-testid="content">
-				<p>sign in</p>
-			</CenteredLayout.Content>,
+			<CenteredLayout.Root asChild>
+				<CenteredLayout.Body data-testid="body">content</CenteredLayout.Body>
+			</CenteredLayout.Root>,
 		);
-		expect(screen.queryByRole("main")).toBeNull();
-		const content = screen.getByTestId("content");
-		expect(content.tagName).toBe("DIV");
-		expect(content).toHaveAttribute("data-slot", "centered-layout-content");
-		expect(content).toHaveTextContent("sign in");
+		const body = screen.getByTestId("body");
+		expect(body).toHaveAttribute("data-slot", "centered-layout centered-layout-body");
 	});
 
-	test("Content applies className and forwards refs", () => {
-		const ref = createRef<HTMLDivElement>();
+	test("asChild data-slot chains extend through nested composition down to the rendered element", () => {
 		render(
-			<CenteredLayout.Content className="w-full max-w-80" data-testid="content" ref={ref}>
-				<p>sign in</p>
-			</CenteredLayout.Content>,
+			<CenteredLayout.Root asChild>
+				<CenteredLayout.Body asChild>
+					<section data-slot="auth-body" data-testid="body">
+						content
+					</section>
+				</CenteredLayout.Body>
+			</CenteredLayout.Root>,
 		);
-		const content = screen.getByTestId("content");
-		expect(content.className).toContain("max-w-80");
-		expect(ref.current).toBe(content);
-	});
-
-	test("Content composes the Main landmark via asChild", () => {
-		render(
-			<CenteredLayout.Content asChild className="w-full max-w-80">
-				<Main>
-					<p>sign in</p>
-				</Main>
-			</CenteredLayout.Content>,
-		);
-		const main = screen.getByRole("main");
-		expect(main).toHaveAttribute("id", "main");
-		expect(main).toHaveAttribute("tabindex", "-1");
-		expect(main.className).toContain("max-w-80");
-		expect(main).toHaveTextContent("sign in");
-	});
-
-	test("Content renders as child element when asChild is true, keeping data-slot", () => {
-		render(
-			<CenteredLayout.Content asChild>
-				<section data-testid="content">sign in</section>
-			</CenteredLayout.Content>,
-		);
-		const content = screen.getByTestId("content");
-		expect(content.tagName).toBe("SECTION");
-		expect(content).toHaveAttribute("data-slot", "centered-layout-content");
+		const body = screen.getByTestId("body");
+		expect(body).toHaveAttribute("data-slot", "centered-layout centered-layout-body auth-body");
 	});
 
 	test("renders a full composition", () => {
@@ -235,11 +208,9 @@ describe("CenteredLayout", () => {
 				</CenteredLayout.Header>
 				<CenteredLayout.Body data-testid="body">
 					<a href="https://ngrok.com">acme</a>
-					<CenteredLayout.Content asChild>
-						<Main>
-							<p>Sign in to your account</p>
-						</Main>
-					</CenteredLayout.Content>
+					<Main>
+						<p>Sign in to your account</p>
+					</Main>
 				</CenteredLayout.Body>
 				<CenteredLayout.Footer data-testid="footer">
 					<button type="button">Toggle theme</button>

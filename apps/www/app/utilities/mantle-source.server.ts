@@ -3,9 +3,11 @@ import path from "node:path";
 /**
  * Raw Mantle package source, bundled by Vite so serverless runtimes can
  * inspect JSDoc and barrel exports without reading from the filesystem.
+ * Test files are excluded — `readSourceFile` only ever resolves module and
+ * index base paths, so bundling tests is pure server-bundle dead weight.
  */
 const rawSourceFiles: Record<string, string> = import.meta.glob<string>(
-	"../../../../packages/mantle/src/**/*.{ts,tsx}",
+	["../../../../packages/mantle/src/**/*.{ts,tsx}", "!**/*.test.{ts,tsx}"],
 	{
 		eager: true,
 		import: "default",

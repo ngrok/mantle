@@ -108,6 +108,19 @@ ThemeDropdownMenuRadioGroup.displayName = "ThemeDropdownMenuRadioGroup";
 type ThemeSwitcherProps = WithStyleProps &
 	Pick<ComponentProps<typeof IconButton>, "appearance"> & {
 		/**
+		 * Props forwarded to the menu's `DropdownMenu.Content` — positioning and
+		 * collision behavior (`align`, `side`, `collisionPadding`, …) plus
+		 * `className`/`style` for the popover the trigger opens. To own the whole
+		 * menu instead, compose `ThemeDropdownMenuRadioGroup` in your own
+		 * `DropdownMenu`.
+		 *
+		 * @example
+		 * ```tsx
+		 * <ThemeSwitcher contentProps={{ collisionPadding: { right: 16 } }} />
+		 * ```
+		 */
+		contentProps?: Omit<ComponentProps<typeof DropdownMenu.Content>, "children">;
+		/**
 		 * The accessible name for the trigger `IconButton`. Visually hidden but
 		 * announced to screen readers. Override it for localization.
 		 *
@@ -143,6 +156,7 @@ type ThemeSwitcherProps = WithStyleProps &
 const ThemeSwitcher = ({
 	appearance,
 	className,
+	contentProps,
 	label = "Change Theme",
 	style,
 }: ThemeSwitcherProps) => (
@@ -162,7 +176,7 @@ const ThemeSwitcher = ({
 				style={style}
 			/>
 		</DropdownMenu.Trigger>
-		<DropdownMenu.Content>
+		<DropdownMenu.Content {...contentProps}>
 			<ThemeDropdownMenuRadioGroup />
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>

@@ -95,12 +95,13 @@ import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
 
 The standalone picker: an `IconButton` trigger (ghost by default) that opens a `DropdownMenu` hosting `ThemeDropdownMenuRadioGroup`. Requires a [`ThemeProvider`](/components/primitives/theme) ancestor.
 
-| Prop          | Type                    | Default          | Description                                                                                        |
-| ------------- | ----------------------- | ---------------- | -------------------------------------------------------------------------------------------------- |
-| `appearance?` | `"ghost" \| "outlined"` | `"ghost"`        | The visual style of the trigger `IconButton`.                                                      |
-| `label?`      | `string`                | `"Change Theme"` | The accessible name for the trigger `IconButton`. Visually hidden but announced to screen readers. |
-| `className?`  | `string`                |                  | CSS class name applied to the trigger `IconButton`.                                                |
-| `style?`      | `CSSProperties`         |                  | Inline styles applied to the trigger `IconButton`.                                                 |
+| Prop            | Type                                          | Default          | Description                                                                                                                                                                  |
+| --------------- | --------------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance?`   | `"ghost" \| "outlined"`                       | `"ghost"`        | The visual style of the trigger `IconButton`.                                                                                                                                |
+| `contentProps?` | `ComponentProps<typeof DropdownMenu.Content>` |                  | Props forwarded to the menu's `DropdownMenu.Content` — positioning and collision behavior (`align`, `side`, `collisionPadding`, …) plus `className`/`style` for the popover. |
+| `label?`        | `string`                                      | `"Change Theme"` | The accessible name for the trigger `IconButton`. Visually hidden but announced to screen readers.                                                                           |
+| `className?`    | `string`                                      |                  | CSS class name applied to the trigger `IconButton`.                                                                                                                          |
+| `style?`        | `CSSProperties`                               |                  | Inline styles applied to the trigger `IconButton`.                                                                                                                           |
 
 ### ThemeDropdownMenuRadioGroup
 

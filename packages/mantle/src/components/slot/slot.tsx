@@ -1,13 +1,18 @@
 import { Slot as RadixSlot } from "@radix-ui/react-slot";
 import { Children, type ComponentProps, cloneElement, forwardRef, isValidElement } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 
-type Props = ComponentProps<typeof RadixSlot>;
+type Props = ComponentProps<typeof RadixSlot> & WithDataSlot;
 
 /**
  * Merges its props onto its immediate child. This is useful for creating
  * components that can be rendered as different elements. Automatically merges
- * className props using `cx` for proper Tailwind class handling.
+ * className props using `cx` for proper Tailwind class handling, and
+ * concatenates `data-slot` values in DOM order (the composing parent's slot
+ * chain first, then the child's own) so `asChild` composition accumulates the
+ * whole slot chain instead of one side clobbering the other.
  *
  * @see https://mantle.ngrok.com/components/primitives/slot
  *
@@ -19,10 +24,10 @@ type Props = ComponentProps<typeof RadixSlot>;
  * ```
  */
 const Slot = forwardRef<HTMLElement, Props>(function Slot(
-	{ children, className, ...props },
+	{ children, className, "data-slot": dataSlot, ...props },
 	forwardedRef,
 ) {
-	if (!isValidElement<{ className?: string }>(children)) {
+	if (!isValidElement<{ className?: string } & WithDataSlot>(children)) {
 		return Children.only(children);
 	}
 
@@ -42,6 +47,12 @@ const Slot = forwardRef<HTMLElement, Props>(function Slot(
 				 * behavior while still letting the component define sensible defaults.
 				 */
 				className: cx(className, children.props.className),
+				/**
+				 * data-slot concatenates instead: parent chain first, then the child's
+				 * own slot, so the rendered attribute reads in DOM order (outermost
+				 * ancestor → rendered element) all the way down an asChild chain.
+				 */
+				"data-slot": joinDataSlot(dataSlot, children.props["data-slot"]),
 			})}
 		</RadixSlot>
 	);

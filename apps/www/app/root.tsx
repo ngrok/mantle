@@ -32,6 +32,7 @@ import { ErrorPage } from "./components/error-page";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { Header } from "./components/header";
 import { NavigationProvider } from "./components/navigation-context";
+import { PageContainer } from "./components/page-container";
 import { useNonce } from "./components/nonce";
 import "./global.css";
 import { canonicalDomain, canonicalHref } from "./utilities/canonical-origin";
@@ -236,14 +237,14 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 		<div className="flex min-h-full flex-col">
 			<SkipToMainLink />
 			<Header />
-			<div className="mx-auto w-full max-w-7xl flex-1 px-4 pt-4 md:pt-20">
+			<PageContainer>
 				<ErrorPage status={status} />
 				{stack && (
 					<pre className="mx-auto max-w-full overflow-x-auto rounded-md bg-gray-100 p-4 text-left text-xs text-body">
 						{stack}
 					</pre>
 				)}
-			</div>
+			</PageContainer>
 		</div>
 	);
 }

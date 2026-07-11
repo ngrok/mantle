@@ -1,5 +1,6 @@
 import { data, redirect } from "react-router";
 import { ErrorPage } from "~/components/error-page";
+import { PageContainer } from "~/components/page-container";
 import { canonicalHref } from "~/utilities/canonical-origin";
 import { legacyRedirectFor } from "~/utilities/legacy-redirects";
 import type { Route } from "./+types/catch-all";
@@ -33,5 +34,9 @@ export function loader({ request }: Route.LoaderArgs) {
 
 /** The 404 page. Catches any URL that doesn't match a known route. */
 export default function CatchAll() {
-	return <ErrorPage status={404} />;
+	return (
+		<PageContainer>
+			<ErrorPage status={404} />
+		</PageContainer>
+	);
 }

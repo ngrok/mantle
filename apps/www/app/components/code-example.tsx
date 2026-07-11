@@ -32,7 +32,8 @@ function Root({ className, children, ...props }: CodeExampleRootProps) {
 			className={cx("mb-6", className)}
 			{...props}
 		>
-			<Tabs.List>
+			{/* tablists need an accessible name — pages stack several of these */}
+			<Tabs.List aria-label="Example preview and source code">
 				<Tabs.Trigger value="preview">Preview</Tabs.Trigger>
 				<Tabs.Trigger value="code">Code</Tabs.Trigger>
 			</Tabs.List>

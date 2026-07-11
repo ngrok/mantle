@@ -160,7 +160,9 @@ export default [
 	// `...markdownRoute("layouts/<slug>", "layouts", "<slug>")` entries here as
 	// they graduate (see decisions/2026-07-08-docs-information-architecture.md).
 	layout("./routes/layouts-layout.tsx", [
-		route("layouts", "./routes/layouts.tsx"),
+		// The explicit id is load-bearing: layouts-layout.tsx matches on it to
+		// keep the section index on the standard centered container.
+		route("layouts", "./routes/layouts.tsx", { id: "layouts-index" }),
 		...markdownRoute("layouts/centered-layout", "layouts", "centered-layout"),
 	]),
 

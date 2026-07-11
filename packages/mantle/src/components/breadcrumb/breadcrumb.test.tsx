@@ -61,6 +61,18 @@ describe("Breadcrumb", () => {
 		expect(ref.current?.tagName).toBe("NAV");
 	});
 
+	test("asChild composition accumulates the data-slot chain in DOM order", () => {
+		render(
+			<Breadcrumb.Item asChild>
+				<Breadcrumb.Page data-testid="crumb">Current</Breadcrumb.Page>
+			</Breadcrumb.Item>,
+		);
+		expect(screen.getByTestId("crumb")).toHaveAttribute(
+			"data-slot",
+			"breadcrumb-item breadcrumb-page",
+		);
+	});
+
 	test("List renders an ordered list", () => {
 		render(
 			<Breadcrumb.Root>
@@ -173,6 +185,45 @@ describe("Breadcrumb", () => {
 			</Breadcrumb.Root>,
 		);
 		expect(screen.getByText("Current")).toHaveAttribute("aria-current", "page");
+	});
+
+	test("Page enforces aria-current=page even when an asChild child supplies its own value", () => {
+		render(
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Item>
+						<Breadcrumb.Page asChild>
+							<span aria-current="false">Current</span>
+						</Breadcrumb.Page>
+					</Breadcrumb.Item>
+				</Breadcrumb.List>
+			</Breadcrumb.Root>,
+		);
+		expect(screen.getByText("Current")).toHaveAttribute("aria-current", "page");
+	});
+
+	test("Separator stays presentational even when an asChild child supplies its own role/aria-hidden", () => {
+		render(
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Item>
+						<Breadcrumb.Link href="/">Home</Breadcrumb.Link>
+					</Breadcrumb.Item>
+					<Breadcrumb.Separator asChild>
+						<li data-testid="separator" role="group" aria-hidden="false">
+							/
+						</li>
+					</Breadcrumb.Separator>
+					<Breadcrumb.Item>
+						<Breadcrumb.Page>Current</Breadcrumb.Page>
+					</Breadcrumb.Item>
+				</Breadcrumb.List>
+			</Breadcrumb.Root>,
+		);
+		const separator = screen.getByTestId("separator");
+		expect(separator).toHaveAttribute("role", "presentation");
+		expect(separator).toHaveAttribute("aria-hidden", "true");
+		expect(screen.getAllByRole("listitem")).toHaveLength(2);
 	});
 
 	test("Separator always stays presentational — consumer role/aria-hidden cannot override it", () => {

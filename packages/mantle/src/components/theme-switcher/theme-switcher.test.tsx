@@ -100,6 +100,18 @@ describe("ThemeSwitcher", () => {
 			"outlined",
 		);
 	});
+
+	test("opening the trigger shows the theme menu with contentProps forwarded to the content", () => {
+		render(
+			<ThemeProvider>
+				<ThemeSwitcher contentProps={{ className: "shadow-2xl" }} />
+			</ThemeProvider>,
+		);
+		fireEvent.pointerDown(screen.getByRole("button", { name: "Change Theme" }));
+		const menu = screen.getByRole("menu");
+		expect(menu.className).toContain("shadow-2xl");
+		expect(screen.getAllByRole("menuitemradio")).toHaveLength(5);
+	});
 });
 
 describe("ThemeDropdownMenuRadioGroup", () => {

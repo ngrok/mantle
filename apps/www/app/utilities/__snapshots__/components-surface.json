@@ -144,8 +144,8 @@
     "summary": "A viewport-filling centered page flow — utility header and footer strips around a growing, centered content region.",
     "jsdoc": "A viewport-filling centered page flow for sign-in, sign-up, onboarding, 404, checkout, and other focused full-page states.",
     "examples": [
-      "Composition:\n```\nCenteredLayout.Root\n├── CenteredLayout.Header\n├── CenteredLayout.Body\n│   └── CenteredLayout.Content\n└── CenteredLayout.Footer\n```",
-      "```tsx\n<CenteredLayout.Root>\n  <SkipToMainLink />\n  <CenteredLayout.Body>\n    <a href=\"https://ngrok.com\">\n      <NgrokWordmarkIcon className=\"h-auto w-24\" />\n    </a>\n    <CenteredLayout.Content asChild>\n      <Main>\n        <SignInCard />\n      </Main>\n    </CenteredLayout.Content>\n  </CenteredLayout.Body>\n  <CenteredLayout.Footer>\n    <ThemeSwitcher />\n  </CenteredLayout.Footer>\n</CenteredLayout.Root>\n```"
+      "Composition:\n```\nCenteredLayout.Root\n├── CenteredLayout.Header\n├── CenteredLayout.Body\n└── CenteredLayout.Footer\n```",
+      "```tsx\n<CenteredLayout.Root>\n  <SkipToMainLink />\n  <CenteredLayout.Body>\n    <a href=\"https://ngrok.com\">\n      <NgrokWordmarkIcon className=\"h-auto w-24\" />\n    </a>\n    <Main>\n      <SignInCard />\n    </Main>\n  </CenteredLayout.Body>\n  <CenteredLayout.Footer>\n    <ThemeSwitcher />\n  </CenteredLayout.Footer>\n</CenteredLayout.Root>\n```"
     ]
   },
   {

@@ -1,6 +1,9 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, ComponentRef } from "react";
+import { forwardRef } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
 
 /**
@@ -21,11 +24,9 @@ import { Slot } from "../slot/index.js";
  *     <a href="https://ngrok.com">
  *       <NgrokWordmarkIcon className="h-auto w-24" />
  *     </a>
- *     <CenteredLayout.Content asChild>
- *       <Main>
- *         <SignInCard />
- *       </Main>
- *     </CenteredLayout.Content>
+ *     <Main>
+ *       <SignInCard />
+ *     </Main>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
  *     <ThemeSwitcher />
@@ -33,19 +34,22 @@ import { Slot } from "../slot/index.js";
  * </CenteredLayout.Root>
  * ```
  */
-const Root = ({ asChild, children, className, ...props }: ComponentProps<"div"> & WithAsChild) => {
-	const Comp = asChild ? Slot : "div";
+const Root = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild & WithDataSlot>(
+	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
+		const Comp = asChild ? Slot : "div";
 
-	return (
-		<Comp
-			data-slot="centered-layout"
-			className={cx("flex min-h-full flex-col", className)}
-			{...props}
-		>
-			{children}
-		</Comp>
-	);
-};
+		return (
+			<Comp
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "centered-layout")}
+				className={cx("flex min-h-full flex-col", className)}
+				{...props}
+			>
+				{children}
+			</Comp>
+		);
+	},
+);
 Root.displayName = "CenteredLayout";
 
 /**
@@ -72,31 +76,30 @@ Root.displayName = "CenteredLayout";
  *     <IconButton type="button" label="Close" icon={<XIcon />} />
  *   </CenteredLayout.Header>
  *   <CenteredLayout.Body>
- *     <CenteredLayout.Content className="w-full max-w-5xl">
+ *     <div className="w-full max-w-5xl">
  *       <PlanPicker />
- *     </CenteredLayout.Content>
+ *     </div>
  *   </CenteredLayout.Body>
  * </CenteredLayout.Root>
  * ```
  */
-const Header = ({
-	asChild,
-	children,
-	className,
-	...props
-}: ComponentProps<"header"> & WithAsChild) => {
+const Header = forwardRef<
+	ComponentRef<"header">,
+	ComponentProps<"header"> & WithAsChild & WithDataSlot
+>(({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
 	const Comp = asChild ? Slot : "header";
 
 	return (
 		<Comp
-			data-slot="centered-layout-header"
+			ref={ref}
+			data-slot={joinDataSlot(dataSlot, "centered-layout-header")}
 			className={cx("flex shrink-0 items-center px-4 py-4", className)}
 			{...props}
 		>
 			{children}
 		</Comp>
 	);
-};
+});
 Header.displayName = "CenteredLayoutHeader";
 
 /**
@@ -122,11 +125,9 @@ Header.displayName = "CenteredLayoutHeader";
  *     <a href="https://ngrok.com">
  *       <NgrokWordmarkIcon className="h-auto w-24" />
  *     </a>
- *     <CenteredLayout.Content asChild>
- *       <Main>
- *         <SignInCard />
- *       </Main>
- *     </CenteredLayout.Content>
+ *     <Main>
+ *       <SignInCard />
+ *     </Main>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
  *     <ThemeSwitcher />
@@ -134,64 +135,23 @@ Header.displayName = "CenteredLayoutHeader";
  * </CenteredLayout.Root>
  * ```
  */
-const Body = ({ asChild, children, className, ...props }: ComponentProps<"div"> & WithAsChild) => {
-	const Comp = asChild ? Slot : "div";
+const Body = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild & WithDataSlot>(
+	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
+		const Comp = asChild ? Slot : "div";
 
-	return (
-		<Comp
-			data-slot="centered-layout-body"
-			className={cx("flex flex-1 flex-col items-center justify-center gap-6 py-4", className)}
-			{...props}
-		>
-			{children}
-		</Comp>
-	);
-};
+		return (
+			<Comp
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "centered-layout-body")}
+				className={cx("flex flex-1 flex-col items-center justify-center gap-6 py-4", className)}
+				{...props}
+			>
+				{children}
+			</Comp>
+		);
+	},
+);
 Body.displayName = "CenteredLayoutBody";
-
-/**
- * The primary content slot of the layout. Renders a plain `<div>` — the
- * layout owns *where* the content goes, not *what* it is, so landmark
- * semantics stay compositional: when this layout owns the document, compose
- * mantle's `Main` landmark via `asChild` (and pair a `SkipToMainLink` as the
- * first child of `Root`). Inside a shell that already renders the document's
- * Main landmark, use it as-is and no duplicate landmark can occur.
- *
- * @see https://mantle.ngrok.com/layouts/centered-layout
- *
- * @example
- * The layout owns the document — compose the Main landmark:
- * ```tsx
- * <CenteredLayout.Content asChild className="w-full max-w-80">
- *   <Main>
- *     <SignInCard />
- *   </Main>
- * </CenteredLayout.Content>
- * ```
- *
- * @example
- * A shell already owns the document's Main landmark:
- * ```tsx
- * <CenteredLayout.Content className="w-full max-w-80">
- *   <SignInCard />
- * </CenteredLayout.Content>
- * ```
- */
-const Content = ({
-	asChild,
-	children,
-	className,
-	...props
-}: ComponentProps<"div"> & WithAsChild) => {
-	const Comp = asChild ? Slot : "div";
-
-	return (
-		<Comp data-slot="centered-layout-content" className={className} {...props}>
-			{children}
-		</Comp>
-	);
-};
-Content.displayName = "CenteredLayoutContent";
 
 /**
  * A pinned utility strip at the bottom of the layout — a theme switcher,
@@ -211,11 +171,9 @@ Content.displayName = "CenteredLayoutContent";
  *     <a href="https://ngrok.com">
  *       <NgrokWordmarkIcon className="h-auto w-24" />
  *     </a>
- *     <CenteredLayout.Content asChild>
- *       <Main>
- *         <SignInCard />
- *       </Main>
- *     </CenteredLayout.Content>
+ *     <Main>
+ *       <SignInCard />
+ *     </Main>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
  *     <ThemeSwitcher />
@@ -223,24 +181,23 @@ Content.displayName = "CenteredLayoutContent";
  * </CenteredLayout.Root>
  * ```
  */
-const Footer = ({
-	asChild,
-	children,
-	className,
-	...props
-}: ComponentProps<"footer"> & WithAsChild) => {
+const Footer = forwardRef<
+	ComponentRef<"footer">,
+	ComponentProps<"footer"> & WithAsChild & WithDataSlot
+>(({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
 	const Comp = asChild ? Slot : "footer";
 
 	return (
 		<Comp
-			data-slot="centered-layout-footer"
+			ref={ref}
+			data-slot={joinDataSlot(dataSlot, "centered-layout-footer")}
 			className={cx("flex shrink-0 items-center px-4 py-4", className)}
 			{...props}
 		>
 			{children}
 		</Comp>
 	);
-};
+});
 Footer.displayName = "CenteredLayoutFooter";
 
 /**
@@ -258,7 +215,6 @@ Footer.displayName = "CenteredLayoutFooter";
  * CenteredLayout.Root
  * ├── CenteredLayout.Header
  * ├── CenteredLayout.Body
- * │   └── CenteredLayout.Content
  * └── CenteredLayout.Footer
  * ```
  *
@@ -270,11 +226,9 @@ Footer.displayName = "CenteredLayoutFooter";
  *     <a href="https://ngrok.com">
  *       <NgrokWordmarkIcon className="h-auto w-24" />
  *     </a>
- *     <CenteredLayout.Content asChild>
- *       <Main>
- *         <SignInCard />
- *       </Main>
- *     </CenteredLayout.Content>
+ *     <Main>
+ *       <SignInCard />
+ *     </Main>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
  *     <ThemeSwitcher />
@@ -299,11 +253,9 @@ const CenteredLayout = {
 	 *     <a href="https://ngrok.com">
 	 *       <NgrokWordmarkIcon className="h-auto w-24" />
 	 *     </a>
-	 *     <CenteredLayout.Content asChild>
-	 *       <Main>
-	 *         <SignInCard />
-	 *       </Main>
-	 *     </CenteredLayout.Content>
+	 *     <Main>
+	 *       <SignInCard />
+	 *     </Main>
 	 *   </CenteredLayout.Body>
 	 *   <CenteredLayout.Footer>
 	 *     <ThemeSwitcher />
@@ -329,9 +281,9 @@ const CenteredLayout = {
 	 *     <IconButton type="button" label="Close" icon={<XIcon />} />
 	 *   </CenteredLayout.Header>
 	 *   <CenteredLayout.Body>
-	 *     <CenteredLayout.Content className="w-full max-w-5xl">
+	 *     <div className="w-full max-w-5xl">
 	 *       <PlanPicker />
-	 *     </CenteredLayout.Content>
+	 *     </div>
 	 *   </CenteredLayout.Body>
 	 * </CenteredLayout.Root>
 	 * ```
@@ -352,11 +304,9 @@ const CenteredLayout = {
 	 *     <a href="https://ngrok.com">
 	 *       <NgrokWordmarkIcon className="h-auto w-24" />
 	 *     </a>
-	 *     <CenteredLayout.Content asChild>
-	 *       <Main>
-	 *         <SignInCard />
-	 *       </Main>
-	 *     </CenteredLayout.Content>
+	 *     <Main>
+	 *       <SignInCard />
+	 *     </Main>
 	 *   </CenteredLayout.Body>
 	 *   <CenteredLayout.Footer>
 	 *     <ThemeSwitcher />
@@ -365,24 +315,6 @@ const CenteredLayout = {
 	 * ```
 	 */
 	Body,
-	/**
-	 * The primary content slot. Renders a plain `<div>`; landmark semantics
-	 * are compositional — when the layout owns the document, compose mantle's
-	 * `Main` landmark via `asChild` and pair a `SkipToMainLink` as the first
-	 * child of `Root`.
-	 *
-	 * @see https://mantle.ngrok.com/layouts/centered-layout
-	 *
-	 * @example
-	 * ```tsx
-	 * <CenteredLayout.Content asChild className="w-full max-w-80">
-	 *   <Main>
-	 *     <SignInCard />
-	 *   </Main>
-	 * </CenteredLayout.Content>
-	 * ```
-	 */
-	Content,
 	/**
 	 * A pinned utility strip (theme switcher, legal links) rendered as a
 	 * semantic `<footer>` (`contentinfo` landmark) outside the centered
@@ -398,11 +330,9 @@ const CenteredLayout = {
 	 *     <a href="https://ngrok.com">
 	 *       <NgrokWordmarkIcon className="h-auto w-24" />
 	 *     </a>
-	 *     <CenteredLayout.Content asChild>
-	 *       <Main>
-	 *         <SignInCard />
-	 *       </Main>
-	 *     </CenteredLayout.Content>
+	 *     <Main>
+	 *       <SignInCard />
+	 *     </Main>
 	 *   </CenteredLayout.Body>
 	 *   <CenteredLayout.Footer>
 	 *     <ThemeSwitcher />
