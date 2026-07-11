@@ -8,8 +8,3 @@ export {
 	//,
 	CenteredLayout,
 } from "./centered-layout.js";
-
-export type {
-	//,
-	CenteredLayoutContentProps,
-} from "./centered-layout.js";

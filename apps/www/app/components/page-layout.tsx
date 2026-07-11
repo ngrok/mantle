@@ -47,7 +47,10 @@ export function PageLayout({ className, children, sidebar, ...props }: PageLayou
 
 	return (
 		<>
-			<div className={cx("flex gap-4", className)} {...props}>
+			<div
+				className={cx("mx-auto flex w-full max-w-7xl flex-1 gap-4 px-4 pt-4 md:pt-20", className)}
+				{...props}
+			>
 				<div className="scroll-fade-y scrollbar sticky top-15 hidden max-h-[calc(100vh-3.75rem)] w-44 overflow-y-auto px-1 pb-4 md:block">
 					{sidebar}
 				</div>

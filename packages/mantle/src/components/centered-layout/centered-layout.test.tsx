@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, test } from "vitest";
+import { Main } from "../main/main.js";
 import { CenteredLayout } from "./centered-layout.js";
 
 describe("CenteredLayout", () => {
@@ -131,33 +132,52 @@ describe("CenteredLayout", () => {
 		expect(ref.current).toBe(footer);
 	});
 
-	test("Content renders the Main landmark by default", () => {
-		render(
-			<CenteredLayout.Content>
-				<p>sign in</p>
-			</CenteredLayout.Content>,
-		);
-		const main = screen.getByRole("main");
-		expect(main).toHaveAttribute("id", "main");
-		expect(main).toHaveAttribute("tabindex", "-1");
-		expect(main).toHaveTextContent("sign in");
+	test("Header renders a header element with data-slot, exposed as a banner landmark", () => {
+		render(<CenteredLayout.Header data-testid="header">account</CenteredLayout.Header>);
+		const header = screen.getByTestId("header");
+		expect(header.tagName).toBe("HEADER");
+		expect(header).toHaveAttribute("data-slot", "centered-layout-header");
+		expect(header).toHaveTextContent("account");
+		expect(screen.getByRole("banner")).toBe(header);
 	});
 
-	test("Content forwards className and ref to the Main landmark", () => {
+	test("Header merges custom className", () => {
+		render(
+			<CenteredLayout.Header className="sticky top-0 justify-end" data-testid="header">
+				account
+			</CenteredLayout.Header>,
+		);
+		const header = screen.getByTestId("header");
+		expect(header.className).toContain("sticky");
+		expect(header.className).toContain("shrink-0");
+	});
+
+	test("Header renders as child element when asChild is true, keeping data-slot", () => {
+		render(
+			<CenteredLayout.Header asChild>
+				<div data-testid="header">account</div>
+			</CenteredLayout.Header>,
+		);
+		const header = screen.getByTestId("header");
+		expect(header.tagName).toBe("DIV");
+		expect(header).toHaveAttribute("data-slot", "centered-layout-header");
+	});
+
+	test("Header forwards refs and data-* attributes", () => {
 		const ref = createRef<HTMLElement>();
 		render(
-			<CenteredLayout.Content className="w-full max-w-80" ref={ref}>
-				<p>sign in</p>
-			</CenteredLayout.Content>,
+			<CenteredLayout.Header data-testid="header" data-position="pinned" ref={ref}>
+				account
+			</CenteredLayout.Header>,
 		);
-		const main = screen.getByRole("main");
-		expect(main.className).toContain("max-w-80");
-		expect(ref.current).toBe(main);
+		const header = screen.getByTestId("header");
+		expect(header).toHaveAttribute("data-position", "pinned");
+		expect(ref.current).toBe(header);
 	});
 
-	test("Content with renderMain={false} renders a plain div, not a main landmark", () => {
+	test("Content renders a plain div with data-slot, not a landmark", () => {
 		render(
-			<CenteredLayout.Content data-testid="content" renderMain={false}>
+			<CenteredLayout.Content data-testid="content">
 				<p>sign in</p>
 			</CenteredLayout.Content>,
 		);
@@ -168,15 +188,10 @@ describe("CenteredLayout", () => {
 		expect(content).toHaveTextContent("sign in");
 	});
 
-	test("Content with renderMain={false} applies className and forwards refs", () => {
-		const ref = createRef<HTMLElement>();
+	test("Content applies className and forwards refs", () => {
+		const ref = createRef<HTMLDivElement>();
 		render(
-			<CenteredLayout.Content
-				className="w-full max-w-80"
-				data-testid="content"
-				ref={ref}
-				renderMain={false}
-			>
+			<CenteredLayout.Content className="w-full max-w-80" data-testid="content" ref={ref}>
 				<p>sign in</p>
 			</CenteredLayout.Content>,
 		);
@@ -185,14 +200,45 @@ describe("CenteredLayout", () => {
 		expect(ref.current).toBe(content);
 	});
 
+	test("Content composes the Main landmark via asChild", () => {
+		render(
+			<CenteredLayout.Content asChild className="w-full max-w-80">
+				<Main>
+					<p>sign in</p>
+				</Main>
+			</CenteredLayout.Content>,
+		);
+		const main = screen.getByRole("main");
+		expect(main).toHaveAttribute("id", "main");
+		expect(main).toHaveAttribute("tabindex", "-1");
+		expect(main.className).toContain("max-w-80");
+		expect(main).toHaveTextContent("sign in");
+	});
+
+	test("Content renders as child element when asChild is true, keeping data-slot", () => {
+		render(
+			<CenteredLayout.Content asChild>
+				<section data-testid="content">sign in</section>
+			</CenteredLayout.Content>,
+		);
+		const content = screen.getByTestId("content");
+		expect(content.tagName).toBe("SECTION");
+		expect(content).toHaveAttribute("data-slot", "centered-layout-content");
+	});
+
 	test("renders a full composition", () => {
 		render(
 			<CenteredLayout.Root data-testid="root">
 				<a href="#main">Skip to main content</a>
+				<CenteredLayout.Header data-testid="header">
+					<button type="button">Close</button>
+				</CenteredLayout.Header>
 				<CenteredLayout.Body data-testid="body">
 					<a href="https://ngrok.com">acme</a>
-					<CenteredLayout.Content>
-						<p>Sign in to your account</p>
+					<CenteredLayout.Content asChild>
+						<Main>
+							<p>Sign in to your account</p>
+						</Main>
 					</CenteredLayout.Content>
 				</CenteredLayout.Body>
 				<CenteredLayout.Footer data-testid="footer">
@@ -203,9 +249,11 @@ describe("CenteredLayout", () => {
 		const root = screen.getByTestId("root");
 		expect(root).toHaveAttribute("data-slot", "centered-layout");
 		expect(screen.getByTestId("body")).toHaveAttribute("data-slot", "centered-layout-body");
+		expect(screen.getByRole("banner")).toBe(screen.getByTestId("header"));
 		expect(screen.getByRole("main")).toHaveTextContent("Sign in to your account");
 		expect(screen.getByRole("contentinfo")).toBe(screen.getByTestId("footer"));
 		expect(screen.getByRole("link", { name: "acme" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Toggle theme" })).toBeInTheDocument();
 	});
 });

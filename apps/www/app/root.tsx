@@ -215,9 +215,7 @@ export default function App() {
 		<div className="flex min-h-full flex-col">
 			<SkipToMainLink />
 			<Header />
-			<div className="mx-auto w-full max-w-7xl flex-1 px-4 pt-4 md:pt-20">
-				<Outlet />
-			</div>
+			<Outlet />
 		</div>
 	);
 }

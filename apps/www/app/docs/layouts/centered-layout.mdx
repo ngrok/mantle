@@ -1,28 +1,28 @@
 ---
 title: Centered Layout
-description: A viewport-filling centered page flow — brand mark, centered content in a Main landmark, and a pinned utility footer.
+description: A viewport-filling centered page flow — utility header and footer strips around a growing, centered content region.
 ---
 
-import { Button } from "@ngrok/mantle/button";
+import { Button, IconButton } from "@ngrok/mantle/button";
 import { Card } from "@ngrok/mantle/card";
 import { CenteredLayout } from "@ngrok/mantle/centered-layout";
 import { Input } from "@ngrok/mantle/input";
 import { Label } from "@ngrok/mantle/label";
-import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
-import { Example } from "~/components/example";
+import { CheckIcon } from "@phosphor-icons/react/Check";
+import { XIcon } from "@phosphor-icons/react/X";
+import { CodeExample } from "~/components/code-example";
 import { PageHeader } from "~/components/page-header";
 
 export function CenteredLayoutExample() {
 	return (
-		<div className="h-96 w-full overflow-auto">
+		<div className="h-full w-full overflow-auto">
 			<CenteredLayout.Root>
-				<SkipToMainLink />
 				<CenteredLayout.Body>
 					<a href="https://ngrok.com" className="text-strong text-lg font-semibold">
 						acme
 					</a>
-					<CenteredLayout.Content className="w-full max-w-80" renderMain={false}>
+					<CenteredLayout.Content className="w-full max-w-80">
 						<Card.Root>
 							<Card.Header>
 								<Card.Title>Sign in to acme</Card.Title>
@@ -40,7 +40,7 @@ export function CenteredLayoutExample() {
 										placeholder="Your password"
 									/>
 								</div>
-								<Button type="button" appearance="filled">
+								<Button type="button" priority="neutral" appearance="filled">
 									Sign in
 								</Button>
 							</Card.Body>
@@ -57,12 +57,12 @@ export function CenteredLayoutExample() {
 
 export function CenteredLayoutAsChildExample() {
 	return (
-		<div className="h-64 w-full overflow-auto">
+		<div className="h-full w-full overflow-auto">
 			<CenteredLayout.Root asChild>
 				<section aria-label="Password reset">
 					<CenteredLayout.Body>
 						<span className="text-strong text-lg font-semibold">acme</span>
-						<CenteredLayout.Content className="w-full max-w-80" renderMain={false}>
+						<CenteredLayout.Content className="w-full max-w-80">
 							<Card.Root>
 								<Card.Body>
 									<p>Check your email for a reset link.</p>
@@ -81,13 +81,143 @@ export function CenteredLayoutAsChildExample() {
 	);
 }
 
+export function CenteredLayoutHeaderExample() {
+	return (
+		<div className="h-full w-full overflow-auto">
+			<CenteredLayout.Root>
+				<CenteredLayout.Header className="bg-card sticky top-0 z-10 justify-between">
+					<span className="text-muted text-sm">cody@acme.com</span>
+					<IconButton type="button" appearance="ghost" label="Close" icon={<XIcon />} />
+				</CenteredLayout.Header>
+				<CenteredLayout.Body>
+					<CenteredLayout.Content className="w-full max-w-5xl space-y-8 p-4">
+						<div className="space-y-2">
+							<p className="text-strong text-3xl font-medium">Choose a plan</p>
+							<p className="text-body text-lg">
+								Scale your fake apps — none of these plans, prices, or features are real.
+							</p>
+						</div>
+						<div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-3">
+							{[
+								{
+									name: "Sandbox",
+									price: "$X",
+									tagline: "A fake free tier for a fake product",
+									features: [
+										"Up to 3 imaginary endpoints",
+										"1GB of pretend bandwidth",
+										"20k hypothetical requests",
+										"Community support (also pretend)",
+										"Interstitial page on fake endpoints",
+										"1 team member (you, hypothetically)",
+										"Fake dev domain for public endpoints",
+										"$X one-time pretend usage credit",
+									],
+									action: "Current Fake Plan",
+								},
+								{
+									name: "Pretend Pro",
+									price: "$XX",
+									tagline: "For serious imaginary workloads",
+									features: [
+										"Unlimited imaginary endpoints",
+										"Custom fake domains",
+										"100k make-believe requests",
+										"Priority pretend support",
+										"No interstitial page (it never existed)",
+										"3 team members ($0 per imaginary friend)",
+										"Bring your own fictional domain",
+										"$XX monthly pretend usage credit",
+									],
+									action: "Select Pretend Pro",
+								},
+								{
+									name: "Make Believe",
+									price: "$XXX",
+									tagline: "Everything fake, at scale",
+									features: [
+										"Unlimited everything (none of it real)",
+										"SSO for your imaginary team",
+										"99.999% uptime, hypothetically",
+										"Mutual TLS, in theory",
+										"Wildcard endpoints, wildly fictional",
+										"A dedicated (imaginary) account manager",
+										"RBAC and SCIM, strictly conceptual",
+										"Unlimited pretend usage, billed never",
+									],
+									action: "Select Make Believe",
+								},
+							].map((plan) => (
+								<div
+									key={plan.name}
+									className="flex flex-col gap-6 rounded-md border border-gray-300 p-4"
+								>
+									<div className="shrink-0">
+										<span className="text-strong text-base font-medium">{plan.name}</span>
+										<p className="text-muted text-xs">
+											<span className="text-strong text-2xl font-medium">{plan.price}</span> per
+											month
+										</p>
+									</div>
+									<div className="text-body flex flex-1 flex-col gap-4 text-xs">
+										<p className="text-strong text-sm italic">{plan.tagline}</p>
+										<ul className="space-y-1.5">
+											{plan.features.map((feature) => (
+												<li key={feature} className="flex gap-2">
+													<CheckIcon className="text-muted size-4 shrink-0" />
+													{feature}
+												</li>
+											))}
+										</ul>
+									</div>
+									<Button type="button" appearance="outlined">
+										{plan.action}
+									</Button>
+								</div>
+							))}
+						</div>
+						<Card.Root className="bg-card-hover rounded-xl shadow-inner">
+							<Card.Body className="space-y-3">
+								<p className="text-strong text-sm font-medium">Wait, is any of this real?</p>
+								<p className="text-body text-sm">
+									No — every plan, price, and feature on this page is made up to demonstrate the
+									CenteredLayout composition. Scroll this frame to see the sticky header stay put.
+								</p>
+								<ul className="text-body list-disc space-y-1.5 pl-5 text-sm">
+									<li>Can I upgrade from Sandbox to Pretend Pro? Only in your imagination.</li>
+									<li>
+										Do fake credits roll over? Forever — they aren't real, so they never expire.
+									</li>
+									<li>Is there a fake annual discount? Yes: save $0 with annual billing.</li>
+									<li>What payment methods are accepted? Monopoly money and firm handshakes.</li>
+									<li>Can I talk to fake sales? Absolutely — book a meeting that never happens.</li>
+								</ul>
+							</Card.Body>
+						</Card.Root>
+						<p className="text-muted text-xs">
+							* All prices shown in imaginary dollars (IMD). Fake plans are subject to change
+							without notice, because they do not exist. No warranty is expressed, implied, or
+							imaginable.
+						</p>
+					</CenteredLayout.Content>
+				</CenteredLayout.Body>
+				<CenteredLayout.Footer>
+					<ThemeSwitcher />
+				</CenteredLayout.Footer>
+			</CenteredLayout.Root>
+		</div>
+	);
+}
+
 <PageHeader id="centered-layout">Centered Layout</PageHeader>
 
-A viewport-filling centered page flow for sign-in, sign-up, onboarding, 404, and other focused full-page states. It is a **layout**: it owns _where things go_ — the flex/overflow skeleton, region ordering, and the [Main](/components/primitives/main) landmark wiring — not what they are. App state (routing, sessions, data) never enters it; the brand mark, form card, and footer links arrive as composed JSX. It consolidates the centered "auth shell" that was duplicated across ngrok's dashboard and login apps.
+A viewport-filling centered page flow for sign-in, sign-up, onboarding, 404, and other focused full-page states. It is a **layout**: it owns _where things go_ — the flex/overflow skeleton and region ordering — not what they are. App state (routing, sessions, data) never enters it; the brand mark, form card, and footer links arrive as composed JSX. It consolidates the centered "auth shell" that was duplicated across ngrok's dashboard and login apps.
 
-<Example className="p-0 md:p-0">
-	<CenteredLayoutExample />
-</Example>
+<CodeExample.Root>
+	<CodeExample.Preview className="p-0 md:p-0">
+		<CenteredLayoutExample />
+	</CodeExample.Preview>
+	<CodeExample.Code>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -95,11 +225,9 @@ import { Card } from "@ngrok/mantle/card";
 import { CenteredLayout } from "@ngrok/mantle/centered-layout";
 import { Input } from "@ngrok/mantle/input";
 import { Label } from "@ngrok/mantle/label";
-import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 
 <CenteredLayout.Root>
-	<SkipToMainLink />
 	<CenteredLayout.Body>
 		<a href="https://ngrok.com" className="text-strong text-lg font-semibold">
 			acme
@@ -118,7 +246,7 @@ import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 						<Label htmlFor="password">Password</Label>
 						<Input id="password" type="password" placeholder="Your password" />
 					</div>
-					<Button type="button" appearance="filled">
+					<Button type="button" priority="neutral" appearance="filled">
 						Sign in
 					</Button>
 				</Card.Body>
@@ -131,35 +259,95 @@ import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 </CenteredLayout.Root>;
 ```
 
-> **Note.** The code fence shows document-level usage, where `Content` renders the Main landmark by default. The live demos on this page pass `renderMain={false}` because the docs page already owns the document's Main landmark and skip link — the demos are themselves the [nested-shell case](#landmarks).
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Composition
 
 ```text showLineNumbers=false
 CenteredLayout.Root
+├── CenteredLayout.Header
 ├── CenteredLayout.Body
 │   └── CenteredLayout.Content
 └── CenteredLayout.Footer
 ```
 
-- **`Root`** is the outer frame. It fills its nearest sized ancestor (`min-h-full`) and stacks `Body` (which grows) above `Footer` (which is pinned). Merge `h-full` via `className` when the host requires an exact height — `cx` is tailwind-merge-backed, so the override is deterministic.
-- **`Body`** is the growing, centered region (`flex-1`, centered, `gap-6`). By convention the brand mark — a fully-styled logo/wordmark anchor — is its **first child**. There is deliberately no `Logo` part because it would own nothing: vertical spacing comes from `Body`'s `gap-6`, and the mark arrives as already-styled JSX.
-- **`Content`** is the primary content slot — the [Main](/components/primitives/main) landmark by default, or a plain `div` via `renderMain={false}` when another shell already owns the landmark.
-- **`Footer`** is a pinned utility strip (theme switcher, legal links) rendered **outside** the centered `flex-1` region — which is exactly why `Body` exists as a separate part: `Root` cannot own the centering because `Footer` must sit outside it. `Footer` is optional; omitting it is fine.
+- **`Root`** is the outer frame. It fills its nearest sized ancestor (`min-h-full`) and stacks `Header` (pinned top), `Body` (which grows), and `Footer` (pinned bottom). Merge `h-full` via `className` when the host requires an exact height — `cx` is tailwind-merge-backed, so the override is deterministic.
+- **`Header`** is a utility strip at the top — an account chip, a close button — rendered **outside** the centered region as a semantic `<header>`, the mirror of `Footer`. Optional; see [Header](#header) for the window-pinned variant.
+- **`Body`** is the growing, centered region (`flex-1`, centered, `gap-6`). By convention the brand mark — a fully-styled logo/wordmark anchor — is its **first child**. There is deliberately no `Logo` part because it would own nothing: vertical spacing comes from `Body`'s `gap-6`, and the mark arrives as already-styled JSX. Content taller than the viewport top-flows and the page scrolls, because `Root` grows instead of clipping.
+- **`Content`** is the primary content slot — a plain `div`. Landmark semantics stay compositional: compose the [Main](/components/primitives/main) landmark via `asChild` when the layout owns the document (see [Landmarks](#landmarks)).
+- **`Footer`** is a pinned utility strip (theme switcher, legal links) rendered **outside** the centered `flex-1` region — which is exactly why `Body` exists as a separate part: `Root` cannot own the centering because `Header` and `Footer` must sit outside it. `Footer` is optional; omitting it is fine.
+
+## Header
+
+Focused flows that the user can leave — checkout, plan pickers, onboarding steps — carry a utility strip at the top: who is signed in on the left, a close button on the right. `Header` is that strip, the mirror of `Footer`. To keep the close button reachable while the page scrolls, merge `sticky top-0 z-10` (and a background) via `className` — prefer `sticky` over `fixed`, which removes the strip from flow and underlaps the content below it. On a real page the flow owns the document scroller — give it `overscroll-none` there to suppress rubber-banding and pull-to-refresh (on the root it can't trap anything, because there is nothing behind it to chain to). Don't set it on a nested scroller like this demo: cutting scroll chaining swallows the wheel at the scroller's edge instead of handing it back to the page. Scroll the demo to see the header stay pinned.
+
+<CodeExample.Root>
+	<CodeExample.Preview className="p-0 md:p-0">
+		<CenteredLayoutHeaderExample />
+	</CodeExample.Preview>
+	<CodeExample.Code>
+
+```tsx
+import { IconButton } from "@ngrok/mantle/button";
+import { CenteredLayout } from "@ngrok/mantle/centered-layout";
+import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
+import { XIcon } from "@phosphor-icons/react/X";
+
+<CenteredLayout.Root>
+	<CenteredLayout.Header className="bg-card sticky top-0 z-10 justify-between">
+		<span className="text-muted text-sm">cody@acme.com</span>
+		<IconButton type="button" appearance="ghost" label="Close" icon={<XIcon />} />
+	</CenteredLayout.Header>
+	<CenteredLayout.Body>
+		<CenteredLayout.Content className="w-full max-w-5xl">
+			<PlanPicker />
+		</CenteredLayout.Content>
+	</CenteredLayout.Body>
+	<CenteredLayout.Footer>
+		<ThemeSwitcher />
+	</CenteredLayout.Footer>
+</CenteredLayout.Root>;
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Landmarks
 
-Exactly one element in a document may be the Main landmark. By default `CenteredLayout.Content` renders mantle's [Main](/components/primitives/main) — a `<main id="main" tabIndex={-1}>` that a [SkipToMainLink](/components/primitives/skip-to-main-link) can focus, so keyboard users can jump past the brand mark straight to the sign-in form. When the layout is composed inside a shell that already renders a Main landmark (an app frame, a docs page — including the live demos on this page), pass `renderMain={false}` and `Content` renders a plain `<div>` instead, leaving the landmark to the host.
+Exactly one element in a document may be the Main landmark, so the layout does not render one for you — `Content` is a plain `div`, and composing the layout inside a shell that already owns the landmark (an app frame, a docs page — including the live demos on this page) is safe by default. When the layout owns the document — a sign-in page, a 404 — compose mantle's [Main](/components/primitives/main) via `asChild`, and pair a [SkipToMainLink](/components/primitives/skip-to-main-link) as the first child of `Root`: its default `targetId` matches `Main`'s `id="main"`, so keyboard users can jump past the brand mark straight to the content.
 
-Pair the default form with a [SkipToMainLink](/components/primitives/skip-to-main-link) as the first child of `Root`, as in the example above — its default `targetId` matches `Main`'s `id="main"`.
+```tsx
+import { CenteredLayout } from "@ngrok/mantle/centered-layout";
+import { Main } from "@ngrok/mantle/main";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+
+<CenteredLayout.Root>
+	<SkipToMainLink />
+	<CenteredLayout.Body>
+		<a href="https://ngrok.com" className="text-strong text-lg font-semibold">
+			acme
+		</a>
+		<CenteredLayout.Content asChild className="w-full max-w-80">
+			<Main>
+				<SignInCard />
+			</Main>
+		</CenteredLayout.Content>
+	</CenteredLayout.Body>
+</CenteredLayout.Root>;
+```
 
 ## Polymorphism
 
-`Root`, `Body`, and `Footer` support `asChild` to compose their structure onto alternative element types — here `Root` renders as a labelled `<section>`. `Content` deliberately does **not** support `asChild`: its polymorphism is the `renderMain` contract, and `asChild` would clone `Main`'s landmark props (`id="main"`, `tabIndex={-1}`) onto arbitrary children.
+Every part supports `asChild` to compose its structure onto alternative element types — here `Root` renders as a labelled `<section>`. For `Content`, `asChild` is also how the [Main](/components/primitives/main) landmark composes in (see [Landmarks](#landmarks)).
 
-<Example className="p-0 md:p-0">
-	<CenteredLayoutAsChildExample />
-</Example>
+<CodeExample.Root>
+	<CodeExample.Preview className="p-0 md:p-0">
+		<CenteredLayoutAsChildExample />
+	</CodeExample.Preview>
+	<CodeExample.Code>
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
@@ -169,7 +357,7 @@ import { CenteredLayout } from "@ngrok/mantle/centered-layout";
 	<section aria-label="Password reset">
 		<CenteredLayout.Body>
 			<span className="text-strong text-lg font-semibold">acme</span>
-			<CenteredLayout.Content className="w-full max-w-80" renderMain={false}>
+			<CenteredLayout.Content className="w-full max-w-80">
 				<Card.Root>
 					<Card.Body>
 						<p>Check your email for a reset link.</p>
@@ -186,23 +374,37 @@ import { CenteredLayout } from "@ngrok/mantle/centered-layout";
 </CenteredLayout.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Accessibility
 
-- **One Main landmark per document.** `Content` renders it by default; pass `renderMain={false}` when a surrounding shell already does. Two `<main>` elements in one document is invalid HTML and confuses screen-reader landmark navigation.
-- **Skip link pairing.** The default `Content` is focusable (`id="main"`, `tabIndex={-1}`), so a [SkipToMainLink](/components/primitives/skip-to-main-link) placed as the first child of `Root` sends keyboard users directly to the content.
-- **Footer landmark.** `Footer` is a semantic `<footer>`, exposed as a `contentinfo` landmark for the page-level frame — unlike `Card.Footer`'s generic `div`. Note that `<footer>` only maps to `contentinfo` when it is not nested inside a sectioning element, so rendering `Root` as a `<section>` via `asChild` (as in the [Polymorphism](#polymorphism) example) scopes the footer to that section instead.
+- **One Main landmark per document.** Two `<main>` elements in one document is invalid HTML and confuses screen-reader landmark navigation — so the layout renders none by default. Compose [Main](/components/primitives/main) onto `Content` via `asChild` when the layout owns the document (see [Landmarks](#landmarks)); inside a shell that already renders one, the default plain `div` cannot create a duplicate.
+- **Skip link pairing.** The composed `Main` is focusable (`id="main"`, `tabIndex={-1}`), so a [SkipToMainLink](/components/primitives/skip-to-main-link) placed as the first child of `Root` sends keyboard users directly to the content.
+- **Header and Footer landmarks.** `Header` is a semantic `<header>` (`banner`) and `Footer` a semantic `<footer>` (`contentinfo`) for the page-level frame — unlike `Card.Footer`'s generic `div`. Note that these mappings only apply when the element is not nested inside a sectioning element, so rendering `Root` as a `<section>` via `asChild` (as in the [Polymorphism](#polymorphism) example) scopes both to that section instead.
 
 ## API Reference
 
 ### CenteredLayout.Root
 
-The outer frame of the centered page flow. Fills its nearest sized ancestor and stacks `Body` above `Footer`.
+The outer frame of the centered page flow. Fills its nearest sized ancestor and stacks `Header`, `Body`, and `Footer`.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
 | Prop       | Type      | Default | Description                                                                                                                 |
 | ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `CenteredLayout` styling onto alternative element types or your own React components. |
+
+### CenteredLayout.Header
+
+A utility strip rendered as a semantic `<header>` at the top of the layout, outside the centered region. Merge `sticky top-0 z-10` via `className` to pin it to the window while the page scrolls. Optional.
+
+All props from [header](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/header#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                        |
+| ---------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `CenteredLayout.Header` styling onto alternative element types or your own React components. |
 
 ### CenteredLayout.Body
 
@@ -216,13 +418,13 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### CenteredLayout.Content
 
-The primary content slot. Renders the [Main](/components/primitives/main) landmark by default. Accepts all props from [main](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/main#attributes), plus:
+The primary content slot — a plain `div`. Compose the [Main](/components/primitives/main) landmark via `asChild` when the layout owns the document (see [Landmarks](#landmarks)).
 
-| Prop          | Type      | Default | Description                                                                                                                                                               |
-| ------------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `renderMain?` | `boolean` | `true`  | Render the mantle `Main` landmark (`<main id="main" tabIndex={-1}>`). Pass `false` inside a shell that already owns the document's Main landmark to render a plain `div`. |
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-`Content` does not support `asChild` — polymorphism is handled by the `renderMain` contract instead (see [Polymorphism](#polymorphism)).
+| Prop       | Type      | Default | Description                                                                                                                         |
+| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `CenteredLayout.Content` styling onto alternative element types or your own React components. |
 
 ### CenteredLayout.Footer
 

@@ -1,16 +1,15 @@
 import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
-import { Main } from "../main/main.js";
 import { Slot } from "../slot/index.js";
 
 /**
  * The outer frame of a centered page flow. Renders a `<div>` with
  * `flex min-h-full flex-col` so it fills its nearest sized ancestor and stacks
- * `CenteredLayout.Body` (which grows) above `CenteredLayout.Footer` (which is
- * pinned). Consumers whose host requires an exact height can merge `h-full`
- * via `className` — `cx` is tailwind-merge-backed, so the override is
- * deterministic.
+ * `CenteredLayout.Header` (pinned top), `CenteredLayout.Body` (which grows),
+ * and `CenteredLayout.Footer` (pinned bottom). Consumers whose host requires
+ * an exact height can merge `h-full` via `className` — `cx` is
+ * tailwind-merge-backed, so the override is deterministic.
  *
  * @see https://mantle.ngrok.com/layouts/centered-layout
  *
@@ -22,8 +21,10 @@ import { Slot } from "../slot/index.js";
  *     <a href="https://ngrok.com">
  *       <NgrokWordmarkIcon className="h-auto w-24" />
  *     </a>
- *     <CenteredLayout.Content>
- *       <SignInCard />
+ *     <CenteredLayout.Content asChild>
+ *       <Main>
+ *         <SignInCard />
+ *       </Main>
  *     </CenteredLayout.Content>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
@@ -48,9 +49,63 @@ const Root = ({ asChild, children, className, ...props }: ComponentProps<"div"> 
 Root.displayName = "CenteredLayout";
 
 /**
+ * A utility strip at the top of the layout — an account chip, a close/dismiss
+ * button, and similar page furniture for focused flows (checkout, plan
+ * pickers). Renders a semantic `<header>` (a page-level frame, so it is
+ * exposed as a `banner` landmark when not nested inside a sectioning element)
+ * with `flex shrink-0 items-center px-4 py-4`. It sits **outside** the
+ * centered `flex-1` region, mirroring `CenteredLayout.Footer`. Optional:
+ * omitting it is fine.
+ *
+ * To pin it to the window while the page scrolls (e.g. a close button that
+ * stays reachable), merge `sticky top-0 z-10` via `className` — prefer
+ * `sticky` over `fixed`, which removes the strip from flow and underlaps the
+ * content below it.
+ *
+ * @see https://mantle.ngrok.com/layouts/centered-layout
+ *
+ * @example
+ * ```tsx
+ * <CenteredLayout.Root>
+ *   <CenteredLayout.Header className="sticky top-0 z-10 justify-between">
+ *     <AccountChip />
+ *     <IconButton type="button" label="Close" icon={<XIcon />} />
+ *   </CenteredLayout.Header>
+ *   <CenteredLayout.Body>
+ *     <CenteredLayout.Content className="w-full max-w-5xl">
+ *       <PlanPicker />
+ *     </CenteredLayout.Content>
+ *   </CenteredLayout.Body>
+ * </CenteredLayout.Root>
+ * ```
+ */
+const Header = ({
+	asChild,
+	children,
+	className,
+	...props
+}: ComponentProps<"header"> & WithAsChild) => {
+	const Comp = asChild ? Slot : "header";
+
+	return (
+		<Comp
+			data-slot="centered-layout-header"
+			className={cx("flex shrink-0 items-center px-4 py-4", className)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
+Header.displayName = "CenteredLayoutHeader";
+
+/**
  * The growing, centered region of the layout. Renders a `<div>` with
  * `flex flex-1 flex-col items-center justify-center gap-6 py-4` so its
- * children are centered in the space left over by `CenteredLayout.Footer`.
+ * children are centered in the space left over by `CenteredLayout.Header`
+ * and `CenteredLayout.Footer`. Content taller than the viewport top-flows
+ * and the page scrolls, because `Root` grows (`min-h-full`) instead of
+ * clipping.
  *
  * By convention the brand mark (a fully-styled logo/wordmark anchor) is the
  * **first child** of `Body` — there is deliberately no `Logo` part because it
@@ -67,8 +122,10 @@ Root.displayName = "CenteredLayout";
  *     <a href="https://ngrok.com">
  *       <NgrokWordmarkIcon className="h-auto w-24" />
  *     </a>
- *     <CenteredLayout.Content>
- *       <SignInCard />
+ *     <CenteredLayout.Content asChild>
+ *       <Main>
+ *         <SignInCard />
+ *       </Main>
  *     </CenteredLayout.Content>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
@@ -93,99 +150,45 @@ const Body = ({ asChild, children, className, ...props }: ComponentProps<"div"> 
 Body.displayName = "CenteredLayoutBody";
 
 /**
- * Props for `CenteredLayout.Content` — the `<main>` element's props plus the
- * `renderMain` landmark switch.
+ * The primary content slot of the layout. Renders a plain `<div>` — the
+ * layout owns *where* the content goes, not *what* it is, so landmark
+ * semantics stay compositional: when this layout owns the document, compose
+ * mantle's `Main` landmark via `asChild` (and pair a `SkipToMainLink` as the
+ * first child of `Root`). Inside a shell that already renders the document's
+ * Main landmark, use it as-is and no duplicate landmark can occur.
  *
  * @see https://mantle.ngrok.com/layouts/centered-layout
  *
  * @example
+ * The layout owns the document — compose the Main landmark:
  * ```tsx
- * <CenteredLayout.Root>
- *   <SkipToMainLink />
- *   <CenteredLayout.Body>
- *     <a href="https://ngrok.com">
- *       <NgrokWordmarkIcon className="h-auto w-24" />
- *     </a>
- *     <CenteredLayout.Content>
- *       <SignInCard />
- *     </CenteredLayout.Content>
- *   </CenteredLayout.Body>
- *   <CenteredLayout.Footer>
- *     <ThemeSwitcher />
- *   </CenteredLayout.Footer>
- * </CenteredLayout.Root>
+ * <CenteredLayout.Content asChild className="w-full max-w-80">
+ *   <Main>
+ *     <SignInCard />
+ *   </Main>
+ * </CenteredLayout.Content>
  * ```
- */
-type CenteredLayoutContentProps = ComponentProps<"main"> & {
-	/**
-	 * Whether to render the mantle `Main` landmark (`<main id="main" tabIndex={-1}>`)
-	 * as the content element. Exactly one element in a document may be the Main
-	 * landmark — pass `false` when this layout is composed inside a shell that
-	 * already renders one, and a plain `<div>` is rendered instead.
-	 *
-	 * @default true
-	 */
-	renderMain?: boolean;
-};
-
-/**
- * The primary content slot of the layout. By default it renders the mantle
- * `Main` landmark — a `<main id="main" tabIndex={-1} data-slot="main">` that a
- * `SkipToMainLink` can focus. Exactly one element in a document may be the
- * Main landmark: pass `renderMain={false}` when composing inside a shell that
- * already renders one, and a plain `<div data-slot="centered-layout-content">`
- * is rendered instead.
- *
- * This part deliberately does not support `asChild`: polymorphism is handled
- * by the `renderMain` contract, and `asChild` would clone `Main`'s landmark
- * props onto arbitrary children.
- *
- * @see https://mantle.ngrok.com/layouts/centered-layout
  *
  * @example
+ * A shell already owns the document's Main landmark:
  * ```tsx
- * <CenteredLayout.Root>
- *   <SkipToMainLink />
- *   <CenteredLayout.Body>
- *     <a href="https://ngrok.com">
- *       <NgrokWordmarkIcon className="h-auto w-24" />
- *     </a>
- *     <CenteredLayout.Content>
- *       <SignInCard />
- *     </CenteredLayout.Content>
- *   </CenteredLayout.Body>
- *   <CenteredLayout.Footer>
- *     <ThemeSwitcher />
- *   </CenteredLayout.Footer>
- * </CenteredLayout.Root>
+ * <CenteredLayout.Content className="w-full max-w-80">
+ *   <SignInCard />
+ * </CenteredLayout.Content>
  * ```
  */
-const Content = ({ className, ref, renderMain = true, ...props }: CenteredLayoutContentProps) => {
-	if (renderMain) {
-		return <Main {...props} className={className} ref={ref} />;
-	}
+const Content = ({
+	asChild,
+	children,
+	className,
+	...props
+}: ComponentProps<"div"> & WithAsChild) => {
+	const Comp = asChild ? Slot : "div";
 
 	return (
-		<div
-			data-slot="centered-layout-content"
-			className={className}
-			{...props}
-			// Why: props are typed against `<main>`, whose object-ref form
-			// (`RefObject<HTMLElement>`) is not assignable to the div's
-			// `RefObject<HTMLDivElement>` (mutable `current` is invariant). Function
-			// refs ARE assignable, so they pass through untouched — preserving the
-			// consumer's stable ref identity across renders (no detach/re-attach
-			// churn); only object refs go through an adapter.
-			ref={
-				typeof ref === "function"
-					? ref
-					: (node) => {
-							if (ref != null) {
-								ref.current = node;
-							}
-						}
-			}
-		/>
+		<Comp data-slot="centered-layout-content" className={className} {...props}>
+			{children}
+		</Comp>
 	);
 };
 Content.displayName = "CenteredLayoutContent";
@@ -208,8 +211,10 @@ Content.displayName = "CenteredLayoutContent";
  *     <a href="https://ngrok.com">
  *       <NgrokWordmarkIcon className="h-auto w-24" />
  *     </a>
- *     <CenteredLayout.Content>
- *       <SignInCard />
+ *     <CenteredLayout.Content asChild>
+ *       <Main>
+ *         <SignInCard />
+ *       </Main>
  *     </CenteredLayout.Content>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
@@ -240,10 +245,10 @@ Footer.displayName = "CenteredLayoutFooter";
 
 /**
  * A viewport-filling centered page flow for sign-in, sign-up, onboarding,
- * 404, and other focused full-page states. It owns structure only — the
- * flex/overflow skeleton, region ordering, and the Main-landmark wiring.
- * App state (routing, sessions) never enters it; links and brand marks
- * arrive as composed JSX.
+ * 404, checkout, and other focused full-page states. It owns structure only —
+ * the flex/overflow skeleton and region ordering. App state (routing,
+ * sessions) never enters it, and landmark semantics stay compositional:
+ * brand marks, links, and the `Main` landmark arrive as composed JSX.
  *
  * @see https://mantle.ngrok.com/layouts/centered-layout
  *
@@ -251,6 +256,7 @@ Footer.displayName = "CenteredLayoutFooter";
  * Composition:
  * ```
  * CenteredLayout.Root
+ * ├── CenteredLayout.Header
  * ├── CenteredLayout.Body
  * │   └── CenteredLayout.Content
  * └── CenteredLayout.Footer
@@ -264,8 +270,10 @@ Footer.displayName = "CenteredLayoutFooter";
  *     <a href="https://ngrok.com">
  *       <NgrokWordmarkIcon className="h-auto w-24" />
  *     </a>
- *     <CenteredLayout.Content>
- *       <SignInCard />
+ *     <CenteredLayout.Content asChild>
+ *       <Main>
+ *         <SignInCard />
+ *       </Main>
  *     </CenteredLayout.Content>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
@@ -277,8 +285,9 @@ Footer.displayName = "CenteredLayoutFooter";
 const CenteredLayout = {
 	/**
 	 * The outer frame of a centered page flow. Fills its nearest sized ancestor
-	 * (`min-h-full`) and stacks `Body` (which grows) above `Footer` (pinned).
-	 * Merge `h-full` via `className` when the host requires an exact height.
+	 * (`min-h-full`) and stacks `Header` (pinned top), `Body` (which grows),
+	 * and `Footer` (pinned bottom). Merge `h-full` via `className` when the
+	 * host requires an exact height.
 	 *
 	 * @see https://mantle.ngrok.com/layouts/centered-layout
 	 *
@@ -290,8 +299,10 @@ const CenteredLayout = {
 	 *     <a href="https://ngrok.com">
 	 *       <NgrokWordmarkIcon className="h-auto w-24" />
 	 *     </a>
-	 *     <CenteredLayout.Content>
-	 *       <SignInCard />
+	 *     <CenteredLayout.Content asChild>
+	 *       <Main>
+	 *         <SignInCard />
+	 *       </Main>
 	 *     </CenteredLayout.Content>
 	 *   </CenteredLayout.Body>
 	 *   <CenteredLayout.Footer>
@@ -301,6 +312,31 @@ const CenteredLayout = {
 	 * ```
 	 */
 	Root,
+	/**
+	 * A utility strip at the top of the layout (account chip, close button)
+	 * rendered as a semantic `<header>` (`banner` landmark) outside the
+	 * centered `flex-1` region — the mirror of `Footer`. Merge
+	 * `sticky top-0 z-10` via `className` to pin it to the window while the
+	 * page scrolls. Optional — omitting it is fine.
+	 *
+	 * @see https://mantle.ngrok.com/layouts/centered-layout
+	 *
+	 * @example
+	 * ```tsx
+	 * <CenteredLayout.Root>
+	 *   <CenteredLayout.Header className="sticky top-0 z-10 justify-between">
+	 *     <AccountChip />
+	 *     <IconButton type="button" label="Close" icon={<XIcon />} />
+	 *   </CenteredLayout.Header>
+	 *   <CenteredLayout.Body>
+	 *     <CenteredLayout.Content className="w-full max-w-5xl">
+	 *       <PlanPicker />
+	 *     </CenteredLayout.Content>
+	 *   </CenteredLayout.Body>
+	 * </CenteredLayout.Root>
+	 * ```
+	 */
+	Header,
 	/**
 	 * The growing, centered region of the layout. By convention the brand mark
 	 * (a fully-styled logo/wordmark anchor) is its **first child** — spacing
@@ -316,8 +352,10 @@ const CenteredLayout = {
 	 *     <a href="https://ngrok.com">
 	 *       <NgrokWordmarkIcon className="h-auto w-24" />
 	 *     </a>
-	 *     <CenteredLayout.Content>
-	 *       <SignInCard />
+	 *     <CenteredLayout.Content asChild>
+	 *       <Main>
+	 *         <SignInCard />
+	 *       </Main>
 	 *     </CenteredLayout.Content>
 	 *   </CenteredLayout.Body>
 	 *   <CenteredLayout.Footer>
@@ -328,30 +366,20 @@ const CenteredLayout = {
 	 */
 	Body,
 	/**
-	 * The primary content slot. Renders the mantle `Main` landmark
-	 * (`<main id="main" tabIndex={-1}>`) by default; pass `renderMain={false}`
-	 * inside a shell that already owns the document's Main landmark to render a
-	 * plain `<div>` instead. Exactly one element in a document may be the Main
-	 * landmark.
+	 * The primary content slot. Renders a plain `<div>`; landmark semantics
+	 * are compositional — when the layout owns the document, compose mantle's
+	 * `Main` landmark via `asChild` and pair a `SkipToMainLink` as the first
+	 * child of `Root`.
 	 *
 	 * @see https://mantle.ngrok.com/layouts/centered-layout
 	 *
 	 * @example
 	 * ```tsx
-	 * <CenteredLayout.Root>
-	 *   <SkipToMainLink />
-	 *   <CenteredLayout.Body>
-	 *     <a href="https://ngrok.com">
-	 *       <NgrokWordmarkIcon className="h-auto w-24" />
-	 *     </a>
-	 *     <CenteredLayout.Content>
-	 *       <SignInCard />
-	 *     </CenteredLayout.Content>
-	 *   </CenteredLayout.Body>
-	 *   <CenteredLayout.Footer>
-	 *     <ThemeSwitcher />
-	 *   </CenteredLayout.Footer>
-	 * </CenteredLayout.Root>
+	 * <CenteredLayout.Content asChild className="w-full max-w-80">
+	 *   <Main>
+	 *     <SignInCard />
+	 *   </Main>
+	 * </CenteredLayout.Content>
 	 * ```
 	 */
 	Content,
@@ -370,8 +398,10 @@ const CenteredLayout = {
 	 *     <a href="https://ngrok.com">
 	 *       <NgrokWordmarkIcon className="h-auto w-24" />
 	 *     </a>
-	 *     <CenteredLayout.Content>
-	 *       <SignInCard />
+	 *     <CenteredLayout.Content asChild>
+	 *       <Main>
+	 *         <SignInCard />
+	 *       </Main>
 	 *     </CenteredLayout.Content>
 	 *   </CenteredLayout.Body>
 	 *   <CenteredLayout.Footer>
@@ -386,9 +416,4 @@ const CenteredLayout = {
 export {
 	//,
 	CenteredLayout,
-};
-
-export type {
-	//,
-	CenteredLayoutContentProps,
 };

@@ -28,8 +28,12 @@ export function ContentLayout({ children, markdownPath }: ContentLayoutProps) {
 			</div>
 			<MdxProvider>
 				<Suspense fallback={null}>
-					{/* don't overlap the doc actions */}
-					<div className="sm:[&>h1:first-child]:pr-40">{children}</div>
+					{/* don't overlap the doc actions; data-mdx-content is a stable styling
+					hook so section layouts can target the MDX flow children (e.g. the
+					prose measure on full-width sections) */}
+					<div data-mdx-content className="sm:[&>h1:first-child]:pr-40">
+						{children}
+					</div>
 				</Suspense>
 			</MdxProvider>
 		</div>
