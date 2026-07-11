@@ -266,9 +266,10 @@ type BreadcrumbSeparatorProps = Omit<ComponentProps<"li">, "children"> &
  * A purely visual divider between crumbs, hidden from assistive technology.
  * Renders an `<li>` with `role="presentation"` and `aria-hidden="true"` — a
  * listitem sibling of `Breadcrumb.Item` elements per the APG breadcrumb
- * pattern, so it never counts as a crumb. Children default to a caret icon
- * (`<CaretRightIcon />`); pass your own children (e.g. a slash) to replace it.
- * With `asChild`, children are required — the child element is what renders.
+ * pattern, so it never counts as a crumb. Children default to a size-3.5
+ * caret icon (`<Icon svg={<CaretRightIcon />} className="size-3.5" />`); pass
+ * your own children (e.g. a slash) to replace it. With `asChild`, children
+ * are required — the child element is what renders.
  *
  * @see https://mantle.ngrok.com/components/navigation/breadcrumb
  *
