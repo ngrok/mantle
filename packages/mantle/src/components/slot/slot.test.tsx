@@ -184,6 +184,33 @@ describe("Slot", () => {
 		expect(div).toHaveClass("slot-class");
 	});
 
+	it("concatenates data-slot values in DOM order — the Slot's chain first, then the child's own", () => {
+		const { container } = render(
+			<Slot data-slot="parent-part">
+				<div data-slot="child-part">Content</div>
+			</Slot>,
+		);
+
+		const div = container.querySelector("div");
+		expect(div).toHaveAttribute("data-slot", "parent-part child-part");
+	});
+
+	it("keeps a single data-slot as-is and renders no attribute when neither side has one", () => {
+		const { container: withSlot } = render(
+			<Slot data-slot="parent-part">
+				<div>Content</div>
+			</Slot>,
+		);
+		expect(withSlot.querySelector("div")).toHaveAttribute("data-slot", "parent-part");
+
+		const { container: withoutSlot } = render(
+			<Slot>
+				<div>Content</div>
+			</Slot>,
+		);
+		expect(withoutSlot.querySelector("div")).not.toHaveAttribute("data-slot");
+	});
+
 	it("handles event handlers passed via Slot and child (both are called)", () => {
 		const slotOnClick = vi.fn<() => void>();
 		const childOnClick = vi.fn<() => void>();

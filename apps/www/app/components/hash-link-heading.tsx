@@ -60,7 +60,11 @@ function HashLinkHeading({ id, className, children, ...props }: Props) {
 				singleChild,
 				{
 					className: cx(
-						"group relative w-fit font-family scroll-mt-24 [@media(hover:hover)]:w-auto [@media(hover:hover)]:pl-5 [@media(hover:hover)]:-ml-5",
+						// the ::before strip extends the hover hitbox into the left gutter
+						// where the absolutely-positioned link icon slides in, WITHOUT
+						// shifting the heading box (a pl/-ml gutter breaks on pages that
+						// center MDX children with mx-auto, which clobbers negative margins)
+						"group relative w-fit font-family scroll-mt-24 before:absolute before:top-0 before:-left-9 before:h-full before:w-9 [@media(hover:hover)]:w-auto",
 						className,
 						singleChild.props.className,
 					),
@@ -70,7 +74,7 @@ function HashLinkHeading({ id, className, children, ...props }: Props) {
 						to={{ hash: id }}
 						aria-label="Jump to section"
 						className={cx(
-							"float-right ml-0.5 inline-flex h-lh px-1 items-center justify-center [@media(hover:hover)]:float-none [@media(hover:hover)]:ml-0 [@media(hover:hover)]:h-auto [@media(hover:hover)]:p-2 [@media(hover:hover)]:absolute [@media(hover:hover)]:-left-4 [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:translate-x-5 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-hover:translate-x-0 hover:scale-103 active:scale-94 focus:opacity-100 focus:translate-x-0 focus-visible:opacity-100 focus-visible:translate-x-0 transition-all duration-200 ease-out rounded shrink-0",
+							"float-right ml-0.5 inline-flex h-lh px-1 items-center justify-center [@media(hover:hover)]:float-none [@media(hover:hover)]:ml-0 [@media(hover:hover)]:h-auto [@media(hover:hover)]:p-2 [@media(hover:hover)]:absolute [@media(hover:hover)]:-left-9 [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:translate-x-5 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-hover:translate-x-0 hover:scale-103 active:scale-94 focus:opacity-100 focus:translate-x-0 focus-visible:opacity-100 focus-visible:translate-x-0 transition-all duration-200 ease-out rounded shrink-0",
 							wasCopied ? "text-success-600" : "text-muted hover:text-strong",
 						)}
 						onClick={() => {

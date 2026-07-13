@@ -68,6 +68,20 @@
     ]
   },
   {
+    "name": "Breadcrumb",
+    "slug": "components/navigation/breadcrumb",
+    "kind": "component",
+    "category": "Navigation",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/breadcrumb",
+    "summary": "Hierarchy-path navigation — an ordered list of links from a root to the current page, in a labeled nav landmark.",
+    "jsdoc": "Compound component for WAI-ARIA breadcrumb navigation — the path from a root to the current page as an ordered list of links inside a labeled `<nav>` landmark.",
+    "examples": [
+      "Composition:\n```\nBreadcrumb.Root\n└── Breadcrumb.List\n    ├── Breadcrumb.Item\n    │   └── Breadcrumb.Link\n    ├── Breadcrumb.Separator\n    └── Breadcrumb.Item\n        └── Breadcrumb.Page\n```",
+      "```tsx\n<Breadcrumb.Root>\n\t<Breadcrumb.List>\n\t\t<Breadcrumb.Item>\n\t\t\t<Breadcrumb.Link href=\"/\">Home</Breadcrumb.Link>\n\t\t</Breadcrumb.Item>\n\t\t<Breadcrumb.Separator />\n\t\t<Breadcrumb.Item>\n\t\t\t<Breadcrumb.Link href=\"/endpoints\">Endpoints</Breadcrumb.Link>\n\t\t</Breadcrumb.Item>\n\t\t<Breadcrumb.Separator />\n\t\t<Breadcrumb.Item>\n\t\t\t<Breadcrumb.Page>ep_2h8…</Breadcrumb.Page>\n\t\t</Breadcrumb.Item>\n\t</Breadcrumb.List>\n</Breadcrumb.Root>\n```"
+    ]
+  },
+  {
     "name": "Browser Only",
     "slug": "components/primitives/browser-only",
     "kind": "component",
@@ -119,6 +133,19 @@
     "examples": [
       "Composition:\n```\nCard.Root\n├── Card.Header\n│   └── Card.Title\n├── Card.Body\n└── Card.Footer\n```",
       "```tsx\n<Card.Root>\n  <Card.Body>\n    <p>Laborum in aute officia adipisicing elit velit.</p>\n  </Card.Body>\n</Card.Root>\n\n<Card.Root>\n  <Card.Header>\n    <Card.Title>Card Title Here</Card.Title>\n  </Card.Header>\n  <Card.Body>\n    <p>Laborum in aute officia adipisicing elit velit.</p>\n  </Card.Body>\n  <Card.Footer>\n    <p>Card footer</p>\n  </Card.Footer>\n</Card.Root>\n```"
+    ]
+  },
+  {
+    "name": "Centered Layout",
+    "slug": "layouts/centered-layout",
+    "kind": "layout",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/centered-layout",
+    "summary": "A viewport-filling centered page flow — utility header and footer strips around a growing, centered content region.",
+    "jsdoc": "A viewport-filling centered page flow for sign-in, sign-up, onboarding, 404, checkout, and other focused full-page states.",
+    "examples": [
+      "Composition:\n```\nCenteredLayout.Root\n├── CenteredLayout.Header\n├── CenteredLayout.Body\n└── CenteredLayout.Footer\n```",
+      "```tsx\n<CenteredLayout.Root>\n  <SkipToMainLink />\n  <CenteredLayout.Body>\n    <a href=\"https://ngrok.com\">\n      <NgrokWordmarkIcon className=\"h-auto w-24\" />\n    </a>\n    <Main>\n      <SignInCard />\n    </Main>\n  </CenteredLayout.Body>\n  <CenteredLayout.Footer>\n    <ThemeSwitcher />\n  </CenteredLayout.Footer>\n</CenteredLayout.Root>\n```"
     ]
   },
   {
@@ -755,6 +782,19 @@
     "importPath": "@ngrok/mantle/theme",
     "summary": "Theme primitives — ThemeProvider, MantleStyleSheets, and FOUC prevention — for light, dark, and high-contrast modes.",
     "jsdoc": "Re-exports for the Theme component."
+  },
+  {
+    "name": "Theme Switcher",
+    "slug": "components/forms/theme-switcher",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/theme-switcher",
+    "summary": "The canonical picker for mantle's five themes — a compact dropdown switcher, plus a radio group that embeds theme selection in any dropdown menu.",
+    "jsdoc": "The canonical picker for mantle's theme system: a compact `IconButton` trigger (ghost by default) that opens a `DropdownMenu` hosting `ThemeDropdownMenuRadioGroup`, the theme-selection radio group.",
+    "examples": [
+      "```tsx\n<ThemeProvider>\n  <header>\n    <ThemeSwitcher />\n  </header>\n</ThemeProvider>\n```"
+    ]
   },
   {
     "name": "Toast",

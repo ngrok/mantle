@@ -7,6 +7,7 @@ import { WarningDiamondIcon } from "@phosphor-icons/react/WarningDiamond";
 import {
 	type ComponentProps,
 	type ComponentRef,
+	type MouseEvent,
 	type ReactNode,
 	createContext,
 	forwardRef,
@@ -315,7 +316,9 @@ const Action = forwardRef<ComponentRef<"button">, ToastActionProps>(
 					"data-icon-button:-mr-0.5 data-icon-button:-mt-0.5 data-icon-button:rounded-xs",
 					className,
 				)}
-				onClick={(event) => {
+				// Why: the asChild union (Slot | "button") no longer infers a single
+				// event type; React event handlers are bivariant, so pin the param.
+				onClick={(event: MouseEvent<HTMLButtonElement>) => {
 					onClick?.(event);
 					if (event.defaultPrevented) {
 						return;

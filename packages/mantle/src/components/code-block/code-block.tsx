@@ -10,6 +10,7 @@ import type {
 	ComponentRef,
 	Dispatch,
 	HTMLAttributes,
+	MouseEvent,
 	ReactNode,
 	SetStateAction,
 } from "react";
@@ -656,7 +657,9 @@ const ExpanderButton = forwardRef<ComponentRef<"button">, CodeBlockExpanderButto
 				)}
 				ref={ref}
 				type="button"
-				onClick={(event) => {
+				// Why: the asChild union (Slot | "button") no longer infers a single
+				// event type; React event handlers are bivariant, so pin the param.
+				onClick={(event: MouseEvent<HTMLButtonElement>) => {
 					setIsCodeExpanded((prev) => !prev);
 					onClick?.(event);
 				}}

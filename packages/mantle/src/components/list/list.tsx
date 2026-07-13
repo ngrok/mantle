@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef } from "react";
-import type { ComponentProps, ComponentRef } from "react";
+import type { ComponentProps, ComponentRef, MouseEvent } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Root as ListPrimitiveRoot, Item as ListPrimitiveItem } from "./primitive.js";
@@ -202,7 +202,9 @@ const Item = forwardRef<ComponentRef<"button">, ListItemProps>(
 					{...(asChild
 						? { "aria-disabled": disabled || undefined, tabIndex: disabled ? -1 : undefined }
 						: { type: "button", disabled })}
-					onClick={(event) => {
+					// Why: the asChild union (Slot | "button") no longer infers a single
+					// event type; React event handlers are bivariant, so pin the param.
+					onClick={(event: MouseEvent<HTMLButtonElement>) => {
 						if (asChild && disabled) {
 							event.preventDefault();
 							event.stopPropagation();

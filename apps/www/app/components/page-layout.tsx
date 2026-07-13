@@ -2,6 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { href, Link, useMatches } from "react-router";
 import { z } from "zod";
 import { useNavigation } from "./navigation-context";
+import { PageContainer } from "./page-container";
 import { TableOfContents } from "./table-of-contents";
 import { cx } from "@ngrok/mantle/cx";
 import { Main } from "@ngrok/mantle/main";
@@ -47,7 +48,7 @@ export function PageLayout({ className, children, sidebar, ...props }: PageLayou
 
 	return (
 		<>
-			<div className={cx("flex gap-4", className)} {...props}>
+			<PageContainer className={cx("flex gap-4", className)} {...props}>
 				<div className="scroll-fade-y scrollbar sticky top-15 hidden max-h-[calc(100vh-3.75rem)] w-44 overflow-y-auto px-1 pb-4 md:block">
 					{sidebar}
 				</div>
@@ -55,7 +56,7 @@ export function PageLayout({ className, children, sidebar, ...props }: PageLayou
 				<aside className="hidden w-40 xl:block">
 					<TableOfContents entries={leafToc} />
 				</aside>
-			</div>
+			</PageContainer>
 			{showNavigation && (
 				<div className="bg-card fixed bottom-0 left-0 right-0 top-15 z-50 p-4 md:hidden">
 					<div className="scroll-fade-y scrollbar h-full overflow-auto overscroll-contain px-1">

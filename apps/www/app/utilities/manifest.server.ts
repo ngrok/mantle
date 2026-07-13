@@ -3,6 +3,8 @@ import {
 	componentCategories,
 	componentImportPathOverrides,
 	componentsByCategory,
+	layoutPages,
+	layoutRoutes,
 	previewComponentCategoryLookup,
 	previewComponents,
 	previewComponentsRouteLookup,
@@ -245,6 +247,7 @@ export async function buildManifest(): Promise<Manifest> {
 		componentsByCategory[category].map((name) => ({
 			name,
 			route: prodReadyComponentRouteLookup[name],
+			kind: "component" as const,
 			status: "stable" as const,
 			category,
 		})),
@@ -252,43 +255,52 @@ export async function buildManifest(): Promise<Manifest> {
 	const previewEntries = previewComponents.map((name) => ({
 		name,
 		route: previewComponentsRouteLookup[name],
+		kind: "component" as const,
 		status: "preview" as const,
 		category: previewComponentCategoryLookup[name],
 	}));
+	// Layouts are a flat family — `kind: "layout"`, no category.
+	const layoutEntries = layoutPages.map((name) => ({
+		name,
+		route: layoutRoutes[name],
+		kind: "layout" as const,
+		status: "stable" as const,
+		category: undefined,
+	}));
 
-	// When the first layout primitive ships, its nav data (`layoutRoutes`)
-	// feeds a third entry list here with `kind: "layout"` and no category.
-	const all = [...stableEntries, ...previewEntries];
+	const all = [...stableEntries, ...previewEntries, ...layoutEntries];
 	const components = (
 		await Promise.all(
-			all.map(async ({ name, route, status, category }): Promise<ManifestComponent | null> => {
-				const slug = route.startsWith("/") ? route.slice(1) : route;
-				const importPath = importPathForSlug(slug);
-				if (!importPath) {
-					return null;
-				}
-				const filePath = urlToFileMap.get(slug);
-				const [frontmatter, jsdoc, examples] = await Promise.all([
-					filePath ? loadFrontmatter(filePath) : Promise.resolve(undefined),
-					jsdocForComponent(slug, name),
-					examplesForComponent(slug, name),
-				]);
-				const description =
-					typeof frontmatter?.description === "string" ? frontmatter.description : undefined;
-				return {
-					name,
-					slug,
-					kind: "component",
-					category,
-					status,
-					importPath,
-					docsUrl: canonicalHref(`/${slug}`),
-					markdownUrl: canonicalHref(`/${slug}.md`),
-					summary: description,
-					jsdoc,
-					examples: examples.length > 0 ? examples : undefined,
-				};
-			}),
+			all.map(
+				async ({ name, route, kind, status, category }): Promise<ManifestComponent | null> => {
+					const slug = route.startsWith("/") ? route.slice(1) : route;
+					const importPath = importPathForSlug(slug);
+					if (!importPath) {
+						return null;
+					}
+					const filePath = urlToFileMap.get(slug);
+					const [frontmatter, jsdoc, examples] = await Promise.all([
+						filePath ? loadFrontmatter(filePath) : Promise.resolve(undefined),
+						jsdocForComponent(slug, name),
+						examplesForComponent(slug, name),
+					]);
+					const description =
+						typeof frontmatter?.description === "string" ? frontmatter.description : undefined;
+					return {
+						name,
+						slug,
+						kind,
+						...(category == null ? {} : { category }),
+						status,
+						importPath,
+						docsUrl: canonicalHref(`/${slug}`),
+						markdownUrl: canonicalHref(`/${slug}.md`),
+						summary: description,
+						jsdoc,
+						examples: examples.length > 0 ? examples : undefined,
+					};
+				},
+			),
 		)
 	).filter((entry): entry is ManifestComponent => entry != null);
 
