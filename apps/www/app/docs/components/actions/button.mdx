@@ -169,6 +169,20 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 </Button>
 ```
 
+## Common mistakes
+
+An icon-only button is not a `Button` — use [`IconButton`](/components/actions/icon-button) instead. `Button`'s `icon` prop places an icon _beside_ its text children; render it with no children and the button has no accessible name (screen readers announce nothing) and keeps its text-box horizontal padding, so it draws as an off-square lozenge instead of a square. `IconButton` requires an accessible `label` (visually hidden, announced to screen readers) and renders a square box on the same shared size scale.
+
+```tsx
+// ❌ Wrong — icon-only Button: no accessible name, text-shaped padding
+<Button icon={<CopyIcon />} onClick={copyPage} />
+```
+
+```tsx
+// ✅ Correct — IconButton: required screen-reader label, square box
+<IconButton icon={<CopyIcon />} label="Copy page" onClick={copyPage} />
+```
+
 ## isLoading
 
 `isLoading` determines whether or not the button is in a loading state, default `false`. Setting `isLoading` will replace any `icon` with a spinner, or add one if an icon wasn't given. It will also disable user interaction with the button and set `aria-disabled`.
