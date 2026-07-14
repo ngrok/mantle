@@ -28,12 +28,12 @@
     "postpack": "node ../../scripts/clean-publish-manifest.js restore",
     "test": "TZ=UTC vitest run",
     "test:watch": "TZ=UTC vitest watch",
-    "typecheck": "tsgo"
+    "typecheck": "tsc"
   },
   "dependencies": {
     "oxc-parser": "catalog:",
     "parse5": "8.0.1",
-    "shiki": "4.2.0"
+    "shiki": "4.3.1"
   },
   "devDependencies": {
     "@cfg/tsconfig": "workspace:*",

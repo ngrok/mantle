@@ -85,14 +85,7 @@ function cx(...inputs: ClassValue[]): string;
 
 // ClassValue, looks like this 👇
 type ClassValue =
-	| ClassArray
-	| ClassDictionary
-	| string
-	| number
-	| bigint
-	| null
-	| boolean
-	| undefined;
+	ClassArray | ClassDictionary | string | number | bigint | null | boolean | undefined;
 type ClassDictionary = Record<string, any>;
 type ClassArray = ClassValue[];
 ```

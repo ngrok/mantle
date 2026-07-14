@@ -663,7 +663,7 @@ export function FoldableJsonDemo() {
 								"scripts": {
 									"build": "tsdown",
 									"test": "vitest run",
-									"typecheck": "tsgo"
+									"typecheck": "tsc"
 								},
 								"dependencies": {
 									"@radix-ui/react-tabs": "1.1.13",

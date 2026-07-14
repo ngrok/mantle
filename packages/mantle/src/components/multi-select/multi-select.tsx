@@ -20,6 +20,7 @@ import {
 	useEffect,
 	useMemo,
 	useRef,
+	useState,
 } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
@@ -714,6 +715,11 @@ type MultiSelectContentProps = Omit<Primitive.ComboboxPopoverProps, "render"> & 
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
+ * By default, mantle disables Ariakit's body scroll lock when the trigger is
+ * inside a mantle modal (`Dialog`, `Sheet`, `AlertDialog`) — the modal already
+ * locks body scroll — and enables it otherwise. Pass `preventBodyScroll` to
+ * override.
+ *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontent
  *
  * @example
@@ -739,6 +745,7 @@ const Content = forwardRef<ComponentRef<"div">, MultiSelectContentProps>(
 			className,
 			modal = true,
 			portalElement,
+			preventBodyScroll,
 			sameWidth = true,
 			unmountOnHide = true,
 			...props
@@ -746,6 +753,17 @@ const Content = forwardRef<ComponentRef<"div">, MultiSelectContentProps>(
 		ref,
 	) => {
 		const triggerRef = useContext(TriggerRefContext);
+
+		// When the trigger lives inside a mantle modal (Dialog/Sheet), the modal
+		// already scroll-locks the body. Ariakit's own body scroll lock must stay
+		// off in that case: it snapshots body's inline style (including the
+		// modal's transient `pointer-events: none`) and re-applies that stale
+		// snapshot on an animation frame after unmount, permanently freezing the
+		// page (see multi-select.browser.test.tsx regression test).
+		const [isInsideModal, setIsInsideModal] = useState(false);
+		useEffect(() => {
+			setIsInsideModal(triggerRef.current?.closest("[data-mantle-modal-content]") != null);
+		}, [triggerRef]);
 
 		const getAnchorRect = useCallback(() => {
 			return triggerRef.current?.getBoundingClientRect() ?? null;
@@ -792,6 +810,7 @@ const Content = forwardRef<ComponentRef<"div">, MultiSelectContentProps>(
 				hideOnInteractOutside={hideOnInteractOutside}
 				modal={modal}
 				portalElement={getPortalElement}
+				preventBodyScroll={preventBodyScroll ?? !isInsideModal}
 				ref={ref}
 				render={
 					asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined

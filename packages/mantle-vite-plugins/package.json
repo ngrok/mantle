@@ -29,7 +29,7 @@
     "postpack": "node ../../scripts/clean-publish-manifest.js restore",
     "test": "TZ=UTC vitest run",
     "test:watch": "TZ=UTC vitest watch",
-    "typecheck": "tsx scripts/generate-component-names.ts && tsgo"
+    "typecheck": "tsx scripts/generate-component-names.ts && tsc"
   },
   "dependencies": {
     "@ngrok/mantle-server-syntax-highlighter": "workspace:*",
@@ -48,7 +48,7 @@
   },
   "peerDependencies": {
     "@ngrok/mantle": "*",
-    "vite": "^8.0.16"
+    "vite": "^8.1.4"
   },
   "peerDependenciesMeta": {
     "vite": {
