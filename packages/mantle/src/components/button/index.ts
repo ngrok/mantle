@@ -24,6 +24,10 @@ export type {
 } from "./button.js";
 export type {
 	//,
+	ButtonSize,
+} from "./sizes.js";
+export type {
+	//,
 	IconButtonProps,
 } from "./icon-button.js";
 export type {
