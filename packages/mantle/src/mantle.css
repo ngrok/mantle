@@ -501,12 +501,12 @@ MARK: UTILITIES
 		linear-gradient(var(--background-color-base) 30%, --alpha(var(--background-color-base) / 0%))
 			center top,
 		/* Shadow Cover BOTTOM */
-			linear-gradient(--alpha(var(--background-color-base) / 0%), var(--background-color-base) 70%)
+		linear-gradient(--alpha(var(--background-color-base) / 0%), var(--background-color-base) 70%)
 			center bottom,
 		/* Shadow TOP */
-			radial-gradient(farthest-side at 50% 0, var(--navigation-shadow), rgb(0 0 0 / 0%)) center top,
+		radial-gradient(farthest-side at 50% 0, var(--navigation-shadow), rgb(0 0 0 / 0%)) center top,
 		/* Shadow BOTTOM */
-			radial-gradient(farthest-side at 50% 100%, var(--navigation-shadow), rgb(0 0 0 / 0%)) center
+		radial-gradient(farthest-side at 50% 100%, var(--navigation-shadow), rgb(0 0 0 / 0%)) center
 			bottom;
 	background-repeat: no-repeat;
 	background-size:
@@ -719,15 +719,15 @@ MARK: UTILITIES
 			)
 			center top,
 		/* Shadow Cover BOTTOM */
-			linear-gradient(
+		linear-gradient(
 				--alpha(var(--background-color-popover) / 0%),
 				var(--background-color-popover) 70%
 			)
 			center bottom,
 		/* Shadow TOP */
-			radial-gradient(farthest-side at 50% 0, var(--navigation-shadow), rgb(0 0 0 / 0%)) center top,
+		radial-gradient(farthest-side at 50% 0, var(--navigation-shadow), rgb(0 0 0 / 0%)) center top,
 		/* Shadow BOTTOM */
-			radial-gradient(farthest-side at 50% 100%, var(--navigation-shadow), rgb(0 0 0 / 0%)) center
+		radial-gradient(farthest-side at 50% 100%, var(--navigation-shadow), rgb(0 0 0 / 0%)) center
 			bottom;
 	background-repeat: no-repeat;
 	background-size:
