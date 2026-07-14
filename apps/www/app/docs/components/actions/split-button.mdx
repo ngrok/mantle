@@ -62,6 +62,47 @@ SplitButton.Root
     └── SplitButton.MenuItem
 ```
 
+## Size
+
+Set the `size` prop on `SplitButton.Root` to control the height of the whole composite, default `md`. The size applies to both the primary action and the menu trigger so the two halves always share one height — the parts themselves do not accept a `size` prop. The scale is shared with [Button](/components/actions/button) and [IconButton](/components/actions/icon-button).
+
+<Example className="flex-col items-start gap-4">
+	<SplitButton.Root size="sm">
+		<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+		<SplitButton.MenuTrigger label="Open create options" />
+		<SplitButton.MenuContent>
+			<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+		</SplitButton.MenuContent>
+	</SplitButton.Root>
+	<SplitButton.Root size="md">
+		<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+		<SplitButton.MenuTrigger label="Open create options" />
+		<SplitButton.MenuContent>
+			<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+		</SplitButton.MenuContent>
+	</SplitButton.Root>
+	<SplitButton.Root size="lg">
+		<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+		<SplitButton.MenuTrigger label="Open create options" />
+		<SplitButton.MenuContent>
+			<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+		</SplitButton.MenuContent>
+	</SplitButton.Root>
+</Example>
+
+```tsx
+import { PlusIcon } from "@phosphor-icons/react";
+import { SplitButton } from "@ngrok/mantle/split-button";
+
+<SplitButton.Root size="sm">
+	<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+	<SplitButton.MenuTrigger label="Open create options" />
+	<SplitButton.MenuContent>
+		<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+	</SplitButton.MenuContent>
+</SplitButton.Root>;
+```
+
 ## Polymorphism
 
 When you want to render _something else_ as a `SplitButton.MenuItem`, you can use the `asChild` prop to compose. This is useful for rendering links as menu items.
@@ -116,19 +157,20 @@ A button group which provides a default action with one click while revealing re
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop            | Type                      | Default | Description                                                        |
-| --------------- | ------------------------- | ------- | ------------------------------------------------------------------ |
-| `dir?`          | `"ltr"` \| `"rtl"`        |         | The reading direction of the dropdown menu.                        |
-| `open?`         | `boolean`                 |         | The controlled open state of the dropdown menu.                    |
-| `defaultOpen?`  | `boolean`                 |         | The open state of the dropdown menu when it is initially rendered. |
-| `onOpenChange?` | `(open: boolean) => void` |         | Event handler called when the open state of the dropdown changes.  |
-| `modal?`        | `boolean`                 |         | Whether the dropdown menu is modal.                                |
+| Prop            | Type                                           | Default | Description                                                                                                                       |
+| --------------- | ---------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `dir?`          | `"ltr"` \| `"rtl"`                             |         | The reading direction of the dropdown menu.                                                                                       |
+| `open?`         | `boolean`                                      |         | The controlled open state of the dropdown menu.                                                                                   |
+| `defaultOpen?`  | `boolean`                                      |         | The open state of the dropdown menu when it is initially rendered.                                                                |
+| `onOpenChange?` | `(open: boolean) => void`                      |         | Event handler called when the open state of the dropdown changes.                                                                 |
+| `modal?`        | `boolean`                                      |         | Whether the dropdown menu is modal.                                                                                               |
+| `size?`         | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | `"md"`  | The size of the `SplitButton`. Applied to both the primary action and the menu trigger so the two halves always share one height. |
 
 ### SplitButton.PrimaryAction
 
 The most common action users can trigger with a single click. Renders as a `Button` with `appearance="outlined"` and `priority="neutral"`.
 
-All props from [`Button`](/components/actions/button), except `appearance` and `priority`.
+All props from [`Button`](/components/actions/button), except `appearance`, `priority`, and `size` (set `size` on `SplitButton.Root` instead).
 
 | Prop    | Type                                  | Default    | Description                       |
 | ------- | ------------------------------------- | ---------- | --------------------------------- |
@@ -138,7 +180,7 @@ All props from [`Button`](/components/actions/button), except `appearance` and `
 
 The button that opens the split button dropdown menu. Renders as an `IconButton` with a caret-down icon that rotates when the menu is open.
 
-All props from [`IconButton`](/components/actions/icon-button), except `appearance`, `size`, `asChild`, and `icon` (which is redefined as optional below).
+All props from [`IconButton`](/components/actions/icon-button), except `appearance`, `size` (set `size` on `SplitButton.Root` instead), `asChild`, and `icon` (which is redefined as optional below).
 
 | Prop    | Type                                  | Default         | Description                                              |
 | ------- | ------------------------------------- | --------------- | -------------------------------------------------------- |

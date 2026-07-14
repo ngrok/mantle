@@ -8,6 +8,7 @@ import { parseBooleanish } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Icon } from "../icon/index.js";
 import { Slot } from "../slot/index.js";
+import type { ButtonSize } from "./sizes.js";
 
 const baseIconButtonClasses = cx(
 	"icon-button",
@@ -38,13 +39,16 @@ const iconButtonVariants = cva(baseIconButtonClasses, {
 			true: "opacity-50",
 		},
 		/**
-		 * The size of the IconButton.
+		 * The size of the IconButton, default `"md"`. Shared scale with
+		 * `Button` — same size name, same box height.
 		 */
 		size: {
 			xs: "size-6",
 			sm: "size-7",
 			md: "size-9",
-		},
+			lg: "size-10",
+			xl: "size-12",
+		} satisfies Record<ButtonSize, string>,
 	},
 	defaultVariants: {
 		appearance: "outlined",
@@ -127,7 +131,7 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
 			icon: propIcon,
 			isLoading = false,
 			label,
-			size,
+			size = "md",
 			type,
 			...props
 		},

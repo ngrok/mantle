@@ -36,6 +36,20 @@ Initiates an action, such as completing a task or submitting information. Render
 		</div>
 	</div>
 	<div>
+		<p className="mb-2 text-center font-mono text-xs">Size lg</p>
+		<div className="flex items-center gap-2">
+			<IconButton appearance="ghost" label="prestige worldwide" size="lg" icon={<GlobeIcon />} />
+			<IconButton appearance="outlined" label="prestige worldwide" size="lg" icon={<GlobeIcon />} />
+		</div>
+	</div>
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Size xl</p>
+		<div className="flex items-center gap-2">
+			<IconButton appearance="ghost" label="prestige worldwide" size="xl" icon={<GlobeIcon />} />
+			<IconButton appearance="outlined" label="prestige worldwide" size="xl" icon={<GlobeIcon />} />
+		</div>
+	</div>
+	<div>
 		<p className="mb-2 text-center font-mono text-xs">Disabled</p>
 		<div className="flex items-center gap-2">
 			<Tooltip.Root>
@@ -71,6 +85,12 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 
 <IconButton appearance="ghost" label="prestige worldwide" size="md" icon={<GlobeIcon />} />
 <IconButton appearance="outlined" label="prestige worldwide" size="md" icon={<GlobeIcon />} />
+
+<IconButton appearance="ghost" label="prestige worldwide" size="lg" icon={<GlobeIcon />} />
+<IconButton appearance="outlined" label="prestige worldwide" size="lg" icon={<GlobeIcon />} />
+
+<IconButton appearance="ghost" label="prestige worldwide" size="xl" icon={<GlobeIcon />} />
+<IconButton appearance="outlined" label="prestige worldwide" size="xl" icon={<GlobeIcon />} />
 ```
 
 ## Type
@@ -133,12 +153,12 @@ import { Link, href } from "react-router";
 
 The `IconButton` accepts the following props in addition to the [standard HTML button attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button).
 
-| Prop         | Type                                  | Default      | Description                                                                                                                                                                                                                                                     |
-| ------------ | ------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `appearance` | `"ghost"` \| `"outlined"`             | `"outlined"` | Defines the visual style of the `IconButton`.                                                                                                                                                                                                                   |
-| `asChild`    | `boolean`                             | `false`      | Use the `asChild` prop to compose the `IconButton` styling and functionality onto alternative element types or your own React components.                                                                                                                       |
-| `icon`       | `ReactNode`                           |              | The icon to render inside the button. When `isLoading` is `true`, the icon is automatically replaced with a spinner.                                                                                                                                            |
-| `isLoading`  | `boolean`                             | `false`      | Determines whether or not the icon button is in a loading state. Setting `isLoading` will replace the icon with a spinner. It will also disable user interaction with the button and set `aria-disabled`.                                                       |
-| `label`      | `string`                              |              | The accessible label for the icon. This label will be visually hidden but announced to screen reader users, similar to alt text for img tags.                                                                                                                   |
-| `size`       | `"xs"` \| `"sm"` \| `"md"`            | `"md"`       | The size of the `IconButton`.                                                                                                                                                                                                                                   |
-| `type`       | `"button"` \| `"reset"` \| `"submit"` | `"button"`   | The behavior of the `IconButton` when activated. Defaults to `"button"`, so an `IconButton` inside a `<form>` will **not** submit it — pass `type="submit"` to submit the form. When `asChild` is used, `type` has no effect and is not forwarded to the child. |
+| Prop         | Type                                           | Default      | Description                                                                                                                                                                                                                                                     |
+| ------------ | ---------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance` | `"ghost"` \| `"outlined"`                      | `"outlined"` | Defines the visual style of the `IconButton`.                                                                                                                                                                                                                   |
+| `asChild`    | `boolean`                                      | `false`      | Use the `asChild` prop to compose the `IconButton` styling and functionality onto alternative element types or your own React components.                                                                                                                       |
+| `icon`       | `ReactNode`                                    |              | The icon to render inside the button. When `isLoading` is `true`, the icon is automatically replaced with a spinner.                                                                                                                                            |
+| `isLoading`  | `boolean`                                      | `false`      | Determines whether or not the icon button is in a loading state. Setting `isLoading` will replace the icon with a spinner. It will also disable user interaction with the button and set `aria-disabled`.                                                       |
+| `label`      | `string`                                       |              | The accessible label for the icon. This label will be visually hidden but announced to screen reader users, similar to alt text for img tags.                                                                                                                   |
+| `size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | `"md"`       | The size of the `IconButton`, controlling its box size. Shared scale with `Button` — the same size name renders the same box height. Only the box scales; the icon glyph stays the same size.                                                                   |
+| `type`       | `"button"` \| `"reset"` \| `"submit"`          | `"button"`   | The behavior of the `IconButton` when activated. Defaults to `"button"`, so an `IconButton` inside a `<form>` will **not** submit it — pass `type="submit"` to submit the form. When `asChild` is used, `type` has no effect and is not forwarded to the child. |

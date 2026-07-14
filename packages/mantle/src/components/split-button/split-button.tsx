@@ -1,15 +1,53 @@
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { forwardRef, type ComponentProps, type ComponentRef, type ReactNode } from "react";
+import {
+	createContext,
+	forwardRef,
+	useContext,
+	useMemo,
+	type ComponentProps,
+	type ComponentRef,
+	type ReactNode,
+} from "react";
 import { cx } from "../../utils/cx/cx.js";
 import { Button } from "../button/button.js";
 import { IconButton } from "../button/icon-button.js";
+import type { ButtonSize } from "../button/sizes.js";
 import { DropdownMenu } from "../dropdown-menu/dropdown-menu.js";
 import { Icon } from "../icon/icon.js";
 
-type RootProps = ComponentProps<typeof DropdownMenu.Root> & ComponentProps<"div">;
+type SplitButtonContextValue = {
+	size: ButtonSize;
+};
+
+/**
+ * `SplitButton.Root` owns the size for the whole composite so the primary
+ * action and the menu trigger always render at the same height. The default
+ * value (rather than a null-and-throw context) is deliberate: the context
+ * carries pure geometry, so a `PrimaryAction` stranded outside `Root`
+ * degrades to the standalone `Button` default (`md`) instead of crashing,
+ * while `MenuTrigger` already fails fast outside `Root` via Radix's
+ * `DropdownMenu.Trigger`.
+ */
+const SplitButtonContext = createContext<SplitButtonContextValue>({ size: "md" });
+
+type RootProps = ComponentProps<typeof DropdownMenu.Root> &
+	ComponentProps<"div"> & {
+		/**
+		 * The size of the SplitButton, default `"md"`. Applied to both the
+		 * primary action and the menu trigger so the two halves always share
+		 * one height — the parts do not accept `size`, so mixed-size
+		 * composites cannot be expressed in the type system.
+		 */
+		size?: ButtonSize;
+	};
 
 const Root = forwardRef<ComponentRef<"div">, RootProps>(
-	({ className, children, dir, open, defaultOpen, onOpenChange, modal, ...props }, ref) => {
+	(
+		{ className, children, dir, open, defaultOpen, onOpenChange, modal, size = "md", ...props },
+		ref,
+	) => {
+		const context: SplitButtonContextValue = useMemo(() => ({ size }), [size]);
+
 		return (
 			<DropdownMenu.Root
 				dir={dir}
@@ -18,28 +56,33 @@ const Root = forwardRef<ComponentRef<"div">, RootProps>(
 				onOpenChange={onOpenChange}
 				modal={modal}
 			>
-				<div
-					data-slot="split-button"
-					className={cx(
-						"flex flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 *:active:scale-100!",
-						className,
-					)}
-					ref={ref}
-					{...props}
-				>
-					{children}
-				</div>
+				<SplitButtonContext.Provider value={context}>
+					<div
+						data-slot="split-button"
+						data-size={size}
+						className={cx(
+							"flex flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 *:active:scale-100!",
+							className,
+						)}
+						ref={ref}
+						{...props}
+					>
+						{children}
+					</div>
+				</SplitButtonContext.Provider>
 			</DropdownMenu.Root>
 		);
 	},
 );
 Root.displayName = "SplitButton";
 
-type PrimaryActionProps = Omit<ComponentProps<typeof Button>, "appearance" | "priority">;
+type PrimaryActionProps = Omit<ComponentProps<typeof Button>, "appearance" | "priority" | "size">;
 
 const PrimaryAction = forwardRef<ComponentRef<"button">, PrimaryActionProps>((props, ref) => {
+	const { size } = useContext(SplitButtonContext);
+
 	// `type` flows through; `Button` defaults it to "button".
-	return <Button appearance="outlined" priority="neutral" ref={ref} {...props} />;
+	return <Button appearance="outlined" priority="neutral" ref={ref} size={size} {...props} />;
 });
 PrimaryAction.displayName = "SplitButtonPrimaryAction";
 
@@ -52,6 +95,8 @@ type MenuTriggerProps = Omit<
 
 const MenuTrigger = forwardRef<ComponentRef<"button">, MenuTriggerProps>(
 	({ icon, ...props }, ref) => {
+		const { size } = useContext(SplitButtonContext);
+
 		return (
 			<DropdownMenu.Trigger asChild className="group">
 				<IconButton
@@ -69,6 +114,7 @@ const MenuTrigger = forwardRef<ComponentRef<"button">, MenuTriggerProps>(
 					}
 					appearance="outlined"
 					ref={ref}
+					size={size}
 					{...props}
 				/>
 			</DropdownMenu.Trigger>

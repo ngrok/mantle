@@ -10,6 +10,7 @@ import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Icon } from "../icon/index.js";
 import { Slot } from "../slot/index.js";
+import type { ButtonSize } from "./sizes.js";
 
 const buttonVariants = cva("", {
 	variants: {
@@ -18,11 +19,11 @@ const buttonVariants = cva("", {
 		 */
 		appearance: {
 			filled:
-				"bg-filled-accent text-white focus-visible:ring-focus-accent not-disabled:hover:bg-filled-accent-hover h-9 border border-transparent px-3 text-sm font-medium",
+				"bg-filled-accent text-white focus-visible:ring-focus-accent not-disabled:hover:bg-filled-accent-hover border border-transparent text-sm font-medium",
 			ghost:
-				"text-accent-600 focus-visible:ring-focus-accent not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 h-9 border border-transparent px-3 text-sm font-medium",
+				"text-accent-600 focus-visible:ring-focus-accent not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 border border-transparent text-sm font-medium",
 			outlined:
-				"border-accent-600 bg-form text-accent-600 focus-visible:ring-focus-accent not-disabled:hover:border-accent-700 not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 h-9 border px-3 text-sm font-medium",
+				"border-accent-600 bg-form text-accent-600 focus-visible:ring-focus-accent not-disabled:hover:border-accent-700 not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 border text-sm font-medium",
 			link: "text-accent-600 focus-visible:ring-focus-accent not-disabled:hover:underline group/button-link border-transparent",
 		},
 		/**
@@ -43,13 +44,34 @@ const buttonVariants = cva("", {
 			default: "",
 			neutral: "",
 		},
+		/**
+		 * The size of the Button, controlling its box height and horizontal
+		 * padding, default `"md"`. Shared scale with `IconButton` — same size
+		 * name, same box height. Has no effect when `appearance` is `"link"`:
+		 * link buttons inherit the surrounding typography and have no box to
+		 * size.
+		 */
+		size: {
+			xs: "",
+			sm: "",
+			md: "",
+			lg: "",
+			xl: "",
+		} satisfies Record<ButtonSize, string>,
 	},
 	defaultVariants: {
 		appearance: "outlined",
 		isLoading: false,
 		priority: "default",
+		size: "md",
 	},
 	compoundVariants: [
+		// size controls box height + horizontal padding for every appearance except link
+		{ appearance: ["filled", "ghost", "outlined"], size: "xs", class: "h-6 px-2" },
+		{ appearance: ["filled", "ghost", "outlined"], size: "sm", class: "h-7 px-2.5" },
+		{ appearance: ["filled", "ghost", "outlined"], size: "md", class: "h-9 px-3" },
+		{ appearance: ["filled", "ghost", "outlined"], size: "lg", class: "h-10 px-3.5" },
+		{ appearance: ["filled", "ghost", "outlined"], size: "xl", class: "h-12 px-4" },
 		{
 			appearance: "ghost",
 			priority: "danger",
@@ -98,6 +120,27 @@ const buttonVariants = cva("", {
 		},
 	],
 });
+
+/**
+ * When an icon is present (and the appearance is not "link"), the icon-side
+ * padding is the size's horizontal padding reduced by 0.125rem so the icon
+ * reads as optically aligned with the text block.
+ */
+const iconPaddingStart = {
+	xs: "ps-1.5",
+	sm: "ps-2",
+	md: "ps-2.5",
+	lg: "ps-3",
+	xl: "ps-3.5",
+} as const satisfies Record<ButtonSize, string>;
+
+const iconPaddingEnd = {
+	xs: "pe-1.5",
+	sm: "pe-2",
+	md: "pe-2.5",
+	lg: "pe-3",
+	xl: "pe-3.5",
+} as const satisfies Record<ButtonSize, string>;
 
 type ButtonVariants = VariantProps<typeof buttonVariants>;
 
@@ -177,6 +220,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 			iconPlacement = "start",
 			isLoading = false,
 			priority = "default",
+			size = "md",
 			type,
 			...props
 		},
@@ -198,16 +242,17 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 				"focus:outline-hidden focus-visible:ring-4",
 				"disabled:cursor-default disabled:opacity-50",
 				"not-disabled:active:scale-97 ease-out transition-transform duration-150",
-				buttonVariants({ appearance, priority, isLoading }),
+				buttonVariants({ appearance, priority, isLoading, size }),
 				appearance !== "link" && "font-sans", // only enforce font-sans on non-link button appearances
-				hasSpecialIconPadding && iconPlacement === "start" && "ps-2.5",
-				hasSpecialIconPadding && iconPlacement === "end" && "pe-2.5",
+				hasSpecialIconPadding && iconPlacement === "start" && iconPaddingStart[size],
+				hasSpecialIconPadding && iconPlacement === "end" && iconPaddingEnd[size],
 				className,
 			),
 			"data-appearance": appearance,
 			"data-disabled": disabled,
 			"data-loading": isLoading,
 			"data-priority": priority,
+			"data-size": appearance === "link" ? undefined : size,
 			disabled,
 			ref,
 			...props,
