@@ -47,7 +47,7 @@ jobs:
           {"image":"${{ steps.meta.outputs.tags }}","commit_sha":"${{ github.sha }}"}
           EOF
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ngrok-compute-image
           path: ngrok-image.json
