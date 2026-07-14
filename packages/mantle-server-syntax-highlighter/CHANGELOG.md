@@ -1,5 +1,11 @@
 # @ngrok/mantle-server-syntax-highlighter
 
+## 1.1.7
+
+### Patch Changes
+
+- [#1288](https://github.com/ngrok/mantle/pull/1288) [`9d988f2`](https://github.com/ngrok/mantle/commit/9d988f203ddd4a7a433871478adfa1fd4e21af34) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump runtime dependencies: `shiki` to 4.3.1 and `oxc-parser` to 0.139.0.
+
 ## 1.1.6
 
 ### Patch Changes
