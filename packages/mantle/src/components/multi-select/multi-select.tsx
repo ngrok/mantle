@@ -715,9 +715,10 @@ type MultiSelectContentProps = Omit<Primitive.ComboboxPopoverProps, "render"> & 
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
- * `preventBodyScroll` defaults to `false` when the trigger is inside a mantle
- * modal (`Dialog`, `Sheet`, `AlertDialog`) since the modal already locks body
- * scroll, and `true` otherwise.
+ * By default, mantle disables Ariakit's body scroll lock when the trigger is
+ * inside a mantle modal (`Dialog`, `Sheet`, `AlertDialog`) — the modal already
+ * locks body scroll — and enables it otherwise. Pass `preventBodyScroll` to
+ * override.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontent
  *
