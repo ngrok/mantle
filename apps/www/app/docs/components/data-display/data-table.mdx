@@ -314,7 +314,7 @@ const isFiltered = globalFilter.trim() !== ""; // or table.getState().columnFilt
 					<Button
 						type="button"
 						appearance="outlined"
-						priority="neutral"
+						intent="neutral"
 						onClick={() => setGlobalFilter("")}
 					>
 						Clear filters
@@ -331,7 +331,9 @@ const isFiltered = globalFilter.trim() !== ""; // or table.getState().columnFilt
 					<p>Endpoints you create will appear here.</p>
 				</Empty.Description>
 				<Empty.Actions>
-					<Button type="button">Create endpoint</Button>
+					<Button type="button" appearance="outlined" intent="accent">
+						Create endpoint
+					</Button>
 				</Empty.Actions>
 			</Empty.Root>
 		</DataTable.EmptyRow>
@@ -412,6 +414,7 @@ columnHelper.display({
 				<DropdownMenu.Trigger asChild>
 					<IconButton
 						appearance="ghost"
+						intent="neutral"
 						size="sm"
 						type="button"
 						label="Open actions"

@@ -13,14 +13,14 @@ import { Example } from "~/components/example";
 Displays a callout for user attention.
 
 <Example className="flex-col gap-2">
-	<Alert.Root priority="danger">
+	<Alert.Root intent="danger">
 		<Alert.Icon />
 		<Alert.Content>
 			<Alert.Title>Danger</Alert.Title>
 			<Alert.Description>This is a danger Alert.</Alert.Description>
 		</Alert.Content>
 	</Alert.Root>
-	<Alert.Root priority="info">
+	<Alert.Root intent="info">
 		<Alert.Icon />
 		<Alert.Content>
 			<Alert.Title>Info</Alert.Title>
@@ -28,28 +28,28 @@ Displays a callout for user attention.
 			<Alert.Description>This is an info Alert.</Alert.Description>
 		</Alert.Content>
 	</Alert.Root>
-	<Alert.Root priority="important">
+	<Alert.Root intent="important">
 		<Alert.Icon />
 		<Alert.Content>
 			<Alert.Title>Important</Alert.Title>
 			<Alert.Description>This is an important Alert.</Alert.Description>
 		</Alert.Content>
 	</Alert.Root>
-	<Alert.Root priority="success">
+	<Alert.Root intent="success">
 		<Alert.Icon />
 		<Alert.Content>
 			<Alert.Title>Success</Alert.Title>
 			<Alert.Description>This is a success Alert.</Alert.Description>
 		</Alert.Content>
 	</Alert.Root>
-	<Alert.Root priority="warning">
+	<Alert.Root intent="warning">
 		<Alert.Icon />
 		<Alert.Content>
 			<Alert.Title>Warning</Alert.Title>
 			<Alert.Description>This is a warning Alert.</Alert.Description>
 		</Alert.Content>
 	</Alert.Root>
-	<Alert.Root priority="danger">
+	<Alert.Root intent="danger">
 		<Alert.Icon svg={<ShrimpIcon />} />
 		<Alert.Content>
 			<Alert.Title>Danger w/ custom icon</Alert.Title>
@@ -62,14 +62,14 @@ Displays a callout for user attention.
 import { Alert } from "@ngrok/mantle/alert";
 import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 
-<Alert.Root priority="danger">
+<Alert.Root intent="danger">
 	<Alert.Icon />
 	<Alert.Content>
 		<Alert.Title>Danger</Alert.Title>
 		<Alert.Description>This is a danger Alert.</Alert.Description>
 	</Alert.Content>
 </Alert.Root>
-<Alert.Root priority="info">
+<Alert.Root intent="info">
 	<Alert.Icon />
 	<Alert.Content>
 		<Alert.Title>Info</Alert.Title>
@@ -77,28 +77,28 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 		<Alert.Description>This is an info Alert.</Alert.Description>
 	</Alert.Content>
 </Alert.Root>
-<Alert.Root priority="important">
+<Alert.Root intent="important">
 	<Alert.Icon />
 	<Alert.Content>
 		<Alert.Title>Important</Alert.Title>
 		<Alert.Description>This is an important Alert.</Alert.Description>
 	</Alert.Content>
 </Alert.Root>
-<Alert.Root priority="success">
+<Alert.Root intent="success">
 	<Alert.Icon />
 	<Alert.Content>
 		<Alert.Title>Success</Alert.Title>
 		<Alert.Description>This is a success Alert.</Alert.Description>
 	</Alert.Content>
 </Alert.Root>
-<Alert.Root priority="warning">
+<Alert.Root intent="warning">
 	<Alert.Icon />
 	<Alert.Content>
 		<Alert.Title>Warning</Alert.Title>
 		<Alert.Description>This is a warning Alert.</Alert.Description>
 	</Alert.Content>
 </Alert.Root>
-<Alert.Root priority="danger">
+<Alert.Root intent="danger">
 	<Alert.Icon svg={<ShrimpIcon />} />
 	<Alert.Content>
 		<Alert.Title>Danger w/ custom icon</Alert.Title>
@@ -124,7 +124,7 @@ You can mix and match what you put inside the `Alert` component to create differ
 
 <Example className="flex-col gap-4">
 	<div className="w-full max-w-screen-sm space-y-2">
-		<Alert.Root priority="danger">
+		<Alert.Root intent="danger">
 			<Alert.Icon />
 			<Alert.Content>
 				<Alert.Title>Danger Will Robinson</Alert.Title>
@@ -137,7 +137,7 @@ You can mix and match what you put inside the `Alert` component to create differ
 		</Alert.Root>
 	</div>
 	<div className="w-full max-w-screen-sm space-y-2">
-		<Alert.Root priority="danger">
+		<Alert.Root intent="danger">
 			<Alert.Content>
 				<Alert.Title>Danger Will Robinson</Alert.Title>
 				<Alert.Description>
@@ -148,7 +148,7 @@ You can mix and match what you put inside the `Alert` component to create differ
 		</Alert.Root>
 	</div>
 	<div className="w-full max-w-screen-sm space-y-2">
-		<Alert.Root priority="danger">
+		<Alert.Root intent="danger">
 			<Alert.Icon />
 			<Alert.Content>
 				<Alert.Title>Danger Will Robinson</Alert.Title>
@@ -156,7 +156,7 @@ You can mix and match what you put inside the `Alert` component to create differ
 		</Alert.Root>
 	</div>
 	<div className="w-full max-w-screen-sm space-y-2">
-		<Alert.Root priority="danger">
+		<Alert.Root intent="danger">
 			<Alert.Content>
 				<Alert.Title>Danger Will Robinson</Alert.Title>
 				<Alert.DismissIconButton />
@@ -169,7 +169,7 @@ You can mix and match what you put inside the `Alert` component to create differ
 import { Alert } from "@ngrok/mantle/alert";
 
 // Danger Alert with icon and Dismiss Icon Button
-<Alert.Root priority="danger">
+<Alert.Root intent="danger">
 	<Alert.Icon />
 	<Alert.Content>
 		<Alert.Title>Danger Will Robinson</Alert.Title>
@@ -179,7 +179,7 @@ import { Alert } from "@ngrok/mantle/alert";
 </Alert.Root>
 
 // Danger Alert without icon
-<Alert.Root priority="danger">
+<Alert.Root intent="danger">
 	<Alert.Content>
 		<Alert.Title>Danger Will Robinson</Alert.Title>
 		<Alert.Description>This is a danger alert.</Alert.Description>
@@ -187,7 +187,7 @@ import { Alert } from "@ngrok/mantle/alert";
 </Alert.Root>
 
 // Danger Alert with icon and no description
-<Alert.Root priority="danger">
+<Alert.Root intent="danger">
 	<Alert.Icon />
 	<Alert.Content>
 		<Alert.Title>Danger Will Robinson</Alert.Title>
@@ -195,7 +195,7 @@ import { Alert } from "@ngrok/mantle/alert";
 </Alert.Root>
 
 // Danger Alert without icon or description, but including a Dismiss Icon Button
-<Alert.Root priority="danger">
+<Alert.Root intent="danger">
 	<Alert.Content>
 		<Alert.Title>Danger Will Robinson</Alert.Title>
 		<Alert.DismissIconButton />
@@ -209,7 +209,7 @@ For banner-like alerts, use the `appearance="banner"` prop. This automatically r
 
 <Example>
 	<div className="border-card min-h-56 space-y-4 border">
-		<Alert.Root priority="info" appearance="banner">
+		<Alert.Root intent="info" appearance="banner">
 			<Alert.Icon />
 			<Alert.Content>
 				<Alert.Title>This is an info Alert as a page banner</Alert.Title>
@@ -228,7 +228,7 @@ For banner-like alerts, use the `appearance="banner"` prop. This automatically r
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
 
-<Alert.Root priority="info" appearance="banner">
+<Alert.Root intent="info" appearance="banner">
 	<Alert.Icon />
 	<Alert.Content>
 		<Alert.Title>This is an info Alert as a page banner</Alert.Title>
@@ -241,7 +241,7 @@ import { Alert } from "@ngrok/mantle/alert";
 Use the `icon` prop on `Alert.DismissIconButton` to render a custom icon in place of the default `X`.
 
 <Example>
-	<Alert.Root priority="warning">
+	<Alert.Root intent="warning">
 		<Alert.Icon />
 		<Alert.Content>
 			<Alert.Title>Custom Dismiss Icon</Alert.Title>
@@ -255,7 +255,7 @@ Use the `icon` prop on `Alert.DismissIconButton` to render a custom icon in plac
 import { Alert } from "@ngrok/mantle/alert";
 import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 
-<Alert.Root priority="warning">
+<Alert.Root intent="warning">
 	<Alert.Icon />
 	<Alert.Content>
 		<Alert.Title>Custom Dismiss Icon</Alert.Title>
@@ -273,10 +273,10 @@ Displays a callout for user attention. Root container for all `Alert` sub-compon
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop          | Type                                                 | Default     | Description                                                                                                                                                                                                    |
-| ------------- | ---------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `appearance?` | `"default"` \| `"banner"`                            | `"default"` | Controls the visual style. `"default"` provides standard rounded corners and borders. `"banner"` creates a banner-style alert with no rounded corners, sticky positioning, and no top, left, or right borders. |
-| `priority`    | `"danger"` \| `"info"` \| `"success"` \| `"warning"` |             | Indicates the importance or impact level of the `Alert`, affecting its color and styling to communicate its purpose.                                                                                           |
+| Prop          | Type                                                                  | Default     | Description                                                                                                                                                                                                    |
+| ------------- | --------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance?` | `"default"` \| `"banner"`                                             | `"default"` | Controls the visual style. `"default"` provides standard rounded corners and borders. `"banner"` creates a banner-style alert with no rounded corners, sticky positioning, and no top, left, or right borders. |
+| `intent`      | `"danger"` \| `"important"` \| `"info"` \| `"success"` \| `"warning"` |             | The tone of the `Alert`. Sets the color, styling, and default icon to communicate the status it reports.                                                                                                       |
 
 ### Alert.Content
 
@@ -296,13 +296,13 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Alert.Icon
 
-An optional icon that visually represents the priority of the `Alert`. The default rendered icon can be overridden with a custom icon using the `svg` prop.
+An optional icon that visually represents the intent of the `Alert`. The default rendered icon can be overridden with a custom icon using the `svg` prop.
 
 All props from [svg](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/svg#attributes), plus:
 
-| Prop   | Type        | Default | Description                                                                          |
-| ------ | ----------- | ------- | ------------------------------------------------------------------------------------ |
-| `svg?` | `ReactNode` |         | An optional icon that renders in place of the default icon for the `Alert` priority. |
+| Prop   | Type        | Default | Description                                                                        |
+| ------ | ----------- | ------- | ---------------------------------------------------------------------------------- |
+| `svg?` | `ReactNode` |         | An optional icon that renders in place of the default icon for the `Alert` intent. |
 
 ### Alert.Title
 

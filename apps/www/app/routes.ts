@@ -178,6 +178,7 @@ export default [
 		...migrationRoute("code-block-migration"),
 		...migrationRoute("data-table-action-header-migration"),
 		...migrationRoute("dialog-footer-dom-order-migration"),
+		...migrationRoute("priority-to-intent-migration"),
 	]),
 
 	// 404 + legacy redirects — splat catch-all for any unmatched URL. Matches

@@ -13,40 +13,100 @@ import { Example } from "~/components/example";
 
 Initiates an action, such as completing a task or submitting information. Renders only a single icon as children with an accessible, screen-reader-only label.
 
+Every `IconButton` states what it means: `appearance` (visual weight) and `intent` (tone) are **required** — there are no implicit defaults. `intent="neutral"` is the workhorse tone for most icon buttons; reach for `"danger"` on destructive actions.
+
 <Example className="flex flex-wrap gap-6">
 	<div>
 		<p className="mb-2 text-center font-mono text-xs">Size xs</p>
 		<div className="flex items-center gap-2">
-			<IconButton appearance="ghost" label="prestige worldwide" size="xs" icon={<GlobeIcon />} />
-			<IconButton appearance="outlined" label="prestige worldwide" size="xs" icon={<GlobeIcon />} />
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				label="prestige worldwide"
+				size="xs"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="outlined"
+				intent="neutral"
+				label="prestige worldwide"
+				size="xs"
+				icon={<GlobeIcon />}
+			/>
 		</div>
 	</div>
 	<div>
 		<p className="mb-2 text-center font-mono text-xs">Size sm</p>
 		<div className="flex items-center gap-2">
-			<IconButton appearance="ghost" label="prestige worldwide" size="sm" icon={<GlobeIcon />} />
-			<IconButton appearance="outlined" label="prestige worldwide" size="sm" icon={<GlobeIcon />} />
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				label="prestige worldwide"
+				size="sm"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="outlined"
+				intent="neutral"
+				label="prestige worldwide"
+				size="sm"
+				icon={<GlobeIcon />}
+			/>
 		</div>
 	</div>
 	<div>
 		<p className="mb-2 text-center font-mono text-xs">Size md</p>
 		<div className="flex items-center gap-2">
-			<IconButton appearance="ghost" label="prestige worldwide" icon={<GlobeIcon />} />
-			<IconButton appearance="outlined" label="prestige worldwide" icon={<GlobeIcon />} />
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				label="prestige worldwide"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="outlined"
+				intent="neutral"
+				label="prestige worldwide"
+				icon={<GlobeIcon />}
+			/>
 		</div>
 	</div>
 	<div>
 		<p className="mb-2 text-center font-mono text-xs">Size lg</p>
 		<div className="flex items-center gap-2">
-			<IconButton appearance="ghost" label="prestige worldwide" size="lg" icon={<GlobeIcon />} />
-			<IconButton appearance="outlined" label="prestige worldwide" size="lg" icon={<GlobeIcon />} />
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				label="prestige worldwide"
+				size="lg"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="outlined"
+				intent="neutral"
+				label="prestige worldwide"
+				size="lg"
+				icon={<GlobeIcon />}
+			/>
 		</div>
 	</div>
 	<div>
 		<p className="mb-2 text-center font-mono text-xs">Size xl</p>
 		<div className="flex items-center gap-2">
-			<IconButton appearance="ghost" label="prestige worldwide" size="xl" icon={<GlobeIcon />} />
-			<IconButton appearance="outlined" label="prestige worldwide" size="xl" icon={<GlobeIcon />} />
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				label="prestige worldwide"
+				size="xl"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="outlined"
+				intent="neutral"
+				label="prestige worldwide"
+				size="xl"
+				icon={<GlobeIcon />}
+			/>
 		</div>
 	</div>
 	<div>
@@ -54,7 +114,13 @@ Initiates an action, such as completing a task or submitting information. Render
 		<div className="flex items-center gap-2">
 			<Tooltip.Root>
 				<Tooltip.Trigger asChild>
-					<IconButton disabled appearance="ghost" label="prestige worldwide" icon={<GlobeIcon />} />
+					<IconButton
+						disabled
+						appearance="ghost"
+						intent="neutral"
+						label="prestige worldwide"
+						icon={<GlobeIcon />}
+					/>
 				</Tooltip.Trigger>
 				<Tooltip.Content>Tooltips work on disabled buttons!</Tooltip.Content>
 			</Tooltip.Root>
@@ -63,6 +129,7 @@ Initiates an action, such as completing a task or submitting information. Render
 					<IconButton
 						disabled
 						appearance="outlined"
+						intent="neutral"
 						label="prestige worldwide"
 						icon={<GlobeIcon />}
 					/>
@@ -77,20 +144,20 @@ Initiates an action, such as completing a task or submitting information. Render
 import { IconButton } from "@ngrok/mantle/button";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
 
-<IconButton appearance="ghost" label="prestige worldwide" size="xs" icon={<GlobeIcon />} />
-<IconButton appearance="outlined" label="prestige worldwide" size="xs" icon={<GlobeIcon />} />
+<IconButton appearance="ghost" intent="neutral" label="prestige worldwide" size="xs" icon={<GlobeIcon />} />
+<IconButton appearance="outlined" intent="neutral" label="prestige worldwide" size="xs" icon={<GlobeIcon />} />
 
-<IconButton appearance="ghost" label="prestige worldwide" size="sm" icon={<GlobeIcon />} />
-<IconButton appearance="outlined" label="prestige worldwide" size="sm" icon={<GlobeIcon />} />
+<IconButton appearance="ghost" intent="neutral" label="prestige worldwide" size="sm" icon={<GlobeIcon />} />
+<IconButton appearance="outlined" intent="neutral" label="prestige worldwide" size="sm" icon={<GlobeIcon />} />
 
-<IconButton appearance="ghost" label="prestige worldwide" size="md" icon={<GlobeIcon />} />
-<IconButton appearance="outlined" label="prestige worldwide" size="md" icon={<GlobeIcon />} />
+<IconButton appearance="ghost" intent="neutral" label="prestige worldwide" size="md" icon={<GlobeIcon />} />
+<IconButton appearance="outlined" intent="neutral" label="prestige worldwide" size="md" icon={<GlobeIcon />} />
 
-<IconButton appearance="ghost" label="prestige worldwide" size="lg" icon={<GlobeIcon />} />
-<IconButton appearance="outlined" label="prestige worldwide" size="lg" icon={<GlobeIcon />} />
+<IconButton appearance="ghost" intent="neutral" label="prestige worldwide" size="lg" icon={<GlobeIcon />} />
+<IconButton appearance="outlined" intent="neutral" label="prestige worldwide" size="lg" icon={<GlobeIcon />} />
 
-<IconButton appearance="ghost" label="prestige worldwide" size="xl" icon={<GlobeIcon />} />
-<IconButton appearance="outlined" label="prestige worldwide" size="xl" icon={<GlobeIcon />} />
+<IconButton appearance="ghost" intent="neutral" label="prestige worldwide" size="xl" icon={<GlobeIcon />} />
+<IconButton appearance="outlined" intent="neutral" label="prestige worldwide" size="xl" icon={<GlobeIcon />} />
 ```
 
 ## Type
@@ -105,15 +172,37 @@ Like [`Button`](/components/actions/button#type), `IconButton` defaults to **`ty
 	<div>
 		<p className="mb-2 text-center font-mono text-xs">idle</p>
 		<div className="flex items-center gap-2">
-			<IconButton appearance="ghost" label="prestige worldwide" icon={<GlobeIcon />} />
-			<IconButton appearance="outlined" label="prestige worldwide" icon={<GlobeIcon />} />
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				label="prestige worldwide"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="outlined"
+				intent="neutral"
+				label="prestige worldwide"
+				icon={<GlobeIcon />}
+			/>
 		</div>
 	</div>
 	<div>
 		<p className="mb-2 text-center font-mono text-xs">isLoading</p>
 		<div className="flex items-center gap-2">
-			<IconButton appearance="ghost" label="prestige worldwide" isLoading icon={<GlobeIcon />} />
-			<IconButton appearance="outlined" label="prestige worldwide" isLoading icon={<GlobeIcon />} />
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				label="prestige worldwide"
+				isLoading
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="outlined"
+				intent="neutral"
+				label="prestige worldwide"
+				isLoading
+				icon={<GlobeIcon />}
+			/>
 		</div>
 	</div>
 </Example>
@@ -122,11 +211,11 @@ Like [`Button`](/components/actions/button#type), `IconButton` defaults to **`ty
 import { IconButton } from "@ngrok/mantle/button";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
 
-<IconButton appearance="ghost" label="prestige worldwide" icon={<GlobeIcon />} />
-<IconButton appearance="outlined" label="prestige worldwide" icon={<GlobeIcon />} />
+<IconButton appearance="ghost" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
+<IconButton appearance="outlined" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
 
-<IconButton appearance="ghost" label="prestige worldwide" isLoading icon={<GlobeIcon />} />
-<IconButton appearance="outlined" label="prestige worldwide" isLoading icon={<GlobeIcon />} />
+<IconButton appearance="ghost" intent="neutral" label="prestige worldwide" isLoading icon={<GlobeIcon />} />
+<IconButton appearance="outlined" intent="neutral" label="prestige worldwide" isLoading icon={<GlobeIcon />} />
 ```
 
 ## Polymorphism
@@ -134,7 +223,13 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 When you want to render _something else_ as an `IconButton`, you can use the `asChild` prop to compose. This is useful when you want to splat the `IconButton` styling onto a `react-router` `Link`. Keep in mind that when you use `asChild` the `type` prop will **NOT** be passed to the child component.
 
 <Example>
-	<IconButton appearance="outlined" asChild label="prestige worldwide" icon={<GlobeIcon />}>
+	<IconButton
+		appearance="outlined"
+		intent="neutral"
+		asChild
+		label="prestige worldwide"
+		icon={<GlobeIcon />}
+	>
 		<Link to={href("/base/colors")} />
 	</IconButton>
 </Example>
@@ -144,7 +239,13 @@ import { IconButton } from "@ngrok/mantle/button";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
 import { Link, href } from "react-router";
 
-<IconButton appearance="outlined" asChild label="prestige worldwide" icon={<GlobeIcon />}>
+<IconButton
+	appearance="outlined"
+	intent="neutral"
+	asChild
+	label="prestige worldwide"
+	icon={<GlobeIcon />}
+>
 	<Link to={href("/base/colors")} />
 </IconButton>;
 ```
@@ -153,12 +254,13 @@ import { Link, href } from "react-router";
 
 The `IconButton` accepts the following props in addition to the [standard HTML button attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button).
 
-| Prop         | Type                                           | Default      | Description                                                                                                                                                                                                                                                     |
-| ------------ | ---------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `appearance` | `"ghost"` \| `"outlined"`                      | `"outlined"` | Defines the visual style of the `IconButton`.                                                                                                                                                                                                                   |
-| `asChild`    | `boolean`                                      | `false`      | Use the `asChild` prop to compose the `IconButton` styling and functionality onto alternative element types or your own React components.                                                                                                                       |
-| `icon`       | `ReactNode`                                    |              | The icon to render inside the button. When `isLoading` is `true`, the icon is automatically replaced with a spinner.                                                                                                                                            |
-| `isLoading`  | `boolean`                                      | `false`      | Determines whether or not the icon button is in a loading state. Setting `isLoading` will replace the icon with a spinner. It will also disable user interaction with the button and set `aria-disabled`.                                                       |
-| `label`      | `string`                                       |              | The accessible label for the icon. This label will be visually hidden but announced to screen reader users, similar to alt text for img tags.                                                                                                                   |
-| `size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | `"md"`       | The size of the `IconButton`, controlling its box size. Shared scale with `Button` — the same size name renders the same box height. Only the box scales; the icon glyph stays the same size.                                                                   |
-| `type`       | `"button"` \| `"reset"` \| `"submit"`          | `"button"`   | The behavior of the `IconButton` when activated. Defaults to `"button"`, so an `IconButton` inside a `<form>` will **not** submit it — pass `type="submit"` to submit the form. When `asChild` is used, `type` has no effect and is not forwarded to the child. |
+| Prop         | Type                                           | Default    | Description                                                                                                                                                                                                                                                                                                                                                |
+| ------------ | ---------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance` | `"ghost"` \| `"outlined"`                      |            | The visual style of the `IconButton`. **Required** — there is no default, so every call site states the visual weight it means.                                                                                                                                                                                                                            |
+| `asChild`    | `boolean`                                      | `false`    | Use the `asChild` prop to compose the `IconButton` styling and functionality onto alternative element types or your own React components.                                                                                                                                                                                                                  |
+| `icon`       | `ReactNode`                                    |            | The icon to render inside the button. When `isLoading` is `true`, the icon is automatically replaced with a spinner.                                                                                                                                                                                                                                       |
+| `intent`     | `"accent"` \| `"danger"` \| `"neutral"`        |            | The tone of the `IconButton` — the purpose its color communicates to the user: `"accent"` for the primary/brand action on a surface, `"danger"` for a destructive or irreversible action, and `"neutral"` for everything else (the workhorse tone for most icon buttons). **Required** — there is no default, so every call site states the tone it means. |
+| `isLoading`  | `boolean`                                      | `false`    | Determines whether or not the icon button is in a loading state. Setting `isLoading` will replace the icon with a spinner. It will also disable user interaction with the button and set `aria-disabled`.                                                                                                                                                  |
+| `label`      | `string`                                       |            | The accessible label for the icon. This label will be visually hidden but announced to screen reader users, similar to alt text for img tags.                                                                                                                                                                                                              |
+| `size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | `"md"`     | The size of the `IconButton`, controlling its box size. Shared scale with `Button` — the same size name renders the same box height. Only the box scales; the icon glyph stays the same size.                                                                                                                                                              |
+| `type`       | `"button"` \| `"reset"` \| `"submit"`          | `"button"` | The behavior of the `IconButton` when activated. Defaults to `"button"`, so an `IconButton` inside a `<form>` will **not** submit it — pass `type="submit"` to submit the form. When `asChild` is used, `type` has no effect and is not forwarded to the child.                                                                                            |

@@ -38,7 +38,7 @@ export function InSheetDemo() {
 	return (
 		<Sheet.Root>
 			<Sheet.Trigger asChild>
-				<Button type="button" appearance="filled" priority="neutral">
+				<Button type="button" appearance="filled" intent="neutral">
 					Assign fruits
 				</Button>
 			</Sheet.Trigger>
@@ -124,7 +124,7 @@ export function InSheetDemo() {
 					</Sheet.Body>
 					<Sheet.Footer>
 						<Sheet.Close asChild>
-							<Button type="button" appearance="outlined" priority="neutral">
+							<Button type="button" appearance="outlined" intent="neutral">
 								Cancel
 							</Button>
 						</Sheet.Close>
@@ -134,7 +134,7 @@ export function InSheetDemo() {
 									type="submit"
 									form={formId}
 									appearance="filled"
-									priority="neutral"
+									intent="neutral"
 									disabled={!isDirty}
 								>
 									Save

@@ -47,7 +47,7 @@ export function TanStackFormDemo() {
 	return (
 		<Dialog.Root open={open} onOpenChange={handleOpenChange}>
 			<Dialog.Trigger asChild>
-				<Button type="button" appearance="filled" priority="neutral">
+				<Button type="button" appearance="filled" intent="neutral">
 					Invite a teammate
 				</Button>
 			</Dialog.Trigger>
@@ -110,11 +110,11 @@ export function TanStackFormDemo() {
 					</Dialog.Body>
 					<Dialog.Footer>
 						<Dialog.Close asChild>
-							<Button type="button" appearance="outlined" priority="neutral">
+							<Button type="button" appearance="outlined" intent="neutral">
 								Cancel
 							</Button>
 						</Dialog.Close>
-						<Button type="submit" appearance="filled" priority="neutral">
+						<Button type="submit" appearance="filled" intent="neutral">
 							Send invite
 						</Button>
 					</Dialog.Footer>

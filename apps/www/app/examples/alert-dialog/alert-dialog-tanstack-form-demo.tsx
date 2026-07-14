@@ -43,9 +43,9 @@ export function TanStackFormDemo() {
 	};
 
 	return (
-		<AlertDialog.Root priority="danger" open={open} onOpenChange={handleOpenChange}>
+		<AlertDialog.Root intent="danger" open={open} onOpenChange={handleOpenChange}>
 			<AlertDialog.Trigger asChild>
-				<Button type="button" appearance="outlined" priority="danger">
+				<Button type="button" appearance="outlined" intent="danger">
 					Release domain
 				</Button>
 			</AlertDialog.Trigger>

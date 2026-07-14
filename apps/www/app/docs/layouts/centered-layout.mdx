@@ -29,7 +29,7 @@ export function SignInCard() {
 					<Label htmlFor="centered-layout-password">Password</Label>
 					<Input id="centered-layout-password" type="password" placeholder="Your password" />
 				</div>
-				<Button type="button" priority="neutral" appearance="filled">
+				<Button type="button" intent="neutral" appearance="filled">
 					Sign in
 				</Button>
 			</Card.Body>
@@ -164,7 +164,7 @@ export function PlanPicker() {
 								))}
 							</ul>
 						</div>
-						<Button type="button" appearance="outlined">
+						<Button type="button" appearance="outlined" intent="accent">
 							{plan.action}
 						</Button>
 					</div>
@@ -200,7 +200,13 @@ export function CenteredLayoutHeaderExample() {
 			<CenteredLayout.Root>
 				<CenteredLayout.Header className="bg-card sticky top-0 z-10 justify-between">
 					<span className="text-muted text-sm">cody@acme.com</span>
-					<IconButton type="button" appearance="ghost" label="Close" icon={<XIcon />} />
+					<IconButton
+						type="button"
+						appearance="ghost"
+						intent="neutral"
+						label="Close"
+						icon={<XIcon />}
+					/>
 				</CenteredLayout.Header>
 				<CenteredLayout.Body>
 					<div className="w-full max-w-5xl">
@@ -252,7 +258,7 @@ import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 						<Label htmlFor="password">Password</Label>
 						<Input id="password" type="password" placeholder="Your password" />
 					</div>
-					<Button type="button" priority="neutral" appearance="filled">
+					<Button type="button" intent="neutral" appearance="filled">
 						Sign in
 					</Button>
 				</Card.Body>
@@ -302,7 +308,7 @@ import { XIcon } from "@phosphor-icons/react/X";
 <CenteredLayout.Root>
 	<CenteredLayout.Header className="bg-card sticky top-0 z-10 justify-between">
 		<span className="text-muted text-sm">cody@acme.com</span>
-		<IconButton type="button" appearance="ghost" label="Close" icon={<XIcon />} />
+		<IconButton type="button" appearance="ghost" intent="neutral" label="Close" icon={<XIcon />} />
 	</CenteredLayout.Header>
 	<CenteredLayout.Body>
 		<div className="w-full max-w-5xl">

@@ -95,7 +95,7 @@ export function Header({ className, ...props }: Omit<ComponentProps<"header">, "
 
 				<div className="flex items-center ml-auto">
 					<div className="flex items-center">
-						<Button asChild appearance="ghost" priority="neutral" className="hidden md:inline-flex">
+						<Button asChild appearance="ghost" intent="neutral" className="hidden md:inline-flex">
 							<a href={releaseHref(mantleVersion)} target="_blank" rel="noopener">
 								{mantleVersion}
 							</a>
@@ -104,6 +104,7 @@ export function Header({ className, ...props }: Omit<ComponentProps<"header">, "
 							asChild
 							className="hidden md:inline-flex"
 							appearance="ghost"
+							intent="neutral"
 							label="ngrok Mantle GitHub repository"
 							icon={<GitHub />}
 						>
@@ -114,6 +115,7 @@ export function Header({ className, ...props }: Omit<ComponentProps<"header">, "
 							<DropdownMenu.Trigger asChild>
 								<IconButton
 									appearance="ghost"
+									intent="neutral"
 									icon={<GitHub />}
 									label="link to ngrok Mantle GitHub"
 									type="button"
@@ -166,6 +168,7 @@ export function Header({ className, ...props }: Omit<ComponentProps<"header">, "
 						}}
 						type="button"
 						appearance="ghost"
+						intent="neutral"
 						label="Menu"
 						size="md"
 						icon={showNavigation ? <XIcon /> : <ListIcon />}
@@ -235,6 +238,7 @@ function CommandPalette() {
 		<>
 			<IconButton
 				appearance="ghost"
+				intent="neutral"
 				className="flex md:hidden"
 				icon={<MagnifyingGlassIcon />}
 				label="Search Mantle"
@@ -247,7 +251,7 @@ function CommandPalette() {
 				className="hidden md:flex"
 				icon={<MagnifyingGlassIcon />}
 				onClick={() => setOpen(true)}
-				priority="neutral"
+				intent="neutral"
 				type="button"
 			>
 				<span className="sr-only">Search Mantle</span>

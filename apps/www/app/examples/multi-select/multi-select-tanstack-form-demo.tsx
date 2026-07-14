@@ -61,7 +61,7 @@ export function TanStackFormDemo() {
 					</Field.Item>
 				)}
 			</form.Field>
-			<Button type="submit" appearance="filled" priority="neutral">
+			<Button type="submit" appearance="filled" intent="neutral">
 				Submit
 			</Button>
 		</form>

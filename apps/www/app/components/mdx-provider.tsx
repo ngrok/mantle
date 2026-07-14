@@ -276,9 +276,9 @@ function MdxHeading({ as: Component, children, className, id, ...props }: MdxHea
 
 type GitHubAlertTypes = "note" | "tip" | "important" | "warning" | "caution";
 
-type AlertPriority = "danger" | "important" | "info" | "success" | "warning";
+type AlertIntent = "danger" | "important" | "info" | "success" | "warning";
 
-const alertTypePriorities: Record<GitHubAlertTypes | (string & {}), AlertPriority> = {
+const alertTypeIntents: Record<GitHubAlertTypes | (string & {}), AlertIntent> = {
 	note: "info",
 	tip: "success",
 	important: "important",
@@ -295,10 +295,10 @@ type GithubAlertProps = ComponentProps<"div"> & {
  * Used as a custom MDX component mapped from the `remarkGithubAlerts` remark plugin.
  */
 function GithubAlert({ className, type, children, ...props }: GithubAlertProps) {
-	const priority = alertTypePriorities[type] ?? "info";
+	const intent = alertTypeIntents[type] ?? "info";
 
 	return (
-		<Alert.Root priority={priority} className={cx("mb-6", className)} {...props}>
+		<Alert.Root intent={intent} className={cx("mb-6", className)} {...props}>
 			<Alert.Icon />
 			<Alert.Content>
 				<Alert.Title asChild>

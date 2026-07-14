@@ -37,14 +37,14 @@ export function DocActions({ markdownPath }: Props) {
 
 			copyToClipboard(markdown);
 			makeToast(
-				<Toast.Root priority="success">
+				<Toast.Root intent="success">
 					<Toast.Icon />
 					<Toast.Message>Copied page as Markdown</Toast.Message>
 				</Toast.Root>,
 			);
 		} catch {
 			makeToast(
-				<Toast.Root priority="danger">
+				<Toast.Root intent="danger">
 					<Toast.Icon />
 					<Toast.Message>Failed to copy markdown</Toast.Message>
 				</Toast.Root>,

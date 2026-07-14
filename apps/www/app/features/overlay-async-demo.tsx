@@ -272,11 +272,11 @@ function UserSheet({ onClose, scenario, userId }: UserOverlayProps) {
 				</Sheet.Body>
 				<Sheet.Footer>
 					<Sheet.Close asChild>
-						<Button type="button" appearance="outlined" priority="neutral">
+						<Button type="button" appearance="outlined" intent="neutral">
 							Close
 						</Button>
 					</Sheet.Close>
-					<Button type="button" appearance="filled" priority="neutral" disabled={!query.isSuccess}>
+					<Button type="button" appearance="filled" intent="neutral" disabled={!query.isSuccess}>
 						Save changes
 					</Button>
 				</Sheet.Footer>
@@ -315,11 +315,11 @@ function UserDialog({ onClose, scenario, userId }: UserOverlayProps) {
 				</Dialog.Body>
 				<Dialog.Footer>
 					<Dialog.Close asChild>
-						<Button type="button" appearance="outlined" priority="neutral">
+						<Button type="button" appearance="outlined" intent="neutral">
 							Close
 						</Button>
 					</Dialog.Close>
-					<Button type="button" appearance="filled" priority="neutral" disabled={!query.isSuccess}>
+					<Button type="button" appearance="filled" intent="neutral" disabled={!query.isSuccess}>
 						Save changes
 					</Button>
 				</Dialog.Footer>
@@ -338,7 +338,7 @@ function UserAlertDialog({ onClose, scenario, userId }: UserOverlayProps) {
 
 	return (
 		<AlertDialog.Root
-			priority="danger"
+			intent="danger"
 			open
 			onOpenChange={(nextOpen) => {
 				if (!nextOpen) {
@@ -467,7 +467,7 @@ function UserDetailsError({ error, isRetrying, onRetry }: UserDetailsErrorProps)
 					<Button
 						type="button"
 						appearance="filled"
-						priority="danger"
+						intent="danger"
 						isLoading={isRetrying}
 						onClick={onRetry}
 					>
@@ -700,7 +700,7 @@ export function UserOverlayDemo() {
 				<Button
 					type="button"
 					appearance="filled"
-					priority="neutral"
+					intent="neutral"
 					onClick={() => openOverlay("success")}
 				>
 					Happy path
@@ -708,7 +708,7 @@ export function UserOverlayDemo() {
 				<Button
 					type="button"
 					appearance="outlined"
-					priority="neutral"
+					intent="neutral"
 					onClick={() => openOverlay("not-found")}
 				>
 					404 error
@@ -716,7 +716,7 @@ export function UserOverlayDemo() {
 				<Button
 					type="button"
 					appearance="filled"
-					priority="danger"
+					intent="danger"
 					onClick={() => openOverlay("server-error")}
 				>
 					500 error
@@ -726,7 +726,7 @@ export function UserOverlayDemo() {
 				<Button
 					type="button"
 					appearance="ghost"
-					priority="neutral"
+					intent="neutral"
 					onClick={clearCache}
 					disabled={!isHappyPathCached}
 				>

@@ -525,7 +525,7 @@ const filteredVeggies = useMemo(
 
 <Sheet.Root>
 	<Sheet.Trigger asChild>
-		<Button type="button" appearance="filled" priority="neutral">
+		<Button type="button" appearance="filled" intent="neutral">
 			Assign fruits
 		</Button>
 	</Sheet.Trigger>
@@ -607,7 +607,7 @@ const filteredVeggies = useMemo(
 			</Sheet.Body>
 			<Sheet.Footer>
 				<Sheet.Close asChild>
-					<Button type="button" appearance="outlined" priority="neutral">
+					<Button type="button" appearance="outlined" intent="neutral">
 						Cancel
 					</Button>
 				</Sheet.Close>
@@ -617,7 +617,7 @@ const filteredVeggies = useMemo(
 							type="submit"
 							form={formId}
 							appearance="filled"
-							priority="neutral"
+							intent="neutral"
 							disabled={!isDirty}
 						>
 							Save
@@ -824,7 +824,7 @@ function Example() {
 					</Field.Item>
 				)}
 			</form.Field>
-			<Button type="submit" appearance="filled" priority="neutral">
+			<Button type="submit" appearance="filled" intent="neutral">
 				Submit
 			</Button>
 		</form>
@@ -991,7 +991,7 @@ function Example() {
 							<p className="text-accent-600 text-sm font-medium">
 								Upgrade your plan to specify regions, PoPs, and dedicated IPs.
 							</p>
-							<Button appearance="filled" priority="neutral" className="shrink-0" asChild>
+							<Button appearance="filled" intent="neutral" className="shrink-0" asChild>
 								<Link
 									to={{
 										pathname: href("/billing/choose-a-plan"),

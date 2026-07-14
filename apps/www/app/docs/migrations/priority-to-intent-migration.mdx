@@ -1,0 +1,205 @@
+---
+title: Priority → Intent Migration
+description: The priority prop is now intent across Button, Alert, AlertDialog, and Toast — and Button and IconButton now require explicit appearance and intent props.
+---
+
+# Mantle Priority → Intent Migration Guide
+
+`@ngrok/mantle` renamed the tone prop from `priority` to `intent` across `Button`, `Alert`,
+`AlertDialog`, and `Toast`, and made two further changes to the button family:
+
+- `Button`'s value union changed: `default` is now **`accent`** (`danger` and `neutral` are
+  unchanged).
+- `Button` and `IconButton` now **require** explicit `appearance` and `intent` props — there are
+  no defaults. `IconButton` gained the `intent` axis (`accent | danger | neutral`).
+
+There are no deprecation aliases: `priority` is gone, and omitting `appearance`/`intent` on a
+button is a type error. Every fix is mechanical and **visual-parity-preserving** — following this
+guide changes zero pixels. Intentional restyles are separate follow-up work, never part of this
+migration.
+
+**TL;DR:** rename `priority` → `intent` everywhere it targets a mantle component; map Button's
+`"default"` value to `"accent"`; stamp the old implicit defaults (`appearance="outlined"`, Button
+`intent="accent"`, IconButton `intent="neutral"`) onto every button that omitted them.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every JSX usage of these mantle components (including aliased/destructured imports and
+   wrappers that spread props onto them): `Button`, `IconButton`, `Alert.Root`,
+   `AlertDialog.Root`, `AlertDialog.Action`, `AlertDialog.Cancel`, `Toast.Root`, and
+   `DataTable.HeaderSortButton`.
+2. On each, rename the `priority` prop to `intent`. Values are unchanged **except** on `Button`
+   (and components that forward Button props, like `AlertDialog.Action` and
+   `DataTable.HeaderSortButton`): map `priority="default"` → `intent="accent"`.
+3. On every `Button` that omits `appearance`, add `appearance="outlined"`. On every `Button`
+   that omitted `priority`, add `intent="accent"`. These were the old implicit defaults — adding
+   them explicitly preserves the exact previous rendering.
+4. On every `IconButton` that omits `appearance`, add `appearance="outlined"`. On **every**
+   `IconButton`, add `intent="neutral"` unless a deliberate different intent is already known.
+   ⚠️ IconButton's old rendering was neutral-toned — `intent="neutral"` is the parity value, NOT
+   `"accent"`. This is the one place the Button and IconButton rules differ.
+5. Dynamic values: `priority={expression}` becomes `intent={expression}`. If the expression can
+   produce `"default"` (Button-family only), map it: `intent={value === "default" ? "accent" :
+value}` — or better, fix the upstream type/value source. Types written as
+   `ComponentProps<typeof Button>["priority"]` become `["intent"]` and follow automatically.
+6. Rename type imports: `import type { Priority } from "@ngrok/mantle/toast"` →
+   `import type { ToastIntent } from "@ngrok/mantle/toast"`. `ButtonIntent` and
+   `ButtonAppearance` are now exported from `@ngrok/mantle/button` if you need them.
+7. Update `[data-priority]` CSS selectors and test selectors to `[data-intent]` (both Button and
+   IconButton emit `data-intent` now).
+8. Do **not** touch: `Badge`'s `color` prop; `SplitButton.PrimaryAction` (it never accepted
+   `appearance`/`priority`/`intent`); HTML `fetchpriority`; the word "priority" in prose,
+   comments, variable names, or non-mantle components. Local variables/types named after
+   priority (e.g. a `priority` state feeding the prop) may keep their names — only the JSX prop
+   and mantle type imports are load-bearing — but rename them too if it is cheap and clarifies.
+9. After editing, run the project's formatter, linter, and type checker. The type checker is the
+   safety net: every missed call site is a compile error, never a silent visual change.
+
+---
+
+## The mapping table
+
+| Old (as written)                                                | New (explicit)                            |
+| --------------------------------------------------------------- | ----------------------------------------- |
+| `<Button>` (no `priority`, no `appearance`)                     | `appearance="outlined" intent="accent"`   |
+| Button `priority="default"`                                     | `intent="accent"`                         |
+| Button `priority="neutral"`                                     | `intent="neutral"`                        |
+| Button `priority="danger"`                                      | `intent="danger"`                         |
+| Button `appearance` omitted                                     | `appearance="outlined"`                   |
+| `<IconButton>` (no `appearance`)                                | `appearance="outlined" intent="neutral"`  |
+| IconButton `appearance="ghost" \| "outlined"`                   | unchanged, add `intent="neutral"`         |
+| Button `appearance="filled" \| "ghost" \| "outlined" \| "link"` | unchanged                                 |
+| Alert/Toast/AlertDialog `priority={x}`                          | `intent={x}` (values unchanged)           |
+| `AlertDialog.Action`/`HeaderSortButton` `priority={x}`          | `intent={x}` (Button value map applies)   |
+| `import type { Priority } from "@ngrok/mantle/toast"`           | `ToastIntent`                             |
+| `[data-priority]` selectors                                     | `[data-intent]`                           |
+| `ComponentProps<typeof Button>["priority"]`                     | `ComponentProps<typeof Button>["intent"]` |
+
+---
+
+## Before → After
+
+### Bare Button (was implicit accent + outlined)
+
+```tsx
+// BEFORE — implicit defaults: outlined appearance, accent tone
+<Button onClick={handleClick}>Details</Button>
+```
+
+```tsx
+// AFTER — the same rendering, now explicit
+<Button appearance="outlined" intent="accent" onClick={handleClick}>
+	Details
+</Button>
+```
+
+### Button with priority
+
+```tsx
+// BEFORE
+<Button type="submit" appearance="filled" priority="default" isLoading={isPending}>
+	Save
+</Button>
+<Button appearance="outlined" priority="neutral">Cancel</Button>
+<Button appearance="filled" priority="danger">Delete</Button>
+```
+
+```tsx
+// AFTER — "default" maps to "accent"; other values rename in place
+<Button type="submit" appearance="filled" intent="accent" isLoading={isPending}>
+	Save
+</Button>
+<Button appearance="outlined" intent="neutral">Cancel</Button>
+<Button appearance="filled" intent="danger">Delete</Button>
+```
+
+### IconButton (parity value is neutral, not accent)
+
+```tsx
+// BEFORE — implicit outlined appearance; IconButton had no tone axis
+<IconButton label="Copy" icon={<CopyIcon />} />
+<IconButton appearance="ghost" size="sm" label="Dismiss" icon={<XIcon />} />
+```
+
+```tsx
+// AFTER — IconButton's old rendering was neutral-toned
+<IconButton appearance="outlined" intent="neutral" label="Copy" icon={<CopyIcon />} />
+<IconButton appearance="ghost" intent="neutral" size="sm" label="Dismiss" icon={<XIcon />} />
+```
+
+### Alert, Toast, AlertDialog (rename only — values unchanged)
+
+```tsx
+// BEFORE
+<Alert.Root priority="warning">…</Alert.Root>;
+makeToast(<Toast.Root priority="success">…</Toast.Root>);
+<AlertDialog.Root priority="danger">…</AlertDialog.Root>;
+```
+
+```tsx
+// AFTER
+<Alert.Root intent="warning">…</Alert.Root>;
+makeToast(<Toast.Root intent="success">…</Toast.Root>);
+<AlertDialog.Root intent="danger">…</AlertDialog.Root>;
+```
+
+### Wrapper components and dynamic values
+
+```tsx
+// BEFORE — a local wrapper leaking the prop name and old union
+type ProductButtonProps = {
+	priority?: ComponentProps<typeof Button>["priority"];
+};
+const ProductButton = ({ priority = "neutral", ...props }: ProductButtonProps) => (
+	<Button appearance="outlined" priority={priority} {...props} />
+);
+```
+
+```tsx
+// AFTER — indexed-access types follow the rename automatically
+type ProductButtonProps = {
+	intent?: ComponentProps<typeof Button>["intent"];
+};
+const ProductButton = ({ intent = "neutral", ...props }: ProductButtonProps) => (
+	<Button appearance="outlined" intent={intent} {...props} />
+);
+```
+
+---
+
+## Edge cases & gotchas
+
+- **IconButton ≠ Button parity values.** A bare `Button` becomes `intent="accent"`; a bare
+  `IconButton` becomes `intent="neutral"`. Applying the Button rule to IconButton restyles every
+  icon button from gray to blue — the most likely mistake in this migration.
+- **Spread props.** Objects spread onto buttons (`<Button {...buttonProps} />`) may carry
+  `priority` — rename the key at the object's definition. If the object omits
+  `appearance`/`intent` and the JSX doesn't add them, add the explicit defaults at the JSX site.
+- **`AlertDialog.Action` / `AlertDialog.Cancel`** keep optional `appearance`/`intent` — they are
+  semantic wrappers whose defaults are the design (`Action`: filled + the dialog's intent;
+  `Cancel`: outlined + neutral). Only rename `priority` if a call site passed it; do not add
+  explicit props to them.
+- **`SplitButton.PrimaryAction` and `SplitButton.MenuTrigger`** accept neither `appearance` nor
+  `intent` — no change.
+- **Untyped/JS call sites** (no TypeScript): the compiler cannot flag them. Grep for
+  `priority=` and `data-priority` after the typed pass and fix survivors by the same rules. A
+  leftover `priority` prop is inert (forwarded to the DOM); a missing `intent` on Alert/Toast
+  renders un-toned and `Toast.Icon`/`Alert.Icon` will throw at runtime — treat any such crash
+  as a missed rename.
+- **Do not "clean up" while migrating.** `intent="neutral"` on 500 buttons may look redundant —
+  it is now required and load-bearing. Choosing different intents happens in deliberate
+  follow-up PRs.
+
+---
+
+## How to verify
+
+1. Type check passes — with required props, every missed call site is a compile error.
+2. `grep -rn 'priority=' src/` (or your app dir) returns no mantle-component hits — only
+   `fetchpriority`, prose, or non-mantle code.
+3. `grep -rn 'data-priority'` returns nothing.
+4. Spot-check visually: buttons render identically to before (this migration changes zero
+   pixels); icon buttons are still gray, primary CTAs still accent-toned.
+5. Run the project's formatter, linter, and tests.

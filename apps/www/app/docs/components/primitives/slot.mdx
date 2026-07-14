@@ -40,10 +40,10 @@ The `Slot` component is the foundation of the `asChild` pattern used throughout 
 
 <Example>
 	<div className="flex gap-4">
-		<Button appearance="filled" priority="neutral" asChild>
+		<Button appearance="filled" intent="neutral" asChild>
 			<a href="https://ngrok.com">Visit ngrok</a>
 		</Button>
-		<Button appearance="outlined" priority="neutral" asChild>
+		<Button appearance="outlined" intent="neutral" asChild>
 			<a href="https://github.com/ngrok/ngrok">View on GitHub</a>
 		</Button>
 	</div>
@@ -52,11 +52,11 @@ The `Slot` component is the foundation of the `asChild` pattern used throughout 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
 
-<Button appearance="filled" priority="neutral" asChild>
+<Button appearance="filled" intent="neutral" asChild>
 	<a href="https://ngrok.com">Visit ngrok</a>
 </Button>
 
-<Button appearance="outlined" priority="neutral" asChild>
+<Button appearance="outlined" intent="neutral" asChild>
 	<a href="https://github.com/ngrok/ngrok">View on GitHub</a>
 </Button>
 ```

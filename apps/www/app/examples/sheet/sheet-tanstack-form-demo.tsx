@@ -47,7 +47,7 @@ export function TanStackFormDemo() {
 	return (
 		<Sheet.Root open={open} onOpenChange={handleOpenChange}>
 			<Sheet.Trigger asChild>
-				<Button type="button" appearance="filled" priority="neutral">
+				<Button type="button" appearance="filled" intent="neutral">
 					New API key
 				</Button>
 			</Sheet.Trigger>
@@ -110,11 +110,11 @@ export function TanStackFormDemo() {
 					</Sheet.Body>
 					<Sheet.Footer>
 						<Sheet.Close asChild>
-							<Button type="button" appearance="outlined" priority="neutral">
+							<Button type="button" appearance="outlined" intent="neutral">
 								Cancel
 							</Button>
 						</Sheet.Close>
-						<Button type="submit" appearance="filled" priority="neutral">
+						<Button type="submit" appearance="filled" intent="neutral">
 							Create key
 						</Button>
 					</Sheet.Footer>

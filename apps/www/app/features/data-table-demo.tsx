@@ -105,6 +105,7 @@ const columns = [
 					<DropdownMenu.Trigger asChild>
 						<IconButton
 							appearance="ghost"
+							intent="neutral"
 							className="rounded"
 							type="button"
 							size="sm"
@@ -339,6 +340,7 @@ const endpointColumns = [
 					<DropdownMenu.Trigger asChild>
 						<IconButton
 							appearance="ghost"
+							intent="neutral"
 							className="rounded"
 							type="button"
 							size="sm"
@@ -433,7 +435,7 @@ export function EmptyPaymentsDemo() {
 								<p>Payments you receive will appear here.</p>
 							</Empty.Description>
 							<Empty.Actions>
-								<Button type="button" appearance="filled" priority="neutral">
+								<Button type="button" appearance="filled" intent="neutral">
 									Create payment
 								</Button>
 							</Empty.Actions>
@@ -490,7 +492,7 @@ export function FilteredEmptyStateDemo() {
 									<Button
 										type="button"
 										appearance="outlined"
-										priority="neutral"
+										intent="neutral"
 										onClick={() => setGlobalFilter("")}
 									>
 										Clear filters
