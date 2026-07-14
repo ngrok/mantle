@@ -305,7 +305,7 @@ A button that confirms the Alert Dialog action. Defaults to `appearance="filled"
 
 These buttons should be distinguished visually from `AlertDialog.Cancel`.
 
-Composes around the mantle [Button](/components/actions/button) component. Same props as [Button](/components/actions/button).
+Composes around the mantle [Button](/components/actions/button) component. All [Button](/components/actions/button) props, except `appearance` and `intent`, which are optional here — when omitted, `appearance` defaults to `"filled"` and `intent` derives from the dialog's `intent` as described above.
 
 ### AlertDialog.Cancel
 
@@ -313,7 +313,7 @@ A button that closes the dialog and cancels the action. Defaults to `appearance=
 
 This button should be distinguished visually from `AlertDialog.Action`.
 
-Composes around the mantle [Button](/components/actions/button) component. Same props as [Button](/components/actions/button).
+Composes around the mantle [Button](/components/actions/button) component. All [Button](/components/actions/button) props, except `appearance` and `intent`, which are optional here — when omitted, they default to `"outlined"` and `"neutral"` as described above.
 
 ### AlertDialog.Icon
 

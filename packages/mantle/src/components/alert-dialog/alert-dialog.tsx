@@ -526,6 +526,14 @@ type AlertDialogActionProps = Omit<ButtonProps, "appearance" | "intent"> & {
 };
 
 /**
+ * Default `AlertDialog.Action` button tone for each `AlertDialog` intent.
+ */
+const actionIntentByDialogIntent = {
+	danger: "danger",
+	info: "accent",
+} as const satisfies Record<AlertDialogIntent, ButtonIntent>;
+
+/**
  * A button that confirms the Alert Dialog action.
  * Will default to appearance="filled", as well as the intent color from the `AlertDialog`.
  * Does not close the alert dialog by default.
@@ -577,7 +585,7 @@ const Action = forwardRef<ComponentRef<"button">, AlertDialogActionProps>(
 		ref,
 	) => {
 		const ctx = useAlertDialogContext();
-		const contextIntent: ButtonIntent = ctx.intent === "danger" ? "danger" : "accent";
+		const contextIntent = actionIntentByDialogIntent[ctx.intent];
 
 		return (
 			<Button
@@ -681,6 +689,22 @@ type AlertDialogIconProps = Omit<SvgAttributes, "children"> & {
 };
 
 /**
+ * Default `AlertDialog.Icon` glyphs for each `AlertDialog` intent.
+ */
+const defaultIcons = {
+	danger: <WarningIcon />,
+	info: <InfoIcon />,
+} as const satisfies Record<AlertDialogIntent, ReactNode>;
+
+/**
+ * Default `AlertDialog.Icon` text colors for each `AlertDialog` intent.
+ */
+const defaultIconColors = {
+	danger: "text-danger-600",
+	info: "text-accent-600",
+} as const satisfies Record<AlertDialogIntent, string>;
+
+/**
  * An icon that visually represents the intent of the AlertDialog.
  *
  * Defaults to a warning icon for danger intent and an info icon for info
@@ -723,8 +747,8 @@ type AlertDialogIconProps = Omit<SvgAttributes, "children"> & {
 const Icon = forwardRef<ComponentRef<"svg">, AlertDialogIconProps>(
 	({ className, svg, ...props }, ref) => {
 		const ctx = useAlertDialogContext();
-		const defaultColor = ctx.intent === "danger" ? "text-danger-600" : "text-accent-600";
-		const defaultIcon = ctx.intent === "danger" ? <WarningIcon /> : <InfoIcon />;
+		const defaultColor = defaultIconColors[ctx.intent];
+		const defaultIcon = defaultIcons[ctx.intent];
 
 		return (
 			<SvgOnly

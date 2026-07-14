@@ -3,6 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { type ComponentProps, Fragment, type MouseEvent, useMemo, useState } from "react";
 import invariant from "tiny-invariant";
 import { describe, expect, test, vi } from "vitest";
+import type { ButtonAppearance, ButtonIntent, IconButtonAppearance } from "../button/index.js";
 import {
 	DataTable,
 	type ExpandedState,
@@ -71,10 +72,83 @@ describe("DataTable.Row", () => {
 	});
 });
 
+type SortableHarnessProps = {
+	appearance?: ButtonAppearance;
+	intent?: ButtonIntent;
+};
+
+/**
+ * Renders a table with a single sortable column so `DataTable.HeaderSortButton`'s
+ * optional `appearance`/`intent` pass-through can be exercised.
+ */
+function SortableHarness({ appearance, intent }: SortableHarnessProps) {
+	const sortableColumns = useMemo(
+		() => [
+			columnHelper.accessor("name", {
+				id: "name",
+				header: (props) => (
+					<DataTable.Header>
+						<DataTable.HeaderSortButton
+							column={props.column}
+							sortingMode="alphanumeric"
+							appearance={appearance}
+							intent={intent}
+						>
+							Name
+						</DataTable.HeaderSortButton>
+					</DataTable.Header>
+				),
+				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+			}),
+		],
+		[appearance, intent],
+	);
+	const table = useReactTable({
+		data,
+		columns: sortableColumns,
+		getCoreRowModel: getCoreRowModel(),
+	});
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row key={row.id} row={row} />
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+describe("DataTable.HeaderSortButton", () => {
+	test("defaults to a ghost + neutral button with the muted header text color", () => {
+		render(<SortableHarness />);
+		const button = screen.getByRole("button", { name: "Name" });
+		expect(button).toHaveAttribute("data-appearance", "ghost");
+		expect(button).toHaveAttribute("data-intent", "neutral");
+		expect(button).toHaveClass("text-muted");
+	});
+
+	test("forwards explicit `appearance`/`intent` overrides to the underlying Button", () => {
+		render(<SortableHarness appearance="outlined" intent="danger" />);
+		const button = screen.getByRole("button", { name: "Name" });
+		expect(button).toHaveAttribute("data-appearance", "outlined");
+		expect(button).toHaveAttribute("data-intent", "danger");
+	});
+
+	test("does not apply `text-muted` when `intent` is overridden, so the tone text color survives", () => {
+		render(<SortableHarness intent="danger" />);
+		const button = screen.getByRole("button", { name: "Name" });
+		expect(button).not.toHaveClass("text-muted");
+	});
+});
+
 type ExpandableHarnessProps = {
 	canExpand?: boolean;
 	onRowClick?: () => void;
 	buttonOnClick?: (event: MouseEvent<HTMLButtonElement>) => void;
+	buttonAppearance?: IconButtonAppearance;
+	buttonIntent?: ButtonIntent;
 	detailColSpan?: number;
 };
 
@@ -86,6 +160,8 @@ function ExpandableHarness({
 	canExpand = true,
 	onRowClick,
 	buttonOnClick,
+	buttonAppearance,
+	buttonIntent,
 	detailColSpan,
 }: ExpandableHarnessProps) {
 	const [expanded, setExpanded] = useState<ExpandedState>({});
@@ -100,6 +176,8 @@ function ExpandableHarness({
 							row={props.row}
 							label={props.row.original.name}
 							onClick={buttonOnClick}
+							appearance={buttonAppearance}
+							intent={buttonIntent}
 						/>
 					</DataTable.Cell>
 				),
@@ -110,7 +188,7 @@ function ExpandableHarness({
 				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 			}),
 		],
-		[buttonOnClick],
+		[buttonOnClick, buttonAppearance, buttonIntent],
 	);
 	const table = useReactTable({
 		data,
@@ -146,6 +224,20 @@ function ExpandableHarness({
 }
 
 describe("DataTable.RowExpandButton", () => {
+	test("defaults to a ghost + neutral icon button", () => {
+		render(<ExpandableHarness />);
+		const button = screen.getByRole("button", { name: "Show details for Alice" });
+		expect(button).toHaveAttribute("data-appearance", "ghost");
+		expect(button).toHaveAttribute("data-intent", "neutral");
+	});
+
+	test("forwards explicit `appearance`/`intent` overrides to the underlying IconButton", () => {
+		render(<ExpandableHarness buttonAppearance="outlined" buttonIntent="danger" />);
+		const button = screen.getByRole("button", { name: "Show details for Alice" });
+		expect(button).toHaveAttribute("data-appearance", "outlined");
+		expect(button).toHaveAttribute("data-intent", "danger");
+	});
+
 	test("renders a collapsed toggle labelled `Show details for …` with no aria-controls", () => {
 		render(<ExpandableHarness />);
 		const button = screen.getByRole("button", { name: "Show details for Alice" });

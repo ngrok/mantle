@@ -197,7 +197,9 @@ const HoverCard = {
 	 * ```tsx
 	 * <HoverCard.Root>
 	 *   <HoverCard.Trigger asChild>
-	 *     <Button>Hover me</Button>
+	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *       Hover me
+	 *     </Button>
 	 *   </HoverCard.Trigger>
 	 *   <HoverCard.Content>
 	 *     <p>This is the hover card content.</p>
@@ -219,13 +221,13 @@ const HoverCard = {
 	 * ```tsx
 	 * <HoverCard.Root>
 	 *   <HoverCard.Trigger asChild>
-	 *     <Button type="button" variant="link">@username</Button>
+	 *     <Button type="button" appearance="link" intent="accent">@username</Button>
 	 *   </HoverCard.Trigger>
 	 *   <HoverCard.Content side="top">
 	 *     <div className="space-y-2">
 	 *       <Text weight="strong">User Profile</Text>
 	 *       <Text>Additional information about the user.</Text>
-	 *       <Button type="button" size="sm">Follow</Button>
+	 *       <Button type="button" appearance="filled" intent="accent" size="sm">Follow</Button>
 	 *     </div>
 	 *   </HoverCard.Content>
 	 * </HoverCard.Root>

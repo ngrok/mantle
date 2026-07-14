@@ -123,8 +123,7 @@ async function save() {
 	} catch (error) {
 		makeToast(
 			<Toast.Root intent="danger">
-				<Toast.Message>Could not save</Toast.Message>
-				<Toast.Description>{String(error)}</Toast.Description>
+				<Toast.Message>Could not save: {String(error)}</Toast.Message>
 			</Toast.Root>,
 		);
 	}
@@ -143,7 +142,7 @@ Every mantle component is built on semantic HTML and tested ARIA patterns. Agent
 
 ## When to ask vs. when to act
 
-- If the user asks for "a primary button," generate a `Button` with `appearance="filled" intent="accent"`. `Button` and `IconButton` require explicit `appearance` and `intent` — there are no defaults. `intent` is the tone (`accent`, `danger`, or `neutral`); when no tone is implied, use `intent="accent"` for buttons and `intent="neutral"` for icon buttons.
+- If the user asks for "a primary button," generate a `Button` with `appearance="filled" intent="accent"`. `Button` and `IconButton` require explicit `appearance` and `intent` — there are no defaults. `intent` is the tone (`accent`, `danger`, or `neutral`); when no tone is implied, use `intent="neutral"` for both buttons and icon buttons, reserving `intent="accent"` for the single primary/brand action on a surface.
 - If choosing between `Tooltip`, `Popover`, and `HoverCard`, follow [the JSDoc guidance](https://mantle.ngrok.com/components/overlays/tooltip) — `Tooltip` for short label hints, `Popover` for interactive content, `HoverCard` for non-essential preview cards.
 - If choosing between `DataTable` and `Table`: `DataTable` for dynamic, sortable, filterable, paginated tabular data; `Table` for static layout.
 - When uncertain, prefer to fetch the relevant `/<page>.md` and read the full doc rather than guessing.

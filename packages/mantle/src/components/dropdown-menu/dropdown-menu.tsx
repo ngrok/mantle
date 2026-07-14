@@ -442,7 +442,9 @@ const DropdownMenu = {
 	 * ```tsx
 	 * <DropdownMenu.Root>
 	 *   <DropdownMenu.Trigger asChild>
-	 *     <Button>Open Menu</Button>
+	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *       Open Menu
+	 *     </Button>
 	 *   </DropdownMenu.Trigger>
 	 *   <DropdownMenu.Content>
 	 *     <DropdownMenu.Item>Item 1</DropdownMenu.Item>

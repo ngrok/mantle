@@ -93,7 +93,7 @@ Anchor.displayName = "PopoverAnchor";
  *   <Popover.Content>
  *     <p>This is the popover content.</p>
  *     <Popover.Close asChild>
- *       <Button type="button" appearance="outlined" intent="accent">Close</Button>
+ *       <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *     </Popover.Close>
  *   </Popover.Content>
  * </Popover.Root>
@@ -237,7 +237,7 @@ const Popover = {
 	 * ```tsx
 	 * <Popover.Root>
 	 *   <Popover.Trigger asChild>
-	 *     <Button>Open popover</Button>
+	 *     <Button type="button" appearance="outlined" intent="accent">Open popover</Button>
 	 *   </Popover.Trigger>
 	 *   <Popover.Content>
 	 *     <p>This is the popover content.</p>
@@ -263,7 +263,7 @@ const Popover = {
 	 *   <Popover.Content>
 	 *     <p>This popover is positioned relative to the anchor.</p>
 	 *     <Popover.Close asChild>
-	 *       <Button type="button" appearance="outlined" intent="accent">Close</Button>
+	 *       <Button type="button" appearance="outlined" intent="neutral">Close</Button>
 	 *     </Popover.Close>
 	 *   </Popover.Content>
 	 * </Popover.Root>
@@ -285,7 +285,7 @@ const Popover = {
 	 *     <div className="flex items-center justify-between">
 	 *       <Text>Settings Panel</Text>
 	 *       <Popover.Close asChild>
-	 *         <Button type="button" appearance="ghost" size="sm">✕</Button>
+	 *         <IconButton type="button" appearance="ghost" intent="neutral" size="sm" label="Close" icon={<XIcon />} />
 	 *       </Popover.Close>
 	 *     </div>
 	 *     <Text>Configure your preferences here.</Text>
@@ -313,7 +313,7 @@ const Popover = {
 	 *     <div className="space-y-2">
 	 *       <Text weight="strong">Additional Information</Text>
 	 *       <Text>This is the content inside the popover.</Text>
-	 *       <Button type="button" size="sm">Action</Button>
+	 *       <Button type="button" appearance="filled" intent="accent" size="sm">Action</Button>
 	 *     </div>
 	 *   </Popover.Content>
 	 * </Popover.Root>

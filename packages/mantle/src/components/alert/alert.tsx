@@ -10,7 +10,12 @@ import { createContext, forwardRef, useContext, useMemo } from "react";
 import invariant from "tiny-invariant";
 import { $cssProperties, type WithAsChild } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
-import { IconButton, type IconButtonProps } from "../button/icon-button.js";
+import {
+	IconButton,
+	type IconButtonAppearance,
+	type IconButtonProps,
+} from "../button/icon-button.js";
+import type { ButtonIntent } from "../button/intents.js";
 import { SvgOnly } from "../icon/svg-only.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { Slot } from "../slot/index.js";
@@ -71,37 +76,11 @@ const alertVariants = cva(
 			 * @default "default"
 			 */
 			appearance: {
+				// TODO: banner bg should color-mix with bg-popover per intent
 				banner: "border-x-0 border-t-0 rounded-none z-50 sticky",
 				default: "",
 			} as const satisfies Record<Appearance, string>,
 		},
-		compoundVariants: [
-			{
-				intent: "danger",
-				appearance: "banner",
-				className: "", // placeholder for different bg-color (color-mix w/ bg-popover)
-			},
-			{
-				intent: "important",
-				appearance: "banner",
-				className: "", // placeholder for different bg-color (color-mix w/ bg-popover)
-			},
-			{
-				intent: "info",
-				appearance: "banner",
-				className: "", // placeholder for different bg-color (color-mix w/ bg-popover)
-			},
-			{
-				intent: "success",
-				appearance: "banner",
-				className: "", // placeholder for different bg-color (color-mix w/ bg-popover)
-			},
-			{
-				intent: "warning",
-				appearance: "banner",
-				className: "", // placeholder for different bg-color (color-mix w/ bg-popover)
-			},
-		],
 	},
 );
 
@@ -330,11 +309,30 @@ const dismissHoverColor = (intent: AlertIntent) => `var(--color-${intent}-800)`;
 const dismissHoverBgColor = (intent: AlertIntent) =>
 	`color-mix(in oklab, var(--color-${intent}-500) 10%, transparent)`;
 
-type AlertDismissIconButtonProps = Partial<Omit<IconButtonProps, "icon">> & {
+type AlertDismissIconButtonProps = Partial<
+	Omit<IconButtonProps, "appearance" | "icon" | "intent">
+> & {
+	/**
+	 * The visual style of the dismiss button. Optional here —
+	 * `Alert.DismissIconButton` defaults to `"ghost"` so the dismiss affordance
+	 * stays visually quiet inside the Alert.
+	 *
+	 * @default "ghost"
+	 */
+	appearance?: IconButtonAppearance;
 	/**
 	 * An optional icon to render inside the dismiss button. Defaults to an X icon.
 	 */
 	icon?: ReactNode;
+	/**
+	 * The tone of the dismiss button. Optional here — `Alert.DismissIconButton`
+	 * defaults to `"neutral"` because dismissing an alert is a routine action.
+	 * Note that the Alert tints the button's text and hover colors to match its
+	 * own `intent` via CSS custom properties regardless of this value.
+	 *
+	 * @default "neutral"
+	 */
+	intent?: ButtonIntent;
 };
 
 const DismissIconButton = ({

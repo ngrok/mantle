@@ -181,6 +181,10 @@ const ProductButton = ({ intent = "neutral", ...props }: ProductButtonProps) => 
   semantic wrappers whose defaults are the design (`Action`: filled + the dialog's intent;
   `Cancel`: outlined + neutral). Only rename `priority` if a call site passed it; do not add
   explicit props to them.
+- **`DataTable.HeaderSortButton` / `DataTable.RowExpandButton`** keep optional
+  `appearance`/`intent` — they are semantic wrappers whose defaults are the design (both:
+  ghost + neutral). Only rename `priority` if a call site passed it; do not add explicit
+  props to them — stamping `appearance`/`intent` onto sort headers restyles them.
 - **`SplitButton.PrimaryAction` and `SplitButton.MenuTrigger`** accept neither `appearance` nor
   `intent` — no change.
 - **Untyped/JS call sites** (no TypeScript): the compiler cannot flag them. Grep for

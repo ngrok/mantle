@@ -27,8 +27,8 @@ const buttonSizes = [
  *
  * @example
  * ```tsx
- * <Button size="sm">Dense action</Button>
- * <IconButton size="sm" label="Copy" icon={<CopyIcon />} />
+ * <Button appearance="outlined" intent="neutral" size="sm">Dense action</Button>
+ * <IconButton appearance="outlined" intent="neutral" size="sm" label="Copy" icon={<CopyIcon />} />
  * ```
  */
 type ButtonSize = (typeof buttonSizes)[number];

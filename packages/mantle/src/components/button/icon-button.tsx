@@ -71,6 +71,11 @@ const iconButtonVariants = cva(baseIconButtonClasses, {
 		} satisfies Record<ButtonSize, string>,
 	},
 	defaultVariants: {
+		// Runtime fallback only: `intent` is required in IconButtonProps, but
+		// untyped call sites that still omit it (the compiler cannot flag them)
+		// must keep the pre-intent neutral rendering, not silently flip to the
+		// accent tone the appearance base classes carry.
+		intent: "neutral",
 		size: "md",
 	},
 	compoundVariants: [
@@ -260,7 +265,6 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
 IconButton.displayName = "IconButton";
 
 export {
-	baseIconButtonClasses,
 	//,
 	IconButton,
 	iconButtonVariants,

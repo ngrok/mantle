@@ -276,7 +276,7 @@ function MdxHeading({ as: Component, children, className, id, ...props }: MdxHea
 
 type GitHubAlertTypes = "note" | "tip" | "important" | "warning" | "caution";
 
-type AlertIntent = "danger" | "important" | "info" | "success" | "warning";
+type AlertIntent = ComponentProps<typeof Alert.Root>["intent"];
 
 const alertTypeIntents: Record<GitHubAlertTypes | (string & {}), AlertIntent> = {
 	note: "info",

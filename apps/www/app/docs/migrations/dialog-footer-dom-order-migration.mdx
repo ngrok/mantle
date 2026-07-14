@@ -48,11 +48,11 @@ right). Footers with a single child need no change.
 ```tsx
 // BEFORE — primary action written first to land on the right under flex-row-reverse
 <Dialog.Footer>
-	<Button type="button" appearance="filled" priority="neutral">
+	<Button type="button" appearance="filled" intent="neutral">
 		Save
 	</Button>
 	<Dialog.Close asChild>
-		<Button type="button" appearance="outlined">
+		<Button type="button" appearance="outlined" intent="neutral">
 			Cancel
 		</Button>
 	</Dialog.Close>
@@ -63,11 +63,11 @@ right). Footers with a single child need no change.
 // AFTER — DOM order matches visual order: cancel on the left, primary on the right
 <Dialog.Footer>
 	<Dialog.Close asChild>
-		<Button type="button" appearance="outlined">
+		<Button type="button" appearance="outlined" intent="neutral">
 			Cancel
 		</Button>
 	</Dialog.Close>
-	<Button type="button" appearance="filled" priority="neutral">
+	<Button type="button" appearance="filled" intent="neutral">
 		Save
 	</Button>
 </Dialog.Footer>
@@ -79,12 +79,12 @@ right). Footers with a single child need no change.
 // BEFORE
 <Dialog.Footer>
 	<Dialog.Close asChild>
-		<Button type="button" priority="danger" appearance="filled">
+		<Button type="button" intent="danger" appearance="filled">
 			Delete
 		</Button>
 	</Dialog.Close>
 	<Dialog.Close asChild>
-		<Button type="button" priority="neutral" appearance="outlined">
+		<Button type="button" intent="neutral" appearance="outlined">
 			Cancel
 		</Button>
 	</Dialog.Close>
@@ -95,12 +95,12 @@ right). Footers with a single child need no change.
 // AFTER
 <Dialog.Footer>
 	<Dialog.Close asChild>
-		<Button type="button" priority="neutral" appearance="outlined">
+		<Button type="button" intent="neutral" appearance="outlined">
 			Cancel
 		</Button>
 	</Dialog.Close>
 	<Dialog.Close asChild>
-		<Button type="button" priority="danger" appearance="filled">
+		<Button type="button" intent="danger" appearance="filled">
 			Delete
 		</Button>
 	</Dialog.Close>
@@ -113,7 +113,7 @@ right). Footers with a single child need no change.
 // A footer with one child renders identically before and after. Leave it alone.
 <Dialog.Footer>
 	<Dialog.Close asChild>
-		<Button type="button" appearance="outlined">
+		<Button type="button" appearance="outlined" intent="neutral">
 			Close
 		</Button>
 	</Dialog.Close>

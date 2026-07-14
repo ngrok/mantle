@@ -18,7 +18,7 @@ import { Slot } from "../slot/index.js";
  *   <Empty.Title>No results found</Empty.Title>
  *   <Empty.Description>Try adjusting your search or filters.</Empty.Description>
  *   <Empty.Actions>
- *     <Button>Clear filters</Button>
+ *     <Button appearance="outlined" intent="neutral">Clear filters</Button>
  *   </Empty.Actions>
  * </Empty.Root>
  * ```
@@ -58,7 +58,7 @@ type EmptyIconProps = Omit<SvgAttributes, "children"> & {
  *   <Empty.Title>No endpoints yet</Empty.Title>
  *   <Empty.Description>Create your first endpoint to get started.</Empty.Description>
  *   <Empty.Actions>
- *     <Button>Create endpoint</Button>
+ *     <Button appearance="filled" intent="accent">Create endpoint</Button>
  *   </Empty.Actions>
  * </Empty.Root>
  * ```
@@ -88,7 +88,7 @@ Icon.displayName = "EmptyIcon";
  *   <Empty.Title>No endpoints yet</Empty.Title>
  *   <Empty.Description>Create your first endpoint to get started.</Empty.Description>
  *   <Empty.Actions>
- *     <Button>Create endpoint</Button>
+ *     <Button appearance="filled" intent="accent">Create endpoint</Button>
  *   </Empty.Actions>
  * </Empty.Root>
  *
@@ -131,7 +131,7 @@ Title.displayName = "EmptyTitle";
  *   <Empty.Title>No endpoints yet</Empty.Title>
  *   <Empty.Description>Create your first endpoint to get started.</Empty.Description>
  *   <Empty.Actions>
- *     <Button>Create endpoint</Button>
+ *     <Button appearance="filled" intent="accent">Create endpoint</Button>
  *   </Empty.Actions>
  * </Empty.Root>
  *
@@ -173,8 +173,8 @@ Description.displayName = "EmptyDescription";
  *   <Empty.Title>No endpoints yet</Empty.Title>
  *   <Empty.Description>Create your first endpoint to get started.</Empty.Description>
  *   <Empty.Actions>
- *     <Button>Create endpoint</Button>
- *     <Button appearance="outlined">Go back</Button>
+ *     <Button appearance="filled" intent="accent">Create endpoint</Button>
+ *     <Button appearance="outlined" intent="neutral">Go back</Button>
  *   </Empty.Actions>
  * </Empty.Root>
  * ```
@@ -224,7 +224,7 @@ Actions.displayName = "EmptyActions";
  *     Create your first endpoint to get started.
  *   </Empty.Description>
  *   <Empty.Actions>
- *     <Button>Create endpoint</Button>
+ *     <Button appearance="filled" intent="accent">Create endpoint</Button>
  *   </Empty.Actions>
  * </Empty.Root>
  * ```
@@ -243,7 +243,7 @@ const Empty = {
 	 *   <Empty.Title>No endpoints yet</Empty.Title>
 	 *   <Empty.Description>Create your first endpoint to get started.</Empty.Description>
 	 *   <Empty.Actions>
-	 *     <Button>Create endpoint</Button>
+	 *     <Button appearance="filled" intent="accent">Create endpoint</Button>
 	 *   </Empty.Actions>
 	 * </Empty.Root>
 	 * ```
@@ -262,7 +262,7 @@ const Empty = {
 	 *   <Empty.Title>No endpoints yet</Empty.Title>
 	 *   <Empty.Description>Create your first endpoint to get started.</Empty.Description>
 	 *   <Empty.Actions>
-	 *     <Button>Create endpoint</Button>
+	 *     <Button appearance="filled" intent="accent">Create endpoint</Button>
 	 *   </Empty.Actions>
 	 * </Empty.Root>
 	 * ```
@@ -281,7 +281,7 @@ const Empty = {
 	 *   <Empty.Title>No endpoints yet</Empty.Title>
 	 *   <Empty.Description>Create your first endpoint to get started.</Empty.Description>
 	 *   <Empty.Actions>
-	 *     <Button>Create endpoint</Button>
+	 *     <Button appearance="filled" intent="accent">Create endpoint</Button>
 	 *   </Empty.Actions>
 	 * </Empty.Root>
 	 *
@@ -305,7 +305,7 @@ const Empty = {
 	 *   <Empty.Title>No endpoints yet</Empty.Title>
 	 *   <Empty.Description>Create your first endpoint to get started.</Empty.Description>
 	 *   <Empty.Actions>
-	 *     <Button>Create endpoint</Button>
+	 *     <Button appearance="filled" intent="accent">Create endpoint</Button>
 	 *   </Empty.Actions>
 	 * </Empty.Root>
 	 * ```
@@ -323,7 +323,7 @@ const Empty = {
 	 *   <Empty.Title>No endpoints yet</Empty.Title>
 	 *   <Empty.Description>Create your first endpoint to get started.</Empty.Description>
 	 *   <Empty.Actions>
-	 *     <Button>Create endpoint</Button>
+	 *     <Button appearance="filled" intent="accent">Create endpoint</Button>
 	 *   </Empty.Actions>
 	 * </Empty.Root>
 	 * ```

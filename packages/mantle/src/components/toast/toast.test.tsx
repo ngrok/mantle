@@ -9,8 +9,11 @@ function getToastRoot(container: HTMLElement) {
 
 describe("Toast", () => {
 	test("renders the message", () => {
+		// `ToastIntent` is the public name for the toast tone union; annotating
+		// the prop value here keeps the exported type exercised by tsc.
+		const intent: ToastIntent = "success";
 		render(
-			<Toast.Root intent="success">
+			<Toast.Root intent={intent}>
 				<Toast.Message>Changes saved</Toast.Message>
 			</Toast.Root>,
 		);
@@ -43,11 +46,6 @@ describe("Toast", () => {
 			);
 			expect(missingIntent).toBeDefined();
 		});
-
-		test("`ToastIntent` is the public name for the toast tone union", () => {
-			const intent: ToastIntent = "success";
-			expect(intent).toBe("success");
-		});
 	});
 
 	describe("Icon", () => {
@@ -75,6 +73,14 @@ describe("Toast", () => {
 				<Toast.Message>message</Toast.Message>
 			</Toast.Root>,
 		);
-		expect(getToastRoot(container)).toBeInTheDocument();
+		// The intent bar must overlap the toast border: overflow-hidden on the
+		// root would clip the bar's -inset-px overhang (see the warning comment
+		// in Toast.Root's className in toast.tsx).
+		const root = getToastRoot(container);
+		expect(root).toBeInTheDocument();
+		expect(root).not.toHaveClass("overflow-hidden");
+		const bar = container.querySelector('[aria-hidden="true"]');
+		expect(bar).not.toBeNull();
+		expect(bar).toHaveClass("-inset-px");
 	});
 });

@@ -1,11 +1,25 @@
 import { render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { describe, expect, test } from "vitest";
+import type { ButtonIntent } from "../button/intents.js";
 import { AlertDialog } from "./alert-dialog.js";
 
-function renderAlertDialog(
-	intent: "info" | "danger",
-	actionIntent?: "accent" | "danger" | "neutral",
-) {
+// AlertDialogIntent is not exported from the component module, so derive it
+// from the Root props to stay in sync with the real union.
+type AlertDialogIntent = ComponentProps<typeof AlertDialog.Root>["intent"];
+
+/**
+ * Renders an open AlertDialog with the given dialog `intent` (and optionally a
+ * consumer-passed `actionIntent` on `AlertDialog.Action`), returning the
+ * rendered action and cancel buttons.
+ */
+function renderAlertDialog({
+	intent,
+	actionIntent,
+}: {
+	intent: AlertDialogIntent;
+	actionIntent?: ButtonIntent;
+}) {
 	render(
 		<AlertDialog.Root intent={intent} open>
 			<AlertDialog.Content>
@@ -31,7 +45,7 @@ function renderAlertDialog(
 
 describe("AlertDialog", () => {
 	test("renders title and description when open", () => {
-		renderAlertDialog("info");
+		renderAlertDialog({ intent: "info" });
 		expect(screen.getByText("Are you sure?")).toBeInTheDocument();
 		expect(screen.getByText("This cannot be undone.")).toBeInTheDocument();
 	});
@@ -48,24 +62,24 @@ describe("AlertDialog", () => {
 		});
 
 		test(`Action derives a danger button from intent="danger"`, () => {
-			const { action } = renderAlertDialog("danger");
+			const { action } = renderAlertDialog({ intent: "danger" });
 			expect(action).toHaveAttribute("data-appearance", "filled");
 			expect(action).toHaveAttribute("data-intent", "danger");
 		});
 
 		test(`Action derives an accent button from intent="info"`, () => {
-			const { action } = renderAlertDialog("info");
+			const { action } = renderAlertDialog({ intent: "info" });
 			expect(action).toHaveAttribute("data-appearance", "filled");
 			expect(action).toHaveAttribute("data-intent", "accent");
 		});
 
 		test("a consumer-passed Action intent wins over the derived one", () => {
-			const { action } = renderAlertDialog("danger", "neutral");
+			const { action } = renderAlertDialog({ intent: "danger", actionIntent: "neutral" });
 			expect(action).toHaveAttribute("data-intent", "neutral");
 		});
 
 		test("Cancel renders outlined + neutral", () => {
-			const { cancel } = renderAlertDialog("danger");
+			const { cancel } = renderAlertDialog({ intent: "danger" });
 			expect(cancel).toHaveAttribute("data-appearance", "outlined");
 			expect(cancel).toHaveAttribute("data-intent", "neutral");
 		});

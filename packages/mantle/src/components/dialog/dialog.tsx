@@ -2,7 +2,12 @@ import { XIcon } from "@phosphor-icons/react/X";
 import type { ComponentProps, ComponentPropsWithoutRef, ComponentRef } from "react";
 import { forwardRef } from "react";
 import { cx } from "../../utils/cx/cx.js";
-import { IconButton, type IconButtonProps } from "../button/icon-button.js";
+import {
+	IconButton,
+	type IconButtonAppearance,
+	type IconButtonProps,
+} from "../button/icon-button.js";
+import type { ButtonIntent } from "../button/intents.js";
 import * as DialogPrimitive from "./primitive.js";
 
 /**
@@ -19,7 +24,7 @@ import * as DialogPrimitive from "./primitive.js";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
@@ -32,9 +37,9 @@ import * as DialogPrimitive from "./primitive.js";
  *     </Dialog.Body>
  *     <Dialog.Footer>
  *       <Dialog.Close asChild>
- *         <Button type="button" appearance="outlined">Cancel</Button>
+ *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled">Save</Button>
+ *       <Button type="button" appearance="filled" intent="accent">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -52,7 +57,7 @@ Root.displayName = "Dialog";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
@@ -65,9 +70,9 @@ Root.displayName = "Dialog";
  *     </Dialog.Body>
  *     <Dialog.Footer>
  *       <Dialog.Close asChild>
- *         <Button type="button" appearance="outlined">Cancel</Button>
+ *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled">Save</Button>
+ *       <Button type="button" appearance="filled" intent="accent">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -93,7 +98,7 @@ Trigger.displayName = "DialogTrigger";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Portal>
  *     <Dialog.Overlay />
@@ -108,9 +113,9 @@ Trigger.displayName = "DialogTrigger";
  *       </Dialog.Body>
  *       <Dialog.Footer>
  *         <Dialog.Close asChild>
- *           <Button type="button" appearance="outlined">Cancel</Button>
+ *           <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *         </Dialog.Close>
- *         <Button type="button" appearance="filled">Save</Button>
+ *         <Button type="button" appearance="filled" intent="accent">Save</Button>
  *       </Dialog.Footer>
  *     </Dialog.Content>
  *   </Dialog.Portal>
@@ -130,7 +135,7 @@ Portal.displayName = "DialogPortal";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
@@ -143,9 +148,9 @@ Portal.displayName = "DialogPortal";
  *     </Dialog.Body>
  *     <Dialog.Footer>
  *       <Dialog.Close asChild>
- *         <Button type="button" appearance="outlined">Cancel</Button>
+ *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled">Save</Button>
+ *       <Button type="button" appearance="filled" intent="accent">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -171,7 +176,7 @@ Close.displayName = "DialogClose";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Portal>
  *     <Dialog.Overlay />
@@ -186,9 +191,9 @@ Close.displayName = "DialogClose";
  *       </Dialog.Body>
  *       <Dialog.Footer>
  *         <Dialog.Close asChild>
- *           <Button type="button" appearance="outlined">Cancel</Button>
+ *           <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *         </Dialog.Close>
- *         <Button type="button" appearance="filled">Save</Button>
+ *         <Button type="button" appearance="filled" intent="accent">Save</Button>
  *       </Dialog.Footer>
  *     </Dialog.Content>
  *   </Dialog.Portal>
@@ -237,7 +242,7 @@ type ContentProps = ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
@@ -250,9 +255,9 @@ type ContentProps = ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
  *     </Dialog.Body>
  *     <Dialog.Footer>
  *       <Dialog.Close asChild>
- *         <Button type="button" appearance="outlined">Cancel</Button>
+ *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled">Save</Button>
+ *       <Button type="button" appearance="filled" intent="accent">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -294,7 +299,7 @@ Content.displayName = "DialogContent";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
@@ -307,9 +312,9 @@ Content.displayName = "DialogContent";
  *     </Dialog.Body>
  *     <Dialog.Footer>
  *       <Dialog.Close asChild>
- *         <Button type="button" appearance="outlined">Cancel</Button>
+ *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled">Save</Button>
+ *       <Button type="button" appearance="filled" intent="accent">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -330,7 +335,24 @@ const Header = ({ className, children, ...props }: ComponentProps<"div">) => (
 );
 Header.displayName = "DialogHeader";
 
-type CloseIconButtonProps = Partial<Omit<IconButtonProps, "icon">>;
+type CloseIconButtonProps = Partial<Omit<IconButtonProps, "appearance" | "icon" | "intent">> & {
+	/**
+	 * The visual style of the close icon button. Optional here —
+	 * `Dialog.CloseIconButton` defaults to `"ghost"` so the close affordance
+	 * stays visually quiet in the dialog header.
+	 *
+	 * @default "ghost"
+	 */
+	appearance?: IconButtonAppearance;
+	/**
+	 * The tone of the close icon button. Optional here —
+	 * `Dialog.CloseIconButton` defaults to `"neutral"`, the workhorse tone for
+	 * routine actions like dismissing a dialog.
+	 *
+	 * @default "neutral"
+	 */
+	intent?: ButtonIntent;
+};
 
 /**
  * An icon button that closes the dialog when clicked.
@@ -341,7 +363,7 @@ type CloseIconButtonProps = Partial<Omit<IconButtonProps, "icon">>;
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
@@ -354,9 +376,9 @@ type CloseIconButtonProps = Partial<Omit<IconButtonProps, "icon">>;
  *     </Dialog.Body>
  *     <Dialog.Footer>
  *       <Dialog.Close asChild>
- *         <Button type="button" appearance="outlined">Cancel</Button>
+ *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled">Save</Button>
+ *       <Button type="button" appearance="filled" intent="accent">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -394,7 +416,7 @@ CloseIconButton.displayName = "DialogCloseIconButton";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
@@ -407,9 +429,9 @@ CloseIconButton.displayName = "DialogCloseIconButton";
  *     </Dialog.Body>
  *     <Dialog.Footer>
  *       <Dialog.Close asChild>
- *         <Button type="button" appearance="outlined">Cancel</Button>
+ *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled">Save</Button>
+ *       <Button type="button" appearance="filled" intent="accent">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -436,7 +458,7 @@ Body.displayName = "DialogBody";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
@@ -449,9 +471,9 @@ Body.displayName = "DialogBody";
  *     </Dialog.Body>
  *     <Dialog.Footer>
  *       <Dialog.Close asChild>
- *         <Button type="button" appearance="outlined">Cancel</Button>
+ *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled">Save</Button>
+ *       <Button type="button" appearance="filled" intent="accent">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -478,7 +500,7 @@ Footer.displayName = "DialogFooter";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
@@ -491,9 +513,9 @@ Footer.displayName = "DialogFooter";
  *     </Dialog.Body>
  *     <Dialog.Footer>
  *       <Dialog.Close asChild>
- *         <Button type="button" appearance="outlined">Cancel</Button>
+ *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled">Save</Button>
+ *       <Button type="button" appearance="filled" intent="accent">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -523,7 +545,7 @@ Title.displayName = "DialogTitle";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
@@ -536,9 +558,9 @@ Title.displayName = "DialogTitle";
  *     </Dialog.Body>
  *     <Dialog.Footer>
  *       <Dialog.Close asChild>
- *         <Button type="button" appearance="outlined">Cancel</Button>
+ *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled">Save</Button>
+ *       <Button type="button" appearance="filled" intent="accent">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -590,7 +612,7 @@ Description.displayName = "DialogDescription";
  * ```tsx
  * <Dialog.Root>
  *   <Dialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">Open Dialog</Button>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
  *   </Dialog.Trigger>
  *   <Dialog.Content>
  *     <Dialog.Header>
@@ -603,9 +625,9 @@ Description.displayName = "DialogDescription";
  *     </Dialog.Body>
  *     <Dialog.Footer>
  *       <Dialog.Close asChild>
- *         <Button type="button" appearance="outlined">Cancel</Button>
+ *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled">Save</Button>
+ *       <Button type="button" appearance="filled" intent="accent">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -626,7 +648,7 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
@@ -639,9 +661,9 @@ const Dialog = {
 	 *     </Dialog.Body>
 	 *     <Dialog.Footer>
 	 *       <Dialog.Close asChild>
-	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -657,7 +679,7 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
@@ -670,9 +692,9 @@ const Dialog = {
 	 *     </Dialog.Body>
 	 *     <Dialog.Footer>
 	 *       <Dialog.Close asChild>
-	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -688,7 +710,7 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
@@ -701,9 +723,9 @@ const Dialog = {
 	 *     </Dialog.Body>
 	 *     <Dialog.Footer>
 	 *       <Dialog.Close asChild>
-	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -719,7 +741,7 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
@@ -732,9 +754,9 @@ const Dialog = {
 	 *     </Dialog.Body>
 	 *     <Dialog.Footer>
 	 *       <Dialog.Close asChild>
-	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -755,7 +777,7 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
@@ -768,9 +790,9 @@ const Dialog = {
 	 *     </Dialog.Body>
 	 *     <Dialog.Footer>
 	 *       <Dialog.Close asChild>
-	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -786,7 +808,7 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
@@ -799,9 +821,9 @@ const Dialog = {
 	 *     </Dialog.Body>
 	 *     <Dialog.Footer>
 	 *       <Dialog.Close asChild>
-	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -817,7 +839,7 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
@@ -830,9 +852,9 @@ const Dialog = {
 	 *     </Dialog.Body>
 	 *     <Dialog.Footer>
 	 *       <Dialog.Close asChild>
-	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -848,7 +870,7 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
@@ -861,9 +883,9 @@ const Dialog = {
 	 *     </Dialog.Body>
 	 *     <Dialog.Footer>
 	 *       <Dialog.Close asChild>
-	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -879,7 +901,7 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Portal>
 	 *     <Dialog.Overlay />
@@ -894,9 +916,9 @@ const Dialog = {
 	 *       </Dialog.Body>
 	 *       <Dialog.Footer>
 	 *         <Dialog.Close asChild>
-	 *           <Button type="button" appearance="outlined">Cancel</Button>
+	 *           <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *         </Dialog.Close>
-	 *         <Button type="button" appearance="filled">Save</Button>
+	 *         <Button type="button" appearance="filled" intent="accent">Save</Button>
 	 *       </Dialog.Footer>
 	 *     </Dialog.Content>
 	 *   </Dialog.Portal>
@@ -913,7 +935,7 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Portal>
 	 *     <Dialog.Overlay />
@@ -928,9 +950,9 @@ const Dialog = {
 	 *       </Dialog.Body>
 	 *       <Dialog.Footer>
 	 *         <Dialog.Close asChild>
-	 *           <Button type="button" appearance="outlined">Cancel</Button>
+	 *           <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *         </Dialog.Close>
-	 *         <Button type="button" appearance="filled">Save</Button>
+	 *         <Button type="button" appearance="filled" intent="accent">Save</Button>
 	 *       </Dialog.Footer>
 	 *     </Dialog.Content>
 	 *   </Dialog.Portal>
@@ -947,7 +969,7 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
@@ -960,9 +982,9 @@ const Dialog = {
 	 *     </Dialog.Body>
 	 *     <Dialog.Footer>
 	 *       <Dialog.Close asChild>
-	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -978,7 +1000,7 @@ const Dialog = {
 	 * ```tsx
 	 * <Dialog.Root>
 	 *   <Dialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">Open Dialog</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
 	 *   </Dialog.Trigger>
 	 *   <Dialog.Content>
 	 *     <Dialog.Header>
@@ -991,9 +1013,9 @@ const Dialog = {
 	 *     </Dialog.Body>
 	 *     <Dialog.Footer>
 	 *       <Dialog.Close asChild>
-	 *         <Button type="button" appearance="outlined">Cancel</Button>
+	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>

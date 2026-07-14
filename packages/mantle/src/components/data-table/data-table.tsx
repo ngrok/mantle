@@ -218,7 +218,11 @@ function HeaderSortButton<TData, TValue>({
 			appearance={appearance}
 			data-slot="data-table-header-sort-button"
 			className={cx(
-				"flex justify-start w-full h-full rounded-none not-disabled:active:scale-none text-muted",
+				"flex justify-start w-full h-full rounded-none not-disabled:active:scale-none",
+				// Only mute the default ghost+neutral design; the consumer className is
+				// merged last by tw-merge, so an unconditional text-muted would strip the
+				// tone text color from every non-default appearance/intent combination.
+				appearance === "ghost" && intent === "neutral" && "text-muted",
 				className,
 			)}
 			data-sort-direction={sortDirection}
@@ -1196,7 +1200,7 @@ RowExpandButton.displayName = "DataTableRowExpandButton";
  * ```tsx
  * import { DataTable, createColumnHelper } from "@ngrok/mantle/data-table";
  * import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
- * import { IconButton } from "@ngrok/mantle/icon-button";
+ * import { IconButton } from "@ngrok/mantle/button";
  * import { DotsThreeVerticalIcon } from "@phosphor-icons/react/DotsThreeVertical";
  *
  * const columnHelper = createColumnHelper<Payment>();
