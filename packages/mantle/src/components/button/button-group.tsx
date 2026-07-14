@@ -31,9 +31,9 @@ type ButtonGroupProps = ComponentProps<"div"> & ButtonGroupVariants & WithAsChil
  * @example
  * ```tsx
  * <ButtonGroup appearance="panel">
- *   <IconButton icon={<Bold />} label="Bold" />
- *   <IconButton icon={<Italic />} label="Italic" />
- *   <IconButton icon={<Underline />} label="Underline" />
+ *   <IconButton appearance="ghost" intent="neutral" icon={<Bold />} label="Bold" />
+ *   <IconButton appearance="ghost" intent="neutral" icon={<Italic />} label="Italic" />
+ *   <IconButton appearance="ghost" intent="neutral" icon={<Underline />} label="Underline" />
  * </ButtonGroup>
  * ```
  */

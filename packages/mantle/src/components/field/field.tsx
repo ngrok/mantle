@@ -377,6 +377,7 @@ const HelpTrigger = forwardRef<ComponentRef<"button">, FieldHelpTriggerProps>(
 				// drives the LabelRow to 24px and pushes the label text down 2px.
 				className={cx("text-body -my-0.5", className)}
 				icon={icon}
+				intent="neutral"
 				label={label}
 				size={size}
 				type={type}

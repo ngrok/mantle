@@ -51,12 +51,12 @@ function Calendar({ className, classNames, showOutsideDays = false, ...props }: 
 				root: cx("isolate", className),
 				button_next: cx(
 					baseIconButtonClasses,
-					iconButtonVariants({ appearance: "ghost", size: "sm" }),
+					iconButtonVariants({ appearance: "ghost", intent: "neutral", size: "sm" }),
 					"absolute right-0",
 				),
 				button_previous: cx(
 					baseIconButtonClasses,
-					iconButtonVariants({ appearance: "ghost", size: "sm" }),
+					iconButtonVariants({ appearance: "ghost", intent: "neutral", size: "sm" }),
 					"absolute left-0",
 				),
 				caption_label: "text-sm font-medium",

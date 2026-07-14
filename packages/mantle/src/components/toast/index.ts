@@ -13,5 +13,5 @@ export {
 
 export type {
 	//,
-	Priority,
+	ToastIntent,
 } from "./toast.js";

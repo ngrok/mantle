@@ -117,7 +117,7 @@ describe("MultiSelect (browser)", () => {
 					const Subject = () => {
 						const [open, setOpen] = useState(true);
 						return (
-							<AlertDialog.Root priority="danger" open={open} onOpenChange={setOpen}>
+							<AlertDialog.Root intent="danger" open={open} onOpenChange={setOpen}>
 								<AlertDialog.Content>
 									<AlertDialog.Body>
 										<AlertDialog.Header>

@@ -32,6 +32,14 @@ describe("SplitButton", () => {
 			expect(menuTrigger).toHaveClass("size-9");
 		});
 
+		test("both halves render outlined + neutral", () => {
+			const { primaryAction, menuTrigger } = renderSplitButton();
+			expect(primaryAction).toHaveAttribute("data-appearance", "outlined");
+			expect(primaryAction).toHaveAttribute("data-intent", "neutral");
+			expect(menuTrigger).toHaveAttribute("data-appearance", "outlined");
+			expect(menuTrigger).toHaveAttribute("data-intent", "neutral");
+		});
+
 		test.each([
 			["xs", "h-6", "size-6"],
 			["sm", "h-7", "size-7"],
@@ -61,6 +69,21 @@ describe("SplitButton", () => {
 			const menuTrigger = (
 				// @ts-expect-error -- MenuTriggerProps omits `size`
 				<SplitButton.MenuTrigger label="More save options" size="xs" />
+			);
+			expect(primaryAction).toBeDefined();
+			expect(menuTrigger).toBeDefined();
+		});
+
+		test("rejects `appearance` and `intent` on the parts at the type level", () => {
+			// The parts' outlined + neutral rendering is the design; the
+			// required Button/IconButton props are pinned internally.
+			const primaryAction = (
+				// @ts-expect-error -- PrimaryActionProps omits `intent`
+				<SplitButton.PrimaryAction intent="danger">Save</SplitButton.PrimaryAction>
+			);
+			const menuTrigger = (
+				// @ts-expect-error -- MenuTriggerProps omits `appearance`
+				<SplitButton.MenuTrigger label="More save options" appearance="ghost" />
 			);
 			expect(primaryAction).toBeDefined();
 			expect(menuTrigger).toBeDefined();

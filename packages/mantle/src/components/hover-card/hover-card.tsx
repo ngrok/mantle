@@ -19,7 +19,7 @@ import { cx } from "../../utils/cx/cx.js";
  * ```tsx
  * <HoverCard.Root>
  *   <HoverCard.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="accent">
  *       Hover me
  *     </Button>
  *   </HoverCard.Trigger>
@@ -47,7 +47,7 @@ Root.displayName = "HoverCard";
  * ```tsx
  * <HoverCard.Root>
  *   <HoverCard.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="accent">
  *       Hover me
  *     </Button>
  *   </HoverCard.Trigger>
@@ -78,7 +78,7 @@ Trigger.displayName = "HoverCardTrigger";
  * ```tsx
  * <HoverCard.Root>
  *   <HoverCard.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="accent">
  *       Hover me
  *     </Button>
  *   </HoverCard.Trigger>
@@ -106,7 +106,7 @@ Portal.displayName = "HoverCardPortal";
  * ```tsx
  * <HoverCard.Root>
  *   <HoverCard.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="accent">
  *       Hover me
  *     </Button>
  *   </HoverCard.Trigger>
@@ -173,7 +173,7 @@ Content.displayName = HoverCardPrimitive.Content.displayName;
  * ```tsx
  * <HoverCard.Root>
  *   <HoverCard.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="accent">
  *       Hover me
  *     </Button>
  *   </HoverCard.Trigger>
@@ -244,7 +244,7 @@ const HoverCard = {
 	 * ```tsx
 	 * <HoverCard.Root>
 	 *   <HoverCard.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="accent">
 	 *       Hover me
 	 *     </Button>
 	 *   </HoverCard.Trigger>
@@ -266,7 +266,7 @@ const HoverCard = {
 	 * ```tsx
 	 * <HoverCard.Root>
 	 *   <HoverCard.Trigger asChild>
-	 *     <Button type="button" variant="ghost">
+	 *     <Button type="button" appearance="ghost" intent="neutral">
 	 *       Hover for details
 	 *     </Button>
 	 *   </HoverCard.Trigger>

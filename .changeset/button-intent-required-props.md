@@ -1,0 +1,5 @@
+---
+"@ngrok/mantle": minor
+---
+
+**Breaking:** `Button` and `IconButton` replace `priority` with `intent`, and both `appearance` and `intent` are now **required** props with no defaults — every call site states its visual weight and tone explicitly. `Button`'s tone union is `accent | danger | neutral` (`accent` replaces the old `default` value; `danger` and `neutral` are unchanged). `IconButton` gains the `intent` axis (`accent | danger | neutral`) with ghost/outlined tone styling mirroring `Button`; its pre-intent rendering was neutral-toned, so `intent="neutral"` is the visual-parity value for existing icon buttons. Buttons emit `data-intent` instead of `data-priority`. New type exports from `@ngrok/mantle/button`: `ButtonIntent`, `ButtonAppearance`, and `IconButtonAppearance`. Migration is mechanical and pixel-preserving — follow the agent-ready guide at https://mantle.ngrok.com/migrations/priority-to-intent-migration (old implicit defaults resolve to `appearance="outlined"` + `intent="accent"` on Button and `appearance="outlined"` + `intent="neutral"` on IconButton).

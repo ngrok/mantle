@@ -21,7 +21,7 @@ import { Separator } from "../separator/separator.js";
  * ```tsx
  * <DropdownMenu.Root>
  *   <DropdownMenu.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="accent">
  *       Open Menu
  *     </Button>
  *   </DropdownMenu.Trigger>
@@ -44,7 +44,7 @@ Root.displayName = "DropdownMenu";
  * ```tsx
  * <DropdownMenu.Root>
  *   <DropdownMenu.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="accent">
  *       Open Menu
  *     </Button>
  *   </DropdownMenu.Trigger>
@@ -178,7 +178,7 @@ type DropdownMenuContentProps = ComponentPropsWithoutRef<typeof DropdownMenuPrim
  * ```tsx
  * <DropdownMenu.Root>
  *   <DropdownMenu.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="accent">
  *       Open Menu
  *     </Button>
  *   </DropdownMenu.Trigger>
@@ -229,7 +229,7 @@ Content.displayName = "DropdownMenuContent";
  * ```tsx
  * <DropdownMenu.Root>
  *   <DropdownMenu.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="accent">
  *       Open Menu
  *     </Button>
  *   </DropdownMenu.Trigger>
@@ -417,7 +417,7 @@ Shortcut.displayName = "DropdownMenuShortcut";
  * ```tsx
  * <DropdownMenu.Root>
  *   <DropdownMenu.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="accent">
  *       Open Menu
  *     </Button>
  *   </DropdownMenu.Trigger>
@@ -705,7 +705,7 @@ const DropdownMenu = {
 	 * ```tsx
 	 * <DropdownMenu.Root>
 	 *   <DropdownMenu.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="accent">
 	 *       Open Menu
 	 *     </Button>
 	 *   </DropdownMenu.Trigger>

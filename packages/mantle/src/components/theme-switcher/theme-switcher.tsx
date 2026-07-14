@@ -106,7 +106,7 @@ ThemeDropdownMenuRadioGroup.displayName = "ThemeDropdownMenuRadioGroup";
  * The props for the `ThemeSwitcher` component.
  */
 type ThemeSwitcherProps = WithStyleProps &
-	Pick<ComponentProps<typeof IconButton>, "appearance"> & {
+	Partial<Pick<ComponentProps<typeof IconButton>, "appearance">> & {
 		/**
 		 * Props forwarded to the menu's `DropdownMenu.Content` — positioning and
 		 * collision behavior (`align`, `side`, `collisionPadding`, …) plus
@@ -167,6 +167,7 @@ const ThemeSwitcher = ({
 				appearance={appearance ?? "ghost"}
 				className={className}
 				data-slot="theme-switcher"
+				intent="neutral"
 				icon={
 					<BrowserOnly fallback={<Skeleton className="rounded-full size-5" />}>
 						{() => <AutoThemeIcon className="size-5" />}

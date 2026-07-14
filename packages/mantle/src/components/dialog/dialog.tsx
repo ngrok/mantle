@@ -367,6 +367,7 @@ const CloseIconButton = ({
 	type = "button",
 	label = "Close Dialog",
 	appearance = "ghost",
+	intent = "neutral",
 	...props
 }: CloseIconButtonProps) => (
 	<DialogPrimitive.Close asChild>
@@ -374,6 +375,7 @@ const CloseIconButton = ({
 			appearance={appearance}
 			data-slot="dialog-close-icon-button"
 			icon={<XIcon />}
+			intent={intent}
 			label={label}
 			size={size}
 			type={type}

@@ -20,14 +20,20 @@ export {
 
 export type {
 	//,
+	ButtonAppearance,
 	ButtonProps,
 } from "./button.js";
+export type {
+	//,
+	ButtonIntent,
+} from "./intents.js";
 export type {
 	//,
 	ButtonSize,
 } from "./sizes.js";
 export type {
 	//,
+	IconButtonAppearance,
 	IconButtonProps,
 } from "./icon-button.js";
 export type {
