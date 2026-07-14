@@ -1,5 +1,16 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.0.17
+
+### Patch Changes
+
+- [#1288](https://github.com/ngrok/mantle/pull/1288) [`9d988f2`](https://github.com/ngrok/mantle/commit/9d988f203ddd4a7a433871478adfa1fd4e21af34) Thanks [@dependabot](https://github.com/apps/dependabot)! - Raise the optional `vite` peer range floor from ^8.0.16 to ^8.1.4 to match the workspace's Vite version.
+
+- [#1313](https://github.com/ngrok/mantle/pull/1313) [`2f5ddc9`](https://github.com/ngrok/mantle/commit/2f5ddc9d44e5a48abaed6414f7dfb954e3b9fb18) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `breadcrumb`, `centered-layout`, and `theme-switcher` to `MANTLE_COMPONENT_NAMES` so `mantleTwSourcePlugin` recognizes imports of the new `@ngrok/mantle` subpaths and emits their `@source` directives — without this, apps importing the new components would silently get no Tailwind classes for them.
+
+- Updated dependencies [[`9d988f2`](https://github.com/ngrok/mantle/commit/9d988f203ddd4a7a433871478adfa1fd4e21af34)]:
+  - @ngrok/mantle-server-syntax-highlighter@1.1.7
+
 ## 1.0.16
 
 ### Patch Changes
