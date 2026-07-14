@@ -105,7 +105,8 @@
     "jsdoc": "Renders a button or a component that looks like a button, an interactive element activated by a user with a mouse, keyboard, finger, voice command, or other assistive technology.",
     "examples": [
       "```tsx\n<Button appearance=\"filled\" onClick={handleClick}>\n  Click me\n</Button>\n```",
-      "Submit a form — opt in with `type=\"submit\"` (the default `\"button\"` does not submit):\n```tsx\n<Button type=\"submit\" appearance=\"filled\">\n  Save\n</Button>\n```"
+      "Submit a form — opt in with `type=\"submit\"` (the default `\"button\"` does not submit):\n```tsx\n<Button type=\"submit\" appearance=\"filled\">\n  Save\n</Button>\n```",
+      "Icon-only buttons are not `Button`s — use `IconButton` instead (an icon-only\n`Button` has no accessible name and keeps its text-box padding):\n```tsx\n// ❌ <Button icon={<CopyIcon />} onClick={copyPage} />\n<IconButton icon={<CopyIcon />} label=\"Copy page\" onClick={copyPage} />\n```"
     ]
   },
   {

@@ -154,8 +154,13 @@ type ButtonProps = ComponentProps<"button"> &
 	ButtonVariants &
 	WithAsChild & {
 		/**
-		 * An icon to render inside the button. If the `state` is `"pending"`, then
-		 * the icon will automatically be replaced with a spinner.
+		 * An icon to render inside the button, beside the button's text
+		 * children. If the `state` is `"pending"`, then the icon will
+		 * automatically be replaced with a spinner.
+		 *
+		 * For an icon-only button, do not use `Button` — use `IconButton`
+		 * instead: it requires an accessible `label` and renders a square box
+		 * on the same shared size scale.
 		 */
 		icon?: ReactNode;
 		/**
@@ -190,6 +195,11 @@ type ButtonProps = ComponentProps<"button"> &
  * other assistive technology. Once activated, it then performs an action, such
  * as submitting a form or opening a dialog.
  *
+ * An icon-only button is not a `Button` — use `IconButton` instead: an
+ * icon-only `Button` has no accessible name and keeps its text-box padding,
+ * while `IconButton` requires a screen-reader `label` and renders a square
+ * box on the same shared size scale.
+ *
  * @see https://mantle.ngrok.com/components/actions/button
  *
  * @example
@@ -205,6 +215,14 @@ type ButtonProps = ComponentProps<"button"> &
  * <Button type="submit" appearance="filled">
  *   Save
  * </Button>
+ * ```
+ *
+ * @example
+ * Icon-only buttons are not `Button`s — use `IconButton` instead (an icon-only
+ * `Button` has no accessible name and keeps its text-box padding):
+ * ```tsx
+ * // ❌ <Button icon={<CopyIcon />} onClick={copyPage} />
+ * <IconButton icon={<CopyIcon />} label="Copy page" onClick={copyPage} />
  * ```
  */
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
