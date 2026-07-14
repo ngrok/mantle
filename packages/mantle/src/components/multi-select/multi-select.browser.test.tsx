@@ -221,6 +221,46 @@ describe("MultiSelect (browser)", () => {
 				});
 			});
 
+			test(`body interactivity is restored after unmounting a ${modal.name} with an open popover`, async () => {
+				const user = setupUser();
+
+				const { unmount } = render(
+					modal.render(
+						<MultiSelect.Root>
+							<MultiSelect.Trigger>
+								<MultiSelect.TagValues />
+								<MultiSelect.Input placeholder="Select items..." />
+							</MultiSelect.Trigger>
+							<MultiSelect.Content>
+								<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+								<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
+							</MultiSelect.Content>
+						</MultiSelect.Root>,
+					),
+				);
+
+				await user.click(screen.getByRole("combobox"));
+				await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
+
+				unmount();
+
+				// Regression test: with ariakit's body scroll lock active alongside the
+				// modal's, ariakit re-applied a stale body-style snapshot (including the
+				// modal's transient `pointer-events: none`) on the animation frame after
+				// unmount, permanently freezing the page. Wait past that frame plus a
+				// macrotask so the assertion sees the settled state.
+				await new Promise<void>((resolve) => {
+					requestAnimationFrame(() => {
+						resolve();
+					});
+				});
+				await new Promise<void>((resolve) => {
+					setTimeout(resolve, 50);
+				});
+
+				expect(document.body.style.pointerEvents).not.toBe("none");
+			});
+
 			test(`Escape closes the parent ${modal.name} when the multi-select is not focused`, async () => {
 				const user = setupUser();
 
