@@ -1,5 +1,24 @@
 # @ngrok/mantle
 
+## 0.79.1
+
+### Patch Changes
+
+- [#1322](https://github.com/ngrok/mantle/pull/1322) [`33d6214`](https://github.com/ngrok/mantle/commit/33d6214043de3bd23b6f91fbf7e72b57c39fcfba) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - **Breaking:** `ThemeSwitcher` is now a compound component — compose `ThemeSwitcher.Root`, `ThemeSwitcher.Trigger`, and `ThemeSwitcher.Content` instead of rendering a single `<ThemeSwitcher />`. The `contentProps` prop bag is gone: pass `DropdownMenu.Content` props (`align`, `side`, `collisionPadding`, `className`, …) directly to `ThemeSwitcher.Content`, and `IconButton` props (`appearance`, `label`, `className`, …) directly to `ThemeSwitcher.Trigger`. `ThemeSwitcher.Content` renders `ThemeDropdownMenuRadioGroup` when no children are given; pass children to own the menu contents. `ThemeSwitcherProps` is replaced by `ThemeSwitcherRootProps`, `ThemeSwitcherTriggerProps`, and `ThemeSwitcherContentProps`; `ThemeDropdownMenuRadioGroup` is unchanged. The trigger's `data-slot` is now `theme-switcher-trigger` (was `theme-switcher`) and the popover's is `theme-switcher-content dropdown-menu-content` — `DropdownMenu.Content` now joins an incoming `data-slot` chain ahead of its own slot name instead of being clobbered by it, so `[data-slot~="dropdown-menu-content"]` selectors keep matching wrapped menus.
+
+  Migration:
+
+  ```tsx
+  // before
+  <ThemeSwitcher contentProps={{ className: "shadow-2xl", collisionPadding: { right: 16 } }} />
+
+  // after
+  <ThemeSwitcher.Root>
+  	<ThemeSwitcher.Trigger />
+  	<ThemeSwitcher.Content className="shadow-2xl" collisionPadding={{ right: 16 }} />
+  </ThemeSwitcher.Root>
+  ```
+
 ## 0.79.0
 
 ### Minor Changes
