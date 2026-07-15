@@ -1,9 +1,16 @@
 "use client";
 
-import type { ComponentProps } from "react";
+import type { ComponentProps, ComponentPropsWithoutRef, ComponentRef } from "react";
+import { forwardRef } from "react";
 import type { WithStyleProps } from "../../types/with-style-props.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { BrowserOnly } from "../browser-only/browser-only.js";
-import { IconButton, type IconButtonAppearance } from "../button/icon-button.js";
+import {
+	IconButton,
+	type IconButtonAppearance,
+	type IconButtonProps,
+} from "../button/icon-button.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { Icon } from "../icon/icon.js";
 import { AutoThemeIcon, ThemeIcon } from "../icons/theme.js";
@@ -103,77 +110,92 @@ const ThemeDropdownMenuRadioGroup = ({ className, style }: ThemeDropdownMenuRadi
 ThemeDropdownMenuRadioGroup.displayName = "ThemeDropdownMenuRadioGroup";
 
 /**
- * The props for the `ThemeSwitcher` component.
+ * The props for the `ThemeSwitcher.Root` component. Identical to
+ * `DropdownMenu.Root`'s props — `Root` forwards everything through.
  */
-type ThemeSwitcherProps = WithStyleProps & {
-	/**
-	 * The visual style of the trigger `IconButton`. Optional here —
-	 * `ThemeSwitcher` defaults to `"ghost"` so the trigger sits quietly in
-	 * headers and toolbars.
-	 *
-	 * @default "ghost"
-	 */
-	appearance?: IconButtonAppearance;
-	/**
-	 * Props forwarded to the menu's `DropdownMenu.Content` — positioning and
-	 * collision behavior (`align`, `side`, `collisionPadding`, …) plus
-	 * `className`/`style` for the popover the trigger opens. To own the whole
-	 * menu instead, compose `ThemeDropdownMenuRadioGroup` in your own
-	 * `DropdownMenu`.
-	 *
-	 * @example
-	 * ```tsx
-	 * <ThemeSwitcher contentProps={{ collisionPadding: { right: 16 } }} />
-	 * ```
-	 */
-	contentProps?: Omit<ComponentProps<typeof DropdownMenu.Content>, "children">;
-	/**
-	 * The accessible name for the trigger `IconButton`. Visually hidden but
-	 * announced to screen readers. Override it for localization.
-	 *
-	 * @default "Change Theme"
-	 */
-	label?: string;
-};
+type ThemeSwitcherRootProps = ComponentProps<typeof DropdownMenu.Root>;
 
 /**
- * The canonical picker for mantle's theme system: a compact `IconButton`
- * trigger (ghost by default) that opens a `DropdownMenu` hosting
- * `ThemeDropdownMenuRadioGroup`, the theme-selection radio group.
- *
- * Reads and writes the active theme via `useTheme`, so it must render inside
- * a `ThemeProvider` — `useTheme` throws outside of one. The trigger icon is
- * SSR-safe: the applied theme is unknowable server-side, so a `Skeleton`
- * renders until hydration, then the icon matching the applied theme.
- *
- * To embed theme selection in an existing menu instead (e.g. an account menu
- * submenu), use `ThemeDropdownMenuRadioGroup` directly.
+ * The stateful root of the theme switcher: a thin forwarding wrapper over
+ * `DropdownMenu.Root` that owns the menu's open/closed state. Renders no DOM
+ * of its own. Compose `ThemeSwitcher.Trigger` and `ThemeSwitcher.Content`
+ * inside it.
  *
  * @see https://mantle.ngrok.com/components/forms/theme-switcher
  *
  * @example
  * ```tsx
- * <ThemeProvider>
- *   <header>
- *     <ThemeSwitcher />
- *   </header>
- * </ThemeProvider>
+ * <ThemeSwitcher.Root>
+ *   <ThemeSwitcher.Trigger />
+ *   <ThemeSwitcher.Content />
+ * </ThemeSwitcher.Root>
  * ```
  */
-const ThemeSwitcher = ({
-	appearance = "ghost",
-	className,
-	contentProps,
-	label = "Change Theme",
-	style,
-}: ThemeSwitcherProps) => (
-	<DropdownMenu.Root>
-		<DropdownMenu.Trigger asChild>
+const Root = (props: ThemeSwitcherRootProps) => <DropdownMenu.Root {...props} />;
+Root.displayName = "ThemeSwitcher";
+
+/**
+ * The props for the `ThemeSwitcher.Trigger` component. Forwards
+ * `IconButton`'s props, except the parts the trigger owns: `icon` (the
+ * SSR-safe themed icon) and `intent` (always `"neutral"`). `asChild` and
+ * `children` are removed — the trigger renders only its icon and sr-only
+ * label, so both would be silently meaningless. `appearance` and `label`
+ * become optional with theme-switcher defaults.
+ */
+type ThemeSwitcherTriggerProps = Omit<
+	IconButtonProps,
+	"appearance" | "asChild" | "children" | "icon" | "intent" | "label"
+> &
+	WithDataSlot & {
+		/**
+		 * The visual style of the trigger `IconButton`. Optional here —
+		 * `ThemeSwitcher.Trigger` defaults to `"ghost"` so the trigger sits
+		 * quietly in headers and toolbars.
+		 *
+		 * @default "ghost"
+		 */
+		appearance?: IconButtonAppearance;
+		/**
+		 * The accessible name for the trigger `IconButton`. Visually hidden but
+		 * announced to screen readers. Override it for localization.
+		 *
+		 * @default "Change Theme"
+		 */
+		label?: string;
+	};
+
+/**
+ * The button that opens the theme menu: an `IconButton` (ghost by default)
+ * wired up as the menu trigger. The trigger icon is SSR-safe: the applied
+ * theme is unknowable server-side, so a `Skeleton` renders until hydration,
+ * then the icon matching the applied theme. The icon is owned by the trigger;
+ * to render a completely custom trigger, compose `DropdownMenu` +
+ * `ThemeDropdownMenuRadioGroup` directly instead.
+ *
+ * @see https://mantle.ngrok.com/components/forms/theme-switcher
+ *
+ * @example
+ * ```tsx
+ * <ThemeSwitcher.Root>
+ *   <ThemeSwitcher.Trigger appearance="outlined" label="Choose a theme" />
+ *   <ThemeSwitcher.Content />
+ * </ThemeSwitcher.Root>
+ * ```
+ */
+const Trigger = forwardRef<HTMLButtonElement, ThemeSwitcherTriggerProps>(
+	(
+		{ appearance = "ghost", "data-slot": dataSlot, disabled, label = "Change Theme", ...props },
+		ref,
+	) => (
+		// `disabled` must reach DropdownMenu.Trigger too: Radix owns the open
+		// behavior, and a disabled trigger that only disables the button DOM
+		// node would still open the menu on synthesized pointer events.
+		<DropdownMenu.Trigger asChild disabled={disabled}>
 			<IconButton
-				type="button"
+				ref={ref}
 				appearance={appearance}
-				className={className}
-				data-slot="theme-switcher"
+				disabled={disabled}
+				data-slot={joinDataSlot(dataSlot, "theme-switcher-trigger")}
 				intent="neutral"
 				icon={
 					<BrowserOnly fallback={<Skeleton className="rounded-full size-5" />}>
@@ -181,15 +203,147 @@ const ThemeSwitcher = ({
 					</BrowserOnly>
 				}
 				label={label}
-				style={style}
+				{...props}
 			/>
 		</DropdownMenu.Trigger>
-		<DropdownMenu.Content {...contentProps}>
-			<ThemeDropdownMenuRadioGroup />
-		</DropdownMenu.Content>
-	</DropdownMenu.Root>
+	),
 );
-ThemeSwitcher.displayName = "ThemeSwitcher";
+Trigger.displayName = "ThemeSwitcherTrigger";
+
+/**
+ * The props for the `ThemeSwitcher.Content` component. Identical to
+ * `DropdownMenu.Content`'s props — positioning and collision behavior
+ * (`align`, `side`, `collisionPadding`, …) plus `className`/`style` all
+ * forward through.
+ */
+type ThemeSwitcherContentProps = ComponentPropsWithoutRef<typeof DropdownMenu.Content> &
+	WithDataSlot;
+
+/**
+ * The popover the trigger opens: a thin forwarding wrapper over
+ * `DropdownMenu.Content`. When `children` are omitted (or `null`/`undefined`)
+ * it renders `ThemeDropdownMenuRadioGroup`, the five-theme radio group — pass
+ * `children` to own the menu contents instead (compose
+ * `ThemeDropdownMenuRadioGroup` yourself alongside extra items). Any
+ * non-nullish children replace the default entirely, including render-nothing
+ * values like `false` — a lone `{condition && <Item />}` child suppresses the
+ * radio group when the condition is false.
+ *
+ * @see https://mantle.ngrok.com/components/forms/theme-switcher
+ *
+ * @example
+ * ```tsx
+ * <ThemeSwitcher.Root>
+ *   <ThemeSwitcher.Trigger />
+ *   <ThemeSwitcher.Content align="end" collisionPadding={{ right: 16 }} />
+ * </ThemeSwitcher.Root>
+ * ```
+ *
+ * @example
+ * Extending the menu beyond theme selection:
+ * ```tsx
+ * <ThemeSwitcher.Content>
+ *   <ThemeDropdownMenuRadioGroup />
+ *   <DropdownMenu.Separator />
+ *   <DropdownMenu.Item>Appearance settings…</DropdownMenu.Item>
+ * </ThemeSwitcher.Content>
+ * ```
+ */
+const Content = forwardRef<ComponentRef<typeof DropdownMenu.Content>, ThemeSwitcherContentProps>(
+	({ children, "data-slot": dataSlot, ...props }, ref) => (
+		<DropdownMenu.Content
+			ref={ref}
+			data-slot={joinDataSlot(dataSlot, "theme-switcher-content")}
+			{...props}
+		>
+			{children ?? <ThemeDropdownMenuRadioGroup />}
+		</DropdownMenu.Content>
+	),
+);
+Content.displayName = "ThemeSwitcherContent";
+
+/**
+ * The canonical picker for mantle's theme system: a compact `IconButton`
+ * trigger (ghost by default) that opens a `DropdownMenu` hosting
+ * `ThemeDropdownMenuRadioGroup`, the theme-selection radio group.
+ *
+ * Reads and writes the active theme via `useTheme`, so it must render inside
+ * a `ThemeProvider` — `useTheme` throws outside of one.
+ *
+ * To embed theme selection in an existing menu instead (e.g. an account menu
+ * submenu), use `ThemeDropdownMenuRadioGroup` directly.
+ *
+ * @see https://mantle.ngrok.com/components/forms/theme-switcher
+ *
+ * @example
+ * Composition:
+ * ```
+ * ThemeSwitcher.Root
+ * ├── ThemeSwitcher.Trigger
+ * └── ThemeSwitcher.Content
+ * ```
+ *
+ * @example
+ * ```tsx
+ * <ThemeProvider>
+ *   <header>
+ *     <ThemeSwitcher.Root>
+ *       <ThemeSwitcher.Trigger />
+ *       <ThemeSwitcher.Content />
+ *     </ThemeSwitcher.Root>
+ *   </header>
+ * </ThemeProvider>
+ * ```
+ */
+const ThemeSwitcher = {
+	/**
+	 * The stateful root: a thin forwarding wrapper over `DropdownMenu.Root`
+	 * that owns the menu's open/closed state. Renders no DOM of its own.
+	 *
+	 * @see https://mantle.ngrok.com/components/forms/theme-switcher
+	 *
+	 * @example
+	 * ```tsx
+	 * <ThemeSwitcher.Root>
+	 *   <ThemeSwitcher.Trigger />
+	 *   <ThemeSwitcher.Content />
+	 * </ThemeSwitcher.Root>
+	 * ```
+	 */
+	Root,
+	/**
+	 * The button that opens the theme menu: an `IconButton` (ghost by default)
+	 * with an SSR-safe themed icon. Forwards `IconButton` props; `label`
+	 * defaults to `"Change Theme"`.
+	 *
+	 * @see https://mantle.ngrok.com/components/forms/theme-switcher
+	 *
+	 * @example
+	 * ```tsx
+	 * <ThemeSwitcher.Root>
+	 *   <ThemeSwitcher.Trigger appearance="outlined" label="Choose a theme" />
+	 *   <ThemeSwitcher.Content />
+	 * </ThemeSwitcher.Root>
+	 * ```
+	 */
+	Trigger,
+	/**
+	 * The popover the trigger opens: forwards `DropdownMenu.Content` props
+	 * (`align`, `side`, `collisionPadding`, `className`, …) and renders the
+	 * five-theme radio group when no `children` are given.
+	 *
+	 * @see https://mantle.ngrok.com/components/forms/theme-switcher
+	 *
+	 * @example
+	 * ```tsx
+	 * <ThemeSwitcher.Root>
+	 *   <ThemeSwitcher.Trigger />
+	 *   <ThemeSwitcher.Content align="end" collisionPadding={{ right: 16 }} />
+	 * </ThemeSwitcher.Root>
+	 * ```
+	 */
+	Content,
+} as const;
 
 export {
 	//,
@@ -200,5 +354,7 @@ export {
 export type {
 	//,
 	ThemeDropdownMenuRadioGroupProps,
-	ThemeSwitcherProps,
+	ThemeSwitcherContentProps,
+	ThemeSwitcherRootProps,
+	ThemeSwitcherTriggerProps,
 };

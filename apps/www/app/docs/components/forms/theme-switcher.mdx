@@ -10,7 +10,34 @@ import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
 
 export function ThemeSwitcherExample() {
-	return <ThemeSwitcher />;
+	return (
+		<ThemeSwitcher.Root>
+			<ThemeSwitcher.Trigger />
+			<ThemeSwitcher.Content />
+		</ThemeSwitcher.Root>
+	);
+}
+
+export function CustomizedExample() {
+	return (
+		<ThemeSwitcher.Root>
+			<ThemeSwitcher.Trigger appearance="outlined" label="Choose a theme" />
+			<ThemeSwitcher.Content align="end" className="shadow-2xl" />
+		</ThemeSwitcher.Root>
+	);
+}
+
+export function ExtendedContentExample() {
+	return (
+		<ThemeSwitcher.Root>
+			<ThemeSwitcher.Trigger />
+			<ThemeSwitcher.Content>
+				<ThemeDropdownMenuRadioGroup />
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item>Appearance settings…</DropdownMenu.Item>
+			</ThemeSwitcher.Content>
+		</ThemeSwitcher.Root>
+	);
 }
 
 export function EmbeddedSubmenuExample() {
@@ -36,7 +63,7 @@ export function EmbeddedSubmenuExample() {
 
 <PageHeader id="theme-switcher">Theme Switcher</PageHeader>
 
-Mantle owns the theme system — [`ThemeProvider`, `useTheme`, and the five themes](/components/primitives/theme) — so it also ships the canonical picker UI. `ThemeSwitcher` is the compact standalone picker: a ghost [`IconButton`](/components/actions/icon-button) trigger that opens a [`DropdownMenu`](/components/overlays/dropdown-menu) of the five themes. This is not a compound component — the entrypoint exports two cooperating components: `ThemeSwitcher`, and `ThemeDropdownMenuRadioGroup`, the theme-selection radio group it hosts, which you can embed in any existing dropdown menu instead. Both read and write the active theme via `useTheme`, so both require a [`ThemeProvider`](/components/primitives/theme) ancestor.
+Mantle owns the theme system — [`ThemeProvider`, `useTheme`, and the five themes](/components/primitives/theme) — so it also ships the canonical picker UI. `ThemeSwitcher` is the compact standalone picker, a compound component with three parts: `Root` owns the menu's open state, `Trigger` is a ghost [`IconButton`](/components/actions/icon-button) with an SSR-safe themed icon, and `Content` is the [`DropdownMenu`](/components/overlays/dropdown-menu) popover listing the five themes. The entrypoint also exports `ThemeDropdownMenuRadioGroup`, the theme-selection radio group `Content` hosts, which you can embed in any existing dropdown menu instead. Both read and write the active theme via `useTheme`, so both require a [`ThemeProvider`](/components/primitives/theme) ancestor.
 
 <Example>
 	<ThemeSwitcherExample />
@@ -45,7 +72,55 @@ Mantle owns the theme system — [`ThemeProvider`, `useTheme`, and the five them
 ```tsx
 import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 
-<ThemeSwitcher />;
+<ThemeSwitcher.Root>
+	<ThemeSwitcher.Trigger />
+	<ThemeSwitcher.Content />
+</ThemeSwitcher.Root>;
+```
+
+## Composition
+
+```
+ThemeSwitcher.Root
+├── ThemeSwitcher.Trigger
+└── ThemeSwitcher.Content
+```
+
+Every part forwards through to the primitive it wraps: `Root` is `DropdownMenu.Root`, `Trigger` renders an `IconButton` wired up as the menu trigger, and `Content` is `DropdownMenu.Content` — so positioning, collision behavior, styling, and open-state control all use the props you already know from those components.
+
+<Example>
+	<CustomizedExample />
+</Example>
+
+```tsx
+import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
+
+<ThemeSwitcher.Root>
+	<ThemeSwitcher.Trigger appearance="outlined" label="Choose a theme" />
+	<ThemeSwitcher.Content align="end" className="shadow-2xl" />
+</ThemeSwitcher.Root>;
+```
+
+## Extending the menu
+
+`Content` renders `ThemeDropdownMenuRadioGroup` when no children are given. Pass children to own the menu contents — compose the radio group yourself alongside extra items:
+
+<Example>
+	<ExtendedContentExample />
+</Example>
+
+```tsx
+import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { ThemeDropdownMenuRadioGroup, ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
+
+<ThemeSwitcher.Root>
+	<ThemeSwitcher.Trigger />
+	<ThemeSwitcher.Content>
+		<ThemeDropdownMenuRadioGroup />
+		<DropdownMenu.Separator />
+		<DropdownMenu.Item>Appearance settings…</DropdownMenu.Item>
+	</ThemeSwitcher.Content>
+</ThemeSwitcher.Root>;
 ```
 
 ## Embedding in an existing menu
@@ -85,23 +160,38 @@ import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
 ## Accessibility
 
 - The theme options are `role="menuitemradio"` items from `DropdownMenu.RadioGroup` — the active theme is announced as checked (`aria-checked`), and choosing an item behaves like picking one of a set of mutually exclusive options.
-- The `ThemeSwitcher` trigger has an accessible name — `"Change Theme"` by default, visually hidden but announced to screen readers — which you can override via the `label` prop (e.g. for localization).
+- `ThemeSwitcher.Trigger` has an accessible name — `"Change Theme"` by default, visually hidden but announced to screen readers — which you can override via the `label` prop (e.g. for localization).
 - The trigger icon is decorative: it mirrors the currently _applied_ theme — always a sun or moon, since `"system"` resolves to light or dark before the icon renders (the desktop glyph appears only on the "System Preference" menu item) — and conveys no information beyond the accessible label.
 - The trigger icon is SSR-safe: the applied theme is unknowable server-side, so a `Skeleton` placeholder renders until hydration completes, then the themed icon appears.
 
 ## API Reference
 
-### ThemeSwitcher
+### ThemeSwitcher.Root
 
-The standalone picker: an `IconButton` trigger (ghost by default) that opens a `DropdownMenu` hosting `ThemeDropdownMenuRadioGroup`. Requires a [`ThemeProvider`](/components/primitives/theme) ancestor.
+The stateful root: a thin forwarding wrapper over [`DropdownMenu.Root`](/components/overlays/dropdown-menu#dropdownmenuroot) that owns the menu's open/closed state. Renders no DOM of its own. Requires a [`ThemeProvider`](/components/primitives/theme) ancestor for its descendants.
 
-| Prop            | Type                                                            | Default          | Description                                                                                                                                                                  |
-| --------------- | --------------------------------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `appearance?`   | `"ghost" \| "outlined"`                                         | `"ghost"`        | The visual style of the trigger `IconButton`.                                                                                                                                |
-| `contentProps?` | `Omit<ComponentProps<typeof DropdownMenu.Content>, "children">` |                  | Props forwarded to the menu's `DropdownMenu.Content` — positioning and collision behavior (`align`, `side`, `collisionPadding`, …) plus `className`/`style` for the popover. |
-| `label?`        | `string`                                                        | `"Change Theme"` | The accessible name for the trigger `IconButton`. Visually hidden but announced to screen readers.                                                                           |
-| `className?`    | `string`                                                        |                  | CSS class name applied to the trigger `IconButton`.                                                                                                                          |
-| `style?`        | `CSSProperties`                                                 |                  | Inline styles applied to the trigger `IconButton`.                                                                                                                           |
+All props from [`DropdownMenu.Root`](/components/overlays/dropdown-menu#dropdownmenuroot) (`open`, `defaultOpen`, `onOpenChange`, `modal`, …).
+
+### ThemeSwitcher.Trigger
+
+The button that opens the theme menu: an `IconButton` with an SSR-safe themed icon. The icon and its `"neutral"` intent are owned by the trigger — to render a completely custom trigger, compose `DropdownMenu` + `ThemeDropdownMenuRadioGroup` directly.
+
+All props from [`IconButton`](/components/actions/icon-button) except `icon`, `intent`, `asChild`, and `children` (the trigger renders only its icon and visually-hidden label), plus:
+
+| Prop          | Type                    | Default          | Description                                                                                        |
+| ------------- | ----------------------- | ---------------- | -------------------------------------------------------------------------------------------------- |
+| `appearance?` | `"ghost" \| "outlined"` | `"ghost"`        | The visual style of the trigger `IconButton`.                                                      |
+| `label?`      | `string`                | `"Change Theme"` | The accessible name for the trigger `IconButton`. Visually hidden but announced to screen readers. |
+
+### ThemeSwitcher.Content
+
+The popover the trigger opens: a thin forwarding wrapper over [`DropdownMenu.Content`](/components/overlays/dropdown-menu#dropdownmenucontent). Renders `ThemeDropdownMenuRadioGroup` when no `children` are given.
+
+All props from [`DropdownMenu.Content`](/components/overlays/dropdown-menu#dropdownmenucontent) (`align`, `side`, `collisionPadding`, `className`, …), plus:
+
+| Prop        | Type        | Default                          | Description                                                                       |
+| ----------- | ----------- | -------------------------------- | --------------------------------------------------------------------------------- |
+| `children?` | `ReactNode` | `<ThemeDropdownMenuRadioGroup/>` | The menu contents. Defaults to the five-theme radio group when omitted or `null`. |
 
 ### ThemeDropdownMenuRadioGroup
 

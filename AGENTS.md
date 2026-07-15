@@ -33,7 +33,7 @@ Required diff-audit checklist:
 - Nullish checks: `== null` / `!= null`, not `=== undefined` / `!== undefined`.
 - Imports: relative paths in `packages/`, `~/...` aliases in `apps/`; named exports; `import type` for type-only imports.
 - className: composed with `cx` from `@ngrok/mantle/cx` — no string interpolation, `+`, or ternaries inside `className`.
-- Compound components: single-level POJO namespace — no nested namespaces.
+- Compound components: single-level POJO namespace — no nested namespaces; no `*Props` prop-bag passthrough props (`contentProps`, `triggerProps`, …) — expose the internal element as a compound part instead.
 - Deps: exact-pinned versions (no `^`/`~`); shared deps go through the `catalog:` in `pnpm-workspace.yaml`.
 
 ## Setup
