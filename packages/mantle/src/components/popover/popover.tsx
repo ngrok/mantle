@@ -17,7 +17,7 @@ import { cx } from "../../utils/cx/cx.js";
  * ```tsx
  * <Popover.Root>
  *   <Popover.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Open Popover
  *     </Button>
  *   </Popover.Trigger>
@@ -39,7 +39,7 @@ Root.displayName = "Popover";
  * ```tsx
  * <Popover.Root>
  *   <Popover.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Open Popover
  *     </Button>
  *   </Popover.Trigger>
@@ -61,7 +61,7 @@ Trigger.displayName = "PopoverTrigger";
  * ```tsx
  * <Popover.Root>
  *   <Popover.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Open Popover
  *     </Button>
  *   </Popover.Trigger>
@@ -86,14 +86,14 @@ Anchor.displayName = "PopoverAnchor";
  * ```tsx
  * <Popover.Root>
  *   <Popover.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Open Popover
  *     </Button>
  *   </Popover.Trigger>
  *   <Popover.Content>
  *     <p>This is the popover content.</p>
  *     <Popover.Close asChild>
- *       <Button type="button">Close</Button>
+ *       <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *     </Popover.Close>
  *   </Popover.Content>
  * </Popover.Root>
@@ -127,7 +127,7 @@ type PopoverContentProps = ComponentPropsWithoutRef<typeof PopoverPrimitive.Cont
  * ```tsx
  * <Popover.Root>
  *   <Popover.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Open Popover
  *     </Button>
  *   </Popover.Trigger>
@@ -213,7 +213,7 @@ Content.displayName = "PopoverContent";
  * ```tsx
  * <Popover.Root>
  *   <Popover.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Open Popover
  *     </Button>
  *   </Popover.Trigger>
@@ -237,7 +237,7 @@ const Popover = {
 	 * ```tsx
 	 * <Popover.Root>
 	 *   <Popover.Trigger asChild>
-	 *     <Button>Open popover</Button>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Open popover</Button>
 	 *   </Popover.Trigger>
 	 *   <Popover.Content>
 	 *     <p>This is the popover content.</p>
@@ -258,12 +258,12 @@ const Popover = {
 	 *     <div>Position relative to this element</div>
 	 *   </Popover.Anchor>
 	 *   <Popover.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">Open Popover</Button>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Open Popover</Button>
 	 *   </Popover.Trigger>
 	 *   <Popover.Content>
 	 *     <p>This popover is positioned relative to the anchor.</p>
 	 *     <Popover.Close asChild>
-	 *       <Button type="button">Close</Button>
+	 *       <Button type="button" appearance="outlined" intent="neutral">Close</Button>
 	 *     </Popover.Close>
 	 *   </Popover.Content>
 	 * </Popover.Root>
@@ -279,13 +279,13 @@ const Popover = {
 	 * ```tsx
 	 * <Popover.Root>
 	 *   <Popover.Trigger asChild>
-	 *     <Button type="button">Settings</Button>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Settings</Button>
 	 *   </Popover.Trigger>
 	 *   <Popover.Content>
 	 *     <div className="flex items-center justify-between">
 	 *       <Text>Settings Panel</Text>
 	 *       <Popover.Close asChild>
-	 *         <Button type="button" appearance="ghost" size="sm">✕</Button>
+	 *         <IconButton type="button" appearance="ghost" intent="neutral" size="sm" label="Close" icon={<XIcon />} />
 	 *       </Popover.Close>
 	 *     </div>
 	 *     <Text>Configure your preferences here.</Text>
@@ -307,13 +307,13 @@ const Popover = {
 	 * ```tsx
 	 * <Popover.Root>
 	 *   <Popover.Trigger asChild>
-	 *     <Button type="button">Show Info</Button>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Show Info</Button>
 	 *   </Popover.Trigger>
 	 *   <Popover.Content side="top" align="center">
 	 *     <div className="space-y-2">
 	 *       <Text weight="strong">Additional Information</Text>
 	 *       <Text>This is the content inside the popover.</Text>
-	 *       <Button type="button" size="sm">Action</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral" size="sm">Action</Button>
 	 *     </div>
 	 *   </Popover.Content>
 	 * </Popover.Root>
@@ -329,14 +329,14 @@ const Popover = {
 	 * ```tsx
 	 * <Popover.Root>
 	 *   <Popover.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Options
 	 *     </Button>
 	 *   </Popover.Trigger>
 	 *   <Popover.Content>
 	 *     <div className="space-y-2">
-	 *       <Button type="button" variant="ghost">Edit</Button>
-	 *       <Button type="button" variant="ghost">Delete</Button>
+	 *       <Button type="button" appearance="ghost" intent="neutral">Edit</Button>
+	 *       <Button type="button" appearance="ghost" intent="danger">Delete</Button>
 	 *     </div>
 	 *   </Popover.Content>
 	 * </Popover.Root>

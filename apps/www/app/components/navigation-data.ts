@@ -311,6 +311,7 @@ export const migrationPages = [
 	"CodeBlock",
 	"DataTable Action Column",
 	"Dialog.Footer DOM Order",
+	"Priority → Intent",
 ] as const;
 
 /** Route lookup for migration guide pages. */
@@ -318,6 +319,7 @@ export const migrationRoutes = {
 	CodeBlock: "/migrations/code-block-migration",
 	"DataTable Action Column": "/migrations/data-table-action-header-migration",
 	"Dialog.Footer DOM Order": "/migrations/dialog-footer-dom-order-migration",
+	"Priority → Intent": "/migrations/priority-to-intent-migration",
 } as const satisfies Record<(typeof migrationPages)[number], Route>;
 
 /** Short descriptions for the migration guide index page. */
@@ -327,6 +329,8 @@ export const migrationDescriptions = {
 		"Switch a pinned action column's header to DataTable.ActionHeader so it stays aligned on horizontal scroll.",
 	"Dialog.Footer DOM Order":
 		"Dialog.Footer now renders children in DOM order — reverse footer children to preserve their layout.",
+	"Priority → Intent":
+		"priority is now intent across Button, Alert, AlertDialog, and Toast — and Button and IconButton require explicit appearance and intent.",
 } as const satisfies Record<(typeof migrationPages)[number], string>;
 
 /**

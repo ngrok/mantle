@@ -3,7 +3,7 @@
 import type { ComponentProps } from "react";
 import type { WithStyleProps } from "../../types/with-style-props.js";
 import { BrowserOnly } from "../browser-only/browser-only.js";
-import { IconButton } from "../button/icon-button.js";
+import { IconButton, type IconButtonAppearance } from "../button/icon-button.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { Icon } from "../icon/icon.js";
 import { AutoThemeIcon, ThemeIcon } from "../icons/theme.js";
@@ -49,7 +49,7 @@ type ThemeDropdownMenuRadioGroupProps = WithStyleProps;
  * ```tsx
  * <DropdownMenu.Root>
  *   <DropdownMenu.Trigger asChild>
- *     <Button type="button" appearance="outlined">Theme</Button>
+ *     <Button type="button" appearance="outlined" intent="neutral">Theme</Button>
  *   </DropdownMenu.Trigger>
  *   <DropdownMenu.Content>
  *     <ThemeDropdownMenuRadioGroup />
@@ -62,7 +62,7 @@ type ThemeDropdownMenuRadioGroupProps = WithStyleProps;
  * ```tsx
  * <DropdownMenu.Root>
  *   <DropdownMenu.Trigger asChild>
- *     <Button type="button" appearance="outlined">Account</Button>
+ *     <Button type="button" appearance="outlined" intent="neutral">Account</Button>
  *   </DropdownMenu.Trigger>
  *   <DropdownMenu.Content>
  *     <DropdownMenu.Item>Profile</DropdownMenu.Item>
@@ -105,29 +105,36 @@ ThemeDropdownMenuRadioGroup.displayName = "ThemeDropdownMenuRadioGroup";
 /**
  * The props for the `ThemeSwitcher` component.
  */
-type ThemeSwitcherProps = WithStyleProps &
-	Pick<ComponentProps<typeof IconButton>, "appearance"> & {
-		/**
-		 * Props forwarded to the menu's `DropdownMenu.Content` — positioning and
-		 * collision behavior (`align`, `side`, `collisionPadding`, …) plus
-		 * `className`/`style` for the popover the trigger opens. To own the whole
-		 * menu instead, compose `ThemeDropdownMenuRadioGroup` in your own
-		 * `DropdownMenu`.
-		 *
-		 * @example
-		 * ```tsx
-		 * <ThemeSwitcher contentProps={{ collisionPadding: { right: 16 } }} />
-		 * ```
-		 */
-		contentProps?: Omit<ComponentProps<typeof DropdownMenu.Content>, "children">;
-		/**
-		 * The accessible name for the trigger `IconButton`. Visually hidden but
-		 * announced to screen readers. Override it for localization.
-		 *
-		 * @default "Change Theme"
-		 */
-		label?: string;
-	};
+type ThemeSwitcherProps = WithStyleProps & {
+	/**
+	 * The visual style of the trigger `IconButton`. Optional here —
+	 * `ThemeSwitcher` defaults to `"ghost"` so the trigger sits quietly in
+	 * headers and toolbars.
+	 *
+	 * @default "ghost"
+	 */
+	appearance?: IconButtonAppearance;
+	/**
+	 * Props forwarded to the menu's `DropdownMenu.Content` — positioning and
+	 * collision behavior (`align`, `side`, `collisionPadding`, …) plus
+	 * `className`/`style` for the popover the trigger opens. To own the whole
+	 * menu instead, compose `ThemeDropdownMenuRadioGroup` in your own
+	 * `DropdownMenu`.
+	 *
+	 * @example
+	 * ```tsx
+	 * <ThemeSwitcher contentProps={{ collisionPadding: { right: 16 } }} />
+	 * ```
+	 */
+	contentProps?: Omit<ComponentProps<typeof DropdownMenu.Content>, "children">;
+	/**
+	 * The accessible name for the trigger `IconButton`. Visually hidden but
+	 * announced to screen readers. Override it for localization.
+	 *
+	 * @default "Change Theme"
+	 */
+	label?: string;
+};
 
 /**
  * The canonical picker for mantle's theme system: a compact `IconButton`
@@ -154,7 +161,7 @@ type ThemeSwitcherProps = WithStyleProps &
  * ```
  */
 const ThemeSwitcher = ({
-	appearance,
+	appearance = "ghost",
 	className,
 	contentProps,
 	label = "Change Theme",
@@ -164,9 +171,10 @@ const ThemeSwitcher = ({
 		<DropdownMenu.Trigger asChild>
 			<IconButton
 				type="button"
-				appearance={appearance ?? "ghost"}
+				appearance={appearance}
 				className={className}
 				data-slot="theme-switcher"
+				intent="neutral"
 				icon={
 					<BrowserOnly fallback={<Skeleton className="rounded-full size-5" />}>
 						{() => <AutoThemeIcon className="size-5" />}

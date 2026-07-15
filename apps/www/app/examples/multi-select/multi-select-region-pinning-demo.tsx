@@ -135,7 +135,7 @@ export function RegionPinningDemo() {
 							<p className="text-accent-600 text-sm font-medium flex-1">
 								Upgrade your plan to specify regions, PoPs, and dedicated IPs.
 							</p>
-							<Button appearance="filled" priority="neutral" className="shrink-0" asChild>
+							<Button appearance="filled" intent="neutral" className="shrink-0" asChild>
 								<Link to="#">Upgrade to Pay-as-you-go</Link>
 							</Button>
 						</div>

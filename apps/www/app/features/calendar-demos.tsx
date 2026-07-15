@@ -13,7 +13,13 @@ export function PopoverCalendarExample() {
 	return (
 		<Popover.Root>
 			<Popover.Trigger asChild>
-				<IconButton type="button" icon={<CalendarIcon />} label="Open calendar popover" />
+				<IconButton
+					type="button"
+					appearance="outlined"
+					intent="neutral"
+					icon={<CalendarIcon />}
+					label="Open calendar popover"
+				/>
 			</Popover.Trigger>
 			<Popover.Content>
 				<Calendar mode="single" onSelect={(value) => setDate(value)} selected={date} />

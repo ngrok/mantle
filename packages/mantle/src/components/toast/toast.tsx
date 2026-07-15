@@ -108,7 +108,7 @@ type MakeToastOptions = {
  * ```tsx
  * // Basic toast with auto-dismiss (default 4000ms, inherits from `<Toaster>`)
  * makeToast(
- *   <Toast.Root priority="success">
+ *   <Toast.Root intent="success">
  *     <Toast.Icon />
  *     <Toast.Message>Operation completed successfully!</Toast.Message>
  *     <Toast.Action>Dismiss</Toast.Action>
@@ -117,7 +117,7 @@ type MakeToastOptions = {
  *
  * // Toast that stays open until manually dismissed
  * makeToast(
- *   <Toast.Root priority="warning">
+ *   <Toast.Root intent="warning">
  *     <Toast.Icon />
  *     <Toast.Message>Action required</Toast.Message>
  *     <Toast.Action>Dismiss</Toast.Action>
@@ -145,37 +145,45 @@ function makeToast(children: ReactNode, options?: MakeToastOptions) {
 	);
 }
 
-const priorities = [
+const intents = [
 	//,
 	"danger",
 	"info",
 	"success",
 	"warning",
 ] as const;
-type Priority = (typeof priorities)[number];
+
+/**
+ * The intent of a toast: the tone or status that the toast's color communicates.
+ */
+type ToastIntent = (typeof intents)[number];
 
 type ToastState = {
-	priority: Priority;
+	intent: ToastIntent;
 };
 
 const ToastStateContext = createContext<ToastState>({
-	priority: "info",
+	intent: "info",
 });
 
 type ToastProps = ComponentProps<"div"> &
 	WithAsChild & {
-		priority: Priority;
+		/**
+		 * The intent of the toast: the tone or status that the toast's color communicates.
+		 */
+		intent: ToastIntent;
 	};
 
 /**
- * A succinct message with a priority that is displayed temporarily.
+ * A succinct message with an intent that is displayed temporarily. The intent
+ * is the tone or status that the toast's color communicates.
  * Toasts are used to provide feedback to the user without interrupting their workflow.
  *
  * @see https://mantle.ngrok.com/components/feedback/toast#toastroot
  *
  * @example
  * ```tsx
- * <Toast.Root priority="success">
+ * <Toast.Root intent="success">
  *   <Toast.Icon />
  *   <Toast.Message>Changes saved successfully!</Toast.Message>
  *   <Toast.Action>Undo</Toast.Action>
@@ -183,9 +191,9 @@ type ToastProps = ComponentProps<"div"> &
  * ```
  */
 const Root = forwardRef<ComponentRef<"div">, ToastProps>(
-	({ asChild, children, className, priority, ...props }, ref) => {
+	({ asChild, children, className, intent, ...props }, ref) => {
 		const Component = asChild ? Slot : "div";
-		const contextValue = useMemo(() => ({ priority }), [priority]);
+		const contextValue = useMemo(() => ({ intent }), [intent]);
 
 		return (
 			<ToastStateContext.Provider value={contextValue}>
@@ -196,16 +204,16 @@ const Root = forwardRef<ComponentRef<"div">, ToastProps>(
 						"p-3 pl-3.75",
 						"bg-popover high-contrast:border-popover rounded rounded-r-[0.3125rem] border border-gray-500/35 shadow-lg",
 						/**
-						 * Do not apply overflow-hidden because we want the priority bar accent
+						 * Do not apply overflow-hidden because we want the intent bar accent
 						 * to overlap the toast border, else the border flows over the
-						 * priority bar.
+						 * intent bar.
 						 */
 						className,
 					)}
 					ref={ref}
 					{...props}
 				>
-					<PriorityBarAccent priority={priority} />
+					<IntentBarAccent intent={intent} />
 					{children}
 				</Component>
 			</ToastStateContext.Provider>
@@ -217,14 +225,14 @@ Root.displayName = "Toast";
 type ToastIconProps = Partial<SvgOnlyProps>;
 
 /**
- * An icon that visually represents the priority of the toast.
- * If you do not provide an icon, the default icon and color for the priority is used.
+ * An icon that visually represents the intent of the toast.
+ * If you do not provide an icon, the default icon and color for the intent is used.
  *
  * @see https://mantle.ngrok.com/components/feedback/toast#toasticon
  *
  * @example
  * ```tsx
- * <Toast.Root priority="warning">
+ * <Toast.Root intent="warning">
  *   <Toast.Icon />
  *   <Toast.Message>Warning message</Toast.Message>
  * </Toast.Root>
@@ -234,7 +242,7 @@ const Icon = forwardRef<ComponentRef<"svg">, ToastIconProps>(
 	({ className, svg, ...props }, ref) => {
 		const ctx = useContext(ToastStateContext);
 
-		switch (ctx.priority) {
+		switch (ctx.intent) {
 			case "danger":
 				return (
 					<IconComponent
@@ -277,7 +285,7 @@ const Icon = forwardRef<ComponentRef<"svg">, ToastIconProps>(
 					/>
 				);
 			default:
-				throw new Error(`Unreachable Case: ${ctx.priority}`);
+				throw new Error(`Unreachable Case: ${ctx.intent}`);
 		}
 	},
 );
@@ -293,7 +301,7 @@ type ToastActionProps = ComponentProps<"button"> & WithAsChild;
  *
  * @example
  * ```tsx
- * <Toast.Root priority="info">
+ * <Toast.Root intent="info">
  *   <Toast.Icon />
  *   <Toast.Message>File uploaded successfully</Toast.Message>
  *   <Toast.Action>View File</Toast.Action>
@@ -342,7 +350,7 @@ type ToastMessageProps = ComponentProps<"p"> & WithAsChild;
  *
  * @example
  * ```tsx
- * <Toast.Root priority="success">
+ * <Toast.Root intent="success">
  *   <Toast.Icon />
  *   <Toast.Message>Your changes have been saved</Toast.Message>
  * </Toast.Root>
@@ -383,7 +391,7 @@ Message.displayName = "ToastMessage";
  * @example
  * ```tsx
  * makeToast(
- *   <Toast.Root priority="success">
+ *   <Toast.Root intent="success">
  *     <Toast.Icon />
  *     <Toast.Message>Operation completed successfully!</Toast.Message>
  *     <Toast.Action>Dismiss</Toast.Action>
@@ -393,13 +401,13 @@ Message.displayName = "ToastMessage";
  */
 const Toast = {
 	/**
-	 * A succinct message with a priority that is displayed temporarily.
+	 * A succinct message with an intent that is displayed temporarily.
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/toast#toastroot
 	 *
 	 * @example
 	 * ```tsx
-	 * <Toast.Root priority="success">
+	 * <Toast.Root intent="success">
 	 *   <Toast.Icon />
 	 *   <Toast.Message>Changes saved successfully!</Toast.Message>
 	 *   <Toast.Action>Undo</Toast.Action>
@@ -414,7 +422,7 @@ const Toast = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Toast.Root priority="info">
+	 * <Toast.Root intent="info">
 	 *   <Toast.Icon />
 	 *   <Toast.Message>File uploaded successfully</Toast.Message>
 	 *   <Toast.Action>View File</Toast.Action>
@@ -423,13 +431,13 @@ const Toast = {
 	 */
 	Action,
 	/**
-	 * An icon that visually represents the priority of the toast.
+	 * An icon that visually represents the intent of the toast.
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/toast#toasticon
 	 *
 	 * @example
 	 * ```tsx
-	 * <Toast.Root priority="warning">
+	 * <Toast.Root intent="warning">
 	 *   <Toast.Icon />
 	 *   <Toast.Message>Warning message</Toast.Message>
 	 * </Toast.Root>
@@ -443,7 +451,7 @@ const Toast = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Toast.Root priority="success">
+	 * <Toast.Root intent="success">
 	 *   <Toast.Icon />
 	 *   <Toast.Message>Your changes have been saved</Toast.Message>
 	 * </Toast.Root>
@@ -461,7 +469,7 @@ export {
 
 export type {
 	//,
-	Priority,
+	ToastIntent,
 };
 
 /**
@@ -493,30 +501,30 @@ export function preventCloseOnPromptInteraction(
 	}
 }
 
-const priorityBackgroundColor = {
+const intentBackgroundColor = {
 	info: "bg-accent-600",
 	warning: "bg-warning-600",
 	success: "bg-success-600",
 	danger: "bg-danger-600",
-} as const satisfies Record<Priority, string>;
+} as const satisfies Record<ToastIntent, string>;
 
-type PriorityBarAccentProps = Omit<ComponentProps<"div">, "children"> & {
-	priority: Priority;
+type IntentBarAccentProps = Omit<ComponentProps<"div">, "children"> & {
+	intent: ToastIntent;
 };
 
 /**
  * @private
  *
- * A colored bar that visually represents the priority of the toast.
+ * A colored bar that visually represents the intent of the toast.
  */
-function PriorityBarAccent({ className, priority, ...props }: PriorityBarAccentProps) {
+function IntentBarAccent({ className, intent, ...props }: IntentBarAccentProps) {
 	return (
 		<div
 			aria-hidden
 			className={cx(
 				//
 				"z-1 absolute -inset-px right-auto w-1.5 rounded-l",
-				priorityBackgroundColor[priority],
+				intentBackgroundColor[intent],
 				className,
 			)}
 			{...props}

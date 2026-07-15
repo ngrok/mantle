@@ -10,12 +10,16 @@ import { createContext, forwardRef, useContext, useMemo } from "react";
 import invariant from "tiny-invariant";
 import { $cssProperties, type WithAsChild } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
-import { IconButton, type IconButtonProps } from "../button/icon-button.js";
+import {
+	IconButton,
+	type IconButtonAppearance,
+	type IconButtonProps,
+} from "../button/icon-button.js";
 import { SvgOnly } from "../icon/svg-only.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { Slot } from "../slot/index.js";
 
-const priorities = [
+const intents = [
 	//,
 	"danger",
 	"important",
@@ -24,13 +28,13 @@ const priorities = [
 	"success",
 	"warning",
 ] as const;
-type Priority = (typeof priorities)[number];
+type AlertIntent = (typeof intents)[number];
 
 const appearances = ["banner", "default"] as const;
 type Appearance = (typeof appearances)[number];
 
 type AlertContextValue = {
-	priority: Priority;
+	intent: AlertIntent;
 };
 
 const AlertContext = createContext<AlertContextValue | null>(null);
@@ -48,10 +52,10 @@ const alertVariants = cva(
 	{
 		variants: {
 			/**
-			 * The priority of the Alert. Indicates the importance or impact level of the Alert,
-			 * affecting its color and styling to communicate its purpose to the user.
+			 * The intent of the Alert — the status its color communicates to the user,
+			 * determining the color and styling of the Alert.
 			 */
-			priority: {
+			intent: {
 				danger:
 					"border-danger-500/50 bg-danger-500/10 text-danger-700 [&_code]:bg-danger-500/10 [&_code]:border-danger-500/20 [&_code]:text-danger-900 [&_a]:text-danger-700 [&_a]:underline",
 				important:
@@ -62,7 +66,7 @@ const alertVariants = cva(
 					"border-success-500/50 bg-success-500/10 text-success-700 [&_code]:bg-success-500/10 [&_code]:border-success-500/20 [&_code]:text-success-900 [&_a]:text-success-700 [&_a]:underline",
 				warning:
 					"border-warning-500/50 bg-warning-500/10 text-warning-700 [&_code]:bg-warning-500/10 [&_code]:border-warning-500/20 [&_code]:text-warning-900 [&_a]:text-warning-700 [&_a]:underline",
-			} as const satisfies Record<Priority, string>,
+			} as const satisfies Record<AlertIntent, string>,
 			/**
 			 * Controls the visual style of the Alert.
 			 * - "default" provides standard rounded corners and borders.
@@ -71,46 +75,20 @@ const alertVariants = cva(
 			 * @default "default"
 			 */
 			appearance: {
+				// TODO: banner bg should color-mix with bg-popover per intent
 				banner: "border-x-0 border-t-0 rounded-none z-50 sticky",
 				default: "",
 			} as const satisfies Record<Appearance, string>,
 		},
-		compoundVariants: [
-			{
-				priority: "danger",
-				appearance: "banner",
-				className: "", // placeholder for different bg-color (color-mix w/ bg-popover)
-			},
-			{
-				priority: "important",
-				appearance: "banner",
-				className: "", // placeholder for different bg-color (color-mix w/ bg-popover)
-			},
-			{
-				priority: "info",
-				appearance: "banner",
-				className: "", // placeholder for different bg-color (color-mix w/ bg-popover)
-			},
-			{
-				priority: "success",
-				appearance: "banner",
-				className: "", // placeholder for different bg-color (color-mix w/ bg-popover)
-			},
-			{
-				priority: "warning",
-				appearance: "banner",
-				className: "", // placeholder for different bg-color (color-mix w/ bg-popover)
-			},
-		],
 	},
 );
 
 type AlertProps = ComponentProps<"div"> & {
 	/**
-	 * Indicates the importance or impact level of the Alert, affecting its
-	 * color and styling to communicate its purpose to the user.
+	 * The intent of the Alert — the status its color communicates to the user,
+	 * determining the color and styling of the Alert.
 	 */
-	priority: Priority;
+	intent: AlertIntent;
 	/**
 	 * Controls the visual style of the Alert.
 	 * - "default" provides standard rounded corners and borders.
@@ -128,7 +106,7 @@ type AlertProps = ComponentProps<"div"> & {
  *
  * @example
  * ```tsx
- * <Alert priority="info">
+ * <Alert intent="info">
  *   <AlertIcon />
  *   <AlertContent>
  *     <AlertTitle>Alert Title</AlertTitle>
@@ -141,15 +119,15 @@ type AlertProps = ComponentProps<"div"> & {
  *```
  */
 const Root = forwardRef<ComponentRef<"div">, AlertProps>(
-	({ appearance = "default", className, priority, ...props }, ref) => {
-		const context: AlertContextValue = useMemo(() => ({ priority }), [priority]);
+	({ appearance = "default", className, intent, ...props }, ref) => {
+		const context: AlertContextValue = useMemo(() => ({ intent }), [intent]);
 
 		return (
 			<AlertContext.Provider value={context}>
 				<div
 					ref={ref}
 					data-slot="alert"
-					className={cx(alertVariants({ appearance, priority }), className)}
+					className={cx(alertVariants({ appearance, intent }), className)}
 					{...props}
 				/>
 			</AlertContext.Provider>
@@ -160,13 +138,13 @@ Root.displayName = "Alert";
 
 type AlertIconProps = Omit<SvgAttributes, "children"> & {
 	/**
-	 * An optional icon that renders in place of the default icon for the Alert priority.
+	 * An optional icon that renders in place of the default icon for the Alert intent.
 	 */
 	svg?: ReactNode;
 };
 
 /**
- * Default `<AlertIcon>` icons for each priority.
+ * Default `<AlertIcon>` icons for each intent.
  */
 const defaultIcons = {
 	danger: <WarningIcon />,
@@ -175,10 +153,10 @@ const defaultIcons = {
 	// neutral: <BellRinging />,
 	success: <CheckCircleIcon />,
 	warning: <WarningDiamondIcon />,
-} as const satisfies Record<Priority, ReactNode>;
+} as const satisfies Record<AlertIntent, ReactNode>;
 
 /**
- * An optional icon that visually represents the priority of the Alert.
+ * An optional icon that visually represents the intent of the Alert.
  *
  * The default rendered icon be overridden with a custom icon using the `svg` prop.
  *
@@ -186,7 +164,7 @@ const defaultIcons = {
  *
  * @example
  * ```tsx
- * <Alert priority="info">
+ * <Alert intent="info">
  *   <AlertIcon />
  *   <AlertContent>
  *     <AlertTitle>Alert Title</AlertTitle>
@@ -201,7 +179,7 @@ const defaultIcons = {
 const Icon = forwardRef<ComponentRef<"svg">, AlertIconProps>(
 	({ className, svg, ...props }, ref) => {
 		const ctx = useAlertContext();
-		const defaultIcon = defaultIcons[ctx.priority];
+		const defaultIcon = defaultIcons[ctx.intent];
 
 		return (
 			<SvgOnly
@@ -223,7 +201,7 @@ Icon.displayName = "AlertIcon";
  *
  * @example
  * ```tsx
- * <Alert priority="info">
+ * <Alert intent="info">
  *   <AlertIcon />
  *   <AlertContent>
  *     <AlertTitle>Alert Title</AlertTitle>
@@ -256,7 +234,7 @@ type AlertTitleProps = HTMLAttributes<HTMLHeadingElement> & WithAsChild;
  *
  * @example
  * ```tsx
- * <Alert priority="info">
+ * <Alert intent="info">
  *   <AlertIcon />
  *   <AlertContent>
  *     <AlertTitle>Alert Title</AlertTitle>
@@ -295,7 +273,7 @@ type AlertDescriptionProps = ComponentProps<"div"> & WithAsChild;
  *
  * @example
  * ```tsx
- * <Alert priority="info">
+ * <Alert intent="info">
  *   <AlertIcon />
  *   <AlertContent>
  *     <AlertTitle>Alert Title</AlertTitle>
@@ -323,16 +301,24 @@ const Description = forwardRef<ComponentRef<"div">, AlertDescriptionProps>(
 );
 Description.displayName = "AlertDescription";
 
-const dismissTextColor = <T extends Priority = Priority>(priority: T) =>
-	`var(--color-${priority}-700)`;
+const dismissTextColor = (intent: AlertIntent) => `var(--color-${intent}-700)`;
 
-const dismissHoverColor = <T extends Priority = Priority>(priority: T) =>
-	`var(--color-${priority}-800)`;
+const dismissHoverColor = (intent: AlertIntent) => `var(--color-${intent}-800)`;
 
-const dismissHoverBgColor = <T extends Priority = Priority>(priority: T) =>
-	`color-mix(in oklab, var(--color-${priority}-500) 10%, transparent)`;
+const dismissHoverBgColor = (intent: AlertIntent) =>
+	`color-mix(in oklab, var(--color-${intent}-500) 10%, transparent)`;
 
-type AlertDismissIconButtonProps = Partial<Omit<IconButtonProps, "icon">> & {
+type AlertDismissIconButtonProps = Partial<
+	Omit<IconButtonProps, "appearance" | "icon" | "intent">
+> & {
+	/**
+	 * The visual style of the dismiss button. Optional here —
+	 * `Alert.DismissIconButton` defaults to `"ghost"` so the dismiss affordance
+	 * stays visually quiet inside the Alert.
+	 *
+	 * @default "ghost"
+	 */
+	appearance?: IconButtonAppearance;
 	/**
 	 * An optional icon to render inside the dismiss button. Defaults to an X icon.
 	 */
@@ -354,6 +340,11 @@ const DismissIconButton = ({
 		<IconButton
 			appearance={appearance}
 			icon={icon}
+			// not a public prop: the dismiss button's visible tone is dictated by
+			// the parent Alert's intent via the CSS custom properties below, so a
+			// consumer-passed intent would only half-apply (focus ring, outlined
+			// border) and read as a bug
+			intent="neutral"
 			label={label}
 			size={size}
 			data-slot="alert-dismiss-icon-button"
@@ -367,9 +358,9 @@ const DismissIconButton = ({
 			type={type}
 			style={$cssProperties({
 				...style,
-				"--alert-dismiss-icon-color": dismissTextColor(ctx.priority),
-				"--alert-dismiss-icon-hover-color": dismissHoverColor(ctx.priority),
-				"--alert-dismiss-hover-bg": dismissHoverBgColor(ctx.priority),
+				"--alert-dismiss-icon-color": dismissTextColor(ctx.intent),
+				"--alert-dismiss-icon-hover-color": dismissHoverColor(ctx.intent),
+				"--alert-dismiss-hover-bg": dismissHoverBgColor(ctx.intent),
 			})}
 			{...props}
 		/>
@@ -395,7 +386,7 @@ DismissIconButton.displayName = "AlertDismissIconButton";
  *
  * @example
  * ```tsx
- * <Alert priority="info">
+ * <Alert intent="info">
  *   <AlertIcon />
  *   <AlertContent>
  *     <AlertTitle>Alert Title</AlertTitle>
@@ -415,7 +406,7 @@ const Alert = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Alert.Root priority="info">
+	 * <Alert.Root intent="info">
 	 *   <Alert.Icon />
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
@@ -432,7 +423,7 @@ const Alert = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Alert.Root priority="info">
+	 * <Alert.Root intent="info">
 	 *   <Alert.Icon />
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
@@ -449,7 +440,7 @@ const Alert = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Alert.Root priority="info">
+	 * <Alert.Root intent="info">
 	 *   <Alert.Icon />
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
@@ -466,7 +457,7 @@ const Alert = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Alert.Root priority="info">
+	 * <Alert.Root intent="info">
 	 *   <Alert.Icon />
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
@@ -478,13 +469,13 @@ const Alert = {
 	 */
 	DismissIconButton,
 	/**
-	 * An optional icon that visually represents the priority of the Alert.
+	 * An optional icon that visually represents the intent of the Alert.
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/alert#alerticon
 	 *
 	 * @example
 	 * ```tsx
-	 * <Alert.Root priority="info">
+	 * <Alert.Root intent="info">
 	 *   <Alert.Icon />
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
@@ -501,7 +492,7 @@ const Alert = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Alert.Root priority="info">
+	 * <Alert.Root intent="info">
 	 *   <Alert.Icon />
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>

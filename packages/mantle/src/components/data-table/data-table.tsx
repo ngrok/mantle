@@ -21,8 +21,9 @@ import {
 import invariant from "tiny-invariant";
 import { cx } from "../../utils/cx/cx.js";
 import { $timeSortingDirection, type SortingMode } from "../../utils/sorting/direction.js";
-import { Button } from "../button/button.js";
-import { IconButton } from "../button/icon-button.js";
+import { Button, type ButtonAppearance } from "../button/button.js";
+import { IconButton, type IconButtonAppearance } from "../button/icon-button.js";
+import type { ButtonIntent } from "../button/intents.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { SortIcon } from "../icons/sort.js";
 import { Table } from "../table/table.js";
@@ -111,9 +112,24 @@ function Root<TData>({ children, table, ...props }: DataTableProps<TData>) {
 	);
 }
 
-type DataTableHeaderSortButtonProps<TData, TValue> = Omit<ComponentProps<typeof Button>, "icon"> &
-	Pick<HeaderContext<TData, TValue>, "column"> &
-	(
+type DataTableHeaderSortButtonProps<TData, TValue> = Omit<
+	ComponentProps<typeof Button>,
+	"appearance" | "icon" | "intent"
+> &
+	Pick<HeaderContext<TData, TValue>, "column"> & {
+		/**
+		 * The visual style of the sort button. Optional — the header sort button's
+		 * design is a ghost button, so the wrapper defaults it.
+		 * @default "ghost"
+		 */
+		appearance?: ButtonAppearance;
+		/**
+		 * The tone of the sort button. Optional — the header sort button's design
+		 * is neutral-toned, so the wrapper defaults it.
+		 * @default "neutral"
+		 */
+		intent?: ButtonIntent;
+	} & (
 		| {
 				/**
 				 * Disable sorting for this column.
@@ -175,11 +191,13 @@ type DataTableHeaderSortButtonProps<TData, TValue> = Omit<ComponentProps<typeof 
  * ```
  */
 function HeaderSortButton<TData, TValue>({
+	appearance = "ghost",
 	children,
 	className,
 	column,
 	disableSorting = false,
 	iconPlacement = "end",
+	intent = "neutral",
 	sortingMode,
 	sortIcon: propSortIcon,
 	onClick,
@@ -197,10 +215,14 @@ function HeaderSortButton<TData, TValue>({
 
 	return (
 		<Button
-			appearance="ghost"
+			appearance={appearance}
 			data-slot="data-table-header-sort-button"
 			className={cx(
-				"flex justify-start w-full h-full rounded-none not-disabled:active:scale-none text-muted",
+				"flex justify-start w-full h-full rounded-none not-disabled:active:scale-none",
+				// Only mute the default ghost+neutral design; the consumer className is
+				// merged last by tw-merge, so an unconditional text-muted would strip the
+				// tone text color from every non-default appearance/intent combination.
+				appearance === "ghost" && intent === "neutral" && "text-muted",
 				className,
 			)}
 			data-sort-direction={sortDirection}
@@ -217,7 +239,7 @@ function HeaderSortButton<TData, TValue>({
 				}
 				toggleNextSortingDirection(column, sortingMode);
 			}}
-			priority="neutral"
+			intent={intent}
 			type="button"
 			{...props}
 		>
@@ -487,7 +509,7 @@ type DataTableEmptyRowProps = ComponentProps<typeof Table.Row>;
  *           <Button
  *             type="button"
  *             appearance="outlined"
- *             priority="neutral"
+ *             intent="neutral"
  *             onClick={() => table.setGlobalFilter("")}
  *           >
  *             Clear filters
@@ -722,8 +744,20 @@ const defaultCollapseIcon = <MinusIcon weight="bold" className="size-3.5" />;
 
 type DataTableRowExpandButtonProps<TData> = Omit<
 	ComponentProps<typeof IconButton>,
-	"aria-controls" | "aria-expanded" | "icon" | "label"
+	"appearance" | "aria-controls" | "aria-expanded" | "icon" | "intent" | "label"
 > & {
+	/**
+	 * The visual style of the expand toggle. Optional — the row expand button's
+	 * design is a ghost button, so the wrapper defaults it.
+	 * @default "ghost"
+	 */
+	appearance?: IconButtonAppearance;
+	/**
+	 * The tone of the expand toggle. Optional — the row expand button's design
+	 * is neutral-toned, so the wrapper defaults it.
+	 * @default "neutral"
+	 */
+	intent?: ButtonIntent;
 	/**
 	 * The TanStack Table row this button toggles. The table must be configured for
 	 * expansion (`getExpandedRowModel`, plus `getRowCanExpand: () => true` for
@@ -780,6 +814,7 @@ function RowExpandButton<TData>({
 	className,
 	collapseIcon = defaultCollapseIcon,
 	expandIcon = defaultExpandIcon,
+	intent = "neutral",
 	label,
 	onClick,
 	row,
@@ -798,6 +833,7 @@ function RowExpandButton<TData>({
 			type="button"
 			data-slot="data-table-row-expand-button"
 			appearance={appearance}
+			intent={intent}
 			size={size}
 			className={cx("rounded", className)}
 			aria-expanded={isExpanded}
@@ -1116,7 +1152,7 @@ RowExpandButton.displayName = "DataTableRowExpandButton";
  *                   <Button
  *                     type="button"
  *                     appearance="outlined"
- *                     priority="neutral"
+ *                     intent="neutral"
  *                     onClick={() => setGlobalFilter("")}
  *                   >
  *                     Clear filters
@@ -1164,7 +1200,7 @@ RowExpandButton.displayName = "DataTableRowExpandButton";
  * ```tsx
  * import { DataTable, createColumnHelper } from "@ngrok/mantle/data-table";
  * import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
- * import { IconButton } from "@ngrok/mantle/icon-button";
+ * import { IconButton } from "@ngrok/mantle/button";
  * import { DotsThreeVerticalIcon } from "@phosphor-icons/react/DotsThreeVertical";
  *
  * const columnHelper = createColumnHelper<Payment>();
@@ -1178,7 +1214,7 @@ RowExpandButton.displayName = "DataTableRowExpandButton";
  *       <DataTable.ActionCell onClick={(event) => event.stopPropagation()}>
  *         <DropdownMenu.Root>
  *           <DropdownMenu.Trigger asChild>
- *             <IconButton type="button" label="Actions" icon={<DotsThreeVerticalIcon />} />
+ *             <IconButton type="button" appearance="outlined" intent="neutral" label="Actions" icon={<DotsThreeVerticalIcon />} />
  *           </DropdownMenu.Trigger>
  *           <DropdownMenu.Content align="end">
  *             <DropdownMenu.Item onSelect={() => copy(props.row.original.id)}>

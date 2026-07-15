@@ -1118,7 +1118,7 @@ type MultiSelectContentFooterProps = ComponentPropsWithoutRef<"div">;
  *     <MultiSelect.Item value="apple">Apple</MultiSelect.Item>
  *     <MultiSelect.ContentFooter>
  *       <p>Upgrade to unlock more options.</p>
- *       <Button>Upgrade</Button>
+ *       <Button appearance="filled" intent="accent">Upgrade</Button>
  *     </MultiSelect.ContentFooter>
  *   </MultiSelect.Content>
  * </MultiSelect.Root>

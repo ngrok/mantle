@@ -17,9 +17,9 @@ A modal dialog that interrupts the user with important content and expects a res
 Use `AlertDialog` for destructive or irreversible confirmations (delete, sign out, leave without saving) where the user must explicitly acknowledge. `AlertDialog` blocks all background interaction. For non-destructive input modals, use [`Dialog`](/components/overlays/dialog).
 
 <Example className="flex-col gap-6">
-	<AlertDialog.Root priority="info">
+	<AlertDialog.Root intent="info">
 		<AlertDialog.Trigger asChild>
-			<Button type="button" appearance="outlined" priority="neutral">
+			<Button type="button" appearance="outlined" intent="neutral">
 				Show Info Alert Dialog
 			</Button>
 		</AlertDialog.Trigger>
@@ -39,9 +39,9 @@ Use `AlertDialog` for destructive or irreversible confirmations (delete, sign ou
 			</AlertDialog.Body>
 		</AlertDialog.Content>
 	</AlertDialog.Root>
-	<AlertDialog.Root priority="danger">
+	<AlertDialog.Root intent="danger">
 		<AlertDialog.Trigger asChild>
-			<Button type="button" appearance="outlined" priority="neutral">
+			<Button type="button" appearance="outlined" intent="neutral">
 				Show Danger Alert Dialog
 			</Button>
 		</AlertDialog.Trigger>
@@ -67,9 +67,9 @@ Use `AlertDialog` for destructive or irreversible confirmations (delete, sign ou
 import { AlertDialog } from "@ngrok/mantle/alert-dialog";
 import { Button } from "@ngrok/mantle/button";
 
-<AlertDialog.Root priority="info">
+<AlertDialog.Root intent="info">
 	<AlertDialog.Trigger asChild>
-		<Button type="button" appearance="outlined" priority="neutral">
+		<Button type="button" appearance="outlined" intent="neutral">
 			Show Info Alert Dialog
 		</Button>
 	</AlertDialog.Trigger>
@@ -162,9 +162,9 @@ function Example() {
 	};
 
 	return (
-		<AlertDialog.Root priority="danger" open={open} onOpenChange={handleOpenChange}>
+		<AlertDialog.Root intent="danger" open={open} onOpenChange={handleOpenChange}>
 			<AlertDialog.Trigger asChild>
-				<Button type="button" appearance="outlined" priority="danger">
+				<Button type="button" appearance="outlined" intent="danger">
 					Release domain
 				</Button>
 			</AlertDialog.Trigger>
@@ -231,9 +231,9 @@ Its floating `AlertDialog.Content` layer renders at Tailwind `z-50`, Mantle's sh
 
 All props from Radix [Dialog.Root](https://www.radix-ui.com/primitives/docs/components/dialog#root), plus:
 
-| Prop       | Type                   | Default | Description                                                                                                              |
-| ---------- | ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `priority` | `"info"` \| `"danger"` |         | Indicates the importance or impact level of the AlertDialog, affecting its color and styling to communicate its purpose. |
+| Prop     | Type                   | Default | Description                                                                                                                            |
+| -------- | ---------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `intent` | `"info"` \| `"danger"` |         | The tone of the alert dialog. Sets the color and icon styling to communicate whether the confirmation is informational or destructive. |
 
 ### AlertDialog.Trigger
 
@@ -301,19 +301,19 @@ Radix [Dialog.Description](https://www.radix-ui.com/primitives/docs/components/d
 
 ### AlertDialog.Action
 
-A button that confirms the Alert Dialog action. Defaults to `appearance="filled"` and the priority color from `AlertDialog.Root`. Does not close the alert dialog by default.
+A button that confirms the Alert Dialog action. Defaults to `appearance="filled"`, with a tone derived from `AlertDialog.Root`'s `intent`: `"danger"` dialogs get a danger button, `"info"` dialogs get an accent one — the Action carries the dialog's tone the same way its icon does. Does not close the alert dialog by default.
 
 These buttons should be distinguished visually from `AlertDialog.Cancel`.
 
-Composes around the mantle [Button](/components/actions/button) component. Same props as [Button](/components/actions/button).
+Composes around the mantle [Button](/components/actions/button) component. All [Button](/components/actions/button) props, except `appearance` and `intent`, which are optional here — when omitted, `appearance` defaults to `"filled"` and `intent` derives from the dialog's `intent` as described above.
 
 ### AlertDialog.Cancel
 
-A button that closes the dialog and cancels the action. Defaults to `appearance="outlined"` and `priority="neutral"`.
+A button that closes the dialog and cancels the action. Defaults to `appearance="outlined"` and `intent="neutral"`.
 
 This button should be distinguished visually from `AlertDialog.Action`.
 
-Composes around the mantle [Button](/components/actions/button) component. Same props as [Button](/components/actions/button).
+Composes around the mantle [Button](/components/actions/button) component. All [Button](/components/actions/button) props, except `appearance` and `intent`, which are optional here — when omitted, they default to `"outlined"` and `"neutral"` as described above.
 
 ### AlertDialog.Icon
 

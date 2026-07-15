@@ -15,17 +15,18 @@ import {
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
-import { Button, type ButtonPriority, type ButtonProps } from "../button/button.js";
+import { Button, type ButtonAppearance, type ButtonProps } from "../button/button.js";
+import type { ButtonIntent } from "../button/intents.js";
 import * as AlertDialogPrimitive from "../dialog/primitive.js";
 import { SvgOnly } from "../icon/svg-only.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { Slot } from "../slot/index.js";
 
-const priorities = ["info", "danger"] as const;
-type Priority = (typeof priorities)[number];
+const intents = ["info", "danger"] as const;
+type AlertDialogIntent = (typeof intents)[number];
 
 type AlertDialogContextValue = {
-	priority: Priority;
+	intent: AlertDialogIntent;
 };
 
 const AlertDialogContext = createContext<AlertDialogContextValue | null>(null);
@@ -38,10 +39,11 @@ function useAlertDialogContext() {
 
 type AlertDialogProps = ComponentProps<typeof AlertDialogPrimitive.Root> & {
 	/**
-	 * Indicates the importance or impact level of the AlertDialog, affecting its
-	 * color and styling to communicate its purpose to the user.
+	 * The intent of the AlertDialog — the tone its color communicates to the
+	 * user, affecting the color and styling of descendants like
+	 * `AlertDialog.Icon` and `AlertDialog.Action`.
 	 */
-	priority: Priority;
+	intent: AlertDialogIntent;
 };
 
 /**
@@ -57,9 +59,9 @@ type AlertDialogProps = ComponentProps<typeof AlertDialogPrimitive.Root> & {
  *
  * @example
  * ```tsx
- * <AlertDialog.Root priority="danger">
+ * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -85,8 +87,8 @@ type AlertDialogProps = ComponentProps<typeof AlertDialogPrimitive.Root> & {
  * </AlertDialog.Root>
  * ```
  */
-function Root({ priority, ...props }: AlertDialogProps) {
-	const context: AlertDialogContextValue = useMemo(() => ({ priority }), [priority]);
+function Root({ intent, ...props }: AlertDialogProps) {
+	const context: AlertDialogContextValue = useMemo(() => ({ intent }), [intent]);
 
 	return (
 		<AlertDialogContext.Provider value={context}>
@@ -103,9 +105,9 @@ Root.displayName = "AlertDialog";
  *
  * @example
  * ```tsx
- * <AlertDialog.Root priority="danger">
+ * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -193,9 +195,9 @@ type AlertDialogContentProps = ComponentPropsWithoutRef<typeof AlertDialogPrimit
  *
  * @example
  * ```tsx
- * <AlertDialog.Root priority="danger">
+ * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -255,9 +257,9 @@ Content.displayName = "AlertDialogContent";
  *
  * @example
  * ```tsx
- * <AlertDialog.Root priority="danger">
+ * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -306,9 +308,9 @@ Body.displayName = "AlertDialogBody";
  *
  * @example
  * ```tsx
- * <AlertDialog.Root priority="danger">
+ * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -357,9 +359,9 @@ Header.displayName = "AlertDialogHeader";
  *
  * @example
  * ```tsx
- * <AlertDialog.Root priority="danger">
+ * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -411,9 +413,9 @@ Footer.displayName = "AlertDialogFooter";
  *
  * @example
  * ```tsx
- * <AlertDialog.Root priority="danger">
+ * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -464,9 +466,9 @@ Title.displayName = "AlertDialogTitle";
  *
  * @example
  * ```tsx
- * <AlertDialog.Root priority="danger">
+ * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -505,9 +507,38 @@ const Description = forwardRef<
 ));
 Description.displayName = "AlertDialogDescription";
 
+type AlertDialogActionProps = Omit<ButtonProps, "appearance" | "intent"> & {
+	/**
+	 * The visual style of the action button. Optional here — `AlertDialog.Action`
+	 * defaults to `"filled"` so the confirming action carries the heaviest
+	 * visual weight in the dialog.
+	 *
+	 * @default "filled"
+	 */
+	appearance?: ButtonAppearance;
+	/**
+	 * The tone of the action button. Optional here — when omitted,
+	 * `AlertDialog.Action` derives the tone from the parent `AlertDialog.Root`'s
+	 * `intent` (`"danger"` → `"danger"`, `"info"` → `"accent"`), so the Action
+	 * carries the dialog's tone the same way its icon does. A passed value
+	 * always wins over the context-derived tone.
+	 */
+	intent?: ButtonIntent;
+};
+
+/**
+ * Default `AlertDialog.Action` button tone for each `AlertDialog` intent.
+ */
+const actionIntentByDialogIntent = {
+	danger: "danger",
+	info: "accent",
+} as const satisfies Record<AlertDialogIntent, ButtonIntent>;
+
 /**
  * A button that confirms the Alert Dialog action.
- * Will default to appearance="filled", as well as the priority color from the `AlertDialog`.
+ * Will default to appearance="filled", with a tone derived from the `AlertDialog`'s
+ * intent: danger dialogs get a danger button, info dialogs get an accent one —
+ * the Action carries the dialog's tone the same way its icon does.
  * Does not close the alert dialog by default.
  *
  * These buttons should be distinguished visually from the AlertDialogCancel button.
@@ -518,9 +549,9 @@ Description.displayName = "AlertDialogDescription";
  *
  * @example
  * ```tsx
- * <AlertDialog.Root priority="danger">
+ * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -546,27 +577,25 @@ Description.displayName = "AlertDialogDescription";
  * </AlertDialog.Root>
  * ```
  */
-const Action = forwardRef<ComponentRef<"button">, ButtonProps>(
+const Action = forwardRef<ComponentRef<"button">, AlertDialogActionProps>(
 	(
 		{
 			//,
 			appearance = "filled",
+			intent,
 			...props
 		},
 		ref,
 	) => {
 		const ctx = useAlertDialogContext();
-		let buttonPriority: NonNullable<ButtonPriority> = "default";
-		if (ctx.priority === "danger") {
-			buttonPriority = "danger";
-		}
+		const contextIntent = actionIntentByDialogIntent[ctx.intent];
 
 		return (
 			<Button
 				//
 				appearance={appearance}
 				data-slot="alert-dialog-action"
-				priority={buttonPriority}
+				intent={intent ?? contextIntent}
 				ref={ref}
 				{...props}
 			/>
@@ -575,9 +604,27 @@ const Action = forwardRef<ComponentRef<"button">, ButtonProps>(
 );
 Action.displayName = "AlertDialogAction";
 
+type AlertDialogCancelProps = Omit<ButtonProps, "appearance" | "intent"> & {
+	/**
+	 * The visual style of the cancel button. Optional here — `AlertDialog.Cancel`
+	 * defaults to `"outlined"` so it visually de-emphasizes against
+	 * `AlertDialog.Action`.
+	 *
+	 * @default "outlined"
+	 */
+	appearance?: ButtonAppearance;
+	/**
+	 * The tone of the cancel button. Optional here — `AlertDialog.Cancel`
+	 * defaults to `"neutral"`, the workhorse tone for routine actions.
+	 *
+	 * @default "neutral"
+	 */
+	intent?: ButtonIntent;
+};
+
 /**
  * A button that closes the dialog and cancels the action.
- * Will default to appearance="outlined" and priority="neutral".
+ * Will default to appearance="outlined" and intent="neutral".
  *
  * This button should be distinguished visually from AlertDialogAction buttons.
  *
@@ -587,9 +634,9 @@ Action.displayName = "AlertDialogAction";
  *
  * @example
  * ```tsx
- * <AlertDialog.Root priority="danger">
+ * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -615,13 +662,13 @@ Action.displayName = "AlertDialogAction";
  * </AlertDialog.Root>
  * ```
  */
-const Cancel = forwardRef<ComponentRef<"button">, ButtonProps>(
+const Cancel = forwardRef<ComponentRef<"button">, AlertDialogCancelProps>(
 	(
 		{
 			//,
 			appearance = "outlined",
 			className,
-			priority = "neutral",
+			intent = "neutral",
 			...props
 		},
 		ref,
@@ -631,7 +678,7 @@ const Cancel = forwardRef<ComponentRef<"button">, ButtonProps>(
 				appearance={appearance}
 				data-slot="alert-dialog-cancel"
 				className={cx("mt-2 sm:mt-0", className)}
-				priority={priority}
+				intent={intent}
 				ref={ref}
 				{...props}
 			/>
@@ -645,10 +692,26 @@ type AlertDialogIconProps = Omit<SvgAttributes, "children"> & {
 };
 
 /**
- * An icon that visually represents the priority of the AlertDialog.
+ * Default `AlertDialog.Icon` glyphs for each `AlertDialog` intent.
+ */
+const defaultIcons = {
+	danger: <WarningIcon />,
+	info: <InfoIcon />,
+} as const satisfies Record<AlertDialogIntent, ReactNode>;
+
+/**
+ * Default `AlertDialog.Icon` text colors for each `AlertDialog` intent.
+ */
+const defaultIconColors = {
+	danger: "text-danger-600",
+	info: "text-accent-600",
+} as const satisfies Record<AlertDialogIntent, string>;
+
+/**
+ * An icon that visually represents the intent of the AlertDialog.
  *
- * Defaults to a warning icon for danger priority and an info icon for info
- * priority with the appropriate color.
+ * Defaults to a warning icon for danger intent and an info icon for info
+ * intent with the appropriate color.
  *
  * Can be overridden with a custom icon using the `svg` prop.
  *
@@ -656,9 +719,9 @@ type AlertDialogIconProps = Omit<SvgAttributes, "children"> & {
  *
  * @example
  * ```tsx
- * <AlertDialog.Root priority="danger">
+ * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -687,8 +750,8 @@ type AlertDialogIconProps = Omit<SvgAttributes, "children"> & {
 const Icon = forwardRef<ComponentRef<"svg">, AlertDialogIconProps>(
 	({ className, svg, ...props }, ref) => {
 		const ctx = useAlertDialogContext();
-		const defaultColor = ctx.priority === "danger" ? "text-danger-600" : "text-accent-600";
-		const defaultIcon = ctx.priority === "danger" ? <WarningIcon /> : <InfoIcon />;
+		const defaultColor = defaultIconColors[ctx.intent];
+		const defaultIcon = defaultIcons[ctx.intent];
 
 		return (
 			<SvgOnly
@@ -715,9 +778,9 @@ Icon.displayName = "AlertDialogIcon";
  *
  * @example
  * ```tsx
- * <AlertDialog.Root priority="danger">
+ * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -786,9 +849,9 @@ Close.displayName = "AlertDialogClose";
  *
  * @example
  * ```tsx
- * <AlertDialog.Root priority="danger">
+ * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -817,10 +880,10 @@ Close.displayName = "AlertDialogClose";
 const AlertDialog = {
 	/**
 	 * The root stateful component for the Alert Dialog. Wraps the trigger and
-	 * content and exposes the required `priority` prop (`"danger"` for
-	 * destructive actions, `"info"` for informational confirmations) which
-	 * propagates color to descendants like `AlertDialog.Icon` and
-	 * `AlertDialog.Action`.
+	 * content and exposes the required `intent` prop (`"danger"` for
+	 * destructive actions, `"info"` for informational confirmations) — the tone
+	 * its color communicates — which propagates color to descendants like
+	 * `AlertDialog.Icon` and `AlertDialog.Action`.
 	 *
 	 * `AlertDialog` renders its floating layer at Tailwind `z-50`, Mantle's
 	 * shared floating z-index. When multiple shared layers are open, the most
@@ -830,9 +893,9 @@ const AlertDialog = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <AlertDialog.Root priority="danger">
+	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -861,17 +924,19 @@ const AlertDialog = {
 	Root,
 	/**
 	 * A button that confirms the Alert Dialog action. Defaults to
-	 * `appearance="filled"` and inherits the priority color from the parent
-	 * `AlertDialog.Root`. Does not close the dialog by default — wrap with
-	 * `AlertDialog.Close asChild` if the action should also dismiss.
+	 * `appearance="filled"`, with a tone derived from the parent
+	 * `AlertDialog.Root`'s intent: danger dialogs get a danger button, info
+	 * dialogs get an accent one — the Action carries the dialog's tone the
+	 * same way its icon does. Does not close the dialog by default — wrap
+	 * with `AlertDialog.Close asChild` if the action should also dismiss.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogaction
 	 *
 	 * @example
 	 * ```tsx
-	 * <AlertDialog.Root priority="danger">
+	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -906,9 +971,9 @@ const AlertDialog = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <AlertDialog.Root priority="danger">
+	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -937,16 +1002,16 @@ const AlertDialog = {
 	Body,
 	/**
 	 * A button that closes the dialog and cancels the action. Defaults to
-	 * `appearance="outlined"` and `priority="neutral"` so it visually
+	 * `appearance="outlined"` and `intent="neutral"` so it visually
 	 * de-emphasizes against `AlertDialog.Action`.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogcancel
 	 *
 	 * @example
 	 * ```tsx
-	 * <AlertDialog.Root priority="danger">
+	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -982,9 +1047,9 @@ const AlertDialog = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <AlertDialog.Root priority="danger">
+	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1025,9 +1090,9 @@ const AlertDialog = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <AlertDialog.Root priority="danger">
+	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1062,9 +1127,9 @@ const AlertDialog = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <AlertDialog.Root priority="danger">
+	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1099,9 +1164,9 @@ const AlertDialog = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <AlertDialog.Root priority="danger">
+	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1136,9 +1201,9 @@ const AlertDialog = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <AlertDialog.Root priority="danger">
+	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1166,7 +1231,7 @@ const AlertDialog = {
 	 */
 	Header,
 	/**
-	 * An icon that visually represents the priority of the AlertDialog.
+	 * An icon that visually represents the intent of the AlertDialog.
 	 * Defaults to a warning icon for `danger` and an info icon for `info`. Can
 	 * be overridden via the `svg` prop.
 	 *
@@ -1174,9 +1239,9 @@ const AlertDialog = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <AlertDialog.Root priority="danger">
+	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1212,9 +1277,9 @@ const AlertDialog = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <AlertDialog.Root priority="danger">
+	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1248,9 +1313,9 @@ const AlertDialog = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <AlertDialog.Root priority="danger">
+	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>

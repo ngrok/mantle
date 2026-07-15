@@ -2,12 +2,16 @@
 
 ## Status
 
-Accepted — 2026-07-13.
+Accepted — 2026-07-13. Amended 2026-07-14: `subtle` split out of Phase 2 into its own Phase 3.
 
-- **Phase 1 (`size`)**: implemented alongside this record; ships in the next `@ngrok/mantle` minor
-  (decoupled from the intent redesign so consumers can adopt `size` and `CenteredLayout` first).
-- **Phase 2 (`intent` redesign)**: accepted, not yet implemented; ships in a later minor with its
-  own changeset and migration prompt.
+- **Phase 1 (`size`)**: shipped in `@ngrok/mantle` 0.78.0
+  ([#1315](https://github.com/ngrok/mantle/pull/1315)).
+- **Phase 2 (`intent` redesign, without `subtle`)**: accepted; ships as one minor release
+  (one changeset per component family) with an agent-facing migration doc.
+- **Phase 3 (`subtle` appearance)**: split out of Phase 2 — `subtle` needs a different color
+  treatment to clear ≥ 4.5:1 text contrast in both light and dark themes, which is design work
+  that must not gate the rename. It follows in its own PR, slotting additively into the
+  `appearance` union once the intent axis exists.
 
 Supersedes the API direction explored in [PR #1105](https://github.com/ngrok/mantle/pull/1105)
 (Micah's button POC). The design decisions from that PR are kept; the diff itself is not salvaged —
@@ -77,16 +81,10 @@ in the light theme.
   which flipped the _default_ from accent to neutral — a silent visual change at every
   un-annotated call site. Requiring both props turns every migration into a loud compile error
   with a deterministic fix, and keeps call sites self-describing as the design language evolves.
-  `IconButton` gains the `intent` axis (it has none today; its `subtle`/`danger` needs are real —
-  e.g. destructive icon buttons) and requires `appearance` + `intent` the same way. `size` stays
-  optional (default `md`) — it is geometry, not meaning.
-- **`subtle` appearance** joins `ghost | filled | outlined | link` on Button and IconButton. It
-  must meet **≥ 4.5:1 text contrast in both themes before shipping**. Measured from today's
-  tokens, the POC's light-theme styling fails: `text-accent-600` on `accent-500/10` ≈ 3.6–4.1:1
-  and `text-danger-600` on `danger-500/10` ≈ 3.7–3.9:1 (composited over base/card backgrounds);
-  neutral (`text-strong`) passes at ~16:1, and dark theme passes. Fix by using the `-700` text
-  shades in light theme or deepening the tint. For reference, `text-muted` itself passes both
-  themes (4.83–4.90:1 light, 5.26–5.32:1 dark).
+  `IconButton` gains the `intent` axis (it has none today; its `danger` needs are real — e.g.
+  destructive icon buttons — and Phase 3's `subtle` will be intent-aware) and requires
+  `appearance` + `intent` the same way. `size` stays optional (default `md`) — it is geometry,
+  not meaning.
 - Toast's exported `Priority` type is renamed **`ToastIntent`** (not bare `Intent`).
   `ButtonIntent` and `ButtonAppearance` become exported from the `./button` subpath.
   `data-priority` → `data-intent`.
@@ -94,7 +92,19 @@ in the light theme.
   colors), not tone. It is explicitly out of scope for `intent`, even though that leaves the
   broader API unification incomplete for now.
 
-### 3. Migration: hard cutover with a codemod prompt, no deprecation aliases
+### 3. `subtle` appearance (Phase 3 — follows in its own PR)
+
+`subtle` joins `ghost | filled | outlined | link` on Button and IconButton, intent-aware, in a
+separate PR after the intent rename lands. It is additive at that point (a new `appearance`
+union member), so nothing about the rename blocks on it. Gate before shipping: **≥ 4.5:1 text
+contrast in both themes** — this needs a different color combination than the POC's. Measured
+from today's tokens, the POC's light-theme styling fails: `text-accent-600` on `accent-500/10`
+≈ 3.6–4.1:1 and `text-danger-600` on `danger-500/10` ≈ 3.7–3.9:1 (composited over base/card
+backgrounds); neutral (`text-strong`) passes at ~16:1. Candidate fixes: the `-700` text shades
+in light theme or a deeper tint. For reference, `text-muted` itself passes both themes
+(4.83–4.90:1 light, 5.26–5.32:1 dark).
+
+### 4. Migration: hard cutover with a codemod prompt, no deprecation aliases
 
 We will not ship long-lived deprecated aliases. The Phase 2 release removes `priority` outright;
 migration is performed by a codemod-like prompt (run by the mantle maintainers against consuming
@@ -118,13 +128,15 @@ props, so no call site changes appearance:
 Intentional restyles (e.g. choosing neutral where accent was implied) happen as deliberate
 follow-up edits after the mechanical migration, never bundled into it.
 
-### 4. Release sequencing
+### 5. Release sequencing
 
-1. **Next minor**: Phase 1 `size` (this record's implementation) — purely additive.
-2. **Later minor**: Phase 2 redesign (`intent`, required props, `subtle` with fixed contrast,
-   `ToastIntent`, `data-intent`) with a `**Breaking:**` changeset, a migration doc under
-   `apps/www/app/docs/migrations/`, and the codemod prompt. Because mantle is 0.x, caret ranges
-   pin the minor, so consumers opt in explicitly.
+1. **Shipped (0.78.0)**: Phase 1 `size` — purely additive.
+2. **Next minor**: Phase 2 redesign (`intent`, required `appearance` + `intent`, `ToastIntent`,
+   `data-intent` — no `subtle`) as one release with one `**Breaking:**` changeset per component
+   family, a migration doc under `apps/www/app/docs/migrations/`, and the codemod prompt.
+   Because mantle is 0.x, caret ranges pin the minor, so consumers opt in explicitly.
+3. **Later minor**: Phase 3 `subtle` (additive) once its color treatment clears ≥ 4.5:1 in both
+   themes.
 
 ## Consequences
 

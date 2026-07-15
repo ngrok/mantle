@@ -69,7 +69,7 @@ export const TanStackFormExample = () => {
     			)}
     		</form.Field>
     	</Field.Group>
-    	<Button type="submit" appearance="filled" priority="neutral">
+    	<Button type="submit" appearance="filled" intent="neutral">
     		Submit
     	</Button>
     </form>
@@ -519,7 +519,7 @@ export function AccountForm() {
 					)}
 				</form.Field>
 			</Field.Group>
-			<Button type="submit" appearance="filled" priority="neutral">
+			<Button type="submit" appearance="filled" intent="neutral">
 				Submit
 			</Button>
 		</form>
@@ -767,13 +767,14 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 Accepts every `IconButton` prop, with sensible visual defaults. `label` remains required:
 
-| Prop          | Type                       | Default            | Description                                                          |
-| ------------- | -------------------------- | ------------------ | -------------------------------------------------------------------- |
-| `icon?`       | `ReactNode`                | `<QuestionIcon />` | Icon rendered inside the trigger button. Override to swap the glyph. |
-| `label`       | `string`                   | —                  | Contextual visually-hidden label announced by screen readers.        |
-| `appearance?` | `"ghost"` \| `"outlined"`  | `"ghost"`          | `IconButton` appearance variant.                                     |
-| `size?`       | `"xs"` \| `"sm"` \| `"md"` | `"xs"`             | `IconButton` size.                                                   |
-| `className?`  | `string`                   | —                  | Merged onto the underlying `IconButton`.                             |
+| Prop          | Type                                    | Default            | Description                                                          |
+| ------------- | --------------------------------------- | ------------------ | -------------------------------------------------------------------- |
+| `icon?`       | `ReactNode`                             | `<QuestionIcon />` | Icon rendered inside the trigger button. Override to swap the glyph. |
+| `label`       | `string`                                | —                  | Contextual visually-hidden label announced by screen readers.        |
+| `appearance?` | `"ghost"` \| `"outlined"`               | `"ghost"`          | `IconButton` appearance variant.                                     |
+| `intent?`     | `"accent"` \| `"danger"` \| `"neutral"` | `"neutral"`        | `IconButton` intent (tone).                                          |
+| `size?`       | `"xs"` \| `"sm"` \| `"md"`              | `"xs"`             | `IconButton` size.                                                   |
+| `className?`  | `string`                                | —                  | Merged onto the underlying `IconButton`.                             |
 
 ### Field.HelpContent
 

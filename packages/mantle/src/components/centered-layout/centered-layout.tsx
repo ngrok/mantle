@@ -73,7 +73,7 @@ Root.displayName = "CenteredLayout";
  * <CenteredLayout.Root>
  *   <CenteredLayout.Header className="sticky top-0 z-10 justify-between">
  *     <AccountChip />
- *     <IconButton type="button" label="Close" icon={<XIcon />} />
+ *     <IconButton appearance="ghost" intent="neutral" type="button" label="Close" icon={<XIcon />} />
  *   </CenteredLayout.Header>
  *   <CenteredLayout.Body>
  *     <div className="w-full max-w-5xl">
@@ -278,7 +278,7 @@ const CenteredLayout = {
 	 * <CenteredLayout.Root>
 	 *   <CenteredLayout.Header className="sticky top-0 z-10 justify-between">
 	 *     <AccountChip />
-	 *     <IconButton type="button" label="Close" icon={<XIcon />} />
+	 *     <IconButton appearance="ghost" intent="neutral" type="button" label="Close" icon={<XIcon />} />
 	 *   </CenteredLayout.Header>
 	 *   <CenteredLayout.Body>
 	 *     <div className="w-full max-w-5xl">

@@ -10,12 +10,26 @@ import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Icon } from "../icon/index.js";
 import { Slot } from "../slot/index.js";
+import type { ButtonIntent } from "./intents.js";
 import type { ButtonSize } from "./sizes.js";
+
+/**
+ * The visual style of a `Button`: how much visual weight the button carries,
+ * independent of its tone (`intent`).
+ *
+ * - `"filled"` — solid fill; the heaviest weight on the page
+ * - `"outlined"` — bordered on the form background
+ * - `"ghost"` — no border or fill until hovered
+ * - `"link"` — renders like an inline link (inherits surrounding typography)
+ *   while remaining a button that performs an action
+ */
+type ButtonAppearance = "filled" | "ghost" | "link" | "outlined";
 
 const buttonVariants = cva("", {
 	variants: {
 		/**
-		 * Defines the visual style of the Button.
+		 * The visual style of the Button. The base classes carry the accent
+		 * tone; danger and neutral tones override via compoundVariants.
 		 */
 		appearance: {
 			filled:
@@ -25,7 +39,7 @@ const buttonVariants = cva("", {
 			outlined:
 				"border-accent-600 bg-form text-accent-600 focus-visible:ring-focus-accent not-disabled:hover:border-accent-700 not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 border text-sm font-medium",
 			link: "text-accent-600 focus-visible:ring-focus-accent not-disabled:hover:underline group/button-link border-transparent",
-		},
+		} satisfies Record<ButtonAppearance, string>,
 		/**
 		 * Whether or not the button is in a loading state, default `false`. Setting `isLoading` will
 		 * replace any `icon` with a spinner, or add one if an icon wasn't given.
@@ -36,14 +50,15 @@ const buttonVariants = cva("", {
 			true: "opacity-50",
 		},
 		/**
-		 * Indicates the importance or impact level of the button, affecting its
-		 * color and styling to communicate its purpose to the user
+		 * The tone of the Button — the purpose its color communicates. The
+		 * accent tone is styled by the appearance base classes; danger and
+		 * neutral override via compoundVariants.
 		 */
-		priority: {
+		intent: {
+			accent: "",
 			danger: "",
-			default: "",
 			neutral: "",
-		},
+		} satisfies Record<ButtonIntent, string>,
 		/**
 		 * The size of the Button, controlling its box height and horizontal
 		 * padding, default `"md"`. Shared scale with `IconButton` — same size
@@ -60,9 +75,7 @@ const buttonVariants = cva("", {
 		} satisfies Record<ButtonSize, string>,
 	},
 	defaultVariants: {
-		appearance: "outlined",
 		isLoading: false,
-		priority: "default",
 		size: "md",
 	},
 	compoundVariants: [
@@ -74,48 +87,48 @@ const buttonVariants = cva("", {
 		{ appearance: ["filled", "ghost", "outlined"], size: "xl", class: "h-12 px-4" },
 		{
 			appearance: "ghost",
-			priority: "danger",
+			intent: "danger",
 			class:
 				"text-danger-600 focus-visible:ring-focus-danger not-disabled:hover:bg-danger-500/10 not-disabled:hover:text-danger-700 border-transparent",
 		},
 		{
 			appearance: "outlined",
-			priority: "danger",
+			intent: "danger",
 			class:
 				"border-danger-600 bg-form text-danger-600 focus-visible:ring-focus-danger not-disabled:hover:border-danger-700 not-disabled:hover:bg-danger-500/10 not-disabled:hover:text-danger-700",
 		},
 		{
 			appearance: "filled",
-			priority: "danger",
+			intent: "danger",
 			class:
 				"bg-filled-danger focus-visible:ring-focus-danger not-disabled:hover:bg-filled-danger-hover border-transparent",
 		},
 		{
 			appearance: "link",
-			priority: "danger",
+			intent: "danger",
 			class: "text-danger-600 focus-visible:ring-focus-danger",
 		},
 		{
 			appearance: "ghost",
-			priority: "neutral",
+			intent: "neutral",
 			class:
 				"text-strong focus-visible:ring-focus-accent not-disabled:hover:bg-neutral-500/10 not-disabled:hover:text-strong border-transparent",
 		},
 		{
 			appearance: "outlined",
-			priority: "neutral",
+			intent: "neutral",
 			class:
 				"border-form bg-form text-strong focus-visible:border-accent-600 focus-visible:ring-focus-accent not-disabled:hover:border-neutral-400 not-disabled:hover:bg-form-hover not-disabled:hover:text-strong focus-visible:not-disabled:hover:border-accent-600",
 		},
 		{
 			appearance: "filled",
-			priority: "neutral",
+			intent: "neutral",
 			class:
 				"bg-filled-neutral not-disabled:hover:bg-filled-neutral-hover border-transparent focus-visible:border-transparent text-neutral-50",
 		},
 		{
 			appearance: "link",
-			priority: "neutral",
+			intent: "neutral",
 			class: "text-strong focus-visible:ring-focus-accent",
 		},
 	],
@@ -144,15 +157,34 @@ const iconPaddingEnd = {
 
 type ButtonVariants = VariantProps<typeof buttonVariants>;
 
-type ButtonAppearance = Pick<ButtonVariants, "appearance">["appearance"];
-type ButtonPriority = Pick<ButtonVariants, "priority">["priority"];
-
 /**
  * The props for the `Button` component.
  */
 type ButtonProps = ComponentProps<"button"> &
-	ButtonVariants &
+	Omit<ButtonVariants, "appearance" | "intent"> &
 	WithAsChild & {
+		/**
+		 * The visual style of the Button. Required — there is no default, so
+		 * every call site states the weight it means.
+		 *
+		 * @enum
+		 * - `"filled"`: solid fill; the heaviest visual weight
+		 * - `"outlined"`: bordered on the form background
+		 * - `"ghost"`: no border or fill until hovered
+		 * - `"link"`: renders like an inline link (inherits surrounding typography) while remaining a button
+		 */
+		appearance: ButtonAppearance;
+		/**
+		 * The tone of the Button — the purpose its color communicates to the
+		 * user. Required — there is no default, so every call site states the
+		 * tone it means.
+		 *
+		 * @enum
+		 * - `"neutral"`: the workhorse tone — routine and secondary actions, and the default primary action (`appearance="filled" intent="neutral"`)
+		 * - `"accent"`: deliberate brand emphasis; reach for it when an action should carry the brand color, not as the routine primary
+		 * - `"danger"`: a destructive or irreversible action
+		 */
+		intent: ButtonIntent;
 		/**
 		 * An icon to render inside the button, beside the button's text
 		 * children. If the `state` is `"pending"`, then the icon will
@@ -195,6 +227,13 @@ type ButtonProps = ComponentProps<"button"> &
  * other assistive technology. Once activated, it then performs an action, such
  * as submitting a form or opening a dialog.
  *
+ * `appearance` (visual weight) and `intent` (tone) are required — every call
+ * site states what it means; there are no implicit defaults.
+ *
+ * The primary action button should be `appearance="filled" intent="neutral"` —
+ * the system's default primary action. Reserve `intent="accent"` for
+ * deliberate brand emphasis.
+ *
  * An icon-only button is not a `Button` — use `IconButton` instead: an
  * icon-only `Button` has no accessible name and keeps its text-box padding,
  * while `IconButton` requires a screen-reader `label` and renders a square
@@ -203,8 +242,9 @@ type ButtonProps = ComponentProps<"button"> &
  * @see https://mantle.ngrok.com/components/actions/button
  *
  * @example
+ * The default primary action — filled + neutral:
  * ```tsx
- * <Button appearance="filled" onClick={handleClick}>
+ * <Button appearance="filled" intent="neutral" onClick={handleClick}>
  *   Click me
  * </Button>
  * ```
@@ -212,7 +252,7 @@ type ButtonProps = ComponentProps<"button"> &
  * @example
  * Submit a form — opt in with `type="submit"` (the default `"button"` does not submit):
  * ```tsx
- * <Button type="submit" appearance="filled">
+ * <Button type="submit" appearance="filled" intent="neutral">
  *   Save
  * </Button>
  * ```
@@ -221,23 +261,23 @@ type ButtonProps = ComponentProps<"button"> &
  * Icon-only buttons are not `Button`s — use `IconButton` instead (an icon-only
  * `Button` has no accessible name and keeps its text-box padding):
  * ```tsx
- * // ❌ <Button icon={<CopyIcon />} onClick={copyPage} />
- * <IconButton icon={<CopyIcon />} label="Copy page" onClick={copyPage} />
+ * // ❌ <Button appearance="outlined" intent="neutral" icon={<CopyIcon />} onClick={copyPage} />
+ * <IconButton appearance="outlined" intent="neutral" icon={<CopyIcon />} label="Copy page" onClick={copyPage} />
  * ```
  */
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 	(
 		{
 			"aria-disabled": _ariaDisabled,
-			appearance = "outlined",
+			appearance,
 			asChild,
 			children,
 			className,
 			disabled: _disabled,
 			icon: propIcon,
 			iconPlacement = "start",
+			intent,
 			isLoading = false,
-			priority = "default",
 			size = "md",
 			type,
 			...props
@@ -260,7 +300,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 				"focus:outline-hidden focus-visible:ring-4",
 				"disabled:cursor-default disabled:opacity-50",
 				"not-disabled:active:scale-97 ease-out transition-transform duration-150",
-				buttonVariants({ appearance, priority, isLoading, size }),
+				buttonVariants({ appearance, intent, isLoading, size }),
 				appearance !== "link" && "font-sans", // only enforce font-sans on non-link button appearances
 				hasSpecialIconPadding && iconPlacement === "start" && iconPaddingStart[size],
 				hasSpecialIconPadding && iconPlacement === "end" && iconPaddingEnd[size],
@@ -268,8 +308,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 			),
 			"data-appearance": appearance,
 			"data-disabled": disabled,
+			"data-intent": intent,
 			"data-loading": isLoading,
-			"data-priority": priority,
 			"data-size": appearance === "link" ? undefined : size,
 			disabled,
 			ref,
@@ -317,6 +357,5 @@ export {
 export type {
 	//,
 	ButtonAppearance,
-	ButtonPriority,
 	ButtonProps,
 };

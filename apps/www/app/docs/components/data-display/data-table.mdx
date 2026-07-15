@@ -314,7 +314,7 @@ const isFiltered = globalFilter.trim() !== ""; // or table.getState().columnFilt
 					<Button
 						type="button"
 						appearance="outlined"
-						priority="neutral"
+						intent="neutral"
 						onClick={() => setGlobalFilter("")}
 					>
 						Clear filters
@@ -331,7 +331,9 @@ const isFiltered = globalFilter.trim() !== ""; // or table.getState().columnFilt
 					<p>Endpoints you create will appear here.</p>
 				</Empty.Description>
 				<Empty.Actions>
-					<Button type="button">Create endpoint</Button>
+					<Button type="button" appearance="outlined" intent="neutral">
+						Create endpoint
+					</Button>
 				</Empty.Actions>
 			</Empty.Root>
 		</DataTable.EmptyRow>
@@ -412,6 +414,7 @@ columnHelper.display({
 				<DropdownMenu.Trigger asChild>
 					<IconButton
 						appearance="ghost"
+						intent="neutral"
 						size="sm"
 						type="button"
 						label="Open actions"
@@ -819,17 +822,19 @@ A `<th>` cell optimized for header actions. Wrap sortable headers' contents in `
 
 A sortable button toggle for column headers. Clicking cycles through sort directions: `unsorted → asc → desc → unsorted` for `"alphanumeric"`, and `unsorted → desc → asc → unsorted` (newest-first) for `"time"`. Renders a sort icon that reflects the current direction.
 
-| Prop              | Type                                             | Default | Description                                                                                                                                     |
-| :---------------- | :----------------------------------------------- | :------ | :---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `column`          | `Column<TData, TValue>`                          |         | The TanStack Table column instance (from `props.column` in `header`). **Required.**                                                             |
-| `sortingMode`     | `"alphanumeric" \| "time"`                       |         | Which direction sequence to cycle through. **Required** unless `disableSorting` is `true`.                                                      |
-| `disableSorting?` | `boolean`                                        | `false` | Prevents sorting and hides the sort icon. Makes `sortingMode` unnecessary.                                                                      |
-| `sortIcon?`       | `(sortDirection: SortDirection) => ReactNode`    |         | Override the default sort icon. `sortDirection` is `"asc" \| "desc" \| "unsorted"`.                                                             |
-| `iconPlacement?`  | `"start" \| "end"`                               | `"end"` | The side the sort icon renders on. Use `"start"` for right-aligned numeric columns.                                                             |
-| `onClick?`        | `(event: MouseEvent<HTMLButtonElement>) => void` |         | Called before the sort toggles. Call `event.preventDefault()` to skip the toggle.                                                               |
-| `className?`      | `string`                                         |         | Extra classes merged onto the underlying [`Button`](/components/actions/button) — for example, `justify-end` for right-aligned numeric columns. |
+| Prop              | Type                                             | Default     | Description                                                                                                                                                        |
+| :---------------- | :----------------------------------------------- | :---------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `column`          | `Column<TData, TValue>`                          |             | The TanStack Table column instance (from `props.column` in `header`). **Required.**                                                                                |
+| `sortingMode`     | `"alphanumeric" \| "time"`                       |             | Which direction sequence to cycle through. **Required** unless `disableSorting` is `true`.                                                                         |
+| `disableSorting?` | `boolean`                                        | `false`     | Prevents sorting and hides the sort icon. Makes `sortingMode` unnecessary.                                                                                         |
+| `sortIcon?`       | `(sortDirection: SortDirection) => ReactNode`    |             | Override the default sort icon. `sortDirection` is `"asc" \| "desc" \| "unsorted"`.                                                                                |
+| `iconPlacement?`  | `"start" \| "end"`                               | `"end"`     | The side the sort icon renders on. Use `"start"` for right-aligned numeric columns.                                                                                |
+| `appearance?`     | `"ghost" \| "filled" \| "outlined" \| "link"`    | `"ghost"`   | The visual style of the underlying [`Button`](/components/actions/button). Optional here — the sort button's design is a ghost button, so the wrapper defaults it. |
+| `intent?`         | `"accent" \| "danger" \| "neutral"`              | `"neutral"` | The tone of the underlying [`Button`](/components/actions/button). Optional here — the sort button's design is neutral-toned, so the wrapper defaults it.          |
+| `onClick?`        | `(event: MouseEvent<HTMLButtonElement>) => void` |             | Called before the sort toggles. Call `event.preventDefault()` to skip the toggle.                                                                                  |
+| `className?`      | `string`                                         |             | Extra classes merged onto the underlying [`Button`](/components/actions/button) — for example, `justify-end` for right-aligned numeric columns.                    |
 
-All additional props from [`Button`](/components/actions/button).
+All additional props from [`Button`](/components/actions/button). Unlike `Button` itself, `appearance` and `intent` are optional here — the wrapper defaults them to `"ghost"` and `"neutral"`.
 
 ### DataTable.Cell
 
@@ -872,15 +877,17 @@ A narrow `<th>` for the leading expand-toggle column, mirroring `DataTable.Actio
 
 ### DataTable.RowExpandButton
 
-An accessible `+`/`−` toggle that expands or collapses a row's detail panel. Place it inside a `DataTable.Cell` in a leading `columnHelper.display` column and pair it with `DataTable.ExpandedRow`. Renders a real `<button>` that sets `aria-expanded` and (while expanded) `aria-controls`, stops click propagation so it never fires a row-level `onClick`, and renders nothing when `row.getCanExpand()` is `false`. Forwards [`IconButton`](/components/actions/icon-button) props.
+An accessible `+`/`−` toggle that expands or collapses a row's detail panel. Place it inside a `DataTable.Cell` in a leading `columnHelper.display` column and pair it with `DataTable.ExpandedRow`. Renders a real `<button>` that sets `aria-expanded` and (while expanded) `aria-controls`, stops click propagation so it never fires a row-level `onClick`, and renders nothing when `row.getCanExpand()` is `false`. Forwards [`IconButton`](/components/actions/icon-button) props — unlike `IconButton` itself, `appearance` and `intent` are optional here, defaulting to `"ghost"` and `"neutral"`.
 
-| Prop            | Type              | Default                      | Description                                                                                                         |
-| :-------------- | :---------------- | :--------------------------- | :------------------------------------------------------------------------------------------------------------------ |
-| `row`           | `Row<TData>`      |                              | The TanStack Table row this button toggles. **Required.**                                                           |
-| `label`         | `string`          |                              | A human-readable row name, woven into the accessible label (`Show details for …` / `Hide details …`). **Required.** |
-| `expandIcon?`   | `ReactNode`       | `<PlusIcon weight="bold"/>`  | Icon shown while the row is collapsed.                                                                              |
-| `collapseIcon?` | `ReactNode`       | `<MinusIcon weight="bold"/>` | Icon shown while the row is expanded.                                                                               |
-| `onClick?`      | `(event) => void` |                              | Runs before the toggle; call `event.preventDefault()` to veto expansion. Other `IconButton` props forward too.      |
+| Prop            | Type                                | Default                      | Description                                                                                                                                                                   |
+| :-------------- | :---------------------------------- | :--------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `row`           | `Row<TData>`                        |                              | The TanStack Table row this button toggles. **Required.**                                                                                                                     |
+| `label`         | `string`                            |                              | A human-readable row name, woven into the accessible label (`Show details for …` / `Hide details …`). **Required.**                                                           |
+| `expandIcon?`   | `ReactNode`                         | `<PlusIcon weight="bold"/>`  | Icon shown while the row is collapsed.                                                                                                                                        |
+| `collapseIcon?` | `ReactNode`                         | `<MinusIcon weight="bold"/>` | Icon shown while the row is expanded.                                                                                                                                         |
+| `appearance?`   | `"ghost" \| "outlined"`             | `"ghost"`                    | The visual style of the underlying [`IconButton`](/components/actions/icon-button). Optional here — the expand toggle's design is a ghost button, so the wrapper defaults it. |
+| `intent?`       | `"accent" \| "danger" \| "neutral"` | `"neutral"`                  | The tone of the underlying [`IconButton`](/components/actions/icon-button). Optional here — the expand toggle's design is neutral-toned, so the wrapper defaults it.          |
+| `onClick?`      | `(event) => void`                   |                              | Runs before the toggle; call `event.preventDefault()` to veto expansion. Other `IconButton` props forward too.                                                                |
 
 ### DataTable.ExpandedRow
 

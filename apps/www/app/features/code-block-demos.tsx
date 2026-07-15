@@ -397,12 +397,7 @@ export function ServerRenderedHighlightingDemo() {
 						)}
 					</form.Field>
 				</div>
-				<Button
-					type="submit"
-					appearance="filled"
-					priority="neutral"
-					disabled={status === "loading"}
-				>
+				<Button type="submit" appearance="filled" intent="neutral" disabled={status === "loading"}>
 					{status === "loading" ? "Highlighting..." : "Highlight on Server"}
 				</Button>
 			</form>

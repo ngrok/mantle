@@ -22,7 +22,7 @@ Use `Dialog` for a centered modal that interrupts the user to gather input or co
 <Example className="flex-col gap-6">
 	<Dialog.Root>
 		<Dialog.Trigger asChild>
-			<Button type="button" appearance="filled" priority="neutral">
+			<Button type="button" appearance="filled" intent="neutral">
 				Open dialog
 			</Button>
 		</Dialog.Trigger>
@@ -37,12 +37,12 @@ Use `Dialog` for a centered modal that interrupts the user to gather input or co
 			</Dialog.Body>
 			<Dialog.Footer>
 				<Dialog.Close asChild>
-					<Button type="button" priority="neutral" appearance="outlined">
+					<Button type="button" intent="neutral" appearance="outlined">
 						Cancel
 					</Button>
 				</Dialog.Close>
 				<Dialog.Close asChild>
-					<Button type="button" priority="danger" appearance="filled">
+					<Button type="button" intent="danger" appearance="filled">
 						Delete
 					</Button>
 				</Dialog.Close>
@@ -57,7 +57,7 @@ import { Button } from "@ngrok/mantle/button";
 
 <Dialog.Root>
 	<Dialog.Trigger asChild>
-		<Button type="button" appearance="filled" priority="neutral">
+		<Button type="button" appearance="filled" intent="neutral">
 			Open dialog
 		</Button>
 	</Dialog.Trigger>
@@ -72,12 +72,12 @@ import { Button } from "@ngrok/mantle/button";
 		</Dialog.Body>
 		<Dialog.Footer>
 			<Dialog.Close asChild>
-				<Button type="button" priority="neutral" appearance="outlined">
+				<Button type="button" intent="neutral" appearance="outlined">
 					Cancel
 				</Button>
 			</Dialog.Close>
 			<Dialog.Close asChild>
-				<Button type="button" priority="danger" appearance="filled">
+				<Button type="button" intent="danger" appearance="filled">
 					Delete
 				</Button>
 			</Dialog.Close>
@@ -139,7 +139,14 @@ In some cases, you might wish to have a tooltip over the dialog trigger. This is
 		<Tooltip.Root>
 			<Tooltip.Trigger asChild>
 				<Dialog.Trigger asChild>
-					<IconButton type="button" label="Delete" size="sm" icon={<TrashSimpleIcon />} />
+					<IconButton
+						type="button"
+						appearance="outlined"
+						intent="neutral"
+						label="Delete"
+						size="sm"
+						icon={<TrashSimpleIcon />}
+					/>
 				</Dialog.Trigger>
 			</Tooltip.Trigger>
 			<Tooltip.Content>
@@ -157,12 +164,12 @@ In some cases, you might wish to have a tooltip over the dialog trigger. This is
 			</Dialog.Body>
 			<Dialog.Footer>
 				<Dialog.Close asChild>
-					<Button type="button" priority="neutral" appearance="outlined">
+					<Button type="button" intent="neutral" appearance="outlined">
 						Cancel
 					</Button>
 				</Dialog.Close>
 				<Dialog.Close asChild>
-					<Button type="button" priority="danger" appearance="filled">
+					<Button type="button" intent="danger" appearance="filled">
 						Delete
 					</Button>
 				</Dialog.Close>
@@ -181,7 +188,14 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 	<Tooltip.Root>
 		<Tooltip.Trigger asChild>
 			<Dialog.Trigger asChild>
-				<IconButton type="button" label="Delete" size="sm" icon={<TrashSimpleIcon />} />
+				<IconButton
+					type="button"
+					appearance="outlined"
+					intent="neutral"
+					label="Delete"
+					size="sm"
+					icon={<TrashSimpleIcon />}
+				/>
 			</Dialog.Trigger>
 		</Tooltip.Trigger>
 		<Tooltip.Content>
@@ -199,12 +213,12 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 		</Dialog.Body>
 		<Dialog.Footer>
 			<Dialog.Close asChild>
-				<Button type="button" priority="neutral" appearance="outlined">
+				<Button type="button" intent="neutral" appearance="outlined">
 					Cancel
 				</Button>
 			</Dialog.Close>
 			<Dialog.Close asChild>
-				<Button type="button" priority="danger" appearance="filled">
+				<Button type="button" intent="danger" appearance="filled">
 					Delete
 				</Button>
 			</Dialog.Close>
@@ -220,7 +234,7 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 <Example>
 	<Dialog.Root>
 		<Dialog.Trigger asChild>
-			<Button type="button" appearance="filled" priority="neutral">
+			<Button type="button" appearance="filled" intent="neutral">
 				Open dialog
 			</Button>
 		</Dialog.Trigger>
@@ -233,7 +247,7 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 				<p>Open the sheet below — it stacks on top of this dialog.</p>
 				<Sheet.Root>
 					<Sheet.Trigger asChild>
-						<Button type="button" appearance="outlined" priority="neutral">
+						<Button type="button" appearance="outlined" intent="neutral">
 							Open sheet
 						</Button>
 					</Sheet.Trigger>
@@ -254,7 +268,7 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 						</Sheet.Body>
 						<Sheet.Footer>
 							<Sheet.Close asChild>
-								<Button type="button" appearance="outlined" priority="neutral">
+								<Button type="button" appearance="outlined" intent="neutral">
 									Close
 								</Button>
 							</Sheet.Close>
@@ -264,7 +278,7 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 			</Dialog.Body>
 			<Dialog.Footer>
 				<Dialog.Close asChild>
-					<Button type="button" appearance="outlined" priority="neutral">
+					<Button type="button" appearance="outlined" intent="neutral">
 						Close
 					</Button>
 				</Dialog.Close>
@@ -280,7 +294,7 @@ import { Button } from "@ngrok/mantle/button";
 
 <Dialog.Root>
 	<Dialog.Trigger asChild>
-		<Button type="button" appearance="filled" priority="neutral">
+		<Button type="button" appearance="filled" intent="neutral">
 			Open dialog
 		</Button>
 	</Dialog.Trigger>
@@ -293,7 +307,7 @@ import { Button } from "@ngrok/mantle/button";
 			<p>Open the sheet below — it stacks on top of this dialog.</p>
 			<Sheet.Root>
 				<Sheet.Trigger asChild>
-					<Button type="button" appearance="outlined" priority="neutral">
+					<Button type="button" appearance="outlined" intent="neutral">
 						Open sheet
 					</Button>
 				</Sheet.Trigger>
@@ -314,7 +328,7 @@ import { Button } from "@ngrok/mantle/button";
 					</Sheet.Body>
 					<Sheet.Footer>
 						<Sheet.Close asChild>
-							<Button type="button" appearance="outlined" priority="neutral">
+							<Button type="button" appearance="outlined" intent="neutral">
 								Close
 							</Button>
 						</Sheet.Close>
@@ -324,7 +338,7 @@ import { Button } from "@ngrok/mantle/button";
 		</Dialog.Body>
 		<Dialog.Footer>
 			<Dialog.Close asChild>
-				<Button type="button" appearance="outlined" priority="neutral">
+				<Button type="button" appearance="outlined" intent="neutral">
 					Close
 				</Button>
 			</Dialog.Close>
@@ -384,7 +398,7 @@ function Example() {
 	return (
 		<Dialog.Root open={open} onOpenChange={handleOpenChange}>
 			<Dialog.Trigger asChild>
-				<Button type="button" appearance="filled" priority="neutral">
+				<Button type="button" appearance="filled" intent="neutral">
 					Invite a teammate
 				</Button>
 			</Dialog.Trigger>
@@ -447,11 +461,11 @@ function Example() {
 					</Dialog.Body>
 					<Dialog.Footer>
 						<Dialog.Close asChild>
-							<Button type="button" appearance="outlined" priority="neutral">
+							<Button type="button" appearance="outlined" intent="neutral">
 								Cancel
 							</Button>
 						</Dialog.Close>
-						<Button type="submit" appearance="filled" priority="neutral">
+						<Button type="submit" appearance="filled" intent="neutral">
 							Send invite
 						</Button>
 					</Dialog.Footer>
@@ -551,8 +565,9 @@ A button that closes the dialog when clicked.
 
 An icon button that closes the dialog when clicked.
 
-| Prop          | Type                       | Default          | Description                                                              |
-| ------------- | -------------------------- | ---------------- | ------------------------------------------------------------------------ |
-| `size?`       | `"sm"` \| `"md"` \| `"lg"` | `"md"`           | The size of the close icon button.                                       |
-| `label?`      | `string`                   | `"Close Dialog"` | The accessible label for the close button. Important for screen readers. |
-| `appearance?` | `"ghost"` \| `"outlined"`  | `"ghost"`        | The visual appearance of the close icon button.                          |
+| Prop          | Type                                           | Default          | Description                                                              |
+| ------------- | ---------------------------------------------- | ---------------- | ------------------------------------------------------------------------ |
+| `size?`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | `"md"`           | The size of the close icon button.                                       |
+| `label?`      | `string`                                       | `"Close Dialog"` | The accessible label for the close button. Important for screen readers. |
+| `appearance?` | `"ghost"` \| `"outlined"`                      | `"ghost"`        | The visual appearance of the close icon button.                          |
+| `intent?`     | `"accent"` \| `"danger"` \| `"neutral"`        | `"neutral"`      | The tone of the close icon button.                                       |

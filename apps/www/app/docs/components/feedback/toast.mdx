@@ -18,19 +18,19 @@ import { Example } from "~/components/example";
 A succinct message that is displayed temporarily. Toasts are used to provide feedback to the user without interrupting their workflow.
 
 export function ToastDemo() {
-	const priorities = ["info", "success", "warning", "danger"];
-	const [priorityIndex, setPriorityIndex] = useState(0);
-	const priority = priorities[priorityIndex % priorities.length];
-	invariant(priority, `Invalid priority index: ${priorityIndex}`);
+	const intents = ["info", "success", "warning", "danger"];
+	const [intentIndex, setIntentIndex] = useState(0);
+	const intent = intents[intentIndex % intents.length];
+	invariant(intent, `Invalid intent index: ${intentIndex}`);
 	return (
 		<Example className="flex-col gap-4">
 			<Button
 				type="button"
 				appearance="filled"
-				priority="neutral"
+				intent="neutral"
 				onClick={() => {
 					makeToast(
-						<Toast.Root priority={priority}>
+						<Toast.Root intent={intent}>
 							<Toast.Icon />
 							<Toast.Message>
 								Laborum ea anim adipisicing in Lorem incididunt mollit ipsum reprehenderit.
@@ -39,6 +39,7 @@ export function ToastDemo() {
 								<IconButton
 									type="button"
 									appearance="ghost"
+									intent="neutral"
 									size="xs"
 									icon={<XIcon />}
 									label="Dismiss toast"
@@ -46,14 +47,14 @@ export function ToastDemo() {
 							</Toast.Action>
 						</Toast.Root>,
 					);
-					setPriorityIndex((prev) => prev + 1);
+					setIntentIndex((prev) => prev + 1);
 				}}
 			>
 				Show Toast
 			</Button>
 			<Sheet.Root>
 				<Sheet.Trigger asChild>
-					<Button type="button" appearance="filled" priority="neutral">
+					<Button type="button" appearance="filled" intent="neutral">
 						Open Sheet
 					</Button>
 				</Sheet.Trigger>
@@ -65,10 +66,10 @@ export function ToastDemo() {
 						<Button
 							type="button"
 							appearance="outlined"
-							priority="neutral"
+							intent="neutral"
 							onClick={() =>
 								makeToast(
-									<Toast.Root priority="warning">
+									<Toast.Root intent="warning">
 										<Toast.Icon />
 										<Toast.Message>
 											Laborum ea anim adipisicing in Lorem incididunt mollit ipsum reprehenderit.
@@ -77,6 +78,7 @@ export function ToastDemo() {
 											<IconButton
 												type="button"
 												appearance="ghost"
+												intent="neutral"
 												size="xs"
 												icon={<XIcon />}
 												label="Dismiss toast"
@@ -91,7 +93,7 @@ export function ToastDemo() {
 					</Sheet.Body>
 					<Sheet.Footer>
 						<Sheet.Close asChild>
-							<Button type="button" appearance="outlined" priority="neutral">
+							<Button type="button" appearance="outlined" intent="neutral">
 								Close
 							</Button>
 						</Sheet.Close>
@@ -100,7 +102,7 @@ export function ToastDemo() {
 			</Sheet.Root>
 			<Dialog.Root>
 				<Dialog.Trigger asChild>
-					<Button type="button" appearance="filled" priority="neutral">
+					<Button type="button" appearance="filled" intent="neutral">
 						Open dialog
 					</Button>
 				</Dialog.Trigger>
@@ -113,10 +115,10 @@ export function ToastDemo() {
 						<Button
 							type="button"
 							appearance="outlined"
-							priority="neutral"
+							intent="neutral"
 							onClick={() =>
 								makeToast(
-									<Toast.Root priority="danger">
+									<Toast.Root intent="danger">
 										<Toast.Icon />
 										<Toast.Message>
 											Laborum ea anim adipisicing in Lorem incididunt mollit ipsum reprehenderit.
@@ -125,6 +127,7 @@ export function ToastDemo() {
 											<IconButton
 												type="button"
 												appearance="ghost"
+												intent="neutral"
 												size="xs"
 												icon={<XIcon />}
 												label="Dismiss toast"
@@ -139,16 +142,16 @@ export function ToastDemo() {
 					</Dialog.Body>
 					<Dialog.Footer>
 						<Dialog.Close asChild>
-							<Button type="button" priority="neutral" appearance="outlined">
+							<Button type="button" intent="neutral" appearance="outlined">
 								Cancel
 							</Button>
 						</Dialog.Close>
 					</Dialog.Footer>
 				</Dialog.Content>
 			</Dialog.Root>
-			<AlertDialog.Root priority="info">
+			<AlertDialog.Root intent="info">
 				<AlertDialog.Trigger asChild>
-					<Button type="button" appearance="filled" priority="neutral">
+					<Button type="button" appearance="filled" intent="neutral">
 						Show Info Alert Dialog
 					</Button>
 				</AlertDialog.Trigger>
@@ -161,10 +164,10 @@ export function ToastDemo() {
 						<Button
 							type="button"
 							appearance="outlined"
-							priority="neutral"
+							intent="neutral"
 							onClick={() =>
 								makeToast(
-									<Toast.Root priority="success">
+									<Toast.Root intent="success">
 										<Toast.Icon />
 										<Toast.Message>
 											Laborum ea anim adipisicing in Lorem incididunt mollit ipsum reprehenderit.
@@ -173,6 +176,7 @@ export function ToastDemo() {
 											<IconButton
 												type="button"
 												appearance="ghost"
+												intent="neutral"
 												size="xs"
 												icon={<XIcon />}
 												label="Dismiss toast"
@@ -207,17 +211,24 @@ import { makeToast, Toast } from "@ngrok/mantle/toast";
 <Button
 	type="button"
 	appearance="outlined"
-	priority="neutral"
+	intent="neutral"
 	onClick={() =>
 		// make some toast! 🍞😋
 		makeToast(
-			<Toast.Root priority="success">
+			<Toast.Root intent="success">
 				<Toast.Icon />
 				<Toast.Message>
 					Laborum ea anim adipisicing in Lorem incididunt mollit ipsum reprehenderit.
 				</Toast.Message>
 				<Toast.Action asChild>
-					<IconButton type="button" appearance="ghost" size="xs" icon={<XIcon />} label="Dismiss toast" />
+					<IconButton
+						type="button"
+						appearance="ghost"
+						intent="neutral"
+						size="xs"
+						icon={<XIcon />}
+						label="Dismiss toast"
+					/>
 				</Toast.Action>
 			</Toast.Root>,
 		)
@@ -259,16 +270,16 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 | Prop       | Type                                           | Default | Description                                                                                                                               |
 | ---------- | ---------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `priority` | `"info" \| "success" \| "warning" \| "danger"` |         | The priority level of the toast, which determines the visual styling and default icon.                                                    |
+| `intent`   | `"info" \| "success" \| "warning" \| "danger"` |         | The tone of the toast. Determines the visual styling and default icon that communicate the status it reports.                             |
 | `asChild?` | `boolean`                                      | `false` | Use the `asChild` prop to compose the `Toast.Root` styling and functionality onto alternative element types or your own React components. |
 
 ### Toast.Icon
 
-The `Toast.Icon` displays an icon representing the toast priority. If no custom icon is provided, a default icon for the priority is used.
+The `Toast.Icon` displays an icon representing the toast intent. If no custom icon is provided, a default icon for the intent is used.
 
-| Prop   | Type        | Default | Description                                                                                          |
-| ------ | ----------- | ------- | ---------------------------------------------------------------------------------------------------- |
-| `svg?` | `ReactNode` |         | A custom SVG icon to display. If not provided, the default icon for the toast priority will be used. |
+| Prop   | Type        | Default | Description                                                                                        |
+| ------ | ----------- | ------- | -------------------------------------------------------------------------------------------------- |
+| `svg?` | `ReactNode` |         | A custom SVG icon to display. If not provided, the default icon for the toast intent will be used. |
 
 ### Toast.Message
 

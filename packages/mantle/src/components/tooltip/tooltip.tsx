@@ -16,7 +16,7 @@ import { cx } from "../../utils/cx/cx.js";
  * <TooltipProvider>
  *   <Tooltip.Root>
  *     <Tooltip.Trigger asChild>
- *       <Button type="button" appearance="outlined">
+ *       <Button type="button" appearance="outlined" intent="neutral">
  *         Hover me
  *       </Button>
  *     </Tooltip.Trigger>
@@ -55,7 +55,7 @@ TooltipProvider.displayName = "Tooltip.Provider";
  * ```tsx
  * <Tooltip.Root>
  *   <Tooltip.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Hover me
  *     </Button>
  *   </Tooltip.Trigger>
@@ -79,7 +79,7 @@ Root.displayName = "Tooltip.Root";
  * ```tsx
  * <Tooltip.Root>
  *   <Tooltip.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Hover me
  *     </Button>
  *   </Tooltip.Trigger>
@@ -107,7 +107,7 @@ Trigger.displayName = "Tooltip.Trigger";
  * ```tsx
  * <Tooltip.Root>
  *   <Tooltip.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Hover me
  *     </Button>
  *   </Tooltip.Trigger>
@@ -175,7 +175,7 @@ Content.displayName = "Tooltip.Content";
  * ```tsx
  * <Tooltip.Root>
  *   <Tooltip.Trigger asChild>
- *     <Button type="button" appearance="outlined">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Hover me
  *     </Button>
  *   </Tooltip.Trigger>
@@ -202,7 +202,7 @@ const Tooltip = {
 	 * ```tsx
 	 * <Tooltip.Root>
 	 *   <Tooltip.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Hover me
 	 *     </Button>
 	 *   </Tooltip.Trigger>
@@ -226,7 +226,7 @@ const Tooltip = {
 	 * ```tsx
 	 * <Tooltip.Root>
 	 *   <Tooltip.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Hover me
 	 *     </Button>
 	 *   </Tooltip.Trigger>
@@ -246,7 +246,7 @@ const Tooltip = {
 	 * ```tsx
 	 * <Tooltip.Root>
 	 *   <Tooltip.Trigger asChild>
-	 *     <Button type="button" appearance="outlined">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Hover me
 	 *     </Button>
 	 *   </Tooltip.Trigger>

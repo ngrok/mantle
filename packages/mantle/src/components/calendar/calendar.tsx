@@ -5,10 +5,20 @@ import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 import type { ComponentProps } from "react";
 import { DayPicker } from "react-day-picker";
 import { cx } from "../../utils/cx/cx.js";
-import { baseIconButtonClasses, iconButtonVariants } from "../button/icon-button.js";
+import { iconButtonVariants } from "../button/icon-button.js";
 import { Icon } from "../icon/icon.js";
 
 type CalendarProps = ComponentProps<typeof DayPicker>;
+
+/**
+ * Shared ghost icon-button styling for the calendar's previous/next
+ * navigation buttons, computed once at module scope.
+ */
+const calendarNavButtonClasses = iconButtonVariants({
+	appearance: "ghost",
+	intent: "neutral",
+	size: "sm",
+});
 
 /**
  * A calendar component that allows users to select a date or a range of dates.
@@ -49,16 +59,8 @@ function Calendar({ className, classNames, showOutsideDays = false, ...props }: 
 			}}
 			classNames={{
 				root: cx("isolate", className),
-				button_next: cx(
-					baseIconButtonClasses,
-					iconButtonVariants({ appearance: "ghost", size: "sm" }),
-					"absolute right-0",
-				),
-				button_previous: cx(
-					baseIconButtonClasses,
-					iconButtonVariants({ appearance: "ghost", size: "sm" }),
-					"absolute left-0",
-				),
+				button_next: cx(calendarNavButtonClasses, "absolute right-0"),
+				button_previous: cx(calendarNavButtonClasses, "absolute left-0"),
 				caption_label: "text-sm font-medium",
 				day: cx(
 					"overflow-hidden text-center text-sm p-0 relative focus-within:relative focus-within:z-20 size-7 rounded-md",

@@ -571,6 +571,7 @@ const CopyButton = forwardRef<ComponentRef<"button">, CodeBlockCopyButtonProps>(
 				<IconButton
 					type="button"
 					appearance="ghost"
+					intent="neutral"
 					size="sm"
 					label={label}
 					icon={wasCopied ? <CheckIcon /> : <CopyIcon />}

@@ -17,7 +17,12 @@ import invariant from "tiny-invariant";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
-import { IconButton, type IconButtonProps } from "../button/icon-button.js";
+import {
+	IconButton,
+	type IconButtonAppearance,
+	type IconButtonProps,
+} from "../button/icon-button.js";
+import type { ButtonIntent } from "../button/intents.js";
 import { Label } from "../label/label.js";
 import { Popover } from "../popover/index.js";
 import { Slot } from "../slot/index.js";
@@ -308,13 +313,31 @@ const defaultHelpTriggerIcon = <QuestionIcon />;
  * Props for the default help popover trigger. A contextual label is required
  * so repeated help affordances do not all share the same accessible name.
  */
-type FieldHelpTriggerProps = Partial<Omit<IconButtonProps, "icon" | "label">> &
+type FieldHelpTriggerProps = Partial<
+	Omit<IconButtonProps, "appearance" | "icon" | "intent" | "label">
+> &
 	Pick<IconButtonProps, "label"> & {
+		/**
+		 * The visual style of the trigger button. Optional here —
+		 * `Field.HelpTrigger` defaults to `"ghost"` so the help affordance reads
+		 * as subtle metadata next to the label.
+		 *
+		 * @default "ghost"
+		 */
+		appearance?: IconButtonAppearance;
 		/**
 		 * The icon to render inside the trigger button. Defaults to a Phosphor
 		 * `QuestionIcon` so the most common case only needs a contextual label.
 		 */
 		icon?: ReactNode;
+		/**
+		 * The tone of the trigger button. Optional here — `Field.HelpTrigger`
+		 * defaults to `"neutral"` because opening contextual help is a routine
+		 * action.
+		 *
+		 * @default "neutral"
+		 */
+		intent?: ButtonIntent;
 	};
 
 /**
@@ -360,6 +383,7 @@ const HelpTrigger = forwardRef<ComponentRef<"button">, FieldHelpTriggerProps>(
 			appearance = "ghost",
 			className,
 			icon = defaultHelpTriggerIcon,
+			intent = "neutral",
 			label,
 			size = "xs",
 			type = "button",
@@ -377,6 +401,7 @@ const HelpTrigger = forwardRef<ComponentRef<"button">, FieldHelpTriggerProps>(
 				// drives the LabelRow to 24px and pushes the label text down 2px.
 				className={cx("text-body -my-0.5", className)}
 				icon={icon}
+				intent={intent}
 				label={label}
 				size={size}
 				type={type}

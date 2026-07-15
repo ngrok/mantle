@@ -76,19 +76,19 @@ const Root = forwardRef<ComponentRef<"div">, RootProps>(
 );
 Root.displayName = "SplitButton";
 
-type PrimaryActionProps = Omit<ComponentProps<typeof Button>, "appearance" | "priority" | "size">;
+type PrimaryActionProps = Omit<ComponentProps<typeof Button>, "appearance" | "intent" | "size">;
 
 const PrimaryAction = forwardRef<ComponentRef<"button">, PrimaryActionProps>((props, ref) => {
 	const { size } = useContext(SplitButtonContext);
 
 	// `type` flows through; `Button` defaults it to "button".
-	return <Button appearance="outlined" priority="neutral" ref={ref} size={size} {...props} />;
+	return <Button appearance="outlined" intent="neutral" ref={ref} size={size} {...props} />;
 });
 PrimaryAction.displayName = "SplitButtonPrimaryAction";
 
 type MenuTriggerProps = Omit<
 	ComponentProps<typeof IconButton>,
-	"appearance" | "size" | "asChild" | "icon"
+	"appearance" | "intent" | "size" | "asChild" | "icon"
 > & {
 	icon?: ReactNode;
 };
@@ -113,6 +113,7 @@ const MenuTrigger = forwardRef<ComponentRef<"button">, MenuTriggerProps>(
 						)
 					}
 					appearance="outlined"
+					intent="neutral"
 					ref={ref}
 					size={size}
 					{...props}

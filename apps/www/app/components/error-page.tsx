@@ -37,7 +37,7 @@ export function ErrorPage({ status }: ErrorPageProps) {
 						"Something went wrong."
 					)}
 				</h1>
-				<Button asChild priority="neutral" appearance="filled">
+				<Button asChild intent="neutral" appearance="filled">
 					<Link to={href("/")}>Back home</Link>
 				</Button>
 			</div>
