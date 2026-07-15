@@ -19,7 +19,7 @@ import { cx } from "../../utils/cx/cx.js";
  * ```tsx
  * <HoverCard.Root>
  *   <HoverCard.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Hover me
  *     </Button>
  *   </HoverCard.Trigger>
@@ -47,7 +47,7 @@ Root.displayName = "HoverCard";
  * ```tsx
  * <HoverCard.Root>
  *   <HoverCard.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Hover me
  *     </Button>
  *   </HoverCard.Trigger>
@@ -78,7 +78,7 @@ Trigger.displayName = "HoverCardTrigger";
  * ```tsx
  * <HoverCard.Root>
  *   <HoverCard.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Hover me
  *     </Button>
  *   </HoverCard.Trigger>
@@ -106,7 +106,7 @@ Portal.displayName = "HoverCardPortal";
  * ```tsx
  * <HoverCard.Root>
  *   <HoverCard.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Hover me
  *     </Button>
  *   </HoverCard.Trigger>
@@ -173,7 +173,7 @@ Content.displayName = HoverCardPrimitive.Content.displayName;
  * ```tsx
  * <HoverCard.Root>
  *   <HoverCard.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Hover me
  *     </Button>
  *   </HoverCard.Trigger>
@@ -197,7 +197,7 @@ const HoverCard = {
 	 * ```tsx
 	 * <HoverCard.Root>
 	 *   <HoverCard.Trigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Hover me
 	 *     </Button>
 	 *   </HoverCard.Trigger>
@@ -227,7 +227,7 @@ const HoverCard = {
 	 *     <div className="space-y-2">
 	 *       <Text weight="strong">User Profile</Text>
 	 *       <Text>Additional information about the user.</Text>
-	 *       <Button type="button" appearance="filled" intent="accent" size="sm">Follow</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral" size="sm">Follow</Button>
 	 *     </div>
 	 *   </HoverCard.Content>
 	 * </HoverCard.Root>
@@ -246,7 +246,7 @@ const HoverCard = {
 	 * ```tsx
 	 * <HoverCard.Root>
 	 *   <HoverCard.Trigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Hover me
 	 *     </Button>
 	 *   </HoverCard.Trigger>

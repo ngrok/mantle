@@ -180,9 +180,9 @@ type ButtonProps = ComponentProps<"button"> &
 		 * tone it means.
 		 *
 		 * @enum
-		 * - `"accent"`: the primary/brand action on a surface
+		 * - `"neutral"`: the workhorse tone — routine and secondary actions, and the default primary action (`appearance="filled" intent="neutral"`)
+		 * - `"accent"`: deliberate brand emphasis; reach for it when an action should carry the brand color, not as the routine primary
 		 * - `"danger"`: a destructive or irreversible action
-		 * - `"neutral"`: everything else; the workhorse tone for secondary and routine actions
 		 */
 		intent: ButtonIntent;
 		/**
@@ -230,6 +230,10 @@ type ButtonProps = ComponentProps<"button"> &
  * `appearance` (visual weight) and `intent` (tone) are required — every call
  * site states what it means; there are no implicit defaults.
  *
+ * The primary action button should be `appearance="filled" intent="neutral"` —
+ * the system's default primary action. Reserve `intent="accent"` for
+ * deliberate brand emphasis.
+ *
  * An icon-only button is not a `Button` — use `IconButton` instead: an
  * icon-only `Button` has no accessible name and keeps its text-box padding,
  * while `IconButton` requires a screen-reader `label` and renders a square
@@ -238,8 +242,9 @@ type ButtonProps = ComponentProps<"button"> &
  * @see https://mantle.ngrok.com/components/actions/button
  *
  * @example
+ * The default primary action — filled + neutral:
  * ```tsx
- * <Button appearance="filled" intent="accent" onClick={handleClick}>
+ * <Button appearance="filled" intent="neutral" onClick={handleClick}>
  *   Click me
  * </Button>
  * ```
@@ -247,7 +252,7 @@ type ButtonProps = ComponentProps<"button"> &
  * @example
  * Submit a form — opt in with `type="submit"` (the default `"button"` does not submit):
  * ```tsx
- * <Button type="submit" appearance="filled" intent="accent">
+ * <Button type="submit" appearance="filled" intent="neutral">
  *   Save
  * </Button>
  * ```

@@ -2,11 +2,12 @@
  * The tone axis shared by the button family (`Button` and `IconButton`) —
  * the purpose a button's color communicates to the user:
  *
- * - `"accent"` — the primary/brand action on a surface, colored with the
- *   accent tokens (e.g. `bg-filled-accent`, `text-accent-600`)
+ * - `"neutral"` — the workhorse tone: routine and secondary actions, and the
+ *   default primary action (`appearance="filled" intent="neutral"`)
+ * - `"accent"` — deliberate brand emphasis, colored with the accent tokens
+ *   (e.g. `bg-filled-accent`, `text-accent-600`); reach for it when an
+ *   action should carry the brand color, not as the routine primary
  * - `"danger"` — a destructive or irreversible action
- * - `"neutral"` — everything else; the workhorse tone for secondary and
- *   routine actions
  *
  * There is no default: `intent` is a required prop on the button family so
  * every call site states the tone it means.
@@ -15,9 +16,10 @@
  *
  * @example
  * ```tsx
- * <Button appearance="filled" intent="accent">Save</Button>
+ * <Button appearance="filled" intent="neutral">Save</Button>
  * <Button appearance="outlined" intent="neutral">Cancel</Button>
  * <Button appearance="filled" intent="danger">Delete</Button>
+ * <Button appearance="filled" intent="accent">Upgrade to Pro</Button>
  * ```
  */
 type ButtonIntent = "accent" | "danger" | "neutral";

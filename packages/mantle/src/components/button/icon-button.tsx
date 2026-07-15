@@ -130,9 +130,9 @@ type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
 		 * how IconButton rendered before it had an intent axis).
 		 *
 		 * @enum
-		 * - `"accent"`: the primary/brand action on a surface
+		 * - `"neutral"`: the workhorse tone — routine and secondary actions
+		 * - `"accent"`: deliberate brand emphasis; reach for it when an action should carry the brand color
 		 * - `"danger"`: a destructive or irreversible action
-		 * - `"neutral"`: everything else; secondary and routine actions
 		 */
 		intent: ButtonIntent;
 		/**

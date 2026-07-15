@@ -24,7 +24,7 @@ type CommandRootProps = ComponentPropsWithoutRef<typeof CommandPrimitive>;
  * ```tsx
  * <Command.DialogRoot open={open} onOpenChange={setOpen}>
  *   <Command.DialogTrigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+ *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
  *   </Command.DialogTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
@@ -115,7 +115,7 @@ type CommandDialogContentProps = {
  * ```tsx
  * <Command.DialogRoot open={open} onOpenChange={setOpen}>
  *   <Command.DialogTrigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+ *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
  *   </Command.DialogTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
@@ -177,7 +177,7 @@ CommandDialogContent.displayName = "CommandDialogContent";
  * ```tsx
  * <Command.DialogRoot open={open} onOpenChange={setOpen}>
  *   <Command.DialogTrigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+ *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
  *   </Command.DialogTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
@@ -231,7 +231,7 @@ CommandInput.displayName = "CommandInput";
  * ```tsx
  * <Command.DialogRoot open={open} onOpenChange={setOpen}>
  *   <Command.DialogTrigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+ *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
  *   </Command.DialogTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
@@ -276,7 +276,7 @@ CommandList.displayName = "CommandList";
  * ```tsx
  * <Command.DialogRoot open={open} onOpenChange={setOpen}>
  *   <Command.DialogTrigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+ *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
  *   </Command.DialogTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
@@ -321,7 +321,7 @@ CommandEmpty.displayName = "CommandEmpty";
  * ```tsx
  * <Command.DialogRoot open={open} onOpenChange={setOpen}>
  *   <Command.DialogTrigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+ *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
  *   </Command.DialogTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
@@ -369,7 +369,7 @@ CommandGroup.displayName = "CommandGroup";
  * ```tsx
  * <Command.DialogRoot open={open} onOpenChange={setOpen}>
  *   <Command.DialogTrigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+ *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
  *   </Command.DialogTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
@@ -411,7 +411,7 @@ CommandSeparator.displayName = "CommandSeparator";
  * ```tsx
  * <Command.DialogRoot open={open} onOpenChange={setOpen}>
  *   <Command.DialogTrigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+ *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
  *   </Command.DialogTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
@@ -459,7 +459,7 @@ CommandItem.displayName = "CommandItem";
  * ```tsx
  * <Command.DialogRoot open={open} onOpenChange={setOpen}>
  *   <Command.DialogTrigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+ *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
  *   </Command.DialogTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
@@ -518,7 +518,7 @@ CommandShortcut.displayName = "CommandShortcut";
  * ```tsx
  * <Command.DialogRoot open={open} onOpenChange={setOpen}>
  *   <Command.DialogTrigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+ *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
  *   </Command.DialogTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
@@ -551,7 +551,7 @@ const Command = {
 	 * ```tsx
 	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
 	 *   <Command.DialogTrigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
 	 *   </Command.DialogTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
@@ -584,7 +584,7 @@ const Command = {
 	 * ```tsx
 	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
 	 *   <Command.DialogTrigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
 	 *   </Command.DialogTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
@@ -604,7 +604,7 @@ const Command = {
 	 * @example
 	 * ```tsx
 	 * <Command.DialogTrigger asChild>
-	 *   <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+	 *   <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
 	 * </Command.DialogTrigger>
 	 * ```
 	 */
@@ -634,7 +634,7 @@ const Command = {
 	 * ```tsx
 	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
 	 *   <Command.DialogTrigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
 	 *   </Command.DialogTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
@@ -667,7 +667,7 @@ const Command = {
 	 * ```tsx
 	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
 	 *   <Command.DialogTrigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
 	 *   </Command.DialogTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
@@ -700,7 +700,7 @@ const Command = {
 	 * ```tsx
 	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
 	 *   <Command.DialogTrigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
 	 *   </Command.DialogTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
@@ -733,7 +733,7 @@ const Command = {
 	 * ```tsx
 	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
 	 *   <Command.DialogTrigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
 	 *   </Command.DialogTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
@@ -766,7 +766,7 @@ const Command = {
 	 * ```tsx
 	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
 	 *   <Command.DialogTrigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
 	 *   </Command.DialogTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
@@ -799,7 +799,7 @@ const Command = {
 	 * ```tsx
 	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
 	 *   <Command.DialogTrigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
 	 *   </Command.DialogTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
@@ -832,7 +832,7 @@ const Command = {
 	 * ```tsx
 	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
 	 *   <Command.DialogTrigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">Open Command Palette</Button>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
 	 *   </Command.DialogTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />

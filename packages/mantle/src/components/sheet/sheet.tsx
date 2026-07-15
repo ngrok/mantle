@@ -26,7 +26,7 @@ import * as SheetPrimitive from "../dialog/primitive.js";
  * // Triggering a stateful sheet
  * <Sheet.Root>
  *   <Sheet.Trigger asChild>
- *     <Button type="button" appearance="filled" intent="accent">
+ *     <Button type="button" appearance="filled" intent="neutral">
  *       Open Sheet
  *     </Button>
  *   </Sheet.Trigger>
@@ -62,7 +62,7 @@ import * as SheetPrimitive from "../dialog/primitive.js";
  *       <Sheet.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *       </Sheet.Close>
- *       <Button type="button" appearance="filled" intent="accent">
+ *       <Button type="button" appearance="filled" intent="neutral">
  *         Save
  *       </Button>
  *     </Sheet.Footer>
@@ -106,7 +106,7 @@ import * as SheetPrimitive from "../dialog/primitive.js";
  *       <Sheet.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *       </Sheet.Close>
- *       <Button type="button" appearance="filled" intent="accent">
+ *       <Button type="button" appearance="filled" intent="neutral">
  *         Save
  *       </Button>
  *     </Sheet.Footer>
@@ -127,7 +127,7 @@ Root.displayName = "Sheet";
  * ```tsx
  * <Sheet.Root>
  *   <Sheet.Trigger asChild>
- *     <Button type="button" appearance="filled" intent="accent">Open Sheet</Button>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Sheet</Button>
  *   </Sheet.Trigger>
  *   <Sheet.Content>
  *     <Sheet.Header>
@@ -148,7 +148,7 @@ Root.displayName = "Sheet";
  *       <Sheet.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *       </Sheet.Close>
- *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+ *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
  *     </Sheet.Footer>
  *   </Sheet.Content>
  * </Sheet.Root>
@@ -168,7 +168,7 @@ Trigger.displayName = "SheetTrigger";
  * ```tsx
  * <Sheet.Root>
  *   <Sheet.Trigger asChild>
- *     <Button type="button" appearance="filled" intent="accent">Open Sheet</Button>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Sheet</Button>
  *   </Sheet.Trigger>
  *   <Sheet.Content>
  *     <Sheet.Header>
@@ -189,7 +189,7 @@ Trigger.displayName = "SheetTrigger";
  *       <Sheet.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *       </Sheet.Close>
- *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+ *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
  *     </Sheet.Footer>
  *   </Sheet.Content>
  * </Sheet.Root>
@@ -310,7 +310,7 @@ type SheetContentProps = ComponentPropsWithoutRef<typeof SheetPrimitive.Content>
  *       <Sheet.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *       </Sheet.Close>
- *       <Button type="button" appearance="filled" intent="accent">
+ *       <Button type="button" appearance="filled" intent="neutral">
  *         Save
  *       </Button>
  *     </Sheet.Footer>
@@ -401,7 +401,7 @@ type SheetCloseIconButtonProps = Partial<
  *       <Sheet.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *       </Sheet.Close>
- *       <Button type="button" appearance="filled" intent="accent">
+ *       <Button type="button" appearance="filled" intent="neutral">
  *         Save
  *       </Button>
  *     </Sheet.Footer>
@@ -474,7 +474,7 @@ CloseIconButton.displayName = "SheetCloseIconButton";
  *       <Sheet.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *       </Sheet.Close>
- *       <Button type="button" appearance="filled" intent="accent">
+ *       <Button type="button" appearance="filled" intent="neutral">
  *         Save
  *       </Button>
  *     </Sheet.Footer>
@@ -536,7 +536,7 @@ Body.displayName = "SheetBody";
  *       <Sheet.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *       </Sheet.Close>
- *       <Button type="button" appearance="filled" intent="accent">
+ *       <Button type="button" appearance="filled" intent="neutral">
  *         Save
  *       </Button>
  *     </Sheet.Footer>
@@ -599,7 +599,7 @@ Header.displayName = "SheetHeader";
  *       <Sheet.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *       </Sheet.Close>
- *       <Button type="button" appearance="filled" intent="accent">
+ *       <Button type="button" appearance="filled" intent="neutral">
  *         Save
  *       </Button>
  *     </Sheet.Footer>
@@ -661,7 +661,7 @@ Footer.displayName = "SheetFooter";
  *       <Sheet.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *       </Sheet.Close>
- *       <Button type="button" appearance="filled" intent="accent">
+ *       <Button type="button" appearance="filled" intent="neutral">
  *         Save
  *       </Button>
  *     </Sheet.Footer>
@@ -723,7 +723,7 @@ Title.displayName = SheetPrimitive.Title.displayName;
  *       <Sheet.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *       </Sheet.Close>
- *       <Button type="button" appearance="filled" intent="accent">
+ *       <Button type="button" appearance="filled" intent="neutral">
  *         Save
  *       </Button>
  *     </Sheet.Footer>
@@ -786,7 +786,7 @@ TitleGroup.displayName = "SheetTitleGroup";
  *       <Sheet.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *       </Sheet.Close>
- *       <Button type="button" appearance="filled" intent="accent">
+ *       <Button type="button" appearance="filled" intent="neutral">
  *         Save
  *       </Button>
  *     </Sheet.Footer>
@@ -848,7 +848,7 @@ Description.displayName = SheetPrimitive.Description.displayName;
  *       <Sheet.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *       </Sheet.Close>
- *       <Button type="button" appearance="filled" intent="accent">
+ *       <Button type="button" appearance="filled" intent="neutral">
  *         Save
  *       </Button>
  *     </Sheet.Footer>
@@ -906,7 +906,7 @@ Actions.displayName = "SheetActions";
  * // Triggering a stateful sheet
  * <Sheet.Root>
  *   <Sheet.Trigger asChild>
- *     <Button type="button" appearance="filled" intent="accent">
+ *     <Button type="button" appearance="filled" intent="neutral">
  *       Open Sheet
  *     </Button>
  *   </Sheet.Trigger>
@@ -942,7 +942,7 @@ Actions.displayName = "SheetActions";
  *       <Sheet.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *       </Sheet.Close>
- *       <Button type="button" appearance="filled" intent="accent">
+ *       <Button type="button" appearance="filled" intent="neutral">
  *         Save
  *       </Button>
  *     </Sheet.Footer>
@@ -986,7 +986,7 @@ Actions.displayName = "SheetActions";
  *       <Sheet.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
  *       </Sheet.Close>
- *       <Button type="button" appearance="filled" intent="accent">
+ *       <Button type="button" appearance="filled" intent="neutral">
  *         Save
  *       </Button>
  *     </Sheet.Footer>
@@ -1009,7 +1009,7 @@ const Sheet = {
 	 * ```tsx
 	 * <Sheet.Root>
 	 *   <Sheet.Trigger asChild>
-	 *     <Button type="button" appearance="filled" intent="accent">Open Sheet</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Sheet</Button>
 	 *   </Sheet.Trigger>
 	 *   <Sheet.Content>
 	 *     <Sheet.Header>
@@ -1030,7 +1030,7 @@ const Sheet = {
 	 *       <Sheet.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
 	 *       </Sheet.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Sheet.Footer>
 	 *   </Sheet.Content>
 	 * </Sheet.Root>
@@ -1046,7 +1046,7 @@ const Sheet = {
 	 * ```tsx
 	 * <Sheet.Root>
 	 *   <Sheet.Trigger asChild>
-	 *     <Button type="button" appearance="filled" intent="accent">Open Sheet</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Sheet</Button>
 	 *   </Sheet.Trigger>
 	 *   <Sheet.Content>
 	 *     <Sheet.Header>
@@ -1067,7 +1067,7 @@ const Sheet = {
 	 *       <Sheet.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
 	 *       </Sheet.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Sheet.Footer>
 	 *   </Sheet.Content>
 	 * </Sheet.Root>
@@ -1084,7 +1084,7 @@ const Sheet = {
 	 * ```tsx
 	 * <Sheet.Root>
 	 *   <Sheet.Trigger asChild>
-	 *     <Button type="button" appearance="filled" intent="accent">Open Sheet</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Sheet</Button>
 	 *   </Sheet.Trigger>
 	 *   <Sheet.Content>
 	 *     <Sheet.Header>
@@ -1105,7 +1105,7 @@ const Sheet = {
 	 *       <Sheet.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
 	 *       </Sheet.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Sheet.Footer>
 	 *   </Sheet.Content>
 	 * </Sheet.Root>
@@ -1123,7 +1123,7 @@ const Sheet = {
 	 * ```tsx
 	 * <Sheet.Root>
 	 *   <Sheet.Trigger asChild>
-	 *     <Button type="button" appearance="filled" intent="accent">Open Sheet</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Sheet</Button>
 	 *   </Sheet.Trigger>
 	 *   <Sheet.Content>
 	 *     <Sheet.Header>
@@ -1144,7 +1144,7 @@ const Sheet = {
 	 *       <Sheet.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
 	 *       </Sheet.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Sheet.Footer>
 	 *   </Sheet.Content>
 	 * </Sheet.Root>
@@ -1164,7 +1164,7 @@ const Sheet = {
 	 * ```tsx
 	 * <Sheet.Root>
 	 *   <Sheet.Trigger asChild>
-	 *     <Button type="button" appearance="filled" intent="accent">Open Sheet</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Sheet</Button>
 	 *   </Sheet.Trigger>
 	 *   <Sheet.Content>
 	 *     <Sheet.Header>
@@ -1185,7 +1185,7 @@ const Sheet = {
 	 *       <Sheet.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
 	 *       </Sheet.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Sheet.Footer>
 	 *   </Sheet.Content>
 	 * </Sheet.Root>
@@ -1207,7 +1207,7 @@ const Sheet = {
 	 * ```tsx
 	 * <Sheet.Root>
 	 *   <Sheet.Trigger asChild>
-	 *     <Button type="button" appearance="filled" intent="accent">Open Sheet</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Sheet</Button>
 	 *   </Sheet.Trigger>
 	 *   <Sheet.Content>
 	 *     <Sheet.Header>
@@ -1228,7 +1228,7 @@ const Sheet = {
 	 *       <Sheet.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
 	 *       </Sheet.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Sheet.Footer>
 	 *   </Sheet.Content>
 	 * </Sheet.Root>
@@ -1244,7 +1244,7 @@ const Sheet = {
 	 * ```tsx
 	 * <Sheet.Root>
 	 *   <Sheet.Trigger asChild>
-	 *     <Button type="button" appearance="filled" intent="accent">Open Sheet</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Sheet</Button>
 	 *   </Sheet.Trigger>
 	 *   <Sheet.Content>
 	 *     <Sheet.Header>
@@ -1265,7 +1265,7 @@ const Sheet = {
 	 *       <Sheet.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
 	 *       </Sheet.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Sheet.Footer>
 	 *   </Sheet.Content>
 	 * </Sheet.Root>
@@ -1282,7 +1282,7 @@ const Sheet = {
 	 * ```tsx
 	 * <Sheet.Root>
 	 *   <Sheet.Trigger asChild>
-	 *     <Button type="button" appearance="filled" intent="accent">Open Sheet</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Sheet</Button>
 	 *   </Sheet.Trigger>
 	 *   <Sheet.Content>
 	 *     <Sheet.Header>
@@ -1303,7 +1303,7 @@ const Sheet = {
 	 *       <Sheet.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
 	 *       </Sheet.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Sheet.Footer>
 	 *   </Sheet.Content>
 	 * </Sheet.Root>
@@ -1320,7 +1320,7 @@ const Sheet = {
 	 * ```tsx
 	 * <Sheet.Root>
 	 *   <Sheet.Trigger asChild>
-	 *     <Button type="button" appearance="filled" intent="accent">Open Sheet</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Sheet</Button>
 	 *   </Sheet.Trigger>
 	 *   <Sheet.Content>
 	 *     <Sheet.Header>
@@ -1341,7 +1341,7 @@ const Sheet = {
 	 *       <Sheet.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
 	 *       </Sheet.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Sheet.Footer>
 	 *   </Sheet.Content>
 	 * </Sheet.Root>
@@ -1358,7 +1358,7 @@ const Sheet = {
 	 * ```tsx
 	 * <Sheet.Root>
 	 *   <Sheet.Trigger asChild>
-	 *     <Button type="button" appearance="filled" intent="accent">Open Sheet</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Sheet</Button>
 	 *   </Sheet.Trigger>
 	 *   <Sheet.Content>
 	 *     <Sheet.Header>
@@ -1379,7 +1379,7 @@ const Sheet = {
 	 *       <Sheet.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
 	 *       </Sheet.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Sheet.Footer>
 	 *   </Sheet.Content>
 	 * </Sheet.Root>
@@ -1395,7 +1395,7 @@ const Sheet = {
 	 * ```tsx
 	 * <Sheet.Root>
 	 *   <Sheet.Trigger asChild>
-	 *     <Button type="button" appearance="filled" intent="accent">Open Sheet</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Sheet</Button>
 	 *   </Sheet.Trigger>
 	 *   <Sheet.Content>
 	 *     <Sheet.Header>
@@ -1416,7 +1416,7 @@ const Sheet = {
 	 *       <Sheet.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
 	 *       </Sheet.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Sheet.Footer>
 	 *   </Sheet.Content>
 	 * </Sheet.Root>
@@ -1433,7 +1433,7 @@ const Sheet = {
 	 * ```tsx
 	 * <Sheet.Root>
 	 *   <Sheet.Trigger asChild>
-	 *     <Button type="button" appearance="filled" intent="accent">Open Sheet</Button>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Sheet</Button>
 	 *   </Sheet.Trigger>
 	 *   <Sheet.Content>
 	 *     <Sheet.Header>
@@ -1454,7 +1454,7 @@ const Sheet = {
 	 *       <Sheet.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
 	 *       </Sheet.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Sheet.Footer>
 	 *   </Sheet.Content>
 	 * </Sheet.Root>

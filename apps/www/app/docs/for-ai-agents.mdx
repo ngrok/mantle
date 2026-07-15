@@ -87,7 +87,7 @@ A few high-leverage compositions agents commonly need:
 import { Button } from "@ngrok/mantle/button";
 import { Link } from "react-router";
 
-<Button appearance="outlined" intent="accent" asChild>
+<Button appearance="outlined" intent="neutral" asChild>
 	<Link to="/dashboard">Dashboard</Link>
 </Button>;
 ```
@@ -99,7 +99,7 @@ import { Button } from "@ngrok/mantle/button";
 
 <Dialog.Root>
 	<Dialog.Trigger asChild>
-		<Button appearance="outlined" intent="accent">
+		<Button appearance="outlined" intent="neutral">
 			Edit
 		</Button>
 	</Dialog.Trigger>
@@ -142,7 +142,7 @@ Every mantle component is built on semantic HTML and tested ARIA patterns. Agent
 
 ## When to ask vs. when to act
 
-- If the user asks for "a primary button," generate a `Button` with `appearance="filled" intent="accent"`. `Button` and `IconButton` require explicit `appearance` and `intent` — there are no defaults. `intent` is the tone (`accent`, `danger`, or `neutral`); when no tone is implied, use `intent="neutral"` for both buttons and icon buttons, reserving `intent="accent"` for the single primary/brand action on a surface.
+- If the user asks for "a primary button," generate a `Button` with `appearance="filled" intent="neutral"` — the system's default primary action. `Button` and `IconButton` require explicit `appearance` and `intent` — there are no defaults. `intent` is the tone (`accent`, `danger`, or `neutral`); when no tone is implied, use `intent="neutral"` for both buttons and icon buttons, reserving `intent="accent"` for deliberate brand emphasis (an action that should carry the accent color).
 - If choosing between `Tooltip`, `Popover`, and `HoverCard`, follow [the JSDoc guidance](https://mantle.ngrok.com/components/overlays/tooltip) — `Tooltip` for short label hints, `Popover` for interactive content, `HoverCard` for non-essential preview cards.
 - If choosing between `DataTable` and `Table`: `DataTable` for dynamic, sortable, filterable, paginated tabular data; `Table` for static layout.
 - When uncertain, prefer to fetch the relevant `/<page>.md` and read the full doc rather than guessing.

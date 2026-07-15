@@ -14,13 +14,16 @@ description: The priority prop is now intent across Button, Alert, AlertDialog, 
   no defaults. `IconButton` gained the `intent` axis (`accent | danger | neutral`).
 
 There are no deprecation aliases: `priority` is gone, and omitting `appearance`/`intent` on a
-button is a type error. Every fix is mechanical and **visual-parity-preserving** — following this
-guide changes zero pixels. Intentional restyles are separate follow-up work, never part of this
+button is a type error. Every fix is mechanical and **visual-parity-preserving** — with exactly
+one deliberate exception: a `Button` with `appearance="filled"` that omitted `priority` becomes
+`intent="neutral"`, the system's default primary action, instead of the accent tone it used to
+inherit. Every other intentional restyle is separate follow-up work, never part of this
 migration.
 
 **TL;DR:** rename `priority` → `intent` everywhere it targets a mantle component; map Button's
 `"default"` value to `"accent"`; stamp the old implicit defaults (`appearance="outlined"`, Button
-`intent="accent"`, IconButton `intent="neutral"`) onto every button that omitted them.
+`intent="accent"`, IconButton `intent="neutral"`) onto every button that omitted them — except a
+filled Button that omitted `priority`, which becomes `intent="neutral"`.
 
 ---
 
@@ -34,8 +37,13 @@ migration.
    (and components that forward Button props, like `AlertDialog.Action` and
    `DataTable.HeaderSortButton`): map `priority="default"` → `intent="accent"`.
 3. On every `Button` that omits `appearance`, add `appearance="outlined"`. On every `Button`
-   that omitted `priority`, add `intent="accent"`. These were the old implicit defaults — adding
-   them explicitly preserves the exact previous rendering.
+   that omitted `priority`, add `intent="accent"` — **unless** it has `appearance="filled"`, in
+   which case add `intent="neutral"`. The accent stamps are the old implicit defaults and
+   preserve the exact previous rendering; the filled → neutral mapping is the migration's one
+   deliberate restyle: `appearance="filled" intent="neutral"` is the system's default primary
+   action going forward, so filled buttons that never chose a tone adopt it (they were
+   accent-filled before). A filled button that explicitly wrote `priority="default"` chose the
+   accent tone — map it to `intent="accent"` per step 2.
 4. On every `IconButton` that omits `appearance`, add `appearance="outlined"`. On **every**
    `IconButton`, add `intent="neutral"` unless a deliberate different intent is already known.
    ⚠️ IconButton's old rendering was neutral-toned — `intent="neutral"` is the parity value, NOT
@@ -61,21 +69,22 @@ value}` — or better, fix the upstream type/value source. Types written as
 
 ## The mapping table
 
-| Old (as written)                                                | New (explicit)                            |
-| --------------------------------------------------------------- | ----------------------------------------- |
-| `<Button>` (no `priority`, no `appearance`)                     | `appearance="outlined" intent="accent"`   |
-| Button `priority="default"`                                     | `intent="accent"`                         |
-| Button `priority="neutral"`                                     | `intent="neutral"`                        |
-| Button `priority="danger"`                                      | `intent="danger"`                         |
-| Button `appearance` omitted                                     | `appearance="outlined"`                   |
-| `<IconButton>` (no `appearance`)                                | `appearance="outlined" intent="neutral"`  |
-| IconButton `appearance="ghost" \| "outlined"`                   | unchanged, add `intent="neutral"`         |
-| Button `appearance="filled" \| "ghost" \| "outlined" \| "link"` | unchanged                                 |
-| Alert/Toast/AlertDialog `priority={x}`                          | `intent={x}` (values unchanged)           |
-| `AlertDialog.Action`/`HeaderSortButton` `priority={x}`          | `intent={x}` (Button value map applies)   |
-| `import type { Priority } from "@ngrok/mantle/toast"`           | `ToastIntent`                             |
-| `[data-priority]` selectors                                     | `[data-intent]`                           |
-| `ComponentProps<typeof Button>["priority"]`                     | `ComponentProps<typeof Button>["intent"]` |
+| Old (as written)                                                | New (explicit)                                                                                |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `<Button>` (no `priority`, no `appearance`)                     | `appearance="outlined" intent="accent"`                                                       |
+| Button `appearance="filled"`, no `priority`                     | `intent="neutral"` ⚠️ deliberate restyle — the new default primary action (was accent-filled) |
+| Button `priority="default"`                                     | `intent="accent"`                                                                             |
+| Button `priority="neutral"`                                     | `intent="neutral"`                                                                            |
+| Button `priority="danger"`                                      | `intent="danger"`                                                                             |
+| Button `appearance` omitted                                     | `appearance="outlined"`                                                                       |
+| `<IconButton>` (no `appearance`)                                | `appearance="outlined" intent="neutral"`                                                      |
+| IconButton `appearance="ghost" \| "outlined"`                   | unchanged, add `intent="neutral"`                                                             |
+| Button `appearance="filled" \| "ghost" \| "outlined" \| "link"` | unchanged                                                                                     |
+| Alert/Toast/AlertDialog `priority={x}`                          | `intent={x}` (values unchanged)                                                               |
+| `AlertDialog.Action`/`HeaderSortButton` `priority={x}`          | `intent={x}` (Button value map applies)                                                       |
+| `import type { Priority } from "@ngrok/mantle/toast"`           | `ToastIntent`                                                                                 |
+| `[data-priority]` selectors                                     | `[data-intent]`                                                                               |
+| `ComponentProps<typeof Button>["priority"]`                     | `ComponentProps<typeof Button>["intent"]`                                                     |
 
 ---
 
@@ -92,6 +101,25 @@ value}` — or better, fix the upstream type/value source. Types written as
 // AFTER — the same rendering, now explicit
 <Button appearance="outlined" intent="accent" onClick={handleClick}>
 	Details
+</Button>
+```
+
+### Filled Button without priority (the one deliberate restyle)
+
+```tsx
+// BEFORE — filled with no priority; rendered accent-filled
+<Button appearance="filled" onClick={handleSave}>
+	Save
+</Button>
+```
+
+```tsx
+// AFTER — adopts the system's default primary action: filled + neutral.
+// This is the migration's only pixel change (accent-filled → neutral-filled).
+// If this button really is the surface's brand-emphasis CTA, choose
+// intent="accent" deliberately instead.
+<Button appearance="filled" intent="neutral" onClick={handleSave}>
+	Save
 </Button>
 ```
 
@@ -174,13 +202,18 @@ const ProductButton = ({ intent = "neutral", ...props }: ProductButtonProps) => 
 - **IconButton ≠ Button parity values.** A bare `Button` becomes `intent="accent"`; a bare
   `IconButton` becomes `intent="neutral"`. Applying the Button rule to IconButton restyles every
   icon button from gray to blue — the most likely mistake in this migration.
+- **Filled Buttons that omitted `priority` change pixels — on purpose.** They map to
+  `intent="neutral"`, the system's default primary action, not the accent tone they used to
+  inherit. This is the only mapping in this guide that changes rendering. Do not "fix" it back
+  to accent wholesale; promote individual buttons to `intent="accent"` only where brand emphasis
+  is the point.
 - **Spread props.** Objects spread onto buttons (`<Button {...buttonProps} />`) may carry
   `priority` — rename the key at the object's definition. If the object omits
   `appearance`/`intent` and the JSX doesn't add them, add the explicit defaults at the JSX site.
 - **`AlertDialog.Action` / `AlertDialog.Cancel`** keep optional `appearance`/`intent` — they are
-  semantic wrappers whose defaults are the design (`Action`: filled + the dialog's intent;
-  `Cancel`: outlined + neutral). Only rename `priority` if a call site passed it; do not add
-  explicit props to them.
+  semantic wrappers whose defaults are the design (`Action`: filled + danger for danger dialogs,
+  filled + neutral otherwise; `Cancel`: outlined + neutral). Only rename `priority` if a call
+  site passed it; do not add explicit props to them.
 - **`DataTable.HeaderSortButton` / `DataTable.RowExpandButton`** keep optional
   `appearance`/`intent` — they are semantic wrappers whose defaults are the design (both:
   ghost + neutral). Only rename `priority` if a call site passed it; do not add explicit
@@ -204,6 +237,7 @@ const ProductButton = ({ intent = "neutral", ...props }: ProductButtonProps) => 
 2. `grep -rn 'priority=' src/` (or your app dir) returns no mantle-component hits — only
    `fetchpriority`, prose, or non-mantle code.
 3. `grep -rn 'data-priority'` returns nothing.
-4. Spot-check visually: buttons render identically to before (this migration changes zero
-   pixels); icon buttons are still gray, primary CTAs still accent-toned.
+4. Spot-check visually: buttons render identically to before — except filled buttons that had
+   no `priority`, which are now neutral-filled (the deliberate restyle above); icon buttons are
+   still gray.
 5. Run the project's formatter, linter, and tests.

@@ -39,7 +39,7 @@ import * as DialogPrimitive from "./primitive.js";
  *       <Dialog.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+ *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -72,7 +72,7 @@ Root.displayName = "Dialog";
  *       <Dialog.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+ *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -115,7 +115,7 @@ Trigger.displayName = "DialogTrigger";
  *         <Dialog.Close asChild>
  *           <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *         </Dialog.Close>
- *         <Button type="button" appearance="filled" intent="accent">Save</Button>
+ *         <Button type="button" appearance="filled" intent="neutral">Save</Button>
  *       </Dialog.Footer>
  *     </Dialog.Content>
  *   </Dialog.Portal>
@@ -150,7 +150,7 @@ Portal.displayName = "DialogPortal";
  *       <Dialog.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+ *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -193,7 +193,7 @@ Close.displayName = "DialogClose";
  *         <Dialog.Close asChild>
  *           <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *         </Dialog.Close>
- *         <Button type="button" appearance="filled" intent="accent">Save</Button>
+ *         <Button type="button" appearance="filled" intent="neutral">Save</Button>
  *       </Dialog.Footer>
  *     </Dialog.Content>
  *   </Dialog.Portal>
@@ -257,7 +257,7 @@ type ContentProps = ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
  *       <Dialog.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+ *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -314,7 +314,7 @@ Content.displayName = "DialogContent";
  *       <Dialog.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+ *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -378,7 +378,7 @@ type CloseIconButtonProps = Partial<Omit<IconButtonProps, "appearance" | "icon" 
  *       <Dialog.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+ *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -431,7 +431,7 @@ CloseIconButton.displayName = "DialogCloseIconButton";
  *       <Dialog.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+ *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -473,7 +473,7 @@ Body.displayName = "DialogBody";
  *       <Dialog.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+ *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -515,7 +515,7 @@ Footer.displayName = "DialogFooter";
  *       <Dialog.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+ *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -560,7 +560,7 @@ Title.displayName = "DialogTitle";
  *       <Dialog.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+ *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -627,7 +627,7 @@ Description.displayName = "DialogDescription";
  *       <Dialog.Close asChild>
  *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
  *       </Dialog.Close>
- *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+ *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
  *     </Dialog.Footer>
  *   </Dialog.Content>
  * </Dialog.Root>
@@ -663,7 +663,7 @@ const Dialog = {
 	 *       <Dialog.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -694,7 +694,7 @@ const Dialog = {
 	 *       <Dialog.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -725,7 +725,7 @@ const Dialog = {
 	 *       <Dialog.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -756,7 +756,7 @@ const Dialog = {
 	 *       <Dialog.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -792,7 +792,7 @@ const Dialog = {
 	 *       <Dialog.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -823,7 +823,7 @@ const Dialog = {
 	 *       <Dialog.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -854,7 +854,7 @@ const Dialog = {
 	 *       <Dialog.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -885,7 +885,7 @@ const Dialog = {
 	 *       <Dialog.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -918,7 +918,7 @@ const Dialog = {
 	 *         <Dialog.Close asChild>
 	 *           <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *         </Dialog.Close>
-	 *         <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *         <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *       </Dialog.Footer>
 	 *     </Dialog.Content>
 	 *   </Dialog.Portal>
@@ -952,7 +952,7 @@ const Dialog = {
 	 *         <Dialog.Close asChild>
 	 *           <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *         </Dialog.Close>
-	 *         <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *         <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *       </Dialog.Footer>
 	 *     </Dialog.Content>
 	 *   </Dialog.Portal>
@@ -984,7 +984,7 @@ const Dialog = {
 	 *       <Dialog.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
@@ -1015,7 +1015,7 @@ const Dialog = {
 	 *       <Dialog.Close asChild>
 	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
-	 *       <Button type="button" appearance="filled" intent="accent">Save</Button>
+	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>

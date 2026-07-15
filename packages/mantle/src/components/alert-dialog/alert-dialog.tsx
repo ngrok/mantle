@@ -61,7 +61,7 @@ type AlertDialogProps = ComponentProps<typeof AlertDialogPrimitive.Root> & {
  * ```tsx
  * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -107,7 +107,7 @@ Root.displayName = "AlertDialog";
  * ```tsx
  * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -197,7 +197,7 @@ type AlertDialogContentProps = ComponentPropsWithoutRef<typeof AlertDialogPrimit
  * ```tsx
  * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -259,7 +259,7 @@ Content.displayName = "AlertDialogContent";
  * ```tsx
  * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -310,7 +310,7 @@ Body.displayName = "AlertDialogBody";
  * ```tsx
  * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -361,7 +361,7 @@ Header.displayName = "AlertDialogHeader";
  * ```tsx
  * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -415,7 +415,7 @@ Footer.displayName = "AlertDialogFooter";
  * ```tsx
  * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -468,7 +468,7 @@ Title.displayName = "AlertDialogTitle";
  * ```tsx
  * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -519,8 +519,9 @@ type AlertDialogActionProps = Omit<ButtonProps, "appearance" | "intent"> & {
 	/**
 	 * The tone of the action button. Optional here — when omitted,
 	 * `AlertDialog.Action` derives the tone from the parent `AlertDialog.Root`'s
-	 * `intent` (`"danger"` → `"danger"`, otherwise `"accent"`). A passed value
-	 * always wins over the context-derived tone.
+	 * `intent` (`"danger"` → `"danger"`, otherwise `"neutral"` — the system's
+	 * default primary action). A passed value always wins over the
+	 * context-derived tone.
 	 */
 	intent?: ButtonIntent;
 };
@@ -530,12 +531,14 @@ type AlertDialogActionProps = Omit<ButtonProps, "appearance" | "intent"> & {
  */
 const actionIntentByDialogIntent = {
 	danger: "danger",
-	info: "accent",
+	info: "neutral",
 } as const satisfies Record<AlertDialogIntent, ButtonIntent>;
 
 /**
  * A button that confirms the Alert Dialog action.
- * Will default to appearance="filled", as well as the intent color from the `AlertDialog`.
+ * Will default to appearance="filled", with a tone derived from the `AlertDialog`'s
+ * intent: danger dialogs get a danger button, info dialogs get a neutral one —
+ * the system's default primary action.
  * Does not close the alert dialog by default.
  *
  * These buttons should be distinguished visually from the AlertDialogCancel button.
@@ -548,7 +551,7 @@ const actionIntentByDialogIntent = {
  * ```tsx
  * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -633,7 +636,7 @@ type AlertDialogCancelProps = Omit<ButtonProps, "appearance" | "intent"> & {
  * ```tsx
  * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -718,7 +721,7 @@ const defaultIconColors = {
  * ```tsx
  * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -777,7 +780,7 @@ Icon.displayName = "AlertDialogIcon";
  * ```tsx
  * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -848,7 +851,7 @@ Close.displayName = "AlertDialogClose";
  * ```tsx
  * <AlertDialog.Root intent="danger">
  *   <AlertDialog.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="accent">
+ *     <Button type="button" appearance="outlined" intent="neutral">
  *       Show Danger Alert Dialog
  *     </Button>
  *   </AlertDialog.Trigger>
@@ -892,7 +895,7 @@ const AlertDialog = {
 	 * ```tsx
 	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -921,9 +924,11 @@ const AlertDialog = {
 	Root,
 	/**
 	 * A button that confirms the Alert Dialog action. Defaults to
-	 * `appearance="filled"` and inherits the intent color from the parent
-	 * `AlertDialog.Root`. Does not close the dialog by default — wrap with
-	 * `AlertDialog.Close asChild` if the action should also dismiss.
+	 * `appearance="filled"`, with a tone derived from the parent
+	 * `AlertDialog.Root`'s intent: danger dialogs get a danger button, info
+	 * dialogs get a neutral one — the system's default primary action. Does
+	 * not close the dialog by default — wrap with `AlertDialog.Close asChild`
+	 * if the action should also dismiss.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogaction
 	 *
@@ -931,7 +936,7 @@ const AlertDialog = {
 	 * ```tsx
 	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -968,7 +973,7 @@ const AlertDialog = {
 	 * ```tsx
 	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1006,7 +1011,7 @@ const AlertDialog = {
 	 * ```tsx
 	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1044,7 +1049,7 @@ const AlertDialog = {
 	 * ```tsx
 	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1087,7 +1092,7 @@ const AlertDialog = {
 	 * ```tsx
 	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1124,7 +1129,7 @@ const AlertDialog = {
 	 * ```tsx
 	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1161,7 +1166,7 @@ const AlertDialog = {
 	 * ```tsx
 	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1198,7 +1203,7 @@ const AlertDialog = {
 	 * ```tsx
 	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1236,7 +1241,7 @@ const AlertDialog = {
 	 * ```tsx
 	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1274,7 +1279,7 @@ const AlertDialog = {
 	 * ```tsx
 	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
@@ -1310,7 +1315,7 @@ const AlertDialog = {
 	 * ```tsx
 	 * <AlertDialog.Root intent="danger">
 	 *   <AlertDialog.Trigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="accent">
+	 *     <Button type="button" appearance="outlined" intent="neutral">
 	 *       Show Danger Alert Dialog
 	 *     </Button>
 	 *   </AlertDialog.Trigger>
