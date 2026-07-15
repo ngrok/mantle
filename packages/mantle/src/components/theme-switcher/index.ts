@@ -1,8 +1,8 @@
 /**
- * Re-exports for the ThemeSwitcher component — the canonical picker for
- * mantle's themes — and ThemeDropdownMenuRadioGroup, the theme-selection
- * radio group it hosts, embeddable in any `DropdownMenu.Content` or
- * `DropdownMenu.SubContent`.
+ * Re-exports for the ThemeSwitcher compound component — the canonical picker
+ * for mantle's themes (`Root`/`Trigger`/`Content`) — and
+ * ThemeDropdownMenuRadioGroup, the theme-selection radio group it hosts,
+ * embeddable in any `DropdownMenu.Content` or `DropdownMenu.SubContent`.
  *
  * @see https://mantle.ngrok.com/components/forms/theme-switcher
  */
@@ -16,5 +16,7 @@ export {
 export type {
 	//,
 	ThemeDropdownMenuRadioGroupProps,
-	ThemeSwitcherProps,
+	ThemeSwitcherContentProps,
+	ThemeSwitcherRootProps,
+	ThemeSwitcherTriggerProps,
 } from "./theme-switcher.js";

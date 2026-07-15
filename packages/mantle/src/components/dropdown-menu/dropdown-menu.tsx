@@ -4,6 +4,8 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import type { ComponentProps, ComponentPropsWithoutRef, ComponentRef } from "react";
 import { forwardRef } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon } from "../icon/icon.js";
 import { Separator } from "../separator/separator.js";
 
@@ -158,12 +160,13 @@ const SubContent = forwardRef<
 ));
 SubContent.displayName = "DropdownMenuSubContent";
 
-type DropdownMenuContentProps = ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content> & {
-	/**
-	 * Whether the DropdownMenuContent should match the width of the trigger or use the intrinsic content width.
-	 */
-	width?: "trigger" | "content";
-};
+type DropdownMenuContentProps = ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content> &
+	WithDataSlot & {
+		/**
+		 * Whether the DropdownMenuContent should match the width of the trigger or use the intrinsic content width.
+		 */
+		width?: "trigger" | "content";
+	};
 
 /**
  * The container for the dropdown menu content.
@@ -192,11 +195,11 @@ type DropdownMenuContentProps = ComponentPropsWithoutRef<typeof DropdownMenuPrim
 const Content = forwardRef<
 	ComponentRef<typeof DropdownMenuPrimitive.Content>,
 	DropdownMenuContentProps
->(({ className, onClick, loop = true, width, ...props }, ref) => (
+>(({ className, "data-slot": dataSlot, onClick, loop = true, width, ...props }, ref) => (
 	<Portal>
 		<DropdownMenuPrimitive.Content
 			ref={ref}
-			data-slot="dropdown-menu-content"
+			data-slot={joinDataSlot(dataSlot, "dropdown-menu-content")}
 			className={cx(
 				"scrollbar",
 				"text-popover-foreground border-popover bg-popover p-1.25 z-50 min-w-32 overflow-hidden rounded-md border shadow-xl outline-hidden space-y-px font-sans",

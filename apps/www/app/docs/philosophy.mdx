@@ -94,7 +94,10 @@ Components compose with each other and with your code. The `asChild` pattern, po
 [Slot](/components/primitives/slot), swaps the rendered element entirely—internal navigation is
 `<Anchor asChild><Link to="…" /></Anchor>`, not an `href` prop with router flags—so
 Mantle never forces a DOM structure on you. Configuration props handle the common case;
-composition handles everything else. Composition is also how new components get built:
+composition handles everything else — never a prop bag: a component does not forward
+`contentProps`-style objects to elements it renders internally, because needing to reach
+an internal element means the component is a compound and that element is a part.
+Composition is also how new components get built:
 [SplitButton](/components/actions/split-button) is nothing but Button, IconButton, and
 DropdownMenu with the seams styled.
 

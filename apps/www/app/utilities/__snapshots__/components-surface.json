@@ -146,7 +146,7 @@
     "jsdoc": "A viewport-filling centered page flow for sign-in, sign-up, onboarding, 404, checkout, and other focused full-page states.",
     "examples": [
       "Composition:\n```\nCenteredLayout.Root\n├── CenteredLayout.Header\n├── CenteredLayout.Body\n└── CenteredLayout.Footer\n```",
-      "```tsx\n<CenteredLayout.Root>\n  <SkipToMainLink />\n  <CenteredLayout.Body>\n    <a href=\"https://ngrok.com\">\n      <NgrokWordmarkIcon className=\"h-auto w-24\" />\n    </a>\n    <Main>\n      <SignInCard />\n    </Main>\n  </CenteredLayout.Body>\n  <CenteredLayout.Footer>\n    <ThemeSwitcher />\n  </CenteredLayout.Footer>\n</CenteredLayout.Root>\n```"
+      "```tsx\n<CenteredLayout.Root>\n  <SkipToMainLink />\n  <CenteredLayout.Body>\n    <a href=\"https://ngrok.com\">\n      <NgrokWordmarkIcon className=\"h-auto w-24\" />\n    </a>\n    <Main>\n      <SignInCard />\n    </Main>\n  </CenteredLayout.Body>\n  <CenteredLayout.Footer>\n    <ThemeSwitcher.Root>\n      <ThemeSwitcher.Trigger />\n      <ThemeSwitcher.Content />\n    </ThemeSwitcher.Root>\n  </CenteredLayout.Footer>\n</CenteredLayout.Root>\n```"
     ]
   },
   {
@@ -794,7 +794,8 @@
     "summary": "The canonical picker for mantle's five themes — a compact dropdown switcher, plus a radio group that embeds theme selection in any dropdown menu.",
     "jsdoc": "The canonical picker for mantle's theme system: a compact `IconButton` trigger (ghost by default) that opens a `DropdownMenu` hosting `ThemeDropdownMenuRadioGroup`, the theme-selection radio group.",
     "examples": [
-      "```tsx\n<ThemeProvider>\n  <header>\n    <ThemeSwitcher />\n  </header>\n</ThemeProvider>\n```"
+      "Composition:\n```\nThemeSwitcher.Root\n├── ThemeSwitcher.Trigger\n└── ThemeSwitcher.Content\n```",
+      "```tsx\n<ThemeProvider>\n  <header>\n    <ThemeSwitcher.Root>\n      <ThemeSwitcher.Trigger />\n      <ThemeSwitcher.Content />\n    </ThemeSwitcher.Root>\n  </header>\n</ThemeProvider>\n```"
     ]
   },
   {

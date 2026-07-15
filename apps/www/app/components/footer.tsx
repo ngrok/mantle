@@ -410,9 +410,10 @@ export function PrimaryFooter({ className, ...props }: Props) {
 
 				<div className="flex w-full flex-col items-end justify-between gap-6 sm:flex-row">
 					<div className="order-last -mt-4 self-start sm:order-first sm:mt-0 sm:self-auto">
-						<ThemeSwitcher
-							contentProps={{ className: "shadow-2xl", collisionPadding: { right: 16 } }}
-						/>
+						<ThemeSwitcher.Root>
+							<ThemeSwitcher.Trigger />
+							<ThemeSwitcher.Content className="shadow-2xl" collisionPadding={{ right: 16 }} />
+						</ThemeSwitcher.Root>
 					</div>
 					<div className="relative ml-auto max-w-full">
 						<NgrokWordmarkIcon

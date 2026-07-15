@@ -29,7 +29,10 @@ import { Slot } from "../slot/index.js";
  *     </Main>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
- *     <ThemeSwitcher />
+ *     <ThemeSwitcher.Root>
+ *       <ThemeSwitcher.Trigger />
+ *       <ThemeSwitcher.Content />
+ *     </ThemeSwitcher.Root>
  *   </CenteredLayout.Footer>
  * </CenteredLayout.Root>
  * ```
@@ -130,7 +133,10 @@ Header.displayName = "CenteredLayoutHeader";
  *     </Main>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
- *     <ThemeSwitcher />
+ *     <ThemeSwitcher.Root>
+ *       <ThemeSwitcher.Trigger />
+ *       <ThemeSwitcher.Content />
+ *     </ThemeSwitcher.Root>
  *   </CenteredLayout.Footer>
  * </CenteredLayout.Root>
  * ```
@@ -176,7 +182,10 @@ Body.displayName = "CenteredLayoutBody";
  *     </Main>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
- *     <ThemeSwitcher />
+ *     <ThemeSwitcher.Root>
+ *       <ThemeSwitcher.Trigger />
+ *       <ThemeSwitcher.Content />
+ *     </ThemeSwitcher.Root>
  *   </CenteredLayout.Footer>
  * </CenteredLayout.Root>
  * ```
@@ -231,7 +240,10 @@ Footer.displayName = "CenteredLayoutFooter";
  *     </Main>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
- *     <ThemeSwitcher />
+ *     <ThemeSwitcher.Root>
+ *       <ThemeSwitcher.Trigger />
+ *       <ThemeSwitcher.Content />
+ *     </ThemeSwitcher.Root>
  *   </CenteredLayout.Footer>
  * </CenteredLayout.Root>
  * ```
@@ -258,7 +270,10 @@ const CenteredLayout = {
 	 *     </Main>
 	 *   </CenteredLayout.Body>
 	 *   <CenteredLayout.Footer>
-	 *     <ThemeSwitcher />
+	 *     <ThemeSwitcher.Root>
+	 *       <ThemeSwitcher.Trigger />
+	 *       <ThemeSwitcher.Content />
+	 *     </ThemeSwitcher.Root>
 	 *   </CenteredLayout.Footer>
 	 * </CenteredLayout.Root>
 	 * ```
@@ -309,7 +324,10 @@ const CenteredLayout = {
 	 *     </Main>
 	 *   </CenteredLayout.Body>
 	 *   <CenteredLayout.Footer>
-	 *     <ThemeSwitcher />
+	 *     <ThemeSwitcher.Root>
+	 *       <ThemeSwitcher.Trigger />
+	 *       <ThemeSwitcher.Content />
+	 *     </ThemeSwitcher.Root>
 	 *   </CenteredLayout.Footer>
 	 * </CenteredLayout.Root>
 	 * ```
@@ -335,7 +353,10 @@ const CenteredLayout = {
 	 *     </Main>
 	 *   </CenteredLayout.Body>
 	 *   <CenteredLayout.Footer>
-	 *     <ThemeSwitcher />
+	 *     <ThemeSwitcher.Root>
+	 *       <ThemeSwitcher.Trigger />
+	 *       <ThemeSwitcher.Content />
+	 *     </ThemeSwitcher.Root>
 	 *   </CenteredLayout.Footer>
 	 * </CenteredLayout.Root>
 	 * ```
