@@ -15,7 +15,6 @@ import {
 	type IconButtonAppearance,
 	type IconButtonProps,
 } from "../button/icon-button.js";
-import type { ButtonIntent } from "../button/intents.js";
 import { SvgOnly } from "../icon/svg-only.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { Slot } from "../slot/index.js";
@@ -324,15 +323,6 @@ type AlertDismissIconButtonProps = Partial<
 	 * An optional icon to render inside the dismiss button. Defaults to an X icon.
 	 */
 	icon?: ReactNode;
-	/**
-	 * The tone of the dismiss button. Optional here — `Alert.DismissIconButton`
-	 * defaults to `"neutral"` because dismissing an alert is a routine action.
-	 * Note that the Alert tints the button's text and hover colors to match its
-	 * own `intent` via CSS custom properties regardless of this value.
-	 *
-	 * @default "neutral"
-	 */
-	intent?: ButtonIntent;
 };
 
 const DismissIconButton = ({
@@ -340,7 +330,6 @@ const DismissIconButton = ({
 	type = "button",
 	label = "Dismiss Alert",
 	appearance = "ghost",
-	intent = "neutral",
 	className,
 	icon = defaultDismissIcon,
 	style,
@@ -351,7 +340,11 @@ const DismissIconButton = ({
 		<IconButton
 			appearance={appearance}
 			icon={icon}
-			intent={intent}
+			// not a public prop: the dismiss button's visible tone is dictated by
+			// the parent Alert's intent via the CSS custom properties below, so a
+			// consumer-passed intent would only half-apply (focus ring, outlined
+			// border) and read as a bug
+			intent="neutral"
 			label={label}
 			size={size}
 			data-slot="alert-dismiss-icon-button"
