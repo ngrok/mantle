@@ -67,10 +67,10 @@ describe("AlertDialog", () => {
 			expect(action).toHaveAttribute("data-intent", "danger");
 		});
 
-		test(`Action derives a neutral button from intent="info" — the default primary action`, () => {
+		test(`Action derives an accent button from intent="info" — it carries the dialog's tone`, () => {
 			const { action } = renderAlertDialog({ intent: "info" });
 			expect(action).toHaveAttribute("data-appearance", "filled");
-			expect(action).toHaveAttribute("data-intent", "neutral");
+			expect(action).toHaveAttribute("data-intent", "accent");
 		});
 
 		test("a consumer-passed Action intent wins over the derived one", () => {

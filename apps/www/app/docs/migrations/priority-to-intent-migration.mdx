@@ -211,9 +211,9 @@ const ProductButton = ({ intent = "neutral", ...props }: ProductButtonProps) => 
   `priority` — rename the key at the object's definition. If the object omits
   `appearance`/`intent` and the JSX doesn't add them, add the explicit defaults at the JSX site.
 - **`AlertDialog.Action` / `AlertDialog.Cancel`** keep optional `appearance`/`intent` — they are
-  semantic wrappers whose defaults are the design (`Action`: filled + danger for danger dialogs,
-  filled + neutral otherwise; `Cancel`: outlined + neutral). Only rename `priority` if a call
-  site passed it; do not add explicit props to them.
+  semantic wrappers whose defaults are the design (`Action`: filled + the dialog's tone, danger →
+  danger and info → accent; `Cancel`: outlined + neutral). Only rename `priority` if a call site
+  passed it; do not add explicit props to them.
 - **`DataTable.HeaderSortButton` / `DataTable.RowExpandButton`** keep optional
   `appearance`/`intent` — they are semantic wrappers whose defaults are the design (both:
   ghost + neutral). Only rename `priority` if a call site passed it; do not add explicit
