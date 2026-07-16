@@ -151,7 +151,7 @@ const Root = forwardRef<ComponentRef<"div">, CodeBlockRootProps>(
 			<Component
 				data-slot="code-block"
 				className={cx(
-					"text-mono w-full overflow-hidden rounded-md border border-gray-300 bg-card font-mono",
+					"text-mono w-full overflow-hidden rounded-md border border-gray-300 bg-base font-mono",
 					"[&_svg]:shrink-0",
 					className,
 				)}
@@ -504,7 +504,7 @@ const Title = forwardRef<
 		<Component
 			data-slot="code-block-title"
 			ref={ref}
-			className={cx("text-mono m-0 font-mono font-normal", className)}
+			className={cx("m-0 font-sans text-xs font-medium", className)}
 			{...props}
 		/>
 	);
@@ -566,7 +566,7 @@ const CopyButton = forwardRef<ComponentRef<"button">, CodeBlockCopyButtonProps>(
 		return (
 			<span
 				data-slot="code-block-copy-button"
-				className="absolute right-3 top-3 z-10 inline-flex size-7 items-center justify-center rounded-[var(--icon-button-border-radius,0.375rem)] bg-card"
+				className="absolute right-3 top-3 z-10 inline-flex size-7 items-center justify-center rounded-[var(--icon-button-border-radius,0.375rem)] bg-base"
 			>
 				<IconButton
 					type="button"
@@ -575,7 +575,7 @@ const CopyButton = forwardRef<ComponentRef<"button">, CodeBlockCopyButtonProps>(
 					size="sm"
 					label={label}
 					icon={wasCopied ? <CheckIcon /> : <CopyIcon />}
-					className={className}
+					className={cx("bg-base not-disabled:hover:bg-neutral-500/15", className)}
 					ref={ref}
 					onClick={async (event) => {
 						try {
@@ -653,7 +653,7 @@ const ExpanderButton = forwardRef<ComponentRef<"button">, CodeBlockExpanderButto
 				aria-controls={codeId}
 				aria-expanded={isCodeExpanded}
 				className={cx(
-					"flex w-full items-center justify-center gap-0.5 border-t border-gray-300 bg-card px-4 py-2 font-sans text-gray-700 hover:bg-gray-100",
+					"flex w-full items-center justify-center gap-0.5 border-t border-gray-300 bg-base px-4 py-2 font-sans text-gray-700 hover:bg-base-hover",
 					className,
 				)}
 				ref={ref}
@@ -743,7 +743,14 @@ function CodeBlockIconComponent({
 				break;
 		}
 	}
-	return <MantleIcon data-slot="code-block-icon" className={className} svg={svg} {...props} />;
+	return (
+		<MantleIcon
+			data-slot="code-block-icon"
+			className={cx("size-5", className)}
+			svg={svg}
+			{...props}
+		/>
+	);
 }
 CodeBlockIconComponent.displayName = "CodeBlockIcon";
 
@@ -820,7 +827,7 @@ const TabTrigger = forwardRef<ComponentRef<typeof RadixTabsTrigger>, CodeBlockTa
 		<RadixTabsTrigger
 			data-slot="code-block-tab-trigger"
 			className={cx(
-				"shrink-0 cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium whitespace-nowrap",
+				"shrink-0 cursor-pointer rounded px-1.5 py-0.5 font-sans text-xs font-medium whitespace-nowrap",
 				"text-gray-600 outline-hidden",
 				"hover:text-gray-900",
 				"data-[state=active]:bg-neutral-500/15 data-[state=active]:text-strong",
