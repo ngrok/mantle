@@ -56,7 +56,11 @@ function HorizontalItems() {
 	);
 }
 
-const boxClassName = "scrollbar rounded-lg border border-card bg-card px-4 py-3";
+// The card chrome (border, background, rounding) lives on a wrapper so the
+// fade mask on the inner scroll container never fades the border itself.
+// `overflow-hidden` clips the inner scrollbar to the rounded corners.
+const cardClassName = "overflow-hidden rounded-lg border border-card bg-card";
+const scrollBoxClassName = "scrollbar px-4 py-3";
 
 /**
  * Live demo grid for the single-edge `scroll-fade-{t,b,l,r}` utilities. Each box
@@ -71,35 +75,49 @@ export function ScrollFadeEdges() {
 		<div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2">
 			<figure className="flex flex-col gap-2">
 				<figcaption className="text-muted-foreground font-mono text-xs">scroll-fade-t</figcaption>
-				<div
-					ref={scrollToMiddleY}
-					className={cx("scroll-fade-t h-44 overflow-y-auto", boxClassName)}
-				>
-					<VerticalItems />
+				<div className={cardClassName}>
+					<div
+						ref={scrollToMiddleY}
+						className={cx("scroll-fade-t h-44 overflow-y-auto", scrollBoxClassName)}
+					>
+						<VerticalItems />
+					</div>
 				</div>
 			</figure>
 
 			<figure className="flex flex-col gap-2">
 				<figcaption className="text-muted-foreground font-mono text-xs">scroll-fade-b</figcaption>
-				<div
-					ref={scrollToMiddleY}
-					className={cx("scroll-fade-b h-44 overflow-y-auto", boxClassName)}
-				>
-					<VerticalItems />
+				<div className={cardClassName}>
+					<div
+						ref={scrollToMiddleY}
+						className={cx("scroll-fade-b h-44 overflow-y-auto", scrollBoxClassName)}
+					>
+						<VerticalItems />
+					</div>
 				</div>
 			</figure>
 
 			<figure className="flex flex-col gap-2">
 				<figcaption className="text-muted-foreground font-mono text-xs">scroll-fade-l</figcaption>
-				<div ref={scrollToMiddleX} className={cx("scroll-fade-l overflow-x-auto", boxClassName)}>
-					<HorizontalItems />
+				<div className={cardClassName}>
+					<div
+						ref={scrollToMiddleX}
+						className={cx("scroll-fade-l overflow-x-auto", scrollBoxClassName)}
+					>
+						<HorizontalItems />
+					</div>
 				</div>
 			</figure>
 
 			<figure className="flex flex-col gap-2">
 				<figcaption className="text-muted-foreground font-mono text-xs">scroll-fade-r</figcaption>
-				<div ref={scrollToMiddleX} className={cx("scroll-fade-r overflow-x-auto", boxClassName)}>
-					<HorizontalItems />
+				<div className={cardClassName}>
+					<div
+						ref={scrollToMiddleX}
+						className={cx("scroll-fade-r overflow-x-auto", scrollBoxClassName)}
+					>
+						<HorizontalItems />
+					</div>
 				</div>
 			</figure>
 		</div>
