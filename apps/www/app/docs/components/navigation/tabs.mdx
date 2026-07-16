@@ -598,9 +598,17 @@ The root container of the tabs component that provides context for all tab compo
 
 Contains the triggers that are aligned along the edge of the active content. Based on [Radix Tabs List](https://www.radix-ui.com/primitives/docs/components/tabs#list).
 
+In the horizontal classic appearance, the list draws a 1px bottom rule that terminates at the ends of the tab triggers. In the rare case you need to recolor or hide it, set the `--tabs-list-border-color` CSS variable on the list (or any ancestor), e.g. `<Tabs.List className="[--tabs-list-border-color:transparent]">`. The pill appearance never draws the rule.
+
 | Prop         | Type     | Default | Description                                               |
 | ------------ | -------- | ------- | --------------------------------------------------------- |
 | `className?` | `string` |         | Additional CSS classes to apply to the tabs list element. |
+
+The `Tabs.List` also exposes the following CSS variables as part of its API.
+
+| CSS Variable               | Default                  | Description                                                                                                                                       |
+| -------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--tabs-list-border-color` | `var(--color-separator)` | The color of the bottom rule drawn by the horizontal classic appearance. Set it to `transparent` to hide the rule. Unused by the pill appearance. |
 
 ### Tabs.Trigger
 

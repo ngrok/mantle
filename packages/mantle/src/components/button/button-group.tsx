@@ -26,6 +26,9 @@ type ButtonGroupProps = ComponentProps<"div"> & ButtonGroupVariants & WithAsChil
 /**
  * A contained group of related buttons.
  *
+ * The panel appearance sets `--icon-button-border-radius` to `0.125rem` so
+ * nested icon buttons square up to fit the panel chrome.
+ *
  * @see https://mantle.ngrok.com/components/actions/button
  *
  * @example

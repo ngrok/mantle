@@ -175,6 +175,11 @@ type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
  * site states what it means; there are no implicit defaults. `intent="neutral"`
  * matches how IconButton rendered before it had an intent axis.
  *
+ * The border radius is driven by the `--icon-button-border-radius` CSS
+ * variable (default: `0.375rem`). Wrappers can set it to slot icon buttons
+ * into their chrome — e.g. `ButtonGroup`'s panel appearance tightens it to
+ * `0.125rem`.
+ *
  * @see https://mantle.ngrok.com/components/actions/icon-button
  *
  * @example

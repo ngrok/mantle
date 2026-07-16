@@ -91,13 +91,32 @@ const Root = forwardRef<
 Root.displayName = "Tabs";
 
 /**
+ * The horizontal classic tablist's bottom rule. Painted as a content-box
+ * background instead of `border-bottom` because the tablist is a scroll
+ * container with `px-1 -mx-1` breathing room for focus rings: a real border
+ * paints across the border box, overrunning the tab triggers by that 4px on
+ * each side. The content box excludes the padding, so the rule terminates
+ * exactly at the first/last trigger, stays put while triggers scroll beneath
+ * it, and fades with them under the scroll-fade mask.
+ *
+ * `pb-px` reserves the 1px row below the triggers (and below the active
+ * trigger's decoration) that the rule occupies; the `calc(100% + 1px)`
+ * y-position drops the rule out of the content box into that row. Recolor via
+ * `--tabs-list-border-color`; set it to `transparent` to hide the rule.
+ */
+const listBottomRule = cx(
+	"pb-px bg-origin-content bg-no-repeat bg-size-[100%_1px] bg-position-[0_calc(100%+1px)]",
+	"bg-[image:linear-gradient(var(--tabs-list-border-color,var(--color-separator)),var(--tabs-list-border-color,var(--color-separator)))]",
+);
+
+/**
  * Variants for the List component
  */
 const listVariants = cva("flex", {
 	variants: {
 		orientation: {
 			horizontal:
-				"scroll-fade-x flex-row items-center overflow-x-auto overscroll-x-none w-full min-w-0 pt-1 -mt-1 px-1 -mx-1",
+				"scroll-fade-x flex-row items-center overflow-x-auto overscroll-x-none min-w-0 pt-1 -mt-1 px-1 -mx-1",
 			vertical: "flex-col items-end gap-3.5 self-stretch",
 		} as const satisfies Record<Orientation, string>,
 		appearance: {
@@ -110,17 +129,20 @@ const listVariants = cva("flex", {
 			orientation: "horizontal",
 			appearance: "pill",
 			// pb-1 -mb-1 gives the focus ring space below (ring-4 is box-shadow, clipped by overflow).
-			className: "gap-1 pb-1 -mb-1",
+			className: "w-full gap-1 pb-1 -mb-1",
 		},
 		{
 			orientation: "horizontal",
 			appearance: "classic",
-			className: "gap-6",
+			// w-fit (capped at the container) keeps the bottom rule from running past
+			// the tab triggers when they don't fill the container; see listBottomRule
+			// for why the rule is a background rather than a border-bottom.
+			className: cx("w-fit max-w-full gap-6", listBottomRule),
 		},
 		{
 			orientation: "vertical",
 			appearance: "classic",
-			className: "border-r border-gray-200",
+			className: "border-r border-separator",
 		},
 	],
 });
@@ -128,6 +150,13 @@ const listVariants = cva("flex", {
 /**
  * Contains the triggers that are aligned along the edge of the active content.
  * The container for tab triggers that provides the visual layout for tab navigation.
+ *
+ * In the horizontal classic appearance the list draws a 1px bottom rule that
+ * terminates at the ends of the tab triggers. Its color is driven by the
+ * `--tabs-list-border-color` CSS variable, which falls back to the
+ * `--color-separator` design token by default. Set the variable (on the list
+ * or any ancestor) to recolor the rule, or set it to `transparent` to hide it.
+ * The pill appearance never draws the rule.
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
  *
@@ -142,6 +171,12 @@ const listVariants = cva("flex", {
  *     <p>Make changes to your account here.</p>
  *   </Tabs.Content>
  * </Tabs.Root>
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // hide the classic appearance's bottom rule
+ * <Tabs.List className="[--tabs-list-border-color:transparent]">
  * ```
  */
 const List = forwardRef<
@@ -497,6 +532,12 @@ const Tabs = {
 	 * Contains the triggers that are aligned along the edge of the active content.
 	 * The container for tab triggers that provides the visual layout for tab navigation.
 	 *
+	 * In the horizontal classic appearance the list draws a 1px bottom rule that
+	 * terminates at the ends of the tab triggers. Its color is driven by the
+	 * `--tabs-list-border-color` CSS variable (default: `--color-separator`);
+	 * set it to `transparent` to hide the rule. The pill appearance never draws
+	 * the rule.
+	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
 	 *
 	 * @example
@@ -507,6 +548,12 @@ const Tabs = {
 	 *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
 	 *   </Tabs.List>
 	 * </Tabs.Root>
+	 * ```
+	 *
+	 * @example
+	 * ```tsx
+	 * // hide the classic appearance's bottom rule
+	 * <Tabs.List className="[--tabs-list-border-color:transparent]">
 	 * ```
 	 */
 	List,
