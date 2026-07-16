@@ -1,5 +1,11 @@
 # @ngrok/mantle
 
+## 0.79.2
+
+### Patch Changes
+
+- [#1324](https://github.com/ngrok/mantle/pull/1324) [`3a57903`](https://github.com/ngrok/mantle/commit/3a5790380dd5297df3db343fedc9f5ea8eeedd2b) Thanks [@forzalupo](https://github.com/forzalupo)! - Refine CodeBlock backgrounds, hover states, and header typography.
+
 ## 0.79.1
 
 ### Patch Changes
