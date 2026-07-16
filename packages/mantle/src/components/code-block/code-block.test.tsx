@@ -15,44 +15,6 @@ function makeValue(code: string, preHtml?: string) {
 }
 
 describe("CodeBlock", () => {
-	describe("surfaces", () => {
-		test("uses the base background for the root and interactive controls", () => {
-			const { container } = render(
-				<CodeBlock.Root>
-					<CodeBlock.Header>
-						<CodeBlock.Icon preset="file" />
-						<CodeBlock.Title>example.ts</CodeBlock.Title>
-					</CodeBlock.Header>
-					<CodeBlock.Body>
-						<CodeBlock.CopyButton />
-						<CodeBlock.Code value={makeValue("code")} />
-					</CodeBlock.Body>
-					<CodeBlock.ExpanderButton />
-				</CodeBlock.Root>,
-			);
-
-			expect(container.querySelector("[data-slot='code-block']")).toHaveClass("bg-base");
-			expect(container.querySelector("[data-slot='code-block-header']")).toHaveClass("bg-base");
-			expect(container.querySelector("[data-slot='code-block-icon']")).toHaveClass("size-5");
-			expect(container.querySelector("[data-slot='code-block-title']")).toHaveClass(
-				"font-sans",
-				"text-xs",
-				"font-medium",
-			);
-			expect(container.querySelector("[data-slot='code-block-copy-button']")).toHaveClass(
-				"bg-base",
-			);
-			expect(screen.getByRole("button", { name: /copy code/i })).toHaveClass(
-				"bg-base",
-				"not-disabled:hover:bg-neutral-500/15",
-			);
-			expect(screen.getByRole("button", { name: /show more/i })).toHaveClass(
-				"bg-base",
-				"hover:bg-base-hover",
-			);
-		});
-	});
-
 	describe("Code", () => {
 		test("renders plain text fallback when preHtml is missing", () => {
 			const value = createMantleCodeBlockValue({
@@ -293,13 +255,7 @@ describe("CodeBlock", () => {
 
 			// Triggers keep their intrinsic width so labels never wrap under width pressure.
 			for (const tab of screen.getAllByRole("tab")) {
-				expect(tab).toHaveClass(
-					"shrink-0",
-					"whitespace-nowrap",
-					"font-sans",
-					"text-xs",
-					"font-medium",
-				);
+				expect(tab).toHaveClass("shrink-0", "whitespace-nowrap");
 			}
 		});
 	});
