@@ -326,8 +326,10 @@ const Root = ({
 		}
 		const handleKeyDown = (event: KeyboardEvent) => {
 			const hasPlatformModifier = event.metaKey || event.ctrlKey;
+			// toLowerCase: with Caps Lock on, browsers report key "B" with
+			// shiftKey false — the shortcut must not silently die there.
 			if (
-				event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
+				event.key.toLowerCase() === SIDEBAR_KEYBOARD_SHORTCUT &&
 				hasPlatformModifier &&
 				!event.altKey &&
 				!event.shiftKey
@@ -453,6 +455,11 @@ const Nav = forwardRef<ComponentRef<"div">, SidebarNavProps>(
 						preferredWidth="sm:max-w-[var(--sidebar-width-mobile,18rem)]"
 						data-slot={joinDataSlot(dataSlot, "sidebar-nav")}
 						data-mobile=""
+						// A consumer aria-labelledby names the dialog too, keeping the
+						// sheet and the nav consistently named. Spread conditionally:
+						// an explicit undefined would override the Sheet's internal
+						// Title wiring and leave the dialog unnamed.
+						{...(ariaLabelledBy == null ? null : { "aria-labelledby": ariaLabelledBy })}
 						className={cx(
 							"bg-base w-[var(--sidebar-width-mobile,18rem)] max-w-full p-0",
 							className,
@@ -461,7 +468,9 @@ const Nav = forwardRef<ComponentRef<"div">, SidebarNavProps>(
 						{...props}
 					>
 						{/* The dialog's accessible name follows the nav's, so overriding
-						    aria-label (e.g. for localization) renames the sheet too. */}
+						    aria-label (e.g. for localization) renames the sheet too. The
+						    "Sidebar" fallback only applies while aria-labelledby (which
+						    names the dialog directly, above) is unset. */}
 						<Sheet.Title className="sr-only">{ariaLabel ?? "Sidebar"}</Sheet.Title>
 						<nav
 							id={navId}

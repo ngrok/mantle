@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
@@ -147,6 +147,19 @@ describe("Sidebar.Nav (desktop)", () => {
 		// Shift combinations (e.g. the browser's own ⌘⇧B) are left alone
 		await user.keyboard("{Meta>}{Shift>}b{/Shift}{/Meta}");
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+	});
+
+	test("⌘B still toggles with Caps Lock on (uppercase key without shift)", () => {
+		// Regression: with Caps Lock engaged, browsers report key "B" while
+		// shiftKey stays false — the shortcut must match case-insensitively.
+		// Raw event dispatch because user-event's "B" always implies Shift.
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav data-testid="nav" />
+			</Sidebar.Root>,
+		);
+		fireEvent.keyDown(window, { key: "B", metaKey: true });
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
 	});
 
 	test("keyboardShortcut={false} disables the ⌘B toggle", async () => {
@@ -344,6 +357,19 @@ describe("Sidebar.Nav (mobile)", () => {
 		expect(sheet).toHaveAttribute("data-slot", "sidebar-nav");
 		expect(sheet).toHaveAttribute("data-mobile");
 		expect(screen.getByRole("navigation", { name: "Main" })).toHaveTextContent("content");
+	});
+
+	test("consumer aria-labelledby names the sheet dialog and the nav consistently", () => {
+		// Regression: without forwarding, the dialog fell back to "Sidebar"
+		// while the nav carried the referenced name.
+		render(
+			<Sidebar.Root openMobile>
+				<span id="sidebar-name">Product areas</span>
+				<Sidebar.Nav aria-labelledby="sidebar-name">content</Sidebar.Nav>
+			</Sidebar.Root>,
+		);
+		expect(screen.getByRole("dialog", { name: "Product areas" })).toBeInTheDocument();
+		expect(screen.getByRole("navigation", { name: "Product areas" })).toBeInTheDocument();
 	});
 
 	test("controlled openMobile opens the sheet and reports closes", async () => {
