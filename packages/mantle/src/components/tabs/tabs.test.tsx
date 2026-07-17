@@ -27,15 +27,17 @@ describe("Tabs", () => {
 			},
 		);
 
-		// The bottom rule belongs to the classic appearance only. It is painted as a
-		// content-box background (bg-origin-content, in the 1px pb-px row) in the
-		// separator color, overridable via --tabs-list-border-color, and the list
-		// hugs its triggers (w-fit) so the rule terminates at the last trigger
-		// instead of running the full container width.
-		test("horizontal classic appearance draws a bottom rule that hugs the triggers", () => {
+		// The bottom border is opt-in composition: the classic list carries the
+		// border paint gated behind a CSS :has([data-slot=tabs-list-border]) check
+		// (painted as a content-box background in the separator color, overridable
+		// via --tabs-list-border-color), and Tabs.ListBorder renders the marker
+		// that activates it. The list hugs its triggers (w-fit) so the border
+		// terminates at the last trigger instead of running the full container.
+		test("horizontal classic appearance carries the :has()-gated border paint and hugs the triggers", () => {
 			render(
 				<Tabs.Root appearance="classic" orientation="horizontal" defaultValue="a">
 					<Tabs.List>
+						<Tabs.ListBorder />
 						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
 						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
 					</Tabs.List>
@@ -43,24 +45,43 @@ describe("Tabs", () => {
 			);
 
 			expect(screen.getByRole("tablist")).toHaveClass(
-				"bg-origin-content",
-				"pb-px",
+				"has-data-[slot=tabs-list-border]:bg-origin-content",
+				"has-data-[slot=tabs-list-border]:pb-px",
 				"w-fit",
 				"max-w-full",
 			);
 		});
 
-		test("horizontal pill appearance does not draw a bottom rule", () => {
+		test("Tabs.ListBorder renders an inert, hidden marker inside the tablist", () => {
+			render(
+				<Tabs.Root appearance="classic" orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.ListBorder />
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			const marker = screen.getByRole("tablist").querySelector('[data-slot="tabs-list-border"]');
+			expect(marker).toBeInTheDocument();
+			expect(marker).toHaveAttribute("aria-hidden");
+			expect(marker).toHaveAttribute("hidden");
+		});
+
+		test("horizontal pill appearance does not carry the border paint", () => {
 			render(
 				<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="a">
 					<Tabs.List>
+						<Tabs.ListBorder />
 						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
 						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
 					</Tabs.List>
 				</Tabs.Root>,
 			);
 
-			expect(screen.getByRole("tablist")).not.toHaveClass("bg-origin-content");
+			expect(screen.getByRole("tablist")).not.toHaveClass(
+				"has-data-[slot=tabs-list-border]:bg-origin-content",
+			);
 		});
 
 		test("vertical classic appearance draws the side rule with the separator token", () => {

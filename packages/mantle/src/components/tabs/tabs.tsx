@@ -75,6 +75,7 @@ const Root = forwardRef<
 	return (
 		<TabsPrimitiveRoot
 			data-slot="tabs"
+			data-appearance={appearance}
 			className={cx(
 				"flex gap-4",
 				orientation === "horizontal" ? "flex-col" : "flex-row",
@@ -91,22 +92,32 @@ const Root = forwardRef<
 Root.displayName = "Tabs";
 
 /**
- * The horizontal classic tablist's bottom rule. Painted as a content-box
- * background instead of `border-bottom` because the tablist is a scroll
- * container with `px-1 -mx-1` breathing room for focus rings: a real border
- * paints across the border box, overrunning the tab triggers by that 4px on
- * each side. The content box excludes the padding, so the rule terminates
- * exactly at the first/last trigger, stays put while triggers scroll beneath
- * it, and fades with them under the scroll-fade mask.
+ * The horizontal classic tablist's opt-in bottom border, activated only when
+ * a `Tabs.ListBorder` marker is composed inside the list — a pure-CSS
+ * `:has()` check, so it is SSR-safe with no effects or context reads.
  *
- * `pb-px` reserves the 1px row below the triggers (and below the active
- * trigger's decoration) that the rule occupies; the `calc(100% + 1px)`
- * y-position drops the rule out of the content box into that row. Recolor via
- * `--tabs-list-border-color`; set it to `transparent` to hide the rule.
+ * Painted as a content-box background on the list instead of `border-bottom`
+ * or an absolutely-positioned child because:
+ * - the tablist is a scroll container with `px-1 -mx-1` breathing room for
+ *   focus rings: a real border paints across the border box, overrunning the
+ *   tab triggers by that 4px on each side, and
+ * - absolutely-positioned children of a scroll container anchor to the scroll
+ *   origin, so a positioned rule scrolls away with the triggers on overflow.
+ *
+ * The content box excludes the padding, so the rule terminates exactly at the
+ * first/last trigger, stays put while triggers scroll beneath it, and fades
+ * with them under the scroll-fade mask. `pb-px` reserves the 1px row below
+ * the triggers (and below the active trigger's decoration) that the rule
+ * occupies; the `calc(100% + 1px)` y-position drops the rule out of the
+ * content box into that row. Recolor via `--tabs-list-border-color`.
  */
 const listBottomRule = cx(
-	"pb-px bg-origin-content bg-no-repeat bg-size-[100%_1px] bg-position-[0_calc(100%+1px)]",
-	"bg-[image:linear-gradient(var(--tabs-list-border-color,var(--color-separator)),var(--tabs-list-border-color,var(--color-separator)))]",
+	"has-data-[slot=tabs-list-border]:pb-px",
+	"has-data-[slot=tabs-list-border]:bg-origin-content",
+	"has-data-[slot=tabs-list-border]:bg-no-repeat",
+	"has-data-[slot=tabs-list-border]:bg-size-[100%_1px]",
+	"has-data-[slot=tabs-list-border]:bg-position-[0_calc(100%+1px)]",
+	"has-data-[slot=tabs-list-border]:bg-[image:linear-gradient(var(--tabs-list-border-color,var(--color-separator)),var(--tabs-list-border-color,var(--color-separator)))]",
 );
 
 /**
@@ -151,12 +162,11 @@ const listVariants = cva("flex", {
  * Contains the triggers that are aligned along the edge of the active content.
  * The container for tab triggers that provides the visual layout for tab navigation.
  *
- * In the horizontal classic appearance the list draws a 1px bottom rule that
- * terminates at the ends of the tab triggers. Its color is driven by the
- * `--tabs-list-border-color` CSS variable, which falls back to the
- * `--color-separator` design token by default. Set the variable (on the list
- * or any ancestor) to recolor the rule, or set it to `transparent` to hide it.
- * The pill appearance never draws the rule.
+ * Compose a `Tabs.ListBorder` child to draw a 1px bottom border in the
+ * horizontal classic appearance — it terminates at the ends of the tab
+ * triggers and its color is driven by the `--tabs-list-border-color` CSS
+ * variable (default: the `--color-separator` design token). Omit
+ * `Tabs.ListBorder` to render no border; the pill appearance never draws one.
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
  *
@@ -164,6 +174,7 @@ const listVariants = cva("flex", {
  * ```tsx
  * <Tabs.Root defaultValue="account">
  *   <Tabs.List>
+ *     <Tabs.ListBorder />
  *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
  *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
  *   </Tabs.List>
@@ -171,15 +182,6 @@ const listVariants = cva("flex", {
  *     <p>Make changes to your account here.</p>
  *   </Tabs.Content>
  * </Tabs.Root>
- * ```
- *
- * @example
- * ```tsx
- * // hide the classic appearance's bottom rule
- * <Tabs.List className="[--tabs-list-border-color:transparent]">
- *   <Tabs.Trigger value="account">Account</Tabs.Trigger>
- *   <Tabs.Trigger value="password">Password</Tabs.Trigger>
- * </Tabs.List>
  * ```
  */
 const List = forwardRef<
@@ -238,6 +240,32 @@ const List = forwardRef<
 	);
 });
 List.displayName = "TabsList";
+
+/**
+ * Opts the tab list into its bottom border. Render it as a child of
+ * `Tabs.List`: the horizontal classic list then draws a 1px border in the
+ * `--tabs-list-border-color` color (default: the `--color-separator` design
+ * token) that terminates at the ends of the tab triggers. Omit it to render
+ * no border. The pill appearance never draws a border, so it is always safe
+ * to compose.
+ *
+ * The marker itself is an inert, hidden `<span>`; the border is painted by
+ * `Tabs.List` via a CSS `:has()` check, so it is SSR-safe and requires no
+ * client-side effects or context reads.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/tabs#tabslistborder
+ *
+ * @example
+ * ```tsx
+ * <Tabs.List>
+ *   <Tabs.ListBorder />
+ *   <Tabs.Trigger value="account">Account</Tabs.Trigger>
+ *   <Tabs.Trigger value="password">Password</Tabs.Trigger>
+ * </Tabs.List>
+ * ```
+ */
+const ListBorder = () => <span aria-hidden data-slot="tabs-list-border" hidden />;
+ListBorder.displayName = "TabsListBorder";
 
 type TabsTriggerProps = ComponentPropsWithoutRef<typeof TabsPrimitiveTrigger>;
 
@@ -470,6 +498,7 @@ Content.displayName = "TabsContent";
  * ```
  * Tabs.Root
  * ├── Tabs.List
+ * │   ├── Tabs.ListBorder
  * │   └── Tabs.Trigger
  * │       └── Tabs.Badge
  * └── Tabs.Content
@@ -535,11 +564,10 @@ const Tabs = {
 	 * Contains the triggers that are aligned along the edge of the active content.
 	 * The container for tab triggers that provides the visual layout for tab navigation.
 	 *
-	 * In the horizontal classic appearance the list draws a 1px bottom rule that
-	 * terminates at the ends of the tab triggers. Its color is driven by the
-	 * `--tabs-list-border-color` CSS variable (default: `--color-separator`);
-	 * set it to `transparent` to hide the rule. The pill appearance never draws
-	 * the rule.
+	 * Compose a `Tabs.ListBorder` child to draw a 1px bottom border in the
+	 * horizontal classic appearance; omit it to render no border. Recolor the
+	 * border via the `--tabs-list-border-color` CSS variable (default:
+	 * `--color-separator`).
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
 	 *
@@ -547,22 +575,33 @@ const Tabs = {
 	 * ```tsx
 	 * <Tabs.Root defaultValue="account">
 	 *   <Tabs.List>
+	 *     <Tabs.ListBorder />
 	 *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
 	 *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
 	 *   </Tabs.List>
 	 * </Tabs.Root>
 	 * ```
+	 */
+	List,
+	/**
+	 * Opts the tab list into its bottom border. Render it as a child of
+	 * `Tabs.List`: the horizontal classic list then draws a 1px border in the
+	 * `--tabs-list-border-color` color (default: `--color-separator`) that
+	 * terminates at the ends of the tab triggers. Omit it to render no border.
+	 * The pill appearance never draws a border, so it is always safe to compose.
+	 *
+	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabslistborder
 	 *
 	 * @example
 	 * ```tsx
-	 * // hide the classic appearance's bottom rule
-	 * <Tabs.List className="[--tabs-list-border-color:transparent]">
+	 * <Tabs.List>
+	 *   <Tabs.ListBorder />
 	 *   <Tabs.Trigger value="account">Account</Tabs.Trigger>
 	 *   <Tabs.Trigger value="password">Password</Tabs.Trigger>
 	 * </Tabs.List>
 	 * ```
 	 */
-	List,
+	ListBorder,
 	/**
 	 * The button that activates its associated content.
 	 * A clickable tab trigger that switches between different tab content panels.

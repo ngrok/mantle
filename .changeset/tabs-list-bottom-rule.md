@@ -2,9 +2,11 @@
 "@ngrok/mantle": patch
 ---
 
-Restore the bottom rule on the horizontal classic `Tabs.List`, defaulting to the `separator` color token. The rule terminates at the ends of the tab triggers instead of running the full container width (the list now sizes `w-fit`, capped at the container, and the rule is painted on the list's content box so the focus-ring breathing padding doesn't widen it), and it sits just below the active trigger's decoration. Recolor it via the `--tabs-list-border-color` CSS variable, or set it to `transparent` to hide it. Pill-appearance tabs never draw the rule. The vertical classic tablist side rule also uses the `separator` token now (previously `gray-200`).
+Add `Tabs.ListBorder`: compose it as a child of `Tabs.List` to draw a 1px bottom border under the horizontal classic tablist, in the `separator` color token. The border terminates at the ends of the tab triggers instead of running the full container width (the list sizes `w-fit`, capped at the container, and the border is painted on the list's content box so the focus-ring breathing padding doesn't widen it), and it sits just below the active trigger's decoration. Omit `Tabs.ListBorder` to render no border; the pill appearance never draws one, so it is always safe to compose. Recolor via the `--tabs-list-border-color` CSS variable (default: `var(--color-separator)`). Activation is a pure-CSS `:has()` check, so it is SSR-safe with no client-side effects.
+
+Also: the horizontal classic `Tabs.List` now sizes `w-fit max-w-full` (previously `w-full`) so the border hugs the triggers, `Tabs.Root` renders a `data-appearance` attribute for appearance-scoped styling, and the vertical classic tablist side border uses the `separator` token (previously `gray-200`).
 
 Migration notes:
 
-- If you worked around the missing rule by adding your own `border-b` to `Tabs.List`, remove it — otherwise you'll render a doubled, two-tone rule that stops at the last trigger.
-- If your `Tabs.List` layout relied on the list spanning its container (e.g. `grid grid-cols-4` or a full-width custom border), add an explicit width class such as `w-full` to your `className` — the classic horizontal list now hugs its triggers by default.
+- To show the restored bottom border, add `<Tabs.ListBorder />` as a child of your classic `Tabs.List` (and remove any hand-rolled `border-b` workaround).
+- If your `Tabs.List` layout relied on the list spanning its container (e.g. `grid grid-cols-4`), add an explicit width class such as `w-full` to your `className` — the classic horizontal list now hugs its triggers.
