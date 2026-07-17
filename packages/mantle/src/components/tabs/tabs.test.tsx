@@ -97,6 +97,24 @@ describe("Tabs", () => {
 			expect(screen.getByRole("tablist")).not.toHaveClass("bg-origin-content");
 		});
 
+		// hideBorder is documented as a no-op for pill (which never draws a
+		// border), but the data attribute still renders appearance-independently.
+		test("hideBorder on the pill appearance is a no-op but still renders data-hide-border", () => {
+			render(
+				<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="a">
+					<Tabs.List hideBorder>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			const tablist = screen.getByRole("tablist");
+			expect(tablist).not.toHaveClass("bg-origin-content");
+			expect(tablist).not.toHaveClass("pb-px");
+			expect(tablist).toHaveAttribute("data-hide-border");
+		});
+
 		test("vertical classic appearance draws the side border by default with the separator token", () => {
 			render(
 				<Tabs.Root appearance="classic" orientation="vertical" defaultValue="a">

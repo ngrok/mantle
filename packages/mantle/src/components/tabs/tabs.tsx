@@ -162,6 +162,12 @@ const listVariants = cva("flex", {
 			className: "border-r border-separator",
 		},
 	],
+	// cva compound matching is strict equality, so an omitted hideBorder would
+	// silently skip the `hideBorder: false` compounds and drop the border; the
+	// default keeps the border-on contract inside the variant machine itself.
+	defaultVariants: {
+		hideBorder: false,
+	},
 });
 
 /**
