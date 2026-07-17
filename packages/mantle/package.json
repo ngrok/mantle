@@ -70,6 +70,11 @@
 			"types": "./dist/anchor.d.ts",
 			"import": "./dist/anchor.js"
 		},
+		"./app-layout": {
+			"@ngrok/src-live-types": "./src/components/app-layout/index.ts",
+			"types": "./dist/app-layout.d.ts",
+			"import": "./dist/app-layout.js"
+		},
 		"./area-chart": {
 			"@ngrok/src-live-types": "./src/components/area-chart/index.ts",
 			"types": "./dist/area-chart.d.ts",
@@ -314,6 +319,11 @@
 			"@ngrok/src-live-types": "./src/components/sheet/index.ts",
 			"types": "./dist/sheet.d.ts",
 			"import": "./dist/sheet.js"
+		},
+		"./sidebar": {
+			"@ngrok/src-live-types": "./src/components/sidebar/index.ts",
+			"types": "./dist/sidebar.d.ts",
+			"import": "./dist/sidebar.js"
 		},
 		"./skeleton": {
 			"@ngrok/src-live-types": "./src/components/skeleton/index.ts",
