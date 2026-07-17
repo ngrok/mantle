@@ -33,6 +33,13 @@ import { Slot } from "../slot/index.js";
  * panel to the mobile `Sheet` presentation. Kept to a closed set so the CSS
  * visibility classes and the `useIsBelowBreakpoint` media query stay in
  * lockstep (Tailwind cannot see interpolated class names).
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar
+ *
+ * @example
+ * ```tsx
+ * <Sidebar.Root mobileBreakpoint="md">…</Sidebar.Root>
+ * ```
  */
 type SidebarMobileBreakpoint = "sm" | "md" | "lg";
 
@@ -62,6 +69,13 @@ const navVisibilityClassName: Record<SidebarMobileBreakpoint, string> = {
  *
  * Set via `Sidebar.Root`'s `collapsible` prop; the mobile sheet presentation
  * ignores it.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar
+ *
+ * @example
+ * ```tsx
+ * <Sidebar.Root collapsible="icon">…</Sidebar.Root>
+ * ```
  */
 type SidebarCollapsible = "offcanvas" | "icon";
 
@@ -71,6 +85,18 @@ type SidebarCollapsible = "offcanvas" | "icon";
  * or close-on-navigate behavior.
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar
+ *
+ * @example
+ * ```tsx
+ * function CollapseSidebarButton() {
+ *   const { open, toggle } = useSidebar();
+ *   return (
+ *     <button type="button" onClick={toggle}>
+ *       {open ? "Collapse" : "Expand"} sidebar
+ *     </button>
+ *   );
+ * }
+ * ```
  */
 type SidebarState = {
 	/**
@@ -594,6 +620,56 @@ const defaultTriggerIcon = <SidebarSimpleIcon />;
  * @see https://mantle.ngrok.com/components/navigation/sidebar
  *
  * @example
+ * ```tsx
+ * <Sidebar.Root>
+ *   <Sidebar.Nav aria-label="Main">
+ *     <Sidebar.Header>
+ *       <DropdownMenu.Root>
+ *         <DropdownMenu.Trigger asChild>
+ *           <Sidebar.SwitcherButton>
+ *             <GlobeIcon />
+ *             <span className="text-strong min-w-0 flex-1 truncate text-base">Universal Gateway</span>
+ *             <CaretDownIcon className="text-muted size-4 shrink-0" />
+ *           </Sidebar.SwitcherButton>
+ *         </DropdownMenu.Trigger>
+ *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *       </DropdownMenu.Root>
+ *     </Sidebar.Header>
+ *     <Sidebar.Body>
+ *       <Sidebar.Group>
+ *         <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+ *         <Sidebar.List>
+ *           <Sidebar.Item>
+ *             <Sidebar.ItemButton asChild current>
+ *               <a href="/endpoints">
+ *                 <GraphIcon />
+ *                 Endpoints
+ *               </a>
+ *             </Sidebar.ItemButton>
+ *           </Sidebar.Item>
+ *         </Sidebar.List>
+ *       </Sidebar.Group>
+ *     </Sidebar.Body>
+ *     <Sidebar.Footer>
+ *       <Sidebar.Separator />
+ *       <DropdownMenu.Root>
+ *         <DropdownMenu.Trigger asChild>
+ *           <Sidebar.SwitcherButton>
+ *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
+ *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <Sidebar.UserAvatar alt="Jane Doe" />
+ *           </Sidebar.SwitcherButton>
+ *         </DropdownMenu.Trigger>
+ *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *       </DropdownMenu.Root>
+ *     </Sidebar.Footer>
+ *   </Sidebar.Nav>
+ *   <Sidebar.Trigger />
+ * </Sidebar.Root>
+ * ```
+ *
+ * @example
+ * Placement within an `AppLayout` shell:
  * ```tsx
  * <Sidebar.Root>
  *   <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
@@ -1743,11 +1819,51 @@ type SidebarAccountAvatarProps = Omit<ComponentPropsWithoutRef<"div">, "children
  *
  * @example
  * ```tsx
- * <Sidebar.SwitcherButton>
- *   <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *   <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
- *   <Sidebar.UserAvatar alt="Jane Doe" />
- * </Sidebar.SwitcherButton>
+ * <Sidebar.Root>
+ *   <Sidebar.Nav aria-label="Main">
+ *     <Sidebar.Header>
+ *       <DropdownMenu.Root>
+ *         <DropdownMenu.Trigger asChild>
+ *           <Sidebar.SwitcherButton>
+ *             <GlobeIcon />
+ *             <span className="text-strong min-w-0 flex-1 truncate text-base">Universal Gateway</span>
+ *             <CaretDownIcon className="text-muted size-4 shrink-0" />
+ *           </Sidebar.SwitcherButton>
+ *         </DropdownMenu.Trigger>
+ *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *       </DropdownMenu.Root>
+ *     </Sidebar.Header>
+ *     <Sidebar.Body>
+ *       <Sidebar.Group>
+ *         <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+ *         <Sidebar.List>
+ *           <Sidebar.Item>
+ *             <Sidebar.ItemButton asChild current>
+ *               <a href="/endpoints">
+ *                 <GraphIcon />
+ *                 Endpoints
+ *               </a>
+ *             </Sidebar.ItemButton>
+ *           </Sidebar.Item>
+ *         </Sidebar.List>
+ *       </Sidebar.Group>
+ *     </Sidebar.Body>
+ *     <Sidebar.Footer>
+ *       <Sidebar.Separator />
+ *       <DropdownMenu.Root>
+ *         <DropdownMenu.Trigger asChild>
+ *           <Sidebar.SwitcherButton>
+ *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
+ *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <Sidebar.UserAvatar alt="Jane Doe" />
+ *           </Sidebar.SwitcherButton>
+ *         </DropdownMenu.Trigger>
+ *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *       </DropdownMenu.Root>
+ *     </Sidebar.Footer>
+ *   </Sidebar.Nav>
+ *   <Sidebar.Trigger />
+ * </Sidebar.Root>
  * ```
  */
 const AccountAvatar = forwardRef<ComponentRef<"div">, SidebarAccountAvatarProps>(
@@ -1818,11 +1934,51 @@ type SidebarUserAvatarProps = Omit<ComponentPropsWithoutRef<"div">, "children"> 
  *
  * @example
  * ```tsx
- * <Sidebar.SwitcherButton>
- *   <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *   <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
- *   <Sidebar.UserAvatar src={user.pictureUrl} alt={user.name} />
- * </Sidebar.SwitcherButton>
+ * <Sidebar.Root>
+ *   <Sidebar.Nav aria-label="Main">
+ *     <Sidebar.Header>
+ *       <DropdownMenu.Root>
+ *         <DropdownMenu.Trigger asChild>
+ *           <Sidebar.SwitcherButton>
+ *             <GlobeIcon />
+ *             <span className="text-strong min-w-0 flex-1 truncate text-base">Universal Gateway</span>
+ *             <CaretDownIcon className="text-muted size-4 shrink-0" />
+ *           </Sidebar.SwitcherButton>
+ *         </DropdownMenu.Trigger>
+ *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *       </DropdownMenu.Root>
+ *     </Sidebar.Header>
+ *     <Sidebar.Body>
+ *       <Sidebar.Group>
+ *         <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+ *         <Sidebar.List>
+ *           <Sidebar.Item>
+ *             <Sidebar.ItemButton asChild current>
+ *               <a href="/endpoints">
+ *                 <GraphIcon />
+ *                 Endpoints
+ *               </a>
+ *             </Sidebar.ItemButton>
+ *           </Sidebar.Item>
+ *         </Sidebar.List>
+ *       </Sidebar.Group>
+ *     </Sidebar.Body>
+ *     <Sidebar.Footer>
+ *       <Sidebar.Separator />
+ *       <DropdownMenu.Root>
+ *         <DropdownMenu.Trigger asChild>
+ *           <Sidebar.SwitcherButton>
+ *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
+ *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <Sidebar.UserAvatar alt="Jane Doe" />
+ *           </Sidebar.SwitcherButton>
+ *         </DropdownMenu.Trigger>
+ *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *       </DropdownMenu.Root>
+ *     </Sidebar.Footer>
+ *   </Sidebar.Nav>
+ *   <Sidebar.Trigger />
+ * </Sidebar.Root>
  * ```
  */
 const UserAvatar = forwardRef<ComponentRef<"div">, SidebarUserAvatarProps>(
@@ -1850,6 +2006,27 @@ const UserAvatar = forwardRef<ComponentRef<"div">, SidebarUserAvatarProps>(
 );
 UserAvatar.displayName = "SidebarUserAvatar";
 
+/**
+ * One switchable account rendered by `Sidebar.SwitchAccountsRadioGroup`: a
+ * stable `id` (the radio item value and the avatar color seed), a display
+ * `name`, and optional `trailing` content such as a plan badge.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar
+ *
+ * @example
+ * ```tsx
+ * const accounts: SidebarAccount[] = [
+ *   { id: "acc_acme", name: "Acme Corp", trailing: <Badge>Free</Badge> },
+ *   { id: "acc_atlas", name: "Atlas Industries" },
+ * ];
+ *
+ * <Sidebar.SwitchAccountsRadioGroup
+ *   accounts={accounts}
+ *   value={currentAccountId}
+ *   onValueChange={(id) => switchAccount(id)}
+ * />;
+ * ```
+ */
 type SidebarAccount = {
 	/**
 	 * Stable account identifier. Used as the radio item value and the avatar
@@ -2006,6 +2183,7 @@ SwitchAccountsRadioGroup.displayName = "SidebarSwitchAccountsRadioGroup";
  *       </Sidebar.Group>
  *     </Sidebar.Body>
  *     <Sidebar.Footer>
+ *       <Sidebar.Separator />
  *       <DropdownMenu.Root>
  *         <DropdownMenu.Trigger asChild>
  *           <Sidebar.SwitcherButton>
@@ -2018,6 +2196,7 @@ SwitchAccountsRadioGroup.displayName = "SidebarSwitchAccountsRadioGroup";
  *       </DropdownMenu.Root>
  *     </Sidebar.Footer>
  *   </Sidebar.Nav>
+ *   <Sidebar.Trigger />
  * </Sidebar.Root>
  * ```
  */
