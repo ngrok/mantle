@@ -73,16 +73,32 @@ Root.displayName = "AppLayout";
  *
  * @example
  * ```tsx
- * <AppLayout.Root className="fixed inset-0">
- *   <AppLayout.Notice>
- *     {isImpersonating && (
- *       <div className="bg-red-500 text-on-filled flex items-center gap-2 px-4 py-1 text-xs">
- *         You are impersonating {userEmail}.
- *       </div>
- *     )}
- *   </AppLayout.Notice>
- *   <AppLayout.Body>…</AppLayout.Body>
- * </AppLayout.Root>
+ * <Sidebar.Root>
+ *   <AppLayout.Root className="fixed inset-0">
+ *     <SkipToMainLink />
+ *     <AppLayout.Notice>
+ *       {isImpersonating && (
+ *         <div className="bg-red-500 text-on-filled flex items-center gap-2 px-4 py-1 text-xs">
+ *           You are impersonating {userEmail}.
+ *         </div>
+ *       )}
+ *     </AppLayout.Notice>
+ *     <AppLayout.Body>
+ *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+ *       <AppLayout.Inset>
+ *         <AppLayout.Content asChild>
+ *           <Main>
+ *             <AppLayout.Header>
+ *               <Sidebar.Trigger />
+ *               <Breadcrumbs />
+ *             </AppLayout.Header>
+ *             <Outlet />
+ *           </Main>
+ *         </AppLayout.Content>
+ *       </AppLayout.Inset>
+ *     </AppLayout.Body>
+ *   </AppLayout.Root>
+ * </Sidebar.Root>
  * ```
  */
 const Notice = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild & WithDataSlot>(
@@ -282,21 +298,26 @@ Header.displayName = "AppLayoutHeader";
  *
  * @example
  * ```tsx
- * <AppLayout.Root className="fixed inset-0">
- *   <SkipToMainLink />
- *   <AppLayout.Body>
- *     <AppLayout.Inset>
- *       <AppLayout.Content asChild>
- *         <Main>
- *           <AppLayout.Header>
- *             <Sidebar.Trigger />
- *           </AppLayout.Header>
- *           <Outlet />
- *         </Main>
- *       </AppLayout.Content>
- *     </AppLayout.Inset>
- *   </AppLayout.Body>
- * </AppLayout.Root>
+ * <Sidebar.Root>
+ *   <AppLayout.Root className="fixed inset-0">
+ *     <SkipToMainLink />
+ *     <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>
+ *     <AppLayout.Body>
+ *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+ *       <AppLayout.Inset>
+ *         <AppLayout.Content asChild>
+ *           <Main>
+ *             <AppLayout.Header>
+ *               <Sidebar.Trigger />
+ *               <Breadcrumbs />
+ *             </AppLayout.Header>
+ *             <Outlet />
+ *           </Main>
+ *         </AppLayout.Content>
+ *       </AppLayout.Inset>
+ *     </AppLayout.Body>
+ *   </AppLayout.Root>
+ * </Sidebar.Root>
  * ```
  */
 const Content = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild & WithDataSlot>(
