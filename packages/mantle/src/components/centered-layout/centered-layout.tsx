@@ -56,6 +56,56 @@ const Root = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild
 Root.displayName = "CenteredLayout";
 
 /**
+ * A full-window-width strip pinned above everything else in the layout —
+ * including `CenteredLayout.Header` — for impersonation notices, environment
+ * warnings, and similar app-wide messaging. Renders an unstyled `<div>`
+ * (`w-full shrink-0`): the notice content brings its own colors and layout,
+ * and the part collapses to nothing when empty, so it can stay mounted and
+ * conditionally render its contents. The same slot as `AppLayout.Notice`, so
+ * an app-wide banner composes identically across both layouts. Deliberately
+ * not named Banner — `CenteredLayout.Header` renders the page's `<header>`
+ * (the ARIA `banner` landmark), and this part is not that. Optional: omitting
+ * it is fine.
+ *
+ * On flows that scroll (checkout, plan pickers), the strip scrolls away with
+ * the page by default; merge `sticky top-0 z-20` via `className` to pin it to
+ * the window.
+ *
+ * @see https://mantle.ngrok.com/layouts/centered-layout
+ *
+ * @example
+ * ```tsx
+ * <CenteredLayout.Root>
+ *   <CenteredLayout.Notice>
+ *     {isImpersonating && <ImpersonationBanner />}
+ *   </CenteredLayout.Notice>
+ *   <CenteredLayout.Body>
+ *     <Main>
+ *       <SignInCard />
+ *     </Main>
+ *   </CenteredLayout.Body>
+ * </CenteredLayout.Root>
+ * ```
+ */
+const Notice = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild & WithDataSlot>(
+	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
+		const Comp = asChild ? Slot : "div";
+
+		return (
+			<Comp
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "centered-layout-notice")}
+				className={cx("w-full shrink-0", className)}
+				{...props}
+			>
+				{children}
+			</Comp>
+		);
+	},
+);
+Notice.displayName = "CenteredLayoutNotice";
+
+/**
  * A utility strip at the top of the layout — an account chip, a close/dismiss
  * button, and similar page furniture for focused flows (checkout, plan
  * pickers). Renders a semantic `<header>` (a page-level frame, so it is
@@ -222,6 +272,7 @@ Footer.displayName = "CenteredLayoutFooter";
  * Composition:
  * ```
  * CenteredLayout.Root
+ * ├── CenteredLayout.Notice
  * ├── CenteredLayout.Header
  * ├── CenteredLayout.Body
  * └── CenteredLayout.Footer
@@ -279,6 +330,33 @@ const CenteredLayout = {
 	 * ```
 	 */
 	Root,
+	/**
+	 * A full-window-width strip pinned above everything else in the layout —
+	 * including `Header` — for impersonation notices and environment warnings.
+	 * Renders an unstyled `<div>` (`w-full shrink-0`): the notice content
+	 * brings its own colors, and the part collapses to nothing when empty. The
+	 * same slot as `AppLayout.Notice`, so an app-wide banner composes
+	 * identically across both layouts. Merge `sticky top-0 z-20` via
+	 * `className` to pin it while a long flow scrolls. Optional — omitting it
+	 * is fine.
+	 *
+	 * @see https://mantle.ngrok.com/layouts/centered-layout
+	 *
+	 * @example
+	 * ```tsx
+	 * <CenteredLayout.Root>
+	 *   <CenteredLayout.Notice>
+	 *     {isImpersonating && <ImpersonationBanner />}
+	 *   </CenteredLayout.Notice>
+	 *   <CenteredLayout.Body>
+	 *     <Main>
+	 *       <SignInCard />
+	 *     </Main>
+	 *   </CenteredLayout.Body>
+	 * </CenteredLayout.Root>
+	 * ```
+	 */
+	Notice,
 	/**
 	 * A utility strip at the top of the layout (account chip, close button)
 	 * rendered as a semantic `<header>` (`banner` landmark) outside the

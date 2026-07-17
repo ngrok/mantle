@@ -101,12 +101,14 @@ import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 
 ```text showLineNumbers=false
 CenteredLayout.Root
+├── CenteredLayout.Notice
 ├── CenteredLayout.Header
 ├── CenteredLayout.Body
 └── CenteredLayout.Footer
 ```
 
-- **`Root`** is the outer frame. It fills its nearest sized ancestor (`min-h-full`) and stacks `Header` (pinned top), `Body` (which grows), and `Footer` (pinned bottom). Merge `h-full` via `className` when the host requires an exact height — `cx` is tailwind-merge-backed, so the override is deterministic.
+- **`Root`** is the outer frame. It fills its nearest sized ancestor (`min-h-full`) and stacks `Notice` and `Header` (pinned top), `Body` (which grows), and `Footer` (pinned bottom). Merge `h-full` via `className` when the host requires an exact height — `cx` is tailwind-merge-backed, so the override is deterministic.
+- **`Notice`** is a full-window-width strip pinned above everything else — including `Header` — for impersonation notices, environment warnings, and similar app-wide messaging. It is unstyled (`w-full shrink-0`): the notice content brings its own colors, and the part collapses to nothing when empty. The same slot as [`AppLayout.Notice`](/layouts/app-layout#applayoutnotice), so an app-wide banner composes identically across both layouts. Optional.
 - **`Header`** is a utility strip at the top — an account chip, a close button — rendered **outside** the centered region as a semantic `<header>`, the mirror of `Footer`. Optional; see [Header](#header) for the window-pinned variant.
 - **`Body`** is the growing, centered region (`flex-1`, centered, `gap-6`). By convention the brand mark — a fully-styled logo/wordmark anchor — is its **first child**, and the primary content follows as composed JSX (a `div`, or the [Main](/components/primitives/main) landmark when the layout owns the document — see [Landmarks](#landmarks)). There is deliberately no `Logo` or `Content` part because they would own nothing: vertical spacing comes from `Body`'s `gap-6`, and both arrive as already-styled JSX. Content taller than the viewport top-flows and the page scrolls, because `Root` grows instead of clipping.
 - **`Footer`** is a pinned utility strip (theme switcher, legal links) rendered **outside** the centered `flex-1` region — which is exactly why `Body` exists as a separate part: `Root` cannot own the centering because `Header` and `Footer` must sit outside it. `Footer` is optional; omitting it is fine.
@@ -229,6 +231,16 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | Prop       | Type      | Default | Description                                                                                                                 |
 | ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `CenteredLayout` styling onto alternative element types or your own React components. |
+
+### CenteredLayout.Notice
+
+A full-window-width strip pinned above everything else in the layout — including `CenteredLayout.Header` — for impersonation notices, environment warnings, and similar app-wide messaging. Renders an unstyled `<div>` (`w-full shrink-0`): the notice content brings its own colors and layout, and the part collapses to nothing when empty, so it can stay mounted and conditionally render its contents. Deliberately not named Banner — `CenteredLayout.Header` renders the page's `<header>` (the ARIA `banner` landmark), and this part is not that. On flows that scroll, it scrolls away with the page by default; merge `sticky top-0 z-20` via `className` to pin it to the window. Optional.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                        |
+| ---------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `CenteredLayout.Notice` styling onto alternative element types or your own React components. |
 
 ### CenteredLayout.Header
 
