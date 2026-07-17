@@ -177,6 +177,9 @@ const listVariants = cva("flex", {
  * ```tsx
  * // hide the classic appearance's bottom rule
  * <Tabs.List className="[--tabs-list-border-color:transparent]">
+ *   <Tabs.Trigger value="account">Account</Tabs.Trigger>
+ *   <Tabs.Trigger value="password">Password</Tabs.Trigger>
+ * </Tabs.List>
  * ```
  */
 const List = forwardRef<
@@ -554,6 +557,9 @@ const Tabs = {
 	 * ```tsx
 	 * // hide the classic appearance's bottom rule
 	 * <Tabs.List className="[--tabs-list-border-color:transparent]">
+	 *   <Tabs.Trigger value="account">Account</Tabs.Trigger>
+	 *   <Tabs.Trigger value="password">Password</Tabs.Trigger>
+	 * </Tabs.List>
 	 * ```
 	 */
 	List,
