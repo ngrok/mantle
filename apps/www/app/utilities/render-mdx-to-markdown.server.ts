@@ -75,12 +75,13 @@ const handlers: Record<string, Handler> = {
 	// by a fenced code block that contains the same code in textual form.
 	// Dropping it removes a wall of rendered DOM without losing information.
 	Example: () => ({ kind: "drop" }),
-	// `<CodeExample>` is the tabbed Preview/Code example. The preview panel
-	// wraps a live demo (dropped, like `<Example>`); every other part is a
-	// structural wrapper around real markdown — unwrap them so the fenced
-	// code block inside `CodeExample.Code` lands in the markdown output.
+	// `<CodeExample>` is the tabbed Preview/Code example. The preview panels
+	// wrap a live demo (dropped, like `<Example>`) — `PreviewFrame` is the
+	// iframed variant; every other part is a structural wrapper around real
+	// markdown — unwrap them so the fenced code block inside
+	// `CodeExample.Code` lands in the markdown output.
 	CodeExample: (node) => {
-		if (node.name === "CodeExample.Preview") {
+		if (node.name === "CodeExample.Preview" || node.name === "CodeExample.PreviewFrame") {
 			return { kind: "drop" };
 		}
 		return { kind: "unwrap" };

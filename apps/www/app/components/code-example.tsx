@@ -1,6 +1,7 @@
 import { cx } from "@ngrok/mantle/cx";
 import { Tabs } from "@ngrok/mantle/tabs";
 import type { ComponentProps } from "react";
+import { PreviewFrame as PreviewFrameImpl } from "./preview-frame";
 
 type CodeExampleRootProps = Omit<
 	ComponentProps<typeof Tabs.Root>,
@@ -75,6 +76,43 @@ function Preview({ className, children, ...props }: CodeExamplePanelProps) {
 	);
 }
 
+type CodeExamplePreviewFrameProps = Omit<
+	ComponentProps<typeof Tabs.Content>,
+	"value" | "forceMount" | "children"
+> &
+	ComponentProps<typeof PreviewFrameImpl>;
+
+/**
+ * The framed alternative to `CodeExample.Preview`: hosts a {@link PreviewFrameImpl PreviewFrame}
+ * — an iframe pointed at the chrome-less `/preview/:exampleName` route with a
+ * desktop/tablet/mobile viewport switcher. Reach for it when the demo is a
+ * full-page layout that wants its own document (real `Main` landmark, isolated
+ * keyboard shortcuts, frame-driven breakpoints). The panel is force-mounted
+ * so flipping to the Code tab and back never reloads the iframe.
+ *
+ * @example
+ * ```mdx
+ * <CodeExample.Root>
+ * 	<CodeExample.PreviewFrame example="centered-layout" title="Centered layout demo" />
+ * 	<CodeExample.Code>{tsx fence}</CodeExample.Code>
+ * </CodeExample.Root>
+ * ```
+ */
+function PreviewFrame({ className, example, title, ...props }: CodeExamplePreviewFrameProps) {
+	return (
+		<Tabs.Content
+			value="preview"
+			// keep the iframe mounted while the Code tab is active — Radix leaves
+			// force-mounted inactive panels visible, so hide it ourselves
+			forceMount
+			className="data-[state=inactive]:hidden"
+			{...props}
+		>
+			<PreviewFrameImpl example={example} title={title} className={className} />
+		</Tabs.Content>
+	);
+}
+
 /**
  * The source panel of a `CodeExample`. Wrap a regular MDX code fence — it
  * still renders through the MDX provider's pre mapping (pre-rendered shiki,
@@ -110,13 +148,14 @@ function Code({ className, children, ...props }: CodeExamplePanelProps) {
  * Composition:
  * ```
  * CodeExample.Root
- * ├── CodeExample.Preview
+ * ├── CodeExample.Preview (inline demo) or CodeExample.PreviewFrame (iframed demo)
  * └── CodeExample.Code
  * ```
  */
 const CodeExample = {
 	Root,
 	Preview,
+	PreviewFrame,
 	Code,
 } as const;
 

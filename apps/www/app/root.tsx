@@ -25,6 +25,7 @@ import {
 	Scripts,
 	ScrollRestoration,
 	type ShouldRevalidateFunctionArgs,
+	useMatches,
 	useRouteLoaderData,
 } from "react-router";
 import type { Route } from "./+types/root";
@@ -126,6 +127,18 @@ export function shouldRevalidate(_: ShouldRevalidateFunctionArgs) {
 	return false;
 }
 
+/**
+ * Whether the matched route is a chrome-less framed example preview
+ * (`/preview/:exampleName`). Matched on route identity, not pathname —
+ * mirroring the `layouts-index` pattern in layouts-layout.tsx. Preview
+ * documents render inside the docs pages' iframes, so they skip the site
+ * chrome and the forced scrollbar gutter.
+ */
+function useIsFramedPreview() {
+	const matches = useMatches();
+	return matches.some((match) => match.id === "preview-example");
+}
+
 const ReactQueryDevtoolsLazy = lazy(() =>
 	import("@tanstack/react-query-devtools/production").then((module) => ({
 		default: module.ReactQueryDevtools,
@@ -144,6 +157,7 @@ export function Layout({ children }: PropsWithChildren) {
 		className: "h-full",
 	});
 	const scrollBehavior = useScrollBehavior();
+	const isFramedPreview = useIsFramedPreview();
 	const nonce = useNonce();
 	const [showReactQueryDevtools, setShowReactQueryDevtools] = useState(
 		Boolean(loaderData?.renderReactQueryDevtools),
@@ -180,7 +194,11 @@ export function Layout({ children }: PropsWithChildren) {
 			</head>
 			<body
 				className={cx(
-					"bg-card h-full min-h-full overflow-y-scroll scrollbar isolate relative",
+					"bg-card h-full min-h-full scrollbar isolate relative",
+					// the docs site forces a permanent scrollbar gutter so page length
+					// never shifts the layout; inside a preview iframe that gutter reads
+					// as a broken demo, so preview documents scroll only when needed
+					isFramedPreview ? "overflow-y-auto" : "overflow-y-scroll",
 					scrollBehavior === "smooth" && "scroll-smooth",
 				)}
 			>
@@ -209,9 +227,19 @@ export function Layout({ children }: PropsWithChildren) {
 /**
  * The outermost route component. Renders only the truly page-agnostic chrome —
  * skip link, header, and the outer page wrapper. Each layout route owns its
- * own sidebar / main / TOC grid inside the `<Outlet />`.
+ * own sidebar / main / TOC grid inside the `<Outlet />`. Framed example
+ * previews are the exception: they render the bare outlet so the example owns
+ * the entire document.
  */
 export default function App() {
+	const isFramedPreview = useIsFramedPreview();
+
+	// framed example previews own their whole document: no site header or skip
+	// link — the example brings its own landmarks (see routes/preview.tsx)
+	if (isFramedPreview) {
+		return <Outlet />;
+	}
+
 	return (
 		<div className="flex min-h-full flex-col">
 			<SkipToMainLink />

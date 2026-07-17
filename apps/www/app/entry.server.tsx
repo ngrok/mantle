@@ -85,6 +85,16 @@ export default function handleRequest(
 	const isProdEnv = process.env.VERCEL_ENV === "production";
 	const isNgrokProxy = request.headers.get("x-ngrok-edge") != null;
 
+	/**
+	 * Framed example previews (`/preview/:exampleName`, see routes.ts) are
+	 * embedded in same-origin iframes by the docs pages' preview frames, so
+	 * they alone allow same-origin framing; every other document refuses
+	 * framing entirely (clickjacking mitigation).
+	 */
+	const requestPathname = new URL(request.url).pathname;
+	const allowSameOriginFraming =
+		requestPathname === "/preview" || requestPathname.startsWith("/preview/");
+
 	return new Promise((resolve, reject) => {
 		let shellRendered = false;
 		const userAgent = request.headers.get("user-agent");
@@ -129,7 +139,9 @@ export default function handleRequest(
 					 */
 					const shouldBlockIndexing = !(isProdEnv && isNgrokProxy);
 
-					if (shouldBlockIndexing) {
+					// preview documents are chrome-less fragments of their docs page —
+					// they should never land in a search index, even in production
+					if (shouldBlockIndexing || allowSameOriginFraming) {
 						responseHeaders.set("X-Robots-Tag", "noindex, nofollow");
 					}
 
@@ -167,9 +179,12 @@ export default function handleRequest(
 
 					/**
 					 * Prevent the page from being embedded in an iframe to mitigate
-					 * clickjacking attacks
+					 * clickjacking attacks. Framed example previews are the exception:
+					 * the docs pages iframe them from the same origin. The CSP
+					 * `frame-ancestors` directive below mirrors this for modern
+					 * browsers.
 					 */
-					responseHeaders.set("X-Frame-Options", "DENY");
+					responseHeaders.set("X-Frame-Options", allowSameOriginFraming ? "SAMEORIGIN" : "DENY");
 
 					/**
 					 * Enable basic XSS protection in older browsers by instructing them
@@ -183,7 +198,7 @@ export default function handleRequest(
 					 */
 					responseHeaders.set(
 						"Content-Security-Policy",
-						buildCSPHeader({ nonce: uniquePerRequestNonce, baseUrl }),
+						buildCSPHeader({ nonce: uniquePerRequestNonce, baseUrl, allowSameOriginFraming }),
 					);
 
 					resolve(
@@ -275,8 +290,18 @@ function buildLinkHeader(requestUrl: string) {
  * The `nonce` should be securely generated for each request and inserted into script tags.
  *
  * The script-src directive includes only trusted third-party scripts used in production.
+ * `allowSameOriginFraming` relaxes `frame-ancestors` to `'self'` for the
+ * framed example preview documents; everything else refuses framing.
  */
-function buildCSPHeader({ nonce, baseUrl }: { nonce: string; baseUrl: string }): string {
+function buildCSPHeader({
+	nonce,
+	baseUrl,
+	allowSameOriginFraming,
+}: {
+	nonce: string;
+	baseUrl: string;
+	allowSameOriginFraming: boolean;
+}): string {
 	const scriptNonce = `'nonce-${nonce}'`;
 
 	/**
@@ -297,6 +322,9 @@ function buildCSPHeader({ nonce, baseUrl }: { nonce: string; baseUrl: string }):
 	const baseUri = "base-uri 'self';";
 	const objectSrc = "object-src 'none';";
 	const workerSrc = "worker-src 'self' blob:;";
+	const frameAncestors = allowSameOriginFraming
+		? "frame-ancestors 'self';"
+		: "frame-ancestors 'none';";
 
 	return [
 		//,
@@ -304,5 +332,6 @@ function buildCSPHeader({ nonce, baseUrl }: { nonce: string; baseUrl: string }):
 		baseUri,
 		objectSrc,
 		workerSrc,
+		frameAncestors,
 	].join("; ");
 }

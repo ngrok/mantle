@@ -29,6 +29,28 @@ describe("renderMdxToMarkdown", () => {
 		expect(result).not.toContain("omitted in markdown output");
 	});
 
+	test("drops the self-closing CodeExample.PreviewFrame and keeps the fence", () => {
+		const result = renderMdxToMarkdown(
+			[
+				"<CodeExample.Root>",
+				'\t<CodeExample.PreviewFrame example="centered-layout" title="Centered layout demo" />',
+				"\t<CodeExample.Code>",
+				"",
+				"```tsx",
+				"const answer = 42;",
+				"```",
+				"",
+				"\t</CodeExample.Code>",
+				"</CodeExample.Root>",
+			].join("\n"),
+		);
+
+		expect(result).toContain("const answer = 42;");
+		expect(result).not.toContain("CodeExample");
+		expect(result).not.toContain("centered-layout");
+		expect(result).not.toContain("omitted in markdown output");
+	});
+
 	test("drops Example previews without a trail comment", () => {
 		const result = renderMdxToMarkdown("<Example>\n\t<MyDemo />\n</Example>\n\nAfter.");
 
