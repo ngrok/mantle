@@ -9,10 +9,11 @@ import { Slot } from "../slot/index.js";
 /**
  * The outer frame of a centered page flow. Renders a `<div>` with
  * `flex min-h-full flex-col` so it fills its nearest sized ancestor and stacks
- * `CenteredLayout.Header` (pinned top), `CenteredLayout.Body` (which grows),
- * and `CenteredLayout.Footer` (pinned bottom). Consumers whose host requires
- * an exact height can merge `h-full` via `className` — `cx` is
- * tailwind-merge-backed, so the override is deterministic.
+ * `CenteredLayout.Notice` and `CenteredLayout.Header` (pinned top),
+ * `CenteredLayout.Body` (which grows), and `CenteredLayout.Footer` (pinned
+ * bottom). Consumers whose host requires an exact height can merge `h-full`
+ * via `className` — `cx` is tailwind-merge-backed, so the override is
+ * deterministic.
  *
  * @see https://mantle.ngrok.com/layouts/centered-layout
  *
@@ -302,9 +303,9 @@ Footer.displayName = "CenteredLayoutFooter";
 const CenteredLayout = {
 	/**
 	 * The outer frame of a centered page flow. Fills its nearest sized ancestor
-	 * (`min-h-full`) and stacks `Header` (pinned top), `Body` (which grows),
-	 * and `Footer` (pinned bottom). Merge `h-full` via `className` when the
-	 * host requires an exact height.
+	 * (`min-h-full`) and stacks `Notice` and `Header` (pinned top), `Body`
+	 * (which grows), and `Footer` (pinned bottom). Merge `h-full` via
+	 * `className` when the host requires an exact height.
 	 *
 	 * @see https://mantle.ngrok.com/layouts/centered-layout
 	 *
