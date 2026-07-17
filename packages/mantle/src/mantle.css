@@ -618,6 +618,32 @@ MARK: UTILITIES
 	}
 }
 
+@utility scroll-fade-x-keep-bottom-border {
+	/*
+	 * `scroll-fade-x` variant for containers that paint a bottom border in
+	 * their last 1px row, like the classic tablist. Borders belong outside
+	 * scroll-fade masks: a second, additive mask layer keeps that row fully
+	 * opaque so the border runs solid to the container edges while the
+	 * scrolled content above it still fades.
+	 *
+	 * Self-contained — it applies `scroll-fade-x` itself so the layered mask
+	 * reliably wins the cascade within one rule. Use it INSTEAD of
+	 * `scroll-fade-x`, never alongside it (utility emission order would let
+	 * the plain single-layer mask win).
+	 */
+	@apply scroll-fade-x;
+	mask-image:
+		linear-gradient(
+			to right,
+			var(--_fade-left),
+			black 40px,
+			black calc(100% - 40px),
+			var(--_fade-right)
+		),
+		linear-gradient(to bottom, transparent calc(100% - 1px), black calc(100% - 1px));
+	mask-composite: add;
+}
+
 @utility scroll-fade-y {
 	/* Vertical sibling of `scroll-fade-x` — see it for how the masking works. */
 	--_fade-top: var(--_scroll-fade-top);

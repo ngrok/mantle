@@ -26,28 +26,56 @@ describe("Tabs", () => {
 	});
 
 	describe("List", () => {
-		// scroll-fade-x lives on the shared horizontal-orientation variant, so both
-		// appearances inherit it. This guards against a regression that would scope
-		// the overflow handling to only the classic appearance.
-		test.each(["classic", "pill"] as const)(
-			"horizontal %s appearance scrolls on overflow with scroll-fade-x",
-			(appearance) => {
-				render(
-					<Tabs.Root appearance={appearance} orientation="horizontal" defaultValue="a">
-						<Tabs.List>
-							<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
-							<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
-						</Tabs.List>
-					</Tabs.Root>,
-				);
+		// Every horizontal tablist scrolls on overflow with a scroll fade, but the
+		// fade class differs: the bordered classic list uses the
+		// scroll-fade-x-keep-bottom-border variant (so the border stays solid
+		// under the fade), while pill and borderless classic use plain
+		// scroll-fade-x. The variant and the plain utility must never co-exist
+		// on one element — this pins exactly one being present per case.
+		test("horizontal pill appearance scrolls on overflow with scroll-fade-x", () => {
+			render(
+				<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
 
-				expect(screen.getByRole("tablist")).toHaveClass(
-					"scroll-fade-x",
-					"overflow-x-auto",
-					"min-w-0",
-				);
-			},
-		);
+			const tablist = screen.getByRole("tablist");
+			expect(tablist).toHaveClass("scroll-fade-x", "overflow-x-auto", "min-w-0");
+			expect(tablist).not.toHaveClass("scroll-fade-x-keep-bottom-border");
+		});
+
+		test("horizontal classic appearance scrolls on overflow with the border-preserving fade", () => {
+			render(
+				<Tabs.Root appearance="classic" orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			const tablist = screen.getByRole("tablist");
+			expect(tablist).toHaveClass("scroll-fade-x-keep-bottom-border", "overflow-x-auto", "min-w-0");
+			expect(tablist).not.toHaveClass("scroll-fade-x");
+		});
+
+		test("horizontal classic appearance with hideBorder scrolls on overflow with scroll-fade-x", () => {
+			render(
+				<Tabs.Root appearance="classic" orientation="horizontal" defaultValue="a">
+					<Tabs.List hideBorder>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			const tablist = screen.getByRole("tablist");
+			expect(tablist).toHaveClass("scroll-fade-x", "overflow-x-auto", "min-w-0");
+			expect(tablist).not.toHaveClass("scroll-fade-x-keep-bottom-border");
+		});
 
 		// The bottom border is on by default for the classic appearance, painted
 		// as a content-box background in the separator color so the px-1/-mx-1

@@ -104,15 +104,17 @@ Root.displayName = "Tabs";
  *   origin, so a positioned rule scrolls away with the triggers on overflow.
  *
  * The content box excludes the breathing padding, so the rule stays inside
- * the container, sits put while triggers scroll beneath it, and fades with
- * them under the scroll-fade mask. `pb-px` reserves the 1px row below the
- * triggers (and below the active trigger's decoration) that the rule
- * occupies; the `calc(100% + 1px)` y-position drops the rule out of the
- * content box into that row.
+ * the container and sits put while triggers scroll beneath it. `pb-px`
+ * reserves the 1px row below the triggers (and below the active trigger's
+ * decoration) that the rule occupies; the `calc(100% + 1px)` y-position
+ * drops the rule out of the content box into that row, and the
+ * `scroll-fade-x-keep-bottom-border` mask exception keeps that row solid to
+ * the container edges while the scrolled triggers above it fade.
  */
 const listBottomRule = cx(
 	"pb-px bg-origin-content bg-no-repeat bg-size-[100%_1px] bg-position-[0_calc(100%+1px)]",
 	"bg-[image:linear-gradient(var(--color-separator),var(--color-separator))]",
+	"scroll-fade-x-keep-bottom-border",
 );
 
 /**
@@ -121,8 +123,12 @@ const listBottomRule = cx(
 const listVariants = cva("flex", {
 	variants: {
 		orientation: {
+			// The horizontal edge fade is per-compound rather than here: the
+			// bordered classic list swaps scroll-fade-x for its
+			// scroll-fade-x-keep-bottom-border variant, and the two must never
+			// co-exist on one element (see the utility in mantle.css).
 			horizontal:
-				"scroll-fade-x flex-row items-center overflow-x-auto overscroll-x-none w-full min-w-0 pt-1 -mt-1 px-1 -mx-1",
+				"flex-row items-center overflow-x-auto overscroll-x-none w-full min-w-0 pt-1 -mt-1 px-1 -mx-1",
 			vertical: "flex-col items-end gap-3.5 self-stretch",
 		} as const satisfies Record<Orientation, string>,
 		appearance: {
@@ -139,12 +145,18 @@ const listVariants = cva("flex", {
 			orientation: "horizontal",
 			appearance: "pill",
 			// pb-1 -mb-1 gives the focus ring space below (ring-4 is box-shadow, clipped by overflow).
-			className: "gap-1 pb-1 -mb-1",
+			className: "scroll-fade-x gap-1 pb-1 -mb-1",
 		},
 		{
 			orientation: "horizontal",
 			appearance: "classic",
 			className: "gap-6",
+		},
+		{
+			orientation: "horizontal",
+			appearance: "classic",
+			hideBorder: true,
+			className: "scroll-fade-x",
 		},
 		{
 			orientation: "horizontal",
