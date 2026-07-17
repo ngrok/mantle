@@ -1,30 +1,35 @@
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Button } from "@ngrok/mantle/button";
+import { Main } from "@ngrok/mantle/main";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
 import { useState } from "react";
 
 /**
  * The AppLayout shell on its own — no sidebar. A toggleable `Notice` strip
  * pinned above everything, a toolbar `Header`, and a `Content` card that is
- * the only scroll container.
+ * the only scroll container. Renders as an entire framed-preview document
+ * (see preview-registry.ts), so it composes like a real app shell: pinned
+ * with `fixed inset-0` and `AppLayout.Content` as the real `Main` landmark.
  */
 export function AppLayoutDemo() {
 	const [showNotice, setShowNotice] = useState(true);
 
 	return (
-		<div className="h-full w-full">
-			<AppLayout.Root className="rounded-lg">
-				<AppLayout.Notice>
-					{showNotice && (
-						<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
-							<WarningCircleIcon weight="fill" className="shrink-0" />
-							You are impersonating jane@example.com in read-only mode.
-						</div>
-					)}
-				</AppLayout.Notice>
-				<AppLayout.Body>
-					<AppLayout.Inset>
-						<AppLayout.Content>
+		<AppLayout.Root className="fixed inset-0">
+			<SkipToMainLink />
+			<AppLayout.Notice>
+				{showNotice && (
+					<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
+						<WarningCircleIcon weight="fill" className="shrink-0" />
+						You are impersonating jane@example.com in read-only mode.
+					</div>
+				)}
+			</AppLayout.Notice>
+			<AppLayout.Body>
+				<AppLayout.Inset>
+					<AppLayout.Content asChild>
+						<Main>
 							<AppLayout.Header>
 								<p className="text-strong text-sm font-medium">Endpoints</p>
 								<Button
@@ -49,11 +54,11 @@ export function AppLayoutDemo() {
 									</div>
 								))}
 							</div>
-						</AppLayout.Content>
-					</AppLayout.Inset>
-				</AppLayout.Body>
-			</AppLayout.Root>
-		</div>
+						</Main>
+					</AppLayout.Content>
+				</AppLayout.Inset>
+			</AppLayout.Body>
+		</AppLayout.Root>
 	);
 }
 

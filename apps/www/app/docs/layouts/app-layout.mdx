@@ -5,8 +5,7 @@ description: A viewport-locked application shell — a full-width notice strip, 
 
 import { CodeExample } from "~/components/code-example";
 import { PageHeader } from "~/components/page-header";
-import { AppLayoutDemo, AppLayoutPolymorphismDemo } from "~/features/app-layout-demos";
-import { AppShellDemo } from "~/features/app-shell-demo";
+import { AppLayoutPolymorphismDemo } from "~/features/app-layout-demos";
 
 <PageHeader id="app-layout">App Layout</PageHeader>
 
@@ -19,20 +18,24 @@ everything — including any sidebar — down. It is a **layout**: it owns _wher
 The canonical composition pairs the shell with the [Sidebar](/components/navigation/sidebar). The two are
 deliberately decoupled — `AppLayout` never references sidebar state — but cohesive: wrap the shell in
 `Sidebar.Root`, place `Sidebar.Nav` as the first child of `AppLayout.Body`, and put `Sidebar.Trigger` in the
-top-left of `AppLayout.Header`. Collapse the sidebar with the trigger, toggle the notice to see the strip
-push the whole shell (sidebar included) down, and resize below `lg` for the mobile sheet.
+top-left of `AppLayout.Header`. The demo runs in its own framed document, exactly like a real app: collapse
+the sidebar with the trigger (or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> — the shortcut binds to the frame, not this
+page), toggle the notice to see the strip push the whole shell (sidebar included) down, and switch the
+preview to the mobile viewport for the sheet presentation. The demo narrows the sidebar's `mobileBreakpoint`
+to `md` so the desktop rail survives the preview's desktop and tablet widths; ngrok's dashboards keep the
+`lg` default.
 
 <CodeExample.Root>
-	<CodeExample.Preview className="p-0 md:p-0">
-		<AppShellDemo />
-	</CodeExample.Preview>
+	<CodeExample.PreviewFrame example="app-shell" title="App shell demo" />
 	<CodeExample.Code>
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button } from "@ngrok/mantle/button";
+import { Main } from "@ngrok/mantle/main";
 import { Sidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
@@ -43,8 +46,10 @@ export function Shell() {
 	const [showNotice, setShowNotice] = useState(false);
 
 	return (
-		<Sidebar.Root>
+		// the framed demo narrows the mobile breakpoint; most apps keep the "lg" default
+		<Sidebar.Root mobileBreakpoint="md">
 			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
 				<AppLayout.Notice>
 					{showNotice && (
 						<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
@@ -93,32 +98,34 @@ export function Shell() {
 					</Sidebar.Nav>
 
 					<AppLayout.Inset>
-						<AppLayout.Content>
-							<AppLayout.Header>
-								<Sidebar.Trigger />
-								<Breadcrumb.Root>
-									<Breadcrumb.List>
-										<Breadcrumb.Item>
-											<Breadcrumb.Link href="/">Universal Gateway</Breadcrumb.Link>
-										</Breadcrumb.Item>
-										<Breadcrumb.Separator />
-										<Breadcrumb.Item>
-											<Breadcrumb.Page>Endpoints</Breadcrumb.Page>
-										</Breadcrumb.Item>
-									</Breadcrumb.List>
-								</Breadcrumb.Root>
-								<Button
-									type="button"
-									appearance="outlined"
-									intent="neutral"
-									className="ml-auto"
-									size="sm"
-									onClick={() => setShowNotice((current) => !current)}
-								>
-									Toggle notice
-								</Button>
-							</AppLayout.Header>
-							{/* your routed page content */}
+						<AppLayout.Content asChild>
+							<Main>
+								<AppLayout.Header>
+									<Sidebar.Trigger />
+									<Breadcrumb.Root>
+										<Breadcrumb.List>
+											<Breadcrumb.Item>
+												<Breadcrumb.Link href="/">Universal Gateway</Breadcrumb.Link>
+											</Breadcrumb.Item>
+											<Breadcrumb.Separator />
+											<Breadcrumb.Item>
+												<Breadcrumb.Page>Endpoints</Breadcrumb.Page>
+											</Breadcrumb.Item>
+										</Breadcrumb.List>
+									</Breadcrumb.Root>
+									<Button
+										type="button"
+										appearance="outlined"
+										intent="neutral"
+										className="ml-auto"
+										size="sm"
+										onClick={() => setShowNotice((current) => !current)}
+									>
+										Toggle notice
+									</Button>
+								</AppLayout.Header>
+								{/* your routed page content */}
+							</Main>
 						</AppLayout.Content>
 					</AppLayout.Inset>
 				</AppLayout.Body>
@@ -133,9 +140,12 @@ export function Shell() {
 </CodeExample.Root>
 
 > [!NOTE]
-> `AppLayout.Root` fills its nearest sized ancestor by default, which is what makes it embeddable in the demo
-> above. A real app shell pins it to the viewport by merging `className="fixed inset-0"` — mantle's `cx` is
-> tailwind-merge-backed, so the override is deterministic.
+> The full-shell demos on this page render inside framed previews — each is a separate document, exactly
+> like a real app owning the viewport. That is why they can pin `AppLayout.Root` with
+> `className="fixed inset-0"` (mantle's `cx` is tailwind-merge-backed, so the override is deterministic) and
+> compose a real [Main](/components/primitives/main) landmark — see [Landmarks](#landmarks). When you embed
+> the shell inside an existing page instead — as the inline [Polymorphism](#polymorphism) example below
+> does — drop both: `AppLayout.Root` fills its nearest sized ancestor by default.
 
 ## Standalone
 
@@ -143,14 +153,14 @@ The shell composes just as well without a sidebar — `AppLayout.Body`'s columns
 Nothing in the shell knows the sidebar exists; the pairing above is composition, not coupling.
 
 <CodeExample.Root>
-	<CodeExample.Preview className="p-0 md:p-0">
-		<AppLayoutDemo />
-	</CodeExample.Preview>
+	<CodeExample.PreviewFrame example="app-layout-standalone" title="Standalone app layout demo" />
 	<CodeExample.Code>
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Button } from "@ngrok/mantle/button";
+import { Main } from "@ngrok/mantle/main";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
 import { useState } from "react";
 
@@ -159,6 +169,7 @@ export function Shell() {
 
 	return (
 		<AppLayout.Root className="fixed inset-0">
+			<SkipToMainLink />
 			<AppLayout.Notice>
 				{showNotice && (
 					<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
@@ -169,21 +180,23 @@ export function Shell() {
 			</AppLayout.Notice>
 			<AppLayout.Body>
 				<AppLayout.Inset>
-					<AppLayout.Content>
-						<AppLayout.Header>
-							<p className="text-strong text-sm font-medium">Endpoints</p>
-							<Button
-								type="button"
-								appearance="outlined"
-								intent="neutral"
-								className="ml-auto"
-								size="sm"
-								onClick={() => setShowNotice((current) => !current)}
-							>
-								Toggle notice
-							</Button>
-						</AppLayout.Header>
-						{/* your routed page content */}
+					<AppLayout.Content asChild>
+						<Main>
+							<AppLayout.Header>
+								<p className="text-strong text-sm font-medium">Endpoints</p>
+								<Button
+									type="button"
+									appearance="outlined"
+									intent="neutral"
+									className="ml-auto"
+									size="sm"
+									onClick={() => setShowNotice((current) => !current)}
+								>
+									Toggle notice
+								</Button>
+							</AppLayout.Header>
+							{/* your routed page content */}
+						</Main>
 					</AppLayout.Content>
 				</AppLayout.Inset>
 			</AppLayout.Body>
@@ -230,13 +243,14 @@ AppLayout.Root
 ## Landmarks
 
 Exactly one element in a document may be the Main landmark, so `AppLayout.Content` renders a plain `<div>`
-by default — composing the shell inside a page that already owns the landmark (a docs page, including the
-live demos on this page) is safe by default. But when the shell owns the document — which is the normal case
-for an app shell — `AppLayout.Content` should almost always **be** the Main landmark: compose mantle's
+by default — composing the shell inside a page that already owns the landmark (a docs page, for example) is
+safe by default. But when the shell owns the document — which is the normal case for an app shell —
+`AppLayout.Content` should almost always **be** the Main landmark: compose mantle's
 [Main](/components/primitives/main) via `asChild`, and pair a
 [SkipToMainLink](/components/primitives/skip-to-main-link) as the first child of `AppLayout.Root`. Its
 default `targetId` matches `Main`'s `id="main"`, so keyboard users can jump past the sidebar's tab gauntlet
-and the toolbar straight into the content card.
+and the toolbar straight into the content card. The framed demos on this page do exactly this — each preview
+is its own document, so each owns a real `Main`.
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";

@@ -1,6 +1,8 @@
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { useLocalStorage } from "@ngrok/mantle/hooks";
+import { Main } from "@ngrok/mantle/main";
 import { Sidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { HashIcon } from "@phosphor-icons/react/Hash";
@@ -58,48 +60,52 @@ export function SidebarAnatomyDemo() {
  * Persisting the collapsed state across visits with fully controlled props +
  * `useLocalStorage`. The controlled form is required in SSR apps: an
  * uncontrolled `defaultOpen` initializes exactly once at the hydration
- * render, before the stored value is available.
+ * render, before the stored value is available. Renders as an entire
+ * framed-preview document (see preview-registry.ts) — reload the preview to
+ * see the stored state restored.
  */
 export function SidebarPersistenceDemo() {
 	const [storedState, setStoredState] = useLocalStorage("docs-sidebar-state", "expanded");
 
 	return (
-		<div className="h-64 w-full">
-			<Sidebar.Root
-				open={storedState !== "collapsed"}
-				onOpenChange={(open) => setStoredState(open ? "expanded" : "collapsed")}
-			>
-				<AppLayout.Root className="rounded-lg">
-					<AppLayout.Body>
-						<Sidebar.Nav aria-label="Main">
-							<Sidebar.Body>
-								<Sidebar.Group>
-									<Sidebar.GroupLabel>Persisted</Sidebar.GroupLabel>
-									<Sidebar.List>
-										<Sidebar.Item>
-											<Sidebar.ItemButton current>
-												<GraphIcon />
-												Endpoints
-											</Sidebar.ItemButton>
-										</Sidebar.Item>
-									</Sidebar.List>
-								</Sidebar.Group>
-							</Sidebar.Body>
-						</Sidebar.Nav>
-						<AppLayout.Inset>
-							<AppLayout.Content>
+		<Sidebar.Root
+			open={storedState !== "collapsed"}
+			onOpenChange={(open) => setStoredState(open ? "expanded" : "collapsed")}
+			mobileBreakpoint="md"
+		>
+			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
+				<AppLayout.Body>
+					<Sidebar.Nav aria-label="Main">
+						<Sidebar.Body>
+							<Sidebar.Group>
+								<Sidebar.GroupLabel>Persisted</Sidebar.GroupLabel>
+								<Sidebar.List>
+									<Sidebar.Item>
+										<Sidebar.ItemButton current>
+											<GraphIcon />
+											Endpoints
+										</Sidebar.ItemButton>
+									</Sidebar.Item>
+								</Sidebar.List>
+							</Sidebar.Group>
+						</Sidebar.Body>
+					</Sidebar.Nav>
+					<AppLayout.Inset>
+						<AppLayout.Content asChild>
+							<Main>
 								<AppLayout.Header>
 									<Sidebar.Trigger />
 								</AppLayout.Header>
 								<p className="text-muted p-6 text-sm">
-									Toggle the sidebar, then reload the page — the collapsed state is restored from
+									Toggle the sidebar, then reload the preview — the collapsed state is restored from
 									localStorage.
 								</p>
-							</AppLayout.Content>
-						</AppLayout.Inset>
-					</AppLayout.Body>
-				</AppLayout.Root>
-			</Sidebar.Root>
-		</div>
+							</Main>
+						</AppLayout.Content>
+					</AppLayout.Inset>
+				</AppLayout.Body>
+			</AppLayout.Root>
+		</Sidebar.Root>
 	);
 }

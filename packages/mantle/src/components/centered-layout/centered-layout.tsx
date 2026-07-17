@@ -63,9 +63,9 @@ const Root = ({
  * warnings, and similar app-wide messaging. Renders an unstyled `<div>`
  * (`w-full shrink-0`): the notice content brings its own colors and layout,
  * and the part collapses to nothing when empty, so it can stay mounted and
- * conditionally render its contents. The same slot contract as the
- * app-layout shell's notice strip, so an app-wide banner composes
- * identically across mantle's layouts. Deliberately
+ * conditionally render its contents. The same slot contract as
+ * `AppLayout.Notice`, so an app-wide banner composes identically across
+ * mantle's layouts. Deliberately
  * not named Banner — `CenteredLayout.Header` renders the page's `<header>`
  * (the ARIA `banner` landmark), and this part is not that. Optional: omitting
  * it is fine.
@@ -346,8 +346,8 @@ const CenteredLayout = {
 	 * including `Header` — for impersonation notices and environment warnings.
 	 * Renders an unstyled `<div>` (`w-full shrink-0`): the notice content
 	 * brings its own colors, and the part collapses to nothing when empty. The
-	 * same slot contract as the app-layout shell's notice strip, so an
-	 * app-wide banner composes identically across mantle's layouts. Merge
+	 * same slot contract as `AppLayout.Notice`, so an app-wide banner
+	 * composes identically across mantle's layouts. Merge
 	 * `sticky top-0 z-20` via `className` to pin it while a long flow scrolls
 	 * (to pin it alongside a sticky `Header`, wrap the two strips in a single
 	 * `sticky top-0` container instead — two elements pinned at `top-0`

@@ -3,10 +3,10 @@ title: Sidebar
 description: A composable, collapsible app-navigation sidebar with a mobile sheet presentation and a trigger that mounts anywhere in your app shell.
 ---
 
+import { CodeExample } from "~/components/code-example";
 import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
-import { AppShellDemo } from "~/features/app-shell-demo";
-import { SidebarAnatomyDemo, SidebarPersistenceDemo } from "~/features/sidebar-demos";
+import { SidebarAnatomyDemo } from "~/features/sidebar-demos";
 
 <PageHeader id="sidebar">Sidebar</PageHeader>
 
@@ -17,22 +17,26 @@ what keeps the sidebar decoupled from your app shell: place the trigger in an
 [App Layout](/layouts/app-layout) header without the shell knowing the sidebar exists.
 
 The sidebar is routing-agnostic. Compose router links with `asChild` on `Sidebar.ItemButton` and drive
-`current` from your router's location. Resize the window below `lg` to see the mobile sheet presentation, use
-the trigger in the header to collapse and expand the panel, and toggle the notice to see the shell's
-full-window [`AppLayout.Notice`](/layouts/app-layout) strip push everything — sidebar included — down.
+`current` from your router's location. The demo below runs in its own framed document, exactly like a real
+app: switch the preview to the mobile viewport to see the sheet presentation, use the trigger in the header
+to collapse and expand the panel, and toggle the notice to see the shell's full-window
+[`AppLayout.Notice`](/layouts/app-layout) strip push everything — sidebar included — down. Click into the
+frame and press <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> — the shortcut binds to the frame's own window, not this
+page. The demo narrows `mobileBreakpoint` to `md` so the desktop rail survives the preview's desktop and
+tablet widths; ngrok's dashboards keep the `lg` default.
 
-<Example className="p-4 md:p-4">
-	<div className="h-128 w-full">
-		<AppShellDemo />
-	</div>
-</Example>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="app-shell" title="App shell demo" />
+	<CodeExample.Code>
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button } from "@ngrok/mantle/button";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { Main } from "@ngrok/mantle/main";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
@@ -107,8 +111,10 @@ export function AppShell() {
 	const account = accounts.find((candidate) => candidate.id === accountId) ?? accounts[0];
 
 	return (
-		<Sidebar.Root>
+		// the framed demo narrows the mobile breakpoint; most apps keep the "lg" default
+		<Sidebar.Root mobileBreakpoint="md">
 			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
 				<AppLayout.Notice>
 					{showNotice && (
 						<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
@@ -172,32 +178,34 @@ export function AppShell() {
 					</Sidebar.Nav>
 
 					<AppLayout.Inset>
-						<AppLayout.Content>
-							<AppLayout.Header>
-								<Sidebar.Trigger />
-								<Breadcrumb.Root>
-									<Breadcrumb.List>
-										<Breadcrumb.Item>
-											<Breadcrumb.Link href="/">Universal Gateway</Breadcrumb.Link>
-										</Breadcrumb.Item>
-										<Breadcrumb.Separator />
-										<Breadcrumb.Item>
-											<Breadcrumb.Page>Endpoints</Breadcrumb.Page>
-										</Breadcrumb.Item>
-									</Breadcrumb.List>
-								</Breadcrumb.Root>
-								<Button
-									type="button"
-									appearance="outlined"
-									intent="neutral"
-									className="ml-auto"
-									size="sm"
-									onClick={() => setShowNotice((current) => !current)}
-								>
-									Toggle notice
-								</Button>
-							</AppLayout.Header>
-							{/* your routed page content */}
+						<AppLayout.Content asChild>
+							<Main>
+								<AppLayout.Header>
+									<Sidebar.Trigger />
+									<Breadcrumb.Root>
+										<Breadcrumb.List>
+											<Breadcrumb.Item>
+												<Breadcrumb.Link href="/">Universal Gateway</Breadcrumb.Link>
+											</Breadcrumb.Item>
+											<Breadcrumb.Separator />
+											<Breadcrumb.Item>
+												<Breadcrumb.Page>Endpoints</Breadcrumb.Page>
+											</Breadcrumb.Item>
+										</Breadcrumb.List>
+									</Breadcrumb.Root>
+									<Button
+										type="button"
+										appearance="outlined"
+										intent="neutral"
+										className="ml-auto"
+										size="sm"
+										onClick={() => setShowNotice((current) => !current)}
+									>
+										Toggle notice
+									</Button>
+								</AppLayout.Header>
+								{/* your routed page content */}
+							</Main>
 						</AppLayout.Content>
 					</AppLayout.Inset>
 				</AppLayout.Body>
@@ -206,6 +214,10 @@ export function AppShell() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Composition
 
@@ -315,25 +327,30 @@ server-rendered HTML itself — a persisted-collapsed sidebar paints expanded fo
 post-hydration correction. If that frame matters, persist to a **cookie** instead: read it in your server
 loader and pass it as `open`/`defaultOpen`, the same way the theme system solves FOUC server-side.
 
-<Example className="p-4 md:p-4">
-	<SidebarPersistenceDemo />
-</Example>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="sidebar-persistence" title="Sidebar persistence demo" />
+	<CodeExample.Code>
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { useLocalStorage } from "@ngrok/mantle/hooks";
+import { Main } from "@ngrok/mantle/main";
 import { Sidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 
 export function PersistedShell() {
 	const [storedState, setStoredState] = useLocalStorage("sidebar-state", "expanded");
 
 	return (
+		// the framed demo narrows the mobile breakpoint; most apps keep the "lg" default
 		<Sidebar.Root
 			open={storedState !== "collapsed"}
 			onOpenChange={(open) => setStoredState(open ? "expanded" : "collapsed")}
+			mobileBreakpoint="md"
 		>
 			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
 				<AppLayout.Body>
 					<Sidebar.Nav aria-label="Main">
 						<Sidebar.Body>
@@ -351,11 +368,13 @@ export function PersistedShell() {
 						</Sidebar.Body>
 					</Sidebar.Nav>
 					<AppLayout.Inset>
-						<AppLayout.Content>
-							<AppLayout.Header>
-								<Sidebar.Trigger />
-							</AppLayout.Header>
-							{/* your routed page content */}
+						<AppLayout.Content asChild>
+							<Main>
+								<AppLayout.Header>
+									<Sidebar.Trigger />
+								</AppLayout.Header>
+								{/* your routed page content */}
+							</Main>
 						</AppLayout.Content>
 					</AppLayout.Inset>
 				</AppLayout.Body>
@@ -364,6 +383,13 @@ export function PersistedShell() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+Toggle the sidebar in the demo, then reload the preview with the toolbar's reload button — the collapsed
+state is restored from localStorage.
 
 ## Polymorphism
 

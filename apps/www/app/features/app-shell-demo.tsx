@@ -2,7 +2,9 @@ import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button } from "@ngrok/mantle/button";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { Main } from "@ngrok/mantle/main";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { CertificateIcon } from "@phosphor-icons/react/Certificate";
@@ -128,7 +130,11 @@ function DemoNav({
  * toggleable full-window notice strip, and a content card that scrolls
  * internally. The two components never reference each other — `Sidebar.Root`
  * simply wraps the shell so `Sidebar.Trigger` works from `AppLayout.Header`.
- * Resize the window below `lg` to see the mobile sheet.
+ *
+ * Renders as an entire framed-preview document (see preview-registry.ts), so
+ * it composes exactly like a real app shell: pinned to the viewport with
+ * `fixed inset-0`, a `SkipToMainLink`, and `AppLayout.Content` as the real
+ * `Main` landmark. Narrow the preview below `md` for the mobile sheet.
  */
 export function AppShellDemo() {
 	const [pathname, setPathname] = useState("/endpoints");
@@ -143,118 +149,121 @@ export function AppShellDemo() {
 		.find((item) => item.path === pathname);
 
 	return (
-		<div className="h-full min-h-0 w-full">
-			<Sidebar.Root>
-				<AppLayout.Root className="rounded-lg">
-					<AppLayout.Notice>
-						{showNotice && (
-							<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
-								<WarningCircleIcon weight="fill" className="shrink-0" />
-								You are impersonating jane@example.com in read-only mode.
-							</div>
-						)}
-					</AppLayout.Notice>
-					<AppLayout.Body>
-						<Sidebar.Nav aria-label="Main">
-							<Sidebar.Header>
-								<DropdownMenu.Root>
-									<DropdownMenu.Trigger asChild>
-										<Sidebar.SwitcherButton>
-											<span className="text-muted [&>svg]:size-5 [&>svg]:shrink-0">
-												{product.icon}
-											</span>
-											<span className="text-strong min-w-0 flex-1 truncate text-base">
-												{product.label}
-											</span>
-											<CaretDownIcon className="text-muted size-4 shrink-0" />
-										</Sidebar.SwitcherButton>
-									</DropdownMenu.Trigger>
-									<DropdownMenu.Content align="start">
-										<DropdownMenu.RadioGroup value={productId} onValueChange={setProductId}>
-											{demoProducts.map((candidate) => (
-												<DropdownMenu.RadioItem
-													key={candidate.id}
-													value={candidate.id}
-													className="gap-2"
-												>
-													{candidate.icon}
-													{candidate.label}
-												</DropdownMenu.RadioItem>
-											))}
-										</DropdownMenu.RadioGroup>
-									</DropdownMenu.Content>
-								</DropdownMenu.Root>
-							</Sidebar.Header>
+		// `md` (not the `lg` default ngrok's dashboards use) keeps the desktop
+		// rail visible at the framed preview's desktop and tablet widths
+		<Sidebar.Root mobileBreakpoint="md">
+			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
+				<AppLayout.Notice>
+					{showNotice && (
+						<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
+							<WarningCircleIcon weight="fill" className="shrink-0" />
+							You are impersonating jane@example.com in read-only mode.
+						</div>
+					)}
+				</AppLayout.Notice>
+				<AppLayout.Body>
+					<Sidebar.Nav aria-label="Main">
+						<Sidebar.Header>
+							<DropdownMenu.Root>
+								<DropdownMenu.Trigger asChild>
+									<Sidebar.SwitcherButton>
+										<span className="text-muted [&>svg]:size-5 [&>svg]:shrink-0">
+											{product.icon}
+										</span>
+										<span className="text-strong min-w-0 flex-1 truncate text-base">
+											{product.label}
+										</span>
+										<CaretDownIcon className="text-muted size-4 shrink-0" />
+									</Sidebar.SwitcherButton>
+								</DropdownMenu.Trigger>
+								<DropdownMenu.Content align="start">
+									<DropdownMenu.RadioGroup value={productId} onValueChange={setProductId}>
+										{demoProducts.map((candidate) => (
+											<DropdownMenu.RadioItem
+												key={candidate.id}
+												value={candidate.id}
+												className="gap-2"
+											>
+												{candidate.icon}
+												{candidate.label}
+											</DropdownMenu.RadioItem>
+										))}
+									</DropdownMenu.RadioGroup>
+								</DropdownMenu.Content>
+							</DropdownMenu.Root>
+						</Sidebar.Header>
 
-							<Sidebar.Body>
-								<DemoNav pathname={pathname} onNavigate={setPathname} />
-							</Sidebar.Body>
+						<Sidebar.Body>
+							<DemoNav pathname={pathname} onNavigate={setPathname} />
+						</Sidebar.Body>
 
-							<Sidebar.Footer>
-								<Sidebar.ItemButton asChild current={pathname === "/settings"}>
-									<a
-										href="/settings"
-										onClick={(event) => {
-											event.preventDefault();
-											setPathname("/settings");
-										}}
-									>
-										<GearIcon />
-										Account settings
-									</a>
-								</Sidebar.ItemButton>
-								<Sidebar.Separator />
-								<DropdownMenu.Root>
-									<DropdownMenu.Trigger asChild>
-										<Sidebar.SwitcherButton>
-											<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
-											<span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">
-												{account.name}
-											</span>
-											<Sidebar.UserAvatar alt="Jane Doe" />
-										</Sidebar.SwitcherButton>
-									</DropdownMenu.Trigger>
-									<DropdownMenu.Content align="start" side="top" className="min-w-56">
-										<DropdownMenu.Group>
-											<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
-												{account.name}
-											</DropdownMenu.Label>
-											<DropdownMenu.Sub>
-												<DropdownMenu.SubTrigger className="gap-2">
-													<ArrowsClockwiseIcon className="text-muted" />
-													Switch accounts
-												</DropdownMenu.SubTrigger>
-												<DropdownMenu.SubContent>
-													<Sidebar.SwitchAccountsRadioGroup
-														accounts={demoAccounts}
-														value={accountId}
-														onValueChange={setAccountId}
-													/>
-												</DropdownMenu.SubContent>
-											</DropdownMenu.Sub>
-										</DropdownMenu.Group>
-										<DropdownMenu.Separator />
-										<DropdownMenu.Group>
-											<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
-												jane@example.com
-											</DropdownMenu.Label>
-											<DropdownMenu.Item className="gap-2">
-												<UserCircleIcon className="text-muted" />
-												User settings
-											</DropdownMenu.Item>
-										</DropdownMenu.Group>
-										<DropdownMenu.Separator />
+						<Sidebar.Footer>
+							<Sidebar.ItemButton asChild current={pathname === "/settings"}>
+								<a
+									href="/settings"
+									onClick={(event) => {
+										event.preventDefault();
+										setPathname("/settings");
+									}}
+								>
+									<GearIcon />
+									Account settings
+								</a>
+							</Sidebar.ItemButton>
+							<Sidebar.Separator />
+							<DropdownMenu.Root>
+								<DropdownMenu.Trigger asChild>
+									<Sidebar.SwitcherButton>
+										<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+										<span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">
+											{account.name}
+										</span>
+										<Sidebar.UserAvatar alt="Jane Doe" />
+									</Sidebar.SwitcherButton>
+								</DropdownMenu.Trigger>
+								<DropdownMenu.Content align="start" side="top" className="min-w-56">
+									<DropdownMenu.Group>
+										<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
+											{account.name}
+										</DropdownMenu.Label>
+										<DropdownMenu.Sub>
+											<DropdownMenu.SubTrigger className="gap-2">
+												<ArrowsClockwiseIcon className="text-muted" />
+												Switch accounts
+											</DropdownMenu.SubTrigger>
+											<DropdownMenu.SubContent>
+												<Sidebar.SwitchAccountsRadioGroup
+													accounts={demoAccounts}
+													value={accountId}
+													onValueChange={setAccountId}
+												/>
+											</DropdownMenu.SubContent>
+										</DropdownMenu.Sub>
+									</DropdownMenu.Group>
+									<DropdownMenu.Separator />
+									<DropdownMenu.Group>
+										<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
+											jane@example.com
+										</DropdownMenu.Label>
 										<DropdownMenu.Item className="gap-2">
-											<SignOutIcon className="text-muted" />
-											Log out
+											<UserCircleIcon className="text-muted" />
+											User settings
 										</DropdownMenu.Item>
-									</DropdownMenu.Content>
-								</DropdownMenu.Root>
-							</Sidebar.Footer>
-						</Sidebar.Nav>
+									</DropdownMenu.Group>
+									<DropdownMenu.Separator />
+									<DropdownMenu.Item className="gap-2">
+										<SignOutIcon className="text-muted" />
+										Log out
+									</DropdownMenu.Item>
+								</DropdownMenu.Content>
+							</DropdownMenu.Root>
+						</Sidebar.Footer>
+					</Sidebar.Nav>
 
-						<AppLayout.Inset>
-							<AppLayout.Content>
+					<AppLayout.Inset>
+						<AppLayout.Content asChild>
+							<Main>
 								<AppLayout.Header>
 									<Sidebar.Trigger />
 									<Breadcrumb.Root>
@@ -295,11 +304,11 @@ export function AppShellDemo() {
 										</div>
 									))}
 								</div>
-							</AppLayout.Content>
-						</AppLayout.Inset>
-					</AppLayout.Body>
-				</AppLayout.Root>
-			</Sidebar.Root>
-		</div>
+							</Main>
+						</AppLayout.Content>
+					</AppLayout.Inset>
+				</AppLayout.Body>
+			</AppLayout.Root>
+		</Sidebar.Root>
 	);
 }
