@@ -775,6 +775,83 @@ MARK: UTILITIES
 }
 
 /*
+MARK: OVERLAY ANIMATIONS
+Shared enter/exit motion for floating surfaces that pop from an anchor —
+Tooltip, Popover, and HoverCard content. The recipe layers four properties so
+the surface materializes instead of snapping in: opacity (fade), scale (grow
+from the trigger), a short directional translate toward the anchor, and a blur
+that resolves to sharp. Credit: https://x.com/samitkapoorr/status/2062170061813821753
+
+Apply `overlay-animation` to a Radix content element and pair it with an
+`origin-(--radix-…-content-transform-origin)` so the scale emanates from the
+trigger. The directional translate is driven by Radix's `data-side`, and both
+phases key off `data-state` (Tooltip uses `delayed-open`/`instant-open`, hence
+the `:not([data-state="closed"])` selector for the enter phase rather than a
+literal `open`).
+*/
+@keyframes overlay-in {
+	from {
+		opacity: 0;
+		transform: translate3d(var(--overlay-translate-x, 0), var(--overlay-translate-y, 0), 0)
+			scale(0.95);
+		filter: blur(4px);
+	}
+	to {
+		opacity: 1;
+		transform: translate3d(0, 0, 0) scale(1);
+		filter: blur(0);
+	}
+}
+
+@keyframes overlay-out {
+	from {
+		opacity: 1;
+		transform: translate3d(0, 0, 0) scale(1);
+		filter: blur(0);
+	}
+	to {
+		opacity: 0;
+		transform: scale(0.95);
+		filter: blur(4px);
+	}
+}
+
+@utility overlay-animation {
+	&[data-side="top"] {
+		--overlay-translate-y: 0.5rem;
+	}
+	&[data-side="bottom"] {
+		--overlay-translate-y: -0.5rem;
+	}
+	&[data-side="left"] {
+		--overlay-translate-x: 0.5rem;
+	}
+	&[data-side="right"] {
+		--overlay-translate-x: -0.5rem;
+	}
+
+	/* Enter: ease-out so it decelerates into place. Exit: quicker ease-in. */
+	&:not([data-state="closed"]) {
+		animation: overlay-in 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+	}
+	&[data-state="closed"] {
+		animation: overlay-out 130ms cubic-bezier(0.3, 0, 0.8, 0.15) both;
+	}
+
+	/*
+	 * Respect reduced-motion: drop the animation entirely. Radix's presence
+	 * machinery reads `animation-name: none` as "nothing to wait for" and
+	 * mounts/unmounts the content instantly, which is the desired behavior here.
+	 */
+	@media (prefers-reduced-motion: reduce) {
+		&:not([data-state="closed"]),
+		&[data-state="closed"] {
+			animation: none;
+		}
+	}
+}
+
+/*
 MARK: SHIKI SYNTAX HIGHLIGHT
 */
 :root {
