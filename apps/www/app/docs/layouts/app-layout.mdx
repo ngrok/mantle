@@ -162,18 +162,51 @@ the header trigger, the edge rail, or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd>.
 	<CodeExample.Code>
 
 ```tsx
-// identical to the demo above, except the root opts into the icon rail
-// (defaultOpen={false} is just so this demo loads collapsed)
-<Sidebar.Root collapsible="icon" defaultOpen={false} mobileBreakpoint="md">
-	<AppLayout.Root className="fixed inset-0">
-		<SkipToMainLink />
-		<AppLayout.Body>
-			<Sidebar.Nav aria-label="Main">{/* header, body, footer */}</Sidebar.Nav>
-			<Sidebar.Rail />
-			<AppLayout.Inset>{/* AppLayout.Content + AppLayout.Header */}</AppLayout.Inset>
-		</AppLayout.Body>
-	</AppLayout.Root>
-</Sidebar.Root>
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Main } from "@ngrok/mantle/main";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { GraphIcon } from "@phosphor-icons/react/Graph";
+
+export function IconRailShell() {
+	return (
+		// the same shell as the demo above — only the root changes: collapsible="icon"
+		// opts into the icon rail (defaultOpen={false} just loads this demo collapsed)
+		<Sidebar.Root collapsible="icon" defaultOpen={false} mobileBreakpoint="md">
+			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
+				<AppLayout.Body>
+					<Sidebar.Nav aria-label="Main">
+						<Sidebar.Body>
+							<Sidebar.Group>
+								<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+								<Sidebar.List>
+									<Sidebar.Item>
+										<Sidebar.ItemButton current>
+											<GraphIcon />
+											Endpoints
+										</Sidebar.ItemButton>
+									</Sidebar.Item>
+								</Sidebar.List>
+							</Sidebar.Group>
+						</Sidebar.Body>
+					</Sidebar.Nav>
+					<Sidebar.Rail />
+					<AppLayout.Inset>
+						<AppLayout.Content asChild>
+							<Main>
+								<AppLayout.Header>
+									<Sidebar.Trigger />
+								</AppLayout.Header>
+								{/* your routed page content */}
+							</Main>
+						</AppLayout.Content>
+					</AppLayout.Inset>
+				</AppLayout.Body>
+			</AppLayout.Root>
+		</Sidebar.Root>
+	);
+}
 ```
 
     </CodeExample.Code>
