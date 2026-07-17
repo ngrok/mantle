@@ -1,5 +1,21 @@
 # @ngrok/mantle
 
+## 0.79.3
+
+### Patch Changes
+
+- [#1328](https://github.com/ngrok/mantle/pull/1328) [`f5c6bfd`](https://github.com/ngrok/mantle/commit/f5c6bfd07b9ab742d0251de86866dd62135da48a) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump the `@ariakit/react` runtime dependency from 0.4.32 to 0.4.34 and move the `tailwindcss` peer range floor from `^4.3.2` to `^4.3.3`.
+
+  The ariakit bump (0.4.34 is a republish of 0.4.33, whose npm artifact shipped without build output) changes how `MultiSelect.Content` locks page scroll when opened outside a mantle modal: in browsers with `scrollbar-gutter` support, ariakit now reserves the gutter on the `html` element instead of hiding `body` overflow with padding compensation, and its `--scrollbar-width` CSS variable is only set in the legacy fallback path (Safari < 18.2) — styles reading it should keep a length fallback (`var(--scrollbar-width, 0px)`). Pages that already set `scrollbar-gutter` or `overflow-y: scroll` on `html` no longer shift when the popover opens. The bump also picks up a Korean IME fix for `autoSelect` comboboxes and faster component mounts. Mantle's in-modal scroll-lock opt-out (`preventBodyScroll` defaulting to `false` inside mantle modals) is unchanged and still required.
+
+  Tailwind 4.3.3 is a bug-fix-only patch (notably, achromatic `oklch` theme colors no longer shift hue under opacity modifiers); nothing in mantle requires it — the floor tracks the workspace toolchain. Consumers still on tailwindcss 4.3.2 will see an unmet-peer warning until they upgrade.
+
+- [#1331](https://github.com/ngrok/mantle/pull/1331) [`d8f5690`](https://github.com/ngrok/mantle/commit/d8f5690c583ab334dfcf74ef803f9b024baf6b1c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Restore the classic `Tabs.List` border, drawn by default in the `separator` color token: horizontal tablists draw a 1px bottom border and vertical tablists draw the matching side border (also the `separator` token now, previously `gray-200`). The border is painted on the list's content box so the focus-ring breathing padding doesn't push it past the container edges, it sits just below the active trigger's decoration, and it stays solid to the container edges while scrolled triggers fade under the scroll-fade mask.
+
+  Pass the new `hideBorder` prop on `Tabs.List` to remove the border; it is also rendered as a `data-hide-border` attribute on the tablist element. The pill appearance never draws a border, so `hideBorder` has no effect there. `Tabs.Root` now renders a `data-appearance` attribute for appearance-scoped styling.
+
+  If you previously worked around the missing border by adding your own `border-b` to `Tabs.List`, remove it — otherwise you'll render a doubled, two-tone border.
+
 ## 0.79.2
 
 ### Patch Changes
