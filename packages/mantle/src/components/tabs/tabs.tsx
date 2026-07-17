@@ -75,6 +75,7 @@ const Root = forwardRef<
 	return (
 		<TabsPrimitiveRoot
 			data-slot="tabs"
+			data-appearance={appearance}
 			className={cx(
 				"flex gap-4",
 				orientation === "horizontal" ? "flex-col" : "flex-row",
@@ -91,6 +92,33 @@ const Root = forwardRef<
 Root.displayName = "Tabs";
 
 /**
+ * The horizontal classic tablist's bottom border, drawn by default and
+ * removed by the `hideBorder` prop on `Tabs.List`.
+ *
+ * Painted as a content-box background on the list instead of `border-bottom`
+ * or an absolutely-positioned child because:
+ * - the tablist is a scroll container with `px-1 -mx-1` breathing room for
+ *   focus rings: a real border paints across the border box, which the
+ *   negative margins push past the container's content edge, and
+ * - absolutely-positioned children of a scroll container anchor to the scroll
+ *   origin, so a positioned rule scrolls away with the triggers on overflow.
+ *
+ * The content box excludes the breathing padding, so the rule stays inside
+ * the container and sits put while triggers scroll beneath it. `pb-px`
+ * reserves the 1px row below the triggers (and below the active trigger's
+ * decoration) that the rule occupies; the `calc(100% + 1px)` y-position
+ * drops the rule out of the content box into that row, and
+ * `--_fade-bottom-border: black` pins that row opaque in the scroll-fade
+ * mask so the border runs solid to the container edges while the scrolled
+ * triggers above it fade (see scroll-fade-x in mantle.css).
+ */
+const listBottomRule = cx(
+	"pb-px bg-origin-content bg-no-repeat bg-size-[100%_1px] bg-position-[0_calc(100%+1px)]",
+	"bg-[image:linear-gradient(var(--color-separator),var(--color-separator))]",
+	"[--_fade-bottom-border:black]",
+);
+
+/**
  * Variants for the List component
  */
 const listVariants = cva("flex", {
@@ -104,6 +132,10 @@ const listVariants = cva("flex", {
 			classic: "",
 			pill: "",
 		} as const satisfies Record<Appearance, string>,
+		hideBorder: {
+			true: "",
+			false: "",
+		},
 	},
 	compoundVariants: [
 		{
@@ -118,16 +150,35 @@ const listVariants = cva("flex", {
 			className: "gap-6",
 		},
 		{
+			orientation: "horizontal",
+			appearance: "classic",
+			hideBorder: false,
+			// see listBottomRule for why the border is a background, not border-bottom
+			className: listBottomRule,
+		},
+		{
 			orientation: "vertical",
 			appearance: "classic",
-			className: "border-r border-gray-200",
+			hideBorder: false,
+			className: "border-r border-separator",
 		},
 	],
+	// cva compound matching is strict equality, so an omitted hideBorder would
+	// silently skip the `hideBorder: false` compounds and drop the border; the
+	// default keeps the border-on contract inside the variant machine itself.
+	defaultVariants: {
+		hideBorder: false,
+	},
 });
 
 /**
  * Contains the triggers that are aligned along the edge of the active content.
  * The container for tab triggers that provides the visual layout for tab navigation.
+ *
+ * By default a horizontal classic tablist draws a 1px bottom border in the
+ * `separator` color token, and a vertical classic tablist draws the matching
+ * side border. Pass `hideBorder` to remove it; the pill appearance never
+ * draws a border.
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
  *
@@ -143,11 +194,29 @@ const listVariants = cva("flex", {
  *   </Tabs.Content>
  * </Tabs.Root>
  * ```
+ *
+ * @example
+ * ```tsx
+ * // render the tablist without its border
+ * <Tabs.List hideBorder>
+ *   <Tabs.Trigger value="account">Account</Tabs.Trigger>
+ *   <Tabs.Trigger value="password">Password</Tabs.Trigger>
+ * </Tabs.List>
+ * ```
  */
 const List = forwardRef<
 	ComponentRef<typeof TabsPrimitiveList>,
-	ComponentPropsWithoutRef<typeof TabsPrimitiveList>
->(({ className, ...props }, ref) => {
+	ComponentPropsWithoutRef<typeof TabsPrimitiveList> & {
+		/**
+		 * Hide the tablist's border — the bottom border of a horizontal classic
+		 * tablist, or the side border of a vertical one. Also rendered as a
+		 * `data-hide-border` attribute on the tablist element. Has no effect on
+		 * the pill appearance, which never draws a border.
+		 * @default false
+		 */
+		hideBorder?: boolean;
+	}
+>(({ className, hideBorder = false, ...props }, ref) => {
 	const { orientation, appearance } = useContext(TabsStateContext);
 	const scrollRef = useRef<ComponentRef<typeof TabsPrimitiveList>>(null);
 
@@ -193,7 +262,8 @@ const List = forwardRef<
 		<TabsPrimitiveList
 			aria-orientation={orientation}
 			data-slot="tabs-list"
-			className={cx(listVariants({ orientation, appearance }), className)}
+			data-hide-border={hideBorder ? "" : undefined}
+			className={cx(listVariants({ orientation, appearance, hideBorder }), className)}
 			ref={composeRefs(scrollRef, ref)}
 			{...props}
 		/>
@@ -496,6 +566,10 @@ const Tabs = {
 	/**
 	 * Contains the triggers that are aligned along the edge of the active content.
 	 * The container for tab triggers that provides the visual layout for tab navigation.
+	 *
+	 * By default a classic tablist draws a 1px border in the `separator` color
+	 * token (bottom border when horizontal, side border when vertical); pass
+	 * `hideBorder` to remove it. The pill appearance never draws a border.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
 	 *

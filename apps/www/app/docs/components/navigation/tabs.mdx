@@ -198,18 +198,110 @@ A set of layered sections of content—known as tab panels—that are displayed 
 </Example>
 
 ```tsx
-import { Button } from "@ngrok/mantle/button";
 import { Card } from "@ngrok/mantle/card";
 import { Icon } from "@ngrok/mantle/icon";
-import { Input, PasswordInput } from "@ngrok/mantle/input";
 import { Tabs } from "@ngrok/mantle/tabs";
+import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
+import { UserIcon } from "@phosphor-icons/react/User";
+import { Link, href } from "react-router";
 
-<Tabs.Root
-	appearance="classic"
-	orientation="horizontal"
-	defaultValue="account"
-	className="w-[400px]"
->
+<Tabs.Root orientation="horizontal" defaultValue="colors">
+	<Tabs.List>
+		<Tabs.Trigger value="colors" asChild>
+			<Link to={href("/base/colors")}>Colors</Link>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="shadows" asChild>
+			<Link to={href("/base/shadows")}>Shadows</Link>
+		</Tabs.Trigger>
+		<Tabs.Trigger disabled value="tailwind-variants" asChild>
+			<Link to={href("/base/tailwind-variants")}>Tailwind Variants</Link>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="typography" asChild>
+			<Link to={href("/base/typography")}>Typography</Link>
+		</Tabs.Trigger>
+	</Tabs.List>
+</Tabs.Root>
+
+<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+	<Tabs.List>
+		<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
+		<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
+		<Tabs.Trigger disabled value="tab-3">
+			Tab Title
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-4">Tab Title</Tabs.Trigger>
+	</Tabs.List>
+</Tabs.Root>
+
+<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+	<Tabs.List>
+		<Tabs.Trigger value="tab-1">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-2">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+		</Tabs.Trigger>
+		<Tabs.Trigger disabled value="tab-3">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-4">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+		</Tabs.Trigger>
+	</Tabs.List>
+</Tabs.Root>
+
+<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+	<Tabs.List>
+		<Tabs.Trigger value="tab-1">
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-2">
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+		<Tabs.Trigger disabled value="tab-3">
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-4">
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+	</Tabs.List>
+</Tabs.Root>
+
+<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+	<Tabs.List>
+		<Tabs.Trigger value="tab-1">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-2">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+		<Tabs.Trigger disabled value="tab-3">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-4">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+	</Tabs.List>
+</Tabs.Root>
+
+<Tabs.Root orientation="horizontal" defaultValue="account" className="w-100 max-w-[400px]">
 	<Tabs.List>
 		<Tabs.Trigger value="account">
 			<Icon svg={<UserIcon />} />
@@ -229,47 +321,53 @@ import { Tabs } from "@ngrok/mantle/tabs";
 					Make changes to your account here. Click save when you're done.
 				</p>
 			</Card.Header>
-			<Card.Body className="space-y-2">
-				<div className="space-y-1">
-					<label htmlFor="name">Name</label>
-					<Input id="name" defaultValue="Cody Price" />
-				</div>
-				<div className="space-y-1">
-					<label htmlFor="username">Username</label>
-					<Input id="username" defaultValue="@cody-dot-js" />
-				</div>
-			</Card.Body>
-			<Card.Footer>
-				<Button type="button" appearance="outlined" intent="neutral">
-					Save changes
-				</Button>
-			</Card.Footer>
 		</Card.Root>
 	</Tabs.Content>
 	<Tabs.Content value="password">
 		<Card.Root>
 			<Card.Header>
 				<Card.Title>Password</Card.Title>
-				<p className="text-muted">Change your password here. After saving, you'll be logged out.</p>
+				<p className="text-muted">
+					Change your password here. After saving, you'll be logged out.
+				</p>
 			</Card.Header>
-			<Card.Body className="space-y-2">
-				<div className="space-y-1">
-					<label htmlFor="current">Current password</label>
-					<PasswordInput id="current" />
-				</div>
-				<div className="space-y-1">
-					<label htmlFor="new">New password</label>
-					<PasswordInput id="new" />
-				</div>
-			</Card.Body>
-			<Card.Footer>
-				<Button type="button" appearance="outlined" intent="neutral">
-					Save password
-				</Button>
-			</Card.Footer>
 		</Card.Root>
 	</Tabs.Content>
-</Tabs.Root>;
+</Tabs.Root>
+
+<Tabs.Root
+	orientation="vertical"
+	defaultValue="account"
+	className="scrollbar max-w-xl -m-1 p-1 overflow-x-scroll"
+>
+	<Tabs.List>
+		<Tabs.Trigger value="account">Account</Tabs.Trigger>
+		<Tabs.Trigger value="password">Password</Tabs.Trigger>
+		<Tabs.Trigger value="disabled-tab" disabled>
+			Disabled tab
+		</Tabs.Trigger>
+	</Tabs.List>
+	<Tabs.Content value="account">
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Account</Card.Title>
+				<p className="text-muted">
+					Make changes to your account here. Click save when you're done.
+				</p>
+			</Card.Header>
+		</Card.Root>
+	</Tabs.Content>
+	<Tabs.Content value="password">
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Password</Card.Title>
+				<p className="text-muted">
+					Change your password here. After saving, you'll be logged out.
+				</p>
+			</Card.Header>
+		</Card.Root>
+	</Tabs.Content>
+</Tabs.Root>
 ```
 
 ## Horizontal Overflow
@@ -342,8 +440,22 @@ When there are too many tabs to fit the container, the list scrolls horizontally
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
 import { Tabs } from "@ngrok/mantle/tabs";
+import { ArrowsSplitIcon } from "@phosphor-icons/react/ArrowsSplit";
+import { BellIcon } from "@phosphor-icons/react/Bell";
+import { CertificateIcon } from "@phosphor-icons/react/Certificate";
+import { ChartBarIcon } from "@phosphor-icons/react/ChartBar";
+import { ChartLineIcon } from "@phosphor-icons/react/ChartLine";
+import { GearSixIcon } from "@phosphor-icons/react/GearSix";
+import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { KeyIcon } from "@phosphor-icons/react/Key";
+import { ListIcon } from "@phosphor-icons/react/List";
+import { LockIcon } from "@phosphor-icons/react/Lock";
+import { PlugIcon } from "@phosphor-icons/react/Plug";
+import { RocketLaunchIcon } from "@phosphor-icons/react/RocketLaunch";
+import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
+import { UserIcon } from "@phosphor-icons/react/User";
 
-<Tabs.Root orientation="horizontal" defaultValue="getting-started">
+<Tabs.Root orientation="horizontal" defaultValue="getting-started" className="w-full">
 	<Tabs.List>
 		<Tabs.Trigger value="getting-started">
 			<Icon svg={<RocketLaunchIcon />} />
@@ -353,7 +465,54 @@ import { Tabs } from "@ngrok/mantle/tabs";
 			<Icon svg={<ArrowsSplitIcon />} />
 			Traffic Policy
 		</Tabs.Trigger>
-		{/* ... more tabs */}
+		<Tabs.Trigger value="api-keys">
+			<Icon svg={<KeyIcon />} />
+			API Keys
+		</Tabs.Trigger>
+		<Tabs.Trigger value="usage">
+			<Icon svg={<ChartBarIcon />} />
+			Usage
+		</Tabs.Trigger>
+		<Tabs.Trigger value="settings">
+			<Icon svg={<GearSixIcon />} />
+			Settings
+		</Tabs.Trigger>
+		<Tabs.Trigger value="logs">
+			<Icon svg={<ListIcon />} />
+			Logs
+		</Tabs.Trigger>
+		<Tabs.Trigger value="analytics">
+			<Icon svg={<ChartLineIcon />} />
+			Analytics
+		</Tabs.Trigger>
+		<Tabs.Trigger value="integrations">
+			<Icon svg={<PlugIcon />} />
+			Integrations
+		</Tabs.Trigger>
+		<Tabs.Trigger value="domains">
+			<Icon svg={<GlobeIcon />} />
+			Domains
+		</Tabs.Trigger>
+		<Tabs.Trigger value="team">
+			<Icon svg={<UserIcon />} />
+			Team
+		</Tabs.Trigger>
+		<Tabs.Trigger value="security">
+			<Icon svg={<ShieldCheckIcon />} />
+			Security
+		</Tabs.Trigger>
+		<Tabs.Trigger value="notifications">
+			<Icon svg={<BellIcon />} />
+			Notifications
+		</Tabs.Trigger>
+		<Tabs.Trigger value="certificates">
+			<Icon svg={<CertificateIcon />} />
+			Certificates
+		</Tabs.Trigger>
+		<Tabs.Trigger value="permissions">
+			<Icon svg={<LockIcon />} />
+			Permissions
+		</Tabs.Trigger>
 	</Tabs.List>
 </Tabs.Root>;
 ```
@@ -542,8 +701,112 @@ Use `appearance="pill"` to render each tab as a pill instead of the default clas
 import { Card } from "@ngrok/mantle/card";
 import { Icon } from "@ngrok/mantle/icon";
 import { Tabs } from "@ngrok/mantle/tabs";
+import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
+import { UserIcon } from "@phosphor-icons/react/User";
+import { Link, href } from "react-router";
 
-<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="account">
+<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="colors">
+	<Tabs.List>
+		<Tabs.Trigger value="colors" asChild>
+			<Link to={href("/base/colors")}>Colors</Link>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="shadows" asChild>
+			<Link to={href("/base/shadows")}>Shadows</Link>
+		</Tabs.Trigger>
+		<Tabs.Trigger disabled value="tailwind-variants" asChild>
+			<Link to={href("/base/tailwind-variants")}>Tailwind Variants</Link>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="typography" asChild>
+			<Link to={href("/base/typography")}>Typography</Link>
+		</Tabs.Trigger>
+	</Tabs.List>
+</Tabs.Root>
+
+<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="tab-1">
+	<Tabs.List>
+		<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
+		<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
+		<Tabs.Trigger disabled value="tab-3">
+			Tab Title
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-4">Tab Title</Tabs.Trigger>
+	</Tabs.List>
+</Tabs.Root>
+
+<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="tab-1">
+	<Tabs.List>
+		<Tabs.Trigger value="tab-1">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-2">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+		</Tabs.Trigger>
+		<Tabs.Trigger disabled value="tab-3">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-4">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+		</Tabs.Trigger>
+	</Tabs.List>
+</Tabs.Root>
+
+<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="tab-1">
+	<Tabs.List>
+		<Tabs.Trigger value="tab-1">
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-2">
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+		<Tabs.Trigger disabled value="tab-3">
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-4">
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+	</Tabs.List>
+</Tabs.Root>
+
+<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="tab-1">
+	<Tabs.List>
+		<Tabs.Trigger value="tab-1">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-2">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+		<Tabs.Trigger disabled value="tab-3">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-4">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+	</Tabs.List>
+</Tabs.Root>
+
+<Tabs.Root
+	appearance="pill"
+	orientation="horizontal"
+	defaultValue="account"
+	className="w-100 max-w-[400px]"
+>
 	<Tabs.List>
 		<Tabs.Trigger value="account">
 			<Icon svg={<UserIcon />} />
@@ -559,10 +822,109 @@ import { Tabs } from "@ngrok/mantle/tabs";
 		<Card.Root>
 			<Card.Header>
 				<Card.Title>Account</Card.Title>
+				<p className="text-muted">
+					Make changes to your account here. Click save when you're done.
+				</p>
 			</Card.Header>
 		</Card.Root>
 	</Tabs.Content>
-</Tabs.Root>;
+	<Tabs.Content value="password">
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Password</Card.Title>
+				<p className="text-muted">
+					Change your password here. After saving, you'll be logged out.
+				</p>
+			</Card.Header>
+		</Card.Root>
+	</Tabs.Content>
+</Tabs.Root>
+
+<Tabs.Root
+	appearance="pill"
+	orientation="vertical"
+	defaultValue="account"
+	className="scrollbar max-w-xl -m-1 p-1 overflow-x-scroll"
+>
+	<Tabs.List>
+		<Tabs.Trigger value="account">Account</Tabs.Trigger>
+		<Tabs.Trigger value="password">Password</Tabs.Trigger>
+		<Tabs.Trigger value="disabled-tab" disabled>
+			Disabled tab
+		</Tabs.Trigger>
+	</Tabs.List>
+	<Tabs.Content value="account">
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Account</Card.Title>
+				<p className="text-muted">
+					Make changes to your account here. Click save when you're done.
+				</p>
+			</Card.Header>
+		</Card.Root>
+	</Tabs.Content>
+	<Tabs.Content value="password">
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Password</Card.Title>
+				<p className="text-muted">
+					Change your password here. After saving, you'll be logged out.
+				</p>
+			</Card.Header>
+		</Card.Root>
+	</Tabs.Content>
+</Tabs.Root>
+```
+
+## Bottom Border
+
+A horizontal classic tab list draws a 1px bottom border in the `separator` color by default. Pass `hideBorder` to `Tabs.List` to remove it (a vertical classic tab list's side border is removed the same way). The prop is also rendered as a `data-hide-border` attribute on the tablist element. The pill appearance never draws a border, so `hideBorder` has no effect there.
+
+<Example className="grid gap-6">
+	<div>
+		<p className="mb-2 font-mono text-xs">default</p>
+		<div className="scrollbar -m-1 p-1 overflow-x-scroll">
+			<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+				<Tabs.List>
+					<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
+					<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
+					<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>
+		</div>
+	</div>
+	<div>
+		<p className="mb-2 font-mono text-xs">hideBorder</p>
+		<div className="scrollbar -m-1 p-1 overflow-x-scroll">
+			<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+				<Tabs.List hideBorder>
+					<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
+					<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
+					<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>
+		</div>
+	</div>
+</Example>
+
+```tsx
+import { Tabs } from "@ngrok/mantle/tabs";
+
+<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+	<Tabs.List>
+		<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
+		<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
+		<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
+	</Tabs.List>
+</Tabs.Root>
+
+<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+	<Tabs.List hideBorder>
+		<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
+		<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
+		<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
+	</Tabs.List>
+</Tabs.Root>
 ```
 
 ## Composition
@@ -598,9 +960,12 @@ The root container of the tabs component that provides context for all tab compo
 
 Contains the triggers that are aligned along the edge of the active content. Based on [Radix Tabs List](https://www.radix-ui.com/primitives/docs/components/tabs#list).
 
-| Prop         | Type     | Default | Description                                               |
-| ------------ | -------- | ------- | --------------------------------------------------------- |
-| `className?` | `string` |         | Additional CSS classes to apply to the tabs list element. |
+By default a classic tab list draws a 1px border in the `separator` color — the [bottom border](#bottom-border) when horizontal, a side border when vertical. The pill appearance never draws a border.
+
+| Prop          | Type      | Default | Description                                                                                                                                                           |
+| ------------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hideBorder?` | `boolean` | `false` | Hide the tab list's border. Also rendered as a `data-hide-border` attribute on the tablist element. Has no effect on the pill appearance, which never draws a border. |
+| `className?`  | `string`  |         | Additional CSS classes to apply to the tabs list element.                                                                                                             |
 
 ### Tabs.Trigger
 
