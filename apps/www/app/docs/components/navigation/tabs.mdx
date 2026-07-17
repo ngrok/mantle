@@ -565,6 +565,49 @@ import { Tabs } from "@ngrok/mantle/tabs";
 </Tabs.Root>;
 ```
 
+## Hiding the Bottom Border
+
+The horizontal classic tab list draws a 1px bottom border in the `separator` color that terminates at the ends of the tab triggers. In the rare case you need to remove it, set the `--tabs-list-border-color` CSS variable to `transparent` on the `Tabs.List` (or any ancestor). The same variable also recolors the border if you set it to any other color value.
+
+<Example className="grid gap-6">
+	<div>
+		<p className="mb-2 font-mono text-xs">default bottom border</p>
+		<div className="scrollbar -m-1 p-1 overflow-x-scroll">
+			<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+				<Tabs.List>
+					<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
+					<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
+					<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>
+		</div>
+	</div>
+	<div>
+		<p className="mb-2 font-mono text-xs">--tabs-list-border-color: transparent</p>
+		<div className="scrollbar -m-1 p-1 overflow-x-scroll">
+			<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+				<Tabs.List className="[--tabs-list-border-color:transparent]">
+					<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
+					<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
+					<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>
+		</div>
+	</div>
+</Example>
+
+```tsx
+import { Tabs } from "@ngrok/mantle/tabs";
+
+<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+	<Tabs.List className="[--tabs-list-border-color:transparent]">
+		<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
+		<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
+		<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
+	</Tabs.List>
+</Tabs.Root>;
+```
+
 ## Composition
 
 Compose the parts of `Tabs` together to build your own:
