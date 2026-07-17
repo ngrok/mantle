@@ -49,11 +49,10 @@ describe("Tabs", () => {
 			},
 		);
 
-		// The bottom border is on by default for the classic appearance (painted
-		// as a content-box background in the separator color) and the list hugs
-		// its triggers (w-fit) so the border terminates at the last trigger
-		// instead of running the full container width.
-		test("horizontal classic appearance draws the bottom border by default and hugs the triggers", () => {
+		// The bottom border is on by default for the classic appearance, painted
+		// as a content-box background in the separator color so the px-1/-mx-1
+		// focus-ring breathing room doesn't push it past the container edges.
+		test("horizontal classic appearance draws the bottom border by default", () => {
 			render(
 				<Tabs.Root appearance="classic" orientation="horizontal" defaultValue="a">
 					<Tabs.List>
@@ -64,7 +63,7 @@ describe("Tabs", () => {
 			);
 
 			const tablist = screen.getByRole("tablist");
-			expect(tablist).toHaveClass("bg-origin-content", "pb-px", "w-fit", "max-w-full");
+			expect(tablist).toHaveClass("bg-origin-content", "pb-px");
 			expect(tablist).not.toHaveAttribute("data-hide-border");
 		});
 

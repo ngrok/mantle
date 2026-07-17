@@ -98,15 +98,15 @@ Root.displayName = "Tabs";
  * Painted as a content-box background on the list instead of `border-bottom`
  * or an absolutely-positioned child because:
  * - the tablist is a scroll container with `px-1 -mx-1` breathing room for
- *   focus rings: a real border paints across the border box, overrunning the
- *   tab triggers by that 4px on each side, and
+ *   focus rings: a real border paints across the border box, which the
+ *   negative margins push past the container's content edge, and
  * - absolutely-positioned children of a scroll container anchor to the scroll
  *   origin, so a positioned rule scrolls away with the triggers on overflow.
  *
- * The content box excludes the padding, so the rule terminates exactly at the
- * first/last trigger, stays put while triggers scroll beneath it, and fades
- * with them under the scroll-fade mask. `pb-px` reserves the 1px row below
- * the triggers (and below the active trigger's decoration) that the rule
+ * The content box excludes the breathing padding, so the rule stays inside
+ * the container, sits put while triggers scroll beneath it, and fades with
+ * them under the scroll-fade mask. `pb-px` reserves the 1px row below the
+ * triggers (and below the active trigger's decoration) that the rule
  * occupies; the `calc(100% + 1px)` y-position drops the rule out of the
  * content box into that row.
  */
@@ -122,7 +122,7 @@ const listVariants = cva("flex", {
 	variants: {
 		orientation: {
 			horizontal:
-				"scroll-fade-x flex-row items-center overflow-x-auto overscroll-x-none min-w-0 pt-1 -mt-1 px-1 -mx-1",
+				"scroll-fade-x flex-row items-center overflow-x-auto overscroll-x-none w-full min-w-0 pt-1 -mt-1 px-1 -mx-1",
 			vertical: "flex-col items-end gap-3.5 self-stretch",
 		} as const satisfies Record<Orientation, string>,
 		appearance: {
@@ -139,14 +139,12 @@ const listVariants = cva("flex", {
 			orientation: "horizontal",
 			appearance: "pill",
 			// pb-1 -mb-1 gives the focus ring space below (ring-4 is box-shadow, clipped by overflow).
-			className: "w-full gap-1 pb-1 -mb-1",
+			className: "gap-1 pb-1 -mb-1",
 		},
 		{
 			orientation: "horizontal",
 			appearance: "classic",
-			// w-fit (capped at the container) keeps the bottom border from running
-			// past the tab triggers when they don't fill the container.
-			className: "w-fit max-w-full gap-6",
+			className: "gap-6",
 		},
 		{
 			orientation: "horizontal",
@@ -175,9 +173,9 @@ const listVariants = cva("flex", {
  * The container for tab triggers that provides the visual layout for tab navigation.
  *
  * By default a horizontal classic tablist draws a 1px bottom border in the
- * `separator` color token that terminates at the ends of the tab triggers,
- * and a vertical classic tablist draws the matching side border. Pass
- * `hideBorder` to remove it; the pill appearance never draws a border.
+ * `separator` color token, and a vertical classic tablist draws the matching
+ * side border. Pass `hideBorder` to remove it; the pill appearance never
+ * draws a border.
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
  *
