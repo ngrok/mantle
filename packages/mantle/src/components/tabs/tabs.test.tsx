@@ -49,64 +49,55 @@ describe("Tabs", () => {
 			},
 		);
 
-		// The bottom border is opt-in composition: the classic list carries the
-		// border paint gated behind a CSS :has([data-slot=tabs-list-border]) check
-		// (painted as a content-box background in the separator color), and
-		// Tabs.ListBorder renders the marker that activates it. The list hugs its
-		// triggers (w-fit) so the border terminates at the last trigger instead
-		// of running the full container.
-		test("horizontal classic appearance carries the :has()-gated border paint and hugs the triggers", () => {
+		// The bottom border is on by default for the classic appearance (painted
+		// as a content-box background in the separator color) and the list hugs
+		// its triggers (w-fit) so the border terminates at the last trigger
+		// instead of running the full container width.
+		test("horizontal classic appearance draws the bottom border by default and hugs the triggers", () => {
 			render(
 				<Tabs.Root appearance="classic" orientation="horizontal" defaultValue="a">
 					<Tabs.List>
-						<Tabs.ListBorder />
 						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
 						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
 					</Tabs.List>
 				</Tabs.Root>,
 			);
 
-			expect(screen.getByRole("tablist")).toHaveClass(
-				"has-data-[slot=tabs-list-border]:bg-origin-content",
-				"has-data-[slot=tabs-list-border]:pb-px",
-				"w-fit",
-				"max-w-full",
-			);
+			const tablist = screen.getByRole("tablist");
+			expect(tablist).toHaveClass("bg-origin-content", "pb-px", "w-fit", "max-w-full");
+			expect(tablist).not.toHaveAttribute("data-hide-border");
 		});
 
-		test("Tabs.ListBorder renders an inert, hidden marker inside the tablist", () => {
+		test("hideBorder removes the border paint and renders data-hide-border", () => {
 			render(
 				<Tabs.Root appearance="classic" orientation="horizontal" defaultValue="a">
-					<Tabs.List>
-						<Tabs.ListBorder />
+					<Tabs.List hideBorder>
 						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
 					</Tabs.List>
 				</Tabs.Root>,
 			);
 
-			const marker = screen.getByRole("tablist").querySelector('[data-slot="tabs-list-border"]');
-			expect(marker).toBeInTheDocument();
-			expect(marker).toHaveAttribute("aria-hidden");
-			expect(marker).toHaveAttribute("hidden");
+			const tablist = screen.getByRole("tablist");
+			expect(tablist).not.toHaveClass("bg-origin-content");
+			expect(tablist).not.toHaveClass("pb-px");
+			expect(tablist).toHaveAttribute("data-hide-border");
 		});
 
-		test("horizontal pill appearance does not carry the border paint", () => {
+		test("horizontal pill appearance never draws the bottom border", () => {
 			render(
 				<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="a">
 					<Tabs.List>
-						<Tabs.ListBorder />
 						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
 						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
 					</Tabs.List>
 				</Tabs.Root>,
 			);
 
-			expect(screen.getByRole("tablist")).not.toHaveClass(
-				"has-data-[slot=tabs-list-border]:bg-origin-content",
-			);
+			expect(screen.getByRole("tablist")).not.toHaveClass("bg-origin-content");
 		});
 
-		test("vertical classic appearance draws the side rule with the separator token", () => {
+		test("vertical classic appearance draws the side border by default with the separator token", () => {
 			render(
 				<Tabs.Root appearance="classic" orientation="vertical" defaultValue="a">
 					<Tabs.List>
@@ -117,6 +108,21 @@ describe("Tabs", () => {
 			);
 
 			expect(screen.getByRole("tablist")).toHaveClass("border-r", "border-separator");
+		});
+
+		test("hideBorder removes the vertical classic side border", () => {
+			render(
+				<Tabs.Root appearance="classic" orientation="vertical" defaultValue="a">
+					<Tabs.List hideBorder>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			const tablist = screen.getByRole("tablist");
+			expect(tablist).not.toHaveClass("border-r");
+			expect(tablist).toHaveAttribute("data-hide-border");
 		});
 	});
 });

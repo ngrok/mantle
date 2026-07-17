@@ -92,9 +92,8 @@ const Root = forwardRef<
 Root.displayName = "Tabs";
 
 /**
- * The horizontal classic tablist's opt-in bottom border, activated only when
- * a `Tabs.ListBorder` marker is composed inside the list — a pure-CSS
- * `:has()` check, so it is SSR-safe with no effects or context reads.
+ * The horizontal classic tablist's bottom border, drawn by default and
+ * removed by the `hideBorder` prop on `Tabs.List`.
  *
  * Painted as a content-box background on the list instead of `border-bottom`
  * or an absolutely-positioned child because:
@@ -112,12 +111,8 @@ Root.displayName = "Tabs";
  * content box into that row.
  */
 const listBottomRule = cx(
-	"has-data-[slot=tabs-list-border]:pb-px",
-	"has-data-[slot=tabs-list-border]:bg-origin-content",
-	"has-data-[slot=tabs-list-border]:bg-no-repeat",
-	"has-data-[slot=tabs-list-border]:bg-size-[100%_1px]",
-	"has-data-[slot=tabs-list-border]:bg-position-[0_calc(100%+1px)]",
-	"has-data-[slot=tabs-list-border]:bg-[image:linear-gradient(var(--color-separator),var(--color-separator))]",
+	"pb-px bg-origin-content bg-no-repeat bg-size-[100%_1px] bg-position-[0_calc(100%+1px)]",
+	"bg-[image:linear-gradient(var(--color-separator),var(--color-separator))]",
 );
 
 /**
@@ -134,6 +129,10 @@ const listVariants = cva("flex", {
 			classic: "",
 			pill: "",
 		} as const satisfies Record<Appearance, string>,
+		hideBorder: {
+			true: "",
+			false: "",
+		},
 	},
 	compoundVariants: [
 		{
@@ -145,14 +144,21 @@ const listVariants = cva("flex", {
 		{
 			orientation: "horizontal",
 			appearance: "classic",
-			// w-fit (capped at the container) keeps the bottom rule from running past
-			// the tab triggers when they don't fill the container; see listBottomRule
-			// for why the rule is a background rather than a border-bottom.
-			className: cx("w-fit max-w-full gap-6", listBottomRule),
+			// w-fit (capped at the container) keeps the bottom border from running
+			// past the tab triggers when they don't fill the container.
+			className: "w-fit max-w-full gap-6",
+		},
+		{
+			orientation: "horizontal",
+			appearance: "classic",
+			hideBorder: false,
+			// see listBottomRule for why the border is a background, not border-bottom
+			className: listBottomRule,
 		},
 		{
 			orientation: "vertical",
 			appearance: "classic",
+			hideBorder: false,
 			className: "border-r border-separator",
 		},
 	],
@@ -162,10 +168,10 @@ const listVariants = cva("flex", {
  * Contains the triggers that are aligned along the edge of the active content.
  * The container for tab triggers that provides the visual layout for tab navigation.
  *
- * Compose a `Tabs.ListBorder` child to draw a 1px bottom border in the
- * horizontal classic appearance — it terminates at the ends of the tab
- * triggers, in the `separator` color token. Omit `Tabs.ListBorder` to render
- * no border; the pill appearance never draws one.
+ * By default a horizontal classic tablist draws a 1px bottom border in the
+ * `separator` color token that terminates at the ends of the tab triggers,
+ * and a vertical classic tablist draws the matching side border. Pass
+ * `hideBorder` to remove it; the pill appearance never draws a border.
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
  *
@@ -173,7 +179,6 @@ const listVariants = cva("flex", {
  * ```tsx
  * <Tabs.Root defaultValue="account">
  *   <Tabs.List>
- *     <Tabs.ListBorder />
  *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
  *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
  *   </Tabs.List>
@@ -182,11 +187,29 @@ const listVariants = cva("flex", {
  *   </Tabs.Content>
  * </Tabs.Root>
  * ```
+ *
+ * @example
+ * ```tsx
+ * // render the tablist without its border
+ * <Tabs.List hideBorder>
+ *   <Tabs.Trigger value="account">Account</Tabs.Trigger>
+ *   <Tabs.Trigger value="password">Password</Tabs.Trigger>
+ * </Tabs.List>
+ * ```
  */
 const List = forwardRef<
 	ComponentRef<typeof TabsPrimitiveList>,
-	ComponentPropsWithoutRef<typeof TabsPrimitiveList>
->(({ className, ...props }, ref) => {
+	ComponentPropsWithoutRef<typeof TabsPrimitiveList> & {
+		/**
+		 * Hide the tablist's border — the bottom border of a horizontal classic
+		 * tablist, or the side border of a vertical one. Also rendered as a
+		 * `data-hide-border` attribute on the tablist element. Has no effect on
+		 * the pill appearance, which never draws a border.
+		 * @default false
+		 */
+		hideBorder?: boolean;
+	}
+>(({ className, hideBorder = false, ...props }, ref) => {
 	const { orientation, appearance } = useContext(TabsStateContext);
 	const scrollRef = useRef<ComponentRef<typeof TabsPrimitiveList>>(null);
 
@@ -232,38 +255,14 @@ const List = forwardRef<
 		<TabsPrimitiveList
 			aria-orientation={orientation}
 			data-slot="tabs-list"
-			className={cx(listVariants({ orientation, appearance }), className)}
+			data-hide-border={hideBorder ? "" : undefined}
+			className={cx(listVariants({ orientation, appearance, hideBorder }), className)}
 			ref={composeRefs(scrollRef, ref)}
 			{...props}
 		/>
 	);
 });
 List.displayName = "TabsList";
-
-/**
- * Opts the tab list into its bottom border. Render it as a child of
- * `Tabs.List`: the horizontal classic list then draws a 1px border in the
- * `separator` color token that terminates at the ends of the tab triggers.
- * Omit it to render no border. The pill appearance never draws a border, so
- * it is always safe to compose.
- *
- * The marker itself is an inert, hidden `<span>`; the border is painted by
- * `Tabs.List` via a CSS `:has()` check, so it is SSR-safe and requires no
- * client-side effects or context reads.
- *
- * @see https://mantle.ngrok.com/components/navigation/tabs#tabslistborder
- *
- * @example
- * ```tsx
- * <Tabs.List>
- *   <Tabs.ListBorder />
- *   <Tabs.Trigger value="account">Account</Tabs.Trigger>
- *   <Tabs.Trigger value="password">Password</Tabs.Trigger>
- * </Tabs.List>
- * ```
- */
-const ListBorder = () => <span aria-hidden data-slot="tabs-list-border" hidden />;
-ListBorder.displayName = "TabsListBorder";
 
 type TabsTriggerProps = ComponentPropsWithoutRef<typeof TabsPrimitiveTrigger>;
 
@@ -496,7 +495,6 @@ Content.displayName = "TabsContent";
  * ```
  * Tabs.Root
  * ├── Tabs.List
- * │   ├── Tabs.ListBorder
  * │   └── Tabs.Trigger
  * │       └── Tabs.Badge
  * └── Tabs.Content
@@ -562,8 +560,9 @@ const Tabs = {
 	 * Contains the triggers that are aligned along the edge of the active content.
 	 * The container for tab triggers that provides the visual layout for tab navigation.
 	 *
-	 * Compose a `Tabs.ListBorder` child to draw a 1px bottom border in the
-	 * horizontal classic appearance; omit it to render no border.
+	 * By default a classic tablist draws a 1px border in the `separator` color
+	 * token (bottom border when horizontal, side border when vertical); pass
+	 * `hideBorder` to remove it. The pill appearance never draws a border.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
 	 *
@@ -571,7 +570,6 @@ const Tabs = {
 	 * ```tsx
 	 * <Tabs.Root defaultValue="account">
 	 *   <Tabs.List>
-	 *     <Tabs.ListBorder />
 	 *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
 	 *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
 	 *   </Tabs.List>
@@ -579,25 +577,6 @@ const Tabs = {
 	 * ```
 	 */
 	List,
-	/**
-	 * Opts the tab list into its bottom border. Render it as a child of
-	 * `Tabs.List`: the horizontal classic list then draws a 1px border in the
-	 * `separator` color token that terminates at the ends of the tab triggers.
-	 * Omit it to render no border. The pill appearance never draws a border,
-	 * so it is always safe to compose.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabslistborder
-	 *
-	 * @example
-	 * ```tsx
-	 * <Tabs.List>
-	 *   <Tabs.ListBorder />
-	 *   <Tabs.Trigger value="account">Account</Tabs.Trigger>
-	 *   <Tabs.Trigger value="password">Password</Tabs.Trigger>
-	 * </Tabs.List>
-	 * ```
-	 */
-	ListBorder,
 	/**
 	 * The button that activates its associated content.
 	 * A clickable tab trigger that switches between different tab content panels.

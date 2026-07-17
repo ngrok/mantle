@@ -32,7 +32,6 @@ A set of layered sections of content—known as tab panels—that are displayed 
 	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
 		<Tabs.Root orientation="horizontal" defaultValue="colors">
 			<Tabs.List>
-				<Tabs.ListBorder />
 				<Tabs.Trigger value="colors" asChild>
 					<Link to={href("/base/colors")}>Colors</Link>
 				</Tabs.Trigger>
@@ -51,7 +50,6 @@ A set of layered sections of content—known as tab panels—that are displayed 
 	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
 		<Tabs.Root orientation="horizontal" defaultValue="tab-1">
 			<Tabs.List>
-				<Tabs.ListBorder />
 				<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
 				<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
 				<Tabs.Trigger disabled value="tab-3">
@@ -64,7 +62,6 @@ A set of layered sections of content—known as tab panels—that are displayed 
 	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
 		<Tabs.Root orientation="horizontal" defaultValue="tab-1">
 			<Tabs.List>
-				<Tabs.ListBorder />
 				<Tabs.Trigger value="tab-1">
 					<Icon svg={<GlobeIcon />} />
 					Tab Title
@@ -87,7 +84,6 @@ A set of layered sections of content—known as tab panels—that are displayed 
 	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
 		<Tabs.Root orientation="horizontal" defaultValue="tab-1">
 			<Tabs.List>
-				<Tabs.ListBorder />
 				<Tabs.Trigger value="tab-1">
 					Tab Title
 					<Tabs.Badge>32</Tabs.Badge>
@@ -110,7 +106,6 @@ A set of layered sections of content—known as tab panels—that are displayed 
 	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
 		<Tabs.Root orientation="horizontal" defaultValue="tab-1">
 			<Tabs.List>
-				<Tabs.ListBorder />
 				<Tabs.Trigger value="tab-1">
 					<Icon svg={<GlobeIcon />} />
 					Tab Title
@@ -136,7 +131,6 @@ A set of layered sections of content—known as tab panels—that are displayed 
 	</div>
 	<Tabs.Root orientation="horizontal" defaultValue="account" className="w-100 max-w-[400px]">
 		<Tabs.List>
-			<Tabs.ListBorder />
 			<Tabs.Trigger value="account">
 				<Icon svg={<UserIcon />} />
 				Account
@@ -214,7 +208,6 @@ import { Link, href } from "react-router";
 
 <Tabs.Root orientation="horizontal" defaultValue="colors">
 	<Tabs.List>
-		<Tabs.ListBorder />
 		<Tabs.Trigger value="colors" asChild>
 			<Link to={href("/base/colors")}>Colors</Link>
 		</Tabs.Trigger>
@@ -232,7 +225,6 @@ import { Link, href } from "react-router";
 
 <Tabs.Root orientation="horizontal" defaultValue="tab-1">
 	<Tabs.List>
-		<Tabs.ListBorder />
 		<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
 		<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
 		<Tabs.Trigger disabled value="tab-3">
@@ -244,7 +236,6 @@ import { Link, href } from "react-router";
 
 <Tabs.Root orientation="horizontal" defaultValue="tab-1">
 	<Tabs.List>
-		<Tabs.ListBorder />
 		<Tabs.Trigger value="tab-1">
 			<Icon svg={<GlobeIcon />} />
 			Tab Title
@@ -266,7 +257,6 @@ import { Link, href } from "react-router";
 
 <Tabs.Root orientation="horizontal" defaultValue="tab-1">
 	<Tabs.List>
-		<Tabs.ListBorder />
 		<Tabs.Trigger value="tab-1">
 			Tab Title
 			<Tabs.Badge>32</Tabs.Badge>
@@ -288,7 +278,6 @@ import { Link, href } from "react-router";
 
 <Tabs.Root orientation="horizontal" defaultValue="tab-1">
 	<Tabs.List>
-		<Tabs.ListBorder />
 		<Tabs.Trigger value="tab-1">
 			<Icon svg={<GlobeIcon />} />
 			Tab Title
@@ -314,7 +303,6 @@ import { Link, href } from "react-router";
 
 <Tabs.Root orientation="horizontal" defaultValue="account" className="w-100 max-w-[400px]">
 	<Tabs.List>
-		<Tabs.ListBorder />
 		<Tabs.Trigger value="account">
 			<Icon svg={<UserIcon />} />
 			Account
@@ -389,7 +377,6 @@ When there are too many tabs to fit the container, the list scrolls horizontally
 <Example>
 	<Tabs.Root orientation="horizontal" defaultValue="getting-started" className="w-full">
 		<Tabs.List>
-			<Tabs.ListBorder />
 			<Tabs.Trigger value="getting-started">
 				<Icon svg={<RocketLaunchIcon />} />
 				Getting Started
@@ -470,7 +457,6 @@ import { UserIcon } from "@phosphor-icons/react/User";
 
 <Tabs.Root orientation="horizontal" defaultValue="getting-started" className="w-full">
 	<Tabs.List>
-		<Tabs.ListBorder />
 		<Tabs.Trigger value="getting-started">
 			<Icon svg={<RocketLaunchIcon />} />
 			Getting Started
@@ -892,15 +878,14 @@ import { Link, href } from "react-router";
 
 ## Bottom Border
 
-The tab list's bottom border is composed: render a `Tabs.ListBorder` as a child of `Tabs.List` to draw a 1px border in the `separator` color that terminates at the ends of the tab triggers, and omit it to render no border. The pill appearance never draws a border, so `Tabs.ListBorder` is always safe to compose.
+A horizontal classic tab list draws a 1px bottom border in the `separator` color by default; it terminates at the ends of the tab triggers. Pass `hideBorder` to `Tabs.List` to remove it (a vertical classic tab list's side border is removed the same way). The prop is also rendered as a `data-hide-border` attribute on the tablist element. The pill appearance never draws a border, so `hideBorder` has no effect there.
 
 <Example className="grid gap-6">
 	<div>
-		<p className="mb-2 font-mono text-xs">with Tabs.ListBorder</p>
+		<p className="mb-2 font-mono text-xs">default</p>
 		<div className="scrollbar -m-1 p-1 overflow-x-scroll">
 			<Tabs.Root orientation="horizontal" defaultValue="tab-1">
 				<Tabs.List>
-					<Tabs.ListBorder />
 					<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
 					<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
 					<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
@@ -909,10 +894,10 @@ The tab list's bottom border is composed: render a `Tabs.ListBorder` as a child 
 		</div>
 	</div>
 	<div>
-		<p className="mb-2 font-mono text-xs">without Tabs.ListBorder</p>
+		<p className="mb-2 font-mono text-xs">hideBorder</p>
 		<div className="scrollbar -m-1 p-1 overflow-x-scroll">
 			<Tabs.Root orientation="horizontal" defaultValue="tab-1">
-				<Tabs.List>
+				<Tabs.List hideBorder>
 					<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
 					<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
 					<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
@@ -927,7 +912,6 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 <Tabs.Root orientation="horizontal" defaultValue="tab-1">
 	<Tabs.List>
-		<Tabs.ListBorder />
 		<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
 		<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
 		<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
@@ -935,7 +919,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 </Tabs.Root>
 
 <Tabs.Root orientation="horizontal" defaultValue="tab-1">
-	<Tabs.List>
+	<Tabs.List hideBorder>
 		<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
 		<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
 		<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
@@ -950,7 +934,6 @@ Compose the parts of `Tabs` together to build your own:
 ```text showLineNumbers=false
 Tabs.Root
 ├── Tabs.List
-│   ├── Tabs.ListBorder
 │   └── Tabs.Trigger
 │       └── Tabs.Badge
 └── Tabs.Content
@@ -977,17 +960,12 @@ The root container of the tabs component that provides context for all tab compo
 
 Contains the triggers that are aligned along the edge of the active content. Based on [Radix Tabs List](https://www.radix-ui.com/primitives/docs/components/tabs#list).
 
-Compose a [`Tabs.ListBorder`](#tabslistborder) child to draw the list's 1px bottom border in the horizontal classic appearance; omit it to render no border.
+By default a classic tab list draws a 1px border in the `separator` color — the [bottom border](#bottom-border) when horizontal, a side border when vertical. The pill appearance never draws a border.
 
-| Prop         | Type     | Default | Description                                               |
-| ------------ | -------- | ------- | --------------------------------------------------------- |
-| `className?` | `string` |         | Additional CSS classes to apply to the tabs list element. |
-
-### Tabs.ListBorder
-
-Opts the tab list into its bottom border. Render it as a child of `Tabs.List`: the horizontal classic list then draws a 1px border that terminates at the ends of the tab triggers. Omit it to render no border. The pill appearance never draws a border, so it is always safe to compose.
-
-The marker itself renders an inert, hidden `<span>`; the border is painted by `Tabs.List` via a CSS `:has()` check, so it is SSR-safe and requires no client-side effects. `Tabs.ListBorder` accepts no props.
+| Prop          | Type      | Default | Description                                                                                                                                                           |
+| ------------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hideBorder?` | `boolean` | `false` | Hide the tab list's border. Also rendered as a `data-hide-border` attribute on the tablist element. Has no effect on the pill appearance, which never draws a border. |
+| `className?`  | `string`  |         | Additional CSS classes to apply to the tabs list element.                                                                                                             |
 
 ### Tabs.Trigger
 
