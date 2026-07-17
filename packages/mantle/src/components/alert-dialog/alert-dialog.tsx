@@ -519,9 +519,8 @@ type AlertDialogActionProps = Omit<ButtonProps, "appearance" | "intent"> & {
 	/**
 	 * The tone of the action button. Optional here — when omitted,
 	 * `AlertDialog.Action` derives the tone from the parent `AlertDialog.Root`'s
-	 * `intent` (`"danger"` → `"danger"`, `"info"` → `"accent"`), so the Action
-	 * carries the dialog's tone the same way its icon does. A passed value
-	 * always wins over the context-derived tone.
+	 * `intent` (`"danger"` → `"danger"`, `"info"` → `"neutral"`). A passed
+	 * value always wins over the context-derived tone.
 	 */
 	intent?: ButtonIntent;
 };
@@ -531,14 +530,13 @@ type AlertDialogActionProps = Omit<ButtonProps, "appearance" | "intent"> & {
  */
 const actionIntentByDialogIntent = {
 	danger: "danger",
-	info: "accent",
+	info: "neutral",
 } as const satisfies Record<AlertDialogIntent, ButtonIntent>;
 
 /**
  * A button that confirms the Alert Dialog action.
  * Will default to appearance="filled", with a tone derived from the `AlertDialog`'s
- * intent: danger dialogs get a danger button, info dialogs get an accent one —
- * the Action carries the dialog's tone the same way its icon does.
+ * intent: danger dialogs get a danger button, info dialogs get a neutral one.
  * Does not close the alert dialog by default.
  *
  * These buttons should be distinguished visually from the AlertDialogCancel button.
@@ -926,9 +924,8 @@ const AlertDialog = {
 	 * A button that confirms the Alert Dialog action. Defaults to
 	 * `appearance="filled"`, with a tone derived from the parent
 	 * `AlertDialog.Root`'s intent: danger dialogs get a danger button, info
-	 * dialogs get an accent one — the Action carries the dialog's tone the
-	 * same way its icon does. Does not close the dialog by default — wrap
-	 * with `AlertDialog.Close asChild` if the action should also dismiss.
+	 * dialogs get a neutral one. Does not close the dialog by default — wrap with
+	 * `AlertDialog.Close asChild` if the action should also dismiss.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogaction
 	 *
