@@ -61,5 +61,7 @@ export type PreviewExampleName = keyof typeof previewExamples;
  * ```
  */
 export function isPreviewExampleName(value: string): value is PreviewExampleName {
-	return value in previewExamples;
+	// own-property check: `in` also matches prototype-chain names ("toString",
+	// "constructor", …), which would pass the guard and crash the route
+	return Object.hasOwn(previewExamples, value);
 }

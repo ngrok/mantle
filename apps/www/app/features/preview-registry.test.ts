@@ -19,4 +19,12 @@ describe("isPreviewExampleName", () => {
 		expect(isPreviewExampleName("nope")).toBe(false);
 		expect(isPreviewExampleName("")).toBe(false);
 	});
+
+	// Regression: `in` matched prototype-chain names, so /preview/toString
+	// passed the guard and crashed the route instead of 404ing.
+	it("rejects prototype-chain property names", () => {
+		expect(isPreviewExampleName("toString")).toBe(false);
+		expect(isPreviewExampleName("constructor")).toBe(false);
+		expect(isPreviewExampleName("hasOwnProperty")).toBe(false);
+	});
 });
