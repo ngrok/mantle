@@ -3,6 +3,28 @@ import { describe, expect, test } from "vitest";
 import { Tabs } from "./tabs.js";
 
 describe("Tabs", () => {
+	describe("Root", () => {
+		// data-appearance is a public styling hook (SSR-friendly alternative to
+		// reading context) — consumer CSS like [data-appearance="pill"] relies on it.
+		test.each(["classic", "pill"] as const)(
+			"renders data-appearance=%s for appearance-scoped styling",
+			(appearance) => {
+				const { container } = render(
+					<Tabs.Root appearance={appearance} orientation="horizontal" defaultValue="a">
+						<Tabs.List>
+							<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>,
+				);
+
+				expect(container.querySelector('[data-slot="tabs"]')).toHaveAttribute(
+					"data-appearance",
+					appearance,
+				);
+			},
+		);
+	});
+
 	describe("List", () => {
 		// scroll-fade-x lives on the shared horizontal-orientation variant, so both
 		// appearances inherit it. This guards against a regression that would scope
@@ -29,10 +51,10 @@ describe("Tabs", () => {
 
 		// The bottom border is opt-in composition: the classic list carries the
 		// border paint gated behind a CSS :has([data-slot=tabs-list-border]) check
-		// (painted as a content-box background in the separator color, overridable
-		// via --tabs-list-border-color), and Tabs.ListBorder renders the marker
-		// that activates it. The list hugs its triggers (w-fit) so the border
-		// terminates at the last trigger instead of running the full container.
+		// (painted as a content-box background in the separator color), and
+		// Tabs.ListBorder renders the marker that activates it. The list hugs its
+		// triggers (w-fit) so the border terminates at the last trigger instead
+		// of running the full container.
 		test("horizontal classic appearance carries the :has()-gated border paint and hugs the triggers", () => {
 			render(
 				<Tabs.Root appearance="classic" orientation="horizontal" defaultValue="a">

@@ -892,7 +892,7 @@ import { Link, href } from "react-router";
 
 ## Bottom Border
 
-The tab list's bottom border is composed: render a `Tabs.ListBorder` as a child of `Tabs.List` to draw a 1px border that terminates at the ends of the tab triggers, and omit it to render no border. `Tabs.ListBorder` renders nothing under the pill appearance, so it is always safe to compose. To recolor the border, set the `--tabs-list-border-color` CSS variable (default: the `separator` color token) on the list or any ancestor.
+The tab list's bottom border is composed: render a `Tabs.ListBorder` as a child of `Tabs.List` to draw a 1px border in the `separator` color that terminates at the ends of the tab triggers, and omit it to render no border. The pill appearance never draws a border, so `Tabs.ListBorder` is always safe to compose.
 
 <Example className="grid gap-6">
 	<div>
@@ -982,12 +982,6 @@ Compose a [`Tabs.ListBorder`](#tabslistborder) child to draw the list's 1px bott
 | Prop         | Type     | Default | Description                                               |
 | ------------ | -------- | ------- | --------------------------------------------------------- |
 | `className?` | `string` |         | Additional CSS classes to apply to the tabs list element. |
-
-The `Tabs.List` also exposes the following CSS variables as part of its API.
-
-| CSS Variable               | Default                  | Description                                                                                                 |
-| -------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `--tabs-list-border-color` | `var(--color-separator)` | The color of the bottom border drawn when a `Tabs.ListBorder` is composed inside a horizontal classic list. |
 
 ### Tabs.ListBorder
 

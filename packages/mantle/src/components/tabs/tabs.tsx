@@ -109,7 +109,7 @@ Root.displayName = "Tabs";
  * with them under the scroll-fade mask. `pb-px` reserves the 1px row below
  * the triggers (and below the active trigger's decoration) that the rule
  * occupies; the `calc(100% + 1px)` y-position drops the rule out of the
- * content box into that row. Recolor via `--tabs-list-border-color`.
+ * content box into that row.
  */
 const listBottomRule = cx(
 	"has-data-[slot=tabs-list-border]:pb-px",
@@ -117,7 +117,7 @@ const listBottomRule = cx(
 	"has-data-[slot=tabs-list-border]:bg-no-repeat",
 	"has-data-[slot=tabs-list-border]:bg-size-[100%_1px]",
 	"has-data-[slot=tabs-list-border]:bg-position-[0_calc(100%+1px)]",
-	"has-data-[slot=tabs-list-border]:bg-[image:linear-gradient(var(--tabs-list-border-color,var(--color-separator)),var(--tabs-list-border-color,var(--color-separator)))]",
+	"has-data-[slot=tabs-list-border]:bg-[image:linear-gradient(var(--color-separator),var(--color-separator))]",
 );
 
 /**
@@ -164,9 +164,8 @@ const listVariants = cva("flex", {
  *
  * Compose a `Tabs.ListBorder` child to draw a 1px bottom border in the
  * horizontal classic appearance — it terminates at the ends of the tab
- * triggers and its color is driven by the `--tabs-list-border-color` CSS
- * variable (default: the `--color-separator` design token). Omit
- * `Tabs.ListBorder` to render no border; the pill appearance never draws one.
+ * triggers, in the `separator` color token. Omit `Tabs.ListBorder` to render
+ * no border; the pill appearance never draws one.
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
  *
@@ -244,10 +243,9 @@ List.displayName = "TabsList";
 /**
  * Opts the tab list into its bottom border. Render it as a child of
  * `Tabs.List`: the horizontal classic list then draws a 1px border in the
- * `--tabs-list-border-color` color (default: the `--color-separator` design
- * token) that terminates at the ends of the tab triggers. Omit it to render
- * no border. The pill appearance never draws a border, so it is always safe
- * to compose.
+ * `separator` color token that terminates at the ends of the tab triggers.
+ * Omit it to render no border. The pill appearance never draws a border, so
+ * it is always safe to compose.
  *
  * The marker itself is an inert, hidden `<span>`; the border is painted by
  * `Tabs.List` via a CSS `:has()` check, so it is SSR-safe and requires no
@@ -565,9 +563,7 @@ const Tabs = {
 	 * The container for tab triggers that provides the visual layout for tab navigation.
 	 *
 	 * Compose a `Tabs.ListBorder` child to draw a 1px bottom border in the
-	 * horizontal classic appearance; omit it to render no border. Recolor the
-	 * border via the `--tabs-list-border-color` CSS variable (default:
-	 * `--color-separator`).
+	 * horizontal classic appearance; omit it to render no border.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
 	 *
@@ -586,9 +582,9 @@ const Tabs = {
 	/**
 	 * Opts the tab list into its bottom border. Render it as a child of
 	 * `Tabs.List`: the horizontal classic list then draws a 1px border in the
-	 * `--tabs-list-border-color` color (default: `--color-separator`) that
-	 * terminates at the ends of the tab triggers. Omit it to render no border.
-	 * The pill appearance never draws a border, so it is always safe to compose.
+	 * `separator` color token that terminates at the ends of the tab triggers.
+	 * Omit it to render no border. The pill appearance never draws a border,
+	 * so it is always safe to compose.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabslistborder
 	 *

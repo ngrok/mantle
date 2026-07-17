@@ -2,7 +2,7 @@
 "@ngrok/mantle": patch
 ---
 
-Add `Tabs.ListBorder`: compose it as a child of `Tabs.List` to draw a 1px bottom border under the horizontal classic tablist, in the `separator` color token. The border terminates at the ends of the tab triggers instead of running the full container width (the list sizes `w-fit`, capped at the container, and the border is painted on the list's content box so the focus-ring breathing padding doesn't widen it), and it sits just below the active trigger's decoration. Omit `Tabs.ListBorder` to render no border; the pill appearance never draws one, so it is always safe to compose. Recolor via the `--tabs-list-border-color` CSS variable (default: `var(--color-separator)`). Activation is a pure-CSS `:has()` check, so it is SSR-safe with no client-side effects.
+Add `Tabs.ListBorder`: compose it as a child of `Tabs.List` to draw a 1px bottom border under the horizontal classic tablist, in the `separator` color token. The border terminates at the ends of the tab triggers instead of running the full container width (the list sizes `w-fit`, capped at the container, and the border is painted on the list's content box so the focus-ring breathing padding doesn't widen it), and it sits just below the active trigger's decoration. Omit `Tabs.ListBorder` to render no border; the pill appearance never draws one, so it is always safe to compose. Activation is a pure-CSS `:has()` check, so it is SSR-safe with no client-side effects.
 
 Also: the horizontal classic `Tabs.List` now sizes `w-fit max-w-full` (previously `w-full`) so the border hugs the triggers, `Tabs.Root` renders a `data-appearance` attribute for appearance-scoped styling, and the vertical classic tablist side border uses the `separator` token (previously `gray-200`).
 
