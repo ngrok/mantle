@@ -9,10 +9,11 @@ import { Slot } from "../slot/index.js";
 /**
  * The outer frame of a centered page flow. Renders a `<div>` with
  * `flex min-h-full flex-col` so it fills its nearest sized ancestor and stacks
- * `CenteredLayout.Header` (pinned top), `CenteredLayout.Body` (which grows),
- * and `CenteredLayout.Footer` (pinned bottom). Consumers whose host requires
- * an exact height can merge `h-full` via `className` — `cx` is
- * tailwind-merge-backed, so the override is deterministic.
+ * `CenteredLayout.Notice` and `CenteredLayout.Header` (pinned top),
+ * `CenteredLayout.Body` (which grows), and `CenteredLayout.Footer` (pinned
+ * bottom). Consumers whose host requires an exact height can merge `h-full`
+ * via `className` — `cx` is tailwind-merge-backed, so the override is
+ * deterministic.
  *
  * @see https://mantle.ngrok.com/layouts/centered-layout
  *
@@ -54,6 +55,59 @@ const Root = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild
 	},
 );
 Root.displayName = "CenteredLayout";
+
+/**
+ * A full-window-width strip pinned above everything else in the layout —
+ * including `CenteredLayout.Header` — for impersonation notices, environment
+ * warnings, and similar app-wide messaging. Renders an unstyled `<div>`
+ * (`w-full shrink-0`): the notice content brings its own colors and layout,
+ * and the part collapses to nothing when empty, so it can stay mounted and
+ * conditionally render its contents. The same slot contract as the
+ * app-layout shell's notice strip, so an app-wide banner composes
+ * identically across mantle's layouts. Deliberately
+ * not named Banner — `CenteredLayout.Header` renders the page's `<header>`
+ * (the ARIA `banner` landmark), and this part is not that. Optional: omitting
+ * it is fine.
+ *
+ * On flows that scroll (checkout, plan pickers), the strip scrolls away with
+ * the page by default; merge `sticky top-0 z-20` via `className` to pin it to
+ * the window. To pin it alongside a sticky `Header`, wrap the two strips in
+ * a single `sticky top-0` container instead — two elements pinned at `top-0`
+ * overlap each other once the page scrolls.
+ *
+ * @see https://mantle.ngrok.com/layouts/centered-layout
+ *
+ * @example
+ * ```tsx
+ * <CenteredLayout.Root>
+ *   <CenteredLayout.Notice>
+ *     {isImpersonating && <ImpersonationBanner />}
+ *   </CenteredLayout.Notice>
+ *   <CenteredLayout.Body>
+ *     <Main>
+ *       <SignInCard />
+ *     </Main>
+ *   </CenteredLayout.Body>
+ * </CenteredLayout.Root>
+ * ```
+ */
+const Notice = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild & WithDataSlot>(
+	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
+		const Comp = asChild ? Slot : "div";
+
+		return (
+			<Comp
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "centered-layout-notice")}
+				className={cx("w-full shrink-0", className)}
+				{...props}
+			>
+				{children}
+			</Comp>
+		);
+	},
+);
+Notice.displayName = "CenteredLayoutNotice";
 
 /**
  * A utility strip at the top of the layout — an account chip, a close/dismiss
@@ -222,6 +276,7 @@ Footer.displayName = "CenteredLayoutFooter";
  * Composition:
  * ```
  * CenteredLayout.Root
+ * ├── CenteredLayout.Notice
  * ├── CenteredLayout.Header
  * ├── CenteredLayout.Body
  * └── CenteredLayout.Footer
@@ -251,9 +306,9 @@ Footer.displayName = "CenteredLayoutFooter";
 const CenteredLayout = {
 	/**
 	 * The outer frame of a centered page flow. Fills its nearest sized ancestor
-	 * (`min-h-full`) and stacks `Header` (pinned top), `Body` (which grows),
-	 * and `Footer` (pinned bottom). Merge `h-full` via `className` when the
-	 * host requires an exact height.
+	 * (`min-h-full`) and stacks `Notice` and `Header` (pinned top), `Body`
+	 * (which grows), and `Footer` (pinned bottom). Merge `h-full` via
+	 * `className` when the host requires an exact height.
 	 *
 	 * @see https://mantle.ngrok.com/layouts/centered-layout
 	 *
@@ -279,6 +334,35 @@ const CenteredLayout = {
 	 * ```
 	 */
 	Root,
+	/**
+	 * A full-window-width strip pinned above everything else in the layout —
+	 * including `Header` — for impersonation notices and environment warnings.
+	 * Renders an unstyled `<div>` (`w-full shrink-0`): the notice content
+	 * brings its own colors, and the part collapses to nothing when empty. The
+	 * same slot contract as the app-layout shell's notice strip, so an
+	 * app-wide banner composes identically across mantle's layouts. Merge
+	 * `sticky top-0 z-20` via `className` to pin it while a long flow scrolls
+	 * (to pin it alongside a sticky `Header`, wrap the two strips in a single
+	 * `sticky top-0` container instead — two elements pinned at `top-0`
+	 * overlap once the page scrolls). Optional — omitting it is fine.
+	 *
+	 * @see https://mantle.ngrok.com/layouts/centered-layout
+	 *
+	 * @example
+	 * ```tsx
+	 * <CenteredLayout.Root>
+	 *   <CenteredLayout.Notice>
+	 *     {isImpersonating && <ImpersonationBanner />}
+	 *   </CenteredLayout.Notice>
+	 *   <CenteredLayout.Body>
+	 *     <Main>
+	 *       <SignInCard />
+	 *     </Main>
+	 *   </CenteredLayout.Body>
+	 * </CenteredLayout.Root>
+	 * ```
+	 */
+	Notice,
 	/**
 	 * A utility strip at the top of the layout (account chip, close button)
 	 * rendered as a semantic `<header>` (`banner` landmark) outside the

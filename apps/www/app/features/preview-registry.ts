@@ -1,5 +1,9 @@
 import type { ComponentType } from "react";
-import { CenteredLayoutDemo, CenteredLayoutHeaderDemo } from "./centered-layout-demos";
+import {
+	CenteredLayoutDemo,
+	CenteredLayoutHeaderDemo,
+	CenteredLayoutNoticeDemo,
+} from "./centered-layout-demos";
 
 type PreviewExample = {
 	/**
@@ -40,6 +44,10 @@ export const previewExamples = {
 	"centered-layout-header": {
 		title: "Centered layout header demo",
 		Component: CenteredLayoutHeaderDemo,
+	},
+	"centered-layout-notice": {
+		title: "Centered layout notice demo",
+		Component: CenteredLayoutNoticeDemo,
 	},
 } as const satisfies Record<string, PreviewExample>;
 

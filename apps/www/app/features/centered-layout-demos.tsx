@@ -7,7 +7,9 @@ import { Main } from "@ngrok/mantle/main";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 import { CheckIcon } from "@phosphor-icons/react/Check";
+import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
 import { XIcon } from "@phosphor-icons/react/X";
+import { useState } from "react";
 
 function SignInCard() {
 	return (
@@ -210,6 +212,64 @@ export function CenteredLayoutHeaderDemo() {
 					<ThemeSwitcher.Content />
 				</ThemeSwitcher.Root>
 			</CenteredLayout.Footer>
+		</CenteredLayout.Root>
+	);
+}
+
+/**
+ * The `CenteredLayout.Notice` composition for the centered-layout docs: a
+ * toggleable impersonation strip pinned above everything — the header
+ * included. Renders as an entire framed-preview document (see
+ * preview-registry.ts), so it composes exactly like a real page: the layout
+ * owns the document, with a `SkipToMainLink` first and the `Main` landmark
+ * composed directly in `Body`.
+ */
+export function CenteredLayoutNoticeDemo() {
+	const [showNotice, setShowNotice] = useState(true);
+
+	return (
+		<CenteredLayout.Root>
+			<SkipToMainLink />
+			<CenteredLayout.Notice>
+				{showNotice && (
+					<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
+						<WarningCircleIcon weight="fill" className="shrink-0" />
+						You are impersonating jane@example.com in read-only mode.
+					</div>
+				)}
+			</CenteredLayout.Notice>
+			<CenteredLayout.Header className="justify-between">
+				<span className="text-muted text-sm">cody@acme.com</span>
+				<IconButton
+					type="button"
+					appearance="ghost"
+					intent="neutral"
+					label="Close"
+					icon={<XIcon />}
+				/>
+			</CenteredLayout.Header>
+			<CenteredLayout.Body>
+				<span className="text-strong text-lg font-semibold">acme</span>
+				<Main className="w-full max-w-80">
+					<Card.Root>
+						<Card.Body className="space-y-3">
+							<p className="text-body text-sm">
+								The notice strip pushes everything down — the header included — and collapses to
+								nothing when empty.
+							</p>
+							<Button
+								type="button"
+								appearance="outlined"
+								intent="neutral"
+								size="sm"
+								onClick={() => setShowNotice((current) => !current)}
+							>
+								Toggle notice
+							</Button>
+						</Card.Body>
+					</Card.Root>
+				</Main>
+			</CenteredLayout.Body>
 		</CenteredLayout.Root>
 	);
 }

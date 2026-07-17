@@ -90,6 +90,43 @@ describe("CenteredLayout", () => {
 		expect(ref.current).toBe(body);
 	});
 
+	test("Notice renders an unstyled full-width strip", () => {
+		render(<CenteredLayout.Notice data-testid="notice">impersonating</CenteredLayout.Notice>);
+		const notice = screen.getByTestId("notice");
+		expect(notice.tagName).toBe("DIV");
+		expect(notice).toHaveAttribute("data-slot", "centered-layout-notice");
+		expect(notice.className).toContain("shrink-0");
+		expect(notice).toHaveTextContent("impersonating");
+	});
+
+	test("Notice is not a header banner landmark", () => {
+		render(<CenteredLayout.Notice>impersonating</CenteredLayout.Notice>);
+		expect(screen.queryByRole("banner")).not.toBeInTheDocument();
+	});
+
+	test("Notice renders as child element when asChild is true, keeping data-slot", () => {
+		render(
+			<CenteredLayout.Notice asChild>
+				<aside data-testid="notice">impersonating</aside>
+			</CenteredLayout.Notice>,
+		);
+		const notice = screen.getByTestId("notice");
+		expect(notice.tagName).toBe("ASIDE");
+		expect(notice).toHaveAttribute("data-slot", "centered-layout-notice");
+	});
+
+	test("Notice forwards refs and data-* attributes", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<CenteredLayout.Notice data-testid="notice" data-flavor="warning" ref={ref}>
+				impersonating
+			</CenteredLayout.Notice>,
+		);
+		const notice = screen.getByTestId("notice");
+		expect(notice).toHaveAttribute("data-flavor", "warning");
+		expect(ref.current).toBe(notice);
+	});
+
 	test("Footer renders a footer element with data-slot", () => {
 		render(<CenteredLayout.Footer data-testid="footer">legal</CenteredLayout.Footer>);
 		const footer = screen.getByTestId("footer");
@@ -203,6 +240,7 @@ describe("CenteredLayout", () => {
 		render(
 			<CenteredLayout.Root data-testid="root">
 				<a href="#main">Skip to main content</a>
+				<CenteredLayout.Notice data-testid="notice">impersonating</CenteredLayout.Notice>
 				<CenteredLayout.Header data-testid="header">
 					<button type="button">Close</button>
 				</CenteredLayout.Header>
@@ -220,6 +258,10 @@ describe("CenteredLayout", () => {
 		const root = screen.getByTestId("root");
 		expect(root).toHaveAttribute("data-slot", "centered-layout");
 		expect(screen.getByTestId("body")).toHaveAttribute("data-slot", "centered-layout-body");
+		// the notice strip sits above everything, including the header banner
+		expect(screen.getByTestId("notice").compareDocumentPosition(screen.getByTestId("header"))).toBe(
+			Node.DOCUMENT_POSITION_FOLLOWING,
+		);
 		expect(screen.getByRole("banner")).toBe(screen.getByTestId("header"));
 		expect(screen.getByRole("main")).toHaveTextContent("Sign in to your account");
 		expect(screen.getByRole("contentinfo")).toBe(screen.getByTestId("footer"));
