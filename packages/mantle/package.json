@@ -70,6 +70,11 @@
 			"types": "./dist/anchor.d.ts",
 			"import": "./dist/anchor.js"
 		},
+		"./app-layout": {
+			"@ngrok/src-live-types": "./src/components/app-layout/index.ts",
+			"types": "./dist/app-layout.d.ts",
+			"import": "./dist/app-layout.js"
+		},
 		"./badge": {
 			"@ngrok/src-live-types": "./src/components/badge/index.ts",
 			"types": "./dist/badge.d.ts",
@@ -294,6 +299,11 @@
 			"@ngrok/src-live-types": "./src/components/sheet/index.ts",
 			"types": "./dist/sheet.d.ts",
 			"import": "./dist/sheet.js"
+		},
+		"./sidebar": {
+			"@ngrok/src-live-types": "./src/components/sidebar/index.ts",
+			"types": "./dist/sidebar.d.ts",
+			"import": "./dist/sidebar.js"
 		},
 		"./skip-to-main-link": {
 			"@ngrok/src-live-types": "./src/components/skip-to-main-link/index.ts",

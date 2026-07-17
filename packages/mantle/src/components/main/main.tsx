@@ -1,5 +1,7 @@
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 
 /**
  * A focusable `<main>` landmark for the page's primary content. Renders with
@@ -8,6 +10,8 @@ import { cx } from "../../utils/cx/cx.js";
  * a visible focus ring on the region itself (`focus:outline-hidden`).
  *
  * Pair with the `<SkipToMainLink>` component at the top of the document.
+ * `ref` lands on the rendered `<main>`, so it also composes as an `asChild`
+ * child of layout parts (e.g. `AppLayout.Content asChild`).
  *
  * @see https://mantle.ngrok.com/components/primitives/main
  *
@@ -20,11 +24,15 @@ import { cx } from "../../utils/cx/cx.js";
  * </Main>
  * ```
  */
-const Main = ({ className, ...props }: ComponentProps<"main">) => {
+const Main = ({
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"main"> & WithDataSlot) => {
 	return (
 		<main
 			{...props}
-			data-slot="main"
+			data-slot={joinDataSlot(dataSlot, "main")}
 			id="main"
 			tabIndex={-1}
 			className={cx("focus:outline-hidden", className)}
