@@ -1,9 +1,12 @@
 import type { ComponentType } from "react";
+import { AppLayoutDemo } from "./app-layout-demos";
+import { AppShellDemo } from "./app-shell-demo";
 import {
 	CenteredLayoutDemo,
 	CenteredLayoutHeaderDemo,
 	CenteredLayoutNoticeDemo,
 } from "./centered-layout-demos";
+import { SidebarPersistenceDemo } from "./sidebar-demos";
 
 type PreviewExample = {
 	/**
@@ -37,6 +40,14 @@ type PreviewExample = {
  * ```
  */
 export const previewExamples = {
+	"app-shell": {
+		title: "App shell demo",
+		Component: AppShellDemo,
+	},
+	"app-layout-standalone": {
+		title: "Standalone app layout demo",
+		Component: AppLayoutDemo,
+	},
 	"centered-layout": {
 		title: "Centered layout demo",
 		Component: CenteredLayoutDemo,
@@ -48,6 +59,10 @@ export const previewExamples = {
 	"centered-layout-notice": {
 		title: "Centered layout notice demo",
 		Component: CenteredLayoutNoticeDemo,
+	},
+	"sidebar-persistence": {
+		title: "Sidebar persistence demo",
+		Component: SidebarPersistenceDemo,
 	},
 } as const satisfies Record<string, PreviewExample>;
 

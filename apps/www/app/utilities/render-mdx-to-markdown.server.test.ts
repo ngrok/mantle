@@ -80,7 +80,9 @@ describe("renderMdxToMarkdown on real doc pages", () => {
 	// not collapse into dropped/unrendered JSX.
 	const pages = [
 		"../docs/components/navigation/breadcrumb.mdx",
+		"../docs/components/navigation/sidebar.mdx",
 		"../docs/components/forms/theme-switcher.mdx",
+		"../docs/layouts/app-layout.mdx",
 		"../docs/layouts/centered-layout.mdx",
 	];
 
