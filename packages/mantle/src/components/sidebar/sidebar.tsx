@@ -49,6 +49,23 @@ const navVisibilityClassName: Record<SidebarMobileBreakpoint, string> = {
 };
 
 /**
+ * What the desktop sidebar collapses to:
+ *
+ * - `"offcanvas"` — fully hidden: the panel animates to zero width and its
+ *   content leaves the tab order and the accessibility tree.
+ * - `"icon"` — a skinny icon rail: the panel animates to
+ *   `--sidebar-width-icon` and each row becomes a square chip around its
+ *   leading icon, keeping the exact position it has when expanded. Group
+ *   labels fade out in place — their rows are retained, so icon groups stay
+ *   visually separated (labels stay in the accessibility tree; row labels
+ *   are clipped, not removed).
+ *
+ * Set via `Sidebar.Root`'s `collapsible` prop; the mobile sheet presentation
+ * ignores it.
+ */
+type SidebarCollapsible = "offcanvas" | "icon";
+
+/**
  * The state and actions shared by every part under a `Sidebar.Root`, returned
  * by {@link useSidebar}. Use it to build custom triggers, keyboard shortcuts,
  * or close-on-navigate behavior.
@@ -85,6 +102,12 @@ type SidebarState = {
 	 * The breakpoint below which the sidebar renders as a mobile sheet.
 	 */
 	mobileBreakpoint: SidebarMobileBreakpoint;
+	/**
+	 * What the desktop sidebar collapses to: fully hidden (`"offcanvas"`) or a
+	 * skinny icon rail (`"icon"`). Mirrored as `data-collapsible` on
+	 * `Sidebar.Nav`'s desktop panel.
+	 */
+	collapsible: SidebarCollapsible;
 	/**
 	 * Toggle the sidebar: the mobile sheet when `isMobile`, the desktop
 	 * expanded state otherwise. This is what `Sidebar.Trigger` calls.
@@ -167,6 +190,14 @@ type SidebarRootProps = {
 	 */
 	mobileBreakpoint?: SidebarMobileBreakpoint;
 	/**
+	 * What the desktop sidebar collapses to: fully hidden (`"offcanvas"`) or a
+	 * skinny icon rail that keeps each row's leading icon visible (`"icon"`).
+	 * The mobile sheet presentation ignores it.
+	 *
+	 * @default "offcanvas"
+	 */
+	collapsible?: SidebarCollapsible;
+	/**
 	 * Toggle the sidebar with `⌘B` (macOS) / `Ctrl+B` (Windows/Linux). The
 	 * shortcut requires exactly the platform modifier + `b` — combinations with
 	 * `Shift`/`Alt` (e.g. the browser's own `⌘⇧B`) are left alone. Set `false`
@@ -226,6 +257,7 @@ const SIDEBAR_KEYBOARD_SHORTCUT = "b";
  */
 const Root = ({
 	children,
+	collapsible = "offcanvas",
 	defaultOpen = true,
 	keyboardShortcut = true,
 	mobileBreakpoint = "lg",
@@ -312,6 +344,7 @@ const Root = ({
 
 	const contextValue = useMemo<SidebarState>(
 		() => ({
+			collapsible,
 			isMobile,
 			mobileBreakpoint,
 			navId,
@@ -321,7 +354,17 @@ const Root = ({
 			setOpenMobile,
 			toggle,
 		}),
-		[isMobile, mobileBreakpoint, navId, open, openMobile, setOpen, setOpenMobile, toggle],
+		[
+			collapsible,
+			isMobile,
+			mobileBreakpoint,
+			navId,
+			open,
+			openMobile,
+			setOpen,
+			setOpenMobile,
+			toggle,
+		],
 	);
 
 	return <SidebarContext.Provider value={contextValue}>{children}</SidebarContext.Provider>;
@@ -336,10 +379,15 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
 /**
  * The sidebar panel. On viewports at or above the root's `mobileBreakpoint`
  * it renders inline (in normal flow, so it composes under an
- * `AppLayout.Notice` banner) and collapses to fully hidden by animating its
- * width — collapsed content is `visibility: hidden`, out of the tab order and
- * the accessibility tree. Below the breakpoint it renders inside a mantle
- * `Sheet` on the left.
+ * `AppLayout.Notice` banner) and collapses by animating its width to the
+ * root's `collapsible` target: fully hidden (`"offcanvas"`, the default —
+ * collapsed content is `visibility: hidden`, out of the tab order and the
+ * accessibility tree) or a skinny icon rail (`"icon"` — group labels fade in
+ * place and each row becomes a square chip around its leading icon, but
+ * everything keeps its expanded position and stays in the tab order and the
+ * accessibility tree). Below the breakpoint it renders inside a mantle
+ * `Sheet` on the left. The desktop panel mirrors the mode as
+ * `data-collapsible="offcanvas" | "icon"`.
  *
  * `className`, `style`, `ref`, and rest props land on the panel surface in
  * both presentations (the desktop animator / the mobile `Sheet.Content`), so
@@ -350,6 +398,8 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  * **CSS variables (public API):**
  * - `--sidebar-width` — expanded desktop width. Default `16rem`.
  * - `--sidebar-width-mobile` — mobile sheet width. Default `18rem`.
+ * - `--sidebar-width-icon` — collapsed rail width when the root sets
+ *   `collapsible="icon"`. Default `3.25rem`.
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar
  *
@@ -390,7 +440,7 @@ const Nav = forwardRef<ComponentRef<"div">, SidebarNavProps>(
 		},
 		ref,
 	) => {
-		const { isMobile, mobileBreakpoint, navId, open, openMobile, setOpenMobile } =
+		const { collapsible, isMobile, mobileBreakpoint, navId, open, openMobile, setOpenMobile } =
 			useSidebarContext("Nav");
 		const isHydrated = useIsHydrated();
 		const ariaLabel = ariaLabelProp ?? (ariaLabelledBy == null ? "Main" : undefined);
@@ -431,11 +481,19 @@ const Nav = forwardRef<ComponentRef<"div">, SidebarNavProps>(
 				ref={ref}
 				data-slot={joinDataSlot(dataSlot, "sidebar-nav")}
 				data-state={open ? "expanded" : "collapsed"}
+				data-collapsible={collapsible}
+				// data-hydrated is the CSS-side twin of the isHydrated gates below,
+				// for descendant parts (e.g. GroupLabel) whose collapse transitions
+				// must also snap instead of animating on an SSR state correction.
+				data-hydrated={isHydrated ? "" : undefined}
 				className={cx(
 					// bg lives on this surface (not the inner nav) so consumer
 					// className overrides like `bg-card` take effect on desktop too.
 					"group/sidebar-nav bg-base relative h-full w-[var(--sidebar-width,16rem)] shrink-0 overflow-hidden",
-					"data-[state=collapsed]:invisible data-[state=collapsed]:w-0",
+					// offcanvas collapses to nothing; icon collapses to a skinny rail
+					// that keeps the panel content interactive.
+					"data-[collapsible=offcanvas]:data-[state=collapsed]:invisible data-[collapsible=offcanvas]:data-[state=collapsed]:w-0",
+					"data-[collapsible=icon]:data-[state=collapsed]:w-[var(--sidebar-width-icon,3.25rem)]",
 					navVisibilityClassName[mobileBreakpoint],
 					// Gate the transitions on hydration so an SSR state correction
 					// (e.g. persisted-collapsed applied by a controlled `open`) snaps
@@ -453,7 +511,10 @@ const Nav = forwardRef<ComponentRef<"div">, SidebarNavProps>(
 					aria-labelledby={ariaLabelledBy}
 					className={cx(
 						"absolute inset-y-0 left-0 flex w-[var(--sidebar-width,16rem)] min-w-0 flex-col text-sm",
-						"group-data-[state=collapsed]/sidebar-nav:-translate-x-full",
+						// offcanvas keeps the full-width nav and slides it out; icon
+						// tracks the animating panel width so the rows clip in place.
+						"group-data-[collapsible=offcanvas]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:-translate-x-full",
+						"group-data-[collapsible=icon]/sidebar-nav:w-full",
 						isHydrated && [
 							"transition-transform duration-200 ease-linear motion-reduce:transition-none",
 						],
@@ -578,6 +639,100 @@ const Trigger = forwardRef<HTMLButtonElement, SidebarTriggerProps>(
 );
 Trigger.displayName = "SidebarTrigger";
 
+/**
+ * The props for `Sidebar.Rail`. `button` props except `children` (the rail
+ * renders no content — it is a click strip along the sidebar's edge) and
+ * `type` (always `"button"` — the rail never submits), with a `label` for its
+ * accessible name and native tooltip.
+ */
+type SidebarRailProps = Omit<ComponentProps<"button">, "children" | "type"> &
+	WithDataSlot & {
+		/**
+		 * The accessible name and native `title` tooltip for the rail. Override
+		 * it for localization.
+		 *
+		 * @default "Toggle Sidebar"
+		 */
+		label?: string;
+	};
+
+// Why no `asChild`: like Trigger, the rail is a fully-wired control (aria
+// wiring, hit strip, hover affordance); custom edge toggles compose the same
+// behavior from `useSidebar()` instead of slot-swapping this one.
+/**
+ * A click strip along the sidebar's edge that toggles the desktop sidebar —
+ * most importantly, it keeps a toggle on the left side of the viewport after
+ * the panel fully collapses offcanvas. Render it as the **immediate next
+ * sibling of `Sidebar.Nav`**: it is a zero-width in-flow flex item, so it
+ * always sits exactly on the boundary between the sidebar and the content —
+ * expanded, collapsed to the icon rail, or fully offcanvas at the viewport's
+ * left edge — with a 12px hit strip extending over the content gutter and a
+ * hairline that appears on hover.
+ *
+ * The rail is a pointer affordance and is removed from the tab order
+ * (`tabIndex={-1}`): keyboard users toggle with `Sidebar.Trigger` or `⌘B`.
+ * Below the root's `mobileBreakpoint` it is hidden entirely — the mobile
+ * sheet has its own close affordances.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar
+ *
+ * @example
+ * ```tsx
+ * <Sidebar.Root>
+ *   <AppLayout.Root className="fixed inset-0">
+ *     <AppLayout.Body>
+ *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+ *       <Sidebar.Rail />
+ *       <AppLayout.Inset>…</AppLayout.Inset>
+ *     </AppLayout.Body>
+ *   </AppLayout.Root>
+ * </Sidebar.Root>
+ * ```
+ */
+const Rail = forwardRef<HTMLButtonElement, SidebarRailProps>(
+	({ className, "data-slot": dataSlot, label = "Toggle Sidebar", onClick, ...props }, ref) => {
+		const { mobileBreakpoint, navId, open, setOpen } = useSidebarContext("Rail");
+
+		return (
+			<button
+				ref={ref}
+				type="button"
+				// Pointer affordance only — Sidebar.Trigger and ⌘B cover keyboard.
+				tabIndex={-1}
+				aria-controls={navId}
+				aria-expanded={open}
+				aria-label={label}
+				title={label}
+				data-slot={joinDataSlot(dataSlot, "sidebar-rail")}
+				data-state={open ? "expanded" : "collapsed"}
+				onClick={(event) => {
+					onClick?.(event);
+					if (!event.defaultPrevented) {
+						setOpen(!open);
+					}
+				}}
+				className={cx(
+					// Zero-width in-flow flex item: the button itself occupies the
+					// sidebar/content boundary without affecting layout. z-20 keeps
+					// the hit strip above the content card's sticky header.
+					"relative z-20 w-0 shrink-0 focus:outline-hidden",
+					navVisibilityClassName[mobileBreakpoint],
+					// The 12px hit strip extends from the boundary over the content
+					// gutter (never over the sidebar's own scrollbar). Clicks on a
+					// pseudo-element hit its originating button.
+					"after:absolute after:inset-y-0 after:left-0 after:w-3",
+					// The hover affordance: a hairline hugging the boundary.
+					"before:absolute before:inset-y-0 before:left-0 before:w-0.5 hover:before:bg-neutral-500/25",
+					"cursor-w-resize data-[state=collapsed]:cursor-e-resize",
+					className,
+				)}
+				{...props}
+			/>
+		);
+	},
+);
+Rail.displayName = "SidebarRail";
+
 type SidebarHeaderProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
@@ -667,7 +822,10 @@ type SidebarBodyProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 /**
  * The scrollable middle region of a `Sidebar.Nav`, growing to fill the space
  * between `Sidebar.Header` and `Sidebar.Footer`. Holds the navigation
- * `Sidebar.Group` children.
+ * `Sidebar.Group` children. Overflowing edges fade out via the
+ * `scroll-fade-y` mask; inside a collapsed icon rail
+ * (`collapsible="icon"`) the scrollbar and its reserved gutter are hidden and
+ * the fade is the only overflow signal.
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar
  *
@@ -730,8 +888,17 @@ const Body = forwardRef<ComponentRef<"div">, SidebarBodyProps>(
 				data-slot={joinDataSlot(dataSlot, "sidebar-body")}
 				className={cx(
 					// pt-1.5 (not pt-0) keeps the first row's focus ring inside the
-					// scrollport instead of clipping it at scrollTop=0.
-					"scrollbar scrollbar-gutter-stable flex-1 space-y-2 overflow-y-auto overflow-x-hidden px-3 pt-1.5 pb-4",
+					// scrollport instead of clipping it at scrollTop=0; scroll-py-6
+					// makes focus-triggered scrolling land rows clear of the
+					// scroll-fade-y mask's 1.5rem fade zones, so a keyboard user's
+					// focus ring is never faded out mid-list.
+					"scrollbar scrollbar-gutter-stable scroll-fade-y flex-1 scroll-py-6 space-y-2 overflow-y-auto overflow-x-hidden px-3 pt-1.5 pb-4",
+					// The icon rail is too narrow for a scrollbar: hide it (and drop
+					// the reserved gutter, which would off-center the icons) and let
+					// the scroll fade signal the overflow instead.
+					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:scrollbar-none",
+					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:scrollbar-gutter-auto",
+					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:[&::-webkit-scrollbar]:hidden",
 					className,
 				)}
 				{...props}
@@ -1009,6 +1176,20 @@ const GroupLabel = forwardRef<ComponentRef<"div">, SidebarGroupLabelProps>(
 				data-slot={joinDataSlot(dataSlot, "sidebar-group-label")}
 				className={cx(
 					"text-muted flex min-w-0 items-center gap-2 truncate px-2 py-1 text-xs font-medium",
+					// In the collapsed icon rail the label fades out IN PLACE — its
+					// 24px row is deliberately retained so icon groups stay visually
+					// separated and every row keeps the exact position it has when
+					// expanded. Opacity keeps it in the accessibility tree so lists
+					// stay named via aria-labelledby; pointer-events-none keeps the
+					// invisible label from intercepting stray clicks. The transition
+					// is gated on the nav's data-hydrated so an SSR state correction
+					// snaps instead of animating on page load.
+					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:opacity-0",
+					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:pointer-events-none",
+					// motion-reduce must carry the same group gate: the gated
+					// transition rule's selector outranks a bare motion-reduce
+					// override (0,2,0 vs 0,1,0), so an ungated one would lose.
+					"group-data-[hydrated]/sidebar-nav:transition-opacity group-data-[hydrated]/sidebar-nav:duration-200 group-data-[hydrated]/sidebar-nav:ease-linear group-data-[hydrated]/sidebar-nav:motion-reduce:transition-none",
 					className,
 				)}
 				{...props}
@@ -1272,6 +1453,13 @@ const ItemButton = forwardRef<ComponentRef<"button">, SidebarItemButtonProps>(
 					"text-body hover:text-strong hover:bg-neutral-500/10",
 					"data-current:bg-neutral-500/15 data-current:text-strong",
 					"[&>svg]:text-muted hover:[&>svg]:text-strong data-current:[&>svg]:text-strong [&>svg]:size-5 [&>svg]:shrink-0",
+					// In the collapsed icon rail the row becomes a 28×28 square chip
+					// (matching the expanded row height) whose ml-1/px-1 center it on
+					// the icon's expanded position, so icons never move between
+					// states and hover/current backgrounds read as squares.
+					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:ml-1",
+					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:w-7",
+					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:px-1",
 					className,
 				)}
 				{...props}
@@ -1292,6 +1480,12 @@ type SidebarSwitcherButtonProps = ComponentProps<"button"> & WithAsChild & WithD
  * `DropdownMenu.Trigger asChild` or `Dialog.Trigger asChild`, which supply
  * the open state (`data-state="open"` styling comes for free from those
  * primitives).
+ *
+ * Inside a collapsed icon rail (`collapsible="icon"`), the row collapses to
+ * its **first child element** — the leading visual (product icon, account
+ * avatar) — and the remaining children become visually hidden while staying
+ * in the accessibility tree, so the button's accessible name is unchanged.
+ * Wrap loose text in an element (e.g. a `<span>`) so it participates.
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar
  *
@@ -1357,6 +1551,13 @@ const SwitcherButton = forwardRef<ComponentRef<"button">, SidebarSwitcherButtonP
 					"text-body hover:text-strong hover:bg-neutral-500/10 flex w-full min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left font-medium transition-none",
 					"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
 					"ring-focus-accent focus:outline-hidden focus-visible:ring-4",
+					// In the collapsed icon rail only the leading visual (product
+					// icon, account avatar) stays visible; the rest goes sr-only —
+					// visually gone but still part of the button's accessible name.
+					// w-9 keeps the leading visual exactly where it sits expanded
+					// (px-1.5 both sides of it) so switchers read as square chips.
+					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:w-9",
+					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:[&>:not(:first-child)]:sr-only",
 					className,
 				)}
 				{...props}
@@ -1726,10 +1927,13 @@ SwitchAccountsRadioGroup.displayName = "SidebarSwitchAccountsRadioGroup";
 
 /**
  * A composable, collapsible app-navigation sidebar. `Sidebar.Root` owns the
- * state (no DOM); `Sidebar.Nav` renders the panel — inline and
- * collapse-to-hidden on desktop, a left-side `Sheet` below the root's
- * `mobileBreakpoint`; `Sidebar.Trigger` toggles it from anywhere under the
- * root (typically an `AppLayout.Header`). Navigation is grouped with
+ * state (no DOM); `Sidebar.Nav` renders the panel — inline on desktop,
+ * collapsing to fully hidden (`collapsible="offcanvas"`, the default) or to a
+ * skinny icon rail (`collapsible="icon"`), and a left-side `Sheet` below the
+ * root's `mobileBreakpoint`; `Sidebar.Trigger` toggles it from anywhere under
+ * the root (typically an `AppLayout.Header`), and `Sidebar.Rail` adds a
+ * click strip on the sidebar's edge so a fully-collapsed sidebar can be
+ * reopened from the viewport's left edge. Navigation is grouped with
  * `Sidebar.Group`/`Sidebar.GroupLabel`/`Sidebar.List`, and the switcher rows
  * (app switcher up top, account/user down bottom) compose
  * `Sidebar.SwitcherButton` with your own `DropdownMenu` or `Dialog`.
@@ -1757,6 +1961,7 @@ SwitchAccountsRadioGroup.displayName = "SidebarSwitchAccountsRadioGroup";
  * │       └── Sidebar.SwitcherButton
  * │           ├── Sidebar.AccountAvatar
  * │           └── Sidebar.UserAvatar
+ * ├── Sidebar.Rail
  * └── Sidebar.Trigger
  * ```
  *
@@ -1978,6 +2183,29 @@ const Sidebar = {
 	 * ```
 	 */
 	Trigger,
+	/**
+	 * A click strip along the sidebar's edge that toggles the desktop sidebar.
+	 * Render it as the immediate next sibling of `Sidebar.Nav` — after an
+	 * offcanvas collapse it keeps a toggle on the left edge of the viewport.
+	 * Pointer affordance only (`tabIndex={-1}`); keyboard users toggle with
+	 * `Sidebar.Trigger` or `⌘B`.
+	 *
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 *
+	 * @example
+	 * ```tsx
+	 * <Sidebar.Root>
+	 *   <AppLayout.Root className="fixed inset-0">
+	 *     <AppLayout.Body>
+	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+	 *       <Sidebar.Rail />
+	 *       <AppLayout.Inset>…</AppLayout.Inset>
+	 *     </AppLayout.Body>
+	 *   </AppLayout.Root>
+	 * </Sidebar.Root>
+	 * ```
+	 */
+	Rail,
 	/**
 	 * The pinned top container of the panel, typically holding the app
 	 * switcher (`Sidebar.SwitcherButton` + `DropdownMenu`/`Dialog`). Its
@@ -2679,6 +2907,7 @@ export {
 export type {
 	//,
 	SidebarAccount,
+	SidebarCollapsible,
 	SidebarMobileBreakpoint,
 	SidebarState,
 };

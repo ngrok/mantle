@@ -197,6 +197,133 @@ describe("Sidebar.Nav (desktop)", () => {
 	});
 });
 
+describe("Sidebar collapse modes", () => {
+	test("the desktop panel defaults to data-collapsible=offcanvas", () => {
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav data-testid="nav" />
+			</Sidebar.Root>,
+		);
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-collapsible", "offcanvas");
+	});
+
+	test("collapsible=icon is mirrored as data-collapsible on the panel", () => {
+		render(
+			<Sidebar.Root collapsible="icon" defaultOpen={false}>
+				<Sidebar.Nav data-testid="nav" />
+			</Sidebar.Root>,
+		);
+		const nav = screen.getByTestId("nav");
+		expect(nav).toHaveAttribute("data-collapsible", "icon");
+		expect(nav).toHaveAttribute("data-state", "collapsed");
+	});
+
+	test("useSidebar exposes the configured collapsible mode", () => {
+		function ReadCollapsible() {
+			const { collapsible } = useSidebar();
+			return <span data-testid="mode">{collapsible}</span>;
+		}
+		render(
+			<Sidebar.Root collapsible="icon">
+				<ReadCollapsible />
+			</Sidebar.Root>,
+		);
+		expect(screen.getByTestId("mode")).toHaveTextContent("icon");
+	});
+
+	test("the desktop panel emits data-hydrated once client rendering settles", () => {
+		// data-hydrated is the CSS gate that lets descendant collapse
+		// transitions (e.g. GroupLabel's) snap instead of animating when an SSR
+		// state correction lands on load. In a client test, effects have run by
+		// the time we assert, so the attribute must be present.
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav data-testid="nav" />
+			</Sidebar.Root>,
+		);
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-hydrated");
+	});
+});
+
+describe("Sidebar.Rail", () => {
+	test("carries the disclosure wiring but stays out of the tab order", () => {
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav />
+				<Sidebar.Rail />
+			</Sidebar.Root>,
+		);
+		const nav = screen.getByRole("navigation", { name: "Main" });
+		const rail = screen.getByRole("button", { name: "Toggle Sidebar" });
+		expect(rail).toHaveAttribute("data-slot", "sidebar-rail");
+		expect(rail).toHaveAttribute("aria-controls", nav.id);
+		expect(rail).toHaveAttribute("aria-expanded", "true");
+		expect(rail).toHaveAttribute("title", "Toggle Sidebar");
+		// pointer affordance only: keyboard users toggle via Trigger or ⌘B
+		expect(rail).toHaveAttribute("tabindex", "-1");
+	});
+
+	test("toggles the desktop sidebar on click", async () => {
+		const user = userEvent.setup();
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav data-testid="nav" />
+				<Sidebar.Rail />
+			</Sidebar.Root>,
+		);
+		const rail = screen.getByRole("button", { name: "Toggle Sidebar" });
+
+		await user.click(rail);
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(rail).toHaveAttribute("aria-expanded", "false");
+		expect(rail).toHaveAttribute("data-state", "collapsed");
+
+		await user.click(rail);
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		expect(rail).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("respects event.defaultPrevented from the consumer onClick", async () => {
+		const user = userEvent.setup();
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<Sidebar.Root onOpenChange={onOpenChange}>
+				<Sidebar.Nav data-testid="nav" />
+				<Sidebar.Rail onClick={(event) => event.preventDefault()} />
+			</Sidebar.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+		expect(onOpenChange).not.toHaveBeenCalled();
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+	});
+
+	test("under a controlled root, reports through onOpenChange without flipping itself", async () => {
+		const user = userEvent.setup();
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<Sidebar.Root open onOpenChange={onOpenChange}>
+				<Sidebar.Nav data-testid="nav" />
+				<Sidebar.Rail />
+			</Sidebar.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+		expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
+		// controlled: the parent did not update `open`, so the panel stays expanded
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+	});
+
+	test("label overrides the accessible name and tooltip", () => {
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav />
+				<Sidebar.Rail label="Basculer la barre latérale" />
+			</Sidebar.Root>,
+		);
+		const rail = screen.getByRole("button", { name: "Basculer la barre latérale" });
+		expect(rail).toHaveAttribute("title", "Basculer la barre latérale");
+	});
+});
+
 describe("Sidebar.Nav (mobile)", () => {
 	beforeEach(() => {
 		useIsBelowBreakpointMock.mockReturnValue(true);

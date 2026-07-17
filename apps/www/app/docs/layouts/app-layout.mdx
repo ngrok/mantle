@@ -17,13 +17,14 @@ everything — including any sidebar — down. It is a **layout**: it owns _wher
 
 The canonical composition pairs the shell with the [Sidebar](/components/navigation/sidebar). The two are
 deliberately decoupled — `AppLayout` never references sidebar state — but cohesive: wrap the shell in
-`Sidebar.Root`, place `Sidebar.Nav` as the first child of `AppLayout.Body`, and put `Sidebar.Trigger` in the
-top-left of `AppLayout.Header`. The demo runs in its own framed document, exactly like a real app: collapse
-the sidebar with the trigger (or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> — the shortcut binds to the frame, not this
-page), toggle the notice to see the strip push the whole shell (sidebar included) down, and switch the
-preview to the mobile viewport for the sheet presentation. The demo narrows the sidebar's `mobileBreakpoint`
-to `md` so the desktop rail survives the preview's desktop and tablet widths; ngrok's dashboards keep the
-`lg` default.
+`Sidebar.Root`, place `Sidebar.Nav` as the first child of `AppLayout.Body` with `Sidebar.Rail` right after
+it, and put `Sidebar.Trigger` in the top-left of `AppLayout.Header`. The demo runs in its own framed
+document, exactly like a real app: collapse the sidebar with the trigger (or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> —
+the shortcut binds to the frame, not this page), reopen it from the viewport's left edge via the rail,
+toggle the notice to see the strip push the whole shell (sidebar included) down, and switch the preview to
+the mobile viewport for the sheet presentation. The demo narrows the sidebar's `mobileBreakpoint` to `md`
+so the desktop panel survives the preview's desktop and tablet widths; ngrok's dashboards keep the `lg`
+default.
 
 <CodeExample.Root>
 	<CodeExample.PreviewFrame example="app-shell" title="App shell demo" />
@@ -96,6 +97,7 @@ export function Shell() {
 							</Sidebar.Group>
 						</Sidebar.Body>
 					</Sidebar.Nav>
+					<Sidebar.Rail />
 
 					<AppLayout.Inset>
 						<AppLayout.Content asChild>
@@ -146,6 +148,37 @@ export function Shell() {
 > compose a real [Main](/components/primitives/main) landmark — see [Landmarks](#landmarks). When you embed
 > the shell inside an existing page instead — as the inline [Polymorphism](#polymorphism) example below
 > does — drop both: `AppLayout.Root` fills its nearest sized ancestor by default.
+
+## Icon-rail sidebar
+
+The sidebar's [collapse mode](/components/navigation/sidebar#collapse-modes) is entirely the sidebar's
+business — the shell markup does not change. With `collapsible="icon"` on `Sidebar.Root`, collapsing leaves
+a skinny icon rail beside the content card instead of hiding the panel; the rail shares the shell's
+`bg-base` surface, so the card gutter stays visually seamless. This demo starts collapsed — expand it with
+the header trigger, the edge rail, or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd>.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="app-shell-icon" title="App shell demo with an icon-rail sidebar" />
+	<CodeExample.Code>
+
+```tsx
+// identical to the demo above, except the root opts into the icon rail
+// (defaultOpen={false} is just so this demo loads collapsed)
+<Sidebar.Root collapsible="icon" defaultOpen={false} mobileBreakpoint="md">
+	<AppLayout.Root className="fixed inset-0">
+		<SkipToMainLink />
+		<AppLayout.Body>
+			<Sidebar.Nav aria-label="Main">{/* header, body, footer */}</Sidebar.Nav>
+			<Sidebar.Rail />
+			<AppLayout.Inset>{/* AppLayout.Content + AppLayout.Header */}</AppLayout.Inset>
+		</AppLayout.Body>
+	</AppLayout.Root>
+</Sidebar.Root>
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Standalone
 
