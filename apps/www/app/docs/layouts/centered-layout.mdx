@@ -3,62 +3,10 @@ title: Centered Layout
 description: A viewport-filling centered page flow — utility header and footer strips around a growing, centered content region.
 ---
 
-import { Button, IconButton } from "@ngrok/mantle/button";
 import { Card } from "@ngrok/mantle/card";
 import { CenteredLayout } from "@ngrok/mantle/centered-layout";
-import { Input } from "@ngrok/mantle/input";
-import { Label } from "@ngrok/mantle/label";
-import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
-import { CheckIcon } from "@phosphor-icons/react/Check";
-import { XIcon } from "@phosphor-icons/react/X";
 import { CodeExample } from "~/components/code-example";
 import { PageHeader } from "~/components/page-header";
-
-export function SignInCard() {
-	return (
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Sign in to acme</Card.Title>
-			</Card.Header>
-			<Card.Body className="flex flex-col gap-4">
-				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="centered-layout-email">Email</Label>
-					<Input id="centered-layout-email" type="email" placeholder="you@example.com" />
-				</div>
-				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="centered-layout-password">Password</Label>
-					<Input id="centered-layout-password" type="password" placeholder="Your password" />
-				</div>
-				<Button type="button" intent="neutral" appearance="filled">
-					Sign in
-				</Button>
-			</Card.Body>
-		</Card.Root>
-	);
-}
-
-export function CenteredLayoutExample() {
-	return (
-		<div className="h-full w-full overflow-auto">
-			<CenteredLayout.Root>
-				<CenteredLayout.Body>
-					<a href="https://ngrok.com" className="text-strong text-lg font-semibold">
-						acme
-					</a>
-					<div className="w-full max-w-80">
-						<SignInCard />
-					</div>
-				</CenteredLayout.Body>
-				<CenteredLayout.Footer>
-					<ThemeSwitcher.Root>
-						<ThemeSwitcher.Trigger />
-						<ThemeSwitcher.Content />
-					</ThemeSwitcher.Root>
-				</CenteredLayout.Footer>
-			</CenteredLayout.Root>
-		</div>
-	);
-}
 
 export function CenteredLayoutAsChildExample() {
 	return (
@@ -86,155 +34,12 @@ export function CenteredLayoutAsChildExample() {
 	);
 }
 
-export function PlanPicker() {
-	return (
-		<div className="space-y-8 p-4">
-			<div className="space-y-2">
-				<p className="text-strong text-3xl font-medium">Choose a plan</p>
-				<p className="text-body text-lg">
-					Scale your fake apps — none of these plans, prices, or features are real.
-				</p>
-			</div>
-			<div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-3">
-				{[
-					{
-						name: "Sandbox",
-						price: "$X",
-						tagline: "A fake free tier for a fake product",
-						features: [
-							"Up to 3 imaginary endpoints",
-							"1GB of pretend bandwidth",
-							"20k hypothetical requests",
-							"Community support (also pretend)",
-							"Interstitial page on fake endpoints",
-							"1 team member (you, hypothetically)",
-							"Fake dev domain for public endpoints",
-							"$X one-time pretend usage credit",
-						],
-						action: "Current Fake Plan",
-					},
-					{
-						name: "Pretend Pro",
-						price: "$XX",
-						tagline: "For serious imaginary workloads",
-						features: [
-							"Unlimited imaginary endpoints",
-							"Custom fake domains",
-							"100k make-believe requests",
-							"Priority pretend support",
-							"No interstitial page (it never existed)",
-							"3 team members ($0 per imaginary friend)",
-							"Bring your own fictional domain",
-							"$XX monthly pretend usage credit",
-						],
-						action: "Select Pretend Pro",
-					},
-					{
-						name: "Make Believe",
-						price: "$XXX",
-						tagline: "Everything fake, at scale",
-						features: [
-							"Unlimited everything (none of it real)",
-							"SSO for your imaginary team",
-							"99.999% uptime, hypothetically",
-							"Mutual TLS, in theory",
-							"Wildcard endpoints, wildly fictional",
-							"A dedicated (imaginary) account manager",
-							"RBAC and SCIM, strictly conceptual",
-							"Unlimited pretend usage, billed never",
-						],
-						action: "Select Make Believe",
-					},
-				].map((plan) => (
-					<div
-						key={plan.name}
-						className="flex flex-col gap-6 rounded-md border border-gray-300 p-4"
-					>
-						<div className="shrink-0">
-							<span className="text-strong text-base font-medium">{plan.name}</span>
-							<p className="text-muted text-xs">
-								<span className="text-strong text-2xl font-medium">{plan.price}</span> per month
-							</p>
-						</div>
-						<div className="text-body flex flex-1 flex-col gap-4 text-xs">
-							<p className="text-strong text-sm italic">{plan.tagline}</p>
-							<ul className="space-y-1.5">
-								{plan.features.map((feature) => (
-									<li key={feature} className="flex gap-2">
-										<CheckIcon className="text-muted size-4 shrink-0" />
-										{feature}
-									</li>
-								))}
-							</ul>
-						</div>
-						<Button type="button" appearance="outlined" intent="neutral">
-							{plan.action}
-						</Button>
-					</div>
-				))}
-			</div>
-			<Card.Root className="bg-card-hover rounded-xl shadow-inner">
-				<Card.Body className="space-y-3">
-					<p className="text-strong text-sm font-medium">Wait, is any of this real?</p>
-					<p className="text-body text-sm">
-						No — every plan, price, and feature on this page is made up to demonstrate the
-						CenteredLayout composition. Scroll this frame to see the sticky header stay put.
-					</p>
-					<ul className="text-body list-disc space-y-1.5 pl-5 text-sm">
-						<li>Can I upgrade from Sandbox to Pretend Pro? Only in your imagination.</li>
-						<li>Do fake credits roll over? Forever — they aren't real, so they never expire.</li>
-						<li>Is there a fake annual discount? Yes: save $0 with annual billing.</li>
-						<li>What payment methods are accepted? Monopoly money and firm handshakes.</li>
-						<li>Can I talk to fake sales? Absolutely — book a meeting that never happens.</li>
-					</ul>
-				</Card.Body>
-			</Card.Root>
-			<p className="text-muted text-xs">
-				* All prices shown in imaginary dollars (IMD). Fake plans are subject to change without
-				notice, because they do not exist. No warranty is expressed, implied, or imaginable.
-			</p>
-		</div>
-	);
-}
-
-export function CenteredLayoutHeaderExample() {
-	return (
-		<div className="h-full w-full overflow-auto">
-			<CenteredLayout.Root>
-				<CenteredLayout.Header className="bg-card sticky top-0 z-10 justify-between">
-					<span className="text-muted text-sm">cody@acme.com</span>
-					<IconButton
-						type="button"
-						appearance="ghost"
-						intent="neutral"
-						label="Close"
-						icon={<XIcon />}
-					/>
-				</CenteredLayout.Header>
-				<CenteredLayout.Body>
-					<div className="w-full max-w-5xl">
-						<PlanPicker />
-					</div>
-				</CenteredLayout.Body>
-				<CenteredLayout.Footer>
-					<ThemeSwitcher.Root>
-						<ThemeSwitcher.Trigger />
-						<ThemeSwitcher.Content />
-					</ThemeSwitcher.Root>
-				</CenteredLayout.Footer>
-			</CenteredLayout.Root>
-		</div>
-	);
-}
-
 <PageHeader id="centered-layout">Centered Layout</PageHeader>
 
-A viewport-filling centered page flow for sign-in, sign-up, onboarding, 404, and other focused full-page states. It is a **layout**: it owns _where things go_ — the flex/overflow skeleton and region ordering — not what they are. App state (routing, sessions, data) never enters it; the brand mark, form card, and footer links arrive as composed JSX. It consolidates the centered "auth shell" that was duplicated across ngrok's dashboard and login apps.
+A viewport-filling centered page flow for sign-in, sign-up, onboarding, 404, and other focused full-page states. It is a **layout**: it owns _where things go_ — the flex/overflow skeleton and region ordering — not what they are. App state (routing, sessions, data) never enters it; the brand mark, form card, and footer links arrive as composed JSX. It consolidates the centered "auth shell" that was duplicated across ngrok's dashboard and login apps. The demo runs in its own framed document, exactly like a real sign-in page — the layout owns the document, so it composes a real [Main](/components/primitives/main) landmark and a skip link (see [Landmarks](#landmarks)).
 
 <CodeExample.Root>
-	<CodeExample.Preview className="p-0 md:p-0">
-		<CenteredLayoutExample />
-	</CodeExample.Preview>
+	<CodeExample.PreviewFrame example="centered-layout" title="Centered layout demo" />
 	<CodeExample.Code>
 
 ```tsx
@@ -243,14 +48,22 @@ import { Card } from "@ngrok/mantle/card";
 import { CenteredLayout } from "@ngrok/mantle/centered-layout";
 import { Input } from "@ngrok/mantle/input";
 import { Label } from "@ngrok/mantle/label";
+import { Main } from "@ngrok/mantle/main";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 
 <CenteredLayout.Root>
+	<SkipToMainLink />
 	<CenteredLayout.Body>
-		<a href="https://ngrok.com" className="text-strong text-lg font-semibold">
+		{/* a real brand mark navigates home; the framed demo stays put */}
+		<a
+			href="https://ngrok.com"
+			onClick={(event) => event.preventDefault()}
+			className="text-strong text-lg font-semibold"
+		>
 			acme
 		</a>
-		<div className="w-full max-w-80">
+		<Main className="w-full max-w-80">
 			<Card.Root>
 				<Card.Header>
 					<Card.Title>Sign in to acme</Card.Title>
@@ -269,7 +82,7 @@ import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 					</Button>
 				</Card.Body>
 			</Card.Root>
-		</div>
+		</Main>
 	</CenteredLayout.Body>
 	<CenteredLayout.Footer>
 		<ThemeSwitcher.Root>
@@ -300,29 +113,30 @@ CenteredLayout.Root
 
 ## Header
 
-Focused flows that the user can leave — checkout, plan pickers, onboarding steps — carry a utility strip at the top: who is signed in on the left, a close button on the right. `Header` is that strip, the mirror of `Footer`. To keep the close button reachable while the page scrolls, merge `sticky top-0 z-10` (and a background) via `className` — prefer `sticky` over `fixed`, which removes the strip from flow and underlaps the content below it. On a real page the flow owns the document scroller — give it `overscroll-none` there to suppress rubber-banding and pull-to-refresh (on the root it can't trap anything, because there is nothing behind it to chain to). Don't set it on a nested scroller like this demo: cutting scroll chaining swallows the wheel at the scroller's edge instead of handing it back to the page. Scroll the demo to see the header stay pinned.
+Focused flows that the user can leave — checkout, plan pickers, onboarding steps — carry a utility strip at the top: who is signed in on the left, a close button on the right. `Header` is that strip, the mirror of `Footer`. To keep the close button reachable while the page scrolls, merge `sticky top-0 z-10` (and a background) via `className` — prefer `sticky` over `fixed`, which removes the strip from flow and underlaps the content below it. The demo runs in its own framed document, so its page really does own the scroller — scroll it to see the header stay pinned. On a real page, give the document scroller `overscroll-none` to suppress rubber-banding and pull-to-refresh; don't set it on a nested scroller, where cutting scroll chaining swallows the wheel at the scroller's edge instead of handing it back to the page.
 
 <CodeExample.Root>
-	<CodeExample.Preview className="p-0 md:p-0">
-		<CenteredLayoutHeaderExample />
-	</CodeExample.Preview>
+	<CodeExample.PreviewFrame example="centered-layout-header" title="Centered layout header demo" />
 	<CodeExample.Code>
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
 import { CenteredLayout } from "@ngrok/mantle/centered-layout";
+import { Main } from "@ngrok/mantle/main";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 import { XIcon } from "@phosphor-icons/react/X";
 
 <CenteredLayout.Root>
+	<SkipToMainLink />
 	<CenteredLayout.Header className="bg-card sticky top-0 z-10 justify-between">
 		<span className="text-muted text-sm">cody@acme.com</span>
 		<IconButton type="button" appearance="ghost" intent="neutral" label="Close" icon={<XIcon />} />
 	</CenteredLayout.Header>
 	<CenteredLayout.Body>
-		<div className="w-full max-w-5xl">
+		<Main className="w-full max-w-5xl">
 			<PlanPicker />
-		</div>
+		</Main>
 	</CenteredLayout.Body>
 	<CenteredLayout.Footer>
 		<ThemeSwitcher.Root>
@@ -339,7 +153,7 @@ import { XIcon } from "@phosphor-icons/react/X";
 
 ## Landmarks
 
-Exactly one element in a document may be the Main landmark, so the layout does not render one for you — content arrives as composed JSX, and composing the layout inside a shell that already owns the landmark (an app frame, a docs page — including the live demos on this page) is safe by default. When the layout owns the document — a sign-in page, a 404 — compose mantle's [Main](/components/primitives/main) directly in `Body`, and pair a [SkipToMainLink](/components/primitives/skip-to-main-link) as the first child of `Root`: its default `targetId` matches `Main`'s `id="main"`, so keyboard users can jump past the brand mark straight to the content.
+Exactly one element in a document may be the Main landmark, so the layout does not render one for you — content arrives as composed JSX, and composing the layout inside a shell that already owns the landmark (an app frame, or this page's inline [Polymorphism](#polymorphism) example) is safe by default. When the layout owns the document — a sign-in page, a 404 — compose mantle's [Main](/components/primitives/main) directly in `Body`, and pair a [SkipToMainLink](/components/primitives/skip-to-main-link) as the first child of `Root`: its default `targetId` matches `Main`'s `id="main"`, so keyboard users can jump past the brand mark straight to the content. The framed demos on this page do exactly this — each preview is its own document, so each owns a real `Main`.
 
 ```tsx
 import { CenteredLayout } from "@ngrok/mantle/centered-layout";

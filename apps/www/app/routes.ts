@@ -181,6 +181,13 @@ export default [
 		...migrationRoute("priority-to-intent-migration"),
 	]),
 
+	// chrome-less framed example previews — the document the docs pages' iframe
+	// preview frames point at. The explicit id is load-bearing: root.tsx matches
+	// on it to skip the site chrome, and entry.server.tsx path-matches /preview/
+	// to allow same-origin framing. Dynamic-param routes are excluded from
+	// prerendering and served by the runtime SSR function.
+	route("preview/:exampleName", "./routes/preview.tsx", { id: "preview-example" }),
+
 	// 404 + legacy redirects — splat catch-all for any unmatched URL. Matches
 	// (so ancestor loaders run) and 301s known pre-IA-reorg paths (e.g.
 	// /components/button, /blocks/*) to their new homes, returning a 404
