@@ -85,7 +85,7 @@ export const componentsByCategory = {
 		"Text Area",
 		"Theme Switcher",
 	],
-	Navigation: ["Anchor", "Breadcrumb", "Command", "Pagination", "Tabs"],
+	Navigation: ["Anchor", "Breadcrumb", "Command", "Pagination", "Sidebar", "Tabs"],
 	Overlays: [
 		"Alert Dialog",
 		"Dialog",
@@ -175,6 +175,7 @@ export const prodReadyComponentRouteLookup = {
 	"Selectable List": "/components/data-display/selectable-list",
 	Separator: "/components/structure/separator",
 	Sheet: "/components/overlays/sheet",
+	Sidebar: "/components/navigation/sidebar",
 	Skeleton: "/components/feedback/skeleton",
 	"Skip to Main Link": "/components/primitives/skip-to-main-link",
 	Slider: "/components/forms/slider",
@@ -276,16 +277,20 @@ export const utilsRoutes = {
  */
 export const layoutPages = [
 	//,
+	"App Layout",
 	"Centered Layout",
 ] as const;
 
 /** Route lookup for layout pages. */
 export const layoutRoutes = {
+	"App Layout": "/layouts/app-layout",
 	"Centered Layout": "/layouts/centered-layout",
 } as const satisfies Record<(typeof layoutPages)[number], Route>;
 
 /** Short descriptions for the layouts index page. */
 export const layoutDescriptions = {
+	"App Layout":
+		"A viewport-locked application shell — a full-width notice strip, a toolbar header, and a rounded content card that is the only scroll container — designed to compose with (but stay decoupled from) the Sidebar.",
 	"Centered Layout":
 		"A viewport-filling centered page flow — brand mark, centered content, and a pinned utility footer — for sign-in, onboarding, 404, and other focused full-page states.",
 } as const satisfies Record<(typeof layoutPages)[number], string>;

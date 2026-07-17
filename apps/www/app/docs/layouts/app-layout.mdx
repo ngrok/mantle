@@ -1,0 +1,397 @@
+---
+title: App Layout
+description: A viewport-locked application shell — a full-width notice strip, a toolbar header, and a rounded content card that is the shell's only scroll container.
+---
+
+import { CodeExample } from "~/components/code-example";
+import { PageHeader } from "~/components/page-header";
+import { AppLayoutDemo, AppLayoutPolymorphismDemo } from "~/features/app-layout-demos";
+import { AppShellDemo } from "~/features/app-shell-demo";
+
+<PageHeader id="app-layout">App Layout</PageHeader>
+
+A viewport-locked application shell. The shell itself never scrolls: `AppLayout.Content` is a rounded card
+that scrolls internally with `overscroll-none`, so long pages never bounce or drag the chrome. Pinned to
+the top of that card, `AppLayout.Header` is a sticky toolbar row for the sidebar trigger and breadcrumbs,
+and `AppLayout.Notice` is a full-window strip for impersonation banners and environment warnings that pushes
+everything — including any sidebar — down. It is a **layout**: it owns _where things go_, and app state (routing, sessions, data) never enters it.
+
+The canonical composition pairs the shell with the [Sidebar](/components/navigation/sidebar). The two are
+deliberately decoupled — `AppLayout` never references sidebar state — but cohesive: wrap the shell in
+`Sidebar.Root`, place `Sidebar.Nav` as the first child of `AppLayout.Body`, and put `Sidebar.Trigger` in the
+top-left of `AppLayout.Header`. Collapse the sidebar with the trigger, toggle the notice to see the strip
+push the whole shell (sidebar included) down, and resize below `lg` for the mobile sheet.
+
+<CodeExample.Root>
+	<CodeExample.Preview className="p-0 md:p-0">
+		<AppShellDemo />
+	</CodeExample.Preview>
+	<CodeExample.Code>
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+import { Button } from "@ngrok/mantle/button";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
+import { useState } from "react";
+
+export function Shell() {
+	const [pathname, setPathname] = useState("/endpoints");
+	const [showNotice, setShowNotice] = useState(false);
+
+	return (
+		<Sidebar.Root>
+			<AppLayout.Root className="fixed inset-0">
+				<AppLayout.Notice>
+					{showNotice && (
+						<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
+							<WarningCircleIcon weight="fill" className="shrink-0" />
+							You are impersonating jane@example.com in read-only mode.
+						</div>
+					)}
+				</AppLayout.Notice>
+				<AppLayout.Body>
+					<Sidebar.Nav aria-label="Main">
+						<Sidebar.Body>
+							<Sidebar.Group>
+								<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+								<Sidebar.List>
+									<Sidebar.Item>
+										<Sidebar.ItemButton asChild current={pathname === "/endpoints"}>
+											<a
+												href="/endpoints"
+												onClick={(event) => {
+													event.preventDefault();
+													setPathname("/endpoints");
+												}}
+											>
+												<GraphIcon />
+												Endpoints
+											</a>
+										</Sidebar.ItemButton>
+									</Sidebar.Item>
+									<Sidebar.Item>
+										<Sidebar.ItemButton asChild current={pathname === "/domains"}>
+											<a
+												href="/domains"
+												onClick={(event) => {
+													event.preventDefault();
+													setPathname("/domains");
+												}}
+											>
+												<GlobeHemisphereWestIcon />
+												Domains
+											</a>
+										</Sidebar.ItemButton>
+									</Sidebar.Item>
+								</Sidebar.List>
+							</Sidebar.Group>
+						</Sidebar.Body>
+					</Sidebar.Nav>
+
+					<AppLayout.Inset>
+						<AppLayout.Content>
+							<AppLayout.Header>
+								<Sidebar.Trigger />
+								<Breadcrumb.Root>
+									<Breadcrumb.List>
+										<Breadcrumb.Item>
+											<Breadcrumb.Link href="/">Universal Gateway</Breadcrumb.Link>
+										</Breadcrumb.Item>
+										<Breadcrumb.Separator />
+										<Breadcrumb.Item>
+											<Breadcrumb.Page>Endpoints</Breadcrumb.Page>
+										</Breadcrumb.Item>
+									</Breadcrumb.List>
+								</Breadcrumb.Root>
+								<Button
+									type="button"
+									appearance="outlined"
+									intent="neutral"
+									className="ml-auto"
+									size="sm"
+									onClick={() => setShowNotice((current) => !current)}
+								>
+									Toggle notice
+								</Button>
+							</AppLayout.Header>
+							{/* your routed page content */}
+						</AppLayout.Content>
+					</AppLayout.Inset>
+				</AppLayout.Body>
+			</AppLayout.Root>
+		</Sidebar.Root>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+> [!NOTE]
+> `AppLayout.Root` fills its nearest sized ancestor by default, which is what makes it embeddable in the demo
+> above. A real app shell pins it to the viewport by merging `className="fixed inset-0"` — mantle's `cx` is
+> tailwind-merge-backed, so the override is deterministic.
+
+## Standalone
+
+The shell composes just as well without a sidebar — `AppLayout.Body`'s columns are whatever you put there.
+Nothing in the shell knows the sidebar exists; the pairing above is composition, not coupling.
+
+<CodeExample.Root>
+	<CodeExample.Preview className="p-0 md:p-0">
+		<AppLayoutDemo />
+	</CodeExample.Preview>
+	<CodeExample.Code>
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Button } from "@ngrok/mantle/button";
+import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
+import { useState } from "react";
+
+export function Shell() {
+	const [showNotice, setShowNotice] = useState(true);
+
+	return (
+		<AppLayout.Root className="fixed inset-0">
+			<AppLayout.Notice>
+				{showNotice && (
+					<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
+						<WarningCircleIcon weight="fill" className="shrink-0" />
+						You are impersonating jane@example.com in read-only mode.
+					</div>
+				)}
+			</AppLayout.Notice>
+			<AppLayout.Body>
+				<AppLayout.Inset>
+					<AppLayout.Content>
+						<AppLayout.Header>
+							<p className="text-strong text-sm font-medium">Endpoints</p>
+							<Button
+								type="button"
+								appearance="outlined"
+								intent="neutral"
+								className="ml-auto"
+								size="sm"
+								onClick={() => setShowNotice((current) => !current)}
+							>
+								Toggle notice
+							</Button>
+						</AppLayout.Header>
+						{/* your routed page content */}
+					</AppLayout.Content>
+				</AppLayout.Inset>
+			</AppLayout.Body>
+		</AppLayout.Root>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+## Composition
+
+```text showLineNumbers=false
+AppLayout.Root
+├── AppLayout.Notice
+└── AppLayout.Body
+    └── AppLayout.Inset
+        └── AppLayout.Content
+            └── AppLayout.Header
+```
+
+- **`Root`** is the outer frame (`relative isolate flex h-full w-full flex-col overflow-hidden bg-base`).
+  It fills its nearest sized ancestor; merge `className="fixed inset-0"` to pin a real app shell to the
+  viewport. The shell never scrolls — only `Content` does.
+- **`Notice`** is a full-window-width strip pinned above everything else (`w-full shrink-0`), unstyled so
+  the notice content brings its own colors. Collapses to nothing when empty. Optional.
+- **`Body`** is the main flex row (`flex min-h-0 flex-1`). Its children are the app's columns — place a
+  [`Sidebar.Nav`](/components/navigation/sidebar) (or any other rail) before `AppLayout.Inset`. The
+  `min-h-0` is what lets the content card scroll instead of the page.
+- **`Inset`** is the content column (`flex min-w-0 flex-1 flex-col gap-2 p-2`): it wraps the `Content`
+  card and owns the card gutter, keeping a consistent gap beside a sidebar.
+- **`Content`** is the scrolling content card:
+  `bg-card border-card-muted scrollbar min-h-0 flex-1 overflow-y-auto overscroll-none rounded-xl border shadow-sm`
+  — the shell's only scroll container. In a real app shell it should almost always be the `Main` landmark —
+  see [Landmarks](#landmarks).
+- **`Header`** is the sticky toolbar `<header>` rendered as `Content`'s **first child** (`sticky top-0 h-14`
+  with a hairline border): page content scrolls beneath it. The natural home for a `Sidebar.Trigger` in its
+  top-left, followed by [Breadcrumb](/components/navigation/breadcrumb) navigation or page actions. Its
+  `h-14` plus the 8px card gutter puts it on the same horizontal band as `Sidebar.Header`'s switcher row, so
+  the app switcher and content header read as one aligned row. Optional.
+
+## Landmarks
+
+Exactly one element in a document may be the Main landmark, so `AppLayout.Content` renders a plain `<div>`
+by default — composing the shell inside a page that already owns the landmark (a docs page, including the
+live demos on this page) is safe by default. But when the shell owns the document — which is the normal case
+for an app shell — `AppLayout.Content` should almost always **be** the Main landmark: compose mantle's
+[Main](/components/primitives/main) via `asChild`, and pair a
+[SkipToMainLink](/components/primitives/skip-to-main-link) as the first child of `AppLayout.Root`. Its
+default `targetId` matches `Main`'s `id="main"`, so keyboard users can jump past the sidebar's tab gauntlet
+and the toolbar straight into the content card.
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Main } from "@ngrok/mantle/main";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+
+<AppLayout.Root className="fixed inset-0">
+	<SkipToMainLink />
+	<AppLayout.Body>
+		<AppLayout.Inset>
+			<AppLayout.Content asChild>
+				<Main>{/* your routed page content */}</Main>
+			</AppLayout.Content>
+		</AppLayout.Inset>
+	</AppLayout.Body>
+</AppLayout.Root>;
+```
+
+## Polymorphism
+
+Every part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default
+element, forwarding all class names, `data-*` attributes, and the ref onto that child.
+
+<CodeExample.Root>
+	<CodeExample.Preview className="p-0 md:p-0">
+		<AppLayoutPolymorphismDemo />
+	</CodeExample.Preview>
+	<CodeExample.Code>
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+
+export function SectionContent() {
+	return (
+		<AppLayout.Root className="rounded-lg">
+			<AppLayout.Body>
+				<AppLayout.Inset>
+					<AppLayout.Content asChild>
+						<section aria-label="Demo content">
+							<p className="text-muted p-6 text-sm">
+								This scroll card is a `&lt;section&gt;` — inspect it to see the merged classes and
+								`data-slot=&quot;app-layout-content&quot;`.
+							</p>
+						</section>
+					</AppLayout.Content>
+				</AppLayout.Inset>
+			</AppLayout.Body>
+		</AppLayout.Root>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+Composing the [Main](/components/primitives/main) landmark works the same way — see
+[Landmarks](#landmarks). (This page already has its own `Main` landmark, so the live example above uses a
+`<section>` instead.)
+
+## Accessibility
+
+- `AppLayout.Header` renders a semantic `<header>` scoped to the content region — inside a `Main`-composed
+  `AppLayout.Content` it is deliberately not an ARIA `banner` landmark.
+- `AppLayout.Notice` is deliberately **not** named Banner — it renders a plain `div` and claims no landmark.
+  Give the notice content its own semantics if it needs them.
+- Compose `Main` into `AppLayout.Content` (via `asChild`) and render `SkipToMainLink` first in the shell so
+  keyboard users can jump over the sidebar and toolbar into the content card.
+- The shell never scrolls; only `AppLayout.Content` does. Focus scrolling behaves like any regular scroll
+  container.
+
+## API Reference
+
+Every part forwards its ref to the rendered element and merges `className` deterministically via `cx`
+(tailwind-merge-backed, so consumer classes win).
+
+### AppLayout.Root
+
+The outer frame of the shell: `relative isolate flex h-full w-full flex-col overflow-hidden bg-base`. Fills
+its nearest sized ancestor; merge `className="fixed inset-0"` to pin a real app shell to the viewport. The
+shell itself never scrolls — only `AppLayout.Content` does. When the shell owns the document, render a
+[SkipToMainLink](/components/primitives/skip-to-main-link) as its first child (see
+[Landmarks](#landmarks)).
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                           |
+| ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Root` styling onto alternative element types or your own components. |
+
+### AppLayout.Notice
+
+A full-window-width strip pinned above everything else in the shell — including any sidebar — for
+impersonation notices, environment warnings, and similar app-wide messaging. Renders an unstyled `<div>`
+(`w-full shrink-0`): the notice content brings its own colors and layout, and the part collapses to nothing
+when empty. Deliberately not named Banner — `AppLayout.Header` renders the page's `<header>` (the ARIA
+`banner` landmark), and this part is not that. Optional.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                             |
+| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Notice` styling onto alternative element types or your own components. |
+
+### AppLayout.Body
+
+The main horizontal region below the notice: a flex row (`flex min-h-0 flex-1`) whose children are the app's
+columns — place a [`Sidebar.Nav`](/components/navigation/sidebar) (or any other rail) before
+`AppLayout.Inset`. The `min-h-0` is what lets `AppLayout.Content` scroll instead of the page.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                           |
+| ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Body` styling onto alternative element types or your own components. |
+
+### AppLayout.Inset
+
+The content column beside the sidebar: `flex min-w-0 flex-1 flex-col gap-2 p-2`. Wraps the
+`AppLayout.Content` card and owns the card gutter, keeping a consistent gap beside a sidebar (invisible when
+both share `bg-base`).
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                            |
+| ---------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Inset` styling onto alternative element types or your own components. |
+
+### AppLayout.Header
+
+The sticky toolbar row at the top of the content card — render it as `AppLayout.Content`'s **first child**
+(`sticky top-0 z-10 h-14` with a `border-card-muted` hairline beneath it, so page content scrolls under it).
+The natural home for a [`Sidebar.Trigger`](/components/navigation/sidebar#sidebartrigger) in its top-left,
+followed by [Breadcrumb](/components/navigation/breadcrumb) navigation, search, or page-level actions. Its
+`h-14` plus the 8px card gutter vertically aligns it with `Sidebar.Header`'s switcher row. Renders a
+semantic `<header>` scoped to the content region (inside `Main` it is not an ARIA `banner` landmark).
+Optional.
+
+All props from [header](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/header#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                             |
+| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Header` styling onto alternative element types or your own components. |
+
+### AppLayout.Content
+
+The scrolling content card of the shell:
+`bg-card border-card-muted scrollbar min-h-0 flex-1 overflow-y-auto overscroll-none rounded-xl border shadow-sm`.
+The shell's only scroll container — the page body never scrolls, and `overscroll-none` keeps scroll from
+bouncing the chrome. Render `AppLayout.Header` as its first child for a sticky in-card toolbar. The card
+renders a `<div>` by default, but in a real app shell this should almost always be the
+[Main](/components/primitives/main) landmark composed via `asChild` (see [Landmarks](#landmarks)).
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                                           |
+| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Content` styling onto alternative element types (e.g. `Main`, a `<section>`) or your own components. |
