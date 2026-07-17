@@ -71,7 +71,9 @@ Root.displayName = "CenteredLayout";
  *
  * On flows that scroll (checkout, plan pickers), the strip scrolls away with
  * the page by default; merge `sticky top-0 z-20` via `className` to pin it to
- * the window.
+ * the window. To pin it alongside a sticky `Header`, wrap the two strips in
+ * a single `sticky top-0` container instead — two elements pinned at `top-0`
+ * overlap each other once the page scrolls.
  *
  * @see https://mantle.ngrok.com/layouts/centered-layout
  *
@@ -339,9 +341,10 @@ const CenteredLayout = {
 	 * brings its own colors, and the part collapses to nothing when empty. The
 	 * same slot contract as the app-layout shell's notice strip, so an
 	 * app-wide banner composes identically across mantle's layouts. Merge
-	 * `sticky top-0 z-20` via
-	 * `className` to pin it while a long flow scrolls. Optional — omitting it
-	 * is fine.
+	 * `sticky top-0 z-20` via `className` to pin it while a long flow scrolls
+	 * (to pin it alongside a sticky `Header`, wrap the two strips in a single
+	 * `sticky top-0` container instead — two elements pinned at `top-0`
+	 * overlap once the page scrolls). Optional — omitting it is fine.
 	 *
 	 * @see https://mantle.ngrok.com/layouts/centered-layout
 	 *
