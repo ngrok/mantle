@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@ngrok/mantle-server-syntax-highlighter": "workspace:*",
-    "magic-string": "0.30.21",
+    "magic-string": "1.0.0",
     "oxc-parser": "catalog:"
   },
   "devDependencies": {
@@ -48,7 +48,7 @@
   },
   "peerDependencies": {
     "@ngrok/mantle": "*",
-    "vite": "^8.1.4"
+    "vite": "^8.1.5"
   },
   "peerDependenciesMeta": {
     "vite": {
