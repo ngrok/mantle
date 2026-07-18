@@ -1,5 +1,26 @@
 # @ngrok/mantle
 
+## 0.80.0
+
+### Minor Changes
+
+- [#1339](https://github.com/ngrok/mantle/pull/1339) [`959ee6d`](https://github.com/ngrok/mantle/commit/959ee6d357b35e31c3d1d69e62e11b3151cdeb70) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - **BREAKING**: Drop React 18 support — `@ngrok/mantle` now requires `react@^19` and `react-dom@^19` peers (previously `^18 || ^19`).
+
+  - All components use React 19's native ref-as-prop instead of `forwardRef`. Call sites are unchanged (`<Button ref={ref} />` keeps working); exported components are now plain function components, and every public `*Props` type includes `ref` via `ComponentProps`.
+  - `composeRefs` and `useComposedRefs` now propagate React 19 ref cleanup functions: when a composed callback ref returns a cleanup, the composed ref returns a cleanup that invokes it (refs without cleanups still receive the legacy `null` write on detach).
+  - Removed redundant `displayName` assignments — component names are inferred from their declarations; intentional DevTools names on compound parts are kept.
+
+### Patch Changes
+
+- [#1334](https://github.com/ngrok/mantle/pull/1334) [`57cfb4d`](https://github.com/ngrok/mantle/commit/57cfb4d3ecf5c1b57f91ad9bb308e0f8f6b0344d) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `CenteredLayout.Notice`: a full-window-width strip pinned above everything else in the layout —
+  including `CenteredLayout.Header` — for impersonation notices, environment warnings, and similar app-wide
+  messaging. It renders an unstyled `<div>` (`w-full shrink-0`) that collapses to nothing when empty, the same
+  slot contract as the app-layout shell's notice strip, so an app-wide banner composes identically
+  across mantle's layouts. On
+  flows that scroll, merge `sticky top-0 z-20` via `className` to keep it pinned to the window.
+
+- [#1337](https://github.com/ngrok/mantle/pull/1337) [`758355f`](https://github.com/ngrok/mantle/commit/758355f116b53c7bff714ff0fe88fe0303ac28d2) Thanks [@forzalupo](https://github.com/forzalupo)! - Use a neutral action button for informational alert dialogs.
+
 ## 0.79.3
 
 ### Patch Changes
