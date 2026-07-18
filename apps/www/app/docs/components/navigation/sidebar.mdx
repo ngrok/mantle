@@ -153,7 +153,7 @@ export function AppShell() {
 								<DropdownMenu.Trigger asChild>
 									<Sidebar.SwitcherButton>
 										<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
-										<span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">
+										<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
 											{account.name}
 										</span>
 										<Sidebar.UserAvatar alt="Jane Doe" />
@@ -581,7 +581,9 @@ group links it to the list via `aria-labelledby`. All props from their respectiv
 
 ### Sidebar.ItemButton
 
-The interactive navigation row. All props from `button` plus:
+The interactive navigation row. Expanded spacing matches the regular sidebar; in collapsed
+`collapsible="icon"` sidebars, item rows keep their original square icon chip with a small offset so body and
+footer icons stay aligned without text peeking from the rail. All props from `button` plus:
 
 | Prop       | Type      | Default | Description                                                            |
 | ---------- | --------- | ------- | ---------------------------------------------------------------------- |
@@ -590,9 +592,12 @@ The interactive navigation row. All props from `button` plus:
 
 ### Sidebar.SwitcherButton
 
-The styled switcher row for the header (app switcher) and footer (account/user row). A styled button only —
-compose it with `DropdownMenu.Trigger asChild` or `Dialog.Trigger asChild`, which provide the open state
-(`data-state="open"` styling responds automatically). All props from `button` plus `asChild`.
+The styled switcher row for the header (app switcher) and footer (account/user row). Its leading visual is
+size-7 to match selected rail icons while the row keeps a compact 36px footprint. The control uses a custom
+10px radius on all corners so product and account switchers share the same shape around their rounded tiles.
+A styled button only — compose it with `DropdownMenu.Trigger asChild` or `Dialog.Trigger asChild`, which
+provide the open state (`data-state="open"` styling responds automatically). All props from `button` plus
+`asChild`.
 
 Inside a collapsed icon rail (`collapsible="icon"`), the row collapses to its **first child element** — the
 leading visual — and the remaining children become visually hidden while staying in the accessibility tree,
@@ -601,14 +606,16 @@ participates.
 
 ### Sidebar.Separator
 
-An inset hairline between sidebar regions, aligned with the `px-3` content padding of `Sidebar.Body` and
-`Sidebar.Footer` (it deliberately does not run edge to edge). All props from
-[Separator](/components/structure/separator).
+An inset hairline between sidebar regions, aligned with the surrounding `Sidebar.Body` and `Sidebar.Footer`
+padding (it deliberately does not run edge to edge). In expanded `collapsible="icon"` sidebars, those
+regions trim their trailing inset to account for the adjacent app-content gutter. In collapsed
+`collapsible="icon"` sidebars, the separator widens to the collapsed switcher chip width so it stays
+optically centered between the viewport edge and content card. All props from [Separator](/components/structure/separator).
 
 ### Sidebar.AccountAvatar
 
-A rounded-square account avatar. The swatch color derives deterministically from `accountId` (stable across
-sessions and devices) and every swatch keeps at least 4.5:1 contrast under the white initials.
+A `size-7` rounded-square account avatar. The swatch color derives deterministically from `accountId` (stable
+across sessions and devices) using the prototype account switcher palette.
 
 | Prop          | Type                  | Default | Description                                              |
 | ------------- | --------------------- | ------- | -------------------------------------------------------- |
@@ -617,7 +624,7 @@ sessions and devices) and every swatch keeps at least 4.5:1 contrast under the w
 
 ### Sidebar.UserAvatar
 
-A circular user avatar with a silhouette fallback.
+A `size-7` circular user avatar with a silhouette fallback.
 
 | Prop   | Type     | Default          | Description                                                   |
 | ------ | -------- | ---------------- | ------------------------------------------------------------- |
