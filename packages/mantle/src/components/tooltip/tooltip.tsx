@@ -1,6 +1,5 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { forwardRef } from "react";
-import type { ComponentProps, ComponentPropsWithoutRef, ComponentRef } from "react";
+import type { ComponentProps, ComponentPropsWithoutRef } from "react";
 import { cx } from "../../utils/cx/cx.js";
 
 /**
@@ -117,10 +116,13 @@ Trigger.displayName = "Tooltip.Trigger";
  * </Tooltip.Root>
  * ```
  */
-const Content = forwardRef<
-	ComponentRef<typeof TooltipPrimitive.Content>,
-	ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
->(({ children, className, sideOffset = 4, ...props }, ref) => (
+const Content = ({
+	children,
+	className,
+	ref,
+	sideOffset = 4,
+	...props
+}: ComponentProps<typeof TooltipPrimitive.Content>) => (
 	<TooltipPrimitive.Portal>
 		<TooltipPrimitive.Content
 			className={cx(
@@ -138,7 +140,7 @@ const Content = forwardRef<
 			</TooltipPrimitive.Arrow>
 		</TooltipPrimitive.Content>
 	</TooltipPrimitive.Portal>
-));
+);
 Content.displayName = "Tooltip.Content";
 
 /**

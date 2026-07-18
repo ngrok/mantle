@@ -26,6 +26,7 @@ Single source of truth for code style, patterns, and conventions in the Mantle d
 - Prefer inline single-use event handlers when they improve locality and readability. Hoist handlers only when reused, memoized, or meaningfully simplifying the render body.
 - Avoid nested ternaries. Prefer early returns or component-based branching. A single ternary is fine; nesting harms readability.
 - Never use `React.FC` / `FC` — use inline function types.
+- Never use `forwardRef` — mantle targets React 19+, where `ref` is a regular prop. Base props on `ComponentProps<…>` (which includes `ref`) and destructure `ref` from props when the implementation needs it.
 - Prefer named options objects over positional params: any boolean param, 3+ params, or 2 params when call sites would not be self-evident (`fn({ enabled: true })`, not `fn(true)`).
 - Optimize APIs for readability at the call site. Shared abstractions should make common usage simpler and more obvious, not merely reduce implementation duplication.
 - Do not use deprecated APIs or features — pick the current replacement. Only reach for a deprecated path when it is genuinely unavoidable (no working substitute, or a framework/runtime constraint forces it) and leave a short `// Why:` comment naming the constraint.
@@ -129,7 +130,7 @@ const Command = {
 1. A compound's namespace object has exactly one level of properties.
 2. If a sub-feature relates to a different existing primitive (e.g. Command's dialog-wrapped variant), flatten the relationship into member names (`DialogRoot`, `DialogTrigger`, `DialogContent`) rather than nesting.
 3. Do not re-export another component's namespace under your namespace. If consumers need that primitive, they can import it directly.
-4. Each member of a compound namespace must be a directly-defined component or `forwardRef` result whose type has an explicit name (`forwardRef<…, …>(…)`, `ComponentType<…>`, etc.) — not an inferred literal whose shape depends on chasing types through external packages.
+4. Each member of a compound namespace must be a directly-defined component whose type has an explicit name (a plain function component with annotated props, `ComponentType<…>`, etc.) — not an inferred literal whose shape depends on chasing types through external packages.
 5. When wrapping a third-party namespace primitive (e.g. Radix), explicitly annotate the enclosing namespace object's type so `.d.ts` emit doesn't have to synthesize it: `const Foo: { Root: typeof Root; … } = { … }`.
 6. Every compound's outermost part is named `Root` — even when the compound has no separate state owner and `Root` is the whole component. Consumers should never have to learn which part is outermost per component.
 

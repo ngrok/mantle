@@ -1,5 +1,5 @@
-import type { ComponentRef, ReactNode } from "react";
-import { Children, cloneElement, forwardRef, isValidElement } from "react";
+import type { ReactNode } from "react";
+import { Children, cloneElement, isValidElement } from "react";
 import invariant from "tiny-invariant";
 import { cx } from "../../utils/cx/cx.js";
 import type { SvgAttributes } from "./types.js";
@@ -24,27 +24,24 @@ type SvgOnlyProps = Omit<SvgAttributes, "children"> & {
  * <SvgOnly svg={<ShrimpIcon />} />
  * ```
  */
-const SvgOnly = forwardRef<ComponentRef<"svg">, SvgOnlyProps>(
-	({ className, style, svg, ...props }, ref) => {
-		invariant(
-			isValidElement<SvgAttributes>(svg) && Children.only(svg),
-			"SvgOnly must be passed a single SVG icon as a JSX tag.",
-		);
+const SvgOnly = ({ className, style, svg, ref, ...props }: SvgOnlyProps) => {
+	invariant(
+		isValidElement<SvgAttributes>(svg) && Children.only(svg),
+		"SvgOnly must be passed a single SVG icon as a JSX tag.",
+	);
 
-		return cloneElement(svg, {
-			"data-slot": "svg-only",
-			...props,
-			className: cx(
-				"shrink-0", // the SvgOnly base classes
-				className, // the SvgOnly className
-				svg.props.className, // the svg className
-			),
-			style: { ...style, ...svg.props.style },
-			ref,
-		});
-	},
-);
-SvgOnly.displayName = "SvgOnly";
+	return cloneElement(svg, {
+		"data-slot": "svg-only",
+		...props,
+		className: cx(
+			"shrink-0", // the SvgOnly base classes
+			className, // the SvgOnly className
+			svg.props.className, // the svg className
+		),
+		style: { ...style, ...svg.props.style },
+		ref,
+	});
+};
 
 export {
 	//,

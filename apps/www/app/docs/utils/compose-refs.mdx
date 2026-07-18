@@ -15,19 +15,19 @@ import { composeRefs } from "@ngrok/mantle/utils";
 
 ## Usage
 
-### With `forwardRef`
+### Forwarding a ref while keeping an internal ref
 
-The most common use case: forward a ref to a parent while keeping an internal ref for the component itself.
+The most common use case: accept a `ref` prop from the parent while keeping an internal ref for the component itself.
 
 ```tsx
-import { forwardRef, useRef } from "react";
+import { useRef, type ComponentProps } from "react";
 import { composeRefs } from "@ngrok/mantle/utils";
 
-const MyInput = forwardRef<HTMLInputElement>((props, forwardedRef) => {
+const MyInput = ({ ref: forwardedRef, ...props }: ComponentProps<"input">) => {
 	const internalRef = useRef<HTMLInputElement>(null);
 
 	return <input ref={composeRefs(internalRef, forwardedRef)} {...props} />;
-});
+};
 ```
 
 ### With multiple refs
@@ -67,9 +67,9 @@ function Example() {
 ## API
 
 ```ts
-function composeRefs<T>(...refs: PossibleRef<T>[]): (node: T) => void;
+function composeRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T>;
 
 type PossibleRef<T> = React.Ref<T> | undefined;
 ```
 
-Accepts any number of refs (callback refs, `RefObject`s, or `undefined`). Returns a single callback ref that, when called with a node, assigns the node to all provided refs. `undefined` refs are safely skipped.
+Accepts any number of refs (callback refs, `RefObject`s, or `undefined`). Returns a single callback ref that, when called with a node, assigns the node to all provided refs. `undefined` refs are safely skipped. When a callback ref returns a React 19 ref cleanup function, the composed ref propagates it, so each cleanup runs on unmount.

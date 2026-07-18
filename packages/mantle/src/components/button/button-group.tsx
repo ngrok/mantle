@@ -1,5 +1,5 @@
 import { cva } from "class-variance-authority";
-import { type ComponentProps, type ComponentRef, forwardRef } from "react";
+import type { ComponentProps } from "react";
 import type { VariantProps } from "../../types/index.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -40,22 +40,26 @@ type ButtonGroupProps = ComponentProps<"div"> & ButtonGroupVariants & WithAsChil
  * </ButtonGroup>
  * ```
  */
-const ButtonGroup = forwardRef<ComponentRef<"div">, ButtonGroupProps>(
-	({ appearance, asChild, className, children, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
-		return (
-			<Comp
-				data-slot="button-group"
-				className={cx(buttonGroupVariants({ appearance }), className)}
-				ref={ref}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
-ButtonGroup.displayName = "ButtonGroup";
+const ButtonGroup = ({
+	appearance,
+	asChild,
+	className,
+	children,
+	ref,
+	...props
+}: ButtonGroupProps) => {
+	const Comp = asChild ? Slot : "div";
+	return (
+		<Comp
+			data-slot="button-group"
+			className={cx(buttonGroupVariants({ appearance }), className)}
+			ref={ref}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 
 export {
 	//,

@@ -101,8 +101,6 @@ function Root({ className, children, max: _max = defaultMax, value: _value, ...p
 		</ProgressContext.Provider>
 	);
 }
-Root.displayName = "Root";
-
 type IndicatorProps = ComponentProps<typeof ProgressPrimitive.Indicator>;
 
 /**
@@ -140,8 +138,6 @@ function Indicator({ className, style, ...props }: IndicatorProps) {
 		/>
 	);
 }
-Indicator.displayName = "Indicator";
-
 /**
  * Displays an indicator showing the completion progress of a task, typically displayed as a progress bar.
  *

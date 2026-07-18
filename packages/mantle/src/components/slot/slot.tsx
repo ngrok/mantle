@@ -1,5 +1,5 @@
 import { Slot as RadixSlot } from "@radix-ui/react-slot";
-import { Children, type ComponentProps, cloneElement, forwardRef, isValidElement } from "react";
+import { Children, type ComponentProps, cloneElement, isValidElement } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -23,16 +23,13 @@ type Props = ComponentProps<typeof RadixSlot> & WithDataSlot;
  * </Slot>
  * ```
  */
-const Slot = forwardRef<HTMLElement, Props>(function Slot(
-	{ children, className, "data-slot": dataSlot, ...props },
-	forwardedRef,
-) {
+const Slot = ({ children, className, "data-slot": dataSlot, ref, ...props }: Props) => {
 	if (!isValidElement<{ className?: string } & WithDataSlot>(children)) {
 		return Children.only(children);
 	}
 
 	return (
-		<RadixSlot ref={forwardedRef} {...props}>
+		<RadixSlot ref={ref} {...props}>
 			{cloneElement(children, {
 				...children.props,
 				/**
@@ -56,7 +53,7 @@ const Slot = forwardRef<HTMLElement, Props>(function Slot(
 			})}
 		</RadixSlot>
 	);
-});
+};
 
 export {
 	//,

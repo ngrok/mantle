@@ -61,8 +61,6 @@ const SortIcon = ({ mode, direction, ...props }: Props) => {
 		}
 	}
 };
-SortIcon.displayName = "SortIcon";
-
 export {
 	//,
 	SortIcon,

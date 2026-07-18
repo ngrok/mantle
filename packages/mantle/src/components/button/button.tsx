@@ -1,7 +1,7 @@
 import { CircleNotchIcon } from "@phosphor-icons/react/CircleNotch";
 import { cva } from "class-variance-authority";
 import type { ComponentProps, ReactNode } from "react";
-import { Children, cloneElement, forwardRef, isValidElement } from "react";
+import { Children, cloneElement, isValidElement } from "react";
 import invariant from "tiny-invariant";
 import { parseBooleanish } from "../../types/index.js";
 import type { WithAsChild } from "../../types/index.js";
@@ -265,89 +265,82 @@ type ButtonProps = ComponentProps<"button"> &
  * <IconButton appearance="outlined" intent="neutral" icon={<CopyIcon />} label="Copy page" onClick={copyPage} />
  * ```
  */
-const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-	(
-		{
-			"aria-disabled": _ariaDisabled,
-			appearance,
-			asChild,
-			children,
+const Button = ({
+	"aria-disabled": _ariaDisabled,
+	appearance,
+	asChild,
+	children,
+	className,
+	disabled: _disabled,
+	icon: propIcon,
+	iconPlacement = "start",
+	intent,
+	isLoading = false,
+	ref,
+	size = "md",
+	type,
+	...props
+}: ButtonProps) => {
+	const disabled = parseBooleanish(_ariaDisabled ?? _disabled ?? isLoading);
+	const icon = isLoading ? <CircleNotchIcon className="animate-spin" /> : propIcon;
+
+	/**
+	 * If the button has an icon and is not a link, add padding-start or padding-end to the button depending on the icon placement.
+	 */
+	const hasSpecialIconPadding = icon && appearance !== "link";
+
+	const buttonProps = {
+		"aria-disabled": disabled,
+		"data-slot": "button",
+		className: cx(
+			"inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md",
+			"focus:outline-hidden focus-visible:ring-4",
+			"disabled:cursor-default disabled:opacity-50",
+			"not-disabled:active:scale-97 ease-out transition-transform duration-150",
+			buttonVariants({ appearance, intent, isLoading, size }),
+			appearance !== "link" && "font-sans", // only enforce font-sans on non-link button appearances
+			hasSpecialIconPadding && iconPlacement === "start" && iconPaddingStart[size],
+			hasSpecialIconPadding && iconPlacement === "end" && iconPaddingEnd[size],
 			className,
-			disabled: _disabled,
-			icon: propIcon,
-			iconPlacement = "start",
-			intent,
-			isLoading = false,
-			size = "md",
-			type,
-			...props
-		},
+		),
+		"data-appearance": appearance,
+		"data-disabled": disabled,
+		"data-intent": intent,
+		"data-loading": isLoading,
+		"data-size": appearance === "link" ? undefined : size,
+		disabled,
 		ref,
-	) => {
-		const disabled = parseBooleanish(_ariaDisabled ?? _disabled ?? isLoading);
-		const icon = isLoading ? <CircleNotchIcon className="animate-spin" /> : propIcon;
+		...props,
+	};
 
-		/**
-		 * If the button has an icon and is not a link, add padding-start or padding-end to the button depending on the icon placement.
-		 */
-		const hasSpecialIconPadding = icon && appearance !== "link";
-
-		const buttonProps = {
-			"aria-disabled": disabled,
-			"data-slot": "button",
-			className: cx(
-				"inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md",
-				"focus:outline-hidden focus-visible:ring-4",
-				"disabled:cursor-default disabled:opacity-50",
-				"not-disabled:active:scale-97 ease-out transition-transform duration-150",
-				buttonVariants({ appearance, intent, isLoading, size }),
-				appearance !== "link" && "font-sans", // only enforce font-sans on non-link button appearances
-				hasSpecialIconPadding && iconPlacement === "start" && iconPaddingStart[size],
-				hasSpecialIconPadding && iconPlacement === "end" && iconPaddingEnd[size],
-				className,
-			),
-			"data-appearance": appearance,
-			"data-disabled": disabled,
-			"data-intent": intent,
-			"data-loading": isLoading,
-			"data-size": appearance === "link" ? undefined : size,
-			disabled,
-			ref,
-			...props,
-		};
-
-		if (asChild) {
-			invariant(
-				isValidElement<{ children?: ReactNode }>(children) && Children.only(children),
-				"When using `asChild`, Button must be passed a single child as a JSX tag.",
-			);
-
-			return (
-				<Slot {...buttonProps}>
-					{cloneElement(
-						children,
-						{},
-						<>
-							{icon && (
-								<Icon svg={icon} className={clsx(iconPlacement === "end" && "order-last")} />
-							)}
-							{children.props.children}
-						</>,
-					)}
-				</Slot>
-			);
-		}
+	if (asChild) {
+		invariant(
+			isValidElement<{ children?: ReactNode }>(children) && Children.only(children),
+			"When using `asChild`, Button must be passed a single child as a JSX tag.",
+		);
 
 		return (
-			// oxlint-disable-next-line react/button-has-type -- `type` defaults to "button" at runtime via the `?? "button"` fallback; the static analyzer can't resolve that expression.
-			<button {...buttonProps} type={type ?? "button"}>
-				{icon && <Icon svg={icon} className={clsx(iconPlacement === "end" && "order-last")} />}
-				{children}
-			</button>
+			<Slot {...buttonProps}>
+				{cloneElement(
+					children,
+					{},
+					<>
+						{icon && <Icon svg={icon} className={clsx(iconPlacement === "end" && "order-last")} />}
+						{children.props.children}
+					</>,
+				)}
+			</Slot>
 		);
-	},
-);
-Button.displayName = "Button";
+	}
+
+	return (
+		// oxlint-disable-next-line react/button-has-type -- `type` defaults to "button" at runtime via the `?? "button"` fallback; the static analyzer can't resolve that expression.
+		<button {...buttonProps} type={type ?? "button"}>
+			{icon && <Icon svg={icon} className={clsx(iconPlacement === "end" && "order-last")} />}
+			{children}
+		</button>
+	);
+};
 
 export {
 	//,

@@ -6,11 +6,9 @@ import { WarningIcon } from "@phosphor-icons/react/Warning";
 import { WarningDiamondIcon } from "@phosphor-icons/react/WarningDiamond";
 import {
 	type ComponentProps,
-	type ComponentRef,
 	type MouseEvent,
 	type ReactNode,
 	createContext,
-	forwardRef,
 	useContext,
 	useMemo,
 } from "react";
@@ -80,7 +78,6 @@ const Toaster = ({
 		/>
 	);
 };
-Toaster.displayName = "Toaster";
 
 const ToastIdContext = createContext<string | number>("");
 
@@ -190,36 +187,34 @@ type ToastProps = ComponentProps<"div"> &
  * </Toast.Root>
  * ```
  */
-const Root = forwardRef<ComponentRef<"div">, ToastProps>(
-	({ asChild, children, className, intent, ...props }, ref) => {
-		const Component = asChild ? Slot : "div";
-		const contextValue = useMemo(() => ({ intent }), [intent]);
+const Root = ({ asChild, children, className, intent, ref, ...props }: ToastProps) => {
+	const Component = asChild ? Slot : "div";
+	const contextValue = useMemo(() => ({ intent }), [intent]);
 
-		return (
-			<ToastStateContext.Provider value={contextValue}>
-				<Component
-					data-slot="toast"
-					className={cx(
-						"relative flex items-start gap-2 text-sm font-sans",
-						"p-3 pl-3.75",
-						"bg-popover high-contrast:border-popover rounded rounded-r-[0.3125rem] border border-gray-500/35 shadow-lg",
-						/**
-						 * Do not apply overflow-hidden because we want the intent bar accent
-						 * to overlap the toast border, else the border flows over the
-						 * intent bar.
-						 */
-						className,
-					)}
-					ref={ref}
-					{...props}
-				>
-					<IntentBarAccent intent={intent} />
-					{children}
-				</Component>
-			</ToastStateContext.Provider>
-		);
-	},
-);
+	return (
+		<ToastStateContext.Provider value={contextValue}>
+			<Component
+				data-slot="toast"
+				className={cx(
+					"relative flex items-start gap-2 text-sm font-sans",
+					"p-3 pl-3.75",
+					"bg-popover high-contrast:border-popover rounded rounded-r-[0.3125rem] border border-gray-500/35 shadow-lg",
+					/**
+					 * Do not apply overflow-hidden because we want the intent bar accent
+					 * to overlap the toast border, else the border flows over the
+					 * intent bar.
+					 */
+					className,
+				)}
+				ref={ref}
+				{...props}
+			>
+				<IntentBarAccent intent={intent} />
+				{children}
+			</Component>
+		</ToastStateContext.Provider>
+	);
+};
 Root.displayName = "Toast";
 
 type ToastIconProps = Partial<SvgOnlyProps>;
@@ -238,57 +233,55 @@ type ToastIconProps = Partial<SvgOnlyProps>;
  * </Toast.Root>
  * ```
  */
-const Icon = forwardRef<ComponentRef<"svg">, ToastIconProps>(
-	({ className, svg, ...props }, ref) => {
-		const ctx = useContext(ToastStateContext);
+const Icon = ({ className, svg, ref, ...props }: ToastIconProps) => {
+	const ctx = useContext(ToastStateContext);
 
-		switch (ctx.intent) {
-			case "danger":
-				return (
-					<IconComponent
-						data-slot="toast-icon"
-						className={cx("text-danger-600", className)}
-						ref={ref}
-						svg={svg ?? <WarningIcon weight="fill" />}
-						{...props}
-					/>
-				);
-			case "warning":
-				return (
-					<IconComponent
-						data-slot="toast-icon"
-						className={cx("text-warning-600", className)}
-						ref={ref}
-						svg={svg ?? <WarningDiamondIcon weight="fill" />}
-						{...props}
-					/>
-				);
-			case "success":
-				return (
-					<IconComponent
-						data-slot="toast-icon"
-						className={cx("text-success-600", className)}
-						ref={ref}
-						svg={svg ?? <CheckCircleIcon weight="fill" />}
-						{...props}
-					/>
-				);
-			case "info":
-				return (
-					<IconComponent
-						//
-						data-slot="toast-icon"
-						className={cx("text-accent-600", className)}
-						ref={ref}
-						svg={<InfoIcon weight="fill" />}
-						{...props}
-					/>
-				);
-			default:
-				throw new Error(`Unreachable Case: ${ctx.intent}`);
-		}
-	},
-);
+	switch (ctx.intent) {
+		case "danger":
+			return (
+				<IconComponent
+					data-slot="toast-icon"
+					className={cx("text-danger-600", className)}
+					ref={ref}
+					svg={svg ?? <WarningIcon weight="fill" />}
+					{...props}
+				/>
+			);
+		case "warning":
+			return (
+				<IconComponent
+					data-slot="toast-icon"
+					className={cx("text-warning-600", className)}
+					ref={ref}
+					svg={svg ?? <WarningDiamondIcon weight="fill" />}
+					{...props}
+				/>
+			);
+		case "success":
+			return (
+				<IconComponent
+					data-slot="toast-icon"
+					className={cx("text-success-600", className)}
+					ref={ref}
+					svg={svg ?? <CheckCircleIcon weight="fill" />}
+					{...props}
+				/>
+			);
+		case "info":
+			return (
+				<IconComponent
+					//
+					data-slot="toast-icon"
+					className={cx("text-accent-600", className)}
+					ref={ref}
+					svg={<InfoIcon weight="fill" />}
+					{...props}
+				/>
+			);
+		default:
+			throw new Error(`Unreachable Case: ${ctx.intent}`);
+	}
+};
 Icon.displayName = "ToastIcon";
 
 type ToastActionProps = ComponentProps<"button"> & WithAsChild;
@@ -308,37 +301,35 @@ type ToastActionProps = ComponentProps<"button"> & WithAsChild;
  * </Toast.Root>
  * ```
  */
-const Action = forwardRef<ComponentRef<"button">, ToastActionProps>(
-	({ asChild, className, onClick, ...props }, ref) => {
-		const ctx = useContext(ToastIdContext);
+const Action = ({ asChild, className, onClick, ref, ...props }: ToastActionProps) => {
+	const ctx = useContext(ToastIdContext);
 
-		const Component = asChild ? Slot : "button";
+	const Component = asChild ? Slot : "button";
 
-		return (
-			<Component
-				data-slot="toast-action"
-				className={cx(
-					//,
-					"shrink-0",
-					// 👇 wiggle the bits so that icon buttons toast actions are aligned with the toast icon
-					"data-icon-button:-mr-0.5 data-icon-button:-mt-0.5 data-icon-button:rounded-xs",
-					className,
-				)}
-				// Why: the asChild union (Slot | "button") no longer infers a single
-				// event type; React event handlers are bivariant, so pin the param.
-				onClick={(event: MouseEvent<HTMLButtonElement>) => {
-					onClick?.(event);
-					if (event.defaultPrevented) {
-						return;
-					}
-					ToastPrimitive.toast.dismiss(ctx);
-				}}
-				ref={ref}
-				{...props}
-			/>
-		);
-	},
-);
+	return (
+		<Component
+			data-slot="toast-action"
+			className={cx(
+				//,
+				"shrink-0",
+				// 👇 wiggle the bits so that icon buttons toast actions are aligned with the toast icon
+				"data-icon-button:-mr-0.5 data-icon-button:-mt-0.5 data-icon-button:rounded-xs",
+				className,
+			)}
+			// Why: the asChild union (Slot | "button") no longer infers a single
+			// event type; React event handlers are bivariant, so pin the param.
+			onClick={(event: MouseEvent<HTMLButtonElement>) => {
+				onClick?.(event);
+				if (event.defaultPrevented) {
+					return;
+				}
+				ToastPrimitive.toast.dismiss(ctx);
+			}}
+			ref={ref}
+			{...props}
+		/>
+	);
+};
 Action.displayName = "ToastAction";
 
 type ToastMessageProps = ComponentProps<"p"> & WithAsChild;
@@ -356,21 +347,19 @@ type ToastMessageProps = ComponentProps<"p"> & WithAsChild;
  * </Toast.Root>
  * ```
  */
-const Message = forwardRef<ComponentRef<"p">, ToastMessageProps>(
-	({ asChild, className, ...props }, ref) => {
-		const Component = asChild ? Slot : "p";
+const Message = ({ asChild, className, ref, ...props }: ToastMessageProps) => {
+	const Component = asChild ? Slot : "p";
 
-		return (
-			<Component
-				//
-				data-slot="toast-message"
-				className={cx("text-strong flex-1 text-sm font-body", className)}
-				ref={ref}
-				{...props}
-			/>
-		);
-	},
-);
+	return (
+		<Component
+			//
+			data-slot="toast-message"
+			className={cx("text-strong flex-1 text-sm font-body", className)}
+			ref={ref}
+			{...props}
+		/>
+	);
+};
 Message.displayName = "ToastMessage";
 
 /**

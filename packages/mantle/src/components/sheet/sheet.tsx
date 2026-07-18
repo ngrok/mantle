@@ -1,7 +1,6 @@
 import { XIcon } from "@phosphor-icons/react/X";
 import { type VariantProps, cva } from "class-variance-authority";
-import type { ComponentPropsWithoutRef, ComponentRef, HTMLAttributes } from "react";
-import { forwardRef } from "react";
+import type { ComponentProps, HTMLAttributes } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import {
 	IconButton,
@@ -214,10 +213,11 @@ SheetPortal.displayName = "SheetPortal";
  *
  * @private
  */
-const SheetOverlay = forwardRef<
-	ComponentRef<typeof SheetPrimitive.Overlay>,
-	ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
->(({ className, ...props }, ref) => (
+const SheetOverlay = ({
+	className,
+	ref,
+	...props
+}: ComponentProps<typeof SheetPrimitive.Overlay>) => (
 	<SheetPrimitive.Overlay
 		data-slot="sheet-overlay"
 		className={cx(
@@ -227,7 +227,7 @@ const SheetOverlay = forwardRef<
 		{...props}
 		ref={ref}
 	/>
-));
+);
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const SheetVariants = cva(
@@ -249,7 +249,7 @@ const SheetVariants = cva(
 	},
 );
 
-type SheetContentProps = ComponentPropsWithoutRef<typeof SheetPrimitive.Content> &
+type SheetContentProps = ComponentProps<typeof SheetPrimitive.Content> &
 	VariantProps<typeof SheetVariants> & {
 		/**
 		 * The preferred width of the `Sheet.Content` as a tailwind `max-w-` class.
@@ -318,21 +318,26 @@ type SheetContentProps = ComponentPropsWithoutRef<typeof SheetPrimitive.Content>
  * </Sheet.Root>
  * ```
  */
-const Content = forwardRef<ComponentRef<"div">, SheetContentProps>(
-	({ children, className, preferredWidth = "sm:max-w-[30rem]", side = "right", ...props }, ref) => (
-		<SheetPortal>
-			<SheetOverlay />
-			<SheetPrimitive.Content
-				data-slot="sheet-content"
-				data-mantle-modal-content
-				className={cx(SheetVariants({ side }), preferredWidth, className)}
-				ref={ref}
-				{...props}
-			>
-				{children}
-			</SheetPrimitive.Content>
-		</SheetPortal>
-	),
+const Content = ({
+	children,
+	className,
+	preferredWidth = "sm:max-w-[30rem]",
+	side = "right",
+	ref,
+	...props
+}: SheetContentProps) => (
+	<SheetPortal>
+		<SheetOverlay />
+		<SheetPrimitive.Content
+			data-slot="sheet-content"
+			data-mantle-modal-content
+			className={cx(SheetVariants({ side }), preferredWidth, className)}
+			ref={ref}
+			{...props}
+		>
+			{children}
+		</SheetPrimitive.Content>
+	</SheetPortal>
 );
 Content.displayName = SheetPrimitive.Content.displayName;
 
@@ -669,17 +674,14 @@ Footer.displayName = "SheetFooter";
  * </Sheet.Root>
  * ```
  */
-const Title = forwardRef<
-	ComponentRef<typeof SheetPrimitive.Title>,
-	ComponentPropsWithoutRef<typeof SheetPrimitive.Title>
->(({ className, ...props }, ref) => (
+const Title = ({ className, ref, ...props }: ComponentProps<typeof SheetPrimitive.Title>) => (
 	<SheetPrimitive.Title
 		data-slot="sheet-title"
 		ref={ref}
 		className={cx("text-strong flex-1 truncate text-lg font-medium", className)}
 		{...props}
 	/>
-));
+);
 Title.displayName = SheetPrimitive.Title.displayName;
 
 /**
@@ -731,17 +733,15 @@ Title.displayName = SheetPrimitive.Title.displayName;
  * </Sheet.Root>
  * ```
  */
-const TitleGroup = forwardRef<ComponentRef<"div">, HTMLAttributes<HTMLDivElement>>(
-	({ children, className, ...props }, ref) => (
-		<div
-			data-slot="sheet-title-group"
-			className={cx("flex items-center justify-between gap-2", className)}
-			{...props}
-			ref={ref}
-		>
-			{children}
-		</div>
-	),
+const TitleGroup = ({ children, className, ref, ...props }: ComponentProps<"div">) => (
+	<div
+		data-slot="sheet-title-group"
+		className={cx("flex items-center justify-between gap-2", className)}
+		{...props}
+		ref={ref}
+	>
+		{children}
+	</div>
 );
 TitleGroup.displayName = "SheetTitleGroup";
 
@@ -794,17 +794,18 @@ TitleGroup.displayName = "SheetTitleGroup";
  * </Sheet.Root>
  * ```
  */
-const Description = forwardRef<
-	ComponentRef<typeof SheetPrimitive.Description>,
-	ComponentPropsWithoutRef<typeof SheetPrimitive.Description>
->(({ className, ...props }, ref) => (
+const Description = ({
+	className,
+	ref,
+	...props
+}: ComponentProps<typeof SheetPrimitive.Description>) => (
 	<SheetPrimitive.Description
 		data-slot="sheet-description"
 		ref={ref}
 		className={cx("text-body text-sm", className)}
 		{...props}
 	/>
-));
+);
 Description.displayName = SheetPrimitive.Description.displayName;
 
 /**
@@ -856,17 +857,15 @@ Description.displayName = SheetPrimitive.Description.displayName;
  * </Sheet.Root>
  * ```
  */
-const Actions = forwardRef<ComponentRef<"div">, HTMLAttributes<HTMLDivElement>>(
-	({ children, className, ...props }, ref) => (
-		<div
-			data-slot="sheet-actions"
-			className={cx("flex h-full items-center gap-2", className)}
-			{...props}
-			ref={ref}
-		>
-			{children}
-		</div>
-	),
+const Actions = ({ children, className, ref, ...props }: ComponentProps<"div">) => (
+	<div
+		data-slot="sheet-actions"
+		className={cx("flex h-full items-center gap-2", className)}
+		{...props}
+		ref={ref}
+	>
+		{children}
+	</div>
 );
 Actions.displayName = "SheetActions";
 

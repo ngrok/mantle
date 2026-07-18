@@ -5,12 +5,11 @@ import {
 	Trigger as TabsPrimitiveTrigger,
 } from "@radix-ui/react-tabs";
 import { cva } from "class-variance-authority";
-import type { ComponentPropsWithoutRef, ComponentRef, HTMLAttributes } from "react";
+import type { ComponentProps, ComponentRef, HTMLAttributes } from "react";
 import {
 	Children,
 	cloneElement,
 	createContext,
-	forwardRef,
 	isValidElement,
 	useContext,
 	useEffect,
@@ -60,17 +59,20 @@ const TabsStateContext = createContext<TabsStateContextValue>({
  * </Tabs.Root>
  * ```
  */
-const Root = forwardRef<
-	ComponentRef<typeof TabsPrimitiveRoot>,
-	ComponentPropsWithoutRef<typeof TabsPrimitiveRoot> & {
-		/**
-		 * The appearance of the tabs. Classic appearance shows the tab
-		 * list with an underline; pill appearance shows each tab as a pill.
-		 * @default "classic"
-		 */
-		appearance?: "classic" | "pill";
-	}
->(({ className, children, orientation = "horizontal", appearance = "classic", ...props }, ref) => {
+const Root = ({
+	className,
+	children,
+	orientation = "horizontal",
+	appearance = "classic",
+	...props
+}: ComponentProps<typeof TabsPrimitiveRoot> & {
+	/**
+	 * The appearance of the tabs. Classic appearance shows the tab
+	 * list with an underline; pill appearance shows each tab as a pill.
+	 * @default "classic"
+	 */
+	appearance?: "classic" | "pill";
+}) => {
 	const contextValue = useMemo(() => ({ orientation, appearance }), [orientation, appearance]);
 	return (
 		<TabsPrimitiveRoot
@@ -82,13 +84,12 @@ const Root = forwardRef<
 				className,
 			)}
 			orientation={orientation}
-			ref={ref}
 			{...props}
 		>
 			<TabsStateContext.Provider value={contextValue}>{children}</TabsStateContext.Provider>
 		</TabsPrimitiveRoot>
 	);
-});
+};
 Root.displayName = "Tabs";
 
 /**
@@ -204,19 +205,21 @@ const listVariants = cva("flex", {
  * </Tabs.List>
  * ```
  */
-const List = forwardRef<
-	ComponentRef<typeof TabsPrimitiveList>,
-	ComponentPropsWithoutRef<typeof TabsPrimitiveList> & {
-		/**
-		 * Hide the tablist's border — the bottom border of a horizontal classic
-		 * tablist, or the side border of a vertical one. Also rendered as a
-		 * `data-hide-border` attribute on the tablist element. Has no effect on
-		 * the pill appearance, which never draws a border.
-		 * @default false
-		 */
-		hideBorder?: boolean;
-	}
->(({ className, hideBorder = false, ...props }, ref) => {
+const List = ({
+	className,
+	hideBorder = false,
+	ref,
+	...props
+}: ComponentProps<typeof TabsPrimitiveList> & {
+	/**
+	 * Hide the tablist's border — the bottom border of a horizontal classic
+	 * tablist, or the side border of a vertical one. Also rendered as a
+	 * `data-hide-border` attribute on the tablist element. Has no effect on
+	 * the pill appearance, which never draws a border.
+	 * @default false
+	 */
+	hideBorder?: boolean;
+}) => {
 	const { orientation, appearance } = useContext(TabsStateContext);
 	const scrollRef = useRef<ComponentRef<typeof TabsPrimitiveList>>(null);
 
@@ -268,10 +271,10 @@ const List = forwardRef<
 			{...props}
 		/>
 	);
-});
+};
 List.displayName = "TabsList";
 
-type TabsTriggerProps = ComponentPropsWithoutRef<typeof TabsPrimitiveTrigger>;
+type TabsTriggerProps = ComponentProps<typeof TabsPrimitiveTrigger>;
 
 /**
  * Variants for the TabsTriggerDecoration component
@@ -296,7 +299,6 @@ const TabsTriggerDecoration = () => {
 		<span aria-hidden className={clsx(triggerDecorationVariants({ orientation, appearance }))} />
 	);
 };
-TabsTriggerDecoration.displayName = "TabsTriggerDecoration";
 
 /**
  * Variants for the Trigger component
@@ -352,74 +354,70 @@ const triggerVariants = cva(
  * </Tabs.Root>
  * ```
  */
-const Trigger = forwardRef<ComponentRef<typeof TabsPrimitiveTrigger>, TabsTriggerProps>(
-	(
-		{
-			"aria-disabled": _ariaDisabled,
-			asChild = false,
-			children,
-			className,
-			disabled: _disabled,
-			...props
-		},
-		ref,
-	) => {
-		const { orientation, appearance } = useContext(TabsStateContext);
-		const disabled = parseBooleanish(_ariaDisabled ?? _disabled);
+const Trigger = ({
+	"aria-disabled": _ariaDisabled,
+	asChild = false,
+	children,
+	className,
+	disabled: _disabled,
+	ref,
+	...props
+}: TabsTriggerProps) => {
+	const { orientation, appearance } = useContext(TabsStateContext);
+	const disabled = parseBooleanish(_ariaDisabled ?? _disabled);
 
-		const tabsTriggerProps = {
-			"aria-disabled": _ariaDisabled ?? _disabled,
-			className: cx(triggerVariants({ orientation, appearance }), className),
-			disabled,
-			...props,
-		};
+	const tabsTriggerProps = {
+		"aria-disabled": _ariaDisabled ?? _disabled,
+		className: cx(triggerVariants({ orientation, appearance }), className),
+		disabled,
+		...props,
+	};
 
-		if (asChild) {
-			const singleChild = Children.only(children);
-			invariant(
-				isValidElement<TabsTriggerProps>(singleChild),
-				"When using `asChild`, TabsTrigger must be passed a single child as a JSX tag.",
-			);
-			const grandchildren = singleChild.props?.children;
+	if (asChild) {
+		const singleChild = Children.only(children);
+		invariant(
+			isValidElement<TabsTriggerProps>(singleChild),
+			"When using `asChild`, TabsTrigger must be passed a single child as a JSX tag.",
+		);
+		const grandchildren = singleChild.props?.children;
 
-			const cloneProps = disabled
-				? /**
-					 * When disabled, prevent anchor/link children from being clickable by
-					 * removing their href/to props!
-					 * This is necessary because `<a>` doesn't support the `disabled`
-					 * attribute and would be navigable. We could use `pointer-events-none`
-					 * instead, but don't by default because it would also prevent tooltip
-					 * interactions, which may be surprising.
-					 */
-					{ href: undefined, to: undefined }
-				: /**
-					 * when NOT disabled, allow keyboard navigation to the trigger,
-					 * even for asChild anchors/links
-					 */
-					{ tabIndex: 0 };
-
-			return (
-				<TabsPrimitiveTrigger asChild data-slot="tabs-trigger" {...tabsTriggerProps} ref={ref}>
-					{cloneElement(
-						disabled ? <button type="button" /> : singleChild,
-						cloneProps,
-						<>
-							<TabsTriggerDecoration />
-							{grandchildren}
-						</>,
-					)}
-				</TabsPrimitiveTrigger>
-			);
-		}
+		const cloneProps = disabled
+			? /**
+				 * When disabled, prevent anchor/link children from being clickable by
+				 * removing their href/to props!
+				 * This is necessary because `<a>` doesn't support the `disabled`
+				 * attribute and would be navigable. We could use `pointer-events-none`
+				 * instead, but don't by default because it would also prevent tooltip
+				 * interactions, which may be surprising.
+				 */
+				{ href: undefined, to: undefined }
+			: /**
+				 * when NOT disabled, allow keyboard navigation to the trigger,
+				 * even for asChild anchors/links
+				 */
+				{ tabIndex: 0 };
 
 		return (
-			<TabsPrimitiveTrigger data-slot="tabs-trigger" ref={ref} {...tabsTriggerProps}>
-				<TabsTriggerDecoration />
-				{children}
+			<TabsPrimitiveTrigger asChild data-slot="tabs-trigger" {...tabsTriggerProps} ref={ref}>
+				{cloneElement(
+					disabled ? <button type="button" /> : singleChild,
+					cloneProps,
+					<>
+						<TabsTriggerDecoration />
+						{grandchildren}
+					</>,
+				)}
 			</TabsPrimitiveTrigger>
 		);
-	},
-);
+	}
+
+	return (
+		<TabsPrimitiveTrigger data-slot="tabs-trigger" ref={ref} {...tabsTriggerProps}>
+			<TabsTriggerDecoration />
+			{children}
+		</TabsPrimitiveTrigger>
+	);
+};
 Trigger.displayName = "TabsTrigger";
 
 /**
@@ -478,17 +476,13 @@ Badge.displayName = "TabBadge";
  * </Tabs.Root>
  * ```
  */
-const Content = forwardRef<
-	ComponentRef<typeof TabsPrimitiveContent>,
-	ComponentPropsWithoutRef<typeof TabsPrimitiveContent>
->(({ className, ...props }, ref) => (
+const Content = ({ className, ...props }: ComponentProps<typeof TabsPrimitiveContent>) => (
 	<TabsPrimitiveContent
-		ref={ref}
 		data-slot="tabs-content"
 		className={cx("focus-visible:ring-focus-accent outline-hidden focus-visible:ring-4", className)}
 		{...props}
 	/>
-));
+);
 Content.displayName = "TabsContent";
 
 /**

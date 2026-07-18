@@ -2,10 +2,9 @@
 
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import {
-	type ComponentPropsWithoutRef,
+	type ComponentProps,
 	type ComponentRef,
 	createContext,
-	forwardRef,
 	useCallback,
 	useContext,
 	useEffect,
@@ -148,7 +147,7 @@ type AccordionMultipleProps = {
 type AccordionRootProps = (AccordionSingleProps | AccordionMultipleProps) &
 	// `defaultValue` is omitted because the discriminated union above types it per
 	// `type` (a `string` or `string[]`), narrower than the DOM's `defaultValue`.
-	Omit<ComponentPropsWithoutRef<"div">, "defaultValue"> &
+	Omit<ComponentProps<"div">, "defaultValue"> &
 	WithAsChild;
 
 /**
@@ -187,7 +186,7 @@ type AccordionRootProps = (AccordionSingleProps | AccordionMultipleProps) &
  *   </Accordion.Item>
  * </Accordion.Root>
  */
-const Root = forwardRef<ComponentRef<"div">, AccordionRootProps>((props, ref) => {
+const Root = (props: AccordionRootProps) => {
 	// Pull the accordion-specific props out so the rest (`aria-*`, `data-*`, `id`,
 	// `style`, event handlers, …) can be forwarded to the container without leaking
 	// non-DOM attributes. `props` stays whole for `emitValueChange`, which relies on
@@ -203,6 +202,7 @@ const Root = forwardRef<ComponentRef<"div">, AccordionRootProps>((props, ref) =>
 		asChild,
 		children,
 		className,
+		ref,
 		...domProps
 	} = props;
 	const isControlled = value != null;
@@ -252,7 +252,7 @@ const Root = forwardRef<ComponentRef<"div">, AccordionRootProps>((props, ref) =>
 			)}
 		</AccordionContext.Provider>
 	);
-});
+};
 Root.displayName = "Accordion";
 
 /**
@@ -278,13 +278,15 @@ Root.displayName = "Accordion";
  *   </Accordion.Item>
  * </Accordion.Root>
  */
-const Item = forwardRef<
-	ComponentRef<"div">,
-	ComponentPropsWithoutRef<"div"> & {
-		/** The unique value identifying this item within its accordion. */
-		value: string;
-	}
->(({ children, value, ...props }, ref) => {
+const Item = ({
+	children,
+	value,
+	ref,
+	...props
+}: ComponentProps<"div"> & {
+	/** The unique value identifying this item within its accordion. */
+	value: string;
+}) => {
 	const { openValues, setItemOpen } = useAccordionContext("Accordion.Item");
 	const open = isItemOpen(openValues, value);
 
@@ -313,7 +315,7 @@ const Item = forwardRef<
 			</div>
 		</AccordionItemContext.Provider>
 	);
-});
+};
 Item.displayName = "AccordionItem";
 
 /**
@@ -338,10 +340,13 @@ Item.displayName = "AccordionItem";
  *   </Accordion.Item>
  * </Accordion.Root>
  */
-const Trigger = forwardRef<
-	ComponentRef<"button">,
-	Omit<ComponentPropsWithoutRef<"button">, "type">
->(({ className, children, onClick, ...props }, ref) => {
+const Trigger = ({
+	className,
+	children,
+	onClick,
+	ref,
+	...props
+}: Omit<ComponentProps<"button">, "type">) => {
 	const { open, setOpen } = useAccordionItemContext("Accordion.Trigger");
 
 	return (
@@ -379,7 +384,7 @@ const Trigger = forwardRef<
 			{children}
 		</button>
 	);
-});
+};
 Trigger.displayName = "AccordionTrigger";
 
 // Hoisted so the default `svg` is a stable element reference instead of a new
@@ -470,86 +475,84 @@ TriggerIcon.displayName = "AccordionTriggerIcon";
  *   </Accordion.Item>
  * </Accordion.Root>
  */
-const Content = forwardRef<ComponentRef<"div">, ComponentPropsWithoutRef<"div">>(
-	({ className, children, ...props }, forwardedRef) => {
-		const { open, setOpen } = useAccordionItemContext("Accordion.Content");
-		// Track the node ourselves (for the find-in-page reveal effects below) while
-		// still forwarding it to any ref the consumer passes.
-		const nodeRef = useRef<ComponentRef<"div">>(null);
-		const composedRef = useComposedRefs(nodeRef, forwardedRef);
+const Content = ({ className, children, ref, ...props }: ComponentProps<"div">) => {
+	const { open, setOpen } = useAccordionItemContext("Accordion.Content");
+	// Track the node ourselves (for the find-in-page reveal effects below) while
+	// still forwarding it to any ref the consumer passes.
+	const nodeRef = useRef<ComponentRef<"div">>(null);
+	const composedRef = useComposedRefs(nodeRef, ref);
 
-		// When the browser is about to reveal a find-in-page match inside this
-		// (collapsed) region, open the item so our state agrees and it stays open.
-		useEffect(() => {
-			const node = nodeRef.current;
-			if (!node || !supportsBeforeMatch()) {
-				return;
-			}
-			const handleBeforeMatch = () => {
-				// The browser reveals and highlights the match synchronously right after
-				// this event, but our React-driven height (`data-state-open:h-auto`) only
-				// applies a tick later. Without expanding now, the box is still
-				// `h-0 overflow-hidden` when the browser paints its find highlight, so the
-				// match opens but its highlight is clipped to zero height and lost. Removing
-				// `hidden` restores `content-visibility`, so setting `height: auto` lays the
-				// text out at full height before the highlight paints. The close branch of
-				// the effect below clears this inline height so the slide animation resumes.
-				node.removeAttribute("hidden");
-				node.style.height = "auto";
-				setOpen(true);
-			};
+	// When the browser is about to reveal a find-in-page match inside this
+	// (collapsed) region, open the item so our state agrees and it stays open.
+	useEffect(() => {
+		const node = nodeRef.current;
+		if (!node || !supportsBeforeMatch()) {
+			return;
+		}
+		const handleBeforeMatch = () => {
+			// The browser reveals and highlights the match synchronously right after
+			// this event, but our React-driven height (`data-state-open:h-auto`) only
+			// applies a tick later. Without expanding now, the box is still
+			// `h-0 overflow-hidden` when the browser paints its find highlight, so the
+			// match opens but its highlight is clipped to zero height and lost. Removing
+			// `hidden` restores `content-visibility`, so setting `height: auto` lays the
+			// text out at full height before the highlight paints. The close branch of
+			// the effect below clears this inline height so the slide animation resumes.
+			node.removeAttribute("hidden");
+			node.style.height = "auto";
+			setOpen(true);
+		};
 
-			node.addEventListener("beforematch", handleBeforeMatch);
+		node.addEventListener("beforematch", handleBeforeMatch);
 
-			return () => {
-				node.removeEventListener("beforematch", handleBeforeMatch);
-			};
-		}, [setOpen]);
+		return () => {
+			node.removeEventListener("beforematch", handleBeforeMatch);
+		};
+	}, [setOpen]);
 
-		// Toggle `hidden="until-found"` with the open state, imperatively: React types
-		// `hidden` as boolean-only (no `"until-found"`) and has no `onBeforeMatch`, so
-		// going through the JSX attribute is impossible without a type assertion.
-		// Layout effect so the collapsed item is hidden before first paint (no flash).
-		useIsomorphicLayoutEffect(() => {
-			const node = nodeRef.current;
-			if (!node) {
-				return;
-			}
+	// Toggle `hidden="until-found"` with the open state, imperatively: React types
+	// `hidden` as boolean-only (no `"until-found"`) and has no `onBeforeMatch`, so
+	// going through the JSX attribute is impossible without a type assertion.
+	// Layout effect so the collapsed item is hidden before first paint (no flash).
+	useIsomorphicLayoutEffect(() => {
+		const node = nodeRef.current;
+		if (!node) {
+			return;
+		}
 
-			if (open || !supportsBeforeMatch()) {
-				node.removeAttribute("hidden");
-			} else {
-				node.setAttribute("hidden", "until-found");
-				// Drop any inline height a find-in-page reveal set so the class-driven
-				// `h-0 ↔ h-auto` open/close slide takes over again.
-				node.style.height = "";
-			}
-		}, [open]);
+		if (open || !supportsBeforeMatch()) {
+			node.removeAttribute("hidden");
+		} else {
+			node.setAttribute("hidden", "until-found");
+			// Drop any inline height a find-in-page reveal set so the class-driven
+			// `h-0 ↔ h-auto` open/close slide takes over again.
+			node.style.height = "";
+		}
+	}, [open]);
 
-		return (
-			<div
-				ref={composedRef}
-				{...props}
-				data-slot="accordion-content"
-				data-state={open ? "open" : "closed"}
-				className={cx(
-					// Animate height 0 <-> auto via `interpolate-size` (Chromium only; other
-					// engines snap, which is fine — the slide is a progressive enhancement and
-					// find-in-page works regardless). `content-visibility` transitions with
-					// `allow-discrete` so the content stays rendered through the close slide
-					// before `hidden="until-found"` skips it; `overflow-hidden` clips. Padding
-					// lives on `Accordion.Body`, never here: a padded `h-0` border-box can't
-					// collapse below its padding, so the closed section would stop short of
-					// zero height instead of fully collapsing.
-					"h-0 overflow-hidden transition-[height,content-visibility] duration-200 ease-out [interpolate-size:allow-keywords] transition-discrete data-state-open:h-auto motion-reduce:transition-none",
-					className,
-				)}
-			>
-				{children}
-			</div>
-		);
-	},
-);
+	return (
+		<div
+			ref={composedRef}
+			{...props}
+			data-slot="accordion-content"
+			data-state={open ? "open" : "closed"}
+			className={cx(
+				// Animate height 0 <-> auto via `interpolate-size` (Chromium only; other
+				// engines snap, which is fine — the slide is a progressive enhancement and
+				// find-in-page works regardless). `content-visibility` transitions with
+				// `allow-discrete` so the content stays rendered through the close slide
+				// before `hidden="until-found"` skips it; `overflow-hidden` clips. Padding
+				// lives on `Accordion.Body`, never here: a padded `h-0` border-box can't
+				// collapse below its padding, so the closed section would stop short of
+				// zero height instead of fully collapsing.
+				"h-0 overflow-hidden transition-[height,content-visibility] duration-200 ease-out [interpolate-size:allow-keywords] transition-discrete data-state-open:h-auto motion-reduce:transition-none",
+				className,
+			)}
+		>
+			{children}
+		</div>
+	);
+};
 Content.displayName = "AccordionContent";
 
 /**
@@ -582,10 +585,8 @@ Content.displayName = "AccordionContent";
  *   </Accordion.Item>
  * </Accordion.Root>
  */
-const Body = forwardRef<ComponentRef<"div">, ComponentPropsWithoutRef<"div">>(
-	({ className, ...props }, ref) => (
-		<div ref={ref} {...props} data-slot="accordion-body" className={cx("pt-2 pb-4", className)} />
-	),
+const Body = ({ className, ref, ...props }: ComponentProps<"div">) => (
+	<div ref={ref} {...props} data-slot="accordion-body" className={cx("pt-2 pb-4", className)} />
 );
 Body.displayName = "AccordionBody";
 

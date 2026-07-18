@@ -1,7 +1,7 @@
 import { CircleNotchIcon } from "@phosphor-icons/react/CircleNotch";
 import { cva } from "class-variance-authority";
-import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { Children, cloneElement, forwardRef, isValidElement } from "react";
+import type { ComponentProps, ReactNode } from "react";
+import { Children, cloneElement, isValidElement } from "react";
 import invariant from "tiny-invariant";
 import type { VariantProps, WithAsChild } from "../../types/index.js";
 import { parseBooleanish } from "../../types/index.js";
@@ -111,7 +111,7 @@ type IconButtonVariants = VariantProps<typeof iconButtonVariants>;
 /**
  * The props for the `IconButton` component.
  */
-type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
+type IconButtonProps = ComponentProps<"button"> &
 	WithAsChild &
 	Omit<IconButtonVariants, "appearance" | "intent"> & {
 		/**
@@ -161,7 +161,7 @@ type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
 		 *
 		 * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#type
 		 */
-		type?: ButtonHTMLAttributes<HTMLButtonElement>["type"];
+		type?: ComponentProps<"button">["type"];
 	};
 
 /**
@@ -206,68 +206,63 @@ type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
  * />
  * ```
  */
-const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
-	(
-		{
-			"aria-disabled": _ariaDisabled,
-			appearance,
-			asChild = false,
-			children,
-			className,
-			disabled: _disabled,
-			icon: propIcon,
-			intent,
-			isLoading = false,
-			label,
-			size = "md",
-			type,
-			...props
-		},
+const IconButton = ({
+	"aria-disabled": _ariaDisabled,
+	appearance,
+	asChild = false,
+	children,
+	className,
+	disabled: _disabled,
+	icon: propIcon,
+	intent,
+	isLoading = false,
+	label,
+	ref,
+	size = "md",
+	type,
+	...props
+}: IconButtonProps) => {
+	const disabled = parseBooleanish(_ariaDisabled ?? _disabled ?? isLoading);
+	const icon = isLoading ? <CircleNotchIcon className="animate-spin" /> : propIcon;
+
+	const buttonProps = {
+		"aria-disabled": disabled,
+		"data-slot": "icon-button",
+		className: cx(iconButtonVariants({ appearance, intent, isLoading, size }), className),
+		"data-appearance": appearance,
+		"data-disabled": disabled,
+		"data-icon-button": true,
+		"data-intent": intent,
+		"data-loading": isLoading,
+		"data-size": size,
+		disabled,
 		ref,
-	) => {
-		const disabled = parseBooleanish(_ariaDisabled ?? _disabled ?? isLoading);
-		const icon = isLoading ? <CircleNotchIcon className="animate-spin" /> : propIcon;
+		...props,
+	};
 
-		const buttonProps = {
-			"aria-disabled": disabled,
-			"data-slot": "icon-button",
-			className: cx(iconButtonVariants({ appearance, intent, isLoading, size }), className),
-			"data-appearance": appearance,
-			"data-disabled": disabled,
-			"data-icon-button": true,
-			"data-intent": intent,
-			"data-loading": isLoading,
-			"data-size": size,
-			disabled,
-			ref,
-			...props,
-		};
+	const innerChildren = (
+		<>
+			<span className="sr-only">{label}</span>
+			<Icon svg={icon} />
+		</>
+	);
 
-		const innerChildren = (
-			<>
-				<span className="sr-only">{label}</span>
-				<Icon svg={icon} />
-			</>
+	if (asChild) {
+		invariant(
+			isValidElement(children) && Children.only(children),
+			"When using `asChild`, IconButton must be passed a single child as a JSX tag.",
 		);
 
-		if (asChild) {
-			invariant(
-				isValidElement(children) && Children.only(children),
-				"When using `asChild`, IconButton must be passed a single child as a JSX tag.",
-			);
+		return <Slot {...buttonProps}>{cloneElement(children, {}, innerChildren)}</Slot>;
+	}
 
-			return <Slot {...buttonProps}>{cloneElement(children, {}, innerChildren)}</Slot>;
-		}
-
-		return (
-			// oxlint-disable-next-line react/button-has-type -- `type` defaults to "button" at runtime via the `?? "button"` fallback; the static analyzer can't resolve that expression.
-			<button {...buttonProps} type={type ?? "button"}>
-				{innerChildren}
-			</button>
-		);
-	},
-);
-IconButton.displayName = "IconButton";
+	return (
+		// oxlint-disable-next-line react/button-has-type -- `type` defaults to "button" at runtime via the `?? "button"` fallback; the static analyzer can't resolve that expression.
+		<button {...buttonProps} type={type ?? "button"}>
+			{innerChildren}
+		</button>
+	);
+};
 
 export {
 	//,

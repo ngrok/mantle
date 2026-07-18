@@ -1,5 +1,4 @@
-import type { ComponentProps, ComponentRef } from "react";
-import { forwardRef } from "react";
+import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Slot } from "../slot/index.js";
@@ -24,25 +23,23 @@ type DescriptionListProps = ComponentProps<"dl"> & WithAsChild;
  * </DescriptionList.Root>
  * ```
  */
-const Root = forwardRef<ComponentRef<"dl">, DescriptionListProps>(
-	({ asChild = false, className, children, ...rest }, ref) => {
-		const Component = asChild ? Slot : "dl";
+const Root = ({ asChild = false, className, children, ref, ...rest }: DescriptionListProps) => {
+	const Component = asChild ? Slot : "dl";
 
-		return (
-			<Component
-				ref={ref}
-				data-slot="description-list"
-				className={cx(
-					"relative scrollbar overflow-x-auto overscroll-x-none rounded-lg border border-card grid grid-cols-[auto_1fr] gap-x-4 [&>*:nth-child(odd)]:bg-neutral-500/5 p-1",
-					className,
-				)}
-				{...rest}
-			>
-				{children}
-			</Component>
-		);
-	},
-);
+	return (
+		<Component
+			ref={ref}
+			data-slot="description-list"
+			className={cx(
+				"relative scrollbar overflow-x-auto overscroll-x-none rounded-lg border border-card grid grid-cols-[auto_1fr] gap-x-4 [&>*:nth-child(odd)]:bg-neutral-500/5 p-1",
+				className,
+			)}
+			{...rest}
+		>
+			{children}
+		</Component>
+	);
+};
 Root.displayName = "DescriptionList";
 
 type DescriptionListItemProps = ComponentProps<"div"> & WithAsChild;
@@ -62,22 +59,20 @@ type DescriptionListItemProps = ComponentProps<"div"> & WithAsChild;
  * </DescriptionList.Item>
  * ```
  */
-const Item = forwardRef<ComponentRef<"div">, DescriptionListItemProps>(
-	({ asChild = false, className, children, ...rest }, ref) => {
-		const Component = asChild ? Slot : "div";
+const Item = ({ asChild = false, className, children, ref, ...rest }: DescriptionListItemProps) => {
+	const Component = asChild ? Slot : "div";
 
-		return (
-			<Component
-				ref={ref}
-				data-slot="description-list-item"
-				className={cx("rounded-sm col-span-full grid grid-cols-subgrid items-center", className)}
-				{...rest}
-			>
-				{children}
-			</Component>
-		);
-	},
-);
+	return (
+		<Component
+			ref={ref}
+			data-slot="description-list-item"
+			className={cx("rounded-sm col-span-full grid grid-cols-subgrid items-center", className)}
+			{...rest}
+		>
+			{children}
+		</Component>
+	);
+};
 Item.displayName = "DescriptionListItem";
 
 type DescriptionListLabelProps = ComponentProps<"dt"> & WithAsChild;
@@ -92,22 +87,26 @@ type DescriptionListLabelProps = ComponentProps<"dt"> & WithAsChild;
  * <DescriptionList.Label>Name</DescriptionList.Label>
  * ```
  */
-const Label = forwardRef<ComponentRef<"dt">, DescriptionListLabelProps>(
-	({ asChild = false, className, children, ...rest }, ref) => {
-		const Component = asChild ? Slot : "dt";
+const Label = ({
+	asChild = false,
+	className,
+	children,
+	ref,
+	...rest
+}: DescriptionListLabelProps) => {
+	const Component = asChild ? Slot : "dt";
 
-		return (
-			<Component
-				ref={ref}
-				data-slot="description-list-label"
-				className={cx("text-muted text-sm font-sans font-medium min-w-36 p-2", className)}
-				{...rest}
-			>
-				{children}
-			</Component>
-		);
-	},
-);
+	return (
+		<Component
+			ref={ref}
+			data-slot="description-list-label"
+			className={cx("text-muted text-sm font-sans font-medium min-w-36 p-2", className)}
+			{...rest}
+		>
+			{children}
+		</Component>
+	);
+};
 Label.displayName = "DescriptionListLabel";
 
 type DescriptionListValueProps = ComponentProps<"dd"> & WithAsChild;
@@ -126,22 +125,26 @@ type DescriptionListValueProps = ComponentProps<"dd"> & WithAsChild;
  * </DescriptionList.Value>
  * ```
  */
-const Value = forwardRef<ComponentRef<"dd">, DescriptionListValueProps>(
-	({ asChild = false, className, children, ...rest }, ref) => {
-		const Component = asChild ? Slot : "dd";
+const Value = ({
+	asChild = false,
+	className,
+	children,
+	ref,
+	...rest
+}: DescriptionListValueProps) => {
+	const Component = asChild ? Slot : "dd";
 
-		return (
-			<Component
-				ref={ref}
-				data-slot="description-list-value"
-				className={cx("text-body font-mono text-mono py-2 px-3", className)}
-				{...rest}
-			>
-				{children}
-			</Component>
-		);
-	},
-);
+	return (
+		<Component
+			ref={ref}
+			data-slot="description-list-value"
+			className={cx("text-body font-mono text-mono py-2 px-3", className)}
+			{...rest}
+		>
+			{children}
+		</Component>
+	);
+};
 Value.displayName = "DescriptionListValue";
 
 /**

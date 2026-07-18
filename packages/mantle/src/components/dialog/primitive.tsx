@@ -2,10 +2,10 @@
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
+	type ComponentProps,
 	type ComponentPropsWithoutRef,
-	type ComponentRef,
 	createContext,
-	forwardRef,
+	type Ref,
 	useContext,
 	useEffect,
 	useMemo,
@@ -15,7 +15,7 @@ import { Slot } from "../slot/index.js";
 import { preventCloseOnPromptInteraction } from "../toast/toast.js";
 import { parseBooleanish } from "../../types/booleanish.js";
 
-type DialogPrimitiveContentProps = ComponentPropsWithoutRef<typeof DialogPrimitive.Content>;
+type DialogPrimitiveContentProps = ComponentProps<typeof DialogPrimitive.Content>;
 
 type InternalDialogContextValue = {
 	hasDescription: boolean;
@@ -48,48 +48,48 @@ Portal.displayName = "DialogPrimitivePortal";
 const Close = DialogPrimitive.Close;
 Close.displayName = "DialogPrimitiveClose";
 
-const Overlay = forwardRef<
-	ComponentRef<typeof DialogPrimitive.Overlay>,
-	ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
->((props, ref) => (
+const Overlay = (props: ComponentProps<typeof DialogPrimitive.Overlay>) => (
 	<DialogPrimitive.Overlay
 		/**
 		 * Mark the overlay with a data attribute so we can target it, e.g. in
 		 * event handlers
 		 */
 		data-overlay
-		ref={ref}
 		{...props}
 	/>
-));
+);
 Overlay.displayName = "DialogPrimitiveOverlay";
 
-const Content = forwardRef<ComponentRef<"div">, DialogPrimitiveContentProps>(
-	({ onEscapeKeyDown, onInteractOutside, onPointerDownOutside, ...props }, ref) => {
-		const ctx = useContext(InternalDialogContext);
+const Content = ({
+	onEscapeKeyDown,
+	onInteractOutside,
+	onPointerDownOutside,
+	ref,
+	...props
+}: DialogPrimitiveContentProps) => {
+	const ctx = useContext(InternalDialogContext);
 
-		return (
-			<DialogPrimitive.Content
-				ref={ref}
-				onEscapeKeyDown={(event) => {
-					preventCloseOnNestedPopupEscape(event);
-					onEscapeKeyDown?.(event);
-				}}
-				onInteractOutside={(event) => {
-					preventCloseOnPromptInteraction(event);
-					onInteractOutside?.(event);
-				}}
-				onPointerDownOutside={(event) => {
-					preventCloseOnPromptInteraction(event);
-					onPointerDownOutside?.(event);
-				}}
-				// If there's no description, we remove the default applied aria-describedby attribute from radix dialog
-				{...(!ctx.hasDescription ? { "aria-describedby": undefined } : {})}
-				{...props}
-			/>
-		);
-	},
-);
+	return (
+		<DialogPrimitive.Content
+			ref={ref}
+			onEscapeKeyDown={(event) => {
+				preventCloseOnNestedPopupEscape(event);
+				onEscapeKeyDown?.(event);
+			}}
+			onInteractOutside={(event) => {
+				preventCloseOnPromptInteraction(event);
+				onInteractOutside?.(event);
+			}}
+			onPointerDownOutside={(event) => {
+				preventCloseOnPromptInteraction(event);
+				onPointerDownOutside?.(event);
+			}}
+			// If there's no description, we remove the default applied aria-describedby attribute from radix dialog
+			{...(!ctx.hasDescription ? { "aria-describedby": undefined } : {})}
+			{...props}
+		/>
+	);
+};
 Content.displayName = "DialogPrimitiveContent";
 
 const Title = DialogPrimitive.Title;
@@ -99,10 +99,14 @@ const Title = DialogPrimitive.Title;
  * This is a low-level primitive used by higher-level dialog components.
  * Renders as a `div` by default, but can be changed to any other element using the `asChild` prop.
  */
-const Description = forwardRef<
-	ComponentRef<"div">,
-	ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
->(({ asChild, children, ...props }, ref) => {
+const Description = ({
+	asChild,
+	children,
+	ref,
+	...props
+}: ComponentPropsWithoutRef<typeof DialogPrimitive.Description> & {
+	ref?: Ref<HTMLDivElement>;
+}) => {
 	const ctx = useContext(InternalDialogContext);
 
 	useEffect(() => {
@@ -117,7 +121,7 @@ const Description = forwardRef<
 			<Component {...props}>{children}</Component>
 		</DialogPrimitive.Description>
 	);
-});
+};
 Description.displayName = "DialogPrimitiveDescription";
 
 /**

@@ -373,8 +373,6 @@ function MantleStyleSheets({
 		</>
 	);
 }
-MantleStyleSheets.displayName = "MantleStyleSheets";
-
 export {
 	//,
 	fixMediaScriptContent,

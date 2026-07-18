@@ -1,5 +1,4 @@
-import { forwardRef } from "react";
-import type { ComponentProps, ComponentRef } from "react";
+import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Slot } from "../slot/index.js";
@@ -37,23 +36,20 @@ import { Slot } from "../slot/index.js";
  * </Code>
  * ```
  */
-const Code = forwardRef<ComponentRef<"code">, ComponentProps<"code"> & WithAsChild>(
-	({ asChild, className, ...props }, ref) => {
-		const Comp = asChild ? Slot : "code";
-		return (
-			<Comp
-				ref={ref}
-				data-slot="code"
-				className={cx(
-					"border-gray-500/15 rounded-md border bg-gray-500/5 px-1 font-mono text-[0.8em]",
-					className,
-				)}
-				{...props}
-			/>
-		);
-	},
-);
-Code.displayName = "Code";
+const Code = ({ asChild, className, ref, ...props }: ComponentProps<"code"> & WithAsChild) => {
+	const Comp = asChild ? Slot : "code";
+	return (
+		<Comp
+			ref={ref}
+			data-slot="code"
+			className={cx(
+				"border-gray-500/15 rounded-md border bg-gray-500/5 px-1 font-mono text-[0.8em]",
+				className,
+			)}
+			{...props}
+		/>
+	);
+};
 
 export {
 	//,

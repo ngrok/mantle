@@ -12,8 +12,6 @@ function TrafficPolicyFileIcon(props: SvgAttributes) {
 		</svg>
 	);
 }
-TrafficPolicyFileIcon.displayName = "TrafficPolicyFileIcon";
-
 export {
 	//,
 	TrafficPolicyFileIcon,

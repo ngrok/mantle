@@ -88,17 +88,17 @@ function Example({ onChange }: { onChange?: (value: string) => void }) {
 const ref = useComposedRefs(internalRef, forwardedRef);
 ```
 
-Composes multiple React refs (callback refs and `RefObject`s) into a single stable callback ref using `useCallback`. Useful when a component needs to forward a ref while also keeping an internal one.
+Composes multiple React refs (callback refs and `RefObject`s) into a single stable callback ref using `useCallback`. Useful when a component accepts a `ref` prop while also keeping an internal one.
 
 ```tsx
-import { forwardRef, useRef } from "react";
+import { useRef, type ComponentProps } from "react";
 import { useComposedRefs } from "@ngrok/mantle/hooks";
 
-const MyInput = forwardRef<HTMLInputElement>((props, forwardedRef) => {
+const MyInput = ({ ref: forwardedRef, ...props }: ComponentProps<"input">) => {
 	const internalRef = useRef<HTMLInputElement>(null);
 	const ref = useComposedRefs(internalRef, forwardedRef);
 	return <input ref={ref} {...props} />;
-});
+};
 ```
 
 ## useCopyToClipboard

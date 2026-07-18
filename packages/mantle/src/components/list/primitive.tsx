@@ -3,7 +3,6 @@
 import {
 	Children,
 	createContext,
-	forwardRef,
 	isValidElement,
 	useCallback,
 	useContext,
@@ -15,7 +14,6 @@ import {
 } from "react";
 import type {
 	ComponentProps,
-	ComponentRef,
 	CSSProperties,
 	FocusEvent,
 	KeyboardEvent,
@@ -724,7 +722,7 @@ function ListShell({
 	gridNav,
 	listContext,
 	viewportProps,
-	viewportRef,
+	ref,
 }: {
 	"aria-label": string | undefined;
 	"aria-labelledby": string | undefined;
@@ -735,14 +733,13 @@ function ListShell({
 	gridNav: GridNavContextValue;
 	listContext: ListContextValue;
 	viewportProps: ComponentProps<"div">;
-	/** A plain prop (not `ref`) so the internal shell stays React 18-compatible without forwardRef ceremony. */
-	viewportRef: Ref<HTMLDivElement>;
+	ref: Ref<HTMLDivElement>;
 }) {
 	return (
 		<ListContext.Provider value={listContext}>
 			<GridNavContext.Provider value={gridNav}>
 				<div
-					ref={viewportRef}
+					ref={ref}
 					data-slot="list"
 					className={cx(listViewportClassName, className)}
 					{...viewportProps}
@@ -811,69 +808,76 @@ type ListItemProps = Omit<ComponentProps<"div">, "role"> &
  * </Item>
  * ```
  */
-const Item = forwardRef<ComponentRef<"div">, ListItemProps>(
-	({ asChild, children, className, disabled = false, selected = false, style, ...props }, ref) => {
-		const { semantics } = useListContext("Item");
-		const itemContext = useContext(ListItemContext);
-		const gridNav = useContext(GridNavContext);
-		const isGrid = semantics === "grid";
-		const Comp = asChild ? Slot : "div";
-		const placement = itemContext?.placement ?? null;
-		const index = itemContext?.index;
-		const isActive = isGrid && gridNav != null && index != null && gridNav.activeIndex === index;
-		const measureRef = placement?.measureRef ?? null;
-		// Identity-stable composition so a keyboard-nav re-render doesn't cycle the
-		// virtualizer's measureElement (detaching + reattaching it per render).
-		const composedRef = useComposedRefs(ref, measureRef);
+const Item = ({
+	asChild,
+	children,
+	className,
+	disabled = false,
+	ref,
+	selected = false,
+	style,
+	...props
+}: ListItemProps) => {
+	const { semantics } = useListContext("Item");
+	const itemContext = useContext(ListItemContext);
+	const gridNav = useContext(GridNavContext);
+	const isGrid = semantics === "grid";
+	const Comp = asChild ? Slot : "div";
+	const placement = itemContext?.placement ?? null;
+	const index = itemContext?.index;
+	const isActive = isGrid && gridNav != null && index != null && gridNav.activeIndex === index;
+	const measureRef = placement?.measureRef ?? null;
+	// Identity-stable composition so a keyboard-nav re-render doesn't cycle the
+	// virtualizer's measureElement (detaching + reattaching it per render).
+	const composedRef = useComposedRefs(ref, measureRef);
 
-		return (
-			<Comp
-				ref={composedRef}
-				// Before the spread so a wrapping component can brand its rows (e.g.
-				// SelectableItem passes "selectable-list-item"); `data-index` and the
-				// role/ARIA wiring below stay enforced.
-				data-slot="list-item"
-				{...props}
-				// Stamp the grid's default aria-activedescendant target id; when the
-				// collection doesn't own row ids (a consumer `itemId` override), keep the
-				// row's own `id` prop instead.
-				id={
-					isGrid && index != null && gridNav?.stampItemId != null
-						? gridNav.stampItemId(index)
-						: props.id
-				}
-				data-index={index}
-				data-state={selected ? "selected" : "unselected"}
-				data-disabled={disabled || undefined}
-				data-active={isActive || undefined}
-				role={isGrid ? "row" : "listitem"}
-				aria-selected={isGrid ? selected : undefined}
-				aria-disabled={isGrid && disabled ? true : props["aria-disabled"]}
-				// Windowed placement: listitems take aria-posinset/aria-setsize; grid
-				// rows take aria-rowindex (posinset/setsize are invalid on grid rows per
-				// WAI-ARIA 1.2 — the collection carries aria-rowcount instead).
-				aria-rowindex={isGrid ? placement?.posInSet : undefined}
-				aria-posinset={isGrid ? undefined : placement?.posInSet}
-				aria-setsize={isGrid ? undefined : placement?.setSize}
-				className={cx(
-					listItemClassName,
+	return (
+		<Comp
+			ref={composedRef}
+			// Before the spread so a wrapping component can brand its rows (e.g.
+			// SelectableItem passes "selectable-list-item"); `data-index` and the
+			// role/ARIA wiring below stay enforced.
+			data-slot="list-item"
+			{...props}
+			// Stamp the grid's default aria-activedescendant target id; when the
+			// collection doesn't own row ids (a consumer `itemId` override), keep the
+			// row's own `id` prop instead.
+			id={
+				isGrid && index != null && gridNav?.stampItemId != null
+					? gridNav.stampItemId(index)
+					: props.id
+			}
+			data-index={index}
+			data-state={selected ? "selected" : "unselected"}
+			data-disabled={disabled || undefined}
+			data-active={isActive || undefined}
+			role={isGrid ? "row" : "listitem"}
+			aria-selected={isGrid ? selected : undefined}
+			aria-disabled={isGrid && disabled ? true : props["aria-disabled"]}
+			// Windowed placement: listitems take aria-posinset/aria-setsize; grid
+			// rows take aria-rowindex (posinset/setsize are invalid on grid rows per
+			// WAI-ARIA 1.2 — the collection carries aria-rowcount instead).
+			aria-rowindex={isGrid ? placement?.posInSet : undefined}
+			aria-posinset={isGrid ? undefined : placement?.posInSet}
+			aria-setsize={isGrid ? undefined : placement?.setSize}
+			className={cx(
+				listItemClassName,
+				!disabled &&
+					"hover:bg-active-menu-item hover:data-[state=selected]:bg-active-selected-menu-item",
+				// List rows convey keyboard focus with the same tint as hover (matching
+				// the grid's active row) rather than a focus ring on the inner control —
+				// the control suppresses its own outline and the row lights up instead.
+				!isGrid &&
 					!disabled &&
-						"hover:bg-active-menu-item hover:data-[state=selected]:bg-active-selected-menu-item",
-					// List rows convey keyboard focus with the same tint as hover (matching
-					// the grid's active row) rather than a focus ring on the inner control —
-					// the control suppresses its own outline and the row lights up instead.
-					!isGrid &&
-						!disabled &&
-						"has-[:focus-visible]:bg-active-menu-item has-[:focus-visible]:data-[state=selected]:bg-active-selected-menu-item",
-					className,
-				)}
-				style={placement ? { ...style, ...placement.style } : style}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+					"has-[:focus-visible]:bg-active-menu-item has-[:focus-visible]:data-[state=selected]:bg-active-selected-menu-item",
+				className,
+			)}
+			style={placement ? { ...style, ...placement.style } : style}
+		>
+			{children}
+		</Comp>
+	);
+};
 Item.displayName = "ListPrimitiveItem";
 
 /**
@@ -909,104 +913,97 @@ PlainItem.displayName = "ListPrimitivePlainItem";
  * </Root>
  * ```
  */
-const Root = forwardRef<ComponentRef<"div">, ListRootProps>(
-	(
-		{
-			"aria-label": ariaLabel,
-			"aria-labelledby": ariaLabelledby,
-			"aria-multiselectable": ariaMultiselectable,
-			children,
-			className,
-			isItemDisabled,
-			onActivate,
-			itemId,
-			semantics = "list",
-			...props
-		},
-		ref,
-	) => {
-		const viewportRef = useRef<HTMLDivElement>(null);
-		const composedViewportRef = useComposedRefs(viewportRef, ref);
-		// The row elements, in order — the single array we both render from and read
-		// each row's `disabled` prop off (the `isItemDisabled` default), so the
-		// disabled lookup by index always lines up with what's rendered. Filtered to
-		// elements (as `VirtualRoot` does) so a non-element child — a bare string, or
-		// a render-prop that returned `null` for an option — can't be counted/indexed
-		// as a navigable row here while the windowed shell drops it, which would
-		// desync grid navigation between the two. Memoized so a keyboard-nav
-		// re-render (which only changes `activeIndex`) doesn't re-walk the children.
-		const itemChildren = useMemo(
-			() => Children.toArray(children).filter(isValidElement),
-			[children],
-		);
-		const scrollToIndex = useCallback((index: number) => {
-			// Reveal the whole row (every Item stamps `data-index`, so this holds for
-			// default and custom `itemId` alike) — scrolling just its control could
-			// leave the row's edges clipped against the viewport.
-			viewportRef.current
-				?.querySelector(`[data-index="${index}"]`)
-				?.scrollIntoView({ block: "nearest" });
-		}, []);
-		const focusItemAt = useCallback(
-			(index: number, step: number) => {
-				const viewport = viewportRef.current;
-				if (viewport == null) {
+const Root = ({
+	"aria-label": ariaLabel,
+	"aria-labelledby": ariaLabelledby,
+	"aria-multiselectable": ariaMultiselectable,
+	children,
+	className,
+	isItemDisabled,
+	onActivate,
+	itemId,
+	ref,
+	semantics = "list",
+	...props
+}: ListRootProps) => {
+	const viewportRef = useRef<HTMLDivElement>(null);
+	const composedViewportRef = useComposedRefs(viewportRef, ref);
+	// The row elements, in order — the single array we both render from and read
+	// each row's `disabled` prop off (the `isItemDisabled` default), so the
+	// disabled lookup by index always lines up with what's rendered. Filtered to
+	// elements (as `VirtualRoot` does) so a non-element child — a bare string, or
+	// a render-prop that returned `null` for an option — can't be counted/indexed
+	// as a navigable row here while the windowed shell drops it, which would
+	// desync grid navigation between the two. Memoized so a keyboard-nav
+	// re-render (which only changes `activeIndex`) doesn't re-walk the children.
+	const itemChildren = useMemo(() => Children.toArray(children).filter(isValidElement), [children]);
+	const scrollToIndex = useCallback((index: number) => {
+		// Reveal the whole row (every Item stamps `data-index`, so this holds for
+		// default and custom `itemId` alike) — scrolling just its control could
+		// leave the row's edges clipped against the viewport.
+		viewportRef.current
+			?.querySelector(`[data-index="${index}"]`)
+			?.scrollIntoView({ block: "nearest" });
+	}, []);
+	const focusItemAt = useCallback(
+		(index: number, step: number) => {
+			const viewport = viewportRef.current;
+			if (viewport == null) {
+				return;
+			}
+			// Walk in the travel direction to the first row that actually hosts a
+			// focusable control. A static row (a bare divider, an `asChild` link with
+			// no href, a consumer wrapper whose disabled control is out of the tab
+			// order) is not a keyboard stop, so step past it — otherwise navigation
+			// dead-ends there and every row beyond it is silently unreachable.
+			for (let current = index; current >= 0 && current < itemChildren.length; current += step) {
+				const item = viewport.querySelector(`[data-index="${current}"]`);
+				if (item == null) {
+					continue;
+				}
+				const control = findItemControl(item);
+				if (control != null) {
+					control.focus({ preventScroll: true });
+					// Reveal the whole row, not just its control (mirrors the grid's scroll fix).
+					item.scrollIntoView({ block: "nearest" });
 					return;
 				}
-				// Walk in the travel direction to the first row that actually hosts a
-				// focusable control. A static row (a bare divider, an `asChild` link with
-				// no href, a consumer wrapper whose disabled control is out of the tab
-				// order) is not a keyboard stop, so step past it — otherwise navigation
-				// dead-ends there and every row beyond it is silently unreachable.
-				for (let current = index; current >= 0 && current < itemChildren.length; current += step) {
-					const item = viewport.querySelector(`[data-index="${current}"]`);
-					if (item == null) {
-						continue;
-					}
-					const control = findItemControl(item);
-					if (control != null) {
-						control.focus({ preventScroll: true });
-						// Reveal the whole row, not just its control (mirrors the grid's scroll fix).
-						item.scrollIntoView({ block: "nearest" });
-						return;
-					}
-				}
-			},
-			[itemChildren.length],
-		);
-		const { collectionProps, gridNav, listContext } = useListShell({
-			count: itemChildren.length,
-			focusItemAt,
-			isItemDisabled: isItemDisabled ?? ((index) => isItemChildDisabled(itemChildren[index])),
-			onActivate,
-			itemId,
-			scrollToIndex,
-			semantics,
-		});
+			}
+		},
+		[itemChildren.length],
+	);
+	const { collectionProps, gridNav, listContext } = useListShell({
+		count: itemChildren.length,
+		focusItemAt,
+		isItemDisabled: isItemDisabled ?? ((index) => isItemChildDisabled(itemChildren[index])),
+		onActivate,
+		itemId,
+		scrollToIndex,
+		semantics,
+	});
 
-		return (
-			<ListShell
-				aria-label={ariaLabel}
-				aria-labelledby={ariaLabelledby}
-				aria-multiselectable={ariaMultiselectable}
-				className={className}
-				collectionProps={collectionProps}
-				gridNav={gridNav}
-				listContext={listContext}
-				viewportProps={props}
-				viewportRef={composedViewportRef}
-			>
-				{itemChildren.map((item, index) => (
-					// Key off the child's own key (assigned by `Children.toArray`) so
-					// reconciliation follows the consumer's keys across reorder/filter.
-					<PlainItem key={item.key ?? index} index={index}>
-						{item}
-					</PlainItem>
-				))}
-			</ListShell>
-		);
-	},
-);
+	return (
+		<ListShell
+			aria-label={ariaLabel}
+			aria-labelledby={ariaLabelledby}
+			aria-multiselectable={ariaMultiselectable}
+			className={className}
+			collectionProps={collectionProps}
+			gridNav={gridNav}
+			listContext={listContext}
+			viewportProps={props}
+			ref={composedViewportRef}
+		>
+			{itemChildren.map((item, index) => (
+				// Key off the child's own key (assigned by `Children.toArray`) so
+				// reconciliation follows the consumer's keys across reorder/filter.
+				<PlainItem key={item.key ?? index} index={index}>
+					{item}
+				</PlainItem>
+			))}
+		</ListShell>
+	);
+};
 Root.displayName = "ListPrimitiveRoot";
 
 export {

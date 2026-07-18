@@ -1,5 +1,6 @@
-import { renderHook } from "@testing-library/react";
+import { render, renderHook } from "@testing-library/react";
 import { createRef } from "react";
+import type { Ref } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { composeRefs, useComposedRefs } from "./compose-refs.js";
 
@@ -21,6 +22,68 @@ describe("composeRefs", () => {
 
 		expect(() => composeRefs<HTMLDivElement>(undefined, null, objectRef)(node)).not.toThrow();
 		expect(objectRef.current).toBe(node);
+	});
+
+	test("returns undefined when no inner ref returns a cleanup", () => {
+		const callbackRef = vi.fn<(node: HTMLDivElement | null) => void>();
+		const node = document.createElement("div");
+
+		expect(
+			composeRefs<HTMLDivElement>(callbackRef, createRef<HTMLDivElement>())(node),
+		).toBeUndefined();
+	});
+
+	test("invokes an inner ref's cleanup on unmount instead of calling it with null", () => {
+		const cleanup = vi.fn<() => void>();
+		const callbackRef = vi.fn<(node: HTMLDivElement | null) => () => void>(() => cleanup);
+
+		const { unmount } = render(<div ref={composeRefs<HTMLDivElement>(callbackRef)} />);
+
+		expect(callbackRef).toHaveBeenCalledTimes(1);
+		expect(callbackRef).toHaveBeenCalledWith(expect.any(HTMLDivElement));
+		expect(cleanup).not.toHaveBeenCalled();
+
+		unmount();
+
+		expect(cleanup).toHaveBeenCalledTimes(1);
+		expect(callbackRef).toHaveBeenCalledTimes(1);
+		expect(callbackRef).not.toHaveBeenCalledWith(null);
+	});
+
+	test("with mixed refs, null-writes non-cleanup refs and invokes cleanups on unmount", () => {
+		const cleanup = vi.fn<() => void>();
+		const cleanupRef = vi.fn<(node: HTMLDivElement | null) => () => void>(() => cleanup);
+		const plainCallbackRef = vi.fn<(node: HTMLDivElement | null) => void>();
+		const objectRef = createRef<HTMLDivElement>();
+
+		const { unmount } = render(
+			<div ref={composeRefs<HTMLDivElement>(cleanupRef, plainCallbackRef, objectRef)} />,
+		);
+
+		expect(objectRef.current).toBeInstanceOf(HTMLDivElement);
+
+		unmount();
+
+		expect(cleanup).toHaveBeenCalledTimes(1);
+		expect(cleanupRef).toHaveBeenCalledTimes(1);
+		expect(cleanupRef).not.toHaveBeenCalledWith(null);
+		expect(plainCallbackRef).toHaveBeenLastCalledWith(null);
+		expect(objectRef.current).toBeNull();
+	});
+
+	test("legacy path: calls callback refs with null on unmount when no inner ref returns a cleanup", () => {
+		const callbackRef = vi.fn<(node: HTMLDivElement | null) => void>();
+		const objectRef = createRef<HTMLDivElement>();
+
+		const { unmount } = render(<div ref={composeRefs<HTMLDivElement>(callbackRef, objectRef)} />);
+
+		expect(objectRef.current).toBeInstanceOf(HTMLDivElement);
+
+		unmount();
+
+		expect(callbackRef).toHaveBeenCalledTimes(2);
+		expect(callbackRef).toHaveBeenLastCalledWith(null);
+		expect(objectRef.current).toBeNull();
 	});
 });
 
@@ -52,5 +115,31 @@ describe("useComposedRefs", () => {
 
 		expect(latestRef.current).toBe(node);
 		expect(initialRef.current).toBeNull();
+	});
+
+	test("propagates inner ref cleanups and null-writes non-cleanup refs on unmount", () => {
+		const cleanup = vi.fn<() => void>();
+		const cleanupRef = vi.fn<(node: HTMLDivElement | null) => () => void>(() => cleanup);
+		const objectRef = createRef<HTMLDivElement>();
+
+		function TestComponent(props: {
+			cleanupRef: Ref<HTMLDivElement>;
+			objectRef: Ref<HTMLDivElement>;
+		}) {
+			const composedRef = useComposedRefs(props.cleanupRef, props.objectRef);
+			return <div ref={composedRef} />;
+		}
+
+		const { unmount } = render(<TestComponent cleanupRef={cleanupRef} objectRef={objectRef} />);
+
+		expect(objectRef.current).toBeInstanceOf(HTMLDivElement);
+		expect(cleanup).not.toHaveBeenCalled();
+
+		unmount();
+
+		expect(cleanup).toHaveBeenCalledTimes(1);
+		expect(cleanupRef).toHaveBeenCalledTimes(1);
+		expect(cleanupRef).not.toHaveBeenCalledWith(null);
+		expect(objectRef.current).toBeNull();
 	});
 });

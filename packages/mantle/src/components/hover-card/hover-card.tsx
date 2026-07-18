@@ -1,8 +1,7 @@
 "use client";
 
 import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
-import { forwardRef } from "react";
-import type { ComponentPropsWithoutRef, ComponentRef } from "react";
+import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
 
 /**
@@ -33,7 +32,7 @@ const Root = ({
 	closeDelay = 300,
 	openDelay = 100,
 	...props
-}: ComponentPropsWithoutRef<typeof HoverCardPrimitive.Root>) => (
+}: ComponentProps<typeof HoverCardPrimitive.Root>) => (
 	<HoverCardPrimitive.Root closeDelay={closeDelay} openDelay={openDelay} {...props} />
 );
 Root.displayName = "HoverCard";
@@ -57,12 +56,9 @@ Root.displayName = "HoverCard";
  * </HoverCard.Root>
  * ```
  */
-const Trigger = forwardRef<
-	ComponentRef<typeof HoverCardPrimitive.Trigger>,
-	ComponentPropsWithoutRef<typeof HoverCardPrimitive.Trigger>
->((props, ref) => (
-	<HoverCardPrimitive.Trigger ref={ref} data-slot="hover-card-trigger" {...props} />
-));
+const Trigger = (props: ComponentProps<typeof HoverCardPrimitive.Trigger>) => (
+	<HoverCardPrimitive.Trigger data-slot="hover-card-trigger" {...props} />
+);
 Trigger.displayName = "HoverCardTrigger";
 
 /**
@@ -116,13 +112,15 @@ Portal.displayName = "HoverCardPortal";
  * </HoverCard.Root>
  * ```
  */
-const Content = forwardRef<
-	ComponentRef<typeof HoverCardPrimitive.Content>,
-	ComponentPropsWithoutRef<typeof HoverCardPrimitive.Content>
->(({ className, onClick, align = "center", sideOffset = 4, ...props }, ref) => (
+const Content = ({
+	className,
+	onClick,
+	align = "center",
+	sideOffset = 4,
+	...props
+}: ComponentProps<typeof HoverCardPrimitive.Content>) => (
 	<Portal>
 		<HoverCardPrimitive.Content
-			ref={ref}
 			data-slot="hover-card-content"
 			align={align}
 			sideOffset={sideOffset}
@@ -141,7 +139,7 @@ const Content = forwardRef<
 			{...props}
 		/>
 	</Portal>
-));
+);
 Content.displayName = HoverCardPrimitive.Content.displayName;
 
 /**

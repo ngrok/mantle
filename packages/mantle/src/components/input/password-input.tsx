@@ -2,8 +2,8 @@
 
 import { EyeIcon } from "@phosphor-icons/react/Eye";
 import { EyeClosedIcon } from "@phosphor-icons/react/EyeClosed";
-import { forwardRef, useEffect, useRef, useState } from "react";
-import type { InputHTMLAttributes } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ComponentProps } from "react";
 import { flushSync } from "react-dom";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import type { WithValidation } from "../field/validation.js";
@@ -11,7 +11,7 @@ import { Icon } from "../icon/icon.js";
 import { Input, InputCapture } from "./input.js";
 import type { InputType, WithAutoComplete } from "./types.js";
 
-type PasswordInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "autoComplete" | "type"> &
+type PasswordInputProps = Omit<ComponentProps<"input">, "autoComplete" | "type"> &
 	WithValidation &
 	WithAutoComplete & {
 		/**
@@ -85,59 +85,61 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  * }
  * ```
  */
-const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
-	({ onValueVisibilityChange, showValue = false, ...props }, ref) => {
-		const [showPassword, setShowPassword] = useState<boolean>(showValue);
-		const type: PasswordInputType = showPassword ? "text" : "password";
-		const EyeCon = showPassword ? EyeIcon : EyeClosedIcon;
-		const iconRef = useRef<SVGSVGElement>(null);
-		const animationRef = useRef<Animation | null>(null);
+const PasswordInput = ({
+	onValueVisibilityChange,
+	ref,
+	showValue = false,
+	...props
+}: PasswordInputProps) => {
+	const [showPassword, setShowPassword] = useState<boolean>(showValue);
+	const type: PasswordInputType = showPassword ? "text" : "password";
+	const EyeCon = showPassword ? EyeIcon : EyeClosedIcon;
+	const iconRef = useRef<SVGSVGElement>(null);
+	const animationRef = useRef<Animation | null>(null);
 
-		useEffect(() => {
-			setShowPassword(showValue);
-		}, [showValue]);
+	useEffect(() => {
+		setShowPassword(showValue);
+	}, [showValue]);
 
-		return (
-			<Input data-slot="password-input" type={type} ref={ref} {...props}>
-				<InputCapture />
-				<button
-					type="button"
-					tabIndex={-1}
-					className="text-body hover:text-strong ml-1 cursor-pointer bg-inherit p-0"
-					onClick={() => {
-						// Cancel any in-flight animation so rapid clicks are never blocked
-						if (animationRef.current) {
-							animationRef.current.cancel();
+	return (
+		<Input data-slot="password-input" type={type} ref={ref} {...props}>
+			<InputCapture />
+			<button
+				type="button"
+				tabIndex={-1}
+				className="text-body hover:text-strong ml-1 cursor-pointer bg-inherit p-0"
+				onClick={() => {
+					// Cancel any in-flight animation so rapid clicks are never blocked
+					if (animationRef.current) {
+						animationRef.current.cancel();
+						animationRef.current = null;
+					}
+
+					// Flush synchronously so React commits the new icon to the DOM before we animate
+					const nextShowPassword = !showPassword;
+					flushSync(() => {
+						setShowPassword(nextShowPassword);
+					});
+					onValueVisibilityChange?.(nextShowPassword);
+
+					const icon = iconRef.current;
+					if (icon && !getPrefersReducedMotion()) {
+						animationRef.current = icon.animate(
+							[{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }],
+							{ duration: 200, easing: "ease-out" },
+						);
+						animationRef.current.onfinish = () => {
 							animationRef.current = null;
-						}
-
-						// Flush synchronously so React commits the new icon to the DOM before we animate
-						const nextShowPassword = !showPassword;
-						flushSync(() => {
-							setShowPassword(nextShowPassword);
-						});
-						onValueVisibilityChange?.(nextShowPassword);
-
-						const icon = iconRef.current;
-						if (icon && !getPrefersReducedMotion()) {
-							animationRef.current = icon.animate(
-								[{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }],
-								{ duration: 200, easing: "ease-out" },
-							);
-							animationRef.current.onfinish = () => {
-								animationRef.current = null;
-							};
-						}
-					}}
-				>
-					<span className="sr-only">Turn password visibility {showPassword ? "off" : "on"}</span>
-					<Icon ref={iconRef} svg={<EyeCon aria-hidden />} />
-				</button>
-			</Input>
-		);
-	},
-);
-PasswordInput.displayName = "PasswordInput";
+						};
+					}
+				}}
+			>
+				<span className="sr-only">Turn password visibility {showPassword ? "off" : "on"}</span>
+				<Icon ref={iconRef} svg={<EyeCon aria-hidden />} />
+			</button>
+		</Input>
+	);
+};
 
 export { PasswordInput };
 export type { PasswordInputProps };

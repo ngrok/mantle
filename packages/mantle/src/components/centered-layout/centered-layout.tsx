@@ -1,5 +1,4 @@
-import type { ComponentProps, ComponentRef } from "react";
-import { forwardRef } from "react";
+import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -38,22 +37,25 @@ import { Slot } from "../slot/index.js";
  * </CenteredLayout.Root>
  * ```
  */
-const Root = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild & WithDataSlot>(
-	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const Root = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "centered-layout")}
-				className={cx("flex min-h-full flex-col", className)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "centered-layout")}
+			className={cx("flex min-h-full flex-col", className)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 Root.displayName = "CenteredLayout";
 
 /**
@@ -91,22 +93,25 @@ Root.displayName = "CenteredLayout";
  * </CenteredLayout.Root>
  * ```
  */
-const Notice = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild & WithDataSlot>(
-	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const Notice = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "centered-layout-notice")}
-				className={cx("w-full shrink-0", className)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "centered-layout-notice")}
+			className={cx("w-full shrink-0", className)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 Notice.displayName = "CenteredLayoutNotice";
 
 /**
@@ -140,15 +145,17 @@ Notice.displayName = "CenteredLayoutNotice";
  * </CenteredLayout.Root>
  * ```
  */
-const Header = forwardRef<
-	ComponentRef<"header">,
-	ComponentProps<"header"> & WithAsChild & WithDataSlot
->(({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
+const Header = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"header"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "header";
 
 	return (
 		<Comp
-			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "centered-layout-header")}
 			className={cx("flex shrink-0 items-center px-4 py-4", className)}
 			{...props}
@@ -156,7 +163,7 @@ const Header = forwardRef<
 			{children}
 		</Comp>
 	);
-});
+};
 Header.displayName = "CenteredLayoutHeader";
 
 /**
@@ -195,22 +202,25 @@ Header.displayName = "CenteredLayoutHeader";
  * </CenteredLayout.Root>
  * ```
  */
-const Body = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild & WithDataSlot>(
-	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const Body = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "centered-layout-body")}
-				className={cx("flex flex-1 flex-col items-center justify-center gap-6 py-4", className)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "centered-layout-body")}
+			className={cx("flex flex-1 flex-col items-center justify-center gap-6 py-4", className)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 Body.displayName = "CenteredLayoutBody";
 
 /**
@@ -244,15 +254,17 @@ Body.displayName = "CenteredLayoutBody";
  * </CenteredLayout.Root>
  * ```
  */
-const Footer = forwardRef<
-	ComponentRef<"footer">,
-	ComponentProps<"footer"> & WithAsChild & WithDataSlot
->(({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
+const Footer = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"footer"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "footer";
 
 	return (
 		<Comp
-			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "centered-layout-footer")}
 			className={cx("flex shrink-0 items-center px-4 py-4", className)}
 			{...props}
@@ -260,7 +272,7 @@ const Footer = forwardRef<
 			{children}
 		</Comp>
 	);
-});
+};
 Footer.displayName = "CenteredLayoutFooter";
 
 /**

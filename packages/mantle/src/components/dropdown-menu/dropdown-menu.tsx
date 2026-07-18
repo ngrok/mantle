@@ -1,8 +1,7 @@
 import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 import { CheckIcon } from "@phosphor-icons/react/Check";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
-import type { ComponentProps, ComponentPropsWithoutRef, ComponentRef } from "react";
-import { forwardRef } from "react";
+import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -56,25 +55,18 @@ Root.displayName = "DropdownMenu";
  * </DropdownMenu.Root>
  * ```
  */
-const Trigger = forwardRef<
-	ComponentRef<typeof DropdownMenuPrimitive.Trigger>,
-	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Trigger>
->((props, ref) => (
-	<DropdownMenuPrimitive.Trigger ref={ref} data-slot="dropdown-menu-trigger" {...props} />
-));
+const Trigger = (props: ComponentProps<typeof DropdownMenuPrimitive.Trigger>) => (
+	<DropdownMenuPrimitive.Trigger data-slot="dropdown-menu-trigger" {...props} />
+);
 Trigger.displayName = "DropdownMenuTrigger";
 
-const Group = forwardRef<
-	ComponentRef<typeof DropdownMenuPrimitive.Group>,
-	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Group>
->(({ className, ...props }, ref) => (
+const Group = ({ className, ...props }: ComponentProps<typeof DropdownMenuPrimitive.Group>) => (
 	<DropdownMenuPrimitive.Group
-		ref={ref}
 		data-slot="dropdown-menu-group"
 		className={cx("space-y-px", className)}
 		{...props}
 	/>
-));
+);
 Group.displayName = "DropdownMenuGroup";
 
 /**
@@ -86,17 +78,16 @@ Portal.displayName = "DropdownMenuPortal";
 const Sub = DropdownMenuPrimitive.Sub;
 Sub.displayName = "DropdownMenuSub";
 
-const RadioGroup = forwardRef<
-	ComponentRef<typeof DropdownMenuPrimitive.RadioGroup>,
-	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.RadioGroup>
->(({ className, ...props }, ref) => (
+const RadioGroup = ({
+	className,
+	...props
+}: ComponentProps<typeof DropdownMenuPrimitive.RadioGroup>) => (
 	<DropdownMenuPrimitive.RadioGroup
-		ref={ref}
 		data-slot="dropdown-menu-radio-group"
 		className={cx("space-y-px", className)}
 		{...props}
 	/>
-));
+);
 RadioGroup.displayName = "DropdownMenuRadioGroup";
 
 /**
@@ -104,12 +95,14 @@ RadioGroup.displayName = "DropdownMenuRadioGroup";
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenusubtrigger
  */
-const SubTrigger = forwardRef<
-	ComponentRef<typeof DropdownMenuPrimitive.SubTrigger>,
-	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubTrigger> & {
-		inset?: boolean;
-	}
->(({ className, inset, children, ...props }, ref) => (
+const SubTrigger = ({
+	className,
+	inset,
+	children,
+	...props
+}: ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & {
+	inset?: boolean;
+}) => (
 	<DropdownMenuPrimitive.SubTrigger
 		data-slot="dropdown-menu-sub-trigger"
 		className={cx(
@@ -119,7 +112,6 @@ const SubTrigger = forwardRef<
 			inset && "pl-8",
 			className,
 		)}
-		ref={ref}
 		{...props}
 	>
 		{children}
@@ -127,7 +119,7 @@ const SubTrigger = forwardRef<
 			<Icon svg={<CaretRightIcon weight="bold" />} className="size-4" />
 		</span>
 	</DropdownMenuPrimitive.SubTrigger>
-));
+);
 SubTrigger.displayName = "DropdownMenuSubTrigger";
 
 /**
@@ -139,10 +131,11 @@ SubTrigger.displayName = "DropdownMenuSubTrigger";
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenusubcontent
  */
-const SubContent = forwardRef<
-	ComponentRef<typeof DropdownMenuPrimitive.SubContent>,
-	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
->(({ className, loop = true, ...props }, ref) => (
+const SubContent = ({
+	className,
+	loop = true,
+	...props
+}: ComponentProps<typeof DropdownMenuPrimitive.SubContent>) => (
 	<Portal>
 		<DropdownMenuPrimitive.SubContent
 			data-slot="dropdown-menu-sub-content"
@@ -153,14 +146,13 @@ const SubContent = forwardRef<
 				className,
 			)}
 			loop={loop}
-			ref={ref}
 			{...props}
 		/>
 	</Portal>
-));
+);
 SubContent.displayName = "DropdownMenuSubContent";
 
-type DropdownMenuContentProps = ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content> &
+type DropdownMenuContentProps = ComponentProps<typeof DropdownMenuPrimitive.Content> &
 	WithDataSlot & {
 		/**
 		 * Whether the DropdownMenuContent should match the width of the trigger or use the intrinsic content width.
@@ -192,13 +184,16 @@ type DropdownMenuContentProps = ComponentPropsWithoutRef<typeof DropdownMenuPrim
  * </DropdownMenu.Root>
  * ```
  */
-const Content = forwardRef<
-	ComponentRef<typeof DropdownMenuPrimitive.Content>,
-	DropdownMenuContentProps
->(({ className, "data-slot": dataSlot, onClick, loop = true, width, ...props }, ref) => (
+const Content = ({
+	className,
+	"data-slot": dataSlot,
+	onClick,
+	loop = true,
+	width,
+	...props
+}: DropdownMenuContentProps) => (
 	<Portal>
 		<DropdownMenuPrimitive.Content
-			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-content")}
 			className={cx(
 				"scrollbar",
@@ -220,7 +215,7 @@ const Content = forwardRef<
 			{...props}
 		/>
 	</Portal>
-));
+);
 Content.displayName = "DropdownMenuContent";
 
 /**
@@ -243,14 +238,14 @@ Content.displayName = "DropdownMenuContent";
  * </DropdownMenu.Root>
  * ```
  */
-const Item = forwardRef<
-	ComponentRef<typeof DropdownMenuPrimitive.Item>,
-	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
-		inset?: boolean;
-	}
->(({ className, inset, ...props }, ref) => (
+const Item = ({
+	className,
+	inset,
+	...props
+}: ComponentProps<typeof DropdownMenuPrimitive.Item> & {
+	inset?: boolean;
+}) => (
 	<DropdownMenuPrimitive.Item
-		ref={ref}
 		data-slot="dropdown-menu-item"
 		className={cx(
 			"relative flex cursor-pointer select-none items-center rounded-md px-2 py-1.5 text-strong text-sm font-normal outline-hidden transition-colors",
@@ -263,7 +258,7 @@ const Item = forwardRef<
 		)}
 		{...props}
 	/>
-));
+);
 Item.displayName = "DropdownMenuItem";
 
 /**
@@ -271,12 +266,13 @@ Item.displayName = "DropdownMenuItem";
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenucheckboxitem
  */
-const CheckboxItem = forwardRef<
-	ComponentRef<typeof DropdownMenuPrimitive.CheckboxItem>,
-	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.CheckboxItem>
->(({ className, children, checked, ...props }, ref) => (
+const CheckboxItem = ({
+	className,
+	children,
+	checked,
+	...props
+}: ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) => (
 	<DropdownMenuPrimitive.CheckboxItem
-		ref={ref}
 		data-slot="dropdown-menu-checkbox-item"
 		className={cx(
 			"text-strong data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 pl-2 pr-9 text-sm font-normal outline-hidden",
@@ -296,12 +292,10 @@ const CheckboxItem = forwardRef<
 		</span>
 		{children}
 	</DropdownMenuPrimitive.CheckboxItem>
-));
+);
 CheckboxItem.displayName = "DropdownMenuCheckboxItem";
 
-type DropdownMenuRadioItemProps = ComponentPropsWithoutRef<
-	typeof DropdownMenuPrimitive.RadioItem
-> & {
+type DropdownMenuRadioItemProps = ComponentProps<typeof DropdownMenuPrimitive.RadioItem> & {
 	name?: string;
 	id?: string;
 };
@@ -312,30 +306,27 @@ type DropdownMenuRadioItemProps = ComponentPropsWithoutRef<
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenuradioitem
  */
-const RadioItem = forwardRef<ComponentRef<"input">, DropdownMenuRadioItemProps>(
-	({ className, children, ...props }, ref) => (
-		<DropdownMenuPrimitive.RadioItem
-			data-slot="dropdown-menu-radio-item"
-			className={cx(
-				"group/dropdown-menu-radio-item",
-				"text-strong data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 px-2 text-sm font-normal outline-none",
-				"data-highlighted:bg-active-menu-item",
-				"aria-checked:bg-selected-menu-item aria-checked:pr-9",
-				"data-highlighted:aria-checked:bg-active-selected-menu-item!",
-				"[&>svg]:size-5 [&_svg]:shrink-0",
-				className,
-			)}
-			ref={ref}
-			{...props}
-		>
-			<span className="absolute right-2 items-center hidden group-aria-checked/dropdown-menu-radio-item:flex">
-				<DropdownMenuPrimitive.ItemIndicator>
-					<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
-				</DropdownMenuPrimitive.ItemIndicator>
-			</span>
-			{children}
-		</DropdownMenuPrimitive.RadioItem>
-	),
+const RadioItem = ({ className, children, ...props }: DropdownMenuRadioItemProps) => (
+	<DropdownMenuPrimitive.RadioItem
+		data-slot="dropdown-menu-radio-item"
+		className={cx(
+			"group/dropdown-menu-radio-item",
+			"text-strong data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 px-2 text-sm font-normal outline-none",
+			"data-highlighted:bg-active-menu-item",
+			"aria-checked:bg-selected-menu-item aria-checked:pr-9",
+			"data-highlighted:aria-checked:bg-active-selected-menu-item!",
+			"[&>svg]:size-5 [&_svg]:shrink-0",
+			className,
+		)}
+		{...props}
+	>
+		<span className="absolute right-2 items-center hidden group-aria-checked/dropdown-menu-radio-item:flex">
+			<DropdownMenuPrimitive.ItemIndicator>
+				<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
+			</DropdownMenuPrimitive.ItemIndicator>
+		</span>
+		{children}
+	</DropdownMenuPrimitive.RadioItem>
 );
 RadioItem.displayName = "DropdownMenuRadioItem";
 
@@ -344,19 +335,19 @@ RadioItem.displayName = "DropdownMenuRadioItem";
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenulabel
  */
-const Label = forwardRef<
-	ComponentRef<typeof DropdownMenuPrimitive.Label>,
-	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label> & {
-		inset?: boolean;
-	}
->(({ className, inset, ...props }, ref) => (
+const Label = ({
+	className,
+	inset,
+	...props
+}: ComponentProps<typeof DropdownMenuPrimitive.Label> & {
+	inset?: boolean;
+}) => (
 	<DropdownMenuPrimitive.Label
-		ref={ref}
 		data-slot="dropdown-menu-label"
 		className={cx("px-2 py-1.5 text-sm font-medium", inset && "pl-8", className)}
 		{...props}
 	/>
-));
+);
 Label.displayName = "DropdownMenuLabel";
 
 /**
@@ -364,17 +355,13 @@ Label.displayName = "DropdownMenuLabel";
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenuseparator
  */
-const DropdownSeparator = forwardRef<
-	ComponentRef<typeof Separator>,
-	ComponentPropsWithoutRef<typeof Separator>
->(({ className, ...props }, ref) => (
+const DropdownSeparator = ({ className, ...props }: ComponentProps<typeof Separator>) => (
 	<Separator
-		ref={ref}
 		data-slot="dropdown-menu-separator"
 		className={cx("-mx-1.25 my-1 w-auto", className)}
 		{...props}
 	/>
-));
+);
 DropdownSeparator.displayName = "DropdownMenuSeparator";
 
 const Shortcut = ({ className, ...props }: ComponentProps<"span">) => {

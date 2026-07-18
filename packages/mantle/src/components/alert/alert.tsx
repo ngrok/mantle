@@ -5,8 +5,8 @@ import { WarningIcon } from "@phosphor-icons/react/Warning";
 import { WarningDiamondIcon } from "@phosphor-icons/react/WarningDiamond";
 import { XIcon } from "@phosphor-icons/react/X";
 import { cva } from "class-variance-authority";
-import type { ComponentProps, ComponentRef, HTMLAttributes, ReactNode } from "react";
-import { createContext, forwardRef, useContext, useMemo } from "react";
+import type { ComponentProps, ReactNode } from "react";
+import { createContext, useContext, useMemo } from "react";
 import invariant from "tiny-invariant";
 import { $cssProperties, type WithAsChild } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -118,22 +118,20 @@ type AlertProps = ComponentProps<"div"> & {
  * </Alert>
  *```
  */
-const Root = forwardRef<ComponentRef<"div">, AlertProps>(
-	({ appearance = "default", className, intent, ...props }, ref) => {
-		const context: AlertContextValue = useMemo(() => ({ intent }), [intent]);
+const Root = ({ appearance = "default", className, intent, ref, ...props }: AlertProps) => {
+	const context: AlertContextValue = useMemo(() => ({ intent }), [intent]);
 
-		return (
-			<AlertContext.Provider value={context}>
-				<div
-					ref={ref}
-					data-slot="alert"
-					className={cx(alertVariants({ appearance, intent }), className)}
-					{...props}
-				/>
-			</AlertContext.Provider>
-		);
-	},
-);
+	return (
+		<AlertContext.Provider value={context}>
+			<div
+				ref={ref}
+				data-slot="alert"
+				className={cx(alertVariants({ appearance, intent }), className)}
+				{...props}
+			/>
+		</AlertContext.Provider>
+	);
+};
 Root.displayName = "Alert";
 
 type AlertIconProps = Omit<SvgAttributes, "children"> & {
@@ -176,22 +174,20 @@ const defaultIcons = {
  * </Alert>
  * ```
  */
-const Icon = forwardRef<ComponentRef<"svg">, AlertIconProps>(
-	({ className, svg, ...props }, ref) => {
-		const ctx = useAlertContext();
-		const defaultIcon = defaultIcons[ctx.intent];
+const Icon = ({ className, ref, svg, ...props }: AlertIconProps) => {
+	const ctx = useAlertContext();
+	const defaultIcon = defaultIcons[ctx.intent];
 
-		return (
-			<SvgOnly
-				ref={ref}
-				data-slot="alert-icon"
-				className={cx("size-5", className)}
-				svg={svg ?? defaultIcon}
-				{...props}
-			/>
-		);
-	},
-);
+	return (
+		<SvgOnly
+			ref={ref}
+			data-slot="alert-icon"
+			className={cx("size-5", className)}
+			svg={svg ?? defaultIcon}
+			{...props}
+		/>
+	);
+};
 Icon.displayName = "AlertIcon";
 
 /**
@@ -213,19 +209,17 @@ Icon.displayName = "AlertIcon";
  * </Alert>
  *```
  */
-const Content = forwardRef<ComponentRef<"div">, ComponentProps<"div">>(
-	({ className, ...props }, ref) => (
-		<div
-			ref={ref}
-			data-slot="alert-content"
-			className={cx("min-w-0 flex-1 has-data-alert-dismiss:pr-6", className)}
-			{...props}
-		/>
-	),
+const Content = ({ className, ref, ...props }: ComponentProps<"div">) => (
+	<div
+		ref={ref}
+		data-slot="alert-content"
+		className={cx("min-w-0 flex-1 has-data-alert-dismiss:pr-6", className)}
+		{...props}
+	/>
 );
 Content.displayName = "AlertContent";
 
-type AlertTitleProps = HTMLAttributes<HTMLHeadingElement> & WithAsChild;
+type AlertTitleProps = ComponentProps<"h5"> & WithAsChild;
 
 /**
  * The title of an alert. Default renders as an h5 element, use asChild to render something else.
@@ -246,20 +240,18 @@ type AlertTitleProps = HTMLAttributes<HTMLHeadingElement> & WithAsChild;
  * </Alert>
  *```
  */
-const Title = forwardRef<HTMLHeadingElement, AlertTitleProps>(
-	({ asChild = false, className, ...props }, ref) => {
-		const Component = asChild ? Slot : "h5";
+const Title = ({ asChild = false, className, ref, ...props }: AlertTitleProps) => {
+	const Component = asChild ? Slot : "h5";
 
-		return (
-			<Component
-				ref={ref}
-				data-slot="alert-title"
-				className={cx("font-medium", className)}
-				{...props}
-			/>
-		);
-	},
-);
+	return (
+		<Component
+			ref={ref}
+			data-slot="alert-title"
+			className={cx("font-medium", className)}
+			{...props}
+		/>
+	);
+};
 Title.displayName = "AlertTitle";
 
 type AlertDescriptionProps = ComponentProps<"div"> & WithAsChild;
@@ -285,20 +277,18 @@ type AlertDescriptionProps = ComponentProps<"div"> & WithAsChild;
  * </Alert>
  * ```
  */
-const Description = forwardRef<ComponentRef<"div">, AlertDescriptionProps>(
-	({ asChild = false, className, ...props }, ref) => {
-		const Component = asChild ? Slot : "div";
+const Description = ({ asChild = false, className, ref, ...props }: AlertDescriptionProps) => {
+	const Component = asChild ? Slot : "div";
 
-		return (
-			<Component
-				ref={ref}
-				data-slot="alert-description"
-				className={cx("text-sm", className)}
-				{...props}
-			/>
-		);
-	},
-);
+	return (
+		<Component
+			ref={ref}
+			data-slot="alert-description"
+			className={cx("text-sm", className)}
+			{...props}
+		/>
+	);
+};
 Description.displayName = "AlertDescription";
 
 const dismissTextColor = (intent: AlertIntent) => `var(--color-${intent}-700)`;

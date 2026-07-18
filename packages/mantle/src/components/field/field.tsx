@@ -1,9 +1,7 @@
 import { QuestionIcon } from "@phosphor-icons/react/Question";
 import {
 	cloneElement,
-	type ComponentRef,
 	type ComponentProps,
-	forwardRef,
 	isValidElement,
 	type ReactElement,
 	type ReactNode,
@@ -65,19 +63,16 @@ import { FieldValidationProvider, resolveValidation, type WithValidation } from 
  * </Field.Set>
  * ```
  */
-const FieldSet = forwardRef<ComponentRef<"fieldset">, ComponentProps<"fieldset">>(
-	({ className, ...props }, ref) => {
-		return (
-			<fieldset
-				ref={ref}
-				data-slot="field-set"
-				className={cx("flex w-full min-w-0 flex-col gap-4 border-0 p-0", className)}
-				{...props}
-			/>
-		);
-	},
-);
-FieldSet.displayName = "FieldSet";
+const FieldSet = ({ className, ref, ...props }: ComponentProps<"fieldset">) => {
+	return (
+		<fieldset
+			ref={ref}
+			data-slot="field-set"
+			className={cx("flex w-full min-w-0 flex-col gap-4 border-0 p-0", className)}
+			{...props}
+		/>
+	);
+};
 
 /**
  * The caption for a `Field.Set`. Always renders a semantic `<legend>` styled
@@ -104,23 +99,21 @@ FieldSet.displayName = "FieldSet";
  * </Field.Set>
  * ```
  */
-const Legend = forwardRef<ComponentRef<"legend">, ComponentProps<"legend">>(
-	({ className, ...props }, ref) => {
-		return (
-			<legend
-				ref={ref}
-				data-slot="field-legend"
-				// `mb-1.5` (not the parent's `gap-*`) drives the Legend ↔ next-sibling
-				// spacing because `<legend>` has special browser rendering inside a
-				// `<fieldset>` that ignores the parent's flex `gap`. Pairs with
-				// RadioGroup.Item's own `py-1` for a 10px text-bottom-to-radio rhythm
-				// matching the figma. Override with any `mb-*` utility on Field.Legend.
-				className={cx("text-strong mb-1.5 text-sm font-medium font-sans", className)}
-				{...props}
-			/>
-		);
-	},
-);
+const Legend = ({ className, ref, ...props }: ComponentProps<"legend">) => {
+	return (
+		<legend
+			ref={ref}
+			data-slot="field-legend"
+			// `mb-1.5` (not the parent's `gap-*`) drives the Legend ↔ next-sibling
+			// spacing because `<legend>` has special browser rendering inside a
+			// `<fieldset>` that ignores the parent's flex `gap`. Pairs with
+			// RadioGroup.Item's own `py-1` for a 10px text-bottom-to-radio rhythm
+			// matching the figma. Override with any `mb-*` utility on Field.Legend.
+			className={cx("text-strong mb-1.5 text-sm font-medium font-sans", className)}
+			{...props}
+		/>
+	);
+};
 Legend.displayName = "FieldLegend";
 
 /**
@@ -156,14 +149,11 @@ Legend.displayName = "FieldLegend";
  * </Field.Item>
  * ```
  */
-const FieldLabel = forwardRef<ComponentRef<"label">, ComponentProps<typeof Label>>(
-	({ htmlFor, ...props }, ref) => {
-		const context = useContext(FieldItemContext);
+const FieldLabel = ({ htmlFor, ref, ...props }: ComponentProps<typeof Label>) => {
+	const context = useContext(FieldItemContext);
 
-		return <Label ref={ref} htmlFor={htmlFor ?? context?.controlId} {...props} />;
-	},
-);
-FieldLabel.displayName = "FieldLabel";
+	return <Label ref={ref} htmlFor={htmlFor ?? context?.controlId} {...props} />;
+};
 
 /**
  * Static, label-styled text for a `Field.Item` row that does **not** caption a
@@ -201,20 +191,18 @@ FieldLabel.displayName = "FieldLabel";
  * </Field.Item>
  * ```
  */
-const LabelText = forwardRef<ComponentRef<"p">, ComponentProps<"p"> & WithAsChild>(
-	({ asChild, className, ...props }, ref) => {
-		const Comp = asChild ? Slot : "p";
+const LabelText = ({ asChild, className, ref, ...props }: ComponentProps<"p"> & WithAsChild) => {
+	const Comp = asChild ? Slot : "p";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot="field-label-text"
-				className={cx("text-strong text-sm font-medium font-sans", className)}
-				{...props}
-			/>
-		);
-	},
-);
+	return (
+		<Comp
+			ref={ref}
+			data-slot="field-label-text"
+			className={cx("text-strong text-sm font-medium font-sans", className)}
+			{...props}
+		/>
+	);
+};
 LabelText.displayName = "FieldLabelText";
 
 /**
@@ -255,20 +243,18 @@ LabelText.displayName = "FieldLabelText";
  * </Field.Group>
  * ```
  */
-const LabelRow = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild>(
-	({ asChild, className, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const LabelRow = ({ asChild, className, ref, ...props }: ComponentProps<"div"> & WithAsChild) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot="field-label-row"
-				className={cx("flex items-center gap-1", className)}
-				{...props}
-			/>
-		);
-	},
-);
+	return (
+		<Comp
+			ref={ref}
+			data-slot="field-label-row"
+			className={cx("flex items-center gap-1", className)}
+			{...props}
+		/>
+	);
+};
 LabelRow.displayName = "FieldLabelRow";
 
 /**
@@ -377,38 +363,34 @@ type FieldHelpTriggerProps = Partial<
  * </Field.Group>
  * ```
  */
-const HelpTrigger = forwardRef<ComponentRef<"button">, FieldHelpTriggerProps>(
-	(
-		{
-			appearance = "ghost",
-			className,
-			icon = defaultHelpTriggerIcon,
-			intent = "neutral",
-			label,
-			size = "xs",
-			type = "button",
-			...props
-		},
-		ref,
-	) => (
-		<Popover.Trigger asChild>
-			<IconButton
-				ref={ref}
-				appearance={appearance}
-				// `-my-0.5` keeps the 24px (`size-6`) `xs` IconButton click target while
-				// trimming 4px (2px each side) off its flex-line contribution so the row
-				// height matches the label's 20px line-height. Without this the trigger
-				// drives the LabelRow to 24px and pushes the label text down 2px.
-				className={cx("text-body -my-0.5", className)}
-				icon={icon}
-				intent={intent}
-				label={label}
-				size={size}
-				type={type}
-				{...props}
-			/>
-		</Popover.Trigger>
-	),
+const HelpTrigger = ({
+	appearance = "ghost",
+	className,
+	icon = defaultHelpTriggerIcon,
+	intent = "neutral",
+	label,
+	ref,
+	size = "xs",
+	type = "button",
+	...props
+}: FieldHelpTriggerProps) => (
+	<Popover.Trigger asChild>
+		<IconButton
+			ref={ref}
+			appearance={appearance}
+			// `-my-0.5` keeps the 24px (`size-6`) `xs` IconButton click target while
+			// trimming 4px (2px each side) off its flex-line contribution so the row
+			// height matches the label's 20px line-height. Without this the trigger
+			// drives the LabelRow to 24px and pushes the label text down 2px.
+			className={cx("text-body -my-0.5", className)}
+			icon={icon}
+			intent={intent}
+			label={label}
+			size={size}
+			type={type}
+			{...props}
+		/>
+	</Popover.Trigger>
 );
 HelpTrigger.displayName = "FieldHelpTrigger";
 
@@ -443,8 +425,8 @@ HelpTrigger.displayName = "FieldHelpTrigger";
  * </Field.Group>
  * ```
  */
-const HelpContent = forwardRef<ComponentRef<"div">, ComponentProps<typeof Popover.Content>>(
-	(props, ref) => <Popover.Content ref={ref} data-slot="field-help-content" {...props} />,
+const HelpContent = ({ ref, ...props }: ComponentProps<typeof Popover.Content>) => (
+	<Popover.Content ref={ref} data-slot="field-help-content" {...props} />
 );
 HelpContent.displayName = "FieldHelpContent";
 
@@ -483,22 +465,26 @@ HelpContent.displayName = "FieldHelpContent";
  * </Field.Group>
  * ```
  */
-const Optional = forwardRef<ComponentRef<"span">, ComponentProps<"span"> & WithAsChild>(
-	({ asChild, children, className, ...props }, ref) => {
-		const Comp = asChild ? Slot : "span";
+const Optional = ({
+	asChild,
+	children,
+	className,
+	ref,
+	...props
+}: ComponentProps<"span"> & WithAsChild) => {
+	const Comp = asChild ? Slot : "span";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot="field-optional"
-				className={cx("text-muted text-sm font-normal font-sans", className)}
-				{...props}
-			>
-				{children ?? "(Optional)"}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			ref={ref}
+			data-slot="field-optional"
+			className={cx("text-muted text-sm font-normal font-sans", className)}
+			{...props}
+		>
+			{children ?? "(Optional)"}
+		</Comp>
+	);
+};
 Optional.displayName = "FieldOptional";
 
 /**
@@ -532,20 +518,18 @@ Optional.displayName = "FieldOptional";
  * </Field.Group>
  * ```
  */
-const Group = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild>(
-	({ asChild, className, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const Group = ({ asChild, className, ref, ...props }: ComponentProps<"div"> & WithAsChild) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot="field-group"
-				className={cx("flex w-full flex-col gap-4", className)}
-				{...props}
-			/>
-		);
-	},
-);
+	return (
+		<Comp
+			ref={ref}
+			data-slot="field-group"
+			className={cx("flex w-full flex-col gap-4", className)}
+			{...props}
+		/>
+	);
+};
 Group.displayName = "FieldGroup";
 
 /**
@@ -603,53 +587,59 @@ type FieldItemProps = ComponentProps<"div"> &
 		name: string;
 	};
 
-const Item = forwardRef<ComponentRef<"div">, FieldItemProps>(
-	({ asChild, children, className, name, validation: validationProp, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
-		const controlId = useId();
-		const descriptionId = useId();
-		const errorId = useId();
-		const [hasErrors, setHasErrors] = useState(false);
-		const validation = resolveValidation(validationProp ?? (hasErrors ? "error" : undefined));
+const Item = ({
+	asChild,
+	children,
+	className,
+	name,
+	ref,
+	validation: validationProp,
+	...props
+}: FieldItemProps) => {
+	const Comp = asChild ? Slot : "div";
+	const controlId = useId();
+	const descriptionId = useId();
+	const errorId = useId();
+	const [hasErrors, setHasErrors] = useState(false);
+	const validation = resolveValidation(validationProp ?? (hasErrors ? "error" : undefined));
 
-		const registerError = useCallback(() => {
-			setHasErrors(true);
+	const registerError = useCallback(() => {
+		setHasErrors(true);
 
-			return () => {
-				setHasErrors(false);
-			};
-		}, []);
+		return () => {
+			setHasErrors(false);
+		};
+	}, []);
 
-		const context = useMemo(
-			() => ({
-				controlId,
-				descriptionId,
-				errorId,
-				hasErrors,
-				name,
-				registerError,
-				validation,
-			}),
-			[controlId, descriptionId, errorId, hasErrors, name, registerError, validation],
-		);
+	const context = useMemo(
+		() => ({
+			controlId,
+			descriptionId,
+			errorId,
+			hasErrors,
+			name,
+			registerError,
+			validation,
+		}),
+		[controlId, descriptionId, errorId, hasErrors, name, registerError, validation],
+	);
 
-		return (
-			<FieldItemContext.Provider value={context}>
-				<FieldValidationProvider validation={validation}>
-					<Comp
-						ref={ref}
-						data-slot="field-item"
-						data-validation={validation}
-						className={cx("flex w-full flex-col gap-1.5", className)}
-						{...props}
-					>
-						{children}
-					</Comp>
-				</FieldValidationProvider>
-			</FieldItemContext.Provider>
-		);
-	},
-);
+	return (
+		<FieldItemContext.Provider value={context}>
+			<FieldValidationProvider validation={validation}>
+				<Comp
+					ref={ref}
+					data-slot="field-item"
+					data-validation={validation}
+					className={cx("flex w-full flex-col gap-1.5", className)}
+					{...props}
+				>
+					{children}
+				</Comp>
+			</FieldValidationProvider>
+		</FieldItemContext.Provider>
+	);
+};
 Item.displayName = "FieldItem";
 
 type FieldControlSlotProps = Omit<
@@ -659,7 +649,7 @@ type FieldControlSlotProps = Omit<
 
 /**
  * Element-child form of `Field.Control`. Renders via `Slot`, so it accepts
- * any HTML/Slot props and a forwarded ref — those land on the single child
+ * any HTML/Slot props, including `ref` — those land on the single child
  * element along with the generated ARIA props.
  */
 type FieldControlElementProps = FieldControlSlotProps & {
@@ -691,7 +681,7 @@ type FieldControlRenderProps = {
  *
  * - `FieldControlElementProps` — pass a single React element child and
  *   `Field.Control` clones the generated ARIA props onto it via `Slot`.
- *   Accepts the full Slot prop surface plus a forwarded ref.
+ *   Accepts the full Slot prop surface, including `ref`.
  * - `FieldControlRenderProps` — pass a render function that receives the
  *   ARIA props and places them on a control of the caller's choosing. The
  *   caller owns the rendered element, so DOM/Slot props and `ref` are
@@ -760,7 +750,7 @@ type FieldControlProps = FieldControlElementProps | FieldControlRenderProps;
  * </Field.Group>
  * ```
  */
-const Control = forwardRef<HTMLElement, FieldControlProps>(({ children, ...props }, ref) => {
+const Control = ({ children, ref, ...props }: FieldControlProps) => {
 	const context = useContext(FieldItemContext);
 	// Field.Item owns id, name, aria-*, and validation — `cloneElement` below
 	// overwrites whatever the child supplied, and the resolver no longer reads
@@ -797,7 +787,7 @@ const Control = forwardRef<HTMLElement, FieldControlProps>(({ children, ...props
 			</FieldControlContext.Provider>
 		</FieldValidationProvider>
 	);
-});
+};
 Control.displayName = "FieldControl";
 
 /**
@@ -839,32 +829,35 @@ Control.displayName = "FieldControl";
  * </Field.Group>
  * ```
  */
-const Description = forwardRef<ComponentRef<"p">, Omit<ComponentProps<"p">, "id"> & WithAsChild>(
-	({ asChild, className, ...props }, ref) => {
-		const Comp = asChild ? Slot : "p";
-		const context = useContext(FieldItemContext);
+const Description = ({
+	asChild,
+	className,
+	ref,
+	...props
+}: Omit<ComponentProps<"p">, "id"> & WithAsChild) => {
+	const Comp = asChild ? Slot : "p";
+	const context = useContext(FieldItemContext);
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot="field-description"
-				id={context?.descriptionId}
-				className={cx(
-					"text-body text-sm leading-4",
-					// When this description sits directly after a Field.ErrorList
-					// sibling, collapse the parent's gap-1.5 with a matching negative
-					// top margin so the list + helper read as one tight block.
-					// Wrapping the matched selector in :where() flattens its specificity
-					// to (0,1,0) so a user-supplied margin utility (mt-2, mt-0, etc.)
-					// passed on Field.Description still overrides cleanly.
-					"[:where([data-slot=field-error-list]+&)]:-mt-1.5",
-					className,
-				)}
-				{...props}
-			/>
-		);
-	},
-);
+	return (
+		<Comp
+			ref={ref}
+			data-slot="field-description"
+			id={context?.descriptionId}
+			className={cx(
+				"text-body text-sm leading-4",
+				// When this description sits directly after a Field.ErrorList
+				// sibling, collapse the parent's gap-1.5 with a matching negative
+				// top margin so the list + helper read as one tight block.
+				// Wrapping the matched selector in :where() flattens its specificity
+				// to (0,1,0) so a user-supplied margin utility (mt-2, mt-0, etc.)
+				// passed on Field.Description still overrides cleanly.
+				"[:where([data-slot=field-error-list]+&)]:-mt-1.5",
+				className,
+			)}
+			{...props}
+		/>
+	);
+};
 Description.displayName = "FieldDescription";
 
 /**
@@ -892,25 +885,22 @@ Description.displayName = "FieldDescription";
  * </Field.Group>
  * ```
  */
-const FieldErrorItem = forwardRef<ComponentRef<"li">, ComponentProps<"li">>(
-	({ children, className, ...props }, ref) => {
-		if (!isErrorItemRenderable(children)) {
-			return null;
-		}
+const FieldErrorItem = ({ children, className, ref, ...props }: ComponentProps<"li">) => {
+	if (!isErrorItemRenderable(children)) {
+		return null;
+	}
 
-		return (
-			<li
-				ref={ref}
-				data-slot="field-error"
-				className={cx("text-danger-600 text-sm leading-4", className)}
-				{...props}
-			>
-				{children}
-			</li>
-		);
-	},
-);
-FieldErrorItem.displayName = "FieldErrorItem";
+	return (
+		<li
+			ref={ref}
+			data-slot="field-error"
+			className={cx("text-danger-600 text-sm leading-4", className)}
+			{...props}
+		>
+			{children}
+		</li>
+	);
+};
 
 /**
  * Props for the `Field.Errors` convenience renderer. It owns its generated
@@ -964,16 +954,13 @@ type FieldErrorsProps = Omit<ComponentProps<"ul">, "children" | "id"> & {
  * </Field.Group>
  * ```
  */
-const FieldErrors = forwardRef<ComponentRef<"ul">, FieldErrorsProps>(
-	({ messages, ...props }, ref) => (
-		<FieldErrorList ref={ref} {...props}>
-			{normalizeErrorMessages(messages).map((message) => (
-				<FieldErrorItem key={message}>{message}</FieldErrorItem>
-			))}
-		</FieldErrorList>
-	),
+const FieldErrors = ({ messages, ref, ...props }: FieldErrorsProps) => (
+	<FieldErrorList ref={ref} {...props}>
+		{normalizeErrorMessages(messages).map((message) => (
+			<FieldErrorItem key={message}>{message}</FieldErrorItem>
+		))}
+	</FieldErrorList>
 );
-FieldErrors.displayName = "FieldErrors";
 
 /**
  * Wraps one or more `Field.ErrorItem` children in a semantic `<ul>` with
@@ -1010,10 +997,13 @@ FieldErrors.displayName = "FieldErrors";
  * </Field.Group>
  * ```
  */
-const FieldErrorList = forwardRef<
-	ComponentRef<"ul">,
-	Omit<ComponentProps<"ul">, "id"> & WithAsChild
->(({ asChild, children, className, ...props }, ref) => {
+const FieldErrorList = ({
+	asChild,
+	children,
+	className,
+	ref,
+	...props
+}: Omit<ComponentProps<"ul">, "id"> & WithAsChild) => {
 	const hasRenderableChildren = hasRenderableErrorListChildren({
 		children,
 		errorItemType: FieldErrorItem,
@@ -1047,8 +1037,7 @@ const FieldErrorList = forwardRef<
 			{children}
 		</Comp>
 	);
-});
-FieldErrorList.displayName = "FieldErrorList";
+};
 
 /**
  * Compound component for semantic, accessible form fields. Composes a

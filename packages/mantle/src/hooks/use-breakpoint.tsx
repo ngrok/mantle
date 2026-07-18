@@ -77,9 +77,8 @@ type Breakpoint = (typeof breakpoints)[number];
 /**
  * React hook that returns the current breakpoint based on the viewport width.
  *
- * Uses a singleton subscription to a set of min-width media queries and returns
- * the largest matching breakpoint. Designed for React 18+ with
- * `useSyncExternalStore`.
+ * Uses a singleton subscription to a set of min-width media queries via
+ * `useSyncExternalStore` and returns the largest matching breakpoint.
  *
  * @returns {Breakpoint} The current breakpoint that matches the viewport width.
  *

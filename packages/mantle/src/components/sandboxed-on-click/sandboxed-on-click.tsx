@@ -1,7 +1,6 @@
 "use client";
 
-import type { ComponentProps, ComponentRef, HTMLAttributes, MouseEventHandler } from "react";
-import { forwardRef } from "react";
+import type { ComponentProps, HTMLAttributes, MouseEventHandler } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { Slot } from "../slot/index.js";
 
@@ -87,32 +86,23 @@ type Props = ComponentProps<"div"> & WithAsChild & BaseProps;
  * </TableRow>
  * ```
  */
-const SandboxedOnClick = forwardRef<ComponentRef<"div">, Props>(
-	(
-		{
-			//,
-			allowClickEventDefault = false,
-			asChild = false,
-			children,
-			onClick,
-			...props
-		},
-		ref,
-	) => {
-		const Component = asChild ? Slot : "div";
+const SandboxedOnClick = ({
+	//,
+	allowClickEventDefault = false,
+	asChild = false,
+	children,
+	onClick,
+	ref,
+	...props
+}: Props) => {
+	const Component = asChild ? Slot : "div";
 
-		return (
-			<Component
-				ref={ref}
-				{...props}
-				{...sandboxedOnClickProps({ allowClickEventDefault, onClick })}
-			>
-				{children}
-			</Component>
-		);
-	},
-);
-SandboxedOnClick.displayName = "SandboxedOnClick";
+	return (
+		<Component ref={ref} {...props} {...sandboxedOnClickProps({ allowClickEventDefault, onClick })}>
+			{children}
+		</Component>
+	);
+};
 
 export {
 	//,

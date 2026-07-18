@@ -1,8 +1,7 @@
-import { forwardRef } from "react";
-import type { ComponentPropsWithoutRef, ComponentRef } from "react";
+import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
 
-type LabelProps = ComponentPropsWithoutRef<"label"> & {
+type LabelProps = ComponentProps<"label"> & {
 	/**
 	 * If set, the label will appear disabled.
 	 */
@@ -69,47 +68,49 @@ type LabelProps = ComponentPropsWithoutRef<"label"> & {
  * </Label>
  * ```
  */
-const Label = forwardRef<ComponentRef<"label">, LabelProps>(
-	(
-		{ "aria-disabled": _ariaDisabled, children, className, disabled, onMouseDown, ...props },
-		ref,
-	) => (
-		<label
-			aria-disabled={disabled ?? _ariaDisabled}
-			data-slot="label"
-			className={cx(
-				"text-strong cursor-pointer text-sm peer-disabled:cursor-default has-disabled:cursor-default aria-disabled:cursor-default font-sans",
-				// Default to font-medium when the label isn't wrapping a form control. The
-				// arbitrary variant wraps the *entire* matched selector — class + the
-				// `:not(:has(...))` check — in `:where()`, flattening total specificity to 0.
-				// That lets a user-supplied font-weight utility (`font-bold`, `font-normal`,
-				// etc.) at (0,1,0) override cleanly, even though `[contenteditable]` is an
-				// attribute selector that would otherwise lift the rule to (0,1,0) and tie.
-				"[:where(&:not(:has(input,textarea,select,button,[contenteditable])))]:font-medium",
-				className,
-			)}
-			onMouseDown={(event) => {
-				// only prevent text selection if clicking inside the label itself
-				const target = event.target as HTMLElement;
-				if (target.closest("button, input, select, textarea")) {
-					return;
-				}
+const Label = ({
+	"aria-disabled": _ariaDisabled,
+	children,
+	className,
+	disabled,
+	onMouseDown,
+	ref,
+	...props
+}: LabelProps) => (
+	<label
+		aria-disabled={disabled ?? _ariaDisabled}
+		data-slot="label"
+		className={cx(
+			"text-strong cursor-pointer text-sm peer-disabled:cursor-default has-disabled:cursor-default aria-disabled:cursor-default font-sans",
+			// Default to font-medium when the label isn't wrapping a form control. The
+			// arbitrary variant wraps the *entire* matched selector — class + the
+			// `:not(:has(...))` check — in `:where()`, flattening total specificity to 0.
+			// That lets a user-supplied font-weight utility (`font-bold`, `font-normal`,
+			// etc.) at (0,1,0) override cleanly, even though `[contenteditable]` is an
+			// attribute selector that would otherwise lift the rule to (0,1,0) and tie.
+			"[:where(&:not(:has(input,textarea,select,button,[contenteditable])))]:font-medium",
+			className,
+		)}
+		onMouseDown={(event) => {
+			// only prevent text selection if clicking inside the label itself
+			const target = event.target as HTMLElement;
+			if (target.closest("button, input, select, textarea")) {
+				return;
+			}
 
-				onMouseDown?.(event);
+			onMouseDown?.(event);
 
-				// prevent text selection when double clicking label
-				if (!event.defaultPrevented && event.detail > 1) {
-					event.preventDefault();
-				}
-			}}
-			ref={ref}
-			{...props}
-		>
-			{children}
-		</label>
-	),
+			// prevent text selection when double clicking label
+			if (!event.defaultPrevented && event.detail > 1) {
+				event.preventDefault();
+			}
+		}}
+		ref={ref}
+		{...props}
+	>
+		{children}
+	</label>
 );
-Label.displayName = "Label";
 
 export {
 	//

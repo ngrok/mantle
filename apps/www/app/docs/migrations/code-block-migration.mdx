@@ -459,9 +459,9 @@ If you also have code blocks in React components (not MDX), use `mantleCode` tag
 
 ---
 
-## Use Case 3: React 18 + Vite + Go Server
+## Use Case 3: Vite SPA + Go Server
 
-This is for apps where the frontend is a Vite-built React 18 SPA and the backend is a Go server. The Go server cannot run Shiki (it's JavaScript/Wasm), so you have two options for dynamic code:
+This is for apps where the frontend is a Vite-built React SPA and the backend is a Go server. The Go server cannot run Shiki (it's JavaScript/Wasm), so you have two options for dynamic code:
 
 **Option A:** Use `mantleCode` tagged templates for all static code (build-time, via Vite plugin) and skip server highlighting entirely. Code not known at build time renders as plain text (no syntax highlighting).
 
@@ -636,9 +636,9 @@ function DynamicCodeBlock({ code, language }: { code: string; language: string }
 }
 ```
 
-### React 18 compatibility note
+### React 19 requirement
 
-`@ngrok/mantle` supports React 18. The CodeBlock component uses `"use client"` directives, `useId()`, and standard hooks — all available in React 18. No React 19 features are required.
+As of this release, `@ngrok/mantle` requires `react@^19` and `react-dom@^19`.
 
 ---
 

@@ -1,6 +1,5 @@
 import { XIcon } from "@phosphor-icons/react/X";
-import type { ComponentProps, ComponentPropsWithoutRef, ComponentRef } from "react";
-import { forwardRef } from "react";
+import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import {
 	IconButton,
@@ -78,10 +77,9 @@ Root.displayName = "Dialog";
  * </Dialog.Root>
  * ```
  */
-const Trigger = forwardRef<
-	ComponentRef<typeof DialogPrimitive.Trigger>,
-	ComponentPropsWithoutRef<typeof DialogPrimitive.Trigger>
->((props, ref) => <DialogPrimitive.Trigger ref={ref} data-slot="dialog-trigger" {...props} />);
+const Trigger = (props: ComponentProps<typeof DialogPrimitive.Trigger>) => (
+	<DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
+);
 Trigger.displayName = "DialogTrigger";
 
 /**
@@ -156,10 +154,9 @@ Portal.displayName = "DialogPortal";
  * </Dialog.Root>
  * ```
  */
-const Close = forwardRef<
-	ComponentRef<typeof DialogPrimitive.Close>,
-	ComponentPropsWithoutRef<typeof DialogPrimitive.Close>
->((props, ref) => <DialogPrimitive.Close ref={ref} data-slot="dialog-close" {...props} />);
+const Close = (props: ComponentProps<typeof DialogPrimitive.Close>) => (
+	<DialogPrimitive.Close data-slot="dialog-close" {...props} />
+);
 Close.displayName = "DialogClose";
 
 /**
@@ -200,10 +197,7 @@ Close.displayName = "DialogClose";
  * </Dialog.Root>
  * ```
  */
-const Overlay = forwardRef<
-	ComponentRef<"div">,
-	ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
+const Overlay = ({ className, ref, ...props }: ComponentProps<typeof DialogPrimitive.Overlay>) => (
 	<DialogPrimitive.Overlay
 		ref={ref}
 		data-slot="dialog-overlay"
@@ -213,10 +207,10 @@ const Overlay = forwardRef<
 		)}
 		{...props}
 	/>
-));
+);
 Overlay.displayName = "DialogOverlay";
 
-type ContentProps = ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+type ContentProps = ComponentProps<typeof DialogPrimitive.Content> & {
 	/**
 	 * The preferred width of the `Dialog.Content` as a tailwind `max-w-` class.
 	 *
@@ -263,30 +257,34 @@ type ContentProps = ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
  * </Dialog.Root>
  * ```
  */
-const Content = forwardRef<ComponentRef<"div">, ContentProps>(
-	({ children, className, preferredWidth = "max-w-lg", ...props }, ref) => (
-		<Portal>
-			<Overlay />
-			<div className="fixed inset-4 z-50 flex items-center justify-center">
-				<DialogPrimitive.Content
-					data-mantle-modal-content
-					data-slot="dialog-content"
-					className={cx(
-						"flex max-h-full w-full flex-1 flex-col",
-						"outline-hidden focus-within:outline-hidden",
-						"border-dialog bg-dialog rounded-xl border shadow-lg transition-transform duration-200",
-						"data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95",
-						preferredWidth,
-						className,
-					)}
-					ref={ref}
-					{...props}
-				>
-					{children}
-				</DialogPrimitive.Content>
-			</div>
-		</Portal>
-	),
+const Content = ({
+	children,
+	className,
+	preferredWidth = "max-w-lg",
+	ref,
+	...props
+}: ContentProps) => (
+	<Portal>
+		<Overlay />
+		<div className="fixed inset-4 z-50 flex items-center justify-center">
+			<DialogPrimitive.Content
+				data-mantle-modal-content
+				data-slot="dialog-content"
+				className={cx(
+					"flex max-h-full w-full flex-1 flex-col",
+					"outline-hidden focus-within:outline-hidden",
+					"border-dialog bg-dialog rounded-xl border shadow-lg transition-transform duration-200",
+					"data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95",
+					preferredWidth,
+					className,
+				)}
+				ref={ref}
+				{...props}
+			>
+				{children}
+			</DialogPrimitive.Content>
+		</div>
+	</Portal>
 );
 Content.displayName = "DialogContent";
 
@@ -521,17 +519,14 @@ Footer.displayName = "DialogFooter";
  * </Dialog.Root>
  * ```
  */
-const Title = forwardRef<
-	ComponentRef<typeof DialogPrimitive.Title>,
-	ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
->(({ className, ...props }, ref) => (
+const Title = ({ className, ref, ...props }: ComponentProps<typeof DialogPrimitive.Title>) => (
 	<DialogPrimitive.Title
 		ref={ref}
 		data-slot="dialog-title"
 		className={cx("text-strong truncate text-lg font-medium", className)}
 		{...props}
 	/>
-));
+);
 Title.displayName = "DialogTitle";
 
 /**
@@ -566,17 +561,18 @@ Title.displayName = "DialogTitle";
  * </Dialog.Root>
  * ```
  */
-const Description = forwardRef<
-	ComponentRef<typeof DialogPrimitive.Description>,
-	ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
->(({ className, ...props }, ref) => (
+const Description = ({
+	className,
+	ref,
+	...props
+}: ComponentProps<typeof DialogPrimitive.Description>) => (
 	<DialogPrimitive.Description
 		ref={ref}
 		data-slot="dialog-description"
 		className={cx("text-muted", className)}
 		{...props}
 	/>
-));
+);
 Description.displayName = "DialogDescription";
 
 /**

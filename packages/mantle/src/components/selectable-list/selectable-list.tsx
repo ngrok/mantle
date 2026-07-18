@@ -4,7 +4,6 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import {
 	cloneElement,
 	createContext,
-	forwardRef,
 	isValidElement,
 	useCallback,
 	useContext,
@@ -12,13 +11,7 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import type {
-	ComponentProps,
-	ComponentPropsWithoutRef,
-	ComponentRef,
-	ReactElement,
-	ReactNode,
-} from "react";
+import type { ComponentProps, ReactElement, ReactNode } from "react";
 import invariant from "tiny-invariant";
 import { cx } from "../../utils/cx/cx.js";
 import { Checkbox, selectAllChecked } from "../checkbox/checkbox.js";
@@ -293,105 +286,101 @@ const EMPTY_SELECTION: readonly string[] = [];
  * </SelectableList.Root>
  * ```
  */
-const Root = forwardRef<ComponentRef<"div">, SelectableListRootProps>(
-	(
-		{
-			className,
-			defaultQuery,
-			defaultValue,
-			filter,
-			onQueryChange,
-			onValueChange,
-			options,
-			query: queryProp,
-			value,
-			...props
+const Root = ({
+	className,
+	defaultQuery,
+	defaultValue,
+	filter,
+	onQueryChange,
+	onValueChange,
+	options,
+	query: queryProp,
+	ref,
+	value,
+	...props
+}: SelectableListRootProps) => {
+	const listId = useId();
+	const isControlled = value != null;
+	const [internalValue, setInternalValue] = useState<readonly string[]>(
+		defaultValue ?? EMPTY_SELECTION,
+	);
+	const selectedValues = isControlled ? value : internalValue;
+	const isQueryControlled = queryProp != null;
+	const [internalQuery, setInternalQuery] = useState(defaultQuery ?? "");
+	const query = isQueryControlled ? queryProp : internalQuery;
+
+	const commitSelection = useCallback(
+		(next: string[]) => {
+			if (!isControlled) {
+				setInternalValue(next);
+			}
+			onValueChange?.(next);
 		},
-		ref,
-	) => {
-		const listId = useId();
-		const isControlled = value != null;
-		const [internalValue, setInternalValue] = useState<readonly string[]>(
-			defaultValue ?? EMPTY_SELECTION,
-		);
-		const selectedValues = isControlled ? value : internalValue;
-		const isQueryControlled = queryProp != null;
-		const [internalQuery, setInternalQuery] = useState(defaultQuery ?? "");
-		const query = isQueryControlled ? queryProp : internalQuery;
+		[isControlled, onValueChange],
+	);
+	const setQuery = useCallback(
+		(next: string) => {
+			if (!isQueryControlled) {
+				setInternalQuery(next);
+			}
+			onQueryChange?.(next);
+		},
+		[isQueryControlled, onQueryChange],
+	);
 
-		const commitSelection = useCallback(
-			(next: string[]) => {
-				if (!isControlled) {
-					setInternalValue(next);
+	const selectedSet = useMemo(() => new Set(selectedValues), [selectedValues]);
+	const disabledSet = useMemo(
+		() => new Set(options.filter((option) => option.disabled).map((option) => option.value)),
+		[options],
+	);
+	const filteredOptions = useMemo(
+		() =>
+			filter != null
+				? options.filter((option) => filter(option, query))
+				: filterSelectableOptions(options, query),
+		[options, query, filter],
+	);
+
+	const context = useMemo<SelectableListContextValue>(
+		() => ({
+			listId,
+			filteredOptions,
+			query,
+			setQuery,
+			selectedValues,
+			selectedSet,
+			disabledSet,
+			toggle: (toggledValue) => {
+				if (disabledSet.has(toggledValue)) {
+					return;
 				}
-				onValueChange?.(next);
+				commitSelection(toggleSelectionValue(selectedValues, toggledValue));
 			},
-			[isControlled, onValueChange],
-		);
-		const setQuery = useCallback(
-			(next: string) => {
-				if (!isQueryControlled) {
-					setInternalQuery(next);
-				}
-				onQueryChange?.(next);
-			},
-			[isQueryControlled, onQueryChange],
-		);
+			setSelection: commitSelection,
+		}),
+		[
+			listId,
+			filteredOptions,
+			query,
+			setQuery,
+			selectedValues,
+			selectedSet,
+			disabledSet,
+			commitSelection,
+		],
+	);
 
-		const selectedSet = useMemo(() => new Set(selectedValues), [selectedValues]);
-		const disabledSet = useMemo(
-			() => new Set(options.filter((option) => option.disabled).map((option) => option.value)),
-			[options],
-		);
-		const filteredOptions = useMemo(
-			() =>
-				filter != null
-					? options.filter((option) => filter(option, query))
-					: filterSelectableOptions(options, query),
-			[options, query, filter],
-		);
-
-		const context = useMemo<SelectableListContextValue>(
-			() => ({
-				listId,
-				filteredOptions,
-				query,
-				setQuery,
-				selectedValues,
-				selectedSet,
-				disabledSet,
-				toggle: (toggledValue) => {
-					if (disabledSet.has(toggledValue)) {
-						return;
-					}
-					commitSelection(toggleSelectionValue(selectedValues, toggledValue));
-				},
-				setSelection: commitSelection,
-			}),
-			[
-				listId,
-				filteredOptions,
-				query,
-				setQuery,
-				selectedValues,
-				selectedSet,
-				disabledSet,
-				commitSelection,
-			],
-		);
-
-		return (
-			<SelectableListContext.Provider value={context}>
-				<div
-					ref={ref}
-					data-slot="selectable-list"
-					className={cx("flex w-full flex-col gap-3", className)}
-					{...props}
-				/>
-			</SelectableListContext.Provider>
-		);
-	},
-);
+	return (
+		<SelectableListContext.Provider value={context}>
+			<div
+				ref={ref}
+				data-slot="selectable-list"
+				className={cx("flex w-full flex-col gap-3", className)}
+				{...props}
+			/>
+		</SelectableListContext.Provider>
+	);
+};
 Root.displayName = "SelectableListRoot";
 
 /**
@@ -412,15 +401,16 @@ Root.displayName = "SelectableListRoot";
  * </SelectableList.Root>
  * ```
  */
-const Filter = forwardRef<
-	ComponentRef<typeof Input>,
-	Omit<
-		ComponentPropsWithoutRef<typeof Input>,
-		// The input is always controlled by the list's `query`, so `defaultValue`
-		// would typecheck yet be silently ignored — omit it too.
-		"value" | "defaultValue" | "onChange" | "type" | "children"
-	>
->(({ "aria-label": ariaLabel = "Filter", ...props }, ref) => {
+const Filter = ({
+	"aria-label": ariaLabel = "Filter",
+	ref,
+	...props
+}: Omit<
+	ComponentProps<typeof Input>,
+	// The input is always controlled by the list's `query`, so `defaultValue`
+	// would typecheck yet be silently ignored — omit it too.
+	"value" | "defaultValue" | "onChange" | "type" | "children"
+>) => {
 	const { query, setQuery } = useSelectableListContext("Filter");
 
 	return (
@@ -437,7 +427,7 @@ const Filter = forwardRef<
 			<InputCapture />
 		</Input>
 	);
-});
+};
 Filter.displayName = "SelectableListFilter";
 
 /**
@@ -458,53 +448,56 @@ Filter.displayName = "SelectableListFilter";
  * </SelectableList.Root>
  * ```
  */
-const SelectAll = forwardRef<ComponentRef<"label">, Omit<ComponentProps<"label">, "htmlFor">>(
-	({ children, className, ...props }, ref) => {
-		const { filteredOptions, selectedValues, selectedSet, setSelection } =
-			useSelectableListContext("SelectAll");
-		const controlId = useId();
+const SelectAll = ({
+	children,
+	className,
+	ref,
+	...props
+}: Omit<ComponentProps<"label">, "htmlFor">) => {
+	const { filteredOptions, selectedValues, selectedSet, setSelection } =
+		useSelectableListContext("SelectAll");
+	const controlId = useId();
 
-		const { allSelected, someSelected } = summarizeSelection(filteredOptions, selectedSet);
-		const checked = selectAllChecked({ allSelected, someSelected });
-		const hasSelectable = filteredOptions.some((option) => !option.disabled);
+	const { allSelected, someSelected } = summarizeSelection(filteredOptions, selectedSet);
+	const checked = selectAllChecked({ allSelected, someSelected });
+	const hasSelectable = filteredOptions.some((option) => !option.disabled);
 
-		const handleChange = () => {
-			// Materialize the selectable values only on toggle, not on every render.
-			const selectableFilteredValues = filteredOptions
-				.filter((option) => !option.disabled)
-				.map((option) => option.value);
-			if (allSelected) {
-				// Clear only the filtered values, preserving any selection outside the filter.
-				const filteredSet = new Set(selectableFilteredValues);
-				setSelection(selectedValues.filter((value) => !filteredSet.has(value)));
-				return;
-			}
-			// Union the current selection with every filtered value.
-			setSelection([...new Set([...selectedValues, ...selectableFilteredValues])]);
-		};
+	const handleChange = () => {
+		// Materialize the selectable values only on toggle, not on every render.
+		const selectableFilteredValues = filteredOptions
+			.filter((option) => !option.disabled)
+			.map((option) => option.value);
+		if (allSelected) {
+			// Clear only the filtered values, preserving any selection outside the filter.
+			const filteredSet = new Set(selectableFilteredValues);
+			setSelection(selectedValues.filter((value) => !filteredSet.has(value)));
+			return;
+		}
+		// Union the current selection with every filtered value.
+		setSelection([...new Set([...selectedValues, ...selectableFilteredValues])]);
+	};
 
-		return (
-			<label
-				ref={ref}
-				htmlFor={controlId}
-				data-slot="selectable-list-select-all"
-				className={cx(
-					"text-strong flex cursor-pointer items-center gap-2 text-sm font-medium font-sans",
-					className,
-				)}
-				{...props}
-			>
-				<Checkbox
-					id={controlId}
-					checked={checked}
-					onChange={handleChange}
-					disabled={!hasSelectable}
-				/>
-				{children}
-			</label>
-		);
-	},
-);
+	return (
+		<label
+			ref={ref}
+			htmlFor={controlId}
+			data-slot="selectable-list-select-all"
+			className={cx(
+				"text-strong flex cursor-pointer items-center gap-2 text-sm font-medium font-sans",
+				className,
+			)}
+			{...props}
+		>
+			<Checkbox
+				id={controlId}
+				checked={checked}
+				onChange={handleChange}
+				disabled={!hasSelectable}
+			/>
+			{children}
+		</label>
+	);
+};
 SelectAll.displayName = "SelectableListSelectAll";
 
 /**
@@ -579,45 +572,43 @@ type SelectableListItemProps = Omit<ComponentProps<"div">, "children" | "id"> & 
  * </SelectableList.Root>
  * ```
  */
-const Item = forwardRef<ComponentRef<"div">, SelectableListItemProps>(
-	({ children, className, value, ...props }, ref) => {
-		const { listId, selectedSet, disabledSet, toggle } = useSelectableListContext("Item");
-		const controlId = controlIdFor(listId, value);
-		const selected = selectedSet.has(value);
-		const disabled = disabledSet.has(value);
+const Item = ({ children, className, ref, value, ...props }: SelectableListItemProps) => {
+	const { listId, selectedSet, disabledSet, toggle } = useSelectableListContext("Item");
+	const controlId = controlIdFor(listId, value);
+	const selected = selectedSet.has(value);
+	const disabled = disabledSet.has(value);
 
-		// Click-to-toggle lives on the enclosing grid (the list primitive's
-		// click-to-activate → the viewport's `onActivate` → `toggle`), which already
-		// defers to the checkbox/label/nested controls and skips disabled rows. A
-		// consumer `onClick` spread onto the row composes naturally: it runs first
-		// in the bubble and can `preventDefault` to opt out of the toggle.
-		return (
-			<ListItem
-				ref={ref}
-				asChild
-				selected={selected}
-				disabled={disabled}
-				className={cx(
-					"px-2 py-1.5 text-sm",
-					"cursor-pointer aria-disabled:cursor-default",
-					className,
-				)}
-				{...props}
-				data-slot="selectable-list-item"
-				data-value={value}
-			>
-				<Choice.Root id={controlId} disabled={disabled}>
-					<Choice.Indicator role="gridcell">
-						{/* tabIndex -1: the grid collection is the single tab stop; Space/Enter there
-						    activates the active row. The checkbox stays click-toggleable. */}
-						<Checkbox checked={selected} onChange={() => toggle(value)} tabIndex={-1} />
-					</Choice.Indicator>
-					<Choice.Content role="gridcell">{children}</Choice.Content>
-				</Choice.Root>
-			</ListItem>
-		);
-	},
-);
+	// Click-to-toggle lives on the enclosing grid (the list primitive's
+	// click-to-activate → the viewport's `onActivate` → `toggle`), which already
+	// defers to the checkbox/label/nested controls and skips disabled rows. A
+	// consumer `onClick` spread onto the row composes naturally: it runs first
+	// in the bubble and can `preventDefault` to opt out of the toggle.
+	return (
+		<ListItem
+			ref={ref}
+			asChild
+			selected={selected}
+			disabled={disabled}
+			className={cx(
+				"px-2 py-1.5 text-sm",
+				"cursor-pointer aria-disabled:cursor-default",
+				className,
+			)}
+			{...props}
+			data-slot="selectable-list-item"
+			data-value={value}
+		>
+			<Choice.Root id={controlId} disabled={disabled}>
+				<Choice.Indicator role="gridcell">
+					{/* tabIndex -1: the grid collection is the single tab stop; Space/Enter there
+					    activates the active row. The checkbox stays click-toggleable. */}
+					<Checkbox checked={selected} onChange={() => toggle(value)} tabIndex={-1} />
+				</Choice.Indicator>
+				<Choice.Content role="gridcell">{children}</Choice.Content>
+			</Choice.Root>
+		</ListItem>
+	);
+};
 Item.displayName = "SelectableListItem";
 
 /**
@@ -644,10 +635,9 @@ Item.displayName = "SelectableListItem";
  * </SelectableList.Root>
  * ```
  */
-const ItemTitle = forwardRef<
-	ComponentRef<typeof Choice.Label>,
-	ComponentProps<typeof Choice.Label>
->((props, ref) => <Choice.Label ref={ref} data-slot="selectable-list-item-title" {...props} />);
+const ItemTitle = (props: ComponentProps<typeof Choice.Label>) => (
+	<Choice.Label data-slot="selectable-list-item-title" {...props} />
+);
 ItemTitle.displayName = "SelectableListItemTitle";
 
 /**
@@ -674,12 +664,9 @@ ItemTitle.displayName = "SelectableListItemTitle";
  * </SelectableList.Root>
  * ```
  */
-const ItemDescription = forwardRef<
-	ComponentRef<typeof Choice.Description>,
-	ComponentProps<typeof Choice.Description>
->((props, ref) => (
-	<Choice.Description ref={ref} data-slot="selectable-list-item-description" {...props} />
-));
+const ItemDescription = (props: ComponentProps<typeof Choice.Description>) => (
+	<Choice.Description data-slot="selectable-list-item-description" {...props} />
+);
 ItemDescription.displayName = "SelectableListItemDescription";
 
 /**
@@ -824,33 +811,31 @@ type SelectableListViewportProps = Omit<ComponentProps<"div">, "children"> & {
  * </SelectableList.Root>
  * ```
  */
-const Viewport = forwardRef<ComponentRef<"div">, SelectableListViewportProps>(
-	({ children, ...props }, ref) => {
-		const { isEmpty, isItemDisabled, onActivate, itemId, items } = useViewportItems(
-			"Viewport",
-			children,
-		);
+const Viewport = ({ children, ref, ...props }: SelectableListViewportProps) => {
+	const { isEmpty, isItemDisabled, onActivate, itemId, items } = useViewportItems(
+		"Viewport",
+		children,
+	);
 
-		if (isEmpty) {
-			return null;
-		}
+	if (isEmpty) {
+		return null;
+	}
 
-		return (
-			<ListRoot
-				ref={ref}
-				data-slot="selectable-list-viewport"
-				semantics="grid"
-				{...props}
-				aria-multiselectable
-				isItemDisabled={isItemDisabled}
-				onActivate={onActivate}
-				itemId={itemId}
-			>
-				{items}
-			</ListRoot>
-		);
-	},
-);
+	return (
+		<ListRoot
+			ref={ref}
+			data-slot="selectable-list-viewport"
+			semantics="grid"
+			{...props}
+			aria-multiselectable
+			isItemDisabled={isItemDisabled}
+			onActivate={onActivate}
+			itemId={itemId}
+		>
+			{items}
+		</ListRoot>
+	);
+};
 Viewport.displayName = "SelectableListViewport";
 
 /**
@@ -890,33 +875,31 @@ type SelectableListVirtualViewportProps = SelectableListViewportProps & {
  * </SelectableList.Root>
  * ```
  */
-const VirtualViewport = forwardRef<ComponentRef<"div">, SelectableListVirtualViewportProps>(
-	({ children, ...props }, ref) => {
-		const { isEmpty, isItemDisabled, onActivate, itemId, items } = useViewportItems(
-			"VirtualViewport",
-			children,
-		);
+const VirtualViewport = ({ children, ref, ...props }: SelectableListVirtualViewportProps) => {
+	const { isEmpty, isItemDisabled, onActivate, itemId, items } = useViewportItems(
+		"VirtualViewport",
+		children,
+	);
 
-		if (isEmpty) {
-			return null;
-		}
+	if (isEmpty) {
+		return null;
+	}
 
-		return (
-			<ListVirtualRoot
-				ref={ref}
-				data-slot="selectable-list-viewport"
-				semantics="grid"
-				{...props}
-				aria-multiselectable
-				isItemDisabled={isItemDisabled}
-				onActivate={onActivate}
-				itemId={itemId}
-			>
-				{items}
-			</ListVirtualRoot>
-		);
-	},
-);
+	return (
+		<ListVirtualRoot
+			ref={ref}
+			data-slot="selectable-list-viewport"
+			semantics="grid"
+			{...props}
+			aria-multiselectable
+			isItemDisabled={isItemDisabled}
+			onActivate={onActivate}
+			itemId={itemId}
+		>
+			{items}
+		</ListVirtualRoot>
+	);
+};
 VirtualViewport.displayName = "SelectableListVirtualViewport";
 
 /**
@@ -938,32 +921,30 @@ VirtualViewport.displayName = "SelectableListVirtualViewport";
  * </SelectableList.Root>
  * ```
  */
-const Empty = forwardRef<ComponentRef<"div">, ComponentProps<"div">>(
-	({ children, className, ...props }, ref) => {
-		const { filteredOptions } = useSelectableListContext("Empty");
-		const isEmpty = filteredOptions.length === 0;
+const Empty = ({ children, className, ref, ...props }: ComponentProps<"div">) => {
+	const { filteredOptions } = useSelectableListContext("Empty");
+	const isEmpty = filteredOptions.length === 0;
 
-		return (
-			// Always mounted: a live region only announces reliably when it exists in
-			// the tree *before* its content changes. While options match, it renders
-			// empty and `sr-only` (absolutely positioned, so it adds no layout gap).
-			<div
-				ref={ref}
-				data-slot="selectable-list-empty"
-				role="status"
-				className={cx(
-					!isEmpty && "sr-only",
-					isEmpty &&
-						"text-muted border-popover bg-popover flex items-center justify-center rounded-md border px-3 py-8 text-center text-sm",
-					className,
-				)}
-				{...props}
-			>
-				{isEmpty ? children : null}
-			</div>
-		);
-	},
-);
+	return (
+		// Always mounted: a live region only announces reliably when it exists in
+		// the tree *before* its content changes. While options match, it renders
+		// empty and `sr-only` (absolutely positioned, so it adds no layout gap).
+		<div
+			ref={ref}
+			data-slot="selectable-list-empty"
+			role="status"
+			className={cx(
+				!isEmpty && "sr-only",
+				isEmpty &&
+					"text-muted border-popover bg-popover flex items-center justify-center rounded-md border px-3 py-8 text-center text-sm",
+				className,
+			)}
+			{...props}
+		>
+			{isEmpty ? children : null}
+		</div>
+	);
+};
 Empty.displayName = "SelectableListEmpty";
 
 /**

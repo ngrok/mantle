@@ -100,7 +100,7 @@ Run these from the workspace root once a coherent chunk of work is done and befo
 
 ## Technology Stack
 
-- **React 19** for development; `@ngrok/mantle` publishes peer support for `^18 || ^19` (components must stay compatible with React 18 consumers), TypeScript, **Tailwind CSS 4**, vitest, pnpm, **Node.js 24**, Turborepo
+- **React 19** only; `@ngrok/mantle` requires peer `react@^19` — `ref` is a regular prop, never use `forwardRef` — TypeScript, **Tailwind CSS 4**, vitest, pnpm, **Node.js 24**, Turborepo
 - Radix UI, Ariakit, Headless UI, class-variance-authority
 - **Icons**: `@phosphor-icons/react` primarily, custom ngrok icons via `@ngrok/mantle/icons`
 - **Theme**: Built-in light/dark mode with ThemeProvider and FOUC prevention

@@ -1,7 +1,6 @@
 "use client";
 
-import { forwardRef } from "react";
-import type { ComponentProps, ComponentRef, MouseEvent } from "react";
+import type { ComponentProps, MouseEvent } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Root as ListPrimitiveRoot, Item as ListPrimitiveItem } from "./primitive.js";
@@ -60,9 +59,7 @@ type ListRootProps = Omit<
  * </List.Root>
  * ```
  */
-const Root = forwardRef<ComponentRef<"div">, ListRootProps>((props, ref) => (
-	<ListPrimitiveRoot ref={ref} semantics="list" {...props} />
-));
+const Root = (props: ListRootProps) => <ListPrimitiveRoot semantics="list" {...props} />;
 Root.displayName = "ListRoot";
 
 /**
@@ -109,9 +106,9 @@ type ListVirtualRootProps = Omit<
  * </List.VirtualRoot>
  * ```
  */
-const VirtualRoot = forwardRef<ComponentRef<"div">, ListVirtualRootProps>((props, ref) => (
-	<ListPrimitiveVirtualRoot ref={ref} semantics="list" {...props} />
-));
+const VirtualRoot = (props: ListVirtualRootProps) => (
+	<ListPrimitiveVirtualRoot semantics="list" {...props} />
+);
 VirtualRoot.displayName = "ListVirtualRoot";
 
 /**
@@ -178,72 +175,70 @@ type ListItemProps = Omit<ComponentProps<"button">, "type"> &
  * </List.Root>
  * ```
  */
-const Item = forwardRef<ComponentRef<"button">, ListItemProps>(
-	({ asChild, className, current, disabled, onClick, ...props }, ref) => {
-		const Comp = asChild ? Slot : "button";
+const Item = ({ asChild, className, current, disabled, onClick, ref, ...props }: ListItemProps) => {
+	const Comp = asChild ? Slot : "button";
 
-		return (
-			<ListPrimitiveItem selected={current} disabled={disabled}>
-				<Comp
-					ref={ref}
-					data-slot="list-item-control"
-					// `role="list"` items carry no aria-selected; announce the current
-					// item (e.g. the active account) with aria-current so the state isn't
-					// conveyed by the pill tint alone.
-					aria-current={current || undefined}
-					// A real <button> for the default (fully inert when `disabled`). For asChild
-					// the consumer owns the element (e.g. <a>), where the `disabled` attribute
-					// isn't valid — so convey state with `aria-disabled` and actually make it
-					// inert: drop it from the tab order (`tabIndex={-1}`), block pointer events
-					// (`aria-disabled:pointer-events-none` below), and swallow the click in the
-					// onClick handler below, because assistive tech dispatches clicks directly
-					// (no hit testing) so `pointer-events` alone wouldn't stop an SR-activated
-					// link.
-					{...(asChild
-						? { "aria-disabled": disabled || undefined, tabIndex: disabled ? -1 : undefined }
-						: { type: "button", disabled })}
-					// Why: the asChild union (Slot | "button") no longer infers a single
-					// event type; React event handlers are bivariant, so pin the param.
-					onClick={(event: MouseEvent<HTMLButtonElement>) => {
-						if (asChild && disabled) {
-							event.preventDefault();
-							event.stopPropagation();
-							return;
-						}
-						onClick?.(event);
-					}}
-					className={cx(
-						// The hover / selected tint lives on the enclosing listitem; this is the
-						// transparent, clickable content area that fills it. Keyboard focus is
-						// conveyed by the listitem's tint (it lights up like hover via
-						// `has-[:focus-visible]`), so the control suppresses its own outline
-						// instead of drawing a focus ring.
-						"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
-						"disabled:cursor-default disabled:opacity-50 aria-disabled:cursor-default aria-disabled:opacity-50 aria-disabled:pointer-events-none",
-						"focus-visible:outline-hidden",
-						className,
-					)}
-					{...props}
-					// After the spread so a consumer's own capture handler can't shadow the
-					// disabled guard. Radix Slot composes the child's own onClick FIRST (in
-					// the bubble phase), so the bubble-phase swallow above lands too late to
-					// stop a router <Link> / consumer handler on the child. A capture-phase
-					// preventDefault runs before any bubble onClick, so the child sees
-					// defaultPrevented — blocking screen-reader / programmatic clicks (which
-					// bypass the `pointer-events:none` hit-test block) from navigating.
-					onClickCapture={
-						asChild && disabled
-							? (event) => {
-									event.preventDefault();
-									event.stopPropagation();
-								}
-							: props.onClickCapture
+	return (
+		<ListPrimitiveItem selected={current} disabled={disabled}>
+			<Comp
+				ref={ref}
+				data-slot="list-item-control"
+				// `role="list"` items carry no aria-selected; announce the current
+				// item (e.g. the active account) with aria-current so the state isn't
+				// conveyed by the pill tint alone.
+				aria-current={current || undefined}
+				// A real <button> for the default (fully inert when `disabled`). For asChild
+				// the consumer owns the element (e.g. <a>), where the `disabled` attribute
+				// isn't valid — so convey state with `aria-disabled` and actually make it
+				// inert: drop it from the tab order (`tabIndex={-1}`), block pointer events
+				// (`aria-disabled:pointer-events-none` below), and swallow the click in the
+				// onClick handler below, because assistive tech dispatches clicks directly
+				// (no hit testing) so `pointer-events` alone wouldn't stop an SR-activated
+				// link.
+				{...(asChild
+					? { "aria-disabled": disabled || undefined, tabIndex: disabled ? -1 : undefined }
+					: { type: "button", disabled })}
+				// Why: the asChild union (Slot | "button") no longer infers a single
+				// event type; React event handlers are bivariant, so pin the param.
+				onClick={(event: MouseEvent<HTMLButtonElement>) => {
+					if (asChild && disabled) {
+						event.preventDefault();
+						event.stopPropagation();
+						return;
 					}
-				/>
-			</ListPrimitiveItem>
-		);
-	},
-);
+					onClick?.(event);
+				}}
+				className={cx(
+					// The hover / selected tint lives on the enclosing listitem; this is the
+					// transparent, clickable content area that fills it. Keyboard focus is
+					// conveyed by the listitem's tint (it lights up like hover via
+					// `has-[:focus-visible]`), so the control suppresses its own outline
+					// instead of drawing a focus ring.
+					"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
+					"disabled:cursor-default disabled:opacity-50 aria-disabled:cursor-default aria-disabled:opacity-50 aria-disabled:pointer-events-none",
+					"focus-visible:outline-hidden",
+					className,
+				)}
+				{...props}
+				// After the spread so a consumer's own capture handler can't shadow the
+				// disabled guard. Radix Slot composes the child's own onClick FIRST (in
+				// the bubble phase), so the bubble-phase swallow above lands too late to
+				// stop a router <Link> / consumer handler on the child. A capture-phase
+				// preventDefault runs before any bubble onClick, so the child sees
+				// defaultPrevented — blocking screen-reader / programmatic clicks (which
+				// bypass the `pointer-events:none` hit-test block) from navigating.
+				onClickCapture={
+					asChild && disabled
+						? (event) => {
+								event.preventDefault();
+								event.stopPropagation();
+							}
+						: props.onClickCapture
+				}
+			/>
+		</ListPrimitiveItem>
+	);
+};
 Item.displayName = "ListItem";
 
 /**
@@ -264,15 +259,13 @@ Item.displayName = "ListItem";
  * </List.Root>
  * ```
  */
-const ItemTitle = forwardRef<ComponentRef<"span">, ComponentProps<"span">>(
-	({ className, ...props }, ref) => (
-		<span
-			ref={ref}
-			data-slot="list-item-title"
-			className={cx("text-strong font-medium", className)}
-			{...props}
-		/>
-	),
+const ItemTitle = ({ className, ref, ...props }: ComponentProps<"span">) => (
+	<span
+		ref={ref}
+		data-slot="list-item-title"
+		className={cx("text-strong font-medium", className)}
+		{...props}
+	/>
 );
 ItemTitle.displayName = "ListItemTitle";
 
@@ -294,15 +287,13 @@ ItemTitle.displayName = "ListItemTitle";
  * </List.Root>
  * ```
  */
-const ItemDescription = forwardRef<ComponentRef<"span">, ComponentProps<"span">>(
-	({ className, ...props }, ref) => (
-		<span
-			ref={ref}
-			data-slot="list-item-description"
-			className={cx("text-body leading-4", className)}
-			{...props}
-		/>
-	),
+const ItemDescription = ({ className, ref, ...props }: ComponentProps<"span">) => (
+	<span
+		ref={ref}
+		data-slot="list-item-description"
+		className={cx("text-body leading-4", className)}
+		{...props}
+	/>
 );
 ItemDescription.displayName = "ListItemDescription";
 

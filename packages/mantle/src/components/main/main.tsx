@@ -31,8 +31,6 @@ const Main = ({ className, ...props }: ComponentProps<"main">) => {
 		/>
 	);
 };
-Main.displayName = "Main";
-
 export {
 	//,
 	Main,

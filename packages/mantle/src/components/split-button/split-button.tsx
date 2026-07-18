@@ -1,13 +1,5 @@
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import {
-	createContext,
-	forwardRef,
-	useContext,
-	useMemo,
-	type ComponentProps,
-	type ComponentRef,
-	type ReactNode,
-} from "react";
+import { createContext, useContext, useMemo, type ComponentProps, type ReactNode } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import { Button } from "../button/button.js";
 import { IconButton } from "../button/icon-button.js";
@@ -41,49 +33,55 @@ type RootProps = ComponentProps<typeof DropdownMenu.Root> &
 		size?: ButtonSize;
 	};
 
-const Root = forwardRef<ComponentRef<"div">, RootProps>(
-	(
-		{ className, children, dir, open, defaultOpen, onOpenChange, modal, size = "md", ...props },
-		ref,
-	) => {
-		const context: SplitButtonContextValue = useMemo(() => ({ size }), [size]);
+const Root = ({
+	className,
+	children,
+	dir,
+	open,
+	defaultOpen,
+	onOpenChange,
+	modal,
+	size = "md",
+	ref,
+	...props
+}: RootProps) => {
+	const context: SplitButtonContextValue = useMemo(() => ({ size }), [size]);
 
-		return (
-			<DropdownMenu.Root
-				dir={dir}
-				open={open}
-				defaultOpen={defaultOpen}
-				onOpenChange={onOpenChange}
-				modal={modal}
-			>
-				<SplitButtonContext.Provider value={context}>
-					<div
-						data-slot="split-button"
-						data-size={size}
-						className={cx(
-							"flex flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 *:active:scale-100!",
-							className,
-						)}
-						ref={ref}
-						{...props}
-					>
-						{children}
-					</div>
-				</SplitButtonContext.Provider>
-			</DropdownMenu.Root>
-		);
-	},
-);
+	return (
+		<DropdownMenu.Root
+			dir={dir}
+			open={open}
+			defaultOpen={defaultOpen}
+			onOpenChange={onOpenChange}
+			modal={modal}
+		>
+			<SplitButtonContext.Provider value={context}>
+				<div
+					data-slot="split-button"
+					data-size={size}
+					className={cx(
+						"flex flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 *:active:scale-100!",
+						className,
+					)}
+					ref={ref}
+					{...props}
+				>
+					{children}
+				</div>
+			</SplitButtonContext.Provider>
+		</DropdownMenu.Root>
+	);
+};
 Root.displayName = "SplitButton";
 
 type PrimaryActionProps = Omit<ComponentProps<typeof Button>, "appearance" | "intent" | "size">;
 
-const PrimaryAction = forwardRef<ComponentRef<"button">, PrimaryActionProps>((props, ref) => {
+const PrimaryAction = (props: PrimaryActionProps) => {
 	const { size } = useContext(SplitButtonContext);
 
-	// `type` flows through; `Button` defaults it to "button".
-	return <Button appearance="outlined" intent="neutral" ref={ref} size={size} {...props} />;
-});
+	// `type` and `ref` flow through; `Button` defaults `type` to "button".
+	return <Button appearance="outlined" intent="neutral" size={size} {...props} />;
+};
 PrimaryAction.displayName = "SplitButtonPrimaryAction";
 
 type MenuTriggerProps = Omit<
@@ -93,51 +91,42 @@ type MenuTriggerProps = Omit<
 	icon?: ReactNode;
 };
 
-const MenuTrigger = forwardRef<ComponentRef<"button">, MenuTriggerProps>(
-	({ icon, ...props }, ref) => {
-		const { size } = useContext(SplitButtonContext);
+const MenuTrigger = ({ icon, ...props }: MenuTriggerProps) => {
+	const { size } = useContext(SplitButtonContext);
 
-		return (
-			<DropdownMenu.Trigger asChild className="group">
-				<IconButton
-					icon={
-						icon ?? (
-							<Icon
-								svg={
-									<CaretDownIcon
-										weight="bold"
-										className="size-4 group-data-[state=open]:-rotate-180 transition-transform ease-out duration-150"
-									/>
-								}
-							/>
-						)
-					}
-					appearance="outlined"
-					intent="neutral"
-					ref={ref}
-					size={size}
-					{...props}
-				/>
-			</DropdownMenu.Trigger>
-		);
-	},
-);
+	return (
+		<DropdownMenu.Trigger asChild className="group">
+			<IconButton
+				icon={
+					icon ?? (
+						<Icon
+							svg={
+								<CaretDownIcon
+									weight="bold"
+									className="size-4 group-data-[state=open]:-rotate-180 transition-transform ease-out duration-150"
+								/>
+							}
+						/>
+					)
+				}
+				appearance="outlined"
+				intent="neutral"
+				size={size}
+				{...props}
+			/>
+		</DropdownMenu.Trigger>
+	);
+};
 MenuTrigger.displayName = "SplitButtonMenuTrigger";
 
-const MenuContent = forwardRef<
-	ComponentRef<typeof DropdownMenu.Content>,
-	ComponentProps<typeof DropdownMenu.Content>
->(({ align = "end", ...props }, ref) => {
-	return <DropdownMenu.Content align={align} ref={ref} {...props} />;
-});
+const MenuContent = ({ align = "end", ...props }: ComponentProps<typeof DropdownMenu.Content>) => {
+	return <DropdownMenu.Content align={align} {...props} />;
+};
 MenuContent.displayName = "SplitButtonMenuContent";
 
-const MenuItem = forwardRef<
-	ComponentRef<typeof DropdownMenu.Item>,
-	ComponentProps<typeof DropdownMenu.Item>
->(({ className, ...props }, ref) => {
-	return <DropdownMenu.Item className={cx("gap-2", className)} ref={ref} {...props} />;
-});
+const MenuItem = ({ className, ...props }: ComponentProps<typeof DropdownMenu.Item>) => {
+	return <DropdownMenu.Item className={cx("gap-2", className)} {...props} />;
+};
 MenuItem.displayName = "SplitButtonMenuItem";
 
 /**

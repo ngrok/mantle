@@ -1,6 +1,5 @@
 import * as PopoverPrimitive from "@radix-ui/react-popover";
-import { forwardRef } from "react";
-import type { ComponentPropsWithoutRef, ComponentRef } from "react";
+import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
 
 /**
@@ -102,7 +101,7 @@ Anchor.displayName = "PopoverAnchor";
 const Close = PopoverPrimitive.Close;
 Close.displayName = "PopoverClose";
 
-type PopoverContentProps = ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & {
+type PopoverContentProps = ComponentProps<typeof PopoverPrimitive.Content> & {
 	/**
 	 * The preferred width of the `PopoverContent` as a tailwind `max-w-` class.
 	 *
@@ -137,42 +136,38 @@ type PopoverContentProps = ComponentPropsWithoutRef<typeof PopoverPrimitive.Cont
  * </Popover.Root>
  * ```
  */
-const Content = forwardRef<ComponentRef<"div">, PopoverContentProps>(
-	(
-		{
-			//,
-			align = "center",
-			className,
-			onClick,
-			preferredWidth = "max-w-72",
-			sideOffset = 4,
-			...props
-		},
-		ref,
-	) => (
-		<PopoverPrimitive.Portal>
-			<PopoverPrimitive.Content
-				align={align}
-				data-slot="popover-content"
-				className={cx(
-					"text-popover-foreground border-popover bg-popover data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 z-50 rounded-md border p-4 shadow-md outline-hidden",
-					preferredWidth,
-					className,
-				)}
-				onClick={(event) => {
-					/**
-					 * Prevent the click event from propagating up to parent/containing elements
-					 * of the PopoverContent
-					 */
-					event.stopPropagation();
-					onClick?.(event);
-				}}
-				ref={ref}
-				sideOffset={sideOffset}
-				{...props}
-			/>
-		</PopoverPrimitive.Portal>
-	),
+const Content = ({
+	//,
+	align = "center",
+	className,
+	onClick,
+	preferredWidth = "max-w-72",
+	ref,
+	sideOffset = 4,
+	...props
+}: PopoverContentProps) => (
+	<PopoverPrimitive.Portal>
+		<PopoverPrimitive.Content
+			align={align}
+			data-slot="popover-content"
+			className={cx(
+				"text-popover-foreground border-popover bg-popover data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 z-50 rounded-md border p-4 shadow-md outline-hidden",
+				preferredWidth,
+				className,
+			)}
+			onClick={(event) => {
+				/**
+				 * Prevent the click event from propagating up to parent/containing elements
+				 * of the PopoverContent
+				 */
+				event.stopPropagation();
+				onClick?.(event);
+			}}
+			ref={ref}
+			sideOffset={sideOffset}
+			{...props}
+		/>
+	</PopoverPrimitive.Portal>
 );
 Content.displayName = "PopoverContent";
 
