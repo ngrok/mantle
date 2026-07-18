@@ -1,6 +1,7 @@
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button } from "@ngrok/mantle/button";
+import { cx } from "@ngrok/mantle/cx";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Main } from "@ngrok/mantle/main";
 import type { SidebarCollapsible } from "@ngrok/mantle/sidebar";
@@ -10,13 +11,16 @@ import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { CertificateIcon } from "@phosphor-icons/react/Certificate";
 import { GearIcon } from "@phosphor-icons/react/Gear";
+import { GlobeIcon } from "@phosphor-icons/react/Globe";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { HashIcon } from "@phosphor-icons/react/Hash";
 import { ListMagnifyingGlassIcon } from "@phosphor-icons/react/ListMagnifyingGlass";
 import { MapPinIcon } from "@phosphor-icons/react/MapPin";
-import { RobotIcon } from "@phosphor-icons/react/Robot";
+import { SailboatIcon } from "@phosphor-icons/react/Sailboat";
+import { ShareFatIcon } from "@phosphor-icons/react/ShareFat";
 import { SignOutIcon } from "@phosphor-icons/react/SignOut";
+import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
 import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
 import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
 import { VaultIcon } from "@phosphor-icons/react/Vault";
@@ -33,6 +37,13 @@ type DemoNavItem = {
 type DemoNavSection = {
 	title: string | undefined;
 	items: ReadonlyArray<DemoNavItem>;
+};
+
+type DemoProduct = {
+	id: string;
+	label: string;
+	icon: ReactNode;
+	iconClassName: string;
 };
 
 const demoNavSections: ReadonlyArray<DemoNavSection> = [
@@ -66,16 +77,52 @@ const demoNavSections: ReadonlyArray<DemoNavSection> = [
 ];
 
 const demoProducts = [
-	{ id: "universal-gateway", label: "Universal Gateway", icon: <GlobeHemisphereWestIcon /> },
-	{ id: "ai-gateway", label: "AI Gateway", icon: <RobotIcon /> },
-	{ id: "localhost", label: "localhost", icon: <TerminalWindowIcon /> },
-] as const;
+	{
+		id: "universal-gateway",
+		label: "Gateway",
+		icon: <GlobeIcon weight="regular" />,
+		iconClassName: "bg-emerald-600/10 text-emerald-600 dark:text-emerald-600",
+	},
+	{
+		id: "codename",
+		label: "Ship",
+		icon: <SailboatIcon weight="regular" />,
+		iconClassName: "bg-sky-600/10 text-sky-600 dark:text-sky-600",
+	},
+	{
+		id: "localhost",
+		label: "Share Localhost",
+		icon: <ShareFatIcon weight="regular" />,
+		iconClassName: "bg-purple-600/10 text-purple-600 dark:text-purple-600",
+	},
+	{
+		id: "ai-gateway",
+		label: "AI Gateway",
+		icon: <SparkleIcon weight="regular" />,
+		iconClassName: "bg-amber-600/10 text-amber-600 dark:text-amber-600",
+	},
+] as const satisfies ReadonlyArray<DemoProduct>;
 
 const demoAccounts = [
 	{ id: "acc_acme", name: "Acme Corp" },
 	{ id: "acc_skunkworks", name: "Skunkworks" },
 	{ id: "acc_atlas", name: "Atlas Industries" },
 ] as const;
+
+function ProductIcon({ className, product }: { className?: string; product: DemoProduct }) {
+	return (
+		<span
+			className={cx(
+				"flex size-6 shrink-0 items-center justify-center rounded-md [&>svg]:size-5 [&>svg]:shrink-0",
+				product.iconClassName,
+				className,
+			)}
+			aria-hidden="true"
+		>
+			{product.icon}
+		</span>
+	);
+}
 
 /**
  * The per-product navigation for the app-shell demo. Lives inside
@@ -127,8 +174,8 @@ function DemoNav({
 
 /**
  * The canonical Sidebar + AppLayout composition, shared by both docs pages: a
- * decoupled app shell with a collapsible sidebar, a header-mounted trigger
- * plus an edge `Sidebar.Rail`, a toggleable full-window notice strip, and a
+ * decoupled app shell with a collapsible sidebar, a header-mounted trigger,
+ * an offcanvas-only edge `Sidebar.Rail`, a toggleable full-window notice strip, and a
  * content card that scrolls internally. The two components never reference
  * each other — `Sidebar.Root` simply wraps the shell so `Sidebar.Trigger`
  * works from `AppLayout.Header`.
@@ -155,6 +202,7 @@ function AppShell({
 	const currentItem = demoNavSections
 		.flatMap((section) => section.items)
 		.find((item) => item.path === pathname);
+	const showEdgeRail = collapsible !== "icon";
 
 	return (
 		// `md` (not the `lg` default ngrok's dashboards use) keeps the desktop
@@ -164,8 +212,8 @@ function AppShell({
 				<SkipToMainLink />
 				<AppLayout.Notice>
 					{showNotice && (
-						<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
-							<WarningCircleIcon weight="fill" className="shrink-0" />
+						<div className="text-on-filled flex items-center gap-2 bg-rose-500 py-1 pr-4 pl-[1.375rem] text-xs">
+							<WarningCircleIcon weight="fill" className="size-4 shrink-0" />
 							You are impersonating jane@example.com in read-only mode.
 						</div>
 					)}
@@ -176,9 +224,7 @@ function AppShell({
 							<DropdownMenu.Root>
 								<DropdownMenu.Trigger asChild>
 									<Sidebar.SwitcherButton>
-										<span className="text-muted [&>svg]:size-5 [&>svg]:shrink-0">
-											{product.icon}
-										</span>
+										<ProductIcon product={product} />
 										<span className="text-strong min-w-0 flex-1 truncate text-base">
 											{product.label}
 										</span>
@@ -193,7 +239,7 @@ function AppShell({
 												value={candidate.id}
 												className="gap-2"
 											>
-												{candidate.icon}
+												<ProductIcon product={candidate} />
 												{candidate.label}
 											</DropdownMenu.RadioItem>
 										))}
@@ -224,7 +270,7 @@ function AppShell({
 								<DropdownMenu.Trigger asChild>
 									<Sidebar.SwitcherButton>
 										<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
-										<span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">
+										<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
 											{account.name}
 										</span>
 										<Sidebar.UserAvatar alt="Jane Doe" />
@@ -268,7 +314,7 @@ function AppShell({
 							</DropdownMenu.Root>
 						</Sidebar.Footer>
 					</Sidebar.Nav>
-					<Sidebar.Rail />
+					{showEdgeRail && <Sidebar.Rail />}
 
 					<AppLayout.Inset>
 						<AppLayout.Content asChild>
