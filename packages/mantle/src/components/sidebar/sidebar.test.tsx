@@ -210,38 +210,18 @@ describe("Sidebar.Nav (desktop)", () => {
 	});
 });
 
-describe("Sidebar collapse modes", () => {
-	test("the desktop panel defaults to data-collapsible=offcanvas", () => {
+describe("Sidebar collapse", () => {
+	test("the collapsed desktop panel keeps its content in the accessibility tree", () => {
 		render(
-			<Sidebar.Root>
-				<Sidebar.Nav data-testid="nav" />
-			</Sidebar.Root>,
-		);
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-collapsible", "offcanvas");
-	});
-
-	test("collapsible=icon is mirrored as data-collapsible on the panel", () => {
-		render(
-			<Sidebar.Root collapsible="icon" defaultOpen={false}>
-				<Sidebar.Nav data-testid="nav" />
+			<Sidebar.Root defaultOpen={false}>
+				<Sidebar.Nav data-testid="nav">content</Sidebar.Nav>
 			</Sidebar.Root>,
 		);
 		const nav = screen.getByTestId("nav");
-		expect(nav).toHaveAttribute("data-collapsible", "icon");
 		expect(nav).toHaveAttribute("data-state", "collapsed");
-	});
-
-	test("useSidebar exposes the configured collapsible mode", () => {
-		function ReadCollapsible() {
-			const { collapsible } = useSidebar();
-			return <span data-testid="mode">{collapsible}</span>;
-		}
-		render(
-			<Sidebar.Root collapsible="icon">
-				<ReadCollapsible />
-			</Sidebar.Root>,
-		);
-		expect(screen.getByTestId("mode")).toHaveTextContent("icon");
+		// the collapse target is always the icon rail — no per-mode attribute
+		expect(nav).not.toHaveAttribute("data-collapsible");
+		expect(screen.getByRole("navigation", { name: "Main" })).toHaveTextContent("content");
 	});
 
 	test("the desktop panel emits data-hydrated once client rendering settles", () => {
