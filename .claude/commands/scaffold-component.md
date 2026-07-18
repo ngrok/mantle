@@ -192,7 +192,7 @@ If the component has sub-parts, follow the POJO namespace pattern from `decision
   } as const;
   ````
 
-  The same rule applies to the JSDoc on the underlying `const Root = forwardRef(...)` / `const Title = (...) => ...` declarations — use full-tree `@example` blocks there too. See `alert.tsx`, `code-block.tsx`, and `empty.tsx` for the canonical pattern.
+  The same rule applies to the JSDoc on the underlying `const Root = (...) => ...` / `const Title = (...) => ...` declarations — use full-tree `@example` blocks there too. See `alert.tsx`, `code-block.tsx`, and `empty.tsx` for the canonical pattern.
 
 - Provider components and standalone utility functions stay as **separate named exports** alongside the namespace object (see the Toast/Toaster pattern in the decisions doc).
 

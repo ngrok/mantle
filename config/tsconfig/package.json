@@ -20,6 +20,6 @@
     "react": "19.2.7"
   },
   "peerDependencies": {
-    "react": "^18 || ^19"
+    "react": "^19"
   }
 }

@@ -433,8 +433,8 @@
 	},
 	"peerDependencies": {
 		"@phosphor-icons/react": "^2.1.10",
-		"react": "^18 || ^19",
-		"react-dom": "^18 || ^19",
+		"react": "^19",
+		"react-dom": "^19",
 		"tailwindcss": "^4.3.3"
 	},
 	"engines": {

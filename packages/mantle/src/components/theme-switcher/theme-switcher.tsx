@@ -1,7 +1,6 @@
 "use client";
 
-import type { ComponentProps, ComponentPropsWithoutRef, ComponentRef } from "react";
-import { forwardRef } from "react";
+import type { ComponentProps } from "react";
 import type { WithStyleProps } from "../../types/with-style-props.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -107,7 +106,6 @@ const ThemeDropdownMenuRadioGroup = ({ className, style }: ThemeDropdownMenuRadi
 		</DropdownMenu.RadioGroup>
 	);
 };
-ThemeDropdownMenuRadioGroup.displayName = "ThemeDropdownMenuRadioGroup";
 
 /**
  * The props for the `ThemeSwitcher.Root` component. Identical to
@@ -182,31 +180,33 @@ type ThemeSwitcherTriggerProps = Omit<
  * </ThemeSwitcher.Root>
  * ```
  */
-const Trigger = forwardRef<HTMLButtonElement, ThemeSwitcherTriggerProps>(
-	(
-		{ appearance = "ghost", "data-slot": dataSlot, disabled, label = "Change Theme", ...props },
-		ref,
-	) => (
-		// `disabled` must reach DropdownMenu.Trigger too: Radix owns the open
-		// behavior, and a disabled trigger that only disables the button DOM
-		// node would still open the menu on synthesized pointer events.
-		<DropdownMenu.Trigger asChild disabled={disabled}>
-			<IconButton
-				ref={ref}
-				appearance={appearance}
-				disabled={disabled}
-				data-slot={joinDataSlot(dataSlot, "theme-switcher-trigger")}
-				intent="neutral"
-				icon={
-					<BrowserOnly fallback={<Skeleton className="rounded-full size-5" />}>
-						{() => <AutoThemeIcon className="size-5" />}
-					</BrowserOnly>
-				}
-				label={label}
-				{...props}
-			/>
-		</DropdownMenu.Trigger>
-	),
+const Trigger = ({
+	appearance = "ghost",
+	"data-slot": dataSlot,
+	disabled,
+	label = "Change Theme",
+	ref,
+	...props
+}: ThemeSwitcherTriggerProps) => (
+	// `disabled` must reach DropdownMenu.Trigger too: Radix owns the open
+	// behavior, and a disabled trigger that only disables the button DOM
+	// node would still open the menu on synthesized pointer events.
+	<DropdownMenu.Trigger asChild disabled={disabled}>
+		<IconButton
+			ref={ref}
+			appearance={appearance}
+			disabled={disabled}
+			data-slot={joinDataSlot(dataSlot, "theme-switcher-trigger")}
+			intent="neutral"
+			icon={
+				<BrowserOnly fallback={<Skeleton className="rounded-full size-5" />}>
+					{() => <AutoThemeIcon className="size-5" />}
+				</BrowserOnly>
+			}
+			label={label}
+			{...props}
+		/>
+	</DropdownMenu.Trigger>
 );
 Trigger.displayName = "ThemeSwitcherTrigger";
 
@@ -216,8 +216,7 @@ Trigger.displayName = "ThemeSwitcherTrigger";
  * (`align`, `side`, `collisionPadding`, …) plus `className`/`style` all
  * forward through.
  */
-type ThemeSwitcherContentProps = ComponentPropsWithoutRef<typeof DropdownMenu.Content> &
-	WithDataSlot;
+type ThemeSwitcherContentProps = ComponentProps<typeof DropdownMenu.Content> & WithDataSlot;
 
 /**
  * The popover the trigger opens: a thin forwarding wrapper over
@@ -249,16 +248,10 @@ type ThemeSwitcherContentProps = ComponentPropsWithoutRef<typeof DropdownMenu.Co
  * </ThemeSwitcher.Content>
  * ```
  */
-const Content = forwardRef<ComponentRef<typeof DropdownMenu.Content>, ThemeSwitcherContentProps>(
-	({ children, "data-slot": dataSlot, ...props }, ref) => (
-		<DropdownMenu.Content
-			ref={ref}
-			data-slot={joinDataSlot(dataSlot, "theme-switcher-content")}
-			{...props}
-		>
-			{children ?? <ThemeDropdownMenuRadioGroup />}
-		</DropdownMenu.Content>
-	),
+const Content = ({ children, "data-slot": dataSlot, ...props }: ThemeSwitcherContentProps) => (
+	<DropdownMenu.Content data-slot={joinDataSlot(dataSlot, "theme-switcher-content")} {...props}>
+		{children ?? <ThemeDropdownMenuRadioGroup />}
+	</DropdownMenu.Content>
 );
 Content.displayName = "ThemeSwitcherContent";
 

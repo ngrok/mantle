@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps } from "react";
-import { createContext, forwardRef, useContext, useMemo } from "react";
+import { createContext, useContext, useMemo } from "react";
 import invariant from "tiny-invariant";
 import { encode } from "uqr";
 import { cx } from "../../utils/cx/cx.js";
@@ -144,43 +144,45 @@ type QrCodeRootProps = ComponentProps<"div"> &
  * </QrCode.Root>
  * ```
  */
-const Root = forwardRef<HTMLDivElement, QrCodeRootProps>(
-	(
-		{ value, ecc = "L", pixelSize = 10, quietZone = 4, asChild, className, children, ...props },
-		ref,
-	) => {
-		assertValidRootProps(pixelSize, quietZone);
+const Root = ({
+	value,
+	ecc = "L",
+	pixelSize = 10,
+	quietZone = 4,
+	asChild,
+	className,
+	children,
+	ref,
+	...props
+}: QrCodeRootProps) => {
+	assertValidRootProps(pixelSize, quietZone);
 
-		// The quiet zone is the QR spec's required margin (light modules on each
-		// side). It's part of the code itself — the scannable margin — not cosmetic
-		// padding. The spec recommends 4; lowering it tightens the whitespace at
-		// the cost of scannability.
-		const encoded = useMemo(
-			() => encode(value, { ecc, border: quietZone }),
-			[value, ecc, quietZone],
-		);
-		const path = useMemo(() => buildPath(encoded.data, pixelSize), [encoded, pixelSize]);
-		const context = useMemo<QrCodeContextValue>(
-			() => ({ path, dimension: encoded.size * pixelSize }),
-			[path, encoded.size, pixelSize],
-		);
+	// The quiet zone is the QR spec's required margin (light modules on each
+	// side). It's part of the code itself — the scannable margin — not cosmetic
+	// padding. The spec recommends 4; lowering it tightens the whitespace at
+	// the cost of scannability.
+	const encoded = useMemo(() => encode(value, { ecc, border: quietZone }), [value, ecc, quietZone]);
+	const path = useMemo(() => buildPath(encoded.data, pixelSize), [encoded, pixelSize]);
+	const context = useMemo<QrCodeContextValue>(
+		() => ({ path, dimension: encoded.size * pixelSize }),
+		[path, encoded.size, pixelSize],
+	);
 
-		const Comp = asChild ? Slot : "div";
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<QrCodeContext.Provider value={context}>
-				<Comp
-					ref={ref}
-					{...props}
-					data-slot="qr-code"
-					className={cx("relative inline-flex bg-static-white text-static-black", className)}
-				>
-					{children}
-				</Comp>
-			</QrCodeContext.Provider>
-		);
-	},
-);
+	return (
+		<QrCodeContext.Provider value={context}>
+			<Comp
+				ref={ref}
+				{...props}
+				data-slot="qr-code"
+				className={cx("relative inline-flex bg-static-white text-static-black", className)}
+			>
+				{children}
+			</Comp>
+		</QrCodeContext.Provider>
+	);
+};
 Root.displayName = "QrCode";
 
 /**
@@ -211,25 +213,23 @@ type QrCodeFrameProps = ComponentProps<"svg">;
  * </QrCode.Root>
  * ```
  */
-const Frame = forwardRef<SVGSVGElement, QrCodeFrameProps>(
-	({ className, children, ...props }, ref) => {
-		const { dimension } = useQrCodeContext();
+const Frame = ({ className, children, ref, ...props }: QrCodeFrameProps) => {
+	const { dimension } = useQrCodeContext();
 
-		return (
-			<svg
-				ref={ref}
-				{...props}
-				data-slot="qr-code-frame"
-				xmlns="http://www.w3.org/2000/svg"
-				viewBox={`0 0 ${dimension} ${dimension}`}
-				shapeRendering="crispEdges"
-				className={cx("block size-48", className)}
-			>
-				{children}
-			</svg>
-		);
-	},
-);
+	return (
+		<svg
+			ref={ref}
+			{...props}
+			data-slot="qr-code-frame"
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox={`0 0 ${dimension} ${dimension}`}
+			shapeRendering="crispEdges"
+			className={cx("block size-48", className)}
+		>
+			{children}
+		</svg>
+	);
+};
 Frame.displayName = "QrCodeFrame";
 
 /**
@@ -260,7 +260,7 @@ type QrCodePatternProps = ComponentProps<"path">;
  * </QrCode.Root>
  * ```
  */
-const Pattern = forwardRef<SVGPathElement, QrCodePatternProps>(({ className, ...props }, ref) => {
+const Pattern = ({ className, ref, ...props }: QrCodePatternProps) => {
 	const { path } = useQrCodeContext();
 
 	return (
@@ -272,7 +272,7 @@ const Pattern = forwardRef<SVGPathElement, QrCodePatternProps>(({ className, ...
 			className={cx("fill-static-black", className)}
 		/>
 	);
-});
+};
 Pattern.displayName = "QrCodePattern";
 
 /**
@@ -301,23 +301,21 @@ type QrCodeOverlayProps = ComponentProps<"div"> & WithAsChild;
  * </QrCode.Root>
  * ```
  */
-const Overlay = forwardRef<HTMLDivElement, QrCodeOverlayProps>(
-	({ asChild, className, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const Overlay = ({ asChild, className, ref, ...props }: QrCodeOverlayProps) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				{...props}
-				data-slot="qr-code-overlay"
-				className={cx(
-					"absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md bg-static-white text-static-black p-1.5",
-					className,
-				)}
-			/>
-		);
-	},
-);
+	return (
+		<Comp
+			ref={ref}
+			{...props}
+			data-slot="qr-code-overlay"
+			className={cx(
+				"absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md bg-static-white text-static-black p-1.5",
+				className,
+			)}
+		/>
+	);
+};
 Overlay.displayName = "QrCodeOverlay";
 
 /**

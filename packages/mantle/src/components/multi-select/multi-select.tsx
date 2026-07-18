@@ -4,17 +4,9 @@ import * as Primitive from "@ariakit/react";
 import { CheckIcon } from "@phosphor-icons/react/Check";
 import { LockIcon } from "@phosphor-icons/react/Lock";
 import { XIcon } from "@phosphor-icons/react/X";
-import type {
-	ComponentProps,
-	ComponentPropsWithoutRef,
-	ComponentRef,
-	KeyboardEvent,
-	ReactNode,
-	RefObject,
-} from "react";
+import type { ComponentProps, KeyboardEvent, ReactNode, RefObject } from "react";
 import {
 	createContext,
-	forwardRef,
 	useCallback,
 	useContext,
 	useEffect,
@@ -127,7 +119,7 @@ const Root = ({ children, defaultSelectedValue = EMPTY_ARRAY, ...props }: MultiS
 };
 Root.displayName = "MultiSelect";
 
-type MultiSelectTriggerProps = ComponentPropsWithoutRef<"div"> & WithValidation;
+type MultiSelectTriggerProps = ComponentProps<"div"> & WithValidation;
 
 /**
  * The trigger container for the multi-select. Wraps the input and selected
@@ -148,71 +140,67 @@ type MultiSelectTriggerProps = ComponentPropsWithoutRef<"div"> & WithValidation;
  * </MultiSelect.Root>
  * ```
  */
-const Trigger = forwardRef<HTMLDivElement, MultiSelectTriggerProps>(
-	(
-		{
-			"aria-invalid": _ariaInvalid,
-			className,
-			children,
-			onKeyDown,
-			onMouseDown,
-			validation: _validation,
-			...props
-		},
-		ref,
-	) => {
-		const triggerRef = useContext(TriggerRefContext);
-		const { inputRef } = useContext(TagBridgeContext);
-		const store = Primitive.useComboboxContext();
-		const fieldValidation = useFieldValidation();
-		const { validation } = parseValidation({
-			"aria-invalid": _ariaInvalid,
-			validation: _validation ?? fieldValidation,
-		});
+const Trigger = ({
+	"aria-invalid": _ariaInvalid,
+	className,
+	children,
+	onKeyDown,
+	onMouseDown,
+	ref,
+	validation: _validation,
+	...props
+}: MultiSelectTriggerProps) => {
+	const triggerRef = useContext(TriggerRefContext);
+	const { inputRef } = useContext(TagBridgeContext);
+	const store = Primitive.useComboboxContext();
+	const fieldValidation = useFieldValidation();
+	const { validation } = parseValidation({
+		"aria-invalid": _ariaInvalid,
+		validation: _validation ?? fieldValidation,
+	});
 
-		return (
-			<div
-				role="group"
-				data-slot="multi-select-trigger"
-				className={cx(
-					"cursor-text select-none font-sans text-sm",
-					"border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 has-[[data-slot=multi-select-tag]]:px-1",
-					"has-focus:outline-hidden has-focus-within:ring-4 has-aria-expanded:ring-4",
-					"has-focus-within:border-accent-600 has-focus-within:ring-focus-accent has-aria-expanded:border-accent-600 has-aria-expanded:ring-focus-accent",
-					"data-validation-success:border-success-600 data-validation-success:has-focus-within:border-success-600 data-validation-success:has-focus-within:ring-focus-success data-validation-success:has-aria-expanded:border-success-600 data-validation-success:has-aria-expanded:ring-focus-success",
-					"data-validation-warning:border-warning-600 data-validation-warning:has-focus-within:border-warning-600 data-validation-warning:has-focus-within:ring-focus-warning data-validation-warning:has-aria-expanded:border-warning-600 data-validation-warning:has-aria-expanded:ring-focus-warning",
-					"data-validation-error:border-danger-600 data-validation-error:has-focus-within:border-danger-600 data-validation-error:has-focus-within:ring-focus-danger data-validation-error:has-aria-expanded:border-danger-600 data-validation-error:has-aria-expanded:ring-focus-danger",
-					className,
-				)}
-				data-validation={validation || undefined}
-				onKeyDown={(event) => {
-					if (event.key === "Escape" && store?.getState().open) {
-						event.preventDefault();
-						store.hide();
-					}
-					onKeyDown?.(event);
-				}}
-				onMouseDown={(event) => {
-					// When clicking on non-interactive areas (padding, flex gaps between tags), prevent the
-					// default mousedown behavior (which would cause text selection) and explicitly focus the
-					// input. Clicks on buttons, the input itself, or tag spans are handled by those elements.
-					if (
-						event.target instanceof HTMLElement &&
-						!event.target.closest("button, input, [role='option']")
-					) {
-						event.preventDefault();
-						inputRef.current?.focus();
-					}
-					onMouseDown?.(event);
-				}}
-				ref={composeRefs(triggerRef, ref)}
-				{...props}
-			>
-				{children}
-			</div>
-		);
-	},
-);
+	return (
+		<div
+			role="group"
+			data-slot="multi-select-trigger"
+			className={cx(
+				"cursor-text select-none font-sans text-sm",
+				"border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 has-[[data-slot=multi-select-tag]]:px-1",
+				"has-focus:outline-hidden has-focus-within:ring-4 has-aria-expanded:ring-4",
+				"has-focus-within:border-accent-600 has-focus-within:ring-focus-accent has-aria-expanded:border-accent-600 has-aria-expanded:ring-focus-accent",
+				"data-validation-success:border-success-600 data-validation-success:has-focus-within:border-success-600 data-validation-success:has-focus-within:ring-focus-success data-validation-success:has-aria-expanded:border-success-600 data-validation-success:has-aria-expanded:ring-focus-success",
+				"data-validation-warning:border-warning-600 data-validation-warning:has-focus-within:border-warning-600 data-validation-warning:has-focus-within:ring-focus-warning data-validation-warning:has-aria-expanded:border-warning-600 data-validation-warning:has-aria-expanded:ring-focus-warning",
+				"data-validation-error:border-danger-600 data-validation-error:has-focus-within:border-danger-600 data-validation-error:has-focus-within:ring-focus-danger data-validation-error:has-aria-expanded:border-danger-600 data-validation-error:has-aria-expanded:ring-focus-danger",
+				className,
+			)}
+			data-validation={validation || undefined}
+			onKeyDown={(event) => {
+				if (event.key === "Escape" && store?.getState().open) {
+					event.preventDefault();
+					store.hide();
+				}
+				onKeyDown?.(event);
+			}}
+			onMouseDown={(event) => {
+				// When clicking on non-interactive areas (padding, flex gaps between tags), prevent the
+				// default mousedown behavior (which would cause text selection) and explicitly focus the
+				// input. Clicks on buttons, the input itself, or tag spans are handled by those elements.
+				if (
+					event.target instanceof HTMLElement &&
+					!event.target.closest("button, input, [role='option']")
+				) {
+					event.preventDefault();
+					inputRef.current?.focus();
+				}
+				onMouseDown?.(event);
+			}}
+			ref={composeRefs(triggerRef, ref)}
+			{...props}
+		>
+			{children}
+		</div>
+	);
+};
 Trigger.displayName = "MultiSelectTrigger";
 
 type TagProps = Omit<ComponentProps<"span">, "children"> & {
@@ -255,67 +243,73 @@ type TagProps = Omit<ComponentProps<"span">, "children"> & {
  * </MultiSelect.Root>
  * ```
  */
-const Tag = forwardRef<HTMLSpanElement, TagProps>(
-	({ className, value, onRemove, locked = false, onKeyDown, ...props }, ref) => {
-		const internalRef = useRef<HTMLSpanElement | null>(null);
+const Tag = ({
+	className,
+	value,
+	onRemove,
+	locked = false,
+	onKeyDown,
+	ref,
+	...props
+}: TagProps) => {
+	const internalRef = useRef<HTMLSpanElement | null>(null);
 
-		return (
-			<span
-				ref={composeRefs(internalRef, ref)}
-				role="option"
-				aria-selected
+	return (
+		<span
+			ref={composeRefs(internalRef, ref)}
+			role="option"
+			aria-selected
+			tabIndex={-1}
+			data-slot="multi-select-tag"
+			data-locked={locked || undefined}
+			className={cx(
+				"cursor-default bg-neutral-500/10 border border-neutral-500/20 rounded-xs text-strong inline-flex items-center gap-1 pl-2 pr-0.5 py-0.5 text-sm font-normal",
+				"focus-visible:outline-hidden focus-visible:border-accent-600/50 focus-visible:ring-3 focus-visible:ring-focus-accent",
+				className,
+			)}
+			onKeyDown={(event) => {
+				if (locked && (event.key === "Backspace" || event.key === "Delete")) {
+					event.preventDefault();
+					shakeElement(event.currentTarget);
+					return;
+				}
+				onKeyDown?.(event);
+			}}
+			{...props}
+		>
+			{value}
+			<button
+				type="button"
+				aria-label={`Remove ${value}`}
 				tabIndex={-1}
-				data-slot="multi-select-tag"
-				data-locked={locked || undefined}
+				aria-disabled={locked || undefined}
 				className={cx(
-					"cursor-default bg-neutral-500/10 border border-neutral-500/20 rounded-xs text-strong inline-flex items-center gap-1 pl-2 pr-0.5 py-0.5 text-sm font-normal",
-					"focus-visible:outline-hidden focus-visible:border-accent-600/50 focus-visible:ring-3 focus-visible:ring-focus-accent",
-					className,
+					"cursor-pointer text-strong/40 hover:bg-neutral-500/15 hover:text-strong rounded-xs p-0.5",
+					"aria-disabled:cursor-default aria-disabled:hover:bg-transparent aria-disabled:hover:text-strong/40",
 				)}
-				onKeyDown={(event) => {
-					if (locked && (event.key === "Backspace" || event.key === "Delete")) {
-						event.preventDefault();
-						shakeElement(event.currentTarget);
+				onClick={(event) => {
+					// Prevent the click from bubbling to the trigger, which would reopen or refocus the combobox
+					event.stopPropagation();
+					if (locked) {
+						// Shake the tag to signal that removal is blocked
+						const tagElement = internalRef.current;
+						if (tagElement) {
+							shakeElement(tagElement);
+						}
 						return;
 					}
-					onKeyDown?.(event);
+					onRemove?.();
 				}}
-				{...props}
+				onMouseDown={(event) => {
+					// Prevent the input from losing focus on click, which would close the popover before the remove fires
+					event.preventDefault();
+				}}
 			>
-				{value}
-				<button
-					type="button"
-					aria-label={`Remove ${value}`}
-					tabIndex={-1}
-					aria-disabled={locked || undefined}
-					className={cx(
-						"cursor-pointer text-strong/40 hover:bg-neutral-500/15 hover:text-strong rounded-xs p-0.5",
-						"aria-disabled:cursor-default aria-disabled:hover:bg-transparent aria-disabled:hover:text-strong/40",
-					)}
-					onClick={(event) => {
-						// Prevent the click from bubbling to the trigger, which would reopen or refocus the combobox
-						event.stopPropagation();
-						if (locked) {
-							// Shake the tag to signal that removal is blocked
-							const tagElement = internalRef.current;
-							if (tagElement) {
-								shakeElement(tagElement);
-							}
-							return;
-						}
-						onRemove?.();
-					}}
-					onMouseDown={(event) => {
-						// Prevent the input from losing focus on click, which would close the popover before the remove fires
-						event.preventDefault();
-					}}
-				>
-					<Icon svg={locked ? <LockIcon /> : <XIcon weight="bold" />} className="size-4" />
-				</button>
-			</span>
-		);
-	},
-);
+				<Icon svg={locked ? <LockIcon /> : <XIcon weight="bold" />} className="size-4" />
+			</button>
+		</span>
+	);
+};
 Tag.displayName = "MultiSelectTag";
 
 /**
@@ -639,70 +633,75 @@ type MultiSelectInputProps = Omit<Primitive.ComboboxProps, "render"> & {
  * </MultiSelect.Root>
  * ```
  */
-const Input = forwardRef<ComponentRef<"input">, MultiSelectInputProps>(
-	(
-		{ className, onBlur, onChange, onFocus, onKeyDown, onValueChange, placeholder, ...props },
-		ref,
-	) => {
-		const store = Primitive.useComboboxContext();
-		const { onInputKeyDownRef, inputRef } = useContext(TagBridgeContext);
-		const fieldControl = useContext(FieldControlContext);
-		const rawSelectedValue = Primitive.useStoreState(store, "selectedValue");
-		const selectedValues = isStringArray(rawSelectedValue) ? rawSelectedValue : undefined;
-		const hasSelectedValues = (selectedValues?.length ?? 0) > 0;
+const Input = ({
+	className,
+	onBlur,
+	onChange,
+	onFocus,
+	onKeyDown,
+	onValueChange,
+	placeholder,
+	ref,
+	...props
+}: MultiSelectInputProps) => {
+	const store = Primitive.useComboboxContext();
+	const { onInputKeyDownRef, inputRef } = useContext(TagBridgeContext);
+	const fieldControl = useContext(FieldControlContext);
+	const rawSelectedValue = Primitive.useStoreState(store, "selectedValue");
+	const selectedValues = isStringArray(rawSelectedValue) ? rawSelectedValue : undefined;
+	const hasSelectedValues = (selectedValues?.length ?? 0) > 0;
 
-		return (
-			<Primitive.Combobox
-				autoSelect
-				data-slot="multi-select-input"
-				className={cx(
-					"pointer-coarse:text-base min-w-20 flex-1 select-text border-0 bg-transparent text-sm outline-hidden",
-					"placeholder:select-none placeholder:text-placeholder",
-					className,
-				)}
-				onChange={(event) => {
-					onValueChange?.(event.target.value);
-					onChange?.(event);
-				}}
-				onKeyDown={(event) => {
-					onInputKeyDownRef.current?.(event);
-					onKeyDown?.(event);
-				}}
-				onBlur={(event) => {
-					// When focus moves from the input to a tag, Ariakit would normally
-					// close the popover because the combobox input lost focus. Keep it
-					// open so the user can see the list while navigating tags.
-					if (
-						event.relatedTarget instanceof HTMLElement &&
-						event.relatedTarget.closest('[data-slot="multi-select-tag"]')
-					) {
-						store?.show();
-					}
-					onBlur?.(event);
-				}}
-				onFocus={(event) => {
-					// Ariakit doesn't always open the popover on focus when the input is
-					// already mounted (e.g. returning focus from a tag). Force it open.
+	return (
+		<Primitive.Combobox
+			autoSelect
+			data-slot="multi-select-input"
+			className={cx(
+				"pointer-coarse:text-base min-w-20 flex-1 select-text border-0 bg-transparent text-sm outline-hidden",
+				"placeholder:select-none placeholder:text-placeholder",
+				className,
+			)}
+			onChange={(event) => {
+				onValueChange?.(event.target.value);
+				onChange?.(event);
+			}}
+			onKeyDown={(event) => {
+				onInputKeyDownRef.current?.(event);
+				onKeyDown?.(event);
+			}}
+			onBlur={(event) => {
+				// When focus moves from the input to a tag, Ariakit would normally
+				// close the popover because the combobox input lost focus. Keep it
+				// open so the user can see the list while navigating tags.
+				if (
+					event.relatedTarget instanceof HTMLElement &&
+					event.relatedTarget.closest('[data-slot="multi-select-tag"]')
+				) {
 					store?.show();
-					onFocus?.(event);
-				}}
-				placeholder={hasSelectedValues ? undefined : placeholder}
-				// Register the input's DOM node in the bridge so TagValues can focus it for keyboard nav.
-				ref={composeRefs(inputRef, ref)}
-				{...props}
-				{...(fieldControl
-					? {
-							"aria-describedby": fieldControl["aria-describedby"],
-							"aria-errormessage": fieldControl["aria-errormessage"],
-							"aria-invalid": fieldControl["aria-invalid"],
-							id: fieldControl.id,
-							name: fieldControl.name,
-						}
-					: undefined)}
-			/>
-		);
-	},
-);
+				}
+				onBlur?.(event);
+			}}
+			onFocus={(event) => {
+				// Ariakit doesn't always open the popover on focus when the input is
+				// already mounted (e.g. returning focus from a tag). Force it open.
+				store?.show();
+				onFocus?.(event);
+			}}
+			placeholder={hasSelectedValues ? undefined : placeholder}
+			// Register the input's DOM node in the bridge so TagValues can focus it for keyboard nav.
+			ref={composeRefs(inputRef, ref)}
+			{...props}
+			{...(fieldControl
+				? {
+						"aria-describedby": fieldControl["aria-describedby"],
+						"aria-errormessage": fieldControl["aria-errormessage"],
+						"aria-invalid": fieldControl["aria-invalid"],
+						id: fieldControl.id,
+						name: fieldControl.name,
+					}
+				: undefined)}
+		/>
+	);
+};
 Input.displayName = "MultiSelectInput";
 
 type MultiSelectContentProps = Omit<Primitive.ComboboxPopoverProps, "render"> & WithAsChild;
@@ -736,94 +735,88 @@ type MultiSelectContentProps = Omit<Primitive.ComboboxPopoverProps, "render"> & 
  * </MultiSelect.Root>
  * ```
  */
-const Content = forwardRef<ComponentRef<"div">, MultiSelectContentProps>(
-	(
-		{
-			asChild = false,
-			backdrop = false,
-			children,
-			className,
-			modal = true,
-			portalElement,
-			preventBodyScroll,
-			sameWidth = true,
-			unmountOnHide = true,
-			...props
+const Content = ({
+	asChild = false,
+	backdrop = false,
+	children,
+	className,
+	modal = true,
+	portalElement,
+	preventBodyScroll,
+	ref,
+	sameWidth = true,
+	unmountOnHide = true,
+	...props
+}: MultiSelectContentProps) => {
+	const triggerRef = useContext(TriggerRefContext);
+
+	// When the trigger lives inside a mantle modal (Dialog/Sheet), the modal
+	// already scroll-locks the body. Ariakit's own body scroll lock must stay
+	// off in that case: it snapshots body's inline style (including the
+	// modal's transient `pointer-events: none`) and re-applies that stale
+	// snapshot on an animation frame after unmount, permanently freezing the
+	// page (see multi-select.browser.test.tsx regression test).
+	const [isInsideModal, setIsInsideModal] = useState(false);
+	useEffect(() => {
+		setIsInsideModal(triggerRef.current?.closest("[data-mantle-modal-content]") != null);
+	}, [triggerRef]);
+
+	const getAnchorRect = useCallback(() => {
+		return triggerRef.current?.getBoundingClientRect() ?? null;
+	}, [triggerRef]);
+
+	const getPortalElement = useCallback(
+		(element: HTMLElement) => {
+			if (typeof portalElement === "function") {
+				return portalElement(element);
+			}
+
+			return (
+				portalElement ??
+				triggerRef.current?.closest<HTMLElement>("[data-mantle-modal-content]") ??
+				element.ownerDocument.body
+			);
 		},
-		ref,
-	) => {
-		const triggerRef = useContext(TriggerRefContext);
+		[portalElement, triggerRef],
+	);
 
-		// When the trigger lives inside a mantle modal (Dialog/Sheet), the modal
-		// already scroll-locks the body. Ariakit's own body scroll lock must stay
-		// off in that case: it snapshots body's inline style (including the
-		// modal's transient `pointer-events: none`) and re-applies that stale
-		// snapshot on an animation frame after unmount, permanently freezing the
-		// page (see multi-select.browser.test.tsx regression test).
-		const [isInsideModal, setIsInsideModal] = useState(false);
-		useEffect(() => {
-			setIsInsideModal(triggerRef.current?.closest("[data-mantle-modal-content]") != null);
-		}, [triggerRef]);
+	const hideOnInteractOutside = useCallback(
+		(event: Event) => {
+			// Keep the popover open when interacting with any part of the trigger
+			// (tags, buttons, input, padding). Ariakit would otherwise close on any
+			// mousedown outside the popover — including tag clicks.
+			if (event.target instanceof Node && triggerRef.current?.contains(event.target)) {
+				return false;
+			}
+			return true;
+		},
+		[triggerRef],
+	);
 
-		const getAnchorRect = useCallback(() => {
-			return triggerRef.current?.getBoundingClientRect() ?? null;
-		}, [triggerRef]);
-
-		const getPortalElement = useCallback(
-			(element: HTMLElement) => {
-				if (typeof portalElement === "function") {
-					return portalElement(element);
-				}
-
-				return (
-					portalElement ??
-					triggerRef.current?.closest<HTMLElement>("[data-mantle-modal-content]") ??
-					element.ownerDocument.body
-				);
-			},
-			[portalElement, triggerRef],
-		);
-
-		const hideOnInteractOutside = useCallback(
-			(event: Event) => {
-				// Keep the popover open when interacting with any part of the trigger
-				// (tags, buttons, input, padding). Ariakit would otherwise close on any
-				// mousedown outside the popover — including tag clicks.
-				if (event.target instanceof Node && triggerRef.current?.contains(event.target)) {
-					return false;
-				}
-				return true;
-			},
-			[triggerRef],
-		);
-
-		return (
-			<Primitive.ComboboxPopover
-				data-slot="multi-select-content"
-				className={cx(
-					"border-popover bg-popover relative z-50 max-h-96 min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px focus:outline-hidden",
-					className,
-				)}
-				backdrop={backdrop}
-				getAnchorRect={getAnchorRect}
-				gutter={4}
-				hideOnInteractOutside={hideOnInteractOutside}
-				modal={modal}
-				portalElement={getPortalElement}
-				preventBodyScroll={preventBodyScroll ?? !isInsideModal}
-				ref={ref}
-				render={
-					asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined
-				}
-				sameWidth={sameWidth}
-				unmountOnHide={unmountOnHide}
-				{...props}
-			>
-				{children}
-			</Primitive.ComboboxPopover>
-		);
-	},
-);
+	return (
+		<Primitive.ComboboxPopover
+			data-slot="multi-select-content"
+			className={cx(
+				"border-popover bg-popover relative z-50 max-h-96 min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px focus:outline-hidden",
+				className,
+			)}
+			backdrop={backdrop}
+			getAnchorRect={getAnchorRect}
+			gutter={4}
+			hideOnInteractOutside={hideOnInteractOutside}
+			modal={modal}
+			portalElement={getPortalElement}
+			preventBodyScroll={preventBodyScroll ?? !isInsideModal}
+			ref={ref}
+			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
+			sameWidth={sameWidth}
+			unmountOnHide={unmountOnHide}
+			{...props}
+		>
+			{children}
+		</Primitive.ComboboxPopover>
+	);
+};
 Content.displayName = "MultiSelectContent";
 
 type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render"> & WithAsChild;
@@ -848,51 +841,53 @@ type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render"> & WithAs
  * </MultiSelect.Root>
  * ```
  */
-const Item = forwardRef<ComponentRef<"div">, MultiSelectItemProps>(
-	(
-		{ asChild = false, children, className, focusOnHover = true, value, onClick, ...props },
-		ref,
-	) => {
-		const lockedValuesRef = useContext(LockedValuesContext);
-		const isLocked = value != null && lockedValuesRef.current.includes(value);
+const Item = ({
+	asChild = false,
+	children,
+	className,
+	focusOnHover = true,
+	value,
+	onClick,
+	ref,
+	...props
+}: MultiSelectItemProps) => {
+	const lockedValuesRef = useContext(LockedValuesContext);
+	const isLocked = value != null && lockedValuesRef.current.includes(value);
 
-		return (
-			<Primitive.ComboboxItem
-				data-slot="multi-select-item"
-				className={cx(
-					"relative mx-1 cursor-pointer rounded-md pl-2 pr-8 py-1.5 text-strong text-sm font-normal flex min-w-0 items-center gap-2",
-					"[[role=option]+&]:mt-px",
-					"data-active-item:bg-active-menu-item",
-					"aria-disabled:opacity-50",
-					"aria-selected:bg-selected-menu-item aria-selected:data-active-item:bg-active-selected-menu-item",
-					className,
-				)}
-				focusOnHover={focusOnHover}
-				onClick={(event) => {
-					// Prevent Ariakit from toggling off a locked value.
-					// Ariakit checks event.defaultPrevented before executing its selection logic.
-					if (isLocked) {
-						event.preventDefault();
-						return;
-					}
-					onClick?.(event);
-				}}
-				ref={ref}
-				render={
-					asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined
+	return (
+		<Primitive.ComboboxItem
+			data-slot="multi-select-item"
+			className={cx(
+				"relative mx-1 cursor-pointer rounded-md pl-2 pr-8 py-1.5 text-strong text-sm font-normal flex min-w-0 items-center gap-2",
+				"[[role=option]+&]:mt-px",
+				"data-active-item:bg-active-menu-item",
+				"aria-disabled:opacity-50",
+				"aria-selected:bg-selected-menu-item aria-selected:data-active-item:bg-active-selected-menu-item",
+				className,
+			)}
+			focusOnHover={focusOnHover}
+			onClick={(event) => {
+				// Prevent Ariakit from toggling off a locked value.
+				// Ariakit checks event.defaultPrevented before executing its selection logic.
+				if (isLocked) {
+					event.preventDefault();
+					return;
 				}
-				resetValueOnSelect
-				value={value}
-				{...props}
-			>
-				{children}
-				<Primitive.ComboboxItemCheck className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
-					<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
-				</Primitive.ComboboxItemCheck>
-			</Primitive.ComboboxItem>
-		);
-	},
-);
+				onClick?.(event);
+			}}
+			ref={ref}
+			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
+			resetValueOnSelect
+			value={value}
+			{...props}
+		>
+			{children}
+			<Primitive.ComboboxItemCheck className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+				<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
+			</Primitive.ComboboxItemCheck>
+		</Primitive.ComboboxItem>
+	);
+};
 Item.displayName = "MultiSelectItem";
 
 type MultiSelectGroupProps = Omit<Primitive.ComboboxGroupProps, "render"> & WithAsChild;
@@ -919,23 +914,19 @@ type MultiSelectGroupProps = Omit<Primitive.ComboboxGroupProps, "render"> & With
  * </MultiSelect.Root>
  * ```
  */
-const Group = forwardRef<ComponentRef<"div">, MultiSelectGroupProps>(
-	({ asChild = false, children, ...props }, ref) => {
-		return (
-			<Primitive.ComboboxGroup
-				data-slot="multi-select-group"
-				className="mx-1"
-				ref={ref}
-				render={
-					asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined
-				}
-				{...props}
-			>
-				{children}
-			</Primitive.ComboboxGroup>
-		);
-	},
-);
+const Group = ({ asChild = false, children, ref, ...props }: MultiSelectGroupProps) => {
+	return (
+		<Primitive.ComboboxGroup
+			data-slot="multi-select-group"
+			className="mx-1"
+			ref={ref}
+			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
+			{...props}
+		>
+			{children}
+		</Primitive.ComboboxGroup>
+	);
+};
 Group.displayName = "MultiSelectGroup";
 
 type MultiSelectGroupLabelProps = Omit<Primitive.ComboboxGroupLabelProps, "render"> & WithAsChild;
@@ -961,26 +952,28 @@ type MultiSelectGroupLabelProps = Omit<Primitive.ComboboxGroupLabelProps, "rende
  * </MultiSelect.Root>
  * ```
  */
-const GroupLabel = forwardRef<ComponentRef<"div">, MultiSelectGroupLabelProps>(
-	({ asChild = false, children, className, ...props }, ref) => {
-		return (
-			<Primitive.ComboboxGroupLabel
-				data-slot="multi-select-group-label"
-				className={cx("text-muted px-2 py-1 text-xs font-medium", className)}
-				ref={ref}
-				render={
-					asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined
-				}
-				{...props}
-			>
-				{children}
-			</Primitive.ComboboxGroupLabel>
-		);
-	},
-);
+const GroupLabel = ({
+	asChild = false,
+	children,
+	className,
+	ref,
+	...props
+}: MultiSelectGroupLabelProps) => {
+	return (
+		<Primitive.ComboboxGroupLabel
+			data-slot="multi-select-group-label"
+			className={cx("text-muted px-2 py-1 text-xs font-medium", className)}
+			ref={ref}
+			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
+			{...props}
+		>
+			{children}
+		</Primitive.ComboboxGroupLabel>
+	);
+};
 GroupLabel.displayName = "MultiSelectGroupLabel";
 
-type MultiSelectGroupDescriptionProps = ComponentPropsWithoutRef<"p">;
+type MultiSelectGroupDescriptionProps = ComponentProps<"p">;
 
 /**
  * Renders a description below a `MultiSelect.GroupLabel` inside a `MultiSelect.Group`.
@@ -1007,20 +1000,23 @@ type MultiSelectGroupDescriptionProps = ComponentPropsWithoutRef<"p">;
  * </MultiSelect.Root>
  * ```
  */
-const GroupDescription = forwardRef<HTMLParagraphElement, MultiSelectGroupDescriptionProps>(
-	({ className, children, ...props }, ref) => {
-		return (
-			<p
-				data-slot="multi-select-group-description"
-				className={cx("text-muted px-2 pb-1 text-xs", className)}
-				ref={ref}
-				{...props}
-			>
-				{children}
-			</p>
-		);
-	},
-);
+const GroupDescription = ({
+	className,
+	children,
+	ref,
+	...props
+}: MultiSelectGroupDescriptionProps) => {
+	return (
+		<p
+			data-slot="multi-select-group-description"
+			className={cx("text-muted px-2 pb-1 text-xs", className)}
+			ref={ref}
+			{...props}
+		>
+			{children}
+		</p>
+	);
+};
 GroupDescription.displayName = "MultiSelectGroupDescription";
 
 /**
@@ -1047,20 +1043,21 @@ GroupDescription.displayName = "MultiSelectGroupDescription";
  * </MultiSelect.Root>
  * ```
  */
-const MultiSelectSeparatorComponent = forwardRef<
-	ComponentRef<"div">,
-	ComponentPropsWithoutRef<typeof Separator>
->(({ className, ...props }, ref) => (
+const MultiSelectSeparatorComponent = ({
+	className,
+	ref,
+	...props
+}: ComponentProps<typeof Separator>) => (
 	<Separator
 		data-slot="multi-select-separator"
 		ref={ref}
 		className={cx("my-1 w-auto", className)}
 		{...props}
 	/>
-));
+);
 MultiSelectSeparatorComponent.displayName = "MultiSelectSeparator";
 
-type MultiSelectEmptyProps = ComponentPropsWithoutRef<"div">;
+type MultiSelectEmptyProps = ComponentProps<"div">;
 
 /**
  * Renders a message when no items match the current filter.
@@ -1082,24 +1079,22 @@ type MultiSelectEmptyProps = ComponentPropsWithoutRef<"div">;
  * </MultiSelect.Root>
  * ```
  */
-const Empty = forwardRef<HTMLDivElement, MultiSelectEmptyProps>(
-	({ className, children, ...props }, ref) => {
-		return (
-			<div
-				data-slot="multi-select-empty"
-				className={cx("mx-1 text-muted px-2 py-6 text-center text-sm", className)}
-				ref={ref}
-				role="presentation"
-				{...props}
-			>
-				{children}
-			</div>
-		);
-	},
-);
+const Empty = ({ className, children, ref, ...props }: MultiSelectEmptyProps) => {
+	return (
+		<div
+			data-slot="multi-select-empty"
+			className={cx("mx-1 text-muted px-2 py-6 text-center text-sm", className)}
+			ref={ref}
+			role="presentation"
+			{...props}
+		>
+			{children}
+		</div>
+	);
+};
 Empty.displayName = "MultiSelectEmpty";
 
-type MultiSelectContentFooterProps = ComponentPropsWithoutRef<"div">;
+type MultiSelectContentFooterProps = ComponentProps<"div">;
 
 /**
  * Renders a sticky footer pinned to the bottom inside `MultiSelect.Content`,
@@ -1124,21 +1119,19 @@ type MultiSelectContentFooterProps = ComponentPropsWithoutRef<"div">;
  * </MultiSelect.Root>
  * ```
  */
-const ContentFooter = forwardRef<HTMLDivElement, MultiSelectContentFooterProps>(
-	({ className, children, ...props }, ref) => {
-		return (
-			<div
-				ref={ref}
-				data-slot="multi-select-content-footer"
-				data-content-footer
-				className={cx("bg-popover sticky bottom-0 border-t border-popover", className)}
-				{...props}
-			>
-				{children}
-			</div>
-		);
-	},
-);
+const ContentFooter = ({ className, children, ref, ...props }: MultiSelectContentFooterProps) => {
+	return (
+		<div
+			ref={ref}
+			data-slot="multi-select-content-footer"
+			data-content-footer
+			className={cx("bg-popover sticky bottom-0 border-t border-popover", className)}
+			{...props}
+		>
+			{children}
+		</div>
+	);
+};
 ContentFooter.displayName = "MultiSelectContentFooter";
 
 /**

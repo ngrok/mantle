@@ -5,18 +5,9 @@ import { CheckIcon } from "@phosphor-icons/react/Check";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { FileTextIcon } from "@phosphor-icons/react/FileText";
 import { TerminalIcon } from "@phosphor-icons/react/Terminal";
-import type {
-	ComponentProps,
-	ComponentRef,
-	Dispatch,
-	HTMLAttributes,
-	MouseEvent,
-	ReactNode,
-	SetStateAction,
-} from "react";
+import type { ComponentProps, Dispatch, MouseEvent, ReactNode, SetStateAction } from "react";
 import {
 	createContext,
-	forwardRef,
 	useCallback,
 	useContext,
 	useEffect,
@@ -108,76 +99,82 @@ type CodeBlockRootProps = Omit<ComponentProps<"div">, "align"> &
  * </CodeBlock.Root>
  * ```
  */
-const Root = forwardRef<ComponentRef<"div">, CodeBlockRootProps>(
-	({ asChild = false, className, defaultTab, activeTab, onActiveTabChange, ...props }, ref) => {
-		const copyTextRef = useRef("");
-		const [hasCodeExpander, setHasCodeExpander] = useState(false);
-		const [isCodeExpanded, setIsCodeExpanded] = useState(false);
-		const [codeId, setCodeId] = useState<string | undefined>(undefined);
+const Root = ({
+	asChild = false,
+	className,
+	defaultTab,
+	activeTab,
+	onActiveTabChange,
+	ref,
+	...props
+}: CodeBlockRootProps) => {
+	const copyTextRef = useRef("");
+	const [hasCodeExpander, setHasCodeExpander] = useState(false);
+	const [isCodeExpanded, setIsCodeExpanded] = useState(false);
+	const [codeId, setCodeId] = useState<string | undefined>(undefined);
 
-		const registerCodeId = useCallback((id: string) => {
-			setCodeId((old) => {
-				assert(old == null, "You can only render a single CodeBlock.Code within a CodeBlock.");
-				return id;
-			});
-		}, []);
+	const registerCodeId = useCallback((id: string) => {
+		setCodeId((old) => {
+			assert(old == null, "You can only render a single CodeBlock.Code within a CodeBlock.");
+			return id;
+		});
+	}, []);
 
-		const unregisterCodeId = useCallback((id: string) => {
-			setCodeId((old) => {
-				assert(old === id, "You can only render a single CodeBlock.Code within a CodeBlock.");
-				return undefined;
-			});
-		}, []);
+	const unregisterCodeId = useCallback((id: string) => {
+		setCodeId((old) => {
+			assert(old === id, "You can only render a single CodeBlock.Code within a CodeBlock.");
+			return undefined;
+		});
+	}, []);
 
-		const context: CodeBlockContextType = useMemo(
-			() =>
-				({
-					codeId,
-					copyTextRef,
-					hasCodeExpander,
-					isCodeExpanded,
-					registerCodeId,
-					setHasCodeExpander,
-					setIsCodeExpanded,
-					unregisterCodeId,
-				}) as const,
-			[codeId, hasCodeExpander, isCodeExpanded, registerCodeId, unregisterCodeId],
-		);
+	const context: CodeBlockContextType = useMemo(
+		() =>
+			({
+				codeId,
+				copyTextRef,
+				hasCodeExpander,
+				isCodeExpanded,
+				registerCodeId,
+				setHasCodeExpander,
+				setIsCodeExpanded,
+				unregisterCodeId,
+			}) as const,
+		[codeId, hasCodeExpander, isCodeExpanded, registerCodeId, unregisterCodeId],
+	);
 
-		const hasTabs = defaultTab != null || activeTab != null;
-		const Component = asChild ? Slot : "div";
+	const hasTabs = defaultTab != null || activeTab != null;
+	const Component = asChild ? Slot : "div";
 
-		const tree = (
-			<Component
-				data-slot="code-block"
-				className={cx(
-					"text-mono w-full overflow-hidden rounded-md border border-gray-300 bg-base font-mono",
-					"[&_svg]:shrink-0",
-					className,
-				)}
-				ref={ref}
-				{...props}
-			/>
-		);
+	const tree = (
+		<Component
+			data-slot="code-block"
+			className={cx(
+				"text-mono w-full overflow-hidden rounded-md border border-gray-300 bg-base font-mono",
+				"[&_svg]:shrink-0",
+				className,
+			)}
+			ref={ref}
+			{...props}
+		/>
+	);
 
-		return (
-			<CodeBlockContext.Provider value={context}>
-				{hasTabs ? (
-					<RadixTabsRoot
-						asChild
-						defaultValue={defaultTab}
-						value={activeTab}
-						onValueChange={onActiveTabChange}
-					>
-						{tree}
-					</RadixTabsRoot>
-				) : (
-					tree
-				)}
-			</CodeBlockContext.Provider>
-		);
-	},
-);
+	return (
+		<CodeBlockContext.Provider value={context}>
+			{hasTabs ? (
+				<RadixTabsRoot
+					asChild
+					defaultValue={defaultTab}
+					value={activeTab}
+					onValueChange={onActiveTabChange}
+				>
+					{tree}
+				</RadixTabsRoot>
+			) : (
+				tree
+			)}
+		</CodeBlockContext.Provider>
+	);
+};
 Root.displayName = "CodeBlock";
 
 /**
@@ -199,19 +196,22 @@ Root.displayName = "CodeBlock";
  * </CodeBlock.Root>
  * ```
  */
-const Body = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild>(
-	({ asChild = false, className, ...props }, ref) => {
-		const Component = asChild ? Slot : "div";
-		return (
-			<Component
-				data-slot="code-block-body"
-				className={cx("relative", className)}
-				ref={ref}
-				{...props}
-			/>
-		);
-	},
-);
+const Body = ({
+	asChild = false,
+	className,
+	ref,
+	...props
+}: ComponentProps<"div"> & WithAsChild) => {
+	const Component = asChild ? Slot : "div";
+	return (
+		<Component
+			data-slot="code-block-body"
+			className={cx("relative", className)}
+			ref={ref}
+			{...props}
+		/>
+	);
+};
 Body.displayName = "CodeBlockBody";
 
 /**
@@ -321,122 +321,120 @@ type CodeBlockCodeProps = Omit<ComponentProps<"pre">, "children"> & {
  * </CodeBlock.Root>
  * ```
  */
-const Code = forwardRef<ComponentRef<"pre">, CodeBlockCodeProps>(
-	({ className, style, value, ...props }, ref) => {
-		const id = useId();
-		const preRef = useRef<HTMLPreElement>(null);
-		const { copyTextRef, hasCodeExpander, isCodeExpanded, registerCodeId, unregisterCodeId } =
-			useCodeBlockContext();
-		const {
-			language,
-			code,
-			"~preValToken": __preValToken,
-			"~preVals": __preVals,
-			"~highlightLines": __highlightLines,
-			"~lineNumberStart": __lineNumberStart,
-			"~preHtml": __preHtml,
-			"~showLineNumbers": __showLineNumbers,
-		} = value;
+const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) => {
+	const id = useId();
+	const preRef = useRef<HTMLPreElement>(null);
+	const { copyTextRef, hasCodeExpander, isCodeExpanded, registerCodeId, unregisterCodeId } =
+		useCodeBlockContext();
+	const {
+		language,
+		code,
+		"~preValToken": __preValToken,
+		"~preVals": __preVals,
+		"~highlightLines": __highlightLines,
+		"~lineNumberStart": __lineNumberStart,
+		"~preHtml": __preHtml,
+		"~showLineNumbers": __showLineNumbers,
+	} = value;
 
-		const effectiveHighlightLines = __highlightLines;
-		const effectiveLineNumberStart = __lineNumberStart ?? 1;
-		const effectiveShowLineNumbers = __showLineNumbers ?? false;
-		const copyText = useMemo(
-			() =>
-				__preVals != null && __preVals.length > 0
-					? substitutePreValsPlainText(code, __preVals, __preValToken)
-					: code,
-			[__preValToken, __preVals, code],
-		);
+	const effectiveHighlightLines = __highlightLines;
+	const effectiveLineNumberStart = __lineNumberStart ?? 1;
+	const effectiveShowLineNumbers = __showLineNumbers ?? false;
+	const copyText = useMemo(
+		() =>
+			__preVals != null && __preVals.length > 0
+				? substitutePreValsPlainText(code, __preVals, __preValToken)
+				: code,
+		[__preValToken, __preVals, code],
+	);
 
-		useLayoutEffect(() => {
-			copyTextRef.current = copyText;
-		}, [copyTextRef, copyText]);
+	useLayoutEffect(() => {
+		copyTextRef.current = copyText;
+	}, [copyTextRef, copyText]);
 
-		useEffect(() => {
-			registerCodeId(id);
+	useEffect(() => {
+		registerCodeId(id);
 
-			return () => {
-				unregisterCodeId(id);
-			};
-		}, [id, registerCodeId, unregisterCodeId]);
+		return () => {
+			unregisterCodeId(id);
+		};
+	}, [id, registerCodeId, unregisterCodeId]);
 
-		const renderedHtml = useMemo(() => {
-			if (__preHtml == null) {
-				return undefined;
+	const renderedHtml = useMemo(() => {
+		if (__preHtml == null) {
+			return undefined;
+		}
+		return __preVals != null && __preVals.length > 0
+			? substitutePreVals(__preHtml, __preVals, __preValToken)
+			: __preHtml;
+	}, [__preHtml, __preValToken, __preVals]);
+
+	// Attach a single delegated click handler per <pre> so fold toggles do
+	// not pay the cost of N React re-renders or N event handlers — see the
+	// performance rationale in `fold-runtime.ts`. Re-attaches when the
+	// rendered HTML changes since `<code>` gets a new dangerouslySetInnerHTML.
+	useEffect(() => {
+		const pre = preRef.current;
+		if (pre == null) {
+			return undefined;
+		}
+		const codeElement = pre.querySelector("code");
+		if (codeElement != null) {
+			resetFoldState(codeElement);
+		}
+		return attachFoldHandler(pre);
+	}, [renderedHtml]);
+
+	const isPreRendered = renderedHtml != null;
+	const displayHtml = renderedHtml ?? escapeHtml(copyText);
+
+	// React diffs `dangerouslySetInnerHTML` by prop reference; a fresh
+	// `{ __html }` literal each render re-applies `innerHTML`, wiping any
+	// runtime-managed DOM state on the children (e.g. fold attributes).
+	const innerHtmlProp = useMemo(() => ({ __html: displayHtml }), [displayHtml]);
+
+	return (
+		<pre
+			data-slot="code-block-code"
+			aria-expanded={hasCodeExpander ? isCodeExpanded : undefined}
+			className={cx(
+				"scrollbar overflow-x-auto overflow-y-hidden py-4",
+				!isPreRendered && "pr-14",
+				"data-[mantle-line-numbers~='false']:pl-4",
+				"text-mono m-0 font-mono outline-hidden",
+				"aria-collapsed:max-h-[13.6rem]",
+				className,
+			)}
+			data-highlighted={isPreRendered ? "true" : "false"}
+			data-lang={language}
+			data-mantle-highlight-lines={
+				isPreRendered && effectiveHighlightLines != null && effectiveHighlightLines.length > 0
+					? effectiveHighlightLines.join(",")
+					: undefined
 			}
-			return __preVals != null && __preVals.length > 0
-				? substitutePreVals(__preHtml, __preVals, __preValToken)
-				: __preHtml;
-		}, [__preHtml, __preValToken, __preVals]);
-
-		// Attach a single delegated click handler per <pre> so fold toggles do
-		// not pay the cost of N React re-renders or N event handlers — see the
-		// performance rationale in `fold-runtime.ts`. Re-attaches when the
-		// rendered HTML changes since `<code>` gets a new dangerouslySetInnerHTML.
-		useEffect(() => {
-			const pre = preRef.current;
-			if (pre == null) {
-				return undefined;
+			data-mantle-line-number-start={
+				isPreRendered && effectiveShowLineNumbers ? String(effectiveLineNumberStart) : "1"
 			}
-			const codeElement = pre.querySelector("code");
-			if (codeElement != null) {
-				resetFoldState(codeElement);
+			data-mantle-line-numbers={isPreRendered && effectiveShowLineNumbers ? "true" : "false"}
+			id={id}
+			ref={composeRefs(preRef, ref)}
+			style={
+				{
+					...style,
+					"--mantle-line-number-start": String(effectiveLineNumberStart),
+					tabSize: 2,
+					MozTabSize: 2,
+				} as ComponentProps<"pre">["style"]
 			}
-			return attachFoldHandler(pre);
-		}, [renderedHtml]);
-
-		const isPreRendered = renderedHtml != null;
-		const displayHtml = renderedHtml ?? escapeHtml(copyText);
-
-		// React diffs `dangerouslySetInnerHTML` by prop reference; a fresh
-		// `{ __html }` literal each render re-applies `innerHTML`, wiping any
-		// runtime-managed DOM state on the children (e.g. fold attributes).
-		const innerHtmlProp = useMemo(() => ({ __html: displayHtml }), [displayHtml]);
-
-		return (
-			<pre
-				data-slot="code-block-code"
-				aria-expanded={hasCodeExpander ? isCodeExpanded : undefined}
-				className={cx(
-					"scrollbar overflow-x-auto overflow-y-hidden py-4",
-					!isPreRendered && "pr-14",
-					"data-[mantle-line-numbers~='false']:pl-4",
-					"text-mono m-0 font-mono outline-hidden",
-					"aria-collapsed:max-h-[13.6rem]",
-					className,
-				)}
-				data-highlighted={isPreRendered ? "true" : "false"}
-				data-lang={language}
-				data-mantle-highlight-lines={
-					isPreRendered && effectiveHighlightLines != null && effectiveHighlightLines.length > 0
-						? effectiveHighlightLines.join(",")
-						: undefined
-				}
-				data-mantle-line-number-start={
-					isPreRendered && effectiveShowLineNumbers ? String(effectiveLineNumberStart) : "1"
-				}
-				data-mantle-line-numbers={isPreRendered && effectiveShowLineNumbers ? "true" : "false"}
-				id={id}
-				ref={composeRefs(preRef, ref)}
-				style={
-					{
-						...style,
-						"--mantle-line-number-start": String(effectiveLineNumberStart),
-						tabSize: 2,
-						MozTabSize: 2,
-					} as ComponentProps<"pre">["style"]
-				}
-				{...props}
-			>
-				<code
-					className="text-size-inherit block min-w-full w-max"
-					dangerouslySetInnerHTML={innerHtmlProp}
-				/>
-			</pre>
-		);
-	},
-);
+			{...props}
+		>
+			<code
+				className="text-size-inherit block min-w-full w-max"
+				dangerouslySetInnerHTML={innerHtmlProp}
+			/>
+		</pre>
+	);
+};
 Code.displayName = "CodeBlockCode";
 
 /**
@@ -458,22 +456,25 @@ Code.displayName = "CodeBlockCode";
  * </CodeBlock.Root>
  * ```
  */
-const Header = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild>(
-	({ asChild = false, className, ...props }, ref) => {
-		const Component = asChild ? Slot : "div";
-		return (
-			<Component
-				data-slot="code-block-header"
-				className={cx(
-					"flex items-center gap-1 border-b border-gray-300 bg-base px-4 py-2 text-gray-700",
-					className,
-				)}
-				ref={ref}
-				{...props}
-			/>
-		);
-	},
-);
+const Header = ({
+	asChild = false,
+	className,
+	ref,
+	...props
+}: ComponentProps<"div"> & WithAsChild) => {
+	const Component = asChild ? Slot : "div";
+	return (
+		<Component
+			data-slot="code-block-header"
+			className={cx(
+				"flex items-center gap-1 border-b border-gray-300 bg-base px-4 py-2 text-gray-700",
+				className,
+			)}
+			ref={ref}
+			{...props}
+		/>
+	);
+};
 Header.displayName = "CodeBlockHeader";
 
 /**
@@ -495,10 +496,12 @@ Header.displayName = "CodeBlockHeader";
  * </CodeBlock.Root>
  * ```
  */
-const Title = forwardRef<
-	HTMLHeadingElement,
-	HTMLAttributes<HTMLHeadingElement> & { asChild?: boolean }
->(({ asChild = false, className, ...props }, ref) => {
+const Title = ({
+	asChild = false,
+	className,
+	ref,
+	...props
+}: ComponentProps<"h3"> & { asChild?: boolean }) => {
 	const Component = asChild ? Slot : "h3";
 	return (
 		<Component
@@ -508,7 +511,7 @@ const Title = forwardRef<
 			{...props}
 		/>
 	);
-});
+};
 Title.displayName = "CodeBlockTitle";
 
 type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "children" | "type"> &
@@ -548,64 +551,70 @@ type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "children" | "typ
  * </CodeBlock.Root>
  * ```
  */
-const CopyButton = forwardRef<ComponentRef<"button">, CodeBlockCopyButtonProps>(
-	({ className, label = "Copy code", onCopy, onCopyError, onClick, ...props }, ref) => {
-		const { copyTextRef } = useCodeBlockContext();
-		const copyToClipboard = useCopyToClipboard();
-		const [wasCopied, setWasCopied] = useState(false);
-		const timeoutHandle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+const CopyButton = ({
+	className,
+	label = "Copy code",
+	onCopy,
+	onCopyError,
+	onClick,
+	ref,
+	...props
+}: CodeBlockCopyButtonProps) => {
+	const { copyTextRef } = useCodeBlockContext();
+	const copyToClipboard = useCopyToClipboard();
+	const [wasCopied, setWasCopied] = useState(false);
+	const timeoutHandle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-		useEffect(() => {
-			return () => {
-				if (timeoutHandle.current != null) {
-					clearTimeout(timeoutHandle.current);
-				}
-			};
-		}, []);
+	useEffect(() => {
+		return () => {
+			if (timeoutHandle.current != null) {
+				clearTimeout(timeoutHandle.current);
+			}
+		};
+	}, []);
 
-		return (
-			<span
-				data-slot="code-block-copy-button"
-				className="absolute right-3 top-3 z-10 inline-flex size-7 items-center justify-center rounded-[var(--icon-button-border-radius,0.375rem)] bg-base"
-			>
-				<IconButton
-					type="button"
-					appearance="ghost"
-					intent="neutral"
-					size="sm"
-					label={label}
-					icon={wasCopied ? <CheckIcon /> : <CopyIcon />}
-					className={cx("bg-base not-disabled:hover:bg-neutral-500/15", className)}
-					ref={ref}
-					onClick={async (event) => {
-						try {
-							onClick?.(event);
-							if (event.defaultPrevented) {
-								if (timeoutHandle.current != null) {
-									clearTimeout(timeoutHandle.current);
-								}
-								return;
-							}
-							const text = copyTextRef.current;
-							await copyToClipboard(text);
-							onCopy?.(text);
-							setWasCopied(true);
+	return (
+		<span
+			data-slot="code-block-copy-button"
+			className="absolute right-3 top-3 z-10 inline-flex size-7 items-center justify-center rounded-[var(--icon-button-border-radius,0.375rem)] bg-base"
+		>
+			<IconButton
+				type="button"
+				appearance="ghost"
+				intent="neutral"
+				size="sm"
+				label={label}
+				icon={wasCopied ? <CheckIcon /> : <CopyIcon />}
+				className={cx("bg-base not-disabled:hover:bg-neutral-500/15", className)}
+				ref={ref}
+				onClick={async (event) => {
+					try {
+						onClick?.(event);
+						if (event.defaultPrevented) {
 							if (timeoutHandle.current != null) {
 								clearTimeout(timeoutHandle.current);
 							}
-							timeoutHandle.current = setTimeout(() => {
-								setWasCopied(false);
-							}, 2000);
-						} catch (error) {
-							onCopyError?.(error);
+							return;
 						}
-					}}
-					{...props}
-				/>
-			</span>
-		);
-	},
-);
+						const text = copyTextRef.current;
+						await copyToClipboard(text);
+						onCopy?.(text);
+						setWasCopied(true);
+						if (timeoutHandle.current != null) {
+							clearTimeout(timeoutHandle.current);
+						}
+						timeoutHandle.current = setTimeout(() => {
+							setWasCopied(false);
+						}, 2000);
+					} catch (error) {
+						onCopyError?.(error);
+					}
+				}}
+				{...props}
+			/>
+		</span>
+	);
+};
 CopyButton.displayName = "CodeBlockCopyButton";
 
 type CodeBlockExpanderButtonProps = Omit<
@@ -633,47 +642,51 @@ type CodeBlockExpanderButtonProps = Omit<
  * </CodeBlock.Root>
  * ```
  */
-const ExpanderButton = forwardRef<ComponentRef<"button">, CodeBlockExpanderButtonProps>(
-	({ asChild = false, className, onClick, ...props }, ref) => {
-		const { codeId, isCodeExpanded, setIsCodeExpanded, setHasCodeExpander } = useCodeBlockContext();
+const ExpanderButton = ({
+	asChild = false,
+	className,
+	onClick,
+	ref,
+	...props
+}: CodeBlockExpanderButtonProps) => {
+	const { codeId, isCodeExpanded, setIsCodeExpanded, setHasCodeExpander } = useCodeBlockContext();
 
-		useEffect(() => {
-			setHasCodeExpander(true);
-			return () => {
-				setHasCodeExpander(false);
-			};
-		}, [setHasCodeExpander]);
+	useEffect(() => {
+		setHasCodeExpander(true);
+		return () => {
+			setHasCodeExpander(false);
+		};
+	}, [setHasCodeExpander]);
 
-		const Component = asChild ? Slot : "button";
+	const Component = asChild ? Slot : "button";
 
-		return (
-			<Component
-				{...props}
-				data-slot="code-block-expander-button"
-				aria-controls={codeId}
-				aria-expanded={isCodeExpanded}
-				className={cx(
-					"flex w-full items-center justify-center gap-0.5 border-t border-gray-300 bg-base px-4 py-2 font-sans text-gray-700 hover:bg-base-hover",
-					className,
-				)}
-				ref={ref}
-				type="button"
-				// Why: the asChild union (Slot | "button") no longer infers a single
-				// event type; React event handlers are bivariant, so pin the param.
-				onClick={(event: MouseEvent<HTMLButtonElement>) => {
-					setIsCodeExpanded((prev) => !prev);
-					onClick?.(event);
-				}}
-			>
-				{isCodeExpanded ? "Show less" : "Show more"}{" "}
-				<MantleIcon
-					svg={<CaretDownIcon weight="bold" />}
-					className={cx("size-4", isCodeExpanded && "rotate-180", "transition-all duration-150")}
-				/>
-			</Component>
-		);
-	},
-);
+	return (
+		<Component
+			{...props}
+			data-slot="code-block-expander-button"
+			aria-controls={codeId}
+			aria-expanded={isCodeExpanded}
+			className={cx(
+				"flex w-full items-center justify-center gap-0.5 border-t border-gray-300 bg-base px-4 py-2 font-sans text-gray-700 hover:bg-base-hover",
+				className,
+			)}
+			ref={ref}
+			type="button"
+			// Why: the asChild union (Slot | "button") no longer infers a single
+			// event type; React event handlers are bivariant, so pin the param.
+			onClick={(event: MouseEvent<HTMLButtonElement>) => {
+				setIsCodeExpanded((prev) => !prev);
+				onClick?.(event);
+			}}
+		>
+			{isCodeExpanded ? "Show less" : "Show more"}{" "}
+			<MantleIcon
+				svg={<CaretDownIcon weight="bold" />}
+				className={cx("size-4", isCodeExpanded && "rotate-180", "transition-all duration-150")}
+			/>
+		</Component>
+	);
+};
 ExpanderButton.displayName = "CodeBlockExpanderButton";
 
 type CodeBlockIconProps = Omit<SvgAttributes, "children"> &
@@ -788,23 +801,21 @@ type CodeBlockTabListProps = Omit<ComponentProps<typeof RadixTabsList>, "asChild
  * </CodeBlock.Root>
  * ```
  */
-const TabList = forwardRef<ComponentRef<typeof RadixTabsList>, CodeBlockTabListProps>(
-	({ className, ...props }, ref) => (
-		<RadixTabsList
-			data-slot="code-block-tab-list"
-			className={cx(
-				"scroll-fade-x flex min-w-0 items-center gap-1 overflow-x-auto overscroll-x-none",
-				// Reserve room inside the scroll box for each trigger's focus ring: `overflow-x-auto`
-				// promotes `overflow-y` to `auto`, which would otherwise clip the `ring-4` box-shadow.
-				// The negative margin cancels the padding so the header layout is unchanged. `min-w-0`
-				// lets the list shrink (and thus scroll) inside the flex `CodeBlock.Header`.
-				"-m-1 p-1",
-				className,
-			)}
-			ref={ref}
-			{...props}
-		/>
-	),
+const TabList = ({ className, ref, ...props }: CodeBlockTabListProps) => (
+	<RadixTabsList
+		data-slot="code-block-tab-list"
+		className={cx(
+			"scroll-fade-x flex min-w-0 items-center gap-1 overflow-x-auto overscroll-x-none",
+			// Reserve room inside the scroll box for each trigger's focus ring: `overflow-x-auto`
+			// promotes `overflow-y` to `auto`, which would otherwise clip the `ring-4` box-shadow.
+			// The negative margin cancels the padding so the header layout is unchanged. `min-w-0`
+			// lets the list shrink (and thus scroll) inside the flex `CodeBlock.Header`.
+			"-m-1 p-1",
+			className,
+		)}
+		ref={ref}
+		{...props}
+	/>
 );
 TabList.displayName = "CodeBlockTabList";
 
@@ -822,22 +833,20 @@ type CodeBlockTabTriggerProps = Omit<ComponentProps<typeof RadixTabsTrigger>, "a
  * </CodeBlock.TabList>
  * ```
  */
-const TabTrigger = forwardRef<ComponentRef<typeof RadixTabsTrigger>, CodeBlockTabTriggerProps>(
-	({ className, ...props }, ref) => (
-		<RadixTabsTrigger
-			data-slot="code-block-tab-trigger"
-			className={cx(
-				"shrink-0 cursor-pointer rounded px-1.5 py-0.5 font-sans text-xs font-medium whitespace-nowrap",
-				"text-gray-600 outline-hidden",
-				"hover:text-gray-900",
-				"data-[state=active]:bg-neutral-500/15 data-[state=active]:text-strong",
-				"focus-visible:ring-focus-accent focus-visible:ring-4",
-				className,
-			)}
-			ref={ref}
-			{...props}
-		/>
-	),
+const TabTrigger = ({ className, ref, ...props }: CodeBlockTabTriggerProps) => (
+	<RadixTabsTrigger
+		data-slot="code-block-tab-trigger"
+		className={cx(
+			"shrink-0 cursor-pointer rounded px-1.5 py-0.5 font-sans text-xs font-medium whitespace-nowrap",
+			"text-gray-600 outline-hidden",
+			"hover:text-gray-900",
+			"data-[state=active]:bg-neutral-500/15 data-[state=active]:text-strong",
+			"focus-visible:ring-focus-accent focus-visible:ring-4",
+			className,
+		)}
+		ref={ref}
+		{...props}
+	/>
 );
 TabTrigger.displayName = "CodeBlockTabTrigger";
 
@@ -864,8 +873,8 @@ type CodeBlockTabContentProps = Omit<
  * </CodeBlock.Body>
  * ```
  */
-const TabContent = forwardRef<ComponentRef<typeof RadixTabsContent>, CodeBlockTabContentProps>(
-	(props, ref) => <RadixTabsContent data-slot="code-block-tab-content" ref={ref} {...props} />,
+const TabContent = (props: CodeBlockTabContentProps) => (
+	<RadixTabsContent data-slot="code-block-tab-content" {...props} />
 );
 TabContent.displayName = "CodeBlockTabContent";
 

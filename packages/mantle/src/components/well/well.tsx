@@ -1,5 +1,4 @@
-import type { ComponentProps, ComponentRef } from "react";
-import { forwardRef } from "react";
+import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Slot } from "../slot/index.js";
@@ -31,24 +30,18 @@ type WellProps = ComponentProps<"div"> & WithAsChild;
  * </Well>
  * ```
  */
-const Well = forwardRef<ComponentRef<"div">, WellProps>(
-	({ asChild = false, className, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const Well = ({ asChild = false, className, ref, ...props }: WellProps) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot="well"
-				className={cx(
-					"border-card-muted bg-base relative rounded-md border shadow-inner",
-					className,
-				)}
-				{...props}
-			/>
-		);
-	},
-);
-Well.displayName = "Well";
+	return (
+		<Comp
+			ref={ref}
+			data-slot="well"
+			className={cx("border-card-muted bg-base relative rounded-md border shadow-inner", className)}
+			{...props}
+		/>
+	);
+};
 
 export {
 	//,

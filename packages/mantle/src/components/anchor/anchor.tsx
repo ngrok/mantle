@@ -1,5 +1,5 @@
-import type { ComponentProps, ComponentRef, ReactNode } from "react";
-import { Children, cloneElement, forwardRef, isValidElement } from "react";
+import type { ComponentProps, ReactNode } from "react";
+import { Children, cloneElement, isValidElement } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -98,57 +98,58 @@ type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
  * </Anchor>
  * ```
  */
-const Anchor = forwardRef<ComponentRef<"a">, AnchorProps>(
-	(
-		{ asChild, children, className, rel: propRel, icon, iconPlacement = "start", ...props },
+const Anchor = ({
+	asChild,
+	children,
+	className,
+	rel: propRel,
+	icon,
+	iconPlacement = "start",
+	ref,
+	...props
+}: AnchorProps) => {
+	const rel = resolveRel(propRel);
+	const componentProps = {
+		"data-slot": "anchor",
+		className: anchorClassNames(className),
 		ref,
-	) => {
-		const rel = resolveRel(propRel);
-		const componentProps = {
-			"data-slot": "anchor",
-			className: anchorClassNames(className),
-			ref,
-			rel,
-			...props,
-		};
+		rel,
+		...props,
+	};
 
-		if (asChild) {
-			const singleChild = Children.only(children);
-			invariant(
-				isValidElement<AnchorProps>(singleChild),
-				"When using `asChild`, Anchor must be passed a single child as a JSX tag.",
-			);
-			const grandchildren = singleChild.props?.children;
-
-			return (
-				<Slot {...componentProps}>
-					{cloneElement(
-						singleChild,
-						{},
-						<>
-							{icon && iconPlacement === "start" && (
-								<Icon className="inline-block mr-1.5" svg={icon} />
-							)}
-							{grandchildren}
-							{icon && iconPlacement === "end" && (
-								<Icon className="inline-block ml-1.5" svg={icon} />
-							)}
-						</>,
-					)}
-				</Slot>
-			);
-		}
+	if (asChild) {
+		const singleChild = Children.only(children);
+		invariant(
+			isValidElement<AnchorProps>(singleChild),
+			"When using `asChild`, Anchor must be passed a single child as a JSX tag.",
+		);
+		const grandchildren = singleChild.props?.children;
 
 		return (
-			<a {...componentProps}>
-				{icon && iconPlacement === "start" && <Icon className="inline-block mr-1.5" svg={icon} />}
-				{children}
-				{icon && iconPlacement === "end" && <Icon className="inline-block ml-1.5" svg={icon} />}
-			</a>
+			<Slot {...componentProps}>
+				{cloneElement(
+					singleChild,
+					{},
+					<>
+						{icon && iconPlacement === "start" && (
+							<Icon className="inline-block mr-1.5" svg={icon} />
+						)}
+						{grandchildren}
+						{icon && iconPlacement === "end" && <Icon className="inline-block ml-1.5" svg={icon} />}
+					</>,
+				)}
+			</Slot>
 		);
-	},
-);
-Anchor.displayName = "Anchor";
+	}
+
+	return (
+		<a {...componentProps}>
+			{icon && iconPlacement === "start" && <Icon className="inline-block mr-1.5" svg={icon} />}
+			{children}
+			{icon && iconPlacement === "end" && <Icon className="inline-block ml-1.5" svg={icon} />}
+		</a>
+	);
+};
 
 /**
  * Resolves the `rel` attribute to a string.

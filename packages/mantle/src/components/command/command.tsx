@@ -3,17 +3,12 @@
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import { Command as CommandPrimitive, useCommandState } from "cmdk";
 
-import {
-	type ComponentPropsWithoutRef,
-	type ComponentRef,
-	type ReactNode,
-	forwardRef,
-} from "react";
+import type { ComponentProps, ComponentPropsWithoutRef, ReactNode, Ref } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import { Dialog } from "../dialog/dialog.js";
 import { Separator } from "../separator/separator.js";
 
-type CommandRootProps = ComponentPropsWithoutRef<typeof CommandPrimitive>;
+type CommandRootProps = ComponentProps<typeof CommandPrimitive>;
 
 /**
  * The root component for the Command. It provides the context for all other command sub-components.
@@ -47,15 +42,12 @@ type CommandRootProps = ComponentPropsWithoutRef<typeof CommandPrimitive>;
  * </Command.DialogRoot>
  * ```
  */
-const CommandRoot = forwardRef<ComponentRef<"div">, CommandRootProps>(
-	({ className, ...props }, ref) => (
-		<CommandPrimitive
-			ref={ref}
-			data-slot="command"
-			className={cx("bg-popover flex h-full w-full flex-col overflow-hidden rounded-md", className)}
-			{...props}
-		/>
-	),
+const CommandRoot = ({ className, ...props }: CommandRootProps) => (
+	<CommandPrimitive
+		data-slot="command"
+		className={cx("bg-popover flex h-full w-full flex-col overflow-hidden rounded-md", className)}
+		{...props}
+	/>
 );
 CommandRoot.displayName = "Command";
 
@@ -166,7 +158,6 @@ const CommandDialogContent = ({
 		)}
 	</Dialog.Content>
 );
-CommandDialogContent.displayName = "CommandDialogContent";
 
 /**
  * The input component for the Command. It provides the input for the command palette.
@@ -200,10 +191,13 @@ CommandDialogContent.displayName = "CommandDialogContent";
  * </Command.DialogRoot>
  * ```
  */
-const CommandInput = forwardRef<
-	ComponentRef<"div">,
-	ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
->(({ className, ...props }, ref) => (
+const CommandInput = ({
+	className,
+	ref,
+	...props
+}: ComponentPropsWithoutRef<typeof CommandPrimitive.Input> & {
+	ref?: Ref<HTMLDivElement>;
+}) => (
 	<div
 		ref={ref}
 		data-slot="command-input-wrapper"
@@ -219,8 +213,7 @@ const CommandInput = forwardRef<
 			{...props}
 		/>
 	</div>
-));
-CommandInput.displayName = "CommandInput";
+);
 
 /**
  * The list component for the Command. It provides the list for the command palette.
@@ -254,18 +247,13 @@ CommandInput.displayName = "CommandInput";
  * </Command.DialogRoot>
  * ```
  */
-const CommandList = forwardRef<
-	ComponentRef<"div">,
-	ComponentPropsWithoutRef<typeof CommandPrimitive.List>
->(({ className, ...props }, ref) => (
+const CommandList = ({ className, ...props }: ComponentProps<typeof CommandPrimitive.List>) => (
 	<CommandPrimitive.List
-		ref={ref}
 		data-slot="command-list"
 		className={cx("max-h-75 scroll-py-1 overflow-x-hidden overflow-y-auto scrollbar", className)}
 		{...props}
 	/>
-));
-CommandList.displayName = "CommandList";
+);
 
 /**
  * The empty component for the Command. It provides the empty state for the command palette.
@@ -299,18 +287,13 @@ CommandList.displayName = "CommandList";
  * </Command.DialogRoot>
  * ```
  */
-const CommandEmpty = forwardRef<
-	ComponentRef<"div">,
-	ComponentPropsWithoutRef<typeof CommandPrimitive.Empty>
->(({ className, ...props }, ref) => (
+const CommandEmpty = ({ className, ...props }: ComponentProps<typeof CommandPrimitive.Empty>) => (
 	<CommandPrimitive.Empty
-		ref={ref}
 		data-slot="command-empty"
 		className={cx("py-6 text-center text-sm", className)}
 		{...props}
 	/>
-));
-CommandEmpty.displayName = "CommandEmpty";
+);
 
 /**
  * The group component for the Command. It provides the group for the command palette.
@@ -344,12 +327,8 @@ CommandEmpty.displayName = "CommandEmpty";
  * </Command.DialogRoot>
  * ```
  */
-const CommandGroup = forwardRef<
-	ComponentRef<"div">,
-	ComponentPropsWithoutRef<typeof CommandPrimitive.Group>
->(({ className, ...props }, ref) => (
+const CommandGroup = ({ className, ...props }: ComponentProps<typeof CommandPrimitive.Group>) => (
 	<CommandPrimitive.Group
-		ref={ref}
 		data-slot="command-group"
 		className={cx(
 			"[&>[cmdk-group-heading]]:text-muted overflow-hidden p-1 [&>[cmdk-group-heading]]:px-2 [&>[cmdk-group-heading]]:py-1.5 [&>[cmdk-group-heading]]:text-xs [&>[cmdk-group-heading]]:font-medium",
@@ -357,8 +336,7 @@ const CommandGroup = forwardRef<
 		)}
 		{...props}
 	/>
-));
-CommandGroup.displayName = "CommandGroup";
+);
 
 /**
  * The separator component for the Command. It provides the separator for the command palette.
@@ -392,15 +370,14 @@ CommandGroup.displayName = "CommandGroup";
  * </Command.DialogRoot>
  * ```
  */
-const CommandSeparator = forwardRef<
-	ComponentRef<typeof CommandPrimitive.Separator>,
-	ComponentPropsWithoutRef<typeof CommandPrimitive.Separator>
->(({ className, ...props }, ref) => (
-	<CommandPrimitive.Separator ref={ref} data-slot="command-separator" asChild {...props}>
+const CommandSeparator = ({
+	className,
+	...props
+}: ComponentProps<typeof CommandPrimitive.Separator>) => (
+	<CommandPrimitive.Separator data-slot="command-separator" asChild {...props}>
 		<Separator className={cx("-mx-1 my-1 w-auto", className)} />
 	</CommandPrimitive.Separator>
-));
-CommandSeparator.displayName = "CommandSeparator";
+);
 
 /**
  * The item component for the Command. It provides the item for the command palette.
@@ -434,12 +411,8 @@ CommandSeparator.displayName = "CommandSeparator";
  * </Command.DialogRoot>
  * ```
  */
-const CommandItem = forwardRef<
-	ComponentRef<"div">,
-	ComponentPropsWithoutRef<typeof CommandPrimitive.Item>
->(({ className, ...props }, ref) => (
+const CommandItem = ({ className, ...props }: ComponentProps<typeof CommandPrimitive.Item>) => (
 	<CommandPrimitive.Item
-		ref={ref}
 		data-slot="command-item"
 		className={cx(
 			"data-[selected=true]:bg-active-menu-item [:where(&_svg)]:text-muted relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [:where(&_svg)]:size-5",
@@ -447,8 +420,7 @@ const CommandItem = forwardRef<
 		)}
 		{...props}
 	/>
-));
-CommandItem.displayName = "CommandItem";
+);
 
 /**
  * The shortcut component for the Command. It provides the shortcut for the command palette.
@@ -482,17 +454,13 @@ CommandItem.displayName = "CommandItem";
  * </Command.DialogRoot>
  * ```
  */
-const CommandShortcut = forwardRef<ComponentRef<"span">, ComponentPropsWithoutRef<"span">>(
-	({ className, ...props }, ref) => (
-		<span
-			ref={ref}
-			data-slot="command-shortcut"
-			className={cx("text-muted ml-auto text-xs tracking-widest", className)}
-			{...props}
-		/>
-	),
+const CommandShortcut = ({ className, ...props }: ComponentProps<"span">) => (
+	<span
+		data-slot="command-shortcut"
+		className={cx("text-muted ml-auto text-xs tracking-widest", className)}
+		{...props}
+	/>
 );
-CommandShortcut.displayName = "CommandShortcut";
 
 /**
  * The command component for the Command. It provides the command for the command palette.

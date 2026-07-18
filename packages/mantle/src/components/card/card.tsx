@@ -1,5 +1,4 @@
-import type { ComponentProps, ComponentRef, HTMLAttributes } from "react";
-import { forwardRef } from "react";
+import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Slot } from "../slot/index.js";
@@ -33,22 +32,20 @@ type CardProps = ComponentProps<"div"> & WithAsChild;
  * </Card.Root>
  * ```
  */
-const Root = forwardRef<ComponentRef<"div">, CardProps>(
-	({ asChild = false, className, children, ...rest }, ref) => {
-		const Component = asChild ? Slot : "div";
+const Root = ({ asChild = false, className, children, ref, ...rest }: CardProps) => {
+	const Component = asChild ? Slot : "div";
 
-		return (
-			<Component
-				ref={ref}
-				data-slot="card"
-				className={cx("border-card bg-card relative rounded-md border", className)}
-				{...rest}
-			>
-				{children}
-			</Component>
-		);
-	},
-);
+	return (
+		<Component
+			ref={ref}
+			data-slot="card"
+			className={cx("border-card bg-card relative rounded-md border", className)}
+			{...rest}
+		>
+			{children}
+		</Component>
+	);
+};
 Root.displayName = "Card";
 
 /**
@@ -77,22 +74,20 @@ Root.displayName = "Card";
  * </Card.Root>
  * ```
  */
-const Body = forwardRef<ComponentRef<"div">, CardProps>(
-	({ asChild = false, className, children, ...rest }, ref) => {
-		const Component = asChild ? Slot : "div";
+const Body = ({ asChild = false, className, children, ref, ...rest }: CardProps) => {
+	const Component = asChild ? Slot : "div";
 
-		return (
-			<Component
-				ref={ref}
-				data-slot="card-body"
-				className={cx("p-6 border-t border-card-muted first:border-t-0", className)}
-				{...rest}
-			>
-				{children}
-			</Component>
-		);
-	},
-);
+	return (
+		<Component
+			ref={ref}
+			data-slot="card-body"
+			className={cx("p-6 border-t border-card-muted first:border-t-0", className)}
+			{...rest}
+		>
+			{children}
+		</Component>
+	);
+};
 Body.displayName = "CardBody";
 
 /**
@@ -115,22 +110,20 @@ Body.displayName = "CardBody";
  * </Card.Root>
  * ```
  */
-const Footer = forwardRef<ComponentRef<"div">, CardProps>(
-	({ asChild = false, className, children, ...rest }, ref) => {
-		const Component = asChild ? Slot : "div";
+const Footer = ({ asChild = false, className, children, ref, ...rest }: CardProps) => {
+	const Component = asChild ? Slot : "div";
 
-		return (
-			<Component
-				ref={ref}
-				data-slot="card-footer"
-				className={cx("px-6 py-3 border-t border-card-muted first:border-t-0", className)}
-				{...rest}
-			>
-				{children}
-			</Component>
-		);
-	},
-);
+	return (
+		<Component
+			ref={ref}
+			data-slot="card-footer"
+			className={cx("px-6 py-3 border-t border-card-muted first:border-t-0", className)}
+			{...rest}
+		>
+			{children}
+		</Component>
+	);
+};
 Footer.displayName = "CardFooter";
 
 /**
@@ -153,25 +146,23 @@ Footer.displayName = "CardFooter";
  * </Card.Root>
  * ```
  */
-const Header = forwardRef<ComponentRef<"div">, CardProps>(
-	({ asChild = false, className, children, ...rest }, ref) => {
-		const Component = asChild ? Slot : "div";
+const Header = ({ asChild = false, className, children, ref, ...rest }: CardProps) => {
+	const Component = asChild ? Slot : "div";
 
-		return (
-			<Component
-				ref={ref}
-				data-slot="card-header"
-				className={cx("px-6 py-3 border-t border-card-muted first:border-t-0", className)}
-				{...rest}
-			>
-				{children}
-			</Component>
-		);
-	},
-);
+	return (
+		<Component
+			ref={ref}
+			data-slot="card-header"
+			className={cx("px-6 py-3 border-t border-card-muted first:border-t-0", className)}
+			{...rest}
+		>
+			{children}
+		</Component>
+	);
+};
 Header.displayName = "CardHeader";
 
-type CardTitleProps = HTMLAttributes<HTMLHeadingElement> & WithAsChild;
+type CardTitleProps = ComponentProps<"h3"> & WithAsChild;
 
 /**
  * The title of a card. Usually composed as a direct child of a `Card.Header`
@@ -197,19 +188,17 @@ type CardTitleProps = HTMLAttributes<HTMLHeadingElement> & WithAsChild;
  * </Card.Root>
  * ```
  */
-const Title = forwardRef<HTMLHeadingElement, CardTitleProps>(
-	({ className, asChild, ...props }, ref) => {
-		const Comp = asChild ? Slot : "h3";
-		return (
-			<Comp
-				ref={ref}
-				data-slot="card-title"
-				className={cx("text-strong text-base font-medium", className)}
-				{...props}
-			/>
-		);
-	},
-);
+const Title = ({ className, asChild, ref, ...props }: CardTitleProps) => {
+	const Comp = asChild ? Slot : "h3";
+	return (
+		<Comp
+			ref={ref}
+			data-slot="card-title"
+			className={cx("text-strong text-base font-medium", className)}
+			{...props}
+		/>
+	);
+};
 Title.displayName = "CardTitle";
 
 /**

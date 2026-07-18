@@ -2,16 +2,8 @@
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { VirtualItem, Virtualizer } from "@tanstack/react-virtual";
-import {
-	Children,
-	forwardRef,
-	isValidElement,
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-} from "react";
-import type { ComponentRef, ReactNode } from "react";
+import { Children, isValidElement, useCallback, useEffect, useMemo, useRef } from "react";
+import type { ReactNode } from "react";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import {
 	findItemControl,
@@ -139,161 +131,157 @@ WindowedItem.displayName = "ListPrimitiveWindowedItem";
  * </VirtualRoot>
  * ```
  */
-const VirtualRoot = forwardRef<ComponentRef<"div">, VirtualRootProps>(
-	(
-		{
-			"aria-label": ariaLabel,
-			"aria-labelledby": ariaLabelledby,
-			"aria-multiselectable": ariaMultiselectable,
-			children,
-			className,
-			estimateItemHeight = 44,
-			isItemDisabled,
-			onActivate,
-			overscan = 8,
-			itemId,
-			semantics = "list",
-			...props
+const VirtualRoot = ({
+	"aria-label": ariaLabel,
+	"aria-labelledby": ariaLabelledby,
+	"aria-multiselectable": ariaMultiselectable,
+	children,
+	className,
+	estimateItemHeight = 44,
+	isItemDisabled,
+	onActivate,
+	overscan = 8,
+	itemId,
+	ref,
+	semantics = "list",
+	...props
+}: VirtualRootProps) => {
+	const scrollRef = useRef<HTMLDivElement>(null);
+	const composedViewportRef = useComposedRefs(scrollRef, ref);
+	// Memoized so a scroll or keyboard-nav re-render (`useVirtualizer` re-renders
+	// on every offset change) doesn't re-walk + re-filter the full child set each
+	// frame — only the windowed slice below needs to re-render.
+	const items = useMemo(() => Children.toArray(children).filter(isValidElement), [children]);
+	const count = items.length;
+	const virtualizer = useVirtualizer({
+		count,
+		getScrollElement: () => scrollRef.current,
+		estimateSize: () => estimateItemHeight,
+		// Key windowed rows by the child's own key (assigned by `Children.toArray`)
+		// so row identity — React reconciliation via `virtualItem.key` below AND
+		// the virtualizer's measurement cache — follows the consumer's keys across
+		// reorder/filter, matching the plain `Root`, instead of tracking position.
+		getItemKey: (index) => items[index]?.key ?? index,
+		overscan,
+		// Reproduce the plain collection's `gap-px` between windowed rows, which
+		// are out of flow and so can't inherit the flex gap.
+		gap: 1,
+	});
+	const scrollToIndex = useCallback(
+		(index: number) => virtualizer.scrollToIndex(index, { align: "auto" }),
+		[virtualizer],
+	);
+	const focusFrameRef = useRef<number | null>(null);
+	// Cancel any in-flight focus poll when the list unmounts, so a row that was
+	// still mounting can't schedule frames (or steal focus) after teardown.
+	useEffect(
+		() => () => {
+			if (focusFrameRef.current != null) {
+				cancelAnimationFrame(focusFrameRef.current);
+			}
 		},
-		ref,
-	) => {
-		const scrollRef = useRef<HTMLDivElement>(null);
-		const composedViewportRef = useComposedRefs(scrollRef, ref);
-		// Memoized so a scroll or keyboard-nav re-render (`useVirtualizer` re-renders
-		// on every offset change) doesn't re-walk + re-filter the full child set each
-		// frame — only the windowed slice below needs to re-render.
-		const items = useMemo(() => Children.toArray(children).filter(isValidElement), [children]);
-		const count = items.length;
-		const virtualizer = useVirtualizer({
-			count,
-			getScrollElement: () => scrollRef.current,
-			estimateSize: () => estimateItemHeight,
-			// Key windowed rows by the child's own key (assigned by `Children.toArray`)
-			// so row identity — React reconciliation via `virtualItem.key` below AND
-			// the virtualizer's measurement cache — follows the consumer's keys across
-			// reorder/filter, matching the plain `Root`, instead of tracking position.
-			getItemKey: (index) => items[index]?.key ?? index,
-			overscan,
-			// Reproduce the plain collection's `gap-px` between windowed rows, which
-			// are out of flow and so can't inherit the flex gap.
-			gap: 1,
-		});
-		const scrollToIndex = useCallback(
-			(index: number) => virtualizer.scrollToIndex(index, { align: "auto" }),
-			[virtualizer],
-		);
-		const focusFrameRef = useRef<number | null>(null);
-		// Cancel any in-flight focus poll when the list unmounts, so a row that was
-		// still mounting can't schedule frames (or steal focus) after teardown.
-		useEffect(
-			() => () => {
-				if (focusFrameRef.current != null) {
-					cancelAnimationFrame(focusFrameRef.current);
+		[],
+	);
+	const focusItemAt = useCallback(
+		(index: number, step: number) => {
+			// Supersede any focus poll still chasing an earlier target so overlapping
+			// keypresses don't race to move focus.
+			if (focusFrameRef.current != null) {
+				cancelAnimationFrame(focusFrameRef.current);
+				focusFrameRef.current = null;
+			}
+			let target = index;
+			let attempts = 0;
+			const tryFocus = () => {
+				focusFrameRef.current = null;
+				const viewport = scrollRef.current;
+				if (viewport == null || target < 0 || target >= count) {
+					return;
 				}
-			},
-			[],
-		);
-		const focusItemAt = useCallback(
-			(index: number, step: number) => {
-				// Supersede any focus poll still chasing an earlier target so overlapping
-				// keypresses don't race to move focus.
-				if (focusFrameRef.current != null) {
-					cancelAnimationFrame(focusFrameRef.current);
-					focusFrameRef.current = null;
-				}
-				let target = index;
-				let attempts = 0;
-				const tryFocus = () => {
-					focusFrameRef.current = null;
-					const viewport = scrollRef.current;
-					if (viewport == null || target < 0 || target >= count) {
+				// A jump target (Home/End) may not be mounted until the virtualizer
+				// renders the new window — scroll it in, then poll for its control.
+				virtualizer.scrollToIndex(target, { align: "auto" });
+				const item = viewport.querySelector(`[data-index="${target}"]`);
+				if (item != null) {
+					const control = findItemControl(item);
+					if (control != null) {
+						control.focus({ preventScroll: true });
 						return;
 					}
-					// A jump target (Home/End) may not be mounted until the virtualizer
-					// renders the new window — scroll it in, then poll for its control.
-					virtualizer.scrollToIndex(target, { align: "auto" });
-					const item = viewport.querySelector(`[data-index="${target}"]`);
-					if (item != null) {
-						const control = findItemControl(item);
-						if (control != null) {
-							control.focus({ preventScroll: true });
-							return;
-						}
-						// The row is mounted but hosts no focusable control (a static row):
-						// step to the next candidate rather than dead-ending on it.
-						target += step;
-						attempts = 0;
-					}
-					attempts += 1;
-					// Bounded so a row that never mounts (or a run of static rows) can't
-					// loop forever.
-					if (attempts < 10) {
-						focusFrameRef.current = requestAnimationFrame(tryFocus);
-					}
-				};
-				tryFocus();
-			},
-			[count, virtualizer],
-		);
-		const { collectionProps, gridNav, listContext } = useListShell({
-			count,
-			focusItemAt,
-			// Windowed items aren't all mounted, so the default reads `disabled` off
-			// the item elements (which we hold in full) rather than the DOM.
-			isItemDisabled: isItemDisabled ?? ((index) => isItemChildDisabled(items[index])),
-			onActivate,
-			itemId,
-			scrollToIndex,
-			semantics,
-		});
-		const virtualItems = virtualizer.getVirtualItems();
-		// `aria-activedescendant` must reference an element in the DOM: when the
-		// user mouse-scrolls the active row outside the mounted window, drop the
-		// reference rather than leave a dangling IDREF (the active index is kept, so
-		// the next arrow key scrolls the row back into view and restores it).
-		const activeItemIsMounted = virtualItems.some((item) => item.index === gridNav.activeIndex);
+					// The row is mounted but hosts no focusable control (a static row):
+					// step to the next candidate rather than dead-ending on it.
+					target += step;
+					attempts = 0;
+				}
+				attempts += 1;
+				// Bounded so a row that never mounts (or a run of static rows) can't
+				// loop forever.
+				if (attempts < 10) {
+					focusFrameRef.current = requestAnimationFrame(tryFocus);
+				}
+			};
+			tryFocus();
+		},
+		[count, virtualizer],
+	);
+	const { collectionProps, gridNav, listContext } = useListShell({
+		count,
+		focusItemAt,
+		// Windowed items aren't all mounted, so the default reads `disabled` off
+		// the item elements (which we hold in full) rather than the DOM.
+		isItemDisabled: isItemDisabled ?? ((index) => isItemChildDisabled(items[index])),
+		onActivate,
+		itemId,
+		scrollToIndex,
+		semantics,
+	});
+	const virtualItems = virtualizer.getVirtualItems();
+	// `aria-activedescendant` must reference an element in the DOM: when the
+	// user mouse-scrolls the active row outside the mounted window, drop the
+	// reference rather than leave a dangling IDREF (the active index is kept, so
+	// the next arrow key scrolls the row back into view and restores it).
+	const activeItemIsMounted = virtualItems.some((item) => item.index === gridNav.activeIndex);
 
-		return (
-			<ListShell
-				aria-label={ariaLabel}
-				aria-labelledby={ariaLabelledby}
-				aria-multiselectable={ariaMultiselectable}
-				className={className}
-				collectionProps={{
-					...collectionProps,
-					"aria-activedescendant": activeItemIsMounted
-						? collectionProps["aria-activedescendant"]
-						: undefined,
-					// Only the windowed slice is in the DOM, so tell AT how many rows
-					// the grid really has (rows carry the matching aria-rowindex).
-					"aria-rowcount": semantics === "grid" ? count : undefined,
-					style: { height: `${virtualizer.getTotalSize()}px` },
-				}}
-				gridNav={gridNav}
-				listContext={listContext}
-				viewportProps={props}
-				viewportRef={composedViewportRef}
-			>
-				{virtualItems.map((virtualItem) => {
-					const item = items[virtualItem.index];
-					if (item == null) {
-						return null;
-					}
-					return (
-						<WindowedItem
-							key={virtualItem.key}
-							virtualItem={virtualItem}
-							count={count}
-							measureRef={virtualizer.measureElement}
-						>
-							{item}
-						</WindowedItem>
-					);
-				})}
-			</ListShell>
-		);
-	},
-);
+	return (
+		<ListShell
+			aria-label={ariaLabel}
+			aria-labelledby={ariaLabelledby}
+			aria-multiselectable={ariaMultiselectable}
+			className={className}
+			collectionProps={{
+				...collectionProps,
+				"aria-activedescendant": activeItemIsMounted
+					? collectionProps["aria-activedescendant"]
+					: undefined,
+				// Only the windowed slice is in the DOM, so tell AT how many rows
+				// the grid really has (rows carry the matching aria-rowindex).
+				"aria-rowcount": semantics === "grid" ? count : undefined,
+				style: { height: `${virtualizer.getTotalSize()}px` },
+			}}
+			gridNav={gridNav}
+			listContext={listContext}
+			viewportProps={props}
+			ref={composedViewportRef}
+		>
+			{virtualItems.map((virtualItem) => {
+				const item = items[virtualItem.index];
+				if (item == null) {
+					return null;
+				}
+				return (
+					<WindowedItem
+						key={virtualItem.key}
+						virtualItem={virtualItem}
+						count={count}
+						measureRef={virtualizer.measureElement}
+					>
+						{item}
+					</WindowedItem>
+				);
+			})}
+		</ListShell>
+	);
+};
 VirtualRoot.displayName = "ListPrimitiveVirtualRoot";
 
 export {

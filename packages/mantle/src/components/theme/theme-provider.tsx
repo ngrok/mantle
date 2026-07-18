@@ -167,8 +167,6 @@ function ThemeProvider({ children }: ThemeProviderProps) {
 
 	return <ThemeProviderContext.Provider value={value}>{children}</ThemeProviderContext.Provider>;
 }
-ThemeProvider.displayName = "ThemeProvider";
-
 /**
  * useTheme returns the current theme and a function to set the theme.
  *
@@ -550,8 +548,6 @@ const PreventWrongThemeFlashScript = ({ nonce }: PreventWrongThemeFlashScriptPro
 		suppressHydrationWarning
 	/>
 );
-PreventWrongThemeFlashScript.displayName = "PreventWrongThemeFlashScript";
-
 type InitialThemeProps = {
 	className: string;
 	"data-applied-theme": ResolvedTheme;

@@ -1,5 +1,5 @@
 import type { ComponentProps, ComponentRef } from "react";
-import { forwardRef, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 
@@ -45,46 +45,44 @@ import { cx } from "../../utils/cx/cx.js";
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tableroot
  */
-const Root = forwardRef<ComponentRef<"div">, ComponentProps<"div">>(
-	({ children, className, ...props }, ref) => {
-		const horizontalOverflow = useHorizontalOverflowObserver<ComponentRef<"div">>();
+const Root = ({ children, className, ref, ...props }: ComponentProps<"div">) => {
+	const horizontalOverflow = useHorizontalOverflowObserver<ComponentRef<"div">>();
 
-		return (
+	return (
+		<div
+			data-slot="table"
+			className={cx(
+				"group/table relative w-full overflow-hidden rounded-lg border border-card bg-white dark:bg-gray-100",
+				className,
+			)}
+			data-sticky-active={
+				(horizontalOverflow.state.hasOverflow && !horizontalOverflow.state.scrolledToEnd) ||
+				undefined
+			}
+			data-x-overflow={horizontalOverflow.state.hasOverflow}
+			data-x-scroll-end={
+				horizontalOverflow.state.hasOverflow && horizontalOverflow.state.scrolledToEnd
+			}
+			{...props}
+		>
 			<div
-				data-slot="table"
 				className={cx(
-					"group/table relative w-full overflow-hidden rounded-lg border border-card bg-white dark:bg-gray-100",
-					className,
+					"scrollbar scroll-fade-x overflow-x-auto overflow-y-clip overscroll-x-none",
+					// The edge fade is driven by the `scroll-fade-x` utility (a CSS
+					// scroll-driven animation). When the table contains a sticky right column
+					// (e.g., DataTable.ActionCell / DataTable.ActionHeader), suppress the
+					// container's right-side fade so the pinned column stays fully opaque. The
+					// pinned column provides its own left-side gradient for the scroll-under
+					// effect.
+					"has-data-mantle-table-sticky-right:[--_fade-right:black]",
 				)}
-				data-sticky-active={
-					(horizontalOverflow.state.hasOverflow && !horizontalOverflow.state.scrolledToEnd) ||
-					undefined
-				}
-				data-x-overflow={horizontalOverflow.state.hasOverflow}
-				data-x-scroll-end={
-					horizontalOverflow.state.hasOverflow && horizontalOverflow.state.scrolledToEnd
-				}
-				{...props}
+				ref={composeRefs(horizontalOverflow.ref, ref)}
 			>
-				<div
-					className={cx(
-						"scrollbar scroll-fade-x overflow-x-auto overflow-y-clip overscroll-x-none",
-						// The edge fade is driven by the `scroll-fade-x` utility (a CSS
-						// scroll-driven animation). When the table contains a sticky right column
-						// (e.g., DataTable.ActionCell / DataTable.ActionHeader), suppress the
-						// container's right-side fade so the pinned column stays fully opaque. The
-						// pinned column provides its own left-side gradient for the scroll-under
-						// effect.
-						"has-data-mantle-table-sticky-right:[--_fade-right:black]",
-					)}
-					ref={composeRefs(horizontalOverflow.ref, ref)}
-				>
-					{children}
-				</div>
+				{children}
 			</div>
-		);
-	},
-);
+		</div>
+	);
+};
 Root.displayName = "TableRoot";
 
 /**
@@ -152,23 +150,21 @@ Root.displayName = "TableRoot";
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tableelement
  */
-const Element = forwardRef<ComponentRef<"table">, ComponentProps<"table">>(
-	({ children, className, ...props }, ref) => {
-		return (
-			<table
-				data-slot="table-element"
-				ref={ref}
-				className={cx(
-					"table-auto border-separate border-spacing-0 caption-bottom w-full min-w-full text-left",
-					className,
-				)}
-				{...props}
-			>
-				{children}
-			</table>
-		);
-	},
-);
+const Element = ({ children, className, ref, ...props }: ComponentProps<"table">) => {
+	return (
+		<table
+			data-slot="table-element"
+			ref={ref}
+			className={cx(
+				"table-auto border-separate border-spacing-0 caption-bottom w-full min-w-full text-left",
+				className,
+			)}
+			{...props}
+		>
+			{children}
+		</table>
+	);
+};
 Element.displayName = "TableElement";
 
 /**
@@ -218,26 +214,24 @@ Element.displayName = "TableElement";
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tableheader
  */
-const Head = forwardRef<ComponentRef<"thead">, ComponentProps<"thead">>(
-	({ children, className, ...props }, ref) => (
-		<thead
-			data-slot="table-head"
-			ref={ref}
-			className={cx(
-				//,
-				// In border-separate, <tr>/<thead> borders don't render, so apply
-				// dividers directly to cells.
-				"[&>tr:last-child>*]:border-b [&>tr:last-child>*]:border-card-muted",
-				"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
-				"text-muted bg-base",
-				"[&>tr]:bg-base", // Row styling
-				className,
-			)}
-			{...props}
-		>
-			{children}
-		</thead>
-	),
+const Head = ({ children, className, ref, ...props }: ComponentProps<"thead">) => (
+	<thead
+		data-slot="table-head"
+		ref={ref}
+		className={cx(
+			//,
+			// In border-separate, <tr>/<thead> borders don't render, so apply
+			// dividers directly to cells.
+			"[&>tr:last-child>*]:border-b [&>tr:last-child>*]:border-card-muted",
+			"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
+			"text-muted bg-base",
+			"[&>tr]:bg-base", // Row styling
+			className,
+		)}
+		{...props}
+	>
+		{children}
+	</thead>
 );
 Head.displayName = "TableHead";
 
@@ -286,25 +280,23 @@ Head.displayName = "TableHead";
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tablebody
  */
-const Body = forwardRef<ComponentRef<"tbody">, ComponentProps<"tbody">>(
-	({ children, className, ...props }, ref) => (
-		<tbody
-			data-slot="table-body"
-			className={cx(
-				//,
-				// In border-separate, <tr>/<tbody> borders don't render, so apply
-				// dividers directly to cells.
-				"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
-				"text-body",
-				"[&>tr]:bg-card [&>tr]:not-only:hover:bg-card-hover", // Body row styling
-				className,
-			)}
-			ref={ref}
-			{...props}
-		>
-			{children}
-		</tbody>
-	),
+const Body = ({ children, className, ref, ...props }: ComponentProps<"tbody">) => (
+	<tbody
+		data-slot="table-body"
+		className={cx(
+			//,
+			// In border-separate, <tr>/<tbody> borders don't render, so apply
+			// dividers directly to cells.
+			"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
+			"text-body",
+			"[&>tr]:bg-card [&>tr]:not-only:hover:bg-card-hover", // Body row styling
+			className,
+		)}
+		ref={ref}
+		{...props}
+	>
+		{children}
+	</tbody>
 );
 Body.displayName = "TableBody";
 
@@ -355,26 +347,24 @@ Body.displayName = "TableBody";
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tablefoot
  */
-const Foot = forwardRef<ComponentRef<"tfoot">, ComponentProps<"tfoot">>(
-	({ children, className, ...props }, ref) => (
-		<tfoot
-			data-slot="table-foot"
-			ref={ref}
-			className={cx(
-				//,
-				"font-medium text-body",
-				// In border-separate, <tr>/<tfoot> borders don't render, so apply
-				// dividers directly to cells.
-				"[&>tr:first-child>*]:border-t [&>tr:first-child>*]:border-card-muted",
-				"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
-				"[&>tr]:bg-gray-50/50 [&>tr]:hover:bg-card-hover", // Row styling
-				className,
-			)}
-			{...props}
-		>
-			{children}
-		</tfoot>
-	),
+const Foot = ({ children, className, ref, ...props }: ComponentProps<"tfoot">) => (
+	<tfoot
+		data-slot="table-foot"
+		ref={ref}
+		className={cx(
+			//,
+			"font-medium text-body",
+			// In border-separate, <tr>/<tfoot> borders don't render, so apply
+			// dividers directly to cells.
+			"[&>tr:first-child>*]:border-t [&>tr:first-child>*]:border-card-muted",
+			"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
+			"[&>tr]:bg-gray-50/50 [&>tr]:hover:bg-card-hover", // Row styling
+			className,
+		)}
+		{...props}
+	>
+		{children}
+	</tfoot>
 );
 Foot.displayName = "TableFoot";
 
@@ -422,20 +412,18 @@ Foot.displayName = "TableFoot";
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tablerow
  */
-const Row = forwardRef<ComponentRef<"tr">, ComponentProps<"tr">>(
-	({ children, className, ...props }, ref) => (
-		<tr
-			data-slot="table-row"
-			ref={ref}
-			className={cx(
-				// This could be removed, or simplified
-				className,
-			)}
-			{...props}
-		>
-			{children}
-		</tr>
-	),
+const Row = ({ children, className, ref, ...props }: ComponentProps<"tr">) => (
+	<tr
+		data-slot="table-row"
+		ref={ref}
+		className={cx(
+			// This could be removed, or simplified
+			className,
+		)}
+		{...props}
+	>
+		{children}
+	</tr>
 );
 Row.displayName = "TableRow";
 
@@ -485,20 +473,18 @@ Row.displayName = "TableRow";
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tableheader
  */
-const Header = forwardRef<ComponentRef<"th">, ComponentProps<"th">>(
-	({ children, className, ...props }, ref) => (
-		<th
-			data-slot="table-header"
-			ref={ref}
-			className={cx(
-				"h-11 px-4 text-left align-middle text-sm font-medium [&:has([role=checkbox])]:pr-0",
-				className,
-			)}
-			{...props}
-		>
-			{children}
-		</th>
-	),
+const Header = ({ children, className, ref, ...props }: ComponentProps<"th">) => (
+	<th
+		data-slot="table-header"
+		ref={ref}
+		className={cx(
+			"h-11 px-4 text-left align-middle text-sm font-medium [&:has([role=checkbox])]:pr-0",
+			className,
+		)}
+		{...props}
+	>
+		{children}
+	</th>
 );
 Header.displayName = "TableHeader";
 
@@ -546,20 +532,15 @@ Header.displayName = "TableHeader";
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tablecell
  */
-const Cell = forwardRef<ComponentRef<"td">, ComponentProps<"td">>(
-	({ children, className, ...props }, ref) => (
-		<td
-			data-slot="table-cell"
-			ref={ref}
-			className={cx(
-				"p-3 align-middle [&:has([role=checkbox])]:pr-0 font-mono text-mono",
-				className,
-			)}
-			{...props}
-		>
-			{children}
-		</td>
-	),
+const Cell = ({ children, className, ref, ...props }: ComponentProps<"td">) => (
+	<td
+		data-slot="table-cell"
+		ref={ref}
+		className={cx("p-3 align-middle [&:has([role=checkbox])]:pr-0 font-mono text-mono", className)}
+		{...props}
+	>
+		{children}
+	</td>
 );
 Cell.displayName = "TableCell";
 
@@ -607,17 +588,15 @@ Cell.displayName = "TableCell";
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tablecaption
  */
-const Caption = forwardRef<ComponentRef<"caption">, ComponentProps<"caption">>(
-	({ children, className, ...props }, ref) => (
-		<caption
-			data-slot="table-caption"
-			ref={ref}
-			className={cx("py-4 text-sm text-gray-500", "border-t border-card-muted", className)}
-			{...props}
-		>
-			{children}
-		</caption>
-	),
+const Caption = ({ children, className, ref, ...props }: ComponentProps<"caption">) => (
+	<caption
+		data-slot="table-caption"
+		ref={ref}
+		className={cx("py-4 text-sm text-gray-500", "border-t border-card-muted", className)}
+		{...props}
+	>
+		{children}
+	</caption>
 );
 Caption.displayName = "TableCaption";
 

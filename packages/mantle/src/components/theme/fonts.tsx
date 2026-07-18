@@ -133,8 +133,6 @@ const PreloadFont = ({ name }: PreloadFontProps) => (
 		crossOrigin="anonymous"
 	/>
 );
-PreloadFont.displayName = "PreloadFont";
-
 export type { CoreFontName };
 
 export {

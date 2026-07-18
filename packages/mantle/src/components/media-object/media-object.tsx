@@ -1,5 +1,4 @@
 import type { ComponentProps } from "react";
-import { forwardRef } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Slot } from "../slot/index.js";
@@ -11,64 +10,58 @@ type Props = ComponentProps<"div"> & WithAsChild;
  * content (title and subtitle/description) to the right. This is the root
  * component of the media object.
  */
-const Root = forwardRef<HTMLDivElement, Props>(
-	({ asChild = false, className, children, style }, ref) => {
-		const Component = asChild ? Slot : "div";
+const Root = ({ asChild = false, className, children, style, ref }: Props) => {
+	const Component = asChild ? Slot : "div";
 
-		return (
-			<Component
-				ref={ref}
-				data-slot="media-object"
-				className={cx("flex gap-4", className)}
-				style={style}
-			>
-				{children}
-			</Component>
-		);
-	},
-);
+	return (
+		<Component
+			ref={ref}
+			data-slot="media-object"
+			className={cx("flex gap-4", className)}
+			style={style}
+		>
+			{children}
+		</Component>
+	);
+};
 Root.displayName = "MediaObject";
 
 /**
  * The container for an image or icon to display in the media slot of the media object.
  */
-const Media = forwardRef<HTMLDivElement, Props>(
-	({ asChild = false, className, children, style }, ref) => {
-		const Component = asChild ? Slot : "div";
+const Media = ({ asChild = false, className, children, style, ref }: Props) => {
+	const Component = asChild ? Slot : "div";
 
-		return (
-			<Component
-				ref={ref}
-				data-slot="media-object-media"
-				className={cx("shrink-0 leading-none", className)}
-				style={style}
-			>
-				{children}
-			</Component>
-		);
-	},
-);
+	return (
+		<Component
+			ref={ref}
+			data-slot="media-object-media"
+			className={cx("shrink-0 leading-none", className)}
+			style={style}
+		>
+			{children}
+		</Component>
+	);
+};
 Media.displayName = "MediaObjectMedia";
 
 /**
  * The container for the content slot of a media object.
  */
-const Content = forwardRef<HTMLDivElement, Props>(
-	({ asChild = false, className, children, style }, ref) => {
-		const Component = asChild ? Slot : "div";
+const Content = ({ asChild = false, className, children, style, ref }: Props) => {
+	const Component = asChild ? Slot : "div";
 
-		return (
-			<Component
-				ref={ref}
-				data-slot="media-object-content"
-				className={cx("min-w-0 flex-1", className)}
-				style={style}
-			>
-				{children}
-			</Component>
-		);
-	},
-);
+	return (
+		<Component
+			ref={ref}
+			data-slot="media-object-content"
+			className={cx("min-w-0 flex-1", className)}
+			style={style}
+		>
+			{children}
+		</Component>
+	);
+};
 Content.displayName = "MediaObject.Content";
 
 /**

@@ -116,7 +116,6 @@ const Badge = ({
 		</span>
 	);
 };
-Badge.displayName = "Badge";
 
 // MARK: - Exports
 

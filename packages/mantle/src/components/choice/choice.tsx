@@ -1,15 +1,7 @@
 "use client";
 
-import {
-	cloneElement,
-	createContext,
-	forwardRef,
-	isValidElement,
-	useContext,
-	useId,
-	useMemo,
-} from "react";
-import type { ComponentProps, ComponentRef, ReactNode } from "react";
+import { cloneElement, createContext, isValidElement, useContext, useId, useMemo } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -121,86 +113,81 @@ type ChoiceRootProps = Omit<ComponentProps<"div">, "id"> & {
  * </Choice.Root>
  * ```
  */
-const Root = forwardRef<ComponentRef<"div">, ChoiceRootProps>(
-	(
-		{
-			"aria-describedby": ariaDescribedBy,
-			"aria-errormessage": ariaErrorMessage,
-			"aria-invalid": ariaInvalid,
-			children,
-			className,
-			disabled = false,
-			id,
+const Root = ({
+	"aria-describedby": ariaDescribedBy,
+	"aria-errormessage": ariaErrorMessage,
+	"aria-invalid": ariaInvalid,
+	children,
+	className,
+	disabled = false,
+	id,
+	name,
+	ref,
+	...props
+}: ChoiceRootProps) => {
+	const fieldControl = useContext(FieldControlContext);
+	// Read the field values as primitives. `Field.Control` rebuilds its context
+	// object every render, so depending on the object would defeat the memo
+	// below — depend on these stable strings instead.
+	const fieldId = fieldControl?.id;
+	const fieldName = fieldControl?.name;
+	const fieldDescribedBy = fieldControl?.["aria-describedby"];
+	const fieldAriaInvalid = fieldControl?.["aria-invalid"];
+	const fieldErrorMessage = fieldControl?.["aria-errormessage"];
+	const generatedId = useId();
+	const descriptionId = useId();
+	const controlId = fieldId ?? id ?? generatedId;
+	// Reference our own description slot and append any inherited describedby
+	// (a Field.Control's description/error ids, or a caller-supplied one). Inside
+	// a Field the value can arrive via both context and a cloned prop, so prefer
+	// one (`??`, not both) to avoid listing the same id twice. Per WAI-ARIA an
+	// unresolved IDREF is ignored, so the description id is harmless when no
+	// Description is rendered.
+	const inheritedDescribedBy = fieldDescribedBy ?? ariaDescribedBy;
+	const describedBy = [inheritedDescribedBy, descriptionId].filter(Boolean).join(" ") || undefined;
+
+	const context = useMemo<ChoiceContextValue>(
+		() => ({
+			controlId,
+			descriptionId,
+			disabled,
+			controlProps: {
+				id: controlId,
+				name: fieldName ?? name,
+				disabled,
+				"aria-describedby": describedBy,
+				"aria-invalid": fieldAriaInvalid ?? ariaInvalid,
+				"aria-errormessage": fieldErrorMessage ?? ariaErrorMessage,
+			},
+		}),
+		[
+			controlId,
+			descriptionId,
+			disabled,
+			describedBy,
+			fieldName,
 			name,
-			...props
-		},
-		ref,
-	) => {
-		const fieldControl = useContext(FieldControlContext);
-		// Read the field values as primitives. `Field.Control` rebuilds its context
-		// object every render, so depending on the object would defeat the memo
-		// below — depend on these stable strings instead.
-		const fieldId = fieldControl?.id;
-		const fieldName = fieldControl?.name;
-		const fieldDescribedBy = fieldControl?.["aria-describedby"];
-		const fieldAriaInvalid = fieldControl?.["aria-invalid"];
-		const fieldErrorMessage = fieldControl?.["aria-errormessage"];
-		const generatedId = useId();
-		const descriptionId = useId();
-		const controlId = fieldId ?? id ?? generatedId;
-		// Reference our own description slot and append any inherited describedby
-		// (a Field.Control's description/error ids, or a caller-supplied one). Inside
-		// a Field the value can arrive via both context and a cloned prop, so prefer
-		// one (`??`, not both) to avoid listing the same id twice. Per WAI-ARIA an
-		// unresolved IDREF is ignored, so the description id is harmless when no
-		// Description is rendered.
-		const inheritedDescribedBy = fieldDescribedBy ?? ariaDescribedBy;
-		const describedBy =
-			[inheritedDescribedBy, descriptionId].filter(Boolean).join(" ") || undefined;
+			fieldAriaInvalid,
+			ariaInvalid,
+			fieldErrorMessage,
+			ariaErrorMessage,
+		],
+	);
 
-		const context = useMemo<ChoiceContextValue>(
-			() => ({
-				controlId,
-				descriptionId,
-				disabled,
-				controlProps: {
-					id: controlId,
-					name: fieldName ?? name,
-					disabled,
-					"aria-describedby": describedBy,
-					"aria-invalid": fieldAriaInvalid ?? ariaInvalid,
-					"aria-errormessage": fieldErrorMessage ?? ariaErrorMessage,
-				},
-			}),
-			[
-				controlId,
-				descriptionId,
-				disabled,
-				describedBy,
-				fieldName,
-				name,
-				fieldAriaInvalid,
-				ariaInvalid,
-				fieldErrorMessage,
-				ariaErrorMessage,
-			],
-		);
-
-		return (
-			<ChoiceContext.Provider value={context}>
-				{/* items-start so the indicator aligns to the first line when the title wraps. */}
-				<div
-					ref={ref}
-					data-slot="choice"
-					className={cx("flex w-full items-start gap-2", className)}
-					{...props}
-				>
-					{children}
-				</div>
-			</ChoiceContext.Provider>
-		);
-	},
-);
+	return (
+		<ChoiceContext.Provider value={context}>
+			{/* items-start so the indicator aligns to the first line when the title wraps. */}
+			<div
+				ref={ref}
+				data-slot="choice"
+				className={cx("flex w-full items-start gap-2", className)}
+				{...props}
+			>
+				{children}
+			</div>
+		</ChoiceContext.Provider>
+	);
+};
 Root.displayName = "Choice";
 
 type ChoiceIndicatorProps = ComponentProps<"span">;
@@ -231,43 +218,41 @@ type ChoiceIndicatorProps = ComponentProps<"span">;
  * </Choice.Root>
  * ```
  */
-const Indicator = forwardRef<ComponentRef<"span">, ChoiceIndicatorProps>(
-	({ children, className, ...props }, ref) => {
-		const { controlProps } = useChoiceContext("Indicator");
-		// Inject the association props onto the control. `id` and `aria-describedby`
-		// are owned by Choice and always win. `disabled` / `name` / `aria-invalid` /
-		// `aria-errormessage`, though, may have been set on the control itself — only
-		// override those when Choice (or a Field) actually provides a value, so a
-		// `<Checkbox disabled name="x" />` placed here isn't silently reset.
-		const control: ReactNode = isValidElement<Record<string, unknown>>(children)
-			? cloneElement(children, {
-					...controlProps,
-					disabled: controlProps.disabled || children.props.disabled === true,
-					name: controlProps.name ?? children.props.name,
-					"aria-invalid": controlProps["aria-invalid"] ?? children.props["aria-invalid"],
-					"aria-errormessage":
-						controlProps["aria-errormessage"] ?? children.props["aria-errormessage"],
-				})
-			: children;
+const Indicator = ({ children, className, ref, ...props }: ChoiceIndicatorProps) => {
+	const { controlProps } = useChoiceContext("Indicator");
+	// Inject the association props onto the control. `id` and `aria-describedby`
+	// are owned by Choice and always win. `disabled` / `name` / `aria-invalid` /
+	// `aria-errormessage`, though, may have been set on the control itself — only
+	// override those when Choice (or a Field) actually provides a value, so a
+	// `<Checkbox disabled name="x" />` placed here isn't silently reset.
+	const control: ReactNode = isValidElement<Record<string, unknown>>(children)
+		? cloneElement(children, {
+				...controlProps,
+				disabled: controlProps.disabled || children.props.disabled === true,
+				name: controlProps.name ?? children.props.name,
+				"aria-invalid": controlProps["aria-invalid"] ?? children.props["aria-invalid"],
+				"aria-errormessage":
+					controlProps["aria-errormessage"] ?? children.props["aria-errormessage"],
+			})
+		: children;
 
-		return (
-			<span
-				ref={ref}
-				data-slot="choice-indicator"
-				// `h-lh` resolves to this element's own line-height, so it must share the
-				// title's `text-sm` line box (14px / 20px) — otherwise the slot would size
-				// to the inherited line-height and the control could not center on the
-				// title's first line. `items-center` then centers the control in that
-				// one-line box; `items-start` on Root keeps it on the first line when the
-				// title wraps.
-				className={cx("flex h-lh shrink-0 items-center text-sm", className)}
-				{...props}
-			>
-				{control}
-			</span>
-		);
-	},
-);
+	return (
+		<span
+			ref={ref}
+			data-slot="choice-indicator"
+			// `h-lh` resolves to this element's own line-height, so it must share the
+			// title's `text-sm` line box (14px / 20px) — otherwise the slot would size
+			// to the inherited line-height and the control could not center on the
+			// title's first line. `items-center` then centers the control in that
+			// one-line box; `items-start` on Root keeps it on the first line when the
+			// title wraps.
+			className={cx("flex h-lh shrink-0 items-center text-sm", className)}
+			{...props}
+		>
+			{control}
+		</span>
+	);
+};
 Indicator.displayName = "ChoiceIndicator";
 
 type ChoiceContentProps = ComponentProps<"div"> & WithAsChild;
@@ -292,20 +277,18 @@ type ChoiceContentProps = ComponentProps<"div"> & WithAsChild;
  * </Choice.Root>
  * ```
  */
-const Content = forwardRef<ComponentRef<"div">, ChoiceContentProps>(
-	({ asChild, className, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const Content = ({ asChild, className, ref, ...props }: ChoiceContentProps) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot="choice-content"
-				className={cx("flex min-w-0 flex-1 flex-col gap-0.5", className)}
-				{...props}
-			/>
-		);
-	},
-);
+	return (
+		<Comp
+			ref={ref}
+			data-slot="choice-content"
+			className={cx("flex min-w-0 flex-1 flex-col gap-0.5", className)}
+			{...props}
+		/>
+	);
+};
 Content.displayName = "ChoiceContent";
 
 /**
@@ -344,26 +327,23 @@ type ChoiceLabelProps = Omit<ComponentProps<typeof Label>, "htmlFor" | "disabled
  * </Choice.Root>
  * ```
  */
-const ChoiceLabel = forwardRef<ComponentRef<"label">, ChoiceLabelProps>(
-	({ className, ...props }, ref) => {
-		const { controlId, disabled } = useChoiceContext("Label");
+const ChoiceLabel = ({ className, ref, ...props }: ChoiceLabelProps) => {
+	const { controlId, disabled } = useChoiceContext("Label");
 
-		// Reuse the real `Label` rather than re-implementing it, so the title keeps
-		// all of `Label`'s styling and behavior. `htmlFor` / `disabled` come from
-		// `Choice.Root` and are applied after `{...props}` so the wiring always wins.
-		return (
-			<Label
-				ref={ref}
-				data-slot="choice-label"
-				className={cx(disabled && "opacity-50", className)}
-				{...props}
-				htmlFor={controlId}
-				disabled={disabled}
-			/>
-		);
-	},
-);
-ChoiceLabel.displayName = "ChoiceLabel";
+	// Reuse the real `Label` rather than re-implementing it, so the title keeps
+	// all of `Label`'s styling and behavior. `htmlFor` / `disabled` come from
+	// `Choice.Root` and are applied after `{...props}` so the wiring always wins.
+	return (
+		<Label
+			ref={ref}
+			data-slot="choice-label"
+			className={cx(disabled && "opacity-50", className)}
+			{...props}
+			htmlFor={controlId}
+			disabled={disabled}
+		/>
+	);
+};
 
 /**
  * The emphasized title of a `Choice`, label-styled but **not** a `<label>` —
@@ -389,25 +369,23 @@ ChoiceLabel.displayName = "ChoiceLabel";
  * </Choice.Root>
  * ```
  */
-const Title = forwardRef<ComponentRef<"p">, ComponentProps<"p"> & WithAsChild>(
-	({ asChild, className, ...props }, ref) => {
-		const { disabled } = useChoiceContext("Title");
-		const Comp = asChild ? Slot : "p";
+const Title = ({ asChild, className, ref, ...props }: ComponentProps<"p"> & WithAsChild) => {
+	const { disabled } = useChoiceContext("Title");
+	const Comp = asChild ? Slot : "p";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot="choice-title"
-				className={cx(
-					"text-strong text-sm font-medium font-sans",
-					disabled && "opacity-50",
-					className,
-				)}
-				{...props}
-			/>
-		);
-	},
-);
+	return (
+		<Comp
+			ref={ref}
+			data-slot="choice-title"
+			className={cx(
+				"text-strong text-sm font-medium font-sans",
+				disabled && "opacity-50",
+				className,
+			)}
+			{...props}
+		/>
+	);
+};
 Title.displayName = "ChoiceTitle";
 
 /**
@@ -430,22 +408,20 @@ Title.displayName = "ChoiceTitle";
  * </Choice.Root>
  * ```
  */
-const Description = forwardRef<ComponentRef<"p">, ComponentProps<"p"> & WithAsChild>(
-	({ asChild, className, ...props }, ref) => {
-		const { descriptionId, disabled } = useChoiceContext("Description");
-		const Comp = asChild ? Slot : "p";
+const Description = ({ asChild, className, ref, ...props }: ComponentProps<"p"> & WithAsChild) => {
+	const { descriptionId, disabled } = useChoiceContext("Description");
+	const Comp = asChild ? Slot : "p";
 
-		return (
-			<Comp
-				ref={ref}
-				id={descriptionId}
-				data-slot="choice-description"
-				className={cx("text-body text-sm leading-4", disabled && "opacity-50", className)}
-				{...props}
-			/>
-		);
-	},
-);
+	return (
+		<Comp
+			ref={ref}
+			id={descriptionId}
+			data-slot="choice-description"
+			className={cx("text-body text-sm leading-4", disabled && "opacity-50", className)}
+			{...props}
+		/>
+	);
+};
 Description.displayName = "ChoiceDescription";
 
 /**

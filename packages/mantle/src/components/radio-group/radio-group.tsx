@@ -5,16 +5,8 @@ import type {
 	RadioGroupProps as HeadlessRadioGroupProps,
 	RadioProps as HeadlessRadioProps,
 } from "@headlessui/react";
-import {
-	Children,
-	cloneElement,
-	createContext,
-	forwardRef,
-	isValidElement,
-	useContext,
-	useRef,
-} from "react";
-import type { ComponentRef, HTMLAttributes, PropsWithChildren, ReactNode } from "react";
+import { Children, cloneElement, createContext, isValidElement, useContext, useRef } from "react";
+import type { HTMLAttributes, PropsWithChildren, ReactNode, Ref } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -22,7 +14,9 @@ import { FieldControlContext } from "../field/field-context.js";
 import { isInput } from "../input/is-input.js";
 import { Slot } from "../slot/index.js";
 
-type RadioGroupProps = PropsWithChildren<Omit<HeadlessRadioGroupProps, "as" | "children">>;
+type RadioGroupProps = PropsWithChildren<Omit<HeadlessRadioGroupProps, "as" | "children">> & {
+	ref?: Ref<HTMLElement>;
+};
 
 /**
  * A group of radio items. It manages the state of the children radios. Unstyled and simple.
@@ -52,9 +46,9 @@ type RadioGroupProps = PropsWithChildren<Omit<HeadlessRadioGroupProps, "as" | "c
  * </RadioGroup.Root>
  * ```
  */
-const Root = forwardRef<ComponentRef<typeof HeadlessRadioGroup>, RadioGroupProps>((props, ref) => (
+const Root = ({ ref, ...props }: RadioGroupProps) => (
 	<HeadlessRadioGroup data-slot="radio-group" {...props} ref={ref} />
-));
+);
 Root.displayName = "RadioGroup";
 
 /**
@@ -81,7 +75,10 @@ const RadioStateContext = createContext<RadioStateContextValue>({
 	hover: false,
 });
 
-type RadioItemProps = Omit<HeadlessRadioProps, "children"> & PropsWithChildren;
+type RadioItemProps = Omit<HeadlessRadioProps, "children"> &
+	PropsWithChildren & {
+		ref?: Ref<HTMLDivElement>;
+	};
 
 /**
  * A simple radio item that can be used inside a radio group. The "conventional" use-case.
@@ -104,32 +101,30 @@ type RadioItemProps = Omit<HeadlessRadioProps, "children"> & PropsWithChildren;
  * </RadioGroup.Root>
  * ```
  */
-const Item = forwardRef<ComponentRef<"div">, RadioItemProps>(
-	({ children, className, ...props }, ref) => {
-		const fieldControl = useContext(FieldControlContext);
-		return (
-			<HeadlessRadio
-				data-slot="radio-group-item"
-				className={cx(
-					"group/radio cursor-pointer aria-disabled:cursor-default [&_label]:cursor-inherit flex gap-2 py-1 text-sm focus:outline-hidden",
-					className,
-				)}
-				as="div"
-				{...props}
-				{...(fieldControl
-					? {
-							"aria-describedby": fieldControl["aria-describedby"],
-							"aria-errormessage": fieldControl["aria-errormessage"],
-							"aria-invalid": fieldControl["aria-invalid"],
-						}
-					: undefined)}
-				ref={ref}
-			>
-				{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
-			</HeadlessRadio>
-		);
-	},
-);
+const Item = ({ children, className, ref, ...props }: RadioItemProps) => {
+	const fieldControl = useContext(FieldControlContext);
+	return (
+		<HeadlessRadio
+			data-slot="radio-group-item"
+			className={cx(
+				"group/radio cursor-pointer aria-disabled:cursor-default [&_label]:cursor-inherit flex gap-2 py-1 text-sm focus:outline-hidden",
+				className,
+			)}
+			as="div"
+			{...props}
+			{...(fieldControl
+				? {
+						"aria-describedby": fieldControl["aria-describedby"],
+						"aria-errormessage": fieldControl["aria-errormessage"],
+						"aria-invalid": fieldControl["aria-invalid"],
+					}
+				: undefined)}
+			ref={ref}
+		>
+			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
+		</HeadlessRadio>
+	);
+};
 Item.displayName = "RadioItem";
 
 type RadioIndicatorProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
@@ -199,18 +194,16 @@ Indicator.displayName = "RadioIndicator";
 /**
  * A group of radio list items. Use RadioGroup.ListItem as direct children.
  */
-const List = forwardRef<ComponentRef<typeof Root>, RadioGroupProps>(
-	({ className, ...props }, ref) => {
-		return (
-			<Root
-				data-slot="radio-group-list"
-				className={clsx("-space-y-px", className)}
-				{...props}
-				ref={ref}
-			/>
-		);
-	},
-);
+const List = ({ className, ref, ...props }: RadioGroupProps) => {
+	return (
+		<Root
+			data-slot="radio-group-list"
+			className={clsx("-space-y-px", className)}
+			{...props}
+			ref={ref}
+		/>
+	);
+};
 List.displayName = "RadioGroupList";
 
 type RadioListItemProps = RadioItemProps;
@@ -223,38 +216,36 @@ type RadioListItemProps = RadioItemProps;
  * `aria-errormessage` from `FieldControlContext`. `aria-describedby` is owned
  * by Headless UI's Radio primitive and does not propagate.
  */
-const ListItem = forwardRef<ComponentRef<"div">, RadioListItemProps>(
-	({ children, className, ...props }, ref) => {
-		const fieldControl = useContext(FieldControlContext);
-		return (
-			<HeadlessRadio
-				as="div"
-				data-slot="radio-group-list-item"
-				className={cx(
-					"group/radio border-form [&_label]:cursor-inherit relative flex select-none gap-2 border px-3 py-2 text-sm",
-					"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
-					"focus-visible:ring-focus-accent not-aria-disabled:focus-visible:border-accent-600 focus-visible:ring-4",
-					"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
-					"aria-disabled:border-form/50 not-aria-disabled:hover:z-1 not-aria-disabled:hover:border-accent-600",
-					"aria-checked:z-1 aria-checked:border-accent-500/40 aria-checked:bg-accent-500/10 dark-high-contrast:aria-checked:border-accent-400 high-contrast:aria-checked:border-accent-400 not-aria-disabled:hover:aria-checked:border-accent-600",
-					"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
-					className,
-				)}
-				ref={ref}
-				{...props}
-				{...(fieldControl
-					? {
-							"aria-describedby": fieldControl["aria-describedby"],
-							"aria-errormessage": fieldControl["aria-errormessage"],
-							"aria-invalid": fieldControl["aria-invalid"],
-						}
-					: undefined)}
-			>
-				{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
-			</HeadlessRadio>
-		);
-	},
-);
+const ListItem = ({ children, className, ref, ...props }: RadioListItemProps) => {
+	const fieldControl = useContext(FieldControlContext);
+	return (
+		<HeadlessRadio
+			as="div"
+			data-slot="radio-group-list-item"
+			className={cx(
+				"group/radio border-form [&_label]:cursor-inherit relative flex select-none gap-2 border px-3 py-2 text-sm",
+				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
+				"focus-visible:ring-focus-accent not-aria-disabled:focus-visible:border-accent-600 focus-visible:ring-4",
+				"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
+				"aria-disabled:border-form/50 not-aria-disabled:hover:z-1 not-aria-disabled:hover:border-accent-600",
+				"aria-checked:z-1 aria-checked:border-accent-500/40 aria-checked:bg-accent-500/10 dark-high-contrast:aria-checked:border-accent-400 high-contrast:aria-checked:border-accent-400 not-aria-disabled:hover:aria-checked:border-accent-600",
+				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
+				className,
+			)}
+			ref={ref}
+			{...props}
+			{...(fieldControl
+				? {
+						"aria-describedby": fieldControl["aria-describedby"],
+						"aria-errormessage": fieldControl["aria-errormessage"],
+						"aria-invalid": fieldControl["aria-invalid"],
+					}
+				: undefined)}
+		>
+			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
+		</HeadlessRadio>
+	);
+};
 ListItem.displayName = "RadioListItem";
 
 type RadioItemContentProps = HTMLAttributes<HTMLDivElement> & WithAsChild;
@@ -269,37 +260,35 @@ type RadioCardProps = RadioItemProps;
  * `aria-errormessage` from `FieldControlContext`. `aria-describedby` is owned
  * by Headless UI's Radio primitive and does not propagate.
  */
-const Card = forwardRef<ComponentRef<"div">, RadioCardProps>(
-	({ children, className, ...props }, ref) => {
-		const fieldControl = useContext(FieldControlContext);
-		return (
-			<HeadlessRadio
-				as="div"
-				data-slot="radio-group-card"
-				className={clsx(
-					"group/radio border-card bg-card [&_label]:cursor-inherit relative rounded-md border p-4 text-sm",
-					"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
-					"focus-visible:ring-focus-accent not-aria-disabled:focus-visible:border-accent-600 focus-visible:ring-4",
-					"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
-					"aria-disabled:border-form/50 not-aria-disabled:hover:z-1 not-aria-disabled:hover:border-accent-600",
-					"aria-checked:z-1 aria-checked:border-accent-600/50 aria-checked:bg-accent-500/10 not-aria-disabled:hover:aria-checked:border-accent-600 dark-high-contrast:aria-checked:border-accent-600 high-contrast:aria-checked:border-accent-600",
-					className,
-				)}
-				{...props}
-				{...(fieldControl
-					? {
-							"aria-describedby": fieldControl["aria-describedby"],
-							"aria-errormessage": fieldControl["aria-errormessage"],
-							"aria-invalid": fieldControl["aria-invalid"],
-						}
-					: undefined)}
-				ref={ref}
-			>
-				{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
-			</HeadlessRadio>
-		);
-	},
-);
+const Card = ({ children, className, ref, ...props }: RadioCardProps) => {
+	const fieldControl = useContext(FieldControlContext);
+	return (
+		<HeadlessRadio
+			as="div"
+			data-slot="radio-group-card"
+			className={clsx(
+				"group/radio border-card bg-card [&_label]:cursor-inherit relative rounded-md border p-4 text-sm",
+				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
+				"focus-visible:ring-focus-accent not-aria-disabled:focus-visible:border-accent-600 focus-visible:ring-4",
+				"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
+				"aria-disabled:border-form/50 not-aria-disabled:hover:z-1 not-aria-disabled:hover:border-accent-600",
+				"aria-checked:z-1 aria-checked:border-accent-600/50 aria-checked:bg-accent-500/10 not-aria-disabled:hover:aria-checked:border-accent-600 dark-high-contrast:aria-checked:border-accent-600 high-contrast:aria-checked:border-accent-600",
+				className,
+			)}
+			{...props}
+			{...(fieldControl
+				? {
+						"aria-describedby": fieldControl["aria-describedby"],
+						"aria-errormessage": fieldControl["aria-errormessage"],
+						"aria-invalid": fieldControl["aria-invalid"],
+					}
+				: undefined)}
+			ref={ref}
+		>
+			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
+		</HeadlessRadio>
+	);
+};
 Card.displayName = "RadioCard";
 
 /**
@@ -328,18 +317,16 @@ ItemContent.displayName = "RadioItemContent";
  * `RadioGroup.Root`, never nested inside one, or the buttons bind to an
  * inner, uncontrolled group and outer `value`/`onChange` props are ignored.
  */
-const ButtonGroup = forwardRef<ComponentRef<typeof Root>, RadioGroupProps>(
-	({ className, ...props }, ref) => {
-		return (
-			<Root
-				data-slot="radio-group-button-group"
-				className={clsx("flex flex-row flex-nowrap -space-x-px", className)}
-				{...props}
-				ref={ref}
-			/>
-		);
-	},
-);
+const ButtonGroup = ({ className, ref, ...props }: RadioGroupProps) => {
+	return (
+		<Root
+			data-slot="radio-group-button-group"
+			className={clsx("flex flex-row flex-nowrap -space-x-px", className)}
+			{...props}
+			ref={ref}
+		/>
+	);
+};
 ButtonGroup.displayName = "RadioButtonGroup";
 
 type RadioButtonProps = RadioItemProps;
@@ -352,39 +339,37 @@ type RadioButtonProps = RadioItemProps;
  * `aria-errormessage` from `FieldControlContext`. `aria-describedby` is owned
  * by Headless UI's Radio primitive and does not propagate.
  */
-const Button = forwardRef<ComponentRef<"div">, RadioButtonProps>(
-	({ children, className, ...props }, ref) => {
-		const fieldControl = useContext(FieldControlContext);
-		return (
-			<HeadlessRadio
-				as="div"
-				data-slot="radio-group-button"
-				className={cx(
-					"group/radio border-form [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 border px-3 text-sm",
-					"h-9",
-					"focus-visible:ring-focus-accent not-aria-disabled:focus-visible:border-accent-600 focus-visible:ring-4",
-					"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
-					"first-of-type:rounded-bl-md first-of-type:rounded-tl-md last-of-type:rounded-br-md last-of-type:rounded-tr-md",
-					"not-aria-disabled:hover:z-1 not-aria-disabled:hover:border-accent-600 aria-disabled:opacity-50",
-					"aria-checked:z-1 aria-checked:border-accent-600/40 aria-checked:bg-accent-500/10 not-aria-disabled:hover:aria-checked:border-accent-600",
-					"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
-					className,
-				)}
-				ref={ref}
-				{...props}
-				{...(fieldControl
-					? {
-							"aria-describedby": fieldControl["aria-describedby"],
-							"aria-errormessage": fieldControl["aria-errormessage"],
-							"aria-invalid": fieldControl["aria-invalid"],
-						}
-					: undefined)}
-			>
-				{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
-			</HeadlessRadio>
-		);
-	},
-);
+const Button = ({ children, className, ref, ...props }: RadioButtonProps) => {
+	const fieldControl = useContext(FieldControlContext);
+	return (
+		<HeadlessRadio
+			as="div"
+			data-slot="radio-group-button"
+			className={cx(
+				"group/radio border-form [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 border px-3 text-sm",
+				"h-9",
+				"focus-visible:ring-focus-accent not-aria-disabled:focus-visible:border-accent-600 focus-visible:ring-4",
+				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
+				"first-of-type:rounded-bl-md first-of-type:rounded-tl-md last-of-type:rounded-br-md last-of-type:rounded-tr-md",
+				"not-aria-disabled:hover:z-1 not-aria-disabled:hover:border-accent-600 aria-disabled:opacity-50",
+				"aria-checked:z-1 aria-checked:border-accent-600/40 aria-checked:bg-accent-500/10 not-aria-disabled:hover:aria-checked:border-accent-600",
+				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
+				className,
+			)}
+			ref={ref}
+			{...props}
+			{...(fieldControl
+				? {
+						"aria-describedby": fieldControl["aria-describedby"],
+						"aria-errormessage": fieldControl["aria-errormessage"],
+						"aria-invalid": fieldControl["aria-invalid"],
+					}
+				: undefined)}
+		>
+			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
+		</HeadlessRadio>
+	);
+};
 Button.displayName = "RadioButton";
 
 type RadioInputSandboxProps = HTMLAttributes<HTMLDivElement>;

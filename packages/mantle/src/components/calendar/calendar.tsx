@@ -96,7 +96,6 @@ function Calendar({ className, classNames, showOutsideDays = false, ...props }: 
 		/>
 	);
 }
-Calendar.displayName = "Calendar";
 
 export {
 	//,

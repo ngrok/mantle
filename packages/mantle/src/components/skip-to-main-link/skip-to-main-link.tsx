@@ -63,8 +63,6 @@ const SkipToMainLink = ({
 		</Anchor>
 	);
 };
-SkipToMainLink.displayName = "SkipToMainLink";
-
 export {
 	//,
 	SkipToMainLink,
