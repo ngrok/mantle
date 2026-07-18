@@ -11,9 +11,10 @@ import { SidebarAnatomyDemo } from "~/features/sidebar-demos";
 <PageHeader id="sidebar">Sidebar</PageHeader>
 
 A composable, collapsible app-navigation sidebar. `Sidebar.Root` owns the state and renders no DOM;
-`Sidebar.Nav` renders the panel — inline collapse-to-hidden on desktop, a left-side [Sheet](/components/overlays/sheet)
-below the root's `mobileBreakpoint`; and `Sidebar.Trigger` toggles it from anywhere under the root, which is
-what keeps the sidebar decoupled from your app shell: place the trigger in an
+`Sidebar.Nav` renders the panel — inline on desktop, collapsing to a skinny
+[icon rail](#collapsing-to-the-icon-rail), and a left-side [Sheet](/components/overlays/sheet) below the
+root's `mobileBreakpoint`; and `Sidebar.Trigger` toggles it from anywhere under the root, which is what
+keeps the sidebar decoupled from your app shell: place the trigger in an
 [App Layout](/layouts/app-layout) header without the shell knowing the sidebar exists.
 
 The sidebar is routing-agnostic. Compose router links with `asChild` on `Sidebar.ItemButton` and drive
@@ -21,7 +22,7 @@ The sidebar is routing-agnostic. Compose router links with `asChild` on `Sidebar
 app: switch the preview to the mobile viewport to see the sheet presentation, use the trigger in the header
 to collapse and expand the panel, and toggle the notice to see the shell's full-window
 [`AppLayout.Notice`](/layouts/app-layout) strip push everything — sidebar included — down. With the panel
-collapsed, hover the left edge of the viewport — the `Sidebar.Rail` click strip reopens it from there, too.
+collapsed, hover the icon rail's edge — the `Sidebar.Rail` click strip reopens it from there, too.
 Click into the frame and press <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> — the shortcut binds to the frame's own
 window, not this page. The demo narrows `mobileBreakpoint` to `md` so the desktop panel survives the
 preview's desktop and tablet widths; ngrok's dashboards keep the `lg` default.
@@ -221,80 +222,20 @@ export function AppShell() {
 
 </CodeExample.Root>
 
-## Collapse modes
+## Collapsing to the icon rail
 
-`Sidebar.Root`'s `collapsible` prop decides what the desktop panel collapses to. The default,
-`"offcanvas"`, hides it entirely (the demo above). `"icon"` collapses it to a skinny rail that keeps every
-row's leading icon visible and clickable: each row becomes a square chip around its icon, group labels fade
-out in place — their rows are retained, so icon groups stay visually separated and every icon keeps the
-exact position it has when expanded — the switcher rows in the header and footer collapse to their leading
-visual (product icon, account avatar), and the icon column keeps the same `bg-base` surface as the expanded
-panel — no border, no separate chrome. The rail width is the `--sidebar-width-icon` CSS variable (default
-`3.25rem`).
+On desktop the panel collapses to a skinny icon rail that keeps every row's leading icon visible and
+clickable: each row becomes a square chip around its icon, group labels fade out in place — their rows are
+retained, so icon groups stay visually separated and every icon keeps the exact position it has when
+expanded — the switcher rows in the header and footer collapse to their leading visual (product icon,
+account avatar), and the rail keeps the same `bg-base` surface as the expanded panel — no border, no
+separate chrome. The rail width is the `--sidebar-width-icon` CSS variable (default `3.25rem`).
 
 Everything in the icon rail stays in the tab order and the accessibility tree — labels are clipped or
 visually hidden, not removed — so screen readers announce the full row names and lists keep their group
-names. The scrollable `Sidebar.Body` fades its overflowing edges in both modes; in the icon rail it also
-hides its scrollbar and relies on the fade alone.
-
-The demo starts collapsed. Expand and collapse it with the header trigger, the edge rail, or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> —
-only the collapse target changes; state, trigger, and mobile sheet behave identically in both modes.
-
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="app-shell-icon" title="App shell demo with an icon-rail sidebar" />
-	<CodeExample.Code>
-
-```tsx
-import { AppLayout } from "@ngrok/mantle/app-layout";
-import { Main } from "@ngrok/mantle/main";
-import { Sidebar } from "@ngrok/mantle/sidebar";
-import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
-import { GraphIcon } from "@phosphor-icons/react/Graph";
-
-export function IconRailShell() {
-	return (
-		// the same shell as the demo above — only the root changes: collapsible="icon"
-		// opts into the icon rail (defaultOpen={false} just loads this demo collapsed)
-		<Sidebar.Root collapsible="icon" defaultOpen={false} mobileBreakpoint="md">
-			<AppLayout.Root className="fixed inset-0">
-				<SkipToMainLink />
-				<AppLayout.Body>
-					<Sidebar.Nav aria-label="Main">
-						<Sidebar.Body>
-							<Sidebar.Group>
-								<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
-								<Sidebar.List>
-									<Sidebar.Item>
-										<Sidebar.ItemButton current>
-											<GraphIcon />
-											Endpoints
-										</Sidebar.ItemButton>
-									</Sidebar.Item>
-								</Sidebar.List>
-							</Sidebar.Group>
-						</Sidebar.Body>
-					</Sidebar.Nav>
-					<Sidebar.Rail />
-					<AppLayout.Inset>
-						<AppLayout.Content asChild>
-							<Main>
-								<AppLayout.Header>
-									<Sidebar.Trigger />
-								</AppLayout.Header>
-								{/* your routed page content */}
-							</Main>
-						</AppLayout.Content>
-					</AppLayout.Inset>
-				</AppLayout.Body>
-			</AppLayout.Root>
-		</Sidebar.Root>
-	);
-}
-```
-
-    </CodeExample.Code>
-
-</CodeExample.Root>
+names. The scrollable `Sidebar.Body` always fades its overflowing edges; in the collapsed rail it also
+hides its scrollbar and relies on the fade alone. Collapse and expand the demo above with the header
+trigger, the edge rail, or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd>.
 
 ## Composition
 
@@ -500,10 +441,9 @@ fully-wired controls — build custom triggers with `useSidebar` instead. `Sideb
 - When the shell owns the document, pair the sidebar with a `SkipToMainLink` and a `Main`-composed content
   card so keyboard users can jump past the sidebar's tab gauntlet — see
   [App Layout → Landmarks](/layouts/app-layout#landmarks).
-- With the default `collapsible="offcanvas"`, collapsed content is `visibility: hidden`: out of the tab
-  order and the accessibility tree, not just visually hidden. With `collapsible="icon"`, the collapsed rail
-  stays fully interactive: row labels are clipped and switcher text is visually hidden, but both remain in
-  the accessibility tree, so accessible names do not change between states.
+- The collapsed icon rail stays fully interactive: row labels are clipped and switcher text is visually
+  hidden, but both remain in the tab order and the accessibility tree, so accessible names do not change
+  between states.
 - `Sidebar.ItemButton` `current` renders `aria-current="page"`; `Sidebar.GroupLabel` is linked to its
   `Sidebar.List` via `aria-labelledby`.
 - The mobile sheet is a modal dialog named "Sidebar" with focus trapping and `Escape` dismissal, courtesy of
@@ -516,32 +456,31 @@ fully-wired controls — build custom triggers with `useSidebar` instead. `Sideb
 
 The state owner. Renders no DOM.
 
-| Prop                  | Type                      | Default       | Description                                                                                       |
-| --------------------- | ------------------------- | ------------- | ------------------------------------------------------------------------------------------------- |
-| `defaultOpen?`        | `boolean`                 | `true`        | Initial desktop expanded state for the uncontrolled case.                                         |
-| `open?`               | `boolean`                 | —             | Controlled desktop expanded state. Pair with `onOpenChange`.                                      |
-| `onOpenChange?`       | `(open: boolean) => void` | —             | Called with the next desktop expanded state.                                                      |
-| `openMobile?`         | `boolean`                 | —             | Controlled mobile sheet open state. Pair with `onOpenMobileChange`.                               |
-| `onOpenMobileChange?` | `(open: boolean) => void` | —             | Called with the next mobile sheet open state.                                                     |
-| `mobileBreakpoint?`   | `"sm" \| "md" \| "lg"`    | `"lg"`        | Breakpoint below which `Sidebar.Nav` renders as a mobile `Sheet`.                                 |
-| `collapsible?`        | `"offcanvas" \| "icon"`   | `"offcanvas"` | What the desktop panel collapses to: fully hidden, or a skinny icon rail.                         |
-| `keyboardShortcut?`   | `boolean`                 | `true`        | Toggle with `⌘B` / `Ctrl+B`. Exact-modifier match (`⌘⇧B` passes through); set `false` to opt out. |
+| Prop                  | Type                      | Default | Description                                                                                       |
+| --------------------- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------- |
+| `defaultOpen?`        | `boolean`                 | `true`  | Initial desktop expanded state for the uncontrolled case.                                         |
+| `open?`               | `boolean`                 | —       | Controlled desktop expanded state. Pair with `onOpenChange`.                                      |
+| `onOpenChange?`       | `(open: boolean) => void` | —       | Called with the next desktop expanded state.                                                      |
+| `openMobile?`         | `boolean`                 | —       | Controlled mobile sheet open state. Pair with `onOpenMobileChange`.                               |
+| `onOpenMobileChange?` | `(open: boolean) => void` | —       | Called with the next mobile sheet open state.                                                     |
+| `mobileBreakpoint?`   | `"sm" \| "md" \| "lg"`    | `"lg"`  | Breakpoint below which `Sidebar.Nav` renders as a mobile `Sheet`.                                 |
+| `keyboardShortcut?`   | `boolean`                 | `true`  | Toggle with `⌘B` / `Ctrl+B`. Exact-modifier match (`⌘⇧B` passes through); set `false` to opt out. |
 
 ### Sidebar.Nav
 
 The panel. All props from `div` plus the panel contract: `className`, `style`, `ref`, and rest props land on
 the panel surface in both presentations (the desktop collapse container and the mobile `Sheet.Content`), and
 `aria-label` (default `"Main"`) is forwarded to the inner `<nav>` landmark. Emits
-`data-state="expanded" | "collapsed"` and `data-collapsible="offcanvas" | "icon"` on desktop and
-`data-mobile` on the mobile sheet. (Desktop also emits a bare `data-hydrated` once client hydration
+`data-state="expanded" | "collapsed"` on desktop and `data-mobile` on the mobile sheet. (Desktop also
+emits a bare `data-hydrated` once client hydration
 completes — an internal gate that lets collapse transitions snap instead of animating when SSR state is
 corrected on load.)
 
-| CSS Variable             | Default   | Description                                                                                                   |
-| ------------------------ | --------- | ------------------------------------------------------------------------------------------------------------- |
-| `--sidebar-width`        | `16rem`   | Expanded desktop width. Set via `Sidebar.Nav`'s `className` or `style`.                                       |
-| `--sidebar-width-mobile` | `18rem`   | Mobile sheet width. Set via `Sidebar.Nav`'s `className` or `style`.                                           |
-| `--sidebar-width-icon`   | `3.25rem` | Collapsed rail width when the root sets `collapsible="icon"`. Set via `Sidebar.Nav`'s `className` or `style`. |
+| CSS Variable             | Default   | Description                                                                |
+| ------------------------ | --------- | -------------------------------------------------------------------------- |
+| `--sidebar-width`        | `16rem`   | Expanded desktop width. Set via `Sidebar.Nav`'s `className` or `style`.    |
+| `--sidebar-width-mobile` | `18rem`   | Mobile sheet width. Set via `Sidebar.Nav`'s `className` or `style`.        |
+| `--sidebar-width-icon`   | `3.25rem` | Collapsed icon rail width. Set via `Sidebar.Nav`'s `className` or `style`. |
 
 ### Sidebar.Trigger
 
@@ -559,8 +498,8 @@ An [IconButton](/components/actions/icon-button) wired to toggle the sidebar. Al
 
 A zero-width click strip on the sidebar's edge that toggles the desktop sidebar — render it as the immediate
 next sibling of `Sidebar.Nav`. A 12px hit area extends from the boundary over the content gutter (with a
-hairline hover affordance and `w-resize`/`e-resize` cursors), so a fully-collapsed sidebar can be reopened
-from the viewport's left edge. Pointer affordance only: it sits outside the tab order (`tabIndex={-1}`) and
+hairline hover affordance and `w-resize`/`e-resize` cursors), so a collapsed sidebar can be reopened from
+the icon rail's edge. Pointer affordance only: it sits outside the tab order (`tabIndex={-1}`) and
 is hidden below the root's `mobileBreakpoint`. All props from `button` except `children` and `type` (always
 `"button"` — the rail never submits), plus:
 
@@ -581,9 +520,9 @@ group links it to the list via `aria-labelledby`. All props from their respectiv
 
 ### Sidebar.ItemButton
 
-The interactive navigation row. Expanded spacing matches the regular sidebar; in collapsed
-`collapsible="icon"` sidebars, item rows keep their original square icon chip with a small offset so body and
-footer icons stay aligned without text peeking from the rail. All props from `button` plus:
+The interactive navigation row. Expanded spacing matches the regular sidebar; in the collapsed icon rail,
+item rows keep their original square icon chip with a small offset so body and footer icons stay aligned
+without text peeking from the rail. All props from `button` plus:
 
 | Prop       | Type      | Default | Description                                                            |
 | ---------- | --------- | ------- | ---------------------------------------------------------------------- |
@@ -599,7 +538,7 @@ A styled button only — compose it with `DropdownMenu.Trigger asChild` or `Dial
 provide the open state (`data-state="open"` styling responds automatically). All props from `button` plus
 `asChild`.
 
-Inside a collapsed icon rail (`collapsible="icon"`), the row collapses to its **first child element** — the
+Inside the collapsed icon rail, the row collapses to its **first child element** — the
 leading visual — and the remaining children become visually hidden while staying in the accessibility tree,
 so the button's accessible name is unchanged. Wrap loose text in an element (e.g. a `<span>`) so it
 participates.
@@ -607,10 +546,10 @@ participates.
 ### Sidebar.Separator
 
 An inset hairline between sidebar regions, aligned with the surrounding `Sidebar.Body` and `Sidebar.Footer`
-padding (it deliberately does not run edge to edge). In expanded `collapsible="icon"` sidebars, those
-regions trim their trailing inset to account for the adjacent app-content gutter. In collapsed
-`collapsible="icon"` sidebars, the separator widens to the collapsed switcher chip width so it stays
-optically centered between the viewport edge and content card. All props from [Separator](/components/structure/separator).
+padding (it deliberately does not run edge to edge). When the sidebar is expanded, those regions trim their
+trailing inset to account for the adjacent app-content gutter. When it collapses to the icon rail, the
+separator widens to the collapsed switcher chip width so it stays optically centered between the viewport
+edge and content card. All props from [Separator](/components/structure/separator).
 
 ### Sidebar.AccountAvatar
 
@@ -653,6 +592,5 @@ triggers, close-on-navigate, or a keyboard shortcut:
 | `setOpenMobile`    | `(open: boolean) => void` | Set the mobile sheet state (e.g. close on navigation).       |
 | `isMobile`         | `boolean`                 | Whether the viewport is below `mobileBreakpoint`.            |
 | `mobileBreakpoint` | `"sm" \| "md" \| "lg"`    | The configured mobile breakpoint.                            |
-| `collapsible`      | `"offcanvas" \| "icon"`   | What the desktop panel collapses to.                         |
 | `toggle`           | `() => void`              | Toggle whichever presentation is active.                     |
 | `navId`            | `string`                  | The nav landmark's id, for custom triggers' `aria-controls`. |

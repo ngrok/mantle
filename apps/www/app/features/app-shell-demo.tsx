@@ -4,7 +4,6 @@ import { Button } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Main } from "@ngrok/mantle/main";
-import type { SidebarCollapsible } from "@ngrok/mantle/sidebar";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
@@ -174,24 +173,18 @@ function DemoNav({
 
 /**
  * The canonical Sidebar + AppLayout composition, shared by both docs pages: a
- * decoupled app shell with a collapsible sidebar, a header-mounted trigger,
- * an offcanvas-only edge `Sidebar.Rail`, a toggleable full-window notice strip, and a
- * content card that scrolls internally. The two components never reference
- * each other — `Sidebar.Root` simply wraps the shell so `Sidebar.Trigger`
- * works from `AppLayout.Header`.
+ * decoupled app shell with a sidebar that collapses to the icon rail, a
+ * header-mounted trigger, an edge `Sidebar.Rail`, a toggleable full-window
+ * notice strip, and a content card that scrolls internally. The two
+ * components never reference each other — `Sidebar.Root` simply wraps the
+ * shell so `Sidebar.Trigger` works from `AppLayout.Header`.
  *
  * Renders as an entire framed-preview document (see preview-registry.ts), so
  * it composes exactly like a real app shell: pinned to the viewport with
  * `fixed inset-0`, a `SkipToMainLink`, and `AppLayout.Content` as the real
  * `Main` landmark. Narrow the preview below `md` for the mobile sheet.
  */
-function AppShell({
-	collapsible,
-	defaultOpen,
-}: {
-	collapsible: SidebarCollapsible;
-	defaultOpen?: boolean;
-}) {
+export function AppShellDemo() {
 	const [pathname, setPathname] = useState("/endpoints");
 	const [productId, setProductId] = useState<string>(demoProducts[0].id);
 	const [accountId, setAccountId] = useState<string>(demoAccounts[0].id);
@@ -202,12 +195,11 @@ function AppShell({
 	const currentItem = demoNavSections
 		.flatMap((section) => section.items)
 		.find((item) => item.path === pathname);
-	const showEdgeRail = collapsible !== "icon";
 
 	return (
 		// `md` (not the `lg` default ngrok's dashboards use) keeps the desktop
 		// panel visible at the framed preview's desktop and tablet widths
-		<Sidebar.Root collapsible={collapsible} defaultOpen={defaultOpen} mobileBreakpoint="md">
+		<Sidebar.Root mobileBreakpoint="md">
 			<AppLayout.Root className="fixed inset-0">
 				<SkipToMainLink />
 				<AppLayout.Notice>
@@ -314,7 +306,7 @@ function AppShell({
 							</DropdownMenu.Root>
 						</Sidebar.Footer>
 					</Sidebar.Nav>
-					{showEdgeRail && <Sidebar.Rail />}
+					<Sidebar.Rail />
 
 					<AppLayout.Inset>
 						<AppLayout.Content asChild>
@@ -366,23 +358,4 @@ function AppShell({
 			</AppLayout.Root>
 		</Sidebar.Root>
 	);
-}
-
-/**
- * The default app shell: the sidebar collapses fully offcanvas, and the
- * `Sidebar.Rail` keeps a click strip on the viewport's left edge to reopen
- * it.
- */
-export function AppShellDemo() {
-	return <AppShell collapsible="offcanvas" />;
-}
-
-/**
- * The icon-rail variant: `collapsible="icon"` collapses the sidebar to a
- * skinny column of icons instead of hiding it. Starts collapsed so the rail
- * presentation is immediately visible — expand it with the header trigger,
- * the edge rail, or `⌘B`.
- */
-export function AppShellIconDemo() {
-	return <AppShell collapsible="icon" defaultOpen={false} />;
 }
