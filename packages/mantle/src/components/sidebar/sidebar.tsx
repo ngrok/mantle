@@ -656,7 +656,7 @@ const defaultTriggerIcon = <SidebarSimpleIcon />;
  *         <DropdownMenu.Trigger asChild>
  *           <Sidebar.SwitcherButton>
  *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherButton>
  *         </DropdownMenu.Trigger>
@@ -867,7 +867,7 @@ type SidebarHeaderProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  *         <DropdownMenu.Trigger asChild>
  *           <Sidebar.SwitcherButton>
  *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherButton>
  *         </DropdownMenu.Trigger>
@@ -891,6 +891,11 @@ const Header = forwardRef<ComponentRef<"div">, SidebarHeaderProps>(
 					// h-18 centers the switcher row on the same line as an
 					// AppLayout.Header toolbar (8px card gutter + h-14 header).
 					"flex h-18 shrink-0 flex-col justify-center gap-2 px-3",
+					// In the expanded icon-rail layout, the adjacent AppLayout.Inset
+					// contributes the trailing card gutter, so trim the sidebar's own
+					// trailing inset to keep dividers and rows optically centered
+					// between the viewport edge and content card.
+					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=expanded]/sidebar-nav:pr-1",
 					className,
 				)}
 				{...props}
@@ -951,7 +956,7 @@ type SidebarBodyProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  *         <DropdownMenu.Trigger asChild>
  *           <Sidebar.SwitcherButton>
  *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherButton>
  *         </DropdownMenu.Trigger>
@@ -978,6 +983,8 @@ const Body = forwardRef<ComponentRef<"div">, SidebarBodyProps>(
 					// scroll-fade-y mask's 1.5rem fade zones, so a keyboard user's
 					// focus ring is never faded out mid-list.
 					"scrollbar scrollbar-gutter-stable scroll-fade-y flex-1 scroll-py-6 space-y-2 overflow-y-auto overflow-x-hidden px-3 pt-1.5 pb-4",
+					// Match Header/Footer trailing geometry in expanded icon-rail mode.
+					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=expanded]/sidebar-nav:pr-1",
 					// The icon rail is too narrow for a scrollbar: hide it (and drop
 					// the reserved gutter, which would off-center the icons) and let
 					// the scroll fade signal the overflow instead.
@@ -1042,7 +1049,7 @@ type SidebarFooterProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  *         <DropdownMenu.Trigger asChild>
  *           <Sidebar.SwitcherButton>
  *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherButton>
  *         </DropdownMenu.Trigger>
@@ -1062,7 +1069,12 @@ const Footer = forwardRef<ComponentRef<"div">, SidebarFooterProps>(
 			<Comp
 				ref={ref}
 				data-slot={joinDataSlot(dataSlot, "sidebar-footer")}
-				className={cx("shrink-0 px-3 pt-3 pb-3.5", className)}
+				className={cx(
+					"shrink-0 px-3 pt-3 pb-3.5",
+					// Match Header/Body trailing geometry in expanded icon-rail mode.
+					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=expanded]/sidebar-nav:pr-1",
+					className,
+				)}
 				{...props}
 			>
 				{children}
@@ -1139,7 +1151,7 @@ type SidebarGroupProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  *         <DropdownMenu.Trigger asChild>
  *           <Sidebar.SwitcherButton>
  *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherButton>
  *         </DropdownMenu.Trigger>
@@ -1225,7 +1237,7 @@ type SidebarGroupLabelProps = ComponentProps<"div"> & WithAsChild & WithDataSlot
  *         <DropdownMenu.Trigger asChild>
  *           <Sidebar.SwitcherButton>
  *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherButton>
  *         </DropdownMenu.Trigger>
@@ -1332,7 +1344,7 @@ type SidebarListProps = ComponentProps<"ul"> & WithAsChild & WithDataSlot;
  *         <DropdownMenu.Trigger asChild>
  *           <Sidebar.SwitcherButton>
  *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherButton>
  *         </DropdownMenu.Trigger>
@@ -1422,7 +1434,7 @@ type SidebarItemProps = ComponentProps<"li"> & WithAsChild & WithDataSlot;
  *         <DropdownMenu.Trigger asChild>
  *           <Sidebar.SwitcherButton>
  *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherButton>
  *         </DropdownMenu.Trigger>
@@ -1508,7 +1520,7 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
  *         <DropdownMenu.Trigger asChild>
  *           <Sidebar.SwitcherButton>
  *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherButton>
  *         </DropdownMenu.Trigger>
@@ -1538,13 +1550,12 @@ const ItemButton = forwardRef<ComponentRef<"button">, SidebarItemButtonProps>(
 					"text-body hover:text-strong hover:bg-neutral-500/10",
 					"data-current:bg-neutral-500/15 data-current:text-strong",
 					"[&>svg]:text-muted hover:[&>svg]:text-strong data-current:[&>svg]:text-strong [&>svg]:size-5 [&>svg]:shrink-0",
-					// In the collapsed icon rail the row becomes a 28×28 square chip
-					// (matching the expanded row height) whose ml-1/px-1 center it on
-					// the icon's expanded position, so icons never move between
-					// states and hover/current backgrounds read as squares.
+					// In the collapsed icon rail the row returns to its original
+					// 28px square chip. ml-1 keeps body and footer item icons aligned
+					// with their expanded position and the switcher indicators.
 					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:ml-1",
 					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:w-7",
-					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:px-1",
+					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:p-1",
 					className,
 				)}
 				{...props}
@@ -1611,7 +1622,7 @@ type SidebarSwitcherButtonProps = ComponentProps<"button"> & WithAsChild & WithD
  *         <DropdownMenu.Trigger asChild>
  *           <Sidebar.SwitcherButton>
  *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherButton>
  *         </DropdownMenu.Trigger>
@@ -1633,15 +1644,23 @@ const SwitcherButton = forwardRef<ComponentRef<"button">, SidebarSwitcherButtonP
 				data-slot={joinDataSlot(dataSlot, "sidebar-switcher-button")}
 				type={asChild ? type : (type ?? "button")}
 				className={cx(
-					"text-body hover:text-strong hover:bg-neutral-500/10 flex w-full min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left font-medium transition-none",
+					"text-body hover:text-strong hover:bg-neutral-500/10 flex w-full min-w-0 items-center gap-2 [border-radius:0.625rem] py-1 pr-1.5 pl-1 text-left font-medium transition-none",
 					"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
 					"ring-focus-accent focus:outline-hidden focus-visible:ring-4",
+					// The leading account/product tile uses rounded-md (6px) and
+					// sits 4px from the edge, so the outer switcher radius is 10px.
+					// Product/account indicators are a little larger than their
+					// source components by default; the tighter padding keeps the
+					// switcher row at the same net 36px height while preserving
+					// prototype spacing on the trailing action icon.
+					"[&>:first-child]:size-7",
 					// In the collapsed icon rail only the leading visual (product
 					// icon, account avatar) stays visible; the rest goes sr-only —
 					// visually gone but still part of the button's accessible name.
-					// w-9 keeps the leading visual exactly where it sits expanded
-					// (px-1.5 both sides of it) so switchers read as square chips.
+					// w-9 keeps the leading visual centered in the same 36px chip as
+					// the switcher row.
 					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:w-9",
+					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:p-1",
 					"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:[&>:not(:first-child)]:sr-only",
 					className,
 				)}
@@ -1660,7 +1679,9 @@ type SidebarSeparatorProps = ComponentProps<typeof Separator>;
  * An inset hairline between sidebar regions. Composes the mantle `Separator`,
  * staying aligned with the `px-3` content padding of `Sidebar.Body` and
  * `Sidebar.Footer` (it deliberately does not run edge to edge) with `my-3`
- * breathing room above and below.
+ * breathing room above and below. In collapsed icon mode, it widens to the
+ * same 36px chip width as `Sidebar.SwitcherButton`, balancing the adjacent
+ * app-content gutter that sits outside the rail.
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar
  *
@@ -1701,7 +1722,7 @@ type SidebarSeparatorProps = ComponentProps<typeof Separator>;
  *         <DropdownMenu.Trigger asChild>
  *           <Sidebar.SwitcherButton>
  *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherButton>
  *         </DropdownMenu.Trigger>
@@ -1718,7 +1739,11 @@ const SidebarSeparator = forwardRef<ComponentRef<typeof Separator>, SidebarSepar
 		<Separator
 			ref={ref}
 			data-slot="sidebar-separator"
-			className={cx("my-3", className)}
+			className={cx(
+				"my-3",
+				"group-data-[collapsible=icon]/sidebar-nav:group-data-[state=collapsed]/sidebar-nav:w-9",
+				className,
+			)}
 			{...props}
 		/>
 	),
@@ -1727,29 +1752,28 @@ SidebarSeparator.displayName = "SidebarSeparator";
 
 /**
  * The avatar swatch palette. Every entry is a Tailwind background color whose
- * contrast against the `text-static-white` initials is at least 4.5:1 (WCAG
- * 2.1 SC 1.4.3 for normal-size text) — verified by the colocated contrast
- * regression test. Keep the hue order stable: `pickColorClass` indexes into
- * this tuple by account-id hash, so reordering changes every account's color.
+ * hue and order match the sidebar prototype account switcher. Keep the hue
+ * order stable: `pickColorClass` indexes into this tuple by account-id hash,
+ * so reordering changes every account's color.
  */
 const accountAvatarColors = [
-	"bg-emerald-700",
-	"bg-gray-600",
-	"bg-red-600",
-	"bg-violet-600",
-	"bg-cyan-700",
-	"bg-rose-600",
-	"bg-purple-600",
-	"bg-fuchsia-600",
-	"bg-green-700",
-	"bg-orange-700",
-	"bg-indigo-600",
-	"bg-teal-700",
-	"bg-yellow-700",
-	"bg-sky-700",
-	"bg-pink-600",
-	"bg-blue-600",
-	"bg-amber-700",
+	"bg-emerald-500",
+	"bg-gray-500",
+	"bg-red-500",
+	"bg-violet-500",
+	"bg-cyan-500",
+	"bg-rose-500",
+	"bg-purple-500",
+	"bg-fuchsia-500",
+	"bg-green-500",
+	"bg-orange-500",
+	"bg-indigo-500",
+	"bg-teal-500",
+	"bg-yellow-500",
+	"bg-sky-500",
+	"bg-pink-500",
+	"bg-blue-500",
+	"bg-amber-500",
 ] as const;
 
 /**
@@ -1771,7 +1795,7 @@ function pickColorClass(accountId: string | undefined): string {
 	const index = hash % accountAvatarColors.length;
 	// `accountAvatarColors` is a non-empty `as const` tuple; the fallback
 	// satisfies the strict-mode index-access type without a non-null assertion.
-	return accountAvatarColors[index] ?? "bg-neutral-600";
+	return accountAvatarColors[index] ?? "bg-neutral-500";
 }
 
 function getInitials(accountName: string | undefined): string {
@@ -1809,8 +1833,7 @@ type SidebarAccountAvatarProps = Omit<ComponentPropsWithoutRef<"div">, "children
  * A small rounded-square avatar that represents an account (workspace,
  * organization, etc.). The background color is derived deterministically from
  * the `accountId` so an account's swatch is stable across renders, sessions,
- * and devices; every swatch keeps at least 4.5:1 contrast under the white
- * initials.
+ * and devices.
  *
  * Accounts are rendered as squares to differentiate them visually from users,
  * which use a circular `Sidebar.UserAvatar`.
@@ -1854,7 +1877,7 @@ type SidebarAccountAvatarProps = Omit<ComponentPropsWithoutRef<"div">, "children
  *         <DropdownMenu.Trigger asChild>
  *           <Sidebar.SwitcherButton>
  *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherButton>
  *         </DropdownMenu.Trigger>
@@ -1872,7 +1895,7 @@ const AccountAvatar = forwardRef<ComponentRef<"div">, SidebarAccountAvatarProps>
 			ref={ref}
 			data-slot="sidebar-account-avatar"
 			className={cx(
-				"text-static-white flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-medium",
+				"text-static-white flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-medium",
 				pickColorClass(accountId),
 				className,
 			)}
@@ -1969,7 +1992,7 @@ type SidebarUserAvatarProps = Omit<ComponentPropsWithoutRef<"div">, "children"> 
  *         <DropdownMenu.Trigger asChild>
  *           <Sidebar.SwitcherButton>
  *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherButton>
  *         </DropdownMenu.Trigger>
@@ -1987,7 +2010,7 @@ const UserAvatar = forwardRef<ComponentRef<"div">, SidebarUserAvatarProps>(
 			ref={ref}
 			data-slot="sidebar-user-avatar"
 			className={cx(
-				"text-muted bg-neutral-500/15 relative flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full",
+				"text-muted bg-neutral-500/15 relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full",
 				className,
 			)}
 			// aria-label needs a role that permits naming — a bare div is
@@ -2188,7 +2211,7 @@ SwitchAccountsRadioGroup.displayName = "SidebarSwitchAccountsRadioGroup";
  *         <DropdownMenu.Trigger asChild>
  *           <Sidebar.SwitcherButton>
  *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
- *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherButton>
  *         </DropdownMenu.Trigger>
@@ -2245,7 +2268,7 @@ const Sidebar = {
 	 *         <DropdownMenu.Trigger asChild>
 	 *           <Sidebar.SwitcherButton>
 	 *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
-	 *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+	 *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherButton>
 	 *         </DropdownMenu.Trigger>
@@ -2302,7 +2325,7 @@ const Sidebar = {
 	 *         <DropdownMenu.Trigger asChild>
 	 *           <Sidebar.SwitcherButton>
 	 *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
-	 *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+	 *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherButton>
 	 *         </DropdownMenu.Trigger>
@@ -2358,7 +2381,7 @@ const Sidebar = {
 	 *         <DropdownMenu.Trigger asChild>
 	 *           <Sidebar.SwitcherButton>
 	 *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
-	 *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+	 *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherButton>
 	 *         </DropdownMenu.Trigger>
@@ -2438,7 +2461,7 @@ const Sidebar = {
 	 *         <DropdownMenu.Trigger asChild>
 	 *           <Sidebar.SwitcherButton>
 	 *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
-	 *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+	 *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherButton>
 	 *         </DropdownMenu.Trigger>
@@ -2493,7 +2516,7 @@ const Sidebar = {
 	 *         <DropdownMenu.Trigger asChild>
 	 *           <Sidebar.SwitcherButton>
 	 *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
-	 *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+	 *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherButton>
 	 *         </DropdownMenu.Trigger>
@@ -2549,7 +2572,7 @@ const Sidebar = {
 	 *         <DropdownMenu.Trigger asChild>
 	 *           <Sidebar.SwitcherButton>
 	 *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
-	 *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+	 *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherButton>
 	 *         </DropdownMenu.Trigger>
@@ -2605,7 +2628,7 @@ const Sidebar = {
 	 *         <DropdownMenu.Trigger asChild>
 	 *           <Sidebar.SwitcherButton>
 	 *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
-	 *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+	 *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherButton>
 	 *         </DropdownMenu.Trigger>
@@ -2661,7 +2684,7 @@ const Sidebar = {
 	 *         <DropdownMenu.Trigger asChild>
 	 *           <Sidebar.SwitcherButton>
 	 *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
-	 *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+	 *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherButton>
 	 *         </DropdownMenu.Trigger>
@@ -2716,7 +2739,7 @@ const Sidebar = {
 	 *         <DropdownMenu.Trigger asChild>
 	 *           <Sidebar.SwitcherButton>
 	 *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
-	 *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+	 *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherButton>
 	 *         </DropdownMenu.Trigger>
@@ -2771,7 +2794,7 @@ const Sidebar = {
 	 *         <DropdownMenu.Trigger asChild>
 	 *           <Sidebar.SwitcherButton>
 	 *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
-	 *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+	 *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherButton>
 	 *         </DropdownMenu.Trigger>
@@ -2827,7 +2850,7 @@ const Sidebar = {
 	 *         <DropdownMenu.Trigger asChild>
 	 *           <Sidebar.SwitcherButton>
 	 *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
-	 *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+	 *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherButton>
 	 *         </DropdownMenu.Trigger>
@@ -2883,7 +2906,7 @@ const Sidebar = {
 	 *         <DropdownMenu.Trigger asChild>
 	 *           <Sidebar.SwitcherButton>
 	 *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
-	 *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+	 *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherButton>
 	 *         </DropdownMenu.Trigger>
@@ -2939,7 +2962,7 @@ const Sidebar = {
 	 *         <DropdownMenu.Trigger asChild>
 	 *           <Sidebar.SwitcherButton>
 	 *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
-	 *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+	 *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherButton>
 	 *         </DropdownMenu.Trigger>
@@ -2995,7 +3018,7 @@ const Sidebar = {
 	 *         <DropdownMenu.Trigger asChild>
 	 *           <Sidebar.SwitcherButton>
 	 *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
-	 *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+	 *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherButton>
 	 *         </DropdownMenu.Trigger>
@@ -3050,7 +3073,7 @@ const Sidebar = {
 	 *         <DropdownMenu.Trigger asChild>
 	 *           <Sidebar.SwitcherButton>
 	 *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
-	 *             <span className="text-strong min-w-0 flex-1 truncate text-xs font-medium">Acme Corp</span>
+	 *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherButton>
 	 *         </DropdownMenu.Trigger>
