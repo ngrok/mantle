@@ -1,5 +1,4 @@
-import type { ComponentProps, ComponentRef } from "react";
-import { forwardRef } from "react";
+import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -40,25 +39,28 @@ import { Slot } from "../slot/index.js";
  * </AppLayout.Root>
  * ```
  */
-const Root = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild & WithDataSlot>(
-	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const Root = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "app-layout")}
-				className={cx(
-					"bg-base relative isolate flex h-full w-full flex-col overflow-hidden",
-					className,
-				)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "app-layout")}
+			className={cx(
+				"bg-base relative isolate flex h-full w-full flex-col overflow-hidden",
+				className,
+			)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 Root.displayName = "AppLayout";
 
 /**
@@ -101,22 +103,25 @@ Root.displayName = "AppLayout";
  * </Sidebar.Root>
  * ```
  */
-const Notice = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild & WithDataSlot>(
-	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const Notice = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "app-layout-notice")}
-				className={cx("w-full shrink-0", className)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "app-layout-notice")}
+			className={cx("w-full shrink-0", className)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 Notice.displayName = "AppLayoutNotice";
 
 /**
@@ -151,22 +156,25 @@ Notice.displayName = "AppLayoutNotice";
  * </Sidebar.Root>
  * ```
  */
-const Body = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild & WithDataSlot>(
-	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const Body = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "app-layout-body")}
-				className={cx("flex min-h-0 flex-1", className)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "app-layout-body")}
+			className={cx("flex min-h-0 flex-1", className)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 Body.displayName = "AppLayoutBody";
 
 /**
@@ -201,22 +209,25 @@ Body.displayName = "AppLayoutBody";
  * </Sidebar.Root>
  * ```
  */
-const Inset = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild & WithDataSlot>(
-	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const Inset = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "app-layout-inset")}
-				className={cx("flex min-w-0 flex-1 flex-col gap-2 p-2", className)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "app-layout-inset")}
+			className={cx("flex min-w-0 flex-1 flex-col gap-2 p-2", className)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 Inset.displayName = "AppLayoutInset";
 
 /**
@@ -255,15 +266,17 @@ Inset.displayName = "AppLayoutInset";
  * </Sidebar.Root>
  * ```
  */
-const Header = forwardRef<
-	ComponentRef<"header">,
-	ComponentProps<"header"> & WithAsChild & WithDataSlot
->(({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
+const Header = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"header"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "header";
 
 	return (
 		<Comp
-			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "app-layout-header")}
 			className={cx(
 				// h-14 + the Inset's 8px gutter puts this toolbar's center on the
@@ -276,7 +289,7 @@ const Header = forwardRef<
 			{children}
 		</Comp>
 	);
-});
+};
 Header.displayName = "AppLayoutHeader";
 
 /**
@@ -320,25 +333,28 @@ Header.displayName = "AppLayoutHeader";
  * </Sidebar.Root>
  * ```
  */
-const Content = forwardRef<ComponentRef<"div">, ComponentProps<"div"> & WithAsChild & WithDataSlot>(
-	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const Content = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "app-layout-content")}
-				className={cx(
-					"bg-card border-card-muted scrollbar min-h-0 flex-1 overflow-y-auto overscroll-none rounded-xl border shadow-sm",
-					className,
-				)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "app-layout-content")}
+			className={cx(
+				"bg-card border-card-muted scrollbar min-h-0 flex-1 overflow-y-auto overscroll-none rounded-xl border shadow-sm",
+				className,
+			)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 Content.displayName = "AppLayoutContent";
 
 /**
