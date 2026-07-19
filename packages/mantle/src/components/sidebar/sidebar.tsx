@@ -2,11 +2,9 @@
 
 import { SidebarSimpleIcon } from "@phosphor-icons/react/SidebarSimple";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
-import type { DropdownMenuRadioGroupProps } from "@radix-ui/react-dropdown-menu";
-import type { ComponentProps, ComponentPropsWithoutRef, ComponentRef, ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import {
 	createContext,
-	forwardRef,
 	useCallback,
 	useContext,
 	useEffect,
@@ -402,102 +400,90 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  * </Sidebar.Root>
  * ```
  */
-const Nav = forwardRef<ComponentRef<"div">, SidebarNavProps>(
-	(
-		{
-			"aria-label": ariaLabelProp,
-			"aria-labelledby": ariaLabelledBy,
-			children,
-			className,
-			"data-slot": dataSlot,
-			...props
-		},
-		ref,
-	) => {
-		const { isMobile, mobileBreakpoint, navId, open, openMobile, setOpenMobile } =
-			useSidebarContext("Nav");
-		const isHydrated = useIsHydrated();
-		const ariaLabel = ariaLabelProp ?? (ariaLabelledBy == null ? "Main" : undefined);
+const Nav = ({
+	"aria-label": ariaLabelProp,
+	"aria-labelledby": ariaLabelledBy,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: SidebarNavProps) => {
+	const { isMobile, mobileBreakpoint, navId, open, openMobile, setOpenMobile } =
+		useSidebarContext("Nav");
+	const isHydrated = useIsHydrated();
+	const ariaLabel = ariaLabelProp ?? (ariaLabelledBy == null ? "Main" : undefined);
 
-		if (isMobile) {
-			return (
-				<Sheet.Root open={openMobile} onOpenChange={setOpenMobile}>
-					<Sheet.Content
-						side="left"
-						preferredWidth="sm:max-w-[var(--sidebar-width-mobile,18rem)]"
-						data-slot={joinDataSlot(dataSlot, "sidebar-nav")}
-						data-mobile=""
-						// A consumer aria-labelledby names the dialog too, keeping the
-						// sheet and the nav consistently named. Spread conditionally:
-						// an explicit undefined would override the Sheet's internal
-						// Title wiring and leave the dialog unnamed.
-						{...(ariaLabelledBy == null ? null : { "aria-labelledby": ariaLabelledBy })}
-						className={cx(
-							"bg-base w-[var(--sidebar-width-mobile,18rem)] max-w-full p-0",
-							className,
-						)}
-						ref={ref}
-						{...props}
-					>
-						{/* The dialog's accessible name follows the nav's, so overriding
-						    aria-label (e.g. for localization) renames the sheet too. The
-						    "Sidebar" fallback only applies while aria-labelledby (which
-						    names the dialog directly, above) is unset. */}
-						<Sheet.Title className="sr-only">{ariaLabel ?? "Sidebar"}</Sheet.Title>
-						<nav
-							id={navId}
-							aria-label={ariaLabel}
-							aria-labelledby={ariaLabelledBy}
-							className="flex h-full w-full min-w-0 flex-col text-sm"
-						>
-							{children}
-						</nav>
-					</Sheet.Content>
-				</Sheet.Root>
-			);
-		}
-
+	if (isMobile) {
 		return (
-			<div
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "sidebar-nav")}
-				data-state={open ? "expanded" : "collapsed"}
-				// data-hydrated is the CSS-side twin of the isHydrated gates below,
-				// for descendant parts (e.g. GroupLabel) whose collapse transitions
-				// must also snap instead of animating on an SSR state correction.
-				data-hydrated={isHydrated ? "" : undefined}
-				className={cx(
-					// bg lives on this surface (not the inner nav) so consumer
-					// className overrides like `bg-card` take effect on desktop too.
-					"group/sidebar-nav bg-base relative h-full w-[var(--sidebar-width,16rem)] shrink-0 overflow-hidden",
-					// collapsing animates the width down to the skinny icon rail; the
-					// panel content stays interactive and in the accessibility tree.
-					"data-[state=collapsed]:w-[var(--sidebar-width-icon,3.25rem)]",
-					navVisibilityClassName[mobileBreakpoint],
-					// Gate the transition on hydration so an SSR state correction
-					// (e.g. persisted-collapsed applied by a controlled `open`) snaps
-					// instead of animating shut on page load.
-					isHydrated && [
-						"transition-[width] duration-200 ease-linear motion-reduce:transition-none",
-					],
-					className,
-				)}
-				{...props}
-			>
-				<nav
-					id={navId}
-					aria-label={ariaLabel}
-					aria-labelledby={ariaLabelledBy}
-					// w-full tracks the animating panel width so the rows clip in
-					// place during the collapse.
-					className="absolute inset-y-0 left-0 flex w-full min-w-0 flex-col text-sm"
+			<Sheet.Root open={openMobile} onOpenChange={setOpenMobile}>
+				<Sheet.Content
+					side="left"
+					preferredWidth="sm:max-w-[var(--sidebar-width-mobile,18rem)]"
+					data-slot={joinDataSlot(dataSlot, "sidebar-nav")}
+					data-mobile=""
+					// A consumer aria-labelledby names the dialog too, keeping the
+					// sheet and the nav consistently named. Spread conditionally:
+					// an explicit undefined would override the Sheet's internal
+					// Title wiring and leave the dialog unnamed.
+					{...(ariaLabelledBy == null ? null : { "aria-labelledby": ariaLabelledBy })}
+					className={cx("bg-base w-[var(--sidebar-width-mobile,18rem)] max-w-full p-0", className)}
+					{...props}
 				>
-					{children}
-				</nav>
-			</div>
+					{/* The dialog's accessible name follows the nav's, so overriding
+					    aria-label (e.g. for localization) renames the sheet too. The
+					    "Sidebar" fallback only applies while aria-labelledby (which
+					    names the dialog directly, above) is unset. */}
+					<Sheet.Title className="sr-only">{ariaLabel ?? "Sidebar"}</Sheet.Title>
+					<nav
+						id={navId}
+						aria-label={ariaLabel}
+						aria-labelledby={ariaLabelledBy}
+						className="flex h-full w-full min-w-0 flex-col text-sm"
+					>
+						{children}
+					</nav>
+				</Sheet.Content>
+			</Sheet.Root>
 		);
-	},
-);
+	}
+
+	return (
+		<div
+			data-slot={joinDataSlot(dataSlot, "sidebar-nav")}
+			data-state={open ? "expanded" : "collapsed"}
+			// data-hydrated is the CSS-side twin of the isHydrated gates below,
+			// for descendant parts (e.g. GroupLabel) whose collapse transitions
+			// must also snap instead of animating on an SSR state correction.
+			data-hydrated={isHydrated ? "" : undefined}
+			className={cx(
+				// bg lives on this surface (not the inner nav) so consumer
+				// className overrides like `bg-card` take effect on desktop too.
+				"group/sidebar-nav bg-base relative h-full w-[var(--sidebar-width,16rem)] shrink-0 overflow-hidden",
+				// collapsing animates the width down to the skinny icon rail; the
+				// panel content stays interactive and in the accessibility tree.
+				"data-[state=collapsed]:w-[var(--sidebar-width-icon,3.25rem)]",
+				navVisibilityClassName[mobileBreakpoint],
+				// Gate the transition on hydration so an SSR state correction
+				// (e.g. persisted-collapsed applied by a controlled `open`) snaps
+				// instead of animating shut on page load.
+				isHydrated && ["transition-[width] duration-200 ease-linear motion-reduce:transition-none"],
+				className,
+			)}
+			{...props}
+		>
+			<nav
+				id={navId}
+				aria-label={ariaLabel}
+				aria-labelledby={ariaLabelledBy}
+				// w-full tracks the animating panel width so the rows clip in
+				// place during the collapse.
+				className="absolute inset-y-0 left-0 flex w-full min-w-0 flex-col text-sm"
+			>
+				{children}
+			</nav>
+		</div>
+	);
+};
 Nav.displayName = "SidebarNav";
 
 /**
@@ -621,44 +607,38 @@ const defaultTriggerIcon = <SidebarSimpleIcon />;
  * </Sidebar.Root>
  * ```
  */
-const Trigger = forwardRef<HTMLButtonElement, SidebarTriggerProps>(
-	(
-		{
-			appearance = "ghost",
-			"data-slot": dataSlot,
-			icon = defaultTriggerIcon,
-			intent = "neutral",
-			label = "Toggle Sidebar",
-			onClick,
-			...props
-		},
-		ref,
-	) => {
-		const { isMobile, navId, open, openMobile, toggle } = useSidebarContext("Trigger");
-		const expanded = isMobile ? openMobile : open;
+const Trigger = ({
+	appearance = "ghost",
+	"data-slot": dataSlot,
+	icon = defaultTriggerIcon,
+	intent = "neutral",
+	label = "Toggle Sidebar",
+	onClick,
+	...props
+}: SidebarTriggerProps) => {
+	const { isMobile, navId, open, openMobile, toggle } = useSidebarContext("Trigger");
+	const expanded = isMobile ? openMobile : open;
 
-		return (
-			<IconButton
-				ref={ref}
-				appearance={appearance}
-				aria-controls={navId}
-				aria-expanded={expanded}
-				data-slot={joinDataSlot(dataSlot, "sidebar-trigger")}
-				data-state={expanded ? "expanded" : "collapsed"}
-				icon={icon}
-				intent={intent}
-				label={label}
-				onClick={(event) => {
-					onClick?.(event);
-					if (!event.defaultPrevented) {
-						toggle();
-					}
-				}}
-				{...props}
-			/>
-		);
-	},
-);
+	return (
+		<IconButton
+			appearance={appearance}
+			aria-controls={navId}
+			aria-expanded={expanded}
+			data-slot={joinDataSlot(dataSlot, "sidebar-trigger")}
+			data-state={expanded ? "expanded" : "collapsed"}
+			icon={icon}
+			intent={intent}
+			label={label}
+			onClick={(event) => {
+				onClick?.(event);
+				if (!event.defaultPrevented) {
+					toggle();
+				}
+			}}
+			{...props}
+		/>
+	);
+};
 Trigger.displayName = "SidebarTrigger";
 
 /**
@@ -709,48 +689,51 @@ type SidebarRailProps = Omit<ComponentProps<"button">, "children" | "type"> &
  * </Sidebar.Root>
  * ```
  */
-const Rail = forwardRef<HTMLButtonElement, SidebarRailProps>(
-	({ className, "data-slot": dataSlot, label = "Toggle Sidebar", onClick, ...props }, ref) => {
-		const { mobileBreakpoint, navId, open, setOpen } = useSidebarContext("Rail");
+const Rail = ({
+	className,
+	"data-slot": dataSlot,
+	label = "Toggle Sidebar",
+	onClick,
+	...props
+}: SidebarRailProps) => {
+	const { mobileBreakpoint, navId, open, setOpen } = useSidebarContext("Rail");
 
-		return (
-			<button
-				ref={ref}
-				type="button"
-				// Pointer affordance only — Sidebar.Trigger and ⌘B cover keyboard.
-				tabIndex={-1}
-				aria-controls={navId}
-				aria-expanded={open}
-				aria-label={label}
-				title={label}
-				data-slot={joinDataSlot(dataSlot, "sidebar-rail")}
-				data-state={open ? "expanded" : "collapsed"}
-				onClick={(event) => {
-					onClick?.(event);
-					if (!event.defaultPrevented) {
-						setOpen(!open);
-					}
-				}}
-				className={cx(
-					// Zero-width in-flow flex item: the button itself occupies the
-					// sidebar/content boundary without affecting layout. z-20 keeps
-					// the hit strip above the content card's sticky header.
-					"relative z-20 w-0 shrink-0 focus:outline-hidden",
-					navVisibilityClassName[mobileBreakpoint],
-					// The 12px hit strip extends from the boundary over the content
-					// gutter (never over the sidebar's own scrollbar). Clicks on a
-					// pseudo-element hit its originating button.
-					"after:absolute after:inset-y-0 after:left-0 after:w-3",
-					// The hover affordance: a hairline hugging the boundary.
-					"before:absolute before:inset-y-0 before:left-0 before:w-0.5 hover:before:bg-neutral-500/25",
-					"cursor-w-resize data-[state=collapsed]:cursor-e-resize",
-					className,
-				)}
-				{...props}
-			/>
-		);
-	},
-);
+	return (
+		<button
+			type="button"
+			// Pointer affordance only — Sidebar.Trigger and ⌘B cover keyboard.
+			tabIndex={-1}
+			aria-controls={navId}
+			aria-expanded={open}
+			aria-label={label}
+			title={label}
+			data-slot={joinDataSlot(dataSlot, "sidebar-rail")}
+			data-state={open ? "expanded" : "collapsed"}
+			onClick={(event) => {
+				onClick?.(event);
+				if (!event.defaultPrevented) {
+					setOpen(!open);
+				}
+			}}
+			className={cx(
+				// Zero-width in-flow flex item: the button itself occupies the
+				// sidebar/content boundary without affecting layout. z-20 keeps
+				// the hit strip above the content card's sticky header.
+				"relative z-20 w-0 shrink-0 focus:outline-hidden",
+				navVisibilityClassName[mobileBreakpoint],
+				// The 12px hit strip extends from the boundary over the content
+				// gutter (never over the sidebar's own scrollbar). Clicks on a
+				// pseudo-element hit its originating button.
+				"after:absolute after:inset-y-0 after:left-0 after:w-3",
+				// The hover affordance: a hairline hugging the boundary.
+				"before:absolute before:inset-y-0 before:left-0 before:w-0.5 hover:before:bg-neutral-500/25",
+				"cursor-w-resize data-[state=collapsed]:cursor-e-resize",
+				className,
+			)}
+			{...props}
+		/>
+	);
+};
 Rail.displayName = "SidebarRail";
 
 type SidebarHeaderProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
@@ -814,32 +797,35 @@ type SidebarHeaderProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * </Sidebar.Root>
  * ```
  */
-const Header = forwardRef<ComponentRef<"div">, SidebarHeaderProps>(
-	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const Header = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: SidebarHeaderProps) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "sidebar-header")}
-				className={cx(
-					// h-18 centers the switcher row on the same line as an
-					// AppLayout.Header toolbar (8px card gutter + h-14 header).
-					"flex h-18 shrink-0 flex-col justify-center gap-2 px-3",
-					// When expanded, the adjacent AppLayout.Inset contributes the
-					// trailing card gutter, so trim the sidebar's own trailing inset
-					// to keep dividers and rows optically centered between the
-					// viewport edge and content card.
-					"group-data-[state=expanded]/sidebar-nav:pr-1",
-					className,
-				)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "sidebar-header")}
+			className={cx(
+				// h-18 centers the switcher row on the same line as an
+				// AppLayout.Header toolbar (8px card gutter + h-14 header).
+				"flex h-18 shrink-0 flex-col justify-center gap-2 px-3",
+				// When expanded, the adjacent AppLayout.Inset contributes the
+				// trailing card gutter, so trim the sidebar's own trailing inset
+				// to keep dividers and rows optically centered between the
+				// viewport edge and content card.
+				"group-data-[state=expanded]/sidebar-nav:pr-1",
+				className,
+			)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 Header.displayName = "SidebarHeader";
 
 type SidebarBodyProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
@@ -902,38 +888,41 @@ type SidebarBodyProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * </Sidebar.Root>
  * ```
  */
-const Body = forwardRef<ComponentRef<"div">, SidebarBodyProps>(
-	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const Body = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: SidebarBodyProps) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "sidebar-body")}
-				className={cx(
-					// pt-1.5 (not pt-0) keeps the first row's focus ring inside the
-					// scrollport instead of clipping it at scrollTop=0; scroll-py-6
-					// makes focus-triggered scrolling land rows clear of the
-					// scroll-fade-y mask's 1.5rem fade zones, so a keyboard user's
-					// focus ring is never faded out mid-list.
-					"scrollbar scrollbar-gutter-stable scroll-fade-y flex-1 scroll-py-6 space-y-2 overflow-y-auto overflow-x-hidden px-3 pt-1.5 pb-4",
-					// Match Header/Footer trailing geometry when expanded.
-					"group-data-[state=expanded]/sidebar-nav:pr-1",
-					// The icon rail is too narrow for a scrollbar: hide it (and drop
-					// the reserved gutter, which would off-center the icons) and let
-					// the scroll fade signal the overflow instead.
-					"group-data-[state=collapsed]/sidebar-nav:scrollbar-none",
-					"group-data-[state=collapsed]/sidebar-nav:scrollbar-gutter-auto",
-					"group-data-[state=collapsed]/sidebar-nav:[&::-webkit-scrollbar]:hidden",
-					className,
-				)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "sidebar-body")}
+			className={cx(
+				// pt-1.5 (not pt-0) keeps the first row's focus ring inside the
+				// scrollport instead of clipping it at scrollTop=0; scroll-py-6
+				// makes focus-triggered scrolling land rows clear of the
+				// scroll-fade-y mask's 1.5rem fade zones, so a keyboard user's
+				// focus ring is never faded out mid-list.
+				"scrollbar scrollbar-gutter-stable scroll-fade-y flex-1 scroll-py-6 space-y-2 overflow-y-auto overflow-x-hidden px-3 pt-1.5 pb-4",
+				// Match Header/Footer trailing geometry when expanded.
+				"group-data-[state=expanded]/sidebar-nav:pr-1",
+				// The icon rail is too narrow for a scrollbar: hide it (and drop
+				// the reserved gutter, which would off-center the icons) and let
+				// the scroll fade signal the overflow instead.
+				"group-data-[state=collapsed]/sidebar-nav:scrollbar-none",
+				"group-data-[state=collapsed]/sidebar-nav:scrollbar-gutter-auto",
+				"group-data-[state=collapsed]/sidebar-nav:[&::-webkit-scrollbar]:hidden",
+				className,
+			)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 Body.displayName = "SidebarBody";
 
 type SidebarFooterProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
@@ -995,27 +984,30 @@ type SidebarFooterProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * </Sidebar.Root>
  * ```
  */
-const Footer = forwardRef<ComponentRef<"div">, SidebarFooterProps>(
-	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
-		const Comp = asChild ? Slot : "div";
+const Footer = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: SidebarFooterProps) => {
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "sidebar-footer")}
-				className={cx(
-					"shrink-0 px-3 pt-3 pb-3.5",
-					// Match Header/Body trailing geometry when expanded.
-					"group-data-[state=expanded]/sidebar-nav:pr-1",
-					className,
-				)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "sidebar-footer")}
+			className={cx(
+				"shrink-0 px-3 pt-3 pb-3.5",
+				// Match Header/Body trailing geometry when expanded.
+				"group-data-[state=expanded]/sidebar-nav:pr-1",
+				className,
+			)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 Footer.displayName = "SidebarFooter";
 
 type SidebarGroupContextValue = {
@@ -1097,30 +1089,33 @@ type SidebarGroupProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * </Sidebar.Root>
  * ```
  */
-const Group = forwardRef<ComponentRef<"div">, SidebarGroupProps>(
-	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
-		const labelId = useId();
-		const [hasLabel, setHasLabel] = useState(false);
-		const contextValue = useMemo<SidebarGroupContextValue>(
-			() => ({ hasLabel, labelId, setHasLabel }),
-			[hasLabel, labelId],
-		);
-		const Comp = asChild ? Slot : "div";
+const Group = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: SidebarGroupProps) => {
+	const labelId = useId();
+	const [hasLabel, setHasLabel] = useState(false);
+	const contextValue = useMemo<SidebarGroupContextValue>(
+		() => ({ hasLabel, labelId, setHasLabel }),
+		[hasLabel, labelId],
+	);
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<SidebarGroupContext.Provider value={contextValue}>
-				<Comp
-					ref={ref}
-					data-slot={joinDataSlot(dataSlot, "sidebar-group")}
-					className={cx("pt-0.5", className)}
-					{...props}
-				>
-					{children}
-				</Comp>
-			</SidebarGroupContext.Provider>
-		);
-	},
-);
+	return (
+		<SidebarGroupContext.Provider value={contextValue}>
+			<Comp
+				data-slot={joinDataSlot(dataSlot, "sidebar-group")}
+				className={cx("pt-0.5", className)}
+				{...props}
+			>
+				{children}
+			</Comp>
+		</SidebarGroupContext.Provider>
+	);
+};
 Group.displayName = "SidebarGroup";
 
 type SidebarGroupLabelProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
@@ -1183,53 +1178,57 @@ type SidebarGroupLabelProps = ComponentProps<"div"> & WithAsChild & WithDataSlot
  * </Sidebar.Root>
  * ```
  */
-const GroupLabel = forwardRef<ComponentRef<"div">, SidebarGroupLabelProps>(
-	({ asChild, children, className, "data-slot": dataSlot, id: idProp, ...props }, ref) => {
-		const groupContext = useContext(SidebarGroupContext);
-		const isManagedId = idProp == null && groupContext != null;
+const GroupLabel = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	id: idProp,
+	...props
+}: SidebarGroupLabelProps) => {
+	const groupContext = useContext(SidebarGroupContext);
+	const isManagedId = idProp == null && groupContext != null;
 
-		useEffect(() => {
-			if (!isManagedId || groupContext == null) {
-				return;
-			}
-			groupContext.setHasLabel(true);
-			return () => {
-				groupContext.setHasLabel(false);
-			};
-		}, [groupContext, isManagedId]);
+	useEffect(() => {
+		if (!isManagedId || groupContext == null) {
+			return;
+		}
+		groupContext.setHasLabel(true);
+		return () => {
+			groupContext.setHasLabel(false);
+		};
+	}, [groupContext, isManagedId]);
 
-		const Comp = asChild ? Slot : "div";
+	const Comp = asChild ? Slot : "div";
 
-		return (
-			<Comp
-				ref={ref}
-				id={idProp ?? groupContext?.labelId}
-				data-slot={joinDataSlot(dataSlot, "sidebar-group-label")}
-				className={cx(
-					"text-muted flex min-w-0 items-center gap-2 truncate px-2 py-1 text-xs font-medium",
-					// In the collapsed icon rail the label fades out IN PLACE — its
-					// 24px row is deliberately retained so icon groups stay visually
-					// separated and every row keeps the exact position it has when
-					// expanded. Opacity keeps it in the accessibility tree so lists
-					// stay named via aria-labelledby; pointer-events-none keeps the
-					// invisible label from intercepting stray clicks. The transition
-					// is gated on the nav's data-hydrated so an SSR state correction
-					// snaps instead of animating on page load.
-					"group-data-[state=collapsed]/sidebar-nav:opacity-0",
-					"group-data-[state=collapsed]/sidebar-nav:pointer-events-none",
-					// motion-reduce must carry the same group gate: the gated
-					// transition rule's selector outranks a bare motion-reduce
-					// override (0,2,0 vs 0,1,0), so an ungated one would lose.
-					"group-data-[hydrated]/sidebar-nav:transition-opacity group-data-[hydrated]/sidebar-nav:duration-200 group-data-[hydrated]/sidebar-nav:ease-linear group-data-[hydrated]/sidebar-nav:motion-reduce:transition-none",
-					className,
-				)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			id={idProp ?? groupContext?.labelId}
+			data-slot={joinDataSlot(dataSlot, "sidebar-group-label")}
+			className={cx(
+				"text-muted flex min-w-0 items-center gap-2 truncate px-2 py-1 text-xs font-medium",
+				// In the collapsed icon rail the label fades out IN PLACE — its
+				// 24px row is deliberately retained so icon groups stay visually
+				// separated and every row keeps the exact position it has when
+				// expanded. Opacity keeps it in the accessibility tree so lists
+				// stay named via aria-labelledby; pointer-events-none keeps the
+				// invisible label from intercepting stray clicks. The transition
+				// is gated on the nav's data-hydrated so an SSR state correction
+				// snaps instead of animating on page load.
+				"group-data-[state=collapsed]/sidebar-nav:opacity-0",
+				"group-data-[state=collapsed]/sidebar-nav:pointer-events-none",
+				// motion-reduce must carry the same group gate: the gated
+				// transition rule's selector outranks a bare motion-reduce
+				// override (0,2,0 vs 0,1,0), so an ungated one would lose.
+				"group-data-[hydrated]/sidebar-nav:transition-opacity group-data-[hydrated]/sidebar-nav:duration-200 group-data-[hydrated]/sidebar-nav:ease-linear group-data-[hydrated]/sidebar-nav:motion-reduce:transition-none",
+				className,
+			)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 GroupLabel.displayName = "SidebarGroupLabel";
 
 type SidebarListProps = ComponentProps<"ul"> & WithAsChild & WithDataSlot;
@@ -1290,36 +1289,30 @@ type SidebarListProps = ComponentProps<"ul"> & WithAsChild & WithDataSlot;
  * </Sidebar.Root>
  * ```
  */
-const List = forwardRef<ComponentRef<"ul">, SidebarListProps>(
-	(
-		{
-			"aria-labelledby": ariaLabelledBy,
-			asChild,
-			children,
-			className,
-			"data-slot": dataSlot,
-			...props
-		},
-		ref,
-	) => {
-		const groupContext = useContext(SidebarGroupContext);
-		const Comp = asChild ? Slot : "ul";
+const List = ({
+	"aria-labelledby": ariaLabelledBy,
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: SidebarListProps) => {
+	const groupContext = useContext(SidebarGroupContext);
+	const Comp = asChild ? Slot : "ul";
 
-		return (
-			<Comp
-				ref={ref}
-				aria-labelledby={
-					ariaLabelledBy ?? (groupContext?.hasLabel ? groupContext.labelId : undefined)
-				}
-				data-slot={joinDataSlot(dataSlot, "sidebar-list")}
-				className={cx("mb-2 space-y-px", className)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			aria-labelledby={
+				ariaLabelledBy ?? (groupContext?.hasLabel ? groupContext.labelId : undefined)
+			}
+			data-slot={joinDataSlot(dataSlot, "sidebar-list")}
+			className={cx("mb-2 space-y-px", className)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 List.displayName = "SidebarList";
 
 type SidebarItemProps = ComponentProps<"li"> & WithAsChild & WithDataSlot;
@@ -1380,22 +1373,25 @@ type SidebarItemProps = ComponentProps<"li"> & WithAsChild & WithDataSlot;
  * </Sidebar.Root>
  * ```
  */
-const Item = forwardRef<ComponentRef<"li">, SidebarItemProps>(
-	({ asChild, children, className, "data-slot": dataSlot, ...props }, ref) => {
-		const Comp = asChild ? Slot : "li";
+const Item = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: SidebarItemProps) => {
+	const Comp = asChild ? Slot : "li";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "sidebar-item")}
-				className={cx("group/sidebar-item relative list-none", className)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "sidebar-item")}
+			className={cx("group/sidebar-item relative list-none", className)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 Item.displayName = "SidebarItem";
 
 type SidebarItemButtonProps = ComponentProps<"button"> &
@@ -1466,39 +1462,44 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
  * </Sidebar.Root>
  * ```
  */
-const ItemButton = forwardRef<ComponentRef<"button">, SidebarItemButtonProps>(
-	({ asChild, children, className, current, "data-slot": dataSlot, type, ...props }, ref) => {
-		const Comp = asChild ? Slot : "button";
+const ItemButton = ({
+	asChild,
+	children,
+	className,
+	current,
+	"data-slot": dataSlot,
+	type,
+	...props
+}: SidebarItemButtonProps) => {
+	const Comp = asChild ? Slot : "button";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "sidebar-item-button")}
-				// Presence semantics: never render `data-current="false"` — the
-				// `data-current:` variant matches the attribute's existence.
-				data-current={current ? "" : undefined}
-				aria-current={current ? "page" : undefined}
-				type={asChild ? type : (type ?? "button")}
-				className={cx(
-					"ring-focus-accent flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-normal transition-none focus:outline-hidden focus-visible:ring-4",
-					"text-body hover:text-strong hover:bg-neutral-500/10",
-					"data-current:bg-neutral-500/15 data-current:text-strong",
-					"[&>svg]:text-muted hover:[&>svg]:text-strong data-current:[&>svg]:text-strong [&>svg]:size-5 [&>svg]:shrink-0",
-					// In the collapsed icon rail the row returns to its original
-					// 28px square chip. ml-1 keeps body and footer item icons aligned
-					// with their expanded position and the switcher indicators.
-					"group-data-[state=collapsed]/sidebar-nav:ml-1",
-					"group-data-[state=collapsed]/sidebar-nav:w-7",
-					"group-data-[state=collapsed]/sidebar-nav:p-1",
-					className,
-				)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "sidebar-item-button")}
+			// Presence semantics: never render `data-current="false"` — the
+			// `data-current:` variant matches the attribute's existence.
+			data-current={current ? "" : undefined}
+			aria-current={current ? "page" : undefined}
+			type={asChild ? type : (type ?? "button")}
+			className={cx(
+				"ring-focus-accent flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-normal transition-none focus:outline-hidden focus-visible:ring-4",
+				"text-body hover:text-strong hover:bg-neutral-500/10",
+				"data-current:bg-neutral-500/15 data-current:text-strong",
+				"[&>svg]:text-muted hover:[&>svg]:text-strong data-current:[&>svg]:text-strong [&>svg]:size-5 [&>svg]:shrink-0",
+				// In the collapsed icon rail the row returns to its original
+				// 28px square chip. ml-1 keeps body and footer item icons aligned
+				// with their expanded position and the switcher indicators.
+				"group-data-[state=collapsed]/sidebar-nav:ml-1",
+				"group-data-[state=collapsed]/sidebar-nav:w-7",
+				"group-data-[state=collapsed]/sidebar-nav:p-1",
+				className,
+			)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 ItemButton.displayName = "SidebarItemButton";
 
 type SidebarSwitcherButtonProps = ComponentProps<"button"> & WithAsChild & WithDataSlot;
@@ -1568,43 +1569,47 @@ type SidebarSwitcherButtonProps = ComponentProps<"button"> & WithAsChild & WithD
  * </Sidebar.Root>
  * ```
  */
-const SwitcherButton = forwardRef<ComponentRef<"button">, SidebarSwitcherButtonProps>(
-	({ asChild, children, className, "data-slot": dataSlot, type, ...props }, ref) => {
-		const Comp = asChild ? Slot : "button";
+const SwitcherButton = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	type,
+	...props
+}: SidebarSwitcherButtonProps) => {
+	const Comp = asChild ? Slot : "button";
 
-		return (
-			<Comp
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "sidebar-switcher-button")}
-				type={asChild ? type : (type ?? "button")}
-				className={cx(
-					"text-body hover:text-strong hover:bg-neutral-500/10 flex w-full min-w-0 items-center gap-2 [border-radius:0.625rem] py-1 pr-1.5 pl-1 text-left font-medium transition-none",
-					"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
-					"ring-focus-accent focus:outline-hidden focus-visible:ring-4",
-					// The leading account/product tile uses rounded-md (6px) and
-					// sits 4px from the edge, so the outer switcher radius is 10px.
-					// Product/account indicators are a little larger than their
-					// source components by default; the tighter padding keeps the
-					// switcher row at the same net 36px height while preserving
-					// prototype spacing on the trailing action icon.
-					"[&>:first-child]:size-7",
-					// In the collapsed icon rail only the leading visual (product
-					// icon, account avatar) stays visible; the rest goes sr-only —
-					// visually gone but still part of the button's accessible name.
-					// w-9 keeps the leading visual centered in the same 36px chip as
-					// the switcher row.
-					"group-data-[state=collapsed]/sidebar-nav:w-9",
-					"group-data-[state=collapsed]/sidebar-nav:p-1",
-					"group-data-[state=collapsed]/sidebar-nav:[&>:not(:first-child)]:sr-only",
-					className,
-				)}
-				{...props}
-			>
-				{children}
-			</Comp>
-		);
-	},
-);
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "sidebar-switcher-button")}
+			type={asChild ? type : (type ?? "button")}
+			className={cx(
+				"text-body hover:text-strong hover:bg-neutral-500/10 flex w-full min-w-0 items-center gap-2 [border-radius:0.625rem] py-1 pr-1.5 pl-1 text-left font-medium transition-none",
+				"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
+				"ring-focus-accent focus:outline-hidden focus-visible:ring-4",
+				// The leading account/product tile uses rounded-md (6px) and
+				// sits 4px from the edge, so the outer switcher radius is 10px.
+				// Product/account indicators are a little larger than their
+				// source components by default; the tighter padding keeps the
+				// switcher row at the same net 36px height while preserving
+				// prototype spacing on the trailing action icon.
+				"[&>:first-child]:size-7",
+				// In the collapsed icon rail only the leading visual (product
+				// icon, account avatar) stays visible; the rest goes sr-only —
+				// visually gone but still part of the button's accessible name.
+				// w-9 keeps the leading visual centered in the same 36px chip as
+				// the switcher row.
+				"group-data-[state=collapsed]/sidebar-nav:w-9",
+				"group-data-[state=collapsed]/sidebar-nav:p-1",
+				"group-data-[state=collapsed]/sidebar-nav:[&>:not(:first-child)]:sr-only",
+				className,
+			)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
 SwitcherButton.displayName = "SidebarSwitcherButton";
 
 type SidebarSeparatorProps = ComponentProps<typeof Separator>;
@@ -1668,15 +1673,12 @@ type SidebarSeparatorProps = ComponentProps<typeof Separator>;
  * </Sidebar.Root>
  * ```
  */
-const SidebarSeparator = forwardRef<ComponentRef<typeof Separator>, SidebarSeparatorProps>(
-	({ className, ...props }, ref) => (
-		<Separator
-			ref={ref}
-			data-slot="sidebar-separator"
-			className={cx("my-3", "group-data-[state=collapsed]/sidebar-nav:w-9", className)}
-			{...props}
-		/>
-	),
+const SidebarSeparator = ({ className, ...props }: SidebarSeparatorProps) => (
+	<Separator
+		data-slot="sidebar-separator"
+		className={cx("my-3", "group-data-[state=collapsed]/sidebar-nav:w-9", className)}
+		{...props}
+	/>
 );
 SidebarSeparator.displayName = "SidebarSeparator";
 
@@ -1743,7 +1745,7 @@ function getInitials(accountName: string | undefined): string {
 	return initials || "?";
 }
 
-type SidebarAccountAvatarProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
+type SidebarAccountAvatarProps = Omit<ComponentProps<"div">, "children"> & {
 	/**
 	 * The account's stable identifier. Used to deterministically select a
 	 * background swatch from the design system's palette so the same account
@@ -1819,22 +1821,24 @@ type SidebarAccountAvatarProps = Omit<ComponentPropsWithoutRef<"div">, "children
  * </Sidebar.Root>
  * ```
  */
-const AccountAvatar = forwardRef<ComponentRef<"div">, SidebarAccountAvatarProps>(
-	({ accountId, accountName, className, ...props }, ref) => (
-		<div
-			ref={ref}
-			data-slot="sidebar-account-avatar"
-			className={cx(
-				"text-static-white flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-medium",
-				pickColorClass(accountId),
-				className,
-			)}
-			aria-hidden="true"
-			{...props}
-		>
-			{getInitials(accountName)}
-		</div>
-	),
+const AccountAvatar = ({
+	accountId,
+	accountName,
+	className,
+	...props
+}: SidebarAccountAvatarProps) => (
+	<div
+		data-slot="sidebar-account-avatar"
+		className={cx(
+			"text-static-white flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-medium",
+			pickColorClass(accountId),
+			className,
+		)}
+		aria-hidden="true"
+		{...props}
+	>
+		{getInitials(accountName)}
+	</div>
 );
 AccountAvatar.displayName = "SidebarAccountAvatar";
 
@@ -1843,7 +1847,7 @@ AccountAvatar.displayName = "SidebarAccountAvatar";
  * surrounding text color and adapts to any theme. Used as the default visual
  * when no `src` is provided to `Sidebar.UserAvatar`.
  */
-const UserSilhouetteIcon = ({ className, ...props }: ComponentPropsWithoutRef<"svg">) => (
+const UserSilhouetteIcon = ({ className, ...props }: ComponentProps<"svg">) => (
 	<svg
 		className={cx("block size-full", className)}
 		viewBox="0 0 24 24"
@@ -1857,7 +1861,7 @@ const UserSilhouetteIcon = ({ className, ...props }: ComponentPropsWithoutRef<"s
 	</svg>
 );
 
-type SidebarUserAvatarProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
+type SidebarUserAvatarProps = Omit<ComponentProps<"div">, "children"> & {
 	/**
 	 * Optional URL of the user's profile picture. When provided, the image is
 	 * rendered to fill the avatar with `object-cover`. When omitted (or while
@@ -1934,28 +1938,21 @@ type SidebarUserAvatarProps = Omit<ComponentPropsWithoutRef<"div">, "children"> 
  * </Sidebar.Root>
  * ```
  */
-const UserAvatar = forwardRef<ComponentRef<"div">, SidebarUserAvatarProps>(
-	({ alt = "Your account", className, src, ...props }, ref) => (
-		<div
-			ref={ref}
-			data-slot="sidebar-user-avatar"
-			className={cx(
-				"text-muted bg-neutral-500/15 relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full",
-				className,
-			)}
-			// aria-label needs a role that permits naming — a bare div is
-			// role=generic, where accessible names are prohibited.
-			role={src ? undefined : "img"}
-			aria-label={src ? undefined : alt}
-			{...props}
-		>
-			{src ? (
-				<img src={src} alt={alt} className="size-full object-cover" />
-			) : (
-				<UserSilhouetteIcon />
-			)}
-		</div>
-	),
+const UserAvatar = ({ alt = "Your account", className, src, ...props }: SidebarUserAvatarProps) => (
+	<div
+		data-slot="sidebar-user-avatar"
+		className={cx(
+			"text-muted bg-neutral-500/15 relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full",
+			className,
+		)}
+		// aria-label needs a role that permits naming — a bare div is
+		// role=generic, where accessible names are prohibited.
+		role={src ? undefined : "img"}
+		aria-label={src ? undefined : alt}
+		{...props}
+	>
+		{src ? <img src={src} alt={alt} className="size-full object-cover" /> : <UserSilhouetteIcon />}
+	</div>
 );
 UserAvatar.displayName = "SidebarUserAvatar";
 
@@ -1997,7 +1994,10 @@ type SidebarAccount = {
 	trailing?: ReactNode;
 };
 
-type SidebarSwitchAccountsRadioGroupProps = Omit<DropdownMenuRadioGroupProps, "children"> & {
+type SidebarSwitchAccountsRadioGroupProps = Omit<
+	ComponentProps<typeof DropdownMenuPrimitive.RadioGroup>,
+	"children"
+> & {
 	/**
 	 * The list of accounts the current user can switch into. Consumer-supplied;
 	 * mantle does not fetch or shape this data.
@@ -2033,34 +2033,35 @@ type SidebarSwitchAccountsRadioGroupProps = Omit<DropdownMenuRadioGroupProps, "c
  * </DropdownMenu.Sub>
  * ```
  */
-const SwitchAccountsRadioGroup = forwardRef<HTMLDivElement, SidebarSwitchAccountsRadioGroupProps>(
-	({ accounts, className, ...props }, ref) => (
-		<DropdownMenuPrimitive.RadioGroup
-			ref={ref}
-			data-slot="sidebar-switch-accounts-radio-group"
-			className={cx("space-y-px", className)}
-			{...props}
-		>
-			{accounts.map((account) => (
-				<DropdownMenuPrimitive.RadioItem
-					key={account.id}
-					value={account.id}
-					className={cx(
-						"group/sidebar-switch-account-item",
-						"text-strong relative flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1.5 text-sm font-normal outline-none",
-						"data-highlighted:bg-active-menu-item",
-						"aria-checked:bg-selected-menu-item",
-						"data-highlighted:aria-checked:bg-active-selected-menu-item!",
-						"data-disabled:pointer-events-none data-disabled:opacity-50",
-					)}
-				>
-					<AccountAvatar accountId={account.id} accountName={account.name} className="shrink-0" />
-					<span className="min-w-0 flex-1 truncate">{account.name.trim() || account.id}</span>
-					{account.trailing}
-				</DropdownMenuPrimitive.RadioItem>
-			))}
-		</DropdownMenuPrimitive.RadioGroup>
-	),
+const SwitchAccountsRadioGroup = ({
+	accounts,
+	className,
+	...props
+}: SidebarSwitchAccountsRadioGroupProps) => (
+	<DropdownMenuPrimitive.RadioGroup
+		data-slot="sidebar-switch-accounts-radio-group"
+		className={cx("space-y-px", className)}
+		{...props}
+	>
+		{accounts.map((account) => (
+			<DropdownMenuPrimitive.RadioItem
+				key={account.id}
+				value={account.id}
+				className={cx(
+					"group/sidebar-switch-account-item",
+					"text-strong relative flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1.5 text-sm font-normal outline-none",
+					"data-highlighted:bg-active-menu-item",
+					"aria-checked:bg-selected-menu-item",
+					"data-highlighted:aria-checked:bg-active-selected-menu-item!",
+					"data-disabled:pointer-events-none data-disabled:opacity-50",
+				)}
+			>
+				<AccountAvatar accountId={account.id} accountName={account.name} className="shrink-0" />
+				<span className="min-w-0 flex-1 truncate">{account.name.trim() || account.id}</span>
+				{account.trailing}
+			</DropdownMenuPrimitive.RadioItem>
+		))}
+	</DropdownMenuPrimitive.RadioGroup>
 );
 SwitchAccountsRadioGroup.displayName = "SidebarSwitchAccountsRadioGroup";
 

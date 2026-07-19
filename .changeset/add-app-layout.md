@@ -11,5 +11,5 @@ that is the shell's only scroll container (`overflow-y-auto overscroll-none`) â€
 into it via `asChild`; and `AppLayout.Header` is the sticky toolbar `<header>` rendered as `Content`'s first
 child (a `Sidebar.Trigger` and breadcrumbs live there, and its `h-14` height aligns it with
 `Sidebar.Header`'s switcher row). The shell is deliberately unaware of any sidebar. All parts support
-`asChild` and forward refs.
+`asChild` and accept a `ref` prop.
 Docs: https://mantle.ngrok.com/layouts/app-layout
