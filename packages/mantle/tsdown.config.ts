@@ -12,8 +12,11 @@ const DOCS_ORIGIN = "https://mantle.ngrok.com";
 
 /**
  * A set of package names that should not be published to npm.
+ * `chart` is the internal shared engine behind bar-chart/line-chart/area-chart
+ * (the dialog/list `primitive` pattern, one directory up) — bundled into its
+ * consumers, never a subpath.
  */
-const doNotPublish = new Set<string>(["portal"]);
+const doNotPublish = new Set<string>(["portal", "chart"]);
 
 /**
  * A set of package names that shouldn't be released yet

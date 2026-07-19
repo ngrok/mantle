@@ -260,6 +260,21 @@ MARK: THEME
 	--ring-color-focus-danger: var(--ring-color-focus-danger);
 	--ring-color-focus-warning: var(--ring-color-focus-warning);
 	--ring-color-focus-success: var(--ring-color-focus-success);
+
+	/* Chart series tokens — an ordered categorical palette for data visualization.
+	   Each theme file picks the ramp step that passes the palette validation gates
+	   (CVD-safe adjacency, normal-vision floor, >= 3:1 contrast on the card surface)
+	   for that theme. Assign slots to series in order and never re-assign a series'
+	   slot when others are filtered out; series beyond 8 use --color-chart-other. */
+	--color-chart-1: var(--color-chart-1);
+	--color-chart-2: var(--color-chart-2);
+	--color-chart-3: var(--color-chart-3);
+	--color-chart-4: var(--color-chart-4);
+	--color-chart-5: var(--color-chart-5);
+	--color-chart-6: var(--color-chart-6);
+	--color-chart-7: var(--color-chart-7);
+	--color-chart-8: var(--color-chart-8);
+	--color-chart-other: var(--color-chart-other);
 }
 
 /**
@@ -347,6 +362,20 @@ MARK: LIGHT DEFS
 	--color-active-menu-item: --alpha(var(--color-neutral-500) / 0.05);
 	--color-selected-menu-item: --alpha(var(--color-accent-500) / 0.1);
 	--color-active-selected-menu-item: --alpha(var(--color-accent-500) / 0.15);
+
+	/* Chart series tokens — light picks validated against the white card surface:
+	   worst adjacent CVD ΔE 14.0 (target ≥ 8), normal-vision floor 15.7 (≥ 15),
+	   all slots ≥ 3:1 contrast. Semantic ramps (sky/emerald/rose/amber/purple) are
+	   deliberately excluded so a series never impersonates a status color. */
+	--color-chart-1: var(--color-blue-500);
+	--color-chart-2: var(--color-green-700);
+	--color-chart-3: var(--color-pink-500);
+	--color-chart-4: var(--color-red-600);
+	--color-chart-5: var(--color-teal-600);
+	--color-chart-6: var(--color-orange-600);
+	--color-chart-7: var(--color-violet-500);
+	--color-chart-8: var(--color-yellow-700);
+	--color-chart-other: var(--color-neutral-500);
 
 	--text-color-strong: var(--color-neutral-950);
 	--text-color-body: --alpha(var(--color-neutral-950) / 0.75);

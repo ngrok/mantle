@@ -74,6 +74,11 @@ export default [
 		...docRoute("components/actions/button"),
 		...docRoute("components/actions/icon-button"),
 		...docRoute("components/actions/split-button"),
+		// charts
+		...docRoute("components/charts/area-chart"),
+		...docRoute("components/charts/bar-chart"),
+		...docRoute("components/charts/line-chart"),
+		...docRoute("components/charts/scatter-chart"),
 		// data display
 		...docRoute("components/data-display/accordion"),
 		...docRoute("components/data-display/badge"),

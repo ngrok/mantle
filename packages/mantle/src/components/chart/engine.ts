@@ -1,0 +1,2206 @@
+import invariant from "tiny-invariant";
+import type { ChartChromeColors } from "./colors.js";
+import type { DecimatedColumns } from "./decimate.js";
+import type { BandLayout } from "./scales.js";
+import type { ChartStore } from "./store.js";
+import type {
+	ChartDatum,
+	ChartDatumEvent,
+	ChartOptions,
+	HoverSnapshot,
+	SeriesMark,
+	SeriesSpec,
+	XValue,
+} from "./types.js";
+import {
+	observeThemeChanges,
+	resolveChromeColors,
+	resolveSeriesColor,
+	themeSignature,
+} from "./colors.js";
+import { datumValue } from "./datum.js";
+import { decimateColumns, shouldDecimate } from "./decimate.js";
+import { formatNumber, formatXValue } from "./format.js";
+import { nearestIndex } from "./hit-test.js";
+import type { Camera } from "./projection.js";
+import {
+	clampPitch,
+	CUBE_CORNERS,
+	CUBE_EDGES,
+	normalizeToCube,
+	projectionMatrix,
+	projectPoint,
+} from "./projection.js";
+import {
+	bandCenter,
+	bandStart,
+	computeBandLayout,
+	invertBand,
+	linearCoefficients,
+	linearTicks,
+	niceDomain,
+	timeTickFormatter,
+	timeTicks,
+} from "./scales.js";
+import type { BarRect, PlotRect } from "./renderer.js";
+import {
+	AXIS_FONT_SIZE,
+	BAR_GAP,
+	BAR_MAX_THICKNESS,
+	drawAreaPath,
+	drawAxisLabels,
+	drawBars,
+	drawBaseline,
+	drawCubeAxisLabels,
+	drawCubeFrame,
+	drawDecimatedArea,
+	drawDecimatedLine,
+	drawGrid,
+	drawLinePath,
+	drawDepthSortedPoints,
+	drawMarkers,
+	drawReferenceLine,
+	drawScatterPoints,
+} from "./renderer.js";
+import { computeStackBoundaries } from "./stack.js";
+import type { StackBoundaries } from "./stack.js";
+import { CHART_TWEEN_DURATION_MS, ChaseTween, PER_DATUM_TWEEN_LIMIT, ValueTween } from "./tween.js";
+import { MARKER_RADIUS } from "./renderer.js";
+
+/**
+ * The imperative, framework-free chart engine. One instance backs one chart
+ * Root for its lifetime:
+ *
+ * - owns the canvas (device-pixel sizing, DPR transform) and the paint loop
+ * - ingests consumer rows into columnar Float64Arrays (NaN = gap)
+ * - schedules on demand: every mutation coalesces into one rAF commit; an
+ *   idle chart costs zero CPU (there is no always-on loop)
+ * - decimates to min/max-per-pixel-column past 4 points per device pixel
+ * - drives interruptible tweens (domains always; per-datum only ≤ 2,500 points
+ *   with an identical x vector — streaming appends animate the domain instead)
+ * - hit-tests hover/keyboard positions and publishes snapshots to the store;
+ *   the crosshair/markers/hover band/tooltip are DOM overlay elements moved
+ *   with transforms, so pointer moves never repaint the canvas
+ * - resolves mantle color tokens once per theme (cached; invalidated by the
+ *   documentElement theme attributes the ThemeProvider writes)
+ *
+ * React never renders inside the paint path; the engine never touches React.
+ *
+ * This module is internal shared implementation — not exported from the package.
+ */
+
+/**
+ * The DOM overlay elements the Root binding hands to the engine. All are
+ * absolutely positioned inside the plot wrapper and moved imperatively.
+ */
+type EngineElements = {
+	/** The chart root (color-resolution host; consumer CSS var overrides apply here). */
+	root: HTMLElement;
+	canvas: HTMLCanvasElement;
+	/** The plot wrapper the canvas fills; the resize-observation target. */
+	plot: HTMLElement;
+	/** Vertical crosshair hairline (line/area charts). */
+	crosshair: HTMLElement;
+	/** Hover band behind the active category (bar charts). */
+	band: HTMLElement;
+	/** Container for active-point marker dots (line/area charts). */
+	markers: HTMLElement;
+	/** The tooltip container; content is React-rendered, position is engine-written. */
+	tooltip: HTMLElement;
+};
+
+/** The 3D frame's axis labels, painted after the marks clip is restored. */
+type FrameLabels = {
+	center: { x: number; y: number };
+	axes: Array<{
+		label: string;
+		alpha: number;
+		from: { x: number; y: number };
+		to: { x: number; y: number };
+	}>;
+};
+
+type EngineCallbacks = {
+	onDatumActivate: ((event: ChartDatumEvent) => void) | null;
+	onActiveIndexChange: ((index: number | null) => void) | null;
+};
+
+type ResolvedColors = {
+	signature: string;
+	series: Map<string, string>;
+	/** The color inputs the series map was resolved from, for staleness checks. */
+	inputs: Map<string, string>;
+	chrome: ChartChromeColors;
+	fontFamily: string;
+};
+
+const PART_NAME: Record<SeriesMark, string> = {
+	bar: "BarChart.Bar",
+	line: "LineChart.Line",
+	area: "AreaChart.Area",
+	scatter: "ScatterChart.Point",
+};
+
+/** The pointer must land within this distance of a scatter point to hit it. */
+const SCATTER_HIT_RADIUS = 24;
+/** Drag farther than this before a 3D pointer-down counts as a rotation. */
+const DRAG_THRESHOLD = 3;
+
+const Y_TICK_COUNT = 5;
+const PLOT_PADDING = 8;
+const X_AXIS_BAND = 24;
+const FALLBACK_AXIS_GUTTER = 40;
+
+class ChartEngine {
+	#kind: SeriesMark;
+	#elements: EngineElements;
+	#store: ChartStore;
+	#options: ChartOptions = {
+		xKey: "",
+		xScale: "linear",
+		yDomain: ["auto", "auto"],
+		zKey: null,
+		dimensions: 3,
+		stacked: false,
+		animate: true,
+	};
+	#callbacks: EngineCallbacks = { onDatumActivate: null, onActiveIndexChange: null };
+
+	#ctx: CanvasRenderingContext2D | null;
+	#resizeObserver: ResizeObserver | null = null;
+	#themeDisconnect: (() => void) | null = null;
+	#tooltipResizeObserver: ResizeObserver | null = null;
+	#dprCleanup: (() => void) | null = null;
+
+	#cssWidth = 0;
+	#cssHeight = 0;
+	#dpr = 1;
+
+	#rows: readonly ChartDatum[] = [];
+	#rowCount = 0;
+	#xs = new Float64Array(0);
+	#xValues: XValue[] = [];
+	#order: Int32Array | null = null;
+	#columns = new Map<string, Float64Array>();
+	#valueMin = 0;
+	#valueMax = 0;
+	#stack: StackBoundaries | null = null;
+
+	// Domains chase their targets (liveline-style exponential glide) so regular
+	// retargets — streaming appends — read as continuous motion, never
+	// ease-stop-jump ticks. Per-datum morphs and reveals stay fixed-duration.
+	#yTween = new ChaseTween({ speed: 0.16 });
+	#xTween = new ChaseTween({ speed: 0.2 });
+	#valueTweens = new Map<string, ValueTween>();
+	#revealTweens = new Map<string, ValueTween>();
+	#hasIngested = false;
+	#xLabelFade = new Map<number, { alpha: number; target: number; text: string }>();
+	#yLabelFade = new Map<number, { alpha: number; target: number; text: string }>();
+	#lastPaintTime = 0;
+
+	#decimated = false;
+	#decimationCache = new Map<string, { key: string; columns: DecimatedColumns }>();
+
+	#colors: ResolvedColors | null = null;
+
+	#plot: PlotRect = { left: 0, top: 0, width: 0, height: 0 };
+	#bandLayout: BandLayout | null = null;
+
+	#zs = new Float64Array(0);
+	#zDomain: [number, number] = [0, 1];
+	#camera: Camera = { yaw: 0.65, pitch: -0.35 };
+	// Dimension changes re-aim the camera (face-on for a line or plane, the
+	// default tilt for the cube); a manual drag cancels the glide.
+	#cameraChase = new ChaseTween({ speed: 0.12 });
+	// Per-axis collapse factors [y, z] for the 3D dimensions morph: 1D collapses
+	// the cloud onto the x axis, 2D onto the xy plane. Chased so dimension
+	// changes glide like every other motion in the engine.
+	#dimensionChase = new ChaseTween({ speed: 0.16 });
+	#drag: { lastX: number; lastY: number; moved: boolean } | null = null;
+	#projected: {
+		screenX: Float64Array;
+		screenY: Float64Array;
+		radius: Float64Array;
+		seriesIndex: Int32Array;
+		pointIndex: Int32Array;
+		count: number;
+	} | null = null;
+	#activeScreen: { x: number; y: number } | null = null;
+	#activeSeriesKey: string | null = null;
+
+	#activeIndex: number | null = null;
+	#controlledIndex: number | null | undefined = undefined;
+	#viaKeyboard = false;
+	#pointerY: number | null = null;
+	#tooltipSize: { width: number; height: number } = { width: 0, height: 0 };
+
+	#scheduled = false;
+	#needsPaint = false;
+	#frame = 0;
+	#destroyed = false;
+
+	constructor(options: { kind: SeriesMark; elements: EngineElements; store: ChartStore }) {
+		this.#kind = options.kind;
+		this.#elements = options.elements;
+		this.#store = options.store;
+		this.#ctx = options.elements.canvas.getContext("2d");
+
+		this.#store.onSeriesChange = () => {
+			this.#ingest();
+			this.#schedule();
+		};
+		this.#store.onPresentationChange = () => {
+			this.#schedule();
+		};
+
+		if (typeof ResizeObserver !== "undefined") {
+			this.#resizeObserver = new ResizeObserver((entries) => {
+				// Record only; never paint or mutate DOM synchronously inside the
+				// observer callback (avoids resize-loop errors and layout thrash).
+				const entry = entries[0];
+				if (entry == null) {
+					return;
+				}
+				this.#cssWidth = entry.contentRect.width;
+				this.#cssHeight = entry.contentRect.height;
+				this.#dpr = this.#currentDpr();
+				this.#decimationCache.clear();
+				this.#schedule();
+			});
+			this.#resizeObserver.observe(options.elements.plot);
+
+			this.#tooltipResizeObserver = new ResizeObserver(() => {
+				this.#tooltipSize = {
+					width: this.#elements.tooltip.offsetWidth,
+					height: this.#elements.tooltip.offsetHeight,
+				};
+				this.#scheduleOverlay();
+			});
+			this.#tooltipResizeObserver.observe(options.elements.tooltip);
+		}
+
+		const documentElement = options.elements.root.ownerDocument.documentElement;
+		this.#themeDisconnect = observeThemeChanges(documentElement, () => {
+			this.#colors = null;
+			this.#schedule();
+		});
+		this.#watchDpr();
+		this.#dimensionChase.jump([1, 1]);
+	}
+
+	destroy(): void {
+		this.#destroyed = true;
+		this.#resizeObserver?.disconnect();
+		this.#tooltipResizeObserver?.disconnect();
+		this.#themeDisconnect?.();
+		this.#dprCleanup?.();
+		this.#store.onSeriesChange = null;
+		this.#store.onPresentationChange = null;
+		if (this.#frame !== 0) {
+			cancelAnimationFrame(this.#frame);
+		}
+	}
+
+	/**
+	 * Browser zoom and monitor moves change devicePixelRatio without resizing
+	 * the element. A resolution media query matching the CURRENT ratio fires
+	 * once when it stops matching; re-arm at the new ratio each time.
+	 */
+	#watchDpr(): void {
+		if (typeof matchMedia === "undefined" || this.#destroyed) {
+			return;
+		}
+		this.#dprCleanup?.();
+		const media = matchMedia(`(resolution: ${this.#currentDpr()}dppx)`);
+		const onChange = (): void => {
+			this.#dpr = this.#currentDpr();
+			this.#decimationCache.clear();
+			this.#schedule();
+			this.#watchDpr();
+		};
+		media.addEventListener("change", onChange, { once: true });
+		this.#dprCleanup = () => media.removeEventListener("change", onChange);
+	}
+
+	setOptions(options: ChartOptions): void {
+		const previous = this.#options;
+		this.#options = options;
+		if (previous.xScale !== options.xScale) {
+			// Band/point fade keys are indexes; continuous keys are data values —
+			// stale entries would be reinterpreted under the new scale.
+			this.#xLabelFade.clear();
+		}
+		if (previous.animate && !options.animate) {
+			// Motion switched off mid-glide: settle everything now instead of
+			// letting in-flight chases play out.
+			this.#snapAllMotion();
+		}
+		if (previous.dimensions !== options.dimensions) {
+			const target = [options.dimensions >= 2 ? 1 : 0, options.dimensions >= 3 ? 1 : 0];
+			const view = cameraViewFor(options.dimensions);
+			if (this.#tweenDuration() === 0 || !this.#hasIngested) {
+				// Snap before first paint (and under reduced motion) — a chart must
+				// not mount mid-collapse.
+				this.#dimensionChase.jump(target);
+				this.#camera = view;
+				this.#cameraChase.jump([view.yaw, view.pitch]);
+			} else {
+				// Unwind accumulated drag revolutions so the camera takes the short
+				// way to the view instead of spinning back through every turn.
+				const yawTarget =
+					view.yaw + Math.round((this.#camera.yaw - view.yaw) / (Math.PI * 2)) * Math.PI * 2;
+				this.#dimensionChase.aim(target, performance.now());
+				this.#cameraChase.jump([this.#camera.yaw, this.#camera.pitch]);
+				this.#cameraChase.aim([yawTarget, view.pitch], performance.now());
+			}
+		}
+		if (
+			previous.xKey !== options.xKey ||
+			previous.xScale !== options.xScale ||
+			previous.zKey !== options.zKey ||
+			previous.stacked !== options.stacked ||
+			previous.yDomain[0] !== options.yDomain[0] ||
+			previous.yDomain[1] !== options.yDomain[1]
+		) {
+			this.#ingest();
+		}
+		this.#schedule();
+	}
+
+	setCallbacks(callbacks: EngineCallbacks): void {
+		this.#callbacks = callbacks;
+	}
+
+	setRows(rows: readonly ChartDatum[]): void {
+		if (rows === this.#rows) {
+			return;
+		}
+		this.#rows = rows;
+		this.#ingest();
+		this.#schedule();
+	}
+
+	/**
+	 * Controlled active index: `undefined` means uncontrolled; a number or
+	 * `null` mirrors the consumer's state into the hover UI.
+	 */
+	setControlledActiveIndex(index: number | null | undefined): void {
+		this.#controlledIndex = index;
+		if (index !== undefined) {
+			this.#setActive(index, { viaKeyboard: false, notify: false });
+		}
+		this.#scheduleOverlay();
+	}
+
+	handlePointerMove(cssX: number, cssY: number): void {
+		if (this.#drag != null) {
+			// 3D rotation drag: update the camera, suppress hover, repaint.
+			const deltaX = cssX - this.#drag.lastX;
+			const deltaY = cssY - this.#drag.lastY;
+			if (this.#drag.moved || Math.abs(deltaX) + Math.abs(deltaY) > DRAG_THRESHOLD) {
+				this.#drag.moved = true;
+				this.#camera = {
+					yaw: this.#camera.yaw + deltaX * 0.008,
+					pitch: clampPitch(this.#camera.pitch + deltaY * 0.008),
+				};
+				this.#cameraChase.jump([this.#camera.yaw, this.#camera.pitch]);
+				this.#drag.lastX = cssX;
+				this.#drag.lastY = cssY;
+				this.#setActive(null, { viaKeyboard: false, notify: false });
+				this.#schedule();
+			}
+			return;
+		}
+		this.#pointerY = cssY;
+		if (this.#kind === "scatter") {
+			const hit = this.#scatterHitAt(cssX, cssY);
+			this.#activeSeriesKey = hit?.seriesKey ?? null;
+			this.#activeScreen = hit == null ? null : { x: hit.screenX, y: hit.screenY };
+			this.#setActive(hit?.index ?? null, { viaKeyboard: false, notify: true });
+			return;
+		}
+		const index = this.#indexAtPixel(cssX);
+		this.#setActive(index, { viaKeyboard: false, notify: true });
+	}
+
+	/**
+	 * Pointer-down begins a rotation drag in 3D mode; everywhere else it is
+	 * tap-to-inspect (the same hover path as a move).
+	 */
+	handlePointerDown(cssX: number, cssY: number): void {
+		if (this.#is3d()) {
+			this.#drag = { lastX: cssX, lastY: cssY, moved: false };
+			return;
+		}
+		this.handlePointerMove(cssX, cssY);
+	}
+
+	/**
+	 * Pointer-up activates the datum under the pointer — unless the pointer was
+	 * rotating the 3D camera, in which case releasing does nothing.
+	 */
+	handlePointerUp(cssX: number, cssY: number): void {
+		const drag = this.#drag;
+		this.#drag = null;
+		if (drag != null) {
+			if (drag.moved) {
+				return;
+			}
+			// A tap in 3D: inspect, then activate.
+			this.handlePointerMove(cssX, cssY);
+		}
+		this.handleActivate(cssX, cssY);
+	}
+
+	handlePointerLeave(): void {
+		this.#pointerY = null;
+		this.#drag = null;
+		this.#activeSeriesKey = null;
+		this.#activeScreen = null;
+		this.#setActive(null, { viaKeyboard: false, notify: true });
+	}
+
+	handleActivate(cssX: number | null, cssY: number | null): void {
+		const index = this.#effectiveIndex();
+		if (index == null) {
+			return;
+		}
+		const originalIndex = this.#order == null ? index : (this.#order[index] ?? index);
+		const datum = this.#rows[originalIndex];
+		if (datum == null) {
+			return;
+		}
+		this.#callbacks.onDatumActivate?.({
+			index,
+			xValue: this.#xValues[index] ?? "",
+			datum,
+			dataKey:
+				this.#kind === "scatter"
+					? this.#activeSeriesKey
+					: cssX == null || cssY == null
+						? null
+						: this.#nearestSeries(index, cssX, cssY),
+		});
+	}
+
+	/**
+	 * Keyboard interaction on the focusable overlay. Returns `true` when the
+	 * key was handled (the caller prevents default). Arrow strides widen to one
+	 * device-pixel column when decimated so dense charts stay traversable.
+	 */
+	handleKeyDown(key: string): boolean {
+		if (this.#rowCount === 0) {
+			return false;
+		}
+		const last = this.#rowCount - 1;
+		const current = this.#effectiveIndex();
+		const stride = this.#decimated
+			? Math.max(1, Math.floor(this.#rowCount / Math.max(1, this.#plot.width * this.#dpr)))
+			: 1;
+		const pageStride = Math.max(1, Math.floor(this.#rowCount / 10));
+
+		const target = (() => {
+			switch (key) {
+				case "ArrowLeft": {
+					return Math.max(0, (current ?? this.#rowCount) - stride);
+				}
+				case "ArrowRight": {
+					return Math.min(last, (current ?? -1) + stride);
+				}
+				case "PageUp": {
+					return Math.min(last, (current ?? 0) + pageStride);
+				}
+				case "PageDown": {
+					return Math.max(0, (current ?? last) - pageStride);
+				}
+				case "Home": {
+					return 0;
+				}
+				case "End": {
+					return last;
+				}
+				case "Escape": {
+					return null;
+				}
+				default: {
+					return undefined;
+				}
+			}
+		})();
+
+		if (target === undefined) {
+			if (key === "Enter" || key === " ") {
+				this.handleActivate(null, null);
+				return true;
+			}
+			return false;
+		}
+		this.#pointerY = null;
+		this.#activeSeriesKey = null;
+		this.#activeScreen = null;
+		this.#setActive(target, { viaKeyboard: true, notify: true });
+		return true;
+	}
+
+	/**
+	 * Force color re-resolution (e.g. after consumer-driven CSS variable changes).
+	 */
+	invalidateColors(): void {
+		this.#colors = null;
+		this.#schedule();
+	}
+
+	/**
+	 * Finish every in-flight motion at its target immediately (animate switched
+	 * off, or reduced motion arriving mid-glide).
+	 */
+	#snapAllMotion(): void {
+		this.#yTween.jump(this.#targetYDomain());
+		this.#xTween.jump(this.#targetXDomain());
+		this.#dimensionChase.jump([
+			this.#options.dimensions >= 2 ? 1 : 0,
+			this.#options.dimensions >= 3 ? 1 : 0,
+		]);
+		const view = cameraViewFor(this.#options.dimensions);
+		this.#camera = view;
+		this.#cameraChase.jump([view.yaw, view.pitch]);
+		for (const tween of this.#valueTweens.values()) {
+			tween.snap();
+		}
+		for (const tween of this.#revealTweens.values()) {
+			tween.snap();
+		}
+		this.#schedule();
+	}
+
+	// ---- data ingest ----------------------------------------------------------
+
+	#ingest(): void {
+		const rows = this.#rows;
+		const { xKey, xScale } = this.#options;
+		const specs = this.#store.seriesSpecs();
+		this.#decimationCache.clear();
+		const previousXs = this.#xs;
+
+		// x values + sort order (continuous scales require ascending x; rows whose
+		// x cannot be coerced — null/unparseable dates — are dropped entirely, since
+		// a point with no position would poison the domain into NaN).
+		if (xScale === "band" || xScale === "point") {
+			const count = rows.length;
+			const xs = new Float64Array(count);
+			const xValues: XValue[] = Array.from({ length: count }, () => "");
+			for (let index = 0; index < count; index++) {
+				const row = rows[index];
+				const raw = row == null ? undefined : datumValue(row, xKey);
+				xValues[index] =
+					typeof raw === "string" || typeof raw === "number" || raw instanceof Date
+						? raw
+						: String(raw);
+				xs[index] = index;
+			}
+			this.#order = null;
+			this.#rowCount = count;
+			this.#xs = xs;
+			this.#xValues = xValues;
+		} else {
+			const entries: Array<{ source: number; x: number }> = [];
+			for (let index = 0; index < rows.length; index++) {
+				const row = rows[index];
+				const raw = row == null ? undefined : datumValue(row, xKey);
+				const x = toEpochOrNumber(raw, xScale === "time");
+				if (!Number.isNaN(x)) {
+					entries.push({ source: index, x });
+				}
+			}
+			// Sorting once at ingest keeps decimation and hit-testing correct for
+			// out-of-order API responses; the sorted view is the engine's contract.
+			let sortedAscending = true;
+			for (let index = 1; index < entries.length; index++) {
+				if ((entries[index]?.x ?? 0) < (entries[index - 1]?.x ?? 0)) {
+					sortedAscending = false;
+					break;
+				}
+			}
+			const ordered = sortedAscending ? entries : entries.toSorted((a, b) => a.x - b.x);
+			const count = ordered.length;
+			const xs = new Float64Array(count);
+			const xValues: XValue[] = Array.from({ length: count }, () => "");
+			let identityOrder = count === rows.length;
+			const order = new Int32Array(count);
+			for (let index = 0; index < count; index++) {
+				const entry = ordered[index];
+				if (entry == null) {
+					continue;
+				}
+				xs[index] = entry.x;
+				if (xScale === "time") {
+					xValues[index] = new Date(entry.x);
+				} else {
+					xValues[index] = entry.x;
+				}
+				order[index] = entry.source;
+				if (entry.source !== index) {
+					identityOrder = false;
+				}
+			}
+			this.#order = identityOrder ? null : order;
+			this.#rowCount = count;
+			this.#xs = xs;
+			this.#xValues = xValues;
+		}
+		const count = this.#rowCount;
+
+		// Per-datum tweens are only meaningful when old and new points share the
+		// same x positions — index-aligned interpolation across a shifted window
+		// would morph each point into its neighbor's value.
+		let sameXVector = previousXs.length === count && count <= PER_DATUM_TWEEN_LIMIT;
+		if (sameXVector) {
+			for (let index = 0; index < count; index++) {
+				if (previousXs[index] !== this.#xs[index]) {
+					sameXVector = false;
+					break;
+				}
+			}
+		}
+
+		// Per-series columns (NaN = gap) + extent + fail-fast key validation.
+		const previousColumns = this.#columns;
+		this.#columns = new Map();
+		let min = Number.POSITIVE_INFINITY;
+		let max = Number.NEGATIVE_INFINITY;
+		for (const spec of specs) {
+			const values = new Float64Array(count);
+			let found = false;
+			for (let index = 0; index < count; index++) {
+				const originalIndex = this.#order == null ? index : (this.#order[index] ?? index);
+				const row = rows[originalIndex];
+				const raw = row == null ? undefined : datumValue(row, spec.dataKey);
+				if (raw === undefined) {
+					values[index] = Number.NaN;
+					continue;
+				}
+				found = true;
+				const value = typeof raw === "number" ? raw : Number.NaN;
+				values[index] = value;
+				if (!Number.isNaN(value)) {
+					if (value < min) {
+						min = value;
+					}
+					if (value > max) {
+						max = value;
+					}
+				}
+			}
+			invariant(
+				count === 0 || found,
+				`${PART_NAME[spec.mark]} dataKey "${spec.dataKey}" does not match any key in the provided data. Available keys: ${Object.keys(rows[0] ?? {}).join(", ")}.`,
+			);
+			this.#columns.set(spec.dataKey, values);
+		}
+		this.#valueMin = min === Number.POSITIVE_INFINITY ? 0 : min;
+		this.#valueMax = max === Number.NEGATIVE_INFINITY ? 0 : max;
+
+		// 3D scatter: the depth column, sorted-aligned like every series column.
+		const zKey = this.#options.zKey;
+		if (this.#kind === "scatter" && zKey != null) {
+			const zs = new Float64Array(count);
+			let zMin = Number.POSITIVE_INFINITY;
+			let zMax = Number.NEGATIVE_INFINITY;
+			let zFound = false;
+			for (let index = 0; index < count; index++) {
+				const originalIndex = this.#order == null ? index : (this.#order[index] ?? index);
+				const row = rows[originalIndex];
+				const raw = row == null ? undefined : datumValue(row, zKey);
+				if (raw !== undefined) {
+					zFound = true;
+				}
+				const value = typeof raw === "number" ? raw : Number.NaN;
+				zs[index] = value;
+				if (!Number.isNaN(value)) {
+					if (value < zMin) {
+						zMin = value;
+					}
+					if (value > zMax) {
+						zMax = value;
+					}
+				}
+			}
+			invariant(
+				count === 0 || zFound,
+				`ScatterChart.Root zKey "${zKey}" does not match any key in the provided data. Available keys: ${Object.keys(rows[0] ?? {}).join(", ")}.`,
+			);
+			this.#zs = zs;
+			this.#zDomain =
+				zMin === Number.POSITIVE_INFINITY ? [0, 1] : niceDomain([zMin, zMax], Y_TICK_COUNT);
+		} else {
+			this.#zs = new Float64Array(0);
+		}
+		this.#projected = null;
+
+		this.#stack = this.#options.stacked
+			? computeStackBoundaries(
+					specs.map((spec) => this.#columns.get(spec.dataKey) ?? new Float64Array(0)),
+				)
+			: null;
+
+		this.#decimated = shouldDecimate({
+			pointCount: count,
+			columnCount: Math.max(1, Math.round(this.#plot.width * this.#dpr)),
+			wasDecimated: this.#decimated,
+		});
+
+		// A series registered after the first paint has no resolved canvas color
+		// yet (the theme signature is unchanged, so the lazy cache would skip it
+		// and paint would fall back to currentColor). Invalidate when the series
+		// set or any series' color input changed — not on every data tick.
+		const resolved = this.#colors;
+		if (resolved != null) {
+			for (const meta of this.#store.seriesMeta()) {
+				if (resolved.inputs.get(meta.dataKey) !== meta.colorInput) {
+					this.#colors = null;
+					break;
+				}
+			}
+		}
+
+		this.#retargetTweens(specs, previousColumns, sameXVector);
+
+		// Data changed under the active position: clamp, then force a republish
+		// so the snapshot reflects the fresh rows even at an unchanged index.
+		const active = this.#effectiveIndex();
+		if (active != null) {
+			this.#setActive(Math.min(active, Math.max(0, count - 1)), {
+				viaKeyboard: this.#viaKeyboard,
+				notify: false,
+			});
+		}
+		this.#publishSnapshot({ force: true });
+	}
+
+	#retargetTweens(
+		specs: readonly SeriesSpec[],
+		previousColumns: Map<string, Float64Array>,
+		sameXVector: boolean,
+	): void {
+		const now = performance.now();
+		const duration = this.#tweenDuration();
+		const firstIngest = !this.#hasIngested;
+		this.#hasIngested = this.#hasIngested || this.#rowCount > 0;
+
+		// Domains: snap on first data (and under reduced motion); otherwise glide.
+		if (firstIngest || duration === 0) {
+			this.#yTween.jump(this.#targetYDomain());
+			this.#xTween.jump(this.#targetXDomain());
+		} else {
+			this.#yTween.aim(this.#targetYDomain(), now);
+			this.#xTween.aim(this.#targetXDomain(), now);
+		}
+
+		// Per-datum tweens: only below the limit and only when the x vector is
+		// unchanged — index-aligned interpolation across a shifted window would
+		// morph each point into its neighbor's value.
+		const perDatum = this.#rowCount > 0 && this.#rowCount <= PER_DATUM_TWEEN_LIMIT && sameXVector;
+		const activeKeys = new Set<string>();
+		const retargetBuffer = (tweenKey: string, target: Float64Array, hadPrevious: boolean) => {
+			activeKeys.add(tweenKey);
+			let tween = this.#valueTweens.get(tweenKey);
+			if (tween == null) {
+				tween = new ValueTween();
+				this.#valueTweens.set(tweenKey, tween);
+			}
+			const animate = perDatum && hadPrevious && tween.values().length === target.length;
+			tween.retarget(target, { duration: animate ? duration : 0, now });
+		};
+
+		specs.forEach((spec, seriesIndex) => {
+			const hadPrevious = previousColumns.has(spec.dataKey);
+			if (this.#stack != null) {
+				retargetBuffer(
+					`${spec.dataKey}:lower`,
+					this.#stack.lower[seriesIndex] ?? new Float64Array(0),
+					hadPrevious,
+				);
+				retargetBuffer(
+					`${spec.dataKey}:upper`,
+					this.#stack.upper[seriesIndex] ?? new Float64Array(0),
+					hadPrevious,
+				);
+			} else {
+				retargetBuffer(
+					spec.dataKey,
+					this.#columns.get(spec.dataKey) ?? new Float64Array(0),
+					hadPrevious,
+				);
+			}
+
+			// Enter reveal: once per series, on its first non-empty data.
+			if (!this.#revealTweens.has(spec.dataKey) && this.#rowCount > 0) {
+				const reveal = new ValueTween();
+				reveal.retarget([0], { duration: 0, now });
+				reveal.retarget([1], { duration: this.#tweenDuration(), now });
+				this.#revealTweens.set(spec.dataKey, reveal);
+			}
+		});
+
+		for (const key of this.#valueTweens.keys()) {
+			if (!activeKeys.has(key)) {
+				this.#valueTweens.delete(key);
+			}
+		}
+	}
+
+	#tweenDuration(): number {
+		if (!this.#options.animate) {
+			return 0;
+		}
+		if (
+			typeof matchMedia !== "undefined" &&
+			matchMedia("(prefers-reduced-motion: reduce)").matches
+		) {
+			return 0;
+		}
+		return CHART_TWEEN_DURATION_MS;
+	}
+
+	#targetYDomain(): [number, number] {
+		const [minOverride, maxOverride] = this.#options.yDomain;
+		let min: number;
+		let max: number;
+		if (this.#stack != null) {
+			min = Math.min(0, this.#stack.min);
+			max = Math.max(0, this.#stack.max);
+		} else if (this.#kind === "line" || this.#kind === "scatter") {
+			min = this.#valueMin;
+			max = this.#valueMax;
+		} else {
+			min = Math.min(0, this.#valueMin);
+			max = Math.max(0, this.#valueMax);
+		}
+		if (typeof minOverride === "number") {
+			min = minOverride;
+		}
+		if (typeof maxOverride === "number") {
+			max = maxOverride;
+		}
+		if (this.#rowCount === 0) {
+			return [0, 1];
+		}
+		const niced = niceDomain([min, max], Y_TICK_COUNT);
+		// Never let niceness move an explicit override or re-cross a zero baseline.
+		return [
+			typeof minOverride === "number" ? minOverride : niced[0],
+			typeof maxOverride === "number" ? maxOverride : niced[1],
+		];
+	}
+
+	#targetXDomain(): [number, number] {
+		if (this.#rowCount === 0) {
+			return [0, 1];
+		}
+		const first = this.#xs[0] ?? 0;
+		const last = this.#xs[this.#rowCount - 1] ?? 0;
+		if (first === last) {
+			return [first - 0.5, last + 0.5];
+		}
+		if (this.#kind === "scatter") {
+			// Points on the exact plot edge get half-clipped; give scatter niced
+			// breathing room the way the y axis already has.
+			return niceDomain([first, last], Y_TICK_COUNT);
+		}
+		return [first, last];
+	}
+
+	#is3d(): boolean {
+		return this.#kind === "scatter" && this.#options.zKey != null;
+	}
+
+	// ---- scheduling + paint ---------------------------------------------------
+
+	/** Schedule a full canvas repaint (plus overlay sync) on the next frame. */
+	#schedule(): void {
+		this.#needsPaint = true;
+		this.#request();
+	}
+
+	/**
+	 * Schedule only the DOM overlay sync (crosshair/band/markers/tooltip
+	 * transforms). This is the hover path — pointer moves never repaint the
+	 * canvas.
+	 */
+	#scheduleOverlay(): void {
+		this.#request();
+	}
+
+	#request(): void {
+		if (this.#scheduled || this.#destroyed) {
+			return;
+		}
+		this.#scheduled = true;
+		this.#frame = requestAnimationFrame(() => {
+			this.#scheduled = false;
+			this.#frame = 0;
+			this.#commit();
+		});
+	}
+
+	#commit(): void {
+		if (this.#destroyed) {
+			return;
+		}
+		if (this.#needsPaint) {
+			this.#needsPaint = false;
+			const now = performance.now();
+			let animating = false;
+			animating = this.#yTween.tick(now) || animating;
+			animating = this.#xTween.tick(now) || animating;
+			for (const tween of this.#valueTweens.values()) {
+				animating = tween.tick(now) || animating;
+			}
+			for (const tween of this.#revealTweens.values()) {
+				animating = tween.tick(now) || animating;
+			}
+			animating = this.#dimensionChase.tick(now) || animating;
+			if (this.#cameraChase.tick(now)) {
+				animating = true;
+				const view = this.#cameraChase.values();
+				this.#camera = { yaw: view[0] ?? this.#camera.yaw, pitch: view[1] ?? this.#camera.pitch };
+			}
+
+			this.#resolveColorsIfNeeded();
+			this.#layout();
+			animating = this.#paint(now) || animating;
+
+			if (animating) {
+				this.#schedule();
+			}
+		}
+		this.#updateOverlay();
+	}
+
+	#currentDpr(): number {
+		if (typeof devicePixelRatio === "number" && devicePixelRatio > 0) {
+			return Math.min(devicePixelRatio, 3);
+		}
+		return 1;
+	}
+
+	#resolveColorsIfNeeded(): void {
+		const root = this.#elements.root;
+		const signature = themeSignature(root.ownerDocument.documentElement);
+		if (this.#colors?.signature === signature) {
+			return;
+		}
+		const view = root.ownerDocument.defaultView;
+		if (view == null) {
+			return;
+		}
+		const series = new Map<string, string>();
+		const inputs = new Map<string, string>();
+		for (const meta of this.#store.seriesMeta()) {
+			series.set(meta.dataKey, resolveSeriesColor(root, meta.colorInput));
+			inputs.set(meta.dataKey, meta.colorInput);
+		}
+		this.#colors = {
+			signature,
+			series,
+			inputs,
+			chrome: resolveChromeColors(root),
+			fontFamily: view.getComputedStyle(root).fontFamily || "sans-serif",
+		};
+	}
+
+	#layout(): void {
+		const snapshot = this.#store.getSnapshot();
+		const is3d = this.#is3d();
+		const hasXAxis = !is3d && snapshot.xAxis != null;
+		const hasYAxis = !is3d && snapshot.yAxis != null;
+		let left = PLOT_PADDING;
+		if (hasYAxis) {
+			left = FALLBACK_AXIS_GUTTER;
+			const ctx = this.#ctx;
+			if (ctx != null && this.#colors != null) {
+				ctx.font = `${AXIS_FONT_SIZE}px ${this.#colors.fontFamily}`;
+				let widest = 0;
+				for (const tick of this.#yTicks()) {
+					const width = ctx.measureText(tick.text).width;
+					if (width > widest) {
+						widest = width;
+					}
+				}
+				left = Math.ceil(widest) + 14;
+			}
+		}
+		const bottom = hasXAxis ? X_AXIS_BAND : PLOT_PADDING;
+		this.#plot = {
+			left,
+			top: PLOT_PADDING,
+			width: Math.max(0, this.#cssWidth - left - PLOT_PADDING),
+			height: Math.max(0, this.#cssHeight - PLOT_PADDING - bottom),
+		};
+		if (this.#options.xScale === "band") {
+			this.#bandLayout = computeBandLayout({
+				count: this.#rowCount,
+				rangeStart: this.#plot.left,
+				rangeEnd: this.#plot.left + this.#plot.width,
+				paddingInner: 0.2,
+				paddingOuter: 0.1,
+			});
+		} else if (this.#options.xScale === "point") {
+			this.#bandLayout = computeBandLayout({
+				count: this.#rowCount,
+				rangeStart: this.#plot.left,
+				rangeEnd: this.#plot.left + this.#plot.width,
+				paddingInner: 1,
+				paddingOuter: 0.5,
+			});
+		} else {
+			this.#bandLayout = null;
+		}
+
+		this.#decimated = shouldDecimate({
+			pointCount: this.#rowCount,
+			columnCount: Math.max(1, Math.round(this.#plot.width * this.#dpr)),
+			wasDecimated: this.#decimated,
+		});
+	}
+
+	#yCoefficients(): { k: number; b: number } {
+		const domain = this.#yTween.values();
+		return linearCoefficients(
+			[domain[0] ?? 0, domain[1] ?? 1],
+			[this.#plot.top + this.#plot.height, this.#plot.top],
+		);
+	}
+
+	#xCoefficients(): { k: number; b: number } {
+		const domain = this.#xTween.values();
+		return linearCoefficients(
+			[domain[0] ?? 0, domain[1] ?? 1],
+			[this.#plot.left, this.#plot.left + this.#plot.width],
+		);
+	}
+
+	#xPixel(index: number): number {
+		const layout = this.#bandLayout;
+		if (layout != null) {
+			return bandCenter(layout, index);
+		}
+		const { k, b } = this.#xCoefficients();
+		return (this.#xs[index] ?? 0) * k + b;
+	}
+
+	#yTicks(): Array<{ value: number; text: string }> {
+		const snapshot = this.#store.getSnapshot();
+		const domain = this.#yTween.values();
+		const ticks = linearTicks(
+			[domain[0] ?? 0, domain[1] ?? 1],
+			snapshot.yAxis?.tickCount ?? Y_TICK_COUNT,
+		);
+		const format = snapshot.yAxis?.tickFormat;
+		return ticks.map((value) => ({
+			value,
+			text: format == null ? formatNumber(value) : format(value),
+		}));
+	}
+
+	#xTicks(): Array<{ index: number | null; value: number; text: string }> {
+		const snapshot = this.#store.getSnapshot();
+		const format = snapshot.xAxis?.tickFormat;
+		if (this.#bandLayout != null) {
+			// Pre-thin dense category axes by stride before any text measurement so
+			// ten-thousand-band charts never format ten thousand labels per paint.
+			const maxLabels = Math.max(1, Math.floor(this.#plot.width / 60));
+			const stride = Math.max(1, Math.ceil(this.#rowCount / maxLabels));
+			const ticks: Array<{ index: number | null; value: number; text: string }> = [];
+			for (let index = 0; index < this.#rowCount; index += stride) {
+				const value = this.#xValues[index] ?? "";
+				ticks.push({
+					index,
+					value: index,
+					text: format == null ? formatXValue(value) : format(value),
+				});
+			}
+			return ticks;
+		}
+		const domain = this.#xTween.values();
+		const range: [number, number] = [domain[0] ?? 0, domain[1] ?? 1];
+		const count = snapshot.xAxis?.tickCount ?? Math.max(2, Math.floor(this.#plot.width / 90));
+		if (this.#options.xScale === "time") {
+			const defaultFormat = timeTickFormatter(range);
+			return timeTicks(range, count).map((epoch) => ({
+				index: null,
+				value: epoch,
+				text: format == null ? defaultFormat(epoch) : format(new Date(epoch)),
+			}));
+		}
+		return linearTicks(range, count).map((value) => ({
+			index: null,
+			value,
+			text: format == null ? formatNumber(value) : format(value),
+		}));
+	}
+
+	#paint(now: number): boolean {
+		const ctx = this.#ctx;
+		const colors = this.#colors;
+		if (ctx == null || colors == null || this.#cssWidth <= 0 || this.#cssHeight <= 0) {
+			return false;
+		}
+		const paintDt = Math.min(50, Math.max(0, now - this.#lastPaintTime));
+		this.#lastPaintTime = now;
+		const canvas = this.#elements.canvas;
+		const deviceWidth = Math.round(this.#cssWidth * this.#dpr);
+		const deviceHeight = Math.round(this.#cssHeight * this.#dpr);
+		if (canvas.width !== deviceWidth || canvas.height !== deviceHeight) {
+			// Setting the backing store clears the canvas — only touch it on change.
+			canvas.width = deviceWidth;
+			canvas.height = deviceHeight;
+		}
+		ctx.setTransform(this.#dpr, 0, 0, this.#dpr, 0, 0);
+		ctx.clearRect(0, 0, this.#cssWidth, this.#cssHeight);
+
+		const snapshot = this.#store.getSnapshot();
+		const plot = this.#plot;
+		if (plot.width <= 0 || plot.height <= 0) {
+			return false;
+		}
+		const yCo = this.#yCoefficients();
+		const xCo = this.#xCoefficients();
+		const specs = this.#store.seriesSpecs();
+		const is3d = this.#is3d();
+
+		// Tick fade state: desired tick sets fade in/out instead of popping, and
+		// gridlines share the label alphas so everything slides together while
+		// the domains glide.
+		const instantLabels = this.#tweenDuration() === 0;
+		const desiredXTicks = is3d ? [] : this.#desiredXTicks(ctx, colors.fontFamily);
+		const desiredYTicks = is3d
+			? []
+			: this.#yTicks().map((tick) => ({ key: tick.value, text: tick.text }));
+		let labelsAnimating = advanceLabelFade(this.#xLabelFade, desiredXTicks, paintDt, instantLabels);
+		labelsAnimating =
+			advanceLabelFade(this.#yLabelFade, desiredYTicks, paintDt, instantLabels) || labelsAnimating;
+		const xTickPosition = (key: number): number =>
+			this.#bandLayout != null ? bandCenter(this.#bandLayout, key) : key * xCo.k + xCo.b;
+
+		// grid (2D only — the 3D frame is the cube wireframe)
+		if (snapshot.grid != null && !is3d) {
+			const lines = snapshot.grid.lines;
+			const yLines =
+				lines === "vertical"
+					? []
+					: [...this.#yLabelFade.entries()].map(([key, entry]) => ({
+							position: key * yCo.k + yCo.b,
+							alpha: entry.alpha,
+						}));
+			const xLines =
+				lines === "horizontal"
+					? []
+					: [...this.#xLabelFade.entries()].map(([key, entry]) => ({
+							position: xTickPosition(key),
+							alpha: entry.alpha,
+						}));
+			drawGrid(ctx, { plot, color: colors.chrome.grid, xLines, yLines });
+		}
+
+		// marks
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect(plot.left, plot.top, plot.width, plot.height + 1);
+		ctx.clip();
+		let frameLabels: FrameLabels | null = null;
+		if (this.#kind === "bar") {
+			this.#paintBars(ctx, specs, yCo);
+		} else if (this.#kind === "scatter") {
+			frameLabels = this.#paintScatter(ctx, specs, yCo);
+		} else {
+			this.#paintLinesOrAreas(ctx, specs, yCo);
+		}
+		ctx.restore();
+
+		// 3D frame labels: after the clip so edge-adjacent labels stay whole.
+		if (frameLabels != null) {
+			drawCubeAxisLabels(ctx, {
+				textColor: colors.chrome.tickText,
+				fontFamily: colors.fontFamily,
+				plot,
+				center: frameLabels.center,
+				axes: frameLabels.axes,
+			});
+		}
+
+		// baseline (bars grow from a single baseline; keep it visible)
+		if (this.#kind === "bar" && this.#rowCount > 0) {
+			drawBaseline(ctx, { plot, color: colors.chrome.baseline, y: 0 * yCo.k + yCo.b });
+		}
+
+		// reference lines (skipped outside the y domain — an unclipped line would
+		// strike through the axis label strip; and skipped entirely in 3D)
+		for (const reference of is3d ? [] : snapshot.referenceLines) {
+			const y = reference.y * yCo.k + yCo.b;
+			if (y < plot.top || y > plot.top + plot.height) {
+				continue;
+			}
+			const color =
+				reference.color == null
+					? colors.chrome.reference
+					: resolveSeriesColor(this.#elements.root, reference.color);
+			drawReferenceLine(ctx, {
+				plot,
+				color,
+				textColor: colors.chrome.tickText,
+				y,
+				label: reference.label,
+				fontFamily: colors.fontFamily,
+			});
+		}
+
+		// axis labels (2D only), drawn from the fade maps so exits fade out
+		const xLabels =
+			snapshot.xAxis == null || is3d
+				? []
+				: [...this.#xLabelFade.entries()].map(([key, entry]) => ({
+						position: xTickPosition(key),
+						text: entry.text,
+						alpha: entry.alpha,
+					}));
+		const yLabels =
+			snapshot.yAxis == null || is3d
+				? []
+				: [...this.#yLabelFade.entries()].map(([key, entry]) => ({
+						position: key * yCo.k + yCo.b,
+						text: entry.text,
+						alpha: entry.alpha,
+					}));
+		if (xLabels.length > 0 || yLabels.length > 0) {
+			drawAxisLabels(ctx, {
+				plot,
+				color: colors.chrome.tickText,
+				fontFamily: colors.fontFamily,
+				xLabels,
+				yLabels,
+			});
+		}
+		return labelsAnimating;
+	}
+
+	/**
+	 * The x ticks that SHOULD be visible this frame: generated for the current
+	 * (possibly mid-glide) domain, then collision-thinned by measured width
+	 * (skip, never rotate). Keys are band indexes on band scales and tick
+	 * values on continuous ones.
+	 */
+	#desiredXTicks(
+		ctx: CanvasRenderingContext2D,
+		fontFamily: string,
+	): Array<{ key: number; text: string }> {
+		ctx.font = `${AXIS_FONT_SIZE}px ${fontFamily}`;
+		const xCo = this.#xCoefficients();
+		const desired: Array<{ key: number; text: string }> = [];
+		let previousRight = Number.NEGATIVE_INFINITY;
+		for (const tick of this.#xTicks()) {
+			const isBand = tick.index != null && this.#bandLayout != null;
+			const position =
+				isBand && this.#bandLayout != null
+					? bandCenter(this.#bandLayout, tick.index ?? 0)
+					: tick.value * xCo.k + xCo.b;
+			const width = ctx.measureText(tick.text).width;
+			if (position - width / 2 < previousRight + 8) {
+				continue;
+			}
+			previousRight = position + width / 2;
+			desired.push({ key: isBand ? (tick.index ?? 0) : tick.value, text: tick.text });
+		}
+		return desired;
+	}
+
+	#paintedValues(spec: SeriesSpec, boundary: "value" | "lower" | "upper"): Float64Array {
+		const key = boundary === "value" ? spec.dataKey : `${spec.dataKey}:${boundary}`;
+		// Never feed tween frames into the decimated path: decimated columns are
+		// cached by (x domain, width), which doesn't change while values tween, so
+		// the first frame's columns would be cached and painted forever.
+		if (!this.#decimated && this.#rowCount <= PER_DATUM_TWEEN_LIMIT) {
+			const tween = this.#valueTweens.get(key);
+			if (tween != null && tween.values().length === this.#rowCount) {
+				return tween.values();
+			}
+		}
+		if (boundary === "value") {
+			return this.#columns.get(spec.dataKey) ?? new Float64Array(0);
+		}
+		const specIndex = this.#store
+			.seriesSpecs()
+			.findIndex((entry) => entry.dataKey === spec.dataKey);
+		const rows = boundary === "lower" ? this.#stack?.lower : this.#stack?.upper;
+		return rows?.[specIndex] ?? new Float64Array(0);
+	}
+
+	#reveal(dataKey: string): number {
+		const tween = this.#revealTweens.get(dataKey);
+		return tween?.values()[0] ?? 1;
+	}
+
+	#paintBars(
+		ctx: CanvasRenderingContext2D,
+		specs: readonly SeriesSpec[],
+		yCo: { k: number; b: number },
+	): void {
+		const layout = this.#bandLayout;
+		const colors = this.#colors;
+		if (layout == null || colors == null || this.#rowCount === 0 || specs.length === 0) {
+			return;
+		}
+		const baselineY = 0 * yCo.k + yCo.b;
+		const stacked = this.#stack != null;
+		const groupCount = stacked ? 1 : specs.length;
+		const gap =
+			layout.bandwidth >= 8 * groupCount ? BAR_GAP : layout.bandwidth >= 3 * groupCount ? 1 : 0;
+		const slotWidth = (layout.bandwidth - gap * (groupCount - 1)) / groupCount;
+		const barWidth = Math.min(BAR_MAX_THICKNESS, slotWidth);
+
+		specs.forEach((spec, seriesIndex) => {
+			const reveal = this.#reveal(spec.dataKey);
+			const rects: BarRect[] = [];
+			const lower = stacked ? this.#paintedValues(spec, "lower") : null;
+			const upper = stacked
+				? this.#paintedValues(spec, "upper")
+				: this.#paintedValues(spec, "value");
+			const isOutermost = seriesIndex === specs.length - 1;
+			for (let index = 0; index < this.#rowCount; index++) {
+				const upperValue = upper[index] ?? Number.NaN;
+				if (Number.isNaN(upperValue)) {
+					continue;
+				}
+				const lowerValue = lower == null ? 0 : (lower[index] ?? 0);
+				const slotStart = stacked
+					? bandStart(layout, index) + (layout.bandwidth - barWidth) / 2
+					: bandStart(layout, index) +
+						(layout.bandwidth - (slotWidth * groupCount + gap * (groupCount - 1))) / 2 +
+						seriesIndex * (slotWidth + gap) +
+						(slotWidth - barWidth) / 2;
+				let baseY = Number.isNaN(lowerValue) ? baselineY : lowerValue * yCo.k + yCo.b;
+				let valueY = upperValue * yCo.k + yCo.b;
+				// Enter reveal: grow from the baseline.
+				valueY = baseY + (valueY - baseY) * reveal;
+				// 2px surface gap between stacked segments, carved entirely from the
+				// outer segment's baseline side (geometric, not painted).
+				if (stacked && lower != null && seriesIndex > 0 && !Number.isNaN(lowerValue) && gap > 0) {
+					baseY -= Math.sign(baseY - valueY) * gap;
+				}
+				rects.push({
+					x: slotStart,
+					width: barWidth,
+					baselineY: baseY,
+					valueY,
+					rounded: !stacked || isOutermost,
+				});
+			}
+			drawBars(ctx, { color: colors.series.get(spec.dataKey) ?? "currentColor", rects });
+		});
+	}
+
+	#paintLinesOrAreas(
+		ctx: CanvasRenderingContext2D,
+		specs: readonly SeriesSpec[],
+		yCo: { k: number; b: number },
+	): void {
+		const colors = this.#colors;
+		if (colors == null || this.#rowCount === 0) {
+			return;
+		}
+		const xCo = this.#xCoefficients();
+		const layout = this.#bandLayout;
+		const xAt = (index: number): number =>
+			layout != null ? bandCenter(layout, index) : (this.#xs[index] ?? 0) * xCo.k + xCo.b;
+
+		specs.forEach((spec) => {
+			const color = colors.series.get(spec.dataKey) ?? "currentColor";
+			const reveal = this.#reveal(spec.dataKey);
+			ctx.save();
+			if (reveal < 1) {
+				ctx.beginPath();
+				ctx.rect(this.#plot.left, 0, this.#plot.width * reveal, this.#cssHeight);
+				ctx.clip();
+			}
+			if (this.#decimated) {
+				this.#paintDecimatedSeries(ctx, spec, color, yCo);
+				ctx.restore();
+				return;
+			}
+			const isArea = spec.mark === "area";
+			const upper = this.#paintedValues(spec, this.#stack != null ? "upper" : "value");
+			const lower = this.#stack != null ? this.#paintedValues(spec, "lower") : null;
+			const definedAt = (index: number): boolean => !Number.isNaN(upper[index] ?? Number.NaN);
+			// connectNulls joins across gaps by drawing only the finite indexes;
+			// without it, NaN indexes stay in the list and defined() breaks the path.
+			const indexes: number[] = [];
+			for (let index = 0; index < this.#rowCount; index++) {
+				if (!spec.connectNulls || definedAt(index)) {
+					indexes.push(index);
+				}
+			}
+			const yAt = (index: number): number => (upper[index] ?? 0) * yCo.k + yCo.b;
+			if (isArea) {
+				const y0At =
+					lower == null
+						? (): number => 0 * yCo.k + yCo.b
+						: (index: number): number => (lower[index] ?? 0) * yCo.k + yCo.b;
+				drawAreaPath(ctx, {
+					color,
+					curve: spec.curve,
+					indexes,
+					xAt,
+					y0At,
+					y1At: yAt,
+					definedAt,
+				});
+			} else {
+				drawLinePath(ctx, { color, curve: spec.curve, indexes, xAt, yAt, definedAt });
+				if (spec.markers && this.#plot.width / this.#rowCount >= 12) {
+					drawMarkers(ctx, {
+						color,
+						surface: colors.chrome.surface,
+						indexes,
+						xAt,
+						yAt,
+						definedAt,
+					});
+				}
+			}
+			ctx.restore();
+		});
+	}
+
+	#paintDecimatedSeries(
+		ctx: CanvasRenderingContext2D,
+		spec: SeriesSpec,
+		color: string,
+		yCo: { k: number; b: number },
+	): void {
+		const columnCount = Math.max(1, Math.round(this.#plot.width * this.#dpr));
+		const columnToX = (column: number): number => this.#plot.left + (column + 0.5) / this.#dpr;
+		if (spec.mark === "area") {
+			const upper = this.#decimatedFor(
+				`${spec.dataKey}:upper`,
+				this.#paintedValues(spec, this.#stack != null ? "upper" : "value"),
+				columnCount,
+			);
+			const lower =
+				this.#stack != null
+					? this.#decimatedFor(
+							`${spec.dataKey}:lower`,
+							this.#paintedValues(spec, "lower"),
+							columnCount,
+						)
+					: null;
+			if (lower == null) {
+				drawDecimatedArea(ctx, {
+					color,
+					lowerColumns: zeroColumns(upper, 0),
+					upperColumns: upper,
+					columnToX,
+					valueK: yCo.k,
+					valueB: yCo.b,
+				});
+			} else {
+				drawDecimatedArea(ctx, {
+					color,
+					lowerColumns: lower,
+					upperColumns: upper,
+					columnToX,
+					valueK: yCo.k,
+					valueB: yCo.b,
+				});
+			}
+			return;
+		}
+		const columns = this.#decimatedFor(
+			spec.dataKey,
+			this.#paintedValues(spec, "value"),
+			columnCount,
+		);
+		drawDecimatedLine(ctx, { color, columns, columnToX, valueK: yCo.k, valueB: yCo.b });
+	}
+
+	#decimatedFor(cacheKey: string, values: Float64Array, columnCount: number): DecimatedColumns {
+		// Cache in data space keyed by (x domain, device-pixel width): y-domain
+		// tweens remap through fresh coefficients without re-running the O(n)
+		// accumulator.
+		const domain = this.#xTween.values();
+		const key = `${domain[0] ?? 0}:${domain[1] ?? 1}:${columnCount}`;
+		const cached = this.#decimationCache.get(cacheKey);
+		if (cached != null && cached.key === key) {
+			return cached.columns;
+		}
+		const range: [number, number] = [domain[0] ?? 0, domain[1] ?? 1];
+		const co = linearCoefficients(range, [0, columnCount]);
+		const columns = decimateColumns({
+			xs: this.#xs,
+			values,
+			startIndex: 0,
+			endIndex: this.#rowCount - 1,
+			positionK: co.k,
+			positionB: co.b,
+			columnCount,
+		});
+		this.#decimationCache.set(cacheKey, { key, columns });
+		return columns;
+	}
+
+	// ---- hover / keyboard / overlay -------------------------------------------
+
+	#effectiveIndex(): number | null {
+		const raw = this.#controlledIndex !== undefined ? this.#controlledIndex : this.#activeIndex;
+		if (raw == null || this.#rowCount === 0) {
+			return null;
+		}
+		// Clamp at the read so an out-of-range controlled index (or one stranded
+		// by a data shrink) never positions the overlay off-plot.
+		return Math.min(Math.max(0, raw), this.#rowCount - 1);
+	}
+
+	#indexAtPixel(cssX: number): number | null {
+		if (this.#rowCount === 0) {
+			return null;
+		}
+		const layout = this.#bandLayout;
+		if (layout != null) {
+			return invertBand(layout, cssX);
+		}
+		const { k, b } = this.#xCoefficients();
+		if (k === 0) {
+			return 0;
+		}
+		let x = cssX;
+		if (this.#decimated) {
+			// Snap to the device-pixel column center so every pointer position in a
+			// column yields the same (stable) snapshot index.
+			const column = Math.floor((cssX - this.#plot.left) * this.#dpr);
+			x = this.#plot.left + (column + 0.5) / this.#dpr;
+		}
+		return nearestIndex(this.#xs, this.#rowCount, (x - b) / k);
+	}
+
+	#nearestSeries(index: number, cssX: number, cssY: number): string | null {
+		const specs = this.#store.seriesSpecs();
+		// Grouped bars: the pointer's slot within the band names the series.
+		const layout = this.#bandLayout;
+		if (this.#kind === "bar" && this.#stack == null && layout != null && specs.length > 1) {
+			const withinBand = cssX - bandStart(layout, index);
+			const slot = Math.floor((withinBand / Math.max(1, layout.bandwidth)) * specs.length);
+			return specs[Math.min(specs.length - 1, Math.max(0, slot))]?.dataKey ?? null;
+		}
+		const { k, b } = this.#yCoefficients();
+		let nearest: string | null = null;
+		let bestDistance = Number.POSITIVE_INFINITY;
+		specs.forEach((spec, seriesIndex) => {
+			// Stacked marks paint at their cumulative boundary, so hit-test the
+			// boundary — raw values would misattribute everything to the largest series.
+			const values =
+				this.#stack == null ? this.#columns.get(spec.dataKey) : this.#stack.upper[seriesIndex];
+			const value = values?.[index] ?? Number.NaN;
+			if (Number.isNaN(value)) {
+				return;
+			}
+			const distance = Math.abs(value * k + b - cssY);
+			if (distance < bestDistance) {
+				bestDistance = distance;
+				nearest = spec.dataKey;
+			}
+		});
+		return nearest;
+	}
+
+	#setActive(index: number | null, options: { viaKeyboard: boolean; notify: boolean }): void {
+		const clamped =
+			index == null || this.#rowCount === 0
+				? null
+				: Math.min(Math.max(0, index), this.#rowCount - 1);
+		this.#viaKeyboard = options.viaKeyboard;
+		if (options.notify && clamped !== this.#effectiveIndex()) {
+			this.#callbacks.onActiveIndexChange?.(clamped);
+		}
+		if (this.#controlledIndex === undefined) {
+			// Uncontrolled: adopt the new index. Controlled: the consumer owns the
+			// state — we only notified above, and the snapshot below reflects
+			// whatever the controlled value currently is.
+			this.#activeIndex = clamped;
+		}
+		this.#publishSnapshot();
+		this.#scheduleOverlay();
+	}
+
+	#lastPublishedIndex: number | null = null;
+	#lastPublishedViaKeyboard = false;
+	#lastPublishedSeriesKey: string | null = null;
+
+	#publishSnapshot(options: { force: boolean } = { force: false }): void {
+		const index = this.#effectiveIndex();
+		if (
+			!options.force &&
+			index === this.#lastPublishedIndex &&
+			this.#viaKeyboard === this.#lastPublishedViaKeyboard &&
+			// A scatter row can carry several series' points at one index — moving
+			// between same-row dots changes the hit series without changing index.
+			this.#activeSeriesKey === this.#lastPublishedSeriesKey
+		) {
+			return;
+		}
+		this.#lastPublishedIndex = index;
+		this.#lastPublishedViaKeyboard = this.#viaKeyboard;
+		this.#lastPublishedSeriesKey = this.#activeSeriesKey;
+		if (index == null || this.#rowCount === 0) {
+			this.#store.publishHover(null);
+			return;
+		}
+		const originalIndex = this.#order == null ? index : (this.#order[index] ?? index);
+		const datum = this.#rows[originalIndex] ?? {};
+		const meta = this.#store.seriesMeta();
+		let points = meta.map((series) => {
+			const values = this.#columns.get(series.dataKey);
+			const value = values?.[index] ?? Number.NaN;
+			return {
+				dataKey: series.dataKey,
+				label: series.label,
+				value: Number.isNaN(value) ? null : value,
+				color: series.color,
+			};
+		});
+		if (this.#options.stacked) {
+			// Tooltip rows match the visual top-to-bottom order of the stack.
+			points.reverse();
+		}
+		if (this.#kind === "scatter") {
+			// Scatter rows are individual points: the readout names the hit point's
+			// series (pointer) or the row's populated series (keyboard) — never a
+			// column of em dashes for every series the row doesn't carry.
+			points =
+				this.#activeSeriesKey == null
+					? points.filter((point) => point.value != null)
+					: points.filter((point) => point.dataKey === this.#activeSeriesKey);
+		}
+		const snapshot: HoverSnapshot = {
+			index,
+			xValue: this.#xValues[index] ?? "",
+			datum,
+			points,
+			viaKeyboard: this.#viaKeyboard,
+		};
+		if (this.#is3d()) {
+			const zValue = this.#zs[index] ?? Number.NaN;
+			snapshot.zValue = Number.isNaN(zValue) ? null : zValue;
+		}
+		this.#store.publishHover(snapshot);
+	}
+
+	#paintScatter(
+		ctx: CanvasRenderingContext2D,
+		specs: readonly SeriesSpec[],
+		yCo: { k: number; b: number },
+	): FrameLabels | null {
+		const colors = this.#colors;
+		if (colors == null || this.#rowCount === 0 || specs.length === 0) {
+			return null;
+		}
+		if (this.#is3d()) {
+			return this.#paintScatter3d(ctx, specs);
+		}
+		const xCo = this.#xCoefficients();
+		// Degradation tiers count PAINTED points: sparse all-pairs data (each row
+		// populating one series) must not inflate the count by the series factor.
+		const seriesIndexes = specs.map((spec) => {
+			const values = this.#paintedValues(spec, "value");
+			const indexes: number[] = [];
+			for (let index = 0; index < this.#rowCount; index++) {
+				if (!Number.isNaN(values[index] ?? Number.NaN)) {
+					indexes.push(index);
+				}
+			}
+			return indexes;
+		});
+		const totalPointCount = seriesIndexes.reduce((sum, indexes) => sum + indexes.length, 0);
+		specs.forEach((spec, seriesIndex) => {
+			const values = this.#paintedValues(spec, "value");
+			const indexes = seriesIndexes[seriesIndex] ?? [];
+			ctx.save();
+			ctx.globalAlpha = this.#reveal(spec.dataKey);
+			drawScatterPoints(ctx, {
+				color: colors.series.get(spec.dataKey) ?? "currentColor",
+				surface: colors.chrome.surface,
+				totalPointCount,
+				indexes,
+				xAt: (index) => (this.#xs[index] ?? 0) * xCo.k + xCo.b,
+				yAt: (index) => (values[index] ?? 0) * yCo.k + yCo.b,
+				radiusAt: () => MARKER_RADIUS,
+			});
+			ctx.restore();
+		});
+		return null;
+	}
+
+	#paintScatter3d(ctx: CanvasRenderingContext2D, specs: readonly SeriesSpec[]): FrameLabels | null {
+		const colors = this.#colors;
+		if (colors == null) {
+			return null;
+		}
+		const plot = this.#plot;
+		const matrix = projectionMatrix(this.#camera);
+		const centerX = plot.left + plot.width / 2;
+		const centerY = plot.top + plot.height / 2;
+		// The frame must survive any rotation: cube corners sit √3 units out
+		// (≤ ~1.75 screen units with perspective), a plane's corners √2, a line's
+		// ends 1 — so the radius breathes with the collapse, letting a face-on
+		// line or plane fill more of the plot than the full rotating cube.
+		const collapseValues = this.#dimensionChase.values();
+		const breatheY = collapseValues[0] ?? 1;
+		const breatheZ = collapseValues[1] ?? 1;
+		const radiusFactor = 0.85 - 0.22 * breatheY - 0.11 * breatheZ;
+		const cubeRadius = (Math.min(plot.width, plot.height) / 2) * radiusFactor;
+		const xDomainRaw = this.#xTween.values();
+		const xDomain: [number, number] = [xDomainRaw[0] ?? 0, xDomainRaw[1] ?? 1];
+		const yDomainRaw = this.#yTween.values();
+		const yDomain: [number, number] = [yDomainRaw[0] ?? 0, yDomainRaw[1] ?? 1];
+		const zDomain = this.#zDomain;
+
+		// Enter reveals apply per series (via alphaAt below) so a late-added
+		// series fades in without blinking the established cloud.
+		const seriesReveal = specs.map((spec) => this.#reveal(spec.dataKey));
+
+		// Dimensions morph: chased per-axis collapse factors. 1D pins the cloud
+		// to the x axis line, 2D to the xy plane; the y/z frame fades with them.
+		const collapse = this.#dimensionChase.values();
+		const collapseY = collapse[0] ?? 1;
+		const collapseZ = collapse[1] ?? 1;
+
+		const toScreen = (nx: number, ny: number, nz: number): { x: number; y: number } => {
+			const projected = projectPoint(nx, ny, nz, matrix);
+			return { x: centerX + projected.x * cubeRadius, y: centerY - projected.y * cubeRadius };
+		};
+		const corners = CUBE_CORNERS.map(([cornerX, cornerY, cornerZ]) =>
+			toScreen(cornerX, cornerY, cornerZ),
+		);
+		const firstSpec = specs[0];
+		const yLabel = specs.length === 1 && firstSpec != null ? firstSpec.dataKey : "y";
+		const frameAxes = [
+			{
+				label: this.#options.xKey,
+				alpha: 1,
+				from: toScreen(-1, -collapseY, -collapseZ),
+				to: toScreen(1, -collapseY, -collapseZ),
+			},
+			{
+				label: yLabel,
+				alpha: collapseY,
+				from: toScreen(-1, -1, -collapseZ),
+				to: toScreen(-1, 1, -collapseZ),
+			},
+			{
+				label: this.#options.zKey ?? "z",
+				alpha: collapseZ,
+				from: toScreen(-1, -collapseY, -1),
+				to: toScreen(-1, -collapseY, 1),
+			},
+		];
+		drawCubeFrame(ctx, {
+			gridColor: colors.chrome.grid,
+			axisColor: colors.chrome.baseline,
+			corners,
+			edges: CUBE_EDGES,
+			// The full wireframe belongs to the 3rd dimension; below it only the
+			// axis lines carry orientation. The axes travel with the morph so they
+			// always hug the collapsed line/plane (x through the collapsed center,
+			// y along its left edge) instead of stranding at a cube corner.
+			cubeAlpha: collapseZ,
+			axes: frameAxes,
+		});
+
+		// Project every populated point into reusable scratch buffers.
+		const capacity = this.#rowCount * specs.length;
+		let projected = this.#projected;
+		if (projected == null || projected.screenX.length < capacity) {
+			projected = {
+				screenX: new Float64Array(capacity),
+				screenY: new Float64Array(capacity),
+				radius: new Float64Array(capacity),
+				seriesIndex: new Int32Array(capacity),
+				pointIndex: new Int32Array(capacity),
+				count: 0,
+			};
+		}
+		const depths = new Float64Array(capacity);
+		let count = 0;
+		specs.forEach((spec, seriesIndex) => {
+			const values = this.#paintedValues(spec, "value");
+			for (let index = 0; index < this.#rowCount; index++) {
+				const value = values[index] ?? Number.NaN;
+				const z = this.#zs[index] ?? Number.NaN;
+				if (Number.isNaN(value) || Number.isNaN(z)) {
+					continue;
+				}
+				// Collapse scales toward the cube center, and the axis lines travel
+				// with it — 1D reads as points on a centered line, 2D as a flat plane.
+				const point = projectPoint(
+					normalizeToCube(this.#xs[index] ?? 0, xDomain),
+					normalizeToCube(value, yDomain) * collapseY,
+					normalizeToCube(z, zDomain) * collapseZ,
+					matrix,
+				);
+				projected.screenX[count] = centerX + point.x * cubeRadius;
+				projected.screenY[count] = centerY - point.y * cubeRadius;
+				projected.radius[count] = MARKER_RADIUS * point.scale;
+				projected.seriesIndex[count] = seriesIndex;
+				projected.pointIndex[count] = index;
+				depths[count] = point.depth;
+				count += 1;
+			}
+		});
+		projected.count = count;
+		this.#projected = projected;
+
+		// Paint back-to-front.
+		const order = Array.from({ length: count }, (_, slot) => slot).toSorted(
+			(a, b) => (depths[b] ?? 0) - (depths[a] ?? 0),
+		);
+		drawDepthSortedPoints(ctx, {
+			count,
+			order,
+			screenX: projected.screenX,
+			screenY: projected.screenY,
+			radius: projected.radius,
+			colorAt: (slot) => {
+				const spec = specs[projected.seriesIndex[slot] ?? 0];
+				return spec == null ? "currentColor" : (colors.series.get(spec.dataKey) ?? "currentColor");
+			},
+			alphaAt: (slot) => seriesReveal[projected.seriesIndex[slot] ?? 0] ?? 1,
+			surface: colors.chrome.surface,
+		});
+
+		// Labels are drawn by #paint after the marks clip is restored, so a label
+		// nudged past the plot edge isn't sliced off.
+		return { center: { x: centerX, y: centerY }, axes: frameAxes };
+	}
+
+	/**
+	 * The scatter hit test: the nearest point within {@link SCATTER_HIT_RADIUS}
+	 * of the pointer — 2D from the columns, 3D from the projected buffers.
+	 */
+	#scatterHitAt(
+		cssX: number,
+		cssY: number,
+	): { seriesKey: string; index: number; screenX: number; screenY: number } | null {
+		const specs = this.#store.seriesSpecs();
+		const limit = SCATTER_HIT_RADIUS * SCATTER_HIT_RADIUS;
+		let bestDistance = limit;
+		let best: { seriesKey: string; index: number; screenX: number; screenY: number } | null = null;
+		if (this.#is3d()) {
+			const projected = this.#projected;
+			if (projected == null) {
+				return null;
+			}
+			for (let slot = 0; slot < projected.count; slot++) {
+				const deltaX = (projected.screenX[slot] ?? 0) - cssX;
+				const deltaY = (projected.screenY[slot] ?? 0) - cssY;
+				const distance = deltaX * deltaX + deltaY * deltaY;
+				if (distance < bestDistance) {
+					const spec = specs[projected.seriesIndex[slot] ?? 0];
+					if (spec == null) {
+						continue;
+					}
+					bestDistance = distance;
+					best = {
+						seriesKey: spec.dataKey,
+						index: projected.pointIndex[slot] ?? 0,
+						screenX: projected.screenX[slot] ?? 0,
+						screenY: projected.screenY[slot] ?? 0,
+					};
+				}
+			}
+			return best;
+		}
+		const xCo = this.#xCoefficients();
+		const yCo = this.#yCoefficients();
+		for (const spec of specs) {
+			const values = this.#columns.get(spec.dataKey);
+			if (values == null) {
+				continue;
+			}
+			for (let index = 0; index < this.#rowCount; index++) {
+				const value = values[index] ?? Number.NaN;
+				if (Number.isNaN(value)) {
+					continue;
+				}
+				const screenX = (this.#xs[index] ?? 0) * xCo.k + xCo.b;
+				const screenY = value * yCo.k + yCo.b;
+				const deltaX = screenX - cssX;
+				const deltaY = screenY - cssY;
+				const distance = deltaX * deltaX + deltaY * deltaY;
+				if (distance < bestDistance) {
+					bestDistance = distance;
+					best = { seriesKey: spec.dataKey, index, screenX, screenY };
+				}
+			}
+		}
+		return best;
+	}
+
+	/**
+	 * The screen position for a scatter datum reached without a pointer
+	 * (keyboard stepping, controlled activeIndex): the row's first populated
+	 * series, via the projection in 3D.
+	 */
+	#screenForIndex(index: number): { x: number; y: number } | null {
+		const specs = this.#store.seriesSpecs();
+		if (this.#is3d()) {
+			const projected = this.#projected;
+			if (projected == null) {
+				return null;
+			}
+			for (let slot = 0; slot < projected.count; slot++) {
+				if ((projected.pointIndex[slot] ?? -1) === index) {
+					return { x: projected.screenX[slot] ?? 0, y: projected.screenY[slot] ?? 0 };
+				}
+			}
+			return null;
+		}
+		const xCo = this.#xCoefficients();
+		const yCo = this.#yCoefficients();
+		for (const spec of specs) {
+			const value = this.#columns.get(spec.dataKey)?.[index] ?? Number.NaN;
+			if (!Number.isNaN(value)) {
+				return { x: (this.#xs[index] ?? 0) * xCo.k + xCo.b, y: value * yCo.k + yCo.b };
+			}
+		}
+		return null;
+	}
+
+	#updateOverlay(): void {
+		const { crosshair, band, markers, tooltip } = this.#elements;
+		const index = this.#effectiveIndex();
+		const visible = index != null && this.#rowCount > 0;
+		const isBar = this.#kind === "bar";
+		const isScatter = this.#kind === "scatter";
+
+		crosshair.style.opacity = visible && !isBar && !isScatter ? "1" : "0";
+		band.style.opacity = visible && isBar ? "1" : "0";
+		markers.style.opacity = visible && !isBar ? "1" : "0";
+		tooltip.style.opacity = visible ? "1" : "0";
+		if (!visible) {
+			return;
+		}
+
+		const plot = this.#plot;
+
+		if (isScatter) {
+			const screen = this.#activeScreen ?? this.#screenForIndex(index);
+			if (screen == null) {
+				markers.style.opacity = "0";
+				tooltip.style.opacity = "0";
+				return;
+			}
+			while (markers.children.length > 1) {
+				markers.lastElementChild?.remove();
+			}
+			if (markers.children.length === 0) {
+				markers.appendChild(createMarkerDot(markers.ownerDocument));
+			}
+			const dot = markers.children[0];
+			if (dot instanceof HTMLElement) {
+				const meta = this.#store.seriesMeta();
+				const active =
+					this.#activeSeriesKey == null
+						? meta.find((series) => {
+								const value = this.#columns.get(series.dataKey)?.[index] ?? Number.NaN;
+								return !Number.isNaN(value);
+							})
+						: meta.find((series) => series.dataKey === this.#activeSeriesKey);
+				dot.style.opacity = "1";
+				dot.style.backgroundColor = active?.color ?? "currentColor";
+				dot.style.transform = `translate3d(${screen.x}px, ${screen.y}px, 0)`;
+			}
+			this.#positionTooltip(screen.x, screen.y);
+			return;
+		}
+
+		const xPx = this.#xPixel(index);
+
+		if (isBar) {
+			const layout = this.#bandLayout;
+			if (layout != null) {
+				const stepLeft = bandStart(layout, index) - (layout.step - layout.bandwidth) / 2;
+				band.style.transform = `translate3d(${stepLeft}px, ${plot.top}px, 0)`;
+				band.style.width = `${Math.max(layout.step, 24)}px`;
+				band.style.height = `${plot.height}px`;
+			}
+		} else {
+			crosshair.style.transform = `translate3d(${xPx}px, ${plot.top}px, 0)`;
+			crosshair.style.height = `${plot.height}px`;
+
+			// One marker dot per series, synced imperatively.
+			const meta = this.#store.seriesMeta();
+			while (markers.children.length > meta.length) {
+				markers.lastElementChild?.remove();
+			}
+			while (markers.children.length < meta.length) {
+				markers.appendChild(createMarkerDot(markers.ownerDocument));
+			}
+			const yCo = this.#yCoefficients();
+			meta.forEach((series, seriesIndex) => {
+				const dot = markers.children[seriesIndex];
+				if (!(dot instanceof HTMLElement)) {
+					return;
+				}
+				const values = this.#columns.get(series.dataKey);
+				const value = values?.[index] ?? Number.NaN;
+				if (Number.isNaN(value)) {
+					dot.style.opacity = "0";
+					return;
+				}
+				dot.style.opacity = "1";
+				dot.style.backgroundColor = series.color;
+				dot.style.transform = `translate3d(${xPx}px, ${value * yCo.k + yCo.b}px, 0)`;
+			});
+		}
+
+		this.#positionTooltip(xPx, this.#pointerY ?? plot.top + 8);
+	}
+
+	/**
+	 * Position the tooltip near an anchor point, flipping sides at the plot
+	 * edge and clamping vertically inside the plot.
+	 */
+	#positionTooltip(anchorX: number, anchorY: number): void {
+		const plot = this.#plot;
+		const tooltip = this.#elements.tooltip;
+		const size = this.#tooltipSize;
+		const gapX = 12;
+		let tooltipLeft = anchorX + gapX;
+		if (
+			tooltipLeft + size.width > plot.left + plot.width &&
+			anchorX - gapX - size.width >= plot.left
+		) {
+			tooltipLeft = anchorX - gapX - size.width;
+		}
+		const tooltipTop = Math.min(
+			Math.max(plot.top, anchorY - size.height / 2),
+			plot.top + plot.height - size.height,
+		);
+		tooltip.style.transform = `translate3d(${tooltipLeft}px, ${Math.max(plot.top, tooltipTop)}px, 0)`;
+	}
+}
+
+/**
+ * The camera view a dimension reads best from: face-on for a line or a plane
+ * (a tilted line floating in space looks broken), the default tilt for the
+ * full cube.
+ */
+const cameraViewFor = (dimensions: 1 | 2 | 3): Camera => {
+	if (dimensions === 3) {
+		// Slightly above and to the right — the standard "looking down at the
+		// cube" explainer view.
+		return { yaw: 0.65, pitch: -0.35 };
+	}
+	return { yaw: 0, pitch: 0 };
+};
+
+/**
+ * Advance a tick-label fade map toward its desired set: wanted labels fade in,
+ * unwanted fade out and are pruned. Returns `true` while any alpha is still
+ * moving (the caller keeps scheduling frames).
+ */
+const advanceLabelFade = (
+	fade: Map<number, { alpha: number; target: number; text: string }>,
+	desired: ReadonlyArray<{ key: number; text: string }>,
+	dt: number,
+	instant: boolean,
+): boolean => {
+	for (const entry of fade.values()) {
+		entry.target = 0;
+	}
+	for (const tick of desired) {
+		const entry = fade.get(tick.key);
+		if (entry == null) {
+			fade.set(tick.key, { alpha: instant ? 1 : 0, target: 1, text: tick.text });
+		} else {
+			entry.target = 1;
+			entry.text = tick.text;
+		}
+	}
+	const fadeInFactor = 1 - Math.pow(1 - 0.16, dt / 16.67);
+	const fadeOutFactor = 1 - Math.pow(1 - 0.12, dt / 16.67);
+	let animating = false;
+	for (const [key, entry] of fade) {
+		if (instant) {
+			entry.alpha = entry.target;
+		} else {
+			const factor = entry.target > entry.alpha ? fadeInFactor : fadeOutFactor;
+			entry.alpha += (entry.target - entry.alpha) * factor;
+		}
+		if (entry.target === 1 && entry.alpha > 0.98) {
+			entry.alpha = 1;
+		}
+		if (entry.target === 0 && entry.alpha < 0.03) {
+			fade.delete(key);
+			continue;
+		}
+		if (entry.alpha !== entry.target) {
+			animating = true;
+		}
+	}
+	return animating;
+};
+
+/**
+ * An active-point marker dot for the hover overlay: an 8px dot with a 2px
+ * surface ring, positioned by transform.
+ */
+const createMarkerDot = (ownerDocument: Document): HTMLElement => {
+	const dot = ownerDocument.createElement("div");
+	dot.setAttribute("data-slot", "chart-active-point");
+	dot.style.position = "absolute";
+	dot.style.width = "8px";
+	dot.style.height = "8px";
+	dot.style.borderRadius = "9999px";
+	dot.style.border = "2px solid var(--background-color-card)";
+	dot.style.left = "-4px";
+	dot.style.top = "-4px";
+	return dot;
+};
+
+/**
+ * Coerce a consumer x value for continuous scales. Time scales accept `Date`,
+ * epoch milliseconds, or parseable date strings.
+ */
+const toEpochOrNumber = (raw: unknown, isTime: boolean): number => {
+	if (raw instanceof Date) {
+		return raw.getTime();
+	}
+	if (typeof raw === "number") {
+		return raw;
+	}
+	if (isTime && typeof raw === "string") {
+		return new Date(raw).getTime();
+	}
+	return Number.NaN;
+};
+
+/**
+ * A zero-baseline stand-in for the lower boundary of an unstacked area.
+ */
+const zeroColumns = (template: DecimatedColumns, baseline: number): DecimatedColumns => ({
+	columnCount: template.columnCount,
+	hasData: template.hasData,
+	minValue: new Float64Array(template.columnCount).fill(baseline),
+	maxValue: new Float64Array(template.columnCount).fill(baseline),
+	inValue: new Float64Array(template.columnCount).fill(baseline),
+	outValue: new Float64Array(template.columnCount).fill(baseline),
+});
+
+export type {
+	//,
+	EngineCallbacks,
+	EngineElements,
+};
+export {
+	//,
+	ChartEngine,
+};

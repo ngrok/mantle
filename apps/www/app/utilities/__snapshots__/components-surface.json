@@ -55,6 +55,20 @@
     ]
   },
   {
+    "name": "Area Chart",
+    "slug": "components/charts/area-chart",
+    "kind": "component",
+    "category": "Charts",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/area-chart",
+    "summary": "A canvas-rendered area chart for showing how values — and, when stacked, a total and its parts — change over a continuous x axis.",
+    "jsdoc": "A canvas-rendered area chart for showing how values — and, when stacked, a total and its parts — change over a continuous x axis.",
+    "examples": [
+      "Composition:\n```\nAreaChart.Root\n├── AreaChart.Grid\n├── AreaChart.XAxis\n├── AreaChart.YAxis\n├── AreaChart.Area (one per series)\n├── AreaChart.ReferenceLine\n├── AreaChart.Tooltip\n└── AreaChart.Legend\n```",
+      "```tsx\nconst data = [\n  { date: new Date(\"2026-07-15\"), http: 4200, tcp: 1400 },\n  { date: new Date(\"2026-07-16\"), http: 5100, tcp: 1650 },\n  { date: new Date(\"2026-07-17\"), http: 4700, tcp: 1500 },\n];\n\n<AreaChart.Root data={data} xKey=\"date\" stacked aria-label=\"Traffic by protocol\">\n  <AreaChart.Grid />\n  <AreaChart.XAxis />\n  <AreaChart.YAxis />\n  <AreaChart.Area dataKey=\"http\" label=\"HTTP\" />\n  <AreaChart.Area dataKey=\"tcp\" label=\"TCP\" />\n  <AreaChart.Tooltip />\n  <AreaChart.Legend />\n</AreaChart.Root>\n```"
+    ]
+  },
+  {
     "name": "Badge",
     "slug": "components/data-display/badge",
     "kind": "component",
@@ -65,6 +79,20 @@
     "jsdoc": "A non-interactive label used to highlight short, scannable information — a status, a category tag, or a count — in the smallest possible footprint. **When to use** - Status indicators: `Succeeded`, `Failed`, `Pending`, `Beta`. - Category or tag chips alongside list items, table rows, or cards. - Counts (e.g. `12 new`) when paired with brief context. **When not to use** - For interactive UI.",
     "examples": [
       "```tsx\nimport { Badge } from \"@ngrok/mantle/badge\";\nimport { CheckCircleIcon } from \"@phosphor-icons/react/CheckCircle\";\n\n<Badge appearance=\"muted\" color=\"success\" icon={<CheckCircleIcon />}>\n  Succeeded\n</Badge>\n\n// Polymorphic — render the badge as a link, preserving its styling.\n<Badge appearance=\"muted\" color=\"info\" asChild>\n  <a href=\"/status\">Operational</a>\n</Badge>\n```"
+    ]
+  },
+  {
+    "name": "Bar Chart",
+    "slug": "components/charts/bar-chart",
+    "kind": "component",
+    "category": "Charts",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/bar-chart",
+    "summary": "A canvas-rendered bar chart for comparing values across categories, with grouped and stacked variants.",
+    "jsdoc": "A canvas-rendered bar chart for comparing values across categories, with grouped and stacked variants.",
+    "examples": [
+      "Composition:\n```\nBarChart.Root\n├── BarChart.Grid\n├── BarChart.XAxis\n├── BarChart.YAxis\n├── BarChart.Bar (one per series)\n├── BarChart.ReferenceLine\n├── BarChart.Tooltip\n└── BarChart.Legend\n```",
+      "```tsx\nconst data = [\n  { month: \"January\", desktop: 186, mobile: 80 },\n  { month: \"February\", desktop: 305, mobile: 200 },\n  { month: \"March\", desktop: 237, mobile: 120 },\n];\n\n<BarChart.Root data={data} xKey=\"month\" aria-label=\"Visitors by month\">\n  <BarChart.Grid />\n  <BarChart.XAxis />\n  <BarChart.YAxis />\n  <BarChart.Bar dataKey=\"desktop\" label=\"Desktop\" />\n  <BarChart.Bar dataKey=\"mobile\" label=\"Mobile\" />\n  <BarChart.Tooltip />\n  <BarChart.Legend />\n</BarChart.Root>\n```"
     ]
   },
   {
@@ -422,6 +450,20 @@
     ]
   },
   {
+    "name": "Line Chart",
+    "slug": "components/charts/line-chart",
+    "kind": "component",
+    "category": "Charts",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/line-chart",
+    "summary": "A canvas-rendered line chart for trends over a continuous x axis — time above all. Min/max decimation keeps 100,000+ point series smooth.",
+    "jsdoc": "A canvas-rendered line chart for trends over a continuous x — time above all.",
+    "examples": [
+      "Composition:\n```\nLineChart.Root\n├── LineChart.Grid\n├── LineChart.XAxis\n├── LineChart.YAxis\n├── LineChart.Line (one per series)\n├── LineChart.ReferenceLine\n├── LineChart.Tooltip\n└── LineChart.Legend\n```",
+      "```tsx\nconst data = [\n  { time: new Date(\"2026-07-18T10:00:00Z\"), p50: 120, p99: 480 },\n  { time: new Date(\"2026-07-18T10:01:00Z\"), p50: 132, p99: 510 },\n  { time: new Date(\"2026-07-18T10:02:00Z\"), p50: 101, p99: 460 },\n];\n\n<LineChart.Root data={data} xKey=\"time\" aria-label=\"Request latency\">\n  <LineChart.Grid />\n  <LineChart.XAxis />\n  <LineChart.YAxis />\n  <LineChart.Line dataKey=\"p50\" label=\"p50\" />\n  <LineChart.Line dataKey=\"p99\" label=\"p99\" curve=\"monotone\" />\n  <LineChart.Tooltip />\n  <LineChart.Legend />\n</LineChart.Root>\n```"
+    ]
+  },
+  {
     "name": "List",
     "slug": "components/data-display/list",
     "kind": "component",
@@ -594,6 +636,20 @@
     "jsdoc": "A container that prevents the click event from bubbling out of it.",
     "examples": [
       "```tsx\n<TableRow onClick={() => navigate(\"/somewhere\")}>\n  <TableRowCell>\n    <SandboxedOnClick allowClickEventDefault>\n      <Anchor href=\"https://ngrok.com/docs\">\n        See ngrok docs\n      </Anchor>\n    </SandboxedOnClick>\n  </TableRowCell>\n</TableRow>\n```"
+    ]
+  },
+  {
+    "name": "Scatter Chart",
+    "slug": "components/charts/scatter-chart",
+    "kind": "component",
+    "category": "Charts",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/scatter-chart",
+    "summary": "A canvas-rendered scatter chart for correlating two continuous measures — three with the rotatable 3D projection.",
+    "jsdoc": "A canvas-rendered scatter chart for correlating two measures — three with the 3D projection (`zKey`), which renders a rotatable, depth-sorted point cloud (drag to orbit).",
+    "examples": [
+      "Composition:\n```\nScatterChart.Root\n├── ScatterChart.Grid\n├── ScatterChart.XAxis\n├── ScatterChart.YAxis\n├── ScatterChart.Point (one per series)\n├── ScatterChart.ReferenceLine\n├── ScatterChart.Tooltip\n└── ScatterChart.Legend\n```",
+      "```tsx\nconst data = [\n  { latency: 12, throughputA: 840, throughputB: 720 },\n  { latency: 28, throughputA: 610, throughputB: 590 },\n  { latency: 45, throughputA: 340, throughputB: 410 },\n];\n\n<ScatterChart.Root data={data} xKey=\"latency\" aria-label=\"Latency vs throughput\">\n  <ScatterChart.Grid />\n  <ScatterChart.XAxis />\n  <ScatterChart.YAxis />\n  <ScatterChart.Point dataKey=\"throughputA\" label=\"Region A\" />\n  <ScatterChart.Point dataKey=\"throughputB\" label=\"Region B\" />\n  <ScatterChart.Tooltip />\n  <ScatterChart.Legend />\n</ScatterChart.Root>\n```"
     ]
   },
   {
