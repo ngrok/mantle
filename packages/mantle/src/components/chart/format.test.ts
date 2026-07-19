@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vitest";
 import { formatNumber, formatXValue } from "./format.js";
 
+// The formatters use the runtime's default locale; the test scripts pin
+// TZ=UTC and LC_ALL=en_US.UTF-8 so en-US output is deterministic here.
+
 describe("formatNumber", () => {
 	test("thousands-separates values", () => {
 		expect(formatNumber(1284)).toBe("1,284");

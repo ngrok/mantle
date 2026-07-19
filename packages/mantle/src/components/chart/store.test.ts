@@ -121,6 +121,22 @@ describe("ChartStore registrations", () => {
 		expect(store.getSnapshot().referenceLines.map((line) => line.y)).toEqual([10, 20]);
 	});
 
+	test("a reference line re-registering with new props keeps its paint position", () => {
+		// Regression: re-registration used to take a fresh sequence, so updating
+		// one line's props reordered it behind lines registered after it.
+		const store = new ChartStore();
+		const unregisterOne = store.registerReferenceLine("one", {
+			y: 10,
+			label: "a",
+			color: undefined,
+		});
+		store.registerReferenceLine("two", { y: 20, label: "b", color: undefined });
+		// A prop change re-runs the layout effect: cleanup first, then re-register.
+		unregisterOne();
+		store.registerReferenceLine("one", { y: 15, label: "a", color: undefined });
+		expect(store.getSnapshot().referenceLines.map((line) => line.y)).toEqual([15, 20]);
+	});
+
 	test("subscribers are notified and snapshots are immutable-by-replacement", () => {
 		const store = new ChartStore();
 		const before = store.getSnapshot();

@@ -62,7 +62,8 @@ describe("LineChart.Root", () => {
 		expect(table).toBeInTheDocument();
 		expect(screen.getByRole("columnheader", { name: "p50" })).toBeInTheDocument();
 		expect(screen.getByRole("columnheader", { name: "p99" })).toBeInTheDocument();
-		// Row headers are the default-formatted dates (TZ shifts the hour, never the month).
+		// Row headers are the default-formatted dates. The test scripts pin TZ=UTC
+		// and LC_ALL=en_US.UTF-8, so "Jul" is deterministic here.
 		const rowHeaders = screen.getAllByRole("rowheader");
 		expect(rowHeaders).toHaveLength(3);
 		for (const rowHeader of rowHeaders) {

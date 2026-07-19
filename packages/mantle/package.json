@@ -402,8 +402,8 @@
 		"prebuild": "pnpm run clean",
 		"prepack": "node ../../scripts/clean-publish-manifest.js clean",
 		"postpack": "node ../../scripts/clean-publish-manifest.js restore",
-		"test:watch": "TZ=UTC vitest watch",
-		"test": "TZ=UTC vitest run",
+		"test:watch": "TZ=UTC LC_ALL=en_US.UTF-8 vitest watch",
+		"test": "TZ=UTC LC_ALL=en_US.UTF-8 vitest run",
 		"typecheck": "tsc"
 	},
 	"dependencies": {

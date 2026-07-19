@@ -114,6 +114,7 @@ class ChartStore {
 	#xAxis: XAxisSpec | null = null;
 	#yAxis: YAxisSpec | null = null;
 	#referenceLines = new Map<string, { spec: ReferenceLineSpec; sequence: number }>();
+	#referenceLineSequenceById = new Map<string, number>();
 	#tooltip: TooltipConfig | null = null;
 	#hover: HoverSnapshot | null = null;
 
@@ -221,7 +222,12 @@ class ChartStore {
 	}
 
 	registerReferenceLine(id: string, spec: ReferenceLineSpec): () => void {
-		this.#referenceLines.set(id, { spec, sequence: this.#nextSequence++ });
+		// A reference line keeps its first-seen paint position: prop changes
+		// re-register (cleanup deletes, then this re-adds), and a fresh sequence
+		// would reorder the lines under the survivors.
+		const sequence = this.#referenceLineSequenceById.get(id) ?? this.#nextSequence++;
+		this.#referenceLineSequenceById.set(id, sequence);
+		this.#referenceLines.set(id, { spec, sequence });
 		this.#publishRegistrations();
 		return () => {
 			if (this.#referenceLines.get(id)?.spec === spec) {
