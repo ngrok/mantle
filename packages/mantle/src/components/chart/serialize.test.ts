@@ -45,6 +45,23 @@ describe("serializeChartMarkdown", () => {
 		expect(numericX).toContain("| 10000 | 3 |");
 	});
 
+	test("extreme magnitudes keep E-notation and round-trip exactly through Number()", () => {
+		// Deliberate contract: String(value), never a fixed-point expansion —
+		// capped-precision formatting can silently corrupt (1e-21 rounds to "0"),
+		// while E-notation stays exactly re-parseable everywhere.
+		const markdown = serializeChartMarkdown({
+			data: [{ x: 1, huge: 1e21, tiny: 1e-7 }],
+			xKey: "x",
+			series: [
+				{ dataKey: "huge", label: "huge" },
+				{ dataKey: "tiny", label: "tiny" },
+			],
+		});
+		expect(markdown).toContain("| 1 | 1e+21 | 1e-7 |");
+		expect(Number("1e+21")).toBe(1e21);
+		expect(Number("1e-7")).toBe(1e-7);
+	});
+
 	test("null, missing, and non-finite values render as an em dash — never zero", () => {
 		const markdown = serializeChartMarkdown({
 			data: [

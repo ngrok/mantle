@@ -17,9 +17,12 @@ const escapeCell = (text: string): string =>
 
 /**
  * A machine-stable x cell: ISO 8601 for dates (unambiguous and re-parseable,
- * unlike the locale-formatted display strings), plain un-separated digits for
- * numbers, the value itself for category strings. Invalid dates render as an
- * em dash, matching the tooltip/table convention.
+ * unlike the locale-formatted display strings), `String(value)` for numbers —
+ * never locale separators; extreme magnitudes keep JavaScript's E-notation
+ * (`1e+21`), which round-trips exactly through `Number()`, spreadsheets, and
+ * CSV parsers, where a fixed-point expansion would risk silent precision
+ * loss — and the value itself for category strings. Invalid dates render as
+ * an em dash, matching the tooltip/table convention.
  */
 const xCell = (value: unknown): string => {
 	if (value instanceof Date) {
@@ -35,8 +38,10 @@ const xCell = (value: unknown): string => {
 };
 
 /**
- * A machine-stable value cell: plain un-separated digits, with `null`/missing
- * (and anything non-finite) rendered as an em dash — never zero.
+ * A machine-stable value cell: `String(value)` — never locale separators;
+ * extreme magnitudes keep JavaScript's E-notation, which round-trips exactly
+ * through `Number()` — with `null`/missing (and anything non-finite) rendered
+ * as an em dash, never zero.
  */
 const valueCell = (value: unknown): string =>
 	typeof value === "number" && Number.isFinite(value) ? String(value) : "—";
