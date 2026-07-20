@@ -101,9 +101,9 @@ describe("Sandbar (browser)", () => {
 		matchMediaSpy.mockRestore();
 	});
 
-	test("closing hides the panel via the safety timeout when no CSS animation runs", async () => {
-		// browser tests load no Tailwind, so the exit animation never fires and
-		// the 250ms safety timeout is the path that must close the panel
+	test("closing hides the panel via the safety timeout when no CSS transition runs", async () => {
+		// browser tests load no Tailwind, so the exit transition never fires and
+		// the 400ms safety timeout is the path that must close the panel
 		const tree = ({ open }: { open: boolean }) => (
 			<Sandbar.Root open={open}>
 				<Sandbar.Message>You have unsaved changes</Sandbar.Message>

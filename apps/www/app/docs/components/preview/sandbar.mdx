@@ -257,6 +257,16 @@ panel), so single-child polymorphism has no coherent meaning. Both framed demos 
 `Sandbar` trees you can adapt; there is no separate polymorphism demo because the bar is a
 viewport-fixed singleton that would overlay this page outside a preview frame.
 
+## Theming
+
+The panel is an [inverted theme island](/components/primitives/theme#inverted-theme-islands): it
+renders in the opposite theme of the page — dark on light pages, light on dark pages, and the
+same flip between the high-contrast pair. The inversion covers the entire subtree, so the blessed
+buttons, `Sandbar.Error`, and any custom children you compose inside `Sandbar.Actions` all read as
+the opposite theme without extra styling. The panel's own surface uses the inverted theme's
+`bg-base` and `text-strong` tokens; style overrides passed via `className` resolve against the
+inverted theme too.
+
 ## Blocking navigation
 
 The bar renders the decision; your app owns the guard. Pair `open` with your router's blocker
