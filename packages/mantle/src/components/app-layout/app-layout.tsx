@@ -61,7 +61,6 @@ const Root = ({
 		</Comp>
 	);
 };
-Root.displayName = "AppLayout";
 
 /**
  * A full-window-width strip pinned above everything else in the shell —
@@ -122,7 +121,6 @@ const Notice = ({
 		</Comp>
 	);
 };
-Notice.displayName = "AppLayoutNotice";
 
 /**
  * The main horizontal region of the shell, below `AppLayout.Notice`. A flex
@@ -175,7 +173,6 @@ const Body = ({
 		</Comp>
 	);
 };
-Body.displayName = "AppLayoutBody";
 
 /**
  * The content column of the shell: the flex column beside the sidebar that
@@ -228,7 +225,6 @@ const Inset = ({
 		</Comp>
 	);
 };
-Inset.displayName = "AppLayoutInset";
 
 /**
  * The toolbar row pinned to the top of the content card — render it as the
@@ -290,7 +286,6 @@ const Header = ({
 		</Comp>
 	);
 };
-Header.displayName = "AppLayoutHeader";
 
 /**
  * The scrolling content card of the shell: a rounded, bordered `bg-card`
@@ -355,7 +350,6 @@ const Content = ({
 		</Comp>
 	);
 };
-Content.displayName = "AppLayoutContent";
 
 /**
  * A viewport-locked application shell: an optional full-width
