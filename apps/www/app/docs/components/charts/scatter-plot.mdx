@@ -161,8 +161,8 @@ export function Scatter3dExample() {
 			aria-label="Gateway nodes by CPU, memory, and connections"
 		>
 			<ScatterPlot.Point dataKey="usEast" label="US East" />
-			<ScatterPlot.Point dataKey="euWest" label="EU West" />
-			<ScatterPlot.Point dataKey="apSoutheast" label="AP Southeast" />
+			<ScatterPlot.Point dataKey="euWest" label="EU West" shape="triangle" />
+			<ScatterPlot.Point dataKey="apSoutheast" label="AP Southeast" shape="square" />
 			<ScatterPlot.Tooltip />
 			<ScatterPlot.Legend />
 		</ScatterPlot.Root>
@@ -239,9 +239,9 @@ export function DimensionsExample() {
 				aria-label="Four clusters separating across one, two, and three dimensions"
 			>
 				<ScatterPlot.Point dataKey="clusterA" label="Cluster A" />
-				<ScatterPlot.Point dataKey="clusterB" label="Cluster B" />
-				<ScatterPlot.Point dataKey="clusterC" label="Cluster C" />
-				<ScatterPlot.Point dataKey="clusterD" label="Cluster D" />
+				<ScatterPlot.Point dataKey="clusterB" label="Cluster B" shape="triangle" />
+				<ScatterPlot.Point dataKey="clusterC" label="Cluster C" shape="square" />
+				<ScatterPlot.Point dataKey="clusterD" label="Cluster D" shape="diamond" />
 				<ScatterPlot.Tooltip />
 				<ScatterPlot.Legend />
 			</ScatterPlot.Root>
@@ -336,7 +336,7 @@ function RegionScatterExample() {
 
 ## Point shapes
 
-`shape` gives each series a distinct glyph — `"circle"` (the default), `"square"`, `"triangle"`, or `"diamond"`, sized for equal visual weight. Shape is a redundant encoding alongside color: where clouds overlap and colors sit side by side, the glyphs keep every series distinguishable without color vision. The legend keys and the hover dot mirror each series' glyph.
+`shape` gives each series a distinct glyph — `"circle"` (the default), `"square"`, `"triangle"`, or `"diamond"`, sized for equal visual weight. Shape is a redundant encoding alongside color: where clouds overlap and colors sit side by side, the glyphs keep every series distinguishable without color vision. The legend keys and the hover dot mirror each series' glyph, and glyphs carry into the [3D projection](#3d-scatter) unchanged.
 
 <Example>
 	<PointShapesExample />
@@ -422,6 +422,8 @@ Provide `zKey` and the scatter renders inside a rotatable cube: drag anywhere in
 
 Axis parts and reference lines apply to the 2D projection only and are ignored in 3D — the cube frame carries orientation, with each edge labeled by its data key. The hover readout carries the point's z value, and keyboard stepping and the sr-only data table work identically in 3D: arrows walk the projected cloud point by point, announcements append the z value, and the table grows a z column.
 
+`shape` carries into the projection too — each glyph depth-sorts with its point. The redundant encoding earns its keep in 3D more than anywhere: rotation constantly changes which clouds overlap, and the glyphs keep every series identifiable at any camera angle, with or without color vision.
+
 <Example>
 	<Scatter3dExample />
 </Example>
@@ -486,8 +488,8 @@ function Scatter3dExample() {
 			aria-label="Gateway nodes by CPU, memory, and connections"
 		>
 			<ScatterPlot.Point dataKey="usEast" label="US East" />
-			<ScatterPlot.Point dataKey="euWest" label="EU West" />
-			<ScatterPlot.Point dataKey="apSoutheast" label="AP Southeast" />
+			<ScatterPlot.Point dataKey="euWest" label="EU West" shape="triangle" />
+			<ScatterPlot.Point dataKey="apSoutheast" label="AP Southeast" shape="square" />
 			<ScatterPlot.Tooltip />
 			<ScatterPlot.Legend />
 		</ScatterPlot.Root>
@@ -497,7 +499,7 @@ function Scatter3dExample() {
 
 ## Dimensions
 
-`dimensions` controls how many axes the cloud currently occupies — the pattern behind "watch the clusters separate" explainers. At `1` every point collapses onto the x axis line and the four clusters below read as one jumbled strip; at `2` they spread across the plane; at `3` they fill the cube. Changing it morphs every point along a smooth glide (the same chase that drives the domains), the y and z frame edges fade in with their dimension, and `prefers-reduced-motion` snaps the whole move.
+`dimensions` controls how many axes the cloud currently occupies — the pattern behind "watch the clusters separate" explainers. At `1` every point collapses onto the x axis line and the four clusters below read as one jumbled strip — only their glyphs still tell them apart; at `2` they spread across the plane; at `3` they fill the cube. The four clusters wear all four point shapes, so cluster identity survives even where position collapses. Changing it morphs every point along a smooth glide (the same chase that drives the domains), the y and z frame edges fade in with their dimension, and `prefers-reduced-motion` snaps the whole move.
 
 <Example>
 	<DimensionsExample />
@@ -590,9 +592,9 @@ function DimensionsExample() {
 				aria-label="Four clusters separating across one, two, and three dimensions"
 			>
 				<ScatterPlot.Point dataKey="clusterA" label="Cluster A" />
-				<ScatterPlot.Point dataKey="clusterB" label="Cluster B" />
-				<ScatterPlot.Point dataKey="clusterC" label="Cluster C" />
-				<ScatterPlot.Point dataKey="clusterD" label="Cluster D" />
+				<ScatterPlot.Point dataKey="clusterB" label="Cluster B" shape="triangle" />
+				<ScatterPlot.Point dataKey="clusterC" label="Cluster C" shape="square" />
+				<ScatterPlot.Point dataKey="clusterD" label="Cluster D" shape="diamond" />
 				<ScatterPlot.Tooltip />
 				<ScatterPlot.Legend />
 			</ScatterPlot.Root>
