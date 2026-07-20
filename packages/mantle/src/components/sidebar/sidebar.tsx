@@ -345,7 +345,6 @@ const Root = ({
 
 	return <SidebarContext.Provider value={contextValue}>{children}</SidebarContext.Provider>;
 };
-Root.displayName = "Sidebar";
 
 type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
 
@@ -484,7 +483,6 @@ const Nav = ({
 		</div>
 	);
 };
-Nav.displayName = "SidebarNav";
 
 /**
  * The props for `Sidebar.Trigger`. `IconButton`'s props, except the parts the
@@ -639,7 +637,6 @@ const Trigger = ({
 		/>
 	);
 };
-Trigger.displayName = "SidebarTrigger";
 
 /**
  * The props for `Sidebar.Rail`. `button` props except `children` (the rail
@@ -734,7 +731,6 @@ const Rail = ({
 		/>
 	);
 };
-Rail.displayName = "SidebarRail";
 
 type SidebarHeaderProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
@@ -826,7 +822,6 @@ const Header = ({
 		</Comp>
 	);
 };
-Header.displayName = "SidebarHeader";
 
 type SidebarBodyProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
@@ -923,7 +918,6 @@ const Body = ({
 		</Comp>
 	);
 };
-Body.displayName = "SidebarBody";
 
 type SidebarFooterProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
@@ -1008,7 +1002,6 @@ const Footer = ({
 		</Comp>
 	);
 };
-Footer.displayName = "SidebarFooter";
 
 type SidebarGroupContextValue = {
 	/**
@@ -1116,7 +1109,6 @@ const Group = ({
 		</SidebarGroupContext.Provider>
 	);
 };
-Group.displayName = "SidebarGroup";
 
 type SidebarGroupLabelProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
@@ -1229,7 +1221,6 @@ const GroupLabel = ({
 		</Comp>
 	);
 };
-GroupLabel.displayName = "SidebarGroupLabel";
 
 type SidebarListProps = ComponentProps<"ul"> & WithAsChild & WithDataSlot;
 
@@ -1313,7 +1304,6 @@ const List = ({
 		</Comp>
 	);
 };
-List.displayName = "SidebarList";
 
 type SidebarItemProps = ComponentProps<"li"> & WithAsChild & WithDataSlot;
 
@@ -1392,7 +1382,6 @@ const Item = ({
 		</Comp>
 	);
 };
-Item.displayName = "SidebarItem";
 
 type SidebarItemButtonProps = ComponentProps<"button"> &
 	WithAsChild &
@@ -1500,7 +1489,6 @@ const ItemButton = ({
 		</Comp>
 	);
 };
-ItemButton.displayName = "SidebarItemButton";
 
 type SidebarSwitcherButtonProps = ComponentProps<"button"> & WithAsChild & WithDataSlot;
 
@@ -1610,7 +1598,6 @@ const SwitcherButton = ({
 		</Comp>
 	);
 };
-SwitcherButton.displayName = "SidebarSwitcherButton";
 
 type SidebarSeparatorProps = ComponentProps<typeof Separator>;
 
@@ -1680,7 +1667,6 @@ const SidebarSeparator = ({ className, ...props }: SidebarSeparatorProps) => (
 		{...props}
 	/>
 );
-SidebarSeparator.displayName = "SidebarSeparator";
 
 /**
  * The avatar swatch palette. Every entry is a Tailwind background color whose
@@ -1840,7 +1826,6 @@ const AccountAvatar = ({
 		{getInitials(accountName)}
 	</div>
 );
-AccountAvatar.displayName = "SidebarAccountAvatar";
 
 /**
  * A neutral person silhouette rendered with `currentColor` so it picks up the
@@ -1954,7 +1939,6 @@ const UserAvatar = ({ alt = "Your account", className, src, ...props }: SidebarU
 		{src ? <img src={src} alt={alt} className="size-full object-cover" /> : <UserSilhouetteIcon />}
 	</div>
 );
-UserAvatar.displayName = "SidebarUserAvatar";
 
 /**
  * One switchable account rendered by `Sidebar.SwitchAccountsRadioGroup`: a
@@ -2063,7 +2047,6 @@ const SwitchAccountsRadioGroup = ({
 		))}
 	</DropdownMenuPrimitive.RadioGroup>
 );
-SwitchAccountsRadioGroup.displayName = "SidebarSwitchAccountsRadioGroup";
 
 /**
  * A composable, collapsible app-navigation sidebar. `Sidebar.Root` owns the
