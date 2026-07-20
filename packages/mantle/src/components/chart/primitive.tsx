@@ -1,5 +1,7 @@
 "use client";
 
+import { CheckIcon } from "@phosphor-icons/react/Check";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
 import type { ComponentProps, CSSProperties, ReactNode, Ref } from "react";
 import {
 	createContext,
@@ -12,13 +14,17 @@ import {
 	useSyncExternalStore,
 } from "react";
 import invariant from "tiny-invariant";
+import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
+import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
+import { IconButton } from "../button/icon-button.js";
 import { datumValue } from "./datum.js";
 import { ChartEngine } from "./engine.js";
 import { formatNumber, formatXValue } from "./format.js";
+import { serializeChartMarkdown } from "./serialize.js";
 import { ChartStore } from "./store.js";
 import type {
 	ChartDatum,
@@ -70,6 +76,14 @@ type ChartContextValue = {
 	componentName: string;
 	store: ChartStore;
 	engineRef: { current: ChartEngine | null };
+	/**
+	 * The Root's current data props, read at interaction time (never at render
+	 * time) by parts like `CopyButton` — a ref so the context value, created
+	 * once per Root lifetime, stays stable across data updates.
+	 */
+	dataRef: {
+		current: { data: readonly ChartDatum[]; xKey: string; zKey: string | undefined };
+	};
 };
 
 const ChartContext = createContext<ChartContextValue | null>(null);
@@ -212,7 +226,17 @@ const ChartRootPrimitive = ({
 	// survive re-renders (and StrictMode's double effect pass).
 	const [store] = useState(() => new ChartStore());
 	const engineRef = useRef<ChartEngine | null>(null);
-	const [context] = useState<ChartContextValue>(() => ({ kind, componentName, store, engineRef }));
+	const [context] = useState<ChartContextValue>(() => ({
+		kind,
+		componentName,
+		store,
+		engineRef,
+		dataRef: { current: { data, xKey, zKey } },
+	}));
+
+	useLayoutEffect(() => {
+		context.dataRef.current = { data, xKey, zKey };
+	}, [context, data, xKey, zKey]);
 
 	const rootRef = useRef<HTMLDivElement | null>(null);
 	const composedRootRef = useComposedRefs(rootRef, ref);
@@ -298,7 +322,9 @@ const ChartRootPrimitive = ({
 	return (
 		<div
 			data-slot={joinDataSlot(dataSlot, slotName)}
-			className={cx("flex aspect-video w-full flex-col", className)}
+			// relative: DOM parts composed as children (e.g. CopyButton) can dock
+			// against the whole chart with absolute positioning.
+			className={cx("relative flex aspect-video w-full flex-col", className)}
 			ref={composedRootRef}
 			{...props}
 		>
@@ -741,6 +767,109 @@ const ChartLegendPrimitive = ({
 	);
 };
 
+// ---- copy button ------------------------------------------------------------
+
+// The native `onCopy` clipboard event handler is omitted so the part's own
+// callback (fired with the serialized markdown) can own the name — on a copy
+// button, the DOM event is noise and the collision would poison both types.
+type CopyButtonPrimitiveProps = Omit<ComponentProps<"button">, "children" | "type" | "onCopy"> &
+	SelfClosingWithAsChild & {
+		/**
+		 * The accessible label for the copy button. This label will be visually
+		 * hidden but announced to screen reader users, similar to alt text for
+		 * img tags.
+		 *
+		 * @default "Copy data as Markdown"
+		 */
+		label?: string;
+		/**
+		 * Callback fired after a successful copy, passes the serialized markdown.
+		 */
+		onCopy?: (value: string) => void;
+		/**
+		 * Callback fired when an error occurs during copying.
+		 */
+		onCopyError?: (error: unknown) => void;
+	};
+
+/**
+ * A button that copies the chart's current data to the clipboard as a
+ * GitHub-flavored markdown table. Columns mirror the sr-only data table twin:
+ * x first, one column per composed series in paint order, and the z column on
+ * 3D scatters. Output is machine-stable (ISO 8601 dates, un-separated
+ * numbers, em dash gaps) so the paste target — Slack, an issue, a
+ * spreadsheet, an LLM chat — receives parseable data, not locale formatting.
+ *
+ * The data is serialized at click time, so the copy always reflects the
+ * chart's current rows.
+ */
+const ChartCopyButtonPrimitive = ({
+	partName,
+	slotName,
+	label = "Copy data as Markdown",
+	onCopy,
+	onCopyError,
+	onClick,
+	ref,
+	...props
+}: CopyButtonPrimitiveProps & { partName: string; slotName: string }) => {
+	const context = useChartContext(partName);
+	const copyToClipboard = useCopyToClipboard();
+	const [wasCopied, setWasCopied] = useState(false);
+	const timeoutHandle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+	useEffect(() => {
+		return () => {
+			if (timeoutHandle.current != null) {
+				clearTimeout(timeoutHandle.current);
+			}
+		};
+	}, []);
+
+	return (
+		<IconButton
+			type="button"
+			appearance="ghost"
+			intent="neutral"
+			size="sm"
+			data-slot={`${slotName}-copy-button`}
+			label={label}
+			icon={wasCopied ? <CheckIcon /> : <CopyIcon />}
+			ref={ref}
+			onClick={async (event) => {
+				try {
+					onClick?.(event);
+					if (event.defaultPrevented) {
+						if (timeoutHandle.current != null) {
+							clearTimeout(timeoutHandle.current);
+						}
+						return;
+					}
+					const { data, xKey, zKey } = context.dataRef.current;
+					const markdown = serializeChartMarkdown({
+						data,
+						xKey,
+						zKey,
+						series: context.store.getSnapshot().series,
+					});
+					await copyToClipboard(markdown);
+					onCopy?.(markdown);
+					setWasCopied(true);
+					if (timeoutHandle.current != null) {
+						clearTimeout(timeoutHandle.current);
+					}
+					timeoutHandle.current = setTimeout(() => {
+						setWasCopied(false);
+					}, 2000);
+				} catch (error) {
+					onCopyError?.(error);
+				}
+			}}
+			{...props}
+		/>
+	);
+};
+
 // ---- accessibility ----------------------------------------------------------
 
 /**
@@ -827,7 +956,12 @@ const ChartDataTable = ({
 				</thead>
 				<tbody>
 					{rows.map((row, index) => {
+						// Cells carry the display-formatted text for AT and the raw value
+						// beside it for machines — `<time dateTime>` and `data-value` let
+						// agents scrape exact timestamps/numbers from the DOM without
+						// reverse-engineering locale formatting.
 						const x = datumValue(row, xKey);
+						const isValidDate = x instanceof Date && !Number.isNaN(x.getTime());
 						const xText =
 							typeof x === "string" || typeof x === "number" || x instanceof Date
 								? formatXValue(x)
@@ -835,11 +969,17 @@ const ChartDataTable = ({
 						return (
 							// oxlint-disable-next-line react/no-array-index-key -- rows have no identity beyond position; the table is regenerated wholesale on data change, never reordered
 							<tr key={index}>
-								<th scope="row">{xText}</th>
+								<th
+									scope="row"
+									data-value={typeof x === "number" && Number.isFinite(x) ? x : undefined}
+								>
+									{isValidDate ? <time dateTime={x.toISOString()}>{xText}</time> : xText}
+								</th>
 								{snapshot.series.map((series) => {
 									const value = datumValue(row, series.dataKey);
+									const isFinite = typeof value === "number" && Number.isFinite(value);
 									return (
-										<td key={series.dataKey}>
+										<td key={series.dataKey} data-value={isFinite ? value : undefined}>
 											{typeof value === "number" ? formatNumber(value) : "—"}
 										</td>
 									);
@@ -848,7 +988,12 @@ const ChartDataTable = ({
 									? null
 									: (() => {
 											const zRaw = datumValue(row, zKey);
-											return <td>{typeof zRaw === "number" ? formatNumber(zRaw) : "—"}</td>;
+											const zIsFinite = typeof zRaw === "number" && Number.isFinite(zRaw);
+											return (
+												<td data-value={zIsFinite ? zRaw : undefined}>
+													{typeof zRaw === "number" ? formatNumber(zRaw) : "—"}
+												</td>
+											);
 										})()}
 							</tr>
 						);
@@ -864,6 +1009,7 @@ export type {
 	ChartAccessibleName,
 	ChartRootBaseProps,
 	ChartRootPrimitiveProps,
+	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
 	LegendPrimitiveProps,
 	ReferenceLinePrimitiveProps,
@@ -875,6 +1021,7 @@ export type {
 export {
 	//,
 	CHART_TABLE_ROW_LIMIT,
+	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
 	ChartRootPrimitive,
 	useGridPrimitive,

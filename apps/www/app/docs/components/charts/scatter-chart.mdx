@@ -580,7 +580,8 @@ ScatterChart.Root
 ├── ScatterChart.Point (one per series)
 ├── ScatterChart.ReferenceLine
 ├── ScatterChart.Tooltip
-└── ScatterChart.Legend
+├── ScatterChart.Legend
+└── ScatterChart.CopyButton
 ```
 
 ## Accessibility
@@ -602,9 +603,11 @@ The tooltip names only the relevant series, never a column of em dashes: under t
 
 Every chart also renders a screen-reader-only data table twin: one column for the x value and one per series — plus a z column in 3D — bounded to the first 150 rows with a caption stating the summarization. Tooltips enhance, they never gate: every plotted value is reachable through the table or the keyboard point cursor.
 
+The twin doubles as the chart's machine-readable surface: date row headers carry the exact ISO timestamp in `<time dateTime>` and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text.
+
 ## API Reference
 
-`ScatterChart.Point`, `ScatterChart.Grid`, `ScatterChart.XAxis`, `ScatterChart.YAxis`, and `ScatterChart.ReferenceLine` are renderless: they register configuration with the `Root`, which paints everything on canvas. They accept no `className` and no DOM props. `ScatterChart.Tooltip` and `ScatterChart.Legend` are the two parts that touch real DOM — both accept `div` props. `Grid`, `XAxis`, `YAxis`, and `ReferenceLine` configure the 2D projection only: composing them is always safe, but they are ignored while the chart renders in 3D.
+`ScatterChart.Point`, `ScatterChart.Grid`, `ScatterChart.XAxis`, `ScatterChart.YAxis`, and `ScatterChart.ReferenceLine` are renderless: they register configuration with the `Root`, which paints everything on canvas. They accept no `className` and no DOM props. `ScatterChart.Tooltip`, `ScatterChart.Legend`, and `ScatterChart.CopyButton` are the parts that touch real DOM — the first two accept `div` props, `CopyButton` accepts `button` props. `Grid`, `XAxis`, `YAxis`, and `ReferenceLine` configure the 2D projection only: composing them is always safe, but they are ignored while the chart renders in 3D.
 
 ### ScatterChart.Root
 
@@ -699,6 +702,19 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | Prop        | Type                                  | Default | Description                                                                                                                   |
 | ----------- | ------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `children?` | `(series: SeriesMeta[]) => ReactNode` |         | Replace the default legend items. Receives the registered series with their `dataKey`, `label`, `mark`, and resolved `color`. |
+
+### ScatterChart.CopyButton
+
+A button that copies the chart's current data to the clipboard as a GitHub-flavored markdown table: one x column, one column per series in paint order, plus the z column in 3D. Values are machine-stable — ISO 8601 dates, plain un-separated numbers, an em dash for gaps — so the paste target receives parseable data, not locale formatting. Renders an icon button in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner (e.g. `absolute right-0 top-0`).
+
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
+
+| Prop           | Type                       | Default                   | Description                                                                    |
+| -------------- | -------------------------- | ------------------------- | ------------------------------------------------------------------------------ |
+| `label?`       | `string`                   | `"Copy data as Markdown"` | The accessible label, visually hidden but announced to screen readers.         |
+| `onCopy?`      | `(value: string) => void`  |                           | Callback fired after a successful copy, passes the serialized markdown.        |
+| `onCopyError?` | `(error: unknown) => void` |                           | Callback fired when an error occurs during copying.                            |
+| `asChild?`     | `boolean`                  | `false`                   | Compose the copy behavior onto your own element instead of the default button. |
 
 ### Chart color tokens
 

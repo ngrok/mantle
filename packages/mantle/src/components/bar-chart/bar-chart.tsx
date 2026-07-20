@@ -3,6 +3,7 @@
 import type {
 	ChartAccessibleName,
 	ChartRootBaseProps,
+	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
 	LegendPrimitiveProps,
 	ReferenceLinePrimitiveProps,
@@ -12,6 +13,7 @@ import type {
 } from "../chart/primitive.js";
 import type { ChartDatum, ChartDatumEvent, SeriesColor } from "../chart/types.js";
 import {
+	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
 	ChartRootPrimitive,
 	useGridPrimitive,
@@ -89,6 +91,11 @@ type BarChartTooltipProps = TooltipPrimitiveProps;
  * Props for {@link BarChart.Legend}.
  */
 type BarChartLegendProps = LegendPrimitiveProps;
+
+/**
+ * Props for {@link BarChart.CopyButton}.
+ */
+type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
 
 /**
  * The root of a bar chart: owns the data, the scales, the canvas renderer,
@@ -273,6 +280,31 @@ const Legend = (props: BarChartLegendProps) => (
 	<ChartLegendPrimitive partName="BarChart.Legend" slotName="bar-chart" {...props} />
 );
 Legend.displayName = "BarChartLegend";
+
+/**
+ * A button that copies the chart's current data to the clipboard as a
+ * markdown table (ISO dates, plain numbers, one column per series) —
+ * pasteable into Slack, issues, docs, spreadsheets, and LLM chats. Renders
+ * in flow where composed (alongside `Legend`, below the plot); `Root` is
+ * relatively positioned, so `className` can dock it over a corner instead
+ * (e.g. `absolute right-0 top-0`).
+ *
+ * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartcopybutton
+ *
+ * @example
+ * ```tsx
+ * <BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+ *   <BarChart.Bar dataKey="desktop" label="Desktop" />
+ *   <BarChart.Bar dataKey="mobile" label="Mobile" />
+ *   <BarChart.Legend />
+ *   <BarChart.CopyButton />
+ * </BarChart.Root>
+ * ```
+ */
+const CopyButton = (props: BarChartCopyButtonProps) => (
+	<ChartCopyButtonPrimitive partName="BarChart.CopyButton" slotName="bar-chart" {...props} />
+);
+CopyButton.displayName = "BarChartCopyButton";
 
 /**
  * A canvas-rendered bar chart for comparing values across categories, with
@@ -471,11 +503,28 @@ const BarChart = {
 	 * ```
 	 */
 	Legend,
+	/**
+	 * Copies the chart's current data to the clipboard as a markdown table.
+	 *
+	 * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartcopybutton
+	 *
+	 * @example
+	 * ```tsx
+	 * <BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+	 *   <BarChart.Bar dataKey="desktop" label="Desktop" />
+	 *   <BarChart.Bar dataKey="mobile" label="Mobile" />
+	 *   <BarChart.Legend />
+	 *   <BarChart.CopyButton />
+	 * </BarChart.Root>
+	 * ```
+	 */
+	CopyButton,
 } as const;
 
 export type {
 	//,
 	BarChartBarProps,
+	BarChartCopyButtonProps,
 	BarChartGridProps,
 	BarChartLegendProps,
 	BarChartReferenceLineProps,

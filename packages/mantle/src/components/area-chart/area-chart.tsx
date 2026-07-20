@@ -3,6 +3,7 @@
 import type {
 	ChartAccessibleName,
 	ChartRootBaseProps,
+	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
 	LegendPrimitiveProps,
 	ReferenceLinePrimitiveProps,
@@ -18,6 +19,7 @@ import type {
 	SeriesColor,
 } from "../chart/types.js";
 import {
+	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
 	ChartRootPrimitive,
 	useGridPrimitive,
@@ -111,6 +113,11 @@ type AreaChartTooltipProps = TooltipPrimitiveProps;
  * Props for {@link AreaChart.Legend}.
  */
 type AreaChartLegendProps = LegendPrimitiveProps;
+
+/**
+ * Props for {@link AreaChart.CopyButton}.
+ */
+type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
 
 /**
  * The root of an area chart: owns the data, the scales, the canvas renderer,
@@ -310,6 +317,31 @@ const Legend = (props: AreaChartLegendProps) => (
 	<ChartLegendPrimitive partName="AreaChart.Legend" slotName="area-chart" {...props} />
 );
 Legend.displayName = "AreaChartLegend";
+
+/**
+ * A button that copies the chart's current data to the clipboard as a
+ * markdown table (ISO dates, plain numbers, one column per series) —
+ * pasteable into Slack, issues, docs, spreadsheets, and LLM chats. Renders
+ * in flow where composed (alongside `Legend`, below the plot); `Root` is
+ * relatively positioned, so `className` can dock it over a corner instead
+ * (e.g. `absolute right-0 top-0`).
+ *
+ * @see https://mantle.ngrok.com/components/charts/area-chart#areachartcopybutton
+ *
+ * @example
+ * ```tsx
+ * <AreaChart.Root data={data} xKey="date" stacked aria-label="Traffic by protocol">
+ *   <AreaChart.Area dataKey="http" label="HTTP" />
+ *   <AreaChart.Area dataKey="tcp" label="TCP" />
+ *   <AreaChart.Legend />
+ *   <AreaChart.CopyButton />
+ * </AreaChart.Root>
+ * ```
+ */
+const CopyButton = (props: AreaChartCopyButtonProps) => (
+	<ChartCopyButtonPrimitive partName="AreaChart.CopyButton" slotName="area-chart" {...props} />
+);
+CopyButton.displayName = "AreaChartCopyButton";
 
 /**
  * A canvas-rendered area chart for showing how values — and, when stacked, a
@@ -513,11 +545,28 @@ const AreaChart = {
 	 * ```
 	 */
 	Legend,
+	/**
+	 * Copies the chart's current data to the clipboard as a markdown table.
+	 *
+	 * @see https://mantle.ngrok.com/components/charts/area-chart#areachartcopybutton
+	 *
+	 * @example
+	 * ```tsx
+	 * <AreaChart.Root data={data} xKey="date" stacked aria-label="Traffic by protocol">
+	 *   <AreaChart.Area dataKey="http" label="HTTP" />
+	 *   <AreaChart.Area dataKey="tcp" label="TCP" />
+	 *   <AreaChart.Legend />
+	 *   <AreaChart.CopyButton />
+	 * </AreaChart.Root>
+	 * ```
+	 */
+	CopyButton,
 } as const;
 
 export type {
 	//,
 	AreaChartAreaProps,
+	AreaChartCopyButtonProps,
 	AreaChartGridProps,
 	AreaChartLegendProps,
 	AreaChartReferenceLineProps,

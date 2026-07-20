@@ -639,7 +639,8 @@ BarChart.Root
 ├── BarChart.Bar (one per series)
 ├── BarChart.ReferenceLine
 ├── BarChart.Tooltip
-└── BarChart.Legend
+├── BarChart.Legend
+└── BarChart.CopyButton
 ```
 
 ## Accessibility
@@ -658,9 +659,11 @@ Keyboard stepping announces the category and each series' value through a deboun
 
 `BarChart.Root` also renders an sr-only data table twin of the chart — the category column plus one column per series — bounded to the first 150 rows, with a caption stating the summarization when the data is longer. Tooltips enhance, they never gate: every plotted value is reachable through the table or the keyboard point cursor, and no part removal can strip keyboard access to the data.
 
+The twin doubles as the chart's machine-readable surface: value cells carry the raw number in `data-value` (and date row headers, where present, the exact ISO timestamp in `<time dateTime>`), so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text.
+
 ## API Reference
 
-`BarChart.Bar`, `BarChart.Grid`, `BarChart.XAxis`, `BarChart.YAxis`, and `BarChart.ReferenceLine` are renderless: they register configuration with the Root, which paints everything on canvas. They accept no `className` or other DOM props. `BarChart.Tooltip` and `BarChart.Legend` accept div props — the tooltip forwards them to the readout element the Root owns, and the legend renders real DOM in flow below the plot.
+`BarChart.Bar`, `BarChart.Grid`, `BarChart.XAxis`, `BarChart.YAxis`, and `BarChart.ReferenceLine` are renderless: they register configuration with the Root, which paints everything on canvas. They accept no `className` or other DOM props. `BarChart.Tooltip` and `BarChart.Legend` accept div props — the tooltip forwards them to the readout element the Root owns, and the legend renders real DOM in flow below the plot. `BarChart.CopyButton` also renders real DOM — an icon button accepting `button` props.
 
 ### BarChart.Root
 
@@ -753,6 +756,19 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | Prop        | Type                                  | Default | Description                                                       |
 | ----------- | ------------------------------------- | ------- | ----------------------------------------------------------------- |
 | `children?` | `(series: SeriesMeta[]) => ReactNode` |         | Replace the default legend items; receives the registered series. |
+
+### BarChart.CopyButton
+
+A button that copies the chart's current data to the clipboard as a GitHub-flavored markdown table: the category column plus one column per series in paint order. Values are machine-stable — plain un-separated numbers, an em dash for gaps — so the paste target receives parseable data, not locale formatting. Renders an icon button in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner (e.g. `absolute right-0 top-0`).
+
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
+
+| Prop           | Type                       | Default                   | Description                                                                    |
+| -------------- | -------------------------- | ------------------------- | ------------------------------------------------------------------------------ |
+| `label?`       | `string`                   | `"Copy data as Markdown"` | The accessible label, visually hidden but announced to screen readers.         |
+| `onCopy?`      | `(value: string) => void`  |                           | Callback fired after a successful copy, passes the serialized markdown.        |
+| `onCopyError?` | `(error: unknown) => void` |                           | Callback fired when an error occurs during copying.                            |
+| `asChild?`     | `boolean`                  | `false`                   | Compose the copy behavior onto your own element instead of the default button. |
 
 ### Chart color tokens
 

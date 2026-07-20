@@ -3,6 +3,7 @@
 import type {
 	ChartAccessibleName,
 	ChartRootBaseProps,
+	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
 	LegendPrimitiveProps,
 	ReferenceLinePrimitiveProps,
@@ -12,6 +13,7 @@ import type {
 } from "../chart/primitive.js";
 import type { ChartDatum, ChartDatumEvent, SeriesColor } from "../chart/types.js";
 import {
+	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
 	ChartRootPrimitive,
 	useGridPrimitive,
@@ -121,6 +123,11 @@ type ScatterChartTooltipProps = TooltipPrimitiveProps;
  * Props for {@link ScatterChart.Legend}.
  */
 type ScatterChartLegendProps = LegendPrimitiveProps;
+
+/**
+ * Props for {@link ScatterChart.CopyButton}.
+ */
+type ScatterChartCopyButtonProps = CopyButtonPrimitiveProps;
 
 /**
  * The root of a scatter chart: owns the data, the scales, the canvas
@@ -311,6 +318,35 @@ const Legend = (props: ScatterChartLegendProps) => (
 	<ChartLegendPrimitive partName="ScatterChart.Legend" slotName="scatter-chart" {...props} />
 );
 Legend.displayName = "ScatterChartLegend";
+
+/**
+ * A button that copies the chart's current data to the clipboard as a
+ * markdown table (ISO dates, plain numbers, one column per series, plus the
+ * z column on 3D scatters) — pasteable into Slack, issues, docs,
+ * spreadsheets, and LLM chats. Renders in flow where composed (alongside
+ * `Legend`, below the plot); `Root` is relatively positioned, so `className`
+ * can dock it over a corner instead (e.g. `absolute right-0 top-0`).
+ *
+ * @see https://mantle.ngrok.com/components/charts/scatter-chart#scatterchartcopybutton
+ *
+ * @example
+ * ```tsx
+ * <ScatterChart.Root data={data} xKey="latency" aria-label="Latency vs throughput">
+ *   <ScatterChart.Point dataKey="throughputA" label="Region A" />
+ *   <ScatterChart.Point dataKey="throughputB" label="Region B" />
+ *   <ScatterChart.Legend />
+ *   <ScatterChart.CopyButton />
+ * </ScatterChart.Root>
+ * ```
+ */
+const CopyButton = (props: ScatterChartCopyButtonProps) => (
+	<ChartCopyButtonPrimitive
+		partName="ScatterChart.CopyButton"
+		slotName="scatter-chart"
+		{...props}
+	/>
+);
+CopyButton.displayName = "ScatterChartCopyButton";
 
 /**
  * A canvas-rendered scatter chart for correlating two measures — three with
@@ -506,11 +542,28 @@ const ScatterChart = {
 	 * ```
 	 */
 	Legend,
+	/**
+	 * Copies the chart's current data to the clipboard as a markdown table.
+	 *
+	 * @see https://mantle.ngrok.com/components/charts/scatter-chart#scatterchartcopybutton
+	 *
+	 * @example
+	 * ```tsx
+	 * <ScatterChart.Root data={data} xKey="latency" aria-label="Latency vs throughput">
+	 *   <ScatterChart.Point dataKey="throughputA" label="Region A" />
+	 *   <ScatterChart.Point dataKey="throughputB" label="Region B" />
+	 *   <ScatterChart.Legend />
+	 *   <ScatterChart.CopyButton />
+	 * </ScatterChart.Root>
+	 * ```
+	 */
+	CopyButton,
 } as const;
 
 export type {
 	//,
 	ChartDatumEvent,
+	ScatterChartCopyButtonProps,
 	ScatterChartGridProps,
 	ScatterChartLegendProps,
 	ScatterChartPointProps,

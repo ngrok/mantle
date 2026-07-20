@@ -3,6 +3,7 @@
 import type {
 	ChartAccessibleName,
 	ChartRootBaseProps,
+	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
 	LegendPrimitiveProps,
 	ReferenceLinePrimitiveProps,
@@ -18,6 +19,7 @@ import type {
 	SeriesColor,
 } from "../chart/types.js";
 import {
+	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
 	ChartRootPrimitive,
 	useGridPrimitive,
@@ -114,6 +116,11 @@ type LineChartTooltipProps = TooltipPrimitiveProps;
  * Props for {@link LineChart.Legend}.
  */
 type LineChartLegendProps = LegendPrimitiveProps;
+
+/**
+ * Props for {@link LineChart.CopyButton}.
+ */
+type LineChartCopyButtonProps = CopyButtonPrimitiveProps;
 
 /**
  * The root of a line chart: owns the data, the scales, the canvas renderer,
@@ -300,6 +307,31 @@ const Legend = (props: LineChartLegendProps) => (
 	<ChartLegendPrimitive partName="LineChart.Legend" slotName="line-chart" {...props} />
 );
 Legend.displayName = "LineChartLegend";
+
+/**
+ * A button that copies the chart's current data to the clipboard as a
+ * markdown table (ISO dates, plain numbers, one column per series) —
+ * pasteable into Slack, issues, docs, spreadsheets, and LLM chats. Renders
+ * in flow where composed (alongside `Legend`, below the plot); `Root` is
+ * relatively positioned, so `className` can dock it over a corner instead
+ * (e.g. `absolute right-0 top-0`).
+ *
+ * @see https://mantle.ngrok.com/components/charts/line-chart#linechartcopybutton
+ *
+ * @example
+ * ```tsx
+ * <LineChart.Root data={data} xKey="time" aria-label="Request latency">
+ *   <LineChart.Line dataKey="p50" label="p50" />
+ *   <LineChart.Line dataKey="p99" label="p99" />
+ *   <LineChart.Legend />
+ *   <LineChart.CopyButton />
+ * </LineChart.Root>
+ * ```
+ */
+const CopyButton = (props: LineChartCopyButtonProps) => (
+	<ChartCopyButtonPrimitive partName="LineChart.CopyButton" slotName="line-chart" {...props} />
+);
+CopyButton.displayName = "LineChartCopyButton";
 
 /**
  * A canvas-rendered line chart for trends over a continuous x — time above
@@ -499,11 +531,28 @@ const LineChart = {
 	 * ```
 	 */
 	Legend,
+	/**
+	 * Copies the chart's current data to the clipboard as a markdown table.
+	 *
+	 * @see https://mantle.ngrok.com/components/charts/line-chart#linechartcopybutton
+	 *
+	 * @example
+	 * ```tsx
+	 * <LineChart.Root data={data} xKey="time" aria-label="Request latency">
+	 *   <LineChart.Line dataKey="p50" label="p50" />
+	 *   <LineChart.Line dataKey="p99" label="p99" />
+	 *   <LineChart.Legend />
+	 *   <LineChart.CopyButton />
+	 * </LineChart.Root>
+	 * ```
+	 */
+	CopyButton,
 } as const;
 
 export type {
 	//,
 	ChartDatumEvent,
+	LineChartCopyButtonProps,
 	LineChartGridProps,
 	LineChartLegendProps,
 	LineChartLineProps,

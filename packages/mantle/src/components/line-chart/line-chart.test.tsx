@@ -110,6 +110,117 @@ describe("LineChart.Root", () => {
 	});
 });
 
+describe("LineChart machine-readable data table", () => {
+	test("date row headers expose exact ISO timestamps via <time dateTime>", () => {
+		renderChart();
+		// Agents scrape the exact timestamp from the attribute; AT still reads
+		// the display-formatted text content.
+		const [firstRowHeader] = screen.getAllByRole("rowheader");
+		const time = firstRowHeader?.querySelector("time");
+		expect(time).not.toBeNull();
+		expect(time?.getAttribute("datetime")).toBe("2026-07-18T10:00:00.000Z");
+	});
+
+	test("value cells expose the raw number via data-value alongside locale-formatted text", () => {
+		render(
+			<LineChart.Root
+				data={[{ time: new Date("2026-07-18T10:00:00Z"), p50: 1284.5 }]}
+				xKey="time"
+				aria-label="Request latency"
+			>
+				<LineChart.Line dataKey="p50" label="p50" />
+			</LineChart.Root>,
+		);
+		const cell = screen.getByRole("cell", { name: "1,284.5" });
+		expect(cell.getAttribute("data-value")).toBe("1284.5");
+	});
+
+	test("null cells render an em dash and carry no data-value", () => {
+		render(
+			<LineChart.Root
+				data={[{ time: new Date("2026-07-18T10:00:00Z"), p50: null }]}
+				xKey="time"
+				aria-label="Request latency"
+			>
+				<LineChart.Line dataKey="p50" label="p50" />
+			</LineChart.Root>,
+		);
+		const cell = screen.getByRole("cell", { name: "—" });
+		expect(cell.hasAttribute("data-value")).toBe(false);
+	});
+});
+
+describe("LineChart.CopyButton", () => {
+	test("copies the chart data as a machine-stable markdown table", async () => {
+		const user = userEvent.setup();
+		const onCopy = vi.fn<(value: string) => void>();
+		render(
+			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
+				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p99" label="p99" />
+				<LineChart.CopyButton onCopy={onCopy} />
+			</LineChart.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Copy data as Markdown" }));
+		await vi.waitFor(() => {
+			expect(onCopy).toHaveBeenCalledWith(
+				[
+					"| time | p50 | p99 |",
+					"| --- | --- | --- |",
+					"| 2026-07-18T10:00:00.000Z | 120 | 480 |",
+					"| 2026-07-18T10:01:00.000Z | 132 | 510 |",
+					"| 2026-07-18T10:02:00.000Z | 101 | 460 |",
+				].join("\n"),
+			);
+		});
+	});
+
+	test("copies the current rows after a data update, not the mount-time rows", async () => {
+		const user = userEvent.setup();
+		const onCopy = vi.fn<(value: string) => void>();
+		const { rerender } = render(
+			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
+				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.CopyButton onCopy={onCopy} />
+			</LineChart.Root>,
+		);
+		rerender(
+			<LineChart.Root
+				data={[{ time: new Date("2026-07-18T11:00:00Z"), p50: 777 }]}
+				xKey="time"
+				aria-label="Request latency"
+			>
+				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.CopyButton onCopy={onCopy} />
+			</LineChart.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Copy data as Markdown" }));
+		await vi.waitFor(() => {
+			expect(onCopy).toHaveBeenCalledWith(
+				["| time | p50 |", "| --- | --- |", "| 2026-07-18T11:00:00.000Z | 777 |"].join("\n"),
+			);
+		});
+	});
+
+	test("uses the label prop as the accessible name", () => {
+		render(
+			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
+				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.CopyButton label="Copy latency data" />
+			</LineChart.Root>,
+		);
+		expect(screen.getByRole("button", { name: "Copy latency data" })).toBeInTheDocument();
+	});
+
+	test("rendered outside Root throws", () => {
+		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() => render(<LineChart.CopyButton />)).toThrow(
+			/LineChart\.CopyButton must be composed inside LineChart\.Root/,
+		);
+		consoleError.mockRestore();
+	});
+});
+
 describe("LineChart parts outside Root", () => {
 	test("a part rendered outside Root throws", () => {
 		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
