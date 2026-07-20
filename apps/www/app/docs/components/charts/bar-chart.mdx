@@ -697,7 +697,7 @@ Keyboard stepping announces the category and each series' value through a deboun
 
 `BarChart.Root` also renders an sr-only data table twin of the chart — the category column plus one column per series — bounded to the first 150 rows, with a caption stating the summarization when the data is longer. Tooltips enhance, they never gate: every plotted value is reachable through the table or the keyboard point cursor, and no part removal can strip keyboard access to the data.
 
-The twin doubles as the chart's machine-readable surface: value cells carry the raw number in `data-value` (and date row headers, where present, the exact ISO timestamp in `<time dateTime>`), so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text.
+The twin doubles as the chart's machine-readable surface: value cells carry the raw number in `data-value` (and date row headers, where present, the exact ISO timestamp in `<time dateTime>`), so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="bar-chart-data-table"`.
 
 ## API Reference
 

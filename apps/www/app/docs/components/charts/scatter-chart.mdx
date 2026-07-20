@@ -707,7 +707,7 @@ The tooltip names only the relevant series, never a column of em dashes: under t
 
 Every chart also renders a screen-reader-only data table twin: one column for the x value and one per series — plus a z column in 3D — bounded to the first 150 rows with a caption stating the summarization. Tooltips enhance, they never gate: every plotted value is reachable through the table or the keyboard point cursor.
 
-The twin doubles as the chart's machine-readable surface: date row headers carry the exact ISO timestamp in `<time dateTime>` and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text.
+The twin doubles as the chart's machine-readable surface: date row headers carry the exact ISO timestamp in `<time dateTime>` and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="scatter-chart-data-table"`.
 
 ## API Reference
 

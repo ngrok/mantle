@@ -429,7 +429,14 @@ const ChartRootPrimitive = ({
 				</div>
 				{children}
 				<ChartAnnouncer store={store} />
-				<ChartDataTable data={data} label={ariaLabel} store={store} xKey={xKey} zKey={zKey} />
+				<ChartDataTable
+					data={data}
+					label={ariaLabel}
+					slotName={slotName}
+					store={store}
+					xKey={xKey}
+					zKey={zKey}
+				/>
 			</ChartContext.Provider>
 		</div>
 	);
@@ -934,6 +941,7 @@ const ChartAnnouncer = ({ store }: { store: ChartStore }) => {
 const ChartDataTable = ({
 	data,
 	label,
+	slotName,
 	store,
 	xKey,
 	zKey,
@@ -941,6 +949,7 @@ const ChartDataTable = ({
 	data: readonly ChartDatum[];
 	/** The chart's accessible name, so multi-chart pages get distinct captions. */
 	label: string | undefined;
+	slotName: string;
 	store: ChartStore;
 	xKey: string;
 	zKey: string | undefined;
@@ -951,7 +960,9 @@ const ChartDataTable = ({
 	}
 	const rows = data.slice(0, CHART_TABLE_ROW_LIMIT);
 	return (
-		<div className="sr-only">
+		// The slot names the twin for programmatic discovery — an agent scraping
+		// the machine-readable table targets it without heuristics.
+		<div className="sr-only" data-slot={`${slotName}-data-table`}>
 			<table>
 				<caption>
 					{`${label == null ? "Chart data" : `${label} — chart data`}${

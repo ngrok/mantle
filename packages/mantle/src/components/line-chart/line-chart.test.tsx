@@ -57,9 +57,13 @@ describe("LineChart.Root", () => {
 	});
 
 	test("renders the sr-only data table twin with a row per datum", () => {
-		renderChart();
+		const { container } = renderChart();
 		const table = screen.getByRole("table");
 		expect(table).toBeInTheDocument();
+		// The twin is addressable by slot so agents can target it directly.
+		const twin = container.querySelector('[data-slot="line-chart-data-table"]');
+		expect(twin).toBeInTheDocument();
+		expect(twin?.contains(table)).toBe(true);
 		expect(screen.getByRole("columnheader", { name: "p50" })).toBeInTheDocument();
 		expect(screen.getByRole("columnheader", { name: "p99" })).toBeInTheDocument();
 		// Row headers are the default-formatted dates. The test scripts pin TZ=UTC

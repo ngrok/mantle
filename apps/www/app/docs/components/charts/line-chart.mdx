@@ -641,7 +641,7 @@ Keyboard stepping announces the active point — the x value and every series va
 
 Every chart also renders a screen-reader-only data table twin: one column for the x value and one per series, bounded to the first 150 rows with a caption stating the summarization (an unbounded table at 100,000 rows would be unusable to assistive tech anyway). Tooltips enhance, they never gate: every plotted value is reachable through the table or the keyboard point cursor.
 
-The twin doubles as the chart's machine-readable surface. Date row headers carry the exact ISO timestamp in a `<time dateTime>` attribute and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text.
+The twin doubles as the chart's machine-readable surface. Date row headers carry the exact ISO timestamp in a `<time dateTime>` attribute and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="line-chart-data-table"`.
 
 ## API Reference
 

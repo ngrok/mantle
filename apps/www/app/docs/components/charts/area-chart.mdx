@@ -644,7 +644,7 @@ Keyboard stepping announces the x value and every series' value at it through a 
 
 Every chart also renders an sr-only data table twin of the plotted data, bounded to the first 150 rows with a caption stating the summarization when the data is larger. Tooltips enhance, they never gate: every plotted value is reachable through the keyboard point cursor or the table.
 
-The twin doubles as the chart's machine-readable surface: date row headers carry the exact ISO timestamp in `<time dateTime>` and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text.
+The twin doubles as the chart's machine-readable surface: date row headers carry the exact ISO timestamp in `<time dateTime>` and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="area-chart-data-table"`.
 
 ## API Reference
 
