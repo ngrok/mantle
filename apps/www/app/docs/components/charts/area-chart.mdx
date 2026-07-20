@@ -403,7 +403,7 @@ Overlap stops scaling: past two or three series the intersections turn to mud. W
 
 ## Shapes
 
-An area chart wears its glyphs on the active-point dots: a filled band has no per-point mark, so `shape` — `"circle"` (the default), `"square"`, `"triangle"`, or `"diamond"`, sized for equal visual weight — shows on the dots that ride the band edges at the crosshair, and nowhere else. This example pins a controlled `activeIndex` (falling back to a fixed point when the pointer leaves) so the glyphs stay visible without hovering: US East wears circles, EU West diamonds, AP South triangles. Move the crosshair and each dot keeps its series' glyph at every position. [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full family treatment.
+An area chart wears its glyphs on the legend keys and the active-point dots: a filled band has no per-point mark, so `shape` — `"circle"` (the default), `"square"`, `"triangle"`, or `"diamond"`, sized for equal visual weight — shows in the legend and on the dots that ride the band edges at the crosshair. This example pins a controlled `activeIndex` (falling back to a fixed point when the pointer leaves) so the dots stay visible without hovering: US East wears circles, EU West diamonds, AP South triangles. Move the crosshair and each dot keeps its series' glyph at every position. [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full family treatment.
 
 <Example>
 	<ShapesExample />
@@ -836,7 +836,7 @@ The `HoverSnapshot` passed to `footer` and `children` describes the active x pos
 
 ### AreaChart.Legend
 
-The legend: series names keyed by color swatches, rendered as real DOM in flow below the plot. Always compose it on multi-series charts — identity must never rely on color-matching alone. It renders nothing for a single series (the chart's title already names it).
+The legend: series names keyed by swatches carrying each series' color and glyph, rendered as real DOM in flow below the plot. Always compose it on multi-series charts — identity must never rely on color-matching alone. It renders nothing for a single series (the chart's title already names it).
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 

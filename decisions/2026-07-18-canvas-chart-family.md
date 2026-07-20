@@ -96,8 +96,10 @@ performance, consumer ergonomics) reshaped the draft API:
    through context; the ingest invariant is the runtime backstop.
 6. **Legend is an explicit part** (no mantle part renders unbidden) but
    renders `null` for a single series (one color needs no legend box) and is
-   present in every multi-series docs example. Swatches mirror the mark:
-   line keys for lines, filled squares for bars/areas.
+   present in every multi-series docs example. Swatches mirror the mark and
+   its glyph: the series' shape riding a short stroke for lines, the shape
+   itself for scatter points and areas (what the hover dot shows), filled
+   squares for bars (which carry no glyph).
 7. **Consumer needs surfaced by the ergonomics review** shipped in v1:
    `onDatumActivate` (click/Enter with `{ index, xValue, datum, dataKey }`),
    controlled `activeIndex`/`onActiveIndexChange` (linked crosshairs),

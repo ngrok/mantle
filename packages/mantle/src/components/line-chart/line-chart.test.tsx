@@ -705,6 +705,26 @@ describe("LineChart controlled activeIndex", () => {
 	});
 });
 
+describe("LineChart.Legend", () => {
+	test("legend keys wear each series' glyph on the stroke", () => {
+		// Regression: line keys were bare strokes, so `shape` — the redundant
+		// encoding alongside color — never reached the legend.
+		const { container } = render(
+			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
+				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p99" label="p99" shape="triangle" />
+				<LineChart.Legend />
+			</LineChart.Root>,
+		);
+		const legend = container.querySelector('[data-slot="line-chart-legend"]');
+		const swatches = legend == null ? [] : [...legend.querySelectorAll("span[data-shape]")];
+		expect(swatches.map((swatch) => swatch.getAttribute("data-shape"))).toEqual([
+			"circle",
+			"triangle",
+		]);
+	});
+});
+
 describe("LineChart sticky series colors", () => {
 	test("filtering a series out does not recolor the survivors", () => {
 		const filterableData = [
@@ -720,8 +740,10 @@ describe("LineChart sticky series colors", () => {
 		);
 		const swatchColors = () => {
 			const legend = container.querySelector('[data-slot="line-chart-legend"]');
-			const items = legend == null ? [] : [...legend.querySelectorAll("span")];
-			return items.map((item) => item.style.backgroundColor);
+			// The glyph span carries the series color (line keys are composite:
+			// a stroke span plus the shape glyph span).
+			const items = legend == null ? [] : [...legend.querySelectorAll("span[data-shape]")];
+			return items.map((item) => (item instanceof HTMLElement ? item.style.backgroundColor : ""));
 		};
 		const [, p99Before] = swatchColors();
 		expect(p99Before).toContain("chart-2");

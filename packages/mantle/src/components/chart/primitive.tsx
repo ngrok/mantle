@@ -754,39 +754,53 @@ type LegendPrimitiveProps = Omit<ComponentProps<"div">, "children"> & {
 };
 
 /**
- * A legend key that mirrors its series' mark: a short line for lines, a dot
- * for scatter points, a filled square for bars and areas.
+ * A legend key that mirrors its series' mark AND glyph — shape is the
+ * redundant encoding that keeps series apart without color vision, so the
+ * key must carry it everywhere the marks and hover dots do: scatter and area
+ * keys are the glyph itself (the area glyph is exactly what its hover dot
+ * shows), line keys are the glyph riding a short stroke, and bar keys stay
+ * filled squares (bars carry no glyph — a bar's identity is its position and
+ * color).
  */
 const LegendSwatch = ({ series }: { series: SeriesMeta }) => {
-	if (series.mark === "line") {
+	if (series.mark === "bar") {
 		return (
 			<span
 				aria-hidden
-				className="h-0.5 w-3 shrink-0 rounded-full"
+				className="size-2 shrink-0 rounded-[2px]"
 				style={{ backgroundColor: series.color }}
 			/>
 		);
 	}
-	if (series.mark === "scatter") {
-		// The key mirrors the series' glyph, not just its color — shape is the
-		// redundant encoding that keeps series apart without color vision.
+	if (series.mark === "line") {
+		// The classic composite line key: the series' glyph centered on a short
+		// stroke, mirroring canvas markers and the hover dot.
 		return (
-			<span
-				aria-hidden
-				data-shape={series.shape}
-				className="size-2 shrink-0"
-				style={{
-					backgroundColor: series.color,
-					clipPath: POINT_SHAPE_CLIP_PATHS[series.shape],
-				}}
-			/>
+			<span aria-hidden className="relative flex h-2 w-3 shrink-0 items-center justify-center">
+				<span
+					className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full"
+					style={{ backgroundColor: series.color }}
+				/>
+				<span
+					data-shape={series.shape}
+					className="relative size-2"
+					style={{
+						backgroundColor: series.color,
+						clipPath: POINT_SHAPE_CLIP_PATHS[series.shape],
+					}}
+				/>
+			</span>
 		);
 	}
 	return (
 		<span
 			aria-hidden
-			className="size-2 shrink-0 rounded-[2px]"
-			style={{ backgroundColor: series.color }}
+			data-shape={series.shape}
+			className="size-2 shrink-0"
+			style={{
+				backgroundColor: series.color,
+				clipPath: POINT_SHAPE_CLIP_PATHS[series.shape],
+			}}
 		/>
 	);
 };
@@ -794,8 +808,9 @@ const LegendSwatch = ({ series }: { series: SeriesMeta }) => {
 /**
  * The legend: a real DOM flex row keyed by series color. Renders nothing for
  * a single series — one color needs no legend box; the chart's title already
- * names it. Swatches mirror the mark: a line key for lines, a filled square
- * for bars/areas.
+ * names it. Swatches mirror the mark and its glyph: the shape riding a short
+ * stroke for lines, the shape itself for scatter points and areas, a filled
+ * square for bars.
  *
  * No `asChild`: `children` is a render prop (the series list), which is
  * incompatible with Slot's single-element-child contract; use `className`

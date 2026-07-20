@@ -156,6 +156,24 @@ describe("AreaChart.Legend", () => {
 		expect(container.querySelector('[data-slot="area-chart-legend"]')).not.toBeInTheDocument();
 	});
 
+	test("legend keys wear each series' glyph", () => {
+		// Regression: area keys were plain filled squares, so `shape` — the
+		// redundant encoding alongside color — never reached the legend.
+		const { container } = render(
+			<AreaChart.Root data={data} xKey="date" aria-label="Traffic by protocol">
+				<AreaChart.Area dataKey="http" label="HTTP" />
+				<AreaChart.Area dataKey="tcp" label="TCP" shape="diamond" />
+				<AreaChart.Legend />
+			</AreaChart.Root>,
+		);
+		const legend = container.querySelector('[data-slot="area-chart-legend"]');
+		const swatches = legend == null ? [] : [...legend.querySelectorAll("span[data-shape]")];
+		expect(swatches.map((swatch) => swatch.getAttribute("data-shape"))).toEqual([
+			"circle",
+			"diamond",
+		]);
+	});
+
 	test("supports a render-prop for custom legends", () => {
 		render(
 			<AreaChart.Root data={data} xKey="date" aria-label="Traffic by protocol">
