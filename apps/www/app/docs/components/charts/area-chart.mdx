@@ -321,7 +321,7 @@ The tooltip, crosshair, and keyboard cursor are part of `AreaChart.Root`'s inter
 
 ## Overlapping areas
 
-Without `stacked`, every series fills from the zero baseline and the areas overlap. The 10% wash is what keeps this legible: with two series you can read both bands and the region where they cross. `shape` gives a series' hover dot a distinct glyph (hover the crossing — EU West wears diamonds), a redundant encoding alongside color for where the bands overlap.
+Without `stacked`, every series fills from the zero baseline and the areas overlap. The 10% wash is what keeps this legible: with two series you can read both bands and the region where they cross. `shape` gives a series' hover dot a distinct glyph (hover the crossing — EU West wears diamonds), a redundant encoding alongside color for where the bands overlap. A filled band has no per-point mark, so the hover dot is the only place an area chart shows the glyph; [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full family treatment.
 
 <Example>
 	<OverlappingAreasExample />

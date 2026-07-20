@@ -296,7 +296,7 @@ function LatencyExample() {
 
 ## Curves, markers, and shapes
 
-`curve` controls interpolation between points: `"linear"` (the default), `"monotone"` (smoothed without overshooting the data), or `"step"`. `markers` draws a dot with a surface ring at each point — markers auto-hide when points get denser than ~12px apart, so a chart that grows dense never turns to gravel. `shape` picks the marker glyph per series — `"circle"` (default), `"square"`, `"triangle"`, or `"diamond"`, sized for equal visual weight — and the hover dot wears it too: a redundant encoding alongside color, so series stay distinguishable without color vision (last week wears triangles below). String x values put the chart on a `"point"` scale: evenly spaced categorical positions with no band thickness.
+`curve` controls interpolation between points: `"linear"` (the default), `"monotone"` (smoothed without overshooting the data), or `"step"`. `markers` draws a dot with a surface ring at each point — markers auto-hide when points get denser than ~12px apart, so a chart that grows dense never turns to gravel. `shape` picks the marker glyph per series — `"circle"` (default), `"square"`, `"triangle"`, or `"diamond"`, sized for equal visual weight — and the hover dot wears it too: a redundant encoding alongside color, so series stay distinguishable without color vision (last week wears triangles below). The glyph set is shared across the chart family; [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full treatment. String x values put the chart on a `"point"` scale: evenly spaced categorical positions with no band thickness.
 
 <Example>
 	<CurveMarkersExample />
