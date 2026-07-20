@@ -127,7 +127,6 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
 const Root = <TDatum extends ChartDatum = ChartDatum>(props: BarChartRootProps<TDatum>) => (
 	<ChartRootPrimitive kind="bar" componentName="BarChart" slotName="bar-chart" {...props} />
 );
-Root.displayName = "BarChart";
 
 /**
  * One bar series. Renders nothing itself — it registers the series with the
@@ -149,7 +148,6 @@ Root.displayName = "BarChart";
  * ```
  */
 const Bar = (props: BarChartBarProps) => useSeriesPrimitive("BarChart.Bar", "bar", props);
-Bar.displayName = "BarChartBar";
 
 /**
  * Horizontal hairline gridlines behind the bars (renderless; painted on
@@ -169,7 +167,6 @@ Bar.displayName = "BarChartBar";
  * ```
  */
 const Grid = (props: BarChartGridProps) => useGridPrimitive("BarChart.Grid", props);
-Grid.displayName = "BarChartGrid";
 
 /**
  * Category labels along the bottom of the plot (renderless; painted on
@@ -189,7 +186,6 @@ Grid.displayName = "BarChartGrid";
  * ```
  */
 const XAxis = (props: BarChartXAxisProps) => useXAxisPrimitive("BarChart.XAxis", props);
-XAxis.displayName = "BarChartXAxis";
 
 /**
  * Value tick labels along the left of the plot (renderless; painted on
@@ -209,7 +205,6 @@ XAxis.displayName = "BarChartXAxis";
  * ```
  */
 const YAxis = (props: BarChartYAxisProps) => useYAxisPrimitive("BarChart.YAxis", props);
-YAxis.displayName = "BarChartYAxis";
 
 /**
  * A dashed horizontal marker at a y value — an SLO threshold, a budget, a
@@ -231,7 +226,6 @@ YAxis.displayName = "BarChartYAxis";
  */
 const ReferenceLine = (props: BarChartReferenceLineProps) =>
 	useReferenceLinePrimitive("BarChart.ReferenceLine", props);
-ReferenceLine.displayName = "BarChartReferenceLine";
 
 /**
  * Customizes the hover/keyboard tooltip readout. The tooltip itself is part
@@ -254,7 +248,6 @@ ReferenceLine.displayName = "BarChartReferenceLine";
  * ```
  */
 const Tooltip = (props: BarChartTooltipProps) => useTooltipPrimitive("BarChart.Tooltip", props);
-Tooltip.displayName = "BarChartTooltip";
 
 /**
  * The legend: series names keyed by color swatches, rendered as real DOM in
@@ -279,7 +272,6 @@ Tooltip.displayName = "BarChartTooltip";
 const Legend = (props: BarChartLegendProps) => (
 	<ChartLegendPrimitive partName="BarChart.Legend" slotName="bar-chart" {...props} />
 );
-Legend.displayName = "BarChartLegend";
 
 /**
  * A button that copies the chart's current data to the clipboard as a
@@ -304,7 +296,6 @@ Legend.displayName = "BarChartLegend";
 const CopyButton = (props: BarChartCopyButtonProps) => (
 	<ChartCopyButtonPrimitive partName="BarChart.CopyButton" slotName="bar-chart" {...props} />
 );
-CopyButton.displayName = "BarChartCopyButton";
 
 /**
  * A canvas-rendered bar chart for comparing values across categories, with

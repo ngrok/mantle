@@ -161,7 +161,6 @@ type LineChartCopyButtonProps = CopyButtonPrimitiveProps;
 const Root = <TDatum extends ChartDatum = ChartDatum>(props: LineChartRootProps<TDatum>) => (
 	<ChartRootPrimitive kind="line" componentName="LineChart" slotName="line-chart" {...props} />
 );
-Root.displayName = "LineChart";
 
 /**
  * One line series. Renders nothing itself — it registers the series with the
@@ -183,7 +182,6 @@ Root.displayName = "LineChart";
  * ```
  */
 const Line = (props: LineChartLineProps) => useSeriesPrimitive("LineChart.Line", "line", props);
-Line.displayName = "LineChartLine";
 
 /**
  * Horizontal hairline gridlines behind the lines (renderless; painted on
@@ -203,7 +201,6 @@ Line.displayName = "LineChartLine";
  * ```
  */
 const Grid = (props: LineChartGridProps) => useGridPrimitive("LineChart.Grid", props);
-Grid.displayName = "LineChartGrid";
 
 /**
  * Tick labels along the bottom of the plot (renderless; painted on canvas).
@@ -223,7 +220,6 @@ Grid.displayName = "LineChartGrid";
  * ```
  */
 const XAxis = (props: LineChartXAxisProps) => useXAxisPrimitive("LineChart.XAxis", props);
-XAxis.displayName = "LineChartXAxis";
 
 /**
  * Value tick labels along the left of the plot (renderless; painted on
@@ -243,7 +239,6 @@ XAxis.displayName = "LineChartXAxis";
  * ```
  */
 const YAxis = (props: LineChartYAxisProps) => useYAxisPrimitive("LineChart.YAxis", props);
-YAxis.displayName = "LineChartYAxis";
 
 /**
  * A dashed horizontal marker at a y value — an SLO threshold, a budget, a
@@ -265,7 +260,6 @@ YAxis.displayName = "LineChartYAxis";
  */
 const ReferenceLine = (props: LineChartReferenceLineProps) =>
 	useReferenceLinePrimitive("LineChart.ReferenceLine", props);
-ReferenceLine.displayName = "LineChartReferenceLine";
 
 /**
  * Customizes the hover/keyboard tooltip readout. The tooltip itself is part
@@ -288,7 +282,6 @@ ReferenceLine.displayName = "LineChartReferenceLine";
  * ```
  */
 const Tooltip = (props: LineChartTooltipProps) => useTooltipPrimitive("LineChart.Tooltip", props);
-Tooltip.displayName = "LineChartTooltip";
 
 /**
  * The legend: series names keyed by color swatches, rendered as real DOM in
@@ -313,7 +306,6 @@ Tooltip.displayName = "LineChartTooltip";
 const Legend = (props: LineChartLegendProps) => (
 	<ChartLegendPrimitive partName="LineChart.Legend" slotName="line-chart" {...props} />
 );
-Legend.displayName = "LineChartLegend";
 
 /**
  * A button that copies the chart's current data to the clipboard as a
@@ -338,7 +330,6 @@ Legend.displayName = "LineChartLegend";
 const CopyButton = (props: LineChartCopyButtonProps) => (
 	<ChartCopyButtonPrimitive partName="LineChart.CopyButton" slotName="line-chart" {...props} />
 );
-CopyButton.displayName = "LineChartCopyButton";
 
 /**
  * A canvas-rendered line chart for trends over a continuous x — time above

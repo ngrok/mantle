@@ -173,7 +173,6 @@ const Root = <TDatum extends ChartDatum = ChartDatum>(props: ScatterPlotRootProp
 		{...props}
 	/>
 );
-Root.displayName = "ScatterPlot";
 
 /**
  * One point series. Renders nothing itself — it registers the series with the
@@ -197,7 +196,6 @@ Root.displayName = "ScatterPlot";
  */
 const Point = (props: ScatterPlotPointProps) =>
 	useSeriesPrimitive("ScatterPlot.Point", "scatter", props);
-Point.displayName = "ScatterPlotPoint";
 
 /**
  * Hairline gridlines behind the points (renderless; painted on canvas; 2D
@@ -218,7 +216,6 @@ Point.displayName = "ScatterPlotPoint";
  * ```
  */
 const Grid = (props: ScatterPlotGridProps) => useGridPrimitive("ScatterPlot.Grid", props);
-Grid.displayName = "ScatterPlotGrid";
 
 /**
  * Value labels along the bottom of the plot (renderless; painted on canvas;
@@ -238,7 +235,6 @@ Grid.displayName = "ScatterPlotGrid";
  * ```
  */
 const XAxis = (props: ScatterPlotXAxisProps) => useXAxisPrimitive("ScatterPlot.XAxis", props);
-XAxis.displayName = "ScatterPlotXAxis";
 
 /**
  * Value tick labels along the left of the plot (renderless; painted on
@@ -258,7 +254,6 @@ XAxis.displayName = "ScatterPlotXAxis";
  * ```
  */
 const YAxis = (props: ScatterPlotYAxisProps) => useYAxisPrimitive("ScatterPlot.YAxis", props);
-YAxis.displayName = "ScatterPlotYAxis";
 
 /**
  * A dashed horizontal marker at a y value (renderless; painted on canvas; 2D
@@ -280,7 +275,6 @@ YAxis.displayName = "ScatterPlotYAxis";
  */
 const ReferenceLine = (props: ScatterPlotReferenceLineProps) =>
 	useReferenceLinePrimitive("ScatterPlot.ReferenceLine", props);
-ReferenceLine.displayName = "ScatterPlotReferenceLine";
 
 /**
  * Customizes the hover/keyboard tooltip readout. The tooltip itself is part
@@ -302,7 +296,6 @@ ReferenceLine.displayName = "ScatterPlotReferenceLine";
  */
 const Tooltip = (props: ScatterPlotTooltipProps) =>
 	useTooltipPrimitive("ScatterPlot.Tooltip", props);
-Tooltip.displayName = "ScatterPlotTooltip";
 
 /**
  * The legend: series names keyed by color dots, rendered as real DOM in flow
@@ -325,7 +318,6 @@ Tooltip.displayName = "ScatterPlotTooltip";
 const Legend = (props: ScatterPlotLegendProps) => (
 	<ChartLegendPrimitive partName="ScatterPlot.Legend" slotName="scatter-plot" {...props} />
 );
-Legend.displayName = "ScatterPlotLegend";
 
 /**
  * A button that copies the chart's current data to the clipboard as a
@@ -350,7 +342,6 @@ Legend.displayName = "ScatterPlotLegend";
 const CopyButton = (props: ScatterPlotCopyButtonProps) => (
 	<ChartCopyButtonPrimitive partName="ScatterPlot.CopyButton" slotName="scatter-plot" {...props} />
 );
-CopyButton.displayName = "ScatterPlotCopyButton";
 
 /**
  * A canvas-rendered scatter plot for correlating two measures — three with

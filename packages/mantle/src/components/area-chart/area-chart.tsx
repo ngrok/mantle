@@ -159,7 +159,6 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
 const Root = <TDatum extends ChartDatum = ChartDatum>(props: AreaChartRootProps<TDatum>) => (
 	<ChartRootPrimitive kind="area" componentName="AreaChart" slotName="area-chart" {...props} />
 );
-Root.displayName = "AreaChart";
 
 /**
  * One area series. Renders nothing itself — it registers the series with the
@@ -183,7 +182,6 @@ Root.displayName = "AreaChart";
  * ```
  */
 const Area = (props: AreaChartAreaProps) => useSeriesPrimitive("AreaChart.Area", "area", props);
-Area.displayName = "AreaChartArea";
 
 /**
  * Horizontal hairline gridlines behind the areas (renderless; painted on
@@ -205,7 +203,6 @@ Area.displayName = "AreaChartArea";
  * ```
  */
 const Grid = (props: AreaChartGridProps) => useGridPrimitive("AreaChart.Grid", props);
-Grid.displayName = "AreaChartGrid";
 
 /**
  * Tick labels along the bottom of the plot (renderless; painted on canvas).
@@ -227,7 +224,6 @@ Grid.displayName = "AreaChartGrid";
  * ```
  */
 const XAxis = (props: AreaChartXAxisProps) => useXAxisPrimitive("AreaChart.XAxis", props);
-XAxis.displayName = "AreaChartXAxis";
 
 /**
  * Value tick labels along the left of the plot (renderless; painted on
@@ -249,7 +245,6 @@ XAxis.displayName = "AreaChartXAxis";
  * ```
  */
 const YAxis = (props: AreaChartYAxisProps) => useYAxisPrimitive("AreaChart.YAxis", props);
-YAxis.displayName = "AreaChartYAxis";
 
 /**
  * A dashed horizontal marker at a y value — an SLO threshold, a budget, a
@@ -273,7 +268,6 @@ YAxis.displayName = "AreaChartYAxis";
  */
 const ReferenceLine = (props: AreaChartReferenceLineProps) =>
 	useReferenceLinePrimitive("AreaChart.ReferenceLine", props);
-ReferenceLine.displayName = "AreaChartReferenceLine";
 
 /**
  * Customizes the hover/keyboard tooltip readout. The tooltip itself is part
@@ -297,7 +291,6 @@ ReferenceLine.displayName = "AreaChartReferenceLine";
  * ```
  */
 const Tooltip = (props: AreaChartTooltipProps) => useTooltipPrimitive("AreaChart.Tooltip", props);
-Tooltip.displayName = "AreaChartTooltip";
 
 /**
  * The legend: series names keyed by color swatches, rendered as real DOM in
@@ -323,7 +316,6 @@ Tooltip.displayName = "AreaChartTooltip";
 const Legend = (props: AreaChartLegendProps) => (
 	<ChartLegendPrimitive partName="AreaChart.Legend" slotName="area-chart" {...props} />
 );
-Legend.displayName = "AreaChartLegend";
 
 /**
  * A button that copies the chart's current data to the clipboard as a
@@ -348,7 +340,6 @@ Legend.displayName = "AreaChartLegend";
 const CopyButton = (props: AreaChartCopyButtonProps) => (
 	<ChartCopyButtonPrimitive partName="AreaChart.CopyButton" slotName="area-chart" {...props} />
 );
-CopyButton.displayName = "AreaChartCopyButton";
 
 /**
  * A canvas-rendered area chart for showing how values — and, when stacked, a
