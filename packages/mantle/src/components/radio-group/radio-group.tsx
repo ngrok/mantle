@@ -49,7 +49,6 @@ type RadioGroupProps = PropsWithChildren<Omit<HeadlessRadioGroupProps, "as" | "c
 const Root = ({ ref, ...props }: RadioGroupProps) => (
 	<HeadlessRadioGroup data-slot="radio-group" {...props} ref={ref} />
 );
-Root.displayName = "RadioGroup";
 
 /**
  * The shape of the radio state context.
@@ -125,7 +124,6 @@ const Item = ({ children, className, ref, ...props }: RadioItemProps) => {
 		</HeadlessRadio>
 	);
 };
-Item.displayName = "RadioItem";
 
 type RadioIndicatorProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
 	children?: ReactNode | ((context: RadioStateContextValue) => ReactNode);
@@ -189,7 +187,6 @@ const Indicator = ({ children, className, ...props }: RadioIndicatorProps) => {
 		</div>
 	);
 };
-Indicator.displayName = "RadioIndicator";
 
 /**
  * A group of radio list items. Use RadioGroup.ListItem as direct children.
@@ -204,7 +201,6 @@ const List = ({ className, ref, ...props }: RadioGroupProps) => {
 		/>
 	);
 };
-List.displayName = "RadioGroupList";
 
 type RadioListItemProps = RadioItemProps;
 
@@ -246,7 +242,6 @@ const ListItem = ({ children, className, ref, ...props }: RadioListItemProps) =>
 		</HeadlessRadio>
 	);
 };
-ListItem.displayName = "RadioListItem";
 
 type RadioItemContentProps = HTMLAttributes<HTMLDivElement> & WithAsChild;
 
@@ -289,7 +284,6 @@ const Card = ({ children, className, ref, ...props }: RadioCardProps) => {
 		</HeadlessRadio>
 	);
 };
-Card.displayName = "RadioCard";
 
 /**
  * The content of any radio item. Use it to wrap any labels, descriptions, or content of a radio item.
@@ -309,7 +303,6 @@ const ItemContent = ({ asChild = false, children, className, ...props }: RadioIt
 		</Component>
 	);
 };
-ItemContent.displayName = "RadioItemContent";
 
 /**
  * An inline group of radio buttons. Use RadioGroup.Button as direct children.
@@ -327,7 +320,6 @@ const ButtonGroup = ({ className, ref, ...props }: RadioGroupProps) => {
 		/>
 	);
 };
-ButtonGroup.displayName = "RadioButtonGroup";
 
 type RadioButtonProps = RadioItemProps;
 
@@ -370,7 +362,6 @@ const Button = ({ children, className, ref, ...props }: RadioButtonProps) => {
 		</HeadlessRadio>
 	);
 };
-Button.displayName = "RadioButton";
 
 type RadioInputSandboxProps = HTMLAttributes<HTMLDivElement>;
 
@@ -432,7 +423,6 @@ const InputSandbox = ({ children, onClick, onKeyDown, ...props }: RadioInputSand
 		</div>
 	);
 };
-InputSandbox.displayName = "RadioInputSandbox";
 
 /**
  * A group of radio items. It manages the state of the children radios.

@@ -132,7 +132,6 @@ const Root = ({ appearance = "default", className, intent, ref, ...props }: Aler
 		</AlertContext.Provider>
 	);
 };
-Root.displayName = "Alert";
 
 type AlertIconProps = Omit<SvgAttributes, "children"> & {
 	/**
@@ -188,7 +187,6 @@ const Icon = ({ className, ref, svg, ...props }: AlertIconProps) => {
 		/>
 	);
 };
-Icon.displayName = "AlertIcon";
 
 /**
  * The container for the content slot of an alert. Place the title and description as direct children.
@@ -217,7 +215,6 @@ const Content = ({ className, ref, ...props }: ComponentProps<"div">) => (
 		{...props}
 	/>
 );
-Content.displayName = "AlertContent";
 
 type AlertTitleProps = ComponentProps<"h5"> & WithAsChild;
 
@@ -252,7 +249,6 @@ const Title = ({ asChild = false, className, ref, ...props }: AlertTitleProps) =
 		/>
 	);
 };
-Title.displayName = "AlertTitle";
 
 type AlertDescriptionProps = ComponentProps<"div"> & WithAsChild;
 
@@ -289,7 +285,6 @@ const Description = ({ asChild = false, className, ref, ...props }: AlertDescrip
 		/>
 	);
 };
-Description.displayName = "AlertDescription";
 
 const dismissTextColor = (intent: AlertIntent) => `var(--color-${intent}-700)`;
 
@@ -356,7 +351,6 @@ const DismissIconButton = ({
 		/>
 	);
 };
-DismissIconButton.displayName = "AlertDismissIconButton";
 
 /**
  * Displays a callout for user attention.

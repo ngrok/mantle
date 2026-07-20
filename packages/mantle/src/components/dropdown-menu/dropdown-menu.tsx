@@ -34,7 +34,6 @@ import { Separator } from "../separator/separator.js";
  * ```
  */
 const Root = DropdownMenuPrimitive.Root;
-Root.displayName = "DropdownMenu";
 
 /**
  * The trigger button that opens the dropdown menu.
@@ -58,7 +57,6 @@ Root.displayName = "DropdownMenu";
 const Trigger = (props: ComponentProps<typeof DropdownMenuPrimitive.Trigger>) => (
 	<DropdownMenuPrimitive.Trigger data-slot="dropdown-menu-trigger" {...props} />
 );
-Trigger.displayName = "DropdownMenuTrigger";
 
 const Group = ({ className, ...props }: ComponentProps<typeof DropdownMenuPrimitive.Group>) => (
 	<DropdownMenuPrimitive.Group
@@ -67,16 +65,13 @@ const Group = ({ className, ...props }: ComponentProps<typeof DropdownMenuPrimit
 		{...props}
 	/>
 );
-Group.displayName = "DropdownMenuGroup";
 
 /**
  * The portal container for rendering dropdown content outside the normal DOM tree.
  */
 const Portal = DropdownMenuPrimitive.Portal;
-Portal.displayName = "DropdownMenuPortal";
 
 const Sub = DropdownMenuPrimitive.Sub;
-Sub.displayName = "DropdownMenuSub";
 
 const RadioGroup = ({
 	className,
@@ -88,7 +83,6 @@ const RadioGroup = ({
 		{...props}
 	/>
 );
-RadioGroup.displayName = "DropdownMenuRadioGroup";
 
 /**
  * A trigger for a dropdown menu sub-menu.
@@ -120,7 +114,6 @@ const SubTrigger = ({
 		</span>
 	</DropdownMenuPrimitive.SubTrigger>
 );
-SubTrigger.displayName = "DropdownMenuSubTrigger";
 
 /**
  * The content container for a dropdown menu sub-menu.
@@ -150,7 +143,6 @@ const SubContent = ({
 		/>
 	</Portal>
 );
-SubContent.displayName = "DropdownMenuSubContent";
 
 type DropdownMenuContentProps = ComponentProps<typeof DropdownMenuPrimitive.Content> &
 	WithDataSlot & {
@@ -216,7 +208,6 @@ const Content = ({
 		/>
 	</Portal>
 );
-Content.displayName = "DropdownMenuContent";
 
 /**
  * An item in the dropdown menu.
@@ -259,7 +250,6 @@ const Item = ({
 		{...props}
 	/>
 );
-Item.displayName = "DropdownMenuItem";
 
 /**
  * A menu item with a checkbox that can be controlled or uncontrolled.
@@ -293,7 +283,6 @@ const CheckboxItem = ({
 		{children}
 	</DropdownMenuPrimitive.CheckboxItem>
 );
-CheckboxItem.displayName = "DropdownMenuCheckboxItem";
 
 type DropdownMenuRadioItemProps = ComponentProps<typeof DropdownMenuPrimitive.RadioItem> & {
 	name?: string;
@@ -328,7 +317,6 @@ const RadioItem = ({ className, children, ...props }: DropdownMenuRadioItemProps
 		{children}
 	</DropdownMenuPrimitive.RadioItem>
 );
-RadioItem.displayName = "DropdownMenuRadioItem";
 
 /**
  * A label for a group of dropdown menu items.
@@ -348,7 +336,6 @@ const Label = ({
 		{...props}
 	/>
 );
-Label.displayName = "DropdownMenuLabel";
 
 /**
  * A visual separator between dropdown menu items or groups.
@@ -362,7 +349,6 @@ const DropdownSeparator = ({ className, ...props }: ComponentProps<typeof Separa
 		{...props}
 	/>
 );
-DropdownSeparator.displayName = "DropdownMenuSeparator";
 
 const Shortcut = ({ className, ...props }: ComponentProps<"span">) => {
 	return (
@@ -373,7 +359,6 @@ const Shortcut = ({ className, ...props }: ComponentProps<"span">) => {
 		/>
 	);
 };
-Shortcut.displayName = "DropdownMenuShortcut";
 
 /**
  * A menu of options or actions, triggered by a button.

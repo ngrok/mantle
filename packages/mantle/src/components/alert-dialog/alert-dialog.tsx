@@ -87,7 +87,6 @@ function Root({ intent, ...props }: AlertDialogProps) {
 		</AlertDialogContext.Provider>
 	);
 }
-Root.displayName = "AlertDialog";
 
 /**
  * A button that opens the Alert Dialog.
@@ -127,7 +126,6 @@ Root.displayName = "AlertDialog";
 const Trigger = ({ ref, ...props }: ComponentProps<typeof AlertDialogPrimitive.Trigger>) => (
 	<AlertDialogPrimitive.Trigger ref={ref} data-slot="alert-dialog-trigger" {...props} />
 );
-Trigger.displayName = "AlertDialogTrigger";
 
 /**
  * The portal for the Alert Dialog.
@@ -135,7 +133,6 @@ Trigger.displayName = "AlertDialogTrigger";
  * @private
  */
 const AlertDialogPortal = AlertDialogPrimitive.Portal;
-AlertDialogPortal.displayName = "AlertDialogPortal";
 
 /**
  * A layer that covers the inert portion of the view when the dialog is open.
@@ -238,7 +235,6 @@ const Content = ({
 		</div>
 	</AlertDialogPortal>
 );
-Content.displayName = "AlertDialogContent";
 
 /**
  * Contains the main content of the alert dialog.
@@ -292,7 +288,6 @@ const Body = ({
 		/>
 	);
 };
-Body.displayName = "AlertDialogBody";
 
 /**
  * Contains the header content of the dialog, including the title and description.
@@ -346,7 +341,6 @@ const Header = ({
 		/>
 	);
 };
-Header.displayName = "AlertDialogHeader";
 
 /**
  * Contains the footer content of the dialog, including the action and cancel buttons.
@@ -400,7 +394,6 @@ const Footer = ({
 		/>
 	);
 };
-Footer.displayName = "AlertDialogFooter";
 
 /**
  * An accessible name to be announced when the dialog is opened.
@@ -448,7 +441,6 @@ const Title = ({ className, ref, ...props }: ComponentProps<typeof AlertDialogPr
 		{...props}
 	/>
 );
-Title.displayName = "AlertDialogTitle";
 
 /**
  * An accessible description to be announced when the dialog is opened.
@@ -502,7 +494,6 @@ const Description = ({
 		{...props}
 	/>
 );
-Description.displayName = "AlertDialogDescription";
 
 type AlertDialogActionProps = Omit<ButtonProps, "appearance" | "intent"> & {
 	/**
@@ -593,7 +584,6 @@ const Action = ({
 		/>
 	);
 };
-Action.displayName = "AlertDialogAction";
 
 type AlertDialogCancelProps = Omit<ButtonProps, "appearance" | "intent"> & {
 	/**
@@ -672,7 +662,6 @@ const Cancel = ({
 		/>
 	</AlertDialogPrimitive.Close>
 );
-Cancel.displayName = "AlertDialogCancel";
 
 type AlertDialogIconProps = Omit<SvgAttributes, "children"> & {
 	svg?: ReactNode;
@@ -749,7 +738,6 @@ const Icon = ({ className, ref, svg, ...props }: AlertDialogIconProps) => {
 		/>
 	);
 };
-Icon.displayName = "AlertDialogIcon";
 
 /**
  * A button that closes the Alert Dialog. (Unstyled)
@@ -796,7 +784,6 @@ Icon.displayName = "AlertDialogIcon";
 const Close = ({ ref, ...props }: ComponentProps<typeof AlertDialogPrimitive.Close>) => (
 	<AlertDialogPrimitive.Close ref={ref} data-slot="alert-dialog-close" {...props} />
 );
-Close.displayName = "AlertDialogClose";
 
 /**
  * A modal dialog that interrupts the user with important content and expects a

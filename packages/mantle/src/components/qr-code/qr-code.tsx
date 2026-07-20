@@ -183,7 +183,6 @@ const Root = ({
 		</QrCodeContext.Provider>
 	);
 };
-Root.displayName = "QrCode";
 
 /**
  * Props for `QrCode.Frame`, the fixed SVG element that sizes the encoded QR
@@ -230,7 +229,6 @@ const Frame = ({ className, children, ref, ...props }: QrCodeFrameProps) => {
 		</svg>
 	);
 };
-Frame.displayName = "QrCodeFrame";
 
 /**
  * Props for `QrCode.Pattern`, the fixed SVG `path` element that renders the
@@ -273,7 +271,6 @@ const Pattern = ({ className, ref, ...props }: QrCodePatternProps) => {
 		/>
 	);
 };
-Pattern.displayName = "QrCodePattern";
 
 /**
  * Props for `QrCode.Overlay`, the optional centered logo container rendered on
@@ -316,7 +313,6 @@ const Overlay = ({ asChild, className, ref, ...props }: QrCodeOverlayProps) => {
 		/>
 	);
 };
-Overlay.displayName = "QrCodeOverlay";
 
 /**
  * A QR code. Compose `QrCode.Root` with a `QrCode.Frame` wrapping a

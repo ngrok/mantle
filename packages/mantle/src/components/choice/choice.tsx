@@ -188,7 +188,6 @@ const Root = ({
 		</ChoiceContext.Provider>
 	);
 };
-Root.displayName = "Choice";
 
 type ChoiceIndicatorProps = ComponentProps<"span">;
 
@@ -253,7 +252,6 @@ const Indicator = ({ children, className, ref, ...props }: ChoiceIndicatorProps)
 		</span>
 	);
 };
-Indicator.displayName = "ChoiceIndicator";
 
 type ChoiceContentProps = ComponentProps<"div"> & WithAsChild;
 
@@ -289,7 +287,6 @@ const Content = ({ asChild, className, ref, ...props }: ChoiceContentProps) => {
 		/>
 	);
 };
-Content.displayName = "ChoiceContent";
 
 /**
  * Props for `Choice.Label`. The mantle `Label` props, minus `htmlFor` and
@@ -386,7 +383,6 @@ const Title = ({ asChild, className, ref, ...props }: ComponentProps<"p"> & With
 		/>
 	);
 };
-Title.displayName = "ChoiceTitle";
 
 /**
  * The de-emphasized supplementary line of a `Choice`, in the muted body color
@@ -422,7 +418,6 @@ const Description = ({ asChild, className, ref, ...props }: ComponentProps<"p"> 
 		/>
 	);
 };
-Description.displayName = "ChoiceDescription";
 
 /**
  * A reusable indicator-left / content-right layout for a single choice: a

@@ -38,7 +38,6 @@ type ComboboxProps = Primitive.ComboboxProviderProps;
 const Root = ({ children, ...props }: ComboboxProps) => {
 	return <Primitive.ComboboxProvider {...props}>{children}</Primitive.ComboboxProvider>;
 };
-Root.displayName = "Combobox";
 
 type ComboboxInputProps = Omit<
 	Primitive.ComboboxProps,
@@ -103,7 +102,6 @@ const Input = ({
 		/>
 	);
 };
-Input.displayName = "ComboboxInput";
 
 type ComboboxContentProps = Omit<Primitive.ComboboxPopoverProps, "render"> & WithAsChild;
 
@@ -153,7 +151,6 @@ const Content = ({
 		</Primitive.ComboboxPopover>
 	);
 };
-Content.displayName = "ComboboxContent";
 
 type ComboboxItemProps = Omit<Primitive.ComboboxItemProps, "render"> & WithAsChild;
 
@@ -208,7 +205,6 @@ const Item = ({
 		</ComboboxItemValueContext.Provider>
 	);
 };
-Item.displayName = "ComboboxItem";
 
 type ComboboxGroupProps = Omit<Primitive.ComboboxGroupProps, "render"> & WithAsChild;
 
@@ -248,7 +244,6 @@ const Group = ({ asChild = false, children, className, ref, ...props }: Combobox
 		</Primitive.ComboboxGroup>
 	);
 };
-Group.displayName = "ComboboxGroup";
 
 type ComboboxGroupLabelProps = Omit<Primitive.ComboboxGroupLabelProps, "render"> & WithAsChild;
 
@@ -294,7 +289,6 @@ const GroupLabel = ({
 		</Primitive.ComboboxGroupLabel>
 	);
 };
-GroupLabel.displayName = "ComboboxGroupLabel";
 
 type ComboboxItemValueProps = Omit<Primitive.ComboboxItemValueProps<"span">, "render"> &
 	WithAsChild;
@@ -344,7 +338,6 @@ const ItemValue = ({ asChild = false, className, ref, ...props }: ComboboxItemVa
 		/>
 	);
 };
-ItemValue.displayName = "ComboboxItemValue";
 
 /**
  * Renders a separator between Combobox.Items or Combobox.Groups.
@@ -380,7 +373,6 @@ const ComboboxSeparatorComponent = ({
 		{...props}
 	/>
 );
-ComboboxSeparatorComponent.displayName = "ComboboxSeparator";
 
 /**
  * Fill in a React input field with autocomplete & autosuggest functionalities.

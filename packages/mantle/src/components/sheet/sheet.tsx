@@ -114,7 +114,6 @@ import * as SheetPrimitive from "../dialog/primitive.js";
  * ```
  */
 const Root = SheetPrimitive.Root;
-Root.displayName = "Sheet";
 
 /**
  * The button trigger for a `Sheet`. Should be rendered as a child of the `Sheet` component.
@@ -154,7 +153,6 @@ Root.displayName = "Sheet";
  * ```
  */
 const Trigger = SheetPrimitive.Trigger;
-Trigger.displayName = "SheetTrigger";
 
 /**
  * The close button for a `Sheet`. Should be rendered as a child of the `Sheet.Content` component.
@@ -195,7 +193,6 @@ Trigger.displayName = "SheetTrigger";
  * ```
  */
 const Close = SheetPrimitive.Close;
-Close.displayName = "SheetClose";
 
 /**
  * The portal for a sheet. Should be rendered as a child of the `Sheet` component.
@@ -204,7 +201,6 @@ Close.displayName = "SheetClose";
  * @private
  */
 const SheetPortal = SheetPrimitive.Portal;
-SheetPortal.displayName = "SheetPortal";
 
 /**
  * The overlay backdrop for a sheet. Should be rendered as a child of the `SheetPortal` component.
@@ -228,7 +224,6 @@ const SheetOverlay = ({
 		ref={ref}
 	/>
 );
-SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const SheetVariants = cva(
 	"bg-dialog border-dialog inset-y-0 h-full w-full fixed z-50 flex flex-col shadow-lg outline-hidden transition ease-in-out focus-within:outline-hidden data-state-closed:duration-100 data-state-closed:animate-out data-state-open:duration-100 data-state-open:animate-in",
@@ -339,7 +334,6 @@ const Content = ({
 		</SheetPrimitive.Content>
 	</SheetPortal>
 );
-Content.displayName = SheetPrimitive.Content.displayName;
 
 type SheetCloseIconButtonProps = Partial<
 	Omit<IconButtonProps, "icon" | "appearance" | "intent">
@@ -435,7 +429,6 @@ const CloseIconButton = ({
 		/>
 	</SheetPrimitive.Close>
 );
-CloseIconButton.displayName = "SheetCloseIconButton";
 
 /**
  * The body container for a `Sheet`. This is where you would typically place the main content of the sheet, such as forms or text.
@@ -497,7 +490,6 @@ const Body = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
 		{...props}
 	/>
 );
-Body.displayName = "SheetBody";
 
 /**
  * The header container for a `Sheet`. This is where you would typically place the title, description, and actions.
@@ -560,7 +552,6 @@ const Header = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
 		{...props}
 	/>
 );
-Header.displayName = "SheetHeader";
 
 /**
  * The footer container for a `Sheet`. This is where you would typically place close and submit buttons.
@@ -622,7 +613,6 @@ const Footer = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
 		{...props}
 	/>
 );
-Footer.displayName = "SheetFooter";
 
 /**
  * The title for a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`.
@@ -682,7 +672,6 @@ const Title = ({ className, ref, ...props }: ComponentProps<typeof SheetPrimitiv
 		{...props}
 	/>
 );
-Title.displayName = SheetPrimitive.Title.displayName;
 
 /**
  * A group container for the title and actions of a sheet. Typically rendered as a child of `Sheet.Header`.
@@ -743,7 +732,6 @@ const TitleGroup = ({ children, className, ref, ...props }: ComponentProps<"div"
 		{children}
 	</div>
 );
-TitleGroup.displayName = "SheetTitleGroup";
 
 /**
  * A description for a sheet. Typically rendered as a child of `Sheet.Header`.
@@ -806,7 +794,6 @@ const Description = ({
 		{...props}
 	/>
 );
-Description.displayName = SheetPrimitive.Description.displayName;
 
 /**
  * A group container for the actions of a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`.
@@ -867,7 +854,6 @@ const Actions = ({ children, className, ref, ...props }: ComponentProps<"div">) 
 		{children}
 	</div>
 );
-Actions.displayName = "SheetActions";
 
 /**
  * A container that overlays the current view from the edge of the screen.

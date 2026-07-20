@@ -175,7 +175,6 @@ const Root = ({
 		</CodeBlockContext.Provider>
 	);
 };
-Root.displayName = "CodeBlock";
 
 /**
  * The body of the `CodeBlock`. This is where `CodeBlock.Code` and
@@ -212,7 +211,6 @@ const Body = ({
 		/>
 	);
 };
-Body.displayName = "CodeBlockBody";
 
 /**
  * Matches `SHIKI_VAL_<index>` placeholders injected by the Vite plugin for
@@ -435,7 +433,6 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 		</pre>
 	);
 };
-Code.displayName = "CodeBlockCode";
 
 /**
  * The (optional) header slot of the `CodeBlock`. This is where
@@ -475,7 +472,6 @@ const Header = ({
 		/>
 	);
 };
-Header.displayName = "CodeBlockHeader";
 
 /**
  * The (optional) title of the `CodeBlock`. Renders as `h3` by default;
@@ -512,7 +508,6 @@ const Title = ({
 		/>
 	);
 };
-Title.displayName = "CodeBlockTitle";
 
 type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "children" | "type"> &
 	SelfClosingWithAsChild & {
@@ -615,7 +610,6 @@ const CopyButton = ({
 		</span>
 	);
 };
-CopyButton.displayName = "CodeBlockCopyButton";
 
 type CodeBlockExpanderButtonProps = Omit<
 	ComponentProps<"button">,
@@ -687,7 +681,6 @@ const ExpanderButton = ({
 		</Component>
 	);
 };
-ExpanderButton.displayName = "CodeBlockExpanderButton";
 
 type CodeBlockIconProps = Omit<SvgAttributes, "children"> &
 	(
@@ -765,7 +758,6 @@ function CodeBlockIconComponent({
 		/>
 	);
 }
-CodeBlockIconComponent.displayName = "CodeBlockIcon";
 
 type CodeBlockTabListProps = Omit<ComponentProps<typeof RadixTabsList>, "asChild" | "loop">;
 
@@ -817,7 +809,6 @@ const TabList = ({ className, ref, ...props }: CodeBlockTabListProps) => (
 		{...props}
 	/>
 );
-TabList.displayName = "CodeBlockTabList";
 
 type CodeBlockTabTriggerProps = Omit<ComponentProps<typeof RadixTabsTrigger>, "asChild">;
 
@@ -848,7 +839,6 @@ const TabTrigger = ({ className, ref, ...props }: CodeBlockTabTriggerProps) => (
 		{...props}
 	/>
 );
-TabTrigger.displayName = "CodeBlockTabTrigger";
 
 type CodeBlockTabContentProps = Omit<
 	ComponentProps<typeof RadixTabsContent>,
@@ -876,7 +866,6 @@ type CodeBlockTabContentProps = Omit<
 const TabContent = (props: CodeBlockTabContentProps) => (
 	<RadixTabsContent data-slot="code-block-tab-content" {...props} />
 );
-TabContent.displayName = "CodeBlockTabContent";
 
 /**
  * Shiki-powered code blocks with build-time syntax highlighting and zero browser bundle.

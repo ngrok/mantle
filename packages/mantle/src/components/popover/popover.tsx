@@ -27,7 +27,6 @@ import { cx } from "../../utils/cx/cx.js";
  * ```
  */
 const Root = PopoverPrimitive.Root;
-Root.displayName = "Popover";
 
 /**
  * The trigger button that opens the popover.
@@ -49,7 +48,6 @@ Root.displayName = "Popover";
  * ```
  */
 const Trigger = PopoverPrimitive.Trigger;
-Trigger.displayName = "PopoverTrigger";
 
 /**
  * An optional element to position the PopoverContent against. If this part is not used, the content will position alongside the PopoverTrigger.
@@ -74,7 +72,6 @@ Trigger.displayName = "PopoverTrigger";
  * ```
  */
 const Anchor = PopoverPrimitive.Anchor;
-Anchor.displayName = "PopoverAnchor";
 
 /**
  * A button that closes an open popover.
@@ -99,7 +96,6 @@ Anchor.displayName = "PopoverAnchor";
  * ```
  */
 const Close = PopoverPrimitive.Close;
-Close.displayName = "PopoverClose";
 
 type PopoverContentProps = ComponentProps<typeof PopoverPrimitive.Content> & {
 	/**
@@ -169,7 +165,6 @@ const Content = ({
 		/>
 	</PopoverPrimitive.Portal>
 );
-Content.displayName = "PopoverContent";
 
 /**
  * A floating overlay that displays rich content in a portal, triggered by a button.

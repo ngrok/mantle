@@ -83,7 +83,6 @@ const Root = ({ children, className, ref, ...props }: ComponentProps<"div">) => 
 		</div>
 	);
 };
-Root.displayName = "TableRoot";
 
 /**
  * The `<Table.Element>` is a structured way to display data in rows and columns. The API
@@ -165,7 +164,6 @@ const Element = ({ children, className, ref, ...props }: ComponentProps<"table">
 		</table>
 	);
 };
-Element.displayName = "TableElement";
 
 /**
  * The `<Table.Head>` is a container for the table's column headers.
@@ -233,7 +231,6 @@ const Head = ({ children, className, ref, ...props }: ComponentProps<"thead">) =
 		{children}
 	</thead>
 );
-Head.displayName = "TableHead";
 
 /**
  * The `<Table.Body>` encapsulates a set of `<Table.Row>`s, indicating that they
@@ -298,7 +295,6 @@ const Body = ({ children, className, ref, ...props }: ComponentProps<"tbody">) =
 		{children}
 	</tbody>
 );
-Body.displayName = "TableBody";
 
 /**
  * The `<Table.Foot>` encapsulates a set of `<Table.Row>`s, indicating that they
@@ -366,7 +362,6 @@ const Foot = ({ children, className, ref, ...props }: ComponentProps<"tfoot">) =
 		{children}
 	</tfoot>
 );
-Foot.displayName = "TableFoot";
 
 /**
  * The `<Table.Row>` defines a row of cells in a table. The row's cells can then
@@ -425,7 +420,6 @@ const Row = ({ children, className, ref, ...props }: ComponentProps<"tr">) => (
 		{children}
 	</tr>
 );
-Row.displayName = "TableRow";
 
 /**
  * The `<Table.Header>` defines a cell as the header of a group of table cells
@@ -486,7 +480,6 @@ const Header = ({ children, className, ref, ...props }: ComponentProps<"th">) =>
 		{children}
 	</th>
 );
-Header.displayName = "TableHeader";
 
 /**
  * The `<Table.Cell>` defines a cell of a table that contains data and may be
@@ -542,7 +535,6 @@ const Cell = ({ children, className, ref, ...props }: ComponentProps<"td">) => (
 		{children}
 	</td>
 );
-Cell.displayName = "TableCell";
 
 /**
  * The optional `<Table.Caption>` specifies the caption (or title) of a table,
@@ -598,7 +590,6 @@ const Caption = ({ children, className, ref, ...props }: ComponentProps<"caption
 		{children}
 	</caption>
 );
-Caption.displayName = "TableCaption";
 
 /**
  * Use `Table` for STATIC, layout-driven tabular data — read-only data dumps,

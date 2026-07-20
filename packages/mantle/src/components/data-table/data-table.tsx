@@ -938,20 +938,6 @@ function ExpandedRow<TData>({
 	);
 }
 
-// Set display names to preserve original component names for debugging
-Root.displayName = "DataTable";
-ActionCell.displayName = "DataTableActionCell";
-ActionHeader.displayName = "DataTableActionHeader";
-Body.displayName = "DataTableBody";
-EmptyRow.displayName = "DataTableEmptyRow";
-ExpandHeader.displayName = "DataTableExpandHeader";
-ExpandedRow.displayName = "DataTableExpandedRow";
-Head.displayName = "DataTableHead";
-Header.displayName = "DataTableHeader";
-HeaderSortButton.displayName = "DataTableHeaderSortButton";
-Row.displayName = "DataTableRow";
-RowExpandButton.displayName = "DataTableRowExpandButton";
-
 /**
  * Use `DataTable` for INTERACTIVE tabular data — sorting, filtering, pagination,
  * row selection, and server-side or client-side data. Built on TanStack Table;

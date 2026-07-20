@@ -114,7 +114,6 @@ const Legend = ({ className, ref, ...props }: ComponentProps<"legend">) => {
 		/>
 	);
 };
-Legend.displayName = "FieldLegend";
 
 /**
  * Caption for a `Field.Item`. Renders the Mantle `Label` with the same
@@ -203,7 +202,6 @@ const LabelText = ({ asChild, className, ref, ...props }: ComponentProps<"p"> & 
 		/>
 	);
 };
-LabelText.displayName = "FieldLabelText";
 
 /**
  * Horizontal layout container for the label area of a field. Aligns a
@@ -255,7 +253,6 @@ const LabelRow = ({ asChild, className, ref, ...props }: ComponentProps<"div"> &
 		/>
 	);
 };
-LabelRow.displayName = "FieldLabelRow";
 
 /**
  * `Popover.Root` re-export for the help-affordance pattern. Pair with
@@ -392,7 +389,6 @@ const HelpTrigger = ({
 		/>
 	</Popover.Trigger>
 );
-HelpTrigger.displayName = "FieldHelpTrigger";
 
 /**
  * The popover body for a `Field.Help`. Wraps `Popover.Content` so all
@@ -428,7 +424,6 @@ HelpTrigger.displayName = "FieldHelpTrigger";
 const HelpContent = ({ ref, ...props }: ComponentProps<typeof Popover.Content>) => (
 	<Popover.Content ref={ref} data-slot="field-help-content" {...props} />
 );
-HelpContent.displayName = "FieldHelpContent";
 
 /**
  * Inline "(Optional)" suffix to mark a field as optional. Defaults to the
@@ -485,7 +480,6 @@ const Optional = ({
 		</Comp>
 	);
 };
-Optional.displayName = "FieldOptional";
 
 /**
  * Layout container that stacks multiple `Field.Item`s vertically with
@@ -530,7 +524,6 @@ const Group = ({ asChild, className, ref, ...props }: ComponentProps<"div"> & Wi
 		/>
 	);
 };
-Group.displayName = "FieldGroup";
 
 /**
  * A single form field — `Label`, a control (`Input`, `Select`, `Checkbox`,
@@ -640,7 +633,6 @@ const Item = ({
 		</FieldItemContext.Provider>
 	);
 };
-Item.displayName = "FieldItem";
 
 type FieldControlSlotProps = Omit<
 	ComponentProps<typeof Slot>,
@@ -788,7 +780,6 @@ const Control = ({ children, ref, ...props }: FieldControlProps) => {
 		</FieldValidationProvider>
 	);
 };
-Control.displayName = "FieldControl";
 
 /**
  * Helper / hint text. Renders a `<p>` in the muted body color so it reads
@@ -858,7 +849,6 @@ const Description = ({
 		/>
 	);
 };
-Description.displayName = "FieldDescription";
 
 /**
  * A single error message list item for a field. Renders an `<li>` in

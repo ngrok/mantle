@@ -130,7 +130,6 @@ type ThemeSwitcherRootProps = ComponentProps<typeof DropdownMenu.Root>;
  * ```
  */
 const Root = (props: ThemeSwitcherRootProps) => <DropdownMenu.Root {...props} />;
-Root.displayName = "ThemeSwitcher";
 
 /**
  * The props for the `ThemeSwitcher.Trigger` component. Forwards
@@ -208,7 +207,6 @@ const Trigger = ({
 		/>
 	</DropdownMenu.Trigger>
 );
-Trigger.displayName = "ThemeSwitcherTrigger";
 
 /**
  * The props for the `ThemeSwitcher.Content` component. Identical to
@@ -253,7 +251,6 @@ const Content = ({ children, "data-slot": dataSlot, ...props }: ThemeSwitcherCon
 		{children ?? <ThemeDropdownMenuRadioGroup />}
 	</DropdownMenu.Content>
 );
-Content.displayName = "ThemeSwitcherContent";
 
 /**
  * The canonical picker for mantle's theme system: a compact `IconButton`

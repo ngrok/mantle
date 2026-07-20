@@ -7,7 +7,6 @@ import type { FieldControlAriaProps } from "./field-context.js";
 import { Field } from "./field.js";
 
 const MockControl = (props: ComponentProps<"input">) => <input {...props} />;
-MockControl.displayName = "Input";
 
 const MockWrapper = ({ children }: { children: ReactNode }) => children;
 

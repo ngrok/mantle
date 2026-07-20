@@ -381,7 +381,6 @@ const Root = ({
 		</SelectableListContext.Provider>
 	);
 };
-Root.displayName = "SelectableListRoot";
 
 /**
  * The filter/search box for a `SelectableList`. Renders the mantle `Input` with
@@ -428,7 +427,6 @@ const Filter = ({
 		</Input>
 	);
 };
-Filter.displayName = "SelectableListFilter";
 
 /**
  * A tri-state "select all" header for a `SelectableList`. Reflects the selection
@@ -498,7 +496,6 @@ const SelectAll = ({
 		</label>
 	);
 };
-SelectAll.displayName = "SelectableListSelectAll";
 
 /**
  * The DOM id of a row's checkbox, derived from the list id and the option value.
@@ -609,7 +606,6 @@ const Item = ({ children, className, ref, value, ...props }: SelectableListItemP
 		</ListItem>
 	);
 };
-Item.displayName = "SelectableListItem";
 
 /**
  * The emphasized title of a `SelectableList.Item`, rendered as `Choice.Label` —
@@ -638,7 +634,6 @@ Item.displayName = "SelectableListItem";
 const ItemTitle = (props: ComponentProps<typeof Choice.Label>) => (
 	<Choice.Label data-slot="selectable-list-item-title" {...props} />
 );
-ItemTitle.displayName = "SelectableListItemTitle";
 
 /**
  * The de-emphasized sub-line of a `SelectableList.Item`, rendered as
@@ -667,7 +662,6 @@ ItemTitle.displayName = "SelectableListItemTitle";
 const ItemDescription = (props: ComponentProps<typeof Choice.Description>) => (
 	<Choice.Description data-slot="selectable-list-item-description" {...props} />
 );
-ItemDescription.displayName = "SelectableListItemDescription";
 
 /**
  * The default row renderer: a title (and description, if present) from the
@@ -836,7 +830,6 @@ const Viewport = ({ children, ref, ...props }: SelectableListViewportProps) => {
 		</ListRoot>
 	);
 };
-Viewport.displayName = "SelectableListViewport";
 
 /**
  * Props for `SelectableList.VirtualViewport` — the `Viewport` props plus the
@@ -900,7 +893,6 @@ const VirtualViewport = ({ children, ref, ...props }: SelectableListVirtualViewp
 		</ListVirtualRoot>
 	);
 };
-VirtualViewport.displayName = "SelectableListVirtualViewport";
 
 /**
  * Shown in place of the viewport when the active filter matches no options.
@@ -945,7 +937,6 @@ const Empty = ({ children, className, ref, ...props }: ComponentProps<"div">) =>
 		</div>
 	);
 };
-Empty.displayName = "SelectableListEmpty";
 
 /**
  * A filterable, multi-select **grid** of checkbox rows — the inline
