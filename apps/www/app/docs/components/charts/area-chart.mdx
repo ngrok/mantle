@@ -81,6 +81,47 @@ export function OverlappingAreasExample() {
 	);
 }
 
+export const shapedRegionData = [
+	{ date: new Date("2026-07-01"), usEast: 2400, euWest: 1900, apSouth: 1150 },
+	{ date: new Date("2026-07-02"), usEast: 2600, euWest: 2100, apSouth: 1300 },
+	{ date: new Date("2026-07-03"), usEast: 2500, euWest: 2350, apSouth: 1250 },
+	{ date: new Date("2026-07-04"), usEast: 2100, euWest: 2500, apSouth: 1400 },
+	{ date: new Date("2026-07-05"), usEast: 1950, euWest: 2650, apSouth: 1500 },
+	{ date: new Date("2026-07-06"), usEast: 2300, euWest: 2600, apSouth: 1450 },
+	{ date: new Date("2026-07-07"), usEast: 2700, euWest: 2450, apSouth: 1350 },
+	{ date: new Date("2026-07-08"), usEast: 2900, euWest: 2300, apSouth: 1500 },
+	{ date: new Date("2026-07-09"), usEast: 2800, euWest: 2500, apSouth: 1600 },
+	{ date: new Date("2026-07-10"), usEast: 3000, euWest: 2700, apSouth: 1550 },
+	{ date: new Date("2026-07-11"), usEast: 2600, euWest: 2850, apSouth: 1650 },
+	{ date: new Date("2026-07-12"), usEast: 2450, euWest: 2900, apSouth: 1600 },
+	{ date: new Date("2026-07-13"), usEast: 2750, euWest: 2700, apSouth: 1500 },
+	{ date: new Date("2026-07-14"), usEast: 3100, euWest: 2550, apSouth: 1700 },
+];
+
+export function ShapesExample() {
+	const [activeIndex, setActiveIndex] = useState(9);
+	return (
+		<AreaChart.Root
+			data={shapedRegionData}
+			xKey="date"
+			stacked
+			activeIndex={activeIndex}
+			onActiveIndexChange={(index) => setActiveIndex(index ?? 9)}
+			aria-label="Requests by region, shape-coded"
+			className="max-w-2xl"
+		>
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="usEast" label="US East" />
+			<AreaChart.Area dataKey="euWest" label="EU West" shape="diamond" />
+			<AreaChart.Area dataKey="apSouth" label="AP South" shape="triangle" />
+			<AreaChart.Tooltip />
+			<AreaChart.Legend />
+		</AreaChart.Root>
+	);
+}
+
 export function CopyMarkdownExample() {
 	return (
 		<AreaChart.Root
@@ -321,7 +362,7 @@ The tooltip, crosshair, and keyboard cursor are part of `AreaChart.Root`'s inter
 
 ## Overlapping areas
 
-Without `stacked`, every series fills from the zero baseline and the areas overlap. The 10% wash is what keeps this legible: with two series you can read both bands and the region where they cross. `shape` gives a series' hover dot a distinct glyph (hover the crossing — EU West wears diamonds), a redundant encoding alongside color for where the bands overlap. A filled band has no per-point mark, so the hover dot is the only place an area chart shows the glyph; [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full family treatment.
+Without `stacked`, every series fills from the zero baseline and the areas overlap. The 10% wash is what keeps this legible: with two series you can read both bands and the region where they cross. `shape` gives a series' hover dot a distinct glyph (hover the crossing — EU West wears diamonds), a redundant encoding alongside color for where the bands overlap — see [Shapes](#shapes) below.
 
 <Example>
 	<OverlappingAreasExample />
@@ -359,6 +400,61 @@ const regionData = [
 ```
 
 Overlap stops scaling: past two or three series the intersections turn to mud. When the series compose a meaningful total, stack them; when they don't, switch to a [`LineChart`](/components/charts/line-chart).
+
+## Shapes
+
+An area chart wears its glyphs on the active-point dots: a filled band has no per-point mark, so `shape` — `"circle"` (the default), `"square"`, `"triangle"`, or `"diamond"`, sized for equal visual weight — shows on the dots that ride the band edges at the crosshair, and nowhere else. This example pins a controlled `activeIndex` (falling back to a fixed point when the pointer leaves) so the glyphs stay visible without hovering: US East wears circles, EU West diamonds, AP South triangles. Move the crosshair and each dot keeps its series' glyph at every position. [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full family treatment.
+
+<Example>
+	<ShapesExample />
+</Example>
+
+```tsx
+import { AreaChart } from "@ngrok/mantle/area-chart";
+import { useState } from "react";
+
+const shapedRegionData = [
+	{ date: new Date("2026-07-01"), usEast: 2400, euWest: 1900, apSouth: 1150 },
+	{ date: new Date("2026-07-02"), usEast: 2600, euWest: 2100, apSouth: 1300 },
+	{ date: new Date("2026-07-03"), usEast: 2500, euWest: 2350, apSouth: 1250 },
+	{ date: new Date("2026-07-04"), usEast: 2100, euWest: 2500, apSouth: 1400 },
+	{ date: new Date("2026-07-05"), usEast: 1950, euWest: 2650, apSouth: 1500 },
+	{ date: new Date("2026-07-06"), usEast: 2300, euWest: 2600, apSouth: 1450 },
+	{ date: new Date("2026-07-07"), usEast: 2700, euWest: 2450, apSouth: 1350 },
+	{ date: new Date("2026-07-08"), usEast: 2900, euWest: 2300, apSouth: 1500 },
+	{ date: new Date("2026-07-09"), usEast: 2800, euWest: 2500, apSouth: 1600 },
+	{ date: new Date("2026-07-10"), usEast: 3000, euWest: 2700, apSouth: 1550 },
+	{ date: new Date("2026-07-11"), usEast: 2600, euWest: 2850, apSouth: 1650 },
+	{ date: new Date("2026-07-12"), usEast: 2450, euWest: 2900, apSouth: 1600 },
+	{ date: new Date("2026-07-13"), usEast: 2750, euWest: 2700, apSouth: 1500 },
+	{ date: new Date("2026-07-14"), usEast: 3100, euWest: 2550, apSouth: 1700 },
+];
+
+function ShapesExample() {
+	// Pin the active index so the hover dots — where an area chart wears its
+	// glyphs — stay visible; hovering still moves the crosshair freely.
+	const [activeIndex, setActiveIndex] = useState(9);
+	return (
+		<AreaChart.Root
+			data={shapedRegionData}
+			xKey="date"
+			stacked
+			activeIndex={activeIndex}
+			onActiveIndexChange={(index) => setActiveIndex(index ?? 9)}
+			aria-label="Requests by region, shape-coded"
+		>
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="usEast" label="US East" />
+			<AreaChart.Area dataKey="euWest" label="EU West" shape="diamond" />
+			<AreaChart.Area dataKey="apSouth" label="AP South" shape="triangle" />
+			<AreaChart.Tooltip />
+			<AreaChart.Legend />
+		</AreaChart.Root>
+	);
+}
+```
 
 ## Curve interpolation
 

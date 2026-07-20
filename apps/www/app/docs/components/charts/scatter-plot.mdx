@@ -338,7 +338,7 @@ function RegionScatterExample() {
 
 `shape` gives each series a distinct glyph — `"circle"` (the default), `"square"`, `"triangle"`, or `"diamond"`, sized for equal visual weight. Shape is a redundant encoding alongside color: where clouds overlap and colors sit side by side, the glyphs keep every series distinguishable without color vision. The legend keys and the hover dot mirror each series' glyph, and glyphs carry into the [3D projection](#3d-scatter) unchanged.
 
-The encoding is family-wide — the same prop, glyph set, and equal-weight sizing on every chart — and how much of it you see tracks how much of the mark the glyph occupies. Here the glyph is the mark itself. On a [line chart](/components/charts/line-chart#curves-markers-and-shapes) it appears on the canvas point markers (when `markers` is on) and the hover dot; on an [area chart](/components/charts/area-chart#overlapping-areas) a filled band has no per-point mark, so only the hover dot wears it. Bars carry no glyph at all — a bar's identity is its position and color.
+The encoding is family-wide — the same prop, glyph set, and equal-weight sizing on every chart — and how much of it you see tracks how much of the mark the glyph occupies. Here the glyph is the mark itself. On a [line chart](/components/charts/line-chart#curves-markers-and-shapes) it appears on the canvas point markers (when `markers` is on) and the hover dot; on an [area chart](/components/charts/area-chart#shapes) a filled band has no per-point mark, so only the hover dot wears it. Bars carry no glyph at all — a bar's identity is its position and color.
 
 <Example>
 	<PointShapesExample />
