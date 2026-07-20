@@ -1,9 +1,20 @@
 /**
 MARK: LIGHT HICON DEFS
+
+The last selector applies this entire block to `.invert-theme` subtrees on
+dark-high-contrast pages: an inverted island is the opposite theme's own
+definitions re-declared on the island element. See MARK: INVERT THEME in
+mantle.css for the full strategy.
 */
 :root.light-high-contrast,
 :root[data-theme="light-high-contrast"],
-:root[data-applied-theme="light-high-contrast"] {
+:root[data-applied-theme="light-high-contrast"],
+:root:is(
+		.dark-high-contrast,
+		[data-theme="dark-high-contrast"],
+		[data-applied-theme="dark-high-contrast"]
+	)
+	.invert-theme {
 	color-scheme: light;
 
 	--color-white: oklch(100% 0 0);
@@ -313,4 +324,10 @@ MARK: LIGHT HICON DEFS
 	--shadow-first-opacity: 15%;
 	--shadow-second-opacity: 20%;
 	--navigation-shadow: --alpha(var(--shadow-color) / 30%);
+
+	/* Same white glyphs as the light base (filled controls stay dark enough
+	   here), declared explicitly so `.invert-theme` islands on
+	   dark-high-contrast pages don't inherit that theme's black glyphs. */
+	--bg-checked-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 16 16'%3e%3cpath fill='white' d='M12.7071 4.29289c.3905.39053.3905 1.02369 0 1.41422L6.70711 11.7071c-.39053.3905-1.02369.3905-1.41422 0l-2-1.99999c-.39052-.39053-.39052-1.02369 0-1.41422.39053-.39052 1.02369-.39052 1.41422 0L6 9.58579l5.2929-5.2929c.3905-.39052 1.0237-.39052 1.4142 0Z'/%3e%3c/svg%3e");
+	--bg-indeterminate-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 16 16'%3e%3cpath fill='white' d='M4 8c0-.55228.44772-1 1-1h6c.5523 0 1 .44772 1 1s-.4477 1-1 1H5c-.55228 0-1-.44772-1-1Z'/%3e%3c/svg%3e");
 }
