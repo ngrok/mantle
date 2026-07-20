@@ -584,6 +584,20 @@
     ]
   },
   {
+    "name": "Sandbar",
+    "slug": "components/preview/sandbar",
+    "kind": "component",
+    "category": "Feedback",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/sandbar",
+    "summary": "A floating save bar for unsaved changes — batch save form state with save and discard actions, announce pending state to screen readers, and block navigation until changes are resolved.",
+    "jsdoc": "A persistent, decision-bearing bar that floats near the bottom edge of the viewport.",
+    "examples": [
+      "Composition:\n```\nSandbar.Root\n├── Sandbar.Message\n├── Sandbar.Actions\n│   ├── Sandbar.DiscardButton\n│   └── Sandbar.SaveButton\n└── Sandbar.Error\n```",
+      "```tsx\n<Sandbar.Root open={isDirty} handleRef={sandbarHandle}>\n  <Sandbar.Message>You have unsaved changes</Sandbar.Message>\n  <Sandbar.Actions>\n    <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>\n    <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>\n  </Sandbar.Actions>\n  {error != null && <Sandbar.Error>{error}</Sandbar.Error>}\n</Sandbar.Root>\n```"
+    ]
+  },
+  {
     "name": "SandboxedOnClick",
     "slug": "components/primitives/sandboxed-on-click",
     "kind": "component",
