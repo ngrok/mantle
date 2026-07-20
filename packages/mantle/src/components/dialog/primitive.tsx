@@ -12,7 +12,7 @@ import {
 	useState,
 } from "react";
 import { Slot } from "../slot/index.js";
-import { preventCloseOnPromptInteraction } from "../toast/toast.js";
+import { preventCloseOnPromptInteraction } from "../toast/prevent-close-on-prompt-interaction.js";
 import { parseBooleanish } from "../../types/booleanish.js";
 
 type DialogPrimitiveContentProps = ComponentProps<typeof DialogPrimitive.Content>;

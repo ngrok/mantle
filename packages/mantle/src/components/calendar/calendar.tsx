@@ -5,7 +5,7 @@ import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 import type { ComponentProps } from "react";
 import { DayPicker } from "react-day-picker";
 import { cx } from "../../utils/cx/cx.js";
-import { iconButtonVariants } from "../button/icon-button.js";
+import { iconButtonVariants } from "../button/icon-button-variants.js";
 import { Icon } from "../icon/icon.js";
 
 type CalendarProps = ComponentProps<typeof DayPicker>;
