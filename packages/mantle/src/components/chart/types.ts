@@ -4,7 +4,7 @@
  * This module is internal shared implementation — it is not exported from the
  * package. The public components built on it are `BarChart` (../bar-chart),
  * `LineChart` (../line-chart), `AreaChart` (../area-chart), and
- * `ScatterChart` (../scatter-chart), mirroring how `dialog/primitive` backs
+ * `ScatterPlot` (../scatter-plot), mirroring how `dialog/primitive` backs
  * the dialog family.
  */
 
@@ -159,7 +159,7 @@ type ReferenceLineSpec = {
  * aria-live announcement, and `onDatumActivate` all read from it.
  */
 type HoverSnapshot = {
-	/** Index into the (sorted) data rows. */
+	/** The active row's index in the consumer's `data` array. */
 	index: number;
 	/** The x value at the active index. */
 	xValue: XValue;
@@ -173,7 +173,7 @@ type HoverSnapshot = {
 		value: number | null;
 		color: string;
 	}>;
-	/** The depth value at the active index (3D scatter charts only). */
+	/** The depth value at the active index (3D scatter plots only). */
 	zValue?: number | null;
 	/** Whether the snapshot came from keyboard stepping (vs pointer hover). */
 	viaKeyboard: boolean;
@@ -183,8 +183,11 @@ type HoverSnapshot = {
  * Payload for datum activation (click / Enter / Space).
  */
 type ChartDatumEvent<TDatum extends ChartDatum = ChartDatum> = {
+	/** The activated row's index in the consumer's `data` array. */
 	index: number;
+	/** The x value of the activated row. */
 	xValue: XValue;
+	/** The activated row itself. */
 	datum: TDatum;
 	/** The series nearest the pointer when activated by mouse; `null` for keyboard/whole-band activation. */
 	dataKey: string | null;
@@ -204,7 +207,7 @@ type ChartOptions = {
 	xKey: string;
 	xScale: XScaleKind;
 	yDomain: YDomain;
-	/** Scatter charts only: the row key of the depth value; enables the 3D projection. */
+	/** Scatter plots only: the row key of the depth value; enables the 3D projection. */
 	zKey: string | null;
 	/**
 	 * 3D scatter only: how many axes the cloud currently occupies. Changing it

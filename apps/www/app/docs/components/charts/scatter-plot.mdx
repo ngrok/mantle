@@ -1,10 +1,10 @@
 ---
-title: Scatter Chart
-description: A canvas-rendered scatter chart for correlating two continuous measures — three with the rotatable 3D projection.
+title: Scatter Plot
+description: A canvas-rendered scatter plot for correlating two continuous measures — three with the rotatable 3D projection.
 ---
 
 import { Button } from "@ngrok/mantle/button";
-import { ScatterChart } from "@ngrok/mantle/scatter-chart";
+import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 import { useState } from "react";
 import { Example } from "~/components/example";
 
@@ -34,19 +34,19 @@ export const regionThroughput = [
 
 export function RegionScatterExample() {
 	return (
-		<ScatterChart.Root
+		<ScatterPlot.Root
 			data={regionThroughput}
 			xKey="latency"
 			aria-label="Latency vs throughput by region"
 		>
-			<ScatterChart.Grid />
-			<ScatterChart.XAxis tickFormat={(value) => `${value}ms`} />
-			<ScatterChart.YAxis />
-			<ScatterChart.Point dataKey="usEast" label="US East" />
-			<ScatterChart.Point dataKey="euWest" label="EU West" />
-			<ScatterChart.Tooltip valueFormat={(value) => `${value} rps`} />
-			<ScatterChart.Legend />
-		</ScatterChart.Root>
+			<ScatterPlot.Grid />
+			<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
+			<ScatterPlot.YAxis />
+			<ScatterPlot.Point dataKey="usEast" label="US East" />
+			<ScatterPlot.Point dataKey="euWest" label="EU West" />
+			<ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
+			<ScatterPlot.Legend />
+		</ScatterPlot.Root>
 	);
 }
 
@@ -58,39 +58,39 @@ export const shapedRegions = [
 
 export function PointShapesExample() {
 	return (
-		<ScatterChart.Root
+		<ScatterPlot.Root
 			data={shapedRegions}
 			xKey="latency"
 			aria-label="Latency vs throughput by region, shape-coded"
 		>
-			<ScatterChart.Grid />
-			<ScatterChart.XAxis tickFormat={(value) => `${value}ms`} />
-			<ScatterChart.YAxis />
-			<ScatterChart.Point dataKey="usEast" label="US East" />
-			<ScatterChart.Point dataKey="euWest" label="EU West" shape="triangle" />
-			<ScatterChart.Point dataKey="apSouth" label="AP South" shape="square" />
-			<ScatterChart.Tooltip valueFormat={(value) => `${value} rps`} />
-			<ScatterChart.Legend />
-		</ScatterChart.Root>
+			<ScatterPlot.Grid />
+			<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
+			<ScatterPlot.YAxis />
+			<ScatterPlot.Point dataKey="usEast" label="US East" />
+			<ScatterPlot.Point dataKey="euWest" label="EU West" shape="triangle" />
+			<ScatterPlot.Point dataKey="apSouth" label="AP South" shape="square" />
+			<ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
+			<ScatterPlot.Legend />
+		</ScatterPlot.Root>
 	);
 }
 
 export function CopyMarkdownExample() {
 	return (
-		<ScatterChart.Root
+		<ScatterPlot.Root
 			data={regionThroughput}
 			xKey="latency"
 			aria-label="Latency vs throughput by region, copyable"
 		>
-			<ScatterChart.Grid />
-			<ScatterChart.XAxis tickFormat={(value) => `${value}ms`} />
-			<ScatterChart.YAxis />
-			<ScatterChart.Point dataKey="usEast" label="US East" />
-			<ScatterChart.Point dataKey="euWest" label="EU West" />
-			<ScatterChart.Tooltip valueFormat={(value) => `${value} rps`} />
-			<ScatterChart.Legend />
-			<ScatterChart.CopyButton className="absolute right-0 top-0" />
-		</ScatterChart.Root>
+			<ScatterPlot.Grid />
+			<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
+			<ScatterPlot.YAxis />
+			<ScatterPlot.Point dataKey="usEast" label="US East" />
+			<ScatterPlot.Point dataKey="euWest" label="EU West" />
+			<ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
+			<ScatterPlot.Legend />
+			<ScatterPlot.CopyButton className="absolute right-0 top-0" />
+		</ScatterPlot.Root>
 	);
 }
 
@@ -107,17 +107,17 @@ export const requestDurations = seededRequests(8_000, 20_260_719);
 
 export function DenseScatterExample() {
 	return (
-		<ScatterChart.Root
+		<ScatterPlot.Root
 			data={requestDurations}
 			xKey="size"
 			aria-label="Response duration by payload size, 8,000 requests"
 		>
-			<ScatterChart.Grid />
-			<ScatterChart.XAxis tickFormat={(value) => `${value}KB`} />
-			<ScatterChart.YAxis tickFormat={(value) => `${value}ms`} />
-			<ScatterChart.Point dataKey="duration" label="Duration" />
-			<ScatterChart.Tooltip valueFormat={(value) => `${value}ms`} />
-		</ScatterChart.Root>
+			<ScatterPlot.Grid />
+			<ScatterPlot.XAxis tickFormat={(value) => `${value}KB`} />
+			<ScatterPlot.YAxis tickFormat={(value) => `${value}ms`} />
+			<ScatterPlot.Point dataKey="duration" label="Duration" />
+			<ScatterPlot.Tooltip valueFormat={(value) => `${value}ms`} />
+		</ScatterPlot.Root>
 	);
 }
 
@@ -154,18 +154,18 @@ export const gatewayNodes = [
 
 export function Scatter3dExample() {
 	return (
-		<ScatterChart.Root
+		<ScatterPlot.Root
 			data={gatewayNodes}
 			xKey="cpu"
 			zKey="connections"
 			aria-label="Gateway nodes by CPU, memory, and connections"
 		>
-			<ScatterChart.Point dataKey="usEast" label="US East" />
-			<ScatterChart.Point dataKey="euWest" label="EU West" />
-			<ScatterChart.Point dataKey="apSoutheast" label="AP Southeast" />
-			<ScatterChart.Tooltip />
-			<ScatterChart.Legend />
-		</ScatterChart.Root>
+			<ScatterPlot.Point dataKey="usEast" label="US East" />
+			<ScatterPlot.Point dataKey="euWest" label="EU West" />
+			<ScatterPlot.Point dataKey="apSoutheast" label="AP Southeast" />
+			<ScatterPlot.Tooltip />
+			<ScatterPlot.Legend />
+		</ScatterPlot.Root>
 	);
 }
 
@@ -231,48 +231,48 @@ export function DimensionsExample() {
 				</div>
 				<span className="text-muted text-xs">Drag to rotate</span>
 			</div>
-			<ScatterChart.Root
+			<ScatterPlot.Root
 				data={dimensionClusters}
 				xKey="cpu"
 				zKey="connections"
 				dimensions={dimensions}
 				aria-label="Four clusters separating across one, two, and three dimensions"
 			>
-				<ScatterChart.Point dataKey="clusterA" label="Cluster A" />
-				<ScatterChart.Point dataKey="clusterB" label="Cluster B" />
-				<ScatterChart.Point dataKey="clusterC" label="Cluster C" />
-				<ScatterChart.Point dataKey="clusterD" label="Cluster D" />
-				<ScatterChart.Tooltip />
-				<ScatterChart.Legend />
-			</ScatterChart.Root>
+				<ScatterPlot.Point dataKey="clusterA" label="Cluster A" />
+				<ScatterPlot.Point dataKey="clusterB" label="Cluster B" />
+				<ScatterPlot.Point dataKey="clusterC" label="Cluster C" />
+				<ScatterPlot.Point dataKey="clusterD" label="Cluster D" />
+				<ScatterPlot.Tooltip />
+				<ScatterPlot.Legend />
+			</ScatterPlot.Root>
 		</div>
 	);
 }
 
 export function ReferenceLineScatterExample() {
 	return (
-		<ScatterChart.Root
+		<ScatterPlot.Root
 			data={coldStarts}
 			xKey="bundleSize"
 			aria-label="Cold start time by bundle size"
 		>
-			<ScatterChart.Grid />
-			<ScatterChart.XAxis tickFormat={(value) => `${value}MB`} />
-			<ScatterChart.YAxis tickFormat={(value) => `${value}ms`} />
-			<ScatterChart.Point dataKey="startupTime" label="Cold start" />
-			<ScatterChart.ReferenceLine y={300} label="Target" />
-			<ScatterChart.Tooltip valueFormat={(value) => `${value}ms`} />
-		</ScatterChart.Root>
+			<ScatterPlot.Grid />
+			<ScatterPlot.XAxis tickFormat={(value) => `${value}MB`} />
+			<ScatterPlot.YAxis tickFormat={(value) => `${value}ms`} />
+			<ScatterPlot.Point dataKey="startupTime" label="Cold start" />
+			<ScatterPlot.ReferenceLine y={300} label="Target" />
+			<ScatterPlot.Tooltip valueFormat={(value) => `${value}ms`} />
+		</ScatterPlot.Root>
 	);
 }
 
-# Scatter Chart
+# Scatter Plot
 
-A canvas-rendered scatter chart for correlating two continuous measures — three with the rotatable 3D projection. Hover hits the nearest point within 24px of the pointer, and the entire interaction contract — the tooltip, keyboard stepping, polite announcements, and a screen-reader data table — ships with `ScatterChart.Root` unconditionally. No part removal can strip keyboard access to the data.
+A canvas-rendered scatter plot for correlating two continuous measures — three with the rotatable 3D projection. Hover hits the nearest point within 24px of the pointer, and the entire interaction contract — the tooltip, keyboard stepping, polite announcements, and a screen-reader data table — ships with `ScatterPlot.Root` unconditionally. No part removal can strip keyboard access to the data.
 
 ## When to use
 
-A `ScatterChart` answers "are these two measures related?" — latency vs throughput, payload size vs duration, CPU vs memory. Every mark is one independent observation positioned by two continuous values, so correlation, clusters, and outliers surface as shape. With `zKey` on the Root it correlates three measures, projecting the points into a rotatable 3D cube.
+A `ScatterPlot` answers "are these two measures related?" — latency vs throughput, payload size vs duration, CPU vs memory. Every mark is one independent observation positioned by two continuous values, so correlation, clusters, and outliers surface as shape. With `zKey` on the Root it correlates three measures, projecting the points into a rotatable 3D cube.
 
 - Scatter x values must be continuous — numbers or `Date`s. There is no categorical scatter axis.
 - Prefer [`LineChart`](/components/charts/line-chart) for trends over a continuous x — lines connect ordered samples of one measure; scatter treats every row as an independent observation.
@@ -280,14 +280,14 @@ A `ScatterChart` answers "are these two measures related?" — latency vs throug
 
 **Keep it to four series or fewer.** Scatter is an all-pairs chart form: any point can land next to any point from any other series, so every pair of series colors must stay distinguishable — not just the neighbors in a legend. The default chart tokens are validated all-pairs across the first four slots only; past four, fold the extras into a single "Other" series or facet into small multiples.
 
-Compose everything inside `ScatterChart.Root`: gridlines, axes, one `ScatterChart.Point` per series, and the legend. Hover anywhere near a point — the chart hits the nearest point within 24px of the pointer, so a 4px dot is never a pinpoint target, and the tooltip names the hit point's series alone. Always compose `ScatterChart.Legend` on multi-series charts: series identity must never rely on color-matching alone.
+Compose everything inside `ScatterPlot.Root`: gridlines, axes, one `ScatterPlot.Point` per series, and the legend. Hover anywhere near a point — the chart hits the nearest point within 24px of the pointer, so a 4px dot is never a pinpoint target, and the tooltip names the hit point's series alone. Always compose `ScatterPlot.Legend` on multi-series charts: series identity must never rely on color-matching alone.
 
 <Example>
 	<RegionScatterExample />
 </Example>
 
 ```tsx
-import { ScatterChart } from "@ngrok/mantle/scatter-chart";
+import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 
 function createSeededRandom(seed: number) {
 	// Deterministic LCG (Numerical Recipes constants) — renders identically
@@ -317,19 +317,19 @@ const regionThroughput = [
 
 function RegionScatterExample() {
 	return (
-		<ScatterChart.Root
+		<ScatterPlot.Root
 			data={regionThroughput}
 			xKey="latency"
 			aria-label="Latency vs throughput by region"
 		>
-			<ScatterChart.Grid />
-			<ScatterChart.XAxis tickFormat={(value) => `${value}ms`} />
-			<ScatterChart.YAxis />
-			<ScatterChart.Point dataKey="usEast" label="US East" />
-			<ScatterChart.Point dataKey="euWest" label="EU West" />
-			<ScatterChart.Tooltip valueFormat={(value) => `${value} rps`} />
-			<ScatterChart.Legend />
-		</ScatterChart.Root>
+			<ScatterPlot.Grid />
+			<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
+			<ScatterPlot.YAxis />
+			<ScatterPlot.Point dataKey="usEast" label="US East" />
+			<ScatterPlot.Point dataKey="euWest" label="EU West" />
+			<ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
+			<ScatterPlot.Legend />
+		</ScatterPlot.Root>
 	);
 }
 ```
@@ -343,7 +343,7 @@ function RegionScatterExample() {
 </Example>
 
 ```tsx
-import { ScatterChart } from "@ngrok/mantle/scatter-chart";
+import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 
 const shapedRegions = [
 	...regionPoints({ key: "usEast", seed: 11, latencyBase: 18 }),
@@ -351,32 +351,32 @@ const shapedRegions = [
 	...regionPoints({ key: "apSouth", seed: 83, latencyBase: 104 }),
 ];
 
-<ScatterChart.Root
+<ScatterPlot.Root
 	data={shapedRegions}
 	xKey="latency"
 	aria-label="Latency vs throughput by region, shape-coded"
 >
-	<ScatterChart.Grid />
-	<ScatterChart.XAxis tickFormat={(value) => `${value}ms`} />
-	<ScatterChart.YAxis />
-	<ScatterChart.Point dataKey="usEast" label="US East" />
-	<ScatterChart.Point dataKey="euWest" label="EU West" shape="triangle" />
-	<ScatterChart.Point dataKey="apSouth" label="AP South" shape="square" />
-	<ScatterChart.Tooltip valueFormat={(value) => `${value} rps`} />
-	<ScatterChart.Legend />
-</ScatterChart.Root>;
+	<ScatterPlot.Grid />
+	<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
+	<ScatterPlot.YAxis />
+	<ScatterPlot.Point dataKey="usEast" label="US East" />
+	<ScatterPlot.Point dataKey="euWest" label="EU West" shape="triangle" />
+	<ScatterPlot.Point dataKey="apSouth" label="AP South" shape="square" />
+	<ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
+	<ScatterPlot.Legend />
+</ScatterPlot.Root>;
 ```
 
 ## Dense scatter
 
-This chart plots 8,000 seeded points in a single series. Rendering degrades by total point count in tiers, never all at once: past 5,000 points the dots drop their 2px surface ring (three canvas ops per point become one), and past 20,000 they become fast-path rects with no arc calls at all. Hover stays nearest-point at every tier — the hit test walks the data, not the pixels — so a dense cloud is exactly as inspectable as a sparse one. A single series also means no legend: `ScatterChart.Legend` renders nothing for one series, because the chart's title already names it.
+This chart plots 8,000 seeded points in a single series. Rendering degrades by total point count in tiers, never all at once: past 5,000 points the dots drop their 2px surface ring (three canvas ops per point become one), and past 20,000 they become fast-path rects with no arc calls at all. Hover stays nearest-point at every tier — the hit test walks the data, not the pixels — so a dense cloud is exactly as inspectable as a sparse one. A single series also means no legend: `ScatterPlot.Legend` renders nothing for one series, because the chart's title already names it.
 
 <Example>
 	<DenseScatterExample />
 </Example>
 
 ```tsx
-import { ScatterChart } from "@ngrok/mantle/scatter-chart";
+import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 
 function createSeededRandom(seed: number) {
 	// Deterministic LCG (Numerical Recipes constants) — renders identically
@@ -401,17 +401,17 @@ const requestDurations = seededRequests(8_000, 20_260_719);
 
 function DenseScatterExample() {
 	return (
-		<ScatterChart.Root
+		<ScatterPlot.Root
 			data={requestDurations}
 			xKey="size"
 			aria-label="Response duration by payload size, 8,000 requests"
 		>
-			<ScatterChart.Grid />
-			<ScatterChart.XAxis tickFormat={(value) => `${value}KB`} />
-			<ScatterChart.YAxis tickFormat={(value) => `${value}ms`} />
-			<ScatterChart.Point dataKey="duration" label="Duration" />
-			<ScatterChart.Tooltip valueFormat={(value) => `${value}ms`} />
-		</ScatterChart.Root>
+			<ScatterPlot.Grid />
+			<ScatterPlot.XAxis tickFormat={(value) => `${value}KB`} />
+			<ScatterPlot.YAxis tickFormat={(value) => `${value}ms`} />
+			<ScatterPlot.Point dataKey="duration" label="Duration" />
+			<ScatterPlot.Tooltip valueFormat={(value) => `${value}ms`} />
+		</ScatterPlot.Root>
 	);
 }
 ```
@@ -427,7 +427,7 @@ Axis parts and reference lines apply to the 2D projection only and are ignored i
 </Example>
 
 ```tsx
-import { ScatterChart } from "@ngrok/mantle/scatter-chart";
+import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 
 function createSeededRandom(seed: number) {
 	// Deterministic LCG (Numerical Recipes constants) — renders identically
@@ -479,18 +479,18 @@ const gatewayNodes = [
 
 function Scatter3dExample() {
 	return (
-		<ScatterChart.Root
+		<ScatterPlot.Root
 			data={gatewayNodes}
 			xKey="cpu"
 			zKey="connections"
 			aria-label="Gateway nodes by CPU, memory, and connections"
 		>
-			<ScatterChart.Point dataKey="usEast" label="US East" />
-			<ScatterChart.Point dataKey="euWest" label="EU West" />
-			<ScatterChart.Point dataKey="apSoutheast" label="AP Southeast" />
-			<ScatterChart.Tooltip />
-			<ScatterChart.Legend />
-		</ScatterChart.Root>
+			<ScatterPlot.Point dataKey="usEast" label="US East" />
+			<ScatterPlot.Point dataKey="euWest" label="EU West" />
+			<ScatterPlot.Point dataKey="apSoutheast" label="AP Southeast" />
+			<ScatterPlot.Tooltip />
+			<ScatterPlot.Legend />
+		</ScatterPlot.Root>
 	);
 }
 ```
@@ -505,7 +505,7 @@ function Scatter3dExample() {
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
-import { ScatterChart } from "@ngrok/mantle/scatter-chart";
+import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 import { useState } from "react";
 
 function createSeededRandom(seed: number) {
@@ -582,20 +582,20 @@ function DimensionsExample() {
 				</div>
 				<span className="text-muted text-xs">Drag to rotate</span>
 			</div>
-			<ScatterChart.Root
+			<ScatterPlot.Root
 				data={dimensionClusters}
 				xKey="cpu"
 				zKey="connections"
 				dimensions={dimensions}
 				aria-label="Four clusters separating across one, two, and three dimensions"
 			>
-				<ScatterChart.Point dataKey="clusterA" label="Cluster A" />
-				<ScatterChart.Point dataKey="clusterB" label="Cluster B" />
-				<ScatterChart.Point dataKey="clusterC" label="Cluster C" />
-				<ScatterChart.Point dataKey="clusterD" label="Cluster D" />
-				<ScatterChart.Tooltip />
-				<ScatterChart.Legend />
-			</ScatterChart.Root>
+				<ScatterPlot.Point dataKey="clusterA" label="Cluster A" />
+				<ScatterPlot.Point dataKey="clusterB" label="Cluster B" />
+				<ScatterPlot.Point dataKey="clusterC" label="Cluster C" />
+				<ScatterPlot.Point dataKey="clusterD" label="Cluster D" />
+				<ScatterPlot.Tooltip />
+				<ScatterPlot.Legend />
+			</ScatterPlot.Root>
 		</div>
 	);
 }
@@ -603,14 +603,14 @@ function DimensionsExample() {
 
 ## Reference lines
 
-`ScatterChart.ReferenceLine` paints a dashed horizontal marker at a y value — a target, a budget, an SLO — in the neutral reference color, with an optional label above its right end. Like the axis parts, it applies to the 2D projection only and is ignored in 3D.
+`ScatterPlot.ReferenceLine` paints a dashed horizontal marker at a y value — a target, a budget, an SLO — in the neutral reference color, with an optional label above its right end. Like the axis parts, it applies to the 2D projection only and is ignored in 3D.
 
 <Example>
 	<ReferenceLineScatterExample />
 </Example>
 
 ```tsx
-import { ScatterChart } from "@ngrok/mantle/scatter-chart";
+import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 
 const coldStarts = [
 	{ bundleSize: 4.1, startupTime: 148 },
@@ -629,63 +629,63 @@ const coldStarts = [
 
 function ReferenceLineScatterExample() {
 	return (
-		<ScatterChart.Root
+		<ScatterPlot.Root
 			data={coldStarts}
 			xKey="bundleSize"
 			aria-label="Cold start time by bundle size"
 		>
-			<ScatterChart.Grid />
-			<ScatterChart.XAxis tickFormat={(value) => `${value}MB`} />
-			<ScatterChart.YAxis tickFormat={(value) => `${value}ms`} />
-			<ScatterChart.Point dataKey="startupTime" label="Cold start" />
-			<ScatterChart.ReferenceLine y={300} label="Target" />
-			<ScatterChart.Tooltip valueFormat={(value) => `${value}ms`} />
-		</ScatterChart.Root>
+			<ScatterPlot.Grid />
+			<ScatterPlot.XAxis tickFormat={(value) => `${value}MB`} />
+			<ScatterPlot.YAxis tickFormat={(value) => `${value}ms`} />
+			<ScatterPlot.Point dataKey="startupTime" label="Cold start" />
+			<ScatterPlot.ReferenceLine y={300} label="Target" />
+			<ScatterPlot.Tooltip valueFormat={(value) => `${value}ms`} />
+		</ScatterPlot.Root>
 	);
 }
 ```
 
 ## Copy as markdown
 
-`ScatterChart.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table — one x column plus one column per series in paint order, and the z column in 3D (ISO 8601 dates, plain un-separated numbers, an em dash for gaps) — pasteable into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
+`ScatterPlot.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table — one x column plus one column per series in paint order, and the z column in 3D (ISO 8601 dates, plain un-separated numbers, an em dash for gaps) — pasteable into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
 
 <Example>
 	<CopyMarkdownExample />
 </Example>
 
 ```tsx
-import { ScatterChart } from "@ngrok/mantle/scatter-chart";
+import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 
-<ScatterChart.Root
+<ScatterPlot.Root
 	data={regionThroughput}
 	xKey="latency"
 	aria-label="Latency vs throughput by region, copyable"
 >
-	<ScatterChart.Grid />
-	<ScatterChart.XAxis tickFormat={(value) => `${value}ms`} />
-	<ScatterChart.YAxis />
-	<ScatterChart.Point dataKey="usEast" label="US East" />
-	<ScatterChart.Point dataKey="euWest" label="EU West" />
-	<ScatterChart.Tooltip valueFormat={(value) => `${value} rps`} />
-	<ScatterChart.Legend />
-	<ScatterChart.CopyButton className="absolute right-0 top-0" />
-</ScatterChart.Root>;
+	<ScatterPlot.Grid />
+	<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
+	<ScatterPlot.YAxis />
+	<ScatterPlot.Point dataKey="usEast" label="US East" />
+	<ScatterPlot.Point dataKey="euWest" label="EU West" />
+	<ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
+	<ScatterPlot.Legend />
+	<ScatterPlot.CopyButton className="absolute right-0 top-0" />
+</ScatterPlot.Root>;
 ```
 
 ## Composition
 
-Compose the parts of a `ScatterChart` together to build your own:
+Compose the parts of a `ScatterPlot` together to build your own:
 
 ```text showLineNumbers=false
-ScatterChart.Root
-├── ScatterChart.Grid
-├── ScatterChart.XAxis
-├── ScatterChart.YAxis
-├── ScatterChart.Point (one per series)
-├── ScatterChart.ReferenceLine
-├── ScatterChart.Tooltip
-├── ScatterChart.Legend
-└── ScatterChart.CopyButton
+ScatterPlot.Root
+├── ScatterPlot.Grid
+├── ScatterPlot.XAxis
+├── ScatterPlot.YAxis
+├── ScatterPlot.Point (one per series)
+├── ScatterPlot.ReferenceLine
+├── ScatterPlot.Tooltip
+├── ScatterPlot.Legend
+└── ScatterPlot.CopyButton
 ```
 
 ## Accessibility
@@ -707,21 +707,21 @@ The tooltip names only the relevant series, never a column of em dashes: under t
 
 Every chart also renders a screen-reader-only data table twin: one column for the x value and one per series — plus a z column in 3D — bounded to the first 150 rows with a caption stating the summarization. Tooltips enhance, they never gate: every plotted value is reachable through the table or the keyboard point cursor.
 
-The twin doubles as the chart's machine-readable surface: date row headers carry the exact ISO timestamp in `<time dateTime>` and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="scatter-chart-data-table"`.
+The twin doubles as the chart's machine-readable surface: date row headers carry the exact ISO timestamp in `<time dateTime>` and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="scatter-plot-data-table"`.
 
 ## API Reference
 
-`ScatterChart.Point`, `ScatterChart.Grid`, `ScatterChart.XAxis`, `ScatterChart.YAxis`, and `ScatterChart.ReferenceLine` are renderless: they register configuration with the `Root`, which paints everything on canvas. They accept no `className` and no DOM props. `ScatterChart.Tooltip`, `ScatterChart.Legend`, and `ScatterChart.CopyButton` are the parts that touch real DOM — the first two accept `div` props, `CopyButton` accepts `button` props. `Grid`, `XAxis`, `YAxis`, and `ReferenceLine` configure the 2D projection only: composing them is always safe, but they are ignored while the chart renders in 3D.
+`ScatterPlot.Point`, `ScatterPlot.Grid`, `ScatterPlot.XAxis`, `ScatterPlot.YAxis`, and `ScatterPlot.ReferenceLine` are renderless: they register configuration with the `Root`, which paints everything on canvas. They accept no `className` and no DOM props. `ScatterPlot.Tooltip`, `ScatterPlot.Legend`, and `ScatterPlot.CopyButton` are the parts that touch real DOM — the first two accept `div` props, `CopyButton` accepts `button` props. `Grid`, `XAxis`, `YAxis`, and `ReferenceLine` configure the 2D projection only: composing them is always safe, but they are ignored while the chart renders in 3D.
 
-### ScatterChart.Root
+### ScatterPlot.Root
 
-The root of a scatter chart: owns the data, the scales, the canvas renderer, and the entire interaction contract. Renders a `<div>` wrapper (defaulting to a 16:9 aspect ratio, overridable via `className`) containing the canvas, the focusable interaction overlay, the aria-live region, and the sr-only data table. Hovering hits the nearest point within 24px (never a pinpoint target); the tooltip reads that point's series, x, y — and z in 3D. Points never stack, so there is no `stacked` prop.
+The root of a scatter plot: owns the data, the scales, the canvas renderer, and the entire interaction contract. Renders a `<div>` wrapper (defaulting to a 16:9 aspect ratio, overridable via `className`) containing the canvas, the focusable interaction overlay, the aria-live region, and the sr-only data table. Hovering hits the nearest point within 24px (never a pinpoint target); the tooltip reads that point's series, x, y — and z in 3D. Points never stack, so there is no `stacked` prop.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
 | Prop                   | Type                                   | Default            | Description                                                                                                                                                                                                                             |
 | ---------------------- | -------------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data`                 | `readonly TDatum[]`                    |                    | Rows of data; each row is one point per composed `ScatterChart.Point` series.                                                                                                                                                           |
+| `data`                 | `readonly TDatum[]`                    |                    | Rows of data; each row is one point per composed `ScatterPlot.Point` series.                                                                                                                                                            |
 | `xKey`                 | `Extract<keyof TDatum, string>`        |                    | The key of each row's x value (number or `Date`).                                                                                                                                                                                       |
 | `aria-label`           | `string`                               |                    | The chart's accessible name. Exactly one of `aria-label` or `aria-labelledby` is required — enforced at the type level.                                                                                                                 |
 | `aria-labelledby`      | `string`                               |                    | The id of a visible element that names the chart. Preferred over `aria-label` when the chart sits under a heading.                                                                                                                      |
@@ -735,7 +735,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `onActiveIndexChange?` | `(index: number \| null) => void`      |                    | Notified when hover/keyboard moves the active index.                                                                                                                                                                                    |
 | `onDatumActivate?`     | `(event: ChartDatumEvent) => void`     |                    | Notified on datum activation: point click/tap, or Enter/Space on the focused chart. The event carries `{ index, xValue, datum, dataKey }`; `dataKey` names the hit point's series, `null` for keyboard activation.                      |
 
-### ScatterChart.Point
+### ScatterPlot.Point
 
 One point series. Renders nothing itself — it registers the series with the chart, which paints its points on canvas: 4px dots with a 2px surface ring, degrading gracefully past thousands of points (see [Dense scatter](#dense-scatter)). Compose one `Point` per series — four or fewer with the default tokens, because scatter is an all-pairs form.
 
@@ -746,7 +746,7 @@ One point series. Renders nothing itself — it registers the series with the ch
 | `color?`  | `SeriesColor`                                           | next sticky slot | One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`) or any CSS color string as an escape hatch. See [Chart color tokens](#chart-color-tokens).                                                                      |
 | `shape?`  | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` | `"circle"`       | The glyph this series' points wear. Give each series a distinct shape on multi-series scatters — shape is the redundant encoding that keeps overlapping clouds distinguishable without color vision. The legend key and hover dot mirror it. |
 
-### ScatterChart.Grid
+### ScatterPlot.Grid
 
 Hairline gridlines behind the points. Renderless — painted on canvas; 2D only (the 3D cube frame carries orientation). Omit the part to omit the grid.
 
@@ -754,7 +754,7 @@ Hairline gridlines behind the points. Renderless — painted on canvas; 2D only 
 | -------- | ------------------------------------------ | -------------- | ------------------------ |
 | `lines?` | `"horizontal"` \| `"vertical"` \| `"both"` | `"horizontal"` | Which gridlines to draw. |
 
-### ScatterChart.XAxis
+### ScatterPlot.XAxis
 
 Value labels along the bottom of the plot. Renderless — painted on canvas; 2D only. Labels that would collide are skipped, never rotated.
 
@@ -763,7 +763,7 @@ Value labels along the bottom of the plot. Renderless — painted on canvas; 2D 
 | `tickFormat?` | `(value: string \| number \| Date) => string` | scale-dependent | Format a tick label. Receives the row's x value — a number on linear scales, a `Date` on time scales. Defaults to thousands-separated numbers and calendar-aware time labels. |
 | `tickCount?`  | `number`                                      | density-derived | Target tick count.                                                                                                                                                            |
 
-### ScatterChart.YAxis
+### ScatterPlot.YAxis
 
 Value tick labels along the left of the plot. Renderless — painted on canvas; 2D only. Ticks land on clean thousands-separated numbers.
 
@@ -772,7 +772,7 @@ Value tick labels along the left of the plot. Renderless — painted on canvas; 
 | `tickFormat?` | `(value: number) => string` | thousands-separated | Format a tick label. |
 | `tickCount?`  | `number`                    | `5`                 | Target tick count.   |
 
-### ScatterChart.ReferenceLine
+### ScatterPlot.ReferenceLine
 
 A dashed horizontal marker at a y value — a target, a budget, an SLO threshold. Renderless — painted on canvas; 2D only (ignored in the 3D projection).
 
@@ -782,9 +782,9 @@ A dashed horizontal marker at a y value — a target, a budget, an SLO threshold
 | `label?` | `string`      |                   | A short label painted above the line's right end.                        |
 | `color?` | `SeriesColor` | neutral reference | Line color. Defaults to the neutral reference color in the active theme. |
 
-### ScatterChart.Tooltip
+### ScatterPlot.Tooltip
 
-Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `ScatterChart.Root`'s interaction contract and renders whether or not this part is composed — compose it to format the label or values, append a footer, or replace the content entirely.
+Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `ScatterPlot.Root`'s interaction contract and renders whether or not this part is composed — compose it to format the label or values, append a footer, or replace the content entirely.
 
 The `footer` and `children` render props receive a `HoverSnapshot`: the active `index`, `xValue`, the original `datum`, `points`, `viaKeyboard` — and `zValue` in 3D. Scatter `points` are filtered to the relevant series: the hit point's series under the pointer, the row's populated series under the keyboard.
 
@@ -798,7 +798,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `footer?`      | `ReactNode \| ((snapshot: HoverSnapshot) => ReactNode)` |          | Extra content appended below the series rows (e.g. a "view logs" hint). |
 | `children?`    | `(snapshot: HoverSnapshot) => ReactNode`                |          | Replace the entire readout.                                             |
 
-### ScatterChart.Legend
+### ScatterPlot.Legend
 
 The legend: series names keyed by color swatches, rendered as real DOM in flow below the plot. Always compose it on multi-series charts — identity must never rely on color-matching alone. It renders nothing for a single series (the chart's title already names it).
 
@@ -808,7 +808,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | ----------- | ------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `children?` | `(series: SeriesMeta[]) => ReactNode` |         | Replace the default legend items. Receives the registered series with their `dataKey`, `label`, `mark`, and resolved `color`. |
 
-### ScatterChart.CopyButton
+### ScatterPlot.CopyButton
 
 A button that copies the chart's current data to the clipboard as a GitHub-flavored markdown table: one x column, one column per series in paint order, plus the z column in 3D. Values are machine-stable — ISO 8601 dates, plain un-separated numbers, an em dash for gaps — so the paste target receives parseable data, not locale formatting. Renders an icon button in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner (e.g. `absolute right-0 top-0`).
 

@@ -186,4 +186,67 @@ describe("ChaseTween", () => {
 		expect(frames).toBeLessThan(60);
 		expect(chase.values()[0]).toBe(0);
 	});
+
+	test("re-aiming the unchanged target on every ingest settles like the no-re-aim control", () => {
+		// Regression: live charts re-aim the identical y-domain target on every
+		// data ingest (~every few frames). Each re-aim rewrote the journey with
+		// the shrinking remaining distance, ratcheting the snap threshold below
+		// the float rounding of `current + (target - current) * factor` — the
+		// update stopped making representable progress, tick() returned true
+		// forever, and the engine repainted at full rate indefinitely.
+		const runScenario = (options: {
+			reaimEveryNthFrame?: number;
+		}): { frames: number; upperValue: number } => {
+			const chase = new ChaseTween({ speed: 0.14 });
+			chase.jump([0, 60]);
+			chase.aim([0, 100], 0);
+			let time = 0;
+			for (let frame = 1; frame <= 2000; frame++) {
+				time += 16.67;
+				if (options.reaimEveryNthFrame != null && frame % options.reaimEveryNthFrame === 0) {
+					chase.aim([0, 100], time);
+				}
+				if (!chase.tick(time)) {
+					return { frames: frame, upperValue: chase.values()[1] ?? Number.NaN };
+				}
+			}
+			return { frames: Number.POSITIVE_INFINITY, upperValue: chase.values()[1] ?? Number.NaN };
+		};
+		const control = runScenario({});
+		expect(control.frames).toBeLessThan(120);
+		expect(control.upperValue).toBe(100);
+		// A re-aim every 9 frames mirrors the live chart's ~150ms ingest cadence.
+		// An unchanged-target re-aim must be a no-op, so the glide settles in
+		// exactly as many frames as the control.
+		const reaimed = runScenario({ reaimEveryNthFrame: 9 });
+		expect(reaimed.frames).toBeLessThanOrEqual(control.frames);
+		expect(reaimed.upperValue).toBe(100);
+	});
+
+	test("aiming an inactive chase at its settled value stays settled", () => {
+		const chase = new ChaseTween();
+		chase.jump([5, 10]);
+		chase.aim([5, 10], 0);
+		expect(chase.active).toBe(false);
+		expect(chase.tick(16.67)).toBe(false);
+		expect([...chase.values()]).toEqual([5, 10]);
+	});
+
+	test("a sub-resolution remaining delta snaps instead of wedging the chase", () => {
+		// With the journey-relative threshold forced down to the Number.EPSILON
+		// floor, the remaining delta stalls a few ulps above it: near a target of
+		// 100 the per-frame step rounds to zero once the gap shrinks to ~5e-14.
+		// The no-progress guard must snap that component so the chase terminates
+		// even when the threshold can never be reached.
+		const chase = new ChaseTween({ speed: 0.14, epsilon: 0 });
+		chase.jump([0]);
+		chase.aim([100], 0);
+		let time = 0;
+		let frames = 0;
+		while (chase.tick((time += 16.67)) && frames < 1000) {
+			frames += 1;
+		}
+		expect(frames).toBeLessThan(1000);
+		expect(chase.values()[0]).toBe(100);
+	});
 });

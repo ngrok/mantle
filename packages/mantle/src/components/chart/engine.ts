@@ -21,7 +21,7 @@ import {
 } from "./colors.js";
 import { datumValue } from "./datum.js";
 import { decimateColumns, shouldDecimate } from "./decimate.js";
-import { formatNumber, formatXValue } from "./format.js";
+import { formatNumber, formatXValue, hasTimeOfDay, tickFractionDigits } from "./format.js";
 import { nearestIndex } from "./hit-test.js";
 import type { Camera } from "./projection.js";
 import {
@@ -139,7 +139,7 @@ const PART_NAME: Record<SeriesMark, string> = {
 	bar: "BarChart.Bar",
 	line: "LineChart.Line",
 	area: "AreaChart.Area",
-	scatter: "ScatterChart.Point",
+	scatter: "ScatterPlot.Point",
 };
 
 /** The pointer must land within this distance of a scatter point to hit it. */
@@ -151,6 +151,11 @@ const Y_TICK_COUNT = 5;
 const PLOT_PADDING = 8;
 const X_AXIS_BAND = 24;
 const FALLBACK_AXIS_GUTTER = 40;
+
+/** Width of the left-edge scroll-mask fade band, in CSS pixels. */
+const EDGE_FADE_WIDTH = 40;
+/** How long after the last window slide the left-edge fade lingers before decaying. */
+const EDGE_FADE_LINGER_MS = 1000;
 
 class ChartEngine {
 	#kind: SeriesMark;
@@ -182,6 +187,11 @@ class ChartEngine {
 	#xs = new Float64Array(0);
 	#xValues: XValue[] = [];
 	#order: Int32Array | null = null;
+	/** source index → view index; -1 for rows dropped at ingest. Built iff `#order` is. */
+	#orderInverse: Int32Array | null = null;
+	/** Any x value carries a time-of-day component (drives date label granularity). */
+	#xHasTimeOfDay = false;
+	#pendingIngest = false;
 	#columns = new Map<string, Float64Array>();
 	#valueMin = 0;
 	#valueMax = 0;
@@ -202,6 +212,15 @@ class ChartEngine {
 	#decimated = false;
 	#decimationCache = new Map<string, { key: string; columns: DecimatedColumns }>();
 
+	// Liveline-style left-edge scroll mask: streaming appends that drop the
+	// oldest row hard-clip exiting marks at the plot edge while the chasing
+	// domain opens a pulsing wedge there. While the window slides, marks fade
+	// out through a band at the left edge so exits dissolve instead of popping.
+	#edgeFade = { alpha: 0, target: 0 };
+	#lastSlideAt = 0;
+	#edgeFadeDecayTimer: ReturnType<typeof setTimeout> | null = null;
+	#marksLayerCanvas: HTMLCanvasElement | null = null;
+
 	#colors: ResolvedColors | null = null;
 
 	#plot: PlotRect = { left: 0, top: 0, width: 0, height: 0 };
@@ -218,6 +237,12 @@ class ChartEngine {
 	// changes glide like every other motion in the engine.
 	#dimensionChase = new ChaseTween({ speed: 0.16 });
 	#drag: { lastX: number; lastY: number; moved: boolean } | null = null;
+	/**
+	 * Whether the current press began on the overlay. Click semantics require
+	 * down + up on the chart: a drag that started outside (text selection, a
+	 * press on the legend) releasing over the plot must not activate.
+	 */
+	#pressed = false;
 	#projected: {
 		screenX: Float64Array;
 		screenY: Float64Array;
@@ -229,8 +254,15 @@ class ChartEngine {
 	#activeScreen: { x: number; y: number } | null = null;
 	#activeSeriesKey: string | null = null;
 
+	/** The uncontrolled active position, in view space (sorted/filtered). */
 	#activeIndex: number | null = null;
+	/** The consumer's controlled index, in source space (their `data` array). */
 	#controlledIndex: number | null | undefined = undefined;
+	/**
+	 * The last index notified to a controlled consumer, so the echo arriving
+	 * back through `setControlledActiveIndex` keeps its interaction source.
+	 */
+	#pendingControlledEcho: { index: number | null; viaKeyboard: boolean } | null = null;
 	#viaKeyboard = false;
 	#pointerY: number | null = null;
 	#tooltipSize: { width: number; height: number } = { width: 0, height: 0 };
@@ -247,7 +279,12 @@ class ChartEngine {
 		this.#ctx = options.elements.canvas.getContext("2d");
 
 		this.#store.onSeriesChange = () => {
-			this.#ingest();
+			// Deferred (not ingested inline): a series (re)registration and its
+			// matching rows can arrive in the same React commit but in separate
+			// layout effects — ingesting mid-commit would validate one render's
+			// specs against the other render's rows. `flushIngest` runs after the
+			// commit's effects (and `#commit` backstops before any paint).
+			this.#pendingIngest = true;
 			this.#schedule();
 		};
 		this.#store.onPresentationChange = () => {
@@ -297,6 +334,10 @@ class ChartEngine {
 		this.#dprCleanup?.();
 		this.#store.onSeriesChange = null;
 		this.#store.onPresentationChange = null;
+		if (this.#edgeFadeDecayTimer != null) {
+			clearTimeout(this.#edgeFadeDecayTimer);
+			this.#edgeFadeDecayTimer = null;
+		}
 		if (this.#frame !== 0) {
 			cancelAnimationFrame(this.#frame);
 		}
@@ -363,7 +404,7 @@ class ChartEngine {
 			previous.yDomain[0] !== options.yDomain[0] ||
 			previous.yDomain[1] !== options.yDomain[1]
 		) {
-			this.#ingest();
+			this.#pendingIngest = true;
 		}
 		this.#schedule();
 	}
@@ -377,18 +418,56 @@ class ChartEngine {
 			return;
 		}
 		this.#rows = rows;
-		this.#ingest();
+		this.#pendingIngest = true;
 		this.#schedule();
 	}
 
 	/**
-	 * Controlled active index: `undefined` means uncontrolled; a number or
-	 * `null` mirrors the consumer's state into the hover UI.
+	 * Run any pending ingest now. Rows, options, and series registrations all
+	 * mark ingest pending instead of ingesting inline, because within one React
+	 * commit they arrive in separate layout effects — a series registering
+	 * against rows the Root has not pushed yet (or vice versa) would fail the
+	 * dataKey fail-fast on data that IS consistent once the commit finishes.
+	 * The Root binding calls this in a layout effect that runs after every
+	 * commit's child effects; `#commit` also flushes as a backstop so a pending
+	 * ingest can never reach paint (e.g. a series part deep in consumer state
+	 * that re-rendered without the Root).
+	 */
+	flushIngest(): void {
+		if (!this.#pendingIngest || this.#destroyed) {
+			return;
+		}
+		this.#pendingIngest = false;
+		this.#ingest();
+	}
+
+	/**
+	 * Controlled active index: `undefined` means uncontrolled; a number (an
+	 * index into the consumer's `data` array) or `null` mirrors the consumer's
+	 * state into the hover UI.
+	 *
+	 * When the incoming value echoes an index this engine just notified through
+	 * `onActiveIndexChange`, the interaction source (keyboard vs pointer) is
+	 * restored from that notification — otherwise keyboard stepping on a
+	 * controlled chart would round-trip back as a pointer-flavored snapshot and
+	 * silence the aria-live announcer.
 	 */
 	setControlledActiveIndex(index: number | null | undefined): void {
+		const echo = this.#pendingControlledEcho;
+		this.#pendingControlledEcho = null;
+		const wasControlled = this.#controlledIndex !== undefined;
 		this.#controlledIndex = index;
 		if (index !== undefined) {
-			this.#setActive(index, { viaKeyboard: false, notify: false });
+			const viaKeyboard = echo != null && echo.index === index ? echo.viaKeyboard : false;
+			this.#setActive(index == null ? null : this.#toViewIndex(index), {
+				viaKeyboard,
+				notify: false,
+			});
+		} else if (wasControlled) {
+			// Leaving controlled mode: reset to "no active point" instead of
+			// resurrecting whatever uncontrolled index was frozen when control
+			// began — the store would keep serving that stale snapshot.
+			this.#setActive(null, { viaKeyboard: false, notify: false });
 		}
 		this.#scheduleOverlay();
 	}
@@ -429,6 +508,7 @@ class ChartEngine {
 	 * tap-to-inspect (the same hover path as a move).
 	 */
 	handlePointerDown(cssX: number, cssY: number): void {
+		this.#pressed = true;
 		if (this.#is3d()) {
 			this.#drag = { lastX: cssX, lastY: cssY, moved: false };
 			return;
@@ -437,12 +517,16 @@ class ChartEngine {
 	}
 
 	/**
-	 * Pointer-up activates the datum under the pointer — unless the pointer was
-	 * rotating the 3D camera, in which case releasing does nothing.
+	 * Pointer-up activates the datum under the pointer — but only when the
+	 * press began on the overlay (and never when it was rotating the 3D
+	 * camera). Leaving the plot mid-press cancels, preserving
+	 * drag-away-to-cancel.
 	 */
 	handlePointerUp(cssX: number, cssY: number): void {
 		const drag = this.#drag;
 		this.#drag = null;
+		const pressed = this.#pressed;
+		this.#pressed = false;
 		if (drag != null) {
 			if (drag.moved) {
 				return;
@@ -450,12 +534,16 @@ class ChartEngine {
 			// A tap in 3D: inspect, then activate.
 			this.handlePointerMove(cssX, cssY);
 		}
+		if (!pressed) {
+			return;
+		}
 		this.handleActivate(cssX, cssY);
 	}
 
 	handlePointerLeave(): void {
 		this.#pointerY = null;
 		this.#drag = null;
+		this.#pressed = false;
 		this.#activeSeriesKey = null;
 		this.#activeScreen = null;
 		this.#setActive(null, { viaKeyboard: false, notify: true });
@@ -466,13 +554,14 @@ class ChartEngine {
 		if (index == null) {
 			return;
 		}
-		const originalIndex = this.#order == null ? index : (this.#order[index] ?? index);
-		const datum = this.#rows[originalIndex];
+		const sourceIndex = this.#toSourceIndex(index);
+		const datum = this.#rows[sourceIndex];
 		if (datum == null) {
 			return;
 		}
 		this.#callbacks.onDatumActivate?.({
-			index,
+			// Public indexes address the consumer's data array, not the sorted view.
+			index: sourceIndex,
 			xValue: this.#xValues[index] ?? "",
 			datum,
 			dataKey:
@@ -571,6 +660,7 @@ class ChartEngine {
 		for (const tween of this.#revealTweens.values()) {
 			tween.snap();
 		}
+		this.#edgeFade.alpha = this.#edgeFade.target;
 		this.#schedule();
 	}
 
@@ -590,29 +680,66 @@ class ChartEngine {
 			const count = rows.length;
 			const xs = new Float64Array(count);
 			const xValues: XValue[] = Array.from({ length: count }, () => "");
+			// `undefined` means the x key is absent from the row: when EVERY row
+			// misses it that is an xKey typo, and it must fail fast the way a
+			// dataKey typo does — not render a full axis of "undefined" categories.
+			let foundX = false;
 			for (let index = 0; index < count; index++) {
 				const row = rows[index];
 				const raw = row == null ? undefined : datumValue(row, xKey);
+				if (raw !== undefined) {
+					foundX = true;
+				}
 				xValues[index] =
 					typeof raw === "string" || typeof raw === "number" || raw instanceof Date
 						? raw
 						: String(raw);
 				xs[index] = index;
 			}
+			invariant(
+				count === 0 || foundX,
+				`${this.#rootName()} xKey "${xKey}" does not match any key in the provided data. Available keys: ${Object.keys(rows[0] ?? {}).join(", ")}.`,
+			);
 			this.#order = null;
+			this.#orderInverse = null;
 			this.#rowCount = count;
 			this.#xs = xs;
 			this.#xValues = xValues;
 		} else {
 			const entries: Array<{ source: number; x: number }> = [];
+			// `undefined` = key absent (an all-rows absence is a typo, below);
+			// `null` = an explicit per-row gap that drops silently; a present but
+			// uncoercible value that leaves NO coercible rows at all means the
+			// data cannot live on this scale — silence would render a blank chart
+			// with zero diagnostics.
+			let sawXKey = false;
+			let sawNonNullish = false;
+			let sawCoercible = false;
 			for (let index = 0; index < rows.length; index++) {
 				const row = rows[index];
 				const raw = row == null ? undefined : datumValue(row, xKey);
+				if (raw !== undefined) {
+					sawXKey = true;
+				}
+				if (raw != null) {
+					sawNonNullish = true;
+				}
+				// Only finite x survives: Infinity (like NaN and invalid dates) has
+				// no position and would poison the domain into NaN, blanking the chart.
 				const x = toEpochOrNumber(raw, xScale === "time");
-				if (!Number.isNaN(x)) {
+				if (Number.isFinite(x)) {
 					entries.push({ source: index, x });
+					sawCoercible = true;
 				}
 			}
+			invariant(
+				rows.length === 0 || sawXKey,
+				`${this.#rootName()} xKey "${xKey}" does not match any key in the provided data. Available keys: ${Object.keys(rows[0] ?? {}).join(", ")}.`,
+			);
+			invariant(
+				!sawNonNullish || sawCoercible,
+				`${this.#rootName()} could not read any "${xKey}" values as ${xScale === "time" ? "dates" : "numbers"} for the "${xScale}" x scale — check the xScale and the data types.`,
+			);
 			// Sorting once at ingest keeps decimation and hit-testing correct for
 			// out-of-order API responses; the sorted view is the engine's contract.
 			let sortedAscending = true;
@@ -644,10 +771,59 @@ class ChartEngine {
 					identityOrder = false;
 				}
 			}
-			this.#order = identityOrder ? null : order;
+			if (identityOrder) {
+				this.#order = null;
+				this.#orderInverse = null;
+			} else {
+				this.#order = order;
+				// The inverse (source → view) backs the public index contract:
+				// consumers speak in their data array's indexes; -1 marks dropped rows.
+				const inverse = new Int32Array(rows.length).fill(-1);
+				for (let index = 0; index < count; index++) {
+					const source = order[index];
+					if (source != null) {
+						inverse[source] = index;
+					}
+				}
+				this.#orderInverse = inverse;
+			}
 			this.#rowCount = count;
 			this.#xs = xs;
 			this.#xValues = xValues;
+		}
+		// Date label granularity is a dataset property, not a sample property:
+		// the midnight point inside an hourly series must keep its time of day.
+		let xHasTime = false;
+		for (const value of this.#xValues) {
+			if (value instanceof Date && hasTimeOfDay(value)) {
+				xHasTime = true;
+				break;
+			}
+		}
+		this.#xHasTimeOfDay = xHasTime;
+
+		// Left-edge scroll mask activation. The streaming signature is a window
+		// slide: the first x advanced while the last kept up. A jump backward or
+		// an unrelated data swap deactivates immediately; an unchanged x vector
+		// (a series toggle mid-stream) leaves the fade to the paint-side linger.
+		const first = this.#xs[0];
+		const last = this.#xs[this.#rowCount - 1];
+		const previousFirst = previousXs[0];
+		const previousLast = previousXs[previousXs.length - 1];
+		if (
+			!this.#is3d() &&
+			(xScale === "linear" || xScale === "time") &&
+			first != null &&
+			last != null &&
+			previousFirst != null &&
+			previousLast != null &&
+			first > previousFirst &&
+			last >= previousLast
+		) {
+			this.#edgeFade.target = 1;
+			this.#lastSlideAt = performance.now();
+		} else if (first !== previousFirst || last !== previousLast) {
+			this.#edgeFade.target = 0;
 		}
 		const count = this.#rowCount;
 
@@ -681,7 +857,10 @@ class ChartEngine {
 					continue;
 				}
 				found = true;
-				const value = typeof raw === "number" ? raw : Number.NaN;
+				// Non-finite values (an Infinity from an upstream divide-by-zero)
+				// render as gaps — fed into the extent they would nice the domain
+				// into NaN and blank the entire chart.
+				const value = typeof raw === "number" && Number.isFinite(raw) ? raw : Number.NaN;
 				values[index] = value;
 				if (!Number.isNaN(value)) {
 					if (value < min) {
@@ -715,7 +894,7 @@ class ChartEngine {
 				if (raw !== undefined) {
 					zFound = true;
 				}
-				const value = typeof raw === "number" ? raw : Number.NaN;
+				const value = typeof raw === "number" && Number.isFinite(raw) ? raw : Number.NaN;
 				zs[index] = value;
 				if (!Number.isNaN(value)) {
 					if (value < zMin) {
@@ -728,7 +907,7 @@ class ChartEngine {
 			}
 			invariant(
 				count === 0 || zFound,
-				`ScatterChart.Root zKey "${zKey}" does not match any key in the provided data. Available keys: ${Object.keys(rows[0] ?? {}).join(", ")}.`,
+				`ScatterPlot.Root zKey "${zKey}" does not match any key in the provided data. Available keys: ${Object.keys(rows[0] ?? {}).join(", ")}.`,
 			);
 			this.#zs = zs;
 			this.#zDomain =
@@ -915,6 +1094,38 @@ class ChartEngine {
 		return this.#kind === "scatter" && this.#options.zKey != null;
 	}
 
+	/** The public Root part name for error messages, e.g. `"BarChart.Root"`. */
+	#rootName(): string {
+		return `${PART_NAME[this.#kind].split(".")[0] ?? "Chart"}.Root`;
+	}
+
+	/**
+	 * The offscreen layer marks paint through while the left-edge fade is
+	 * active — a destination-out erase on the main canvas would punch out the
+	 * gridlines beneath the marks. Returns `null` when a 2D context is
+	 * unavailable (test DOMs); callers fall back to painting directly,
+	 * unmasked.
+	 */
+	#marksLayer(
+		deviceWidth: number,
+		deviceHeight: number,
+	): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } | null {
+		let canvas = this.#marksLayerCanvas;
+		if (canvas == null) {
+			canvas = this.#elements.canvas.ownerDocument.createElement("canvas");
+			this.#marksLayerCanvas = canvas;
+		}
+		if (canvas.width !== deviceWidth || canvas.height !== deviceHeight) {
+			canvas.width = deviceWidth;
+			canvas.height = deviceHeight;
+		}
+		const ctx = canvas.getContext("2d");
+		if (ctx == null) {
+			return null;
+		}
+		return { canvas, ctx };
+	}
+
 	// ---- scheduling + paint ---------------------------------------------------
 
 	/** Schedule a full canvas repaint (plus overlay sync) on the next frame. */
@@ -948,6 +1159,7 @@ class ChartEngine {
 		if (this.#destroyed) {
 			return;
 		}
+		this.flushIngest();
 		if (this.#needsPaint) {
 			this.#needsPaint = false;
 			const now = performance.now();
@@ -1098,9 +1310,18 @@ class ChartEngine {
 			snapshot.yAxis?.tickCount ?? Y_TICK_COUNT,
 		);
 		const format = snapshot.yAxis?.tickFormat;
+		// Precision follows the tick step, so small-magnitude domains (error
+		// rates) never collapse neighboring labels into identical "0"s.
+		const digits =
+			ticks.length > 1
+				? tickFractionDigits(Math.abs((ticks[1] ?? 0) - (ticks[0] ?? 0)))
+				: undefined;
 		return ticks.map((value) => ({
 			value,
-			text: format == null ? formatNumber(value) : format(value),
+			text:
+				format == null
+					? formatNumber(value, digits == null ? undefined : { maximumFractionDigits: digits })
+					: format(value),
 		}));
 	}
 
@@ -1118,7 +1339,10 @@ class ChartEngine {
 				ticks.push({
 					index,
 					value: index,
-					text: format == null ? formatXValue(value) : format(value),
+					text:
+						format == null
+							? formatXValue(value, { datasetHasTimeOfDay: this.#xHasTimeOfDay })
+							: format(value),
 				});
 			}
 			return ticks;
@@ -1134,10 +1358,18 @@ class ChartEngine {
 				text: format == null ? defaultFormat(epoch) : format(new Date(epoch)),
 			}));
 		}
-		return linearTicks(range, count).map((value) => ({
+		const ticks = linearTicks(range, count);
+		const digits =
+			ticks.length > 1
+				? tickFractionDigits(Math.abs((ticks[1] ?? 0) - (ticks[0] ?? 0)))
+				: undefined;
+		return ticks.map((value) => ({
 			index: null,
 			value,
-			text: format == null ? formatNumber(value) : format(value),
+			text:
+				format == null
+					? formatNumber(value, digits == null ? undefined : { maximumFractionDigits: digits })
+					: format(value),
 		}));
 	}
 
@@ -1181,6 +1413,39 @@ class ChartEngine {
 		let labelsAnimating = advanceLabelFade(this.#xLabelFade, desiredXTicks, paintDt, instantLabels);
 		labelsAnimating =
 			advanceLabelFade(this.#yLabelFade, desiredYTicks, paintDt, instantLabels) || labelsAnimating;
+
+		// Left-edge scroll mask strength: eases in while streaming slides the
+		// window, decays after the stream idles long enough for the domain
+		// chase to settle. A static gradient is not motion, so reduced motion
+		// only snaps the strength — the mask itself stays.
+		const edgeFade = this.#edgeFade;
+		if (edgeFade.target === 1) {
+			if (now - this.#lastSlideAt > EDGE_FADE_LINGER_MS) {
+				edgeFade.target = 0;
+			} else if (this.#edgeFadeDecayTimer == null) {
+				// One-shot wake at linger expiry: an idle chart schedules no
+				// frames, so without this the mask would freeze on after the
+				// stream's last tick.
+				const remaining = EDGE_FADE_LINGER_MS - (now - this.#lastSlideAt) + 17;
+				this.#edgeFadeDecayTimer = setTimeout(() => {
+					this.#edgeFadeDecayTimer = null;
+					this.#schedule();
+				}, remaining);
+			}
+		}
+		if (instantLabels) {
+			edgeFade.alpha = edgeFade.target;
+		} else {
+			const speed = edgeFade.target > edgeFade.alpha ? 0.16 : 0.08;
+			const factor = 1 - Math.pow(1 - speed, paintDt / 16.67);
+			edgeFade.alpha += (edgeFade.target - edgeFade.alpha) * factor;
+			if (Math.abs(edgeFade.target - edgeFade.alpha) < 0.02) {
+				edgeFade.alpha = edgeFade.target;
+			}
+		}
+		if (edgeFade.alpha !== edgeFade.target) {
+			labelsAnimating = true;
+		}
 		const xTickPosition = (key: number): number =>
 			this.#bandLayout != null ? bandCenter(this.#bandLayout, key) : key * xCo.k + xCo.b;
 
@@ -1204,20 +1469,46 @@ class ChartEngine {
 			drawGrid(ctx, { plot, color: colors.chrome.grid, xLines, yLines });
 		}
 
-		// marks
-		ctx.save();
-		ctx.beginPath();
-		ctx.rect(plot.left, plot.top, plot.width, plot.height + 1);
-		ctx.clip();
+		// marks — through an offscreen layer while the left-edge fade is active,
+		// so the destination-out erase touches only marks, never the grid
+		// painted beneath them.
+		const fadeWidth = Math.min(EDGE_FADE_WIDTH, plot.width * 0.25);
+		let marksCtx = ctx;
+		let marksLayer: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } | null = null;
+		if (edgeFade.alpha > 0.01 && fadeWidth > 1) {
+			marksLayer = this.#marksLayer(deviceWidth, deviceHeight);
+			if (marksLayer != null) {
+				marksLayer.ctx.setTransform(this.#dpr, 0, 0, this.#dpr, 0, 0);
+				marksLayer.ctx.clearRect(0, 0, this.#cssWidth, this.#cssHeight);
+				marksCtx = marksLayer.ctx;
+			}
+		}
+		marksCtx.save();
+		marksCtx.beginPath();
+		marksCtx.rect(plot.left, plot.top, plot.width, plot.height + 1);
+		marksCtx.clip();
 		let frameLabels: FrameLabels | null = null;
 		if (this.#kind === "bar") {
-			this.#paintBars(ctx, specs, yCo);
+			this.#paintBars(marksCtx, specs, yCo);
 		} else if (this.#kind === "scatter") {
-			frameLabels = this.#paintScatter(ctx, specs, yCo);
+			frameLabels = this.#paintScatter(marksCtx, specs, yCo);
 		} else {
-			this.#paintLinesOrAreas(ctx, specs, yCo);
+			this.#paintLinesOrAreas(marksCtx, specs, yCo);
 		}
-		ctx.restore();
+		marksCtx.restore();
+		if (marksLayer != null) {
+			// Liveline's scroll mask: erase the layer through a horizontal alpha
+			// ramp at the plot's left edge, then composite it over the grid.
+			marksCtx.save();
+			marksCtx.globalCompositeOperation = "destination-out";
+			const eraseGradient = marksCtx.createLinearGradient(plot.left, 0, plot.left + fadeWidth, 0);
+			eraseGradient.addColorStop(0, `rgba(0, 0, 0, ${edgeFade.alpha})`);
+			eraseGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+			marksCtx.fillStyle = eraseGradient;
+			marksCtx.fillRect(plot.left, plot.top, fadeWidth, plot.height + 1);
+			marksCtx.restore();
+			ctx.drawImage(marksLayer.canvas, 0, 0, this.#cssWidth, this.#cssHeight);
+		}
 
 		// 3D frame labels: after the clip so edge-adjacent labels stay whole.
 		if (frameLabels != null) {
@@ -1552,13 +1843,45 @@ class ChartEngine {
 	// ---- hover / keyboard / overlay -------------------------------------------
 
 	#effectiveIndex(): number | null {
-		const raw = this.#controlledIndex !== undefined ? this.#controlledIndex : this.#activeIndex;
-		if (raw == null || this.#rowCount === 0) {
+		if (this.#rowCount === 0) {
+			return null;
+		}
+		let raw: number | null;
+		if (this.#controlledIndex !== undefined) {
+			// Controlled values live in source space; convert at the read so the
+			// mapping stays fresh across re-ingests (sorts and drops can change it).
+			raw = this.#controlledIndex == null ? null : this.#toViewIndex(this.#controlledIndex);
+		} else {
+			raw = this.#activeIndex;
+		}
+		if (raw == null) {
 			return null;
 		}
 		// Clamp at the read so an out-of-range controlled index (or one stranded
 		// by a data shrink) never positions the overlay off-plot.
 		return Math.min(Math.max(0, raw), this.#rowCount - 1);
+	}
+
+	/** Map a view-space (sorted/filtered) index back to the consumer's `data` array. */
+	#toSourceIndex(viewIndex: number): number {
+		return this.#order == null ? viewIndex : (this.#order[viewIndex] ?? viewIndex);
+	}
+
+	/**
+	 * Map a consumer `data` index into the engine's view; `null` when that row
+	 * was dropped at ingest (no position on the axis). Out-of-range input is
+	 * clamped, mirroring {@link #effectiveIndex}.
+	 */
+	#toViewIndex(sourceIndex: number): number | null {
+		if (this.#rows.length === 0) {
+			return null;
+		}
+		const clamped = Math.min(Math.max(0, sourceIndex), this.#rows.length - 1);
+		if (this.#orderInverse == null) {
+			return clamped;
+		}
+		const view = this.#orderInverse[clamped] ?? -1;
+		return view === -1 ? null : view;
 	}
 
 	#indexAtPixel(cssX: number): number | null {
@@ -1613,19 +1936,30 @@ class ChartEngine {
 		return nearest;
 	}
 
+	/**
+	 * Set the active position (view-space index). `notify` reports the change
+	 * through `onActiveIndexChange` in SOURCE space — public indexes always
+	 * address the consumer's `data` array, never the engine's sorted view.
+	 */
 	#setActive(index: number | null, options: { viaKeyboard: boolean; notify: boolean }): void {
 		const clamped =
 			index == null || this.#rowCount === 0
 				? null
 				: Math.min(Math.max(0, index), this.#rowCount - 1);
-		this.#viaKeyboard = options.viaKeyboard;
+		const controlled = this.#controlledIndex !== undefined;
 		if (options.notify && clamped !== this.#effectiveIndex()) {
-			this.#callbacks.onActiveIndexChange?.(clamped);
+			const sourceIndex = clamped == null ? null : this.#toSourceIndex(clamped);
+			this.#callbacks.onActiveIndexChange?.(sourceIndex);
+			if (controlled) {
+				// The consumer owns the state: remember the interaction source for
+				// the echo, and publish nothing now — a snapshot of the OLD index
+				// wearing the NEW interaction source would be spurious.
+				this.#pendingControlledEcho = { index: sourceIndex, viaKeyboard: options.viaKeyboard };
+				return;
+			}
 		}
-		if (this.#controlledIndex === undefined) {
-			// Uncontrolled: adopt the new index. Controlled: the consumer owns the
-			// state — we only notified above, and the snapshot below reflects
-			// whatever the controlled value currently is.
+		this.#viaKeyboard = options.viaKeyboard;
+		if (!controlled) {
 			this.#activeIndex = clamped;
 		}
 		this.#publishSnapshot();
@@ -1655,8 +1989,8 @@ class ChartEngine {
 			this.#store.publishHover(null);
 			return;
 		}
-		const originalIndex = this.#order == null ? index : (this.#order[index] ?? index);
-		const datum = this.#rows[originalIndex] ?? {};
+		const sourceIndex = this.#toSourceIndex(index);
+		const datum = this.#rows[sourceIndex] ?? {};
 		const meta = this.#store.seriesMeta();
 		let points = meta.map((series) => {
 			const values = this.#columns.get(series.dataKey);
@@ -1682,7 +2016,8 @@ class ChartEngine {
 					: points.filter((point) => point.dataKey === this.#activeSeriesKey);
 		}
 		const snapshot: HoverSnapshot = {
-			index,
+			// Public indexes address the consumer's data array, not the sorted view.
+			index: sourceIndex,
 			xValue: this.#xValues[index] ?? "",
 			datum,
 			points,

@@ -78,7 +78,7 @@ export default [
 		...docRoute("components/charts/area-chart"),
 		...docRoute("components/charts/bar-chart"),
 		...docRoute("components/charts/line-chart"),
-		...docRoute("components/charts/scatter-chart"),
+		...docRoute("components/charts/scatter-plot"),
 		// data display
 		...docRoute("components/data-display/accordion"),
 		...docRoute("components/data-display/badge"),

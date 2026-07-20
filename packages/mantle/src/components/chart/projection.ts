@@ -1,5 +1,5 @@
 /**
- * 3D → 2D projection for the scatter chart's 3D mode.
+ * 3D → 2D projection for the scatter plot's 3D mode.
  *
  * Points live in a normalized [-1, 1]³ cube; the camera is a yaw (around the
  * vertical y axis) plus a pitch (around the screen-space x axis), followed by

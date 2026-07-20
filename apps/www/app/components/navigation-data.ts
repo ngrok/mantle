@@ -50,7 +50,7 @@ export const componentCategorySlugs = {
  */
 export const componentsByCategory = {
 	Actions: ["Button", "Icon Button", "Split Button"],
-	Charts: ["Area Chart", "Bar Chart", "Line Chart", "Scatter Chart"],
+	Charts: ["Area Chart", "Bar Chart", "Line Chart", "Scatter Plot"],
 	"Data Display": [
 		"Accordion",
 		"Badge",
@@ -170,7 +170,7 @@ export const prodReadyComponentRouteLookup = {
 	"QR Code": "/components/data-display/qr-code",
 	"Radio Group": "/components/forms/radio-group",
 	SandboxedOnClick: "/components/primitives/sandboxed-on-click",
-	"Scatter Chart": "/components/charts/scatter-chart",
+	"Scatter Plot": "/components/charts/scatter-plot",
 	Select: "/components/forms/select",
 	"Selectable List": "/components/data-display/selectable-list",
 	Separator: "/components/structure/separator",

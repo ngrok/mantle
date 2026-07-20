@@ -290,10 +290,10 @@
 			"types": "./dist/sandboxed-on-click.d.ts",
 			"import": "./dist/sandboxed-on-click.js"
 		},
-		"./scatter-chart": {
-			"@ngrok/src-live-types": "./src/components/scatter-chart/index.ts",
-			"types": "./dist/scatter-chart.d.ts",
-			"import": "./dist/scatter-chart.js"
+		"./scatter-plot": {
+			"@ngrok/src-live-types": "./src/components/scatter-plot/index.ts",
+			"types": "./dist/scatter-plot.d.ts",
+			"import": "./dist/scatter-plot.js"
 		},
 		"./select": {
 			"@ngrok/src-live-types": "./src/components/select/index.ts",

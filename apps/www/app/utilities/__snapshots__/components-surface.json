@@ -639,17 +639,17 @@
     ]
   },
   {
-    "name": "Scatter Chart",
-    "slug": "components/charts/scatter-chart",
+    "name": "Scatter Plot",
+    "slug": "components/charts/scatter-plot",
     "kind": "component",
     "category": "Charts",
     "status": "stable",
-    "importPath": "@ngrok/mantle/scatter-chart",
-    "summary": "A canvas-rendered scatter chart for correlating two continuous measures — three with the rotatable 3D projection.",
-    "jsdoc": "A canvas-rendered scatter chart for correlating two measures — three with the 3D projection (`zKey`), which renders a rotatable, depth-sorted point cloud (drag to orbit).",
+    "importPath": "@ngrok/mantle/scatter-plot",
+    "summary": "A canvas-rendered scatter plot for correlating two continuous measures — three with the rotatable 3D projection.",
+    "jsdoc": "A canvas-rendered scatter plot for correlating two measures — three with the 3D projection (`zKey`), which renders a rotatable, depth-sorted point cloud (drag to orbit).",
     "examples": [
-      "Composition:\n```\nScatterChart.Root\n├── ScatterChart.Grid\n├── ScatterChart.XAxis\n├── ScatterChart.YAxis\n├── ScatterChart.Point (one per series)\n├── ScatterChart.ReferenceLine\n├── ScatterChart.Tooltip\n└── ScatterChart.Legend\n```",
-      "```tsx\nconst data = [\n  { latency: 12, throughputA: 840, throughputB: 720 },\n  { latency: 28, throughputA: 610, throughputB: 590 },\n  { latency: 45, throughputA: 340, throughputB: 410 },\n];\n\n<ScatterChart.Root data={data} xKey=\"latency\" aria-label=\"Latency vs throughput\">\n  <ScatterChart.Grid />\n  <ScatterChart.XAxis />\n  <ScatterChart.YAxis />\n  <ScatterChart.Point dataKey=\"throughputA\" label=\"Region A\" />\n  <ScatterChart.Point dataKey=\"throughputB\" label=\"Region B\" />\n  <ScatterChart.Tooltip />\n  <ScatterChart.Legend />\n</ScatterChart.Root>\n```"
+      "Composition:\n```\nScatterPlot.Root\n├── ScatterPlot.Grid\n├── ScatterPlot.XAxis\n├── ScatterPlot.YAxis\n├── ScatterPlot.Point (one per series)\n├── ScatterPlot.ReferenceLine\n├── ScatterPlot.Tooltip\n└── ScatterPlot.Legend\n```",
+      "```tsx\nconst data = [\n  { latency: 12, throughputA: 840, throughputB: 720 },\n  { latency: 28, throughputA: 610, throughputB: 590 },\n  { latency: 45, throughputA: 340, throughputB: 410 },\n];\n\n<ScatterPlot.Root data={data} xKey=\"latency\" aria-label=\"Latency vs throughput\">\n  <ScatterPlot.Grid />\n  <ScatterPlot.XAxis />\n  <ScatterPlot.YAxis />\n  <ScatterPlot.Point dataKey=\"throughputA\" label=\"Region A\" />\n  <ScatterPlot.Point dataKey=\"throughputB\" label=\"Region B\" />\n  <ScatterPlot.Tooltip />\n  <ScatterPlot.Legend />\n</ScatterPlot.Root>\n```"
     ]
   },
   {

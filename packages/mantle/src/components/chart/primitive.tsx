@@ -9,6 +9,7 @@ import {
 	useEffect,
 	useId,
 	useLayoutEffect,
+	useMemo,
 	useRef,
 	useState,
 	useSyncExternalStore,
@@ -23,7 +24,7 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { IconButton } from "../button/icon-button.js";
 import { datumValue } from "./datum.js";
 import { ChartEngine, POINT_SHAPE_CLIP_PATHS } from "./engine.js";
-import { formatNumber, formatXValue } from "./format.js";
+import { formatNumber, formatXValue, hasTimeOfDay } from "./format.js";
 import { serializeChartMarkdown } from "./serialize.js";
 import { ChartStore } from "./store.js";
 import type {
@@ -44,7 +45,7 @@ import type {
 
 /**
  * The shared React layer of the chart family. `BarChart`, `LineChart`,
- * `AreaChart`, and `ScatterChart` are thin public wrappers over these
+ * `AreaChart`, and `ScatterPlot` are thin public wrappers over these
  * primitives, mirroring how `dialog/primitive` backs the dialog family and
  * `list/primitive` backs the list family.
  *
@@ -135,9 +136,12 @@ type ChartRootBaseProps = Omit<ComponentProps<"div">, "aria-label" | "aria-label
 		 * never swap a chart that has rendered once for a skeleton.
 		 */
 		pending?: boolean;
-		/** Controlled active datum index (`null` = none). Omit for uncontrolled hover. */
+		/**
+		 * Controlled active datum index — an index into `data` (`null` = none).
+		 * Omit for uncontrolled hover.
+		 */
 		activeIndex?: number | null;
-		/** Notified when hover/keyboard moves the active index. */
+		/** Notified when hover/keyboard moves the active index (an index into `data`). */
 		onActiveIndexChange?: (index: number | null) => void;
 		/** Notified on datum activation: mark click, or Enter/Space on the focused chart. */
 		onDatumActivate?: (event: ChartDatumEvent) => void;
@@ -155,7 +159,7 @@ type ChartRootPrimitiveProps = ChartRootBaseProps &
 		 */
 		xScale?: ContinuousXScale;
 		/**
-		 * Scatter charts only: the row key of each point's depth value. Providing
+		 * Scatter plots only: the row key of each point's depth value. Providing
 		 * it switches the scatter into the 3D projection (drag to rotate).
 		 */
 		zKey?: string;
@@ -174,16 +178,23 @@ type InternalRootProps = ChartRootPrimitiveProps & {
 };
 
 /**
- * Detect the x scale kind from the first row's x value.
+ * Detect the x scale kind from the first row whose x value is present — a
+ * leading null/missing x (a gap row the engine drops anyway) must not
+ * misclassify a numeric or time series as categorical.
  */
 const detectXScale = (data: readonly ChartDatum[], xKey: string): ContinuousXScale => {
-	const firstRow = data[0];
-	const first = firstRow == null ? undefined : datumValue(firstRow, xKey);
-	if (first instanceof Date) {
-		return "time";
-	}
-	if (typeof first === "number") {
-		return "linear";
+	for (const row of data) {
+		const value = datumValue(row, xKey);
+		if (value == null) {
+			continue;
+		}
+		if (value instanceof Date) {
+			return "time";
+		}
+		if (typeof value === "number") {
+			return "linear";
+		}
+		return "point";
 	}
 	return "point";
 };
@@ -255,9 +266,23 @@ const ChartRootPrimitive = ({
 	// evenly-spaced categorical positions misaligned against the value axis.
 	invariant(
 		kind !== "scatter" || data.length === 0 || resolvedXScale !== "point",
-		`${componentName}.Root requires numeric or Date x values — the "${xKey}" values are strings, which have no position on a continuous scatter axis.`,
+		`${componentName}.Root requires numeric or Date x values — the "${xKey}" values are not numbers or dates, so they have no position on a continuous scatter axis.`,
 	);
 	const [yDomainMin, yDomainMax] = yDomain;
+
+	// Date label granularity is a property of the dataset, not the sample: the
+	// midnight point inside an hourly series must keep its time of day, while
+	// all-midnight daily data reads as dates. Computed here (not per formatted
+	// value) and shared by the tooltip, the announcer, and the data table.
+	const xHasTimeOfDay = useMemo(() => {
+		for (const row of data) {
+			const value = datumValue(row, xKey);
+			if (value instanceof Date && hasTimeOfDay(value)) {
+				return true;
+			}
+		}
+		return false;
+	}, [data, xKey]);
 
 	// Engine lifecycle. Child part registrations land in the store first
 	// (child layout effects run before the parent's), so the engine's first
@@ -319,6 +344,15 @@ const ChartRootPrimitive = ({
 	useLayoutEffect(() => {
 		engineRef.current?.setControlledActiveIndex(activeIndex);
 	}, [activeIndex]);
+
+	// Must stay the LAST effect: rows, options, and series registrations from
+	// one commit land in the engine as a single consistent ingest. Ingesting
+	// inline (mid-commit) would validate one render's series specs against the
+	// previous render's rows — swapping `data` and a series `dataKey` together
+	// would fail fast on a key the settled commit does contain.
+	useLayoutEffect(() => {
+		engineRef.current?.flushIngest();
+	});
 
 	return (
 		<div
@@ -425,15 +459,21 @@ const ChartRootPrimitive = ({
 						aria-hidden
 						className="pointer-events-none absolute inset-0 opacity-0"
 					/>
-					<ChartTooltipSurface slotName={slotName} store={store} tooltipRef={tooltipRef} />
+					<ChartTooltipSurface
+						slotName={slotName}
+						store={store}
+						tooltipRef={tooltipRef}
+						xHasTimeOfDay={xHasTimeOfDay}
+					/>
 				</div>
 				{children}
-				<ChartAnnouncer store={store} />
+				<ChartAnnouncer store={store} xHasTimeOfDay={xHasTimeOfDay} />
 				<ChartDataTable
 					data={data}
 					label={ariaLabel}
 					slotName={slotName}
 					store={store}
+					xHasTimeOfDay={xHasTimeOfDay}
 					xKey={xKey}
 					zKey={zKey}
 				/>
@@ -607,10 +647,13 @@ const ChartTooltipSurface = ({
 	slotName,
 	store,
 	tooltipRef,
+	xHasTimeOfDay,
 }: {
 	slotName: string;
 	store: ChartStore;
 	tooltipRef: Ref<HTMLDivElement>;
+	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
+	xHasTimeOfDay: boolean;
 }) => {
 	const snapshot = useStoreSnapshot(store);
 	const config = snapshot.tooltip;
@@ -660,7 +703,7 @@ const ChartTooltipSurface = ({
 				<>
 					<div className="text-muted font-medium">
 						{config?.labelFormat == null
-							? formatXValue(hover.xValue)
+							? formatXValue(hover.xValue, { datasetHasTimeOfDay: xHasTimeOfDay })
 							: config.labelFormat(hover.xValue)}
 					</div>
 					<div className="mt-1 grid gap-1">
@@ -900,7 +943,14 @@ const ChartCopyButtonPrimitive = ({
  * Debounced polite announcements for keyboard stepping, so rapid arrowing
  * doesn't flood the screen-reader queue.
  */
-const ChartAnnouncer = ({ store }: { store: ChartStore }) => {
+const ChartAnnouncer = ({
+	store,
+	xHasTimeOfDay,
+}: {
+	store: ChartStore;
+	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
+	xHasTimeOfDay: boolean;
+}) => {
 	const snapshot = useStoreSnapshot(store);
 	const [announcement, setAnnouncement] = useState("");
 	const hover = snapshot.hover;
@@ -921,10 +971,12 @@ const ChartAnnouncer = ({ store }: { store: ChartStore }) => {
 				? ""
 				: `, z: ${hover.zValue == null ? "no data" : formatNumber(hover.zValue)}`;
 		const timer = setTimeout(() => {
-			setAnnouncement(`${formatXValue(hover.xValue)}. ${values}${zPart}`);
+			setAnnouncement(
+				`${formatXValue(hover.xValue, { datasetHasTimeOfDay: xHasTimeOfDay })}. ${values}${zPart}`,
+			);
 		}, 120);
 		return () => clearTimeout(timer);
-	}, [hover]);
+	}, [hover, xHasTimeOfDay]);
 	return (
 		<span role="status" aria-live="polite" className="sr-only">
 			{announcement}
@@ -943,6 +995,7 @@ const ChartDataTable = ({
 	label,
 	slotName,
 	store,
+	xHasTimeOfDay,
 	xKey,
 	zKey,
 }: {
@@ -951,6 +1004,8 @@ const ChartDataTable = ({
 	label: string | undefined;
 	slotName: string;
 	store: ChartStore;
+	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
+	xHasTimeOfDay: boolean;
 	xKey: string;
 	zKey: string | undefined;
 }) => {
@@ -992,7 +1047,7 @@ const ChartDataTable = ({
 						const isValidDate = x instanceof Date && !Number.isNaN(x.getTime());
 						const xText =
 							typeof x === "string" || typeof x === "number" || x instanceof Date
-								? formatXValue(x)
+								? formatXValue(x, { datasetHasTimeOfDay: xHasTimeOfDay })
 								: String(x);
 						return (
 							// oxlint-disable-next-line react/no-array-index-key -- rows have no identity beyond position; the table is regenerated wholesale on data change, never reordered

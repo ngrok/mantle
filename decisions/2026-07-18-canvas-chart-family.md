@@ -1,8 +1,8 @@
-# Canvas chart family: BarChart, LineChart, AreaChart, ScatterChart
+# Canvas chart family: BarChart, LineChart, AreaChart, ScatterPlot
 
-**Date:** 2026-07-18 (ScatterChart + live-motion engine: 2026-07-19)
+**Date:** 2026-07-18 (ScatterPlot + live-motion engine: 2026-07-19)
 **Status:** Accepted
-**Scope:** `packages/mantle/src/components/{bar-chart,line-chart,area-chart,scatter-chart,chart}`, the `--color-chart-*` design tokens in all four theme files
+**Scope:** `packages/mantle/src/components/{bar-chart,line-chart,area-chart,scatter-plot,chart}`, the `--color-chart-*` design tokens in all four theme files
 
 ## Decision
 
@@ -129,9 +129,9 @@ should wear status tokens explicitly. `chart/tokens.test.ts` pins the
 slot→token mapping in all four theme files — editing a theme file fails the
 build until the new values are re-validated.
 
-## ScatterChart and the live-motion engine (2026-07-19)
+## ScatterPlot and the live-motion engine (2026-07-19)
 
-**ScatterChart** joined the family with two modes on the same engine:
+**ScatterPlot** joined the family with two modes on the same engine:
 
 - **2D**: continuous x AND y; hover hits the nearest point within 24px (never
   a pinpoint target); the tooltip names only the hit point's series (pointer)
@@ -171,6 +171,22 @@ alpha fade state** (liveline's pattern): desired tick sets fade in/out and
 slide with the gliding domain instead of popping, with gridlines sharing the
 label alphas. Per-datum morphs and enter reveals stay fixed-duration cubic;
 `prefers-reduced-motion`/`animate={false}` snap everything, fades included.
+
+**Left-edge scroll mask** (also liveline's pattern, adapted): a sliding
+window hard-clips exiting marks at the plot's left edge while the chasing
+domain opens a pulsing wedge there — the step-like jank live charts showed.
+When an ingest carries the streaming signature (first x advanced, last x
+kept up), marks paint through an offscreen layer that is erased with a
+`destination-out` gradient over a 40px band at the plot's left edge, then
+composited over the grid (erasing on the main canvas would punch out
+gridlines — liveline gets away with that; our grid paints under the marks).
+Activation is automatic (no prop), eases in/out, and retires ~1s after the
+stream idles via a one-shot timer, preserving idle-at-zero-CPU. Reduced
+motion snaps the strength but keeps the mask — a static gradient is not
+motion. Deferred escalation if the wedge ever shows through the fade: a
+paint-only "exit buffer" retaining recently dropped leading rows to fill the
+wedge with real data (interacts with stacking/decimation/hit-testing/the
+sr-only twin, so it stays deferred until proven necessary).
 
 ## Deferred (named, not forgotten)
 

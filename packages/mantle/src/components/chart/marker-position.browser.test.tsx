@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { AreaChart } from "../area-chart/index.js";
 import { BarChart } from "../bar-chart/index.js";
 import { LineChart } from "../line-chart/index.js";
-import { ScatterChart } from "../scatter-chart/index.js";
+import { ScatterPlot } from "../scatter-plot/index.js";
 
 /**
  * Real-browser hover-marker geometry tests: the active-point dots are DOM
@@ -47,7 +47,7 @@ const STYLE = `
 [data-slot="area-chart"],
 [data-slot="bar-chart"],
 [data-slot="line-chart"],
-[data-slot="scatter-chart"] {
+[data-slot="scatter-plot"] {
 	position: relative;
 	display: flex;
 	flex-direction: column;
@@ -263,7 +263,7 @@ describe("hover marker geometry", () => {
 	test("the scatter hover dot mirrors the active series' shape", async () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<ScatterChart.Root
+				<ScatterPlot.Root
 					data={[
 						{ x: 1, y: 10 },
 						{ x: 2, y: 90 },
@@ -272,8 +272,8 @@ describe("hover marker geometry", () => {
 					animate={false}
 					aria-label="Correlation"
 				>
-					<ScatterChart.Point dataKey="y" label="y" shape="square" />
-				</ScatterChart.Root>
+					<ScatterPlot.Point dataKey="y" label="y" shape="square" />
+				</ScatterPlot.Root>
 			</div>,
 		);
 		await assertDatumGeometry(container, "Home", () => {
@@ -318,7 +318,7 @@ describe("hover marker geometry", () => {
 	test("the scatter dot tracks the active point's projected position", async () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<ScatterChart.Root
+				<ScatterPlot.Root
 					data={[
 						{ x: 1, y: 10 },
 						{ x: 2, y: 90 },
@@ -327,13 +327,13 @@ describe("hover marker geometry", () => {
 					animate={false}
 					aria-label="Correlation"
 				>
-					<ScatterChart.Point dataKey="y" label="y" />
-				</ScatterChart.Root>
+					<ScatterPlot.Point dataKey="y" label="y" />
+				</ScatterPlot.Root>
 			</div>,
 		);
 		let first: { x: number; y: number } | null = null;
 		await assertDatumGeometry(container, "Home", () => {
-			const tooltip = container.querySelector('[data-slot="scatter-chart-tooltip"]');
+			const tooltip = container.querySelector('[data-slot="scatter-plot-tooltip"]');
 			expect(tooltip?.textContent).toContain("10");
 			const [dot] = activeDots(container).map(dotPosition);
 			if (dot == null) {
@@ -346,7 +346,7 @@ describe("hover marker geometry", () => {
 			first = dot;
 		});
 		await assertDatumGeometry(container, "End", () => {
-			const tooltip = container.querySelector('[data-slot="scatter-chart-tooltip"]');
+			const tooltip = container.querySelector('[data-slot="scatter-plot-tooltip"]');
 			expect(tooltip?.textContent).toContain("90");
 			const [last] = activeDots(container).map(dotPosition);
 			if (first == null || last == null) {

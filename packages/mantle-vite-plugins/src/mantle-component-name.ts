@@ -59,7 +59,7 @@ export const MANTLE_COMPONENT_NAMES = [
 	"qr-code",
 	"radio-group",
 	"sandboxed-on-click",
-	"scatter-chart",
+	"scatter-plot",
 	"select",
 	"selectable-list",
 	"separator",

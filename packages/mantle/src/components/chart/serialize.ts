@@ -51,7 +51,7 @@ type SerializeChartMarkdownOptions = {
 	xKey: string;
 	/** The registered series in paint order; labels become column headers. */
 	series: readonly Pick<SeriesMeta, "dataKey" | "label">[];
-	/** Scatter charts only: the depth-value key, appended as a final column. */
+	/** Scatter plots only: the depth-value key, appended as a final column. */
 	zKey?: string;
 };
 

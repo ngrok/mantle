@@ -2,10 +2,10 @@
 
 import { render, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { ScatterChart } from "./scatter-chart.js";
+import { ScatterPlot } from "./scatter-plot.js";
 
 /**
- * Real-browser tests for the scatter chart's paint paths — the 3D projection
+ * Real-browser tests for the scatter plot's paint paths — the 3D projection
  * (depth-sorted, camera-rotated) especially needs a real 2d context and real
  * layout. Tokens and structural layout CSS are inlined so the test stays
  * hermetic (mirrors bar-chart.browser.test.tsx).
@@ -34,26 +34,26 @@ const STYLE = `
 	white-space: nowrap;
 	border-width: 0;
 }
-[data-slot="scatter-chart"] {
+[data-slot="scatter-plot"] {
 	display: flex;
 	flex-direction: column;
 	width: 100%;
 	height: 100%;
 }
-[data-slot="scatter-chart-plot"] {
+[data-slot="scatter-plot-plot"] {
 	position: relative;
 	flex: 1;
 	min-height: 0;
 	width: 100%;
 }
-[data-slot="scatter-chart-plot"] > canvas,
-[data-slot="scatter-chart-plot"] > [tabindex] {
+[data-slot="scatter-plot-plot"] > canvas,
+[data-slot="scatter-plot-plot"] > [tabindex] {
 	position: absolute;
 	inset: 0;
 	width: 100%;
 	height: 100%;
 }
-[data-slot="scatter-chart-tooltip"] {
+[data-slot="scatter-plot-tooltip"] {
 	position: absolute;
 	left: 0;
 	top: 0;
@@ -100,19 +100,19 @@ const countOpaquePixels = (canvas: HTMLCanvasElement): number => {
 	return count;
 };
 
-describe("ScatterChart 3D painting", () => {
+describe("ScatterPlot 3D painting", () => {
 	test("paints a depth-sorted point cloud and cube frame", async () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 400 }}>
-				<ScatterChart.Root
+				<ScatterPlot.Root
 					data={points3d}
 					xKey="x"
 					zKey="depth"
 					animate={false}
 					aria-label="3D cloud"
 				>
-					<ScatterChart.Point dataKey="y" label="Cluster" />
-				</ScatterChart.Root>
+					<ScatterPlot.Point dataKey="y" label="Cluster" />
+				</ScatterPlot.Root>
 			</div>,
 		);
 		const canvas = mustBeCanvas(container.querySelector("canvas"));
@@ -124,15 +124,15 @@ describe("ScatterChart 3D painting", () => {
 	test("dragging the overlay rotates the camera and repaints a different frame", async () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 400 }}>
-				<ScatterChart.Root
+				<ScatterPlot.Root
 					data={points3d}
 					xKey="x"
 					zKey="depth"
 					animate={false}
 					aria-label="3D cloud"
 				>
-					<ScatterChart.Point dataKey="y" label="Cluster" />
-				</ScatterChart.Root>
+					<ScatterPlot.Point dataKey="y" label="Cluster" />
+				</ScatterPlot.Root>
 			</div>,
 		);
 		const canvas = mustBeCanvas(container.querySelector("canvas"));

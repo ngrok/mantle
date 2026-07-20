@@ -31,6 +31,23 @@ describe("BarChart.Root", () => {
 		expect(document.querySelector("canvas")).toHaveAttribute("aria-hidden");
 	});
 
+	test("an xKey matching no row throws instead of rendering undefined categories", () => {
+		// Regression: a typo'd xKey used to coerce every category to the literal
+		// string "undefined" — a plausibly-rendered chart that ships the typo.
+		// Loosely-typed rows (API responses) evade the compile-time xKey check,
+		// which is exactly the hole the runtime invariant backstops.
+		const untypedRows: Array<Record<string, unknown>> = data;
+		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<BarChart.Root data={untypedRows} xKey="mnth" aria-label="Typo chart">
+					<BarChart.Bar dataKey="desktop" label="Desktop" />
+				</BarChart.Root>,
+			),
+		).toThrow(/BarChart\.Root xKey "mnth" does not match any key.*month, desktop, mobile/);
+		consoleError.mockRestore();
+	});
+
 	test("forwards className, ref, and data-* props to the root element", () => {
 		const ref = createRef<HTMLDivElement>();
 		const { container } = render(

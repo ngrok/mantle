@@ -512,7 +512,7 @@ const trafficData = [
 
 ## Live data
 
-For live charts, append points to the end of a sliding window and let the chart do the rest. Appends animate the x domain as a continuous glide — the domain exponentially chases its target, so a new point arriving mid-glide just redirects the motion and back-to-back appends never stutter — while the plotted data itself never wobbles: new data must never make old data appear to move. As the window slides, axis tick labels (and the gridlines that share their fade) fade in and out instead of popping between tick sets. `prefers-reduced-motion` snaps everything instantly: no glide, no fades.
+For live charts, append points to the end of a sliding window and let the chart do the rest. Appends animate the x domain as a continuous glide — the domain exponentially chases its target, so a new point arriving mid-glide just redirects the motion and back-to-back appends never stutter — while the plotted data itself never wobbles: new data must never make old data appear to move. As the window slides, axis tick labels (and the gridlines that share their fade) fade in and out instead of popping between tick sets, and the marks dissolve through a fade band at the plot's left edge — a scroll mask — so points exiting the window slide out smoothly instead of being clipped away. The mask activates automatically when the chart detects a sliding window and retires on its own once the stream idles. `prefers-reduced-motion` snaps everything instantly: no glide, no fades.
 
 This demo appends one point every 200ms to a sliding 60-point window. Each point derives from a pure formula over a tick counter and a fixed epoch, so every render is deterministic; a real chart would append measurements as they arrive.
 

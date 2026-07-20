@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { createRef } from "react";
+import { createRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
 import type { ChartDatumEvent } from "./line-chart.js";
@@ -456,6 +456,187 @@ describe("LineChart.Tooltip customization", () => {
 	});
 });
 
+describe("LineChart data + series swaps", () => {
+	test("swapping data and a series dataKey in the same commit does not crash", () => {
+		// Regression: the series re-registration used to trigger an ingest
+		// against the PREVIOUS commit's rows (child effects run before the
+		// parent's), so the dataKey fail-fast threw even though the new data
+		// contains the new key.
+		const memRows = [
+			{ time: new Date("2026-07-18T10:00:00Z"), mem: 61 },
+			{ time: new Date("2026-07-18T10:01:00Z"), mem: 66 },
+		];
+		const cpuRows = [
+			{ time: new Date("2026-07-18T10:00:00Z"), cpu: 12 },
+			{ time: new Date("2026-07-18T10:01:00Z"), cpu: 19 },
+		];
+		const { rerender } = render(
+			<LineChart.Root data={memRows} xKey="time" aria-label="Usage">
+				<LineChart.Line dataKey="mem" label="mem" />
+			</LineChart.Root>,
+		);
+		expect(screen.getByRole("columnheader", { name: "mem" })).toBeInTheDocument();
+		rerender(
+			<LineChart.Root data={cpuRows} xKey="time" aria-label="Usage">
+				<LineChart.Line dataKey="cpu" label="cpu" />
+			</LineChart.Root>,
+		);
+		expect(screen.getByRole("columnheader", { name: "cpu" })).toBeInTheDocument();
+		expect(screen.getByRole("cell", { name: "19" })).toBeInTheDocument();
+	});
+});
+
+describe("LineChart public index space", () => {
+	// The consumer's rows arrive newest-first; the engine sorts ascending
+	// internally, but every public index must address THEIR array.
+	const unsorted = [
+		{ time: new Date("2026-07-18T10:02:00Z"), p50: 333 },
+		{ time: new Date("2026-07-18T10:00:00Z"), p50: 111 },
+		{ time: new Date("2026-07-18T10:01:00Z"), p50: 222 },
+	];
+
+	test("activation and index callbacks report indexes into the consumer's data array", async () => {
+		const user = userEvent.setup();
+		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
+		const onActiveIndexChange = vi.fn<(index: number | null) => void>();
+		render(
+			<LineChart.Root
+				data={unsorted}
+				xKey="time"
+				aria-label="Unsorted latency"
+				onDatumActivate={onDatumActivate}
+				onActiveIndexChange={onActiveIndexChange}
+			>
+				<LineChart.Line dataKey="p50" label="p50" />
+			</LineChart.Root>,
+		);
+		await user.tab();
+		// Home = the earliest timestamp = the consumer's SECOND row.
+		await user.keyboard("{Home}{Enter}");
+		expect(onActiveIndexChange).toHaveBeenCalledWith(1);
+		expect(onDatumActivate).toHaveBeenCalledWith(
+			expect.objectContaining({ index: 1, datum: unsorted[1] }),
+		);
+	});
+
+	test("a controlled activeIndex addresses the consumer's data array for unsorted rows", () => {
+		render(
+			<LineChart.Root data={unsorted} xKey="time" aria-label="Unsorted latency" activeIndex={1}>
+				<LineChart.Line dataKey="p50" label="p50" />
+			</LineChart.Root>,
+		);
+		// data[1] is the 111 row regardless of the engine's internal sort.
+		const tooltip = document.querySelector('[data-slot="line-chart-tooltip"]');
+		expect(tooltip?.textContent).toContain("111");
+		expect(tooltip?.textContent).not.toContain("333");
+	});
+});
+
+describe("LineChart pointer activation", () => {
+	test("a pointer released over the chart activates only when the press began on it", () => {
+		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
+		renderChart({ onDatumActivate });
+		const overlay = screen.getByRole("application");
+		// Down began elsewhere (text selection, a press on the legend): the
+		// release over the plot must not activate.
+		fireEvent.pointerMove(overlay);
+		fireEvent.pointerUp(overlay);
+		expect(onDatumActivate).not.toHaveBeenCalled();
+		// A real press on the overlay still activates.
+		fireEvent.pointerDown(overlay);
+		fireEvent.pointerUp(overlay);
+		expect(onDatumActivate).toHaveBeenCalledTimes(1);
+	});
+
+	test("leaving the plot mid-press cancels activation (drag away to cancel)", () => {
+		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
+		renderChart({ onDatumActivate });
+		const overlay = screen.getByRole("application");
+		fireEvent.pointerDown(overlay);
+		fireEvent.pointerLeave(overlay);
+		fireEvent.pointerUp(overlay);
+		expect(onDatumActivate).not.toHaveBeenCalled();
+	});
+});
+
+describe("LineChart degenerate x data", () => {
+	test("x values that cannot live on the requested scale throw instead of rendering a blank chart", () => {
+		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<LineChart.Root
+					data={[
+						{ time: "1", p50: 1 },
+						{ time: "2", p50: 2 },
+					]}
+					xKey="time"
+					xScale="linear"
+					aria-label="Numeric strings"
+				>
+					<LineChart.Line dataKey="p50" label="p50" />
+				</LineChart.Root>,
+			),
+		).toThrow(/LineChart\.Root could not read any "time" values as numbers/);
+		consoleError.mockRestore();
+	});
+
+	test("an xKey matching no row throws with the available keys", () => {
+		// Loosely-typed rows (API responses) evade the compile-time xKey check,
+		// which is exactly the hole the runtime invariant backstops.
+		const untypedRows: Array<Record<string, unknown>> = data;
+		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<LineChart.Root data={untypedRows} xKey="tme" xScale="time" aria-label="Typo chart">
+					<LineChart.Line dataKey="p50" label="p50" />
+				</LineChart.Root>,
+			),
+		).toThrow(/LineChart\.Root xKey "tme" does not match any key.*time, p50, p99/);
+		consoleError.mockRestore();
+	});
+
+	test("an Infinity value renders as a gap instead of blanking the chart", async () => {
+		const user = userEvent.setup();
+		render(
+			<LineChart.Root
+				data={[
+					{ time: new Date("2026-07-18T10:00:00Z"), p50: 120 },
+					{ time: new Date("2026-07-18T10:01:00Z"), p50: Number.POSITIVE_INFINITY },
+				]}
+				xKey="time"
+				aria-label="Rate"
+			>
+				<LineChart.Line dataKey="p50" label="p50" />
+			</LineChart.Root>,
+		);
+		await user.tab();
+		await user.keyboard("{End}");
+		const tooltip = document.querySelector('[data-slot="line-chart-tooltip"]');
+		expect(tooltip?.textContent).toContain("—");
+		await user.keyboard("{Home}");
+		expect(tooltip?.textContent).toContain("120");
+	});
+});
+
+describe("LineChart date label granularity", () => {
+	test("the midnight sample in an hourly series keeps its time of day", () => {
+		// Granularity is a dataset property: the local-midnight sample inside an
+		// hourly series must not collapse to a bare date while its neighbors
+		// carry times. Local-time constructors keep this TZ-agnostic.
+		const hourly = [
+			{ time: new Date(2026, 6, 17, 23, 0), p50: 1 },
+			{ time: new Date(2026, 6, 18, 0, 0), p50: 2 },
+		];
+		render(
+			<LineChart.Root data={hourly} xKey="time" aria-label="Hourly latency">
+				<LineChart.Line dataKey="p50" label="p50" />
+			</LineChart.Root>,
+		);
+		const rowHeaders = screen.getAllByRole("rowheader");
+		expect(rowHeaders[1]?.textContent).toMatch(/12:00\sAM/);
+	});
+});
+
 describe("LineChart controlled activeIndex", () => {
 	test("a controlled activeIndex drives the tooltip readout", () => {
 		render(
@@ -475,6 +656,51 @@ describe("LineChart controlled activeIndex", () => {
 			</LineChart.Root>,
 		);
 		const tooltip = document.querySelector('[data-slot="line-chart-tooltip"]');
+		expect(tooltip?.textContent).toBe("");
+	});
+
+	test("keyboard stepping on a controlled chart still announces politely", async () => {
+		// Regression: the controlled echo used to republish with a
+		// pointer-flavored snapshot, silencing the aria-live announcer.
+		const ControlledChart = () => {
+			const [active, setActive] = useState<number | null>(null);
+			return (
+				<LineChart.Root
+					data={data}
+					xKey="time"
+					aria-label="Controlled latency"
+					activeIndex={active}
+					onActiveIndexChange={setActive}
+				>
+					<LineChart.Line dataKey="p50" label="p50" />
+				</LineChart.Root>
+			);
+		};
+		const user = userEvent.setup();
+		render(<ControlledChart />);
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		const status = await screen.findByRole("status");
+		await vi.waitFor(() => {
+			expect(status.textContent).toContain("p50: 120");
+		});
+	});
+
+	test("removing the activeIndex prop clears the readout instead of freezing it", () => {
+		// Regression: leaving controlled mode used to resurrect the stale
+		// pre-controlled index while the tooltip kept the controlled snapshot.
+		const { rerender } = render(
+			<LineChart.Root data={data} xKey="time" aria-label="Request latency" activeIndex={1}>
+				<LineChart.Line dataKey="p50" label="p50" />
+			</LineChart.Root>,
+		);
+		const tooltip = document.querySelector('[data-slot="line-chart-tooltip"]');
+		expect(tooltip?.textContent).toContain("132");
+		rerender(
+			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
+				<LineChart.Line dataKey="p50" label="p50" />
+			</LineChart.Root>,
+		);
 		expect(tooltip?.textContent).toBe("");
 	});
 });

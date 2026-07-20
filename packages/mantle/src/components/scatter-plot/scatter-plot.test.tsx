@@ -3,8 +3,8 @@ import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
-import type { ChartDatumEvent } from "./scatter-chart.js";
-import { ScatterChart } from "./scatter-chart.js";
+import type { ChartDatumEvent } from "./scatter-plot.js";
+import { ScatterPlot } from "./scatter-plot.js";
 
 // Scatter rows are individual points: most rows populate only one of the two
 // series, which is the shape the scatter snapshot filtering exists for. Keep
@@ -24,37 +24,32 @@ const data3d = [
 
 const renderChart = (extraRootProps: Record<string, unknown> = {}) =>
 	render(
-		<ScatterChart.Root
-			data={data}
-			xKey="latency"
-			aria-label="Latency by region"
-			{...extraRootProps}
-		>
-			<ScatterChart.Grid />
-			<ScatterChart.XAxis />
-			<ScatterChart.YAxis />
-			<ScatterChart.Point dataKey="regionA" label="Region A" />
-			<ScatterChart.Point dataKey="regionB" label="Region B" />
-			<ScatterChart.Tooltip />
-			<ScatterChart.Legend />
-		</ScatterChart.Root>,
+		<ScatterPlot.Root data={data} xKey="latency" aria-label="Latency by region" {...extraRootProps}>
+			<ScatterPlot.Grid />
+			<ScatterPlot.XAxis />
+			<ScatterPlot.YAxis />
+			<ScatterPlot.Point dataKey="regionA" label="Region A" />
+			<ScatterPlot.Point dataKey="regionB" label="Region B" />
+			<ScatterPlot.Tooltip />
+			<ScatterPlot.Legend />
+		</ScatterPlot.Root>,
 	);
 
 const render3dChart = () =>
 	render(
-		<ScatterChart.Root
+		<ScatterPlot.Root
 			data={data3d}
 			xKey="latency"
 			zKey="depth"
 			aria-label="Latency by region and depth"
 		>
-			<ScatterChart.Point dataKey="regionA" label="Region A" />
-			<ScatterChart.Point dataKey="regionB" label="Region B" />
-			<ScatterChart.Tooltip />
-		</ScatterChart.Root>,
+			<ScatterPlot.Point dataKey="regionA" label="Region A" />
+			<ScatterPlot.Point dataKey="regionB" label="Region B" />
+			<ScatterPlot.Tooltip />
+		</ScatterPlot.Root>,
 	);
 
-describe("ScatterChart.Root", () => {
+describe("ScatterPlot.Root", () => {
 	test("renders a labelled interaction overlay and an aria-hidden canvas", () => {
 		renderChart();
 		expect(screen.getByRole("application", { name: "Latency by region" })).toBeInTheDocument();
@@ -65,7 +60,7 @@ describe("ScatterChart.Root", () => {
 	test("forwards className, ref, and data-* props to the root element", () => {
 		const ref = createRef<HTMLDivElement>();
 		const { container } = render(
-			<ScatterChart.Root
+			<ScatterPlot.Root
 				data={data}
 				xKey="latency"
 				aria-label="Latency by region"
@@ -73,10 +68,10 @@ describe("ScatterChart.Root", () => {
 				data-testid="chart-root"
 				ref={ref}
 			>
-				<ScatterChart.Point dataKey="regionA" label="Region A" />
-			</ScatterChart.Root>,
+				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+			</ScatterPlot.Root>,
 		);
-		const root = container.querySelector('[data-slot="scatter-chart"]');
+		const root = container.querySelector('[data-slot="scatter-plot"]');
 		expect(root).toBeInTheDocument();
 		expect(ref.current).toBe(root);
 		expect(root?.className).toContain("custom-class");
@@ -102,9 +97,9 @@ describe("ScatterChart.Root", () => {
 			regionA: index * 2,
 		}));
 		render(
-			<ScatterChart.Root data={bigData} xKey="latency" aria-label="Large chart">
-				<ScatterChart.Point dataKey="regionA" label="Region A" />
-			</ScatterChart.Root>,
+			<ScatterPlot.Root data={bigData} xKey="latency" aria-label="Large chart">
+				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+			</ScatterPlot.Root>,
 		);
 		expect(screen.getByRole("table")).toBeInTheDocument();
 		expect(screen.getAllByRole("row")).toHaveLength(151); // header + 150 bounded rows
@@ -113,9 +108,9 @@ describe("ScatterChart.Root", () => {
 
 	test("empty data renders without crashing and without a table", () => {
 		render(
-			<ScatterChart.Root data={[]} xKey="latency" aria-label="Empty chart">
-				<ScatterChart.Point dataKey="regionA" label="Region A" />
-			</ScatterChart.Root>,
+			<ScatterPlot.Root data={[]} xKey="latency" aria-label="Empty chart">
+				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+			</ScatterPlot.Root>,
 		);
 		expect(screen.getByRole("application", { name: "Empty chart" })).toBeInTheDocument();
 		expect(screen.queryByRole("table")).not.toBeInTheDocument();
@@ -125,45 +120,61 @@ describe("ScatterChart.Root", () => {
 		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>
 			render(
-				<ScatterChart.Root data={data} xKey="latency" aria-label="Typo chart">
-					<ScatterChart.Point dataKey="regionsA" label="Region A" />
-				</ScatterChart.Root>,
+				<ScatterPlot.Root data={data} xKey="latency" aria-label="Typo chart">
+					<ScatterPlot.Point dataKey="regionsA" label="Region A" />
+				</ScatterPlot.Root>,
 			),
 		).toThrow(
-			/ScatterChart\.Point dataKey "regionsA" does not match any key.*latency, regionA, regionB/,
+			/ScatterPlot\.Point dataKey "regionsA" does not match any key.*latency, regionA, regionB/,
 		);
 		consoleError.mockRestore();
 	});
+
+	test("a leading null x row does not misclassify the scale or crash", () => {
+		// Regression: scale detection read only data[0], so one null x in the
+		// first row classified a numeric series as categorical and tripped the
+		// scatter continuous-axis invariant.
+		render(
+			<ScatterPlot.Root
+				data={[{ latency: null, regionA: 100 }, ...data]}
+				xKey="latency"
+				aria-label="Gappy scatter"
+			>
+				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+			</ScatterPlot.Root>,
+		);
+		expect(screen.getByRole("application", { name: "Gappy scatter" })).toBeInTheDocument();
+	});
 });
 
-describe("ScatterChart parts outside Root", () => {
+describe("ScatterPlot parts outside Root", () => {
 	test("a part rendered outside Root throws", () => {
 		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-		expect(() => render(<ScatterChart.Point dataKey="regionA" />)).toThrow(
-			/ScatterChart\.Point must be composed inside ScatterChart\.Root/,
+		expect(() => render(<ScatterPlot.Point dataKey="regionA" />)).toThrow(
+			/ScatterPlot\.Point must be composed inside ScatterPlot\.Root/,
 		);
 		consoleError.mockRestore();
 	});
 });
 
-describe("ScatterChart cross-family composition", () => {
-	test("a BarChart.Bar composed inside ScatterChart.Root throws", () => {
+describe("ScatterPlot cross-family composition", () => {
+	test("a BarChart.Bar composed inside ScatterPlot.Root throws", () => {
 		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>
 			render(
-				<ScatterChart.Root data={data} xKey="latency" aria-label="Cross-family chart">
+				<ScatterPlot.Root data={data} xKey="latency" aria-label="Cross-family chart">
 					<BarChart.Bar dataKey="regionA" label="Region A" />
-				</ScatterChart.Root>,
+				</ScatterPlot.Root>,
 			),
-		).toThrow(/BarChart\.Bar cannot be composed inside ScatterChart\.Root/);
+		).toThrow(/BarChart\.Bar cannot be composed inside ScatterPlot\.Root/);
 		consoleError.mockRestore();
 	});
 });
 
-describe("ScatterChart.Legend", () => {
+describe("ScatterPlot.Legend", () => {
 	test("renders series labels with color keys for multi-series charts", () => {
 		const { container } = renderChart();
-		const legend = container.querySelector('[data-slot="scatter-chart-legend"]');
+		const legend = container.querySelector('[data-slot="scatter-plot-legend"]');
 		expect(legend).toBeInTheDocument();
 		expect(legend?.textContent).toContain("Region A");
 		expect(legend?.textContent).toContain("Region B");
@@ -171,23 +182,23 @@ describe("ScatterChart.Legend", () => {
 
 	test("renders nothing for a single series (the title already names it)", () => {
 		const { container } = render(
-			<ScatterChart.Root data={data} xKey="latency" aria-label="Region A latency">
-				<ScatterChart.Point dataKey="regionA" label="Region A" />
-				<ScatterChart.Legend />
-			</ScatterChart.Root>,
+			<ScatterPlot.Root data={data} xKey="latency" aria-label="Region A latency">
+				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Legend />
+			</ScatterPlot.Root>,
 		);
-		expect(container.querySelector('[data-slot="scatter-chart-legend"]')).not.toBeInTheDocument();
+		expect(container.querySelector('[data-slot="scatter-plot-legend"]')).not.toBeInTheDocument();
 	});
 
 	test("legend keys mirror each series' configured point shape", () => {
 		const { container } = render(
-			<ScatterChart.Root data={data} xKey="latency" aria-label="Latency by region">
-				<ScatterChart.Point dataKey="regionA" label="Region A" shape="triangle" />
-				<ScatterChart.Point dataKey="regionB" label="Region B" />
-				<ScatterChart.Legend />
-			</ScatterChart.Root>,
+			<ScatterPlot.Root data={data} xKey="latency" aria-label="Latency by region">
+				<ScatterPlot.Point dataKey="regionA" label="Region A" shape="triangle" />
+				<ScatterPlot.Point dataKey="regionB" label="Region B" />
+				<ScatterPlot.Legend />
+			</ScatterPlot.Root>,
 		);
-		const legend = container.querySelector('[data-slot="scatter-chart-legend"]');
+		const legend = container.querySelector('[data-slot="scatter-plot-legend"]');
 		const swatches = legend == null ? [] : [...legend.querySelectorAll("span[data-shape]")];
 		expect(swatches.map((swatch) => swatch.getAttribute("data-shape"))).toEqual([
 			"triangle",
@@ -197,20 +208,20 @@ describe("ScatterChart.Legend", () => {
 
 	test("supports a render-prop for custom legends", () => {
 		render(
-			<ScatterChart.Root data={data} xKey="latency" aria-label="Latency by region">
-				<ScatterChart.Point dataKey="regionA" label="Region A" />
-				<ScatterChart.Point dataKey="regionB" label="Region B" />
-				<ScatterChart.Legend>
+			<ScatterPlot.Root data={data} xKey="latency" aria-label="Latency by region">
+				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Point dataKey="regionB" label="Region B" />
+				<ScatterPlot.Legend>
 					{(series) => series.map((entry) => <span key={entry.dataKey}>custom {entry.label}</span>)}
-				</ScatterChart.Legend>
-			</ScatterChart.Root>,
+				</ScatterPlot.Legend>
+			</ScatterPlot.Root>,
 		);
 		expect(screen.getByText("custom Region A")).toBeInTheDocument();
 		expect(screen.getByText("custom Region B")).toBeInTheDocument();
 	});
 });
 
-describe("ScatterChart keyboard interaction", () => {
+describe("ScatterPlot keyboard interaction", () => {
 	test("arrow keys step the active datum and render the tooltip readout", async () => {
 		const user = userEvent.setup();
 		renderChart();
@@ -219,7 +230,7 @@ describe("ScatterChart keyboard interaction", () => {
 		expect(overlay).toHaveFocus();
 		await user.keyboard("{ArrowRight}");
 		// The tooltip readout shows the first datum: its x value and its point.
-		const tooltip = document.querySelector('[data-slot="scatter-chart-tooltip"]');
+		const tooltip = document.querySelector('[data-slot="scatter-plot-tooltip"]');
 		expect(tooltip?.textContent).toContain("12");
 		expect(tooltip?.textContent).toContain("Region A");
 		expect(tooltip?.textContent).toContain("840");
@@ -239,7 +250,7 @@ describe("ScatterChart keyboard interaction", () => {
 		renderChart();
 		await user.tab();
 		await user.keyboard("{ArrowRight}");
-		const tooltip = document.querySelector('[data-slot="scatter-chart-tooltip"]');
+		const tooltip = document.querySelector('[data-slot="scatter-plot-tooltip"]');
 		expect(tooltip?.textContent).toContain("Region A");
 		expect(tooltip?.textContent).toContain("840");
 		expect(tooltip?.textContent).not.toContain("Region B");
@@ -264,7 +275,7 @@ describe("ScatterChart keyboard interaction", () => {
 		renderChart();
 		await user.tab();
 		await user.keyboard("{ArrowRight}");
-		const tooltip = document.querySelector('[data-slot="scatter-chart-tooltip"]');
+		const tooltip = document.querySelector('[data-slot="scatter-plot-tooltip"]');
 		expect(tooltip?.textContent).toContain("840");
 		await user.keyboard("{Escape}");
 		expect(tooltip?.textContent).toBe("");
@@ -300,22 +311,22 @@ describe("ScatterChart keyboard interaction", () => {
 	});
 });
 
-describe("ScatterChart.Tooltip customization", () => {
+describe("ScatterPlot.Tooltip customization", () => {
 	test("valueFormat, labelFormat, and footer customize the readout", async () => {
 		const user = userEvent.setup();
 		render(
-			<ScatterChart.Root data={data} xKey="latency" aria-label="Latency by region">
-				<ScatterChart.Point dataKey="regionA" label="Region A" />
-				<ScatterChart.Tooltip
+			<ScatterPlot.Root data={data} xKey="latency" aria-label="Latency by region">
+				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Tooltip
 					labelFormat={(value) => `Latency: ${String(value)}ms`}
 					valueFormat={(value) => `${value} rps`}
 					footer="Click to view logs"
 				/>
-			</ScatterChart.Root>,
+			</ScatterPlot.Root>,
 		);
 		await user.tab();
 		await user.keyboard("{ArrowRight}");
-		const tooltip = document.querySelector('[data-slot="scatter-chart-tooltip"]');
+		const tooltip = document.querySelector('[data-slot="scatter-plot-tooltip"]');
 		expect(tooltip?.textContent).toContain("Latency: 12ms");
 		expect(tooltip?.textContent).toContain("840 rps");
 		expect(tooltip?.textContent).toContain("Click to view logs");
@@ -324,12 +335,12 @@ describe("ScatterChart.Tooltip customization", () => {
 	test("the render-prop children replaces the readout entirely", async () => {
 		const user = userEvent.setup();
 		render(
-			<ScatterChart.Root data={data} xKey="latency" aria-label="Latency by region">
-				<ScatterChart.Point dataKey="regionA" label="Region A" />
-				<ScatterChart.Tooltip>
+			<ScatterPlot.Root data={data} xKey="latency" aria-label="Latency by region">
+				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Tooltip>
 					{(snapshot) => <strong>Custom readout for {String(snapshot.xValue)}</strong>}
-				</ScatterChart.Tooltip>
-			</ScatterChart.Root>,
+				</ScatterPlot.Tooltip>
+			</ScatterPlot.Root>,
 		);
 		await user.tab();
 		await user.keyboard("{ArrowRight}");
@@ -337,15 +348,15 @@ describe("ScatterChart.Tooltip customization", () => {
 	});
 });
 
-describe("ScatterChart controlled activeIndex", () => {
+describe("ScatterPlot controlled activeIndex", () => {
 	test("a controlled activeIndex drives the tooltip readout with the row's populated series", () => {
 		render(
-			<ScatterChart.Root data={data} xKey="latency" aria-label="Latency by region" activeIndex={1}>
-				<ScatterChart.Point dataKey="regionA" label="Region A" />
-				<ScatterChart.Point dataKey="regionB" label="Region B" />
-			</ScatterChart.Root>,
+			<ScatterPlot.Root data={data} xKey="latency" aria-label="Latency by region" activeIndex={1}>
+				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Point dataKey="regionB" label="Region B" />
+			</ScatterPlot.Root>,
 		);
-		const tooltip = document.querySelector('[data-slot="scatter-chart-tooltip"]');
+		const tooltip = document.querySelector('[data-slot="scatter-plot-tooltip"]');
 		expect(tooltip?.textContent).toContain("28");
 		expect(tooltip?.textContent).toContain("Region B");
 		expect(tooltip?.textContent).toContain("590");
@@ -354,47 +365,47 @@ describe("ScatterChart controlled activeIndex", () => {
 
 	test("an out-of-range controlled activeIndex clamps to the data instead of rendering garbage", () => {
 		render(
-			<ScatterChart.Root data={data} xKey="latency" aria-label="Latency by region" activeIndex={99}>
-				<ScatterChart.Point dataKey="regionA" label="Region A" />
-				<ScatterChart.Point dataKey="regionB" label="Region B" />
-			</ScatterChart.Root>,
+			<ScatterPlot.Root data={data} xKey="latency" aria-label="Latency by region" activeIndex={99}>
+				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Point dataKey="regionB" label="Region B" />
+			</ScatterPlot.Root>,
 		);
-		const tooltip = document.querySelector('[data-slot="scatter-chart-tooltip"]');
+		const tooltip = document.querySelector('[data-slot="scatter-plot-tooltip"]');
 		expect(tooltip?.textContent).toContain("45");
 		expect(tooltip?.textContent).toContain("340");
 	});
 
 	test("activeIndex null renders no readout", () => {
 		render(
-			<ScatterChart.Root
+			<ScatterPlot.Root
 				data={data}
 				xKey="latency"
 				aria-label="Latency by region"
 				activeIndex={null}
 			>
-				<ScatterChart.Point dataKey="regionA" label="Region A" />
-			</ScatterChart.Root>,
+				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+			</ScatterPlot.Root>,
 		);
-		const tooltip = document.querySelector('[data-slot="scatter-chart-tooltip"]');
+		const tooltip = document.querySelector('[data-slot="scatter-plot-tooltip"]');
 		expect(tooltip?.textContent).toBe("");
 	});
 });
 
-describe("ScatterChart sticky series colors", () => {
+describe("ScatterPlot sticky series colors", () => {
 	test("filtering a series out does not recolor the survivors", () => {
 		const filterableData = [
 			{ latency: 12, alpha: 840, beta: 720, gamma: 500 },
 			{ latency: 28, alpha: 610, beta: 590, gamma: 480 },
 		];
 		const { container, rerender } = render(
-			<ScatterChart.Root data={filterableData} xKey="latency" aria-label="Latency by region">
-				<ScatterChart.Point dataKey="alpha" label="Alpha" />
-				<ScatterChart.Point dataKey="beta" label="Beta" />
-				<ScatterChart.Legend />
-			</ScatterChart.Root>,
+			<ScatterPlot.Root data={filterableData} xKey="latency" aria-label="Latency by region">
+				<ScatterPlot.Point dataKey="alpha" label="Alpha" />
+				<ScatterPlot.Point dataKey="beta" label="Beta" />
+				<ScatterPlot.Legend />
+			</ScatterPlot.Root>,
 		);
 		const swatchColors = () => {
-			const legend = container.querySelector('[data-slot="scatter-chart-legend"]');
+			const legend = container.querySelector('[data-slot="scatter-plot-legend"]');
 			const items = legend == null ? [] : [...legend.querySelectorAll("span")];
 			return items.map((item) => item.style.backgroundColor);
 		};
@@ -404,11 +415,11 @@ describe("ScatterChart sticky series colors", () => {
 		// (color follows the entity, never its position) and the newcomer claims
 		// the next never-used slot.
 		rerender(
-			<ScatterChart.Root data={filterableData} xKey="latency" aria-label="Latency by region">
-				<ScatterChart.Point dataKey="beta" label="Beta" />
-				<ScatterChart.Point dataKey="gamma" label="Gamma" />
-				<ScatterChart.Legend />
-			</ScatterChart.Root>,
+			<ScatterPlot.Root data={filterableData} xKey="latency" aria-label="Latency by region">
+				<ScatterPlot.Point dataKey="beta" label="Beta" />
+				<ScatterPlot.Point dataKey="gamma" label="Gamma" />
+				<ScatterPlot.Legend />
+			</ScatterPlot.Root>,
 		);
 		const [betaAfter, gammaAfter] = swatchColors();
 		expect(betaAfter).toBe(betaBefore);
@@ -416,7 +427,7 @@ describe("ScatterChart sticky series colors", () => {
 	});
 });
 
-describe("ScatterChart 3D depth (zKey)", () => {
+describe("ScatterPlot 3D depth (zKey)", () => {
 	test("keyboard stepping announces the depth value", async () => {
 		const user = userEvent.setup();
 		render3dChart();
@@ -432,17 +443,17 @@ describe("ScatterChart 3D depth (zKey)", () => {
 	test("the hover snapshot carries the depth value for custom readouts", async () => {
 		const user = userEvent.setup();
 		render(
-			<ScatterChart.Root
+			<ScatterPlot.Root
 				data={data3d}
 				xKey="latency"
 				zKey="depth"
 				aria-label="Latency by region and depth"
 			>
-				<ScatterChart.Point dataKey="regionA" label="Region A" />
-				<ScatterChart.Tooltip>
+				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Tooltip>
 					{(snapshot) => <strong>depth {String(snapshot.zValue)}</strong>}
-				</ScatterChart.Tooltip>
-			</ScatterChart.Root>,
+				</ScatterPlot.Tooltip>
+			</ScatterPlot.Root>,
 		);
 		await user.tab();
 		await user.keyboard("{ArrowRight}");

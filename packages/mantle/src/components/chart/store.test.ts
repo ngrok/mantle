@@ -88,6 +88,73 @@ describe("ChartStore color slots", () => {
 		expect(meta[0]?.color).toBe("var(--color-chart-1)");
 		expect(meta[1]?.color).toBe("var(--color-chart-2)");
 	});
+
+	test("a pin registering after its token was auto-claimed evicts the auto-assignment", () => {
+		// Regression: "a" auto-claimed chart-1 first, so "b" pinning chart-1
+		// painted both series the identical color — the pin must win its token
+		// regardless of registration order.
+		const store = new ChartStore();
+		store.registerSeries(makeSeries("a"));
+		store.registerSeries(makeSeries("b", { color: "chart-1" }));
+		const meta = store.getSnapshot().series;
+		expect(meta.find((series) => series.dataKey === "b")?.color).toBe("var(--color-chart-1)");
+		expect(meta.find((series) => series.dataKey === "a")?.color).toBe("var(--color-chart-2)");
+		expect(new Set(meta.map((series) => series.color)).size).toBe(meta.length);
+	});
+
+	test("re-registering the same pinned series does not churn the evicted slot", () => {
+		// Effect re-runs re-register an equal spec (cleanup, then register);
+		// eviction must be idempotent or the neighbor's color would keep
+		// drifting one slot per render.
+		const store = new ChartStore();
+		store.registerSeries(makeSeries("a"));
+		const unregisterB = store.registerSeries(makeSeries("b", { color: "chart-1" }));
+		unregisterB();
+		store.registerSeries(makeSeries("b", { color: "chart-1" }));
+		const meta = store.seriesMeta();
+		expect(meta.find((series) => series.dataKey === "a")?.color).toBe("var(--color-chart-2)");
+		expect(meta.find((series) => series.dataKey === "b")?.color).toBe("var(--color-chart-1)");
+	});
+
+	test("a pin evicts a sticky auto slot even while its holder is unmounted", () => {
+		// Slots survive unmount, so a returning "a" would otherwise come back
+		// wearing the color "b" pinned in the meantime.
+		const store = new ChartStore();
+		const unregisterA = store.registerSeries(makeSeries("a"));
+		unregisterA();
+		store.registerSeries(makeSeries("b", { color: "chart-1" }));
+		store.registerSeries(makeSeries("a"));
+		const meta = store.seriesMeta();
+		expect(meta.find((series) => series.dataKey === "a")?.color).toBe("var(--color-chart-2)");
+		expect(meta.find((series) => series.dataKey === "b")?.color).toBe("var(--color-chart-1)");
+	});
+
+	test("two series explicitly pinning the same token are left alone", () => {
+		// A pinned-vs-pinned collision is the consumer's explicit choice — the
+		// store never second-guesses it.
+		const store = new ChartStore();
+		store.registerSeries(makeSeries("a", { color: "chart-1" }));
+		store.registerSeries(makeSeries("b", { color: "chart-1" }));
+		const meta = store.seriesMeta();
+		expect(meta[0]?.color).toBe("var(--color-chart-1)");
+		expect(meta[1]?.color).toBe("var(--color-chart-1)");
+	});
+
+	test("a pin never evicts a holder that itself pins the same token", () => {
+		// "a" auto-claimed chart-1, then re-registered pinning it explicitly.
+		// "b" pinning chart-1 is now pinned-vs-pinned: "a" must keep its slot,
+		// and no eviction may burn the next free slot — "c" still gets chart-2.
+		const store = new ChartStore();
+		const unregisterA = store.registerSeries(makeSeries("a"));
+		unregisterA();
+		store.registerSeries(makeSeries("a", { color: "chart-1" }));
+		store.registerSeries(makeSeries("b", { color: "chart-1" }));
+		store.registerSeries(makeSeries("c"));
+		const meta = store.seriesMeta();
+		expect(meta.find((series) => series.dataKey === "a")?.color).toBe("var(--color-chart-1)");
+		expect(meta.find((series) => series.dataKey === "b")?.color).toBe("var(--color-chart-1)");
+		expect(meta.find((series) => series.dataKey === "c")?.color).toBe("var(--color-chart-2)");
+	});
 });
 
 describe("ChartStore registrations", () => {

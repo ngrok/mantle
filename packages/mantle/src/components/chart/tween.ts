@@ -174,19 +174,38 @@ class ChaseTween {
 		this.#active = false;
 	}
 
-	/** Aim the chase at a new target; the glide continues from wherever it is. */
+	/**
+	 * Aim the chase at a new target; the glide continues from wherever it is.
+	 * Re-aiming the current target is a no-op: an in-flight glide keeps its
+	 * original journey bookkeeping and a settled chase stays settled.
+	 */
 	aim(target: ArrayLike<number>, now: number): void {
 		if (this.#current.length !== target.length) {
 			this.jump(target);
 			return;
 		}
+		// Live charts re-aim an unchanged domain on every data ingest. Restarting
+		// the journey bookkeeping for an identical target would ratchet the snap
+		// threshold down to the shrinking remaining distance until it fell below
+		// float rounding and the chase could never settle — so bail out before
+		// touching any state. Exact equality is correct here: an unchanged target
+		// is recomputed by the same deterministic code from the same data.
 		let changed = false;
+		for (let index = 0; index < target.length; index++) {
+			const value = target[index] ?? Number.NaN;
+			const previous = this.#target[index] ?? Number.NaN;
+			const bothGaps = Number.isNaN(previous) && Number.isNaN(value);
+			if (previous !== value && !bothGaps) {
+				changed = true;
+				break;
+			}
+		}
+		if (!changed) {
+			return;
+		}
 		let journey = 0;
 		for (let index = 0; index < target.length; index++) {
 			const value = target[index] ?? Number.NaN;
-			if (this.#target[index] !== value) {
-				changed = true;
-			}
 			this.#target[index] = value;
 			const distance = Math.abs(value - (this.#current[index] ?? Number.NaN));
 			if (Number.isFinite(distance) && distance > journey) {
@@ -197,7 +216,7 @@ class ChaseTween {
 		// targets' absolute magnitude, which would make epoch-millisecond time
 		// domains snap instantly and all-zero targets never settle.
 		this.#journey = journey;
-		if (changed && !this.#active) {
+		if (!this.#active) {
 			this.#active = true;
 			this.#lastTime = now;
 		}
@@ -206,7 +225,10 @@ class ChaseTween {
 	/**
 	 * Advance toward the target. Returns `true` while more frames are needed.
 	 * The snap threshold is relative to the current glide's length so domains
-	 * of any magnitude terminate — and actually glide.
+	 * of any magnitude terminate — and actually glide. A component whose
+	 * remaining delta is too small for the step to make representable float
+	 * progress snaps to the target, so rounding can never wedge the chase into
+	 * ticking forever.
 	 */
 	tick(now: number): boolean {
 		if (!this.#active) {
@@ -226,7 +248,14 @@ class ChaseTween {
 				continue;
 			}
 			const next = current + (target - current) * factor;
-			if (Math.abs(target - next) <= snapDistance) {
+			// `next === current` with a positive factor means the remaining delta
+			// is below the value's float resolution — no future frame can advance
+			// it, so treat it as arrived. Skip factor 0 (two ticks sharing a
+			// timestamp): that's "no time passed", not a stall, and snapping there
+			// would teleport a live glide. This only ever makes the snap more
+			// forgiving — it fires solely where the glide is already pixel-frozen.
+			const stalled = factor > 0 && next === current;
+			if (stalled || Math.abs(target - next) <= snapDistance) {
 				this.#current[index] = target;
 			} else {
 				this.#current[index] = next;
