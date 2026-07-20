@@ -93,7 +93,6 @@ function WindowedItem({
 
 	return <ListItemContext.Provider value={value}>{children}</ListItemContext.Provider>;
 }
-WindowedItem.displayName = "ListPrimitiveWindowedItem";
 
 /**
  * The windowed counterpart to `Root`: renders only the visible slice of its
@@ -282,7 +281,6 @@ const VirtualRoot = ({
 		</ListShell>
 	);
 };
-VirtualRoot.displayName = "ListPrimitiveVirtualRoot";
 
 export {
 	//,

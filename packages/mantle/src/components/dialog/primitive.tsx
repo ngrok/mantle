@@ -37,16 +37,12 @@ function Root(props: ComponentPropsWithoutRef<typeof DialogPrimitive.Root>) {
 		</InternalDialogContext.Provider>
 	);
 }
-Root.displayName = "DialogPrimitiveRoot";
 
 const Trigger = DialogPrimitive.Trigger;
-Trigger.displayName = "DialogPrimitiveTrigger";
 
 const Portal = DialogPrimitive.Portal;
-Portal.displayName = "DialogPrimitivePortal";
 
 const Close = DialogPrimitive.Close;
-Close.displayName = "DialogPrimitiveClose";
 
 const Overlay = (props: ComponentProps<typeof DialogPrimitive.Overlay>) => (
 	<DialogPrimitive.Overlay
@@ -58,7 +54,6 @@ const Overlay = (props: ComponentProps<typeof DialogPrimitive.Overlay>) => (
 		{...props}
 	/>
 );
-Overlay.displayName = "DialogPrimitiveOverlay";
 
 const Content = ({
 	onEscapeKeyDown,
@@ -90,7 +85,6 @@ const Content = ({
 		/>
 	);
 };
-Content.displayName = "DialogPrimitiveContent";
 
 const Title = DialogPrimitive.Title;
 
@@ -122,7 +116,6 @@ const Description = ({
 		</DialogPrimitive.Description>
 	);
 };
-Description.displayName = "DialogPrimitiveDescription";
 
 /**
  * Type guard to check if the event target is the overlay component

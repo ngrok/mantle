@@ -35,7 +35,6 @@ const Root = ({
 }: ComponentProps<typeof HoverCardPrimitive.Root>) => (
 	<HoverCardPrimitive.Root closeDelay={closeDelay} openDelay={openDelay} {...props} />
 );
-Root.displayName = "HoverCard";
 
 /**
  * The trigger element that opens the hover card when hovered.
@@ -59,7 +58,6 @@ Root.displayName = "HoverCard";
 const Trigger = (props: ComponentProps<typeof HoverCardPrimitive.Trigger>) => (
 	<HoverCardPrimitive.Trigger data-slot="hover-card-trigger" {...props} />
 );
-Trigger.displayName = "HoverCardTrigger";
 
 /**
  * The portal container for rendering hover card content outside the normal DOM tree.
@@ -87,7 +85,6 @@ Trigger.displayName = "HoverCardTrigger";
  * ```
  */
 const Portal = HoverCardPrimitive.Portal;
-Portal.displayName = "HoverCardPortal";
 
 /**
  * The content to render inside the hover card.
@@ -140,7 +137,6 @@ const Content = ({
 		/>
 	</Portal>
 );
-Content.displayName = HoverCardPrimitive.Content.displayName;
 
 /**
  * A floating card that appears when a user hovers over a trigger element.

@@ -79,7 +79,6 @@ const Root = ({ className, children, defaultPageSize, ref, ...props }: CursorPag
 		</CursorPaginationContext.Provider>
 	);
 };
-Root.displayName = "CursorPagination";
 
 type CursorButtonsProps = Omit<ComponentProps<typeof ButtonGroup>, "appearance"> & {
 	/**
@@ -157,7 +156,6 @@ const Buttons = ({
 		</ButtonGroup>
 	);
 };
-Buttons.displayName = "CursorButtons";
 
 const defaultPageSizes = [5, 10, 20, 50, 100] as const;
 
@@ -237,7 +235,6 @@ const PageSizeSelect = ({
 		</Select.Root>
 	);
 };
-PageSizeSelect.displayName = "CursorPageSizeSelect";
 
 type CursorPageSizeValueProps = Omit<ComponentProps<"span">, "children"> & WithAsChild;
 
@@ -271,7 +268,6 @@ function PageSizeValue({ asChild = false, className, ...props }: CursorPageSizeV
 		</Component>
 	);
 }
-PageSizeValue.displayName = "CursorPageSizeValue";
 
 /**
  * A pagination component for use with cursor-based pagination.

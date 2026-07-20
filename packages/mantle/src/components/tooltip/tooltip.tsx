@@ -36,7 +36,6 @@ const TooltipProvider = ({
 		{...props}
 	/>
 );
-TooltipProvider.displayName = "Tooltip.Provider";
 
 /**
  * A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.
@@ -67,7 +66,6 @@ TooltipProvider.displayName = "Tooltip.Provider";
 function Root(props: ComponentProps<typeof TooltipPrimitive.Root>) {
 	return <TooltipPrimitive.Root data-slot="tooltip" {...props} />;
 }
-Root.displayName = "Tooltip.Root";
 
 /**
  * The trigger button that opens the tooltip.
@@ -91,7 +89,6 @@ Root.displayName = "Tooltip.Root";
 function Trigger(props: ComponentProps<typeof TooltipPrimitive.Trigger>) {
 	return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />;
 }
-Trigger.displayName = "Tooltip.Trigger";
 
 /**
  * The content to render inside the tooltip.
@@ -141,7 +138,6 @@ const Content = ({
 		</TooltipPrimitive.Content>
 	</TooltipPrimitive.Portal>
 );
-Content.displayName = "Tooltip.Content";
 
 /**
  * A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.

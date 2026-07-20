@@ -253,7 +253,6 @@ const Root = (props: AccordionRootProps) => {
 		</AccordionContext.Provider>
 	);
 };
-Root.displayName = "Accordion";
 
 /**
  * A single collapsible section, rendered as a plain `<div role="group">` — the
@@ -316,7 +315,6 @@ const Item = ({
 		</AccordionItemContext.Provider>
 	);
 };
-Item.displayName = "AccordionItem";
 
 /**
  * The interactive header that toggles its section, rendered as a `<button>` with
@@ -385,7 +383,6 @@ const Trigger = ({
 		</button>
 	);
 };
-Trigger.displayName = "AccordionTrigger";
 
 // Hoisted so the default `svg` is a stable element reference instead of a new
 // element allocated on every render.
@@ -447,7 +444,6 @@ const TriggerIcon = ({
 		)}
 	/>
 );
-TriggerIcon.displayName = "AccordionTriggerIcon";
 
 /**
  * The collapsible region of an {@link Item} — the zero-padding viewport that
@@ -553,7 +549,6 @@ const Content = ({ className, children, ref, ...props }: ComponentProps<"div">) 
 		</div>
 	);
 };
-Content.displayName = "AccordionContent";
 
 /**
  * The padded inner region of an {@link Item}'s {@link Content} — where the
@@ -588,7 +583,6 @@ Content.displayName = "AccordionContent";
 const Body = ({ className, ref, ...props }: ComponentProps<"div">) => (
 	<div ref={ref} {...props} data-slot="accordion-body" className={cx("pt-2 pb-4", className)} />
 );
-Body.displayName = "AccordionBody";
 
 /**
  * A vertically stacked set of disclosure sections styled after the shadcn /

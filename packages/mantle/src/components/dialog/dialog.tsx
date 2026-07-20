@@ -45,7 +45,6 @@ import * as DialogPrimitive from "./primitive.js";
  * ```
  */
 const Root = DialogPrimitive.Root;
-Root.displayName = "Dialog";
 
 /**
  * A button that opens the dialog.
@@ -80,7 +79,6 @@ Root.displayName = "Dialog";
 const Trigger = (props: ComponentProps<typeof DialogPrimitive.Trigger>) => (
 	<DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
 );
-Trigger.displayName = "DialogTrigger";
 
 /**
  * The portal container for the dialog. Renders the overlay and content into a
@@ -121,7 +119,6 @@ Trigger.displayName = "DialogTrigger";
  * ```
  */
 const Portal = DialogPrimitive.Portal;
-Portal.displayName = "DialogPortal";
 
 /**
  * A button that closes the dialog when clicked. Wrap an interactive element
@@ -157,7 +154,6 @@ Portal.displayName = "DialogPortal";
 const Close = (props: ComponentProps<typeof DialogPrimitive.Close>) => (
 	<DialogPrimitive.Close data-slot="dialog-close" {...props} />
 );
-Close.displayName = "DialogClose";
 
 /**
  * The backdrop overlay for the dialog. Sits between the page and the dialog
@@ -208,7 +204,6 @@ const Overlay = ({ className, ref, ...props }: ComponentProps<typeof DialogPrimi
 		{...props}
 	/>
 );
-Overlay.displayName = "DialogOverlay";
 
 type ContentProps = ComponentProps<typeof DialogPrimitive.Content> & {
 	/**
@@ -286,7 +281,6 @@ const Content = ({
 		</div>
 	</Portal>
 );
-Content.displayName = "DialogContent";
 
 /**
  * Contains the header content of the dialog, including the title and close button.
@@ -331,7 +325,6 @@ const Header = ({ className, children, ...props }: ComponentProps<"div">) => (
 		{children}
 	</div>
 );
-Header.displayName = "DialogHeader";
 
 type CloseIconButtonProps = Partial<Omit<IconButtonProps, "appearance" | "icon" | "intent">> & {
 	/**
@@ -403,7 +396,6 @@ const CloseIconButton = ({
 		/>
 	</DialogPrimitive.Close>
 );
-CloseIconButton.displayName = "DialogCloseIconButton";
 
 /**
  * Contains the main content of the dialog.
@@ -445,7 +437,6 @@ const Body = ({ className, ...props }: ComponentProps<"div">) => (
 		{...props}
 	/>
 );
-Body.displayName = "DialogBody";
 
 /**
  * Contains the footer content of the dialog, including action buttons.
@@ -487,7 +478,6 @@ const Footer = ({ className, ...props }: ComponentProps<"div">) => (
 		{...props}
 	/>
 );
-Footer.displayName = "DialogFooter";
 
 /**
  * An accessible name to be announced when the dialog is opened.
@@ -527,7 +517,6 @@ const Title = ({ className, ref, ...props }: ComponentProps<typeof DialogPrimiti
 		{...props}
 	/>
 );
-Title.displayName = "DialogTitle";
 
 /**
  * An accessible description to be announced when the dialog is opened.
@@ -573,7 +562,6 @@ const Description = ({
 		{...props}
 	/>
 );
-Description.displayName = "DialogDescription";
 
 /**
  * A window overlaid on either the primary window or another dialog window. Use

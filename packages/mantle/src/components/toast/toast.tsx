@@ -215,7 +215,6 @@ const Root = ({ asChild, children, className, intent, ref, ...props }: ToastProp
 		</ToastStateContext.Provider>
 	);
 };
-Root.displayName = "Toast";
 
 type ToastIconProps = Partial<SvgOnlyProps>;
 
@@ -282,7 +281,6 @@ const Icon = ({ className, svg, ref, ...props }: ToastIconProps) => {
 			throw new Error(`Unreachable Case: ${ctx.intent}`);
 	}
 };
-Icon.displayName = "ToastIcon";
 
 type ToastActionProps = ComponentProps<"button"> & WithAsChild;
 
@@ -330,7 +328,6 @@ const Action = ({ asChild, className, onClick, ref, ...props }: ToastActionProps
 		/>
 	);
 };
-Action.displayName = "ToastAction";
 
 type ToastMessageProps = ComponentProps<"p"> & WithAsChild;
 
@@ -360,7 +357,6 @@ const Message = ({ asChild, className, ref, ...props }: ToastMessageProps) => {
 		/>
 	);
 };
-Message.displayName = "ToastMessage";
 
 /**
  * A succinct message that is displayed temporarily. Toasts are used to provide

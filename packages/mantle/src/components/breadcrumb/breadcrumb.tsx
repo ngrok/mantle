@@ -55,7 +55,6 @@ const Root = ({
 		</Comp>
 	);
 };
-Root.displayName = "Breadcrumb";
 
 /**
  * The ordered list of crumbs. Renders an `<ol>` — an **ordered** list, because
@@ -104,7 +103,6 @@ const List = ({
 		</Comp>
 	);
 };
-List.displayName = "BreadcrumbList";
 
 /**
  * A single crumb. Renders an `<li>` (`role="listitem"`) that lays out its
@@ -152,7 +150,6 @@ const Item = ({
 		</Comp>
 	);
 };
-Item.displayName = "BreadcrumbItem";
 
 /**
  * A link to an ancestor page in the hierarchy. Renders an `<a>` by default;
@@ -209,7 +206,6 @@ const Link = ({
 		</Comp>
 	);
 };
-Link.displayName = "BreadcrumbLink";
 
 /**
  * The current page — the last crumb in the trail. Renders a `<span>` (not a
@@ -266,7 +262,6 @@ const Page = ({
 		</Comp>
 	);
 };
-Page.displayName = "BreadcrumbPage";
 
 /**
  * The props for `Breadcrumb.Separator`. When `asChild` is set, `children` is
@@ -345,7 +340,6 @@ const Separator = ({
 		</Comp>
 	);
 };
-Separator.displayName = "BreadcrumbSeparator";
 
 /**
  * Compound component for WAI-ARIA breadcrumb navigation — the path from a

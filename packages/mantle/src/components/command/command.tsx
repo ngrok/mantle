@@ -49,7 +49,6 @@ const CommandRoot = ({ className, ...props }: CommandRootProps) => (
 		{...props}
 	/>
 );
-CommandRoot.displayName = "Command";
 
 /**
  * The props for the CommandDialog.Content component.

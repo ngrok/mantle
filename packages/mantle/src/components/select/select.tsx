@@ -145,7 +145,6 @@ const Root = ({
 		</SelectPrimitive.Root>
 	);
 };
-Root.displayName = "Select";
 
 /**
  * A group of related options within a select menu. Similar to an html `<optgroup>` element.
@@ -184,7 +183,6 @@ const Group = ({ className, ref, ...props }: ComponentProps<typeof SelectPrimiti
 		{...props}
 	/>
 );
-Group.displayName = "SelectGroup";
 
 /**
  * The part that reflects the selected value. By default the selected item's text will be rendered. if you require more control, you can instead control the select and pass your own children. It should not be styled to ensure correct positioning. An optional placeholder prop is also available for when the select has no value.
@@ -215,7 +213,6 @@ Group.displayName = "SelectGroup";
  * ```
  */
 const Value = SelectPrimitive.Value;
-Value.displayName = "SelectValue";
 
 type SelectTriggerProps = ComponentProps<typeof SelectPrimitive.Trigger> &
 	WithAriaInvalid &
@@ -311,7 +308,6 @@ const Trigger = ({
 		</SelectPrimitive.Trigger>
 	);
 };
-Trigger.displayName = "SelectTrigger";
 
 /**
  * The button that scrolls the select content up.
@@ -427,7 +423,6 @@ const Content = ({
 		</SelectPrimitive.Content>
 	</SelectPrimitive.Portal>
 );
-Content.displayName = "SelectContent";
 
 /**
  * Used to render the label of a group. It won't be focusable using arrow keys.
@@ -465,7 +460,6 @@ const Label = ({ className, ref, ...props }: ComponentProps<typeof SelectPrimiti
 		{...props}
 	/>
 );
-Label.displayName = "SelectLabel";
 
 type SelectItemProps = ComponentProps<typeof SelectPrimitive.Item> & {
 	icon?: ReactNode;
@@ -522,7 +516,6 @@ const Item = ({ className, children, icon, ref, ...props }: SelectItemProps) => 
 		</SelectPrimitive.ItemIndicator>
 	</SelectPrimitive.Item>
 );
-Item.displayName = "SelectItem";
 
 /**
  * Used to visually separate items or groups of items in the select content.
@@ -564,7 +557,6 @@ const SelectSeparatorComponent = ({
 		{...props}
 	/>
 );
-SelectSeparatorComponent.displayName = "SelectSeparator";
 
 /**
  * Displays a list of options for the user to pick from—triggered by a button.

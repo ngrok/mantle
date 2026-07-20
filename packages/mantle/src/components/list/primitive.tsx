@@ -760,7 +760,6 @@ function ListShell({
 		</ListContext.Provider>
 	);
 }
-ListShell.displayName = "ListPrimitiveShell";
 
 /**
  * Props for a {@link Item}. Standard `<div>` props (minus `role`, owned by the
@@ -878,7 +877,6 @@ const Item = ({
 		</Comp>
 	);
 };
-Item.displayName = "ListPrimitiveItem";
 
 /**
  * Provides one non-virtualized row its index through {@link ListItemContext}
@@ -891,7 +889,6 @@ function PlainItem({ children, index }: { children: ReactNode; index: number }) 
 
 	return <ListItemContext.Provider value={value}>{children}</ListItemContext.Provider>;
 }
-PlainItem.displayName = "ListPrimitivePlainItem";
 
 /**
  * The non-virtualized list shell: renders its composed {@link Item} children in
@@ -1004,7 +1001,6 @@ const Root = ({
 		</ListShell>
 	);
 };
-Root.displayName = "ListPrimitiveRoot";
 
 export {
 	//,

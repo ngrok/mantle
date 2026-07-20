@@ -56,7 +56,6 @@ const Root = ({
 		</Comp>
 	);
 };
-Root.displayName = "CenteredLayout";
 
 /**
  * A full-window-width strip pinned above everything else in the layout —
@@ -112,7 +111,6 @@ const Notice = ({
 		</Comp>
 	);
 };
-Notice.displayName = "CenteredLayoutNotice";
 
 /**
  * A utility strip at the top of the layout — an account chip, a close/dismiss
@@ -164,7 +162,6 @@ const Header = ({
 		</Comp>
 	);
 };
-Header.displayName = "CenteredLayoutHeader";
 
 /**
  * The growing, centered region of the layout. Renders a `<div>` with
@@ -221,7 +218,6 @@ const Body = ({
 		</Comp>
 	);
 };
-Body.displayName = "CenteredLayoutBody";
 
 /**
  * A pinned utility strip at the bottom of the layout — a theme switcher,
@@ -273,7 +269,6 @@ const Footer = ({
 		</Comp>
 	);
 };
-Footer.displayName = "CenteredLayoutFooter";
 
 /**
  * A viewport-filling centered page flow for sign-in, sign-up, onboarding,

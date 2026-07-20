@@ -40,7 +40,6 @@ const Root = ({ asChild = false, className, children, ref, ...rest }: Descriptio
 		</Component>
 	);
 };
-Root.displayName = "DescriptionList";
 
 type DescriptionListItemProps = ComponentProps<"div"> & WithAsChild;
 
@@ -73,7 +72,6 @@ const Item = ({ asChild = false, className, children, ref, ...rest }: Descriptio
 		</Component>
 	);
 };
-Item.displayName = "DescriptionListItem";
 
 type DescriptionListLabelProps = ComponentProps<"dt"> & WithAsChild;
 
@@ -107,7 +105,6 @@ const Label = ({
 		</Component>
 	);
 };
-Label.displayName = "DescriptionListLabel";
 
 type DescriptionListValueProps = ComponentProps<"dd"> & WithAsChild;
 
@@ -145,7 +142,6 @@ const Value = ({
 		</Component>
 	);
 };
-Value.displayName = "DescriptionListValue";
 
 /**
  * A semantically correct description list built on the HTML `<dl>` element.

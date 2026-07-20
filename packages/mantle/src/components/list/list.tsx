@@ -60,7 +60,6 @@ type ListRootProps = Omit<
  * ```
  */
 const Root = (props: ListRootProps) => <ListPrimitiveRoot semantics="list" {...props} />;
-Root.displayName = "ListRoot";
 
 /**
  * Props for `List.VirtualRoot` — the internal list primitive's
@@ -109,7 +108,6 @@ type ListVirtualRootProps = Omit<
 const VirtualRoot = (props: ListVirtualRootProps) => (
 	<ListPrimitiveVirtualRoot semantics="list" {...props} />
 );
-VirtualRoot.displayName = "ListVirtualRoot";
 
 /**
  * Props for `List.Item`. Extends `<button>` props (minus `type`, which is fixed
@@ -239,7 +237,6 @@ const Item = ({ asChild, className, current, disabled, onClick, ref, ...props }:
 		</ListPrimitiveItem>
 	);
 };
-Item.displayName = "ListItem";
 
 /**
  * The emphasized title line inside a `List.Item`, in the stronger foreground
@@ -267,7 +264,6 @@ const ItemTitle = ({ className, ref, ...props }: ComponentProps<"span">) => (
 		{...props}
 	/>
 );
-ItemTitle.displayName = "ListItemTitle";
 
 /**
  * The de-emphasized sub-line inside a `List.Item`, in the muted body color. A
@@ -295,7 +291,6 @@ const ItemDescription = ({ className, ref, ...props }: ComponentProps<"span">) =
 		{...props}
 	/>
 );
-ItemDescription.displayName = "ListItemDescription";
 
 /**
  * A scrollable, optionally-virtualized list of clickable items — the action /

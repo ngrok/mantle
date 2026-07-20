@@ -24,7 +24,6 @@ const Root = ({ asChild = false, className, children, style, ref }: Props) => {
 		</Component>
 	);
 };
-Root.displayName = "MediaObject";
 
 /**
  * The container for an image or icon to display in the media slot of the media object.
@@ -43,7 +42,6 @@ const Media = ({ asChild = false, className, children, style, ref }: Props) => {
 		</Component>
 	);
 };
-Media.displayName = "MediaObjectMedia";
 
 /**
  * The container for the content slot of a media object.
@@ -62,7 +60,6 @@ const Content = ({ asChild = false, className, children, style, ref }: Props) =>
 		</Component>
 	);
 };
-Content.displayName = "MediaObject.Content";
 
 /**
  * A small, reusable layout primitive for "image/icon on one side,

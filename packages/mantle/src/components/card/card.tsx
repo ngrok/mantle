@@ -46,7 +46,6 @@ const Root = ({ asChild = false, className, children, ref, ...rest }: CardProps)
 		</Component>
 	);
 };
-Root.displayName = "Card";
 
 /**
  * The main content of a card. Usually composed as a direct child of a `Card` component.
@@ -88,7 +87,6 @@ const Body = ({ asChild = false, className, children, ref, ...rest }: CardProps)
 		</Component>
 	);
 };
-Body.displayName = "CardBody";
 
 /**
  * The footer container of a card. Usually composed as a direct child of a `Card` component.
@@ -124,7 +122,6 @@ const Footer = ({ asChild = false, className, children, ref, ...rest }: CardProp
 		</Component>
 	);
 };
-Footer.displayName = "CardFooter";
 
 /**
  * The header container of a card. Usually composed as a direct child of a `Card` component.
@@ -160,7 +157,6 @@ const Header = ({ asChild = false, className, children, ref, ...rest }: CardProp
 		</Component>
 	);
 };
-Header.displayName = "CardHeader";
 
 type CardTitleProps = ComponentProps<"h3"> & WithAsChild;
 
@@ -199,7 +195,6 @@ const Title = ({ className, asChild, ref, ...props }: CardTitleProps) => {
 		/>
 	);
 };
-Title.displayName = "CardTitle";
 
 /**
  * A container that can be used to display content in a box resembling a

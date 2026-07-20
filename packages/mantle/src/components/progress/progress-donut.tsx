@@ -157,7 +157,6 @@ const Root = ({
 		</ProgressContext.Provider>
 	);
 };
-Root.displayName = "ProgressDonut";
 
 /**
  * Length (value) of the progress indicator tail when the progress bar is indeterminate.
@@ -220,7 +219,6 @@ const Indicator = ({ className, ...props }: ProgressDonutIndicatorProps) => {
 		</g>
 	);
 };
-Indicator.displayName = "ProgressDonutIndicator";
 
 /**
  * A simple circular progress bar which shows the completion progress of a task.

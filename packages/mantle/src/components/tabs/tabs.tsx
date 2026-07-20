@@ -90,7 +90,6 @@ const Root = ({
 		</TabsPrimitiveRoot>
 	);
 };
-Root.displayName = "Tabs";
 
 /**
  * The horizontal classic tablist's bottom border, drawn by default and
@@ -272,7 +271,6 @@ const List = ({
 		/>
 	);
 };
-List.displayName = "TabsList";
 
 type TabsTriggerProps = ComponentProps<typeof TabsPrimitiveTrigger>;
 
@@ -418,7 +416,6 @@ const Trigger = ({
 		</TabsPrimitiveTrigger>
 	);
 };
-Trigger.displayName = "TabsTrigger";
 
 /**
  * A badge component that can be used inside tab triggers to display additional information.
@@ -452,7 +449,6 @@ const Badge = ({ className, children, ...props }: HTMLAttributes<HTMLSpanElement
 		{children}
 	</span>
 );
-Badge.displayName = "TabBadge";
 
 /**
  * Contains the content associated with each trigger.
@@ -483,7 +479,6 @@ const Content = ({ className, ...props }: ComponentProps<typeof TabsPrimitiveCon
 		{...props}
 	/>
 );
-Content.displayName = "TabsContent";
 
 /**
  * A set of layered sections of content—known as tab panels—that are displayed one at a time.

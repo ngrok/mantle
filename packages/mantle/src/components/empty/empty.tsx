@@ -36,7 +36,6 @@ const Root = ({ asChild, children, className, ...props }: ComponentProps<"div"> 
 		</Comp>
 	);
 };
-Root.displayName = "Empty";
 
 type EmptyIconProps = Omit<SvgAttributes, "children"> & {
 	/**
@@ -73,7 +72,6 @@ const Icon = ({ className, svg, ...props }: EmptyIconProps) => {
 		/>
 	);
 };
-Icon.displayName = "EmptyIcon";
 
 /**
  * The heading text for the empty state. Renders as an `h3` by default. Use the
@@ -115,7 +113,6 @@ const Title = ({
 		</Comp>
 	);
 };
-Title.displayName = "EmptyTitle";
 
 /**
  * Supporting descriptive text below the title. Renders as a `div` with
@@ -159,7 +156,6 @@ const Description = ({
 		</Comp>
 	);
 };
-Description.displayName = "EmptyDescription";
 
 /**
  * A container for action buttons or links in the empty state.
@@ -197,7 +193,6 @@ const Actions = ({
 		</Comp>
 	);
 };
-Actions.displayName = "EmptyActions";
 
 /**
  * Compound component for rendering empty states. Use with `Empty.Root`,

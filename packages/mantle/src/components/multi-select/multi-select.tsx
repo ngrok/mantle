@@ -117,7 +117,6 @@ const Root = ({ children, defaultSelectedValue = EMPTY_ARRAY, ...props }: MultiS
 		</TriggerRefContext.Provider>
 	);
 };
-Root.displayName = "MultiSelect";
 
 type MultiSelectTriggerProps = ComponentProps<"div"> & WithValidation;
 
@@ -201,7 +200,6 @@ const Trigger = ({
 		</div>
 	);
 };
-Trigger.displayName = "MultiSelectTrigger";
 
 type TagProps = Omit<ComponentProps<"span">, "children"> & {
 	/**
@@ -310,7 +308,6 @@ const Tag = ({
 		</span>
 	);
 };
-Tag.displayName = "MultiSelectTag";
 
 /**
  * Props passed to the children render function of `MultiSelect.TagValues`.
@@ -598,7 +595,6 @@ const TagValues = ({ children, lockedValues = EMPTY_ARRAY }: MultiSelectTagValue
 		</>
 	);
 };
-TagValues.displayName = "MultiSelectTagValues";
 
 type MultiSelectInputProps = Omit<Primitive.ComboboxProps, "render"> & {
 	/**
@@ -702,7 +698,6 @@ const Input = ({
 		/>
 	);
 };
-Input.displayName = "MultiSelectInput";
 
 type MultiSelectContentProps = Omit<Primitive.ComboboxPopoverProps, "render"> & WithAsChild;
 
@@ -817,7 +812,6 @@ const Content = ({
 		</Primitive.ComboboxPopover>
 	);
 };
-Content.displayName = "MultiSelectContent";
 
 type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render"> & WithAsChild;
 
@@ -888,7 +882,6 @@ const Item = ({
 		</Primitive.ComboboxItem>
 	);
 };
-Item.displayName = "MultiSelectItem";
 
 type MultiSelectGroupProps = Omit<Primitive.ComboboxGroupProps, "render"> & WithAsChild;
 
@@ -927,7 +920,6 @@ const Group = ({ asChild = false, children, ref, ...props }: MultiSelectGroupPro
 		</Primitive.ComboboxGroup>
 	);
 };
-Group.displayName = "MultiSelectGroup";
 
 type MultiSelectGroupLabelProps = Omit<Primitive.ComboboxGroupLabelProps, "render"> & WithAsChild;
 
@@ -971,7 +963,6 @@ const GroupLabel = ({
 		</Primitive.ComboboxGroupLabel>
 	);
 };
-GroupLabel.displayName = "MultiSelectGroupLabel";
 
 type MultiSelectGroupDescriptionProps = ComponentProps<"p">;
 
@@ -1017,7 +1008,6 @@ const GroupDescription = ({
 		</p>
 	);
 };
-GroupDescription.displayName = "MultiSelectGroupDescription";
 
 /**
  * Renders a separator between MultiSelect.Items or MultiSelect.Groups.
@@ -1055,7 +1045,6 @@ const MultiSelectSeparatorComponent = ({
 		{...props}
 	/>
 );
-MultiSelectSeparatorComponent.displayName = "MultiSelectSeparator";
 
 type MultiSelectEmptyProps = ComponentProps<"div">;
 
@@ -1092,7 +1081,6 @@ const Empty = ({ className, children, ref, ...props }: MultiSelectEmptyProps) =>
 		</div>
 	);
 };
-Empty.displayName = "MultiSelectEmpty";
 
 type MultiSelectContentFooterProps = ComponentProps<"div">;
 
@@ -1132,7 +1120,6 @@ const ContentFooter = ({ className, children, ref, ...props }: MultiSelectConten
 		</div>
 	);
 };
-ContentFooter.displayName = "MultiSelectContentFooter";
 
 /**
  * A multi-select combobox that allows users to select multiple values with

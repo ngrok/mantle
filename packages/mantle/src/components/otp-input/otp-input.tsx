@@ -200,7 +200,6 @@ const Root = ({
 		</OTPInput>
 	);
 };
-Root.displayName = "OtpInput";
 
 type OtpInputGroupProps = ComponentProps<"div"> & WithAsChild;
 
@@ -257,7 +256,6 @@ const Group = ({ asChild, children, className, ref, ...props }: OtpInputGroupPro
 		</Comp>
 	);
 };
-Group.displayName = "OtpInputGroup";
 
 type OtpInputSlotProps = ComponentProps<"div"> & {
 	/**
@@ -372,7 +370,6 @@ const OtpInputSlotImpl = ({ className, index, ref, ...props }: OtpInputSlotProps
 		</div>
 	);
 };
-OtpInputSlotImpl.displayName = "OtpInputSlot";
 
 type OtpInputSeparatorProps = ComponentProps<"div"> &
 	WithAsChild & {
@@ -434,7 +431,6 @@ const Separator = ({
 		</Comp>
 	);
 };
-Separator.displayName = "OtpInputSeparator";
 
 /**
  * Compound component for capturing one-time passcodes (OTP). Combines a

@@ -72,7 +72,6 @@ const Root = ({
 		</DropdownMenu.Root>
 	);
 };
-Root.displayName = "SplitButton";
 
 type PrimaryActionProps = Omit<ComponentProps<typeof Button>, "appearance" | "intent" | "size">;
 
@@ -82,7 +81,6 @@ const PrimaryAction = (props: PrimaryActionProps) => {
 	// `type` and `ref` flow through; `Button` defaults `type` to "button".
 	return <Button appearance="outlined" intent="neutral" size={size} {...props} />;
 };
-PrimaryAction.displayName = "SplitButtonPrimaryAction";
 
 type MenuTriggerProps = Omit<
 	ComponentProps<typeof IconButton>,
@@ -117,17 +115,14 @@ const MenuTrigger = ({ icon, ...props }: MenuTriggerProps) => {
 		</DropdownMenu.Trigger>
 	);
 };
-MenuTrigger.displayName = "SplitButtonMenuTrigger";
 
 const MenuContent = ({ align = "end", ...props }: ComponentProps<typeof DropdownMenu.Content>) => {
 	return <DropdownMenu.Content align={align} {...props} />;
 };
-MenuContent.displayName = "SplitButtonMenuContent";
 
 const MenuItem = ({ className, ...props }: ComponentProps<typeof DropdownMenu.Item>) => {
 	return <DropdownMenu.Item className={cx("gap-2", className)} {...props} />;
 };
-MenuItem.displayName = "SplitButtonMenuItem";
 
 /**
  * A button group which provides a default action with one click while revealing
