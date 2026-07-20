@@ -61,6 +61,7 @@ export const MANTLE_COMPONENT_NAMES = [
 	"progress",
 	"qr-code",
 	"radio-group",
+	"sandbar",
 	"sandboxed-on-click",
 	"scatter-plot",
 	"select",
