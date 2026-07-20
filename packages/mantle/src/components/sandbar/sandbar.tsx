@@ -1,6 +1,6 @@
 "use client";
 
-import type { AnimationEvent, ComponentProps, FocusEvent, ReactNode, Ref } from "react";
+import type { ComponentProps, FocusEvent, ReactNode, Ref, TransitionEvent } from "react";
 import {
 	createContext,
 	useCallback,
@@ -55,11 +55,11 @@ const SAVING_ANNOUNCEMENT = "Saving changes…";
 const ANNOUNCEMENT_CLEAR_DELAY_MS = 1_000;
 
 /**
- * Fallback for closing → closed when the exit animation never fires (e.g.
- * `animate-none` overrides or animations globally disabled). Must exceed the
- * 150ms exit duration.
+ * Fallback for closing → closed when the exit transition never fires (e.g.
+ * `transition-none` overrides or animations globally disabled). Must exceed
+ * the 200ms exit duration.
  */
-const EXIT_ANIMATION_TIMEOUT_MS = 250;
+const EXIT_TRANSITION_TIMEOUT_MS = 400;
 
 /**
  * The panel's blocked-navigation wiggle: the origin implementation's ±8px /
@@ -129,10 +129,12 @@ function useSandbarContext(part: string): SandbarContextValue {
 }
 
 /**
- * The panel's visibility lifecycle. `closing` keeps the panel mounted and
- * visible while the exit animation runs; only `closed` hides it.
+ * The panel's visibility lifecycle. `opening` paints one frame in the closed
+ * pose so the enter can transition from it (transitions cannot start from
+ * `display: none`); `closing` keeps the panel mounted and visible while the
+ * exit transition runs; only `closed` hides it.
  */
-type SandbarPresence = "closed" | "closing" | "open";
+type SandbarPresence = "closed" | "closing" | "open" | "opening";
 
 type SandbarRootProps = ComponentProps<"div"> & {
 	/**
@@ -162,6 +164,11 @@ type SandbarRootProps = ComponentProps<"div"> & {
  * floating island with `role="group"`, named by `Sandbar.Message` via
  * `aria-labelledby` (a consumer `aria-label` wins when passed).
  *
+ * The panel is an `invert-theme` island: it renders in the opposite theme of
+ * the page (light ⇄ dark, light-high-contrast ⇄ dark-high-contrast), and so
+ * does everything composed inside it — the blessed buttons, `Sandbar.Error`,
+ * and any custom children.
+ *
  * `ref`, `className`, and all other props target the panel. Render it in
  * place at the end of the form it saves — `position: fixed` changes paint
  * position, not tab order, so Tab from the last field lands on the actions.
@@ -189,7 +196,7 @@ const Root = ({
 	children,
 	className,
 	handleRef,
-	onAnimationEnd,
+	onTransitionEnd,
 	open,
 	ref,
 	...props
@@ -318,25 +325,56 @@ const Root = ({
 		[announceAssertive, registerMessage, reportSaving],
 	);
 
-	// Presence transitions driven by the controlled `open` prop. Closing runs
-	// the exit animation before the panel hides; reopening mid-exit cancels it.
+	// Presence transitions driven by the controlled `open` prop. Opening from
+	// rest inserts one painted frame in the closed pose so the enter can
+	// transition from it; reopening mid-exit goes straight to open, letting
+	// the transition retarget smoothly from the panel's current position
+	// (never restarting from the bottom — the sonner behavior).
 	useEffect(() => {
 		if (open) {
-			setPresence("open");
+			setPresence((current) => {
+				if (current === "open" || current === "opening") {
+					return current;
+				}
+				return current === "closing" ? "open" : "opening";
+			});
 		} else {
-			setPresence((current) => (current === "closed" ? "closed" : "closing"));
+			setPresence((current) => {
+				if (current === "closed") {
+					return current;
+				}
+				// closing from the pre-paint frame has nothing to transition — hide now
+				return current === "opening" ? "closed" : "closing";
+			});
 		}
 	}, [open]);
 
-	// Safety net: if the exit animation never fires (animations disabled,
-	// `animate-none` overrides), force closed so the machine cannot stick.
+	// One painted frame in the closed pose, then flip to open. Double-rAF
+	// guarantees the closed pose actually painted before the destination
+	// styles land — a single callback can fire before the commit's paint.
+	useEffect(() => {
+		if (presence !== "opening") {
+			return;
+		}
+		let frame = window.requestAnimationFrame(() => {
+			frame = window.requestAnimationFrame(() => {
+				setPresence((current) => (current === "opening" ? "open" : current));
+			});
+		});
+		return () => {
+			window.cancelAnimationFrame(frame);
+		};
+	}, [presence]);
+
+	// Safety net: if the exit transition never fires (transitions disabled,
+	// `transition-none` overrides), force closed so the machine cannot stick.
 	useEffect(() => {
 		if (presence !== "closing") {
 			return;
 		}
 		const timer = window.setTimeout(() => {
 			setPresence("closed");
-		}, EXIT_ANIMATION_TIMEOUT_MS);
+		}, EXIT_TRANSITION_TIMEOUT_MS);
 		return () => {
 			window.clearTimeout(timer);
 		};
@@ -463,9 +501,14 @@ const Root = ({
 		});
 	};
 
-	const handleAnimationEnd = (event: AnimationEvent<HTMLDivElement>) => {
-		onAnimationEnd?.(event);
+	const handleTransitionEnd = (event: TransitionEvent<HTMLDivElement>) => {
+		onTransitionEnd?.(event);
 		if (event.target !== event.currentTarget) {
+			return;
+		}
+		// only the presence transition's own properties advance the machine —
+		// a consumer-added transition on another property must not close early
+		if (event.propertyName !== "opacity" && event.propertyName !== "translate") {
 			return;
 		}
 		setPresence((current) => (current === "closing" ? "closed" : current));
@@ -500,19 +543,37 @@ const Root = ({
 				<div
 					data-slot="sandbar"
 					className={cx(
-						// island surface — border-transparent is the forced-colors technique:
-						// invisible normally, but forced-colors mode recolors transparent
-						// borders to a system color while stripping box-shadow and
-						// backgrounds, so the border becomes the island's boundary in
-						// Windows High Contrast. bg-neutral-950 auto-flips with the theme.
-						"pointer-events-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl border border-transparent bg-neutral-950 px-4 py-3 text-neutral-50 shadow-lg",
+						// island surface — `invert-theme` renders the whole panel subtree in
+						// the opposite theme (light ⇄ dark, and between the high-contrast
+						// pair), so the surface AND everything composed inside it — buttons,
+						// alerts, links — read inverted from the page. bg-base/text-strong
+						// resolve against the inverted theme. border-transparent is the
+						// forced-colors technique: invisible normally, but forced-colors mode
+						// recolors transparent borders to a system color while stripping
+						// box-shadow and backgrounds, so the border becomes the island's
+						// boundary in Windows High Contrast.
+						"invert-theme pointer-events-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl border border-transparent bg-base px-4 py-3 text-strong shadow-lg",
 						"max-h-[60svh] overflow-y-auto",
 						"focus:outline-hidden",
-						// quick slide+fade, ease-out both directions; reduced motion
-						// keeps only the fade (motion-safe gates the slides)
-						"ease-out",
-						"data-state-open:animate-in data-state-open:fade-in data-state-open:duration-200 motion-safe:data-state-open:slide-in-from-bottom-4",
-						"data-state-closed:animate-out data-state-closed:fade-out data-state-closed:duration-150 data-state-closed:fill-mode-forwards motion-safe:data-state-closed:slide-out-to-bottom-4",
+						// state-driven transitions (the sonner approach): interruptible and
+						// retargetable, so a reopen mid-exit rises back from wherever the
+						// panel currently is instead of restarting. The closed pose sits a
+						// full panel height plus the largest bottom offset (2.5rem, from
+						// sm:bottom-10) below rest, fully clearing the viewport edge — the
+						// enter rises from offscreen over 400ms; the exit answers a click,
+						// so it drops away faster (200ms, sonner's own user-initiated
+						// swipe-dismissal timing). The exit is motion-led: the per-property
+						// easing list pairs positionally with transition-property, giving
+						// opacity an accelerate curve (the bar stays solid while it travels,
+						// evaporating only at the end to clean up the shadow at the edge)
+						// while translate leads with ease-out. Reduced motion keeps only
+						// the fades (motion-safe gates the translate).
+						// `translate-y-*` writes the standalone `translate` property in
+						// Tailwind v4 — transitioning `transform` instead silently snaps
+						"transition-[opacity,translate] ease-out",
+						"data-state-open:duration-400",
+						"data-state-closed:pointer-events-none data-state-closed:opacity-0 data-state-closed:duration-200 motion-safe:data-state-closed:translate-y-[calc(100%+2.5rem)]",
+						"data-state-closed:ease-[cubic-bezier(0.4,0,1,1),cubic-bezier(0,0,0.2,1)]",
 						className,
 					)}
 					{...props}
@@ -521,7 +582,7 @@ const Root = ({
 					data-state={presence === "open" ? "open" : "closed"}
 					hidden={isClosed ? true : undefined}
 					inert={isClosed ? true : undefined}
-					onAnimationEnd={handleAnimationEnd}
+					onTransitionEnd={handleTransitionEnd}
 					ref={composedPanelRef}
 					role="group"
 					tabIndex={-1}

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createRef, useRef } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { SandbarHandle } from "./sandbar.js";
@@ -59,6 +59,20 @@ describe("Sandbar structure", () => {
 		expect(document.querySelector('[data-slot="sandbar-discard-button"]')).toBeInTheDocument();
 		expect(document.querySelector('[data-slot="sandbar-save-button"]')).toBeInTheDocument();
 		expect(document.querySelector('[data-slot="sandbar-error"]')).toBeInTheDocument();
+	});
+
+	test("the panel is an invert-theme island styled by opposite-theme surface tokens", () => {
+		render(
+			<Sandbar.Root open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+			</Sandbar.Root>,
+		);
+
+		const panel = getPanel();
+		expect(panel.classList.contains("invert-theme")).toBe(true);
+		// the surface tokens resolve against the inverted theme, not the page theme
+		expect(panel.className).toContain("bg-base");
+		expect(panel.className).toContain("text-strong");
 	});
 
 	test("Root forwards className, ref, and data-* props to the panel", () => {
@@ -223,7 +237,17 @@ describe("Sandbar presence", () => {
 		expect(panel).toHaveAttribute("hidden");
 	});
 
-	test("closing keeps the panel visible until the exit animation ends", () => {
+	/**
+	 * happy-dom has no TransitionEvent constructor, so fireEvent.transitionEnd
+	 * drops `propertyName` — build the event by hand instead.
+	 */
+	function fireTransitionEnd(element: HTMLElement, propertyName: string) {
+		const event = new Event("transitionend", { bubbles: true, cancelable: true });
+		Object.assign(event, { propertyName });
+		fireEvent(element, event);
+	}
+
+	test("closing keeps the panel visible until the exit transition ends", () => {
 		const { rerender } = render(fullTree({ open: true }));
 		rerender(fullTree({ open: false }));
 
@@ -231,11 +255,23 @@ describe("Sandbar presence", () => {
 		expect(panel).toHaveAttribute("data-state", "closed");
 		expect(panel).not.toHaveAttribute("hidden");
 
-		fireEvent.animationEnd(panel);
+		fireTransitionEnd(panel, "translate");
 		expect(panel).toHaveAttribute("hidden");
 	});
 
-	test("the safety timeout closes the panel when no animation ever fires", () => {
+	test("a consumer transition ending on another property does not close the panel early", () => {
+		const { rerender } = render(fullTree({ open: true }));
+		rerender(fullTree({ open: false }));
+
+		const panel = getPanel();
+		fireTransitionEnd(panel, "background-color");
+		expect(panel).not.toHaveAttribute("hidden");
+
+		fireTransitionEnd(panel, "opacity");
+		expect(panel).toHaveAttribute("hidden");
+	});
+
+	test("the safety timeout closes the panel when no transition ever fires", () => {
 		vi.useFakeTimers();
 		try {
 			const { rerender } = render(fullTree({ open: true }));
@@ -244,7 +280,7 @@ describe("Sandbar presence", () => {
 			expect(panel).not.toHaveAttribute("hidden");
 
 			act(() => {
-				vi.advanceTimersByTime(250);
+				vi.advanceTimersByTime(400);
 			});
 			expect(panel).toHaveAttribute("hidden");
 		} finally {
@@ -252,14 +288,41 @@ describe("Sandbar presence", () => {
 		}
 	});
 
-	test("reopening mid-exit cancels the close", () => {
+	test("opening from rest paints one closed-pose frame, then transitions to open", async () => {
+		const { rerender } = render(fullTree({ open: false }));
+		rerender(fullTree({ open: true }));
+
+		// the pre-paint frame: visible but still in the closed pose, so the
+		// enter has a from-state to transition from
+		const panel = getPanel();
+		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("hidden");
+
+		await waitFor(() => {
+			expect(panel).toHaveAttribute("data-state", "open");
+		});
+	});
+
+	test("reopening mid-exit retargets straight to open — no restart frame", () => {
 		const { rerender } = render(fullTree({ open: true }));
 		rerender(fullTree({ open: false }));
 		rerender(fullTree({ open: true }));
 
+		// synchronously open: the in-flight transition retargets from the
+		// panel's current position instead of restarting from the bottom
 		const panel = getPanel();
 		expect(panel).toHaveAttribute("data-state", "open");
 		expect(panel).not.toHaveAttribute("hidden");
+	});
+
+	test("closing during the pre-paint opening frame hides immediately — nothing visible happened yet", () => {
+		const { rerender } = render(fullTree({ open: false }));
+		rerender(fullTree({ open: true }));
+		rerender(fullTree({ open: false }));
+
+		const panel = getPanel();
+		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).toHaveAttribute("hidden");
 	});
 
 	test("the announcers stay mounted and unhidden while the panel is closed", () => {
