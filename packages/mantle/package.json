@@ -270,6 +270,11 @@
 			"types": "./dist/radio-group.d.ts",
 			"import": "./dist/radio-group.js"
 		},
+		"./sandbar": {
+			"@ngrok/src-live-types": "./src/components/sandbar/index.ts",
+			"types": "./dist/sandbar.d.ts",
+			"import": "./dist/sandbar.js"
+		},
 		"./sandboxed-on-click": {
 			"@ngrok/src-live-types": "./src/components/sandboxed-on-click/index.ts",
 			"types": "./dist/sandboxed-on-click.d.ts",

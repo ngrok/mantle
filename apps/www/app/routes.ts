@@ -131,6 +131,7 @@ export default [
 		...docRoute("components/overlays/tooltip"),
 		// preview (lifecycle namespace, not a category)
 		...docRoute("components/preview/calendar"),
+		...docRoute("components/preview/sandbar"),
 		// primitives
 		...docRoute("components/primitives/browser-only"),
 		...docRoute("components/primitives/main"),

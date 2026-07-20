@@ -4,6 +4,7 @@ import {
 	CenteredLayoutHeaderDemo,
 	CenteredLayoutNoticeDemo,
 } from "./centered-layout-demos";
+import { SandbarDemo, SandbarPendingPublishDemo } from "./sandbar-demos";
 
 type PreviewExample = {
 	/**
@@ -48,6 +49,14 @@ export const previewExamples = {
 	"centered-layout-notice": {
 		title: "Centered layout notice demo",
 		Component: CenteredLayoutNoticeDemo,
+	},
+	sandbar: {
+		title: "Sandbar demo",
+		Component: SandbarDemo,
+	},
+	"sandbar-pending-publish": {
+		title: "Sandbar pending publish demo",
+		Component: SandbarPendingPublishDemo,
 	},
 } as const satisfies Record<string, PreviewExample>;
 
