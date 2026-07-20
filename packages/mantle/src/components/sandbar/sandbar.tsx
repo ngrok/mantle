@@ -593,7 +593,6 @@ const Root = ({
 		</SandbarContext.Provider>
 	);
 };
-Root.displayName = "Sandbar";
 
 type SandbarMessageProps = ComponentProps<"p"> & WithAsChild;
 
@@ -635,7 +634,6 @@ const Message = ({ asChild, className, id: propId, ...props }: SandbarMessagePro
 		/>
 	);
 };
-Message.displayName = "SandbarMessage";
 
 type SandbarActionsProps = ComponentProps<"div"> & WithAsChild;
 
@@ -668,7 +666,6 @@ const Actions = ({ asChild, className, ...props }: SandbarActionsProps) => {
 		/>
 	);
 };
-Actions.displayName = "SandbarActions";
 
 type SandbarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "intent"> & {
 	/**
@@ -749,7 +746,6 @@ const SaveButton = ({
 		</Button>
 	);
 };
-SaveButton.displayName = "SandbarSaveButton";
 
 type SandbarDiscardButtonProps = Omit<ButtonProps, "appearance" | "children" | "intent"> & {
 	/**
@@ -799,7 +795,6 @@ const DiscardButton = ({
 		</Button>
 	);
 };
-DiscardButton.displayName = "SandbarDiscardButton";
 
 type SandbarErrorProps = Omit<ComponentProps<typeof Alert.Root>, "intent">;
 
@@ -862,7 +857,6 @@ const SandbarError = ({ children, className, ...props }: SandbarErrorProps) => {
 		</Alert.Root>
 	);
 };
-SandbarError.displayName = "SandbarError";
 
 /**
  * A persistent, decision-bearing bar that floats near the bottom edge of the
