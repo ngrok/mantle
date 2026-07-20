@@ -204,9 +204,9 @@ const Root = ({
 	const composedPanelRef = useComposedRefs(panelRef, ref);
 
 	const shakeAnimationRef = useRef<Animation | null>(null);
-	const politeClearTimerRef = useRef<number>(undefined);
-	const assertiveClearTimerRef = useRef<number>(undefined);
-	const assertiveFrameRef = useRef<number>(undefined);
+	const politeClearTimerRef = useRef<number | undefined>(undefined);
+	const assertiveClearTimerRef = useRef<number | undefined>(undefined);
+	const assertiveFrameRef = useRef<number | undefined>(undefined);
 	const assertiveNbspToggleRef = useRef(false);
 	const isSavingRef = useRef(false);
 	/**
