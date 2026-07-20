@@ -11,7 +11,7 @@ import type {
 	XAxisPrimitiveProps,
 	YAxisPrimitiveProps,
 } from "../chart/primitive.js";
-import type { ChartDatum, ChartDatumEvent, SeriesColor } from "../chart/types.js";
+import type { ChartDatum, ChartDatumEvent, PointShape, SeriesColor } from "../chart/types.js";
 import {
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
@@ -92,6 +92,14 @@ type ScatterChartPointProps = {
 	 * semantic status colors, never a categorical slot.
 	 */
 	color?: SeriesColor;
+	/**
+	 * The glyph this series' points wear: `"circle"` (default), `"square"`,
+	 * `"triangle"`, or `"diamond"`. Give each series a distinct shape on
+	 * multi-series scatters — shape is the redundant encoding that keeps
+	 * overlapping clouds distinguishable without color vision. The legend key
+	 * and hover dot mirror it.
+	 */
+	shape?: PointShape;
 };
 
 /**

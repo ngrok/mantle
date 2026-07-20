@@ -50,6 +50,50 @@ export function RegionScatterExample() {
 	);
 }
 
+export const shapedRegions = [
+	...regionPoints({ key: "usEast", seed: 11, latencyBase: 18 }),
+	...regionPoints({ key: "euWest", seed: 47, latencyBase: 62 }),
+	...regionPoints({ key: "apSouth", seed: 83, latencyBase: 104 }),
+];
+
+export function PointShapesExample() {
+	return (
+		<ScatterChart.Root
+			data={shapedRegions}
+			xKey="latency"
+			aria-label="Latency vs throughput by region, shape-coded"
+		>
+			<ScatterChart.Grid />
+			<ScatterChart.XAxis tickFormat={(value) => `${value}ms`} />
+			<ScatterChart.YAxis />
+			<ScatterChart.Point dataKey="usEast" label="US East" />
+			<ScatterChart.Point dataKey="euWest" label="EU West" shape="triangle" />
+			<ScatterChart.Point dataKey="apSouth" label="AP South" shape="square" />
+			<ScatterChart.Tooltip valueFormat={(value) => `${value} rps`} />
+			<ScatterChart.Legend />
+		</ScatterChart.Root>
+	);
+}
+
+export function CopyMarkdownExample() {
+	return (
+		<ScatterChart.Root
+			data={regionThroughput}
+			xKey="latency"
+			aria-label="Latency vs throughput by region, copyable"
+		>
+			<ScatterChart.Grid />
+			<ScatterChart.XAxis tickFormat={(value) => `${value}ms`} />
+			<ScatterChart.YAxis />
+			<ScatterChart.Point dataKey="usEast" label="US East" />
+			<ScatterChart.Point dataKey="euWest" label="EU West" />
+			<ScatterChart.Tooltip valueFormat={(value) => `${value} rps`} />
+			<ScatterChart.Legend />
+			<ScatterChart.CopyButton className="absolute right-0 top-0" />
+		</ScatterChart.Root>
+	);
+}
+
 export function seededRequests(count, seed) {
 	const random = createSeededRandom(seed);
 	return Array.from({ length: count }, () => {
@@ -288,6 +332,39 @@ function RegionScatterExample() {
 		</ScatterChart.Root>
 	);
 }
+```
+
+## Point shapes
+
+`shape` gives each series a distinct glyph — `"circle"` (the default), `"square"`, `"triangle"`, or `"diamond"`, sized for equal visual weight. Shape is a redundant encoding alongside color: where clouds overlap and colors sit side by side, the glyphs keep every series distinguishable without color vision. The legend keys and the hover dot mirror each series' glyph.
+
+<Example>
+	<PointShapesExample />
+</Example>
+
+```tsx
+import { ScatterChart } from "@ngrok/mantle/scatter-chart";
+
+const shapedRegions = [
+	...regionPoints({ key: "usEast", seed: 11, latencyBase: 18 }),
+	...regionPoints({ key: "euWest", seed: 47, latencyBase: 62 }),
+	...regionPoints({ key: "apSouth", seed: 83, latencyBase: 104 }),
+];
+
+<ScatterChart.Root
+	data={shapedRegions}
+	xKey="latency"
+	aria-label="Latency vs throughput by region, shape-coded"
+>
+	<ScatterChart.Grid />
+	<ScatterChart.XAxis tickFormat={(value) => `${value}ms`} />
+	<ScatterChart.YAxis />
+	<ScatterChart.Point dataKey="usEast" label="US East" />
+	<ScatterChart.Point dataKey="euWest" label="EU West" shape="triangle" />
+	<ScatterChart.Point dataKey="apSouth" label="AP South" shape="square" />
+	<ScatterChart.Tooltip valueFormat={(value) => `${value} rps`} />
+	<ScatterChart.Legend />
+</ScatterChart.Root>;
 ```
 
 ## Dense scatter
@@ -568,6 +645,33 @@ function ReferenceLineScatterExample() {
 }
 ```
 
+## Copy as markdown
+
+`ScatterChart.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table — one x column plus one column per series in paint order, and the z column in 3D (ISO 8601 dates, plain un-separated numbers, an em dash for gaps) — pasteable into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
+
+<Example>
+	<CopyMarkdownExample />
+</Example>
+
+```tsx
+import { ScatterChart } from "@ngrok/mantle/scatter-chart";
+
+<ScatterChart.Root
+	data={regionThroughput}
+	xKey="latency"
+	aria-label="Latency vs throughput by region, copyable"
+>
+	<ScatterChart.Grid />
+	<ScatterChart.XAxis tickFormat={(value) => `${value}ms`} />
+	<ScatterChart.YAxis />
+	<ScatterChart.Point dataKey="usEast" label="US East" />
+	<ScatterChart.Point dataKey="euWest" label="EU West" />
+	<ScatterChart.Tooltip valueFormat={(value) => `${value} rps`} />
+	<ScatterChart.Legend />
+	<ScatterChart.CopyButton className="absolute right-0 top-0" />
+</ScatterChart.Root>;
+```
+
 ## Composition
 
 Compose the parts of a `ScatterChart` together to build your own:
@@ -635,11 +739,12 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 One point series. Renders nothing itself — it registers the series with the chart, which paints its points on canvas: 4px dots with a 2px surface ring, degrading gracefully past thousands of points (see [Dense scatter](#dense-scatter)). Compose one `Point` per series — four or fewer with the default tokens, because scatter is an all-pairs form.
 
-| Prop      | Type          | Default          | Description                                                                                                                                                             |
-| --------- | ------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dataKey` | `string`      |                  | The row key this series reads its y values from.                                                                                                                        |
-| `label?`  | `string`      | `dataKey`        | Display name for the legend, tooltip, and data table.                                                                                                                   |
-| `color?`  | `SeriesColor` | next sticky slot | One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`) or any CSS color string as an escape hatch. See [Chart color tokens](#chart-color-tokens). |
+| Prop      | Type                                                    | Default          | Description                                                                                                                                                                                                                                  |
+| --------- | ------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dataKey` | `string`                                                |                  | The row key this series reads its y values from.                                                                                                                                                                                             |
+| `label?`  | `string`                                                | `dataKey`        | Display name for the legend, tooltip, and data table.                                                                                                                                                                                        |
+| `color?`  | `SeriesColor`                                           | next sticky slot | One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`) or any CSS color string as an escape hatch. See [Chart color tokens](#chart-color-tokens).                                                                      |
+| `shape?`  | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` | `"circle"`       | The glyph this series' points wear. Give each series a distinct shape on multi-series scatters — shape is the redundant encoding that keeps overlapping clouds distinguishable without color vision. The legend key and hover dot mirror it. |
 
 ### ScatterChart.Grid
 

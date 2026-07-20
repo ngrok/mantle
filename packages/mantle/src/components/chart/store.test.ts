@@ -10,6 +10,7 @@ const makeSeries = (dataKey: string, overrides: Partial<SeriesSpec> = {}): Serie
 	curve: "linear",
 	markers: false,
 	connectNulls: false,
+	shape: "circle",
 	...overrides,
 });
 
@@ -135,6 +136,15 @@ describe("ChartStore registrations", () => {
 		unregisterOne();
 		store.registerReferenceLine("one", { y: 15, label: "a", color: undefined });
 		expect(store.getSnapshot().referenceLines.map((line) => line.y)).toEqual([15, 20]);
+	});
+
+	test("series meta carries the registered point shape through to DOM consumers", () => {
+		const store = new ChartStore();
+		store.registerSeries(makeSeries("a", { mark: "scatter", shape: "triangle" }));
+		store.registerSeries(makeSeries("b", { mark: "scatter" }));
+		const meta = store.seriesMeta();
+		expect(meta[0]?.shape).toBe("triangle");
+		expect(meta[1]?.shape).toBe("circle");
 	});
 
 	test("subscribers are notified and snapshots are immutable-by-replacement", () => {

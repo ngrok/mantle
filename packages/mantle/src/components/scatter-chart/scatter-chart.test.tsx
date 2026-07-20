@@ -179,6 +179,22 @@ describe("ScatterChart.Legend", () => {
 		expect(container.querySelector('[data-slot="scatter-chart-legend"]')).not.toBeInTheDocument();
 	});
 
+	test("legend keys mirror each series' configured point shape", () => {
+		const { container } = render(
+			<ScatterChart.Root data={data} xKey="latency" aria-label="Latency by region">
+				<ScatterChart.Point dataKey="regionA" label="Region A" shape="triangle" />
+				<ScatterChart.Point dataKey="regionB" label="Region B" />
+				<ScatterChart.Legend />
+			</ScatterChart.Root>,
+		);
+		const legend = container.querySelector('[data-slot="scatter-chart-legend"]');
+		const swatches = legend == null ? [] : [...legend.querySelectorAll("span[data-shape]")];
+		expect(swatches.map((swatch) => swatch.getAttribute("data-shape"))).toEqual([
+			"triangle",
+			"circle",
+		]);
+	});
+
 	test("supports a render-prop for custom legends", () => {
 		render(
 			<ScatterChart.Root data={data} xKey="latency" aria-label="Latency by region">

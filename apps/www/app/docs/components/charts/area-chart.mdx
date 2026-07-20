@@ -74,9 +74,30 @@ export function OverlappingAreasExample() {
 			<AreaChart.XAxis />
 			<AreaChart.YAxis />
 			<AreaChart.Area dataKey="usEast" label="US East" />
-			<AreaChart.Area dataKey="euWest" label="EU West" />
+			<AreaChart.Area dataKey="euWest" label="EU West" shape="diamond" />
 			<AreaChart.Tooltip />
 			<AreaChart.Legend />
+		</AreaChart.Root>
+	);
+}
+
+export function CopyMarkdownExample() {
+	return (
+		<AreaChart.Root
+			data={trafficData}
+			xKey="date"
+			stacked
+			aria-label="Traffic by protocol, copyable"
+		>
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="http" label="HTTP" />
+			<AreaChart.Area dataKey="tcp" label="TCP" />
+			<AreaChart.Area dataKey="tls" label="TLS" />
+			<AreaChart.Tooltip />
+			<AreaChart.Legend />
+			<AreaChart.CopyButton className="absolute right-0 top-0" />
 		</AreaChart.Root>
 	);
 }
@@ -300,7 +321,7 @@ The tooltip, crosshair, and keyboard cursor are part of `AreaChart.Root`'s inter
 
 ## Overlapping areas
 
-Without `stacked`, every series fills from the zero baseline and the areas overlap. The 10% wash is what keeps this legible: with two series you can read both bands and the region where they cross.
+Without `stacked`, every series fills from the zero baseline and the areas overlap. The 10% wash is what keeps this legible: with two series you can read both bands and the region where they cross. `shape` gives a series' hover dot a distinct glyph (hover the crossing — EU West wears diamonds), a redundant encoding alongside color for where the bands overlap.
 
 <Example>
 	<OverlappingAreasExample />
@@ -331,7 +352,7 @@ const regionData = [
 	<AreaChart.XAxis />
 	<AreaChart.YAxis />
 	<AreaChart.Area dataKey="usEast" label="US East" />
-	<AreaChart.Area dataKey="euWest" label="EU West" />
+	<AreaChart.Area dataKey="euWest" label="EU West" shape="diamond" />
 	<AreaChart.Tooltip />
 	<AreaChart.Legend />
 </AreaChart.Root>;
@@ -558,6 +579,30 @@ function LiveAreaExample() {
 }
 ```
 
+## Copy as markdown
+
+`AreaChart.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table — one x column plus one column per series in paint order (ISO 8601 dates, plain un-separated numbers, an em dash for gaps) — pasteable into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
+
+<Example>
+	<CopyMarkdownExample />
+</Example>
+
+```tsx
+import { AreaChart } from "@ngrok/mantle/area-chart";
+
+<AreaChart.Root data={trafficData} xKey="date" stacked aria-label="Traffic by protocol, copyable">
+	<AreaChart.Grid />
+	<AreaChart.XAxis />
+	<AreaChart.YAxis />
+	<AreaChart.Area dataKey="http" label="HTTP" />
+	<AreaChart.Area dataKey="tcp" label="TCP" />
+	<AreaChart.Area dataKey="tls" label="TLS" />
+	<AreaChart.Tooltip />
+	<AreaChart.Legend />
+	<AreaChart.CopyButton className="absolute right-0 top-0" />
+</AreaChart.Root>;
+```
+
 ## Composition
 
 Compose the parts of an `AreaChart` together to build your own:
@@ -632,13 +677,14 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 One area series. Renderless — it registers the series with the chart, which paints it on canvas. Compose one `Area` per series.
 
-| Prop           | Type                                                     | Default              | Description                                                                                                            |
-| -------------- | -------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `dataKey`      | `string`                                                 |                      | The row key this series reads its numeric values from.                                                                 |
-| `label`        | `string`                                                 | `dataKey`            | Display name for the legend, tooltip, and data table.                                                                  |
-| `color`        | `"chart-1"` … `"chart-8"` \| `"chart-other"` \| `string` | the next sticky slot | One of the validated chart tokens, or any CSS color as an escape hatch. See [Chart color tokens](#chart-color-tokens). |
-| `curve`        | `"linear"` \| `"monotone"` \| `"step"`                   | `"linear"`           | Interpolation between points: straight segments, smoothed without overshoot, or held steps.                            |
-| `connectNulls` | `boolean`                                                | `false`              | Join across `null`/missing values instead of leaving gaps. Gaps are the default and usually correct.                   |
+| Prop           | Type                                                     | Default              | Description                                                                                                                  |
+| -------------- | -------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `dataKey`      | `string`                                                 |                      | The row key this series reads its numeric values from.                                                                       |
+| `label`        | `string`                                                 | `dataKey`            | Display name for the legend, tooltip, and data table.                                                                        |
+| `color`        | `"chart-1"` … `"chart-8"` \| `"chart-other"` \| `string` | the next sticky slot | One of the validated chart tokens, or any CSS color as an escape hatch. See [Chart color tokens](#chart-color-tokens).       |
+| `curve`        | `"linear"` \| `"monotone"` \| `"step"`                   | `"linear"`           | Interpolation between points: straight segments, smoothed without overshoot, or held steps.                                  |
+| `connectNulls` | `boolean`                                                | `false`              | Join across `null`/missing values instead of leaving gaps. Gaps are the default and usually correct.                         |
+| `shape`        | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"`  | `"circle"`           | The glyph the hover dot wears — a redundant encoding alongside color that keeps series distinguishable without color vision. |
 
 ### AreaChart.Grid
 

@@ -61,7 +61,13 @@ export function CurveMarkersExample() {
 			<LineChart.XAxis />
 			<LineChart.YAxis />
 			<LineChart.Line dataKey="thisWeek" label="This week" curve="monotone" markers />
-			<LineChart.Line dataKey="lastWeek" label="Last week" curve="monotone" markers />
+			<LineChart.Line
+				dataKey="lastWeek"
+				label="Last week"
+				curve="monotone"
+				markers
+				shape="triangle"
+			/>
 			<LineChart.Tooltip />
 			<LineChart.Legend />
 		</LineChart.Root>
@@ -290,7 +296,7 @@ function LatencyExample() {
 
 ## Curves and markers
 
-`curve` controls interpolation between points: `"linear"` (the default), `"monotone"` (smoothed without overshooting the data), or `"step"`. `markers` draws a dot with a surface ring at each point — markers auto-hide when points get denser than ~12px apart, so a chart that grows dense never turns to gravel. String x values put the chart on a `"point"` scale: evenly spaced categorical positions with no band thickness.
+`curve` controls interpolation between points: `"linear"` (the default), `"monotone"` (smoothed without overshooting the data), or `"step"`. `markers` draws a dot with a surface ring at each point — markers auto-hide when points get denser than ~12px apart, so a chart that grows dense never turns to gravel. `shape` picks the marker glyph per series — `"circle"` (default), `"square"`, `"triangle"`, or `"diamond"`, sized for equal visual weight — and the hover dot wears it too: a redundant encoding alongside color, so series stay distinguishable without color vision (last week wears triangles below). String x values put the chart on a `"point"` scale: evenly spaced categorical positions with no band thickness.
 
 <Example>
 	<CurveMarkersExample />
@@ -316,7 +322,13 @@ function CurveMarkersExample() {
 			<LineChart.XAxis />
 			<LineChart.YAxis />
 			<LineChart.Line dataKey="thisWeek" label="This week" curve="monotone" markers />
-			<LineChart.Line dataKey="lastWeek" label="Last week" curve="monotone" markers />
+			<LineChart.Line
+				dataKey="lastWeek"
+				label="Last week"
+				curve="monotone"
+				markers
+				shape="triangle"
+			/>
 			<LineChart.Tooltip />
 			<LineChart.Legend />
 		</LineChart.Root>
@@ -659,14 +671,15 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 One line series. Renderless — it registers the series with the chart, which paints it on canvas. Compose one `Line` per series.
 
-| Prop            | Type                                   | Default          | Description                                                                                                                                                             |
-| --------------- | -------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dataKey`       | `string`                               |                  | The row key this series reads its numeric values from.                                                                                                                  |
-| `label?`        | `string`                               | `dataKey`        | Display name for the legend, tooltip, and data table.                                                                                                                   |
-| `color?`        | `SeriesColor`                          | next sticky slot | One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`) or any CSS color string as an escape hatch. See [Chart color tokens](#chart-color-tokens). |
-| `curve?`        | `"linear"` \| `"monotone"` \| `"step"` | `"linear"`       | Interpolation between points. `"monotone"` smooths without overshooting the data.                                                                                       |
-| `markers?`      | `boolean`                              | `false`          | Draw point markers with a surface ring. Auto-hidden when points are denser than ~12px apart.                                                                            |
-| `connectNulls?` | `boolean`                              | `false`          | Join across `null`/missing values instead of leaving gaps. Gaps are the default and usually correct.                                                                    |
+| Prop            | Type                                                    | Default          | Description                                                                                                                                                             |
+| --------------- | ------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dataKey`       | `string`                                                |                  | The row key this series reads its numeric values from.                                                                                                                  |
+| `label?`        | `string`                                                | `dataKey`        | Display name for the legend, tooltip, and data table.                                                                                                                   |
+| `color?`        | `SeriesColor`                                           | next sticky slot | One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`) or any CSS color string as an escape hatch. See [Chart color tokens](#chart-color-tokens). |
+| `curve?`        | `"linear"` \| `"monotone"` \| `"step"`                  | `"linear"`       | Interpolation between points. `"monotone"` smooths without overshooting the data.                                                                                       |
+| `markers?`      | `boolean`                                               | `false`          | Draw point markers with a surface ring. Auto-hidden when points are denser than ~12px apart.                                                                            |
+| `connectNulls?` | `boolean`                                               | `false`          | Join across `null`/missing values instead of leaving gaps. Gaps are the default and usually correct.                                                                    |
+| `shape?`        | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` | `"circle"`       | The glyph the hover dot and canvas point markers wear — a redundant encoding alongside color that keeps series distinguishable without color vision.                    |
 
 ### LineChart.Grid
 

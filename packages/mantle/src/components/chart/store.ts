@@ -267,6 +267,7 @@ class ChartStore {
 			mark: spec.mark,
 			color: displayColor(spec.color, this.#slotByKey.get(spec.dataKey) ?? "chart-other"),
 			colorInput: spec.color ?? this.#slotByKey.get(spec.dataKey) ?? "chart-other",
+			shape: spec.shape,
 		}));
 	}
 

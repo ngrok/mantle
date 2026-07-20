@@ -79,6 +79,13 @@ type CurveKind = "linear" | "monotone" | "step";
  * A registered series' configuration, captured from a series part
  * (`BarChart.Bar`, `LineChart.Line`, `AreaChart.Area`).
  */
+/**
+ * The glyph a series' points wear: scatter marks, line canvas markers, and
+ * the hover dot on line/area charts. Shape is a redundant encoding alongside
+ * color, so series stay distinguishable without color vision.
+ */
+type PointShape = "circle" | "square" | "triangle" | "diamond";
+
 type SeriesSpec = {
 	/** The row key this series reads its numeric values from. */
 	dataKey: string;
@@ -94,6 +101,8 @@ type SeriesSpec = {
 	markers: boolean;
 	/** Join across `null`/missing values instead of leaving gaps. */
 	connectNulls: boolean;
+	/** The point glyph (scatter marks, line markers, hover dots). */
+	shape: PointShape;
 };
 
 /**
@@ -108,6 +117,8 @@ type SeriesMeta = {
 	color: string;
 	/** The color as authored (token name or custom string) before resolution. */
 	colorInput: SeriesColor;
+	/** The point glyph the series wears (scatter marks, legend keys, hover dots). */
+	shape: PointShape;
 };
 
 /**
@@ -215,6 +226,7 @@ export type {
 	CurveKind,
 	GridLines,
 	HoverSnapshot,
+	PointShape,
 	ReferenceLineSpec,
 	SeriesColor,
 	SeriesMark,

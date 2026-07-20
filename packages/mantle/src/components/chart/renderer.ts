@@ -1,5 +1,5 @@
 import { area as d3Area, curveLinear, curveMonotoneX, curveStep, line as d3Line } from "d3-shape";
-import type { CurveKind } from "./types.js";
+import type { CurveKind, PointShape } from "./types.js";
 import type { DecimatedColumns } from "./decimate.js";
 
 /**
@@ -345,6 +345,63 @@ const drawDecimatedArea = (
 };
 
 /**
+ * The subset of the 2D context {@link tracePointShape} traces into —
+ * structural, so unit tests can record calls without type assertions.
+ */
+type PathTraceContext = Pick<CanvasRenderingContext2D, "arc" | "moveTo" | "lineTo" | "closePath">;
+
+/**
+ * Trace one point glyph into the current path, centered on (x, y). Non-circle
+ * sizes are scaled so every shape carries roughly the same visual weight
+ * (equal fill area) as a circle of `radius`.
+ *
+ * @example
+ * ```ts
+ * ctx.beginPath();
+ * tracePointShape(ctx, x, y, MARKER_RADIUS, "diamond");
+ * ctx.fill();
+ * ```
+ */
+const tracePointShape = (
+	ctx: PathTraceContext,
+	x: number,
+	y: number,
+	radius: number,
+	shape: PointShape,
+): void => {
+	if (shape === "square") {
+		// side 2·0.886r ⇒ area (1.772r)² ≈ πr².
+		const half = radius * 0.886;
+		ctx.moveTo(x - half, y - half);
+		ctx.lineTo(x + half, y - half);
+		ctx.lineTo(x + half, y + half);
+		ctx.lineTo(x - half, y + half);
+		ctx.closePath();
+		return;
+	}
+	if (shape === "triangle") {
+		// Equilateral with circumradius 1.55r ⇒ (3√3/4)(1.55r)² ≈ πr².
+		const circumradius = radius * 1.55;
+		ctx.moveTo(x, y - circumradius);
+		ctx.lineTo(x + circumradius * 0.866, y + circumradius * 0.5);
+		ctx.lineTo(x - circumradius * 0.866, y + circumradius * 0.5);
+		ctx.closePath();
+		return;
+	}
+	if (shape === "diamond") {
+		// Half-diagonal 1.253r ⇒ 2(1.253r)² ≈ πr².
+		const half = radius * 1.253;
+		ctx.moveTo(x, y - half);
+		ctx.lineTo(x + half, y);
+		ctx.lineTo(x, y + half);
+		ctx.lineTo(x - half, y);
+		ctx.closePath();
+		return;
+	}
+	ctx.arc(x, y, radius, 0, Math.PI * 2);
+};
+
+/**
  * Point markers with a 2px surface ring so dots stay legible where they cross
  * lines or each other.
  */
@@ -353,13 +410,14 @@ const drawMarkers = (
 	options: {
 		color: string;
 		surface: string;
+		shape: PointShape;
 		indexes: readonly number[];
 		xAt: (index: number) => number;
 		yAt: (index: number) => number;
 		definedAt: (index: number) => boolean;
 	},
 ): void => {
-	const { color, surface, indexes, xAt, yAt, definedAt } = options;
+	const { color, surface, shape, indexes, xAt, yAt, definedAt } = options;
 	ctx.fillStyle = color;
 	ctx.strokeStyle = surface;
 	ctx.lineWidth = MARKER_RING;
@@ -368,7 +426,7 @@ const drawMarkers = (
 			continue;
 		}
 		ctx.beginPath();
-		ctx.arc(xAt(index), yAt(index), MARKER_RADIUS, 0, Math.PI * 2);
+		tracePointShape(ctx, xAt(index), yAt(index), MARKER_RADIUS, shape);
 		ctx.fill();
 		ctx.stroke();
 	}
@@ -392,6 +450,8 @@ const drawScatterPoints = (
 	options: {
 		color: string;
 		surface: string;
+		/** The series' point glyph (ignored on the 2×2-rect fast path). */
+		shape: PointShape;
 		/** Total points across ALL series this paint — the degradation input. */
 		totalPointCount: number;
 		indexes: readonly number[];
@@ -400,7 +460,7 @@ const drawScatterPoints = (
 		radiusAt: (index: number) => number;
 	},
 ): void => {
-	const { color, surface, totalPointCount, indexes, xAt, yAt, radiusAt } = options;
+	const { color, surface, shape, totalPointCount, indexes, xAt, yAt, radiusAt } = options;
 	ctx.fillStyle = color;
 	if (totalPointCount > SCATTER_RECT_LIMIT) {
 		ctx.beginPath();
@@ -422,7 +482,7 @@ const drawScatterPoints = (
 			continue;
 		}
 		ctx.beginPath();
-		ctx.arc(xAt(index), yAt(index), radius, 0, Math.PI * 2);
+		tracePointShape(ctx, xAt(index), yAt(index), radius, shape);
 		ctx.fill();
 		if (drawRing) {
 			ctx.stroke();
@@ -444,12 +504,14 @@ const drawDepthSortedPoints = (
 		screenY: Float64Array;
 		radius: Float64Array;
 		colorAt: (slot: number) => string;
+		/** Per-slot point glyph (ignored on the rect fast path). */
+		shapeAt: (slot: number) => PointShape;
 		/** Per-slot opacity (series enter reveals) — 1 for settled series. */
 		alphaAt: (slot: number) => number;
 		surface: string;
 	},
 ): void => {
-	const { count, order, screenX, screenY, radius, colorAt, alphaAt, surface } = options;
+	const { count, order, screenX, screenY, radius, colorAt, shapeAt, alphaAt, surface } = options;
 	ctx.save();
 	if (count > SCATTER_RECT_LIMIT) {
 		let currentColor = "";
@@ -488,7 +550,7 @@ const drawDepthSortedPoints = (
 			currentAlpha = alpha;
 		}
 		ctx.beginPath();
-		ctx.arc(screenX[slot] ?? 0, screenY[slot] ?? 0, radius[slot] ?? 0, 0, Math.PI * 2);
+		tracePointShape(ctx, screenX[slot] ?? 0, screenY[slot] ?? 0, radius[slot] ?? 0, shapeAt(slot));
 		ctx.fill();
 		if (drawRing) {
 			ctx.stroke();
@@ -700,4 +762,5 @@ export {
 	hairline,
 	LINE_WIDTH,
 	MARKER_RADIUS,
+	tracePointShape,
 };

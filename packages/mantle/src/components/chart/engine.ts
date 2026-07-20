@@ -8,6 +8,7 @@ import type {
 	ChartDatumEvent,
 	ChartOptions,
 	HoverSnapshot,
+	PointShape,
 	SeriesMark,
 	SeriesSpec,
 	XValue,
@@ -1460,6 +1461,7 @@ class ChartEngine {
 					drawMarkers(ctx, {
 						color,
 						surface: colors.chrome.surface,
+						shape: spec.shape,
 						indexes,
 						xAt,
 						yAt,
@@ -1727,6 +1729,7 @@ class ChartEngine {
 			drawScatterPoints(ctx, {
 				color: colors.series.get(spec.dataKey) ?? "currentColor",
 				surface: colors.chrome.surface,
+				shape: spec.shape,
 				totalPointCount,
 				indexes,
 				xAt: (index) => (this.#xs[index] ?? 0) * xCo.k + xCo.b,
@@ -1871,6 +1874,7 @@ class ChartEngine {
 				const spec = specs[projected.seriesIndex[slot] ?? 0];
 				return spec == null ? "currentColor" : (colors.series.get(spec.dataKey) ?? "currentColor");
 			},
+			shapeAt: (slot) => specs[projected.seriesIndex[slot] ?? 0]?.shape ?? "circle",
 			alphaAt: (slot) => seriesReveal[projected.seriesIndex[slot] ?? 0] ?? 1,
 			surface: colors.chrome.surface,
 		});
@@ -2014,7 +2018,7 @@ class ChartEngine {
 							})
 						: meta.find((series) => series.dataKey === this.#activeSeriesKey);
 				dot.style.opacity = "1";
-				dot.style.backgroundColor = active?.color ?? "currentColor";
+				styleMarkerDot(dot, active?.shape ?? "circle", active?.color ?? "currentColor");
 				dot.style.transform = `translate3d(${screen.x}px, ${screen.y}px, 0)`;
 			}
 			this.#positionTooltip(screen.x, screen.y);
@@ -2037,6 +2041,7 @@ class ChartEngine {
 
 			// One marker dot per series, synced imperatively.
 			const meta = this.#store.seriesMeta();
+			const specs = this.#store.seriesSpecs();
 			while (markers.children.length > meta.length) {
 				markers.lastElementChild?.remove();
 			}
@@ -2049,15 +2054,24 @@ class ChartEngine {
 				if (!(dot instanceof HTMLElement)) {
 					return;
 				}
-				const values = this.#columns.get(series.dataKey);
-				const value = values?.[index] ?? Number.NaN;
-				if (Number.isNaN(value)) {
+				// Visibility follows the RAW value (a null row hides the dot even if
+				// the stack carries a boundary through the gap); position follows the
+				// PAINTED value — the stacked upper boundary when stacking — so the
+				// dot sits on its series' drawn line, never at the unstacked height.
+				const raw = this.#columns.get(series.dataKey)?.[index] ?? Number.NaN;
+				const spec = specs[seriesIndex];
+				const painted =
+					spec == null
+						? Number.NaN
+						: (this.#paintedValues(spec, this.#stack != null ? "upper" : "value")[index] ??
+							Number.NaN);
+				if (Number.isNaN(raw) || Number.isNaN(painted)) {
 					dot.style.opacity = "0";
 					return;
 				}
 				dot.style.opacity = "1";
-				dot.style.backgroundColor = series.color;
-				dot.style.transform = `translate3d(${xPx}px, ${value * yCo.k + yCo.b}px, 0)`;
+				styleMarkerDot(dot, series.shape, series.color);
+				dot.style.transform = `translate3d(${xPx}px, ${painted * yCo.k + yCo.b}px, 0)`;
 			});
 		}
 
@@ -2153,17 +2167,58 @@ const advanceLabelFade = (
  * An active-point marker dot for the hover overlay: an 8px dot with a 2px
  * surface ring, positioned by transform.
  */
+/**
+ * Per-glyph clip paths for the DOM hover dots and legend keys. The square is
+ * inset toward equal fill area with the circle; the polygons are naturally
+ * lighter than their box.
+ */
+const POINT_SHAPE_CLIP_PATHS: Record<PointShape, string> = {
+	circle: "circle(50%)",
+	square: "inset(8%)",
+	triangle: "polygon(50% 0%, 100% 100%, 0% 100%)",
+	diamond: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
+};
+
+/**
+ * A hover dot: a card-colored ring layer behind an inset fill layer, both
+ * clipped to the series' glyph. A CSS border cannot follow a clip-path, so
+ * the 2px surface ring is faked with same-shaped stacked layers.
+ */
 const createMarkerDot = (ownerDocument: Document): HTMLElement => {
 	const dot = ownerDocument.createElement("div");
 	dot.setAttribute("data-slot", "chart-active-point");
 	dot.style.position = "absolute";
-	dot.style.width = "8px";
-	dot.style.height = "8px";
-	dot.style.borderRadius = "9999px";
-	dot.style.border = "2px solid var(--background-color-card)";
-	dot.style.left = "-4px";
-	dot.style.top = "-4px";
+	dot.style.width = "12px";
+	dot.style.height = "12px";
+	dot.style.left = "-6px";
+	dot.style.top = "-6px";
+	const ring = ownerDocument.createElement("div");
+	ring.style.position = "absolute";
+	ring.style.inset = "0";
+	ring.style.backgroundColor = "var(--background-color-card)";
+	const fill = ownerDocument.createElement("div");
+	fill.style.position = "absolute";
+	fill.style.inset = "2px";
+	dot.appendChild(ring);
+	dot.appendChild(fill);
 	return dot;
+};
+
+/**
+ * Sync a hover dot's glyph and fill color. Style writes are idempotent, so
+ * calling on every overlay sync is safe.
+ */
+const styleMarkerDot = (dot: HTMLElement, shape: PointShape, color: string): void => {
+	const clip = POINT_SHAPE_CLIP_PATHS[shape];
+	dot.setAttribute("data-shape", shape);
+	const [ring, fill] = dot.children;
+	if (ring instanceof HTMLElement) {
+		ring.style.clipPath = clip;
+	}
+	if (fill instanceof HTMLElement) {
+		fill.style.clipPath = clip;
+		fill.style.backgroundColor = color;
+	}
 };
 
 /**
@@ -2203,4 +2258,5 @@ export type {
 export {
 	//,
 	ChartEngine,
+	POINT_SHAPE_CLIP_PATHS,
 };

@@ -17,6 +17,21 @@ export const monthlyVisitors = [
 	{ month: "June", desktop: 214, mobile: 140 },
 ];
 
+export function CopyMarkdownExample() {
+	return (
+		<BarChart.Root data={monthlyVisitors} xKey="month" aria-label="Visitors by month, copyable">
+			<BarChart.Grid />
+			<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+			<BarChart.YAxis />
+			<BarChart.Bar dataKey="desktop" label="Desktop" />
+			<BarChart.Bar dataKey="mobile" label="Mobile" />
+			<BarChart.Tooltip />
+			<BarChart.Legend />
+			<BarChart.CopyButton className="absolute right-0 top-0" />
+		</BarChart.Root>
+	);
+}
+
 export const endpointRequests = [
 	{ endpoint: "/api/tunnels", requests: 4820 },
 	{ endpoint: "/api/edges", requests: 3190 },
@@ -625,6 +640,29 @@ function LiveBarChartExample() {
 		</BarChart.Root>
 	);
 }
+```
+
+## Copy as markdown
+
+`BarChart.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table — the category column plus one column per series in paint order (plain un-separated numbers, an em dash for gaps) — pasteable into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
+
+<Example>
+	<CopyMarkdownExample />
+</Example>
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+
+<BarChart.Root data={monthlyVisitors} xKey="month" aria-label="Visitors by month, copyable">
+	<BarChart.Grid />
+	<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+	<BarChart.YAxis />
+	<BarChart.Bar dataKey="desktop" label="Desktop" />
+	<BarChart.Bar dataKey="mobile" label="Mobile" />
+	<BarChart.Tooltip />
+	<BarChart.Legend />
+	<BarChart.CopyButton className="absolute right-0 top-0" />
+</BarChart.Root>;
 ```
 
 ## Composition

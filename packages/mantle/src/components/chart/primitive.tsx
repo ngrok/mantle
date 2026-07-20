@@ -22,7 +22,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { IconButton } from "../button/icon-button.js";
 import { datumValue } from "./datum.js";
-import { ChartEngine } from "./engine.js";
+import { ChartEngine, POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import { formatNumber, formatXValue } from "./format.js";
 import { serializeChartMarkdown } from "./serialize.js";
 import { ChartStore } from "./store.js";
@@ -33,6 +33,7 @@ import type {
 	CurveKind,
 	GridLines,
 	HoverSnapshot,
+	PointShape,
 	SeriesColor,
 	SeriesMark,
 	SeriesMeta,
@@ -443,6 +444,7 @@ type SeriesPrimitiveProps = {
 	curve?: CurveKind;
 	markers?: boolean;
 	connectNulls?: boolean;
+	shape?: PointShape;
 };
 
 /**
@@ -459,7 +461,15 @@ const useSeriesPrimitive = (
 		context.kind === mark,
 		`${partName} cannot be composed inside ${context.componentName}.Root — compose ${context.componentName} series parts instead.`,
 	);
-	const { dataKey, label, color, curve = "linear", markers = false, connectNulls = false } = props;
+	const {
+		dataKey,
+		label,
+		color,
+		curve = "linear",
+		markers = false,
+		connectNulls = false,
+		shape = "circle",
+	} = props;
 	useLayoutEffect(
 		() =>
 			context.store.registerSeries({
@@ -470,8 +480,9 @@ const useSeriesPrimitive = (
 				curve,
 				markers,
 				connectNulls,
+				shape,
 			}),
-		[context.store, dataKey, label, color, mark, curve, markers, connectNulls],
+		[context.store, dataKey, label, color, mark, curve, markers, connectNulls, shape],
 	);
 	return null;
 };
@@ -707,11 +718,17 @@ const LegendSwatch = ({ series }: { series: SeriesMeta }) => {
 		);
 	}
 	if (series.mark === "scatter") {
+		// The key mirrors the series' glyph, not just its color — shape is the
+		// redundant encoding that keeps series apart without color vision.
 		return (
 			<span
 				aria-hidden
-				className="size-2 shrink-0 rounded-full"
-				style={{ backgroundColor: series.color }}
+				data-shape={series.shape}
+				className="size-2 shrink-0"
+				style={{
+					backgroundColor: series.color,
+					clipPath: POINT_SHAPE_CLIP_PATHS[series.shape],
+				}}
 			/>
 		);
 	}

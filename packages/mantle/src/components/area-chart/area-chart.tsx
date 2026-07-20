@@ -16,6 +16,7 @@ import type {
 	ChartDatumEvent,
 	ContinuousXScale,
 	CurveKind,
+	PointShape,
 	SeriesColor,
 } from "../chart/types.js";
 import {
@@ -80,6 +81,12 @@ type AreaChartAreaProps = {
 	 * default and usually correct.
 	 */
 	connectNulls?: boolean;
+	/**
+	 * The glyph the hover dot wears: `"circle"` (default), `"square"`,
+	 * `"triangle"`, or `"diamond"` — a redundant encoding alongside color that
+	 * keeps series distinguishable without color vision.
+	 */
+	shape?: PointShape;
 };
 
 /**
