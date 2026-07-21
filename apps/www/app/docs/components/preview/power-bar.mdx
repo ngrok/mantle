@@ -1,29 +1,32 @@
 ---
-title: Sandbar
+title: PowerBar
 description: A floating save bar for unsaved changes — batch save form state with save and discard actions, announce pending state to screen readers, and block navigation until changes are resolved.
 ---
 
 import { CodeExample } from "~/components/code-example";
 import { PageHeader } from "~/components/page-header";
 
-<PageHeader id="sandbar" isPreview>
-	Sandbar
+<PageHeader id="power-bar" isPreview>
+	PowerBar
 </PageHeader>
 
 A persistent, decision-bearing bar that floats near the bottom edge of the viewport. It surfaces
 pending state — primarily a form's unsaved ("dirty") changes — and stays until the user resolves
 it: save or discard.
 
-Toast announces something that already happened and leaves on its own; **Sandbar surfaces
+Toast announces something that already happened and leaves on its own; **PowerBar surfaces
 something pending and stays until the user resolves it**. If the message needs no decision, reach
 for [Toast](/components/feedback/toast) or [Alert](/components/feedback/alert) instead.
 
-The name: a sandbar is a bar that blocks navigation — exactly what this component does while
-changes are pending. Wire your router's navigation guard to `shake()` on the `SandbarHandle`, and
-blocked attempts wiggle the panel and announce assertively to screen readers.
+The name joins Mantle's food-named family — [Toast](/components/feedback/toast),
+[Breadcrumb](/components/navigation/breadcrumb),
+[Progress Donut](/components/feedback/progress-donut). Like a protein bar, a power bar is fuel for
+action — here, the bar that carries the decision you need to make before moving on. Wire your
+router's navigation guard to `shake()` on the `PowerBarHandle`, and blocked attempts wiggle the
+panel and announce assertively to screen readers.
 
 <CodeExample.Root>
-	<CodeExample.PreviewFrame example="sandbar" title="Sandbar demo" />
+	<CodeExample.PreviewFrame example="power-bar" title="PowerBar demo" />
 	<CodeExample.Code>
 
 ```tsx
@@ -32,7 +35,7 @@ import { Checkbox } from "@ngrok/mantle/checkbox";
 import { Field } from "@ngrok/mantle/field";
 import { Input } from "@ngrok/mantle/input";
 import { Label } from "@ngrok/mantle/label";
-import { Sandbar, type SandbarHandle } from "@ngrok/mantle/sandbar";
+import { PowerBar, type PowerBarHandle } from "@ngrok/mantle/power-bar";
 import { TextArea } from "@ngrok/mantle/text-area";
 import { makeToast, Toast, Toaster } from "@ngrok/mantle/toast";
 import { useRef, useState } from "react";
@@ -53,7 +56,7 @@ export function EndpointSettings() {
 	const [isPending, setIsPending] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [failNextSave, setFailNextSave] = useState(false);
-	const sandbarHandle = useRef<SandbarHandle>(null);
+	const powerBarHandle = useRef<PowerBarHandle>(null);
 
 	const isDirty = draft.name !== saved.name || draft.description !== saved.description;
 
@@ -120,25 +123,25 @@ export function EndpointSettings() {
 					// stand-in for a router navigation guard: while dirty, block
 					// the navigation and shake the bar
 					if (isDirty) {
-						sandbarHandle.current?.shake();
+						powerBarHandle.current?.shake();
 					}
 				}}
 			>
 				Continue to dashboard →
 			</Button>
 
-			<Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
-				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-				<Sandbar.Actions>
-					<Sandbar.DiscardButton disabled={isPending} onClick={discard}>
+			<PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
+				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+				<PowerBar.Actions>
+					<PowerBar.DiscardButton disabled={isPending} onClick={discard}>
 						Discard
-					</Sandbar.DiscardButton>
-					<Sandbar.SaveButton isLoading={isPending} onClick={save}>
+					</PowerBar.DiscardButton>
+					<PowerBar.SaveButton isLoading={isPending} onClick={save}>
 						{isPending ? "Saving…" : "Save changes"}
-					</Sandbar.SaveButton>
-				</Sandbar.Actions>
-				{error != null && <Sandbar.Error>{error}</Sandbar.Error>}
-			</Sandbar.Root>
+					</PowerBar.SaveButton>
+				</PowerBar.Actions>
+				{error != null && <PowerBar.Error>{error}</PowerBar.Error>}
+			</PowerBar.Root>
 			<Toaster />
 		</form>
 	);
@@ -151,19 +154,19 @@ export function EndpointSettings() {
 
 ## Composition
 
-Compose the parts of a `Sandbar` together to build your own:
+Compose the parts of a `PowerBar` together to build your own:
 
 ```text showLineNumbers=false
-Sandbar.Root
-├── Sandbar.Message
-├── Sandbar.Actions
-│   ├── Sandbar.DiscardButton
-│   └── Sandbar.SaveButton
-└── Sandbar.Error
+PowerBar.Root
+├── PowerBar.Message
+├── PowerBar.Actions
+│   ├── PowerBar.DiscardButton
+│   └── PowerBar.SaveButton
+└── PowerBar.Error
 ```
 
-`Sandbar.Root` must stay mounted and be toggled with the controlled `open` prop — **never
-conditionally mount it** (`{isDirty && <Sandbar.Root …>}`). The screen-reader announcement only
+`PowerBar.Root` must stay mounted and be toggled with the controlled `open` prop — **never
+conditionally mount it** (`{isDirty && <PowerBar.Root …>}`). The screen-reader announcement only
 works when the internal live regions exist in the tree before the message appears, and the exit
 animation needs the panel alive to play. A Root that mounts with `open` already true does not
 announce (mounting is not a live-region change).
@@ -171,17 +174,17 @@ announce (mounting is not a live-region change).
 ## Pending decisions beyond saving
 
 Batch-saving a form is the flagship use, but any pending decision that must be resolved before
-moving on fits: compose your own `Button`s inside `Sandbar.Actions` and pass a custom
+moving on fits: compose your own `Button`s inside `PowerBar.Actions` and pass a custom
 blocked-navigation announcement to `shake()` so screen-reader users hear the actions that actually
-exist on screen. The panel's accessible name follows `Sandbar.Message` automatically.
+exist on screen. The panel's accessible name follows `PowerBar.Message` automatically.
 
 <CodeExample.Root>
-	<CodeExample.PreviewFrame example="sandbar-pending-publish" title="Sandbar pending publish demo" />
+	<CodeExample.PreviewFrame example="power-bar-pending-publish" title="PowerBar pending publish demo" />
 	<CodeExample.Code>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
-import { Sandbar, type SandbarHandle } from "@ngrok/mantle/sandbar";
+import { PowerBar, type PowerBarHandle } from "@ngrok/mantle/power-bar";
 import { useRef, useState } from "react";
 
 const draftPosts = [
@@ -192,7 +195,7 @@ const draftPosts = [
 
 export function DraftPosts() {
 	const [pending, setPending] = useState(draftPosts);
-	const sandbarHandle = useRef<SandbarHandle>(null);
+	const powerBarHandle = useRef<PowerBarHandle>(null);
 
 	return (
 		<>
@@ -208,7 +211,7 @@ export function DraftPosts() {
 				type="button"
 				onClick={() => {
 					if (pending.length > 0) {
-						sandbarHandle.current?.shake({
+						powerBarHandle.current?.shake({
 							announcement: "Publish or discard your drafts before leaving.",
 						});
 					}
@@ -217,11 +220,11 @@ export function DraftPosts() {
 				Continue to dashboard →
 			</Button>
 
-			<Sandbar.Root open={pending.length > 0} handleRef={sandbarHandle}>
-				<Sandbar.Message>
+			<PowerBar.Root open={pending.length > 0} handleRef={powerBarHandle}>
+				<PowerBar.Message>
 					{pending.length} draft {pending.length === 1 ? "post" : "posts"} pending publish
-				</Sandbar.Message>
-				<Sandbar.Actions>
+				</PowerBar.Message>
+				<PowerBar.Actions>
 					<Button
 						appearance="outlined"
 						intent="neutral"
@@ -233,8 +236,8 @@ export function DraftPosts() {
 					<Button appearance="filled" intent="neutral" type="button" onClick={() => setPending([])}>
 						Publish all
 					</Button>
-				</Sandbar.Actions>
-			</Sandbar.Root>
+				</PowerBar.Actions>
+			</PowerBar.Root>
 		</>
 	);
 }
@@ -246,15 +249,15 @@ export function DraftPosts() {
 
 ## Polymorphism
 
-`Sandbar.Message` and `Sandbar.Actions` accept an `asChild` prop. When `true`, the part renders
+`PowerBar.Message` and `PowerBar.Actions` accept an `asChild` prop. When `true`, the part renders
 its single child instead of its default element (`<p>` and `<div>` respectively), forwarding all
 class names, `data-*` attributes, and the ref onto that child. Reach for it when the message needs
 a different semantic element (e.g. a `<span>` inside a larger sentence) or when the actions row
-should be another framework primitive. `Sandbar.SaveButton` and `Sandbar.DiscardButton` inherit
-`asChild` from [Button](/components/actions/button). `Sandbar.Root` deliberately does not support
+should be another framework primitive. `PowerBar.SaveButton` and `PowerBar.DiscardButton` inherit
+`asChild` from [Button](/components/actions/button). `PowerBar.Root` deliberately does not support
 `asChild`: it renders multiple nodes (positioning wrapper, two screen-reader announcers, and the
 panel), so single-child polymorphism has no coherent meaning. Both framed demos above render real
-`Sandbar` trees you can adapt; there is no separate polymorphism demo because the bar is a
+`PowerBar` trees you can adapt; there is no separate polymorphism demo because the bar is a
 viewport-fixed singleton that would overlay this page outside a preview frame.
 
 ## Theming
@@ -262,7 +265,7 @@ viewport-fixed singleton that would overlay this page outside a preview frame.
 The panel is an [inverted theme island](/components/primitives/theme#inverted-theme-islands): it
 renders in the opposite theme of the page — dark on light pages, light on dark pages, and the
 same flip between the high-contrast pair. The inversion covers the entire subtree, so the blessed
-buttons, `Sandbar.Error`, and any custom children you compose inside `Sandbar.Actions` all read as
+buttons, `PowerBar.Error`, and any custom children you compose inside `PowerBar.Actions` all read as
 the opposite theme without extra styling. The panel's own surface uses the inverted theme's
 `bg-base` and `text-strong` tokens; style overrides passed via `className` resolve against the
 inverted theme too.
@@ -271,17 +274,17 @@ inverted theme too.
 
 The bar renders the decision; your app owns the guard. Pair `open` with your router's blocker
 (e.g. react-router's `useBlocker` plus a `beforeunload` listener while dirty) and call
-`sandbarHandle.current?.shake()` when a navigation attempt is blocked — the hero example above
+`powerBarHandle.current?.shake()` when a navigation attempt is blocked — the hero example above
 shows the wiring with a stand-in guard. Keep the guard out of the component: mantle has no router
 dependency, and the split mirrors Shopify's SaveBar / `leaveConfirmation()` and UIKit's
 `isModalInPresentation` / `presentationControllerDidAttemptToDismiss`.
 
 ## Accessibility
 
-- **Announcements.** `Sandbar.Root` owns two persistent visually-hidden live regions. A polite
+- **Announcements.** `PowerBar.Root` owns two persistent visually-hidden live regions. A polite
   `role="status"` announcer speaks the message when the bar opens and "Saving changes…" while
-  `Sandbar.SaveButton` is loading. An assertive `role="alert"` announcer speaks blocked-navigation
-  attempts (from `shake()`) and any `Sandbar.Error` content. This is why Root must stay mounted.
+  `PowerBar.SaveButton` is loading. An assertive `role="alert"` announcer speaks blocked-navigation
+  attempts (from `shake()`) and any `PowerBar.Error` content. This is why Root must stay mounted.
 - **Announce success yourself.** The bar closes silently when changes resolve. Pair the save's
   resolution with a status announcement — a success [Toast](/components/feedback/toast) qualifies —
   or screen-reader users hear a save start and never finish.
@@ -309,34 +312,34 @@ to the island shape, which satisfies the AA criterion.
 
 ## Placement
 
-Render `Sandbar.Root` in place, inside or immediately after the form it saves — `position: fixed`
+Render `PowerBar.Root` in place, inside or immediately after the form it saves — `position: fixed`
 changes paint position, not DOM or tab order, so Tab from the last form field lands directly on
 Discard/Save. Two caveats:
 
 - An ancestor with `transform`, `filter`, or `will-change` becomes the containing block for
   `position: fixed` (common with page-transition wrappers). If you cannot render Root outside the
-  transformed ancestor, portal it yourself with `createPortal(<Sandbar.Root …/>, document.body)` —
+  transformed ancestor, portal it yourself with `createPortal(<PowerBar.Root …/>, document.body)` —
   and accept that this severs the form→actions tab-order adjacency.
-- Only render one Sandbar per page: it is a singleton surface, like a page's primary save action.
+- Only render one PowerBar per page: it is a singleton surface, like a page's primary save action.
 
 ## API Reference
 
-### Sandbar.Root
+### PowerBar.Root
 
 The always-mounted shell: a private fixed-position wrapper, two persistent screen-reader
 announcers, and the visible panel. `ref`, `className`, and all other props target the panel (a
-`role="group"` element named by `Sandbar.Message` via `aria-labelledby`; a consumer `aria-label`
+`role="group"` element named by `PowerBar.Message` via `aria-labelledby`; a consumer `aria-label`
 wins when passed). Does not support `asChild` — Root renders multiple nodes, so single-child
 polymorphism has no coherent meaning.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop         | Type                 | Default | Description                                                                                          |
-| ------------ | -------------------- | ------- | ---------------------------------------------------------------------------------------------------- |
-| `open`       | `boolean`            | —       | Whether the bar is showing. Controlled-only; drive it from your pending state (e.g. a dirty flag).   |
-| `handleRef?` | `Ref<SandbarHandle>` | —       | Receives the imperative handle: `shake(options?: { announcement?: string })` for blocked navigation. |
+| Prop         | Type                  | Default | Description                                                                                          |
+| ------------ | --------------------- | ------- | ---------------------------------------------------------------------------------------------------- |
+| `open`       | `boolean`             | —       | Whether the bar is showing. Controlled-only; drive it from your pending state (e.g. a dirty flag).   |
+| `handleRef?` | `Ref<PowerBarHandle>` | —       | Receives the imperative handle: `shake(options?: { announcement?: string })` for blocked navigation. |
 
-### SandbarHandle
+### PowerBarHandle
 
 The imperative surface received through `handleRef`. `shake()` wiggles the panel (skipped under
 `prefers-reduced-motion` — never rely on the motion alone) and always announces assertively. Pass
@@ -346,7 +349,7 @@ The imperative surface received through `handleRef`. `shake()` wiggles the panel
 | ------- | ----------------------------------------------- | -------------------------------------------------------------------- |
 | `shake` | `(options?: { announcement?: string }) => void` | Wiggle the panel and announce that the attempted action was blocked. |
 
-### Sandbar.Message
+### PowerBar.Message
 
 The visible pending-state text. A plain paragraph — the live-region announcement is owned by
 Root's persistent announcer, and the panel's accessible name points here so the group name always
@@ -358,10 +361,10 @@ All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#a
 | ---------- | --------- | ------- | ------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |
 
-### Sandbar.Actions
+### PowerBar.Actions
 
 The action-button row: a plain flex container (deliberately not `role="toolbar"`, which is
-reserved for 3+ controls). Holds `Sandbar.DiscardButton` and `Sandbar.SaveButton`, or your own
+reserved for 3+ controls). Holds `PowerBar.DiscardButton` and `PowerBar.SaveButton`, or your own
 composed `Button`s.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
@@ -370,7 +373,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | ---------- | --------- | ------- | ------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |
 
-### Sandbar.SaveButton
+### PowerBar.SaveButton
 
 The primary (save) action — a mantle [Button](/components/actions/button) defaulting to the system
 primary style. While `isLoading`, Root announces "Saving changes…" politely and keeps focus from
@@ -385,7 +388,7 @@ All props from [Button](/components/actions/button), with these differences:
 | `intent?`     | `string`    | `"neutral"` | The Button intent, made optional with a default.     |
 | `children`    | `ReactNode` | —           | Required — the visible action label is app voice.    |
 
-### Sandbar.DiscardButton
+### PowerBar.DiscardButton
 
 The secondary (discard/reset) action — a mantle [Button](/components/actions/button). Discard is
 destructive-ish: for large forms, consider confirming before discarding.
@@ -398,13 +401,13 @@ All props from [Button](/components/actions/button), with these differences:
 | `intent?`     | `string`    | `"neutral"`  | The Button intent, made optional with a default.     |
 | `children`    | `ReactNode` | —            | Required — the visible action label is app voice.    |
 
-### Sandbar.Error
+### PowerBar.Error
 
 A danger [Alert](/components/feedback/alert) row for a failed save, rendered on its own row of the
-panel. Safe to conditionally mount (`{error != null && <Sandbar.Error>{error}</Sandbar.Error>}`):
+panel. Safe to conditionally mount (`{error != null && <PowerBar.Error>{error}</PowerBar.Error>}`):
 the announcement goes through Root's persistent assertive announcer, not the mounted node. Needs
 Title- or Icon-level control? Compose your own `<Alert.Root intent="danger">` inside
-`Sandbar.Root` instead.
+`PowerBar.Root` instead.
 
 All props from [Alert](/components/feedback/alert)'s `Alert.Root` except `intent`, which is pinned
 to `"danger"`.

@@ -255,6 +255,11 @@
 			"types": "./dist/popover.d.ts",
 			"import": "./dist/popover.js"
 		},
+		"./power-bar": {
+			"@ngrok/src-live-types": "./src/components/power-bar/index.ts",
+			"types": "./dist/power-bar.d.ts",
+			"import": "./dist/power-bar.js"
+		},
 		"./progress": {
 			"@ngrok/src-live-types": "./src/components/progress/index.ts",
 			"types": "./dist/progress.d.ts",
@@ -269,11 +274,6 @@
 			"@ngrok/src-live-types": "./src/components/radio-group/index.ts",
 			"types": "./dist/radio-group.d.ts",
 			"import": "./dist/radio-group.js"
-		},
-		"./sandbar": {
-			"@ngrok/src-live-types": "./src/components/sandbar/index.ts",
-			"types": "./dist/sandbar.d.ts",
-			"import": "./dist/sandbar.js"
 		},
 		"./sandboxed-on-click": {
 			"@ngrok/src-live-types": "./src/components/sandboxed-on-click/index.ts",

@@ -528,6 +528,20 @@
     ]
   },
   {
+    "name": "PowerBar",
+    "slug": "components/preview/power-bar",
+    "kind": "component",
+    "category": "Feedback",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/power-bar",
+    "summary": "A floating save bar for unsaved changes — batch save form state with save and discard actions, announce pending state to screen readers, and block navigation until changes are resolved.",
+    "jsdoc": "A persistent, decision-bearing bar that floats near the bottom edge of the viewport.",
+    "examples": [
+      "Composition:\n```\nPowerBar.Root\n├── PowerBar.Message\n├── PowerBar.Actions\n│   ├── PowerBar.DiscardButton\n│   └── PowerBar.SaveButton\n└── PowerBar.Error\n```",
+      "```tsx\n<PowerBar.Root open={isDirty} handleRef={powerBarHandle}>\n  <PowerBar.Message>You have unsaved changes</PowerBar.Message>\n  <PowerBar.Actions>\n    <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>\n    <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>\n  </PowerBar.Actions>\n  {error != null && <PowerBar.Error>{error}</PowerBar.Error>}\n</PowerBar.Root>\n```"
+    ]
+  },
+  {
     "name": "Progress Bar",
     "slug": "components/feedback/progress-bar",
     "kind": "component",
@@ -581,20 +595,6 @@
     "examples": [
       "Composition:\n```\n# Default radios\nRadioGroup.Root\n└── RadioGroup.Item\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# List layout with descriptions\nRadioGroup.List\n└── RadioGroup.ListItem\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# Segmented button group\nRadioGroup.ButtonGroup\n└── RadioGroup.Button\n\n# Card-style radios\nRadioGroup.Root\n└── RadioGroup.Card\n    └── RadioGroup.Indicator\n```",
       "```tsx\n<RadioGroup.Root value={value} onChange={setValue}>\n  <RadioGroup.Item value=\"option1\">\n    <RadioGroup.Indicator />\n    <span>Option 1</span>\n  </RadioGroup.Item>\n  <RadioGroup.Item value=\"option2\">\n    <RadioGroup.Indicator />\n    <span>Option 2</span>\n  </RadioGroup.Item>\n</RadioGroup.Root>\n```"
-    ]
-  },
-  {
-    "name": "Sandbar",
-    "slug": "components/preview/sandbar",
-    "kind": "component",
-    "category": "Feedback",
-    "status": "preview",
-    "importPath": "@ngrok/mantle/sandbar",
-    "summary": "A floating save bar for unsaved changes — batch save form state with save and discard actions, announce pending state to screen readers, and block navigation until changes are resolved.",
-    "jsdoc": "A persistent, decision-bearing bar that floats near the bottom edge of the viewport.",
-    "examples": [
-      "Composition:\n```\nSandbar.Root\n├── Sandbar.Message\n├── Sandbar.Actions\n│   ├── Sandbar.DiscardButton\n│   └── Sandbar.SaveButton\n└── Sandbar.Error\n```",
-      "```tsx\n<Sandbar.Root open={isDirty} handleRef={sandbarHandle}>\n  <Sandbar.Message>You have unsaved changes</Sandbar.Message>\n  <Sandbar.Actions>\n    <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>\n    <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>\n  </Sandbar.Actions>\n  {error != null && <Sandbar.Error>{error}</Sandbar.Error>}\n</Sandbar.Root>\n```"
     ]
   },
   {
