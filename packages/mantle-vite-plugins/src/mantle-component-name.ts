@@ -52,6 +52,7 @@ export const MANTLE_COMPONENT_NAMES = [
 	"otp-input",
 	"pagination",
 	"popover",
+	"power-bar",
 	"progress",
 	"qr-code",
 	"radio-group",

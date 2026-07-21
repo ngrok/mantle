@@ -95,6 +95,7 @@ export default [
 		// feedback
 		...docRoute("components/feedback/alert"),
 		...docRoute("components/feedback/empty"),
+		...docRoute("components/feedback/power-bar"),
 		...docRoute("components/feedback/progress-bar"),
 		...docRoute("components/feedback/progress-donut"),
 		...docRoute("components/feedback/skeleton"),

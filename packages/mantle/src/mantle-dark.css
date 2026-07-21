@@ -1,9 +1,26 @@
 /**
 MARK: DARK DEFS
+
+The last selector applies this entire block to `.invert-theme` subtrees on
+light pages (any page with no other theme active): an inverted island is the
+opposite theme's own definitions re-declared on the island element. See
+MARK: INVERT THEME in mantle.css for the full strategy.
 */
 :root.dark,
 :root[data-theme="dark"],
-:root[data-applied-theme="dark"] {
+:root[data-applied-theme="dark"],
+:root:not(
+		.dark,
+		[data-theme="dark"],
+		[data-applied-theme="dark"],
+		.light-high-contrast,
+		[data-theme="light-high-contrast"],
+		[data-applied-theme="light-high-contrast"],
+		.dark-high-contrast,
+		[data-theme="dark-high-contrast"],
+		[data-applied-theme="dark-high-contrast"]
+	)
+	.invert-theme {
 	color-scheme: dark;
 
 	/* Semantic colors: white becomes black and black becomes white in dark mode */
@@ -331,6 +348,19 @@ MARK: DARK DEFS
 	--background-color-filled-danger-hover: var(--color-danger-700);
 	--background-color-filled-warning-hover: var(--color-warning-700);
 	--background-color-filled-success-hover: var(--color-success-700);
+
+	/* Focus tokens — same expressions as the light base (the mid-ramp stops they
+	   reference are theme-symmetric), declared here so `.invert-theme` islands
+	   re-resolve them against this block's ramps. */
+	--ring-color-focus-neutral: --alpha(var(--color-neutral-500) / 0.3);
+	--ring-color-focus-accent: --alpha(var(--color-accent-500) / 0.3);
+	--ring-color-focus-danger: --alpha(var(--color-danger-500) / 0.3);
+	--ring-color-focus-warning: --alpha(var(--color-warning-500) / 0.3);
+	--ring-color-focus-success: --alpha(var(--color-success-500) / 0.3);
+
+	--color-active-menu-item: --alpha(var(--color-neutral-500) / 0.05);
+	--color-selected-menu-item: --alpha(var(--color-accent-500) / 0.1);
+	--color-active-selected-menu-item: --alpha(var(--color-accent-500) / 0.15);
 
 	--shadow-color: #000;
 	--shadow-first-opacity: 15%;

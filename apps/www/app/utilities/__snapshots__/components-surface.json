@@ -528,6 +528,20 @@
     ]
   },
   {
+    "name": "Power Bar",
+    "slug": "components/feedback/power-bar",
+    "kind": "component",
+    "category": "Feedback",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/power-bar",
+    "summary": "A floating save bar for unsaved changes — batch save form state with save and discard actions, announce pending state to screen readers, and block navigation until changes are resolved.",
+    "jsdoc": "A persistent, decision-bearing bar that floats near the bottom edge of the viewport.",
+    "examples": [
+      "Composition:\n```\nPowerBar.Root\n├── PowerBar.Message\n├── PowerBar.Actions\n│   ├── PowerBar.DiscardButton\n│   └── PowerBar.SaveButton\n└── PowerBar.Error\n```",
+      "```tsx\n<PowerBar.Root open={isDirty} handleRef={powerBarHandle}>\n  <PowerBar.Message>You have unsaved changes</PowerBar.Message>\n  <PowerBar.Actions>\n    <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>\n    <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>\n  </PowerBar.Actions>\n  {error != null && <PowerBar.Error>{error}</PowerBar.Error>}\n</PowerBar.Root>\n```"
+    ]
+  },
+  {
     "name": "Progress Bar",
     "slug": "components/feedback/progress-bar",
     "kind": "component",

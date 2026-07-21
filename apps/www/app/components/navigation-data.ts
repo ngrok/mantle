@@ -64,7 +64,7 @@ export const componentsByCategory = {
 		"Selectable List",
 		"Table",
 	],
-	Feedback: ["Alert", "Empty", "Progress Bar", "Progress Donut", "Skeleton", "Toast"],
+	Feedback: ["Alert", "Empty", "Power Bar", "Progress Bar", "Progress Donut", "Skeleton", "Toast"],
 	Forms: [
 		"Checkbox",
 		"Choice",
@@ -159,6 +159,7 @@ export const prodReadyComponentRouteLookup = {
 	Pagination: "/components/navigation/pagination",
 	"Password Input": "/components/forms/password-input",
 	Popover: "/components/overlays/popover",
+	"Power Bar": "/components/feedback/power-bar",
 	"Progress Donut": "/components/feedback/progress-donut",
 	"Progress Bar": "/components/feedback/progress-bar",
 	"QR Code": "/components/data-display/qr-code",

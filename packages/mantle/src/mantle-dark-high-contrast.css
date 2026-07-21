@@ -1,9 +1,20 @@
 /**
 MARK: DARK HICON DEFS
+
+The last selector applies this entire block to `.invert-theme` subtrees on
+light-high-contrast pages: an inverted island is the opposite theme's own
+definitions re-declared on the island element. See MARK: INVERT THEME in
+mantle.css for the full strategy.
 */
 :root.dark-high-contrast,
 :root[data-theme="dark-high-contrast"],
-:root[data-applied-theme="dark-high-contrast"] {
+:root[data-applied-theme="dark-high-contrast"],
+:root:is(
+		.light-high-contrast,
+		[data-theme="light-high-contrast"],
+		[data-applied-theme="light-high-contrast"]
+	)
+	.invert-theme {
 	color-scheme: dark;
 
 	/* Semantic colors: white becomes black and black becomes white in dark mode */

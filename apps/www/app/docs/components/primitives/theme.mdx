@@ -329,6 +329,53 @@ function App() {
 }
 ```
 
+## Inverted Theme Islands
+
+Add the `invert-theme` class to any element to render that subtree in the opposite theme of the
+page: light ⇄ dark and light-high-contrast ⇄ dark-high-contrast. The island is styled by the
+opposite theme's own definitions, so every mantle component and color token inside it just works —
+no conditional rendering, no per-component overrides.
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+
+<aside className="invert-theme bg-base text-strong rounded-2xl p-4 shadow-lg">
+	<p>This panel renders dark on light pages, light on dark pages.</p>
+	<Button appearance="filled" intent="neutral">
+		Save
+	</Button>
+</aside>;
+```
+
+[PowerBar](/components/feedback/power-bar) is built on this: its floating panel is an `invert-theme`
+island, which is why the bar and its buttons always read inverted from the page in all four
+themes.
+
+How it works: every mantle color utility resolves a CSS custom property at the element that uses
+it, and custom properties inherit — so each theme's definitions are also applied directly to
+`.invert-theme` elements on its pair partner's pages, re-declaring the theme variables where they
+win over the values inherited from `:root`.
+
+Things to know:
+
+- **Requires the theme stylesheets.** `MantleStyleSheets` applies theme pairs together (the
+  active theme's partner also gets `media="all"`), so inversion works automatically. If you load
+  the theme CSS by hand, both pair members' stylesheets must be applied. Like manual theme
+  selection generally, the pairing on OS-default pages is applied by the inline fix script — with
+  JavaScript disabled, islands gracefully stay page-themed.
+- **Portals escape the island.** Floating content that portals to `<body>` (dropdown menus,
+  tooltips, dialogs, …) renders in the page theme. Pass `invert-theme` in the floating part's
+  `className` to invert it too.
+- **Theme variant utilities do not flip.** `dark:*`, `light:*`, `high-contrast:*`, and
+  `dark-high-contrast:*` key off the page theme on `<html>`, not the inversion scope. A few
+  mantle internals still carry small variant-gated tweaks (Table, Skeleton, Progress) — avoid
+  composing those inside an island until they migrate to theme-declared tokens.
+- **Nesting is idempotent.** An `invert-theme` inside an inverted subtree stays inverted relative
+  to the page — it does not revert to the page theme.
+- **Shadows flip with the island.** Shadow utilities resolve the shadow tokens at the element
+  that uses them, and islands re-declare those tokens — so content inside a light island gets
+  light-theme shadows, keeping the island's interior coherent.
+
 ## API Reference
 
 ### ThemeProvider
@@ -347,18 +394,20 @@ Renders `<link rel="stylesheet">` tags for the dark, light-high-contrast, and da
 
 An inline `<script>` is also rendered after the `<link>` tags (when needed). It runs synchronously before first paint and corrects any `media` attributes for users with a manually-selected theme, preventing FOUC without needing JavaScript hydration.
 
-When `forceTheme` is set to a non-light theme, only the link tag for that theme is rendered — the others are omitted to avoid unnecessary network requests. `forceTheme="light"` renders no link tags since light is the base theme with no dedicated lazy stylesheet.
+Theme pairs are applied together: the active theme's pair partner (light ⇄ dark, light-high-contrast ⇄ dark-high-contrast) also gets `media="all"`, so [`invert-theme` islands](#inverted-theme-islands) always have their opposite theme's CSS available. Light is the base theme in `mantle.css` and needs no link tag of its own.
+
+When `forceTheme` is set, only the link tags for that theme's pair are rendered — the others are omitted to avoid unnecessary network requests. `forceTheme="light"` renders only the dark link (its pair partner).
 
 Use [`mantleStyleSheetUrls`](#mantlestylesheeturls) to create the required CSS URL props and spread them in.
 
-| Prop                      | Type            | Default | Description                                                                                                                                                                                                                                                                                                 |
-| ------------------------- | --------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `darkCssUrl`              | `string`        |         | Browser-accessible URL for the dark theme stylesheet. Use `mantleStyleSheetUrls` to supply this.                                                                                                                                                                                                            |
-| `lightHighContrastCssUrl` | `string`        |         | Browser-accessible URL for the light high-contrast stylesheet. Use `mantleStyleSheetUrls` to supply this.                                                                                                                                                                                                   |
-| `darkHighContrastCssUrl`  | `string`        |         | Browser-accessible URL for the dark high-contrast stylesheet. Use `mantleStyleSheetUrls` to supply this.                                                                                                                                                                                                    |
-| `forceTheme?`             | `ResolvedTheme` |         | Force a specific theme's stylesheet to load unconditionally (`media="all"`). Use for pages locked to a single theme (e.g. a dark-only landing page). Only the forced theme's `<link>` tag is rendered; the others are omitted. `"light"` renders no tags (light is the base theme with no lazy stylesheet). |
-| `ssrCookie?`              | `string`        |         | The extracted theme cookie from the incoming HTTP request (via `extractThemeCookie`). When a non-system theme is resolved from the cookie, the server renders the correct `media` attribute directly in HTML and omits the inline fix script.                                                               |
-| `nonce?`                  | `string`        |         | CSP nonce to allowlist the inline fix script. Mirror the same nonce passed to `PreventWrongThemeFlashScript`.                                                                                                                                                                                               |
+| Prop                      | Type            | Default | Description                                                                                                                                                                                                                                                                                           |
+| ------------------------- | --------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `darkCssUrl`              | `string`        |         | Browser-accessible URL for the dark theme stylesheet. Use `mantleStyleSheetUrls` to supply this.                                                                                                                                                                                                      |
+| `lightHighContrastCssUrl` | `string`        |         | Browser-accessible URL for the light high-contrast stylesheet. Use `mantleStyleSheetUrls` to supply this.                                                                                                                                                                                             |
+| `darkHighContrastCssUrl`  | `string`        |         | Browser-accessible URL for the dark high-contrast stylesheet. Use `mantleStyleSheetUrls` to supply this.                                                                                                                                                                                              |
+| `forceTheme?`             | `ResolvedTheme` |         | Force a specific theme's stylesheet pair to load unconditionally (`media="all"`). Use for pages locked to a single theme (e.g. a dark-only landing page). Only the forced theme's pair of `<link>` tags is rendered; the others are omitted. `"light"` renders only the dark link (its pair partner). |
+| `ssrCookie?`              | `string`        |         | The extracted theme cookie from the incoming HTTP request (via `extractThemeCookie`). When a non-system theme is resolved from the cookie, the server renders the correct `media` attribute directly in HTML and omits the inline fix script.                                                         |
+| `nonce?`                  | `string`        |         | CSP nonce to allowlist the inline fix script. Mirror the same nonce passed to `PreventWrongThemeFlashScript`.                                                                                                                                                                                         |
 
 ### mantleStyleSheetUrls
 

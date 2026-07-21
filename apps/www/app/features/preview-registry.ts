@@ -4,6 +4,7 @@ import {
 	CenteredLayoutHeaderDemo,
 	CenteredLayoutNoticeDemo,
 } from "./centered-layout-demos";
+import { PowerBarDemo, PowerBarErrorDemo, PowerBarPendingPublishDemo } from "./power-bar-demos";
 
 type PreviewExample = {
 	/**
@@ -48,6 +49,18 @@ export const previewExamples = {
 	"centered-layout-notice": {
 		title: "Centered layout notice demo",
 		Component: CenteredLayoutNoticeDemo,
+	},
+	"power-bar": {
+		title: "PowerBar demo",
+		Component: PowerBarDemo,
+	},
+	"power-bar-error": {
+		title: "PowerBar error demo",
+		Component: PowerBarErrorDemo,
+	},
+	"power-bar-pending-publish": {
+		title: "PowerBar pending publish demo",
+		Component: PowerBarPendingPublishDemo,
 	},
 } as const satisfies Record<string, PreviewExample>;
 
