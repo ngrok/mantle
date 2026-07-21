@@ -612,7 +612,7 @@
     ]
   },
   {
-    "name": "PowerBar",
+    "name": "Power Bar",
     "slug": "components/feedback/power-bar",
     "kind": "component",
     "category": "Feedback",
