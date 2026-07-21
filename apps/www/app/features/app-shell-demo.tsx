@@ -174,8 +174,8 @@ function DemoNav({
 /**
  * The canonical Sidebar + AppLayout composition, shared by both docs pages: a
  * decoupled app shell with a sidebar that collapses to the icon rail, a
- * header-mounted trigger, an edge `Sidebar.Rail`, a toggleable full-window
- * notice strip, and a content card that scrolls internally. The two
+ * header-mounted trigger, a toggleable full-window notice strip, and a
+ * content card that scrolls internally. The two
  * components never reference each other — `Sidebar.Root` simply wraps the
  * shell so `Sidebar.Trigger` works from `AppLayout.Header`.
  *
@@ -306,7 +306,6 @@ export function AppShellDemo() {
 							</DropdownMenu.Root>
 						</Sidebar.Footer>
 					</Sidebar.Nav>
-					<Sidebar.Rail />
 
 					<AppLayout.Inset>
 						<AppLayout.Content asChild>

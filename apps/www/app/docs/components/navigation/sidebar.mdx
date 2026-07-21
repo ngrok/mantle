@@ -21,8 +21,7 @@ The sidebar is routing-agnostic. Compose router links with `asChild` on `Sidebar
 `current` from your router's location. The demo below runs in its own framed document, exactly like a real
 app: switch the preview to the mobile viewport to see the sheet presentation, use the trigger in the header
 to collapse and expand the panel, and toggle the notice to see the shell's full-window
-[`AppLayout.Notice`](/layouts/app-layout) strip push everything — sidebar included — down. With the panel
-collapsed, hover the icon rail's edge — the `Sidebar.Rail` click strip reopens it from there, too.
+[`AppLayout.Notice`](/layouts/app-layout) strip push everything — sidebar included — down.
 Click into the frame and press <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> — the shortcut binds to the frame's own
 window, not this page. The demo narrows `mobileBreakpoint` to `md` so the desktop panel survives the
 preview's desktop and tablet widths; ngrok's dashboards keep the `lg` default.
@@ -178,7 +177,6 @@ export function AppShell() {
 							</DropdownMenu.Root>
 						</Sidebar.Footer>
 					</Sidebar.Nav>
-					<Sidebar.Rail />
 
 					<AppLayout.Inset>
 						<AppLayout.Content asChild>
@@ -235,7 +233,7 @@ Everything in the icon rail stays in the tab order and the accessibility tree �
 visually hidden, not removed — so screen readers announce the full row names and lists keep their group
 names. The scrollable `Sidebar.Body` always fades its overflowing edges; in the collapsed rail it also
 hides its scrollbar and relies on the fade alone. Collapse and expand the demo above with the header
-trigger, the edge rail, or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd>.
+trigger or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd>.
 
 ## Composition
 
@@ -257,15 +255,12 @@ Sidebar.Root
 │       └── Sidebar.SwitcherButton
 │           ├── Sidebar.AccountAvatar
 │           └── Sidebar.UserAvatar
-├── Sidebar.Rail
 └── Sidebar.Trigger
 ```
 
 `Sidebar.Root` renders no DOM — it only provides state, so `Sidebar.Trigger` can live anywhere under it,
 including inside layout components that know nothing about the sidebar. Render exactly one `Sidebar.Nav` per
-`Sidebar.Root`; nested roots shadow the outer sidebar for everything below them. `Sidebar.Rail` is a
-zero-width click strip — render it as the **immediate next sibling of `Sidebar.Nav`** so it sits exactly on
-the sidebar/content boundary at every collapse state.
+`Sidebar.Root`; nested roots shadow the outer sidebar for everything below them.
 `Sidebar.SwitchAccountsRadioGroup` is not part of the tree above — it renders inside a
 [DropdownMenu](/components/overlays/dropdown-menu) submenu, wherever you compose that menu.
 
@@ -421,9 +416,9 @@ attributes, and the ref onto that child. The most common uses are router links o
 throughout this page) and composing `Sidebar.SwitcherButton` with `DropdownMenu.Trigger asChild` or
 `Dialog.Trigger asChild`.
 
-`Sidebar.Nav`, `Sidebar.Trigger`, and `Sidebar.Rail` deliberately do not support `asChild`: the nav renders
-a fixed two-element collapse structure (and a `Sheet` on mobile), and the trigger and rail render
-fully-wired controls — build custom triggers with `useSidebar` instead. `Sidebar.AccountAvatar`,
+`Sidebar.Nav` and `Sidebar.Trigger` deliberately do not support `asChild`: the nav renders
+a fixed two-element collapse structure (and a `Sheet` on mobile), and the trigger renders
+a fully-wired control — build custom triggers with `useSidebar` instead. `Sidebar.AccountAvatar`,
 `Sidebar.UserAvatar`, and `Sidebar.SwitchAccountsRadioGroup` are prop-driven leaves.
 
 ## Accessibility
@@ -433,9 +428,6 @@ fully-wired controls — build custom triggers with `useSidebar` instead. `Sideb
 - `Sidebar.Trigger` follows the disclosure pattern: `aria-expanded` reflects the state and `aria-controls`
   references the nav. Keep a trigger visible at every breakpoint where the sidebar can collapse — a collapsed
   sidebar with no visible trigger is unrecoverable.
-- `Sidebar.Rail` is a pointer affordance only: it carries the same `aria-expanded`/`aria-controls` wiring
-  but sits outside the tab order (`tabIndex={-1}`), so keyboard users are never routed through an invisible
-  edge strip — they toggle with `Sidebar.Trigger` or the shortcut instead.
 - `⌘B` / `Ctrl+B` toggles the sidebar (opt out with `keyboardShortcut={false}` on `Sidebar.Root`, e.g. when
   the app embeds a rich-text editor where `⌘B` means bold).
 - When the shell owns the document, pair the sidebar with a `SkipToMainLink` and a `Main`-composed content
@@ -493,19 +485,6 @@ An [IconButton](/components/actions/icon-button) wired to toggle the sidebar. Al
 | `icon?`       | `ReactNode`                         | `<SidebarSimpleIcon />` | The icon rendered inside the trigger.       |
 | `intent?`     | `"accent" \| "danger" \| "neutral"` | `"neutral"`             | The color intent of the trigger.            |
 | `label?`      | `string`                            | `"Toggle Sidebar"`      | Accessible name; override for localization. |
-
-### Sidebar.Rail
-
-A zero-width click strip on the sidebar's edge that toggles the desktop sidebar — render it as the immediate
-next sibling of `Sidebar.Nav`. A 12px hit area extends from the boundary over the content gutter (with a
-hairline hover affordance and `w-resize`/`e-resize` cursors), so a collapsed sidebar can be reopened from
-the icon rail's edge. Pointer affordance only: it sits outside the tab order (`tabIndex={-1}`) and
-is hidden below the root's `mobileBreakpoint`. All props from `button` except `children` and `type` (always
-`"button"` — the rail never submits), plus:
-
-| Prop     | Type     | Default            | Description                                                            |
-| -------- | -------- | ------------------ | ---------------------------------------------------------------------- |
-| `label?` | `string` | `"Toggle Sidebar"` | Accessible name and native `title` tooltip; override for localization. |
 
 ### Sidebar.Header, Sidebar.Body, Sidebar.Footer
 
