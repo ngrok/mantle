@@ -102,6 +102,7 @@ export default [
 		...docRoute("components/feedback/alert"),
 		...docRoute("components/feedback/alert-center"),
 		...docRoute("components/feedback/empty"),
+		...docRoute("components/feedback/power-bar"),
 		...docRoute("components/feedback/progress-bar"),
 		...docRoute("components/feedback/progress-donut"),
 		...docRoute("components/feedback/skeleton"),
@@ -139,7 +140,6 @@ export default [
 		...docRoute("components/overlays/tooltip"),
 		// preview (lifecycle namespace, not a category)
 		...docRoute("components/preview/calendar"),
-		...docRoute("components/preview/power-bar"),
 		// primitives
 		...docRoute("components/primitives/browser-only"),
 		...docRoute("components/primitives/main"),

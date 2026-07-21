@@ -174,7 +174,7 @@ type PowerBarRootProps = ComponentProps<"div"> & {
  * position, not tab order, so Tab from the last field lands on the actions.
  * Escape is intentionally inert (a one-keypress discard would destroy data).
  *
- * @see https://mantle.ngrok.com/components/preview/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/power-bar
  *
  * @example
  * ```tsx
@@ -603,7 +603,7 @@ type PowerBarMessageProps = ComponentProps<"p"> & WithAsChild;
  * here via `aria-labelledby` so the group name always matches the visible
  * text.
  *
- * @see https://mantle.ngrok.com/components/preview/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/power-bar
  *
  * @example
  * ```tsx
@@ -642,7 +642,7 @@ type PowerBarActionsProps = ComponentProps<"div"> & WithAsChild;
  * `role="toolbar"`, which the ARIA APG reserves for 3+ controls with roving
  * tab stops.
  *
- * @see https://mantle.ngrok.com/components/preview/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/power-bar
  *
  * @example
  * ```tsx
@@ -696,7 +696,7 @@ type PowerBarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "in
  * form it saves. Announce the save's resolution yourself (e.g. a success
  * Toast) — the bar exits silently.
  *
- * @see https://mantle.ngrok.com/components/preview/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/power-bar
  *
  * @example
  * ```tsx
@@ -770,7 +770,7 @@ type PowerBarDiscardButtonProps = Omit<ButtonProps, "appearance" | "children" | 
  * `appearance="outlined" intent="neutral"`. Discard is destructive-ish: for
  * large forms, consider confirming before discarding.
  *
- * @see https://mantle.ngrok.com/components/preview/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/power-bar
  *
  * @example
  * ```tsx
@@ -810,7 +810,7 @@ type PowerBarErrorProps = Omit<ComponentProps<typeof Alert.Root>, "intent">;
  * Needs Title/Icon-level control? Compose your own
  * `<Alert.Root intent="danger">` inside `PowerBar.Root` instead.
  *
- * @see https://mantle.ngrok.com/components/preview/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/power-bar
  *
  * @example
  * ```tsx
@@ -871,7 +871,7 @@ const PowerBarError = ({ children, className, ...props }: PowerBarErrorProps) =>
  * navigation guard and call `shake()` on the {@link PowerBarHandle} when a
  * navigation attempt is blocked.
  *
- * @see https://mantle.ngrok.com/components/preview/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/power-bar
  *
  * @example
  * Composition:
@@ -902,7 +902,7 @@ const PowerBar = {
 	 * announcers, presence-managed panel. Toggle with the controlled `open`
 	 * prop — never conditionally mount it.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/power-bar
+	 * @see https://mantle.ngrok.com/components/feedback/power-bar
 	 *
 	 * @example
 	 * ```tsx
@@ -921,7 +921,7 @@ const PowerBar = {
 	 * The visible pending-state text. Also names the panel (via
 	 * `aria-labelledby`) and feeds the polite screen-reader announcement.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/power-bar
+	 * @see https://mantle.ngrok.com/components/feedback/power-bar
 	 *
 	 * @example
 	 * ```tsx
@@ -939,7 +939,7 @@ const PowerBar = {
 	 * The action-button row. Holds `PowerBar.DiscardButton` and
 	 * `PowerBar.SaveButton`, or your own composed `Button`s.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/power-bar
+	 * @see https://mantle.ngrok.com/components/feedback/power-bar
 	 *
 	 * @example
 	 * ```tsx
@@ -957,7 +957,7 @@ const PowerBar = {
 	 * The primary (save) action — announces "Saving changes…" and keeps focus
 	 * from being lost while the save is pending.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/power-bar
+	 * @see https://mantle.ngrok.com/components/feedback/power-bar
 	 *
 	 * @example
 	 * ```tsx
@@ -974,7 +974,7 @@ const PowerBar = {
 	/**
 	 * The secondary (discard/reset) action.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/power-bar
+	 * @see https://mantle.ngrok.com/components/feedback/power-bar
 	 *
 	 * @example
 	 * ```tsx
@@ -992,7 +992,7 @@ const PowerBar = {
 	 * A danger alert row for a failed save; safe to conditionally mount —
 	 * announcement goes through the persistent assertive announcer.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/power-bar
+	 * @see https://mantle.ngrok.com/components/feedback/power-bar
 	 *
 	 * @example
 	 * ```tsx
