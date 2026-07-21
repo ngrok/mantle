@@ -1,5 +1,101 @@
-import { tickIncrement, ticks as d3Ticks } from "d3-array";
 import { scaleTime } from "d3-scale";
+
+// The 1/2/5 "nice step" tick solver, ported from d3-array 3.2.4 (`ticks` /
+// `tickIncrement`) so the chart engine doesn't pull the whole d3-array package
+// in for two pure functions. Behavior is identical — `scales.test.ts` locks the
+// parity cases (sub-integer, negative, reversed, and flat domains).
+const e10 = Math.sqrt(50);
+const e5 = Math.sqrt(10);
+const e2 = Math.sqrt(2);
+
+/**
+ * Solve for the tick range as scaled integers: returns `[i1, i2, inc]` where the
+ * ticks are `i1..i2` multiplied by `inc`. A negative `inc` encodes a sub-integer
+ * step: divide by `-inc` instead of multiplying, which keeps sub-integer ticks
+ * free of floating-point drift.
+ */
+const tickSpec = (start: number, stop: number, count: number): [number, number, number] => {
+	const step = (stop - start) / Math.max(0, count);
+	const power = Math.floor(Math.log10(step));
+	const error = step / Math.pow(10, power);
+	const factor = error >= e10 ? 10 : error >= e5 ? 5 : error >= e2 ? 2 : 1;
+	let i1;
+	let i2;
+	let inc;
+	if (power < 0) {
+		inc = Math.pow(10, -power) / factor;
+		i1 = Math.round(start * inc);
+		i2 = Math.round(stop * inc);
+		if (i1 / inc < start) {
+			i1 += 1;
+		}
+		if (i2 / inc > stop) {
+			i2 -= 1;
+		}
+		inc = -inc;
+	} else {
+		inc = Math.pow(10, power) * factor;
+		i1 = Math.round(start / inc);
+		i2 = Math.round(stop / inc);
+		if (i1 * inc < start) {
+			i1 += 1;
+		}
+		if (i2 * inc > stop) {
+			i2 -= 1;
+		}
+	}
+	if (i2 < i1 && 0.5 <= count && count < 2) {
+		return tickSpec(start, stop, count * 2);
+	}
+	return [i1, i2, inc];
+};
+
+/**
+ * Human-friendly tick values (1/2/5 stepping) spanning `[start, stop]` for the
+ * requested approximate `count`. Returns `[start]` for a flat domain and `[]`
+ * for a non-positive count.
+ *
+ * @example
+ * ```ts
+ * ticks(0, 1000, 5); // [0, 200, 400, 600, 800, 1000]
+ * ```
+ */
+const ticks = (start: number, stop: number, count: number): number[] => {
+	if (!(count > 0)) {
+		return [];
+	}
+	if (start === stop) {
+		return [start];
+	}
+	const reverse = stop < start;
+	const [i1, i2, inc] = reverse ? tickSpec(stop, start, count) : tickSpec(start, stop, count);
+	if (!(i2 >= i1)) {
+		return [];
+	}
+	const length = i2 - i1 + 1;
+	const result: number[] = [];
+	for (let i = 0; i < length; i += 1) {
+		// Reversed domains count down from i2; a negative `inc` divides to keep
+		// sub-integer ticks exact rather than multiplying by a fraction.
+		const scaledIndex = reverse ? i2 - i : i1 + i;
+		result.push(inc < 0 ? scaledIndex / -inc : scaledIndex * inc);
+	}
+	return result;
+};
+
+/**
+ * The tick increment for `[start, stop]`: a positive result is the step size; a
+ * negative `-inc` encodes a sub-integer step of `1 / inc`. Callers snap outward
+ * with this by scaling up, rounding, and scaling back down.
+ *
+ * @example
+ * ```ts
+ * tickIncrement(0, 100, 5); // 20
+ * tickIncrement(0, 1, 5); // -5  (i.e. a step of 0.2)
+ * ```
+ */
+const tickIncrement = (start: number, stop: number, count: number): number =>
+	tickSpec(start, stop, count)[2];
 
 /**
  * Plain multiply-add coefficients derived from a linear domain→range mapping.
@@ -139,7 +235,7 @@ const invertBand = (layout: BandLayout, pixel: number): number | null => {
  * ```
  */
 const linearTicks = (domain: readonly [number, number], count: number): number[] =>
-	d3Ticks(domain[0], domain[1], count);
+	ticks(domain[0], domain[1], count);
 
 /**
  * Calendar-aware ticks (epoch milliseconds) for a time domain — the reason
@@ -194,8 +290,8 @@ const niceDomain = (domain: readonly [number, number], count: number): [number, 
 		const pad = value === 0 ? 1 : Math.abs(value) * 0.5;
 		return niceDomain([value - pad, value + pad], count);
 	}
-	// d3's tick increment: positive means a step of that size, negative means a
-	// step of `1 / -step` (sub-integer ticks) — scale up, snap outward, scale down.
+	// The tick increment is positive for a step of that size, negative for a
+	// sub-integer step of `1 / -step` — scale up, snap outward, scale down.
 	const step = tickIncrement(domain[0], domain[1], count);
 	if (step > 0) {
 		return [Math.floor(domain[0] / step) * step, Math.ceil(domain[1] / step) * step];

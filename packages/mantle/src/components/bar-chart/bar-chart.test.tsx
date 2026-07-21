@@ -324,6 +324,61 @@ describe("BarChart controlled activeIndex", () => {
 	});
 });
 
+describe("BarChart textures", () => {
+	const texturedChart = (
+		<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+			<BarChart.Bar dataKey="desktop" label="Desktop" />
+			<BarChart.Bar dataKey="mobile" label="Mobile" texture="hatch" />
+			<BarChart.Legend />
+		</BarChart.Root>
+	);
+
+	const legendSwatches = (container: HTMLElement) => {
+		const legend = container.querySelector('[data-slot="bar-chart-legend"]');
+		return legend == null ? [] : [...legend.querySelectorAll<HTMLElement>("span[data-texture]")];
+	};
+
+	test("legend keys wear the series' texture as a redundant encoding", () => {
+		// The stripe gradient itself is asserted in browser mode
+		// (texture.browser.test.tsx) — happy-dom's CSS parser drops
+		// repeating-linear-gradient values, so here we assert the structural
+		// data-texture channel and that color still follows the entity.
+		const { container } = render(texturedChart);
+		const swatches = legendSwatches(container);
+		expect(swatches.map((swatch) => swatch.getAttribute("data-texture"))).toEqual([
+			"solid",
+			"hatch",
+		]);
+		expect(swatches[1]?.style.backgroundColor).toContain("chart-2");
+	});
+
+	test("every texture value flows through to its legend key", () => {
+		const quarterly = [
+			{ month: "January", desktop: 186, mobile: 80, tablet: 40, kiosk: 12, tv: 6, watch: 3 },
+			{ month: "February", desktop: 305, mobile: 200, tablet: 60, kiosk: 18, tv: 8, watch: 5 },
+		];
+		const { container } = render(
+			<BarChart.Root data={quarterly} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" texture="hatch" />
+				<BarChart.Bar dataKey="tablet" label="Tablet" texture="hatch-reverse" />
+				<BarChart.Bar dataKey="kiosk" label="Kiosk" texture="crosshatch" />
+				<BarChart.Bar dataKey="tv" label="TV" texture="perpendicular" />
+				<BarChart.Bar dataKey="watch" label="Watch" texture="dots" />
+				<BarChart.Legend />
+			</BarChart.Root>,
+		);
+		expect(legendSwatches(container).map((swatch) => swatch.getAttribute("data-texture"))).toEqual([
+			"solid",
+			"hatch",
+			"hatch-reverse",
+			"crosshatch",
+			"perpendicular",
+			"dots",
+		]);
+	});
+});
+
 describe("BarChart sticky series colors", () => {
 	test("filtering a series out does not recolor the survivors", () => {
 		const filterableData = [

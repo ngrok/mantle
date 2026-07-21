@@ -104,6 +104,22 @@ const drawBaseline = (
 };
 
 /**
+ * Draw the zero baseline horizontal bars grow rightward from.
+ */
+const drawVerticalBaseline = (
+	ctx: CanvasRenderingContext2D,
+	options: { plot: PlotRect; color: string; x: number },
+): void => {
+	const { plot, color, x } = options;
+	ctx.strokeStyle = color;
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	ctx.moveTo(hairline(x), plot.top);
+	ctx.lineTo(hairline(x), plot.top + plot.height);
+	ctx.stroke();
+};
+
+/**
  * One bar rectangle in CSS pixels, with rounding only at the data end.
  */
 type BarRect = {
@@ -119,16 +135,18 @@ type BarRect = {
 
 /**
  * Fill one series' bars as a single batched path (one `fill()` per series).
- * Corner radii collapse as bars get thin (< 8px: square; width is clamped to
- * a minimum of half a pixel so ten-thousand-category charts degrade to a
- * silhouette instead of vanishing).
+ * `fill` is the series' solid color or its texture pattern — a `CanvasPattern`
+ * anchors to the canvas, so one pattern paints every bar of the series in a
+ * continuous diagonal field. Corner radii collapse as bars get thin (< 8px:
+ * square; width is clamped to a minimum of half a pixel so ten-thousand-category
+ * charts degrade to a silhouette instead of vanishing).
  */
 const drawBars = (
 	ctx: CanvasRenderingContext2D,
-	options: { color: string; rects: readonly BarRect[] },
+	options: { fill: string | CanvasPattern; rects: readonly BarRect[] },
 ): void => {
-	const { color, rects } = options;
-	ctx.fillStyle = color;
+	const { fill, rects } = options;
+	ctx.fillStyle = fill;
 	ctx.beginPath();
 	for (const rect of rects) {
 		const width = Math.max(0.5, rect.width);
@@ -147,6 +165,56 @@ const drawBars = (
 			ctx.roundRect(rect.x, top, width, height, [radius, radius, 0, 0]);
 		} else {
 			ctx.roundRect(rect.x, top, width, height, [0, 0, radius, radius]);
+		}
+	}
+	ctx.fill();
+};
+
+/**
+ * One horizontal bar rectangle in CSS pixels, with rounding only at the data
+ * end — the mirror of {@link BarRect} for `orientation="horizontal"`.
+ */
+type HorizontalBarRect = {
+	y: number;
+	height: number;
+	/** Pixel x of the segment edge nearer the baseline. */
+	baselineX: number;
+	/** Pixel x of the segment edge nearer the data end. */
+	valueX: number;
+	/** Round the data-end corners (outermost segment of a stack only). */
+	rounded: boolean;
+};
+
+/**
+ * Fill one series' horizontal bars as a single batched path — the
+ * {@link drawBars} mirror for `orientation="horizontal"`: bars grow rightward
+ * from the baseline (leftward for negative values), rounding only the data
+ * end, with the same thin-bar corner collapse and half-pixel minimum.
+ */
+const drawHorizontalBars = (
+	ctx: CanvasRenderingContext2D,
+	options: { fill: string | CanvasPattern; rects: readonly HorizontalBarRect[] },
+): void => {
+	const { fill, rects } = options;
+	ctx.fillStyle = fill;
+	ctx.beginPath();
+	for (const rect of rects) {
+		const height = Math.max(0.5, rect.height);
+		const left = Math.min(rect.valueX, rect.baselineX);
+		const width = Math.abs(rect.valueX - rect.baselineX);
+		if (width === 0) {
+			continue;
+		}
+		const radius = rect.rounded && height >= 8 ? Math.min(BAR_CORNER_RADIUS, height / 2, width) : 0;
+		if (radius === 0) {
+			ctx.rect(left, rect.y, width, height);
+			continue;
+		}
+		const growsRight = rect.valueX >= rect.baselineX;
+		if (growsRight) {
+			ctx.roundRect(left, rect.y, width, height, [0, radius, radius, 0]);
+		} else {
+			ctx.roundRect(left, rect.y, width, height, [radius, 0, 0, radius]);
 		}
 	}
 	ctx.fill();
@@ -700,6 +768,44 @@ const drawReferenceLine = (
 };
 
 /**
+ * A dashed vertical reference line with an optional label beside its top end —
+ * the {@link drawReferenceLine} mirror for horizontal bars, where the value
+ * axis runs along x.
+ */
+const drawVerticalReferenceLine = (
+	ctx: CanvasRenderingContext2D,
+	options: {
+		plot: PlotRect;
+		color: string;
+		textColor: string;
+		x: number;
+		label: string | undefined;
+		fontFamily: string;
+	},
+): void => {
+	const { plot, color, textColor, x, label, fontFamily } = options;
+	ctx.strokeStyle = color;
+	ctx.lineWidth = 1;
+	ctx.setLineDash([4, 4]);
+	ctx.beginPath();
+	ctx.moveTo(hairline(x), plot.top);
+	ctx.lineTo(hairline(x), plot.top + plot.height);
+	ctx.stroke();
+	ctx.setLineDash([]);
+	if (label != null && label.length > 0) {
+		ctx.font = `${AXIS_FONT_SIZE}px ${fontFamily}`;
+		ctx.fillStyle = textColor;
+		// Beside the top end, flipping to the left side near the plot's right
+		// edge so the label never clips.
+		const labelWidth = ctx.measureText(label).width;
+		const fitsRight = x + 4 + labelWidth <= plot.left + plot.width;
+		ctx.textAlign = fitsRight ? "left" : "right";
+		ctx.textBaseline = "top";
+		ctx.fillText(label, fitsRight ? x + 4 : x - 4, plot.top + 3);
+	}
+};
+
+/**
  * Axis tick labels: y labels right-aligned in the left gutter, x labels
  * centered under their positions. Callers pre-thin x labels to avoid
  * collisions (skip, never rotate); per-label alpha carries the fade state so
@@ -737,6 +843,7 @@ const drawAxisLabels = (
 export type {
 	//,
 	BarRect,
+	HorizontalBarRect,
 	PlotRect,
 };
 export {
@@ -755,10 +862,13 @@ export {
 	drawDepthSortedPoints,
 	drawDecimatedLine,
 	drawGrid,
+	drawHorizontalBars,
 	drawLinePath,
 	drawMarkers,
 	drawReferenceLine,
 	drawScatterPoints,
+	drawVerticalBaseline,
+	drawVerticalReferenceLine,
 	hairline,
 	LINE_WIDTH,
 	MARKER_RADIUS,

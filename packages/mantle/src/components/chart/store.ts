@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import type {
+	BarOrientation,
 	ChartColorToken,
 	GridLines,
 	HoverSnapshot,
@@ -53,8 +54,12 @@ type StoreSnapshot = {
 	series: SeriesMeta[];
 	/** The active hover/keyboard position, `null` when idle. */
 	hover: HoverSnapshot | null;
-	/** Grid configuration, `null` when no Grid part is composed. */
-	grid: { lines: GridLines } | null;
+	/**
+	 * Grid configuration, `null` when no Grid part is composed. `lines` is
+	 * `undefined` when the part left the direction to the chart (the engine
+	 * defaults it perpendicular to the bars).
+	 */
+	grid: { lines: GridLines | undefined } | null;
 	/** X axis configuration, `null` when no XAxis part is composed. */
 	xAxis: XAxisSpec | null;
 	/** Y axis configuration, `null` when no YAxis part is composed. */
@@ -63,6 +68,8 @@ type StoreSnapshot = {
 	referenceLines: ReferenceLineSpec[];
 	/** Tooltip customization, `null` when no Tooltip part is composed. */
 	tooltip: TooltipConfig | null;
+	/** The bar direction the Root registered (DOM consumers: legend texture keys). */
+	orientation: BarOrientation;
 };
 
 /**
@@ -104,6 +111,7 @@ class ChartStore {
 		yAxis: null,
 		referenceLines: [],
 		tooltip: null,
+		orientation: "vertical",
 	};
 
 	#seriesByKey = new Map<string, { spec: SeriesSpec; sequence: number }>();
@@ -113,7 +121,8 @@ class ChartStore {
 	#nextSequence = 0;
 	#nextSlot = 0;
 
-	#grid: { lines: GridLines } | null = null;
+	#grid: { lines: GridLines | undefined } | null = null;
+	#orientation: BarOrientation = "vertical";
 	#xAxis: XAxisSpec | null = null;
 	#yAxis: YAxisSpec | null = null;
 	#referenceLines = new Map<string, { spec: ReferenceLineSpec; sequence: number }>();
@@ -218,7 +227,16 @@ class ChartStore {
 		};
 	}
 
-	registerGrid(lines: GridLines): () => void {
+	/** Root-side: publish the bar direction so DOM consumers (legend keys) can mirror it. */
+	setOrientation(orientation: BarOrientation): void {
+		if (this.#orientation === orientation) {
+			return;
+		}
+		this.#orientation = orientation;
+		this.#publishRegistrations();
+	}
+
+	registerGrid(lines: GridLines | undefined): () => void {
 		// Singleton parts: last registration wins. Cleanup compares the exact
 		// registration object, never its value — an equal-valued duplicate part
 		// unmounting must not clear the surviving registration.
@@ -302,6 +320,7 @@ class ChartStore {
 			color: displayColor(spec.color, this.#slotByKey.get(spec.dataKey) ?? "chart-other"),
 			colorInput: spec.color ?? this.#slotByKey.get(spec.dataKey) ?? "chart-other",
 			shape: spec.shape,
+			texture: spec.texture,
 		}));
 	}
 
@@ -316,6 +335,7 @@ class ChartStore {
 				.toSorted((a, b) => a.sequence - b.sequence)
 				.map((entry) => entry.spec),
 			tooltip: this.#tooltip,
+			orientation: this.#orientation,
 		};
 		this.#emit();
 		if (options.seriesChanged) {

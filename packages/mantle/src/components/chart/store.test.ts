@@ -11,6 +11,7 @@ const makeSeries = (dataKey: string, overrides: Partial<SeriesSpec> = {}): Serie
 	markers: false,
 	connectNulls: false,
 	shape: "circle",
+	texture: "solid",
 	...overrides,
 });
 
@@ -212,6 +213,17 @@ describe("ChartStore registrations", () => {
 		const meta = store.seriesMeta();
 		expect(meta[0]?.shape).toBe("triangle");
 		expect(meta[1]?.shape).toBe("circle");
+	});
+
+	test("series meta carries the registered bar texture through to DOM consumers", () => {
+		const store = new ChartStore();
+		store.registerSeries(makeSeries("a", { mark: "bar" }));
+		store.registerSeries(makeSeries("b", { mark: "bar", texture: "hatch" }));
+		store.registerSeries(makeSeries("c", { mark: "bar", texture: "crosshatch" }));
+		const meta = store.seriesMeta();
+		expect(meta[0]?.texture).toBe("solid");
+		expect(meta[1]?.texture).toBe("hatch");
+		expect(meta[2]?.texture).toBe("crosshatch");
 	});
 
 	test("subscribers are notified and snapshots are immutable-by-replacement", () => {

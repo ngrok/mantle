@@ -86,6 +86,26 @@ type CurveKind = "linear" | "monotone" | "step";
  */
 type PointShape = "circle" | "square" | "triangle" | "diamond";
 
+/**
+ * The fill texture a bar series wears: solid color (the default), diagonal
+ * hatch lines at 45° (`"hatch"`), the 135° mirror (`"hatch-reverse"`), both
+ * (`"crosshatch"`), rungs perpendicular to the bar's length
+ * (`"perpendicular"` — horizontal lines on vertical bars), or an offset dot
+ * grid (`"dots"`). Texture is a redundant identity encoding alongside color —
+ * inked tone-on-tone at equal loudness across slots — so grouped and stacked
+ * series stay distinguishable without color vision, in grayscale print, and
+ * under forced colors.
+ */
+type BarTexture = "solid" | "hatch" | "hatch-reverse" | "crosshatch" | "perpendicular" | "dots";
+
+/**
+ * The direction a bar chart's bars run: vertical columns rising from a bottom
+ * baseline (the default), or horizontal bars growing rightward from a left
+ * baseline — the layout for long category labels, which move into the left
+ * gutter at full width instead of colliding under the plot.
+ */
+type BarOrientation = "vertical" | "horizontal";
+
 type SeriesSpec = {
 	/** The row key this series reads its numeric values from. */
 	dataKey: string;
@@ -103,6 +123,8 @@ type SeriesSpec = {
 	connectNulls: boolean;
 	/** The point glyph (scatter marks, line markers, hover dots). */
 	shape: PointShape;
+	/** The fill texture (bar marks only). */
+	texture: BarTexture;
 };
 
 /**
@@ -119,6 +141,8 @@ type SeriesMeta = {
 	colorInput: SeriesColor;
 	/** The point glyph the series wears (scatter marks, legend keys, hover dots). */
 	shape: PointShape;
+	/** The fill texture the series wears (bar marks and their legend keys). */
+	texture: BarTexture;
 };
 
 /**
@@ -207,6 +231,8 @@ type ChartOptions = {
 	xKey: string;
 	xScale: XScaleKind;
 	yDomain: YDomain;
+	/** Bar charts only: the direction the bars run. */
+	orientation: BarOrientation;
 	/** Scatter plots only: the row key of the depth value; enables the 3D projection. */
 	zKey: string | null;
 	/**
@@ -221,6 +247,8 @@ type ChartOptions = {
 
 export type {
 	//,
+	BarOrientation,
+	BarTexture,
 	ChartColorToken,
 	ChartDatum,
 	ChartDatumEvent,

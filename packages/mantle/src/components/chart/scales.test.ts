@@ -115,8 +115,27 @@ describe("invertBand", () => {
 });
 
 describe("linearTicks", () => {
+	// Parity fixtures captured from d3-array 3.2.4 before it was inlined; these
+	// lock the ported 1/2/5 solver against regressions.
 	test("lands on clean 1/2/5-stepped numbers", () => {
 		expect(linearTicks([0, 1000], 5)).toEqual([0, 200, 400, 600, 800, 1000]);
+	});
+
+	test("steps a spanning-zero domain symmetrically", () => {
+		expect(linearTicks([-30, 80], 4)).toEqual([-20, 0, 20, 40, 60, 80]);
+	});
+
+	test("produces sub-integer ticks without floating-point drift", () => {
+		expect(linearTicks([0, 1], 10)).toEqual([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]);
+		expect(linearTicks([0.001, 0.019], 5)).toEqual([0.005, 0.01, 0.015]);
+	});
+
+	test("a flat domain yields the single value", () => {
+		expect(linearTicks([5, 5], 5)).toEqual([5]);
+	});
+
+	test("a non-positive count yields no ticks", () => {
+		expect(linearTicks([0, 100], 0)).toEqual([]);
 	});
 });
 

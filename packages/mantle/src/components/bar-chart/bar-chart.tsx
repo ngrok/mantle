@@ -11,7 +11,13 @@ import type {
 	XAxisPrimitiveProps,
 	YAxisPrimitiveProps,
 } from "../chart/primitive.js";
-import type { ChartDatum, ChartDatumEvent, SeriesColor } from "../chart/types.js";
+import type {
+	BarOrientation,
+	BarTexture,
+	ChartDatum,
+	ChartDatumEvent,
+	SeriesColor,
+} from "../chart/types.js";
 import {
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
@@ -40,6 +46,15 @@ type BarChartRootProps<TDatum extends ChartDatum = ChartDatum> = Omit<
 		xKey: Extract<keyof TDatum, string>;
 		/** Override the automatic y maximum. The minimum is always the zero baseline. */
 		yDomain?: [0, number | "auto"];
+		/**
+		 * The direction the bars point — this names the bars, not an axis.
+		 * `"vertical"` (default) bars stand up from a bottom baseline with
+		 * categories along the x axis; `"horizontal"` bars run rightward from a
+		 * left baseline with categories down the y axis — better for long category
+		 * labels or many categories. The value axis, baseline, reference lines, and
+		 * `"perpendicular"` texture all flip to match.
+		 */
+		orientation?: BarOrientation;
 	};
 
 /**
@@ -59,6 +74,19 @@ type BarChartBarProps = {
 	 * semantic status colors, never a categorical slot.
 	 */
 	color?: SeriesColor;
+	/**
+	 * The fill texture the series wears, on canvas and on its legend key:
+	 * `"solid"` (default), diagonal hatch lines at 45° (`"hatch"`), the 135°
+	 * mirror (`"hatch-reverse"`), both (`"crosshatch"`), rungs perpendicular
+	 * to the bar's length (`"perpendicular"`), or an offset dot grid
+	 * (`"dots"`). Texture is a redundant identity encoding alongside color —
+	 * tone-on-tone ink from the series' own fill — so grouped and stacked
+	 * series stay distinguishable without color vision, in grayscale print,
+	 * and under forced colors. Keep it opt-in and purposeful, never
+	 * decorative: on a multi-series chart, leave the first series solid and
+	 * texture the rest.
+	 */
+	texture?: BarTexture;
 };
 
 /**
@@ -132,6 +160,8 @@ const Root = <TDatum extends ChartDatum = ChartDatum>(props: BarChartRootProps<T
  * One bar series. Renders nothing itself — it registers the series with the
  * chart, which paints it on canvas. Compose one `Bar` per series; with
  * `stacked` on the Root, bars stack in composition order from the baseline up.
+ * `texture` adds a diagonal-hatch fill as a redundant identity encoding
+ * alongside color, worn by the bars and the series' legend key alike.
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartbar
  *

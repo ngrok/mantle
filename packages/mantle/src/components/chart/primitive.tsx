@@ -27,7 +27,10 @@ import { ChartEngine, POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import { formatNumber, formatXValue, hasTimeOfDay } from "./format.js";
 import { serializeChartMarkdown } from "./serialize.js";
 import { ChartStore } from "./store.js";
+import { textureInkColor } from "./texture.js";
 import type {
+	BarOrientation,
+	BarTexture,
 	ChartDatum,
 	ChartDatumEvent,
 	ContinuousXScale,
@@ -169,6 +172,13 @@ type ChartRootPrimitiveProps = ChartRootBaseProps &
 		 * full cube (3).
 		 */
 		dimensions?: 1 | 2 | 3;
+		/**
+		 * Bar charts only: the direction the bars point (not an axis). `"vertical"`
+		 * (default) bars stand up from a bottom baseline with categories along x;
+		 * `"horizontal"` bars run rightward from a left baseline with categories
+		 * down y. Ignored by other kinds.
+		 */
+		orientation?: BarOrientation;
 	};
 
 type InternalRootProps = ChartRootPrimitiveProps & {
@@ -221,6 +231,7 @@ const ChartRootPrimitive = ({
 	dimensions = 3,
 	yDomain = AUTO_Y_DOMAIN,
 	stacked = false,
+	orientation = "vertical",
 	animate = true,
 	pending = false,
 	activeIndex,
@@ -326,9 +337,20 @@ const ChartRootPrimitive = ({
 			zKey: zKey ?? null,
 			dimensions,
 			stacked,
+			orientation,
 			animate,
 		});
-	}, [xKey, resolvedXScale, yDomainMin, yDomainMax, zKey, dimensions, stacked, animate]);
+	}, [
+		xKey,
+		resolvedXScale,
+		yDomainMin,
+		yDomainMax,
+		zKey,
+		dimensions,
+		stacked,
+		orientation,
+		animate,
+	]);
 
 	useLayoutEffect(() => {
 		engineRef.current?.setRows(data);
@@ -492,6 +514,8 @@ type SeriesPrimitiveProps = {
 	markers?: boolean;
 	connectNulls?: boolean;
 	shape?: PointShape;
+	/** The fill texture (bar marks only) — worn by the bars and their legend key. */
+	texture?: BarTexture;
 };
 
 /**
@@ -516,6 +540,7 @@ const useSeriesPrimitive = (
 		markers = false,
 		connectNulls = false,
 		shape = "circle",
+		texture = "solid",
 	} = props;
 	useLayoutEffect(
 		() =>
@@ -528,8 +553,9 @@ const useSeriesPrimitive = (
 				markers,
 				connectNulls,
 				shape,
+				texture,
 			}),
-		[context.store, dataKey, label, color, mark, curve, markers, connectNulls, shape],
+		[context.store, dataKey, label, color, mark, curve, markers, connectNulls, shape, texture],
 	);
 	return null;
 };
@@ -754,21 +780,76 @@ type LegendPrimitiveProps = Omit<ComponentProps<"div">, "children"> & {
 };
 
 /**
- * A legend key that mirrors its series' mark AND glyph — shape is the
- * redundant encoding that keeps series apart without color vision, so the
- * key must carry it everywhere the marks and hover dots do: scatter and area
- * keys are the glyph itself (the area glyph is exactly what its hover dot
- * shows), line keys are the glyph riding a short stroke, and bar keys stay
- * filled squares (bars carry no glyph — a bar's identity is its position and
- * color).
+ * One stripe family of the CSS texture a textured bar legend key wears. The
+ * stripes are denser than the canvas tile (a key is read at 8px, not bar
+ * scale) but carry the same tone-on-tone ink, so key and bars match. CSS
+ * gradient angles are perpendicular to their stripes: `135deg` renders the
+ * 45° `/` family, `45deg` its `\` mirror, `0deg` horizontal rungs.
+ */
+const legendHatchGradient = (angle: "0deg" | "45deg" | "135deg", ink: string, period = 3): string =>
+	`repeating-linear-gradient(${angle}, ${ink} 0, ${ink} 1px, transparent 1px, transparent ${period}px)`;
+
+/**
+ * Legend keys are pure color/texture chips, so they keep their author colors
+ * where backgrounds are normally stripped: forced-colors mode (the sanctioned
+ * `forced-color-adjust: none` use) and printing (where default settings drop
+ * CSS backgrounds entirely) — otherwise the series↔label mapping vanishes in
+ * exactly the modes textures exist to serve.
+ */
+const LEGEND_SWATCH_PAINT_CLASSES =
+	"forced-color-adjust-none [print-color-adjust:exact] [-webkit-print-color-adjust:exact]";
+
+/**
+ * The background layers mirroring a bar series' canvas texture on its legend
+ * key — empty for solid fills so the plain swatch color shows. Dots tile a
+ * sized radial gradient; every line texture is a repeating stripe gradient.
+ */
+const legendTextureStyle = (texture: BarTexture, color: string): CSSProperties => {
+	if (texture === "solid") {
+		return {};
+	}
+	const ink = textureInkColor(color);
+	if (texture === "hatch") {
+		return { backgroundImage: legendHatchGradient("135deg", ink) };
+	}
+	if (texture === "hatch-reverse") {
+		return { backgroundImage: legendHatchGradient("45deg", ink) };
+	}
+	if (texture === "crosshatch") {
+		// A wider period than the single-direction hatches: two 3px-period
+		// families on an 8px chip are ~56% ink and read as a darker solid.
+		return {
+			backgroundImage: `${legendHatchGradient("135deg", ink, 4)}, ${legendHatchGradient("45deg", ink, 4)}`,
+		};
+	}
+	if (texture === "perpendicular") {
+		return { backgroundImage: legendHatchGradient("0deg", ink) };
+	}
+	return {
+		backgroundImage: `radial-gradient(circle at 1px 1px, ${ink} 0.75px, transparent 0.8px)`,
+		backgroundSize: "3px 3px",
+	};
+};
+
+/**
+ * A legend key that mirrors its series' mark AND its redundant encoding —
+ * the channel that keeps series apart without color vision — so the key
+ * carries it everywhere the marks do: scatter and area keys are the glyph
+ * itself (the area glyph is exactly what its hover dot shows), line keys are
+ * the glyph riding a short stroke, and bar keys are filled squares wearing
+ * the series' fill texture (bars encode identity by texture, not glyph).
  */
 const LegendSwatch = ({ series }: { series: SeriesMeta }) => {
 	if (series.mark === "bar") {
 		return (
 			<span
 				aria-hidden
-				className="size-2 shrink-0 rounded-[2px]"
-				style={{ backgroundColor: series.color }}
+				data-texture={series.texture}
+				className={cx("size-2 shrink-0 rounded-[2px]", LEGEND_SWATCH_PAINT_CLASSES)}
+				style={{
+					backgroundColor: series.color,
+					...legendTextureStyle(series.texture, series.color),
+				}}
 			/>
 		);
 	}
@@ -778,12 +859,15 @@ const LegendSwatch = ({ series }: { series: SeriesMeta }) => {
 		return (
 			<span aria-hidden className="relative flex h-2 w-3 shrink-0 items-center justify-center">
 				<span
-					className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full"
+					className={cx(
+						"absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full",
+						LEGEND_SWATCH_PAINT_CLASSES,
+					)}
 					style={{ backgroundColor: series.color }}
 				/>
 				<span
 					data-shape={series.shape}
-					className="relative size-2"
+					className={cx("relative size-2", LEGEND_SWATCH_PAINT_CLASSES)}
 					style={{
 						backgroundColor: series.color,
 						clipPath: POINT_SHAPE_CLIP_PATHS[series.shape],
@@ -796,7 +880,7 @@ const LegendSwatch = ({ series }: { series: SeriesMeta }) => {
 		<span
 			aria-hidden
 			data-shape={series.shape}
-			className="size-2 shrink-0"
+			className={cx("size-2 shrink-0", LEGEND_SWATCH_PAINT_CLASSES)}
 			style={{
 				backgroundColor: series.color,
 				clipPath: POINT_SHAPE_CLIP_PATHS[series.shape],

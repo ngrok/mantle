@@ -17,6 +17,35 @@ export const monthlyVisitors = [
 	{ month: "June", desktop: 214, mobile: 140 },
 ];
 
+export const dailyRequests = Array.from({ length: 91 }, (_, day) => {
+	const date = new Date(2026, 3, 1 + day);
+	const weekend = date.getDay() === 0 || date.getDay() === 6;
+	return {
+		date,
+		requests: Math.round(
+			(weekend ? 0.55 : 1) *
+				(52_000 + 14_000 * Math.sin(day / 9) + 9_000 * Math.sin(day / 2.7) + 120 * day),
+		),
+	};
+});
+
+export const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+
+export function DailyBarChartExample() {
+	return (
+		<BarChart.Root
+			data={dailyRequests}
+			xKey="date"
+			aria-label="HTTP requests per day over the last three months"
+		>
+			<BarChart.Grid />
+			<BarChart.XAxis tickFormat={(date) => shortDate.format(new Date(date))} />
+			<BarChart.YAxis />
+			<BarChart.Bar dataKey="requests" label="Requests" />
+		</BarChart.Root>
+	);
+}
+
 export function CopyMarkdownExample() {
 	return (
 		<BarChart.Root data={monthlyVisitors} xKey="month" aria-label="Visitors by month, copyable">
@@ -49,6 +78,51 @@ export function GroupedBarChartExample() {
 			<BarChart.Bar dataKey="desktop" label="Desktop" />
 			<BarChart.Bar dataKey="mobile" label="Mobile" />
 			<BarChart.Tooltip />
+			<BarChart.Legend />
+		</BarChart.Root>
+	);
+}
+
+export function HorizontalBarChartExample() {
+	return (
+		<BarChart.Root
+			data={endpointRequests}
+			xKey="endpoint"
+			orientation="horizontal"
+			aria-label="Requests by endpoint"
+		>
+			<BarChart.Grid lines="vertical" />
+			<BarChart.XAxis />
+			<BarChart.YAxis />
+			<BarChart.Bar dataKey="requests" label="Requests" />
+			<BarChart.Tooltip />
+		</BarChart.Root>
+	);
+}
+
+export const deviceVisitors = [
+	{ month: "January", desktop: 186, mobile: 80, tablet: 47 },
+	{ month: "February", desktop: 305, mobile: 200, tablet: 65 },
+	{ month: "March", desktop: 237, mobile: 120, tablet: 52 },
+	{ month: "April", desktop: 73, mobile: 190, tablet: 41 },
+	{ month: "May", desktop: 209, mobile: 130, tablet: 58 },
+	{ month: "June", desktop: 214, mobile: 140, tablet: 63 },
+];
+
+export function TexturedBarChartExample() {
+	return (
+		<BarChart.Root
+			data={deviceVisitors}
+			xKey="month"
+			stacked
+			aria-label="Visitors by month and device"
+		>
+			<BarChart.Grid />
+			<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+			<BarChart.YAxis />
+			<BarChart.Bar dataKey="desktop" label="Desktop" />
+			<BarChart.Bar dataKey="mobile" label="Mobile" texture="hatch" />
+			<BarChart.Bar dataKey="tablet" label="Tablet" texture="dots" />
 			<BarChart.Legend />
 		</BarChart.Root>
 	);
@@ -247,12 +321,57 @@ A canvas-rendered bar chart for comparing values across categories, with grouped
 
 Use a `BarChart` to compare values across discrete categories — months, endpoints, plans. Bars encode value by length from a shared zero baseline, so the y-axis minimum is fixed at `0` and a truncated-bar axis is unrepresentable.
 
+- Time-binned aggregates — requests per day, cost per week — are categories too: each bar is a bucket's total, so a dense daily chart like the one below belongs here.
 - Grouped bars (the default) compare series side by side within each category.
 - Stacked bars (`stacked` on the Root) show how parts compose each category's total.
-- Prefer `LineChart` for trends over continuous time — bars at every timestamp read as categories, not a trend.
+- Prefer `LineChart` for trends over continuous time — sampled measurements at every timestamp read as a stream, not buckets.
 - Prefer `AreaChart` for cumulative composition over continuous time.
 
-Compose everything inside `BarChart.Root`: gridlines, axes, one `BarChart.Bar` per series, and the legend. The interaction layer — per-category hover band and tooltip, keyboard stepping, polite announcements, and an sr-only data table — ships with `Root` unconditionally. Always compose `BarChart.Legend` on multi-series charts: series identity must never rely on color-matching alone.
+Compose everything inside `BarChart.Root`: gridlines, axes, one `BarChart.Bar` per series, and (on multi-series charts) the legend. The interaction layer — per-category hover band and tooltip, keyboard stepping, polite announcements, and an sr-only data table — ships with `Root` unconditionally.
+
+Density takes care of itself: this chart plots 91 daily bars, and the band axis thins its own labels — evenly spaced from the first day, skipped rather than rotated when they'd collide. `Date` x values format as dates in the tooltip, land as exact ISO timestamps in the data-table twin, and take a `tickFormat` for short axis labels.
+
+<Example>
+	<DailyBarChartExample />
+</Example>
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+
+/** Deterministic daily traffic: weekly seasonality over a gentle upward trend. */
+const dailyRequests = Array.from({ length: 91 }, (_, day) => {
+	const date = new Date(2026, 3, 1 + day);
+	const weekend = date.getDay() === 0 || date.getDay() === 6;
+	return {
+		date,
+		requests: Math.round(
+			(weekend ? 0.55 : 1) *
+				(52_000 + 14_000 * Math.sin(day / 9) + 9_000 * Math.sin(day / 2.7) + 120 * day),
+		),
+	};
+});
+
+const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+
+function DailyBarChartExample() {
+	return (
+		<BarChart.Root
+			data={dailyRequests}
+			xKey="date"
+			aria-label="HTTP requests per day over the last three months"
+		>
+			<BarChart.Grid />
+			<BarChart.XAxis tickFormat={(date) => shortDate.format(new Date(date))} />
+			<BarChart.YAxis />
+			<BarChart.Bar dataKey="requests" label="Requests" />
+		</BarChart.Root>
+	);
+}
+```
+
+## Grouped bars
+
+The default layout draws one bar per series side by side within each category — the head-to-head comparison. Always compose `BarChart.Legend` on multi-series charts: series identity must never rely on color-matching alone.
 
 <Example>
 	<GroupedBarChartExample />
@@ -313,6 +432,85 @@ function StackedBarChartExample() {
 			<BarChart.YAxis />
 			<BarChart.Bar dataKey="desktop" label="Desktop" />
 			<BarChart.Bar dataKey="mobile" label="Mobile" />
+			<BarChart.Legend />
+		</BarChart.Root>
+	);
+}
+```
+
+## Horizontal bars
+
+`orientation` names the direction the bars point, not an axis: `"vertical"` (the default) bars stand up, `"horizontal"` bars lie across. Set `orientation="horizontal"` to grow bars rightward from a left baseline with categories banded down the y axis. Reach for it when category labels are long (they read straight instead of angled or truncated under the axis) or when there are many categories to rank. `xKey` still names the category and `YAxis` still labels the value — only the drawing flips: the category axis moves to the left gutter, the value axis to the bottom, and the baseline, reference lines, and `"perpendicular"` texture all rotate to match. Everything else — grouping, stacking, hover, keyboard, the data table — works unchanged.
+
+<Example>
+	<HorizontalBarChartExample />
+</Example>
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+
+const endpointRequests = [
+	{ endpoint: "/api/tunnels", requests: 4820 },
+	{ endpoint: "/api/edges", requests: 3190 },
+	{ endpoint: "/api/domains", requests: 2440 },
+	{ endpoint: "/api/certs", requests: 1210 },
+	{ endpoint: "/api/events", requests: 640 },
+];
+
+function HorizontalBarChartExample() {
+	return (
+		<BarChart.Root
+			data={endpointRequests}
+			xKey="endpoint"
+			orientation="horizontal"
+			aria-label="Requests by endpoint"
+		>
+			<BarChart.Grid lines="vertical" />
+			<BarChart.XAxis />
+			<BarChart.YAxis />
+			<BarChart.Bar dataKey="requests" label="Requests" />
+			<BarChart.Tooltip />
+		</BarChart.Root>
+	);
+}
+```
+
+## Textures
+
+When a multi-series or stacked chart can't rely on color alone — color-vision deficiencies, grayscale print and exports, forced-colors mode — give each series a fill `texture`. Textures are a redundant identity encoding alongside color: `"hatch"` (diagonal lines at 45°), `"hatch-reverse"` (its 135° mirror), `"crosshatch"` (both), `"perpendicular"` (rungs perpendicular to the bar's length — horizontal lines on vertical bars), and `"dots"` (an offset dot grid). The ink is tone-on-tone — a darker step of each series' own fill, at equal loudness across slots — and every legend key wears its series' pattern, so the mapping never depends on hue.
+
+Texture is opt-in and purposeful, never decorative: leave the first series solid and texture the rest, and keep solid fills when color alone already carries identity.
+
+<Example>
+	<TexturedBarChartExample />
+</Example>
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+
+const deviceVisitors = [
+	{ month: "January", desktop: 186, mobile: 80, tablet: 47 },
+	{ month: "February", desktop: 305, mobile: 200, tablet: 65 },
+	{ month: "March", desktop: 237, mobile: 120, tablet: 52 },
+	{ month: "April", desktop: 73, mobile: 190, tablet: 41 },
+	{ month: "May", desktop: 209, mobile: 130, tablet: 58 },
+	{ month: "June", desktop: 214, mobile: 140, tablet: 63 },
+];
+
+function TexturedBarChartExample() {
+	return (
+		<BarChart.Root
+			data={deviceVisitors}
+			xKey="month"
+			stacked
+			aria-label="Visitors by month and device"
+		>
+			<BarChart.Grid />
+			<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+			<BarChart.YAxis />
+			<BarChart.Bar dataKey="desktop" label="Desktop" />
+			<BarChart.Bar dataKey="mobile" label="Mobile" texture="hatch" />
+			<BarChart.Bar dataKey="tablet" label="Tablet" texture="dots" />
 			<BarChart.Legend />
 		</BarChart.Root>
 	);
@@ -709,29 +907,31 @@ The root of a bar chart: owns the data, the scales, the canvas renderer, and the
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop                   | Type                               | Default       | Description                                                                                                                                                                                                                  |
-| ---------------------- | ---------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data`                 | `readonly TDatum[]`                |               | Rows of data; each `BarChart.Bar` reads one numeric key per row. Missing keys and `null` values render as gaps.                                                                                                              |
-| `xKey`                 | `Extract<keyof TDatum, string>`    |               | The key of each row's category (x) value.                                                                                                                                                                                    |
-| `aria-label`           | `string`                           |               | The chart's accessible name. Exactly one of `aria-label` or `aria-labelledby` is required — enforced at the type level.                                                                                                      |
-| `aria-labelledby`      | `string`                           |               | ID of a visible title element that names the chart. Preferred when the chart sits under a heading — no drift-prone duplicated text.                                                                                          |
-| `yDomain?`             | `[0, number \| "auto"]`            | `[0, "auto"]` | Override the automatic y maximum. The minimum is always the zero baseline.                                                                                                                                                   |
-| `stacked?`             | `boolean`                          | `false`       | Stack the composed series in composition order from the baseline up.                                                                                                                                                         |
-| `animate?`             | `boolean`                          | `true`        | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                                                                                                                      |
-| `pending?`             | `boolean`                          | `false`       | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                               |
-| `activeIndex?`         | `number \| null`                   |               | Controlled active datum index (`null` = none). Omit for uncontrolled hover.                                                                                                                                                  |
-| `onActiveIndexChange?` | `(index: number \| null) => void`  |               | Notified when hover/keyboard moves the active index.                                                                                                                                                                         |
-| `onDatumActivate?`     | `(event: ChartDatumEvent) => void` |               | Notified on datum activation: bar click, or Enter/Space on the focused chart. The event carries `{ index, xValue, datum, dataKey }`; `dataKey` is the series nearest the pointer, `null` for keyboard/whole-band activation. |
+| Prop                   | Type                               | Default       | Description                                                                                                                                                                                                                              |
+| ---------------------- | ---------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data`                 | `readonly TDatum[]`                |               | Rows of data; each `BarChart.Bar` reads one numeric key per row. Missing keys and `null` values render as gaps.                                                                                                                          |
+| `xKey`                 | `Extract<keyof TDatum, string>`    |               | The key of each row's category (x) value.                                                                                                                                                                                                |
+| `aria-label`           | `string`                           |               | The chart's accessible name. Exactly one of `aria-label` or `aria-labelledby` is required — enforced at the type level.                                                                                                                  |
+| `aria-labelledby`      | `string`                           |               | ID of a visible title element that names the chart. Preferred when the chart sits under a heading — no drift-prone duplicated text.                                                                                                      |
+| `yDomain?`             | `[0, number \| "auto"]`            | `[0, "auto"]` | Override the automatic y maximum. The minimum is always the zero baseline.                                                                                                                                                               |
+| `stacked?`             | `boolean`                          | `false`       | Stack the composed series in composition order from the baseline up.                                                                                                                                                                     |
+| `orientation?`         | `"vertical" \| "horizontal"`       | `"vertical"`  | The direction the bars point (not an axis): `"vertical"` bars stand up from a bottom baseline (categories along x); `"horizontal"` bars run rightward from a left baseline (categories down y). See [Horizontal bars](#horizontal-bars). |
+| `animate?`             | `boolean`                          | `true`        | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                                                                                                                                  |
+| `pending?`             | `boolean`                          | `false`       | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                                           |
+| `activeIndex?`         | `number \| null`                   |               | Controlled active datum index (`null` = none). Omit for uncontrolled hover.                                                                                                                                                              |
+| `onActiveIndexChange?` | `(index: number \| null) => void`  |               | Notified when hover/keyboard moves the active index.                                                                                                                                                                                     |
+| `onDatumActivate?`     | `(event: ChartDatumEvent) => void` |               | Notified on datum activation: bar click, or Enter/Space on the focused chart. The event carries `{ index, xValue, datum, dataKey }`; `dataKey` is the series nearest the pointer, `null` for keyboard/whole-band activation.             |
 
 ### BarChart.Bar
 
 One bar series. Renders nothing itself — it registers the series with the chart, which paints it on canvas. Compose one `Bar` per series; with `stacked` on the Root, bars stack in composition order from the baseline up. Accepts no `className` or DOM props.
 
-| Prop      | Type          | Default          | Description                                                                                                                                                             |
-| --------- | ------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dataKey` | `string`      |                  | The row key this series reads its numeric values from.                                                                                                                  |
-| `label?`  | `string`      | `dataKey`        | Display name for the legend, tooltip, and data table.                                                                                                                   |
-| `color?`  | `SeriesColor` | next sticky slot | One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`) or any CSS color string as an escape hatch. See [Chart color tokens](#chart-color-tokens). |
+| Prop       | Type                                                                                 | Default          | Description                                                                                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------ | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dataKey`  | `string`                                                                             |                  | The row key this series reads its numeric values from.                                                                                                                  |
+| `label?`   | `string`                                                                             | `dataKey`        | Display name for the legend, tooltip, and data table.                                                                                                                   |
+| `color?`   | `SeriesColor`                                                                        | next sticky slot | One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`) or any CSS color string as an escape hatch. See [Chart color tokens](#chart-color-tokens). |
+| `texture?` | `"solid" \| "hatch" \| "hatch-reverse" \| "crosshatch" \| "perpendicular" \| "dots"` | `"solid"`        | The fill texture the bars and their legend key wear — a redundant identity encoding alongside color. See [Textures](#textures).                                         |
 
 ### BarChart.Grid
 

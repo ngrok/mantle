@@ -79,10 +79,16 @@ const needsComputedResolution = (cssColor: string): boolean =>
 	cssColor.includes("var(") || cssColor.includes("currentColor");
 
 /**
- * Resolve any CSS color string (including `var(...)` chains and
- * `currentColor`) to a canvas-paintable color by computing it as the `color`
- * of a probe element inside `host`. The probe participates in `host`'s
- * cascade, so chart-root-scoped custom property overrides apply.
+ * Resolve any CSS color string (including `var(...)` chains, `color-mix()`,
+ * and `currentColor`) to a canvas-paintable color by computing it as the
+ * `color` of a probe element inside `host`. The probe participates in
+ * `host`'s cascade, so chart-root-scoped custom property overrides apply.
+ *
+ * @example
+ * ```ts
+ * resolveThroughProbe(rootElement, "color-mix(in oklab, oklch(0.6 0.19 260) 70%, black)");
+ * // "rgb(28, 61, 145)" (computed, canvas-paintable)
+ * ```
  */
 const resolveThroughProbe = (host: HTMLElement, cssColor: string): string => {
 	const document = host.ownerDocument;
@@ -171,6 +177,7 @@ export {
 	observeThemeChanges,
 	resolveChromeColors,
 	resolveSeriesColor,
+	resolveThroughProbe,
 	SLOT_ORDER,
 	themeSignature,
 };

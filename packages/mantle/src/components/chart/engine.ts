@@ -10,6 +10,7 @@ import type {
 	HoverSnapshot,
 	PointShape,
 	SeriesMark,
+	SeriesMeta,
 	SeriesSpec,
 	XValue,
 } from "./types.js";
@@ -17,8 +18,10 @@ import {
 	observeThemeChanges,
 	resolveChromeColors,
 	resolveSeriesColor,
+	resolveThroughProbe,
 	themeSignature,
 } from "./colors.js";
+import { createBarTexturePattern, textureInkColor } from "./texture.js";
 import { datumValue } from "./datum.js";
 import { decimateColumns, shouldDecimate } from "./decimate.js";
 import { formatNumber, formatXValue, hasTimeOfDay, tickFractionDigits } from "./format.js";
@@ -43,7 +46,7 @@ import {
 	timeTickFormatter,
 	timeTicks,
 } from "./scales.js";
-import type { BarRect, PlotRect } from "./renderer.js";
+import type { BarRect, HorizontalBarRect, PlotRect } from "./renderer.js";
 import {
 	AXIS_FONT_SIZE,
 	BAR_GAP,
@@ -57,11 +60,14 @@ import {
 	drawDecimatedArea,
 	drawDecimatedLine,
 	drawGrid,
+	drawHorizontalBars,
 	drawLinePath,
 	drawDepthSortedPoints,
 	drawMarkers,
 	drawReferenceLine,
 	drawScatterPoints,
+	drawVerticalBaseline,
+	drawVerticalReferenceLine,
 } from "./renderer.js";
 import { computeStackBoundaries } from "./stack.js";
 import type { StackBoundaries } from "./stack.js";
@@ -129,11 +135,19 @@ type EngineCallbacks = {
 type ResolvedColors = {
 	signature: string;
 	series: Map<string, string>;
-	/** The color inputs the series map was resolved from, for staleness checks. */
+	/** The paint inputs (color + texture) the maps were resolved from, for staleness checks. */
 	inputs: Map<string, string>;
+	/** Rasterized pattern fills for textured bar series (no entry = solid fill). */
+	barTextures: Map<string, CanvasPattern>;
 	chrome: ChartChromeColors;
 	fontFamily: string;
 };
+
+/**
+ * The per-series inputs the resolved paint cache derives from — any change
+ * (color or texture) must invalidate the cached colors and patterns.
+ */
+const seriesPaintInput = (meta: SeriesMeta): string => `${meta.colorInput}|${meta.texture}`;
 
 const PART_NAME: Record<SeriesMark, string> = {
 	bar: "BarChart.Bar",
@@ -165,6 +179,7 @@ class ChartEngine {
 		xKey: "",
 		xScale: "linear",
 		yDomain: ["auto", "auto"],
+		orientation: "vertical",
 		zKey: null,
 		dimensions: 3,
 		stacked: false,
@@ -264,6 +279,7 @@ class ChartEngine {
 	 */
 	#pendingControlledEcho: { index: number | null; viaKeyboard: boolean } | null = null;
 	#viaKeyboard = false;
+	#pointerX: number | null = null;
 	#pointerY: number | null = null;
 	#tooltipSize: { width: number; height: number } = { width: 0, height: 0 };
 
@@ -491,6 +507,7 @@ class ChartEngine {
 			}
 			return;
 		}
+		this.#pointerX = cssX;
 		this.#pointerY = cssY;
 		if (this.#kind === "scatter") {
 			const hit = this.#scatterHitAt(cssX, cssY);
@@ -499,7 +516,7 @@ class ChartEngine {
 			this.#setActive(hit?.index ?? null, { viaKeyboard: false, notify: true });
 			return;
 		}
-		const index = this.#indexAtPixel(cssX);
+		const index = this.#indexAtPixel(cssX, cssY);
 		this.#setActive(index, { viaKeyboard: false, notify: true });
 	}
 
@@ -541,6 +558,7 @@ class ChartEngine {
 	}
 
 	handlePointerLeave(): void {
+		this.#pointerX = null;
 		this.#pointerY = null;
 		this.#drag = null;
 		this.#pressed = false;
@@ -932,11 +950,11 @@ class ChartEngine {
 		// A series registered after the first paint has no resolved canvas color
 		// yet (the theme signature is unchanged, so the lazy cache would skip it
 		// and paint would fall back to currentColor). Invalidate when the series
-		// set or any series' color input changed — not on every data tick.
+		// set or any series' color/texture input changed — not on every data tick.
 		const resolved = this.#colors;
 		if (resolved != null) {
 			for (const meta of this.#store.seriesMeta()) {
-				if (resolved.inputs.get(meta.dataKey) !== meta.colorInput) {
+				if (resolved.inputs.get(meta.dataKey) !== seriesPaintInput(meta)) {
 					this.#colors = null;
 					break;
 				}
@@ -1094,6 +1112,16 @@ class ChartEngine {
 		return this.#kind === "scatter" && this.#options.zKey != null;
 	}
 
+	/**
+	 * Horizontal bar orientation: categories band down the y axis, values run
+	 * along x from a left baseline. The engine's semantic structures (x =
+	 * category ticks and fades, the y tween = the value domain) are unchanged —
+	 * orientation only flips which pixel axis each maps onto.
+	 */
+	#horizontalBars(): boolean {
+		return this.#kind === "bar" && this.#options.orientation === "horizontal";
+	}
+
 	/** The public Root part name for error messages, e.g. `"BarChart.Root"`. */
 	#rootName(): string {
 		return `${PART_NAME[this.#kind].split(".")[0] ?? "Chart"}.Root`;
@@ -1199,7 +1227,9 @@ class ChartEngine {
 
 	#resolveColorsIfNeeded(): void {
 		const root = this.#elements.root;
-		const signature = themeSignature(root.ownerDocument.documentElement);
+		// Pattern tiles rasterize at the device pixel ratio, so a dpr change
+		// (zoom, monitor move) re-resolves alongside theme changes.
+		const signature = `${themeSignature(root.ownerDocument.documentElement)}|${this.#dpr}`;
 		if (this.#colors?.signature === signature) {
 			return;
 		}
@@ -1207,16 +1237,32 @@ class ChartEngine {
 		if (view == null) {
 			return;
 		}
+		const ctx = this.#ctx;
 		const series = new Map<string, string>();
 		const inputs = new Map<string, string>();
+		const barTextures = new Map<string, CanvasPattern>();
 		for (const meta of this.#store.seriesMeta()) {
-			series.set(meta.dataKey, resolveSeriesColor(root, meta.colorInput));
-			inputs.set(meta.dataKey, meta.colorInput);
+			const resolved = resolveSeriesColor(root, meta.colorInput);
+			series.set(meta.dataKey, resolved);
+			inputs.set(meta.dataKey, seriesPaintInput(meta));
+			if (ctx != null && meta.mark === "bar" && meta.texture !== "solid") {
+				const pattern = createBarTexturePattern(ctx, {
+					texture: meta.texture,
+					color: resolved,
+					ink: resolveThroughProbe(root, textureInkColor(resolved)),
+					devicePixelRatio: this.#dpr,
+					orientation: this.#options.orientation,
+				});
+				if (pattern != null) {
+					barTextures.set(meta.dataKey, pattern);
+				}
+			}
 		}
 		this.#colors = {
 			signature,
 			series,
 			inputs,
+			barTextures,
 			chrome: resolveChromeColors(root),
 			fontFamily: view.getComputedStyle(root).fontFamily || "sans-serif",
 		};
@@ -1225,17 +1271,28 @@ class ChartEngine {
 	#layout(): void {
 		const snapshot = this.#store.getSnapshot();
 		const is3d = this.#is3d();
+		const horizontal = this.#horizontalBars();
 		const hasXAxis = !is3d && snapshot.xAxis != null;
 		const hasYAxis = !is3d && snapshot.yAxis != null;
+		// Which composed axis part lands on which physical edge: vertically the
+		// value axis (YAxis) sits in the left gutter and the category axis (XAxis)
+		// runs along the bottom; horizontal orientation flips the two.
+		const leftAxis = horizontal ? hasXAxis : hasYAxis;
+		const bottomAxis = horizontal ? hasYAxis : hasXAxis;
 		let left = PLOT_PADDING;
-		if (hasYAxis) {
+		if (leftAxis) {
 			left = FALLBACK_AXIS_GUTTER;
 			const ctx = this.#ctx;
 			if (ctx != null && this.#colors != null) {
 				ctx.font = `${AXIS_FONT_SIZE}px ${this.#colors.fontFamily}`;
 				let widest = 0;
-				for (const tick of this.#yTicks()) {
-					const width = ctx.measureText(tick.text).width;
+				// The gutter holds whichever labels the orientation puts on the left:
+				// value ticks when vertical, category names when horizontal.
+				const labels = horizontal
+					? this.#xTicks().map((tick) => tick.text)
+					: this.#yTicks().map((tick) => tick.text);
+				for (const text of labels) {
+					const width = ctx.measureText(text).width;
 					if (width > widest) {
 						widest = width;
 					}
@@ -1243,26 +1300,32 @@ class ChartEngine {
 				left = Math.ceil(widest) + 14;
 			}
 		}
-		const bottom = hasXAxis ? X_AXIS_BAND : PLOT_PADDING;
+		const bottom = bottomAxis ? X_AXIS_BAND : PLOT_PADDING;
 		this.#plot = {
 			left,
 			top: PLOT_PADDING,
 			width: Math.max(0, this.#cssWidth - left - PLOT_PADDING),
 			height: Math.max(0, this.#cssHeight - PLOT_PADDING - bottom),
 		};
+		// The category band lays out along whichever pixel axis carries categories:
+		// x when vertical, y when horizontal.
+		const bandRangeStart = horizontal ? this.#plot.top : this.#plot.left;
+		const bandRangeEnd = horizontal
+			? this.#plot.top + this.#plot.height
+			: this.#plot.left + this.#plot.width;
 		if (this.#options.xScale === "band") {
 			this.#bandLayout = computeBandLayout({
 				count: this.#rowCount,
-				rangeStart: this.#plot.left,
-				rangeEnd: this.#plot.left + this.#plot.width,
+				rangeStart: bandRangeStart,
+				rangeEnd: bandRangeEnd,
 				paddingInner: 0.2,
 				paddingOuter: 0.1,
 			});
 		} else if (this.#options.xScale === "point") {
 			this.#bandLayout = computeBandLayout({
 				count: this.#rowCount,
-				rangeStart: this.#plot.left,
-				rangeEnd: this.#plot.left + this.#plot.width,
+				rangeStart: bandRangeStart,
+				rangeEnd: bandRangeEnd,
 				paddingInner: 1,
 				paddingOuter: 0.5,
 			});
@@ -1283,6 +1346,20 @@ class ChartEngine {
 			[domain[0] ?? 0, domain[1] ?? 1],
 			[this.#plot.top + this.#plot.height, this.#plot.top],
 		);
+	}
+
+	/**
+	 * Value-axis coefficients: the value domain (`#yTween`) mapped onto the pixel
+	 * axis values actually run along. For vertical bars this is the y axis (grows
+	 * up, identical to {@link #yCoefficients}); for horizontal bars it is the x
+	 * axis (grows right from a left baseline).
+	 */
+	#valueCoefficients(): { k: number; b: number } {
+		const domain = this.#yTween.values();
+		const range: [number, number] = this.#horizontalBars()
+			? [this.#plot.left, this.#plot.left + this.#plot.width]
+			: [this.#plot.top + this.#plot.height, this.#plot.top];
+		return linearCoefficients([domain[0] ?? 0, domain[1] ?? 1], range);
 	}
 
 	#xCoefficients(): { k: number; b: number } {
@@ -1446,27 +1523,37 @@ class ChartEngine {
 		if (edgeFade.alpha !== edgeFade.target) {
 			labelsAnimating = true;
 		}
-		const xTickPosition = (key: number): number =>
+		// Orientation projects the two semantic axes onto pixels. Category (the
+		// band structure, `#xLabelFade`) runs along x when vertical and y when
+		// horizontal; value (`#yLabelFade`, the y tween) runs along y when
+		// vertical and x when horizontal.
+		const horizontal = this.#horizontalBars();
+		const valueCo = horizontal ? this.#valueCoefficients() : yCo;
+		const categoryPosition = (key: number): number =>
 			this.#bandLayout != null ? bandCenter(this.#bandLayout, key) : key * xCo.k + xCo.b;
+		const valuePosition = (value: number): number => value * valueCo.k + valueCo.b;
+		const categoryLines = [...this.#xLabelFade.entries()].map(([key, entry]) => ({
+			position: categoryPosition(key),
+			alpha: entry.alpha,
+		}));
+		const valueLines = [...this.#yLabelFade.entries()].map(([key, entry]) => ({
+			position: valuePosition(key),
+			alpha: entry.alpha,
+		}));
 
-		// grid (2D only — the 3D frame is the cube wireframe)
+		// grid (2D only — the 3D frame is the cube wireframe). `lines` is physical:
+		// "horizontal" draws horizontal lines, "vertical" vertical ones. Category
+		// and value each supply whichever direction their axis currently occupies.
 		if (snapshot.grid != null && !is3d) {
 			const lines = snapshot.grid.lines;
-			const yLines =
-				lines === "vertical"
-					? []
-					: [...this.#yLabelFade.entries()].map(([key, entry]) => ({
-							position: key * yCo.k + yCo.b,
-							alpha: entry.alpha,
-						}));
-			const xLines =
-				lines === "horizontal"
-					? []
-					: [...this.#xLabelFade.entries()].map(([key, entry]) => ({
-							position: xTickPosition(key),
-							alpha: entry.alpha,
-						}));
-			drawGrid(ctx, { plot, color: colors.chrome.grid, xLines, yLines });
+			const horizontalLines = horizontal ? categoryLines : valueLines;
+			const verticalLines = horizontal ? valueLines : categoryLines;
+			drawGrid(ctx, {
+				plot,
+				color: colors.chrome.grid,
+				xLines: lines === "horizontal" ? [] : verticalLines,
+				yLines: lines === "vertical" ? [] : horizontalLines,
+			});
 		}
 
 		// marks — through an offscreen layer while the left-edge fade is active,
@@ -1489,7 +1576,11 @@ class ChartEngine {
 		marksCtx.clip();
 		let frameLabels: FrameLabels | null = null;
 		if (this.#kind === "bar") {
-			this.#paintBars(marksCtx, specs, yCo);
+			if (horizontal) {
+				this.#paintHorizontalBars(marksCtx, specs);
+			} else {
+				this.#paintBars(marksCtx, specs, yCo);
+			}
 		} else if (this.#kind === "scatter") {
 			frameLabels = this.#paintScatter(marksCtx, specs, yCo);
 		} else {
@@ -1521,49 +1612,74 @@ class ChartEngine {
 			});
 		}
 
-		// baseline (bars grow from a single baseline; keep it visible)
+		// baseline (bars grow from a single baseline; keep it visible) — a vertical
+		// baseline at value zero when horizontal, a horizontal one otherwise.
 		if (this.#kind === "bar" && this.#rowCount > 0) {
-			drawBaseline(ctx, { plot, color: colors.chrome.baseline, y: 0 * yCo.k + yCo.b });
+			if (horizontal) {
+				drawVerticalBaseline(ctx, { plot, color: colors.chrome.baseline, x: valuePosition(0) });
+			} else {
+				drawBaseline(ctx, { plot, color: colors.chrome.baseline, y: valuePosition(0) });
+			}
 		}
 
-		// reference lines (skipped outside the y domain — an unclipped line would
-		// strike through the axis label strip; and skipped entirely in 3D)
+		// reference lines mark a value, so they run across the value axis: a
+		// vertical line when horizontal, horizontal otherwise. Skipped when off the
+		// value axis (an unclipped line would strike the label strip) and in 3D.
 		for (const reference of is3d ? [] : snapshot.referenceLines) {
-			const y = reference.y * yCo.k + yCo.b;
-			if (y < plot.top || y > plot.top + plot.height) {
+			const position = valuePosition(reference.y);
+			const outOfRange = horizontal
+				? position < plot.left || position > plot.left + plot.width
+				: position < plot.top || position > plot.top + plot.height;
+			if (outOfRange) {
 				continue;
 			}
 			const color =
 				reference.color == null
 					? colors.chrome.reference
 					: resolveSeriesColor(this.#elements.root, reference.color);
-			drawReferenceLine(ctx, {
-				plot,
-				color,
-				textColor: colors.chrome.tickText,
-				y,
-				label: reference.label,
-				fontFamily: colors.fontFamily,
-			});
+			if (horizontal) {
+				drawVerticalReferenceLine(ctx, {
+					plot,
+					color,
+					textColor: colors.chrome.tickText,
+					x: position,
+					label: reference.label,
+					fontFamily: colors.fontFamily,
+				});
+			} else {
+				drawReferenceLine(ctx, {
+					plot,
+					color,
+					textColor: colors.chrome.tickText,
+					y: position,
+					label: reference.label,
+					fontFamily: colors.fontFamily,
+				});
+			}
 		}
 
-		// axis labels (2D only), drawn from the fade maps so exits fade out
-		const xLabels =
+		// axis labels (2D only), drawn from the fade maps so exits fade out. The
+		// category set fills the left gutter (right-aligned, `yLabels`) when
+		// horizontal and the bottom strip (`xLabels`) when vertical; value swaps
+		// the other way.
+		const categoryLabels =
 			snapshot.xAxis == null || is3d
 				? []
 				: [...this.#xLabelFade.entries()].map(([key, entry]) => ({
-						position: xTickPosition(key),
+						position: categoryPosition(key),
 						text: entry.text,
 						alpha: entry.alpha,
 					}));
-		const yLabels =
+		const valueLabels =
 			snapshot.yAxis == null || is3d
 				? []
 				: [...this.#yLabelFade.entries()].map(([key, entry]) => ({
-						position: key * yCo.k + yCo.b,
+						position: valuePosition(key),
 						text: entry.text,
 						alpha: entry.alpha,
 					}));
+		const xLabels = horizontal ? valueLabels : categoryLabels;
+		const yLabels = horizontal ? categoryLabels : valueLabels;
 		if (xLabels.length > 0 || yLabels.length > 0) {
 			drawAxisLabels(ctx, {
 				plot,
@@ -1577,30 +1693,35 @@ class ChartEngine {
 	}
 
 	/**
-	 * The x ticks that SHOULD be visible this frame: generated for the current
-	 * (possibly mid-glide) domain, then collision-thinned by measured width
-	 * (skip, never rotate). Keys are band indexes on band scales and tick
-	 * values on continuous ones.
+	 * The category ticks that SHOULD be visible this frame: generated for the
+	 * current (possibly mid-glide) domain, then collision-thinned (skip, never
+	 * rotate). Vertical charts thin by measured label width along x; horizontal
+	 * charts thin by label height, since categories stack down the y axis. Keys
+	 * are band indexes on band scales and tick values on continuous ones.
 	 */
 	#desiredXTicks(
 		ctx: CanvasRenderingContext2D,
 		fontFamily: string,
 	): Array<{ key: number; text: string }> {
 		ctx.font = `${AXIS_FONT_SIZE}px ${fontFamily}`;
+		const horizontal = this.#horizontalBars();
 		const xCo = this.#xCoefficients();
 		const desired: Array<{ key: number; text: string }> = [];
-		let previousRight = Number.NEGATIVE_INFINITY;
+		let previousEnd = Number.NEGATIVE_INFINITY;
 		for (const tick of this.#xTicks()) {
 			const isBand = tick.index != null && this.#bandLayout != null;
 			const position =
 				isBand && this.#bandLayout != null
 					? bandCenter(this.#bandLayout, tick.index ?? 0)
 					: tick.value * xCo.k + xCo.b;
-			const width = ctx.measureText(tick.text).width;
-			if (position - width / 2 < previousRight + 8) {
+			// Horizontal labels stack vertically, so they collide by line height,
+			// not text width.
+			const half = horizontal ? (AXIS_FONT_SIZE + 4) / 2 : ctx.measureText(tick.text).width / 2;
+			const gap = horizontal ? 2 : 8;
+			if (position - half < previousEnd + gap) {
 				continue;
 			}
-			previousRight = position + width / 2;
+			previousEnd = position + half;
 			desired.push({ key: isBand ? (tick.index ?? 0) : tick.value, text: tick.text });
 		}
 		return desired;
@@ -1687,7 +1808,81 @@ class ChartEngine {
 					rounded: !stacked || isOutermost,
 				});
 			}
-			drawBars(ctx, { color: colors.series.get(spec.dataKey) ?? "currentColor", rects });
+			// Textured series paint with their cached pattern; a missing pattern
+			// (solid texture, or tile rasterization unavailable) falls back to the
+			// solid series color so bars never vanish.
+			drawBars(ctx, {
+				fill:
+					colors.barTextures.get(spec.dataKey) ?? colors.series.get(spec.dataKey) ?? "currentColor",
+				rects,
+			});
+		});
+	}
+
+	/**
+	 * The {@link #paintBars} mirror for `orientation="horizontal"`: categories
+	 * band down the y axis and values run along x from a left baseline. The slot
+	 * math is identical with x and y swapped — group slots stack down the band,
+	 * bar thickness is a y extent, and the reveal grows rightward from the value
+	 * baseline.
+	 */
+	#paintHorizontalBars(ctx: CanvasRenderingContext2D, specs: readonly SeriesSpec[]): void {
+		const layout = this.#bandLayout;
+		const colors = this.#colors;
+		if (layout == null || colors == null || this.#rowCount === 0 || specs.length === 0) {
+			return;
+		}
+		const valueCo = this.#valueCoefficients();
+		const baselineX = 0 * valueCo.k + valueCo.b;
+		const stacked = this.#stack != null;
+		const groupCount = stacked ? 1 : specs.length;
+		const gap =
+			layout.bandwidth >= 8 * groupCount ? BAR_GAP : layout.bandwidth >= 3 * groupCount ? 1 : 0;
+		const slotHeight = (layout.bandwidth - gap * (groupCount - 1)) / groupCount;
+		const barThickness = Math.min(BAR_MAX_THICKNESS, slotHeight);
+
+		specs.forEach((spec, seriesIndex) => {
+			const reveal = this.#reveal(spec.dataKey);
+			const rects: HorizontalBarRect[] = [];
+			const lower = stacked ? this.#paintedValues(spec, "lower") : null;
+			const upper = stacked
+				? this.#paintedValues(spec, "upper")
+				: this.#paintedValues(spec, "value");
+			const isOutermost = seriesIndex === specs.length - 1;
+			for (let index = 0; index < this.#rowCount; index++) {
+				const upperValue = upper[index] ?? Number.NaN;
+				if (Number.isNaN(upperValue)) {
+					continue;
+				}
+				const lowerValue = lower == null ? 0 : (lower[index] ?? 0);
+				const slotStart = stacked
+					? bandStart(layout, index) + (layout.bandwidth - barThickness) / 2
+					: bandStart(layout, index) +
+						(layout.bandwidth - (slotHeight * groupCount + gap * (groupCount - 1))) / 2 +
+						seriesIndex * (slotHeight + gap) +
+						(slotHeight - barThickness) / 2;
+				let baseX = Number.isNaN(lowerValue) ? baselineX : lowerValue * valueCo.k + valueCo.b;
+				let valueX = upperValue * valueCo.k + valueCo.b;
+				// Enter reveal: grow from the baseline.
+				valueX = baseX + (valueX - baseX) * reveal;
+				// 2px surface gap between stacked segments, carved entirely from the
+				// outer segment's baseline side (geometric, not painted).
+				if (stacked && lower != null && seriesIndex > 0 && !Number.isNaN(lowerValue) && gap > 0) {
+					baseX -= Math.sign(baseX - valueX) * gap;
+				}
+				rects.push({
+					y: slotStart,
+					height: barThickness,
+					baselineX: baseX,
+					valueX,
+					rounded: !stacked || isOutermost,
+				});
+			}
+			drawHorizontalBars(ctx, {
+				fill:
+					colors.barTextures.get(spec.dataKey) ?? colors.series.get(spec.dataKey) ?? "currentColor",
+				rects,
+			});
 		});
 	}
 
@@ -1884,13 +2079,15 @@ class ChartEngine {
 		return view === -1 ? null : view;
 	}
 
-	#indexAtPixel(cssX: number): number | null {
+	#indexAtPixel(cssX: number, cssY: number): number | null {
 		if (this.#rowCount === 0) {
 			return null;
 		}
 		const layout = this.#bandLayout;
 		if (layout != null) {
-			return invertBand(layout, cssX);
+			// The band runs down y when horizontal, so invert against the pointer's
+			// position along the band's own axis.
+			return invertBand(layout, this.#horizontalBars() ? cssY : cssX);
 		}
 		const { k, b } = this.#xCoefficients();
 		if (k === 0) {
@@ -1908,14 +2105,19 @@ class ChartEngine {
 
 	#nearestSeries(index: number, cssX: number, cssY: number): string | null {
 		const specs = this.#store.seriesSpecs();
-		// Grouped bars: the pointer's slot within the band names the series.
+		const horizontal = this.#horizontalBars();
+		// Grouped bars: the pointer's slot within the band names the series. The
+		// slots stack along the band's axis — y when horizontal, x otherwise.
 		const layout = this.#bandLayout;
 		if (this.#kind === "bar" && this.#stack == null && layout != null && specs.length > 1) {
-			const withinBand = cssX - bandStart(layout, index);
+			const withinBand = (horizontal ? cssY : cssX) - bandStart(layout, index);
 			const slot = Math.floor((withinBand / Math.max(1, layout.bandwidth)) * specs.length);
 			return specs[Math.min(specs.length - 1, Math.max(0, slot))]?.dataKey ?? null;
 		}
-		const { k, b } = this.#yCoefficients();
+		// Otherwise pick the series whose painted value sits nearest the pointer
+		// along the value axis (x when horizontal, y otherwise).
+		const { k, b } = horizontal ? this.#valueCoefficients() : this.#yCoefficients();
+		const pointerAlongValue = horizontal ? cssX : cssY;
 		let nearest: string | null = null;
 		let bestDistance = Number.POSITIVE_INFINITY;
 		specs.forEach((spec, seriesIndex) => {
@@ -1927,7 +2129,7 @@ class ChartEngine {
 			if (Number.isNaN(value)) {
 				return;
 			}
-			const distance = Math.abs(value * k + b - cssY);
+			const distance = Math.abs(value * k + b - pointerAlongValue);
 			if (distance < bestDistance) {
 				bestDistance = distance;
 				nearest = spec.dataKey;
@@ -2361,14 +2563,22 @@ class ChartEngine {
 		}
 
 		const xPx = this.#xPixel(index);
+		const horizontal = this.#horizontalBars();
 
 		if (isBar) {
 			const layout = this.#bandLayout;
 			if (layout != null) {
-				const stepLeft = bandStart(layout, index) - (layout.step - layout.bandwidth) / 2;
-				band.style.transform = `translate3d(${stepLeft}px, ${plot.top}px, 0)`;
-				band.style.width = `${Math.max(layout.step, 24)}px`;
-				band.style.height = `${plot.height}px`;
+				const stepStart = bandStart(layout, index) - (layout.step - layout.bandwidth) / 2;
+				if (horizontal) {
+					// The band spans the full plot width at the category's y row.
+					band.style.transform = `translate3d(${plot.left}px, ${stepStart}px, 0)`;
+					band.style.width = `${plot.width}px`;
+					band.style.height = `${Math.max(layout.step, 24)}px`;
+				} else {
+					band.style.transform = `translate3d(${stepStart}px, ${plot.top}px, 0)`;
+					band.style.width = `${Math.max(layout.step, 24)}px`;
+					band.style.height = `${plot.height}px`;
+				}
 			}
 		} else {
 			crosshair.style.transform = `translate3d(${xPx}px, ${plot.top}px, 0)`;
@@ -2410,7 +2620,16 @@ class ChartEngine {
 			});
 		}
 
-		this.#positionTooltip(xPx, this.#pointerY ?? plot.top + 8);
+		if (isBar && horizontal && this.#bandLayout != null) {
+			// Anchor beside the hovered row: track the pointer along the value axis,
+			// centered on the category band.
+			this.#positionTooltip(
+				this.#pointerX ?? plot.left + plot.width / 2,
+				bandCenter(this.#bandLayout, index),
+			);
+		} else {
+			this.#positionTooltip(xPx, this.#pointerY ?? plot.top + 8);
+		}
 	}
 
 	/**
