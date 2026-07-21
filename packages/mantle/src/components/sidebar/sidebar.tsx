@@ -638,100 +638,6 @@ const Trigger = ({
 	);
 };
 
-/**
- * The props for `Sidebar.Rail`. `button` props except `children` (the rail
- * renders no content — it is a click strip along the sidebar's edge) and
- * `type` (always `"button"` — the rail never submits), with a `label` for its
- * accessible name and native tooltip.
- */
-type SidebarRailProps = Omit<ComponentProps<"button">, "children" | "type"> &
-	WithDataSlot & {
-		/**
-		 * The accessible name and native `title` tooltip for the rail. Override
-		 * it for localization.
-		 *
-		 * @default "Toggle Sidebar"
-		 */
-		label?: string;
-	};
-
-// Why no `asChild`: like Trigger, the rail is a fully-wired control (aria
-// wiring, hit strip, hover affordance); custom edge toggles compose the same
-// behavior from `useSidebar()` instead of slot-swapping this one.
-/**
- * A click strip along the sidebar's edge that toggles the desktop sidebar.
- * Render it as the **immediate next sibling of `Sidebar.Nav`**: it is a
- * zero-width in-flow flex item, so it always sits exactly on the boundary
- * between the sidebar and the content — expanded or collapsed to the icon
- * rail — with a 12px hit strip extending over the content gutter and a
- * hairline that appears on hover.
- *
- * The rail is a pointer affordance and is removed from the tab order
- * (`tabIndex={-1}`): keyboard users toggle with `Sidebar.Trigger` or `⌘B`.
- * Below the root's `mobileBreakpoint` it is hidden entirely — the mobile
- * sheet has its own close affordances.
- *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
- *
- * @example
- * ```tsx
- * <Sidebar.Root>
- *   <AppLayout.Root className="fixed inset-0">
- *     <AppLayout.Body>
- *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
- *       <Sidebar.Rail />
- *       <AppLayout.Inset>…</AppLayout.Inset>
- *     </AppLayout.Body>
- *   </AppLayout.Root>
- * </Sidebar.Root>
- * ```
- */
-const Rail = ({
-	className,
-	"data-slot": dataSlot,
-	label = "Toggle Sidebar",
-	onClick,
-	...props
-}: SidebarRailProps) => {
-	const { mobileBreakpoint, navId, open, setOpen } = useSidebarContext("Rail");
-
-	return (
-		<button
-			type="button"
-			// Pointer affordance only — Sidebar.Trigger and ⌘B cover keyboard.
-			tabIndex={-1}
-			aria-controls={navId}
-			aria-expanded={open}
-			aria-label={label}
-			title={label}
-			data-slot={joinDataSlot(dataSlot, "sidebar-rail")}
-			data-state={open ? "expanded" : "collapsed"}
-			onClick={(event) => {
-				onClick?.(event);
-				if (!event.defaultPrevented) {
-					setOpen(!open);
-				}
-			}}
-			className={cx(
-				// Zero-width in-flow flex item: the button itself occupies the
-				// sidebar/content boundary without affecting layout. z-20 keeps
-				// the hit strip above the content card's sticky header.
-				"relative z-20 w-0 shrink-0 focus:outline-hidden",
-				navVisibilityClassName[mobileBreakpoint],
-				// The 12px hit strip extends from the boundary over the content
-				// gutter (never over the sidebar's own scrollbar). Clicks on a
-				// pseudo-element hit its originating button.
-				"after:absolute after:inset-y-0 after:left-0 after:w-3",
-				// The hover affordance: a hairline hugging the boundary.
-				"before:absolute before:inset-y-0 before:left-0 before:w-0.5 hover:before:bg-neutral-500/25",
-				"cursor-w-resize data-[state=collapsed]:cursor-e-resize",
-				className,
-			)}
-			{...props}
-		/>
-	);
-};
-
 type SidebarHeaderProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
@@ -2052,9 +1958,8 @@ const SwitchAccountsRadioGroup = ({
  * A composable, collapsible app-navigation sidebar. `Sidebar.Root` owns the
  * state (no DOM); `Sidebar.Nav` renders the panel — inline on desktop,
  * collapsing to a skinny icon rail, and a left-side `Sheet` below the root's
- * `mobileBreakpoint`; `Sidebar.Trigger` toggles it from anywhere under the
- * root (typically an `AppLayout.Header`), and `Sidebar.Rail` adds a click
- * strip on the sidebar's edge for pointer toggling. Navigation is grouped with
+ * `mobileBreakpoint`; and `Sidebar.Trigger` toggles it from anywhere under the
+ * root (typically an `AppLayout.Header`). Navigation is grouped with
  * `Sidebar.Group`/`Sidebar.GroupLabel`/`Sidebar.List`, and the switcher rows
  * (app switcher up top, account/user down bottom) compose
  * `Sidebar.SwitcherButton` with your own `DropdownMenu` or `Dialog`.
@@ -2082,7 +1987,6 @@ const SwitchAccountsRadioGroup = ({
  * │       └── Sidebar.SwitcherButton
  * │           ├── Sidebar.AccountAvatar
  * │           └── Sidebar.UserAvatar
- * ├── Sidebar.Rail
  * └── Sidebar.Trigger
  * ```
  *
@@ -2307,29 +2211,6 @@ const Sidebar = {
 	 * ```
 	 */
 	Trigger,
-	/**
-	 * A click strip along the sidebar's edge that toggles the desktop sidebar.
-	 * Render it as the immediate next sibling of `Sidebar.Nav` so it always
-	 * sits on the sidebar/content boundary.
-	 * Pointer affordance only (`tabIndex={-1}`); keyboard users toggle with
-	 * `Sidebar.Trigger` or `⌘B`.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
-	 *
-	 * @example
-	 * ```tsx
-	 * <Sidebar.Root>
-	 *   <AppLayout.Root className="fixed inset-0">
-	 *     <AppLayout.Body>
-	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
-	 *       <Sidebar.Rail />
-	 *       <AppLayout.Inset>…</AppLayout.Inset>
-	 *     </AppLayout.Body>
-	 *   </AppLayout.Root>
-	 * </Sidebar.Root>
-	 * ```
-	 */
-	Rail,
 	/**
 	 * The pinned top container of the panel, typically holding the app
 	 * switcher (`Sidebar.SwitcherButton` + `DropdownMenu`/`Dialog`). Its
