@@ -56,7 +56,7 @@ For compound components only:
 
 - **The namespace object is single-level.** No nested namespaces (e.g. `Foo.Bar.Root` is forbidden). If you find a nested namespace, flag it for flattening into top-level members (`Foo.BarRoot`, `Foo.BarTrigger`, …) and recommend removing any pass-through re-exports of other mantle namespaces. See `CONVENTIONS.md#compound-components`.
 - **If any namespace member's type comes from a third-party namespace** (e.g. `Radix.Root`, `Radix.Trigger`), the enclosing namespace declaration must carry an explicit type annotation (`const Foo: { Root: typeof Root; … } = { … }`). Without it, `.d.ts` emit can synthesize types that pull in non-portable `@types/react` paths and break on minor `@types/react` upgrades (`TS2883`).
-- Each sub-component whose const name differs from the **original flat name** has a `displayName` set to that flat name (e.g. `Root.displayName = "MyComponent"`, `Content.displayName = "MyComponentContent"`). When the const name already matches, no `displayName` — the name is inferred. Never `forwardRef`: `ref` is a regular prop (React 19+).
+- Sub-components do **not** set `displayName` — these assignments were dropped repo-wide because bundlers treat the top-level property assignment as a side effect that pins otherwise-unused components (and their dependencies) into consumer bundles; React DevTools falls back to inferring names from the component function names. Flag any `displayName` assignment for removal. Never `forwardRef`: `ref` is a regular prop (React 19+).
 - The JSDoc **immediately above the top-level namespace declaration** (`const <ComponentName> = {`) contains two `@example` blocks, in this order:
   1. A `Composition` ASCII-tree block — `@example` on one line, `Composition:` on the next, then a plain (no-language) fenced code block containing the tree. Use real Unicode box-drawing chars (`├` U+251C, `─` U+2500, `└` U+2514, `│` U+2502) with 4-char per-level indentation.
   2. A full-tree JSX usage example showing all commonly-used parts.
@@ -126,7 +126,7 @@ Produce a report listing each violation, grouped by area (implementation, JSDoc,
 - Missing `## Composition` section on the docs page → derive tree from the namespace and insert before `## API Reference`.
 - Section titled `Composition` but describing `asChild` polymorphism → rename to `## Polymorphism`.
 - Section titled `Composition` but describing unrelated variations → rename to a content-accurate title (ask the user for the new name if unclear).
-- Missing `displayName` on a sub-component → add it using the flat-name pattern.
+- Stray `Component.displayName = "..."` assignment on any part → remove it (displayNames were dropped repo-wide; they defeat tree-shaking).
 - Missing route in `apps/www/app/routes.ts` → insert in alphabetical order.
 - Missing nav entry in `navigation-data.ts` → insert in both `componentsByCategory` (under the right category) and `prodReadyComponentRouteLookup` in alphabetical order.
 - Missing `package.json` `exports` entry → insert in alphabetical order.
@@ -155,7 +155,7 @@ After applying fixes, run:
 
 If the audit modified files under `packages/mantle/`, add a changeset:
 
-- `patch` bump for `@ngrok/mantle` when the changes are doc/JSDoc/`displayName`/comment-only.
+- `patch` bump for `@ngrok/mantle` when the changes are doc/JSDoc/comment-only.
 - `minor` bump if you added a new export or behavior (rare for audits — usually indicates the audit uncovered a missing sub-part that needs author judgment).
 - No changeset needed if the audit only modified `apps/www/app/docs/**`, `apps/www/app/components/navigation-data.ts`, or `apps/www/app/routes.ts` and no published package's source changed. When in doubt, prefer a patch changeset.
 
