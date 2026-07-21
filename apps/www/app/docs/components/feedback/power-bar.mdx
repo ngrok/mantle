@@ -245,6 +245,79 @@ export function DraftPosts() {
 
 </CodeExample.Root>
 
+## Reporting a failed save
+
+When a save fails, render `PowerBar.Error` on its own row of the panel. It is a danger
+[Alert](/components/feedback/alert) pinned to `intent="danger"`, and it is safe to mount conditionally
+(`{error != null && <PowerBar.Error>{error}</PowerBar.Error>}`) — the assertive announcement is owned by
+`PowerBar.Root`'s persistent live region, not the mounted node, so the alert is heard even though it
+carries no `role="alert"` of its own. Saving in the demo below always fails, so the error row appears on
+every attempt.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="power-bar-error" title="PowerBar failed save demo" />
+	<CodeExample.Code>
+
+```tsx
+import { Field } from "@ngrok/mantle/field";
+import { Input } from "@ngrok/mantle/input";
+import { PowerBar } from "@ngrok/mantle/power-bar";
+import { useState } from "react";
+
+export function EndpointName() {
+	const savedName = "my-agent-endpoint";
+	const [name, setName] = useState("my-agent-endpoint-staging");
+	const [isPending, setIsPending] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+
+	const isDirty = name !== savedName;
+
+	const save = () => {
+		setIsPending(true);
+		setError(null);
+		// stand-in for the real request; this demo always fails so the error row shows
+		window.setTimeout(() => {
+			setIsPending(false);
+			setError("Something went wrong while saving. Try again.");
+		}, 800);
+	};
+
+	return (
+		<form>
+			<Field.Item name="endpoint-name">
+				<Field.Label>Endpoint name</Field.Label>
+				<Field.Control>
+					<Input onChange={(event) => setName(event.target.value)} value={name} />
+				</Field.Control>
+			</Field.Item>
+
+			<PowerBar.Root open={isDirty}>
+				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+				<PowerBar.Actions>
+					<PowerBar.DiscardButton
+						disabled={isPending}
+						onClick={() => {
+							setName(savedName);
+							setError(null);
+						}}
+					>
+						Discard
+					</PowerBar.DiscardButton>
+					<PowerBar.SaveButton isLoading={isPending} onClick={save}>
+						{isPending ? "Saving…" : "Save changes"}
+					</PowerBar.SaveButton>
+				</PowerBar.Actions>
+				{error != null && <PowerBar.Error>{error}</PowerBar.Error>}
+			</PowerBar.Root>
+		</form>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Polymorphism
 
 `PowerBar.Message` and `PowerBar.Actions` accept an `asChild` prop. When `true`, the part renders
@@ -254,7 +327,7 @@ a different semantic element (e.g. a `<span>` inside a larger sentence) or when 
 should be another framework primitive. `PowerBar.SaveButton` and `PowerBar.DiscardButton` inherit
 `asChild` from [Button](/components/actions/button). `PowerBar.Root` deliberately does not support
 `asChild`: it renders multiple nodes (positioning wrapper, two screen-reader announcers, and the
-panel), so single-child polymorphism has no coherent meaning. Both framed demos above render real
+panel), so single-child polymorphism has no coherent meaning. The framed demos above render real
 `PowerBar` trees you can adapt; there is no separate polymorphism demo because the bar is a
 viewport-fixed singleton that would overlay this page outside a preview frame.
 
@@ -380,11 +453,11 @@ inside the form it saves.
 
 All props from [Button](/components/actions/button), with these differences:
 
-| Prop          | Type        | Default     | Description                                          |
-| ------------- | ----------- | ----------- | ---------------------------------------------------- |
-| `appearance?` | `string`    | `"filled"`  | The Button appearance, made optional with a default. |
-| `intent?`     | `string`    | `"neutral"` | The Button intent, made optional with a default.     |
-| `children`    | `ReactNode` | —           | Required — the visible action label is app voice.    |
+| Prop          | Type                                          | Default     | Description                                          |
+| ------------- | --------------------------------------------- | ----------- | ---------------------------------------------------- |
+| `appearance?` | `"ghost" \| "filled" \| "outlined" \| "link"` | `"filled"`  | The Button appearance, made optional with a default. |
+| `intent?`     | `"accent" \| "danger" \| "neutral"`           | `"neutral"` | The Button intent, made optional with a default.     |
+| `children`    | `ReactNode`                                   | —           | Required — the visible action label is app voice.    |
 
 ### PowerBar.DiscardButton
 
@@ -393,11 +466,11 @@ destructive-ish: for large forms, consider confirming before discarding.
 
 All props from [Button](/components/actions/button), with these differences:
 
-| Prop          | Type        | Default      | Description                                          |
-| ------------- | ----------- | ------------ | ---------------------------------------------------- |
-| `appearance?` | `string`    | `"outlined"` | The Button appearance, made optional with a default. |
-| `intent?`     | `string`    | `"neutral"`  | The Button intent, made optional with a default.     |
-| `children`    | `ReactNode` | —            | Required — the visible action label is app voice.    |
+| Prop          | Type                                          | Default      | Description                                          |
+| ------------- | --------------------------------------------- | ------------ | ---------------------------------------------------- |
+| `appearance?` | `"ghost" \| "filled" \| "outlined" \| "link"` | `"outlined"` | The Button appearance, made optional with a default. |
+| `intent?`     | `"accent" \| "danger" \| "neutral"`           | `"neutral"`  | The Button intent, made optional with a default.     |
+| `children`    | `ReactNode`                                   | —            | Required — the visible action label is app voice.    |
 
 ### PowerBar.Error
 

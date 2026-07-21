@@ -9,7 +9,11 @@ import {
 	CenteredLayoutHeaderDemo,
 	CenteredLayoutNoticeDemo,
 } from "~/features/centered-layout-demos";
-import { PowerBarDemo, PowerBarPendingPublishDemo } from "~/features/power-bar-demos";
+import {
+	PowerBarDemo,
+	PowerBarErrorDemo,
+	PowerBarPendingPublishDemo,
+} from "~/features/power-bar-demos";
 import { SidebarPersistenceDemo } from "~/features/sidebar-demos";
 
 type PreviewExample = {
@@ -87,6 +91,10 @@ export const previewExamples = {
 	"power-bar": {
 		title: "PowerBar demo",
 		Component: PowerBarDemo,
+	},
+	"power-bar-error": {
+		title: "PowerBar error demo",
+		Component: PowerBarErrorDemo,
 	},
 	"power-bar-pending-publish": {
 		title: "PowerBar pending publish demo",

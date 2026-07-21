@@ -220,6 +220,43 @@ describe("PowerBar accessible name", () => {
 		const panel = getPanel();
 		expect(panel).toHaveAttribute("aria-label", "Unsaved changes");
 	});
+
+	test("a consumer aria-labelledby wins over the message", () => {
+		render(
+			<PowerBar.Root aria-labelledby="external-heading" open>
+				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+			</PowerBar.Root>,
+		);
+		const panel = getPanel();
+		const message = document.querySelector('[data-slot="power-bar-message"]');
+		expect(panel).toHaveAttribute("aria-labelledby", "external-heading");
+		// the consumer id wins over the message's own generated id
+		expect(panel.getAttribute("aria-labelledby")).not.toBe(message?.getAttribute("id"));
+		expect(panel).not.toHaveAttribute("aria-label");
+	});
+
+	test("unmounting the message drops its stale aria-labelledby and falls back to the default", () => {
+		const tree = ({ withMessage }: { withMessage: boolean }) => (
+			<PowerBar.Root open>
+				{withMessage && <PowerBar.Message>You have unsaved changes</PowerBar.Message>}
+				<PowerBar.Actions>
+					<PowerBar.SaveButton onClick={() => {}}>Save</PowerBar.SaveButton>
+				</PowerBar.Actions>
+			</PowerBar.Root>
+		);
+		const { rerender } = render(tree({ withMessage: true }));
+
+		const panel = getPanel();
+		const message = document.querySelector('[data-slot="power-bar-message"]');
+		expect(message).toHaveAttribute("id");
+		expect(panel).toHaveAttribute("aria-labelledby", message?.getAttribute("id"));
+
+		// removing the Message must reset messageId so the panel does not keep an
+		// aria-labelledby pointing at a node that no longer exists
+		rerender(tree({ withMessage: false }));
+		expect(panel).not.toHaveAttribute("aria-labelledby");
+		expect(panel).toHaveAttribute("aria-label", "Unsaved changes");
+	});
 });
 
 describe("PowerBar presence", () => {
@@ -268,6 +305,26 @@ describe("PowerBar presence", () => {
 		expect(panel).not.toHaveAttribute("hidden");
 
 		fireTransitionEnd(panel, "opacity");
+		expect(panel).toHaveAttribute("hidden");
+	});
+
+	test("a transition ending on a composed child does not close the panel early", () => {
+		const { rerender } = render(fullTree({ open: true }));
+		rerender(fullTree({ open: false }));
+
+		const panel = getPanel();
+		const child = panel.querySelector('[data-slot="power-bar-message"]');
+		if (!(child instanceof HTMLElement)) {
+			throw new Error("message child not found");
+		}
+		// a composed child's own opacity/translate transition bubbles up to the
+		// panel handler; `target !== currentTarget` must stop it from advancing
+		// the presence machine while the panel is still exiting
+		fireTransitionEnd(child, "translate");
+		expect(panel).not.toHaveAttribute("hidden");
+
+		// the panel's own transition still closes it
+		fireTransitionEnd(panel, "translate");
 		expect(panel).toHaveAttribute("hidden");
 	});
 
@@ -505,5 +562,53 @@ describe("PowerBar announcements", () => {
 			vi.advanceTimersToNextFrame();
 		});
 		expect(getAlertRegion()).toHaveTextContent("Second failure.");
+	});
+
+	test("opening with no message announces the aria-label politely", () => {
+		const tree = ({ open }: { open: boolean }) => (
+			<PowerBar.Root aria-label="Pending publishes" open={open}>
+				<PowerBar.Actions>
+					<PowerBar.SaveButton onClick={() => {}}>Save</PowerBar.SaveButton>
+				</PowerBar.Actions>
+			</PowerBar.Root>
+		);
+		const { rerender } = render(tree({ open: false }));
+		rerender(tree({ open: true }));
+		expect(getStatusRegion()).toHaveTextContent("Pending publishes");
+	});
+
+	test("opening with neither a message nor an aria-label announces the default", () => {
+		const tree = ({ open }: { open: boolean }) => (
+			<PowerBar.Root open={open}>
+				<PowerBar.Actions>
+					<PowerBar.SaveButton onClick={() => {}}>Save</PowerBar.SaveButton>
+				</PowerBar.Actions>
+			</PowerBar.Root>
+		);
+		const { rerender } = render(tree({ open: false }));
+		rerender(tree({ open: true }));
+		expect(getStatusRegion()).toHaveTextContent("Unsaved changes");
+	});
+
+	test("the assertive announcer clears itself after the 1s window", () => {
+		const handle = { current: null as PowerBarHandle | null };
+		render(
+			<PowerBar.Root handleRef={handle} open>
+				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+			</PowerBar.Root>,
+		);
+
+		act(() => {
+			handle.current?.shake();
+			vi.advanceTimersToNextFrame();
+		});
+		expect(getAlertRegion()).toHaveTextContent(
+			"You have unsaved changes. Save or discard them before leaving.",
+		);
+
+		act(() => {
+			vi.advanceTimersByTime(1_000);
+		});
+		expect(getAlertRegion()).toHaveTextContent("");
 	});
 });

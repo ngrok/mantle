@@ -128,6 +128,66 @@ export function PowerBarDemo() {
 	);
 }
 
+/**
+ * A PowerBar whose save always fails, so `PowerBar.Error` is front and center:
+ * the danger alert renders on its own row of the panel and its text is mirrored
+ * through the assertive announcer. Renders as a full preview document.
+ */
+export function PowerBarErrorDemo() {
+	const savedName = "my-agent-endpoint";
+	const [name, setName] = useState("my-agent-endpoint-staging");
+	const [isPending, setIsPending] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+
+	const isDirty = name !== savedName;
+
+	const save = () => {
+		setIsPending(true);
+		setError(null);
+		// stand-in for the real request; this demo always fails so the error row
+		// is exercised on every save
+		window.setTimeout(() => {
+			setIsPending(false);
+			setError("Something went wrong while saving. Try again.");
+		}, 800);
+	};
+
+	return (
+		<Main className="min-h-full p-6">
+			<Card.Root className="mx-auto max-w-xl">
+				<Card.Body className="space-y-4">
+					<Field.Item name="endpoint-name">
+						<Field.Label>Endpoint name</Field.Label>
+						<Field.Control>
+							<Input onChange={(event) => setName(event.target.value)} value={name} />
+						</Field.Control>
+					</Field.Item>
+					<p className="text-muted text-sm">Saving always fails in this demo.</p>
+				</Card.Body>
+			</Card.Root>
+
+			<PowerBar.Root open={isDirty}>
+				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+				<PowerBar.Actions>
+					<PowerBar.DiscardButton
+						disabled={isPending}
+						onClick={() => {
+							setName(savedName);
+							setError(null);
+						}}
+					>
+						Discard
+					</PowerBar.DiscardButton>
+					<PowerBar.SaveButton isLoading={isPending} onClick={save}>
+						{isPending ? "Saving…" : "Save changes"}
+					</PowerBar.SaveButton>
+				</PowerBar.Actions>
+				{error != null && <PowerBar.Error>{error}</PowerBar.Error>}
+			</PowerBar.Root>
+		</Main>
+	);
+}
+
 type Draft = {
 	id: number;
 	title: string;

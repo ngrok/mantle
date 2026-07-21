@@ -85,6 +85,8 @@ const shakeKeyframes: Keyframe[] = [
  * assertive live-region announcement, so blocked navigation is perceivable
  * with or without motion.
  *
+ * @see https://mantle.ngrok.com/components/feedback/power-bar
+ *
  * @example
  * ```tsx
  * const powerBarHandle = useRef<PowerBarHandle>(null);
