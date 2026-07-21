@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import { AppLayoutDemo } from "./app-layout-demos";
-import { AppShellDemo } from "./app-shell-demo";
+import { AppShellDemo, BridgeShellDemo } from "./app-shell-demo";
 import {
 	CenteredLayoutDemo,
 	CenteredLayoutHeaderDemo,
@@ -43,6 +43,10 @@ export const previewExamples = {
 	"app-shell": {
 		title: "App shell demo",
 		Component: AppShellDemo,
+	},
+	"bridge-shell": {
+		title: "Bridge shell demo",
+		Component: BridgeShellDemo,
 	},
 	"app-layout-standalone": {
 		title: "Standalone app layout demo",

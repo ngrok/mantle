@@ -151,6 +151,222 @@ export function Shell() {
 > the shell inside an existing page instead — as the inline [Polymorphism](#polymorphism) example below
 > does — drop both: `AppLayout.Root` fills its nearest sized ancestor by default.
 
+## Single-product bridge
+
+Most ngrok surfaces are still single-product today. This variant keeps that information architecture while
+adopting the new shell, so teams can migrate now and layer in product segmentation later. The **account
+switcher moves to the top** — where the multi-product shell above puts a product switcher — the body holds a
+single product's navigation, and the footer stacks a few pinned links, a `Sidebar.Separator`, and a Help
+`DropdownMenu`. When product segmentation lands, put a product switcher in the header and move the account
+switcher into the footer; nothing else about the shell changes.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="bridge-shell" title="Bridge shell demo" />
+	<CodeExample.Code>
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { Main } from "@ngrok/mantle/main";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
+import { BookOpenIcon } from "@phosphor-icons/react/BookOpen";
+import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
+import { GearIcon } from "@phosphor-icons/react/Gear";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { KeyboardIcon } from "@phosphor-icons/react/Keyboard";
+import { LifebuoyIcon } from "@phosphor-icons/react/Lifebuoy";
+import { MegaphoneIcon } from "@phosphor-icons/react/Megaphone";
+import { QuestionIcon } from "@phosphor-icons/react/Question";
+import { SignOutIcon } from "@phosphor-icons/react/SignOut";
+import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
+import { UsersIcon } from "@phosphor-icons/react/Users";
+import { useState } from "react";
+
+const accounts = [
+	{ id: "acc_acme", name: "Acme Corp" },
+	{ id: "acc_atlas", name: "Atlas Industries" },
+];
+
+export function BridgeShell() {
+	const [pathname, setPathname] = useState("/endpoints");
+	const [accountId, setAccountId] = useState("acc_acme");
+	const account = accounts.find((candidate) => candidate.id === accountId) ?? accounts[0];
+
+	return (
+		// the framed demo narrows the mobile breakpoint; most apps keep the "lg" default
+		<Sidebar.Root mobileBreakpoint="md">
+			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
+				<AppLayout.Body>
+					<Sidebar.Nav aria-label="Main">
+						{/* Account switcher at the top — the bridge's key move */}
+						<Sidebar.Header>
+							<DropdownMenu.Root>
+								<DropdownMenu.Trigger asChild>
+									<Sidebar.SwitcherButton>
+										<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+										<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
+											{account.name}
+										</span>
+										<CaretDownIcon className="text-muted size-4 shrink-0" />
+									</Sidebar.SwitcherButton>
+								</DropdownMenu.Trigger>
+								<DropdownMenu.Content align="start" className="min-w-56">
+									<DropdownMenu.Sub>
+										<DropdownMenu.SubTrigger className="gap-2">
+											<ArrowsClockwiseIcon className="text-muted" />
+											Switch accounts
+										</DropdownMenu.SubTrigger>
+										<DropdownMenu.SubContent>
+											<Sidebar.SwitchAccountsRadioGroup
+												accounts={accounts}
+												value={accountId}
+												onValueChange={setAccountId}
+											/>
+										</DropdownMenu.SubContent>
+									</DropdownMenu.Sub>
+									<DropdownMenu.Separator />
+									<DropdownMenu.Item className="gap-2">
+										<UserCircleIcon className="text-muted" />
+										User settings
+									</DropdownMenu.Item>
+									<DropdownMenu.Item className="gap-2">
+										<SignOutIcon className="text-muted" />
+										Log out
+									</DropdownMenu.Item>
+								</DropdownMenu.Content>
+							</DropdownMenu.Root>
+						</Sidebar.Header>
+
+						{/* A single product's navigation */}
+						<Sidebar.Body>
+							<Sidebar.Group>
+								<Sidebar.List>
+									<Sidebar.Item>
+										<Sidebar.ItemButton asChild current={pathname === "/endpoints"}>
+											<a
+												href="/endpoints"
+												onClick={(event) => {
+													event.preventDefault();
+													setPathname("/endpoints");
+												}}
+											>
+												<GraphIcon />
+												Endpoints
+											</a>
+										</Sidebar.ItemButton>
+									</Sidebar.Item>
+									<Sidebar.Item>
+										<Sidebar.ItemButton asChild current={pathname === "/domains"}>
+											<a
+												href="/domains"
+												onClick={(event) => {
+													event.preventDefault();
+													setPathname("/domains");
+												}}
+											>
+												<GlobeHemisphereWestIcon />
+												Domains
+											</a>
+										</Sidebar.ItemButton>
+									</Sidebar.Item>
+								</Sidebar.List>
+							</Sidebar.Group>
+						</Sidebar.Body>
+
+						{/* Pinned links, a separator, then a Help menu */}
+						<Sidebar.Footer>
+							<Sidebar.ItemButton asChild current={pathname === "/settings"}>
+								<a
+									href="/settings"
+									onClick={(event) => {
+										event.preventDefault();
+										setPathname("/settings");
+									}}
+								>
+									<GearIcon />
+									Account settings
+								</a>
+							</Sidebar.ItemButton>
+							<Sidebar.ItemButton asChild current={pathname === "/members"}>
+								<a
+									href="/members"
+									onClick={(event) => {
+										event.preventDefault();
+										setPathname("/members");
+									}}
+								>
+									<UsersIcon />
+									Members
+								</a>
+							</Sidebar.ItemButton>
+							<Sidebar.Separator />
+							<DropdownMenu.Root>
+								<DropdownMenu.Trigger asChild>
+									<Sidebar.ItemButton>
+										<QuestionIcon />
+										Help
+									</Sidebar.ItemButton>
+								</DropdownMenu.Trigger>
+								<DropdownMenu.Content align="start" side="top" className="min-w-56">
+									<DropdownMenu.Item className="gap-2">
+										<BookOpenIcon className="text-muted" />
+										Documentation
+									</DropdownMenu.Item>
+									<DropdownMenu.Item className="gap-2">
+										<LifebuoyIcon className="text-muted" />
+										Support
+									</DropdownMenu.Item>
+									<DropdownMenu.Item className="gap-2">
+										<KeyboardIcon className="text-muted" />
+										Keyboard shortcuts
+									</DropdownMenu.Item>
+									<DropdownMenu.Separator />
+									<DropdownMenu.Item className="gap-2">
+										<MegaphoneIcon className="text-muted" />
+										What's new
+									</DropdownMenu.Item>
+								</DropdownMenu.Content>
+							</DropdownMenu.Root>
+						</Sidebar.Footer>
+					</Sidebar.Nav>
+
+					<AppLayout.Inset>
+						<AppLayout.Content asChild>
+							<Main>
+								<AppLayout.Header>
+									<Sidebar.Trigger />
+									<Breadcrumb.Root>
+										<Breadcrumb.List>
+											<Breadcrumb.Item>
+												<Breadcrumb.Link href="/">Home</Breadcrumb.Link>
+											</Breadcrumb.Item>
+											<Breadcrumb.Separator />
+											<Breadcrumb.Item>
+												<Breadcrumb.Page>Endpoints</Breadcrumb.Page>
+											</Breadcrumb.Item>
+										</Breadcrumb.List>
+									</Breadcrumb.Root>
+								</AppLayout.Header>
+								{/* your routed page content */}
+							</Main>
+						</AppLayout.Content>
+					</AppLayout.Inset>
+				</AppLayout.Body>
+			</AppLayout.Root>
+		</Sidebar.Root>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Standalone
 
 The shell composes just as well without a sidebar — `AppLayout.Body`'s columns are whatever you put there.
