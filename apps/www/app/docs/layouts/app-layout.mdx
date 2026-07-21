@@ -17,13 +17,13 @@ everything — including any sidebar — down. It is a **layout**: it owns _wher
 
 The canonical composition pairs the shell with the [Sidebar](/components/navigation/sidebar). The two are
 deliberately decoupled — `AppLayout` never references sidebar state — but cohesive: wrap the shell in
-`Sidebar.Root`, place `Sidebar.Nav` as the first child of `AppLayout.Body` with `Sidebar.Rail` right after
-it, and put `Sidebar.Trigger` in the top-left of `AppLayout.Header`. The
+`Sidebar.Root`, place `Sidebar.Nav` as the first child of `AppLayout.Body`, and put `Sidebar.Trigger` in
+the top-left of `AppLayout.Header`. The
 [collapsed icon rail](/components/navigation/sidebar#collapsing-to-the-icon-rail) is entirely the sidebar's
 business — the shell markup does not change, and the rail shares the shell's `bg-base` surface, so the card
 gutter stays visually seamless. The demo runs in its own framed document, exactly like a real app: collapse
 the sidebar to its icon rail with the trigger (or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> — the shortcut binds to
-the frame, not this page), reopen it from the rail's edge via the `Sidebar.Rail` click strip, toggle the
+the frame, not this page) and reopen it the same way, toggle the
 notice to see the strip push the whole shell (sidebar included) down, and switch the preview to the mobile
 viewport for the sheet presentation. The demo narrows the sidebar's `mobileBreakpoint` to `md`
 so the desktop panel survives the preview's desktop and tablet widths; ngrok's dashboards keep the `lg`
@@ -100,7 +100,6 @@ export function Shell() {
 							</Sidebar.Group>
 						</Sidebar.Body>
 					</Sidebar.Nav>
-					<Sidebar.Rail />
 
 					<AppLayout.Inset>
 						<AppLayout.Content asChild>

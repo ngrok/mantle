@@ -10,10 +10,8 @@ skinny icon rail (rows become square chips around their leading icons, group lab
 their rows retained so groupings and icon positions match the expanded state, switcher rows collapse to
 their leading visual — everything stays in the tab order and the accessibility tree) — and a left-side
 `Sheet` below the breakpoint; `Sidebar.Trigger` is an `IconButton` with `aria-expanded`/`aria-controls`
-that toggles whichever presentation is active from anywhere under the root; `Sidebar.Rail` is a zero-width
-click strip rendered as `Sidebar.Nav`'s next sibling that toggles the desktop sidebar from its edge
-(pointer affordance only, `tabIndex={-1}`); `⌘B`/`Ctrl+B` also toggles it (exact-modifier match, opt out
-with `keyboardShortcut={false}`).
+that toggles whichever presentation is active from anywhere under the root; `⌘B`/`Ctrl+B` also toggles it
+(exact-modifier match, opt out with `keyboardShortcut={false}`).
 Navigation composes `Sidebar.Header`/`Body`/`Footer`, `Sidebar.Group`/`GroupLabel`/`List`/`Item`/`ItemButton`
 (with `current` → `aria-current="page"`, group labels wired to lists via `aria-labelledby`), plus
 `Sidebar.SwitcherButton`, `Sidebar.Separator`, `Sidebar.AccountAvatar` (deterministic, WCAG 4.5:1-contrast
