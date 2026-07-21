@@ -64,7 +64,7 @@ export const componentsByCategory = {
 		"Selectable List",
 		"Table",
 	],
-	Feedback: ["Alert", "Empty", "Progress Bar", "Progress Donut", "Skeleton", "Toast"],
+	Feedback: ["Alert", "Empty", "PowerBar", "Progress Bar", "Progress Donut", "Skeleton", "Toast"],
 	Forms: [
 		"Checkbox",
 		"Choice",
@@ -118,7 +118,6 @@ export const prodReadyComponents: readonly ProdReadyComponent[] = componentCateg
 export const previewComponents = [
 	//,
 	"Calendar",
-	"PowerBar",
 ] as const;
 
 /** Route lookup for production-ready component pages. */
@@ -160,6 +159,7 @@ export const prodReadyComponentRouteLookup = {
 	Pagination: "/components/navigation/pagination",
 	"Password Input": "/components/forms/password-input",
 	Popover: "/components/overlays/popover",
+	PowerBar: "/components/feedback/power-bar",
 	"Progress Donut": "/components/feedback/progress-donut",
 	"Progress Bar": "/components/feedback/progress-bar",
 	"QR Code": "/components/data-display/qr-code",
@@ -188,7 +188,6 @@ export const prodReadyComponentRouteLookup = {
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
 	Calendar: "/components/preview/calendar",
-	PowerBar: "/components/preview/power-bar",
 } as const satisfies Record<(typeof previewComponents)[number], Route>;
 
 /**
@@ -198,7 +197,6 @@ export const previewComponentsRouteLookup = {
  */
 export const previewComponentCategoryLookup = {
 	Calendar: "Forms",
-	PowerBar: "Feedback",
 } as const satisfies Record<(typeof previewComponents)[number], ComponentCategory>;
 
 /** Welcome section pages. */

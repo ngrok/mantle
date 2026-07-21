@@ -529,10 +529,10 @@
   },
   {
     "name": "PowerBar",
-    "slug": "components/preview/power-bar",
+    "slug": "components/feedback/power-bar",
     "kind": "component",
     "category": "Feedback",
-    "status": "preview",
+    "status": "stable",
     "importPath": "@ngrok/mantle/power-bar",
     "summary": "A floating save bar for unsaved changes — batch save form state with save and discard actions, announce pending state to screen readers, and block navigation until changes are resolved.",
     "jsdoc": "A persistent, decision-bearing bar that floats near the bottom edge of the viewport.",

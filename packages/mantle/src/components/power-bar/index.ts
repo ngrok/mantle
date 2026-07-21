@@ -1,7 +1,7 @@
 /**
  * Re-exports for the PowerBar component.
  *
- * @see https://mantle.ngrok.com/components/preview/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/power-bar
  */
 
 export {
