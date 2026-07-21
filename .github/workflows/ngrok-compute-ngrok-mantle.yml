@@ -33,13 +33,14 @@ jobs:
 
       - uses: docker/build-push-action@v6
         with:
-          context: .
-          file: apps/www/Dockerfile
+          context: "."
+          file: "apps/www/Dockerfile"
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             COMMIT_SHA=${{ github.sha }}
+
 
       - name: Write image reference
         run: |
