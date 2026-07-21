@@ -849,7 +849,16 @@ const PowerBarError = ({ children, className, ...props }: PowerBarErrorProps) =>
 		<Alert.Root
 			data-slot="power-bar-error"
 			intent="danger"
-			className={cx("basis-full", className)}
+			// The error takes its own full-width row without widening the panel.
+			// The panel is shrink-to-fit (w-fit), so Alert's own `w-full` would
+			// otherwise feed the error text's full single-line width into the
+			// panel's intrinsic size and stretch the bar. `max-w-0` caps that
+			// intrinsic contribution to zero (panel stays sized to the
+			// message/actions row); `min-w-full` wins over it at layout time to
+			// fill the row, which also forces the wrap onto its own line — so
+			// `basis-full` is unnecessary. These are separate properties from
+			// Alert's `width`, so no class-precedence fight and no `!important`.
+			className={cx("max-w-0 min-w-full", className)}
 			{...props}
 		>
 			<Alert.Icon />
