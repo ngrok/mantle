@@ -1,13 +1,13 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createRef, useRef } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import type { SandbarHandle } from "./sandbar.js";
-import { Sandbar } from "./sandbar.js";
+import type { PowerBarHandle } from "./power-bar.js";
+import { PowerBar } from "./power-bar.js";
 
 function getPanel(): HTMLElement {
-	const panel = document.querySelector('[data-slot="sandbar"]');
+	const panel = document.querySelector('[data-slot="power-bar"]');
 	if (!(panel instanceof HTMLElement)) {
-		throw new Error("sandbar panel not found");
+		throw new Error("power bar panel not found");
 	}
 	return panel;
 }
@@ -22,7 +22,7 @@ function getStatusRegion(): HTMLElement {
 
 function getAlertRegion(): HTMLElement {
 	// the persistent assertive announcer is the sr-only role="alert" sibling of
-	// the panel, not Sandbar.Error's Alert (which deliberately has no role)
+	// the panel, not PowerBar.Error's Alert (which deliberately has no role)
 	const region = document.querySelector('div.sr-only[role="alert"]');
 	if (!(region instanceof HTMLElement)) {
 		throw new Error("assertive region not found");
@@ -31,41 +31,41 @@ function getAlertRegion(): HTMLElement {
 }
 
 const fullTree = ({ open }: { open: boolean }) => (
-	<Sandbar.Root open={open}>
-		<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-		<Sandbar.Actions>
-			<Sandbar.DiscardButton onClick={() => {}}>Discard</Sandbar.DiscardButton>
-			<Sandbar.SaveButton onClick={() => {}}>Save</Sandbar.SaveButton>
-		</Sandbar.Actions>
-	</Sandbar.Root>
+	<PowerBar.Root open={open}>
+		<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+		<PowerBar.Actions>
+			<PowerBar.DiscardButton onClick={() => {}}>Discard</PowerBar.DiscardButton>
+			<PowerBar.SaveButton onClick={() => {}}>Save</PowerBar.SaveButton>
+		</PowerBar.Actions>
+	</PowerBar.Root>
 );
 
-describe("Sandbar structure", () => {
+describe("PowerBar structure", () => {
 	test("renders every part with its data-slot", () => {
 		render(
-			<Sandbar.Root open>
-				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-				<Sandbar.Actions>
-					<Sandbar.DiscardButton onClick={() => {}}>Discard</Sandbar.DiscardButton>
-					<Sandbar.SaveButton onClick={() => {}}>Save</Sandbar.SaveButton>
-				</Sandbar.Actions>
-				<Sandbar.Error>Save failed</Sandbar.Error>
-			</Sandbar.Root>,
+			<PowerBar.Root open>
+				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+				<PowerBar.Actions>
+					<PowerBar.DiscardButton onClick={() => {}}>Discard</PowerBar.DiscardButton>
+					<PowerBar.SaveButton onClick={() => {}}>Save</PowerBar.SaveButton>
+				</PowerBar.Actions>
+				<PowerBar.Error>Save failed</PowerBar.Error>
+			</PowerBar.Root>,
 		);
 
-		expect(document.querySelector('[data-slot="sandbar"]')).toBeInTheDocument();
-		expect(document.querySelector('[data-slot="sandbar-message"]')).toBeInTheDocument();
-		expect(document.querySelector('[data-slot="sandbar-actions"]')).toBeInTheDocument();
-		expect(document.querySelector('[data-slot="sandbar-discard-button"]')).toBeInTheDocument();
-		expect(document.querySelector('[data-slot="sandbar-save-button"]')).toBeInTheDocument();
-		expect(document.querySelector('[data-slot="sandbar-error"]')).toBeInTheDocument();
+		expect(document.querySelector('[data-slot="power-bar"]')).toBeInTheDocument();
+		expect(document.querySelector('[data-slot="power-bar-message"]')).toBeInTheDocument();
+		expect(document.querySelector('[data-slot="power-bar-actions"]')).toBeInTheDocument();
+		expect(document.querySelector('[data-slot="power-bar-discard-button"]')).toBeInTheDocument();
+		expect(document.querySelector('[data-slot="power-bar-save-button"]')).toBeInTheDocument();
+		expect(document.querySelector('[data-slot="power-bar-error"]')).toBeInTheDocument();
 	});
 
 	test("the panel is an invert-theme island styled by opposite-theme surface tokens", () => {
 		render(
-			<Sandbar.Root open>
-				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-			</Sandbar.Root>,
+			<PowerBar.Root open>
+				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+			</PowerBar.Root>,
 		);
 
 		const panel = getPanel();
@@ -79,9 +79,9 @@ describe("Sandbar structure", () => {
 		const TestBed = () => {
 			const panelRef = useRef<HTMLDivElement>(null);
 			return (
-				<Sandbar.Root className="custom-class" data-testid="panel" open ref={panelRef}>
-					<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-				</Sandbar.Root>
+				<PowerBar.Root className="custom-class" data-testid="panel" open ref={panelRef}>
+					<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+				</PowerBar.Root>
 			);
 		};
 		render(<TestBed />);
@@ -101,39 +101,39 @@ describe("Sandbar structure", () => {
 		const errorRef = createRef<HTMLDivElement>();
 
 		render(
-			<Sandbar.Root open>
-				<Sandbar.Message className="message-class" ref={messageRef}>
+			<PowerBar.Root open>
+				<PowerBar.Message className="message-class" ref={messageRef}>
 					You have unsaved changes
-				</Sandbar.Message>
-				<Sandbar.Actions className="actions-class" ref={actionsRef}>
-					<Sandbar.DiscardButton className="discard-class" onClick={() => {}} ref={discardRef}>
+				</PowerBar.Message>
+				<PowerBar.Actions className="actions-class" ref={actionsRef}>
+					<PowerBar.DiscardButton className="discard-class" onClick={() => {}} ref={discardRef}>
 						Discard
-					</Sandbar.DiscardButton>
-					<Sandbar.SaveButton className="save-class" onClick={() => {}} ref={saveRef}>
+					</PowerBar.DiscardButton>
+					<PowerBar.SaveButton className="save-class" onClick={() => {}} ref={saveRef}>
 						Save
-					</Sandbar.SaveButton>
-				</Sandbar.Actions>
-				<Sandbar.Error className="error-class" ref={errorRef}>
+					</PowerBar.SaveButton>
+				</PowerBar.Actions>
+				<PowerBar.Error className="error-class" ref={errorRef}>
 					Save failed
-				</Sandbar.Error>
-			</Sandbar.Root>,
+				</PowerBar.Error>
+			</PowerBar.Root>,
 		);
 
-		expect(messageRef.current).toHaveAttribute("data-slot", "sandbar-message");
+		expect(messageRef.current).toHaveAttribute("data-slot", "power-bar-message");
 		expect(messageRef.current?.className).toContain("message-class");
-		expect(actionsRef.current).toHaveAttribute("data-slot", "sandbar-actions");
+		expect(actionsRef.current).toHaveAttribute("data-slot", "power-bar-actions");
 		expect(actionsRef.current?.className).toContain("actions-class");
-		expect(saveRef.current).toHaveAttribute("data-slot", "sandbar-save-button");
+		expect(saveRef.current).toHaveAttribute("data-slot", "power-bar-save-button");
 		expect(saveRef.current?.className).toContain("save-class");
-		expect(discardRef.current).toHaveAttribute("data-slot", "sandbar-discard-button");
+		expect(discardRef.current).toHaveAttribute("data-slot", "power-bar-discard-button");
 		expect(discardRef.current?.className).toContain("discard-class");
-		expect(errorRef.current).toHaveAttribute("data-slot", "sandbar-error");
+		expect(errorRef.current).toHaveAttribute("data-slot", "power-bar-error");
 		expect(errorRef.current?.className).toContain("error-class");
 	});
 
 	test("the message is a plain paragraph with no live-region role", () => {
 		render(fullTree({ open: true }));
-		const message = document.querySelector('[data-slot="sandbar-message"]');
+		const message = document.querySelector('[data-slot="power-bar-message"]');
 		expect(message).toBeInTheDocument();
 		expect(message?.tagName).toBe("P");
 		expect(message).not.toHaveAttribute("role");
@@ -142,57 +142,57 @@ describe("Sandbar structure", () => {
 
 	test("the actions row is a plain div, not a toolbar", () => {
 		render(fullTree({ open: true }));
-		const actions = document.querySelector('[data-slot="sandbar-actions"]');
+		const actions = document.querySelector('[data-slot="power-bar-actions"]');
 		expect(actions).not.toHaveAttribute("role");
 	});
 
 	test("Message and Actions support asChild", () => {
 		render(
-			<Sandbar.Root open>
-				<Sandbar.Message asChild>
+			<PowerBar.Root open>
+				<PowerBar.Message asChild>
 					<span data-testid="message">You have unsaved changes</span>
-				</Sandbar.Message>
-				<Sandbar.Actions asChild>
+				</PowerBar.Message>
+				<PowerBar.Actions asChild>
 					<section data-testid="actions" />
-				</Sandbar.Actions>
-			</Sandbar.Root>,
+				</PowerBar.Actions>
+			</PowerBar.Root>,
 		);
 
 		const message = screen.getByTestId("message");
 		expect(message.tagName).toBe("SPAN");
-		expect(message).toHaveAttribute("data-slot", "sandbar-message");
+		expect(message).toHaveAttribute("data-slot", "power-bar-message");
 		const actions = screen.getByTestId("actions");
 		expect(actions.tagName).toBe("SECTION");
-		expect(actions).toHaveAttribute("data-slot", "sandbar-actions");
+		expect(actions).toHaveAttribute("data-slot", "power-bar-actions");
 	});
 
-	test("parts throw when rendered outside Sandbar.Root", () => {
+	test("parts throw when rendered outside PowerBar.Root", () => {
 		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() => {
-			render(<Sandbar.Message>orphan</Sandbar.Message>);
-		}).toThrow(/Sandbar\.Message/);
+			render(<PowerBar.Message>orphan</PowerBar.Message>);
+		}).toThrow(/PowerBar\.Message/);
 		consoleError.mockRestore();
 	});
 
-	test("Sandbar.Error renders a danger alert without role=alert", () => {
+	test("PowerBar.Error renders a danger alert without role=alert", () => {
 		render(
-			<Sandbar.Root open>
-				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-				<Sandbar.Error>Save failed</Sandbar.Error>
-			</Sandbar.Root>,
+			<PowerBar.Root open>
+				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+				<PowerBar.Error>Save failed</PowerBar.Error>
+			</PowerBar.Root>,
 		);
-		const error = document.querySelector('[data-slot="sandbar-error"]');
+		const error = document.querySelector('[data-slot="power-bar-error"]');
 		expect(error).toBeInTheDocument();
 		expect(error).not.toHaveAttribute("role");
 		expect(error).toHaveTextContent("Save failed");
 	});
 });
 
-describe("Sandbar accessible name", () => {
+describe("PowerBar accessible name", () => {
 	test("the panel is labelled by the message by default", () => {
 		render(fullTree({ open: true }));
 		const panel = getPanel();
-		const message = document.querySelector('[data-slot="sandbar-message"]');
+		const message = document.querySelector('[data-slot="power-bar-message"]');
 		expect(message).toHaveAttribute("id");
 		expect(panel).toHaveAttribute("aria-labelledby", message?.getAttribute("id"));
 		expect(panel).not.toHaveAttribute("aria-label");
@@ -200,9 +200,9 @@ describe("Sandbar accessible name", () => {
 
 	test("a consumer aria-label wins over the message", () => {
 		render(
-			<Sandbar.Root aria-label="Pending publishes" open>
-				<Sandbar.Message>3 items pending publish</Sandbar.Message>
-			</Sandbar.Root>,
+			<PowerBar.Root aria-label="Pending publishes" open>
+				<PowerBar.Message>3 items pending publish</PowerBar.Message>
+			</PowerBar.Root>,
 		);
 		const panel = getPanel();
 		expect(panel).toHaveAttribute("aria-label", "Pending publishes");
@@ -211,18 +211,18 @@ describe("Sandbar accessible name", () => {
 
 	test("falls back to the default label when no message is mounted", () => {
 		render(
-			<Sandbar.Root open>
-				<Sandbar.Actions>
-					<Sandbar.SaveButton onClick={() => {}}>Save</Sandbar.SaveButton>
-				</Sandbar.Actions>
-			</Sandbar.Root>,
+			<PowerBar.Root open>
+				<PowerBar.Actions>
+					<PowerBar.SaveButton onClick={() => {}}>Save</PowerBar.SaveButton>
+				</PowerBar.Actions>
+			</PowerBar.Root>,
 		);
 		const panel = getPanel();
 		expect(panel).toHaveAttribute("aria-label", "Unsaved changes");
 	});
 });
 
-describe("Sandbar presence", () => {
+describe("PowerBar presence", () => {
 	test("open renders the panel visible with data-state=open", () => {
 		render(fullTree({ open: true }));
 		const panel = getPanel();
@@ -358,7 +358,7 @@ describe("Sandbar presence", () => {
 	});
 });
 
-describe("Sandbar announcements", () => {
+describe("PowerBar announcements", () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 	});
@@ -401,14 +401,14 @@ describe("Sandbar announcements", () => {
 
 	test("a pending save announces politely", () => {
 		const tree = ({ isLoading }: { isLoading: boolean }) => (
-			<Sandbar.Root open>
-				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-				<Sandbar.Actions>
-					<Sandbar.SaveButton isLoading={isLoading} onClick={() => {}}>
+			<PowerBar.Root open>
+				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+				<PowerBar.Actions>
+					<PowerBar.SaveButton isLoading={isLoading} onClick={() => {}}>
 						Save
-					</Sandbar.SaveButton>
-				</Sandbar.Actions>
-			</Sandbar.Root>
+					</PowerBar.SaveButton>
+				</PowerBar.Actions>
+			</PowerBar.Root>
 		);
 		const { rerender } = render(tree({ isLoading: false }));
 		rerender(tree({ isLoading: true }));
@@ -416,11 +416,11 @@ describe("Sandbar announcements", () => {
 	});
 
 	test("shake announces assertively with the default wording", () => {
-		const handle = { current: null as SandbarHandle | null };
+		const handle = { current: null as PowerBarHandle | null };
 		render(
-			<Sandbar.Root handleRef={handle} open>
-				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-			</Sandbar.Root>,
+			<PowerBar.Root handleRef={handle} open>
+				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+			</PowerBar.Root>,
 		);
 
 		act(() => {
@@ -433,11 +433,11 @@ describe("Sandbar announcements", () => {
 	});
 
 	test("repeated shakes alternate a trailing no-break space so identical text re-announces", () => {
-		const handle = { current: null as SandbarHandle | null };
+		const handle = { current: null as PowerBarHandle | null };
 		render(
-			<Sandbar.Root handleRef={handle} open>
-				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-			</Sandbar.Root>,
+			<PowerBar.Root handleRef={handle} open>
+				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+			</PowerBar.Root>,
 		);
 
 		act(() => {
@@ -457,11 +457,11 @@ describe("Sandbar announcements", () => {
 	});
 
 	test("shake accepts a custom announcement for non-save intents", () => {
-		const handle = { current: null as SandbarHandle | null };
+		const handle = { current: null as PowerBarHandle | null };
 		render(
-			<Sandbar.Root handleRef={handle} open>
-				<Sandbar.Message>3 items pending publish</Sandbar.Message>
-			</Sandbar.Root>,
+			<PowerBar.Root handleRef={handle} open>
+				<PowerBar.Message>3 items pending publish</PowerBar.Message>
+			</PowerBar.Root>,
 		);
 
 		act(() => {
@@ -471,12 +471,12 @@ describe("Sandbar announcements", () => {
 		expect(getAlertRegion()).toHaveTextContent("Publish or discard your pending items first.");
 	});
 
-	test("a mounted Sandbar.Error mirrors its text through the assertive announcer", () => {
+	test("a mounted PowerBar.Error mirrors its text through the assertive announcer", () => {
 		const tree = (error: string | null) => (
-			<Sandbar.Root open>
-				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-				{error != null && <Sandbar.Error>{error}</Sandbar.Error>}
-			</Sandbar.Root>
+			<PowerBar.Root open>
+				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+				{error != null && <PowerBar.Error>{error}</PowerBar.Error>}
+			</PowerBar.Root>
 		);
 		const { rerender } = render(tree(null));
 		rerender(tree("Something went wrong while saving."));
@@ -487,12 +487,12 @@ describe("Sandbar announcements", () => {
 		expect(getAlertRegion()).toHaveTextContent("Something went wrong while saving.");
 	});
 
-	test("Sandbar.Error re-announces when its text changes", () => {
+	test("PowerBar.Error re-announces when its text changes", () => {
 		const tree = (error: string) => (
-			<Sandbar.Root open>
-				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-				<Sandbar.Error>{error}</Sandbar.Error>
-			</Sandbar.Root>
+			<PowerBar.Root open>
+				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+				<PowerBar.Error>{error}</PowerBar.Error>
+			</PowerBar.Root>
 		);
 		const { rerender } = render(tree("First failure."));
 		act(() => {

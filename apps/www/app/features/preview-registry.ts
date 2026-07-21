@@ -9,7 +9,7 @@ import {
 	CenteredLayoutHeaderDemo,
 	CenteredLayoutNoticeDemo,
 } from "~/features/centered-layout-demos";
-import { SandbarDemo, SandbarPendingPublishDemo } from "~/features/sandbar-demos";
+import { PowerBarDemo, PowerBarPendingPublishDemo } from "~/features/power-bar-demos";
 import { SidebarPersistenceDemo } from "~/features/sidebar-demos";
 
 type PreviewExample = {
@@ -84,13 +84,13 @@ export const previewExamples = {
 		title: "Centered layout notice demo",
 		Component: CenteredLayoutNoticeDemo,
 	},
-	sandbar: {
-		title: "Sandbar demo",
-		Component: SandbarDemo,
+	"power-bar": {
+		title: "PowerBar demo",
+		Component: PowerBarDemo,
 	},
-	"sandbar-pending-publish": {
-		title: "Sandbar pending publish demo",
-		Component: SandbarPendingPublishDemo,
+	"power-bar-pending-publish": {
+		title: "PowerBar pending publish demo",
+		Component: PowerBarPendingPublishDemo,
 	},
 	"sidebar-persistence": {
 		title: "Sidebar persistence demo",
