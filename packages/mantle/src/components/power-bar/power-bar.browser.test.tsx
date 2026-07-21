@@ -278,4 +278,43 @@ describe("PowerBar (browser)", () => {
 		// put it rather than restored to a dead node
 		expect(document.activeElement).toBe(document.body);
 	});
+
+	test("closing restores focus after an in-bar control dropped focus to the body", async () => {
+		const tree = ({ open }: { open: boolean }) => (
+			<div>
+				<button type="button">Last form field</button>
+				<PowerBar.Root open={open}>
+					<PowerBar.Message>You have unsaved changes</PowerBar.Message>
+					<PowerBar.Actions>
+						<PowerBar.DiscardButton onClick={() => {}}>Discard</PowerBar.DiscardButton>
+					</PowerBar.Actions>
+				</PowerBar.Root>
+			</div>
+		);
+		const { rerender } = render(tree({ open: true }));
+
+		const outside = screen.getByRole("button", { name: "Last form field" });
+		const discard = screen.getByRole("button", { name: "Discard" });
+		outside.focus();
+		discard.focus();
+		// the in-bar control loses focus to <body> (not to another control) while
+		// the bar is still open — the departed control is still connected, so the
+		// focusout parking is a no-op and focus stays on <body>. Closing then runs
+		// through the fell-to-body restore branch, not the focus-still-in-bar one.
+		discard.blur();
+		expect(document.activeElement).toBe(document.body);
+
+		rerender(tree({ open: false }));
+		await waitFor(() => {
+			expect(getPanel()).toHaveAttribute("hidden");
+			expect(document.activeElement).toBe(outside);
+		});
+	});
+
+	// NOTE: the restore effect's remaining rejection guards — a stored candidate
+	// that is now `:disabled`, or that fails `checkVisibility()` — are deliberately
+	// untested. `HTMLElement.focus()` on a disabled or non-rendered element is a
+	// spec-defined no-op, so removing either guard leaves the identical observable
+	// outcome (focus stays on <body>); a black-box focus assertion cannot tell the
+	// two apart. They remain as defensive fast-paths that skip a wasted focus() call.
 });
