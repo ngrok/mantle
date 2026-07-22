@@ -117,6 +117,7 @@ export const prodReadyComponents: readonly ProdReadyComponent[] = componentCateg
  */
 export const previewComponents = [
 	//,
+	"Alert Center",
 	"Calendar",
 ] as const;
 
@@ -187,6 +188,7 @@ export const prodReadyComponentRouteLookup = {
 
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
+	"Alert Center": "/components/preview/alert-center",
 	Calendar: "/components/preview/calendar",
 } as const satisfies Record<(typeof previewComponents)[number], Route>;
 
@@ -196,6 +198,7 @@ export const previewComponentsRouteLookup = {
  * still belongs to a category in the manifest so agents can group them.
  */
 export const previewComponentCategoryLookup = {
+	"Alert Center": "Feedback",
 	Calendar: "Forms",
 } as const satisfies Record<(typeof previewComponents)[number], ComponentCategory>;
 
