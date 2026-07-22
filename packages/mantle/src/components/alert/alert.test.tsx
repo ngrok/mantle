@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
+import { $cssProperties } from "../../types/index.js";
 import { Alert } from "./alert.js";
 
 function getAlertRoot(container: HTMLElement) {
@@ -94,6 +95,78 @@ describe("Alert", () => {
 			expect(button).toHaveAttribute("data-intent", "neutral");
 			await userEvent.click(button);
 			expect(onDismiss).toHaveBeenCalledOnce();
+		});
+	});
+
+	describe("ExpandButton", () => {
+		test("reserves room for its count and rotates the caret when expanded", () => {
+			const { container } = render(
+				<Alert.Root
+					intent="warning"
+					style={$cssProperties({ "--alert-control-color": "var(--color-neutral-700)" })}
+				>
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>Usage limit approaching</Alert.Title>
+						<Alert.ExpandButton count={2} expanded />
+					</Alert.Content>
+				</Alert.Root>,
+			);
+
+			expect(container.querySelector('[data-slot="alert-expand-button"]')).toHaveAttribute(
+				"aria-expanded",
+				"true",
+			);
+			expect(container.querySelector('[data-slot="alert"]')).toHaveClass(
+				"has-data-alert-expand:[&_[data-slot=alert-content]]:pr-12",
+				"md:has-data-alert-expand:[&_[data-slot=alert-content]]:pr-[5.5rem]",
+			);
+			expect(container.querySelector('[data-slot="alert-content"]')).not.toHaveClass(
+				"has-data-alert-expand:pr-12",
+			);
+			expect(container.querySelector('[data-slot="alert-expand-button"] svg')).toHaveClass(
+				"-rotate-180",
+				"duration-150",
+			);
+			expect(container.querySelector('[data-slot="alert-expand-button"]')).toHaveClass(
+				"top-1.5",
+				"text-(--alert-control-color)",
+				"not-disabled:hover:bg-(--alert-control-hover-bg)",
+				"not-disabled:hover:text-(--alert-control-hover-color)",
+			);
+			const root = container.querySelector('[data-slot="alert"]');
+			expect(root?.getAttribute("style")).toContain("--alert-control-color");
+			expect(root?.getAttribute("style")).toContain("--alert-control-hover-color");
+			expect(root?.getAttribute("style")).toContain("--alert-control-hover-bg");
+			expect(root?.getAttribute("style")).toContain(
+				"--alert-control-color: var(--color-neutral-700)",
+			);
+		});
+
+		test("positions dismiss to the left and reserves both controls when composed together", () => {
+			const { container } = render(
+				<Alert.Root intent="warning">
+					<Alert.Content>
+						<Alert.Title>Usage limit approaching</Alert.Title>
+						<Alert.DismissIconButton />
+						<Alert.ExpandButton count={2} expanded={false} />
+					</Alert.Content>
+				</Alert.Root>,
+			);
+
+			expect(container.querySelector('[data-slot="alert"]')).toHaveClass(
+				"has-data-alert-dismiss:pr-10",
+				"has-data-alert-expand:[&_[data-slot=alert-dismiss-icon-button]]:right-16",
+				"md:has-data-alert-expand:[&_[data-slot=alert-dismiss-icon-button]]:right-24",
+				"has-data-alert-expand:[&_[data-slot=alert-content]]:pr-12",
+				"md:has-data-alert-expand:[&_[data-slot=alert-content]]:pr-[5.5rem]",
+			);
+			expect(container.querySelector('[data-slot="alert-dismiss-icon-button"]')).toHaveClass(
+				"top-1.5",
+				"text-(--alert-control-color)",
+				"not-disabled:hover:bg-(--alert-control-hover-bg)",
+				"not-disabled:hover:text-(--alert-control-hover-color)",
+			);
 		});
 	});
 

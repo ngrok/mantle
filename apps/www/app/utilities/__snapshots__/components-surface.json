@@ -23,7 +23,7 @@
     "summary": "Displays a callout for user attention.",
     "jsdoc": "Displays a callout for user attention.",
     "examples": [
-      "Composition:\n```\nAlert.Root\n├── Alert.Icon\n└── Alert.Content\n    ├── Alert.Title\n    ├── Alert.Description\n    └── Alert.DismissIconButton\n```",
+      "Composition:\n```\nAlert.Root\n├── Alert.Icon\n├── Alert.Content\n    ├── Alert.Title\n    ├── Alert.Description\n    ├── Alert.DismissIconButton\n    └── Alert.ExpandButton\n```",
       "```tsx\n<Alert intent=\"info\">\n  <AlertIcon />\n  <AlertContent>\n    <AlertTitle>Alert Title</AlertTitle>\n     <AlertDismissIconButton />\n    <AlertDescription>\n      Alert description text.\n    </AlertDescription>\n  </AlertContent>\n</Alert>\n```"
     ]
   },
