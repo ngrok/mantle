@@ -60,6 +60,11 @@
 			"types": "./dist/alert.d.ts",
 			"import": "./dist/alert.js"
 		},
+		"./alert-center": {
+			"@ngrok/src-live-types": "./src/components/alert-center/index.ts",
+			"types": "./dist/alert-center.d.ts",
+			"import": "./dist/alert-center.js"
+		},
 		"./alert-dialog": {
 			"@ngrok/src-live-types": "./src/components/alert-dialog/index.ts",
 			"types": "./dist/alert-dialog.d.ts",

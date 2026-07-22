@@ -17,6 +17,7 @@
 export const MANTLE_COMPONENT_NAMES = [
 	"accordion",
 	"alert",
+	"alert-center",
 	"alert-dialog",
 	"anchor",
 	"app-layout",
