@@ -1,5 +1,37 @@
 # @ngrok/mantle
 
+## 0.81.0
+
+### Minor Changes
+
+- [#1340](https://github.com/ngrok/mantle/pull/1340) [`f5b991e`](https://github.com/ngrok/mantle/commit/f5b991e97aeba9489c72c4487d657a1aefec625c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add the canvas chart family: `BarChart` (`@ngrok/mantle/bar-chart`), `LineChart` (`@ngrok/mantle/line-chart`), `AreaChart` (`@ngrok/mantle/area-chart`), and `ScatterPlot` (`@ngrok/mantle/scatter-plot`).
+
+  Each is a compound component with a shadcn-style compositional shape (`Root`, `Grid`, `XAxis`, `YAxis`, series parts, `ReferenceLine`, `Tooltip`, `Legend`) rendered by a shared Canvas 2D engine built for scale: on-demand rAF commits (zero idle CPU), min/max-per-pixel-column decimation past 4 points per device pixel (O(plot-width) redraws at 100k+ points), DOM-overlay hover so pointer moves never repaint the canvas, and motion built for live data — x/y domains glide toward their targets with frame-rate-independent exponential chases (streaming appends read as continuous scrolling, never ease-stop-jump ticks), axis ticks/gridlines fade via per-label alpha instead of popping, and a liveline-style scroll mask dissolves exiting marks through a fade band at the plot's left edge while a sliding window streams (automatic; no prop). `prefers-reduced-motion` snaps everything.
+
+  `ScatterPlot` correlates two continuous measures — or three: providing `zKey` renders a rotatable 3D point cloud on the same Canvas 2D engine (drag to orbit, depth-sorted with gentle perspective, z carried through the tooltip, announcements, and the sr-only table). Hover hits the nearest point within 24px, and rendering degrades gracefully to tens of thousands of points. A `dimensions` prop (`1 | 2 | 3`) morphs the 3D cloud onto the x-axis line, the xy plane, or the full cube with the same glide — the interaction behind "watch the clusters separate" explainers. Scatter is an all-pairs chart form: the validated palette caps it at four series.
+
+  Highlights:
+
+  - New design tokens `--color-chart-1`…`--color-chart-8` and `--color-chart-other`, derived from mantle ramps and validated for colorblind-safe adjacency, normal-vision separation, and ≥ 3:1 surface contrast in all four themes (with Tailwind utilities like `bg-chart-1`). Color slots are sticky per `dataKey`, so filtering series never recolors the survivors.
+  - Interaction ships with `Root` unconditionally: snapped crosshair/hover band, an every-series tooltip, keyboard stepping (arrows, PageUp/PageDown, Home/End, Escape) with polite aria-live announcements, a bounded sr-only data-table twin, and datum activation via click or Enter/Space (`onDatumActivate`), plus controlled `activeIndex` for linked charts.
+  - The data-table twin is machine-readable: date row headers carry exact ISO timestamps in `<time dateTime>` and value cells carry raw numbers in `data-value`, so agents scrape precise series data from the DOM. A composable `CopyButton` part on every family copies the current rows to the clipboard as a machine-stable markdown table (ISO 8601 dates, un-separated numbers, em dash gaps).
+  - Configurable point glyphs: `shape` (`"circle" | "square" | "triangle" | "diamond"`) on `ScatterPlot.Point` (the marks themselves), `LineChart.Line` (canvas markers), and `AreaChart.Area` — a redundant encoding alongside color, sized for equal visual weight. Legend keys and hover dots wear each series' glyph on all three (line keys ride the glyph on a short stroke).
+  - Horizontal bars: `orientation` (`"vertical" | "horizontal"`) on `BarChart.Root` names the direction the bars point, not an axis. `"horizontal"` grows bars rightward from a left baseline with categories banded down the y axis (better for long labels or many categories); the value axis, baseline, reference lines, hover band, and `"perpendicular"` texture all flip to match, and grouping/stacking/keyboard/data-table are unchanged. Defaults to `"vertical"`.
+  - Configurable bar textures: `texture` (`"solid" | "hatch" | "hatch-reverse" | "crosshatch" | "perpendicular" | "dots"`) on `BarChart.Bar` — opt-in pattern fills (diagonal hatches, perpendicular rungs, offset dot grids), inked tone-on-tone from each series' own color at equal loudness, so grouped and stacked series stay distinguishable without color vision (grayscale print, forced colors). Legend keys wear the same pattern; tiles rasterize at the device pixel ratio so the ink stays crisp.
+  - Charts require an accessible name at the type level (`aria-label` or `aria-labelledby`).
+  - `pending` holds the previous render at reduced opacity during refetch — no skeleton flash.
+
+### Patch Changes
+
+- [#1347](https://github.com/ngrok/mantle/pull/1347) [`ec09b1d`](https://github.com/ngrok/mantle/commit/ec09b1d8420be706be72060f873cd859d5a04bc8) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Decouple cross-component helper imports so importing one component no longer pulls another component's implementation into the bundle:
+
+  - `preventCloseOnPromptInteraction` moved out of `toast.tsx` into its own module. The Dialog/Sheet primitive imported it from the Toast implementation, which dragged sonner (and its import-time CSS injection) into every dialog-only consumer bundle — a dialog-only Vite 8 build shrinks from 117.0 KB to 86.0 KB (−26.5%).
+  - `iconButtonVariants` moved out of `icon-button.tsx` into its own module, so `Calendar` (which only needs the classes for its nav buttons) no longer imports the `IconButton` implementation.
+
+  No public API changes — both helpers were internal.
+
+- [#1346](https://github.com/ngrok/mantle/pull/1346) [`4dbed4e`](https://github.com/ngrok/mantle/commit/4dbed4edf8a60e08f34f36720d6e4c0e1f7412e6) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Remove all `Component.displayName = "..."` assignments. Bundlers (verified with Vite 8 / Rolldown) treat these top-level property assignments as side effects, which pins otherwise-unused components — and their dependencies — into consumer bundles. Dropping them lets dead components tree-shake correctly; e.g. a dialog-only bundle no longer retains the unused Toast components. React DevTools falls back to inferring names from the component function names.
+
 ## 0.80.0
 
 ### Minor Changes
