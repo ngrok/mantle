@@ -50,17 +50,26 @@ export const VALID_COMPONENT_RE = /^[a-z][a-z0-9-]*$/;
  * own chunk named after the owning component directory (`chart-<hash>.js`,
  * see `packages/mantle/tsdown.config.ts`), so the component's classes live in
  * a file that none of the per-component `@source "<name>-*.js"` globs match.
- * Components listed here get an extra glob per internal chunk name
- * (`@source "chart-*.js";`) so Tailwind scans the shared engine too.
+ * A listed component can also render ANOTHER component whose classes live in
+ * that other component's published chunk (the charts' CopyButton renders
+ * `IconButton`, hoisted into `button-<hash>.js`). Components listed here get an
+ * extra glob per referenced chunk name (`@source "chart-*.js";`,
+ * `@source "button-*.js";`) so Tailwind scans those too.
  *
- * These chunk names are deliberately NOT part of `MANTLE_COMPONENT_NAMES` —
- * they are not valid `@ngrok/mantle/*` import subpaths.
+ * A referenced chunk that a consumer also imports directly is handled as a
+ * normal component (the `!safeComponents.has(chunkName)` guard in
+ * {@link writeSourcesToCssFile}), so it is never double-emitted; a purely
+ * internal engine chunk (e.g. `chart`) is not a valid `@ngrok/mantle/*` subpath
+ * and is never read back as a component by {@link parseComponentsFromCssFile}.
  */
 export const INTERNAL_CHUNKS_BY_COMPONENT: ReadonlyMap<string, readonly string[]> = new Map([
-	["area-chart", ["chart"]],
-	["bar-chart", ["chart"]],
-	["line-chart", ["chart"]],
-	["scatter-plot", ["chart"]],
+	// The charts render on a shared internal `chart` engine, and that engine's
+	// CopyButton renders an IconButton whose classes live in the `button` chunk;
+	// a chart-only consumer imports neither, so both must be scanned.
+	["area-chart", ["chart", "button"]],
+	["bar-chart", ["chart", "button"]],
+	["line-chart", ["chart", "button"]],
+	["scatter-plot", ["chart", "button"]],
 	// SelectableList's styled rows live on the list directory's shared
 	// primitive chunk (list-<hash>.js).
 	["selectable-list", ["list"]],

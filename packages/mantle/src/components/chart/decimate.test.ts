@@ -57,7 +57,12 @@ describe("decimateColumns", () => {
 		expect(columns.hasData[1]).toBe(0);
 	});
 
-	test("out-of-range x clamps into the edge columns", () => {
+	test("out-of-range x is skipped, not clamped into the edge columns", () => {
+		// Regression: clamping off-plot points into column 0 / columnCount-1
+		// painted a spurious full-height sliver at the plot edge during
+		// streaming/scroll glides (the tweened domain lags the data). Off-range
+		// points contribute to no column; they bucket correctly once the domain
+		// catches up.
 		const { k, b } = linearCoefficients([0, 10], [0, 4]);
 		const columns = decimateColumns({
 			xs: Float64Array.from([-5, 5, 100]),
@@ -68,10 +73,11 @@ describe("decimateColumns", () => {
 			positionB: b,
 			columnCount: 4,
 		});
-		expect(columns.hasData[0]).toBe(1);
-		expect(columns.inValue[0]).toBe(1);
-		expect(columns.hasData[3]).toBe(1);
-		expect(columns.outValue[3]).toBe(3);
+		// -5 → column -2 (skipped), 100 → column 40 (skipped); only x=5 (col 2) lands.
+		expect(columns.hasData[0]).toBe(0);
+		expect(columns.hasData[3]).toBe(0);
+		expect(columns.hasData[2]).toBe(1);
+		expect(columns.minValue[2]).toBe(2);
 	});
 
 	test("a single point per column has equal in/min/max/out", () => {

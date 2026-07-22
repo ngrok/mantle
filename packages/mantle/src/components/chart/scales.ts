@@ -247,9 +247,33 @@ const linearTicks = (domain: readonly [number, number], count: number): number[]
  * const tickTimes = timeTicks([start.getTime(), end.getTime()], 6);
  * ```
  */
-const timeTicks = (domain: readonly [number, number], count: number): number[] => {
+// `timeTicks` and `timeTickFormatter` are called back-to-back from the paint
+// loop with the identical domain; caching the last `scaleTime` lets the pair
+// build one instance per frame instead of two. During a domain glide the domain
+// changes each frame so the cache turns over, but the two calls within a single
+// frame share the same scale.
+let cachedTimeDomain: readonly [number, number] | null = null;
+let cachedTimeScale: ReturnType<typeof scaleTime> | null = null;
+
+const timeScaleForDomain = (domain: readonly [number, number]): ReturnType<typeof scaleTime> => {
+	if (
+		cachedTimeScale != null &&
+		cachedTimeDomain != null &&
+		cachedTimeDomain[0] === domain[0] &&
+		cachedTimeDomain[1] === domain[1]
+	) {
+		return cachedTimeScale;
+	}
 	const scale = scaleTime().domain([new Date(domain[0]), new Date(domain[1])]);
-	return scale.ticks(count).map((date) => date.getTime());
+	cachedTimeDomain = [domain[0], domain[1]];
+	cachedTimeScale = scale;
+	return scale;
+};
+
+const timeTicks = (domain: readonly [number, number], count: number): number[] => {
+	return timeScaleForDomain(domain)
+		.ticks(count)
+		.map((date) => date.getTime());
 };
 
 /**
@@ -263,8 +287,7 @@ const timeTicks = (domain: readonly [number, number], count: number): number[] =
  * ```
  */
 const timeTickFormatter = (domain: readonly [number, number]): ((epochMs: number) => string) => {
-	const scale = scaleTime().domain([new Date(domain[0]), new Date(domain[1])]);
-	const format = scale.tickFormat();
+	const format = timeScaleForDomain(domain).tickFormat();
 	return (epochMs: number) => format(new Date(epochMs));
 };
 
@@ -290,13 +313,33 @@ const niceDomain = (domain: readonly [number, number], count: number): [number, 
 		const pad = value === 0 ? 1 : Math.abs(value) * 0.5;
 		return niceDomain([value - pad, value + pad], count);
 	}
-	// The tick increment is positive for a step of that size, negative for a
-	// sub-integer step of `1 / -step` — scale up, snap outward, scale down.
-	const step = tickIncrement(domain[0], domain[1], count);
-	if (step > 0) {
-		return [Math.floor(domain[0] / step) * step, Math.ceil(domain[1] / step) * step];
+	// d3-array's nice(): snap the bounds outward, then re-tick the widened
+	// domain and repeat until the step stops changing. A single pass can leave
+	// bounds that don't land on tick values, because widening the domain can
+	// select a coarser step than the one the raw domain implied. Iterations are
+	// bounded — d3 relies on convergence within a couple of passes; the cap just
+	// guards a pathological step that never settles.
+	let start = domain[0];
+	let stop = domain[1];
+	let previousStep = Number.NaN;
+	for (let iteration = 0; iteration < 10; iteration++) {
+		// The tick increment is positive for a step of that size, negative for a
+		// sub-integer step of `1 / -step`.
+		const step = tickIncrement(start, stop, count);
+		if (step === previousStep || step === 0 || !Number.isFinite(step)) {
+			break;
+		}
+		if (step > 0) {
+			start = Math.floor(start / step) * step;
+			stop = Math.ceil(stop / step) * step;
+		} else {
+			const inc = -step;
+			start = Math.floor(start * inc) / inc;
+			stop = Math.ceil(stop * inc) / inc;
+		}
+		previousStep = step;
 	}
-	return [Math.floor(domain[0] * -step) / -step, Math.ceil(domain[1] * -step) / -step];
+	return [start, stop];
 };
 
 export type {

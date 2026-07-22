@@ -31,6 +31,18 @@ describe("ValueTween", () => {
 		expect([...tween.values()]).toEqual([1, 2, 3]);
 	});
 
+	test("re-targeting the current values is a no-op (no idle-CPU repaint)", () => {
+		// Regression: activating a tween whose target equals the current values
+		// restarted a full-duration no-op animation on every identical re-ingest,
+		// breaking the idle-at-zero-CPU guarantee (ChaseTween.aim already bailed).
+		const tween = new ValueTween();
+		tween.retarget([0, 100], { duration: 0, now: 0 });
+		tween.retarget([0, 100], { duration: 280, now: 0 });
+		expect(tween.active).toBe(false);
+		expect(tween.tick(16)).toBe(false);
+		expect([...tween.values()]).toEqual([0, 100]);
+	});
+
 	test("retargeting mid-flight restarts from the CURRENT values, not the original start", () => {
 		const tween = new ValueTween();
 		tween.retarget([0], { duration: 0, now: 0 });

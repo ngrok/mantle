@@ -9,6 +9,7 @@ import type {
 	ChartOptions,
 	HoverSnapshot,
 	PointShape,
+	SeriesColor,
 	SeriesMark,
 	SeriesMeta,
 	SeriesSpec,
@@ -264,8 +265,14 @@ class ChartEngine {
 		radius: Float64Array;
 		seriesIndex: Int32Array;
 		pointIndex: Int32Array;
+		depths: Float64Array;
 		count: number;
 	} | null = null;
+	/** Reusable back-to-front paint order for the 3D projection (see #paintScatter3d). */
+	#depthOrder: Int32Array = new Int32Array(0);
+	/** Reference-line colors resolved once per color signature (see #resolveReferenceColor). */
+	#referenceColorCache = new Map<string, string>();
+	#referenceColorSignature = "";
 	#activeScreen: { x: number; y: number } | null = null;
 	#activeSeriesKey: string | null = null;
 
@@ -319,6 +326,10 @@ class ChartEngine {
 				this.#cssHeight = entry.contentRect.height;
 				this.#dpr = this.#currentDpr();
 				this.#decimationCache.clear();
+				// The cached hover pixel is in plot space; a resize moves every mark,
+				// so drop it and let #updateOverlay recompute from the new projection
+				// (a stale pixel would detach the marker/tooltip from its point).
+				this.#activeScreen = null;
 				this.#schedule();
 			});
 			this.#resizeObserver.observe(options.elements.plot);
@@ -577,17 +588,21 @@ class ChartEngine {
 		if (datum == null) {
 			return;
 		}
+		const dataKey = ((): string | null => {
+			if (this.#kind === "scatter") {
+				return this.#activeSeriesKey;
+			}
+			if (cssX == null || cssY == null) {
+				return null;
+			}
+			return this.#nearestSeries(index, cssX, cssY);
+		})();
 		this.#callbacks.onDatumActivate?.({
 			// Public indexes address the consumer's data array, not the sorted view.
 			index: sourceIndex,
 			xValue: this.#xValues[index] ?? "",
 			datum,
-			dataKey:
-				this.#kind === "scatter"
-					? this.#activeSeriesKey
-					: cssX == null || cssY == null
-						? null
-						: this.#nearestSeries(index, cssX, cssY),
+			dataKey,
 		});
 	}
 
@@ -643,6 +658,10 @@ class ChartEngine {
 			}
 			return false;
 		}
+		// Reset BOTH pointer axes: a stale #pointerX would anchor a horizontal
+		// bar's keyboard tooltip to the old pointer column instead of the plot
+		// center (the vertical case already relied on #pointerY being cleared).
+		this.#pointerX = null;
 		this.#pointerY = null;
 		this.#activeSeriesKey = null;
 		this.#activeScreen = null;
@@ -934,6 +953,9 @@ class ChartEngine {
 			this.#zs = new Float64Array(0);
 		}
 		this.#projected = null;
+		// A fresh ingest re-projects every point; the cached hover pixel would
+		// otherwise strand the marker on the pre-ingest projection.
+		this.#activeScreen = null;
 
 		this.#stack = this.#options.stacked
 			? computeStackBoundaries(
@@ -1228,8 +1250,10 @@ class ChartEngine {
 	#resolveColorsIfNeeded(): void {
 		const root = this.#elements.root;
 		// Pattern tiles rasterize at the device pixel ratio, so a dpr change
-		// (zoom, monitor move) re-resolves alongside theme changes.
-		const signature = `${themeSignature(root.ownerDocument.documentElement)}|${this.#dpr}`;
+		// (zoom, monitor move) re-resolves alongside theme changes. Orientation is
+		// in the key too: the "perpendicular" texture rung flips with the bars, so
+		// a runtime orientation change must regenerate the cached patterns.
+		const signature = `${themeSignature(root.ownerDocument.documentElement)}|${this.#dpr}|${this.#options.orientation}`;
 		if (this.#colors?.signature === signature) {
 			return;
 		}
@@ -1268,6 +1292,27 @@ class ChartEngine {
 		};
 	}
 
+	/**
+	 * Resolve a reference-line color, cached per color input and invalidated with
+	 * the theme/dpr color signature. A reference line paints on every animation
+	 * frame, so resolving through the DOM probe each time would force a style
+	 * recalc inside the paint loop.
+	 */
+	#resolveReferenceColor(input: SeriesColor): string {
+		const signature = this.#colors?.signature ?? "";
+		if (signature !== this.#referenceColorSignature) {
+			this.#referenceColorCache.clear();
+			this.#referenceColorSignature = signature;
+		}
+		const cached = this.#referenceColorCache.get(input);
+		if (cached != null) {
+			return cached;
+		}
+		const resolved = resolveSeriesColor(this.#elements.root, input);
+		this.#referenceColorCache.set(input, resolved);
+		return resolved;
+	}
+
 	#layout(): void {
 		const snapshot = this.#store.getSnapshot();
 		const is3d = this.#is3d();
@@ -1279,6 +1324,22 @@ class ChartEngine {
 		// runs along the bottom; horizontal orientation flips the two.
 		const leftAxis = horizontal ? hasXAxis : hasYAxis;
 		const bottomAxis = horizontal ? hasYAxis : hasXAxis;
+		const top = PLOT_PADDING;
+		const bottom = bottomAxis ? X_AXIS_BAND : PLOT_PADDING;
+		const height = Math.max(0, this.#cssHeight - top - bottom);
+		// Publish top/height (which don't depend on the left gutter) before
+		// measuring the gutter: the horizontal category stride in #xTicks()
+		// budgets labels against the category-axis pixel extent (plot.height when
+		// horizontal). Measuring against a stale/zero previous plot would size the
+		// gutter to a single label and clip wide category names off the left edge
+		// on the first paint (and permanently under reduced motion, where no
+		// follow-up frame re-lays-out).
+		this.#plot = {
+			left: PLOT_PADDING,
+			top,
+			width: Math.max(0, this.#cssWidth - PLOT_PADDING * 2),
+			height,
+		};
 		let left = PLOT_PADDING;
 		if (leftAxis) {
 			left = FALLBACK_AXIS_GUTTER;
@@ -1300,12 +1361,11 @@ class ChartEngine {
 				left = Math.ceil(widest) + 14;
 			}
 		}
-		const bottom = bottomAxis ? X_AXIS_BAND : PLOT_PADDING;
 		this.#plot = {
 			left,
-			top: PLOT_PADDING,
+			top,
 			width: Math.max(0, this.#cssWidth - left - PLOT_PADDING),
-			height: Math.max(0, this.#cssHeight - PLOT_PADDING - bottom),
+			height,
 		};
 		// The category band lays out along whichever pixel axis carries categories:
 		// x when vertical, y when horizontal.
@@ -1408,7 +1468,15 @@ class ChartEngine {
 		if (this.#bandLayout != null) {
 			// Pre-thin dense category axes by stride before any text measurement so
 			// ten-thousand-band charts never format ten thousand labels per paint.
-			const maxLabels = Math.max(1, Math.floor(this.#plot.width / 60));
+			// The category axis runs along whichever pixel dimension carries it —
+			// x (width, labels side by side) when vertical, y (height, labels
+			// stacked) when horizontal — so budget label slots against THAT
+			// dimension. #desiredXTicks does the precise per-label collision
+			// thinning afterward.
+			const horizontal = this.#horizontalBars();
+			const axisExtent = horizontal ? this.#plot.height : this.#plot.width;
+			const perLabel = horizontal ? AXIS_FONT_SIZE + 4 : 60;
+			const maxLabels = Math.max(1, Math.floor(axisExtent / perLabel));
 			const stride = Math.max(1, Math.ceil(this.#rowCount / maxLabels));
 			const ticks: Array<{ index: number | null; value: number; text: string }> = [];
 			for (let index = 0; index < this.#rowCount; index += stride) {
@@ -1484,9 +1552,7 @@ class ChartEngine {
 		// the domains glide.
 		const instantLabels = this.#tweenDuration() === 0;
 		const desiredXTicks = is3d ? [] : this.#desiredXTicks(ctx, colors.fontFamily);
-		const desiredYTicks = is3d
-			? []
-			: this.#yTicks().map((tick) => ({ key: tick.value, text: tick.text }));
+		const desiredYTicks = is3d ? [] : this.#desiredValueTicks(ctx, colors.fontFamily);
 		let labelsAnimating = advanceLabelFade(this.#xLabelFade, desiredXTicks, paintDt, instantLabels);
 		labelsAnimating =
 			advanceLabelFade(this.#yLabelFade, desiredYTicks, paintDt, instantLabels) || labelsAnimating;
@@ -1545,7 +1611,11 @@ class ChartEngine {
 		// "horizontal" draws horizontal lines, "vertical" vertical ones. Category
 		// and value each supply whichever direction their axis currently occupies.
 		if (snapshot.grid != null && !is3d) {
-			const lines = snapshot.grid.lines;
+			// An unset direction (the store publishes `undefined` for "author left
+			// it to the chart") defaults to VALUE gridlines — perpendicular to the
+			// bars: horizontal for vertical bars / line / area, vertical for
+			// horizontal bars.
+			const lines = snapshot.grid.lines ?? (horizontal ? "vertical" : "horizontal");
 			const horizontalLines = horizontal ? categoryLines : valueLines;
 			const verticalLines = horizontal ? valueLines : categoryLines;
 			drawGrid(ctx, {
@@ -1636,7 +1706,7 @@ class ChartEngine {
 			const color =
 				reference.color == null
 					? colors.chrome.reference
-					: resolveSeriesColor(this.#elements.root, reference.color);
+					: this.#resolveReferenceColor(reference.color);
 			if (horizontal) {
 				drawVerticalReferenceLine(ctx, {
 					plot,
@@ -1723,6 +1793,37 @@ class ChartEngine {
 			}
 			previousEnd = position + half;
 			desired.push({ key: isBand ? (tick.index ?? 0) : tick.value, text: tick.text });
+		}
+		return desired;
+	}
+
+	/**
+	 * The value ticks that SHOULD be visible this frame. Vertical charts stack
+	 * them in the left gutter (a handful of {@link Y_TICK_COUNT} labels that don't
+	 * collide), so they pass through unthinned. Horizontal charts place them along
+	 * the x axis where — like the category axis when vertical — they collide by
+	 * measured width, so thin them by width there (skip, never rotate).
+	 */
+	#desiredValueTicks(
+		ctx: CanvasRenderingContext2D,
+		fontFamily: string,
+	): Array<{ key: number; text: string }> {
+		const ticks = this.#yTicks();
+		if (!this.#horizontalBars()) {
+			return ticks.map((tick) => ({ key: tick.value, text: tick.text }));
+		}
+		ctx.font = `${AXIS_FONT_SIZE}px ${fontFamily}`;
+		const valueCo = this.#valueCoefficients();
+		const desired: Array<{ key: number; text: string }> = [];
+		let previousEnd = Number.NEGATIVE_INFINITY;
+		for (const tick of ticks) {
+			const position = tick.value * valueCo.k + valueCo.b;
+			const half = ctx.measureText(tick.text).width / 2;
+			if (position - half < previousEnd + 8) {
+				continue;
+			}
+			previousEnd = position + half;
+			desired.push({ key: tick.value, text: tick.text });
 		}
 		return desired;
 	}
@@ -2364,10 +2465,11 @@ class ChartEngine {
 				radius: new Float64Array(capacity),
 				seriesIndex: new Int32Array(capacity),
 				pointIndex: new Int32Array(capacity),
+				depths: new Float64Array(capacity),
 				count: 0,
 			};
 		}
-		const depths = new Float64Array(capacity);
+		const depths = projected.depths;
 		let count = 0;
 		specs.forEach((spec, seriesIndex) => {
 			const values = this.#paintedValues(spec, "value");
@@ -2397,10 +2499,16 @@ class ChartEngine {
 		projected.count = count;
 		this.#projected = projected;
 
-		// Paint back-to-front.
-		const order = Array.from({ length: count }, (_, slot) => slot).toSorted(
-			(a, b) => (depths[b] ?? 0) - (depths[a] ?? 0),
-		);
+		// Paint back-to-front, reusing a persistent order buffer — a fresh
+		// Array+toSorted every frame churned GC during rotation/dimension morphs.
+		if (this.#depthOrder.length < count) {
+			this.#depthOrder = new Int32Array(capacity);
+		}
+		const order = this.#depthOrder.subarray(0, count);
+		for (let slot = 0; slot < count; slot++) {
+			order[slot] = slot;
+		}
+		order.sort((a, b) => (depths[b] ?? 0) - (depths[a] ?? 0));
 		drawDepthSortedPoints(ctx, {
 			count,
 			order,

@@ -93,10 +93,20 @@ const decimateColumns = (options: {
 		}
 		const x = xs[index] ?? Number.NaN;
 		let column = Math.floor(x * positionK + positionB);
-		if (column < 0) {
-			column = 0;
-		} else if (column >= columnCount) {
+		// The point exactly at the domain's right edge (x === domainMax) floors to
+		// columnCount by the fencepost; it belongs in the last column.
+		if (column === columnCount) {
 			column = columnCount - 1;
+		}
+		// Points still outside the visible column range are off-plot. During a
+		// streaming/scroll domain glide the tweened domain lags the data, so
+		// not-yet-visible points (x well past domainMax → column well past
+		// columnCount) would otherwise clamp into the edge column and paint a
+		// spurious full-height sliver at the plot's right edge. Skip them; they
+		// bucket correctly once the glide catches up. (In the static case every
+		// point is in-range, so nothing is skipped.)
+		if (column < 0 || column >= columnCount) {
+			continue;
 		}
 		if (hasData[column] === 0) {
 			hasData[column] = 1;

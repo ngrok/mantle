@@ -250,7 +250,7 @@ const drawLinePath = (
 	ctx.lineJoin = "round";
 	ctx.lineCap = "round";
 	ctx.beginPath();
-	path([...indexes]);
+	path(indexes);
 	ctx.stroke();
 };
 
@@ -279,7 +279,7 @@ const drawAreaPath = (
 		.curve(curveFactory(curve))
 		.context(ctx);
 	ctx.beginPath();
-	areaPath([...indexes]);
+	areaPath(indexes);
 	ctx.save();
 	ctx.globalAlpha = 0.1;
 	ctx.fillStyle = color;
@@ -296,7 +296,7 @@ const drawAreaPath = (
 	ctx.lineJoin = "round";
 	ctx.lineCap = "round";
 	ctx.beginPath();
-	edge([...indexes]);
+	edge(indexes);
 	ctx.stroke();
 };
 
@@ -567,7 +567,7 @@ const drawDepthSortedPoints = (
 	ctx: CanvasRenderingContext2D,
 	options: {
 		count: number;
-		order: readonly number[];
+		order: Iterable<number>;
 		screenX: Float64Array;
 		screenY: Float64Array;
 		radius: Float64Array;

@@ -316,6 +316,26 @@ describe("writeSourcesToCssFile", () => {
 		expect(content).toContain(`@source "./dist/chart-*.js";`);
 		// "chart" is not a public subpath — there is no chart.js entry stub.
 		expect(content).not.toContain(`@source "./dist/chart.js";`);
+		// The engine's CopyButton renders an IconButton whose classes live in the
+		// published button chunk — scan it, but as a transitive dependency (glob
+		// only, no button.js entry, since the app never imported button directly).
+		expect(content).toContain(`@source "./dist/button-*.js";`);
+		expect(content).not.toContain(`@source "./dist/button.js";`);
+	});
+
+	it("does not double-emit the button chunk when a chart and button are both imported", () => {
+		writeFile("global.css", `@import "tailwindcss";\n`);
+		const cssFile = path.join(tmpDir, "global.css");
+		const distDir = path.join(tmpDir, "dist");
+		writeSourcesToCssFile(cssFile, new Set(["bar-chart", "button"]), distDir);
+
+		const content = readFile("global.css");
+		// button is a direct import here, so it gets the full component treatment
+		// (entry stub + glob), and the chart's transitive reference must not add a
+		// second glob.
+		expect(content).toContain(`@source "./dist/button.js";`);
+		const buttonGlobCount = (content.match(/"\.\/dist\/button-\*\.js"/g) ?? []).length;
+		expect(buttonGlobCount).toBe(1);
 	});
 
 	it("deduplicates the internal chunk glob across sibling chart components", () => {

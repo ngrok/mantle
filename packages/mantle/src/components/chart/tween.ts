@@ -75,6 +75,30 @@ class ValueTween {
 			this.#active = false;
 			return;
 		}
+		// A re-target to the values we already hold (a re-ingest of unchanged
+		// data) must not restart a no-op tween — that would repaint for the full
+		// duration and break the idle-at-zero-CPU guarantee. Exact equality is
+		// correct: unchanged values are recomputed deterministically from the same
+		// data. Mirrors ChaseTween.aim's unchanged-target bail-out.
+		let changed = false;
+		for (let index = 0; index < length; index++) {
+			const value = target[index] ?? Number.NaN;
+			const current = this.#current[index] ?? Number.NaN;
+			const bothGaps = Number.isNaN(current) && Number.isNaN(value);
+			if (current !== value && !bothGaps) {
+				changed = true;
+				break;
+			}
+		}
+		if (!changed) {
+			// Keep #to aligned with the target so a later snap() can't jump back to
+			// a stale end value, then stay settled.
+			for (let index = 0; index < length; index++) {
+				this.#to[index] = target[index] ?? Number.NaN;
+			}
+			this.#active = false;
+			return;
+		}
 		for (let index = 0; index < length; index++) {
 			this.#from[index] = this.#current[index] ?? Number.NaN;
 			this.#to[index] = target[index] ?? Number.NaN;

@@ -10,6 +10,7 @@ export {
 export type {
 	//,
 	AreaChartAreaProps,
+	AreaChartCopyButtonProps,
 	AreaChartGridProps,
 	AreaChartLegendProps,
 	AreaChartReferenceLineProps,

@@ -180,8 +180,10 @@ const Root = <TDatum extends ChartDatum = ChartDatum>(props: BarChartRootProps<T
 const Bar = (props: BarChartBarProps) => useSeriesPrimitive("BarChart.Bar", "bar", props);
 
 /**
- * Horizontal hairline gridlines behind the bars (renderless; painted on
- * canvas). Omit the part to omit the grid.
+ * Hairline value gridlines behind the bars (renderless; painted on canvas).
+ * The default runs perpendicular to the bars — horizontal lines for vertical
+ * bars, vertical lines for horizontal bars; pass `lines` to force a direction.
+ * Omit the part to omit the grid.
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartgrid
  *
@@ -199,8 +201,9 @@ const Bar = (props: BarChartBarProps) => useSeriesPrimitive("BarChart.Bar", "bar
 const Grid = (props: BarChartGridProps) => useGridPrimitive("BarChart.Grid", props);
 
 /**
- * Category labels along the bottom of the plot (renderless; painted on
- * canvas). Labels that would collide are skipped, never rotated.
+ * Category labels for the bars (renderless; painted on canvas): along the
+ * bottom for vertical bars, down the left gutter for horizontal bars. Labels
+ * that would collide are skipped, never rotated.
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartxaxis
  *
@@ -218,8 +221,9 @@ const Grid = (props: BarChartGridProps) => useGridPrimitive("BarChart.Grid", pro
 const XAxis = (props: BarChartXAxisProps) => useXAxisPrimitive("BarChart.XAxis", props);
 
 /**
- * Value tick labels along the left of the plot (renderless; painted on
- * canvas). Ticks land on clean thousands-separated numbers.
+ * Value tick labels (renderless; painted on canvas): along the left for
+ * vertical bars, across the bottom for horizontal bars. Ticks land on clean
+ * thousands-separated numbers.
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartyaxis
  *
@@ -237,8 +241,9 @@ const XAxis = (props: BarChartXAxisProps) => useXAxisPrimitive("BarChart.XAxis",
 const YAxis = (props: BarChartYAxisProps) => useYAxisPrimitive("BarChart.YAxis", props);
 
 /**
- * A dashed horizontal marker at a y value — an SLO threshold, a budget, a
- * limit (renderless; painted on canvas).
+ * A dashed marker at the value `y` — an SLO threshold, a budget, a limit
+ * (renderless; painted on canvas). It crosses the value axis: a horizontal
+ * line for vertical bars, a vertical line for horizontal bars.
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartreferenceline
  *

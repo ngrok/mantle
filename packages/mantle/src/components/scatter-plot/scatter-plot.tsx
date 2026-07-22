@@ -144,7 +144,7 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
  * series, x, y — and z in 3D. With `zKey` the plot becomes a rotatable 3D
  * cube: drag to orbit, with points depth-sorted under gentle perspective.
  *
- * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartroot
+ * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotroot
  *
  * @example
  * ```tsx
@@ -179,7 +179,7 @@ const Root = <TDatum extends ChartDatum = ChartDatum>(props: ScatterPlotRootProp
  * chart, which paints its points on canvas (r≥4 dots with a surface ring,
  * degrading gracefully past thousands of points).
  *
- * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartpoint
+ * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotpoint
  *
  * @example
  * ```tsx
@@ -202,7 +202,7 @@ const Point = (props: ScatterPlotPointProps) =>
  * only — the 3D cube frame carries orientation). Omit the part to omit the
  * grid.
  *
- * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartgrid
+ * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotgrid
  *
  * @example
  * ```tsx
@@ -221,7 +221,7 @@ const Grid = (props: ScatterPlotGridProps) => useGridPrimitive("ScatterPlot.Grid
  * Value labels along the bottom of the plot (renderless; painted on canvas;
  * 2D only). Labels that would collide are skipped, never rotated.
  *
- * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartxaxis
+ * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotxaxis
  *
  * @example
  * ```tsx
@@ -240,7 +240,7 @@ const XAxis = (props: ScatterPlotXAxisProps) => useXAxisPrimitive("ScatterPlot.X
  * Value tick labels along the left of the plot (renderless; painted on
  * canvas; 2D only). Ticks land on clean thousands-separated numbers.
  *
- * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartyaxis
+ * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotyaxis
  *
  * @example
  * ```tsx
@@ -259,7 +259,7 @@ const YAxis = (props: ScatterPlotYAxisProps) => useYAxisPrimitive("ScatterPlot.Y
  * A dashed horizontal marker at a y value (renderless; painted on canvas; 2D
  * only — ignored in the 3D projection).
  *
- * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartreferenceline
+ * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotreferenceline
  *
  * @example
  * ```tsx
@@ -283,7 +283,7 @@ const ReferenceLine = (props: ScatterPlotReferenceLineProps) =>
  * footer, or replace the content entirely via the render-prop `children`.
  * In 3D the readout also carries the point's z value.
  *
- * @see https://mantle.ngrok.com/components/charts/scatter-plot#scattercharttooltip
+ * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplottooltip
  *
  * @example
  * ```tsx
@@ -303,7 +303,7 @@ const Tooltip = (props: ScatterPlotTooltipProps) =>
  * never rely on color-matching alone. It renders nothing for a single series
  * (the chart's title already names it).
  *
- * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartlegend
+ * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotlegend
  *
  * @example
  * ```tsx
@@ -327,7 +327,7 @@ const Legend = (props: ScatterPlotLegendProps) => (
  * `Legend`, below the plot); `Root` is relatively positioned, so `className`
  * can dock it over a corner instead (e.g. `absolute right-0 top-0`).
  *
- * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartcopybutton
+ * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotcopybutton
  *
  * @example
  * ```tsx
@@ -391,7 +391,7 @@ const ScatterPlot = {
 	 * renderer, and the entire interaction contract. `zKey` enables the 3D
 	 * projection (drag to rotate).
 	 *
-	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartroot
+	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotroot
 	 *
 	 * @example
 	 * ```tsx
@@ -410,7 +410,7 @@ const ScatterPlot = {
 	/**
 	 * One point series; registers with the chart and paints on canvas.
 	 *
-	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartpoint
+	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotpoint
 	 *
 	 * @example
 	 * ```tsx
@@ -429,7 +429,7 @@ const ScatterPlot = {
 	/**
 	 * Hairline gridlines behind the points (2D only).
 	 *
-	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartgrid
+	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotgrid
 	 *
 	 * @example
 	 * ```tsx
@@ -447,7 +447,7 @@ const ScatterPlot = {
 	/**
 	 * Value labels along the bottom of the plot (2D only).
 	 *
-	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartxaxis
+	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotxaxis
 	 *
 	 * @example
 	 * ```tsx
@@ -465,7 +465,7 @@ const ScatterPlot = {
 	/**
 	 * Value tick labels along the left of the plot (2D only).
 	 *
-	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartyaxis
+	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotyaxis
 	 *
 	 * @example
 	 * ```tsx
@@ -483,7 +483,7 @@ const ScatterPlot = {
 	/**
 	 * A dashed horizontal marker at a y value (2D only).
 	 *
-	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartreferenceline
+	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotreferenceline
 	 *
 	 * @example
 	 * ```tsx
@@ -502,7 +502,7 @@ const ScatterPlot = {
 	/**
 	 * Customizes the always-on hover/keyboard tooltip readout (z included in 3D).
 	 *
-	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scattercharttooltip
+	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplottooltip
 	 *
 	 * @example
 	 * ```tsx
@@ -521,7 +521,7 @@ const ScatterPlot = {
 	 * The legend; always compose it on multi-series charts. Renders nothing for
 	 * a single series.
 	 *
-	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartlegend
+	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotlegend
 	 *
 	 * @example
 	 * ```tsx
@@ -540,7 +540,7 @@ const ScatterPlot = {
 	/**
 	 * Copies the chart's current data to the clipboard as a markdown table.
 	 *
-	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterchartcopybutton
+	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotcopybutton
 	 *
 	 * @example
 	 * ```tsx

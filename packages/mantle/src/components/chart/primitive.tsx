@@ -265,7 +265,6 @@ const ChartRootPrimitive = ({
 	const composedRootRef = useComposedRefs(rootRef, ref);
 	const plotRef = useRef<HTMLDivElement | null>(null);
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
-	const overlayRef = useRef<HTMLDivElement | null>(null);
 	const crosshairRef = useRef<HTMLDivElement | null>(null);
 	const bandRef = useRef<HTMLDivElement | null>(null);
 	const markersRef = useRef<HTMLDivElement | null>(null);
@@ -340,7 +339,11 @@ const ChartRootPrimitive = ({
 			orientation,
 			animate,
 		});
+		// Publish the orientation to DOM consumers too: the legend mirrors bar
+		// textures whose direction-dependent stripes must match the bars.
+		store.setOrientation(orientation);
 	}, [
+		store,
 		xKey,
 		resolvedXScale,
 		yDomainMin,
@@ -404,7 +407,6 @@ const ChartRootPrimitive = ({
 						className="absolute inset-0 size-full"
 					/>
 					<div
-						ref={overlayRef}
 						role="application"
 						aria-label={ariaLabel}
 						aria-labelledby={ariaLabelledBy}
@@ -567,7 +569,10 @@ type GridPrimitiveProps = {
 
 const useGridPrimitive = (partName: string, props: GridPrimitiveProps): null => {
 	const context = useChartContext(partName);
-	const { lines = "horizontal" } = props;
+	// Pass `undefined` through when the author left the direction unset, so the
+	// engine defaults it perpendicular to the bars (value gridlines). A hard
+	// "horizontal" default draws category-parallel lines on horizontal bars.
+	const { lines } = props;
 	useLayoutEffect(() => context.store.registerGrid(lines), [context.store, lines]);
 	return null;
 };
@@ -665,6 +670,25 @@ const useTooltipPrimitive = (partName: string, props: TooltipPrimitiveProps): nu
 };
 
 /**
+ * Render one tooltip value cell: a gap dash for a missing value, the consumer's
+ * formatter when a Tooltip part composed one, otherwise the default number
+ * format. Extracted so the cell reads without a nested ternary.
+ */
+const formatTooltipValue = (
+	value: number | null | undefined,
+	dataKey: string,
+	valueFormat: ((value: number, dataKey: string) => ReactNode) | undefined,
+): ReactNode => {
+	if (value == null) {
+		return "—";
+	}
+	if (valueFormat == null) {
+		return formatNumber(value);
+	}
+	return valueFormat(value, dataKey);
+};
+
+/**
  * The tooltip element Root renders inside the plot wrapper. The engine
  * positions it (writing only `transform` and `opacity`); React renders its
  * content, re-rendering only when the hover snapshot index changes.
@@ -744,11 +768,7 @@ const ChartTooltipSurface = ({
 								)}
 								<span className="text-muted">{point.label}</span>
 								<span className="text-strong ml-auto pl-3 font-medium tabular-nums">
-									{point.value == null
-										? "—"
-										: config?.valueFormat == null
-											? formatNumber(point.value)
-											: config.valueFormat(point.value, point.dataKey)}
+									{formatTooltipValue(point.value, point.dataKey, config?.valueFormat)}
 								</span>
 							</div>
 						))}
@@ -784,9 +804,14 @@ type LegendPrimitiveProps = Omit<ComponentProps<"div">, "children"> & {
  * stripes are denser than the canvas tile (a key is read at 8px, not bar
  * scale) but carry the same tone-on-tone ink, so key and bars match. CSS
  * gradient angles are perpendicular to their stripes: `135deg` renders the
- * 45° `/` family, `45deg` its `\` mirror, `0deg` horizontal rungs.
+ * 45° `/` family, `45deg` its `\` mirror, `0deg` horizontal rungs, `90deg`
+ * vertical rungs.
  */
-const legendHatchGradient = (angle: "0deg" | "45deg" | "135deg", ink: string, period = 3): string =>
+const legendHatchGradient = (
+	angle: "0deg" | "45deg" | "90deg" | "135deg",
+	ink: string,
+	period = 3,
+): string =>
 	`repeating-linear-gradient(${angle}, ${ink} 0, ${ink} 1px, transparent 1px, transparent ${period}px)`;
 
 /**
@@ -804,7 +829,11 @@ const LEGEND_SWATCH_PAINT_CLASSES =
  * key — empty for solid fills so the plain swatch color shows. Dots tile a
  * sized radial gradient; every line texture is a repeating stripe gradient.
  */
-const legendTextureStyle = (texture: BarTexture, color: string): CSSProperties => {
+const legendTextureStyle = (
+	texture: BarTexture,
+	color: string,
+	orientation: BarOrientation,
+): CSSProperties => {
 	if (texture === "solid") {
 		return {};
 	}
@@ -823,7 +852,12 @@ const legendTextureStyle = (texture: BarTexture, color: string): CSSProperties =
 		};
 	}
 	if (texture === "perpendicular") {
-		return { backgroundImage: legendHatchGradient("0deg", ink) };
+		// The rung runs across the bar's length, so it flips with the bars:
+		// horizontal rungs on vertical bars, vertical rungs on horizontal bars —
+		// matching the canvas tile in texture.ts.
+		return {
+			backgroundImage: legendHatchGradient(orientation === "horizontal" ? "90deg" : "0deg", ink),
+		};
 	}
 	return {
 		backgroundImage: `radial-gradient(circle at 1px 1px, ${ink} 0.75px, transparent 0.8px)`,
@@ -839,7 +873,13 @@ const legendTextureStyle = (texture: BarTexture, color: string): CSSProperties =
  * the glyph riding a short stroke, and bar keys are filled squares wearing
  * the series' fill texture (bars encode identity by texture, not glyph).
  */
-const LegendSwatch = ({ series }: { series: SeriesMeta }) => {
+const LegendSwatch = ({
+	series,
+	orientation,
+}: {
+	series: SeriesMeta;
+	orientation: BarOrientation;
+}) => {
 	if (series.mark === "bar") {
 		return (
 			<span
@@ -848,7 +888,7 @@ const LegendSwatch = ({ series }: { series: SeriesMeta }) => {
 				className={cx("size-2 shrink-0 rounded-[2px]", LEGEND_SWATCH_PAINT_CLASSES)}
 				style={{
 					backgroundColor: series.color,
-					...legendTextureStyle(series.texture, series.color),
+					...legendTextureStyle(series.texture, series.color, orientation),
 				}}
 			/>
 		);
@@ -925,7 +965,7 @@ const ChartLegendPrimitive = ({
 				? children(snapshot.series)
 				: snapshot.series.map((series) => (
 						<div key={series.dataKey} className="flex items-center gap-1.5">
-							<LegendSwatch series={series} />
+							<LegendSwatch series={series} orientation={snapshot.orientation} />
 							{series.label}
 						</div>
 					))}
@@ -1006,9 +1046,14 @@ const ChartCopyButtonPrimitive = ({
 				try {
 					onClick?.(event);
 					if (event.defaultPrevented) {
+						// The consumer took over the click — cancel any pending revert and
+						// return the icon to its idle copy state, rather than stranding the
+						// check icon left over from a prior copy.
 						if (timeoutHandle.current != null) {
 							clearTimeout(timeoutHandle.current);
+							timeoutHandle.current = undefined;
 						}
+						setWasCopied(false);
 						return;
 					}
 					const { data, xKey, zKey } = context.dataRef.current;
@@ -1162,7 +1207,7 @@ const ChartDataTable = ({
 									const isFinite = typeof value === "number" && Number.isFinite(value);
 									return (
 										<td key={series.dataKey} data-value={isFinite ? value : undefined}>
-											{typeof value === "number" ? formatNumber(value) : "—"}
+											{isFinite ? formatNumber(value) : "—"}
 										</td>
 									);
 								})}
@@ -1173,7 +1218,7 @@ const ChartDataTable = ({
 											const zIsFinite = typeof zRaw === "number" && Number.isFinite(zRaw);
 											return (
 												<td data-value={zIsFinite ? zRaw : undefined}>
-													{typeof zRaw === "number" ? formatNumber(zRaw) : "—"}
+													{zIsFinite ? formatNumber(zRaw) : "—"}
 												</td>
 											);
 										})()}

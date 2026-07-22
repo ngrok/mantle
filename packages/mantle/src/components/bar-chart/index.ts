@@ -10,6 +10,7 @@ export {
 export type {
 	//,
 	BarChartBarProps,
+	BarChartCopyButtonProps,
 	BarChartGridProps,
 	BarChartLegendProps,
 	BarChartReferenceLineProps,

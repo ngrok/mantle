@@ -37,6 +37,9 @@ type FormatNumberOptions = {
  * ```
  */
 const formatNumber = (value: number, options?: FormatNumberOptions): string => {
+	// Normalize negative zero so computed/stacked values (e.g. `0 * -1`) never
+	// render as "-0" — Intl.NumberFormat formats -0 as "-0" on every path.
+	const normalized = Object.is(value, -0) ? 0 : value;
 	const digits = options?.maximumFractionDigits;
 	if (digits != null) {
 		let formatter = fractionDigitFormatters.get(digits);
@@ -44,12 +47,12 @@ const formatNumber = (value: number, options?: FormatNumberOptions): string => {
 			formatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: digits });
 			fractionDigitFormatters.set(digits, formatter);
 		}
-		return formatter.format(value);
+		return formatter.format(normalized);
 	}
-	if (value !== 0 && Math.abs(value) < 1) {
-		return smallNumberFormatter.format(value);
+	if (normalized !== 0 && Math.abs(normalized) < 1) {
+		return smallNumberFormatter.format(normalized);
 	}
-	return numberFormatter.format(value);
+	return numberFormatter.format(normalized);
 };
 
 /**

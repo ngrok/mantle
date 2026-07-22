@@ -28,6 +28,14 @@ describe("formatNumber", () => {
 		expect(formatNumber(0.00012, { maximumFractionDigits: 4 })).toBe("0.0001");
 		expect(formatNumber(1284.5, { maximumFractionDigits: 0 })).toBe("1,285");
 	});
+
+	test("normalizes negative zero to 0", () => {
+		// Regression: `value !== 0` is false for -0 (since -0 === 0 in JS), so -0
+		// fell through to numberFormatter.format(-0), which renders "-0".
+		expect(formatNumber(-0)).toBe("0");
+		expect(formatNumber(0 * -1)).toBe("0");
+		expect(formatNumber(-0, { maximumFractionDigits: 2 })).toBe("0");
+	});
 });
 
 describe("tickFractionDigits", () => {
