@@ -9,7 +9,8 @@ import { cva } from "class-variance-authority";
 import type { ComponentProps, ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
 import invariant from "tiny-invariant";
-import { $cssProperties, type WithAsChild } from "../../types/index.js";
+import { $cssProperties } from "../../types/css-properties.js";
+import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Button, type ButtonProps } from "../button/button.js";
 import {
@@ -104,20 +105,29 @@ type AlertProps = ComponentProps<"div"> & {
 /**
  * Displays a callout for user attention. Root container for all Alert sub-components.
  *
+ * Trailing controls inherit these public CSS variables:
+ *
+ * | Variable | Default | Purpose |
+ * | --- | --- | --- |
+ * | `--alert-control-color` | `var(--color-<intent>-700)` | Control text and icon color. |
+ * | `--alert-control-hover-color` | `var(--color-<intent>-800)` | Control text and icon color on hover. |
+ * | `--alert-control-hover-bg` | `color-mix(in oklab, var(--color-<intent>-500) 10%, transparent)` | Control background on hover. |
+ *
  * @see https://mantle.ngrok.com/components/feedback/alert#alertroot
  *
  * @example
  * ```tsx
- * <Alert intent="info">
- *   <AlertIcon />
- *   <AlertContent>
- *     <AlertTitle>Alert Title</AlertTitle>
- *      <AlertDismissIconButton />
- *     <AlertDescription>
+ * <Alert.Root intent="info">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Alert Title</Alert.Title>
+ *     <Alert.Description>
  *       Alert description text.
- *     </AlertDescription>
- *   </AlertContent>
- * </Alert>
+ *     </Alert.Description>
+ *     <Alert.DismissIconButton />
+ *     <Alert.ExpandButton count={2} expanded={false} />
+ *   </Alert.Content>
+ * </Alert.Root>
  *```
  */
 const Root = ({ appearance = "default", className, intent, ref, style, ...props }: AlertProps) => {
@@ -180,16 +190,17 @@ const defaultIcons = {
  *
  * @example
  * ```tsx
- * <Alert intent="info">
- *   <AlertIcon />
- *   <AlertContent>
- *     <AlertTitle>Alert Title</AlertTitle>
- *     <AlertDismissIconButton />
- *     <AlertDescription>
+ * <Alert.Root intent="info">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Alert Title</Alert.Title>
+ *     <Alert.Description>
  *       Alert description text.
- *     </AlertDescription>
- *   </AlertContent>
- * </Alert>
+ *     </Alert.Description>
+ *     <Alert.DismissIconButton />
+ *     <Alert.ExpandButton count={2} expanded={false} />
+ *   </Alert.Content>
+ * </Alert.Root>
  * ```
  */
 const Icon = ({ className, ref, svg, ...props }: AlertIconProps) => {
@@ -215,16 +226,17 @@ const Icon = ({ className, ref, svg, ...props }: AlertIconProps) => {
  *
  * @example
  * ```tsx
- * <Alert intent="info">
- *   <AlertIcon />
- *   <AlertContent>
- *     <AlertTitle>Alert Title</AlertTitle>
- *     <AlertDismissIconButton />
- *     <AlertDescription>
+ * <Alert.Root intent="info">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Alert Title</Alert.Title>
+ *     <Alert.Description>
  *       Alert description text.
- *     </AlertDescription>
- *   </AlertContent>
- * </Alert>
+ *     </Alert.Description>
+ *     <Alert.DismissIconButton />
+ *     <Alert.ExpandButton count={2} expanded={false} />
+ *   </Alert.Content>
+ * </Alert.Root>
  *```
  */
 const Content = ({ className, ref, ...props }: ComponentProps<"div">) => (
@@ -245,16 +257,17 @@ type AlertTitleProps = ComponentProps<"h5"> & WithAsChild;
  *
  * @example
  * ```tsx
- * <Alert intent="info">
- *   <AlertIcon />
- *   <AlertContent>
- *     <AlertTitle>Alert Title</AlertTitle>
- *     <AlertDismissIconButton />
- *     <AlertDescription>
+ * <Alert.Root intent="info">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Alert Title</Alert.Title>
+ *     <Alert.Description>
  *       Alert description text.
- *     </AlertDescription>
- *   </AlertContent>
- * </Alert>
+ *     </Alert.Description>
+ *     <Alert.DismissIconButton />
+ *     <Alert.ExpandButton count={2} expanded={false} />
+ *   </Alert.Content>
+ * </Alert.Root>
  *```
  */
 const Title = ({ asChild = false, className, ref, ...props }: AlertTitleProps) => {
@@ -281,16 +294,17 @@ type AlertDescriptionProps = ComponentProps<"div"> & WithAsChild;
  *
  * @example
  * ```tsx
- * <Alert intent="info">
- *   <AlertIcon />
- *   <AlertContent>
- *     <AlertTitle>Alert Title</AlertTitle>
- *     <AlertDismissIconButton />
- *     <AlertDescription>
+ * <Alert.Root intent="info">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Alert Title</Alert.Title>
+ *     <Alert.Description>
  *       Alert description text.
- *     </AlertDescription>
- *   </AlertContent>
- * </Alert>
+ *     </Alert.Description>
+ *     <Alert.DismissIconButton />
+ *     <Alert.ExpandButton count={2} expanded={false} />
+ *   </Alert.Content>
+ * </Alert.Root>
  * ```
  */
 const Description = ({ asChild = false, className, ref, ...props }: AlertDescriptionProps) => {
@@ -338,6 +352,18 @@ type AlertDismissIconButtonProps = Partial<
  * `Alert.ExpandButton` when both controls are composed together.
  *
  * @see https://mantle.ngrok.com/components/feedback/alert#alertdismissiconbutton
+ *
+ * @example
+ * ```tsx
+ * <Alert.Root intent="warning">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Usage limit approaching</Alert.Title>
+ *     <Alert.DismissIconButton onClick={dismiss} />
+ *     <Alert.ExpandButton count={2} expanded={isExpanded} onClick={toggle} />
+ *   </Alert.Content>
+ * </Alert.Root>
+ * ```
  */
 const DismissIconButton = ({
 	size = "sm",
@@ -363,8 +389,8 @@ const DismissIconButton = ({
 			data-alert-dismiss
 			className={cx(
 				"right-1.5 top-1.5 absolute",
-				"text-(--alert-control-color)",
-				"not-disabled:hover:bg-(--alert-control-hover-bg) not-disabled:hover:text-(--alert-control-hover-color)",
+				"text-[var(--alert-control-color,currentColor)]",
+				"not-disabled:hover:bg-[var(--alert-control-hover-bg,transparent)] not-disabled:hover:text-[var(--alert-control-hover-color,currentColor)]",
 				className,
 			)}
 			type={type}
@@ -396,14 +422,14 @@ type AlertExpandButtonProps = Omit<
  *
  * @example
  * ```tsx
- * <Alert.Content>
- *   <Alert.Title>Usage limit approaching</Alert.Title>
- *   <Alert.ExpandButton
- *     count={2}
- *     expanded={isExpanded}
- *     onClick={() => setExpanded(!isExpanded)}
- *   />
- * </Alert.Content>
+ * <Alert.Root intent="warning">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Usage limit approaching</Alert.Title>
+ *     <Alert.DismissIconButton />
+ *     <Alert.ExpandButton count={2} expanded={isExpanded} onClick={toggle} />
+ *   </Alert.Content>
+ * </Alert.Root>
  * ```
  */
 const ExpandButton = ({ count, expanded, className, ...props }: AlertExpandButtonProps) => {
@@ -423,8 +449,8 @@ const ExpandButton = ({ count, expanded, className, ...props }: AlertExpandButto
 			data-alert-expand
 			className={cx(
 				"right-1.5 top-1.5 absolute gap-1 px-1.5",
-				"text-(--alert-control-color)",
-				"not-disabled:hover:bg-(--alert-control-hover-bg) not-disabled:hover:text-(--alert-control-hover-color)",
+				"text-[var(--alert-control-color,currentColor)]",
+				"not-disabled:hover:bg-[var(--alert-control-hover-bg,transparent)] not-disabled:hover:text-[var(--alert-control-hover-color,currentColor)]",
 				className,
 			)}
 			{...props}
@@ -441,6 +467,14 @@ const ExpandButton = ({ count, expanded, className, ...props }: AlertExpandButto
 		</Button>
 	);
 };
+
+Root.displayName = "Alert";
+Content.displayName = "AlertContent";
+Title.displayName = "AlertTitle";
+Description.displayName = "AlertDescription";
+DismissIconButton.displayName = "AlertDismissIconButton";
+ExpandButton.displayName = "AlertExpandButton";
+Icon.displayName = "AlertIcon";
 
 /**
  * Displays a callout for user attention.
@@ -461,16 +495,17 @@ const ExpandButton = ({ count, expanded, className, ...props }: AlertExpandButto
  *
  * @example
  * ```tsx
- * <Alert intent="info">
- *   <AlertIcon />
- *   <AlertContent>
- *     <AlertTitle>Alert Title</AlertTitle>
- *      <AlertDismissIconButton />
- *     <AlertDescription>
+ * <Alert.Root intent="info">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Alert Title</Alert.Title>
+ *     <Alert.Description>
  *       Alert description text.
- *     </AlertDescription>
- *   </AlertContent>
- * </Alert>
+ *     </Alert.Description>
+ *     <Alert.DismissIconButton />
+ *     <Alert.ExpandButton count={2} expanded={false} />
+ *   </Alert.Content>
+ * </Alert.Root>
  *```
  */
 const Alert = {
@@ -486,6 +521,8 @@ const Alert = {
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.Description>Alert description</Alert.Description>
+	 *     <Alert.DismissIconButton />
+	 *     <Alert.ExpandButton count={2} expanded={false} />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```
@@ -503,6 +540,8 @@ const Alert = {
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.Description>Alert description text.</Alert.Description>
+	 *     <Alert.DismissIconButton />
+	 *     <Alert.ExpandButton count={2} expanded={false} />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```
@@ -518,14 +557,14 @@ const Alert = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Alert.Content>
-	 *   <Alert.Title>Usage limit approaching</Alert.Title>
-	 *   <Alert.ExpandButton
-	 *     count={2}
-	 *     expanded={isExpanded}
-	 *     onClick={() => setExpanded(!isExpanded)}
-	 *   />
-	 * </Alert.Content>
+	 * <Alert.Root intent="warning">
+	 *   <Alert.Icon />
+	 *   <Alert.Content>
+	 *     <Alert.Title>Usage limit approaching</Alert.Title>
+	 *     <Alert.DismissIconButton />
+	 *     <Alert.ExpandButton count={2} expanded={isExpanded} onClick={toggle} />
+	 *   </Alert.Content>
+	 * </Alert.Root>
 	 * ```
 	 */
 	ExpandButton,
@@ -541,6 +580,8 @@ const Alert = {
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.Description>Alert description text.</Alert.Description>
+	 *     <Alert.DismissIconButton />
+	 *     <Alert.ExpandButton count={2} expanded={false} />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```
@@ -562,6 +603,7 @@ const Alert = {
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.DismissIconButton />
 	 *     <Alert.Description>Alert description text.</Alert.Description>
+	 *     <Alert.ExpandButton count={2} expanded={false} />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```
@@ -579,6 +621,8 @@ const Alert = {
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.Description>Alert description text.</Alert.Description>
+	 *     <Alert.DismissIconButton />
+	 *     <Alert.ExpandButton count={2} expanded={false} />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```
@@ -596,6 +640,8 @@ const Alert = {
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.Description>Alert description text.</Alert.Description>
+	 *     <Alert.DismissIconButton />
+	 *     <Alert.ExpandButton count={2} expanded={false} />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```

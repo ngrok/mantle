@@ -24,7 +24,7 @@
     "jsdoc": "Displays a callout for user attention.",
     "examples": [
       "Composition:\n```\nAlert.Root\n├── Alert.Icon\n├── Alert.Content\n    ├── Alert.Title\n    ├── Alert.Description\n    ├── Alert.DismissIconButton\n    └── Alert.ExpandButton\n```",
-      "```tsx\n<Alert intent=\"info\">\n  <AlertIcon />\n  <AlertContent>\n    <AlertTitle>Alert Title</AlertTitle>\n     <AlertDismissIconButton />\n    <AlertDescription>\n      Alert description text.\n    </AlertDescription>\n  </AlertContent>\n</Alert>\n```"
+      "```tsx\n<Alert.Root intent=\"info\">\n  <Alert.Icon />\n  <Alert.Content>\n    <Alert.Title>Alert Title</Alert.Title>\n    <Alert.Description>\n      Alert description text.\n    </Alert.Description>\n    <Alert.DismissIconButton />\n    <Alert.ExpandButton count={2} expanded={false} />\n  </Alert.Content>\n</Alert.Root>\n```"
     ]
   },
   {

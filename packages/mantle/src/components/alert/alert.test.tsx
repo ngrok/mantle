@@ -130,9 +130,9 @@ describe("Alert", () => {
 			);
 			expect(container.querySelector('[data-slot="alert-expand-button"]')).toHaveClass(
 				"top-1.5",
-				"text-(--alert-control-color)",
-				"not-disabled:hover:bg-(--alert-control-hover-bg)",
-				"not-disabled:hover:text-(--alert-control-hover-color)",
+				"text-[var(--alert-control-color,currentColor)]",
+				"not-disabled:hover:bg-[var(--alert-control-hover-bg,transparent)]",
+				"not-disabled:hover:text-[var(--alert-control-hover-color,currentColor)]",
 			);
 			const root = container.querySelector('[data-slot="alert"]');
 			expect(root?.getAttribute("style")).toContain("--alert-control-color");
@@ -163,9 +163,9 @@ describe("Alert", () => {
 			);
 			expect(container.querySelector('[data-slot="alert-dismiss-icon-button"]')).toHaveClass(
 				"top-1.5",
-				"text-(--alert-control-color)",
-				"not-disabled:hover:bg-(--alert-control-hover-bg)",
-				"not-disabled:hover:text-(--alert-control-hover-color)",
+				"text-[var(--alert-control-color,currentColor)]",
+				"not-disabled:hover:bg-[var(--alert-control-hover-bg,transparent)]",
+				"not-disabled:hover:text-[var(--alert-control-hover-color,currentColor)]",
 			);
 		});
 	});
