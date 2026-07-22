@@ -73,10 +73,16 @@ type ChartChromeColors = {
 
 /**
  * Whether a CSS color string needs a computed-style pass before canvas can
- * paint with it.
+ * paint with it. Matches `var()` and `currentColor` case-insensitively — CSS
+ * function names and keywords are case-insensitive, so `currentcolor` and
+ * `VAR(...)` must resolve through the probe just like their canonical spellings
+ * (canvas would otherwise silently ignore the unresolved value and keep the
+ * previous fill).
  */
-const needsComputedResolution = (cssColor: string): boolean =>
-	cssColor.includes("var(") || cssColor.includes("currentColor");
+const needsComputedResolution = (cssColor: string): boolean => {
+	const normalized = cssColor.toLowerCase();
+	return normalized.includes("var(") || normalized.includes("currentcolor");
+};
 
 /**
  * Resolve any CSS color string (including `var(...)` chains, `color-mix()`,

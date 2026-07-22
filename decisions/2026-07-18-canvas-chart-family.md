@@ -192,13 +192,15 @@ sr-only twin, so it stays deferred until proven necessary).
 
 ## Deferred (named, not forgotten)
 
-Horizontal bars (`orientation` is an additive prop later), direct end-of-line
-/ bar-cap value labels, a visible table-view toggle, pinned/click tooltips
-via `Popover.Anchor virtualRef`, per-datum emphasis (Cell-equivalent),
-brush/zoom gestures, quadtree/grid-bucketed scatter hit-testing (the linear
-scan is fine to ~50k points), scatter point-size encoding (bubbles),
-3D-scatter tick labels on cube edges, camera inertia, PNG-export handle,
-sequential/diverging ramps, texture fills, WebGL renderer.
+Direct end-of-line / bar-cap value labels, a visible table-view toggle,
+pinned/click tooltips via `Popover.Anchor virtualRef`, per-datum emphasis
+(Cell-equivalent), brush/zoom gestures, quadtree/grid-bucketed scatter
+hit-testing (the linear scan is fine to ~50k points), scatter point-size
+encoding (bubbles), 3D-scatter tick labels on cube edges, camera inertia,
+PNG-export handle, sequential/diverging ramps, WebGL renderer.
+
+Shipped after the initial draft (were deferred): horizontal bars
+(`orientation` on `BarChart.Root`) and bar `texture` fills.
 
 ## Alternatives rejected
 
