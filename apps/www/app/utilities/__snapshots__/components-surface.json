@@ -28,6 +28,20 @@
     ]
   },
   {
+    "name": "Alert Center",
+    "slug": "components/preview/alert-center",
+    "kind": "component",
+    "category": "Feedback",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/alert-center",
+    "summary": "A single top-level bar that surfaces one-to-many account alerts and their upgrade CTAs, opening a dialog with the full ranked list.",
+    "jsdoc": "A single, top-level entry point for one-to-many account alerts and their upgrade CTAs — the aggregation layer that replaces a stack of independent window banners. `AlertCenter.Bar` shows the highest-severity alert inline (with its CTA) and a \"+N more\" trigger; `AlertCenter.Content` opens a modal dialog listing every alert, ranked by severity.",
+    "examples": [
+      "Composition:\n```\nAlertCenter.Root\n├── AlertCenter.Bar\n└── AlertCenter.Content\n```",
+      "```tsx\nconst alerts = [\n  {\n    id: \"payment-failed\",\n    intent: \"danger\",\n    title: \"Payment failed — update your card\",\n    description: \"We couldn't charge your card. Update it to avoid interruption.\",\n    action: { label: \"Update payment method\", href: \"/billing\" },\n  },\n  {\n    id: \"transfer-limit\",\n    intent: \"warning\",\n    title: \"Approaching your data transfer limit\",\n    action: { label: \"Upgrade\", href: \"/billing/choose-a-plan\" },\n    dismissable: true,\n  },\n] satisfies AlertCenterAlert[];\n\n<AppLayout.Root className=\"fixed inset-0\">\n  <AppLayout.Notice />\n  <AlertCenter.Root alerts={alerts} onDismiss={dismiss}>\n    <AlertCenter.Bar />\n    <AlertCenter.Content />\n  </AlertCenter.Root>\n  <AppLayout.Body>…</AppLayout.Body>\n</AppLayout.Root>\n```"
+    ]
+  },
+  {
     "name": "Alert Dialog",
     "slug": "components/overlays/alert-dialog",
     "kind": "component",

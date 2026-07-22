@@ -1,0 +1,290 @@
+---
+title: Alert Center
+description: A single top-level bar that surfaces one-to-many account alerts and their upgrade CTAs, opening a dialog with the full ranked list.
+---
+
+import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
+import { PageHeader } from "~/components/page-header";
+import {
+	AlertCenterCustomRowExample,
+	AlertCenterExample,
+	AlertCenterSingleAlertExample,
+} from "~/features/alert-center-demos";
+
+<PageHeader id="alert-center" isPreview>
+	Alert Center
+</PageHeader>
+
+A single, top-level entry point for one-to-many account alerts — usage limits, hard limits, billing
+problems — and the upgrade CTAs that resolve them. It replaces a stack of independent window banners with
+**one** severity-colored bar that surfaces the highest-priority alert inline (its message _and_ its
+call-to-action), plus a **"+N more"** trigger that opens a dialog listing every alert, ranked by severity.
+
+Compose it into an application shell as a child of [`AppLayout.Root`](/layouts/app-layout), between
+`AppLayout.Notice` and `AppLayout.Body`, so the bar spans the full window width above the sidebar. Alerts
+are passed as **data**, not authored children: the bar's count, its top alert, and the dialog's ordering are
+all _derived_ from the array, so aggregation is deterministic rather than depending on which banners happen
+to mount. The demo runs in its own framed document — open **+N more** to browse the list, dismiss the
+dismissable alerts to watch the bar re-rank and finally collapse, then reset.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="alert-center-shell" title="Alert Center app shell demo" />
+	<CodeExample.Code>
+
+```tsx
+import { AlertCenter, type AlertCenterAlert } from "@ngrok/mantle/alert-center";
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { useState } from "react";
+
+const accountAlerts = [
+	{
+		id: "payment-failed",
+		intent: "danger",
+		title: "Payment failed — update your card",
+		description:
+			"We couldn't charge the card ending in 4242. Update your payment method to avoid interruption.",
+		action: { label: "Update payment method", href: "/billing" },
+	},
+	{
+		id: "transfer-limit",
+		intent: "warning",
+		title: "You've used 92% of your monthly data transfer",
+		action: { label: "Upgrade", href: "/billing/choose-a-plan" },
+		dismissable: true,
+	},
+	{
+		id: "new-region",
+		intent: "info",
+		title: "New region available: eu-west",
+		action: { label: "Learn more", href: "/regions" },
+		dismissable: true,
+	},
+] satisfies AlertCenterAlert[];
+
+export function Shell() {
+	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+	const alerts = accountAlerts.filter((alert) => !dismissed.has(alert.id));
+
+	return (
+		<Sidebar.Root>
+			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
+				<AppLayout.Notice />
+				<AlertCenter.Root
+					alerts={alerts}
+					onDismiss={(id) => setDismissed((prev) => new Set(prev).add(id))}
+				>
+					<AlertCenter.Bar />
+					<AlertCenter.Content />
+				</AlertCenter.Root>
+				<AppLayout.Body>
+					<Sidebar.Nav aria-label="Main">{/* … */}</Sidebar.Nav>
+					<AppLayout.Inset>
+						<AppLayout.Content>{/* … */}</AppLayout.Content>
+					</AppLayout.Inset>
+				</AppLayout.Body>
+			</AppLayout.Root>
+		</Sidebar.Root>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+## How it works
+
+- **The bar surfaces the top alert inline.** `AlertCenter.Bar` shows the highest-severity alert's icon,
+  title, and call-to-action directly in the strip — so the most urgent CTA is one glance and zero extra
+  clicks away. Hiding _every_ CTA behind a click is exactly what makes banners fail to convert.
+- **"+N more" opens the full list.** When two or more alerts are active, the bar renders a `+N more`
+  trigger that opens `AlertCenter.Content` — a modal `Dialog` whose scrollable body lists every alert,
+  ranked highest-severity-first, each with its own CTA and optional dismiss.
+- **Alerts are data.** Ordering is a pure function of the `alerts` array (a stable sort by severity:
+  `danger` › `warning` › `important` › `info` › `success`), so a global billing alert and a page-level
+  usage alert merge into one deterministic list instead of stacking in incidental order.
+- **It collapses when empty.** With no alerts the bar renders nothing, mirroring `AppLayout.Notice`, so it
+  can stay mounted and render conditionally.
+- **It announces politely.** A persistent, visually-hidden `role="status"` live region (mounted by
+  `AlertCenter.Root`) announces the top alert and how many more as alerts arrive or re-rank — a live region
+  must exist before its text changes to be announced reliably. The bar itself claims no ARIA `banner`
+  landmark.
+
+## Basic usage
+
+The consumer owns the alert data and dismissal (including any persistence, e.g. `sessionStorage`);
+`AlertCenter` re-derives the bar and the list from the next `alerts` array.
+
+<Example>
+	<AlertCenterExample />
+</Example>
+
+```tsx
+import { AlertCenter, type AlertCenterAlert } from "@ngrok/mantle/alert-center";
+import { useState } from "react";
+
+const accountAlerts = [
+	{
+		id: "payment-failed",
+		intent: "danger",
+		title: "Payment failed — update your card",
+		description: "We couldn't charge the card ending in 4242.",
+		action: { label: "Update payment method", href: "/billing" },
+	},
+	{
+		id: "transfer-limit",
+		intent: "warning",
+		title: "You've used 92% of your monthly data transfer",
+		action: { label: "Upgrade", href: "/billing/choose-a-plan" },
+		dismissable: true,
+	},
+] satisfies AlertCenterAlert[];
+
+export function Example() {
+	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+	const alerts = accountAlerts.filter((alert) => !dismissed.has(alert.id));
+
+	return (
+		<AlertCenter.Root
+			alerts={alerts}
+			onDismiss={(id) => setDismissed((prev) => new Set(prev).add(id))}
+		>
+			<AlertCenter.Bar />
+			<AlertCenter.Content />
+		</AlertCenter.Root>
+	);
+}
+```
+
+## A single alert
+
+With exactly one alert there is nothing hidden, so the bar shows it inline with its CTA and omits the
+`+N more` trigger.
+
+<Example>
+	<AlertCenterSingleAlertExample />
+</Example>
+
+```tsx
+import { AlertCenter, type AlertCenterAlert } from "@ngrok/mantle/alert-center";
+
+const alerts = [
+	{
+		id: "payment-failed",
+		intent: "danger",
+		title: "Payment failed — update your card",
+		action: { label: "Update payment method", href: "/billing" },
+	},
+] satisfies AlertCenterAlert[];
+
+<AlertCenter.Root alerts={alerts}>
+	<AlertCenter.Bar />
+	<AlertCenter.Content />
+</AlertCenter.Root>;
+```
+
+## Custom rows
+
+`AlertCenter.Content` accepts a render-prop child. It receives each alert in ranked order, so the count and
+ordering stay data-driven while row rendering is fully composable. Compose the `Alert` parts directly.
+
+<Example>
+	<AlertCenterCustomRowExample />
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+import { AlertCenter, type AlertCenterAlert } from "@ngrok/mantle/alert-center";
+
+const alerts = [
+	{
+		id: "transfer-limit",
+		intent: "warning",
+		title: "Approaching your data transfer limit",
+		action: { label: "Upgrade", href: "/billing/choose-a-plan" },
+	},
+	{
+		id: "tunnel-limit",
+		intent: "warning",
+		title: "Tunnel limit reached",
+		action: { label: "Upgrade", href: "/billing/choose-a-plan" },
+	},
+] satisfies AlertCenterAlert[];
+
+<AlertCenter.Root alerts={alerts}>
+	<AlertCenter.Bar />
+	<AlertCenter.Content>
+		{(alert) => (
+			<Alert.Root intent={alert.intent}>
+				<Alert.Icon />
+				<Alert.Content>
+					<Alert.Title>{alert.title}</Alert.Title>
+				</Alert.Content>
+			</Alert.Root>
+		)}
+	</AlertCenter.Content>
+</AlertCenter.Root>;
+```
+
+## Composition
+
+Compose the parts of an `AlertCenter` together to build your own:
+
+```text showLineNumbers=false
+
+AlertCenter.Root
+├── AlertCenter.Bar
+└── AlertCenter.Content
+```
+
+## API Reference
+
+### AlertCenter.Root
+
+The state and data owner. Renderless beyond the underlying `Dialog.Root` — it ranks the `alerts`, publishes
+them on context, and hosts the dialog's open state. Place it as a child of `AppLayout.Root`, between
+`AppLayout.Notice` and `AppLayout.Body`.
+
+| Prop           | Type                          | Default | Description                                                                            |
+| -------------- | ----------------------------- | ------- | -------------------------------------------------------------------------------------- |
+| `alerts`       | `readonly AlertCenterAlert[]` | —       | The active alerts. Count, top alert, and ordering are all derived from this array.     |
+| `onDismiss`    | `(id: string) => void`        | —       | Called with an alert's `id` when its dismiss affordance is activated. You own removal. |
+| `open`         | `boolean`                     | —       | Controlled open state of the dialog.                                                   |
+| `defaultOpen`  | `boolean`                     | —       | Uncontrolled initial open state of the dialog.                                         |
+| `onOpenChange` | `(open: boolean) => void`     | —       | Called when the dialog requests to open or close.                                      |
+
+### AlertCenter.Bar
+
+The always-visible, full-width strip. Surfaces the highest-severity alert inline (icon, title, CTA) plus a
+`+N more` trigger, and collapses to nothing when there are no alerts. Renders as a `role="status"` live
+region — not an ARIA `banner` landmark. Forwards `className`, `ref`, and other props to the underlying
+`Alert` element.
+
+### AlertCenter.Content
+
+The modal dialog listing every alert, ranked highest-severity-first, in a scrollable body. Reuses `Dialog`,
+so it inherits the focus trap, `Escape`-to-close, and scroll region. Forwards `Dialog.Content` props (e.g.
+`preferredWidth`).
+
+| Prop       | Type                                                    | Default              | Description                            |
+| ---------- | ------------------------------------------------------- | -------------------- | -------------------------------------- |
+| `children` | `(alert: AlertCenterAlert, index: number) => ReactNode` | Default `Alert` card | Optional render-prop for a custom row. |
+
+### AlertCenterAlert
+
+The alert data type. A rich `ReactNode` title requires a plain-string `titleText` (used for the bar's
+truncated summary and accessible names); a plain-string `title` needs no duplicate.
+
+| Field         | Type                                                          | Description                                                        |
+| ------------- | ------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `id`          | `string`                                                      | Stable identity — used for React keys, de-duplication, dismissal.  |
+| `intent`      | `"danger" \| "important" \| "info" \| "success" \| "warning"` | The tone the alert's color communicates; flows through to `Alert`. |
+| `title`       | `string \| ReactNode`                                         | The alert's headline (also the bar's inline message).              |
+| `titleText`   | `string`                                                      | Required when `title` is a rich node; the plain-text form.         |
+| `description` | `ReactNode`                                                   | Optional supporting copy shown under the title in the dialog.      |
+| `action`      | `{ label; href } \| { label; onSelect }`                      | Optional call-to-action (the conversion moment).                   |
+| `dismissable` | `boolean`                                                     | When `true`, renders a dismiss affordance wired to `onDismiss`.    |

@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import { AlertCenterShellDemo } from "./alert-center-demos";
 import { AppLayoutDemo } from "./app-layout-demos";
 import { AppShellDemo, BridgeShellDemo } from "./app-shell-demo";
 import {
@@ -40,6 +41,10 @@ type PreviewExample = {
  * ```
  */
 export const previewExamples = {
+	"alert-center-shell": {
+		title: "Alert Center app shell demo",
+		Component: AlertCenterShellDemo,
+	},
 	"app-shell": {
 		title: "App shell demo",
 		Component: AppShellDemo,

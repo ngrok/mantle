@@ -136,6 +136,7 @@ export default [
 		...docRoute("components/overlays/sheet"),
 		...docRoute("components/overlays/tooltip"),
 		// preview (lifecycle namespace, not a category)
+		...docRoute("components/preview/alert-center"),
 		...docRoute("components/preview/calendar"),
 		// primitives
 		...docRoute("components/primitives/browser-only"),
