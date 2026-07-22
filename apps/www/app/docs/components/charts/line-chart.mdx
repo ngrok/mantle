@@ -1,0 +1,775 @@
+---
+title: Line Chart
+description: A canvas-rendered line chart for trends over a continuous x axis — time above all. Min/max decimation keeps 100,000+ point series smooth.
+---
+
+import { LineChart } from "@ngrok/mantle/line-chart";
+import { useEffect, useState } from "react";
+import { Example } from "~/components/example";
+
+export const latencyStart = new Date("2026-07-18T10:00:00Z").getTime();
+export const latencyPoint = (minute) => ({
+	time: new Date(latencyStart + minute * 60_000),
+	p50: Math.round(120 + 18 * Math.sin(minute / 4) + 6 * Math.sin(minute / 1.7)),
+	p99: Math.round(480 + 80 * Math.sin(minute / 5 + 1) + 24 * Math.sin(minute / 2.3)),
+});
+export const latencyData = Array.from({ length: 30 }, (_, minute) => latencyPoint(minute));
+
+export function LatencyExample() {
+	return (
+		<LineChart.Root data={latencyData} xKey="time" aria-label="Request latency by percentile">
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis tickFormat={(value) => `${value}ms`} />
+			<LineChart.Line dataKey="p50" label="p50" />
+			<LineChart.Line dataKey="p99" label="p99" />
+			<LineChart.Tooltip valueFormat={(value) => `${value}ms`} />
+			<LineChart.Legend />
+		</LineChart.Root>
+	);
+}
+
+export function CopyMarkdownExample() {
+	return (
+		<LineChart.Root data={latencyData} xKey="time" aria-label="Request latency, copyable">
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis tickFormat={(value) => `${value}ms`} />
+			<LineChart.Line dataKey="p50" label="p50" />
+			<LineChart.Line dataKey="p99" label="p99" />
+			<LineChart.Tooltip valueFormat={(value) => `${value}ms`} />
+			<LineChart.Legend />
+			<LineChart.CopyButton className="absolute right-0 top-0" />
+		</LineChart.Root>
+	);
+}
+
+export const signupsData = [
+	{ day: "Mon", thisWeek: 42, lastWeek: 38 },
+	{ day: "Tue", thisWeek: 61, lastWeek: 47 },
+	{ day: "Wed", thisWeek: 55, lastWeek: 60 },
+	{ day: "Thu", thisWeek: 67, lastWeek: 52 },
+	{ day: "Fri", thisWeek: 74, lastWeek: 66 },
+	{ day: "Sat", thisWeek: 30, lastWeek: 34 },
+	{ day: "Sun", thisWeek: 26, lastWeek: 22 },
+];
+
+export function CurveMarkersExample() {
+	return (
+		<LineChart.Root data={signupsData} xKey="day" aria-label="Signups by day of week">
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis />
+			<LineChart.Line dataKey="thisWeek" label="This week" curve="monotone" markers />
+			<LineChart.Line
+				dataKey="lastWeek"
+				label="Last week"
+				curve="monotone"
+				markers
+				shape="triangle"
+			/>
+			<LineChart.Tooltip />
+			<LineChart.Legend />
+		</LineChart.Root>
+	);
+}
+
+export function seededWalk(count, seed) {
+	// Deterministic LCG (Numerical Recipes constants) — the docs render
+	// identically on every load, no Math.random.
+	let state = seed >>> 0;
+	const nextRandom = () => {
+		state = (state * 1664525 + 1013904223) >>> 0;
+		return state / 4294967296;
+	};
+	let value = 250;
+	return Array.from({ length: count }, (_, sample) => {
+		value += nextRandom() * 2 - 1;
+		return { sample, value: Math.round(value * 100) / 100 };
+	});
+}
+export const walkData = seededWalk(50_000, 20_260_718);
+
+export function HighDensityExample() {
+	return (
+		<LineChart.Root data={walkData} xKey="sample" aria-label="Seeded random walk, 50,000 samples">
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis />
+			<LineChart.Line dataKey="value" label="Value" />
+			<LineChart.Tooltip />
+		</LineChart.Root>
+	);
+}
+
+export const sensorData = [
+	{ hour: "00:00", roof: 21.1, lobby: 20.9 },
+	{ hour: "02:00", roof: 20.4, lobby: 20.7 },
+	{ hour: "04:00", roof: null, lobby: null },
+	{ hour: "06:00", roof: null, lobby: null },
+	{ hour: "08:00", roof: 22.8, lobby: 21.4 },
+	{ hour: "10:00", roof: 25.2, lobby: 21.9 },
+	{ hour: "12:00", roof: 27.6, lobby: 22.3 },
+	{ hour: "14:00", roof: 28.1, lobby: 22.5 },
+	{ hour: "16:00", roof: 26.9, lobby: 22.2 },
+	{ hour: "18:00", roof: 24.3, lobby: 21.8 },
+	{ hour: "20:00", roof: 22.6, lobby: 21.3 },
+	{ hour: "22:00", roof: 21.7, lobby: 21.0 },
+];
+
+export function GapsExample() {
+	return (
+		<LineChart.Root
+			data={sensorData}
+			xKey="hour"
+			aria-label="Sensor temperature with an outage window"
+		>
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis tickFormat={(value) => `${value}°C`} />
+			<LineChart.Line dataKey="roof" label="Roof (gaps)" />
+			<LineChart.Line dataKey="lobby" label="Lobby (connectNulls)" connectNulls />
+			<LineChart.Tooltip valueFormat={(value) => `${value}°C`} />
+			<LineChart.Legend />
+		</LineChart.Root>
+	);
+}
+
+export const errorRateData = Array.from({ length: 24 }, (_, hour) => ({
+	time: new Date(Date.UTC(2026, 6, 17, hour)),
+	errorRate: Number((0.62 + 0.35 * Math.sin(hour / 3) + 0.22 * Math.sin(hour / 1.3)).toFixed(2)),
+}));
+
+export function ReferenceLineExample() {
+	return (
+		<LineChart.Root
+			data={errorRateData}
+			xKey="time"
+			yDomain={[0, "auto"]}
+			aria-label="Error rate against the SLO"
+		>
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis tickFormat={(value) => `${value}%`} />
+			<LineChart.Line dataKey="errorRate" label="Error rate" color="var(--color-danger-600)" />
+			<LineChart.ReferenceLine y={1} label="SLO" />
+			<LineChart.Tooltip valueFormat={(value) => `${value}%`} />
+		</LineChart.Root>
+	);
+}
+
+export const trafficPoint = (minute) => ({
+	time: new Date(latencyStart + minute * 60_000),
+	requests: Math.round(1200 + 260 * Math.sin(minute / 5) + 90 * Math.sin(minute / 1.9)),
+	errors: Math.round(14 + 9 * Math.sin(minute / 3.2 + 2) + 4 * Math.sin(minute / 1.4)),
+});
+export const trafficData = Array.from({ length: 60 }, (_, minute) => trafficPoint(minute));
+
+export function LinkedChartsExample() {
+	const [activeIndex, setActiveIndex] = useState(null);
+	return (
+		<div className="flex w-full flex-col gap-4">
+			<LineChart.Root
+				data={trafficData}
+				xKey="time"
+				aria-label="Requests per minute"
+				activeIndex={activeIndex}
+				onActiveIndexChange={setActiveIndex}
+				className="aspect-[3/1]"
+			>
+				<LineChart.Grid />
+				<LineChart.XAxis />
+				<LineChart.YAxis />
+				<LineChart.Line dataKey="requests" label="Requests" />
+				<LineChart.Tooltip />
+			</LineChart.Root>
+			<LineChart.Root
+				data={trafficData}
+				xKey="time"
+				aria-label="Errors per minute"
+				activeIndex={activeIndex}
+				onActiveIndexChange={setActiveIndex}
+				className="aspect-[3/1]"
+			>
+				<LineChart.Grid />
+				<LineChart.XAxis />
+				<LineChart.YAxis />
+				<LineChart.Line dataKey="errors" label="Errors" color="var(--color-danger-600)" />
+				<LineChart.Tooltip />
+			</LineChart.Root>
+		</div>
+	);
+}
+
+export const liveStart = new Date("2026-07-18T12:00:00Z").getTime();
+
+export const formatClock = new Intl.DateTimeFormat("en-US", {
+	hour: "2-digit",
+	minute: "2-digit",
+	second: "2-digit",
+	hour12: false,
+	timeZone: "UTC",
+});
+
+export function livePoint(tick) {
+	const drift = Math.sin(tick / 160);
+	const wave = Math.sin(tick / 14);
+	const ripple = Math.sin(tick / 5.3);
+	return {
+		time: new Date(liveStart + tick * 150),
+		p50: Math.round(120 + 12 * drift + 14 * wave + 5 * ripple),
+		p99: Math.round(470 + 45 * Math.sin(tick / 130 + 2) + 48 * wave + 20 * ripple),
+	};
+}
+
+export function LiveLineExample() {
+	const [tick, setTick] = useState(0);
+	useEffect(() => {
+		const interval = setInterval(() => {
+			setTick((current) => current + 1);
+		}, 150);
+		return () => clearInterval(interval);
+	}, []);
+	const data = Array.from({ length: 240 }, (_, index) => livePoint(tick + index));
+	return (
+		<LineChart.Root data={data} xKey="time" aria-label="Live request latency by percentile">
+			<LineChart.Grid />
+			<LineChart.XAxis
+				tickFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
+			/>
+			<LineChart.YAxis tickFormat={(value) => `${value}ms`} />
+			<LineChart.Line dataKey="p50" label="p50" />
+			<LineChart.Line dataKey="p99" label="p99" />
+			<LineChart.Tooltip
+				valueFormat={(value) => `${value}ms`}
+				labelFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
+			/>
+			<LineChart.Legend />
+		</LineChart.Root>
+	);
+}
+
+# Line Chart
+
+A canvas-rendered line chart for trends over a continuous x axis — time above all. Rendering is canvas with min/max decimation, so series of 100,000+ points stay smooth, and the entire interaction contract — a crosshair snapped to the nearest x with an every-series tooltip, keyboard stepping, polite announcements, and a screen-reader data table — ships with `LineChart.Root` unconditionally. No part removal can strip keyboard access to the data.
+
+## When to use
+
+A `LineChart` answers "how is this changing?" and "do these series move together?" — latency percentiles, request rates, resource usage over time. Lines encode value by vertical position along a shared y axis, which makes them the right mark for trends over a continuous x.
+
+- Prefer [`BarChart`](/components/charts/bar-chart) to compare discrete categories — bars encode value by length from a zero baseline.
+- Prefer [`AreaChart`](/components/charts/area-chart) when cumulative composition matters — stacked areas show how parts sum to a total.
+
+The x scale is auto-detected from the first row's x value: `Date` values get a `"time"` scale with calendar-aware ticks, numbers get `"linear"`, and strings get `"point"` (evenly spaced categories). Pass `xScale` when detection guesses wrong — for example, epoch-millisecond numbers auto-detect as `"linear"`, so pass `xScale="time"` to read them as time.
+
+Compose `LineChart.Root` with one `LineChart.Line` per series. Every chart requires an accessible name (`aria-label` or `aria-labelledby`), and every multi-series chart composes `LineChart.Legend` — identity must never rely on color-matching alone. Hover or focus the chart and arrow around: the tooltip reads every series at the active x.
+
+<Example>
+	<LatencyExample />
+</Example>
+
+```tsx
+import { LineChart } from "@ngrok/mantle/line-chart";
+
+const latencyStart = new Date("2026-07-18T10:00:00Z").getTime();
+const latencyPoint = (minute: number) => ({
+	time: new Date(latencyStart + minute * 60_000),
+	p50: Math.round(120 + 18 * Math.sin(minute / 4) + 6 * Math.sin(minute / 1.7)),
+	p99: Math.round(480 + 80 * Math.sin(minute / 5 + 1) + 24 * Math.sin(minute / 2.3)),
+});
+const latencyData = Array.from({ length: 30 }, (_, minute) => latencyPoint(minute));
+
+function LatencyExample() {
+	return (
+		<LineChart.Root data={latencyData} xKey="time" aria-label="Request latency by percentile">
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis tickFormat={(value) => `${value}ms`} />
+			<LineChart.Line dataKey="p50" label="p50" />
+			<LineChart.Line dataKey="p99" label="p99" />
+			<LineChart.Tooltip valueFormat={(value) => `${value}ms`} />
+			<LineChart.Legend />
+		</LineChart.Root>
+	);
+}
+```
+
+## Curves, markers, and shapes
+
+`curve` controls interpolation between points: `"linear"` (the default), `"monotone"` (smoothed without overshooting the data), or `"step"`. `markers` draws a dot with a surface ring at each point — markers auto-hide when points get denser than ~12px apart, so a chart that grows dense never turns to gravel. `shape` picks the marker glyph per series — `"circle"` (default), `"square"`, `"triangle"`, or `"diamond"`, sized for equal visual weight — and the hover dot and legend key wear it too: a redundant encoding alongside color, so series stay distinguishable without color vision (last week wears triangles below, on the line, in the legend, and under the crosshair). The glyph set is shared across the chart family; [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full treatment. String x values put the chart on a `"point"` scale: evenly spaced categorical positions with no band thickness.
+
+<Example>
+	<CurveMarkersExample />
+</Example>
+
+```tsx
+import { LineChart } from "@ngrok/mantle/line-chart";
+
+const signupsData = [
+	{ day: "Mon", thisWeek: 42, lastWeek: 38 },
+	{ day: "Tue", thisWeek: 61, lastWeek: 47 },
+	{ day: "Wed", thisWeek: 55, lastWeek: 60 },
+	{ day: "Thu", thisWeek: 67, lastWeek: 52 },
+	{ day: "Fri", thisWeek: 74, lastWeek: 66 },
+	{ day: "Sat", thisWeek: 30, lastWeek: 34 },
+	{ day: "Sun", thisWeek: 26, lastWeek: 22 },
+];
+
+function CurveMarkersExample() {
+	return (
+		<LineChart.Root data={signupsData} xKey="day" aria-label="Signups by day of week">
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis />
+			<LineChart.Line dataKey="thisWeek" label="This week" curve="monotone" markers />
+			<LineChart.Line
+				dataKey="lastWeek"
+				label="Last week"
+				curve="monotone"
+				markers
+				shape="triangle"
+			/>
+			<LineChart.Tooltip />
+			<LineChart.Legend />
+		</LineChart.Root>
+	);
+}
+```
+
+## High-density series
+
+This chart plots a 50,000-point seeded pseudo-random walk on a `"linear"` x scale. Past 4 points per device pixel, the engine decimates each series to its min/max per device-pixel column, so a redraw costs O(plot width), not O(points) — and it is visually lossless, because a line through every intermediate value paints the same column of pixels anyway. The idle chart costs zero CPU: there is no always-on render loop; every mutation coalesces into a single `requestAnimationFrame` commit. And hover never repaints the canvas — the crosshair, active-point markers, and tooltip are DOM overlay elements moved with transforms.
+
+<Example>
+	<HighDensityExample />
+</Example>
+
+```tsx
+import { LineChart } from "@ngrok/mantle/line-chart";
+
+function seededWalk(count: number, seed: number) {
+	// Deterministic LCG (Numerical Recipes constants) — renders identically
+	// on every load, no Math.random.
+	let state = seed >>> 0;
+	const nextRandom = () => {
+		state = (state * 1664525 + 1013904223) >>> 0;
+		return state / 4294967296;
+	};
+	let value = 250;
+	return Array.from({ length: count }, (_, sample) => {
+		value += nextRandom() * 2 - 1;
+		return { sample, value: Math.round(value * 100) / 100 };
+	});
+}
+const walkData = seededWalk(50_000, 20_260_718);
+
+function HighDensityExample() {
+	return (
+		<LineChart.Root data={walkData} xKey="sample" aria-label="Seeded random walk, 50,000 samples">
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis />
+			<LineChart.Line dataKey="value" label="Value" />
+			<LineChart.Tooltip />
+		</LineChart.Root>
+	);
+}
+```
+
+## Gaps and connectNulls
+
+`null` and missing values render as gaps by default, and gaps are the honest default: a gap says "we did not measure this," where a bridged line invents values that were never recorded. Pass `connectNulls` to join across missing values only when a gap genuinely means "unchanged" rather than "unknown." Gapped values read as an em dash in the tooltip and as "no data" in keyboard announcements.
+
+<Example>
+	<GapsExample />
+</Example>
+
+```tsx
+import { LineChart } from "@ngrok/mantle/line-chart";
+
+const sensorData = [
+	{ hour: "00:00", roof: 21.1, lobby: 20.9 },
+	{ hour: "02:00", roof: 20.4, lobby: 20.7 },
+	{ hour: "04:00", roof: null, lobby: null },
+	{ hour: "06:00", roof: null, lobby: null },
+	{ hour: "08:00", roof: 22.8, lobby: 21.4 },
+	{ hour: "10:00", roof: 25.2, lobby: 21.9 },
+	{ hour: "12:00", roof: 27.6, lobby: 22.3 },
+	{ hour: "14:00", roof: 28.1, lobby: 22.5 },
+	{ hour: "16:00", roof: 26.9, lobby: 22.2 },
+	{ hour: "18:00", roof: 24.3, lobby: 21.8 },
+	{ hour: "20:00", roof: 22.6, lobby: 21.3 },
+	{ hour: "22:00", roof: 21.7, lobby: 21.0 },
+];
+
+function GapsExample() {
+	return (
+		<LineChart.Root
+			data={sensorData}
+			xKey="hour"
+			aria-label="Sensor temperature with an outage window"
+		>
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis tickFormat={(value) => `${value}°C`} />
+			<LineChart.Line dataKey="roof" label="Roof (gaps)" />
+			<LineChart.Line dataKey="lobby" label="Lobby (connectNulls)" connectNulls />
+			<LineChart.Tooltip valueFormat={(value) => `${value}°C`} />
+			<LineChart.Legend />
+		</LineChart.Root>
+	);
+}
+```
+
+## Reference lines
+
+`LineChart.ReferenceLine` paints a dashed horizontal marker at a y value — an SLO threshold, a budget, a limit — in the neutral reference color, with an optional label above its right end. Two conventions worth copying here: a series that carries bad meaning (an error rate) wears a semantic status color instead of a categorical chart slot, and `yDomain` anchors the rate at zero so the distance to the threshold reads truthfully.
+
+<Example>
+	<ReferenceLineExample />
+</Example>
+
+```tsx
+import { LineChart } from "@ngrok/mantle/line-chart";
+
+const errorRateData = Array.from({ length: 24 }, (_, hour) => ({
+	time: new Date(Date.UTC(2026, 6, 17, hour)),
+	errorRate: Number((0.62 + 0.35 * Math.sin(hour / 3) + 0.22 * Math.sin(hour / 1.3)).toFixed(2)),
+}));
+
+function ReferenceLineExample() {
+	return (
+		<LineChart.Root
+			data={errorRateData}
+			xKey="time"
+			yDomain={[0, "auto"]}
+			aria-label="Error rate against the SLO"
+		>
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis tickFormat={(value) => `${value}%`} />
+			<LineChart.Line dataKey="errorRate" label="Error rate" color="var(--color-danger-600)" />
+			<LineChart.ReferenceLine y={1} label="SLO" />
+			<LineChart.Tooltip valueFormat={(value) => `${value}%`} />
+		</LineChart.Root>
+	);
+}
+```
+
+## Linked charts
+
+The active position is controllable: pass `activeIndex` and `onActiveIndexChange` to share one crosshair across charts plotted over the same rows — the dashboard "linked crosshair" pattern. Hover or arrow through either chart and both move together, so a latency spike and its error spike line up without eyeballing timestamps.
+
+<Example>
+	<LinkedChartsExample />
+</Example>
+
+```tsx
+import { LineChart } from "@ngrok/mantle/line-chart";
+import { useState } from "react";
+
+const trafficStart = new Date("2026-07-18T10:00:00Z").getTime();
+const trafficPoint = (minute: number) => ({
+	time: new Date(trafficStart + minute * 60_000),
+	requests: Math.round(1200 + 260 * Math.sin(minute / 5) + 90 * Math.sin(minute / 1.9)),
+	errors: Math.round(14 + 9 * Math.sin(minute / 3.2 + 2) + 4 * Math.sin(minute / 1.4)),
+});
+const trafficData = Array.from({ length: 60 }, (_, minute) => trafficPoint(minute));
+
+function LinkedChartsExample() {
+	const [activeIndex, setActiveIndex] = useState<number | null>(null);
+	return (
+		<div className="flex w-full flex-col gap-4">
+			<LineChart.Root
+				data={trafficData}
+				xKey="time"
+				aria-label="Requests per minute"
+				activeIndex={activeIndex}
+				onActiveIndexChange={setActiveIndex}
+				className="aspect-[3/1]"
+			>
+				<LineChart.Grid />
+				<LineChart.XAxis />
+				<LineChart.YAxis />
+				<LineChart.Line dataKey="requests" label="Requests" />
+				<LineChart.Tooltip />
+			</LineChart.Root>
+			<LineChart.Root
+				data={trafficData}
+				xKey="time"
+				aria-label="Errors per minute"
+				activeIndex={activeIndex}
+				onActiveIndexChange={setActiveIndex}
+				className="aspect-[3/1]"
+			>
+				<LineChart.Grid />
+				<LineChart.XAxis />
+				<LineChart.YAxis />
+				<LineChart.Line dataKey="errors" label="Errors" color="var(--color-danger-600)" />
+				<LineChart.Tooltip />
+			</LineChart.Root>
+		</div>
+	);
+}
+```
+
+## Live data
+
+For streaming data, append points to the end of a sliding window and let the chart supply the motion. The x domain does not play a fixed-duration tween per append — it exponentially chases its target, so a new point arriving mid-glide just redirects the motion and back-to-back appends read as one continuous scroll, never ease-stop-jump ticks. As the window slides, tick labels fade in and out per label (gridlines share their labels' fade) instead of popping between tick sets. `prefers-reduced-motion` snaps everything: appends land instantly, with no glide and no fades.
+
+This demo appends one point every 150ms to a sliding 240-point window, dropping the oldest point each time. Both series derive from pure sine compositions over a tick counter and a fixed epoch — a slow drift plus faster waves — so the demo renders deterministically; a real chart would append measurements as they arrive.
+
+<Example>
+	<LiveLineExample />
+</Example>
+
+```tsx
+import { LineChart } from "@ngrok/mantle/line-chart";
+import { useEffect, useState } from "react";
+
+const liveStart = new Date("2026-07-18T12:00:00Z").getTime();
+
+const formatClock = new Intl.DateTimeFormat("en-US", {
+	hour: "2-digit",
+	minute: "2-digit",
+	second: "2-digit",
+	hour12: false,
+	timeZone: "UTC",
+});
+
+/** One deterministic point per tick: a slow drift plus faster waves per percentile. */
+function livePoint(tick: number) {
+	const drift = Math.sin(tick / 160);
+	const wave = Math.sin(tick / 14);
+	const ripple = Math.sin(tick / 5.3);
+	return {
+		time: new Date(liveStart + tick * 150),
+		p50: Math.round(120 + 12 * drift + 14 * wave + 5 * ripple),
+		p99: Math.round(470 + 45 * Math.sin(tick / 130 + 2) + 48 * wave + 20 * ripple),
+	};
+}
+
+function LiveLineExample() {
+	const [tick, setTick] = useState(0);
+
+	useEffect(() => {
+		const interval = setInterval(() => {
+			setTick((current) => current + 1);
+		}, 150);
+		return () => clearInterval(interval);
+	}, []);
+
+	// A sliding 240-point window: each tick appends one point and drops the oldest.
+	const data = Array.from({ length: 240 }, (_, index) => livePoint(tick + index));
+
+	return (
+		<LineChart.Root data={data} xKey="time" aria-label="Live request latency by percentile">
+			<LineChart.Grid />
+			<LineChart.XAxis
+				tickFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
+			/>
+			<LineChart.YAxis tickFormat={(value) => `${value}ms`} />
+			<LineChart.Line dataKey="p50" label="p50" />
+			<LineChart.Line dataKey="p99" label="p99" />
+			<LineChart.Tooltip
+				valueFormat={(value) => `${value}ms`}
+				labelFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
+			/>
+			<LineChart.Legend />
+		</LineChart.Root>
+	);
+}
+```
+
+## Copy as markdown
+
+Every chart already renders its data as real DOM: the screen-reader table twin carries exact machine-readable values — ISO timestamps in `<time dateTime>` and raw numbers in `data-value` — so an agent reading the page gets the series, not a picture of it. `LineChart.CopyButton` is the hand-off counterpart: one click copies the current rows to the clipboard as a GitHub-flavored markdown table, one x column plus one column per series in paint order. The output is machine-stable — ISO 8601 dates, plain un-separated numbers, an em dash for gaps — so it stays parseable wherever it lands: Slack, an issue, a spreadsheet, an LLM chat.
+
+The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner instead.
+
+<Example>
+	<CopyMarkdownExample />
+</Example>
+
+```tsx
+import { LineChart } from "@ngrok/mantle/line-chart";
+
+<LineChart.Root data={latencyData} xKey="time" aria-label="Request latency, copyable">
+	<LineChart.Grid />
+	<LineChart.XAxis />
+	<LineChart.YAxis tickFormat={(value) => `${value}ms`} />
+	<LineChart.Line dataKey="p50" label="p50" />
+	<LineChart.Line dataKey="p99" label="p99" />
+	<LineChart.Tooltip valueFormat={(value) => `${value}ms`} />
+	<LineChart.Legend />
+	<LineChart.CopyButton className="absolute right-0 top-0" />
+</LineChart.Root>;
+```
+
+## Composition
+
+Compose the parts of a `LineChart` together to build your own:
+
+```text showLineNumbers=false
+LineChart.Root
+├── LineChart.Grid
+├── LineChart.XAxis
+├── LineChart.YAxis
+├── LineChart.Line (one per series)
+├── LineChart.ReferenceLine
+├── LineChart.Tooltip
+├── LineChart.Legend
+└── LineChart.CopyButton
+```
+
+## Accessibility
+
+Every chart must have an accessible name: either a direct `aria-label` or an `aria-labelledby` reference to a visible title (preferred when the chart sits under a heading — no drift-prone duplicated text). This is enforced at the type level — omitting both is a compile error, not a runtime warning. The name lands on the focusable interaction overlay — the chart's single named element (the canvas itself is hidden from assistive technology so the chart is never announced twice).
+
+The chart is a single tab stop with a full keyboard point cursor:
+
+| Key                        | Behavior                                                                                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Tab`                      | Focus the chart — one tab stop regardless of point count.                                                                                                                 |
+| `ArrowLeft` / `ArrowRight` | Step to the previous/next data point. When decimated, arrows stride by one device-pixel column of data, so a 50,000-point chart stays traversable in ~plot-width presses. |
+| `PageUp` / `PageDown`      | Jump forward/backward by 10% of the data.                                                                                                                                 |
+| `Home` / `End`             | Jump to the first/last point.                                                                                                                                             |
+| `Enter` / `Space`          | Activate the current point — fires `onDatumActivate`.                                                                                                                     |
+| `Escape`                   | Dismiss the crosshair and tooltip.                                                                                                                                        |
+
+Keyboard stepping announces the active point — the x value and every series value — through a debounced polite `aria-live` region, so rapid arrowing never floods the screen-reader queue.
+
+Every chart also renders a screen-reader-only data table twin: one column for the x value and one per series, bounded to the first 150 rows with a caption stating the summarization (an unbounded table at 100,000 rows would be unusable to assistive tech anyway). Tooltips enhance, they never gate: every plotted value is reachable through the table or the keyboard point cursor.
+
+The twin doubles as the chart's machine-readable surface. Date row headers carry the exact ISO timestamp in a `<time dateTime>` attribute and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="line-chart-data-table"`.
+
+## API Reference
+
+`LineChart.Line`, `LineChart.Grid`, `LineChart.XAxis`, `LineChart.YAxis`, and `LineChart.ReferenceLine` are renderless: they register configuration with the `Root`, which paints everything on canvas. They accept no `className` and no DOM props. `LineChart.Tooltip`, `LineChart.Legend`, and `LineChart.CopyButton` are the parts that touch real DOM — the first two accept `div` props, `CopyButton` accepts `button` props.
+
+### LineChart.Root
+
+The root of a line chart: owns the data, the scales, the canvas renderer, and the entire interaction contract. Renders a `<div>` wrapper (defaulting to a 16:9 aspect ratio, overridable via `className`) containing the canvas, the focusable interaction overlay, the aria-live region, and the sr-only data table. Lines encode value by vertical position, not length from a baseline, so the full y domain is overridable via `yDomain` — and lines never stack, so there is no `stacked` prop.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop                   | Type                                   | Default            | Description                                                                                                                                                                                                        |
+| ---------------------- | -------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `data`                 | `readonly TDatum[]`                    |                    | Rows of data; each `LineChart.Line` reads one numeric key per row.                                                                                                                                                 |
+| `xKey`                 | `Extract<keyof TDatum, string>`        |                    | The key of each row's x value.                                                                                                                                                                                     |
+| `aria-label`           | `string`                               |                    | The chart's accessible name. Exactly one of `aria-label` or `aria-labelledby` is required — enforced at the type level.                                                                                            |
+| `aria-labelledby`      | `string`                               |                    | The id of a visible element that names the chart. Preferred over `aria-label` when the chart sits under a heading.                                                                                                 |
+| `xScale?`              | `"time"` \| `"linear"` \| `"point"`    | auto-detected      | Override the auto-detected x scale (`Date` values → `"time"`, numbers → `"linear"`, strings → `"point"`).                                                                                                          |
+| `yDomain?`             | `[number \| "auto", number \| "auto"]` | `["auto", "auto"]` | Override the automatic y domain at either end.                                                                                                                                                                     |
+| `animate?`             | `boolean`                              | `true`             | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                                                                                                            |
+| `pending?`             | `boolean`                              | `false`            | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                     |
+| `activeIndex?`         | `number \| null`                       |                    | Controlled active datum index (`null` = none). Omit for uncontrolled hover.                                                                                                                                        |
+| `onActiveIndexChange?` | `(index: number \| null) => void`      |                    | Notified when hover/keyboard moves the active index.                                                                                                                                                               |
+| `onDatumActivate?`     | `(event: ChartDatumEvent) => void`     |                    | Notified on datum activation: mark click, or Enter/Space on the focused chart. The event carries `index`, `xValue`, `datum`, and the `dataKey` of the series nearest the pointer (`null` for keyboard activation). |
+
+### LineChart.Line
+
+One line series. Renderless — it registers the series with the chart, which paints it on canvas. Compose one `Line` per series.
+
+| Prop            | Type                                                    | Default          | Description                                                                                                                                                             |
+| --------------- | ------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dataKey`       | `string`                                                |                  | The row key this series reads its numeric values from.                                                                                                                  |
+| `label?`        | `string`                                                | `dataKey`        | Display name for the legend, tooltip, and data table.                                                                                                                   |
+| `color?`        | `SeriesColor`                                           | next sticky slot | One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`) or any CSS color string as an escape hatch. See [Chart color tokens](#chart-color-tokens). |
+| `curve?`        | `"linear"` \| `"monotone"` \| `"step"`                  | `"linear"`       | Interpolation between points. `"monotone"` smooths without overshooting the data.                                                                                       |
+| `markers?`      | `boolean`                                               | `false`          | Draw point markers with a surface ring. Auto-hidden when points are denser than ~12px apart.                                                                            |
+| `connectNulls?` | `boolean`                                               | `false`          | Join across `null`/missing values instead of leaving gaps. Gaps are the default and usually correct.                                                                    |
+| `shape?`        | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` | `"circle"`       | The glyph the hover dot and canvas point markers wear — a redundant encoding alongside color that keeps series distinguishable without color vision.                    |
+
+### LineChart.Grid
+
+Hairline gridlines behind the lines. Renderless — painted on canvas. Omit the part to omit the grid.
+
+| Prop     | Type                                       | Default        | Description              |
+| -------- | ------------------------------------------ | -------------- | ------------------------ |
+| `lines?` | `"horizontal"` \| `"vertical"` \| `"both"` | `"horizontal"` | Which gridlines to draw. |
+
+### LineChart.XAxis
+
+Tick labels along the bottom of the plot. Renderless — painted on canvas. Labels that would collide are skipped, never rotated.
+
+| Prop          | Type                                          | Default         | Description                                                                                                                                                                                                                                          |
+| ------------- | --------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tickFormat?` | `(value: string \| number \| Date) => string` | scale-dependent | Format a tick label. Receives the row's x value — a `Date` on time scales, a number on linear scales, and the category value on point scales. Defaults to calendar-aware formatting on time scales and thousands-separated numbers on linear scales. |
+| `tickCount?`  | `number`                                      | density-derived | Target tick count (continuous scales only).                                                                                                                                                                                                          |
+
+### LineChart.YAxis
+
+Value tick labels along the left of the plot. Renderless — painted on canvas. Ticks land on clean thousands-separated numbers.
+
+| Prop          | Type                        | Default             | Description          |
+| ------------- | --------------------------- | ------------------- | -------------------- |
+| `tickFormat?` | `(value: number) => string` | thousands-separated | Format a tick label. |
+| `tickCount?`  | `number`                    | `5`                 | Target tick count.   |
+
+### LineChart.ReferenceLine
+
+A dashed horizontal marker at a y value — an SLO threshold, a budget, a limit. Renderless — painted on canvas.
+
+| Prop     | Type          | Default           | Description                                                              |
+| -------- | ------------- | ----------------- | ------------------------------------------------------------------------ |
+| `y`      | `number`      |                   | The y value the line marks.                                              |
+| `label?` | `string`      |                   | A short label painted above the line's right end.                        |
+| `color?` | `SeriesColor` | neutral reference | Line color. Defaults to the neutral reference color in the active theme. |
+
+### LineChart.Tooltip
+
+Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `LineChart.Root`'s interaction contract and renders whether or not this part is composed — compose it to format the label or values, append a footer, or replace the content entirely.
+
+The `footer` and `children` render props receive a `HoverSnapshot`: the active `index`, `xValue`, the original `datum`, `points` (every series' `dataKey`, `label`, `value`, and `color` at the active x, in visual order), and `viaKeyboard`. `labelFormat` receives the x value directly and `valueFormat` receives `(value, dataKey)` — not the snapshot.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded to the tooltip element the `Root` renders), plus:
+
+| Prop           | Type                                                    | Default  | Description                                                             |
+| -------------- | ------------------------------------------------------- | -------- | ----------------------------------------------------------------------- |
+| `labelFormat?` | `(value: string \| number \| Date) => ReactNode`        |          | Format the x/label row of the readout.                                  |
+| `valueFormat?` | `(value: number, dataKey: string) => ReactNode`         |          | Format each series value.                                               |
+| `indicator?`   | `"line"` \| `"none"`                                    | `"line"` | The per-series color key: a short stroke or nothing.                    |
+| `footer?`      | `ReactNode \| ((snapshot: HoverSnapshot) => ReactNode)` |          | Extra content appended below the series rows (e.g. a "view logs" hint). |
+| `children?`    | `(snapshot: HoverSnapshot) => ReactNode`                |          | Replace the entire readout.                                             |
+
+### LineChart.Legend
+
+The legend: series names keyed by swatches carrying each series' color and glyph, rendered as real DOM in flow below the plot. Always compose it on multi-series charts — identity must never rely on color-matching alone. It renders nothing for a single series (the chart's title already names it).
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop        | Type                                  | Default | Description                                                                                                                   |
+| ----------- | ------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `children?` | `(series: SeriesMeta[]) => ReactNode` |         | Replace the default legend items. Receives the registered series with their `dataKey`, `label`, `mark`, and resolved `color`. |
+
+### LineChart.CopyButton
+
+A button that copies the chart's current data to the clipboard as a GitHub-flavored markdown table: one x column plus one column per series in paint order. Values are machine-stable — ISO 8601 dates, plain un-separated numbers, an em dash for gaps — so the paste target receives parseable data, not locale formatting. Renders an icon button in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner (e.g. `absolute right-0 top-0`).
+
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
+
+| Prop           | Type                       | Default                   | Description                                                                    |
+| -------------- | -------------------------- | ------------------------- | ------------------------------------------------------------------------------ |
+| `label?`       | `string`                   | `"Copy data as Markdown"` | The accessible label, visually hidden but announced to screen readers.         |
+| `onCopy?`      | `(value: string) => void`  |                           | Callback fired after a successful copy, passes the serialized markdown.        |
+| `onCopyError?` | `(error: unknown) => void` |                           | Callback fired when an error occurs during copying.                            |
+| `asChild?`     | `boolean`                  | `false`                   | Compose the copy behavior onto your own element instead of the default button. |
+
+### Chart color tokens
+
+Series without an explicit `color` claim the next slot in the ordered `--color-chart-1`…`--color-chart-8` tokens. Each theme's palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the card surface in all four themes (light, dark, and both high-contrast variants), and the semantic ramps are deliberately excluded so a series never impersonates a status color. Slots are sticky per `dataKey`: a series keeps its color for the chart's lifetime, even as other series are filtered in and out. Series beyond the eighth all wear `--color-chart-other` — fold the long tail into a single "Other" series rather than plotting nine distinguishable colors, which do not exist.
+
+| CSS Variable          | Description                                                                                                     |
+| --------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `--color-chart-1`     | The first categorical series slot (blue).                                                                       |
+| `--color-chart-2`     | The second categorical series slot (green).                                                                     |
+| `--color-chart-3`     | The third categorical series slot (pink).                                                                       |
+| `--color-chart-4`     | The fourth categorical series slot (red).                                                                       |
+| `--color-chart-5`     | The fifth categorical series slot (teal).                                                                       |
+| `--color-chart-6`     | The sixth categorical series slot (orange).                                                                     |
+| `--color-chart-7`     | The seventh categorical series slot (violet).                                                                   |
+| `--color-chart-8`     | The eighth categorical series slot (yellow).                                                                    |
+| `--color-chart-other` | The fold slot for series beyond the eighth (neutral gray). Collapse the long tail into a single "Other" series. |
+
+The `color` escape hatch accepts any CSS color string, but static colors (a raw hex) do not adapt across themes — prefer a `var(...)` reference to a theme-aware token, and validate custom palettes for colorblind-safe adjacency and surface contrast just like the defaults. A series that carries good/bad meaning — an error rate, a pass/fail split — should wear the semantic status colors (e.g. `var(--color-danger-600)`), never a categorical slot.

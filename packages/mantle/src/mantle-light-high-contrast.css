@@ -283,6 +283,21 @@ MARK: LIGHT HICON DEFS
 	--color-selected-menu-item: var(--color-accent-50);
 	--color-active-selected-menu-item: var(--color-accent-100);
 
+	/* Chart series tokens — light-high-contrast picks validated against the white
+	   card surface: all gates pass (worst adjacent CVD ΔE 11.6, normal-vision
+	   floor 18.3, all slots ≥ 3.65:1). Pink and teal use the 300 step here (the
+	   only steps clearing the chroma floor and adjacency gates in this theme's
+	   compressed ramps); every other slot matches the base light picks. */
+	--color-chart-1: var(--color-blue-500);
+	--color-chart-2: var(--color-green-700);
+	--color-chart-3: var(--color-pink-300);
+	--color-chart-4: var(--color-red-600);
+	--color-chart-5: var(--color-teal-300);
+	--color-chart-6: var(--color-orange-600);
+	--color-chart-7: var(--color-violet-500);
+	--color-chart-8: var(--color-yellow-700);
+	--color-chart-other: var(--color-neutral-500);
+
 	--text-color-strong: var(--color-black);
 	--text-color-body: var(--color-neutral-950);
 	--text-color-muted: --alpha(var(--color-black) / 0.75);

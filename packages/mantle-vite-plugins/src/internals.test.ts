@@ -303,6 +303,76 @@ describe("writeSourcesToCssFile", () => {
 		).not.toThrow();
 	});
 
+	it("emits an internal shared-chunk glob (without an entry stub) for chart components", () => {
+		writeFile("global.css", `@import "tailwindcss";\n`);
+		const cssFile = path.join(tmpDir, "global.css");
+		const distDir = path.join(tmpDir, "dist");
+		writeSourcesToCssFile(cssFile, new Set(["bar-chart"]), distDir);
+
+		const content = readFile("global.css");
+		expect(content).toContain(`@source "./dist/bar-chart.js";`);
+		expect(content).toContain(`@source "./dist/bar-chart-*.js";`);
+		// The shared canvas engine chunk (chart-<hash>.js) must be scanned too.
+		expect(content).toContain(`@source "./dist/chart-*.js";`);
+		// "chart" is not a public subpath — there is no chart.js entry stub.
+		expect(content).not.toContain(`@source "./dist/chart.js";`);
+		// The engine's CopyButton renders an IconButton whose classes live in the
+		// published button chunk — scan it, but as a transitive dependency (glob
+		// only, no button.js entry, since the app never imported button directly).
+		expect(content).toContain(`@source "./dist/button-*.js";`);
+		expect(content).not.toContain(`@source "./dist/button.js";`);
+	});
+
+	it("does not double-emit the button chunk when a chart and button are both imported", () => {
+		writeFile("global.css", `@import "tailwindcss";\n`);
+		const cssFile = path.join(tmpDir, "global.css");
+		const distDir = path.join(tmpDir, "dist");
+		writeSourcesToCssFile(cssFile, new Set(["bar-chart", "button"]), distDir);
+
+		const content = readFile("global.css");
+		// button is a direct import here, so it gets the full component treatment
+		// (entry stub + glob), and the chart's transitive reference must not add a
+		// second glob.
+		expect(content).toContain(`@source "./dist/button.js";`);
+		const buttonGlobCount = (content.match(/"\.\/dist\/button-\*\.js"/g) ?? []).length;
+		expect(buttonGlobCount).toBe(1);
+	});
+
+	it("deduplicates the internal chunk glob across sibling chart components", () => {
+		writeFile("global.css", `@import "tailwindcss";\n`);
+		const cssFile = path.join(tmpDir, "global.css");
+		const distDir = path.join(tmpDir, "dist");
+		writeSourcesToCssFile(
+			cssFile,
+			new Set(["area-chart", "bar-chart", "line-chart", "scatter-plot"]),
+			distDir,
+		);
+
+		const content = readFile("global.css");
+		const chartGlobCount = (content.match(/"\.\/dist\/chart-\*\.js"/g) ?? []).length;
+		expect(chartGlobCount).toBe(1);
+	});
+
+	it("emits the list chunk glob for selectable-list without duplicating it when list is also present", () => {
+		writeFile("global.css", `@import "tailwindcss";\n`);
+		const cssFile = path.join(tmpDir, "global.css");
+		const distDir = path.join(tmpDir, "dist");
+
+		// selectable-list alone: glob only, no list.js entry stub.
+		writeSourcesToCssFile(cssFile, new Set(["selectable-list"]), distDir);
+		let content = readFile("global.css");
+		expect(content).toContain(`@source "./dist/list-*.js";`);
+		expect(content).not.toContain(`@source "./dist/list.js";`);
+
+		// list + selectable-list: the list component already emits list-*.js —
+		// exactly one glob line, plus the list.js entry stub.
+		writeSourcesToCssFile(cssFile, new Set(["list", "selectable-list"]), distDir);
+		content = readFile("global.css");
+		expect(content).toContain(`@source "./dist/list.js";`);
+		const listGlobCount = (content.match(/"\.\/dist\/list-\*\.js"/g) ?? []).length;
+		expect(listGlobCount).toBe(1);
+	});
+
 	it("does not produce prefix collisions between similar component names", () => {
 		// "alert" must not match "alert-dialog"; "code" must not match "code-block".
 		// Each component gets its own exact `.js` and chunk `-*.js` pair.
@@ -364,6 +434,18 @@ describe("parseComponentsFromCssFile", () => {
 		writeSourcesToCssFile(cssFile, new Set(["button"]), distDir);
 		writeSourcesToCssFile(cssFile, new Set(), distDir); // remove block
 		expect(parseComponentsFromCssFile(cssFile)).toEqual(new Set());
+	});
+
+	it("does not read internal shared-chunk globs back as components", () => {
+		writeFile("global.css", `@import "tailwindcss";\n`);
+		const cssFile = path.join(tmpDir, "global.css");
+		const distDir = path.join(tmpDir, "dist");
+		const components = new Set(["bar-chart", "selectable-list"]);
+
+		writeSourcesToCssFile(cssFile, components, distDir);
+		// The emitted chart-*.js / list-*.js globs must not round-trip as
+		// "chart" / "list" — those are not importable subpaths.
+		expect(parseComponentsFromCssFile(cssFile)).toEqual(components);
 	});
 
 	it("does not conflate prefix-sharing component names (alert vs alert-dialog)", () => {

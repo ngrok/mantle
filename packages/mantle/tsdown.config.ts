@@ -12,8 +12,11 @@ const DOCS_ORIGIN = "https://mantle.ngrok.com";
 
 /**
  * A set of package names that should not be published to npm.
+ * `chart` is the internal shared engine behind
+ * bar-chart/line-chart/area-chart/scatter-plot (the dialog/list `primitive`
+ * pattern, one directory up) — bundled into its consumers, never a subpath.
  */
-const doNotPublish = new Set<string>(["portal"]);
+const doNotPublish = new Set<string>(["portal", "chart"]);
 
 /**
  * A set of package names that shouldn't be released yet
@@ -53,6 +56,42 @@ const utilPackages = allUtils
 		acc[name] = utilPath(name);
 		return acc;
 	}, {});
+
+/** Extracts the owning component directory from a module id. */
+const COMPONENT_DIR_RE = /[\\/]src[\\/]components[\\/]([^\\/]+)[\\/]/;
+
+/**
+ * Returns the single component directory that owns every component module in
+ * a code-split chunk, or `null` when the chunk contains no component modules
+ * or mixes modules from multiple component directories.
+ *
+ * Why: `mantleTwSourcePlugin` (in `@ngrok/mantle-vite-plugins`) tells
+ * Tailwind which dist files to scan via per-component `@source "<name>-*.js"`
+ * globs. Rolldown's default chunk naming picks an arbitrary module inside the
+ * chunk — the shared chart engine became `primitive-<hash>.js` and the list
+ * family's shared primitive became `virtual-<hash>.js` — names no
+ * per-component glob matches, so the Tailwind classes inside were never
+ * scanned and consumers got unstyled components. Naming shared chunks after
+ * their owning component directory keeps every class inside a glob-matchable
+ * file (chart's engine chunk becomes `chart-<hash>.js`, like dialog's
+ * `dialog-<hash>.js`).
+ */
+function owningComponentDir(moduleIds: readonly string[]): string | null {
+	let owner: string | null = null;
+	for (const moduleId of moduleIds) {
+		const match = COMPONENT_DIR_RE.exec(moduleId);
+		if (!match) {
+			continue;
+		}
+		const dir = match[1] ?? null;
+		if (owner == null) {
+			owner = dir;
+		} else if (owner !== dir) {
+			return null;
+		}
+	}
+	return owner;
+}
 
 /**
  * Sorted list of importable `@ngrok/mantle/*` specifiers, derived from
@@ -150,6 +189,16 @@ export default defineConfig((options) => [
 		tsconfig: "tsconfig.build.json",
 		fixedExtension: false,
 		format: "esm",
+		outputOptions: {
+			// Name shared chunks after their owning component directory so the
+			// tw-source plugin's `@source "<name>-*.js"` globs match them (see
+			// owningComponentDir). Chunks without a single owning component keep
+			// rolldown's default `[name]-[hash].js` naming.
+			chunkFileNames: (chunk) => {
+				const owner = owningComponentDir(chunk.moduleIds);
+				return owner != null ? `${owner}-[hash].js` : "[name]-[hash].js";
+			},
+		},
 		entry: {
 			...componentPackages,
 			...utilPackages,

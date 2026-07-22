@@ -313,6 +313,19 @@ MARK: DARK DEFS
 	--color-card-border-muted: var(--color-neutral-200);
 	--color-separator: --alpha(var(--color-gray-600) / 0.2);
 
+	/* Chart series tokens — dark picks validated against the dark card surface
+	   (neutral-100). Dark ramps mirror light (step N = light step 1000−N), so each
+	   slot resolves to the same color as its light twin while staying on-token. */
+	--color-chart-1: var(--color-blue-500);
+	--color-chart-2: var(--color-green-300);
+	--color-chart-3: var(--color-pink-500);
+	--color-chart-4: var(--color-red-400);
+	--color-chart-5: var(--color-teal-400);
+	--color-chart-6: var(--color-orange-400);
+	--color-chart-7: var(--color-violet-500);
+	--color-chart-8: var(--color-yellow-300);
+	--color-chart-other: var(--color-neutral-500);
+
 	--text-color-strong: #fff;
 	--text-color-body: --alpha(#fff / 0.7);
 	--text-color-muted: --alpha(#fff / 0.5);

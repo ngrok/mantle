@@ -16,6 +16,7 @@ type Route = Parameters<typeof href>[0];
  */
 export const componentCategories = [
 	"Actions",
+	"Charts",
 	"Data Display",
 	"Feedback",
 	"Forms",
@@ -31,6 +32,7 @@ export type ComponentCategory = (typeof componentCategories)[number];
 /** URL segment for each component category. */
 export const componentCategorySlugs = {
 	Actions: "actions",
+	Charts: "charts",
 	"Data Display": "data-display",
 	Feedback: "feedback",
 	Forms: "forms",
@@ -48,6 +50,7 @@ export const componentCategorySlugs = {
  */
 export const componentsByCategory = {
 	Actions: ["Button", "Icon Button", "Split Button"],
+	Charts: ["Area Chart", "Bar Chart", "Line Chart", "Scatter Plot"],
 	"Data Display": [
 		"Accordion",
 		"Badge",
@@ -126,7 +129,9 @@ export const prodReadyComponentRouteLookup = {
 	Alert: "/components/feedback/alert",
 	"Alert Dialog": "/components/overlays/alert-dialog",
 	Anchor: "/components/navigation/anchor",
+	"Area Chart": "/components/charts/area-chart",
 	Badge: "/components/data-display/badge",
+	"Bar Chart": "/components/charts/bar-chart",
 	Breadcrumb: "/components/navigation/breadcrumb",
 	"Browser Only": "/components/primitives/browser-only",
 	Button: "/components/actions/button",
@@ -151,6 +156,7 @@ export const prodReadyComponentRouteLookup = {
 	Input: "/components/forms/input",
 	Kbd: "/components/data-display/kbd",
 	Label: "/components/forms/label",
+	"Line Chart": "/components/charts/line-chart",
 	List: "/components/data-display/list",
 	Main: "/components/primitives/main",
 	"Media Object": "/components/structure/media-object",
@@ -164,6 +170,7 @@ export const prodReadyComponentRouteLookup = {
 	"QR Code": "/components/data-display/qr-code",
 	"Radio Group": "/components/forms/radio-group",
 	SandboxedOnClick: "/components/primitives/sandboxed-on-click",
+	"Scatter Plot": "/components/charts/scatter-plot",
 	Select: "/components/forms/select",
 	"Selectable List": "/components/data-display/selectable-list",
 	Separator: "/components/structure/separator",

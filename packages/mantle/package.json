@@ -70,10 +70,20 @@
 			"types": "./dist/anchor.d.ts",
 			"import": "./dist/anchor.js"
 		},
+		"./area-chart": {
+			"@ngrok/src-live-types": "./src/components/area-chart/index.ts",
+			"types": "./dist/area-chart.d.ts",
+			"import": "./dist/area-chart.js"
+		},
 		"./badge": {
 			"@ngrok/src-live-types": "./src/components/badge/index.ts",
 			"types": "./dist/badge.d.ts",
 			"import": "./dist/badge.js"
+		},
+		"./bar-chart": {
+			"@ngrok/src-live-types": "./src/components/bar-chart/index.ts",
+			"types": "./dist/bar-chart.d.ts",
+			"import": "./dist/bar-chart.js"
 		},
 		"./breadcrumb": {
 			"@ngrok/src-live-types": "./src/components/breadcrumb/index.ts",
@@ -220,6 +230,11 @@
 			"types": "./dist/label.d.ts",
 			"import": "./dist/label.js"
 		},
+		"./line-chart": {
+			"@ngrok/src-live-types": "./src/components/line-chart/index.ts",
+			"types": "./dist/line-chart.d.ts",
+			"import": "./dist/line-chart.js"
+		},
 		"./list": {
 			"@ngrok/src-live-types": "./src/components/list/index.ts",
 			"types": "./dist/list.d.ts",
@@ -274,6 +289,11 @@
 			"@ngrok/src-live-types": "./src/components/sandboxed-on-click/index.ts",
 			"types": "./dist/sandboxed-on-click.d.ts",
 			"import": "./dist/sandboxed-on-click.js"
+		},
+		"./scatter-plot": {
+			"@ngrok/src-live-types": "./src/components/scatter-plot/index.ts",
+			"types": "./dist/scatter-plot.d.ts",
+			"import": "./dist/scatter-plot.js"
 		},
 		"./select": {
 			"@ngrok/src-live-types": "./src/components/select/index.ts",
@@ -382,8 +402,8 @@
 		"prebuild": "pnpm run clean",
 		"prepack": "node ../../scripts/clean-publish-manifest.js clean",
 		"postpack": "node ../../scripts/clean-publish-manifest.js restore",
-		"test:watch": "TZ=UTC vitest watch",
-		"test": "TZ=UTC vitest run",
+		"test:watch": "TZ=UTC LC_ALL=en_US.UTF-8 vitest watch",
+		"test": "TZ=UTC LC_ALL=en_US.UTF-8 vitest run",
 		"typecheck": "tsc"
 	},
 	"dependencies": {
@@ -404,6 +424,8 @@
 		"@tanstack/react-virtual": "3.14.6",
 		"class-variance-authority": "0.7.1",
 		"cmdk": "1.1.1",
+		"d3-scale": "4.0.2",
+		"d3-shape": "3.2.0",
 		"input-otp": "1.4.2",
 		"react-day-picker": "10.0.1",
 		"sonner": "2.0.7",
@@ -419,6 +441,8 @@
 		"@testing-library/react": "16.3.2",
 		"@testing-library/user-event": "14.6.1",
 		"@tsdown/css": "catalog:",
+		"@types/d3-scale": "4.0.9",
+		"@types/d3-shape": "3.1.8",
 		"@types/react": "19.2.17",
 		"@types/react-dom": "19.2.3",
 		"@vitest/browser-playwright": "catalog:",

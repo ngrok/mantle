@@ -284,6 +284,23 @@ MARK: DARK HICON DEFS
 	--color-selected-menu-item: var(--color-accent-50);
 	--color-active-selected-menu-item: var(--color-accent-100);
 
+	/* Chart series tokens — dark-high-contrast picks validated against the card
+	   surface (#121212): CVD adjacency (worst ΔE 9.6), normal-vision floor
+	   (15.1), chroma, and contrast (6.76:1–12.23:1, zero warns) all pass. The
+	   standard dark lightness band (L ≤ 0.67) is unsatisfiable by construction
+	   in this theme — its ramps are bimodal around the band, and every in-band
+	   step fails 3:1 contrast — so these deliberately brighter marks are the
+	   correct high-contrast trade-off. */
+	--color-chart-1: var(--color-blue-300);
+	--color-chart-2: var(--color-green-300);
+	--color-chart-3: var(--color-pink-600);
+	--color-chart-4: var(--color-red-300);
+	--color-chart-5: var(--color-teal-300);
+	--color-chart-6: var(--color-orange-300);
+	--color-chart-7: var(--color-violet-300);
+	--color-chart-8: var(--color-yellow-300);
+	--color-chart-other: var(--color-neutral-500);
+
 	--text-color-strong: var(--color-black);
 	--text-color-body: var(--color-neutral-950);
 	--text-color-muted: --alpha(var(--color-black) / 0.75);

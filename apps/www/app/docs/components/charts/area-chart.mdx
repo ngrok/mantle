@@ -1,0 +1,878 @@
+---
+title: Area Chart
+description: A canvas-rendered area chart for showing how values — and, when stacked, a total and its parts — change over a continuous x axis.
+---
+
+import { AreaChart } from "@ngrok/mantle/area-chart";
+import { useEffect, useState } from "react";
+import { Example } from "~/components/example";
+
+export const trafficData = [
+	{ date: new Date("2026-07-01"), http: 4200, tcp: 1400, tls: 860 },
+	{ date: new Date("2026-07-02"), http: 4600, tcp: 1350, tls: 900 },
+	{ date: new Date("2026-07-03"), http: 5100, tcp: 1500, tls: 940 },
+	{ date: new Date("2026-07-04"), http: 3800, tcp: 1250, tls: 780 },
+	{ date: new Date("2026-07-05"), http: 3500, tcp: 1200, tls: 750 },
+	{ date: new Date("2026-07-06"), http: 4900, tcp: 1550, tls: 980 },
+	{ date: new Date("2026-07-07"), http: 5400, tcp: 1600, tls: 1050 },
+	{ date: new Date("2026-07-08"), http: 5800, tcp: 1700, tls: 1100 },
+	{ date: new Date("2026-07-09"), http: 5200, tcp: 1650, tls: 1020 },
+	{ date: new Date("2026-07-10"), http: 6100, tcp: 1800, tls: 1150 },
+	{ date: new Date("2026-07-11"), http: 4400, tcp: 1450, tls: 880 },
+	{ date: new Date("2026-07-12"), http: 4100, tcp: 1400, tls: 840 },
+	{ date: new Date("2026-07-13"), http: 5600, tcp: 1750, tls: 1080 },
+	{ date: new Date("2026-07-14"), http: 6300, tcp: 1900, tls: 1200 },
+];
+
+export function StackedAreaExample() {
+	return (
+		<AreaChart.Root
+			data={trafficData}
+			xKey="date"
+			stacked
+			aria-label="Connections by protocol"
+			className="max-w-2xl"
+		>
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
+			<AreaChart.Area dataKey="http" label="HTTP" />
+			<AreaChart.Area dataKey="tcp" label="TCP" />
+			<AreaChart.Area dataKey="tls" label="TLS" />
+			<AreaChart.Tooltip />
+			<AreaChart.Legend />
+		</AreaChart.Root>
+	);
+}
+
+export const regionData = [
+	{ date: new Date("2026-07-01"), usEast: 2400, euWest: 1900 },
+	{ date: new Date("2026-07-02"), usEast: 2600, euWest: 2100 },
+	{ date: new Date("2026-07-03"), usEast: 2500, euWest: 2350 },
+	{ date: new Date("2026-07-04"), usEast: 2100, euWest: 2500 },
+	{ date: new Date("2026-07-05"), usEast: 1950, euWest: 2650 },
+	{ date: new Date("2026-07-06"), usEast: 2300, euWest: 2600 },
+	{ date: new Date("2026-07-07"), usEast: 2700, euWest: 2450 },
+	{ date: new Date("2026-07-08"), usEast: 2900, euWest: 2300 },
+	{ date: new Date("2026-07-09"), usEast: 2800, euWest: 2500 },
+	{ date: new Date("2026-07-10"), usEast: 3000, euWest: 2700 },
+	{ date: new Date("2026-07-11"), usEast: 2600, euWest: 2850 },
+	{ date: new Date("2026-07-12"), usEast: 2450, euWest: 2900 },
+	{ date: new Date("2026-07-13"), usEast: 2750, euWest: 2700 },
+	{ date: new Date("2026-07-14"), usEast: 3100, euWest: 2550 },
+];
+
+export function OverlappingAreasExample() {
+	return (
+		<AreaChart.Root
+			data={regionData}
+			xKey="date"
+			aria-label="Requests by region"
+			className="max-w-2xl"
+		>
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="usEast" label="US East" />
+			<AreaChart.Area dataKey="euWest" label="EU West" shape="diamond" />
+			<AreaChart.Tooltip />
+			<AreaChart.Legend />
+		</AreaChart.Root>
+	);
+}
+
+export const shapedRegionData = [
+	{ date: new Date("2026-07-01"), usEast: 2400, euWest: 1900, apSouth: 1150 },
+	{ date: new Date("2026-07-02"), usEast: 2600, euWest: 2100, apSouth: 1300 },
+	{ date: new Date("2026-07-03"), usEast: 2500, euWest: 2350, apSouth: 1250 },
+	{ date: new Date("2026-07-04"), usEast: 2100, euWest: 2500, apSouth: 1400 },
+	{ date: new Date("2026-07-05"), usEast: 1950, euWest: 2650, apSouth: 1500 },
+	{ date: new Date("2026-07-06"), usEast: 2300, euWest: 2600, apSouth: 1450 },
+	{ date: new Date("2026-07-07"), usEast: 2700, euWest: 2450, apSouth: 1350 },
+	{ date: new Date("2026-07-08"), usEast: 2900, euWest: 2300, apSouth: 1500 },
+	{ date: new Date("2026-07-09"), usEast: 2800, euWest: 2500, apSouth: 1600 },
+	{ date: new Date("2026-07-10"), usEast: 3000, euWest: 2700, apSouth: 1550 },
+	{ date: new Date("2026-07-11"), usEast: 2600, euWest: 2850, apSouth: 1650 },
+	{ date: new Date("2026-07-12"), usEast: 2450, euWest: 2900, apSouth: 1600 },
+	{ date: new Date("2026-07-13"), usEast: 2750, euWest: 2700, apSouth: 1500 },
+	{ date: new Date("2026-07-14"), usEast: 3100, euWest: 2550, apSouth: 1700 },
+];
+
+export function ShapesExample() {
+	const [activeIndex, setActiveIndex] = useState(9);
+	return (
+		<AreaChart.Root
+			data={shapedRegionData}
+			xKey="date"
+			stacked
+			activeIndex={activeIndex}
+			onActiveIndexChange={(index) => setActiveIndex(index ?? 9)}
+			aria-label="Requests by region, shape-coded"
+			className="max-w-2xl"
+		>
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="usEast" label="US East" />
+			<AreaChart.Area dataKey="euWest" label="EU West" shape="diamond" />
+			<AreaChart.Area dataKey="apSouth" label="AP South" shape="triangle" />
+			<AreaChart.Tooltip />
+			<AreaChart.Legend />
+		</AreaChart.Root>
+	);
+}
+
+export function CopyMarkdownExample() {
+	return (
+		<AreaChart.Root
+			data={trafficData}
+			xKey="date"
+			stacked
+			aria-label="Traffic by protocol, copyable"
+		>
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="http" label="HTTP" />
+			<AreaChart.Area dataKey="tcp" label="TCP" />
+			<AreaChart.Area dataKey="tls" label="TLS" />
+			<AreaChart.Tooltip />
+			<AreaChart.Legend />
+			<AreaChart.CopyButton className="absolute right-0 top-0" />
+		</AreaChart.Root>
+	);
+}
+
+export const sessionData = [
+	{ date: new Date("2026-07-08"), sessions: 320 },
+	{ date: new Date("2026-07-09"), sessions: 180 },
+	{ date: new Date("2026-07-10"), sessions: 540 },
+	{ date: new Date("2026-07-11"), sessions: 260 },
+	{ date: new Date("2026-07-12"), sessions: 210 },
+	{ date: new Date("2026-07-13"), sessions: 480 },
+	{ date: new Date("2026-07-14"), sessions: 380 },
+];
+
+export function CurveExample() {
+	return (
+		<div className="grid w-full gap-6 sm:grid-cols-2">
+			<div className="flex flex-col gap-2">
+				<p id="area-curve-linear" className="text-muted font-mono text-xs">
+					curve="linear" (default)
+				</p>
+				<AreaChart.Root data={sessionData} xKey="date" aria-labelledby="area-curve-linear">
+					<AreaChart.Grid />
+					<AreaChart.XAxis />
+					<AreaChart.YAxis />
+					<AreaChart.Area dataKey="sessions" label="Sessions" />
+					<AreaChart.Tooltip />
+				</AreaChart.Root>
+			</div>
+			<div className="flex flex-col gap-2">
+				<p id="area-curve-monotone" className="text-muted font-mono text-xs">
+					curve="monotone"
+				</p>
+				<AreaChart.Root data={sessionData} xKey="date" aria-labelledby="area-curve-monotone">
+					<AreaChart.Grid />
+					<AreaChart.XAxis />
+					<AreaChart.YAxis />
+					<AreaChart.Area dataKey="sessions" label="Sessions" curve="monotone" />
+					<AreaChart.Tooltip />
+				</AreaChart.Root>
+			</div>
+		</div>
+	);
+}
+
+export const outageData = [
+	{ date: new Date("2026-07-05"), requests: 1200 },
+	{ date: new Date("2026-07-06"), requests: 1350 },
+	{ date: new Date("2026-07-07"), requests: 1500 },
+	{ date: new Date("2026-07-08"), requests: null },
+	{ date: new Date("2026-07-09"), requests: null },
+	{ date: new Date("2026-07-10"), requests: 1420 },
+	{ date: new Date("2026-07-11"), requests: 1600 },
+	{ date: new Date("2026-07-12"), requests: 1680 },
+	{ date: new Date("2026-07-13"), requests: 1540 },
+	{ date: new Date("2026-07-14"), requests: 1750 },
+];
+
+export function GapsExample() {
+	return (
+		<div className="grid w-full gap-6 sm:grid-cols-2">
+			<div className="flex flex-col gap-2">
+				<p id="area-gaps-default" className="text-muted font-mono text-xs">
+					gaps (default)
+				</p>
+				<AreaChart.Root data={outageData} xKey="date" aria-labelledby="area-gaps-default">
+					<AreaChart.Grid />
+					<AreaChart.XAxis />
+					<AreaChart.YAxis />
+					<AreaChart.Area dataKey="requests" label="Requests" />
+					<AreaChart.Tooltip />
+				</AreaChart.Root>
+			</div>
+			<div className="flex flex-col gap-2">
+				<p id="area-gaps-connect" className="text-muted font-mono text-xs">
+					connectNulls
+				</p>
+				<AreaChart.Root data={outageData} xKey="date" aria-labelledby="area-gaps-connect">
+					<AreaChart.Grid />
+					<AreaChart.XAxis />
+					<AreaChart.YAxis />
+					<AreaChart.Area dataKey="requests" label="Requests" connectNulls />
+					<AreaChart.Tooltip />
+				</AreaChart.Root>
+			</div>
+		</div>
+	);
+}
+
+export function ReferenceLineExample() {
+	return (
+		<AreaChart.Root
+			data={trafficData}
+			xKey="date"
+			stacked
+			aria-label="Connections by protocol against provisioned capacity"
+			className="max-w-2xl"
+		>
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
+			<AreaChart.Area dataKey="http" label="HTTP" />
+			<AreaChart.Area dataKey="tcp" label="TCP" />
+			<AreaChart.Area dataKey="tls" label="TLS" />
+			<AreaChart.ReferenceLine y={9000} label="Capacity" />
+			<AreaChart.Tooltip />
+			<AreaChart.Legend />
+		</AreaChart.Root>
+	);
+}
+
+export const streamEpoch = new Date("2026-07-14T12:00:00Z").getTime();
+
+export const formatClock = new Intl.DateTimeFormat("en-US", {
+	hour: "2-digit",
+	minute: "2-digit",
+	second: "2-digit",
+	hour12: false,
+	timeZone: "UTC",
+});
+
+export function streamPoint(tick) {
+	const drift = 400 * Math.sin(tick / 240);
+	const swell = 600 * Math.sin(tick / 9);
+	const chop = 180 * Math.sin(tick / 2.2);
+	return {
+		time: new Date(streamEpoch + tick * 200),
+		throughput: Math.round(2400 + drift + swell + chop),
+	};
+}
+
+export function LiveAreaExample() {
+	const [tick, setTick] = useState(0);
+	useEffect(() => {
+		const interval = setInterval(() => {
+			setTick((current) => current + 1);
+		}, 200);
+		return () => clearInterval(interval);
+	}, []);
+	const data = Array.from({ length: 60 }, (_, index) => streamPoint(tick + index));
+	return (
+		<AreaChart.Root
+			data={data}
+			xKey="time"
+			aria-label="Live tunnel throughput"
+			className="max-w-2xl"
+		>
+			<AreaChart.Grid />
+			<AreaChart.XAxis
+				tickFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
+			/>
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="throughput" label="Throughput" curve="monotone" />
+			<AreaChart.Tooltip
+				labelFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
+			/>
+		</AreaChart.Root>
+	);
+}
+
+# Area Chart
+
+A canvas-rendered area chart for showing how values — and, when stacked, a total and its parts — change over a continuous x axis. Each area fills with a 10% wash of its series color plus a 2px stroke on the band edge, rising from a shared zero baseline. Interaction ships with the Root unconditionally: a crosshair with an every-series tooltip, keyboard stepping with polite announcements, an sr-only data table, and click / <kbd>Enter</kbd> / <kbd>Space</kbd> activation. Large datasets decimate before painting.
+
+## When to use
+
+Reach for an `AreaChart` when the magnitude of a value over time is the story — the fill gives the value physical weight. Add `stacked` and it becomes a part-to-whole chart over time: the top edge of the stack is the total, and each band shows how much of it a series contributes.
+
+- The fill is a deliberate 10% wash with a 2px band-edge stroke, so an area chart reads as a line chart with weight — never a saturated block that hides the grid and its siblings.
+- Areas always fill from a zero baseline: the y-domain minimum is fixed at `0` at the type level (`yDomain?: [0, number | "auto"]`), so a truncated-baseline area chart is unrepresentable.
+- Prefer [`LineChart`](/components/charts/line-chart) when composition doesn't matter and you are comparing the shapes of trajectories.
+- Prefer [`BarChart`](/components/charts/bar-chart) when the x axis is categorical and the comparison is between discrete things, not over time.
+
+Compose `AreaChart.Root` with the chrome parts (`Grid`, `XAxis`, `YAxis`) and one `AreaChart.Area` per series. A stacked chart of connections by protocol over two weeks:
+
+<Example>
+	<StackedAreaExample />
+</Example>
+
+```tsx
+import { AreaChart } from "@ngrok/mantle/area-chart";
+
+const trafficData = [
+	{ date: new Date("2026-07-01"), http: 4200, tcp: 1400, tls: 860 },
+	{ date: new Date("2026-07-02"), http: 4600, tcp: 1350, tls: 900 },
+	{ date: new Date("2026-07-03"), http: 5100, tcp: 1500, tls: 940 },
+	{ date: new Date("2026-07-04"), http: 3800, tcp: 1250, tls: 780 },
+	{ date: new Date("2026-07-05"), http: 3500, tcp: 1200, tls: 750 },
+	{ date: new Date("2026-07-06"), http: 4900, tcp: 1550, tls: 980 },
+	{ date: new Date("2026-07-07"), http: 5400, tcp: 1600, tls: 1050 },
+	{ date: new Date("2026-07-08"), http: 5800, tcp: 1700, tls: 1100 },
+	{ date: new Date("2026-07-09"), http: 5200, tcp: 1650, tls: 1020 },
+	{ date: new Date("2026-07-10"), http: 6100, tcp: 1800, tls: 1150 },
+	{ date: new Date("2026-07-11"), http: 4400, tcp: 1450, tls: 880 },
+	{ date: new Date("2026-07-12"), http: 4100, tcp: 1400, tls: 840 },
+	{ date: new Date("2026-07-13"), http: 5600, tcp: 1750, tls: 1080 },
+	{ date: new Date("2026-07-14"), http: 6300, tcp: 1900, tls: 1200 },
+];
+
+<AreaChart.Root
+	data={trafficData}
+	xKey="date"
+	stacked
+	aria-label="Connections by protocol"
+	className="max-w-2xl"
+>
+	<AreaChart.Grid />
+	<AreaChart.XAxis />
+	<AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
+	<AreaChart.Area dataKey="http" label="HTTP" />
+	<AreaChart.Area dataKey="tcp" label="TCP" />
+	<AreaChart.Area dataKey="tls" label="TLS" />
+	<AreaChart.Tooltip />
+	<AreaChart.Legend />
+</AreaChart.Root>;
+```
+
+With `stacked` on the Root, series stack in composition order from the baseline up: the first `Area` sits on the baseline and each later `Area` stacks on top of it. The tooltip lists series top-of-stack first, matching the visual order at the crosshair. Every multi-series chart must compose `AreaChart.Legend` — series identity must never rely on color-matching alone. (For a single series the legend renders nothing; the chart's title already names it.)
+
+The tooltip, crosshair, and keyboard cursor are part of `AreaChart.Root`'s interaction contract — composing `AreaChart.Tooltip` customizes the readout, and omitting it never removes the hover layer.
+
+## Overlapping areas
+
+Without `stacked`, every series fills from the zero baseline and the areas overlap. The 10% wash is what keeps this legible: with two series you can read both bands and the region where they cross. `shape` gives a series' hover dot a distinct glyph (hover the crossing — EU West wears diamonds), a redundant encoding alongside color for where the bands overlap — see [Shapes](#shapes) below.
+
+<Example>
+	<OverlappingAreasExample />
+</Example>
+
+```tsx
+import { AreaChart } from "@ngrok/mantle/area-chart";
+
+const regionData = [
+	{ date: new Date("2026-07-01"), usEast: 2400, euWest: 1900 },
+	{ date: new Date("2026-07-02"), usEast: 2600, euWest: 2100 },
+	{ date: new Date("2026-07-03"), usEast: 2500, euWest: 2350 },
+	{ date: new Date("2026-07-04"), usEast: 2100, euWest: 2500 },
+	{ date: new Date("2026-07-05"), usEast: 1950, euWest: 2650 },
+	{ date: new Date("2026-07-06"), usEast: 2300, euWest: 2600 },
+	{ date: new Date("2026-07-07"), usEast: 2700, euWest: 2450 },
+	{ date: new Date("2026-07-08"), usEast: 2900, euWest: 2300 },
+	{ date: new Date("2026-07-09"), usEast: 2800, euWest: 2500 },
+	{ date: new Date("2026-07-10"), usEast: 3000, euWest: 2700 },
+	{ date: new Date("2026-07-11"), usEast: 2600, euWest: 2850 },
+	{ date: new Date("2026-07-12"), usEast: 2450, euWest: 2900 },
+	{ date: new Date("2026-07-13"), usEast: 2750, euWest: 2700 },
+	{ date: new Date("2026-07-14"), usEast: 3100, euWest: 2550 },
+];
+
+<AreaChart.Root data={regionData} xKey="date" aria-label="Requests by region" className="max-w-2xl">
+	<AreaChart.Grid />
+	<AreaChart.XAxis />
+	<AreaChart.YAxis />
+	<AreaChart.Area dataKey="usEast" label="US East" />
+	<AreaChart.Area dataKey="euWest" label="EU West" shape="diamond" />
+	<AreaChart.Tooltip />
+	<AreaChart.Legend />
+</AreaChart.Root>;
+```
+
+Overlap stops scaling: past two or three series the intersections turn to mud. When the series compose a meaningful total, stack them; when they don't, switch to a [`LineChart`](/components/charts/line-chart).
+
+## Shapes
+
+An area chart wears its glyphs on the legend keys and the active-point dots: a filled band has no per-point mark, so `shape` — `"circle"` (the default), `"square"`, `"triangle"`, or `"diamond"`, sized for equal visual weight — shows in the legend and on the dots that ride the band edges at the crosshair. This example pins a controlled `activeIndex` (falling back to a fixed point when the pointer leaves) so the dots stay visible without hovering: US East wears circles, EU West diamonds, AP South triangles. Move the crosshair and each dot keeps its series' glyph at every position. [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full family treatment.
+
+<Example>
+	<ShapesExample />
+</Example>
+
+```tsx
+import { AreaChart } from "@ngrok/mantle/area-chart";
+import { useState } from "react";
+
+const shapedRegionData = [
+	{ date: new Date("2026-07-01"), usEast: 2400, euWest: 1900, apSouth: 1150 },
+	{ date: new Date("2026-07-02"), usEast: 2600, euWest: 2100, apSouth: 1300 },
+	{ date: new Date("2026-07-03"), usEast: 2500, euWest: 2350, apSouth: 1250 },
+	{ date: new Date("2026-07-04"), usEast: 2100, euWest: 2500, apSouth: 1400 },
+	{ date: new Date("2026-07-05"), usEast: 1950, euWest: 2650, apSouth: 1500 },
+	{ date: new Date("2026-07-06"), usEast: 2300, euWest: 2600, apSouth: 1450 },
+	{ date: new Date("2026-07-07"), usEast: 2700, euWest: 2450, apSouth: 1350 },
+	{ date: new Date("2026-07-08"), usEast: 2900, euWest: 2300, apSouth: 1500 },
+	{ date: new Date("2026-07-09"), usEast: 2800, euWest: 2500, apSouth: 1600 },
+	{ date: new Date("2026-07-10"), usEast: 3000, euWest: 2700, apSouth: 1550 },
+	{ date: new Date("2026-07-11"), usEast: 2600, euWest: 2850, apSouth: 1650 },
+	{ date: new Date("2026-07-12"), usEast: 2450, euWest: 2900, apSouth: 1600 },
+	{ date: new Date("2026-07-13"), usEast: 2750, euWest: 2700, apSouth: 1500 },
+	{ date: new Date("2026-07-14"), usEast: 3100, euWest: 2550, apSouth: 1700 },
+];
+
+function ShapesExample() {
+	// Pin the active index so the hover dots — where an area chart wears its
+	// glyphs — stay visible; hovering still moves the crosshair freely.
+	const [activeIndex, setActiveIndex] = useState(9);
+	return (
+		<AreaChart.Root
+			data={shapedRegionData}
+			xKey="date"
+			stacked
+			activeIndex={activeIndex}
+			onActiveIndexChange={(index) => setActiveIndex(index ?? 9)}
+			aria-label="Requests by region, shape-coded"
+		>
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="usEast" label="US East" />
+			<AreaChart.Area dataKey="euWest" label="EU West" shape="diamond" />
+			<AreaChart.Area dataKey="apSouth" label="AP South" shape="triangle" />
+			<AreaChart.Tooltip />
+			<AreaChart.Legend />
+		</AreaChart.Root>
+	);
+}
+```
+
+## Curve interpolation
+
+`curve` picks the interpolation between points: `"linear"` (the default) draws straight segments, `"monotone"` smooths the band without overshooting the data, and `"step"` holds each value until the next point. Smoothing is presentation only — the plotted values, tooltip readout, and keyboard cursor are identical in both charts below.
+
+<Example>
+	<CurveExample />
+</Example>
+
+```tsx
+import { AreaChart } from "@ngrok/mantle/area-chart";
+
+const sessionData = [
+	{ date: new Date("2026-07-08"), sessions: 320 },
+	{ date: new Date("2026-07-09"), sessions: 180 },
+	{ date: new Date("2026-07-10"), sessions: 540 },
+	{ date: new Date("2026-07-11"), sessions: 260 },
+	{ date: new Date("2026-07-12"), sessions: 210 },
+	{ date: new Date("2026-07-13"), sessions: 480 },
+	{ date: new Date("2026-07-14"), sessions: 380 },
+];
+
+<div className="grid w-full gap-6 sm:grid-cols-2">
+	<div className="flex flex-col gap-2">
+		<p id="area-curve-linear" className="text-muted font-mono text-xs">
+			curve="linear" (default)
+		</p>
+		<AreaChart.Root data={sessionData} xKey="date" aria-labelledby="area-curve-linear">
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="sessions" label="Sessions" />
+			<AreaChart.Tooltip />
+		</AreaChart.Root>
+	</div>
+	<div className="flex flex-col gap-2">
+		<p id="area-curve-monotone" className="text-muted font-mono text-xs">
+			curve="monotone"
+		</p>
+		<AreaChart.Root data={sessionData} xKey="date" aria-labelledby="area-curve-monotone">
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="sessions" label="Sessions" curve="monotone" />
+			<AreaChart.Tooltip />
+		</AreaChart.Root>
+	</div>
+</div>;
+```
+
+## Gaps in the data
+
+`null` (or missing) values render as gaps by default — a hole in the band that says "no data here", which is usually the honest choice for missed scrapes and collection outages. Set `connectNulls` on the `Area` to join across the hole when the gap is a collection artifact rather than a real absence.
+
+<Example>
+	<GapsExample />
+</Example>
+
+```tsx
+import { AreaChart } from "@ngrok/mantle/area-chart";
+
+const outageData = [
+	{ date: new Date("2026-07-05"), requests: 1200 },
+	{ date: new Date("2026-07-06"), requests: 1350 },
+	{ date: new Date("2026-07-07"), requests: 1500 },
+	{ date: new Date("2026-07-08"), requests: null },
+	{ date: new Date("2026-07-09"), requests: null },
+	{ date: new Date("2026-07-10"), requests: 1420 },
+	{ date: new Date("2026-07-11"), requests: 1600 },
+	{ date: new Date("2026-07-12"), requests: 1680 },
+	{ date: new Date("2026-07-13"), requests: 1540 },
+	{ date: new Date("2026-07-14"), requests: 1750 },
+];
+
+<div className="grid w-full gap-6 sm:grid-cols-2">
+	<div className="flex flex-col gap-2">
+		<p id="area-gaps-default" className="text-muted font-mono text-xs">
+			gaps (default)
+		</p>
+		<AreaChart.Root data={outageData} xKey="date" aria-labelledby="area-gaps-default">
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="requests" label="Requests" />
+			<AreaChart.Tooltip />
+		</AreaChart.Root>
+	</div>
+	<div className="flex flex-col gap-2">
+		<p id="area-gaps-connect" className="text-muted font-mono text-xs">
+			connectNulls
+		</p>
+		<AreaChart.Root data={outageData} xKey="date" aria-labelledby="area-gaps-connect">
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="requests" label="Requests" connectNulls />
+			<AreaChart.Tooltip />
+		</AreaChart.Root>
+	</div>
+</div>;
+```
+
+In a stacked chart a gap in one series contributes nothing to the stack at that x position, and the boundary stays continuous so the series above it don't tear.
+
+## Reference lines
+
+`AreaChart.ReferenceLine` paints a dashed horizontal marker at a y value — an SLO threshold, a budget, a capacity limit — with an optional label above its right end. Here the stacked total crosses provisioned capacity twice:
+
+<Example>
+	<ReferenceLineExample />
+</Example>
+
+```tsx
+import { AreaChart } from "@ngrok/mantle/area-chart";
+
+const trafficData = [
+	{ date: new Date("2026-07-01"), http: 4200, tcp: 1400, tls: 860 },
+	{ date: new Date("2026-07-02"), http: 4600, tcp: 1350, tls: 900 },
+	{ date: new Date("2026-07-03"), http: 5100, tcp: 1500, tls: 940 },
+	{ date: new Date("2026-07-04"), http: 3800, tcp: 1250, tls: 780 },
+	{ date: new Date("2026-07-05"), http: 3500, tcp: 1200, tls: 750 },
+	{ date: new Date("2026-07-06"), http: 4900, tcp: 1550, tls: 980 },
+	{ date: new Date("2026-07-07"), http: 5400, tcp: 1600, tls: 1050 },
+	{ date: new Date("2026-07-08"), http: 5800, tcp: 1700, tls: 1100 },
+	{ date: new Date("2026-07-09"), http: 5200, tcp: 1650, tls: 1020 },
+	{ date: new Date("2026-07-10"), http: 6100, tcp: 1800, tls: 1150 },
+	{ date: new Date("2026-07-11"), http: 4400, tcp: 1450, tls: 880 },
+	{ date: new Date("2026-07-12"), http: 4100, tcp: 1400, tls: 840 },
+	{ date: new Date("2026-07-13"), http: 5600, tcp: 1750, tls: 1080 },
+	{ date: new Date("2026-07-14"), http: 6300, tcp: 1900, tls: 1200 },
+];
+
+<AreaChart.Root
+	data={trafficData}
+	xKey="date"
+	stacked
+	aria-label="Connections by protocol against provisioned capacity"
+	className="max-w-2xl"
+>
+	<AreaChart.Grid />
+	<AreaChart.XAxis />
+	<AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
+	<AreaChart.Area dataKey="http" label="HTTP" />
+	<AreaChart.Area dataKey="tcp" label="TCP" />
+	<AreaChart.Area dataKey="tls" label="TLS" />
+	<AreaChart.ReferenceLine y={9000} label="Capacity" />
+	<AreaChart.Tooltip />
+	<AreaChart.Legend />
+</AreaChart.Root>;
+```
+
+## Live data
+
+For live charts, append points to the end of a sliding window and let the chart do the rest. Appends animate the x domain as a continuous glide — the domain exponentially chases its target, so a new point arriving mid-glide just redirects the motion and back-to-back appends never stutter — while the plotted data itself never wobbles: new data must never make old data appear to move. As the window slides, axis tick labels (and the gridlines that share their fade) fade in and out instead of popping between tick sets, and the marks dissolve through a fade band at the plot's left edge — a scroll mask — so points exiting the window slide out smoothly instead of being clipped away. The mask activates automatically when the chart detects a sliding window and retires on its own once the stream idles. `prefers-reduced-motion` snaps everything instantly: no glide, no fades.
+
+This demo appends one point every 200ms to a sliding 60-point window. Each point derives from a pure formula over a tick counter and a fixed epoch, so every render is deterministic; a real chart would append measurements as they arrive.
+
+<Example>
+	<LiveAreaExample />
+</Example>
+
+```tsx
+import { AreaChart } from "@ngrok/mantle/area-chart";
+import { useEffect, useState } from "react";
+
+const streamEpoch = new Date("2026-07-14T12:00:00Z").getTime();
+
+const formatClock = new Intl.DateTimeFormat("en-US", {
+	hour: "2-digit",
+	minute: "2-digit",
+	second: "2-digit",
+	hour12: false,
+	timeZone: "UTC",
+});
+
+/** One deterministic point per tick: a long drift, a slow swell, and some chop. */
+function streamPoint(tick: number) {
+	const drift = 400 * Math.sin(tick / 240);
+	const swell = 600 * Math.sin(tick / 9);
+	const chop = 180 * Math.sin(tick / 2.2);
+	return {
+		time: new Date(streamEpoch + tick * 200),
+		throughput: Math.round(2400 + drift + swell + chop),
+	};
+}
+
+function LiveAreaExample() {
+	const [tick, setTick] = useState(0);
+
+	useEffect(() => {
+		const interval = setInterval(() => {
+			setTick((current) => current + 1);
+		}, 200);
+		return () => clearInterval(interval);
+	}, []);
+
+	// A sliding 60-point window: each tick appends one point and drops the oldest.
+	const data = Array.from({ length: 60 }, (_, index) => streamPoint(tick + index));
+
+	return (
+		<AreaChart.Root
+			data={data}
+			xKey="time"
+			aria-label="Live tunnel throughput"
+			className="max-w-2xl"
+		>
+			<AreaChart.Grid />
+			<AreaChart.XAxis
+				tickFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
+			/>
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="throughput" label="Throughput" curve="monotone" />
+			<AreaChart.Tooltip
+				labelFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
+			/>
+		</AreaChart.Root>
+	);
+}
+```
+
+## Copy as markdown
+
+`AreaChart.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table — one x column plus one column per series in paint order (ISO 8601 dates, plain un-separated numbers, an em dash for gaps) — pasteable into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
+
+<Example>
+	<CopyMarkdownExample />
+</Example>
+
+```tsx
+import { AreaChart } from "@ngrok/mantle/area-chart";
+
+<AreaChart.Root data={trafficData} xKey="date" stacked aria-label="Traffic by protocol, copyable">
+	<AreaChart.Grid />
+	<AreaChart.XAxis />
+	<AreaChart.YAxis />
+	<AreaChart.Area dataKey="http" label="HTTP" />
+	<AreaChart.Area dataKey="tcp" label="TCP" />
+	<AreaChart.Area dataKey="tls" label="TLS" />
+	<AreaChart.Tooltip />
+	<AreaChart.Legend />
+	<AreaChart.CopyButton className="absolute right-0 top-0" />
+</AreaChart.Root>;
+```
+
+## Composition
+
+Compose the parts of an `AreaChart` together to build your own:
+
+```text showLineNumbers=false
+AreaChart.Root
+├── AreaChart.Grid
+├── AreaChart.XAxis
+├── AreaChart.YAxis
+├── AreaChart.Area (one per series)
+├── AreaChart.ReferenceLine
+├── AreaChart.Tooltip
+├── AreaChart.Legend
+└── AreaChart.CopyButton
+```
+
+- **`Root`** owns the data, the scales, the canvas renderer, and the entire interaction contract. Every other part must be composed inside it.
+- **`Area`** registers one series per part; with `stacked` on the Root, areas stack in composition order with the first series at the baseline.
+- **`Grid`**, **`XAxis`**, **`YAxis`**, and **`ReferenceLine`** register chart chrome that the Root paints on canvas. Omit a part to omit that chrome.
+- **`Tooltip`** customizes the always-on hover/keyboard readout; omitting it never removes the hover layer.
+- **`Legend`** renders series names keyed by color swatches as real DOM in flow below the plot. Always compose it on multi-series charts; it renders nothing for a single series.
+
+## Accessibility
+
+Every chart must have an accessible name: the Root requires exactly one of `aria-label` or `aria-labelledby`, enforced at the type level. Prefer `aria-labelledby` referencing a visible title when the chart sits under a heading — no drift-prone duplicated text. The name lands on the focusable interaction overlay — the chart's single named element (the canvas itself is hidden from assistive technology so the chart is never announced twice).
+
+The plot is a single tab stop with a keyboard point cursor:
+
+| Key                                       | Action                                                     |
+| ----------------------------------------- | ---------------------------------------------------------- |
+| <kbd>Tab</kbd>                            | Focus the plot.                                            |
+| <kbd>←</kbd> / <kbd>→</kbd>               | Step between data points.                                  |
+| <kbd>Page Up</kbd> / <kbd>Page Down</kbd> | Step by larger jumps.                                      |
+| <kbd>Home</kbd> / <kbd>End</kbd>          | Jump to the first / last data point.                       |
+| <kbd>Enter</kbd> / <kbd>Space</kbd>       | Activate the current data point (fires `onDatumActivate`). |
+| <kbd>Escape</kbd>                         | Dismiss the point cursor and tooltip.                      |
+
+Keyboard stepping announces the x value and every series' value at it through a debounced polite live region, so rapid arrowing never floods the screen-reader queue.
+
+Every chart also renders an sr-only data table twin of the plotted data, bounded to the first 150 rows with a caption stating the summarization when the data is larger. Tooltips enhance, they never gate: every plotted value is reachable through the keyboard point cursor or the table.
+
+The twin doubles as the chart's machine-readable surface: date row headers carry the exact ISO timestamp in `<time dateTime>` and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="area-chart-data-table"`.
+
+## API Reference
+
+`AreaChart.Area`, `AreaChart.Grid`, `AreaChart.XAxis`, `AreaChart.YAxis`, and `AreaChart.ReferenceLine` are renderless: they register configuration with the Root, which paints everything onto a single canvas. They accept no `className`, `style`, or other DOM props. `AreaChart.Tooltip` and `AreaChart.Legend` accept `div` props — the legend renders a real DOM element in flow, and the tooltip forwards its `div` props onto the tooltip element the Root renders. `AreaChart.CopyButton` also renders real DOM — an icon button accepting `button` props.
+
+### AreaChart.Root
+
+The root of an area chart: owns the data, the scales, the canvas renderer, and the entire interaction contract. Renders a `<div>` wrapping the canvas plot and is generic over `TDatum`, the row type of `data`.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop                  | Type                                | Default       | Description                                                                                                                    |
+| --------------------- | ----------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `data`                | `readonly TDatum[]`                 |               | Rows of data; each `AreaChart.Area` reads one numeric key per row.                                                             |
+| `xKey`                | `Extract<keyof TDatum, string>`     |               | The key of each row's x value.                                                                                                 |
+| `aria-label`          | `string`                            |               | The chart's accessible name. Exactly one of `aria-label` or `aria-labelledby` is required — enforced at the type level.        |
+| `aria-labelledby`     | `string`                            |               | The id of a visible element that names the chart. Preferred over `aria-label` when the chart sits under a visible heading.     |
+| `xScale`              | `"time"` \| `"linear"` \| `"point"` | auto-detected | Override the auto-detected x scale (`Date` values → `"time"`, numbers → `"linear"`, strings → `"point"`).                      |
+| `yDomain`             | `[0, number \| "auto"]`             | `[0, "auto"]` | Override the automatic y maximum. The minimum is always the zero baseline.                                                     |
+| `stacked`             | `boolean`                           | `false`       | Stack the composed series in composition order, the first series at the baseline.                                              |
+| `animate`             | `boolean`                           | `true`        | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                        |
+| `pending`             | `boolean`                           | `false`       | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton. |
+| `activeIndex`         | `number \| null`                    |               | Controlled active datum index (`null` = none). Omit for uncontrolled hover.                                                    |
+| `onActiveIndexChange` | `(index: number \| null) => void`   |               | Notified when hover or keyboard stepping moves the active index.                                                               |
+| `onDatumActivate`     | `(event: ChartDatumEvent) => void`  |               | Notified on datum activation: a mark click, or <kbd>Enter</kbd>/<kbd>Space</kbd> on the focused chart.                         |
+
+`ChartDatumEvent` is importable from `@ngrok/mantle/area-chart`: `{ index: number; xValue: string | number | Date; datum: object; dataKey: string | null }` (`datum` is the original row — narrow it to your row type), where `dataKey` names the series nearest the pointer on mouse activation and is `null` for keyboard activation.
+
+### AreaChart.Area
+
+One area series. Renderless — it registers the series with the chart, which paints it on canvas. Compose one `Area` per series.
+
+| Prop           | Type                                                     | Default              | Description                                                                                                                  |
+| -------------- | -------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `dataKey`      | `string`                                                 |                      | The row key this series reads its numeric values from.                                                                       |
+| `label`        | `string`                                                 | `dataKey`            | Display name for the legend, tooltip, and data table.                                                                        |
+| `color`        | `"chart-1"` … `"chart-8"` \| `"chart-other"` \| `string` | the next sticky slot | One of the validated chart tokens, or any CSS color as an escape hatch. See [Chart color tokens](#chart-color-tokens).       |
+| `curve`        | `"linear"` \| `"monotone"` \| `"step"`                   | `"linear"`           | Interpolation between points: straight segments, smoothed without overshoot, or held steps.                                  |
+| `connectNulls` | `boolean`                                                | `false`              | Join across `null`/missing values instead of leaving gaps. Gaps are the default and usually correct.                         |
+| `shape`        | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"`  | `"circle"`           | The glyph the hover dot wears — a redundant encoding alongside color that keeps series distinguishable without color vision. |
+
+### AreaChart.Grid
+
+Horizontal hairline gridlines behind the areas. Renderless — painted on canvas. Omit the part to omit the grid.
+
+| Prop    | Type                                       | Default        | Description              |
+| ------- | ------------------------------------------ | -------------- | ------------------------ |
+| `lines` | `"horizontal"` \| `"vertical"` \| `"both"` | `"horizontal"` | Which gridlines to draw. |
+
+### AreaChart.XAxis
+
+Tick labels along the bottom of the plot. Renderless — painted on canvas. Labels that would collide are skipped, never rotated.
+
+| Prop         | Type                                          | Default         | Description                                                                                                                                  |
+| ------------ | --------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tickFormat` | `(value: string \| number \| Date) => string` |                 | Format a tick label. Receives the row's x value: the category value on point scales, a `Date` on time scales, and a number on linear scales. |
+| `tickCount`  | `number`                                      | density-derived | Target tick count (continuous scales only).                                                                                                  |
+
+### AreaChart.YAxis
+
+Value tick labels along the left of the plot. Renderless — painted on canvas. Ticks land on clean thousands-separated numbers.
+
+| Prop         | Type                        | Default             | Description          |
+| ------------ | --------------------------- | ------------------- | -------------------- |
+| `tickFormat` | `(value: number) => string` | thousands-separated | Format a tick label. |
+| `tickCount`  | `number`                    | density-derived     | Target tick count.   |
+
+### AreaChart.ReferenceLine
+
+A dashed horizontal marker at a y value — an SLO threshold, a budget, a limit. Renderless — painted on canvas.
+
+| Prop    | Type                                                     | Default                     | Description                                       |
+| ------- | -------------------------------------------------------- | --------------------------- | ------------------------------------------------- |
+| `y`     | `number`                                                 |                             | The y value the line marks.                       |
+| `label` | `string`                                                 |                             | A short label painted above the line's right end. |
+| `color` | `"chart-1"` … `"chart-8"` \| `"chart-other"` \| `string` | the neutral reference color | Line color.                                       |
+
+### AreaChart.Tooltip
+
+Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `AreaChart.Root`'s interaction contract and renders whether or not this part is composed — compose it to format the label or values, append a footer, or replace the content entirely.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded onto the tooltip element the Root renders), plus:
+
+| Prop          | Type                                                  | Default  | Description                                                             |
+| ------------- | ----------------------------------------------------- | -------- | ----------------------------------------------------------------------- |
+| `labelFormat` | `(value: string \| number \| Date) => ReactNode`      |          | Format the x/label row of the readout.                                  |
+| `valueFormat` | `(value: number, dataKey: string) => ReactNode`       |          | Format each series value.                                               |
+| `indicator`   | `"line"` \| `"none"`                                  | `"line"` | The per-series color key: a short stroke or nothing.                    |
+| `footer`      | `ReactNode \| (snapshot: HoverSnapshot) => ReactNode` |          | Extra content appended below the series rows (e.g. a "view logs" hint). |
+| `children`    | `(snapshot: HoverSnapshot) => ReactNode`              |          | Replace the entire readout.                                             |
+
+The `HoverSnapshot` passed to `footer` and `children` describes the active x position: `{ index, xValue, datum, points, viaKeyboard }`, where `points` holds every series' value at that position in visual order.
+
+### AreaChart.Legend
+
+The legend: series names keyed by swatches carrying each series' color and glyph, rendered as real DOM in flow below the plot. Always compose it on multi-series charts — identity must never rely on color-matching alone. It renders nothing for a single series (the chart's title already names it).
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type                                  | Default | Description                                                       |
+| ---------- | ------------------------------------- | ------- | ----------------------------------------------------------------- |
+| `children` | `(series: SeriesMeta[]) => ReactNode` |         | Replace the default legend items; receives the registered series. |
+
+Each `SeriesMeta` is `{ dataKey, label, mark, color, colorInput }`, where `color` is the CSS color string the series paints with.
+
+### AreaChart.CopyButton
+
+A button that copies the chart's current data to the clipboard as a GitHub-flavored markdown table: one x column plus one column per series in paint order. Values are machine-stable — ISO 8601 dates, plain un-separated numbers, an em dash for gaps — so the paste target receives parseable data, not locale formatting. Renders an icon button in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner (e.g. `absolute right-0 top-0`).
+
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
+
+| Prop           | Type                       | Default                   | Description                                                                    |
+| -------------- | -------------------------- | ------------------------- | ------------------------------------------------------------------------------ |
+| `label?`       | `string`                   | `"Copy data as Markdown"` | The accessible label, visually hidden but announced to screen readers.         |
+| `onCopy?`      | `(value: string) => void`  |                           | Callback fired after a successful copy, passes the serialized markdown.        |
+| `onCopyError?` | `(error: unknown) => void` |                           | Callback fired when an error occurs during copying.                            |
+| `asChild?`     | `boolean`                  | `false`                   | Compose the copy behavior onto your own element instead of the default button. |
+
+### Chart color tokens
+
+Series without an explicit `color` claim the ordered `--color-chart-1` … `--color-chart-8` tokens in composition order. The palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the chart surface in all four themes (light, dark, high-contrast light, high-contrast dark). A claimed slot is sticky per `dataKey` for the chart's lifetime — filtering series in and out never repaints the survivors, so color follows the entity, never its rank. The ninth and later series all paint with `--color-chart-other`: fold the long tail into a single "Other" series rather than inventing more hues.
+
+| CSS Variable          | Description                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------- |
+| `--color-chart-1`     | The first categorical series slot.                                                          |
+| `--color-chart-2`     | The second categorical series slot.                                                         |
+| `--color-chart-3`     | The third categorical series slot.                                                          |
+| `--color-chart-4`     | The fourth categorical series slot.                                                         |
+| `--color-chart-5`     | The fifth categorical series slot.                                                          |
+| `--color-chart-6`     | The sixth categorical series slot.                                                          |
+| `--color-chart-7`     | The seventh categorical series slot.                                                        |
+| `--color-chart-8`     | The eighth categorical series slot.                                                         |
+| `--color-chart-other` | The fold slot for the ninth-and-later series — group the tail into a single "Other" series. |
+
+Custom `color` strings are an escape hatch, not a shortcut: a raw hex value does not adapt across themes, and any custom palette must be re-validated for colorblind-safe adjacency and surface contrast. A series that carries good or bad meaning — an error rate, a success rate — should wear the semantic status colors, never a categorical slot.

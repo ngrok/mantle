@@ -40,6 +40,41 @@ export function resolveMantleDistDir(root: string): string | null {
  */
 export const VALID_COMPONENT_RE = /^[a-z][a-z0-9-]*$/;
 
+/**
+ * Maps mantle component subpath names to the internal shared-chunk base names
+ * their Tailwind classes are bundled into.
+ *
+ * Some component families share a module-internal engine that is not a public
+ * subpath (the `primitive` pattern — e.g. `src/components/chart/` behind the
+ * four chart components). The mantle build code-splits such an engine into its
+ * own chunk named after the owning component directory (`chart-<hash>.js`,
+ * see `packages/mantle/tsdown.config.ts`), so the component's classes live in
+ * a file that none of the per-component `@source "<name>-*.js"` globs match.
+ * A listed component can also render ANOTHER component whose classes live in
+ * that other component's published chunk (the charts' CopyButton renders
+ * `IconButton`, hoisted into `button-<hash>.js`). Components listed here get an
+ * extra glob per referenced chunk name (`@source "chart-*.js";`,
+ * `@source "button-*.js";`) so Tailwind scans those too.
+ *
+ * A referenced chunk that a consumer also imports directly is handled as a
+ * normal component (the `!safeComponents.has(chunkName)` guard in
+ * {@link writeSourcesToCssFile}), so it is never double-emitted; a purely
+ * internal engine chunk (e.g. `chart`) is not a valid `@ngrok/mantle/*` subpath
+ * and is never read back as a component by {@link parseComponentsFromCssFile}.
+ */
+export const INTERNAL_CHUNKS_BY_COMPONENT: ReadonlyMap<string, readonly string[]> = new Map([
+	// The charts render on a shared internal `chart` engine, and that engine's
+	// CopyButton renders an IconButton whose classes live in the `button` chunk;
+	// a chart-only consumer imports neither, so both must be scanned.
+	["area-chart", ["chart", "button"]],
+	["bar-chart", ["chart", "button"]],
+	["line-chart", ["chart", "button"]],
+	["scatter-plot", ["chart", "button"]],
+	// SelectableList's styled rows live on the list directory's shared
+	// primitive chunk (list-<hash>.js).
+	["selectable-list", ["list"]],
+]);
+
 /** Marker inserted before the auto-generated `@source` block. */
 export const MARKER_START = "/* @ngrok/mantle-vite-plugins:source:start */";
 
@@ -129,6 +164,12 @@ export function collectFiles(dir: string, results: string[], extensions: string[
  * {@link MARKER_END} comments so it can be found and replaced on subsequent
  * calls. The block is safe to commit — it is deterministic and human-readable.
  *
+ * Components whose classes are bundled into an internal shared chunk (see
+ * {@link INTERNAL_CHUNKS_BY_COMPONENT}) additionally emit a glob for that
+ * chunk (e.g. `@source "chart-*.js";`). Internal chunks have no entry stub,
+ * so only the glob line is emitted — which also keeps
+ * {@link parseComponentsFromCssFile} from reading them back as components.
+ *
  * @param cssFile - Absolute path to the CSS file to update.
  * @param components - Set of mantle subpath names to generate `@source`
  *   directives for. Pass an empty set to remove any existing block.
@@ -161,25 +202,38 @@ export function writeSourcesToCssFile(
 	if (safeComponents.size === 0) {
 		next = withoutBlock + "\n";
 	} else {
+		// Internal shared chunks referenced by the components in the set. Names
+		// already present as components are skipped — the component itself emits
+		// the identical chunk-glob.
+		const internalChunkNames = new Set<string>();
+		for (const name of safeComponents) {
+			for (const chunkName of INTERNAL_CHUNKS_BY_COMPONENT.get(name) ?? []) {
+				if (!safeComponents.has(chunkName) && VALID_COMPONENT_RE.test(chunkName)) {
+					internalChunkNames.add(chunkName);
+				}
+			}
+		}
+
 		const cssDir = path.dirname(cssFile);
-		const sources = Array.from(safeComponents)
-			.toSorted()
-			.flatMap((name) => {
-				// Emit two patterns per component:
-				// 1. The exact entry stub (e.g. dialog.js) — always present.
-				// 2. A chunk-glob (e.g. dialog-*.js) — matches the hashed code-split
-				//    chunk that actually contains the class strings (e.g. dialog-BswTx6oS.js).
-				//
-				// Using a single `dialog*.js` glob would be overly broad: `alert*.js`
-				// also matches `alert-dialog.js`, causing Tailwind to scan extra components
-				// and undermining the "only what you use" optimization.
-				const base = path
-					.relative(cssDir, path.join(mantleDistDir, name))
-					.split(path.sep)
-					.join("/");
-				const prefix = base.startsWith(".") ? base : `./${base}`;
-				return [`@source "${prefix}.js";`, `@source "${prefix}-*.js";`];
-			});
+		const sources = [...safeComponents, ...internalChunkNames].toSorted().flatMap((name) => {
+			// Emit two patterns per component:
+			// 1. The exact entry stub (e.g. dialog.js) — always present.
+			// 2. A chunk-glob (e.g. dialog-*.js) — matches the hashed code-split
+			//    chunk that actually contains the class strings (e.g. dialog-BswTx6oS.js).
+			//
+			// Using a single `dialog*.js` glob would be overly broad: `alert*.js`
+			// also matches `alert-dialog.js`, causing Tailwind to scan extra components
+			// and undermining the "only what you use" optimization.
+			//
+			// Internal shared chunks (e.g. the chart engine) have no entry stub,
+			// so they emit only the chunk-glob.
+			const base = path.relative(cssDir, path.join(mantleDistDir, name)).split(path.sep).join("/");
+			const prefix = base.startsWith(".") ? base : `./${base}`;
+			if (internalChunkNames.has(name)) {
+				return [`@source "${prefix}-*.js";`];
+			}
+			return [`@source "${prefix}.js";`, `@source "${prefix}-*.js";`];
+		});
 		const block = `${MARKER_START}\n${sources.join("\n")}\n${MARKER_END}`;
 
 		// Insert the block immediately after the last @import line so Tailwind
@@ -239,7 +293,10 @@ export function parseComponentsFromCssFile(cssFile: string): Set<string> {
 	// e.g. @source "…/button.js"; → "button"
 	// The chunk-glob line (@source "…/button-*.js";) always pairs with the
 	// exact line and captures the same name, so parsing exactRe alone is
-	// sufficient to reconstruct the full component set.
+	// sufficient to reconstruct the full component set. Internal shared-chunk
+	// globs (e.g. @source "…/chart-*.js";) have no exact line and are
+	// intentionally not parsed back — they are derived from
+	// INTERNAL_CHUNKS_BY_COMPONENT at write time, not tracked as components.
 	const exactRe = /@source\s+"(?:[^"]*\/)?([a-z][a-z0-9-]*)\.js"\s*;/g;
 	for (const match of block.matchAll(exactRe)) {
 		if (match[1]) {
