@@ -448,30 +448,42 @@ Use `selectedValue` and `setSelectedValue` to control the selected values.
 </Example>
 
 ```tsx
-const [selected, setSelected] = useState(["Apple", "Cherry"]);
+import { MultiSelect } from "@ngrok/mantle/multi-select";
+import { matchSorter } from "match-sorter";
+import { useMemo, useState, useTransition } from "react";
 
-<MultiSelect.Root
-	selectedValue={selected}
-	setOpen={() => {
-		setSearchValue("");
-	}}
-	setSelectedValue={setSelected}
->
-	<MultiSelect.Trigger>
-		<MultiSelect.TagValues />
-		<MultiSelect.Input
-			onValueChange={(value) => startTransition(() => setSearchValue(value))}
-			placeholder="Select fruits..."
-		/>
-	</MultiSelect.Trigger>
-	<MultiSelect.Content>
-		{matches.map((value) => (
-			<MultiSelect.Item key={value} value={value}>
-				{value}
-			</MultiSelect.Item>
-		))}
-	</MultiSelect.Content>
-</MultiSelect.Root>;
+function Example() {
+	const [isPending, startTransition] = useTransition();
+	const [searchValue, setSearchValue] = useState("");
+	const [selected, setSelected] = useState(["Apple", "Cherry"]);
+	const matches = useMemo(() => matchSorter(fruits, searchValue), [searchValue]);
+
+	return (
+		<MultiSelect.Root
+			selectedValue={selected}
+			setOpen={() => {
+				setSearchValue("");
+			}}
+			setSelectedValue={setSelected}
+		>
+			<MultiSelect.Trigger>
+				<MultiSelect.TagValues />
+				<MultiSelect.Input
+					onValueChange={(value) => startTransition(() => setSearchValue(value))}
+					placeholder="Select fruits..."
+				/>
+			</MultiSelect.Trigger>
+			<MultiSelect.Content aria-busy={isPending}>
+				{matches.map((value) => (
+					<MultiSelect.Item key={value} value={value}>
+						{value}
+					</MultiSelect.Item>
+				))}
+				{matches.length === 0 && <MultiSelect.Empty>No results found</MultiSelect.Empty>}
+			</MultiSelect.Content>
+		</MultiSelect.Root>
+	);
+}
 ```
 
 ### In a Sheet
@@ -639,28 +651,47 @@ Use `lockedValues` on `MultiSelect.TagValues` to pin specific tags that cannot b
 </Example>
 
 ```tsx
-const [selected, setSelected] = useState(["apple", "banana", "cherry"]);
+import { MultiSelect } from "@ngrok/mantle/multi-select";
+import { useMemo, useState, useTransition } from "react";
 
-<MultiSelect.Root
-	selectedValue={selected}
-	setOpen={() => {
-		setSearchValue("");
-	}}
-	setSelectedValue={setSelected}
->
-	<MultiSelect.Trigger>
-		<MultiSelect.TagValues lockedValues={["apple", "cherry"]} />
-		<MultiSelect.Input
-			onValueChange={(value) => startTransition(() => setSearchValue(value))}
-			placeholder="Select fruits..."
-		/>
-	</MultiSelect.Trigger>
-	<MultiSelect.Content>
-		<MultiSelect.Item value="apple">apple</MultiSelect.Item>
-		<MultiSelect.Item value="banana">banana</MultiSelect.Item>
-		<MultiSelect.Item value="cherry">cherry</MultiSelect.Item>
-	</MultiSelect.Content>
-</MultiSelect.Root>;
+function Example() {
+	const [isPending, startTransition] = useTransition();
+	const [searchValue, setSearchValue] = useState("");
+	const [selected, setSelected] = useState(["apple", "banana", "cherry"]);
+	const matches = useMemo(
+		() =>
+			["apple", "banana", "cherry", "grape", "kiwi", "mango"].filter((value) =>
+				value.includes(searchValue.toLowerCase()),
+			),
+		[searchValue],
+	);
+
+	return (
+		<MultiSelect.Root
+			selectedValue={selected}
+			setOpen={() => {
+				setSearchValue("");
+			}}
+			setSelectedValue={setSelected}
+		>
+			<MultiSelect.Trigger>
+				<MultiSelect.TagValues lockedValues={["apple", "cherry"]} />
+				<MultiSelect.Input
+					onValueChange={(value) => startTransition(() => setSearchValue(value))}
+					placeholder="Select fruits..."
+				/>
+			</MultiSelect.Trigger>
+			<MultiSelect.Content aria-busy={isPending}>
+				{matches.map((value) => (
+					<MultiSelect.Item key={value} value={value}>
+						{value}
+					</MultiSelect.Item>
+				))}
+				{matches.length === 0 && <MultiSelect.Empty>No results found</MultiSelect.Empty>}
+			</MultiSelect.Content>
+		</MultiSelect.Root>
+	);
+}
 ```
 
 ### Creatable
@@ -672,47 +703,59 @@ Render a dynamic "Create …" item when the search text doesn't match any existi
 </Example>
 
 ```tsx
-const [selected, setSelected] = useState(["Apple", "Cherry"]);
-const [options, setOptions] = useState(fruits);
-const matches = useMemo(() => matchSorter(options, searchValue), [options, searchValue]);
-const showCreate =
-	searchValue.trim() !== "" &&
-	!options.some((o) => o.toLowerCase() === searchValue.trim().toLowerCase());
+import { MultiSelect } from "@ngrok/mantle/multi-select";
+import { matchSorter } from "match-sorter";
+import { useMemo, useState, useTransition } from "react";
 
-<MultiSelect.Root
-	selectedValue={selected}
-	setOpen={() => {
-		setSearchValue("");
-	}}
-	setSelectedValue={(values) => {
-		setSelected(values);
-		startTransition(() => setSearchValue(""));
-	}}
->
-	<MultiSelect.Trigger>
-		<MultiSelect.TagValues />
-		<MultiSelect.Input
-			onValueChange={(value) => startTransition(() => setSearchValue(value))}
-			placeholder="Select or create fruits..."
-		/>
-	</MultiSelect.Trigger>
-	<MultiSelect.Content>
-		{matches.map((value) => (
-			<MultiSelect.Item key={value} value={value}>
-				{value}
-			</MultiSelect.Item>
-		))}
-		{showCreate && (
-			<MultiSelect.Item
-				value={searchValue.trim()}
-				onClick={() => setOptions((prev) => [...prev, searchValue.trim()])}
-			>
-				Create "{searchValue.trim()}"
-			</MultiSelect.Item>
-		)}
-		{matches.length === 0 && !showCreate && <MultiSelect.Empty>No results found</MultiSelect.Empty>}
-	</MultiSelect.Content>
-</MultiSelect.Root>;
+function Example() {
+	const [isPending, startTransition] = useTransition();
+	const [searchValue, setSearchValue] = useState("");
+	const [selected, setSelected] = useState(["Apple", "Cherry"]);
+	const [options, setOptions] = useState(fruits);
+	const matches = useMemo(() => matchSorter(options, searchValue), [options, searchValue]);
+	const showCreate =
+		searchValue.trim() !== "" &&
+		!options.some((option) => option.toLowerCase() === searchValue.trim().toLowerCase());
+
+	return (
+		<MultiSelect.Root
+			selectedValue={selected}
+			setOpen={() => {
+				setSearchValue("");
+			}}
+			setSelectedValue={(values) => {
+				setSelected(values);
+				startTransition(() => setSearchValue(""));
+			}}
+		>
+			<MultiSelect.Trigger>
+				<MultiSelect.TagValues />
+				<MultiSelect.Input
+					onValueChange={(value) => startTransition(() => setSearchValue(value))}
+					placeholder="Select or create fruits..."
+				/>
+			</MultiSelect.Trigger>
+			<MultiSelect.Content aria-busy={isPending}>
+				{matches.map((value) => (
+					<MultiSelect.Item key={value} value={value}>
+						{value}
+					</MultiSelect.Item>
+				))}
+				{showCreate && (
+					<MultiSelect.Item
+						value={searchValue.trim()}
+						onClick={() => setOptions((prev) => [...prev, searchValue.trim()])}
+					>
+						Create "{searchValue.trim()}"
+					</MultiSelect.Item>
+				)}
+				{matches.length === 0 && !showCreate && (
+					<MultiSelect.Empty>No results found</MultiSelect.Empty>
+				)}
+			</MultiSelect.Content>
+		</MultiSelect.Root>
+	);
+}
 ```
 
 ### With Groups
@@ -724,32 +767,60 @@ Use `MultiSelect.Group`, `MultiSelect.GroupLabel`, and `MultiSelect.Separator` t
 </Example>
 
 ```tsx
-<MultiSelect.Root
-	setOpen={() => {
-		setSearchValue("");
-	}}
->
-	<MultiSelect.Trigger>
-		<MultiSelect.TagValues />
-		<MultiSelect.Input
-			onValueChange={(value) => startTransition(() => setSearchValue(value))}
-			placeholder="Select items..."
-		/>
-	</MultiSelect.Trigger>
-	<MultiSelect.Content>
-		<MultiSelect.Group>
-			<MultiSelect.GroupLabel>Fruits</MultiSelect.GroupLabel>
-			<MultiSelect.Item value="Apple">Apple</MultiSelect.Item>
-			<MultiSelect.Item value="Banana">Banana</MultiSelect.Item>
-		</MultiSelect.Group>
-		<MultiSelect.Separator />
-		<MultiSelect.Group>
-			<MultiSelect.GroupLabel>Vegetables</MultiSelect.GroupLabel>
-			<MultiSelect.Item value="Carrot">Carrot</MultiSelect.Item>
-			<MultiSelect.Item value="Lettuce">Lettuce</MultiSelect.Item>
-		</MultiSelect.Group>
-	</MultiSelect.Content>
-</MultiSelect.Root>
+import { MultiSelect } from "@ngrok/mantle/multi-select";
+import { matchSorter } from "match-sorter";
+import { useMemo, useState, useTransition } from "react";
+
+function Example() {
+	const [isPending, startTransition] = useTransition();
+	const [searchValue, setSearchValue] = useState("");
+	const fruitList = ["Apple", "Banana", "Cherry", "Grapes", "Orange", "Strawberry"];
+	const veggieList = ["Carrot", "Cucumber", "Lettuce", "Tomato", "Zucchini"];
+	const filteredFruits = useMemo(() => matchSorter(fruitList, searchValue), [searchValue]);
+	const filteredVeggies = useMemo(() => matchSorter(veggieList, searchValue), [searchValue]);
+
+	return (
+		<MultiSelect.Root
+			setOpen={() => {
+				setSearchValue("");
+			}}
+		>
+			<MultiSelect.Trigger>
+				<MultiSelect.TagValues />
+				<MultiSelect.Input
+					onValueChange={(value) => startTransition(() => setSearchValue(value))}
+					placeholder="Select items..."
+				/>
+			</MultiSelect.Trigger>
+			<MultiSelect.Content aria-busy={isPending}>
+				{filteredFruits.length > 0 && (
+					<MultiSelect.Group>
+						<MultiSelect.GroupLabel>Fruits</MultiSelect.GroupLabel>
+						{filteredFruits.map((value) => (
+							<MultiSelect.Item key={value} value={value}>
+								{value}
+							</MultiSelect.Item>
+						))}
+					</MultiSelect.Group>
+				)}
+				{filteredFruits.length > 0 && filteredVeggies.length > 0 && <MultiSelect.Separator />}
+				{filteredVeggies.length > 0 && (
+					<MultiSelect.Group>
+						<MultiSelect.GroupLabel>Vegetables</MultiSelect.GroupLabel>
+						{filteredVeggies.map((value) => (
+							<MultiSelect.Item key={value} value={value}>
+								{value}
+							</MultiSelect.Item>
+						))}
+					</MultiSelect.Group>
+				)}
+				{filteredFruits.length === 0 && filteredVeggies.length === 0 && (
+					<MultiSelect.Empty>No results found</MultiSelect.Empty>
+				)}
+			</MultiSelect.Content>
+		</MultiSelect.Root>
+	);
+}
 ```
 
 ### With TanStack Form
@@ -866,6 +937,7 @@ import { Button } from "@ngrok/mantle/button";
 import { MultiSelect } from "@ngrok/mantle/multi-select";
 import { matchSorter } from "match-sorter";
 import { useMemo, useState, useTransition } from "react";
+import { href, Link } from "react-router";
 
 const regionalAliases = [
 	{ value: "global", popCount: "All PoPs" },
