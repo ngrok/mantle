@@ -85,6 +85,40 @@ MediaObject.Root
 └── MediaObject.Content
 ```
 
+## Polymorphism
+
+Each part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default `<div>`, forwarding its styling and props onto that child. Render `MediaObject.Root` as an `<a>` to make the whole row a link.
+
+<Example>
+	<MediaObject.Root asChild>
+		<a href="https://ngrok.com">
+			<MediaObject.Media>
+				<ExampleMedia />
+			</MediaObject.Media>
+			<MediaObject.Content>
+				<h4 className="text-lg font-medium">Lorem ipsum</h4>
+				<p>Repudiandae sint consequuntur vel.</p>
+			</MediaObject.Content>
+		</a>
+	</MediaObject.Root>
+</Example>
+
+```tsx
+import { MediaObject } from "@ngrok/mantle/media-object";
+
+<MediaObject.Root asChild>
+	<a href="https://ngrok.com">
+		<MediaObject.Media>
+			<ExampleMedia />
+		</MediaObject.Media>
+		<MediaObject.Content>
+			<h4 className="text-lg font-medium">Lorem ipsum</h4>
+			<p>Repudiandae sint consequuntur vel.</p>
+		</MediaObject.Content>
+	</a>
+</MediaObject.Root>;
+```
+
 ## API Reference
 
 ### MediaObject.Root
