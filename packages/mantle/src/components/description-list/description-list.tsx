@@ -52,10 +52,12 @@ type DescriptionListItemProps = ComponentProps<"div"> & WithAsChild;
  *
  * @example
  * ```tsx
- * <DescriptionList.Item>
- *   <DescriptionList.Label>ID</DescriptionList.Label>
- *   <DescriptionList.Value>aigk_2fKm9x8Hn3...</DescriptionList.Value>
- * </DescriptionList.Item>
+ * <DescriptionList.Root>
+ *   <DescriptionList.Item>
+ *     <DescriptionList.Label>Name</DescriptionList.Label>
+ *     <DescriptionList.Value>my-api-key</DescriptionList.Value>
+ *   </DescriptionList.Item>
+ * </DescriptionList.Root>
  * ```
  */
 const Item = ({ asChild = false, className, children, ref, ...rest }: DescriptionListItemProps) => {
@@ -82,7 +84,12 @@ type DescriptionListLabelProps = ComponentProps<"dt"> & WithAsChild;
  *
  * @example
  * ```tsx
- * <DescriptionList.Label>Name</DescriptionList.Label>
+ * <DescriptionList.Root>
+ *   <DescriptionList.Item>
+ *     <DescriptionList.Label>Name</DescriptionList.Label>
+ *     <DescriptionList.Value>my-api-key</DescriptionList.Value>
+ *   </DescriptionList.Item>
+ * </DescriptionList.Root>
  * ```
  */
 const Label = ({
@@ -117,9 +124,12 @@ type DescriptionListValueProps = ComponentProps<"dd"> & WithAsChild;
  *
  * @example
  * ```tsx
- * <DescriptionList.Value>
- *   aigk_2fKm9x8Hn3QpYT7zKlR0vW5
- * </DescriptionList.Value>
+ * <DescriptionList.Root>
+ *   <DescriptionList.Item>
+ *     <DescriptionList.Label>Name</DescriptionList.Label>
+ *     <DescriptionList.Value>my-api-key</DescriptionList.Value>
+ *   </DescriptionList.Item>
+ * </DescriptionList.Root>
  * ```
  */
 const Value = ({
@@ -205,10 +215,12 @@ const DescriptionList = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <DescriptionList.Item>
-	 *   <DescriptionList.Label>ID</DescriptionList.Label>
-	 *   <DescriptionList.Value>aigk_2fKm9x8Hn3...</DescriptionList.Value>
-	 * </DescriptionList.Item>
+	 * <DescriptionList.Root>
+	 *   <DescriptionList.Item>
+	 *     <DescriptionList.Label>Name</DescriptionList.Label>
+	 *     <DescriptionList.Value>my-api-key</DescriptionList.Value>
+	 *   </DescriptionList.Item>
+	 * </DescriptionList.Root>
 	 * ```
 	 */
 	Item,
@@ -219,7 +231,12 @@ const DescriptionList = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <DescriptionList.Label>Name</DescriptionList.Label>
+	 * <DescriptionList.Root>
+	 *   <DescriptionList.Item>
+	 *     <DescriptionList.Label>Name</DescriptionList.Label>
+	 *     <DescriptionList.Value>my-api-key</DescriptionList.Value>
+	 *   </DescriptionList.Item>
+	 * </DescriptionList.Root>
 	 * ```
 	 */
 	Label,
@@ -230,9 +247,12 @@ const DescriptionList = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <DescriptionList.Value>
-	 *   aigk_2fKm9x8Hn3QpYT7zKlR0vW5
-	 * </DescriptionList.Value>
+	 * <DescriptionList.Root>
+	 *   <DescriptionList.Item>
+	 *     <DescriptionList.Label>Name</DescriptionList.Label>
+	 *     <DescriptionList.Value>my-api-key</DescriptionList.Value>
+	 *   </DescriptionList.Item>
+	 * </DescriptionList.Root>
 	 * ```
 	 */
 	Value,
