@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, test } from "vitest";
 import { Main } from "../main/main.js";
+import { Alert } from "../alert/alert.js";
 import { AlertCenter } from "../alert-center/alert-center.js";
 import { AppLayout } from "./app-layout.js";
 
@@ -70,11 +71,14 @@ describe("AppLayout.Notice", () => {
 			<AppLayout.Root>
 				<AppLayout.Notice data-testid="notice">
 					<div>Impersonating jane@example.com</div>
-					<AlertCenter.Root
-						alerts={[{ id: "transfer-limit", intent: "warning", title: "Approaching your limit" }]}
-					>
+					<AlertCenter.Root>
 						<AlertCenter.Bar />
 						<AlertCenter.Content />
+						<AlertCenter.Item id="transfer-limit" intent="warning">
+							<Alert.Content>
+								<Alert.Title>Approaching your limit</Alert.Title>
+							</Alert.Content>
+						</AlertCenter.Item>
 					</AlertCenter.Root>
 				</AppLayout.Notice>
 				<AppLayout.Body data-testid="body" />
