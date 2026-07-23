@@ -180,6 +180,33 @@ function CommandDialogDemo() {
 }
 ```
 
+## Common mistakes
+
+A global hotkey that opens the command dialog must call `event.preventDefault()`. Browsers reserve many of the same shortcuts apps reach for — Firefox binds `⌘K` to focus its search bar and `⌘J` to open downloads — so a handler that does not claim the event runs **both** actions. The classic symptom: pressing `⌘K` opens the palette, but focus (and your typing) lands in the browser's search or address bar.
+
+```tsx
+// ❌ Wrong — the browser's own binding also fires (Firefox ⌘K focuses its search bar)
+const keydown = (event: KeyboardEvent) => {
+	if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
+		setOpen(true);
+	}
+};
+
+// ✅ Correct — claim the event before the browser acts on it
+const keydown = (event: KeyboardEvent) => {
+	if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
+		event.preventDefault();
+		setOpen(true);
+	}
+};
+```
+
+Hotkey libraries typically leave this opt-in as well — for example, `react-hotkeys-hook` only claims the event when you pass `{ preventDefault: true }`:
+
+```tsx
+useHotkeys("mod+k", () => setOpen(true), { preventDefault: true });
+```
+
 ## Composition
 
 Compose the parts of a `Command` together to build your own:
