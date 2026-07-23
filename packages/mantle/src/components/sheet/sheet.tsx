@@ -72,7 +72,7 @@ import * as SheetPrimitive from "../dialog/primitive.js";
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open onOpenChange={() => onClose()}>
+ * <Sheet.Root open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -272,7 +272,7 @@ type SheetContentProps = ComponentProps<typeof SheetPrimitive.Content> &
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open onOpenChange={() => onClose()}>
+ * <Sheet.Root open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -367,7 +367,7 @@ type SheetCloseIconButtonProps = Partial<
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open onOpenChange={() => onClose()}>
+ * <Sheet.Root open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -439,7 +439,7 @@ const CloseIconButton = ({
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open onOpenChange={() => onClose()}>
+ * <Sheet.Root open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -500,7 +500,7 @@ const Body = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open onOpenChange={() => onClose()}>
+ * <Sheet.Root open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -562,7 +562,7 @@ const Header = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open onOpenChange={() => onClose()}>
+ * <Sheet.Root open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -623,7 +623,7 @@ const Footer = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open onOpenChange={() => onClose()}>
+ * <Sheet.Root open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -681,7 +681,7 @@ const Title = ({ className, ref, ...props }: ComponentProps<typeof SheetPrimitiv
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open onOpenChange={() => onClose()}>
+ * <Sheet.Root open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -741,7 +741,7 @@ const TitleGroup = ({ children, className, ref, ...props }: ComponentProps<"div"
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open onOpenChange={() => onClose()}>
+ * <Sheet.Root open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -803,7 +803,7 @@ const Description = ({
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open onOpenChange={() => onClose()}>
+ * <Sheet.Root open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
@@ -938,7 +938,7 @@ const Actions = ({ children, className, ref, ...props }: ComponentProps<"div">) 
  * @example
  * ```tsx
  * // Sheet without a trigger (e.g. router controlled)
- * <Sheet open onOpenChange={() => onClose()}>
+ * <Sheet.Root open onOpenChange={() => onClose()}>
  *   <Sheet.Content>
  *     <Sheet.Header>
  *       <Sheet.TitleGroup>
