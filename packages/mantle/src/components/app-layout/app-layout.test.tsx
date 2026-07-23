@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, test } from "vitest";
 import { Main } from "../main/main.js";
+import { AlertCenter } from "../alert-center/alert-center.js";
 import { AppLayout } from "./app-layout.js";
 
 describe("AppLayout.Root", () => {
@@ -62,6 +63,29 @@ describe("AppLayout.Notice", () => {
 	test("is not a header banner landmark", () => {
 		render(<AppLayout.Notice>impersonating</AppLayout.Notice>);
 		expect(screen.queryByRole("banner")).not.toBeInTheDocument();
+	});
+
+	test("stacks an impersonation banner with the alert center in one shell slot", () => {
+		render(
+			<AppLayout.Root>
+				<AppLayout.Notice data-testid="notice">
+					<div>Impersonating jane@example.com</div>
+					<AlertCenter.Root
+						alerts={[{ id: "transfer-limit", intent: "warning", title: "Approaching your limit" }]}
+					>
+						<AlertCenter.Bar />
+						<AlertCenter.Content />
+					</AlertCenter.Root>
+				</AppLayout.Notice>
+				<AppLayout.Body data-testid="body" />
+			</AppLayout.Root>,
+		);
+
+		const notice = screen.getByTestId("notice");
+		const body = screen.getByTestId("body");
+		expect(notice.className).toContain("flex-col");
+		expect(notice.querySelector('[data-slot="alert-center-bar"]')).not.toBeNull();
+		expect(notice.compareDocumentPosition(body)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 	});
 });
 
