@@ -202,6 +202,22 @@ PNG-export handle, sequential/diverging ramps, WebGL renderer.
 Shipped after the initial draft (were deferred): horizontal bars
 (`orientation` on `BarChart.Root`) and bar `texture` fills.
 
+Shipped after the initial draft (not deferred — a new capability): a
+`decorative` Root prop on all four families for placeholder / empty-state
+charts. It keeps the canvas paint and animation but drops every real-data
+layer — no interaction overlay (so no tab stop, hover band, tooltip, or
+activation), no sr-only data-table twin, no live region — and marks the root
+`aria-hidden`. Modeled as a discriminated union over `decorative` (the
+`ChartAccessibilityProps` type): interactive charts still require an accessible
+name and may wire the interaction callbacks; a decorative chart forbids both,
+so invalid combinations are unrepresentable rather than runtime-checked. Named
+`decorative` (not `disabled` — a chart is not a form control, and the real
+distinction is whether the values are information); it supersedes the prior
+consumer workaround of native `inert` + CSS targeting `[role="application"]`.
+An `interactive={false}` mode — real, table-readable data without pointer/
+keyboard exploration — remains a separate, unshipped concern; do not conflate
+it with `decorative`.
+
 ## Alternatives rejected
 
 - **One `@ngrok/mantle/charts` subpath:** chart-specific parts (Bar/Line/

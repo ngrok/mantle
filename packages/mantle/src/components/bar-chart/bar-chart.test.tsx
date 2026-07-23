@@ -379,6 +379,92 @@ describe("BarChart textures", () => {
 	});
 });
 
+describe("BarChart decorative mode", () => {
+	const renderDecorative = () =>
+		render(
+			<BarChart.Root data={data} xKey="month" decorative>
+				<BarChart.Grid />
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" />
+			</BarChart.Root>,
+		);
+
+	test("hides the whole visualization from assistive tech and needs no accessible name", () => {
+		const { container } = renderDecorative();
+		const root = container.querySelector('[data-slot="bar-chart"]');
+		expect(root).toHaveAttribute("aria-hidden", "true");
+		// The canvas still paints the placeholder bars — decorative preserves the
+		// visual rendering, it only strips the interaction and a11y layers.
+		expect(container.querySelector("canvas")).toBeInTheDocument();
+	});
+
+	test("renders no interaction overlay, so nothing in the chart is a tab stop", () => {
+		const { container } = renderDecorative();
+		expect(screen.queryByRole("application")).not.toBeInTheDocument();
+		expect(container.querySelector("[tabindex]")).not.toBeInTheDocument();
+	});
+
+	test("renders no sr-only data table and no live region", () => {
+		renderDecorative();
+		expect(screen.queryByRole("table")).not.toBeInTheDocument();
+		expect(screen.queryByRole("status")).not.toBeInTheDocument();
+	});
+
+	test("pointer and keyboard never surface a tooltip readout", async () => {
+		const user = userEvent.setup();
+		const { container } = renderDecorative();
+		const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
+		// The engine still owns the tooltip element, but with no overlay to receive
+		// events it can never fill or reveal it.
+		expect(tooltip?.textContent).toBe("");
+		await user.tab();
+		await user.keyboard("{ArrowRight}{Enter}");
+		expect(tooltip?.textContent).toBe("");
+	});
+
+	test("suppresses a type-bypassing controlled activeIndex so no readout surfaces", () => {
+		// A loosely-typed / JS consumer can slip past the ChartAccessibilityProps
+		// union — the same class of hole the xKey invariant backstops. The runtime
+		// guard must still keep a decorative chart inert: an activeIndex of 1 drives
+		// the tooltip to "February" on an interactive chart (see the controlled
+		// activeIndex test above), but must surface nothing here.
+		const { container } = render(
+			<>
+				{/* @ts-expect-error — decorative forbids activeIndex; the runtime guard must suppress it anyway */}
+				<BarChart.Root data={data} xKey="month" decorative activeIndex={1}>
+					<BarChart.Bar dataKey="desktop" label="Desktop" />
+				</BarChart.Root>
+			</>,
+		);
+		const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(tooltip?.textContent).toBe("");
+	});
+
+	test("type model: decorative needs no name; interactive requires one and forbids decorative extras", () => {
+		const { container } = render(
+			<>
+				{/* ✅ decorative needs neither an accessible name nor interaction props */}
+				<BarChart.Root data={data} xKey="month" decorative>
+					<BarChart.Bar dataKey="desktop" />
+				</BarChart.Root>
+				{/* @ts-expect-error — an interactive chart requires an accessible name */}
+				<BarChart.Root data={data} xKey="month">
+					<BarChart.Bar dataKey="desktop" />
+				</BarChart.Root>
+				{/* @ts-expect-error — decorative forbids an accessible name */}
+				<BarChart.Root data={data} xKey="month" decorative aria-label="Placeholder">
+					<BarChart.Bar dataKey="desktop" />
+				</BarChart.Root>
+				{/* @ts-expect-error — decorative forbids interaction callbacks */}
+				<BarChart.Root data={data} xKey="month" decorative onDatumActivate={() => {}}>
+					<BarChart.Bar dataKey="desktop" />
+				</BarChart.Root>
+			</>,
+		);
+		expect(container).toBeInTheDocument();
+	});
+});
+
 describe("BarChart sticky series colors", () => {
 	test("filtering a series out does not recolor the survivors", () => {
 		const filterableData = [

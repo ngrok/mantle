@@ -431,3 +431,30 @@ describe("AreaChart sticky series colors", () => {
 		expect(udpAfter).toContain("chart-3");
 	});
 });
+
+describe("AreaChart decorative mode", () => {
+	const renderDecorative = () =>
+		render(
+			<AreaChart.Root data={data} xKey="date" decorative>
+				<AreaChart.Area dataKey="http" label="HTTP" />
+			</AreaChart.Root>,
+		);
+
+	test("hides the visualization from assistive tech and needs no accessible name", () => {
+		const { container } = renderDecorative();
+		expect(container.querySelector('[data-slot="area-chart"]')).toHaveAttribute(
+			"aria-hidden",
+			"true",
+		);
+		// Decorative preserves the canvas rendering; it only strips interaction + a11y.
+		expect(container.querySelector("canvas")).toBeInTheDocument();
+	});
+
+	test("is inert: no interaction overlay, tab stop, data table, or live region", () => {
+		const { container } = renderDecorative();
+		expect(screen.queryByRole("application")).not.toBeInTheDocument();
+		expect(container.querySelector("[tabindex]")).not.toBeInTheDocument();
+		expect(screen.queryByRole("table")).not.toBeInTheDocument();
+		expect(screen.queryByRole("status")).not.toBeInTheDocument();
+	});
+});

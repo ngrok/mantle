@@ -64,16 +64,76 @@ import type {
  */
 
 /**
- * Every chart must have an accessible name: either a direct `aria-label` or
- * an `aria-labelledby` reference to a visible title (preferred when the chart
- * sits under a heading — no drift-prone duplicated text). Enforced at the
- * type level; the name lands on the interaction overlay (the chart's single
- * named element — the canvas itself is aria-hidden so AT never announces the
- * chart twice).
+ * Every interactive chart must have an accessible name: either a direct
+ * `aria-label` or an `aria-labelledby` reference to a visible title (preferred
+ * when the chart sits under a heading — no drift-prone duplicated text).
+ * Enforced at the type level; the name lands on the interaction overlay (the
+ * chart's single named element — the canvas itself is aria-hidden so AT never
+ * announces the chart twice). Decorative charts are exempt — see
+ * {@link ChartAccessibilityProps}.
  */
 type ChartAccessibleName =
 	| { "aria-label": string; "aria-labelledby"?: never }
 	| { "aria-labelledby": string; "aria-label"?: never };
+
+/**
+ * The interaction props an interactive chart may wire — the controlled
+ * `activeIndex` and the two notification callbacks. Modeled apart from the base
+ * props so a decorative chart can forbid them: a decorative chart has no hover
+ * UI and never activates a datum, so these would be dead code.
+ */
+type ChartInteractionProps = {
+	/**
+	 * Controlled active datum index — an index into `data` (`null` = none).
+	 * Omit for uncontrolled hover.
+	 */
+	activeIndex?: number | null;
+	/** Notified when hover/keyboard moves the active index (an index into `data`). */
+	onActiveIndexChange?: (index: number | null) => void;
+	/** Notified on datum activation: mark click, or Enter/Space on the focused chart. */
+	onDatumActivate?: (event: ChartDatumEvent) => void;
+};
+
+/**
+ * The accessibility + interactivity contract every chart Root takes, modeled
+ * as a discriminated union over `decorative` so invalid combinations are
+ * unrepresentable:
+ *
+ * - **Interactive** (the default — `decorative` omitted or `false`): the chart
+ *   carries real data. It requires an accessible name (`aria-label` xor
+ *   `aria-labelledby`) and may wire the interaction callbacks. This is the
+ *   full contract charts have always had.
+ * - **Decorative** (`decorative: true`): the chart is a placeholder or
+ *   atmospheric graphic whose values are not real data — synthetic bars behind
+ *   an empty state, a hero backdrop. It still renders and animates, but it is
+ *   hidden from assistive technology (no accessible name, no sr-only data
+ *   table, no live region), removed from the tab order, and inert to pointer
+ *   and keyboard, so the accessible-name and interaction props are forbidden.
+ *
+ * `decorative` communicates intent — "these values are not information" —
+ * where a `disabled` flag would be ambiguous (a chart is not a form control).
+ */
+type ChartAccessibilityProps =
+	| ({ decorative?: false } & ChartAccessibleName & ChartInteractionProps)
+	| {
+			/**
+			 * Render the chart as a decorative placeholder: it keeps its visual
+			 * rendering and animation but is hidden from assistive technology,
+			 * removed from the tab order, and inert to pointer and keyboard — no
+			 * hover band, tooltip, data table, or live region. Use it for
+			 * empty-state backdrops and atmospheric graphics whose values are not
+			 * real data; it forbids the accessible-name and interaction props,
+			 * which have no meaning without real data.
+			 *
+			 * @default false
+			 */
+			decorative: true;
+			"aria-label"?: never;
+			"aria-labelledby"?: never;
+			activeIndex?: never;
+			onActiveIndexChange?: never;
+			onDatumActivate?: never;
+	  };
 
 type ChartContextValue = {
 	kind: SeriesMark;
@@ -121,10 +181,11 @@ const CHART_TABLE_ROW_LIMIT = 150;
 // ---- Root -------------------------------------------------------------------
 
 /**
- * Root props shared by every chart kind, WITHOUT the accessible-name union or
- * the data/x props. Public wrappers `Omit` from this base and re-intersect
- * `ChartAccessibleName` — `Omit` over a union type flattens it, which would
- * silently make the required accessible name optional.
+ * Root props shared by every chart kind, WITHOUT the accessibility/interaction
+ * union or the data/x props. Public wrappers `Omit` from this base and
+ * re-intersect `ChartAccessibilityProps` — `Omit` over a union type flattens
+ * it, which would silently make the required accessible name optional and
+ * erase the `decorative` discriminant.
  */
 type ChartRootBaseProps = Omit<ComponentProps<"div">, "aria-label" | "aria-labelledby"> &
 	WithDataSlot & {
@@ -139,19 +200,10 @@ type ChartRootBaseProps = Omit<ComponentProps<"div">, "aria-label" | "aria-label
 		 * never swap a chart that has rendered once for a skeleton.
 		 */
 		pending?: boolean;
-		/**
-		 * Controlled active datum index — an index into `data` (`null` = none).
-		 * Omit for uncontrolled hover.
-		 */
-		activeIndex?: number | null;
-		/** Notified when hover/keyboard moves the active index (an index into `data`). */
-		onActiveIndexChange?: (index: number | null) => void;
-		/** Notified on datum activation: mark click, or Enter/Space on the focused chart. */
-		onDatumActivate?: (event: ChartDatumEvent) => void;
 	};
 
 type ChartRootPrimitiveProps = ChartRootBaseProps &
-	ChartAccessibleName & {
+	ChartAccessibilityProps & {
 		/** Rows of data; series parts read one numeric key per row. */
 		data: readonly ChartDatum[];
 		/** The key of each row's x value. */
@@ -216,6 +268,11 @@ const AUTO_Y_DOMAIN: YDomain = ["auto", "auto"];
  * the hover overlay elements, the tooltip container, the aria-live region,
  * and the sr-only data table; owns the engine lifecycle.
  *
+ * When `decorative`, it keeps the canvas and hover overlay elements (the engine
+ * still paints) but omits the interaction overlay, the aria-live region, and
+ * the sr-only data table, and marks the root `aria-hidden` — a placeholder
+ * backdrop with no interaction and nothing for assistive technology.
+ *
  * No `asChild`: Root owns a fixed internal structure (canvas + observers +
  * overlay) whose lifecycles are bound to this exact element tree, so
  * element-swapping polymorphism does not apply.
@@ -234,6 +291,7 @@ const ChartRootPrimitive = ({
 	orientation = "vertical",
 	animate = true,
 	pending = false,
+	decorative = false,
 	activeIndex,
 	onActiveIndexChange,
 	onDatumActivate,
@@ -243,6 +301,10 @@ const ChartRootPrimitive = ({
 	"data-slot": dataSlot,
 	"aria-label": ariaLabel,
 	"aria-labelledby": ariaLabelledBy,
+	// Pulled out of `props` so the decorative aria-hidden contract can't be
+	// clobbered by a consumer value spread after it (a decorative chart is
+	// unconditionally hidden from AT; an interactive one honors what's passed).
+	"aria-hidden": ariaHidden,
 	...props
 }: InternalRootProps) => {
 	// One store per Root lifetime: sticky color slots and part registrations
@@ -360,15 +422,24 @@ const ChartRootPrimitive = ({
 	}, [data]);
 
 	useLayoutEffect(() => {
-		engineRef.current?.setCallbacks({
-			onDatumActivate: onDatumActivate ?? null,
-			onActiveIndexChange: onActiveIndexChange ?? null,
-		});
+		// A decorative chart never activates a datum or moves an active index, so
+		// it never wires the consumer's callbacks — the type union already forbids
+		// them, and clearing here keeps a stray runtime value from ever firing.
+		engineRef.current?.setCallbacks(
+			decorative
+				? { onDatumActivate: null, onActiveIndexChange: null }
+				: {
+						onDatumActivate: onDatumActivate ?? null,
+						onActiveIndexChange: onActiveIndexChange ?? null,
+					},
+		);
 	});
 
 	useLayoutEffect(() => {
-		engineRef.current?.setControlledActiveIndex(activeIndex);
-	}, [activeIndex]);
+		// Force uncontrolled when decorative: a controlled index would otherwise
+		// drive the tooltip/marker overlay visible on a chart that must not react.
+		engineRef.current?.setControlledActiveIndex(decorative ? undefined : activeIndex);
+	}, [decorative, activeIndex]);
 
 	// Must stay the LAST effect: rows, options, and series registrations from
 	// one commit land in the engine as a single consistent ingest. Ingesting
@@ -385,6 +456,11 @@ const ChartRootPrimitive = ({
 			// relative: DOM parts composed as children (e.g. CopyButton) can dock
 			// against the whole chart with absolute positioning.
 			className={cx("relative flex aspect-video w-full flex-col", className)}
+			// A decorative chart is a placeholder backdrop, not information: hide the
+			// whole visualization from assistive technology, always winning over any
+			// consumer value. Interactive charts name the overlay instead (the canvas
+			// is always aria-hidden) and honor a consumer-passed aria-hidden.
+			aria-hidden={decorative ? true : ariaHidden}
 			ref={composedRootRef}
 			{...props}
 		>
@@ -406,68 +482,79 @@ const ChartRootPrimitive = ({
 						aria-hidden
 						className="absolute inset-0 size-full"
 					/>
-					<div
-						role="application"
-						aria-label={ariaLabel}
-						aria-labelledby={ariaLabelledBy}
-						aria-describedby={instructionsId}
-						// oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- role="application" is the keyboard point-cursor widget; focus is how arrow-key stepping works
-						tabIndex={0}
-						className={cx(
-							"focus-visible:ring-focus-accent absolute inset-0 rounded-sm outline-none focus-visible:ring-2",
-							(kind === "line" || kind === "area") && "cursor-crosshair",
-							// touch-none only in 3D: without it the browser claims the pan
-							// gesture and cancels the rotation drag on touch devices. 2D
-							// charts must NOT block page scrolling.
-							kind === "scatter" && zKey != null && "touch-none cursor-grab active:cursor-grabbing",
-						)}
-						onPointerDown={(event) => {
-							// Capture only for the 3D rotation drag (it must keep tracking
-							// outside the plot); on 2D charts, capture would also make
-							// drag-away-to-cancel activation impossible. Synthetic events
-							// (tests) have no active pointer to capture — capturing one
-							// throws before the engine ever sees the press.
-							if (event.isTrusted && kind === "scatter" && zKey != null) {
-								event.currentTarget.setPointerCapture(event.pointerId);
-							}
-							engineRef.current?.handlePointerDown(
-								event.nativeEvent.offsetX,
-								event.nativeEvent.offsetY,
-							);
-						}}
-						onPointerMove={(event) => {
-							engineRef.current?.handlePointerMove(
-								event.nativeEvent.offsetX,
-								event.nativeEvent.offsetY,
-							);
-						}}
-						onPointerUp={(event) => {
-							engineRef.current?.handlePointerUp(
-								event.nativeEvent.offsetX,
-								event.nativeEvent.offsetY,
-							);
-						}}
-						onPointerLeave={() => {
-							engineRef.current?.handlePointerLeave();
-						}}
-						onPointerCancel={() => {
-							// The browser reclaimed the pointer (e.g. a touch pan won) —
-							// reset drag/hover state deterministically.
-							engineRef.current?.handlePointerLeave();
-						}}
-						onBlur={() => {
-							engineRef.current?.handlePointerLeave();
-						}}
-						onKeyDown={(event) => {
-							if (engineRef.current?.handleKeyDown(event.key)) {
-								event.preventDefault();
-							}
-						}}
-					/>
-					<span id={instructionsId} className="sr-only">
-						Use the left and right arrow keys to move between data points, Home and End to jump to
-						the first and last, and Enter to activate the current point.
-					</span>
+					{/* The interaction overlay is the chart's only focusable element and
+					    the surface every pointer/keyboard handler lives on. A decorative
+					    chart omits it entirely — no tab stop, no hover band, no
+					    crosshair, no activation — so it stays inert without any consumer
+					    CSS or `inert` workaround. */}
+					{decorative ? null : (
+						<>
+							<div
+								role="application"
+								aria-label={ariaLabel}
+								aria-labelledby={ariaLabelledBy}
+								aria-describedby={instructionsId}
+								// oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- role="application" is the keyboard point-cursor widget; focus is how arrow-key stepping works
+								tabIndex={0}
+								className={cx(
+									"focus-visible:ring-focus-accent absolute inset-0 rounded-sm outline-none focus-visible:ring-2",
+									(kind === "line" || kind === "area") && "cursor-crosshair",
+									// touch-none only in 3D: without it the browser claims the pan
+									// gesture and cancels the rotation drag on touch devices. 2D
+									// charts must NOT block page scrolling.
+									kind === "scatter" &&
+										zKey != null &&
+										"touch-none cursor-grab active:cursor-grabbing",
+								)}
+								onPointerDown={(event) => {
+									// Capture only for the 3D rotation drag (it must keep tracking
+									// outside the plot); on 2D charts, capture would also make
+									// drag-away-to-cancel activation impossible. Synthetic events
+									// (tests) have no active pointer to capture — capturing one
+									// throws before the engine ever sees the press.
+									if (event.isTrusted && kind === "scatter" && zKey != null) {
+										event.currentTarget.setPointerCapture(event.pointerId);
+									}
+									engineRef.current?.handlePointerDown(
+										event.nativeEvent.offsetX,
+										event.nativeEvent.offsetY,
+									);
+								}}
+								onPointerMove={(event) => {
+									engineRef.current?.handlePointerMove(
+										event.nativeEvent.offsetX,
+										event.nativeEvent.offsetY,
+									);
+								}}
+								onPointerUp={(event) => {
+									engineRef.current?.handlePointerUp(
+										event.nativeEvent.offsetX,
+										event.nativeEvent.offsetY,
+									);
+								}}
+								onPointerLeave={() => {
+									engineRef.current?.handlePointerLeave();
+								}}
+								onPointerCancel={() => {
+									// The browser reclaimed the pointer (e.g. a touch pan won) —
+									// reset drag/hover state deterministically.
+									engineRef.current?.handlePointerLeave();
+								}}
+								onBlur={() => {
+									engineRef.current?.handlePointerLeave();
+								}}
+								onKeyDown={(event) => {
+									if (engineRef.current?.handleKeyDown(event.key)) {
+										event.preventDefault();
+									}
+								}}
+							/>
+							<span id={instructionsId} className="sr-only">
+								Use the left and right arrow keys to move between data points, Home and End to jump
+								to the first and last, and Enter to activate the current point.
+							</span>
+						</>
+					)}
 					<div
 						ref={crosshairRef}
 						aria-hidden
@@ -491,16 +578,23 @@ const ChartRootPrimitive = ({
 					/>
 				</div>
 				{children}
-				<ChartAnnouncer store={store} xHasTimeOfDay={xHasTimeOfDay} />
-				<ChartDataTable
-					data={data}
-					label={ariaLabel}
-					slotName={slotName}
-					store={store}
-					xHasTimeOfDay={xHasTimeOfDay}
-					xKey={xKey}
-					zKey={zKey}
-				/>
+				{/* No live region and no data-table twin for a decorative chart: its
+				    values are not meaningful data, so there is nothing to announce or
+				    tabulate for assistive technology. */}
+				{decorative ? null : (
+					<>
+						<ChartAnnouncer store={store} xHasTimeOfDay={xHasTimeOfDay} />
+						<ChartDataTable
+							data={data}
+							label={ariaLabel}
+							slotName={slotName}
+							store={store}
+							xHasTimeOfDay={xHasTimeOfDay}
+							xKey={xKey}
+							zKey={zKey}
+						/>
+					</>
+				)}
 			</ChartContext.Provider>
 		</div>
 	);
@@ -1233,7 +1327,7 @@ const ChartDataTable = ({
 
 export type {
 	//,
-	ChartAccessibleName,
+	ChartAccessibilityProps,
 	ChartRootBaseProps,
 	ChartRootPrimitiveProps,
 	CopyButtonPrimitiveProps,

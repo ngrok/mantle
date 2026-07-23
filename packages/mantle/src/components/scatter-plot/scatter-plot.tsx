@@ -1,7 +1,7 @@
 "use client";
 
 import type {
-	ChartAccessibleName,
+	ChartAccessibilityProps,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
@@ -38,7 +38,7 @@ type ScatterPlotRootProps<TDatum extends ChartDatum = ChartDatum> = Omit<
 	ChartRootBaseProps,
 	"stacked"
 > &
-	ChartAccessibleName & {
+	ChartAccessibilityProps & {
 		/** Rows of data; each row is one point per composed `ScatterPlot.Point` series. */
 		data: readonly TDatum[];
 		/** The key of each row's x value (number or `Date`). */
