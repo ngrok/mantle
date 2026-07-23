@@ -11,6 +11,13 @@ import type { Theme } from "../theme/themes.js";
  * - `dark`: MoonIcon
  * - `light-high-contrast`: SunIcon (fill)
  * - `dark-high-contrast`: MoonIcon (fill)
+ *
+ * @see https://mantle.ngrok.com/components/data-display/icons
+ *
+ * @example
+ * ```tsx
+ * <AutoThemeIcon className="size-5" />
+ * ```
  */
 function AutoThemeIcon(props: SvgAttributes) {
 	const appliedTheme = useAppliedTheme();
@@ -27,6 +34,13 @@ type ThemeIconProps = SvgAttributes & { theme: Theme };
  * - `dark`: MoonIcon
  * - `light-high-contrast`: SunIcon (fill)
  * - `dark-high-contrast`: MoonIcon (fill)
+ *
+ * @see https://mantle.ngrok.com/components/data-display/icons
+ *
+ * @example
+ * ```tsx
+ * <ThemeIcon theme="system" />
+ * ```
  */
 function ThemeIcon({ theme, ...props }: ThemeIconProps) {
 	switch (theme) {

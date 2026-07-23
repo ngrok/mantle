@@ -3,6 +3,15 @@ title: Icons
 description: Custom icons used throughout ngrok UI.
 ---
 
+import {
+	AutoThemeIcon,
+	NgrokLettermarkIcon,
+	NgrokWordmarkIcon,
+	SortIcon,
+	ThemeIcon,
+	TrafficPolicyFileIcon,
+} from "@ngrok/mantle/icons";
+import { Example } from "~/components/example";
 import { IconsExplorer } from "~/features/icons-explorer";
 
 # Icons
@@ -11,14 +20,37 @@ A list of custom icons that are used throughout ngrok UI.
 
 <IconsExplorer />
 
+<Example className="gap-4">
+	<SortIcon mode="time" direction="newest-to-oldest" />
+	<ThemeIcon theme="system" />
+	<AutoThemeIcon />
+	<TrafficPolicyFileIcon />
+	<NgrokLettermarkIcon />
+	<NgrokWordmarkIcon />
+</Example>
+
 ```tsx
 import {
-	SortIcon,
-	TrafficPolicyFileIcon,
 	AutoThemeIcon,
+	NgrokLettermarkIcon,
+	NgrokWordmarkIcon,
+	SortIcon,
 	ThemeIcon,
-	NgrokIcon,
+	TrafficPolicyFileIcon,
 } from "@ngrok/mantle/icons";
+
+function IconGallery() {
+	return (
+		<>
+			<SortIcon mode="time" direction="newest-to-oldest" />
+			<ThemeIcon theme="system" />
+			<AutoThemeIcon />
+			<TrafficPolicyFileIcon />
+			<NgrokLettermarkIcon />
+			<NgrokWordmarkIcon />
+		</>
+	);
+}
 ```
 
 ## API Reference
@@ -50,9 +82,13 @@ An icon for a specific theme.
 | :------ | :------------------------------------------------------------------------------- | :------ | :-------------------- |
 | `theme` | `"system" \| "light" \| "dark" \| "light-high-contrast" \| "dark-high-contrast"` |         | The theme to display. |
 
-### NgrokIcon
+### NgrokWordmarkIcon
 
-The ngrok logo icon.
+An inline SVG of the ngrok wordmark logo; fill color follows the `color` CSS property.
+
+### NgrokLettermarkIcon
+
+An inline SVG of the ngrok lettermark "n" logo; fill color follows the `color` CSS property.
 
 ## Icon Reference
 
@@ -64,4 +100,5 @@ This table is intentionally duplicated in plain markdown so readers (and AI agen
 | `TrafficPolicyFileIcon` | The ngrok traffic policy file icon.                                                                 |
 | `AutoThemeIcon`         | Icon that automatically adapts to the currently applied theme.                                      |
 | `ThemeIcon`             | Theme-specific icon controlled by the `theme` prop (`"system"`, `"light"`, `"dark"`, and HC modes). |
-| `NgrokIcon`             | The ngrok logo icon.                                                                                |
+| `NgrokWordmarkIcon`     | An inline SVG of the ngrok wordmark logo; fill color follows the `color` CSS property.              |
+| `NgrokLettermarkIcon`   | An inline SVG of the ngrok lettermark "n" logo; fill color follows the `color` CSS property.        |

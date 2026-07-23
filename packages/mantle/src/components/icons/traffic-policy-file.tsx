@@ -2,6 +2,13 @@ import type { SvgAttributes } from "../icon/types.js";
 
 /**
  * An icon representing a traffic policy file.
+ *
+ * @see https://mantle.ngrok.com/components/data-display/icons
+ *
+ * @example
+ * ```tsx
+ * <TrafficPolicyFileIcon className="size-5" />
+ * ```
  */
 function TrafficPolicyFileIcon(props: SvgAttributes) {
 	return (
