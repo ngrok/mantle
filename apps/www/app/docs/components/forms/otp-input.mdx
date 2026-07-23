@@ -312,7 +312,17 @@ Pass `disabled` to the root to disable the entire input.
 
 ```tsx
 <OtpInput.Root maxLength={6} disabled>
-	{/* ... */}
+	<OtpInput.Group>
+		<OtpInput.Slot index={0} />
+		<OtpInput.Slot index={1} />
+		<OtpInput.Slot index={2} />
+	</OtpInput.Group>
+	<OtpInput.Separator />
+	<OtpInput.Group>
+		<OtpInput.Slot index={3} />
+		<OtpInput.Slot index={4} />
+		<OtpInput.Slot index={5} />
+	</OtpInput.Group>
 </OtpInput.Root>
 ```
 
@@ -371,9 +381,33 @@ styling, e.g.
 </Example>
 
 ```tsx
+// "success" and "warning" render the same structure with a different hue.
 <OtpInput.Root maxLength={6} validation="error">
-	{/* ... */}
+	<OtpInput.Group>
+		<OtpInput.Slot index={0} />
+		<OtpInput.Slot index={1} />
+		<OtpInput.Slot index={2} />
+	</OtpInput.Group>
+	<OtpInput.Separator />
+	<OtpInput.Group>
+		<OtpInput.Slot index={3} />
+		<OtpInput.Slot index={4} />
+		<OtpInput.Slot index={5} />
+	</OtpInput.Group>
 </OtpInput.Root>
+```
+
+## Composition
+
+Compose the parts of an `OtpInput` together to build your own:
+
+```text showLineNumbers=false
+OtpInput.Root
+├── OtpInput.Group
+│   └── OtpInput.Slot
+├── OtpInput.Separator
+└── OtpInput.Group
+    └── OtpInput.Slot
 ```
 
 ## Polymorphism
@@ -406,19 +440,6 @@ semantic span, or wrapping a group in a styled label.
 <OtpInput.Separator asChild>
 	<span aria-hidden>·</span>
 </OtpInput.Separator>
-```
-
-## Composition
-
-Compose the parts of an `OtpInput` together to build your own:
-
-```text showLineNumbers=false
-OtpInput.Root
-├── OtpInput.Group
-│   └── OtpInput.Slot
-├── OtpInput.Separator
-└── OtpInput.Group
-    └── OtpInput.Slot
 ```
 
 ## API Reference
