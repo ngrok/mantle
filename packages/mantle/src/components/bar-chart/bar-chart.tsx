@@ -352,7 +352,8 @@ const CopyButton = (props: BarChartCopyButtonProps) => (
  * ├── BarChart.Bar (one per series)
  * ├── BarChart.ReferenceLine
  * ├── BarChart.Tooltip
- * └── BarChart.Legend
+ * ├── BarChart.Legend
+ * └── BarChart.CopyButton
  * ```
  *
  * @example
