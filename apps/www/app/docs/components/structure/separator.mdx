@@ -171,9 +171,23 @@ The separator renders in the semantic `separator` color token — `gray-500/20` 
 
 Reuse the same color on your own dividers instead of hard-coding it:
 
+<Example className="flex-col gap-4">
+	<div className="border-separator w-full border-b" />
+	<ul className="divide-separator w-full divide-y">
+		<li className="py-1">Blog</li>
+		<li className="py-1">Docs</li>
+		<li className="py-1">Source</li>
+	</ul>
+	<span className="bg-separator h-px w-full" />
+</Example>
+
 ```tsx
-<div className="border-separator border-b" />
-<ul className="divide-separator divide-y" />
+<div className="border-separator w-full border-b" />
+<ul className="divide-separator w-full divide-y">
+	<li className="py-1">Blog</li>
+	<li className="py-1">Docs</li>
+	<li className="py-1">Source</li>
+</ul>
 <span className="bg-separator h-px w-full" />
 ```
 
