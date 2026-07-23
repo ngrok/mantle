@@ -1,4 +1,5 @@
-import { AlertCenter, type AlertCenterAlert } from "@ngrok/mantle/alert-center";
+import { Alert } from "@ngrok/mantle/alert";
+import { AlertCenter } from "@ngrok/mantle/alert-center";
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { IconButton } from "@ngrok/mantle/button";
@@ -83,43 +84,66 @@ const demoNavSections: ReadonlyArray<DemoNavSection> = [
 	},
 ];
 
-const appShellSingleAlert = [
-	{
-		id: "usage-limit",
-		intent: "warning",
-		title: "Your workspace is approaching its monthly usage limit",
-		description: "Review usage or update your plan to avoid interruption.",
-		action: { label: "Review usage", href: "#usage" },
-	},
-] satisfies AlertCenterAlert[];
-
-const appShellMultipleAlerts = [
-	{
-		id: "billing",
-		intent: "danger",
-		title: "A payment could not be processed",
-		description: "Review your billing details to avoid an interruption.",
-		action: { label: "Review billing", href: "#billing" },
-	},
-	...appShellSingleAlert,
-	{
-		id: "member-limit",
-		intent: "warning",
-		title: "Your workspace is approaching its member limit",
-		description: "Review members or update your plan to add more.",
-		action: { label: "Review members", href: "#members" },
-	},
-] satisfies AlertCenterAlert[];
-
-// Keyed by the toggle so `AlertCenter.Root` can stay mounted and swap its
-// `alerts` prop — an empty array collapses the bar with its exit animation
-// instead of unmounting (which would pop it out with no transition).
-const appShellAlertsByExample = {
-	single: appShellSingleAlert,
-	multiple: appShellMultipleAlerts,
-} as const satisfies Record<"single" | "multiple", AlertCenterAlert[]>;
-
-const noAlerts: AlertCenterAlert[] = [];
+/**
+ * The demo account alerts, authored as `AlertCenter.Item` JSX under a
+ * stay-mounted `AlertCenter.Root` — the toggle mounts and unmounts items, so
+ * flipping everything off collapses the bar with its exit animation instead of
+ * popping it out. The single example shows just the usage-limit warning; the
+ * multiple example adds a billing failure (the danger takes the bar) and a
+ * member-limit warning.
+ */
+function DemoAccountAlerts({ example }: { example: "single" | "multiple" | null }) {
+	return (
+		<>
+			{example === "multiple" && (
+				<AlertCenter.Item id="billing" intent="danger">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>
+							A payment could not be processed{" "}
+							<a className="font-medium" href="#billing">
+								Review billing
+							</a>
+						</Alert.Title>
+						<Alert.Description>
+							Review your billing details to avoid an interruption.
+						</Alert.Description>
+					</Alert.Content>
+				</AlertCenter.Item>
+			)}
+			{example != null && (
+				<AlertCenter.Item id="usage-limit" intent="warning">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>
+							Your workspace is approaching its monthly usage limit{" "}
+							<a className="font-medium" href="#usage">
+								Review usage
+							</a>
+						</Alert.Title>
+						<Alert.Description>
+							Review usage or update your plan to avoid interruption.
+						</Alert.Description>
+					</Alert.Content>
+				</AlertCenter.Item>
+			)}
+			{example === "multiple" && (
+				<AlertCenter.Item id="member-limit" intent="warning">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>
+							Your workspace is approaching its member limit{" "}
+							<a className="font-medium" href="#members">
+								Review members
+							</a>
+						</Alert.Title>
+						<Alert.Description>Review members or update your plan to add more.</Alert.Description>
+					</Alert.Content>
+				</AlertCenter.Item>
+			)}
+		</>
+	);
+}
 
 const demoProducts = [
 	{
@@ -255,11 +279,10 @@ export function AppShellDemo() {
 							Preview notice
 						</div>
 					)}
-					<AlertCenter.Root
-						alerts={alertExample != null ? appShellAlertsByExample[alertExample] : noAlerts}
-					>
+					<AlertCenter.Root>
 						<AlertCenter.Bar />
 						<AlertCenter.Content />
+						<DemoAccountAlerts example={alertExample} />
 					</AlertCenter.Root>
 				</AppLayout.Notice>
 				<AppLayout.Body>
@@ -482,11 +505,10 @@ export function BridgeShellDemo() {
 							Preview notice
 						</div>
 					)}
-					<AlertCenter.Root
-						alerts={alertExample != null ? appShellAlertsByExample[alertExample] : noAlerts}
-					>
+					<AlertCenter.Root>
 						<AlertCenter.Bar />
 						<AlertCenter.Content />
+						<DemoAccountAlerts example={alertExample} />
 					</AlertCenter.Root>
 				</AppLayout.Notice>
 				<AppLayout.Body>

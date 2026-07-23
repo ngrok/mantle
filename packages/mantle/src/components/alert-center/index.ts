@@ -11,8 +11,7 @@ export {
 
 export type {
 	//,
-	AlertCenterAction,
-	AlertCenterAlert,
 	AlertCenterIntent,
+	AlertCenterItemProps,
 	AlertCenterRootProps,
 } from "./alert-center.js";

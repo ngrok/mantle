@@ -36,7 +36,8 @@ default.
 	<CodeExample.Code>
 
 ```tsx
-import { AlertCenter, type AlertCenterAlert } from "@ngrok/mantle/alert-center";
+import { Alert } from "@ngrok/mantle/alert";
+import { AlertCenter } from "@ngrok/mantle/alert-center";
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button } from "@ngrok/mantle/button";
@@ -46,31 +47,6 @@ import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { useState } from "react";
-
-const singleAlert = [
-	{
-		id: "usage-limit",
-		intent: "warning",
-		title: "Your workspace is approaching its monthly usage limit",
-		action: { label: "Review usage", href: "/usage" },
-	},
-] satisfies AlertCenterAlert[];
-
-const multipleAlerts = [
-	{
-		id: "billing",
-		intent: "danger",
-		title: "A payment could not be processed",
-		action: { label: "Review billing", href: "/billing" },
-	},
-	...singleAlert,
-	{
-		id: "member-limit",
-		intent: "warning",
-		title: "Your workspace is approaching its member limit",
-		action: { label: "Review members", href: "/members" },
-	},
-] satisfies AlertCenterAlert[];
 
 export function Shell() {
 	const [pathname, setPathname] = useState("/endpoints");
@@ -88,12 +64,42 @@ export function Shell() {
 							Preview notice
 						</div>
 					)}
-					{alertExample != null && (
-						<AlertCenter.Root alerts={alertExample === "single" ? singleAlert : multipleAlerts}>
-							<AlertCenter.Bar />
-							<AlertCenter.Content />
-						</AlertCenter.Root>
-					)}
+					<AlertCenter.Root>
+						<AlertCenter.Bar />
+						<AlertCenter.Content />
+						{alertExample === "multiple" && (
+							<AlertCenter.Item id="billing" intent="danger">
+								<Alert.Icon />
+								<Alert.Content>
+									<Alert.Title>
+										A payment could not be processed <a href="/billing">Review billing</a>
+									</Alert.Title>
+								</Alert.Content>
+							</AlertCenter.Item>
+						)}
+						{alertExample != null && (
+							<AlertCenter.Item id="usage-limit" intent="warning">
+								<Alert.Icon />
+								<Alert.Content>
+									<Alert.Title>
+										Your workspace is approaching its monthly usage limit{" "}
+										<a href="/usage">Review usage</a>
+									</Alert.Title>
+								</Alert.Content>
+							</AlertCenter.Item>
+						)}
+						{alertExample === "multiple" && (
+							<AlertCenter.Item id="member-limit" intent="warning">
+								<Alert.Icon />
+								<Alert.Content>
+									<Alert.Title>
+										Your workspace is approaching its member limit{" "}
+										<a href="/members">Review members</a>
+									</Alert.Title>
+								</Alert.Content>
+							</AlertCenter.Item>
+						)}
+					</AlertCenter.Root>
 				</AppLayout.Notice>
 				<AppLayout.Body>
 					<Sidebar.Nav aria-label="Main">

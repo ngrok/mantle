@@ -1,15 +1,15 @@
-import { AlertCenter, type AlertCenterAlert } from "@ngrok/mantle/alert-center";
 import { Alert } from "@ngrok/mantle/alert";
+import { AlertCenter } from "@ngrok/mantle/alert-center";
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button } from "@ngrok/mantle/button";
 import { Main } from "@ngrok/mantle/main";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
-import { CreditCardIcon } from "@phosphor-icons/react/CreditCard";
 import { GearIcon } from "@phosphor-icons/react/Gear";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { HashIcon } from "@phosphor-icons/react/Hash";
+import { LightbulbIcon } from "@phosphor-icons/react/Lightbulb";
 import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -23,54 +23,101 @@ const demoNavItems: ReadonlyArray<DemoNavItem> = [
 ];
 
 /**
- * A realistic set of account-limit / usage / billing alerts for the demos —
- * one persistent revenue-recovery alert (payment failed), two dismissable
- * upgrade nags, and one informational notice. `AlertCenter` ranks them by
- * severity, so "Payment failed" always leads the bar.
+ * A realistic set of account-limit / usage / billing alerts, authored as
+ * `AlertCenter.Item` JSX — one persistent revenue-recovery alert (payment
+ * failed, no dismiss button), two dismissable upgrade nags, and one
+ * informational notice. `AlertCenter` ranks them by severity, so "Payment
+ * failed" always leads the bar; dismissal is just the consumer unmounting an
+ * item.
  */
-const demoAlerts: ReadonlyArray<AlertCenterAlert> = [
-	{
-		id: "new-region",
-		intent: "info",
-		title: "New region available: eu-west",
-		description: "You can now create endpoints in the eu-west region.",
-		action: { label: "Learn more", href: "#regions" },
-		dismissable: true,
-	},
-	{
-		id: "tunnel-limit",
-		intent: "warning",
-		title: "Tunnel limit reached",
-		description: "Free accounts are limited to 4 simultaneous tunnels. Upgrade to run more.",
-		action: { label: "Upgrade", href: "#upgrade" },
-		dismissable: true,
-	},
-	{
-		id: "transfer-limit",
-		intent: "warning",
-		title: "You've used 92% of your monthly data transfer",
-		description:
-			"Free accounts include 5 GB of transfer per month. Upgrade for unlimited transfer.",
-		action: { label: "Upgrade", href: "#upgrade" },
-		dismissable: true,
-	},
-	{
-		id: "payment-failed",
-		intent: "danger",
-		title: "Payment failed — update your card",
-		description:
-			"We couldn't charge the card ending in 4242. Update your payment method to avoid a service interruption.",
-		action: { label: "Update payment method", href: "#billing" },
-	},
-];
+function DemoAlerts({
+	dismissed,
+	onDismiss,
+}: {
+	dismissed: ReadonlySet<string>;
+	onDismiss: (id: string) => void;
+}) {
+	return (
+		<>
+			{!dismissed.has("new-region") && (
+				<AlertCenter.Item id="new-region" intent="info">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>
+							New region available: eu-west{" "}
+							<a className="font-medium" href="#regions">
+								Learn more
+							</a>
+						</Alert.Title>
+						<Alert.Description>
+							You can now create endpoints in the eu-west region.
+						</Alert.Description>
+						<AlertCenter.DismissIconButton onClick={() => onDismiss("new-region")} />
+					</Alert.Content>
+				</AlertCenter.Item>
+			)}
+			{!dismissed.has("tunnel-limit") && (
+				<AlertCenter.Item id="tunnel-limit" intent="warning">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>
+							Tunnel limit reached{" "}
+							<a className="font-medium" href="#upgrade">
+								Upgrade
+							</a>
+						</Alert.Title>
+						<Alert.Description>
+							Free accounts are limited to 4 simultaneous tunnels. Upgrade to run more.
+						</Alert.Description>
+						<AlertCenter.DismissIconButton onClick={() => onDismiss("tunnel-limit")} />
+					</Alert.Content>
+				</AlertCenter.Item>
+			)}
+			{!dismissed.has("transfer-limit") && (
+				<AlertCenter.Item id="transfer-limit" intent="warning">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>
+							You&apos;ve used 92% of your monthly data transfer{" "}
+							<a className="font-medium" href="#upgrade">
+								Upgrade
+							</a>
+						</Alert.Title>
+						<Alert.Description>
+							Free accounts include 5 GB of transfer per month. Upgrade for unlimited transfer.
+						</Alert.Description>
+						<AlertCenter.DismissIconButton onClick={() => onDismiss("transfer-limit")} />
+					</Alert.Content>
+				</AlertCenter.Item>
+			)}
+			{!dismissed.has("payment-failed") && (
+				<AlertCenter.Item id="payment-failed" intent="danger">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>
+							Payment failed — update your card{" "}
+							<a className="font-medium" href="#billing">
+								Update payment method
+							</a>
+						</Alert.Title>
+						<Alert.Description>
+							We couldn&apos;t charge the card ending in 4242. Update your payment method to avoid a
+							service interruption.
+						</Alert.Description>
+					</Alert.Content>
+				</AlertCenter.Item>
+			)}
+		</>
+	);
+}
 
 /**
  * The hero demo: `AppLayout.Notice` is the single top-of-window composition
  * slot. The alert bar is one child of it, next to any other window-level
  * notice, replacing a stack of independent window banners. The bar surfaces
- * the highest-severity alert inline; the count-and-caret control expands the other alerts as
- * full-width banners. Dismiss alerts to watch the bar re-rank (and finally
- * collapse), then reset.
+ * the highest-severity alert inline; the count-and-caret control expands the
+ * other alerts as full-width banners. Dismiss alerts to watch the bar re-rank
+ * (and finally collapse), then reset.
  *
  * Renders as an entire framed-preview document (see preview-registry.ts), so it
  * composes exactly like a real app shell: pinned with `fixed inset-0`, a
@@ -80,7 +127,7 @@ export function AlertCenterShellDemo() {
 	const [pathname, setPathname] = useState("/endpoints");
 	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
 
-	const alerts = demoAlerts.filter((alert) => !dismissed.has(alert.id));
+	const dismiss = (id: string) => setDismissed((previous) => new Set(previous).add(id));
 	const currentLabel = demoNavItems.find((item) => item.path === pathname)?.label ?? "Endpoints";
 
 	return (
@@ -90,12 +137,10 @@ export function AlertCenterShellDemo() {
 			<AppLayout.Root className="fixed inset-0">
 				<SkipToMainLink />
 				<AppLayout.Notice>
-					<AlertCenter.Root
-						alerts={alerts}
-						onDismiss={(id) => setDismissed((prev) => new Set(prev).add(id))}
-					>
+					<AlertCenter.Root>
 						<AlertCenter.Bar />
 						<AlertCenter.Content />
+						<DemoAlerts dismissed={dismissed} onDismiss={dismiss} />
 					</AlertCenter.Root>
 				</AppLayout.Notice>
 				<AppLayout.Body>
@@ -203,23 +248,16 @@ export function AlertCenterShellDemo() {
  */
 export function AlertCenterExample() {
 	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
-	const alerts = demoAlerts.filter((alert) => !dismissed.has(alert.id));
+	const dismiss = (id: string) => setDismissed((previous) => new Set(previous).add(id));
 
 	return (
 		<div className="flex w-full max-w-2xl flex-col gap-3">
 			<div className="border-card-muted overflow-hidden rounded-lg border">
-				<AlertCenter.Root
-					alerts={alerts}
-					onDismiss={(id) => setDismissed((prev) => new Set(prev).add(id))}
-				>
+				<AlertCenter.Root>
 					<AlertCenter.Bar />
 					<AlertCenter.Content />
+					<DemoAlerts dismissed={dismissed} onDismiss={dismiss} />
 				</AlertCenter.Root>
-				{alerts.length === 0 && (
-					<p className="text-muted p-4 text-center text-sm">
-						No active alerts — the bar has collapsed.
-					</p>
-				)}
 			</div>
 			<Button
 				type="button"
@@ -241,60 +279,63 @@ export function AlertCenterExample() {
  * omits the count-and-caret control entirely — there's nothing hidden to reveal.
  */
 export function AlertCenterSingleAlertExample() {
-	const singleAlert = [
-		{
-			id: "payment-failed",
-			intent: "danger",
-			title: "Payment failed — update your card",
-			action: { label: "Update payment method", href: "#billing" },
-		},
-	] satisfies AlertCenterAlert[];
-
 	return (
 		<div className="border-card-muted w-full max-w-2xl overflow-hidden rounded-lg border">
-			<AlertCenter.Root alerts={singleAlert}>
+			<AlertCenter.Root>
 				<AlertCenter.Bar />
 				<AlertCenter.Content />
+				<AlertCenter.Item id="payment-failed" intent="danger">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>
+							Payment failed — update your card{" "}
+							<a className="font-medium" href="#billing">
+								Update payment method
+							</a>
+						</Alert.Title>
+					</Alert.Content>
+				</AlertCenter.Item>
 			</AlertCenter.Root>
 		</div>
 	);
 }
 
 /**
- * A render-prop demo: `AlertCenter.Content` takes a function child, so each row
- * is fully composable while the count and ordering stay data-driven.
+ * A custom-content demo: each alert's banner is authored JSX, so anything
+ * composes — a custom icon, placement-aware extras, arbitrary elements. The
+ * usage tip renders a lightbulb instead of the intent icon, and its detail
+ * line is marked `in-data-[placement=bar]:hidden` so it appears only in the
+ * expansion rows (the same mechanism the bar uses to hide
+ * `Alert.Description`).
  */
-export function AlertCenterCustomRowExample() {
-	const alerts = [
-		{
-			id: "transfer-limit",
-			intent: "warning",
-			title: "Approaching your data transfer limit",
-			action: { label: "Upgrade", href: "#upgrade" },
-		},
-		{
-			id: "tunnel-limit",
-			intent: "warning",
-			title: "Tunnel limit reached",
-			action: { label: "Upgrade", href: "#upgrade" },
-		},
-	] satisfies AlertCenterAlert[];
-
+export function AlertCenterCustomContentExample() {
 	return (
 		<div className="border-card-muted w-full max-w-2xl overflow-hidden rounded-lg border">
-			<AlertCenter.Root alerts={alerts} defaultOpen>
+			<AlertCenter.Root defaultOpen>
 				<AlertCenter.Bar />
-				<AlertCenter.Content>
-					{(alert) => (
-						<Alert.Root appearance="banner" intent={alert.intent}>
-							<Alert.Icon />
-							<Alert.Content>
-								<Alert.Title>{alert.title}</Alert.Title>
-								<CreditCardIcon className="text-muted mt-1 size-4" />
-							</Alert.Content>
-						</Alert.Root>
-					)}
-				</AlertCenter.Content>
+				<AlertCenter.Content />
+				<AlertCenter.Item id="transfer-limit" intent="warning">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>
+							Approaching your data transfer limit{" "}
+							<a className="font-medium" href="#upgrade">
+								Upgrade
+							</a>
+						</Alert.Title>
+					</Alert.Content>
+				</AlertCenter.Item>
+				<AlertCenter.Item id="usage-tip" intent="info">
+					<Alert.Icon svg={<LightbulbIcon />} />
+					<Alert.Content>
+						<Alert.Title>
+							Tip: agent version <code>3.24</code> reconnects dropped tunnels automatically.
+						</Alert.Title>
+						<p className="in-data-[placement=bar]:hidden text-sm">
+							Run <code>ngrok update</code> to get the latest agent.
+						</p>
+					</Alert.Content>
+				</AlertCenter.Item>
 			</AlertCenter.Root>
 		</div>
 	);
