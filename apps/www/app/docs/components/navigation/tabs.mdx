@@ -939,6 +939,45 @@ Tabs.Root
 └── Tabs.Content
 ```
 
+## Polymorphism
+
+`Tabs.Trigger` accepts an `asChild` prop. When `true`, it composes the trigger styling and tab behavior onto its single child instead of rendering its own `<button>` — use it to render each tab as a router link (a `react-router` `Link` here) so tabs drive client-side navigation while keeping the active-tab styling.
+
+<Example className="scrollbar -m-1 p-1 overflow-x-scroll">
+	<Tabs.Root orientation="horizontal" defaultValue="colors">
+		<Tabs.List>
+			<Tabs.Trigger value="colors" asChild>
+				<Link to={href("/base/colors")}>Colors</Link>
+			</Tabs.Trigger>
+			<Tabs.Trigger value="shadows" asChild>
+				<Link to={href("/base/shadows")}>Shadows</Link>
+			</Tabs.Trigger>
+			<Tabs.Trigger value="typography" asChild>
+				<Link to={href("/base/typography")}>Typography</Link>
+			</Tabs.Trigger>
+		</Tabs.List>
+	</Tabs.Root>
+</Example>
+
+```tsx
+import { Tabs } from "@ngrok/mantle/tabs";
+import { Link, href } from "react-router";
+
+<Tabs.Root orientation="horizontal" defaultValue="colors">
+	<Tabs.List>
+		<Tabs.Trigger value="colors" asChild>
+			<Link to={href("/base/colors")}>Colors</Link>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="shadows" asChild>
+			<Link to={href("/base/shadows")}>Shadows</Link>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="typography" asChild>
+			<Link to={href("/base/typography")}>Typography</Link>
+		</Tabs.Trigger>
+	</Tabs.List>
+</Tabs.Root>;
+```
+
 ## API Reference
 
 The `Tabs` components accept the following props.
