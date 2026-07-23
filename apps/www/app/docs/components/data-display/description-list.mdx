@@ -89,6 +89,36 @@ DescriptionList.Root
     └── DescriptionList.Value
 ```
 
+## Polymorphism
+
+`DescriptionList.Root`, `DescriptionList.Item`, `DescriptionList.Label`, and `DescriptionList.Value` each accept an `asChild` prop. When `true`, the part renders its single child instead of its default element (`<dl>`, `<div>`, `<dt>`, `<dd>`), forwarding all class names, `data-*` attributes, and the ref onto that child.
+
+<Example>
+	<div className="w-full max-w-lg">
+		<DescriptionList.Root>
+			<DescriptionList.Item>
+				<DescriptionList.Label>Docs</DescriptionList.Label>
+				<DescriptionList.Value asChild>
+					<a href="https://mantle.ngrok.com">mantle.ngrok.com</a>
+				</DescriptionList.Value>
+			</DescriptionList.Item>
+		</DescriptionList.Root>
+	</div>
+</Example>
+
+```tsx
+import { DescriptionList } from "@ngrok/mantle/description-list";
+
+<DescriptionList.Root>
+	<DescriptionList.Item>
+		<DescriptionList.Label>Docs</DescriptionList.Label>
+		<DescriptionList.Value asChild>
+			<a href="https://mantle.ngrok.com">mantle.ngrok.com</a>
+		</DescriptionList.Value>
+	</DescriptionList.Item>
+</DescriptionList.Root>;
+```
+
 ## API Reference
 
 ### DescriptionList.Root

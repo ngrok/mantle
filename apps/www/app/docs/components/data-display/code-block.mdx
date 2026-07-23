@@ -471,6 +471,35 @@ The `mantleCode()` options let you customize how code is displayed. By default, 
 />;
 ```
 
+## Composition
+
+Compose the parts of a `CodeBlock` together to build your own:
+
+```text showLineNumbers=false
+CodeBlock.Root
+├── CodeBlock.Header
+│   ├── CodeBlock.Icon
+│   └── CodeBlock.Title
+├── CodeBlock.Body
+│   ├── CodeBlock.CopyButton
+│   └── CodeBlock.Code
+└── CodeBlock.ExpanderButton
+```
+
+For a tabbed code block:
+
+```text showLineNumbers=false
+CodeBlock.Root
+├── CodeBlock.Header
+│   └── CodeBlock.TabList
+│       └── CodeBlock.TabTrigger
+├── CodeBlock.Body
+│   ├── CodeBlock.CopyButton
+│   └── CodeBlock.TabContent
+│       └── CodeBlock.Code
+└── CodeBlock.ExpanderButton
+```
+
 ## API Reference
 
 The `CodeBlock` renders and applies syntax highlighting to blocks of code and is composed of several sub-components.

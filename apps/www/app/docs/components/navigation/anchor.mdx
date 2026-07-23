@@ -6,6 +6,7 @@ description: Fundamental component for rendering links to external addresses.
 import { Anchor } from "@ngrok/mantle/anchor";
 import { BookIcon } from "@phosphor-icons/react/Book";
 import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
+import { Link, href } from "react-router";
 import { Example } from "~/components/example";
 
 # Anchor
@@ -21,14 +22,7 @@ The `<Anchor>` element, with its `href` attribute, creates a hyperlink to web pa
 
 ## When not to use
 
-- Internal application routes — prefer the framework router's link primitive ([`react-router` `<Link>`](https://reactrouter.com/en/main/components/link)) so client-side navigation kicks in. You can keep mantle's styling by composing:
-
-```tsx
-<Anchor asChild>
-	<Link to={href("/foo")}>…</Link>
-</Anchor>
-```
-
+- Internal application routes — prefer the framework router's link primitive ([`react-router` `<Link>`](https://reactrouter.com/en/main/components/link)) so client-side navigation kicks in. You can keep mantle's styling by composing — see [Polymorphism](#polymorphism).
 - For triggering an action — use a [`Button`](/components/actions/button) instead. If it doesn't navigate, it's not a link.
 
 ## Icons
@@ -85,6 +79,25 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 	</Anchor>
 	!
 </p>
+```
+
+## Polymorphism
+
+Use the `asChild` prop to compose the `Anchor` styling onto another element — most commonly a `react-router` `<Link>` for internal, client-side navigation.
+
+<Example className="flex-col">
+	<Anchor asChild>
+		<Link to={href("/base/colors")}>See our colors!</Link>
+	</Anchor>
+</Example>
+
+```tsx
+import { Anchor } from "@ngrok/mantle/anchor";
+import { Link, href } from "react-router";
+
+<Anchor asChild>
+	<Link to={href("/base/colors")}>See our colors!</Link>
+</Anchor>;
 ```
 
 ## API Reference

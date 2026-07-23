@@ -4,7 +4,6 @@ description: A focusable `<main>` landmark for the page's primary content, desig
 ---
 
 import { Main } from "@ngrok/mantle/main";
-import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { Example } from "~/components/example";
 
 # Main
@@ -22,13 +21,11 @@ Pair with the [`SkipToMainLink`](/components/primitives/skip-to-main-link) compo
 
 ```tsx
 import { Main } from "@ngrok/mantle/main";
-import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 
-<SkipToMainLink />
-<Header />
 <Main>
-	<h1>Page title</h1>
-</Main>
+	<h1 className="text-lg font-medium">Page title</h1>
+	<p className="text-sm text-muted">Primary page content goes here.</p>
+</Main>;
 ```
 
 ## API Reference

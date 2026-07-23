@@ -67,10 +67,19 @@ Combine multiple `Kbd` components to display keyboard shortcuts.
 ```tsx
 import { Kbd } from "@ngrok/mantle/kbd";
 
-<div className="flex items-center gap-2">
-	<Kbd>⌘</Kbd>
-	<span>+</span>
-	<Kbd>K</Kbd>
+<div className="flex flex-col gap-4">
+	<div className="flex items-center gap-2">
+		<Kbd>⌘</Kbd>
+		<span>+</span>
+		<Kbd>K</Kbd>
+	</div>
+	<div className="flex items-center gap-2">
+		<Kbd>⌃</Kbd>
+		<span>+</span>
+		<Kbd>⇧</Kbd>
+		<span>+</span>
+		<Kbd>P</Kbd>
+	</div>
 </div>;
 ```
 

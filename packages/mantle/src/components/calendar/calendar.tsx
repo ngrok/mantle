@@ -64,9 +64,8 @@ function Calendar({ className, classNames, showOutsideDays = false, ...props }: 
 				caption_label: "text-sm font-medium",
 				day: cx(
 					"overflow-hidden text-center text-sm p-0 relative focus-within:relative focus-within:z-20 size-7 rounded-md",
-					props.mode === "range"
-						? "first:has-aria-selected:rounded-l-md last:has-aria-selected:rounded-r-md"
-						: "",
+					props.mode === "range" &&
+						"first:has-aria-selected:rounded-l-md last:has-aria-selected:rounded-r-md",
 				),
 				day_button:
 					"day size-full rounded-md not-aria-selected:not-disabled:hover:bg-filled-accent/15",

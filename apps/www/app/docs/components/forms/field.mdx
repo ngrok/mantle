@@ -77,6 +77,55 @@ export const TanStackFormExample = () => {
 
 };
 
+export const WithoutToErrorMessagesExample = () => {
+	const schema = z.object({
+		email: z.email("Enter a valid email."),
+	});
+	const form = useForm({
+		defaultValues: { email: "" },
+		validators: { onChange: schema },
+		onSubmit: ({ value }) => {
+			window.alert(JSON.stringify(value, null, 2));
+		},
+	});
+
+    return (
+    <form
+    	className="flex w-full max-w-80 flex-col gap-4"
+    	onSubmit={(event) => {
+    		event.preventDefault();
+    		event.stopPropagation();
+    		void form.handleSubmit();
+    	}}
+    >
+    	<form.Field name="email">
+    		{(field) => (
+    			<Field.Item name={field.name}>
+    				<Field.Label>Email</Field.Label>
+    				<Field.Control>
+    					<Input
+    						type="email"
+    						value={field.state.value}
+    						onBlur={field.handleBlur}
+    						onChange={(event) => field.handleChange(event.target.value)}
+    					/>
+    				</Field.Control>
+    				<Field.Errors
+    					messages={field.state.meta.errors.map((error) =>
+    						typeof error === "string" ? error : error?.message,
+    					)}
+    				/>
+    			</Field.Item>
+    		)}
+    	</form.Field>
+    	<Button type="submit" appearance="filled" intent="neutral">
+    		Submit
+    	</Button>
+    </form>
+    );
+
+};
+
 # Field
 
 `Field` is a compound layout primitive for building a single form field. It groups `Field.Label`, a control (`Input`, `Select`, `Checkbox`, etc.), helper / hint text (`Field.Description`), and validation errors (`Field.Errors`, `Field.ErrorList`, `Field.ErrorItem`). Stack multiple fields together with `Field.Group`, or — for radios and related checkboxes specifically — wrap them in a `Field.Set` + `Field.Legend` for a properly-named semantic group.
@@ -126,6 +175,17 @@ The canonical slot order inside a `Field.Item` is `Field.Label` → `Field.Contr
 	</Field.Control>
 </Field.Item>
 ```
+
+<Example className="w-full">
+	<Field.Item name="recoveryCode" className="max-w-80">
+		<Field.Label>Recovery code</Field.Label>
+		<Field.Control>
+			<Input />
+		</Field.Control>
+		<Field.Errors messages={["Enter a valid recovery code."]} />
+		<Field.Description>This renders below the input.</Field.Description>
+	</Field.Item>
+</Example>
 
 ```tsx
 // ✅ Correct — label, control, then errors and help text below
@@ -336,12 +396,21 @@ Reach for the bundled `Field.Help` / `Field.HelpTrigger` / `Field.HelpContent` r
 </Example>
 
 ```tsx
-<Field.Help>
-	<Field.HelpTrigger icon={<InfoIcon />} label="What is a webhook secret?" />
-	<Field.HelpContent>
-		Used to sign outbound webhook payloads so your endpoint can verify the request.
-	</Field.HelpContent>
-</Field.Help>
+<Field.Item name="webhookSecret">
+	<Field.LabelRow>
+		<Field.Label>Webhook secret</Field.Label>
+		<Field.Help>
+			<Field.HelpTrigger icon={<InfoIcon />} label="What is a webhook secret?" />
+			<Field.HelpContent>
+				Used to sign outbound webhook payloads so your endpoint can verify the request came from
+				ngrok.
+			</Field.HelpContent>
+		</Field.Help>
+	</Field.LabelRow>
+	<Field.Control>
+		<Input placeholder="whsec_…" />
+	</Field.Control>
+</Field.Item>
 ```
 
 ## Multiple fields
@@ -531,27 +600,65 @@ export function AccountForm() {
 
 `toErrorMessages` is a convenience — `Field.Errors` itself only needs a `string[]`. If you already know your validator's error shape (or you want to filter / re-format messages first), map the array inline and skip the helper. The example below mirrors the TanStack Form example above, but pulls `.message` off each entry by hand:
 
+<Example className="w-full">
+	<WithoutToErrorMessagesExample />
+</Example>
+
 ```tsx
-<form.Field name="email">
-	{(field) => (
-		<Field.Item name={field.name}>
-			<Field.Label>Email</Field.Label>
-			<Field.Control>
-				<Input
-					type="email"
-					value={field.state.value}
-					onBlur={field.handleBlur}
-					onChange={(event) => field.handleChange(event.target.value)}
-				/>
-			</Field.Control>
-			<Field.Errors
-				messages={field.state.meta.errors.map((error) =>
-					typeof error === "string" ? error : error?.message,
+import { Field } from "@ngrok/mantle/field";
+import { Input } from "@ngrok/mantle/input";
+import { Button } from "@ngrok/mantle/button";
+import { useForm } from "@tanstack/react-form";
+import { z } from "zod";
+
+const schema = z.object({
+	email: z.email("Enter a valid email."),
+});
+
+export function EmailForm() {
+	const form = useForm({
+		defaultValues: { email: "" },
+		validators: { onChange: schema },
+		onSubmit: ({ value }) => {
+			window.alert(JSON.stringify(value, null, 2));
+		},
+	});
+
+	return (
+		<form
+			className="flex flex-col gap-4"
+			onSubmit={(event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				void form.handleSubmit();
+			}}
+		>
+			<form.Field name="email">
+				{(field) => (
+					<Field.Item name={field.name}>
+						<Field.Label>Email</Field.Label>
+						<Field.Control>
+							<Input
+								type="email"
+								value={field.state.value}
+								onBlur={field.handleBlur}
+								onChange={(event) => field.handleChange(event.target.value)}
+							/>
+						</Field.Control>
+						<Field.Errors
+							messages={field.state.meta.errors.map((error) =>
+								typeof error === "string" ? error : error?.message,
+							)}
+						/>
+					</Field.Item>
 				)}
-			/>
-		</Field.Item>
-	)}
-</form.Field>
+			</form.Field>
+			<Button type="submit" appearance="filled" intent="neutral">
+				Submit
+			</Button>
+		</form>
+	);
+}
 ```
 
 `Field.Errors` already trims each string, filters empty / nullish / `false` entries, and renders nothing when no messages remain — so passing `undefined` / empty strings through the `.map` is safe and behaves the same as filtering them out. Use the inline form when the helper's mixed-shape handling isn't pulling its weight (e.g. a validator that always emits `{ message: string }`, where a bare `error?.message` map is enough), and reach for `toErrorMessages` when you want a single call that handles the full TanStack Form error array shape.
@@ -591,13 +698,28 @@ Skip `Field.Set` for unrelated fields stacked together — `<fieldset>` semantic
 
 Layout parts plus `Field.Description`, `Field.Optional`, and `Field.ErrorList` accept an `asChild` prop. When `true`, the part renders its single child instead of its default element, forwarding all class names, `data-*` attributes, and the ref onto that child. `Field.Set`, `Field.Legend`, and `Field.ErrorItem` always render `<fieldset>`, `<legend>`, and `<li>` respectively, because those elements are the semantics those parts exist to provide.
 
+<Example className="w-full">
+	<Field.Item name="username" className="max-w-80">
+		<Field.ErrorList asChild>
+			<ol>
+				<Field.ErrorItem>Fix this first.</Field.ErrorItem>
+				<Field.ErrorItem>Then fix this.</Field.ErrorItem>
+			</ol>
+		</Field.ErrorList>
+	</Field.Item>
+</Example>
+
 ```tsx
-<Field.ErrorList asChild>
-	<ol>
-		<Field.ErrorItem>Fix this first.</Field.ErrorItem>
-		<Field.ErrorItem>Then fix this.</Field.ErrorItem>
-	</ol>
-</Field.ErrorList>
+import { Field } from "@ngrok/mantle/field";
+
+<Field.Item name="username">
+	<Field.ErrorList asChild>
+		<ol>
+			<Field.ErrorItem>Fix this first.</Field.ErrorItem>
+			<Field.ErrorItem>Then fix this.</Field.ErrorItem>
+		</ol>
+	</Field.ErrorList>
+</Field.Item>;
 ```
 
 ## API Reference
@@ -625,10 +747,18 @@ Static, label-styled text for a `Field.Item` row that does **not** caption a foc
 - The row has a focusable control. Use `Field.Label` so the `htmlFor` ↔ control association, click-to-focus, and accessible name are wired automatically.
 - For body copy, section headings, or any text whose typography only happens to match by accident. Reach for a heading or a plain `<p>` instead — `Field.LabelText` exists specifically to slot into the `Field.Label` position of a `Field.Item`.
 
+<Example className="w-full">
+	<Field.Item name="owner" className="max-w-80">
+		<Field.LabelText>Owner</Field.LabelText>
+		<p className="text-sm">Ada Lovelace</p>
+		<Field.Description>The user or service user that owns this API key.</Field.Description>
+	</Field.Item>
+</Example>
+
 ```tsx
 <Field.Item name="owner">
 	<Field.LabelText>Owner</Field.LabelText>
-	<CredentialOwnerCard owner={owner} />
+	<p>Ada Lovelace</p>
 	<Field.Description>The user or service user that owns this API key.</Field.Description>
 </Field.Item>
 ```
@@ -659,26 +789,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 Applies `Field.Item` description, error, identity, and validation state to a single control. It always behaves like an `asChild` slot: pass one child element to receive the generated props, or use a function child to place those props manually. Mantle compound controls that consume `FieldControlContext` can be wrapped at the root when their docs show that composition; otherwise use the render-prop form to place the generated props on the actual focusable element. Override validation on the surrounding `Field.Item`.
 
-```tsx
-<Field.Item name="email">
-	<Field.Label>Email</Field.Label>
-	<Field.Control>
-		<Input />
-	</Field.Control>
-</Field.Item>
-
-<Field.Item name="plan">
-	<Field.Label>Plan</Field.Label>
-	<Select.Root>
-		<Field.Control>
-			<Select.Trigger>
-				<Select.Value placeholder="Select a plan" />
-			</Select.Trigger>
-		</Field.Control>
-		<Select.Content>{/* ... */}</Select.Content>
-	</Select.Root>
-</Field.Item>
-```
+For the simple element-child form, see the [primary example](#field) above; to wrap a compound control (`Select`, `MultiSelect`) at its root, follow the composition shown in that control's own docs.
 
 Use a function child when the focusable element is nested inside a wrapper that `Slot` cannot reach — for example a `<label>`-wrapped native checkbox where the `<input>` is the focusable target but the outer `<label>` is the rendered element. The function receives the generated ARIA props and the caller spreads them onto the inner control.
 
@@ -848,10 +959,27 @@ Normalize a TanStack React Form field's `meta.errors` array (or any mixed array 
 
 Use this for [TanStack Form](https://tanstack.com/form) with Zod, Standard Schema, or thrown `Error` validators — `field.state.meta.errors` is a union of all of those shapes, and this helper folds them down to plain strings without coupling Mantle to a specific form library. For other validators where the error shape is already a `string[]`, skip the helper and pass the array directly.
 
+<Example className="w-full">
+	<Field.Item name="email" className="max-w-80">
+		<Field.Label>Email</Field.Label>
+		<Field.Control>
+			<Input type="email" defaultValue="not-an-email" />
+		</Field.Control>
+		<Field.Errors messages={toErrorMessages(["Enter a valid email."])} />
+	</Field.Item>
+</Example>
+
 ```tsx
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { Input } from "@ngrok/mantle/input";
 
-<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />;
+<Field.Item name="email">
+	<Field.Label>Email</Field.Label>
+	<Field.Control>
+		<Input type="email" />
+	</Field.Control>
+	<Field.Errors messages={toErrorMessages(["Enter a valid email."])} />
+</Field.Item>;
 ```
 
 | Argument | Type                                         | Description                                                    |

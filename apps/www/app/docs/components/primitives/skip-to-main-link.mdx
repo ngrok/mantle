@@ -19,17 +19,25 @@ Pair with the [`Main`](/components/primitives/main) component (or any element wi
 		focused.
 	</p>
 	<SkipToMainLink />
+	<Main>
+		<h1 className="text-lg font-medium">Page title</h1>
+	</Main>
 </Example>
 
 ```tsx
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { Main } from "@ngrok/mantle/main";
 
-<SkipToMainLink />
-<Header />
-<Main>
-	<h1>Page title</h1>
-</Main>
+export function App() {
+	return (
+		<>
+			<SkipToMainLink />
+			<Main>
+				<h1>Page title</h1>
+			</Main>
+		</>
+	);
+}
 ```
 
 ## API Reference

@@ -190,6 +190,26 @@ const Indicator = ({ children, className, ...props }: RadioIndicatorProps) => {
 
 /**
  * A group of radio list items. Use RadioGroup.ListItem as direct children.
+ *
+ * @see https://mantle.ngrok.com/components/forms/radio-group#radiogrouplist
+ *
+ * @example
+ * ```tsx
+ * <RadioGroup.Root defaultValue="option1">
+ *   <RadioGroup.List>
+ *     <RadioGroup.ListItem value="option1">
+ *       <RadioGroup.ItemContent>
+ *         <Text>Option 1</Text>
+ *       </RadioGroup.ItemContent>
+ *     </RadioGroup.ListItem>
+ *     <RadioGroup.ListItem value="option2">
+ *       <RadioGroup.ItemContent>
+ *         <Text>Option 2</Text>
+ *       </RadioGroup.ItemContent>
+ *     </RadioGroup.ListItem>
+ *   </RadioGroup.List>
+ * </RadioGroup.Root>
+ * ```
  */
 const List = ({ className, ref, ...props }: RadioGroupProps) => {
 	return (
@@ -211,6 +231,28 @@ type RadioListItemProps = RadioItemProps;
  * `Field.Set` / `Field.Legend` composition), picks up `aria-invalid` and
  * `aria-errormessage` from `FieldControlContext`. `aria-describedby` is owned
  * by Headless UI's Radio primitive and does not propagate.
+ *
+ * @see https://mantle.ngrok.com/components/forms/radio-group#radiogrouplistitem
+ *
+ * @example
+ * ```tsx
+ * <RadioGroup.Root defaultValue="item1">
+ *   <RadioGroup.List>
+ *     <RadioGroup.ListItem value="item1">
+ *       <RadioGroup.ItemContent>
+ *         <Text>List Item 1</Text>
+ *         <Text size="sm" className="text-muted">First option</Text>
+ *       </RadioGroup.ItemContent>
+ *     </RadioGroup.ListItem>
+ *     <RadioGroup.ListItem value="item2">
+ *       <RadioGroup.ItemContent>
+ *         <Text>List Item 2</Text>
+ *         <Text size="sm" className="text-muted">Second option</Text>
+ *       </RadioGroup.ItemContent>
+ *     </RadioGroup.ListItem>
+ *   </RadioGroup.List>
+ * </RadioGroup.Root>
+ * ```
  */
 const ListItem = ({ children, className, ref, ...props }: RadioListItemProps) => {
 	const fieldControl = useContext(FieldControlContext);
@@ -254,6 +296,28 @@ type RadioCardProps = RadioItemProps;
  * `Field.Set` / `Field.Legend` composition), picks up `aria-invalid` and
  * `aria-errormessage` from `FieldControlContext`. `aria-describedby` is owned
  * by Headless UI's Radio primitive and does not propagate.
+ *
+ * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupcard
+ *
+ * @example
+ * ```tsx
+ * <RadioGroup.Root defaultValue="basic">
+ *   <div className="space-y-3">
+ *     <RadioGroup.Card value="basic">
+ *       <RadioGroup.ItemContent>
+ *         <Text weight="strong">Basic Plan</Text>
+ *         <Text>$10/month</Text>
+ *       </RadioGroup.ItemContent>
+ *     </RadioGroup.Card>
+ *     <RadioGroup.Card value="pro">
+ *       <RadioGroup.ItemContent>
+ *         <Text weight="strong">Pro Plan</Text>
+ *         <Text>$25/month</Text>
+ *       </RadioGroup.ItemContent>
+ *     </RadioGroup.Card>
+ *   </div>
+ * </RadioGroup.Root>
+ * ```
  */
 const Card = ({ children, className, ref, ...props }: RadioCardProps) => {
 	const fieldControl = useContext(FieldControlContext);
@@ -288,6 +352,21 @@ const Card = ({ children, className, ref, ...props }: RadioCardProps) => {
 /**
  * The content of any radio item. Use it to wrap any labels, descriptions, or content of a radio item.
  * Use it as a child of `RadioGroup.Item`, `RadioGroup.ListItem`, or `RadioGroup.Card`.
+ *
+ * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupitemcontent
+ *
+ * @example
+ * ```tsx
+ * <RadioGroup.Root defaultValue="option1">
+ *   <RadioGroup.Item value="option1">
+ *     <RadioGroup.Indicator />
+ *     <RadioGroup.ItemContent>
+ *       <Text weight="strong">Option 1</Text>
+ *       <Text size="sm">Description for option 1</Text>
+ *     </RadioGroup.ItemContent>
+ *   </RadioGroup.Item>
+ * </RadioGroup.Root>
+ * ```
  */
 const ItemContent = ({ asChild = false, children, className, ...props }: RadioItemContentProps) => {
 	const ctx = useContext(RadioStateContext);
@@ -309,6 +388,18 @@ const ItemContent = ({ asChild = false, children, className, ...props }: RadioIt
  * Renders the radio group itself (it wraps `Root`) — use it *in place of*
  * `RadioGroup.Root`, never nested inside one, or the buttons bind to an
  * inner, uncontrolled group and outer `value`/`onChange` props are ignored.
+ *
+ * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupbuttongroup
+ *
+ * @example
+ * ```tsx
+ * <Label id="size-label">Size</Label>
+ * <RadioGroup.ButtonGroup aria-labelledby="size-label" defaultValue="small">
+ *   <RadioGroup.Button value="small">Small</RadioGroup.Button>
+ *   <RadioGroup.Button value="medium">Medium</RadioGroup.Button>
+ *   <RadioGroup.Button value="large">Large</RadioGroup.Button>
+ * </RadioGroup.ButtonGroup>
+ * ```
  */
 const ButtonGroup = ({ className, ref, ...props }: RadioGroupProps) => {
 	return (
@@ -330,6 +421,17 @@ type RadioButtonProps = RadioItemProps;
  * `Field.Set` / `Field.Legend` composition), picks up `aria-invalid` and
  * `aria-errormessage` from `FieldControlContext`. `aria-describedby` is owned
  * by Headless UI's Radio primitive and does not propagate.
+ *
+ * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupbutton
+ *
+ * @example
+ * ```tsx
+ * <RadioGroup.ButtonGroup defaultValue="option1">
+ *   <RadioGroup.Button value="option1">Option 1</RadioGroup.Button>
+ *   <RadioGroup.Button value="option2">Option 2</RadioGroup.Button>
+ *   <RadioGroup.Button value="option3">Option 3</RadioGroup.Button>
+ * </RadioGroup.ButtonGroup>
+ * ```
  */
 const Button = ({ children, className, ref, ...props }: RadioButtonProps) => {
 	const fieldControl = useContext(FieldControlContext);
@@ -368,6 +470,23 @@ type RadioInputSandboxProps = HTMLAttributes<HTMLDivElement>;
 /**
  * A sandbox container for input elements composed within radio group items.
  * It prevents the default behavior of the radio group when clicking on the input element or accepting keyboard input.
+ *
+ * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupinputsandbox
+ *
+ * @example
+ * ```tsx
+ * <RadioGroup.Root defaultValue="custom">
+ *   <RadioGroup.Item value="custom">
+ *     <RadioGroup.Indicator />
+ *     <RadioGroup.ItemContent>
+ *       <Text>Custom amount</Text>
+ *       <RadioGroup.InputSandbox>
+ *         <Input type="number" placeholder="Enter amount" />
+ *       </RadioGroup.InputSandbox>
+ *     </RadioGroup.ItemContent>
+ *   </RadioGroup.Item>
+ * </RadioGroup.Root>
+ * ```
  */
 const InputSandbox = ({ children, onClick, onKeyDown, ...props }: RadioInputSandboxProps) => {
 	const ref = useRef<HTMLDivElement>(null);

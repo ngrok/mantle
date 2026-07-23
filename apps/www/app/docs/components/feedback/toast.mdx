@@ -201,8 +201,9 @@ export function ToastDemo() {
 <ToastDemo />
 
 ```tsx
-import { Button } from "@ngrok/mantle/button";
-import { makeToast, Toast } from "@ngrok/mantle/toast";
+import { Button, IconButton } from "@ngrok/mantle/button";
+import { makeToast, Toast, Toaster } from "@ngrok/mantle/toast";
+import { XIcon } from "@phosphor-icons/react/X";
 
 // Only one <Toaster /> should be rendered at a time
 // add it to the root of your app

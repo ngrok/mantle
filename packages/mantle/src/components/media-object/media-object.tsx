@@ -9,6 +9,20 @@ type Props = ComponentProps<"div"> & WithAsChild;
  * The media object is an image/icon (media) to the left, with descriptive
  * content (title and subtitle/description) to the right. This is the root
  * component of the media object.
+ *
+ * @see https://mantle.ngrok.com/components/structure/media-object#mediaobjectroot
+ *
+ * @example
+ * ```tsx
+ * <MediaObject.Root>
+ *   <MediaObject.Media>
+ *     <ExampleMedia />
+ *   </MediaObject.Media>
+ *   <MediaObject.Content>
+ *     <p>Ea culpa id id ea minim labore.</p>
+ *   </MediaObject.Content>
+ * </MediaObject.Root>
+ * ```
  */
 const Root = ({ asChild = false, className, children, style, ref }: Props) => {
 	const Component = asChild ? Slot : "div";
@@ -27,6 +41,20 @@ const Root = ({ asChild = false, className, children, style, ref }: Props) => {
 
 /**
  * The container for an image or icon to display in the media slot of the media object.
+ *
+ * @see https://mantle.ngrok.com/components/structure/media-object#mediaobjectmedia
+ *
+ * @example
+ * ```tsx
+ * <MediaObject.Root>
+ *   <MediaObject.Media>
+ *     <ExampleMedia />
+ *   </MediaObject.Media>
+ *   <MediaObject.Content>
+ *     <p>Ea culpa id id ea minim labore.</p>
+ *   </MediaObject.Content>
+ * </MediaObject.Root>
+ * ```
  */
 const Media = ({ asChild = false, className, children, style, ref }: Props) => {
 	const Component = asChild ? Slot : "div";
@@ -45,6 +73,20 @@ const Media = ({ asChild = false, className, children, style, ref }: Props) => {
 
 /**
  * The container for the content slot of a media object.
+ *
+ * @see https://mantle.ngrok.com/components/structure/media-object#mediaobjectcontent
+ *
+ * @example
+ * ```tsx
+ * <MediaObject.Root>
+ *   <MediaObject.Media>
+ *     <ExampleMedia />
+ *   </MediaObject.Media>
+ *   <MediaObject.Content>
+ *     <p>Ea culpa id id ea minim labore.</p>
+ *   </MediaObject.Content>
+ * </MediaObject.Root>
+ * ```
  */
 const Content = ({ asChild = false, className, children, style, ref }: Props) => {
 	const Component = asChild ? Slot : "div";

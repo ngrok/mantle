@@ -30,11 +30,20 @@ Default height is `1rem`. Override `className` with `h-*`, `w-*`, and `rounded-*
 
 Skeletons are decorative and convey no semantic meaning to assistive tech. If the underlying region is loading, also announce it to screen readers — e.g. wrap in an element with `role="status"` and a visually-hidden "Loading…" label.
 
+<Example>
+	<div role="status" aria-live="polite">
+		<span className="sr-only">Loading profile…</span>
+		<Skeleton className="h-12 w-12 rounded-full" />
+	</div>
+</Example>
+
 ```tsx
+import { Skeleton } from "@ngrok/mantle/skeleton";
+
 <div role="status" aria-live="polite">
 	<span className="sr-only">Loading profile…</span>
 	<Skeleton className="h-12 w-12 rounded-full" />
-</div>
+</div>;
 ```
 
 <Example>
@@ -78,6 +87,24 @@ import { Skeleton } from "@ngrok/mantle/skeleton";
 		<Skeleton className="w-4/5" />
 	</MediaObject.Content>
 </MediaObject.Root>;
+```
+
+## Polymorphism
+
+`Skeleton` accepts an `asChild` prop. When `true`, it renders its single child instead of its default `<div>`, forwarding its class names, `data-*` attributes, and ref onto that child. Reach for this when the placeholder should also be a more semantic element.
+
+<Example>
+	<Skeleton asChild className="h-12 w-12 rounded-full">
+		<span aria-hidden="true" />
+	</Skeleton>
+</Example>
+
+```tsx
+import { Skeleton } from "@ngrok/mantle/skeleton";
+
+<Skeleton asChild className="h-12 w-12 rounded-full">
+	<span aria-hidden="true" />
+</Skeleton>;
 ```
 
 ## API Reference

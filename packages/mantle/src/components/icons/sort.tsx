@@ -34,6 +34,13 @@ type Props = SvgAttributes &
 /**
  * A sorting icon that can be used to indicate the sorting direction of a table column or list.
  * It is aware of the sorting mode (alphanumeric or time) and the sorting direction (ascending or descending).
+ *
+ * @see https://mantle.ngrok.com/components/data-display/icons
+ *
+ * @example
+ * ```tsx
+ * <SortIcon mode="time" direction="newest-to-oldest" />
+ * ```
  */
 const SortIcon = ({ mode, direction, ...props }: Props) => {
 	switch (mode) {

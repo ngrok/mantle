@@ -2,6 +2,15 @@ import type { ComponentProps } from "react";
 
 /**
  * Props for an inline svg icon.
+ *
+ * @see https://mantle.ngrok.com/components/data-display/icons
+ *
+ * @example
+ * ```tsx
+ * function BrandIcon(props: InlineIconProps) {
+ * 	return <svg {...props} />;
+ * }
+ * ```
  */
 export type InlineIconProps = Omit<
 	ComponentProps<"svg">,

@@ -82,7 +82,21 @@ A `QrCode.Overlay` hides the modules beneath it, so raise the error correction
 level via the `ecc` prop to keep the code scannable. Levels are `L` (~7%), `M`
 (~15%), `Q` (~25%), and `H` (~30%). Prefer `H` whenever a logo is present.
 
+<Example>
+	<QrCode.Root value="https://ngrok.com" ecc="H">
+		<QrCode.Frame>
+			<QrCode.Pattern />
+		</QrCode.Frame>
+		<QrCode.Overlay>
+			<NgrokLettermarkIcon className="size-7" />
+		</QrCode.Overlay>
+	</QrCode.Root>
+</Example>
+
 ```tsx
+import { QrCode } from "@ngrok/mantle/qr-code";
+import { NgrokLettermarkIcon } from "@ngrok/mantle/icons";
+
 <QrCode.Root value="https://ngrok.com" ecc="H">
 	<QrCode.Frame>
 		<QrCode.Pattern />
@@ -90,7 +104,7 @@ level via the `ecc` prop to keep the code scannable. Levels are `L` (~7%), `M`
 	<QrCode.Overlay>
 		<NgrokLettermarkIcon className="size-7" />
 	</QrCode.Overlay>
-</QrCode.Root>
+</QrCode.Root>;
 ```
 
 ## Sizing
@@ -108,11 +122,13 @@ the `Frame`'s `className`.
 </Example>
 
 ```tsx
+import { QrCode } from "@ngrok/mantle/qr-code";
+
 <QrCode.Root value="https://ngrok.com">
 	<QrCode.Frame className="size-32">
 		<QrCode.Pattern />
 	</QrCode.Frame>
-</QrCode.Root>
+</QrCode.Root>;
 ```
 
 ## Quiet zone
@@ -133,11 +149,13 @@ the code unreliable for many scanners.
 </Example>
 
 ```tsx
+import { QrCode } from "@ngrok/mantle/qr-code";
+
 <QrCode.Root value="https://ngrok.com" quietZone={1}>
 	<QrCode.Frame>
 		<QrCode.Pattern />
 	</QrCode.Frame>
-</QrCode.Root>
+</QrCode.Root>;
 ```
 
 ## Composition
@@ -162,14 +180,26 @@ for example, to render the whole code as a link.
 and do not support `asChild` — the QR pattern must live inside an svg, so those
 elements cannot be swapped.
 
+<Example>
+	<QrCode.Root asChild value="https://ngrok.com">
+		<a href="https://ngrok.com">
+			<QrCode.Frame>
+				<QrCode.Pattern />
+			</QrCode.Frame>
+		</a>
+	</QrCode.Root>
+</Example>
+
 ```tsx
+import { QrCode } from "@ngrok/mantle/qr-code";
+
 <QrCode.Root asChild value="https://ngrok.com">
 	<a href="https://ngrok.com">
 		<QrCode.Frame>
 			<QrCode.Pattern />
 		</QrCode.Frame>
 	</a>
-</QrCode.Root>
+</QrCode.Root>;
 ```
 
 ## API Reference

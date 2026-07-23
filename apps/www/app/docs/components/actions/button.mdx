@@ -3,10 +3,13 @@ title: Button
 description: Initiates an action, such as completing a task or submitting information.
 ---
 
-import { Button } from "@ngrok/mantle/button";
+import { Button, IconButton } from "@ngrok/mantle/button";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { FireIcon } from "@phosphor-icons/react/Fire";
 import { Link, href } from "react-router";
 import { Example } from "~/components/example";
+
+export const copyPage = () => {};
 
 # Button
 
@@ -197,11 +200,27 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 An icon-only button is not a `Button` — use [`IconButton`](/components/actions/icon-button) instead. `Button`'s `icon` prop places an icon _beside_ its text children; render it with no children and the button has no accessible name (screen readers announce nothing) and keeps its text-box horizontal padding, so it draws as an off-square lozenge instead of a square. `IconButton` requires an accessible `label` (visually hidden, announced to screen readers) and renders a square box on the same shared size scale.
 
 ```tsx
+import { Button } from "@ngrok/mantle/button";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
+
 // ❌ Wrong — icon-only Button: no accessible name, text-shaped padding
-<Button appearance="outlined" intent="neutral" icon={<CopyIcon />} onClick={copyPage} />
+<Button appearance="outlined" intent="neutral" icon={<CopyIcon />} onClick={copyPage} />;
 ```
 
+<Example>
+	<IconButton
+		appearance="outlined"
+		intent="neutral"
+		icon={<CopyIcon />}
+		label="Copy page"
+		onClick={copyPage}
+	/>
+</Example>
+
 ```tsx
+import { IconButton } from "@ngrok/mantle/button";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
+
 // ✅ Correct — IconButton: required screen-reader label, square box
 <IconButton
 	appearance="outlined"
@@ -209,7 +228,7 @@ An icon-only button is not a `Button` — use [`IconButton`](/components/actions
 	icon={<CopyIcon />}
 	label="Copy page"
 	onClick={copyPage}
-/>
+/>;
 ```
 
 ## isLoading

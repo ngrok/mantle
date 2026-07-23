@@ -158,12 +158,41 @@ Choice.Root
 
 `Choice.Content`, `Choice.Title`, and `Choice.Description` each accept `asChild` to render as your own element while keeping the styling and wiring. For example, render the description as a `<div>` so it can contain block content. `Choice.Label` is the mantle [`Label`](/components/forms/label) (it always renders a real `<label>`, like `Field.Label`); reach for `Choice.Title` (which accepts `asChild`) when you need a different element. `Choice.Indicator` is itself a slot: it clones whatever single control element you place inside it, injecting the shared `id` / `name` / `aria-*` / `disabled`.
 
-```tsx
-<Choice.Description asChild>
-	<div>
-		Supports <a href="/docs">rich content</a> when rendered as a div.
+<Example>
+	<div className="w-full max-w-md">
+		<Choice.Root name="notify-rich">
+			<Choice.Indicator>
+				<Checkbox defaultChecked />
+			</Choice.Indicator>
+			<Choice.Content>
+				<Choice.Label>Email</Choice.Label>
+				<Choice.Description asChild>
+					<div>
+						Supports <a href="/docs">rich content</a> when rendered as a div.
+					</div>
+				</Choice.Description>
+			</Choice.Content>
+		</Choice.Root>
 	</div>
-</Choice.Description>
+</Example>
+
+```tsx
+import { Checkbox } from "@ngrok/mantle/checkbox";
+import { Choice } from "@ngrok/mantle/choice";
+
+<Choice.Root name="notify-rich">
+	<Choice.Indicator>
+		<Checkbox defaultChecked />
+	</Choice.Indicator>
+	<Choice.Content>
+		<Choice.Label>Email</Choice.Label>
+		<Choice.Description asChild>
+			<div>
+				Supports <a href="/docs">rich content</a> when rendered as a div.
+			</div>
+		</Choice.Description>
+	</Choice.Content>
+</Choice.Root>;
 ```
 
 ## Accessibility

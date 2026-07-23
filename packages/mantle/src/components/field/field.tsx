@@ -526,6 +526,20 @@ const Group = ({ asChild, className, ref, ...props }: ComponentProps<"div"> & Wi
 };
 
 /**
+ * Props for `Field.Item`.
+ */
+type FieldItemProps = ComponentProps<"div"> &
+	WithAsChild &
+	WithValidation & {
+		/**
+		 * Form-value name for the field. Required so `Field.Control` can splat
+		 * it onto the focusable child while `Field.Item` owns the stable
+		 * generated control id used by `Field.Label`'s `htmlFor`.
+		 */
+		name: string;
+	};
+
+/**
  * A single form field — `Label`, a control (`Input`, `Select`, `Checkbox`,
  * etc.), and any `Field.Description`, `Field.Errors`, or `Field.ErrorList` siblings stacked
  * vertically with a consistent `gap-1.5` so help and error messaging sit
@@ -569,17 +583,6 @@ const Group = ({ asChild, className, ref, ...props }: ComponentProps<"div"> & Wi
  * </Field.Group>
  * ```
  */
-type FieldItemProps = ComponentProps<"div"> &
-	WithAsChild &
-	WithValidation & {
-		/**
-		 * Form-value name for the field. Required so `Field.Control` can splat
-		 * it onto the focusable child while `Field.Item` owns the stable
-		 * generated control id used by `Field.Label`'s `htmlFor`.
-		 */
-		name: string;
-	};
-
 const Item = ({
 	asChild,
 	children,
@@ -1222,7 +1225,7 @@ const Field = {
 	 * opt out (e.g. when the focusable element is rendered outside of
 	 * `Field.Control`).
 	 *
-	 * @see https://mantle.ngrok.com/components/forms/label
+	 * @see https://mantle.ngrok.com/components/forms/field#fieldlabel
 	 *
 	 * @example
 	 * ```tsx

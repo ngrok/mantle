@@ -114,12 +114,6 @@ If the component has sub-parts, follow the POJO namespace pattern from `decision
 - **The namespace object is exactly one level deep.** Never nest a sub-namespace inside a compound (e.g. `Command.Dialog.Root`). If a sub-feature is dialog-wrapped or otherwise related to another primitive, flatten the relationship into member names (`DialogRoot`, `DialogTrigger`, `DialogContent`). Do not re-export another mantle namespace under your namespace — consumers can import that primitive directly. See `CONVENTIONS.md#compound-components` for the full rule and rationale.
 - **If any member's type comes from a third-party namespace** (e.g. wrapping a Radix primitive's `Root`/`Trigger`), give the enclosing namespace object an explicit type annotation so `.d.ts` emit doesn't synthesize a non-portable type: `const MyComponent: { Root: typeof Root; Trigger: typeof Trigger; … } = { … }`. Without this, `@types/react` upgrades can surface `TS2883` at build time.
 - Define each sub-component as a standalone const (e.g., `Root`, `Content`, `Title`)
-- Set `displayName` on each sub-component using the **original flat name** for React DevTools debugging:
-  ```tsx
-  Root.displayName = "MyComponent";
-  Content.displayName = "MyComponentContent";
-  Title.displayName = "MyComponentTitle";
-  ```
 - The JSDoc on the **top-level namespace declaration** (the `const MyComponent = {` line) MUST include a `Composition` ASCII-tree `@example` as the **first** `@example` block, followed by the full-tree JSX usage `@example`. The tree uses Unicode box-drawing chars and 4-char per-level indentation. This tree is what consumers and LLMs see first when hovering the namespace in IntelliSense, and it is the single source of truth for the component's structural shape. Example:
 
   ````tsx

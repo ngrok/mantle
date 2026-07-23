@@ -229,6 +229,7 @@ type ToastIconProps = Partial<SvgOnlyProps>;
  * <Toast.Root intent="warning">
  *   <Toast.Icon />
  *   <Toast.Message>Warning message</Toast.Message>
+ *   <Toast.Action>Dismiss</Toast.Action>
  * </Toast.Root>
  * ```
  */
@@ -341,6 +342,7 @@ type ToastMessageProps = ComponentProps<"p"> & WithAsChild;
  * <Toast.Root intent="success">
  *   <Toast.Icon />
  *   <Toast.Message>Your changes have been saved</Toast.Message>
+ *   <Toast.Action>Undo</Toast.Action>
  * </Toast.Root>
  * ```
  */
@@ -425,6 +427,7 @@ const Toast = {
 	 * <Toast.Root intent="warning">
 	 *   <Toast.Icon />
 	 *   <Toast.Message>Warning message</Toast.Message>
+	 *   <Toast.Action>Dismiss</Toast.Action>
 	 * </Toast.Root>
 	 * ```
 	 */
@@ -439,6 +442,7 @@ const Toast = {
 	 * <Toast.Root intent="success">
 	 *   <Toast.Icon />
 	 *   <Toast.Message>Your changes have been saved</Toast.Message>
+	 *   <Toast.Action>Undo</Toast.Action>
 	 * </Toast.Root>
 	 * ```
 	 */

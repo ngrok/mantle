@@ -84,6 +84,8 @@ type CodeBlockRootProps = Omit<ComponentProps<"div">, "align"> &
  * For tabbed code blocks, pass `defaultTab` (uncontrolled) or `activeTab` / `onActiveTabChange`
  * (controlled) to enable tab switching with `CodeBlock.TabList` and `CodeBlock.TabContent`.
  *
+ * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockroot
+ *
  * @example
  * ```tsx
  * <CodeBlock.Root>
@@ -179,6 +181,8 @@ const Root = ({
 /**
  * The body of the `CodeBlock`. This is where `CodeBlock.Code` and
  * the optional `CodeBlock.CopyButton` are rendered.
+ *
+ * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockbody
  *
  * @example
  * ```tsx
@@ -303,6 +307,8 @@ type CodeBlockCodeProps = Omit<ComponentProps<"pre">, "children"> & {
  *
  * `value["~preHtml"]` must be provided by Mantle's Vite plugin or server highlighter.
  * Runtime highlighting and runtime line decoration are intentionally unsupported.
+ *
+ * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockcode
  *
  * @example
  * ```tsx
@@ -438,6 +444,8 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
  * The (optional) header slot of the `CodeBlock`. This is where
  * `CodeBlock.Icon` and `CodeBlock.Title` are rendered.
  *
+ * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockheader
+ *
  * @example
  * ```tsx
  * <CodeBlock.Root>
@@ -476,6 +484,8 @@ const Header = ({
 /**
  * The (optional) title of the `CodeBlock`. Renders as `h3` by default;
  * use `asChild` to render a different element.
+ *
+ * @see https://mantle.ngrok.com/components/data-display/code-block#codeblocktitle
  *
  * @example
  * ```tsx
@@ -530,6 +540,8 @@ type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "children" | "typ
 /**
  * The (optional) copy button of the `CodeBlock`. Copies the code content
  * to the clipboard when clicked.
+ *
+ * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockcopybutton
  *
  * @example
  * ```tsx
@@ -620,6 +632,8 @@ type CodeBlockExpanderButtonProps = Omit<
 /**
  * The (optional) expander button of the `CodeBlock`. Toggles the expanded
  * state of the code block. When present, the code block is collapsible.
+ *
+ * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockexpanderbutton
  *
  * @example
  * ```tsx
@@ -714,6 +728,8 @@ type CodeBlockIconProps = Omit<SvgAttributes, "children"> &
  * A small icon for the `CodeBlock` header. Pass either a custom `svg`
  * or a `preset` value (not both).
  *
+ * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockicon
+ *
  * @example
  * ```tsx
  * <CodeBlock.Root>
@@ -772,6 +788,8 @@ type CodeBlockTabListProps = Omit<ComponentProps<typeof RadixTabsList>, "asChild
  * When the tabs exceed the available width they scroll horizontally with an edge
  * fade (`scroll-fade-x`) instead of wrapping to a second row.
  *
+ * @see https://mantle.ngrok.com/components/data-display/code-block#codeblocktablist
+ *
  * @example
  * ```tsx
  * <CodeBlock.Root defaultTab="yml">
@@ -816,6 +834,8 @@ type CodeBlockTabTriggerProps = Omit<ComponentProps<typeof RadixTabsTrigger>, "a
  * A pill-styled tab trigger for the `CodeBlock` header.
  * Must be rendered within a `CodeBlock.TabList`.
  *
+ * @see https://mantle.ngrok.com/components/data-display/code-block#codeblocktabtrigger
+ *
  * @example
  * ```tsx
  * <CodeBlock.TabList>
@@ -850,6 +870,8 @@ type CodeBlockTabContentProps = Omit<
  * Pair with `CodeBlock.TabList` and `CodeBlock.TabTrigger` in the header,
  * and set `defaultTab` / `activeTab` on `CodeBlock.Root`.
  *
+ * @see https://mantle.ngrok.com/components/data-display/code-block#codeblocktabcontent
+ *
  * @example
  * ```tsx
  * <CodeBlock.Body>
@@ -871,6 +893,8 @@ const TabContent = (props: CodeBlockTabContentProps) => (
  * Shiki-powered code blocks with build-time syntax highlighting and zero browser bundle.
  *
  * Use `mantleCodeBlockPlugins()` to enable pre-rendering at build time.
+ *
+ * @see https://mantle.ngrok.com/components/data-display/code-block
  *
  * @example
  * Composition:
@@ -934,6 +958,8 @@ const CodeBlock = {
 	/**
 	 * The root component of the `CodeBlock`.
 	 *
+	 * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockroot
+	 *
 	 * @example
 	 * ```tsx
 	 * <CodeBlock.Root>
@@ -952,6 +978,8 @@ const CodeBlock = {
 	Root,
 	/**
 	 * The body of the `CodeBlock`. Contains `Code` and optional `CopyButton`.
+	 *
+	 * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockbody
 	 *
 	 * @example
 	 * ```tsx
@@ -972,6 +1000,8 @@ const CodeBlock = {
 	/**
 	 * The code content. Renders pre-highlighted Shiki HTML when the Vite plugin is active.
 	 *
+	 * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockcode
+	 *
 	 * @example
 	 * ```tsx
 	 * <CodeBlock.Root>
@@ -990,6 +1020,8 @@ const CodeBlock = {
 	Code,
 	/**
 	 * The optional copy button.
+	 *
+	 * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockcopybutton
 	 *
 	 * @example
 	 * ```tsx
@@ -1010,6 +1042,8 @@ const CodeBlock = {
 	/**
 	 * The optional expander button for collapsible code blocks.
 	 *
+	 * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockexpanderbutton
+	 *
 	 * @example
 	 * ```tsx
 	 * <CodeBlock.Root>
@@ -1028,6 +1062,8 @@ const CodeBlock = {
 	ExpanderButton,
 	/**
 	 * The optional header slot for icon and title.
+	 *
+	 * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockheader
 	 *
 	 * @example
 	 * ```tsx
@@ -1048,6 +1084,8 @@ const CodeBlock = {
 	/**
 	 * A small icon for the code block header. Use `preset` or `svg`.
 	 *
+	 * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockicon
+	 *
 	 * @example
 	 * ```tsx
 	 * <CodeBlock.Root>
@@ -1066,6 +1104,8 @@ const CodeBlock = {
 	Icon: CodeBlockIconComponent,
 	/**
 	 * Conditionally renders children when the associated tab is active.
+	 *
+	 * @see https://mantle.ngrok.com/components/data-display/code-block#codeblocktabcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -1092,6 +1132,8 @@ const CodeBlock = {
 	/**
 	 * A tab list for the code block header. Renders pill-styled tabs for switching code.
 	 *
+	 * @see https://mantle.ngrok.com/components/data-display/code-block#codeblocktablist
+	 *
 	 * @example
 	 * ```tsx
 	 * <CodeBlock.Root defaultTab="yml">
@@ -1117,6 +1159,8 @@ const CodeBlock = {
 	/**
 	 * A pill-styled tab trigger for the code block header. Must be inside `TabList`.
 	 *
+	 * @see https://mantle.ngrok.com/components/data-display/code-block#codeblocktabtrigger
+	 *
 	 * @example
 	 * ```tsx
 	 * <CodeBlock.Root defaultTab="yml">
@@ -1141,6 +1185,8 @@ const CodeBlock = {
 	TabTrigger,
 	/**
 	 * The optional title rendered in the header.
+	 *
+	 * @see https://mantle.ngrok.com/components/data-display/code-block#codeblocktitle
 	 *
 	 * @example
 	 * ```tsx

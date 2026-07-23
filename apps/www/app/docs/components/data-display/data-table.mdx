@@ -190,13 +190,16 @@ Compose the parts of a `DataTable` together to build your own:
 DataTable.Root
 ├── DataTable.Head
 │   └── DataTable.Row
+│       ├── DataTable.ExpandHeader
 │       ├── DataTable.Header
 │       │   └── DataTable.HeaderSortButton
 │       └── DataTable.ActionHeader
 └── DataTable.Body
     ├── DataTable.Row
     │   ├── DataTable.Cell
+    │   │   └── DataTable.RowExpandButton
     │   └── DataTable.ActionCell
+    ├── DataTable.ExpandedRow
     └── DataTable.EmptyRow
 ```
 

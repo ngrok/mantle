@@ -97,6 +97,38 @@ Card.Root
 └── Card.Footer
 ```
 
+## Polymorphism
+
+Every `Card` part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default element, forwarding all class names, `data-*` attributes, and the ref onto that child. Reach for this when a card part should also be a more semantic element — for example, rendering `Card.Title` as an `h2` to fit the surrounding document outline.
+
+<Example className="flex-col gap-4">
+	<Card.Root>
+		<Card.Header>
+			<Card.Title asChild>
+				<h2>Card Title as an h2</h2>
+			</Card.Title>
+		</Card.Header>
+		<Card.Body>
+			<p>Laborum in aute officia adipisicing elit velit.</p>
+		</Card.Body>
+	</Card.Root>
+</Example>
+
+```tsx
+import { Card } from "@ngrok/mantle/card";
+
+<Card.Root>
+	<Card.Header>
+		<Card.Title asChild>
+			<h2>Card Title as an h2</h2>
+		</Card.Title>
+	</Card.Header>
+	<Card.Body>
+		<p>Laborum in aute officia adipisicing elit velit.</p>
+	</Card.Body>
+</Card.Root>;
+```
+
 ## API Reference
 
 ### Card.Root

@@ -7,6 +7,18 @@ import { clsx } from "../../utils/cx/clsx.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { WithValidation } from "../field/validation.js";
 
+/**
+ * The tri-state checked value of a {@link Checkbox}: `true` (checked),
+ * `false` (unchecked), or `"indeterminate"` (partially checked).
+ *
+ * @see https://mantle.ngrok.com/components/forms/checkbox
+ *
+ * @example
+ * ```tsx
+ * const checked: CheckedState = "indeterminate";
+ * <Checkbox checked={checked} onChange={handleChange} />
+ * ```
+ */
 type CheckedState = boolean | "indeterminate";
 
 const isIndeterminate = (checked: CheckedState | undefined): checked is "indeterminate" =>

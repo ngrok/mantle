@@ -131,30 +131,66 @@ Inside a [`DataTable`](/components/data-display/data-table), host `Empty` in `Da
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
-import { DataTable } from "@ngrok/mantle/data-table";
+import {
+	DataTable,
+	createColumnHelper,
+	getCoreRowModel,
+	useReactTable,
+} from "@ngrok/mantle/data-table";
 import { Empty } from "@ngrok/mantle/empty";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 
-<DataTable.Body>
-	{rows.length > 0 ? (
-		rows.map((row) => <DataTable.Row key={row.id} row={row} />)
-	) : (
-		<DataTable.EmptyRow>
-			<Empty.Root>
-				<Empty.Icon svg={<MagnifyingGlassIcon />} />
-				<Empty.Title>No results matched your filter.</Empty.Title>
-				<Empty.Description>
-					<p>Try a different search, or clear the filter to see everything.</p>
-				</Empty.Description>
-				<Empty.Actions>
-					<Button type="button" appearance="outlined" intent="neutral" onClick={clearFilters}>
-						Clear filters
-					</Button>
-				</Empty.Actions>
-			</Empty.Root>
-		</DataTable.EmptyRow>
-	)}
-</DataTable.Body>;
+type Row = { id: string; name: string };
+
+const columnHelper = createColumnHelper<Row>();
+
+const columns = [
+	columnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header>Name</DataTable.Header>,
+		cell: (props) => <DataTable.Cell key={props.cell.id}>{props.getValue()}</DataTable.Cell>,
+	}),
+];
+
+function EmptyInTableExample({ data }: { data: Row[] }) {
+	const table = useReactTable({
+		data,
+		columns,
+		getCoreRowModel: getCoreRowModel(),
+	});
+
+	const rows = table.getRowModel().rows;
+
+	const clearFilters = () => {
+		/* clear your filter state */
+	};
+
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{rows.length > 0 ? (
+					rows.map((row) => <DataTable.Row key={row.id} row={row} />)
+				) : (
+					<DataTable.EmptyRow>
+						<Empty.Root>
+							<Empty.Icon svg={<MagnifyingGlassIcon />} />
+							<Empty.Title>No results matched your filter.</Empty.Title>
+							<Empty.Description>
+								<p>Try a different search, or clear the filter to see everything.</p>
+							</Empty.Description>
+							<Empty.Actions>
+								<Button type="button" appearance="outlined" intent="neutral" onClick={clearFilters}>
+									Clear filters
+								</Button>
+							</Empty.Actions>
+						</Empty.Root>
+					</DataTable.EmptyRow>
+				)}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
 ```
 
 ## Minimal

@@ -4,12 +4,10 @@ import { CaretLeftIcon } from "@phosphor-icons/react/CaretLeft";
 import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 import { type ComponentProps, createContext, useContext, useMemo, useState } from "react";
 import invariant from "tiny-invariant";
-import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import { ButtonGroup, IconButton } from "../button/index.js";
 import { Select } from "../select/select.js";
 import { Separator } from "../separator/separator.js";
-import { Slot } from "../slot/index.js";
 
 type CursorPaginationContextValue = {
 	/**
@@ -48,7 +46,7 @@ type CursorPaginationProps = ComponentProps<"div"> & {
  *
  * @example
  * ```tsx
- * <CursorPagination defaultPageSize={10}>
+ * <CursorPagination.Root defaultPageSize={10}>
  *   <CursorPagination.Buttons
  *     hasNextPage={hasNext}
  *     hasPreviousPage={hasPrevious}
@@ -56,7 +54,7 @@ type CursorPaginationProps = ComponentProps<"div"> & {
  *     onPreviousPage={handlePrevious}
  *   />
  *   <CursorPagination.PageSizeSelect />
- * </CursorPagination>
+ * </CursorPagination.Root>
  * ```
  */
 const Root = ({ className, children, defaultPageSize, ref, ...props }: CursorPaginationProps) => {
@@ -236,7 +234,7 @@ const PageSizeSelect = ({
 	);
 };
 
-type CursorPageSizeValueProps = Omit<ComponentProps<"span">, "children"> & WithAsChild;
+type CursorPageSizeValueProps = Omit<ComponentProps<"span">, "children">;
 
 /**
  * Displays the current page size when using cursor-based pagination as a read-only value.
@@ -251,21 +249,19 @@ type CursorPageSizeValueProps = Omit<ComponentProps<"span">, "children"> & WithA
  * </div>
  * ```
  */
-function PageSizeValue({ asChild = false, className, ...props }: CursorPageSizeValueProps) {
+function PageSizeValue({ className, ...props }: CursorPageSizeValueProps) {
 	const ctx = useContext(CursorPaginationContext);
 
 	invariant(ctx, "CursorPageSizeValue must be used as a child of a CursorPagination component");
 
-	const Component = asChild ? Slot : "span";
-
 	return (
-		<Component
+		<span
 			data-slot="cursor-pagination-page-size-value"
 			className={cx("text-muted text-sm font-normal", className)}
 			{...props}
 		>
 			{ctx.pageSize} per page
-		</Component>
+		</span>
 	);
 }
 
@@ -291,7 +287,7 @@ function PageSizeValue({ asChild = false, className, ...props }: CursorPageSizeV
  *
  * @example
  * ```tsx
- * <CursorPagination defaultPageSize={10}>
+ * <CursorPagination.Root defaultPageSize={10}>
  *   <CursorPagination.Buttons
  *     hasNextPage={hasNext}
  *     hasPreviousPage={hasPrevious}
@@ -299,7 +295,7 @@ function PageSizeValue({ asChild = false, className, ...props }: CursorPageSizeV
  *     onPreviousPage={handlePrevious}
  *   />
  *   <CursorPagination.PageSizeSelect />
- * </CursorPagination>
+ * </CursorPagination.Root>
  * ```
  */
 const CursorPagination = {

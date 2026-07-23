@@ -11,6 +11,15 @@ type Mod = "⌘" | "⌃";
  *
  * - Initializes to `"⌃"` to avoid SSR mismatch.
  * - Updates on mount using `detectMetaKey()`.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/command#metakey
+ *
+ * @example
+ * ```tsx
+ * <Command.Shortcut>
+ *   <MetaKey /> S
+ * </Command.Shortcut>
+ * ```
  */
 function MetaKey({ className, ...props }: Props) {
 	const [glyph, setGlyph] = useState<Mod>("⌃");

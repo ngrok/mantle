@@ -324,6 +324,40 @@ Combobox.Root
     └── Combobox.Separator
 ```
 
+## Polymorphism
+
+`Combobox.Content`, `Combobox.Item`, `Combobox.Group`, `Combobox.GroupLabel`, and `Combobox.ItemValue` support `asChild` to render as a different element or your own component while keeping the combobox behavior and styling.
+
+<Example>
+	<Combobox.Root>
+		<Combobox.Input placeholder="Search links..." />
+		<Combobox.Content>
+			<Combobox.Item value="Dashboard" asChild>
+				<a href="#dashboard">Dashboard</a>
+			</Combobox.Item>
+			<Combobox.Item value="Settings" asChild>
+				<a href="#settings">Settings</a>
+			</Combobox.Item>
+		</Combobox.Content>
+	</Combobox.Root>
+</Example>
+
+```tsx
+import { Combobox } from "@ngrok/mantle/combobox";
+
+<Combobox.Root>
+	<Combobox.Input placeholder="Search links..." />
+	<Combobox.Content>
+		<Combobox.Item value="Dashboard" asChild>
+			<a href="#dashboard">Dashboard</a>
+		</Combobox.Item>
+		<Combobox.Item value="Settings" asChild>
+			<a href="#settings">Settings</a>
+		</Combobox.Item>
+	</Combobox.Content>
+</Combobox.Root>;
+```
+
 ## API Reference
 
 The `Combobox` components are built on top of [ariakit Combobox](https://ariakit.org/components/combobox).

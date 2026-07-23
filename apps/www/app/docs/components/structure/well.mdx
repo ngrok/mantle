@@ -85,15 +85,38 @@ container should also be a more semantic element, such as a labelled
 </Example>
 
 ```tsx
+import { Well } from "@ngrok/mantle/well";
+import { Empty } from "@ngrok/mantle/empty";
+import { Button } from "@ngrok/mantle/button";
+import { MagnifyingGlassIcon, PlusIcon } from "@phosphor-icons/react";
+
 <Well asChild>
-	<section aria-label="Search results">{/* … */}</section>
-</Well>
+	<section aria-label="Search results">
+		<Empty.Root>
+			<Empty.Icon svg={<MagnifyingGlassIcon />} />
+			<Empty.Title>No results found</Empty.Title>
+			<Empty.Description>
+				<p>Try adjusting your search or filters to find what you're looking for.</p>
+			</Empty.Description>
+			<Empty.Actions>
+				<Button type="button" appearance="filled" intent="neutral">
+					<PlusIcon />
+					Create new
+				</Button>
+			</Empty.Actions>
+		</Empty.Root>
+	</section>
+</Well>;
 ```
 
 ## API Reference
 
 ### Well
 
-A recessed, inset container. Renders a `<div>` by default and spreads all
-standard `<div>` props onto the rendered element. Supports the `asChild` prop
-for polymorphic rendering.
+A recessed, inset container. Renders a `<div>` by default and spreads all standard `<div>` props onto the rendered element.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                       |
+| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Well` styling onto alternative element types or your own React components. |

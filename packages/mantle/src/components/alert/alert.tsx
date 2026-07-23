@@ -471,14 +471,6 @@ const ExpandButton = ({ count, expanded, className, ...props }: AlertExpandButto
 	);
 };
 
-Root.displayName = "Alert";
-Content.displayName = "AlertContent";
-Title.displayName = "AlertTitle";
-Description.displayName = "AlertDescription";
-DismissIconButton.displayName = "AlertDismissIconButton";
-ExpandButton.displayName = "AlertExpandButton";
-Icon.displayName = "AlertIcon";
-
 /**
  * Displays a callout for user attention.
  *

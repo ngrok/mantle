@@ -7,6 +7,8 @@
  * The origin for the assets CDN where custom ngrok fonts and assets are hosted.
  *
  * Keep this stable across the app so we can preconnect/DNS-prefetch consistently.
+ *
+ * @see https://mantle.ngrok.com/components/primitives/theme
  * @public
  */
 const assetsCdnOrigin = "https://assets.ngrok.com";
@@ -26,6 +28,8 @@ const coreFontNames = [
 ] as const;
 /**
  * Named keys identifying each individual core font.
+ *
+ * @see https://mantle.ngrok.com/components/primitives/theme
  * @public
  */
 type CoreFontName = (typeof coreFontNames)[number];
@@ -46,6 +50,8 @@ type FontPath = `/${string}` | (string & {});
 
 /**
  * Builds an absolute CDN URL for a given font.
+ *
+ * @see https://mantle.ngrok.com/components/primitives/theme
  *
  * @returns {`https://assets.ngrok.com/fonts${T}`} An absolute, literal-typed CDN URL.
  *
@@ -83,6 +89,8 @@ type PreloadFontProps = {
  * addition to) an HTML `<link>` element. Sending this as a `Link` header lets
  * the browser start the font fetch before it has parsed any HTML.
  *
+ * @see https://mantle.ngrok.com/components/primitives/theme#preloadfontlink
+ *
  * @remarks
  * For best performance, also send a `preconnect` hint to {@link assetsCdnOrigin}
  * in the same `Link` header.
@@ -110,6 +118,8 @@ function preloadFontLink(name: CoreFontName): string {
  *
  * Use this when you only need one or two specific fonts rather than all core
  * fonts. Include it as early as possible in the document `<head>`.
+ *
+ * @see https://mantle.ngrok.com/components/primitives/theme#preloadfont
  *
  * @remarks
  * For best performance, pair this with preconnect/dns-prefetch hints to the CDN.

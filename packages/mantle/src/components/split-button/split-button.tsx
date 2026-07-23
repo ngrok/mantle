@@ -33,6 +33,35 @@ type RootProps = ComponentProps<typeof DropdownMenu.Root> &
 		size?: ButtonSize;
 	};
 
+/**
+ * A button group which provides a default action with one click while revealing
+ * related alternatives through a dropdown menu. Best for when users typically
+ * want one action but occasionally need variants.
+ *
+ * @see https://mantle.ngrok.com/components/actions/split-button#splitbuttonroot
+ *
+ * @example
+ * ```tsx
+ * <SplitButton.Root>
+ *   <SplitButton.PrimaryAction icon={<CopyIcon />} onClick={copyMarkdownPage}>
+ *     Copy page
+ *   </SplitButton.PrimaryAction>
+ *   <SplitButton.MenuTrigger label="Open doc actions menu" />
+ *   <SplitButton.MenuContent>
+ *     <SplitButton.MenuItem onClick={copyMarkdownPage}>
+ *       Copy page
+ *       <Icon svg={<CopyIcon />} />
+ *     </SplitButton.MenuItem>
+ *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
+ *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
+ *         View as Markdown
+ *         <Icon svg={<FileTextIcon />} />
+ *       </a>
+ *     </SplitButton.MenuItem>
+ *   </SplitButton.MenuContent>
+ * </SplitButton.Root>
+ * ```
+ */
 const Root = ({
 	className,
 	children,
@@ -75,6 +104,33 @@ const Root = ({
 
 type PrimaryActionProps = Omit<ComponentProps<typeof Button>, "appearance" | "intent" | "size">;
 
+/**
+ * The most common action users can trigger with a single click.
+ *
+ * @see https://mantle.ngrok.com/components/actions/split-button#splitbuttonprimaryaction
+ *
+ * @example
+ * ```tsx
+ * <SplitButton.Root>
+ *   <SplitButton.PrimaryAction icon={<CopyIcon />} onClick={copyMarkdownPage}>
+ *     Copy page
+ *   </SplitButton.PrimaryAction>
+ *   <SplitButton.MenuTrigger label="Open doc actions menu" />
+ *   <SplitButton.MenuContent>
+ *     <SplitButton.MenuItem onClick={copyMarkdownPage}>
+ *       Copy page
+ *       <Icon svg={<CopyIcon />} />
+ *     </SplitButton.MenuItem>
+ *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
+ *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
+ *         View as Markdown
+ *         <Icon svg={<FileTextIcon />} />
+ *       </a>
+ *     </SplitButton.MenuItem>
+ *   </SplitButton.MenuContent>
+ * </SplitButton.Root>
+ * ```
+ */
 const PrimaryAction = (props: PrimaryActionProps) => {
 	const { size } = useContext(SplitButtonContext);
 
@@ -89,6 +145,33 @@ type MenuTriggerProps = Omit<
 	icon?: ReactNode;
 };
 
+/**
+ * The button that opens the split button dropdown menu.
+ *
+ * @see https://mantle.ngrok.com/components/actions/split-button#splitbuttonmenutrigger
+ *
+ * @example
+ * ```tsx
+ * <SplitButton.Root>
+ *   <SplitButton.PrimaryAction icon={<CopyIcon />} onClick={copyMarkdownPage}>
+ *     Copy page
+ *   </SplitButton.PrimaryAction>
+ *   <SplitButton.MenuTrigger label="Open doc actions menu" />
+ *   <SplitButton.MenuContent>
+ *     <SplitButton.MenuItem onClick={copyMarkdownPage}>
+ *       Copy page
+ *       <Icon svg={<CopyIcon />} />
+ *     </SplitButton.MenuItem>
+ *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
+ *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
+ *         View as Markdown
+ *         <Icon svg={<FileTextIcon />} />
+ *       </a>
+ *     </SplitButton.MenuItem>
+ *   </SplitButton.MenuContent>
+ * </SplitButton.Root>
+ * ```
+ */
 const MenuTrigger = ({ icon, ...props }: MenuTriggerProps) => {
 	const { size } = useContext(SplitButtonContext);
 
@@ -116,10 +199,66 @@ const MenuTrigger = ({ icon, ...props }: MenuTriggerProps) => {
 	);
 };
 
+/**
+ * The container for the split button dropdown menu content. Appears in a
+ * portal with scrolling and animations.
+ *
+ * @see https://mantle.ngrok.com/components/actions/split-button#splitbuttonmenucontent
+ *
+ * @example
+ * ```tsx
+ * <SplitButton.Root>
+ *   <SplitButton.PrimaryAction icon={<CopyIcon />} onClick={copyMarkdownPage}>
+ *     Copy page
+ *   </SplitButton.PrimaryAction>
+ *   <SplitButton.MenuTrigger label="Open doc actions menu" />
+ *   <SplitButton.MenuContent>
+ *     <SplitButton.MenuItem onClick={copyMarkdownPage}>
+ *       Copy page
+ *       <Icon svg={<CopyIcon />} />
+ *     </SplitButton.MenuItem>
+ *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
+ *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
+ *         View as Markdown
+ *         <Icon svg={<FileTextIcon />} />
+ *       </a>
+ *     </SplitButton.MenuItem>
+ *   </SplitButton.MenuContent>
+ * </SplitButton.Root>
+ * ```
+ */
 const MenuContent = ({ align = "end", ...props }: ComponentProps<typeof DropdownMenu.Content>) => {
 	return <DropdownMenu.Content align={align} {...props} />;
 };
 
+/**
+ * A standard item in the split button dropdown menu that can be selected or
+ * activated.
+ *
+ * @see https://mantle.ngrok.com/components/actions/split-button#splitbuttonmenuitem
+ *
+ * @example
+ * ```tsx
+ * <SplitButton.Root>
+ *   <SplitButton.PrimaryAction icon={<CopyIcon />} onClick={copyMarkdownPage}>
+ *     Copy page
+ *   </SplitButton.PrimaryAction>
+ *   <SplitButton.MenuTrigger label="Open doc actions menu" />
+ *   <SplitButton.MenuContent>
+ *     <SplitButton.MenuItem onClick={copyMarkdownPage}>
+ *       Copy page
+ *       <Icon svg={<CopyIcon />} />
+ *     </SplitButton.MenuItem>
+ *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
+ *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
+ *         View as Markdown
+ *         <Icon svg={<FileTextIcon />} />
+ *       </a>
+ *     </SplitButton.MenuItem>
+ *   </SplitButton.MenuContent>
+ * </SplitButton.Root>
+ * ```
+ */
 const MenuItem = ({ className, ...props }: ComponentProps<typeof DropdownMenu.Item>) => {
 	return <DropdownMenu.Item className={cx("gap-2", className)} {...props} />;
 };
@@ -129,7 +268,7 @@ const MenuItem = ({ className, ...props }: ComponentProps<typeof DropdownMenu.It
  * related alternatives through a dropdown menu. Best for when users typically
  * want one action but occasionally need variants.
  *
- * @see https://mantle.ngrok.com/components/actions/split-button#splitbuttonroot
+ * @see https://mantle.ngrok.com/components/actions/split-button
  *
  * @example
  * Composition:
@@ -154,7 +293,7 @@ const MenuItem = ({ className, ...props }: ComponentProps<typeof DropdownMenu.It
  *       Copy page
  *     </SplitButton.MenuItem>
  *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
- *       <a href={markdownUrl} target="_blank">
+ *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
  *         <Icon svg={<FileTextIcon />} />
  *         View as Markdown
  *       </a>
@@ -184,7 +323,7 @@ const SplitButton = {
 	 *       <Icon svg={<CopyIcon />} />
 	 *     </SplitButton.MenuItem>
 	 *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
-	 *       <a href={markdownUrl} target="_blank">
+	 *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
 	 *         View as Markdown
 	 *         <Icon svg={<FileTextIcon />} />
 	 *       </a>
@@ -212,7 +351,7 @@ const SplitButton = {
 	 *       <Icon svg={<CopyIcon />} />
 	 *     </SplitButton.MenuItem>
 	 *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
-	 *       <a href={markdownUrl} target="_blank">
+	 *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
 	 *         View as Markdown
 	 *         <Icon svg={<FileTextIcon />} />
 	 *       </a>
@@ -240,7 +379,7 @@ const SplitButton = {
 	 *       <Icon svg={<CopyIcon />} />
 	 *     </SplitButton.MenuItem>
 	 *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
-	 *       <a href={markdownUrl} target="_blank">
+	 *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
 	 *         View as Markdown
 	 *         <Icon svg={<FileTextIcon />} />
 	 *       </a>
@@ -269,7 +408,7 @@ const SplitButton = {
 	 *       <Icon svg={<CopyIcon />} />
 	 *     </SplitButton.MenuItem>
 	 *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
-	 *       <a href={markdownUrl} target="_blank">
+	 *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
 	 *         View as Markdown
 	 *         <Icon svg={<FileTextIcon />} />
 	 *       </a>
@@ -298,7 +437,7 @@ const SplitButton = {
 	 *       <Icon svg={<CopyIcon />} />
 	 *     </SplitButton.MenuItem>
 	 *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
-	 *       <a href={markdownUrl} target="_blank">
+	 *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
 	 *         View as Markdown
 	 *         <Icon svg={<FileTextIcon />} />
 	 *       </a>
