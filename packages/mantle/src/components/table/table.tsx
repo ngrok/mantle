@@ -210,7 +210,7 @@ const Element = ({ children, className, ref, ...props }: ComponentProps<"table">
  * </Table.Root>
  * ```
  *
- * @see https://mantle.ngrok.com/components/data-display/table#tableheader
+ * @see https://mantle.ngrok.com/components/data-display/table#tablehead
  */
 const Head = ({ children, className, ref, ...props }: ComponentProps<"thead">) => (
 	<thead
@@ -848,7 +848,7 @@ const Table = {
 	/**
 	 * The head section of a table. Contains the table's column headers information.
 	 *
-	 * @see https://mantle.ngrok.com/components/data-display/table#tableheader
+	 * @see https://mantle.ngrok.com/components/data-display/table#tablehead
 	 *
 	 * @example
 	 * ```tsx
