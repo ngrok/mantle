@@ -143,6 +143,34 @@ describe("Alert", () => {
 			);
 		});
 
+		test("gives the count a growable min-width so multi-digit counts don't overflow", () => {
+			render(
+				<Alert.Root intent="warning">
+					<Alert.Content>
+						<Alert.Title>Usage limit approaching</Alert.Title>
+						<Alert.ExpandButton count={10} expanded={false} />
+					</Alert.Content>
+				</Alert.Root>,
+			);
+
+			const count = screen.getByText("+10");
+			expect(count).toHaveClass("min-w-[2ch]");
+			expect(count).not.toHaveClass("w-[2ch]");
+		});
+
+		test("`asChild` is not accepted at the type level", () => {
+			const withAsChild = (
+				<Alert.Root intent="warning">
+					<Alert.Content>
+						<Alert.Title>Usage limit approaching</Alert.Title>
+						{/* @ts-expect-error -- asChild is omitted: ExpandButton renders multiple children */}
+						<Alert.ExpandButton count={2} expanded={false} asChild />
+					</Alert.Content>
+				</Alert.Root>
+			);
+			expect(withAsChild).toBeDefined();
+		});
+
 		test("positions dismiss to the left and reserves both controls when composed together", () => {
 			const { container } = render(
 				<Alert.Root intent="warning">

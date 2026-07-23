@@ -401,7 +401,10 @@ const DismissIconButton = ({
 
 type AlertExpandButtonProps = Omit<
 	ButtonProps,
-	"appearance" | "children" | "icon" | "iconPlacement" | "intent" | "size"
+	// `asChild` is omitted: ExpandButton always renders multiple children (count,
+	// label, caret), which would trip Button's single-child `Children.only`
+	// invariant at runtime — so the invalid configuration is unrepresentable.
+	"appearance" | "asChild" | "children" | "icon" | "iconPlacement" | "intent" | "size"
 > & {
 	/** The number of alerts hidden by a collapsed alert center. */
 	count: number;
@@ -455,7 +458,7 @@ const ExpandButton = ({ count, expanded, className, ...props }: AlertExpandButto
 			)}
 			{...props}
 		>
-			<span className="w-[2ch] text-center tabular-nums">+{count}</span>
+			<span className="min-w-[2ch] text-center tabular-nums">+{count}</span>
 			<span className="hidden md:inline">more</span>
 			<CaretDownIcon
 				weight="bold"
