@@ -151,7 +151,9 @@ export function CommandPalette() {
 	const mantleVersion = useMantleVersion();
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
-	useHotkeys("mod+k", () => setOpen(true), [setOpen]);
+	// preventDefault: browsers bind mod+k themselves (Firefox focuses the
+	// search bar), so the shortcut must claim the event to open only our palette
+	useHotkeys("mod+k", () => setOpen(true), { preventDefault: true }, [setOpen]);
 
 	const commands = useMemo(() => buildPaletteCommands(mantleVersion), [mantleVersion]);
 	const groups = useMemo(() => groupPaletteCommands(commands), [commands]);
