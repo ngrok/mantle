@@ -773,7 +773,7 @@
     "jsdoc": "A button group which provides a default action with one click while revealing related alternatives through a dropdown menu.",
     "examples": [
       "Composition:\n```\nSplitButton.Root\n├── SplitButton.PrimaryAction\n├── SplitButton.MenuTrigger\n└── SplitButton.MenuContent\n    └── SplitButton.MenuItem\n```",
-      "```tsx\n<SplitButton.Root>\n  <SplitButton.PrimaryAction icon={<CopyIcon />} onClick={copyMarkdownPage}>\n    Copy page\n  </SplitButton.PrimaryAction>\n  <SplitButton.MenuTrigger label=\"Open doc actions menu\" />\n  <SplitButton.MenuContent>\n    <SplitButton.MenuItem onClick={copyMarkdownPage}>\n      <Icon svg={<CopyIcon />} />\n      Copy page\n    </SplitButton.MenuItem>\n    <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>\n      <a href={markdownUrl} target=\"_blank\">\n        <Icon svg={<FileTextIcon />} />\n        View as Markdown\n      </a>\n    </SplitButton.MenuItem>\n  </SplitButton.MenuContent>\n</SplitButton.Root>\n```"
+      "```tsx\n<SplitButton.Root>\n  <SplitButton.PrimaryAction icon={<CopyIcon />} onClick={copyMarkdownPage}>\n    Copy page\n  </SplitButton.PrimaryAction>\n  <SplitButton.MenuTrigger label=\"Open doc actions menu\" />\n  <SplitButton.MenuContent>\n    <SplitButton.MenuItem onClick={copyMarkdownPage}>\n      <Icon svg={<CopyIcon />} />\n      Copy page\n    </SplitButton.MenuItem>\n    <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>\n      <a href={markdownUrl} target=\"_blank\" rel=\"noopener noreferrer\">\n        <Icon svg={<FileTextIcon />} />\n        View as Markdown\n      </a>\n    </SplitButton.MenuItem>\n  </SplitButton.MenuContent>\n</SplitButton.Root>\n```"
     ]
   },
   {

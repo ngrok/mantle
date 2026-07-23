@@ -213,13 +213,7 @@ const Content = ({
  * </Popover.Root>
  * ```
  */
-const Popover: {
-	Root: typeof Root;
-	Anchor: typeof Anchor;
-	Close: typeof Close;
-	Content: typeof Content;
-	Trigger: typeof Trigger;
-} = {
+const Popover = {
 	/**
 	 * The root, stateful component that manages the open/closed state of the popover.
 	 *
@@ -339,7 +333,7 @@ const Popover: {
 	 * ```
 	 */
 	Trigger,
-};
+} as const;
 
 export {
 	//,

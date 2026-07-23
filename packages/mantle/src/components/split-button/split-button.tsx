@@ -53,7 +53,7 @@ type RootProps = ComponentProps<typeof DropdownMenu.Root> &
  *       <Icon svg={<CopyIcon />} />
  *     </SplitButton.MenuItem>
  *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
- *       <a href={markdownUrl} target="_blank">
+ *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
  *         View as Markdown
  *         <Icon svg={<FileTextIcon />} />
  *       </a>
@@ -122,7 +122,7 @@ type PrimaryActionProps = Omit<ComponentProps<typeof Button>, "appearance" | "in
  *       <Icon svg={<CopyIcon />} />
  *     </SplitButton.MenuItem>
  *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
- *       <a href={markdownUrl} target="_blank">
+ *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
  *         View as Markdown
  *         <Icon svg={<FileTextIcon />} />
  *       </a>
@@ -163,7 +163,7 @@ type MenuTriggerProps = Omit<
  *       <Icon svg={<CopyIcon />} />
  *     </SplitButton.MenuItem>
  *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
- *       <a href={markdownUrl} target="_blank">
+ *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
  *         View as Markdown
  *         <Icon svg={<FileTextIcon />} />
  *       </a>
@@ -218,7 +218,7 @@ const MenuTrigger = ({ icon, ...props }: MenuTriggerProps) => {
  *       <Icon svg={<CopyIcon />} />
  *     </SplitButton.MenuItem>
  *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
- *       <a href={markdownUrl} target="_blank">
+ *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
  *         View as Markdown
  *         <Icon svg={<FileTextIcon />} />
  *       </a>
@@ -250,7 +250,7 @@ const MenuContent = ({ align = "end", ...props }: ComponentProps<typeof Dropdown
  *       <Icon svg={<CopyIcon />} />
  *     </SplitButton.MenuItem>
  *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
- *       <a href={markdownUrl} target="_blank">
+ *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
  *         View as Markdown
  *         <Icon svg={<FileTextIcon />} />
  *       </a>
@@ -293,7 +293,7 @@ const MenuItem = ({ className, ...props }: ComponentProps<typeof DropdownMenu.It
  *       Copy page
  *     </SplitButton.MenuItem>
  *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
- *       <a href={markdownUrl} target="_blank">
+ *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
  *         <Icon svg={<FileTextIcon />} />
  *         View as Markdown
  *       </a>
@@ -323,7 +323,7 @@ const SplitButton = {
 	 *       <Icon svg={<CopyIcon />} />
 	 *     </SplitButton.MenuItem>
 	 *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
-	 *       <a href={markdownUrl} target="_blank">
+	 *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
 	 *         View as Markdown
 	 *         <Icon svg={<FileTextIcon />} />
 	 *       </a>
@@ -351,7 +351,7 @@ const SplitButton = {
 	 *       <Icon svg={<CopyIcon />} />
 	 *     </SplitButton.MenuItem>
 	 *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
-	 *       <a href={markdownUrl} target="_blank">
+	 *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
 	 *         View as Markdown
 	 *         <Icon svg={<FileTextIcon />} />
 	 *       </a>
@@ -379,7 +379,7 @@ const SplitButton = {
 	 *       <Icon svg={<CopyIcon />} />
 	 *     </SplitButton.MenuItem>
 	 *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
-	 *       <a href={markdownUrl} target="_blank">
+	 *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
 	 *         View as Markdown
 	 *         <Icon svg={<FileTextIcon />} />
 	 *       </a>
@@ -408,7 +408,7 @@ const SplitButton = {
 	 *       <Icon svg={<CopyIcon />} />
 	 *     </SplitButton.MenuItem>
 	 *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
-	 *       <a href={markdownUrl} target="_blank">
+	 *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
 	 *         View as Markdown
 	 *         <Icon svg={<FileTextIcon />} />
 	 *       </a>
@@ -437,7 +437,7 @@ const SplitButton = {
 	 *       <Icon svg={<CopyIcon />} />
 	 *     </SplitButton.MenuItem>
 	 *     <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>
-	 *       <a href={markdownUrl} target="_blank">
+	 *       <a href={markdownUrl} target="_blank" rel="noopener noreferrer">
 	 *         View as Markdown
 	 *         <Icon svg={<FileTextIcon />} />
 	 *       </a>
