@@ -352,7 +352,8 @@ const CopyButton = (props: LineChartCopyButtonProps) => (
  * ├── LineChart.Line (one per series)
  * ├── LineChart.ReferenceLine
  * ├── LineChart.Tooltip
- * └── LineChart.Legend
+ * ├── LineChart.Legend
+ * └── LineChart.CopyButton
  * ```
  *
  * @example
