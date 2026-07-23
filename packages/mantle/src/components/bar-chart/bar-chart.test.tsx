@@ -404,6 +404,18 @@ describe("BarChart decorative mode", () => {
 		expect(container.querySelector("[tabindex]")).not.toBeInTheDocument();
 	});
 
+	test("forces off a consumer-passed tabIndex so a decorative chart cannot become focusable", () => {
+		// tabIndex is a valid div prop the decorative branch does not forbid, so it
+		// would otherwise ride `{...props}` onto the aria-hidden root and reintroduce
+		// a tab stop the decorative contract removed.
+		const { container } = render(
+			<BarChart.Root data={data} xKey="month" decorative tabIndex={0}>
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+			</BarChart.Root>,
+		);
+		expect(container.querySelector('[data-slot="bar-chart"]')).not.toHaveAttribute("tabindex");
+	});
+
 	test("renders no sr-only data table and no live region", () => {
 		renderDecorative();
 		expect(screen.queryByRole("table")).not.toBeInTheDocument();

@@ -301,10 +301,12 @@ const ChartRootPrimitive = ({
 	"data-slot": dataSlot,
 	"aria-label": ariaLabel,
 	"aria-labelledby": ariaLabelledBy,
-	// Pulled out of `props` so the decorative aria-hidden contract can't be
-	// clobbered by a consumer value spread after it (a decorative chart is
-	// unconditionally hidden from AT; an interactive one honors what's passed).
+	// Pulled out of `props` so the decorative contract can't be clobbered by a
+	// consumer value spread after it. A decorative chart is unconditionally
+	// hidden from AT and never a tab stop; an interactive one honors what's
+	// passed (its own keyboard focus lives on the interaction overlay, not here).
 	"aria-hidden": ariaHidden,
+	tabIndex,
 	...props
 }: InternalRootProps) => {
 	// One store per Root lifetime: sticky color slots and part registrations
@@ -457,10 +459,12 @@ const ChartRootPrimitive = ({
 			// against the whole chart with absolute positioning.
 			className={cx("relative flex aspect-video w-full flex-col", className)}
 			// A decorative chart is a placeholder backdrop, not information: hide the
-			// whole visualization from assistive technology, always winning over any
-			// consumer value. Interactive charts name the overlay instead (the canvas
-			// is always aria-hidden) and honor a consumer-passed aria-hidden.
+			// whole visualization from assistive technology and keep it out of the tab
+			// order, always winning over any consumer value. Interactive charts name
+			// the overlay instead (the canvas is always aria-hidden) and honor a
+			// consumer-passed aria-hidden/tabIndex.
 			aria-hidden={decorative ? true : ariaHidden}
+			tabIndex={decorative ? undefined : tabIndex}
 			ref={composedRootRef}
 			{...props}
 		>
