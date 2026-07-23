@@ -219,24 +219,6 @@ export function CheckoutPage() {
 
 Exactly one element in a document may be the Main landmark, so the layout does not render one for you — content arrives as composed JSX, and composing the layout inside a shell that already owns the landmark (an app frame, or this page's inline [Polymorphism](#polymorphism) example) is safe by default. When the layout owns the document — a sign-in page, a 404 — compose mantle's [Main](/components/primitives/main) directly in `Body`, and pair a [SkipToMainLink](/components/primitives/skip-to-main-link) as the first child of `Root`: its default `targetId` matches `Main`'s `id="main"`, so keyboard users can jump past the brand mark straight to the content. The framed demos on this page do exactly this — each preview is its own document, so each owns a real `Main`.
 
-```tsx
-import { CenteredLayout } from "@ngrok/mantle/centered-layout";
-import { Main } from "@ngrok/mantle/main";
-import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
-
-<CenteredLayout.Root>
-	<SkipToMainLink />
-	<CenteredLayout.Body>
-		<a href="https://ngrok.com" className="text-strong text-lg font-semibold">
-			acme
-		</a>
-		<Main className="w-full max-w-80">
-			<SignInCard />
-		</Main>
-	</CenteredLayout.Body>
-</CenteredLayout.Root>;
-```
-
 ## Polymorphism
 
 Every part supports `asChild` to compose its structure onto alternative element types — here `Root` renders as a labelled `<section>`.
