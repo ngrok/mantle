@@ -1,5 +1,14 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.1.1
+
+### Patch Changes
+
+- [#1345](https://github.com/ngrok/mantle/pull/1345) [`685e5f5`](https://github.com/ngrok/mantle/commit/685e5f50770f68669bf4a39b0d883bc9e7e603fe) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump runtime dependencies: `magic-string` to 1.1.0 and `oxc-parser` to 0.141.0.
+
+- Updated dependencies [[`685e5f5`](https://github.com/ngrok/mantle/commit/685e5f50770f68669bf4a39b0d883bc9e7e603fe)]:
+  - @ngrok/mantle-server-syntax-highlighter@1.1.8
+
 ## 1.1.0
 
 ### Minor Changes

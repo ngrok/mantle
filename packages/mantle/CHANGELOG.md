@@ -1,5 +1,79 @@
 # @ngrok/mantle
 
+## 0.81.1
+
+### Patch Changes
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Accordion JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Remove the React `displayName` assignments from Alert's sub-components; the displayName convention has been dropped.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Area Chart JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Bar Chart JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Replace a ternary used inside `cx()` for Calendar's day class names with convention-compliant class composition (no behavior change).
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Checkbox JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Code Block JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Command JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Description List JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Dropdown Menu JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Field JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Flag JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Icons JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Line Chart JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Media Object JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Pagination JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees.
+
+  Also drop the `asChild` prop from `CursorPagination.PageSizeValue`. It never worked — `PageSizeValue` hard-codes its `{pageSize} per page` text as children, which overrode the composed child and made `Slot` throw `React.Children.only`. It now always renders a `span`.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Radio Group JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Sandboxed On Click JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Sheet JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Split Button JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Table JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Export the `TextAreaProps` type from `@ngrok/mantle/text-area` (its `index.ts` barrel previously dropped the type re-export).
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Theme JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1356](https://github.com/ngrok/mantle/pull/1356) [`672479a`](https://github.com/ngrok/mantle/commit/672479a2bde29cceb1c26561c2da6294611e9482) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Refine Toast JSDoc and documentation (component audit): correct `@see` links, complete examples, and align Composition trees. No API changes.
+
+- [#1350](https://github.com/ngrok/mantle/pull/1350) [`635dbb3`](https://github.com/ngrok/mantle/commit/635dbb38ac7fdb3c782f4e0395613125022c66dd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add composable trailing expand and dismiss controls to Alert.
+
+- [#1353](https://github.com/ngrok/mantle/pull/1353) [`3d92c6d`](https://github.com/ngrok/mantle/commit/3d92c6d68f7c7ab9a617752fa55b9f5cc2cb78e1) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add a `decorative` prop to every chart Root — `BarChart`, `LineChart`, `AreaChart`, and `ScatterPlot` — for placeholder and empty-state charts.
+
+  A decorative chart keeps its visual rendering and animation but drops every layer that only makes sense for real data: it is hidden from assistive technology, removed from the tab order, and inert to pointer and keyboard, with no hover band, tooltip, sr-only data table, or live region. This replaces the previous workaround of native `inert` plus CSS targeting chart internals (`[&_[role=application]]:pointer-events-none`), which leaked the chart's interaction structure into consumer code and required a misleading accessible name for fake data.
+
+  The accessible-name requirement and `decorative` are modeled as a discriminated union, so invalid combinations are unrepresentable: an interactive chart (the default) still requires exactly one of `aria-label` / `aria-labelledby` and may wire the interaction callbacks, while a decorative chart forbids the accessible-name props and the interaction props (`activeIndex`, `onActiveIndexChange`, `onDatumActivate`) — the chart won't compile with both. `decorative` communicates intent ("these values are not information") where a `disabled` flag would be ambiguous, since a chart is not a form control.
+
+  ```tsx
+  <BarChart.Root data={placeholderUsage} xKey="day" decorative className="opacity-40">
+  	<BarChart.Bar dataKey="value" />
+  </BarChart.Root>
+  ```
+
+- [#1355](https://github.com/ngrok/mantle/pull/1355) [`2684706`](https://github.com/ngrok/mantle/commit/26847066f85c3b28781bb9cc76065dc865698398) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Charts no longer render fractional axis ticks for integer-valued data (MNTL-56).
+
+  When every value backing an axis is an integer — request counts, error totals — the tick step is clamped to whole numbers, so a small domain like `[0, 3]` ticks at `0, 1, 2, 3` instead of `0, 0.5, 1, …`. The clamp follows the data, not the axis part: it covers the value axis in both bar orientations (including the value ticks painted along the bottom of horizontal bars) and linear x axes on line, area, and scatter charts. Any fractional value in the data restores sub-integer stepping, and `tickCount` remains an approximate hint.
+
+- [#1345](https://github.com/ngrok/mantle/pull/1345) [`685e5f5`](https://github.com/ngrok/mantle/commit/685e5f50770f68669bf4a39b0d883bc9e7e603fe) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump runtime dependencies: `@tanstack/react-virtual` to 3.14.8 and the Radix UI primitives to their latest patch releases (`react-dialog` 1.1.21, `react-dropdown-menu` 2.1.22, `react-hover-card` 1.1.21, `react-popover` 1.1.21, `react-progress` 1.1.14, `react-select` 2.3.5, `react-slider` 1.4.5, `react-slot` 1.3.1, `react-switch` 1.3.5, `react-tabs` 1.1.19, `react-tooltip` 1.2.14).
+
 ## 0.81.0
 
 ### Minor Changes
