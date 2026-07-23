@@ -838,16 +838,16 @@ Value labels along the bottom of the plot. Renderless — painted on canvas; 2D 
 | Prop          | Type                                          | Default         | Description                                                                                                                                                                   |
 | ------------- | --------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tickFormat?` | `(value: string \| number \| Date) => string` | scale-dependent | Format a tick label. Receives the row's x value — a number on linear scales, a `Date` on time scales. Defaults to thousands-separated numbers and calendar-aware time labels. |
-| `tickCount?`  | `number`                                      | density-derived | Target tick count.                                                                                                                                                            |
+| `tickCount?`  | `number`                                      | density-derived | Target tick count. Approximate: a linear axis over integer-only x values never renders fractional ticks.                                                                      |
 
 ### ScatterPlot.YAxis
 
 Value tick labels along the left of the plot. Renderless — painted on canvas; 2D only. Ticks land on clean thousands-separated numbers.
 
-| Prop          | Type                        | Default             | Description          |
-| ------------- | --------------------------- | ------------------- | -------------------- |
-| `tickFormat?` | `(value: number) => string` | thousands-separated | Format a tick label. |
-| `tickCount?`  | `number`                    | `5`                 | Target tick count.   |
+| Prop          | Type                        | Default             | Description                                                                                             |
+| ------------- | --------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
+| `tickFormat?` | `(value: number) => string` | thousands-separated | Format a tick label.                                                                                    |
+| `tickCount?`  | `number`                    | `5`                 | Target tick count. Approximate: integer-valued data never renders fractional ticks, whatever the count. |
 
 ### ScatterPlot.ReferenceLine
 

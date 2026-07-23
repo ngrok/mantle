@@ -858,16 +858,16 @@ Tick labels along the bottom of the plot. Renderless — painted on canvas. Labe
 | Prop         | Type                                          | Default         | Description                                                                                                                                  |
 | ------------ | --------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tickFormat` | `(value: string \| number \| Date) => string` |                 | Format a tick label. Receives the row's x value: the category value on point scales, a `Date` on time scales, and a number on linear scales. |
-| `tickCount`  | `number`                                      | density-derived | Target tick count (continuous scales only).                                                                                                  |
+| `tickCount`  | `number`                                      | density-derived | Target tick count (continuous scales only). Approximate: a linear axis over integer-only x values never renders fractional ticks.            |
 
 ### AreaChart.YAxis
 
 Value tick labels along the left of the plot. Renderless — painted on canvas. Ticks land on clean thousands-separated numbers.
 
-| Prop         | Type                        | Default             | Description          |
-| ------------ | --------------------------- | ------------------- | -------------------- |
-| `tickFormat` | `(value: number) => string` | thousands-separated | Format a tick label. |
-| `tickCount`  | `number`                    | density-derived     | Target tick count.   |
+| Prop         | Type                        | Default             | Description                                                                                             |
+| ------------ | --------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
+| `tickFormat` | `(value: number) => string` | thousands-separated | Format a tick label.                                                                                    |
+| `tickCount`  | `number`                    | density-derived     | Target tick count. Approximate: integer-valued data never renders fractional ticks, whatever the count. |
 
 ### AreaChart.ReferenceLine
 

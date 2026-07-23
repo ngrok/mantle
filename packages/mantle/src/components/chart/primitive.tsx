@@ -681,7 +681,12 @@ type XAxisPrimitiveProps = {
 	 * band/point scales, a `Date` on time scales, and a number on linear scales.
 	 */
 	tickFormat?: (value: XValue) => string;
-	/** Target tick count (continuous scales only; a density-derived default otherwise). */
+	/**
+	 * Target tick count (continuous scales only; a density-derived default
+	 * otherwise). Approximate: ticks land on human-friendly steps, and a linear
+	 * axis whose x values are all integers never renders fractional ticks —
+	 * the integer step wins over the requested count.
+	 */
 	tickCount?: number;
 };
 
@@ -698,7 +703,11 @@ const useXAxisPrimitive = (partName: string, props: XAxisPrimitiveProps): null =
 type YAxisPrimitiveProps = {
 	/** Format a tick label. Defaults to thousands-separated numbers. */
 	tickFormat?: (value: number) => string;
-	/** Target tick count. */
+	/**
+	 * Target tick count. Approximate: ticks land on human-friendly steps, and
+	 * when every series value is an integer (counts) the axis never renders
+	 * fractional ticks — the integer step wins over the requested count.
+	 */
 	tickCount?: number;
 };
 

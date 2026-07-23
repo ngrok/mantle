@@ -161,6 +161,26 @@ export function SingleSeriesBarChartExample() {
 	);
 }
 
+export const failedDeploys = [
+	{ weekday: "Monday", failures: 1 },
+	{ weekday: "Tuesday", failures: 0 },
+	{ weekday: "Wednesday", failures: 3 },
+	{ weekday: "Thursday", failures: 2 },
+	{ weekday: "Friday", failures: 1 },
+];
+
+export function IntegerCountsBarChartExample() {
+	return (
+		<BarChart.Root data={failedDeploys} xKey="weekday" aria-label="Failed deploys by weekday">
+			<BarChart.Grid />
+			<BarChart.XAxis tickFormat={(weekday) => String(weekday).slice(0, 3)} />
+			<BarChart.YAxis />
+			<BarChart.Bar dataKey="failures" label="Failures" />
+			<BarChart.Tooltip />
+		</BarChart.Root>
+	);
+}
+
 export function ReferenceLineBarChartExample() {
 	return (
 		<BarChart.Root data={monthlyVisitors} xKey="month" aria-label="Visitors by month">
@@ -574,6 +594,38 @@ function SingleSeriesBarChartExample() {
 				<BarChart.Bar dataKey="requests" label="Requests" />
 			</BarChart.Root>
 		</div>
+	);
+}
+```
+
+## Integer counts
+
+Counts are integers, and the value axis knows it: when every series value is a whole number, ticks step by whole numbers — this chart's `[0, 3]` domain ticks at 0, 1, 2, 3 rather than inventing a meaningless "1.5 failures" gridline. Nothing to configure; the behavior follows the data, so a single fractional value (an average, a rate) restores sub-integer ticks. The same guarantee covers the value axis of horizontal bars and linear x axes on the other chart families.
+
+<Example>
+	<IntegerCountsBarChartExample />
+</Example>
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+
+const failedDeploys = [
+	{ weekday: "Monday", failures: 1 },
+	{ weekday: "Tuesday", failures: 0 },
+	{ weekday: "Wednesday", failures: 3 },
+	{ weekday: "Thursday", failures: 2 },
+	{ weekday: "Friday", failures: 1 },
+];
+
+function IntegerCountsBarChartExample() {
+	return (
+		<BarChart.Root data={failedDeploys} xKey="weekday" aria-label="Failed deploys by weekday">
+			<BarChart.Grid />
+			<BarChart.XAxis tickFormat={(weekday) => String(weekday).slice(0, 3)} />
+			<BarChart.YAxis />
+			<BarChart.Bar dataKey="failures" label="Failures" />
+			<BarChart.Tooltip />
+		</BarChart.Root>
 	);
 }
 ```
@@ -1015,10 +1067,10 @@ Category labels along the bottom of the plot (renderless; painted on canvas). La
 
 Value tick labels along the left of the plot (renderless; painted on canvas). Ticks land on clean thousands-separated numbers. Accepts no `className` or DOM props.
 
-| Prop          | Type                        | Default                     | Description          |
-| ------------- | --------------------------- | --------------------------- | -------------------- |
-| `tickFormat?` | `(value: number) => string` | thousands-separated numbers | Format a tick label. |
-| `tickCount?`  | `number`                    |                             | Target tick count.   |
+| Prop          | Type                        | Default                     | Description                                                                                             |
+| ------------- | --------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `tickFormat?` | `(value: number) => string` | thousands-separated numbers | Format a tick label.                                                                                    |
+| `tickCount?`  | `number`                    |                             | Target tick count. Approximate: integer-valued data never renders fractional ticks, whatever the count. |
 
 ### BarChart.ReferenceLine
 

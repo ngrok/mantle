@@ -9,13 +9,34 @@ const e5 = Math.sqrt(10);
 const e2 = Math.sqrt(2);
 
 /**
+ * Options for tick generation.
+ */
+type TickOptions = {
+	/**
+	 * Clamp the tick step to whole numbers so every tick is an integer — the
+	 * shape for axes whose backing data is entirely integer-valued (counts),
+	 * where a "1.5" gridline label is meaningless. May yield fewer ticks than
+	 * `count`; a domain containing no integer yields no ticks.
+	 */
+	integer?: boolean;
+};
+
+/**
  * Solve for the tick range as scaled integers: returns `[i1, i2, inc]` where the
  * ticks are `i1..i2` multiplied by `inc`. A negative `inc` encodes a sub-integer
  * step: divide by `-inc` instead of multiplying, which keeps sub-integer ticks
  * free of floating-point drift.
  */
-const tickSpec = (start: number, stop: number, count: number): [number, number, number] => {
-	const step = (stop - start) / Math.max(0, count);
+const tickSpec = (
+	start: number,
+	stop: number,
+	count: number,
+	options?: TickOptions,
+): [number, number, number] => {
+	const rawStep = (stop - start) / Math.max(0, count);
+	// Integer mode: a step below 1 would place fractional ticks; clamping to 1
+	// keeps the 1/2/5 progression (whose steps at or above 1 are all whole).
+	const step = options?.integer ? Math.max(1, rawStep) : rawStep;
 	const power = Math.floor(Math.log10(step));
 	const error = step / Math.pow(10, power);
 	const factor = error >= e10 ? 10 : error >= e5 ? 5 : error >= e2 ? 2 : 1;
@@ -45,30 +66,38 @@ const tickSpec = (start: number, stop: number, count: number): [number, number, 
 		}
 	}
 	if (i2 < i1 && 0.5 <= count && count < 2) {
-		return tickSpec(start, stop, count * 2);
+		return tickSpec(start, stop, count * 2, options);
 	}
 	return [i1, i2, inc];
 };
 
 /**
  * Human-friendly tick values (1/2/5 stepping) spanning `[start, stop]` for the
- * requested approximate `count`. Returns `[start]` for a flat domain and `[]`
- * for a non-positive count.
+ * requested approximate `count`. Returns `[start]` for a flat domain (unless
+ * integer mode excludes a fractional one) and `[]` for a non-positive count.
  *
  * @example
  * ```ts
  * ticks(0, 1000, 5); // [0, 200, 400, 600, 800, 1000]
+ * ticks(0, 3, 5, { integer: true }); // [0, 1, 2, 3]
  * ```
  */
-const ticks = (start: number, stop: number, count: number): number[] => {
+const ticks = (start: number, stop: number, count: number, options?: TickOptions): number[] => {
 	if (!(count > 0)) {
 		return [];
 	}
 	if (start === stop) {
+		// A flat fractional domain (an explicitly flat fractional override) has
+		// no integer to tick — the no-fractional-ticks contract is absolute.
+		if (options?.integer && !Number.isInteger(start)) {
+			return [];
+		}
 		return [start];
 	}
 	const reverse = stop < start;
-	const [i1, i2, inc] = reverse ? tickSpec(stop, start, count) : tickSpec(start, stop, count);
+	const [i1, i2, inc] = reverse
+		? tickSpec(stop, start, count, options)
+		: tickSpec(start, stop, count, options);
 	if (!(i2 >= i1)) {
 		return [];
 	}
@@ -227,15 +256,21 @@ const invertBand = (layout: BandLayout, pixel: number): number | null => {
 };
 
 /**
- * Human-friendly ticks (1/2/5 stepping) for a linear domain.
+ * Human-friendly ticks (1/2/5 stepping) for a linear domain. With
+ * `{ integer: true }` the step is clamped to whole numbers, so an axis backed
+ * by integer-only data (counts) never grows fractional ticks like `1.5`.
  *
  * @example
  * ```ts
  * linearTicks([0, 1000], 5); // [0, 200, 400, 600, 800, 1000]
+ * linearTicks([0, 3], 5, { integer: true }); // [0, 1, 2, 3]
  * ```
  */
-const linearTicks = (domain: readonly [number, number], count: number): number[] =>
-	ticks(domain[0], domain[1], count);
+const linearTicks = (
+	domain: readonly [number, number],
+	count: number,
+	options?: TickOptions,
+): number[] => ticks(domain[0], domain[1], count, options);
 
 /**
  * Calendar-aware ticks (epoch milliseconds) for a time domain — the reason

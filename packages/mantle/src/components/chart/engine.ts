@@ -211,6 +211,15 @@ class ChartEngine {
 	#columns = new Map<string, Float64Array>();
 	#valueMin = 0;
 	#valueMax = 0;
+	/**
+	 * Every finite series value is an integer. Integer-count data (requests,
+	 * errors) never renders fractional value ticks — a "1.5" label on a count
+	 * axis is meaningless — so value tick generation clamps its step to whole
+	 * numbers while this holds (MNTL-56).
+	 */
+	#valuesAllIntegers = true;
+	/** Every x position is an integer; linear x scales get the same whole-step tick clamp. */
+	#xsAllIntegers = true;
 	#stack: StackBoundaries | null = null;
 
 	// Domains chase their targets (liveline-style exponential glide) so regular
@@ -742,6 +751,10 @@ class ChartEngine {
 			this.#rowCount = count;
 			this.#xs = xs;
 			this.#xValues = xValues;
+			// Band/point positions are indices — vacuously integral (and unread:
+			// category axes never linear-tick). Reset so a scale change to linear
+			// on the same engine never reads a stale flag.
+			this.#xsAllIntegers = true;
 		} else {
 			const entries: Array<{ source: number; x: number }> = [];
 			// `undefined` = key absent (an all-rows absence is a typo, below);
@@ -791,6 +804,7 @@ class ChartEngine {
 			const xs = new Float64Array(count);
 			const xValues: XValue[] = Array.from({ length: count }, () => "");
 			let identityOrder = count === rows.length;
+			let xsAllIntegers = true;
 			const order = new Int32Array(count);
 			for (let index = 0; index < count; index++) {
 				const entry = ordered[index];
@@ -798,6 +812,9 @@ class ChartEngine {
 					continue;
 				}
 				xs[index] = entry.x;
+				if (!Number.isInteger(entry.x)) {
+					xsAllIntegers = false;
+				}
 				if (xScale === "time") {
 					xValues[index] = new Date(entry.x);
 				} else {
@@ -827,6 +844,7 @@ class ChartEngine {
 			this.#rowCount = count;
 			this.#xs = xs;
 			this.#xValues = xValues;
+			this.#xsAllIntegers = xsAllIntegers;
 		}
 		// Date label granularity is a dataset property, not a sample property:
 		// the midnight point inside an hourly series must keep its time of day.
@@ -882,6 +900,9 @@ class ChartEngine {
 		this.#columns = new Map();
 		let min = Number.POSITIVE_INFINITY;
 		let max = Number.NEGATIVE_INFINITY;
+		// Stacked sums of integers are integers, so scanning the raw per-series
+		// values covers stacked domains too.
+		let valuesAllIntegers = true;
 		for (const spec of specs) {
 			const values = new Float64Array(count);
 			let found = false;
@@ -906,6 +927,9 @@ class ChartEngine {
 					if (value > max) {
 						max = value;
 					}
+					if (!Number.isInteger(value)) {
+						valuesAllIntegers = false;
+					}
 				}
 			}
 			invariant(
@@ -916,6 +940,7 @@ class ChartEngine {
 		}
 		this.#valueMin = min === Number.POSITIVE_INFINITY ? 0 : min;
 		this.#valueMax = max === Number.NEGATIVE_INFINITY ? 0 : max;
+		this.#valuesAllIntegers = valuesAllIntegers;
 
 		// 3D scatter: the depth column, sorted-aligned like every series column.
 		const zKey = this.#options.zKey;
@@ -1442,9 +1467,14 @@ class ChartEngine {
 	#yTicks(): Array<{ value: number; text: string }> {
 		const snapshot = this.#store.getSnapshot();
 		const domain = this.#yTween.values();
+		// Integer data keeps integer ticks even mid-glide (tweened fractional
+		// domain bounds) and under a fractional yDomain override — integrality is
+		// a fact about the data, not the domain. `tickCount` stays a hint: the
+		// integer clamp wins when the domain span is smaller than the request.
 		const ticks = linearTicks(
 			[domain[0] ?? 0, domain[1] ?? 1],
 			snapshot.yAxis?.tickCount ?? Y_TICK_COUNT,
+			{ integer: this.#valuesAllIntegers },
 		);
 		const format = snapshot.yAxis?.tickFormat;
 		// Precision follows the tick step, so small-magnitude domains (error
@@ -1503,7 +1533,9 @@ class ChartEngine {
 				text: format == null ? defaultFormat(epoch) : format(new Date(epoch)),
 			}));
 		}
-		const ticks = linearTicks(range, count);
+		// Same whole-step clamp as the value axis: a linear x over integer data
+		// (attempt number, batch index) never grows fractional ticks.
+		const ticks = linearTicks(range, count, { integer: this.#xsAllIntegers });
 		const digits =
 			ticks.length > 1
 				? tickFractionDigits(Math.abs((ticks[1] ?? 0) - (ticks[0] ?? 0)))
