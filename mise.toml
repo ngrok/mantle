@@ -5,8 +5,8 @@ lockfile = true
 idiomatic_version_file_enable_tools = ["node"]
 
 [tools]
-ast-grep = "0.42.1"
-ripgrep = "15.1.0"
+ast-grep = "0.44.1"
+ripgrep = "15.2.0"
 # Keep pnpm's version single-sourced in root package.json#packageManager.
 # The helper avoids needing Node before mise has installed Node.
 "npm:pnpm" = "{{ exec(command='./scripts/package-manager-version') }}"
