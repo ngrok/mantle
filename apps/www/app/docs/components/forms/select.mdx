@@ -356,18 +356,25 @@ By default the selected item's text will be rendered when selected. Sometimes yo
 
 ```tsx
 import { Select } from "@ngrok/mantle/select";
+import { useState } from "react";
 
-<Select.Root value={value} onValueChange={setValue}>
-	<Select.Trigger className="w-45">
-		<Select.Value placeholder="Select a fruit">
-			{value === "apple" ? <>🍎 Apple!</> : <>🍑 Peach!</>}
-		</Select.Value>
-	</Select.Trigger>
-	<Select.Content width="trigger">
-		<Select.Item value="apple">Apple</Select.Item>
-		<Select.Item value="peach">Peach</Select.Item>
-	</Select.Content>
-</Select.Root>;
+function Example() {
+	const [value, setValue] = useState("");
+
+	return (
+		<Select.Root value={value} onValueChange={setValue}>
+			<Select.Trigger className="w-45">
+				<Select.Value placeholder="Select a fruit">
+					{value === "apple" ? <>🍎 Apple</> : <>🍑 Peach</>}
+				</Select.Value>
+			</Select.Trigger>
+			<Select.Content width="trigger">
+				<Select.Item value="apple">Apple</Select.Item>
+				<Select.Item value="peach">Peach</Select.Item>
+			</Select.Content>
+		</Select.Root>
+	);
+}
 ```
 
 ## Composition

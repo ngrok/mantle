@@ -607,7 +607,16 @@ const SelectSeparatorComponent = ({
  * </Select.Root>
  * ```
  */
-const Select = {
+const Select: {
+	Root: typeof Root;
+	Content: typeof Content;
+	Group: typeof Group;
+	Item: typeof Item;
+	Label: typeof Label;
+	Separator: typeof SelectSeparatorComponent;
+	Trigger: typeof Trigger;
+	Value: typeof Value;
+} = {
 	/**
 	 * Displays a list of options for the user to pick from—triggered by a button.
 	 *
@@ -856,7 +865,7 @@ const Select = {
 	 * ```
 	 */
 	Value,
-} as const;
+};
 
 export {
 	//,
