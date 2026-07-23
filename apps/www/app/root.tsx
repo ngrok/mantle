@@ -206,7 +206,9 @@ export function Layout({ children }: PropsWithChildren) {
 					<TooltipProvider>
 						<Toaster />
 						<QueryClientProvider client={queryClient}>
-							{showReactQueryDevtools && (
+							{/* Suppressed inside framed example previews: the floating devtools
+							    button would render on top of the demo in the docs page's iframe. */}
+							{showReactQueryDevtools && !isFramedPreview && (
 								<Suspense fallback={null}>
 									<ReactQueryDevtoolsLazy />
 								</Suspense>
