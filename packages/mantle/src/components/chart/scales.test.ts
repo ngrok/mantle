@@ -139,6 +139,47 @@ describe("linearTicks", () => {
 	});
 });
 
+describe("linearTicks with the integer option", () => {
+	// Regression: MNTL-56 — a small integer-count domain used to grow fractional
+	// ticks ("0.5 requests") because the 1/2/5 solver steps below 1.
+	test("a small integer domain steps by whole numbers instead of fractions", () => {
+		expect(linearTicks([0, 3], 5, { integer: true })).toEqual([0, 1, 2, 3]);
+		expect(linearTicks([0, 1], 5, { integer: true })).toEqual([0, 1]);
+	});
+
+	test("the integer step wins over a larger requested count", () => {
+		expect(linearTicks([0, 3], 10, { integer: true })).toEqual([0, 1, 2, 3]);
+	});
+
+	test("domains wide enough for whole steps are unchanged", () => {
+		expect(linearTicks([0, 10], 5, { integer: true })).toEqual([0, 2, 4, 6, 8, 10]);
+		expect(linearTicks([0, 1000], 5, { integer: true })).toEqual([0, 200, 400, 600, 800, 1000]);
+	});
+
+	test("fractional bounds keep only the integers inside them", () => {
+		// The padded domain a constant integer series produces (flat 3 → [1.5, 4.5]).
+		expect(linearTicks([1.5, 4.5], 5, { integer: true })).toEqual([2, 3, 4]);
+		expect(linearTicks([0, 0.5], 5, { integer: true })).toEqual([0]);
+	});
+
+	test("a fractional domain containing no integer yields no ticks", () => {
+		expect(linearTicks([0.2, 0.8], 5, { integer: true })).toEqual([]);
+		expect(linearTicks([2.5, 2.5], 5, { integer: true })).toEqual([]);
+	});
+
+	test("a reversed domain counts down by whole steps", () => {
+		expect(linearTicks([3, 0], 5, { integer: true })).toEqual([3, 2, 1, 0]);
+	});
+
+	test("a flat integer domain yields the single value", () => {
+		expect(linearTicks([5, 5], 5, { integer: true })).toEqual([5]);
+	});
+
+	test("omitting the option preserves sub-integer stepping", () => {
+		expect(linearTicks([0, 3], 5)).toEqual([0, 0.5, 1, 1.5, 2, 2.5, 3]);
+	});
+});
+
 describe("timeTicks", () => {
 	test("produces calendar-aligned ticks inside the domain", () => {
 		const start = new Date(2026, 6, 18, 10, 0, 0).getTime();
