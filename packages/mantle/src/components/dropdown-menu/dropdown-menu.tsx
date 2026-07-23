@@ -58,6 +58,25 @@ const Trigger = (props: ComponentProps<typeof DropdownMenuPrimitive.Trigger>) =>
 	<DropdownMenuPrimitive.Trigger data-slot="dropdown-menu-trigger" {...props} />
 );
 
+/**
+ * A group container for organizing related dropdown menu items.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenugroup
+ *
+ * @example
+ * ```tsx
+ * <DropdownMenu.Root>
+ *   <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+ *   <DropdownMenu.Content>
+ *     <DropdownMenu.Group>
+ *       <DropdownMenu.Label>Account</DropdownMenu.Label>
+ *       <DropdownMenu.Item>Profile</DropdownMenu.Item>
+ *       <DropdownMenu.Item>Settings</DropdownMenu.Item>
+ *     </DropdownMenu.Group>
+ *   </DropdownMenu.Content>
+ * </DropdownMenu.Root>
+ * ```
+ */
 const Group = ({ className, ...props }: ComponentProps<typeof DropdownMenuPrimitive.Group>) => (
 	<DropdownMenuPrimitive.Group
 		data-slot="dropdown-menu-group"
@@ -71,8 +90,47 @@ const Group = ({ className, ...props }: ComponentProps<typeof DropdownMenuPrimit
  */
 const Portal = DropdownMenuPrimitive.Portal;
 
+/**
+ * A submenu container for creating nested dropdown menus.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenusub
+ *
+ * @example
+ * ```tsx
+ * <DropdownMenu.Root>
+ *   <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+ *   <DropdownMenu.Content>
+ *     <DropdownMenu.Sub>
+ *       <DropdownMenu.SubTrigger>More options</DropdownMenu.SubTrigger>
+ *       <DropdownMenu.SubContent>
+ *         <DropdownMenu.Item>Sub item 1</DropdownMenu.Item>
+ *         <DropdownMenu.Item>Sub item 2</DropdownMenu.Item>
+ *       </DropdownMenu.SubContent>
+ *     </DropdownMenu.Sub>
+ *   </DropdownMenu.Content>
+ * </DropdownMenu.Root>
+ * ```
+ */
 const Sub = DropdownMenuPrimitive.Sub;
 
+/**
+ * A radio group container for exclusive selection within the dropdown menu.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenuradiogroup
+ *
+ * @example
+ * ```tsx
+ * <DropdownMenu.Root>
+ *   <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+ *   <DropdownMenu.Content>
+ *     <DropdownMenu.RadioGroup value={value} onValueChange={setValue}>
+ *       <DropdownMenu.RadioItem value="option1">Option 1</DropdownMenu.RadioItem>
+ *       <DropdownMenu.RadioItem value="option2">Option 2</DropdownMenu.RadioItem>
+ *     </DropdownMenu.RadioGroup>
+ *   </DropdownMenu.Content>
+ * </DropdownMenu.Root>
+ * ```
+ */
 const RadioGroup = ({
 	className,
 	...props
@@ -88,6 +146,22 @@ const RadioGroup = ({
  * A trigger for a dropdown menu sub-menu.
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenusubtrigger
+ *
+ * @example
+ * ```tsx
+ * <DropdownMenu.Root>
+ *   <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+ *   <DropdownMenu.Content>
+ *     <DropdownMenu.Sub>
+ *       <DropdownMenu.SubTrigger>Share</DropdownMenu.SubTrigger>
+ *       <DropdownMenu.SubContent>
+ *         <DropdownMenu.Item>Email</DropdownMenu.Item>
+ *         <DropdownMenu.Item>Copy link</DropdownMenu.Item>
+ *       </DropdownMenu.SubContent>
+ *     </DropdownMenu.Sub>
+ *   </DropdownMenu.Content>
+ * </DropdownMenu.Root>
+ * ```
  */
 const SubTrigger = ({
 	className,
@@ -123,6 +197,22 @@ const SubTrigger = ({
  * mounted layer renders on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenusubcontent
+ *
+ * @example
+ * ```tsx
+ * <DropdownMenu.Root>
+ *   <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+ *   <DropdownMenu.Content>
+ *     <DropdownMenu.Sub>
+ *       <DropdownMenu.SubTrigger>Export</DropdownMenu.SubTrigger>
+ *       <DropdownMenu.SubContent>
+ *         <DropdownMenu.Item>Export as PDF</DropdownMenu.Item>
+ *         <DropdownMenu.Item>Export as CSV</DropdownMenu.Item>
+ *       </DropdownMenu.SubContent>
+ *     </DropdownMenu.Sub>
+ *   </DropdownMenu.Content>
+ * </DropdownMenu.Root>
+ * ```
  */
 const SubContent = ({
 	className,
@@ -255,6 +345,18 @@ const Item = ({
  * A menu item with a checkbox that can be controlled or uncontrolled.
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenucheckboxitem
+ *
+ * @example
+ * ```tsx
+ * <DropdownMenu.Root>
+ *   <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+ *   <DropdownMenu.Content>
+ *     <DropdownMenu.CheckboxItem checked={true} onCheckedChange={setChecked}>
+ *       Show notifications
+ *     </DropdownMenu.CheckboxItem>
+ *   </DropdownMenu.Content>
+ * </DropdownMenu.Root>
+ * ```
  */
 const CheckboxItem = ({
 	className,
@@ -294,6 +396,20 @@ type DropdownMenuRadioItemProps = ComponentProps<typeof DropdownMenuPrimitive.Ra
  * Used within a RadioGroup to create a set of mutually exclusive options.
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenuradioitem
+ *
+ * @example
+ * ```tsx
+ * <DropdownMenu.Root>
+ *   <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+ *   <DropdownMenu.Content>
+ *     <DropdownMenu.RadioGroup value="small" onValueChange={setSize}>
+ *       <DropdownMenu.RadioItem value="small">Small</DropdownMenu.RadioItem>
+ *       <DropdownMenu.RadioItem value="medium">Medium</DropdownMenu.RadioItem>
+ *       <DropdownMenu.RadioItem value="large">Large</DropdownMenu.RadioItem>
+ *     </DropdownMenu.RadioGroup>
+ *   </DropdownMenu.Content>
+ * </DropdownMenu.Root>
+ * ```
  */
 const RadioItem = ({ className, children, ...props }: DropdownMenuRadioItemProps) => (
 	<DropdownMenuPrimitive.RadioItem
@@ -322,6 +438,18 @@ const RadioItem = ({ className, children, ...props }: DropdownMenuRadioItemProps
  * A label for a group of dropdown menu items.
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenulabel
+ *
+ * @example
+ * ```tsx
+ * <DropdownMenu.Root>
+ *   <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+ *   <DropdownMenu.Content>
+ *     <DropdownMenu.Label>My Account</DropdownMenu.Label>
+ *     <DropdownMenu.Item>Profile</DropdownMenu.Item>
+ *     <DropdownMenu.Item>Settings</DropdownMenu.Item>
+ *   </DropdownMenu.Content>
+ * </DropdownMenu.Root>
+ * ```
  */
 const Label = ({
 	className,
@@ -341,6 +469,19 @@ const Label = ({
  * A visual separator between dropdown menu items or groups.
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenuseparator
+ *
+ * @example
+ * ```tsx
+ * <DropdownMenu.Root>
+ *   <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+ *   <DropdownMenu.Content>
+ *     <DropdownMenu.Item>Edit</DropdownMenu.Item>
+ *     <DropdownMenu.Item>Copy</DropdownMenu.Item>
+ *     <DropdownMenu.Separator />
+ *     <DropdownMenu.Item>Delete</DropdownMenu.Item>
+ *   </DropdownMenu.Content>
+ * </DropdownMenu.Root>
+ * ```
  */
 const DropdownSeparator = ({ className, ...props }: ComponentProps<typeof Separator>) => (
 	<Separator
@@ -350,6 +491,24 @@ const DropdownSeparator = ({ className, ...props }: ComponentProps<typeof Separa
 	/>
 );
 
+/**
+ * A keyboard shortcut indicator for dropdown menu items.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenushortcut
+ *
+ * @example
+ * ```tsx
+ * <DropdownMenu.Root>
+ *   <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+ *   <DropdownMenu.Content>
+ *     <DropdownMenu.Item>
+ *       Save
+ *       <DropdownMenu.Shortcut>⌘S</DropdownMenu.Shortcut>
+ *     </DropdownMenu.Item>
+ *   </DropdownMenu.Content>
+ * </DropdownMenu.Root>
+ * ```
+ */
 const Shortcut = ({ className, ...props }: ComponentProps<"span">) => {
 	return (
 		<span
