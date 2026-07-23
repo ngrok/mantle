@@ -1,0 +1,332 @@
+---
+title: Sidebar
+description: A composable left-edge sidebar with account switching, user actions, and per-product navigation that swaps based on the selected product.
+---
+
+import { Anchor } from "@ngrok/mantle/anchor";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { ArrowSquareOutIcon } from "@phosphor-icons/react/ArrowSquareOut";
+import { Example } from "~/components/example";
+import { DashboardDemo } from "~/examples/sidebar/dashboard-demo";
+import { IconRailDemo } from "~/examples/sidebar/icon-rail-demo";
+import { MobileSheetDemo } from "~/examples/sidebar/mobile-sheet-demo";
+
+# Sidebar
+
+`Sidebar` is a composable navigation primitive for multi-product dashboards. It handles three distinct concerns:
+
+1. **Account (workspace) switching** — switch between organizations / billing entities.
+2. **User actions** — access user settings and log out.
+3. **Product switching with per-product nav** — present multiple products in one app and swap the body's nav items based on the selected product.
+
+The component is **routing-agnostic**. Pass `asChild` on `Sidebar.Item`, `Sidebar.SectionTitle`, and `Sidebar.RailItem` to compose with your router's `<Link>` or `<NavLink>`. Active state is fully consumer-controlled via the `active` prop, which sets `data-active` and `aria-current="page"` for styling and accessibility.
+
+The component renders the **sidebar chrome only**. Whether to render it on a given route is the consuming app's decision — for example, you may want to hide the sidebar on user-account settings pages where the user is "outside" any account.
+
+## Two-column layout with an icon rail (recommended)
+
+Pin every product to a fixed icon rail on the far left, with the selected product's nav rendered in the middle column and the content pane floating as an inset rounded card. The account avatar anchors the top of the rail, the signed-in user's avatar anchors the bottom, and the product's name sits in the header of the middle column. See the <Anchor href="/prototype/sidebar" icon={<ArrowSquareOutIcon />} iconPlacement="end">full-page prototype</Anchor> to explore the layout at real-world dimensions.
+
+<Example className="block p-0">
+	<IconRailDemo />
+</Example>
+
+```tsx
+import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { Tooltip } from "@ngrok/mantle/tooltip";
+
+<div className="bg-base flex h-full">
+	<Sidebar.Rail aria-label="Primary navigation" className="bg-transparent">
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger asChild>
+				<button type="button" aria-label={`Account: ${currentAccount.name}`}>
+					<Sidebar.AccountAvatar accountId={currentAccount.id} accountName={currentAccount.name} />
+				</button>
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content side="right" align="start">
+				{/* account settings, switch accounts, etc. */}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+
+		{products.map((product) => (
+			<Tooltip.Root key={product.id}>
+				<Tooltip.Trigger asChild>
+					<Sidebar.RailItem
+						icon={product.icon}
+						label={product.label}
+						active={product.id === currentProductId}
+						onClick={() => setCurrentProductId(product.id)}
+					/>
+				</Tooltip.Trigger>
+				<Tooltip.Content side="right">{product.label}</Tooltip.Content>
+			</Tooltip.Root>
+		))}
+
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger asChild>
+				<button type="button" className="mt-auto" aria-label={`Signed in as ${user.name}`}>
+					<Sidebar.UserAvatar src={user.pictureUrl} alt={user.name} />
+				</button>
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content side="right" align="end">
+				{/* user settings, theme, log out */}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	</Sidebar.Rail>
+
+	<Sidebar.Root
+		aria-label={`${currentProduct.label} navigation`}
+		className="border-r-0 bg-transparent"
+	>
+		<Sidebar.Header>
+			<h2>{currentProduct.label}</h2>
+		</Sidebar.Header>
+
+		<Sidebar.Body>{/* per-product nav, varies with currentProductId */}</Sidebar.Body>
+
+		<Sidebar.Footer>{/* early access, feedback, docs, support */}</Sidebar.Footer>
+	</Sidebar.Root>
+
+	<main className="bg-card border-card-muted my-2 mr-2 flex-1 rounded-xl border shadow-sm">
+		{/* page content */}
+	</main>
+</div>;
+```
+
+## Single-column layout with a unified account dropdown
+
+Mirrors what the authenticated ngrok dashboard renders today: one column of navigation, a custom account-switcher trigger in the header (account avatar + name on the left, theme hint and user silhouette on the right), and a dropdown that unifies account-level actions, user-level actions, and log out. The always-visible footer holds the cross-product links (billing, early access, feedback, support, docs).
+
+<Example className="block p-0">
+	<DashboardDemo />
+</Example>
+
+```tsx
+import { BrowserOnly } from "@ngrok/mantle/browser-only";
+import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { Icon } from "@ngrok/mantle/icon";
+import { AutoThemeIcon } from "@ngrok/mantle/icons";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+
+<Sidebar.Root aria-label="Primary navigation" className="border-r-0 bg-transparent">
+	<Sidebar.Header>
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger className="text-strong hover:bg-popover-hover flex w-full items-center justify-between gap-1.5 rounded-lg px-1.5 py-1.5">
+				<div className="flex min-w-0 flex-1 items-center gap-1.5">
+					<Sidebar.AccountAvatar accountId={currentAccount.id} accountName={currentAccount.name} />
+					<span className="min-w-0 truncate text-sm font-medium">{currentAccount.name}</span>
+				</div>
+				<div className="flex shrink-0 items-center gap-1">
+					<BrowserOnly fallback={<div className="size-4" />}>
+						{() => <AutoThemeIcon className="size-4" />}
+					</BrowserOnly>
+					<Sidebar.UserAvatar alt={user.name} />
+				</div>
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content className="ml-2 w-[calc(var(--radix-dropdown-menu-trigger-width)+1.5rem)]">
+				<DropdownMenu.Group>
+					<DropdownMenu.Label>Account</DropdownMenu.Label>
+					{/* Account settings, Manage subscription, Switch accounts (sub) */}
+				</DropdownMenu.Group>
+				<DropdownMenu.Separator />
+				<DropdownMenu.Group>
+					<DropdownMenu.Label>{user.email}</DropdownMenu.Label>
+					{/* User settings, Theme (sub) */}
+				</DropdownMenu.Group>
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item>{/* Log out */}</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	</Sidebar.Header>
+
+	<Sidebar.Body>{/* Section / SectionTitle / Group / Item per product area */}</Sidebar.Body>
+
+	<Sidebar.Footer>{/* Billing, Early Access, Feedback, Support, Docs */}</Sidebar.Footer>
+</Sidebar.Root>;
+```
+
+## Mobile pattern
+
+Wrap the sidebar in `Sheet` to slide it in from the left at small breakpoints. No new components are required — `Sheet` provides the slide-in animation, focus trap, and overlay; `Sidebar` simply renders inside `Sheet.Content`.
+
+<Example className="block p-0">
+	<MobileSheetDemo />
+</Example>
+
+```tsx
+import { IconButton } from "@ngrok/mantle/button";
+import { Sheet } from "@ngrok/mantle/sheet";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { ListIcon } from "@phosphor-icons/react/List";
+
+// Hide the trigger at sm+ and render the sidebar inline at sm+.
+<>
+	<Sheet.Root open={isOpen} onOpenChange={setIsOpen}>
+		<Sheet.Trigger asChild className="sm:hidden">
+			<IconButton type="button" appearance="outlined" icon={<ListIcon />} label="Open menu" />
+		</Sheet.Trigger>
+		<Sheet.Content side="left" preferredWidth="sm:max-w-[20rem]" className="flex p-0">
+			<Sheet.Title className="sr-only">Primary navigation</Sheet.Title>
+			<Sidebar.Rail aria-label="Products">{/* rail items */}</Sidebar.Rail>
+			<Sidebar.Root aria-label="Primary navigation" className="border-r-0">
+				{/* header / body / footer */}
+			</Sidebar.Root>
+		</Sheet.Content>
+	</Sheet.Root>
+
+	<aside className="hidden sm:flex">{/* same Sidebar markup, rendered inline */}</aside>
+</>;
+```
+
+## API Reference
+
+The `Sidebar` namespace groups the layout primitives, avatars, and switcher composites under one import.
+
+### Layout
+
+#### `Sidebar.Root`
+
+The main `<nav>` container. Renders a fixed-width column with the sidebar background, a right border, and a vertical layout for `Sidebar.Header`, `Sidebar.Body`, and `Sidebar.Footer`. Accepts all `<nav>` props.
+
+#### `Sidebar.Header`
+
+Top region with bottom border. Typically holds an account switcher and (in single-column layouts) a product switcher.
+
+#### `Sidebar.Body`
+
+Scrollable middle region. Holds `Sidebar.Section` children for grouped navigation.
+
+#### `Sidebar.Footer`
+
+Bottom region with top border. Use for persistent footer links such as billing and documentation.
+
+#### `Sidebar.Section`
+
+Grouping container for a heading + list of items.
+
+#### `Sidebar.SectionTitle`
+
+Heading row for a `Sidebar.Section`. Renders an `<h4>` by default. Pass `asChild` to render as a router-aware link.
+
+| Prop      | Type      | Description                                           |
+| --------- | --------- | ----------------------------------------------------- |
+| `asChild` | `boolean` | Merges title styles onto the immediate child element. |
+
+#### `Sidebar.Group`
+
+A `<ul>` list container for `Sidebar.Item` children.
+
+#### `Sidebar.Item`
+
+A single navigation row. Renders a `<li>` wrapping a `<button>` by default. Accepts `asChild` to compose with a router link, and `active` to apply the selected visual state.
+
+| Prop      | Type                | Description                                                                                                                      |
+| --------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild` | `boolean`           | Merges row styles onto the immediate child element.                                                                              |
+| `active`  | `boolean`           | Sets `data-active` and `aria-current="page"`.                                                                                    |
+| `level`   | `"top" \| "nested"` | Visual depth. `top` is bold + leading-icon-friendly; `nested` is indented for items under a section title. Defaults to `nested`. |
+
+#### `Sidebar.Separator`
+
+Horizontal `<hr>` divider that bleeds to the sidebar's edges.
+
+### Icon rail
+
+#### `Sidebar.Rail`
+
+The vertical icon rail for two-column layouts. Place as a sibling of `Sidebar.Root`.
+
+#### `Sidebar.RailItem`
+
+A single icon button in the rail.
+
+| Prop      | Type         | Description                                               |
+| --------- | ------------ | --------------------------------------------------------- |
+| `icon`    | `ReactNode`  | The product's icon.                                       |
+| `label`   | `string`     | Accessible label for the rail item; used as `aria-label`. |
+| `active`  | `boolean`    | Sets `data-active` and `aria-current="page"`.             |
+| `asChild` | `boolean`    | Merges rail styles onto the immediate child.              |
+| `onClick` | `() => void` | Click handler when not using `asChild`.                   |
+
+### Avatars
+
+#### `Sidebar.AccountAvatar`
+
+Small rounded-square avatar for an account (workspace). Background color is derived deterministically from the `accountId`, so the same account always gets the same swatch.
+
+| Prop          | Type                  | Description                                                              |
+| ------------- | --------------------- | ------------------------------------------------------------------------ |
+| `accountId`   | `string \| undefined` | Stable account identifier. Drives the color.                             |
+| `accountName` | `string \| undefined` | Display name. The first one or two letters become the avatar's initials. |
+
+#### `Sidebar.UserAvatar`
+
+Circular avatar for the currently signed-in user. Renders the user's profile picture when `src` is provided, otherwise a neutral, theme-aware silhouette.
+
+| Prop  | Type      | Description                                     |
+| ----- | --------- | ----------------------------------------------- |
+| `src` | `string?` | URL of the user's profile picture.              |
+| `alt` | `string?` | Accessible label. Defaults to `"Your account"`. |
+
+### Switchers
+
+#### `Sidebar.AccountSwitcherTrigger`
+
+Visual trigger row for an account switcher. Designed to be used as a `DropdownMenu.Trigger` via `asChild`. Splitting the trigger from the menu lets consumers compose any actions they like in the dropdown using their own router and permissions.
+
+| Prop          | Type                  | Description                                                                                    |
+| ------------- | --------------------- | ---------------------------------------------------------------------------------------------- |
+| `accountId`   | `string \| undefined` | Drives the avatar swatch.                                                                      |
+| `accountName` | `string \| undefined` | Shown next to the avatar.                                                                      |
+| `trailing`    | `ReactNode?`          | Optional content rendered between the name and the chevron — typically a `Sidebar.UserAvatar`. |
+
+#### `Sidebar.SwitchAccountsRadioGroup`
+
+A pre-styled radio group of accounts for use inside a `DropdownMenu.SubContent`.
+
+| Prop            | Type                                                                | Description                                     |
+| --------------- | ------------------------------------------------------------------- | ----------------------------------------------- |
+| `accounts`      | `ReadonlyArray<{ id: string; name: string; trailing?: ReactNode }>` | Consumer-supplied account list.                 |
+| `value`         | `string`                                                            | Currently-selected account id.                  |
+| `onValueChange` | `(id: string) => void`                                              | Called when the user picks a different account. |
+
+#### `Sidebar.ProductSwitcherTrigger`
+
+Visual trigger row for the in-header product switcher (single-column layout). Designed to be used as a `DropdownMenu.Trigger` via `asChild`.
+
+| Prop             | Type                   | Description                                  |
+| ---------------- | ---------------------- | -------------------------------------------- |
+| `currentProduct` | `Product \| undefined` | The product currently displayed in the body. |
+
+#### `Sidebar.ProductSwitcherRadioGroup`
+
+A pre-styled radio group of products for use inside a `DropdownMenu.Content`.
+
+| Prop            | Type                     | Description                                     |
+| --------------- | ------------------------ | ----------------------------------------------- |
+| `products`      | `ReadonlyArray<Product>` | Consumer-supplied product list.                 |
+| `value`         | `string`                 | Currently-selected product id.                  |
+| `onValueChange` | `(id: string) => void`   | Called when the user picks a different product. |
+
+### Types
+
+#### `Product`
+
+```ts
+type Product = {
+	id: string;
+	label: string;
+	icon: ReactNode;
+};
+```
+
+#### `SwitchAccountsRadioGroupAccount`
+
+```ts
+type SwitchAccountsRadioGroupAccount = {
+	id: string;
+	name: string;
+	trailing?: ReactNode;
+};
+```

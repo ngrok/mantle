@@ -121,6 +121,7 @@ export const prodReadyComponents: readonly ProdReadyComponent[] = componentCateg
 export const previewComponents = [
 	//,
 	"Calendar",
+	"Sidebar",
 ] as const;
 
 /** Route lookup for production-ready component pages. */
@@ -194,6 +195,7 @@ export const prodReadyComponentRouteLookup = {
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
 	Calendar: "/components/preview/calendar",
+	Sidebar: "/components/preview/sidebar",
 } as const satisfies Record<(typeof previewComponents)[number], Route>;
 
 /**
@@ -203,6 +205,7 @@ export const previewComponentsRouteLookup = {
  */
 export const previewComponentCategoryLookup = {
 	Calendar: "Forms",
+	Sidebar: "Navigation",
 } as const satisfies Record<(typeof previewComponents)[number], ComponentCategory>;
 
 /** Welcome section pages. */

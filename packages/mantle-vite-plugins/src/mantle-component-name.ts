@@ -64,6 +64,7 @@ export const MANTLE_COMPONENT_NAMES = [
 	"selectable-list",
 	"separator",
 	"sheet",
+	"sidebar",
 	"skeleton",
 	"skip-to-main-link",
 	"slider",

@@ -315,6 +315,11 @@
 			"types": "./dist/sheet.d.ts",
 			"import": "./dist/sheet.js"
 		},
+		"./sidebar": {
+			"@ngrok/src-live-types": "./src/components/sidebar/index.ts",
+			"types": "./dist/sidebar.d.ts",
+			"import": "./dist/sidebar.js"
+		},
 		"./skip-to-main-link": {
 			"@ngrok/src-live-types": "./src/components/skip-to-main-link/index.ts",
 			"types": "./dist/skip-to-main-link.d.ts",

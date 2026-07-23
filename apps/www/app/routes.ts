@@ -41,6 +41,9 @@ export default [
 		id: "api-search-index-json",
 	}),
 	route("api/shiki-highlight", "./routes/api.shiki-highlight.tsx"),
+	route("prototype/sidebar", "./routes/prototype.sidebar.tsx"),
+	route("prototype/sidebar-single", "./routes/prototype.sidebar-single.tsx"),
+	route("prototype/sidebar-single-2", "./routes/prototype.sidebar-single-2.tsx"),
 
 	// docs layout
 	layout("./routes/docs-layout.tsx", [
@@ -136,6 +139,7 @@ export default [
 		...docRoute("components/overlays/tooltip"),
 		// preview (lifecycle namespace, not a category)
 		...docRoute("components/preview/calendar"),
+		...docRoute("components/preview/sidebar"),
 		// primitives
 		...docRoute("components/primitives/browser-only"),
 		...docRoute("components/primitives/main"),
