@@ -365,7 +365,8 @@ const CopyButton = (props: AreaChartCopyButtonProps) => (
  * ├── AreaChart.Area (one per series)
  * ├── AreaChart.ReferenceLine
  * ├── AreaChart.Tooltip
- * └── AreaChart.Legend
+ * ├── AreaChart.Legend
+ * └── AreaChart.CopyButton
  * ```
  *
  * @example
