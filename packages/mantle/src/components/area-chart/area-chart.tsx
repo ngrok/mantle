@@ -1,7 +1,7 @@
 "use client";
 
 import type {
-	ChartAccessibleName,
+	ChartAccessibilityProps,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
@@ -40,7 +40,7 @@ type AreaChartRootProps<TDatum extends ChartDatum = ChartDatum> = Omit<
 	ChartRootBaseProps,
 	"yDomain"
 > &
-	ChartAccessibleName & {
+	ChartAccessibilityProps & {
 		/** Rows of data; each `AreaChart.Area` reads one numeric key per row. */
 		data: readonly TDatum[];
 		/** The key of each row's x value. */

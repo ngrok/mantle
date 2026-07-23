@@ -789,3 +789,30 @@ describe("LineChart invalid x values", () => {
 		expect(tooltip?.textContent).toContain("222");
 	});
 });
+
+describe("LineChart decorative mode", () => {
+	const renderDecorative = () =>
+		render(
+			<LineChart.Root data={data} xKey="time" decorative>
+				<LineChart.Line dataKey="p50" label="p50" />
+			</LineChart.Root>,
+		);
+
+	test("hides the visualization from assistive tech and needs no accessible name", () => {
+		const { container } = renderDecorative();
+		expect(container.querySelector('[data-slot="line-chart"]')).toHaveAttribute(
+			"aria-hidden",
+			"true",
+		);
+		// Decorative preserves the canvas rendering; it only strips interaction + a11y.
+		expect(container.querySelector("canvas")).toBeInTheDocument();
+	});
+
+	test("is inert: no interaction overlay, tab stop, data table, or live region", () => {
+		const { container } = renderDecorative();
+		expect(screen.queryByRole("application")).not.toBeInTheDocument();
+		expect(container.querySelector("[tabindex]")).not.toBeInTheDocument();
+		expect(screen.queryByRole("table")).not.toBeInTheDocument();
+		expect(screen.queryByRole("status")).not.toBeInTheDocument();
+	});
+});

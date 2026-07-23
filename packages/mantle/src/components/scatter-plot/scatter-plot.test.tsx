@@ -468,3 +468,30 @@ describe("ScatterPlot 3D depth (zKey)", () => {
 		expect(screen.getByRole("cell", { name: "11" })).toBeInTheDocument();
 	});
 });
+
+describe("ScatterPlot decorative mode", () => {
+	const renderDecorative = () =>
+		render(
+			<ScatterPlot.Root data={data} xKey="latency" decorative>
+				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+			</ScatterPlot.Root>,
+		);
+
+	test("hides the visualization from assistive tech and needs no accessible name", () => {
+		const { container } = renderDecorative();
+		expect(container.querySelector('[data-slot="scatter-plot"]')).toHaveAttribute(
+			"aria-hidden",
+			"true",
+		);
+		// Decorative preserves the canvas rendering; it only strips interaction + a11y.
+		expect(container.querySelector("canvas")).toBeInTheDocument();
+	});
+
+	test("is inert: no interaction overlay, tab stop, data table, or live region", () => {
+		const { container } = renderDecorative();
+		expect(screen.queryByRole("application")).not.toBeInTheDocument();
+		expect(container.querySelector("[tabindex]")).not.toBeInTheDocument();
+		expect(screen.queryByRole("table")).not.toBeInTheDocument();
+		expect(screen.queryByRole("status")).not.toBeInTheDocument();
+	});
+});

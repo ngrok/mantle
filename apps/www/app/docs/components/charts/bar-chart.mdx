@@ -313,6 +313,27 @@ export function LiveBarChartExample() {
 	);
 }
 
+export const placeholderUsage = [40, 62, 51, 78, 66, 89, 72].map((value, index) => ({
+	day: `Day ${index + 1}`,
+	value,
+}));
+
+export function EmptyStateBarChartExample() {
+	return (
+		<div className="relative w-full">
+			<BarChart.Root data={placeholderUsage} xKey="day" decorative className="opacity-40">
+				<BarChart.Bar dataKey="value" />
+			</BarChart.Root>
+			<div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center">
+				<p className="text-strong text-sm font-medium">No usage yet</p>
+				<p className="text-muted max-w-xs text-sm">
+					Traffic will appear here once your endpoints start receiving requests.
+				</p>
+			</div>
+		</div>
+	);
+}
+
 # Bar Chart
 
 A canvas-rendered bar chart for comparing values across categories, with grouped and stacked variants.
@@ -863,6 +884,45 @@ import { BarChart } from "@ngrok/mantle/bar-chart";
 </BarChart.Root>;
 ```
 
+## Decorative charts
+
+Set `decorative` to render the chart as a placeholder backdrop instead of real data — synthetic bars behind an empty state, an atmospheric hero graphic. A decorative chart keeps its visual rendering and animation but drops every layer that only makes sense for real data: it is hidden from assistive technology, removed from the tab order, and inert to pointer and keyboard, with no hover band, tooltip, sr-only data table, or live region. Because the values aren't information, `decorative` is mutually exclusive with the accessible-name props (`aria-label` / `aria-labelledby`) and the interaction props (`activeIndex`, `onActiveIndexChange`, `onDatumActivate`) — the type won't compile with both.
+
+Reach for `decorative` over hand-rolled `inert` + CSS: it removes the interaction overlay at the source, so consumers never target chart internals to neutralize it. Keep the real empty-state message as a sibling of the chart (not inside it) so screen readers still announce it — the decorative chart itself is silent.
+
+`decorative` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For a chart with real data that should stay readable through its data table but skip pointer/keyboard exploration, that's a different, not-yet-shipped concern — don't reach for `decorative`.
+
+<Example>
+	<EmptyStateBarChartExample />
+</Example>
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+
+/** Synthetic bars — a backdrop, not data — so no Math.random and no real values. */
+const placeholderUsage = [40, 62, 51, 78, 66, 89, 72].map((value, index) => ({
+	day: `Day ${index + 1}`,
+	value,
+}));
+
+function EmptyStateBarChartExample() {
+	return (
+		<div className="relative w-full">
+			<BarChart.Root data={placeholderUsage} xKey="day" decorative className="opacity-40">
+				<BarChart.Bar dataKey="value" />
+			</BarChart.Root>
+			{/* The real message is a sibling of the chart, so AT still announces it. */}
+			<div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center">
+				<p className="text-strong text-sm font-medium">No usage yet</p>
+				<p className="text-muted max-w-xs text-sm">
+					Traffic will appear here once your endpoints start receiving requests.
+				</p>
+			</div>
+		</div>
+	);
+}
+```
+
 ## Composition
 
 Compose the parts of a `BarChart` together to build your own:
@@ -881,7 +941,7 @@ BarChart.Root
 
 ## Accessibility
 
-Every chart must have an accessible name — either a direct `aria-label` or an `aria-labelledby` reference to a visible title. This is enforced at the type level: `BarChart.Root` does not compile without exactly one of the two. Prefer `aria-labelledby` when the chart sits under a visible heading, so the name never drifts from the title. The name lands on the focusable interaction overlay — the chart's single named element (the canvas itself is hidden from assistive technology so the chart is never announced twice).
+Every interactive chart must have an accessible name — either a direct `aria-label` or an `aria-labelledby` reference to a visible title. This is enforced at the type level: `BarChart.Root` does not compile without exactly one of the two. Prefer `aria-labelledby` when the chart sits under a visible heading, so the name never drifts from the title. The name lands on the focusable interaction overlay — the chart's single named element (the canvas itself is hidden from assistive technology so the chart is never announced twice). [Decorative charts](#decorative-charts) are the exception: they carry no real data, so they take no accessible name and are hidden from assistive technology entirely.
 
 The chart is a single Tab stop with a full keyboard model, and it exposes usage instructions to assistive technology via `aria-describedby`:
 
@@ -907,20 +967,21 @@ The root of a bar chart: owns the data, the scales, the canvas renderer, and the
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop                   | Type                               | Default       | Description                                                                                                                                                                                                                              |
-| ---------------------- | ---------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data`                 | `readonly TDatum[]`                |               | Rows of data; each `BarChart.Bar` reads one numeric key per row. Missing keys and `null` values render as gaps.                                                                                                                          |
-| `xKey`                 | `Extract<keyof TDatum, string>`    |               | The key of each row's category (x) value.                                                                                                                                                                                                |
-| `aria-label`           | `string`                           |               | The chart's accessible name. Exactly one of `aria-label` or `aria-labelledby` is required — enforced at the type level.                                                                                                                  |
-| `aria-labelledby`      | `string`                           |               | ID of a visible title element that names the chart. Preferred when the chart sits under a heading — no drift-prone duplicated text.                                                                                                      |
-| `yDomain?`             | `[0, number \| "auto"]`            | `[0, "auto"]` | Override the automatic y maximum. The minimum is always the zero baseline.                                                                                                                                                               |
-| `stacked?`             | `boolean`                          | `false`       | Stack the composed series in composition order from the baseline up.                                                                                                                                                                     |
-| `orientation?`         | `"vertical" \| "horizontal"`       | `"vertical"`  | The direction the bars point (not an axis): `"vertical"` bars stand up from a bottom baseline (categories along x); `"horizontal"` bars run rightward from a left baseline (categories down y). See [Horizontal bars](#horizontal-bars). |
-| `animate?`             | `boolean`                          | `true`        | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                                                                                                                                  |
-| `pending?`             | `boolean`                          | `false`       | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                                           |
-| `activeIndex?`         | `number \| null`                   |               | Controlled active datum index (`null` = none). Omit for uncontrolled hover.                                                                                                                                                              |
-| `onActiveIndexChange?` | `(index: number \| null) => void`  |               | Notified when hover/keyboard moves the active index.                                                                                                                                                                                     |
-| `onDatumActivate?`     | `(event: ChartDatumEvent) => void` |               | Notified on datum activation: bar click, or Enter/Space on the focused chart. The event carries `{ index, xValue, datum, dataKey }`; `dataKey` is the series nearest the pointer, `null` for keyboard/whole-band activation.             |
+| Prop                   | Type                               | Default       | Description                                                                                                                                                                                                                                                                 |
+| ---------------------- | ---------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data`                 | `readonly TDatum[]`                |               | Rows of data; each `BarChart.Bar` reads one numeric key per row. Missing keys and `null` values render as gaps.                                                                                                                                                             |
+| `xKey`                 | `Extract<keyof TDatum, string>`    |               | The key of each row's category (x) value.                                                                                                                                                                                                                                   |
+| `aria-label`           | `string`                           |               | The chart's accessible name (interactive charts). Exactly one of `aria-label` or `aria-labelledby` is required — enforced at the type level. Forbidden when `decorative`.                                                                                                   |
+| `aria-labelledby`      | `string`                           |               | ID of a visible title element that names the chart. Preferred when the chart sits under a heading — no drift-prone duplicated text. Forbidden when `decorative`.                                                                                                            |
+| `decorative?`          | `boolean`                          | `false`       | Render as a placeholder backdrop, not real data: hidden from assistive tech, out of the tab order, inert to pointer/keyboard, no data table or live region. Mutually exclusive with the accessible-name and interaction props. See [Decorative charts](#decorative-charts). |
+| `yDomain?`             | `[0, number \| "auto"]`            | `[0, "auto"]` | Override the automatic y maximum. The minimum is always the zero baseline.                                                                                                                                                                                                  |
+| `stacked?`             | `boolean`                          | `false`       | Stack the composed series in composition order from the baseline up.                                                                                                                                                                                                        |
+| `orientation?`         | `"vertical" \| "horizontal"`       | `"vertical"`  | The direction the bars point (not an axis): `"vertical"` bars stand up from a bottom baseline (categories along x); `"horizontal"` bars run rightward from a left baseline (categories down y). See [Horizontal bars](#horizontal-bars).                                    |
+| `animate?`             | `boolean`                          | `true`        | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                                                                                                                                                                     |
+| `pending?`             | `boolean`                          | `false`       | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                                                                              |
+| `activeIndex?`         | `number \| null`                   |               | Controlled active datum index (`null` = none). Omit for uncontrolled hover. Forbidden when `decorative`.                                                                                                                                                                    |
+| `onActiveIndexChange?` | `(index: number \| null) => void`  |               | Notified when hover/keyboard moves the active index. Forbidden when `decorative`.                                                                                                                                                                                           |
+| `onDatumActivate?`     | `(event: ChartDatumEvent) => void` |               | Notified on datum activation: bar click, or Enter/Space on the focused chart. The event carries `{ index, xValue, datum, dataKey }`; `dataKey` is the series nearest the pointer, `null` for keyboard/whole-band activation. Forbidden when `decorative`.                   |
 
 ### BarChart.Bar
 

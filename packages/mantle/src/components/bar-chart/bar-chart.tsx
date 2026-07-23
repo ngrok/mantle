@@ -1,7 +1,7 @@
 "use client";
 
 import type {
-	ChartAccessibleName,
+	ChartAccessibilityProps,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
@@ -39,7 +39,7 @@ type BarChartRootProps<TDatum extends ChartDatum = ChartDatum> = Omit<
 	ChartRootBaseProps,
 	"yDomain"
 > &
-	ChartAccessibleName & {
+	ChartAccessibilityProps & {
 		/** Rows of data; each `BarChart.Bar` reads one numeric key per row. */
 		data: readonly TDatum[];
 		/** The key of each row's category (x) value. */
