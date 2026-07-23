@@ -632,6 +632,50 @@ Accordion.Root
         └── Accordion.Body
 ```
 
+## Polymorphism
+
+`Accordion.Root` accepts an `asChild` prop. When `true`, the root renders its single child element instead of the default `<div>`, forwarding its class names, `data-*` attributes, and `ref` onto that child — useful when the accordion should be a semantic landmark such as a `<section>`.
+
+<Example className="flex-col gap-6">
+	<Accordion.Root asChild defaultValue={["dns"]} className="max-w-xl">
+		<section aria-label="Frequently asked questions">
+			<Accordion.Item value="dns">
+				<Accordion.Trigger>
+					How do I point my custom domain at an ngrok endpoint?
+					<Accordion.TriggerIcon />
+				</Accordion.Trigger>
+				<Accordion.Content>
+					<Accordion.Body>
+						Add a CNAME record at your DNS provider that targets the CNAME value shown on your
+						reserved domain.
+					</Accordion.Body>
+				</Accordion.Content>
+			</Accordion.Item>
+		</section>
+	</Accordion.Root>
+</Example>
+
+```tsx
+import { Accordion } from "@ngrok/mantle/accordion";
+
+<Accordion.Root asChild defaultValue={["dns"]} className="max-w-xl">
+	<section aria-label="Frequently asked questions">
+		<Accordion.Item value="dns">
+			<Accordion.Trigger>
+				How do I point my custom domain at an ngrok endpoint?
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>
+					Add a CNAME record at your DNS provider that targets the CNAME value shown on your
+					reserved domain.
+				</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+	</section>
+</Accordion.Root>;
+```
+
 ## API Reference
 
 The `Accordion` owns its open/closed state and stays in sync whether a section is opened by a click, by keyboard, or by
