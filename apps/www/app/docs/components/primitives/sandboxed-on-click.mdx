@@ -148,8 +148,9 @@ import { BookIcon } from "@phosphor-icons/react/Book";
 					<Table.Cell className="text-right">
 						<SandboxedOnClick allowClickEventDefault>
 							<IconButton
-								appearance="outlined"
+								appearance="ghost"
 								intent="neutral"
+								size="sm"
 								label="See ngrok docs"
 								icon={<BookIcon />}
 								asChild
@@ -170,6 +171,28 @@ import { BookIcon } from "@phosphor-icons/react/Book";
 		</Table.Foot>
 	</Table.Element>
 </Table.Root>;
+```
+
+## Polymorphism
+
+`SandboxedOnClick` accepts an `asChild` prop. When `true`, it renders its single child instead of its default `<div>`, forwarding the sandboxed `onClick` handler, `role="presentation"`, and the ref onto that child. Reach for this when the sandboxed click behavior should live directly on a semantic element such as an anchor, without an extra wrapper `<div>`.
+
+<Example>
+	<SandboxedOnClick asChild allowClickEventDefault>
+		<a href="https://ngrok.com/docs" target="_blank" rel="noopener noreferrer">
+			See ngrok docs
+		</a>
+	</SandboxedOnClick>
+</Example>
+
+```tsx
+import { SandboxedOnClick } from "@ngrok/mantle/sandboxed-on-click";
+
+<SandboxedOnClick asChild allowClickEventDefault>
+	<a href="https://ngrok.com/docs" target="_blank" rel="noopener noreferrer">
+		See ngrok docs
+	</a>
+</SandboxedOnClick>;
 ```
 
 ## API Reference

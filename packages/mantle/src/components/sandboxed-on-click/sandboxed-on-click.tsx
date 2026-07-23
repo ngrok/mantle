@@ -30,7 +30,7 @@ type EventProps = BaseProps & {
  * Props for the sandboxed onClick container. Spread this on the element you want
  * to prevent the click event from bubbling out of.
  *
- * @see https://mantle.ngrok.com/components/primitives/sandboxed-on-click#sandboxedonclick
+ * @see https://mantle.ngrok.com/components/primitives/sandboxed-on-click
  */
 const sandboxedOnClickProps = ({ allowClickEventDefault = false, onClick }: EventProps = {}) =>
 	({
@@ -71,7 +71,7 @@ type Props = ComponentProps<"div"> & WithAsChild & BaseProps;
 /**
  * A container that prevents the click event from bubbling out of it.
  *
- * @see https://mantle.ngrok.com/components/primitives/sandboxed-on-click#sandboxedonclick
+ * @see https://mantle.ngrok.com/components/primitives/sandboxed-on-click
  *
  * @example
  * ```tsx
