@@ -1,15 +1,20 @@
 "use client";
 
-import { XIcon } from "@phosphor-icons/react/X";
-import type { ComponentProps, ReactNode } from "react";
-import { createContext, useContext, useMemo } from "react";
+import type { ComponentProps, ReactNode, TransitionEvent } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useReducer,
+	useRef,
+	useState,
+} from "react";
 import invariant from "tiny-invariant";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Alert } from "../alert/alert.js";
-import { Badge } from "../badge/badge.js";
-import { Button } from "../button/button.js";
-import { IconButton } from "../button/icon-button.js";
-import { Dialog } from "../dialog/dialog.js";
 
 /**
  * The tone an alert's color communicates — identical to `Alert`'s intent axis,
@@ -20,7 +25,7 @@ type AlertCenterIntent = "danger" | "important" | "info" | "success" | "warning"
 
 /**
  * Highest-severity-first ranking used to pick the alert shown in the bar and to
- * order the list in the dialog. Kept as a plain lookup so ordering is a pure,
+ * order the inline expansion. Kept as a plain lookup so ordering is a pure,
  * testable function of the data — never incidental DOM/mount order (the exact
  * bug that made the old stacked banners unpredictable).
  */
@@ -33,12 +38,10 @@ const SEVERITY_RANK = {
 } as const satisfies Record<AlertCenterIntent, number>;
 
 /**
- * The call-to-action on an alert — either a link (`href`, the common
- * "Upgrade" / "Update payment method" case) or an in-app callback
- * (`onSelect`). Modeled as a discriminated union so a link and a handler can
- * never be supplied together.
+ * The call-to-action on an alert. It renders as an inline link inside the
+ * alert's copy rather than as a separate primary button.
  */
-type AlertCenterAction = { label: string; href: string } | { label: string; onSelect: () => void };
+type AlertCenterAction = { label: string; href: string };
 
 /**
  * A single account alert. The `title` / `titleText` pair makes an invalid
@@ -51,7 +54,7 @@ type AlertCenterAlert = {
 	id: string;
 	/** The tone the alert's color communicates; flows through to its `Alert` card. */
 	intent: AlertCenterIntent;
-	/** Optional supporting copy shown under the title inside the dialog. */
+	/** Optional supporting copy shown under the title inside the inline expansion. */
 	description?: ReactNode;
 	/** Optional call-to-action (the conversion moment: "Upgrade", "Update card", …). */
 	action?: AlertCenterAction;
@@ -126,6 +129,10 @@ type AlertCenterContextValue = {
 	topAlert: AlertCenterAlert | null;
 	/** Dismiss handler forwarded from `AlertCenter.Root`. */
 	onDismiss?: (id: string) => void;
+	/** Whether the additional alerts are currently rendered below the bar. */
+	isExpanded: boolean;
+	/** Opens or collapses the additional alerts. */
+	setExpanded: (expanded: boolean) => void;
 };
 
 const AlertCenterContext = createContext<AlertCenterContextValue | null>(null);
@@ -136,47 +143,31 @@ function useAlertCenterContext(): AlertCenterContextValue {
 	return context;
 }
 
-/**
- * Renders an alert's call-to-action as an accent-filled button — the mantle
- * upgrade-CTA idiom. A link action renders an anchor (via `asChild`); a
- * callback action renders a real button.
- */
-function AlertAction({ action }: { action: AlertCenterAction }) {
-	if ("href" in action) {
-		return (
-			<Button asChild appearance="filled" intent="accent" size="sm">
-				<a href={action.href}>{action.label}</a>
-			</Button>
-		);
-	}
-
+function AlertLink({ action }: { action: AlertCenterAction }) {
 	return (
-		<Button type="button" appearance="filled" intent="accent" size="sm" onClick={action.onSelect}>
+		<a className="font-medium" href={action.href}>
 			{action.label}
-		</Button>
+		</a>
 	);
 }
 
 /**
- * The default row rendered for each alert inside the dialog list: an `Alert`
- * card carrying the intent icon, title, optional description, optional CTA, and
- * an optional dismiss button. Consumers can replace this via
+ * The default row rendered for each alert inside the inline expansion: a
+ * compact, one- or two-line `Alert` banner carrying the intent icon, title,
+ * optional description, inline CTA, and optional dismiss button. Consumers can replace this via
  * `AlertCenter.Content`'s render-prop child.
  */
 function DefaultAlertCard({ alert }: { alert: AlertCenterAlert }) {
 	const { onDismiss } = useAlertCenterContext();
 
 	return (
-		<Alert.Root intent={alert.intent}>
-			<Alert.Icon />
+		<Alert.Root appearance="banner" intent={alert.intent} className="gap-2 py-2 pr-2">
+			<Alert.Icon className="shrink-0" />
 			<Alert.Content>
-				<Alert.Title>{alert.title}</Alert.Title>
+				<Alert.Title>
+					{alert.title} {alert.action != null && <AlertLink action={alert.action} />}
+				</Alert.Title>
 				{alert.description != null && <Alert.Description>{alert.description}</Alert.Description>}
-				{alert.action != null && (
-					<div className="mt-2">
-						<AlertAction action={alert.action} />
-					</div>
-				)}
 				{alert.dismissable && onDismiss != null && (
 					<Alert.DismissIconButton
 						label={`Dismiss ${alertTitleText(alert)}`}
@@ -189,8 +180,8 @@ function DefaultAlertCard({ alert }: { alert: AlertCenterAlert }) {
 }
 
 /**
- * Props for {@link AlertCenter.Root} — the alerts data plus the dialog's open
- * state. `AlertCenter.Root` owns both and publishes the ranked alerts on
+ * Props for {@link AlertCenter.Root} — the alerts data plus the inline list's
+ * expanded state. `AlertCenter.Root` owns both and publishes the ranked alerts on
  * context to `AlertCenter.Bar` and `AlertCenter.Content`.
  */
 type AlertCenterRootProps = {
@@ -207,20 +198,20 @@ type AlertCenterRootProps = {
 	 * `AlertCenter` re-derives everything from the next `alerts` array.
 	 */
 	onDismiss?: (id: string) => void;
-	/** Controlled open state of the dialog. */
+	/** Controlled expanded state of the additional-alert list. */
 	open?: boolean;
-	/** Uncontrolled initial open state of the dialog. */
+	/** Uncontrolled initial expanded state of the additional-alert list. */
 	defaultOpen?: boolean;
-	/** Called when the dialog requests to open or close. */
+	/** Called when the additional-alert list expands or collapses. */
 	onOpenChange?: (open: boolean) => void;
 	children?: ReactNode;
 };
 
 /**
- * The state + data owner. Renderless beyond the underlying `Dialog.Root`
- * (the `Sidebar.Root` / `Tooltip.Root` precedent): it ranks the alerts,
- * publishes them on context, and hosts the dialog's open state. Place it as a
- * child of `AppLayout.Root` between `AppLayout.Notice` and `AppLayout.Body`.
+ * The state + data owner. It ranks the alerts, publishes them on context, and
+ * owns the inline list's expanded state. Compose its
+ * `Bar` inside `AppLayout.Notice`, alongside any other window-level notice, so
+ * all top-of-viewport messaging shares one layout slot.
  *
  * @see https://mantle.ngrok.com/components/preview/alert-center#alertcenterroot
  *
@@ -241,21 +232,32 @@ const Root = ({
 	open,
 }: AlertCenterRootProps) => {
 	const sorted = useMemo(() => sortAlertsBySeverity(alerts), [alerts]);
+	const [internalExpanded, setInternalExpanded] = useState(defaultOpen ?? false);
+	const isExpanded = open ?? internalExpanded;
+	const setExpanded = useCallback(
+		(expanded: boolean) => {
+			if (open == null) {
+				setInternalExpanded(expanded);
+			}
+			onOpenChange?.(expanded);
+		},
+		[open, onOpenChange],
+	);
 	const context = useMemo<AlertCenterContextValue>(
 		() => ({
 			alerts: sorted,
 			count: sorted.length,
 			topAlert: sorted[0] ?? null,
 			onDismiss,
+			isExpanded,
+			setExpanded,
 		}),
-		[sorted, onDismiss],
+		[sorted, onDismiss, isExpanded, setExpanded],
 	);
 
 	return (
 		<AlertCenterContext.Provider value={context}>
-			<Dialog.Root defaultOpen={defaultOpen} onOpenChange={onOpenChange} open={open}>
-				{children}
-			</Dialog.Root>
+			{children}
 			{/*
 			 * A persistent, always-mounted live region. Screen readers only
 			 * announce a polite region reliably when it already exists in the
@@ -271,15 +273,144 @@ const Root = ({
 	);
 };
 
-type AlertCenterBarProps = Omit<ComponentProps<typeof Alert.Root>, "appearance" | "intent">;
+type AlertCenterBarRenderContext = {
+	/** The number of alerts hidden by the collapsed bar. */
+	remaining: number;
+	/** Whether the additional alerts are currently expanded. */
+	isExpanded: boolean;
+	/** Expands or collapses the additional-alert list. */
+	toggle: () => void;
+	/** Dismisses this alert when `onDismiss` is supplied; otherwise `undefined`. */
+	dismiss: (() => void) | undefined;
+};
+
+type AlertCenterBarProps =
+	| (Omit<ComponentProps<typeof Alert.Root>, "appearance" | "intent" | "children"> & {
+			children?: never;
+	  })
+	| {
+			/**
+			 * Replaces the default banner. Compose `Alert`'s banner parts here when
+			 * the alert needs custom presentational content.
+			 */
+			children: (alert: AlertCenterAlert, context: AlertCenterBarRenderContext) => ReactNode;
+	  };
+
+/**
+ * The bar's enter/exit animation, applied to a padding-free wrapper around the
+ * banner (default or render-prop). On appearance it eases down from zero height
+ * while fading in; on disappearance it collapses back the same way but faster
+ * (the exit answers a dismissal, so it drops away sooner — the sonner/PowerBar
+ * cadence). The wrapper carries no padding — like `Accordion.Content` — so its
+ * height reaches a true zero that the banner's own `py-2` would otherwise clamp,
+ * and the opacity fade hides the opening/closing frame. `@starting-style` (the
+ * `starting:` variant) supplies the pre-insertion state so the enter runs on
+ * mount; the exit is driven by `data-state="closed"` while the wrapper stays
+ * mounted (see {@link useBarPresence}). `interpolate-size:allow-keywords` makes
+ * the `auto` keyword animatable (Chromium — other engines snap, a fine
+ * progressive enhancement).
+ */
+const barAnimation =
+	"shrink-0 overflow-hidden transition-[height,opacity] duration-200 ease-out [interpolate-size:allow-keywords] starting:h-0 starting:opacity-0 data-state-closed:h-0 data-state-closed:opacity-0 data-state-closed:duration-150 motion-reduce:transition-none";
+
+/** How long to keep the bar mounted for its exit slide if no `transitionend`
+ * fires (reduced motion, engines that snap, a tab backgrounded mid-transition).
+ * A hair longer than the 150ms CSS exit so a real `transitionend` wins first;
+ * this is only the backstop that guarantees the bar can never get stuck mounted. */
+const BAR_EXIT_SAFETY_MS = 200;
+
+type BarPresence = "open" | "closing" | "closed";
+
+/**
+ * Presence transitions for the bar's mount lifecycle, modeled as a pure reducer
+ * so the enter/exit/interrupt logic is testable without a DOM. `show` always
+ * resolves to `"open"` — re-showing mid-exit is a smooth retarget back to open,
+ * never a restart; `hide` begins the exit only from a mounted state; `exited`
+ * completes it once the transition (or the safety timeout) fires.
+ *
+ * @example
+ * barPresenceReducer("closing", "show"); // "open"  (interrupted exit reopens)
+ * barPresenceReducer("open", "hide");    // "closing"
+ * barPresenceReducer("closing", "exited"); // "closed" (now safe to unmount)
+ */
+function barPresenceReducer(state: BarPresence, event: "show" | "hide" | "exited"): BarPresence {
+	switch (event) {
+		case "show":
+			return "open";
+		case "hide":
+			return state === "closed" ? "closed" : "closing";
+		case "exited":
+			return state === "closing" ? "closed" : state;
+	}
+}
+
+/**
+ * Keeps the bar mounted through its exit slide so the collapse can animate
+ * instead of the bar popping out on unmount. `present` is the desired
+ * visibility (whether there's a top alert to show). Returns whether to render,
+ * the `data-state` the CSS animation reads, and a `transitionend` handler that
+ * finishes the exit. A safety timeout backstops the exit when no `transitionend`
+ * arrives, so the bar can never get stuck mounted.
+ *
+ * @example
+ * const { isMounted, dataState, onExitTransitionEnd } = useBarPresence(topAlert != null);
+ * if (!isMounted) return null;
+ * return <div data-state={dataState} onTransitionEnd={onExitTransitionEnd} />;
+ */
+function useBarPresence(present: boolean): {
+	isMounted: boolean;
+	dataState: "open" | "closed";
+	onExitTransitionEnd: (event: TransitionEvent<HTMLElement>) => void;
+} {
+	const [state, dispatch] = useReducer(barPresenceReducer, present ? "open" : "closed");
+
+	// Layout effect so "closing" is applied before paint — no flash of the open
+	// state after the alerts empty.
+	useIsomorphicLayoutEffect(() => {
+		dispatch(present ? "show" : "hide");
+	}, [present]);
+
+	useEffect(() => {
+		if (state !== "closing") {
+			return;
+		}
+		const timeout = window.setTimeout(() => dispatch("exited"), BAR_EXIT_SAFETY_MS);
+		return () => window.clearTimeout(timeout);
+	}, [state]);
+
+	const onExitTransitionEnd = useCallback((event: TransitionEvent<HTMLElement>) => {
+		// Only the wrapper's own height transition completes the exit — ignore
+		// transitions bubbling up from children (e.g. the expand caret's rotate).
+		if (event.target === event.currentTarget && event.propertyName === "height") {
+			dispatch("exited");
+		}
+	}, []);
+
+	return {
+		isMounted: state !== "closed",
+		dataState: state === "open" ? "open" : "closed",
+		onExitTransitionEnd,
+	};
+}
+
+/**
+ * Vertically centers the bar's trailing controls. `Alert`'s dismiss/expand
+ * controls are absolutely pinned at a fixed `top-1.5` — tuned to center within
+ * the Alert's default `p-2.5` padding and to top-align in a multi-line alert.
+ * The bar is a strictly single-line banner with tighter `py-2`, so that fixed
+ * offset lands ~2px below center; centering with a transform re-centers the
+ * control independent of the padding.
+ */
+const centeredBarControl = "top-1/2 -translate-y-1/2";
 
 /**
  * The always-visible, full-width strip. It surfaces the single highest-severity
  * alert INLINE — icon, title, and its call-to-action — so the top CTA is one
- * glance (and zero extra clicks) away, then offers a "+N more" trigger that
- * opens the dialog with the full list. Collapses to nothing when there are no
- * alerts (like `AppLayout.Notice`), so it can stay mounted and render
- * conditionally.
+ * glance (and zero extra clicks) away, then offers a count-and-caret control that
+ * expands the additional alerts as full-width banners below the bar. Collapses
+ * to nothing when there are no alerts (like `AppLayout.Notice`), so it can
+ * stay mounted and render conditionally. Pass a render-prop child to replace
+ * the default banner with a composition of `Alert`'s banner parts.
  *
  * The bar itself claims NO ARIA landmark (deliberately, like `AppLayout.Notice`)
  * — arrivals and re-ranks are announced by a persistent visually-hidden
@@ -300,71 +431,114 @@ type AlertCenterBarProps = Omit<ComponentProps<typeof Alert.Root>, "appearance" 
  * </AlertCenter.Root>
  * ```
  */
-const Bar = ({ className, ref, ...props }: AlertCenterBarProps) => {
-	const { count, onDismiss, topAlert } = useAlertCenterContext();
+const Bar = (props: AlertCenterBarProps) => {
+	const { count, isExpanded, onDismiss, setExpanded, topAlert } = useAlertCenterContext();
+	const present = topAlert != null;
+	const { isMounted, dataState, onExitTransitionEnd } = useBarPresence(present);
 
-	// No alerts → collapse the strip to nothing, mirroring AppLayout.Notice.
-	if (topAlert == null) {
+	// Retain the last alert so the collapsing bar keeps its content through the
+	// exit slide instead of blanking the instant the alerts empty. Captured in a
+	// layout effect (never during render) so it's ready on the commit that begins
+	// the exit, when `topAlert` has already gone null.
+	const lastAlertRef = useRef(topAlert);
+	useIsomorphicLayoutEffect(() => {
+		if (topAlert != null) {
+			lastAlertRef.current = topAlert;
+		}
+	}, [topAlert]);
+	const alert = topAlert ?? lastAlertRef.current;
+
+	// Nothing showing and nothing left to animate out.
+	if (!isMounted || alert == null) {
 		return null;
 	}
 
-	const remaining = count - 1;
+	// While closing (`topAlert` is null) the trailing controls would act on an
+	// alert that's already gone, so drop them for the exit and slide out just the
+	// banner.
+	const remaining = present ? count - 1 : 0;
+	const dismiss =
+		present && alert.dismissable && onDismiss != null ? () => onDismiss(alert.id) : undefined;
+
+	if (typeof props.children === "function") {
+		// The render-prop banner rides the same enter/exit animation as the default.
+		return (
+			<div className={barAnimation} data-state={dataState} onTransitionEnd={onExitTransitionEnd}>
+				{props.children(alert, {
+					remaining,
+					isExpanded,
+					toggle: () => setExpanded(!isExpanded),
+					dismiss,
+				})}
+			</div>
+		);
+	}
+
+	const { className, ref, ...alertProps } = props;
 
 	return (
-		<Alert.Root
-			ref={ref}
-			appearance="banner"
-			intent={topAlert.intent}
-			className={cx("shrink-0 items-center gap-2 py-2 pr-2", className)}
-			{...props}
-			// after the spread so consumers can't drop the styling/testing hook
-			data-slot="alert-center-bar"
-		>
-			<Alert.Icon className="shrink-0" />
-			<span className="min-w-0 flex-1 truncate font-medium">{topAlert.title}</span>
-			{topAlert.action != null && <AlertAction action={topAlert.action} />}
-			{remaining > 0 && (
-				<Dialog.Trigger asChild>
-					<Button type="button" appearance="ghost" intent="neutral" size="sm">
-						+{remaining} more
-						{/* keep the accessible name label-in-name compliant (WCAG 2.5.3):
-						    it begins with the visible "+N more" text, then adds context */}
-						<span className="sr-only"> — show all {count} alerts</span>
-					</Button>
-				</Dialog.Trigger>
-			)}
-			{topAlert.dismissable && onDismiss != null && (
-				<IconButton
-					type="button"
-					appearance="ghost"
-					intent="neutral"
-					size="sm"
-					icon={<XIcon />}
-					label={`Dismiss ${alertTitleText(topAlert)}`}
-					onClick={() => onDismiss(topAlert.id)}
-				/>
-			)}
-		</Alert.Root>
+		<div className={barAnimation} data-state={dataState} onTransitionEnd={onExitTransitionEnd}>
+			<Alert.Root
+				ref={ref}
+				appearance="banner"
+				intent={alert.intent}
+				className={cx("gap-2 py-2 pr-2", className)}
+				{...alertProps}
+				// after the spread so consumers can't drop the styling/testing hook
+				data-slot="alert-center-bar"
+			>
+				<Alert.Icon className="shrink-0" />
+				<Alert.Content>
+					<Alert.Title>
+						{alert.title} {alert.action != null && <AlertLink action={alert.action} />}
+					</Alert.Title>
+					{dismiss != null && (
+						<Alert.DismissIconButton
+							className={centeredBarControl}
+							label={`Dismiss ${alertTitleText(alert)}`}
+							onClick={dismiss}
+						/>
+					)}
+					{remaining > 0 && (
+						<Alert.ExpandButton
+							className={centeredBarControl}
+							count={remaining}
+							expanded={isExpanded}
+							onClick={() => setExpanded(!isExpanded)}
+						/>
+					)}
+				</Alert.Content>
+			</Alert.Root>
+		</div>
 	);
 };
 
-type AlertCenterContentProps = Omit<ComponentProps<typeof Dialog.Content>, "children"> & {
+type AlertCenterContentRenderContext = {
+	/** Dismisses this alert when `onDismiss` is supplied; otherwise `undefined`. */
+	dismiss: (() => void) | undefined;
+};
+
+type AlertCenterContentProps = Omit<ComponentProps<"div">, "children"> & {
 	/**
 	 * Optional render-prop for a custom row. Receives each alert (in ranked
-	 * order) and its index; return whatever should render inside that row's
-	 * `<li>`. When omitted, each alert renders as a default `Alert` card. This
-	 * keeps collection facts (count, ordering) data-driven while leaving row
+	 * order), its index, and a dismiss capability; return whatever should render
+	 * inside that row's `<li>`. When omitted, each alert renders as a default
+	 * `Alert` card. This keeps collection facts (count, ordering) data-driven while leaving row
 	 * RENDERING fully composable.
 	 */
-	children?: (alert: AlertCenterAlert, index: number) => ReactNode;
+	children?: (
+		alert: AlertCenterAlert,
+		index: number,
+		context: AlertCenterContentRenderContext,
+	) => ReactNode;
 };
 
 /**
- * The dialog surface: a centered modal listing every alert, ranked
- * highest-severity-first, in a scrollable body. Reuses `Dialog` wholesale, so
- * it inherits the focus trap, `Escape`-to-close, and scroll region for free.
- * The overlay content part is named `Content` to match `Dialog.Content` /
- * `Sheet.Content`.
+ * The inline expansion below `AlertCenter.Bar`. It renders the additional
+ * alerts, ranked highest-severity-first, and pushes the app shell down while
+ * expanded. The top alert remains in the bar, so the expansion lists only the
+ * alerts hidden by the collapsed form. Its render prop receives a dismiss
+ * capability, so custom banners can compose `Alert.DismissIconButton`.
  *
  * @see https://mantle.ngrok.com/components/preview/alert-center#alertcentercontent
  *
@@ -372,7 +546,7 @@ type AlertCenterContentProps = Omit<ComponentProps<typeof Dialog.Content>, "chil
  * ```tsx
  * <AlertCenter.Content>
  *   {(alert) => (
- *     <Alert.Root intent={alert.intent}>
+ *     <Alert.Root appearance="banner" intent={alert.intent}>
  *       <Alert.Icon />
  *       <Alert.Content>
  *         <Alert.Title>{alert.title}</Alert.Title>
@@ -383,35 +557,48 @@ type AlertCenterContentProps = Omit<ComponentProps<typeof Dialog.Content>, "chil
  * ```
  */
 const Content = ({ children, className, ...props }: AlertCenterContentProps) => {
-	const { alerts, count } = useAlertCenterContext();
+	const { alerts, isExpanded, onDismiss } = useAlertCenterContext();
+	const additionalAlerts = alerts.slice(1);
+
+	// Nothing is hidden behind the bar → there's no expansion to render or
+	// animate, and the bar shows no expand control. (This stays unmounted rather
+	// than collapsing to zero height, so the shell sits flush against the bar.)
+	if (additionalAlerts.length === 0) {
+		return null;
+	}
 
 	return (
-		<Dialog.Content data-slot="alert-center-content" className={className} {...props}>
-			<Dialog.Header>
-				<div className="flex items-center gap-2">
-					<Dialog.Title>Account alerts</Dialog.Title>
-					{count > 0 && (
-						<Badge appearance="muted" color="neutral">
-							{count}
-						</Badge>
-					)}
-				</div>
-				<Dialog.CloseIconButton />
-			</Dialog.Header>
-			<Dialog.Body>
-				{count === 0 ? (
-					<p className="text-muted py-8 text-center text-sm">{"You're all caught up."}</p>
-				) : (
-					<ul className="flex flex-col gap-3">
-						{alerts.map((alert, index) => (
-							<li key={alert.id}>
-								{children ? children(alert, index) : <DefaultAlertCard alert={alert} />}
-							</li>
-						))}
-					</ul>
-				)}
-			</Dialog.Body>
-		</Dialog.Content>
+		<div
+			{...props}
+			data-slot="alert-center-content"
+			// after the spread so consumers can't drop the state hook the animation reads
+			data-state={isExpanded ? "open" : "closed"}
+			className={cx(
+				// Slide the expansion open/closed by animating height 0 <-> auto — the
+				// same technique and 200ms/ease-out curve as `Accordion.Content`.
+				// `interpolate-size:allow-keywords` makes the `auto` keyword animatable
+				// (Chromium; other engines snap, a fine progressive enhancement) and
+				// `overflow-hidden` clips the rows mid-slide. When collapsed,
+				// `content-visibility:hidden` takes the rows — and their CTA links — out
+				// of the tab order and a11y tree; it transitions discretely so the rows
+				// stay visible through the closing slide before they're skipped.
+				"h-0 overflow-hidden [content-visibility:hidden] transition-[height,content-visibility] transition-discrete duration-200 ease-out [interpolate-size:allow-keywords] data-state-open:h-auto data-state-open:[content-visibility:visible] motion-reduce:transition-none",
+				className,
+			)}
+		>
+			<ul className="flex w-full flex-col">
+				{additionalAlerts.map((alert, index) => {
+					const dismiss =
+						alert.dismissable && onDismiss != null ? () => onDismiss(alert.id) : undefined;
+
+					return (
+						<li key={alert.id}>
+							{children ? children(alert, index, { dismiss }) : <DefaultAlertCard alert={alert} />}
+						</li>
+					);
+				})}
+			</ul>
+		</div>
 	);
 };
 
@@ -419,13 +606,13 @@ const Content = ({ children, className, ...props }: AlertCenterContentProps) => 
  * A single, top-level entry point for one-to-many account alerts and their
  * upgrade CTAs — the aggregation layer that replaces a stack of independent
  * window banners. `AlertCenter.Bar` shows the highest-severity alert inline
- * (with its CTA) and a "+N more" trigger; `AlertCenter.Content` opens a modal
- * dialog listing every alert, ranked by severity.
+ * (with its CTA) and a count-and-caret control; `AlertCenter.Content` expands
+ * the remaining alerts as full-width banners, ranked by severity.
  *
- * Compose it into an application shell as a child of `AppLayout.Root`, between
- * `AppLayout.Notice` and `AppLayout.Body`. Alerts are passed as DATA (not
- * authored children) so the count, the top alert, and the ordering are derived
- * deterministically rather than depending on which banners happen to mount.
+ * Compose its `Bar` into `AppLayout.Notice`, alongside any other window-level
+ * notice. Alerts are passed as DATA (not authored children) so
+ * the count, the top alert, and the ordering are derived deterministically
+ * rather than depending on which banners happen to mount.
  *
  * @see https://mantle.ngrok.com/components/preview/alert-center
  *
@@ -457,19 +644,21 @@ const Content = ({ children, className, ...props }: AlertCenterContentProps) => 
  * ] satisfies AlertCenterAlert[];
  *
  * <AppLayout.Root className="fixed inset-0">
- *   <AppLayout.Notice />
- *   <AlertCenter.Root alerts={alerts} onDismiss={dismiss}>
- *     <AlertCenter.Bar />
- *     <AlertCenter.Content />
- *   </AlertCenter.Root>
+ *   <AppLayout.Notice>
+ *     {showPreviewNotice && <PreviewNotice />}
+ *     <AlertCenter.Root alerts={alerts} onDismiss={dismiss}>
+ *       <AlertCenter.Bar />
+ *       <AlertCenter.Content />
+ *     </AlertCenter.Root>
+ *   </AppLayout.Notice>
  *   <AppLayout.Body>…</AppLayout.Body>
  * </AppLayout.Root>
  * ```
  */
 const AlertCenter = {
 	/**
-	 * The state + data owner. Renderless beyond the underlying dialog; ranks the
-	 * alerts and publishes them on context.
+	 * The state + data owner. Ranks the alerts, owns inline expansion state, and
+	 * publishes both on context.
 	 *
 	 * @see https://mantle.ngrok.com/components/preview/alert-center#alertcenterroot
 	 *
@@ -484,7 +673,7 @@ const AlertCenter = {
 	Root,
 	/**
 	 * The always-visible strip: the highest-severity alert inline (icon, title,
-	 * CTA) plus a "+N more" trigger. Collapses to nothing when empty. Claims no
+	 * CTA) plus a count-and-caret expansion control. Collapses to nothing when empty. Claims no
 	 * ARIA landmark; arrivals are announced by Root's persistent live region.
 	 *
 	 * @see https://mantle.ngrok.com/components/preview/alert-center#alertcenterbar
@@ -499,8 +688,9 @@ const AlertCenter = {
 	 */
 	Bar,
 	/**
-	 * The modal dialog listing every alert, ranked highest-severity-first, in a
-	 * scrollable body. Pass a render-prop child to customize each row.
+	 * The inline expansion listing the alerts hidden by the bar, ranked
+	 * highest-severity-first as full-width banners. Pass a render-prop child to
+	 * customize each row.
 	 *
 	 * @see https://mantle.ngrok.com/components/preview/alert-center#alertcentercontent
 	 *
@@ -521,6 +711,7 @@ export {
 	// exported for unit tests, intentionally NOT re-exported from index.ts
 	alertsSummary,
 	alertTitleText,
+	barPresenceReducer,
 	SEVERITY_RANK,
 	sortAlertsBySeverity,
 };

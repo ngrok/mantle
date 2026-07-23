@@ -65,10 +65,13 @@ const Root = ({
 /**
  * A full-window-width strip pinned above everything else in the shell —
  * including any sidebar — for impersonation notices, environment warnings,
- * and similar app-wide messaging. Renders an unstyled `<div>` (`w-full
- * shrink-0`): the notice content brings its own colors and layout, and the
- * part collapses to nothing when empty. Deliberately not named `Banner` so it
- * never reads as the ARIA `banner` landmark — it claims no landmark at all.
+ * and similar app-wide messaging. It is a vertical composition slot: place an
+ * impersonation banner and an `AlertCenter.Bar` here, and each contributes its
+ * own row while the slot pushes the shell down. Renders an unstyled `<div>`
+ * (`flex w-full shrink-0 flex-col`): its children bring their own colors and
+ * layout, and the part collapses to nothing when empty. Deliberately not named
+ * `Banner` so it never reads as the ARIA `banner` landmark — it claims no
+ * landmark at all.
  *
  * @see https://mantle.ngrok.com/layouts/app-layout
  *
@@ -114,7 +117,7 @@ const Notice = ({
 	return (
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "app-layout-notice")}
-			className={cx("w-full shrink-0", className)}
+			className={cx("flex w-full shrink-0 flex-col", className)}
 			{...props}
 		>
 			{children}

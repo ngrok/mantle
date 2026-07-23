@@ -34,11 +34,11 @@
     "category": "Feedback",
     "status": "preview",
     "importPath": "@ngrok/mantle/alert-center",
-    "summary": "A single top-level bar that surfaces one-to-many account alerts and their upgrade CTAs, opening a dialog with the full ranked list.",
-    "jsdoc": "A single, top-level entry point for one-to-many account alerts and their upgrade CTAs — the aggregation layer that replaces a stack of independent window banners. `AlertCenter.Bar` shows the highest-severity alert inline (with its CTA) and a \"+N more\" trigger; `AlertCenter.Content` opens a modal dialog listing every alert, ranked by severity.",
+    "summary": "A single top-level bar that surfaces one-to-many account alerts and their upgrade CTAs, expanding additional alerts inline.",
+    "jsdoc": "A single, top-level entry point for one-to-many account alerts and their upgrade CTAs — the aggregation layer that replaces a stack of independent window banners. `AlertCenter.Bar` shows the highest-severity alert inline (with its CTA) and a count-and-caret control; `AlertCenter.Content` expands the remaining alerts as full-width banners, ranked by severity.",
     "examples": [
       "Composition:\n```\nAlertCenter.Root\n├── AlertCenter.Bar\n└── AlertCenter.Content\n```",
-      "```tsx\nconst alerts = [\n  {\n    id: \"payment-failed\",\n    intent: \"danger\",\n    title: \"Payment failed — update your card\",\n    description: \"We couldn't charge your card. Update it to avoid interruption.\",\n    action: { label: \"Update payment method\", href: \"/billing\" },\n  },\n  {\n    id: \"transfer-limit\",\n    intent: \"warning\",\n    title: \"Approaching your data transfer limit\",\n    action: { label: \"Upgrade\", href: \"/billing/choose-a-plan\" },\n    dismissable: true,\n  },\n] satisfies AlertCenterAlert[];\n\n<AppLayout.Root className=\"fixed inset-0\">\n  <AppLayout.Notice />\n  <AlertCenter.Root alerts={alerts} onDismiss={dismiss}>\n    <AlertCenter.Bar />\n    <AlertCenter.Content />\n  </AlertCenter.Root>\n  <AppLayout.Body>…</AppLayout.Body>\n</AppLayout.Root>\n```"
+      "```tsx\nconst alerts = [\n  {\n    id: \"payment-failed\",\n    intent: \"danger\",\n    title: \"Payment failed — update your card\",\n    description: \"We couldn't charge your card. Update it to avoid interruption.\",\n    action: { label: \"Update payment method\", href: \"/billing\" },\n  },\n  {\n    id: \"transfer-limit\",\n    intent: \"warning\",\n    title: \"Approaching your data transfer limit\",\n    action: { label: \"Upgrade\", href: \"/billing/choose-a-plan\" },\n    dismissable: true,\n  },\n] satisfies AlertCenterAlert[];\n\n<AppLayout.Root className=\"fixed inset-0\">\n  <AppLayout.Notice>\n    {showPreviewNotice && <PreviewNotice />}\n    <AlertCenter.Root alerts={alerts} onDismiss={dismiss}>\n      <AlertCenter.Bar />\n      <AlertCenter.Content />\n    </AlertCenter.Root>\n  </AppLayout.Notice>\n  <AppLayout.Body>…</AppLayout.Body>\n</AppLayout.Root>\n```"
     ]
   },
   {
@@ -69,6 +69,19 @@
     ]
   },
   {
+    "name": "App Layout",
+    "slug": "layouts/app-layout",
+    "kind": "layout",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/app-layout",
+    "summary": "A viewport-locked application shell — a full-width notice strip, a toolbar header, and a rounded content card that is the shell's only scroll container.",
+    "jsdoc": "A viewport-locked application shell: an optional full-width `AppLayout.Notice` strip on top, then a row holding the app's columns — typically a `Sidebar.Nav` beside an `AppLayout.Inset` whose `AppLayout.Content` card is the only thing that scrolls.",
+    "examples": [
+      "Composition:\n```\nAppLayout.Root\n├── AppLayout.Notice\n└── AppLayout.Body\n    └── AppLayout.Inset\n        └── AppLayout.Content\n            └── AppLayout.Header\n```",
+      "```tsx\n<Sidebar.Root>\n  <AppLayout.Root className=\"fixed inset-0\">\n    <SkipToMainLink />\n    <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>\n    <AppLayout.Body>\n      <Sidebar.Nav aria-label=\"Main\">…</Sidebar.Nav>\n      <AppLayout.Inset>\n        <AppLayout.Content asChild>\n          <Main>\n            <AppLayout.Header>\n              <Sidebar.Trigger />\n              <Breadcrumbs />\n            </AppLayout.Header>\n            <Outlet />\n          </Main>\n        </AppLayout.Content>\n      </AppLayout.Inset>\n    </AppLayout.Body>\n  </AppLayout.Root>\n</Sidebar.Root>\n```"
+    ]
+  },
+  {
     "name": "Area Chart",
     "slug": "components/charts/area-chart",
     "kind": "component",
@@ -80,19 +93,6 @@
     "examples": [
       "Composition:\n```\nAreaChart.Root\n├── AreaChart.Grid\n├── AreaChart.XAxis\n├── AreaChart.YAxis\n├── AreaChart.Area (one per series)\n├── AreaChart.ReferenceLine\n├── AreaChart.Tooltip\n├── AreaChart.Legend\n└── AreaChart.CopyButton\n```",
       "```tsx\nconst data = [\n  { date: new Date(\"2026-07-15\"), http: 4200, tcp: 1400 },\n  { date: new Date(\"2026-07-16\"), http: 5100, tcp: 1650 },\n  { date: new Date(\"2026-07-17\"), http: 4700, tcp: 1500 },\n];\n\n<AreaChart.Root data={data} xKey=\"date\" stacked aria-label=\"Traffic by protocol\">\n  <AreaChart.Grid />\n  <AreaChart.XAxis />\n  <AreaChart.YAxis />\n  <AreaChart.Area dataKey=\"http\" label=\"HTTP\" />\n  <AreaChart.Area dataKey=\"tcp\" label=\"TCP\" />\n  <AreaChart.Tooltip />\n  <AreaChart.Legend />\n</AreaChart.Root>\n```"
-    ]
-  },
-  {
-    "name": "App Layout",
-    "slug": "layouts/app-layout",
-    "kind": "layout",
-    "status": "stable",
-    "importPath": "@ngrok/mantle/app-layout",
-    "summary": "A viewport-locked application shell — a full-width notice strip, a toolbar header, and a rounded content card that is the shell's only scroll container.",
-    "jsdoc": "A viewport-locked application shell: an optional full-width `AppLayout.Notice` strip on top, then a row holding the app's columns — typically a `Sidebar.Nav` beside an `AppLayout.Inset` whose `AppLayout.Content` card is the only thing that scrolls.",
-    "examples": [
-      "Composition:\n```\nAppLayout.Root\n├── AppLayout.Notice\n└── AppLayout.Body\n    └── AppLayout.Inset\n        └── AppLayout.Content\n            └── AppLayout.Header\n```",
-      "```tsx\n<Sidebar.Root>\n  <AppLayout.Root className=\"fixed inset-0\">\n    <SkipToMainLink />\n    <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>\n    <AppLayout.Body>\n      <Sidebar.Nav aria-label=\"Main\">…</Sidebar.Nav>\n      <AppLayout.Inset>\n        <AppLayout.Content asChild>\n          <Main>\n            <AppLayout.Header>\n              <Sidebar.Trigger />\n              <Breadcrumbs />\n            </AppLayout.Header>\n            <Outlet />\n          </Main>\n        </AppLayout.Content>\n      </AppLayout.Inset>\n    </AppLayout.Body>\n  </AppLayout.Root>\n</Sidebar.Root>\n```"
     ]
   },
   {

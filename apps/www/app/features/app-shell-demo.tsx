@@ -1,12 +1,14 @@
+import { AlertCenter, type AlertCenterAlert } from "@ngrok/mantle/alert-center";
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
-import { Button } from "@ngrok/mantle/button";
+import { IconButton } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Main } from "@ngrok/mantle/main";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
+import { BellIcon } from "@phosphor-icons/react/Bell";
 import { BookOpenIcon } from "@phosphor-icons/react/BookOpen";
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { CertificateIcon } from "@phosphor-icons/react/Certificate";
@@ -29,7 +31,7 @@ import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
 import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
 import { UsersIcon } from "@phosphor-icons/react/Users";
 import { VaultIcon } from "@phosphor-icons/react/Vault";
-import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
+import { WarningIcon } from "@phosphor-icons/react/Warning";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -80,6 +82,44 @@ const demoNavSections: ReadonlyArray<DemoNavSection> = [
 		],
 	},
 ];
+
+const appShellSingleAlert = [
+	{
+		id: "usage-limit",
+		intent: "warning",
+		title: "Your workspace is approaching its monthly usage limit",
+		description: "Review usage or update your plan to avoid interruption.",
+		action: { label: "Review usage", href: "#usage" },
+	},
+] satisfies AlertCenterAlert[];
+
+const appShellMultipleAlerts = [
+	{
+		id: "billing",
+		intent: "danger",
+		title: "A payment could not be processed",
+		description: "Review your billing details to avoid an interruption.",
+		action: { label: "Review billing", href: "#billing" },
+	},
+	...appShellSingleAlert,
+	{
+		id: "member-limit",
+		intent: "warning",
+		title: "Your workspace is approaching its member limit",
+		description: "Review members or update your plan to add more.",
+		action: { label: "Review members", href: "#members" },
+	},
+] satisfies AlertCenterAlert[];
+
+// Keyed by the toggle so `AlertCenter.Root` can stay mounted and swap its
+// `alerts` prop — an empty array collapses the bar with its exit animation
+// instead of unmounting (which would pop it out with no transition).
+const appShellAlertsByExample = {
+	single: appShellSingleAlert,
+	multiple: appShellMultipleAlerts,
+} as const satisfies Record<"single" | "multiple", AlertCenterAlert[]>;
+
+const noAlerts: AlertCenterAlert[] = [];
 
 const demoProducts = [
 	{
@@ -195,6 +235,7 @@ export function AppShellDemo() {
 	const [productId, setProductId] = useState<string>(demoProducts[0].id);
 	const [accountId, setAccountId] = useState<string>(demoAccounts[0].id);
 	const [showNotice, setShowNotice] = useState(false);
+	const [alertExample, setAlertExample] = useState<"single" | "multiple" | null>(null);
 
 	const product = demoProducts.find((candidate) => candidate.id === productId) ?? demoProducts[0];
 	const account = demoAccounts.find((candidate) => candidate.id === accountId) ?? demoAccounts[0];
@@ -210,11 +251,16 @@ export function AppShellDemo() {
 				<SkipToMainLink />
 				<AppLayout.Notice>
 					{showNotice && (
-						<div className="text-on-filled flex items-center gap-2 bg-rose-500 py-1 pr-4 pl-[1.375rem] text-xs">
-							<WarningCircleIcon weight="fill" className="size-4 shrink-0" />
-							You are impersonating jane@example.com in read-only mode.
+						<div className="text-on-filled bg-rose-500 px-4 py-2 text-center text-xs">
+							Preview notice
 						</div>
 					)}
+					<AlertCenter.Root
+						alerts={alertExample != null ? appShellAlertsByExample[alertExample] : noAlerts}
+					>
+						<AlertCenter.Bar />
+						<AlertCenter.Content />
+					</AlertCenter.Root>
 				</AppLayout.Notice>
 				<AppLayout.Body>
 					<Sidebar.Nav aria-label="Main">
@@ -333,16 +379,39 @@ export function AppShellDemo() {
 											</Breadcrumb.Item>
 										</Breadcrumb.List>
 									</Breadcrumb.Root>
-									<Button
-										type="button"
-										appearance="outlined"
-										intent="neutral"
-										className="ml-auto"
-										size="sm"
-										onClick={() => setShowNotice((current) => !current)}
-									>
-										Toggle notice
-									</Button>
+									<div className="ml-auto flex gap-2">
+										<IconButton
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											size="sm"
+											label="Toggle notice"
+											icon={<MegaphoneIcon />}
+											onClick={() => setShowNotice((current) => !current)}
+										/>
+										<IconButton
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											size="sm"
+											label="One warning"
+											icon={<WarningIcon />}
+											onClick={() =>
+												setAlertExample((current) => (current === "single" ? null : "single"))
+											}
+										/>
+										<IconButton
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											size="sm"
+											label="Three alerts"
+											icon={<BellIcon />}
+											onClick={() =>
+												setAlertExample((current) => (current === "multiple" ? null : "multiple"))
+											}
+										/>
+									</div>
 								</AppLayout.Header>
 								<div className="space-y-4 p-6">
 									{Array.from({ length: 12 }, (_, index) => (
@@ -393,6 +462,7 @@ export function BridgeShellDemo() {
 	const [pathname, setPathname] = useState("/endpoints");
 	const [accountId, setAccountId] = useState<string>(demoAccounts[0].id);
 	const [showNotice, setShowNotice] = useState(false);
+	const [alertExample, setAlertExample] = useState<"single" | "multiple" | null>(null);
 
 	const account = demoAccounts.find((candidate) => candidate.id === accountId) ?? demoAccounts[0];
 	const currentLabel =
@@ -408,11 +478,16 @@ export function BridgeShellDemo() {
 				<SkipToMainLink />
 				<AppLayout.Notice>
 					{showNotice && (
-						<div className="text-on-filled flex items-center gap-2 bg-rose-500 py-1 pr-4 pl-[1.375rem] text-xs">
-							<WarningCircleIcon weight="fill" className="size-4 shrink-0" />
-							You are impersonating jane@example.com in read-only mode.
+						<div className="text-on-filled bg-rose-500 px-4 py-2 text-center text-xs">
+							Preview notice
 						</div>
 					)}
+					<AlertCenter.Root
+						alerts={alertExample != null ? appShellAlertsByExample[alertExample] : noAlerts}
+					>
+						<AlertCenter.Bar />
+						<AlertCenter.Content />
+					</AlertCenter.Root>
 				</AppLayout.Notice>
 				<AppLayout.Body>
 					<Sidebar.Nav aria-label="Main">
@@ -533,16 +608,39 @@ export function BridgeShellDemo() {
 											</Breadcrumb.Item>
 										</Breadcrumb.List>
 									</Breadcrumb.Root>
-									<Button
-										type="button"
-										appearance="outlined"
-										intent="neutral"
-										className="ml-auto"
-										size="sm"
-										onClick={() => setShowNotice((current) => !current)}
-									>
-										Toggle notice
-									</Button>
+									<div className="ml-auto flex gap-2">
+										<IconButton
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											size="sm"
+											label="Toggle notice"
+											icon={<MegaphoneIcon />}
+											onClick={() => setShowNotice((current) => !current)}
+										/>
+										<IconButton
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											size="sm"
+											label="One warning"
+											icon={<WarningIcon />}
+											onClick={() =>
+												setAlertExample((current) => (current === "single" ? null : "single"))
+											}
+										/>
+										<IconButton
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											size="sm"
+											label="Three alerts"
+											icon={<BellIcon />}
+											onClick={() =>
+												setAlertExample((current) => (current === "multiple" ? null : "multiple"))
+											}
+										/>
+									</div>
 								</AppLayout.Header>
 								<div className="space-y-4 p-6">
 									{Array.from({ length: 12 }, (_, index) => (

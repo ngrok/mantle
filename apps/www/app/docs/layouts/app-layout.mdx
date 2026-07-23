@@ -12,8 +12,10 @@ import { AppLayoutPolymorphismDemo } from "~/features/app-layout-demos";
 A viewport-locked application shell. The shell itself never scrolls: `AppLayout.Content` is a rounded card
 that scrolls internally with `overscroll-none`, so long pages never bounce or drag the chrome. Pinned to
 the top of that card, `AppLayout.Header` is a sticky toolbar row for the sidebar trigger and breadcrumbs,
-and `AppLayout.Notice` is a full-window strip for impersonation banners and environment warnings that pushes
-everything — including any sidebar — down. It is a **layout**: it owns _where things go_, and app state (routing, sessions, data) never enters it.
+and `AppLayout.Notice` is a full-window composition slot for app-wide messaging that pushes everything —
+including any sidebar — down. It can stack a rare impersonation or environment banner with a persistent
+account-alert bar. It is a **layout**: it owns _where things go_, and app state (routing, sessions, data)
+never enters it.
 
 The canonical composition pairs the shell with the [Sidebar](/components/navigation/sidebar). The two are
 deliberately decoupled — `AppLayout` never references sidebar state — but cohesive: wrap the shell in
@@ -34,6 +36,7 @@ default.
 	<CodeExample.Code>
 
 ```tsx
+import { AlertCenter, type AlertCenterAlert } from "@ngrok/mantle/alert-center";
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button } from "@ngrok/mantle/button";
@@ -42,12 +45,37 @@ import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
-import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
 import { useState } from "react";
+
+const singleAlert = [
+	{
+		id: "usage-limit",
+		intent: "warning",
+		title: "Your workspace is approaching its monthly usage limit",
+		action: { label: "Review usage", href: "/usage" },
+	},
+] satisfies AlertCenterAlert[];
+
+const multipleAlerts = [
+	{
+		id: "billing",
+		intent: "danger",
+		title: "A payment could not be processed",
+		action: { label: "Review billing", href: "/billing" },
+	},
+	...singleAlert,
+	{
+		id: "member-limit",
+		intent: "warning",
+		title: "Your workspace is approaching its member limit",
+		action: { label: "Review members", href: "/members" },
+	},
+] satisfies AlertCenterAlert[];
 
 export function Shell() {
 	const [pathname, setPathname] = useState("/endpoints");
 	const [showNotice, setShowNotice] = useState(false);
+	const [alertExample, setAlertExample] = useState<"single" | "multiple" | null>(null);
 
 	return (
 		// the framed demo narrows the mobile breakpoint; most apps keep the "lg" default
@@ -56,10 +84,15 @@ export function Shell() {
 				<SkipToMainLink />
 				<AppLayout.Notice>
 					{showNotice && (
-						<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
-							<WarningCircleIcon weight="fill" className="shrink-0" />
-							You are impersonating jane@example.com in read-only mode.
+						<div className="text-on-filled bg-rose-500 px-4 py-2 text-center text-xs">
+							Preview notice
 						</div>
+					)}
+					{alertExample != null && (
+						<AlertCenter.Root alerts={alertExample === "single" ? singleAlert : multipleAlerts}>
+							<AlertCenter.Bar />
+							<AlertCenter.Content />
+						</AlertCenter.Root>
 					)}
 				</AppLayout.Notice>
 				<AppLayout.Body>
@@ -117,16 +150,39 @@ export function Shell() {
 											</Breadcrumb.Item>
 										</Breadcrumb.List>
 									</Breadcrumb.Root>
-									<Button
-										type="button"
-										appearance="outlined"
-										intent="neutral"
-										className="ml-auto"
-										size="sm"
-										onClick={() => setShowNotice((current) => !current)}
-									>
-										Toggle notice
-									</Button>
+									<div className="ml-auto flex gap-2">
+										<Button
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											size="sm"
+											onClick={() => setShowNotice((current) => !current)}
+										>
+											Toggle notice
+										</Button>
+										<Button
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											size="sm"
+											onClick={() =>
+												setAlertExample((current) => (current === "single" ? null : "single"))
+											}
+										>
+											One warning
+										</Button>
+										<Button
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											size="sm"
+											onClick={() =>
+												setAlertExample((current) => (current === "multiple" ? null : "multiple"))
+											}
+										>
+											Three alerts
+										</Button>
+									</div>
 								</AppLayout.Header>
 								{/* your routed page content */}
 							</Main>
@@ -443,8 +499,10 @@ AppLayout.Root
 - **`Root`** is the outer frame (`relative isolate flex h-full w-full flex-col overflow-hidden bg-base`).
   It fills its nearest sized ancestor; merge `className="fixed inset-0"` to pin a real app shell to the
   viewport. The shell never scrolls — only `Content` does.
-- **`Notice`** is a full-window-width strip pinned above everything else (`w-full shrink-0`), unstyled so
-  the notice content brings its own colors. Collapses to nothing when empty. Optional.
+- **`Notice`** is the full-window-width, vertical composition slot pinned above everything else
+  (`flex w-full shrink-0 flex-col`). Stack an impersonation or environment banner and an account alert bar
+  here; each brings its own colors while the slot pushes the whole shell down. Collapses to nothing when
+  empty. Optional.
 - **`Body`** is the main flex row (`flex min-h-0 flex-1`). Its children are the app's columns — place a
   [`Sidebar.Nav`](/components/navigation/sidebar) (or any other rail) before `AppLayout.Inset`. The
   `min-h-0` is what lets the content card scroll instead of the page.
@@ -563,10 +621,11 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### AppLayout.Notice
 
-A full-window-width strip pinned above everything else in the shell — including any sidebar — for
-impersonation notices, environment warnings, and similar app-wide messaging. Renders an unstyled `<div>`
-(`w-full shrink-0`): the notice content brings its own colors and layout, and the part collapses to nothing
-when empty. Deliberately not named Banner — `AppLayout.Header` renders the page's `<header>` (the ARIA
+A full-window-width, vertical composition slot pinned above everything else in the shell — including any
+sidebar — for app-wide messaging. Stack a rare impersonation or environment banner and a persistent account
+alert bar here; each child brings its own colors and layout while the slot pushes the whole shell down.
+Renders an unstyled `<div>` (`flex w-full shrink-0 flex-col`) and collapses to nothing when empty.
+Deliberately not named Banner — `AppLayout.Header` renders the page's `<header>` (the ARIA
 `banner` landmark), and this part is not that. Optional.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:

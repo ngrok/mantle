@@ -65,11 +65,12 @@ const demoAlerts: ReadonlyArray<AlertCenterAlert> = [
 ];
 
 /**
- * The hero demo: a single `AlertCenter` bar pinned between `AppLayout.Notice`
- * and `AppLayout.Body`, replacing what used to be a stack of independent
- * window banners. The bar surfaces the highest-severity alert inline; "+N more"
- * opens the dialog with the full list. Dismiss alerts to watch the bar re-rank
- * (and finally collapse), then reset.
+ * The hero demo: `AppLayout.Notice` is the single top-of-window composition
+ * slot. The alert bar is one child of it, next to any other window-level
+ * notice, replacing a stack of independent window banners. The bar surfaces
+ * the highest-severity alert inline; the count-and-caret control expands the other alerts as
+ * full-width banners. Dismiss alerts to watch the bar re-rank (and finally
+ * collapse), then reset.
  *
  * Renders as an entire framed-preview document (see preview-registry.ts), so it
  * composes exactly like a real app shell: pinned with `fixed inset-0`, a
@@ -88,14 +89,15 @@ export function AlertCenterShellDemo() {
 		<Sidebar.Root mobileBreakpoint="md">
 			<AppLayout.Root className="fixed inset-0">
 				<SkipToMainLink />
-				<AppLayout.Notice />
-				<AlertCenter.Root
-					alerts={alerts}
-					onDismiss={(id) => setDismissed((prev) => new Set(prev).add(id))}
-				>
-					<AlertCenter.Bar />
-					<AlertCenter.Content />
-				</AlertCenter.Root>
+				<AppLayout.Notice>
+					<AlertCenter.Root
+						alerts={alerts}
+						onDismiss={(id) => setDismissed((prev) => new Set(prev).add(id))}
+					>
+						<AlertCenter.Bar />
+						<AlertCenter.Content />
+					</AlertCenter.Root>
+				</AppLayout.Notice>
 				<AppLayout.Body>
 					<Sidebar.Nav aria-label="Main">
 						<Sidebar.Header>
@@ -171,9 +173,8 @@ export function AlertCenterShellDemo() {
 								</AppLayout.Header>
 								<div className="space-y-4 p-6">
 									<p className="text-muted text-sm">
-										The alert bar sits above this content card, spanning the full window width
-										beneath any notice strip. Open <strong>+N more</strong> to see every alert, or
-										dismiss them to watch the bar re-rank and collapse.
+										The alert bar is composed in the top-of-window notice slot. Choose the
+										count-and-caret control to expand or collapse the other alert banners.
 									</p>
 									{Array.from({ length: 10 }, (_, index) => (
 										<div key={index} className="border-card-muted rounded-lg border p-4">
@@ -196,8 +197,9 @@ export function AlertCenterShellDemo() {
 }
 
 /**
- * A compact, non-framed demo for the docs page: the bar plus its dialog in a
- * shell-top-shaped container, with the sample alerts and a reset control.
+ * A compact, non-framed demo for the docs page: the bar plus its inline
+ * expansion in a shell-top-shaped container, with the sample alerts and a
+ * reset control.
  */
 export function AlertCenterExample() {
 	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
@@ -236,7 +238,7 @@ export function AlertCenterExample() {
 
 /**
  * A single-alert demo: with one alert the bar shows it inline with its CTA and
- * omits the "+N more" trigger entirely — there's nothing hidden to reveal.
+ * omits the count-and-caret control entirely — there's nothing hidden to reveal.
  */
 export function AlertCenterSingleAlertExample() {
 	const singleAlert = [
@@ -280,11 +282,11 @@ export function AlertCenterCustomRowExample() {
 
 	return (
 		<div className="border-card-muted w-full max-w-2xl overflow-hidden rounded-lg border">
-			<AlertCenter.Root alerts={alerts}>
+			<AlertCenter.Root alerts={alerts} defaultOpen>
 				<AlertCenter.Bar />
 				<AlertCenter.Content>
 					{(alert) => (
-						<Alert.Root intent={alert.intent}>
+						<Alert.Root appearance="banner" intent={alert.intent}>
 							<Alert.Icon />
 							<Alert.Content>
 								<Alert.Title>{alert.title}</Alert.Title>

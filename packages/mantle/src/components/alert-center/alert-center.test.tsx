@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import {
@@ -6,6 +6,7 @@ import {
 	type AlertCenterAlert,
 	alertsSummary,
 	alertTitleText,
+	barPresenceReducer,
 	SEVERITY_RANK,
 	sortAlertsBySeverity,
 } from "./alert-center.js";
@@ -102,7 +103,62 @@ describe("alertsSummary", () => {
 	});
 });
 
+describe("barPresenceReducer", () => {
+	test("show opens from any state (re-showing mid-exit retargets, never restarts)", () => {
+		expect(barPresenceReducer("closed", "show")).toBe("open");
+		expect(barPresenceReducer("closing", "show")).toBe("open");
+		expect(barPresenceReducer("open", "show")).toBe("open");
+	});
+
+	test("hide begins the exit only from a mounted state", () => {
+		expect(barPresenceReducer("open", "hide")).toBe("closing");
+		expect(barPresenceReducer("closing", "hide")).toBe("closing");
+		// already unmounted → stay closed, don't resurrect a closing slide
+		expect(barPresenceReducer("closed", "hide")).toBe("closed");
+	});
+
+	test("exited completes the exit only while closing", () => {
+		expect(barPresenceReducer("closing", "exited")).toBe("closed");
+		// a stray transitionend after re-opening must not unmount
+		expect(barPresenceReducer("open", "exited")).toBe("open");
+		expect(barPresenceReducer("closed", "exited")).toBe("closed");
+	});
+});
+
 describe("AlertCenter.Bar", () => {
+	test("keeps the bar mounted for its exit slide, then unmounts", () => {
+		vi.useFakeTimers();
+		try {
+			const { container, rerender } = render(
+				<AlertCenter.Root alerts={[paymentAlert]}>
+					<AlertCenter.Bar />
+				</AlertCenter.Root>,
+			);
+			const bar = container.querySelector('[data-slot="alert-center-bar"]');
+			expect(bar).not.toBeNull();
+
+			// Alerts empty → the bar stays mounted (marked closed) to animate out.
+			act(() => {
+				rerender(
+					<AlertCenter.Root alerts={[]}>
+						<AlertCenter.Bar />
+					</AlertCenter.Root>,
+				);
+			});
+			expect(container.querySelector('[data-slot="alert-center-bar"]')).not.toBeNull();
+			expect(bar?.closest("[data-state]")).toHaveAttribute("data-state", "closed");
+
+			// The exit completes on its safety timeout when no transitionend fires
+			// (happy-dom runs no real transitions), and the bar unmounts.
+			act(() => {
+				vi.advanceTimersByTime(500);
+			});
+			expect(container.querySelector('[data-slot="alert-center-bar"]')).toBeNull();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	test("renders no visible bar when there are no alerts", () => {
 		const { container } = render(
 			<AlertCenter.Root alerts={[]}>
@@ -127,6 +183,7 @@ describe("AlertCenter.Bar", () => {
 			"href",
 			"/billing",
 		);
+		expect(screen.getByRole("link", { name: "Update payment method" })).toHaveClass("font-medium");
 	});
 
 	test("announces via a persistent polite live region, not a banner landmark", () => {
@@ -141,23 +198,92 @@ describe("AlertCenter.Bar", () => {
 		expect(screen.queryByRole("banner")).not.toBeInTheDocument();
 	});
 
-	test('shows a "+N more" trigger whose accessible name includes its visible text', () => {
+	test("shows a compact count-and-caret trigger for additional alerts", () => {
 		render(
 			<AlertCenter.Root alerts={alerts}>
 				<AlertCenter.Bar />
 			</AlertCenter.Root>,
 		);
-		const trigger = screen.getByRole("button", { name: /\+2 more.*show all 3 alerts/i });
-		expect(trigger).toHaveTextContent("+2 more");
+		const trigger = screen.getByRole("button", { name: "Show 2 more alerts" });
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
+		expect(trigger).toHaveAttribute("data-slot", "alert-expand-button");
+		expect(trigger).toHaveTextContent("+2");
 	});
 
-	test('omits the "+N more" trigger when a single alert is present', () => {
+	test("omits the expansion control when a single alert is present", () => {
 		render(
 			<AlertCenter.Root alerts={[paymentAlert]}>
 				<AlertCenter.Bar />
 			</AlertCenter.Root>,
 		);
 		expect(screen.queryByRole("button", { name: /show all/i })).not.toBeInTheDocument();
+	});
+
+	test("keeps a top alert's dismiss control when more alerts arrive", () => {
+		const dismissablePaymentAlert = {
+			...paymentAlert,
+			dismissable: true,
+		} satisfies AlertCenterAlert;
+		const { rerender } = render(
+			<AlertCenter.Root
+				alerts={[dismissablePaymentAlert]}
+				onDismiss={vi.fn<(id: string) => void>()}
+			>
+				<AlertCenter.Bar />
+			</AlertCenter.Root>,
+		);
+
+		expect(screen.getByRole("button", { name: "Dismiss Payment failed" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Show 1 more alert" })).not.toBeInTheDocument();
+
+		rerender(
+			<AlertCenter.Root
+				alerts={[dismissablePaymentAlert, transferAlert]}
+				onDismiss={vi.fn<(id: string) => void>()}
+			>
+				<AlertCenter.Bar />
+			</AlertCenter.Root>,
+		);
+
+		expect(screen.getByRole("button", { name: "Dismiss Payment failed" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Show 1 more alert" })).toBeInTheDocument();
+	});
+
+	test("renders a custom banner with expansion and dismiss capabilities", async () => {
+		const user = userEvent.setup();
+		const onDismiss = vi.fn<(id: string) => void>();
+		const dismissableAlerts = [
+			{ ...paymentAlert, dismissable: true },
+			transferAlert,
+			regionAlert,
+		] satisfies AlertCenterAlert[];
+		render(
+			<AlertCenter.Root alerts={dismissableAlerts} onDismiss={onDismiss}>
+				<AlertCenter.Bar>
+					{(alert, { dismiss, isExpanded, remaining, toggle }) => (
+						<div data-testid="custom-banner">
+							<span>{alert.id}</span>
+							<button type="button" onClick={toggle}>
+								{isExpanded ? "Collapse custom alerts" : `Expand ${remaining} custom alerts`}
+							</button>
+							{dismiss != null && (
+								<button type="button" onClick={dismiss}>
+									Dismiss custom alert
+								</button>
+							)}
+						</div>
+					)}
+				</AlertCenter.Bar>
+				<AlertCenter.Content data-testid="content" />
+			</AlertCenter.Root>,
+		);
+
+		expect(screen.getByTestId("custom-banner")).toHaveTextContent("payment");
+		await user.click(screen.getByRole("button", { name: "Expand 2 custom alerts" }));
+		expect(screen.getByTestId("content")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Collapse custom alerts" })).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Dismiss custom alert" }));
+		expect(onDismiss).toHaveBeenCalledWith("payment");
 	});
 
 	test("renders a dismiss affordance for a dismissable top alert and calls onDismiss", async () => {
@@ -169,6 +295,10 @@ describe("AlertCenter.Bar", () => {
 			</AlertCenter.Root>,
 		);
 		await user.click(screen.getByRole("button", { name: "Dismiss New region available" }));
+		expect(screen.getByRole("button", { name: "Dismiss New region available" })).toHaveAttribute(
+			"data-slot",
+			"alert-dismiss-icon-button",
+		);
 		expect(onDismiss).toHaveBeenCalledWith("region");
 	});
 
@@ -183,45 +313,72 @@ describe("AlertCenter.Bar", () => {
 });
 
 describe("AlertCenter.Content", () => {
-	test('opening the dialog from "+N more" lists every alert, ranked', async () => {
+	test("expands the additional alerts inline and collapses them again", async () => {
 		const user = userEvent.setup();
 		render(
 			<AlertCenter.Root alerts={alerts}>
 				<AlertCenter.Bar />
-				<AlertCenter.Content />
+				<AlertCenter.Content data-testid="content" />
 			</AlertCenter.Root>,
 		);
-		await user.click(screen.getByRole("button", { name: /show all 3 alerts/i }));
+		await user.click(screen.getByRole("button", { name: "Show 2 more alerts" }));
 
-		const dialog = screen.getByRole("dialog");
-		expect(within(dialog).getByText("Account alerts")).toBeInTheDocument();
-		// Alert.Title renders an <h5>; Dialog.Title is an <h2>, so level 5 isolates
-		// the alert cards from the dialog's own heading.
-		const titles = within(dialog)
+		const content = screen.getByTestId("content");
+		expect(content).toHaveAttribute("data-slot", "alert-center-content");
+		expect(content).toHaveAttribute("data-state", "open");
+		const additionalBanners = content.querySelectorAll('[data-slot="alert"]');
+		expect(additionalBanners).toHaveLength(2);
+		for (const banner of additionalBanners) {
+			expect(banner).toHaveClass("w-full", "rounded-none", "py-2");
+			expect(banner).not.toHaveClass("items-center");
+		}
+		for (const title of content.querySelectorAll('[data-slot="alert-title"]')) {
+			expect(title).not.toHaveClass("truncate");
+		}
+		expect(screen.getByRole("link", { name: "Upgrade" })).toHaveClass("font-medium");
+		const titles = screen
 			.getAllByRole("heading", { level: 5 })
 			.map((heading) => heading.textContent);
 		expect(titles).toEqual([
-			"Payment failed",
-			"Approaching your data transfer limit",
-			"New region available",
+			"Payment failed Update payment method",
+			"Approaching your data transfer limit Upgrade",
+			"New region available Learn more",
 		]);
+		expect(screen.getByRole("button", { name: "Collapse additional alerts" })).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+
+		await user.click(screen.getByRole("button", { name: "Collapse additional alerts" }));
+		// Collapsing runs an exit animation, so the content stays mounted (hidden)
+		// rather than unmounting — its data-state flips to "closed".
+		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "closed");
 	});
 
 	test("renders a custom row via the render-prop child", () => {
 		render(
-			<AlertCenter.Root alerts={alerts} open>
+			<AlertCenter.Root alerts={alerts} open onDismiss={vi.fn<(id: string) => void>()}>
 				<AlertCenter.Bar />
 				<AlertCenter.Content>
-					{(alert) => <div data-testid="custom-row">Custom: {alertTitleText(alert)}</div>}
+					{(alert, _index, { dismiss }) => (
+						<div data-testid="custom-row">
+							Custom: {alertTitleText(alert)}
+							{dismiss != null && (
+								<button type="button" onClick={dismiss}>
+									Dismiss custom row
+								</button>
+							)}
+						</div>
+					)}
 				</AlertCenter.Content>
 			</AlertCenter.Root>,
 		);
-		const dialog = screen.getByRole("dialog");
-		expect(within(dialog).getAllByTestId("custom-row")).toHaveLength(3);
-		expect(within(dialog).getByText("Custom: Payment failed")).toBeInTheDocument();
+		expect(screen.getAllByTestId("custom-row")).toHaveLength(2);
+		expect(screen.getByText("Custom: Approaching your data transfer limit")).toBeInTheDocument();
+		expect(screen.getAllByRole("button", { name: "Dismiss custom row" })).toHaveLength(2);
 	});
 
-	test("dismissing a row inside the dialog calls onDismiss with its id", async () => {
+	test("dismissing a row in the inline expansion calls onDismiss with its id", async () => {
 		const user = userEvent.setup();
 		const onDismiss = vi.fn<(id: string) => void>();
 		render(
@@ -229,19 +386,18 @@ describe("AlertCenter.Content", () => {
 				<AlertCenter.Content />
 			</AlertCenter.Root>,
 		);
-		const dialog = screen.getByRole("dialog");
 		await user.click(
-			within(dialog).getByRole("button", { name: "Dismiss Approaching your data transfer limit" }),
+			screen.getByRole("button", { name: "Dismiss Approaching your data transfer limit" }),
 		);
 		expect(onDismiss).toHaveBeenCalledWith("transfer");
 	});
 
-	test("shows an empty state when opened with no alerts", () => {
+	test("does not render inline content when there are no additional alerts", () => {
 		render(
 			<AlertCenter.Root alerts={[]} open>
 				<AlertCenter.Content />
 			</AlertCenter.Root>,
 		);
-		expect(screen.getByText("You're all caught up.")).toBeInTheDocument();
+		expect(screen.queryByTestId("content")).not.toBeInTheDocument();
 	});
 });
