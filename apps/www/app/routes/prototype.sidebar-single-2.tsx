@@ -22,6 +22,8 @@ import { CloudArrowUpIcon } from "@phosphor-icons/react/CloudArrowUp";
 import { CpuIcon } from "@phosphor-icons/react/Cpu";
 import { CreditCardIcon } from "@phosphor-icons/react/CreditCard";
 import { DoorOpenIcon } from "@phosphor-icons/react/DoorOpen";
+import { DownloadSimpleIcon } from "@phosphor-icons/react/DownloadSimple";
+import { EnvelopeIcon } from "@phosphor-icons/react/Envelope";
 import { FingerprintIcon } from "@phosphor-icons/react/Fingerprint";
 import { FolderIcon } from "@phosphor-icons/react/Folder";
 import { GearIcon } from "@phosphor-icons/react/Gear";
@@ -53,7 +55,6 @@ import { useRef, useState } from "react";
 import { getAccountSettingsPage } from "~/examples/sidebar/account-settings-nav";
 import { AiGatewayNav } from "~/examples/sidebar/ai-gateway-nav";
 import { demoAccounts, demoUser } from "~/examples/sidebar/demo-data";
-import { LocalhostNav } from "~/examples/sidebar/localhost-nav";
 import {
 	type ExampleProduct,
 	type ProductId,
@@ -67,37 +68,30 @@ type SidebarMode =
 	| { type: "utility"; utilityId: Extract<ProductId, "account-settings"> };
 
 type SettingsUtilityId = Extract<ProductId, "account-settings">;
-type ProductSwitcherId = Extract<
-	ProductId,
-	"ai-gateway" | "codename" | "localhost" | "universal-gateway"
->;
+type ProductSwitcherId = Extract<ProductId, "ai-gateway" | "codename" | "universal-gateway">;
 
 const initialProductId: Extract<ProductId, "universal-gateway"> = "universal-gateway";
 const initialPath = "/endpoints";
 const productSwitcherIds: ReadonlyArray<ProductSwitcherId> = [
 	"universal-gateway",
 	"codename",
-	"localhost",
 	"ai-gateway",
 ];
+const aiGatewayUrl = "https://app.ngrok.ai";
 const productColorClassNames: Record<ProductSwitcherId, string> = {
 	"ai-gateway": "bg-amber-600/10 text-amber-600 dark:text-amber-600",
 	codename: "bg-sky-600/10 text-sky-600 dark:text-sky-600",
-	localhost: "bg-purple-600/10 text-purple-600 dark:text-purple-600",
 	"universal-gateway": "bg-emerald-600/10 text-emerald-600 dark:text-emerald-600",
 };
 const productTextColorClassNames: Record<ProductSwitcherId, string> = {
 	"ai-gateway": "text-amber-600 dark:text-amber-600",
 	codename: "text-sky-600 dark:text-sky-600",
-	localhost: "text-purple-600 dark:text-purple-600",
 	"universal-gateway": "text-emerald-600 dark:text-emerald-600",
 };
 const productSelectedClassNames: Record<ProductSwitcherId, string> = {
 	"ai-gateway":
 		"border-amber-600 bg-amber-600/[0.03] ring-4 ring-amber-600/15 dark:border-amber-600",
 	codename: "border-sky-600 bg-sky-600/[0.03] ring-4 ring-sky-600/15 dark:border-sky-600",
-	localhost:
-		"border-purple-600 bg-purple-600/[0.03] ring-4 ring-purple-600/15 dark:border-purple-600",
 	"universal-gateway":
 		"border-emerald-600 bg-emerald-600/[0.03] ring-4 ring-emerald-600/15 dark:border-emerald-600",
 };
@@ -106,8 +100,6 @@ const productHighlightClassNames: Record<ProductSwitcherId, string> = {
 		"hover:border-amber-600 hover:bg-amber-600/[0.03] focus-visible:bg-amber-600/[0.03] focus-visible:ring-amber-600/20 dark:hover:border-amber-600",
 	codename:
 		"hover:border-sky-600 hover:bg-sky-600/[0.03] focus-visible:bg-sky-600/[0.03] focus-visible:ring-sky-600/20 dark:hover:border-sky-600",
-	localhost:
-		"hover:border-purple-600 hover:bg-purple-600/[0.03] focus-visible:bg-purple-600/[0.03] focus-visible:ring-purple-600/20 dark:hover:border-purple-600",
 	"universal-gateway":
 		"hover:border-emerald-600 hover:bg-emerald-600/[0.03] focus-visible:bg-emerald-600/[0.03] focus-visible:ring-emerald-600/20 dark:hover:border-emerald-600",
 };
@@ -116,8 +108,6 @@ const productArrowClassNames: Record<ProductSwitcherId, string> = {
 		"group-hover:text-amber-600 group-focus-visible:text-amber-600 dark:group-hover:text-amber-600 dark:group-focus-visible:text-amber-600",
 	codename:
 		"group-hover:text-sky-600 group-focus-visible:text-sky-600 dark:group-hover:text-sky-600 dark:group-focus-visible:text-sky-600",
-	localhost:
-		"group-hover:text-purple-600 group-focus-visible:text-purple-600 dark:group-hover:text-purple-600 dark:group-focus-visible:text-purple-600",
 	"universal-gateway":
 		"group-hover:text-emerald-600 group-focus-visible:text-emerald-600 dark:group-hover:text-emerald-600 dark:group-focus-visible:text-emerald-600",
 };
@@ -136,11 +126,6 @@ const productDialogCopy: Record<
 	codename: {
 		title: "Ship apps without managing infrastructure.",
 		description: "Deploy services close to your users with managed compute, domains, and secrets.",
-	},
-	localhost: {
-		title: "Put your local app on a public URL.",
-		description:
-			"Securely expose a web server on localhost to the internet, even from behind a NAT or firewall, with secure tunnels.",
 	},
 	"universal-gateway": {
 		title: "Connect to anything, anywhere.",
@@ -172,11 +157,17 @@ const footerActionItems = [
 	},
 ] as const;
 const iamTabs = [
-	{ label: "Team Members", icon: <UsersThreeIcon />, path: "/iam/team-members" },
+	{ label: "Team Members", icon: <UsersThreeIcon />, path: "/iam/team-members", badge: "24" },
+	{
+		label: "Pending Invitations",
+		icon: <EnvelopeIcon />,
+		path: "/iam/pending-invitations",
+		badge: "2",
+	},
 	{ label: "Service Users", icon: <RobotIcon />, path: "/iam/service-users" },
 	{ label: "Access Tokens", icon: <KeyIcon />, path: "/iam/access-tokens" },
-	{ label: "API Keys", badge: "Deprecated", path: "/iam/api-keys" },
-	{ label: "Auth Tokens", badge: "Deprecated", path: "/iam/authtokens" },
+	{ label: "API Keys", path: "/iam/api-keys" },
+	{ label: "Auth Tokens", path: "/iam/authtokens" },
 ] as const;
 type IamTabPath = (typeof iamTabs)[number]["path"];
 
@@ -215,6 +206,15 @@ const iamTableContent: Record<
 				"Billing",
 				"Apr 9, 2026",
 			],
+		],
+	},
+	"/iam/pending-invitations": {
+		columns: ["Email", "Role", "Invited by", "Expires"],
+		newLabel: "Invite Team Member",
+		searchPlaceholder: "Filter pending invitations...",
+		rows: [
+			["jordan@example.com", "Developer", "Alex Chen", "2 days"],
+			["taylor@example.com", "Viewer", "Micah Woods", "5 days"],
 		],
 	},
 	"/iam/service-users": {
@@ -411,9 +411,6 @@ function initialPathForProduct(productId: ProductSwitcherId) {
 	if (productId === "codename") {
 		return "/ship/apps";
 	}
-	if (productId === "localhost") {
-		return "/localhost";
-	}
 	return "/endpoints";
 }
 
@@ -422,9 +419,6 @@ function isProductSwitcherId(id: ProductId): id is ProductSwitcherId {
 }
 
 function productDisplayName(product: ExampleProduct | undefined) {
-	if (product?.id === "localhost") {
-		return "Localhost";
-	}
 	return product?.label ?? "Gateway";
 }
 
@@ -442,7 +436,7 @@ function navForProduct(
 	if (productId === "ai-gateway") {
 		return <AiGatewayNav pathname={pathname} onNavigate={onNavigate} />;
 	}
-	return <LocalhostNav pathname={pathname} onNavigate={onNavigate} />;
+	return <UniversalGatewayNavForSingle2 pathname={pathname} onNavigate={onNavigate} />;
 }
 
 function navForUtility(
@@ -514,7 +508,6 @@ const gatewaySections: ReadonlyArray<ProductNavSection> = [
 const shipItems: ReadonlyArray<ProductNavItem> = [
 	{ label: "Apps", icon: <SquaresFourIcon />, path: "/ship/apps" },
 	{ label: "Compute Pools", icon: <CpuIcon />, path: "/ship/compute-pools" },
-	{ label: "Domains", icon: <GlobeHemisphereWestIcon />, path: "/ship/domains" },
 ];
 
 function UniversalGatewayNavForSingle2({
@@ -734,7 +727,6 @@ export default function SidebarSingle2Prototype() {
 	const [productPathById, setProductPathById] = useState<Record<ProductSwitcherId, string>>({
 		"ai-gateway": initialPathForProduct("ai-gateway"),
 		codename: initialPathForProduct("codename"),
-		localhost: initialPathForProduct("localhost"),
 		"universal-gateway": initialPath,
 	});
 	const [currentAccountId, setCurrentAccountId] = useState(demoAccounts[0]?.id ?? "");
@@ -796,6 +788,16 @@ export default function SidebarSingle2Prototype() {
 		window.setTimeout(() => productTriggerRef.current?.blur(), 0);
 	};
 
+	const selectProductOption = (productId: ProductSwitcherId) => {
+		if (productId === "ai-gateway") {
+			window.open(aiGatewayUrl, "_blank", "noopener,noreferrer");
+			setProductDialogOpen(false);
+			window.setTimeout(() => productTriggerRef.current?.blur(), 0);
+			return;
+		}
+		switchProduct(productId);
+	};
+
 	const navigateProduct = (path: string) => {
 		setPathname(path);
 		setProductPathById((currentPaths) => ({
@@ -832,7 +834,7 @@ export default function SidebarSingle2Prototype() {
 		}
 		if (event.key === "Enter" || event.key === " ") {
 			event.preventDefault();
-			switchProduct(activeProductId);
+			selectProductOption(activeProductId);
 		}
 	};
 
@@ -914,7 +916,7 @@ export default function SidebarSingle2Prototype() {
 														productHighlightClassNames[product.id],
 														product.id === activeProductId && productSelectedClassNames[product.id],
 													)}
-													onClick={() => switchProduct(product.id)}
+													onClick={() => selectProductOption(product.id)}
 													onFocus={() => setActiveProductId(product.id)}
 													onKeyDown={(event) => handleProductOptionKeyDown(event, index)}
 												>
@@ -1375,21 +1377,37 @@ function IamTabsPreview({
 
 function IamTabTable({ tabPath }: { tabPath: IamTabPath }) {
 	const table = iamTableContent[tabPath];
+	const isTeamMembersTab = tabPath === "/iam/team-members";
+	const isPendingInvitationsTab = tabPath === "/iam/pending-invitations";
 
 	return (
 		<div className="mt-4 space-y-4">
 			<div className="flex items-center justify-between gap-3">
-				<Input
-					aria-label={table.searchPlaceholder}
-					className="max-w-xs"
-					placeholder={table.searchPlaceholder}
-				>
-					<Icon svg={<MagnifyingGlassIcon />} className="text-muted" />
-					<InputCapture />
-				</Input>
-				<Button type="button" appearance="filled" priority="neutral" icon={<PlusIcon />}>
-					{table.newLabel}
-				</Button>
+				<div className="flex min-w-0 flex-1 items-center gap-3">
+					<Input
+						aria-label={table.searchPlaceholder}
+						className="max-w-xs"
+						placeholder={table.searchPlaceholder}
+					>
+						<Icon svg={<MagnifyingGlassIcon />} className="text-muted" />
+						<InputCapture />
+					</Input>
+				</div>
+				<div className="flex shrink-0 items-center gap-2">
+					{isTeamMembersTab ? (
+						<Button
+							type="button"
+							appearance="outlined"
+							priority="neutral"
+							icon={<DownloadSimpleIcon />}
+						>
+							Export CSV
+						</Button>
+					) : null}
+					<Button type="button" appearance="filled" priority="neutral" icon={<PlusIcon />}>
+						{isTeamMembersTab || isPendingInvitationsTab ? "Invite Team Member" : table.newLabel}
+					</Button>
+				</div>
 			</div>
 			<Table.Root>
 				<Table.Element>
@@ -1422,6 +1440,20 @@ function IamTabTable({ tabPath }: { tabPath: IamTabPath }) {
 					</Table.Body>
 				</Table.Element>
 			</Table.Root>
+			{isTeamMembersTab ? (
+				<div className="text-muted flex items-center justify-between text-xs">
+					<span>Showing 1-3 of 24 members</span>
+					<div className="flex items-center gap-2">
+						<Button type="button" appearance="outlined" priority="neutral">
+							Previous
+						</Button>
+						<span>Page 1 of 8</span>
+						<Button type="button" appearance="outlined" priority="neutral">
+							Next
+						</Button>
+					</div>
+				</div>
+			) : null}
 		</div>
 	);
 }
