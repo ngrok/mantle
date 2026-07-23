@@ -3,8 +3,121 @@ title: Pagination
 description: Components and hooks for navigating through paged data with cursor-based and offset-based pagination strategies.
 ---
 
-import { CursorPagination } from "@ngrok/mantle/pagination";
+import { Button } from "@ngrok/mantle/button";
+import {
+	CursorPagination,
+	getOffsetPaginatedSlice,
+	useOffsetPagination,
+} from "@ngrok/mantle/pagination";
+import { useState } from "react";
 import { Example } from "~/components/example";
+import { PaginatedPaymentsDemo } from "~/features/data-table-demo";
+
+export function ServerCursorPaginationExample() {
+	const totalPages = 3;
+	const [pageIndex, setPageIndex] = useState(0);
+
+    return (
+    	<CursorPagination.Root className="flex justify-end" defaultPageSize={10}>
+    		<CursorPagination.PageSizeValue />
+    		<CursorPagination.Buttons
+    			hasPreviousPage={pageIndex > 0}
+    			hasNextPage={pageIndex < totalPages - 1}
+    			onPreviousPage={() => setPageIndex((index) => Math.max(0, index - 1))}
+    			onNextPage={() => setPageIndex((index) => Math.min(totalPages - 1, index + 1))}
+    		/>
+    	</CursorPagination.Root>
+    );
+
+}
+
+export const offsetSliceItems = [
+	"Alpha",
+	"Bravo",
+	"Charlie",
+	"Delta",
+	"Echo",
+	"Foxtrot",
+	"Golf",
+	"Hotel",
+	"India",
+];
+
+export function OffsetPaginationExample() {
+	const pagination = useOffsetPagination({ listSize: 150, pageSize: 10 });
+
+    return (
+    	<div className="flex items-center gap-4">
+    		<p className="text-muted text-sm">
+    			Page {pagination.currentPage} of {pagination.totalPages}
+    		</p>
+    		<div className="flex gap-2">
+    			<Button
+    				type="button"
+    				appearance="outlined"
+    				intent="neutral"
+    				disabled={!pagination.hasPreviousPage}
+    				onClick={pagination.previousPage}
+    			>
+    				Previous
+    			</Button>
+    			<Button
+    				type="button"
+    				appearance="outlined"
+    				intent="neutral"
+    				disabled={!pagination.hasNextPage}
+    				onClick={pagination.nextPage}
+    			>
+    				Next
+    			</Button>
+    		</div>
+    	</div>
+    );
+
+}
+
+export function OffsetPaginatedSliceExample() {
+	const pagination = useOffsetPagination({ listSize: offsetSliceItems.length, pageSize: 3 });
+	const currentPageItems = getOffsetPaginatedSlice(offsetSliceItems, pagination);
+
+    return (
+    	<div className="flex flex-col gap-4">
+    		<ul className="flex flex-col gap-1">
+    			{currentPageItems.map((item) => (
+    				<li key={item} className="text-sm">
+    					{item}
+    				</li>
+    			))}
+    		</ul>
+    		<div className="flex items-center gap-4">
+    			<p className="text-muted text-sm">
+    				Page {pagination.currentPage} of {pagination.totalPages}
+    			</p>
+    			<div className="flex gap-2">
+    				<Button
+    					type="button"
+    					appearance="outlined"
+    					intent="neutral"
+    					disabled={!pagination.hasPreviousPage}
+    					onClick={pagination.previousPage}
+    				>
+    					Previous
+    				</Button>
+    				<Button
+    					type="button"
+    					appearance="outlined"
+    					intent="neutral"
+    					disabled={!pagination.hasNextPage}
+    					onClick={pagination.nextPage}
+    				>
+    					Next
+    				</Button>
+    			</div>
+    		</div>
+    	</div>
+    );
+
+}
 
 # Pagination
 
@@ -52,9 +165,14 @@ import { CursorPagination } from "@ngrok/mantle/pagination";
 
 **Client-paginated** — the table holds every row and `getPaginationRowModel()` slices them. Read `getCanPreviousPage()` / `getCanNextPage()` for the buttons and call `setPageSize()` / `setPageIndex(0)` when the size changes:
 
+<Example>
+	<PaginatedPaymentsDemo />
+</Example>
+
 ```tsx
 import {
 	DataTable,
+	createColumnHelper,
 	getCoreRowModel,
 	getPaginationRowModel,
 	useReactTable,
@@ -65,6 +183,33 @@ import { CursorPagination } from "@ngrok/mantle/pagination";
 // const (or the table's INITIAL page size), never the live page size.
 const DEFAULT_PAGE_SIZE = 10;
 
+type Payment = {
+	id: string;
+	amount: number;
+	status: "pending" | "processing" | "success" | "failed";
+	email: string;
+};
+
+const columnHelper = createColumnHelper<Payment>();
+
+const columns = [
+	columnHelper.accessor("email", {
+		id: "email",
+		header: () => <DataTable.Header>Email</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("status", {
+		id: "status",
+		header: () => <DataTable.Header>Status</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("amount", {
+		id: "amount",
+		header: () => <DataTable.Header className="text-right">Amount</DataTable.Header>,
+		cell: (props) => <DataTable.Cell className="text-right">${props.getValue()}</DataTable.Cell>,
+	}),
+];
+
 function PaginatedTable({ data }: { data: Payment[] }) {
 	const table = useReactTable({
 		data,
@@ -74,9 +219,20 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 		initialState: { pagination: { pageSize: DEFAULT_PAGE_SIZE } },
 	});
 
+	const rows = table.getRowModel().rows;
+
 	return (
-		<>
-			<DataTable.Root table={table}>{/* … Head + Body … */}</DataTable.Root>
+		<div className="flex flex-col gap-4">
+			<DataTable.Root table={table}>
+				<DataTable.Head />
+				<DataTable.Body>
+					{rows.length > 0 ? (
+						rows.map((row) => <DataTable.Row key={row.id} row={row} />)
+					) : (
+						<DataTable.EmptyRow>No results.</DataTable.EmptyRow>
+					)}
+				</DataTable.Body>
+			</DataTable.Root>
 			<CursorPagination.Root className="flex justify-end" defaultPageSize={DEFAULT_PAGE_SIZE}>
 				<CursorPagination.PageSizeSelect
 					onChangePageSize={(size) => {
@@ -91,25 +247,42 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 					onNextPage={() => table.nextPage()}
 				/>
 			</CursorPagination.Root>
-		</>
+		</div>
 	);
 }
 ```
 
-**Server / cursor data** — the server returns one page at a time, so there is no `getPaginationRowModel` and no total count. Wire `Buttons` to your fetch's has-next / has-prev and load callbacks, and show the fixed, server-controlled page size with the read-only `PageSizeValue` instead of `PageSizeSelect`:
+**Server / cursor data** — the server returns one page at a time, so there is no `getPaginationRowModel` and no total count. Wire `Buttons` to your fetch's has-next / has-prev and load callbacks, and show the fixed, server-controlled page size with the read-only `PageSizeValue` instead of `PageSizeSelect`. The example simulates the server's cursor state with a page index:
+
+<Example>
+	<ServerCursorPaginationExample />
+</Example>
 
 ```tsx
 import { CursorPagination } from "@ngrok/mantle/pagination";
+import { useState } from "react";
 
-<CursorPagination.Root className="flex justify-end" defaultPageSize={pageSize}>
-	<CursorPagination.PageSizeValue />
-	<CursorPagination.Buttons
-		hasPreviousPage={Boolean(previousCursor)}
-		hasNextPage={Boolean(nextCursor)}
-		onPreviousPage={() => loadPage(previousCursor)}
-		onNextPage={() => loadPage(nextCursor)}
-	/>
-</CursorPagination.Root>;
+// The page size is fixed by the server, so surface it read-only with PageSizeValue.
+const PAGE_SIZE = 10;
+const TOTAL_PAGES = 3;
+
+function ServerCursorPagination() {
+	// In a real app the has-prev / has-next flags come from your fetch's cursors;
+	// here we simulate them with a page index.
+	const [pageIndex, setPageIndex] = useState(0);
+
+	return (
+		<CursorPagination.Root className="flex justify-end" defaultPageSize={PAGE_SIZE}>
+			<CursorPagination.PageSizeValue />
+			<CursorPagination.Buttons
+				hasPreviousPage={pageIndex > 0}
+				hasNextPage={pageIndex < TOTAL_PAGES - 1}
+				onPreviousPage={() => setPageIndex((index) => Math.max(0, index - 1))}
+				onNextPage={() => setPageIndex((index) => Math.min(TOTAL_PAGES - 1, index + 1))}
+			/>
+		</CursorPagination.Root>
+	);
+}
 ```
 
 See the [DataTable pagination recipe](/components/data-display/data-table#pagination-controls) for the full table markup.
@@ -123,6 +296,21 @@ CursorPagination.Root
 ├── CursorPagination.PageSizeSelect
 ├── CursorPagination.PageSizeValue
 └── CursorPagination.Buttons
+```
+
+## Polymorphism
+
+`CursorPagination.PageSizeValue` supports the `asChild` prop so you can render the read-only page size onto your own element instead of the default `span`.
+
+```tsx
+import { CursorPagination } from "@ngrok/mantle/pagination";
+
+<CursorPagination.Root defaultPageSize={100}>
+	<CursorPagination.PageSizeValue asChild>
+		<strong className="text-strong" />
+	</CursorPagination.PageSizeValue>
+	<CursorPagination.Buttons hasNextPage hasPreviousPage />
+</CursorPagination.Root>;
 ```
 
 ## API Reference
@@ -171,26 +359,43 @@ Displays the current page size as a read-only value (e.g. "100 per page").
 
 A headless hook for managing offset-based pagination state. Offset-based pagination lets you jump to a specific page and know the total number of pages.
 
+<Example>
+	<OffsetPaginationExample />
+</Example>
+
 ```tsx
+import { Button } from "@ngrok/mantle/button";
 import { useOffsetPagination } from "@ngrok/mantle/pagination";
 
-const pagination = useOffsetPagination({
-	listSize: 150,
-	pageSize: 10,
-});
+function OffsetPaginationControls() {
+	const pagination = useOffsetPagination({ listSize: 150, pageSize: 10 });
 
-// pagination.currentPage — current page number (1-indexed)
-// pagination.totalPages — total number of pages
-// pagination.hasNextPage — whether there is a next page
-// pagination.hasPreviousPage — whether there is a previous page
-// pagination.nextPage() — go to next page
-// pagination.previousPage() — go to previous page
-// pagination.goToPage(n) — go to a specific page
-// pagination.goToFirstPage() — go to the first page
-// pagination.goToLastPage() — go to the last page
-// pagination.offset — the offset of the current page
-// pagination.pageSize — the current page size
-// pagination.setPageSize(n) — set the page size (resets to page 1)
+	return (
+		<div className="flex items-center gap-4">
+			<p>
+				Page {pagination.currentPage} of {pagination.totalPages}
+			</p>
+			<Button
+				type="button"
+				appearance="outlined"
+				intent="neutral"
+				disabled={!pagination.hasPreviousPage}
+				onClick={pagination.previousPage}
+			>
+				Previous
+			</Button>
+			<Button
+				type="button"
+				appearance="outlined"
+				intent="neutral"
+				disabled={!pagination.hasNextPage}
+				onClick={pagination.nextPage}
+			>
+				Next
+			</Button>
+		</div>
+	);
+}
 ```
 
 | Parameter  | Type     | Description                            |
@@ -198,15 +403,74 @@ const pagination = useOffsetPagination({
 | `listSize` | `number` | The total number of items in the list. |
 | `pageSize` | `number` | The number of items per page.          |
 
+The hook returns an object with the current pagination state and navigation helpers:
+
+| Property          | Type                     | Description                                                 |
+| :---------------- | :----------------------- | :---------------------------------------------------------- |
+| `currentPage`     | `number`                 | The current page number, 1-indexed (starting at 1).         |
+| `totalPages`      | `number`                 | The total number of pages.                                  |
+| `hasPreviousPage` | `boolean`                | Whether there is a previous page.                           |
+| `hasNextPage`     | `boolean`                | Whether there is a next page.                               |
+| `offset`          | `number`                 | The offset of the current page within the list.             |
+| `pageSize`        | `number`                 | The current number of items per page.                       |
+| `nextPage`        | `() => void`             | Go to the next page.                                        |
+| `previousPage`    | `() => void`             | Go to the previous page.                                    |
+| `goToPage`        | `(page: number) => void` | Go to a specific page (clamped to the valid range).         |
+| `goToFirstPage`   | `() => void`             | Go to the first page.                                       |
+| `goToLastPage`    | `() => void`             | Go to the last page.                                        |
+| `setPageSize`     | `(size: number) => void` | Set the number of items per page; resets to the first page. |
+
 ### getOffsetPaginatedSlice
 
-A utility function to get a paginated slice of a list based on the current offset pagination state.
+A utility function to get a paginated slice of a list based on the current offset pagination state. Pair it with `useOffsetPagination` to render just the current page of items.
+
+<Example>
+	<OffsetPaginatedSliceExample />
+</Example>
 
 ```tsx
+import { Button } from "@ngrok/mantle/button";
 import { getOffsetPaginatedSlice, useOffsetPagination } from "@ngrok/mantle/pagination";
 
-const data = ["a", "b", "c", "d", "e", "f"];
-const pagination = useOffsetPagination({ listSize: data.length, pageSize: 2 });
-const currentPageData = getOffsetPaginatedSlice(data, pagination);
-// Returns: ['a', 'b'] for page 1, ['c', 'd'] for page 2, etc.
+const items = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India"];
+
+function PaginatedList() {
+	const pagination = useOffsetPagination({ listSize: items.length, pageSize: 3 });
+	// Slice the current page out of the full list: ["Alpha", "Bravo", "Charlie"] on page 1,
+	// ["Delta", "Echo", "Foxtrot"] on page 2, and so on.
+	const currentPageItems = getOffsetPaginatedSlice(items, pagination);
+
+	return (
+		<div className="flex flex-col gap-4">
+			<ul>
+				{currentPageItems.map((item) => (
+					<li key={item}>{item}</li>
+				))}
+			</ul>
+			<div className="flex items-center gap-4">
+				<p>
+					Page {pagination.currentPage} of {pagination.totalPages}
+				</p>
+				<Button
+					type="button"
+					appearance="outlined"
+					intent="neutral"
+					disabled={!pagination.hasPreviousPage}
+					onClick={pagination.previousPage}
+				>
+					Previous
+				</Button>
+				<Button
+					type="button"
+					appearance="outlined"
+					intent="neutral"
+					disabled={!pagination.hasNextPage}
+					onClick={pagination.nextPage}
+				>
+					Next
+				</Button>
+			</div>
+		</div>
+	);
+}
 ```

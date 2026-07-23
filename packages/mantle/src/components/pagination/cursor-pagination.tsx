@@ -48,7 +48,7 @@ type CursorPaginationProps = ComponentProps<"div"> & {
  *
  * @example
  * ```tsx
- * <CursorPagination defaultPageSize={10}>
+ * <CursorPagination.Root defaultPageSize={10}>
  *   <CursorPagination.Buttons
  *     hasNextPage={hasNext}
  *     hasPreviousPage={hasPrevious}
@@ -56,7 +56,7 @@ type CursorPaginationProps = ComponentProps<"div"> & {
  *     onPreviousPage={handlePrevious}
  *   />
  *   <CursorPagination.PageSizeSelect />
- * </CursorPagination>
+ * </CursorPagination.Root>
  * ```
  */
 const Root = ({ className, children, defaultPageSize, ref, ...props }: CursorPaginationProps) => {
@@ -291,7 +291,7 @@ function PageSizeValue({ asChild = false, className, ...props }: CursorPageSizeV
  *
  * @example
  * ```tsx
- * <CursorPagination defaultPageSize={10}>
+ * <CursorPagination.Root defaultPageSize={10}>
  *   <CursorPagination.Buttons
  *     hasNextPage={hasNext}
  *     hasPreviousPage={hasPrevious}
@@ -299,7 +299,7 @@ function PageSizeValue({ asChild = false, className, ...props }: CursorPageSizeV
  *     onPreviousPage={handlePrevious}
  *   />
  *   <CursorPagination.PageSizeSelect />
- * </CursorPagination>
+ * </CursorPagination.Root>
  * ```
  */
 const CursorPagination = {
