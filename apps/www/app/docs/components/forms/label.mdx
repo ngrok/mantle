@@ -5,7 +5,47 @@ description: A Label represents a caption for an item in a user interface. Rende
 
 import { Input } from "@ngrok/mantle/input";
 import { Label } from "@ngrok/mantle/label";
+import { useForm } from "@tanstack/react-form";
+import { useId } from "react";
 import { Example } from "~/components/example";
+
+export function EmailFieldExample() {
+	const id = useId();
+	return (
+		<div className="flex flex-col gap-1.5">
+			<Label htmlFor={id}>Email</Label>
+			<Input id={id} type="email" />
+		</div>
+	);
+}
+
+export function TanStackFormExample() {
+	const form = useForm({
+		defaultValues: { email: "" },
+		onSubmit: () => {},
+	});
+
+    return (
+    	<form>
+    		<form.Field name="email">
+    			{(field) => (
+    				<div className="flex flex-col gap-1.5">
+    					<Label htmlFor={field.name}>Email</Label>
+    					<Input
+    						id={field.name}
+    						name={field.name}
+    						type="email"
+    						value={field.state.value}
+    						onBlur={field.handleBlur}
+    						onChange={(event) => field.handleChange(event.target.value)}
+    					/>
+    				</div>
+    			)}
+    		</form.Field>
+    	</form>
+    );
+
+}
 
 # Label
 
@@ -28,6 +68,10 @@ Either wrap the control inside the `<Label>` (implicit association — simplest)
 
 For the explicit form, React's [`useId()`](https://react.dev/reference/react/useId) is the easiest way to generate a unique, SSR-stable id without hand-managing strings:
 
+<Example>
+	<EmailFieldExample />
+</Example>
+
 ```tsx
 import { useId } from "react";
 
@@ -44,22 +88,41 @@ function EmailField() {
 
 When you're using [TanStack Form](https://tanstack.com/form), `field.name` is already a stable, unique string for each field — pass it as both `htmlFor` on the `Label` and `id` on the input. You get a guaranteed-correct association for free without calling `useId()` separately:
 
+<Example>
+	<TanStackFormExample />
+</Example>
+
 ```tsx
-<form.Field name="email">
-	{(field) => (
-		<div className="flex flex-col gap-1.5">
-			<Label htmlFor={field.name}>Email</Label>
-			<Input
-				id={field.name}
-				name={field.name}
-				type="email"
-				value={field.state.value}
-				onBlur={field.handleBlur}
-				onChange={(event) => field.handleChange(event.target.value)}
-			/>
-		</div>
-	)}
-</form.Field>
+import { Input } from "@ngrok/mantle/input";
+import { Label } from "@ngrok/mantle/label";
+import { useForm } from "@tanstack/react-form";
+
+function Example() {
+	const form = useForm({
+		defaultValues: { email: "" },
+		onSubmit: () => {},
+	});
+
+	return (
+		<form>
+			<form.Field name="email">
+				{(field) => (
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor={field.name}>Email</Label>
+						<Input
+							id={field.name}
+							name={field.name}
+							type="email"
+							value={field.state.value}
+							onBlur={field.handleBlur}
+							onChange={(event) => field.handleChange(event.target.value)}
+						/>
+					</div>
+				)}
+			</form.Field>
+		</form>
+	);
+}
 ```
 
 ## Font weight
