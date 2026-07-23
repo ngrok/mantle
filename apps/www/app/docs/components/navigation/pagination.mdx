@@ -298,21 +298,6 @@ CursorPagination.Root
 └── CursorPagination.Buttons
 ```
 
-## Polymorphism
-
-`CursorPagination.PageSizeValue` supports the `asChild` prop so you can render the read-only page size onto your own element instead of the default `span`.
-
-```tsx
-import { CursorPagination } from "@ngrok/mantle/pagination";
-
-<CursorPagination.Root defaultPageSize={100}>
-	<CursorPagination.PageSizeValue asChild>
-		<strong className="text-strong" />
-	</CursorPagination.PageSizeValue>
-	<CursorPagination.Buttons hasNextPage hasPreviousPage />
-</CursorPagination.Root>;
-```
-
 ## API Reference
 
 ### CursorPagination.Root
@@ -347,11 +332,7 @@ A select input for changing the number of items per page.
 
 ### CursorPagination.PageSizeValue
 
-Displays the current page size as a read-only value (e.g. "100 per page").
-
-| Prop       | Type      | Default | Description                                                           |
-| :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+Displays the current page size as a read-only value (e.g. "100 per page"). Accepts standard `span` attributes.
 
 ## Offset Pagination
 
