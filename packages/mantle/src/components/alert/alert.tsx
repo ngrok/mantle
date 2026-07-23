@@ -1,4 +1,5 @@
 import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { InfoIcon } from "@phosphor-icons/react/Info";
 import { MegaphoneIcon } from "@phosphor-icons/react/Megaphone";
 import { WarningIcon } from "@phosphor-icons/react/Warning";
@@ -8,8 +9,10 @@ import { cva } from "class-variance-authority";
 import type { ComponentProps, ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
 import invariant from "tiny-invariant";
-import { $cssProperties, type WithAsChild } from "../../types/index.js";
+import { $cssProperties } from "../../types/css-properties.js";
+import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import { Button, type ButtonProps } from "../button/button.js";
 import {
 	IconButton,
 	type IconButtonAppearance,
@@ -57,15 +60,15 @@ const alertVariants = cva(
 			 */
 			intent: {
 				danger:
-					"border-danger-500/50 bg-danger-500/10 text-danger-700 [&_code]:bg-danger-500/10 [&_code]:border-danger-500/20 [&_code]:text-danger-900 [&_a]:text-danger-700 [&_a]:underline",
+					"border-danger-500/50 bg-danger-500/10 text-danger-700 [&_code]:bg-danger-500/10 [&_code]:border-danger-500/20 [&_code]:text-danger-900 [&_a:not([data-slot=button])]:text-danger-700 [&_a:not([data-slot=button])]:underline",
 				important:
-					"border-important-500/50 bg-important-500/10 text-important-700 [&_code]:bg-important-500/10 [&_code]:border-important-500/20 [&_code]:text-important-900 [&_a]:text-important-700 [&_a]:underline",
-				info: "border-info-500/50 bg-info-500/10 text-info-700 [&_code]:bg-info-500/10 [&_code]:border-info-500/20 [&_code]:text-info-900 [&_a]:text-info-700 [&_a]:underline",
+					"border-important-500/50 bg-important-500/10 text-important-700 [&_code]:bg-important-500/10 [&_code]:border-important-500/20 [&_code]:text-important-900 [&_a:not([data-slot=button])]:text-important-700 [&_a:not([data-slot=button])]:underline",
+				info: "border-info-500/50 bg-info-500/10 text-info-700 [&_code]:bg-info-500/10 [&_code]:border-info-500/20 [&_code]:text-info-900 [&_a:not([data-slot=button])]:text-info-700 [&_a:not([data-slot=button])]:underline",
 				// neutral: "border-neutral-500/50 bg-neutral-500/10 text-neutral-700",
 				success:
-					"border-success-500/50 bg-success-500/10 text-success-700 [&_code]:bg-success-500/10 [&_code]:border-success-500/20 [&_code]:text-success-900 [&_a]:text-success-700 [&_a]:underline",
+					"border-success-500/50 bg-success-500/10 text-success-700 [&_code]:bg-success-500/10 [&_code]:border-success-500/20 [&_code]:text-success-900 [&_a:not([data-slot=button])]:text-success-700 [&_a:not([data-slot=button])]:underline",
 				warning:
-					"border-warning-500/50 bg-warning-500/10 text-warning-700 [&_code]:bg-warning-500/10 [&_code]:border-warning-500/20 [&_code]:text-warning-900 [&_a]:text-warning-700 [&_a]:underline",
+					"border-warning-500/50 bg-warning-500/10 text-warning-700 [&_code]:bg-warning-500/10 [&_code]:border-warning-500/20 [&_code]:text-warning-900 [&_a:not([data-slot=button])]:text-warning-700 [&_a:not([data-slot=button])]:underline",
 			} as const satisfies Record<AlertIntent, string>,
 			/**
 			 * Controls the visual style of the Alert.
@@ -102,23 +105,32 @@ type AlertProps = ComponentProps<"div"> & {
 /**
  * Displays a callout for user attention. Root container for all Alert sub-components.
  *
+ * Trailing controls inherit these public CSS variables:
+ *
+ * | Variable | Default | Purpose |
+ * | --- | --- | --- |
+ * | `--alert-control-color` | `var(--color-<intent>-700)` | Control text and icon color. |
+ * | `--alert-control-hover-color` | `var(--color-<intent>-800)` | Control text and icon color on hover. |
+ * | `--alert-control-hover-bg` | `color-mix(in oklab, var(--color-<intent>-500) 10%, transparent)` | Control background on hover. |
+ *
  * @see https://mantle.ngrok.com/components/feedback/alert#alertroot
  *
  * @example
  * ```tsx
- * <Alert intent="info">
- *   <AlertIcon />
- *   <AlertContent>
- *     <AlertTitle>Alert Title</AlertTitle>
- *      <AlertDismissIconButton />
- *     <AlertDescription>
+ * <Alert.Root intent="info">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Alert Title</Alert.Title>
+ *     <Alert.Description>
  *       Alert description text.
- *     </AlertDescription>
- *   </AlertContent>
- * </Alert>
+ *     </Alert.Description>
+ *     <Alert.DismissIconButton />
+ *     <Alert.ExpandButton count={2} expanded={false} />
+ *   </Alert.Content>
+ * </Alert.Root>
  *```
  */
-const Root = ({ appearance = "default", className, intent, ref, ...props }: AlertProps) => {
+const Root = ({ appearance = "default", className, intent, ref, style, ...props }: AlertProps) => {
 	const context: AlertContextValue = useMemo(() => ({ intent }), [intent]);
 
 	return (
@@ -126,7 +138,24 @@ const Root = ({ appearance = "default", className, intent, ref, ...props }: Aler
 			<div
 				ref={ref}
 				data-slot="alert"
-				className={cx(alertVariants({ appearance, intent }), className)}
+				className={cx(
+					alertVariants({ appearance, intent }),
+					// Each trailing control reserves its own space: the root's right
+					// padding makes room for dismiss, and the content's padding makes
+					// room for expand. Together they compose without extra consumer work.
+					"has-data-alert-dismiss:pr-10",
+					"has-data-alert-expand:[&_[data-slot=alert-dismiss-icon-button]]:right-16",
+					"md:has-data-alert-expand:[&_[data-slot=alert-dismiss-icon-button]]:right-24",
+					"has-data-alert-expand:[&_[data-slot=alert-content]]:pr-12",
+					"md:has-data-alert-expand:[&_[data-slot=alert-content]]:pr-[5.5rem]",
+					className,
+				)}
+				style={$cssProperties({
+					"--alert-control-color": alertControlTextColor(intent),
+					"--alert-control-hover-color": alertControlHoverColor(intent),
+					"--alert-control-hover-bg": alertControlHoverBgColor(intent),
+					...style,
+				})}
 				{...props}
 			/>
 		</AlertContext.Provider>
@@ -161,16 +190,17 @@ const defaultIcons = {
  *
  * @example
  * ```tsx
- * <Alert intent="info">
- *   <AlertIcon />
- *   <AlertContent>
- *     <AlertTitle>Alert Title</AlertTitle>
- *     <AlertDismissIconButton />
- *     <AlertDescription>
+ * <Alert.Root intent="info">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Alert Title</Alert.Title>
+ *     <Alert.Description>
  *       Alert description text.
- *     </AlertDescription>
- *   </AlertContent>
- * </Alert>
+ *     </Alert.Description>
+ *     <Alert.DismissIconButton />
+ *     <Alert.ExpandButton count={2} expanded={false} />
+ *   </Alert.Content>
+ * </Alert.Root>
  * ```
  */
 const Icon = ({ className, ref, svg, ...props }: AlertIconProps) => {
@@ -189,22 +219,24 @@ const Icon = ({ className, ref, svg, ...props }: AlertIconProps) => {
 };
 
 /**
- * The container for the content slot of an alert. Place the title and description as direct children.
+ * The container for the content slot of an alert. Place the title, description,
+ * and trailing controls as direct children.
  *
  * @see https://mantle.ngrok.com/components/feedback/alert#alertcontent
  *
  * @example
  * ```tsx
- * <Alert intent="info">
- *   <AlertIcon />
- *   <AlertContent>
- *     <AlertTitle>Alert Title</AlertTitle>
- *     <AlertDismissIconButton />
- *     <AlertDescription>
+ * <Alert.Root intent="info">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Alert Title</Alert.Title>
+ *     <Alert.Description>
  *       Alert description text.
- *     </AlertDescription>
- *   </AlertContent>
- * </Alert>
+ *     </Alert.Description>
+ *     <Alert.DismissIconButton />
+ *     <Alert.ExpandButton count={2} expanded={false} />
+ *   </Alert.Content>
+ * </Alert.Root>
  *```
  */
 const Content = ({ className, ref, ...props }: ComponentProps<"div">) => (
@@ -225,16 +257,17 @@ type AlertTitleProps = ComponentProps<"h5"> & WithAsChild;
  *
  * @example
  * ```tsx
- * <Alert intent="info">
- *   <AlertIcon />
- *   <AlertContent>
- *     <AlertTitle>Alert Title</AlertTitle>
- *     <AlertDismissIconButton />
- *     <AlertDescription>
+ * <Alert.Root intent="info">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Alert Title</Alert.Title>
+ *     <Alert.Description>
  *       Alert description text.
- *     </AlertDescription>
- *   </AlertContent>
- * </Alert>
+ *     </Alert.Description>
+ *     <Alert.DismissIconButton />
+ *     <Alert.ExpandButton count={2} expanded={false} />
+ *   </Alert.Content>
+ * </Alert.Root>
  *```
  */
 const Title = ({ asChild = false, className, ref, ...props }: AlertTitleProps) => {
@@ -261,16 +294,17 @@ type AlertDescriptionProps = ComponentProps<"div"> & WithAsChild;
  *
  * @example
  * ```tsx
- * <Alert intent="info">
- *   <AlertIcon />
- *   <AlertContent>
- *     <AlertTitle>Alert Title</AlertTitle>
- *     <AlertDismissIconButton />
- *     <AlertDescription>
+ * <Alert.Root intent="info">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Alert Title</Alert.Title>
+ *     <Alert.Description>
  *       Alert description text.
- *     </AlertDescription>
- *   </AlertContent>
- * </Alert>
+ *     </Alert.Description>
+ *     <Alert.DismissIconButton />
+ *     <Alert.ExpandButton count={2} expanded={false} />
+ *   </Alert.Content>
+ * </Alert.Root>
  * ```
  */
 const Description = ({ asChild = false, className, ref, ...props }: AlertDescriptionProps) => {
@@ -286,11 +320,11 @@ const Description = ({ asChild = false, className, ref, ...props }: AlertDescrip
 	);
 };
 
-const dismissTextColor = (intent: AlertIntent) => `var(--color-${intent}-700)`;
+const alertControlTextColor = (intent: AlertIntent) => `var(--color-${intent}-700)`;
 
-const dismissHoverColor = (intent: AlertIntent) => `var(--color-${intent}-800)`;
+const alertControlHoverColor = (intent: AlertIntent) => `var(--color-${intent}-800)`;
 
-const dismissHoverBgColor = (intent: AlertIntent) =>
+const alertControlHoverBgColor = (intent: AlertIntent) =>
 	`color-mix(in oklab, var(--color-${intent}-500) 10%, transparent)`;
 
 type AlertDismissIconButtonProps = Partial<
@@ -310,6 +344,27 @@ type AlertDismissIconButtonProps = Partial<
 	icon?: ReactNode;
 };
 
+/**
+ * A compact, trailing control for dismissing an alert.
+ *
+ * It inherits `--alert-control-color`, `--alert-control-hover-color`, and
+ * `--alert-control-hover-bg` from `Alert.Root`, shared with
+ * `Alert.ExpandButton` when both controls are composed together.
+ *
+ * @see https://mantle.ngrok.com/components/feedback/alert#alertdismissiconbutton
+ *
+ * @example
+ * ```tsx
+ * <Alert.Root intent="warning">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Usage limit approaching</Alert.Title>
+ *     <Alert.DismissIconButton onClick={dismiss} />
+ *     <Alert.ExpandButton count={2} expanded={isExpanded} onClick={toggle} />
+ *   </Alert.Content>
+ * </Alert.Root>
+ * ```
+ */
 const DismissIconButton = ({
 	size = "sm",
 	type = "button",
@@ -317,10 +372,8 @@ const DismissIconButton = ({
 	appearance = "ghost",
 	className,
 	icon = defaultDismissIcon,
-	style,
 	...props
 }: AlertDismissIconButtonProps) => {
-	const ctx = useAlertContext();
 	return (
 		<IconButton
 			appearance={appearance}
@@ -336,21 +389,95 @@ const DismissIconButton = ({
 			data-alert-dismiss
 			className={cx(
 				"right-1.5 top-1.5 absolute",
-				"text-(--alert-dismiss-icon-color)",
-				"not-disabled:hover:bg-(--alert-dismiss-hover-bg) not-disabled:hover:text-(--alert-dismiss-icon-hover-color)",
+				"text-[var(--alert-control-color,currentColor)]",
+				"not-disabled:hover:bg-[var(--alert-control-hover-bg,transparent)] not-disabled:hover:text-[var(--alert-control-hover-color,currentColor)]",
 				className,
 			)}
 			type={type}
-			style={$cssProperties({
-				...style,
-				"--alert-dismiss-icon-color": dismissTextColor(ctx.intent),
-				"--alert-dismiss-icon-hover-color": dismissHoverColor(ctx.intent),
-				"--alert-dismiss-hover-bg": dismissHoverBgColor(ctx.intent),
-			})}
 			{...props}
 		/>
 	);
 };
+
+type AlertExpandButtonProps = Omit<
+	ButtonProps,
+	// `asChild` is omitted: ExpandButton always renders multiple children (count,
+	// label, caret), which would trip Button's single-child `Children.only`
+	// invariant at runtime — so the invalid configuration is unrepresentable.
+	"appearance" | "asChild" | "children" | "icon" | "iconPlacement" | "intent" | "size"
+> & {
+	/** The number of alerts hidden by a collapsed alert center. */
+	count: number;
+	/** Whether the alerts controlled by this button are currently visible. */
+	expanded: boolean;
+};
+
+/**
+ * A compact, trailing control for expanding or collapsing related alerts.
+ *
+ * It occupies the trailing control area alongside `Alert.DismissIconButton`
+ * when both are present, and marks the alert so `Alert.Content` reserves room
+ * for its plus-prefixed count and caret on narrow viewports. It shares the
+ * `--alert-control-*` color variables from `Alert.Root` with the dismiss
+ * control.
+ *
+ * @see https://mantle.ngrok.com/components/feedback/alert#alertexpandbutton
+ *
+ * @example
+ * ```tsx
+ * <Alert.Root intent="warning">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Usage limit approaching</Alert.Title>
+ *     <Alert.DismissIconButton />
+ *     <Alert.ExpandButton count={2} expanded={isExpanded} onClick={toggle} />
+ *   </Alert.Content>
+ * </Alert.Root>
+ * ```
+ */
+const ExpandButton = ({ count, expanded, className, ...props }: AlertExpandButtonProps) => {
+	return (
+		<Button
+			type="button"
+			appearance="ghost"
+			intent="neutral"
+			size="sm"
+			aria-expanded={expanded}
+			aria-label={
+				expanded
+					? "Collapse additional alerts"
+					: `Show ${count} more ${count === 1 ? "alert" : "alerts"}`
+			}
+			data-slot="alert-expand-button"
+			data-alert-expand
+			className={cx(
+				"right-1.5 top-1.5 absolute gap-1 px-1.5",
+				"text-[var(--alert-control-color,currentColor)]",
+				"not-disabled:hover:bg-[var(--alert-control-hover-bg,transparent)] not-disabled:hover:text-[var(--alert-control-hover-color,currentColor)]",
+				className,
+			)}
+			{...props}
+		>
+			<span className="min-w-[2ch] text-center tabular-nums">+{count}</span>
+			<span className="hidden md:inline">more</span>
+			<CaretDownIcon
+				weight="bold"
+				className={cx(
+					"size-4 transition-transform ease-out duration-150",
+					expanded && "-rotate-180",
+				)}
+			/>
+		</Button>
+	);
+};
+
+Root.displayName = "Alert";
+Content.displayName = "AlertContent";
+Title.displayName = "AlertTitle";
+Description.displayName = "AlertDescription";
+DismissIconButton.displayName = "AlertDismissIconButton";
+ExpandButton.displayName = "AlertExpandButton";
+Icon.displayName = "AlertIcon";
 
 /**
  * Displays a callout for user attention.
@@ -362,24 +489,26 @@ const DismissIconButton = ({
  * ```
  * Alert.Root
  * ├── Alert.Icon
- * └── Alert.Content
+ * ├── Alert.Content
  *     ├── Alert.Title
  *     ├── Alert.Description
- *     └── Alert.DismissIconButton
+ *     ├── Alert.DismissIconButton
+ *     └── Alert.ExpandButton
  * ```
  *
  * @example
  * ```tsx
- * <Alert intent="info">
- *   <AlertIcon />
- *   <AlertContent>
- *     <AlertTitle>Alert Title</AlertTitle>
- *      <AlertDismissIconButton />
- *     <AlertDescription>
+ * <Alert.Root intent="info">
+ *   <Alert.Icon />
+ *   <Alert.Content>
+ *     <Alert.Title>Alert Title</Alert.Title>
+ *     <Alert.Description>
  *       Alert description text.
- *     </AlertDescription>
- *   </AlertContent>
- * </Alert>
+ *     </Alert.Description>
+ *     <Alert.DismissIconButton />
+ *     <Alert.ExpandButton count={2} expanded={false} />
+ *   </Alert.Content>
+ * </Alert.Root>
  *```
  */
 const Alert = {
@@ -395,6 +524,8 @@ const Alert = {
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.Description>Alert description</Alert.Description>
+	 *     <Alert.DismissIconButton />
+	 *     <Alert.ExpandButton count={2} expanded={false} />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```
@@ -412,11 +543,34 @@ const Alert = {
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.Description>Alert description text.</Alert.Description>
+	 *     <Alert.DismissIconButton />
+	 *     <Alert.ExpandButton count={2} expanded={false} />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```
 	 */
 	Content,
+	/**
+	 * A compact trailing control for expanding or collapsing related alerts.
+	 * It inherits the `--alert-control-color`, `--alert-control-hover-color`, and
+	 * `--alert-control-hover-bg` variables from `Alert.Root`, shared with the
+	 * dismiss control.
+	 *
+	 * @see https://mantle.ngrok.com/components/feedback/alert#alertexpandbutton
+	 *
+	 * @example
+	 * ```tsx
+	 * <Alert.Root intent="warning">
+	 *   <Alert.Icon />
+	 *   <Alert.Content>
+	 *     <Alert.Title>Usage limit approaching</Alert.Title>
+	 *     <Alert.DismissIconButton />
+	 *     <Alert.ExpandButton count={2} expanded={isExpanded} onClick={toggle} />
+	 *   </Alert.Content>
+	 * </Alert.Root>
+	 * ```
+	 */
+	ExpandButton,
 	/**
 	 * The optional description of an alert.
 	 *
@@ -429,6 +583,8 @@ const Alert = {
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.Description>Alert description text.</Alert.Description>
+	 *     <Alert.DismissIconButton />
+	 *     <Alert.ExpandButton count={2} expanded={false} />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```
@@ -436,6 +592,9 @@ const Alert = {
 	Description,
 	/**
 	 * An optional dismiss button that can be used to close the alert.
+	 * It inherits the `--alert-control-color`, `--alert-control-hover-color`, and
+	 * `--alert-control-hover-bg` variables from `Alert.Root`, shared with the
+	 * expand control.
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/alert#alertdismissiconbutton
 	 *
@@ -447,6 +606,7 @@ const Alert = {
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.DismissIconButton />
 	 *     <Alert.Description>Alert description text.</Alert.Description>
+	 *     <Alert.ExpandButton count={2} expanded={false} />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```
@@ -464,6 +624,8 @@ const Alert = {
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.Description>Alert description text.</Alert.Description>
+	 *     <Alert.DismissIconButton />
+	 *     <Alert.ExpandButton count={2} expanded={false} />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```
@@ -481,6 +643,8 @@ const Alert = {
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.Description>Alert description text.</Alert.Description>
+	 *     <Alert.DismissIconButton />
+	 *     <Alert.ExpandButton count={2} expanded={false} />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```

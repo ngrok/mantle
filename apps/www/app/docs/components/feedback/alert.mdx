@@ -5,6 +5,7 @@ description: Displays a callout for user attention.
 
 import { Alert } from "@ngrok/mantle/alert";
 import { Card } from "@ngrok/mantle/card";
+import { $cssProperties } from "@ngrok/mantle/types";
 import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 import { Example } from "~/components/example";
 
@@ -114,10 +115,45 @@ Compose the parts of an `Alert` together to build your own:
 ```text showLineNumbers=false
 Alert.Root
 ├── Alert.Icon
-└── Alert.Content
+├── Alert.Content
     ├── Alert.Title
     ├── Alert.Description
-    └── Alert.DismissIconButton
+    ├── Alert.DismissIconButton
+    └── Alert.ExpandButton
+```
+
+## Polymorphism
+
+`Alert.Title` and `Alert.Description` support `asChild` when the alert's surrounding document structure needs a different semantic element.
+
+<Example>
+	<Alert.Root intent="info">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title asChild>
+				<h2>Maintenance window</h2>
+			</Alert.Title>
+			<Alert.Description asChild>
+				<p>Service may be briefly unavailable.</p>
+			</Alert.Description>
+		</Alert.Content>
+	</Alert.Root>
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+
+<Alert.Root intent="info">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title asChild>
+			<h2>Maintenance window</h2>
+		</Alert.Title>
+		<Alert.Description asChild>
+			<p>Service may be briefly unavailable.</p>
+		</Alert.Description>
+	</Alert.Content>
+</Alert.Root>;
 ```
 
 You can mix and match what you put inside the `Alert` component to create different types of Alert layouts.
@@ -236,6 +272,116 @@ import { Alert } from "@ngrok/mantle/alert";
 </Alert.Root>;
 ```
 
+## Expand Button
+
+Use `Alert.ExpandButton` for a compact control that reveals related alerts. It sits in the same trailing position as the dismiss button and reserves space for the count and caret, so alert copy remains contained on narrow viewports. It shows `+N` on mobile and `+N more` from the `md` (tablet) breakpoint.
+
+<Example>
+	<Alert.Root intent="warning">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>Your workspace is approaching its monthly usage limit</Alert.Title>
+			<Alert.ExpandButton count={2} expanded={false} />
+		</Alert.Content>
+	</Alert.Root>
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+
+const isExpanded = false;
+const toggle = () => {};
+
+<Alert.Root intent="warning">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Your workspace is approaching its monthly usage limit</Alert.Title>
+		<Alert.ExpandButton count={2} expanded={isExpanded} onClick={toggle} />
+	</Alert.Content>
+</Alert.Root>;
+```
+
+## Dismiss and Expand
+
+`Alert.DismissIconButton` and `Alert.ExpandButton` compose safely in the same alert. Both stay absolutely positioned at the trailing edge; when both are present, the dismiss button moves to the left of the expander and `Alert.Content` reserves room for the pair. This also handles an alert that first renders dismissable and later gains an expander as more alerts arrive.
+
+<Example>
+	<Alert.Root intent="warning">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>Your workspace is approaching its monthly usage limit</Alert.Title>
+			<Alert.DismissIconButton />
+			<Alert.ExpandButton count={2} expanded={false} />
+		</Alert.Content>
+	</Alert.Root>
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+
+const isExpanded = false;
+const dismiss = () => {};
+const toggle = () => {};
+
+<Alert.Root intent="warning">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Your workspace is approaching its monthly usage limit</Alert.Title>
+		<Alert.DismissIconButton onClick={dismiss} />
+		<Alert.ExpandButton count={2} expanded={isExpanded} onClick={toggle} />
+	</Alert.Content>
+</Alert.Root>;
+```
+
+## Trailing control colors
+
+`Alert.DismissIconButton` and `Alert.ExpandButton` share the following CSS custom properties from `Alert.Root`. Each intent supplies the listed defaults; set them once on the root to theme both controls together.
+
+| Variable                      | Default                                                           | Used for                              |
+| ----------------------------- | ----------------------------------------------------------------- | ------------------------------------- |
+| `--alert-control-color`       | `var(--color-<intent>-700)`                                       | Control text and icon color.          |
+| `--alert-control-hover-color` | `var(--color-<intent>-800)`                                       | Control text and icon color on hover. |
+| `--alert-control-hover-bg`    | `color-mix(in oklab, var(--color-<intent>-500) 10%, transparent)` | Control background on hover.          |
+
+<Example>
+	<Alert.Root
+		intent="warning"
+		style={$cssProperties({
+			"--alert-control-color": "var(--color-neutral-700)",
+			"--alert-control-hover-color": "var(--color-neutral-900)",
+			"--alert-control-hover-bg": "color-mix(in oklab, var(--color-neutral-500) 10%, transparent)",
+		})}
+	>
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>Usage limit approaching</Alert.Title>
+			<Alert.DismissIconButton />
+			<Alert.ExpandButton count={2} expanded={false} />
+		</Alert.Content>
+	</Alert.Root>
+</Example>
+
+```tsx
+import { $cssProperties } from "@ngrok/mantle/types";
+import { Alert } from "@ngrok/mantle/alert";
+
+<Alert.Root
+	intent="warning"
+	style={$cssProperties({
+		"--alert-control-color": "var(--color-neutral-700)",
+		"--alert-control-hover-color": "var(--color-neutral-900)",
+		"--alert-control-hover-bg": "color-mix(in oklab, var(--color-neutral-500) 10%, transparent)",
+	})}
+>
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Usage limit approaching</Alert.Title>
+		<Alert.DismissIconButton />
+		<Alert.ExpandButton count={2} expanded={false} />
+	</Alert.Content>
+</Alert.Root>;
+```
+
 ## Custom Dismiss Icon
 
 Use the `icon` prop on `Alert.DismissIconButton` to render a custom icon in place of the default `X`.
@@ -278,11 +424,32 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `appearance?` | `"default"` \| `"banner"`                                             | `"default"` | Controls the visual style. `"default"` provides standard rounded corners and borders. `"banner"` creates a banner-style alert with no rounded corners, sticky positioning, and no top, left, or right borders. |
 | `intent`      | `"danger"` \| `"important"` \| `"info"` \| `"success"` \| `"warning"` |             | The tone of the `Alert`. Sets the color, styling, and default icon to communicate the status it reports.                                                                                                       |
 
+#### Trailing control CSS variables
+
+`Alert.Root` defines `--alert-control-color`, `--alert-control-hover-color`, and `--alert-control-hover-bg` from its `intent`. Both `Alert.DismissIconButton` and `Alert.ExpandButton` inherit them. Override the variables on the root to theme both trailing controls together.
+
+| CSS Variable                  | Default                                                           | Description                           |
+| ----------------------------- | ----------------------------------------------------------------- | ------------------------------------- |
+| `--alert-control-color`       | `var(--color-<intent>-700)`                                       | Control text and icon color.          |
+| `--alert-control-hover-color` | `var(--color-<intent>-800)`                                       | Control text and icon color on hover. |
+| `--alert-control-hover-bg`    | `color-mix(in oklab, var(--color-<intent>-500) 10%, transparent)` | Control background on hover.          |
+
 ### Alert.Content
 
-The container for the content slot of an `Alert`. Place `Alert.Title`, `Alert.Description`, and `Alert.DismissIconButton` as direct children.
+The container for the content slot of an `Alert`. Place `Alert.Title`, `Alert.Description`, `Alert.DismissIconButton`, and `Alert.ExpandButton` as direct children.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
+
+### Alert.ExpandButton
+
+Positions a compact expand/collapse control at the trailing edge of an `Alert`. Its `count` is displayed beside a caret that rotates when `expanded` is true. It shares the root-level trailing-control CSS variables with `Alert.DismissIconButton`.
+
+All props from [Button](/components/actions/button#api-reference), plus:
+
+| Prop       | Type      | Default | Description                                                          |
+| ---------- | --------- | ------- | -------------------------------------------------------------------- |
+| `count`    | `number`  | —       | The number of hidden related alerts, displayed with a leading `+`.   |
+| `expanded` | `boolean` | —       | Whether the related alerts are visible; rotates the caret when true. |
 
 ### Alert.Description
 
@@ -316,7 +483,7 @@ All props from [h5](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/He
 
 ### Alert.DismissIconButton
 
-A dismiss icon button that closes the alert when clicked.
+A dismiss icon button that closes the alert when clicked. It shares the root-level trailing-control CSS variables with `Alert.ExpandButton`.
 
 All props from [IconButton](/components/actions/icon-button#api-reference), with the following overridden defaults:
 
