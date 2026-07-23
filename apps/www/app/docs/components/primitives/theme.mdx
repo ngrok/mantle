@@ -3,6 +3,41 @@ title: Theme
 description: Theme primitives — ThemeProvider, MantleStyleSheets, and FOUC prevention — for light, dark, and high-contrast modes.
 ---
 
+import { Select } from "@ngrok/mantle/select";
+import { $theme, isTheme, useTheme } from "@ngrok/mantle/theme";
+import { SunIcon } from "@phosphor-icons/react/Sun";
+import { Example } from "~/components/example";
+
+export function ThemeSwitcherExample() {
+	const [currentTheme, setTheme] = useTheme();
+
+    return (
+    	<Select.Root
+    		value={currentTheme}
+    		onValueChange={(value) => {
+    			if (isTheme(value)) {
+    				setTheme(value);
+    			}
+    		}}
+    	>
+    		<Select.Trigger className="w-min" aria-label="Theme Switcher">
+    			<SunIcon className="mr-1 h-6 w-6" />
+    		</Select.Trigger>
+    		<Select.Content>
+    			<Select.Group>
+    				<Select.Label>Choose a theme</Select.Label>
+    				<Select.Item value={$theme("system")}>System</Select.Item>
+    				<Select.Item value={$theme("light")}>Light</Select.Item>
+    				<Select.Item value={$theme("dark")}>Dark</Select.Item>
+    				<Select.Item value={$theme("light-high-contrast")}>Light High Contrast</Select.Item>
+    				<Select.Item value={$theme("dark-high-contrast")}>Dark High Contrast</Select.Item>
+    			</Select.Group>
+    		</Select.Content>
+    	</Select.Root>
+    );
+
+}
+
 # Theme
 
 Mantle's theme system provides `ThemeProvider` (context + cookie persistence), `MantleStyleSheets` (lazy-loaded dark/HC CSS via `<link media>`), and `PreventWrongThemeFlashScript` (FOUC prevention inline script) for light, dark, and high-contrast modes.
@@ -281,50 +316,41 @@ The FOUC prevention script must run before `<body>` to write `html[data-applied-
 
 In your application, you can use the `useTheme` hook to get and change the current theme:
 
+<Example>
+	<ThemeSwitcherExample />
+</Example>
+
 ```tsx
-import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectLabel,
-	SelectTrigger,
-} from "@ngrok/mantle/select";
-import { isTheme, theme, useTheme } from "@ngrok/mantle/theme";
+import { Select } from "@ngrok/mantle/select";
+import { $theme, isTheme, useTheme } from "@ngrok/mantle/theme";
+import { SunIcon } from "@phosphor-icons/react/Sun";
 
 function App() {
 	const [currentTheme, setTheme] = useTheme();
 
 	return (
-		<>
-			<Select
-				value={currentTheme}
-				onValueChange={(value) => {
-					const maybeNewTheme = isTheme(value) ? value : undefined;
-					if (maybeNewTheme) {
-						setTheme(maybeNewTheme);
-					}
-				}}
-			>
-				<div className="ml-auto">
-					<span className="sr-only">Theme Switcher</span>
-					<SelectTrigger className="w-min">
-						<Sun className="mr-1 h-6 w-6" />
-					</SelectTrigger>
-				</div>
-				<SelectContent>
-					<SelectGroup>
-						<SelectLabel>Choose a theme</SelectLabel>
-						<SelectItem value={theme("system")}>System</SelectItem>
-						<SelectItem value={theme("light")}>Light</SelectItem>
-						<SelectItem value={theme("dark")}>Dark</SelectItem>
-						<SelectItem value={theme("light-high-contrast")}>Light High Contrast</SelectItem>
-						<SelectItem value={theme("dark-high-contrast")}>Dark High Contrast</SelectItem>
-					</SelectGroup>
-				</SelectContent>
-			</Select>
-			{/* The rest of your app... */}
-		</>
+		<Select.Root
+			value={currentTheme}
+			onValueChange={(value) => {
+				if (isTheme(value)) {
+					setTheme(value);
+				}
+			}}
+		>
+			<Select.Trigger className="w-min" aria-label="Theme Switcher">
+				<SunIcon className="mr-1 h-6 w-6" />
+			</Select.Trigger>
+			<Select.Content>
+				<Select.Group>
+					<Select.Label>Choose a theme</Select.Label>
+					<Select.Item value={$theme("system")}>System</Select.Item>
+					<Select.Item value={$theme("light")}>Light</Select.Item>
+					<Select.Item value={$theme("dark")}>Dark</Select.Item>
+					<Select.Item value={$theme("light-high-contrast")}>Light High Contrast</Select.Item>
+					<Select.Item value={$theme("dark-high-contrast")}>Dark High Contrast</Select.Item>
+				</Select.Group>
+			</Select.Content>
+		</Select.Root>
 	);
 }
 ```

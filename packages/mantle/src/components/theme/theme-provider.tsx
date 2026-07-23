@@ -60,7 +60,7 @@ type ThemeProviderProps = PropsWithChildren;
  *
  * @example
  * ```tsx
- * <ThemeProvider defaultTheme="system" storageKey="app-theme">
+ * <ThemeProvider>
  *   <App />
  * </ThemeProvider>
  * ```
@@ -170,6 +170,8 @@ function ThemeProvider({ children }: ThemeProviderProps) {
 /**
  * useTheme returns the current theme and a function to set the theme.
  *
+ * @see https://mantle.ngrok.com/components/primitives/theme
+ *
  * @note This function will throw an error if used outside of a ThemeProvider context tree.
  */
 function useTheme() {
@@ -218,6 +220,8 @@ function applyThemeToHtml(theme: Theme) {
 
 /**
  * Read the theme and applied theme from the `<html>` element.
+ *
+ * @see https://mantle.ngrok.com/components/primitives/theme
  */
 function readThemeFromHtmlElement() {
 	if (!canUseDOM()) {
@@ -263,6 +267,8 @@ function resolveTheme(
 /**
  * If the theme is "system", it will resolve the theme based on the user's media query preferences, otherwise it will return the theme as is.
  * This will mirror the result that gets applied to the <html> element.
+ *
+ * @see https://mantle.ngrok.com/components/primitives/theme
  */
 function useAppliedTheme() {
 	const themeContext = useContext(ThemeProviderContext);
@@ -482,6 +488,8 @@ function preventThemeFlash(args: {
  * preventWrongThemeFlashScriptContent generates a script that prevents the wrong theme from flashing on initial page load.
  * It checks cookies for a stored theme, and if none is found, it sets the default theme.
  * It also applies the correct theme to the `<html>` element based on the user's media query preferences.
+ *
+ * @see https://mantle.ngrok.com/components/primitives/theme
  */
 function preventWrongThemeFlashScriptContent() {
 	const args = {
@@ -517,6 +525,8 @@ export type PreventWrongThemeFlashScriptProps = {
  * it with {@link PreloadFont} elements in `<head>` instead.
  *
  * Place this as early as possible in the `<head>`.
+ *
+ * @see https://mantle.ngrok.com/components/primitives/theme#preventwrongthemeflashscript
  *
  * @example
  * ```tsx
@@ -566,6 +576,8 @@ type UseInitialHtmlThemePropsOptions = {
 
 /**
  * useInitialHtmlThemeProps returns the initial props that should be applied to the <html> element to prevent react hydration errors.
+ *
+ * @see https://mantle.ngrok.com/components/primitives/theme#useinitialhtmlthemeprops
  */
 function useInitialHtmlThemeProps(props: UseInitialHtmlThemePropsOptions = {}): InitialThemeProps {
 	const { className = "", ssrCookie } = props ?? {};
@@ -615,6 +627,8 @@ type GetStoredThemeOptions = {
  * {@link DEFAULT_THEME}. This function never throws; malformed encodings or
  * missing cookies quietly return the default.
  *
+ * @see https://mantle.ngrok.com/components/primitives/theme
+ *
  * @example
  * getStoredTheme({ cookie: `${THEME_STORAGE_KEY}=dark; session=abc` }) // "dark"
  * @example
@@ -645,6 +659,8 @@ function getStoredTheme({ cookie }: GetStoredThemeOptions): Theme {
  * Use this in SSR loaders to safely pass the theme cookie to
  * {@link useInitialHtmlThemeProps} without exposing the full `Cookie` header
  * (which may contain HttpOnly/session cookies) in serialized loader data.
+ *
+ * @see https://mantle.ngrok.com/components/primitives/theme#extractthemecookie
  *
  * @example
  * ```ts
