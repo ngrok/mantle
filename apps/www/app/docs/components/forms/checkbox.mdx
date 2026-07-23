@@ -4,11 +4,12 @@ description: A form control that allows the user to toggle between checked and n
 ---
 
 import { Button } from "@ngrok/mantle/button";
-import { Checkbox } from "@ngrok/mantle/checkbox";
+import { Checkbox, selectAllChecked } from "@ngrok/mantle/checkbox";
 import { Choice } from "@ngrok/mantle/choice";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
 import { Label } from "@ngrok/mantle/label";
 import { useForm } from "@tanstack/react-form";
+import { useState } from "react";
 import { z } from "zod";
 import { Example } from "~/components/example";
 
@@ -59,6 +60,40 @@ window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
     			Submit
     		</Button>
     	</form>
+    );
+
+}
+
+export function SelectAllExample() {
+const rows = ["Row 1", "Row 2", "Row 3"];
+const [selected, setSelected] = useState([]);
+const allSelected = selected.length === rows.length;
+const someSelected = selected.length > 0 && !allSelected;
+
+    return (
+    	<div className="flex flex-col gap-2">
+    		<Label className="flex items-center gap-2">
+    			<Checkbox
+    				aria-label="Select all rows"
+    				checked={selectAllChecked({ allSelected, someSelected })}
+    				onChange={(event) => setSelected(event.target.checked ? [...rows] : [])}
+    			/>
+    			Select all
+    		</Label>
+    		{rows.map((row) => (
+    			<Label key={row} className="flex items-center gap-2 pl-6">
+    				<Checkbox
+    					checked={selected.includes(row)}
+    					onChange={(event) =>
+    						setSelected((prev) =>
+    							event.target.checked ? [...prev, row] : prev.filter((value) => value !== row),
+    						)
+    					}
+    				/>
+    				{row}
+    			</Label>
+    		))}
+    	</div>
     );
 
 }
@@ -314,17 +349,47 @@ function Example() {
 
 `selectAllChecked` resolves the tri-state `checked` value for a "select all" checkbox from the current selection counts — `true` when everything is selected, `"indeterminate"` when only some is, and `false` when nothing is. Use it to keep the header checkbox of a multi-select list correct without hand-rolling the tri-state branch. It pairs directly with a [`DataTable`](/components/data-display/data-table#row-selection-with-checkboxes) row-selection column:
 
+<Example className="w-full">
+	<SelectAllExample />
+</Example>
+
 ```tsx
 import { Checkbox, selectAllChecked } from "@ngrok/mantle/checkbox";
+import { Label } from "@ngrok/mantle/label";
+import { useState } from "react";
 
-<Checkbox
-	aria-label="Select all rows"
-	checked={selectAllChecked({
-		allSelected: table.getIsAllRowsSelected(),
-		someSelected: table.getIsSomeRowsSelected(),
-	})}
-	onChange={(event) => table.toggleAllRowsSelected(event.target.checked)}
-/>;
+function Example() {
+	const rows = ["Row 1", "Row 2", "Row 3"];
+	const [selected, setSelected] = useState<string[]>([]);
+	const allSelected = selected.length === rows.length;
+	const someSelected = selected.length > 0 && !allSelected;
+
+	return (
+		<div className="flex flex-col gap-2">
+			<Label className="flex items-center gap-2">
+				<Checkbox
+					aria-label="Select all rows"
+					checked={selectAllChecked({ allSelected, someSelected })}
+					onChange={(event) => setSelected(event.target.checked ? [...rows] : [])}
+				/>
+				Select all
+			</Label>
+			{rows.map((row) => (
+				<Label key={row} className="flex items-center gap-2 pl-6">
+					<Checkbox
+						checked={selected.includes(row)}
+						onChange={(event) =>
+							setSelected((prev) =>
+								event.target.checked ? [...prev, row] : prev.filter((value) => value !== row),
+							)
+						}
+					/>
+					{row}
+				</Label>
+			))}
+		</div>
+	);
+}
 ```
 
 Returns `boolean | "indeterminate"` (a `CheckedState`), ready to pass straight to `Checkbox`'s `checked` prop. `allSelected` takes precedence, so it wins even if a caller also reports `someSelected`.
