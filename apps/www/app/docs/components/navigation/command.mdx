@@ -280,16 +280,18 @@ Renders the platform-appropriate meta key label (`⌘` for macOS/iOS or `Ctrl` f
 
 Use it in keyboard shortcut hints and `Command.Shortcut` labels to ensure the correct modifier key is displayed for each platform.
 
+<Example>
+	<kbd className="bg-muted text-muted inline-flex h-5 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium">
+		<MetaKey /> K
+	</kbd>
+</Example>
+
 ```tsx
-import { Command, MetaKey } from "@ngrok/mantle/command";
+import { MetaKey } from "@ngrok/mantle/command";
 
-<kbd>
+<kbd className="bg-muted text-muted inline-flex h-5 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium">
 	<MetaKey /> K
-</kbd>
-
-<Command.Shortcut>
-	<MetaKey /> S
-</Command.Shortcut>
+</kbd>;
 ```
 
 ### useCommandState

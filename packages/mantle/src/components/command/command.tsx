@@ -557,6 +557,18 @@ const Command = {
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
 	 *       <Command.Empty>No results found.</Command.Empty>
+	 *       <Command.Group heading="Suggestions">
+	 *         <Command.Item>
+	 *           <span>Calendar</span>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *       <Command.Separator />
+	 *       <Command.Group heading="Settings">
+	 *         <Command.Item>
+	 *           <span>Profile</span>
+	 *           <Command.Shortcut>⌘,</Command.Shortcut>
+	 *         </Command.Item>
+	 *       </Command.Group>
 	 *     </Command.List>
 	 *   </Command.DialogContent>
 	 * </Command.DialogRoot>
@@ -570,9 +582,29 @@ const Command = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.DialogTrigger asChild>
-	 *   <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
-	 * </Command.DialogTrigger>
+	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+	 *   <Command.DialogTrigger asChild>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
+	 *   </Command.DialogTrigger>
+	 *   <Command.DialogContent>
+	 *     <Command.Input placeholder="Type a command or search..." />
+	 *     <Command.List>
+	 *       <Command.Empty>No results found.</Command.Empty>
+	 *       <Command.Group heading="Suggestions">
+	 *         <Command.Item>
+	 *           <span>Calendar</span>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *       <Command.Separator />
+	 *       <Command.Group heading="Settings">
+	 *         <Command.Item>
+	 *           <span>Profile</span>
+	 *           <Command.Shortcut>⌘,</Command.Shortcut>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *     </Command.List>
+	 *   </Command.DialogContent>
+	 * </Command.DialogRoot>
 	 * ```
 	 */
 	DialogTrigger: Dialog.Trigger,
@@ -583,12 +615,29 @@ const Command = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <Command.DialogContent>
-	 *   <Command.Input placeholder="Type a command or search..." />
-	 *   <Command.List>
-	 *     <Command.Empty>No results found.</Command.Empty>
-	 *   </Command.List>
-	 * </Command.DialogContent>
+	 * <Command.DialogRoot open={open} onOpenChange={setOpen}>
+	 *   <Command.DialogTrigger asChild>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
+	 *   </Command.DialogTrigger>
+	 *   <Command.DialogContent>
+	 *     <Command.Input placeholder="Type a command or search..." />
+	 *     <Command.List>
+	 *       <Command.Empty>No results found.</Command.Empty>
+	 *       <Command.Group heading="Suggestions">
+	 *         <Command.Item>
+	 *           <span>Calendar</span>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *       <Command.Separator />
+	 *       <Command.Group heading="Settings">
+	 *         <Command.Item>
+	 *           <span>Profile</span>
+	 *           <Command.Shortcut>⌘,</Command.Shortcut>
+	 *         </Command.Item>
+	 *       </Command.Group>
+	 *     </Command.List>
+	 *   </Command.DialogContent>
+	 * </Command.DialogRoot>
 	 * ```
 	 */
 	DialogContent: CommandDialogContent,
