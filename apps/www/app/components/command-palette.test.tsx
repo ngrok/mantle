@@ -162,6 +162,27 @@ describe("CommandPalette", () => {
 		});
 	});
 
+	// Regression: without preventDefault, mod+k also triggers the browser's own
+	// binding (Firefox focuses the search/address bar) alongside opening the
+	// palette. fireEvent returns false when the event's default was prevented.
+	// react-hotkeys-hook matches on event.code and resolves "mod" per platform
+	// userAgent, so the event carries code plus both modifiers.
+	it("opens on mod+k and prevents the browser's default shortcut", async () => {
+		renderPalette();
+
+		const notPrevented = fireEvent.keyDown(document.body, {
+			key: "k",
+			code: "KeyK",
+			metaKey: true,
+			ctrlKey: true,
+		});
+
+		expect(notPrevented).toBe(false);
+		await waitFor(() => {
+			expect(screen.getByPlaceholderText("Search Mantle...")).toBeTruthy();
+		});
+	});
+
 	it("clears the query when the palette closes so reopening starts fresh", async () => {
 		renderPalette();
 		const input = await openPalette();
