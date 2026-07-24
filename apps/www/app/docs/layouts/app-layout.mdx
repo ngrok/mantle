@@ -696,6 +696,10 @@ All props from [header](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 | ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Header` styling onto alternative element types or your own components. |
 
+| CSS Variable              | Default  | Description                                                                                                                                                                                                                                       |
+| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--sidebar-header-height` | `4.5rem` | Read (not set) by `AppLayout.Header` when the shell contains a [`Sidebar.Header`](/components/navigation/sidebar#sidebarheader), which owns the token. Set it on a common ancestor of both (e.g. `AppLayout.Root`) so the two rows move together. |
+
 ### AppLayout.Content
 
 The scrolling content card of the shell:
