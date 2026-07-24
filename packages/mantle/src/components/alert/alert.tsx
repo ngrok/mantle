@@ -50,6 +50,34 @@ function useAlertContext() {
 	return context;
 }
 
+/**
+ * Internal-only (exported from this module for `AlertCenter`, deliberately
+ * NOT re-exported from the package): provides the Alert context to authored
+ * banner parts whose React tree sits outside the chrome `Alert.Root` that
+ * renders their DOM. `AlertCenter.Item` portals its children into the chrome,
+ * and a portal severs React context from the DOM ancestor — the projecting
+ * composer supplies the same `intent` it hands the chrome, so parts like
+ * `Alert.Icon` resolve identically in both trees.
+ *
+ * @example
+ * ```tsx
+ * createPortal(
+ *   <AlertContextProvider intent={intent}>{children}</AlertContextProvider>,
+ *   host,
+ * );
+ * ```
+ */
+const AlertContextProvider = ({
+	children,
+	intent,
+}: {
+	intent: AlertIntent;
+	children?: ReactNode;
+}) => {
+	const context: AlertContextValue = useMemo(() => ({ intent }), [intent]);
+	return <AlertContext.Provider value={context}>{children}</AlertContext.Provider>;
+};
+
 const alertVariants = cva(
 	"relative flex w-full gap-1.5 rounded-md border p-2.5 text-sm font-sans",
 	{
@@ -647,4 +675,7 @@ const Alert = {
 export {
 	//,
 	Alert,
+	// Why: internal projection support for AlertCenter (portal children need
+	// the chrome's context from their own tree) — not re-exported by index.ts.
+	AlertContextProvider,
 };

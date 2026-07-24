@@ -7,7 +7,11 @@ entry point for one-to-many account alerts and their upgrade CTAs, meant to repl
 window banners with one severity-colored bar. Alerts are **authored as JSX**: each `AlertCenter.Item`
 composes the normal `Alert` banner parts as children (real anchors, arbitrary content) and registers its
 coordination facts (`id`, `intent`) with the renderless `AlertCenter.Root` — mount an item to
-show it, unmount to dismiss. Ranking stays deterministic: a stable sort by severity (`danger` › `warning` ›
+show it, unmount to dismiss. The children stay in the author's React tree and portal into a stable
+per-id host the chrome physically adopts (`Element.moveBefore` where supported), so context providers and
+error boundaries around an item work, the children's React events bubble to the author's tree, and content
+keeps its state as it moves between the bar and a row. Dismissing the last alert steers keyboard focus to
+the page's `main` landmark instead of dropping it on `<body>`. Ranking stays deterministic: a stable sort by severity (`danger` › `warning` ›
 `important` › `info` › `success`), then arrival order within an intent (sticky per id, so a returning alert
 resumes its position). `AlertCenter.Bar` is an always-visible, full-width strip that renders the top item's
 children inline (icon, title, and its call-to-action) plus a `+N more` trigger, collapses to nothing when

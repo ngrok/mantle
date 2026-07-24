@@ -109,10 +109,11 @@ export function Shell() {
 - **The count-and-caret control expands the full list.** When two or more alerts are active, the bar renders
   a compact control that expands `AlertCenter.Content` beneath it. The additional alerts render as compact,
   full-width one- or two-line banners, push the app layout down, and can be collapsed by the same control.
-- **Content is composed; facts are registered.** Each `AlertCenter.Item` renders nothing where it's
-  authored — it registers `{ id, intent }` plus its children, and the center projects those
-  children into the bar or an expansion row. You get real anchors, router links, and arbitrary JSX in every
-  banner, while the count, the top alert, and the ordering stay derived and deterministic.
+- **Content is composed; facts are registered.** Each `AlertCenter.Item` renders no DOM where it's
+  authored — it registers `{ id, intent }` and portals its children into a stable host the bar or an
+  expansion row adopts (see [Projection](#projection)). You get real anchors, router links, stateful and
+  context-aware JSX in every banner, while the count, the top alert, and the ordering stay derived and
+  deterministic.
 - **Ranking is severity, then arrival.** `danger` › `warning` › `important` › `info` › `success`; within an
   intent, alerts keep the order they first appeared — items mounting together rank in authored order, later
   arrivals append after their same-intent peers, and a dismissed alert that returns resumes its original
@@ -375,22 +376,28 @@ content in the title. The same placement mechanism is yours to use: the chrome a
 
 ## Projection
 
-`AlertCenter.Item` renders `null` where it's authored; its children render inside the `Bar`/`Content`
-chrome, which lives wherever you composed those parts (typically `AppLayout.Notice`). Three consequences
-worth knowing:
+`AlertCenter.Item` renders no DOM where it's authored; its children render through a portal into a stable
+per-item host element that the `Bar`/`Content` chrome physically adopts (typically inside
+`AppLayout.Notice`). The children's _React tree_ stays where the item is written — only their DOM moves —
+which is what makes the projection behave like ordinary composition:
 
-- **Context comes from above `Root`.** A provider wrapping an individual item does not reach its projected
-  children — wrap `AlertCenter.Root` (or the whole shell) instead. Relative router links resolve against
-  the route that renders the `Bar`, so prefer absolute paths.
-- **Children should be render-stateless.** A re-rank remounts an item's children (the projection is keyed
-  by `id` so one alert's state can never bleed into another's). Treat alert content like toast content.
+- **Context and events flow from the authoring site.** Providers and error boundaries wrapping an
+  individual item work, router links resolve against the route that renders the item, and the children's
+  React events (clicks, focus) bubble to the author's tree — a wrapper around one item observes only its
+  own alert.
+- **Content keeps its state across re-ranks.** The host element is moved between the bar and a row — never
+  remounted — so component state in your alert content survives promotions and demotions. In engines with
+  `Element.moveBefore` even focus and CSS transitions survive the move; elsewhere the center's focus
+  redirects re-establish keyboard position.
 - **Don't compose `Alert.Root` in children.** The center provides the banner chrome — with the item's
   `intent` — at whichever placement the item ranks into. Children are the banner's _content_: `Alert.Icon`,
   `Alert.Content`, `Alert.Title`, `Alert.Description`, `AlertCenter.DismissIconButton`.
 
-Because items register from effects, avoid authoring them inside `Suspense` boundaries that can hide them
-(hiding unregisters the alert and the bar animates out), and server-rendered HTML contains no bar — it
-enters with its height animation after hydration, the same entrance every arriving alert gets by design.
+A mounted item's children always render (React-wise), even while they rank nowhere visible — e.g. below
+the bar with no expansion composed, where the host simply stays detached from the document. Because items
+register from effects, avoid authoring them inside `Suspense` boundaries that can hide them (hiding
+unregisters the alert and the bar animates out), and server-rendered HTML contains no bar — it enters with
+its height animation after hydration, the same entrance every arriving alert gets by design.
 
 ## A single alert
 

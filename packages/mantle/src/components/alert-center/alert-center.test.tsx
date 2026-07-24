@@ -787,19 +787,23 @@ describe("AlertCenter.DismissIconButton", () => {
 		expect(screen.getByRole("button", { name: "Hide this notice" })).toBeInTheDocument();
 	});
 
-	test("centers itself only in the bar placement", async () => {
+	test("carries placement-gated centering that follows the chrome's data-placement", async () => {
+		// The centering is a CSS variant gated on the chrome's data-placement
+		// stamp — the control's host physically moves between placements
+		// without a re-render, so its styling must move with it in pure CSS.
 		const user = userEvent.setup();
 		render(<ThreeAlertHarness />);
-		// top (bar) placement: re-centered for the single-line form
-		expect(screen.getByRole("button", { name: "Dismiss Payment failed" })).toHaveClass(
-			"top-1/2",
-			"-translate-y-1/2",
+		const barDismiss = screen.getByRole("button", { name: "Dismiss Payment failed" });
+		expect(barDismiss).toHaveClass(
+			"in-data-[placement=bar]:top-1/2",
+			"in-data-[placement=bar]:-translate-y-1/2",
 		);
+		expect(barDismiss.closest("[data-placement]")).toHaveAttribute("data-placement", "bar");
 		await user.click(screen.getByRole("button", { name: "Show 2 more alerts" }));
-		// list placement: the Alert default top offset stands
-		expect(
-			screen.getByRole("button", { name: "Dismiss Approaching your data transfer limit" }),
-		).not.toHaveClass("top-1/2");
+		const listDismiss = screen.getByRole("button", {
+			name: "Dismiss Approaching your data transfer limit",
+		});
+		expect(listDismiss.closest("[data-placement]")).toHaveAttribute("data-placement", "list");
 	});
 
 	test("throws when composed outside an item's children", () => {
@@ -891,37 +895,163 @@ describe("AlertCenter.Content", () => {
 		expect(screen.getByRole("button", { name: "Dismiss New region available" })).toHaveFocus();
 	});
 
-	test("chains consumer onFocus/onBlur with the internal focus tracking", async () => {
-		// Regression: the internal focus-tracking handlers were assigned after
-		// the props spread, silently dropping consumer-passed onFocus/onBlur.
-		const user = userEvent.setup();
-		const onFocus = vi.fn<() => void>();
-		const onBlur = vi.fn<() => void>();
+	test("authored content's React events propagate to the author's tree", () => {
+		// The children render through the item's portal, so their React events
+		// bubble to where the item is AUTHORED — a wrapper around one item can
+		// observe focus in its own alert without hearing about any other. The
+		// center's internal focus tracking uses native focusin/focusout on the
+		// chrome, so consumer handlers never collide with it.
+		const onAuthorFocus = vi.fn<() => void>();
 		render(
 			<AlertCenter.Root defaultOpen>
 				<AlertCenter.Bar />
-				<AlertCenter.Content onFocus={onFocus} onBlur={onBlur} />
+				<AlertCenter.Content />
 				<AlertCenter.Item id="payment" intent="danger">
 					<AlertBody title="Payment failed" />
 				</AlertCenter.Item>
-				<AlertCenter.Item id="region" intent="info">
-					<Alert.Icon />
-					<Alert.Content>
-						<Alert.Title>New region available</Alert.Title>
-						<AlertCenter.DismissIconButton onClick={() => {}} />
-					</Alert.Content>
-				</AlertCenter.Item>
+				<div onFocus={onAuthorFocus}>
+					<AlertCenter.Item id="region" intent="info">
+						<Alert.Icon />
+						<Alert.Content>
+							<Alert.Title>New region available</Alert.Title>
+							<AlertCenter.DismissIconButton onClick={() => {}} />
+						</Alert.Content>
+					</AlertCenter.Item>
+				</div>
 			</AlertCenter.Root>,
 		);
-
-		// focus enters the expansion → the consumer's onFocus fires
 		screen.getByRole("button", { name: "Dismiss New region available" }).focus();
-		expect(onFocus).toHaveBeenCalled();
+		expect(onAuthorFocus).toHaveBeenCalled();
+	});
 
-		// focus leaves for the bar's expand control → the consumer's onBlur fires
-		// and the internal tracking still works alongside it
-		await user.click(screen.getByRole("button", { name: "Collapse additional alerts" }));
-		expect(onBlur).toHaveBeenCalled();
+	test("focuses the bar's control when the last row is dismissed, and main when nothing remains", async () => {
+		const user = userEvent.setup();
+		function Harness() {
+			const [alerts, setAlerts] = useState<ReadonlySet<string>>(new Set(["payment", "region"]));
+			const dismiss = (id: string) =>
+				setAlerts((previous) => {
+					const next = new Set(previous);
+					next.delete(id);
+					return next;
+				});
+			return (
+				<>
+					<AlertCenter.Root defaultOpen>
+						<AlertCenter.Bar />
+						<AlertCenter.Content />
+						{alerts.has("payment") && (
+							<AlertCenter.Item id="payment" intent="danger">
+								<Alert.Icon />
+								<Alert.Content>
+									<Alert.Title>Payment failed</Alert.Title>
+									<AlertCenter.DismissIconButton onClick={() => dismiss("payment")} />
+								</Alert.Content>
+							</AlertCenter.Item>
+						)}
+						{alerts.has("region") && (
+							<AlertCenter.Item id="region" intent="info">
+								<Alert.Icon />
+								<Alert.Content>
+									<Alert.Title>New region available</Alert.Title>
+									<AlertCenter.DismissIconButton onClick={() => dismiss("region")} />
+								</Alert.Content>
+							</AlertCenter.Item>
+						)}
+					</AlertCenter.Root>
+					<main>content</main>
+				</>
+			);
+		}
+		render(<Harness />);
+
+		// Dismissing the last ROW steers focus to the bar's control — the top
+		// alert is still showing, so the dismissal flow continues there.
+		await user.click(screen.getByRole("button", { name: "Dismiss New region available" }));
+		expect(screen.getByRole("button", { name: "Dismiss Payment failed" })).toHaveFocus();
+
+		// Dismissing the LAST alert falls back to the main landmark instead of
+		// silently dropping focus to <body>.
+		await user.click(screen.getByRole("button", { name: "Dismiss Payment failed" }));
+		expect(screen.getByRole("main")).toHaveFocus();
+	});
+});
+
+describe("AlertCenter host projection", () => {
+	test("children keep their React state when promoted from a row to the bar", async () => {
+		// The host element is stable and physically moved between placements —
+		// never remounted — so authored content keeps its state across
+		// re-ranks (the whole point of stable-host projection).
+		const user = userEvent.setup();
+		function Counter() {
+			const [count, setCount] = useState(0);
+			return (
+				<button type="button" onClick={() => setCount(count + 1)}>
+					count {count}
+				</button>
+			);
+		}
+		function Harness() {
+			const [showTop, setShowTop] = useState(true);
+			return (
+				<AlertCenter.Root defaultOpen>
+					<AlertCenter.Bar />
+					<AlertCenter.Content />
+					{showTop && (
+						<AlertCenter.Item id="payment" intent="danger">
+							<Alert.Icon />
+							<Alert.Content>
+								<Alert.Title>Payment failed</Alert.Title>
+								<AlertCenter.DismissIconButton onClick={() => setShowTop(false)} />
+							</Alert.Content>
+						</AlertCenter.Item>
+					)}
+					<AlertCenter.Item id="tip" intent="info">
+						<Alert.Icon />
+						<Alert.Content>
+							<Alert.Title>
+								Usage tip <Counter />
+							</Alert.Title>
+						</Alert.Content>
+					</AlertCenter.Item>
+				</AlertCenter.Root>
+			);
+		}
+		render(<Harness />);
+
+		// build up state while the tip sits in an expansion row
+		await user.click(screen.getByRole("button", { name: "count 0" }));
+		await user.click(screen.getByRole("button", { name: "count 1" }));
+
+		// dismiss the top alert → the tip PROMOTES into the bar, state intact
+		await user.click(screen.getByRole("button", { name: "Dismiss Payment failed" }));
+		const bar = document.querySelector('[data-slot="alert-center-bar"]');
+		expect(bar).toHaveAttribute("data-alert-id", "tip");
+		const counter = screen.getByRole("button", { name: "count 2" });
+		expect(bar).toContainElement(counter);
+	});
+
+	test("context provided around an item reaches its children", () => {
+		// Children render in the item's own React tree (only their DOM lands in
+		// the chrome), so providers wrapping the ITEM — not just Root — work.
+		const ItemScopedContext = createContext("fallback");
+		function ShowScoped() {
+			return <Alert.Title>{useContext(ItemScopedContext)}</Alert.Title>;
+		}
+		render(
+			<AlertCenter.Root>
+				<AlertCenter.Bar />
+				<ItemScopedContext.Provider value="item-scoped value">
+					<AlertCenter.Item id="scoped" intent="info">
+						<Alert.Content>
+							<ShowScoped />
+						</Alert.Content>
+					</AlertCenter.Item>
+				</ItemScopedContext.Provider>
+			</AlertCenter.Root>,
+		);
+		expect(document.querySelector('[data-slot="alert-center-bar"]')).toHaveTextContent(
+			"item-scoped value",
+		);
 	});
 });
 
