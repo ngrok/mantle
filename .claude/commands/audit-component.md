@@ -49,6 +49,22 @@ Verify `packages/mantle/src/components/<component-name>/<component-name>.tsx` (a
   - A brief description line.
   - A `@see https://mantle.ngrok.com/components/<category>/<component-name>` link.
   - At least one `@example` block showing realistic JSX usage.
+- **Names match the DOM/ARIA actually emitted.** Parts are named for the web-standards term for what they render (a `<li>` in a `<ul>` is an `Item`, a `<tr>` is a `Row`), and props read as the attribute they set (`current` → `aria-current`, not `isActive`). Flag names borrowed from another library's vocabulary. Run the ARIA pattern-word check in 2.1.a for the component name and every part name.
+
+#### 2.1.a. ARIA pattern-word check
+
+Collect the component name and every exported part name, then flag any that use a reserved ARIA pattern word: `Menu`/`MenuItem`, `Listbox`/`Option`, `Tab`/`TabPanel`, `Tree`/`TreeItem`, `Grid`/`Row`/`Cell`, `Dialog`, `Toolbar`, `Combobox`. For each hit, verify **both** halves of the contract in the implementation:
+
+1. **The role is emitted** — either explicitly (`role="menu"`), natively by the element (`<tr>` → `role="row"`, `<dialog>` → `role="dialog"`, `<table>` → `role="table"`), or by a third-party primitive it wraps that emits it (Radix `DropdownMenu`, `Tabs`, `Dialog`; Ariakit equivalents).
+2. **The keyboard contract is implemented** — the APG behavior the pattern promises: roving focus / single tab stop, arrow-key navigation, typeahead, `Escape` to dismiss, as applicable. A wrapped Radix/Ariakit primitive satisfies this; a hand-rolled `<ul>` with `role="menu"` and no key handling does not.
+
+Outcomes:
+
+- **Both hold** → no violation. The pattern's vocabulary is the correct name (`DropdownMenu.Item` really is a `role="menuitem"` in a `role="menu"`).
+- **Neither holds** → flag as a **rename** (author judgment, step 5) — e.g. a `<ul>` of navigation links exposing `Menu`/`MenuItem` parts should be `List`/`Item`.
+- **Role emitted but keyboard contract missing** → flag as a bug: either implement the contract or drop both the role and the name. Report it; do not pick for the author.
+
+**Never resolve a mismatch by adding the ARIA role.** Adding `role="menu"` to make the name honest removes the list's natural tab order and promises roving focus and typeahead that aren't there. The fix is always to rename the part.
 
 ### 2.2. Compound-component rules
 
@@ -132,11 +148,16 @@ Produce a report listing each violation, grouped by area (implementation, JSDoc,
 - JSDoc `@example` on a namespace property or underlying const that uses an abbreviated snippet → replace with the full-tree example already present elsewhere for the same component.
 - Usage code block with no live `<Example>` above it, or written as a partial/fragment ("only this line changes" diffs, bare config objects, references to undefined data) → add a live `<Example>` (an `export function <Name>Example()` rendered via `<Example>…</Example>`) and rewrite the code block to be complete and self-contained. Model the demo data and shape on the page's existing complete examples.
 
+**Never auto-fix a naming violation by changing the markup.** Adding an ARIA role, a keyboard handler, or `tabIndex` to make an unearned pattern word honest is not a fix — it changes runtime behavior and accessibility semantics to preserve a name that should change instead. Report those under author judgment.
+
 ### Needs author judgment (ask before changing)
 
 - Missing JSDoc description or `@example` on an exported component (the description content is non-obvious).
 - Refactoring a non-compound exported object into the POJO namespace pattern.
 - Adding `asChild` support to a sub-component that doesn't currently have it.
+- A component or part borrowing an unearned ARIA pattern word (2.1.a) → propose the standards-vocabulary rename (`Menu`/`MenuItem` → `List`/`Item`), with the markup and keyboard evidence behind it. Renames are breaking, and they must go all the way through — namespace members, props, types, `data-slot` values, tests, docs page, and internals — so the author decides.
+- A prop whose name doesn't read as the DOM/ARIA it emits (`isActive` → `current`) — breaking for the same reason.
+- A part that emits an ARIA role without implementing that pattern's keyboard contract → the author chooses between implementing the contract and dropping the role plus the name.
 - Any change that alters the component's public API shape.
 
 For the auto-fixable items, apply fixes; for the judgment items, surface them clearly and wait for the user.
@@ -163,4 +184,6 @@ If the audit modified files under `packages/mantle/`, add a changeset:
 - `.claude/commands/scaffold-component.md` — Rules for creating new components (this skill validates the same rules on existing components).
 - `decisions/2025-07-16-compound-component-named-exports.md` — Full rationale behind the POJO namespace pattern.
 - `CONVENTIONS.md` — Code style and TypeScript conventions the audit relies on.
+- [CONVENTIONS.md → Component API Design](../../CONVENTIONS.md#component-api-design) — Naming rules the 2.1/2.1.a checks enforce, including the ARIA pattern-word contract.
+- `decisions/2026-07-04-list-family-api-design.md` — The design review the naming rules were distilled from.
 - Canonical well-documented components: `alert`, `card`, `dialog`, `empty`, `code-block`. Use them as the reference shape when auto-generating missing JSDoc or docs-page content.
