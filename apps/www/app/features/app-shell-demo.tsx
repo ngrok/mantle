@@ -15,6 +15,7 @@ import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
 import { BellIcon } from "@phosphor-icons/react/Bell";
 import { BookOpenIcon } from "@phosphor-icons/react/BookOpen";
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
+import { CaretUpDownIcon } from "@phosphor-icons/react/CaretUpDown";
 import { CertificateIcon } from "@phosphor-icons/react/Certificate";
 import { ClipboardTextIcon } from "@phosphor-icons/react/ClipboardText";
 import { ClockCounterClockwiseIcon } from "@phosphor-icons/react/ClockCounterClockwise";
@@ -363,7 +364,10 @@ function ProductSwitcherDialog({
 				<Sidebar.SwitcherTrigger>
 					<ProductIcon product={product} />
 					<span className="text-strong min-w-0 flex-1 truncate text-base">{product.label}</span>
-					<CaretDownIcon className="text-muted size-4 shrink-0" />
+					{/* the double caret reads "pick one of several", not "a menu drops from
+					    here" — the caret-down below belongs to the account switchers, which
+					    really do open a DropdownMenu */}
+					<CaretUpDownIcon className="text-muted size-4 shrink-0" />
 				</Sidebar.SwitcherTrigger>
 			</Dialog.Trigger>
 			<Dialog.Content

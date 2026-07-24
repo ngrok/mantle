@@ -47,7 +47,7 @@ import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
-import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
+import { CaretUpDownIcon } from "@phosphor-icons/react/CaretUpDown";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
@@ -180,7 +180,9 @@ function ProductSwitcherDialog({
 				<Sidebar.SwitcherTrigger>
 					<ProductIcon product={product} />
 					<span className="text-strong min-w-0 flex-1 truncate text-base">{product.label}</span>
-					<CaretDownIcon className="text-muted size-4 shrink-0" />
+					{/* the double caret reads "pick one of several"; a caret-down would
+					    promise a menu dropping from the row, and this trigger opens a dialog */}
+					<CaretUpDownIcon className="text-muted size-4 shrink-0" />
 				</Sidebar.SwitcherTrigger>
 			</Dialog.Trigger>
 			<Dialog.Content
@@ -819,6 +821,10 @@ size-7 to match selected rail icons while the row keeps a compact 36px footprint
 10px radius on all corners so product and account switchers share the same shape around their rounded tiles.
 A styled button only — compose it with `DropdownMenu.Trigger asChild` or `Dialog.Trigger asChild`, which
 provide the open state (`data-state="open"` styling responds automatically).
+
+Match the trailing affordance to the surface the trigger actually opens. A `CaretDown` promises a menu
+dropping from the row, so keep it for `DropdownMenu`-backed switchers; a `Dialog`-backed switcher reads
+better with `CaretUpDown`, which says "pick one of several" without pointing anywhere.
 
 All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
 
