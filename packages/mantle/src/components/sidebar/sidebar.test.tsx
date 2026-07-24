@@ -583,6 +583,13 @@ describe("Sidebar.AccountAvatar", () => {
 		expect(screen.getByText("B")).toBeInTheDocument();
 	});
 
+	test("keeps a surrogate-pair first character whole instead of splitting it", () => {
+		// Regression: substring(0, 1) split an emoji-leading name into a lone
+		// surrogate that rendered as U+FFFD.
+		render(<Sidebar.AccountAvatar accountId="acc_1" accountName="🚀 Rocket" />);
+		expect(screen.getByText("🚀R")).toBeInTheDocument();
+	});
+
 	test("falls back to ? for empty names", () => {
 		render(<Sidebar.AccountAvatar accountId="acc_1" accountName="" />);
 		expect(screen.getByText("?")).toBeInTheDocument();

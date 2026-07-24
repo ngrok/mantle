@@ -926,7 +926,7 @@ type AlertCenterContentProps = Omit<ComponentProps<"div">, "children" | "id"> & 
  * </AlertCenter.Root>
  * ```
  */
-const Content = ({ className, ref, ...props }: AlertCenterContentProps) => {
+const Content = ({ className, onBlur, onFocus, ref, ...props }: AlertCenterContentProps) => {
 	const { store, isExpanded, contentId } = useAlertCenterContext("AlertCenter.Content");
 	const alerts = useRankedAlerts(store);
 	const additionalAlerts = alerts.slice(1);
@@ -947,7 +947,11 @@ const Content = ({ className, ref, ...props }: AlertCenterContentProps) => {
 	// it — that drop is the same known preview limitation as the emptying bar.)
 	const wrapperRef = useRef<HTMLDivElement | null>(null);
 	const composedRef = useComposedRefs(wrapperRef, ref);
-	const { hadFocusWithinRef, onFocus, onBlur } = useFocusWithin();
+	const {
+		hadFocusWithinRef,
+		onFocus: trackFocusWithin,
+		onBlur: trackBlurWithin,
+	} = useFocusWithin();
 	const rowIds = additionalAlerts.map((alert) => alert.id).join(" ");
 	useIsomorphicLayoutEffect(() => {
 		const wrapper = wrapperRef.current;
@@ -968,8 +972,16 @@ const Content = ({ className, ref, ...props }: AlertCenterContentProps) => {
 		<div
 			{...props}
 			ref={composedRef}
-			onFocus={onFocus}
-			onBlur={onBlur}
+			// chain the consumer handlers ahead of the internal focus tracking —
+			// spreading props above would otherwise silently drop them
+			onFocus={(event) => {
+				onFocus?.(event);
+				trackFocusWithin();
+			}}
+			onBlur={(event) => {
+				onBlur?.(event);
+				trackBlurWithin(event);
+			}}
 			data-slot="alert-center-content"
 			// after the spread so consumers can't break the aria-controls wiring or
 			// the state hook the animation reads
