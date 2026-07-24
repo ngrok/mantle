@@ -314,7 +314,6 @@ type BreadcrumbSeparatorProps = Omit<ComponentProps<"li">, "children"> &
 const Separator = ({
 	asChild,
 	children,
-	className,
 	"data-slot": dataSlot,
 	ref,
 	...props
@@ -331,7 +330,6 @@ const Separator = ({
 		<Comp
 			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "breadcrumb-separator")}
-			className={className}
 			{...props}
 			role="presentation"
 			aria-hidden="true"
