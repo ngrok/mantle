@@ -442,8 +442,9 @@ function parseDismissedIds(raw: string): ReadonlyArray<string> {
  * the currently-true conditions, and the client filters that list against the
  * dismissed set before mounting items. Dismissals for conditions the server
  * no longer reports are pruned, so a condition that clears and later recurs
- * resurfaces instead of staying silenced. Danger alerts never compose a
- * dismiss button.
+ * resurfaces instead of staying silenced. As its dismissability policy (a
+ * best practice, not an API constraint), this demo withholds the dismiss
+ * button from danger alerts.
  */
 export function AlertCenterPersistedDismissExample() {
 	// Simulated backend state: which conditions are currently true. The

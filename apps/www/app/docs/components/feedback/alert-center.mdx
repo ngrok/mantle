@@ -190,8 +190,11 @@ include an `AlertCenter.DismissIconButton`. Choose per alert, with the intent as
   danger alert trains users to swat away the one banner that genuinely blocks them.
 - **`warning` and `info` alerts should generally be dismissable.** They are acknowledgeable by nature —
   usage nags, rollout notices — and a nag that cannot be acknowledged erodes trust in the whole bar.
-- The policy is a default, not a rule: a warning that describes an active blockage (a hard limit already
-  being enforced) can withhold the dismiss button too, exactly like a danger alert.
+- Both are best practices, not constraints the API enforces — dismissability stays a per-alert composition
+  choice in either direction. A warning that describes an active blockage (a hard limit already being
+  enforced) can withhold the dismiss button like a danger alert, and a danger alert can still compose one
+  when your product calls for it — the framed shell demo at the top of this page does exactly that, so you
+  can watch the top slot re-rank when its danger alert is dismissed.
 
 Because the bar always surfaces the top-ranked alert, a non-dismissable danger alert keeps the bar pinned
 to the most urgent call-to-action while acknowledgeable alerts come and go beneath it. This demo opens
@@ -347,7 +350,7 @@ export function AccountAlerts({ serverAlerts }: { serverAlerts: ReadonlyArray<Se
 							<Alert.Title>
 								{alert.title} <a href={alert.href}>{alert.cta}</a>
 							</Alert.Title>
-							{/* dismissability policy in one place: danger alerts never get a dismiss button */}
+							{/* this app's dismissability policy, applied in one place: its danger alerts don't offer dismissal */}
 							{alert.intent !== "danger" && (
 								<AlertCenter.DismissIconButton onClick={() => dismiss(alert.id)} />
 							)}
