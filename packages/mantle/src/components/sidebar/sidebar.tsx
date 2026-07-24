@@ -1631,7 +1631,10 @@ function getInitials(accountName: string | undefined): string {
 		.map((part) => part.trim())
 		.filter((part) => part.length > 0)
 		.slice(0, 2)
-		.map((part) => part.substring(0, 1))
+		// code-point-safe first character: substring(0, 1) would split a
+		// surrogate pair (e.g. an emoji-leading name) into a lone surrogate
+		// that renders as U+FFFD.
+		.map((part) => Array.from(part)[0] ?? "")
 		.join("")
 		.toLocaleUpperCase();
 	return initials || "?";

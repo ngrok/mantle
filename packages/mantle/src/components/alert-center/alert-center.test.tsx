@@ -890,6 +890,39 @@ describe("AlertCenter.Content", () => {
 		);
 		expect(screen.getByRole("button", { name: "Dismiss New region available" })).toHaveFocus();
 	});
+
+	test("chains consumer onFocus/onBlur with the internal focus tracking", async () => {
+		// Regression: the internal focus-tracking handlers were assigned after
+		// the props spread, silently dropping consumer-passed onFocus/onBlur.
+		const user = userEvent.setup();
+		const onFocus = vi.fn<() => void>();
+		const onBlur = vi.fn<() => void>();
+		render(
+			<AlertCenter.Root defaultOpen>
+				<AlertCenter.Bar />
+				<AlertCenter.Content onFocus={onFocus} onBlur={onBlur} />
+				<AlertCenter.Item id="payment" intent="danger">
+					<AlertBody title="Payment failed" />
+				</AlertCenter.Item>
+				<AlertCenter.Item id="region" intent="info">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>New region available</Alert.Title>
+						<AlertCenter.DismissIconButton onClick={() => {}} />
+					</Alert.Content>
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+
+		// focus enters the expansion → the consumer's onFocus fires
+		screen.getByRole("button", { name: "Dismiss New region available" }).focus();
+		expect(onFocus).toHaveBeenCalled();
+
+		// focus leaves for the bar's expand control → the consumer's onBlur fires
+		// and the internal tracking still works alongside it
+		await user.click(screen.getByRole("button", { name: "Collapse additional alerts" }));
+		expect(onBlur).toHaveBeenCalled();
+	});
 });
 
 afterEach(() => {
