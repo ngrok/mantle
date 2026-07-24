@@ -41,7 +41,25 @@ and raise any conflicts with the user **now**, not at review time:
 - Should any of it be a private primitive (module-internal, unexported) instead of public API?
 - Are the part names the web-standards terms for what they render (List→Item, Table→Row)? Is the outermost part named `Root`?
 - Composition or data-driven — do any behaviors (filtering, select-all, virtualization) need data about items that may not be mounted?
-- Do prop names read as the ARIA/DOM they emit?
+- Do prop names read as the ARIA/DOM they emit (`current` → `aria-current`, not `isActive`)?
+- Does any proposed name borrow an ARIA pattern word it hasn't earned? (see 0.a.i)
+
+### 0.a.i. ARIA pattern words are earned, not borrowed
+
+`Menu`/`MenuItem`, `Listbox`/`Option`, `Tab`/`TabPanel`, `Tree`/`TreeItem`, `Grid`/`Row`/`Cell`, `Dialog`, `Toolbar`, and `Combobox` are reserved for components that **actually emit that role and implement its keyboard contract** — roving focus, typeahead, `Escape` to dismiss, a single tab stop, whatever the APG pattern requires. Before accepting one of these words for the component or any of its parts, answer both:
+
+1. Will the rendered element carry that role — natively (`<tr>` → `role="row"`, `<dialog>` → `role="dialog"`) or explicitly?
+2. Will it implement the pattern's keyboard contract?
+
+If either answer is no, **pick a different name**. A `<ul>` of navigation links is a `List` of `Item`s — never a `Menu` of `MenuItem`s — even when the library you are porting the mechanics from (shadcn's sidebar, say) calls that exact markup a menu. Mechanics are worth porting from the ecosystem; vocabulary is re-derived from what the component emits.
+
+**Never resolve the mismatch by adding the role.** Adding `role="menu"` to a list of links to justify the name destroys the natural tab order the plain list wanted, and consumers then file bugs for the roving focus and typeahead the name promised. Rename the part instead.
+
+The inverse also holds: when the component genuinely implements the pattern, the pattern's vocabulary **is** the right name — `DropdownMenu.Item` really is a `role="menuitem"` inside a `role="menu"`. Do not invent a euphemism to dodge the reserved word.
+
+**The claim travels with the word wherever it sits in the name** — alone (`.Menu`), as a qualifier on another noun (`.MenuItem`), or deeper inside a composite (`.SidebarMenuButton`). A longer name is not an escape hatch: `SidebarMenuButton` promises a menu as loudly as `Menu` does. But it is not automatically a violation either — what decides it is whether the pattern is actually there. `Command.DialogTrigger` earns `Dialog` because it _is_ Radix's dialog trigger, opening a real `role="dialog"` with its focus trap and `Escape` handling, which is why the flattened `DialogRoot` / `DialogTrigger` / `DialogContent` names in step 1 are correct. When a word names a pattern the part participates in rather than embodies, ask the two questions above of that pattern: is the role really emitted, and is its keyboard contract really implemented?
+
+See [CONVENTIONS.md → Component API Design](../../CONVENTIONS.md#component-api-design) and the [Philosophy page](../../apps/www/app/docs/philosophy.mdx) for the full rationale.
 
 ## 0.b. Ask: compound or simple?
 
@@ -113,6 +131,7 @@ If the component has sub-parts, follow the POJO namespace pattern from `decision
 
 - **The namespace object is exactly one level deep.** Never nest a sub-namespace inside a compound (e.g. `Command.Dialog.Root`). If a sub-feature is dialog-wrapped or otherwise related to another primitive, flatten the relationship into member names (`DialogRoot`, `DialogTrigger`, `DialogContent`). Do not re-export another mantle namespace under your namespace — consumers can import that primitive directly. See `CONVENTIONS.md#compound-components` for the full rule and rationale.
 - **If any member's type comes from a third-party namespace** (e.g. wrapping a Radix primitive's `Root`/`Trigger`), give the enclosing namespace object an explicit type annotation so `.d.ts` emit doesn't synthesize a non-portable type: `const MyComponent: { Root: typeof Root; Trigger: typeof Trigger; … } = { … }`. Without this, `@types/react` upgrades can surface `TS2883` at build time.
+- **Name each sub-part after the DOM/ARIA it emits**, per the 0.a.i gate: the outermost part is always `Root`, and a reserved ARIA pattern word (`Menu`, `Listbox`, `Tab`, `Tree`, `Grid`, `Combobox`, `Toolbar`, `Dialog`) only appears — as the whole member name or as a segment of one — when the pattern it names is really there, role and keyboard contract included. That distinction, not the word's position in the identifier, is what separates the flattened `DialogRoot`/`DialogTrigger`/`DialogContent` above (a real Radix dialog behind them) from `Menu`/`MenuItem` over a plain `<ul>` of links, which is `List`/`Item`. Rename all the way through — props, types, `data-slot` values, and internals — since a half-renamed API is worse than either name.
 - Define each sub-component as a standalone const (e.g., `Root`, `Content`, `Title`)
 - The JSDoc on the **top-level namespace declaration** (the `const MyComponent = {` line) MUST include a `Composition` ASCII-tree `@example` as the **first** `@example` block, followed by the full-tree JSX usage `@example`. The tree uses Unicode box-drawing chars and 4-char per-level indentation. This tree is what consumers and LLMs see first when hovering the namespace in IntelliSense, and it is the single source of truth for the component's structural shape. Example:
 
