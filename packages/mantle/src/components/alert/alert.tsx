@@ -51,13 +51,14 @@ function useAlertContext() {
 }
 
 /**
- * Internal-only (exported from this module for `AlertCenter`, deliberately
- * NOT re-exported from the package): provides the Alert context to authored
- * banner parts whose React tree sits outside the chrome `Alert.Root` that
- * renders their DOM. `AlertCenter.Item` portals its children into the chrome,
- * and a portal severs React context from the DOM ancestor — the projecting
- * composer supplies the same `intent` it hands the chrome, so parts like
- * `Alert.Icon` resolve identically in both trees.
+ * The single place the Alert context value is built. `Alert.Root` renders it
+ * around its own chrome; it is additionally exported from this module for
+ * `AlertCenter` (deliberately NOT re-exported from the package) to provide the
+ * same context to authored banner parts whose React tree sits outside the
+ * chrome `Alert.Root` that renders their DOM: `AlertCenter.Item` portals its
+ * children into the chrome, and a portal severs React context from the DOM
+ * ancestor, so the projecting composer supplies the same `intent` it hands the
+ * chrome and parts like `Alert.Icon` resolve identically in both trees.
  *
  * @example
  * ```tsx
@@ -159,10 +160,8 @@ type AlertProps = ComponentProps<"div"> & {
  *```
  */
 const Root = ({ appearance = "default", className, intent, ref, style, ...props }: AlertProps) => {
-	const context: AlertContextValue = useMemo(() => ({ intent }), [intent]);
-
 	return (
-		<AlertContext.Provider value={context}>
+		<AlertContextProvider intent={intent}>
 			<div
 				ref={ref}
 				data-slot="alert"
@@ -186,7 +185,7 @@ const Root = ({ appearance = "default", className, intent, ref, style, ...props 
 				})}
 				{...props}
 			/>
-		</AlertContext.Provider>
+		</AlertContextProvider>
 	);
 };
 

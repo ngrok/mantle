@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createContext, useContext, useState } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -544,6 +544,44 @@ describe("AlertCenter.Bar", () => {
 		expect(screen.getByRole("button", { name: "Collapse additional alerts" })).toHaveFocus();
 	});
 
+	test("does not steal focus from the demoted alert's own control when a new top alert arrives", async () => {
+		// Regression: adopting the new top's host transiently detaches the demoted
+		// one, so the redirect's DOM-connectivity check read a live control as
+		// removed and yanked focus onto the arriving alert's dismiss button — a
+		// background arrival must never move the user's focus.
+		function BackgroundArrival({ danger }: { danger: boolean }) {
+			return (
+				<AlertCenter.Root>
+					<AlertCenter.Bar />
+					<AlertCenter.Content />
+					<AlertCenter.Item id="region" intent="info">
+						<Alert.Content>
+							<Alert.Title>New region</Alert.Title>
+							<AlertCenter.DismissIconButton onClick={() => {}} />
+						</Alert.Content>
+					</AlertCenter.Item>
+					{danger && (
+						<AlertCenter.Item id="payment" intent="danger">
+							<Alert.Content>
+								<Alert.Title>Payment failed</Alert.Title>
+								<AlertCenter.DismissIconButton onClick={() => {}} />
+							</Alert.Content>
+						</AlertCenter.Item>
+					)}
+				</AlertCenter.Root>
+			);
+		}
+		const { rerender } = render(<BackgroundArrival danger={false} />);
+		const regionDismiss = await screen.findByRole("button", { name: "Dismiss New region" });
+		regionDismiss.focus();
+		expect(regionDismiss).toHaveFocus();
+
+		rerender(<BackgroundArrival danger />);
+
+		expect(screen.getByRole("button", { name: "Dismiss Payment failed" })).not.toHaveFocus();
+		expect(regionDismiss).toHaveFocus();
+	});
+
 	test("falls back to focusing the bar wrapper when the new top alert has no controls", async () => {
 		function PromotionToControlFreeAlert() {
 			const [dismissed, setDismissed] = useState(false);
@@ -868,6 +906,82 @@ describe("AlertCenter.Content", () => {
 		expect(screen.queryByTestId("content")).not.toBeInTheDocument();
 	});
 
+	test("keeps focus on a row control that a promotion carries into the bar", async () => {
+		// Regression: resolving the top alert server-side promotes a row into the
+		// bar, which re-inserts its host and drops focus to <body> with no blur.
+		// Both redirects bailed on `isConnected`, leaving the keyboard user nowhere.
+		function ServerResolvesTop({ payment }: { payment: boolean }) {
+			return (
+				<AlertCenter.Root open>
+					<AlertCenter.Bar />
+					<AlertCenter.Content />
+					{payment && (
+						<AlertCenter.Item id="payment" intent="danger">
+							<AlertBody title="Payment failed" />
+						</AlertCenter.Item>
+					)}
+					<AlertCenter.Item id="transfer" intent="warning">
+						<Alert.Content>
+							<Alert.Title>Transfer limit</Alert.Title>
+							<AlertCenter.DismissIconButton onClick={() => {}} />
+						</Alert.Content>
+					</AlertCenter.Item>
+				</AlertCenter.Root>
+			);
+		}
+		const { rerender } = render(<ServerResolvesTop payment />);
+		const transferDismiss = await screen.findByRole("button", { name: "Dismiss Transfer limit" });
+		transferDismiss.focus();
+		expect(transferDismiss).toHaveFocus();
+
+		rerender(<ServerResolvesTop payment={false} />);
+
+		expect(transferDismiss.closest("[data-placement]")).toHaveAttribute("data-placement", "bar");
+		expect(transferDismiss).toHaveFocus();
+	});
+
+	test("collapses when the row set empties, so a later arrival cannot re-open it", async () => {
+		// Regression: `isExpanded` outlived the rows it described, so once the
+		// expansion emptied (and its control disappeared) any later lower-ranked
+		// alert remounted the expansion already open, with no user action.
+		function LaterArrival() {
+			const [showRegion, setShowRegion] = useState(true);
+			return (
+				<>
+					<button type="button" onClick={() => setShowRegion((current) => !current)}>
+						toggle region
+					</button>
+					<AlertCenter.Root>
+						<AlertCenter.Bar />
+						<AlertCenter.Content data-testid="content" />
+						<AlertCenter.Item id="payment" intent="danger">
+							<AlertBody title="Payment failed" />
+						</AlertCenter.Item>
+						{showRegion && (
+							<AlertCenter.Item id="region" intent="info">
+								<AlertBody title="New region" />
+							</AlertCenter.Item>
+						)}
+					</AlertCenter.Root>
+				</>
+			);
+		}
+		const user = userEvent.setup();
+		render(<LaterArrival />);
+
+		await user.click(screen.getByRole("button", { name: "Show 1 more alert" }));
+		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "open");
+
+		// the extra condition clears — the expansion (and its control) unmount
+		await user.click(screen.getByRole("button", { name: "toggle region" }));
+		expect(screen.queryByTestId("content")).not.toBeInTheDocument();
+
+		// it recurs later, with no user interaction on the expand control
+		await user.click(screen.getByRole("button", { name: "toggle region" }));
+		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByRole("button", { name: "Show 1 more alert" })).toBeInTheDocument();
+	});
+
 	test("dismissing a row removes it and updates the count and announcement", async () => {
 		const user = userEvent.setup();
 		render(<ThreeAlertHarness />);
@@ -893,6 +1007,66 @@ describe("AlertCenter.Content", () => {
 			screen.getByRole("button", { name: "Dismiss Approaching your data transfer limit" }),
 		);
 		expect(screen.getByRole("button", { name: "Dismiss New region available" })).toHaveFocus();
+	});
+
+	test("falls back to the bar's control when no remaining row is dismissable", async () => {
+		// Regression: the row redirect optional-chained a querySelector with no
+		// fallback, so dismissing the last dismissable row while a non-dismissable
+		// one remained silently dropped focus to <body>. Rows are not required to
+		// be dismissable — danger and hard-limit alerts generally are not.
+		function MixedDismissability() {
+			const [dismissed, setDismissed] = useState(false);
+			return (
+				<AlertCenter.Root open>
+					<AlertCenter.Bar />
+					<AlertCenter.Content />
+					<AlertCenter.Item id="payment" intent="danger">
+						<Alert.Content>
+							<Alert.Title>Payment failed</Alert.Title>
+							<AlertCenter.DismissIconButton onClick={() => {}} />
+						</Alert.Content>
+					</AlertCenter.Item>
+					<AlertCenter.Item id="tunnel" intent="warning">
+						<AlertBody title="Tunnel limit reached" />
+					</AlertCenter.Item>
+					{!dismissed && (
+						<AlertCenter.Item id="region" intent="info">
+							<Alert.Content>
+								<Alert.Title>New region</Alert.Title>
+								<AlertCenter.DismissIconButton onClick={() => setDismissed(true)} />
+							</Alert.Content>
+						</AlertCenter.Item>
+					)}
+				</AlertCenter.Root>
+			);
+		}
+		const user = userEvent.setup();
+		render(<MixedDismissability />);
+
+		await user.click(screen.getByRole("button", { name: "Dismiss New region" }));
+
+		expect(document.body).not.toHaveFocus();
+		expect(screen.getByRole("button", { name: "Dismiss Payment failed" })).toHaveFocus();
+	});
+
+	test("names the row list, and lets a consumer rename it", () => {
+		render(<ThreeAlertHarness />);
+		expect(screen.getByRole("list", { name: "More alerts" })).toBeInTheDocument();
+
+		cleanup();
+		render(
+			<AlertCenter.Root open>
+				<AlertCenter.Bar />
+				<AlertCenter.Content aria-label="Autres alertes" />
+				<AlertCenter.Item id="payment" intent="danger">
+					<AlertBody title="Payment failed" />
+				</AlertCenter.Item>
+				<AlertCenter.Item id="region" intent="info">
+					<AlertBody title="New region" />
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+		expect(screen.getByRole("list", { name: "Autres alertes" })).toBeInTheDocument();
 	});
 
 	test("authored content's React events propagate to the author's tree", () => {

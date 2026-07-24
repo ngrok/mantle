@@ -276,6 +276,14 @@ class AlertCenterStore {
 	/** The ranked alerts (highest severity first, arrival order within an intent). */
 	getSnapshot = (): readonly AlertCenterRegisteredAlert[] => this.#snapshot;
 
+	/**
+	 * Whether an id currently has a mounted registration. This — not DOM
+	 * connectivity — is how the focus redirects tell a dismissal ("the alert is
+	 * gone") from a re-rank ("the alert moved placements"): adoption detaches
+	 * and re-attaches hosts, so a surviving control reads as removed mid-commit.
+	 */
+	hasAlert = (id: string): boolean => this.#alertsById.has(id);
+
 	/** The top alert's rendered title text, published by `AlertCenter.Bar`. */
 	getTopLabel = (): string => this.#topLabel;
 
@@ -292,6 +300,37 @@ class AlertCenterStore {
 		}
 		this.#topLabel = topLabel;
 		this.#emit();
+	}
+
+	#pendingFocusRestore: HTMLElement | null = null;
+
+	/**
+	 * Ask for a control to be re-focused once the placement move that displaced
+	 * it finishes. Re-inserting a subtree (the `appendChild` path in
+	 * {@link adoptHost}) drops focus to `<body>` with no blur event, and the
+	 * surface that notices is not the one that completes the move — the bar sees
+	 * the demotion, the expansion re-attaches the host a moment later.
+	 */
+	requestFocusRestore(element: HTMLElement): void {
+		this.#pendingFocusRestore = element;
+	}
+
+	/**
+	 * Surface-side: called after adopting hosts. Re-focuses a requested control
+	 * once it is back in the document, so a re-rank never leaves a keyboard user
+	 * on `<body>`, and clears the request once it does. A host that lands nowhere
+	 * visible (no `AlertCenter.Content` composed) never becomes reachable, so the
+	 * request simply idles until the next move replaces it.
+	 */
+	flushFocusRestore(): void {
+		const element = this.#pendingFocusRestore;
+		if (element == null || !element.isConnected) {
+			return;
+		}
+		this.#pendingFocusRestore = null;
+		if (document.activeElement !== element) {
+			element.focus({ preventScroll: true });
+		}
 	}
 
 	#barElement: HTMLElement | null = null;
@@ -817,15 +856,18 @@ function useBarPresence({ present }: { present: boolean }): {
  * @example
  * ```tsx
  * const wrapperRef = useRef<HTMLDivElement | null>(null);
- * const { hadFocusWithinRef } = useFocusWithin(wrapperRef, isMounted);
+ * const { lastFocusedWithinRef } = useFocusWithin({ containerRef: wrapperRef, isAttached: isMounted });
  * return isMounted ? <div ref={wrapperRef}>…</div> : null;
  * ```
  */
-function useFocusWithin(
-	containerRef: { current: HTMLElement | null },
+function useFocusWithin({
+	containerRef,
+	isAttached,
+}: {
+	containerRef: { current: HTMLElement | null };
 	/** Re-attaches the listeners when the container element (re)mounts. */
-	isAttached: boolean,
-): {
+	isAttached: boolean;
+}): {
 	/**
 	 * The last element that held focus inside the container, or `null` once
 	 * focus deliberately moved elsewhere. Consumers decide "focus was lost to
@@ -870,6 +912,9 @@ function useFocusWithin(
  * redirect to. Landing on `main` mirrors the skip-link contract (mantle's
  * `Main` ships `tabIndex={-1}` for exactly this); a bare `<main>` without it
  * gets the same skip-link treatment so the focus call always succeeds.
+ * `preventScroll` matches `SkipToMainLink`'s contract: an AlertCenter embedded
+ * in a page it does not own (a docs demo, a sub-region) must move focus without
+ * scrolling the reader's page out from under them.
  */
 function focusMainLandmark(): void {
 	const main = document.querySelector<HTMLElement>('main, [role="main"]');
@@ -879,7 +924,7 @@ function focusMainLandmark(): void {
 	if (!main.hasAttribute("tabindex")) {
 		main.tabIndex = -1;
 	}
-	main.focus();
+	main.focus({ preventScroll: true });
 }
 
 /**
@@ -890,19 +935,27 @@ function focusMainLandmark(): void {
  * dismissable, else the expand control), so dismissing alert after alert
  * stays a keyboard-only flow. When the LAST alert dismisses — nothing left to
  * redirect into — focus falls back to the page's main landmark, mirroring the
- * skip-link contract. It redirects ONLY when the focused node was actually
- * removed — a promotion while focus sits on a surviving control (e.g. the
- * expand button as a higher-severity alert arrives, or a control that
- * physically moved placements via `moveBefore`) must never steal focus.
+ * skip-link contract. It redirects ONLY when the previous top alert was
+ * actually DISMISSED — a promotion while the previous alert merely moves
+ * placements (a higher-severity alert arriving from a poll or a socket) must
+ * never steal focus, wherever in the banner that focus sits.
  */
-function useBarFocusRedirect(
-	topId: string | undefined,
-	isMounted: boolean,
-): {
+function useBarFocusRedirect({
+	isMounted,
+	store,
+	topId,
+}: {
+	isMounted: boolean;
+	store: AlertCenterStore;
+	topId: string | undefined;
+}): {
 	wrapperRef: { current: HTMLDivElement | null };
 } {
 	const wrapperRef = useRef<HTMLDivElement | null>(null);
-	const { lastFocusedWithinRef } = useFocusWithin(wrapperRef, isMounted);
+	const { lastFocusedWithinRef } = useFocusWithin({
+		containerRef: wrapperRef,
+		isAttached: isMounted,
+	});
 	const previousTopIdRef = useRef(topId);
 
 	useIsomorphicLayoutEffect(() => {
@@ -911,10 +964,23 @@ function useBarFocusRedirect(
 		if (previousTopId == null || topId === previousTopId) {
 			return;
 		}
-		// Redirect only when the focused control was genuinely REMOVED by the
-		// dismissal — a still-connected tracked element means focus survived
-		// (or deliberately moved), and taking it would be stealing.
 		const lastFocused = lastFocusedWithinRef.current;
+		// A demotion, not a dismissal: the previous top alert is still registered,
+		// so its focused control only moved placements. Registration — not DOM
+		// connectivity — is the signal, because adopting the new top's host
+		// transiently detaches the demoted one, which would make a live control
+		// read as removed and let a background arrival steal the user's focus.
+		// The move may still have blown focus off that control, so ask whoever
+		// re-attaches the host to put the user back on it.
+		if (store.hasAlert(previousTopId)) {
+			if (lastFocused instanceof HTMLElement && document.activeElement !== lastFocused) {
+				store.requestFocusRestore(lastFocused);
+			}
+			return;
+		}
+		// Redirect only when the focused control was genuinely REMOVED by the
+		// dismissal — a still-connected tracked element means focus deliberately
+		// moved elsewhere, and taking it would be stealing.
 		if (lastFocused == null || lastFocused.isConnected) {
 			return;
 		}
@@ -936,7 +1002,7 @@ function useBarFocusRedirect(
 			'[data-slot="alert-dismiss-icon-button"], [data-slot="alert-expand-button"]',
 		);
 		(control ?? wrapper).focus();
-	}, [topId]);
+	}, [store, topId]);
 
 	return { wrapperRef };
 }
@@ -1033,6 +1099,9 @@ const Bar = ({ className, ref, ...props }: AlertCenterBarProps) => {
 			if (adoptHost(mount, host)) {
 				store.notifyPlacementChange();
 			}
+			// A control displaced by a promotion lands here: the expansion's row
+			// went away with it, and this effect is what puts the host back.
+			store.flushFocusRestore();
 			return;
 		}
 		const ghost = alert == null ? null : store.getHostSnapshot(alert.id);
@@ -1041,7 +1110,7 @@ const Bar = ({ className, ref, ...props }: AlertCenterBarProps) => {
 		}
 	});
 
-	const { wrapperRef } = useBarFocusRedirect(topAlert?.id, isMounted);
+	const { wrapperRef } = useBarFocusRedirect({ isMounted, store, topId: topAlert?.id });
 
 	// Publish the top alert's rendered title text for the announcer's headline.
 	// No dependency array: title copy can change on any commit; `setTopLabel`
@@ -1161,21 +1230,32 @@ type AlertCenterContentProps = Omit<ComponentProps<"div">, "children" | "id"> & 
  * `Alert.Root` chrome stamped with `data-placement="list"` and
  * `data-alert-id`.
  *
+ * `aria-label` (default `"More alerts"`) and `aria-labelledby` name the row
+ * list itself — the outer wrapper is `role="generic"`, where ARIA prohibits
+ * accessible names, so a name passed here would otherwise be dropped.
+ *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcentercontent
  *
  * @example
  * ```tsx
  * <AlertCenter.Root>
  *   <AlertCenter.Bar />
- *   <AlertCenter.Content />
+ *   <AlertCenter.Content aria-label="Autres alertes" />
  *   <AlertCenter.Item id="transfer-limit" intent="warning">
  *     …
  *   </AlertCenter.Item>
  * </AlertCenter.Root>
  * ```
  */
-const Content = ({ className, ref, ...props }: AlertCenterContentProps) => {
-	const { store, isExpanded, contentId } = useAlertCenterContext("AlertCenter.Content");
+const Content = ({
+	"aria-label": ariaLabel = "More alerts",
+	"aria-labelledby": ariaLabelledBy,
+	className,
+	ref,
+	...props
+}: AlertCenterContentProps) => {
+	const { store, isExpanded, setExpanded, contentId } =
+		useAlertCenterContext("AlertCenter.Content");
 	const alerts = useRankedAlerts(store);
 	const additionalAlerts = alerts.slice(1);
 	const hasRows = additionalAlerts.length > 0;
@@ -1190,6 +1270,16 @@ const Content = ({ className, ref, ...props }: AlertCenterContentProps) => {
 		};
 	}, [store]);
 
+	// The open state describes a user gesture applied to a set of hidden alerts.
+	// Once that set empties, the expansion (and its control) unmount, so a stale
+	// `true` would silently re-open — pushing the shell down — the next time any
+	// lower-ranked alert arrives, with no user action.
+	useIsomorphicLayoutEffect(() => {
+		if (!hasRows && isExpanded) {
+			setExpanded(false);
+		}
+	}, [hasRows, isExpanded, setExpanded]);
+
 	// Dismissing a row removes the focused control with no blur — steer
 	// keyboard focus to the first remaining dismiss control instead of letting
 	// it fall to <body>. When the LAST row goes (the wrapper unmounts with
@@ -1198,7 +1288,10 @@ const Content = ({ className, ref, ...props }: AlertCenterContentProps) => {
 	// main landmark only when no bar control remains either.
 	const wrapperRef = useRef<HTMLDivElement | null>(null);
 	const composedRef = useComposedRefs(wrapperRef, ref);
-	const { lastFocusedWithinRef } = useFocusWithin(wrapperRef, hasRows);
+	const { lastFocusedWithinRef } = useFocusWithin({
+		containerRef: wrapperRef,
+		isAttached: hasRows,
+	});
 	const rowIds = additionalAlerts.map((alert) => alert.id).join(" ");
 
 	// Adopt each additional alert's host into its row chrome — declared before
@@ -1221,32 +1314,58 @@ const Content = ({ className, ref, ...props }: AlertCenterContentProps) => {
 		if (moved) {
 			store.notifyPlacementChange();
 		}
+		// A control displaced by a demotion lands here: the bar noticed the move,
+		// this effect is what puts the host back in the document.
+		store.flushFocusRestore();
 	}, [store, rowIds]);
 
 	useIsomorphicLayoutEffect(() => {
-		// Redirect only when the focused control was genuinely REMOVED by the
-		// dismissal — see useFocusWithin for why connectivity is the signal.
 		const lastFocused = lastFocusedWithinRef.current;
-		if (lastFocused == null || lastFocused.isConnected) {
+		if (lastFocused == null) {
 			return;
 		}
-		lastFocusedWithinRef.current = null;
-		const wrapper = wrapperRef.current;
-		if (wrapper == null) {
-			const barControl = store
-				.getBarElement()
-				?.querySelector<HTMLElement>(
-					'[data-slot="alert-dismiss-icon-button"], [data-slot="alert-expand-button"]',
-				);
-			if (barControl != null) {
-				barControl.focus();
-			} else {
-				focusMainLandmark();
+		if (lastFocused.isConnected) {
+			// The control survived. If it also left the expansion, a promotion
+			// carried it into the bar — re-inserting its host drops focus with no
+			// blur, so put the user back on it. A control still inside the
+			// expansion that lost focus means the user deliberately moved on.
+			const currentWrapper = wrapperRef.current;
+			if (
+				lastFocused instanceof HTMLElement &&
+				document.activeElement !== lastFocused &&
+				(currentWrapper == null || !currentWrapper.contains(lastFocused))
+			) {
+				lastFocusedWithinRef.current = null;
+				lastFocused.focus({ preventScroll: true });
 			}
 			return;
 		}
-		wrapper.querySelector<HTMLElement>('[data-slot="alert-dismiss-icon-button"]')?.focus();
-	}, [rowIds]);
+		// The focused control was genuinely REMOVED by the dismissal — steer
+		// focus rather than letting it fall to <body>.
+		lastFocusedWithinRef.current = null;
+		// Prefer another row's dismiss control. Rows are not required to be
+		// dismissable (danger and hard-limit alerts generally are not), so when
+		// none remains — or the whole expansion went with the last row — continue
+		// the flow at the bar, which is still showing, and land on the page's main
+		// content only when no control remains anywhere.
+		const rowControl = wrapperRef.current?.querySelector<HTMLElement>(
+			'[data-slot="alert-dismiss-icon-button"]',
+		);
+		if (rowControl != null) {
+			rowControl.focus();
+			return;
+		}
+		const barControl = store
+			.getBarElement()
+			?.querySelector<HTMLElement>(
+				'[data-slot="alert-dismiss-icon-button"], [data-slot="alert-expand-button"]',
+			);
+		if (barControl != null) {
+			barControl.focus();
+			return;
+		}
+		focusMainLandmark();
+	}, [store, rowIds]);
 
 	// Nothing is hidden behind the bar → there's no expansion to render or
 	// animate, and the bar shows no expand control. (This stays unmounted rather
@@ -1278,7 +1397,13 @@ const Content = ({ className, ref, ...props }: AlertCenterContentProps) => {
 				className,
 			)}
 		>
-			<ul aria-label="More alerts" className="flex w-full flex-col">
+			{/* The list carries the accessible name: the wrapper above is
+			    role=generic, where ARIA prohibits naming. */}
+			<ul
+				aria-label={ariaLabelledBy == null ? ariaLabel : undefined}
+				aria-labelledby={ariaLabelledBy}
+				className="flex w-full flex-col"
+			>
 				{additionalAlerts.map((alert) => (
 					<li key={alert.id}>
 						<Alert.Root
