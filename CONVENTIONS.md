@@ -138,6 +138,8 @@ const Command = {
 
 Distilled from the list-family design review (see [`decisions/2026-07-04-list-family-api-design.md`](./decisions/2026-07-04-list-family-api-design.md)). Answer these questions **before scaffolding** a component, not at review time.
 
+These are the API-design rules; [COMPONENT_SPEC.md](./COMPONENT_SPEC.md) is the full component-authoring spec built on top of them — the artifacts a component must ship, its JSDoc and docs-page requirements, and a review checklist. Read it before adding or changing a component.
+
 - **Ship the smallest public surface.** A primitive that exists to back other components stays module-internal (`dialog/primitive`, `list/primitive`): imported by relative path, absent from `package.json` exports, undocumented. Publishing later is additive and non-breaking; un-shipping after release is breaking. Corollary: if a component's docs would mostly redirect readers to siblings, it should not be public.
 - **One component per user intent.** Name the intent in a sentence ("click an item to act/navigate" vs "check items to select"). If two proposed components answer the same intent, merge them; a variant is a prop or a sibling part, not a new public component.
 - **Name parts after the component's own noun and the web-standards term** for what they render: a List has `Item`s (`<li>`, `role="listitem"`), a Table has `Row`s (`<tr>`, `role="row"`). Follow the standards vocabulary, not other libraries' conventions. Rename all the way through (props, types, slots, internals) — a half-renamed API is worse than either name.

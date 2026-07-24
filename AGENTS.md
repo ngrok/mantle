@@ -6,11 +6,14 @@ This file follows the [AGENTS.md standard](https://agents.md) and is the canonic
 
 ## Non-Negotiable Agent Contract
 
-This file and [CONVENTIONS.md](./CONVENTIONS.md) are active instructions, not background reading. Work is incomplete until the agent has verified its own changed files against the conventions.
+This file, [CONVENTIONS.md](./CONVENTIONS.md), and [COMPONENT_SPEC.md](./COMPONENT_SPEC.md) are active instructions, not background reading. Work is incomplete until the agent has verified its own changed files against them.
+
+The three divide as follows: **CONVENTIONS.md** governs code style everywhere in the monorepo, **COMPONENT_SPEC.md** governs what a `@ngrok/mantle` component must ship (API shape, JSDoc, CSS-variable and data-attribute documentation, docs page, tests, wiring, changeset), and this file governs how you work. On a component question where the spec and the conventions appear to disagree, COMPONENT_SPEC.md governs.
 
 Before editing:
 
 - Read the relevant [CONVENTIONS.md](./CONVENTIONS.md) sections for the files being changed.
+- When adding or changing anything under `packages/mantle/src/components/` — or its docs page, tests, or wiring — read [COMPONENT_SPEC.md](./COMPONENT_SPEC.md) first and work its [review checklist](./COMPONENT_SPEC.md#10-review-checklist) before reporting completion.
 - When designing new components, hooks, or public API, also read the [Philosophy page](./apps/www/app/docs/philosophy.mdx) (published at [mantle.ngrok.com/philosophy](https://mantle.ngrok.com/philosophy)) — it explains the design rationale the conventions distill. It is context, not a rulebook: where the two differ, CONVENTIONS.md governs.
 - Search before creating helpers, hooks, components, parsers, formatters, utilities, or dependencies — prefer existing tested code and package subpath exports over reimplementation. Inspect the smallest relevant scope first (`packages/mantle/src`, then the owning app).
 - For dependency changes, check `pnpm-workspace.yaml` and follow the catalog / exact-version rules.
@@ -27,6 +30,7 @@ Verification cadence: you do **not** need to run lint/typecheck/build/test after
 
 Required diff-audit checklist:
 
+- Components: changes under `packages/mantle/src/components/` satisfy [COMPONENT_SPEC.md](./COMPONENT_SPEC.md) — the nine required artifacts, `data-slot` and `asChild` on every part, and public CSS variables and `data-*` hooks documented in **both** the JSDoc and the docs-page API reference.
 - JSDoc: exported functions, hooks, components, and prop types are documented; required `@example` blocks are present.
 - Tests: bug fixes have regression tests; business logic has edge-case tests (transformations, validation, conditional rendering, state machines, parsing/formatting).
 - TypeScript: no `any`, no forbidden `as Type` assertions, no non-null assertions (`value!`), no `React.FC`; prefer `type` over `interface`.
@@ -48,6 +52,10 @@ For non-interactive environments without shell activation, prefix workspace comm
 All rules live in [CONVENTIONS.md](./CONVENTIONS.md) and are mandatory. The `@./CONVENTIONS.md` directive below inlines it automatically for Claude Code; other harnesses should follow the link.
 
 @./CONVENTIONS.md
+
+## Authoring Components
+
+[COMPONENT_SPEC.md](./COMPONENT_SPEC.md) is the spec for building a `@ngrok/mantle` component: what it must ship, what its API and JSDoc must look like, how its docs page is authored, what is never acceptable, and a review checklist to lint a diff against. Read it before touching `packages/mantle/src/components/`. `/scaffold-component`, `/audit-component`, and `/promote-preview-component` are workflows that implement it.
 
 ## Project Structure
 

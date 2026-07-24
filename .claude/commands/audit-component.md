@@ -7,6 +7,8 @@ argument-hint: "<component-name> | all"
 
 Audit the component named `$ARGUMENTS` against the documentation and scaffold conventions used by `@ngrok/mantle`, and fix any discrepancies found. This skill is the mirror of `/scaffold-component` — same rules, but applied to an existing component.
 
+The rules being audited are [COMPONENT_SPEC.md](../../COMPONENT_SPEC.md); this workflow is how they get checked. Where the two disagree, the spec governs. The spec's [review checklist](../../COMPONENT_SPEC.md#10-review-checklist) is the minimum bar — in particular, every public CSS variable and documented `data-*` hook must appear in **both** the JSDoc and the docs-page API reference, which the steps below do not otherwise cover.
+
 If `$ARGUMENTS` is empty or `all`, iterate over every directory under `packages/mantle/src/components/` and apply steps 1–6 to each. Skip utility-only directories that intentionally have no doc page (e.g. `browser-only`, `portal`, `slot`, `icons`, `icon` if it is only a utility) — but confirm with the user before skipping anything.
 
 ## 0. Normalize the component name

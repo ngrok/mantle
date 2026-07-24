@@ -7,6 +7,8 @@ argument-hint: "<component-name>"
 
 Scaffold a new component named `$ARGUMENTS` in the mantle design system. If no name is provided, ask the user for a component name.
 
+This workflow implements [COMPONENT_SPEC.md](../../COMPONENT_SPEC.md), which is the normative spec for what a component must ship. Where the two disagree, the spec governs — and fix this workflow to match. Finish by running the spec's [review checklist](../../COMPONENT_SPEC.md#10-review-checklist).
+
 ## 0. Normalize the component name
 
 The user may provide the name in any of the following formats. Accept all of them and normalize before scaffolding:
