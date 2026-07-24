@@ -83,15 +83,15 @@ collection facts off children via prop-sniffing or `cloneElement` injection.
 
 ### 1.6. Forbidden API shapes
 
-| Never                                                                | Instead                                                      |
-| -------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Nested namespace (`Command.Dialog.Root`)                             | Flatten into member names (`Command.DialogRoot`)              |
-| Prop-bag passthrough (`contentProps`, `triggerProps`, `slotProps`)   | Expose the internal element as a compound part               |
-| Re-exporting another mantle namespace under yours                    | Let consumers import that primitive directly                 |
-| `forwardRef`                                                         | `ref` is a regular prop (React 19+)                          |
-| `React.FC` / `FC`                                                    | Inline function types                                        |
-| Boolean-bag prop types where states are mutually exclusive           | Discriminated unions that make invalid states unrepresentable |
-| A deprecated API from a dependency                                   | The current replacement (or a `// Why:` comment if forced)   |
+| Never                                                              | Instead                                                       |
+| ------------------------------------------------------------------ | ------------------------------------------------------------- |
+| Nested namespace (`Command.Dialog.Root`)                           | Flatten into member names (`Command.DialogRoot`)              |
+| Prop-bag passthrough (`contentProps`, `triggerProps`, `slotProps`) | Expose the internal element as a compound part                |
+| Re-exporting another mantle namespace under yours                  | Let consumers import that primitive directly                  |
+| `forwardRef`                                                       | `ref` is a regular prop (React 19+)                           |
+| `React.FC` / `FC`                                                  | Inline function types                                         |
+| Boolean-bag prop types where states are mutually exclusive         | Discriminated unions that make invalid states unrepresentable |
+| A deprecated API from a dependency                                 | The current replacement (or a `// Why:` comment if forced)    |
 
 ### 1.7. Write a decision doc when the answer was contested
 
@@ -120,11 +120,11 @@ All nine, or the component is incomplete:
 
 Naming is mechanical, from one input:
 
-| Form               | Casing            | Used for                                                     |
-| ------------------ | ----------------- | ------------------------------------------------------------ |
-| `<component-name>` | kebab-case        | Directories, files, export keys, route slugs, import paths    |
-| `<ComponentName>`  | PascalCase        | The exported component / namespace identifier, types          |
-| `<Display Name>`   | Title Case        | Docs `title:` frontmatter, nav label, route lookups           |
+| Form               | Casing     | Used for                                                   |
+| ------------------ | ---------- | ---------------------------------------------------------- |
+| `<component-name>` | kebab-case | Directories, files, export keys, route slugs, import paths |
+| `<ComponentName>`  | PascalCase | The exported component / namespace identifier, types       |
+| `<Display Name>`   | Title Case | Docs `title:` frontmatter, nav label, route lookups        |
 
 ### 2.1. Export map entry
 
@@ -159,15 +159,15 @@ index, and the agent manifest — it effectively does not exist.
 
 ### 2.3. Changesets
 
-| Change                                            | Bump                                                           |
-| ------------------------------------------------- | -------------------------------------------------------------- |
-| New component                                     | `minor`                                                        |
-| New export, part, or prop on a shipped component   | `minor`                                                        |
-| Bug fix, behavior fix, JSDoc-only change           | `patch`                                                        |
-| Breaking rename or removal                         | `major` (and a migration note in the changeset)                |
-| Preview → stable promotion                         | `minor`                                                        |
-| Docs-site-only change (`apps/www/**`)              | none                                                           |
-| Change to a component not yet released             | none — fold the description into that component's own changeset |
+| Change                                           | Bump                                                            |
+| ------------------------------------------------ | --------------------------------------------------------------- |
+| New component                                    | `minor`                                                         |
+| New export, part, or prop on a shipped component | `minor`                                                         |
+| Bug fix, behavior fix, JSDoc-only change         | `patch`                                                         |
+| Breaking rename or removal                       | `major` (and a migration note in the changeset)                 |
+| Preview → stable promotion                       | `minor`                                                         |
+| Docs-site-only change (`apps/www/**`)            | none                                                            |
+| Change to a component not yet released           | none — fold the description into that component's own changeset |
 
 The changeset body is release-note prose for consumers: what the component is, what its parts do, what its
 public tokens and data attributes are, and the docs URL. Write it for someone reading the changelog, not for
