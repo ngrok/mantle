@@ -53,15 +53,17 @@ Verify `packages/mantle/src/components/<component-name>/<component-name>.tsx` (a
 
 #### 2.1.a. ARIA pattern-word check
 
-Collect the component name and every exported part name, then flag any that use a reserved ARIA pattern word: `Menu`/`MenuItem`, `Listbox`/`Option`, `Tab`/`TabPanel`, `Tree`/`TreeItem`, `Grid`/`Row`/`Cell`, `Dialog`, `Toolbar`, `Combobox`. For each hit, verify **both** halves of the contract in the implementation:
+Collect the component name and every exported part name, then look for reserved ARIA pattern words in them: `Menu`/`MenuItem`, `Listbox`/`Option`, `Tab`/`TabPanel`, `Tree`/`TreeItem`, `Grid`/`Row`/`Cell`, `Dialog`, `Toolbar`, `Combobox`. Split each name into its PascalCase segments and match **whole segments, not substrings** — `MenuItem` and `SidebarMenuButton` both hit `Menu`, while `Table` does not hit `Tab` and `Optional` does not hit `Option`.
+
+A hit is a question, not yet a violation, and a longer name is neither an automatic pass nor an automatic fail. What matters is whether the pattern the word names is genuinely present: `Command.DialogTrigger` is fine because it is Radix's dialog trigger, while `SidebarMenuButton` over a `<ul>` of links is a violation for the same reason `MenuItem` would be. For each hit, verify **both** halves of the contract against the implementation of that part — or, when the word names a pattern the part only participates in (a `Trigger` for a `Dialog`), against the pattern it references:
 
 1. **The role is emitted** — either explicitly (`role="menu"`), natively by the element (`<tr>` → `role="row"`, `<dialog>` → `role="dialog"`, `<table>` → `role="table"`), or by a third-party primitive it wraps that emits it (Radix `DropdownMenu`, `Tabs`, `Dialog`; Ariakit equivalents).
 2. **The keyboard contract is implemented** — the APG behavior the pattern promises: roving focus / single tab stop, arrow-key navigation, typeahead, `Escape` to dismiss, as applicable. A wrapped Radix/Ariakit primitive satisfies this; a hand-rolled `<ul>` with `role="menu"` and no key handling does not.
 
 Outcomes:
 
-- **Both hold** → no violation. The pattern's vocabulary is the correct name (`DropdownMenu.Item` really is a `role="menuitem"` in a `role="menu"`).
-- **Neither holds** → flag as a **rename** (author judgment, step 5) — e.g. a `<ul>` of navigation links exposing `Menu`/`MenuItem` parts should be `List`/`Item`.
+- **Both hold** → no violation. The pattern's vocabulary is the correct name (`DropdownMenu.Item` really is a `role="menuitem"` in a `role="menu"`; `Command.DialogTrigger` really opens a Radix dialog).
+- **Neither holds** → flag as a **rename** (author judgment, step 5) — e.g. a `<ul>` of navigation links exposing `Menu`/`MenuItem` parts should be `List`/`Item`. A composite name over that same markup (`MenuButton`, `SidebarMenuItem`) is the identical violation with more words around it.
 - **Role emitted but keyboard contract missing** → flag as a bug: either implement the contract or drop both the role and the name. Report it; do not pick for the author.
 
 **Never resolve a mismatch by adding the ARIA role.** Adding `role="menu"` to make the name honest removes the list's natural tab order and promises roving focus and typeahead that aren't there. The fix is always to rename the part.
