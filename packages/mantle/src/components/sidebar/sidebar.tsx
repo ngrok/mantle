@@ -983,14 +983,10 @@ const Footer = ({
 
 type SidebarGroupContextValue = {
 	/**
-	 * The generated id a `Sidebar.GroupLabel` adopts when the consumer passes
-	 * none of their own.
-	 */
-	labelId: string;
-	/**
 	 * The id of the `Sidebar.GroupLabel` currently mounted in this group — the
-	 * consumer's own `id` when they pass one, else {@link labelId} — or `null`
-	 * while no label is mounted, so the list's `aria-labelledby` never dangles.
+	 * consumer's own `id` when they pass one, else the label's generated id —
+	 * or `null` while no label is mounted, so the list's `aria-labelledby`
+	 * never dangles.
 	 */
 	mountedLabelId: string | null;
 	/**
@@ -1069,11 +1065,10 @@ const Group = ({
 	"data-slot": dataSlot,
 	...props
 }: SidebarGroupProps) => {
-	const labelId = useId();
 	const [mountedLabelId, setMountedLabelId] = useState<string | null>(null);
 	const contextValue = useMemo<SidebarGroupContextValue>(
-		() => ({ labelId, mountedLabelId, setMountedLabelId }),
-		[labelId, mountedLabelId],
+		() => ({ mountedLabelId, setMountedLabelId }),
+		[mountedLabelId],
 	);
 	const Comp = asChild ? Slot : "div";
 
@@ -1159,7 +1154,10 @@ const GroupLabel = ({
 	...props
 }: SidebarGroupLabelProps) => {
 	const groupContext = useContext(SidebarGroupContext);
-	const labelId = idProp ?? groupContext?.labelId;
+	const generatedId = useId();
+	// Outside a group there is nothing to name, so the label renders no id at
+	// all rather than an unreferenced generated one.
+	const labelId = idProp ?? (groupContext == null ? undefined : generatedId);
 	// Register the id the label actually renders with — a consumer-supplied
 	// `id` included — so `Sidebar.List` stays named either way. Depends on the
 	// stable setter rather than the whole context value: the registration
