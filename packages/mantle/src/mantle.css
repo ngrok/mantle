@@ -366,7 +366,7 @@ MARK: LIGHT DEFS
 	/* Chart series tokens — light picks validated against the white card surface:
 	   worst adjacent CVD ΔE 14.0 (target ≥ 8), normal-vision floor 15.7 (≥ 15),
 	   all slots ≥ 3:1 contrast. Semantic ramps (sky/emerald/rose/amber/purple) are
-	   deliberately excluded so a series never impersonates a status color. */
+	   deliberately excluded so a series never reads as a status color. */
 	--color-chart-1: var(--color-blue-500);
 	--color-chart-2: var(--color-green-700);
 	--color-chart-3: var(--color-pink-500);

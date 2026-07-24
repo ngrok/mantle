@@ -53,24 +53,24 @@ describe("AppLayout.Root", () => {
 
 describe("AppLayout.Notice", () => {
 	test("renders an unstyled full-width strip", () => {
-		render(<AppLayout.Notice data-testid="notice">impersonating</AppLayout.Notice>);
+		render(<AppLayout.Notice data-testid="notice">maintenance</AppLayout.Notice>);
 		const notice = screen.getByTestId("notice");
 		expect(notice.tagName).toBe("DIV");
 		expect(notice).toHaveAttribute("data-slot", "app-layout-notice");
 		expect(notice.className).toContain("shrink-0");
-		expect(notice).toHaveTextContent("impersonating");
+		expect(notice).toHaveTextContent("maintenance");
 	});
 
 	test("is not a header banner landmark", () => {
-		render(<AppLayout.Notice>impersonating</AppLayout.Notice>);
+		render(<AppLayout.Notice>maintenance</AppLayout.Notice>);
 		expect(screen.queryByRole("banner")).not.toBeInTheDocument();
 	});
 
-	test("stacks an impersonation banner with the alert center in one shell slot", () => {
+	test("stacks a maintenance banner with the alert center in one shell slot", () => {
 		render(
 			<AppLayout.Root>
 				<AppLayout.Notice data-testid="notice">
-					<div>Impersonating jane@example.com</div>
+					<div>Scheduled maintenance in progress</div>
 					<AlertCenter.Root>
 						<AlertCenter.Bar />
 						<AlertCenter.Content />

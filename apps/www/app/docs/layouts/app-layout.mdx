@@ -13,7 +13,7 @@ A viewport-locked application shell. The shell itself never scrolls: `AppLayout.
 that scrolls internally with `overscroll-none`, so long pages never bounce or drag the chrome. Pinned to
 the top of that card, `AppLayout.Header` is a sticky toolbar row for the sidebar trigger and breadcrumbs,
 and `AppLayout.Notice` is a full-window composition slot for app-wide messaging that pushes everything —
-including any sidebar — down. It can stack a rare impersonation or environment banner with a persistent
+including any sidebar — down. It can stack a rare maintenance or environment banner with a persistent
 account-alert bar. It is a **layout**: it owns _where things go_, and app state (routing, sessions, data)
 never enters it.
 
@@ -478,7 +478,7 @@ export function Shell() {
 				{showNotice && (
 					<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
 						<WarningCircleIcon weight="fill" className="shrink-0" />
-						You are impersonating jane@example.com in read-only mode.
+						Scheduled maintenance in progress — the dashboard is read-only.
 					</div>
 				)}
 			</AppLayout.Notice>
@@ -528,7 +528,7 @@ AppLayout.Root
   It fills its nearest sized ancestor; merge `className="fixed inset-0"` to pin a real app shell to the
   viewport. The shell never scrolls — only `Content` does.
 - **`Notice`** is the full-window-width, vertical composition slot pinned above everything else
-  (`flex w-full shrink-0 flex-col`). Stack an impersonation or environment banner and an account alert bar
+  (`flex w-full shrink-0 flex-col`). Stack a maintenance or environment banner and an account alert bar
   here; each brings its own colors while the slot pushes the whole shell down. Collapses to nothing when
   empty. Optional.
 - **`Body`** is the main flex row (`flex min-h-0 flex-1`). Its children are the app's columns — place a
@@ -651,7 +651,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 ### AppLayout.Notice
 
 A full-window-width, vertical composition slot pinned above everything else in the shell — including any
-sidebar — for app-wide messaging. Stack a rare impersonation or environment banner and a persistent account
+sidebar — for app-wide messaging. Stack a rare maintenance or environment banner and a persistent account
 alert bar here; each child brings its own colors and layout while the slot pushes the whole shell down.
 Renders an unstyled `<div>` (`flex w-full shrink-0 flex-col`) and collapses to nothing when empty.
 Deliberately not named Banner so it never reads as the ARIA `banner` landmark — it claims no landmark at

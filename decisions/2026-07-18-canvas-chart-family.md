@@ -126,7 +126,7 @@ against that theme's card surface:
 | dark high contrast     | CVD/normal/chroma/contrast pass (6.8–12.2:1, zero warns); the standard dark lightness band is unsatisfiable by construction (bimodal ramps) — deliberately brighter marks are the correct high-contrast trade-off |
 
 Semantic ramps (sky/emerald/rose/amber/purple) are excluded from series slots
-so a series never impersonates a status color; a series that _means_ good/bad
+so a series never reads as a status color; a series that _means_ good/bad
 should wear status tokens explicitly. `chart/tokens.test.ts` pins the
 slot→token mapping in all four theme files — editing a theme file fails the
 build until the new values are re-validated.

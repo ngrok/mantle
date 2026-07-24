@@ -59,7 +59,7 @@ const Root = ({
 
 /**
  * A full-window-width strip pinned above everything else in the layout —
- * including `CenteredLayout.Header` — for impersonation notices, environment
+ * including `CenteredLayout.Header` — for maintenance notices, environment
  * warnings, and similar app-wide messaging. Renders an unstyled `<div>`
  * (`w-full shrink-0`): the notice content brings its own colors and layout,
  * and the part collapses to nothing when empty, so it can stay mounted and
@@ -82,7 +82,7 @@ const Root = ({
  * ```tsx
  * <CenteredLayout.Root>
  *   <CenteredLayout.Notice>
- *     {isImpersonating && <ImpersonationBanner />}
+ *     {isUnderMaintenance && <MaintenanceBanner />}
  *   </CenteredLayout.Notice>
  *   <CenteredLayout.Body>
  *     <Main>
@@ -343,7 +343,7 @@ const CenteredLayout = {
 	Root,
 	/**
 	 * A full-window-width strip pinned above everything else in the layout —
-	 * including `Header` — for impersonation notices and environment warnings.
+	 * including `Header` — for maintenance notices and environment warnings.
 	 * Renders an unstyled `<div>` (`w-full shrink-0`): the notice content
 	 * brings its own colors, and the part collapses to nothing when empty. The
 	 * same slot contract as `AppLayout.Notice`, so an app-wide banner
@@ -359,7 +359,7 @@ const CenteredLayout = {
 	 * ```tsx
 	 * <CenteredLayout.Root>
 	 *   <CenteredLayout.Notice>
-	 *     {isImpersonating && <ImpersonationBanner />}
+	 *     {isUnderMaintenance && <MaintenanceBanner />}
 	 *   </CenteredLayout.Notice>
 	 *   <CenteredLayout.Body>
 	 *     <Main>

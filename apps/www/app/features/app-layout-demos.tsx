@@ -22,7 +22,7 @@ export function AppLayoutDemo() {
 				{showNotice && (
 					<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
 						<WarningCircleIcon weight="fill" className="shrink-0" />
-						You are impersonating jane@example.com in read-only mode.
+						Scheduled maintenance in progress — the dashboard is read-only.
 					</div>
 				)}
 			</AppLayout.Notice>

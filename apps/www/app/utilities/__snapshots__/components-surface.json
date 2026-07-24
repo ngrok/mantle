@@ -78,7 +78,7 @@
     "jsdoc": "A viewport-locked application shell: an optional full-width `AppLayout.Notice` strip on top, then a row holding the app's columns — typically a `Sidebar.Nav` beside an `AppLayout.Inset` whose `AppLayout.Content` card is the only thing that scrolls.",
     "examples": [
       "Composition:\n```\nAppLayout.Root\n├── AppLayout.Notice\n└── AppLayout.Body\n    └── AppLayout.Inset\n        └── AppLayout.Content\n            └── AppLayout.Header\n```",
-      "```tsx\n<Sidebar.Root>\n  <AppLayout.Root className=\"fixed inset-0\">\n    <SkipToMainLink />\n    <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>\n    <AppLayout.Body>\n      <Sidebar.Nav aria-label=\"Main\">…</Sidebar.Nav>\n      <AppLayout.Inset>\n        <AppLayout.Content asChild>\n          <Main>\n            <AppLayout.Header>\n              <Sidebar.Trigger />\n              <Breadcrumbs />\n            </AppLayout.Header>\n            <Outlet />\n          </Main>\n        </AppLayout.Content>\n      </AppLayout.Inset>\n    </AppLayout.Body>\n  </AppLayout.Root>\n</Sidebar.Root>\n```"
+      "```tsx\n<Sidebar.Root>\n  <AppLayout.Root className=\"fixed inset-0\">\n    <SkipToMainLink />\n    <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>\n    <AppLayout.Body>\n      <Sidebar.Nav aria-label=\"Main\">…</Sidebar.Nav>\n      <AppLayout.Inset>\n        <AppLayout.Content asChild>\n          <Main>\n            <AppLayout.Header>\n              <Sidebar.Trigger />\n              <Breadcrumbs />\n            </AppLayout.Header>\n            <Outlet />\n          </Main>\n        </AppLayout.Content>\n      </AppLayout.Inset>\n    </AppLayout.Body>\n  </AppLayout.Root>\n</Sidebar.Root>\n```"
     ]
   },
   {

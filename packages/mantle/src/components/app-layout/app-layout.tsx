@@ -25,7 +25,7 @@ import { Slot } from "../slot/index.js";
  * ```tsx
  * <AppLayout.Root className="fixed inset-0">
  *   <SkipToMainLink />
- *   <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>
+ *   <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
  *   <AppLayout.Body>
  *     <AppLayout.Inset>
  *       <AppLayout.Content>
@@ -67,9 +67,9 @@ const Root = ({
 
 /**
  * A full-window-width strip pinned above everything else in the shell —
- * including any sidebar — for impersonation notices, environment warnings,
+ * including any sidebar — for maintenance notices, environment warnings,
  * and similar app-wide messaging. It is a vertical composition slot: place an
- * impersonation banner and an `AlertCenter.Bar` here, and each contributes its
+ * maintenance banner and an `AlertCenter.Bar` here, and each contributes its
  * own row while the slot pushes the shell down. Renders an unstyled `<div>`
  * (`flex w-full shrink-0 flex-col`): its children bring their own colors and
  * layout, and the part collapses to nothing when empty. Deliberately not named
@@ -84,9 +84,9 @@ const Root = ({
  *   <AppLayout.Root className="fixed inset-0">
  *     <SkipToMainLink />
  *     <AppLayout.Notice>
- *       {isImpersonating && (
+ *       {isUnderMaintenance && (
  *         <div className="bg-red-500 text-on-filled flex items-center gap-2 px-4 py-1 text-xs">
- *           You are impersonating {userEmail}.
+ *           The dashboard is read-only until {maintenanceEndsAt}.
  *         </div>
  *       )}
  *     </AppLayout.Notice>
@@ -141,7 +141,7 @@ const Notice = ({
  * <Sidebar.Root>
  *   <AppLayout.Root className="fixed inset-0">
  *     <SkipToMainLink />
- *     <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>
+ *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
  *     <AppLayout.Body>
  *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
  *       <AppLayout.Inset>
@@ -193,7 +193,7 @@ const Body = ({
  * <Sidebar.Root>
  *   <AppLayout.Root className="fixed inset-0">
  *     <SkipToMainLink />
- *     <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>
+ *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
  *     <AppLayout.Body>
  *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
  *       <AppLayout.Inset>
@@ -259,7 +259,7 @@ const Inset = ({
  * <Sidebar.Root>
  *   <AppLayout.Root className="fixed inset-0">
  *     <SkipToMainLink />
- *     <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>
+ *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
  *     <AppLayout.Body>
  *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
  *       <AppLayout.Inset>
@@ -330,7 +330,7 @@ const Header = ({
  * <Sidebar.Root>
  *   <AppLayout.Root className="fixed inset-0">
  *     <SkipToMainLink />
- *     <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>
+ *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
  *     <AppLayout.Body>
  *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
  *       <AppLayout.Inset>
@@ -399,7 +399,7 @@ const Content = ({
  * <Sidebar.Root>
  *   <AppLayout.Root className="fixed inset-0">
  *     <SkipToMainLink />
- *     <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>
+ *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
  *     <AppLayout.Body>
  *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
  *       <AppLayout.Inset>
@@ -430,7 +430,7 @@ const AppLayout = {
 	 * <Sidebar.Root>
 	 *   <AppLayout.Root className="fixed inset-0">
 	 *     <SkipToMainLink />
-	 *     <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>
+	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
 	 *     <AppLayout.Body>
 	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
 	 *       <AppLayout.Inset>
@@ -451,7 +451,7 @@ const AppLayout = {
 	 */
 	Root,
 	/**
-	 * A full-window-width strip above everything (impersonation notices,
+	 * A full-window-width strip above everything (maintenance notices,
 	 * environment warnings). Unstyled; collapses when empty.
 	 *
 	 * @see https://mantle.ngrok.com/layouts/app-layout
@@ -461,7 +461,7 @@ const AppLayout = {
 	 * <Sidebar.Root>
 	 *   <AppLayout.Root className="fixed inset-0">
 	 *     <SkipToMainLink />
-	 *     <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>
+	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
 	 *     <AppLayout.Body>
 	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
 	 *       <AppLayout.Inset>
@@ -492,7 +492,7 @@ const AppLayout = {
 	 * <Sidebar.Root>
 	 *   <AppLayout.Root className="fixed inset-0">
 	 *     <SkipToMainLink />
-	 *     <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>
+	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
 	 *     <AppLayout.Body>
 	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
 	 *       <AppLayout.Inset>
@@ -523,7 +523,7 @@ const AppLayout = {
 	 * <Sidebar.Root>
 	 *   <AppLayout.Root className="fixed inset-0">
 	 *     <SkipToMainLink />
-	 *     <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>
+	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
 	 *     <AppLayout.Body>
 	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
 	 *       <AppLayout.Inset>
@@ -555,7 +555,7 @@ const AppLayout = {
 	 * <Sidebar.Root>
 	 *   <AppLayout.Root className="fixed inset-0">
 	 *     <SkipToMainLink />
-	 *     <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>
+	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
 	 *     <AppLayout.Body>
 	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
 	 *       <AppLayout.Inset>
@@ -587,7 +587,7 @@ const AppLayout = {
 	 * <Sidebar.Root>
 	 *   <AppLayout.Root className="fixed inset-0">
 	 *     <SkipToMainLink />
-	 *     <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>
+	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
 	 *     <AppLayout.Body>
 	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
 	 *       <AppLayout.Inset>

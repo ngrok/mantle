@@ -119,7 +119,7 @@
 ### Patch Changes
 
 - [#1334](https://github.com/ngrok/mantle/pull/1334) [`57cfb4d`](https://github.com/ngrok/mantle/commit/57cfb4d3ecf5c1b57f91ad9bb308e0f8f6b0344d) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `CenteredLayout.Notice`: a full-window-width strip pinned above everything else in the layout —
-  including `CenteredLayout.Header` — for impersonation notices, environment warnings, and similar app-wide
+  including `CenteredLayout.Header` — for maintenance notices, environment warnings, and similar app-wide
   messaging. It renders an unstyled `<div>` (`w-full shrink-0`) that collapses to nothing when empty, the same
   slot contract as the app-layout shell's notice strip, so an app-wide banner composes identically
   across mantle's layouts. On
