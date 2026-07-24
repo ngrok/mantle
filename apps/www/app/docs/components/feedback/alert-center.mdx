@@ -44,14 +44,13 @@ import { useState } from "react";
 export function Shell() {
 	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
 	const dismiss = (id: string) => setDismissed((previous) => new Set(previous).add(id));
-	const showPreviewNotice = false;
 
 	return (
 		<Sidebar.Root>
 			<AppLayout.Root className="fixed inset-0">
 				<SkipToMainLink />
 				<AppLayout.Notice>
-					{showPreviewNotice && <PreviewNotice />}
+					{/* other window-level notices compose here, alongside the alert center */}
 					<AlertCenter.Root>
 						<AlertCenter.Bar />
 						<AlertCenter.Content />
@@ -284,7 +283,6 @@ Compose the parts of an `AlertCenter` together to build your own. Items render `
 children are projected into the bar or an expansion row by rank:
 
 ```text showLineNumbers=false
-
 AlertCenter.Root
 ├── AlertCenter.Bar        ← the top-ranked item's children, in Alert chrome
 ├── AlertCenter.Content    ← every other item's children, as ranked rows

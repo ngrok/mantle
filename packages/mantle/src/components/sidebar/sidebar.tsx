@@ -1988,8 +1988,8 @@ const SwitchAccountsRadioGroup = ({
  * │   │       └── Sidebar.List
  * │   │           └── Sidebar.Item
  * │   │               └── Sidebar.ItemButton
- * │   ├── Sidebar.Separator
  * │   └── Sidebar.Footer
+ * │       ├── Sidebar.Separator
  * │       └── Sidebar.SwitcherButton
  * │           ├── Sidebar.AccountAvatar
  * │           └── Sidebar.UserAvatar

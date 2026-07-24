@@ -350,7 +350,7 @@ type AlertCenterRootProps = {
  * contains no bar; it enters with its height animation after hydration — the
  * same entrance every arriving alert gets by design.
  *
- * @see https://mantle.ngrok.com/components/preview/alert-center#alertcenterroot
+ * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterroot
  *
  * @example
  * ```tsx
@@ -441,7 +441,7 @@ type AlertCenterItemProps = {
  * re-rank remounts it). Avoid authoring items inside Suspense boundaries that
  * can hide them: hiding unregisters the alert and the bar animates out.
  *
- * @see https://mantle.ngrok.com/components/preview/alert-center#alertcenteritem
+ * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenteritem
  *
  * @example
  * ```tsx
@@ -507,7 +507,7 @@ const centeredBarControl = "top-1/2 -translate-y-1/2";
  * expand control). Compose it — or leave it out — per alert; its presence IS
  * the alert's dismissability.
  *
- * @see https://mantle.ngrok.com/components/preview/alert-center#alertcenterdismissiconbutton
+ * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterdismissiconbutton
  *
  * @example
  * ```tsx
@@ -726,7 +726,7 @@ function useBarFocusRedirect(topId: string | undefined): {
 		previousTopIdRef.current = topId;
 		// Redirect only on a promotion (a different alert now leads). When the
 		// bar empties entirely the wrapper is inert and unmounting — focus falls
-		// to <body>, the known preview limitation.
+		// to <body>, an accepted limitation: no in-component target remains.
 		if (topId == null || previousTopId == null || topId === previousTopId) {
 			return;
 		}
@@ -778,7 +778,7 @@ const chromeClassName = "gap-2 py-2 pr-2 [&_[data-slot=alert-icon]]:shrink-0";
  * — arrivals and re-ranks are announced by the persistent visually-hidden
  * `role="status"` region that `AlertCenter.Root` mounts.
  *
- * @see https://mantle.ngrok.com/components/preview/alert-center#alertcenterbar
+ * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterbar
  *
  * @example
  * ```tsx
@@ -913,7 +913,7 @@ type AlertCenterContentProps = Omit<ComponentProps<"div">, "children" | "id"> & 
  * `Alert.Root` chrome stamped with `data-placement="list"` and
  * `data-alert-id`.
  *
- * @see https://mantle.ngrok.com/components/preview/alert-center#alertcentercontent
+ * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcentercontent
  *
  * @example
  * ```tsx
@@ -944,7 +944,8 @@ const Content = ({ className, onBlur, onFocus, ref, ...props }: AlertCenterConte
 	// Dismissing a row removes the focused control with no blur — steer
 	// keyboard focus to the first remaining dismiss control instead of letting
 	// it fall to <body>. (When the LAST row goes, this wrapper unmounts with
-	// it — that drop is the same known preview limitation as the emptying bar.)
+	// it — that drop to <body> is the same accepted limitation as the emptying
+	// bar.)
 	const wrapperRef = useRef<HTMLDivElement | null>(null);
 	const composedRef = useComposedRefs(wrapperRef, ref);
 	const {
@@ -1044,7 +1045,7 @@ const Content = ({ className, onBlur, onFocus, ref, ...props }: AlertCenterConte
  * children render at the Bar/Content position — wrap `Root` (not individual
  * items) with any context providers they need.
  *
- * @see https://mantle.ngrok.com/components/preview/alert-center
+ * @see https://mantle.ngrok.com/components/feedback/alert-center
  *
  * @example
  * Composition (items render `null` in place; their children project into the
@@ -1101,7 +1102,7 @@ const AlertCenter = {
 	 * The renderless state owner: creates the registration store, owns the
 	 * expansion's open state, and mounts the persistent live-region announcer.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/alert-center#alertcenterroot
+	 * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterroot
 	 *
 	 * @example
 	 * ```tsx
@@ -1121,7 +1122,7 @@ const AlertCenter = {
 	 * to nothing when empty. Claims no ARIA landmark; arrivals are announced by
 	 * Root's persistent live region.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/alert-center#alertcenterbar
+	 * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterbar
 	 *
 	 * @example
 	 * ```tsx
@@ -1140,7 +1141,7 @@ const AlertCenter = {
 	 * highest-severity-first as full-width banner rows of the items' authored
 	 * children.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/alert-center#alertcentercontent
+	 * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcentercontent
 	 *
 	 * @example
 	 * ```tsx
@@ -1159,7 +1160,7 @@ const AlertCenter = {
 	 * facts plus banner-content children, projected into the bar or an
 	 * expansion row by rank. Mount to show; unmount to dismiss.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/alert-center#alertcenteritem
+	 * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenteritem
 	 *
 	 * @example
 	 * ```tsx
@@ -1179,7 +1180,7 @@ const AlertCenter = {
 	 * enclosing banner's rendered title and the bar's control centering. Its
 	 * presence in an item's children is what makes that alert dismissable.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/alert-center#alertcenterdismissiconbutton
+	 * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterdismissiconbutton
 	 *
 	 * @example
 	 * ```tsx

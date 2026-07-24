@@ -627,8 +627,8 @@ A full-window-width, vertical composition slot pinned above everything else in t
 sidebar — for app-wide messaging. Stack a rare impersonation or environment banner and a persistent account
 alert bar here; each child brings its own colors and layout while the slot pushes the whole shell down.
 Renders an unstyled `<div>` (`flex w-full shrink-0 flex-col`) and collapses to nothing when empty.
-Deliberately not named Banner — `AppLayout.Header` renders the page's `<header>` (the ARIA
-`banner` landmark), and this part is not that. Optional.
+Deliberately not named Banner so it never reads as the ARIA `banner` landmark — it claims no landmark at
+all; give the notice content its own semantics if it needs them. Optional.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 

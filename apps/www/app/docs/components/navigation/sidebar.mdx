@@ -411,8 +411,8 @@ Sidebar.Root
 │   │       └── Sidebar.List
 │   │           └── Sidebar.Item
 │   │               └── Sidebar.ItemButton
-│   ├── Sidebar.Separator
 │   └── Sidebar.Footer
+│       ├── Sidebar.Separator
 │       └── Sidebar.SwitcherButton
 │           ├── Sidebar.AccountAvatar
 │           └── Sidebar.UserAvatar
@@ -648,16 +648,77 @@ An [IconButton](/components/actions/icon-button) wired to toggle the sidebar. Al
 | `intent?`     | `"accent" \| "danger" \| "neutral"` | `"neutral"`             | The color intent of the trigger.            |
 | `label?`      | `string`                            | `"Toggle Sidebar"`      | Accessible name; override for localization. |
 
-### Sidebar.Header, Sidebar.Body, Sidebar.Footer
+### Sidebar.Header
 
-Structural containers inside `Sidebar.Nav`: a pinned header, the scrollable middle, and a pinned footer. All
-props from `div` plus `asChild`.
+The pinned structural container at the top of `Sidebar.Nav` — the app/product switcher row lives here.
 
-### Sidebar.Group, Sidebar.GroupLabel, Sidebar.List, Sidebar.Item
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-The navigation grouping: `Group` (a `div`) pairs an optional `GroupLabel` (a `div` — pass `asChild` to render
-a heading at a level you control) with a `List` (a `ul`) of `Item` rows (`li`). When a label is present the
-group links it to the list via `aria-labelledby`. All props from their respective elements plus `asChild`.
+| Prop       | Type      | Default | Description                                                                                                                 |
+| ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.Header` styling onto alternative element types or your own React components. |
+
+### Sidebar.Body
+
+The scrollable middle region of `Sidebar.Nav`, holding the navigation groups.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                               |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.Body` styling onto alternative element types or your own React components. |
+
+### Sidebar.Footer
+
+The pinned structural container at the bottom of `Sidebar.Nav` — the account/user switcher row lives here.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                 |
+| ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.Footer` styling onto alternative element types or your own React components. |
+
+### Sidebar.Group
+
+A navigation grouping `div` that pairs an optional `Sidebar.GroupLabel` with a `Sidebar.List`. When a label
+is present the group links it to the list via `aria-labelledby`.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                |
+| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.Group` styling onto alternative element types or your own React components. |
+
+### Sidebar.GroupLabel
+
+The group's label, a `div` — pass `asChild` to render a heading at a level you control. In the collapsed
+icon rail it fades in place with its row retained, so icon positions match the expanded state.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                     |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.GroupLabel` styling onto alternative element types or your own React components. |
+
+### Sidebar.List
+
+The `ul` of navigation rows inside a group.
+
+All props from [ul](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ul#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                               |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.List` styling onto alternative element types or your own React components. |
+
+### Sidebar.Item
+
+A single navigation row — an `li` wrapping a `Sidebar.ItemButton`.
+
+All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                               |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.Item` styling onto alternative element types or your own React components. |
 
 ### Sidebar.ItemButton
 
@@ -676,8 +737,13 @@ The styled switcher row for the header (app switcher) and footer (account/user r
 size-7 to match selected rail icons while the row keeps a compact 36px footprint. The control uses a custom
 10px radius on all corners so product and account switchers share the same shape around their rounded tiles.
 A styled button only — compose it with `DropdownMenu.Trigger asChild` or `Dialog.Trigger asChild`, which
-provide the open state (`data-state="open"` styling responds automatically). All props from `button` plus
-`asChild`.
+provide the open state (`data-state="open"` styling responds automatically).
+
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                         |
+| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.SwitcherButton` styling onto alternative element types or your own React components. |
 
 Inside the collapsed icon rail, the row collapses to its **first child element** — the
 leading visual — and the remaining children become visually hidden while staying in the accessibility tree,
