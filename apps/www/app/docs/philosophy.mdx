@@ -42,6 +42,15 @@ stop, while [SelectableList](/components/data-display/selectable-list) is an APG
 selectable rows carrying real controls require it. You never pick a role; you pick an
 intent.
 
+Because names promise behavior, ARIA's pattern words are earned rather than borrowed. A
+`Menu` owes you roving focus, typeahead, `Escape` to dismiss, and a single tab stop, so
+only a real `role="menu"` component gets that name—[DropdownMenu](/components/overlays/dropdown-menu)
+has it; a `<ul>` of navigation links does not, however many other libraries call that
+markup a menu. The same goes for `Listbox`, `Tab`, `Tree`, `Grid`, and `Combobox`. When a
+name and the markup disagree, we rename the part—never add the role to justify the name,
+which is how a perfectly good list of links loses its tab order. Mechanics are worth
+porting from the ecosystem; vocabulary is re-derived from what the component emits.
+
 ## The Right Foundation, Per Problem
 
 Mantle is not "built on Radix." Where the platform is enough, components are native:
