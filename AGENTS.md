@@ -34,6 +34,7 @@ Required diff-audit checklist:
 - Imports: relative paths in `packages/`, `~/...` aliases in `apps/`; named exports; `import type` for type-only imports.
 - className: composed with `cx` from `@ngrok/mantle/cx` — no string interpolation, `+`, or ternaries inside `className`.
 - Compound components: single-level POJO namespace — no nested namespaces; no `*Props` prop-bag passthrough props (`contentProps`, `triggerProps`, …) — expose the internal element as a compound part instead.
+- Naming: parts and props are named for the DOM/ARIA they actually emit (`current` → `aria-current`), never for another library's convention. ARIA pattern words (`Menu`, `Listbox`, `Tab`, `Tree`, `Grid`, `Combobox`, `Toolbar`) require that role and its keyboard contract — a `<ul>` of links is a `List`/`Item`, not a `Menu`/`MenuItem`.
 - Deps: exact-pinned versions (no `^`/`~`); shared deps go through the `catalog:` in `pnpm-workspace.yaml`.
 
 ## Setup
