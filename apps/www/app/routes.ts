@@ -99,6 +99,7 @@ export default [
 		...docRoute("components/data-display/table"),
 		// feedback
 		...docRoute("components/feedback/alert"),
+		...docRoute("components/feedback/alert-center"),
 		...docRoute("components/feedback/empty"),
 		...docRoute("components/feedback/progress-bar"),
 		...docRoute("components/feedback/progress-donut"),
@@ -136,7 +137,6 @@ export default [
 		...docRoute("components/overlays/sheet"),
 		...docRoute("components/overlays/tooltip"),
 		// preview (lifecycle namespace, not a category)
-		...docRoute("components/preview/alert-center"),
 		...docRoute("components/preview/calendar"),
 		// primitives
 		...docRoute("components/primitives/browser-only"),

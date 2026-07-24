@@ -29,10 +29,10 @@
   },
   {
     "name": "Alert Center",
-    "slug": "components/preview/alert-center",
+    "slug": "components/feedback/alert-center",
     "kind": "component",
     "category": "Feedback",
-    "status": "preview",
+    "status": "stable",
     "importPath": "@ngrok/mantle/alert-center",
     "summary": "A single top-level bar that surfaces one-to-many account alerts and their upgrade CTAs, expanding additional alerts inline.",
     "jsdoc": "A single, top-level entry point for one-to-many account alerts and their upgrade CTAs — the aggregation layer that replaces a stack of independent window banners.",

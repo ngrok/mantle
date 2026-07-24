@@ -1,7 +1,7 @@
 /**
  * Re-exports for the AlertCenter component.
  *
- * @see https://mantle.ngrok.com/components/preview/alert-center
+ * @see https://mantle.ngrok.com/components/feedback/alert-center
  */
 
 export {

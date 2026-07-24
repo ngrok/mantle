@@ -67,7 +67,15 @@ export const componentsByCategory = {
 		"Selectable List",
 		"Table",
 	],
-	Feedback: ["Alert", "Empty", "Progress Bar", "Progress Donut", "Skeleton", "Toast"],
+	Feedback: [
+		"Alert",
+		"Alert Center",
+		"Empty",
+		"Progress Bar",
+		"Progress Donut",
+		"Skeleton",
+		"Toast",
+	],
 	Forms: [
 		"Checkbox",
 		"Choice",
@@ -120,7 +128,6 @@ export const prodReadyComponents: readonly ProdReadyComponent[] = componentCateg
  */
 export const previewComponents = [
 	//,
-	"Alert Center",
 	"Calendar",
 ] as const;
 
@@ -128,6 +135,7 @@ export const previewComponents = [
 export const prodReadyComponentRouteLookup = {
 	Accordion: "/components/data-display/accordion",
 	Alert: "/components/feedback/alert",
+	"Alert Center": "/components/feedback/alert-center",
 	"Alert Dialog": "/components/overlays/alert-dialog",
 	Anchor: "/components/navigation/anchor",
 	"Area Chart": "/components/charts/area-chart",
@@ -195,7 +203,6 @@ export const prodReadyComponentRouteLookup = {
 
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
-	"Alert Center": "/components/preview/alert-center",
 	Calendar: "/components/preview/calendar",
 } as const satisfies Record<(typeof previewComponents)[number], Route>;
 
@@ -205,7 +212,6 @@ export const previewComponentsRouteLookup = {
  * still belongs to a category in the manifest so agents can group them.
  */
 export const previewComponentCategoryLookup = {
-	"Alert Center": "Feedback",
 	Calendar: "Forms",
 } as const satisfies Record<(typeof previewComponents)[number], ComponentCategory>;
 

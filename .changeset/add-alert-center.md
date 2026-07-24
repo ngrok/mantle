@@ -2,7 +2,7 @@
 "@ngrok/mantle": minor
 ---
 
-Add the `AlertCenter` **preview** compound component (`@ngrok/mantle/alert-center`): a single, top-level
+Add the `AlertCenter` compound component (`@ngrok/mantle/alert-center`): a single, top-level
 entry point for one-to-many account alerts and their upgrade CTAs, meant to replace a stack of independent
 window banners with one severity-colored bar. Alerts are **authored as JSX**: each `AlertCenter.Item`
 composes the normal `Alert` banner parts as children (real anchors, arbitrary content) and registers its
@@ -18,4 +18,4 @@ the remaining items inline as ranked, full-width banner rows. `AlertCenter.Dismi
 per-item dismiss affordance — its presence in an item's children is what makes that alert dismissable. The
 chrome around each item is stamped with `data-placement="bar" | "list"` and `data-alert-id` as documented
 styling hooks. Also exports the `AlertCenterIntent`, `AlertCenterItemProps`, and `AlertCenterRootProps`
-types. Docs: https://mantle.ngrok.com/components/preview/alert-center
+types. Docs: https://mantle.ngrok.com/components/feedback/alert-center
