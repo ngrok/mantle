@@ -47,6 +47,21 @@ describe("useSessionStorage", () => {
 		expect(window.sessionStorage.getItem(key)).toBe(JSON.stringify("next-value"));
 	});
 
+	test("a storage event without a storageArea fails open and updates the value", () => {
+		const { result } = renderHook(() => useSessionStorage(key, defaultValue));
+
+		act(() => {
+			window.sessionStorage.setItem(key, JSON.stringify("untagged-dispatch"));
+			// dispatchers that omit storageArea must still notify the hook
+			window.dispatchEvent(
+				new StorageEvent("storage", { key, newValue: JSON.stringify("untagged-dispatch") }),
+			);
+		});
+
+		const [value] = result.current;
+		expect(value).toBe("untagged-dispatch");
+	});
+
 	test("ignores storage events for other keys and other storage areas", () => {
 		window.sessionStorage.setItem(key, JSON.stringify("initial"));
 		const { result } = renderHook(() => useSessionStorage(key, defaultValue));
@@ -99,6 +114,15 @@ describe("useSessionStorage", () => {
 
 	test("a corrupt (unparseable) entry resolves to the default instead of throwing", () => {
 		window.sessionStorage.setItem(key, "not-json{");
+
+		const { result } = renderHook(() => useSessionStorage(key, defaultValue));
+
+		const [value] = result.current;
+		expect(value).toBe(defaultValue);
+	});
+
+	test("a parseable non-string entry resolves to the default", () => {
+		window.sessionStorage.setItem(key, JSON.stringify({ nested: true }));
 
 		const { result } = renderHook(() => useSessionStorage(key, defaultValue));
 
