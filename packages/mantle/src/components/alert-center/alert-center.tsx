@@ -728,35 +728,17 @@ type AlertCenterDismissIconButtonProps = ComponentProps<typeof Alert.DismissIcon
 };
 
 /**
- * Vertically centers the bar's trailing controls. `Alert`'s dismiss/expand
- * controls are absolutely pinned at a fixed `top-1.5` — tuned to center within
- * the Alert's default `p-2.5` padding and to top-align in a multi-line alert.
- * The bar is a strictly single-line banner with tighter `py-2`, so that fixed
- * offset lands ~2px below center; centering with a transform re-centers the
- * control independent of the padding.
- */
-const centeredBarControl = "top-1/2 -translate-y-1/2";
-
-/**
- * The dismiss control's bar-centering, expressed as `in-data-[placement=bar]`
- * variants of {@link centeredBarControl} so it follows the chrome's stamped
- * placement purely in CSS — the control's host physically moves between the
- * bar and a row without a re-render, and its styling must move with it.
- */
-const placementAwareDismissControl =
-	"in-data-[placement=bar]:top-1/2 in-data-[placement=bar]:-translate-y-1/2";
-
-/**
- * The dismiss affordance for the item it's composed inside. A thin wrapper
- * over `Alert.DismissIconButton`, placement-aware in two ways: its label
- * defaults to `Dismiss ${title}` derived from the enclosing banner's RENDERED
- * `Alert.Title` text, re-read on every commit so the accessible name stays in
- * lockstep with the visible copy (pass `label` to override, e.g. when the
- * title is long), and
- * in the bar it re-centers itself for the single-line form (where
- * `Alert.Root`'s existing expand-aware CSS already seats it next to the
- * expand control). Compose it — or leave it out — per alert; its presence IS
- * the alert's dismissability.
+ * The dismiss affordance for the item it's composed inside. A thin wrapper over
+ * `Alert.DismissIconButton` whose label defaults to `Dismiss ${title}`, derived
+ * from the enclosing banner's RENDERED `Alert.Title` text and re-read on every
+ * commit so the accessible name stays in lockstep with the visible copy (pass
+ * `label` to override, e.g. when the title is long). Compose it — or leave it
+ * out — per alert; its presence IS the alert's dismissability.
+ *
+ * Where the control sits in each placement is the chrome's business, not this
+ * wrapper's: `Alert.Root`'s existing expand-aware CSS seats it beside the bar's
+ * expand control, and {@link singleLineBarControls} re-centers it in a
+ * single-line bar.
  *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterdismissiconbutton
  *
@@ -775,12 +757,7 @@ const placementAwareDismissControl =
  * </AlertCenter.Root>
  * ```
  */
-const DismissIconButton = ({
-	className,
-	label,
-	ref,
-	...props
-}: AlertCenterDismissIconButtonProps) => {
+const DismissIconButton = ({ label, ref, ...props }: AlertCenterDismissIconButtonProps) => {
 	const isInsideItem = useContext(AlertCenterItemContext);
 	invariant(
 		isInsideItem,
@@ -810,7 +787,6 @@ const DismissIconButton = ({
 		<Alert.DismissIconButton
 			ref={composedRef}
 			label={label ?? derivedLabel ?? undefined}
-			className={cx(placementAwareDismissControl, className)}
 			{...props}
 		/>
 	);
@@ -1093,17 +1069,41 @@ function useBarFocusRedirect({
 const chromeClassName = "gap-2 py-2 pr-2 [&_[data-slot=alert-icon]]:shrink-0";
 
 /**
- * The always-visible, full-width strip. It renders the single highest-severity
- * item's authored children INLINE — icon, title, and its call-to-action — so
- * the top CTA is one glance (and zero extra clicks) away, then appends a
- * count-and-caret control that expands the additional alerts below the bar.
- * Collapses to nothing when there are no alerts (like `AppLayout.Notice`), so
- * it can stay mounted and render unconditionally.
+ * Vertically centers the bar's trailing controls (dismiss and expand) while the
+ * bar is a single line. `Alert` pins both controls at a fixed `top-1.5` — tuned
+ * to center within its default `p-2.5` and to top-align in a multi-line alert —
+ * and the bar's tighter `py-2` leaves that offset ~2px below center, so a
+ * transform re-centers them independent of the padding. The
+ * `not-has-data-[slot=alert-description]` gate scopes that to the single-line
+ * form: once the top alert authors an `Alert.Description`, the bar is a
+ * multi-line banner exactly like an expansion row, where `Alert`'s top-aligned
+ * default is the correct (and row-matching) position.
  *
- * The bar is the single-line form: it hides `Alert.Description` (shown in the
- * expansion rows instead), so put the call-to-action inside `Alert.Title`. Its
- * chrome carries `data-placement="bar"` and `data-alert-id` as styling hooks
- * for placement-aware authored content (e.g. `in-data-[placement=bar]:hidden`).
+ * Written on the chrome rather than on the controls so one rule covers both, and
+ * because only the chrome can see whether a description was authored — the
+ * children render through a portal, so no React state describes their shape;
+ * `:has()` reads it off the committed DOM instead. A chrome-side descendant
+ * selector also follows a control through a placement move for free, which a
+ * class on the control itself cannot (the move is imperative DOM adoption, with
+ * no re-render).
+ */
+const singleLineBarControls =
+	"not-has-data-[slot=alert-description]:[&_[data-alert-dismiss],&_[data-alert-expand]]:top-1/2 not-has-data-[slot=alert-description]:[&_[data-alert-dismiss],&_[data-alert-expand]]:-translate-y-1/2";
+
+/**
+ * The always-visible, full-width strip. It renders the single highest-severity
+ * item's authored children INLINE — icon, title, description, and its
+ * call-to-action — so the top CTA is one glance (and zero extra clicks) away,
+ * then appends a count-and-caret control that expands the additional alerts
+ * below the bar. Collapses to nothing when there are no alerts (like
+ * `AppLayout.Notice`), so it can stay mounted and render unconditionally.
+ *
+ * The bar renders the top alert as authored, so it is exactly as tall as that
+ * content: single-line for a title alone, two lines once an `Alert.Description`
+ * is composed (matching how the same alert renders as an expansion row). Its
+ * chrome carries `data-placement="bar"` and `data-alert-id` as styling hooks for
+ * placement-aware authored content — `in-data-[placement=bar]:hidden` keeps a
+ * given element out of the bar and shows it only in the expansion.
  *
  * The bar itself claims NO ARIA landmark (deliberately, like `AppLayout.Notice`)
  * — arrivals and re-ranks are announced by the persistent visually-hidden
@@ -1260,15 +1260,7 @@ const Bar = ({ className, ref, ...props }: AlertCenterBarProps) => {
 				ref={ref}
 				appearance="banner"
 				intent={alert.intent}
-				className={cx(
-					chromeClassName,
-					// The single-line form: authored descriptions render only in the
-					// expansion rows. display:none also removes any links inside from
-					// the tab order and the a11y tree.
-					"[&_[data-slot=alert-description]]:hidden",
-					className,
-					alert.className,
-				)}
+				className={cx(chromeClassName, singleLineBarControls, className, alert.className)}
 				{...props}
 				// after the spread so consumers can't drop the styling/testing hooks
 				data-slot="alert-center-bar"
@@ -1284,7 +1276,6 @@ const Bar = ({ className, ref, ...props }: AlertCenterBarProps) => {
 				    aria-controls would reference a missing id. */}
 				{remaining > 0 && contentMounted && (
 					<Alert.ExpandButton
-						className={centeredBarControl}
 						count={remaining}
 						expanded={isExpanded}
 						aria-controls={contentId}
@@ -1350,11 +1341,18 @@ const Content = ({
 	}, [store]);
 
 	// The open state describes a user gesture applied to a set of hidden alerts.
-	// Once that set empties, the expansion (and its control) unmount, so a stale
+	// Once that set EMPTIES, the expansion (and its control) unmount, so a stale
 	// `true` would silently re-open — pushing the shell down — the next time any
-	// lower-ranked alert arrives, with no user action.
+	// lower-ranked alert arrives, with no user action. Only that transition
+	// retires the state: the first commit has no rows yet either (items register
+	// from their own layout effects, which run after this one), so collapsing
+	// there would defeat `defaultOpen` outright and report a close no consumer
+	// controlling `open` ever asked for.
+	const hadRowsRef = useRef(hasRows);
 	useIsomorphicLayoutEffect(() => {
-		if (!hasRows && isExpanded) {
+		const rowSetEmptied = hadRowsRef.current && !hasRows;
+		hadRowsRef.current = hasRows;
+		if (rowSetEmptied && isExpanded) {
 			setExpanded(false);
 		}
 	}, [hasRows, isExpanded, setExpanded]);
@@ -1600,9 +1598,9 @@ const AlertCenter = {
 	Root,
 	/**
 	 * The always-visible strip: the highest-severity item's children inline
-	 * (icon, title, CTA) plus the count-and-caret expansion control. Collapses
-	 * to nothing when empty. Claims no ARIA landmark; arrivals are announced by
-	 * Root's persistent live region.
+	 * (icon, title, description, CTA) plus the count-and-caret expansion control.
+	 * Collapses to nothing when empty. Claims no ARIA landmark; arrivals are
+	 * announced by Root's persistent live region.
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterbar
 	 *

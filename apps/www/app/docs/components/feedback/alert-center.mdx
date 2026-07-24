@@ -12,6 +12,7 @@ import {
 	AlertCenterMixedDismissabilityExample,
 	AlertCenterPersistedDismissExample,
 	AlertCenterSingleAlertExample,
+	AlertCenterSupportingCopyExample,
 } from "~/features/alert-center-demos";
 
 <PageHeader id="alert-center">Alert Center</PageHeader>
@@ -63,10 +64,7 @@ export function Shell() {
 									<Alert.Title>
 										Payment failed — update your card <a href="/billing">Update payment method</a>
 									</Alert.Title>
-									<Alert.Description>
-										We couldn't charge the card ending in 4242. Update your payment method to avoid
-										interruption.
-									</Alert.Description>
+									<Alert.Description>We couldn't charge the card ending in 4242.</Alert.Description>
 									<AlertCenter.DismissIconButton onClick={() => dismiss("payment-failed")} />
 								</Alert.Content>
 							</AlertCenter.Item>
@@ -104,8 +102,9 @@ export function Shell() {
 ## How it works
 
 - **The bar surfaces the top alert inline.** `AlertCenter.Bar` renders the highest-severity item's authored
-  children — icon, title, and call-to-action — directly in the strip, so the most urgent CTA is one glance
-  and zero extra clicks away. Hiding _every_ CTA behind a click is exactly what makes banners fail to convert.
+  children — icon, title, description, and call-to-action — directly in the strip, so the most urgent CTA is
+  one glance and zero extra clicks away. Hiding _every_ CTA behind a click is exactly what makes banners fail
+  to convert.
 - **The count-and-caret control expands the full list.** When two or more alerts are active, the bar renders
   a compact control that expands `AlertCenter.Content` beneath it. The additional alerts render as compact,
   full-width one- or two-line banners, push the app layout down, and can be collapsed by the same control.
@@ -363,16 +362,47 @@ export function AccountAlerts({ serverAlerts }: { serverAlerts: ReadonlyArray<Se
 }
 ```
 
-## The bar is the single-line form
+## Supporting copy in the bar
 
-The bar shows the top alert's icon and title, so **put the call-to-action inside `Alert.Title`** — a CTA in
-the description would vanish whenever its alert leads the ranking. `Alert.Description` renders only in the
-expansion rows; the bar hides it (fully — it leaves the tab order and the accessibility tree, not just the
-paint). Note the corollary: the **top-ranked** alert's description has no reveal path (the expansion lists
-only the alerts behind the bar), so treat descriptions as nice-to-have supporting copy and keep must-read
-content in the title. The same placement mechanism is yours to use: the chrome around your children carries
-`data-placement="bar"` in the bar and `data-placement="list"` in the expansion, so a class like
-`in-data-[placement=bar]:hidden` hides any element in the bar the way the center hides descriptions.
+The bar renders the top alert **as authored** — icon, title, `Alert.Description`, call-to-action — so it is
+a single line for a title alone and a two-line banner once a description is composed, exactly like the same
+alert renders as an expansion row. Nothing is suppressed by placement, so a CTA reads naturally from the
+description (`Please update your payment method.`) instead of being crammed into the title.
+
+<Example>
+	<AlertCenterSupportingCopyExample />
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+import { AlertCenter } from "@ngrok/mantle/alert-center";
+
+<AlertCenter.Root defaultOpen>
+	<AlertCenter.Bar />
+	<AlertCenter.Content />
+	<AlertCenter.Item id="payment-failed" intent="danger">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>The last payment attempt for your account failed</Alert.Title>
+			<Alert.Description>
+				Please <a href="/billing/payment-overdue">update your payment method</a> to avoid a service
+				interruption.
+			</Alert.Description>
+		</Alert.Content>
+	</AlertCenter.Item>
+	{/* … */}
+</AlertCenter.Root>;
+```
+
+Two things still argue for a title on every alert, and for keeping bar copy short:
+
+- **The title is the announcement.** The live region headlines with the top alert's rendered `Alert.Title`
+  (CTA anchors stripped); a description is not announced. An alert with no title announces as a bare count.
+- **The bar pushes the app shell down.** It is the topmost thing in the window, so every line it grows costs
+  the page. Detail that only matters once someone is reading the full list belongs in the expansion: the
+  chrome around your children carries `data-placement="bar"` in the bar and `data-placement="list"` in the
+  expansion, so `in-data-[placement=bar]:hidden` on any element — a description included — keeps it out of
+  the bar and shows it only in a row.
 
 ## Projection
 
@@ -534,9 +564,9 @@ The per-item dismiss affordance: a thin wrapper over
 [`Alert.DismissIconButton`](/components/feedback/alert#alertdismissiconbutton) that defaults its `label` to
 `Dismiss ${title}` — derived from the enclosing banner's **rendered** `Alert.Title` text with inline CTA
 anchors stripped and re-read on every commit, so the accessible name stays in lockstep with the visible
-copy — and re-centers itself in
-the bar's single-line form. Compose it — or leave it out —
-per alert; its presence is what makes that alert dismissable.
+copy. Compose it — or leave it out — per alert; its presence is what makes that alert dismissable. Where it
+sits is the chrome's business: the bar centers its trailing controls while it is a single line and
+top-aligns them once the top alert has a description, matching every expansion row.
 
 | Prop      | Type                | Default            | Description                                                                            |
 | --------- | ------------------- | ------------------ | -------------------------------------------------------------------------------------- |

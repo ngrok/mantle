@@ -407,12 +407,51 @@ describe("AlertCenter.Bar", () => {
 		expect(screen.queryByRole("button", { name: /show/i })).not.toBeInTheDocument();
 	});
 
-	test("stamps the chrome with data-placement, data-alert-id, and the single-line description hiding", () => {
+	test("stamps the chrome with data-placement and data-alert-id", () => {
 		const { container } = render(<ThreeAlertHarness />);
 		const bar = container.querySelector('[data-slot="alert-center-bar"]');
 		expect(bar).toHaveAttribute("data-placement", "bar");
 		expect(bar).toHaveAttribute("data-alert-id", "payment");
-		expect(bar).toHaveClass("[&_[data-slot=alert-description]]:hidden");
+	});
+
+	test("renders the top alert's description inline, CTA links included", () => {
+		const { container } = render(
+			<AlertCenter.Root>
+				<AlertCenter.Bar />
+				<AlertCenter.Content />
+				<AlertCenter.Item id="payment" intent="danger">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>Payment failed</Alert.Title>
+						<Alert.Description>
+							We couldn&apos;t charge the card ending in 4242.{" "}
+							<a href="/billing">Update payment method</a>
+						</Alert.Description>
+					</Alert.Content>
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+		const bar = container.querySelector('[data-slot="alert-center-bar"]');
+		// regression: the bar used to hide `Alert.Description` outright, which
+		// dropped supporting copy — and any CTA inside it — with no reveal path
+		// (the expansion lists only the alerts BEHIND the bar)
+		expect(bar).not.toHaveClass("[&_[data-slot=alert-description]]:hidden");
+		expect(bar).toContainElement(screen.getByText(/We couldn't charge the card ending in 4242/));
+		expect(bar).toContainElement(screen.getByRole("link", { name: "Update payment method" }));
+		// the announcer still headlines with the TITLE alone
+		expect(screen.getByRole("status")).toHaveTextContent(/^Payment failed$/);
+	});
+
+	test("positions the bar's trailing controls from the chrome, gated on the single-line form", () => {
+		const { container } = render(<ThreeAlertHarness />);
+		const bar = container.querySelector('[data-slot="alert-center-bar"]');
+		expect(bar).toHaveClass(
+			"not-has-data-[slot=alert-description]:[&_[data-alert-dismiss],&_[data-alert-expand]]:top-1/2",
+		);
+		// the controls must NOT center themselves: an unconditional class would
+		// out-live the gate and center them in a two-line bar too, where `Alert`'s
+		// top-aligned default is what matches the expansion rows
+		expect(screen.getByRole("button", { name: "Show 2 more alerts" })).not.toHaveClass("top-1/2");
 	});
 
 	test("keeps a top alert's dismiss control when more alerts arrive", () => {
@@ -825,17 +864,14 @@ describe("AlertCenter.DismissIconButton", () => {
 		expect(screen.getByRole("button", { name: "Hide this notice" })).toBeInTheDocument();
 	});
 
-	test("carries placement-gated centering that follows the chrome's data-placement", async () => {
-		// The centering is a CSS variant gated on the chrome's data-placement
-		// stamp — the control's host physically moves between placements
-		// without a re-render, so its styling must move with it in pure CSS.
+	test("leaves its positioning to the chrome it lands in", async () => {
+		// The control's host physically moves between placements without a
+		// re-render, so its position can't live on the control — the chrome it
+		// lands in positions it in pure CSS (see the Bar's gated centering).
 		const user = userEvent.setup();
 		render(<ThreeAlertHarness />);
 		const barDismiss = screen.getByRole("button", { name: "Dismiss Payment failed" });
-		expect(barDismiss).toHaveClass(
-			"in-data-[placement=bar]:top-1/2",
-			"in-data-[placement=bar]:-translate-y-1/2",
-		);
+		expect(barDismiss).not.toHaveClass("in-data-[placement=bar]:top-1/2");
 		expect(barDismiss.closest("[data-placement]")).toHaveAttribute("data-placement", "bar");
 		await user.click(screen.getByRole("button", { name: "Show 2 more alerts" }));
 		const listDismiss = screen.getByRole("button", {
@@ -980,6 +1016,32 @@ describe("AlertCenter.Content", () => {
 		await user.click(screen.getByRole("button", { name: "toggle region" }));
 		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "closed");
 		expect(screen.getByRole("button", { name: "Show 1 more alert" })).toBeInTheDocument();
+	});
+
+	test("starts expanded for defaultOpen, whose rows only register after the first commit", () => {
+		// Regression: items register from their own layout effects, which run AFTER
+		// Content's — so on the very first commit the row set still looks empty.
+		// Retiring the open state there defeated `defaultOpen` outright, and fired
+		// a spurious onOpenChange(false) at a consumer controlling `open`.
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<AlertCenter.Root defaultOpen onOpenChange={onOpenChange}>
+				<AlertCenter.Bar />
+				<AlertCenter.Content data-testid="content" />
+				<AlertCenter.Item id="payment" intent="danger">
+					<AlertBody title="Payment failed" />
+				</AlertCenter.Item>
+				<AlertCenter.Item id="transfer" intent="warning">
+					<AlertBody title="Approaching your data transfer limit" />
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "open");
+		expect(screen.getByRole("button", { name: "Collapse additional alerts" })).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+		expect(onOpenChange).not.toHaveBeenCalled();
 	});
 
 	test("dismissing a row removes it and updates the count and announcement", async () => {

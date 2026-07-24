@@ -14,7 +14,10 @@ keeps its state as it moves between the bar and a row. Dismissing the last alert
 the page's `main` landmark instead of dropping it on `<body>`. Ranking stays deterministic: a stable sort by severity (`danger` › `warning` ›
 `important` › `info` › `success`), then arrival order within an intent (sticky per id, so a returning alert
 resumes its position). `AlertCenter.Bar` is an always-visible, full-width strip that renders the top item's
-children inline (icon, title, and its call-to-action) plus a `+N more` trigger, collapses to nothing when
+children inline as authored — icon, title, `Alert.Description`, and its call-to-action, so it is a single
+line for a title alone and a two-line banner once a description is composed (matching how the same alert
+renders as an expansion row; `in-data-[placement=bar]:hidden` keeps any element out of the bar) — plus a
+`+N more` trigger, collapses to nothing when
 empty (like `AppLayout.Notice`), redirects keyboard focus to the next control when a focused top alert is
 dismissed, and claims no ARIA `banner` landmark (arrivals and re-ranks are announced by a persistent,
 visually-hidden `role="status"` live region that `AlertCenter.Root` mounts). `AlertCenter.Content` expands

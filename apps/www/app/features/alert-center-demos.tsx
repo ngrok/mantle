@@ -69,7 +69,7 @@ function DemoAlerts({
 							</a>
 						</Alert.Title>
 						<Alert.Description>
-							Free accounts are limited to 4 simultaneous tunnels. Upgrade to run more.
+							Free accounts are limited to 4 simultaneous tunnels.
 						</Alert.Description>
 						<AlertCenter.DismissIconButton onClick={() => onDismiss("tunnel-limit")} />
 					</Alert.Content>
@@ -85,9 +85,7 @@ function DemoAlerts({
 								Upgrade
 							</a>
 						</Alert.Title>
-						<Alert.Description>
-							Free accounts include 5 GB of transfer per month. Upgrade for unlimited transfer.
-						</Alert.Description>
+						<Alert.Description>Free accounts include 5 GB of transfer per month.</Alert.Description>
 						<AlertCenter.DismissIconButton onClick={() => onDismiss("transfer-limit")} />
 					</Alert.Content>
 				</AlertCenter.Item>
@@ -102,10 +100,7 @@ function DemoAlerts({
 								Update payment method
 							</a>
 						</Alert.Title>
-						<Alert.Description>
-							We couldn&apos;t charge the card ending in 4242. Update your payment method to avoid a
-							service interruption.
-						</Alert.Description>
+						<Alert.Description>We couldn&apos;t charge the card ending in 4242.</Alert.Description>
 						<AlertCenter.DismissIconButton onClick={() => onDismiss("payment-failed")} />
 					</Alert.Content>
 				</AlertCenter.Item>
@@ -296,6 +291,49 @@ export function AlertCenterSingleAlertExample() {
 								Update payment method
 							</a>
 						</Alert.Title>
+					</Alert.Content>
+				</AlertCenter.Item>
+			</AlertCenter.Root>
+		</div>
+	);
+}
+
+/**
+ * A supporting-copy demo: both alerts author an `Alert.Description`, and the bar
+ * renders the top one's inline — so the bar is the same two-line banner as the
+ * expansion row beneath it, and a call-to-action reads naturally from the
+ * description instead of being crammed into the title.
+ */
+export function AlertCenterSupportingCopyExample() {
+	return (
+		<div className="border-card-muted w-full max-w-2xl overflow-hidden rounded-lg border">
+			<AlertCenter.Root defaultOpen>
+				<AlertCenter.Bar />
+				<AlertCenter.Content />
+				<AlertCenter.Item id="payment-failed" intent="danger">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>The last payment attempt for your account failed</Alert.Title>
+						<Alert.Description>
+							Please{" "}
+							<a className="font-medium" href="#billing">
+								update your payment method
+							</a>{" "}
+							to avoid a service interruption.
+						</Alert.Description>
+					</Alert.Content>
+				</AlertCenter.Item>
+				<AlertCenter.Item id="ip-restriction" intent="warning">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>Your IP does not match an IP policy for this account</Alert.Title>
+						<Alert.Description>
+							While IP restrictions are enforced you won&apos;t be able to reach the dashboard.{" "}
+							<a className="font-medium" href="#ip-restrictions">
+								Review your IP restrictions
+							</a>
+							.
+						</Alert.Description>
 					</Alert.Content>
 				</AlertCenter.Item>
 			</AlertCenter.Root>
@@ -529,8 +567,7 @@ export function AlertCenterPersistedDismissExample() {
  * composes — a custom icon, placement-aware extras, arbitrary elements. The
  * usage tip renders a lightbulb instead of the intent icon, and its detail
  * line is marked `in-data-[placement=bar]:hidden` so it appears only in the
- * expansion rows (the same mechanism the bar uses to hide
- * `Alert.Description`).
+ * expansion rows — the opt-out for content that would make the bar too tall.
  */
 export function AlertCenterCustomContentExample() {
 	return (
