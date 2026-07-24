@@ -22,8 +22,8 @@ catalogs:
       specifier: 16.3.2
       version: 16.3.2
     '@tsdown/css':
-      specifier: 0.22.13
-      version: 0.22.13
+      specifier: 0.22.14
+      version: 0.22.14
     '@types/react':
       specifier: 19.2.17
       version: 19.2.17
@@ -359,7 +359,7 @@ importers:
         version: 14.6.1(@testing-library/dom@10.4.1)
       '@tsdown/css':
         specifier: 'catalog:'
-        version: 0.22.13(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.13)(tsx@4.23.1)(yaml@2.9.0)
+        version: 0.22.14(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.13)(tsx@4.23.1)(yaml@2.9.0)
       '@types/d3-scale':
         specifier: 4.0.9
         version: 4.0.9
@@ -395,7 +395,7 @@ importers:
         version: 4.3.3
       tsdown:
         specifier: 'catalog:'
-        version: 0.22.13(@tsdown/css@0.22.13)(tsx@4.23.1)(typescript@7.0.2)
+        version: 0.22.13(@tsdown/css@0.22.14)(tsx@4.23.1)(typescript@7.0.2)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -2496,6 +2496,28 @@ packages:
       sass: '*'
       sass-embedded: '*'
       tsdown: 0.22.13
+    peerDependenciesMeta:
+      postcss:
+        optional: true
+      postcss-import:
+        optional: true
+      postcss-modules:
+        optional: true
+      sass:
+        optional: true
+      sass-embedded:
+        optional: true
+
+  '@tsdown/css@0.22.14':
+    resolution: {integrity: sha512-0NpbgqfhfjaAoLdY3DxjrMo08vKFEtvlybCS42Gtolx8OPoKUdZZDyls0qgNEqea0c7XGjlF0NIE1tIxgU8RqA==}
+    engines: {node: ^22.18.0 || >=24.11.0}
+    peerDependencies:
+      postcss: ^8.4.0
+      postcss-import: ^16.0.0
+      postcss-modules: ^6.0.0
+      sass: '*'
+      sass-embedded: '*'
+      tsdown: 0.22.14
     peerDependenciesMeta:
       postcss:
         optional: true
@@ -6845,6 +6867,20 @@ snapshots:
       - jiti
       - tsx
       - yaml
+    optional: true
+
+  '@tsdown/css@0.22.14(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.13)(tsx@4.23.1)(yaml@2.9.0)':
+    dependencies:
+      lightningcss: 1.33.0
+      postcss-load-config: 6.0.1(jiti@2.7.0)(postcss@8.5.19)(tsx@4.23.1)(yaml@2.9.0)
+      rolldown: 1.2.0
+      tsdown: 0.22.13(@tsdown/css@0.22.14)(tsx@4.23.1)(typescript@7.0.2)
+    optionalDependencies:
+      postcss: 8.5.19
+    transitivePeerDependencies:
+      - jiti
+      - tsx
+      - yaml
 
   '@turbo/darwin-64@2.10.6':
     optional: true
@@ -9318,6 +9354,33 @@ snapshots:
       - oxc-resolver
       - vue-tsc
 
+  tsdown@0.22.13(@tsdown/css@0.22.14)(tsx@4.23.1)(typescript@7.0.2):
+    dependencies:
+      ansis: 4.3.1
+      cac: 7.0.0
+      defu: 6.1.7
+      empathic: 2.0.1
+      hookable: 6.1.1
+      import-without-cache: 0.4.0
+      obug: 2.1.4
+      picomatch: 4.0.5
+      rolldown: 1.2.0
+      rolldown-plugin-dts: 0.27.13(rolldown@1.2.0)(typescript@7.0.2)
+      tinyexec: 1.2.4
+      tinyglobby: 0.2.17
+      tree-kill: 1.2.2
+      unconfig-core: 7.5.0
+      verkit: 0.1.2
+    optionalDependencies:
+      '@tsdown/css': 0.22.14(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.13)(tsx@4.23.1)(yaml@2.9.0)
+      tsx: 4.23.1
+      typescript: 7.0.2
+    transitivePeerDependencies:
+      - '@typescript/native-preview'
+      - '@volar/typescript'
+      - oxc-resolver
+      - vue-tsc
+
   tslib@2.8.1: {}
 
   tsx@4.23.1:
@@ -9478,7 +9541,7 @@ snapshots:
 
   vite@8.1.5(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)(yaml@2.9.0):
     dependencies:
-      lightningcss: 1.32.0
+      lightningcss: 1.33.0
       picomatch: 4.0.5
       postcss: 8.5.19
       rolldown: 1.1.5
