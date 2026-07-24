@@ -1,13 +1,13 @@
 import type { ComponentType } from "react";
-import { AlertCenterShellDemo } from "./alert-center-demos";
-import { AppLayoutDemo } from "./app-layout-demos";
-import { AppShellDemo, BridgeShellDemo } from "./app-shell-demo";
+import { AlertCenterShellDemo } from "~/features/alert-center-demos";
+import { AppLayoutDemo } from "~/features/app-layout-demos";
+import { AppShellDemo, BridgeShellDemo } from "~/features/app-shell-demo";
 import {
 	CenteredLayoutDemo,
 	CenteredLayoutHeaderDemo,
 	CenteredLayoutNoticeDemo,
-} from "./centered-layout-demos";
-import { SidebarPersistenceDemo } from "./sidebar-demos";
+} from "~/features/centered-layout-demos";
+import { SidebarPersistenceDemo } from "~/features/sidebar-demos";
 
 type PreviewExample = {
 	/**
