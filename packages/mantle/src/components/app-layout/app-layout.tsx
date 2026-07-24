@@ -52,7 +52,10 @@ const Root = ({
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "app-layout")}
 			className={cx(
-				"bg-base relative isolate flex h-full w-full flex-col overflow-hidden",
+				// group/app-layout lets descendant parts adapt to what the shell
+				// contains (AppLayout.Header derives its height from the sidebar
+				// header's token when one is composed — see AppLayout.Header).
+				"group/app-layout bg-base relative isolate flex h-full w-full flex-col overflow-hidden",
 				className,
 			)}
 			{...props}
@@ -239,6 +242,16 @@ const Inset = ({
  * Renders a semantic `<header>` scoped to the content region (inside `Main`
  * it is deliberately not an ARIA `banner` landmark).
  *
+ * **Sidebar alignment is an invariant, not a coincidence:** standalone, the
+ * toolbar is `h-14`. When the shell contains a `Sidebar.Header` (detected via
+ * `:has()` from `AppLayout.Root`), the toolbar instead derives its height from
+ * the sidebar's public `--sidebar-header-height` token as
+ * `calc(var(--sidebar-header-height, 4.5rem) - 1rem - 2px)` — subtracting
+ * twice the `AppLayout.Inset` gutter and twice the content card's hairline
+ * border — which keeps the two rows' vertical centers on the same band by
+ * construction. Override `--sidebar-header-height` on a common ancestor
+ * (e.g. `AppLayout.Root`'s `className`) and both rows move together.
+ *
  * @see https://mantle.ngrok.com/layouts/app-layout
  *
  * @example
@@ -278,9 +291,14 @@ const Header = ({
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "app-layout-header")}
 			className={cx(
-				// h-14 + the Inset's 8px gutter puts this toolbar's center on the
-				// same line as Sidebar.Header's h-18 switcher row.
 				"border-card-muted bg-card sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-4",
+				// With a sidebar header in the shell, derive the height from its
+				// token so the two rows' centers align by construction: this
+				// toolbar sits below the Inset's 0.5rem gutter and the card's 1px
+				// border, so center parity needs its height to be the sidebar
+				// header's minus twice each. Overriding --sidebar-header-height at
+				// a common ancestor (e.g. AppLayout.Root) moves both rows together.
+				"group-has-[[data-slot~=sidebar-header]]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-1rem-2px)]",
 				className,
 			)}
 			{...props}

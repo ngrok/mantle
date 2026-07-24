@@ -52,6 +52,14 @@ export function Shell() {
 	const [pathname, setPathname] = useState("/endpoints");
 	const [showNotice, setShowNotice] = useState(false);
 	const [alertExample, setAlertExample] = useState<"single" | "multiple" | null>(null);
+	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+	const dismiss = (id: string) => setDismissed((previous) => new Set(previous).add(id));
+	// Choosing a preset (or toggling it off) also restores dismissed alerts,
+	// so the alert buttons double as a reset.
+	const chooseAlertExample = (example: "single" | "multiple") => {
+		setDismissed(new Set());
+		setAlertExample((current) => (current === example ? null : example));
+	};
 
 	return (
 		// the framed demo narrows the mobile breakpoint; most apps keep the "lg" default
@@ -77,7 +85,7 @@ export function Shell() {
 								</Alert.Content>
 							</AlertCenter.Item>
 						)}
-						{alertExample != null && (
+						{alertExample != null && !dismissed.has("usage-limit") && (
 							<AlertCenter.Item id="usage-limit" intent="warning">
 								<Alert.Icon />
 								<Alert.Content>
@@ -85,10 +93,11 @@ export function Shell() {
 										Your workspace is approaching its monthly usage limit{" "}
 										<a href="/usage">Review usage</a>
 									</Alert.Title>
+									<AlertCenter.DismissIconButton onClick={() => dismiss("usage-limit")} />
 								</Alert.Content>
 							</AlertCenter.Item>
 						)}
-						{alertExample === "multiple" && (
+						{alertExample === "multiple" && !dismissed.has("member-limit") && (
 							<AlertCenter.Item id="member-limit" intent="warning">
 								<Alert.Icon />
 								<Alert.Content>
@@ -96,6 +105,7 @@ export function Shell() {
 										Your workspace is approaching its member limit{" "}
 										<a href="/members">Review members</a>
 									</Alert.Title>
+									<AlertCenter.DismissIconButton onClick={() => dismiss("member-limit")} />
 								</Alert.Content>
 							</AlertCenter.Item>
 						)}
@@ -167,9 +177,7 @@ export function Shell() {
 											appearance="outlined"
 											intent="neutral"
 											size="sm"
-											onClick={() =>
-												setAlertExample((current) => (current === "single" ? null : "single"))
-											}
+											onClick={() => chooseAlertExample("single")}
 										>
 											One warning
 										</Button>
@@ -178,9 +186,7 @@ export function Shell() {
 											appearance="outlined"
 											intent="neutral"
 											size="sm"
-											onClick={() =>
-												setAlertExample((current) => (current === "multiple" ? null : "multiple"))
-											}
+											onClick={() => chooseAlertExample("multiple")}
 										>
 											Three alerts
 										</Button>
@@ -265,13 +271,13 @@ export function BridgeShell() {
 						<Sidebar.Header>
 							<DropdownMenu.Root>
 								<DropdownMenu.Trigger asChild>
-									<Sidebar.SwitcherButton>
+									<Sidebar.SwitcherTrigger>
 										<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
 										<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
 											{account.name}
 										</span>
 										<CaretDownIcon className="text-muted size-4 shrink-0" />
-									</Sidebar.SwitcherButton>
+									</Sidebar.SwitcherTrigger>
 								</DropdownMenu.Trigger>
 								<DropdownMenu.Content align="start" className="min-w-56">
 									<DropdownMenu.Sub>
@@ -280,11 +286,17 @@ export function BridgeShell() {
 											Switch accounts
 										</DropdownMenu.SubTrigger>
 										<DropdownMenu.SubContent>
-											<Sidebar.SwitchAccountsRadioGroup
-												accounts={accounts}
-												value={accountId}
-												onValueChange={setAccountId}
-											/>
+											<DropdownMenu.RadioGroup value={accountId} onValueChange={setAccountId}>
+												{accounts.map((account) => (
+													<DropdownMenu.RadioItem key={account.id} value={account.id}>
+														<Sidebar.AccountAvatar
+															accountId={account.id}
+															accountName={account.name}
+														/>
+														<span className="min-w-0 flex-1 truncate">{account.name}</span>
+													</DropdownMenu.RadioItem>
+												))}
+											</DropdownMenu.RadioGroup>
 										</DropdownMenu.SubContent>
 									</DropdownMenu.Sub>
 									<DropdownMenu.Separator />
@@ -514,11 +526,12 @@ AppLayout.Root
   `bg-card border-card-muted scrollbar min-h-0 flex-1 overflow-y-auto overscroll-none rounded-xl border shadow-sm`
   — the shell's only scroll container. In a real app shell it should almost always be the `Main` landmark —
   see [Landmarks](#landmarks).
-- **`Header`** is the sticky toolbar `<header>` rendered as `Content`'s **first child** (`sticky top-0 h-14`
+- **`Header`** is the sticky toolbar `<header>` rendered as `Content`'s **first child** (`sticky top-0`
   with a hairline border): page content scrolls beneath it. The natural home for a `Sidebar.Trigger` in its
-  top-left, followed by [Breadcrumb](/components/navigation/breadcrumb) navigation or page actions. Its
-  `h-14` plus the 8px card gutter puts it on the same horizontal band as `Sidebar.Header`'s switcher row, so
-  the app switcher and content header read as one aligned row. Optional.
+  top-left, followed by [Breadcrumb](/components/navigation/breadcrumb) navigation or page actions. It is
+  `h-14` standalone; with a `Sidebar.Header` in the shell it derives its height from the sidebar's
+  `--sidebar-header-height` token instead, so the app switcher and content header stay center-aligned as one
+  row by construction. Optional.
 
 ## Landmarks
 
@@ -663,12 +676,19 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 ### AppLayout.Header
 
 The sticky toolbar row at the top of the content card — render it as `AppLayout.Content`'s **first child**
-(`sticky top-0 z-10 h-14` with a `border-card-muted` hairline beneath it, so page content scrolls under it).
+(`sticky top-0 z-10` with a `border-card-muted` hairline beneath it, so page content scrolls under it).
 The natural home for a [`Sidebar.Trigger`](/components/navigation/sidebar#sidebartrigger) in its top-left,
-followed by [Breadcrumb](/components/navigation/breadcrumb) navigation, search, or page-level actions. Its
-`h-14` plus the 8px card gutter vertically aligns it with `Sidebar.Header`'s switcher row. Renders a
-semantic `<header>` scoped to the content region (inside `Main` it is not an ARIA `banner` landmark).
-Optional.
+followed by [Breadcrumb](/components/navigation/breadcrumb) navigation, search, or page-level actions.
+Renders a semantic `<header>` scoped to the content region (inside `Main` it is not an ARIA `banner`
+landmark). Optional.
+
+**Sidebar alignment is an invariant, not a coincidence:** standalone, the toolbar is `h-14`. When the shell
+contains a `Sidebar.Header` (detected with `:has()` from `AppLayout.Root`), the toolbar instead derives its
+height from the sidebar's public `--sidebar-header-height` token as
+`calc(var(--sidebar-header-height, 4.5rem) - 1rem - 2px)` — subtracting twice the `AppLayout.Inset` gutter
+and twice the content card's hairline border — which keeps the two rows' vertical centers on the same band.
+Override `--sidebar-header-height` on a common ancestor (e.g. `AppLayout.Root`'s `className`) and both rows
+move together.
 
 All props from [header](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/header#attributes), plus:
 

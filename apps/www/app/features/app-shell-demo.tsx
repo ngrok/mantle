@@ -104,9 +104,19 @@ const demoNavSections: ReadonlyArray<DemoNavSection> = [
  * flipping everything off collapses the bar with its exit animation instead of
  * popping it out. The single example shows just the usage-limit warning; the
  * multiple example adds a billing failure (the danger takes the bar) and a
- * member-limit warning.
+ * member-limit warning. The warnings are dismissable per the docs' best
+ * practice — the billing failure withholds its dismiss button — and choosing
+ * a preset resets any dismissals.
  */
-function DemoAccountAlerts({ example }: { example: "single" | "multiple" | null }) {
+function DemoAccountAlerts({
+	dismissed,
+	example,
+	onDismiss,
+}: {
+	dismissed: ReadonlySet<string>;
+	example: "single" | "multiple" | null;
+	onDismiss: (id: string) => void;
+}) {
 	return (
 		<>
 			{example === "multiple" && (
@@ -125,7 +135,7 @@ function DemoAccountAlerts({ example }: { example: "single" | "multiple" | null 
 					</Alert.Content>
 				</AlertCenter.Item>
 			)}
-			{example != null && (
+			{example != null && !dismissed.has("usage-limit") && (
 				<AlertCenter.Item id="usage-limit" intent="warning">
 					<Alert.Icon />
 					<Alert.Content>
@@ -138,10 +148,11 @@ function DemoAccountAlerts({ example }: { example: "single" | "multiple" | null 
 						<Alert.Description>
 							Review usage or update your plan to avoid interruption.
 						</Alert.Description>
+						<AlertCenter.DismissIconButton onClick={() => onDismiss("usage-limit")} />
 					</Alert.Content>
 				</AlertCenter.Item>
 			)}
-			{example === "multiple" && (
+			{example === "multiple" && !dismissed.has("member-limit") && (
 				<AlertCenter.Item id="member-limit" intent="warning">
 					<Alert.Icon />
 					<Alert.Content>
@@ -152,6 +163,7 @@ function DemoAccountAlerts({ example }: { example: "single" | "multiple" | null 
 							</a>
 						</Alert.Title>
 						<Alert.Description>Review members or update your plan to add more.</Alert.Description>
+						<AlertCenter.DismissIconButton onClick={() => onDismiss("member-limit")} />
 					</Alert.Content>
 				</AlertCenter.Item>
 			)}
@@ -262,7 +274,7 @@ function handleProductOptionKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
 }
 
 /**
- * The multi-product switcher in the sidebar header: a `Sidebar.SwitcherButton`
+ * The multi-product switcher in the sidebar header: a `Sidebar.SwitcherTrigger`
  * trigger that opens a centered "Choose a product" dialog. Each product
  * renders as a color-coded card with its tagline and description; the current
  * product's card is highlighted and receives focus when the dialog opens, and
@@ -281,11 +293,11 @@ function ProductSwitcherDialog({
 	return (
 		<Dialog.Root>
 			<Dialog.Trigger asChild>
-				<Sidebar.SwitcherButton>
+				<Sidebar.SwitcherTrigger>
 					<ProductIcon product={product} />
 					<span className="text-strong min-w-0 flex-1 truncate text-base">{product.label}</span>
 					<CaretDownIcon className="text-muted size-4 shrink-0" />
-				</Sidebar.SwitcherButton>
+				</Sidebar.SwitcherTrigger>
 			</Dialog.Trigger>
 			<Dialog.Content
 				className="bg-popover"
@@ -418,6 +430,14 @@ export function AppShellDemo() {
 	const [accountId, setAccountId] = useState<string>(demoAccounts[0].id);
 	const [showNotice, setShowNotice] = useState(false);
 	const [alertExample, setAlertExample] = useState<"single" | "multiple" | null>(null);
+	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+	const dismissAlert = (id: string) => setDismissed((previous) => new Set(previous).add(id));
+	// Choosing a preset (or toggling it off) also restores dismissed alerts,
+	// so the alert buttons double as a reset.
+	const chooseAlertExample = (example: "single" | "multiple") => {
+		setDismissed(new Set());
+		setAlertExample((current) => (current === example ? null : example));
+	};
 
 	const account = demoAccounts.find((candidate) => candidate.id === accountId) ?? demoAccounts[0];
 	const currentItem = demoNavSections
@@ -439,7 +459,11 @@ export function AppShellDemo() {
 					<AlertCenter.Root>
 						<AlertCenter.Bar />
 						<AlertCenter.Content />
-						<DemoAccountAlerts example={alertExample} />
+						<DemoAccountAlerts
+							example={alertExample}
+							dismissed={dismissed}
+							onDismiss={dismissAlert}
+						/>
 					</AlertCenter.Root>
 				</AppLayout.Notice>
 				<AppLayout.Body>
@@ -468,13 +492,13 @@ export function AppShellDemo() {
 							<Sidebar.Separator />
 							<DropdownMenu.Root>
 								<DropdownMenu.Trigger asChild>
-									<Sidebar.SwitcherButton>
+									<Sidebar.SwitcherTrigger>
 										<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
 										<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
 											{account.name}
 										</span>
 										<Sidebar.UserAvatar alt="Jane Doe" />
-									</Sidebar.SwitcherButton>
+									</Sidebar.SwitcherTrigger>
 								</DropdownMenu.Trigger>
 								<DropdownMenu.Content align="start" side="top" className="min-w-56">
 									<DropdownMenu.Group>
@@ -487,11 +511,17 @@ export function AppShellDemo() {
 												Switch accounts
 											</DropdownMenu.SubTrigger>
 											<DropdownMenu.SubContent>
-												<Sidebar.SwitchAccountsRadioGroup
-													accounts={demoAccounts}
-													value={accountId}
-													onValueChange={setAccountId}
-												/>
+												<DropdownMenu.RadioGroup value={accountId} onValueChange={setAccountId}>
+													{demoAccounts.map((demoAccount) => (
+														<DropdownMenu.RadioItem key={demoAccount.id} value={demoAccount.id}>
+															<Sidebar.AccountAvatar
+																accountId={demoAccount.id}
+																accountName={demoAccount.name}
+															/>
+															<span className="min-w-0 flex-1 truncate">{demoAccount.name}</span>
+														</DropdownMenu.RadioItem>
+													))}
+												</DropdownMenu.RadioGroup>
 											</DropdownMenu.SubContent>
 										</DropdownMenu.Sub>
 									</DropdownMenu.Group>
@@ -546,9 +576,7 @@ export function AppShellDemo() {
 											size="sm"
 											label="One warning"
 											icon={<WarningIcon />}
-											onClick={() =>
-												setAlertExample((current) => (current === "single" ? null : "single"))
-											}
+											onClick={() => chooseAlertExample("single")}
 										/>
 										<IconButton
 											type="button"
@@ -557,9 +585,7 @@ export function AppShellDemo() {
 											size="sm"
 											label="Three alerts"
 											icon={<BellIcon />}
-											onClick={() =>
-												setAlertExample((current) => (current === "multiple" ? null : "multiple"))
-											}
+											onClick={() => chooseAlertExample("multiple")}
 										/>
 									</div>
 								</AppLayout.Header>
@@ -613,6 +639,14 @@ export function BridgeShellDemo() {
 	const [accountId, setAccountId] = useState<string>(demoAccounts[0].id);
 	const [showNotice, setShowNotice] = useState(false);
 	const [alertExample, setAlertExample] = useState<"single" | "multiple" | null>(null);
+	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+	const dismissAlert = (id: string) => setDismissed((previous) => new Set(previous).add(id));
+	// Choosing a preset (or toggling it off) also restores dismissed alerts,
+	// so the alert buttons double as a reset.
+	const chooseAlertExample = (example: "single" | "multiple") => {
+		setDismissed(new Set());
+		setAlertExample((current) => (current === example ? null : example));
+	};
 
 	const account = demoAccounts.find((candidate) => candidate.id === accountId) ?? demoAccounts[0];
 	const currentLabel =
@@ -635,7 +669,11 @@ export function BridgeShellDemo() {
 					<AlertCenter.Root>
 						<AlertCenter.Bar />
 						<AlertCenter.Content />
-						<DemoAccountAlerts example={alertExample} />
+						<DemoAccountAlerts
+							example={alertExample}
+							dismissed={dismissed}
+							onDismiss={dismissAlert}
+						/>
 					</AlertCenter.Root>
 				</AppLayout.Notice>
 				<AppLayout.Body>
@@ -643,13 +681,13 @@ export function BridgeShellDemo() {
 						<Sidebar.Header>
 							<DropdownMenu.Root>
 								<DropdownMenu.Trigger asChild>
-									<Sidebar.SwitcherButton>
+									<Sidebar.SwitcherTrigger>
 										<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
 										<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
 											{account.name}
 										</span>
 										<CaretDownIcon className="text-muted size-4 shrink-0" />
-									</Sidebar.SwitcherButton>
+									</Sidebar.SwitcherTrigger>
 								</DropdownMenu.Trigger>
 								<DropdownMenu.Content align="start" className="min-w-56">
 									<DropdownMenu.Group>
@@ -662,11 +700,17 @@ export function BridgeShellDemo() {
 												Switch accounts
 											</DropdownMenu.SubTrigger>
 											<DropdownMenu.SubContent>
-												<Sidebar.SwitchAccountsRadioGroup
-													accounts={demoAccounts}
-													value={accountId}
-													onValueChange={setAccountId}
-												/>
+												<DropdownMenu.RadioGroup value={accountId} onValueChange={setAccountId}>
+													{demoAccounts.map((demoAccount) => (
+														<DropdownMenu.RadioItem key={demoAccount.id} value={demoAccount.id}>
+															<Sidebar.AccountAvatar
+																accountId={demoAccount.id}
+																accountName={demoAccount.name}
+															/>
+															<span className="min-w-0 flex-1 truncate">{demoAccount.name}</span>
+														</DropdownMenu.RadioItem>
+													))}
+												</DropdownMenu.RadioGroup>
 											</DropdownMenu.SubContent>
 										</DropdownMenu.Sub>
 									</DropdownMenu.Group>
@@ -774,9 +818,7 @@ export function BridgeShellDemo() {
 											size="sm"
 											label="One warning"
 											icon={<WarningIcon />}
-											onClick={() =>
-												setAlertExample((current) => (current === "single" ? null : "single"))
-											}
+											onClick={() => chooseAlertExample("single")}
 										/>
 										<IconButton
 											type="button"
@@ -785,9 +827,7 @@ export function BridgeShellDemo() {
 											size="sm"
 											label="Three alerts"
 											icon={<BellIcon />}
-											onClick={() =>
-												setAlertExample((current) => (current === "multiple" ? null : "multiple"))
-											}
+											onClick={() => chooseAlertExample("multiple")}
 										/>
 									</div>
 								</AppLayout.Header>

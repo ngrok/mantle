@@ -173,6 +173,69 @@ describe("Sidebar.Nav (desktop)", () => {
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
 	});
 
+	test("with two mounted roots, only the first claimant handles ⌘B", async () => {
+		// Regression: the shortcut has exactly one owner per window — a second
+		// sidebar (sibling root) must not toggle in lockstep with the first.
+		const user = userEvent.setup();
+		render(
+			<>
+				<Sidebar.Root>
+					<Sidebar.Nav data-testid="primary" />
+				</Sidebar.Root>
+				<Sidebar.Root>
+					<Sidebar.Nav data-testid="secondary" />
+				</Sidebar.Root>
+			</>,
+		);
+		await user.keyboard("{Meta>}b{/Meta}");
+		expect(screen.getByTestId("primary")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("secondary")).toHaveAttribute("data-state", "expanded");
+	});
+
+	test("⌘B ownership hands off when the owning root unmounts", async () => {
+		// The keyed conditional keeps the second root's instance stable across
+		// the rerender, so React genuinely unmounts the owner instead of
+		// relabeling it — a real handoff, not a fresh mount.
+		function TwoRoots({ showPrimary }: { showPrimary: boolean }) {
+			return (
+				<>
+					{showPrimary && (
+						<Sidebar.Root key="primary">
+							<Sidebar.Nav data-testid="primary" />
+						</Sidebar.Root>
+					)}
+					<Sidebar.Root key="secondary">
+						<Sidebar.Nav data-testid="secondary" />
+					</Sidebar.Root>
+				</>
+			);
+		}
+		const user = userEvent.setup();
+		const { rerender } = render(<TwoRoots showPrimary />);
+		rerender(<TwoRoots showPrimary={false} />);
+		await user.keyboard("{Meta>}b{/Meta}");
+		expect(screen.getByTestId("secondary")).toHaveAttribute("data-state", "collapsed");
+	});
+
+	test("an opted-out root never claims ⌘B ownership", async () => {
+		// keyboardShortcut={false} must not park an inert claim at the head of
+		// the queue — the enabled sibling owns the shortcut immediately.
+		const user = userEvent.setup();
+		render(
+			<>
+				<Sidebar.Root keyboardShortcut={false}>
+					<Sidebar.Nav data-testid="silent" />
+				</Sidebar.Root>
+				<Sidebar.Root>
+					<Sidebar.Nav data-testid="active" />
+				</Sidebar.Root>
+			</>,
+		);
+		await user.keyboard("{Meta>}b{/Meta}");
+		expect(screen.getByTestId("silent")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("active")).toHaveAttribute("data-state", "collapsed");
+	});
+
 	test("mounting with controlled openMobile on desktop does not clobber it", () => {
 		// Regression: the stale-sheet reset must only fire on a real
 		// mobile→desktop transition — never on mount, where it would override a
@@ -463,84 +526,61 @@ describe("Sidebar.Item + ItemButton", () => {
 	});
 });
 
-describe("Sidebar.SwitcherButton", () => {
+describe("Sidebar.SwitcherTrigger", () => {
 	test("renders a type=button styled row by default", () => {
-		render(<Sidebar.SwitcherButton>Acme Corp</Sidebar.SwitcherButton>);
+		render(<Sidebar.SwitcherTrigger>Acme Corp</Sidebar.SwitcherTrigger>);
 		const button = screen.getByRole("button", { name: "Acme Corp" });
 		expect(button).toHaveAttribute("type", "button");
-		expect(button).toHaveAttribute("data-slot", "sidebar-switcher-button");
+		expect(button).toHaveAttribute("data-slot", "sidebar-switcher-trigger");
 	});
 
 	test("asChild renders the consumer element with the switcher styles", () => {
 		render(
-			<Sidebar.SwitcherButton asChild>
+			<Sidebar.SwitcherTrigger asChild>
 				<a href="/switch">Acme Corp</a>
-			</Sidebar.SwitcherButton>,
+			</Sidebar.SwitcherTrigger>,
 		);
 		const link = screen.getByRole("link", { name: "Acme Corp" });
-		expect(link).toHaveAttribute("data-slot", "sidebar-switcher-button");
+		expect(link).toHaveAttribute("data-slot", "sidebar-switcher-trigger");
 		expect(link).not.toHaveAttribute("type");
 	});
 });
 
-describe("Sidebar.SwitchAccountsRadioGroup", () => {
-	const accounts = [
-		{ id: "acc_acme", name: "Acme Corp" },
-		{ id: "acc_atlas", name: "Atlas Industries" },
-	];
-
-	test("renders one checked menuitemradio per account inside an open menu", () => {
-		render(
-			<DropdownMenu.Root open>
-				<DropdownMenu.Trigger>Switch</DropdownMenu.Trigger>
-				<DropdownMenu.Content>
-					<Sidebar.SwitchAccountsRadioGroup
-						accounts={accounts}
-						value="acc_atlas"
-						onValueChange={vi.fn<(value: string) => void>()}
-					/>
-				</DropdownMenu.Content>
-			</DropdownMenu.Root>,
-		);
-		const acme = screen.getByRole("menuitemradio", { name: "Acme Corp" });
-		const atlas = screen.getByRole("menuitemradio", { name: "Atlas Industries" });
-		expect(acme).toHaveAttribute("aria-checked", "false");
-		expect(atlas).toHaveAttribute("aria-checked", "true");
-	});
-
-	test("selecting an account reports its id through onValueChange", async () => {
+describe("switch-accounts recipe (composition)", () => {
+	// The account switcher is deliberately not a Sidebar part — it composes
+	// DropdownMenu.RadioGroup/RadioItem with Sidebar.AccountAvatar (see the
+	// docs recipe). This guards the composition the docs demonstrate.
+	test("radio items compose an avatar, name, and checked state", async () => {
 		const user = userEvent.setup();
 		const onValueChange = vi.fn<(value: string) => void>();
 		render(
 			<DropdownMenu.Root open>
 				<DropdownMenu.Trigger>Switch</DropdownMenu.Trigger>
 				<DropdownMenu.Content>
-					<Sidebar.SwitchAccountsRadioGroup
-						accounts={accounts}
-						value="acc_acme"
-						onValueChange={onValueChange}
-					/>
+					<DropdownMenu.RadioGroup value="acc_atlas" onValueChange={onValueChange}>
+						{[
+							{ id: "acc_acme", name: "Acme Corp" },
+							{ id: "acc_atlas", name: "Atlas Industries" },
+						].map((account) => (
+							<DropdownMenu.RadioItem key={account.id} value={account.id}>
+								<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+								<span className="min-w-0 flex-1 truncate">{account.name}</span>
+							</DropdownMenu.RadioItem>
+						))}
+					</DropdownMenu.RadioGroup>
 				</DropdownMenu.Content>
 			</DropdownMenu.Root>,
 		);
-		await user.click(screen.getByRole("menuitemradio", { name: "Atlas Industries" }));
-		expect(onValueChange).toHaveBeenCalledExactlyOnceWith("acc_atlas");
-	});
-
-	test("empty account names fall back to the id", () => {
-		render(
-			<DropdownMenu.Root open>
-				<DropdownMenu.Trigger>Switch</DropdownMenu.Trigger>
-				<DropdownMenu.Content>
-					<Sidebar.SwitchAccountsRadioGroup
-						accounts={[{ id: "acc_unnamed", name: "  " }]}
-						value="acc_unnamed"
-						onValueChange={vi.fn<(value: string) => void>()}
-					/>
-				</DropdownMenu.Content>
-			</DropdownMenu.Root>,
+		expect(screen.getByRole("menuitemradio", { name: "Acme Corp" })).toHaveAttribute(
+			"aria-checked",
+			"false",
 		);
-		expect(screen.getByRole("menuitemradio", { name: "acc_unnamed" })).toBeInTheDocument();
+		expect(screen.getByRole("menuitemradio", { name: "Atlas Industries" })).toHaveAttribute(
+			"aria-checked",
+			"true",
+		);
+		await user.click(screen.getByRole("menuitemradio", { name: "Acme Corp" }));
+		expect(onValueChange).toHaveBeenCalledExactlyOnceWith("acc_acme");
 	});
 });
 

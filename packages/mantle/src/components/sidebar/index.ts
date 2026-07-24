@@ -15,7 +15,6 @@ export {
 
 export type {
 	//,
-	SidebarAccount,
 	SidebarMobileBreakpoint,
 	SidebarState,
 } from "./sidebar.js";

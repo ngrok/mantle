@@ -156,7 +156,7 @@ function handleProductOptionKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
 }
 
 /**
- * The product switcher in the sidebar header: a `Sidebar.SwitcherButton`
+ * The product switcher in the sidebar header: a `Sidebar.SwitcherTrigger`
  * trigger that opens a centered product-choice dialog. The current product's
  * card is highlighted and receives focus when the dialog opens.
  */
@@ -173,11 +173,11 @@ function ProductSwitcherDialog({
 	return (
 		<Dialog.Root>
 			<Dialog.Trigger asChild>
-				<Sidebar.SwitcherButton>
+				<Sidebar.SwitcherTrigger>
 					<ProductIcon product={product} />
 					<span className="text-strong min-w-0 flex-1 truncate text-base">{product.label}</span>
 					<CaretDownIcon className="text-muted size-4 shrink-0" />
-				</Sidebar.SwitcherButton>
+				</Sidebar.SwitcherTrigger>
 			</Dialog.Trigger>
 			<Dialog.Content
 				className="bg-popover"
@@ -316,13 +316,13 @@ export function AppShell() {
 							<Sidebar.Separator />
 							<DropdownMenu.Root>
 								<DropdownMenu.Trigger asChild>
-									<Sidebar.SwitcherButton>
+									<Sidebar.SwitcherTrigger>
 										<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
 										<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
 											{account.name}
 										</span>
 										<Sidebar.UserAvatar alt="Jane Doe" />
-									</Sidebar.SwitcherButton>
+									</Sidebar.SwitcherTrigger>
 								</DropdownMenu.Trigger>
 								<DropdownMenu.Content align="start" side="top" className="min-w-56">
 									<DropdownMenu.Sub>
@@ -331,11 +331,17 @@ export function AppShell() {
 											Switch accounts
 										</DropdownMenu.SubTrigger>
 										<DropdownMenu.SubContent>
-											<Sidebar.SwitchAccountsRadioGroup
-												accounts={accounts}
-												value={accountId}
-												onValueChange={setAccountId}
-											/>
+											<DropdownMenu.RadioGroup value={accountId} onValueChange={setAccountId}>
+												{accounts.map((account) => (
+													<DropdownMenu.RadioItem key={account.id} value={account.id}>
+														<Sidebar.AccountAvatar
+															accountId={account.id}
+															accountName={account.name}
+														/>
+														<span className="min-w-0 flex-1 truncate">{account.name}</span>
+													</DropdownMenu.RadioItem>
+												))}
+											</DropdownMenu.RadioGroup>
 										</DropdownMenu.SubContent>
 									</DropdownMenu.Sub>
 								</DropdownMenu.Content>
@@ -404,7 +410,7 @@ Compose the parts of a `Sidebar` together to build your own:
 Sidebar.Root
 ├── Sidebar.Nav
 │   ├── Sidebar.Header
-│   │   └── Sidebar.SwitcherButton
+│   │   └── Sidebar.SwitcherTrigger
 │   ├── Sidebar.Body
 │   │   └── Sidebar.Group
 │   │       ├── Sidebar.GroupLabel
@@ -413,7 +419,7 @@ Sidebar.Root
 │   │               └── Sidebar.ItemButton
 │   └── Sidebar.Footer
 │       ├── Sidebar.Separator
-│       └── Sidebar.SwitcherButton
+│       └── Sidebar.SwitcherTrigger
 │           ├── Sidebar.AccountAvatar
 │           └── Sidebar.UserAvatar
 └── Sidebar.Trigger
@@ -422,8 +428,10 @@ Sidebar.Root
 `Sidebar.Root` renders no DOM — it only provides state, so `Sidebar.Trigger` can live anywhere under it,
 including inside layout components that know nothing about the sidebar. Render exactly one `Sidebar.Nav` per
 `Sidebar.Root`; nested roots shadow the outer sidebar for everything below them.
-`Sidebar.SwitchAccountsRadioGroup` is not part of the tree above — it renders inside a
-[DropdownMenu](/components/overlays/dropdown-menu) submenu, wherever you compose that menu.
+There is deliberately no account-switcher part: a "Switch accounts" submenu is a composition of
+[DropdownMenu](/components/overlays/dropdown-menu)'s `RadioGroup`/`RadioItem` with `Sidebar.AccountAvatar`,
+exactly as the shell demo above shows — the account model (what a row contains, badges, ordering) belongs to
+the app, not the design system.
 
 ## Navigation anatomy
 
@@ -571,16 +579,16 @@ state is restored from localStorage.
 ## Polymorphism
 
 `Sidebar.Header`, `Sidebar.Body`, `Sidebar.Footer`, `Sidebar.Group`, `Sidebar.GroupLabel`, `Sidebar.List`,
-`Sidebar.Item`, `Sidebar.ItemButton`, and `Sidebar.SwitcherButton` accept an `asChild` prop. When `true`, the
+`Sidebar.Item`, `Sidebar.ItemButton`, and `Sidebar.SwitcherTrigger` accept an `asChild` prop. When `true`, the
 part renders its single child instead of its default element, forwarding all class names, `data-*`
 attributes, and the ref onto that child. The most common uses are router links on `Sidebar.ItemButton` (shown
-throughout this page) and composing `Sidebar.SwitcherButton` with `DropdownMenu.Trigger asChild` or
+throughout this page) and composing `Sidebar.SwitcherTrigger` with `DropdownMenu.Trigger asChild` or
 `Dialog.Trigger asChild`.
 
 `Sidebar.Nav` and `Sidebar.Trigger` deliberately do not support `asChild`: the nav renders
 a fixed two-element collapse structure (and a `Sheet` on mobile), and the trigger renders
-a fully-wired control — build custom triggers with `useSidebar` instead. `Sidebar.AccountAvatar`,
-`Sidebar.UserAvatar`, and `Sidebar.SwitchAccountsRadioGroup` are prop-driven leaves.
+a fully-wired control — build custom triggers with `useSidebar` instead. `Sidebar.AccountAvatar` and
+`Sidebar.UserAvatar` are prop-driven leaves.
 
 ## Accessibility
 
@@ -630,11 +638,12 @@ emits a bare `data-hydrated` once client hydration
 completes — an internal gate that lets collapse transitions snap instead of animating when SSR state is
 corrected on load.)
 
-| CSS Variable             | Default   | Description                                                                |
-| ------------------------ | --------- | -------------------------------------------------------------------------- |
-| `--sidebar-width`        | `16rem`   | Expanded desktop width. Set via `Sidebar.Nav`'s `className` or `style`.    |
-| `--sidebar-width-mobile` | `18rem`   | Mobile sheet width. Set via `Sidebar.Nav`'s `className` or `style`.        |
-| `--sidebar-width-icon`   | `3.25rem` | Collapsed icon rail width. Set via `Sidebar.Nav`'s `className` or `style`. |
+| CSS Variable              | Default   | Description                                                                                                                                                                                                                                                                      |
+| ------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--sidebar-width`         | `16rem`   | Expanded desktop width. Set via `Sidebar.Nav`'s `className` or `style`.                                                                                                                                                                                                          |
+| `--sidebar-width-mobile`  | `18rem`   | Mobile sheet width. Set via `Sidebar.Nav`'s `className` or `style`.                                                                                                                                                                                                              |
+| `--sidebar-width-icon`    | `3.25rem` | Collapsed icon rail width. Set via `Sidebar.Nav`'s `className` or `style`.                                                                                                                                                                                                       |
+| `--sidebar-header-height` | `4.5rem`  | `Sidebar.Header` row height. Set it on a common ancestor of the sidebar and the app-layout header (e.g. `AppLayout.Root`) — `AppLayout.Header` derives its own height from this token when a sidebar header is in the shell, so both rows move together and stay center-aligned. |
 
 ### Sidebar.Trigger
 
@@ -650,7 +659,10 @@ An [IconButton](/components/actions/icon-button) wired to toggle the sidebar. Al
 
 ### Sidebar.Header
 
-The pinned structural container at the top of `Sidebar.Nav` — the app/product switcher row lives here.
+The pinned structural container at the top of `Sidebar.Nav` — the app/product switcher row lives here. Its
+height is the public `--sidebar-header-height` token (default `4.5rem`); when the sidebar composes into an
+`AppLayout`, [`AppLayout.Header`](/layouts/app-layout#applayoutheader) derives its own height from the same
+token, so the two rows stay center-aligned by construction.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -731,7 +743,7 @@ without text peeking from the rail. All props from `button` plus:
 | `asChild?` | `boolean` | `false` | Render the single child (e.g. a router link) instead of a `<button>`.  |
 | `current?` | `boolean` | —       | Marks the current page: sets `aria-current="page"` and `data-current`. |
 
-### Sidebar.SwitcherButton
+### Sidebar.SwitcherTrigger
 
 The styled switcher row for the header (app switcher) and footer (account/user row). Its leading visual is
 size-7 to match selected rail icons while the row keeps a compact 36px footprint. The control uses a custom
@@ -741,9 +753,9 @@ provide the open state (`data-state="open"` styling responds automatically).
 
 All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
 
-| Prop       | Type      | Default | Description                                                                                                                         |
-| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.SwitcherButton` styling onto alternative element types or your own React components. |
+| Prop       | Type      | Default | Description                                                                                                                          |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.SwitcherTrigger` styling onto alternative element types or your own React components. |
 
 Inside the collapsed icon rail, the row collapses to its **first child element** — the
 leading visual — and the remaining children become visually hidden while staying in the accessibility tree,
@@ -776,15 +788,6 @@ A `size-7` circular user avatar with a silhouette fallback.
 | ------ | -------- | ---------------- | ------------------------------------------------------------- |
 | `src?` | `string` | —                | Profile picture URL; falls back to a silhouette when omitted. |
 | `alt?` | `string` | `"Your account"` | Accessible label for the avatar.                              |
-
-### Sidebar.SwitchAccountsRadioGroup
-
-A pre-styled radio group of accounts for a "Switch accounts" `DropdownMenu` submenu. All props from Radix
-`DropdownMenu.RadioGroup` (`value`, `onValueChange`, …) plus:
-
-| Prop       | Type                            | Default | Description                                        |
-| ---------- | ------------------------------- | ------- | -------------------------------------------------- |
-| `accounts` | `ReadonlyArray<SidebarAccount>` | —       | The accounts to render, `{ id, name, trailing? }`. |
 
 ### useSidebar
 
