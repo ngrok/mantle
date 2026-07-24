@@ -689,7 +689,7 @@ export function BridgeShellDemo() {
 										<CaretDownIcon className="text-muted size-4 shrink-0" />
 									</Sidebar.SwitcherTrigger>
 								</DropdownMenu.Trigger>
-								<DropdownMenu.Content align="start" className="min-w-56">
+								<DropdownMenu.Content align="start" width="trigger">
 									<DropdownMenu.Group>
 										<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
 											{account.name}
