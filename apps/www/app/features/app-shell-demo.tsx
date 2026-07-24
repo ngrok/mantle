@@ -500,7 +500,7 @@ export function AppShellDemo() {
 										<Sidebar.UserAvatar alt="Jane Doe" />
 									</Sidebar.SwitcherTrigger>
 								</DropdownMenu.Trigger>
-								<DropdownMenu.Content align="start" side="top" className="min-w-56">
+								<DropdownMenu.Content align="start" side="top" width="trigger">
 									<DropdownMenu.Group>
 										<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
 											{account.name}
