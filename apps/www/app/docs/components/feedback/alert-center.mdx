@@ -26,8 +26,8 @@ the normal [`Alert`](/components/feedback/alert) banner parts as children and re
 facts (`id`, `intent`) with the center, which derives the count, the top alert, and the
 severity ranking from the registrations. Mount an item to show its alert; unmount it to dismiss — dismissal
 is just your state flipping a condition off. The demo runs in its own framed document — choose the
-count-and-caret control to expand or collapse the full-width banners, or dismiss alerts to watch the bar
-re-rank.
+count-and-caret control to expand or collapse the full-width banners, or dismiss alerts (including the top
+one) to watch the next-highest severity promote into the bar.
 
 <CodeExample.Root>
 	<CodeExample.PreviewFrame example="alert-center-shell" title="Alert Center app shell demo" />
@@ -55,18 +55,21 @@ export function Shell() {
 					<AlertCenter.Root>
 						<AlertCenter.Bar />
 						<AlertCenter.Content />
-						<AlertCenter.Item id="payment-failed" intent="danger">
-							<Alert.Icon />
-							<Alert.Content>
-								<Alert.Title>
-									Payment failed — update your card <a href="/billing">Update payment method</a>
-								</Alert.Title>
-								<Alert.Description>
-									We couldn't charge the card ending in 4242. Update your payment method to avoid
-									interruption.
-								</Alert.Description>
-							</Alert.Content>
-						</AlertCenter.Item>
+						{!dismissed.has("payment-failed") && (
+							<AlertCenter.Item id="payment-failed" intent="danger">
+								<Alert.Icon />
+								<Alert.Content>
+									<Alert.Title>
+										Payment failed — update your card <a href="/billing">Update payment method</a>
+									</Alert.Title>
+									<Alert.Description>
+										We couldn't charge the card ending in 4242. Update your payment method to avoid
+										interruption.
+									</Alert.Description>
+									<AlertCenter.DismissIconButton onClick={() => dismiss("payment-failed")} />
+								</Alert.Content>
+							</AlertCenter.Item>
+						)}
 						{!dismissed.has("transfer-limit") && (
 							<AlertCenter.Item id="transfer-limit" intent="warning">
 								<Alert.Icon />
@@ -125,8 +128,9 @@ export function Shell() {
 
 Author one `AlertCenter.Item` per alert, composing the `Alert` banner parts as its children. The consumer
 owns dismissal (including any persistence, e.g. `sessionStorage`): compose an
-`AlertCenter.DismissIconButton` whose `onClick` unmounts the item. An item without one — like a failed
-payment — is simply not dismissable.
+`AlertCenter.DismissIconButton` whose `onClick` unmounts the item — dismissing the top alert promotes the
+next-highest severity into the bar. An item authored without one (say, a hard-stop billing failure the user
+must resolve) is simply not dismissable.
 
 <Example>
 	<AlertCenterExample />
@@ -145,15 +149,18 @@ export function Example() {
 		<AlertCenter.Root>
 			<AlertCenter.Bar />
 			<AlertCenter.Content />
-			<AlertCenter.Item id="payment-failed" intent="danger">
-				<Alert.Icon />
-				<Alert.Content>
-					<Alert.Title>
-						Payment failed — update your card <a href="/billing">Update payment method</a>
-					</Alert.Title>
-					<Alert.Description>We couldn't charge the card ending in 4242.</Alert.Description>
-				</Alert.Content>
-			</AlertCenter.Item>
+			{!dismissed.has("payment-failed") && (
+				<AlertCenter.Item id="payment-failed" intent="danger">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>
+							Payment failed — update your card <a href="/billing">Update payment method</a>
+						</Alert.Title>
+						<Alert.Description>We couldn't charge the card ending in 4242.</Alert.Description>
+						<AlertCenter.DismissIconButton onClick={() => dismiss("payment-failed")} />
+					</Alert.Content>
+				</AlertCenter.Item>
+			)}
 			{!dismissed.has("transfer-limit") && (
 				<AlertCenter.Item id="transfer-limit" intent="warning">
 					<Alert.Icon />

@@ -24,11 +24,11 @@ const demoNavItems: ReadonlyArray<DemoNavItem> = [
 
 /**
  * A realistic set of account-limit / usage / billing alerts, authored as
- * `AlertCenter.Item` JSX — one persistent revenue-recovery alert (payment
- * failed, no dismiss button), two dismissable upgrade nags, and one
- * informational notice. `AlertCenter` ranks them by severity, so "Payment
- * failed" always leads the bar; dismissal is just the consumer unmounting an
- * item.
+ * `AlertCenter.Item` JSX — a payment-failure alert, two upgrade nags, and an
+ * informational notice, all dismissable so the demos can prove that dismissing
+ * the bar's top alert promotes the next severity up. `AlertCenter` ranks them
+ * by severity, so "Payment failed" leads the bar until dismissed; dismissal is
+ * just the consumer unmounting an item.
  */
 function DemoAlerts({
 	dismissed,
@@ -104,6 +104,7 @@ function DemoAlerts({
 							We couldn&apos;t charge the card ending in 4242. Update your payment method to avoid a
 							service interruption.
 						</Alert.Description>
+						<AlertCenter.DismissIconButton onClick={() => onDismiss("payment-failed")} />
 					</Alert.Content>
 				</AlertCenter.Item>
 			)}
