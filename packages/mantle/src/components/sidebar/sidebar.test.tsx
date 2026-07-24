@@ -102,6 +102,27 @@ describe("Sidebar.Nav (desktop)", () => {
 		);
 	});
 
+	test("Trigger omits aria-controls while the mobile sheet is closed", async () => {
+		// Regression: the mobile nav lives inside a Sheet whose content Radix
+		// unmounts while closed, so a permanent aria-controls would reference an
+		// element that is not in the document.
+		const user = userEvent.setup();
+		useIsBelowBreakpointMock.mockReturnValue(true);
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav />
+				<Sidebar.Trigger />
+			</Sidebar.Root>,
+		);
+		const trigger = screen.getByRole("button", { name: "Toggle Sidebar" });
+		expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+		expect(trigger).not.toHaveAttribute("aria-controls");
+
+		await user.click(trigger);
+		const nav = screen.getByRole("navigation", { name: "Main" });
+		expect(trigger).toHaveAttribute("aria-controls", nav.id);
+	});
+
 	test("controlled open reports changes through onOpenChange without flipping itself", async () => {
 		const user = userEvent.setup();
 		const onOpenChange = vi.fn<(open: boolean) => void>();
@@ -187,6 +208,28 @@ describe("Sidebar.Nav (desktop)", () => {
 				</Sidebar.Root>
 			</>,
 		);
+		await user.keyboard("{Meta>}b{/Meta}");
+		expect(screen.getByTestId("primary")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("secondary")).toHaveAttribute("data-state", "expanded");
+	});
+
+	test("⌘B ownership stays with the first root across repeated presses", async () => {
+		// Regression: the owner used to re-claim on every toggle (its `toggle`
+		// identity is in the effect's deps), which re-queued it at the TAIL and
+		// handed ownership to the sibling — so press 2 toggled the wrong sidebar.
+		const user = userEvent.setup();
+		render(
+			<>
+				<Sidebar.Root>
+					<Sidebar.Nav data-testid="primary" />
+				</Sidebar.Root>
+				<Sidebar.Root>
+					<Sidebar.Nav data-testid="secondary" />
+				</Sidebar.Root>
+			</>,
+		);
+		await user.keyboard("{Meta>}b{/Meta}");
+		await user.keyboard("{Meta>}b{/Meta}");
 		await user.keyboard("{Meta>}b{/Meta}");
 		expect(screen.getByTestId("primary")).toHaveAttribute("data-state", "collapsed");
 		expect(screen.getByTestId("secondary")).toHaveAttribute("data-state", "expanded");
@@ -399,10 +442,15 @@ describe("useSidebar", () => {
 			useSidebar();
 			return null;
 		}
-		// silence React's error boundary noise for the expected throw
+		// silence React's error boundary noise for the expected throw. try/finally
+		// so a failed assertion cannot leave console.error mocked for the rest of
+		// the file, hiding React's key/act/hydration warnings.
 		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-		expect(() => render(<Standalone />)).toThrow("useSidebar must be used within Sidebar.Root.");
-		consoleError.mockRestore();
+		try {
+			expect(() => render(<Standalone />)).toThrow("useSidebar must be used within Sidebar.Root.");
+		} finally {
+			consoleError.mockRestore();
+		}
 	});
 
 	test("exposes toggle and setters that drive the panel", async () => {
@@ -441,6 +489,42 @@ describe("Sidebar.Group + GroupLabel + List", () => {
 			</Sidebar.Group>,
 		);
 		expect(screen.getByRole("list", { name: "Traffic" })).toBeInTheDocument();
+	});
+
+	test("labels the list with a consumer-supplied GroupLabel id", () => {
+		// Regression: the group used to register only its own generated id, so a
+		// consumer `id` on the label silently left the list unnamed.
+		render(
+			<Sidebar.Group>
+				<Sidebar.GroupLabel id="traffic-label">Traffic</Sidebar.GroupLabel>
+				<Sidebar.List data-testid="list">
+					<Sidebar.Item>
+						<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
+					</Sidebar.Item>
+				</Sidebar.List>
+			</Sidebar.Group>,
+		);
+		expect(screen.getByTestId("list")).toHaveAttribute("aria-labelledby", "traffic-label");
+		expect(screen.getByRole("list", { name: "Traffic" })).toBeInTheDocument();
+	});
+
+	test("drops the list's aria-labelledby when the label unmounts", () => {
+		function Group({ showLabel }: { showLabel: boolean }) {
+			return (
+				<Sidebar.Group>
+					{showLabel && <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>}
+					<Sidebar.List data-testid="list">
+						<Sidebar.Item>
+							<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
+						</Sidebar.Item>
+					</Sidebar.List>
+				</Sidebar.Group>
+			);
+		}
+		const { rerender } = render(<Group showLabel />);
+		expect(screen.getByTestId("list")).toHaveAttribute("aria-labelledby");
+		rerender(<Group showLabel={false} />);
+		expect(screen.getByTestId("list")).not.toHaveAttribute("aria-labelledby");
 	});
 
 	test("renders the list without aria-labelledby when the group has no label", () => {

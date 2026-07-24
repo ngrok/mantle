@@ -13,6 +13,7 @@ import {
 	useState,
 } from "react";
 import invariant from "tiny-invariant";
+import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useIsBelowBreakpoint } from "../../hooks/use-breakpoint.js";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import type { WithAsChild } from "../../types/as-child.js";
@@ -27,9 +28,9 @@ import { Slot } from "../slot/index.js";
 
 /**
  * The breakpoints below which `Sidebar.Nav` swaps from the inline desktop
- * panel to the mobile `Sheet` presentation. Kept to a closed set so the CSS
- * visibility classes and the `useIsBelowBreakpoint` media query stay in
- * lockstep (Tailwind cannot see interpolated class names).
+ * panel to the mobile `Sheet` presentation. Kept to a closed set because the
+ * pre-hydration visibility classes are static strings (Tailwind cannot see
+ * interpolated class names).
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar
  *
@@ -41,9 +42,10 @@ import { Slot } from "../slot/index.js";
 type SidebarMobileBreakpoint = "sm" | "md" | "lg";
 
 /**
- * Maps each supported `mobileBreakpoint` to the static visibility classes for
- * the desktop panel — hidden below the breakpoint (where the mobile `Sheet`
- * takes over) and shown at or above it. A complete `Record` (not cva) so
+ * Maps each supported `mobileBreakpoint` to the static visibility classes that
+ * hide the desktop panel below the breakpoint. Applied only until hydration —
+ * the server cannot know the viewport, and after hydration `isMobile` picks the
+ * presentation on its own (see `Sidebar.Nav`). A complete `Record` (not cva) so
  * adding a breakpoint without its classes is a compile error.
  */
 const navVisibilityClassName: Record<SidebarMobileBreakpoint, string> = {
@@ -339,6 +341,14 @@ const Root = ({
 	// match: Shift/Alt combinations (e.g. the browser's own ⌘⇧B) pass through.
 	// Ownership: only the registry's first claimant handles the keypress, so
 	// multiple mounted roots (nested or siblings) never toggle together.
+	//
+	// `toggle` is read through a stable ref rather than listed as a dependency:
+	// its identity changes on every toggle (and on every parent render when the
+	// consumer passes an inline `onOpenChange`), and re-running the effect would
+	// release the claim and re-queue it at the TAIL — handing ownership to a
+	// sibling root after the first keypress, exactly the ping-pong the queue
+	// exists to prevent.
+	const toggleRef = useCallbackRef(toggle);
 	useEffect(() => {
 		if (!keyboardShortcut) {
 			return;
@@ -358,7 +368,7 @@ const Root = ({
 				!event.shiftKey
 			) {
 				event.preventDefault();
-				toggle();
+				toggleRef();
 			}
 		};
 		window.addEventListener("keydown", handleKeyDown);
@@ -366,7 +376,7 @@ const Root = ({
 			window.removeEventListener("keydown", handleKeyDown);
 			claim.release();
 		};
-	}, [keyboardShortcut, toggle]);
+	}, [keyboardShortcut, toggleRef]);
 
 	const contextValue = useMemo<SidebarState>(
 		() => ({
@@ -500,7 +510,16 @@ const Nav = ({
 				// collapsing animates the width down to the skinny icon rail; the
 				// panel content stays interactive and in the accessibility tree.
 				"data-[state=collapsed]:w-[var(--sidebar-width-icon,3.25rem)]",
-				navVisibilityClassName[mobileBreakpoint],
+				// Pre-hydration only: the server cannot know the viewport, so hide the
+				// desktop panel below the breakpoint in CSS to avoid a flash of the
+				// wrong presentation on a narrow screen. After hydration `isMobile`
+				// is authoritative and this gate is dropped — keeping it would leave
+				// a sliver of widths (Tailwind's `min-width` variant vs the hook's
+				// `max-width` query differ by 0.01rem, reachable under browser zoom
+				// or fractional display scaling) where the desktop panel renders but
+				// CSS keeps it hidden and no mobile sheet exists, making the
+				// navigation unreachable.
+				!isHydrated && navVisibilityClassName[mobileBreakpoint],
 				// Gate the transition on hydration so an SSR state correction
 				// (e.g. persisted-collapsed applied by a controlled `open`) snaps
 				// instead of animating shut on page load.
@@ -655,11 +674,16 @@ const Trigger = ({
 }: SidebarTriggerProps) => {
 	const { isMobile, navId, open, openMobile, toggle } = useSidebarContext("Trigger");
 	const expanded = isMobile ? openMobile : open;
+	// The mobile `Sheet` unmounts its content while closed, so the `<nav>` this
+	// would point at does not exist — and `aria-controls` must reference an
+	// element that is in the document. Desktop keeps the panel mounted at every
+	// state (collapsing is a width animation), so the reference always resolves.
+	const controlsNav = !isMobile || openMobile;
 
 	return (
 		<IconButton
 			appearance={appearance}
-			aria-controls={navId}
+			aria-controls={controlsNav ? navId : undefined}
 			aria-expanded={expanded}
 			data-slot={joinDataSlot(dataSlot, "sidebar-trigger")}
 			data-state={expanded ? "expanded" : "collapsed"}
@@ -959,20 +983,22 @@ const Footer = ({
 
 type SidebarGroupContextValue = {
 	/**
-	 * The id the group's `Sidebar.GroupLabel` renders with, referenced by
-	 * `Sidebar.List` via `aria-labelledby`.
+	 * The generated id a `Sidebar.GroupLabel` adopts when the consumer passes
+	 * none of their own.
 	 */
 	labelId: string;
 	/**
-	 * Whether a managed `Sidebar.GroupLabel` is currently mounted in this
-	 * group — gates the list's `aria-labelledby` so it never dangles.
+	 * The id of the `Sidebar.GroupLabel` currently mounted in this group — the
+	 * consumer's own `id` when they pass one, else {@link labelId} — or `null`
+	 * while no label is mounted, so the list's `aria-labelledby` never dangles.
 	 */
-	hasLabel: boolean;
+	mountedLabelId: string | null;
 	/**
-	 * Registers/unregisters the group's label (called by `Sidebar.GroupLabel`
-	 * on mount/unmount).
+	 * Registers/unregisters the group's label id (called by
+	 * `Sidebar.GroupLabel` on mount/unmount). A stable setter, so the label's
+	 * registration effect can depend on it without churning.
 	 */
-	setHasLabel: (hasLabel: boolean) => void;
+	setMountedLabelId: (labelId: string | null) => void;
 };
 
 const SidebarGroupContext = createContext<SidebarGroupContextValue | null>(null);
@@ -1044,10 +1070,10 @@ const Group = ({
 	...props
 }: SidebarGroupProps) => {
 	const labelId = useId();
-	const [hasLabel, setHasLabel] = useState(false);
+	const [mountedLabelId, setMountedLabelId] = useState<string | null>(null);
 	const contextValue = useMemo<SidebarGroupContextValue>(
-		() => ({ hasLabel, labelId, setHasLabel }),
-		[hasLabel, labelId],
+		() => ({ labelId, mountedLabelId, setMountedLabelId }),
+		[labelId, mountedLabelId],
 	);
 	const Comp = asChild ? Slot : "div";
 
@@ -1133,23 +1159,28 @@ const GroupLabel = ({
 	...props
 }: SidebarGroupLabelProps) => {
 	const groupContext = useContext(SidebarGroupContext);
-	const isManagedId = idProp == null && groupContext != null;
-
+	const labelId = idProp ?? groupContext?.labelId;
+	// Register the id the label actually renders with — a consumer-supplied
+	// `id` included — so `Sidebar.List` stays named either way. Depends on the
+	// stable setter rather than the whole context value: the registration
+	// itself changes that value's identity, which would otherwise unregister
+	// and re-register the label on the very next commit.
+	const setMountedLabelId = groupContext?.setMountedLabelId;
 	useEffect(() => {
-		if (!isManagedId || groupContext == null) {
+		if (setMountedLabelId == null || labelId == null) {
 			return;
 		}
-		groupContext.setHasLabel(true);
+		setMountedLabelId(labelId);
 		return () => {
-			groupContext.setHasLabel(false);
+			setMountedLabelId(null);
 		};
-	}, [groupContext, isManagedId]);
+	}, [setMountedLabelId, labelId]);
 
 	const Comp = asChild ? Slot : "div";
 
 	return (
 		<Comp
-			id={idProp ?? groupContext?.labelId}
+			id={labelId}
 			data-slot={joinDataSlot(dataSlot, "sidebar-group-label")}
 			className={cx(
 				"text-muted flex min-w-0 items-center gap-2 truncate px-2 py-1 text-xs font-medium",
@@ -1247,9 +1278,7 @@ const List = ({
 
 	return (
 		<Comp
-			aria-labelledby={
-				ariaLabelledBy ?? (groupContext?.hasLabel ? groupContext.labelId : undefined)
-			}
+			aria-labelledby={ariaLabelledBy ?? groupContext?.mountedLabelId ?? undefined}
 			data-slot={joinDataSlot(dataSlot, "sidebar-list")}
 			className={cx("mb-2 space-y-px", className)}
 			{...props}
@@ -1329,7 +1358,7 @@ const Item = ({
 	return (
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "sidebar-item")}
-			className={cx("group/sidebar-item relative list-none", className)}
+			className={cx("list-none", className)}
 			{...props}
 		>
 			{children}
@@ -1662,6 +1691,15 @@ function djb2Hash(value: string): number {
 	return hash >>> 0;
 }
 
+/**
+ * The swatch class an account id maps to — the same id always yields the same
+ * swatch, and a missing id resolves like the empty string.
+ *
+ * @example
+ * ```ts
+ * pickColorClass("acc_123"); // e.g. "bg-violet-500"
+ * ```
+ */
 function pickColorClass(accountId: string | undefined): string {
 	const hash = djb2Hash(accountId ?? "");
 	const index = hash % accountAvatarColors.length;
@@ -1670,6 +1708,18 @@ function pickColorClass(accountId: string | undefined): string {
 	return accountAvatarColors[index] ?? "bg-neutral-500";
 }
 
+/**
+ * At most two uppercase initials for an account name: punctuation is stripped,
+ * the first code point of each of the first two words is kept (so an
+ * emoji-leading name is not split mid-surrogate), casing is locale-invariant so
+ * SSR and client agree, and a name with no usable characters renders `"?"`.
+ *
+ * @example
+ * ```ts
+ * getInitials("Acme Corp"); // "AC"
+ * getInitials("  ~!@  ");   // "?"
+ * ```
+ */
 function getInitials(accountName: string | undefined): string {
 	const stripped = (accountName ?? "")
 		.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>{}[\]\\/]/gi, "")
