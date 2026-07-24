@@ -23,7 +23,15 @@ import { Alert, AlertContextProvider } from "../alert/alert.js";
 /**
  * The tone an alert's color communicates — identical to `Alert`'s intent axis,
  * so an item's `intent` flows straight through to the `Alert` chrome that
- * renders it.
+ * renders it. Also the severity ranking key: `danger` › `warning` ›
+ * `important` › `info` › `success` decides which item the bar shows.
+ *
+ * @see https://mantle.ngrok.com/components/feedback/alert-center
+ *
+ * @example
+ * ```tsx
+ * <AlertCenter.Item id="payment-failed" intent="danger">…</AlertCenter.Item>
+ * ```
  */
 type AlertCenterIntent = "danger" | "important" | "info" | "success" | "warning";
 
@@ -246,7 +254,7 @@ class AlertCenterStore {
 		return host;
 	}
 
-	#snapshotById = new Map<string, Node>();
+	#hostSnapshot: { id: string; content: Node } | null = null;
 
 	/**
 	 * Item-side: snapshot the host's current content (a deep clone). The item
@@ -254,16 +262,28 @@ class AlertCenterStore {
 	 * exit slide needs a pre-captured copy to stay filled — captured on every
 	 * item commit (deterministic, unlike observing mutations) and kept past
 	 * unregistration on purpose: the exit is exactly when it's read.
+	 *
+	 * Only the TOP-ranked id is captured, and only its clone is retained: the
+	 * ghost is a bar-only affordance, so a lower-ranked item's clone can never
+	 * be read, and keeping one per id ever registered would hold a detached
+	 * banner subtree for the store's lifetime. A promoted id captures on the
+	 * very commit that promotes it — unranking the previous top re-renders its
+	 * siblings, and cleanup runs before their effects — so the ghost is always
+	 * ready by the time the bar exits.
 	 */
 	captureHostSnapshot(id: string): void {
+		if (id !== this.#snapshot[0]?.id) {
+			return;
+		}
 		const host = this.#hostById.get(id);
 		if (host != null && host.hasChildNodes()) {
-			this.#snapshotById.set(id, host.cloneNode(true));
+			this.#hostSnapshot = { id, content: host.cloneNode(true) };
 		}
 	}
 
 	/** The last captured content snapshot for an id, for the bar's exit ghost. */
-	getHostSnapshot = (id: string): Node | null => this.#snapshotById.get(id) ?? null;
+	getHostSnapshot = (id: string): Node | null =>
+		this.#hostSnapshot?.id === id ? this.#hostSnapshot.content : null;
 
 	/** Subscribe to every store change; returns the unsubscribe function. */
 	subscribe = (listener: () => void): (() => void) => {
@@ -412,20 +432,39 @@ class AlertCenterStore {
 	}
 }
 
+/**
+ * The facts every part needs, stable for the Root's lifetime. Deliberately
+ * kept apart from {@link AlertCenterExpansionContextValue}: `AlertCenter.Item`
+ * and `AlertCenter.DismissIconButton` read only these, so toggling the
+ * expansion must not re-render — and re-derive the accessible name of — every
+ * mounted alert.
+ */
 type AlertCenterContextValue = {
 	store: AlertCenterStore;
-	/** Whether the additional alerts are currently rendered below the bar. */
-	isExpanded: boolean;
-	/** Opens or collapses the additional alerts. */
-	setExpanded: (expanded: boolean) => void;
 	/** The `id` of `AlertCenter.Content`, wired to the expand button's `aria-controls`. */
 	contentId: string;
 };
 
 const AlertCenterContext = createContext<AlertCenterContextValue | null>(null);
 
+/** The inline expansion's open state — consumed only by `Bar` and `Content`. */
+type AlertCenterExpansionContextValue = {
+	/** Whether the additional alerts are currently rendered below the bar. */
+	isExpanded: boolean;
+	/** Opens or collapses the additional alerts. */
+	setExpanded: (expanded: boolean) => void;
+};
+
+const AlertCenterExpansionContext = createContext<AlertCenterExpansionContextValue | null>(null);
+
 function useAlertCenterContext(partName: string): AlertCenterContextValue {
 	const context = useContext(AlertCenterContext);
+	invariant(context, `${partName} must be rendered inside <AlertCenter.Root>.`);
+	return context;
+}
+
+function useAlertCenterExpansion(partName: string): AlertCenterExpansionContextValue {
+	const context = useContext(AlertCenterExpansionContext);
 	invariant(context, `${partName} must be rendered inside <AlertCenter.Root>.`);
 	return context;
 }
@@ -434,16 +473,16 @@ const useRankedAlerts = (store: AlertCenterStore) =>
 	useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 
 /**
- * The id of the enclosing `AlertCenter.Item`, provided around its portaled
- * children at the AUTHORING site (the portal keeps React context flowing from
- * where the item is written, not where its DOM lands). Guards the composition
- * invariants: `AlertCenter.DismissIconButton` must be inside an item's
- * children, and items must never nest. Placement-aware STYLING needs no
- * context — the chrome stamps `data-placement`, so `in-data-[placement=…]`
- * variants adapt purely in CSS, even as a host physically moves between the
- * bar and a row.
+ * Whether an `AlertCenter.Item` encloses this subtree, provided around its
+ * portaled children at the AUTHORING site (the portal keeps React context
+ * flowing from where the item is written, not where its DOM lands). Presence
+ * is the whole payload — it guards the composition invariants:
+ * `AlertCenter.DismissIconButton` must be inside an item's children, and items
+ * must never nest. Placement-aware STYLING needs no context — the chrome
+ * stamps `data-placement`, so `in-data-[placement=…]` variants adapt purely in
+ * CSS, even as a host physically moves between the bar and a row.
  */
-const AlertCenterItemContext = createContext<string | null>(null);
+const AlertCenterItemContext = createContext(false);
 
 /**
  * The persistent polite announcer. A leaf subscriber (rather than text inside
@@ -470,6 +509,17 @@ function Announcer({ store }: { store: AlertCenterStore }) {
 /**
  * Props for {@link AlertCenter.Root} — the expansion's open state. The alerts
  * themselves are authored as `AlertCenter.Item` children.
+ *
+ * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterroot
+ *
+ * @example
+ * ```tsx
+ * <AlertCenter.Root open={expanded} onOpenChange={setExpanded}>
+ *   <AlertCenter.Bar />
+ *   <AlertCenter.Content />
+ *   <AlertCenter.Item id="payment-failed" intent="danger">…</AlertCenter.Item>
+ * </AlertCenter.Root>
+ * ```
  */
 type AlertCenterRootProps = {
 	/** Controlled expanded state of the additional-alert list. */
@@ -527,13 +577,19 @@ const Root = ({ children, defaultOpen, onOpenChange, open }: AlertCenterRootProp
 		[open, onOpenChange],
 	);
 	const context = useMemo<AlertCenterContextValue>(
-		() => ({ store, isExpanded, setExpanded, contentId }),
-		[store, isExpanded, setExpanded, contentId],
+		() => ({ store, contentId }),
+		[store, contentId],
+	);
+	const expansion = useMemo<AlertCenterExpansionContextValue>(
+		() => ({ isExpanded, setExpanded }),
+		[isExpanded, setExpanded],
 	);
 
 	return (
 		<AlertCenterContext.Provider value={context}>
-			{children}
+			<AlertCenterExpansionContext.Provider value={expansion}>
+				{children}
+			</AlertCenterExpansionContext.Provider>
 			<Announcer store={store} />
 		</AlertCenterContext.Provider>
 	);
@@ -543,6 +599,23 @@ const Root = ({ children, defaultOpen, onOpenChange, open }: AlertCenterRootProp
  * Props for {@link AlertCenter.Item}: the coordination facts the center needs
  * to rank, announce, and label an alert — everything presentational is the
  * authored `children`.
+ *
+ * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenteritem
+ *
+ * @example
+ * ```tsx
+ * <AlertCenter.Root>
+ *   <AlertCenter.Bar />
+ *   <AlertCenter.Content />
+ *   <AlertCenter.Item id="transfer-limit" intent="warning">
+ *     <Alert.Icon />
+ *     <Alert.Content>
+ *       <Alert.Title>Approaching your data transfer limit</Alert.Title>
+ *       <AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
+ *     </Alert.Content>
+ *   </AlertCenter.Item>
+ * </AlertCenter.Root>
+ * ```
  */
 type AlertCenterItemProps = {
 	/**
@@ -592,27 +665,28 @@ type AlertCenterItemProps = {
  *
  * @example
  * ```tsx
- * <AlertCenter.Item id="transfer-limit" intent="warning">
- *   <Alert.Icon />
- *   <Alert.Content>
- *     <Alert.Title>
- *       You've used 92% of your monthly transfer. <a href="/billing">Upgrade</a>
- *     </Alert.Title>
- *     <Alert.Description>Free accounts include 5 GB of transfer per month.</Alert.Description>
- *     <AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
- *   </Alert.Content>
- * </AlertCenter.Item>
+ * <AlertCenter.Root>
+ *   <AlertCenter.Bar />
+ *   <AlertCenter.Content />
+ *   <AlertCenter.Item id="transfer-limit" intent="warning">
+ *     <Alert.Icon />
+ *     <Alert.Content>
+ *       <Alert.Title>
+ *         You've used 92% of your monthly transfer. <a href="/billing">Upgrade</a>
+ *       </Alert.Title>
+ *       <Alert.Description>Free accounts include 5 GB of transfer per month.</Alert.Description>
+ *       <AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
+ *     </Alert.Content>
+ *   </AlertCenter.Item>
+ * </AlertCenter.Root>
  * ```
  */
 const Item = ({ children, className, id, intent }: AlertCenterItemProps) => {
 	const { store } = useAlertCenterContext("AlertCenter.Item");
 	// A nested item would register while its enclosing item renders, outrank
 	// or unrank its host, and loop the projection forever — fail fast instead.
-	const enclosingItemId = useContext(AlertCenterItemContext);
-	invariant(
-		enclosingItemId == null,
-		"AlertCenter.Item cannot be rendered inside another item's children.",
-	);
+	const isInsideItem = useContext(AlertCenterItemContext);
+	invariant(!isInsideItem, "AlertCenter.Item cannot be rendered inside another item's children.");
 	// The host is created client-side in an effect (SSR emits nothing), then
 	// the portal renders into it. Facts re-register only when they change —
 	// children updates flow through the portal like any other render.
@@ -638,7 +712,7 @@ const Item = ({ children, className, id, intent }: AlertCenterItemProps) => {
 	// provides the same Alert context (same `intent`) the chrome renders with.
 	return createPortal(
 		<AlertContextProvider intent={intent}>
-			<AlertCenterItemContext.Provider value={id}>{children}</AlertCenterItemContext.Provider>
+			<AlertCenterItemContext.Provider value={true}>{children}</AlertCenterItemContext.Provider>
 		</AlertContextProvider>,
 		host,
 	);
@@ -688,13 +762,17 @@ const placementAwareDismissControl =
  *
  * @example
  * ```tsx
- * <AlertCenter.Item id="transfer-limit" intent="warning">
- *   <Alert.Icon />
- *   <Alert.Content>
- *     <Alert.Title>Approaching your data transfer limit</Alert.Title>
- *     <AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
- *   </Alert.Content>
- * </AlertCenter.Item>
+ * <AlertCenter.Root>
+ *   <AlertCenter.Bar />
+ *   <AlertCenter.Content />
+ *   <AlertCenter.Item id="transfer-limit" intent="warning">
+ *     <Alert.Icon />
+ *     <Alert.Content>
+ *       <Alert.Title>Approaching your data transfer limit</Alert.Title>
+ *       <AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
+ *     </Alert.Content>
+ *   </AlertCenter.Item>
+ * </AlertCenter.Root>
  * ```
  */
 const DismissIconButton = ({
@@ -703,9 +781,9 @@ const DismissIconButton = ({
 	ref,
 	...props
 }: AlertCenterDismissIconButtonProps) => {
-	const enclosingItemId = useContext(AlertCenterItemContext);
+	const isInsideItem = useContext(AlertCenterItemContext);
 	invariant(
-		enclosingItemId != null,
+		isInsideItem,
 		"AlertCenter.DismissIconButton must be composed inside an <AlertCenter.Item>'s children.",
 	);
 	const { store } = useAlertCenterContext("AlertCenter.DismissIconButton");
@@ -1045,7 +1123,8 @@ const chromeClassName = "gap-2 py-2 pr-2 [&_[data-slot=alert-icon]]:shrink-0";
  * ```
  */
 const Bar = ({ className, ref, ...props }: AlertCenterBarProps) => {
-	const { store, isExpanded, setExpanded, contentId } = useAlertCenterContext("AlertCenter.Bar");
+	const { store, contentId } = useAlertCenterContext("AlertCenter.Bar");
+	const { isExpanded, setExpanded } = useAlertCenterExpansion("AlertCenter.Bar");
 	const alerts = useRankedAlerts(store);
 	const contentMounted = useSyncExternalStore(
 		store.subscribe,
@@ -1254,8 +1333,8 @@ const Content = ({
 	ref,
 	...props
 }: AlertCenterContentProps) => {
-	const { store, isExpanded, setExpanded, contentId } =
-		useAlertCenterContext("AlertCenter.Content");
+	const { store, contentId } = useAlertCenterContext("AlertCenter.Content");
+	const { isExpanded, setExpanded } = useAlertCenterExpansion("AlertCenter.Content");
 	const alerts = useRankedAlerts(store);
 	const additionalAlerts = alerts.slice(1);
 	const hasRows = additionalAlerts.length > 0;
@@ -1568,14 +1647,18 @@ const AlertCenter = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <AlertCenter.Item id="payment-failed" intent="danger">
-	 *   <Alert.Icon />
-	 *   <Alert.Content>
-	 *     <Alert.Title>
-	 *       Payment failed — <a href="/billing">update your card</a>
-	 *     </Alert.Title>
-	 *   </Alert.Content>
-	 * </AlertCenter.Item>
+	 * <AlertCenter.Root>
+	 *   <AlertCenter.Bar />
+	 *   <AlertCenter.Content />
+	 *   <AlertCenter.Item id="payment-failed" intent="danger">
+	 *     <Alert.Icon />
+	 *     <Alert.Content>
+	 *       <Alert.Title>
+	 *         Payment failed — <a href="/billing">update your card</a>
+	 *       </Alert.Title>
+	 *     </Alert.Content>
+	 *   </AlertCenter.Item>
+	 * </AlertCenter.Root>
 	 * ```
 	 */
 	Item,
@@ -1588,13 +1671,17 @@ const AlertCenter = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <AlertCenter.Item id="transfer-limit" intent="warning">
-	 *   <Alert.Icon />
-	 *   <Alert.Content>
-	 *     <Alert.Title>Approaching your data transfer limit</Alert.Title>
-	 *     <AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
-	 *   </Alert.Content>
-	 * </AlertCenter.Item>
+	 * <AlertCenter.Root>
+	 *   <AlertCenter.Bar />
+	 *   <AlertCenter.Content />
+	 *   <AlertCenter.Item id="transfer-limit" intent="warning">
+	 *     <Alert.Icon />
+	 *     <Alert.Content>
+	 *       <Alert.Title>Approaching your data transfer limit</Alert.Title>
+	 *       <AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
+	 *     </Alert.Content>
+	 *   </AlertCenter.Item>
+	 * </AlertCenter.Root>
 	 * ```
 	 */
 	DismissIconButton,

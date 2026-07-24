@@ -6,7 +6,7 @@ description: A composable, collapsible app-navigation sidebar with a mobile shee
 import { CodeExample } from "~/components/code-example";
 import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
-import { SidebarAnatomyDemo } from "~/features/sidebar-demos";
+import { SidebarAnatomyDemo, SidebarPolymorphismDemo } from "~/features/sidebar-demos";
 
 <PageHeader id="sidebar">Sidebar</PageHeader>
 
@@ -457,8 +457,8 @@ import { HashIcon } from "@phosphor-icons/react/Hash";
 import { useState } from "react";
 
 export function NetworkNav() {
-	// the framed examples fake a router so they can be embedded; a real app
-	// renders react-router `Link`s through `asChild` and reads `useLocation()`
+	// this example fakes a router; a real app renders react-router `Link`s
+	// through `asChild` and reads `useLocation()`
 	const [pathname, setPathname] = useState("/domains");
 
 	return (
@@ -597,6 +597,67 @@ throughout this page) and composing `Sidebar.SwitcherTrigger` with `DropdownMenu
 a fixed two-element collapse structure (and a `Sheet` on mobile), and the trigger renders
 a fully-wired control — build custom triggers with `useSidebar` instead. `Sidebar.AccountAvatar` and
 `Sidebar.UserAvatar` are prop-driven leaves.
+
+Below, `Sidebar.GroupLabel` renders a real `<h3>` and each `Sidebar.ItemButton` renders an `<a>` instead of
+its default `<button>`. The parts' classes, `data-*` state, and refs land on your elements, and the
+group's `aria-labelledby` wiring still names the list — inspect the rendered markup to see it.
+
+<Example className="p-4 md:p-8">
+	<SidebarPolymorphismDemo />
+</Example>
+
+```tsx
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { useState } from "react";
+
+export function TrafficNav() {
+	// this example fakes a router; a real app renders react-router `Link`s
+	// through `asChild` and reads `useLocation()`
+	const [pathname, setPathname] = useState("/endpoints");
+
+	return (
+		<div className="w-64 text-sm">
+			<Sidebar.Group>
+				<Sidebar.GroupLabel asChild>
+					<h3>Traffic</h3>
+				</Sidebar.GroupLabel>
+				<Sidebar.List>
+					<Sidebar.Item>
+						<Sidebar.ItemButton asChild current={pathname === "/endpoints"}>
+							<a
+								href="/endpoints"
+								onClick={(event) => {
+									event.preventDefault();
+									setPathname("/endpoints");
+								}}
+							>
+								<GraphIcon />
+								Endpoints
+							</a>
+						</Sidebar.ItemButton>
+					</Sidebar.Item>
+					<Sidebar.Item>
+						<Sidebar.ItemButton asChild current={pathname === "/domains"}>
+							<a
+								href="/domains"
+								onClick={(event) => {
+									event.preventDefault();
+									setPathname("/domains");
+								}}
+							>
+								<GlobeHemisphereWestIcon />
+								Domains
+							</a>
+						</Sidebar.ItemButton>
+					</Sidebar.Item>
+				</Sidebar.List>
+			</Sidebar.Group>
+		</div>
+	);
+}
+```
 
 ## Accessibility
 

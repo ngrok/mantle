@@ -563,6 +563,22 @@ describe("Sidebar.Group + GroupLabel + List", () => {
 		expect(label).toHaveAttribute("data-slot", "sidebar-group-label");
 		expect(label.className).toContain("text-muted");
 	});
+
+	// The docs' Polymorphism example swaps the label element; the group's naming
+	// wiring has to survive that, or the list silently loses its accessible name.
+	test("GroupLabel asChild still names the list via aria-labelledby", () => {
+		render(
+			<Sidebar.Group>
+				<Sidebar.GroupLabel asChild>
+					<h3>Traffic</h3>
+				</Sidebar.GroupLabel>
+				<Sidebar.List data-testid="list" />
+			</Sidebar.Group>,
+		);
+		const label = screen.getByRole("heading", { level: 3, name: "Traffic" });
+		expect(label.id).not.toBe("");
+		expect(screen.getByTestId("list")).toHaveAttribute("aria-labelledby", label.id);
+	});
 });
 
 describe("Sidebar.Item + ItemButton", () => {

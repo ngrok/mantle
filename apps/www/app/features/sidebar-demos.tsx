@@ -57,6 +57,57 @@ export function SidebarAnatomyDemo() {
 }
 
 /**
+ * `asChild` swapping the elements the parts render: `Sidebar.GroupLabel` becomes
+ * a real `<h3>` (and still names its `Sidebar.List` via `aria-labelledby`), and
+ * each `Sidebar.ItemButton` becomes an `<a>` instead of its default `<button>` —
+ * every part's classes, `data-*` attributes, and ref land on the child. Mirrors
+ * the docs page's "Polymorphism" code block exactly.
+ */
+export function SidebarPolymorphismDemo() {
+	const [pathname, setPathname] = useState("/endpoints");
+
+	return (
+		<div className="w-64 text-sm">
+			<Sidebar.Group>
+				<Sidebar.GroupLabel asChild>
+					<h3>Traffic</h3>
+				</Sidebar.GroupLabel>
+				<Sidebar.List>
+					<Sidebar.Item>
+						<Sidebar.ItemButton asChild current={pathname === "/endpoints"}>
+							<a
+								href="/endpoints"
+								onClick={(event) => {
+									event.preventDefault();
+									setPathname("/endpoints");
+								}}
+							>
+								<GraphIcon />
+								Endpoints
+							</a>
+						</Sidebar.ItemButton>
+					</Sidebar.Item>
+					<Sidebar.Item>
+						<Sidebar.ItemButton asChild current={pathname === "/domains"}>
+							<a
+								href="/domains"
+								onClick={(event) => {
+									event.preventDefault();
+									setPathname("/domains");
+								}}
+							>
+								<GlobeHemisphereWestIcon />
+								Domains
+							</a>
+						</Sidebar.ItemButton>
+					</Sidebar.Item>
+				</Sidebar.List>
+			</Sidebar.Group>
+		</div>
+	);
+}
+
+/**
  * Persisting the collapsed state across visits with fully controlled props +
  * `useLocalStorage`. The controlled form is required in SSR apps: an
  * uncontrolled `defaultOpen` initializes exactly once at the hydration
