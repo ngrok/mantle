@@ -1,0 +1,360 @@
+---
+title: Alert Center
+description: A single top-level bar that surfaces one-to-many account alerts and their upgrade CTAs, expanding additional alerts inline.
+---
+
+import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
+import { PageHeader } from "~/components/page-header";
+import {
+	AlertCenterCustomContentExample,
+	AlertCenterExample,
+	AlertCenterSingleAlertExample,
+} from "~/features/alert-center-demos";
+
+<PageHeader id="alert-center" isPreview>
+	Alert Center
+</PageHeader>
+
+A single, top-level entry point for one-to-many account alerts — usage limits, hard limits, billing
+problems — and the upgrade CTAs that resolve them. It replaces a stack of independent window banners with
+**one** severity-colored bar that surfaces the highest-priority alert inline (its message _and_ its
+call-to-action), plus a compact count-and-caret trigger that expands the remaining alerts as full-width banners,
+ranked by severity.
+
+Compose it into [`AppLayout.Notice`](/layouts/app-layout#applayoutnotice), the single top-of-window
+composition slot for app-wide messaging. Alerts are **authored as JSX**: each `AlertCenter.Item` composes
+the normal [`Alert`](/components/feedback/alert) banner parts as children and registers its coordination
+facts (`id`, `intent`) with the center, which derives the count, the top alert, and the
+severity ranking from the registrations. Mount an item to show its alert; unmount it to dismiss — dismissal
+is just your state flipping a condition off. The demo runs in its own framed document — choose the
+count-and-caret control to expand or collapse the full-width banners, or dismiss alerts to watch the bar
+re-rank.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="alert-center-shell" title="Alert Center app shell demo" />
+	<CodeExample.Code>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+import { AlertCenter } from "@ngrok/mantle/alert-center";
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { useState } from "react";
+
+export function Shell() {
+	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+	const dismiss = (id: string) => setDismissed((previous) => new Set(previous).add(id));
+	const showPreviewNotice = false;
+
+	return (
+		<Sidebar.Root>
+			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
+				<AppLayout.Notice>
+					{showPreviewNotice && <PreviewNotice />}
+					<AlertCenter.Root>
+						<AlertCenter.Bar />
+						<AlertCenter.Content />
+						<AlertCenter.Item id="payment-failed" intent="danger">
+							<Alert.Icon />
+							<Alert.Content>
+								<Alert.Title>
+									Payment failed — update your card <a href="/billing">Update payment method</a>
+								</Alert.Title>
+								<Alert.Description>
+									We couldn't charge the card ending in 4242. Update your payment method to avoid
+									interruption.
+								</Alert.Description>
+							</Alert.Content>
+						</AlertCenter.Item>
+						{!dismissed.has("transfer-limit") && (
+							<AlertCenter.Item id="transfer-limit" intent="warning">
+								<Alert.Icon />
+								<Alert.Content>
+									<Alert.Title>
+										You've used 92% of your monthly data transfer{" "}
+										<a href="/billing/choose-a-plan">Upgrade</a>
+									</Alert.Title>
+									<AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
+								</Alert.Content>
+							</AlertCenter.Item>
+						)}
+					</AlertCenter.Root>
+				</AppLayout.Notice>
+				<AppLayout.Body>
+					<Sidebar.Nav aria-label="Main">{/* … */}</Sidebar.Nav>
+					<AppLayout.Inset>
+						<AppLayout.Content>{/* … */}</AppLayout.Content>
+					</AppLayout.Inset>
+				</AppLayout.Body>
+			</AppLayout.Root>
+		</Sidebar.Root>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+## How it works
+
+- **The bar surfaces the top alert inline.** `AlertCenter.Bar` renders the highest-severity item's authored
+  children — icon, title, and call-to-action — directly in the strip, so the most urgent CTA is one glance
+  and zero extra clicks away. Hiding _every_ CTA behind a click is exactly what makes banners fail to convert.
+- **The count-and-caret control expands the full list.** When two or more alerts are active, the bar renders
+  a compact control that expands `AlertCenter.Content` beneath it. The additional alerts render as compact,
+  full-width one- or two-line banners, push the app layout down, and can be collapsed by the same control.
+- **Content is composed; facts are registered.** Each `AlertCenter.Item` renders nothing where it's
+  authored — it registers `{ id, intent }` plus its children, and the center projects those
+  children into the bar or an expansion row. You get real anchors, router links, and arbitrary JSX in every
+  banner, while the count, the top alert, and the ordering stay derived and deterministic.
+- **Ranking is severity, then arrival.** `danger` › `warning` › `important` › `info` › `success`; within an
+  intent, alerts keep the order they first appeared — items mounting together rank in authored order, later
+  arrivals append after their same-intent peers, and a dismissed alert that returns resumes its original
+  position.
+- **It collapses when empty.** With no items mounted the bar animates out and renders nothing, mirroring
+  `AppLayout.Notice`, so `Root`, `Bar`, and `Content` can all stay mounted unconditionally.
+- **It announces politely.** A persistent, visually-hidden `role="status"` live region (mounted by
+  `AlertCenter.Root`) announces the top alert and how many more as alerts arrive or re-rank — a live region
+  must exist before its text changes to be announced reliably. Its headline is the top alert's **rendered**
+  `Alert.Title` text (inline CTA anchors stripped), re-read on every commit so the announcement stays in
+  lockstep with the visible copy. The bar itself claims no ARIA `banner` landmark.
+
+## Basic usage
+
+Author one `AlertCenter.Item` per alert, composing the `Alert` banner parts as its children. The consumer
+owns dismissal (including any persistence, e.g. `sessionStorage`): compose an
+`AlertCenter.DismissIconButton` whose `onClick` unmounts the item. An item without one — like a failed
+payment — is simply not dismissable.
+
+<Example>
+	<AlertCenterExample />
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+import { AlertCenter } from "@ngrok/mantle/alert-center";
+import { useState } from "react";
+
+export function Example() {
+	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+	const dismiss = (id: string) => setDismissed((previous) => new Set(previous).add(id));
+
+	return (
+		<AlertCenter.Root>
+			<AlertCenter.Bar />
+			<AlertCenter.Content />
+			<AlertCenter.Item id="payment-failed" intent="danger">
+				<Alert.Icon />
+				<Alert.Content>
+					<Alert.Title>
+						Payment failed — update your card <a href="/billing">Update payment method</a>
+					</Alert.Title>
+					<Alert.Description>We couldn't charge the card ending in 4242.</Alert.Description>
+				</Alert.Content>
+			</AlertCenter.Item>
+			{!dismissed.has("transfer-limit") && (
+				<AlertCenter.Item id="transfer-limit" intent="warning">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>
+							You've used 92% of your monthly data transfer{" "}
+							<a href="/billing/choose-a-plan">Upgrade</a>
+						</Alert.Title>
+						<AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
+					</Alert.Content>
+				</AlertCenter.Item>
+			)}
+		</AlertCenter.Root>
+	);
+}
+```
+
+## The bar is the single-line form
+
+The bar shows the top alert's icon and title, so **put the call-to-action inside `Alert.Title`** — a CTA in
+the description would vanish whenever its alert leads the ranking. `Alert.Description` renders only in the
+expansion rows; the bar hides it (fully — it leaves the tab order and the accessibility tree, not just the
+paint). Note the corollary: the **top-ranked** alert's description has no reveal path (the expansion lists
+only the alerts behind the bar), so treat descriptions as nice-to-have supporting copy and keep must-read
+content in the title. The same placement mechanism is yours to use: the chrome around your children carries
+`data-placement="bar"` in the bar and `data-placement="list"` in the expansion, so a class like
+`in-data-[placement=bar]:hidden` hides any element in the bar the way the center hides descriptions.
+
+## Projection
+
+`AlertCenter.Item` renders `null` where it's authored; its children render inside the `Bar`/`Content`
+chrome, which lives wherever you composed those parts (typically `AppLayout.Notice`). Three consequences
+worth knowing:
+
+- **Context comes from above `Root`.** A provider wrapping an individual item does not reach its projected
+  children — wrap `AlertCenter.Root` (or the whole shell) instead. Relative router links resolve against
+  the route that renders the `Bar`, so prefer absolute paths.
+- **Children should be render-stateless.** A re-rank remounts an item's children (the projection is keyed
+  by `id` so one alert's state can never bleed into another's). Treat alert content like toast content.
+- **Don't compose `Alert.Root` in children.** The center provides the banner chrome — with the item's
+  `intent` — at whichever placement the item ranks into. Children are the banner's _content_: `Alert.Icon`,
+  `Alert.Content`, `Alert.Title`, `Alert.Description`, `AlertCenter.DismissIconButton`.
+
+Because items register from effects, avoid authoring them inside `Suspense` boundaries that can hide them
+(hiding unregisters the alert and the bar animates out), and server-rendered HTML contains no bar — it
+enters with its height animation after hydration, the same entrance every arriving alert gets by design.
+
+## A single alert
+
+With exactly one alert there is nothing hidden, so the bar shows it inline with its CTA and omits the
+count-and-caret control.
+
+<Example>
+	<AlertCenterSingleAlertExample />
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+import { AlertCenter } from "@ngrok/mantle/alert-center";
+
+<AlertCenter.Root>
+	<AlertCenter.Bar />
+	<AlertCenter.Content />
+	<AlertCenter.Item id="payment-failed" intent="danger">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>
+				Payment failed — update your card <a href="/billing">Update payment method</a>
+			</Alert.Title>
+		</Alert.Content>
+	</AlertCenter.Item>
+</AlertCenter.Root>;
+```
+
+## Custom content
+
+Every banner is authored JSX, so anything composes: a custom icon via `Alert.Icon`'s `svg` prop, inline
+`code`, or placement-aware extras using the `data-placement` styling hook.
+
+<Example>
+	<AlertCenterCustomContentExample />
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+import { AlertCenter } from "@ngrok/mantle/alert-center";
+import { LightbulbIcon } from "@phosphor-icons/react/Lightbulb";
+
+<AlertCenter.Root defaultOpen>
+	<AlertCenter.Bar />
+	<AlertCenter.Content />
+	<AlertCenter.Item id="transfer-limit" intent="warning">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>
+				Approaching your data transfer limit <a href="/billing/choose-a-plan">Upgrade</a>
+			</Alert.Title>
+		</Alert.Content>
+	</AlertCenter.Item>
+	<AlertCenter.Item id="usage-tip" intent="info">
+		<Alert.Icon svg={<LightbulbIcon />} />
+		<Alert.Content>
+			<Alert.Title>
+				Tip: agent version <code>3.24</code> reconnects dropped tunnels automatically.
+			</Alert.Title>
+			<p className="in-data-[placement=bar]:hidden text-sm">
+				Run <code>ngrok update</code> to get the latest agent.
+			</p>
+		</Alert.Content>
+	</AlertCenter.Item>
+</AlertCenter.Root>;
+```
+
+Need a fully custom bar — different chrome, your own expand affordance? That's outside `AlertCenter`'s
+scope by design: compose [`Alert`](/components/feedback/alert#banners)'s banner parts (including
+`Alert.ExpandButton`) directly and manage your own state.
+
+## Composition
+
+Compose the parts of an `AlertCenter` together to build your own. Items render `null` in place — their
+children are projected into the bar or an expansion row by rank:
+
+```text showLineNumbers=false
+
+AlertCenter.Root
+├── AlertCenter.Bar        ← the top-ranked item's children, in Alert chrome
+├── AlertCenter.Content    ← every other item's children, as ranked rows
+└── AlertCenter.Item (0..n, renderless)
+    └── Alert.Icon / Alert.Content / Alert.Title / Alert.Description /
+        AlertCenter.DismissIconButton
+```
+
+## API Reference
+
+### AlertCenter.Root
+
+The renderless state owner. It creates the registration store the items register into, owns the expanded
+state of the inline list, and mounts the persistent `role="status"` live region. Compose its `Bar` and
+`Content` inside `AppLayout.Notice`, alongside any other window-level notice.
+
+| Prop           | Type                      | Default | Description                                                       |
+| -------------- | ------------------------- | ------- | ----------------------------------------------------------------- |
+| `open`         | `boolean`                 | —       | Controlled expanded state of the additional-alert list.           |
+| `defaultOpen`  | `boolean`                 | —       | Uncontrolled initial expanded state of the additional-alert list. |
+| `onOpenChange` | `(open: boolean) => void` | —       | Called when the additional-alert list expands or collapses.       |
+
+### AlertCenter.Bar
+
+The always-visible, full-width strip. It renders the highest-severity item's children inside a banner
+`Alert` chrome (with that item's `intent`), appends the count-and-caret expansion control when more alerts
+exist **and an `AlertCenter.Content` is composed** (without one there is nothing to expand, so no control
+renders), and collapses to nothing when there are no alerts. It claims no ARIA `banner` landmark. Forwards
+`className`, `ref`, and other props to the underlying `Alert` element.
+
+When the top alert changes while keyboard focus was on a control that the change removed (dismissing alert
+after alert), focus is redirected to the new bar's first trailing control instead of dropping to `<body>`;
+a control that survives the swap keeps focus.
+
+### AlertCenter.Content
+
+The inline expansion beneath the bar. It lists every alert hidden by the bar, ranked
+highest-severity-first, as full-width banner rows. It renders only when additional alerts exist and
+forwards standard `div` props (its `id` is reserved — it anchors the expand control's `aria-controls`).
+
+### AlertCenter.Item
+
+One authored alert: the coordination facts as props, the banner content as children. Renders `null` in
+place and registers with the center; mount to show, unmount to dismiss. Two mounted items sharing an `id`
+is an authoring error (the last registration wins).
+
+| Prop        | Type                                                          | Default | Description                                                                                                                 |
+| ----------- | ------------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `id`        | `string`                                                      | —       | Stable identity: keys the projection, pins arrival order (a returning id resumes its spot), and stamps `data-alert-id`.     |
+| `intent`    | `"danger" \| "important" \| "info" \| "success" \| "warning"` | —       | The tone the alert communicates. Drives severity ranking and the banner chrome's intent.                                    |
+| `className` | `string`                                                      | —       | Optional classes for this item's chrome `Alert.Root`, in both placements.                                                   |
+| `children`  | `ReactNode`                                                   | —       | The banner content — `Alert` parts, not `Alert.Root`. Rendered at the Bar/Content position, not where the item is authored. |
+
+### AlertCenter.DismissIconButton
+
+The per-item dismiss affordance: a thin wrapper over
+[`Alert.DismissIconButton`](/components/feedback/alert#alertdismissiconbutton) that defaults its `label` to
+`Dismiss ${title}` — derived from the enclosing banner's **rendered** `Alert.Title` text with inline CTA
+anchors stripped and re-read on every commit, so the accessible name stays in lockstep with the visible
+copy — and re-centers itself in
+the bar's single-line form. Compose it — or leave it out —
+per alert; its presence is what makes that alert dismissable.
+
+| Prop      | Type                | Default            | Description                                                                            |
+| --------- | ------------------- | ------------------ | -------------------------------------------------------------------------------------- |
+| `onClick` | `MouseEventHandler` | —                  | Required. Unmount the item (update your state); the center re-ranks from what remains. |
+| `label`   | `string`            | `Dismiss ${title}` | Accessible name override — e.g. when the rendered title is long.                       |
+
+### Styling hooks
+
+The chrome `Alert.Root` around each item's children is stamped with data attributes for placement-aware
+styling (e.g. Tailwind's `in-data-[placement=bar]:hidden` inside authored children):
+
+| Attribute        | Values                                    | Description                                        |
+| ---------------- | ----------------------------------------- | -------------------------------------------------- |
+| `data-slot`      | `alert-center-bar` \| `alert-center-item` | The bar banner vs an expansion row.                |
+| `data-placement` | `bar` \| `list`                           | Where the item's children are currently rendering. |
+| `data-alert-id`  | the item's `id`                           | Per-alert styling and testing hook.                |

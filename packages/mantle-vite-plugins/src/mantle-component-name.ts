@@ -17,8 +17,10 @@
 export const MANTLE_COMPONENT_NAMES = [
 	"accordion",
 	"alert",
+	"alert-center",
 	"alert-dialog",
 	"anchor",
+	"app-layout",
 	"area-chart",
 	"badge",
 	"bar-chart",
@@ -64,6 +66,7 @@ export const MANTLE_COMPONENT_NAMES = [
 	"selectable-list",
 	"separator",
 	"sheet",
+	"sidebar",
 	"skeleton",
 	"skip-to-main-link",
 	"slider",

@@ -28,6 +28,20 @@
     ]
   },
   {
+    "name": "Alert Center",
+    "slug": "components/preview/alert-center",
+    "kind": "component",
+    "category": "Feedback",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/alert-center",
+    "summary": "A single top-level bar that surfaces one-to-many account alerts and their upgrade CTAs, expanding additional alerts inline.",
+    "jsdoc": "A single, top-level entry point for one-to-many account alerts and their upgrade CTAs — the aggregation layer that replaces a stack of independent window banners.",
+    "examples": [
+      "Composition (items render `null` in place; their children project into the\nbar or a row):\n```\nAlertCenter.Root\n├── AlertCenter.Bar        ← the top-ranked item's children, in Alert chrome\n├── AlertCenter.Content    ← every other item's children, as ranked rows\n└── AlertCenter.Item (0..n, renderless)\n    └── Alert.Icon / Alert.Content / Alert.Title / Alert.Description /\n        AlertCenter.DismissIconButton\n```",
+      "```tsx\n<AppLayout.Root className=\"fixed inset-0\">\n  <AppLayout.Notice>\n    {showPreviewNotice && <PreviewNotice />}\n    <AlertCenter.Root>\n      <AlertCenter.Bar />\n      <AlertCenter.Content />\n      <AlertCenter.Item id=\"payment-failed\" intent=\"danger\">\n        <Alert.Icon />\n        <Alert.Content>\n          <Alert.Title>\n            Payment failed — we couldn't charge your card.{\" \"}\n            <a href=\"/billing\">Update payment method</a>\n          </Alert.Title>\n          <Alert.Description>\n            Update your payment method to avoid a service interruption.\n          </Alert.Description>\n        </Alert.Content>\n      </AlertCenter.Item>\n      {!dismissed.has(\"transfer-limit\") && (\n        <AlertCenter.Item id=\"transfer-limit\" intent=\"warning\">\n          <Alert.Icon />\n          <Alert.Content>\n            <Alert.Title>\n              You've used 92% of your monthly transfer.{\" \"}\n              <a href=\"/billing/choose-a-plan\">Upgrade</a>\n            </Alert.Title>\n            <AlertCenter.DismissIconButton onClick={() => dismiss(\"transfer-limit\")} />\n          </Alert.Content>\n        </AlertCenter.Item>\n      )}\n    </AlertCenter.Root>\n  </AppLayout.Notice>\n  <AppLayout.Body>…</AppLayout.Body>\n</AppLayout.Root>\n```"
+    ]
+  },
+  {
     "name": "Alert Dialog",
     "slug": "components/overlays/alert-dialog",
     "kind": "component",
@@ -52,6 +66,19 @@
     "jsdoc": "A styled hyperlink — a native `<a>` with mantle's link styling, focus treatment, optional leading/trailing icon, and a safer default for the `rel` attribute.",
     "examples": [
       "```tsx\nimport { Anchor } from \"@ngrok/mantle/anchor\";\nimport { BookIcon } from \"@phosphor-icons/react/Book\";\nimport { Link } from \"react-router\";\n\n// Basic external link.\n<Anchor href=\"https://ngrok.com/\">ngrok.com</Anchor>\n\n// External link in a new tab with a leading icon.\n<Anchor\n  href=\"https://ngrok.com/docs\"\n  target=\"_blank\"\n  rel={[\"noopener\", \"noreferrer\"]}\n  icon={<BookIcon />}\n>\n  ngrok docs\n</Anchor>\n\n// Compose Anchor styling onto a react-router Link for internal navigation.\n<Anchor asChild>\n  <Link to=\"/dashboard\">Open dashboard</Link>\n</Anchor>\n```"
+    ]
+  },
+  {
+    "name": "App Layout",
+    "slug": "layouts/app-layout",
+    "kind": "layout",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/app-layout",
+    "summary": "A viewport-locked application shell — a full-width notice strip, a toolbar header, and a rounded content card that is the shell's only scroll container.",
+    "jsdoc": "A viewport-locked application shell: an optional full-width `AppLayout.Notice` strip on top, then a row holding the app's columns — typically a `Sidebar.Nav` beside an `AppLayout.Inset` whose `AppLayout.Content` card is the only thing that scrolls.",
+    "examples": [
+      "Composition:\n```\nAppLayout.Root\n├── AppLayout.Notice\n└── AppLayout.Body\n    └── AppLayout.Inset\n        └── AppLayout.Content\n            └── AppLayout.Header\n```",
+      "```tsx\n<Sidebar.Root>\n  <AppLayout.Root className=\"fixed inset-0\">\n    <SkipToMainLink />\n    <AppLayout.Notice>{isImpersonating && <ImpersonationBanner />}</AppLayout.Notice>\n    <AppLayout.Body>\n      <Sidebar.Nav aria-label=\"Main\">…</Sidebar.Nav>\n      <AppLayout.Inset>\n        <AppLayout.Content asChild>\n          <Main>\n            <AppLayout.Header>\n              <Sidebar.Trigger />\n              <Breadcrumbs />\n            </AppLayout.Header>\n            <Outlet />\n          </Main>\n        </AppLayout.Content>\n      </AppLayout.Inset>\n    </AppLayout.Body>\n  </AppLayout.Root>\n</Sidebar.Root>\n```"
     ]
   },
   {
@@ -706,6 +733,20 @@
       "Composition:\n```\nSheet.Root\n├── Sheet.Trigger\n└── Sheet.Content\n    ├── Sheet.Header\n    │   ├── Sheet.TitleGroup\n    │   │   ├── Sheet.Title\n    │   │   └── Sheet.Actions\n    │   └── Sheet.Description\n    ├── Sheet.Body\n    └── Sheet.Footer\n        └── Sheet.Close\n```",
       "```tsx\n// Triggering a stateful sheet\n<Sheet.Root>\n  <Sheet.Trigger asChild>\n    <Button type=\"button\" appearance=\"filled\" intent=\"neutral\">\n      Open Sheet\n    </Button>\n  </Sheet.Trigger>\n  <Sheet.Content>\n    <Sheet.Header>\n      <Sheet.TitleGroup>\n        <Sheet.Title>Are you absolutely sure?</Sheet.Title>\n        <Sheet.Actions>\n          <IconButton\n            appearance=\"ghost\"\n            intent=\"neutral\"\n            type=\"button\"\n            icon={<TrashSimple />}\n            label=\"Delete\"\n          />\n          <Separator orientation=\"vertical\" className=\"h-[80%]\" />\n          <Sheet.CloseIconButton />\n        </Sheet.Actions>\n      </Sheet.TitleGroup>\n      <Sheet.Description>\n        This action cannot be undone. This will permanently delete your account and remove your data from our servers.\n      </Sheet.Description>\n    </Sheet.Header>\n    <Sheet.Body>\n      <p>\n        Consequat do voluptate culpa fugiat consequat nostrud duis\n        aliqua minim. Tempor voluptate cillum elit velit. Voluptate\n        aliqua ipsum aliqua dolore in nisi ea fugiat aliqua velit\n        proident amet.\n      </p>\n    </Sheet.Body>\n    <Sheet.Footer>\n      <Sheet.Close asChild>\n        <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">Close</Button>\n      </Sheet.Close>\n      <Button type=\"button\" appearance=\"filled\" intent=\"neutral\">\n        Save\n      </Button>\n    </Sheet.Footer>\n  </Sheet.Content>\n</Sheet.Root>\n```",
       "```tsx\n// Sheet without a trigger (e.g. router controlled)\n<Sheet.Root open onOpenChange={() => onClose()}>\n  <Sheet.Content>\n    <Sheet.Header>\n      <Sheet.TitleGroup>\n        <Sheet.Title>Are you absolutely sure?</Sheet.Title>\n        <Sheet.Actions>\n          <IconButton\n            appearance=\"ghost\"\n            intent=\"neutral\"\n            type=\"button\"\n            icon={<TrashSimple />}\n            label=\"Delete\"\n          />\n          <Separator orientation=\"vertical\" className=\"h-[80%]\" />\n          <Sheet.CloseIconButton />\n        </Sheet.Actions>\n      </Sheet.TitleGroup>\n      <Sheet.Description>\n        This action cannot be undone. This will permanently delete your account and remove your data from our servers.\n      </Sheet.Description>\n    </Sheet.Header>\n    <Sheet.Body>\n      <p>\n        Consequat do voluptate culpa fugiat consequat nostrud duis\n        aliqua minim. Tempor voluptate cillum elit velit. Voluptate\n        aliqua ipsum aliqua dolore in nisi ea fugiat aliqua velit\n        proident amet.\n      </p>\n    </Sheet.Body>\n    <Sheet.Footer>\n      <Sheet.Close asChild>\n        <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">Close</Button>\n      </Sheet.Close>\n      <Button type=\"button\" appearance=\"filled\" intent=\"neutral\">\n        Save\n      </Button>\n    </Sheet.Footer>\n  </Sheet.Content>\n</Sheet.Root>\n```"
+    ]
+  },
+  {
+    "name": "Sidebar",
+    "slug": "components/navigation/sidebar",
+    "kind": "component",
+    "category": "Navigation",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/sidebar",
+    "summary": "A composable, collapsible app-navigation sidebar with a mobile sheet presentation and a trigger that mounts anywhere in your app shell.",
+    "jsdoc": "A composable, collapsible app-navigation sidebar. `Sidebar.Root` owns the state (no DOM); `Sidebar.Nav` renders the panel — inline on desktop, collapsing to a skinny icon rail, and a left-side `Sheet` below the root's `mobileBreakpoint`; and `Sidebar.Trigger` toggles it from anywhere under the root (typically an `AppLayout.Header`).",
+    "examples": [
+      "Composition:\n```\nSidebar.Root\n├── Sidebar.Nav\n│   ├── Sidebar.Header\n│   │   └── Sidebar.SwitcherButton\n│   ├── Sidebar.Body\n│   │   └── Sidebar.Group\n│   │       ├── Sidebar.GroupLabel\n│   │       └── Sidebar.List\n│   │           └── Sidebar.Item\n│   │               └── Sidebar.ItemButton\n│   ├── Sidebar.Separator\n│   └── Sidebar.Footer\n│       └── Sidebar.SwitcherButton\n│           ├── Sidebar.AccountAvatar\n│           └── Sidebar.UserAvatar\n└── Sidebar.Trigger\n```",
+      "```tsx\n<Sidebar.Root>\n  <Sidebar.Nav aria-label=\"Main\">\n    <Sidebar.Header>\n      <DropdownMenu.Root>\n        <DropdownMenu.Trigger asChild>\n          <Sidebar.SwitcherButton>\n            <GlobeIcon />\n            <span className=\"text-strong min-w-0 flex-1 truncate text-base\">Universal Gateway</span>\n            <CaretDownIcon className=\"text-muted size-4 shrink-0\" />\n          </Sidebar.SwitcherButton>\n        </DropdownMenu.Trigger>\n        <DropdownMenu.Content>…</DropdownMenu.Content>\n      </DropdownMenu.Root>\n    </Sidebar.Header>\n    <Sidebar.Body>\n      <Sidebar.Group>\n        <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>\n        <Sidebar.List>\n          <Sidebar.Item>\n            <Sidebar.ItemButton asChild current>\n              <a href=\"/endpoints\">\n                <GraphIcon />\n                Endpoints\n              </a>\n            </Sidebar.ItemButton>\n          </Sidebar.Item>\n        </Sidebar.List>\n      </Sidebar.Group>\n    </Sidebar.Body>\n    <Sidebar.Footer>\n      <Sidebar.Separator />\n      <DropdownMenu.Root>\n        <DropdownMenu.Trigger asChild>\n          <Sidebar.SwitcherButton>\n            <Sidebar.AccountAvatar accountId=\"acc_123\" accountName=\"Acme Corp\" />\n            <span className=\"text-strong min-w-0 flex-1 truncate text-sm font-medium\">Acme Corp</span>\n            <Sidebar.UserAvatar alt=\"Jane Doe\" />\n          </Sidebar.SwitcherButton>\n        </DropdownMenu.Trigger>\n        <DropdownMenu.Content>…</DropdownMenu.Content>\n      </DropdownMenu.Root>\n    </Sidebar.Footer>\n  </Sidebar.Nav>\n  <Sidebar.Trigger />\n</Sidebar.Root>\n```"
     ]
   },
   {

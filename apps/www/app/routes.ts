@@ -125,6 +125,7 @@ export default [
 		...docRoute("components/navigation/breadcrumb"),
 		...docRoute("components/navigation/command"),
 		...docRoute("components/navigation/pagination"),
+		...docRoute("components/navigation/sidebar"),
 		...docRoute("components/navigation/tabs"),
 		// overlays
 		...docRoute("components/overlays/alert-dialog"),
@@ -135,6 +136,7 @@ export default [
 		...docRoute("components/overlays/sheet"),
 		...docRoute("components/overlays/tooltip"),
 		// preview (lifecycle namespace, not a category)
+		...docRoute("components/preview/alert-center"),
 		...docRoute("components/preview/calendar"),
 		// primitives
 		...docRoute("components/primitives/browser-only"),
@@ -168,6 +170,7 @@ export default [
 		// The explicit id is load-bearing: layouts-layout.tsx matches on it to
 		// keep the section index on the standard centered container.
 		route("layouts", "./routes/layouts.tsx", { id: "layouts-index" }),
+		...markdownRoute("layouts/app-layout", "layouts", "app-layout"),
 		...markdownRoute("layouts/centered-layout", "layouts", "centered-layout"),
 	]),
 

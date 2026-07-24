@@ -60,6 +60,11 @@
 			"types": "./dist/alert.d.ts",
 			"import": "./dist/alert.js"
 		},
+		"./alert-center": {
+			"@ngrok/src-live-types": "./src/components/alert-center/index.ts",
+			"types": "./dist/alert-center.d.ts",
+			"import": "./dist/alert-center.js"
+		},
 		"./alert-dialog": {
 			"@ngrok/src-live-types": "./src/components/alert-dialog/index.ts",
 			"types": "./dist/alert-dialog.d.ts",
@@ -69,6 +74,11 @@
 			"@ngrok/src-live-types": "./src/components/anchor/index.ts",
 			"types": "./dist/anchor.d.ts",
 			"import": "./dist/anchor.js"
+		},
+		"./app-layout": {
+			"@ngrok/src-live-types": "./src/components/app-layout/index.ts",
+			"types": "./dist/app-layout.d.ts",
+			"import": "./dist/app-layout.js"
 		},
 		"./area-chart": {
 			"@ngrok/src-live-types": "./src/components/area-chart/index.ts",
@@ -314,6 +324,11 @@
 			"@ngrok/src-live-types": "./src/components/sheet/index.ts",
 			"types": "./dist/sheet.d.ts",
 			"import": "./dist/sheet.js"
+		},
+		"./sidebar": {
+			"@ngrok/src-live-types": "./src/components/sidebar/index.ts",
+			"types": "./dist/sidebar.d.ts",
+			"import": "./dist/sidebar.js"
 		},
 		"./skeleton": {
 			"@ngrok/src-live-types": "./src/components/skeleton/index.ts",
