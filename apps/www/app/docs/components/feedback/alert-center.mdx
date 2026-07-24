@@ -9,6 +9,8 @@ import { PageHeader } from "~/components/page-header";
 import {
 	AlertCenterCustomContentExample,
 	AlertCenterExample,
+	AlertCenterMixedDismissabilityExample,
+	AlertCenterPersistedDismissExample,
 	AlertCenterSingleAlertExample,
 } from "~/features/alert-center-demos";
 
@@ -129,7 +131,8 @@ Author one `AlertCenter.Item` per alert, composing the `Alert` banner parts as i
 owns dismissal (including any persistence, e.g. `sessionStorage`): compose an
 `AlertCenter.DismissIconButton` whose `onClick` unmounts the item — dismissing the top alert promotes the
 next-highest severity into the bar. An item authored without one (say, a hard-stop billing failure the user
-must resolve) is simply not dismissable.
+must resolve) is simply not dismissable — see [Dismissability](#dismissability) for choosing which alerts
+offer it.
 
 <Example>
 	<AlertCenterExample />
@@ -172,6 +175,185 @@ export function Example() {
 					</Alert.Content>
 				</AlertCenter.Item>
 			)}
+		</AlertCenter.Root>
+	);
+}
+```
+
+## Dismissability
+
+Dismissability is composition, not configuration: an alert can be dismissed exactly when its children
+include an `AlertCenter.DismissIconButton`. Choose per alert, with the intent as your default policy:
+
+- **`danger` alerts should generally not be dismissable.** They represent hard-stop conditions — a failed
+  payment, an expired certificate — that only resolving the underlying problem should clear. A dismissable
+  danger alert trains users to swat away the one banner that genuinely blocks them.
+- **`warning` and `info` alerts should generally be dismissable.** They are acknowledgeable by nature —
+  usage nags, rollout notices — and a nag that cannot be acknowledged erodes trust in the whole bar.
+- The policy is a default, not a rule: a warning that describes an active blockage (a hard limit already
+  being enforced) can withhold the dismiss button too, exactly like a danger alert.
+
+Because the bar always surfaces the top-ranked alert, a non-dismissable danger alert keeps the bar pinned
+to the most urgent call-to-action while acknowledgeable alerts come and go beneath it. This demo opens
+expanded — note the top danger alert and the hard-limit warning render no dismiss button:
+
+<Example>
+	<AlertCenterMixedDismissabilityExample />
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+import { AlertCenter } from "@ngrok/mantle/alert-center";
+import { useState } from "react";
+
+export function Example() {
+	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+	const dismiss = (id: string) => setDismissed((previous) => new Set(previous).add(id));
+
+	return (
+		<AlertCenter.Root defaultOpen>
+			<AlertCenter.Bar />
+			<AlertCenter.Content />
+			{/* hard-stop danger: no dismiss button — resolving it is the only way out */}
+			<AlertCenter.Item id="payment-failed" intent="danger">
+				<Alert.Icon />
+				<Alert.Content>
+					<Alert.Title>
+						Payment failed — update your card <a href="/billing">Update payment method</a>
+					</Alert.Title>
+				</Alert.Content>
+			</AlertCenter.Item>
+			{/* an actively-enforced hard limit: also not dismissable */}
+			<AlertCenter.Item id="tunnel-limit" intent="warning">
+				<Alert.Icon />
+				<Alert.Content>
+					<Alert.Title>
+						Tunnel limit reached — new tunnels are blocked{" "}
+						<a href="/billing/choose-a-plan">Upgrade</a>
+					</Alert.Title>
+				</Alert.Content>
+			</AlertCenter.Item>
+			{/* acknowledgeable warning and info alerts compose a dismiss button */}
+			{!dismissed.has("transfer-limit") && (
+				<AlertCenter.Item id="transfer-limit" intent="warning">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>
+							You've used 92% of your monthly data transfer{" "}
+							<a href="/billing/choose-a-plan">Upgrade</a>
+						</Alert.Title>
+						<AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
+					</Alert.Content>
+				</AlertCenter.Item>
+			)}
+			{!dismissed.has("new-region") && (
+				<AlertCenter.Item id="new-region" intent="info">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>
+							New region available: eu-west <a href="/regions">Learn more</a>
+						</Alert.Title>
+						<AlertCenter.DismissIconButton onClick={() => dismiss("new-region")} />
+					</Alert.Content>
+				</AlertCenter.Item>
+			)}
+		</AlertCenter.Root>
+	);
+}
+```
+
+## Persisting dismissals
+
+Dismissal is your state, so persistence is your choice of store. Session scope is usually the right default
+for acknowledgements — [`useSessionStorage`](/hooks#usesessionstorage) keeps a dismissal for the rest of the
+tab session (a reload doesn't resurrect acknowledged nags) while a fresh session starts clean.
+
+Most real alert bars render **server state**: the backend reports the currently-true conditions on every
+fetch, and the client authors one `AlertCenter.Item` per condition. Two rules make dismissal behave when the
+same alerts keep arriving as state:
+
+- **Key dismissals on stable condition ids.** Use the id of the _condition_ (`"transfer-limit"`), not a
+  per-occurrence UUID — otherwise every refetch mints a "new" alert and dismissal never sticks. Filter the
+  server's list against the dismissed set before mounting items: the server keeps reporting the condition,
+  and the client keeps suppressing it.
+- **Prune dismissals the server no longer reports.** When a condition clears server-side and later recurs,
+  it is a new occurrence the user hasn't acknowledged — drop stale ids from the dismissed set whenever the
+  server list changes, so recurrences resurface instead of staying silenced forever. (If your backend
+  versions occurrences — say a `raisedAt` timestamp — key dismissals on `id:raisedAt` and skip the pruning.)
+  Thanks to sticky ranking, a returning condition resumes its original position within its intent tier.
+
+The demo simulates the fetch loop: dismiss the transfer warning, then resolve and re-raise the condition on
+the "server" — the alert returns even though its id was acknowledged, because the dismissal was pruned when
+the condition cleared. Reload the page mid-session and acknowledged alerts stay away.
+
+<Example>
+	<AlertCenterPersistedDismissExample />
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+import type { AlertCenterIntent } from "@ngrok/mantle/alert-center";
+import { AlertCenter } from "@ngrok/mantle/alert-center";
+import { useSessionStorage } from "@ngrok/mantle/hooks";
+import { useEffect, useMemo } from "react";
+
+type ServerAlert = {
+	id: string;
+	intent: AlertCenterIntent;
+	title: string;
+	cta: string;
+	href: string;
+};
+
+/** Decode the sessionStorage entry (a JSON array of alert ids); corrupt entries mean "nothing dismissed". */
+function parseDismissedIds(raw: string): ReadonlyArray<string> {
+	try {
+		const parsed: unknown = JSON.parse(raw);
+		if (!Array.isArray(parsed)) {
+			return [];
+		}
+		return parsed.filter((entry): entry is string => typeof entry === "string");
+	} catch {
+		return [];
+	}
+}
+
+export function AccountAlerts({ serverAlerts }: { serverAlerts: ReadonlyArray<ServerAlert> }) {
+	const [dismissedRaw, setDismissedRaw] = useSessionStorage("dismissed-alerts", "[]");
+	const dismissed = useMemo(() => new Set(parseDismissedIds(dismissedRaw)), [dismissedRaw]);
+	const dismiss = (id: string) => setDismissedRaw(JSON.stringify([...dismissed, id]));
+
+	// Reconcile: a dismissal only suppresses the occurrence the server is still
+	// reporting. When a condition clears server-side, forget its dismissal so a
+	// future recurrence resurfaces.
+	useEffect(() => {
+		const activeIds = new Set(serverAlerts.map((alert) => alert.id));
+		const pruned = [...dismissed].filter((id) => activeIds.has(id));
+		if (pruned.length !== dismissed.size) {
+			setDismissedRaw(JSON.stringify(pruned));
+		}
+	}, [serverAlerts, dismissed, setDismissedRaw]);
+
+	return (
+		<AlertCenter.Root>
+			<AlertCenter.Bar />
+			<AlertCenter.Content />
+			{serverAlerts
+				.filter((alert) => !dismissed.has(alert.id))
+				.map((alert) => (
+					<AlertCenter.Item key={alert.id} id={alert.id} intent={alert.intent}>
+						<Alert.Icon />
+						<Alert.Content>
+							<Alert.Title>
+								{alert.title} <a href={alert.href}>{alert.cta}</a>
+							</Alert.Title>
+							{/* dismissability policy in one place: danger alerts never get a dismiss button */}
+							{alert.intent !== "danger" && (
+								<AlertCenter.DismissIconButton onClick={() => dismiss(alert.id)} />
+							)}
+						</Alert.Content>
+					</AlertCenter.Item>
+				))}
 		</AlertCenter.Root>
 	);
 }
