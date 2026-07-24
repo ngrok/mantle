@@ -1636,7 +1636,10 @@ function getInitials(accountName: string | undefined): string {
 		// that renders as U+FFFD.
 		.map((part) => Array.from(part)[0] ?? "")
 		.join("")
-		.toLocaleUpperCase();
+		// locale-invariant casing: toLocaleUpperCase() follows the *host*
+		// locale, so an SSR server and a Turkish-locale client would disagree
+		// (i → İ) and mismatch on hydration.
+		.toUpperCase();
 	return initials || "?";
 }
 
