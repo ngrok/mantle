@@ -27,7 +27,11 @@ gutter stays visually seamless. The demo runs in its own framed document, exactl
 the sidebar to its icon rail with the trigger (or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> — the shortcut binds to
 the frame, not this page) and reopen it the same way, toggle the
 notice to see the strip push the whole shell (sidebar included) down, and switch the preview to the mobile
-viewport for the sheet presentation. The demo narrows the sidebar's `mobileBreakpoint` to `md`
+viewport for the sheet presentation. The same sidebar can also show a second **section** of navigation:
+choose **Account settings** from the account menu (or the pinned footer link) and the header's product
+switcher becomes a back link while the body swaps to the settings nav — the shell markup is identical, the
+`<nav>` landmark renames itself, the icon rail keeps working, and the back link returns to the product page
+you left. The demo narrows the sidebar's `mobileBreakpoint` to `md`
 so the desktop panel survives the preview's desktop and tablet widths; ngrok's dashboards keep the `lg`
 default.
 
@@ -49,6 +53,8 @@ import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { useState } from "react";
 
 export function Shell() {
+	// the framed examples fake a router so they can be embedded; a real app
+	// renders react-router `Link`s through `asChild` and reads `useLocation()`
 	const [pathname, setPathname] = useState("/endpoints");
 	const [showNotice, setShowNotice] = useState(false);
 	const [alertExample, setAlertExample] = useState<"single" | "multiple" | null>(null);
@@ -224,6 +230,12 @@ single product's navigation, and the footer stacks a few pinned links, a `Sideba
 `DropdownMenu`. When product segmentation lands, put a product switcher in the header and move the account
 switcher into the footer; nothing else about the shell changes.
 
+The settings-section swap works here too — the pinned **Account settings** link (or the account menu's
+**User settings**) shows the settings nav with a back link in the header. Note the tradeoff this IA carries:
+the header's account switcher is the thing being replaced, so account switching is unreachable until you
+back out. A shell that needs it from inside settings should keep the switcher in the header and put the back
+row at the top of `Sidebar.Body` instead.
+
 <CodeExample.Root>
 	<CodeExample.PreviewFrame example="bridge-shell" title="Bridge shell demo" />
 	<CodeExample.Code>
@@ -256,6 +268,8 @@ const accounts = [
 ];
 
 export function BridgeShell() {
+	// the framed examples fake a router so they can be embedded; a real app
+	// renders react-router `Link`s through `asChild` and reads `useLocation()`
 	const [pathname, setPathname] = useState("/endpoints");
 	const [accountId, setAccountId] = useState("acc_acme");
 	const account = accounts.find((candidate) => candidate.id === accountId) ?? accounts[0];

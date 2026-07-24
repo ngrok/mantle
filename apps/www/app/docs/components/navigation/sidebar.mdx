@@ -22,7 +22,11 @@ The sidebar is routing-agnostic. Compose router links with `asChild` on `Sidebar
 app: switch the preview to the mobile viewport to see the sheet presentation, use the trigger in the header
 to collapse and expand the panel, open the product switcher at the top of the sidebar to choose a product
 from a centered [Dialog](/components/overlays/dialog), and toggle the notice to see the shell's full-window
-[`AppLayout.Notice`](/layouts/app-layout) strip push everything — sidebar included — down.
+[`AppLayout.Notice`](/layouts/app-layout) strip push everything — sidebar included — down. Choosing
+**Account settings** from the account menu at the bottom shows a second **section** of navigation in the same
+sidebar: the header's switcher becomes a back link, `Sidebar.Body` renders the settings groups, and the
+`<nav>` landmark renames itself from `Main` to `Settings`. That is composition, not a feature — the sidebar
+never knows which section it is showing; the app derives it from the route and renders different children.
 Click into the frame and press <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> — the shortcut binds to the frame's own
 window, not this page. The demo narrows `mobileBreakpoint` to `md` so the desktop panel survives the
 preview's desktop and tablet widths; ngrok's dashboards keep the `lg` default.
@@ -283,6 +287,8 @@ function ProductNav({
 }
 
 export function AppShell() {
+	// the framed examples fake a router so they can be embedded; a real app
+	// renders react-router `Link`s through `asChild` and reads `useLocation()`
 	const [pathname, setPathname] = useState("/endpoints");
 	const [productId, setProductId] = useState("universal-gateway");
 	const [accountId, setAccountId] = useState("acc_acme");
@@ -451,6 +457,8 @@ import { HashIcon } from "@phosphor-icons/react/Hash";
 import { useState } from "react";
 
 export function NetworkNav() {
+	// the framed examples fake a router so they can be embedded; a real app
+	// renders react-router `Link`s through `asChild` and reads `useLocation()`
 	const [pathname, setPathname] = useState("/domains");
 
 	return (
