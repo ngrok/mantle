@@ -20,7 +20,8 @@ keeps the sidebar decoupled from your app shell: place the trigger in an
 The sidebar is routing-agnostic. Compose router links with `asChild` on `Sidebar.ItemButton` and drive
 `current` from your router's location. The demo below runs in its own framed document, exactly like a real
 app: switch the preview to the mobile viewport to see the sheet presentation, use the trigger in the header
-to collapse and expand the panel, and toggle the notice to see the shell's full-window
+to collapse and expand the panel, open the product switcher at the top of the sidebar to choose a product
+from a centered [Dialog](/components/overlays/dialog), and toggle the notice to see the shell's full-window
 [`AppLayout.Notice`](/layouts/app-layout) strip push everything — sidebar included — down.
 Click into the frame and press <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> — the shortcut binds to the frame's own
 window, not this page. The demo narrows `mobileBreakpoint` to `md` so the desktop panel survives the
@@ -34,17 +35,23 @@ preview's desktop and tablet widths; ngrok's dashboards keep the `lg` default.
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button } from "@ngrok/mantle/button";
+import { cx } from "@ngrok/mantle/cx";
+import { Dialog } from "@ngrok/mantle/dialog";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Main } from "@ngrok/mantle/main";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
+import { GlobeIcon } from "@phosphor-icons/react/Globe";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { SailboatIcon } from "@phosphor-icons/react/Sailboat";
 import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
 import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
-import { useState } from "react";
+import type { KeyboardEvent } from "react";
+import { useRef, useState } from "react";
 
 const navSections = [
 	{
@@ -60,10 +67,180 @@ const navSections = [
 	},
 ];
 
+const products = [
+	{
+		id: "universal-gateway",
+		label: "Gateway",
+		icon: <GlobeIcon weight="regular" />,
+		iconClassName: "bg-emerald-600/10 text-emerald-600 dark:text-emerald-600",
+		tagline: "Connect to anything, anywhere.",
+		description:
+			"An all-in-one cloud networking platform that secures, transforms, and routes traffic to all your services no matter where they run.",
+		textClassName: "text-emerald-600 dark:text-emerald-600",
+		cardHoverClassName:
+			"hover:border-emerald-600 hover:bg-emerald-600/[0.03] focus-visible:border-emerald-600 focus-visible:bg-emerald-600/[0.03] focus-visible:ring-emerald-600/20 dark:hover:border-emerald-600 dark:focus-visible:border-emerald-600",
+		cardCurrentClassName:
+			"border-emerald-600 bg-emerald-600/[0.03] ring-4 ring-emerald-600/15 dark:border-emerald-600",
+		arrowHoverClassName:
+			"group-hover:text-emerald-600 group-focus-visible:text-emerald-600 dark:group-hover:text-emerald-600 dark:group-focus-visible:text-emerald-600",
+	},
+	{
+		id: "codename",
+		label: "Ship",
+		icon: <SailboatIcon weight="regular" />,
+		iconClassName: "bg-sky-600/10 text-sky-600 dark:text-sky-600",
+		tagline: "Ship apps without managing infrastructure.",
+		description: "Deploy services close to your users with managed compute, domains, and secrets.",
+		textClassName: "text-sky-600 dark:text-sky-600",
+		cardHoverClassName:
+			"hover:border-sky-600 hover:bg-sky-600/[0.03] focus-visible:border-sky-600 focus-visible:bg-sky-600/[0.03] focus-visible:ring-sky-600/20 dark:hover:border-sky-600 dark:focus-visible:border-sky-600",
+		cardCurrentClassName:
+			"border-sky-600 bg-sky-600/[0.03] ring-4 ring-sky-600/15 dark:border-sky-600",
+		arrowHoverClassName:
+			"group-hover:text-sky-600 group-focus-visible:text-sky-600 dark:group-hover:text-sky-600 dark:group-focus-visible:text-sky-600",
+	},
+];
+
 const accounts = [
 	{ id: "acc_acme", name: "Acme Corp" },
 	{ id: "acc_atlas", name: "Atlas Industries" },
 ];
+
+function ProductIcon({
+	className,
+	product,
+}: {
+	className?: string;
+	product: (typeof products)[number];
+}) {
+	return (
+		<span
+			className={cx(
+				"flex size-6 shrink-0 items-center justify-center rounded-md [&>svg]:size-5 [&>svg]:shrink-0",
+				product.iconClassName,
+				className,
+			)}
+			aria-hidden="true"
+		>
+			{product.icon}
+		</span>
+	);
+}
+
+// ArrowDown/ArrowUp wrap around the product cards, Home/End jump to the edges;
+// Enter and Space activate the focused card natively.
+function handleProductOptionKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+	const container = event.currentTarget.closest("[data-product-options]");
+	if (container == null) {
+		return;
+	}
+	const options = Array.from(container.querySelectorAll("button"));
+	const focusedIndex = options.findIndex((option) => option === event.currentTarget);
+	if (focusedIndex === -1) {
+		return;
+	}
+	const lastIndex = options.length - 1;
+	if (event.key === "ArrowDown") {
+		event.preventDefault();
+		options[focusedIndex === lastIndex ? 0 : focusedIndex + 1]?.focus();
+	} else if (event.key === "ArrowUp") {
+		event.preventDefault();
+		options[focusedIndex === 0 ? lastIndex : focusedIndex - 1]?.focus();
+	} else if (event.key === "Home") {
+		event.preventDefault();
+		options[0]?.focus();
+	} else if (event.key === "End") {
+		event.preventDefault();
+		options[lastIndex]?.focus();
+	}
+}
+
+/**
+ * The product switcher in the sidebar header: a `Sidebar.SwitcherButton`
+ * trigger that opens a centered product-choice dialog. The current product's
+ * card is highlighted and receives focus when the dialog opens.
+ */
+function ProductSwitcherDialog({
+	onProductChange,
+	productId,
+}: {
+	onProductChange: (productId: string) => void;
+	productId: string;
+}) {
+	const currentOptionRef = useRef<HTMLButtonElement | null>(null);
+	const product = products.find((candidate) => candidate.id === productId) ?? products[0];
+
+	return (
+		<Dialog.Root>
+			<Dialog.Trigger asChild>
+				<Sidebar.SwitcherButton>
+					<ProductIcon product={product} />
+					<span className="text-strong min-w-0 flex-1 truncate text-base">{product.label}</span>
+					<CaretDownIcon className="text-muted size-4 shrink-0" />
+				</Sidebar.SwitcherButton>
+			</Dialog.Trigger>
+			<Dialog.Content
+				className="bg-popover"
+				preferredWidth="max-w-xl"
+				onOpenAutoFocus={(event) => {
+					// land focus on the current product's card, not the first card
+					event.preventDefault();
+					currentOptionRef.current?.focus();
+				}}
+			>
+				<Dialog.Body className="p-6">
+					<Dialog.Title className="text-strong text-center text-lg font-medium">
+						Choose a product
+					</Dialog.Title>
+					<div className="mt-6 flex flex-col gap-2" data-product-options="">
+						{products.map((candidate) => {
+							const isCurrent = candidate.id === productId;
+							return (
+								<Dialog.Close key={candidate.id} asChild>
+									<button
+										ref={isCurrent ? currentOptionRef : undefined}
+										type="button"
+										className={cx(
+											"group border-card-muted bg-card flex w-full flex-col rounded-lg border p-4 text-left shadow-sm transition-none focus:outline-hidden focus-visible:ring-4",
+											candidate.cardHoverClassName,
+											isCurrent && candidate.cardCurrentClassName,
+										)}
+										onClick={() => onProductChange(candidate.id)}
+										onKeyDown={handleProductOptionKeyDown}
+									>
+										<span className="flex w-full min-w-0 items-center justify-between gap-3">
+											<span className="flex min-w-0 items-center gap-3">
+												<ProductIcon className="size-7" product={candidate} />
+												<span
+													className={cx("truncate text-sm font-medium", candidate.textClassName)}
+												>
+													{candidate.label}
+												</span>
+											</span>
+											<ArrowRightIcon
+												className={cx(
+													"text-muted size-5 shrink-0",
+													candidate.arrowHoverClassName,
+													isCurrent && candidate.textClassName,
+												)}
+											/>
+										</span>
+										<span className="text-strong mt-2 text-base leading-snug font-medium">
+											{candidate.tagline}
+										</span>
+										<span className="text-muted mt-1 text-sm leading-relaxed text-pretty">
+											{candidate.description}
+										</span>
+									</button>
+								</Dialog.Close>
+							);
+						})}
+					</div>
+				</Dialog.Body>
+			</Dialog.Content>
+		</Dialog.Root>
+	);
+}
 
 function ProductNav({
 	pathname,
@@ -107,6 +284,7 @@ function ProductNav({
 
 export function AppShell() {
 	const [pathname, setPathname] = useState("/endpoints");
+	const [productId, setProductId] = useState("universal-gateway");
 	const [accountId, setAccountId] = useState("acc_acme");
 	const [showNotice, setShowNotice] = useState(false);
 	const account = accounts.find((candidate) => candidate.id === accountId) ?? accounts[0];
@@ -127,20 +305,7 @@ export function AppShell() {
 				<AppLayout.Body>
 					<Sidebar.Nav aria-label="Main">
 						<Sidebar.Header>
-							<DropdownMenu.Root>
-								<DropdownMenu.Trigger asChild>
-									<Sidebar.SwitcherButton>
-										<span className="text-muted [&>svg]:size-5 [&>svg]:shrink-0">
-											<GlobeHemisphereWestIcon />
-										</span>
-										<span className="text-strong min-w-0 flex-1 truncate text-base">
-											Universal Gateway
-										</span>
-										<CaretDownIcon className="text-muted size-4 shrink-0" />
-									</Sidebar.SwitcherButton>
-								</DropdownMenu.Trigger>
-								<DropdownMenu.Content align="start">{/* product switching */}</DropdownMenu.Content>
-							</DropdownMenu.Root>
+							<ProductSwitcherDialog productId={productId} onProductChange={setProductId} />
 						</Sidebar.Header>
 
 						<Sidebar.Body>
@@ -185,10 +350,6 @@ export function AppShell() {
 									<Sidebar.Trigger />
 									<Breadcrumb.Root>
 										<Breadcrumb.List>
-											<Breadcrumb.Item>
-												<Breadcrumb.Link href="/">Universal Gateway</Breadcrumb.Link>
-											</Breadcrumb.Item>
-											<Breadcrumb.Separator />
 											<Breadcrumb.Item>
 												<Breadcrumb.Page>Endpoints</Breadcrumb.Page>
 											</Breadcrumb.Item>

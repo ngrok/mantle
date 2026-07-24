@@ -4,10 +4,12 @@ import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { IconButton } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
+import { Dialog } from "@ngrok/mantle/dialog";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Main } from "@ngrok/mantle/main";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
 import { BellIcon } from "@phosphor-icons/react/Bell";
 import { BookOpenIcon } from "@phosphor-icons/react/BookOpen";
@@ -25,7 +27,6 @@ import { MapPinIcon } from "@phosphor-icons/react/MapPin";
 import { MegaphoneIcon } from "@phosphor-icons/react/Megaphone";
 import { QuestionIcon } from "@phosphor-icons/react/Question";
 import { SailboatIcon } from "@phosphor-icons/react/Sailboat";
-import { ShareFatIcon } from "@phosphor-icons/react/ShareFat";
 import { SignOutIcon } from "@phosphor-icons/react/SignOut";
 import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
 import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
@@ -33,8 +34,8 @@ import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
 import { UsersIcon } from "@phosphor-icons/react/Users";
 import { VaultIcon } from "@phosphor-icons/react/Vault";
 import { WarningIcon } from "@phosphor-icons/react/Warning";
-import type { ReactNode } from "react";
-import { useState } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
+import { useRef, useState } from "react";
 
 type DemoNavItem = {
 	label: string;
@@ -51,7 +52,20 @@ type DemoProduct = {
 	id: string;
 	label: string;
 	icon: ReactNode;
+	/** the colored icon tile in the switcher trigger and dialog cards */
 	iconClassName: string;
+	/** one-line pitch on the product's dialog card */
+	tagline: string;
+	/** supporting copy under the tagline */
+	description: string;
+	/** the product's brand text color (dialog card name + current-card arrow) */
+	textClassName: string;
+	/** hover/focus treatment for the product's dialog card */
+	cardHoverClassName: string;
+	/** static highlight for the current product's dialog card */
+	cardCurrentClassName: string;
+	/** arrow tint while the product's dialog card is hovered or focused */
+	arrowHoverClassName: string;
 };
 
 const demoNavSections: ReadonlyArray<DemoNavSection> = [
@@ -151,24 +165,47 @@ const demoProducts = [
 		label: "Gateway",
 		icon: <GlobeIcon weight="regular" />,
 		iconClassName: "bg-emerald-600/10 text-emerald-600 dark:text-emerald-600",
+		tagline: "Connect to anything, anywhere.",
+		description:
+			"An all-in-one cloud networking platform that secures, transforms, and routes traffic to all your services no matter where they run.",
+		textClassName: "text-emerald-600 dark:text-emerald-600",
+		cardHoverClassName:
+			"hover:border-emerald-600 hover:bg-emerald-600/[0.03] focus-visible:border-emerald-600 focus-visible:bg-emerald-600/[0.03] focus-visible:ring-emerald-600/20 dark:hover:border-emerald-600 dark:focus-visible:border-emerald-600",
+		cardCurrentClassName:
+			"border-emerald-600 bg-emerald-600/[0.03] ring-4 ring-emerald-600/15 dark:border-emerald-600",
+		arrowHoverClassName:
+			"group-hover:text-emerald-600 group-focus-visible:text-emerald-600 dark:group-hover:text-emerald-600 dark:group-focus-visible:text-emerald-600",
 	},
 	{
 		id: "codename",
 		label: "Ship",
 		icon: <SailboatIcon weight="regular" />,
 		iconClassName: "bg-sky-600/10 text-sky-600 dark:text-sky-600",
-	},
-	{
-		id: "localhost",
-		label: "Share Localhost",
-		icon: <ShareFatIcon weight="regular" />,
-		iconClassName: "bg-purple-600/10 text-purple-600 dark:text-purple-600",
+		tagline: "Ship apps without managing infrastructure.",
+		description: "Deploy services close to your users with managed compute, domains, and secrets.",
+		textClassName: "text-sky-600 dark:text-sky-600",
+		cardHoverClassName:
+			"hover:border-sky-600 hover:bg-sky-600/[0.03] focus-visible:border-sky-600 focus-visible:bg-sky-600/[0.03] focus-visible:ring-sky-600/20 dark:hover:border-sky-600 dark:focus-visible:border-sky-600",
+		cardCurrentClassName:
+			"border-sky-600 bg-sky-600/[0.03] ring-4 ring-sky-600/15 dark:border-sky-600",
+		arrowHoverClassName:
+			"group-hover:text-sky-600 group-focus-visible:text-sky-600 dark:group-hover:text-sky-600 dark:group-focus-visible:text-sky-600",
 	},
 	{
 		id: "ai-gateway",
 		label: "AI Gateway",
 		icon: <SparkleIcon weight="regular" />,
 		iconClassName: "bg-amber-600/10 text-amber-600 dark:text-amber-600",
+		tagline: "One gateway, every model.",
+		description:
+			"Change one URL to route between hosted or self-hosted models, with failover and observability built in.",
+		textClassName: "text-amber-600 dark:text-amber-600",
+		cardHoverClassName:
+			"hover:border-amber-600 hover:bg-amber-600/[0.03] focus-visible:border-amber-600 focus-visible:bg-amber-600/[0.03] focus-visible:ring-amber-600/20 dark:hover:border-amber-600 dark:focus-visible:border-amber-600",
+		cardCurrentClassName:
+			"border-amber-600 bg-amber-600/[0.03] ring-4 ring-amber-600/15 dark:border-amber-600",
+		arrowHoverClassName:
+			"group-hover:text-amber-600 group-focus-visible:text-amber-600 dark:group-hover:text-amber-600 dark:group-focus-visible:text-amber-600",
 	},
 ] as const satisfies ReadonlyArray<DemoProduct>;
 
@@ -190,6 +227,126 @@ function ProductIcon({ className, product }: { className?: string; product: Demo
 		>
 			{product.icon}
 		</span>
+	);
+}
+
+/**
+ * Roving arrow-key navigation over the dialog's product cards: ArrowDown and
+ * ArrowUp wrap around, Home/End jump to the edges. Enter and Space activate
+ * the focused card natively, so only focus movement is handled here.
+ */
+function handleProductOptionKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+	const container = event.currentTarget.closest("[data-product-options]");
+	if (container == null) {
+		return;
+	}
+	const options = Array.from(container.querySelectorAll("button"));
+	const focusedIndex = options.findIndex((option) => option === event.currentTarget);
+	if (focusedIndex === -1) {
+		return;
+	}
+	const lastIndex = options.length - 1;
+	if (event.key === "ArrowDown") {
+		event.preventDefault();
+		options[focusedIndex === lastIndex ? 0 : focusedIndex + 1]?.focus();
+	} else if (event.key === "ArrowUp") {
+		event.preventDefault();
+		options[focusedIndex === 0 ? lastIndex : focusedIndex - 1]?.focus();
+	} else if (event.key === "Home") {
+		event.preventDefault();
+		options[0]?.focus();
+	} else if (event.key === "End") {
+		event.preventDefault();
+		options[lastIndex]?.focus();
+	}
+}
+
+/**
+ * The multi-product switcher in the sidebar header: a `Sidebar.SwitcherButton`
+ * trigger that opens a centered "Choose a product" dialog. Each product
+ * renders as a color-coded card with its tagline and description; the current
+ * product's card is highlighted and receives focus when the dialog opens, and
+ * choosing a card switches the product and closes the dialog.
+ */
+function ProductSwitcherDialog({
+	onProductChange,
+	productId,
+}: {
+	onProductChange: (productId: string) => void;
+	productId: string;
+}) {
+	const currentOptionRef = useRef<HTMLButtonElement | null>(null);
+	const product = demoProducts.find((candidate) => candidate.id === productId) ?? demoProducts[0];
+
+	return (
+		<Dialog.Root>
+			<Dialog.Trigger asChild>
+				<Sidebar.SwitcherButton>
+					<ProductIcon product={product} />
+					<span className="text-strong min-w-0 flex-1 truncate text-base">{product.label}</span>
+					<CaretDownIcon className="text-muted size-4 shrink-0" />
+				</Sidebar.SwitcherButton>
+			</Dialog.Trigger>
+			<Dialog.Content
+				className="bg-popover"
+				preferredWidth="max-w-xl"
+				onOpenAutoFocus={(event) => {
+					// land focus on the current product's card, not the first card
+					event.preventDefault();
+					currentOptionRef.current?.focus();
+				}}
+			>
+				<Dialog.Body className="p-6">
+					<Dialog.Title className="text-strong text-center text-lg font-medium">
+						Choose a product
+					</Dialog.Title>
+					<div className="mt-6 flex flex-col gap-2" data-product-options="">
+						{demoProducts.map((candidate) => {
+							const isCurrent = candidate.id === productId;
+							return (
+								<Dialog.Close key={candidate.id} asChild>
+									<button
+										ref={isCurrent ? currentOptionRef : undefined}
+										type="button"
+										className={cx(
+											"group border-card-muted bg-card flex w-full flex-col rounded-lg border p-4 text-left shadow-sm transition-none focus:outline-hidden focus-visible:ring-4",
+											candidate.cardHoverClassName,
+											isCurrent && candidate.cardCurrentClassName,
+										)}
+										onClick={() => onProductChange(candidate.id)}
+										onKeyDown={handleProductOptionKeyDown}
+									>
+										<span className="flex w-full min-w-0 items-center justify-between gap-3">
+											<span className="flex min-w-0 items-center gap-3">
+												<ProductIcon className="size-7" product={candidate} />
+												<span
+													className={cx("truncate text-sm font-medium", candidate.textClassName)}
+												>
+													{candidate.label}
+												</span>
+											</span>
+											<ArrowRightIcon
+												className={cx(
+													"text-muted size-5 shrink-0",
+													candidate.arrowHoverClassName,
+													isCurrent && candidate.textClassName,
+												)}
+											/>
+										</span>
+										<span className="text-strong mt-2 text-base leading-snug font-medium">
+											{candidate.tagline}
+										</span>
+										<span className="text-muted mt-1 text-sm leading-relaxed text-pretty">
+											{candidate.description}
+										</span>
+									</button>
+								</Dialog.Close>
+							);
+						})}
+					</div>
+				</Dialog.Body>
+			</Dialog.Content>
+		</Dialog.Root>
 	);
 }
 
@@ -244,7 +401,8 @@ function DemoNav({
 /**
  * The canonical Sidebar + AppLayout composition, shared by both docs pages: a
  * decoupled app shell with a sidebar that collapses to the icon rail, a
- * header-mounted trigger, a toggleable full-window notice strip, and a
+ * header-mounted trigger, a product-choice dialog in the sidebar header, a
+ * toggleable full-window notice strip, and a
  * content card that scrolls internally. The two
  * components never reference each other — `Sidebar.Root` simply wraps the
  * shell so `Sidebar.Trigger` works from `AppLayout.Header`.
@@ -261,7 +419,6 @@ export function AppShellDemo() {
 	const [showNotice, setShowNotice] = useState(false);
 	const [alertExample, setAlertExample] = useState<"single" | "multiple" | null>(null);
 
-	const product = demoProducts.find((candidate) => candidate.id === productId) ?? demoProducts[0];
 	const account = demoAccounts.find((candidate) => candidate.id === accountId) ?? demoAccounts[0];
 	const currentItem = demoNavSections
 		.flatMap((section) => section.items)
@@ -288,31 +445,7 @@ export function AppShellDemo() {
 				<AppLayout.Body>
 					<Sidebar.Nav aria-label="Main">
 						<Sidebar.Header>
-							<DropdownMenu.Root>
-								<DropdownMenu.Trigger asChild>
-									<Sidebar.SwitcherButton>
-										<ProductIcon product={product} />
-										<span className="text-strong min-w-0 flex-1 truncate text-base">
-											{product.label}
-										</span>
-										<CaretDownIcon className="text-muted size-4 shrink-0" />
-									</Sidebar.SwitcherButton>
-								</DropdownMenu.Trigger>
-								<DropdownMenu.Content align="start">
-									<DropdownMenu.RadioGroup value={productId} onValueChange={setProductId}>
-										{demoProducts.map((candidate) => (
-											<DropdownMenu.RadioItem
-												key={candidate.id}
-												value={candidate.id}
-												className="gap-2"
-											>
-												<ProductIcon product={candidate} />
-												{candidate.label}
-											</DropdownMenu.RadioItem>
-										))}
-									</DropdownMenu.RadioGroup>
-								</DropdownMenu.Content>
-							</DropdownMenu.Root>
+							<ProductSwitcherDialog productId={productId} onProductChange={setProductId} />
 						</Sidebar.Header>
 
 						<Sidebar.Body>
@@ -389,12 +522,6 @@ export function AppShellDemo() {
 									<Sidebar.Trigger />
 									<Breadcrumb.Root>
 										<Breadcrumb.List>
-											<Breadcrumb.Item>
-												<Breadcrumb.Link href="/" onClick={(event) => event.preventDefault()}>
-													{product.label}
-												</Breadcrumb.Link>
-											</Breadcrumb.Item>
-											<Breadcrumb.Separator />
 											<Breadcrumb.Item>
 												<Breadcrumb.Page>
 													{currentItem?.label ?? "Account settings"}
