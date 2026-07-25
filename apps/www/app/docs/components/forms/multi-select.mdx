@@ -323,7 +323,7 @@ A typeahead multi-select combobox that allows users to select multiple values wi
 
 Use `Multi Select` when the user can choose multiple values from a list, with selected values rendered as removable tags/chips. For single selection, use [`Combobox`](/components/forms/combobox) (with search) or [`Select`](/components/forms/select) (without).
 
-Pair with `Field.*` for label/description/error wiring in forms — wrap `MultiSelect.Root` in `Field.Control`. `Field.Control` flows the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` through to the focusable `MultiSelect.Input` via `FieldControlContext`.
+Pair with `Field.*` for label/description/error wiring in forms — wrap `MultiSelect.Root` in `Field.Control`. `Field.Control` flows the generated `id`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` through to the focusable `MultiSelect.Input` via `FieldControlContext`. The field `name` flows through too, but lands on one hidden input per selected value rather than on the combobox input — the input's value is the typeahead filter text, so a native form submit sends the selected values instead of what the user typed.
 
 <Example>
 	<Field.Item name="fruits" className="max-w-96">
@@ -1164,10 +1164,11 @@ The combobox input for filtering items. Place this inside `MultiSelect.Trigger`,
 
 All props from ariakit [Combobox](https://ariakit.org/reference/combobox). Key props:
 
-| Prop             | Type                      | Default | Description                                                                                                                                                                |
-| :--------------- | :------------------------ | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `onValueChange?` | `(value: string) => void` |         | Called with the raw string value whenever the input text changes. Use this to drive external filtering (e.g. with `matchSorter`). A convenience alternative to `onChange`. |
-| `placeholder?`   | `string`                  |         | Placeholder text shown when no values are selected.                                                                                                                        |
+| Prop             | Type                      | Default | Description                                                                                                                                                                       |
+| :--------------- | :------------------------ | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `onValueChange?` | `(value: string) => void` |         | Called with the raw string value whenever the input text changes. Use this to drive external filtering (e.g. with `matchSorter`). A convenience alternative to `onChange`.        |
+| `placeholder?`   | `string`                  |         | Placeholder text shown when no values are selected.                                                                                                                               |
+| `name?`          | `string`                  |         | Form-value name for the selection. Applied to one hidden input per selected value — not to this input, whose value is the filter text. Flowed automatically from `Field.Control`. |
 
 ### MultiSelect.Tag
 
