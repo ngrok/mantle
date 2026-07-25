@@ -6,9 +6,11 @@ import { IconButton } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
 import { Dialog } from "@ngrok/mantle/dialog";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { AutoThemeIcon } from "@ngrok/mantle/icons";
 import { Main } from "@ngrok/mantle/main";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
 import { ArrowLeftIcon } from "@phosphor-icons/react/ArrowLeft";
 import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
@@ -17,17 +19,18 @@ import { BookOpenIcon } from "@phosphor-icons/react/BookOpen";
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { CaretUpDownIcon } from "@phosphor-icons/react/CaretUpDown";
 import { CertificateIcon } from "@phosphor-icons/react/Certificate";
+import { ChatsIcon } from "@phosphor-icons/react/Chats";
 import { ClipboardTextIcon } from "@phosphor-icons/react/ClipboardText";
 import { ClockCounterClockwiseIcon } from "@phosphor-icons/react/ClockCounterClockwise";
 import { CreditCardIcon } from "@phosphor-icons/react/CreditCard";
+import { DoorOpenIcon } from "@phosphor-icons/react/DoorOpen";
 import { FingerprintIcon } from "@phosphor-icons/react/Fingerprint";
 import { GearIcon } from "@phosphor-icons/react/Gear";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { HashIcon } from "@phosphor-icons/react/Hash";
-import { KeyboardIcon } from "@phosphor-icons/react/Keyboard";
-import { LifebuoyIcon } from "@phosphor-icons/react/Lifebuoy";
+import { HeartbeatIcon } from "@phosphor-icons/react/Heartbeat";
 import { ListMagnifyingGlassIcon } from "@phosphor-icons/react/ListMagnifyingGlass";
 import { MapPinIcon } from "@phosphor-icons/react/MapPin";
 import { MegaphoneIcon } from "@phosphor-icons/react/Megaphone";
@@ -37,9 +40,11 @@ import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
 import { SignOutIcon } from "@phosphor-icons/react/SignOut";
 import { SlidersHorizontalIcon } from "@phosphor-icons/react/SlidersHorizontal";
 import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
+import { SpeedometerIcon } from "@phosphor-icons/react/Speedometer";
 import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
 import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
 import { UsersIcon } from "@phosphor-icons/react/Users";
+import { UsersThreeIcon } from "@phosphor-icons/react/UsersThree";
 import { VaultIcon } from "@phosphor-icons/react/Vault";
 import { WarningIcon } from "@phosphor-icons/react/Warning";
 import type { KeyboardEvent, ReactNode } from "react";
@@ -151,6 +156,18 @@ const demoSettingsSections: ReadonlyArray<DemoNavSection> = [
 			{ label: "Security & Access", icon: <ShieldCheckIcon />, path: "/settings/security" },
 		],
 	},
+];
+
+/**
+ * The account-scoped destinations the multi-product shell pins to its footer:
+ * areas that outlive whichever product `Sidebar.Body` is showing, so they stay
+ * put while the body's navigation changes. They are deliberately absent from
+ * `demoNavSections` — one path must own exactly one row, or the panel would
+ * announce two current pages.
+ */
+const demoFooterItems: ReadonlyArray<DemoNavItem> = [
+	{ label: "Identity & Access", icon: <UsersThreeIcon />, path: "/iam" },
+	{ label: "Usage & Limits", icon: <SpeedometerIcon />, path: "/usage" },
 ];
 
 /** Where the settings section lands when entered from a link or a menu item. */
@@ -524,6 +541,188 @@ function DemoSettingsHeader({
 }
 
 /**
+ * The footer's Help menu, shared by both shells: a `Sidebar.ItemButton`
+ * composed as a `DropdownMenu.Trigger`, so the row keeps the sidebar's row
+ * treatment (and stays highlighted while the menu is open) instead of becoming
+ * a foreign-looking button in the panel. The trailing caret reads "this row
+ * opens a menu"; the leading icon is the only one the row sizes for you, which
+ * is why the caret carries its own `size-4`.
+ *
+ * The menu opens upward (`side="top"`) — it is pinned to the bottom of the
+ * viewport, so downward is off-screen.
+ *
+ * @example
+ * ```tsx
+ * <Sidebar.Footer>
+ *   <DemoHelpMenu />
+ * </Sidebar.Footer>
+ * ```
+ */
+function DemoHelpMenu() {
+	return (
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger asChild>
+				<Sidebar.ItemButton>
+					<QuestionIcon />
+					Help
+					<CaretDownIcon className="text-muted ml-auto size-4 shrink-0" />
+				</Sidebar.ItemButton>
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="start" side="top" className="min-w-56">
+				<DropdownMenu.Item className="gap-2">
+					<DoorOpenIcon className="text-muted" />
+					Request early access
+				</DropdownMenu.Item>
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item asChild>
+					<a
+						className="flex items-center gap-2"
+						href="https://ngrok.com/docs"
+						rel="noopener"
+						target="_blank"
+					>
+						<BookOpenIcon className="text-muted" />
+						Documentation
+					</a>
+				</DropdownMenu.Item>
+				<DropdownMenu.Item className="gap-2">
+					<MegaphoneIcon className="text-muted" />
+					Give feedback
+				</DropdownMenu.Item>
+				<DropdownMenu.Item asChild>
+					<a
+						className="flex items-center gap-2"
+						href="https://ngrok.com/support"
+						rel="noopener"
+						target="_blank"
+					>
+						<ChatsIcon className="text-muted" />
+						<span className="min-w-0 flex-1">Contact support</span>
+						{/* decorative status pips: the row's text already carries the
+						    meaning, so they stay out of the accessibility tree */}
+						<span className="bg-accent-600 size-1.5 shrink-0 rounded-full" aria-hidden="true" />
+					</a>
+				</DropdownMenu.Item>
+				<DropdownMenu.Item asChild>
+					<a
+						className="flex items-center gap-2"
+						href="https://status.ngrok.com"
+						rel="noopener"
+						target="_blank"
+					>
+						<HeartbeatIcon className="text-muted" />
+						<span className="min-w-0 flex-1">System status</span>
+						<span className="bg-success-600 size-1.5 shrink-0 rounded-full" aria-hidden="true" />
+					</a>
+				</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	);
+}
+
+/**
+ * The multi-product shell's footer switcher row: the account's avatar, the
+ * account's name, and the signed-in user's avatar in one row that opens one
+ * menu covering both scopes — account destinations (billing, settings,
+ * switching) and user-level items (settings, theme, log out).
+ *
+ * @example
+ * ```tsx
+ * <Sidebar.Footer>
+ *   <AppShellAccountSwitcher
+ *     accountId={accountId}
+ *     onAccountChange={setAccountId}
+ *     onNavigate={navigate}
+ *   />
+ * </Sidebar.Footer>
+ * ```
+ */
+function AppShellAccountSwitcher({
+	accountId,
+	onAccountChange,
+	onNavigate,
+}: {
+	accountId: string;
+	onAccountChange: (accountId: string) => void;
+	onNavigate: (path: string) => void;
+}) {
+	const account = demoAccounts.find((candidate) => candidate.id === accountId) ?? demoAccounts[0];
+
+	return (
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger asChild>
+				<Sidebar.SwitcherTrigger>
+					<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+					<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
+						{account.name}
+					</span>
+					<Sidebar.UserAvatar alt="Jane Doe" />
+				</Sidebar.SwitcherTrigger>
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="start" side="top" width="trigger">
+				<DropdownMenu.Group>
+					<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
+						{account.name}
+					</DropdownMenu.Label>
+					<DropdownMenu.Item className="gap-2" onSelect={() => onNavigate("/settings/billing")}>
+						<CreditCardIcon className="text-muted" />
+						Billing
+					</DropdownMenu.Item>
+					<DropdownMenu.Item className="gap-2" onSelect={() => onNavigate(settingsSectionPath)}>
+						<GearIcon className="text-muted" />
+						Account settings
+					</DropdownMenu.Item>
+					<DropdownMenu.Sub>
+						<DropdownMenu.SubTrigger className="gap-2">
+							<ArrowsClockwiseIcon className="text-muted" />
+							Switch accounts
+						</DropdownMenu.SubTrigger>
+						<DropdownMenu.SubContent>
+							<DropdownMenu.RadioGroup value={account.id} onValueChange={onAccountChange}>
+								{demoAccounts.map((demoAccount) => (
+									<DropdownMenu.RadioItem key={demoAccount.id} value={demoAccount.id}>
+										<Sidebar.AccountAvatar
+											accountId={demoAccount.id}
+											accountName={demoAccount.name}
+										/>
+										<span className="min-w-0 flex-1 truncate">{demoAccount.name}</span>
+									</DropdownMenu.RadioItem>
+								))}
+							</DropdownMenu.RadioGroup>
+						</DropdownMenu.SubContent>
+					</DropdownMenu.Sub>
+				</DropdownMenu.Group>
+				<DropdownMenu.Separator />
+				<DropdownMenu.Group>
+					<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
+						jane@example.com
+					</DropdownMenu.Label>
+					<DropdownMenu.Item className="gap-2" onSelect={() => onNavigate("/settings/preferences")}>
+						<UserCircleIcon className="text-muted" />
+						User settings
+					</DropdownMenu.Item>
+					<DropdownMenu.Sub>
+						<DropdownMenu.SubTrigger className="gap-2">
+							<AutoThemeIcon className="text-muted size-5" />
+							Theme
+						</DropdownMenu.SubTrigger>
+						<DropdownMenu.SubContent>
+							{/* mantle ships the five-theme radio group for exactly this spot */}
+							<ThemeDropdownMenuRadioGroup />
+						</DropdownMenu.SubContent>
+					</DropdownMenu.Sub>
+				</DropdownMenu.Group>
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item className="gap-2">
+					<SignOutIcon className="text-muted" />
+					Log out
+				</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	);
+}
+
+/**
  * The canonical Sidebar + AppLayout composition, shared by both docs pages: a
  * decoupled app shell with a sidebar that collapses to the icon rail, a
  * header-mounted trigger, a product-choice dialog in the sidebar header, a
@@ -532,10 +731,17 @@ function DemoSettingsHeader({
  * components never reference each other — `Sidebar.Root` simply wraps the
  * shell so `Sidebar.Trigger` works from `AppLayout.Header`.
  *
- * The sidebar also shows the **settings section**: opening the account menu (or
- * the pinned footer link) and choosing "Account settings" swaps the header's
- * product switcher for a back link and the body's product nav for the settings
- * nav, and the back link returns to the product page the reader left.
+ * The footer carries the shell's stable rows, bottom-anchored under the
+ * scrolling body: the account-scoped destinations every product shares
+ * ({@link demoFooterItems}), a {@link DemoHelpMenu} row, a `Sidebar.Separator`,
+ * and the {@link AppShellAccountSwitcher} row. Both menus open upward, and both
+ * trigger rows stay highlighted while open.
+ *
+ * The sidebar also shows the **settings section**: opening the account menu and
+ * choosing "Account settings" (or "Billing", which lands deeper in the same
+ * section) swaps the header's product switcher for a back link and the body's
+ * product nav for the settings nav, and the back link returns to the product
+ * page the reader left.
  *
  * Renders as an entire framed-preview document (see preview-registry.ts), so
  * it composes exactly like a real app shell: pinned to the viewport with
@@ -563,9 +769,8 @@ export function AppShellDemo() {
 		setAlertExample((current) => (current === example ? null : example));
 	};
 
-	const account = demoAccounts.find((candidate) => candidate.id === accountId) ?? demoAccounts[0];
 	const inSettings = isSettingsPath(pathname);
-	const productItems = demoNavSections.flatMap((section) => section.items);
+	const productItems = [...demoNavSections.flatMap((section) => section.items), ...demoFooterItems];
 	const currentItem = [
 		...productItems,
 		...demoSettingsSections.flatMap((section) => section.items),
@@ -627,85 +832,30 @@ export function AppShellDemo() {
 							/>
 						</Sidebar.Body>
 
+						{/* The footer is the panel's stable region: the header and body swap
+						    with the section being shown, these rows never do. */}
 						<Sidebar.Footer>
-							{/* no `current`: while the settings nav is showing, the current row
-							    lives in that nav — two `aria-current="page"` rows in one
-							    landmark would announce two current pages */}
-							<Sidebar.ItemButton asChild>
-								<a
-									href={settingsSectionPath}
-									onClick={(event) => {
-										event.preventDefault();
-										navigate(settingsSectionPath);
-									}}
-								>
-									<GearIcon />
-									Account settings
-								</a>
-							</Sidebar.ItemButton>
+							{demoFooterItems.map((item) => (
+								<Sidebar.ItemButton key={item.path} asChild current={pathname === item.path}>
+									<a
+										href={item.path}
+										onClick={(event) => {
+											event.preventDefault();
+											navigate(item.path);
+										}}
+									>
+										{item.icon}
+										{item.label}
+									</a>
+								</Sidebar.ItemButton>
+							))}
+							<DemoHelpMenu />
 							<Sidebar.Separator />
-							<DropdownMenu.Root>
-								<DropdownMenu.Trigger asChild>
-									<Sidebar.SwitcherTrigger>
-										<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
-										<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
-											{account.name}
-										</span>
-										<Sidebar.UserAvatar alt="Jane Doe" />
-									</Sidebar.SwitcherTrigger>
-								</DropdownMenu.Trigger>
-								<DropdownMenu.Content align="start" side="top" width="trigger">
-									<DropdownMenu.Group>
-										<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
-											{account.name}
-										</DropdownMenu.Label>
-										<DropdownMenu.Item
-											className="gap-2"
-											onSelect={() => navigate(settingsSectionPath)}
-										>
-											<GearIcon className="text-muted" />
-											Account settings
-										</DropdownMenu.Item>
-										<DropdownMenu.Sub>
-											<DropdownMenu.SubTrigger className="gap-2">
-												<ArrowsClockwiseIcon className="text-muted" />
-												Switch accounts
-											</DropdownMenu.SubTrigger>
-											<DropdownMenu.SubContent>
-												<DropdownMenu.RadioGroup value={accountId} onValueChange={setAccountId}>
-													{demoAccounts.map((demoAccount) => (
-														<DropdownMenu.RadioItem key={demoAccount.id} value={demoAccount.id}>
-															<Sidebar.AccountAvatar
-																accountId={demoAccount.id}
-																accountName={demoAccount.name}
-															/>
-															<span className="min-w-0 flex-1 truncate">{demoAccount.name}</span>
-														</DropdownMenu.RadioItem>
-													))}
-												</DropdownMenu.RadioGroup>
-											</DropdownMenu.SubContent>
-										</DropdownMenu.Sub>
-									</DropdownMenu.Group>
-									<DropdownMenu.Separator />
-									<DropdownMenu.Group>
-										<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
-											jane@example.com
-										</DropdownMenu.Label>
-										<DropdownMenu.Item
-											className="gap-2"
-											onSelect={() => navigate("/settings/preferences")}
-										>
-											<UserCircleIcon className="text-muted" />
-											User settings
-										</DropdownMenu.Item>
-									</DropdownMenu.Group>
-									<DropdownMenu.Separator />
-									<DropdownMenu.Item className="gap-2">
-										<SignOutIcon className="text-muted" />
-										Log out
-									</DropdownMenu.Item>
-								</DropdownMenu.Content>
-							</DropdownMenu.Root>
+							<AppShellAccountSwitcher
+								accountId={accountId}
+								onAccountChange={setAccountId}
+								onNavigate={navigate}
+							/>
 						</Sidebar.Footer>
 					</Sidebar.Nav>
 
@@ -876,8 +1026,9 @@ function BridgeAccountSwitcher({
  * information architecture — the **account switcher** sits at the top (where
  * the product switcher lives in the multi-product shell), the body is one
  * product's navigation, and the footer stacks a few pinned links, a
- * `Sidebar.Separator`, and a Help `DropdownMenu`. To migrate later, move the
- * account switcher into the footer and put a product switcher in the header.
+ * `Sidebar.Separator`, and the same {@link DemoHelpMenu} row the multi-product
+ * shell uses. To migrate later, move the account switcher into the footer and
+ * put a product switcher in the header.
  *
  * Like {@link AppShellDemo}, the sidebar can show the **settings section**: the
  * pinned "Account settings" link (or the account menu's "User settings") swaps
@@ -1006,34 +1157,10 @@ export function BridgeShellDemo() {
 									</a>
 								</Sidebar.ItemButton>
 							))}
+							{/* this shell's account row lives in the header, so the separator
+							    divides the pinned destinations from the Help menu instead */}
 							<Sidebar.Separator />
-							<DropdownMenu.Root>
-								<DropdownMenu.Trigger asChild>
-									<Sidebar.ItemButton>
-										<QuestionIcon />
-										Help
-									</Sidebar.ItemButton>
-								</DropdownMenu.Trigger>
-								<DropdownMenu.Content align="start" side="top" className="min-w-56">
-									<DropdownMenu.Item className="gap-2">
-										<BookOpenIcon className="text-muted" />
-										Documentation
-									</DropdownMenu.Item>
-									<DropdownMenu.Item className="gap-2">
-										<LifebuoyIcon className="text-muted" />
-										Support
-									</DropdownMenu.Item>
-									<DropdownMenu.Item className="gap-2">
-										<KeyboardIcon className="text-muted" />
-										Keyboard shortcuts
-									</DropdownMenu.Item>
-									<DropdownMenu.Separator />
-									<DropdownMenu.Item className="gap-2">
-										<MegaphoneIcon className="text-muted" />
-										What&apos;s new
-									</DropdownMenu.Item>
-								</DropdownMenu.Content>
-							</DropdownMenu.Root>
+							<DemoHelpMenu />
 						</Sidebar.Footer>
 					</Sidebar.Nav>
 

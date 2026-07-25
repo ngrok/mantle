@@ -27,8 +27,10 @@ gutter stays visually seamless. The demo runs in its own framed document, exactl
 the sidebar to its icon rail with the trigger (or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> — the shortcut binds to
 the frame, not this page) and reopen it the same way, toggle the
 notice to see the strip push the whole shell (sidebar included) down, and switch the preview to the mobile
-viewport for the sheet presentation. The same sidebar can also show a second **section** of navigation:
-choose **Account settings** from the account menu (or the pinned footer link) and the header's product
+viewport for the sheet presentation. The sidebar's footer stays put through all of it: the account-scoped
+rows every product shares, a **Help** menu row, and the account switcher row. The same sidebar can also show
+a second **section** of navigation:
+choose **Account settings** from that account menu and the header's product
 switcher becomes a back link while the body swaps to the settings nav — the shell markup is identical, the
 `<nav>` landmark renames itself, the icon rail keeps working, and the back link returns to the product page
 you left. The demo narrows the sidebar's `mobileBreakpoint` to `md`
@@ -226,9 +228,10 @@ export function Shell() {
 Most ngrok surfaces are still single-product today. This variant keeps that information architecture while
 adopting the new shell, so teams can migrate now and layer in product segmentation later. The **account
 switcher moves to the top** — where the multi-product shell above puts a product switcher — the body holds a
-single product's navigation, and the footer stacks a few pinned links, a `Sidebar.Separator`, and a Help
-`DropdownMenu`. When product segmentation lands, put a product switcher in the header and move the account
-switcher into the footer; nothing else about the shell changes.
+single product's navigation, and the footer stacks a few pinned links, a `Sidebar.Separator`, and the same
+Help row the multi-product shell uses — a `Sidebar.ItemButton` composed as a `DropdownMenu.Trigger`, so it
+stays a sidebar row that happens to open a menu upward. When product segmentation lands, put a product
+switcher in the header and move the account switcher into the footer; nothing else about the shell changes.
 
 The settings-section swap works here too — the pinned **Account settings** link (or the account menu's
 **User settings**) shows the settings nav with a back link in the header. Note the tradeoff this IA carries:
@@ -253,8 +256,7 @@ import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { GearIcon } from "@phosphor-icons/react/Gear";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
-import { KeyboardIcon } from "@phosphor-icons/react/Keyboard";
-import { LifebuoyIcon } from "@phosphor-icons/react/Lifebuoy";
+import { HeartbeatIcon } from "@phosphor-icons/react/Heartbeat";
 import { MegaphoneIcon } from "@phosphor-icons/react/Megaphone";
 import { QuestionIcon } from "@phosphor-icons/react/Question";
 import { SignOutIcon } from "@phosphor-icons/react/SignOut";
@@ -389,30 +391,47 @@ export function BridgeShell() {
 								</a>
 							</Sidebar.ItemButton>
 							<Sidebar.Separator />
+							{/* the Help row is an ordinary sidebar row composed as a menu
+							    trigger: it keeps the row treatment, stays highlighted while the
+							    menu is open, and only the trailing caret carries its own size */}
 							<DropdownMenu.Root>
 								<DropdownMenu.Trigger asChild>
 									<Sidebar.ItemButton>
 										<QuestionIcon />
 										Help
+										<CaretDownIcon className="text-muted ml-auto size-4 shrink-0" />
 									</Sidebar.ItemButton>
 								</DropdownMenu.Trigger>
 								<DropdownMenu.Content align="start" side="top" className="min-w-56">
-									<DropdownMenu.Item className="gap-2">
-										<BookOpenIcon className="text-muted" />
-										Documentation
+									<DropdownMenu.Item asChild>
+										<a
+											className="flex items-center gap-2"
+											href="https://ngrok.com/docs"
+											rel="noopener"
+											target="_blank"
+										>
+											<BookOpenIcon className="text-muted" />
+											Documentation
+										</a>
 									</DropdownMenu.Item>
-									<DropdownMenu.Item className="gap-2">
-										<LifebuoyIcon className="text-muted" />
-										Support
-									</DropdownMenu.Item>
-									<DropdownMenu.Item className="gap-2">
-										<KeyboardIcon className="text-muted" />
-										Keyboard shortcuts
-									</DropdownMenu.Item>
-									<DropdownMenu.Separator />
 									<DropdownMenu.Item className="gap-2">
 										<MegaphoneIcon className="text-muted" />
-										What's new
+										Give feedback
+									</DropdownMenu.Item>
+									<DropdownMenu.Item asChild>
+										<a
+											className="flex items-center gap-2"
+											href="https://status.ngrok.com"
+											rel="noopener"
+											target="_blank"
+										>
+											<HeartbeatIcon className="text-muted" />
+											<span className="min-w-0 flex-1">System status</span>
+											<span
+												className="bg-success-600 size-1.5 shrink-0 rounded-full"
+												aria-hidden="true"
+											/>
+										</a>
 									</DropdownMenu.Item>
 								</DropdownMenu.Content>
 							</DropdownMenu.Root>

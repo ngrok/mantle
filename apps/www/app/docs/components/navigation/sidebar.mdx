@@ -22,11 +22,22 @@ The sidebar is routing-agnostic. Compose router links with `asChild` on `Sidebar
 app: switch the preview to the mobile viewport to see the sheet presentation, use the trigger in the header
 to collapse and expand the panel, open the product switcher at the top of the sidebar to choose a product
 from a centered [Dialog](/components/overlays/dialog), and toggle the notice to see the shell's full-window
-[`AppLayout.Notice`](/layouts/app-layout) strip push everything — sidebar included — down. Choosing
-**Account settings** from the account menu at the bottom shows a second **section** of navigation in the same
+[`AppLayout.Notice`](/layouts/app-layout) strip push everything — sidebar included — down.
+
+`Sidebar.Footer` holds the panel's stable rows, bottom-anchored under the scrolling body: the
+account-scoped destinations every product shares, a **Help** row, a `Sidebar.Separator`, and the
+account switcher. The Help row and the switcher row are ordinary sidebar rows composed with
+`DropdownMenu.Trigger asChild`, so each keeps the panel's row treatment, stays highlighted while its menu is
+open, and opens the menu upward (`side="top"`) — the footer sits at the bottom of the viewport, so downward
+is off-screen. The switcher's one menu covers both scopes it names: account destinations and switching, then
+user-level items including a **Theme** submenu — mantle's
+[`ThemeDropdownMenuRadioGroup`](/components/forms/theme-switcher) exists for exactly that spot.
+
+Choosing **Account settings** from that menu shows a second **section** of navigation in the same
 sidebar: the header's switcher becomes a back link, `Sidebar.Body` renders the settings groups, and the
 `<nav>` landmark renames itself from `Main` to `Settings`. That is composition, not a feature — the sidebar
 never knows which section it is showing; the app derives it from the route and renders different children.
+The footer does not move while that happens.
 Click into the frame and press <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> — the shortcut binds to the frame's own
 window, not this page. The demo narrows `mobileBreakpoint` to `md` so the desktop panel survives the
 preview's desktop and tablet widths; ngrok's dashboards keep the `lg` default.
@@ -42,17 +53,28 @@ import { Button } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
 import { Dialog } from "@ngrok/mantle/dialog";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { AutoThemeIcon } from "@ngrok/mantle/icons";
 import { Main } from "@ngrok/mantle/main";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
 import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
+import { BookOpenIcon } from "@phosphor-icons/react/BookOpen";
+import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { CaretUpDownIcon } from "@phosphor-icons/react/CaretUpDown";
+import { GearIcon } from "@phosphor-icons/react/Gear";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { HeartbeatIcon } from "@phosphor-icons/react/Heartbeat";
+import { MegaphoneIcon } from "@phosphor-icons/react/Megaphone";
+import { QuestionIcon } from "@phosphor-icons/react/Question";
 import { SailboatIcon } from "@phosphor-icons/react/Sailboat";
+import { SignOutIcon } from "@phosphor-icons/react/SignOut";
+import { SpeedometerIcon } from "@phosphor-icons/react/Speedometer";
 import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
+import { UsersThreeIcon } from "@phosphor-icons/react/UsersThree";
 import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
 import type { KeyboardEvent } from "react";
 import { useRef, useState } from "react";
@@ -108,6 +130,13 @@ const products = [
 const accounts = [
 	{ id: "acc_acme", name: "Acme Corp" },
 	{ id: "acc_atlas", name: "Atlas Industries" },
+];
+
+// Account-scoped destinations outlive whichever product the body is showing, so
+// they pin to the footer instead of living in a product's nav.
+const footerItems = [
+	{ label: "Identity & Access", icon: <UsersThreeIcon />, path: "/iam" },
+	{ label: "Usage & Limits", icon: <SpeedometerIcon />, path: "/usage" },
 ];
 
 function ProductIcon({
@@ -288,6 +317,127 @@ function ProductNav({
 	);
 }
 
+// A footer row composed as a menu trigger: Sidebar.ItemButton sizes the leading
+// icon and keeps the row highlighted while the menu is open, so the trailing
+// caret only needs its own size. side="top" opens the menu upward, away from the
+// bottom of the viewport.
+function HelpMenu() {
+	return (
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger asChild>
+				<Sidebar.ItemButton>
+					<QuestionIcon />
+					Help
+					<CaretDownIcon className="text-muted ml-auto size-4 shrink-0" />
+				</Sidebar.ItemButton>
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="start" side="top" className="min-w-56">
+				<DropdownMenu.Item asChild>
+					<a
+						className="flex items-center gap-2"
+						href="https://ngrok.com/docs"
+						rel="noopener"
+						target="_blank"
+					>
+						<BookOpenIcon className="text-muted" />
+						Documentation
+					</a>
+				</DropdownMenu.Item>
+				<DropdownMenu.Item className="gap-2">
+					<MegaphoneIcon className="text-muted" />
+					Give feedback
+				</DropdownMenu.Item>
+				<DropdownMenu.Item asChild>
+					<a
+						className="flex items-center gap-2"
+						href="https://status.ngrok.com"
+						rel="noopener"
+						target="_blank"
+					>
+						<HeartbeatIcon className="text-muted" />
+						<span className="min-w-0 flex-1">System status</span>
+						<span className="bg-success-600 size-1.5 shrink-0 rounded-full" aria-hidden="true" />
+					</a>
+				</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	);
+}
+
+// One footer row, one menu, two scopes: the account (destinations, switching)
+// and the signed-in user (settings, theme, log out).
+function AccountSwitcher({
+	accountId,
+	onAccountChange,
+}: {
+	accountId: string;
+	onAccountChange: (accountId: string) => void;
+}) {
+	const account = accounts.find((candidate) => candidate.id === accountId) ?? accounts[0];
+
+	return (
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger asChild>
+				<Sidebar.SwitcherTrigger>
+					<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+					<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
+						{account.name}
+					</span>
+					<Sidebar.UserAvatar alt="Jane Doe" />
+				</Sidebar.SwitcherTrigger>
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="start" side="top" width="trigger">
+				<DropdownMenu.Group>
+					<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
+						{account.name}
+					</DropdownMenu.Label>
+					<DropdownMenu.Item className="gap-2">
+						<GearIcon className="text-muted" />
+						Account settings
+					</DropdownMenu.Item>
+					<DropdownMenu.Sub>
+						<DropdownMenu.SubTrigger className="gap-2">
+							<ArrowsClockwiseIcon className="text-muted" />
+							Switch accounts
+						</DropdownMenu.SubTrigger>
+						<DropdownMenu.SubContent>
+							<DropdownMenu.RadioGroup value={account.id} onValueChange={onAccountChange}>
+								{accounts.map((candidate) => (
+									<DropdownMenu.RadioItem key={candidate.id} value={candidate.id}>
+										<Sidebar.AccountAvatar accountId={candidate.id} accountName={candidate.name} />
+										<span className="min-w-0 flex-1 truncate">{candidate.name}</span>
+									</DropdownMenu.RadioItem>
+								))}
+							</DropdownMenu.RadioGroup>
+						</DropdownMenu.SubContent>
+					</DropdownMenu.Sub>
+				</DropdownMenu.Group>
+				<DropdownMenu.Separator />
+				<DropdownMenu.Group>
+					<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
+						jane@example.com
+					</DropdownMenu.Label>
+					<DropdownMenu.Sub>
+						<DropdownMenu.SubTrigger className="gap-2">
+							<AutoThemeIcon className="text-muted size-5" />
+							Theme
+						</DropdownMenu.SubTrigger>
+						<DropdownMenu.SubContent>
+							{/* mantle ships the five-theme radio group for exactly this spot */}
+							<ThemeDropdownMenuRadioGroup />
+						</DropdownMenu.SubContent>
+					</DropdownMenu.Sub>
+				</DropdownMenu.Group>
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item className="gap-2">
+					<SignOutIcon className="text-muted" />
+					Log out
+				</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	);
+}
+
 export function AppShell() {
 	// the framed examples fake a router so they can be embedded; a real app
 	// renders react-router `Link`s through `asChild` and reads `useLocation()`
@@ -295,7 +445,6 @@ export function AppShell() {
 	const [productId, setProductId] = useState("universal-gateway");
 	const [accountId, setAccountId] = useState("acc_acme");
 	const [showNotice, setShowNotice] = useState(false);
-	const account = accounts.find((candidate) => candidate.id === accountId) ?? accounts[0];
 
 	return (
 		// the framed demo narrows the mobile breakpoint; most apps keep the "lg" default
@@ -320,40 +469,26 @@ export function AppShell() {
 							<ProductNav pathname={pathname} onNavigate={setPathname} />
 						</Sidebar.Body>
 
+						{/* the footer is the panel's stable region: bottom-anchored under the
+						    scrolling body, and unchanged by what the body is showing */}
 						<Sidebar.Footer>
+							{footerItems.map((item) => (
+								<Sidebar.ItemButton key={item.path} asChild current={pathname === item.path}>
+									<a
+										href={item.path}
+										onClick={(event) => {
+											event.preventDefault();
+											setPathname(item.path);
+										}}
+									>
+										{item.icon}
+										{item.label}
+									</a>
+								</Sidebar.ItemButton>
+							))}
+							<HelpMenu />
 							<Sidebar.Separator />
-							<DropdownMenu.Root>
-								<DropdownMenu.Trigger asChild>
-									<Sidebar.SwitcherTrigger>
-										<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
-										<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
-											{account.name}
-										</span>
-										<Sidebar.UserAvatar alt="Jane Doe" />
-									</Sidebar.SwitcherTrigger>
-								</DropdownMenu.Trigger>
-								<DropdownMenu.Content align="start" side="top" className="min-w-56">
-									<DropdownMenu.Sub>
-										<DropdownMenu.SubTrigger className="gap-2">
-											<ArrowsClockwiseIcon className="text-muted" />
-											Switch accounts
-										</DropdownMenu.SubTrigger>
-										<DropdownMenu.SubContent>
-											<DropdownMenu.RadioGroup value={accountId} onValueChange={setAccountId}>
-												{accounts.map((account) => (
-													<DropdownMenu.RadioItem key={account.id} value={account.id}>
-														<Sidebar.AccountAvatar
-															accountId={account.id}
-															accountName={account.name}
-														/>
-														<span className="min-w-0 flex-1 truncate">{account.name}</span>
-													</DropdownMenu.RadioItem>
-												))}
-											</DropdownMenu.RadioGroup>
-										</DropdownMenu.SubContent>
-									</DropdownMenu.Sub>
-								</DropdownMenu.Content>
-							</DropdownMenu.Root>
+							<AccountSwitcher accountId={accountId} onAccountChange={setAccountId} />
 						</Sidebar.Footer>
 					</Sidebar.Nav>
 
@@ -395,6 +530,43 @@ export function AppShell() {
 
 </CodeExample.Root>
 
+## Width
+
+The panel's width is a CSS variable, not a prop: `Sidebar.Nav` reads each of the three widths with the
+default as its fallback (`w-[var(--sidebar-width,16rem)]`), so there is nothing to thread through your shell
+and one place to change it.
+
+| CSS Variable             | Default          | What it sizes                                           |
+| ------------------------ | ---------------- | ------------------------------------------------------- |
+| `--sidebar-width`        | `16rem` (256px)  | The expanded desktop panel                              |
+| `--sidebar-width-icon`   | `3.25rem` (52px) | The [collapsed icon rail](#collapsing-to-the-icon-rail) |
+| `--sidebar-width-mobile` | `18rem` (288px)  | The mobile `Sheet` panel                                |
+
+Override one sidebar by setting the variable on `Sidebar.Nav` — a Tailwind arbitrary property is the
+shortest route, and `cx` keeps it deterministic:
+
+```tsx
+// this sidebar is 18rem wide when expanded; the rail and sheet keep their defaults
+<Sidebar.Nav aria-label="Main" className="[--sidebar-width:18rem]">
+	{/* … */}
+</Sidebar.Nav>
+```
+
+Override every sidebar in your app from your global stylesheet. Custom properties inherit, and the parts
+read them with a fallback, so any ancestor of `Sidebar.Nav` can set them:
+
+```css
+:root {
+	--sidebar-width: 18rem;
+	--sidebar-width-mobile: 20rem;
+}
+```
+
+Two consequences of that inheritance direction worth knowing: setting a width on something the panel
+_contains_ does nothing (values flow parent → child, never child → parent), and `AppLayout` never needs to
+know the number — `AppLayout.Inset` simply takes the remaining row space, so a wider sidebar narrows the
+content card by construction.
+
 ## Collapsing to the icon rail
 
 On desktop the panel collapses to a skinny icon rail that keeps every row's leading icon visible and
@@ -402,7 +574,8 @@ clickable: each row becomes a square chip around its icon, group labels fade out
 retained, so icon groups stay visually separated and every icon keeps the exact position it has when
 expanded — the switcher rows in the header and footer collapse to their leading visual (product icon,
 account avatar), and the rail keeps the same `bg-base` surface as the expanded panel — no border, no
-separate chrome. The rail width is the `--sidebar-width-icon` CSS variable (default `3.25rem`).
+separate chrome. The rail width is the `--sidebar-width-icon` CSS variable (default `3.25rem`) — see
+[Width](#width).
 
 Everything in the icon rail stays in the tab order and the accessibility tree — labels are clipped or
 visually hidden, not removed — so screen readers announce the full row names and lists keep their group
@@ -426,6 +599,7 @@ Sidebar.Root
 │   │           └── Sidebar.Item
 │   │               └── Sidebar.ItemButton
 │   └── Sidebar.Footer
+│       ├── Sidebar.ItemButton
 │       ├── Sidebar.Separator
 │       └── Sidebar.SwitcherTrigger
 │           ├── Sidebar.AccountAvatar
@@ -709,12 +883,14 @@ emits a bare `data-hydrated` once client hydration
 completes — an internal gate that lets collapse transitions snap instead of animating when SSR state is
 corrected on load.)
 
-| CSS Variable              | Default   | Description                                                                                                                                                                                                                                                                      |
-| ------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--sidebar-width`         | `16rem`   | Expanded desktop width. Set via `Sidebar.Nav`'s `className` or `style`.                                                                                                                                                                                                          |
-| `--sidebar-width-mobile`  | `18rem`   | Mobile sheet width. Set via `Sidebar.Nav`'s `className` or `style`.                                                                                                                                                                                                              |
-| `--sidebar-width-icon`    | `3.25rem` | Collapsed icon rail width. Set via `Sidebar.Nav`'s `className` or `style`.                                                                                                                                                                                                       |
-| `--sidebar-header-height` | `4.5rem`  | `Sidebar.Header` row height. Set it on a common ancestor of the sidebar and the app-layout header (e.g. `AppLayout.Root`) — `AppLayout.Header` derives its own height from this token when a sidebar header is in the shell, so both rows move together and stay center-aligned. |
+| CSS Variable             | Default   | Description                                                                                                                                   |
+| ------------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--sidebar-width`        | `16rem`   | Expanded desktop width (256px). Set it on `Sidebar.Nav` for one sidebar or on any ancestor (`:root`) for every sidebar — see [Width](#width). |
+| `--sidebar-width-mobile` | `18rem`   | Mobile sheet width (288px). Set it on `Sidebar.Nav` or any ancestor — see [Width](#width).                                                    |
+| `--sidebar-width-icon`   | `3.25rem` | Collapsed icon rail width (52px). Set it on `Sidebar.Nav` or any ancestor — see [Width](#width).                                              |
+
+`Sidebar.Header` reads a fourth public token, [`--sidebar-header-height`](#sidebarheader), which belongs on a
+common ancestor of the sidebar and the app-layout header rather than on the panel.
 
 ### Sidebar.Trigger
 
@@ -740,6 +916,10 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | Prop       | Type      | Default | Description                                                                                                                 |
 | ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.Header` styling onto alternative element types or your own React components. |
+
+| CSS Variable              | Default  | Description                                                                                                                                                                                                                                      |
+| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--sidebar-header-height` | `4.5rem` | The header row height (72px). Set it on a common ancestor of the sidebar and [`AppLayout.Header`](/layouts/app-layout#applayoutheader) — e.g. `AppLayout.Root` — not on `Sidebar.Nav`, so both rows read the same value and stay center-aligned. |
 
 ### Sidebar.Body
 
@@ -807,7 +987,24 @@ All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li
 
 The interactive navigation row. Expanded spacing matches the regular sidebar; in the collapsed icon rail,
 item rows keep their original square icon chip with a small offset so body and footer icons stay aligned
-without text peeking from the rail. All props from `button` plus:
+without text peeking from the rail.
+
+The row sizes its **leading** icon (20px) and leaves trailing visuals — a menu caret, a count, a status
+pip — to size themselves, so composing one needs no `!` override. A row composed with
+`DropdownMenu.Trigger asChild` also stays highlighted while its menu is open (`data-state="open"`, supplied
+by the trigger), which is how the Help row in the shell demo above is built:
+
+```tsx
+<DropdownMenu.Trigger asChild>
+	<Sidebar.ItemButton>
+		<QuestionIcon />
+		Help
+		<CaretDownIcon className="text-muted ml-auto size-4 shrink-0" />
+	</Sidebar.ItemButton>
+</DropdownMenu.Trigger>
+```
+
+All props from `button` plus:
 
 | Prop       | Type      | Default | Description                                                            |
 | ---------- | --------- | ------- | ---------------------------------------------------------------------- |
