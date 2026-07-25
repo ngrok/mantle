@@ -35,8 +35,8 @@ import { ListMagnifyingGlassIcon } from "@phosphor-icons/react/ListMagnifyingGla
 import { MapPinIcon } from "@phosphor-icons/react/MapPin";
 import { MegaphoneIcon } from "@phosphor-icons/react/Megaphone";
 import { QuestionIcon } from "@phosphor-icons/react/Question";
-import { SailboatIcon } from "@phosphor-icons/react/Sailboat";
 import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
+import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 import { SignOutIcon } from "@phosphor-icons/react/SignOut";
 import { SlidersHorizontalIcon } from "@phosphor-icons/react/SlidersHorizontal";
 import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
@@ -275,10 +275,10 @@ const demoProducts = [
 	},
 	{
 		id: "codename",
-		label: "Ship",
-		icon: <SailboatIcon weight="regular" />,
+		label: "Shrimp",
+		icon: <ShrimpIcon weight="regular" />,
 		iconClassName: "bg-sky-600/10 text-sky-600 dark:text-sky-600",
-		tagline: "Ship apps without managing infrastructure.",
+		tagline: "Deploy apps without managing infrastructure.",
 		description: "Deploy services close to your users with managed compute, domains, and secrets.",
 		textClassName: "text-sky-600 dark:text-sky-600",
 		cardHoverClassName:
