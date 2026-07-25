@@ -14,6 +14,13 @@ describe("isSafeLocalPath", () => {
 		expect(isSafeLocalPath("//evil.com")).toBe(false);
 	});
 
+	test("rejects a backslash anywhere in the path", () => {
+		// Why: the WHATWG URL parser reads "\" as "/" under special schemes. "/\evil.com" then
+		// resolves to https://evil.com/ and passes the leading "//" check.
+		expect(isSafeLocalPath("/\\evil.com")).toBe(false);
+		expect(isSafeLocalPath("/endpoints\\..\\evil.com")).toBe(false);
+	});
+
 	test("rejects a value that does not start with a single /", () => {
 		expect(isSafeLocalPath("")).toBe(false);
 	});

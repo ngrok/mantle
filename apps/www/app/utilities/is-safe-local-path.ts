@@ -27,6 +27,7 @@
  * isSafeLocalPath("/endpoints")          // true
  * isSafeLocalPath("/endpoints?tab=1")    // true
  * isSafeLocalPath("//evil.com/foo")      // false (protocol-relative)
+ * isSafeLocalPath("/\\evil.com")         // false (backslash resolves like "//")
  * isSafeLocalPath("https://foo/bar")     // false (absolute URL)
  * isSafeLocalPath("javascript:alert(1)") // false (non-http scheme)
  * isSafeLocalPath("")                    // false
@@ -39,6 +40,12 @@ function isSafeLocalPath(value: unknown): value is string {
 
 	// Must start with "/" but not "//" (rules out protocol-relative URLs).
 	if (!/^\/(?!\/)/.test(value)) {
+		return false;
+	}
+
+	// The WHATWG URL parser reads "\" as "/" under special schemes. "/\evil.com" then
+	// resolves to https://evil.com/ and passes the "//" check above.
+	if (value.includes("\\")) {
 		return false;
 	}
 
