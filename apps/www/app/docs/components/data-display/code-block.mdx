@@ -476,6 +476,7 @@ The `mantleCode()` options let you customize how code is displayed. By default, 
 Compose the parts of a `CodeBlock` together to build your own:
 
 ```text showLineNumbers=false
+# Standard
 CodeBlock.Root
 ├── CodeBlock.Header
 │   ├── CodeBlock.Icon
@@ -484,11 +485,8 @@ CodeBlock.Root
 │   ├── CodeBlock.CopyButton
 │   └── CodeBlock.Code
 └── CodeBlock.ExpanderButton
-```
 
-For a tabbed code block:
-
-```text showLineNumbers=false
+# Tabbed
 CodeBlock.Root
 ├── CodeBlock.Header
 │   └── CodeBlock.TabList
@@ -499,6 +497,17 @@ CodeBlock.Root
 │       └── CodeBlock.Code
 └── CodeBlock.ExpanderButton
 ```
+
+## Polymorphism
+
+`CodeBlock.Root`, `CodeBlock.Header`, `CodeBlock.Title`, `CodeBlock.Body`, and `CodeBlock.CopyButton` accept `asChild`. When `true` the part renders its single child instead of its default element, forwarding class names, `data-*` attributes, and `ref` onto it.
+
+Reach for it when `Root` should be a semantic `<figure>` or `<section>`, when `Title` needs a different heading level than the default `<h3>`, or when `Header` and `Body` should be `<header>` and `<section>`. `CopyButton` has no children of its own, so it is typed `SelfClosingWithAsChild` — `<CodeBlock.CopyButton asChild>` requires exactly one child to clone, and forbids children otherwise.
+
+The remaining parts do not accept `asChild`. `CodeBlock.Code` owns the highlighted markup it renders, and `CodeBlock.TabList`, `CodeBlock.TabTrigger`, and `CodeBlock.TabContent` each explicitly omit the prop because their behavior and mounting are driven by the active tab. `CodeBlock.Icon` takes its element through the `svg` prop instead.
+
+> [!WARNING]
+> `CodeBlock.ExpanderButton` advertises `asChild` in its prop types but **throws at runtime** (`React.Children.only expected to receive a single React element child`). It renders its own "Show more" / "Show less" label and caret icon, so the slot receives more than one child. Style it with `className` instead.
 
 ## API Reference
 

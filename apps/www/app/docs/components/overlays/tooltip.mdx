@@ -68,6 +68,17 @@ Tooltip.Root
 └── Tooltip.Content
 ```
 
+## Polymorphism
+
+`Tooltip.Trigger` accepts `asChild`, which renders your single child in place of the default trigger element while keeping the tooltip's hover, focus, and dismissal behavior.
+
+`Tooltip.Trigger asChild` is the standard way to use this component: wrap the element that should show the tooltip — a `Button`, an `IconButton`, a link, or any focusable control — so the trigger behavior attaches to it instead of nesting it inside an extra element. Remember that the trigger must be focusable for the tooltip to be reachable by keyboard.
+
+`Tooltip.Root` is a state provider and renders no DOM, so it takes no `asChild`.
+
+> [!WARNING]
+> `Tooltip.Content` advertises `asChild` in its prop types but **throws at runtime** (`Primitive.div failed to slot onto its Slottable`). The content renders its own arrow alongside your children, so the slot receives more than the single element it requires. Style `Tooltip.Content` with `className` instead.
+
 ## API Reference
 
 > [!NOTE]

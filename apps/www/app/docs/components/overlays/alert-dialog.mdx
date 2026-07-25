@@ -221,6 +221,21 @@ function Example() {
 }
 ```
 
+## Polymorphism
+
+Every part of `AlertDialog` that renders DOM accepts `asChild`, which swaps the part's default element for your single child while keeping its styling, `data-slot`, and behavior. `AlertDialog.Root` is a state provider and renders no DOM, so it takes no `asChild`; `AlertDialog.Icon` already takes its element through the `svg` prop and clones it.
+
+| Part                                                           | Reach for `asChild` when                                                                                  |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `AlertDialog.Trigger`                                          | The control that opens the dialog is your own component — most often a `Button` or `IconButton`.          |
+| `AlertDialog.Action`                                           | The confirming action must be a link or a form submit button rather than the default `Button`.            |
+| `AlertDialog.Cancel`                                           | The dismissing control needs to be a link, or a button wired to your own handler.                         |
+| `AlertDialog.Close`                                            | Some other element inside the dialog should dismiss it.                                                   |
+| `AlertDialog.Title`                                            | The heading level must change to fit the page's outline.                                                  |
+| `AlertDialog.Description`                                      | The body copy needs a different element than the default paragraph.                                       |
+| `AlertDialog.Header`, `AlertDialog.Body`, `AlertDialog.Footer` | The region should be a semantic element such as `<header>`, `<section>`, or `<footer>`.                   |
+| `AlertDialog.Content`                                          | You need to own the dialog panel element itself — rare, since `Content` already carries the panel chrome. |
+
 ## API Reference
 
 ### AlertDialog.Root

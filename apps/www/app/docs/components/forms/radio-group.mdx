@@ -565,6 +565,12 @@ RadioGroup.Root
             └── Choice.Description
 ```
 
+## Polymorphism
+
+`RadioGroup.ItemContent` accepts `asChild`. When `true` it renders its single child instead of its default `<div>`, forwarding class names, `data-*` attributes, and `ref` onto that child — reach for it when the label-and-description block beside a radio needs to be a specific element, such as a `<label>` you control or a link wrapping the whole content area.
+
+The rest of the family deliberately does not take `asChild`. `RadioGroup.Root`, `List`, and `ButtonGroup` own the group's roving-focus and arrow-key contract; `Item`, `ListItem`, `Card`, and `Button` each render a real `<input type="radio">` plus its sandboxed hit target, and `Indicator` paints the control itself. For a richer option layout, compose [`Choice`](/components/forms/choice) inside `RadioGroup.Item` — see [Rich option layout with `Choice`](#rich-option-layout-with-choice) — rather than swapping these elements out.
+
 ## API Reference
 
 ### RadioGroup.Root

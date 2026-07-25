@@ -363,7 +363,8 @@ const CopyButton = (props: ScatterPlotCopyButtonProps) => (
  * ├── ScatterPlot.Point (one per series)
  * ├── ScatterPlot.ReferenceLine
  * ├── ScatterPlot.Tooltip
- * └── ScatterPlot.Legend
+ * ├── ScatterPlot.Legend
+ * └── ScatterPlot.CopyButton
  * ```
  *
  * @example

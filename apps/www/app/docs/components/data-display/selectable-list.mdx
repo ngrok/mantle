@@ -511,6 +511,14 @@ function Example() {
 }
 ```
 
+## Polymorphism
+
+`SelectableList.ItemDescription` accepts `asChild`, rendering your single child in place of its default `<p>` and forwarding class names, `data-*` attributes, and `ref` onto it. It forwards to [`Choice.Description`](/components/forms/choice), so reach for it when the row's sub-line needs to be a different element than a paragraph.
+
+No other part accepts `asChild`, and that is deliberate: `SelectableList` owns a `role="grid"` structure whose semantics depend on the elements it renders. `Root`, `Filter`, `SelectAll`, `Viewport`, and `VirtualViewport` own the grid semantics, filtering, select-all wiring, and virtualization measurement. `Item` renders the `role="row"` and its `gridcell` children around a real `Checkbox`, so swapping its element would break the row's `aria-selected` contract — compose your own layout through its `children` instead, which is unrestricted. `ItemTitle` forwards to `Choice.Label`, a real `<label>` wired to the checkbox by `htmlFor`, which is why it takes no `asChild` even though `ItemDescription` does.
+
+Note that unlike [`List`](/components/data-display/list), a selectable row is not a link: use `List` when the row's job is to navigate.
+
 ## Accessibility
 
 The viewport is an APG **grid**: a `role="grid"` of `role="row"` rows, each with `role="gridcell"` cells holding a real `<input type="checkbox">` and the title + description. This is the pattern the [WAI-ARIA grid](https://www.w3.org/WAI/ARIA/apg/patterns/grid/) prescribes for selectable rows that carry their own interactive controls (a plain listbox forbids a real checkbox or nested controls inside an option). Provide `aria-label` (or `aria-labelledby`) on the viewport so the grid has an accessible name. Each row's `aria-selected` conveys its selection alongside the checkbox's checked state; the title is a `Choice.Label`, so it names the checkbox, and the description is wired via `aria-describedby`. Disabled rows carry `aria-disabled`. `SelectableList.Empty` is an always-mounted polite `role="status"` live region, so an empty result is announced as the filter narrows rather than the grid silently vanishing.

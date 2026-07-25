@@ -392,6 +392,17 @@ Select.Root
     └── Select.Separator
 ```
 
+## Polymorphism
+
+`Select.Group`, `Select.Label`, `Select.Value`, and `Select.Separator` accept `asChild`, which swaps the part's default element for your single child while keeping its styling and the select's keyboard and selection behavior.
+
+`Select.Value asChild` is the useful one — reach for it when the displayed value needs its own element for truncation or badge chrome. `Select.Label asChild` helps when a group heading must be a specific element for the page's outline.
+
+`Select.Root` is a state provider that renders no DOM, so it takes no `asChild`.
+
+> [!WARNING]
+> `Select.Trigger`, `Select.Content`, and `Select.Item` currently advertise `asChild` in their prop types but **throw at runtime** (`Primitive.* failed to slot onto its children`). Each one renders its own chrome next to your content — the trigger's caret, the content's scroll buttons and viewport, the item's check indicator — so the underlying Radix `Slot` receives more than the single child it requires. Do not use `asChild` on these three parts. To customize the trigger's content, pass it as `children` instead.
+
 ## API Reference
 
 The `Select` components are built on top of [Radix Select](https://www.radix-ui.com/primitives/docs/components/select).
