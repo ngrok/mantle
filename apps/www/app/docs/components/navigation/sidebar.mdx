@@ -331,7 +331,16 @@ function HelpMenu() {
 					<CaretDownIcon className="text-muted ml-auto size-4 shrink-0" />
 				</Sidebar.ItemButton>
 			</DropdownMenu.Trigger>
-			<DropdownMenu.Content align="start" side="top" className="min-w-56">
+			{/* trigger-width keeps the menu flush with the row it opens from; the
+			    --sidebar-row-width floor keeps it there when the row shrinks into
+			    the icon rail (the menu is portaled, so it inherits no sidebar
+			    geometry of its own) */}
+			<DropdownMenu.Content
+				align="start"
+				side="top"
+				width="trigger"
+				className="min-w-(--sidebar-row-width)"
+			>
 				<DropdownMenu.Item asChild>
 					<a
 						className="flex items-center gap-2"
@@ -386,7 +395,12 @@ function AccountSwitcher({
 					<Sidebar.UserAvatar alt="Jane Doe" />
 				</Sidebar.SwitcherTrigger>
 			</DropdownMenu.Trigger>
-			<DropdownMenu.Content align="start" side="top" width="trigger">
+			<DropdownMenu.Content
+				align="start"
+				side="top"
+				width="trigger"
+				className="min-w-(--sidebar-row-width)"
+			>
 				<DropdownMenu.Group>
 					<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
 						{account.name}
@@ -562,10 +576,12 @@ read them with a fallback, so any ancestor of `Sidebar.Nav` can set them:
 }
 ```
 
-Two consequences of that inheritance direction worth knowing: setting a width on something the panel
-_contains_ does nothing (values flow parent → child, never child → parent), and `AppLayout` never needs to
+Three consequences of that inheritance direction worth knowing: setting a width on something the panel
+_contains_ does nothing (values flow parent → child, never child → parent); `AppLayout` never needs to
 know the number — `AppLayout.Inset` simply takes the remaining row space, so a wider sidebar narrows the
-content card by construction.
+content card by construction; and a surface that renders _outside_ the panel — a switcher's menu, portaled to
+`document.body` — inherits none of them, which is what
+[`--sidebar-row-width`](#sizing-a-menu-to-a-sidebar-row) exists for.
 
 ## Collapsing to the icon rail
 
@@ -582,6 +598,58 @@ visually hidden, not removed — so screen readers announce the full row names a
 names. The scrollable `Sidebar.Body` always fades its overflowing edges; in the collapsed rail it also
 hides its scrollbar and relies on the fade alone. Collapse and expand the demo above with the header
 trigger or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd>.
+
+## Sizing a menu to a sidebar row
+
+A menu opened from a sidebar row should be as wide as the row it opens from, and
+[`DropdownMenu.Content`](/components/overlays/dropdown-menu#dropdownmenucontent)'s `width="trigger"` does
+exactly that — until the panel collapses to the icon rail, where the trigger is a 36px chip (28px for a
+`Sidebar.ItemButton` row) and the menu shrinks with it. The menu cannot solve this from the sidebar's
+variables either: it renders in a portal on `document.body`, so it inherits nothing the panel sets.
+
+`mantle.css` declares the row width at `:root` for this, derived from the panel width:
+
+| CSS Variable          | Default | Description                                                                                                                                                                 |
+| --------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--sidebar-row-width` | `15rem` | One row's width inside the expanded panel (240px): `calc(var(--sidebar-width, 16rem) - 1rem)`, the panel width minus the gutter `Sidebar.Header`/`Body`/`Footer` all apply. |
+
+Keep `width="trigger"` and floor the menu at it:
+
+```tsx
+<DropdownMenu.Content
+	align="start"
+	side="top"
+	width="trigger"
+	className="min-w-(--sidebar-row-width)"
+>
+	{/* … */}
+</DropdownMenu.Content>
+```
+
+One static class covers all three presentations at the default widths. Expanded, the floor is a no-op — the
+row already measures that wide, so the menu is flush with it. Collapsed, the floor holds the menu at the
+expanded row's width, so it looks identical in the rail. In the mobile `Sheet` the floor is inert because the
+sheet's row is the wider of the two — `--sidebar-width-mobile` − `1.5rem` − the sheet's 1px `border-r` = 263px,
+against 240px — so `width="trigger"` wins.
+
+That last one is a condition, not a guarantee: **widen `--sidebar-width-mobile` whenever you widen
+`--sidebar-width`**, or the floor outgrows the sheet's row and the menu overhangs the panel it opened from
+(`--sidebar-width: 22rem` alone gives a 336px menu inside a 288px sheet).
+
+The same asymmetry applies to a per-sidebar override. Because the token resolves at `:root`, a
+`--sidebar-width` set on a single `Sidebar.Nav` does not reach it in either direction — a narrower panel
+leaves the floor _wider_ than its row. Override `--sidebar-width` at `:root` (see [Width](#width)) to move the
+panel and its menus together, or declare the token on the menu content for a one-off, which works because a
+custom property is read from the element that declares it:
+
+```tsx
+<DropdownMenu.Content
+	width="trigger"
+	className="[--sidebar-row-width:calc(12rem-1rem)] min-w-(--sidebar-row-width)"
+>
+	{/* … */}
+</DropdownMenu.Content>
+```
 
 ## Composition
 
@@ -883,13 +951,14 @@ emits a bare `data-hydrated` once client hydration
 completes — an internal gate that lets collapse transitions snap instead of animating when SSR state is
 corrected on load.)
 
-| CSS Variable             | Default   | Description                                                                                                                                   |
-| ------------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--sidebar-width`        | `16rem`   | Expanded desktop width (256px). Set it on `Sidebar.Nav` for one sidebar or on any ancestor (`:root`) for every sidebar — see [Width](#width). |
-| `--sidebar-width-mobile` | `18rem`   | Mobile sheet width (288px). Set it on `Sidebar.Nav` or any ancestor — see [Width](#width).                                                    |
-| `--sidebar-width-icon`   | `3.25rem` | Collapsed icon rail width (52px). Set it on `Sidebar.Nav` or any ancestor — see [Width](#width).                                              |
+| CSS Variable             | Default   | Description                                                                                                                                                                                                                                                                                   |
+| ------------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--sidebar-width`        | `16rem`   | Expanded desktop width (256px). Set it on `Sidebar.Nav` for one sidebar or on any ancestor (`:root`) for every sidebar — see [Width](#width).                                                                                                                                                 |
+| `--sidebar-width-mobile` | `18rem`   | Mobile sheet width (288px). Set it on `Sidebar.Nav` or any ancestor — see [Width](#width).                                                                                                                                                                                                    |
+| `--sidebar-width-icon`   | `3.25rem` | Collapsed icon rail width (52px). Set it on `Sidebar.Nav` or any ancestor — see [Width](#width).                                                                                                                                                                                              |
+| `--sidebar-row-width`    | `15rem`   | Read, not set: one row's width in the expanded panel (240px), derived as `calc(var(--sidebar-width, 16rem) - 1rem)` and declared at `:root` by `mantle.css` so surfaces rendered outside the panel can size to a row — see [Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row). |
 
-`Sidebar.Header` reads a fourth public token, [`--sidebar-header-height`](#sidebarheader), which belongs on a
+`Sidebar.Header` reads one more public token, [`--sidebar-header-height`](#sidebarheader), which belongs on a
 common ancestor of the sidebar and the app-layout header rather than on the panel.
 
 ### Sidebar.Trigger
@@ -992,7 +1061,9 @@ without text peeking from the rail.
 The row sizes its **leading** icon (20px) and leaves trailing visuals — a menu caret, a count, a status
 pip — to size themselves, so composing one needs no `!` override. A row composed with
 `DropdownMenu.Trigger asChild` also stays highlighted while its menu is open (`data-state="open"`, supplied
-by the trigger), which is how the Help row in the shell demo above is built:
+by the trigger), and takes the same `--sidebar-row-width` floor on its menu as a switcher row (see
+[Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row)), which is how the Help row in the shell
+demo above is built:
 
 ```tsx
 <DropdownMenu.Trigger asChild>
@@ -1032,7 +1103,9 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 Inside the collapsed icon rail, the row collapses to its **first child element** — the
 leading visual — and the remaining children become visually hidden while staying in the accessibility tree,
 so the button's accessible name is unchanged. Wrap loose text in an element (e.g. a `<span>`) so it
-participates.
+participates. Because the row shrinks, give the menu it opens the `--sidebar-row-width` floor
+(`className="min-w-(--sidebar-row-width)"`) so the menu keeps the expanded row's width — see
+[Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row).
 
 ### Sidebar.Separator
 

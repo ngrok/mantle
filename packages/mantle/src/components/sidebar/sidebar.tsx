@@ -417,14 +417,26 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  * `aria-label` (default `"Main"`) is forwarded to the inner `<nav>` landmark.
  *
  * **CSS variables (public API):**
- * - `--sidebar-width` — expanded desktop width. Default `16rem` (256px).
- * - `--sidebar-width-mobile` — mobile sheet width. Default `18rem` (288px).
- * - `--sidebar-width-icon` — collapsed rail width. Default `3.25rem` (52px).
  *
- * Each is read with its default as the fallback, and custom properties
- * inherit, so set one on `Sidebar.Nav` to resize a single sidebar or on any
- * ancestor (`:root` in your global stylesheet) to resize every sidebar in the
- * app.
+ * | CSS Variable | Default | Description |
+ * | --- | --- | --- |
+ * | `--sidebar-width` | `16rem` | Expanded desktop panel width (256px). |
+ * | `--sidebar-width-mobile` | `18rem` | Mobile sheet width (288px). |
+ * | `--sidebar-width-icon` | `3.25rem` | Collapsed icon rail width (52px). |
+ * | `--sidebar-row-width` | `15rem` | Derived, not set: one row's width in the expanded panel (240px), for sizing surfaces that render *outside* it. See below and `Sidebar.SwitcherTrigger`. |
+ *
+ * `--sidebar-row-width` is `calc(var(--sidebar-width,16rem) - 1rem)`, declared
+ * at `:root` by `mantle.css` — the panel width minus the row gutter this
+ * component's regions apply.
+ *
+ * Each of the three widths is read with its default as the fallback, and
+ * custom properties inherit, so set one on `Sidebar.Nav` to resize a single
+ * sidebar or on any ancestor (`:root` in your global stylesheet) to resize
+ * every sidebar in the app. `--sidebar-row-width` resolves at `:root`, so a
+ * `--sidebar-width` override scoped to one `Sidebar.Nav` does not reach it in
+ * either direction — a narrower panel leaves the floor *wider* than the row it
+ * opens from. Override `--sidebar-width` at `:root` to move both together, or
+ * set `--sidebar-row-width` on the outside surface itself.
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar
  *
@@ -616,7 +628,7 @@ const defaultTriggerIcon = <SidebarSimpleIcon />;
  *             <CaretDownIcon className="text-muted size-4 shrink-0" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Header>
  *     <Sidebar.Body>
@@ -644,7 +656,7 @@ const defaultTriggerIcon = <SidebarSimpleIcon />;
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Footer>
  *   </Sidebar.Nav>
@@ -720,9 +732,10 @@ type SidebarHeaderProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * together and the alignment holds by construction.
  *
  * **CSS variables (public API):**
- * - `--sidebar-header-height` — the header row height. Default `4.5rem`. Set
- *   it on a common ancestor of the sidebar and the app-layout header (not on
- *   `Sidebar.Nav`) so both read the same value.
+ *
+ * | CSS Variable | Default | Description |
+ * | --- | --- | --- |
+ * | `--sidebar-header-height` | `4.5rem` | The header row height (72px). Set it on a common ancestor of the sidebar and `AppLayout.Header`, not on `Sidebar.Nav`, so both rows read one value. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar
  *
@@ -739,7 +752,7 @@ type SidebarHeaderProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  *             <CaretDownIcon className="text-muted size-4 shrink-0" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Header>
  *     <Sidebar.Body>
@@ -767,7 +780,7 @@ type SidebarHeaderProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Footer>
  *   </Sidebar.Nav>
@@ -830,7 +843,7 @@ type SidebarBodyProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  *             <CaretDownIcon className="text-muted size-4 shrink-0" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Header>
  *     <Sidebar.Body>
@@ -858,7 +871,7 @@ type SidebarBodyProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Footer>
  *   </Sidebar.Nav>
@@ -925,7 +938,7 @@ type SidebarFooterProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  *             <CaretDownIcon className="text-muted size-4 shrink-0" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Header>
  *     <Sidebar.Body>
@@ -953,7 +966,7 @@ type SidebarFooterProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Footer>
  *   </Sidebar.Nav>
@@ -1027,7 +1040,7 @@ type SidebarGroupProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  *             <CaretDownIcon className="text-muted size-4 shrink-0" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Header>
  *     <Sidebar.Body>
@@ -1055,7 +1068,7 @@ type SidebarGroupProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Footer>
  *   </Sidebar.Nav>
@@ -1114,7 +1127,7 @@ type SidebarGroupLabelProps = ComponentProps<"div"> & WithAsChild & WithDataSlot
  *             <CaretDownIcon className="text-muted size-4 shrink-0" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Header>
  *     <Sidebar.Body>
@@ -1142,7 +1155,7 @@ type SidebarGroupLabelProps = ComponentProps<"div"> & WithAsChild & WithDataSlot
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Footer>
  *   </Sidebar.Nav>
@@ -1232,7 +1245,7 @@ type SidebarListProps = ComponentProps<"ul"> & WithAsChild & WithDataSlot;
  *             <CaretDownIcon className="text-muted size-4 shrink-0" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Header>
  *     <Sidebar.Body>
@@ -1260,7 +1273,7 @@ type SidebarListProps = ComponentProps<"ul"> & WithAsChild & WithDataSlot;
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Footer>
  *   </Sidebar.Nav>
@@ -1313,7 +1326,7 @@ type SidebarItemProps = ComponentProps<"li"> & WithAsChild & WithDataSlot;
  *             <CaretDownIcon className="text-muted size-4 shrink-0" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Header>
  *     <Sidebar.Body>
@@ -1341,7 +1354,7 @@ type SidebarItemProps = ComponentProps<"li"> & WithAsChild & WithDataSlot;
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Footer>
  *   </Sidebar.Nav>
@@ -1390,7 +1403,10 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
  * caret, a count, a status dot — to size themselves, so a row composed with
  * `DropdownMenu.Trigger asChild` can end in `<CaretDownIcon className="text-muted
  * ml-auto size-4 shrink-0" />` and stays highlighted while its menu is open
- * (`data-state="open"`, supplied by the trigger).
+ * (`data-state="open"`, supplied by the trigger). Give that menu the same width
+ * floor the switcher rows use — `className="min-w-(--sidebar-row-width)"` — so
+ * it keeps the expanded row's width instead of shrinking to this row's 28px
+ * rail chip (see `Sidebar.SwitcherTrigger` for the whole contract).
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar
  *
@@ -1407,7 +1423,7 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
  *             <CaretDownIcon className="text-muted size-4 shrink-0" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Header>
  *     <Sidebar.Body>
@@ -1435,7 +1451,7 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Footer>
  *   </Sidebar.Nav>
@@ -1504,6 +1520,19 @@ type SidebarSwitcherTriggerProps = ComponentProps<"button"> & WithAsChild & With
  * in the accessibility tree, so the button's accessible name is unchanged.
  * Wrap loose text in an element (e.g. a `<span>`) so it participates.
  *
+ * A menu opened from the row should be as wide as the row: `width="trigger"`
+ * does that while the panel is expanded, but the row shrinks to a 36px chip in
+ * the icon rail and would drag the menu down to it. Floor the menu at the
+ * expanded row width with `className="min-w-(--sidebar-row-width)"` — the
+ * token `mantle.css` declares at `:root` for exactly this, since the menu
+ * renders in a portal and inherits nothing from the panel. The floor is a
+ * no-op while the panel is expanded (the row already measures that wide), and
+ * inert in the mobile sheet as long as its row is the wider of the two
+ * (`--sidebar-width-mobile` minus `1.5rem` and the sheet's 1px border, vs
+ * `--sidebar-width` minus `1rem`; 263px vs 240px at the defaults) — so widen
+ * `--sidebar-width-mobile` whenever you widen `--sidebar-width`, or the floor
+ * overhangs the sheet.
+ *
  * @see https://mantle.ngrok.com/components/navigation/sidebar
  *
  * @example
@@ -1519,7 +1548,7 @@ type SidebarSwitcherTriggerProps = ComponentProps<"button"> & WithAsChild & With
  *             <CaretDownIcon className="text-muted size-4 shrink-0" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Header>
  *     <Sidebar.Body>
@@ -1547,7 +1576,7 @@ type SidebarSwitcherTriggerProps = ComponentProps<"button"> & WithAsChild & With
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Footer>
  *   </Sidebar.Nav>
@@ -1622,7 +1651,7 @@ type SidebarSeparatorProps = ComponentProps<typeof Separator>;
  *             <CaretDownIcon className="text-muted size-4 shrink-0" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Header>
  *     <Sidebar.Body>
@@ -1650,7 +1679,7 @@ type SidebarSeparatorProps = ComponentProps<typeof Separator>;
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Footer>
  *   </Sidebar.Nav>
@@ -1796,7 +1825,7 @@ type SidebarAccountAvatarProps = Omit<ComponentProps<"div">, "children"> & {
  *             <CaretDownIcon className="text-muted size-4 shrink-0" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Header>
  *     <Sidebar.Body>
@@ -1824,7 +1853,7 @@ type SidebarAccountAvatarProps = Omit<ComponentProps<"div">, "children"> & {
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Footer>
  *   </Sidebar.Nav>
@@ -1912,7 +1941,7 @@ type SidebarUserAvatarProps = Omit<ComponentProps<"div">, "children"> & {
  *             <CaretDownIcon className="text-muted size-4 shrink-0" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Header>
  *     <Sidebar.Body>
@@ -1940,7 +1969,7 @@ type SidebarUserAvatarProps = Omit<ComponentProps<"div">, "children"> & {
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Footer>
  *   </Sidebar.Nav>
@@ -2014,7 +2043,7 @@ const UserAvatar = ({ alt = "Your account", className, src, ...props }: SidebarU
  *             <CaretDownIcon className="text-muted size-4 shrink-0" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Header>
  *     <Sidebar.Body>
@@ -2042,7 +2071,7 @@ const UserAvatar = ({ alt = "Your account", className, src, ...props }: SidebarU
  *             <Sidebar.UserAvatar alt="Jane Doe" />
  *           </Sidebar.SwitcherTrigger>
  *         </DropdownMenu.Trigger>
- *         <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
  *       </DropdownMenu.Root>
  *     </Sidebar.Footer>
  *   </Sidebar.Nav>
@@ -2071,7 +2100,7 @@ const Sidebar = {
 	 *             <CaretDownIcon className="text-muted size-4 shrink-0" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Header>
 	 *     <Sidebar.Body>
@@ -2099,7 +2128,7 @@ const Sidebar = {
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Footer>
 	 *   </Sidebar.Nav>
@@ -2129,7 +2158,7 @@ const Sidebar = {
 	 *             <CaretDownIcon className="text-muted size-4 shrink-0" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Header>
 	 *     <Sidebar.Body>
@@ -2157,7 +2186,7 @@ const Sidebar = {
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Footer>
 	 *   </Sidebar.Nav>
@@ -2185,7 +2214,7 @@ const Sidebar = {
 	 *             <CaretDownIcon className="text-muted size-4 shrink-0" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Header>
 	 *     <Sidebar.Body>
@@ -2213,7 +2242,7 @@ const Sidebar = {
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Footer>
 	 *   </Sidebar.Nav>
@@ -2242,7 +2271,7 @@ const Sidebar = {
 	 *             <CaretDownIcon className="text-muted size-4 shrink-0" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Header>
 	 *     <Sidebar.Body>
@@ -2270,7 +2299,7 @@ const Sidebar = {
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Footer>
 	 *   </Sidebar.Nav>
@@ -2297,7 +2326,7 @@ const Sidebar = {
 	 *             <CaretDownIcon className="text-muted size-4 shrink-0" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Header>
 	 *     <Sidebar.Body>
@@ -2325,7 +2354,7 @@ const Sidebar = {
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Footer>
 	 *   </Sidebar.Nav>
@@ -2353,7 +2382,7 @@ const Sidebar = {
 	 *             <CaretDownIcon className="text-muted size-4 shrink-0" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Header>
 	 *     <Sidebar.Body>
@@ -2381,7 +2410,7 @@ const Sidebar = {
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Footer>
 	 *   </Sidebar.Nav>
@@ -2409,7 +2438,7 @@ const Sidebar = {
 	 *             <CaretDownIcon className="text-muted size-4 shrink-0" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Header>
 	 *     <Sidebar.Body>
@@ -2437,7 +2466,7 @@ const Sidebar = {
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Footer>
 	 *   </Sidebar.Nav>
@@ -2465,7 +2494,7 @@ const Sidebar = {
 	 *             <CaretDownIcon className="text-muted size-4 shrink-0" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Header>
 	 *     <Sidebar.Body>
@@ -2493,7 +2522,7 @@ const Sidebar = {
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Footer>
 	 *   </Sidebar.Nav>
@@ -2520,7 +2549,7 @@ const Sidebar = {
 	 *             <CaretDownIcon className="text-muted size-4 shrink-0" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Header>
 	 *     <Sidebar.Body>
@@ -2548,7 +2577,7 @@ const Sidebar = {
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Footer>
 	 *   </Sidebar.Nav>
@@ -2575,7 +2604,7 @@ const Sidebar = {
 	 *             <CaretDownIcon className="text-muted size-4 shrink-0" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Header>
 	 *     <Sidebar.Body>
@@ -2603,7 +2632,7 @@ const Sidebar = {
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Footer>
 	 *   </Sidebar.Nav>
@@ -2631,7 +2660,7 @@ const Sidebar = {
 	 *             <CaretDownIcon className="text-muted size-4 shrink-0" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Header>
 	 *     <Sidebar.Body>
@@ -2659,7 +2688,7 @@ const Sidebar = {
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Footer>
 	 *   </Sidebar.Nav>
@@ -2687,7 +2716,7 @@ const Sidebar = {
 	 *             <CaretDownIcon className="text-muted size-4 shrink-0" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Header>
 	 *     <Sidebar.Body>
@@ -2715,7 +2744,7 @@ const Sidebar = {
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Footer>
 	 *   </Sidebar.Nav>
@@ -2743,7 +2772,7 @@ const Sidebar = {
 	 *             <CaretDownIcon className="text-muted size-4 shrink-0" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Header>
 	 *     <Sidebar.Body>
@@ -2771,7 +2800,7 @@ const Sidebar = {
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Footer>
 	 *   </Sidebar.Nav>
@@ -2799,7 +2828,7 @@ const Sidebar = {
 	 *             <CaretDownIcon className="text-muted size-4 shrink-0" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Header>
 	 *     <Sidebar.Body>
@@ -2827,7 +2856,7 @@ const Sidebar = {
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Footer>
 	 *   </Sidebar.Nav>
@@ -2854,7 +2883,7 @@ const Sidebar = {
 	 *             <CaretDownIcon className="text-muted size-4 shrink-0" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Header>
 	 *     <Sidebar.Body>
@@ -2882,7 +2911,7 @@ const Sidebar = {
 	 *             <Sidebar.UserAvatar alt="Jane Doe" />
 	 *           </Sidebar.SwitcherTrigger>
 	 *         </DropdownMenu.Trigger>
-	 *         <DropdownMenu.Content>…</DropdownMenu.Content>
+	 *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
 	 *       </DropdownMenu.Root>
 	 *     </Sidebar.Footer>
 	 *   </Sidebar.Nav>

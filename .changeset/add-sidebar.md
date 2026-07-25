@@ -26,4 +26,9 @@ Also exports the `useSidebar` hook and the `SidebarState` and
 defaults as fallbacks, so set them on `Sidebar.Nav` for one sidebar or on any ancestor (`:root`) to resize
 every sidebar in an app — plus `--sidebar-header-height` (default `4.5rem`), the header row
 height that `AppLayout.Header` also derives from so the two rows stay center-aligned — set it on a common
-ancestor of both. Docs: https://mantle.ngrok.com/components/navigation/sidebar
+ancestor of both, and `--sidebar-row-width`, which `mantle.css` derives at `:root` as
+`calc(var(--sidebar-width, 16rem) - 1rem)`: the width of one row in the expanded panel, for surfaces that
+render outside the panel and so inherit nothing from it. A menu opened from a switcher or item row keeps the
+expanded row's width in the collapsed icon rail with
+`<DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">`.
+Docs: https://mantle.ngrok.com/components/navigation/sidebar

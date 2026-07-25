@@ -413,6 +413,26 @@ MARK: LIGHT DEFS
 }
 
 /**
+MARK: COMPONENT GEOMETRY
+*/
+/* Geometry a component publishes for surfaces that render OUTSIDE it.
+   `--sidebar-row-width` is the width of one row inside an expanded `Sidebar`
+   panel — `--sidebar-width` minus the row gutter every sidebar region applies
+   (`px-3` plus the expanded `pr-1` on Sidebar.Header/Body/Footer = 1rem). A
+   switcher's menu renders in a portal on `document.body`, so it inherits
+   nothing the sidebar sets; declaring the row width here is what lets such a
+   menu stay as wide as the expanded row while the panel is collapsed to the
+   icon rail (`min-w-(--sidebar-row-width)` on the menu content). Resolved at
+   `:root`, so a per-sidebar `--sidebar-width` override set on `Sidebar.Nav`
+   does not reach it in either direction — a narrower panel leaves the floor
+   wider than its row. Override `--sidebar-width` here to move both (and
+   `--sidebar-width-mobile` with it, or the floor outgrows the sheet's row),
+   or set `--sidebar-row-width` on the outside surface itself. */
+:root {
+	--sidebar-row-width: calc(var(--sidebar-width, 16rem) - 1rem);
+}
+
+/**
 MARK: CUSTOM VARIANTS
 */
 @custom-variant light (&:where(.light, .light *, [data-theme="light"], [data-applied-theme="light"]));

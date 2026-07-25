@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import mantleCss from "../../mantle.css?raw";
 import type * as UseBreakpointModule from "../../hooks/use-breakpoint.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { Sidebar, useSidebar } from "./sidebar.js";
@@ -341,6 +342,73 @@ describe("Sidebar collapse", () => {
 			</Sidebar.Root>,
 		);
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-hydrated");
+	});
+});
+
+describe("--sidebar-row-width", () => {
+	// The token is public API for surfaces that render OUTSIDE the panel: a
+	// switcher's menu is portaled to document.body, so it inherits nothing the
+	// sidebar sets and reads the expanded row width from :root instead — which is
+	// how a menu keeps that width while its trigger shrinks into the icon rail.
+	// happy-dom loads no stylesheet, so guard the declaration itself.
+	test("mantle.css derives it at :root from the expanded panel width", () => {
+		expect(mantleCss).toMatch(
+			/:root\s*\{[^}]*--sidebar-row-width:\s*calc\(\s*var\(\s*--sidebar-width\s*,\s*16rem\s*\)\s*-\s*1rem\s*\)/,
+		);
+	});
+
+	// The floor only lands because `cx` (tailwind-merge) drops
+	// DropdownMenu.Content's own `min-w-32` when the recipe passes a `min-w-*`.
+	// Cascade order would not save it: Tailwind emits `.min-w-(--var)` BEFORE the
+	// numeric scale, so if a tailwind-merge upgrade ever stopped grouping the
+	// bare-variable shorthand with that scale, `min-w-32` (128px) would win and
+	// the rail menu would silently shrink back to the bug this token fixed.
+	test("the documented menu recipe replaces DropdownMenu.Content's own min-width", () => {
+		render(
+			<DropdownMenu.Root open>
+				<DropdownMenu.Trigger asChild>
+					<Sidebar.SwitcherTrigger>Acme Corp</Sidebar.SwitcherTrigger>
+				</DropdownMenu.Trigger>
+				<DropdownMenu.Content
+					data-testid="menu"
+					width="trigger"
+					className="min-w-(--sidebar-row-width)"
+				>
+					<DropdownMenu.Item>Billing</DropdownMenu.Item>
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>,
+		);
+		const menu = screen.getByTestId("menu");
+		expect(menu.className).toContain("min-w-(--sidebar-row-width)");
+		// the trigger width survives beside the floor — min-width clamps it up
+		expect(menu.className).toContain("w-(--radix-dropdown-menu-trigger-width)");
+		expect(menu.className).not.toContain("min-w-32");
+	});
+
+	// A spelling pin, not a layout assertion (happy-dom lays nothing out): change
+	// the regions' padding and this fails, pointing at the token that hard-codes
+	// the sum. The rendered geometry is covered by the Playwright pass in the PR.
+	test("the 1rem it subtracts is the padding Header, Body, and Footer all apply", () => {
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav>
+					<Sidebar.Header data-testid="header" />
+					<Sidebar.Body data-testid="body" />
+					<Sidebar.Footer data-testid="footer" />
+				</Sidebar.Nav>
+			</Sidebar.Root>,
+		);
+		for (const region of ["header", "body", "footer"]) {
+			// px-3 (0.75rem) plus the expanded pr-1 (0.25rem) is the 1rem the token
+			// subtracts, so a row spans --sidebar-width minus exactly that.
+			// toHaveClass matches whole class tokens — a substring assertion would
+			// stay green for a half-step edit (px-3.5, pr-1.5), the very change that
+			// makes the token's hard-coded 1rem wrong.
+			expect(screen.getByTestId(region)).toHaveClass(
+				"px-3",
+				"group-data-[state=expanded]/sidebar-nav:pr-1",
+			);
+		}
 	});
 });
 

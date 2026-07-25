@@ -568,7 +568,16 @@ function DemoHelpMenu() {
 					<CaretDownIcon className="text-muted ml-auto size-4 shrink-0" />
 				</Sidebar.ItemButton>
 			</DropdownMenu.Trigger>
-			<DropdownMenu.Content align="start" side="top" className="min-w-56">
+			{/* trigger-width keeps the menu flush with the row it opens from; the
+			    --sidebar-row-width floor keeps it there when the row shrinks into
+			    the icon rail (the menu is portaled, so it inherits no sidebar
+			    geometry of its own) */}
+			<DropdownMenu.Content
+				align="start"
+				side="top"
+				width="trigger"
+				className="min-w-(--sidebar-row-width)"
+			>
 				<DropdownMenu.Item className="gap-2">
 					<DoorOpenIcon className="text-muted" />
 					Request early access
@@ -659,7 +668,12 @@ function AppShellAccountSwitcher({
 					<Sidebar.UserAvatar alt="Jane Doe" />
 				</Sidebar.SwitcherTrigger>
 			</DropdownMenu.Trigger>
-			<DropdownMenu.Content align="start" side="top" width="trigger">
+			<DropdownMenu.Content
+				align="start"
+				side="top"
+				width="trigger"
+				className="min-w-(--sidebar-row-width)"
+			>
 				<DropdownMenu.Group>
 					<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
 						{account.name}
@@ -974,7 +988,7 @@ function BridgeAccountSwitcher({
 					<CaretDownIcon className="text-muted size-4 shrink-0" />
 				</Sidebar.SwitcherTrigger>
 			</DropdownMenu.Trigger>
-			<DropdownMenu.Content align="start" width="trigger">
+			<DropdownMenu.Content align="start" width="trigger" className="min-w-(--sidebar-row-width)">
 				<DropdownMenu.Group>
 					<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
 						{account.name}

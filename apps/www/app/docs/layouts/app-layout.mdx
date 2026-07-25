@@ -295,7 +295,11 @@ export function BridgeShell() {
 										<CaretDownIcon className="text-muted size-4 shrink-0" />
 									</Sidebar.SwitcherTrigger>
 								</DropdownMenu.Trigger>
-								<DropdownMenu.Content align="start" className="min-w-56">
+								<DropdownMenu.Content
+									align="start"
+									width="trigger"
+									className="min-w-(--sidebar-row-width)"
+								>
 									<DropdownMenu.Sub>
 										<DropdownMenu.SubTrigger className="gap-2">
 											<ArrowsClockwiseIcon className="text-muted" />
@@ -402,7 +406,12 @@ export function BridgeShell() {
 										<CaretDownIcon className="text-muted ml-auto size-4 shrink-0" />
 									</Sidebar.ItemButton>
 								</DropdownMenu.Trigger>
-								<DropdownMenu.Content align="start" side="top" className="min-w-56">
+								<DropdownMenu.Content
+									align="start"
+									side="top"
+									width="trigger"
+									className="min-w-(--sidebar-row-width)"
+								>
 									<DropdownMenu.Item asChild>
 										<a
 											className="flex items-center gap-2"
