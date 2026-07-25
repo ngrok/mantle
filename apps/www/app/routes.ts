@@ -102,9 +102,9 @@ export default [
 		...docRoute("components/feedback/alert"),
 		...docRoute("components/feedback/alert-center"),
 		...docRoute("components/feedback/empty"),
-		...docRoute("components/feedback/power-bar"),
 		...docRoute("components/feedback/progress-bar"),
 		...docRoute("components/feedback/progress-donut"),
+		...docRoute("components/feedback/sandbar"),
 		...docRoute("components/feedback/skeleton"),
 		...docRoute("components/feedback/toast"),
 		// forms

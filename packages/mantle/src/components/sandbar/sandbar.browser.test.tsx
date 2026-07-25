@@ -1,12 +1,12 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
-import type { PowerBarHandle } from "./power-bar.js";
-import { PowerBar } from "./power-bar.js";
+import type { SandbarHandle } from "./sandbar.js";
+import { Sandbar } from "./sandbar.js";
 
 function getPanel(): HTMLElement {
-	const panel = document.querySelector('[data-slot="power-bar"]');
+	const panel = document.querySelector('[data-slot="sandbar"]');
 	if (!(panel instanceof HTMLElement)) {
-		throw new Error("power bar panel not found");
+		throw new Error("sandbar panel not found");
 	}
 	return panel;
 }
@@ -41,13 +41,13 @@ async function settle() {
 	});
 }
 
-describe("PowerBar (browser)", () => {
+describe("Sandbar (browser)", () => {
 	test("shake animates the panel with the wiggle keyframes", () => {
-		const handle = { current: null as PowerBarHandle | null };
+		const handle = { current: null as SandbarHandle | null };
 		render(
-			<PowerBar.Root handleRef={handle} open>
-				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
-			</PowerBar.Root>,
+			<Sandbar.Root handleRef={handle} open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+			</Sandbar.Root>,
 		);
 
 		const animateSpy = vi.spyOn(HTMLDivElement.prototype, "animate");
@@ -61,11 +61,11 @@ describe("PowerBar (browser)", () => {
 	});
 
 	test("a re-triggered shake cancels the in-flight animation", () => {
-		const handle = { current: null as PowerBarHandle | null };
+		const handle = { current: null as SandbarHandle | null };
 		render(
-			<PowerBar.Root handleRef={handle} open>
-				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
-			</PowerBar.Root>,
+			<Sandbar.Root handleRef={handle} open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+			</Sandbar.Root>,
 		);
 
 		handle.current?.shake();
@@ -80,11 +80,11 @@ describe("PowerBar (browser)", () => {
 
 	test("shake under prefers-reduced-motion skips the animation but still announces", async () => {
 		const matchMediaSpy = mockReducedMotion();
-		const handle = { current: null as PowerBarHandle | null };
+		const handle = { current: null as SandbarHandle | null };
 		render(
-			<PowerBar.Root handleRef={handle} open>
-				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
-			</PowerBar.Root>,
+			<Sandbar.Root handleRef={handle} open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+			</Sandbar.Root>,
 		);
 
 		const animateSpy = vi.spyOn(HTMLDivElement.prototype, "animate");
@@ -105,9 +105,9 @@ describe("PowerBar (browser)", () => {
 		// browser tests load no Tailwind, so the exit transition never fires and
 		// the 400ms safety timeout is the path that must close the panel
 		const tree = ({ open }: { open: boolean }) => (
-			<PowerBar.Root open={open}>
-				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
-			</PowerBar.Root>
+			<Sandbar.Root open={open}>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+			</Sandbar.Root>
 		);
 		const { rerender } = render(tree({ open: true }));
 		rerender(tree({ open: false }));
@@ -121,14 +121,14 @@ describe("PowerBar (browser)", () => {
 
 	test("a focused save button going isLoading parks focus on the panel", async () => {
 		const tree = ({ isLoading }: { isLoading: boolean }) => (
-			<PowerBar.Root open>
-				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
-				<PowerBar.Actions>
-					<PowerBar.SaveButton isLoading={isLoading} onClick={() => {}}>
+			<Sandbar.Root open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Sandbar.Actions>
+					<Sandbar.SaveButton isLoading={isLoading} onClick={() => {}}>
 						Save
-					</PowerBar.SaveButton>
-				</PowerBar.Actions>
-			</PowerBar.Root>
+					</Sandbar.SaveButton>
+				</Sandbar.Actions>
+			</Sandbar.Root>
 		);
 		const { rerender } = render(tree({ isLoading: false }));
 
@@ -156,12 +156,12 @@ describe("PowerBar (browser)", () => {
 		const tree = ({ open }: { open: boolean }) => (
 			<div>
 				<button type="button">Last form field</button>
-				<PowerBar.Root open={open}>
-					<PowerBar.Message>You have unsaved changes</PowerBar.Message>
-					<PowerBar.Actions>
-						<PowerBar.DiscardButton onClick={() => {}}>Discard</PowerBar.DiscardButton>
-					</PowerBar.Actions>
-				</PowerBar.Root>
+				<Sandbar.Root open={open}>
+					<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+					<Sandbar.Actions>
+						<Sandbar.DiscardButton onClick={() => {}}>Discard</Sandbar.DiscardButton>
+					</Sandbar.Actions>
+				</Sandbar.Root>
 			</div>
 		);
 		const { rerender } = render(tree({ open: true }));
@@ -183,12 +183,12 @@ describe("PowerBar (browser)", () => {
 		const tree = ({ open }: { open: boolean }) => (
 			<div>
 				<button type="button">Elsewhere</button>
-				<PowerBar.Root open={open}>
-					<PowerBar.Message>You have unsaved changes</PowerBar.Message>
-					<PowerBar.Actions>
-						<PowerBar.DiscardButton onClick={() => {}}>Discard</PowerBar.DiscardButton>
-					</PowerBar.Actions>
-				</PowerBar.Root>
+				<Sandbar.Root open={open}>
+					<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+					<Sandbar.Actions>
+						<Sandbar.DiscardButton onClick={() => {}}>Discard</Sandbar.DiscardButton>
+					</Sandbar.Actions>
+				</Sandbar.Root>
 			</div>
 		);
 		const { rerender } = render(tree({ open: true }));
@@ -212,12 +212,12 @@ describe("PowerBar (browser)", () => {
 			<div>
 				<button type="button">Field A</button>
 				<button type="button">Field B</button>
-				<PowerBar.Root open={open}>
-					<PowerBar.Message>You have unsaved changes</PowerBar.Message>
-					<PowerBar.Actions>
-						<PowerBar.DiscardButton onClick={() => {}}>Discard</PowerBar.DiscardButton>
-					</PowerBar.Actions>
-				</PowerBar.Root>
+				<Sandbar.Root open={open}>
+					<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+					<Sandbar.Actions>
+						<Sandbar.DiscardButton onClick={() => {}}>Discard</Sandbar.DiscardButton>
+					</Sandbar.Actions>
+				</Sandbar.Root>
 			</div>
 		);
 		const { rerender } = render(tree({ open: true }));
@@ -254,12 +254,12 @@ describe("PowerBar (browser)", () => {
 		const tree = ({ open, showOutside }: { open: boolean; showOutside: boolean }) => (
 			<div>
 				{showOutside && <button type="button">Removed later</button>}
-				<PowerBar.Root open={open}>
-					<PowerBar.Message>You have unsaved changes</PowerBar.Message>
-					<PowerBar.Actions>
-						<PowerBar.DiscardButton onClick={() => {}}>Discard</PowerBar.DiscardButton>
-					</PowerBar.Actions>
-				</PowerBar.Root>
+				<Sandbar.Root open={open}>
+					<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+					<Sandbar.Actions>
+						<Sandbar.DiscardButton onClick={() => {}}>Discard</Sandbar.DiscardButton>
+					</Sandbar.Actions>
+				</Sandbar.Root>
 			</div>
 		);
 		const { rerender } = render(tree({ open: true, showOutside: true }));
@@ -283,12 +283,12 @@ describe("PowerBar (browser)", () => {
 		const tree = ({ open }: { open: boolean }) => (
 			<div>
 				<button type="button">Last form field</button>
-				<PowerBar.Root open={open}>
-					<PowerBar.Message>You have unsaved changes</PowerBar.Message>
-					<PowerBar.Actions>
-						<PowerBar.DiscardButton onClick={() => {}}>Discard</PowerBar.DiscardButton>
-					</PowerBar.Actions>
-				</PowerBar.Root>
+				<Sandbar.Root open={open}>
+					<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+					<Sandbar.Actions>
+						<Sandbar.DiscardButton onClick={() => {}}>Discard</Sandbar.DiscardButton>
+					</Sandbar.Actions>
+				</Sandbar.Root>
 			</div>
 		);
 		const { rerender } = render(tree({ open: true }));

@@ -5,8 +5,8 @@ import { Field } from "@ngrok/mantle/field";
 import { Input } from "@ngrok/mantle/input";
 import { Label } from "@ngrok/mantle/label";
 import { Main } from "@ngrok/mantle/main";
-import type { PowerBarHandle } from "@ngrok/mantle/power-bar";
-import { PowerBar } from "@ngrok/mantle/power-bar";
+import type { SandbarHandle } from "@ngrok/mantle/sandbar";
+import { Sandbar } from "@ngrok/mantle/sandbar";
 import { TextArea } from "@ngrok/mantle/text-area";
 import { makeToast, Toast, Toaster } from "@ngrok/mantle/toast";
 import { useRef, useState } from "react";
@@ -22,18 +22,18 @@ const initialProfile: Profile = {
 };
 
 /**
- * The hero PowerBar demo: a small settings form whose dirty state drives the
+ * The hero Sandbar demo: a small settings form whose dirty state drives the
  * bar, with a simulated async save, a failure toggle that exercises
- * `PowerBar.Error`, and a navigation attempt that gets blocked with `shake()`
+ * `Sandbar.Error`, and a navigation attempt that gets blocked with `shake()`
  * while changes are pending. Renders as a full preview document.
  */
-export function PowerBarDemo() {
+export function SandbarDemo() {
 	const [saved, setSaved] = useState<Profile>(initialProfile);
 	const [draft, setDraft] = useState<Profile>(initialProfile);
 	const [isPending, setIsPending] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [failNextSave, setFailNextSave] = useState(false);
-	const powerBarHandle = useRef<PowerBarHandle>(null);
+	const sandbarHandle = useRef<SandbarHandle>(null);
 
 	const isDirty = draft.name !== saved.name || draft.description !== saved.description;
 
@@ -102,7 +102,7 @@ export function PowerBarDemo() {
 							// stand-in for a router navigation guard: while dirty, the
 							// navigation is blocked and the bar shakes + announces
 							if (isDirty) {
-								powerBarHandle.current?.shake();
+								sandbarHandle.current?.shake();
 							}
 						}}
 					>
@@ -111,29 +111,29 @@ export function PowerBarDemo() {
 				</Card.Body>
 			</Card.Root>
 
-			<PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
-				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
-				<PowerBar.Actions>
-					<PowerBar.DiscardButton disabled={isPending} onClick={discard}>
+			<Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Sandbar.Actions>
+					<Sandbar.DiscardButton disabled={isPending} onClick={discard}>
 						Discard
-					</PowerBar.DiscardButton>
-					<PowerBar.SaveButton isLoading={isPending} onClick={save}>
+					</Sandbar.DiscardButton>
+					<Sandbar.SaveButton isLoading={isPending} onClick={save}>
 						{isPending ? "Saving…" : "Save changes"}
-					</PowerBar.SaveButton>
-				</PowerBar.Actions>
-				{error != null && <PowerBar.Error>{error}</PowerBar.Error>}
-			</PowerBar.Root>
+					</Sandbar.SaveButton>
+				</Sandbar.Actions>
+				{error != null && <Sandbar.Error>{error}</Sandbar.Error>}
+			</Sandbar.Root>
 			<Toaster />
 		</Main>
 	);
 }
 
 /**
- * A PowerBar whose save always fails, so `PowerBar.Error` is front and center:
+ * A Sandbar whose save always fails, so `Sandbar.Error` is front and center:
  * the danger alert renders on its own row of the panel and its text is mirrored
  * through the assertive announcer. Renders as a full preview document.
  */
-export function PowerBarErrorDemo() {
+export function SandbarErrorDemo() {
 	const savedName = "my-agent-endpoint";
 	const [name, setName] = useState("my-agent-endpoint-staging");
 	const [isPending, setIsPending] = useState(false);
@@ -166,10 +166,10 @@ export function PowerBarErrorDemo() {
 				</Card.Body>
 			</Card.Root>
 
-			<PowerBar.Root open={isDirty}>
-				<PowerBar.Message>You have unsaved changes</PowerBar.Message>
-				<PowerBar.Actions>
-					<PowerBar.DiscardButton
+			<Sandbar.Root open={isDirty}>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Sandbar.Actions>
+					<Sandbar.DiscardButton
 						disabled={isPending}
 						onClick={() => {
 							setName(savedName);
@@ -177,13 +177,13 @@ export function PowerBarErrorDemo() {
 						}}
 					>
 						Discard
-					</PowerBar.DiscardButton>
-					<PowerBar.SaveButton isLoading={isPending} onClick={save}>
+					</Sandbar.DiscardButton>
+					<Sandbar.SaveButton isLoading={isPending} onClick={save}>
 						{isPending ? "Saving…" : "Save changes"}
-					</PowerBar.SaveButton>
-				</PowerBar.Actions>
-				{error != null && <PowerBar.Error>{error}</PowerBar.Error>}
-			</PowerBar.Root>
+					</Sandbar.SaveButton>
+				</Sandbar.Actions>
+				{error != null && <Sandbar.Error>{error}</Sandbar.Error>}
+			</Sandbar.Root>
 		</Main>
 	);
 }
@@ -200,14 +200,14 @@ const draftPosts: Draft[] = [
 ];
 
 /**
- * A non-save PowerBar: the pending decision is publishing drafts, so the bar
+ * A non-save Sandbar: the pending decision is publishing drafts, so the bar
  * composes plain `Button`s, overrides the blocked-navigation announcement,
- * and lets `PowerBar.Message` name the panel. Renders as a full preview
+ * and lets `Sandbar.Message` name the panel. Renders as a full preview
  * document.
  */
-export function PowerBarPendingPublishDemo() {
+export function SandbarPendingPublishDemo() {
 	const [pending, setPending] = useState<Draft[]>(draftPosts);
-	const powerBarHandle = useRef<PowerBarHandle>(null);
+	const sandbarHandle = useRef<SandbarHandle>(null);
 
 	return (
 		<Main className="min-h-full p-6">
@@ -226,7 +226,7 @@ export function PowerBarPendingPublishDemo() {
 						type="button"
 						onClick={() => {
 							if (pending.length > 0) {
-								powerBarHandle.current?.shake({
+								sandbarHandle.current?.shake({
 									announcement: "Publish or discard your drafts before leaving.",
 								});
 							}
@@ -237,11 +237,11 @@ export function PowerBarPendingPublishDemo() {
 				</Card.Body>
 			</Card.Root>
 
-			<PowerBar.Root open={pending.length > 0} handleRef={powerBarHandle}>
-				<PowerBar.Message>
+			<Sandbar.Root open={pending.length > 0} handleRef={sandbarHandle}>
+				<Sandbar.Message>
 					{pending.length} draft {pending.length === 1 ? "post" : "posts"} pending publish
-				</PowerBar.Message>
-				<PowerBar.Actions>
+				</Sandbar.Message>
+				<Sandbar.Actions>
 					<Button
 						appearance="outlined"
 						intent="neutral"
@@ -253,8 +253,8 @@ export function PowerBarPendingPublishDemo() {
 					<Button appearance="filled" intent="neutral" type="button" onClick={() => setPending([])}>
 						Publish all
 					</Button>
-				</PowerBar.Actions>
-			</PowerBar.Root>
+				</Sandbar.Actions>
+			</Sandbar.Root>
 		</Main>
 	);
 }

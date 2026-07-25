@@ -25,7 +25,7 @@ import { Slot } from "../slot/index.js";
 
 /**
  * The last-resort accessible name for the panel, used only when no
- * `PowerBar.Message` is mounted and the consumer passed no `aria-label`.
+ * `Sandbar.Message` is mounted and the consumer passed no `aria-label`.
  */
 const DEFAULT_ACCESSIBLE_NAME = "Unsaved changes";
 
@@ -38,7 +38,7 @@ const DEFAULT_BLOCKED_NAVIGATION_ANNOUNCEMENT =
 	"You have unsaved changes. Save or discard them before leaving.";
 
 /**
- * Announced politely when `PowerBar.SaveButton` enters its loading state, so
+ * Announced politely when `Sandbar.SaveButton` enters its loading state, so
  * screen-reader users hear that the save is underway. The save's resolution
  * is outside the component's reach: consumers MUST pair save success with
  * their own status announcement (mantle Toast qualifies).
@@ -79,33 +79,33 @@ const shakeKeyframes: Keyframe[] = [
 ];
 
 /**
- * The imperative surface of a {@link PowerBar}, exposed via `PowerBar.Root`'s
+ * The imperative surface of a {@link Sandbar}, exposed via `Sandbar.Root`'s
  * `handleRef` prop. `shake()` is a compound feedback action — it wiggles the
  * panel (skipped under `prefers-reduced-motion`) and always pushes an
  * assertive live-region announcement, so blocked navigation is perceivable
  * with or without motion.
  *
- * @see https://mantle.ngrok.com/components/feedback/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/sandbar
  *
  * @example
  * ```tsx
- * const powerBarHandle = useRef<PowerBarHandle>(null);
+ * const sandbarHandle = useRef<SandbarHandle>(null);
  *
  * useBlockUnsavedNavigation({
  *   enabled: isDirty,
- *   onNavigationBlocked: () => powerBarHandle.current?.shake(),
+ *   onNavigationBlocked: () => sandbarHandle.current?.shake(),
  * });
  *
- * <PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
- *   <PowerBar.Message>You have unsaved changes</PowerBar.Message>
- *   <PowerBar.Actions>
- *     <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>
- *     <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>
- *   </PowerBar.Actions>
- * </PowerBar.Root>
+ * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+ *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+ *   <Sandbar.Actions>
+ *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+ *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+ *   </Sandbar.Actions>
+ * </Sandbar.Root>
  * ```
  */
-type PowerBarHandle = {
+type SandbarHandle = {
 	/**
 	 * Signal that an action (usually navigation) was blocked because changes
 	 * are still pending: wiggles the panel and announces assertively.
@@ -116,17 +116,17 @@ type PowerBarHandle = {
 	shake: (options?: { announcement?: string }) => void;
 };
 
-type PowerBarContextValue = {
+type SandbarContextValue = {
 	announceAssertive: (text: string) => void;
 	registerMessage: (id: string) => () => void;
 	reportSaving: (options: { button: HTMLButtonElement | null; isSaving: boolean }) => void;
 };
 
-const PowerBarContext = createContext<PowerBarContextValue | null>(null);
+const SandbarContext = createContext<SandbarContextValue | null>(null);
 
-function usePowerBarContext(part: string): PowerBarContextValue {
-	const context = useContext(PowerBarContext);
-	invariant(context, `${part} must be rendered as a child of <PowerBar.Root>.`);
+function useSandbarContext(part: string): SandbarContextValue {
+	const context = useContext(SandbarContext);
+	invariant(context, `${part} must be rendered as a child of <Sandbar.Root>.`);
 	return context;
 }
 
@@ -136,15 +136,15 @@ function usePowerBarContext(part: string): PowerBarContextValue {
  * `display: none`); `closing` keeps the panel mounted and visible while the
  * exit transition runs; only `closed` hides it.
  */
-type PowerBarPresence = "closed" | "closing" | "open" | "opening";
+type SandbarPresence = "closed" | "closing" | "open" | "opening";
 
-type PowerBarRootProps = ComponentProps<"div"> & {
+type SandbarRootProps = ComponentProps<"div"> & {
 	/**
-	 * Whether the power bar is showing. Controlled-only — the pending state
+	 * Whether the sandbar is showing. Controlled-only — the pending state
 	 * (e.g. a form's dirty flag) lives in your app, not in the component.
 	 *
-	 * `PowerBar.Root` must stay mounted and be toggled with `open`, never
-	 * conditionally mounted (`{isDirty && <PowerBar.Root …>}`): the screen
+	 * `Sandbar.Root` must stay mounted and be toggled with `open`, never
+	 * conditionally mounted (`{isDirty && <Sandbar.Root …>}`): the screen
 	 * reader announcement only works when the internal live regions exist in
 	 * the tree before the message appears, and the exit animation needs the
 	 * panel alive to play. A Root that mounts with `open` already true does
@@ -152,23 +152,23 @@ type PowerBarRootProps = ComponentProps<"div"> & {
 	 */
 	open: boolean;
 	/**
-	 * Receives the imperative {@link PowerBarHandle}. Kept separate from `ref`
+	 * Receives the imperative {@link SandbarHandle}. Kept separate from `ref`
 	 * (which stays the panel's DOM element, like every other mantle part) —
 	 * wire it to your navigation guard's blocked callback.
 	 */
-	handleRef?: Ref<PowerBarHandle>;
+	handleRef?: Ref<SandbarHandle>;
 };
 
 /**
- * The always-mounted shell of the power bar. Renders a private viewport-fixed
+ * The always-mounted shell of the sandbar. Renders a private viewport-fixed
  * wrapper, two persistent visually-hidden live regions (a polite `status`
  * announcer and an assertive `alert` announcer), and the visible panel — a
- * floating island with `role="group"`, named by `PowerBar.Message` via
+ * floating island with `role="group"`, named by `Sandbar.Message` via
  * `aria-labelledby` (a consumer `aria-label` wins when passed).
  *
  * The panel is an `invert-theme` island: it renders in the opposite theme of
  * the page (light ⇄ dark, light-high-contrast ⇄ dark-high-contrast), and so
- * does everything composed inside it — the blessed buttons, `PowerBar.Error`,
+ * does everything composed inside it — the blessed buttons, `Sandbar.Error`,
  * and any custom children.
  *
  * `ref`, `className`, and all other props target the panel. Render it in
@@ -176,18 +176,18 @@ type PowerBarRootProps = ComponentProps<"div"> & {
  * position, not tab order, so Tab from the last field lands on the actions.
  * Escape is intentionally inert (a one-keypress discard would destroy data).
  *
- * @see https://mantle.ngrok.com/components/feedback/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/sandbar
  *
  * @example
  * ```tsx
- * <PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
- *   <PowerBar.Message>You have unsaved changes</PowerBar.Message>
- *   <PowerBar.Actions>
- *     <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>
- *     <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>
- *   </PowerBar.Actions>
- *   {error != null && <PowerBar.Error>{error}</PowerBar.Error>}
- * </PowerBar.Root>
+ * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+ *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+ *   <Sandbar.Actions>
+ *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+ *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+ *   </Sandbar.Actions>
+ *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
+ * </Sandbar.Root>
  * ```
  */
 // Deliberately no `asChild`: Root renders four nodes (wrapper, two announcers,
@@ -202,8 +202,8 @@ const Root = ({
 	open,
 	ref,
 	...props
-}: PowerBarRootProps) => {
-	const [presence, setPresence] = useState<PowerBarPresence>(open ? "open" : "closed");
+}: SandbarRootProps) => {
+	const [presence, setPresence] = useState<SandbarPresence>(open ? "open" : "closed");
 	const [politeText, setPoliteText] = useState("");
 	const [assertiveText, setAssertiveText] = useState("");
 	const [messageId, setMessageId] = useState<string | null>(null);
@@ -322,7 +322,7 @@ const Root = ({
 
 	useImperativeHandle(handleRef, () => ({ shake }), [shake]);
 
-	const context = useMemo<PowerBarContextValue>(
+	const context = useMemo<SandbarContextValue>(
 		() => ({ announceAssertive, registerMessage, reportSaving }),
 		[announceAssertive, registerMessage, reportSaving],
 	);
@@ -407,7 +407,7 @@ const Root = ({
 		if (wasOpen) {
 			return;
 		}
-		const messageNode = panelRef.current?.querySelector('[data-slot="power-bar-message"]');
+		const messageNode = panelRef.current?.querySelector('[data-slot="sandbar-message"]');
 		const messageText = messageNode?.textContent?.trim();
 		announcePolite(messageText || ariaLabel || DEFAULT_ACCESSIBLE_NAME);
 	}, [announcePolite, ariaLabel, open]);
@@ -526,7 +526,7 @@ const Root = ({
 	const isClosed = presence === "closed";
 
 	return (
-		<PowerBarContext.Provider value={context}>
+		<SandbarContext.Provider value={context}>
 			<div
 				className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4 sm:bottom-10"
 				onBlur={handleFocusOut}
@@ -543,7 +543,7 @@ const Root = ({
 					{assertiveText}
 				</div>
 				<div
-					data-slot="power-bar"
+					data-slot="sandbar"
 					className={cx(
 						// island surface — `invert-theme` renders the whole panel subtree in
 						// the opposite theme (light ⇄ dark, and between the high-contrast
@@ -592,34 +592,34 @@ const Root = ({
 					{children}
 				</div>
 			</div>
-		</PowerBarContext.Provider>
+		</SandbarContext.Provider>
 	);
 };
 
-type PowerBarMessageProps = ComponentProps<"p"> & WithAsChild;
+type SandbarMessageProps = ComponentProps<"p"> & WithAsChild;
 
 /**
  * The visible pending-state text (e.g. "You have unsaved changes"). A plain
- * paragraph — the live-region announcement is owned by `PowerBar.Root`'s
+ * paragraph — the live-region announcement is owned by `Sandbar.Root`'s
  * persistent announcer, not this node, and the panel's accessible name points
  * here via `aria-labelledby` so the group name always matches the visible
  * text.
  *
- * @see https://mantle.ngrok.com/components/feedback/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/sandbar
  *
  * @example
  * ```tsx
- * <PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
- *   <PowerBar.Message>You have unsaved changes</PowerBar.Message>
- *   <PowerBar.Actions>
- *     <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>
- *     <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>
- *   </PowerBar.Actions>
- * </PowerBar.Root>
+ * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+ *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+ *   <Sandbar.Actions>
+ *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+ *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+ *   </Sandbar.Actions>
+ * </Sandbar.Root>
  * ```
  */
-const Message = ({ asChild, className, id: propId, ...props }: PowerBarMessageProps) => {
-	const { registerMessage } = usePowerBarContext("PowerBar.Message");
+const Message = ({ asChild, className, id: propId, ...props }: SandbarMessageProps) => {
+	const { registerMessage } = useSandbarContext("Sandbar.Message");
 	const generatedId = useId();
 	const id = propId ?? generatedId;
 
@@ -629,7 +629,7 @@ const Message = ({ asChild, className, id: propId, ...props }: PowerBarMessagePr
 
 	return (
 		<Comp
-			data-slot="power-bar-message"
+			data-slot="sandbar-message"
 			className={cx("text-sm font-sans", className)}
 			id={id}
 			{...props}
@@ -637,39 +637,39 @@ const Message = ({ asChild, className, id: propId, ...props }: PowerBarMessagePr
 	);
 };
 
-type PowerBarActionsProps = ComponentProps<"div"> & WithAsChild;
+type SandbarActionsProps = ComponentProps<"div"> & WithAsChild;
 
 /**
  * The action-button row. A plain flex container — deliberately not
  * `role="toolbar"`, which the ARIA APG reserves for 3+ controls with roving
  * tab stops.
  *
- * @see https://mantle.ngrok.com/components/feedback/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/sandbar
  *
  * @example
  * ```tsx
- * <PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
- *   <PowerBar.Message>You have unsaved changes</PowerBar.Message>
- *   <PowerBar.Actions>
- *     <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>
- *     <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>
- *   </PowerBar.Actions>
- * </PowerBar.Root>
+ * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+ *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+ *   <Sandbar.Actions>
+ *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+ *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+ *   </Sandbar.Actions>
+ * </Sandbar.Root>
  * ```
  */
-const Actions = ({ asChild, className, ...props }: PowerBarActionsProps) => {
+const Actions = ({ asChild, className, ...props }: SandbarActionsProps) => {
 	const Comp = asChild ? Slot : "div";
 
 	return (
 		<Comp
-			data-slot="power-bar-actions"
+			data-slot="sandbar-actions"
 			className={cx("flex flex-wrap items-center justify-center gap-2", className)}
 			{...props}
 		/>
 	);
 };
 
-type PowerBarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "intent"> & {
+type SandbarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "intent"> & {
 	/**
 	 * The visual style of the button.
 	 * @default "filled"
@@ -690,7 +690,7 @@ type PowerBarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "in
 /**
  * The primary (save) action. A mantle `Button` defaulting to the system
  * primary style (`appearance="filled" intent="neutral"`), wired into
- * `PowerBar.Root`: while `isLoading`, Root announces "Saving changes…" via the
+ * `Sandbar.Root`: while `isLoading`, Root announces "Saving changes…" via the
  * polite live region and catches the focus drop caused by the button going
  * natively disabled while focused.
  *
@@ -698,17 +698,17 @@ type PowerBarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "in
  * form it saves. Announce the save's resolution yourself (e.g. a success
  * Toast) — the bar exits silently.
  *
- * @see https://mantle.ngrok.com/components/feedback/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/sandbar
  *
  * @example
  * ```tsx
- * <PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
- *   <PowerBar.Message>You have unsaved changes</PowerBar.Message>
- *   <PowerBar.Actions>
- *     <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>
- *     <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>
- *   </PowerBar.Actions>
- * </PowerBar.Root>
+ * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+ *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+ *   <Sandbar.Actions>
+ *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+ *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+ *   </Sandbar.Actions>
+ * </Sandbar.Root>
  * ```
  */
 const SaveButton = ({
@@ -718,8 +718,8 @@ const SaveButton = ({
 	isLoading = false,
 	ref,
 	...props
-}: PowerBarSaveButtonProps) => {
-	const { reportSaving } = usePowerBarContext("PowerBar.SaveButton");
+}: SandbarSaveButtonProps) => {
+	const { reportSaving } = useSandbarContext("Sandbar.SaveButton");
 	const buttonRef = useRef<HTMLButtonElement>(null);
 	const composedRef = useComposedRefs(buttonRef, ref);
 
@@ -737,7 +737,7 @@ const SaveButton = ({
 
 	return (
 		<Button
-			data-slot="power-bar-save-button"
+			data-slot="sandbar-save-button"
 			appearance={appearance}
 			intent={intent}
 			isLoading={isLoading}
@@ -749,7 +749,7 @@ const SaveButton = ({
 	);
 };
 
-type PowerBarDiscardButtonProps = Omit<ButtonProps, "appearance" | "children" | "intent"> & {
+type SandbarDiscardButtonProps = Omit<ButtonProps, "appearance" | "children" | "intent"> & {
 	/**
 	 * The visual style of the button.
 	 * @default "outlined"
@@ -772,17 +772,17 @@ type PowerBarDiscardButtonProps = Omit<ButtonProps, "appearance" | "children" | 
  * `appearance="outlined" intent="neutral"`. Discard is destructive-ish: for
  * large forms, consider confirming before discarding.
  *
- * @see https://mantle.ngrok.com/components/feedback/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/sandbar
  *
  * @example
  * ```tsx
- * <PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
- *   <PowerBar.Message>You have unsaved changes</PowerBar.Message>
- *   <PowerBar.Actions>
- *     <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>
- *     <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>
- *   </PowerBar.Actions>
- * </PowerBar.Root>
+ * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+ *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+ *   <Sandbar.Actions>
+ *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+ *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+ *   </Sandbar.Actions>
+ * </Sandbar.Root>
  * ```
  */
 const DiscardButton = ({
@@ -790,46 +790,46 @@ const DiscardButton = ({
 	children,
 	intent = "neutral",
 	...props
-}: PowerBarDiscardButtonProps) => {
+}: SandbarDiscardButtonProps) => {
 	return (
-		<Button data-slot="power-bar-discard-button" appearance={appearance} intent={intent} {...props}>
+		<Button data-slot="sandbar-discard-button" appearance={appearance} intent={intent} {...props}>
 			{children}
 		</Button>
 	);
 };
 
-type PowerBarErrorProps = Omit<ComponentProps<typeof Alert.Root>, "intent">;
+type SandbarErrorProps = Omit<ComponentProps<typeof Alert.Root>, "intent">;
 
 /**
  * A danger alert row for a failed save. Renders a mantle `Alert` pinned to
  * `intent="danger"` on its own row of the panel. Deliberately carries no
  * `role="alert"` itself — mounting a pre-populated alert element is
- * unreliable across assistive tech, so `PowerBar.Root` mirrors the error text
+ * unreliable across assistive tech, so `Sandbar.Root` mirrors the error text
  * through its persistent assertive announcer instead, which makes the usual
- * `{error != null && <PowerBar.Error>{error}</PowerBar.Error>}` conditional
+ * `{error != null && <Sandbar.Error>{error}</Sandbar.Error>}` conditional
  * mount safe.
  *
  * Needs Title/Icon-level control? Compose your own
- * `<Alert.Root intent="danger">` inside `PowerBar.Root` instead.
+ * `<Alert.Root intent="danger">` inside `Sandbar.Root` instead.
  *
- * @see https://mantle.ngrok.com/components/feedback/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/sandbar
  *
  * @example
  * ```tsx
- * <PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
- *   <PowerBar.Message>You have unsaved changes</PowerBar.Message>
- *   <PowerBar.Actions>
- *     <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>
- *     <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>
- *   </PowerBar.Actions>
- *   {error != null && <PowerBar.Error>{error}</PowerBar.Error>}
- * </PowerBar.Root>
+ * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+ *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+ *   <Sandbar.Actions>
+ *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+ *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+ *   </Sandbar.Actions>
+ *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
+ * </Sandbar.Root>
  * ```
  */
-// Named PowerBarError (not Error) so the global Error constructor is not
-// shadowed for this module; exposed as `PowerBar.Error`.
-const PowerBarError = ({ children, className, ...props }: PowerBarErrorProps) => {
-	const { announceAssertive } = usePowerBarContext("PowerBar.Error");
+// Named SandbarError (not Error) so the global Error constructor is not
+// shadowed for this module; exposed as `Sandbar.Error`.
+const SandbarError = ({ children, className, ...props }: SandbarErrorProps) => {
+	const { announceAssertive } = useSandbarContext("Sandbar.Error");
 	const contentRef = useRef<HTMLDivElement>(null);
 	const lastAnnouncedRef = useRef("");
 
@@ -847,7 +847,7 @@ const PowerBarError = ({ children, className, ...props }: PowerBarErrorProps) =>
 
 	return (
 		<Alert.Root
-			data-slot="power-bar-error"
+			data-slot="sandbar-error"
 			intent="danger"
 			// The error takes its own full-width row without widening the panel.
 			// The panel is shrink-to-fit (w-fit), so Alert's own `w-full` would
@@ -873,58 +873,57 @@ const PowerBarError = ({ children, className, ...props }: PowerBarErrorProps) =>
  * A persistent, decision-bearing bar that floats near the bottom edge of the
  * viewport. It surfaces pending state — primarily a form's unsaved ("dirty")
  * changes — and stays until the user resolves it. Unlike Toast (which
- * announces something that already happened and leaves on its own), a PowerBar
+ * announces something that already happened and leaves on its own), a Sandbar
  * surfaces something pending and stays until the user resolves it.
  *
- * The name joins Mantle's food-named family (Toast, Breadcrumb, Progress
- * Donut): like a protein bar, a power bar is fuel for action — here, the bar
- * that carries the decision you need to make. Pair it with your app's
- * navigation guard and call `shake()` on the {@link PowerBarHandle} when a
+ * The name: a sandbar is a bar that blocks navigation — exactly what this
+ * component does while changes are pending. Pair it with your app's
+ * navigation guard and call `shake()` on the {@link SandbarHandle} when a
  * navigation attempt is blocked.
  *
- * @see https://mantle.ngrok.com/components/feedback/power-bar
+ * @see https://mantle.ngrok.com/components/feedback/sandbar
  *
  * @example
  * Composition:
  * ```
- * PowerBar.Root
- * ├── PowerBar.Message
- * ├── PowerBar.Actions
- * │   ├── PowerBar.DiscardButton
- * │   └── PowerBar.SaveButton
- * └── PowerBar.Error
+ * Sandbar.Root
+ * ├── Sandbar.Message
+ * ├── Sandbar.Actions
+ * │   ├── Sandbar.DiscardButton
+ * │   └── Sandbar.SaveButton
+ * └── Sandbar.Error
  * ```
  *
  * @example
  * ```tsx
- * <PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
- *   <PowerBar.Message>You have unsaved changes</PowerBar.Message>
- *   <PowerBar.Actions>
- *     <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>
- *     <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>
- *   </PowerBar.Actions>
- *   {error != null && <PowerBar.Error>{error}</PowerBar.Error>}
- * </PowerBar.Root>
+ * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+ *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+ *   <Sandbar.Actions>
+ *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+ *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+ *   </Sandbar.Actions>
+ *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
+ * </Sandbar.Root>
  * ```
  */
-const PowerBar = {
+const Sandbar = {
 	/**
 	 * The always-mounted shell: fixed positioning, persistent live-region
 	 * announcers, presence-managed panel. Toggle with the controlled `open`
 	 * prop — never conditionally mount it.
 	 *
-	 * @see https://mantle.ngrok.com/components/feedback/power-bar
+	 * @see https://mantle.ngrok.com/components/feedback/sandbar
 	 *
 	 * @example
 	 * ```tsx
-	 * <PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
-	 *   <PowerBar.Message>You have unsaved changes</PowerBar.Message>
-	 *   <PowerBar.Actions>
-	 *     <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>
-	 *     <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>
-	 *   </PowerBar.Actions>
-	 *   {error != null && <PowerBar.Error>{error}</PowerBar.Error>}
-	 * </PowerBar.Root>
+	 * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+	 *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+	 *   <Sandbar.Actions>
+	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+	 *   </Sandbar.Actions>
+	 *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
+	 * </Sandbar.Root>
 	 * ```
 	 */
 	Root,
@@ -932,35 +931,35 @@ const PowerBar = {
 	 * The visible pending-state text. Also names the panel (via
 	 * `aria-labelledby`) and feeds the polite screen-reader announcement.
 	 *
-	 * @see https://mantle.ngrok.com/components/feedback/power-bar
+	 * @see https://mantle.ngrok.com/components/feedback/sandbar
 	 *
 	 * @example
 	 * ```tsx
-	 * <PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
-	 *   <PowerBar.Message>You have unsaved changes</PowerBar.Message>
-	 *   <PowerBar.Actions>
-	 *     <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>
-	 *     <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>
-	 *   </PowerBar.Actions>
-	 * </PowerBar.Root>
+	 * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+	 *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+	 *   <Sandbar.Actions>
+	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+	 *   </Sandbar.Actions>
+	 * </Sandbar.Root>
 	 * ```
 	 */
 	Message,
 	/**
-	 * The action-button row. Holds `PowerBar.DiscardButton` and
-	 * `PowerBar.SaveButton`, or your own composed `Button`s.
+	 * The action-button row. Holds `Sandbar.DiscardButton` and
+	 * `Sandbar.SaveButton`, or your own composed `Button`s.
 	 *
-	 * @see https://mantle.ngrok.com/components/feedback/power-bar
+	 * @see https://mantle.ngrok.com/components/feedback/sandbar
 	 *
 	 * @example
 	 * ```tsx
-	 * <PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
-	 *   <PowerBar.Message>You have unsaved changes</PowerBar.Message>
-	 *   <PowerBar.Actions>
-	 *     <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>
-	 *     <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>
-	 *   </PowerBar.Actions>
-	 * </PowerBar.Root>
+	 * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+	 *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+	 *   <Sandbar.Actions>
+	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+	 *   </Sandbar.Actions>
+	 * </Sandbar.Root>
 	 * ```
 	 */
 	Actions,
@@ -968,34 +967,34 @@ const PowerBar = {
 	 * The primary (save) action — announces "Saving changes…" and keeps focus
 	 * from being lost while the save is pending.
 	 *
-	 * @see https://mantle.ngrok.com/components/feedback/power-bar
+	 * @see https://mantle.ngrok.com/components/feedback/sandbar
 	 *
 	 * @example
 	 * ```tsx
-	 * <PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
-	 *   <PowerBar.Message>You have unsaved changes</PowerBar.Message>
-	 *   <PowerBar.Actions>
-	 *     <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>
-	 *     <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>
-	 *   </PowerBar.Actions>
-	 * </PowerBar.Root>
+	 * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+	 *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+	 *   <Sandbar.Actions>
+	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+	 *   </Sandbar.Actions>
+	 * </Sandbar.Root>
 	 * ```
 	 */
 	SaveButton,
 	/**
 	 * The secondary (discard/reset) action.
 	 *
-	 * @see https://mantle.ngrok.com/components/feedback/power-bar
+	 * @see https://mantle.ngrok.com/components/feedback/sandbar
 	 *
 	 * @example
 	 * ```tsx
-	 * <PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
-	 *   <PowerBar.Message>You have unsaved changes</PowerBar.Message>
-	 *   <PowerBar.Actions>
-	 *     <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>
-	 *     <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>
-	 *   </PowerBar.Actions>
-	 * </PowerBar.Root>
+	 * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+	 *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+	 *   <Sandbar.Actions>
+	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+	 *   </Sandbar.Actions>
+	 * </Sandbar.Root>
 	 * ```
 	 */
 	DiscardButton,
@@ -1003,34 +1002,34 @@ const PowerBar = {
 	 * A danger alert row for a failed save; safe to conditionally mount —
 	 * announcement goes through the persistent assertive announcer.
 	 *
-	 * @see https://mantle.ngrok.com/components/feedback/power-bar
+	 * @see https://mantle.ngrok.com/components/feedback/sandbar
 	 *
 	 * @example
 	 * ```tsx
-	 * <PowerBar.Root open={isDirty} handleRef={powerBarHandle}>
-	 *   <PowerBar.Message>You have unsaved changes</PowerBar.Message>
-	 *   <PowerBar.Actions>
-	 *     <PowerBar.DiscardButton onClick={reset}>Discard</PowerBar.DiscardButton>
-	 *     <PowerBar.SaveButton onClick={save} isLoading={isPending}>Save</PowerBar.SaveButton>
-	 *   </PowerBar.Actions>
-	 *   {error != null && <PowerBar.Error>{error}</PowerBar.Error>}
-	 * </PowerBar.Root>
+	 * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+	 *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+	 *   <Sandbar.Actions>
+	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+	 *   </Sandbar.Actions>
+	 *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
+	 * </Sandbar.Root>
 	 * ```
 	 */
-	Error: PowerBarError,
+	Error: SandbarError,
 } as const;
 
 export {
 	//,
-	PowerBar,
+	Sandbar,
 };
 export type {
 	//,
-	PowerBarActionsProps,
-	PowerBarDiscardButtonProps,
-	PowerBarErrorProps,
-	PowerBarHandle,
-	PowerBarMessageProps,
-	PowerBarRootProps,
-	PowerBarSaveButtonProps,
+	SandbarActionsProps,
+	SandbarDiscardButtonProps,
+	SandbarErrorProps,
+	SandbarHandle,
+	SandbarMessageProps,
+	SandbarRootProps,
+	SandbarSaveButtonProps,
 };

@@ -9,11 +9,7 @@ import {
 	CenteredLayoutHeaderDemo,
 	CenteredLayoutNoticeDemo,
 } from "~/features/centered-layout-demos";
-import {
-	PowerBarDemo,
-	PowerBarErrorDemo,
-	PowerBarPendingPublishDemo,
-} from "~/features/power-bar-demos";
+import { SandbarDemo, SandbarErrorDemo, SandbarPendingPublishDemo } from "~/features/sandbar-demos";
 import { SidebarPersistenceDemo } from "~/features/sidebar-demos";
 
 type PreviewExample = {
@@ -88,17 +84,17 @@ export const previewExamples = {
 		title: "Centered layout notice demo",
 		Component: CenteredLayoutNoticeDemo,
 	},
-	"power-bar": {
-		title: "PowerBar demo",
-		Component: PowerBarDemo,
+	sandbar: {
+		title: "Sandbar demo",
+		Component: SandbarDemo,
 	},
-	"power-bar-error": {
-		title: "PowerBar error demo",
-		Component: PowerBarErrorDemo,
+	"sandbar-error": {
+		title: "Sandbar error demo",
+		Component: SandbarErrorDemo,
 	},
-	"power-bar-pending-publish": {
-		title: "PowerBar pending publish demo",
-		Component: PowerBarPendingPublishDemo,
+	"sandbar-pending-publish": {
+		title: "Sandbar pending publish demo",
+		Component: SandbarPendingPublishDemo,
 	},
 	"sidebar-persistence": {
 		title: "Sidebar persistence demo",
