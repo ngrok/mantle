@@ -252,6 +252,13 @@ const Inset = ({
  * construction. Override `--sidebar-header-height` on a common ancestor
  * (e.g. `AppLayout.Root`'s `className`) and both rows move together.
  *
+ * **CSS variables (public API):**
+ * - `--sidebar-header-height` — read, not owned: `Sidebar.Header` owns this
+ *   token (default `4.5rem`) and `AppLayout.Header` derives its own height
+ *   from it whenever a sidebar header is present in the shell. Set it on a
+ *   common ancestor of both rows (e.g. `AppLayout.Root`), never on one of
+ *   them, since custom properties only inherit downward.
+ *
  * @see https://mantle.ngrok.com/layouts/app-layout
  *
  * @example

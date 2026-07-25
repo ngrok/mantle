@@ -14,13 +14,16 @@ that toggles whichever presentation is active from anywhere under the root; `⌘
 (exact-modifier match; single-owner — with multiple mounted roots only the first claimant handles the
 keypress; opt out with `keyboardShortcut={false}`).
 Navigation composes `Sidebar.Header`/`Body`/`Footer`, `Sidebar.Group`/`GroupLabel`/`List`/`Item`/`ItemButton`
-(with `current` → `aria-current="page"`, group labels wired to lists via `aria-labelledby`), plus
+(with `current` → `aria-current="page"`, group labels wired to lists via `aria-labelledby`; a row sizes its
+leading icon and leaves trailing visuals — a menu caret, a count, a status pip — to size themselves, and
+stays highlighted while a menu opened from it is open), plus
 `Sidebar.SwitcherTrigger`, `Sidebar.Separator`, `Sidebar.AccountAvatar` (deterministic, WCAG 4.5:1-contrast
 swatches), and `Sidebar.UserAvatar`. `Sidebar.Body` fades its
 overflowing edges with the `scroll-fade-y` mask (and hides its scrollbar inside the collapsed icon rail).
 Also exports the `useSidebar` hook and the `SidebarState` and
 `SidebarMobileBreakpoint` types. Public CSS variables: `--sidebar-width` (default `16rem`),
-`--sidebar-width-mobile` (default `18rem`), and `--sidebar-width-icon` (default `3.25rem`), settable via
-`Sidebar.Nav`'s `className`/`style`, plus `--sidebar-header-height` (default `4.5rem`), the header row
+`--sidebar-width-mobile` (default `18rem`), and `--sidebar-width-icon` (default `3.25rem`) — read with those
+defaults as fallbacks, so set them on `Sidebar.Nav` for one sidebar or on any ancestor (`:root`) to resize
+every sidebar in an app — plus `--sidebar-header-height` (default `4.5rem`), the header row
 height that `AppLayout.Header` also derives from so the two rows stay center-aligned — set it on a common
 ancestor of both. Docs: https://mantle.ngrok.com/components/navigation/sidebar

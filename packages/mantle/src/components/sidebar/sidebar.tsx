@@ -417,9 +417,14 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  * `aria-label` (default `"Main"`) is forwarded to the inner `<nav>` landmark.
  *
  * **CSS variables (public API):**
- * - `--sidebar-width` — expanded desktop width. Default `16rem`.
- * - `--sidebar-width-mobile` — mobile sheet width. Default `18rem`.
- * - `--sidebar-width-icon` — collapsed rail width. Default `3.25rem`.
+ * - `--sidebar-width` — expanded desktop width. Default `16rem` (256px).
+ * - `--sidebar-width-mobile` — mobile sheet width. Default `18rem` (288px).
+ * - `--sidebar-width-icon` — collapsed rail width. Default `3.25rem` (52px).
+ *
+ * Each is read with its default as the fallback, and custom properties
+ * inherit, so set one on `Sidebar.Nav` to resize a single sidebar or on any
+ * ancestor (`:root` in your global stylesheet) to resize every sidebar in the
+ * app.
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar
  *
@@ -1381,6 +1386,12 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
  * compose with a router link. `current` sets `aria-current="page"` and the
  * `data-current` visual state.
  *
+ * The row sizes its **leading** icon to 20px and leaves trailing visuals — a
+ * caret, a count, a status dot — to size themselves, so a row composed with
+ * `DropdownMenu.Trigger asChild` can end in `<CaretDownIcon className="text-muted
+ * ml-auto size-4 shrink-0" />` and stays highlighted while its menu is open
+ * (`data-state="open"`, supplied by the trigger).
+ *
  * @see https://mantle.ngrok.com/components/navigation/sidebar
  *
  * @example
@@ -1455,7 +1466,13 @@ const ItemButton = ({
 				"ring-focus-accent flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-normal transition-none focus:outline-hidden focus-visible:ring-4",
 				"text-body hover:text-strong hover:bg-neutral-500/10",
 				"data-current:bg-neutral-500/15 data-current:text-strong",
-				"[&>svg]:text-muted hover:[&>svg]:text-strong data-current:[&>svg]:text-strong [&>svg]:size-5 [&>svg]:shrink-0",
+				// A row composed as a menu trigger stays highlighted while its menu
+				// is open, matching Sidebar.SwitcherTrigger.
+				"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
+				// Only the leading icon is pinned to 20px: trailing visuals (a menu
+				// caret, a count, a status dot) size themselves, so composing one
+				// does not need an `!` override to escape this rule.
+				"[&>svg]:text-muted hover:[&>svg]:text-strong data-current:[&>svg]:text-strong [&>svg:first-child]:size-5 [&>svg]:shrink-0",
 				// In the collapsed icon rail the row returns to its original
 				// 28px square chip. ml-1 keeps body and footer item icons aligned
 				// with their expanded position and the switcher indicators.
