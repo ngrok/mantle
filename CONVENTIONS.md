@@ -92,62 +92,34 @@ import { cx } from "@ngrok/mantle/cx";
 
 ## Compound Components
 
-Mantle compound components use a single-level POJO namespace (see [`decisions/2025-07-16-compound-component-named-exports.md`](./decisions/2025-07-16-compound-component-named-exports.md)). Sub-components are members of one namespace object — never nested namespaces.
+Mantle compound components use a **single-level POJO namespace** — sub-components are members of one namespace object, never nested namespaces, and the outermost part is always `Root`:
 
 ```tsx
 // ✅ flat, single-level namespace
-const Command = {
-	Root,
-	DialogRoot,
-	DialogTrigger,
-	DialogContent,
-	Input,
-	List,
-	// ...
-} as const;
+const Command = { Root, DialogRoot, DialogTrigger, DialogContent, Input, List } as const;
 
 // ❌ nested namespace — do not do this
-const Command = {
-	Root,
-	Dialog: {
-		// ← nested compound inside a compound
-		Root,
-		Trigger,
-		Content,
-	},
-	// ...
-};
+const Command = { Root, Dialog: { Root, Trigger, Content } };
 ```
 
-**Why:**
-
-- Every other mantle compound (`Dialog`, `Field`, `Alert`, `Sheet`, `DropdownMenu`, `Table`, …) is single-level. Nested namespaces break this consistency and force consumers to learn a special case.
-- Nested inferred-literal-of-`as const`-of-third-party-re-exports defeats TypeScript's portable type naming during `.d.ts` emit. This surfaces as `TS2883: The inferred type of 'X' cannot be named without a reference to …` on `@types/react` upgrades.
-- Re-exporting another mantle namespace under a sub-key (e.g. `Command.Dialog.Root = Dialog.Root`) does not shorten call sites and creates two import paths for the same primitive.
-
-**Rules:**
-
-1. A compound's namespace object has exactly one level of properties.
-2. If a sub-feature relates to a different existing primitive (e.g. Command's dialog-wrapped variant), flatten the relationship into member names (`DialogRoot`, `DialogTrigger`, `DialogContent`) rather than nesting.
-3. Do not re-export another component's namespace under your namespace. If consumers need that primitive, they can import it directly.
-4. Each member of a compound namespace must be a directly-defined component whose type has an explicit name (a plain function component with annotated props, `ComponentType<…>`, etc.) — not an inferred literal whose shape depends on chasing types through external packages.
-5. When wrapping a third-party namespace primitive (e.g. Radix), explicitly annotate the enclosing namespace object's type so `.d.ts` emit doesn't have to synthesize it: `const Foo: { Root: typeof Root; … } = { … }`.
-6. Every compound's outermost part is named `Root` — even when the compound has no separate state owner and `Root` is the whole component. Consumers should never have to learn which part is outermost per component.
+The full rule — member typing, the explicit namespace annotation that keeps `.d.ts` emit portable, and where providers live — is [COMPONENT_SPEC.md § Compound namespace](./COMPONENT_SPEC.md#34-compound-namespace). The rationale, including the tree-shaking cost it accepts, is [`decisions/2025-07-16-compound-component-named-exports.md`](./decisions/2025-07-16-compound-component-named-exports.md).
 
 ## Component API Design
 
-Distilled from the list-family design review (see [`decisions/2026-07-04-list-family-api-design.md`](./decisions/2026-07-04-list-family-api-design.md)). Answer these questions **before scaffolding** a component, not at review time.
+**[COMPONENT_SPEC.md](./COMPONENT_SPEC.md) is the standard for authoring a `@ngrok/mantle` component** and owns these rules in full: the artifacts a component ships, its API shape, JSDoc, CSS-variable and data-attribute documentation, docs page, tests, wiring, and a review checklist. Read it before adding or changing anything under `packages/mantle/src/components/`. It is the single place these rules are maintained — do not restate them here.
 
-- **Ship the smallest public surface.** A primitive that exists to back other components stays module-internal (`dialog/primitive`, `list/primitive`): imported by relative path, absent from `package.json` exports, undocumented. Publishing later is additive and non-breaking; un-shipping after release is breaking. Corollary: if a component's docs would mostly redirect readers to siblings, it should not be public.
-- **One component per user intent.** Name the intent in a sentence ("click an item to act/navigate" vs "check items to select"). If two proposed components answer the same intent, merge them; a variant is a prop or a sibling part, not a new public component.
-- **Name parts after the component's own noun and the web-standards term** for what they render: a List has `Item`s (`<li>`, `role="listitem"`), a Table has `Row`s (`<tr>`, `role="row"`). Follow the standards vocabulary, not other libraries' conventions. Rename all the way through (props, types, slots, internals) — a half-renamed API is worse than either name.
-- **ARIA pattern words are a behavioral contract, not decoration.** `Menu`/`MenuItem`, `Listbox`/`Option`, `Tab`/`TabPanel`, `Tree`/`TreeItem`, `Grid`/`Row`/`Cell`, `Dialog`, `Toolbar`, `Combobox` are reserved for components that actually emit that role _and_ implement its keyboard contract. A `<ul>` of navigation links is a `List` of `Item`s — never a `Menu` of `MenuItem`s — even when the library whose mechanics were ported (shadcn's sidebar, say) names that exact markup a menu. Two failures follow a borrowed role word: consumers expect what the name promises (roving focus, `Escape` to close, typeahead, a single tab stop) and file bugs when it is absent, and the next maintainer "fixes" the mismatch by adding the role — which destroys the natural tab order the plain list wanted. If a name would only be honest after adding an ARIA role, rename the part; do not add the role. Inverse case: when a component genuinely implements the pattern, the pattern's vocabulary is the right name — `DropdownMenu.Item` really is a `role="menuitem"` inside a `role="menu"`, keyboard contract included.
-- **Props should read as the ARIA/DOM they emit** where practical (`current` → `aria-current`, not `isActive`), and must not collide semantically with sibling props (`textValue` next to `value` was rejected for `labelText`).
-- **No prop-bag passthrough props.** Never expose a `*Props` object prop (`contentProps`, `triggerProps`, `slotProps`, …) that forwards a bag of props to an element the component renders internally. A prop bag is a worse composition API: it hides the element it configures, defeats autocomplete-driven discovery, and grows without bound as consumers need more control. If a consumer needs to reach an internal element, the component is a compound — expose that element as a part (`Foo.Root`, `Foo.Content`, …), even when the part is a thin forwarding wrapper around another primitive. See [`decisions/2026-07-15-theme-switcher-compound-api.md`](./decisions/2026-07-15-theme-switcher-compound-api.md): `ThemeSwitcher`'s `contentProps` became `ThemeSwitcher.Content`.
-- **Composition vs data-driven**: compose children when every behavior derives from the authored children (Table, List). Take a data prop when collection-level behavior — filtering, select-all, virtualization — must operate over items that may not be mounted or even created (DataTable, SelectableList); keep _rendering_ composable via a render-prop. Never read collection facts off children via prop-sniffing or `cloneElement` injection — pass data or index-based callbacks; element sniffing only sees the outermost composed child and fails silently when a consumer wraps it.
-- **ARIA for list-shaped UI**: `role="list"` for action/navigation items — interactive content and multiple tab stops per item are fine (the no-interactive-content restriction belongs to `listbox`, not `list`). Reach for the APG grid only when rows carry selection state with real controls (`aria-selected` is invalid on `listitem`) or need single-tab-stop navigation over a large virtualized collection. Do not default to grid: screen readers treat grids as tables (coordinate announcements, table navigation), and short lists of links belong in the page's tab order.
-- **Make invalid states unrepresentable** with union types instead of runtime checks — e.g. a rich `label: ReactNode` requires `labelText: string` at the type level, so misuse is a compile error rather than a filter that silently stops matching.
-- **Custom CSS variables are API.** When a component reads a CSS variable that consumers or sibling components are meant to set (e.g. `--icon-button-border-radius`), that variable is part of the component's public API and MUST be documented in both the component's JSDoc (name, default, purpose) and the www API reference — a `CSS Variable | Default | Description` table alongside the props table. Name public variables `--{component}-{property}` and always read them with an explicit fallback (`var(--icon-button-border-radius, 0.375rem)`). Variables a component sets for its own internal use are not API and are not documented in the API reference; prefer the `--_` prefix (like `--_scroll-fade-left`) to keep them visibly private. Note the direction constraint: custom properties inherit parent→child only, so a variable can never carry a value from a composed child part to its parent's paint — for that, use an enumerated prop that renders a data attribute and gate the parent's styles with `has-data-[…]` variants.
+The questions it makes you answer **before scaffolding**, each linked to the section that decides it:
+
+- [Ship the smallest public surface](./COMPONENT_SPEC.md#12-ship-the-smallest-public-surface) — publishing later is additive; un-shipping is breaking.
+- [One component per user intent](./COMPONENT_SPEC.md#11-one-component-per-user-intent) — a variant is a prop or a sibling part, never a second component.
+- [Name parts for the DOM and ARIA they emit](./COMPONENT_SPEC.md#13-name-parts-for-the-dom-and-aria-they-emit) — standards vocabulary, not another library's; `Root` is always outermost; props read as the attribute they set.
+- [ARIA pattern words are earned, not borrowed](./COMPONENT_SPEC.md#14-aria-pattern-words-are-earned-not-borrowed) — `Menu`, `Listbox`, `Tab`, `Tree`, `Grid`, `Combobox`, `Toolbar`, `Dialog` require that role _and_ its keyboard contract. Rename the part; never add the role to justify the name.
+- [Composition vs data-driven](./COMPONENT_SPEC.md#15-composition-vs-data-driven) — data props only when behavior must reach unmounted items; never prop-sniff children.
+- [Make invalid states unrepresentable](./COMPONENT_SPEC.md#16-make-invalid-states-unrepresentable) — union types over runtime checks.
+- [Forbidden API shapes](./COMPONENT_SPEC.md#17-forbidden-api-shapes) — nested namespaces, prop bags (`contentProps`), `displayName`, `forwardRef`, `React.FC`.
+- [CSS variables](./COMPONENT_SPEC.md#5-css-variables-are-api) and [data attributes](./COMPONENT_SPEC.md#6-data-attributes-are-api) are public API and are documented in both the JSDoc and the docs-page API reference.
+
+Distilled from [`decisions/2026-07-04-list-family-api-design.md`](./decisions/2026-07-04-list-family-api-design.md) and [`decisions/2026-07-15-theme-switcher-compound-api.md`](./decisions/2026-07-15-theme-switcher-compound-api.md).
 
 ## Testing
 

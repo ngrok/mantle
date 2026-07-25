@@ -100,17 +100,19 @@ This will spin up the react-router documentation site, and is configured to watc
 
 ## Scaffolding a New Component
 
-If you use [Claude Code](https://claude.com/claude-code), the repo ships a `/scaffold-component` slash command that scaffolds a new mantle component end-to-end — component files, package.json export, docs page, route registration, navigation entry, and a changeset:
+[**COMPONENT_SPEC.md**](./COMPONENT_SPEC.md) is the standard for authoring a mantle component: the principles behind the library, the artifacts a component must ship, its API shape, JSDoc, CSS-variable and data-attribute documentation, docs page, tests, wiring, and a review checklist to lint a diff against. Read it first, whether you scaffold by hand or with the tooling below. It applies to new components and to the parts of a component you change; existing components are brought up to spec over time, not in a sweep.
+
+If you use [Claude Code](https://claude.com/claude-code), the repo ships a `/scaffold-component` slash command that implements the spec end-to-end — component files, package.json export, docs page, route registration, navigation entry, and a changeset:
 
 ```
 /scaffold-component <component-name>
 ```
 
-The command definition lives at [`.claude/commands/scaffold-component.md`](./.claude/commands/scaffold-component.md) and is also a useful reference if you'd rather scaffold a component by hand — it captures the full set of steps and conventions a new component needs.
+The command definition lives at [`.claude/commands/scaffold-component.md`](./.claude/commands/scaffold-component.md).
 
 ## Auditing an Existing Component
 
-To validate that an existing component's docs, JSDoc, and scaffold wiring still match the conventions in `/scaffold-component` — and to auto-fix common drift like missing `@see` links, missing composition trees, mislabeled `Composition` headings, or missing nav/route entries — run the `/audit-component` slash command:
+To validate that an existing component still matches [COMPONENT_SPEC.md](./COMPONENT_SPEC.md) — and to auto-fix the mechanical drift like missing `@see` links, missing composition trees, mislabeled `Composition` headings, or missing nav/route entries — run the `/audit-component` slash command:
 
 ```
 /audit-component <component-name>
