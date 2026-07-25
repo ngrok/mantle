@@ -1103,11 +1103,14 @@ MultiSelect.Root
 
 ## Polymorphism
 
-`MultiSelect.Content`, `MultiSelect.Item`, `MultiSelect.Group`, `MultiSelect.GroupLabel`, and `MultiSelect.Separator` accept `asChild`, rendering your single child in place of the part's default element while keeping its selection and keyboard behavior.
+`MultiSelect.Content`, `MultiSelect.Group`, `MultiSelect.GroupLabel`, and `MultiSelect.Separator` accept `asChild`, rendering your single child in place of the part's default element while keeping its selection and keyboard behavior.
 
-`MultiSelect.Item asChild` is the useful one: it lets an option carry your own layout — a [`MediaObject`](/components/structure/media-object) with an avatar, say — while the item stays selectable and keyboard-navigable. `MultiSelect.GroupLabel asChild` helps when a group heading must be a specific element for the page's outline.
+`MultiSelect.GroupLabel asChild` is the useful one — reach for it when a group heading must be a specific element for the page's outline. `MultiSelect.Content asChild` lets you own the popover panel element.
 
 The trigger-side parts (`MultiSelect.Root`, `Trigger`, `Input`, `Tag`, `TagValues`) own input and tag behavior that depends on the elements they render, so they do not accept `asChild`.
+
+> [!WARNING]
+> `MultiSelect.Item` advertises `asChild` in its prop types but **throws at runtime** (`React.Children.only expected to receive a single React element child`). The item renders its own check indicator alongside your children, so the slot receives two. To give an option a custom layout, pass it as `children` — a [`MediaObject`](/components/structure/media-object) with an avatar, say — which is unrestricted.
 
 ## API Reference
 
