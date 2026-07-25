@@ -71,6 +71,34 @@ describe("composeRefs", () => {
 		expect(objectRef.current).toBeNull();
 	});
 
+	test("invokes every inner cleanup on unmount, not just the first", () => {
+		const firstCleanup = vi.fn<() => void>();
+		const secondCleanup = vi.fn<() => void>();
+		const firstCleanupRef = vi.fn<(node: HTMLDivElement | null) => () => void>(() => firstCleanup);
+		const secondCleanupRef = vi.fn<(node: HTMLDivElement | null) => () => void>(
+			() => secondCleanup,
+		);
+		// Sits between the two cleanup refs so an index-misaligned cleanup loop is visible here too.
+		const plainCallbackRef = vi.fn<(node: HTMLDivElement | null) => void>();
+
+		const { unmount } = render(
+			<div
+				ref={composeRefs<HTMLDivElement>(firstCleanupRef, plainCallbackRef, secondCleanupRef)}
+			/>,
+		);
+
+		expect(firstCleanup).not.toHaveBeenCalled();
+		expect(secondCleanup).not.toHaveBeenCalled();
+
+		unmount();
+
+		expect(firstCleanup).toHaveBeenCalledTimes(1);
+		expect(secondCleanup).toHaveBeenCalledTimes(1);
+		expect(firstCleanupRef).not.toHaveBeenCalledWith(null);
+		expect(secondCleanupRef).not.toHaveBeenCalledWith(null);
+		expect(plainCallbackRef).toHaveBeenLastCalledWith(null);
+	});
+
 	test("legacy path: calls callback refs with null on unmount when no inner ref returns a cleanup", () => {
 		const callbackRef = vi.fn<(node: HTMLDivElement | null) => void>();
 		const objectRef = createRef<HTMLDivElement>();
@@ -141,5 +169,29 @@ describe("useComposedRefs", () => {
 		expect(cleanupRef).toHaveBeenCalledTimes(1);
 		expect(cleanupRef).not.toHaveBeenCalledWith(null);
 		expect(objectRef.current).toBeNull();
+	});
+
+	test("cleanup targets the refs captured when React attached the node, not the latest ones", () => {
+		const cleanupRef = vi.fn<(node: HTMLDivElement | null) => () => void>(() => () => {});
+		const attachedCallbackRef = vi.fn<(node: HTMLDivElement | null) => void>();
+		const laterCallbackRef = vi.fn<(node: HTMLDivElement | null) => void>();
+
+		function TestComponent(props: { plainRef: Ref<HTMLDivElement> }) {
+			const composedRef = useComposedRefs<HTMLDivElement>(cleanupRef, props.plainRef);
+			return <div ref={composedRef} />;
+		}
+
+		const { rerender, unmount } = render(<TestComponent plainRef={attachedCallbackRef} />);
+
+		expect(attachedCallbackRef).toHaveBeenCalledTimes(1);
+
+		// The composed ref identity is stable, so React never re-attaches: `laterCallbackRef` is
+		// swapped in without ever receiving the node, and the cleanup still owns the attached set.
+		rerender(<TestComponent plainRef={laterCallbackRef} />);
+		unmount();
+
+		expect(attachedCallbackRef).toHaveBeenCalledTimes(2);
+		expect(attachedCallbackRef).toHaveBeenLastCalledWith(null);
+		expect(laterCallbackRef).not.toHaveBeenCalled();
 	});
 });

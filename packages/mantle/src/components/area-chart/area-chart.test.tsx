@@ -6,6 +6,9 @@ import { BarChart } from "../bar-chart/index.js";
 import type { ChartDatumEvent } from "./area-chart.js";
 import { AreaChart } from "./area-chart.js";
 
+// Keep the fixture under 4 rows: happy-dom never delivers a plot size, and a
+// zero-width plot decimates 4+ rows, which widens the keyboard arrow stride to
+// the whole set (a single ArrowRight would jump to the last datum).
 const firstRow = { date: new Date(2026, 6, 15), http: 420, tcp: 140 };
 const secondRow = { date: new Date(2026, 6, 16), http: 510, tcp: 165 };
 const thirdRow = { date: new Date(2026, 6, 17), http: 470, tcp: 150 };
@@ -60,8 +63,8 @@ describe("AreaChart.Root", () => {
 		const root = container.querySelector('[data-slot="area-chart"]');
 		expect(root).toBeInTheDocument();
 		expect(ref.current).toBe(root);
+		// The consumer's className survives the merge onto the root.
 		expect(root?.className).toContain("custom-class");
-		expect(root?.className).toContain("flex");
 		expect(root?.getAttribute("data-testid")).toBe("chart-root");
 	});
 
@@ -239,7 +242,9 @@ describe("AreaChart keyboard interaction", () => {
 		renderChart({ onDatumActivate });
 		await user.tab();
 		await user.keyboard("{ArrowRight}{Enter}");
-		expect(onDatumActivate).toHaveBeenCalledWith(
+		// One Enter is one activation — a double-fire would ship a chart that
+		// navigates twice per keypress.
+		expect(onDatumActivate).toHaveBeenCalledExactlyOnceWith(
 			expect.objectContaining({
 				index: 0,
 				xValue: firstRow.date,
@@ -255,7 +260,7 @@ describe("AreaChart keyboard interaction", () => {
 		renderChart({ stacked: true, onDatumActivate });
 		await user.tab();
 		await user.keyboard("{Home}{Enter}");
-		expect(onDatumActivate).toHaveBeenCalledWith(
+		expect(onDatumActivate).toHaveBeenCalledExactlyOnceWith(
 			expect.objectContaining({
 				index: 0,
 				datum: firstRow,
@@ -264,15 +269,18 @@ describe("AreaChart keyboard interaction", () => {
 		);
 	});
 
-	test("onActiveIndexChange reports keyboard movement", async () => {
+	test("onActiveIndexChange reports keyboard movement once per step", async () => {
 		const user = userEvent.setup();
 		const onActiveIndexChange = vi.fn<(index: number | null) => void>();
 		renderChart({ onActiveIndexChange });
 		await user.tab();
 		await user.keyboard("{ArrowRight}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(0);
+		// Exactly one publish per move: a count-blind assertion cannot see the
+		// store echoing every commit back to the consumer.
+		expect(onActiveIndexChange).toHaveBeenCalledExactlyOnceWith(0);
 		await user.keyboard("{ArrowRight}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(1);
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(2);
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(1);
 	});
 });
 

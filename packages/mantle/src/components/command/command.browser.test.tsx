@@ -43,13 +43,15 @@ describe("Command.Dialog (browser)", () => {
 			render(<CommandDialogSubject initialOpen />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Test Command Palette")).toBeInTheDocument();
+				expect(screen.getByRole("dialog", { name: "Test Command Palette" })).toBeInTheDocument();
 			});
 
 			await user.keyboard("{Escape}");
 
 			await waitFor(() => {
-				expect(screen.queryByText("Test Command Palette")).not.toBeInTheDocument();
+				expect(
+					screen.queryByRole("dialog", { name: "Test Command Palette" }),
+				).not.toBeInTheDocument();
 			});
 		});
 
@@ -67,12 +69,14 @@ describe("Command.Dialog (browser)", () => {
 				</Command.DialogRoot>,
 			);
 
-			expect(screen.queryByText("Test Command Palette")).not.toBeInTheDocument();
+			expect(
+				screen.queryByRole("dialog", { name: "Test Command Palette" }),
+			).not.toBeInTheDocument();
 
 			await user.click(screen.getByRole("button", { name: "Open" }));
 
 			await waitFor(() => {
-				expect(screen.getByText("Test Command Palette")).toBeInTheDocument();
+				expect(screen.getByRole("dialog", { name: "Test Command Palette" })).toBeInTheDocument();
 			});
 		});
 
@@ -81,13 +85,15 @@ describe("Command.Dialog (browser)", () => {
 			render(<CommandDialogSubject initialOpen />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Test Command Palette")).toBeInTheDocument();
+				expect(screen.getByRole("dialog", { name: "Test Command Palette" })).toBeInTheDocument();
 			});
 
 			await user.click(screen.getByRole("button", { name: "Close Dialog" }));
 
 			await waitFor(() => {
-				expect(screen.queryByText("Test Command Palette")).not.toBeInTheDocument();
+				expect(
+					screen.queryByRole("dialog", { name: "Test Command Palette" }),
+				).not.toBeInTheDocument();
 			});
 		});
 	});
@@ -97,7 +103,7 @@ describe("Command.Dialog (browser)", () => {
 			render(<CommandDialogSubject initialOpen />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Test Command Palette")).toBeInTheDocument();
+				expect(screen.getByRole("dialog", { name: "Test Command Palette" })).toBeInTheDocument();
 			});
 
 			expect(document.querySelector("[data-slot='command-separator']")).toBeInTheDocument();
@@ -108,7 +114,7 @@ describe("Command.Dialog (browser)", () => {
 			render(<CommandDialogSubject initialOpen />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Test Command Palette")).toBeInTheDocument();
+				expect(screen.getByRole("dialog", { name: "Test Command Palette" })).toBeInTheDocument();
 			});
 
 			await user.type(screen.getByPlaceholderText("Type a command or search..."), "cal");
@@ -123,7 +129,7 @@ describe("Command.Dialog (browser)", () => {
 			render(<CommandDialogSubject initialOpen />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Test Command Palette")).toBeInTheDocument();
+				expect(screen.getByRole("dialog", { name: "Test Command Palette" })).toBeInTheDocument();
 			});
 
 			const input = screen.getByPlaceholderText("Type a command or search...");

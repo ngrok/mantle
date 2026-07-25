@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
+import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import mantleCss from "../../mantle.css?raw";
 import type * as UseBreakpointModule from "../../hooks/use-breakpoint.js";
@@ -47,14 +48,23 @@ describe("Sidebar.Nav (desktop)", () => {
 		const ref = createRef<HTMLDivElement>();
 		render(
 			<Sidebar.Root>
-				<Sidebar.Nav className="custom-class" data-testid="nav" data-flavor="primary" ref={ref} />
+				<Sidebar.Nav
+					className="bg-card custom-class"
+					data-testid="nav"
+					data-flavor="primary"
+					ref={ref}
+				/>
 			</Sidebar.Root>,
 		);
 		const surface = screen.getByTestId("nav");
 		expect(surface).toHaveAttribute("data-slot", "sidebar-nav");
 		expect(surface).toHaveAttribute("data-state", "expanded");
 		expect(surface).toHaveAttribute("data-flavor", "primary");
-		expect(surface.className).toContain("custom-class");
+		// The background deliberately lives on this surface rather than the inner
+		// <nav> so a consumer `bg-*` replaces it outright (tailwind-merge) instead
+		// of being painted over by mantle's default.
+		expect(surface).toHaveClass("bg-card", "custom-class");
+		expect(surface).not.toHaveClass("bg-base");
 		expect(ref.current).toBe(surface);
 	});
 
@@ -345,6 +355,58 @@ describe("Sidebar collapse", () => {
 	});
 });
 
+describe("Sidebar.Nav (pre-hydration)", () => {
+	// The server cannot know the viewport, so `isMobile` is desktop-first and the
+	// server always emits the desktop panel — CSS is the only thing keeping it off
+	// a narrow first paint, because no mobile sheet exists until hydration. That
+	// branch is unreachable from a client render (useIsHydrated is already true on
+	// the first commit), so drive it through renderToString.
+	test.each([
+		{ mobileBreakpoint: "sm", visibility: "hidden sm:block" },
+		{ mobileBreakpoint: "md", visibility: "hidden md:block" },
+		{ mobileBreakpoint: "lg", visibility: "hidden lg:block" },
+	] as const)(
+		"mobileBreakpoint=$mobileBreakpoint hides the server-rendered panel with $visibility",
+		({ mobileBreakpoint, visibility }) => {
+			const html = renderToString(
+				<Sidebar.Root mobileBreakpoint={mobileBreakpoint}>
+					<Sidebar.Nav />
+				</Sidebar.Root>,
+			);
+			expect(html).toContain('data-slot="sidebar-nav"');
+			// These responsive utilities ARE the pre-hydration gate — the whole
+			// mechanism is CSS, there is no attribute mirroring it, and a server
+			// render exposes nothing but its HTML. Mapping breakpoint → variant is
+			// the only way the wrong-breakpoint bug (panel hidden on the exact
+			// widths where no sheet exists yet) can be caught at all.
+			expect(html).toContain(visibility);
+			// the hydration gates are the other half of the contract: no
+			// data-hydrated for descendants to key off, and no width transition, so
+			// an SSR state correction snaps instead of animating shut on load
+			expect(html).not.toContain("data-hydrated");
+			expect(html).not.toContain("transition-[width]");
+		},
+	);
+
+	test("drops the visibility gate once hydrated so the panel is never hidden with no sheet", () => {
+		render(
+			<Sidebar.Root mobileBreakpoint="lg">
+				<Sidebar.Nav data-testid="nav" />
+			</Sidebar.Root>,
+		);
+		const nav = screen.getByTestId("nav");
+		expect(nav).toHaveAttribute("data-hydrated");
+		// Both classes are the contract itself and have no attribute twin, so they
+		// are asserted directly — and each is the positive half of the pre-hydration
+		// case above. Keeping `hidden lg:block` after hydration would leave the
+		// sliver of widths between Tailwind's min-width variant and the hook's
+		// max-width query with a rendered-but-invisible panel and no sheet;
+		// `transition-[width]` must come back, or the collapse never animates.
+		expect(nav).not.toHaveClass("hidden");
+		expect(nav).toHaveClass("transition-[width]");
+	});
+});
+
 describe("--sidebar-row-width", () => {
 	// The token is public API for surfaces that render OUTSIDE the panel: a
 	// switcher's menu is portaled to document.body, so it inherits nothing the
@@ -379,10 +441,12 @@ describe("--sidebar-row-width", () => {
 			</DropdownMenu.Root>,
 		);
 		const menu = screen.getByTestId("menu");
-		expect(menu.className).toContain("min-w-(--sidebar-row-width)");
+		// toHaveClass matches whole class tokens, so `min-w-32` cannot pass by
+		// being a substring of some other utility
+		expect(menu).toHaveClass("min-w-(--sidebar-row-width)");
 		// the trigger width survives beside the floor — min-width clamps it up
-		expect(menu.className).toContain("w-(--radix-dropdown-menu-trigger-width)");
-		expect(menu.className).not.toContain("min-w-32");
+		expect(menu).toHaveClass("w-(--radix-dropdown-menu-trigger-width)");
+		expect(menu).not.toHaveClass("min-w-32");
 	});
 
 	// A spelling pin, not a layout assertion (happy-dom lays nothing out): change
@@ -391,13 +455,20 @@ describe("--sidebar-row-width", () => {
 	test("the 1rem it subtracts is the padding Header, Body, and Footer all apply", () => {
 		render(
 			<Sidebar.Root>
-				<Sidebar.Nav>
+				<Sidebar.Nav data-testid="nav">
 					<Sidebar.Header data-testid="header" />
 					<Sidebar.Body data-testid="body" />
 					<Sidebar.Footer data-testid="footer" />
 				</Sidebar.Nav>
 			</Sidebar.Root>,
 		);
+		// The other half of the pair: the regions' `group-data-[state=expanded]/sidebar-nav:`
+		// variant only resolves because the panel names the group `sidebar-nav` AND
+		// carries data-state. Renaming either side silently drops the trailing trim
+		// with every other assertion still green, so assert both together.
+		const nav = screen.getByTestId("nav");
+		expect(nav).toHaveClass("group/sidebar-nav");
+		expect(nav).toHaveAttribute("data-state", "expanded");
 		for (const region of ["header", "body", "footer"]) {
 			// px-3 (0.75rem) plus the expanded pr-1 (0.25rem) is the 1rem the token
 			// subtracts, so a row spans --sidebar-width minus exactly that.
@@ -458,7 +529,9 @@ describe("Sidebar.Nav (mobile)", () => {
 		expect(screen.getByRole("dialog", { name: "Main" })).toBeInTheDocument();
 
 		await user.keyboard("{Escape}");
-		expect(onOpenMobileChange).toHaveBeenCalledWith(false);
+		expect(onOpenMobileChange).toHaveBeenCalledExactlyOnceWith(false);
+		// controlled: the parent kept openMobile, so the sheet stays mounted
+		expect(screen.getByRole("dialog", { name: "Main" })).toBeInTheDocument();
 	});
 
 	test("uses the root mobileBreakpoint for the media query", () => {
@@ -467,7 +540,10 @@ describe("Sidebar.Nav (mobile)", () => {
 				<Sidebar.Nav />
 			</Sidebar.Root>,
 		);
-		expect(useIsBelowBreakpointMock).toHaveBeenCalledWith("md");
+		// the hook runs once per render, so pin the argument rather than a count —
+		// and prove the default is not also queried alongside the override
+		expect(useIsBelowBreakpointMock).toHaveBeenLastCalledWith("md");
+		expect(useIsBelowBreakpointMock).not.toHaveBeenCalledWith("lg");
 	});
 
 	test("defaults the media query to the lg breakpoint", () => {
@@ -476,7 +552,7 @@ describe("Sidebar.Nav (mobile)", () => {
 				<Sidebar.Nav />
 			</Sidebar.Root>,
 		);
-		expect(useIsBelowBreakpointMock).toHaveBeenCalledWith("lg");
+		expect(useIsBelowBreakpointMock).toHaveBeenLastCalledWith("lg");
 	});
 
 	test("clears a stale open sheet when the viewport leaves mobile", async () => {
@@ -489,7 +565,7 @@ describe("Sidebar.Nav (mobile)", () => {
 			</Sidebar.Root>,
 		);
 		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
-		expect(onOpenMobileChange).toHaveBeenCalledWith(true);
+		expect(onOpenMobileChange).toHaveBeenCalledExactlyOnceWith(true);
 		expect(screen.getByRole("dialog", { name: "Main" })).toBeInTheDocument();
 
 		useIsBelowBreakpointMock.mockReturnValue(false);
@@ -499,6 +575,9 @@ describe("Sidebar.Nav (mobile)", () => {
 				<Sidebar.Trigger />
 			</Sidebar.Root>,
 		);
+		// exactly one reset, not a loop of them: the effect fires on the
+		// mobile→desktop transition only
+		expect(onOpenMobileChange).toHaveBeenCalledTimes(2);
 		expect(onOpenMobileChange).toHaveBeenLastCalledWith(false);
 		expect(screen.queryByRole("dialog", { name: "Main" })).not.toBeInTheDocument();
 	});
@@ -619,17 +698,22 @@ describe("Sidebar.Group + GroupLabel + List", () => {
 		expect(screen.queryByRole("heading")).not.toBeInTheDocument();
 	});
 
-	test("GroupLabel asChild renders a consumer heading with the label styles", () => {
+	test("GroupLabel asChild keeps the slot and merges the consumer's own className", () => {
 		render(
 			<Sidebar.Group>
 				<Sidebar.GroupLabel asChild>
-					<h4 data-testid="label">Traffic</h4>
+					<h4 className="custom-class" data-testid="label">
+						Traffic
+					</h4>
 				</Sidebar.GroupLabel>
 			</Sidebar.Group>,
 		);
 		const label = screen.getByRole("heading", { level: 4, name: "Traffic" });
 		expect(label).toHaveAttribute("data-slot", "sidebar-group-label");
-		expect(label.className).toContain("text-muted");
+		// Slot merges rather than replaces: the child keeps its own class while the
+		// part's recipe also lands on it
+		expect(label).toHaveClass("custom-class");
+		expect(label.className).not.toBe("custom-class");
 	});
 
 	// The docs' Polymorphism example swaps the label element; the group's naming
@@ -681,7 +765,7 @@ describe("Sidebar.Item + ItemButton", () => {
 
 	test("asChild composes a router-style link and keeps the row contract", () => {
 		render(
-			<Sidebar.ItemButton asChild current className="custom-class">
+			<Sidebar.ItemButton asChild current className="rounded-none custom-class">
 				<a href="/endpoints">Endpoints</a>
 			</Sidebar.ItemButton>,
 		);
@@ -689,20 +773,22 @@ describe("Sidebar.Item + ItemButton", () => {
 		expect(link).toHaveAttribute("aria-current", "page");
 		expect(link).toHaveAttribute("data-slot", "sidebar-item-button");
 		expect(link).not.toHaveAttribute("type");
-		expect(link.className).toContain("custom-class");
-		expect(link.className).toContain("rounded-md");
+		// tailwind-merge contract: a consumer radius replaces the row's own
+		// instead of losing to it, and unrelated classes are just added
+		expect(link).toHaveClass("rounded-none", "custom-class");
+		expect(link).not.toHaveClass("rounded-md");
 	});
 });
 
 describe("Sidebar.SwitcherTrigger", () => {
-	test("renders a type=button styled row by default", () => {
+	test("renders a type=button row carrying the switcher slot by default", () => {
 		render(<Sidebar.SwitcherTrigger>Acme Corp</Sidebar.SwitcherTrigger>);
 		const button = screen.getByRole("button", { name: "Acme Corp" });
 		expect(button).toHaveAttribute("type", "button");
 		expect(button).toHaveAttribute("data-slot", "sidebar-switcher-trigger");
 	});
 
-	test("asChild renders the consumer element with the switcher styles", () => {
+	test("asChild renders the consumer element with the switcher slot and no button type", () => {
 		render(
 			<Sidebar.SwitcherTrigger asChild>
 				<a href="/switch">Acme Corp</a>
@@ -710,6 +796,7 @@ describe("Sidebar.SwitcherTrigger", () => {
 		);
 		const link = screen.getByRole("link", { name: "Acme Corp" });
 		expect(link).toHaveAttribute("data-slot", "sidebar-switcher-trigger");
+		// an anchor must not inherit the default type="button" the button branch adds
 		expect(link).not.toHaveAttribute("type");
 	});
 });
@@ -753,26 +840,38 @@ describe("switch-accounts recipe (composition)", () => {
 });
 
 describe("Sidebar.Separator", () => {
-	test("renders a decorative inset separator", () => {
+	test("renders a decorative horizontal separator carrying the sidebar slot", () => {
 		render(<Sidebar.Separator data-testid="separator" />);
 		const separator = screen.getByTestId("separator");
+		// decorative by default: role="none" keeps it out of the a11y tree, and it
+		// must not announce itself as a semantic separator
 		expect(separator).toHaveAttribute("role", "none");
+		expect(separator).not.toHaveAttribute("aria-orientation");
+		expect(screen.queryByRole("separator")).not.toBeInTheDocument();
+		// the sidebar slot replaces the base Separator's own, so consumer CSS can
+		// target this hairline specifically
 		expect(separator).toHaveAttribute("data-slot", "sidebar-separator");
-		// inset: aligned with the px-3 content padding, never edge to edge
-		expect(separator.className).toContain("my-3");
-		expect(separator.className).not.toContain("-mx-3");
+		expect(separator).toHaveAttribute("data-orientation", "horizontal");
+	});
+
+	test("semantic renders an announced separator", () => {
+		render(<Sidebar.Separator semantic data-testid="separator" />);
+		expect(screen.getByRole("separator")).toBe(screen.getByTestId("separator"));
 	});
 });
 
-function renderedSwatchClass(accountId: string): string {
+function renderedSwatchClass(accountId: string | undefined): string {
 	const { unmount } = render(
-		<Sidebar.AccountAvatar data-testid={accountId} accountId={accountId} accountName="Test" />,
+		<Sidebar.AccountAvatar data-testid="avatar" accountId={accountId} accountName="Test" />,
 	);
-	const avatar = screen.getByTestId(accountId);
-	const swatch = Array.from(avatar.classList).find((name) => name.startsWith("bg-"));
+	const swatch = Array.from(screen.getByTestId("avatar").classList).find((name) =>
+		name.startsWith("bg-"),
+	);
 	unmount();
-	expect(swatch).toBeDefined();
-	return swatch ?? "";
+	if (swatch == null) {
+		throw new Error(`AccountAvatar rendered no bg-* swatch for accountId ${accountId}`);
+	}
+	return swatch;
 }
 
 describe("Sidebar.AccountAvatar", () => {
@@ -807,6 +906,31 @@ describe("Sidebar.AccountAvatar", () => {
 		const first = renderedSwatchClass("acc_stable");
 		const second = renderedSwatchClass("acc_stable");
 		expect(first).toBe(second);
+	});
+
+	// Pinning id → swatch is what makes the derivation testable at all: the class
+	// IS the output of `djb2Hash(id) >>> 0` modulo the palette length, indexed
+	// into a tuple whose hue order the implementation documents as load-bearing.
+	// "the same id twice agrees" holds for any constant — including the
+	// `?? "bg-neutral-500"` grey every account falls back to if the `>>> 0`
+	// (or the modulo's positivity) ever goes away, since most ids then index
+	// negatively.
+	test.each([
+		["acc_acme", "bg-emerald-500"],
+		["acc_atlas", "bg-purple-500"],
+		["acc_stable", "bg-green-500"],
+		["acc_1", "bg-blue-500"],
+	] as const)("accountId=%s picks %s", (accountId, expected) => {
+		expect(renderedSwatchClass(accountId)).toBe(expected);
+	});
+
+	test("different accountIds pick different swatches", () => {
+		expect(renderedSwatchClass("acc_acme")).not.toBe(renderedSwatchClass("acc_atlas"));
+	});
+
+	test("a missing accountId resolves like the empty string", () => {
+		expect(renderedSwatchClass(undefined)).toBe(renderedSwatchClass(""));
+		expect(renderedSwatchClass(undefined)).toBe("bg-orange-500");
 	});
 });
 

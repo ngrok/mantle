@@ -77,12 +77,56 @@ describe("normalizeToCube", () => {
 });
 
 describe("cube geometry", () => {
-	test("8 corners, 12 edges, every edge endpoint in range", () => {
-		expect(CUBE_CORNERS).toHaveLength(8);
+	test("8 corners: every ±1 combination exactly once", () => {
+		expect(CUBE_CORNERS.map((corner) => corner.join(",")).toSorted()).toEqual([
+			"-1,-1,-1",
+			"-1,-1,1",
+			"-1,1,-1",
+			"-1,1,1",
+			"1,-1,-1",
+			"1,-1,1",
+			"1,1,-1",
+			"1,1,1",
+		]);
+	});
+
+	test("12 unique edges, each corner in exactly three of them", () => {
+		// The property that makes the wireframe a cube. A typo in either endpoint
+		// slot (`[0, 4]` → `[8, 4]`) indexes past CUBE_CORNERS and the 3D scatter
+		// silently drops or NaN-paints that edge.
 		expect(CUBE_EDGES).toHaveLength(12);
+		const degrees = new Map<number, number>();
 		for (const [from, to] of CUBE_EDGES) {
-			expect(from).toBeGreaterThanOrEqual(0);
-			expect(to).toBeLessThan(8);
+			for (const endpoint of [from, to]) {
+				expect(endpoint).toBeGreaterThanOrEqual(0);
+				expect(endpoint).toBeLessThan(CUBE_CORNERS.length);
+				degrees.set(endpoint, (degrees.get(endpoint) ?? 0) + 1);
+			}
+			expect(from).not.toBe(to);
+		}
+		const undirected = new Set(CUBE_EDGES.map(([from, to]) => [from, to].toSorted().join("-")));
+		expect(undirected.size).toBe(12);
+		expect([...degrees.entries()].toSorted(([a], [b]) => a - b)).toEqual([
+			[0, 3],
+			[1, 3],
+			[2, 3],
+			[3, 3],
+			[4, 3],
+			[5, 3],
+			[6, 3],
+			[7, 3],
+		]);
+	});
+
+	test("every edge joins two corners differing in exactly one axis", () => {
+		for (const [from, to] of CUBE_EDGES) {
+			const start = CUBE_CORNERS[from];
+			const end = CUBE_CORNERS[to];
+			if (start == null || end == null) {
+				throw new Error(`edge [${from}, ${to}] references a corner that does not exist`);
+			}
+			const differing = start.filter((value, axis) => value !== end[axis]);
+			expect(differing).toHaveLength(1);
 		}
 	});
 });

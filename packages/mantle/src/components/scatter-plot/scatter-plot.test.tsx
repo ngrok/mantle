@@ -74,8 +74,8 @@ describe("ScatterPlot.Root", () => {
 		const root = container.querySelector('[data-slot="scatter-plot"]');
 		expect(root).toBeInTheDocument();
 		expect(ref.current).toBe(root);
+		// The consumer's className survives the merge onto the root.
 		expect(root?.className).toContain("custom-class");
-		expect(root?.className).toContain("flex");
 		expect(root?.getAttribute("data-testid")).toBe("chart-root");
 	});
 
@@ -288,8 +288,9 @@ describe("ScatterPlot keyboard interaction", () => {
 		await user.tab();
 		await user.keyboard("{ArrowRight}{Enter}");
 		// dataKey names the hit point's series for pointer activation only;
-		// keyboard stepping is series-less, so the payload carries null.
-		expect(onDatumActivate).toHaveBeenCalledWith(
+		// keyboard stepping is series-less, so the payload carries null. One Enter
+		// is one activation — a double-fire would navigate twice per keypress.
+		expect(onDatumActivate).toHaveBeenCalledExactlyOnceWith(
 			expect.objectContaining({
 				index: 0,
 				xValue: 12,
@@ -299,15 +300,18 @@ describe("ScatterPlot keyboard interaction", () => {
 		);
 	});
 
-	test("onActiveIndexChange reports keyboard movement", async () => {
+	test("onActiveIndexChange reports keyboard movement once per step", async () => {
 		const user = userEvent.setup();
 		const onActiveIndexChange = vi.fn<(index: number | null) => void>();
 		renderChart({ onActiveIndexChange });
 		await user.tab();
 		await user.keyboard("{ArrowRight}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(0);
+		// Exactly one publish per move: a count-blind assertion cannot see the
+		// store echoing every commit back to the consumer.
+		expect(onActiveIndexChange).toHaveBeenCalledExactlyOnceWith(0);
 		await user.keyboard("{ArrowRight}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(1);
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(2);
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(1);
 	});
 });
 

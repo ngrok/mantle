@@ -49,7 +49,7 @@ describe("List.Item", () => {
 		expect(link).toHaveAttribute("data-slot", "list-item-control");
 	});
 
-	test("asChild conveys disabled inertly (aria-disabled + removed from tab order + no pointer events)", () => {
+	test("asChild conveys disabled inertly (aria-disabled + removed from tab order)", () => {
 		render(
 			<List.Root aria-label="Accounts">
 				<List.Item asChild disabled>
@@ -58,12 +58,12 @@ describe("List.Item", () => {
 			</List.Root>,
 		);
 		// `aria-disabled` alone is advisory, so a disabled <a> (which can't take the
-		// real `disabled` attribute) is also pulled out of the tab order and has its
-		// pointer events blocked, so it can't be clicked or Enter-activated.
+		// real `disabled` attribute) is also pulled out of the tab order — it can't
+		// be Tab-reached and Enter-activated. (The `pointer-events` half of the
+		// treatment needs real styles: see `list.browser.test.tsx`.)
 		const link = screen.getByRole("link", { name: "Account" });
 		expect(link).toHaveAttribute("aria-disabled", "true");
 		expect(link).toHaveAttribute("tabindex", "-1");
-		expect(link.className).toContain("aria-disabled:pointer-events-none");
 	});
 
 	test("a disabled asChild link swallows activation (AT dispatches clicks without hit testing)", () => {
@@ -100,6 +100,23 @@ describe("List.Item", () => {
 		expect(screen.getByRole("button", { name: "Other" })).not.toHaveAttribute("aria-current");
 	});
 
+	test("keeps a consumer's onClickCapture on an enabled item (only the disabled asChild guard replaces it)", () => {
+		// The disabled-asChild guard is installed *as* `onClickCapture`, after the
+		// prop spread — so the enabled branch has to hand a consumer's own capture
+		// handler back or it is silently dropped.
+		const onClickCapture = vi.fn<() => void>();
+		render(
+			<List.Root aria-label="Accounts">
+				<List.Item asChild onClickCapture={onClickCapture}>
+					<a href="#a">Account</a>
+				</List.Item>
+			</List.Root>,
+		);
+
+		fireEvent.click(screen.getByRole("link", { name: "Account" }));
+		expect(onClickCapture).toHaveBeenCalledTimes(1);
+	});
+
 	test("throws a helpful error when rendered outside a Root", () => {
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 		try {
@@ -109,5 +126,33 @@ describe("List.Item", () => {
 		} finally {
 			errorSpy.mockRestore();
 		}
+	});
+});
+
+describe("List.ItemTitle / List.ItemDescription", () => {
+	test("stamp their data-slot on a span and let a consumer className win over the default", () => {
+		render(
+			<List.Root aria-label="Accounts">
+				<List.Item onClick={() => {}}>
+					<List.ItemTitle className="font-normal">Acme Inc</List.ItemTitle>
+					<List.ItemDescription className="leading-6">Pay-as-you-go</List.ItemDescription>
+				</List.Item>
+			</List.Root>,
+		);
+
+		const title = screen.getByText("Acme Inc");
+		expect(title).toHaveAttribute("data-slot", "list-item-title");
+		expect(title.tagName).toBe("SPAN");
+		// tailwind-merge override contract: the consumer's weight replaces the
+		// part's `font-medium` default instead of landing beside it, where source
+		// order would decide the winner.
+		expect(title).toHaveClass("font-normal");
+		expect(title).not.toHaveClass("font-medium");
+
+		const description = screen.getByText("Pay-as-you-go");
+		expect(description).toHaveAttribute("data-slot", "list-item-description");
+		expect(description.tagName).toBe("SPAN");
+		expect(description).toHaveClass("leading-6");
+		expect(description).not.toHaveClass("leading-4");
 	});
 });

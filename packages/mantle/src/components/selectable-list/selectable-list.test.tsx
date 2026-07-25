@@ -406,6 +406,66 @@ describe("SelectableList.Empty", () => {
 	});
 });
 
+describe("SelectableList viewport emptiness", () => {
+	/**
+	 * A viewport paired with `Empty`, so the grid's unmount and the live region's
+	 * announcement can be observed together.
+	 */
+	const FilteredViewport = ({ virtual = false }: { virtual?: boolean }) => (
+		<SelectableList.Root options={options} defaultValue={[]}>
+			<SelectableList.Filter aria-label="Filter fruit" />
+			{virtual ? (
+				<SelectableList.VirtualViewport aria-label="Fruit" />
+			) : (
+				<SelectableList.Viewport aria-label="Fruit" />
+			)}
+			<SelectableList.Empty>No fruit found.</SelectableList.Empty>
+		</SelectableList.Root>
+	);
+
+	for (const virtual of [false, true]) {
+		const part = virtual ? "VirtualViewport" : "Viewport";
+
+		test(`${part} unmounts entirely when the filter matches nothing, leaving only the status message`, async () => {
+			const user = userEvent.setup();
+			render(<FilteredViewport virtual={virtual} />);
+
+			expect(screen.getByRole("grid", { name: "Fruit" })).toBeInTheDocument();
+
+			await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), "zzz");
+
+			// An empty grid would still be a tab stop announcing "aria-multiselectable"
+			// next to the empty-state message, so it must go away completely.
+			expect(screen.queryByRole("grid")).not.toBeInTheDocument();
+			expect(screen.queryAllByRole("row")).toHaveLength(0);
+			expect(screen.getByRole("status")).toHaveTextContent("No fruit found.");
+
+			// Clearing the filter brings the grid back.
+			await user.clear(screen.getByRole("textbox", { name: "Filter fruit" }));
+			expect(screen.getByRole("grid", { name: "Fruit" })).toBeInTheDocument();
+		});
+
+		test(`${part} unmounts when a render-prop drops every matching row`, () => {
+			// Emptiness is measured from the rows that actually rendered, not from the
+			// filtered options — otherwise empty grid chrome would stay mounted.
+			render(
+				<SelectableList.Root options={options} defaultValue={[]}>
+					{virtual ? (
+						<SelectableList.VirtualViewport aria-label="Fruit">
+							{() => null}
+						</SelectableList.VirtualViewport>
+					) : (
+						<SelectableList.Viewport aria-label="Fruit">{() => null}</SelectableList.Viewport>
+					)}
+				</SelectableList.Root>,
+			);
+
+			expect(screen.queryByRole("grid")).not.toBeInTheDocument();
+			expect(screen.queryAllByRole("row")).toHaveLength(0);
+		});
+	}
+});
+
 describe("SelectableList parts outside Root", () => {
 	test("throw a helpful error", () => {
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});

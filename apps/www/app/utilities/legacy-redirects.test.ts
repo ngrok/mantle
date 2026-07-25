@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { prodReadyComponentRouteLookup } from "~/components/navigation-data";
 import { legacyRedirectFor } from "./legacy-redirects";
 
 describe("legacyRedirectFor", () => {
@@ -10,7 +11,26 @@ describe("legacyRedirectFor", () => {
 		expect(legacyRedirectFor("/components/data-table")).toBe("/components/data-display/data-table");
 	});
 
+	// The derivation destructures exactly four segments out of each route, so an
+	// entry with any other shape produces a junk key ("components/undefined") and
+	// silently loses its legacy URL. Driving the whole lookup is what makes that
+	// visible the day someone adds a 3- or 5-segment entry.
 	it("covers every categorized component, including multi-segment leaves", () => {
+		const routes = Object.values(prodReadyComponentRouteLookup);
+		expect(routes.length).toBeGreaterThan(0);
+
+		for (const route of routes) {
+			const segments = route.split("/");
+			expect(segments).toHaveLength(4);
+			expect(legacyRedirectFor(`/components/${segments[3]}`)).toBe(route);
+			expect(legacyRedirectFor(`/components/${segments[3]}.md`)).toBe(`${route}.md`);
+		}
+	});
+
+	it("derives no legacy slug from a malformed route shape", () => {
+		// hyphenated and otherwise unusual leaves must still round-trip rather
+		// than collapsing to the "components/undefined" key
+		expect(legacyRedirectFor("/components/undefined")).toBeNull();
 		expect(legacyRedirectFor("/components/skip-to-main-link")).toBe(
 			"/components/primitives/skip-to-main-link",
 		);

@@ -66,9 +66,16 @@ describe("parseVersions", () => {
 		expect(versions.map((entry) => entry.version)).toEqual(["1.0.0", "0.9.0"]);
 	});
 
+	// `### Major Changes` has never appeared in the real CHANGELOG (mantle is
+	// still pre-1.0), so this is the only thing standing between the first
+	// breaking release and silently dropping every breaking-change entry.
 	it("groups changes by bump heading", () => {
 		const source = [
 			"## 1.0.0",
+			"",
+			"### Major Changes",
+			"",
+			"- major a",
 			"",
 			"### Minor Changes",
 			"",
@@ -82,10 +89,35 @@ describe("parseVersions", () => {
 		].join("\n");
 		const [version] = parseVersions(source);
 		expect(version?.changes).toEqual([
+			{ bump: "major", summary: "major a", pr: undefined, commit: undefined, author: undefined },
 			{ bump: "minor", summary: "minor a", pr: undefined, commit: undefined, author: undefined },
 			{ bump: "patch", summary: "patch a", pr: undefined, commit: undefined, author: undefined },
 			{ bump: "patch", summary: "patch b", pr: undefined, commit: undefined, author: undefined },
 		]);
+	});
+
+	// The version regex's optional prerelease group has no instance in the real
+	// CHANGELOG either; a tightened regex would skip the heading entirely and
+	// fold its bullets into the previous version.
+	it("captures prerelease versions verbatim", () => {
+		const source = [
+			"## 1.0.0-beta.1",
+			"",
+			"### Patch Changes",
+			"",
+			"- a prerelease patch",
+			"",
+			"## 1.0.0-rc.2",
+			"",
+			"### Minor Changes",
+			"",
+			"- a prerelease minor",
+			"",
+		].join("\n");
+		const versions = parseVersions(source);
+		expect(versions.map((entry) => entry.version)).toEqual(["1.0.0-beta.1", "1.0.0-rc.2"]);
+		expect(versions[0]?.changes.map((change) => change.summary)).toEqual(["a prerelease patch"]);
+		expect(versions[1]?.changes.map((change) => change.summary)).toEqual(["a prerelease minor"]);
 	});
 
 	it("folds two-space-indented continuation lines into the prior bullet", () => {

@@ -58,18 +58,60 @@ describe("useDebounce", () => {
 		expect(result.current).toBe("abc");
 	});
 
-	test("unmounting cancels the pending update", () => {
-		const { result, rerender, unmount } = renderHook(
-			({ value }) => useDebounce(value, { waitMs: 300 }),
-			{ initialProps: { value: "kept" } },
-		);
+	test("a re-render with an unchanged value does not restart the timer", () => {
+		const { result, rerender } = renderHook(({ value }) => useDebounce(value, { waitMs: 300 }), {
+			initialProps: { value: "first" },
+		});
 
-		rerender({ value: "dropped" });
-		unmount();
+		rerender({ value: "second" });
+		act(() => {
+			vi.advanceTimersByTime(200);
+		});
+		// a fresh `options` object identity on an otherwise identical render must
+		// not restart the pending timer
+		rerender({ value: "second" });
+		act(() => {
+			vi.advanceTimersByTime(100);
+		});
+
+		expect(result.current).toBe("second");
+	});
+
+	test("changing waitMs mid-flight restarts the timer with the new delay", () => {
+		const { result, rerender } = renderHook(({ value, waitMs }) => useDebounce(value, { waitMs }), {
+			initialProps: { value: "first", waitMs: 300 },
+		});
+
+		rerender({ value: "second", waitMs: 300 });
+		act(() => {
+			vi.advanceTimersByTime(200);
+		});
+
+		rerender({ value: "second", waitMs: 1_000 });
+		act(() => {
+			vi.advanceTimersByTime(300);
+		});
+		// the original 300ms timer was cancelled, so 500ms in nothing has landed
+		expect(result.current).toBe("first");
 
 		act(() => {
-			vi.advanceTimersByTime(1_000);
+			vi.advanceTimersByTime(700);
 		});
-		expect(result.current).toBe("kept");
+		expect(result.current).toBe("second");
+	});
+
+	test("unmounting cancels the pending update", () => {
+		const { rerender, unmount } = renderHook(({ value }) => useDebounce(value, { waitMs: 300 }), {
+			initialProps: { value: "kept" },
+		});
+
+		rerender({ value: "dropped" });
+		expect(vi.getTimerCount()).toBe(1);
+
+		unmount();
+
+		// `result.current` only advances on a committed render, so the pending
+		// timer itself is the observable state here
+		expect(vi.getTimerCount()).toBe(0);
 	});
 });

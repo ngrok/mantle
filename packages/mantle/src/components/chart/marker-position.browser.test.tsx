@@ -107,6 +107,20 @@ const activeDots = (container: HTMLElement): HTMLElement[] =>
 		(element): element is HTMLElement => element instanceof HTMLElement,
 	);
 
+/**
+ * The engine-managed markers layer the active-point dots live in. It carries no
+ * data-slot of its own, so it is reached through a dot — but its opacity, not
+ * each dot's, is the overlay's actual visibility gate.
+ */
+const markersLayer = (container: HTMLElement): HTMLElement => {
+	const [dot] = activeDots(container);
+	const layer = dot?.parentElement;
+	if (!(layer instanceof HTMLElement)) {
+		throw new Error("expected the markers layer to render");
+	}
+	return layer;
+};
+
 /** Parse `translate3d(Xpx, Ypx, 0)` into plot-space coordinates. */
 const dotPosition = (dot: HTMLElement): { x: number; y: number } => {
 	const match = /translate3d\((-?[\d.]+)px,\s*(-?[\d.]+)px/.exec(dot.style.transform);
@@ -224,6 +238,77 @@ describe("hover marker geometry", () => {
 				throw new Error("expected one dot per series");
 			}
 			expect(p99.y).toBeLessThan(p50.y);
+		});
+	});
+
+	test("the markers layer — not the individual dots — gates hover visibility", async () => {
+		// #updateOverlay early-returns once nothing is active, so every dot KEEPS
+		// its own opacity "1" while the layer hides them. Asserting the dots alone
+		// would pass with the layer permanently hidden (invisible hover markers on
+		// every line/area/scatter chart) or permanently shown (stale dots left
+		// painted after the pointer leaves).
+		const { container } = render(
+			<div style={{ width: 600, height: 300 }}>
+				<LineChart.Root
+					data={[
+						{ t: 1, p50: 10, p99: 90 },
+						{ t: 2, p50: 12, p99: 95 },
+					]}
+					xKey="t"
+					animate={false}
+					aria-label="Latency"
+				>
+					<LineChart.Line dataKey="p50" label="p50" />
+					<LineChart.Line dataKey="p99" label="p99" />
+				</LineChart.Root>
+			</div>,
+		);
+		await assertDatumGeometry(container, "Home", () => {
+			expect(getComputedStyle(markersLayer(container)).opacity).toBe("1");
+		});
+		const overlay = mustBe(container.querySelector('[role="application"]'), HTMLElement, "overlay");
+		overlay.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+		await waitFor(() => {
+			expect(getComputedStyle(markersLayer(container)).opacity).toBe("0");
+			// The dots themselves are left as they were — proof the layer is the gate.
+			expect(activeDots(container).map((dot) => dot.style.opacity)).toEqual(["1", "1"]);
+		});
+	});
+
+	test("a gapped series hides its dot while its neighbors keep theirs", async () => {
+		// Visibility follows the RAW value: without the NaN guard the dot gets
+		// opacity 1 and `translate3d(…, NaNpx, 0)`, which is invalid CSS — the
+		// transform is dropped and the dot pins itself to the layer's top-left
+		// corner, claiming a point the tooltip reports as an em dash.
+		const { container } = render(
+			<div style={{ width: 600, height: 300 }}>
+				<LineChart.Root
+					data={[
+						{ t: 1, p50: 10, p99: null },
+						{ t: 2, p50: 12, p99: 95 },
+					]}
+					xKey="t"
+					animate={false}
+					aria-label="Latency"
+				>
+					<LineChart.Line dataKey="p50" label="p50" />
+					<LineChart.Line dataKey="p99" label="p99" />
+				</LineChart.Root>
+			</div>,
+		);
+		await assertDatumGeometry(container, "Home", () => {
+			const dots = activeDots(container);
+			expect(dots.map((dot) => dot.style.opacity)).toEqual(["1", "0"]);
+			const populated = dots[0];
+			if (populated == null) {
+				throw new Error("expected the populated series' dot");
+			}
+			// The surviving dot is positioned normally, never at a NaN y.
+			expect(dotPosition(populated).y).toBeGreaterThan(0);
+		});
+		// Stepping to the populated row brings the hidden dot back.
+		await assertDatumGeometry(container, "End", () => {
+			expect(activeDots(container).map((dot) => dot.style.opacity)).toEqual(["1", "1"]);
 		});
 	});
 

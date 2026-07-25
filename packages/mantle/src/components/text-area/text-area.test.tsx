@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import type { DragEvent } from "react";
+import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { TextArea } from "./text-area.js";
 
@@ -68,5 +69,65 @@ describe("TextArea", () => {
 
 		expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "true");
 		expect(screen.getByRole("textbox")).toHaveAttribute("data-validation", "error");
+	});
+
+	describe("drag and drop", () => {
+		test("tracks the drag-over state through enter, leave, and drop", () => {
+			render(<TextArea aria-label="Feedback" />);
+
+			const textArea = screen.getByRole("textbox", { name: "Feedback" });
+			expect(textArea).toHaveAttribute("data-drag-over", "false");
+
+			fireEvent.dragEnter(textArea);
+			expect(textArea).toHaveAttribute("data-drag-over", "true");
+
+			fireEvent.dragLeave(textArea);
+			expect(textArea).toHaveAttribute("data-drag-over", "false");
+
+			fireEvent.dragEnter(textArea);
+			expect(textArea).toHaveAttribute("data-drag-over", "true");
+
+			fireEvent.drop(textArea);
+			expect(textArea).toHaveAttribute("data-drag-over", "false");
+		});
+
+		test("focuses the textarea on drop so the pasted text is editable right away", () => {
+			render(<TextArea aria-label="Feedback" />);
+
+			const textArea = screen.getByRole("textbox", { name: "Feedback" });
+			expect(textArea).not.toHaveFocus();
+
+			fireEvent.drop(textArea);
+
+			expect(textArea).toHaveFocus();
+		});
+
+		test("chains the caller's drag handlers instead of replacing them", () => {
+			const handleDragEnter = vi.fn<(event: DragEvent<HTMLTextAreaElement>) => void>();
+			const handleDragLeave = vi.fn<(event: DragEvent<HTMLTextAreaElement>) => void>();
+			const handleDropCapture = vi.fn<(event: DragEvent<HTMLTextAreaElement>) => void>();
+
+			render(
+				<TextArea
+					aria-label="Feedback"
+					onDragEnter={handleDragEnter}
+					onDragLeave={handleDragLeave}
+					onDropCapture={handleDropCapture}
+				/>,
+			);
+
+			const textArea = screen.getByRole("textbox", { name: "Feedback" });
+
+			fireEvent.dragEnter(textArea);
+			fireEvent.dragLeave(textArea);
+			fireEvent.drop(textArea);
+
+			expect(handleDragEnter).toHaveBeenCalledTimes(1);
+			expect(handleDragEnter.mock.calls[0]?.[0].type).toBe("dragenter");
+			expect(handleDragLeave).toHaveBeenCalledTimes(1);
+			expect(handleDragLeave.mock.calls[0]?.[0].type).toBe("dragleave");
+			expect(handleDropCapture).toHaveBeenCalledTimes(1);
+			expect(handleDropCapture.mock.calls[0]?.[0].type).toBe("drop");
+		});
 	});
 });

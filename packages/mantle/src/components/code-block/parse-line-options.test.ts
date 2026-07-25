@@ -34,12 +34,30 @@ describe("parseCodeBlockLineNumberStart", () => {
 		expect(parseCodeBlockLineNumberStart("1.5")).toBeUndefined();
 		expect(parseCodeBlockLineNumberStart("abc")).toBeUndefined();
 	});
+
+	test("returns undefined for non-finite numbers", () => {
+		expect(parseCodeBlockLineNumberStart(Number.POSITIVE_INFINITY)).toBeUndefined();
+		expect(parseCodeBlockLineNumberStart(Number.NaN)).toBeUndefined();
+	});
 });
 
 describe("parseCodeBlockHighlightLines", () => {
 	test("parses arrays and strings", () => {
 		expect(parseCodeBlockHighlightLines([1, "3-5", "7"])).toEqual([1, "3-5", 7]);
 		expect(parseCodeBlockHighlightLines("1,3-5,7")).toEqual([1, "3-5", 7]);
+	});
+
+	test("tolerates whitespace around entries", () => {
+		// A metastring value is authored the natural way — `highlightLines="1, 3-5, 7"` —
+		// so every segment after the first arrives with a leading space.
+		expect(parseCodeBlockHighlightLines("1, 3-5, 7")).toEqual([1, "3-5", 7]);
+		expect(parseCodeBlockHighlightLines([" 4 ", " 6-8 "])).toEqual([4, "6-8"]);
+		expect(parseCodeBlockHighlightLines("\t2\t")).toEqual([2]);
+	});
+
+	test("filters non-finite numeric entries", () => {
+		expect(parseCodeBlockHighlightLines([Number.NaN])).toBeUndefined();
+		expect(parseCodeBlockHighlightLines([Number.POSITIVE_INFINITY, 2])).toEqual([2]);
 	});
 
 	test("filters invalid entries and returns undefined when empty", () => {

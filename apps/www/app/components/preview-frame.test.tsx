@@ -18,6 +18,15 @@ function getIframe(): HTMLIFrameElement {
 	return iframe;
 }
 
+/** The element the iframe's preset width is applied to. */
+function getSizedFrame(): HTMLElement {
+	const sized = getIframe().parentElement;
+	if (!(sized instanceof HTMLElement)) {
+		throw new Error("expected the iframe to be wrapped in the sized frame element");
+	}
+	return sized;
+}
+
 describe("PreviewFrame", () => {
 	it("renders an iframe pointed at the example's chrome-less preview route", () => {
 		render(<PreviewFrame example="centered-layout" title="Centered layout demo" />);
@@ -33,17 +42,42 @@ describe("PreviewFrame", () => {
 		expect(
 			screen.getByRole("radio", { name: "Desktop viewport" }).getAttribute("aria-checked"),
 		).toBe("true");
-		expect(getIframe().parentElement?.className).toContain("w-full");
+		expect(getSizedFrame().classList.contains("w-full")).toBe(true);
 	});
 
+	// Tailwind is not loaded in this environment, so the preset width class is the
+	// only observable of the switch. Asserting the previous preset is *gone* as
+	// well as the new one being present is what keeps this from passing on a
+	// component that merely appends classes without swapping them.
 	it("resizes the frame when a viewport preset is picked", () => {
 		render(<PreviewFrame example="centered-layout" title="Centered layout demo" />);
 
 		fireEvent.click(screen.getByRole("radio", { name: "Tablet viewport" }));
-		expect(getIframe().parentElement?.className).toContain("w-192");
+		expect(getSizedFrame().classList.contains("w-192")).toBe(true);
+		expect(getSizedFrame().classList.contains("w-full")).toBe(false);
 
 		fireEvent.click(screen.getByRole("radio", { name: "Mobile viewport" }));
-		expect(getIframe().parentElement?.className).toContain("w-[375px]");
+		expect(getSizedFrame().classList.contains("w-[375px]")).toBe(true);
+		expect(getSizedFrame().classList.contains("w-192")).toBe(false);
+
+		fireEvent.click(screen.getByRole("radio", { name: "Desktop viewport" }));
+		expect(getSizedFrame().classList.contains("w-full")).toBe(true);
+		expect(getSizedFrame().classList.contains("w-[375px]")).toBe(false);
+	});
+
+	// `className` is documented as merged onto the outer frame so a caller can
+	// override the default canvas height; tailwind-merge must drop `h-160`.
+	it("merges className onto the outer frame, overriding the default height", () => {
+		const { container } = render(
+			<PreviewFrame example="centered-layout" title="Centered layout demo" className="h-96" />,
+		);
+
+		const frame = container.firstElementChild;
+		if (!(frame instanceof HTMLElement)) {
+			throw new Error("expected the preview frame to render an outer frame element");
+		}
+		expect(frame.classList.contains("h-96")).toBe(true);
+		expect(frame.classList.contains("h-160")).toBe(false);
 	});
 
 	it("reloads the preview by remounting the iframe", () => {

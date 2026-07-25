@@ -155,6 +155,46 @@ describe("computeFoldRanges (bracket strategy)", () => {
 		]);
 	});
 
+	test("keeps template-literal interpolation punctuation foldable", () => {
+		// Only the INNERMOST scope decides inertness: `${` / `}` sit under
+		// `punctuation.definition.template-expression.*` while `string.template`
+		// is still in their scope chain, so a `scopes.some(isInert)` filter would
+		// silently stop pairing them.
+		const tokens: FoldLine[] = [
+			line(
+				["const label = ", "source.ts"],
+				["`", "source.ts", "string.template.ts", "punctuation.definition.string.template.begin.ts"],
+				[
+					"${",
+					"source.ts",
+					"string.template.ts",
+					"punctuation.definition.template-expression.begin.ts",
+				],
+			),
+			line(["  value", "source.ts", "string.template.ts", "meta.template.expression.ts"]),
+			line([
+				"}",
+				"source.ts",
+				"string.template.ts",
+				"punctuation.definition.template-expression.end.ts",
+			]),
+		];
+		expect(computeFoldRanges({ language: "typescript", tokens })).toEqual([
+			{ id: "1", startLine: 1, endLine: 3 },
+		]);
+	});
+
+	test("ignores brackets inside character escapes via scope filter", () => {
+		const tokens: FoldLine[] = [
+			line(["{"]),
+			line(["  pattern: ", "source.js"], ["\\{", "source.js", "constant.character.escape.js"]),
+			line(["}"]),
+		];
+		expect(computeFoldRanges({ language: "javascript", tokens })).toEqual([
+			{ id: "1", startLine: 1, endLine: 3 },
+		]);
+	});
+
 	test("does not fold parenthesized argument lists", () => {
 		const tokens: FoldLine[] = [line(["fn("]), line(["  a,"]), line(["  b"]), line([")"])];
 		expect(computeFoldRanges({ language: "javascript", tokens })).toEqual([]);

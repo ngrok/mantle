@@ -183,6 +183,86 @@ describe("ChartStore registrations", () => {
 		expect(store.getSnapshot().grid?.lines).toBe("horizontal");
 	});
 
+	// The axis and tooltip singletons share registerGrid's identity-compared
+	// cleanup; each needs the same two guards or an equal-valued duplicate part
+	// unmounting silently clears a live registration.
+	const singletonRegistrations = [
+		{
+			name: "xAxis",
+			register: (store: ChartStore, tickCount: number) =>
+				store.registerXAxis({ tickCount, tickFormat: undefined }),
+			read: (store: ChartStore) => store.getSnapshot().xAxis?.tickCount,
+		},
+		{
+			name: "yAxis",
+			register: (store: ChartStore, tickCount: number) =>
+				store.registerYAxis({ tickCount, tickFormat: undefined }),
+			read: (store: ChartStore) => store.getSnapshot().yAxis?.tickCount,
+		},
+		{
+			name: "tooltip",
+			register: (store: ChartStore, tickCount: number) =>
+				store.registerTooltip({
+					labelFormat: undefined,
+					valueFormat: undefined,
+					indicator: "line",
+					footer: undefined,
+					children: undefined,
+					divProps: { id: `tooltip-${tickCount}` },
+				}),
+			read: (store: ChartStore) => {
+				const id = store.getSnapshot().tooltip?.divProps.id;
+				return id == null ? undefined : Number(id.replace("tooltip-", ""));
+			},
+		},
+	] as const;
+
+	for (const { name, register, read } of singletonRegistrations) {
+		test(`${name}: the last registration wins and a superseded one cannot clear it`, () => {
+			const store = new ChartStore();
+			const unregisterFirst = register(store, 1);
+			register(store, 2);
+			expect(read(store)).toBe(2);
+			unregisterFirst();
+			expect(read(store)).toBe(2);
+		});
+
+		test(`${name}: an equal-valued duplicate unmounting does not clear the survivor`, () => {
+			const store = new ChartStore();
+			const unregisterFirst = register(store, 3);
+			register(store, 3);
+			unregisterFirst();
+			expect(read(store)).toBe(3);
+		});
+
+		test(`${name}: the winner's own cleanup clears the registration`, () => {
+			const store = new ChartStore();
+			const unregisterOnly = register(store, 4);
+			unregisterOnly();
+			expect(read(store)).toBeUndefined();
+		});
+	}
+
+	test("setOrientation publishes the bar direction, and repeating it notifies nobody", () => {
+		// The snapshot's orientation drives the legend texture keys (the rungs must
+		// run across the bars), so a guard that swallowed the real change would
+		// leave every key drawn for the wrong axis.
+		const store = new ChartStore();
+		let notified = 0;
+		store.subscribe(() => {
+			notified += 1;
+		});
+		expect(store.getSnapshot().orientation).toBe("vertical");
+		store.setOrientation("horizontal");
+		expect(store.getSnapshot().orientation).toBe("horizontal");
+		expect(notified).toBe(1);
+		store.setOrientation("horizontal");
+		expect(notified).toBe(1);
+		store.setOrientation("vertical");
+		expect(store.getSnapshot().orientation).toBe("vertical");
+		expect(notified).toBe(2);
+	});
+
 	test("reference lines accumulate in registration order", () => {
 		const store = new ChartStore();
 		store.registerReferenceLine("one", { y: 10, label: "a", color: undefined });
@@ -263,5 +343,31 @@ describe("ChartStore hover", () => {
 		expect(store.getSnapshot().hover).toBe(snapshot);
 		store.publishHover(null);
 		expect(store.getSnapshot().hover).toBe(null);
+	});
+
+	test("re-publishing the identical snapshot emits nothing (a pointer move must not re-render)", () => {
+		// The engine republishes on every pointer move within the same datum; the
+		// identity guard is what keeps the tooltip subtree from re-rendering at
+		// pointer rate.
+		const store = new ChartStore();
+		const snapshot = {
+			index: 0,
+			xValue: "January",
+			datum: {},
+			points: [],
+			viaKeyboard: false,
+		};
+		let notified = 0;
+		store.subscribe(() => {
+			notified += 1;
+		});
+		store.publishHover(snapshot);
+		expect(notified).toBe(1);
+		store.publishHover(snapshot);
+		expect(notified).toBe(1);
+		store.publishHover(null);
+		expect(notified).toBe(2);
+		store.publishHover(null);
+		expect(notified).toBe(2);
 	});
 });

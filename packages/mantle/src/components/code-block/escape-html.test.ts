@@ -25,4 +25,14 @@ describe("escapeHtml", () => {
 
 		expect(escapeHtml("<textarea>foo</textarea>")).toBe("&lt;textarea&gt;foo&lt;/textarea&gt;");
 	});
+
+	test("given plain text before the first special character, preserves that prefix", () => {
+		expect(escapeHtml('const a = "x"')).toBe("const a = &quot;x&quot;");
+		expect(escapeHtml("a&b")).toBe("a&amp;b");
+		expect(escapeHtml("trailing &")).toBe("trailing &amp;");
+	});
+
+	test("given an existing entity, escapes its ampersand (double escaping is intentional)", () => {
+		expect(escapeHtml("&amp;")).toBe("&amp;amp;");
+	});
 });

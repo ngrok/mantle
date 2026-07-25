@@ -1,7 +1,8 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
 
 /**
@@ -52,11 +53,19 @@ const STYLE = `
 `;
 
 let styleElement: HTMLStyleElement;
+let fillTextSpy: MockInstance;
 
 beforeAll(() => {
 	styleElement = document.createElement("style");
 	styleElement.textContent = STYLE;
 	document.head.appendChild(styleElement);
+});
+
+// Installed per test rather than once, because `restoreMocks` tears every spy down between tests.
+// Calls through to the real implementation, so painting is unchanged — the spy only records where
+// each tick label landed.
+beforeEach(() => {
+	fillTextSpy = vi.spyOn(CanvasRenderingContext2D.prototype, "fillText");
 });
 
 afterAll(() => {
@@ -127,6 +136,34 @@ const twoCategories = [
 	{ cat: "B", v: 90 },
 ];
 
+/**
+ * Where each distinct tick label was last painted, in canvas coordinates.
+ * Axis labels are canvas ink, so their side of the plot is only observable
+ * through the paint call — and the label-side swap is exactly what
+ * `orientation` has to get right.
+ */
+const labelPositions = (): Map<string, { x: number; y: number }> => {
+	const positions = new Map<string, { x: number; y: number }>();
+	for (const call of fillTextSpy.mock.calls) {
+		positions.set(String(call[0]), { x: Number(call[1]), y: Number(call[2]) });
+	}
+	return positions;
+};
+
+/** The painted positions of the two category names, failing loudly if either is missing. */
+const categoryPositions = (positions: Map<string, { x: number; y: number }>) => {
+	const a = positions.get("A");
+	const b = positions.get("B");
+	if (a == null || b == null) {
+		throw new Error(`expected both category labels to paint, got ${[...positions.keys()]}`);
+	}
+	return [a, b];
+};
+
+/** The painted positions of the numeric value ticks. */
+const valuePositions = (positions: Map<string, { x: number; y: number }>) =>
+	[...positions.entries()].filter(([text]) => /^\d+$/.test(text)).map(([, position]) => position);
+
 const canvasOf = (container: HTMLElement): HTMLCanvasElement => {
 	const canvas = container.querySelector("canvas");
 	if (!(canvas instanceof HTMLCanvasElement)) {
@@ -191,6 +228,78 @@ describe("bar orientation", () => {
 			// well past the plot's horizontal midpoint.
 			expect(scan.leftmost).toBeLessThan(canvas.width / 2);
 			expect(scan.rightmost).toBeGreaterThan(canvas.width * 0.7);
+		});
+	});
+
+	test("vertical: category names sit under the plot, value numbers in the left gutter", async () => {
+		const { container } = render(
+			<div style={{ width: 600, height: 300 }}>
+				<BarChart.Root data={twoCategories} xKey="cat" animate={false} aria-label="Default bars">
+					<BarChart.XAxis />
+					<BarChart.YAxis />
+					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
+				</BarChart.Root>
+			</div>,
+		);
+		const canvas = canvasOf(container);
+		await waitFor(() => {
+			expect(canvas.width).toBeGreaterThan(0);
+			const positions = labelPositions();
+			const categories = categoryPositions(positions);
+			const values = valuePositions(positions);
+			expect(values.length).toBeGreaterThan(1);
+			// Category labels share one baseline below the plot; value labels share
+			// one right-aligned x in the gutter left of it.
+			expect(Math.abs((categories[0]?.y ?? 0) - (categories[1]?.y ?? 0))).toBeLessThan(1);
+			expect(new Set(values.map((value) => Math.round(value.x))).size).toBe(1);
+			// Category strip below every value label; value gutter left of every category.
+			expect(Math.min(...categories.map((category) => category.y))).toBeGreaterThan(
+				Math.max(...values.map((value) => value.y)),
+			);
+			expect(Math.max(...values.map((value) => value.x))).toBeLessThan(
+				Math.min(...categories.map((category) => category.x)),
+			);
+		});
+	});
+
+	test("horizontal: the axis labels swap sides with the bars", async () => {
+		// The mirror of the vertical case: categories move into the left gutter and
+		// the value numbers run along the bottom. Inverting the swap paints category
+		// names at x-coordinates that are really band-center y values — completely
+		// mislabeled axes that the ink-geometry assertions above cannot see.
+		const { container } = render(
+			<div style={{ width: 600, height: 300 }}>
+				<BarChart.Root
+					data={twoCategories}
+					xKey="cat"
+					orientation="horizontal"
+					animate={false}
+					aria-label="Horizontal bars"
+				>
+					<BarChart.XAxis />
+					<BarChart.YAxis />
+					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
+				</BarChart.Root>
+			</div>,
+		);
+		const canvas = canvasOf(container);
+		await waitFor(() => {
+			expect(canvas.width).toBeGreaterThan(0);
+			const positions = labelPositions();
+			const categories = categoryPositions(positions);
+			const values = valuePositions(positions);
+			expect(values.length).toBeGreaterThan(1);
+			// Categories now share the gutter's right-aligned x, one band-center per row.
+			expect(new Set(categories.map((category) => Math.round(category.x))).size).toBe(1);
+			expect(Math.abs((categories[0]?.y ?? 0) - (categories[1]?.y ?? 0))).toBeGreaterThan(1);
+			// Value numbers now share the bottom strip's baseline.
+			expect(new Set(values.map((value) => Math.round(value.y))).size).toBe(1);
+			expect(Math.min(...values.map((value) => value.y))).toBeGreaterThan(
+				Math.max(...categories.map((category) => category.y)),
+			);
+			expect(Math.max(...categories.map((category) => category.x))).toBeLessThan(
+				Math.min(...values.map((value) => value.x)),
+			);
 		});
 	});
 });

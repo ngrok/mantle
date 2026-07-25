@@ -13,15 +13,18 @@ describe("CenteredLayout", () => {
 		expect(root).toHaveTextContent("content");
 	});
 
-	test("Root merges custom className", () => {
+	test("Root lets a consumer className replace the default min-height", () => {
+		// The JSDoc promises a host that needs an exact height can merge its own
+		// sizing via className, because `cx` is tailwind-merge-backed — so the
+		// consumer's min-h-* must win outright, not stack with the default.
 		render(
-			<CenteredLayout.Root className="custom-class" data-testid="root">
+			<CenteredLayout.Root className="min-h-screen custom-class" data-testid="root">
 				content
 			</CenteredLayout.Root>,
 		);
 		const root = screen.getByTestId("root");
-		expect(root.className).toContain("custom-class");
-		expect(root.className).toContain("min-h-full");
+		expect(root).toHaveClass("min-h-screen", "custom-class");
+		expect(root).not.toHaveClass("min-h-full");
 	});
 
 	test("Root renders as child element when asChild is true, keeping data-slot", () => {
@@ -56,15 +59,17 @@ describe("CenteredLayout", () => {
 		expect(body).toHaveTextContent("content");
 	});
 
-	test("Body merges custom className", () => {
+	test("Body lets a consumer className replace the default child gap", () => {
 		render(
 			<CenteredLayout.Body className="gap-8" data-testid="body">
 				content
 			</CenteredLayout.Body>,
 		);
 		const body = screen.getByTestId("body");
-		expect(body.className).toContain("gap-8");
-		expect(body.className).toContain("flex-1");
+		// tailwind-merge contract: the consumer's gap-* replaces Body's gap-6
+		// rather than losing to it on source order
+		expect(body).toHaveClass("gap-8");
+		expect(body).not.toHaveClass("gap-6");
 	});
 
 	test("Body renders as child element when asChild is true, keeping data-slot", () => {
@@ -90,12 +95,11 @@ describe("CenteredLayout", () => {
 		expect(ref.current).toBe(body);
 	});
 
-	test("Notice renders an unstyled full-width strip", () => {
+	test("Notice renders a plain div with data-slot", () => {
 		render(<CenteredLayout.Notice data-testid="notice">maintenance</CenteredLayout.Notice>);
 		const notice = screen.getByTestId("notice");
 		expect(notice.tagName).toBe("DIV");
 		expect(notice).toHaveAttribute("data-slot", "centered-layout-notice");
-		expect(notice.className).toContain("shrink-0");
 		expect(notice).toHaveTextContent("maintenance");
 	});
 
@@ -135,15 +139,17 @@ describe("CenteredLayout", () => {
 		expect(footer).toHaveTextContent("legal");
 	});
 
-	test("Footer merges custom className", () => {
+	test("Footer lets a consumer className replace the default inline padding", () => {
 		render(
-			<CenteredLayout.Footer className="justify-center" data-testid="footer">
+			<CenteredLayout.Footer className="justify-center px-8" data-testid="footer">
 				legal
 			</CenteredLayout.Footer>,
 		);
 		const footer = screen.getByTestId("footer");
-		expect(footer.className).toContain("justify-center");
-		expect(footer.className).toContain("shrink-0");
+		// tailwind-merge contract: px-8 replaces the strip's own px-4, while a
+		// non-conflicting utility is simply added
+		expect(footer).toHaveClass("px-8", "justify-center");
+		expect(footer).not.toHaveClass("px-4");
 	});
 
 	test("Footer renders as child element when asChild is true, keeping data-slot", () => {
@@ -178,15 +184,18 @@ describe("CenteredLayout", () => {
 		expect(screen.getByRole("banner")).toBe(header);
 	});
 
-	test("Header merges custom className", () => {
+	test("Header keeps the documented sticky recipe and replaces the default padding", () => {
+		// The JSDoc's pinning recipe is `sticky top-0 z-10` plus a justify-*, so
+		// those consumer utilities must survive the merge; px-8 must displace the
+		// strip's own px-4 rather than stacking with it.
 		render(
-			<CenteredLayout.Header className="sticky top-0 justify-end" data-testid="header">
+			<CenteredLayout.Header className="sticky top-0 justify-end px-8" data-testid="header">
 				account
 			</CenteredLayout.Header>,
 		);
 		const header = screen.getByTestId("header");
-		expect(header.className).toContain("sticky");
-		expect(header.className).toContain("shrink-0");
+		expect(header).toHaveClass("sticky", "top-0", "justify-end", "px-8");
+		expect(header).not.toHaveClass("px-4");
 	});
 
 	test("Header renders as child element when asChild is true, keeping data-slot", () => {

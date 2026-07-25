@@ -1,4 +1,6 @@
 import { render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
+import type { MouseEvent } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { Checkbox, selectAllChecked } from "./checkbox.js";
@@ -80,19 +82,55 @@ describe("Checkbox", () => {
 	test("toggling a controlled checkbox through indeterminate does not warn about controlled/uncontrolled (regression)", () => {
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-		try {
-			// A controlled "select all" checkbox cycles unchecked → indeterminate → checked.
-			// The indeterminate frame must keep `checked` a boolean so React never sees the
-			// input flip from controlled to uncontrolled.
-			const { rerender } = render(<Checkbox checked={false} onChange={() => {}} />);
-			rerender(<Checkbox checked="indeterminate" onChange={() => {}} />);
-			rerender(<Checkbox checked={true} onChange={() => {}} />);
+		// A controlled "select all" checkbox cycles unchecked → indeterminate → checked.
+		// The indeterminate frame must keep `checked` a boolean so React never sees the
+		// input flip from controlled to uncontrolled.
+		const { rerender } = render(<Checkbox checked={false} onChange={() => {}} />);
+		rerender(<Checkbox checked="indeterminate" onChange={() => {}} />);
+		rerender(<Checkbox checked={true} onChange={() => {}} />);
 
-			const messages = errorSpy.mock.calls.map((args) => args.map(String).join(" "));
-			expect(messages.some((message) => message.includes("uncontrolled"))).toBe(false);
-		} finally {
-			errorSpy.mockRestore();
-		}
+		const messages = errorSpy.mock.calls.map((args) => args.map(String).join(" "));
+		expect(messages.some((message) => message.includes("uncontrolled"))).toBe(false);
+	});
+
+	describe("readOnly", () => {
+		// The native `readOnly` attribute is a no-op for checkbox toggling, so
+		// Checkbox hand-writes the guard in its `onClick`. These tests drive the
+		// click because the guard is the entire behavior.
+		test("a click on a readOnly checkbox leaves it checked and never reaches the caller's onClick", async () => {
+			const user = userEvent.setup();
+			const onClick = vi.fn<(event: MouseEvent<HTMLInputElement>) => void>();
+			render(<Checkbox aria-label="Terms" defaultChecked readOnly onClick={onClick} />);
+
+			const checkbox = screen.getByRole<HTMLInputElement>("checkbox");
+			await user.click(checkbox);
+
+			expect(checkbox.checked).toBe(true);
+			expect(onClick).not.toHaveBeenCalled();
+		});
+
+		test("a click on a readOnly unchecked checkbox leaves it unchecked", async () => {
+			const user = userEvent.setup();
+			render(<Checkbox aria-label="Terms" readOnly />);
+
+			const checkbox = screen.getByRole<HTMLInputElement>("checkbox");
+			await user.click(checkbox);
+
+			expect(checkbox.checked).toBe(false);
+		});
+
+		test("without readOnly, a click toggles the checkbox and forwards the event to onClick", async () => {
+			const user = userEvent.setup();
+			const onClick = vi.fn<(event: MouseEvent<HTMLInputElement>) => void>();
+			render(<Checkbox aria-label="Terms" onClick={onClick} />);
+
+			const checkbox = screen.getByRole<HTMLInputElement>("checkbox");
+			await user.click(checkbox);
+
+			expect(checkbox.checked).toBe(true);
+			expect(onClick).toHaveBeenCalledTimes(1);
+			expect(onClick.mock.lastCall?.[0].target).toBe(checkbox);
+		});
 	});
 });
 

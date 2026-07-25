@@ -1,10 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { useRef } from "react";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { useInView } from "./use-in-view.js";
 
 describe("useInView", () => {
 	let intersectionCallback: IntersectionObserverCallback;
+	let intersectionOptions: IntersectionObserverInit | undefined;
 	let mockObserve: ReturnType<typeof vi.fn>;
 	let mockUnobserve: ReturnType<typeof vi.fn>;
 	let mockDisconnect: ReturnType<typeof vi.fn>;
@@ -13,6 +14,7 @@ describe("useInView", () => {
 		mockObserve = vi.fn<(target: Element) => void>();
 		mockUnobserve = vi.fn<(target: Element) => void>();
 		mockDisconnect = vi.fn<() => void>();
+		intersectionOptions = undefined;
 
 		// vi.fn() produces an arrow function which cannot be used as a constructor with `new`,
 		// so we use a class to create a proper constructor mock.
@@ -21,16 +23,13 @@ describe("useInView", () => {
 			unobserve = mockUnobserve;
 			disconnect = mockDisconnect;
 
-			constructor(callback: IntersectionObserverCallback) {
+			constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
 				intersectionCallback = callback;
+				intersectionOptions = options;
 			}
 		}
 
 		vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
-	});
-
-	afterEach(() => {
-		vi.unstubAllGlobals();
 	});
 
 	function triggerIntersection(element: Element, isIntersecting: boolean) {
@@ -57,6 +56,7 @@ describe("useInView", () => {
 	test("starts observing the element immediately", () => {
 		const element = document.createElement("div");
 		renderHook(() => useInView(useRef(element)));
+		expect(mockObserve).toHaveBeenCalledTimes(1);
 		expect(mockObserve).toHaveBeenCalledWith(element);
 	});
 
@@ -68,14 +68,32 @@ describe("useInView", () => {
 		expect(result.current).toBe(true);
 	});
 
-	test("with once=true, stays true after element enters the viewport", () => {
+	test("returns to false when the element leaves the viewport again", () => {
+		const element = document.createElement("div");
+		const { result } = renderHook(() => useInView(useRef(element)));
+
+		triggerIntersection(element, true);
+		expect(result.current).toBe(true);
+
+		triggerIntersection(element, false);
+		expect(result.current).toBe(false);
+
+		// the element is still observed, so a second entry is tracked too
+		triggerIntersection(element, true);
+		expect(result.current).toBe(true);
+		expect(mockUnobserve).not.toHaveBeenCalled();
+	});
+
+	test("with once=true, unobserves on the first enter and stays true afterwards", () => {
 		const element = document.createElement("div");
 		const { result } = renderHook(() => useInView(useRef(element), { once: true }));
 
 		triggerIntersection(element, true);
 		expect(result.current).toBe(true);
+		expect(mockUnobserve).toHaveBeenCalledWith(element);
 
-		// After once=true fires, the observer unobserves internally; state must remain true
+		// a later leave must not reset a one-shot observation
+		triggerIntersection(element, false);
 		expect(result.current).toBe(true);
 	});
 
@@ -85,6 +103,60 @@ describe("useInView", () => {
 
 		unmount();
 		expect(mockUnobserve).toHaveBeenCalledWith(element);
-		expect(mockDisconnect).toHaveBeenCalled();
+		expect(mockDisconnect).toHaveBeenCalledTimes(1);
+	});
+
+	describe("observation options", () => {
+		test("default to a threshold of 0 with no root or rootMargin", () => {
+			const element = document.createElement("div");
+			renderHook(() => useInView(useRef(element)));
+
+			expect(intersectionOptions?.threshold).toBe(0);
+			expect(intersectionOptions?.root).toBeUndefined();
+			expect(intersectionOptions?.rootMargin).toBeUndefined();
+		});
+
+		test('amount="some" maps to a threshold of 0', () => {
+			const element = document.createElement("div");
+			renderHook(() => useInView(useRef(element), { amount: "some" }));
+
+			expect(intersectionOptions?.threshold).toBe(0);
+		});
+
+		test('amount="all" maps to a threshold of 1', () => {
+			const element = document.createElement("div");
+			renderHook(() => useInView(useRef(element), { amount: "all" }));
+
+			expect(intersectionOptions?.threshold).toBe(1);
+		});
+
+		test("a numeric amount is passed through as the threshold", () => {
+			const element = document.createElement("div");
+			renderHook(() => useInView(useRef(element), { amount: 0.5 }));
+
+			expect(intersectionOptions?.threshold).toBe(0.5);
+		});
+
+		test("margin is passed through as rootMargin", () => {
+			const element = document.createElement("div");
+			renderHook(() => useInView(useRef(element), { margin: "10px 20px" }));
+
+			expect(intersectionOptions?.rootMargin).toBe("10px 20px");
+		});
+
+		test("a root ref resolves to the referenced element, not the ref object", () => {
+			const element = document.createElement("div");
+			const container = document.createElement("section");
+			renderHook(() => useInView(useRef(element), { root: useRef(container) }));
+
+			expect(intersectionOptions?.root).toBe(container);
+		});
+
+		test("an unattached root ref falls back to the viewport", () => {
+			const element = document.createElement("div");
+			renderHook(() => useInView(useRef(element), { root: useRef<Element | null>(null) }));
+
+			expect(intersectionOptions?.root).toBeUndefined();
+		});
 	});
 });

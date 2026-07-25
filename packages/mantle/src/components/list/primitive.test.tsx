@@ -115,6 +115,46 @@ describe("List grid keyboard navigation edges", () => {
 		await user.keyboard(" ");
 		expect(onActivate).toHaveBeenCalledExactlyOnceWith(0);
 	});
+
+	test("Enter and Space on a focused nested tabbable control operate the control, not the row", async () => {
+		// Regression: the grid keydown handler used to preventDefault Enter/Space
+		// bubbling from a focused in-row control, so the control could receive focus
+		// but never be operated — the row toggled instead.
+		const onActivate = vi.fn<(index: number) => void>();
+		const onMenuAction = vi.fn<() => void>();
+		render(
+			<ListRoot semantics="grid" aria-label="grid" onActivate={onActivate}>
+				<ListItem>
+					<div role="gridcell">Item 0</div>
+				</ListItem>
+				<ListItem>
+					<div role="gridcell">
+						<button type="button" onClick={onMenuAction}>
+							open menu
+						</button>
+					</div>
+				</ListItem>
+			</ListRoot>,
+		);
+
+		const menuButton = screen.getByRole("button", { name: "open menu" });
+		menuButton.focus();
+		fireEvent.focus(menuButton);
+		// The grid's focus handler ran (it armed the focused row)...
+		expect(activeIndex()).toBe("1");
+		// ...but a genuinely tabbable in-row control keeps focus rather than being
+		// pulled back to the collection, so its keys belong to it.
+		expect(menuButton).toHaveFocus();
+
+		const user = userEvent.setup();
+		await user.keyboard("{Enter}");
+		expect(onMenuAction).toHaveBeenCalledTimes(1);
+		expect(onActivate).not.toHaveBeenCalled();
+
+		await user.keyboard(" ");
+		expect(onMenuAction).toHaveBeenCalledTimes(2);
+		expect(onActivate).not.toHaveBeenCalled();
+	});
 });
 
 describe("List list-semantics arrow navigation", () => {
@@ -141,6 +181,84 @@ describe("List list-semantics arrow navigation", () => {
 
 		fireEvent.keyDown(second, { key: "ArrowUp" });
 		expect(first).toHaveFocus();
+	});
+
+	test("hands arrow/Home/End back to a text field hosted inside a row", () => {
+		// Regression guard: a row that hosts a text-editing control (rename-in-place,
+		// an in-row filter) must keep the caret keys — claiming them would
+		// preventDefault the caret move *and* yank focus to another row mid-typing.
+		render(
+			<ListRoot semantics="list" aria-label="rows">
+				<ListItem>
+					<button type="button">Item 0</button>
+				</ListItem>
+				<ListItem>
+					<input aria-label="Rename" defaultValue="abc" />
+				</ListItem>
+				<ListItem>
+					<button type="button">Item 2</button>
+				</ListItem>
+			</ListRoot>,
+		);
+
+		const input = screen.getByRole("textbox", { name: "Rename" });
+		input.focus();
+		for (const key of ["ArrowDown", "ArrowUp", "Home", "End"]) {
+			// `fireEvent` returns false when a handler preventDefault-ed the key.
+			expect(fireEvent.keyDown(input, { key })).toBe(true);
+			expect(input).toHaveFocus();
+		}
+
+		// Contrast: the very same key pressed on a row's button *is* claimed and does
+		// move focus — so the assertions above are about the guard, not a dead harness.
+		const control = screen.getByRole("button", { name: "Item 0" });
+		control.focus();
+		expect(fireEvent.keyDown(control, { key: "ArrowDown" })).toBe(false);
+		expect(screen.getByRole("button", { name: "Item 2" })).toHaveFocus();
+	});
+
+	test("hands arrow keys back to a textarea, a select, or a contentEditable row control", () => {
+		render(
+			<ListRoot semantics="list" aria-label="rows">
+				<ListItem>
+					<button type="button">Item 0</button>
+				</ListItem>
+				<ListItem>
+					<textarea aria-label="Notes" defaultValue="abc" />
+				</ListItem>
+				<ListItem>
+					<select aria-label="Plan">
+						<option>free</option>
+						<option>pro</option>
+					</select>
+				</ListItem>
+				<ListItem>
+					{/* A rich-text row: an editable host that is its own keyboard stop. */}
+					<span
+						role="textbox"
+						aria-label="Bio"
+						contentEditable
+						suppressContentEditableWarning
+						tabIndex={0}
+					>
+						abc
+					</span>
+				</ListItem>
+			</ListRoot>,
+		);
+
+		const editors = [
+			screen.getByRole("textbox", { name: "Notes" }),
+			screen.getByRole("combobox", { name: "Plan" }),
+			screen.getByRole("textbox", { name: "Bio" }),
+		];
+		for (const editor of editors) {
+			editor.focus();
+			expect(fireEvent.keyDown(editor, { key: "ArrowDown" })).toBe(true);
+			expect(editor).toHaveFocus();
+			expect(fireEvent.keyDown(editor, { key: "ArrowUp" })).toBe(true);
+			expect(editor).toHaveFocus();
+		}
 	});
 });
 

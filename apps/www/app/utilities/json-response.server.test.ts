@@ -72,4 +72,38 @@ describe("jsonAgentResponse", () => {
 			expect(response.status).toBe(304);
 		}
 	});
+
+	// The 200 direction of the same decision: a present-but-stale validator must
+	// still serve the body, otherwise a revalidating client keeps its outdated
+	// copy of the manifest until the cache entry expires.
+	it("serves the full body when no If-None-Match validator matches", async () => {
+		const staleHeaders = ['"deadbeefdeadbeef"', '"a", "b"', `W/"not-${etag.slice(1)}`, ""];
+
+		for (const ifNoneMatch of staleHeaders) {
+			const response = jsonAgentResponse(
+				data,
+				new Request("https://mantle.ngrok.com/api/package.json", {
+					headers: { "If-None-Match": ifNoneMatch },
+				}),
+			);
+
+			expect(response.status).toBe(200);
+			expect(response.headers.get("ETag")).toBe(etag);
+			expect(await response.text()).toBe(body);
+		}
+	});
+
+	// A validator that merely *contains* the etag is not a match: the header is a
+	// comma-separated list of whole validators, not a substring search.
+	it("does not treat a validator that only contains the etag as a match", async () => {
+		const response = jsonAgentResponse(
+			data,
+			new Request("https://mantle.ngrok.com/api/package.json", {
+				headers: { "If-None-Match": `"prefix-${etag.slice(1, -1)}-suffix"` },
+			}),
+		);
+
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe(body);
+	});
 });

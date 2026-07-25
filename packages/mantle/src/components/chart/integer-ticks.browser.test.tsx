@@ -1,7 +1,7 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
-import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import type { MockInstance } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
 import { LineChart } from "../line-chart/index.js";
@@ -62,17 +62,16 @@ beforeAll(() => {
 	styleElement = document.createElement("style");
 	styleElement.textContent = STYLE;
 	document.head.appendChild(styleElement);
-	// Calls through to the real implementation, so painting is unchanged — the
-	// spy only records which strings hit the canvas.
+});
+
+// Installed per test rather than once, because `restoreMocks` tears every spy down between tests.
+// Calls through to the real implementation, so painting is unchanged — the spy only records which
+// strings hit the canvas.
+beforeEach(() => {
 	fillTextSpy = vi.spyOn(CanvasRenderingContext2D.prototype, "fillText");
 });
 
-afterEach(() => {
-	fillTextSpy.mockClear();
-});
-
 afterAll(() => {
-	fillTextSpy.mockRestore();
 	styleElement.remove();
 });
 
@@ -162,6 +161,37 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 			expect(paintedLabels()).toContain("2");
 		});
 		expect(paintedLabels().filter(isFractionalLabel)).toEqual([]);
+	});
+
+	test("a fractional linear x axis keeps its sub-integer ticks", async () => {
+		// The x-axis mirror of the value-axis case below: the integer clamp is
+		// per-axis and data-driven, so a ratio/duration x axis must keep its
+		// fractional ticks. Hardcoding the x flag to `true` leaves a narrow domain
+		// like [0.25, 1] with NO x labels at all (integer ticks over a sub-unit
+		// span is the empty set). y values are large integers, so any fractional
+		// label can only have come from the x axis.
+		render(
+			<div style={{ width: 600, height: 300 }}>
+				<LineChart.Root
+					data={[
+						{ ratio: 0.25, latency: 100 },
+						{ ratio: 0.5, latency: 240 },
+						{ ratio: 0.75, latency: 180 },
+						{ ratio: 1, latency: 300 },
+					]}
+					xKey="ratio"
+					animate={false}
+					aria-label="Latency by sampling ratio"
+				>
+					<LineChart.XAxis />
+					<LineChart.YAxis />
+					<LineChart.Line dataKey="latency" label="Latency" color="chart-1" />
+				</LineChart.Root>
+			</div>,
+		);
+		await waitFor(() => {
+			expect(paintedLabels().some(isFractionalLabel)).toBe(true);
+		});
 	});
 
 	test("fractional data keeps sub-integer ticks (the clamp is data-driven, not global)", async () => {

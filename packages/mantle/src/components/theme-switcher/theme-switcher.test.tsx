@@ -194,10 +194,11 @@ describe("ThemeSwitcher", () => {
 				</ThemeSwitcher.Root>
 			</ThemeProvider>,
 		);
-		// The open modal menu removes the trigger from the accessibility tree,
-		// so assert the trigger ref by identity attributes instead of role.
-		expect(triggerRef.current).toBeInstanceOf(HTMLButtonElement);
-		expect(triggerRef.current).toHaveAttribute("data-slot", "theme-switcher-trigger");
+		// The open modal menu removes the trigger from the accessibility tree, so
+		// assert the trigger ref by identity against the slotted element instead
+		// of by role.
+		expect(triggerRef.current).toBe(document.querySelector('[data-slot="theme-switcher-trigger"]'));
+		expect(triggerRef.current?.tagName).toBe("BUTTON");
 		expect(contentRef.current).toBe(screen.getByRole("menu"));
 	});
 

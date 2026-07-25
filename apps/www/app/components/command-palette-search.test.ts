@@ -197,11 +197,38 @@ describe("searchPaletteCommands", () => {
 		expect(tailwindIndex).toBeLessThan(anchorIndex);
 	});
 
+	// The two passes are unioned, so a command that matches on both its title and
+	// its route subtitle would be emitted twice without the id filter — duplicate
+	// rows, duplicate React keys, and colliding cmdk values that make arrow-key
+	// selection land on a twin.
+	test("returns each command at most once", () => {
+		// "tabs" matches the Tabs title *and* is a substring of
+		// "/components/navigation/tabs"; same for Calendar and its preview route
+		const overlapping = [
+			{ query: "tabs", title: "Tabs" },
+			{ query: "calendar", title: "Calendar" },
+		];
+
+		for (const { query, title } of overlapping) {
+			const results = searchPaletteCommands(commands, query);
+			const ids = results.map((command) => command.id);
+
+			expect(results.filter((command) => command.title === title)).toHaveLength(1);
+			expect(new Set(ids).size).toBe(ids.length);
+		}
+	});
+
 	test("returns no results for a query that matches nothing", () => {
 		expect(searchPaletteCommands(commands, "xyzzyplugh")).toEqual([]);
 	});
 
 	test("treats regex special characters as plain text", () => {
-		expect(() => searchPaletteCommands(commands, "c++ (draft) [wip]")).not.toThrow();
+		// "+", "(", "[" are matched literally, so a query full of them matches
+		// nothing rather than behaving like the quantifiers/groups they'd be in a
+		// regex (a `.*`-style reading would match every command)
+		expect(searchPaletteCommands(commands, "c++ (draft) [wip]")).toEqual([]);
+		// positive control: punctuation that really is in a route still matches
+		expect(titles("scroll-fade")).toContain("Scroll Fade");
+		expect(titles("components/navigation/")).toContain("Tabs");
 	});
 });

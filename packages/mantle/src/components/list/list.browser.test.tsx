@@ -4,8 +4,44 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import axe from "axe-core";
 import { useState } from "react";
-import { describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { List } from "./list.js";
+
+/**
+ * The three utilities the item's focus + disabled contracts are implemented
+ * with, spelled exactly as Tailwind 4 emits them, so the tests below can assert
+ * the *rendered* outcome (computed style) instead of the class string. Inlined
+ * rather than loading the mantle stylesheet so the test stays hermetic; the
+ * color is a literal so it doesn't depend on the theme being loaded.
+ *
+ * These selectors are a deliberate spelling pin on `list.tsx` / `primitive.tsx`:
+ * if a utility there is renamed, this shim must be renamed with it.
+ */
+const TINT = "rgb(9, 105, 218)";
+const STYLE = `
+	.focus-visible\\:outline-hidden:focus-visible { outline-style: none; }
+	.has-\\[\\:focus-visible\\]\\:bg-active-menu-item:has(:focus-visible) { background-color: ${TINT}; }
+	.aria-disabled\\:pointer-events-none[aria-disabled="true"] { pointer-events: none; }
+`;
+
+let styleElement: HTMLStyleElement;
+beforeAll(() => {
+	styleElement = document.createElement("style");
+	styleElement.textContent = STYLE;
+	document.head.appendChild(styleElement);
+});
+afterAll(() => {
+	styleElement.remove();
+});
+
+/** The `role="listitem"` pill wrapping an item's control. */
+function pillOf(control: HTMLElement): HTMLElement {
+	const pill = control.closest("[data-slot='list-item']");
+	if (!(pill instanceof HTMLElement)) {
+		throw new Error("list item pill not found");
+	}
+	return pill;
+}
 
 const accounts = [
 	{ id: "a", name: "Alpha", plan: "All Subscription" },
@@ -195,7 +231,10 @@ describe("List (browser)", () => {
 		);
 
 		const link = await screen.findByRole("link", { name: "Disabled provider" });
-		// Dispatch directly (assistive tech / .click() bypass pointer-events hit testing).
+		// Hit-tested pointer input is blocked outright...
+		expect(getComputedStyle(link).pointerEvents).toBe("none");
+		// ...and a directly-dispatched click (assistive tech / `.click()`, which
+		// bypasses hit testing) is swallowed too.
 		link.click();
 		expect(activated).toBe(0);
 	});
@@ -209,21 +248,27 @@ describe("List (browser)", () => {
 			</List.Root>,
 		);
 
-		screen.getByRole("button", { name: "Item 0" }).focus();
+		const first = screen.getByRole("button", { name: "Item 0" });
+		const second = screen.getByRole("button", { name: "Item 1" });
+		first.focus();
 		await user.keyboard("{ArrowDown}");
 
-		const focused = screen.getByRole("button", { name: "Item 1" });
-		expect(focused).toHaveFocus();
-		// The control suppresses its own ring/outline; the enclosing pill lights up
-		// via the has-[:focus-visible] tint instead (same treatment as hover).
-		expect(focused.className).not.toContain("focus-visible:ring");
-		expect(focused.className).toContain("focus-visible:outline-hidden");
-		const pill = focused.closest("[data-slot='list-item']");
-		if (pill == null) {
-			throw new Error("list item pill not found");
-		}
-		expect(pill.matches(":has(:focus-visible)")).toBe(true);
-		expect(pill.className).toContain("has-[:focus-visible]:bg-active-menu-item");
+		expect(second).toHaveFocus();
+		// The control draws no outline of its own (without the suppression the UA
+		// paints its `auto` focus ring here)...
+		expect(getComputedStyle(second).outlineStyle).toBe("none");
+		// ...and the enclosing pill lights up instead, via the real `:focus-visible`
+		// a keyboard move produces — only the focused row's pill.
+		expect(pillOf(second).matches(":has(:focus-visible)")).toBe(true);
+		expect(getComputedStyle(pillOf(second)).backgroundColor).toBe(TINT);
+		expect(pillOf(first).matches(":has(:focus-visible)")).toBe(false);
+		expect(getComputedStyle(pillOf(first)).backgroundColor).not.toBe(TINT);
+
+		// The tint follows focus back up rather than sticking to the row it left.
+		await user.keyboard("{ArrowUp}");
+		expect(first).toHaveFocus();
+		expect(getComputedStyle(pillOf(first)).backgroundColor).toBe(TINT);
+		expect(getComputedStyle(pillOf(second)).backgroundColor).not.toBe(TINT);
 	});
 
 	test("arrow navigation crosses the virtual window (End mounts and focuses the last item)", async () => {
@@ -239,15 +284,13 @@ describe("List (browser)", () => {
 				))}
 			</List.VirtualRoot>,
 		);
-		// Let the virtualizer measure and mount the first window.
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
+		// The virtualizer mounts nothing until it has measured the viewport.
+		const firstItem = await screen.findByRole("button", { name: "Account 0" });
 
 		// The last item isn't mounted under a small window.
 		expect(screen.queryByRole("button", { name: "Account 49" })).not.toBeInTheDocument();
 
-		screen.getByRole("button", { name: "Account 0" }).focus();
+		firstItem.focus();
 		await user.keyboard("{End}");
 		// End scrolls + mounts the last item, then moves focus onto it.
 		await waitFor(() => expect(screen.getByRole("button", { name: "Account 49" })).toHaveFocus());

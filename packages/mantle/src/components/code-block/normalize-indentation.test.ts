@@ -147,6 +147,30 @@ const foo = {};
 		`);
 	});
 
+	test("given a space-indented string, converts each pair of leading spaces to a tab", () => {
+		const value = "function f() {\n    return 1;\n}";
+
+		expect(normalizeIndentation(value, { indentation: "tabs" })).toBe(
+			"function f() {\n\t\treturn 1;\n}",
+		);
+		// "spaces" is the default and leaves space indentation untouched.
+		expect(normalizeIndentation(value, { indentation: "spaces" })).toBe(value);
+		expect(normalizeIndentation(value)).toBe(value);
+	});
+
+	test("given an odd number of leading spaces, leaves the trailing single space", () => {
+		expect(normalizeIndentation("a\n   b", { indentation: "tabs" })).toBe("a\n\t b");
+	});
+
+	test("given mixed leading tabs and spaces, only converts adjacent space pairs", () => {
+		expect(normalizeIndentation("a\n \t  b", { indentation: "tabs" })).toBe("a\n \t\tb");
+		expect(normalizeIndentation("a\n \t  b", { indentation: "spaces" })).toBe("a\n     b");
+	});
+
+	test("only the leading indentation is rewritten, not interior whitespace", () => {
+		expect(normalizeIndentation("a\n  b  c", { indentation: "tabs" })).toBe("a\n\tb  c");
+	});
+
 	test("normalizes CRLF line endings without leaving carriage returns in the output", () => {
 		const value = "\r\n\tconst foo = {};\r\n\t\tconst bar = {};\r\n";
 
