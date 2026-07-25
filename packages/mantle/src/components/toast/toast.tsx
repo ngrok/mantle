@@ -219,6 +219,25 @@ const Root = ({ asChild, children, className, intent, ref, ...props }: ToastProp
 type ToastIconProps = Partial<SvgOnlyProps>;
 
 /**
+ * Hoisted to module scope so each intent's fallback is one stable element reference shared by every
+ * render, rather than a fresh element allocated on each one. Keying both maps off `ToastIntent` also
+ * makes a missing intent a type error instead of a branch that silently forgets the `svg ??` fallback.
+ */
+const defaultIcons = {
+	danger: <WarningIcon weight="fill" />,
+	info: <InfoIcon weight="fill" />,
+	success: <CheckCircleIcon weight="fill" />,
+	warning: <WarningDiamondIcon weight="fill" />,
+} as const satisfies Record<ToastIntent, ReactNode>;
+
+const iconColors = {
+	danger: "text-danger-600",
+	info: "text-accent-600",
+	success: "text-success-600",
+	warning: "text-warning-600",
+} as const satisfies Record<ToastIntent, string>;
+
+/**
  * An icon that visually represents the intent of the toast.
  * If you do not provide an icon, the default icon and color for the intent is used.
  *
@@ -235,52 +254,21 @@ type ToastIconProps = Partial<SvgOnlyProps>;
  */
 const Icon = ({ className, svg, ref, ...props }: ToastIconProps) => {
 	const ctx = useContext(ToastStateContext);
+	const defaultIcon = defaultIcons[ctx.intent];
 
-	switch (ctx.intent) {
-		case "danger":
-			return (
-				<IconComponent
-					data-slot="toast-icon"
-					className={cx("text-danger-600", className)}
-					ref={ref}
-					svg={svg ?? <WarningIcon weight="fill" />}
-					{...props}
-				/>
-			);
-		case "warning":
-			return (
-				<IconComponent
-					data-slot="toast-icon"
-					className={cx("text-warning-600", className)}
-					ref={ref}
-					svg={svg ?? <WarningDiamondIcon weight="fill" />}
-					{...props}
-				/>
-			);
-		case "success":
-			return (
-				<IconComponent
-					data-slot="toast-icon"
-					className={cx("text-success-600", className)}
-					ref={ref}
-					svg={svg ?? <CheckCircleIcon weight="fill" />}
-					{...props}
-				/>
-			);
-		case "info":
-			return (
-				<IconComponent
-					//
-					data-slot="toast-icon"
-					className={cx("text-accent-600", className)}
-					ref={ref}
-					svg={<InfoIcon weight="fill" />}
-					{...props}
-				/>
-			);
-		default:
-			throw new Error(`Unreachable Case: ${ctx.intent}`);
+	if (defaultIcon == null) {
+		throw new Error(`Unreachable Case: ${ctx.intent}`);
 	}
+
+	return (
+		<IconComponent
+			data-slot="toast-icon"
+			className={cx(iconColors[ctx.intent], className)}
+			ref={ref}
+			svg={svg ?? defaultIcon}
+			{...props}
+		/>
+	);
 };
 
 type ToastActionProps = ComponentProps<"button"> & WithAsChild;

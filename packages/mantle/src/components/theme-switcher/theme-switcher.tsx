@@ -216,6 +216,9 @@ const Trigger = ({
  */
 type ThemeSwitcherContentProps = ComponentProps<typeof DropdownMenu.Content> & WithDataSlot;
 
+/** One stable element reference shared by every render, rather than a fresh allocation per render. */
+const defaultContentChildren = <ThemeDropdownMenuRadioGroup />;
+
 /**
  * The popover the trigger opens: a thin forwarding wrapper over
  * `DropdownMenu.Content`. When `children` are omitted (or `null`/`undefined`)
@@ -248,7 +251,7 @@ type ThemeSwitcherContentProps = ComponentProps<typeof DropdownMenu.Content> & W
  */
 const Content = ({ children, "data-slot": dataSlot, ...props }: ThemeSwitcherContentProps) => (
 	<DropdownMenu.Content data-slot={joinDataSlot(dataSlot, "theme-switcher-content")} {...props}>
-		{children ?? <ThemeDropdownMenuRadioGroup />}
+		{children ?? defaultContentChildren}
 	</DropdownMenu.Content>
 );
 

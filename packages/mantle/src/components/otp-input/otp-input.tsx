@@ -385,6 +385,9 @@ type OtpInputSeparatorProps = ComponentProps<"div"> &
 		semantic?: boolean;
 	};
 
+/** One stable element reference shared by every render, rather than a fresh allocation per render. */
+const defaultSeparatorIcon = <MinusIcon weight="bold" />;
+
 /**
  * A visual separator between two `OtpInput.Group` segments. Renders a minus
  * icon by default; pass `children` to override the visual.
@@ -427,7 +430,7 @@ const Separator = ({
 			{...semanticProps}
 			{...props}
 		>
-			{children ?? <MinusIcon weight="bold" />}
+			{children ?? defaultSeparatorIcon}
 		</Comp>
 	);
 };

@@ -693,6 +693,9 @@ type DataTableExpandHeaderProps = Omit<ComponentProps<typeof Table.Header>, "chi
 	children?: ReactNode;
 };
 
+/** One stable element reference shared by every render, rather than a fresh allocation per render. */
+const defaultExpandHeaderLabel = <span className="sr-only">Row details</span>;
+
 /**
  * A narrow `<th>` for the leading expand-toggle column, mirroring
  * `DataTable.ActionHeader`. Renders a screen-reader-only label by default so the
@@ -724,7 +727,7 @@ function ExpandHeader({ children, className, ...props }: DataTableExpandHeaderPr
 			className={cx("w-9 px-0 text-center", className)}
 			{...props}
 		>
-			{children ?? <span className="sr-only">Row details</span>}
+			{children ?? defaultExpandHeaderLabel}
 		</Table.Header>
 	);
 }

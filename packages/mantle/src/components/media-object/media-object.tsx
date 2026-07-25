@@ -24,7 +24,7 @@ type Props = ComponentProps<"div"> & WithAsChild;
  * </MediaObject.Root>
  * ```
  */
-const Root = ({ asChild = false, className, children, style, ref }: Props) => {
+const Root = ({ asChild = false, className, ref, ...props }: Props) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
@@ -32,10 +32,8 @@ const Root = ({ asChild = false, className, children, style, ref }: Props) => {
 			ref={ref}
 			data-slot="media-object"
 			className={cx("flex gap-4", className)}
-			style={style}
-		>
-			{children}
-		</Component>
+			{...props}
+		/>
 	);
 };
 
@@ -56,7 +54,7 @@ const Root = ({ asChild = false, className, children, style, ref }: Props) => {
  * </MediaObject.Root>
  * ```
  */
-const Media = ({ asChild = false, className, children, style, ref }: Props) => {
+const Media = ({ asChild = false, className, ref, ...props }: Props) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
@@ -64,10 +62,8 @@ const Media = ({ asChild = false, className, children, style, ref }: Props) => {
 			ref={ref}
 			data-slot="media-object-media"
 			className={cx("shrink-0 leading-none", className)}
-			style={style}
-		>
-			{children}
-		</Component>
+			{...props}
+		/>
 	);
 };
 
@@ -88,7 +84,7 @@ const Media = ({ asChild = false, className, children, style, ref }: Props) => {
  * </MediaObject.Root>
  * ```
  */
-const Content = ({ asChild = false, className, children, style, ref }: Props) => {
+const Content = ({ asChild = false, className, ref, ...props }: Props) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
@@ -96,10 +92,8 @@ const Content = ({ asChild = false, className, children, style, ref }: Props) =>
 			ref={ref}
 			data-slot="media-object-content"
 			className={cx("min-w-0 flex-1", className)}
-			style={style}
-		>
-			{children}
-		</Component>
+			{...props}
+		/>
 	);
 };
 

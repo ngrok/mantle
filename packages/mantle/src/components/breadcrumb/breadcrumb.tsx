@@ -281,6 +281,9 @@ type BreadcrumbSeparatorProps = Omit<ComponentProps<"li">, "children"> &
 		  }
 	);
 
+/** One stable element reference shared by every render, rather than a fresh allocation per render. */
+const defaultSeparatorIcon = <Icon svg={<CaretRightIcon />} className="size-3.5" />;
+
 /**
  * A purely visual divider between crumbs, hidden from assistive technology.
  * Renders an `<li>` with `role="presentation"` and `aria-hidden="true"` — a
@@ -324,7 +327,7 @@ const Separator = ({
 	const content =
 		asChild && isValidElement<ComponentProps<"li">>(children)
 			? cloneElement(children, { role: "presentation", "aria-hidden": "true" })
-			: (children ?? <Icon svg={<CaretRightIcon />} className="size-3.5" />);
+			: (children ?? defaultSeparatorIcon);
 
 	return (
 		<Comp
