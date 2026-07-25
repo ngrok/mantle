@@ -571,6 +571,16 @@ const InputSandbox = ({ children, onClick, onKeyDown, ...props }: RadioInputSand
  * RadioGroup.Root
  * └── RadioGroup.Card
  *     └── RadioGroup.Indicator
+ *
+ * # Rich option layout (Choice)
+ * RadioGroup.Root
+ * └── RadioGroup.Item
+ *     └── Choice.Root
+ *         ├── Choice.Indicator
+ *         │   └── RadioGroup.Indicator
+ *         └── Choice.Content
+ *             ├── Choice.Title
+ *             └── Choice.Description
  * ```
  *
  * @example

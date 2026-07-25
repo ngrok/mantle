@@ -511,6 +511,14 @@ function Example() {
 }
 ```
 
+## Polymorphism
+
+`SelectableList.Item`, `SelectableList.ItemTitle`, and `SelectableList.ItemDescription` accept `asChild`, rendering your single child in place of the part's default element and forwarding class names, `data-*` attributes, and `ref` onto it.
+
+`SelectableList.Item asChild` is the one you will reach for: it keeps the row's checkbox, `aria-selected` row semantics, and keyboard behavior while letting the row's content be your own composition. `ItemTitle` and `ItemDescription` forward to [`Choice`](/components/forms/choice)'s label and description parts, so `asChild` there is for choosing the element that carries the text.
+
+The collection-level parts — `Root`, `Filter`, `SelectAll`, `Viewport`, and `VirtualViewport` — own the grid semantics, filtering, select-all wiring, and virtualization measurement, so they do not accept `asChild`. Note that unlike [`List`](/components/data-display/list), a selectable row is not a link: use `List` when the row's job is to navigate.
+
 ## Accessibility
 
 The viewport is an APG **grid**: a `role="grid"` of `role="row"` rows, each with `role="gridcell"` cells holding a real `<input type="checkbox">` and the title + description. This is the pattern the [WAI-ARIA grid](https://www.w3.org/WAI/ARIA/apg/patterns/grid/) prescribes for selectable rows that carry their own interactive controls (a plain listbox forbids a real checkbox or nested controls inside an option). Provide `aria-label` (or `aria-labelledby`) on the viewport so the grid has an accessible name. Each row's `aria-selected` conveys its selection alongside the checkbox's checked state; the title is a `Choice.Label`, so it names the checkbox, and the description is wired via `aria-describedby`. Disabled rows carry `aria-disabled`. `SelectableList.Empty` is an always-mounted polite `role="status"` live region, so an empty result is announced as the filter narrows rather than the grid silently vanishing.

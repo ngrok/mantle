@@ -476,6 +476,7 @@ The `mantleCode()` options let you customize how code is displayed. By default, 
 Compose the parts of a `CodeBlock` together to build your own:
 
 ```text showLineNumbers=false
+# Standard
 CodeBlock.Root
 ├── CodeBlock.Header
 │   ├── CodeBlock.Icon
@@ -484,11 +485,8 @@ CodeBlock.Root
 │   ├── CodeBlock.CopyButton
 │   └── CodeBlock.Code
 └── CodeBlock.ExpanderButton
-```
 
-For a tabbed code block:
-
-```text showLineNumbers=false
+# Tabbed
 CodeBlock.Root
 ├── CodeBlock.Header
 │   └── CodeBlock.TabList
@@ -499,6 +497,14 @@ CodeBlock.Root
 │       └── CodeBlock.Code
 └── CodeBlock.ExpanderButton
 ```
+
+## Polymorphism
+
+`CodeBlock.Root`, `CodeBlock.Header`, `CodeBlock.Title`, `CodeBlock.Body`, `CodeBlock.ExpanderButton`, `CodeBlock.TabList`, and `CodeBlock.TabTrigger` accept `asChild`. When `true` the part renders its single child instead of its default element, forwarding class names, `data-*` attributes, and `ref` onto it.
+
+Reach for it when `Root` should be a semantic `<figure>` or `<section>`, when `Title` needs a different heading level than the default `<h3>`, or when `ExpanderButton` and `TabTrigger` must be your own button component while keeping the code block's expand and tab behavior.
+
+`CodeBlock.Code`, `CodeBlock.CopyButton`, and `CodeBlock.TabContent` intentionally do not accept `asChild` — `Code` owns the highlighted markup it renders, `CopyButton` owns its clipboard affordance, and `TabContent` explicitly omits the prop because its mounting is driven by the active tab. `CodeBlock.Icon` takes its element through the `svg` prop instead.
 
 ## API Reference
 

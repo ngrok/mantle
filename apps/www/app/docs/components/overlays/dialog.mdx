@@ -476,6 +476,14 @@ function Example() {
 }
 ```
 
+## Polymorphism
+
+`Dialog.Trigger`, `Dialog.Close`, `Dialog.Overlay`, `Dialog.Content`, `Dialog.Title`, `Dialog.Description`, and `Dialog.CloseIconButton` accept `asChild`, which renders your single child in place of the part's default element while keeping its styling and behavior.
+
+`Dialog.Trigger asChild` is by far the most common — it makes your own `Button` open the dialog instead of nesting a button inside one. Use `Dialog.Close asChild` to let any element dismiss the dialog, and `Dialog.Title asChild` when the heading level must fit the surrounding page outline.
+
+`Dialog.Root` and `Dialog.Portal` render no DOM of their own — `Root` is a state provider and `Portal` only relocates its children — so neither takes `asChild`. `Dialog.Header`, `Dialog.Body`, and `Dialog.Footer` are plain layout `<div>`s that do not currently accept it.
+
 ## API Reference
 
 ### Dialog.Root

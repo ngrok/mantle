@@ -226,6 +226,14 @@ Empty.Root
 └── Empty.Actions
 ```
 
+## Polymorphism
+
+`Empty.Root`, `Empty.Title`, `Empty.Description`, and `Empty.Actions` accept `asChild`. When `true` the part renders its single child instead of its default element, forwarding class names, `data-*` attributes, and `ref`.
+
+Reach for it when the empty state is a semantic landmark — `Empty.Root asChild` around a `<section>` — or when `Empty.Title` needs a heading level that fits the page outline rather than the default. `Empty.Actions asChild` is useful when the action row should be a `<form>` or a navigation element.
+
+`Empty.Icon` is the documented exception: it takes its element through the `svg` prop and clones it, so polymorphism already goes through that prop rather than `asChild`.
+
 ## API Reference
 
 ### Empty.Root

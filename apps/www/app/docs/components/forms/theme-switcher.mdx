@@ -157,6 +157,14 @@ import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
 > [!IMPORTANT]
 > `ThemeDropdownMenuRadioGroup` must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent`. It renders menu items (`DropdownMenu.RadioGroup` + `DropdownMenu.RadioItem` under the hood), which only work within an open dropdown menu — the type system cannot express this constraint, so it is on you to uphold it.
 
+## Polymorphism
+
+`ThemeSwitcher.Trigger` and `ThemeSwitcher.Content` accept `asChild`, rendering your single child in place of the part's default element while keeping the menu's open/close and radio-selection behavior.
+
+`ThemeSwitcher.Trigger asChild` is the common case: it lets the control that opens the menu be your own component — a `Button` with a label, or an `IconButton` in a toolbar — instead of the default trigger. `ThemeSwitcher.Content asChild` is the escape hatch for owning the menu panel element; it exists as a part precisely so the component never needed a `contentProps` prop bag (see [the decision record](https://github.com/ngrok/mantle/blob/main/decisions/2026-07-15-theme-switcher-compound-api.md)).
+
+`ThemeSwitcher.Root` is a state provider that renders no DOM, so it takes no `asChild`.
+
 ## Accessibility
 
 - The theme options are `role="menuitemradio"` items from `DropdownMenu.RadioGroup` — the active theme is announced as checked (`aria-checked`), and choosing an item behaves like picking one of a set of mutually exclusive options.

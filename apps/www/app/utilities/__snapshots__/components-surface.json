@@ -621,7 +621,7 @@
     "summary": "A set of checkable buttons—known as radio buttons—where no more than one of the buttons can be checked at a time.",
     "jsdoc": "A group of radio items.",
     "examples": [
-      "Composition:\n```\n# Default radios\nRadioGroup.Root\n└── RadioGroup.Item\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# List layout with descriptions\nRadioGroup.List\n└── RadioGroup.ListItem\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# Segmented button group\nRadioGroup.ButtonGroup\n└── RadioGroup.Button\n\n# Card-style radios\nRadioGroup.Root\n└── RadioGroup.Card\n    └── RadioGroup.Indicator\n```",
+      "Composition:\n```\n# Default radios\nRadioGroup.Root\n└── RadioGroup.Item\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# List layout with descriptions\nRadioGroup.List\n└── RadioGroup.ListItem\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# Segmented button group\nRadioGroup.ButtonGroup\n└── RadioGroup.Button\n\n# Card-style radios\nRadioGroup.Root\n└── RadioGroup.Card\n    └── RadioGroup.Indicator\n\n# Rich option layout (Choice)\nRadioGroup.Root\n└── RadioGroup.Item\n    └── Choice.Root\n        ├── Choice.Indicator\n        │   └── RadioGroup.Indicator\n        └── Choice.Content\n            ├── Choice.Title\n            └── Choice.Description\n```",
       "```tsx\n<RadioGroup.Root value={value} onChange={setValue}>\n  <RadioGroup.Item value=\"option1\">\n    <RadioGroup.Indicator />\n    <span>Option 1</span>\n  </RadioGroup.Item>\n  <RadioGroup.Item value=\"option2\">\n    <RadioGroup.Indicator />\n    <span>Option 2</span>\n  </RadioGroup.Item>\n</RadioGroup.Root>\n```"
     ]
   },
@@ -648,7 +648,7 @@
     "summary": "A canvas-rendered scatter plot for correlating two continuous measures — three with the rotatable 3D projection.",
     "jsdoc": "A canvas-rendered scatter plot for correlating two measures — three with the 3D projection (`zKey`), which renders a rotatable, depth-sorted point cloud (drag to orbit).",
     "examples": [
-      "Composition:\n```\nScatterPlot.Root\n├── ScatterPlot.Grid\n├── ScatterPlot.XAxis\n├── ScatterPlot.YAxis\n├── ScatterPlot.Point (one per series)\n├── ScatterPlot.ReferenceLine\n├── ScatterPlot.Tooltip\n└── ScatterPlot.Legend\n```",
+      "Composition:\n```\nScatterPlot.Root\n├── ScatterPlot.Grid\n├── ScatterPlot.XAxis\n├── ScatterPlot.YAxis\n├── ScatterPlot.Point (one per series)\n├── ScatterPlot.ReferenceLine\n├── ScatterPlot.Tooltip\n├── ScatterPlot.Legend\n└── ScatterPlot.CopyButton\n```",
       "```tsx\nconst data = [\n  { latency: 12, throughputA: 840, throughputB: 720 },\n  { latency: 28, throughputA: 610, throughputB: 590 },\n  { latency: 45, throughputA: 340, throughputB: 410 },\n];\n\n<ScatterPlot.Root data={data} xKey=\"latency\" aria-label=\"Latency vs throughput\">\n  <ScatterPlot.Grid />\n  <ScatterPlot.XAxis />\n  <ScatterPlot.YAxis />\n  <ScatterPlot.Point dataKey=\"throughputA\" label=\"Region A\" />\n  <ScatterPlot.Point dataKey=\"throughputB\" label=\"Region B\" />\n  <ScatterPlot.Tooltip />\n  <ScatterPlot.Legend />\n</ScatterPlot.Root>\n```"
     ]
   },

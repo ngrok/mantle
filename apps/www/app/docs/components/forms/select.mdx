@@ -392,6 +392,14 @@ Select.Root
     └── Select.Separator
 ```
 
+## Polymorphism
+
+`Select.Trigger`, `Select.Content`, `Select.Item`, `Select.Group`, `Select.Label`, `Select.Value`, and `Select.Separator` accept `asChild`, which swaps the part's default element for your single child while keeping its styling and the select's keyboard and selection behavior.
+
+`Select.Trigger asChild` is the common case — it lets your own button-shaped component open the select instead of nesting a control inside the default trigger. `Select.Item asChild` lets an option carry richer content while staying selectable, and `Select.Value asChild` is useful when the displayed value needs its own element for truncation or badge chrome.
+
+`Select.Root` is a state provider that renders no DOM, so it takes no `asChild`.
+
 ## API Reference
 
 The `Select` components are built on top of [Radix Select](https://www.radix-ui.com/primitives/docs/components/select).

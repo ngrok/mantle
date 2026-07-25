@@ -224,6 +224,14 @@ Command.DialogRoot
         └── Command.Separator
 ```
 
+## Polymorphism
+
+`Command.Root`, `Command.List`, `Command.Group`, `Command.Item`, `Command.Separator`, and `Command.Empty` accept `asChild`, forwarded to the underlying [cmdk](https://cmdk.paco.me/) primitive. `Command.DialogTrigger` accepts it too, forwarded to its Radix dialog trigger.
+
+The common case is `Command.Item asChild` with an `<a>` or a router `Link`, so selecting a result navigates while the item keeps its filtering, keyboard selection, and highlight behavior. `Command.DialogTrigger asChild` is the other frequent one — it lets any element, usually a `Button`, open the command dialog.
+
+`Command.Input` does **not** accept `asChild`: cmdk removes the prop from its input primitive, because the search input's value and change handling are owned by the command state.
+
 ## API Reference
 
 The `Command` component is built on top of [cmdk](https://cmdk.paco.me/) and provides a complete set of sub-components for building command palettes.

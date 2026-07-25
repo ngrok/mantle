@@ -139,3 +139,12 @@ Renders at Tailwind `z-50`, Mantle's shared floating z-index.
 | `collisionPadding`  | `number \| Partial<Record<Side, number>>`      | `0`         | The distance in pixels from the boundary edges where collision detection should occur.                                                  |
 | `sticky`            | `"partial"` \| `"always"`                      | `"partial"` | The sticky behavior on the align axis.                                                                                                  |
 | `hideWhenDetached`  | `boolean`                                      | `false`     | Whether to hide the content when the trigger becomes fully occluded.                                                                    |
+
+### HoverCard.Portal
+
+The portal container that renders hover card content outside the normal DOM tree. `HoverCard.Content` already renders inside this portal internally, so you rarely need this part directly — reach for it only to customize portal placement with `container`, or to wrap multiple `HoverCard.Content` instances in one shared portal.
+
+| Prop         | Type                  | Default         | Description                                                                                               |
+| ------------ | --------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
+| `container`  | `HTMLElement \| null` | `document.body` | The container element to portal the content into.                                                         |
+| `forceMount` | `boolean`             |                 | Force mounting when more control is needed, such as animating the content with a React animation library. |

@@ -26,7 +26,7 @@ const calendarNavButtonClasses = iconButtonVariants({
  * @preview This component is in `preview` mode which means the API is not stable and may change.
  * There may also be bugs! Please file an issue if you find any! <3
  *
- * @see https://mantle.ngrok.com/components/preview/calendar#api-calendar
+ * @see https://mantle.ngrok.com/components/preview/calendar
  *
  * @example
  * ```tsx

@@ -250,6 +250,14 @@ Toast.Root
 └── Toast.Action
 ```
 
+## Polymorphism
+
+`Toast.Root`, `Toast.Action`, and `Toast.Message` accept `asChild`. When `true` the part renders its single child instead of its default element, forwarding class names, `data-*` attributes, and `ref` onto that child.
+
+Reach for `Toast.Action asChild` when the action must be a link — "View logs" navigating rather than firing a handler — and `Toast.Message asChild` when the message needs its own element to carry richer markup. `Toast.Root asChild` lets the toast surface be your own container while keeping its intent styling.
+
+`Toast.Icon` takes its element through the `svg` prop and clones it, so it needs no `asChild`.
+
 ## API Reference
 
 ### Toaster
