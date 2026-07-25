@@ -8,6 +8,16 @@ const contextOptions = {
 	permissions: ["clipboard-read", "clipboard-write"],
 } as const satisfies ContextOptions;
 
+// A spy or global stub that a test installs and then fails to tear down leaks into every test that
+// runs after it, which turns an unrelated failure into a cascade and makes results depend on order.
+// Restoring centrally means an inline `mockRestore()` is never load-bearing — a test that throws
+// before reaching its cleanup line still leaves the environment pristine.
+const mockHygiene = {
+	restoreMocks: true,
+	unstubEnvs: true,
+	unstubGlobals: true,
+} as const;
+
 export default defineConfig({
 	test: {
 		reporters: ["verbose"],
@@ -20,12 +30,14 @@ export default defineConfig({
 					exclude: [...configDefaults.exclude, "**/*.browser.test.{ts,tsx}"],
 					setupFiles: "./vitest.setup.ts",
 					css: true,
+					...mockHygiene,
 				},
 			},
 			{
 				test: {
 					name: "browser",
 					include: ["**/*.browser.test.{ts,tsx}"],
+					...mockHygiene,
 					browser: {
 						enabled: true,
 						screenshotFailures: false,
