@@ -7,6 +7,8 @@ argument-hint: "<component-name>"
 
 Move `$ARGUMENTS` from preview to stable status. This is the inverse of the original "add as preview" decision; the component's API has stabilized and is ready for production use.
 
+**[COMPONENT_SPEC.md](../../COMPONENT_SPEC.md) is the normative standard** — a component going stable must meet it, not just move nav entries. Before promoting, run the [review checklist](../../COMPONENT_SPEC.md#11-review-checklist) against the component and report anything it does not satisfy; a preview component is exactly where pre-spec gaps hide. Where this workflow and the spec disagree, the spec governs.
+
 ## 0. Normalize the component name
 
 Accept any of these formats and derive the canonical forms (same logic as `scaffold-component.md`):
@@ -54,6 +56,10 @@ In `apps/www/app/routes.ts`:
 1. Find `...docRoute("components/preview/<component-name>"),` and remove it.
 2. Add `...docRoute("components/<category>/<component-name>"),` in alphabetical order among the stable component routes.
 
+## 4.a. Drop the preview badge
+
+The docs page's header carries the preview badge. If it uses `<PageHeader id="<component-name>" isPreview>`, remove the `isPreview` prop — otherwise the promoted component still renders a Preview badge. See [COMPONENT_SPEC.md §7.2](../../COMPONENT_SPEC.md#72-required-structure-in-order) item 3.
+
 ## 5. Update intra-doc cross-links (if any)
 
 Grep the docs site for any links pointing at `/components/preview/<component-name>` and rewrite them to `/components/<category>/<component-name>`:
@@ -84,6 +90,6 @@ Run from the workspace root and ensure all pass:
 ## 8. Report
 
 - Files modified
-- The new docs URL (`/components/<component-name>`)
+- The new docs URL (`/components/<category>/<component-name>`)
 - The changeset filename
 - Validation results
