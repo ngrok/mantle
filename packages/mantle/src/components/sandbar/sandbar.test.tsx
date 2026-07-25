@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { createRef, useRef } from "react";
+import { createRef } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { SandbarHandle } from "./sandbar.js";
 import { Sandbar } from "./sandbar.js";
@@ -76,18 +76,16 @@ describe("Sandbar structure", () => {
 	});
 
 	test("Root forwards className, ref, and data-* props to the panel", () => {
-		const TestBed = () => {
-			const panelRef = useRef<HTMLDivElement>(null);
-			return (
-				<Sandbar.Root className="custom-class" data-testid="panel" open ref={panelRef}>
-					<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-				</Sandbar.Root>
-			);
-		};
-		render(<TestBed />);
+		const panelRef = createRef<HTMLDivElement>();
+		render(
+			<Sandbar.Root className="custom-class" data-testid="panel" open ref={panelRef}>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+			</Sandbar.Root>,
+		);
 
 		const panel = screen.getByTestId("panel");
 		expect(panel).toBe(getPanel());
+		expect(panelRef.current).toBe(panel);
 		expect(panel.className).toContain("custom-class");
 		expect(panel).toHaveAttribute("role", "group");
 		expect(panel).toHaveAttribute("tabindex", "-1");
@@ -146,14 +144,18 @@ describe("Sandbar structure", () => {
 		expect(actions).not.toHaveAttribute("role");
 	});
 
-	test("Message and Actions support asChild", () => {
+	test("Message and Actions support asChild, merging classes, data-*, and the ref", () => {
+		const messageRef = createRef<HTMLSpanElement>();
+		const actionsRef = createRef<HTMLElement>();
 		render(
 			<Sandbar.Root open>
-				<Sandbar.Message asChild>
-					<span data-testid="message">You have unsaved changes</span>
+				<Sandbar.Message asChild className="part-class">
+					<span className="child-class" data-testid="message" ref={messageRef}>
+						You have unsaved changes
+					</span>
 				</Sandbar.Message>
-				<Sandbar.Actions asChild>
-					<section data-testid="actions" />
+				<Sandbar.Actions asChild className="part-class">
+					<section className="child-class" data-testid="actions" ref={actionsRef} />
 				</Sandbar.Actions>
 			</Sandbar.Root>,
 		);
@@ -161,9 +163,59 @@ describe("Sandbar structure", () => {
 		const message = screen.getByTestId("message");
 		expect(message.tagName).toBe("SPAN");
 		expect(message).toHaveAttribute("data-slot", "sandbar-message");
+		expect(message.className).toContain("part-class");
+		expect(message.className).toContain("child-class");
+		expect(messageRef.current).toBe(message);
+
 		const actions = screen.getByTestId("actions");
 		expect(actions.tagName).toBe("SECTION");
 		expect(actions).toHaveAttribute("data-slot", "sandbar-actions");
+		expect(actions.className).toContain("part-class");
+		expect(actions.className).toContain("child-class");
+		expect(actionsRef.current).toBe(actions);
+	});
+
+	test("every part joins an incoming data-slot chain ahead of its own slot", () => {
+		render(
+			<Sandbar.Root data-slot="outer" open>
+				<Sandbar.Message data-slot="outer-message">You have unsaved changes</Sandbar.Message>
+				<Sandbar.Actions data-slot="outer-actions">
+					<Sandbar.DiscardButton data-slot="outer-discard" onClick={() => {}}>
+						Discard
+					</Sandbar.DiscardButton>
+					<Sandbar.SaveButton data-slot="outer-save" onClick={() => {}}>
+						Save
+					</Sandbar.SaveButton>
+				</Sandbar.Actions>
+				<Sandbar.Error data-slot="outer-error">Save failed</Sandbar.Error>
+			</Sandbar.Root>,
+		);
+
+		// ancestors-first, so the rendered attribute reads in DOM order
+		expect(document.querySelector('[data-slot="outer sandbar"]')).toBeInTheDocument();
+		expect(
+			document.querySelector('[data-slot="outer-message sandbar-message"]'),
+		).toBeInTheDocument();
+		expect(
+			document.querySelector('[data-slot="outer-actions sandbar-actions"]'),
+		).toBeInTheDocument();
+		expect(
+			document.querySelector('[data-slot="outer-discard sandbar-discard-button"]'),
+		).toBeInTheDocument();
+		expect(
+			document.querySelector('[data-slot="outer-save sandbar-save-button"]'),
+		).toBeInTheDocument();
+		expect(document.querySelector('[data-slot="outer-error sandbar-error"]')).toBeInTheDocument();
+	});
+
+	test("the panel reflects its presence through data-state", () => {
+		const { rerender } = render(fullTree({ open: true }));
+		expect(getPanel()).toHaveAttribute("data-state", "open");
+
+		rerender(fullTree({ open: false }));
+		// closing keeps the panel mounted but already reports "closed" — that flip
+		// is what drives the exit transition
+		expect(getPanel()).toHaveAttribute("data-state", "closed");
 	});
 
 	test("parts throw when rendered outside Sandbar.Root", () => {

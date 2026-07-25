@@ -18,6 +18,8 @@ import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Alert } from "../alert/alert.js";
 import type { ButtonProps } from "../button/button.js";
 import { Button } from "../button/button.js";
@@ -85,7 +87,7 @@ const shakeKeyframes: Keyframe[] = [
  * assertive live-region announcement, so blocked navigation is perceivable
  * with or without motion.
  *
- * @see https://mantle.ngrok.com/components/feedback/sandbar
+ * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarhandle
  *
  * @example
  * ```tsx
@@ -102,6 +104,7 @@ const shakeKeyframes: Keyframe[] = [
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
+ *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
@@ -138,26 +141,47 @@ function useSandbarContext(part: string): SandbarContextValue {
  */
 type SandbarPresence = "closed" | "closing" | "open" | "opening";
 
-type SandbarRootProps = ComponentProps<"div"> & {
-	/**
-	 * Whether the sandbar is showing. Controlled-only — the pending state
-	 * (e.g. a form's dirty flag) lives in your app, not in the component.
-	 *
-	 * `Sandbar.Root` must stay mounted and be toggled with `open`, never
-	 * conditionally mounted (`{isDirty && <Sandbar.Root …>}`): the screen
-	 * reader announcement only works when the internal live regions exist in
-	 * the tree before the message appears, and the exit animation needs the
-	 * panel alive to play. A Root that mounts with `open` already true does
-	 * not announce (mounting is not a live-region change).
-	 */
-	open: boolean;
-	/**
-	 * Receives the imperative {@link SandbarHandle}. Kept separate from `ref`
-	 * (which stays the panel's DOM element, like every other mantle part) —
-	 * wire it to your navigation guard's blocked callback.
-	 */
-	handleRef?: Ref<SandbarHandle>;
-};
+/**
+ * Props for `Sandbar.Root`. Extends `<div>` props — which target the visible
+ * panel, not the fixed-position wrapper — with the controlled `open` flag and
+ * the imperative `handleRef`. Deliberately no `asChild`: Root renders four
+ * nodes, so single-child polymorphism has no coherent meaning.
+ *
+ * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarroot
+ *
+ * @example
+ * ```tsx
+ * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+ *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+ *   <Sandbar.Actions>
+ *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+ *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+ *   </Sandbar.Actions>
+ *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
+ * </Sandbar.Root>
+ * ```
+ */
+type SandbarRootProps = ComponentProps<"div"> &
+	WithDataSlot & {
+		/**
+		 * Whether the sandbar is showing. Controlled-only — the pending state
+		 * (e.g. a form's dirty flag) lives in your app, not in the component.
+		 *
+		 * `Sandbar.Root` must stay mounted and be toggled with `open`, never
+		 * conditionally mounted (`{isDirty && <Sandbar.Root …>}`): the screen
+		 * reader announcement only works when the internal live regions exist in
+		 * the tree before the message appears, and the exit animation needs the
+		 * panel alive to play. A Root that mounts with `open` already true does
+		 * not announce (mounting is not a live-region change).
+		 */
+		open: boolean;
+		/**
+		 * Receives the imperative {@link SandbarHandle}. Kept separate from `ref`
+		 * (which stays the panel's DOM element, like every other mantle part) —
+		 * wire it to your navigation guard's blocked callback.
+		 */
+		handleRef?: Ref<SandbarHandle>;
+	};
 
 /**
  * The always-mounted shell of the sandbar. Renders a private viewport-fixed
@@ -176,7 +200,14 @@ type SandbarRootProps = ComponentProps<"div"> & {
  * position, not tab order, so Tab from the last field lands on the actions.
  * Escape is intentionally inert (a one-keypress discard would destroy data).
  *
- * @see https://mantle.ngrok.com/components/feedback/sandbar
+ * Data attributes stamped on the panel:
+ *
+ * | Data Attribute | Value                  | Description                                                                                                                        |
+ * | -------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+ * | `data-slot`    | `"sandbar"`            | Stable styling hook for the panel. Survives `className` overrides.                                                                 |
+ * | `data-state`   | `"open"` \| `"closed"` | `"open"` only at the resting open pose — `"closed"` covers the pre-enter frame and the exit transition, which is what drives them. |
+ *
+ * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarroot
  *
  * @example
  * ```tsx
@@ -197,6 +228,7 @@ const Root = ({
 	"aria-labelledby": ariaLabelledby,
 	children,
 	className,
+	"data-slot": dataSlot,
 	handleRef,
 	onTransitionEnd,
 	open,
@@ -543,7 +575,6 @@ const Root = ({
 					{assertiveText}
 				</div>
 				<div
-					data-slot="sandbar"
 					className={cx(
 						// island surface — `invert-theme` renders the whole panel subtree in
 						// the opposite theme (light ⇄ dark, and between the high-contrast
@@ -581,6 +612,7 @@ const Root = ({
 					{...props}
 					aria-label={label}
 					aria-labelledby={labelledby}
+					data-slot={joinDataSlot(dataSlot, "sandbar")}
 					data-state={presence === "open" ? "open" : "closed"}
 					hidden={isClosed ? true : undefined}
 					inert={isClosed ? true : undefined}
@@ -596,16 +628,12 @@ const Root = ({
 	);
 };
 
-type SandbarMessageProps = ComponentProps<"p"> & WithAsChild;
-
 /**
- * The visible pending-state text (e.g. "You have unsaved changes"). A plain
- * paragraph — the live-region announcement is owned by `Sandbar.Root`'s
- * persistent announcer, not this node, and the panel's accessible name points
- * here via `aria-labelledby` so the group name always matches the visible
- * text.
+ * Props for `Sandbar.Message`. Extends `<p>` props with `asChild`. An `id` is
+ * generated when none is passed — it is what `Sandbar.Root` points
+ * `aria-labelledby` at, so passing your own keeps that wiring intact.
  *
- * @see https://mantle.ngrok.com/components/feedback/sandbar
+ * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarmessage
  *
  * @example
  * ```tsx
@@ -615,10 +643,46 @@ type SandbarMessageProps = ComponentProps<"p"> & WithAsChild;
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
+ *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
-const Message = ({ asChild, className, id: propId, ...props }: SandbarMessageProps) => {
+type SandbarMessageProps = ComponentProps<"p"> & WithAsChild & WithDataSlot;
+
+/**
+ * The visible pending-state text (e.g. "You have unsaved changes"). A plain
+ * paragraph — the live-region announcement is owned by `Sandbar.Root`'s
+ * persistent announcer, not this node, and the panel's accessible name points
+ * here via `aria-labelledby` so the group name always matches the visible
+ * text.
+ *
+ * Data attributes:
+ *
+ * | Data Attribute | Value                | Description                                                       |
+ * | -------------- | -------------------- | ----------------------------------------------------------------- |
+ * | `data-slot`    | `"sandbar-message"`  | Stable styling hook. Survives `className` overrides and `asChild`. |
+ *
+ * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarmessage
+ *
+ * @example
+ * ```tsx
+ * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+ *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+ *   <Sandbar.Actions>
+ *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+ *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+ *   </Sandbar.Actions>
+ *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
+ * </Sandbar.Root>
+ * ```
+ */
+const Message = ({
+	asChild,
+	className,
+	"data-slot": dataSlot,
+	id: propId,
+	...props
+}: SandbarMessageProps) => {
 	const { registerMessage } = useSandbarContext("Sandbar.Message");
 	const generatedId = useId();
 	const id = propId ?? generatedId;
@@ -629,22 +693,18 @@ const Message = ({ asChild, className, id: propId, ...props }: SandbarMessagePro
 
 	return (
 		<Comp
-			data-slot="sandbar-message"
 			className={cx("text-sm font-sans", className)}
 			id={id}
 			{...props}
+			data-slot={joinDataSlot(dataSlot, "sandbar-message")}
 		/>
 	);
 };
 
-type SandbarActionsProps = ComponentProps<"div"> & WithAsChild;
-
 /**
- * The action-button row. A plain flex container — deliberately not
- * `role="toolbar"`, which the ARIA APG reserves for 3+ controls with roving
- * tab stops.
+ * Props for `Sandbar.Actions`. Extends `<div>` props with `asChild`.
  *
- * @see https://mantle.ngrok.com/components/feedback/sandbar
+ * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbaractions
  *
  * @example
  * ```tsx
@@ -654,38 +714,86 @@ type SandbarActionsProps = ComponentProps<"div"> & WithAsChild;
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
+ *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
-const Actions = ({ asChild, className, ...props }: SandbarActionsProps) => {
+type SandbarActionsProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
+
+/**
+ * The action-button row. A plain flex container — deliberately not
+ * `role="toolbar"`, which the ARIA APG reserves for 3+ controls with roving
+ * tab stops.
+ *
+ * Data attributes:
+ *
+ * | Data Attribute | Value                | Description                                                       |
+ * | -------------- | -------------------- | ----------------------------------------------------------------- |
+ * | `data-slot`    | `"sandbar-actions"`  | Stable styling hook. Survives `className` overrides and `asChild`. |
+ *
+ * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbaractions
+ *
+ * @example
+ * ```tsx
+ * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+ *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+ *   <Sandbar.Actions>
+ *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+ *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+ *   </Sandbar.Actions>
+ *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
+ * </Sandbar.Root>
+ * ```
+ */
+const Actions = ({ asChild, className, "data-slot": dataSlot, ...props }: SandbarActionsProps) => {
 	const Comp = asChild ? Slot : "div";
 
 	return (
 		<Comp
-			data-slot="sandbar-actions"
 			className={cx("flex flex-wrap items-center justify-center gap-2", className)}
 			{...props}
+			data-slot={joinDataSlot(dataSlot, "sandbar-actions")}
 		/>
 	);
 };
 
-type SandbarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "intent"> & {
-	/**
-	 * The visual style of the button.
-	 * @default "filled"
-	 */
-	appearance?: ButtonProps["appearance"];
-	/**
-	 * The tone of the button.
-	 * @default "neutral"
-	 */
-	intent?: ButtonProps["intent"];
-	/**
-	 * The visible action label (e.g. "Save"). Required — action labels are app
-	 * voice and must be visible at the call site.
-	 */
-	children: ReactNode;
-};
+/**
+ * Props for `Sandbar.SaveButton`. Extends `Button`'s props — including
+ * `asChild` and `isLoading` — but makes `appearance` and `intent` optional
+ * with save-flavored defaults, and `children` required.
+ *
+ * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarsavebutton
+ *
+ * @example
+ * ```tsx
+ * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+ *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+ *   <Sandbar.Actions>
+ *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+ *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+ *   </Sandbar.Actions>
+ *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
+ * </Sandbar.Root>
+ * ```
+ */
+type SandbarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "intent"> &
+	WithDataSlot & {
+		/**
+		 * The visual style of the button.
+		 * @default "filled"
+		 */
+		appearance?: ButtonProps["appearance"];
+		/**
+		 * The tone of the button.
+		 * @default "neutral"
+		 */
+		intent?: ButtonProps["intent"];
+		/**
+		 * The visible action label (e.g. "Save"). Required — action labels are app
+		 * voice and must be visible at the call site.
+		 */
+		children: ReactNode;
+	};
 
 /**
  * The primary (save) action. A mantle `Button` defaulting to the system
@@ -698,7 +806,18 @@ type SandbarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "int
  * form it saves. Announce the save's resolution yourself (e.g. a success
  * Toast) — the bar exits silently.
  *
- * @see https://mantle.ngrok.com/components/feedback/sandbar
+ * Data attributes:
+ *
+ * | Data Attribute    | Value                     | Description                                                                                      |
+ * | ----------------- | ------------------------- | -------------------------------------------------------------------------------------------------- |
+ * | `data-slot`       | `"sandbar-save-button"`   | Stable styling hook. Replaces `Button`'s own `data-slot="button"`, as every Button wrapper does. |
+ * | `data-appearance` | the resolved `appearance` | Stamped by `Button`.                                                                             |
+ * | `data-intent`     | the resolved `intent`     | Stamped by `Button`.                                                                             |
+ * | `data-size`       | the resolved `size`       | Stamped by `Button`; absent for `appearance="link"`.                                             |
+ * | `data-disabled`   | `"true"` \| `"false"`     | Stamped by `Button`. Value-based, not presence-based — match on the value.                       |
+ * | `data-loading`    | `"true"` \| `"false"`     | Stamped by `Button`, tracking `isLoading`. Value-based, not presence-based.                      |
+ *
+ * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarsavebutton
  *
  * @example
  * ```tsx
@@ -708,12 +827,14 @@ type SandbarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "int
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
+ *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
 const SaveButton = ({
 	appearance = "filled",
 	children,
+	"data-slot": dataSlot,
 	intent = "neutral",
 	isLoading = false,
 	ref,
@@ -737,42 +858,24 @@ const SaveButton = ({
 
 	return (
 		<Button
-			data-slot="sandbar-save-button"
 			appearance={appearance}
 			intent={intent}
 			isLoading={isLoading}
 			ref={composedRef}
 			{...props}
+			data-slot={joinDataSlot(dataSlot, "sandbar-save-button")}
 		>
 			{children}
 		</Button>
 	);
 };
 
-type SandbarDiscardButtonProps = Omit<ButtonProps, "appearance" | "children" | "intent"> & {
-	/**
-	 * The visual style of the button.
-	 * @default "outlined"
-	 */
-	appearance?: ButtonProps["appearance"];
-	/**
-	 * The tone of the button.
-	 * @default "neutral"
-	 */
-	intent?: ButtonProps["intent"];
-	/**
-	 * The visible action label (e.g. "Discard"). Required — action labels are
-	 * app voice and must be visible at the call site.
-	 */
-	children: ReactNode;
-};
-
 /**
- * The secondary (discard/reset) action. A mantle `Button` defaulting to
- * `appearance="outlined" intent="neutral"`. Discard is destructive-ish: for
- * large forms, consider confirming before discarding.
+ * Props for `Sandbar.DiscardButton`. Extends `Button`'s props — including
+ * `asChild` — but makes `appearance` and `intent` optional with
+ * secondary-action defaults, and `children` required.
  *
- * @see https://mantle.ngrok.com/components/feedback/sandbar
+ * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbardiscardbutton
  *
  * @example
  * ```tsx
@@ -782,23 +885,98 @@ type SandbarDiscardButtonProps = Omit<ButtonProps, "appearance" | "children" | "
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
+ *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
+ * </Sandbar.Root>
+ * ```
+ */
+type SandbarDiscardButtonProps = Omit<ButtonProps, "appearance" | "children" | "intent"> &
+	WithDataSlot & {
+		/**
+		 * The visual style of the button.
+		 * @default "outlined"
+		 */
+		appearance?: ButtonProps["appearance"];
+		/**
+		 * The tone of the button.
+		 * @default "neutral"
+		 */
+		intent?: ButtonProps["intent"];
+		/**
+		 * The visible action label (e.g. "Discard"). Required — action labels are
+		 * app voice and must be visible at the call site.
+		 */
+		children: ReactNode;
+	};
+
+/**
+ * The secondary (discard/reset) action. A mantle `Button` defaulting to
+ * `appearance="outlined" intent="neutral"`. Discard is destructive-ish: for
+ * large forms, consider confirming before discarding.
+ *
+ * Data attributes:
+ *
+ * | Data Attribute    | Value                      | Description                                                                                      |
+ * | ----------------- | -------------------------- | -------------------------------------------------------------------------------------------------- |
+ * | `data-slot`       | `"sandbar-discard-button"` | Stable styling hook. Replaces `Button`'s own `data-slot="button"`, as every Button wrapper does. |
+ * | `data-appearance` | the resolved `appearance`  | Stamped by `Button`.                                                                             |
+ * | `data-intent`     | the resolved `intent`      | Stamped by `Button`.                                                                             |
+ * | `data-size`       | the resolved `size`        | Stamped by `Button`; absent for `appearance="link"`.                                             |
+ * | `data-disabled`   | `"true"` \| `"false"`      | Stamped by `Button`. Value-based, not presence-based — match on the value.                       |
+ *
+ * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbardiscardbutton
+ *
+ * @example
+ * ```tsx
+ * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+ *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+ *   <Sandbar.Actions>
+ *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+ *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+ *   </Sandbar.Actions>
+ *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
 const DiscardButton = ({
 	appearance = "outlined",
 	children,
+	"data-slot": dataSlot,
 	intent = "neutral",
 	...props
 }: SandbarDiscardButtonProps) => {
 	return (
-		<Button data-slot="sandbar-discard-button" appearance={appearance} intent={intent} {...props}>
+		<Button
+			appearance={appearance}
+			intent={intent}
+			{...props}
+			data-slot={joinDataSlot(dataSlot, "sandbar-discard-button")}
+		>
 			{children}
 		</Button>
 	);
 };
 
-type SandbarErrorProps = Omit<ComponentProps<typeof Alert.Root>, "intent">;
+/**
+ * Props for `Sandbar.Error`. Extends `Alert.Root`'s props except `intent`,
+ * which is pinned to `"danger"`. The error's text is read from the rendered
+ * content and mirrored through `Sandbar.Root`'s assertive announcer, so
+ * conditional mounting is safe.
+ *
+ * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarerror
+ *
+ * @example
+ * ```tsx
+ * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
+ *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
+ *   <Sandbar.Actions>
+ *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
+ *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
+ *   </Sandbar.Actions>
+ *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
+ * </Sandbar.Root>
+ * ```
+ */
+type SandbarErrorProps = Omit<ComponentProps<typeof Alert.Root>, "intent"> & WithDataSlot;
 
 /**
  * A danger alert row for a failed save. Renders a mantle `Alert` pinned to
@@ -812,7 +990,16 @@ type SandbarErrorProps = Omit<ComponentProps<typeof Alert.Root>, "intent">;
  * Needs Title/Icon-level control? Compose your own
  * `<Alert.Root intent="danger">` inside `Sandbar.Root` instead.
  *
- * @see https://mantle.ngrok.com/components/feedback/sandbar
+ * Data attributes:
+ *
+ * | Data Attribute | Value             | Description                                                                             |
+ * | -------------- | ----------------- | --------------------------------------------------------------------------------------- |
+ * | `data-slot`    | `"sandbar-error"` | Stable styling hook on the alert root. Replaces `Alert.Root`'s own `data-slot="alert"`. |
+ *
+ * The nested `Alert` parts keep their own slots — `alert-icon`,
+ * `alert-content`, and `alert-description` — so they stay targetable.
+ *
+ * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarerror
  *
  * @example
  * ```tsx
@@ -828,7 +1015,12 @@ type SandbarErrorProps = Omit<ComponentProps<typeof Alert.Root>, "intent">;
  */
 // Named SandbarError (not Error) so the global Error constructor is not
 // shadowed for this module; exposed as `Sandbar.Error`.
-const SandbarError = ({ children, className, ...props }: SandbarErrorProps) => {
+const SandbarError = ({
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: SandbarErrorProps) => {
 	const { announceAssertive } = useSandbarContext("Sandbar.Error");
 	const contentRef = useRef<HTMLDivElement>(null);
 	const lastAnnouncedRef = useRef("");
@@ -847,7 +1039,6 @@ const SandbarError = ({ children, className, ...props }: SandbarErrorProps) => {
 
 	return (
 		<Alert.Root
-			data-slot="sandbar-error"
 			intent="danger"
 			// The error takes its own full-width row without widening the panel.
 			// The panel is shrink-to-fit (w-fit), so Alert's own `w-full` would
@@ -860,6 +1051,7 @@ const SandbarError = ({ children, className, ...props }: SandbarErrorProps) => {
 			// Alert's `width`, so no class-precedence fight and no `!important`.
 			className={cx("max-w-0 min-w-full", className)}
 			{...props}
+			data-slot={joinDataSlot(dataSlot, "sandbar-error")}
 		>
 			<Alert.Icon />
 			<Alert.Content ref={contentRef}>
@@ -912,7 +1104,7 @@ const Sandbar = {
 	 * announcers, presence-managed panel. Toggle with the controlled `open`
 	 * prop — never conditionally mount it.
 	 *
-	 * @see https://mantle.ngrok.com/components/feedback/sandbar
+	 * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarroot
 	 *
 	 * @example
 	 * ```tsx
@@ -931,7 +1123,7 @@ const Sandbar = {
 	 * The visible pending-state text. Also names the panel (via
 	 * `aria-labelledby`) and feeds the polite screen-reader announcement.
 	 *
-	 * @see https://mantle.ngrok.com/components/feedback/sandbar
+	 * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarmessage
 	 *
 	 * @example
 	 * ```tsx
@@ -941,6 +1133,7 @@ const Sandbar = {
 	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
 	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
 	 *   </Sandbar.Actions>
+	 *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
 	 * </Sandbar.Root>
 	 * ```
 	 */
@@ -949,7 +1142,7 @@ const Sandbar = {
 	 * The action-button row. Holds `Sandbar.DiscardButton` and
 	 * `Sandbar.SaveButton`, or your own composed `Button`s.
 	 *
-	 * @see https://mantle.ngrok.com/components/feedback/sandbar
+	 * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbaractions
 	 *
 	 * @example
 	 * ```tsx
@@ -959,6 +1152,7 @@ const Sandbar = {
 	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
 	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
 	 *   </Sandbar.Actions>
+	 *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
 	 * </Sandbar.Root>
 	 * ```
 	 */
@@ -967,7 +1161,7 @@ const Sandbar = {
 	 * The primary (save) action — announces "Saving changes…" and keeps focus
 	 * from being lost while the save is pending.
 	 *
-	 * @see https://mantle.ngrok.com/components/feedback/sandbar
+	 * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarsavebutton
 	 *
 	 * @example
 	 * ```tsx
@@ -977,6 +1171,7 @@ const Sandbar = {
 	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
 	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
 	 *   </Sandbar.Actions>
+	 *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
 	 * </Sandbar.Root>
 	 * ```
 	 */
@@ -984,7 +1179,7 @@ const Sandbar = {
 	/**
 	 * The secondary (discard/reset) action.
 	 *
-	 * @see https://mantle.ngrok.com/components/feedback/sandbar
+	 * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbardiscardbutton
 	 *
 	 * @example
 	 * ```tsx
@@ -994,6 +1189,7 @@ const Sandbar = {
 	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
 	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
 	 *   </Sandbar.Actions>
+	 *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
 	 * </Sandbar.Root>
 	 * ```
 	 */
@@ -1002,7 +1198,7 @@ const Sandbar = {
 	 * A danger alert row for a failed save; safe to conditionally mount —
 	 * announcement goes through the persistent assertive announcer.
 	 *
-	 * @see https://mantle.ngrok.com/components/feedback/sandbar
+	 * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarerror
 	 *
 	 * @example
 	 * ```tsx

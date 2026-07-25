@@ -407,6 +407,17 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `open`       | `boolean`            | —       | Whether the bar is showing. Controlled-only; drive it from your pending state (e.g. a dirty flag).   |
 | `handleRef?` | `Ref<SandbarHandle>` | —       | Receives the imperative handle: `shake(options?: { announcement?: string })` for blocked navigation. |
 
+Stamped on the panel:
+
+| Data Attribute | Value                  | Description                                                                                                                                       |
+| -------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"sandbar"`            | Stable styling hook for the panel. Survives `className` overrides.                                                                                |
+| `data-state`   | `"open"` \| `"closed"` | `"open"` only at the resting open pose — `"closed"` covers both the pre-enter frame and the exit transition, which is what drives the slide/fade. |
+
+Every part also joins an incoming `data-slot` chain ahead of its own name, so composing a
+part through an ancestor's `asChild` yields `data-slot="ancestor-slot sandbar-…"` instead of
+losing one of the two.
+
 ### SandbarHandle
 
 The imperative surface received through `handleRef`. `shake()` wiggles the panel (skipped under
@@ -429,6 +440,10 @@ All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#a
 | ---------- | --------- | ------- | ------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |
 
+| Data Attribute | Value               | Description                                                        |
+| -------------- | ------------------- | ------------------------------------------------------------------ |
+| `data-slot`    | `"sandbar-message"` | Stable styling hook. Survives `className` overrides and `asChild`. |
+
 ### Sandbar.Actions
 
 The action-button row: a plain flex container (deliberately not `role="toolbar"`, which is
@@ -440,6 +455,10 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | Prop       | Type      | Default | Description                                       |
 | ---------- | --------- | ------- | ------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |
+
+| Data Attribute | Value               | Description                                                        |
+| -------------- | ------------------- | ------------------------------------------------------------------ |
+| `data-slot`    | `"sandbar-actions"` | Stable styling hook. Survives `className` overrides and `asChild`. |
 
 ### Sandbar.SaveButton
 
@@ -456,6 +475,15 @@ All props from [Button](/components/actions/button), with these differences:
 | `intent?`     | `"accent" \| "danger" \| "neutral"`           | `"neutral"` | The Button intent, made optional with a default.     |
 | `children`    | `ReactNode`                                   | —           | Required — the visible action label is app voice.    |
 
+| Data Attribute    | Value                     | Description                                                                                      |
+| ----------------- | ------------------------- | ------------------------------------------------------------------------------------------------ |
+| `data-slot`       | `"sandbar-save-button"`   | Stable styling hook. Replaces `Button`'s own `data-slot="button"`, as every Button wrapper does. |
+| `data-appearance` | the resolved `appearance` | Stamped by [Button](/components/actions/button).                                                 |
+| `data-intent`     | the resolved `intent`     | Stamped by Button.                                                                               |
+| `data-size`       | the resolved `size`       | Stamped by Button; absent for `appearance="link"`.                                               |
+| `data-disabled`   | `"true"` \| `"false"`     | Stamped by Button. Value-based, not presence-based — match on the value.                         |
+| `data-loading`    | `"true"` \| `"false"`     | Stamped by Button, tracking `isLoading`. Value-based, not presence-based.                        |
+
 ### Sandbar.DiscardButton
 
 The secondary (discard/reset) action — a mantle [Button](/components/actions/button). Discard is
@@ -469,6 +497,14 @@ All props from [Button](/components/actions/button), with these differences:
 | `intent?`     | `"accent" \| "danger" \| "neutral"`           | `"neutral"`  | The Button intent, made optional with a default.     |
 | `children`    | `ReactNode`                                   | —            | Required — the visible action label is app voice.    |
 
+| Data Attribute    | Value                      | Description                                                                                      |
+| ----------------- | -------------------------- | ------------------------------------------------------------------------------------------------ |
+| `data-slot`       | `"sandbar-discard-button"` | Stable styling hook. Replaces `Button`'s own `data-slot="button"`, as every Button wrapper does. |
+| `data-appearance` | the resolved `appearance`  | Stamped by [Button](/components/actions/button).                                                 |
+| `data-intent`     | the resolved `intent`      | Stamped by Button.                                                                               |
+| `data-size`       | the resolved `size`        | Stamped by Button; absent for `appearance="link"`.                                               |
+| `data-disabled`   | `"true"` \| `"false"`      | Stamped by Button. Value-based, not presence-based — match on the value.                         |
+
 ### Sandbar.Error
 
 A danger [Alert](/components/feedback/alert) row for a failed save, rendered on its own row of the
@@ -479,3 +515,10 @@ Title- or Icon-level control? Compose your own `<Alert.Root intent="danger">` in
 
 All props from [Alert](/components/feedback/alert)'s `Alert.Root` except `intent`, which is pinned
 to `"danger"`.
+
+| Data Attribute | Value             | Description                                                                             |
+| -------------- | ----------------- | --------------------------------------------------------------------------------------- |
+| `data-slot`    | `"sandbar-error"` | Stable styling hook on the alert root. Replaces `Alert.Root`'s own `data-slot="alert"`. |
+
+The nested Alert parts keep their own slots — `alert-icon`, `alert-content`, and
+`alert-description` — so they stay targetable.
