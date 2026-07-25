@@ -69,9 +69,12 @@ type MultiSelectProps = Primitive.ComboboxProviderProps<string[]>;
  * or Select (without).
  *
  * When composing with `Field.Item`, wrap `MultiSelect.Root` in `Field.Control`.
- * `Field.Control` flows the generated `id`, `name`, `aria-describedby`,
+ * `Field.Control` flows the generated `id`, `aria-describedby`,
  * `aria-errormessage`, and `aria-invalid` through to the focusable
- * `MultiSelect.Input` via `FieldControlContext`.
+ * `MultiSelect.Input` via `FieldControlContext`. The field `name` flows through
+ * too, but lands on one hidden input per selected value rather than on the
+ * combobox input — so a native form submit sends the selected values, not the
+ * typeahead filter text.
  *
  * `MultiSelect.Content` renders at Tailwind `z-50`, Mantle's shared floating
  * z-index. When multiple shared layers are open, the most recently mounted
@@ -613,6 +616,11 @@ type MultiSelectInputProps = Omit<Primitive.ComboboxProps, "render"> & {
  * surrounding `MultiSelect.Root` is wrapped in `Field.Control`, the generated
  * `id`, `aria-invalid`, `aria-describedby`, and `aria-errormessage` flow onto
  * the input here via `FieldControlContext`.
+ *
+ * A `name` — passed directly or flowed from `Field.Control` — is not set on this
+ * input. Its value is the typeahead filter text, so naming it would submit what
+ * the user typed. The name is applied to one hidden input per selected value
+ * instead, which is what a native form submit sends.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectinput
  *

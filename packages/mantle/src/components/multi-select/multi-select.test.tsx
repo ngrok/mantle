@@ -366,7 +366,44 @@ describe("MultiSelect", () => {
 		expect(input.getAttribute("aria-describedby")).not.toContain("ignored-description");
 		expect(input).toHaveAttribute("aria-errormessage", errors.id);
 		expect(input).not.toHaveAttribute("id", "ignored-input");
-		expect(input).toHaveAttribute("name", "example");
+		// The field name lands on the hidden inputs that carry the selected values, not on the
+		// combobox input — whose value is the typeahead filter text and never a submitted value.
+		expect(input).not.toHaveAttribute("name");
+	});
+
+	test("submits the selected values under the field name, not the filter text", async () => {
+		const user = userEvent.setup();
+		render(
+			<Field.Item name="fruits">
+				<Field.Control>
+					<MultiSelect.Root>
+						<MultiSelect.Trigger>
+							<MultiSelect.TagValues />
+							<MultiSelect.Input data-testid="input" placeholder="Select items..." />
+						</MultiSelect.Trigger>
+						<MultiSelect.Content>
+							<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+							<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
+						</MultiSelect.Content>
+					</MultiSelect.Root>
+				</Field.Control>
+			</Field.Item>,
+		);
+
+		const hiddenValues = () =>
+			Array.from(
+				document.querySelectorAll<HTMLInputElement>('input[type="hidden"][name="fruits"]'),
+				(hidden) => hidden.value,
+			);
+
+		expect(hiddenValues()).toEqual([]);
+
+		await user.click(screen.getByTestId("input"));
+		await user.click(await screen.findByRole("option", { name: "Apple" }));
+		expect(hiddenValues()).toEqual(["apple"]);
+
+		await user.click(await screen.findByRole("option", { name: "Banana" }));
+		expect(hiddenValues()).toEqual(["apple", "banana"]);
 	});
 
 	test("lets trigger validation override field validation", () => {
