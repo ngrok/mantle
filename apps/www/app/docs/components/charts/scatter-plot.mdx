@@ -900,7 +900,7 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-Series without an explicit `color` claim the next slot in the ordered `--color-chart-1`…`--color-chart-8` tokens. Each theme's palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the card surface in all four themes (light, dark, and both high-contrast variants), and the semantic ramps are deliberately excluded so a series never impersonates a status color. Slots are sticky per `dataKey`: a series keeps its color for the chart's lifetime, even as other series are filtered in and out.
+Series without an explicit `color` claim the next slot in the ordered `--color-chart-1`…`--color-chart-8` tokens. Each theme's palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the card surface in all four themes (light, dark, and both high-contrast variants), and the semantic ramps are deliberately excluded so a series never reads as a status color. Slots are sticky per `dataKey`: a series keeps its color for the chart's lifetime, even as other series are filtered in and out.
 
 One caveat is scatter-specific: the standard palette gate validates _adjacent_ slots, which is enough for line, bar, and area forms where composition order controls which colors sit together — but scatter marks can neighbor any other mark, so its colors must survive _all-pairs_ comparison, and that validation covers the **first four slots**. The four-series cap in [When to use](#when-to-use) is not a style preference; it is the palette's validated limit for scatter forms. Fold the long tail into a single "Other" series or facet into small multiples rather than plotting a fifth categorical color.
 

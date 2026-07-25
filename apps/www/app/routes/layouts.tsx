@@ -23,9 +23,9 @@ export default function LayoutsPage() {
 				JSX.
 			</p>
 			<p className="mb-4 leading-relaxed text-pretty text-body">
-				More residents (an app shell, a sidebar) are incubating in ngrok&rsquo;s apps and will
-				graduate here once their APIs have survived real consumers. Two layout-family primitives are
-				also published under components:{" "}
+				More residents are incubating in ngrok&rsquo;s apps and will graduate here once their APIs
+				have survived real consumers. Two layout-family primitives are also published under
+				components:{" "}
 				<Link to={href("/components/primitives/main")} className="text-accent-600 hover:underline">
 					Main
 				</Link>{" "}

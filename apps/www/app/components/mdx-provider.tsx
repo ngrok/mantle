@@ -165,12 +165,10 @@ const components = {
 		);
 	},
 	table: (props) => {
-		const { node: _node, className, children, ...rest } = props;
+		const { node: _node, children, ...rest } = props;
 		return (
 			<Table.Root className="my-8">
-				<Table.Element className={className} {...rest}>
-					{children}
-				</Table.Element>
+				<Table.Element {...rest}>{children}</Table.Element>
 			</Table.Root>
 		);
 	},

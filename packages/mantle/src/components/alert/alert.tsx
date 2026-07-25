@@ -50,6 +50,35 @@ function useAlertContext() {
 	return context;
 }
 
+/**
+ * The single place the Alert context value is built. `Alert.Root` renders it
+ * around its own chrome; it is additionally exported from this module for
+ * `AlertCenter` (deliberately NOT re-exported from the package) to provide the
+ * same context to authored banner parts whose React tree sits outside the
+ * chrome `Alert.Root` that renders their DOM: `AlertCenter.Item` portals its
+ * children into the chrome, and a portal severs React context from the DOM
+ * ancestor, so the projecting composer supplies the same `intent` it hands the
+ * chrome and parts like `Alert.Icon` resolve identically in both trees.
+ *
+ * @example
+ * ```tsx
+ * createPortal(
+ *   <AlertContextProvider intent={intent}>{children}</AlertContextProvider>,
+ *   host,
+ * );
+ * ```
+ */
+const AlertContextProvider = ({
+	children,
+	intent,
+}: {
+	intent: AlertIntent;
+	children?: ReactNode;
+}) => {
+	const context: AlertContextValue = useMemo(() => ({ intent }), [intent]);
+	return <AlertContext.Provider value={context}>{children}</AlertContext.Provider>;
+};
+
 const alertVariants = cva(
 	"relative flex w-full gap-1.5 rounded-md border p-2.5 text-sm font-sans",
 	{
@@ -131,10 +160,8 @@ type AlertProps = ComponentProps<"div"> & {
  *```
  */
 const Root = ({ appearance = "default", className, intent, ref, style, ...props }: AlertProps) => {
-	const context: AlertContextValue = useMemo(() => ({ intent }), [intent]);
-
 	return (
-		<AlertContext.Provider value={context}>
+		<AlertContextProvider intent={intent}>
 			<div
 				ref={ref}
 				data-slot="alert"
@@ -158,7 +185,7 @@ const Root = ({ appearance = "default", className, intent, ref, style, ...props 
 				})}
 				{...props}
 			/>
-		</AlertContext.Provider>
+		</AlertContextProvider>
 	);
 };
 
@@ -647,4 +674,7 @@ const Alert = {
 export {
 	//,
 	Alert,
+	// Why: internal projection support for AlertCenter (portal children need
+	// the chrome's context from their own tree) — not re-exported by index.ts.
+	AlertContextProvider,
 };

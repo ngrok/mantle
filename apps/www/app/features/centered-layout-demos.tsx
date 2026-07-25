@@ -218,7 +218,7 @@ export function CenteredLayoutHeaderDemo() {
 
 /**
  * The `CenteredLayout.Notice` composition for the centered-layout docs: a
- * toggleable impersonation strip pinned above everything — the header
+ * toggleable maintenance strip pinned above everything — the header
  * included. Renders as an entire framed-preview document (see
  * preview-registry.ts), so it composes exactly like a real page: the layout
  * owns the document, with a `SkipToMainLink` first and the `Main` landmark
@@ -234,7 +234,7 @@ export function CenteredLayoutNoticeDemo() {
 				{showNotice && (
 					<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
 						<WarningCircleIcon weight="fill" className="shrink-0" />
-						You are impersonating jane@example.com in read-only mode.
+						Scheduled maintenance in progress — the dashboard is read-only.
 					</div>
 				)}
 			</CenteredLayout.Notice>

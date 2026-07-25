@@ -1,0 +1,28 @@
+---
+"@ngrok/mantle": minor
+---
+
+Add the `AlertCenter` compound component (`@ngrok/mantle/alert-center`): a single, top-level
+entry point for one-to-many account alerts and their upgrade CTAs, meant to replace a stack of independent
+window banners with one severity-colored bar. Alerts are **authored as JSX**: each `AlertCenter.Item`
+composes the normal `Alert` banner parts as children (real anchors, arbitrary content) and registers its
+coordination facts (`id`, `intent`) with the renderless `AlertCenter.Root` — mount an item to
+show it, unmount to dismiss. The children stay in the author's React tree and portal into a stable
+per-id host the chrome physically adopts (`Element.moveBefore` where supported), so context providers and
+error boundaries around an item work, the children's React events bubble to the author's tree, and content
+keeps its state as it moves between the bar and a row. Dismissing the last alert steers keyboard focus to
+the page's `main` landmark instead of dropping it on `<body>`. Ranking stays deterministic: a stable sort by severity (`danger` › `warning` ›
+`important` › `info` › `success`), then arrival order within an intent (sticky per id, so a returning alert
+resumes its position). `AlertCenter.Bar` is an always-visible, full-width strip that renders the top item's
+children inline as authored — icon, title, `Alert.Description`, and its call-to-action, so it is a single
+line for a title alone and a two-line banner once a description is composed (matching how the same alert
+renders as an expansion row; `in-data-[placement=bar]:hidden` keeps any element out of the bar) — plus a
+`+N more` trigger, collapses to nothing when
+empty (like `AppLayout.Notice`), redirects keyboard focus to the next control when a focused top alert is
+dismissed, and claims no ARIA `banner` landmark (arrivals and re-ranks are announced by a persistent,
+visually-hidden `role="status"` live region that `AlertCenter.Root` mounts). `AlertCenter.Content` expands
+the remaining items inline as ranked, full-width banner rows. `AlertCenter.DismissIconButton` is the
+per-item dismiss affordance — its presence in an item's children is what makes that alert dismissable. The
+chrome around each item is stamped with `data-placement="bar" | "list"` and `data-alert-id` as documented
+styling hooks. Also exports the `AlertCenterIntent`, `AlertCenterItemProps`, and `AlertCenterRootProps`
+types. Docs: https://mantle.ngrok.com/components/feedback/alert-center

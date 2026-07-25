@@ -1,0 +1,1151 @@
+---
+title: Sidebar
+description: A composable, collapsible app-navigation sidebar with a mobile sheet presentation and a trigger that mounts anywhere in your app shell.
+---
+
+import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
+import { PageHeader } from "~/components/page-header";
+import { SidebarAnatomyDemo, SidebarPolymorphismDemo } from "~/features/sidebar-demos";
+
+<PageHeader id="sidebar">Sidebar</PageHeader>
+
+A composable, collapsible app-navigation sidebar. `Sidebar.Root` owns the state and renders no DOM;
+`Sidebar.Nav` renders the panel — inline on desktop, collapsing to a skinny
+[icon rail](#collapsing-to-the-icon-rail), and a left-side [Sheet](/components/overlays/sheet) below the
+root's `mobileBreakpoint`; and `Sidebar.Trigger` toggles it from anywhere under the root, which is what
+keeps the sidebar decoupled from your app shell: place the trigger in an
+[App Layout](/layouts/app-layout) header without the shell knowing the sidebar exists.
+
+The sidebar is routing-agnostic. Compose router links with `asChild` on `Sidebar.ItemButton` and drive
+`current` from your router's location. The demo below runs in its own framed document, exactly like a real
+app: switch the preview to the mobile viewport to see the sheet presentation, use the trigger in the header
+to collapse and expand the panel, open the product switcher at the top of the sidebar to choose a product
+from a centered [Dialog](/components/overlays/dialog), and toggle the notice to see the shell's full-window
+[`AppLayout.Notice`](/layouts/app-layout) strip push everything — sidebar included — down.
+
+`Sidebar.Footer` holds the panel's stable rows, bottom-anchored under the scrolling body: the
+account-scoped destinations every product shares, a **Help** row, a `Sidebar.Separator`, and the
+account switcher. The Help row and the switcher row are ordinary sidebar rows composed with
+`DropdownMenu.Trigger asChild`, so each keeps the panel's row treatment, stays highlighted while its menu is
+open, and opens the menu upward (`side="top"`) — the footer sits at the bottom of the viewport, so downward
+is off-screen. The switcher's one menu covers both scopes it names: account destinations and switching, then
+user-level items including a **Theme** submenu — mantle's
+[`ThemeDropdownMenuRadioGroup`](/components/forms/theme-switcher) exists for exactly that spot.
+
+Choosing **Account settings** from that menu shows a second **section** of navigation in the same
+sidebar: the header's switcher becomes a back link, `Sidebar.Body` renders the settings groups, and the
+`<nav>` landmark renames itself from `Main` to `Settings`. That is composition, not a feature — the sidebar
+never knows which section it is showing; the app derives it from the route and renders different children.
+The footer does not move while that happens.
+Click into the frame and press <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> — the shortcut binds to the frame's own
+window, not this page. The demo narrows `mobileBreakpoint` to `md` so the desktop panel survives the
+preview's desktop and tablet widths; ngrok's dashboards keep the `lg` default.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="app-shell" title="App shell demo" />
+	<CodeExample.Code>
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+import { Button } from "@ngrok/mantle/button";
+import { cx } from "@ngrok/mantle/cx";
+import { Dialog } from "@ngrok/mantle/dialog";
+import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { AutoThemeIcon } from "@ngrok/mantle/icons";
+import { Main } from "@ngrok/mantle/main";
+import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
+import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
+import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
+import { BookOpenIcon } from "@phosphor-icons/react/BookOpen";
+import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
+import { CaretUpDownIcon } from "@phosphor-icons/react/CaretUpDown";
+import { GearIcon } from "@phosphor-icons/react/Gear";
+import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { HeartbeatIcon } from "@phosphor-icons/react/Heartbeat";
+import { MegaphoneIcon } from "@phosphor-icons/react/Megaphone";
+import { QuestionIcon } from "@phosphor-icons/react/Question";
+import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
+import { SignOutIcon } from "@phosphor-icons/react/SignOut";
+import { SpeedometerIcon } from "@phosphor-icons/react/Speedometer";
+import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
+import { UsersThreeIcon } from "@phosphor-icons/react/UsersThree";
+import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
+import type { KeyboardEvent } from "react";
+import { useRef, useState } from "react";
+
+const navSections = [
+	{
+		title: undefined,
+		items: [
+			{ label: "Endpoints", icon: <GraphIcon />, path: "/endpoints" },
+			{ label: "Agents", icon: <TerminalWindowIcon />, path: "/agents" },
+		],
+	},
+	{
+		title: "Traffic",
+		items: [{ label: "Domains", icon: <GlobeHemisphereWestIcon />, path: "/domains" }],
+	},
+];
+
+const products = [
+	{
+		id: "universal-gateway",
+		label: "Gateway",
+		icon: <GlobeIcon weight="regular" />,
+		iconClassName: "bg-emerald-600/10 text-emerald-600 dark:text-emerald-600",
+		tagline: "Connect to anything, anywhere.",
+		description:
+			"An all-in-one cloud networking platform that secures, transforms, and routes traffic to all your services no matter where they run.",
+		textClassName: "text-emerald-600 dark:text-emerald-600",
+		cardHoverClassName:
+			"hover:border-emerald-600 hover:bg-emerald-600/[0.03] focus-visible:border-emerald-600 focus-visible:bg-emerald-600/[0.03] focus-visible:ring-emerald-600/20 dark:hover:border-emerald-600 dark:focus-visible:border-emerald-600",
+		cardCurrentClassName:
+			"border-emerald-600 bg-emerald-600/[0.03] ring-4 ring-emerald-600/15 dark:border-emerald-600",
+		arrowHoverClassName:
+			"group-hover:text-emerald-600 group-focus-visible:text-emerald-600 dark:group-hover:text-emerald-600 dark:group-focus-visible:text-emerald-600",
+	},
+	{
+		id: "codename",
+		label: "Shrimp",
+		icon: <ShrimpIcon weight="regular" />,
+		iconClassName: "bg-sky-600/10 text-sky-600 dark:text-sky-600",
+		tagline: "Deploy apps without managing infrastructure.",
+		description: "Deploy services close to your users with managed compute, domains, and secrets.",
+		textClassName: "text-sky-600 dark:text-sky-600",
+		cardHoverClassName:
+			"hover:border-sky-600 hover:bg-sky-600/[0.03] focus-visible:border-sky-600 focus-visible:bg-sky-600/[0.03] focus-visible:ring-sky-600/20 dark:hover:border-sky-600 dark:focus-visible:border-sky-600",
+		cardCurrentClassName:
+			"border-sky-600 bg-sky-600/[0.03] ring-4 ring-sky-600/15 dark:border-sky-600",
+		arrowHoverClassName:
+			"group-hover:text-sky-600 group-focus-visible:text-sky-600 dark:group-hover:text-sky-600 dark:group-focus-visible:text-sky-600",
+	},
+];
+
+const accounts = [
+	{ id: "acc_acme", name: "Acme Corp" },
+	{ id: "acc_atlas", name: "Atlas Industries" },
+];
+
+// Account-scoped destinations outlive whichever product the body is showing, so
+// they pin to the footer instead of living in a product's nav.
+const footerItems = [
+	{ label: "Identity & Access", icon: <UsersThreeIcon />, path: "/iam" },
+	{ label: "Usage & Limits", icon: <SpeedometerIcon />, path: "/usage" },
+];
+
+function ProductIcon({
+	className,
+	product,
+}: {
+	className?: string;
+	product: (typeof products)[number];
+}) {
+	return (
+		<span
+			className={cx(
+				"flex size-6 shrink-0 items-center justify-center rounded-md [&>svg]:size-5 [&>svg]:shrink-0",
+				product.iconClassName,
+				className,
+			)}
+			aria-hidden="true"
+		>
+			{product.icon}
+		</span>
+	);
+}
+
+// ArrowDown/ArrowUp wrap around the product cards, Home/End jump to the edges;
+// Enter and Space activate the focused card natively.
+function handleProductOptionKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+	const container = event.currentTarget.closest("[data-product-options]");
+	if (container == null) {
+		return;
+	}
+	const options = Array.from(container.querySelectorAll("button"));
+	const focusedIndex = options.findIndex((option) => option === event.currentTarget);
+	if (focusedIndex === -1) {
+		return;
+	}
+	const lastIndex = options.length - 1;
+	if (event.key === "ArrowDown") {
+		event.preventDefault();
+		options[focusedIndex === lastIndex ? 0 : focusedIndex + 1]?.focus();
+	} else if (event.key === "ArrowUp") {
+		event.preventDefault();
+		options[focusedIndex === 0 ? lastIndex : focusedIndex - 1]?.focus();
+	} else if (event.key === "Home") {
+		event.preventDefault();
+		options[0]?.focus();
+	} else if (event.key === "End") {
+		event.preventDefault();
+		options[lastIndex]?.focus();
+	}
+}
+
+/**
+ * The product switcher in the sidebar header: a `Sidebar.SwitcherTrigger`
+ * trigger that opens a centered product-choice dialog. The current product's
+ * card is highlighted and receives focus when the dialog opens.
+ */
+function ProductSwitcherDialog({
+	onProductChange,
+	productId,
+}: {
+	onProductChange: (productId: string) => void;
+	productId: string;
+}) {
+	const currentOptionRef = useRef<HTMLButtonElement | null>(null);
+	const product = products.find((candidate) => candidate.id === productId) ?? products[0];
+
+	return (
+		<Dialog.Root>
+			<Dialog.Trigger asChild>
+				<Sidebar.SwitcherTrigger>
+					<ProductIcon product={product} />
+					<span className="text-strong min-w-0 flex-1 truncate text-base">{product.label}</span>
+					{/* the double caret reads "pick one of several"; a caret-down would
+					    promise a menu dropping from the row, and this trigger opens a dialog */}
+					<CaretUpDownIcon className="text-muted size-4 shrink-0" />
+				</Sidebar.SwitcherTrigger>
+			</Dialog.Trigger>
+			<Dialog.Content
+				className="bg-popover"
+				preferredWidth="max-w-xl"
+				onOpenAutoFocus={(event) => {
+					// land focus on the current product's card, not the first card
+					event.preventDefault();
+					currentOptionRef.current?.focus();
+				}}
+			>
+				<Dialog.Body className="p-6">
+					<Dialog.Title className="text-strong text-center text-lg font-medium">
+						Choose a product
+					</Dialog.Title>
+					<div className="mt-6 flex flex-col gap-2" data-product-options="">
+						{products.map((candidate) => {
+							const isCurrent = candidate.id === productId;
+							return (
+								<Dialog.Close key={candidate.id} asChild>
+									<button
+										ref={isCurrent ? currentOptionRef : undefined}
+										type="button"
+										className={cx(
+											"group border-card-muted bg-card flex w-full flex-col rounded-lg border p-4 text-left shadow-sm transition-none focus:outline-hidden focus-visible:ring-4",
+											candidate.cardHoverClassName,
+											isCurrent && candidate.cardCurrentClassName,
+										)}
+										onClick={() => onProductChange(candidate.id)}
+										onKeyDown={handleProductOptionKeyDown}
+									>
+										<span className="flex w-full min-w-0 items-center justify-between gap-3">
+											<span className="flex min-w-0 items-center gap-3">
+												<ProductIcon className="size-7" product={candidate} />
+												<span
+													className={cx("truncate text-sm font-medium", candidate.textClassName)}
+												>
+													{candidate.label}
+												</span>
+											</span>
+											<ArrowRightIcon
+												className={cx(
+													"text-muted size-5 shrink-0",
+													candidate.arrowHoverClassName,
+													isCurrent && candidate.textClassName,
+												)}
+											/>
+										</span>
+										<span className="text-strong mt-2 text-base leading-snug font-medium">
+											{candidate.tagline}
+										</span>
+										<span className="text-muted mt-1 text-sm leading-relaxed text-pretty">
+											{candidate.description}
+										</span>
+									</button>
+								</Dialog.Close>
+							);
+						})}
+					</div>
+				</Dialog.Body>
+			</Dialog.Content>
+		</Dialog.Root>
+	);
+}
+
+function ProductNav({
+	pathname,
+	onNavigate,
+}: {
+	pathname: string;
+	onNavigate: (path: string) => void;
+}) {
+	// Inside Sidebar.Root, useSidebar closes the mobile sheet on navigation.
+	const { setOpenMobile } = useSidebar();
+
+	return (
+		<>
+			{navSections.map((section) => (
+				<Sidebar.Group key={section.title ?? "top-level"}>
+					{section.title != null && <Sidebar.GroupLabel>{section.title}</Sidebar.GroupLabel>}
+					<Sidebar.List>
+						{section.items.map((item) => (
+							<Sidebar.Item key={item.path}>
+								<Sidebar.ItemButton asChild current={pathname === item.path}>
+									<a
+										href={item.path}
+										onClick={(event) => {
+											event.preventDefault();
+											onNavigate(item.path);
+											setOpenMobile(false);
+										}}
+									>
+										{item.icon}
+										{item.label}
+									</a>
+								</Sidebar.ItemButton>
+							</Sidebar.Item>
+						))}
+					</Sidebar.List>
+				</Sidebar.Group>
+			))}
+		</>
+	);
+}
+
+// A footer row composed as a menu trigger: Sidebar.ItemButton sizes the leading
+// icon and keeps the row highlighted while the menu is open, so the trailing
+// caret only needs its own size. side="top" opens the menu upward, away from the
+// bottom of the viewport.
+function HelpMenu() {
+	return (
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger asChild>
+				<Sidebar.ItemButton>
+					<QuestionIcon />
+					Help
+					<CaretDownIcon className="text-muted ml-auto size-4 shrink-0" />
+				</Sidebar.ItemButton>
+			</DropdownMenu.Trigger>
+			{/* trigger-width keeps the menu flush with the row it opens from; the
+			    --sidebar-row-width floor keeps it there when the row shrinks into
+			    the icon rail (the menu is portaled, so it inherits no sidebar
+			    geometry of its own) */}
+			<DropdownMenu.Content
+				align="start"
+				side="top"
+				width="trigger"
+				className="min-w-(--sidebar-row-width)"
+			>
+				<DropdownMenu.Item asChild>
+					<a
+						className="flex items-center gap-2"
+						href="https://ngrok.com/docs"
+						rel="noopener"
+						target="_blank"
+					>
+						<BookOpenIcon className="text-muted" />
+						Documentation
+					</a>
+				</DropdownMenu.Item>
+				<DropdownMenu.Item className="gap-2">
+					<MegaphoneIcon className="text-muted" />
+					Give feedback
+				</DropdownMenu.Item>
+				<DropdownMenu.Item asChild>
+					<a
+						className="flex items-center gap-2"
+						href="https://status.ngrok.com"
+						rel="noopener"
+						target="_blank"
+					>
+						<HeartbeatIcon className="text-muted" />
+						<span className="min-w-0 flex-1">System status</span>
+						<span className="bg-success-600 size-1.5 shrink-0 rounded-full" aria-hidden="true" />
+					</a>
+				</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	);
+}
+
+// One footer row, one menu, two scopes: the account (destinations, switching)
+// and the signed-in user (settings, theme, log out).
+function AccountSwitcher({
+	accountId,
+	onAccountChange,
+}: {
+	accountId: string;
+	onAccountChange: (accountId: string) => void;
+}) {
+	const account = accounts.find((candidate) => candidate.id === accountId) ?? accounts[0];
+
+	return (
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger asChild>
+				<Sidebar.SwitcherTrigger>
+					<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+					<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
+						{account.name}
+					</span>
+					<Sidebar.UserAvatar alt="Jane Doe" />
+				</Sidebar.SwitcherTrigger>
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content
+				align="start"
+				side="top"
+				width="trigger"
+				className="min-w-(--sidebar-row-width)"
+			>
+				<DropdownMenu.Group>
+					<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
+						{account.name}
+					</DropdownMenu.Label>
+					<DropdownMenu.Item className="gap-2">
+						<GearIcon className="text-muted" />
+						Account settings
+					</DropdownMenu.Item>
+					<DropdownMenu.Sub>
+						<DropdownMenu.SubTrigger className="gap-2">
+							<ArrowsClockwiseIcon className="text-muted" />
+							Switch accounts
+						</DropdownMenu.SubTrigger>
+						<DropdownMenu.SubContent>
+							<DropdownMenu.RadioGroup value={account.id} onValueChange={onAccountChange}>
+								{accounts.map((candidate) => (
+									<DropdownMenu.RadioItem key={candidate.id} value={candidate.id}>
+										<Sidebar.AccountAvatar accountId={candidate.id} accountName={candidate.name} />
+										<span className="min-w-0 flex-1 truncate">{candidate.name}</span>
+									</DropdownMenu.RadioItem>
+								))}
+							</DropdownMenu.RadioGroup>
+						</DropdownMenu.SubContent>
+					</DropdownMenu.Sub>
+				</DropdownMenu.Group>
+				<DropdownMenu.Separator />
+				<DropdownMenu.Group>
+					<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
+						jane@example.com
+					</DropdownMenu.Label>
+					<DropdownMenu.Sub>
+						<DropdownMenu.SubTrigger className="gap-2">
+							<AutoThemeIcon className="text-muted size-5" />
+							Theme
+						</DropdownMenu.SubTrigger>
+						<DropdownMenu.SubContent>
+							{/* mantle ships the five-theme radio group for exactly this spot */}
+							<ThemeDropdownMenuRadioGroup />
+						</DropdownMenu.SubContent>
+					</DropdownMenu.Sub>
+				</DropdownMenu.Group>
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item className="gap-2">
+					<SignOutIcon className="text-muted" />
+					Log out
+				</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	);
+}
+
+export function AppShell() {
+	// the framed examples fake a router so they can be embedded; a real app
+	// renders react-router `Link`s through `asChild` and reads `useLocation()`
+	const [pathname, setPathname] = useState("/endpoints");
+	const [productId, setProductId] = useState("universal-gateway");
+	const [accountId, setAccountId] = useState("acc_acme");
+	const [showNotice, setShowNotice] = useState(false);
+
+	return (
+		// the framed demo narrows the mobile breakpoint; most apps keep the "lg" default
+		<Sidebar.Root mobileBreakpoint="md">
+			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
+				<AppLayout.Notice>
+					{showNotice && (
+						<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
+							<WarningCircleIcon weight="fill" className="shrink-0" />
+							Scheduled maintenance in progress — the dashboard is read-only.
+						</div>
+					)}
+				</AppLayout.Notice>
+				<AppLayout.Body>
+					<Sidebar.Nav aria-label="Main">
+						<Sidebar.Header>
+							<ProductSwitcherDialog productId={productId} onProductChange={setProductId} />
+						</Sidebar.Header>
+
+						<Sidebar.Body>
+							<ProductNav pathname={pathname} onNavigate={setPathname} />
+						</Sidebar.Body>
+
+						{/* the footer is the panel's stable region: bottom-anchored under the
+						    scrolling body, and unchanged by what the body is showing */}
+						<Sidebar.Footer>
+							{footerItems.map((item) => (
+								<Sidebar.ItemButton key={item.path} asChild current={pathname === item.path}>
+									<a
+										href={item.path}
+										onClick={(event) => {
+											event.preventDefault();
+											setPathname(item.path);
+										}}
+									>
+										{item.icon}
+										{item.label}
+									</a>
+								</Sidebar.ItemButton>
+							))}
+							<HelpMenu />
+							<Sidebar.Separator />
+							<AccountSwitcher accountId={accountId} onAccountChange={setAccountId} />
+						</Sidebar.Footer>
+					</Sidebar.Nav>
+
+					<AppLayout.Inset>
+						<AppLayout.Content asChild>
+							<Main>
+								<AppLayout.Header>
+									<Sidebar.Trigger />
+									<Breadcrumb.Root>
+										<Breadcrumb.List>
+											<Breadcrumb.Item>
+												<Breadcrumb.Page>Endpoints</Breadcrumb.Page>
+											</Breadcrumb.Item>
+										</Breadcrumb.List>
+									</Breadcrumb.Root>
+									<Button
+										type="button"
+										appearance="outlined"
+										intent="neutral"
+										className="ml-auto"
+										size="sm"
+										onClick={() => setShowNotice((current) => !current)}
+									>
+										Toggle notice
+									</Button>
+								</AppLayout.Header>
+								{/* your routed page content */}
+							</Main>
+						</AppLayout.Content>
+					</AppLayout.Inset>
+				</AppLayout.Body>
+			</AppLayout.Root>
+		</Sidebar.Root>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+## Width
+
+The panel's width is a CSS variable, not a prop: `Sidebar.Nav` reads each of the three widths with the
+default as its fallback (`w-[var(--sidebar-width,16rem)]`), so there is nothing to thread through your shell
+and one place to change it.
+
+| CSS Variable             | Default          | What it sizes                                           |
+| ------------------------ | ---------------- | ------------------------------------------------------- |
+| `--sidebar-width`        | `16rem` (256px)  | The expanded desktop panel                              |
+| `--sidebar-width-icon`   | `3.25rem` (52px) | The [collapsed icon rail](#collapsing-to-the-icon-rail) |
+| `--sidebar-width-mobile` | `18rem` (288px)  | The mobile `Sheet` panel                                |
+
+Override one sidebar by setting the variable on `Sidebar.Nav` — a Tailwind arbitrary property is the
+shortest route, and `cx` keeps it deterministic:
+
+```tsx
+// this sidebar is 18rem wide when expanded; the rail and sheet keep their defaults
+<Sidebar.Nav aria-label="Main" className="[--sidebar-width:18rem]">
+	{/* … */}
+</Sidebar.Nav>
+```
+
+Override every sidebar in your app from your global stylesheet. Custom properties inherit, and the parts
+read them with a fallback, so any ancestor of `Sidebar.Nav` can set them:
+
+```css
+:root {
+	--sidebar-width: 18rem;
+	--sidebar-width-mobile: 20rem;
+}
+```
+
+Three consequences of that inheritance direction worth knowing: setting a width on something the panel
+_contains_ does nothing (values flow parent → child, never child → parent); `AppLayout` never needs to
+know the number — `AppLayout.Inset` simply takes the remaining row space, so a wider sidebar narrows the
+content card by construction; and a surface that renders _outside_ the panel — a switcher's menu, portaled to
+`document.body` — inherits none of them, which is what
+[`--sidebar-row-width`](#sizing-a-menu-to-a-sidebar-row) exists for.
+
+## Collapsing to the icon rail
+
+On desktop the panel collapses to a skinny icon rail that keeps every row's leading icon visible and
+clickable: each row becomes a square chip around its icon, group labels fade out in place — their rows are
+retained, so icon groups stay visually separated and every icon keeps the exact position it has when
+expanded — the switcher rows in the header and footer collapse to their leading visual (product icon,
+account avatar), and the rail keeps the same `bg-base` surface as the expanded panel — no border, no
+separate chrome. The rail width is the `--sidebar-width-icon` CSS variable (default `3.25rem`) — see
+[Width](#width).
+
+Everything in the icon rail stays in the tab order and the accessibility tree — labels are clipped or
+visually hidden, not removed — so screen readers announce the full row names and lists keep their group
+names. The scrollable `Sidebar.Body` always fades its overflowing edges; in the collapsed rail it also
+hides its scrollbar and relies on the fade alone. Collapse and expand the demo above with the header
+trigger or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd>.
+
+## Sizing a menu to a sidebar row
+
+A menu opened from a sidebar row should be as wide as the row it opens from, and
+[`DropdownMenu.Content`](/components/overlays/dropdown-menu#dropdownmenucontent)'s `width="trigger"` does
+exactly that — until the panel collapses to the icon rail, where the trigger is a 36px chip (28px for a
+`Sidebar.ItemButton` row) and the menu shrinks with it. The menu cannot solve this from the sidebar's
+variables either: it renders in a portal on `document.body`, so it inherits nothing the panel sets.
+
+`mantle.css` declares the row width at `:root` for this, derived from the panel width:
+
+| CSS Variable          | Default | Description                                                                                                                                                                 |
+| --------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--sidebar-row-width` | `15rem` | One row's width inside the expanded panel (240px): `calc(var(--sidebar-width, 16rem) - 1rem)`, the panel width minus the gutter `Sidebar.Header`/`Body`/`Footer` all apply. |
+
+Keep `width="trigger"` and floor the menu at it:
+
+```tsx
+<DropdownMenu.Content
+	align="start"
+	side="top"
+	width="trigger"
+	className="min-w-(--sidebar-row-width)"
+>
+	{/* … */}
+</DropdownMenu.Content>
+```
+
+One static class covers all three presentations at the default widths. Expanded, the floor is a no-op — the
+row already measures that wide, so the menu is flush with it. Collapsed, the floor holds the menu at the
+expanded row's width, so it looks identical in the rail. In the mobile `Sheet` the floor is inert because the
+sheet's row is the wider of the two — `--sidebar-width-mobile` − `1.5rem` − the sheet's 1px `border-r` = 263px,
+against 240px — so `width="trigger"` wins.
+
+That last one is a condition, not a guarantee: **widen `--sidebar-width-mobile` whenever you widen
+`--sidebar-width`**, or the floor outgrows the sheet's row and the menu overhangs the panel it opened from
+(`--sidebar-width: 22rem` alone gives a 336px menu inside a 288px sheet).
+
+The same asymmetry applies to a per-sidebar override. Because the token resolves at `:root`, a
+`--sidebar-width` set on a single `Sidebar.Nav` does not reach it in either direction — a narrower panel
+leaves the floor _wider_ than its row. Override `--sidebar-width` at `:root` (see [Width](#width)) to move the
+panel and its menus together, or declare the token on the menu content for a one-off, which works because a
+custom property is read from the element that declares it:
+
+```tsx
+<DropdownMenu.Content
+	width="trigger"
+	className="[--sidebar-row-width:calc(12rem-1rem)] min-w-(--sidebar-row-width)"
+>
+	{/* … */}
+</DropdownMenu.Content>
+```
+
+## Composition
+
+Compose the parts of a `Sidebar` together to build your own:
+
+```text showLineNumbers=false
+Sidebar.Root
+├── Sidebar.Nav
+│   ├── Sidebar.Header
+│   │   └── Sidebar.SwitcherTrigger
+│   ├── Sidebar.Body
+│   │   └── Sidebar.Group
+│   │       ├── Sidebar.GroupLabel
+│   │       └── Sidebar.List
+│   │           └── Sidebar.Item
+│   │               └── Sidebar.ItemButton
+│   └── Sidebar.Footer
+│       ├── Sidebar.ItemButton
+│       ├── Sidebar.Separator
+│       └── Sidebar.SwitcherTrigger
+│           ├── Sidebar.AccountAvatar
+│           └── Sidebar.UserAvatar
+└── Sidebar.Trigger
+```
+
+`Sidebar.Root` renders no DOM — it only provides state, so `Sidebar.Trigger` can live anywhere under it,
+including inside layout components that know nothing about the sidebar. Render exactly one `Sidebar.Nav` per
+`Sidebar.Root`; nested roots shadow the outer sidebar for everything below them.
+There is deliberately no account-switcher part: a "Switch accounts" submenu is a composition of
+[DropdownMenu](/components/overlays/dropdown-menu)'s `RadioGroup`/`RadioItem` with `Sidebar.AccountAvatar`,
+exactly as the shell demo above shows — the account model (what a row contains, badges, ordering) belongs to
+the app, not the design system.
+
+## Navigation anatomy
+
+The navigation parts are plain styled elements: `Sidebar.Group` pairs an optional muted `Sidebar.GroupLabel`
+with a `Sidebar.List` of rows, and links the two with `aria-labelledby` automatically so each list is
+announced with its group's name. `Sidebar.ItemButton` renders a leading icon slot and a truncating label, and
+`current` sets both `aria-current="page"` and the `data-current` visual state.
+
+<Example className="p-4 md:p-8">
+	<SidebarAnatomyDemo />
+</Example>
+
+```tsx
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { HashIcon } from "@phosphor-icons/react/Hash";
+import { useState } from "react";
+
+export function NetworkNav() {
+	// this example fakes a router; a real app renders react-router `Link`s
+	// through `asChild` and reads `useLocation()`
+	const [pathname, setPathname] = useState("/domains");
+
+	return (
+		<div className="w-64 text-sm">
+			<Sidebar.Group>
+				<Sidebar.GroupLabel>Network</Sidebar.GroupLabel>
+				<Sidebar.List>
+					<Sidebar.Item>
+						<Sidebar.ItemButton asChild current={pathname === "/domains"}>
+							<a
+								href="/domains"
+								onClick={(event) => {
+									event.preventDefault();
+									setPathname("/domains");
+								}}
+							>
+								<GlobeHemisphereWestIcon />
+								Domains
+							</a>
+						</Sidebar.ItemButton>
+					</Sidebar.Item>
+					<Sidebar.Item>
+						<Sidebar.ItemButton asChild current={pathname === "/tcp-addresses"}>
+							<a
+								href="/tcp-addresses"
+								onClick={(event) => {
+									event.preventDefault();
+									setPathname("/tcp-addresses");
+								}}
+							>
+								<HashIcon />
+								TCP Addresses
+							</a>
+						</Sidebar.ItemButton>
+					</Sidebar.Item>
+				</Sidebar.List>
+			</Sidebar.Group>
+		</div>
+	);
+}
+```
+
+## Persisting the collapsed state
+
+`Sidebar.Root` supports both uncontrolled (`defaultOpen`) and controlled (`open` + `onOpenChange`) desktop
+state, and the mobile sheet mirrors that with `openMobile` + `onOpenMobileChange`. To persist the collapsed
+state across visits, use the **fully controlled** form with
+[`useLocalStorage`](/hooks#uselocalstorage):
+
+> [!IMPORTANT]
+> In SSR apps, `defaultOpen` + storage does not work: the uncontrolled state initializes exactly once at the
+> hydration render, before the stored value is available. Controlled `open` is the reliable form.
+
+This recipe is SSR-safe: [`useLocalStorage`](/hooks#uselocalstorage) is `useSyncExternalStore`-backed with a
+server snapshot, so the server render and the hydration render agree (no hydration mismatch), and the
+sidebar deliberately suppresses its collapse transition until after hydration, so a persisted-collapsed
+sidebar **snaps** shut instead of animating on page load. What no localStorage recipe can do is affect the
+server-rendered HTML itself — a persisted-collapsed sidebar paints expanded for one frame before the
+post-hydration correction. If that frame matters, persist to a **cookie** instead: read it in your server
+loader and pass it as `open`/`defaultOpen`, the same way the theme system solves FOUC server-side.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="sidebar-persistence" title="Sidebar persistence demo" />
+	<CodeExample.Code>
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { useLocalStorage } from "@ngrok/mantle/hooks";
+import { Main } from "@ngrok/mantle/main";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { GraphIcon } from "@phosphor-icons/react/Graph";
+
+export function PersistedShell() {
+	const [storedState, setStoredState] = useLocalStorage("sidebar-state", "expanded");
+
+	return (
+		// the framed demo narrows the mobile breakpoint; most apps keep the "lg" default
+		<Sidebar.Root
+			open={storedState !== "collapsed"}
+			onOpenChange={(open) => setStoredState(open ? "expanded" : "collapsed")}
+			mobileBreakpoint="md"
+		>
+			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
+				<AppLayout.Body>
+					<Sidebar.Nav aria-label="Main">
+						<Sidebar.Body>
+							<Sidebar.Group>
+								<Sidebar.GroupLabel>Persisted</Sidebar.GroupLabel>
+								<Sidebar.List>
+									<Sidebar.Item>
+										<Sidebar.ItemButton current>
+											<GraphIcon />
+											Endpoints
+										</Sidebar.ItemButton>
+									</Sidebar.Item>
+								</Sidebar.List>
+							</Sidebar.Group>
+						</Sidebar.Body>
+					</Sidebar.Nav>
+					<AppLayout.Inset>
+						<AppLayout.Content asChild>
+							<Main>
+								<AppLayout.Header>
+									<Sidebar.Trigger />
+								</AppLayout.Header>
+								{/* your routed page content */}
+							</Main>
+						</AppLayout.Content>
+					</AppLayout.Inset>
+				</AppLayout.Body>
+			</AppLayout.Root>
+		</Sidebar.Root>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+Toggle the sidebar in the demo, then reload the preview with the toolbar's reload button — the collapsed
+state is restored from localStorage.
+
+## Polymorphism
+
+`Sidebar.Header`, `Sidebar.Body`, `Sidebar.Footer`, `Sidebar.Group`, `Sidebar.GroupLabel`, `Sidebar.List`,
+`Sidebar.Item`, `Sidebar.ItemButton`, and `Sidebar.SwitcherTrigger` accept an `asChild` prop. When `true`, the
+part renders its single child instead of its default element, forwarding all class names, `data-*`
+attributes, and the ref onto that child. The most common uses are router links on `Sidebar.ItemButton` (shown
+throughout this page) and composing `Sidebar.SwitcherTrigger` with `DropdownMenu.Trigger asChild` or
+`Dialog.Trigger asChild`.
+
+`Sidebar.Nav` and `Sidebar.Trigger` deliberately do not support `asChild`: the nav renders
+a fixed two-element collapse structure (and a `Sheet` on mobile), and the trigger renders
+a fully-wired control — build custom triggers with `useSidebar` instead. `Sidebar.AccountAvatar` and
+`Sidebar.UserAvatar` are prop-driven leaves.
+
+Below, `Sidebar.GroupLabel` renders a real `<h3>` and each `Sidebar.ItemButton` renders an `<a>` instead of
+its default `<button>`. The parts' classes, `data-*` state, and refs land on your elements, and the
+group's `aria-labelledby` wiring still names the list — inspect the rendered markup to see it.
+
+<Example className="p-4 md:p-8">
+	<SidebarPolymorphismDemo />
+</Example>
+
+```tsx
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { useState } from "react";
+
+export function TrafficNav() {
+	// this example fakes a router; a real app renders react-router `Link`s
+	// through `asChild` and reads `useLocation()`
+	const [pathname, setPathname] = useState("/endpoints");
+
+	return (
+		<div className="w-64 text-sm">
+			<Sidebar.Group>
+				<Sidebar.GroupLabel asChild>
+					<h3>Traffic</h3>
+				</Sidebar.GroupLabel>
+				<Sidebar.List>
+					<Sidebar.Item>
+						<Sidebar.ItemButton asChild current={pathname === "/endpoints"}>
+							<a
+								href="/endpoints"
+								onClick={(event) => {
+									event.preventDefault();
+									setPathname("/endpoints");
+								}}
+							>
+								<GraphIcon />
+								Endpoints
+							</a>
+						</Sidebar.ItemButton>
+					</Sidebar.Item>
+					<Sidebar.Item>
+						<Sidebar.ItemButton asChild current={pathname === "/domains"}>
+							<a
+								href="/domains"
+								onClick={(event) => {
+									event.preventDefault();
+									setPathname("/domains");
+								}}
+							>
+								<GlobeHemisphereWestIcon />
+								Domains
+							</a>
+						</Sidebar.ItemButton>
+					</Sidebar.Item>
+				</Sidebar.List>
+			</Sidebar.Group>
+		</div>
+	);
+}
+```
+
+## Accessibility
+
+- `Sidebar.Nav` renders a `<nav>` landmark named `Main` by default; override `aria-label` when your app has
+  multiple navigation landmarks (breadcrumbs, pagination) or for localization.
+- `Sidebar.Trigger` follows the disclosure pattern: `aria-expanded` reflects the state and `aria-controls`
+  references the nav. Keep a trigger visible at every breakpoint where the sidebar can collapse — a collapsed
+  sidebar with no visible trigger is unrecoverable.
+- `⌘B` / `Ctrl+B` toggles the sidebar (opt out with `keyboardShortcut={false}` on `Sidebar.Root`, e.g. when
+  the app embeds a rich-text editor where `⌘B` means bold).
+- When the shell owns the document, pair the sidebar with a `SkipToMainLink` and a `Main`-composed content
+  card so keyboard users can jump past the sidebar's tab gauntlet — see
+  [App Layout → Landmarks](/layouts/app-layout#landmarks).
+- The collapsed icon rail stays fully interactive: row labels are clipped and switcher text is visually
+  hidden, but both remain in the tab order and the accessibility tree, so accessible names do not change
+  between states.
+- `Sidebar.ItemButton` `current` renders `aria-current="page"`; `Sidebar.GroupLabel` is linked to its
+  `Sidebar.List` via `aria-labelledby`.
+- The mobile sheet is a modal dialog with focus trapping and `Escape` dismissal, courtesy of
+  [Sheet](/components/overlays/sheet). Its accessible name follows the nav's (`"Main"` by default), so
+  overriding `aria-label` or `aria-labelledby` on `Sidebar.Nav` renames the dialog too.
+- The collapse/expand transitions respect `prefers-reduced-motion`.
+
+## API Reference
+
+### Sidebar.Root
+
+The state owner. Renders no DOM.
+
+| Prop                  | Type                      | Default | Description                                                                                       |
+| --------------------- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------- |
+| `defaultOpen?`        | `boolean`                 | `true`  | Initial desktop expanded state for the uncontrolled case.                                         |
+| `open?`               | `boolean`                 | —       | Controlled desktop expanded state. Pair with `onOpenChange`.                                      |
+| `onOpenChange?`       | `(open: boolean) => void` | —       | Called with the next desktop expanded state.                                                      |
+| `openMobile?`         | `boolean`                 | —       | Controlled mobile sheet open state. Pair with `onOpenMobileChange`.                               |
+| `onOpenMobileChange?` | `(open: boolean) => void` | —       | Called with the next mobile sheet open state.                                                     |
+| `mobileBreakpoint?`   | `"sm" \| "md" \| "lg"`    | `"lg"`  | Breakpoint below which `Sidebar.Nav` renders as a mobile `Sheet`.                                 |
+| `keyboardShortcut?`   | `boolean`                 | `true`  | Toggle with `⌘B` / `Ctrl+B`. Exact-modifier match (`⌘⇧B` passes through); set `false` to opt out. |
+
+### Sidebar.Nav
+
+The panel. All props from `div` plus the panel contract: `className`, `style`, `ref`, and rest props land on
+the panel surface in both presentations (the desktop collapse container and the mobile `Sheet.Content`), and
+`aria-label` (default `"Main"`) is forwarded to the inner `<nav>` landmark. Emits
+`data-state="expanded" | "collapsed"` on desktop and `data-mobile` on the mobile sheet. (Desktop also
+emits a bare `data-hydrated` once client hydration
+completes — an internal gate that lets collapse transitions snap instead of animating when SSR state is
+corrected on load.)
+
+| CSS Variable             | Default   | Description                                                                                                                                                                                                                                                                                   |
+| ------------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--sidebar-width`        | `16rem`   | Expanded desktop width (256px). Set it on `Sidebar.Nav` for one sidebar or on any ancestor (`:root`) for every sidebar — see [Width](#width).                                                                                                                                                 |
+| `--sidebar-width-mobile` | `18rem`   | Mobile sheet width (288px). Set it on `Sidebar.Nav` or any ancestor — see [Width](#width).                                                                                                                                                                                                    |
+| `--sidebar-width-icon`   | `3.25rem` | Collapsed icon rail width (52px). Set it on `Sidebar.Nav` or any ancestor — see [Width](#width).                                                                                                                                                                                              |
+| `--sidebar-row-width`    | `15rem`   | Read, not set: one row's width in the expanded panel (240px), derived as `calc(var(--sidebar-width, 16rem) - 1rem)` and declared at `:root` by `mantle.css` so surfaces rendered outside the panel can size to a row — see [Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row). |
+
+`Sidebar.Header` reads one more public token, [`--sidebar-header-height`](#sidebarheader), which belongs on a
+common ancestor of the sidebar and the app-layout header rather than on the panel.
+
+### Sidebar.Trigger
+
+An [IconButton](/components/actions/icon-button) wired to toggle the sidebar. All `IconButton` props except
+`asChild` and `children`, with sidebar defaults:
+
+| Prop          | Type                                | Default                 | Description                                 |
+| ------------- | ----------------------------------- | ----------------------- | ------------------------------------------- |
+| `appearance?` | `"ghost" \| "outlined"`             | `"ghost"`               | The visual style of the trigger.            |
+| `icon?`       | `ReactNode`                         | `<SidebarSimpleIcon />` | The icon rendered inside the trigger.       |
+| `intent?`     | `"accent" \| "danger" \| "neutral"` | `"neutral"`             | The color intent of the trigger.            |
+| `label?`      | `string`                            | `"Toggle Sidebar"`      | Accessible name; override for localization. |
+
+### Sidebar.Header
+
+The pinned structural container at the top of `Sidebar.Nav` — the app/product switcher row lives here. Its
+height is the public `--sidebar-header-height` token (default `4.5rem`); when the sidebar composes into an
+`AppLayout`, [`AppLayout.Header`](/layouts/app-layout#applayoutheader) derives its own height from the same
+token, so the two rows stay center-aligned by construction.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                 |
+| ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.Header` styling onto alternative element types or your own React components. |
+
+| CSS Variable              | Default  | Description                                                                                                                                                                                                                                      |
+| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--sidebar-header-height` | `4.5rem` | The header row height (72px). Set it on a common ancestor of the sidebar and [`AppLayout.Header`](/layouts/app-layout#applayoutheader) — e.g. `AppLayout.Root` — not on `Sidebar.Nav`, so both rows read the same value and stay center-aligned. |
+
+### Sidebar.Body
+
+The scrollable middle region of `Sidebar.Nav`, holding the navigation groups.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                               |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.Body` styling onto alternative element types or your own React components. |
+
+### Sidebar.Footer
+
+The pinned structural container at the bottom of `Sidebar.Nav` — the account/user switcher row lives here.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                 |
+| ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.Footer` styling onto alternative element types or your own React components. |
+
+### Sidebar.Group
+
+A navigation grouping `div` that pairs an optional `Sidebar.GroupLabel` with a `Sidebar.List`. When a label
+is present the group links it to the list via `aria-labelledby`.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                |
+| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.Group` styling onto alternative element types or your own React components. |
+
+### Sidebar.GroupLabel
+
+The group's label, a `div` — pass `asChild` to render a heading at a level you control. In the collapsed
+icon rail it fades in place with its row retained, so icon positions match the expanded state.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                     |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.GroupLabel` styling onto alternative element types or your own React components. |
+
+### Sidebar.List
+
+The `ul` of navigation rows inside a group.
+
+All props from [ul](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ul#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                               |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.List` styling onto alternative element types or your own React components. |
+
+### Sidebar.Item
+
+A single navigation row — an `li` wrapping a `Sidebar.ItemButton`.
+
+All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                               |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.Item` styling onto alternative element types or your own React components. |
+
+### Sidebar.ItemButton
+
+The interactive navigation row. Expanded spacing matches the regular sidebar; in the collapsed icon rail,
+item rows keep their original square icon chip with a small offset so body and footer icons stay aligned
+without text peeking from the rail.
+
+The row sizes its **leading** icon (20px) and leaves trailing visuals — a menu caret, a count, a status
+pip — to size themselves, so composing one needs no `!` override. A row composed with
+`DropdownMenu.Trigger asChild` also stays highlighted while its menu is open (`data-state="open"`, supplied
+by the trigger), and takes the same `--sidebar-row-width` floor on its menu as a switcher row (see
+[Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row)), which is how the Help row in the shell
+demo above is built:
+
+```tsx
+<DropdownMenu.Trigger asChild>
+	<Sidebar.ItemButton>
+		<QuestionIcon />
+		Help
+		<CaretDownIcon className="text-muted ml-auto size-4 shrink-0" />
+	</Sidebar.ItemButton>
+</DropdownMenu.Trigger>
+```
+
+All props from `button` plus:
+
+| Prop       | Type      | Default | Description                                                            |
+| ---------- | --------- | ------- | ---------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Render the single child (e.g. a router link) instead of a `<button>`.  |
+| `current?` | `boolean` | —       | Marks the current page: sets `aria-current="page"` and `data-current`. |
+
+### Sidebar.SwitcherTrigger
+
+The styled switcher row for the header (app switcher) and footer (account/user row). Its leading visual is
+size-7 to match selected rail icons while the row keeps a compact 36px footprint. The control uses a custom
+10px radius on all corners so product and account switchers share the same shape around their rounded tiles.
+A styled button only — compose it with `DropdownMenu.Trigger asChild` or `Dialog.Trigger asChild`, which
+provide the open state (`data-state="open"` styling responds automatically).
+
+Match the trailing affordance to the surface the trigger actually opens. A `CaretDown` promises a menu
+dropping from the row, so keep it for `DropdownMenu`-backed switchers; a `Dialog`-backed switcher reads
+better with `CaretUpDown`, which says "pick one of several" without pointing anywhere.
+
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                          |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.SwitcherTrigger` styling onto alternative element types or your own React components. |
+
+Inside the collapsed icon rail, the row collapses to its **first child element** — the
+leading visual — and the remaining children become visually hidden while staying in the accessibility tree,
+so the button's accessible name is unchanged. Wrap loose text in an element (e.g. a `<span>`) so it
+participates. Because the row shrinks, give the menu it opens the `--sidebar-row-width` floor
+(`className="min-w-(--sidebar-row-width)"`) so the menu keeps the expanded row's width — see
+[Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row).
+
+### Sidebar.Separator
+
+An inset hairline between sidebar regions, aligned with the surrounding `Sidebar.Body` and `Sidebar.Footer`
+padding (it deliberately does not run edge to edge). When the sidebar is expanded, those regions trim their
+trailing inset to account for the adjacent app-content gutter. When it collapses to the icon rail, the
+separator widens to the collapsed switcher chip width so it stays optically centered between the viewport
+edge and content card. All props from [Separator](/components/structure/separator).
+
+### Sidebar.AccountAvatar
+
+A `size-7` rounded-square account avatar. The swatch color derives deterministically from `accountId` (stable
+across sessions and devices) using the prototype account switcher palette.
+
+| Prop          | Type                  | Default | Description                                              |
+| ------------- | --------------------- | ------- | -------------------------------------------------------- |
+| `accountId`   | `string \| undefined` | —       | Stable id; seeds the deterministic swatch color.         |
+| `accountName` | `string \| undefined` | —       | Display name; its first 1–2 letters become the initials. |
+
+### Sidebar.UserAvatar
+
+A `size-7` circular user avatar with a silhouette fallback.
+
+| Prop   | Type     | Default          | Description                                                   |
+| ------ | -------- | ---------------- | ------------------------------------------------------------- |
+| `src?` | `string` | —                | Profile picture URL; falls back to a silhouette when omitted. |
+| `alt?` | `string` | `"Your account"` | Accessible label for the avatar.                              |
+
+### useSidebar
+
+A hook returning the nearest `Sidebar.Root` state (`SidebarState`) — throws outside a root. Use it for custom
+triggers, close-on-navigate, or a keyboard shortcut:
+
+| Field              | Type                      | Description                                                  |
+| ------------------ | ------------------------- | ------------------------------------------------------------ |
+| `open`             | `boolean`                 | Desktop expanded state.                                      |
+| `setOpen`          | `(open: boolean) => void` | Set the desktop expanded state.                              |
+| `openMobile`       | `boolean`                 | Mobile sheet open state.                                     |
+| `setOpenMobile`    | `(open: boolean) => void` | Set the mobile sheet state (e.g. close on navigation).       |
+| `isMobile`         | `boolean`                 | Whether the viewport is below `mobileBreakpoint`.            |
+| `mobileBreakpoint` | `"sm" \| "md" \| "lg"`    | The configured mobile breakpoint.                            |
+| `toggle`           | `() => void`              | Toggle whichever presentation is active.                     |
+| `navId`            | `string`                  | The nav landmark's id, for custom triggers' `aria-controls`. |

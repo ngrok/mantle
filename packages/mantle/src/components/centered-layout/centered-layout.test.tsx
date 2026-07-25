@@ -91,23 +91,23 @@ describe("CenteredLayout", () => {
 	});
 
 	test("Notice renders an unstyled full-width strip", () => {
-		render(<CenteredLayout.Notice data-testid="notice">impersonating</CenteredLayout.Notice>);
+		render(<CenteredLayout.Notice data-testid="notice">maintenance</CenteredLayout.Notice>);
 		const notice = screen.getByTestId("notice");
 		expect(notice.tagName).toBe("DIV");
 		expect(notice).toHaveAttribute("data-slot", "centered-layout-notice");
 		expect(notice.className).toContain("shrink-0");
-		expect(notice).toHaveTextContent("impersonating");
+		expect(notice).toHaveTextContent("maintenance");
 	});
 
 	test("Notice is not a header banner landmark", () => {
-		render(<CenteredLayout.Notice>impersonating</CenteredLayout.Notice>);
+		render(<CenteredLayout.Notice>maintenance</CenteredLayout.Notice>);
 		expect(screen.queryByRole("banner")).not.toBeInTheDocument();
 	});
 
 	test("Notice renders as child element when asChild is true, keeping data-slot", () => {
 		render(
 			<CenteredLayout.Notice asChild>
-				<aside data-testid="notice">impersonating</aside>
+				<aside data-testid="notice">maintenance</aside>
 			</CenteredLayout.Notice>,
 		);
 		const notice = screen.getByTestId("notice");
@@ -119,7 +119,7 @@ describe("CenteredLayout", () => {
 		const ref = createRef<HTMLDivElement>();
 		render(
 			<CenteredLayout.Notice data-testid="notice" data-flavor="warning" ref={ref}>
-				impersonating
+				maintenance
 			</CenteredLayout.Notice>,
 		);
 		const notice = screen.getByTestId("notice");
@@ -240,7 +240,7 @@ describe("CenteredLayout", () => {
 		render(
 			<CenteredLayout.Root data-testid="root">
 				<a href="#main">Skip to main content</a>
-				<CenteredLayout.Notice data-testid="notice">impersonating</CenteredLayout.Notice>
+				<CenteredLayout.Notice data-testid="notice">maintenance</CenteredLayout.Notice>
 				<CenteredLayout.Header data-testid="header">
 					<button type="button">Close</button>
 				</CenteredLayout.Header>
