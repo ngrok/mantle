@@ -500,11 +500,11 @@ CodeBlock.Root
 
 ## Polymorphism
 
-`CodeBlock.Root`, `CodeBlock.Header`, `CodeBlock.Title`, `CodeBlock.Body`, `CodeBlock.ExpanderButton`, `CodeBlock.TabList`, and `CodeBlock.TabTrigger` accept `asChild`. When `true` the part renders its single child instead of its default element, forwarding class names, `data-*` attributes, and `ref` onto it.
+`CodeBlock.Root`, `CodeBlock.Header`, `CodeBlock.Title`, `CodeBlock.Body`, `CodeBlock.CopyButton`, and `CodeBlock.ExpanderButton` accept `asChild`. When `true` the part renders its single child instead of its default element, forwarding class names, `data-*` attributes, and `ref` onto it.
 
-Reach for it when `Root` should be a semantic `<figure>` or `<section>`, when `Title` needs a different heading level than the default `<h3>`, or when `ExpanderButton` and `TabTrigger` must be your own button component while keeping the code block's expand and tab behavior.
+Reach for it when `Root` should be a semantic `<figure>` or `<section>`, when `Title` needs a different heading level than the default `<h3>`, or when `ExpanderButton` must be your own button component while keeping the code block's expand behavior. `CopyButton` has no children of its own, so it is typed `SelfClosingWithAsChild` — `<CodeBlock.CopyButton asChild>` requires exactly one child to clone, and forbids children otherwise.
 
-`CodeBlock.Code`, `CodeBlock.CopyButton`, and `CodeBlock.TabContent` intentionally do not accept `asChild` — `Code` owns the highlighted markup it renders, `CopyButton` owns its clipboard affordance, and `TabContent` explicitly omits the prop because its mounting is driven by the active tab. `CodeBlock.Icon` takes its element through the `svg` prop instead.
+The remaining parts do not accept `asChild`. `CodeBlock.Code` owns the highlighted markup it renders, and `CodeBlock.TabList`, `CodeBlock.TabTrigger`, and `CodeBlock.TabContent` each explicitly omit the prop because their behavior and mounting are driven by the active tab. `CodeBlock.Icon` takes its element through the `svg` prop instead.
 
 ## API Reference
 

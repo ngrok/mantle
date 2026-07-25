@@ -159,11 +159,11 @@ import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
 
 ## Polymorphism
 
-`ThemeSwitcher.Trigger` and `ThemeSwitcher.Content` accept `asChild`, rendering your single child in place of the part's default element while keeping the menu's open/close and radio-selection behavior.
+`ThemeSwitcher.Content` accepts `asChild`, rendering your single child in place of the default menu panel while keeping the menu's open/close and radio-selection behavior. It is the escape hatch for owning the panel element, and it exists as a part precisely so the component never needed a `contentProps` prop bag (see [the decision record](https://github.com/ngrok/mantle/blob/main/decisions/2026-07-15-theme-switcher-compound-api.md)).
 
-`ThemeSwitcher.Trigger asChild` is the common case: it lets the control that opens the menu be your own component — a `Button` with a label, or an `IconButton` in a toolbar — instead of the default trigger. `ThemeSwitcher.Content asChild` is the escape hatch for owning the menu panel element; it exists as a part precisely so the component never needed a `contentProps` prop bag (see [the decision record](https://github.com/ngrok/mantle/blob/main/decisions/2026-07-15-theme-switcher-compound-api.md)).
+`ThemeSwitcher.Trigger` deliberately does **not** accept `asChild` — it omits the prop along with `icon`, `label`, `appearance`, and `intent`, because the trigger owns the current-theme icon and its accessible name. To customize it, pass the props it does expose rather than swapping the element. `ThemeSwitcher.Root` is a state provider that renders no DOM, so it takes no `asChild` either.
 
-`ThemeSwitcher.Root` is a state provider that renders no DOM, so it takes no `asChild`.
+If you need a fully custom control, [Embedding in an existing menu](#embedding-in-an-existing-menu) shows how to drive theme selection from your own `DropdownMenu` instead.
 
 ## Accessibility
 

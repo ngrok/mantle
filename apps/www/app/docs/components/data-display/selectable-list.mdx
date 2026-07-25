@@ -513,11 +513,11 @@ function Example() {
 
 ## Polymorphism
 
-`SelectableList.Item`, `SelectableList.ItemTitle`, and `SelectableList.ItemDescription` accept `asChild`, rendering your single child in place of the part's default element and forwarding class names, `data-*` attributes, and `ref` onto it.
+`SelectableList.ItemDescription` accepts `asChild`, rendering your single child in place of its default `<p>` and forwarding class names, `data-*` attributes, and `ref` onto it. It forwards to [`Choice.Description`](/components/forms/choice), so reach for it when the row's sub-line needs to be a different element than a paragraph.
 
-`SelectableList.Item asChild` is the one you will reach for: it keeps the row's checkbox, `aria-selected` row semantics, and keyboard behavior while letting the row's content be your own composition. `ItemTitle` and `ItemDescription` forward to [`Choice`](/components/forms/choice)'s label and description parts, so `asChild` there is for choosing the element that carries the text.
+No other part accepts `asChild`, and that is deliberate: `SelectableList` owns a `role="grid"` structure whose semantics depend on the elements it renders. `Root`, `Filter`, `SelectAll`, `Viewport`, and `VirtualViewport` own the grid semantics, filtering, select-all wiring, and virtualization measurement. `Item` renders the `role="row"` and its `gridcell` children around a real `Checkbox`, so swapping its element would break the row's `aria-selected` contract — compose your own layout through its `children` instead, which is unrestricted. `ItemTitle` forwards to `Choice.Label`, a real `<label>` wired to the checkbox by `htmlFor`, which is why it takes no `asChild` even though `ItemDescription` does.
 
-The collection-level parts — `Root`, `Filter`, `SelectAll`, `Viewport`, and `VirtualViewport` — own the grid semantics, filtering, select-all wiring, and virtualization measurement, so they do not accept `asChild`. Note that unlike [`List`](/components/data-display/list), a selectable row is not a link: use `List` when the row's job is to navigate.
+Note that unlike [`List`](/components/data-display/list), a selectable row is not a link: use `List` when the row's job is to navigate.
 
 ## Accessibility
 
