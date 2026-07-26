@@ -254,7 +254,7 @@ const Page = ({
 		<Comp
 			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "breadcrumb-page")}
-			className={cx("text-strong", className)}
+			className={cx("text-muted", className)}
 			{...props}
 			aria-current="page"
 		>
