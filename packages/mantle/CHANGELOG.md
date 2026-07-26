@@ -1,5 +1,105 @@
 # @ngrok/mantle
 
+## 0.82.0
+
+### Minor Changes
+
+- [#1338](https://github.com/ngrok/mantle/pull/1338) [`3bd61ef`](https://github.com/ngrok/mantle/commit/3bd61efece1e98723649ed44d763678a580bf75e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add the `AlertCenter` compound component (`@ngrok/mantle/alert-center`): a single, top-level
+  entry point for one-to-many account alerts and their upgrade CTAs, meant to replace a stack of independent
+  window banners with one severity-colored bar. Alerts are **authored as JSX**: each `AlertCenter.Item`
+  composes the normal `Alert` banner parts as children (real anchors, arbitrary content) and registers its
+  coordination facts (`id`, `intent`) with the renderless `AlertCenter.Root` — mount an item to
+  show it, unmount to dismiss. The children stay in the author's React tree and portal into a stable
+  per-id host the chrome physically adopts (`Element.moveBefore` where supported), so context providers and
+  error boundaries around an item work, the children's React events bubble to the author's tree, and content
+  keeps its state as it moves between the bar and a row. Dismissing the last alert steers keyboard focus to
+  the page's `main` landmark instead of dropping it on `<body>`. Ranking stays deterministic: a stable sort by severity (`danger` › `warning` ›
+  `important` › `info` › `success`), then arrival order within an intent (sticky per id, so a returning alert
+  resumes its position). `AlertCenter.Bar` is an always-visible, full-width strip that renders the top item's
+  children inline as authored — icon, title, `Alert.Description`, and its call-to-action, so it is a single
+  line for a title alone and a two-line banner once a description is composed (matching how the same alert
+  renders as an expansion row; `in-data-[placement=bar]:hidden` keeps any element out of the bar) — plus a
+  `+N more` trigger, collapses to nothing when
+  empty (like `AppLayout.Notice`), redirects keyboard focus to the next control when a focused top alert is
+  dismissed, and claims no ARIA `banner` landmark (arrivals and re-ranks are announced by a persistent,
+  visually-hidden `role="status"` live region that `AlertCenter.Root` mounts). `AlertCenter.Content` expands
+  the remaining items inline as ranked, full-width banner rows. `AlertCenter.DismissIconButton` is the
+  per-item dismiss affordance — its presence in an item's children is what makes that alert dismissable. The
+  chrome around each item is stamped with `data-placement="bar" | "list"` and `data-alert-id` as documented
+  styling hooks. Also exports the `AlertCenterIntent`, `AlertCenterItemProps`, and `AlertCenterRootProps`
+  types. Docs: https://mantle.ngrok.com/components/feedback/alert-center
+
+- [#1338](https://github.com/ngrok/mantle/pull/1338) [`3bd61ef`](https://github.com/ngrok/mantle/commit/3bd61efece1e98723649ed44d763678a580bf75e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add the `AppLayout` compound component (`@ngrok/mantle/app-layout`): a viewport-locked application
+  shell that never scrolls itself. `AppLayout.Root` fills its nearest sized ancestor (merge
+  `className="fixed inset-0"` to pin a real app shell to the viewport); `AppLayout.Notice` is a full-window
+  strip above everything for maintenance banners and environment warnings; `AppLayout.Body` is the flex row
+  where a `Sidebar.Nav` composes beside `AppLayout.Inset`; `AppLayout.Content` is the rounded `bg-card` card
+  that is the shell's only scroll container (`overflow-y-auto overscroll-none`) — compose the `Main` landmark
+  into it via `asChild`; and `AppLayout.Header` is the sticky toolbar `<header>` rendered as `Content`'s first
+  child (a `Sidebar.Trigger` and breadcrumbs live there; it is `h-14` standalone, and when the shell contains
+  a `Sidebar.Header` it derives its height from the sidebar's `--sidebar-header-height` token so the two rows
+  stay center-aligned by construction). The shell is otherwise deliberately unaware of any sidebar. All parts
+  support `asChild` and accept a `ref` prop.
+  Docs: https://mantle.ngrok.com/layouts/app-layout
+
+- [#1338](https://github.com/ngrok/mantle/pull/1338) [`3bd61ef`](https://github.com/ngrok/mantle/commit/3bd61efece1e98723649ed44d763678a580bf75e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add the `Sidebar` compound component (`@ngrok/mantle/sidebar`): a composable, collapsible
+  app-navigation sidebar. `Sidebar.Root` owns the state and renders no DOM (controlled/uncontrolled `open` +
+  `onOpenChange`, controlled/uncontrolled `openMobile` + `onOpenMobileChange`, and a configurable
+  `mobileBreakpoint`, default `lg`); `Sidebar.Nav` renders the panel — inline on desktop, collapsing to a
+  skinny icon rail (rows become square chips around their leading icons, group labels fade in place with
+  their rows retained so groupings and icon positions match the expanded state, switcher rows collapse to
+  their leading visual — everything stays in the tab order and the accessibility tree) — and a left-side
+  `Sheet` below the breakpoint; `Sidebar.Trigger` is an `IconButton` with `aria-expanded`/`aria-controls`
+  that toggles whichever presentation is active from anywhere under the root; `⌘B`/`Ctrl+B` also toggles it
+  (exact-modifier match; single-owner — with multiple mounted roots only the first claimant handles the
+  keypress; opt out with `keyboardShortcut={false}`).
+  Navigation composes `Sidebar.Header`/`Body`/`Footer`, `Sidebar.Group`/`GroupLabel`/`List`/`Item`/`ItemButton`
+  (with `current` → `aria-current="page"`, group labels wired to lists via `aria-labelledby`; a row sizes its
+  leading icon and leaves trailing visuals — a menu caret, a count, a status pip — to size themselves, and
+  stays highlighted while a menu opened from it is open), plus
+  `Sidebar.SwitcherTrigger`, `Sidebar.Separator`, `Sidebar.AccountAvatar` (deterministic, WCAG 4.5:1-contrast
+  swatches), and `Sidebar.UserAvatar`. `Sidebar.Body` fades its
+  overflowing edges with the `scroll-fade-y` mask (and hides its scrollbar inside the collapsed icon rail).
+  Also exports the `useSidebar` hook and the `SidebarState` and
+  `SidebarMobileBreakpoint` types. Public CSS variables: `--sidebar-width` (default `16rem`),
+  `--sidebar-width-mobile` (default `18rem`), and `--sidebar-width-icon` (default `3.25rem`) — read with those
+  defaults as fallbacks, so set them on `Sidebar.Nav` for one sidebar or on any ancestor (`:root`) to resize
+  every sidebar in an app — plus `--sidebar-header-height` (default `4.5rem`), the header row
+  height that `AppLayout.Header` also derives from so the two rows stay center-aligned — set it on a common
+  ancestor of both, and `--sidebar-row-width`, which `mantle.css` derives at `:root` as
+  `calc(var(--sidebar-width, 16rem) - 1rem)`: the width of one row in the expanded panel, for surfaces that
+  render outside the panel and so inherit nothing from it. A menu opened from a switcher or item row keeps the
+  expanded row's width in the collapsed icon rail with
+  `<DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">`.
+  Docs: https://mantle.ngrok.com/components/navigation/sidebar
+
+### Patch Changes
+
+- [#1365](https://github.com/ngrok/mantle/pull/1365) [`0a17568`](https://github.com/ngrok/mantle/commit/0a17568e49aedc0e26cb7c44f1304728aac1af94) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Correct JSDoc across Calendar, Progress Bar, Progress Donut, Radio Group, and Scatter Plot (component audit sweep). No API changes.
+
+  - `ProgressBar` and `ProgressDonut`: the `@see` links on `Root`, `Indicator`, and both namespace members pointed at `#api-progress-bar*` / `#api-progress-donut*` anchors that no longer exist on their docs pages. They now resolve to the real `#progressbarroot`, `#progressbarindicator`, `#progressdonutroot`, and `#progressdonutindicator` API-reference anchors.
+  - `Calendar`: dropped the stale `#api-calendar` fragment so the `@see` link points at the component's docs page.
+  - `ScatterPlot`: the Composition tree omitted `ScatterPlot.CopyButton`, which the component has shipped as a namespace member — the tree now matches the docs page.
+  - `RadioGroup`: added the missing "Rich option layout (Choice)" tree to the Composition example so the JSDoc matches the five layouts documented on the docs page.
+
+- [#1361](https://github.com/ngrok/mantle/pull/1361) [`bf7fc75`](https://github.com/ngrok/mantle/commit/bf7fc75ab5a2cfc197ffd3841b391f2dbb7d5cb3) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump runtime Radix UI dependencies: `react-dialog` 1.1.21 → 1.1.23, `react-dropdown-menu` 2.1.22 → 2.1.24,
+  `react-hover-card` 1.1.21 → 1.1.23, `react-popover` 1.1.21 → 1.1.23, `react-progress` 1.1.14 → 1.1.16,
+  `react-select` 2.3.5 → 2.3.7, `react-slider` 1.4.5 → 1.4.7, `react-slot` 1.3.1 → 1.3.3,
+  `react-switch` 1.3.5 → 1.3.7, `react-tabs` 1.1.19 → 1.1.21, and `react-tooltip` 1.2.14 → 1.2.16.
+
+  Bump `@ariakit/react` 0.4.34 → 0.4.35, which fixes native form submission for `MultiSelect`. A `name` —
+  passed to `MultiSelect.Input` directly or flowed from `Field.Control` — is no longer set on the combobox
+  input, whose value is the typeahead filter text; it is applied to one hidden input per selected value
+  instead. A native form submit now sends the selected values rather than whatever the user typed. Code that
+  read the `name` attribute off the rendered combobox input (or queried it by name) must target the hidden
+  inputs instead; consumers reading selection through `selectedValue` / `setSelectedValue` are unaffected.
+
+- [#1338](https://github.com/ngrok/mantle/pull/1338) [`3bd61ef`](https://github.com/ngrok/mantle/commit/3bd61efece1e98723649ed44d763678a580bf75e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Main` now joins an incoming `data-slot` chain ahead of its own `"main"` slot name (previously the chain was
+  clobbered), so it composes cleanly as an `asChild` child of layout parts
+  (e.g. `<AppLayout.Content asChild><Main>…</Main></AppLayout.Content>`).
+
+- [#1368](https://github.com/ngrok/mantle/pull/1368) [`f591fd0`](https://github.com/ngrok/mantle/commit/f591fd0bd18c385a3edddccc623253722cd0067e) Thanks [@forzalupo](https://github.com/forzalupo)! - Render `Breadcrumb.Page` with the same muted foreground color as the rest of the breadcrumb trail instead of emphasizing it with strong text.
+
 ## 0.81.1
 
 ### Patch Changes

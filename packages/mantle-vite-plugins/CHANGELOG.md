@@ -1,5 +1,14 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.1.2
+
+### Patch Changes
+
+- [#1338](https://github.com/ngrok/mantle/pull/1338) [`3bd61ef`](https://github.com/ngrok/mantle/commit/3bd61efece1e98723649ed44d763678a580bf75e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Regenerate `MANTLE_COMPONENT_NAMES` to include the new `alert-center`, `app-layout`, and `sidebar`
+  component subpaths so consuming apps emit Tailwind `@source` directives for them.
+- Updated dependencies []:
+  - @ngrok/mantle-server-syntax-highlighter@1.1.8
+
 ## 1.1.1
 
 ### Patch Changes
