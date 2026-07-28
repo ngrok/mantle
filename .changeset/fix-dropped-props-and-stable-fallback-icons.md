@@ -13,9 +13,12 @@ a future missing intent a type error rather than a branch that can forget the fa
 **`MediaObject.Root`, `MediaObject.Media`, and `MediaObject.Content` dropped almost every prop.** All three
 parts destructured `asChild`/`className`/`children`/`style`/`ref` with no rest spread, so `id`, `onClick`,
 `aria-*`, and `data-*` were accepted by the types (`ComponentProps<"div">`) and then thrown away. They now
-spread the remaining props onto the rendered element like every other mantle part.
+spread the remaining props onto the rendered element like every other mantle part. Each part also accepts
+`WithDataSlot` and merges an incoming `data-slot` ahead of its own via `joinDataSlot`, so composing one
+under an ancestor's `asChild` accumulates the slot chain instead of replacing (or erasing) the part's own
+slot name.
 
-**`countryCodes` listed `"016"` twice**, so the exported list had 739 entries for 738 distinct codes.
+**`countryCodes` listed `"016"` twice**, so the exported list had 751 entries for 750 distinct codes.
 
 Default fallback elements in `Toast.Icon`, `OtpInput.Separator`, `Breadcrumb.Separator`,
 `SplitButton.MenuTrigger`, `DataTable.ExpandHeader`, and `ThemeSwitcher.Content` are now hoisted to module

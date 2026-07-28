@@ -3,6 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import type { MouseEvent } from "react";
 import { createRef } from "react";
 import { describe, expect, test, vi } from "vitest";
+import { Slot } from "../slot/index.js";
 import { MediaObject } from "./media-object.js";
 
 /**
@@ -111,6 +112,31 @@ describe("MediaObject", () => {
 			expect(part).toHaveAttribute("data-slot", slot);
 			expect(part).toHaveAttribute("id", "part-id");
 			expect(part).toHaveAttribute("data-analytics-id", "media-row");
+		});
+
+		// Regression: `data-slot` is public API, and the rest spread that fixed the
+		// dropped-props bug sits after the literal — so without destructuring it out
+		// and joining, an ancestor's chain (or a caller's own value) clobbered the
+		// part's slot name. `Slot` always writes the key, so an empty ancestor chain
+		// wrote `undefined` and erased the attribute entirely.
+		test("the part's own slot survives an ancestor asChild chain", () => {
+			render(
+				<Slot data-testid="part">
+					<Part>content</Part>
+				</Slot>,
+			);
+
+			expect(screen.getByTestId("part")).toHaveAttribute("data-slot", slot);
+		});
+
+		test("a caller's data-slot is prepended, never replaces the part's own", () => {
+			render(
+				<Part data-slot="comment-row" data-testid="part">
+					content
+				</Part>,
+			);
+
+			expect(screen.getByTestId("part")).toHaveAttribute("data-slot", `comment-row ${slot}`);
 		});
 
 		test("forwards ref to the rendered element", () => {

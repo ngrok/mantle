@@ -254,11 +254,17 @@ const iconColors = {
  */
 const Icon = ({ className, svg, ref, ...props }: ToastIconProps) => {
 	const ctx = useContext(ToastStateContext);
-	const defaultIcon = defaultIcons[ctx.intent];
 
-	if (defaultIcon == null) {
+	// `Object.hasOwn`, not a nullish check on the looked-up value: `defaultIcons` is an
+	// object literal, so `defaultIcons["toString"]` resolves an inherited function and a
+	// `== null` guard would wave an out-of-union intent through to a misleading crash
+	// inside `SvgOnly`. This keeps the fail-fast the exhaustive `switch` used to give
+	// untyped callers.
+	if (!Object.hasOwn(defaultIcons, ctx.intent)) {
 		throw new Error(`Unreachable Case: ${ctx.intent}`);
 	}
+
+	const defaultIcon = defaultIcons[ctx.intent];
 
 	return (
 		<IconComponent

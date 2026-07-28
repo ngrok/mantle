@@ -1,3 +1,7 @@
+import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { InfoIcon } from "@phosphor-icons/react/Info";
+import { WarningIcon } from "@phosphor-icons/react/Warning";
+import { WarningDiamondIcon } from "@phosphor-icons/react/WarningDiamond";
 import { act, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { MouseEvent, ReactNode } from "react";
@@ -9,6 +13,11 @@ import { makeToast, Toast, Toaster } from "./toast.js";
 
 function getToastRoot(container: HTMLElement) {
 	return container.querySelector('[data-slot="toast"]');
+}
+
+/** The `d` of every path an svg drew, which is what distinguishes one glyph from another. */
+function pathGeometry(svg: Element | null) {
+	return Array.from(svg?.querySelectorAll("path") ?? [], (path) => path.getAttribute("d"));
 }
 
 /**
@@ -96,6 +105,74 @@ describe("Toast", () => {
 				expect(icon?.tagName.toLowerCase()).toBe("svg");
 			},
 		);
+
+		// Which glyph each intent maps to is otherwise unobservable: every intent renders the
+		// same `data-slot="toast-icon"` svg, so permuting `defaultIcons` — a green checkmark on
+		// a danger toast — typechecks (`satisfies` only checks keys), lints, and leaves the rest
+		// of this file green. Comparing rendered path geometry against the same phosphor icon
+		// rendered standalone pins the mapping without asserting anything about phosphor's markup.
+		test.each([
+			["danger", WarningIcon],
+			["info", InfoIcon],
+			["success", CheckCircleIcon],
+			["warning", WarningDiamondIcon],
+		] as const)(`renders the %s intent's own default glyph`, (intent, ExpectedIcon) => {
+			const expectedGeometry = pathGeometry(
+				render(<ExpectedIcon weight="fill" />).container.querySelector("svg"),
+			);
+			// a glyph that rendered no path would make the comparison below vacuous
+			expect(expectedGeometry.length).toBeGreaterThan(0);
+
+			const { container } = render(
+				<Toast.Root intent={intent}>
+					<Toast.Icon />
+					<Toast.Message>message</Toast.Message>
+				</Toast.Root>,
+			);
+
+			expect(pathGeometry(container.querySelector('[data-slot="toast-icon"]'))).toEqual(
+				expectedGeometry,
+			);
+		});
+
+		test("throws for an intent outside the union instead of failing inside the icon primitive", () => {
+			// Regression test for the `Object.hasOwn` guard: `defaultIcons` is an object literal,
+			// so a prototype-chain key like "toString" resolves an inherited function. A nullish
+			// check on the looked-up value waves it through to `SvgOnly`, which dies with the
+			// misleading "SvgOnly must be passed a single SVG icon as a JSX tag". React logs the
+			// render error before rethrowing it, so silence that to keep the run readable.
+			vi.spyOn(console, "error").mockImplementation(() => {});
+
+			expect(() =>
+				render(
+					// @ts-expect-error -- the runtime guard exists for untyped callers, who can trip it
+					<Toast.Root intent="toString">
+						<Toast.Icon />
+						<Toast.Message>message</Toast.Message>
+					</Toast.Root>,
+				),
+			).toThrow("Unreachable Case: toString");
+		});
+
+		// Class pins, deliberately, for the same reason as the accent bar above: every
+		// intent renders the same `data-slot="toast-icon"` svg, so the tone class is the
+		// entire observable implementation of the icon's intent. `iconColors` is keyed by
+		// `ToastIntent`, but `satisfies` only checks that the keys exist — permuting the
+		// four values typechecks and lints clean, so nothing but this table sees it.
+		test.each([
+			["danger", "text-danger-600"],
+			["info", "text-accent-600"],
+			["success", "text-success-600"],
+			["warning", "text-warning-600"],
+		] as const)(`renders intent="%s" in the %s tone`, (intent, toneClass) => {
+			const { container } = render(
+				<Toast.Root intent={intent}>
+					<Toast.Icon />
+					<Toast.Message>message</Toast.Message>
+				</Toast.Root>,
+			);
+			expect(container.querySelector('[data-slot="toast-icon"]')).toHaveClass(toneClass);
+		});
 
 		test.each(["danger", "warning", "success", "info"] as const)(
 			`renders a custom svg in place of the default icon for intent="%s"`,
