@@ -15,11 +15,18 @@ import { TextArea } from "./text-area.js";
  * `text-area.tsx` — a rename on either side stops the rule from matching, which
  * is what these tests exist to catch. Values are inlined (vs. theme vars) so
  * the test doesn't depend on the mantle theme being loaded.
+ *
+ * `.font-sans` is declared *before* `.font-mono` deliberately. Both selectors have
+ * equal specificity, so if a caller's `font-sans` and the variant's `font-mono` ever
+ * shipped together — i.e. if `cx`/tailwind-merge stopped deduping the font-family
+ * group — later-declared `.font-mono` would win and the override test below would go
+ * red. Declared the other way around, the caller wins by cascade alone and the test
+ * could never observe a merge regression.
  */
 const STYLE = `
 @layer utilities {
-	.font-mono { font-family: ui-monospace, monospace; }
 	.font-sans { font-family: ui-sans-serif, sans-serif; }
+	.font-mono { font-family: ui-monospace, monospace; }
 	.data-drag-over\\:border-dashed[data-drag-over="true"] { border-style: dashed; }
 }
 `;

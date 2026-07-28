@@ -140,7 +140,23 @@ describe("Dialog structure", () => {
 		expect(content.className).not.toContain("max-w-lg");
 	});
 
-	test("preferredWidth replaces the default max-width and still loses to className", () => {
+	test("preferredWidth replaces the default max-width", () => {
+		render(
+			<Dialog.Root open>
+				<Dialog.Content preferredWidth="max-w-sm">
+					<Dialog.Title>Rename tunnel</Dialog.Title>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		const content = getDialogContent();
+		// Positive half of the merge contract: without it, dropping `preferredWidth`
+		// from Content's `cx(…)` makes the whole documented prop a silent no-op and
+		// every negative assertion below still passes.
+		expect(content.className).toContain("max-w-sm");
+		expect(content.className).not.toContain("max-w-lg");
+	});
+
+	test("a consumer max-w className still wins over preferredWidth", () => {
 		render(
 			<Dialog.Root open>
 				<Dialog.Content className="max-w-3xl" preferredWidth="max-w-sm">

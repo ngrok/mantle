@@ -220,9 +220,19 @@ describe("BarChart canvas painting", () => {
 	test("paints token-colored bars at device-pixel resolution", async () => {
 		const { container } = renderChart();
 		const canvas = mustBe(container.querySelector("canvas"), HTMLCanvasElement, "the chart canvas");
-		await waitFor(() => {
-			expect(canvas.width).toBeGreaterThan(0);
-		});
+		// `<canvas>` ships with an intrinsic 300x150 backing store, so `width > 0` is
+		// already true before the engine sizes anything — it observes nothing about the
+		// device-pixel claim in this test's name. Assert the backing store matches the
+		// CSS box scaled by devicePixelRatio instead. Playwright's context runs at
+		// `devicePixelRatio === 1`, so this binds the engine to the ratio the environment
+		// reports (catching an unsized store, or a hardcoded 2x) rather than proving that
+		// a >1 ratio is honored — that would need a `deviceScaleFactor` context override.
+		await expect
+			.poll(() => canvas.width)
+			.toBe(Math.round(canvas.getBoundingClientRect().width * window.devicePixelRatio));
+		expect(canvas.height).toBe(
+			Math.round(canvas.getBoundingClientRect().height * window.devicePixelRatio),
+		);
 		// chart-1 (#3e6ff4) is blue-dominant; bars should cover a large area.
 		await waitFor(() => {
 			expect(countPixels(canvas, isChart1Ink)).toBeGreaterThan(1000);

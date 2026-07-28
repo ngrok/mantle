@@ -188,9 +188,13 @@ describe("Table.Root horizontal overflow", () => {
 			expect(root).toHaveAttribute("data-x-scroll-end", "true");
 		});
 
-		// 20px of unscrolled content left: widening the 1px tolerance (or flipping
-		// its sign) would keep reporting the end here and strand the fade off.
-		scrollTo(scroller, 20);
+		// 3px of unscrolled content left — 2px outside the 1px tolerance in
+		// `useHorizontalOverflowObserver`, which is the whole safety budget here: the
+		// fixture's geometry is whole-pixel and stable (measured: scrollWidth 720,
+		// clientWidth 320, so the gap is exactly 3.0 with no fractional jitter). A larger
+		// gap would leave the test green for any tolerance under it, so a "fix the flaky
+		// fractional scrollLeft" widening to 8px would strand the fade off with nothing failing.
+		scrollTo(scroller, 3);
 
 		await waitFor(() => {
 			expect(root).toHaveAttribute("data-x-scroll-end", "false");

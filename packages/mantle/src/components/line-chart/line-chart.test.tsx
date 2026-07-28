@@ -169,19 +169,23 @@ describe("LineChart.CopyButton", () => {
 			</LineChart.Root>,
 		);
 		await user.click(screen.getByRole("button", { name: "Copy data as Markdown" }));
+		// Wait only for the first call; `waitFor` resolves the instant its callback stops
+		// throwing, so an exactly-once assertion *inside* it passes on the first call and
+		// returns before an asynchronous duplicate could land. The count belongs outside.
 		await vi.waitFor(() => {
-			// One click is one copy — a re-entrant handler would report the same
-			// table twice and go unnoticed by a count-blind assertion.
-			expect(onCopy).toHaveBeenCalledExactlyOnceWith(
-				[
-					"| time | p50 | p99 |",
-					"| --- | --- | --- |",
-					"| 2026-07-18T10:00:00.000Z | 120 | 480 |",
-					"| 2026-07-18T10:01:00.000Z | 132 | 510 |",
-					"| 2026-07-18T10:02:00.000Z | 101 | 460 |",
-				].join("\n"),
-			);
+			expect(onCopy).toHaveBeenCalled();
 		});
+
+		// One click is one copy — a re-entrant handler would report the same table twice.
+		expect(onCopy).toHaveBeenCalledExactlyOnceWith(
+			[
+				"| time | p50 | p99 |",
+				"| --- | --- | --- |",
+				"| 2026-07-18T10:00:00.000Z | 120 | 480 |",
+				"| 2026-07-18T10:01:00.000Z | 132 | 510 |",
+				"| 2026-07-18T10:02:00.000Z | 101 | 460 |",
+			].join("\n"),
+		);
 	});
 
 	test("copies the current rows after a data update, not the mount-time rows", async () => {
@@ -205,10 +209,12 @@ describe("LineChart.CopyButton", () => {
 		);
 		await user.click(screen.getByRole("button", { name: "Copy data as Markdown" }));
 		await vi.waitFor(() => {
-			expect(onCopy).toHaveBeenCalledExactlyOnceWith(
-				["| time | p50 |", "| --- | --- |", "| 2026-07-18T11:00:00.000Z | 777 |"].join("\n"),
-			);
+			expect(onCopy).toHaveBeenCalled();
 		});
+
+		expect(onCopy).toHaveBeenCalledExactlyOnceWith(
+			["| time | p50 |", "| --- | --- |", "| 2026-07-18T11:00:00.000Z | 777 |"].join("\n"),
+		);
 	});
 
 	test("uses the label prop as the accessible name", () => {

@@ -13,7 +13,6 @@ import {
 	utilsPages,
 	welcomePages,
 } from "./navigation-data";
-import { releaseHref } from "~/utilities/release-href";
 
 const commands = buildPaletteCommands("4.2.0");
 
@@ -49,7 +48,10 @@ describe("buildPaletteCommands", () => {
 		const releases = commands.find((command) => command.id === "github-releases");
 		expect(releases).toMatchObject({
 			kind: "external",
-			href: releaseHref("4.2.0"),
+			// The literal URL, not `releaseHref("4.2.0")` — calling the helper the
+			// implementation also calls moves both sides together, so a dropped
+			// `encodeURIComponent` or a changed path segment would stay green.
+			href: "https://github.com/ngrok/mantle/releases/tag/%40ngrok%2Fmantle%404.2.0",
 			subtitle: "version 4.2.0",
 		});
 	});

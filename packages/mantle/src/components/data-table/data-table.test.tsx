@@ -570,7 +570,10 @@ describe("expanded-state styling hooks", () => {
 describe("DataTable.ExpandHeader", () => {
 	test("renders a screen-reader-only label by default", () => {
 		render(<ExpandableHarness />);
-		expect(screen.getByText("Row details")).toBeInTheDocument();
+		// Class pin, deliberately: `sr-only` is the whole point of the default label —
+		// without it the literal text is visible in the expander column of every
+		// expandable table, and presence alone cannot see that.
+		expect(screen.getByText("Row details")).toHaveClass("sr-only");
 	});
 
 	test("renders custom children when provided", () => {

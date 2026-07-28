@@ -156,6 +156,11 @@ describe("useInView", () => {
 			const element = document.createElement("div");
 			renderHook(() => useInView(useRef(element), { root: useRef<Element | null>(null) }));
 
+			// `intersectionOptions` starts each test as `undefined`, so an optional chain
+			// alone would also report `undefined` for a hook that skipped observation
+			// entirely. Pin that an observer was constructed and observing first.
+			expect(mockObserve).toHaveBeenCalledTimes(1);
+			expect(intersectionOptions).toBeDefined();
 			expect(intersectionOptions?.root).toBeUndefined();
 		});
 	});

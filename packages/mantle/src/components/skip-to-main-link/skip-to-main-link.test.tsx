@@ -97,6 +97,29 @@ describe("SkipToMainLink", () => {
 		expect(link).toHaveFocus();
 	});
 
+	test("replaces the history entry rather than pushing one", async () => {
+		const user = userEvent.setup();
+		// `window.location.hash` reads the same after replaceState, pushState, and a
+		// plain `location.hash = …`, so the hash assertions elsewhere in this file
+		// cannot see the component start pushing entries — which would break Back
+		// for every keyboard user who used the skip link.
+		const replaceState = vi.spyOn(window.history, "replaceState");
+		const pushState = vi.spyOn(window.history, "pushState");
+		render(
+			<>
+				<SkipToMainLink />
+				<main id="main" tabIndex={-1}>
+					main content
+				</main>
+			</>,
+		);
+
+		await user.click(screen.getByRole("link", { name: "Skip to main content" }));
+
+		expect(replaceState).toHaveBeenCalledExactlyOnceWith(null, "", "#main");
+		expect(pushState).not.toHaveBeenCalled();
+	});
+
 	test("invokes the consumer `onClick` after performing the core behavior", async () => {
 		const user = userEvent.setup();
 		const stateAtCallTime: { activeElement: Element | null; hash: string } = {

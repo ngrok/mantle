@@ -3,24 +3,19 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
+import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { PasswordInput } from "./password-input.js";
 
 /**
  * `getPrefersReducedMotion()` queries `(prefers-reduced-motion: no-preference)`
  * and inverts the result, so `matches: false` means "reduce motion" and
  * `matches: true` means "animate".
+ *
+ * Uses the shared stub rather than a local object literal, which dropped every registered
+ * `"change"` listener on the floor.
  */
 const stubPrefersReducedMotion = ({ reduced }: { reduced: boolean }) => {
-	vi.spyOn(window, "matchMedia").mockImplementation((query) => ({
-		matches: !reduced,
-		media: query,
-		onchange: null,
-		addListener: vi.fn<() => void>(),
-		removeListener: vi.fn<() => void>(),
-		addEventListener: vi.fn<() => void>(),
-		removeEventListener: vi.fn<() => void>(),
-		dispatchEvent: vi.fn<() => boolean>(),
-	}));
+	mockMatchMedia({ "(prefers-reduced-motion: no-preference)": !reduced });
 };
 
 describe("PasswordInput (browser)", () => {

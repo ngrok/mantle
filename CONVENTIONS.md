@@ -162,7 +162,7 @@ Test mantle's own logic — its wiring, guards, prop plumbing, and ARIA setup. D
 3. in browser mode only, `getComputedStyle` with the load-bearing CSS injected inline in the test file (`label.browser.test.tsx` is the reference);
 4. deleting the assertion, if none of the above applies.
 
-Two uses are legitimate and should stay: **tailwind-merge override contracts** (proving a consumer's `className` beats a default — assert the merge outcome, not a list of internal defaults), and **explicitly commented cross-file spelling pins** that tie a class to a selector in another file.
+Three uses are legitimate and should stay, each of which needs a comment saying which one it is: **tailwind-merge override contracts** (proving a consumer's `className` beats a default — assert the merge outcome, not a list of internal defaults), **explicitly commented cross-file spelling pins** that tie a class to a selector in another file, and **the class as the only observable implementation of an enumerated prop** — when a variant emits no data attribute and no other DOM difference, the class is the only thing that can catch a permuted lookup table (`toast.test.tsx`'s intent tables are the reference; prefer exposing a data attribute when you own the component).
 
 Also: `toHaveClass` ignores extra classes, so it cannot back a test name that promises exclusivity. And no snapshot tests of rendered HTML — use declarative assertions (`getByRole`, `getByText`, `toBeInTheDocument`). `toMatchInlineSnapshot` is for serialized data shapes only.
 
@@ -183,9 +183,9 @@ For logic that is stringified into an inline `<script>`, evaluate the produced s
 - **No arbitrary sleeps.** `await new Promise((resolve) => setTimeout(resolve, 100))` is a race, not a wait. Use `waitFor`, `findBy*`, or `expect.poll` on the state you actually need — for observer-driven measurement, poll the measured value itself.
 - Never mutate state inside a `waitFor` callback; it can run many times.
 - Install spies **after** `userEvent.setup()`. `setup()` swaps `navigator.clipboard` for its own stub, so a patch applied before it is silently discarded.
-- The Vitest config sets `restoreMocks`, `unstubEnvs`, and `unstubGlobals` on both projects, so spies and global stubs are torn down between tests automatically. A trailing `spy.mockRestore()` in a test body is dead code — and relying on one is a leak, since a test that throws never reaches it. A spy that must survive across tests in a file goes in `beforeEach`, not `beforeAll`.
+- Every test-bearing package sets `restoreMocks`, `unstubEnvs`, and `unstubGlobals` in its Vitest config (both mantle projects, `apps/www`, `mantle-vite-plugins`, `mantle-server-syntax-highlighter`), so `vi.spyOn` spies and `vi.stubGlobal`/`vi.stubEnv` stubs are torn down between tests automatically. A trailing `spy.mockRestore()` in a test body is dead code — and relying on one is a leak, since a test that throws never reaches it. `restoreMocks` does **not** clear a `vi.fn()`'s implementation or call history, so a `vi.fn()` shared across tests still needs `mockReset()` — put it in `beforeEach`, or just create the mock there. A spy that must survive across tests in a file goes in `beforeEach`, not `beforeAll`.
 - No test may depend on another test having run. Verify with `pnpm vitest run --project unit --sequence.shuffle.tests --sequence.shuffle.files --sequence.seed=<n>` across a few seeds.
-- Locale- and timezone-sensitive assertions rely on `TZ`/`LC_ALL` being pinned in the Vitest config, not in a package script — a pin in a script is lost the moment anyone runs a single file directly.
+- Locale- and timezone-sensitive assertions rely on `TZ`/`LC_ALL` being pinned in the Vitest config, not in a package script — a pin in a script is lost the moment anyone runs a single file directly. The happy-dom project pins them via `test.env`; the browser project pins Chromium's own `locale`/`timezoneId` through the Playwright `contextOptions`, which `process.env` cannot reach.
 - Never assert a wall-clock duration or a throughput threshold. Benchmarks belong in `bench()`, not `test()`.
 
 ### When to reach for browser mode

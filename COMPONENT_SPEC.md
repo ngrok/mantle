@@ -12,8 +12,8 @@ the [Philosophy page](./apps/www/app/docs/philosophy.mdx), the component rules t
 ## Scope and status
 
 **This is the bar for new components, and for the parts of a component you are changing.** Much of the
-library predates parts of this spec: 13 of the 67 component directories ship no test file, 21 stamp no
-`asChild`, 4 stamp no `data-slot`, no docs page yet carries a data-attribute table, and most docs pages
+library predates parts of this spec: 13 of the 67 component directories ship no test file, 20 stamp no
+`asChild`, 4 stamp no `data-slot`, exactly one docs page carries a data-attribute table, and most docs pages
 predate §7.2's structure. That is expected and it is not a crisis.
 
 The migration rule is deliberate and narrow:

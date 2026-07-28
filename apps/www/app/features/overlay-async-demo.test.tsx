@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchUser, UserOverlayDemo } from "./overlay-async-demo";
 
@@ -56,8 +56,18 @@ describe("UserOverlayDemo", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Happy path" }));
 
 		// The shell mounts synchronously with the pending body — that is the
-		// recipe's core claim. (Sheet renders role="dialog".)
-		expect(screen.getByRole("dialog", { name: "User details" })).toBeDefined();
+		// recipe's core claim. (Sheet renders role="dialog".) Assert the pending body
+		// too: `getByRole(...).toBeDefined()` alone also passes for a shell that
+		// already resolved, which is the whole point of "before data resolves".
+		// `within` scopes the query to the shell, so a pending body that rendered outside it —
+		// or not at all — throws here instead of satisfying a containment check.
+		const dialog = screen.getByRole("dialog", { name: "User details" });
+		expect(within(dialog).getByLabelText("Loading user details").getAttribute("aria-busy")).toBe(
+			"true",
+		);
+		expect(
+			within(dialog).getByRole("button", { name: "Save changes" }).hasAttribute("disabled"),
+		).toBe(true);
 	});
 
 	it("opens the alert dialog when Alert Dialog is picked", () => {
@@ -281,12 +291,19 @@ describe("fetchUser", () => {
 	it("rejects immediately when the signal is already aborted", async () => {
 		vi.useFakeTimers();
 
-		const error = await settleFetch(
-			fetchUser({ userId: "user_1", scenario: "success", signal: AbortSignal.abort() }),
-		);
+		const settled = fetchUser({
+			userId: "user_1",
+			scenario: "success",
+			signal: AbortSignal.abort(),
+		}).catch((error: unknown) => error);
+		// Read the timer count *before* advancing: after `advanceTimersByTimeAsync(10s)`
+		// the simulated 1.5s latency timer has already fired and been discarded, so a
+		// count of 0 there says nothing about the short-circuit under test.
+		expect(vi.getTimerCount()).toBe(0);
+
+		await vi.advanceTimersByTimeAsync(SETTLE_MS);
+		const error = await settled;
 
 		expect(error).toMatchObject({ name: "RequestCancelledError" });
-		// nothing was scheduled, so no timer is left behind for the next test
-		expect(vi.getTimerCount()).toBe(0);
 	});
 });

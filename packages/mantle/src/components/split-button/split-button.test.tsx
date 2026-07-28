@@ -67,13 +67,17 @@ describe("SplitButton", () => {
 					>
 						Save
 					</SplitButton.PrimaryAction>
-					<SplitButton.MenuTrigger label="More save options" />
+					<SplitButton.MenuTrigger
+						label="More save options"
+						// @ts-expect-error -- MenuTriggerProps omits `size`
+						size="xs"
+					/>
 				</SplitButton.Root>,
 			);
 			expect(screen.getByRole("button", { name: "Save" })).toHaveAttribute("data-size", "xs");
 			expect(screen.getByRole("button", { name: "More save options" })).toHaveAttribute(
 				"data-size",
-				"lg",
+				"xs",
 			);
 		});
 	});

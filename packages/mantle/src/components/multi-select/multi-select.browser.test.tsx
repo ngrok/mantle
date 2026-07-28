@@ -1,7 +1,8 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { PointerEventsCheckLevel, userEvent } from "@testing-library/user-event";
 import { type ReactNode, useState } from "react";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
+import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { AlertDialog } from "../alert-dialog/alert-dialog.js";
 import { Dialog } from "../dialog/dialog.js";
 import { Sheet } from "../sheet/sheet.js";
@@ -23,21 +24,12 @@ import { MultiSelect } from "./multi-select.js";
 const setupUser = () => userEvent.setup({ pointerEventsCheck: PointerEventsCheckLevel.Never });
 
 /**
- * `getPrefersReducedMotion()` queries `(prefers-reduced-motion: no-preference)`
- * and inverts the result, so `matches: false` means "reduce motion" and
- * `matches: true` means "animate".
+ * `getPrefersReducedMotion()` queries `(prefers-reduced-motion: no-preference)` and inverts the
+ * result, so priming that query to `!reduced` is what the hook reads. Uses the shared stub rather
+ * than a local object literal, which dropped every registered `"change"` listener on the floor.
  */
 const stubPrefersReducedMotion = ({ reduced }: { reduced: boolean }) => {
-	vi.spyOn(window, "matchMedia").mockImplementation((query) => ({
-		matches: !reduced,
-		media: query,
-		onchange: null,
-		addListener: vi.fn<() => void>(),
-		removeListener: vi.fn<() => void>(),
-		addEventListener: vi.fn<() => void>(),
-		removeEventListener: vi.fn<() => void>(),
-		dispatchEvent: vi.fn<() => boolean>(),
-	}));
+	mockMatchMedia({ "(prefers-reduced-motion: no-preference)": !reduced });
 };
 
 describe("MultiSelect (browser)", () => {
@@ -265,16 +257,18 @@ describe("MultiSelect (browser)", () => {
 				// Regression test: with ariakit's body scroll lock active alongside the
 				// modal's, ariakit re-applied a stale body-style snapshot (including the
 				// modal's transient `pointer-events: none`) on the animation frame after
-				// unmount, permanently freezing the page. Wait past that frame plus a
-				// macrotask so the assertion sees the settled state.
-				await new Promise<void>((resolve) => {
-					requestAnimationFrame(() => {
-						resolve();
+				// unmount, permanently freezing the page. ariakit defers that restore with
+				// `queueMicrotask` (@ariakit/react-components/dist/dialog/utils/use-prevent-body-scroll.js,
+				// the implementation @ariakit/react re-exports), and the microtask queue is
+				// drained before a frame callback runs — so awaiting frames cannot race it, and
+				// stays correct if ariakit ever switches to deferring by a frame instead.
+				for (let frame = 0; frame < 3; frame++) {
+					await new Promise<void>((resolve) => {
+						requestAnimationFrame(() => {
+							resolve();
+						});
 					});
-				});
-				await new Promise<void>((resolve) => {
-					setTimeout(resolve, 50);
-				});
+				}
 
 				expect(document.body.style.pointerEvents).not.toBe("none");
 			});

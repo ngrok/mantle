@@ -135,7 +135,11 @@ describe("parseVersions", () => {
 		expect(version?.changes[0]?.summary).toBe("summary line\n\nfollow-up paragraph");
 	});
 
-	it("treats fenced code blocks as content, not structure", () => {
+	it("folds an indented fenced block into its bullet, the shape changesets emit", () => {
+		// This is what the real file looks like: `packages/mantle/CHANGELOG.md` has 46
+		// indented fences and none at column 0. Indented fences never reach the `inFence`
+		// branch — the two-space continuation rule carries them — so this pins the path
+		// production actually takes, and the column-0 fixture below pins the other one.
 		const source = [
 			"## 1.0.0",
 			"",
@@ -144,10 +148,31 @@ describe("parseVersions", () => {
 			"- example:",
 			"",
 			"  ```ts",
-			"  // looks like a top-level bullet but isn't",
-			"  - not a bullet",
-			"  ## not a heading",
+			"  const value = 1;",
 			"  ```",
+			"",
+		].join("\n");
+		const [version] = parseVersions(source);
+		expect(version?.changes).toHaveLength(1);
+		expect(version?.changes[0]?.summary).toBe("example:\n\n```ts\nconst value = 1;\n```");
+	});
+
+	it("treats fenced code blocks as content, not structure", () => {
+		const source = [
+			"## 1.0.0",
+			"",
+			"### Patch Changes",
+			"",
+			"- example:",
+			"",
+			// Fences at column 0: `parseVersions` gates `inFence` on
+			// `line.startsWith("```")`, so an indented fence never enters the branch
+			// and the whole fence-tracking block could be deleted with this green.
+			"```ts",
+			"// looks like a top-level bullet but isn't",
+			"- not a bullet",
+			"## not a heading",
+			"```",
 			"",
 		].join("\n");
 		const [version] = parseVersions(source);

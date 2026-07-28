@@ -26,8 +26,8 @@
     "build": "tsdown",
     "prepack": "node ../../scripts/clean-publish-manifest.js clean",
     "postpack": "node ../../scripts/clean-publish-manifest.js restore",
-    "test": "TZ=UTC vitest run",
-    "test:watch": "TZ=UTC vitest watch",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
     "typecheck": "tsc"
   },
   "dependencies": {
