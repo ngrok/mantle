@@ -28,6 +28,19 @@ body { font-weight: 100; }
 }
 `;
 
+/**
+ * Narrows the rendered `<label>` for `getComputedStyle` without a type
+ * assertion — a missing label (or a component that stops rendering one) fails
+ * here instead of being hidden from the type checker.
+ */
+const getLabel = (container: HTMLElement) => {
+	const label = container.querySelector("label");
+	if (label == null) {
+		throw new Error("expected a <label> to be rendered");
+	}
+	return label;
+};
+
 let styleElement: HTMLStyleElement;
 
 beforeAll(() => {
@@ -43,9 +56,7 @@ afterAll(() => {
 describe("Label conditional font-weight", () => {
 	test("standalone label renders font-medium (500)", () => {
 		const { container } = render(<Label>Email</Label>);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("500");
+		expect(getComputedStyle(getLabel(container)).fontWeight).toBe("500");
 	});
 
 	test("label wrapping <input> inherits its weight (does not become medium)", () => {
@@ -55,9 +66,7 @@ describe("Label conditional font-weight", () => {
 				<input type="email" />
 			</Label>,
 		);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("100");
+		expect(getComputedStyle(getLabel(container)).fontWeight).toBe("100");
 	});
 
 	test("label wrapping <textarea>, <select>, or <button> also opts out", () => {
@@ -76,25 +85,19 @@ describe("Label conditional font-weight", () => {
 		];
 		for (const node of cases) {
 			const { container, unmount } = render(node);
-			const label = container.querySelector("label");
-			expect(label).not.toBeNull();
-			expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("100");
+			expect(getComputedStyle(getLabel(container)).fontWeight).toBe("100");
 			unmount();
 		}
 	});
 
 	test("user-supplied font-bold overrides the default on a standalone label", () => {
 		const { container } = render(<Label className="font-bold">Email</Label>);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("700");
+		expect(getComputedStyle(getLabel(container)).fontWeight).toBe("700");
 	});
 
 	test("user-supplied font-normal overrides the default on a standalone label", () => {
 		const { container } = render(<Label className="font-normal">Email</Label>);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("400");
+		expect(getComputedStyle(getLabel(container)).fontWeight).toBe("400");
 	});
 
 	test("user-supplied font-bold still applies when wrapping a control", () => {
@@ -104,9 +107,7 @@ describe("Label conditional font-weight", () => {
 				<input type="email" />
 			</Label>,
 		);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("700");
+		expect(getComputedStyle(getLabel(container)).fontWeight).toBe("700");
 	});
 
 	test("user-supplied font-bold still applies when wrapping a [contenteditable]", () => {
@@ -118,9 +119,7 @@ describe("Label conditional font-weight", () => {
 				</div>
 			</Label>,
 		);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("700");
+		expect(getComputedStyle(getLabel(container)).fontWeight).toBe("700");
 	});
 
 	test("label wrapping a [contenteditable] element opts out", () => {
@@ -132,9 +131,7 @@ describe("Label conditional font-weight", () => {
 				</div>
 			</Label>,
 		);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("100");
+		expect(getComputedStyle(getLabel(container)).fontWeight).toBe("100");
 	});
 
 	test("nested control deeper than direct child still suppresses the default", () => {
@@ -148,8 +145,6 @@ describe("Label conditional font-weight", () => {
 				</div>
 			</Label>,
 		);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("100");
+		expect(getComputedStyle(getLabel(container)).fontWeight).toBe("100");
 	});
 });

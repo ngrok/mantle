@@ -1,10 +1,23 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { act, useEffect, useRef, useState } from "react";
 import type { ComponentRef } from "react";
 import { describe, expect, test } from "vitest";
 import { Field } from "../field/field.js";
 import { Input, InputCapture } from "./input.js";
+
+/**
+ * Resolves the `data-slot="input"` container `Input` renders around the
+ * capture element. Narrowing here (rather than casting) also asserts the
+ * `data-slot` contract — a rename throws instead of silently passing.
+ */
+const getInputContainer = () => {
+	const container = document.querySelector('[data-slot="input"]');
+	if (!(container instanceof HTMLElement)) {
+		throw new Error('expected an element with data-slot="input"');
+	}
+	return container;
+};
 
 describe("Input", () => {
 	test('without children or validation="error", renders an input with aria-invalid="false" and placeholder="Testy McTestface"', () => {
@@ -229,5 +242,130 @@ describe("Input", () => {
 		await act(() => userEvent.type(screen.getByRole("textbox"), "ello govna"));
 
 		expect(screen.getByRole("textbox")).toHaveValue("ello govna");
+	});
+
+	describe("container", () => {
+		test("wraps the capture element in a data-slot=input container", () => {
+			render(
+				<Input>
+					<InputCapture aria-label="Search" />
+				</Input>,
+			);
+
+			const capture = screen.getByRole("textbox", { name: "Search" });
+			expect(capture).toHaveAttribute("data-slot", "input-capture");
+			expect(getInputContainer()).toContainElement(capture);
+		});
+
+		test("clicking a non-input child focuses the inner input", async () => {
+			const user = userEvent.setup();
+			render(
+				<Input>
+					<InputCapture aria-label="Search" />
+					<span data-testid="trailing">icon</span>
+				</Input>,
+			);
+
+			await user.click(screen.getByTestId("trailing"));
+
+			expect(screen.getByRole("textbox", { name: "Search" })).toHaveFocus();
+		});
+
+		test("prevents mousedown on non-input children so the input never blurs", () => {
+			render(
+				<Input>
+					<InputCapture aria-label="Search" />
+					<span data-testid="trailing">icon</span>
+				</Input>,
+			);
+
+			// `fireEvent` returns false when a handler called preventDefault.
+			expect(fireEvent.mouseDown(screen.getByTestId("trailing"))).toBe(false);
+			expect(fireEvent.mouseDown(getInputContainer())).toBe(false);
+			// The input itself must keep its native mousedown behavior.
+			expect(fireEvent.mouseDown(screen.getByRole("textbox", { name: "Search" }))).toBe(true);
+		});
+
+		test("moves focus to the input when a keydown lands on the container", () => {
+			render(
+				<Input>
+					<InputCapture aria-label="Search" />
+				</Input>,
+			);
+
+			const capture = screen.getByRole("textbox", { name: "Search" });
+			expect(capture).not.toHaveFocus();
+
+			fireEvent.keyDown(getInputContainer(), { key: "a" });
+
+			expect(capture).toHaveFocus();
+		});
+
+		test("reflects disabled on the container as data-disabled", () => {
+			render(
+				<Input disabled>
+					<InputCapture aria-label="Search" />
+				</Input>,
+			);
+
+			expect(getInputContainer()).toHaveAttribute("data-disabled", "true");
+			expect(screen.getByRole("textbox", { name: "Search" })).toBeDisabled();
+		});
+
+		test("reflects aria-disabled on the container as data-disabled", () => {
+			render(
+				<Input aria-disabled="true">
+					<InputCapture aria-label="Search" />
+				</Input>,
+			);
+
+			expect(getInputContainer()).toHaveAttribute("data-disabled", "true");
+		});
+
+		test("omits data-disabled, data-validation, and feedback icons when neutral and enabled", () => {
+			render(
+				<Input>
+					<InputCapture aria-label="Search" />
+				</Input>,
+			);
+
+			const container = getInputContainer();
+			expect(container).not.toHaveAttribute("data-disabled");
+			expect(container).not.toHaveAttribute("data-validation");
+			expect(document.querySelectorAll('[data-slot="icon"]')).toHaveLength(0);
+		});
+
+		test('validation="error" announces the failure to screen readers, naming the field', () => {
+			render(<Input aria-label="Email" name="email" validation="error" />);
+
+			expect(getInputContainer()).toHaveAttribute("data-validation", "error");
+			expect(
+				screen.getByText("The value entered for the email input has failed validation."),
+			).toBeInTheDocument();
+		});
+
+		test('validation="error" without a name still announces the failure', () => {
+			render(<Input aria-label="Email" validation="error" />);
+
+			expect(
+				screen.getByText("The value entered for the input has failed validation."),
+			).toBeInTheDocument();
+		});
+
+		test('validation="success" renders a decorative icon and announces nothing', () => {
+			render(<Input aria-label="Email" name="email" validation="success" />);
+
+			expect(getInputContainer()).toHaveAttribute("data-validation", "success");
+			expect(screen.queryByText(/has failed validation/)).toBeNull();
+			expect(document.querySelectorAll('[data-slot="icon"]')).toHaveLength(1);
+		});
+
+		test('validation="warning" renders a decorative icon and announces nothing', () => {
+			render(<Input aria-label="Email" name="email" validation="warning" />);
+
+			expect(getInputContainer()).toHaveAttribute("data-validation", "warning");
+			expect(screen.queryByText(/has failed validation/)).toBeNull();
+			expect(document.querySelectorAll('[data-slot="icon"]')).toHaveLength(1);
+		});
 	});
 });

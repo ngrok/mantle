@@ -1,9 +1,10 @@
 import { act, renderHook } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { useSessionStorage } from "./use-session-storage.js";
 
 const key = "test-session-preference";
+const otherKey = "other-test-session-preference";
 const defaultValue = "default-value";
 
 function Probe() {
@@ -128,6 +129,70 @@ describe("useSessionStorage", () => {
 
 		const [value] = result.current;
 		expect(value).toBe(defaultValue);
+	});
+
+	test("switching keys re-reads, resubscribes, and writes under the new key", () => {
+		window.sessionStorage.setItem(key, JSON.stringify("first-key-value"));
+		window.sessionStorage.setItem(otherKey, JSON.stringify("second-key-value"));
+
+		const { result, rerender } = renderHook(
+			({ activeKey }) => useSessionStorage(activeKey, defaultValue),
+			{ initialProps: { activeKey: key } },
+		);
+		expect(result.current[0]).toBe("first-key-value");
+
+		rerender({ activeKey: otherKey });
+		expect(result.current[0]).toBe("second-key-value");
+
+		// the subscription now filters on the new key, so the old key's
+		// notifications must be ignored
+		act(() => {
+			window.sessionStorage.setItem(key, JSON.stringify("stale"));
+			window.dispatchEvent(
+				new StorageEvent("storage", {
+					key,
+					newValue: JSON.stringify("stale"),
+					storageArea: window.sessionStorage,
+				}),
+			);
+		});
+		expect(result.current[0]).toBe("second-key-value");
+
+		// ...and the new key's notifications must be honored
+		act(() => {
+			window.sessionStorage.setItem(otherKey, JSON.stringify("updated"));
+			window.dispatchEvent(
+				new StorageEvent("storage", {
+					key: otherKey,
+					newValue: JSON.stringify("updated"),
+					storageArea: window.sessionStorage,
+				}),
+			);
+		});
+		expect(result.current[0]).toBe("updated");
+
+		act(() => {
+			const [, setValue] = result.current;
+			setValue("written-after-switch");
+		});
+		expect(window.sessionStorage.getItem(otherKey)).toBe(JSON.stringify("written-after-switch"));
+		expect(window.sessionStorage.getItem(key)).toBe(JSON.stringify("stale"));
+	});
+
+	test("removes its storage listener on unmount", () => {
+		const addEventListenerSpy = vi.spyOn(window, "addEventListener");
+		const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
+
+		const { unmount } = renderHook(() => useSessionStorage(key, defaultValue));
+		const added = addEventListenerSpy.mock.calls.filter(([type]) => type === "storage");
+		expect(added).toHaveLength(1);
+
+		unmount();
+
+		const removed = removeEventListenerSpy.mock.calls.filter(([type]) => type === "storage");
+		expect(removed).toHaveLength(1);
+		// the exact handler that was attached must be the one detached
+		expect(removed[0]?.[1]).toBe(added[0]?.[1]);
 	});
 
 	test("server rendering returns the default and never touches sessionStorage (SSR regression)", () => {

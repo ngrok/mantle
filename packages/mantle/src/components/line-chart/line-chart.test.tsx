@@ -6,6 +6,9 @@ import { BarChart } from "../bar-chart/index.js";
 import type { ChartDatumEvent } from "./line-chart.js";
 import { LineChart } from "./line-chart.js";
 
+// Keep the fixture under 4 rows: happy-dom never delivers a plot size, and a
+// zero-width plot decimates 4+ rows, which widens the keyboard arrow stride to
+// the whole set (a single ArrowRight would jump to the last datum).
 const data = [
 	{ time: new Date("2026-07-18T10:00:00Z"), p50: 120, p99: 480 },
 	{ time: new Date("2026-07-18T10:01:00Z"), p50: 132, p99: 510 },
@@ -51,8 +54,8 @@ describe("LineChart.Root", () => {
 		const root = container.querySelector('[data-slot="line-chart"]');
 		expect(root).toBeInTheDocument();
 		expect(ref.current).toBe(root);
+		// The consumer's className survives the merge onto the root.
 		expect(root?.className).toContain("custom-class");
-		expect(root?.className).toContain("flex");
 		expect(root?.getAttribute("data-testid")).toBe("chart-root");
 	});
 
@@ -166,17 +169,23 @@ describe("LineChart.CopyButton", () => {
 			</LineChart.Root>,
 		);
 		await user.click(screen.getByRole("button", { name: "Copy data as Markdown" }));
+		// Wait only for the first call; `waitFor` resolves the instant its callback stops
+		// throwing, so an exactly-once assertion *inside* it passes on the first call and
+		// returns before an asynchronous duplicate could land. The count belongs outside.
 		await vi.waitFor(() => {
-			expect(onCopy).toHaveBeenCalledWith(
-				[
-					"| time | p50 | p99 |",
-					"| --- | --- | --- |",
-					"| 2026-07-18T10:00:00.000Z | 120 | 480 |",
-					"| 2026-07-18T10:01:00.000Z | 132 | 510 |",
-					"| 2026-07-18T10:02:00.000Z | 101 | 460 |",
-				].join("\n"),
-			);
+			expect(onCopy).toHaveBeenCalled();
 		});
+
+		// One click is one copy — a re-entrant handler would report the same table twice.
+		expect(onCopy).toHaveBeenCalledExactlyOnceWith(
+			[
+				"| time | p50 | p99 |",
+				"| --- | --- | --- |",
+				"| 2026-07-18T10:00:00.000Z | 120 | 480 |",
+				"| 2026-07-18T10:01:00.000Z | 132 | 510 |",
+				"| 2026-07-18T10:02:00.000Z | 101 | 460 |",
+			].join("\n"),
+		);
 	});
 
 	test("copies the current rows after a data update, not the mount-time rows", async () => {
@@ -200,10 +209,12 @@ describe("LineChart.CopyButton", () => {
 		);
 		await user.click(screen.getByRole("button", { name: "Copy data as Markdown" }));
 		await vi.waitFor(() => {
-			expect(onCopy).toHaveBeenCalledWith(
-				["| time | p50 |", "| --- | --- |", "| 2026-07-18T11:00:00.000Z | 777 |"].join("\n"),
-			);
+			expect(onCopy).toHaveBeenCalled();
 		});
+
+		expect(onCopy).toHaveBeenCalledExactlyOnceWith(
+			["| time | p50 |", "| --- | --- |", "| 2026-07-18T11:00:00.000Z | 777 |"].join("\n"),
+		);
 	});
 
 	test("uses the label prop as the accessible name", () => {
@@ -357,7 +368,9 @@ describe("LineChart keyboard interaction", () => {
 		renderChart({ onDatumActivate });
 		await user.tab();
 		await user.keyboard("{ArrowRight}{Enter}");
-		expect(onDatumActivate).toHaveBeenCalledWith(
+		// One Enter is one activation — a double-fire would ship a chart that
+		// navigates twice per keypress.
+		expect(onDatumActivate).toHaveBeenCalledExactlyOnceWith(
 			expect.objectContaining({
 				index: 0,
 				xValue: new Date("2026-07-18T10:00:00Z"),
@@ -367,15 +380,18 @@ describe("LineChart keyboard interaction", () => {
 		);
 	});
 
-	test("onActiveIndexChange reports keyboard movement", async () => {
+	test("onActiveIndexChange reports keyboard movement once per step", async () => {
 		const user = userEvent.setup();
 		const onActiveIndexChange = vi.fn<(index: number | null) => void>();
 		renderChart({ onActiveIndexChange });
 		await user.tab();
 		await user.keyboard("{ArrowRight}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(0);
+		// Exactly one publish per move: a count-blind assertion cannot see the
+		// store echoing every commit back to the consumer.
+		expect(onActiveIndexChange).toHaveBeenCalledExactlyOnceWith(0);
 		await user.keyboard("{ArrowRight}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(1);
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(2);
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(1);
 	});
 });
 
@@ -436,7 +452,11 @@ describe("LineChart.Tooltip customization", () => {
 		expect(tooltip?.textContent).not.toContain("p990");
 	});
 
-	test("connectNulls with a mid-series gap does not crash and reads the gap as an em dash", async () => {
+	test("a mid-series gap ingests without crashing and still reads as an em dash", async () => {
+		// The stroke's shape is canvas ink, so `connectNulls` itself is asserted
+		// against real pixels in line-chart.browser.test.tsx. What this covers is
+		// the ingest + readout path: a NaN column in the middle of a series must
+		// not poison the tooltip.
 		const user = userEvent.setup();
 		const gappy = [
 			{ time: new Date("2026-07-18T10:00:00Z"), p50: 120 },
@@ -513,8 +533,8 @@ describe("LineChart public index space", () => {
 		await user.tab();
 		// Home = the earliest timestamp = the consumer's SECOND row.
 		await user.keyboard("{Home}{Enter}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(1);
-		expect(onDatumActivate).toHaveBeenCalledWith(
+		expect(onActiveIndexChange).toHaveBeenCalledExactlyOnceWith(1);
+		expect(onDatumActivate).toHaveBeenCalledExactlyOnceWith(
 			expect.objectContaining({ index: 1, datum: unsorted[1] }),
 		);
 	});

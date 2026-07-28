@@ -182,6 +182,72 @@ describe("useUndoRedo", () => {
 		expect(result.current.canRedo).toBe(false);
 	});
 
+	// `undefined` is the empty-stack sentinel, so the guards must test for it
+	// exactly — a falsy-but-valid snapshot has to survive a round trip.
+	test("round-trips falsy snapshots such as 0", () => {
+		const { result } = renderHook(() => useUndoRedo<number>());
+
+		act(() => {
+			result.current.push(0);
+		});
+
+		let previous: number | undefined;
+		act(() => {
+			previous = result.current.undo(1);
+		});
+		expect(previous).toBe(0);
+		expect(result.current.canUndo).toBe(false);
+		expect(result.current.canRedo).toBe(true);
+
+		let next: number | undefined;
+		act(() => {
+			next = result.current.redo(0);
+		});
+		expect(next).toBe(1);
+	});
+
+	test("round-trips falsy snapshots such as the empty string", () => {
+		const { result } = renderHook(() => useUndoRedo<string>());
+
+		act(() => {
+			result.current.push("");
+		});
+
+		let previous: string | undefined;
+		act(() => {
+			previous = result.current.undo("typed");
+		});
+		expect(previous).toBe("");
+
+		let next: string | undefined;
+		act(() => {
+			next = result.current.redo("");
+		});
+		expect(next).toBe("typed");
+	});
+
+	test("an empty-string redo snapshot is returned rather than treated as an empty stack", () => {
+		const { result } = renderHook(() => useUndoRedo<string>());
+
+		act(() => {
+			result.current.push("v1");
+		});
+		// undo pushes the supplied current value onto the redo stack — here, ""
+		act(() => {
+			result.current.undo("");
+		});
+		expect(result.current.canRedo).toBe(true);
+
+		let next: string | undefined;
+		act(() => {
+			next = result.current.redo("v1");
+		});
+
+		expect(next).toBe("");
+		expect(result.current.canRedo).toBe(false);
+		expect(result.current.canUndo).toBe(true);
+	});
+
 	test("supports full undo/redo round trip restoring every value", () => {
 		const { result } = renderHook(() => useUndoRedo<number>());
 

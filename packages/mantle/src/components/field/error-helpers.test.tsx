@@ -64,6 +64,39 @@ describe("field helpers", () => {
 			).toBe(false);
 		});
 
+		test("recurses into a fragment so conditionally wrapped error items still register", () => {
+			expect(
+				hasRenderableErrorListChildren({
+					children: <>{createElement(errorItemType, null, "Required")}</>,
+					errorItemType,
+				}),
+			).toBe(true);
+		});
+
+		test("returns false for a fragment whose only error items are blank", () => {
+			expect(
+				hasRenderableErrorListChildren({
+					children: (
+						<>
+							{createElement(errorItemType, { key: "blank" }, " ")}
+							{createElement(errorItemType, { key: "empty" }, undefined)}
+						</>
+					),
+					errorItemType,
+				}),
+			).toBe(false);
+		});
+
+		test("recurses through nested fragments", () => {
+			expect(
+				hasRenderableErrorListChildren({
+					// oxlint-disable-next-line react/jsx-no-useless-fragment -- nested fragments are the test subject
+					children: <>{<>{createElement(errorItemType, null, "Required")}</>}</>,
+					errorItemType,
+				}),
+			).toBe(true);
+		});
+
 		test("returns false for boolean-only children", () => {
 			expect(
 				hasRenderableErrorListChildren({

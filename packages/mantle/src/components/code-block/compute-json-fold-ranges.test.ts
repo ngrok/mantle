@@ -79,6 +79,24 @@ describe("computeJsonFoldRanges", () => {
 		]);
 	});
 
+	test("still emits a range when the opener and closer are on adjacent lines", () => {
+		// Characterizes today's behavior: the range has no interior line, so the
+		// toggle it produces hides nothing (see the note in the fold decorator).
+		expect(computeJsonFoldRanges("{\n}")).toEqual([{ id: "1", startLine: 1, endLine: 2 }]);
+		expect(computeJsonFoldRanges('{\n  "a": [\n  ]\n}')).toEqual([
+			{ id: "1", startLine: 1, endLine: 4 },
+			{ id: "2", startLine: 2, endLine: 3 },
+		]);
+	});
+
+	test("bails out of an unterminated string at the line break instead of consuming the rest", () => {
+		// Without the newline guard the scanner would swallow the closing brace as
+		// string content and the outer range would disappear.
+		expect(computeJsonFoldRanges('{\n  "a": "oops\n}')).toEqual([
+			{ id: "1", startLine: 1, endLine: 3 },
+		]);
+	});
+
 	test("normalizes \\r\\n line endings", () => {
 		const code = ["[", "  1", "]"].join("\r\n");
 		expect(computeJsonFoldRanges(code)).toEqual([{ id: "1", startLine: 1, endLine: 3 }]);

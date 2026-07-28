@@ -1,8 +1,8 @@
 "use client";
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { Item as ListItem, Root as ListRoot } from "./primitive.js";
 import { VirtualRoot as ListVirtualRoot } from "./virtual.js";
 
@@ -53,6 +53,31 @@ afterAll(() => {
 	shimStyle.remove();
 });
 
+/** Every windowed row currently mounted (each `Item` stamps `data-index`). */
+function mountedRowCount(): number {
+	return document.querySelectorAll("[data-slot='list'] [data-index]").length;
+}
+
+/**
+ * Resolve once the virtualizer has measured its scroll viewport and committed a
+ * first window — react-virtual renders no rows until the viewport has a size, so
+ * this replaces guessing at how long that takes.
+ */
+async function windowMounted(): Promise<void> {
+	await waitFor(() => {
+		expect(mountedRowCount()).toBeGreaterThan(0);
+	});
+}
+
+/** The rendered height of the collection element — the virtualizer's total scroll size. */
+function collectionHeight(): number {
+	const collection = document.querySelector("[data-slot='list-collection']");
+	if (!(collection instanceof HTMLElement)) {
+		throw new Error("collection not found");
+	}
+	return collection.getBoundingClientRect().height;
+}
+
 /**
  * Geometry of the first two rendered rows relative to their scroll viewport:
  * the row pitch (top-to-top) and the left/right inset of a row within the
@@ -92,9 +117,6 @@ describe("List virtualization spacing", () => {
 				))}
 			</ListRoot>,
 		);
-		await new Promise((resolve) => {
-			requestAnimationFrame(() => resolve(null));
-		});
 		const plainGeometry = await firstRowGeometry();
 		plain.unmount();
 
@@ -105,10 +127,12 @@ describe("List virtualization spacing", () => {
 				))}
 			</ListVirtualRoot>,
 		);
-		// Give the virtualizer time to measure and reposition.
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
+		// Until the virtualizer's ResizeObserver measurement lands, rows are placed
+		// at the seeded `estimateItemHeight` pitch — wait for the measured pitch
+		// instead of assuming how many frames that takes.
+		await expect
+			.poll(async () => (await firstRowGeometry()).pitch)
+			.toBeCloseTo(plainGeometry.pitch, 0);
 		const virtualGeometry = await firstRowGeometry();
 		virtual.unmount();
 
@@ -126,6 +150,72 @@ const gridRows = Array.from({ length: 40 }, (_, index) => ({
 	id: `g-${index}`,
 	name: `Grid row ${index}`,
 }));
+
+describe("List virtualization windowing knobs", () => {
+	test("estimateItemHeight sizes the rows the virtualizer has not measured", async () => {
+		// Rows are ~37px tall here, so a 200px seed is unmistakably the estimate at
+		// work rather than a measured size.
+		const estimateItemHeight = 200;
+		render(
+			<ListVirtualRoot
+				semantics="list"
+				aria-label="seeded"
+				style={{ maxHeight: 200 }}
+				estimateItemHeight={estimateItemHeight}
+			>
+				{gridRows.map((row) => (
+					<ListItem key={row.id}>
+						<button type="button">{row.name}</button>
+					</ListItem>
+				))}
+			</ListVirtualRoot>,
+		);
+		await windowMounted();
+
+		// Only the window (plus overscan) is ever measured; the rest of the
+		// collection is sized by the seed, which is what gives the scrollbar its
+		// range. The assertion is a lower bound, so it holds whether or not
+		// measurement has landed — but it fails outright if the seed is ignored.
+		const mounted = mountedRowCount();
+		expect(mounted).toBeLessThan(gridRows.length / 2);
+		expect(collectionHeight()).toBeGreaterThanOrEqual(
+			estimateItemHeight * (gridRows.length - mounted),
+		);
+	});
+
+	test("overscan controls how many rows stay mounted beyond the visible window", async () => {
+		function Windowed({ overscan }: { overscan: number }) {
+			return (
+				<ListVirtualRoot
+					semantics="list"
+					aria-label="overscan"
+					style={{ maxHeight: 200 }}
+					overscan={overscan}
+				>
+					{gridRows.map((row) => (
+						<ListItem key={row.id}>
+							<button type="button">{row.name}</button>
+						</ListItem>
+					))}
+				</ListVirtualRoot>
+			);
+		}
+
+		const tight = render(<Windowed overscan={0} />);
+		await windowMounted();
+		const tightCount = mountedRowCount();
+		// A no-buffer window mounts only what fits the 200px viewport, well short of
+		// the full collection — otherwise the comparison below proves nothing.
+		expect(tightCount).toBeLessThan(gridRows.length / 2);
+		tight.unmount();
+
+		render(<Windowed overscan={20} />);
+		// The buffer is what keeps a grid's active row mounted for
+		// `aria-activedescendant`, so it has to actually reach the virtualizer —
+		// dropping the prop (library default 1) leaves the two counts a row apart.
+		await expect.poll(mountedRowCount).toBeGreaterThan(tightCount + 10);
+	});
+});
 
 describe("List virtualization row identity", () => {
 	test("row identity follows consumer keys across a reorder, matching the plain Root", async () => {
@@ -146,20 +236,18 @@ describe("List virtualization row identity", () => {
 			);
 		}
 		const { rerender } = render(<KeyedList order={keyedRows} />);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
-		const buttonBefore = screen.getByRole("button", { name: "Grid row 0" });
+		const buttonBefore = await screen.findByRole("button", { name: "Grid row 0" });
 
 		rerender(<KeyedList order={keyedRows.toReversed()} />);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
+		// Wait for the reversed order to commit: the first row now sits last.
+		await waitFor(() => {
+			expect(
+				screen.getByRole("button", { name: "Grid row 0" }).closest("[data-index]"),
+			).toHaveAttribute("data-index", "4");
 		});
 
-		// The same DOM node still renders "Grid row 0" — moved, not remounted...
+		// The same DOM node still renders "Grid row 0" — moved, not remounted.
 		expect(screen.getByRole("button", { name: "Grid row 0" })).toBe(buttonBefore);
-		// ...and its row now sits at the end of the reversed collection.
-		expect(buttonBefore.closest("[data-index]")?.getAttribute("data-index")).toBe("4");
 	});
 });
 
@@ -184,19 +272,15 @@ describe("List grid navigation", () => {
 				))}
 			</ListVirtualRoot>,
 		);
-		// Let the virtualizer measure so the viewport is scrollable.
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
+		// The viewport is only scrollable once the virtualizer has measured it and
+		// sized the collection.
+		await windowMounted();
 
 		const viewport = document.querySelector("[data-slot='list']");
 		if (viewport == null) {
 			throw new Error("viewport not found");
 		}
 		viewport.scrollTop = 150;
-		await new Promise((resolve) => {
-			requestAnimationFrame(() => resolve(null));
-		});
 		const scrollBefore = viewport.scrollTop;
 		// Sanity: the list actually scrolled, otherwise the assertion is meaningless.
 		expect(scrollBefore).toBeGreaterThan(50);
@@ -211,20 +295,18 @@ describe("List grid navigation", () => {
 			throw new Error("no fully-visible row button found");
 		}
 		const clickedIndex = button.closest("[data-index]")?.getAttribute("data-index");
+		const grid = viewport.querySelector("[role='grid']");
 		const user = userEvent.setup();
 		await user.click(button);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
 
+		// Focus must move to the collection (the single tab stop), not linger on the
+		// clicked control — otherwise a later arrow press lights the control with a
+		// `:focus-visible` ring.
+		await waitFor(() => {
+			expect(document.activeElement).toBe(grid);
+		});
 		// The scroll must stay put (the bug snapped it back to the top)...
 		expect(Math.abs(viewport.scrollTop - scrollBefore)).toBeLessThan(20);
-
-		const grid = viewport.querySelector("[role='grid']");
-		// ...focus must move to the collection (the single tab stop), not linger on
-		// the clicked control — otherwise a later arrow press lights the control
-		// with a `:focus-visible` ring...
-		expect(document.activeElement).toBe(grid);
 		// ...and the clicked row — not row 0 — becomes the active descendant.
 		expect(grid?.getAttribute("aria-activedescendant")).toBe(
 			grid?.querySelector(`[data-index='${clickedIndex}']`)?.id,
@@ -254,22 +336,19 @@ describe("List grid navigation", () => {
 				))}
 			</ListVirtualRoot>,
 		);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
 
-		const link = document.querySelector<HTMLAnchorElement>("[data-slot='list'] a[href]");
-		if (link == null) {
-			throw new Error("link not found");
-		}
+		const link = await screen.findByRole("link", { name: "Grid row 0" });
 		// Focusing a tabbable in-row control must NOT bounce focus back to the grid —
 		// otherwise the control is keyboard-unreachable and forward-Tab is trapped.
 		// (The row's own tabIndex=-1 controls are still reclaimed; see the click test.)
 		link.focus();
-		await new Promise((resolve) => {
-			requestAnimationFrame(() => resolve(null));
+		expect(link).toHaveFocus();
+		// The pull-back would run from the grid's focus handler, so give React a
+		// commit before trusting that focus stayed.
+		await waitFor(() => {
+			expect(document.querySelector("[role='grid']")).toHaveAttribute("aria-activedescendant");
 		});
-		expect(document.activeElement).toBe(link);
+		expect(link).toHaveFocus();
 	});
 
 	test("keyboard navigation skips rows whose `disabled` prop is set", async () => {
@@ -293,9 +372,7 @@ describe("List grid navigation", () => {
 				))}
 			</ListVirtualRoot>,
 		);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
+		await windowMounted();
 
 		const grid = document.querySelector<HTMLElement>("[data-slot='list'] [role='grid']");
 		if (grid == null) {
@@ -308,9 +385,8 @@ describe("List grid navigation", () => {
 
 		const user = userEvent.setup();
 		grid.focus(); // activates the first enabled row (0)
-		// Let the focus-driven state update flush before reading the active row.
-		await new Promise((resolve) => {
-			requestAnimationFrame(() => resolve(null));
+		await waitFor(() => {
+			expect(activeIndex()).toBe("0");
 		});
 		const sequence = [activeIndex()];
 		for (let step = 0; step < 4; step++) {
@@ -327,41 +403,6 @@ describe("List grid navigation", () => {
 		).toBe(false);
 	});
 
-	test("Enter and Space on a focused nested tabbable control operate the control, not the row", async () => {
-		// Regression: the grid keydown handler used to preventDefault Enter/Space
-		// bubbling from a focused in-row control, so the control could receive focus
-		// but never be operated — the row toggled instead.
-		const onActivate = vi.fn<(index: number) => void>();
-		const onMenuAction = vi.fn<() => void>();
-		render(
-			<ListRoot semantics="grid" aria-label="grid" onActivate={onActivate}>
-				<ListItem>
-					<div role="gridcell">Item 0</div>
-				</ListItem>
-				<ListItem>
-					<div role="gridcell">
-						<button type="button" onClick={onMenuAction}>
-							open menu
-						</button>
-					</div>
-				</ListItem>
-			</ListRoot>,
-		);
-
-		const menuButton = screen.getByRole("button", { name: "open menu" });
-		menuButton.focus();
-		expect(menuButton).toHaveFocus();
-
-		const user = userEvent.setup();
-		await user.keyboard("{Enter}");
-		expect(onMenuAction).toHaveBeenCalledTimes(1);
-		expect(onActivate).not.toHaveBeenCalled();
-
-		await user.keyboard(" ");
-		expect(onMenuAction).toHaveBeenCalledTimes(2);
-		expect(onActivate).not.toHaveBeenCalled();
-	});
-
 	test("windowed rows expose the ARIA attributes their semantics allow", async () => {
 		// listitem rows: aria-posinset/aria-setsize. Grid rows: aria-rowindex with
 		// aria-rowcount on the collection (posinset/setsize are invalid on grid rows
@@ -375,9 +416,7 @@ describe("List grid navigation", () => {
 				))}
 			</ListVirtualRoot>,
 		);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
+		await windowMounted();
 
 		const firstListItem = document.querySelector("[role='listitem'][data-index='0']");
 		expect(firstListItem).toHaveAttribute("aria-posinset", "1");
@@ -400,9 +439,7 @@ describe("List grid navigation", () => {
 				))}
 			</ListVirtualRoot>,
 		);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
+		await windowMounted();
 
 		const grid = document.querySelector("[role='grid']");
 		expect(grid).toHaveAttribute("aria-rowcount", String(gridRows.length));
@@ -430,9 +467,7 @@ describe("List grid navigation", () => {
 				))}
 			</ListVirtualRoot>,
 		);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
+		await windowMounted();
 
 		const grid = document.querySelector<HTMLElement>("[role='grid']");
 		const viewport = document.querySelector("[data-slot='list']");
@@ -441,25 +476,22 @@ describe("List grid navigation", () => {
 		}
 
 		grid.focus(); // activates row 0
-		await new Promise((resolve) => {
-			requestAnimationFrame(() => resolve(null));
+		await waitFor(() => {
+			expect(grid).toHaveAttribute("aria-activedescendant");
 		});
-		expect(grid).toHaveAttribute("aria-activedescendant");
 
 		// Mouse-scroll to the bottom: row 0 leaves the mounted window (+ overscan).
 		viewport.scrollTop = viewport.scrollHeight;
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
+		await waitFor(() => {
+			expect(document.querySelector("[role='row'][data-index='0']")).not.toBeInTheDocument();
 		});
-		expect(document.querySelector("[role='row'][data-index='0']")).not.toBeInTheDocument();
 		expect(grid).not.toHaveAttribute("aria-activedescendant");
 
 		// Keyboard nav scrolls the (new) active row back into view and restores the reference.
 		const user = userEvent.setup();
 		await user.keyboard("{ArrowDown}");
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
+		await waitFor(() => {
+			expect(grid).toHaveAttribute("aria-activedescendant");
 		});
-		expect(grid).toHaveAttribute("aria-activedescendant");
 	});
 });

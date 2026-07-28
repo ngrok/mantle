@@ -45,20 +45,18 @@ describe("Breadcrumb", () => {
 		expect(root).toHaveAttribute("aria-label", "Breadcrumb");
 	});
 
-	test("Root merges custom className", () => {
-		render(
-			<Breadcrumb.Root className="custom-class" data-testid="root">
-				crumbs
-			</Breadcrumb.Root>,
-		);
-		expect(screen.getByTestId("root").className).toContain("custom-class");
+	test("Root carries no styling of its own, so a consumer className is the nav's whole class list", () => {
+		render(<Breadcrumb.Root className="custom-class">crumbs</Breadcrumb.Root>);
+		// Root is documented as visually unstyled — the landmark is pure semantics.
+		// Asserting the exact class list, not just containment, is what makes a
+		// base class sneaking onto the landmark visible.
+		expect(screen.getByRole("navigation", { name: "Breadcrumb" }).className).toBe("custom-class");
 	});
 
 	test("Root forwards a ref to the nav element", () => {
 		const ref = createRef<HTMLElement>();
 		render(<Breadcrumb.Root ref={ref}>crumbs</Breadcrumb.Root>);
-		expect(ref.current).not.toBeNull();
-		expect(ref.current?.tagName).toBe("NAV");
+		expect(ref.current).toBe(screen.getByRole("navigation", { name: "Breadcrumb" }));
 	});
 
 	test("asChild composition accumulates the data-slot chain in DOM order", () => {
@@ -88,26 +86,33 @@ describe("Breadcrumb", () => {
 		expect(list).toHaveAttribute("data-slot", "breadcrumb-list");
 	});
 
-	test("List merges custom className with base classes", () => {
+	test("a caller className overrides List's and Item's own crumb spacing", () => {
+		// The merge outcome is the contract: `cx` is tailwind-merge, so the
+		// caller's gap has to displace the part's default rather than land beside
+		// it and lose to source order.
 		render(
 			<Breadcrumb.Root>
 				<Breadcrumb.List className="gap-3">
-					<Breadcrumb.Item>
+					<Breadcrumb.Item className="gap-4">
 						<Breadcrumb.Link href="/">Home</Breadcrumb.Link>
 					</Breadcrumb.Item>
 				</Breadcrumb.List>
 			</Breadcrumb.Root>,
 		);
 		const list = screen.getByRole("list");
-		expect(list.className).toContain("gap-3");
-		expect(list.className).toContain("flex-wrap");
+		expect(list).toHaveClass("gap-3");
+		expect(list).not.toHaveClass("gap-1.5");
+
+		const item = screen.getByRole("listitem");
+		expect(item).toHaveClass("gap-4");
+		expect(item).not.toHaveClass("gap-1.5");
 	});
 
-	test("Item renders a listitem and merges custom className", () => {
+	test("Item renders a listitem", () => {
 		render(
 			<Breadcrumb.Root>
 				<Breadcrumb.List>
-					<Breadcrumb.Item className="pl-2">
+					<Breadcrumb.Item>
 						<Breadcrumb.Link href="/">Home</Breadcrumb.Link>
 					</Breadcrumb.Item>
 				</Breadcrumb.List>
@@ -116,8 +121,7 @@ describe("Breadcrumb", () => {
 		const item = screen.getByRole("listitem");
 		expect(item.tagName).toBe("LI");
 		expect(item).toHaveAttribute("data-slot", "breadcrumb-item");
-		expect(item.className).toContain("pl-2");
-		expect(item.className).toContain("inline-flex");
+		expect(item).toContainElement(screen.getByRole("link", { name: "Home" }));
 	});
 
 	test("Link renders an anchor with its href", () => {
@@ -153,8 +157,9 @@ describe("Breadcrumb", () => {
 		const link = screen.getByRole("link", { name: "Endpoints" });
 		expect(link).toHaveAttribute("href", "/endpoints");
 		expect(link).toHaveAttribute("data-slot", "breadcrumb-link");
-		expect(link.className).toContain("font-medium");
-		expect(link.className).toContain("router-link");
+		// Both class lists are caller-supplied — one via the part's `className`,
+		// one on the router link itself — and Slot has to keep both.
+		expect(link).toHaveClass("font-medium", "router-link");
 	});
 
 	test("Page renders a span with aria-current=page and is not a link", () => {
@@ -265,7 +270,7 @@ describe("Breadcrumb", () => {
 		expect(separator).toHaveAttribute("aria-hidden", "true");
 		expect(separator).toHaveAttribute("role", "presentation");
 		expect(separator).toHaveAttribute("data-slot", "breadcrumb-separator");
-		expect(separator.querySelector("svg")).not.toBeNull();
+		expect(separator.querySelectorAll("svg")).toHaveLength(1);
 	});
 
 	test("Separator custom children replace the default caret", () => {
@@ -280,7 +285,7 @@ describe("Breadcrumb", () => {
 		);
 		const separator = screen.getByTestId("separator");
 		expect(separator).toHaveTextContent("/");
-		expect(separator.querySelector("svg")).toBeNull();
+		expect(separator.querySelectorAll("svg")).toHaveLength(0);
 	});
 
 	test("Separators are excluded from the accessible listitem count", () => {

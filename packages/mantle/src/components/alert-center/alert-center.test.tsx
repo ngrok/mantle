@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createContext, useContext, useState } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -210,12 +210,12 @@ describe("barPresenceReducer", () => {
  * derived dismiss names strip the CTA anchors, so they read as the bare
  * titles.
  */
-function ThreeAlertHarness() {
+function ThreeAlertHarness({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
 	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
 	const dismiss = (id: string) => setDismissed((previous) => new Set(previous).add(id));
 
 	return (
-		<AlertCenter.Root>
+		<AlertCenter.Root onOpenChange={onOpenChange}>
 			<AlertCenter.Bar />
 			<AlertCenter.Content data-testid="content" />
 			{!dismissed.has("region") && (
@@ -332,6 +332,46 @@ describe("AlertCenter.Bar", () => {
 		expect(screen.queryByRole("banner")).not.toBeInTheDocument();
 	});
 
+	test("republishes the headline when the title copy changes without re-rendering the Bar", async () => {
+		// The authored children live in the ITEM's tree, so item-local state
+		// updates the title without ever re-rendering the Bar — only the
+		// MutationObserver on the bar wrapper can keep the live region (and the
+		// derived dismiss name) in lockstep with the visible copy.
+		const user = userEvent.setup();
+		function MaintenanceAlert() {
+			const [minutes, setMinutes] = useState(30);
+			return (
+				<Alert.Content>
+					<Alert.Title>Maintenance in {minutes} minutes</Alert.Title>
+					<Alert.Description>
+						<button type="button" onClick={() => setMinutes(5)}>
+							refresh estimate
+						</button>
+					</Alert.Description>
+					<AlertCenter.DismissIconButton onClick={() => {}} />
+				</Alert.Content>
+			);
+		}
+		render(
+			<AlertCenter.Root>
+				<AlertCenter.Bar />
+				<AlertCenter.Item id="maintenance" intent="warning">
+					<MaintenanceAlert />
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+		expect(screen.getByRole("status")).toHaveTextContent(/^Maintenance in 30 minutes$/);
+
+		await user.click(screen.getByRole("button", { name: "refresh estimate" }));
+
+		await waitFor(() => {
+			expect(screen.getByRole("status")).toHaveTextContent(/^Maintenance in 5 minutes$/);
+		});
+		expect(
+			screen.getByRole("button", { name: "Dismiss Maintenance in 5 minutes" }),
+		).toBeInTheDocument();
+	});
+
 	test("shows a compact count-and-caret trigger wired to the expansion via aria-controls", async () => {
 		const user = userEvent.setup();
 		render(<ThreeAlertHarness />);
@@ -435,7 +475,6 @@ describe("AlertCenter.Bar", () => {
 		// regression: the bar used to hide `Alert.Description` outright, which
 		// dropped supporting copy — and any CTA inside it — with no reveal path
 		// (the expansion lists only the alerts BEHIND the bar)
-		expect(bar).not.toHaveClass("[&_[data-slot=alert-description]]:hidden");
 		expect(bar).toContainElement(screen.getByText(/We couldn't charge the card ending in 4242/));
 		expect(bar).toContainElement(screen.getByRole("link", { name: "Update payment method" }));
 		// the announcer still headlines with the TITLE alone
@@ -445,13 +484,22 @@ describe("AlertCenter.Bar", () => {
 	test("positions the bar's trailing controls from the chrome, gated on the single-line form", () => {
 		const { container } = render(<ThreeAlertHarness />);
 		const bar = container.querySelector('[data-slot="alert-center-bar"]');
+		// Spelling pin with both sides in one render: the chrome's centering rule
+		// selects on attributes `Alert` emits (`data-alert-dismiss`,
+		// `data-alert-expand`) and on the description slot that gates it, so a
+		// rename on either side silently mis-aligns the bar's controls.
+		const dismiss = screen.getByRole("button", { name: "Dismiss Payment failed" });
+		const expand = screen.getByRole("button", { name: "Show 2 more alerts" });
+		expect(dismiss).toHaveAttribute("data-alert-dismiss");
+		expect(expand).toHaveAttribute("data-alert-expand");
+		expect(bar?.querySelector('[data-slot="alert-description"]')).toBeInTheDocument();
 		expect(bar).toHaveClass(
 			"not-has-data-[slot=alert-description]:[&_[data-alert-dismiss],&_[data-alert-expand]]:top-1/2",
 		);
 		// the controls must NOT center themselves: an unconditional class would
 		// out-live the gate and center them in a two-line bar too, where `Alert`'s
 		// top-aligned default is what matches the expansion rows
-		expect(screen.getByRole("button", { name: "Show 2 more alerts" })).not.toHaveClass("top-1/2");
+		expect(expand).not.toHaveClass("top-1/2");
 	});
 
 	test("keeps a top alert's dismiss control when more alerts arrive", () => {
@@ -871,13 +919,16 @@ describe("AlertCenter.DismissIconButton", () => {
 		const user = userEvent.setup();
 		render(<ThreeAlertHarness />);
 		const barDismiss = screen.getByRole("button", { name: "Dismiss Payment failed" });
-		expect(barDismiss).not.toHaveClass("in-data-[placement=bar]:top-1/2");
 		expect(barDismiss.closest("[data-placement]")).toHaveAttribute("data-placement", "bar");
 		await user.click(screen.getByRole("button", { name: "Show 2 more alerts" }));
 		const listDismiss = screen.getByRole("button", {
 			name: "Dismiss Approaching your data transfer limit",
 		});
 		expect(listDismiss.closest("[data-placement]")).toHaveAttribute("data-placement", "list");
+		// nothing placement-specific rides on the control itself: the same
+		// component in both placements renders the identical class list, so only
+		// the chrome's `data-placement` distinguishes them
+		expect(listDismiss.className).toBe(barDismiss.className);
 	});
 
 	test("throws when composed outside an item's children", () => {
@@ -901,8 +952,13 @@ describe("AlertCenter.DismissIconButton", () => {
 describe("AlertCenter.Content", () => {
 	test("expands the additional alerts inline and collapses them again", async () => {
 		const user = userEvent.setup();
-		render(<ThreeAlertHarness />);
+		// uncontrolled: the center owns the state AND reports every change, so a
+		// consumer can mirror it without taking control
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(<ThreeAlertHarness onOpenChange={onOpenChange} />);
 		await user.click(screen.getByRole("button", { name: "Show 2 more alerts" }));
+		expect(onOpenChange).toHaveBeenCalledTimes(1);
+		expect(onOpenChange).toHaveBeenLastCalledWith(true);
 
 		const content = screen.getByTestId("content");
 		expect(content).toHaveAttribute("data-slot", "alert-center-content");
@@ -928,6 +984,35 @@ describe("AlertCenter.Content", () => {
 		// Collapsing runs an exit animation, so the content stays mounted (hidden)
 		// rather than unmounting — its data-state flips to "closed".
 		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "closed");
+		expect(onOpenChange).toHaveBeenCalledTimes(2);
+		expect(onOpenChange).toHaveBeenLastCalledWith(false);
+	});
+
+	test("a controlled `open` keeps the expansion closed and only reports the request", async () => {
+		const user = userEvent.setup();
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<AlertCenter.Root open={false} onOpenChange={onOpenChange}>
+				<AlertCenter.Bar />
+				<AlertCenter.Content data-testid="content" />
+				<AlertCenter.Item id="payment" intent="danger">
+					<AlertBody title="Payment failed" />
+				</AlertCenter.Item>
+				<AlertCenter.Item id="region" intent="info">
+					<AlertBody title="New region" />
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+		const trigger = screen.getByRole("button", { name: "Show 1 more alert" });
+
+		await user.click(trigger);
+
+		expect(onOpenChange).toHaveBeenCalledTimes(1);
+		expect(onOpenChange).toHaveBeenLastCalledWith(true);
+		// the consumer owns the state: internal state must not expand behind their
+		// back, or `open={false}` would stop holding it closed
+		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "closed");
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
 	});
 
 	test("does not render inline content when there are no additional alerts", () => {
@@ -1137,15 +1222,22 @@ describe("AlertCenter.Content", () => {
 		// observe focus in its own alert without hearing about any other. The
 		// center's internal focus tracking uses native focusin/focusout on the
 		// chrome, so consumer handlers never collide with it.
-		const onAuthorFocus = vi.fn<() => void>();
+		const onRegionFocus = vi.fn<() => void>();
+		const onPaymentFocus = vi.fn<() => void>();
 		render(
 			<AlertCenter.Root defaultOpen>
 				<AlertCenter.Bar />
 				<AlertCenter.Content />
-				<AlertCenter.Item id="payment" intent="danger">
-					<AlertBody title="Payment failed" />
-				</AlertCenter.Item>
-				<div onFocus={onAuthorFocus}>
+				<div onFocus={onPaymentFocus}>
+					<AlertCenter.Item id="payment" intent="danger">
+						<Alert.Icon />
+						<Alert.Content>
+							<Alert.Title>Payment failed</Alert.Title>
+							<AlertCenter.DismissIconButton onClick={() => {}} />
+						</Alert.Content>
+					</AlertCenter.Item>
+				</div>
+				<div onFocus={onRegionFocus}>
 					<AlertCenter.Item id="region" intent="info">
 						<Alert.Icon />
 						<Alert.Content>
@@ -1156,8 +1248,14 @@ describe("AlertCenter.Content", () => {
 				</div>
 			</AlertCenter.Root>,
 		);
-		screen.getByRole("button", { name: "Dismiss New region available" }).focus();
-		expect(onAuthorFocus).toHaveBeenCalled();
+		const regionDismiss = screen.getByRole("button", { name: "Dismiss New region available" });
+		regionDismiss.focus();
+
+		expect(regionDismiss).toHaveFocus();
+		expect(onRegionFocus).toHaveBeenCalledTimes(1);
+		// the region row's DOM lives in the expansion beside the payment banner, so
+		// a count-blind spy here would miss a handler hearing its neighbor's focus
+		expect(onPaymentFocus).not.toHaveBeenCalled();
 	});
 
 	test("focuses the bar's control when the last row is dismissed, and main when nothing remains", async () => {

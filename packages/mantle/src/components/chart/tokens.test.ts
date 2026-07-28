@@ -15,72 +15,82 @@ import lightCss from "../../mantle.css?raw";
  * validation for the new values before updating the expectation.
  */
 
-const declaredChartTokens = (css: string): Record<string, string> => {
-	const declarations: Record<string, string> = {};
-	for (const match of css.matchAll(/--color-(chart-[a-z0-9-]+):\s*var\(--color-([a-z0-9-]+)\)/g)) {
-		const slot = match[1];
-		const token = match[2];
-		if (slot != null && token != null) {
-			declarations[slot] = token;
-		}
-	}
-	return declarations;
-};
+/**
+ * Every `--color-chart-*: var(--color-<ramp>)` declaration in a theme file, in
+ * source order, skipping the `@theme` passthrough block's self-references
+ * (`--color-chart-1: var(--color-chart-1)`) — those name no ramp step.
+ *
+ * Returned as an ordered list, not a map, deliberately: a second block
+ * declaring the palette (a reordered stylesheet, or a selector-scoped theme
+ * extension) then shows up as extra entries and fails loudly, instead of
+ * silently letting whichever block the regex matched last decide the palette.
+ */
+const chartTokenDeclarations = (css: string): Array<[string, string]> =>
+	[...css.matchAll(/--color-(chart-[a-z0-9-]+):\s*var\(--color-([a-z0-9-]+)\)/g)].flatMap(
+		(match) => {
+			const slot = match[1];
+			const token = match[2];
+			if (slot == null || token == null || slot === token) {
+				return [];
+			}
+			return [[slot, token] satisfies [string, string]];
+		},
+	);
 
 describe("chart color tokens stay on the validated palette", () => {
 	test("light theme (mantle.css)", () => {
-		expect(declaredChartTokens(lightCss)).toEqual({
-			"chart-1": "blue-500",
-			"chart-2": "green-700",
-			"chart-3": "pink-500",
-			"chart-4": "red-600",
-			"chart-5": "teal-600",
-			"chart-6": "orange-600",
-			"chart-7": "violet-500",
-			"chart-8": "yellow-700",
-			"chart-other": "neutral-500",
-		});
+		expect(chartTokenDeclarations(lightCss)).toEqual([
+			["chart-1", "blue-500"],
+			["chart-2", "green-700"],
+			["chart-3", "pink-500"],
+			["chart-4", "red-600"],
+			["chart-5", "teal-600"],
+			["chart-6", "orange-600"],
+			["chart-7", "violet-500"],
+			["chart-8", "yellow-700"],
+			["chart-other", "neutral-500"],
+		]);
 	});
 
 	test("dark theme (mantle-dark.css)", () => {
-		expect(declaredChartTokens(darkCss)).toEqual({
-			"chart-1": "blue-500",
-			"chart-2": "green-300",
-			"chart-3": "pink-500",
-			"chart-4": "red-400",
-			"chart-5": "teal-400",
-			"chart-6": "orange-400",
-			"chart-7": "violet-500",
-			"chart-8": "yellow-300",
-			"chart-other": "neutral-500",
-		});
+		expect(chartTokenDeclarations(darkCss)).toEqual([
+			["chart-1", "blue-500"],
+			["chart-2", "green-300"],
+			["chart-3", "pink-500"],
+			["chart-4", "red-400"],
+			["chart-5", "teal-400"],
+			["chart-6", "orange-400"],
+			["chart-7", "violet-500"],
+			["chart-8", "yellow-300"],
+			["chart-other", "neutral-500"],
+		]);
 	});
 
 	test("light high-contrast theme", () => {
-		expect(declaredChartTokens(lightHighContrastCss)).toEqual({
-			"chart-1": "blue-500",
-			"chart-2": "green-700",
-			"chart-3": "pink-300",
-			"chart-4": "red-600",
-			"chart-5": "teal-300",
-			"chart-6": "orange-600",
-			"chart-7": "violet-500",
-			"chart-8": "yellow-700",
-			"chart-other": "neutral-500",
-		});
+		expect(chartTokenDeclarations(lightHighContrastCss)).toEqual([
+			["chart-1", "blue-500"],
+			["chart-2", "green-700"],
+			["chart-3", "pink-300"],
+			["chart-4", "red-600"],
+			["chart-5", "teal-300"],
+			["chart-6", "orange-600"],
+			["chart-7", "violet-500"],
+			["chart-8", "yellow-700"],
+			["chart-other", "neutral-500"],
+		]);
 	});
 
 	test("dark high-contrast theme", () => {
-		expect(declaredChartTokens(darkHighContrastCss)).toEqual({
-			"chart-1": "blue-300",
-			"chart-2": "green-300",
-			"chart-3": "pink-600",
-			"chart-4": "red-300",
-			"chart-5": "teal-300",
-			"chart-6": "orange-300",
-			"chart-7": "violet-300",
-			"chart-8": "yellow-300",
-			"chart-other": "neutral-500",
-		});
+		expect(chartTokenDeclarations(darkHighContrastCss)).toEqual([
+			["chart-1", "blue-300"],
+			["chart-2", "green-300"],
+			["chart-3", "pink-600"],
+			["chart-4", "red-300"],
+			["chart-5", "teal-300"],
+			["chart-6", "orange-300"],
+			["chart-7", "violet-300"],
+			["chart-8", "yellow-300"],
+			["chart-other", "neutral-500"],
+		]);
 	});
 });

@@ -1,5 +1,8 @@
+import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { userEvent } from "@testing-library/user-event";
+import { createRef } from "react";
+import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { Select } from "./select.js";
 
@@ -127,6 +130,7 @@ describe("Select", () => {
 		// (which Select.Root does not forward).
 		render(
 			<Field.Item name="example">
+				<Field.Label data-testid="label">Fruit</Field.Label>
 				<Field.Control>
 					<Select.Root>
 						<Select.Trigger
@@ -152,7 +156,11 @@ describe("Select", () => {
 		expect(trigger.getAttribute("aria-describedby")).toContain(description.id);
 		expect(trigger.getAttribute("aria-describedby")).not.toContain("ignored-description");
 		expect(trigger).toHaveAttribute("aria-errormessage", errors.id);
-		expect(trigger).not.toHaveAttribute("id", "ignored-trigger");
+		// The field owns the id, so `Field.Label`'s `htmlFor` resolves to the
+		// trigger — the caller-supplied id loses.
+		expect(trigger.id).toBeTruthy();
+		expect(trigger.id).not.toBe("ignored-trigger");
+		expect(screen.getByTestId("label")).toHaveAttribute("for", trigger.id);
 	});
 
 	test("Field.Control outside Field.Item does not override Select props", () => {
@@ -192,5 +200,108 @@ describe("Select", () => {
 
 		expect(screen.getByRole("combobox")).toHaveAttribute("aria-invalid", "true");
 		expect(screen.getByRole("combobox")).toHaveAttribute("data-validation", "error");
+	});
+
+	describe("selecting a value", () => {
+		test("picking an item notifies both onValueChange and the deprecated onChange, and submits the value", async () => {
+			const user = userEvent.setup();
+			const onChange = vi.fn<(value: string) => void>();
+			const onValueChange = vi.fn<(value: string) => void>();
+			render(
+				<form aria-label="fruit form">
+					<Select.Root name="fruit" onChange={onChange} onValueChange={onValueChange}>
+						<Select.Trigger>
+							<Select.Value placeholder="Pick a fruit" />
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Group>
+								<Select.Label>Fruits</Select.Label>
+								<Select.Item value="apple">Apple</Select.Item>
+								<Select.Item value="banana">Banana</Select.Item>
+							</Select.Group>
+							<Select.Separator />
+							<Select.Group>
+								<Select.Label>Veggies</Select.Label>
+								<Select.Item value="carrot">Carrot</Select.Item>
+							</Select.Group>
+						</Select.Content>
+					</Select.Root>
+				</form>,
+			);
+
+			const trigger = screen.getByRole("combobox");
+			expect(trigger).toHaveTextContent("Pick a fruit");
+
+			await user.click(trigger);
+			// Select.Label names its Select.Group, so the option list is
+			// navigable by group.
+			expect(screen.getByRole("group", { name: "Fruits" })).toBeInTheDocument();
+			expect(screen.getByRole("group", { name: "Veggies" })).toBeInTheDocument();
+
+			await user.click(screen.getByRole("option", { name: "Banana" }));
+
+			// `onChange` is the deprecated alias — dropping it silently breaks
+			// every consumer still on it.
+			expect(onChange).toHaveBeenCalledExactlyOnceWith("banana");
+			expect(onValueChange).toHaveBeenCalledExactlyOnceWith("banana");
+			expect(trigger).toHaveTextContent("Banana");
+			const form = screen.getByRole<HTMLFormElement>("form", { name: "fruit form" });
+			expect(new FormData(form).get("fruit")).toBe("banana");
+		});
+
+		test("Select.Root forwards its ref to the trigger button", () => {
+			const ref = createRef<HTMLButtonElement>();
+			render(
+				<Select.Root ref={ref}>
+					<Select.Trigger>
+						<Select.Value placeholder="Pick a fruit" />
+					</Select.Trigger>
+				</Select.Root>,
+			);
+
+			expect(ref.current).toBe(screen.getByRole("combobox"));
+		});
+
+		test("Select.Trigger's own ref is composed with the one from Select.Root", () => {
+			const rootRef = createRef<HTMLButtonElement>();
+			const triggerRef = createRef<HTMLButtonElement>();
+			render(
+				<Select.Root ref={rootRef}>
+					<Select.Trigger ref={triggerRef}>
+						<Select.Value placeholder="Pick a fruit" />
+					</Select.Trigger>
+				</Select.Root>,
+			);
+
+			const trigger = screen.getByRole("combobox");
+			expect(rootRef.current).toBe(trigger);
+			expect(triggerRef.current).toBe(trigger);
+		});
+
+		test("Select.Item renders its leading icon", async () => {
+			const user = userEvent.setup();
+			render(
+				<Select.Root>
+					<Select.Trigger>
+						<Select.Value placeholder="Pick a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item icon={<CheckCircleIcon />} value="apple">
+							Apple
+						</Select.Item>
+						<Select.Item value="banana">Banana</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			await user.click(screen.getByRole("combobox"));
+
+			expect(
+				screen.getByRole("option", { name: "Apple" }).querySelector('[data-slot="icon"]'),
+			).toBeInTheDocument();
+			expect(
+				screen.getByRole("option", { name: "Banana" }).querySelector('[data-slot="icon"]'),
+			).toBeNull();
+		});
 	});
 });

@@ -15,12 +15,13 @@ type MatchMediaControls = {
 };
 
 /**
- * Replace `window.matchMedia` with a deterministic, controllable stub for
- * happy-dom tests. Queries not primed via `initialMatches` (or a later
- * `setMatches`) report `matches: false`.
+ * Replace `window.matchMedia` with a deterministic, controllable stub. Queries
+ * not primed via `initialMatches` (or a later `setMatches`) report
+ * `matches: false`. Works in either project — browser-mode tests reach for it to
+ * pin `prefers-*` state that Chromium would otherwise take from the host.
  *
- * Installed with `vi.spyOn`, so restore it in `afterEach` with
- * `vi.restoreAllMocks()`.
+ * Installed with `vi.spyOn`, so the `restoreMocks` both Vitest projects set tears
+ * it down between tests — an inline restore would be dead code.
  *
  * @param initialMatches - Initial `matches` value per media query string.
  * @returns Controls to change query state and inspect listener counts.

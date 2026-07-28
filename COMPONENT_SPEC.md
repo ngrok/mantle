@@ -12,8 +12,8 @@ the [Philosophy page](./apps/www/app/docs/philosophy.mdx), the component rules t
 ## Scope and status
 
 **This is the bar for new components, and for the parts of a component you are changing.** Much of the
-library predates parts of this spec: 21 of the 64 component directories ship no test file, 21 stamp no
-`asChild`, 4 stamp no `data-slot`, no docs page yet carries a data-attribute table, and most docs pages
+library predates parts of this spec: 13 of the 67 component directories ship no test file, 20 stamp no
+`asChild`, 4 stamp no `data-slot`, exactly one docs page carries a data-attribute table, and most docs pages
 predate §7.2's structure. That is expected and it is not a crisis.
 
 The migration rule is deliberate and narrow:
@@ -721,9 +721,26 @@ Minimums:
 - Reduced motion, if the component animates.
 - Business logic and its edge cases: state machines, parsing/formatting, validation, conditional rendering.
 - Every bug fix adds a regression test that fails before the fix and passes after.
+- **Every event handler, controlled prop, and documented keyboard contract is driven by a real event.**
+  `await user.click(…)` / `await user.keyboard("{ArrowDown}")`, then assert the callback arguments **and** the
+  resulting DOM/ARIA state. A component whose value is interaction is not covered by a render that hardcodes
+  `open` or `defaultValue` and checks attributes — that tests its initial markup. This includes `disabled` and
+  `readOnly` guards, controlled _and_ uncontrolled paths, dismissal, and any select/sort/expand cycle.
+- Every documented data attribute and CSS variable is asserted, since [§5](#5-css-variables-are-api) and
+  [§6](#6-data-attributes-are-api) make them public API. Where a selector in another file consumes one
+  (`has-data-*`, `group-data-*`, `group-has-[…]`, `[&>.…]`), one test renders both sides together and asserts
+  the producer emits what the consumer selects.
+- SSR-only branches and first-paint behavior ([§3.7](#37-ssr-and-first-paint)) are asserted with
+  `renderToString`; post-mount state cannot observe the render path.
+
+Every test must be able to fail: name the one-line implementation change it would catch. See
+[CONVENTIONS.md → Testing](./CONVENTIONS.md#testing) for the full rules on that, on why Tailwind
+utility-string assertions are not coverage, and on determinism.
 
 Never: rendered-HTML snapshots (`toMatchInlineSnapshot` is fine for serialized data shapes), `*.test.*` files
-under `apps/www/app/routes/`, or browser mode for something happy-dom can already do.
+under `apps/www/app/routes/`, browser mode for something happy-dom can already do, Tailwind utility-string
+assertions standing in for behavior, arbitrary `setTimeout` waits, or `toBeDefined()` / `not.toThrow()` as a
+test's only assertion.
 
 ---
 

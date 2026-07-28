@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
+import { Field } from "../field/field.js";
 import { OtpInput, REGEXP_ONLY_DIGITS } from "./otp-input.js";
 
 /**
@@ -46,23 +47,13 @@ function renderOtp(props: RenderOtpProps = {}) {
 		</OtpInput.Root>,
 	);
 
-	const input = screen.getByRole("textbox", { name: "otp" });
+	const input = screen.getByRole<HTMLInputElement>("textbox", { name: "otp" });
 	const slots = screen.getAllByText("", { selector: '[data-slot="otp-input-slot"]' });
 
 	return { ...result, input, slots };
 }
 
 describe("OtpInput (browser)", () => {
-	test("renders maxLength slots with the correct data-slot attributes", () => {
-		renderOtp();
-
-		expect(screen.getAllByText("", { selector: '[data-slot="otp-input-slot"]' })).toHaveLength(6);
-		expect(screen.getAllByText("", { selector: '[data-slot="otp-input-group"]' })).toHaveLength(2);
-		expect(
-			screen.getByText("", { selector: '[data-slot="otp-input-separator"]' }),
-		).toBeInTheDocument();
-	});
-
 	test("typing fills slots in order and exposes the typed characters via context", async () => {
 		const user = userEvent.setup();
 		const { input, slots } = renderOtp();
@@ -232,137 +223,6 @@ describe("OtpInput (browser)", () => {
 		});
 	});
 
-	describe("compound parts", () => {
-		test("Group renders as a div with role-free flex container", () => {
-			renderOtp();
-			const groups = screen.getAllByText("", { selector: '[data-slot="otp-input-group"]' });
-			for (const group of groups) {
-				expect(group.tagName).toBe("DIV");
-			}
-		});
-
-		test("Separator is decorative by default (role='none', aria-hidden)", () => {
-			renderOtp();
-			const separator = screen.getByText("", {
-				selector: '[data-slot="otp-input-separator"]',
-			});
-			expect(separator).toHaveAttribute("role", "none");
-			expect(separator).toHaveAttribute("aria-hidden", "true");
-		});
-
-		test("Separator with `semantic` prop renders with role='separator'", () => {
-			render(
-				<OtpInput.Root maxLength={2} aria-label="otp">
-					<OtpInput.Group>
-						<OtpInput.Slot index={0} />
-					</OtpInput.Group>
-					<OtpInput.Separator semantic />
-					<OtpInput.Group>
-						<OtpInput.Slot index={1} />
-					</OtpInput.Group>
-				</OtpInput.Root>,
-			);
-			expect(screen.getByRole("separator")).toHaveAttribute("data-slot", "otp-input-separator");
-		});
-
-		test("Separator children override the default minus icon", () => {
-			render(
-				<OtpInput.Root maxLength={2} aria-label="otp">
-					<OtpInput.Group>
-						<OtpInput.Slot index={0} />
-					</OtpInput.Group>
-					<OtpInput.Separator semantic>
-						<span data-testid="custom-sep">·</span>
-					</OtpInput.Separator>
-					<OtpInput.Group>
-						<OtpInput.Slot index={1} />
-					</OtpInput.Group>
-				</OtpInput.Root>,
-			);
-
-			expect(screen.getByTestId("custom-sep")).toHaveTextContent("·");
-			// Default MinusIcon is no longer rendered.
-			expect(
-				screen.getByRole("separator").querySelector('svg[data-slot="otp-input-separator"]'),
-			).toBeNull();
-		});
-
-		test("Group asChild renders the child element instead of a div", () => {
-			render(
-				<OtpInput.Root maxLength={1} aria-label="otp">
-					<OtpInput.Group asChild>
-						<section data-testid="custom-group">
-							<OtpInput.Slot index={0} />
-						</section>
-					</OtpInput.Group>
-				</OtpInput.Root>,
-			);
-
-			const customGroup = screen.getByTestId("custom-group");
-			expect(customGroup.tagName).toBe("SECTION");
-			expect(customGroup).toHaveAttribute("data-slot", "otp-input-group");
-		});
-	});
-
-	describe("validation", () => {
-		test("no validation prop leaves data-validation unset on the bridge and aria-invalid unset on the input", () => {
-			const { input } = renderOtp();
-
-			const bridge = document.querySelector("[data-otp-state]");
-			expect(bridge).not.toBeNull();
-			expect(bridge).not.toHaveAttribute("data-validation");
-			expect(input).not.toHaveAttribute("aria-invalid");
-		});
-
-		test("validation='error' sets data-validation=error on the bridge and aria-invalid on the input", () => {
-			const { input } = renderOtp({ validation: "error" });
-
-			const bridge = document.querySelector("[data-otp-state]");
-			expect(bridge).toHaveAttribute("data-validation", "error");
-			expect(input).toHaveAttribute("aria-invalid", "true");
-		});
-
-		test("validation='success' sets data-validation=success and does NOT mark aria-invalid", () => {
-			const { input } = renderOtp({ validation: "success" });
-
-			const bridge = document.querySelector("[data-otp-state]");
-			expect(bridge).toHaveAttribute("data-validation", "success");
-			expect(input).not.toHaveAttribute("aria-invalid");
-		});
-
-		test("validation='warning' sets data-validation=warning and does NOT mark aria-invalid", () => {
-			const { input } = renderOtp({ validation: "warning" });
-
-			const bridge = document.querySelector("[data-otp-state]");
-			expect(bridge).toHaveAttribute("data-validation", "warning");
-			expect(input).not.toHaveAttribute("aria-invalid");
-		});
-
-		test("aria-invalid='true' forces data-validation=error with non-error validation", () => {
-			const { input } = renderOtp({ "aria-invalid": "true", validation: "success" });
-
-			const bridge = document.querySelector("[data-otp-state]");
-			expect(bridge).toHaveAttribute("data-validation", "error");
-			expect(input).toHaveAttribute("aria-invalid", "true");
-		});
-
-		test("validation as a function is resolved and applied", () => {
-			const { input } = renderOtp({ validation: () => "error" });
-
-			const bridge = document.querySelector("[data-otp-state]");
-			expect(bridge).toHaveAttribute("data-validation", "error");
-			expect(input).toHaveAttribute("aria-invalid", "true");
-		});
-
-		test("validation={false} is treated as no validation", () => {
-			const { input } = renderOtp({ validation: false });
-
-			const bridge = document.querySelector("[data-otp-state]");
-			expect(bridge).not.toHaveAttribute("data-validation");
-			expect(input).not.toHaveAttribute("aria-invalid");
-		});
-	});
-
 	describe("active slot", () => {
 		test("the slot at the caret position has data-active", async () => {
 			const user = userEvent.setup();
@@ -379,4 +239,95 @@ describe("OtpInput (browser)", () => {
 			expect(slots[1]).not.toHaveAttribute("data-active");
 		});
 	});
+
+	// `data-otp-state` is what every conditional slot/group style keys off, and it
+	// is derived from the count of active slots. Needs real selection APIs, so it
+	// lives in browser mode.
+	describe("data-otp-state", () => {
+		test("goes idle → caret when the input is focused with a single caret slot", async () => {
+			const user = userEvent.setup();
+			const { input } = renderOtp();
+
+			expect(otpState()).toBe("idle");
+
+			await user.click(input);
+			expect(otpState()).toBe("caret");
+
+			await user.keyboard("12");
+			expect(otpState()).toBe("caret");
+		});
+
+		test("goes back to idle when the input is blurred", async () => {
+			const user = userEvent.setup();
+			const { input } = renderOtp();
+
+			await user.click(input);
+			expect(otpState()).toBe("caret");
+
+			input.blur();
+			await expect.poll(otpState).toBe("idle");
+		});
+
+		test("reports `all` when every slot is selected and `range` for a partial selection", async () => {
+			const user = userEvent.setup();
+			const { input } = renderOtp();
+
+			await user.click(input);
+			await user.keyboard("123456");
+			await user.keyboard("{Control>}a{/Control}");
+			await expect.poll(otpState).toBe("all");
+
+			// Every assertion below asserts a state *different* from the previous
+			// one, so a stale read can't satisfy it. One slot short of the whole
+			// input is still a range — never `all`.
+			input.setSelectionRange(0, 5);
+			await expect.poll(otpState).toBe("range");
+
+			input.setSelectionRange(0, 6);
+			await expect.poll(otpState).toBe("all");
+
+			// A two-slot selection in the middle is a range, not a caret.
+			input.setSelectionRange(2, 4);
+			await expect.poll(otpState).toBe("range");
+		});
+	});
+
+	describe("Field integration", () => {
+		test("the typed code submits under the field's name", async () => {
+			const user = userEvent.setup();
+			render(
+				<form aria-label="verify form">
+					<Field.Item name="code">
+						<Field.Label>Code</Field.Label>
+						<Field.Control>
+							<OtpInput.Root maxLength={3} data-testid="otp">
+								<OtpInput.Group>
+									<OtpInput.Slot index={0} />
+									<OtpInput.Slot index={1} />
+									<OtpInput.Slot index={2} />
+								</OtpInput.Group>
+							</OtpInput.Root>
+						</Field.Control>
+					</Field.Item>
+				</form>,
+			);
+
+			// Clicking the field's label must focus the OTP input — that only works
+			// if `htmlFor` and the input's `id` agree.
+			await user.click(screen.getByText("Code"));
+			await user.keyboard("428");
+
+			expect(screen.getByTestId("otp")).toHaveFocus();
+			expect(
+				new FormData(screen.getByRole<HTMLFormElement>("form", { name: "verify form" })).get(
+					"code",
+				),
+			).toBe("428");
+		});
+	});
 });
+
+/** The current `data-otp-state` published by the bridge, or `null` when unmounted. */
+function otpState() {
+	return document.querySelector("[data-otp-state]")?.getAttribute("data-otp-state") ?? null;
+}

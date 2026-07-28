@@ -1,7 +1,8 @@
-import { render, screen } from "@testing-library/react";
-import { createRef } from "react";
+import { render, screen, waitFor } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
+import { createRef, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { Input } from "../input/input.js";
 import type { FieldControlAriaProps } from "./field-context.js";
 import { Field } from "./field.js";
@@ -10,11 +11,23 @@ const MockControl = (props: ComponentProps<"input">) => <input {...props} />;
 
 const MockWrapper = ({ children }: { children: ReactNode }) => children;
 
+/**
+ * `aria-describedby` is a space-separated IDREF list, so assert against the
+ * parsed tokens — a substring match would pass for an empty or partial id.
+ */
+const describedByTokens = (element: HTMLElement) =>
+	element.getAttribute("aria-describedby")?.split(" ") ?? [];
+
 describe("Field", () => {
-	test("renders a label that defaults htmlFor from the surrounding Field.Item", () => {
-		render(<Field.Label htmlFor="email">Email</Field.Label>);
+	test("Field.Label forwards an explicit htmlFor when rendered outside a Field.Item", () => {
+		render(
+			<>
+				<Field.Label htmlFor="email">Email</Field.Label>
+				<input id="email" />
+			</>,
+		);
 		expect(screen.getByText("Email").tagName).toBe("LABEL");
-		expect(screen.getByText("Email")).toHaveAttribute("for", "email");
+		expect(screen.getByLabelText("Email")).toBe(screen.getByRole("textbox"));
 	});
 
 	test("Field.Label inherits htmlFor from the Field.Item control id when omitted", () => {
@@ -27,10 +40,21 @@ describe("Field", () => {
 			</Field.Item>,
 		);
 
-		const label = screen.getByText("Email");
-		const input = label.parentElement?.querySelector("input");
-		expect(input).not.toBeNull();
-		expect(label).toHaveAttribute("for", input?.getAttribute("id") ?? "");
+		expect(screen.getByLabelText("Email")).toBe(screen.getByRole("textbox"));
+	});
+
+	test("an explicit htmlFor on Field.Label wins over the Field.Item control id", () => {
+		// The documented opt-out: the focusable control is not the Field.Control
+		// child, so the caller points the label at it by id.
+		render(
+			<Field.Item name="legacy">
+				<Field.Label htmlFor="legacy-control">Legacy field</Field.Label>
+				<input id="legacy-control" />
+			</Field.Item>,
+		);
+
+		expect(screen.getByText("Legacy field")).toHaveAttribute("for", "legacy-control");
+		expect(screen.getByLabelText("Legacy field")).toBe(screen.getByRole("textbox"));
 	});
 
 	describe("refs", () => {
@@ -146,13 +170,13 @@ describe("Field", () => {
 			expect(screen.getByTestId("root")).toHaveAttribute("data-slot", "field-item");
 		});
 
-		test("merges custom className while keeping default layout classes", () => {
-			render(<Field.Item className="custom-class" data-testid="root" name="example" />);
+		test("keeps a caller className and lets a caller gap replace the default", () => {
+			render(<Field.Item className="custom-class gap-0" data-testid="root" name="example" />);
 			const root = screen.getByTestId("root");
 			expect(root.className).toContain("custom-class");
-			expect(root.className).toContain("flex");
-			expect(root.className).toContain("flex-col");
-			expect(root.className).toContain("gap-1.5");
+			expect(root.className).toContain("gap-0");
+			// tailwind-merge drops the conflicting default — the override contract.
+			expect(root.className).not.toContain("gap-1.5");
 		});
 
 		test("forwards arbitrary data-* attributes", () => {
@@ -189,10 +213,10 @@ describe("Field", () => {
 
 			const input = screen.getByRole("textbox", { name: "Email" });
 			const description = screen.getByText("We'll never share your email.");
-			expect(description).toHaveAttribute("id");
-			expect(input.getAttribute("aria-describedby")).toContain(description.id);
+			expect(describedByTokens(input)).toContain(description.id);
+			// The IDREF actually resolves, so the description is announced.
+			expect(input).toHaveAccessibleDescription("We'll never share your email.");
 			expect(input).toHaveAttribute("name", "email");
-			expect(input).toHaveAttribute("id");
 		});
 
 		test("drops child-supplied aria-describedby and aria-errormessage in favor of Field-owned IDs", () => {
@@ -212,10 +236,11 @@ describe("Field", () => {
 			);
 
 			const input = screen.getByRole("textbox", { name: "Email" });
-			const errors = screen.getByText("Required.").closest("ul");
-			expect(errors).not.toBeNull();
-			expect(input.getAttribute("aria-describedby")).toContain(errors?.id);
-			expect(input).toHaveAttribute("aria-errormessage", errors?.id);
+			const errors = screen.getByRole("list");
+			expect(describedByTokens(input)).toContain(errors.id);
+			expect(describedByTokens(input)).not.toContain("child-help");
+			expect(input).toHaveAttribute("aria-errormessage", errors.id);
+			expect(input).toHaveAccessibleDescription("Required.");
 		});
 
 		test("Field.Control wires rendered Field.ErrorList to the control and infers invalid state", () => {
@@ -232,10 +257,10 @@ describe("Field", () => {
 
 			const input = screen.getByRole("textbox", { name: "Email" });
 			const errorList = screen.getByTestId("errors");
-			expect(errorList).toHaveAttribute("id");
-			expect(input.getAttribute("aria-describedby")).toContain(errorList.id);
+			expect(describedByTokens(input)).toContain(errorList.id);
 			expect(input).toHaveAttribute("aria-errormessage", errorList.id);
 			expect(input).toHaveAttribute("aria-invalid", "true");
+			expect(input).toHaveAccessibleDescription("Email is required.");
 		});
 
 		test("does not mark a control invalid for an empty Field.ErrorList", () => {
@@ -300,10 +325,10 @@ describe("Field", () => {
 
 			const input = screen.getByRole("textbox", { name: "Email" });
 			const errors = screen.getByTestId("errors");
-			expect(errors).toHaveAttribute("id");
-			expect(input.getAttribute("aria-describedby")).toContain(errors.id);
+			expect(describedByTokens(input)).toContain(errors.id);
 			expect(input).toHaveAttribute("aria-errormessage", errors.id);
 			expect(input).toHaveAttribute("aria-invalid", "true");
+			expect(input).toHaveAccessibleDescription("Email is required.");
 		});
 
 		test("does not mark a control invalid for empty Field.Errors messages", () => {
@@ -319,6 +344,147 @@ describe("Field", () => {
 			const input = screen.getByRole("textbox", { name: "Email" });
 			expect(input).not.toHaveAttribute("aria-errormessage");
 			expect(input).not.toHaveAttribute("aria-invalid");
+		});
+
+		test("clears the inferred invalid state when the rendered error messages are emptied", async () => {
+			const user = userEvent.setup();
+			const Subject = () => {
+				const [messages, setMessages] = useState<string[]>(["Email is required."]);
+
+				return (
+					<Field.Item name="example">
+						<Field.Label>Email</Field.Label>
+						<Field.Control>
+							<Input />
+						</Field.Control>
+						<Field.Errors data-testid="errors" messages={messages} />
+						<button
+							type="button"
+							onClick={() => {
+								setMessages([]);
+							}}
+						>
+							Fix it
+						</button>
+					</Field.Item>
+				);
+			};
+
+			render(<Subject />);
+
+			const input = screen.getByRole("textbox", { name: "Email" });
+			expect(input).toHaveAttribute("aria-invalid", "true");
+			expect(input).toHaveAttribute("aria-errormessage", screen.getByTestId("errors").id);
+			expect(input).toHaveAttribute("data-validation", "error");
+
+			await user.click(screen.getByRole("button", { name: "Fix it" }));
+
+			expect(screen.queryByTestId("errors")).toBeNull();
+			expect(input).not.toHaveAttribute("aria-errormessage");
+			expect(input).toHaveAttribute("aria-invalid", "false");
+			expect(input).not.toHaveAttribute("data-validation");
+		});
+
+		test("clears the inferred invalid state when the Field.ErrorList unmounts entirely", async () => {
+			const user = userEvent.setup();
+			const Subject = () => {
+				const [hasError, setHasError] = useState(true);
+
+				return (
+					<Field.Item name="example">
+						<Field.Label>Email</Field.Label>
+						<Field.Control>
+							<Input />
+						</Field.Control>
+						{hasError && (
+							<Field.ErrorList data-testid="errors">
+								<Field.ErrorItem>Email is required.</Field.ErrorItem>
+							</Field.ErrorList>
+						)}
+						<button
+							type="button"
+							onClick={() => {
+								setHasError(false);
+							}}
+						>
+							Fix it
+						</button>
+					</Field.Item>
+				);
+			};
+
+			render(<Subject />);
+
+			const input = screen.getByRole("textbox", { name: "Email" });
+			expect(input).toHaveAttribute("aria-invalid", "true");
+			expect(input).toHaveAttribute("data-validation", "error");
+
+			await user.click(screen.getByRole("button", { name: "Fix it" }));
+
+			expect(screen.queryByTestId("errors")).toBeNull();
+			expect(input).not.toHaveAttribute("aria-errormessage");
+			expect(input).toHaveAttribute("aria-invalid", "false");
+			expect(input).not.toHaveAttribute("data-validation");
+		});
+
+		test("re-infers the invalid state when errors come back after being cleared", async () => {
+			const user = userEvent.setup();
+			const Subject = () => {
+				const [messages, setMessages] = useState<string[]>([]);
+
+				return (
+					<Field.Item name="example">
+						<Field.Label>Email</Field.Label>
+						<Field.Control>
+							<Input />
+						</Field.Control>
+						<Field.Errors data-testid="errors" messages={messages} />
+						<button
+							type="button"
+							onClick={() => {
+								setMessages(["Email is required."]);
+							}}
+						>
+							Validate
+						</button>
+					</Field.Item>
+				);
+			};
+
+			render(<Subject />);
+
+			const input = screen.getByRole("textbox", { name: "Email" });
+			expect(input).toHaveAttribute("aria-invalid", "false");
+
+			await user.click(screen.getByRole("button", { name: "Validate" }));
+
+			expect(input).toHaveAttribute("aria-invalid", "true");
+			expect(input).toHaveAttribute("aria-errormessage", screen.getByTestId("errors").id);
+			expect(input).toHaveAttribute("data-validation", "error");
+		});
+
+		test("registers fragment-wrapped Field.ErrorItem children as real errors", () => {
+			// Conditionally rendered error items are commonly wrapped in a
+			// fragment; the empty-detection walker recurses into it so the
+			// control still picks up the invalid state.
+			const error = "Email is required.";
+
+			render(
+				<Field.Item name="example">
+					<Field.Control>
+						<input aria-label="Email" />
+					</Field.Control>
+					<Field.ErrorList data-testid="errors">
+						{/* oxlint-disable-next-line jsx-no-useless-fragment -- the fragment wrapper is the test subject */}
+						<>{error && <Field.ErrorItem>{error}</Field.ErrorItem>}</>
+					</Field.ErrorList>
+				</Field.Item>,
+			);
+
+			const input = screen.getByRole("textbox", { name: "Email" });
+			expect(screen.getByText("Email is required.").tagName).toBe("LI");
+			expect(input).toHaveAttribute("aria-errormessage", screen.getByTestId("errors").id);
+			expect(input).toHaveAttribute("aria-invalid", "true");
 		});
 
 		test("ignores child-supplied aria-invalid — Field.Item owns the contract", () => {
@@ -374,7 +540,9 @@ describe("Field", () => {
 
 			const checkbox = screen.getByRole("checkbox", { name: "Accept terms" });
 			const description = screen.getByText("Required to continue.");
-			expect(checkbox.getAttribute("aria-describedby")).toContain(description.id);
+			expect(describedByTokens(checkbox)).toContain(description.id);
+			expect(checkbox).toHaveAccessibleDescription("Required to continue.");
+			expect(checkbox).toHaveAttribute("name", "example");
 		});
 
 		test("splats Field.Item name and generated id onto the control, overriding child-supplied values", () => {
@@ -393,32 +561,42 @@ describe("Field", () => {
 
 			const input = screen.getByRole("textbox", { name: "Email" });
 			const description = screen.getByText("Use your work email.");
-			expect(input.getAttribute("aria-describedby")).toContain(description.id);
+			expect(describedByTokens(input)).toContain(description.id);
 			expect(input).toHaveAttribute("name", "account.email");
 			expect(input.getAttribute("id")).not.toBe("ignored-by-context");
-			expect(input).toHaveAttribute("id");
+			// The generated id is what the label points at, so it must resolve.
+			expect(screen.getByText("Email")).toHaveAttribute("for", input.id);
 		});
 
-		test("render-prop variant rejects extra DOM props at the type level", () => {
-			// The render-prop form does not render `Slot`, so DOM props and a
-			// forwarded ref have nowhere to land. The discriminated union
-			// keeps those off the render-prop variant; the element-child form
-			// still accepts them.
-			const renderPropWithClassName = (
+		test("render-prop variant rejects extra DOM props at the type level and drops them at runtime", () => {
+			// The render-prop form does not render `Slot`, so DOM props have
+			// nowhere to land. The discriminated union keeps them off the
+			// render-prop variant — the `@ts-expect-error` below is the real
+			// assertion and is owned by `pnpm -w run typecheck`. At runtime the
+			// caller's element is returned as-is, with no wrapper and no class.
+			const RenderPropWithClassName = () => (
 				// @ts-expect-error -- className is not allowed alongside a render-prop child
 				<Field.Control className="should-not-typecheck">
-					{(controlProps: FieldControlAriaProps) => <input {...controlProps} />}
+					{(controlProps: FieldControlAriaProps) => <input aria-label="Email" {...controlProps} />}
 				</Field.Control>
 			);
 
-			const elementWithClassName = (
+			const { container } = render(<RenderPropWithClassName />);
+
+			const input = screen.getByRole("textbox", { name: "Email" });
+			expect(container.firstChild).toBe(input);
+			expect(container.querySelector(".should-not-typecheck")).toBeNull();
+		});
+
+		test("element-child variant merges className onto the caller's control", () => {
+			render(
 				<Field.Control className="ok-on-element-form">
-					<input />
-				</Field.Control>
+					<input aria-label="Email" className="caller-class" />
+				</Field.Control>,
 			);
 
-			expect(renderPropWithClassName).toBeTruthy();
-			expect(elementWithClassName).toBeTruthy();
+			const input = screen.getByRole("textbox", { name: "Email" });
+			expect(input).toHaveClass("ok-on-element-form", "caller-class");
 		});
 
 		test("supports custom wrappers with the render prop API", () => {
@@ -437,7 +615,8 @@ describe("Field", () => {
 
 			const input = screen.getByRole("textbox", { name: "Wrapped control" });
 			const description = screen.getByText("Wrapped help.");
-			expect(input.getAttribute("aria-describedby")).toContain(description.id);
+			expect(describedByTokens(input)).toContain(description.id);
+			expect(input).toHaveAccessibleDescription("Wrapped help.");
 		});
 
 		test("provides validation from Field.Item to Mantle controls", () => {
@@ -501,12 +680,15 @@ describe("Field", () => {
 			const group = screen.getByTestId("group");
 			expect(group.tagName).toBe("DIV");
 			expect(group).toHaveAttribute("data-slot", "field-group");
-			expect(group.className).toContain("gap-4");
 		});
 
-		test("merges custom className", () => {
-			render(<Field.Group className="custom-group" data-testid="group" />);
-			expect(screen.getByTestId("group").className).toContain("custom-group");
+		test("keeps a caller className and lets a caller gap replace the default", () => {
+			render(<Field.Group className="custom-group gap-0" data-testid="group" />);
+			const group = screen.getByTestId("group");
+			expect(group.className).toContain("custom-group");
+			expect(group.className).toContain("gap-0");
+			// tailwind-merge drops the conflicting default — the override contract.
+			expect(group.className).not.toContain("gap-4");
 		});
 
 		test("renders as child element when asChild is true", () => {
@@ -528,14 +710,6 @@ describe("Field", () => {
 			expect(set.tagName).toBe("FIELDSET");
 			expect(set).toHaveAttribute("data-slot", "field-set");
 		});
-
-		test("applies fieldset reset classes", () => {
-			render(<Field.Set data-testid="set" />);
-			const set = screen.getByTestId("set");
-			expect(set.className).toContain("border-0");
-			expect(set.className).toContain("p-0");
-			expect(set.className).toContain("min-w-0");
-		});
 	});
 
 	describe("Field.Legend", () => {
@@ -551,7 +725,7 @@ describe("Field", () => {
 			expect(legend).toHaveTextContent("Title");
 		});
 
-		test("merges custom className while keeping label typography", () => {
+		test("user-supplied text size overrides the default text-sm", () => {
 			render(
 				<Field.Set>
 					<Field.Legend className="text-base" data-testid="legend">
@@ -561,20 +735,7 @@ describe("Field", () => {
 			);
 			const legend = screen.getByTestId("legend");
 			expect(legend.className).toContain("text-base");
-			expect(legend.className).toContain("text-strong");
-			expect(legend.className).toContain("font-medium");
-		});
-
-		test("has a default mb-1.5 so the legend sits 6px above its next sibling", () => {
-			// `<legend>` ignores the parent fieldset's flex `gap`, so the legend
-			// owns its own bottom-margin. The default keeps Field.Set / RadioGroup
-			// rhythm matching the figma without extra wiring at the call site.
-			render(
-				<Field.Set>
-					<Field.Legend data-testid="legend">Title</Field.Legend>
-				</Field.Set>,
-			);
-			expect(screen.getByTestId("legend").className).toContain("mb-1.5");
+			expect(legend.className).not.toContain("text-sm");
 		});
 
 		test("user-supplied mb-* overrides the default mb-1.5", () => {
@@ -600,14 +761,7 @@ describe("Field", () => {
 			expect(description).toHaveTextContent("help");
 		});
 
-		test("applies muted body color and small text by default", () => {
-			render(<Field.Description data-testid="desc">help</Field.Description>);
-			const description = screen.getByTestId("desc");
-			expect(description.className).toContain("text-body");
-			expect(description.className).toContain("text-sm");
-		});
-
-		test("merges custom className", () => {
+		test("user-supplied text size overrides the default text-sm", () => {
 			render(
 				<Field.Description className="text-xs" data-testid="desc">
 					help
@@ -615,7 +769,7 @@ describe("Field", () => {
 			);
 			const description = screen.getByTestId("desc");
 			expect(description.className).toContain("text-xs");
-			expect(description.className).toContain("text-body");
+			expect(description.className).not.toContain("text-sm");
 		});
 
 		test("renders as child element when asChild is true", () => {
@@ -627,14 +781,6 @@ describe("Field", () => {
 			const description = screen.getByTestId("desc");
 			expect(description.tagName).toBe("SPAN");
 			expect(description).toHaveAttribute("data-slot", "field-description");
-			expect(description.className).toContain("text-body");
-		});
-
-		test("carries the auto -mt-1.5 collapse rule for following a Field.ErrorList", () => {
-			render(<Field.Description data-testid="desc">help</Field.Description>);
-			expect(screen.getByTestId("desc").className).toContain(
-				"[:where([data-slot=field-error-list]+&)]:-mt-1.5",
-			);
 		});
 	});
 
@@ -647,22 +793,13 @@ describe("Field", () => {
 			expect(error).toHaveTextContent("Required");
 		});
 
-		test("applies danger color and small text by default", () => {
-			render(<Field.ErrorItem data-testid="err">Required</Field.ErrorItem>);
-			const error = screen.getByTestId("err");
-			expect(error.className).toContain("text-danger-600");
-			expect(error.className).toContain("text-sm");
-		});
-
 		test("merges custom className", () => {
 			render(
 				<Field.ErrorItem className="font-bold" data-testid="err">
 					Required
 				</Field.ErrorItem>,
 			);
-			const error = screen.getByTestId("err");
-			expect(error.className).toContain("font-bold");
-			expect(error.className).toContain("text-danger-600");
+			expect(screen.getByTestId("err").className).toContain("font-bold");
 		});
 
 		test("renders nothing for empty or blank children", () => {
@@ -679,19 +816,9 @@ describe("Field", () => {
 			expect(row).toHaveAttribute("data-slot", "field-label-row");
 		});
 
-		test("applies horizontal flex layout with center alignment and gap-1", () => {
-			render(<Field.LabelRow data-testid="row" />);
-			const row = screen.getByTestId("row");
-			expect(row.className).toContain("flex");
-			expect(row.className).toContain("items-center");
-			expect(row.className).toContain("gap-1");
-		});
-
 		test("merges custom className", () => {
 			render(<Field.LabelRow className="justify-between" data-testid="row" />);
-			const row = screen.getByTestId("row");
-			expect(row.className).toContain("justify-between");
-			expect(row.className).toContain("gap-1");
+			expect(screen.getByTestId("row").className).toContain("justify-between");
 		});
 
 		test("renders as child element when asChild is true", () => {
@@ -718,7 +845,39 @@ describe("Field", () => {
 			expect(trigger).toHaveAttribute("data-slot", "icon-button");
 			expect(trigger).toHaveAttribute("data-size", "xs");
 			expect(trigger).toHaveAttribute("data-appearance", "ghost");
-			expect(trigger.className).toContain("text-body");
+			expect(trigger).toHaveAttribute("aria-expanded", "false");
+			expect(screen.queryByText("help body")).toBeNull();
+		});
+
+		test("clicking the trigger opens the popover and Escape closes it", async () => {
+			const user = userEvent.setup();
+			const onOpenChange = vi.fn<(open: boolean) => void>();
+
+			render(
+				<Field.Help onOpenChange={onOpenChange}>
+					<Field.HelpTrigger label="What is this field?" />
+					<Field.HelpContent>Copy this from the dashboard.</Field.HelpContent>
+				</Field.Help>,
+			);
+
+			const trigger = screen.getByRole("button", { name: "What is this field?" });
+			expect(screen.queryByText("Copy this from the dashboard.")).toBeNull();
+
+			await user.click(trigger);
+
+			expect(await screen.findByText("Copy this from the dashboard.")).toBeInTheDocument();
+			expect(trigger).toHaveAttribute("aria-expanded", "true");
+			expect(onOpenChange).toHaveBeenCalledTimes(1);
+			expect(onOpenChange).toHaveBeenLastCalledWith(true);
+
+			await user.keyboard("{Escape}");
+
+			await waitFor(() => {
+				expect(screen.queryByText("Copy this from the dashboard.")).toBeNull();
+			});
+			expect(trigger).toHaveAttribute("aria-expanded", "false");
+			expect(onOpenChange).toHaveBeenCalledTimes(2);
+			expect(onOpenChange).toHaveBeenLastCalledWith(false);
 		});
 
 		test("HelpTrigger forwards a custom label and merges className", () => {
@@ -728,23 +887,7 @@ describe("Field", () => {
 					<Field.HelpContent>help body</Field.HelpContent>
 				</Field.Help>,
 			);
-			const trigger = screen.getByRole("button", { name: "What is this?" });
-			expect(trigger.className).toContain("ml-2");
-			expect(trigger.className).toContain("text-body");
-		});
-
-		test("HelpTrigger trims its flex-line contribution with a default -my-0.5", () => {
-			// Without the negative y-margin the 24px (`size-6`) `xs` IconButton
-			// drives the LabelRow to 24px and pushes the 20px label text down 2px.
-			// The negative margin keeps the click target while contributing only
-			// 20px to the flex line so the label stays vertically centered.
-			render(
-				<Field.Help defaultOpen={false}>
-					<Field.HelpTrigger label="What is this?" />
-					<Field.HelpContent>help body</Field.HelpContent>
-				</Field.Help>,
-			);
-			expect(screen.getByRole("button", { name: "What is this?" }).className).toContain("-my-0.5");
+			expect(screen.getByRole("button", { name: "What is this?" }).className).toContain("ml-2");
 		});
 
 		test("user-supplied my-* overrides the default -my-0.5", () => {
@@ -792,14 +935,6 @@ describe("Field", () => {
 			expect(optional).toHaveTextContent("(Optional)");
 		});
 
-		test("applies muted color and small normal-weight typography", () => {
-			render(<Field.Optional data-testid="opt" />);
-			const optional = screen.getByTestId("opt");
-			expect(optional.className).toContain("text-muted");
-			expect(optional.className).toContain("text-sm");
-			expect(optional.className).toContain("font-normal");
-		});
-
 		test("renders custom children when provided (e.g. for translation)", () => {
 			render(<Field.Optional data-testid="opt">(Optionnel)</Field.Optional>);
 			const optional = screen.getByTestId("opt");
@@ -809,9 +944,7 @@ describe("Field", () => {
 
 		test("merges custom className", () => {
 			render(<Field.Optional className="italic" data-testid="opt" />);
-			const optional = screen.getByTestId("opt");
-			expect(optional.className).toContain("italic");
-			expect(optional.className).toContain("text-muted");
+			expect(screen.getByTestId("opt").className).toContain("italic");
 		});
 
 		test("renders as child element when asChild is true", () => {
@@ -823,20 +956,16 @@ describe("Field", () => {
 			const optional = screen.getByTestId("opt");
 			expect(optional.tagName).toBe("EM");
 			expect(optional).toHaveAttribute("data-slot", "field-optional");
-			expect(optional.className).toContain("text-muted");
 		});
 	});
 
 	describe("Field.LabelText", () => {
-		test("renders a <p> with data-slot and label typography", () => {
+		test("renders a <p> with data-slot=field-label-text", () => {
 			render(<Field.LabelText data-testid="lt">Owner</Field.LabelText>);
 			const labelText = screen.getByTestId("lt");
 			expect(labelText.tagName).toBe("P");
 			expect(labelText).toHaveAttribute("data-slot", "field-label-text");
 			expect(labelText).toHaveTextContent("Owner");
-			expect(labelText.className).toContain("text-strong");
-			expect(labelText.className).toContain("text-sm");
-			expect(labelText.className).toContain("font-medium");
 		});
 
 		test("merges custom className", () => {
@@ -845,9 +974,7 @@ describe("Field", () => {
 					Owner
 				</Field.LabelText>,
 			);
-			const labelText = screen.getByTestId("lt");
-			expect(labelText.className).toContain("italic");
-			expect(labelText.className).toContain("text-strong");
+			expect(screen.getByTestId("lt").className).toContain("italic");
 		});
 
 		test("does not render a <label> — has no focusable control to caption", () => {
@@ -864,7 +991,6 @@ describe("Field", () => {
 			const labelText = screen.getByTestId("lt");
 			expect(labelText.tagName).toBe("SPAN");
 			expect(labelText).toHaveAttribute("data-slot", "field-label-text");
-			expect(labelText.className).toContain("text-strong");
 		});
 	});
 
@@ -896,18 +1022,6 @@ describe("Field", () => {
 				</Field.ErrorList>,
 			);
 			expect(screen.getByTestId("list")).toHaveAttribute("role", "presentation");
-		});
-
-		test("strips default ul styling so it composes inside Field.Item", () => {
-			render(
-				<Field.ErrorList data-testid="list">
-					<Field.ErrorItem>Required</Field.ErrorItem>
-				</Field.ErrorList>,
-			);
-			const list = screen.getByTestId("list");
-			expect(list.className).toContain("list-none");
-			expect(list.className).toContain("p-0");
-			expect(list.className).toContain("m-0");
 		});
 
 		test("merges custom className", () => {

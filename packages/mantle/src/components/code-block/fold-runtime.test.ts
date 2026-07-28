@@ -88,6 +88,45 @@ describe("fold-runtime", () => {
 		expect(first).not.toBe(second);
 	});
 
+	test("getFoldGeometry rebuilds when the cached lines were detached by an innerHTML swap", () => {
+		const { code } = buildFoldDom();
+		const stale = getFoldGeometry(code);
+
+		// A host that replaces the markup without going through resetFoldState
+		// leaves the cache pointing at detached elements.
+		const html = code.innerHTML;
+		code.innerHTML = html;
+
+		const rebuilt = getFoldGeometry(code);
+		expect(rebuilt).not.toBe(stale);
+
+		const staleLine3 = stale.regionToLines.get("2")?.[0];
+		expect(staleLine3?.isConnected).toBe(false);
+
+		const button = code.querySelector<HTMLButtonElement>('[data-fold-line="2"]');
+		if (button == null) {
+			throw new Error("expected fold toggle for region 2");
+		}
+		expect(toggleFoldFromButton(button)).toBe(true);
+
+		// The live elements are the ones that get hidden, not the detached ones.
+		expect(code.querySelector('[data-line-number="3"]')?.getAttribute("data-fold-hidden")).toBe(
+			"true",
+		);
+		expect(staleLine3?.getAttribute("data-fold-hidden")).toBeNull();
+	});
+
+	test("toggleFoldFromButton is a no-op for a toggle outside any code block", () => {
+		const orphan = document.createElement("button");
+		orphan.type = "button";
+		orphan.className = "mantle-code-fold-toggle";
+		orphan.dataset.foldLine = "1";
+		document.body.appendChild(orphan);
+
+		expect(toggleFoldFromButton(orphan)).toBe(false);
+		expect(orphan.hasAttribute("aria-expanded")).toBe(false);
+	});
+
 	test("resetFoldState clears cached geometry and persisted folded regions", () => {
 		const { code } = buildFoldDom();
 		const first = getFoldGeometry(code);
@@ -213,8 +252,10 @@ describe("fold-runtime", () => {
 		const { pre, code } = buildFoldDom();
 		attachFoldHandler(pre);
 		const line5 = code.querySelector('[data-line-number="5"]');
-		expect(line5).toBeInstanceOf(HTMLElement);
-		(line5 as HTMLElement).click();
+		if (!(line5 instanceof HTMLElement)) {
+			throw new Error("expected line 5");
+		}
+		line5.click();
 		expect(code.hasAttribute("data-folded-regions")).toBe(false);
 	});
 

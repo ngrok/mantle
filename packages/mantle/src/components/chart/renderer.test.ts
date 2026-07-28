@@ -21,6 +21,26 @@ const makeRecorder = () => {
 	};
 };
 
+/**
+ * The area enclosed by the vertices a trace emitted, via the shoelace formula —
+ * the measured fill weight of the glyph the implementation actually drew.
+ */
+const tracedPolygonArea = (calls: ReadonlyArray<{ op: string; args: number[] }>): number => {
+	const vertices = calls
+		.filter((call) => call.op === "moveTo" || call.op === "lineTo")
+		.map((call) => ({ x: call.args[0] ?? Number.NaN, y: call.args[1] ?? Number.NaN }));
+	let doubleArea = 0;
+	for (let index = 0; index < vertices.length; index++) {
+		const current = vertices[index];
+		const next = vertices[(index + 1) % vertices.length];
+		if (current == null || next == null) {
+			throw new Error("expected a closed polygon of traced vertices");
+		}
+		doubleArea += current.x * next.y - next.x * current.y;
+	}
+	return Math.abs(doubleArea) / 2;
+};
+
 describe("tracePointShape", () => {
 	test("circle traces a full arc at the given radius", () => {
 		const recorder = makeRecorder();
@@ -61,17 +81,17 @@ describe("tracePointShape", () => {
 	});
 
 	test("non-circle glyphs carry roughly the circle's fill area", () => {
-		// Equal visual weight: each shape's area stays within 10% of πr².
+		// Equal visual weight: measure what tracePointShape actually emitted (the
+		// shoelace area of the recorded polygon), never the test's own arithmetic —
+		// otherwise the implementation's shape constants stay unpinned.
 		const radius = 4;
 		const circleArea = Math.PI * radius * radius;
-		const squareSide = 2 * radius * 0.886;
-		const triangleCircumradius = radius * 1.55;
-		const triangleArea = ((3 * Math.sqrt(3)) / 4) * triangleCircumradius * triangleCircumradius;
-		const diamondHalf = radius * 1.253;
-		expect(squareSide * squareSide).toBeCloseTo(circleArea, 0);
-		expect(triangleArea / circleArea).toBeGreaterThan(0.9);
-		expect(triangleArea / circleArea).toBeLessThan(1.1);
-		expect((2 * diamondHalf * diamondHalf) / circleArea).toBeGreaterThan(0.9);
-		expect((2 * diamondHalf * diamondHalf) / circleArea).toBeLessThan(1.1);
+		for (const shape of ["square", "triangle", "diamond"] as const) {
+			const recorder = makeRecorder();
+			tracePointShape(recorder, 10, 20, radius, shape);
+			const ratio = tracedPolygonArea(recorder.calls) / circleArea;
+			expect(ratio, `${shape} area / πr²`).toBeGreaterThan(0.9);
+			expect(ratio, `${shape} area / πr²`).toBeLessThan(1.1);
+		}
 	});
 });

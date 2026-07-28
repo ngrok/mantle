@@ -66,9 +66,16 @@ describe("parseVersions", () => {
 		expect(versions.map((entry) => entry.version)).toEqual(["1.0.0", "0.9.0"]);
 	});
 
+	// `### Major Changes` has never appeared in the real CHANGELOG (mantle is
+	// still pre-1.0), so this is the only thing standing between the first
+	// breaking release and silently dropping every breaking-change entry.
 	it("groups changes by bump heading", () => {
 		const source = [
 			"## 1.0.0",
+			"",
+			"### Major Changes",
+			"",
+			"- major a",
 			"",
 			"### Minor Changes",
 			"",
@@ -82,10 +89,35 @@ describe("parseVersions", () => {
 		].join("\n");
 		const [version] = parseVersions(source);
 		expect(version?.changes).toEqual([
+			{ bump: "major", summary: "major a", pr: undefined, commit: undefined, author: undefined },
 			{ bump: "minor", summary: "minor a", pr: undefined, commit: undefined, author: undefined },
 			{ bump: "patch", summary: "patch a", pr: undefined, commit: undefined, author: undefined },
 			{ bump: "patch", summary: "patch b", pr: undefined, commit: undefined, author: undefined },
 		]);
+	});
+
+	// The version regex's optional prerelease group has no instance in the real
+	// CHANGELOG either; a tightened regex would skip the heading entirely and
+	// fold its bullets into the previous version.
+	it("captures prerelease versions verbatim", () => {
+		const source = [
+			"## 1.0.0-beta.1",
+			"",
+			"### Patch Changes",
+			"",
+			"- a prerelease patch",
+			"",
+			"## 1.0.0-rc.2",
+			"",
+			"### Minor Changes",
+			"",
+			"- a prerelease minor",
+			"",
+		].join("\n");
+		const versions = parseVersions(source);
+		expect(versions.map((entry) => entry.version)).toEqual(["1.0.0-beta.1", "1.0.0-rc.2"]);
+		expect(versions[0]?.changes.map((change) => change.summary)).toEqual(["a prerelease patch"]);
+		expect(versions[1]?.changes.map((change) => change.summary)).toEqual(["a prerelease minor"]);
 	});
 
 	it("folds two-space-indented continuation lines into the prior bullet", () => {
@@ -103,7 +135,11 @@ describe("parseVersions", () => {
 		expect(version?.changes[0]?.summary).toBe("summary line\n\nfollow-up paragraph");
 	});
 
-	it("treats fenced code blocks as content, not structure", () => {
+	it("folds an indented fenced block into its bullet, the shape changesets emit", () => {
+		// This is what the real file looks like: `packages/mantle/CHANGELOG.md` has 46
+		// indented fences and none at column 0. Indented fences never reach the `inFence`
+		// branch — the two-space continuation rule carries them — so this pins the path
+		// production actually takes, and the column-0 fixture below pins the other one.
 		const source = [
 			"## 1.0.0",
 			"",
@@ -112,10 +148,31 @@ describe("parseVersions", () => {
 			"- example:",
 			"",
 			"  ```ts",
-			"  // looks like a top-level bullet but isn't",
-			"  - not a bullet",
-			"  ## not a heading",
+			"  const value = 1;",
 			"  ```",
+			"",
+		].join("\n");
+		const [version] = parseVersions(source);
+		expect(version?.changes).toHaveLength(1);
+		expect(version?.changes[0]?.summary).toBe("example:\n\n```ts\nconst value = 1;\n```");
+	});
+
+	it("treats fenced code blocks as content, not structure", () => {
+		const source = [
+			"## 1.0.0",
+			"",
+			"### Patch Changes",
+			"",
+			"- example:",
+			"",
+			// Fences at column 0: `parseVersions` gates `inFence` on
+			// `line.startsWith("```")`, so an indented fence never enters the branch
+			// and the whole fence-tracking block could be deleted with this green.
+			"```ts",
+			"// looks like a top-level bullet but isn't",
+			"- not a bullet",
+			"## not a heading",
+			"```",
 			"",
 		].join("\n");
 		const [version] = parseVersions(source);

@@ -1,11 +1,20 @@
 import { render } from "@testing-library/react";
-import { createRef } from "react";
+import { userEvent } from "@testing-library/user-event";
+import { createRef, type MouseEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { Slot } from "./slot.js";
 
+/**
+ * Slot ships no styles of its own — className merging *is* its public contract,
+ * documented at https://mantle.ngrok.com/components/primitives/slot#class-name-merging.
+ * Every class asserted below is supplied by the test on the Slot, the child, or
+ * both, and the assertions pin the merge outcome (which class won, which one
+ * `tailwind-merge` dropped). These are override-contract assertions, not
+ * internal-utility-class assertions, and are meant to stay.
+ */
 describe("Slot", () => {
 	it("renders the child element unchanged when no Slot props are provided", () => {
-		const { container } = render(
+		const { getByRole } = render(
 			<Slot>
 				<button className="child-class" type="button">
 					Click me
@@ -13,13 +22,8 @@ describe("Slot", () => {
 			</Slot>,
 		);
 
-		const button = container.querySelector("button");
+		const button = getByRole("button", { name: "Click me" });
 
-		if (button == null) {
-			throw new Error("Expected a <button> to be rendered");
-		}
-
-		expect(button).toBeInTheDocument();
 		expect(button).toHaveClass("child-class");
 		expect(button).toHaveAttribute("type", "button");
 	});
@@ -79,20 +83,22 @@ describe("Slot", () => {
 		expect(span).toHaveClass("child-only-class");
 	});
 
-	it("applies Slot className when the child has no className", () => {
+	it("applies Slot className and other props to a child that has no props of its own", () => {
 		const { container } = render(
-			<Slot className="slot-only-class">
+			<Slot className="slot-only-class" aria-label="Paragraph label">
 				<p>Paragraph</p>
 			</Slot>,
 		);
 
-		const p = container.querySelector("p");
+		const paragraph = container.querySelector("p");
 
-		if (p == null) {
+		if (paragraph == null) {
 			throw new Error("Expected a <p> to be rendered");
 		}
 
-		expect(p).toHaveClass("slot-only-class");
+		expect(paragraph).toHaveClass("slot-only-class");
+		expect(paragraph).toHaveAttribute("aria-label", "Paragraph label");
+		expect(paragraph).toHaveTextContent("Paragraph");
 	});
 
 	it("merges base + Slot className + child className in the intended precedence", () => {
@@ -149,6 +155,27 @@ describe("Slot", () => {
 		expect(ref.current).toBe(button);
 	});
 
+	// `asChild` consumers routinely put their own ref on the child (e.g.
+	// `<Button asChild><a ref={anchorRef} /></Button>`). Both refs have to land on
+	// the same node — the Slot's ref must not clobber the child's.
+	it("composes the Slot's ref with a ref the child already has", () => {
+		const slotRef = createRef<HTMLButtonElement>();
+		const childRef = createRef<HTMLButtonElement>();
+
+		const { getByRole } = render(
+			<Slot ref={slotRef}>
+				<button ref={childRef} type="button">
+					Click me
+				</button>
+			</Slot>,
+		);
+
+		const button = getByRole("button");
+
+		expect(slotRef.current).toBe(button);
+		expect(childRef.current).toBe(button);
+	});
+
 	it("supports functional refs as well as object refs", () => {
 		let node: HTMLAnchorElement | null = null;
 
@@ -167,21 +194,24 @@ describe("Slot", () => {
 		expect(node).toBe(link);
 	});
 
-	it("does not blow up when the child has no existing props", () => {
-		const { container } = render(
-			<Slot className="slot-class">
-				{/* bare element, no props */}
-				<div>Content</div>
-			</Slot>,
+	// Slot is the mechanism behind every `asChild` in the library, so its only
+	// non-happy branch has to fail loudly: silently rendering the children would
+	// drop the composing component's className, data-slot, and ref.
+	it("throws when given a non-element child instead of silently dropping Slot props", () => {
+		expect(() => render(<Slot className="slot-class">plain text</Slot>)).toThrow(
+			/single React element/,
 		);
+	});
 
-		const div = container.querySelector("div");
-
-		if (div == null) {
-			throw new Error("Expected a <div> to be rendered");
-		}
-
-		expect(div).toHaveClass("slot-class");
+	it("throws when given more than one child", () => {
+		expect(() =>
+			render(
+				<Slot className="slot-class">
+					<button type="button">One</button>
+					<button type="button">Two</button>
+				</Slot>,
+			),
+		).toThrow(/single React element/);
 	});
 
 	it("concatenates data-slot values in DOM order — the Slot's chain first, then the child's own", () => {
@@ -211,9 +241,32 @@ describe("Slot", () => {
 		expect(withoutSlot.querySelector("div")).not.toHaveAttribute("data-slot");
 	});
 
-	it("handles event handlers passed via Slot and child (both are called)", () => {
-		const slotOnClick = vi.fn<() => void>();
-		const childOnClick = vi.fn<() => void>();
+	// The JSDoc promises the chain reads in DOM order "all the way down an
+	// asChild chain", which only a multi-level composition can show: each Slot
+	// has to prepend its own chain rather than replace what it received.
+	it("accumulates the data-slot chain through nested asChild composition", () => {
+		const { container } = render(
+			<Slot data-slot="outer" className="px-4">
+				<Slot data-slot="middle">
+					<div data-slot="inner" className="px-2">
+						Content
+					</div>
+				</Slot>
+			</Slot>,
+		);
+
+		const div = container.querySelector("div");
+
+		expect(div).toHaveAttribute("data-slot", "outer middle inner");
+		// The innermost child still wins the className merge across the chain.
+		expect(div).toHaveClass("px-2");
+		expect(div).not.toHaveClass("px-4");
+	});
+
+	it("calls both the Slot's and the child's click handler exactly once with the click event", async () => {
+		const user = userEvent.setup();
+		const slotOnClick = vi.fn<(event: MouseEvent<HTMLButtonElement>) => void>();
+		const childOnClick = vi.fn<(event: MouseEvent<HTMLButtonElement>) => void>();
 
 		const { getByRole } = render(
 			<Slot onClick={slotOnClick}>
@@ -223,12 +276,19 @@ describe("Slot", () => {
 			</Slot>,
 		);
 
-		const button = getByRole("button");
+		const button = getByRole("button", { name: "Click me" });
 
-		button.click();
+		await user.click(button);
 
-		// Radix Slot semantics: both handlers should run
+		// Radix Slot semantics: both handlers run, and neither is invoked twice by
+		// the composition — a double-fire here would break every `asChild` consumer.
 		expect(slotOnClick).toHaveBeenCalledTimes(1);
 		expect(childOnClick).toHaveBeenCalledTimes(1);
+		expect(slotOnClick).toHaveBeenLastCalledWith(
+			expect.objectContaining({ type: "click", target: button }),
+		);
+		expect(childOnClick).toHaveBeenLastCalledWith(
+			expect.objectContaining({ type: "click", target: button }),
+		);
 	});
 });

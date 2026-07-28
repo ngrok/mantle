@@ -125,6 +125,66 @@ describe("resolvePreRenderedCodeBlockProps", () => {
 		});
 	});
 
+	test("drops an unsupported language but keeps it as rawLanguage", () => {
+		// `rawLanguage` exists so a caller can warn about the unhighlightable fence it
+		// fell back from; `language` must stay undefined so the fallback is taken.
+		const result = resolvePreRenderedCodeBlockProps({
+			mantleCode: "+++[->+++<]",
+			mantleLanguage: "brainfuck",
+			mantlePreHtml: "<span>+++</span>",
+		});
+
+		expect(result.mantleCode?.language).toBeUndefined();
+		expect(result.mantleCode?.rawLanguage).toBe("brainfuck");
+	});
+
+	test("keeps rawLanguage as the raw value even when it is not a string", () => {
+		const result = resolvePreRenderedCodeBlockProps({ mantleLanguage: 42 });
+
+		expect(result.mantleCode?.language).toBeUndefined();
+		expect(result.mantleCode?.rawLanguage).toBe(42);
+	});
+
+	test("prefers every mantle-prefixed value over its bare counterpart", () => {
+		const result = resolvePreRenderedCodeBlockProps({
+			collapsible: true,
+			disableCopy: true,
+			mantleCode: "echo hi",
+			mantleCollapsible: "false",
+			mantleDisableCopy: "false",
+			mantleLanguage: "sh",
+			mantleMode: "cli",
+			mantlePreHtml: "<span>echo hi</span>",
+			mantleTitle: "mantle title",
+			mode: "file",
+			title: "bare title",
+		});
+
+		// `false` from the mantle tier must win over `true` from the bare tier — a
+		// `||` in place of the nullish fallback would silently flip both booleans.
+		expect(result.mantleCode?.collapsible).toBe(false);
+		expect(result.mantleCode?.disableCopy).toBe(false);
+		expect(result.mantleCode?.mode).toBe("cli");
+		expect(result.mantleCode?.title).toBe("mantle title");
+	});
+
+	test("falls back to the bare counterpart when the mantle value is absent", () => {
+		const result = resolvePreRenderedCodeBlockProps({
+			collapsible: "true",
+			disableCopy: "true",
+			mantleCode: "echo hi",
+			mantleLanguage: "sh",
+			mantlePreHtml: "<span>echo hi</span>",
+			mode: "file",
+			title: "bare title",
+		});
+
+		expect(result.mantleCode?.collapsible).toBe(true);
+		expect(result.mantleCode?.disableCopy).toBe(true);
+		expect(result.mantleCode?.mode).toBe("file");
+		expect(result.mantleCode?.title).toBe("bare title");
+	});
+
 	test("detects payload when only mantleHighlightLines is provided", () => {
 		const result = resolvePreRenderedCodeBlockProps({
 			mantleHighlightLines: "1,3-5",

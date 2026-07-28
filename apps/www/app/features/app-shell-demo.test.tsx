@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { AppShellDemo, BridgeShellDemo } from "./app-shell-demo";
 
@@ -125,5 +125,111 @@ describe("AppShellDemo footer account switcher", () => {
 		expect(
 			screen.getAllByRole("link", { current: "page" }).map((link) => link.textContent),
 		).toEqual(["Billing"]);
+	});
+});
+
+// The product switcher's card list is the only hand-rolled keyboard contract in
+// the shell demos: `handleProductOptionKeyDown` rolls focus over the cards with
+// ArrowDown/ArrowUp (wrapping at both ends) and Home/End, and the dialog hands
+// focus to the *current* product's card instead of the first one. A break here
+// (a container query that matches nothing, a dropped wrap) leaves the demo
+// looking fine while being unusable from the keyboard.
+describe("AppShellDemo product switcher", () => {
+	const productLabels = ["Gateway", "Shrimp", "AI Gateway"];
+
+	/** Opens the switcher dialog from the named trigger and returns its cards. */
+	function openProductSwitcher(currentProduct: string): HTMLElement[] {
+		fireEvent.click(screen.getByRole("button", { name: currentProduct }));
+		const dialog = screen.getByRole("dialog", { name: "Choose a product" });
+		return within(dialog).getAllByRole("button");
+	}
+
+	/** The card at `index`; indexing an array is unchecked, so fail loudly here. */
+	function cardAt(cards: readonly HTMLElement[], index: number): HTMLElement {
+		const card = cards[index];
+		if (card == null) {
+			throw new Error(`expected a product card at index ${index}`);
+		}
+		return card;
+	}
+
+	/** The index of the card that currently holds DOM focus, or -1. */
+	function focusedIndex(cards: readonly HTMLElement[]): number {
+		return cards.findIndex((card) => card === document.activeElement);
+	}
+
+	it("opens on the current product's card", () => {
+		render(<AppShellDemo />);
+
+		const cards = openProductSwitcher("Gateway");
+
+		expect(
+			cards.map((card) => productLabels.find((label) => card.textContent?.startsWith(label))),
+		).toEqual(productLabels);
+		// Gateway is the initial product, so focus lands on its card — not the
+		// first tabbable node Radix's own auto-focus would have picked
+		expect(focusedIndex(cards)).toBe(0);
+	});
+
+	it("wraps ArrowDown past the last card and ArrowUp past the first", () => {
+		render(<AppShellDemo />);
+
+		const cards = openProductSwitcher("Gateway");
+
+		fireEvent.keyDown(cardAt(cards, 0), { key: "ArrowDown" });
+		expect(focusedIndex(cards)).toBe(1);
+
+		fireEvent.keyDown(cardAt(cards, 1), { key: "ArrowDown" });
+		expect(focusedIndex(cards)).toBe(2);
+
+		fireEvent.keyDown(cardAt(cards, 2), { key: "ArrowDown" });
+		expect(focusedIndex(cards)).toBe(0);
+
+		fireEvent.keyDown(cardAt(cards, 0), { key: "ArrowUp" });
+		expect(focusedIndex(cards)).toBe(2);
+
+		fireEvent.keyDown(cardAt(cards, 2), { key: "ArrowUp" });
+		expect(focusedIndex(cards)).toBe(1);
+	});
+
+	it("jumps to the edges with Home and End", () => {
+		render(<AppShellDemo />);
+
+		const cards = openProductSwitcher("Gateway");
+
+		fireEvent.keyDown(cardAt(cards, 0), { key: "End" });
+		expect(focusedIndex(cards)).toBe(2);
+
+		fireEvent.keyDown(cardAt(cards, 2), { key: "Home" });
+		expect(focusedIndex(cards)).toBe(0);
+	});
+
+	it("preventDefaults only the keys it owns", () => {
+		render(<AppShellDemo />);
+
+		const cards = openProductSwitcher("Gateway");
+
+		// Home/End would otherwise scroll the dialog instead of moving focus
+		for (const key of ["ArrowDown", "ArrowUp", "Home", "End"]) {
+			expect(fireEvent.keyDown(cardAt(cards, 0), { key })).toBe(false);
+		}
+		// Enter and Space activate the card natively, so they must pass through
+		for (const key of ["Enter", " "]) {
+			expect(fireEvent.keyDown(cardAt(cards, 0), { key })).toBe(true);
+		}
+	});
+
+	it("switches the product and closes the dialog when a card is chosen", () => {
+		render(<AppShellDemo />);
+
+		const cards = openProductSwitcher("Gateway");
+		fireEvent.click(cardAt(cards, 1));
+
+		expect(screen.queryByRole("dialog", { name: "Choose a product" })).toBeNull();
+		expect(screen.getByRole("button", { name: "Shrimp" })).toBeDefined();
+		expect(screen.queryByRole("button", { name: "Gateway" })).toBeNull();
+
+		// reopening highlights the new current product by focusing its card
+		expect(focusedIndex(openProductSwitcher("Shrimp"))).toBe(1);
 	});
 });

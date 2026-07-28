@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import { PointerEventsCheckLevel, userEvent } from "@testing-library/user-event";
 import { type ReactNode, useState } from "react";
 import { describe, expect, test } from "vitest";
+import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { AlertDialog } from "../alert-dialog/alert-dialog.js";
 import { Dialog } from "../dialog/dialog.js";
 import { Sheet } from "../sheet/sheet.js";
@@ -21,6 +22,15 @@ import { MultiSelect } from "./multi-select.js";
  * await user.click(screen.getByRole("combobox"));
  */
 const setupUser = () => userEvent.setup({ pointerEventsCheck: PointerEventsCheckLevel.Never });
+
+/**
+ * `getPrefersReducedMotion()` queries `(prefers-reduced-motion: no-preference)` and inverts the
+ * result, so priming that query to `!reduced` is what the hook reads. Uses the shared stub rather
+ * than a local object literal, which dropped every registered `"change"` listener on the floor.
+ */
+const stubPrefersReducedMotion = ({ reduced }: { reduced: boolean }) => {
+	mockMatchMedia({ "(prefers-reduced-motion: no-preference)": !reduced });
+};
 
 describe("MultiSelect (browser)", () => {
 	/**
@@ -247,16 +257,18 @@ describe("MultiSelect (browser)", () => {
 				// Regression test: with ariakit's body scroll lock active alongside the
 				// modal's, ariakit re-applied a stale body-style snapshot (including the
 				// modal's transient `pointer-events: none`) on the animation frame after
-				// unmount, permanently freezing the page. Wait past that frame plus a
-				// macrotask so the assertion sees the settled state.
-				await new Promise<void>((resolve) => {
-					requestAnimationFrame(() => {
-						resolve();
+				// unmount, permanently freezing the page. ariakit defers that restore with
+				// `queueMicrotask` (@ariakit/react-components/dist/dialog/utils/use-prevent-body-scroll.js,
+				// the implementation @ariakit/react re-exports), and the microtask queue is
+				// drained before a frame callback runs — so awaiting frames cannot race it, and
+				// stays correct if ariakit ever switches to deferring by a frame instead.
+				for (let frame = 0; frame < 3; frame++) {
+					await new Promise<void>((resolve) => {
+						requestAnimationFrame(() => {
+							resolve();
+						});
 					});
-				});
-				await new Promise<void>((resolve) => {
-					setTimeout(resolve, 50);
-				});
+				}
 
 				expect(document.body.style.pointerEvents).not.toBe("none");
 			});
@@ -536,6 +548,63 @@ describe("MultiSelect (browser)", () => {
 				await user.keyboard("{Delete}");
 				expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
 			});
+		});
+	});
+
+	describe("blocked-removal feedback", () => {
+		test("Backspace on a locked tag shakes it", async () => {
+			const user = setupUser();
+			render(<Subject initialValues={["apple"]} lockedValues={["apple"]} />);
+			stubPrefersReducedMotion({ reduced: false });
+
+			const tag = getTagOption("apple");
+			expect(tag.getAnimations()).toHaveLength(0);
+
+			tag.focus();
+			await user.keyboard("{Backspace}");
+
+			// The shake is the only feedback a blocked removal gives.
+			expect(tag.getAnimations()).toHaveLength(1);
+			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
+		});
+
+		test("clicking a locked tag's remove button shakes it", async () => {
+			const user = setupUser();
+			render(<Subject initialValues={["apple"]} lockedValues={["apple"]} />);
+			stubPrefersReducedMotion({ reduced: false });
+
+			const tag = getTagOption("apple");
+			await user.click(screen.getByLabelText("Remove apple"));
+
+			expect(tag.getAnimations()).toHaveLength(1);
+			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
+		});
+
+		test("Backspace on an empty input shakes a locked last tag", async () => {
+			const user = setupUser();
+			render(<Subject initialValues={["apple"]} lockedValues={["apple"]} />);
+			stubPrefersReducedMotion({ reduced: false });
+
+			const tag = getTagOption("apple");
+			await user.click(screen.getByRole("combobox"));
+			await user.keyboard("{Backspace}");
+
+			expect(tag.getAnimations()).toHaveLength(1);
+			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
+		});
+
+		test("no shake animation is created when the user prefers reduced motion", async () => {
+			const user = setupUser();
+			render(<Subject initialValues={["apple"]} lockedValues={["apple"]} />);
+			stubPrefersReducedMotion({ reduced: true });
+
+			const tag = getTagOption("apple");
+			tag.focus();
+			await user.keyboard("{Backspace}");
+
+			expect(tag.getAnimations()).toHaveLength(0);
+			// The lock itself is still enforced — only the animation is skipped.
+			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
 		});
 	});
 

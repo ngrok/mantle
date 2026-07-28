@@ -1,9 +1,11 @@
 import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
 
-type Props = ComponentProps<"div"> & WithAsChild;
+type Props = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
  * The media object is an image/icon (media) to the left, with descriptive
@@ -24,18 +26,16 @@ type Props = ComponentProps<"div"> & WithAsChild;
  * </MediaObject.Root>
  * ```
  */
-const Root = ({ asChild = false, className, children, style, ref }: Props) => {
+const Root = ({ asChild = false, className, "data-slot": dataSlot, ref, ...props }: Props) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
 		<Component
 			ref={ref}
-			data-slot="media-object"
+			data-slot={joinDataSlot(dataSlot, "media-object")}
 			className={cx("flex gap-4", className)}
-			style={style}
-		>
-			{children}
-		</Component>
+			{...props}
+		/>
 	);
 };
 
@@ -56,18 +56,16 @@ const Root = ({ asChild = false, className, children, style, ref }: Props) => {
  * </MediaObject.Root>
  * ```
  */
-const Media = ({ asChild = false, className, children, style, ref }: Props) => {
+const Media = ({ asChild = false, className, "data-slot": dataSlot, ref, ...props }: Props) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
 		<Component
 			ref={ref}
-			data-slot="media-object-media"
+			data-slot={joinDataSlot(dataSlot, "media-object-media")}
 			className={cx("shrink-0 leading-none", className)}
-			style={style}
-		>
-			{children}
-		</Component>
+			{...props}
+		/>
 	);
 };
 
@@ -88,18 +86,16 @@ const Media = ({ asChild = false, className, children, style, ref }: Props) => {
  * </MediaObject.Root>
  * ```
  */
-const Content = ({ asChild = false, className, children, style, ref }: Props) => {
+const Content = ({ asChild = false, className, "data-slot": dataSlot, ref, ...props }: Props) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
 		<Component
 			ref={ref}
-			data-slot="media-object-content"
+			data-slot={joinDataSlot(dataSlot, "media-object-content")}
 			className={cx("min-w-0 flex-1", className)}
-			style={style}
-		>
-			{children}
-		</Component>
+			{...props}
+		/>
 	);
 };
 

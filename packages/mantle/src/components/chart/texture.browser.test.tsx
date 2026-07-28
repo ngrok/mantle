@@ -13,6 +13,15 @@ const STYLE = `
 :root {
 	--color-chart-1: #3e6ff4;
 	--color-chart-2: #167837;
+	/* The legend key's tone-on-tone ink is a relative oklch() of the series
+	   color, so every slot a test composes must resolve to a real color or the
+	   whole background-image is invalid and computes to "none". */
+	--color-chart-3: #f6339a;
+	--color-chart-4: #e7000b;
+	--color-chart-5: #009689;
+	--color-chart-6: #f54a00;
+	--color-chart-7: #8e51ff;
+	--color-chart-8: #a65f00;
 	--color-chart-other: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
@@ -105,19 +114,26 @@ const distinctOpaqueColors = (
 };
 
 describe("createBarTexturePattern", () => {
-	/** The red channel at one pixel of a pattern-filled canvas: black ink darkens the rgb(62, …) ground. */
+	/**
+	 * The red channel at one CSS pixel of a pattern-filled canvas: black ink
+	 * darkens the rgb(62, …) ground. `devicePixelRatio` rasterizes the tile at
+	 * device resolution the way the engine does; the pattern's inverse transform
+	 * must bring it back to the same CSS-pixel period either way, so every
+	 * sample point below is in CSS space regardless of the ratio.
+	 */
 	const redAt = (
 		texture: "hatch" | "hatch-reverse" | "crosshatch" | "perpendicular" | "dots",
 		x: number,
 		y: number,
 		orientation: "vertical" | "horizontal" = "vertical",
+		devicePixelRatio = 1,
 	) => {
 		const context = makeContext(32);
 		const pattern = createBarTexturePattern(context, {
 			texture,
 			color: "rgb(62, 111, 244)",
 			ink: "rgb(0, 0, 0)",
-			devicePixelRatio: 1,
+			devicePixelRatio,
 			orientation,
 		});
 		context.fillStyle = pattern ?? "white";
@@ -185,6 +201,26 @@ describe("createBarTexturePattern", () => {
 		expect(redAt("dots", 2, 5)).toBe(62);
 	});
 
+	test("a retina tile keeps the same CSS-pixel period (the inverse pattern transform)", () => {
+		// The whole point of rasterizing at device resolution: the tile is 2x the
+		// pixels but the SAME 8px CSS period, so lines land on the device grid
+		// crisply instead of doubling in size. Dropping `pattern.setTransform` (or
+		// writing `a: deviceScale`) doubles every texture's period on every retina
+		// display, and no other test in the repo runs at a ratio other than 1.
+		const ON_UP = [1, 6] as const;
+		const ON_DOWN = [6, 6] as const;
+		expect(redAt("hatch", ...ON_UP, "vertical", 2)).toBeLessThan(40);
+		expect(redAt("hatch", ...ON_DOWN, "vertical", 2)).toBe(62);
+		expect(redAt("hatch-reverse", ...ON_DOWN, "vertical", 2)).toBeLessThan(40);
+		// The perpendicular rung stays in the same tile band, at the same width.
+		expect(redAt("perpendicular", 3, 3, "vertical", 2)).toBeLessThan(40);
+		expect(redAt("perpendicular", 3, 0, "vertical", 2)).toBe(62);
+		expect(redAt("perpendicular", 3, 6, "vertical", 2)).toBe(62);
+		// Dots keep their quarter-grid positions rather than growing to fill the tile.
+		expect(redAt("dots", 2, 2, "vertical", 2)).toBeLessThan(40);
+		expect(redAt("dots", 5, 2, "vertical", 2)).toBe(62);
+	});
+
 	test("horizontal orientation turns the perpendicular rung vertical", () => {
 		// Perpendicular rungs run across the bar's length, so horizontal bars get a
 		// vertical rung: the ink now spans x ∈ [3, 5) of every tile column instead
@@ -197,25 +233,91 @@ describe("createBarTexturePattern", () => {
 });
 
 describe("textured legend keys", () => {
-	test("legend keys wear the texture as CSS stripes", () => {
-		const data = [
-			{ month: "January", desktop: 186, mobile: 80 },
-			{ month: "February", desktop: 305, mobile: 200 },
-		];
+	const legendData = [
+		{ month: "January", a: 10, b: 20, c: 30, d: 40, e: 50, f: 60 },
+		{ month: "February", a: 11, b: 21, c: 31, d: 41, e: 51, f: 61 },
+	];
+
+	/**
+	 * The computed `background-image` of each legend key, by its `data-texture`.
+	 * happy-dom drops the gradient (its CSS parser cannot round-trip it), which
+	 * is why the six-value `data-texture` coverage in bar-chart.test.tsx stops at
+	 * the attribute and the actual CSS lives here.
+	 */
+	const legendBackgrounds = (
+		orientation: "vertical" | "horizontal",
+	): Record<string, string | undefined> => {
 		const { container } = render(
-			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" texture="hatch" />
+			<BarChart.Root
+				data={legendData}
+				xKey="month"
+				orientation={orientation}
+				aria-label="Visitors by month"
+			>
+				<BarChart.Bar dataKey="a" label="Solid" />
+				<BarChart.Bar dataKey="b" label="Hatch" texture="hatch" />
+				<BarChart.Bar dataKey="c" label="Hatch reverse" texture="hatch-reverse" />
+				<BarChart.Bar dataKey="d" label="Crosshatch" texture="crosshatch" />
+				<BarChart.Bar dataKey="e" label="Perpendicular" texture="perpendicular" />
+				<BarChart.Bar dataKey="f" label="Dots" texture="dots" />
 				<BarChart.Legend />
 			</BarChart.Root>,
 		);
-		const solid = container.querySelector('span[data-texture="solid"]');
-		const textured = container.querySelector('span[data-texture="hatch"]');
-		if (!(solid instanceof HTMLElement) || !(textured instanceof HTMLElement)) {
-			throw new Error("expected solid and textured legend keys to render");
+		const backgrounds: Record<string, string | undefined> = {};
+		for (const key of container.querySelectorAll("span[data-texture]")) {
+			if (!(key instanceof HTMLElement)) {
+				continue;
+			}
+			const texture = key.getAttribute("data-texture");
+			if (texture != null) {
+				backgrounds[texture] = getComputedStyle(key).backgroundImage;
+			}
 		}
-		expect(getComputedStyle(solid).backgroundImage).toBe("none");
-		expect(getComputedStyle(textured).backgroundImage).toContain("repeating-linear-gradient");
+		return backgrounds;
+	};
+
+	test("every texture gets its own legend gradient, mirroring the canvas tile", () => {
+		// The legend key is the only place the redundant (color-vision-independent)
+		// encoding reaches the DOM, so each family must be visually distinct here
+		// too — a single shared hatch gradient would make five of the six keys lie.
+		const backgrounds = legendBackgrounds("vertical");
+		expect(backgrounds.solid).toBe("none");
+		expect(backgrounds.hatch).toContain("135deg");
+		expect(backgrounds["hatch-reverse"]).toContain("45deg");
+		// Crosshatch inks both families in one background.
+		expect(backgrounds.crosshatch).toContain("135deg");
+		expect(backgrounds.crosshatch).toContain("45deg");
+		expect(backgrounds.dots).toContain("radial-gradient");
+		// Vertical bars carry horizontal rungs: a 0deg stripe family.
+		expect(backgrounds.perpendicular).toContain("0deg");
+		expect(backgrounds.perpendicular).not.toContain("90deg");
+		// Every distinct texture reads as a distinct key.
+		expect(new Set(Object.values(backgrounds)).size).toBe(6);
+	});
+
+	test("dots tile a sized radial gradient rather than stripes", () => {
+		const { container } = render(
+			<BarChart.Root data={legendData} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="a" label="Solid" />
+				<BarChart.Bar dataKey="f" label="Dots" texture="dots" />
+				<BarChart.Legend />
+			</BarChart.Root>,
+		);
+		const dots = container.querySelector('span[data-texture="dots"]');
+		if (!(dots instanceof HTMLElement)) {
+			throw new Error("expected the dotted legend key to render");
+		}
+		expect(getComputedStyle(dots).backgroundSize).toBe("3px 3px");
+	});
+
+	test("the perpendicular key flips with the bars", () => {
+		// The rung runs across the bar's length, so horizontal bars turn it
+		// vertical — exactly what the canvas tile does.
+		const backgrounds = legendBackgrounds("horizontal");
+		expect(backgrounds.perpendicular).toContain("90deg");
+		// The direction-free families do not move.
+		expect(backgrounds.hatch).toContain("135deg");
+		expect(backgrounds["hatch-reverse"]).toContain("45deg");
 	});
 });
 

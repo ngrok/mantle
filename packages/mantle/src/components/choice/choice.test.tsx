@@ -1,10 +1,33 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
 import { Field } from "../field/field.js";
 import { Switch } from "../switch/switch.js";
 import { Choice } from "./choice.js";
 
 describe("Choice", () => {
+	// `data-slot` is public API — consumer CSS selects on it — so a rename or a
+	// moved slot is a breaking change. Pin every part to the element it lands on.
+	test.each([
+		["choice", "DIV"],
+		["choice-indicator", "SPAN"],
+		["choice-content", "DIV"],
+		["choice-label", "LABEL"],
+		["choice-description", "P"],
+	])("data-slot=%s lands on a <%s>", (slot, tagName) => {
+		const { container } = render(
+			<Choice.Root>
+				<Choice.Indicator>
+					<input type="checkbox" aria-label="control" />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Label>Email</Choice.Label>
+					<Choice.Description>Get notified by email.</Choice.Description>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+		expect(container.querySelector(`[data-slot="${slot}"]`)?.tagName).toBe(tagName);
+	});
+
 	test("Indicator injects an id onto its control child", () => {
 		render(
 			<Choice.Root>
@@ -30,9 +53,13 @@ describe("Choice", () => {
 				</Choice.Content>
 			</Choice.Root>,
 		);
-		// `h-lh` resolves to the element's own line-height, so the indicator must use
-		// the same `text-sm` line box as the title/label — otherwise it sizes to the
-		// inherited line-height and the control can't vertically center on the first line.
+		// Cross-file spelling pin, asserted on both sides in one test. `h-lh` in
+		// choice.tsx resolves against the *indicator's own* line-height, so it only
+		// produces a one-line box that matches the title when the indicator's
+		// `text-sm` equals the font size `Label` (label.tsx) sets on the title. If
+		// either file's `text-sm` moves, the control silently stops centering on the
+		// title's first line — and neither Vitest project loads Tailwind, so nothing
+		// but the class spelling can observe the pair here.
 		const indicator = screen.getByRole("checkbox").closest('[data-slot="choice-indicator"]');
 		expect(indicator).toHaveClass("h-lh", "items-center", "text-sm");
 		expect(screen.getByText("Email")).toHaveClass("text-sm");
@@ -68,7 +95,11 @@ describe("Choice", () => {
 		);
 		const title = screen.getByText("Onboarding Key");
 		expect(title.tagName).toBe("P");
+		expect(title).toHaveAttribute("data-slot", "choice-title");
 		expect(title).not.toHaveAttribute("for");
+		// Nothing labels the control: Title must not become the accessible name, so
+		// the control keeps the name it was given itself.
+		expect(screen.getByRole("checkbox")).toHaveAccessibleName("control");
 	});
 
 	test("Description is associated to the control via aria-describedby", () => {
@@ -89,7 +120,7 @@ describe("Choice", () => {
 		expect(control.getAttribute("aria-describedby")?.split(" ")).toContain(description.id);
 	});
 
-	test("disabled disables the control and dims the text", () => {
+	test("disabled disables the control and marks the label disabled", () => {
 		render(
 			<Choice.Root disabled>
 				<Choice.Indicator>
@@ -101,7 +132,9 @@ describe("Choice", () => {
 			</Choice.Root>,
 		);
 		expect(screen.getByRole("checkbox")).toBeDisabled();
-		expect(screen.getByText("Email")).toHaveClass("opacity-50");
+		// The label's disabled state is announced, not merely dimmed: Root's
+		// `disabled` reaches `Label`'s own `disabled` prop, which emits aria-disabled.
+		expect(screen.getByText("Email")).toHaveAttribute("aria-disabled", "true");
 	});
 
 	test("name lands on the control", () => {
@@ -134,7 +167,7 @@ describe("Choice", () => {
 		expect(control).toHaveAttribute("name", "custom");
 	});
 
-	test("Label reuses the base Label component (keeps its styling + context-owned wiring)", () => {
+	test("Label reuses the base Label component (keeps its behavior + context-owned wiring)", () => {
 		render(
 			<Choice.Root disabled>
 				<Choice.Indicator>
@@ -147,16 +180,19 @@ describe("Choice", () => {
 		);
 		const control = screen.getByRole("checkbox");
 		const label = screen.getByText("Email");
-		// It IS the mantle Label, not a re-implementation, so it keeps base-label
-		// styling (cursor-pointer); htmlFor + disabled are owned by Choice.Root.
 		expect(label.tagName).toBe("LABEL");
-		expect(label).toHaveClass("cursor-pointer");
+		// It IS the mantle `Label`, not a re-implementation: only label.tsx installs
+		// the double-click text-selection guard (preventDefault once detail > 1), so
+		// a hand-rolled <label> here would let the second click select the text.
+		expect(fireEvent.mouseDown(label, { detail: 1 })).toBe(true);
+		expect(fireEvent.mouseDown(label, { detail: 2 })).toBe(false);
+		// htmlFor + disabled are owned by Choice.Root and applied after the props
+		// spread, so consumer props can never unwire the label from the control.
 		expect(label).toHaveAttribute("for", control.id);
 		expect(label).toHaveAttribute("aria-disabled", "true");
-		expect(label).toHaveClass("opacity-50");
 	});
 
-	test("forwards aria-errormessage from Root onto the control (standalone, not the wrapper)", () => {
+	test("forwards aria-invalid and aria-errormessage from Root onto the control (standalone, not the wrapper)", () => {
 		render(
 			<Choice.Root aria-errormessage="error-1" aria-invalid="true">
 				<Choice.Indicator>
@@ -168,15 +204,112 @@ describe("Choice", () => {
 			</Choice.Root>,
 		);
 		const control = screen.getByRole("checkbox");
+		expect(control).toHaveAttribute("aria-invalid", "true");
 		expect(control).toHaveAttribute("aria-errormessage", "error-1");
-		// It must land on the control, not leak onto the layout wrapper.
-		expect(control.closest('[data-slot="choice"]')).not.toHaveAttribute("aria-errormessage");
+		// They must land on the control, not leak onto the layout wrapper.
+		const wrapper = control.closest('[data-slot="choice"]');
+		expect(wrapper).not.toHaveAttribute("aria-invalid");
+		expect(wrapper).not.toHaveAttribute("aria-errormessage");
+	});
+
+	test("an explicit id on Root becomes the control id and the Label's htmlFor target", () => {
+		render(
+			<Choice.Root id="notify-email">
+				<Choice.Indicator>
+					<input type="checkbox" aria-label="control" />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Label>Email</Choice.Label>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+		expect(screen.getByRole("checkbox")).toHaveAttribute("id", "notify-email");
+		expect(screen.getByText("Email")).toHaveAttribute("for", "notify-email");
+	});
+
+	test("Indicator renders a non-element child untouched", () => {
+		render(
+			<Choice.Root>
+				<Choice.Indicator>–</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Title>Onboarding Key</Choice.Title>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+		// There is nothing to clone the association props onto, so the child is
+		// passed through rather than crashing `cloneElement`.
+		expect(screen.getByText("–")).toHaveAttribute("data-slot", "choice-indicator");
 	});
 
 	test("a part rendered outside Root throws", () => {
 		expect(() => render(<Choice.Label>orphan</Choice.Label>)).toThrow(
 			/Choice\.Label must be rendered inside Choice\.Root/,
 		);
+	});
+});
+
+describe("Choice asChild", () => {
+	test("Description asChild keeps the description id, data-slot, and the aria-describedby association", () => {
+		render(
+			<Choice.Root>
+				<Choice.Indicator>
+					<input type="checkbox" aria-label="control" />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Label>Email</Choice.Label>
+					<Choice.Description asChild className="italic">
+						<a href="/docs/email">Read the docs</a>
+					</Choice.Description>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+
+		const description = screen.getByRole("link", { name: "Read the docs" });
+		expect(description.tagName).toBe("A");
+		expect(description).toHaveAttribute("href", "/docs/email");
+		expect(description).toHaveAttribute("data-slot", "choice-description");
+		expect(description).toHaveClass("italic");
+		expect(screen.getByRole("checkbox").getAttribute("aria-describedby")?.split(" ")).toContain(
+			description.id,
+		);
+	});
+
+	test("Title asChild renders the supplied element", () => {
+		render(
+			<Choice.Root>
+				<Choice.Indicator>
+					<input type="checkbox" aria-label="control" />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Title asChild>
+						<h3>Onboarding Key</h3>
+					</Choice.Title>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+
+		const title = screen.getByRole("heading", { name: "Onboarding Key" });
+		expect(title.tagName).toBe("H3");
+		expect(title).toHaveAttribute("data-slot", "choice-title");
+	});
+
+	test("Content asChild renders the supplied element", () => {
+		render(
+			<Choice.Root>
+				<Choice.Indicator>
+					<input type="checkbox" aria-label="control" />
+				</Choice.Indicator>
+				<Choice.Content asChild>
+					<section data-testid="content">
+						<Choice.Label>Email</Choice.Label>
+					</section>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+
+		const content = screen.getByTestId("content");
+		expect(content.tagName).toBe("SECTION");
+		expect(content).toHaveAttribute("data-slot", "choice-content");
 	});
 });
 
@@ -214,7 +347,7 @@ describe("Choice + Switch interop", () => {
 			</Choice.Root>,
 		);
 		expect(screen.getByRole("switch")).toBeDisabled();
-		expect(screen.getByText("Airplane mode")).toHaveClass("opacity-50");
+		expect(screen.getByText("Airplane mode")).toHaveAttribute("aria-disabled", "true");
 	});
 });
 
@@ -242,6 +375,32 @@ describe("Choice + Field interop", () => {
 		expect(choiceLabel.tagName).toBe("LABEL");
 		expect(choiceLabel).toHaveAttribute("for", control.id);
 		expect(control).toHaveAttribute("name", "notify");
+	});
+
+	test("the field's id wins over an explicit id on Choice.Root", () => {
+		render(
+			<Field.Item name="notify">
+				<Field.Label>Notifications</Field.Label>
+				<Field.Control>
+					<Choice.Root id="ignored-choice-id">
+						<Choice.Indicator>
+							<input type="checkbox" aria-label="control" />
+						</Choice.Indicator>
+						<Choice.Content>
+							<Choice.Label>Email</Choice.Label>
+						</Choice.Content>
+					</Choice.Root>
+				</Field.Control>
+			</Field.Item>,
+		);
+		// Field wins so `Field.Label htmlFor` and `Choice.Label htmlFor` resolve
+		// to the same control; reversing the precedence would desynchronize them.
+		const control = screen.getByRole("checkbox");
+		// Non-empty, or the two `for` assertions below would pass on `for=""`.
+		expect(control.id).toMatch(/.+/);
+		expect(control.id).not.toBe("ignored-choice-id");
+		expect(screen.getByText("Notifications")).toHaveAttribute("for", control.id);
+		expect(screen.getByText("Email")).toHaveAttribute("for", control.id);
 	});
 
 	test("aria-describedby merges the field's description with the choice's own", () => {

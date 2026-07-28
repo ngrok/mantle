@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { useState } from "react";
-import { describe, expect, test } from "vitest";
+import { type ChangeEvent, useState } from "react";
+import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { Sheet } from "../sheet/sheet.js";
 import { MultiSelect } from "./multi-select.js";
@@ -144,6 +144,123 @@ describe("MultiSelect", () => {
 		}
 	});
 
+	describe("typeahead filtering", () => {
+		test("Input reports each keystroke through onValueChange and still calls onChange", async () => {
+			const user = userEvent.setup();
+			const onValueChange = vi.fn<(value: string) => void>();
+			const onChange = vi.fn<(event: ChangeEvent<HTMLInputElement>) => void>();
+			render(
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.TagValues />
+						<MultiSelect.Input
+							onChange={onChange}
+							onValueChange={onValueChange}
+							placeholder="Select items..."
+						/>
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+						<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+
+			await user.type(screen.getByRole("combobox"), "ban");
+
+			// One call per keystroke, with the whole input value — not the typed char.
+			expect(onValueChange.mock.calls).toEqual([["b"], ["ba"], ["ban"]]);
+			// The raw event handler is composed, not replaced.
+			expect(onChange).toHaveBeenCalledTimes(3);
+			expect(onChange.mock.lastCall?.[0].target).toBe(screen.getByRole("combobox"));
+		});
+
+		test("filtering the items from onValueChange narrows the listbox and reveals Empty", async () => {
+			const user = userEvent.setup();
+			/**
+			 * The documented filtering shape: the consumer owns the query and the
+			 * rendered items, driven entirely by `onValueChange`.
+			 */
+			const FilteringSubject = () => {
+				const [query, setQuery] = useState("");
+				const matches = ["Apple", "Banana", "Cherry"].filter((fruit) =>
+					fruit.toLowerCase().includes(query.trim().toLowerCase()),
+				);
+
+				return (
+					<MultiSelect.Root>
+						<MultiSelect.Trigger>
+							<MultiSelect.TagValues />
+							<MultiSelect.Input onValueChange={setQuery} placeholder="Select items..." />
+						</MultiSelect.Trigger>
+						<MultiSelect.Content>
+							{matches.length === 0 && <MultiSelect.Empty>No results found</MultiSelect.Empty>}
+							{matches.map((fruit) => (
+								<MultiSelect.Item key={fruit} value={fruit.toLowerCase()}>
+									{fruit}
+								</MultiSelect.Item>
+							))}
+						</MultiSelect.Content>
+					</MultiSelect.Root>
+				);
+			};
+
+			render(<FilteringSubject />);
+
+			const input = screen.getByRole("combobox");
+			await user.click(input);
+			const listbox = await screen.findByRole("listbox");
+			expect(within(listbox).getAllByRole("option")).toHaveLength(3);
+
+			await user.type(input, "ban");
+			expect(within(listbox).getByRole("option", { name: "Banana" })).toBeInTheDocument();
+			expect(within(listbox).queryByRole("option", { name: "Apple" })).not.toBeInTheDocument();
+			expect(screen.queryByText("No results found")).not.toBeInTheDocument();
+
+			await user.clear(input);
+			await user.type(input, "zzz");
+			expect(within(listbox).queryAllByRole("option")).toHaveLength(0);
+			expect(screen.getByText("No results found")).toBeInTheDocument();
+		});
+	});
+
+	describe("trigger mousedown", () => {
+		const renderTrigger = (selectedValue: string[]) =>
+			render(
+				<MultiSelect.Root selectedValue={selectedValue} setSelectedValue={() => {}}>
+					<MultiSelect.Trigger>
+						<MultiSelect.TagValues />
+						<MultiSelect.Input placeholder="Select items..." />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+
+		test("pressing the trigger's own surface focuses the input instead of starting a selection", () => {
+			renderTrigger([]);
+
+			// `fireEvent` returns false when a handler called preventDefault — here that
+			// suppression is what stops the press from dragging a text selection.
+			expect(fireEvent.mouseDown(screen.getByRole("group"))).toBe(false);
+			expect(screen.getByRole("combobox")).toHaveFocus();
+		});
+
+		test("pressing the input itself leaves the browser's caret placement alone", () => {
+			renderTrigger([]);
+
+			expect(fireEvent.mouseDown(screen.getByRole("combobox"))).toBe(true);
+		});
+
+		test("pressing a tag's remove button does not steal focus for the input", () => {
+			renderTrigger(["apple"]);
+
+			fireEvent.mouseDown(screen.getByLabelText("Remove apple"));
+			expect(screen.getByRole("combobox")).not.toHaveFocus();
+		});
+	});
+
 	describe("keyboard navigation", () => {
 		/**
 		 * Stateful wrapper for keyboard nav tests — uses useState so that
@@ -237,6 +354,21 @@ describe("MultiSelect", () => {
 			await user.keyboard("{ArrowRight}");
 			expect(screen.getByRole("combobox")).toHaveFocus();
 		});
+
+		for (const key of ["ArrowDown", "ArrowUp"] as const) {
+			test(`${key} on a tag hands the key to the input instead of scrolling the page`, async () => {
+				render(<Subject />);
+				const tag = getTagOption("banana");
+				tag.focus();
+
+				// `fireEvent` returns false when a handler called preventDefault — that
+				// suppression is what keeps the page from scrolling under the popover.
+				expect(fireEvent.keyDown(tag, { key })).toBe(false);
+				expect(screen.getByRole("combobox")).toHaveFocus();
+				// Focusing the input is what puts the option list in front of the user.
+				expect(await screen.findByRole("listbox")).toBeInTheDocument();
+			});
+		}
 
 		test("Backspace on an empty input removes the last tag", async () => {
 			const user = userEvent.setup();

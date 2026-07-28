@@ -15,6 +15,33 @@ describe("isSafeLocalPath", () => {
 		expect(isSafeLocalPath("//evil.com/foo")).toBe(false);
 	});
 
+	// Regression: the WHATWG URL parser treats "\" as a synonym for "/" under
+	// special schemes, so every one of these resolves to a third-party origin
+	// (`new URL("/\\evil.com", "https://mantle.ngrok.com").href` is
+	// "https://evil.com/") while sailing past the leading-"//" check.
+	test("rejects backslash-disguised protocol-relative URLs", () => {
+		expect(isSafeLocalPath("/\\evil.com")).toBe(false);
+		expect(isSafeLocalPath("/\\evil.com/foo")).toBe(false);
+		expect(isSafeLocalPath("/\\/evil.com")).toBe(false);
+		expect(isSafeLocalPath("/\\\\evil.com")).toBe(false);
+		// a backslash anywhere in the path is rejected, not just at the front
+		expect(isSafeLocalPath("/endpoints\\..\\..\\evil.com")).toBe(false);
+	});
+
+	// The doc comment's own worked example: every rejected form above really
+	// does resolve off-origin, and every accepted form really does stay on it.
+	test("accepted paths stay on the origin the parser resolves them against", () => {
+		const origin = "https://mantle.ngrok.com";
+		for (const path of ["/", "/endpoints", "/endpoints/123", "/endpoints?tab=1"]) {
+			expect(isSafeLocalPath(path)).toBe(true);
+			expect(new URL(path, origin).origin).toBe(origin);
+		}
+		for (const path of ["//evil.com", "/\\evil.com", "/\\/evil.com"]) {
+			expect(isSafeLocalPath(path)).toBe(false);
+			expect(new URL(path, origin).origin).toBe("https://evil.com");
+		}
+	});
+
 	test("rejects absolute URLs and non-http schemes", () => {
 		expect(isSafeLocalPath("https://ngrok.com/foo")).toBe(false);
 		expect(isSafeLocalPath("http://ngrok.com/foo")).toBe(false);

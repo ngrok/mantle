@@ -77,6 +77,34 @@ describe("ValueTween", () => {
 		expect(interpolated).toBeLessThan(20);
 	});
 
+	test("re-targeting a vector containing a gap is a no-op (NaN !== NaN must not read as changed)", () => {
+		// Regression: NaN is the documented gap representation in the series
+		// buffers, and the engine re-targets them on every ingest. Without the
+		// both-gaps equality bail-out, any series with a gap reports "changed"
+		// forever and restarts a full-rate 280ms tween several times a second.
+		const tween = new ValueTween();
+		tween.retarget([0, Number.NaN, 100], { duration: 0, now: 0 });
+		tween.retarget([0, Number.NaN, 100], { duration: 280, now: 0 });
+		expect(tween.active).toBe(false);
+		expect(tween.tick(16)).toBe(false);
+		const values = [...tween.values()];
+		expect(values[0]).toBe(0);
+		expect(values[1]).toBeNaN();
+		expect(values[2]).toBe(100);
+	});
+
+	test("a gap appearing or filling still counts as a change", () => {
+		const gapAppeared = new ValueTween();
+		gapAppeared.retarget([0, 50], { duration: 0, now: 0 });
+		gapAppeared.retarget([0, Number.NaN], { duration: 280, now: 0 });
+		expect(gapAppeared.active).toBe(true);
+
+		const gapFilled = new ValueTween();
+		gapFilled.retarget([0, Number.NaN], { duration: 0, now: 0 });
+		gapFilled.retarget([0, 50], { duration: 280, now: 0 });
+		expect(gapFilled.active).toBe(true);
+	});
+
 	test("snap() finishes at the target", () => {
 		const tween = new ValueTween();
 		tween.retarget([0], { duration: 0, now: 0 });
@@ -242,6 +270,20 @@ describe("ChaseTween", () => {
 		expect(chase.active).toBe(false);
 		expect(chase.tick(16.67)).toBe(false);
 		expect([...chase.values()]).toEqual([5, 10]);
+	});
+
+	test("re-aiming a target containing a gap stays settled (NaN !== NaN must not read as changed)", () => {
+		// The ChaseTween mirror of ValueTween's both-gaps bail-out: a gapped
+		// domain component would otherwise re-activate the chase on every ingest.
+		const chase = new ChaseTween();
+		chase.jump([0, Number.NaN]);
+		chase.aim([0, Number.NaN], 0);
+		expect(chase.active).toBe(false);
+		expect(chase.tick(16.67)).toBe(false);
+
+		// A real change beside the gap still re-aims.
+		chase.aim([10, Number.NaN], 16.67);
+		expect(chase.active).toBe(true);
 	});
 
 	test("a sub-resolution remaining delta snaps instead of wedging the chase", () => {

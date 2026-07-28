@@ -69,12 +69,9 @@ describe("field context helpers", () => {
 			});
 		});
 
-		test("emits both slot IDs even when description is not mounted (dangling IDREFs are ignored by AT)", () => {
+		test("emits both slot IDs even when neither slot is mounted (dangling IDREFs are ignored by AT)", () => {
 			const result = resolveFieldControlAriaProps({
-				context: createFieldItemContext({
-					hasErrors: true,
-					validation: "error",
-				}),
+				context: createFieldItemContext({}),
 			});
 
 			expect(result.ariaProps["aria-describedby"]).toBe("description error");
@@ -94,11 +91,11 @@ describe("field context helpers", () => {
 			});
 		});
 
-		test("ignores child-side aria-invalid — Field.Item is the single source of truth", () => {
-			// The resolver no longer accepts a child-side aria-invalid override.
-			// Context validation alone drives aria-invalid / aria-errormessage.
+		test("leaves aria-invalid unset for non-error validation states", () => {
+			// `defaultAriaInvalid: false` — Field.Control must not stamp
+			// aria-invalid="false" onto controls that resolve their own.
 			const result = resolveFieldControlAriaProps({
-				context: createFieldItemContext({ hasErrors: true }),
+				context: createFieldItemContext({ validation: "warning" }),
 			});
 
 			expect(result).toEqual({
@@ -109,7 +106,7 @@ describe("field context helpers", () => {
 					id: "control",
 					name: "field",
 				},
-				validation: undefined,
+				validation: "warning",
 			});
 		});
 

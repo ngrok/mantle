@@ -145,6 +145,18 @@ type MenuTriggerProps = Omit<
 	icon?: ReactNode;
 };
 
+/** One stable element reference shared by every render, rather than a fresh allocation per render. */
+const defaultMenuTriggerIcon = (
+	<Icon
+		svg={
+			<CaretDownIcon
+				weight="bold"
+				className="size-4 group-data-[state=open]:-rotate-180 transition-transform ease-out duration-150"
+			/>
+		}
+	/>
+);
+
 /**
  * The button that opens the split button dropdown menu.
  *
@@ -178,18 +190,7 @@ const MenuTrigger = ({ icon, ...props }: MenuTriggerProps) => {
 	return (
 		<DropdownMenu.Trigger asChild className="group">
 			<IconButton
-				icon={
-					icon ?? (
-						<Icon
-							svg={
-								<CaretDownIcon
-									weight="bold"
-									className="size-4 group-data-[state=open]:-rotate-180 transition-transform ease-out duration-150"
-								/>
-							}
-						/>
-					)
-				}
+				icon={icon ?? defaultMenuTriggerIcon}
 				appearance="outlined"
 				intent="neutral"
 				size={size}

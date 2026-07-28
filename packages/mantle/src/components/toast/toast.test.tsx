@@ -1,10 +1,54 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { InfoIcon } from "@phosphor-icons/react/Info";
+import { WarningIcon } from "@phosphor-icons/react/Warning";
+import { WarningDiamondIcon } from "@phosphor-icons/react/WarningDiamond";
+import { act, render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
+import type { MouseEvent, ReactNode } from "react";
+import * as ToastPrimitive from "sonner";
+import { describe, expect, test, vi } from "vitest";
+import { preventCloseOnPromptInteraction } from "./prevent-close-on-prompt-interaction.js";
 import type { ToastIntent } from "./toast.js";
-import { Toast } from "./toast.js";
+import { makeToast, Toast, Toaster } from "./toast.js";
 
 function getToastRoot(container: HTMLElement) {
 	return container.querySelector('[data-slot="toast"]');
+}
+
+/** The `d` of every path an svg drew, which is what distinguishes one glyph from another. */
+function pathGeometry(svg: Element | null) {
+	return Array.from(svg?.querySelectorAll("path") ?? [], (path) => path.getAttribute("d"));
+}
+
+/**
+ * Type-level contract, owned by `pnpm typecheck` rather than vitest: making
+ * `intent` optional on `Toast.Root` turns the directive below into an unused
+ * `@ts-expect-error`, which is a compile error. It is deliberately not a
+ * `test()` — no runtime assertion can observe a type, and a constant-true
+ * `expect` would only claim otherwise.
+ */
+void (
+	(
+		// @ts-expect-error -- intent is required on Toast.Root
+		<Toast.Root>
+			<Toast.Message>message</Toast.Message>
+		</Toast.Root>
+	)
+);
+
+/**
+ * Creates a toast without handing it to the real sonner store, and renders the
+ * element sonner would have rendered — which is the only way to get the toast id
+ * context (`Toast.Action`'s dismiss target) that `makeToast` provides.
+ */
+function renderMadeToast(children: ReactNode, toastId: string) {
+	const custom = vi.spyOn(ToastPrimitive.toast, "custom").mockReturnValue(toastId);
+	makeToast(children);
+	const renderToast = custom.mock.lastCall?.[0];
+	if (renderToast == null) {
+		throw new Error("makeToast did not hand a render function to sonner");
+	}
+	return render(renderToast(toastId));
 }
 
 describe("Toast", () => {
@@ -21,6 +65,10 @@ describe("Toast", () => {
 	});
 
 	describe("intent", () => {
+		// Class pins, deliberately: the intent accent bar is a decorative
+		// `aria-hidden` strip with no `data-slot` and no data attribute of its own,
+		// so its background class is the entire observable implementation of
+		// `intent` — nothing else in the DOM differs between tones.
 		test.each([
 			["danger", "bg-danger-600"],
 			["info", "bg-accent-600"],
@@ -36,34 +84,172 @@ describe("Toast", () => {
 			expect(bar).not.toBeNull();
 			expect(bar).toHaveClass(barClass);
 		});
-
-		test("`intent` is required at the type level", () => {
-			const missingIntent = (
-				// @ts-expect-error -- intent is required on Toast.Root
-				<Toast.Root>
-					<Toast.Message>message</Toast.Message>
-				</Toast.Root>
-			);
-			expect(missingIntent).toBeDefined();
-		});
 	});
 
 	describe("Icon", () => {
+		test.each(["danger", "warning", "success", "info"] as const)(
+			`renders a default glyph for every intent, including "%s"`,
+			(intent) => {
+				// an intent missing from the default-icon map throws
+				// "Unreachable Case" instead of rendering, so presence per intent is
+				// the real assertion here
+				const { container } = render(
+					<Toast.Root intent={intent}>
+						<Toast.Icon />
+						<Toast.Message>message</Toast.Message>
+					</Toast.Root>,
+				);
+				const icon = container.querySelector('[data-slot="toast-icon"]');
+				expect(icon).toBeInTheDocument();
+				// the slot is stamped onto the svg element itself
+				expect(icon?.tagName.toLowerCase()).toBe("svg");
+			},
+		);
+
+		// Which glyph each intent maps to is otherwise unobservable: every intent renders the
+		// same `data-slot="toast-icon"` svg, so permuting `defaultIcons` — a green checkmark on
+		// a danger toast — typechecks (`satisfies` only checks keys), lints, and leaves the rest
+		// of this file green. Comparing rendered path geometry against the same phosphor icon
+		// rendered standalone pins the mapping without asserting anything about phosphor's markup.
 		test.each([
-			["danger", "text-danger-600"],
-			["warning", "text-warning-600"],
-			["success", "text-success-600"],
-			["info", "text-accent-600"],
-		] as const)(`renders the default icon for intent="%s" with %s`, (intent, toneClass) => {
+			["danger", WarningIcon],
+			["info", InfoIcon],
+			["success", CheckCircleIcon],
+			["warning", WarningDiamondIcon],
+		] as const)(`renders the %s intent's own default glyph`, (intent, ExpectedIcon) => {
+			const expectedGeometry = pathGeometry(
+				render(<ExpectedIcon weight="fill" />).container.querySelector("svg"),
+			);
+			// a glyph that rendered no path would make the comparison below vacuous
+			expect(expectedGeometry.length).toBeGreaterThan(0);
+
 			const { container } = render(
 				<Toast.Root intent={intent}>
 					<Toast.Icon />
 					<Toast.Message>message</Toast.Message>
 				</Toast.Root>,
 			);
-			const icon = container.querySelector('[data-slot="toast-icon"]');
-			expect(icon).not.toBeNull();
-			expect(icon).toHaveClass(toneClass);
+
+			expect(pathGeometry(container.querySelector('[data-slot="toast-icon"]'))).toEqual(
+				expectedGeometry,
+			);
+		});
+
+		test("throws for an intent outside the union instead of failing inside the icon primitive", () => {
+			// Regression test for the `Object.hasOwn` guard: `defaultIcons` is an object literal,
+			// so a prototype-chain key like "toString" resolves an inherited function. A nullish
+			// check on the looked-up value waves it through to `SvgOnly`, which dies with the
+			// misleading "SvgOnly must be passed a single SVG icon as a JSX tag". React logs the
+			// render error before rethrowing it, so silence that to keep the run readable.
+			vi.spyOn(console, "error").mockImplementation(() => {});
+
+			expect(() =>
+				render(
+					// @ts-expect-error -- the runtime guard exists for untyped callers, who can trip it
+					<Toast.Root intent="toString">
+						<Toast.Icon />
+						<Toast.Message>message</Toast.Message>
+					</Toast.Root>,
+				),
+			).toThrow("Unreachable Case: toString");
+		});
+
+		// Class pins, deliberately, for the same reason as the accent bar above: every
+		// intent renders the same `data-slot="toast-icon"` svg, so the tone class is the
+		// entire observable implementation of the icon's intent. `iconColors` is keyed by
+		// `ToastIntent`, but `satisfies` only checks that the keys exist — permuting the
+		// four values typechecks and lints clean, so nothing but this table sees it.
+		test.each([
+			["danger", "text-danger-600"],
+			["info", "text-accent-600"],
+			["success", "text-success-600"],
+			["warning", "text-warning-600"],
+		] as const)(`renders intent="%s" in the %s tone`, (intent, toneClass) => {
+			const { container } = render(
+				<Toast.Root intent={intent}>
+					<Toast.Icon />
+					<Toast.Message>message</Toast.Message>
+				</Toast.Root>,
+			);
+			expect(container.querySelector('[data-slot="toast-icon"]')).toHaveClass(toneClass);
+		});
+
+		test.each(["danger", "warning", "success", "info"] as const)(
+			`renders a custom svg in place of the default icon for intent="%s"`,
+			(intent) => {
+				// regression: the `info` branch rendered its default glyph
+				// unconditionally, so a consumer-supplied icon was dropped — and
+				// `svg` is destructured, so it never reached the DOM via the rest
+				// spread either.
+				const { container } = render(
+					<Toast.Root intent={intent}>
+						<Toast.Icon svg={<svg data-testid="custom-icon" />} />
+						<Toast.Message>message</Toast.Message>
+					</Toast.Root>,
+				);
+				expect(container.querySelector('[data-testid="custom-icon"]')).toBeInTheDocument();
+			},
+		);
+	});
+
+	describe("Action", () => {
+		test("dismisses the toast it was created for when clicked", async () => {
+			const user = userEvent.setup();
+			const dismiss = vi.spyOn(ToastPrimitive.toast, "dismiss");
+			renderMadeToast(
+				<Toast.Root intent="info">
+					<Toast.Message>File uploaded</Toast.Message>
+					<Toast.Action>View file</Toast.Action>
+				</Toast.Root>,
+				"upload-toast",
+			);
+
+			await user.click(screen.getByRole("button", { name: "View file" }));
+
+			expect(dismiss).toHaveBeenCalledTimes(1);
+			// the id comes from the render callback sonner invokes, not from the
+			// caller — dismissing the wrong id would leave the toast on screen
+			expect(dismiss).toHaveBeenLastCalledWith("upload-toast");
+		});
+
+		test("runs a consumer onClick and still dismisses", async () => {
+			const user = userEvent.setup();
+			const dismiss = vi.spyOn(ToastPrimitive.toast, "dismiss");
+			const onClick = vi.fn<(event: MouseEvent<HTMLButtonElement>) => void>();
+			renderMadeToast(
+				<Toast.Root intent="success">
+					<Toast.Message>Changes saved</Toast.Message>
+					<Toast.Action onClick={onClick}>Undo</Toast.Action>
+				</Toast.Root>,
+				"save-toast",
+			);
+
+			await user.click(screen.getByRole("button", { name: "Undo" }));
+
+			expect(onClick).toHaveBeenCalledTimes(1);
+			expect(dismiss).toHaveBeenCalledTimes(1);
+			expect(dismiss).toHaveBeenLastCalledWith("save-toast");
+		});
+
+		test("keeps the toast open when onClick calls preventDefault", async () => {
+			const user = userEvent.setup();
+			const dismiss = vi.spyOn(ToastPrimitive.toast, "dismiss");
+			// the documented opt-out: a retry action keeps its own toast on screen
+			const onClick = vi.fn<(event: MouseEvent<HTMLButtonElement>) => void>((event) => {
+				event.preventDefault();
+			});
+			renderMadeToast(
+				<Toast.Root intent="danger">
+					<Toast.Message>Upload failed</Toast.Message>
+					<Toast.Action onClick={onClick}>Retry</Toast.Action>
+				</Toast.Root>,
+				"retry-toast",
+			);
+
+			await user.click(screen.getByRole("button", { name: "Retry" }));
+
+			expect(onClick).toHaveBeenCalledTimes(1);
+			expect(dismiss).not.toHaveBeenCalled();
 		});
 	});
 
@@ -73,14 +259,114 @@ describe("Toast", () => {
 				<Toast.Message>message</Toast.Message>
 			</Toast.Root>,
 		);
-		// The intent bar must overlap the toast border: overflow-hidden on the
-		// root would clip the bar's -inset-px overhang (see the warning comment
-		// in Toast.Root's className in toast.tsx).
+		// Class pin for a two-class contract that spans two elements: the bar's
+		// `-inset-px` overhang only reaches over the border while the root does NOT
+		// clip it (see the warning comment in Toast.Root's className in toast.tsx).
+		// happy-dom loads no Tailwind, so no computed style can observe the clip.
 		const root = getToastRoot(container);
 		expect(root).toBeInTheDocument();
 		expect(root).not.toHaveClass("overflow-hidden");
-		const bar = container.querySelector('[aria-hidden="true"]');
+		// queried through the root: the overhang only clears the border from inside
+		const bar = root?.querySelector('[aria-hidden="true"]');
 		expect(bar).not.toBeNull();
 		expect(bar).toHaveClass("-inset-px");
+	});
+});
+
+describe("makeToast", () => {
+	const toastNode = (
+		<Toast.Root intent="info">
+			<Toast.Message>message</Toast.Message>
+		</Toast.Root>
+	);
+
+	function spyOnCustom() {
+		return vi.spyOn(ToastPrimitive.toast, "custom").mockReturnValue("stub-toast");
+	}
+
+	test.each([
+		{ case: "a duration of 0 keeps the toast open", duration_ms: 0 },
+		{ case: "a negative duration keeps the toast open", duration_ms: -1 },
+	])("$case", ({ duration_ms }) => {
+		const custom = spyOnCustom();
+
+		makeToast(toastNode, { duration_ms });
+
+		expect(custom).toHaveBeenCalledTimes(1);
+		// <= 0 is documented as "until manually dismissed"; handing sonner the
+		// raw 0 would make it inherit the Toaster default instead
+		expect(custom.mock.lastCall?.[1]).toStrictEqual({
+			duration: Number.POSITIVE_INFINITY,
+			unstyled: true,
+		});
+	});
+
+	test("passes a positive duration through untouched", () => {
+		const custom = spyOnCustom();
+
+		makeToast(toastNode, { duration_ms: 5000 });
+
+		expect(custom).toHaveBeenCalledTimes(1);
+		expect(custom.mock.lastCall?.[1]).toStrictEqual({ duration: 5000, unstyled: true });
+	});
+
+	test("leaves the duration unset so the Toaster's default applies, and omits the id key", () => {
+		const custom = spyOnCustom();
+
+		makeToast(toastNode);
+
+		expect(custom).toHaveBeenCalledTimes(1);
+		// `id` must be ABSENT rather than undefined — an explicit `id: undefined`
+		// breaks sonner's toast identity
+		expect(custom.mock.lastCall?.[1]).toStrictEqual({ duration: undefined, unstyled: true });
+	});
+
+	test("forwards a custom id", () => {
+		const custom = spyOnCustom();
+
+		makeToast(toastNode, { id: "billing-warning" });
+
+		expect(custom).toHaveBeenCalledTimes(1);
+		expect(custom.mock.lastCall?.[1]).toStrictEqual({
+			duration: undefined,
+			id: "billing-warning",
+			unstyled: true,
+		});
+	});
+
+	test("returns the id sonner assigns", () => {
+		const custom = spyOnCustom();
+		expect(makeToast(toastNode)).toBe("stub-toast");
+		expect(custom).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("Toaster", () => {
+	test("marks its container as an overlay prompt, so interacting with a toast cannot close a modal", async () => {
+		render(<Toaster />);
+		// sonner only renders the list (and so the mantle classes) once a toast
+		// exists, so create a real one
+		act(() => {
+			makeToast(
+				<Toast.Root intent="info">
+					<Toast.Message>File uploaded</Toast.Message>
+					<Toast.Action>View file</Toast.Action>
+				</Toast.Root>,
+			);
+		});
+		const action = await screen.findByRole("button", { name: "View file" });
+
+		const list = document.querySelector("[data-sonner-toaster]");
+		expect(list).not.toBeNull();
+		expect(list).toHaveClass("overlay-prompt");
+		expect(list).toContainElement(action);
+
+		// the other half of the contract: the guard every mantle modal routes its
+		// outside-interaction events through must match that class, or clicking a
+		// toast action would dismiss the dialog underneath it
+		const pointerDown = new MouseEvent("pointerdown", { bubbles: true, cancelable: true });
+		action.dispatchEvent(pointerDown);
+		preventCloseOnPromptInteraction(pointerDown);
+		expect(pointerDown.defaultPrevented).toBe(true);
 	});
 });

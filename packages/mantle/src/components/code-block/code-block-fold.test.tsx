@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
+import mantleCss from "../../mantle.css?raw";
 import { CodeBlock } from "./code-block.js";
 import { computeJsonFoldRanges, type FoldableRange } from "./compute-json-fold-ranges.js";
 import { decorateHighlightedHtml } from "./decorate-highlighted-html.js";
@@ -39,7 +40,7 @@ function makeJsonValue(code: string, foldableRanges?: FoldableRange[]) {
 
 /**
  * Builds a `MantleCodeBlockValue` from arbitrary code + caller-supplied
- * fold ranges. Used by the JSX/HTML/CSS browser tests so they can exercise
+ * fold ranges. Used by the JSX/HTML/CSS tests so they can exercise
  * the runtime against any fold range layout the AST strategies produce
  * without taking a build-time dependency on the highlighter package.
  */
@@ -64,7 +65,16 @@ function makeFoldedValue(
 
 const SIMPLE_JSON = ["{", '  "a": [', "    1,", "    2", "  ]", "}"].join("\n");
 
-describe("CodeBlock JSON folding (browser)", () => {
+/** Returns the `<code>` element the fold runtime keeps its state on. */
+function getFoldCodeElement(): HTMLElement {
+	const codeElement = document.querySelector("pre[data-slot='code-block-code'] code");
+	if (!(codeElement instanceof HTMLElement)) {
+		throw new Error("expected a rendered CodeBlock.Code <code> element");
+	}
+	return codeElement;
+}
+
+describe("CodeBlock JSON folding", () => {
 	test("renders a semantic fold toggle button on opener lines", () => {
 		render(
 			<CodeBlock.Root>
@@ -353,7 +363,7 @@ describe("CodeBlock JSON folding (browser)", () => {
 		expect(arrayButton).toHaveAttribute("aria-expanded", "false");
 	});
 
-	test("a single click handler is shared across all fold toggles", async () => {
+	test("a fold-toggle click without data-fold-line is a no-op", async () => {
 		const user = userEvent.setup();
 		render(
 			<CodeBlock.Root>
@@ -363,16 +373,51 @@ describe("CodeBlock JSON folding (browser)", () => {
 			</CodeBlock.Root>,
 		);
 
-		// Sanity: clicking on a button that does NOT have a data-fold-line is a no-op.
+		const codeElement = getFoldCodeElement();
 		const fakeButton = document.createElement("button");
+		fakeButton.type = "button";
 		fakeButton.className = "mantle-code-fold-toggle";
-		const codeElement = document.querySelector("pre[data-slot='code-block-code']");
-		expect(codeElement).not.toBeNull();
-		codeElement?.querySelector("code")?.appendChild(fakeButton);
+		codeElement.appendChild(fakeButton);
 
 		await user.click(fakeButton);
-		// No exception, no aria-expanded mutation.
+
+		// The delegated handler bails before writing any state for a toggle that
+		// addresses no region.
 		expect(fakeButton).not.toHaveAttribute("aria-expanded");
+		expect(codeElement).not.toHaveAttribute("data-folded-regions");
+		expect(document.querySelector('[data-line-number="3"]')).not.toHaveAttribute(
+			"data-fold-hidden",
+		);
+	});
+
+	test("the delegated handler also serves toggles inserted after mount", async () => {
+		const user = userEvent.setup();
+		render(
+			<CodeBlock.Root>
+				<CodeBlock.Body>
+					<CodeBlock.Code value={makeJsonValue(SIMPLE_JSON)} />
+				</CodeBlock.Body>
+			</CodeBlock.Root>,
+		);
+
+		// A per-toggle React `onClick` could never reach a button appended to the
+		// `<code>` after mount; the single delegated listener on the `<pre>` does,
+		// which is the invariant `fold-runtime.ts` exists to keep.
+		const codeElement = getFoldCodeElement();
+		const lateButton = document.createElement("button");
+		lateButton.type = "button";
+		lateButton.className = "mantle-code-fold-toggle";
+		lateButton.dataset.foldLine = "2";
+		codeElement.appendChild(lateButton);
+
+		await user.click(lateButton);
+
+		expect(lateButton).toHaveAttribute("aria-expanded", "false");
+		expect(codeElement).toHaveAttribute("data-folded-regions", "2");
+		expect(document.querySelector('[data-line-number="3"]')).toHaveAttribute(
+			"data-fold-hidden",
+			"true",
+		);
 	});
 
 	test("custom fold IDs with spaces and quotes still toggle their region", async () => {
@@ -403,7 +448,7 @@ describe("CodeBlock JSON folding (browser)", () => {
 	});
 });
 
-describe("CodeBlock JSX folding (browser)", () => {
+describe("CodeBlock JSX folding", () => {
 	const JSX_SOURCE = ["<Outer>", "  <Inner>", "    text", "  </Inner>", "</Outer>"].join("\n");
 
 	const JSX_RANGES: FoldableRange[] = [
@@ -451,5 +496,28 @@ describe("CodeBlock JSX folding (browser)", () => {
 		const buttons = screen.getAllByRole("button", { name: /toggle code folding/i });
 		// One per JSX fold (outer + inner element).
 		expect(buttons).toHaveLength(2);
+	});
+});
+
+// The runtime only writes attributes — `data-fold-hidden` on a line and
+// `aria-expanded` on its toggle. The visible half of folding lives entirely in
+// `mantle.css`, and no test environment here loads a stylesheet, so pin the two
+// declarations those attributes are wired to. Editing either selector in
+// mantle.css without updating this test means carets rotate while nothing
+// actually collapses.
+describe("mantle.css fold rules", () => {
+	test("a line marked data-fold-hidden is display:none", () => {
+		expect(mantleCss).toMatch(
+			/\.mantle-code-line\[data-fold-hidden="true"\]\s*\{\s*display:\s*none/,
+		);
+	});
+
+	test("the fold ellipsis is revealed only while its own toggle is collapsed", () => {
+		// `.mantle-code-fold-ellipsis` is `display: none` by default...
+		expect(mantleCss).toMatch(/\.mantle-code-fold-ellipsis\s*\{\s*display:\s*none/);
+		// ...and only a collapsed toggle on the same line reveals it.
+		expect(mantleCss).toMatch(
+			/\.mantle-code-line:has\(>\s*\.mantle-code-fold-toggle\[aria-expanded="false"\]\)\s*\.mantle-code-fold-ellipsis\s*\{\s*display:\s*inline/,
+		);
 	});
 });

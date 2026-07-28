@@ -1,5 +1,7 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { userEvent } from "@testing-library/user-event";
+import { useState } from "react";
+import { describe, expect, test, vi } from "vitest";
 import { isItemOpen, nextOpenValues, toOpenValues } from "./accordion-state.js";
 import { Accordion } from "./accordion.js";
 
@@ -109,23 +111,166 @@ describe("Accordion", () => {
 		expect(triggerA.closest('[data-slot="accordion-item"]')).toHaveAttribute("role", "group");
 	});
 
-	test("trigger reflects open state via aria-expanded", () => {
+	test("trigger reflects open state via aria-expanded and data-state", () => {
 		renderExample("a");
-		expect(screen.getByRole("button", { name: /Trigger A/ })).toHaveAttribute(
+		const triggerA = screen.getByRole("button", { name: /Trigger A/ });
+		const triggerB = screen.getByRole("button", { name: /Trigger B/ });
+
+		expect(triggerA).toHaveAttribute("aria-expanded", "true");
+		expect(triggerB).toHaveAttribute("aria-expanded", "false");
+
+		// `data-state` on the trigger is the documented styling hook consumers target
+		// (`data-state-open:*`), and it's what rotates `Accordion.TriggerIcon` via
+		// `group-data-state-open:rotate-180` — so it has to track open state too.
+		expect(triggerA).toHaveAttribute("data-state", "open");
+		expect(triggerB).toHaveAttribute("data-state", "closed");
+	});
+
+	test('type="single" emits the newly open value, then "" when it collapses', async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(value: string) => void>();
+
+		function Controlled() {
+			const [value, setValue] = useState("");
+			return (
+				<Accordion.Root
+					type="single"
+					value={value}
+					onValueChange={(next) => {
+						onValueChange(next);
+						setValue(next);
+					}}
+				>
+					<Accordion.Item value="a">
+						<Accordion.Trigger>Trigger A</Accordion.Trigger>
+						<Accordion.Content>
+							<Accordion.Body>Body of section A</Accordion.Body>
+						</Accordion.Content>
+					</Accordion.Item>
+					<Accordion.Item value="b">
+						<Accordion.Trigger>Trigger B</Accordion.Trigger>
+						<Accordion.Content>
+							<Accordion.Body>Body of section B</Accordion.Body>
+						</Accordion.Content>
+					</Accordion.Item>
+				</Accordion.Root>
+			);
+		}
+
+		render(<Controlled />);
+
+		await user.click(screen.getByRole("button", { name: "Trigger B" }));
+
+		// Single mode's callback receives a bare string, not an array — a consumer
+		// holding `useState("")` depends on it.
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenLastCalledWith("b");
+		expect(screen.getByRole("button", { name: "Trigger B" })).toHaveAttribute(
 			"aria-expanded",
 			"true",
 		);
-		expect(screen.getByRole("button", { name: /Trigger B/ })).toHaveAttribute(
+
+		await user.click(screen.getByRole("button", { name: "Trigger B" }));
+
+		// Collapsing emits `""` rather than `undefined`: `undefined` would flip the
+		// root to uncontrolled and silently stop honoring the consumer's state.
+		expect(onValueChange).toHaveBeenCalledTimes(2);
+		expect(onValueChange).toHaveBeenLastCalledWith("");
+		expect(screen.getByRole("button", { name: "Trigger B" })).toHaveAttribute(
 			"aria-expanded",
 			"false",
 		);
 	});
 
+	test('type="multiple" emits the full list of open values', async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(value: string[]) => void>();
+
+		function Controlled() {
+			const [value, setValue] = useState<string[]>([]);
+			return (
+				<Accordion.Root
+					type="multiple"
+					value={value}
+					onValueChange={(next) => {
+						onValueChange(next);
+						setValue(next);
+					}}
+				>
+					<Accordion.Item value="a">
+						<Accordion.Trigger>Trigger A</Accordion.Trigger>
+						<Accordion.Content>
+							<Accordion.Body>Body of section A</Accordion.Body>
+						</Accordion.Content>
+					</Accordion.Item>
+					<Accordion.Item value="b">
+						<Accordion.Trigger>Trigger B</Accordion.Trigger>
+						<Accordion.Content>
+							<Accordion.Body>Body of section B</Accordion.Body>
+						</Accordion.Content>
+					</Accordion.Item>
+				</Accordion.Root>
+			);
+		}
+
+		render(<Controlled />);
+
+		await user.click(screen.getByRole("button", { name: "Trigger A" }));
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenLastCalledWith(["a"]);
+
+		await user.click(screen.getByRole("button", { name: "Trigger B" }));
+		expect(onValueChange).toHaveBeenCalledTimes(2);
+		expect(onValueChange).toHaveBeenLastCalledWith(["a", "b"]);
+
+		await user.click(screen.getByRole("button", { name: "Trigger A" }));
+		expect(onValueChange).toHaveBeenCalledTimes(3);
+		expect(onValueChange).toHaveBeenLastCalledWith(["b"]);
+	});
+
+	// Uncontrolled roots still notify the consumer, and their own state is what
+	// drives the open/closed rendering.
+	test("uncontrolled roots toggle their own state and still call onValueChange", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(value: string) => void>();
+
+		render(
+			<Accordion.Root type="single" defaultValue="" onValueChange={onValueChange}>
+				<Accordion.Item value="a">
+					<Accordion.Trigger>Trigger A</Accordion.Trigger>
+					<Accordion.Content>
+						<Accordion.Body>Body of section A</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+			</Accordion.Root>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Trigger A" }));
+
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenLastCalledWith("a");
+		expect(screen.getByRole("button", { name: "Trigger A" })).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+	});
+
 	test("keeps collapsed content in the DOM so find-in-page can reveal it", () => {
 		renderExample("a");
-		// Section B is collapsed, but its body text must still exist in the DOM —
-		// this is the entire point of the component (browser find-in-page support).
-		expect(screen.getByText("Body of section B")).toBeInTheDocument();
+		// Section B is collapsed — asserted here so the presence check below can't pass
+		// for the trivial reason that the section is open.
+		expect(screen.getByRole("button", { name: /Trigger B/ })).toHaveAttribute(
+			"aria-expanded",
+			"false",
+		);
+		const collapsedBody = screen.getByText("Body of section B");
+		expect(collapsedBody.closest('[data-slot="accordion-content"]')).toHaveAttribute(
+			"data-state",
+			"closed",
+		);
+		// Its body text still exists in the DOM — this is the entire point of the
+		// component (browser find-in-page support).
+		expect(collapsedBody).toBeInTheDocument();
 	});
 
 	test("throws when an item part is rendered outside of Root", () => {
@@ -205,13 +350,13 @@ describe("Accordion", () => {
 		expect(root).not.toHaveAttribute("defaultValue");
 	});
 
-	test("Body marks the content region with data-slot and forwards a consumer className", () => {
+	test("Body is the styleable content slot and a consumer className beats its padding", () => {
 		render(
 			<Accordion.Root type="single" defaultValue="a">
 				<Accordion.Item value="a">
 					<Accordion.Trigger>Trigger A</Accordion.Trigger>
 					<Accordion.Content>
-						<Accordion.Body className="custom-body-class" data-testid="body-a">
+						<Accordion.Body className="pb-0 custom-body-class" data-testid="body-a">
 							Body of section A
 						</Accordion.Body>
 					</Accordion.Content>
@@ -219,12 +364,13 @@ describe("Accordion", () => {
 			</Accordion.Root>,
 		);
 		const body = screen.getByTestId("body-a");
-		// Assert the stable contract: Body is the styleable content slot and forwards
-		// a consumer className. We deliberately avoid asserting specific Tailwind
-		// utilities (e.g. `pb-4`) — those are implementation details that can change,
-		// and `cx`'s last-wins merge has its own dedicated tests.
 		expect(body).toHaveAttribute("data-slot", "accordion-body");
-		expect(body).toHaveClass("custom-body-class");
+		// The documented override contract: `Body` retunes its padding through
+		// `className` (`pb-0`, `px-6`, …), which means the consumer's class must both
+		// arrive and displace the default it conflicts with — the outcome of `cx`'s
+		// tailwind-merge pass, not a list of Body's internal defaults.
+		expect(body).toHaveClass("pb-0", "custom-body-class");
+		expect(body).not.toHaveClass("pb-4");
 	});
 
 	test("defaults to multiple mode when `type` is omitted (sections open independently)", () => {
