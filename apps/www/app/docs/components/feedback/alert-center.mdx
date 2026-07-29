@@ -40,6 +40,7 @@ one) to watch the next-highest severity promote into the bar.
 import { Alert } from "@ngrok/mantle/alert";
 import { AlertCenter } from "@ngrok/mantle/alert-center";
 import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Main } from "@ngrok/mantle/main";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { useState } from "react";
@@ -83,12 +84,15 @@ export function Shell() {
 						)}
 					</AlertCenter.Root>
 				</AppLayout.Notice>
-				<AppLayout.Body>
+				<AppLayout.Workspace>
 					<Sidebar.Nav aria-label="Main">{/* … */}</Sidebar.Nav>
-					<AppLayout.Inset>
-						<AppLayout.Content>{/* … */}</AppLayout.Content>
-					</AppLayout.Inset>
-				</AppLayout.Body>
+					<AppLayout.Content>
+						<AppLayout.Header>{/* … */}</AppLayout.Header>
+						<AppLayout.Body asChild>
+							<Main>{/* … */}</Main>
+						</AppLayout.Body>
+					</AppLayout.Content>
+				</AppLayout.Workspace>
 			</AppLayout.Root>
 		</Sidebar.Root>
 	);
@@ -429,6 +433,78 @@ register from effects, avoid authoring them inside `Suspense` boundaries that ca
 unregisters the alert and the bar animates out), and server-rendered HTML contains no bar — it enters with
 its height animation after hydration, the same entrance every arriving alert gets by design.
 
+### Where `AlertCenter.Root` goes
+
+Every example on this page puts `AlertCenter.Root` inside `AppLayout.Notice` with its items as siblings,
+which is all a **shell-authored** alert needs. But projection's whole point is that a **route** can author an
+alert — and `AlertCenter.Item` throws outside a `Root`, so for that to work `Root` has to be an ancestor of
+whatever renders your routes.
+
+So wrap the shell, and leave only the chrome in the notice slot:
+
+```tsx
+export function Shell() {
+	return (
+		<AlertCenter.Root>
+			<Sidebar.Root>
+				<AppLayout.Root className="fixed inset-0">
+					<SkipToMainLink />
+					<AppLayout.Notice>
+						{/* only the chrome lives here — items are authored anywhere below */}
+						<AlertCenter.Bar />
+						<AlertCenter.Content />
+					</AppLayout.Notice>
+					<AppLayout.Workspace>
+						<Sidebar.Nav aria-label="Main">{/* … */}</Sidebar.Nav>
+						<AppLayout.Content>
+							<AppLayout.Header>
+								<Sidebar.Trigger />
+							</AppLayout.Header>
+							<AppLayout.Body asChild>
+								<Main>
+									<Outlet />
+								</Main>
+							</AppLayout.Body>
+						</AppLayout.Content>
+					</AppLayout.Workspace>
+				</AppLayout.Root>
+			</Sidebar.Root>
+		</AlertCenter.Root>
+	);
+}
+```
+
+Any route below can now raise an alert into the shell's bar by rendering an item — no shell state, no prop
+drilling, no context of your own:
+
+```tsx
+// app/routes/endpoints.$endpointId.tsx
+export default function EndpointRoute({ loaderData }: Route.ComponentProps) {
+	return (
+		<>
+			{loaderData.endpoint.hasDnsError && (
+				<AlertCenter.Item id="dns-error" intent="warning">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>
+							This domain still needs DNS targets <a href="/domains">Review domains</a>
+						</Alert.Title>
+					</Alert.Content>
+				</AlertCenter.Item>
+			)}
+			<EndpointDetail endpoint={loaderData.endpoint} />
+		</>
+	);
+}
+```
+
+The item unmounts with the route, so the alert clears on navigation for free.
+
+One consequence worth knowing: `AlertCenter.Root` renders the `sr-only` live region at its **own** position
+in the tree, so hoisting it also moves that element out of the notice slot. It is visually hidden either way,
+and it must stay mounted to announce anything, so this is harmless — but it is why `Root` is renderless rather
+than a wrapper you can style.
+
 ## A single alert
 
 With exactly one alert there is nothing hidden, so the bar shows it inline with its CTA and omits the
@@ -583,3 +659,41 @@ styling (e.g. Tailwind's `in-data-[placement=bar]:hidden` inside authored childr
 | `data-slot`      | `alert-center-bar` \| `alert-center-item` | The bar banner vs an expansion row.                |
 | `data-placement` | `bar` \| `list`                           | Where the item's children are currently rendering. |
 | `data-alert-id`  | the item's `id`                           | Per-alert styling and testing hook.                |
+
+## Testing
+
+**An alert's title is in the accessibility tree more than once, by design.** `AlertCenter.Root` mounts an
+`sr-only` polite live region that headlines with the top alert's title, and the bar renders that same title
+visibly — and if the item composes an `AlertCenter.DismissIconButton`, its accessible name (`"Dismiss
+&lt;title&gt;"`) is a third copy. None of them is `aria-hidden`: a polite region has to pre-exist in the tree to
+announce anything, and hiding the visible title would break the bar.
+
+So `getByText(/Payment failed/)` throws `Found multiple elements`. **Scope the query instead of matching text
+globally.** Four patterns cover everything:
+
+```tsx
+// 1. Assert the bar's content by scoping to its data-slot
+const bar = container.querySelector('[data-slot="alert-center-bar"]');
+expect(bar).toContainElement(screen.getByRole("heading", { level: 5, name: /Payment failed/ }));
+
+// 2. Or assert text on the element itself rather than querying the document
+expect(bar).toHaveTextContent("Payment failed");
+
+// 3. Read the live region through its role, with an ANCHORED regex — an
+//    unanchored one also matches the multi-alert "…, and 2 more alerts" form
+expect(screen.getByRole("status")).toHaveTextContent(/^Payment failed$/);
+expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
+
+// 4. Reach controls by role + accessible name
+await user.click(screen.getByRole("button", { name: "Dismiss Payment failed" }));
+```
+
+`getByText` is still fine for a **description**, which the live region never contains — it headlines with the
+title only.
+
+Two more things worth knowing when writing these tests:
+
+- The live region's text is derived from the bar's rendered DOM, not from your props, so it settles in an
+  effect. Assert it with `await waitFor(...)` if you are checking it immediately after a state change.
+- Use `data-alert-id` to target one specific alert when several are registered, and `data-placement` to
+  assert _where_ an item's children ended up (`bar` vs `list`) rather than inferring it from ordering.

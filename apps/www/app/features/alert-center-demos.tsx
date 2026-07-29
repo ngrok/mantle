@@ -119,7 +119,7 @@ function DemoAlerts({
  *
  * Renders as an entire framed-preview document (see preview-registry.ts), so it
  * composes exactly like a real app shell: pinned with `fixed inset-0`, a
- * `SkipToMainLink`, and `AppLayout.Content` as the real `Main` landmark.
+ * `SkipToMainLink`, and `AppLayout.Body` as the real `Main` landmark.
  */
 export function AlertCenterShellDemo() {
 	const [pathname, setPathname] = useState("/endpoints");
@@ -141,7 +141,7 @@ export function AlertCenterShellDemo() {
 						<DemoAlerts dismissed={dismissed} onDismiss={dismiss} />
 					</AlertCenter.Root>
 				</AppLayout.Notice>
-				<AppLayout.Body>
+				<AppLayout.Workspace>
 					<Sidebar.Nav aria-label="Main">
 						<Sidebar.Header>
 							<span className="text-strong px-2 text-base font-semibold">Acme Corp</span>
@@ -184,36 +184,36 @@ export function AlertCenterShellDemo() {
 						</Sidebar.Footer>
 					</Sidebar.Nav>
 
-					<AppLayout.Inset>
-						<AppLayout.Content asChild>
+					<AppLayout.Content>
+						<AppLayout.Header>
+							<Sidebar.Trigger />
+							<Breadcrumb.Root>
+								<Breadcrumb.List>
+									<Breadcrumb.Item>
+										<Breadcrumb.Link href="/" onClick={(event) => event.preventDefault()}>
+											Acme Corp
+										</Breadcrumb.Link>
+									</Breadcrumb.Item>
+									<Breadcrumb.Separator />
+									<Breadcrumb.Item>
+										<Breadcrumb.Page>{currentLabel}</Breadcrumb.Page>
+									</Breadcrumb.Item>
+								</Breadcrumb.List>
+							</Breadcrumb.Root>
+							<Button
+								type="button"
+								appearance="outlined"
+								intent="neutral"
+								className="ml-auto"
+								size="sm"
+								disabled={dismissed.size === 0}
+								onClick={() => setDismissed(new Set())}
+							>
+								Reset alerts
+							</Button>
+						</AppLayout.Header>
+						<AppLayout.Body asChild>
 							<Main>
-								<AppLayout.Header>
-									<Sidebar.Trigger />
-									<Breadcrumb.Root>
-										<Breadcrumb.List>
-											<Breadcrumb.Item>
-												<Breadcrumb.Link href="/" onClick={(event) => event.preventDefault()}>
-													Acme Corp
-												</Breadcrumb.Link>
-											</Breadcrumb.Item>
-											<Breadcrumb.Separator />
-											<Breadcrumb.Item>
-												<Breadcrumb.Page>{currentLabel}</Breadcrumb.Page>
-											</Breadcrumb.Item>
-										</Breadcrumb.List>
-									</Breadcrumb.Root>
-									<Button
-										type="button"
-										appearance="outlined"
-										intent="neutral"
-										className="ml-auto"
-										size="sm"
-										disabled={dismissed.size === 0}
-										onClick={() => setDismissed(new Set())}
-									>
-										Reset alerts
-									</Button>
-								</AppLayout.Header>
 								<div className="space-y-4 p-6">
 									<p className="text-muted text-sm">
 										The alert bar is composed in the top-of-window notice slot. Choose the
@@ -225,15 +225,15 @@ export function AlertCenterShellDemo() {
 												{currentLabel} row {index + 1}
 											</p>
 											<p className="text-muted text-sm">
-												The content card is the only scroll container — the page never scrolls.
+												The page region is the only scroll container — the document never scrolls.
 											</p>
 										</div>
 									))}
 								</div>
 							</Main>
-						</AppLayout.Content>
-					</AppLayout.Inset>
-				</AppLayout.Body>
+						</AppLayout.Body>
+					</AppLayout.Content>
+				</AppLayout.Workspace>
 			</AppLayout.Root>
 		</Sidebar.Root>
 	);

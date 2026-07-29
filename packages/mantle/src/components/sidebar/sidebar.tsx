@@ -20,11 +20,13 @@ import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { isApplePlatform } from "../../utils/platform.js";
 import type { IconButtonProps } from "../button/icon-button.js";
 import { IconButton } from "../button/icon-button.js";
 import { Separator } from "../separator/separator.js";
 import { Sheet } from "../sheet/index.js";
 import { Slot } from "../slot/index.js";
+import { Tooltip } from "../tooltip/index.js";
 
 /**
  * The breakpoints below which `Sidebar.Nav` swaps from the inline desktop
@@ -186,10 +188,18 @@ type SidebarRootProps = {
 	mobileBreakpoint?: SidebarMobileBreakpoint;
 	/**
 	 * Toggle the sidebar with `⌘B` (macOS) / `Ctrl+B` (Windows/Linux). The
-	 * shortcut requires exactly the platform modifier + `b` — combinations with
-	 * `Shift`/`Alt` (e.g. the browser's own `⌘⇧B`) are left alone. Set `false`
-	 * to opt out, e.g. when the app embeds a rich-text editor where `⌘B` means
-	 * bold.
+	 * shortcut requires exactly the platform modifier + `b`: `⌘` on Apple
+	 * platforms and `Ctrl` everywhere else, resolved per host — the two never
+	 * substitute for each other, so macOS's native `Ctrl+B` ("move the caret
+	 * back one character") is left alone. Combinations with `Shift`/`Alt` (e.g.
+	 * the browser's own `⌘⇧B`) pass through too.
+	 *
+	 * The shortcut is also ignored while focus is in a text-editing or form
+	 * control — an `<input>`, `<textarea>`, `<select>`, or any `contenteditable`
+	 * host — because the chord is usually already bound there (`⌘B` is "bold")
+	 * and this is a `window` listener that calls `preventDefault()`. That covers
+	 * embedded editors like Monaco and CodeMirror, which attach to exactly those
+	 * elements. Set `false` to opt out entirely.
 	 *
 	 * The shortcut has exactly one owner per window: the first mounted root
 	 * with the shortcut enabled. Additional roots (nested or siblings) queue
@@ -215,6 +225,25 @@ const SIDEBAR_KEYBOARD_SHORTCUT = "b";
  * exclusivity is exactly the invariant it exists to hold.
  */
 const keyboardShortcutClaims: Array<symbol> = [];
+
+/**
+ * Whether an event target is a text-editing or form control that owns its own
+ * keyboard handling. A window-level shortcut that `preventDefault()`s must skip
+ * these: the platform modifier + a letter is nearly always already bound there
+ * (`⌘B` is "bold" in every rich-text editor), and embedded editors like Monaco
+ * or CodeMirror attach to exactly these elements.
+ */
+function isTextEditingTarget(target: EventTarget | null): boolean {
+	if (!(target instanceof HTMLElement)) {
+		return false;
+	}
+	return (
+		target.isContentEditable ||
+		target.tagName === "INPUT" ||
+		target.tagName === "TEXTAREA" ||
+		target.tagName === "SELECT"
+	);
+}
 
 /**
  * Claims a place in the keyboard-shortcut ownership queue. The returned
@@ -337,8 +366,11 @@ const Root = ({
 		}
 	}, [isMobile, open, openMobile, setOpen, setOpenMobile]);
 
-	// ⌘B / Ctrl+B toggles the sidebar (shadcn-compatible). Exact-modifier
-	// match: Shift/Alt combinations (e.g. the browser's own ⌘⇧B) pass through.
+	// ⌘B (Apple) / Ctrl+B (elsewhere) toggles the sidebar (shadcn-compatible).
+	// Exact-modifier match: Shift/Alt combinations (e.g. the browser's own ⌘⇧B)
+	// pass through, and the two platform modifiers never substitute for each
+	// other — accepting either would hijack macOS's native Ctrl+B ("move the
+	// caret back one character"), which every macOS text field binds.
 	// Ownership: only the registry's first claimant handles the keypress, so
 	// multiple mounted roots (nested or siblings) never toggle together.
 	//
@@ -354,16 +386,28 @@ const Root = ({
 			return;
 		}
 		const claim = claimKeyboardShortcut();
+		// Resolved once per mount rather than per keypress: the host platform
+		// cannot change while the window is open. Reading it here (in an effect)
+		// and never during render is also what keeps it out of hydration.
+		const isApple = isApplePlatform();
 		const handleKeyDown = (event: KeyboardEvent) => {
 			if (!claim.isOwner()) {
 				return;
 			}
-			const hasPlatformModifier = event.metaKey || event.ctrlKey;
+			// Never steal the chord from a text-editing context. This listener is
+			// on `window` in the bubble phase and calls preventDefault(), so
+			// without the guard it reaches inside every input and embedded editor.
+			if (isTextEditingTarget(event.target)) {
+				return;
+			}
+			const platformModifier = isApple ? event.metaKey : event.ctrlKey;
+			const foreignModifier = isApple ? event.ctrlKey : event.metaKey;
 			// toLowerCase: with Caps Lock on, browsers report key "B" with
 			// shiftKey false — the shortcut must not silently die there.
 			if (
 				event.key.toLowerCase() === SIDEBAR_KEYBOARD_SHORTCUT &&
-				hasPlatformModifier &&
+				platformModifier &&
+				!foreignModifier &&
 				!event.altKey &&
 				!event.shiftKey
 			) {
@@ -668,15 +712,15 @@ const defaultTriggerIcon = <SidebarSimpleIcon />;
  * Placement within an `AppLayout` shell:
  * ```tsx
  * <Sidebar.Root>
- *   <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
- *   <AppLayout.Inset>
+ *   <AppLayout.Workspace>
+ *     <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
  *     <AppLayout.Content>
  *       <AppLayout.Header>
  *         <Sidebar.Trigger />
  *       </AppLayout.Header>
- *       …
+ *       <AppLayout.Body>…</AppLayout.Body>
  *     </AppLayout.Content>
- *   </AppLayout.Inset>
+ *   </AppLayout.Workspace>
  * </Sidebar.Root>
  * ```
  */
@@ -805,10 +849,10 @@ const Header = ({
 				// AppLayout.Header toolbar, which derives its height from this same
 				// variable when a sidebar header is present (see AppLayout.Header).
 				"flex h-[var(--sidebar-header-height,4.5rem)] shrink-0 flex-col justify-center gap-2 px-3",
-				// When expanded, the adjacent AppLayout.Inset contributes the
-				// trailing card gutter, so trim the sidebar's own trailing inset
-				// to keep dividers and rows optically centered between the
-				// viewport edge and content card.
+				// When expanded, the adjacent AppLayout.Content contributes the
+				// trailing card gutter with its own margin, so trim the sidebar's
+				// own trailing inset to keep dividers and rows optically centered
+				// between the viewport edge and content card.
 				"group-data-[state=expanded]/sidebar-nav:pr-1",
 				className,
 			)}
@@ -1623,6 +1667,105 @@ const SwitcherTrigger = ({
 		>
 			{children}
 		</Comp>
+	);
+};
+
+type SidebarTooltipProps = {
+	/**
+	 * The row this labels — a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`,
+	 * optionally already wrapped in a `DropdownMenu.Trigger asChild`.
+	 */
+	children?: ReactNode;
+	/**
+	 * What the tooltip says. Normally the row's own label text: the rail clips the
+	 * visible one, so this is what a sighted pointer user reads.
+	 */
+	label: ReactNode;
+};
+
+/**
+ * Labels a sidebar row while — and only while — the desktop panel is collapsed
+ * to the icon rail. Wrap it around a `Sidebar.ItemButton` or
+ * `Sidebar.SwitcherTrigger`.
+ *
+ * The collapsed rail keeps every row's label in the accessibility tree (clipped,
+ * not removed), which serves screen-reader users but leaves a sighted pointer
+ * user with an unlabeled icon column. This restores the label for them without
+ * duplicating it for anyone else: expanded rows already read their own text, and
+ * the mobile sheet shows full labels, so the tooltip content only mounts in the
+ * collapsed desktop rail.
+ *
+ * **Requires a `TooltipProvider` ancestor**, like any `Tooltip.Root` — mount one
+ * at your app root. This part deliberately does not provide its own, so tooltip
+ * delay and hover settings stay app-wide rather than being overridden per row.
+ *
+ * It composes with a menu trigger: nest `DropdownMenu.Root >
+ * Sidebar.Tooltip > DropdownMenu.Trigger asChild > Sidebar.ItemButton` for a
+ * row that opens a menu *and* labels itself in the rail. `DropdownMenu.Root` must
+ * stay **outside** the tooltip — it is renderless, and `Tooltip.Trigger asChild`
+ * needs a real element to clone.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar
+ *
+ * @example
+ * ```tsx
+ * <TooltipProvider>
+ *   <Sidebar.Root>
+ *     <Sidebar.Nav aria-label="Main">
+ *       <Sidebar.Body>
+ *         <Sidebar.Group>
+ *           <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+ *           <Sidebar.List>
+ *             <Sidebar.Item>
+ *               <Sidebar.Tooltip label="Endpoints">
+ *                 <Sidebar.ItemButton asChild current>
+ *                   <a href="/endpoints">
+ *                     <GraphIcon />
+ *                     Endpoints
+ *                   </a>
+ *                 </Sidebar.ItemButton>
+ *               </Sidebar.Tooltip>
+ *             </Sidebar.Item>
+ *           </Sidebar.List>
+ *         </Sidebar.Group>
+ *       </Sidebar.Body>
+ *       <Sidebar.Footer>
+ *         <DropdownMenu.Root>
+ *           <Sidebar.Tooltip label="Help">
+ *             <DropdownMenu.Trigger asChild>
+ *               <Sidebar.ItemButton>
+ *                 <QuestionIcon />
+ *                 Help
+ *               </Sidebar.ItemButton>
+ *             </DropdownMenu.Trigger>
+ *           </Sidebar.Tooltip>
+ *           <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         </DropdownMenu.Root>
+ *       </Sidebar.Footer>
+ *     </Sidebar.Nav>
+ *     <Sidebar.Trigger />
+ *   </Sidebar.Root>
+ * </TooltipProvider>
+ * ```
+ */
+const SidebarTooltip = ({ children, label }: SidebarTooltipProps) => {
+	const { isMobile, open } = useSidebarContext("Tooltip");
+	const isCollapsedRail = !isMobile && !open;
+
+	return (
+		<Tooltip.Root>
+			<Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
+			{/*
+			 * Gate the Content, never the Root: unmounting the Root would unmount the
+			 * Trigger with it, so toggling the rail would drop focus off the row the
+			 * user was just on.
+			 */}
+			{isCollapsedRail && (
+				<Tooltip.Content side="right" data-slot="sidebar-tooltip">
+					{label}
+				</Tooltip.Content>
+			)}
+		</Tooltip.Root>
 	);
 };
 
@@ -2753,6 +2896,69 @@ const Sidebar = {
 	 * ```
 	 */
 	SwitcherTrigger,
+	/**
+	 * Labels a row while the panel is collapsed to the icon rail — wrap it
+	 * around a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`. Requires a
+	 * `TooltipProvider` ancestor.
+	 *
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 *
+	 * @example
+	 * ```tsx
+	 * <TooltipProvider>
+	 *   <Sidebar.Root>
+	 *     <Sidebar.Nav aria-label="Main">
+	 *       <Sidebar.Header>
+	 *         <DropdownMenu.Root>
+	 *           <DropdownMenu.Trigger asChild>
+	 *             <Sidebar.SwitcherTrigger>
+	 *               <GlobeIcon />
+	 *               <span className="text-strong min-w-0 flex-1 truncate text-base">Universal Gateway</span>
+	 *               <CaretDownIcon className="text-muted size-4 shrink-0" />
+	 *             </Sidebar.SwitcherTrigger>
+	 *           </DropdownMenu.Trigger>
+	 *           <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
+	 *         </DropdownMenu.Root>
+	 *       </Sidebar.Header>
+	 *       <Sidebar.Body>
+	 *         <Sidebar.Group>
+	 *           <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+	 *           <Sidebar.List>
+	 *             <Sidebar.Item>
+	 *               <Sidebar.Tooltip label="Endpoints">
+	 *                 <Sidebar.ItemButton asChild current>
+	 *                   <a href="/endpoints">
+	 *                     <GraphIcon />
+	 *                     Endpoints
+	 *                   </a>
+	 *                 </Sidebar.ItemButton>
+	 *               </Sidebar.Tooltip>
+	 *             </Sidebar.Item>
+	 *           </Sidebar.List>
+	 *         </Sidebar.Group>
+	 *       </Sidebar.Body>
+	 *       <Sidebar.Footer>
+	 *         <Sidebar.Separator />
+	 *         <DropdownMenu.Root>
+	 *           <Sidebar.Tooltip label="Acme Corp">
+	 *             <DropdownMenu.Trigger asChild>
+	 *               <Sidebar.SwitcherTrigger>
+	 *                 <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
+	 *                 <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
+	 *                 <Sidebar.UserAvatar alt="Jane Doe" />
+	 *               </Sidebar.SwitcherTrigger>
+	 *             </DropdownMenu.Trigger>
+	 *           </Sidebar.Tooltip>
+	 *           <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
+	 *         </DropdownMenu.Root>
+	 *       </Sidebar.Footer>
+	 *     </Sidebar.Nav>
+	 *     <Sidebar.Trigger />
+	 *   </Sidebar.Root>
+	 * </TooltipProvider>
+	 * ```
+	 */
+	Tooltip: SidebarTooltip,
 	/**
 	 * An inset hairline between sidebar regions, aligned with the content
 	 * padding.

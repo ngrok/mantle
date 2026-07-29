@@ -1,11 +1,28 @@
 // @vitest-environment happy-dom
+import { TooltipProvider } from "@ngrok/mantle/tooltip";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { ComponentType } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { AppShellDemo, BridgeShellDemo } from "./app-shell-demo";
 
 afterEach(() => {
 	cleanup();
 });
+
+/**
+ * Renders a shell demo the way the app does. The `TooltipProvider` is not
+ * optional scaffolding: every sidebar row is wrapped in `Sidebar.Tooltip`,
+ * which composes `Tooltip.Root` and throws without a provider ancestor. The docs
+ * site mounts one in `root.tsx`, so a bare `render()` here would be testing a
+ * composition no page actually ships.
+ */
+function renderShell(Demo: ComponentType) {
+	return render(
+		<TooltipProvider>
+			<Demo />
+		</TooltipProvider>,
+	);
+}
 
 /** Opens a footer menu row (Help, the account switcher) the way a pointer does. */
 function openMenu(trigger: HTMLElement) {
@@ -36,7 +53,7 @@ describe.each([
 	},
 ])("$name settings section", ({ Demo, enterSettings }) => {
 	it("shows the product navigation under the Main landmark by default", () => {
-		render(<Demo />);
+		renderShell(Demo);
 
 		expect(screen.getByRole("navigation", { name: "Main" })).toBeDefined();
 		expect(screen.getByRole("link", { name: "Endpoints" })).toBeDefined();
@@ -44,7 +61,7 @@ describe.each([
 	});
 
 	it("swaps the navigation and renames the landmark when the section is entered", () => {
-		render(<Demo />);
+		renderShell(Demo);
 
 		enterSettings();
 
@@ -60,7 +77,7 @@ describe.each([
 	});
 
 	it("returns to the product page the reader left", () => {
-		render(<Demo />);
+		renderShell(Demo);
 
 		fireEvent.click(screen.getByRole("link", { name: "Agents" }));
 		enterSettings();
@@ -82,7 +99,7 @@ describe.each([
 	{ name: "BridgeShellDemo", Demo: BridgeShellDemo },
 ])("$name footer help menu", ({ Demo }) => {
 	it("opens a menu of help destinations from the footer row", () => {
-		render(<Demo />);
+		renderShell(Demo);
 
 		openMenu(screen.getByRole("button", { name: "Help" }));
 
@@ -102,7 +119,7 @@ describe.each([
 // into the settings section from this shell.
 describe("AppShellDemo footer account switcher", () => {
 	it("switches accounts from the menu's submenu", () => {
-		render(<AppShellDemo />);
+		renderShell(AppShellDemo);
 
 		openMenu(screen.getByRole("button", { name: /Acme Corp/ }));
 		// ArrowRight opens a submenu from its trigger row
@@ -116,7 +133,7 @@ describe("AppShellDemo footer account switcher", () => {
 	});
 
 	it("deep-links into the settings section from Billing", () => {
-		render(<AppShellDemo />);
+		renderShell(AppShellDemo);
 
 		openMenu(screen.getByRole("button", { name: /Acme Corp/ }));
 		fireEvent.click(screen.getByRole("menuitem", { name: "Billing" }));

@@ -126,7 +126,7 @@ export function SidebarPersistenceDemo() {
 		>
 			<AppLayout.Root className="fixed inset-0">
 				<SkipToMainLink />
-				<AppLayout.Body>
+				<AppLayout.Workspace>
 					<Sidebar.Nav aria-label="Main">
 						<Sidebar.Body>
 							<Sidebar.Group>
@@ -142,20 +142,20 @@ export function SidebarPersistenceDemo() {
 							</Sidebar.Group>
 						</Sidebar.Body>
 					</Sidebar.Nav>
-					<AppLayout.Inset>
-						<AppLayout.Content asChild>
+					<AppLayout.Content>
+						<AppLayout.Header>
+							<Sidebar.Trigger />
+						</AppLayout.Header>
+						<AppLayout.Body asChild>
 							<Main>
-								<AppLayout.Header>
-									<Sidebar.Trigger />
-								</AppLayout.Header>
 								<p className="text-muted p-6 text-sm">
 									Toggle the sidebar, then reload the preview — the collapsed state is restored from
 									localStorage.
 								</p>
 							</Main>
-						</AppLayout.Content>
-					</AppLayout.Inset>
-				</AppLayout.Body>
+						</AppLayout.Body>
+					</AppLayout.Content>
+				</AppLayout.Workspace>
 			</AppLayout.Root>
 		</Sidebar.Root>
 	);

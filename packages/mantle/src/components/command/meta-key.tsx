@@ -1,5 +1,6 @@
 import { type ComponentProps, useEffect, useState } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import { isApplePlatform } from "../../utils/platform.js";
 import { Kbd } from "../kbd/kbd.js";
 
 type Props = Omit<ComponentProps<"kbd">, "children">;
@@ -49,19 +50,6 @@ export {
 };
 
 /**
- * Type guard for `navigator.userAgentData` existence.
- * Useful for newer UA hints where `platform` may be available.
- *
- * @param navigator The global `navigator`
- * @returns `true` if UA Data hints exist; narrows `navigator` accordingly.
- */
-function hasUAData(
-	navigator: Navigator,
-): navigator is Navigator & { userAgentData: { platform?: string } } {
-	return "userAgentData" in navigator;
-}
-
-/**
  * Detects the appropriate meta key label for the current platform.
  *
  * SSR-safe: returns `"⌃"` when `navigator` is not available.
@@ -69,25 +57,5 @@ function hasUAData(
  * @returns `"⌘"` for Apple platforms; otherwise `"⌃"`.
  */
 function detectMetaKey(): Mod {
-	if (typeof navigator === "undefined") {
-		return "⌃"; // SSR default
-	}
-
-	let platform = "";
-
-	if (hasUAData(navigator)) {
-		platform = navigator.userAgentData.platform ?? "";
-	}
-
-	if (!platform) {
-		platform = navigator.platform || navigator.userAgent || "";
-	}
-
-	const isApple = /mac|iphone|ipad|ipod/i.test(platform);
-
-	if (isApple) {
-		return "⌘";
-	}
-
-	return "⌃";
+	return isApplePlatform() ? "⌘" : "⌃";
 }

@@ -18,3 +18,15 @@ export type {
 	SidebarMobileBreakpoint,
 	SidebarState,
 } from "./sidebar.js";
+
+export {
+	//,
+	extractSidebarStateCookie,
+	serializeSidebarStateCookie,
+	SIDEBAR_STATE_COOKIE_NAME,
+} from "./sidebar-state-cookie.js";
+
+export type {
+	//,
+	SerializeSidebarStateCookieOptions,
+} from "./sidebar-state-cookie.js";

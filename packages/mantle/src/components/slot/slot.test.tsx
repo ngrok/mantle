@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
-import { createRef } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { type CSSProperties, createRef, type ReactNode } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Slot } from "./slot.js";
 
 describe("Slot", () => {
@@ -230,5 +230,120 @@ describe("Slot", () => {
 		// Radix Slot semantics: both handlers should run
 		expect(slotOnClick).toHaveBeenCalledTimes(1);
 		expect(childOnClick).toHaveBeenCalledTimes(1);
+	});
+});
+
+/**
+ * Stands in for react-router's `NavLink`: `className` and `style` may each be a
+ * function of the link's active state, which the component resolves itself. This
+ * is the shape that silently loses its styling through `asChild` (issue #1374).
+ */
+type NavLinkishState = { isActive: boolean };
+
+type NavLinkishProps = {
+	className?: string | ((state: NavLinkishState) => string);
+	style?: CSSProperties | ((state: NavLinkishState) => CSSProperties);
+	children?: ReactNode | ((state: NavLinkishState) => ReactNode);
+};
+
+function NavLinkish({ children, className, style }: NavLinkishProps) {
+	const state: NavLinkishState = { isActive: true };
+	return (
+		<a
+			href="/endpoints"
+			className={typeof className === "function" ? className(state) : className}
+			style={typeof style === "function" ? style(state) : style}
+		>
+			{typeof children === "function" ? children(state) : children}
+		</a>
+	);
+}
+
+describe("Slot render-prop diagnostics", () => {
+	// The dedupe registry is module state keyed by element name + prop, so each
+	// test below must exercise a distinct key (or assert no warning at all).
+	beforeEach(() => {
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it("drops a function className and warns once, naming the element and the prop", () => {
+		const { getByRole, rerender } = render(
+			<Slot>
+				<NavLinkish className={({ isActive }) => (isActive ? "is-active" : "")}>
+					Endpoints
+				</NavLinkish>
+			</Slot>,
+		);
+
+		// The actual failure this warning exists for: the render prop never ran,
+		// so the active class is simply absent — no error, no styling.
+		expect(getByRole("link")).not.toHaveClass("is-active");
+
+		expect(console.warn).toHaveBeenCalledTimes(1);
+		const [message] = vi.mocked(console.warn).mock.calls[0] ?? [];
+		expect(message).toContain("asChild dropped the `className` render prop on <NavLinkish>");
+
+		// Warns once per element+prop, not once per render.
+		rerender(
+			<Slot>
+				<NavLinkish className={({ isActive }) => (isActive ? "is-active" : "")}>
+					Endpoints
+				</NavLinkish>
+			</Slot>,
+		);
+		expect(console.warn).toHaveBeenCalledTimes(1);
+	});
+
+	it("drops a function style and warns about it separately", () => {
+		const { getByRole } = render(
+			<Slot>
+				<NavLinkish style={({ isActive }) => ({ color: isActive ? "red" : "blue" })}>
+					Endpoints
+				</NavLinkish>
+			</Slot>,
+		);
+
+		// Radix's own mergeProps spreads `style` into an object literal, so a
+		// function becomes `{}` and the element renders with no inline style at all.
+		expect(getByRole("link").getAttribute("style")).toBeFalsy();
+
+		expect(console.warn).toHaveBeenCalledTimes(1);
+		const [message] = vi.mocked(console.warn).mock.calls[0] ?? [];
+		expect(message).toContain("asChild dropped the `style` render prop on <NavLinkish>");
+	});
+
+	it("stays silent for plain string className and object style", () => {
+		const { getByRole } = render(
+			<Slot className="from-slot">
+				<NavLinkish className="is-active" style={{ color: "red" }}>
+					Endpoints
+				</NavLinkish>
+			</Slot>,
+		);
+
+		const link = getByRole("link");
+		expect(link).toHaveClass("from-slot");
+		expect(link).toHaveClass("is-active");
+		expect(link).toHaveStyle({ color: "red" });
+		expect(console.warn).not.toHaveBeenCalled();
+	});
+
+	it("stays silent for a function children, which survives composition", () => {
+		// Regression guard on the warning's scope: only className and style are
+		// lost. A render-prop `children` survives cloneElement intact — asserted by
+		// the resolved text actually rendering, not just by the absence of a warning.
+		const { getByRole } = render(
+			<Slot>
+				<NavLinkish>
+					{({ isActive }) => (isActive ? "Endpoints (current)" : "Endpoints")}
+				</NavLinkish>
+			</Slot>,
+		);
+		expect(getByRole("link")).toHaveTextContent("Endpoints (current)");
+		expect(console.warn).not.toHaveBeenCalled();
 	});
 });

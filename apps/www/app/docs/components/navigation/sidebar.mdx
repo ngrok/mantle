@@ -473,7 +473,7 @@ export function AppShell() {
 						</div>
 					)}
 				</AppLayout.Notice>
-				<AppLayout.Body>
+				<AppLayout.Workspace>
 					<Sidebar.Nav aria-label="Main">
 						<Sidebar.Header>
 							<ProductSwitcherDialog productId={productId} onProductChange={setProductId} />
@@ -506,34 +506,32 @@ export function AppShell() {
 						</Sidebar.Footer>
 					</Sidebar.Nav>
 
-					<AppLayout.Inset>
-						<AppLayout.Content asChild>
-							<Main>
-								<AppLayout.Header>
-									<Sidebar.Trigger />
-									<Breadcrumb.Root>
-										<Breadcrumb.List>
-											<Breadcrumb.Item>
-												<Breadcrumb.Page>Endpoints</Breadcrumb.Page>
-											</Breadcrumb.Item>
-										</Breadcrumb.List>
-									</Breadcrumb.Root>
-									<Button
-										type="button"
-										appearance="outlined"
-										intent="neutral"
-										className="ml-auto"
-										size="sm"
-										onClick={() => setShowNotice((current) => !current)}
-									>
-										Toggle notice
-									</Button>
-								</AppLayout.Header>
-								{/* your routed page content */}
-							</Main>
-						</AppLayout.Content>
-					</AppLayout.Inset>
-				</AppLayout.Body>
+					<AppLayout.Content>
+						<AppLayout.Header>
+							<Sidebar.Trigger />
+							<Breadcrumb.Root>
+								<Breadcrumb.List>
+									<Breadcrumb.Item>
+										<Breadcrumb.Page>Endpoints</Breadcrumb.Page>
+									</Breadcrumb.Item>
+								</Breadcrumb.List>
+							</Breadcrumb.Root>
+							<Button
+								type="button"
+								appearance="outlined"
+								intent="neutral"
+								className="ml-auto"
+								size="sm"
+								onClick={() => setShowNotice((current) => !current)}
+							>
+								Toggle notice
+							</Button>
+						</AppLayout.Header>
+						<AppLayout.Body asChild>
+							<Main>{/* your routed page content */}</Main>
+						</AppLayout.Body>
+					</AppLayout.Content>
+				</AppLayout.Workspace>
 			</AppLayout.Root>
 		</Sidebar.Root>
 	);
@@ -578,8 +576,8 @@ read them with a fallback, so any ancestor of `Sidebar.Nav` can set them:
 
 Three consequences of that inheritance direction worth knowing: setting a width on something the panel
 _contains_ does nothing (values flow parent → child, never child → parent); `AppLayout` never needs to
-know the number — `AppLayout.Inset` simply takes the remaining row space, so a wider sidebar narrows the
-content card by construction; and a surface that renders _outside_ the panel — a switcher's menu, portaled to
+know the number — the `AppLayout.Content` card simply takes the remaining row space, so a wider sidebar
+narrows the card by construction; and a surface that renders _outside_ the panel — a switcher's menu, portaled to
 `document.body` — inherits none of them, which is what
 [`--sidebar-row-width`](#sizing-a-menu-to-a-sidebar-row) exists for.
 
@@ -598,6 +596,51 @@ visually hidden, not removed — so screen readers announce the full row names a
 names. The scrollable `Sidebar.Body` always fades its overflowing edges; in the collapsed rail it also
 hides its scrollbar and relies on the fade alone. Collapse and expand the demo above with the header
 trigger or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd>.
+
+### Labeling the rail for pointer users
+
+Keeping labels in the accessibility tree serves screen-reader users, but a sighted pointer user hovering the
+collapsed rail sees an unlabeled icon column. Wrap a row in `Sidebar.Tooltip` to give them the label back:
+
+```tsx
+<Sidebar.Item>
+	<Sidebar.Tooltip label="Endpoints">
+		<Sidebar.ItemButton asChild current>
+			<a href="/endpoints">
+				<GraphIcon />
+				Endpoints
+			</a>
+		</Sidebar.ItemButton>
+	</Sidebar.Tooltip>
+</Sidebar.Item>
+```
+
+The tooltip only mounts while the desktop panel is collapsed — expanded rows already read their own text and
+the mobile sheet shows full labels, so there is nothing to duplicate. It gates its _content_, not the whole
+`Tooltip.Root`, which keeps the row mounted across a collapse so toggling the rail never drops focus off the
+row the user was on.
+
+It needs a `TooltipProvider` ancestor, like any `Tooltip.Root` — mount one at your app root. The part
+deliberately does not provide its own, so your app-wide tooltip delay and hover settings still apply.
+
+For a row that also opens a menu, keep `DropdownMenu.Root` **outside** the tooltip — it is renderless, and
+`Tooltip.Trigger asChild` needs a real element to clone:
+
+```tsx
+<DropdownMenu.Root>
+	<Sidebar.Tooltip label="Help">
+		<DropdownMenu.Trigger asChild>
+			<Sidebar.ItemButton>
+				<QuestionIcon />
+				Help
+			</Sidebar.ItemButton>
+		</DropdownMenu.Trigger>
+	</Sidebar.Tooltip>
+	<DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">
+		<DropdownMenu.Item>Documentation</DropdownMenu.Item>
+	</DropdownMenu.Content>
+</DropdownMenu.Root>
+```
 
 ## Sizing a menu to a sidebar row
 
@@ -690,6 +733,19 @@ with a `Sidebar.List` of rows, and links the two with `aria-labelledby` automati
 announced with its group's name. `Sidebar.ItemButton` renders a leading icon slot and a truncating label, and
 `current` sets both `aria-current="page"` and the `data-current` visual state.
 
+> [!IMPORTANT]
+> **The navigation is one level deep.** There is no nested item and no collapsible group — a
+> `Sidebar.List` holds rows, not sub-lists. A two-level nav cannot be lifted and shifted onto this component;
+> it has to flatten into `Sidebar.GroupLabel` + rows, which also means every row that was previously a
+> second-level text link now needs a leading icon (the collapsed rail is icon-only, so a row without one
+> becomes a blank chip). Budget for that before you start: it is usually the largest single chunk of a
+> migration, and it is a design decision, not a mechanical one.
+>
+> This is deliberate — a disclosure tree is a different ARIA pattern with its own keyboard contract, and
+> nesting it inside a rail that collapses to icons has no coherent collapsed presentation. If you genuinely
+> need a tree, compose one from [Accordion](/components/data-display/accordion) inside `Sidebar.Body` rather than
+> expecting the rail to collapse it.
+
 <Example className="p-4 md:p-8">
 	<SidebarAnatomyDemo />
 </Example>
@@ -753,16 +809,18 @@ state across visits, use the **fully controlled** form with
 [`useLocalStorage`](/hooks#uselocalstorage):
 
 > [!IMPORTANT]
-> In SSR apps, `defaultOpen` + storage does not work: the uncontrolled state initializes exactly once at the
-> hydration render, before the stored value is available. Controlled `open` is the reliable form.
+> With **storage-backed** persistence in an SSR app, `defaultOpen` does not work: the uncontrolled state
+> initializes exactly once at the hydration render, before the stored value is available, so controlled
+> `open` is the reliable form. This does **not** apply to the cookie recipe below — a cookie is available
+> to the server, so `defaultOpen` is correct there.
 
 This recipe is SSR-safe: [`useLocalStorage`](/hooks#uselocalstorage) is `useSyncExternalStore`-backed with a
 server snapshot, so the server render and the hydration render agree (no hydration mismatch), and the
 sidebar deliberately suppresses its collapse transition until after hydration, so a persisted-collapsed
 sidebar **snaps** shut instead of animating on page load. What no localStorage recipe can do is affect the
 server-rendered HTML itself — a persisted-collapsed sidebar paints expanded for one frame before the
-post-hydration correction. If that frame matters, persist to a **cookie** instead: read it in your server
-loader and pass it as `open`/`defaultOpen`, the same way the theme system solves FOUC server-side.
+post-hydration correction. If that frame matters, [persist to a **cookie**](#persisting-to-a-cookie-ssr)
+instead, the same way the theme system solves FOUC server-side.
 
 <CodeExample.Root>
 	<CodeExample.PreviewFrame example="sidebar-persistence" title="Sidebar persistence demo" />
@@ -788,7 +846,7 @@ export function PersistedShell() {
 		>
 			<AppLayout.Root className="fixed inset-0">
 				<SkipToMainLink />
-				<AppLayout.Body>
+				<AppLayout.Workspace>
 					<Sidebar.Nav aria-label="Main">
 						<Sidebar.Body>
 							<Sidebar.Group>
@@ -804,17 +862,15 @@ export function PersistedShell() {
 							</Sidebar.Group>
 						</Sidebar.Body>
 					</Sidebar.Nav>
-					<AppLayout.Inset>
-						<AppLayout.Content asChild>
-							<Main>
-								<AppLayout.Header>
-									<Sidebar.Trigger />
-								</AppLayout.Header>
-								{/* your routed page content */}
-							</Main>
-						</AppLayout.Content>
-					</AppLayout.Inset>
-				</AppLayout.Body>
+					<AppLayout.Content>
+						<AppLayout.Header>
+							<Sidebar.Trigger />
+						</AppLayout.Header>
+						<AppLayout.Body asChild>
+							<Main>{/* your routed page content */}</Main>
+						</AppLayout.Body>
+					</AppLayout.Content>
+				</AppLayout.Workspace>
 			</AppLayout.Root>
 		</Sidebar.Root>
 	);
@@ -827,6 +883,53 @@ export function PersistedShell() {
 
 Toggle the sidebar in the demo, then reload the preview with the toolbar's reload button — the collapsed
 state is restored from localStorage.
+
+### Persisting to a cookie (SSR)
+
+A cookie is the only storage the **server** can read, so it is the only way to render the collapsed state
+into the initial HTML with no first-frame correction at all. `@ngrok/mantle/sidebar` ships the pair for it,
+mirroring [`extractThemeCookie`](/components/primitives/theme#extractthemecookie):
+
+```tsx
+// app/root.tsx
+import {
+	extractSidebarStateCookie,
+	serializeSidebarStateCookie,
+	Sidebar,
+} from "@ngrok/mantle/sidebar";
+
+export const loader = ({ request }: Route.LoaderArgs) => ({
+	// `undefined` means "no preference yet" — pick your own default here
+	sidebarOpen: extractSidebarStateCookie(request.headers.get("Cookie")) ?? true,
+});
+
+export default function Root({ loaderData }: Route.ComponentProps) {
+	return (
+		<Sidebar.Root
+			defaultOpen={loaderData.sidebarOpen}
+			onOpenChange={(open) => {
+				document.cookie = serializeSidebarStateCookie(open);
+			}}
+		>
+			{/* …your shell… */}
+		</Sidebar.Root>
+	);
+}
+```
+
+`defaultOpen` is correct here — **not** controlled `open`. The value is already available at the server
+render and the hydration render, so the uncontrolled state initializes to the right value once and stays
+there; the server HTML ships `data-state="collapsed"` directly, with zero flash.
+
+`extractSidebarStateCookie` returns `boolean | undefined` rather than `boolean` on purpose: a first-time
+visitor with no cookie is not the same as someone who deliberately collapsed the rail, and folding the two
+together would collapse the sidebar for everyone's first visit. Choose the default explicitly with `?? true`.
+
+`serializeSidebarStateCookie` returns a plain cookie string, valid for both `document.cookie` on the client
+and a `Set-Cookie` header on the server, so it works whichever side of your app owns the write. `Secure` is
+omitted by default so the same call persists over `http://localhost` — pass `{ secure: true }` if your policy
+requires it. There is no `HttpOnly` option: the browser has to write this cookie when the user toggles the
+rail.
 
 ## Polymorphism
 
@@ -910,11 +1013,15 @@ export function TrafficNav() {
 - `Sidebar.Trigger` follows the disclosure pattern: `aria-expanded` reflects the state and `aria-controls`
   references the nav. Keep a trigger visible at every breakpoint where the sidebar can collapse — a collapsed
   sidebar with no visible trigger is unrecoverable.
-- `⌘B` / `Ctrl+B` toggles the sidebar (opt out with `keyboardShortcut={false}` on `Sidebar.Root`, e.g. when
-  the app embeds a rich-text editor where `⌘B` means bold).
-- When the shell owns the document, pair the sidebar with a `SkipToMainLink` and a `Main`-composed content
-  card so keyboard users can jump past the sidebar's tab gauntlet — see
-  [App Layout → Landmarks](/layouts/app-layout#landmarks).
+- `⌘B` / `Ctrl+B` toggles the sidebar. The modifier is resolved per platform — `⌘` on Apple platforms,
+  `Ctrl` everywhere else — and the two never substitute for each other, so macOS's native `Ctrl+B`
+  ("move the caret back one character", which every macOS text field binds) is left alone. The shortcut is
+  also ignored while focus is in an `<input>`, `<textarea>`, `<select>`, or any `contenteditable` host,
+  which covers embedded editors like Monaco and CodeMirror. Opt out entirely with
+  `keyboardShortcut={false}` on `Sidebar.Root`.
+- When the shell owns the document, pair the sidebar with a `SkipToMainLink` and compose `Main` onto
+  `AppLayout.Body` so keyboard users can jump past the sidebar's tab gauntlet straight into the scrolling
+  page region — see [App Layout → Landmarks](/layouts/app-layout#landmarks).
 - The collapsed icon rail stays fully interactive: row labels are clipped and switcher text is visually
   hidden, but both remain in the tab order and the accessibility tree, so accessible names do not change
   between states.
@@ -931,15 +1038,15 @@ export function TrafficNav() {
 
 The state owner. Renders no DOM.
 
-| Prop                  | Type                      | Default | Description                                                                                       |
-| --------------------- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------- |
-| `defaultOpen?`        | `boolean`                 | `true`  | Initial desktop expanded state for the uncontrolled case.                                         |
-| `open?`               | `boolean`                 | —       | Controlled desktop expanded state. Pair with `onOpenChange`.                                      |
-| `onOpenChange?`       | `(open: boolean) => void` | —       | Called with the next desktop expanded state.                                                      |
-| `openMobile?`         | `boolean`                 | —       | Controlled mobile sheet open state. Pair with `onOpenMobileChange`.                               |
-| `onOpenMobileChange?` | `(open: boolean) => void` | —       | Called with the next mobile sheet open state.                                                     |
-| `mobileBreakpoint?`   | `"sm" \| "md" \| "lg"`    | `"lg"`  | Breakpoint below which `Sidebar.Nav` renders as a mobile `Sheet`.                                 |
-| `keyboardShortcut?`   | `boolean`                 | `true`  | Toggle with `⌘B` / `Ctrl+B`. Exact-modifier match (`⌘⇧B` passes through); set `false` to opt out. |
+| Prop                  | Type                      | Default | Description                                                                                                                                                                                                                          |
+| --------------------- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `defaultOpen?`        | `boolean`                 | `true`  | Initial desktop expanded state for the uncontrolled case.                                                                                                                                                                            |
+| `open?`               | `boolean`                 | —       | Controlled desktop expanded state. Pair with `onOpenChange`.                                                                                                                                                                         |
+| `onOpenChange?`       | `(open: boolean) => void` | —       | Called with the next desktop expanded state.                                                                                                                                                                                         |
+| `openMobile?`         | `boolean`                 | —       | Controlled mobile sheet open state. Pair with `onOpenMobileChange`.                                                                                                                                                                  |
+| `onOpenMobileChange?` | `(open: boolean) => void` | —       | Called with the next mobile sheet open state.                                                                                                                                                                                        |
+| `mobileBreakpoint?`   | `"sm" \| "md" \| "lg"`    | `"lg"`  | Breakpoint below which `Sidebar.Nav` renders as a mobile `Sheet`.                                                                                                                                                                    |
+| `keyboardShortcut?`   | `boolean`                 | `true`  | Toggle with `⌘B` (Apple) / `Ctrl+B` (elsewhere). Exact-modifier match, resolved per platform (`⌘⇧B` and macOS's native `Ctrl+B` pass through), and ignored while focus is in a text-editing or form control; set `false` to opt out. |
 
 ### Sidebar.Nav
 
@@ -979,6 +1086,15 @@ The pinned structural container at the top of `Sidebar.Nav` — the app/product 
 height is the public `--sidebar-header-height` token (default `4.5rem`); when the sidebar composes into an
 `AppLayout`, [`AppLayout.Header`](/layouts/app-layout#applayoutheader) derives its own height from the same
 token, so the two rows stay center-aligned by construction.
+
+> [!NOTE]
+> **The alignment is a desktop-only coupling.** `AppLayout.Header` finds the sidebar header with
+> `:has()` from `AppLayout.Root`. Below `mobileBreakpoint` the sidebar renders inside a `Sheet` that portals
+> to `document.body` — outside the shell subtree — so the selector stops matching and `AppLayout.Header`
+> falls back to its standalone `h-14` (56px) from the derived 54px. That 2px change lands after hydration,
+> because the server renders desktop-first. It is invisible in practice and there is nothing to align to on
+> mobile (the sidebar header is inside a closed sheet), but if you are diffing layout snapshots across
+> breakpoints, that is where the 2px comes from.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -1107,6 +1223,20 @@ participates. Because the row shrinks, give the menu it opens the `--sidebar-row
 (`className="min-w-(--sidebar-row-width)"`) so the menu keeps the expanded row's width — see
 [Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row).
 
+### Sidebar.Tooltip
+
+Labels a row while — and only while — the desktop panel is collapsed to the icon rail. See
+[Labeling the rail for pointer users](#labeling-the-rail-for-pointer-users). Requires a
+[`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor and must be inside a
+`Sidebar.Root` (it throws otherwise).
+
+| Prop        | Type        | Default | Description                                                                                                                            |
+| ----------- | ----------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `label`     | `ReactNode` | —       | What the tooltip says — normally the row's own label text.                                                                             |
+| `children?` | `ReactNode` | —       | The row to label: a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`, optionally already wrapped in a `DropdownMenu.Trigger asChild`. |
+
+The tooltip content is stamped `data-slot="sidebar-tooltip"` for styling and test targeting.
+
 ### Sidebar.Separator
 
 An inset hairline between sidebar regions, aligned with the surrounding `Sidebar.Body` and `Sidebar.Footer`
@@ -1149,3 +1279,38 @@ triggers, close-on-navigate, or a keyboard shortcut:
 | `mobileBreakpoint` | `"sm" \| "md" \| "lg"`    | The configured mobile breakpoint.                            |
 | `toggle`           | `() => void`              | Toggle whichever presentation is active.                     |
 | `navId`            | `string`                  | The nav landmark's id, for custom triggers' `aria-controls`. |
+
+### extractSidebarStateCookie
+
+Parses the sidebar's expanded state out of a raw `Cookie` header, for
+[cookie-backed persistence](#persisting-to-a-cookie-ssr). Framework-agnostic — it takes a header string, so
+it works in any server runtime.
+
+| Param          | Type                          | Description                                                                                                         |
+| -------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `cookieHeader` | `string \| null \| undefined` | The request's raw `Cookie` header.                                                                                  |
+| **returns**    | `boolean \| undefined`        | `true` expanded, `false` collapsed, `undefined` when unset or unparseable — decide your own default with `?? true`. |
+
+### serializeSidebarStateCookie
+
+Serializes the expanded state as a cookie string, valid for both `document.cookie` and a `Set-Cookie` header.
+No `HttpOnly` option: the browser writes this cookie from `onOpenChange`.
+
+| Param       | Type                                 | Default | Description                                                                   |
+| ----------- | ------------------------------------ | ------- | ----------------------------------------------------------------------------- |
+| `open`      | `boolean`                            | —       | Whether the sidebar is expanded.                                              |
+| `options?`  | `SerializeSidebarStateCookieOptions` | `{}`    | Cookie attributes; see below.                                                 |
+| **returns** | `string`                             | —       | e.g. `mantle-sidebar-state=collapsed; Max-Age=31536000; Path=/; SameSite=Lax` |
+
+| Option      | Type                          | Default    | Description                                                                            |
+| ----------- | ----------------------------- | ---------- | -------------------------------------------------------------------------------------- |
+| `maxAge?`   | `number`                      | `31536000` | Lifetime in seconds (one year).                                                        |
+| `path?`     | `string`                      | `"/"`      | Path the cookie applies to.                                                            |
+| `domain?`   | `string`                      | —          | Omitted by default (exact host). Set e.g. `".example.com"` to share across subdomains. |
+| `sameSite?` | `"Lax" \| "Strict" \| "None"` | `"Lax"`    | `SameSite` policy.                                                                     |
+| `secure?`   | `boolean`                     | `false`    | Omitted by default so the cookie is not rejected over `http://localhost`.              |
+
+### SIDEBAR_STATE_COOKIE_NAME
+
+The cookie name the two helpers read and write (`"mantle-sidebar-state"`), exported so an app can clear it on
+sign-out or read it with its own cookie library.

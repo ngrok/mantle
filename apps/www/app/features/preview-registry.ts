@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { AlertCenterShellDemo } from "~/features/alert-center-demos";
 import { AppLayoutDemo } from "~/features/app-layout-demos";
+import { AppLayoutEditorDemo, AppLayoutPinnedFooterDemo } from "~/features/app-layout-editor-demo";
 import { AppShellDemo, BridgeShellDemo } from "~/features/app-shell-demo";
 import {
 	CenteredLayoutDemo,
@@ -56,6 +57,14 @@ export const previewExamples = {
 	"app-layout-standalone": {
 		title: "Standalone app layout demo",
 		Component: AppLayoutDemo,
+	},
+	"app-layout-editor": {
+		title: "Editor page demo",
+		Component: AppLayoutEditorDemo,
+	},
+	"app-layout-pinned-footer": {
+		title: "Pinned footer demo",
+		Component: AppLayoutPinnedFooterDemo,
 	},
 	"centered-layout": {
 		title: "Centered layout demo",

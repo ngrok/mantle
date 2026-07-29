@@ -1573,7 +1573,7 @@ const Content = ({
  *       )}
  *     </AlertCenter.Root>
  *   </AppLayout.Notice>
- *   <AppLayout.Body>…</AppLayout.Body>
+ *   <AppLayout.Workspace>…</AppLayout.Workspace>
  * </AppLayout.Root>
  * ```
  */

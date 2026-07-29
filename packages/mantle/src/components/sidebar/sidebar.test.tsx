@@ -1,10 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, type MockInstance, test, vi } from "vitest";
 import mantleCss from "../../mantle.css?raw";
 import type * as UseBreakpointModule from "../../hooks/use-breakpoint.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
+import { TooltipProvider } from "../tooltip/index.js";
 import { Sidebar, useSidebar } from "./sidebar.js";
 
 const { useIsBelowBreakpointMock } = vi.hoisted(() => ({
@@ -22,6 +23,14 @@ beforeEach(() => {
 	useIsBelowBreakpointMock.mockReset();
 	useIsBelowBreakpointMock.mockReturnValue(false);
 });
+
+/**
+ * The keyboard chord that toggles the sidebar under this suite. happy-dom
+ * reports a non-Apple `navigator.platform` whatever machine the tests run on
+ * (asserted in `utils/platform.test.ts`), so the platform modifier here is
+ * `Ctrl`. Apple behavior is covered by stubbing the platform explicitly.
+ */
+const platformChord = "{Control>}b{/Control}";
 
 describe("Sidebar.Nav (desktop)", () => {
 	test("renders a nav landmark named Main by default", () => {
@@ -153,7 +162,28 @@ describe("Sidebar.Nav (desktop)", () => {
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
 	});
 
-	test("⌘B toggles the sidebar and ⌘⇧B passes through", async () => {
+	test("Ctrl+B toggles the sidebar and Ctrl+Shift+B passes through", async () => {
+		const user = userEvent.setup();
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav data-testid="nav" />
+			</Sidebar.Root>,
+		);
+		await user.keyboard(platformChord);
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+
+		await user.keyboard(platformChord);
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+
+		// Shift combinations (e.g. the browser's own Ctrl+Shift+B) are left alone
+		await user.keyboard("{Control>}{Shift>}b{/Shift}{/Control}");
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+	});
+
+	test("⌘B does not toggle on a non-Apple platform", async () => {
+		// Regression (issue #1374): the handler used to accept `metaKey ||
+		// ctrlKey` on every platform. The two modifiers are distinct chords and
+		// must not substitute for each other in either direction.
 		const user = userEvent.setup();
 		render(
 			<Sidebar.Root>
@@ -161,17 +191,10 @@ describe("Sidebar.Nav (desktop)", () => {
 			</Sidebar.Root>,
 		);
 		await user.keyboard("{Meta>}b{/Meta}");
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
-
-		await user.keyboard("{Control>}b{/Control}");
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
-
-		// Shift combinations (e.g. the browser's own ⌘⇧B) are left alone
-		await user.keyboard("{Meta>}{Shift>}b{/Shift}{/Meta}");
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
 	});
 
-	test("⌘B still toggles with Caps Lock on (uppercase key without shift)", () => {
+	test("Ctrl+B still toggles with Caps Lock on (uppercase key without shift)", () => {
 		// Regression: with Caps Lock engaged, browsers report key "B" while
 		// shiftKey stays false — the shortcut must match case-insensitively.
 		// Raw event dispatch because user-event's "B" always implies Shift.
@@ -180,22 +203,108 @@ describe("Sidebar.Nav (desktop)", () => {
 				<Sidebar.Nav data-testid="nav" />
 			</Sidebar.Root>,
 		);
-		fireEvent.keyDown(window, { key: "B", metaKey: true });
+		fireEvent.keyDown(window, { key: "B", ctrlKey: true });
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
 	});
 
-	test("keyboardShortcut={false} disables the ⌘B toggle", async () => {
+	test("keyboardShortcut={false} disables the toggle", async () => {
 		const user = userEvent.setup();
 		render(
 			<Sidebar.Root keyboardShortcut={false}>
 				<Sidebar.Nav data-testid="nav" />
 			</Sidebar.Root>,
 		);
-		await user.keyboard("{Meta>}b{/Meta}");
+		await user.keyboard(platformChord);
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
 	});
 
-	test("with two mounted roots, only the first claimant handles ⌘B", async () => {
+	describe("on Apple platforms", () => {
+		// The handler resolves the platform once per mount, so the stub has to be
+		// installed before `render()` — a `beforeEach` is the only safe place.
+		let platform: MockInstance<() => string> | undefined;
+
+		beforeEach(() => {
+			platform = vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+		});
+
+		afterEach(() => {
+			platform?.mockRestore();
+			platform = undefined;
+		});
+
+		test("⌘B toggles the sidebar", async () => {
+			const user = userEvent.setup();
+			render(
+				<Sidebar.Root>
+					<Sidebar.Nav data-testid="nav" />
+				</Sidebar.Root>,
+			);
+			await user.keyboard("{Meta>}b{/Meta}");
+			expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		});
+
+		test("Ctrl+B is left to macOS, which binds it to caret-back", async () => {
+			// Regression (issue #1374): Ctrl+B is the native emacs-style "move the
+			// cursor back one character" binding in every macOS text field, and the
+			// handler used to preventDefault() it and toggle the sidebar instead.
+			const user = userEvent.setup();
+			render(
+				<Sidebar.Root>
+					<Sidebar.Nav data-testid="nav" />
+				</Sidebar.Root>,
+			);
+			await user.keyboard("{Control>}b{/Control}");
+			expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		});
+
+		test("⌘+Ctrl+B is a different chord and passes through", async () => {
+			const user = userEvent.setup();
+			render(
+				<Sidebar.Root>
+					<Sidebar.Nav data-testid="nav" />
+				</Sidebar.Root>,
+			);
+			await user.keyboard("{Meta>}{Control>}b{/Control}{/Meta}");
+			expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		});
+	});
+
+	test.for([
+		["an input", <input key="input" data-testid="editable" />],
+		["a textarea", <textarea key="textarea" data-testid="editable" />],
+		["a select", <select key="select" data-testid="editable" />],
+		[
+			"a contenteditable host",
+			<div key="editable" contentEditable suppressContentEditableWarning data-testid="editable" />,
+		],
+	] as const)("the shortcut is ignored when the event target is %s", ([, field]) => {
+		// Regression (issue #1374): this is a bubble-phase `window` listener that
+		// calls preventDefault() unconditionally, so without a target guard it
+		// reaches inside every text field and embedded editor (Monaco binds the
+		// chord itself, but only while its own textarea has focus).
+		//
+		// Dispatched at the element rather than via user.keyboard: `event.target`
+		// is exactly what the guard inspects, and happy-dom does not emulate
+		// native contenteditable focusability.
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav data-testid="nav" />
+				{field}
+			</Sidebar.Root>,
+		);
+
+		const notPrevented = fireEvent.keyDown(screen.getByTestId("editable"), {
+			key: "b",
+			ctrlKey: true,
+		});
+
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		// Skipping the toggle is not enough — swallowing the default would still
+		// break whatever the field or its embedded editor binds the chord to.
+		expect(notPrevented).toBe(true);
+	});
+
+	test("with two mounted roots, only the first claimant handles the shortcut", async () => {
 		// Regression: the shortcut has exactly one owner per window — a second
 		// sidebar (sibling root) must not toggle in lockstep with the first.
 		const user = userEvent.setup();
@@ -209,12 +318,12 @@ describe("Sidebar.Nav (desktop)", () => {
 				</Sidebar.Root>
 			</>,
 		);
-		await user.keyboard("{Meta>}b{/Meta}");
+		await user.keyboard(platformChord);
 		expect(screen.getByTestId("primary")).toHaveAttribute("data-state", "collapsed");
 		expect(screen.getByTestId("secondary")).toHaveAttribute("data-state", "expanded");
 	});
 
-	test("⌘B ownership stays with the first root across repeated presses", async () => {
+	test("shortcut ownership stays with the first root across repeated presses", async () => {
 		// Regression: the owner used to re-claim on every toggle (its `toggle`
 		// identity is in the effect's deps), which re-queued it at the TAIL and
 		// handed ownership to the sibling — so press 2 toggled the wrong sidebar.
@@ -229,14 +338,14 @@ describe("Sidebar.Nav (desktop)", () => {
 				</Sidebar.Root>
 			</>,
 		);
-		await user.keyboard("{Meta>}b{/Meta}");
-		await user.keyboard("{Meta>}b{/Meta}");
-		await user.keyboard("{Meta>}b{/Meta}");
+		await user.keyboard(platformChord);
+		await user.keyboard(platformChord);
+		await user.keyboard(platformChord);
 		expect(screen.getByTestId("primary")).toHaveAttribute("data-state", "collapsed");
 		expect(screen.getByTestId("secondary")).toHaveAttribute("data-state", "expanded");
 	});
 
-	test("⌘B ownership hands off when the owning root unmounts", async () => {
+	test("shortcut ownership hands off when the owning root unmounts", async () => {
 		// The keyed conditional keeps the second root's instance stable across
 		// the rerender, so React genuinely unmounts the owner instead of
 		// relabeling it — a real handoff, not a fresh mount.
@@ -257,11 +366,11 @@ describe("Sidebar.Nav (desktop)", () => {
 		const user = userEvent.setup();
 		const { rerender } = render(<TwoRoots showPrimary />);
 		rerender(<TwoRoots showPrimary={false} />);
-		await user.keyboard("{Meta>}b{/Meta}");
+		await user.keyboard(platformChord);
 		expect(screen.getByTestId("secondary")).toHaveAttribute("data-state", "collapsed");
 	});
 
-	test("an opted-out root never claims ⌘B ownership", async () => {
+	test("an opted-out root never claims shortcut ownership", async () => {
 		// keyboardShortcut={false} must not park an inert claim at the head of
 		// the queue — the enabled sibling owns the shortcut immediately.
 		const user = userEvent.setup();
@@ -275,7 +384,7 @@ describe("Sidebar.Nav (desktop)", () => {
 				</Sidebar.Root>
 			</>,
 		);
-		await user.keyboard("{Meta>}b{/Meta}");
+		await user.keyboard(platformChord);
 		expect(screen.getByTestId("silent")).toHaveAttribute("data-state", "expanded");
 		expect(screen.getByTestId("active")).toHaveAttribute("data-state", "collapsed");
 	});
@@ -711,6 +820,134 @@ describe("Sidebar.SwitcherTrigger", () => {
 		const link = screen.getByRole("link", { name: "Acme Corp" });
 		expect(link).toHaveAttribute("data-slot", "sidebar-switcher-trigger");
 		expect(link).not.toHaveAttribute("type");
+	});
+});
+
+describe("Sidebar.Tooltip", () => {
+	function RailRow({ defaultOpen }: { defaultOpen: boolean }) {
+		return (
+			<TooltipProvider>
+				<Sidebar.Root defaultOpen={defaultOpen}>
+					<Sidebar.Nav data-testid="nav">
+						<Sidebar.Body>
+							<Sidebar.Group>
+								<Sidebar.List>
+									<Sidebar.Item>
+										<Sidebar.Tooltip label="Endpoints">
+											<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
+										</Sidebar.Tooltip>
+									</Sidebar.Item>
+								</Sidebar.List>
+							</Sidebar.Group>
+						</Sidebar.Body>
+					</Sidebar.Nav>
+				</Sidebar.Root>
+			</TooltipProvider>
+		);
+	}
+
+	test("renders the row it wraps, keeping the row contract intact", () => {
+		render(<RailRow defaultOpen />);
+		const row = screen.getByRole("button", { name: "Endpoints" });
+		// One element is both the tooltip trigger and the row, so the data-slot
+		// chain accumulates in DOM order rather than one side clobbering the other.
+		expect(row).toHaveAttribute("data-slot", "tooltip-trigger sidebar-item-button");
+		expect(row).toHaveAttribute("type", "button");
+	});
+
+	test("shows the label on hover while collapsed to the icon rail", async () => {
+		const user = userEvent.setup();
+		render(<RailRow defaultOpen={false} />);
+
+		await user.hover(screen.getByRole("button", { name: "Endpoints" }));
+		expect(await screen.findByRole("tooltip")).toHaveTextContent("Endpoints");
+	});
+
+	test("stays silent while the panel is expanded — the row reads its own label", async () => {
+		const user = userEvent.setup();
+		render(<RailRow defaultOpen />);
+
+		await user.hover(screen.getByRole("button", { name: "Endpoints" }));
+		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+	});
+
+	test("stays silent on mobile, where the sheet shows full labels", async () => {
+		const user = userEvent.setup();
+		useIsBelowBreakpointMock.mockReturnValue(true);
+		render(
+			<TooltipProvider>
+				<Sidebar.Root defaultOpen={false}>
+					<Sidebar.Tooltip label="Endpoints">
+						<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
+					</Sidebar.Tooltip>
+				</Sidebar.Root>
+			</TooltipProvider>,
+		);
+
+		await user.hover(screen.getByRole("button", { name: "Endpoints" }));
+		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+	});
+
+	test("keeps the trigger mounted across a collapse so focus is not dropped", () => {
+		// Regression guard on gating the Content rather than the Root: unmounting
+		// Tooltip.Root would take the Trigger — and the focused row — with it.
+		const { rerender } = render(<RailRow defaultOpen />);
+		const row = screen.getByRole("button", { name: "Endpoints" });
+		row.focus();
+		expect(row).toHaveFocus();
+
+		rerender(<RailRow defaultOpen={false} />);
+		expect(screen.getByRole("button", { name: "Endpoints" })).toBe(row);
+		expect(row).toHaveFocus();
+	});
+
+	test("composes with a DropdownMenu trigger between it and the row", async () => {
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<Sidebar.Root defaultOpen={false}>
+					<Sidebar.Nav data-testid="nav">
+						<Sidebar.Footer>
+							{/*
+							 * DropdownMenu.Root is renderless, so it has to sit OUTSIDE the
+							 * tooltip: Tooltip.Trigger asChild needs a real element to clone.
+							 */}
+							<DropdownMenu.Root>
+								<Sidebar.Tooltip label="Help">
+									<DropdownMenu.Trigger asChild>
+										<Sidebar.ItemButton>Help</Sidebar.ItemButton>
+									</DropdownMenu.Trigger>
+								</Sidebar.Tooltip>
+								<DropdownMenu.Content>
+									<DropdownMenu.Item>Docs</DropdownMenu.Item>
+								</DropdownMenu.Content>
+							</DropdownMenu.Root>
+						</Sidebar.Footer>
+					</Sidebar.Nav>
+				</Sidebar.Root>
+			</TooltipProvider>,
+		);
+
+		const trigger = screen.getByRole("button", { name: "Help" });
+		// The row is simultaneously a tooltip trigger and a menu trigger.
+		await user.hover(trigger);
+		expect(await screen.findByRole("tooltip")).toHaveTextContent("Help");
+
+		await user.click(trigger);
+		expect(await screen.findByRole("menuitem", { name: "Docs" })).toBeInTheDocument();
+	});
+
+	test("throws when rendered outside Sidebar.Root", () => {
+		// Fails loudly rather than silently never showing a tooltip.
+		expect(() =>
+			render(
+				<TooltipProvider>
+					<Sidebar.Tooltip label="Endpoints">
+						<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
+					</Sidebar.Tooltip>
+				</TooltipProvider>,
+			),
+		).toThrow(/Sidebar.Tooltip must be rendered inside Sidebar.Root/);
 	});
 });
 
