@@ -972,6 +972,32 @@ describe("Sidebar.Tooltip", () => {
 			),
 		).toThrow(/Sidebar.Tooltip must be rendered inside Sidebar.Root/);
 	});
+
+	test("requires a single element child at the type level", () => {
+		// `Tooltip.Trigger asChild` clones its child, so the two shapes below fail
+		// silently at runtime rather than loudly: no children renders no row at all
+		// (Radix returns the empty children untouched), and a text child throws deep
+		// inside Radix's slot. The required `ReactElement` keeps both off the API.
+		const withoutChildren = (
+			// @ts-expect-error -- children is required
+			<Sidebar.Tooltip label="Endpoints" />
+		);
+
+		const withTextChild = (
+			// @ts-expect-error -- children must be a single element, not text
+			<Sidebar.Tooltip label="Endpoints">Endpoints</Sidebar.Tooltip>
+		);
+
+		const withElementChild = (
+			<Sidebar.Tooltip label="Endpoints">
+				<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
+			</Sidebar.Tooltip>
+		);
+
+		expect(withoutChildren).toBeTruthy();
+		expect(withTextChild).toBeTruthy();
+		expect(withElementChild).toBeTruthy();
+	});
 });
 
 describe("switch-accounts recipe (composition)", () => {

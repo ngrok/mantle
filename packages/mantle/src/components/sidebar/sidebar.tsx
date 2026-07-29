@@ -1,7 +1,7 @@
 "use client";
 
 import { SidebarSimpleIcon } from "@phosphor-icons/react/SidebarSimple";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, ReactElement, ReactNode } from "react";
 import {
 	createContext,
 	useCallback,
@@ -1698,8 +1698,12 @@ type SidebarTooltipProps = {
 	/**
 	 * The row this labels — a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`,
 	 * optionally already wrapped in a `DropdownMenu.Trigger asChild`.
+	 *
+	 * A single element, required: `Tooltip.Trigger asChild` clones its child, so
+	 * text renders nothing a pointer can hover and no children renders no row at
+	 * all — both silently.
 	 */
-	children?: ReactNode;
+	children: ReactElement;
 	/**
 	 * What the tooltip says. Normally the row's own label text: the rail clips the
 	 * visible one, so this is what a sighted pointer user reads.
