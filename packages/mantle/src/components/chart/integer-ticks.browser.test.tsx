@@ -1,7 +1,7 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
-import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import type { MockInstance } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
 import { LineChart } from "../line-chart/index.js";
@@ -62,17 +62,16 @@ beforeAll(() => {
 	styleElement = document.createElement("style");
 	styleElement.textContent = STYLE;
 	document.head.appendChild(styleElement);
-	// Calls through to the real implementation, so painting is unchanged — the
-	// spy only records which strings hit the canvas.
+});
+
+// Installed per test rather than once, because `restoreMocks` tears every spy down between tests.
+// Calls through to the real implementation, so painting is unchanged — the spy only records which
+// strings hit the canvas.
+beforeEach(() => {
 	fillTextSpy = vi.spyOn(CanvasRenderingContext2D.prototype, "fillText");
 });
 
-afterEach(() => {
-	fillTextSpy.mockClear();
-});
-
 afterAll(() => {
-	fillTextSpy.mockRestore();
 	styleElement.remove();
 });
 

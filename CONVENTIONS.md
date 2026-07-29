@@ -129,9 +129,64 @@ Distilled from [`decisions/2026-07-04-list-family-api-design.md`](./decisions/20
   - happy-dom: `*.test.{ts,tsx}`
   - browser: `*.browser.test.{ts,tsx}`
 - No `*.test.*` under `app/routes/` — React Router treats that as route modules. Put route-behavior tests under the owning `app/features/*` area.
-- No snapshot tests of rendered HTML. Use declarative assertions (`getByRole`, `getByText`, `toBeInTheDocument`). `toMatchInlineSnapshot` is OK for serialized data shapes only.
 - Business logic MUST be thoroughly tested, including edge cases (transformations, validation, conditional rendering, state machines, parsing/formatting).
 - Every bug fix adds a regression test that fails before the fix and passes after — unless genuinely infeasible (document why in the PR).
+- Test count is not a quality signal. One test that pins a real contract is worth more than five that render and check attributes.
+
+### The bar: a test must be able to fail
+
+Before a test is done, answer: **what single-line change to the implementation would turn this red?** If there is no answer, the test is decoration — delete it or make it assert something.
+
+- These are never a test's _only_ assertion: `toBeDefined()`, `toBeTruthy()`, `not.toThrow()`, `toBeInstanceOf(HTMLElement)`. Assert the actual value, DOM state, or ARIA state.
+- Never assert an element you constructed but never rendered.
+- Never compare the implementation's arithmetic against constants re-declared in the test body — call the real function and assert its output, or the test only proves the test agrees with itself.
+- Make sure your query can actually match. A selector that can never match makes the assertion unfailable.
+- `@ts-expect-error` is owned by `pnpm typecheck`. Do not pair it with a placeholder runtime `expect` — that reads as coverage the vitest run does not have.
+- Spies assert count and arguments: `toHaveBeenCalledTimes(n)` plus `toHaveBeenLastCalledWith(…)`, not a bare `toHaveBeenCalled()`. A call-count-blind spy cannot see a debounce that stopped debouncing.
+- `oxlint`'s `vitest(expect-expect)` rule catches the assertion-free case only. Everything above is on you.
+
+### Drive the interaction
+
+If a component owns an event handler, a controlled prop, or a documented keyboard contract, at least one test must **drive it end to end** — `await user.click(…)` / `await user.keyboard("{ArrowDown}")` — and assert both the callback arguments and the resulting DOM/ARIA state.
+
+Rendering a component with `defaultValue`/`open` hardcoded and checking attributes does not test an interactive component; it tests its initial markup. `readOnly` and `disabled` guards, controlled-vs-uncontrolled paths, dismissal, and sort/expand/select cycles all need a real event.
+
+Test mantle's own logic — its wiring, guards, prop plumbing, and ARIA setup. Do not re-test Radix or Ariakit internals.
+
+### Assert behavior, not styling internals
+
+**Do not assert Tailwind utility strings.** Neither project loads Tailwind, so `expect(el.className).toContain("shadow-inner")` compares a string to the source literal — it observes nothing about rendering, and it false-fails on behavior-preserving token renames. Reach instead, in order, for:
+
+1. the documented public API the class implements — a `data-slot`, a documented data attribute, or a documented CSS custom property (all three are public API per [COMPONENT_SPEC.md](./COMPONENT_SPEC.md));
+2. a behavioral assertion (role, accessible name, text, ARIA state, callback);
+3. in browser mode only, `getComputedStyle` with the load-bearing CSS injected inline in the test file (`label.browser.test.tsx` is the reference);
+4. deleting the assertion, if none of the above applies.
+
+Three uses are legitimate and should stay, each of which needs a comment saying which one it is: **tailwind-merge override contracts** (proving a consumer's `className` beats a default — assert the merge outcome, not a list of internal defaults), **explicitly commented cross-file spelling pins** that tie a class to a selector in another file, and **the class as the only observable implementation of an enumerated prop** — when a variant emits no data attribute and no other DOM difference, the class is the only thing that can catch a permuted lookup table (`toast.test.tsx`'s intent tables are the reference; prefer exposing a data attribute when you own the component).
+
+Also: `toHaveClass` ignores extra classes, so it cannot back a test name that promises exclusivity. And no snapshot tests of rendered HTML — use declarative assertions (`getByRole`, `getByText`, `toBeInTheDocument`). `toMatchInlineSnapshot` is for serialized data shapes only.
+
+### Pin the contracts that cross files
+
+`data-slot` and documented data attributes are public API, so a rename is a breaking change for consumer CSS. Give each component one table-driven test asserting every part's slot lands on the expected element (`centered-layout.test.tsx` models this).
+
+When a selector in one file depends on an attribute or class emitted in another (`has-data-*`, `group-data-*`, `group-has-[…]`, `[&>.…]`), assert _both sides in one test_ that renders them together. Asserting only the consumer's selector leaves the pair one rename away from a silent layout break with every test green.
+
+### Cover the server render
+
+Anything whose purpose is server output needs `renderToString` from `react-dom/server` — pre-hydration branches, SSR-only props, and FOUC prevention. Asserting only post-mount state cannot see the render path, because the mount effect overwrites it before the assertion runs.
+
+For logic that is stringified into an inline `<script>`, evaluate the produced string in the test (`new Function(scriptContent())()`) and assert its side effects. Nothing else makes a closure-scoping regression in it visible — lint, typecheck, and build all pass on a script that throws at runtime.
+
+### Determinism
+
+- **No arbitrary sleeps.** `await new Promise((resolve) => setTimeout(resolve, 100))` is a race, not a wait. Use `waitFor`, `findBy*`, or `expect.poll` on the state you actually need — for observer-driven measurement, poll the measured value itself.
+- Never mutate state inside a `waitFor` callback; it can run many times.
+- Install spies **after** `userEvent.setup()`. `setup()` swaps `navigator.clipboard` for its own stub, so a patch applied before it is silently discarded.
+- Every test-bearing package sets `restoreMocks`, `unstubEnvs`, and `unstubGlobals` in its Vitest config (both mantle projects, `apps/www`, `mantle-vite-plugins`, `mantle-server-syntax-highlighter`), so `vi.spyOn` spies and `vi.stubGlobal`/`vi.stubEnv` stubs are torn down between tests automatically. A trailing `spy.mockRestore()` in a test body is dead code — and relying on one is a leak, since a test that throws never reaches it. `restoreMocks` does **not** clear a `vi.fn()`'s implementation or call history, so a `vi.fn()` shared across tests still needs `mockReset()` — put it in `beforeEach`, or just create the mock there. A spy that must survive across tests in a file goes in `beforeEach`, not `beforeAll`.
+- No test may depend on another test having run. Verify with `pnpm vitest run --project unit --sequence.shuffle.tests --sequence.shuffle.files --sequence.seed=<n>` across a few seeds.
+- Locale- and timezone-sensitive assertions rely on `TZ`/`LC_ALL` being pinned in the Vitest config, not in a package script — a pin in a script is lost the moment anyone runs a single file directly. The happy-dom project pins them via `test.env`; the browser project pins Chromium's own `locale`/`timezoneId` through the Playwright `contextOptions`, which `process.env` cannot reach.
+- Never assert a wall-clock duration or a throughput threshold. Benchmarks belong in `bench()`, not `test()`.
 
 ### When to reach for browser mode
 
@@ -152,7 +207,11 @@ Default to happy-dom. Reach for browser mode only when the test depends on a rea
 - Canvas 2D / WebGL / OffscreenCanvas
 - Real `requestAnimationFrame` timing
 
-If the test only touches DOM structure, ARIA, event handlers, or pure state — stay in happy-dom.
+If the test only touches DOM structure, ARIA, event handlers, or pure state — stay in happy-dom. A file belongs in the browser project only if it exercises a named API from that list; otherwise it pays Chromium startup and browser-launch flake for assertions that are deterministic in happy-dom. This is a rule in both directions — misplaced files should be renamed back to `*.test.tsx`.
+
+Browser tests load **no Tailwind** and the browser project injects no stylesheet, so a browser test that asserts geometry, visibility, or computed style **must inject the load-bearing CSS inline** (`label.browser.test.tsx` is the reference) — otherwise the layout is degenerate and the assertion passes for the wrong reason. When injecting CSS is impractical, assert the mechanism (`element.style.height === "auto"`) rather than the geometry it produces, and say so in a comment.
+
+Beware the inverse trap in happy-dom: `offsetWidth`/`offsetHeight`/`getBoundingClientRect` return zeros, so an assertion like `expect(node.offsetHeight).toBe(0)` passes no matter what the implementation does.
 
 ## Package Management
 
