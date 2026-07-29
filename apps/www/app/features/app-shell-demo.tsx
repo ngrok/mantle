@@ -1,6 +1,7 @@
 import { Alert } from "@ngrok/mantle/alert";
 import { AlertCenter } from "@ngrok/mantle/alert-center";
 import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Avatar } from "@ngrok/mantle/avatar";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { IconButton } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
@@ -42,6 +43,7 @@ import { SlidersHorizontalIcon } from "@phosphor-icons/react/SlidersHorizontal";
 import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
 import { SpeedometerIcon } from "@phosphor-icons/react/Speedometer";
 import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
+import { UserIcon } from "@phosphor-icons/react/User";
 import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
 import { UsersIcon } from "@phosphor-icons/react/Users";
 import { UsersThreeIcon } from "@phosphor-icons/react/UsersThree";
@@ -673,11 +675,20 @@ function AppShellAccountSwitcher({
 			<Sidebar.Tooltip label={account.name}>
 				<DropdownMenu.Trigger asChild>
 					<Sidebar.SwitcherTrigger>
-						<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+						<Avatar.Root appearance="square" colorSeed={account.id}>
+							<Avatar.Fallback name={account.name} />
+						</Avatar.Root>
 						<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
 							{account.name}
 						</span>
-						<Sidebar.UserAvatar alt="Jane Doe" />
+						{/* the user has no picture here, so the avatar is a silhouette that
+						    names the signed-in user itself — a bare span is role=generic,
+						    where an accessible name is prohibited, hence role="img" */}
+						<Avatar.Root aria-label="Jane Doe" className="text-muted" role="img">
+							<Avatar.Fallback>
+								<UserIcon className="size-4" />
+							</Avatar.Fallback>
+						</Avatar.Root>
 					</Sidebar.SwitcherTrigger>
 				</DropdownMenu.Trigger>
 			</Sidebar.Tooltip>
@@ -708,10 +719,9 @@ function AppShellAccountSwitcher({
 							<DropdownMenu.RadioGroup value={account.id} onValueChange={onAccountChange}>
 								{demoAccounts.map((demoAccount) => (
 									<DropdownMenu.RadioItem key={demoAccount.id} value={demoAccount.id}>
-										<Sidebar.AccountAvatar
-											accountId={demoAccount.id}
-											accountName={demoAccount.name}
-										/>
+										<Avatar.Root appearance="square" colorSeed={demoAccount.id}>
+											<Avatar.Fallback name={demoAccount.name} />
+										</Avatar.Root>
 										<span className="min-w-0 flex-1 truncate">{demoAccount.name}</span>
 									</DropdownMenu.RadioItem>
 								))}
@@ -997,7 +1007,9 @@ function BridgeAccountSwitcher({
 			<Sidebar.Tooltip label={account.name}>
 				<DropdownMenu.Trigger asChild>
 					<Sidebar.SwitcherTrigger>
-						<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+						<Avatar.Root appearance="square" colorSeed={account.id}>
+							<Avatar.Fallback name={account.name} />
+						</Avatar.Root>
 						<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
 							{account.name}
 						</span>
@@ -1019,10 +1031,9 @@ function BridgeAccountSwitcher({
 							<DropdownMenu.RadioGroup value={accountId} onValueChange={onAccountChange}>
 								{demoAccounts.map((demoAccount) => (
 									<DropdownMenu.RadioItem key={demoAccount.id} value={demoAccount.id}>
-										<Sidebar.AccountAvatar
-											accountId={demoAccount.id}
-											accountName={demoAccount.name}
-										/>
+										<Avatar.Root appearance="square" colorSeed={demoAccount.id}>
+											<Avatar.Fallback name={demoAccount.name} />
+										</Avatar.Root>
 										<span className="min-w-0 flex-1 truncate">{demoAccount.name}</span>
 									</DropdownMenu.RadioItem>
 								))}

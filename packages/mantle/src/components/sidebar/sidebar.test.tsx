@@ -5,6 +5,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, type MockInstance, test, vi } from "vitest";
 import mantleCss from "../../mantle.css?raw";
 import type * as UseBreakpointModule from "../../hooks/use-breakpoint.js";
+import { Avatar } from "../avatar/index.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { TooltipProvider } from "../tooltip/index.js";
 import { Sidebar, useSidebar } from "./sidebar.js";
@@ -1302,8 +1303,8 @@ describe("Sidebar.Tooltip", () => {
 
 describe("switch-accounts recipe (composition)", () => {
 	// The account switcher is deliberately not a Sidebar part — it composes
-	// DropdownMenu.RadioGroup/RadioItem with Sidebar.AccountAvatar (see the
-	// docs recipe). This guards the composition the docs demonstrate.
+	// DropdownMenu.RadioGroup/RadioItem with an Avatar (see the docs recipe).
+	// This guards the composition the docs demonstrate.
 	test("radio items compose an avatar, name, and checked state", async () => {
 		const user = userEvent.setup();
 		const onValueChange = vi.fn<(value: string) => void>();
@@ -1317,7 +1318,9 @@ describe("switch-accounts recipe (composition)", () => {
 							{ id: "acc_atlas", name: "Atlas Industries" },
 						].map((account) => (
 							<DropdownMenu.RadioItem key={account.id} value={account.id}>
-								<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+								<Avatar.Root appearance="square" colorSeed={account.id}>
+									<Avatar.Fallback name={account.name} />
+								</Avatar.Root>
 								<span className="min-w-0 flex-1 truncate">{account.name}</span>
 							</DropdownMenu.RadioItem>
 						))}
@@ -1347,109 +1350,6 @@ describe("Sidebar.Separator", () => {
 		// inset: aligned with the px-3 content padding, never edge to edge
 		expect(separator.className).toContain("my-3");
 		expect(separator.className).not.toContain("-mx-3");
-	});
-});
-
-function renderedSwatchClass(accountId: string | undefined): string {
-	const { unmount } = render(
-		<Sidebar.AccountAvatar data-testid="avatar" accountId={accountId} accountName="Test" />,
-	);
-	const avatar = screen.getByTestId("avatar");
-	const swatch = Array.from(avatar.classList).find((name) => name.startsWith("bg-"));
-	unmount();
-	expect(swatch).toBeDefined();
-	return swatch ?? "";
-}
-
-describe("Sidebar.AccountAvatar", () => {
-	test("derives one uppercase initial from a single-word name", () => {
-		render(<Sidebar.AccountAvatar accountId="acc_1" accountName="ngrok" />);
-		expect(screen.getByText("N")).toBeInTheDocument();
-	});
-
-	test("derives two initials from a multi-word name and caps at two", () => {
-		render(<Sidebar.AccountAvatar accountId="acc_1" accountName="Acme Corp International" />);
-		expect(screen.getByText("AC")).toBeInTheDocument();
-	});
-
-	test("strips special characters before deriving initials", () => {
-		render(<Sidebar.AccountAvatar accountId="acc_1" accountName="!!!Banana***" />);
-		expect(screen.getByText("B")).toBeInTheDocument();
-	});
-
-	test("keeps a surrogate-pair first character whole instead of splitting it", () => {
-		// Regression: substring(0, 1) split an emoji-leading name into a lone
-		// surrogate that rendered as U+FFFD.
-		render(<Sidebar.AccountAvatar accountId="acc_1" accountName="🚀 Rocket" />);
-		expect(screen.getByText("🚀R")).toBeInTheDocument();
-	});
-
-	test("falls back to ? for empty names", () => {
-		render(<Sidebar.AccountAvatar accountId="acc_1" accountName="" />);
-		expect(screen.getByText("?")).toBeInTheDocument();
-	});
-
-	test("falls back to ? for an undefined name", () => {
-		// `accountName` is typed `string | undefined` — a name that has not loaded
-		// yet renders the placeholder rather than an empty avatar.
-		render(<Sidebar.AccountAvatar accountId="acc_1" accountName={undefined} />);
-		expect(screen.getByText("?")).toBeInTheDocument();
-	});
-
-	test("falls back to ? for a name with no usable characters", () => {
-		// The documented `getInitials` example: punctuation is stripped first, so
-		// there is nothing left to initial.
-		render(<Sidebar.AccountAvatar accountId="acc_1" accountName="  ~!@  " />);
-		expect(screen.getByText("?")).toBeInTheDocument();
-	});
-
-	test("uppercases locale-invariantly so SSR and a Turkish-locale client agree", () => {
-		// `toLocaleUpperCase()` follows the HOST locale, where Turkish maps "i" to
-		// "İ" (U+0130) — a server and a Turkish client would then disagree and
-		// mismatch on hydration. The suite's own locale cannot be switched at
-		// runtime, so the pin is that the locale-sensitive path is never taken.
-		const toLocaleUpperCase = vi.spyOn(String.prototype, "toLocaleUpperCase");
-		try {
-			render(<Sidebar.AccountAvatar accountId="acc_1" accountName="ilkay ergun" />);
-		} finally {
-			toLocaleUpperCase.mockRestore();
-		}
-		expect(toLocaleUpperCase).not.toHaveBeenCalled();
-		expect(screen.getByText("IE")).toBeInTheDocument();
-	});
-
-	test("the same accountId always renders the same swatch", () => {
-		const first = renderedSwatchClass("acc_stable");
-		const second = renderedSwatchClass("acc_stable");
-		expect(first).toBe(second);
-	});
-
-	test("a missing accountId resolves like the empty string", () => {
-		// Documented on `pickColorClass`: an id that has not loaded yet still picks
-		// a real swatch instead of leaving the avatar unpainted.
-		expect(renderedSwatchClass(undefined)).toBe(renderedSwatchClass(""));
-	});
-});
-
-describe("Sidebar.UserAvatar", () => {
-	test("renders the silhouette fallback and aria-label without a src", () => {
-		render(<Sidebar.UserAvatar data-testid="avatar" alt="Jane Doe" />);
-		const avatar = screen.getByTestId("avatar");
-		expect(avatar).toHaveAttribute("aria-label", "Jane Doe");
-		expect(avatar.querySelector("img")).not.toBeInTheDocument();
-		expect(avatar.querySelector("svg")).toBeInTheDocument();
-	});
-
-	test("renders the profile image and drops the container aria-label with a src", () => {
-		render(
-			<Sidebar.UserAvatar data-testid="avatar" src="https://example.com/me.png" alt="Jane Doe" />,
-		);
-		const avatar = screen.getByTestId("avatar");
-		expect(avatar).not.toHaveAttribute("aria-label");
-		expect(screen.getByRole("img", { name: "Jane Doe" })).toHaveAttribute(
-			"src",
-			"https://example.com/me.png",
-		);
 	});
 });
 
@@ -1643,22 +1543,6 @@ const defaultElementCases: Array<PartCase> = [
 		tagName: "DIV",
 		renderPart: (probe) => <Sidebar.Separator {...probe} />,
 	},
-	{
-		name: "AccountAvatar",
-		ownClass: "rounded-md",
-		slot: "sidebar-account-avatar",
-		tagName: "DIV",
-		renderPart: (probe) => (
-			<Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" {...probe} />
-		),
-	},
-	{
-		name: "UserAvatar",
-		ownClass: "rounded-full",
-		slot: "sidebar-user-avatar",
-		tagName: "DIV",
-		renderPart: (probe) => <Sidebar.UserAvatar alt="Jane Doe" {...probe} />,
-	},
 ];
 
 /**
@@ -1799,30 +1683,6 @@ const asChildCases: Array<PartCase> = [
 			<Sidebar.Separator asChild {...probe}>
 				<hr />
 			</Sidebar.Separator>
-		),
-	},
-	{
-		name: "AccountAvatar",
-		ownClass: "rounded-md",
-		slot: "sidebar-account-avatar",
-		tagName: "SPAN",
-		renderPart: (probe) => (
-			// The initials render INSIDE the swapped element, so it is passed empty —
-			// a <span> is what fits inside the <button> the switcher row renders.
-			<Sidebar.AccountAvatar asChild accountId="acc_123" accountName="Acme Corp" {...probe}>
-				<span />
-			</Sidebar.AccountAvatar>
-		),
-	},
-	{
-		name: "UserAvatar",
-		ownClass: "rounded-full",
-		slot: "sidebar-user-avatar",
-		tagName: "SPAN",
-		renderPart: (probe) => (
-			<Sidebar.UserAvatar asChild alt="Jane Doe" {...probe}>
-				<span />
-			</Sidebar.UserAvatar>
 		),
 	},
 ];

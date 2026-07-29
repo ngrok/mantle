@@ -81,6 +81,7 @@ export default [
 		...docRoute("components/charts/scatter-plot"),
 		// data display
 		...docRoute("components/data-display/accordion"),
+		...docRoute("components/data-display/avatar"),
 		...docRoute("components/data-display/badge"),
 		...docRoute("components/data-display/code"),
 		...docRoute("components/data-display/code-block"),

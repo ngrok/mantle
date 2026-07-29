@@ -141,11 +141,15 @@ const Content = ({ asChild = false, className, children, style, ref }: Props) =>
  *
  * @example
  * ```tsx
+ * import { Avatar } from "@ngrok/mantle/avatar";
  * import { MediaObject } from "@ngrok/mantle/media-object";
  *
  * <MediaObject.Root>
  *   <MediaObject.Media>
- *     <Avatar src={user.avatarUrl} alt="" />
+ *     <Avatar.Root>
+ *       <Avatar.Image src={user.avatarUrl} alt="" />
+ *       <Avatar.Fallback name={user.name} />
+ *     </Avatar.Root>
  *   </MediaObject.Media>
  *   <MediaObject.Content>
  *     <p className="font-medium">{user.name}</p>

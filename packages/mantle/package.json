@@ -85,6 +85,11 @@
 			"types": "./dist/area-chart.d.ts",
 			"import": "./dist/area-chart.js"
 		},
+		"./avatar": {
+			"@ngrok/src-live-types": "./src/components/avatar/index.ts",
+			"types": "./dist/avatar.d.ts",
+			"import": "./dist/avatar.js"
+		},
 		"./badge": {
 			"@ngrok/src-live-types": "./src/components/badge/index.ts",
 			"types": "./dist/badge.d.ts",
