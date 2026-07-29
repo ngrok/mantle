@@ -60,6 +60,16 @@ export default defineConfig(({ command }) => ({
 		// don't need the framework plugin — component tests render directly.
 		...(process.env.VITEST ? [] : [reactRouter()]),
 	],
+	// A spy or global stub a test installs and then fails to tear down leaks into every test that
+	// runs after it, turning an unrelated failure into a cascade and making results order-dependent.
+	// Restoring centrally means an inline `mockRestore()` is never load-bearing — a test that throws
+	// before reaching its cleanup line still leaves the environment pristine. Mirrors
+	// `packages/mantle/vitest.config.ts`, which CONVENTIONS.md § Testing documents repo-wide.
+	test: {
+		restoreMocks: true,
+		unstubEnvs: true,
+		unstubGlobals: true,
+	},
 	resolve: {
 		// Ensure Mantle components resolve to source in dev mode (not dist)
 		// so client HMR picks up changes immediately
