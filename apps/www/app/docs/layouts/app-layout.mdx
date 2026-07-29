@@ -59,6 +59,7 @@ default.
 import { Alert } from "@ngrok/mantle/alert";
 import { AlertCenter } from "@ngrok/mantle/alert-center";
 import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Avatar } from "@ngrok/mantle/avatar";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { IconButton } from "@ngrok/mantle/button";
 import { Dialog } from "@ngrok/mantle/dialog";
@@ -85,6 +86,7 @@ import { SignOutIcon } from "@phosphor-icons/react/SignOut";
 import { SlidersHorizontalIcon } from "@phosphor-icons/react/SlidersHorizontal";
 import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
 import { SpeedometerIcon } from "@phosphor-icons/react/Speedometer";
+import { UserIcon } from "@phosphor-icons/react/User";
 import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
 import { UsersThreeIcon } from "@phosphor-icons/react/UsersThree";
 import { WarningIcon } from "@phosphor-icons/react/Warning";
@@ -358,11 +360,20 @@ function AccountSwitcher({
 			<Sidebar.Tooltip label={account.name}>
 				<DropdownMenu.Trigger asChild>
 					<Sidebar.SwitcherTrigger>
-						<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+						<Avatar.Root appearance="square" colorSeed={account.id}>
+							<Avatar.Fallback name={account.name} />
+						</Avatar.Root>
 						<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
 							{account.name}
 						</span>
-						<Sidebar.UserAvatar alt="Jane Doe" />
+						{/* the user has no picture here, so the avatar is a silhouette that
+						    names the signed-in user itself — a bare span is role=generic,
+						    where an accessible name is prohibited, hence role="img" */}
+						<Avatar.Root aria-label="Jane Doe" className="text-muted" role="img">
+							<Avatar.Fallback>
+								<UserIcon className="size-4" />
+							</Avatar.Fallback>
+						</Avatar.Root>
 					</Sidebar.SwitcherTrigger>
 				</DropdownMenu.Trigger>
 			</Sidebar.Tooltip>
@@ -393,7 +404,9 @@ function AccountSwitcher({
 							<DropdownMenu.RadioGroup value={account.id} onValueChange={onAccountChange}>
 								{accounts.map((candidate) => (
 									<DropdownMenu.RadioItem key={candidate.id} value={candidate.id}>
-										<Sidebar.AccountAvatar accountId={candidate.id} accountName={candidate.name} />
+										<Avatar.Root appearance="square" colorSeed={candidate.id}>
+											<Avatar.Fallback name={candidate.name} />
+										</Avatar.Root>
 										<span className="min-w-0 flex-1 truncate">{candidate.name}</span>
 									</DropdownMenu.RadioItem>
 								))}
@@ -780,6 +793,7 @@ row at the top of `Sidebar.Body` instead.
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Avatar } from "@ngrok/mantle/avatar";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Main } from "@ngrok/mantle/main";
@@ -878,7 +892,9 @@ function AccountSwitcher({
 			<Sidebar.Tooltip label={account.name}>
 				<DropdownMenu.Trigger asChild>
 					<Sidebar.SwitcherTrigger>
-						<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+						<Avatar.Root appearance="square" colorSeed={account.id}>
+							<Avatar.Fallback name={account.name} />
+						</Avatar.Root>
 						<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
 							{account.name}
 						</span>
@@ -896,7 +912,9 @@ function AccountSwitcher({
 						<DropdownMenu.RadioGroup value={accountId} onValueChange={onAccountChange}>
 							{accounts.map((candidate) => (
 								<DropdownMenu.RadioItem key={candidate.id} value={candidate.id}>
-									<Sidebar.AccountAvatar accountId={candidate.id} accountName={candidate.name} />
+									<Avatar.Root appearance="square" colorSeed={candidate.id}>
+										<Avatar.Fallback name={candidate.name} />
+									</Avatar.Root>
 									<span className="min-w-0 flex-1 truncate">{candidate.name}</span>
 								</DropdownMenu.RadioItem>
 							))}

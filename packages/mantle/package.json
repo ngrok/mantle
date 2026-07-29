@@ -85,6 +85,11 @@
 			"types": "./dist/area-chart.d.ts",
 			"import": "./dist/area-chart.js"
 		},
+		"./avatar": {
+			"@ngrok/src-live-types": "./src/components/avatar/index.ts",
+			"types": "./dist/avatar.d.ts",
+			"import": "./dist/avatar.js"
+		},
 		"./badge": {
 			"@ngrok/src-live-types": "./src/components/badge/index.ts",
 			"types": "./dist/badge.d.ts",
@@ -424,6 +429,7 @@
 	"dependencies": {
 		"@ariakit/react": "0.4.35",
 		"@headlessui/react": "2.2.10",
+		"@radix-ui/react-avatar": "1.2.6",
 		"@radix-ui/react-dialog": "1.1.23",
 		"@radix-ui/react-dropdown-menu": "2.1.24",
 		"@radix-ui/react-hover-card": "1.1.23",

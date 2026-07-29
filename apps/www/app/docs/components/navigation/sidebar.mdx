@@ -55,6 +55,7 @@ preview's desktop and tablet widths; ngrok's dashboards keep the `lg` default.
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Avatar } from "@ngrok/mantle/avatar";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
@@ -82,6 +83,7 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 import { SignOutIcon } from "@phosphor-icons/react/SignOut";
 import { SpeedometerIcon } from "@phosphor-icons/react/Speedometer";
 import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
+import { UserIcon } from "@phosphor-icons/react/User";
 import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
 import { UsersThreeIcon } from "@phosphor-icons/react/UsersThree";
 import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
@@ -466,11 +468,20 @@ function AccountSwitcher({
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger asChild>
 				<Sidebar.SwitcherTrigger>
-					<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+					<Avatar.Root appearance="square" colorSeed={account.id}>
+						<Avatar.Fallback name={account.name} />
+					</Avatar.Root>
 					<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
 						{account.name}
 					</span>
-					<Sidebar.UserAvatar alt="Jane Doe" />
+					{/* the user has no picture here, so the avatar is a silhouette that
+					    names the signed-in user itself — a bare span is role=generic,
+					    where an accessible name is prohibited, hence role="img" */}
+					<Avatar.Root aria-label="Jane Doe" className="text-muted" role="img">
+						<Avatar.Fallback>
+							<UserIcon className="size-4" />
+						</Avatar.Fallback>
+					</Avatar.Root>
 				</Sidebar.SwitcherTrigger>
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content
@@ -496,7 +507,9 @@ function AccountSwitcher({
 							<DropdownMenu.RadioGroup value={account.id} onValueChange={onAccountChange}>
 								{accounts.map((candidate) => (
 									<DropdownMenu.RadioItem key={candidate.id} value={candidate.id}>
-										<Sidebar.AccountAvatar accountId={candidate.id} accountName={candidate.name} />
+										<Avatar.Root appearance="square" colorSeed={candidate.id}>
+											<Avatar.Fallback name={candidate.name} />
+										</Avatar.Root>
 										<span className="min-w-0 flex-1 truncate">{candidate.name}</span>
 									</DropdownMenu.RadioItem>
 								))}
@@ -678,8 +691,6 @@ Sidebar.Root
 │       ├── Sidebar.ItemButton
 │       ├── Sidebar.Separator
 │       └── Sidebar.SwitcherTrigger
-│           ├── Sidebar.AccountAvatar
-│           └── Sidebar.UserAvatar
 └── Sidebar.Trigger
 ```
 
@@ -687,29 +698,22 @@ Sidebar.Root
 including inside layout components that know nothing about the sidebar. Render exactly one `Sidebar.Nav` per
 `Sidebar.Root`; nested roots shadow the outer sidebar for everything below them.
 There is deliberately no account-switcher part: a "Switch accounts" submenu is a composition of
-[DropdownMenu](/components/overlays/dropdown-menu)'s `RadioGroup`/`RadioItem` with `Sidebar.AccountAvatar`,
-exactly as the shell demo above shows — the account model (what a row contains, badges, ordering) belongs to
-the app, not the design system.
+[DropdownMenu](/components/overlays/dropdown-menu)'s `RadioGroup`/`RadioItem` with
+[Avatar](/components/data-display/avatar), exactly as the shell demo above shows — the account model (what a
+row contains, badges, ordering) belongs to the app, not the design system.
 
 ## Polymorphism
 
 `Sidebar.Header`, `Sidebar.Body`, `Sidebar.Footer`, `Sidebar.Group`, `Sidebar.GroupLabel`, `Sidebar.List`,
-`Sidebar.Item`, `Sidebar.ItemButton`, `Sidebar.SwitcherTrigger`, `Sidebar.Separator`,
-`Sidebar.AccountAvatar`, `Sidebar.UserAvatar`, and `Sidebar.Tooltip` accept an `asChild` prop. When `true`,
-the part renders its single child instead of its default element, forwarding all class names, `data-*`
-attributes, and the ref onto that child. The most common uses are router links on `Sidebar.ItemButton`
-(shown throughout this page) and composing `Sidebar.SwitcherTrigger` with `DropdownMenu.Trigger asChild` or
-`Dialog.Trigger asChild`. `Sidebar.Separator` inherits it from the
+`Sidebar.Item`, `Sidebar.ItemButton`, `Sidebar.SwitcherTrigger`, `Sidebar.Separator`, and `Sidebar.Tooltip`
+accept an `asChild` prop. When `true`, the part renders its single child instead of its default element,
+forwarding all class names, `data-*` attributes, and the ref onto that child. The most common uses are router
+links on `Sidebar.ItemButton` (shown throughout this page) and composing `Sidebar.SwitcherTrigger` with
+`DropdownMenu.Trigger asChild` or `Dialog.Trigger asChild`. `Sidebar.Separator` inherits it from the
 [Separator](/components/structure/separator) it composes, and `Sidebar.Tooltip` forwards it to the
 [`Tooltip.Content`](/components/overlays/tooltip#tooltipcontent) whose props it takes — Radix implements that
 swap itself, so it replaces the **tooltip surface**, not the row you wrap. The row's own polymorphism goes
 through the `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger` inside it.
-
-The two avatars are a special case: `Sidebar.AccountAvatar` derives its initials from `accountName` and
-`Sidebar.UserAvatar` derives its visual from `src`, neither of which a consumer can compute, so `asChild`
-swaps the element while the content stays the part's — pass a single **empty** element, such as a `<span />`
-when the avatar sits inside a `<button>`, which may not contain a `<div>`. The type requires that child when
-`asChild` is `true` and forbids it otherwise, so there is no way to ask for a swap with nothing to swap.
 
 `Sidebar.Root`, `Sidebar.Nav`, and `Sidebar.Trigger` are the exceptions. `Sidebar.Root` renders no DOM at
 all, so there is nothing to swap; the nav renders a fixed two-element collapse structure (and a `Sheet` on
@@ -1064,11 +1068,13 @@ expand the panel with the trigger, and open it again — the menu is the same wi
 </Example>
 
 ```tsx
+import { Avatar } from "@ngrok/mantle/avatar";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { GearIcon } from "@phosphor-icons/react/Gear";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { SignOutIcon } from "@phosphor-icons/react/SignOut";
+import { UserIcon } from "@phosphor-icons/react/User";
 
 export function AccountRowMenu() {
 	return (
@@ -1092,11 +1098,17 @@ export function AccountRowMenu() {
 						<DropdownMenu.Root>
 							<DropdownMenu.Trigger asChild>
 								<Sidebar.SwitcherTrigger>
-									<Sidebar.AccountAvatar accountId="acc_acme" accountName="Acme Corp" />
+									<Avatar.Root appearance="square" colorSeed="acc_acme">
+										<Avatar.Fallback name="Acme Corp" />
+									</Avatar.Root>
 									<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
 										Acme Corp
 									</span>
-									<Sidebar.UserAvatar alt="Jane Doe" />
+									<Avatar.Root aria-label="Jane Doe" className="text-muted" role="img">
+										<Avatar.Fallback>
+											<UserIcon className="size-4" />
+										</Avatar.Fallback>
+									</Avatar.Root>
 								</Sidebar.SwitcherTrigger>
 							</DropdownMenu.Trigger>
 							<DropdownMenu.Content
@@ -1671,10 +1683,11 @@ All props from `button` plus:
 ### Sidebar.SwitcherTrigger
 
 The styled switcher row for the header (app switcher) and footer (account/user row). Its leading visual is
-size-7 to match selected rail icons while the row keeps a compact 36px footprint. The control uses a custom
-10px radius on all corners so product and account switchers share the same shape around their rounded tiles.
-A styled button only — compose it with `DropdownMenu.Trigger asChild` or `Dialog.Trigger asChild`, which
-provide the open state (`data-state="open"` styling responds automatically).
+size-7 to match selected rail icons while the row keeps a compact 36px footprint —
+[Avatar](/components/data-display/avatar) is that size by default, which is what an account or user row puts
+there. The control uses a custom 10px radius on all corners so product and account switchers share the same
+shape around their rounded tiles. A styled button only — compose it with `DropdownMenu.Trigger asChild` or
+`Dialog.Trigger asChild`, which provide the open state (`data-state="open"` styling responds automatically).
 
 Match the trailing affordance to the surface the trigger actually opens. A `CaretDown` promises a menu
 dropping from the row, so keep it for `DropdownMenu`-backed switchers; a `Dialog`-backed switcher reads
@@ -1749,29 +1762,6 @@ All props from [Separator](/components/structure/separator), including:
 | `asChild?`     | `boolean`                      | `false`        | Use the `asChild` prop to compose the `Sidebar.Separator` styling onto alternative element types or your own components.       |
 | `orientation?` | `"horizontal"` \| `"vertical"` | `"horizontal"` | The separator's axis. Sidebar regions stack vertically, so the horizontal default is almost always what you want.              |
 | `semantic?`    | `boolean`                      | `false`        | When `true`, renders `role="separator"` and is announced. Leave it `false` for a decorative divider between navigation groups. |
-
-### Sidebar.AccountAvatar
-
-A `size-7` rounded-square account avatar. The swatch color derives deterministically from `accountId` (stable
-across sessions and devices) using the prototype account switcher palette.
-
-| Prop          | Type                  | Default | Description                                                                                                                                                                                                     |
-| ------------- | --------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `accountId`   | `string \| undefined` | —       | Stable id; seeds the deterministic swatch color.                                                                                                                                                                |
-| `accountName` | `string \| undefined` | —       | Display name; its first 1–2 letters become the initials.                                                                                                                                                        |
-| `asChild?`    | `boolean`             | `false` | Render `children` instead of the avatar's own `<div>` — a `<span />` when the avatar sits inside a `<button>`, or a link.                                                                                       |
-| `children?`   | `ReactElement`        | —       | The single empty element `asChild` swaps in. Required with `asChild` and rejected without it: the initials are derived from `accountName`, so they render _inside_ this element, replacing anything it carried. |
-
-### Sidebar.UserAvatar
-
-A `size-7` circular user avatar with a silhouette fallback.
-
-| Prop        | Type           | Default          | Description                                                                                                                                                                                        |
-| ----------- | -------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src?`      | `string`       | —                | Profile picture URL; falls back to a silhouette when omitted.                                                                                                                                      |
-| `alt?`      | `string`       | `"Your account"` | Accessible label for the avatar.                                                                                                                                                                   |
-| `asChild?`  | `boolean`      | `false`          | Render `children` instead of the avatar's own `<div>` — a `<span />` when the avatar sits inside a `<button>`, or a link.                                                                          |
-| `children?` | `ReactElement` | —                | The single empty element `asChild` swaps in. Required with `asChild` and rejected without it: the image (or the silhouette fallback) renders _inside_ this element, replacing anything it carried. |
 
 ### useSidebar
 

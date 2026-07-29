@@ -53,6 +53,7 @@ export const componentsByCategory = {
 	Charts: ["Area Chart", "Bar Chart", "Line Chart", "Scatter Plot"],
 	"Data Display": [
 		"Accordion",
+		"Avatar",
 		"Badge",
 		"Code",
 		"Code Block",
@@ -139,6 +140,7 @@ export const prodReadyComponentRouteLookup = {
 	"Alert Dialog": "/components/overlays/alert-dialog",
 	Anchor: "/components/navigation/anchor",
 	"Area Chart": "/components/charts/area-chart",
+	Avatar: "/components/data-display/avatar",
 	Badge: "/components/data-display/badge",
 	"Bar Chart": "/components/charts/bar-chart",
 	Breadcrumb: "/components/navigation/breadcrumb",

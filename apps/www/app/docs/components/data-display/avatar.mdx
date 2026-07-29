@@ -1,0 +1,421 @@
+---
+title: Avatar
+description: A small image representing a person or an account, with a text or icon fallback.
+---
+
+import { Avatar } from "@ngrok/mantle/avatar";
+import { MediaObject } from "@ngrok/mantle/media-object";
+import { UserIcon } from "@phosphor-icons/react/User";
+import { Example } from "~/components/example";
+
+export const accounts = [
+	{ id: "acc_acme", name: "Acme Corp" },
+	{ id: "acc_atlas", name: "Atlas Industries" },
+	{ id: "acc_globex", name: "Globex" },
+	{ id: "acc_initech", name: "Initech" },
+	{ id: "acc_umbrella", name: "Umbrella Group" },
+];
+
+export function AvatarExample() {
+	return (
+		<div className="flex items-center gap-4">
+			<Avatar.Root appearance="square" colorSeed="acc_acme">
+				<Avatar.Fallback name="Acme Corp" />
+			</Avatar.Root>
+			<Avatar.Root>
+				<Avatar.Image
+					alt="Jane Doe"
+					src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=64&h=64&fit=crop"
+				/>
+				<Avatar.Fallback name="Jane Doe" />
+			</Avatar.Root>
+			<Avatar.Root aria-label="Your account" className="text-muted" role="img">
+				<Avatar.Fallback>
+					<UserIcon className="size-4" />
+				</Avatar.Fallback>
+			</Avatar.Root>
+		</div>
+	);
+}
+
+export function AvatarAppearanceExample() {
+	return (
+		<div className="flex items-center gap-6">
+			<div className="flex items-center gap-2">
+				<Avatar.Root appearance="circle" colorSeed="usr_jane">
+					<Avatar.Fallback name="Jane Doe" />
+				</Avatar.Root>
+				<span className="text-sm">Jane Doe</span>
+			</div>
+			<div className="flex items-center gap-2">
+				<Avatar.Root appearance="square" colorSeed="acc_acme">
+					<Avatar.Fallback name="Acme Corp" />
+				</Avatar.Root>
+				<span className="text-sm">Acme Corp</span>
+			</div>
+		</div>
+	);
+}
+
+export function AvatarSeedExample() {
+	return (
+		<div className="flex flex-wrap items-center gap-4">
+			{accounts.map((account) => (
+				<div key={account.id} className="flex items-center gap-2">
+					<Avatar.Root appearance="square" colorSeed={account.id}>
+						<Avatar.Fallback name={account.name} />
+					</Avatar.Root>
+					<span className="text-sm">{account.name}</span>
+				</div>
+			))}
+		</div>
+	);
+}
+
+export function AvatarSizeExample() {
+	return (
+		<div className="flex items-end gap-4">
+			<Avatar.Root className="size-5 text-[0.625rem]" colorSeed="usr_jane">
+				<Avatar.Fallback name="Jane Doe" />
+			</Avatar.Root>
+			<Avatar.Root colorSeed="usr_jane">
+				<Avatar.Fallback name="Jane Doe" />
+			</Avatar.Root>
+			<Avatar.Root className="size-10 text-sm" colorSeed="usr_jane">
+				<Avatar.Fallback name="Jane Doe" />
+			</Avatar.Root>
+			<Avatar.Root className="size-16 text-lg" colorSeed="usr_jane">
+				<Avatar.Fallback name="Jane Doe" />
+			</Avatar.Root>
+		</div>
+	);
+}
+
+export function AvatarMediaObjectExample() {
+	return (
+		<MediaObject.Root className="max-w-sm">
+			<MediaObject.Media>
+				<Avatar.Root className="size-9" colorSeed="usr_jane">
+					<Avatar.Fallback name="Jane Doe" />
+				</Avatar.Root>
+			</MediaObject.Media>
+			<MediaObject.Content>
+				<p className="text-strong text-sm font-medium">Jane Doe</p>
+				<p className="text-muted text-sm">jane@acme.com</p>
+			</MediaObject.Content>
+		</MediaObject.Root>
+	);
+}
+
+export function AvatarLinkExample() {
+	return (
+		<Avatar.Root asChild appearance="square" colorSeed="acc_acme">
+			<a href="/components/data-display/avatar" title="Acme Corp">
+				<Avatar.Fallback name="Acme Corp" />
+			</a>
+		</Avatar.Root>
+	);
+}
+
+# Avatar
+
+A small image representing a person or an account, with a text or icon fallback for when there is no picture —
+or before one loads.
+
+The shape carries the meaning. `appearance="circle"` is a person; `appearance="square"` — a rounded square —
+is one of the things people belong to: an account, workspace, team, or organization. A row that shows both, an
+account switcher with the signed-in user's photo beside it, stays readable without labels because the two never
+look alike.
+
+<Example className="p-4 md:p-8">
+	<AvatarExample />
+</Example>
+
+```tsx
+import { Avatar } from "@ngrok/mantle/avatar";
+import { UserIcon } from "@phosphor-icons/react/User";
+
+export function AccountAndUserAvatars() {
+	return (
+		<div className="flex items-center gap-4">
+			{/* an account: rounded square, color derived from its id */}
+			<Avatar.Root appearance="square" colorSeed="acc_acme">
+				<Avatar.Fallback name="Acme Corp" />
+			</Avatar.Root>
+
+			{/* a person with a photo: the fallback covers the load and any failure */}
+			<Avatar.Root>
+				<Avatar.Image
+					alt="Jane Doe"
+					src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=64&h=64&fit=crop"
+				/>
+				<Avatar.Fallback name="Jane Doe" />
+			</Avatar.Root>
+
+			{/* a person with no photo and no name to abbreviate: the avatar names itself */}
+			<Avatar.Root aria-label="Your account" className="text-muted" role="img">
+				<Avatar.Fallback>
+					<UserIcon className="size-4" />
+				</Avatar.Fallback>
+			</Avatar.Root>
+		</div>
+	);
+}
+```
+
+## Composition
+
+```text showLineNumbers=false
+Avatar.Root
+├── Avatar.Image
+└── Avatar.Fallback
+```
+
+`Avatar.Image` and `Avatar.Fallback` are siblings, not alternatives you branch on: Radix shows exactly one of
+them, swapping to the image only once it has actually loaded. Render both and there is no loading state to
+handle.
+
+## Polymorphism
+
+`Avatar.Root`, `Avatar.Image`, and `Avatar.Fallback` each accept `asChild`, forwarded to Radix's own
+composition. Reach for it on `Root` when the avatar is itself a link or a button, and on `Fallback` when the
+initials want a more specific element — an `<abbr title="…">`, say.
+
+<Example className="p-4 md:p-8">
+	<AvatarLinkExample />
+</Example>
+
+```tsx
+import { Avatar } from "@ngrok/mantle/avatar";
+
+export function LinkedAvatar() {
+	return (
+		<Avatar.Root asChild appearance="square" colorSeed="acc_acme">
+			<a href="/accounts/acme" title="Acme Corp">
+				<Avatar.Fallback name="Acme Corp" />
+			</a>
+		</Avatar.Root>
+	);
+}
+```
+
+## Appearance
+
+Circles are people, rounded squares are accounts. Nothing enforces it — but keeping the two distinct is what
+lets a dense row of both stay legible, so pick per subject rather than per screen.
+
+<Example className="p-4 md:p-8">
+	<AvatarAppearanceExample />
+</Example>
+
+```tsx
+import { Avatar } from "@ngrok/mantle/avatar";
+
+export function Appearances() {
+	return (
+		<div className="flex items-center gap-6">
+			<div className="flex items-center gap-2">
+				<Avatar.Root appearance="circle" colorSeed="usr_jane">
+					<Avatar.Fallback name="Jane Doe" />
+				</Avatar.Root>
+				<span className="text-sm">Jane Doe</span>
+			</div>
+			<div className="flex items-center gap-2">
+				<Avatar.Root appearance="square" colorSeed="acc_acme">
+					<Avatar.Fallback name="Acme Corp" />
+				</Avatar.Root>
+				<span className="text-sm">Acme Corp</span>
+			</div>
+		</div>
+	);
+}
+```
+
+## Deterministic color
+
+`colorSeed` hashes a stable identifier into one of a fixed set of swatches, so an account is the same color on
+every device and every session with nothing stored and nothing fetched. Seed it with an **id, not a display
+name** — names get edited, and a rename would silently recolor the avatar.
+
+Omit `colorSeed` for a neutral surface, or set your own `bg-*` through `className` to opt out entirely.
+
+<Example className="p-4 md:p-8">
+	<AvatarSeedExample />
+</Example>
+
+```tsx
+import { Avatar } from "@ngrok/mantle/avatar";
+
+const accounts = [
+	{ id: "acc_acme", name: "Acme Corp" },
+	{ id: "acc_atlas", name: "Atlas Industries" },
+	{ id: "acc_globex", name: "Globex" },
+	{ id: "acc_initech", name: "Initech" },
+	{ id: "acc_umbrella", name: "Umbrella Group" },
+];
+
+export function SeededAvatars() {
+	return (
+		<div className="flex flex-wrap items-center gap-4">
+			{accounts.map((account) => (
+				<div key={account.id} className="flex items-center gap-2">
+					<Avatar.Root appearance="square" colorSeed={account.id}>
+						<Avatar.Fallback name={account.name} />
+					</Avatar.Root>
+					<span className="text-sm">{account.name}</span>
+				</div>
+			))}
+		</div>
+	);
+}
+```
+
+## Sizing
+
+An avatar is `size-7` and `shrink-0`: a fixed-size visual that the flex rows it usually sits in — a switcher
+row, a table cell, a comment header — must not be able to squeeze. Override the size with `className`, which
+merges last and wins, and scale the text with it so initials stay proportional.
+
+<Example className="p-4 md:p-8">
+	<AvatarSizeExample />
+</Example>
+
+```tsx
+import { Avatar } from "@ngrok/mantle/avatar";
+
+export function Sizes() {
+	return (
+		<div className="flex items-end gap-4">
+			<Avatar.Root className="size-5 text-[0.625rem]" colorSeed="usr_jane">
+				<Avatar.Fallback name="Jane Doe" />
+			</Avatar.Root>
+			<Avatar.Root colorSeed="usr_jane">
+				<Avatar.Fallback name="Jane Doe" />
+			</Avatar.Root>
+			<Avatar.Root className="size-10 text-sm" colorSeed="usr_jane">
+				<Avatar.Fallback name="Jane Doe" />
+			</Avatar.Root>
+			<Avatar.Root className="size-16 text-lg" colorSeed="usr_jane">
+				<Avatar.Fallback name="Jane Doe" />
+			</Avatar.Root>
+		</div>
+	);
+}
+```
+
+## Accessibility
+
+An avatar is almost always redundant with text beside it, and mantle defaults to that reading:
+
+- **Initials derived from `name` are `aria-hidden`.** They abbreviate a name the page already carries, so
+  announcing them would read it twice — "A C Acme Corp". Children are not hidden; you own their semantics.
+- **When the avatar is the only thing naming its subject** — a collapsed rail, a bare stack of members — name
+  the root: `role="img"` plus `aria-label="Acme Corp"`. A bare `<span>` is `role="generic"`, where accessible
+  names are prohibited, so the role is what makes the label count.
+- **`alt` on `Avatar.Image` is the image's own contract.** Pass the subject's name when the avatar is the only
+  thing naming them, and `alt=""` when adjacent text already does.
+
+## Composing with MediaObject
+
+For a name and a secondary line beside the avatar, compose
+[MediaObject](/components/data-display/media-object) rather than hand-rolling the row.
+
+<Example className="p-4 md:p-8">
+	<AvatarMediaObjectExample />
+</Example>
+
+```tsx
+import { Avatar } from "@ngrok/mantle/avatar";
+import { MediaObject } from "@ngrok/mantle/media-object";
+
+export function MemberRow() {
+	return (
+		<MediaObject.Root className="max-w-sm">
+			<MediaObject.Media>
+				<Avatar.Root className="size-9" colorSeed="usr_jane">
+					<Avatar.Fallback name="Jane Doe" />
+				</Avatar.Root>
+			</MediaObject.Media>
+			<MediaObject.Content>
+				<p className="text-strong text-sm font-medium">Jane Doe</p>
+				<p className="text-muted text-sm">jane@acme.com</p>
+			</MediaObject.Content>
+		</MediaObject.Root>
+	);
+}
+```
+
+## The first paint is the fallback
+
+`Avatar.Image` renders **only once the image has loaded**, which is knowable only in a browser — so
+server-rendered markup always carries the fallback, including for an image already in cache. That is the trade
+for never flashing a broken-image icon at anyone: a slow or dead URL degrades to initials instead.
+
+When an avatar is above the fold and its URL is known good, skip `Avatar.Image` and put a plain `<img>` inside
+`Avatar.Root` instead. The server markup then carries the image, and you own the error case:
+
+```tsx
+import { Avatar } from "@ngrok/mantle/avatar";
+
+export function ServerRenderedAvatar() {
+	return (
+		<Avatar.Root>
+			<img alt="Jane Doe" className="size-full object-cover" src="/avatars/jane.png" />
+		</Avatar.Root>
+	);
+}
+```
+
+## API Reference
+
+### Avatar.Root
+
+The sizing, shape, and surface. Renders a `<span>`. Accepts all Radix `Avatar.Root` props (`asChild`,
+`className`, `style`, `ref`, `data-*`, `aria-*`, `role`), plus:
+
+| Prop          | Type                     | Default    | Description                                                                                                                                                                 |
+| ------------- | ------------------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance?` | `"circle"` \| `"square"` | `"circle"` | The shape. `"circle"` for a person, `"square"` (a rounded square) for an account, workspace, or team.                                                                       |
+| `colorSeed?`  | `string`                 | —          | A stable id that deterministically selects a background swatch and switches the foreground to `text-static-white`. Omit for a neutral surface. Seed with an id, not a name. |
+| `data-slot?`  | `string`                 | —          | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `avatar` rather than replacing it.                                                                 |
+
+**Data attributes**
+
+| Data Attribute | Value      | Description                                                                     |
+| -------------- | ---------- | ------------------------------------------------------------------------------- |
+| `data-slot`    | `"avatar"` | On the avatar surface, with any forwarded chain ahead of it. Styling/test hook. |
+
+### Avatar.Image
+
+The picture. Renders an `<img>`, and only once the image has loaded — never during SSR. Accepts all Radix
+`Avatar.Image` props, which are an `<img>`'s (`src`, `alt`, `referrerPolicy`, `crossOrigin`, `asChild`,
+`onLoadingStatusChange`), plus:
+
+| Prop         | Type     | Default | Description                                                                              |
+| ------------ | -------- | ------- | ---------------------------------------------------------------------------------------- |
+| `data-slot?` | `string` | —       | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `avatar-image`. |
+
+**Data attributes**
+
+| Data Attribute | Value            | Description                                                              |
+| -------------- | ---------------- | ------------------------------------------------------------------------ |
+| `data-slot`    | `"avatar-image"` | On the `<img>`, with any forwarded chain ahead of it. Styling/test hook. |
+
+### Avatar.Fallback
+
+What shows when there is no image — while one loads, when it fails, or when there was never one. Renders a
+`<span>`. Accepts all Radix `Avatar.Fallback` props (`delayMs`, `asChild`, `className`, `ref`), plus exactly
+one source of content:
+
+| Prop         | Type        | Default | Description                                                                                                                                                                                           |
+| ------------ | ----------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `children`   | `ReactNode` | —       | What to show: an icon, a monogram, initials you derived yourself. Announced normally. Mutually exclusive with `name` — the type forbids passing both.                                                 |
+| `name`       | `string`    | —       | A display name, rendered as at most two uppercase initials (`"Acme Corp"` → `"AC"`, an unusable name → `"?"`). `aria-hidden`, since it abbreviates text already beside the avatar. Not for `asChild`. |
+| `delayMs?`   | `number`    | —       | Wait this long before showing the fallback, so a fast image never flashes initials first.                                                                                                             |
+| `data-slot?` | `string`    | —       | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `avatar-fallback`.                                                                                                           |
+
+**Data attributes**
+
+| Data Attribute | Value               | Description                                                               |
+| -------------- | ------------------- | ------------------------------------------------------------------------- |
+| `data-slot`    | `"avatar-fallback"` | On the fallback, with any forwarded chain ahead of it. Styling/test hook. |

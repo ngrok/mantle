@@ -22,6 +22,7 @@ export const MANTLE_COMPONENT_NAMES = [
 	"anchor",
 	"app-layout",
 	"area-chart",
+	"avatar",
 	"badge",
 	"bar-chart",
 	"breadcrumb",

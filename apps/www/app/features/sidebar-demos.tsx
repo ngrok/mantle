@@ -1,4 +1,5 @@
 import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Avatar } from "@ngrok/mantle/avatar";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { useLocalStorage } from "@ngrok/mantle/hooks";
 import { Main } from "@ngrok/mantle/main";
@@ -12,6 +13,7 @@ import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { HashIcon } from "@phosphor-icons/react/Hash";
 import { QuestionIcon } from "@phosphor-icons/react/Question";
 import { SignOutIcon } from "@phosphor-icons/react/SignOut";
+import { UserIcon } from "@phosphor-icons/react/User";
 import { useState } from "react";
 
 /**
@@ -247,11 +249,17 @@ export function SidebarRowWidthMenuExample() {
 						<DropdownMenu.Root>
 							<DropdownMenu.Trigger asChild>
 								<Sidebar.SwitcherTrigger>
-									<Sidebar.AccountAvatar accountId="acc_acme" accountName="Acme Corp" />
+									<Avatar.Root appearance="square" colorSeed="acc_acme">
+										<Avatar.Fallback name="Acme Corp" />
+									</Avatar.Root>
 									<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
 										Acme Corp
 									</span>
-									<Sidebar.UserAvatar alt="Jane Doe" />
+									<Avatar.Root aria-label="Jane Doe" className="text-muted" role="img">
+										<Avatar.Fallback>
+											<UserIcon className="size-4" />
+										</Avatar.Fallback>
+									</Avatar.Root>
 								</Sidebar.SwitcherTrigger>
 							</DropdownMenu.Trigger>
 							<DropdownMenu.Content
