@@ -98,23 +98,33 @@ function swatchClassName(seed: string): string {
  * ```ts
  * initialsFromName("Acme Corp"); // "AC"
  * initialsFromName("jane"); // "J"
+ * initialsFromName("山田 太郎"); // "山太"
+ * initialsFromName("straße hof"); // "SH" — not "SSH"
  * initialsFromName("…"); // "?"
  * ```
  */
 function initialsFromName(name: string): string {
 	const initials = name
-		.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>{}[\]\\/]/g, "")
+		// `\p{P}` reaches the punctuation an ASCII class cannot — ellipses,
+		// guillemets, em dashes — while leaving `\p{S}` symbols alone so an
+		// emoji-leading name still resolves to the emoji rather than to `"?"`. The
+		// ASCII tail covers the symbols that read as punctuation in a name.
+		.replace(/[\p{P}`~!@#$%^&*+|=<>]/gu, "")
 		.trim()
 		.split(/\s+/)
 		.slice(0, 2)
-		// `Array.from` iterates code points, so a leading emoji or astral
-		// character survives instead of being cut in half.
-		.map((part) => Array.from(part)[0] ?? "")
-		.join("")
-		// locale-invariant casing: toLocaleUpperCase() follows the *host* locale,
-		// so an SSR server and a Turkish-locale client would disagree (i → İ) and
-		// mismatch on hydration.
-		.toUpperCase();
+		.map(
+			(part) =>
+				// Uppercase the word BEFORE taking its first code point, not the joined
+				// result: "ß".toUpperCase() is "SS" and "ﬄ" is "FFL", so uppercasing
+				// afterwards would blow past two characters. Locale-invariant on purpose
+				// — toLocaleUpperCase() follows the *host* locale, so an SSR server and a
+				// Turkish-locale client would disagree (i → İ) and mismatch on hydration.
+				// `Array.from` iterates code points, so an astral character or emoji
+				// survives instead of being cut in half.
+				Array.from(part.toUpperCase())[0] ?? "",
+		)
+		.join("");
 	return initials || "?";
 }
 
@@ -193,10 +203,25 @@ const Root = ({
 
 /**
  * The props for `Avatar.Image`. Radix's `Avatar.Image` props, which are an
- * `<img>`'s — including `src`, `alt`, `referrerPolicy`, `crossOrigin`, and
- * `onLoadingStatusChange`.
+ * `<img>`'s — including `src`, `referrerPolicy`, `crossOrigin`, and
+ * `onLoadingStatusChange` — with `alt` promoted to required.
  */
-type AvatarImageProps = ComponentProps<typeof AvatarPrimitive.Image> & WithDataSlot;
+type AvatarImageProps = Omit<ComponentProps<typeof AvatarPrimitive.Image>, "alt"> &
+	WithDataSlot & {
+		/**
+		 * The image's alternative text. **Required**, deliberately more strict than
+		 * the `<img>` element and than Radix: an avatar is the one image a developer
+		 * reliably forgets, and an `<img>` with no `alt` falls back to announcing its
+		 * URL.
+		 *
+		 * Pass `alt=""` when adjacent text already names the subject — the common
+		 * case, and the reason this is not just "always pass the name". Pass the name
+		 * when the avatar stands alone, and name `Avatar.Root` as well
+		 * (`role="img"` + `aria-label`) so the label survives the states where the
+		 * image is not mounted.
+		 */
+		alt: string;
+	};
 
 /**
  * The avatar's picture. It renders **only once the image has loaded**, so a
@@ -208,9 +233,11 @@ type AvatarImageProps = ComponentProps<typeof AvatarPrimitive.Image> & WithDataS
  * `<img className="size-full object-cover">` inside `Avatar.Root` instead and
  * the server markup will carry it.
  *
- * `alt` is the image's own contract: pass a person's or account's name when the
- * avatar is the only thing naming them, and `alt=""` when adjacent text already
- * does, so a screen reader does not read the name twice.
+ * `alt` is required — pass `""` when adjacent text already names the subject,
+ * which is the common case. Note what `alt` alone cannot do: this `<img>` is
+ * absent in exactly the states where a name is most needed (no `src`, a failed
+ * load, SSR), so an avatar that must be named in every state names its **root**
+ * (`role="img"` + `aria-label`), and `alt` describes the picture within it.
  *
  * @see https://mantle.ngrok.com/components/data-display/avatar#avatarimage
  *
@@ -242,10 +269,19 @@ const Image = ({ className, "data-slot": dataSlot, ...props }: AvatarImageProps)
  * `children` you render yourself, or a `name` this part derives initials from.
  * Passing both would leave the winner to precedence, so the type forbids it.
  */
-type AvatarFallbackProps = Omit<ComponentProps<typeof AvatarPrimitive.Fallback>, "children"> &
+type AvatarFallbackProps = Omit<
+	ComponentProps<typeof AvatarPrimitive.Fallback>,
+	"asChild" | "children"
+> &
 	WithDataSlot &
 	(
 		| {
+				/**
+				 * Render this element instead of the fallback's own `<span>`, forwarded
+				 * to Radix's own composition. Only available beside `children` — there
+				 * has to be an element to clone.
+				 */
+				asChild?: boolean;
 				/**
 				 * What to show when there is no image: initials, an icon, anything. Use
 				 * `name` instead when the content is just the subject's initials.
@@ -254,6 +290,7 @@ type AvatarFallbackProps = Omit<ComponentProps<typeof AvatarPrimitive.Fallback>,
 				name?: never;
 		  }
 		| {
+				asChild?: never;
 				children?: never;
 				/**
 				 * The subject's display name, rendered as at most two uppercase
@@ -316,11 +353,13 @@ const Fallback = ({
 		{...props}
 	>
 		{/*
-		 * The type guarantees exactly one of `children` / `name`. An untyped call
-		 * site can still send neither, which lands on the same `"?"` that a name
-		 * with no usable characters renders — an avatar, not a blank.
+		 * Keyed on `name`, not on `children ?? initialsFromName(…)`: a conditional
+		 * child that resolves to `null` is still the caller saying "render nothing
+		 * here", and coalescing would answer `{isAdmin && <ShieldIcon />}` with a
+		 * bare `"?"` for everyone else. `name` wins only when it was actually
+		 * passed, which the type already makes exclusive with `children`.
 		 */}
-		{children ?? initialsFromName(name ?? "")}
+		{name == null ? children : initialsFromName(name)}
 	</AvatarPrimitive.Fallback>
 );
 
@@ -338,7 +377,7 @@ const Fallback = ({
  * neutral surface.
  *
  * For a person's name and title beside their avatar, compose it with
- * [MediaObject](https://mantle.ngrok.com/components/data-display/media-object).
+ * [MediaObject](https://mantle.ngrok.com/components/structure/media-object).
  * For the leading visual of a sidebar switcher row, put it inside
  * [Sidebar.SwitcherTrigger](https://mantle.ngrok.com/components/navigation/sidebar#sidebarswitchertrigger).
  *

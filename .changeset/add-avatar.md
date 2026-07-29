@@ -32,7 +32,9 @@ import { Avatar } from "@ngrok/mantle/avatar";
 - **`Avatar.Image`** renders only once the image has actually loaded, so a slow or dead URL degrades to the
   fallback instead of flashing a broken-image icon. That is knowable only in a browser, so server-rendered
   markup always carries the fallback; the docs page shows the plain-`<img>` escape hatch for an above-the-fold
-  avatar whose URL is known good.
+  avatar whose URL is known good. Its **`alt` is required** — stricter than both the `<img>` element and Radix,
+  because an avatar is the one image everyone forgets and an `<img>` with no `alt` announces its URL. Pass
+  `alt=""` when adjacent text already names the subject, which is the common case.
 - **`Avatar.Fallback`** takes either `children` (an icon, a monogram) or `name`, which renders at most two
   uppercase initials — punctuation stripped, code points kept whole so an emoji-leading name survives, casing
   locale-invariant so SSR and the client agree. The two are mutually exclusive in the type. Derived initials

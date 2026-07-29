@@ -543,7 +543,7 @@
     "jsdoc": "A small, reusable layout primitive for \"image/icon on one side, descriptive content on the other\" — the foundational \"media object\" pattern.",
     "examples": [
       "Composition:\n```\nMediaObject.Root\n├── MediaObject.Media\n└── MediaObject.Content\n```",
-      "```tsx\nimport { MediaObject } from \"@ngrok/mantle/media-object\";\n\n<MediaObject.Root>\n  <MediaObject.Media>\n    <Avatar src={user.avatarUrl} alt=\"\" />\n  </MediaObject.Media>\n  <MediaObject.Content>\n    <p className=\"font-medium\">{user.name}</p>\n    <p className=\"text-muted text-sm\">{comment}</p>\n  </MediaObject.Content>\n</MediaObject.Root>\n```"
+      "```tsx\nimport { Avatar } from \"@ngrok/mantle/avatar\";\nimport { MediaObject } from \"@ngrok/mantle/media-object\";\n\n<MediaObject.Root>\n  <MediaObject.Media>\n    <Avatar.Root>\n      <Avatar.Image src={user.avatarUrl} alt=\"\" />\n      <Avatar.Fallback name={user.name} />\n    </Avatar.Root>\n  </MediaObject.Media>\n  <MediaObject.Content>\n    <p className=\"font-medium\">{user.name}</p>\n    <p className=\"text-muted text-sm\">{comment}</p>\n  </MediaObject.Content>\n</MediaObject.Root>\n```"
     ]
   },
   {

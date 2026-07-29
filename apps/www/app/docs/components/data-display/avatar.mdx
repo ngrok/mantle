@@ -104,6 +104,14 @@ export function AvatarMediaObjectExample() {
 	);
 }
 
+export function AvatarServerRenderedExample() {
+	return (
+		<Avatar.Root>
+			<img alt="Jane Doe" className="size-full object-cover" src="/example-avatar.svg" />
+		</Avatar.Root>
+	);
+}
+
 export function AvatarLinkExample() {
 	return (
 		<Avatar.Root asChild appearance="square" colorSeed="acc_acme">
@@ -306,13 +314,15 @@ An avatar is almost always redundant with text beside it, and mantle defaults to
 - **When the avatar is the only thing naming its subject** — a collapsed rail, a bare stack of members — name
   the root: `role="img"` plus `aria-label="Acme Corp"`. A bare `<span>` is `role="generic"`, where accessible
   names are prohibited, so the role is what makes the label count.
-- **`alt` on `Avatar.Image` is the image's own contract.** Pass the subject's name when the avatar is the only
-  thing naming them, and `alt=""` when adjacent text already does.
+- **`alt` on `Avatar.Image` is required**, and mantle makes it required deliberately — an `<img>` with no `alt`
+  announces its URL. Pass `""` when adjacent text already names the subject. What `alt` cannot do is name the
+  avatar in every state: that `<img>` is absent whenever there is no `src`, the load fails, or the page is
+  server-rendered, so an avatar that must always be named needs the `role="img"` + `aria-label` above as well.
 
 ## Composing with MediaObject
 
 For a name and a secondary line beside the avatar, compose
-[MediaObject](/components/data-display/media-object) rather than hand-rolling the row.
+[MediaObject](/components/structure/media-object) rather than hand-rolling the row.
 
 <Example className="p-4 md:p-8">
 	<AvatarMediaObjectExample />
@@ -348,13 +358,17 @@ for never flashing a broken-image icon at anyone: a slow or dead URL degrades to
 When an avatar is above the fold and its URL is known good, skip `Avatar.Image` and put a plain `<img>` inside
 `Avatar.Root` instead. The server markup then carries the image, and you own the error case:
 
+<Example className="p-4 md:p-8">
+	<AvatarServerRenderedExample />
+</Example>
+
 ```tsx
 import { Avatar } from "@ngrok/mantle/avatar";
 
 export function ServerRenderedAvatar() {
 	return (
 		<Avatar.Root>
-			<img alt="Jane Doe" className="size-full object-cover" src="/avatars/jane.png" />
+			<img alt="Jane Doe" className="size-full object-cover" src="/example-avatar.svg" />
 		</Avatar.Root>
 	);
 }
@@ -382,12 +396,13 @@ The sizing, shape, and surface. Renders a `<span>`. Accepts all Radix `Avatar.Ro
 ### Avatar.Image
 
 The picture. Renders an `<img>`, and only once the image has loaded — never during SSR. Accepts all Radix
-`Avatar.Image` props, which are an `<img>`'s (`src`, `alt`, `referrerPolicy`, `crossOrigin`, `asChild`,
+`Avatar.Image` props, which are an `<img>`'s (`src`, `referrerPolicy`, `crossOrigin`, `asChild`,
 `onLoadingStatusChange`), plus:
 
-| Prop         | Type     | Default | Description                                                                              |
-| ------------ | -------- | ------- | ---------------------------------------------------------------------------------------- |
-| `data-slot?` | `string` | —       | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `avatar-image`. |
+| Prop         | Type     | Default | Description                                                                                                                                                                                                                        |
+| ------------ | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `alt`        | `string` | —       | **Required**, unlike the `<img>` element and unlike Radix — an image with no `alt` announces its URL. Pass `""` when adjacent text already names the subject. It cannot name the avatar in the states where no `<img>` is mounted. |
+| `data-slot?` | `string` | —       | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `avatar-image`.                                                                                                                                           |
 
 **Data attributes**
 

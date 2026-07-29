@@ -1,15 +1,16 @@
-import { render, screen } from "@testing-library/react";
-import { createRef } from "react";
+import { act, render, screen } from "@testing-library/react";
+import { type ComponentProps, createRef } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { Avatar } from "./avatar.js";
 
 /**
  * Radix decides whether `Avatar.Image` may render by preloading the `src`
- * through `new window.Image()` and reading `complete` / `naturalWidth` — happy-dom
- * fetches nothing, so without a stand-in every image stays `"loading"` forever
- * and only the fallback is ever reachable. This stubs that one constructor with a
- * probe that reports the outcome under test, synchronously.
+ * through `new window.Image()` and reading `complete` / `naturalWidth`. happy-dom
+ * ships with `enableImageFileLoading` off, so it answers every image with
+ * `complete: true, naturalWidth: 0` — which Radix reads as `"error"`, making the
+ * loaded path unreachable. This stubs that one constructor with a probe that
+ * reports the outcome under test, synchronously.
  */
 function stubImageLoading(outcome: "loaded" | "error") {
 	class ProbeImage {
@@ -138,6 +139,16 @@ describe("Avatar.Fallback", () => {
 		{ expected: "I", name: "ipek" },
 		{ expected: "🚀A", name: "🚀 Acme" },
 		{ expected: "ÉC", name: "école centrale" },
+		{ expected: "山太", name: "山田 太郎" },
+		{ expected: "مع", name: "محمد علي" },
+		// Uppercasing happens per word, before the code point is taken: "ß" → "SS"
+		// and "ﬄ" → "FFL", so uppercasing the joined result would overrun two.
+		{ expected: "SH", name: "straße hof" },
+		{ expected: "FF", name: "ﬄuent ﬂow" },
+		// Unicode punctuation reaches the "?" floor too, not just ASCII.
+		{ expected: "?", name: "…" },
+		{ expected: "?", name: "— —" },
+		{ expected: "A", name: "«Acme»" },
 	])("name=$name renders the initials $expected", ({ expected, name }) => {
 		render(
 			<Avatar.Root>
@@ -229,9 +240,26 @@ describe("Avatar.Fallback", () => {
 		expect(ref.current).toBe(abbreviation);
 	});
 
+	test("a child that resolves to nothing renders nothing, not a stray question mark", () => {
+		// `{isAdmin && <ShieldIcon />}` is the caller saying "nothing here" for
+		// everyone else. Coalescing that into derived initials would answer with a
+		// bare "?" — and an announced one, since only name-derived initials are
+		// hidden.
+		render(
+			<Avatar.Root>
+				<Avatar.Fallback data-testid="fallback">{null}</Avatar.Fallback>
+			</Avatar.Root>,
+		);
+		const fallback = screen.getByTestId("fallback");
+		expect(fallback).toBeEmptyDOMElement();
+		expect(fallback).not.toHaveAttribute("aria-hidden");
+	});
+
 	test("requires exactly one source of content at the type level", () => {
 		// Two sources would leave the winner to precedence, and no source would
 		// render an empty avatar; both are compile errors rather than surprises.
+		// `asChild` needs a real element to clone, so it belongs to the children arm
+		// only — otherwise it typechecks and then throws inside Radix's slot.
 		const withBoth = (
 			// @ts-expect-error -- name and children are mutually exclusive
 			<Avatar.Fallback name="Acme Corp">AC</Avatar.Fallback>
@@ -240,8 +268,13 @@ describe("Avatar.Fallback", () => {
 			// @ts-expect-error -- one of name or children is required
 			<Avatar.Fallback />
 		);
+		const withAsChildAndName = (
+			// @ts-expect-error -- asChild has nothing to clone beside name
+			<Avatar.Fallback asChild name="Acme Corp" />
+		);
 		expect(withBoth).toBeTruthy();
 		expect(withNeither).toBeTruthy();
+		expect(withAsChildAndName).toBeTruthy();
 	});
 });
 
@@ -294,6 +327,90 @@ describe("Avatar.Image", () => {
 		expect(image).toHaveAttribute("data-flavor", "primary");
 		expect(image).toHaveAttribute("data-slot", "outer avatar-image");
 		expect(ref.current).toBe(image);
+	});
+
+	test("shows the fallback while the image is still loading, then swaps to it", async () => {
+		// The middle state the synchronous stubs skip: Radix holds "loading" until the
+		// preloaded image fires `load`, so the fallback covers the wait and the image
+		// replaces it without the consumer branching on anything.
+		const loadListeners: Array<() => void> = [];
+		class PendingImage {
+			complete = false;
+			naturalWidth = 0;
+			crossOrigin: string | null = null;
+			referrerPolicy = "";
+			src = "";
+			// Radix reads the outcome off `event.currentTarget`, so the fake event has
+			// to carry the image that just "finished".
+			addEventListener(type: string, listener: (event: { currentTarget: unknown }) => void) {
+				if (type === "load") {
+					loadListeners.push(() => {
+						this.complete = true;
+						this.naturalWidth = 128;
+						listener({ currentTarget: this });
+					});
+				}
+			}
+			removeEventListener() {}
+		}
+		vi.stubGlobal("Image", PendingImage);
+		const onLoadingStatusChange = vi.fn<(status: string) => void>();
+		render(
+			<Avatar.Root>
+				<Avatar.Image
+					alt="Jane Doe"
+					onLoadingStatusChange={onLoadingStatusChange}
+					src="https://example.com/jane.png"
+				/>
+				<Avatar.Fallback name="Jane Doe" />
+			</Avatar.Root>,
+		);
+
+		expect(screen.getByText("JD")).toBeInTheDocument();
+		expect(screen.queryByRole("img")).not.toBeInTheDocument();
+		expect(onLoadingStatusChange).toHaveBeenCalledWith("loading");
+
+		await act(async () => {
+			for (const fireLoad of loadListeners) {
+				fireLoad();
+			}
+		});
+
+		expect(await screen.findByRole("img", { name: "Jane Doe" })).toBeInTheDocument();
+		expect(screen.queryByText("JD")).not.toBeInTheDocument();
+		expect(onLoadingStatusChange).toHaveBeenCalledWith("loaded");
+	});
+
+	test("asChild renders the consumer element with the image styles, data-slot, and ref", () => {
+		stubImageLoading("loaded");
+		const ref = createRef<HTMLImageElement>();
+		// The real reason to swap this part is a framework image component; the
+		// wrapper stands in for one, and receives the `alt`/`src` the part supplies.
+		const FrameworkImage = (props: ComponentProps<"img">) => <img alt={props.alt} {...props} />;
+		render(
+			<Avatar.Root>
+				<Avatar.Image asChild alt="Jane Doe" ref={ref} src="https://example.com/jane.png">
+					<FrameworkImage className="custom-class" data-flavor="primary" />
+				</Avatar.Image>
+				<Avatar.Fallback name="Jane Doe" />
+			</Avatar.Root>,
+		);
+		const image = screen.getByRole("img", { name: "Jane Doe" });
+		expect(image).toHaveClass("custom-class", "size-full", "object-cover");
+		expect(image).toHaveAttribute("data-slot", "avatar-image");
+		expect(image).toHaveAttribute("data-flavor", "primary");
+		expect(image).toHaveAttribute("src", "https://example.com/jane.png");
+		expect(ref.current).toBe(image);
+	});
+
+	test("requires alt, more strictly than the img element does", () => {
+		// An avatar is the image a developer forgets, and an <img> with no alt
+		// announces its URL.
+		const withoutAlt = (
+			// @ts-expect-error -- alt is required
+			<Avatar.Image src="https://example.com/jane.png" />
+		);
+		expect(withoutAlt).toBeTruthy();
 	});
 
 	test("does not render during server rendering, so the fallback is the first paint", () => {
