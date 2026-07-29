@@ -1,31 +1,45 @@
 ---
 title: App Layout
-description: A viewport-locked application shell — a full-width notice strip, a toolbar header, and a rounded content card that is the shell's only scroll container.
+description: A viewport-locked application shell — a full-width notice strip, a toolbar header, and a rounded content card whose page region is the shell's only scroll container.
 ---
 
 import { CodeExample } from "~/components/code-example";
 import { PageHeader } from "~/components/page-header";
-import { AppLayoutPolymorphismDemo } from "~/features/app-layout-demos";
+import {
+	AppLayoutPageShapesExample,
+	AppLayoutPinnedFooterExample,
+	AppLayoutPolymorphismDemo,
+	AppLayoutScrollResetExample,
+} from "~/features/app-layout-demos";
 
 <PageHeader id="app-layout">App Layout</PageHeader>
 
 A viewport-locked application shell. The shell itself never scrolls: `AppLayout.Content` is a rounded card
-that scrolls internally with `overscroll-none`, so long pages never bounce or drag the chrome. Pinned to
-the top of that card, `AppLayout.Header` is a sticky toolbar row for the sidebar trigger and breadcrumbs,
-and `AppLayout.Notice` is a full-window composition slot for app-wide messaging that pushes everything —
-including any sidebar — down. It can stack a rare maintenance or environment banner with a persistent
-account-alert bar. It is a **layout**: it owns _where things go_, and app state (routing, sessions, data)
-never enters it.
+holding a toolbar and a page region, and `AppLayout.Body` — the page region — is the only scroll container
+in the whole shell, with `overscroll-none` so long pages never bounce or drag the chrome. Above it,
+`AppLayout.Header` is a toolbar row for the sidebar trigger and breadcrumbs, pinned by being a sibling of
+the scroll container rather than by `sticky`. `AppLayout.Notice` is a full-window composition slot for
+app-wide messaging that pushes everything — including any sidebar — down. It can stack a rare maintenance or
+environment banner with a persistent account-alert bar. It is a **layout**: it owns _where things go_, and
+app state (routing, sessions, data) never enters it.
+
+The card reads the same way as every other mantle surface — `Content` wrapping `Header` + `Body` — which is
+exactly the shape of the column beside it (`Sidebar.Nav`) and of
+[`Dialog.Content`](/components/overlays/dialog), [`Sheet.Content`](/components/overlays/sheet), and
+[`Card.Root`](/components/data-display/card).
 
 The canonical composition pairs the shell with the [Sidebar](/components/navigation/sidebar). The two are
 deliberately decoupled — `AppLayout` never references sidebar state — but cohesive: wrap the shell in
-`Sidebar.Root`, place `Sidebar.Nav` as the first child of `AppLayout.Body`, and put `Sidebar.Trigger` in
-the top-left of `AppLayout.Header`. The
+`Sidebar.Root`, place `Sidebar.Nav` as the first child of `AppLayout.Workspace`, and put `Sidebar.Trigger`
+in the top-left of `AppLayout.Header`. The
 [collapsed icon rail](/components/navigation/sidebar#collapsing-to-the-icon-rail) is entirely the sidebar's
 business — the shell markup does not change, and the rail shares the shell's `bg-base` surface, so the card
-gutter stays visually seamless. The demo runs in its own framed document, exactly like a real app: collapse
+gutter stays visually seamless. Every row here is wrapped in
+[`Sidebar.Tooltip`](/components/navigation/sidebar#sidebartooltip), which is what labels the rail for
+pointer users once it collapses; it needs a `TooltipProvider` ancestor, which a real app mounts at its root.
+The demo runs in its own framed document, exactly like a real app: collapse
 the sidebar to its icon rail with the trigger (or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> — the shortcut binds to
-the frame, not this page) and reopen it the same way, toggle the
+the frame, not this page), hover a row to see its tooltip, and reopen it the same way, toggle the
 notice to see the strip push the whole shell (sidebar included) down, and switch the preview to the mobile
 viewport for the sheet presentation. The sidebar's footer stays put through all of it: the account-scoped
 rows every product shares, a **Help** menu row, and the account switcher row. The same sidebar can also show
@@ -46,18 +60,389 @@ import { Alert } from "@ngrok/mantle/alert";
 import { AlertCenter } from "@ngrok/mantle/alert-center";
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
-import { Button } from "@ngrok/mantle/button";
+import { IconButton } from "@ngrok/mantle/button";
+import { Dialog } from "@ngrok/mantle/dialog";
+import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { AutoThemeIcon } from "@ngrok/mantle/icons";
 import { Main } from "@ngrok/mantle/main";
-import { Sidebar } from "@ngrok/mantle/sidebar";
+import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
+import { ArrowLeftIcon } from "@phosphor-icons/react/ArrowLeft";
+import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
+import { BellIcon } from "@phosphor-icons/react/Bell";
+import { BookOpenIcon } from "@phosphor-icons/react/BookOpen";
+import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
+import { CaretUpDownIcon } from "@phosphor-icons/react/CaretUpDown";
+import { CreditCardIcon } from "@phosphor-icons/react/CreditCard";
+import { GearIcon } from "@phosphor-icons/react/Gear";
+import { GlobeIcon } from "@phosphor-icons/react/Globe";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { MegaphoneIcon } from "@phosphor-icons/react/Megaphone";
+import { QuestionIcon } from "@phosphor-icons/react/Question";
+import { SignOutIcon } from "@phosphor-icons/react/SignOut";
+import { SlidersHorizontalIcon } from "@phosphor-icons/react/SlidersHorizontal";
+import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
+import { SpeedometerIcon } from "@phosphor-icons/react/Speedometer";
+import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
+import { UsersThreeIcon } from "@phosphor-icons/react/UsersThree";
+import { WarningIcon } from "@phosphor-icons/react/Warning";
+import type { ReactNode } from "react";
 import { useState } from "react";
+
+type NavSection = {
+	title: string;
+	items: Array<{ label: string; icon: ReactNode; path: string }>;
+};
+
+const products = [
+	{ id: "gateway", label: "Gateway", icon: <GlobeIcon /> },
+	{ id: "ai-gateway", label: "AI Gateway", icon: <SparkleIcon /> },
+];
+
+const accounts = [
+	{ id: "acc_acme", name: "Acme Corp" },
+	{ id: "acc_atlas", name: "Atlas Industries" },
+];
+
+/** The product's own pages — what `Sidebar.Body` shows most of the time. */
+const productSections: Array<NavSection> = [
+	{
+		title: "Traffic",
+		items: [
+			{ label: "Endpoints", icon: <GraphIcon />, path: "/endpoints" },
+			{ label: "Domains", icon: <GlobeHemisphereWestIcon />, path: "/domains" },
+		],
+	},
+];
+
+/** The second *section* of navigation the same sidebar can show. */
+const settingsSections: Array<NavSection> = [
+	{
+		title: "Account",
+		items: [
+			{ label: "General", icon: <GearIcon />, path: "/settings/general" },
+			{ label: "Billing", icon: <CreditCardIcon />, path: "/settings/billing" },
+		],
+	},
+	{
+		title: "User",
+		items: [
+			{
+				label: "Preferences",
+				icon: <SlidersHorizontalIcon />,
+				path: "/settings/preferences",
+			},
+		],
+	},
+];
+
+/**
+ * Account-scoped destinations that outlive whichever product the body is
+ * showing, so they are pinned in the footer instead of living in the body. One
+ * path must own exactly one row, or the panel announces two current pages.
+ */
+const footerItems = [
+	{ label: "Identity & Access", icon: <UsersThreeIcon />, path: "/iam" },
+	{ label: "Usage & Limits", icon: <SpeedometerIcon />, path: "/usage" },
+];
+
+const settingsSectionPath = "/settings/general";
+
+function isSettingsPath(path: string) {
+	return path === "/settings" || path.startsWith("/settings/");
+}
+
+/**
+ * The product switcher that owns the sidebar header: a `Sidebar.SwitcherTrigger`
+ * opening a "Choose a product" dialog. The framed demo dresses each product as a
+ * color-coded card with a tagline; the shape is the same.
+ */
+function ProductSwitcher({
+	onProductChange,
+	productId,
+}: {
+	onProductChange: (productId: string) => void;
+	productId: string;
+}) {
+	const product = products.find((candidate) => candidate.id === productId) ?? products[0];
+
+	return (
+		<Dialog.Root>
+			{/* Sidebar.Tooltip wraps the trigger, so the row is still labelled once the
+			    sidebar collapses to its icon rail */}
+			<Sidebar.Tooltip label={product.label}>
+				<Dialog.Trigger asChild>
+					<Sidebar.SwitcherTrigger>
+						{product.icon}
+						<span className="text-strong min-w-0 flex-1 truncate text-base">{product.label}</span>
+						{/* the double caret reads "pick one of several", not "a menu drops from
+						    here" — that is the caret-down the account switcher uses */}
+						<CaretUpDownIcon className="text-muted size-4 shrink-0" />
+					</Sidebar.SwitcherTrigger>
+				</Dialog.Trigger>
+			</Sidebar.Tooltip>
+			<Dialog.Content preferredWidth="max-w-md">
+				<Dialog.Body className="p-6">
+					<Dialog.Title className="text-strong text-center text-lg font-medium">
+						Choose a product
+					</Dialog.Title>
+					<div className="mt-6 flex flex-col gap-2">
+						{products.map((candidate) => (
+							<Dialog.Close key={candidate.id} asChild>
+								<button
+									type="button"
+									className="border-card-muted bg-card text-strong flex w-full items-center gap-3 rounded-lg border p-4 text-left text-sm font-medium shadow-sm"
+									onClick={() => onProductChange(candidate.id)}
+								>
+									{candidate.icon}
+									{candidate.label}
+								</button>
+							</Dialog.Close>
+						))}
+					</div>
+				</Dialog.Body>
+			</Dialog.Content>
+		</Dialog.Root>
+	);
+}
+
+/**
+ * The sidebar header while the settings section is showing: one full-width row
+ * that leaves the section, in the same header band the product switcher owns the
+ * rest of the time. The whole row is the affordance, so it is a single
+ * `Sidebar.ItemButton` that collapses to the arrow chip on the icon rail.
+ */
+function SettingsHeader({
+	onBack,
+	returnLabel,
+	returnPath,
+}: {
+	onBack: () => void;
+	returnLabel: string;
+	returnPath: string;
+}) {
+	return (
+		<Sidebar.Tooltip label={`Settings, back to ${returnLabel}`}>
+			<Sidebar.ItemButton asChild className="font-medium">
+				<a
+					href={returnPath}
+					onClick={(event) => {
+						event.preventDefault();
+						onBack();
+					}}
+				>
+					<ArrowLeftIcon />
+					<span className="text-strong min-w-0 flex-1 truncate text-base">Settings</span>
+					{/* keeps the accessible name from being a bare "Settings" link inside
+					    the Settings navigation */}
+					<span className="sr-only">, back to {returnLabel}</span>
+				</a>
+			</Sidebar.ItemButton>
+		</Sidebar.Tooltip>
+	);
+}
+
+/** Whichever navigation section is showing — a product's pages, or settings. */
+function ShellNav({
+	onNavigate,
+	pathname,
+	sections,
+}: {
+	onNavigate: (path: string) => void;
+	pathname: string;
+	sections: Array<NavSection>;
+}) {
+	// lives inside Sidebar.Root, so it can close the mobile sheet on navigation
+	const { setOpenMobile } = useSidebar();
+
+	return (
+		<>
+			{sections.map((section) => (
+				<Sidebar.Group key={section.title}>
+					<Sidebar.GroupLabel>{section.title}</Sidebar.GroupLabel>
+					<Sidebar.List>
+						{section.items.map((item) => (
+							<Sidebar.Item key={item.path}>
+								<Sidebar.Tooltip label={item.label}>
+									<Sidebar.ItemButton asChild current={pathname === item.path}>
+										<a
+											href={item.path}
+											onClick={(event) => {
+												event.preventDefault();
+												onNavigate(item.path);
+												setOpenMobile(false);
+											}}
+										>
+											{item.icon}
+											{item.label}
+										</a>
+									</Sidebar.ItemButton>
+								</Sidebar.Tooltip>
+							</Sidebar.Item>
+						))}
+					</Sidebar.List>
+				</Sidebar.Group>
+			))}
+		</>
+	);
+}
+
+/**
+ * The footer's Help row: an ordinary `Sidebar.ItemButton` composed as a
+ * `DropdownMenu.Trigger`, so it keeps the row treatment and stays highlighted
+ * while the menu is open. It opens upward, since downward is off-screen.
+ */
+function HelpMenu() {
+	return (
+		<DropdownMenu.Root>
+			{/* Sidebar.Tooltip sits INSIDE DropdownMenu.Root: the menu root is
+			    renderless, so a tooltip wrapping it would have no element to clone */}
+			<Sidebar.Tooltip label="Help">
+				<DropdownMenu.Trigger asChild>
+					<Sidebar.ItemButton>
+						<QuestionIcon />
+						Help
+						{/* the row only sizes its leading icon, so the caret carries its own */}
+						<CaretDownIcon className="text-muted ml-auto size-4 shrink-0" />
+					</Sidebar.ItemButton>
+				</DropdownMenu.Trigger>
+			</Sidebar.Tooltip>
+			{/* trigger width keeps the menu flush with the row; the row-width floor
+			    keeps it there once the row shrinks into the icon rail */}
+			<DropdownMenu.Content
+				align="start"
+				side="top"
+				width="trigger"
+				className="min-w-(--sidebar-row-width)"
+			>
+				<DropdownMenu.Item asChild>
+					<a
+						className="flex items-center gap-2"
+						href="https://ngrok.com/docs"
+						rel="noopener"
+						target="_blank"
+					>
+						<BookOpenIcon className="text-muted" />
+						Documentation
+					</a>
+				</DropdownMenu.Item>
+				<DropdownMenu.Item className="gap-2">
+					<MegaphoneIcon className="text-muted" />
+					Give feedback
+				</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	);
+}
+
+/**
+ * The footer's account switcher: one row covering both scopes — account
+ * destinations (billing, account settings, switching) and user-level items
+ * (user settings, theme, log out).
+ */
+function AccountSwitcher({
+	accountId,
+	onAccountChange,
+	onNavigate,
+}: {
+	accountId: string;
+	onAccountChange: (accountId: string) => void;
+	onNavigate: (path: string) => void;
+}) {
+	const account = accounts.find((candidate) => candidate.id === accountId) ?? accounts[0];
+
+	return (
+		<DropdownMenu.Root>
+			<Sidebar.Tooltip label={account.name}>
+				<DropdownMenu.Trigger asChild>
+					<Sidebar.SwitcherTrigger>
+						<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+						<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
+							{account.name}
+						</span>
+						<Sidebar.UserAvatar alt="Jane Doe" />
+					</Sidebar.SwitcherTrigger>
+				</DropdownMenu.Trigger>
+			</Sidebar.Tooltip>
+			<DropdownMenu.Content
+				align="start"
+				side="top"
+				width="trigger"
+				className="min-w-(--sidebar-row-width)"
+			>
+				<DropdownMenu.Group>
+					<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
+						{account.name}
+					</DropdownMenu.Label>
+					<DropdownMenu.Item className="gap-2" onSelect={() => onNavigate("/settings/billing")}>
+						<CreditCardIcon className="text-muted" />
+						Billing
+					</DropdownMenu.Item>
+					<DropdownMenu.Item className="gap-2" onSelect={() => onNavigate(settingsSectionPath)}>
+						<GearIcon className="text-muted" />
+						Account settings
+					</DropdownMenu.Item>
+					<DropdownMenu.Sub>
+						<DropdownMenu.SubTrigger className="gap-2">
+							<ArrowsClockwiseIcon className="text-muted" />
+							Switch accounts
+						</DropdownMenu.SubTrigger>
+						<DropdownMenu.SubContent>
+							<DropdownMenu.RadioGroup value={account.id} onValueChange={onAccountChange}>
+								{accounts.map((candidate) => (
+									<DropdownMenu.RadioItem key={candidate.id} value={candidate.id}>
+										<Sidebar.AccountAvatar accountId={candidate.id} accountName={candidate.name} />
+										<span className="min-w-0 flex-1 truncate">{candidate.name}</span>
+									</DropdownMenu.RadioItem>
+								))}
+							</DropdownMenu.RadioGroup>
+						</DropdownMenu.SubContent>
+					</DropdownMenu.Sub>
+				</DropdownMenu.Group>
+				<DropdownMenu.Separator />
+				<DropdownMenu.Group>
+					<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
+						jane@example.com
+					</DropdownMenu.Label>
+					<DropdownMenu.Item className="gap-2" onSelect={() => onNavigate("/settings/preferences")}>
+						<UserCircleIcon className="text-muted" />
+						User settings
+					</DropdownMenu.Item>
+					<DropdownMenu.Sub>
+						<DropdownMenu.SubTrigger className="gap-2">
+							<AutoThemeIcon className="text-muted size-5" />
+							Theme
+						</DropdownMenu.SubTrigger>
+						<DropdownMenu.SubContent>
+							{/* mantle ships the five-theme radio group for exactly this spot */}
+							<ThemeDropdownMenuRadioGroup />
+						</DropdownMenu.SubContent>
+					</DropdownMenu.Sub>
+				</DropdownMenu.Group>
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item className="gap-2">
+					<SignOutIcon className="text-muted" />
+					Log out
+				</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	);
+}
 
 export function Shell() {
 	// the framed examples fake a router so they can be embedded; a real app
-	// renders react-router `Link`s through `asChild` and reads `useLocation()`
+	// renders react-router `Link`s through `asChild` and derives both `current`
+	// and which section is showing from `useLocation()`. The rows'
+	// `Sidebar.Tooltip`s need a `TooltipProvider` ancestor — the docs site mounts
+	// one at its root, so mount one at yours too.
 	const [pathname, setPathname] = useState("/endpoints");
+	// where the settings section's back link returns to: the product page you
+	// left. A real app reads this from router history or a fixed section parent.
+	const [returnPath, setReturnPath] = useState("/endpoints");
+	const [productId, setProductId] = useState(products[0].id);
+	const [accountId, setAccountId] = useState(accounts[0].id);
 	const [showNotice, setShowNotice] = useState(false);
 	const [alertExample, setAlertExample] = useState<"single" | "multiple" | null>(null);
 	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
@@ -68,6 +453,26 @@ export function Shell() {
 		setDismissed(new Set());
 		setAlertExample((current) => (current === example ? null : example));
 	};
+
+	// which navigation the sidebar shows is *derived* from the location, the same
+	// thing a real app gets for free from a nested settings route
+	const inSettings = isSettingsPath(pathname);
+	const allItems = [
+		...productSections.flatMap((section) => section.items),
+		...settingsSections.flatMap((section) => section.items),
+		...footerItems,
+	];
+	const currentLabel = allItems.find((item) => item.path === pathname)?.label ?? "Overview";
+	const returnLabel = allItems.find((item) => item.path === returnPath)?.label ?? "the dashboard";
+
+	// every navigation goes through here, so entering the settings section always
+	// records the product page its back link returns to
+	function navigate(path: string) {
+		if (isSettingsPath(path) && !inSettings) {
+			setReturnPath(pathname);
+		}
+		setPathname(path);
+	}
 
 	return (
 		// the framed demo narrows the mobile breakpoint; most apps keep the "lg" default
@@ -119,92 +524,119 @@ export function Shell() {
 						)}
 					</AlertCenter.Root>
 				</AppLayout.Notice>
-				<AppLayout.Body>
-					<Sidebar.Nav aria-label="Main">
+				<AppLayout.Workspace>
+					{/* the landmark is renamed with the section it is showing */}
+					<Sidebar.Nav aria-label={inSettings ? "Settings" : "Main"}>
+						<Sidebar.Header>
+							{inSettings ? (
+								<SettingsHeader
+									returnLabel={returnLabel}
+									returnPath={returnPath}
+									onBack={() => setPathname(returnPath)}
+								/>
+							) : (
+								<ProductSwitcher productId={productId} onProductChange={setProductId} />
+							)}
+						</Sidebar.Header>
+
 						<Sidebar.Body>
-							<Sidebar.Group>
-								<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
-								<Sidebar.List>
-									<Sidebar.Item>
-										<Sidebar.ItemButton asChild current={pathname === "/endpoints"}>
-											<a
-												href="/endpoints"
-												onClick={(event) => {
-													event.preventDefault();
-													setPathname("/endpoints");
-												}}
-											>
-												<GraphIcon />
-												Endpoints
-											</a>
-										</Sidebar.ItemButton>
-									</Sidebar.Item>
-									<Sidebar.Item>
-										<Sidebar.ItemButton asChild current={pathname === "/domains"}>
-											<a
-												href="/domains"
-												onClick={(event) => {
-													event.preventDefault();
-													setPathname("/domains");
-												}}
-											>
-												<GlobeHemisphereWestIcon />
-												Domains
-											</a>
-										</Sidebar.ItemButton>
-									</Sidebar.Item>
-								</Sidebar.List>
-							</Sidebar.Group>
+							<ShellNav
+								sections={inSettings ? settingsSections : productSections}
+								pathname={pathname}
+								onNavigate={navigate}
+							/>
 						</Sidebar.Body>
+
+						{/* The footer is the panel's stable region: the header and body swap
+						    with the section being shown, these rows never do. */}
+						<Sidebar.Footer>
+							{footerItems.map((item) => (
+								<Sidebar.Tooltip key={item.path} label={item.label}>
+									<Sidebar.ItemButton asChild current={pathname === item.path}>
+										<a
+											href={item.path}
+											onClick={(event) => {
+												event.preventDefault();
+												navigate(item.path);
+											}}
+										>
+											{item.icon}
+											{item.label}
+										</a>
+									</Sidebar.ItemButton>
+								</Sidebar.Tooltip>
+							))}
+							<HelpMenu />
+							<Sidebar.Separator />
+							<AccountSwitcher
+								accountId={accountId}
+								onAccountChange={setAccountId}
+								onNavigate={navigate}
+							/>
+						</Sidebar.Footer>
 					</Sidebar.Nav>
 
-					<AppLayout.Inset>
-						<AppLayout.Content asChild>
-							<Main>
-								<AppLayout.Header>
-									<Sidebar.Trigger />
-									<Breadcrumb.Root>
-										<Breadcrumb.List>
+					<AppLayout.Content>
+						<AppLayout.Header>
+							<Sidebar.Trigger />
+							<Breadcrumb.Root>
+								<Breadcrumb.List>
+									{inSettings && (
+										<>
 											<Breadcrumb.Item>
-												<Breadcrumb.Page>Endpoints</Breadcrumb.Page>
+												<Breadcrumb.Link
+													href={settingsSectionPath}
+													onClick={(event) => {
+														event.preventDefault();
+														navigate(settingsSectionPath);
+													}}
+												>
+													Settings
+												</Breadcrumb.Link>
 											</Breadcrumb.Item>
-										</Breadcrumb.List>
-									</Breadcrumb.Root>
-									<div className="ml-auto flex gap-2">
-										<Button
-											type="button"
-											appearance="outlined"
-											intent="neutral"
-											size="sm"
-											onClick={() => setShowNotice((current) => !current)}
-										>
-											Toggle notice
-										</Button>
-										<Button
-											type="button"
-											appearance="outlined"
-											intent="neutral"
-											size="sm"
-											onClick={() => chooseAlertExample("single")}
-										>
-											One warning
-										</Button>
-										<Button
-											type="button"
-											appearance="outlined"
-											intent="neutral"
-											size="sm"
-											onClick={() => chooseAlertExample("multiple")}
-										>
-											Three alerts
-										</Button>
-									</div>
-								</AppLayout.Header>
-								{/* your routed page content */}
-							</Main>
-						</AppLayout.Content>
-					</AppLayout.Inset>
-				</AppLayout.Body>
+											<Breadcrumb.Separator />
+										</>
+									)}
+									<Breadcrumb.Item>
+										<Breadcrumb.Page>{currentLabel}</Breadcrumb.Page>
+									</Breadcrumb.Item>
+								</Breadcrumb.List>
+							</Breadcrumb.Root>
+							<div className="ml-auto flex gap-2">
+								<IconButton
+									type="button"
+									appearance="outlined"
+									intent="neutral"
+									size="sm"
+									label="Toggle notice"
+									icon={<MegaphoneIcon />}
+									onClick={() => setShowNotice((current) => !current)}
+								/>
+								<IconButton
+									type="button"
+									appearance="outlined"
+									intent="neutral"
+									size="sm"
+									label="One warning"
+									icon={<WarningIcon />}
+									onClick={() => chooseAlertExample("single")}
+								/>
+								<IconButton
+									type="button"
+									appearance="outlined"
+									intent="neutral"
+									size="sm"
+									label="Three alerts"
+									icon={<BellIcon />}
+									onClick={() => chooseAlertExample("multiple")}
+								/>
+							</div>
+						</AppLayout.Header>
+						<AppLayout.Body asChild>
+							<Main>{/* your routed page content */}</Main>
+						</AppLayout.Body>
+					</AppLayout.Content>
+				</AppLayout.Workspace>
 			</AppLayout.Root>
 		</Sidebar.Root>
 	);
@@ -222,6 +654,109 @@ export function Shell() {
 > compose a real [Main](/components/primitives/main) landmark — see [Landmarks](#landmarks). When you embed
 > the shell inside an existing page instead — as the inline [Polymorphism](#polymorphism) example below
 > does — drop both: `AppLayout.Root` fills its nearest sized ancestor by default.
+
+## Composition
+
+```text showLineNumbers=false
+AppLayout.Root
+├── AppLayout.Notice
+└── AppLayout.Workspace
+    └── AppLayout.Content
+        ├── AppLayout.Header
+        └── AppLayout.Body
+```
+
+- **`Root`** is the outer frame (`bg-base relative isolate flex h-full w-full flex-col overflow-clip`).
+  It fills its nearest sized ancestor; merge `className="fixed inset-0"` to pin a real app shell to the
+  viewport. The shell never scrolls — only `Body` does. It clips with `overflow-clip`, not `overflow-hidden`,
+  for the same reason `Content` does: `hidden` **is** a scroll container that paints no scrollbar, so
+  anything wider than the frame lets focus scroll the whole shell sideways — and on a frame pinned with
+  `fixed inset-0` that is the entire window, with no scrollbar and no gesture to bring it back.
+- **`Notice`** is the full-window-width, vertical composition slot pinned above everything else
+  (`flex w-full shrink-0 flex-col`). Stack a maintenance or environment banner and an account alert bar
+  here; each brings its own colors while the slot pushes the whole shell down. Collapses to nothing when
+  empty. Optional.
+- **`Workspace`** is the region where the user works: everything below the notice, laid out as a flex row of
+  columns (`flex min-h-0 flex-1`). Place a [`Sidebar.Nav`](/components/navigation/sidebar) (or any other
+  rail, on either side) beside the `Content` card. The `min-h-0` is what lets `Body` scroll instead of the
+  page. It owns **no gutter**, deliberately — so a rail stays flush against the window edge and a collapsed
+  icon rail keeps its flush geometry.
+- **`Content`** is the card surface: `bg-card border-card-muted relative m-[var(--app-layout-card-gutter,0.5rem)] flex min-w-0 flex-1 flex-col
+overflow-clip rounded-xl border shadow-sm`. It insets **itself** with its own margin
+  (`--app-layout-card-gutter`), because the gutter has to belong to the card rather than to a wrapper — the
+  only other element that could hold it also contains the rail. It does **not** scroll.
+- **`Header`** is the toolbar row, `Content`'s **first child** (`flex h-14 shrink-0` with a hairline border
+  beneath it). The natural home for a `Sidebar.Trigger` in its top-left, followed by
+  [Breadcrumb](/components/navigation/breadcrumb) navigation or page actions. It is `h-14` standalone; with a
+  `Sidebar.Header` in the shell it derives its height from the sidebar's `--sidebar-header-height` token
+  instead, so the app switcher and content header stay center-aligned as one row by construction. It is
+  pinned by `shrink-0`, not by `sticky` — it sits **outside** the scroll container, so it cannot scroll away,
+  cannot be overlapped by a page's own `sticky top-0`, and does not steal height from a page asking for
+  `h-full`. Optional standalone, but effectively **required** once you compose a `Sidebar` — see
+  [Accessibility](#accessibility).
+- **`Body`** is the page region and the shell's **only** scroll container
+  (`scrollbar relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none`). Render your `<Outlet />`
+  here. In a real app shell it should almost always be the `Main` landmark — see [Landmarks](#landmarks).
+  See [Sizing a page to the card](#sizing-a-page-to-the-card) for what its classes buy you.
+  There is deliberately **no `Footer` part**. A bar pinned to the bottom of the card is almost always a
+  _page's_ bar — an editor's validity line, a save bar — and a route rendering through an `<Outlet />` inside
+  `Body` could never reach a shell-level footer anyway, because it would be a sibling of the region the route
+  renders into. Pin it inside `Body` instead:
+  [Pinning a footer to the card](#pinning-a-footer-to-the-card).
+
+## Polymorphism
+
+Every part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default
+element, forwarding all class names, `data-*` attributes, and the ref onto that child.
+
+All six parts support it, and each has a reason a consumer would reach for it:
+
+- **`AppLayout.Root`** — a `<form>` when the whole shell is one submission surface, or your own themed frame.
+- **`AppLayout.Notice`** — an `<aside>` or a live region when the strip's content needs its own semantics.
+- **`AppLayout.Workspace`** — rarely; swap it when the columns row needs a different element or a wrapper
+  component of your own.
+- **`AppLayout.Content`** — a `<section>` when the card is a labelled region of a larger document.
+- **`AppLayout.Header`** — a real `<header>`, but only when the shell does _not_ own the `main` landmark (see
+  [Accessibility](#accessibility) for why the default is a `<div>`).
+- **`AppLayout.Body`** — the [Main](/components/primitives/main) landmark, which is what a real app shell
+  should almost always do (see [Landmarks](#landmarks)).
+
+<CodeExample.Root>
+	<CodeExample.Preview className="p-0 md:p-0">
+		<AppLayoutPolymorphismDemo />
+	</CodeExample.Preview>
+	<CodeExample.Code>
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+
+export function SectionContent() {
+	return (
+		<AppLayout.Root className="rounded-lg">
+			<AppLayout.Workspace>
+				<AppLayout.Content>
+					<AppLayout.Body asChild>
+						<section aria-label="Demo content">
+							<p className="text-muted p-6 text-sm">
+								This scroll region is a `&lt;section&gt;` — inspect it to see the merged classes and
+								`data-slot=&quot;app-layout-body&quot;`.
+							</p>
+						</section>
+					</AppLayout.Body>
+				</AppLayout.Content>
+			</AppLayout.Workspace>
+		</AppLayout.Root>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+Composing the [Main](/components/primitives/main) landmark works the same way — see
+[Landmarks](#landmarks). (This page already has its own `Main` landmark, so the live example above uses a
+`<section>` instead.)
 
 ## Single-product bridge
 
@@ -248,11 +783,13 @@ import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Main } from "@ngrok/mantle/main";
-import { Sidebar } from "@ngrok/mantle/sidebar";
+import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { ArrowLeftIcon } from "@phosphor-icons/react/ArrowLeft";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
 import { BookOpenIcon } from "@phosphor-icons/react/BookOpen";
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
+import { CreditCardIcon } from "@phosphor-icons/react/CreditCard";
 import { GearIcon } from "@phosphor-icons/react/Gear";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
@@ -260,215 +797,398 @@ import { HeartbeatIcon } from "@phosphor-icons/react/Heartbeat";
 import { MegaphoneIcon } from "@phosphor-icons/react/Megaphone";
 import { QuestionIcon } from "@phosphor-icons/react/Question";
 import { SignOutIcon } from "@phosphor-icons/react/SignOut";
+import { SlidersHorizontalIcon } from "@phosphor-icons/react/SlidersHorizontal";
 import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
 import { UsersIcon } from "@phosphor-icons/react/Users";
+import type { ReactNode } from "react";
 import { useState } from "react";
+
+type NavSection = {
+	title: string | undefined;
+	items: Array<{ label: string; icon: ReactNode; path: string }>;
+};
 
 const accounts = [
 	{ id: "acc_acme", name: "Acme Corp" },
 	{ id: "acc_atlas", name: "Atlas Industries" },
 ];
 
+/** The single product's navigation — what `Sidebar.Body` shows by default. */
+const productSections: Array<NavSection> = [
+	{
+		title: undefined,
+		items: [
+			{ label: "Endpoints", icon: <GraphIcon />, path: "/endpoints" },
+			{ label: "Domains", icon: <GlobeHemisphereWestIcon />, path: "/domains" },
+		],
+	},
+];
+
+/** The settings section the same sidebar swaps to. */
+const settingsSections: Array<NavSection> = [
+	{
+		title: "Account",
+		items: [
+			{ label: "General", icon: <GearIcon />, path: "/settings/general" },
+			{ label: "Billing", icon: <CreditCardIcon />, path: "/settings/billing" },
+		],
+	},
+	{
+		title: "User",
+		items: [
+			{
+				label: "Preferences",
+				icon: <SlidersHorizontalIcon />,
+				path: "/settings/preferences",
+			},
+		],
+	},
+];
+
+const settingsSectionPath = "/settings/general";
+
+/** The footer's pinned links, above the separator and the Help menu. */
+const pinnedItems = [
+	{ label: "Account settings", icon: <GearIcon />, path: settingsSectionPath },
+	{ label: "Members", icon: <UsersIcon />, path: "/members" },
+];
+
+function isSettingsPath(path: string) {
+	return path === "/settings" || path.startsWith("/settings/");
+}
+
+/**
+ * The bridge's key move: the account switcher owns `Sidebar.Header`, where the
+ * multi-product shell puts a product switcher. Its menu can also deep-link into
+ * the settings section.
+ */
+function AccountSwitcher({
+	accountId,
+	onAccountChange,
+	onNavigate,
+}: {
+	accountId: string;
+	onAccountChange: (accountId: string) => void;
+	onNavigate: (path: string) => void;
+}) {
+	const account = accounts.find((candidate) => candidate.id === accountId) ?? accounts[0];
+
+	return (
+		<DropdownMenu.Root>
+			<Sidebar.Tooltip label={account.name}>
+				<DropdownMenu.Trigger asChild>
+					<Sidebar.SwitcherTrigger>
+						<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+						<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
+							{account.name}
+						</span>
+						<CaretDownIcon className="text-muted size-4 shrink-0" />
+					</Sidebar.SwitcherTrigger>
+				</DropdownMenu.Trigger>
+			</Sidebar.Tooltip>
+			<DropdownMenu.Content align="start" width="trigger" className="min-w-(--sidebar-row-width)">
+				<DropdownMenu.Sub>
+					<DropdownMenu.SubTrigger className="gap-2">
+						<ArrowsClockwiseIcon className="text-muted" />
+						Switch accounts
+					</DropdownMenu.SubTrigger>
+					<DropdownMenu.SubContent>
+						<DropdownMenu.RadioGroup value={accountId} onValueChange={onAccountChange}>
+							{accounts.map((candidate) => (
+								<DropdownMenu.RadioItem key={candidate.id} value={candidate.id}>
+									<Sidebar.AccountAvatar accountId={candidate.id} accountName={candidate.name} />
+									<span className="min-w-0 flex-1 truncate">{candidate.name}</span>
+								</DropdownMenu.RadioItem>
+							))}
+						</DropdownMenu.RadioGroup>
+					</DropdownMenu.SubContent>
+				</DropdownMenu.Sub>
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item className="gap-2" onSelect={() => onNavigate("/settings/preferences")}>
+					<UserCircleIcon className="text-muted" />
+					User settings
+				</DropdownMenu.Item>
+				<DropdownMenu.Item className="gap-2">
+					<SignOutIcon className="text-muted" />
+					Log out
+				</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	);
+}
+
+/**
+ * The header row while the settings section is showing: a single
+ * `Sidebar.ItemButton` that leaves the section, in the band the account switcher
+ * owns the rest of the time. This is the IA's tradeoff — account switching is
+ * unreachable until you back out.
+ */
+function SettingsHeader({
+	onBack,
+	returnLabel,
+	returnPath,
+}: {
+	onBack: () => void;
+	returnLabel: string;
+	returnPath: string;
+}) {
+	return (
+		<Sidebar.Tooltip label={`Settings, back to ${returnLabel}`}>
+			<Sidebar.ItemButton asChild className="font-medium">
+				<a
+					href={returnPath}
+					onClick={(event) => {
+						event.preventDefault();
+						onBack();
+					}}
+				>
+					<ArrowLeftIcon />
+					<span className="text-strong min-w-0 flex-1 truncate text-base">Settings</span>
+					<span className="sr-only">, back to {returnLabel}</span>
+				</a>
+			</Sidebar.ItemButton>
+		</Sidebar.Tooltip>
+	);
+}
+
+/** Whichever navigation section is showing — the product's pages, or settings. */
+function ShellNav({
+	onNavigate,
+	pathname,
+	sections,
+}: {
+	onNavigate: (path: string) => void;
+	pathname: string;
+	sections: Array<NavSection>;
+}) {
+	// lives inside Sidebar.Root, so it can close the mobile sheet on navigation
+	const { setOpenMobile } = useSidebar();
+
+	return (
+		<>
+			{sections.map((section) => (
+				<Sidebar.Group key={section.title ?? "top-level"}>
+					{section.title != null && <Sidebar.GroupLabel>{section.title}</Sidebar.GroupLabel>}
+					<Sidebar.List>
+						{section.items.map((item) => (
+							<Sidebar.Item key={item.path}>
+								<Sidebar.Tooltip label={item.label}>
+									<Sidebar.ItemButton asChild current={pathname === item.path}>
+										<a
+											href={item.path}
+											onClick={(event) => {
+												event.preventDefault();
+												onNavigate(item.path);
+												setOpenMobile(false);
+											}}
+										>
+											{item.icon}
+											{item.label}
+										</a>
+									</Sidebar.ItemButton>
+								</Sidebar.Tooltip>
+							</Sidebar.Item>
+						))}
+					</Sidebar.List>
+				</Sidebar.Group>
+			))}
+		</>
+	);
+}
+
+/**
+ * The Help row is an ordinary sidebar row composed as a menu trigger: it keeps
+ * the row treatment, stays highlighted while the menu is open, and only the
+ * trailing caret carries its own size. It opens upward, since it is pinned to
+ * the bottom of the viewport.
+ */
+function HelpMenu() {
+	return (
+		<DropdownMenu.Root>
+			<Sidebar.Tooltip label="Help">
+				<DropdownMenu.Trigger asChild>
+					<Sidebar.ItemButton>
+						<QuestionIcon />
+						Help
+						<CaretDownIcon className="text-muted ml-auto size-4 shrink-0" />
+					</Sidebar.ItemButton>
+				</DropdownMenu.Trigger>
+			</Sidebar.Tooltip>
+			<DropdownMenu.Content
+				align="start"
+				side="top"
+				width="trigger"
+				className="min-w-(--sidebar-row-width)"
+			>
+				<DropdownMenu.Item asChild>
+					<a
+						className="flex items-center gap-2"
+						href="https://ngrok.com/docs"
+						rel="noopener"
+						target="_blank"
+					>
+						<BookOpenIcon className="text-muted" />
+						Documentation
+					</a>
+				</DropdownMenu.Item>
+				<DropdownMenu.Item className="gap-2">
+					<MegaphoneIcon className="text-muted" />
+					Give feedback
+				</DropdownMenu.Item>
+				<DropdownMenu.Item asChild>
+					<a
+						className="flex items-center gap-2"
+						href="https://status.ngrok.com"
+						rel="noopener"
+						target="_blank"
+					>
+						<HeartbeatIcon className="text-muted" />
+						<span className="min-w-0 flex-1">System status</span>
+						<span className="bg-success-600 size-1.5 shrink-0 rounded-full" aria-hidden="true" />
+					</a>
+				</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	);
+}
+
 export function BridgeShell() {
 	// the framed examples fake a router so they can be embedded; a real app
-	// renders react-router `Link`s through `asChild` and reads `useLocation()`
+	// renders react-router `Link`s through `asChild` and derives both `current`
+	// and which section is showing from `useLocation()`. The rows'
+	// `Sidebar.Tooltip`s need a `TooltipProvider` ancestor — the docs site mounts
+	// one at its root, so mount one at yours too.
 	const [pathname, setPathname] = useState("/endpoints");
-	const [accountId, setAccountId] = useState("acc_acme");
-	const account = accounts.find((candidate) => candidate.id === accountId) ?? accounts[0];
+	// where the settings section's back link returns to: the product page you left
+	const [returnPath, setReturnPath] = useState("/endpoints");
+	const [accountId, setAccountId] = useState(accounts[0].id);
+
+	const inSettings = isSettingsPath(pathname);
+	// The pinned "Account settings" link points *into* the settings section rather
+	// than at a page of its own, so it is left out of the page lookups — otherwise
+	// it would shadow the section's own label for that path.
+	const productItems = [
+		...productSections.flatMap((section) => section.items),
+		...pinnedItems.filter((item) => !isSettingsPath(item.path)),
+	];
+	const currentLabel =
+		[...productItems, ...settingsSections.flatMap((section) => section.items)].find(
+			(item) => item.path === pathname,
+		)?.label ?? "Home";
+	const returnLabel =
+		productItems.find((item) => item.path === returnPath)?.label ?? "the dashboard";
+
+	// every navigation goes through here, so entering the settings section always
+	// records the product page its back link returns to
+	function navigate(path: string) {
+		if (isSettingsPath(path) && !inSettings) {
+			setReturnPath(pathname);
+		}
+		setPathname(path);
+	}
 
 	return (
 		// the framed demo narrows the mobile breakpoint; most apps keep the "lg" default
 		<Sidebar.Root mobileBreakpoint="md">
 			<AppLayout.Root className="fixed inset-0">
 				<SkipToMainLink />
-				<AppLayout.Body>
-					<Sidebar.Nav aria-label="Main">
-						{/* Account switcher at the top — the bridge's key move */}
+				<AppLayout.Workspace>
+					{/* the landmark is renamed with the section it is showing */}
+					<Sidebar.Nav aria-label={inSettings ? "Settings" : "Main"}>
+						{/* Account switcher at the top — the bridge's key move — swapped for
+						    the settings back link while that section is showing */}
 						<Sidebar.Header>
-							<DropdownMenu.Root>
-								<DropdownMenu.Trigger asChild>
-									<Sidebar.SwitcherTrigger>
-										<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
-										<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
-											{account.name}
-										</span>
-										<CaretDownIcon className="text-muted size-4 shrink-0" />
-									</Sidebar.SwitcherTrigger>
-								</DropdownMenu.Trigger>
-								<DropdownMenu.Content
-									align="start"
-									width="trigger"
-									className="min-w-(--sidebar-row-width)"
-								>
-									<DropdownMenu.Sub>
-										<DropdownMenu.SubTrigger className="gap-2">
-											<ArrowsClockwiseIcon className="text-muted" />
-											Switch accounts
-										</DropdownMenu.SubTrigger>
-										<DropdownMenu.SubContent>
-											<DropdownMenu.RadioGroup value={accountId} onValueChange={setAccountId}>
-												{accounts.map((account) => (
-													<DropdownMenu.RadioItem key={account.id} value={account.id}>
-														<Sidebar.AccountAvatar
-															accountId={account.id}
-															accountName={account.name}
-														/>
-														<span className="min-w-0 flex-1 truncate">{account.name}</span>
-													</DropdownMenu.RadioItem>
-												))}
-											</DropdownMenu.RadioGroup>
-										</DropdownMenu.SubContent>
-									</DropdownMenu.Sub>
-									<DropdownMenu.Separator />
-									<DropdownMenu.Item className="gap-2">
-										<UserCircleIcon className="text-muted" />
-										User settings
-									</DropdownMenu.Item>
-									<DropdownMenu.Item className="gap-2">
-										<SignOutIcon className="text-muted" />
-										Log out
-									</DropdownMenu.Item>
-								</DropdownMenu.Content>
-							</DropdownMenu.Root>
+							{inSettings ? (
+								<SettingsHeader
+									returnLabel={returnLabel}
+									returnPath={returnPath}
+									onBack={() => setPathname(returnPath)}
+								/>
+							) : (
+								<AccountSwitcher
+									accountId={accountId}
+									onAccountChange={setAccountId}
+									onNavigate={navigate}
+								/>
+							)}
 						</Sidebar.Header>
 
-						{/* A single product's navigation */}
+						{/* A single product's navigation, or the settings section's */}
 						<Sidebar.Body>
-							<Sidebar.Group>
-								<Sidebar.List>
-									<Sidebar.Item>
-										<Sidebar.ItemButton asChild current={pathname === "/endpoints"}>
-											<a
-												href="/endpoints"
-												onClick={(event) => {
-													event.preventDefault();
-													setPathname("/endpoints");
-												}}
-											>
-												<GraphIcon />
-												Endpoints
-											</a>
-										</Sidebar.ItemButton>
-									</Sidebar.Item>
-									<Sidebar.Item>
-										<Sidebar.ItemButton asChild current={pathname === "/domains"}>
-											<a
-												href="/domains"
-												onClick={(event) => {
-													event.preventDefault();
-													setPathname("/domains");
-												}}
-											>
-												<GlobeHemisphereWestIcon />
-												Domains
-											</a>
-										</Sidebar.ItemButton>
-									</Sidebar.Item>
-								</Sidebar.List>
-							</Sidebar.Group>
+							<ShellNav
+								sections={inSettings ? settingsSections : productSections}
+								pathname={pathname}
+								onNavigate={navigate}
+							/>
 						</Sidebar.Body>
 
-						{/* Pinned links, a separator, then a Help menu */}
+						{/* Pinned links, a separator, then a Help menu. This shell's account
+						    row lives in the header, so the separator divides the pinned
+						    destinations from the Help menu instead. */}
 						<Sidebar.Footer>
-							<Sidebar.ItemButton asChild current={pathname === "/settings"}>
-								<a
-									href="/settings"
-									onClick={(event) => {
-										event.preventDefault();
-										setPathname("/settings");
-									}}
-								>
-									<GearIcon />
-									Account settings
-								</a>
-							</Sidebar.ItemButton>
-							<Sidebar.ItemButton asChild current={pathname === "/members"}>
-								<a
-									href="/members"
-									onClick={(event) => {
-										event.preventDefault();
-										setPathname("/members");
-									}}
-								>
-									<UsersIcon />
-									Members
-								</a>
-							</Sidebar.ItemButton>
-							<Sidebar.Separator />
-							{/* the Help row is an ordinary sidebar row composed as a menu
-							    trigger: it keeps the row treatment, stays highlighted while the
-							    menu is open, and only the trailing caret carries its own size */}
-							<DropdownMenu.Root>
-								<DropdownMenu.Trigger asChild>
-									<Sidebar.ItemButton>
-										<QuestionIcon />
-										Help
-										<CaretDownIcon className="text-muted ml-auto size-4 shrink-0" />
+							{/* while the settings nav is showing it owns the current row, so the
+							    pinned settings link drops its own `current` — two
+							    `aria-current="page"` rows in one landmark would announce two
+							    current pages */}
+							{pinnedItems.map((item) => (
+								<Sidebar.Tooltip key={item.path} label={item.label}>
+									<Sidebar.ItemButton asChild current={!inSettings && pathname === item.path}>
+										<a
+											href={item.path}
+											onClick={(event) => {
+												event.preventDefault();
+												navigate(item.path);
+											}}
+										>
+											{item.icon}
+											{item.label}
+										</a>
 									</Sidebar.ItemButton>
-								</DropdownMenu.Trigger>
-								<DropdownMenu.Content
-									align="start"
-									side="top"
-									width="trigger"
-									className="min-w-(--sidebar-row-width)"
-								>
-									<DropdownMenu.Item asChild>
-										<a
-											className="flex items-center gap-2"
-											href="https://ngrok.com/docs"
-											rel="noopener"
-											target="_blank"
-										>
-											<BookOpenIcon className="text-muted" />
-											Documentation
-										</a>
-									</DropdownMenu.Item>
-									<DropdownMenu.Item className="gap-2">
-										<MegaphoneIcon className="text-muted" />
-										Give feedback
-									</DropdownMenu.Item>
-									<DropdownMenu.Item asChild>
-										<a
-											className="flex items-center gap-2"
-											href="https://status.ngrok.com"
-											rel="noopener"
-											target="_blank"
-										>
-											<HeartbeatIcon className="text-muted" />
-											<span className="min-w-0 flex-1">System status</span>
-											<span
-												className="bg-success-600 size-1.5 shrink-0 rounded-full"
-												aria-hidden="true"
-											/>
-										</a>
-									</DropdownMenu.Item>
-								</DropdownMenu.Content>
-							</DropdownMenu.Root>
+								</Sidebar.Tooltip>
+							))}
+							<Sidebar.Separator />
+							<HelpMenu />
 						</Sidebar.Footer>
 					</Sidebar.Nav>
 
-					<AppLayout.Inset>
-						<AppLayout.Content asChild>
-							<Main>
-								<AppLayout.Header>
-									<Sidebar.Trigger />
-									<Breadcrumb.Root>
-										<Breadcrumb.List>
+					<AppLayout.Content>
+						<AppLayout.Header>
+							<Sidebar.Trigger />
+							<Breadcrumb.Root>
+								<Breadcrumb.List>
+									<Breadcrumb.Item>
+										<Breadcrumb.Link href="/" onClick={(event) => event.preventDefault()}>
+											Home
+										</Breadcrumb.Link>
+									</Breadcrumb.Item>
+									<Breadcrumb.Separator />
+									{inSettings && (
+										<>
 											<Breadcrumb.Item>
-												<Breadcrumb.Link href="/">Home</Breadcrumb.Link>
+												<Breadcrumb.Link
+													href={settingsSectionPath}
+													onClick={(event) => {
+														event.preventDefault();
+														navigate(settingsSectionPath);
+													}}
+												>
+													Settings
+												</Breadcrumb.Link>
 											</Breadcrumb.Item>
 											<Breadcrumb.Separator />
-											<Breadcrumb.Item>
-												<Breadcrumb.Page>Endpoints</Breadcrumb.Page>
-											</Breadcrumb.Item>
-										</Breadcrumb.List>
-									</Breadcrumb.Root>
-								</AppLayout.Header>
-								{/* your routed page content */}
-							</Main>
-						</AppLayout.Content>
-					</AppLayout.Inset>
-				</AppLayout.Body>
+										</>
+									)}
+									<Breadcrumb.Item>
+										<Breadcrumb.Page>{currentLabel}</Breadcrumb.Page>
+									</Breadcrumb.Item>
+								</Breadcrumb.List>
+							</Breadcrumb.Root>
+						</AppLayout.Header>
+						<AppLayout.Body asChild>
+							<Main>{/* your routed page content */}</Main>
+						</AppLayout.Body>
+					</AppLayout.Content>
+				</AppLayout.Workspace>
 			</AppLayout.Root>
 		</Sidebar.Root>
 	);
@@ -481,8 +1201,8 @@ export function BridgeShell() {
 
 ## Standalone
 
-The shell composes just as well without a sidebar — `AppLayout.Body`'s columns are whatever you put there.
-Nothing in the shell knows the sidebar exists; the pairing above is composition, not coupling.
+The shell composes just as well without a sidebar — `AppLayout.Workspace`'s columns are whatever you put
+there. Nothing in the shell knows the sidebar exists; the pairing above is composition, not coupling.
 
 <CodeExample.Root>
 	<CodeExample.PreviewFrame example="app-layout-standalone" title="Standalone app layout demo" />
@@ -510,28 +1230,26 @@ export function Shell() {
 					</div>
 				)}
 			</AppLayout.Notice>
-			<AppLayout.Body>
-				<AppLayout.Inset>
-					<AppLayout.Content asChild>
-						<Main>
-							<AppLayout.Header>
-								<p className="text-strong text-sm font-medium">Endpoints</p>
-								<Button
-									type="button"
-									appearance="outlined"
-									intent="neutral"
-									className="ml-auto"
-									size="sm"
-									onClick={() => setShowNotice((current) => !current)}
-								>
-									Toggle notice
-								</Button>
-							</AppLayout.Header>
-							{/* your routed page content */}
-						</Main>
-					</AppLayout.Content>
-				</AppLayout.Inset>
-			</AppLayout.Body>
+			<AppLayout.Workspace>
+				<AppLayout.Content>
+					<AppLayout.Header>
+						<p className="text-strong text-sm font-medium">Endpoints</p>
+						<Button
+							type="button"
+							appearance="outlined"
+							intent="neutral"
+							className="ml-auto"
+							size="sm"
+							onClick={() => setShowNotice((current) => !current)}
+						>
+							Toggle notice
+						</Button>
+					</AppLayout.Header>
+					<AppLayout.Body asChild>
+						<Main>{/* your routed page content */}</Main>
+					</AppLayout.Body>
+				</AppLayout.Content>
+			</AppLayout.Workspace>
 		</AppLayout.Root>
 	);
 }
@@ -541,98 +1259,142 @@ export function Shell() {
 
 </CodeExample.Root>
 
-## Composition
+## Sizing a page to the card
 
-```text showLineNumbers=false
-AppLayout.Root
-├── AppLayout.Notice
-└── AppLayout.Body
-    └── AppLayout.Inset
-        └── AppLayout.Content
-            └── AppLayout.Header
-```
+`AppLayout.Body` is a flex **item** that is **block inside**, and both halves are load-bearing. Together they
+mean a route author never has to reason about the shell's geometry — the four page shapes each need at most
+one class on the route root:
 
-- **`Root`** is the outer frame (`relative isolate flex h-full w-full flex-col overflow-hidden bg-base`).
-  It fills its nearest sized ancestor; merge `className="fixed inset-0"` to pin a real app shell to the
-  viewport. The shell never scrolls — only `Content` does.
-- **`Notice`** is the full-window-width, vertical composition slot pinned above everything else
-  (`flex w-full shrink-0 flex-col`). Stack a maintenance or environment banner and an account alert bar
-  here; each brings its own colors while the slot pushes the whole shell down. Collapses to nothing when
-  empty. Optional.
-- **`Body`** is the main flex row (`flex min-h-0 flex-1`). Its children are the app's columns — place a
-  [`Sidebar.Nav`](/components/navigation/sidebar) (or any other rail) before `AppLayout.Inset`. The
-  `min-h-0` is what lets the content card scroll instead of the page.
-- **`Inset`** is the content column (`flex min-w-0 flex-1 flex-col gap-2 p-2`): it wraps the `Content`
-  card and owns the card gutter, keeping a consistent gap beside a sidebar.
-- **`Content`** is the scrolling content card:
-  `bg-card border-card-muted scrollbar min-h-0 flex-1 overflow-y-auto overscroll-none rounded-xl border shadow-sm`
-  — the shell's only scroll container. In a real app shell it should almost always be the `Main` landmark —
-  see [Landmarks](#landmarks).
-- **`Header`** is the sticky toolbar `<header>` rendered as `Content`'s **first child** (`sticky top-0`
-  with a hairline border): page content scrolls beneath it. The natural home for a `Sidebar.Trigger` in its
-  top-left, followed by [Breadcrumb](/components/navigation/breadcrumb) navigation or page actions. It is
-  `h-14` standalone; with a `Sidebar.Header` in the shell it derives its height from the sidebar's
-  `--sidebar-header-height` token instead, so the app switcher and content header stay center-aligned as one
-  row by construction. Optional.
+| Page shape                | What the route root needs |
+| ------------------------- | ------------------------- |
+| Grow and scroll (default) | nothing                   |
+| Full bleed                | nothing                   |
+| Contained                 | `mx-auto max-w-7xl`       |
+| Fill the card             | `flex h-full flex-col`    |
 
-## Landmarks
-
-Exactly one element in a document may be the Main landmark, so `AppLayout.Content` renders a plain `<div>`
-by default — composing the shell inside a page that already owns the landmark (a docs page, for example) is
-safe by default. But when the shell owns the document — which is the normal case for an app shell —
-`AppLayout.Content` should almost always **be** the Main landmark: compose mantle's
-[Main](/components/primitives/main) via `asChild`, and pair a
-[SkipToMainLink](/components/primitives/skip-to-main-link) as the first child of `AppLayout.Root`. Its
-default `targetId` matches `Main`'s `id="main"`, so keyboard users can jump past the sidebar's tab gauntlet
-and the toolbar straight into the content card. The framed demos on this page do exactly this — each preview
-is its own document, so each owns a real `Main`.
-
-```tsx
-import { AppLayout } from "@ngrok/mantle/app-layout";
-import { Main } from "@ngrok/mantle/main";
-import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
-
-<AppLayout.Root className="fixed inset-0">
-	<SkipToMainLink />
-	<AppLayout.Body>
-		<AppLayout.Inset>
-			<AppLayout.Content asChild>
-				<Main>{/* your routed page content */}</Main>
-			</AppLayout.Content>
-		</AppLayout.Inset>
-	</AppLayout.Body>
-</AppLayout.Root>;
-```
-
-## Polymorphism
-
-Every part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default
-element, forwarding all class names, `data-*` attributes, and the ref onto that child.
+Switch between all four shapes below — the shell markup never changes, only the classes on the page's own
+root. The example embeds the shell rather than pinning it with `fixed inset-0`, and leaves `AppLayout.Body` as
+its default `<div>`, because this docs page already owns the `Main` landmark.
 
 <CodeExample.Root>
 	<CodeExample.Preview className="p-0 md:p-0">
-		<AppLayoutPolymorphismDemo />
+		<AppLayoutPageShapesExample />
 	</CodeExample.Preview>
 	<CodeExample.Code>
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Button } from "@ngrok/mantle/button";
+import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { useState } from "react";
 
-export function SectionContent() {
+const pageShapes = [
+	{ id: "grow", label: "Grow and scroll" },
+	{ id: "full-bleed", label: "Full bleed" },
+	{ id: "contained", label: "Contained" },
+	{ id: "fill", label: "Fill the card" },
+] as const;
+
+type PageShape = (typeof pageShapes)[number]["id"];
+
+/** Filler rows, so every page shape has enough content to scroll. */
+function Rows({ count, label }: { count: number; label: string }) {
+	return (
+		<>
+			{Array.from({ length: count }, (_, index) => (
+				<div key={index} className="border-card-muted rounded-lg border p-4">
+					<p className="text-strong text-sm font-medium">
+						{label} {index + 1}
+					</p>
+				</div>
+			))}
+		</>
+	);
+}
+
+/**
+ * The page a route renders inside `AppLayout.Body`. Only the classes on the
+ * page's own root differ between the four shapes.
+ */
+function Page({ shape }: { shape: PageShape }) {
+	if (shape === "full-bleed") {
+		return (
+			// nothing on the root: the tinted background runs edge to edge, and the
+			// card clips it to its own rounded corners
+			<div className="bg-emerald-600/10 min-h-full">
+				<div className="space-y-3 p-6">
+					<Rows count={8} label="Full-bleed row" />
+				</div>
+			</div>
+		);
+	}
+
+	if (shape === "contained") {
+		return (
+			// mx-auto centers at the max width because AppLayout.Body is block inside.
+			// A real dashboard page clamps at max-w-7xl; max-w-md keeps the centering
+			// visible at this preview's scale.
+			<div className="mx-auto max-w-md space-y-3 p-6">
+				<Rows count={8} label="Contained row" />
+			</div>
+		);
+	}
+
+	if (shape === "fill") {
+		return (
+			// h-full resolves against Body's definite height, so the status bar lands
+			// on the card's bottom edge instead of below the fold
+			<div className="flex h-full flex-col">
+				<div className="border-card-muted flex shrink-0 items-center gap-3 border-b px-6 py-3">
+					<p className="text-strong text-sm font-medium">Toolbar row</p>
+				</div>
+				<div className="relative min-h-0 flex-1 overflow-y-auto">
+					<div className="space-y-3 p-6">
+						<Rows count={8} label="Editor row" />
+					</div>
+				</div>
+				<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
+					<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
+					Status bar, on the card&rsquo;s bottom edge
+				</div>
+			</div>
+		);
+	}
+
+	// grow and scroll — the default, and the shape that needs nothing at all
+	return (
+		<div className="space-y-3 p-6">
+			<Rows count={12} label="Row" />
+		</div>
+	);
+}
+
+export function PageShapes() {
+	const [shape, setShape] = useState<PageShape>("grow");
+
 	return (
 		<AppLayout.Root className="rounded-lg">
-			<AppLayout.Body>
-				<AppLayout.Inset>
-					<AppLayout.Content asChild>
-						<section aria-label="Demo content">
-							<p className="text-muted p-6 text-sm">
-								This scroll card is a `&lt;section&gt;` — inspect it to see the merged classes and
-								`data-slot=&quot;app-layout-content&quot;`.
-							</p>
-						</section>
-					</AppLayout.Content>
-				</AppLayout.Inset>
-			</AppLayout.Body>
+			<AppLayout.Workspace>
+				<AppLayout.Content>
+					<AppLayout.Header>
+						{pageShapes.map((candidate) => (
+							<Button
+								key={candidate.id}
+								type="button"
+								size="sm"
+								appearance={candidate.id === shape ? "filled" : "outlined"}
+								intent={candidate.id === shape ? "accent" : "neutral"}
+								onClick={() => setShape(candidate.id)}
+							>
+								{candidate.label}
+							</Button>
+						))}
+					</AppLayout.Header>
+					<AppLayout.Body>
+						<Page shape={shape} />
+					</AppLayout.Body>
+				</AppLayout.Content>
+			</AppLayout.Workspace>
 		</AppLayout.Root>
 	);
 }
@@ -642,20 +1404,555 @@ export function SectionContent() {
 
 </CodeExample.Root>
 
-Composing the [Main](/components/primitives/main) landmark works the same way — see
-[Landmarks](#landmarks). (This page already has its own `Main` landmark, so the live example above uses a
-`<section>` instead.)
+Why each class on `AppLayout.Body` is there — and what breaks without it:
+
+- **`min-h-0 flex-1`** gives it a definite height, so `h-full` on a page resolves to exactly the card's
+  interior. Before the toolbar moved out of the scroll container, a `sticky` header was still _in flow_, so
+  `h-full` resolved against the full content box and every such page overflowed by exactly the toolbar's
+  height — a bottom-pinned bar hung below the fold on every load.
+- **block inside, not flex.** This is the trap worth knowing about even though the part now absorbs it: if the
+  page region were a flex container, **auto margins beat `align-items: stretch`**, so a route root of
+  `mx-auto max-w-7xl` would shrink-to-fit — getting _narrower_ as the viewport gets _wider_. Keeping the page
+  region block-level is what makes the most common page shape work at all.
+- **`w-full`** states the width outright instead of leaning on the flex container's cross-axis `stretch`, so an
+  `mx-auto` merged onto `Body` still leaves it full width — auto cross-axis margins would otherwise turn a
+  stretched item into a shrink-to-fit one. It is no floor, though: `cx` is tailwind-merge-backed and the
+  consumer's `className` wins, so a merged `w-*` replaces it outright, while a merged `max-w-*` — a separate
+  conflict group — survives beside it and clamps the scrollport. Constrain the _page_ inside `Body`, not
+  `Body` itself.
+- **`relative`** contains absolutely-positioned page content — a toolbar floating over an editor resolves
+  against the scrollport instead of escaping to `AppLayout.Root` and painting across the sidebar rail.
+
+### Editor page
+
+The **fill the card** shape at full scale, in its own framed document: a toolbar that stays put, an editor
+region that scrolls, floating actions positioned over it, and a status bar pinned to the card's bottom edge.
+Grow the policy with **Add rules** — the editor scrolls while the toolbar and status bar hold their positions.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="app-layout-editor" title="Editor page demo" />
+	<CodeExample.Code>
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Badge } from "@ngrok/mantle/badge";
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+import { Button, ButtonGroup, IconButton } from "@ngrok/mantle/button";
+import { Main } from "@ngrok/mantle/main";
+import { Separator } from "@ngrok/mantle/separator";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
+import { DownloadSimpleIcon } from "@phosphor-icons/react/DownloadSimple";
+import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
+import { useState } from "react";
+
+export function EditorPage() {
+	const [ruleCount, setRuleCount] = useState(3);
+
+	return (
+		// the framed demo narrows the mobile breakpoint; most apps keep the "lg" default
+		<Sidebar.Root mobileBreakpoint="md">
+			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
+				<AppLayout.Workspace>
+					<Sidebar.Nav aria-label="Main">
+						<Sidebar.Body>
+							<Sidebar.Group>
+								<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+								<Sidebar.List>
+									<Sidebar.Item>
+										<Sidebar.Tooltip label="Endpoints">
+											<Sidebar.ItemButton current>
+												<GraphIcon />
+												Endpoints
+											</Sidebar.ItemButton>
+										</Sidebar.Tooltip>
+									</Sidebar.Item>
+									<Sidebar.Item>
+										<Sidebar.Tooltip label="Traffic Policy">
+											<Sidebar.ItemButton>
+												<ShieldCheckIcon />
+												Traffic Policy
+											</Sidebar.ItemButton>
+										</Sidebar.Tooltip>
+									</Sidebar.Item>
+								</Sidebar.List>
+							</Sidebar.Group>
+						</Sidebar.Body>
+					</Sidebar.Nav>
+					<AppLayout.Content>
+						<AppLayout.Header>
+							<Sidebar.Trigger />
+							<Breadcrumb.Root>
+								<Breadcrumb.List>
+									<Breadcrumb.Item>
+										<Breadcrumb.Link href="/endpoints">Endpoints</Breadcrumb.Link>
+									</Breadcrumb.Item>
+									<Breadcrumb.Separator />
+									<Breadcrumb.Item>
+										<Breadcrumb.Page>Traffic Policy</Breadcrumb.Page>
+									</Breadcrumb.Item>
+								</Breadcrumb.List>
+							</Breadcrumb.Root>
+						</AppLayout.Header>
+						<AppLayout.Body asChild>
+							<Main>
+								{/* The page fills the card: flex column, h-full. */}
+								<div className="flex h-full flex-col">
+									{/* Toolbar row — shrink-0 so it never gives up height */}
+									<div className="border-card-muted flex shrink-0 items-center gap-3 border-b px-6 py-3">
+										<p className="text-strong text-sm font-medium">Policy editor</p>
+										<Badge appearance="muted" color="neutral">
+											YAML
+										</Badge>
+										<Button
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											size="sm"
+											className="ml-auto"
+											onClick={() => setRuleCount((current) => (current >= 12 ? 3 : current + 3))}
+										>
+											{ruleCount >= 12 ? "Reset policy" : "Add rules"}
+										</Button>
+									</div>
+
+									{/*
+									 * The editor region: `relative` contains the floating actions,
+									 * `min-h-0 flex-1` lets it absorb the leftover height and scroll
+									 * internally instead of pushing the status bar off the card.
+									 */}
+									<div className="relative min-h-0 flex-1 overflow-y-auto">
+										<div className="absolute top-2 right-6 z-10">
+											<ButtonGroup appearance="panel">
+												<IconButton
+													type="button"
+													appearance="ghost"
+													intent="neutral"
+													icon={<DownloadSimpleIcon />}
+													label="Download policy"
+												/>
+												<Separator orientation="vertical" className="min-h-5" />
+												<IconButton
+													type="button"
+													appearance="ghost"
+													intent="neutral"
+													icon={<CopyIcon />}
+													label="Copy policy"
+												/>
+											</ButtonGroup>
+										</div>
+										<pre className="text-body p-6 font-mono text-xs leading-6">
+											{fakePolicy(ruleCount)}
+										</pre>
+									</div>
+
+									{/* Status bar — shrink-0, so it pins to the card's bottom edge */}
+									<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
+										<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
+										Policy is valid — {ruleCount} rules
+									</div>
+								</div>
+							</Main>
+						</AppLayout.Body>
+					</AppLayout.Content>
+				</AppLayout.Workspace>
+			</AppLayout.Root>
+		</Sidebar.Root>
+	);
+}
+
+/**
+ * Builds a plausible-looking traffic policy document of `ruleCount` rules, so
+ * the demo can grow past the editor's height on demand.
+ */
+function fakePolicy(ruleCount: number): string {
+	const rules = Array.from({ length: ruleCount }, (_, index) => {
+		const ordinal = index + 1;
+		return [
+			`  - expressions:`,
+			`      - "req.url.path.startsWith('/api/v${ordinal}')"`,
+			`    actions:`,
+			`      - type: rate-limit`,
+			`        config:`,
+			`          name: api-v${ordinal}`,
+			`          capacity: ${ordinal * 100}`,
+			`          rate: 60s`,
+		].join("\n");
+	});
+
+	return ["on_http_request:", ...rules].join("\n");
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+### Pinning a footer to the card
+
+The status bar in the example above is **route-owned**, and that is the only home it can have: a route
+renders through an `<Outlet />` inside `AppLayout.Body`, so it can only ever add descendants of the page
+region. There is no `AppLayout.Footer` for it to reach — and it does not need one. Three flex rules do the
+whole job:
+
+<CodeExample.Root>
+	<CodeExample.Preview className="p-0 md:p-0">
+		<AppLayoutPinnedFooterExample />
+	</CodeExample.Preview>
+	<CodeExample.Code>
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Button } from "@ngrok/mantle/button";
+import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { useState } from "react";
+
+export function PolicyPage() {
+	const [ruleCount, setRuleCount] = useState(4);
+
+	return (
+		<AppLayout.Root className="rounded-lg">
+			<AppLayout.Workspace>
+				<AppLayout.Content>
+					<AppLayout.Body>
+						{/* the page's own root — this is what "pinned to the bottom of the
+						    card" means, and it is all three rules at once */}
+						<div className="flex h-full flex-col">
+							{/* anything that must keep its height: shrink-0 */}
+							<div className="border-card-muted flex shrink-0 items-center gap-3 border-b px-6 py-3">
+								<p className="text-strong text-sm font-medium">Traffic policy</p>
+								<Button
+									type="button"
+									appearance="outlined"
+									intent="neutral"
+									size="sm"
+									className="ml-auto"
+									onClick={() => setRuleCount((current) => (current >= 16 ? 4 : current + 6))}
+								>
+									{ruleCount >= 16 ? "Reset policy" : "Add rules"}
+								</Button>
+							</div>
+
+							{/* the region that absorbs the slack and scrolls: min-h-0 flex-1 */}
+							<div className="relative min-h-0 flex-1 overflow-y-auto">
+								<div className="space-y-3 p-6">
+									{Array.from({ length: ruleCount }, (_, index) => (
+										<div key={index} className="border-card-muted rounded-lg border p-4">
+											<p className="text-strong text-sm font-medium">Rule {index + 1}</p>
+										</div>
+									))}
+								</div>
+							</div>
+
+							{/* the footer, on the card's bottom edge: shrink-0 */}
+							<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
+								<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
+								Traffic policy is valid — {ruleCount} rules
+							</div>
+						</div>
+					</AppLayout.Body>
+				</AppLayout.Content>
+			</AppLayout.Workspace>
+		</AppLayout.Root>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+- **`h-full` on the page root** makes it exactly as tall as the card's interior. This is the part that only
+  works because `AppLayout.Body` is a flex item with `min-h-0 flex-1` — a definite height for `100%` to
+  resolve against.
+- **`shrink-0` on the bar** stops flexbox taking height back from it when the middle region is tall. Without
+  it, a long page squeezes the bar toward zero instead of scrolling.
+- **`min-h-0 flex-1` on the middle region** is what actually scrolls. `min-h-0` is the non-obvious half: a
+  flex item's default `min-height: auto` refuses to shrink below its content, so without it the middle region
+  grows past the card and pushes the bar below the fold — the bar is still "pinned", just pinned somewhere
+  you cannot see.
+
+This composes to any depth, and nesting is where it usually goes wrong. A route that owns a page header and
+tabs above a child route that owns an editor and its validity bar — ngrok's endpoint detail route — is the
+same three rules applied twice. Grow the policy with **Add rules**: the title, tabs, and toolbar hold their
+positions, the editor scrolls, and the validity bar stays on the card's bottom edge.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="app-layout-pinned-footer" title="Pinned footer demo" />
+	<CodeExample.Code>
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Badge } from "@ngrok/mantle/badge";
+import { Button } from "@ngrok/mantle/button";
+import { Main } from "@ngrok/mantle/main";
+import { Tabs } from "@ngrok/mantle/tabs";
+import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { Outlet } from "react-router";
+
+const endpoint = {
+	url: "https://forward-labels.test",
+	protocol: "HTTPS",
+	visibility: "Public",
+	updatedAt: "2mo ago",
+};
+
+const policy = [
+	"on_http_request:",
+	"  - expressions:",
+	`      - "req.url.path.startsWith('/api/v1')"`,
+	"    actions:",
+	"      - type: rate-limit",
+	"        config:",
+	"          name: api-v1",
+	"          capacity: 100",
+	"          rate: 60s",
+].join("\n");
+
+// route: /endpoints/:type/:id — owns the title + tabs. h-full fills the card;
+// gap-0 because the rows below manage their own spacing.
+export function EndpointDetailRoute() {
+	return (
+		<AppLayout.Body asChild>
+			<Main>
+				<Tabs.Root defaultValue="traffic-policy" className="h-full gap-0">
+					<div className="shrink-0 px-6 pt-4">
+						<h1 className="text-strong text-xl font-medium break-all">{endpoint.url}</h1>
+						<div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+							<Badge appearance="muted" color="info">
+								{endpoint.protocol}
+							</Badge>
+							<Badge appearance="muted" color="success">
+								{endpoint.visibility}
+							</Badge>
+							<span className="text-muted text-xs">Last updated {endpoint.updatedAt}</span>
+						</div>
+						<Tabs.List>
+							<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+							<Tabs.Trigger value="traffic-policy">Traffic Policy</Tabs.Trigger>
+							<Tabs.Trigger value="settings">Settings</Tabs.Trigger>
+						</Tabs.List>
+					</div>
+
+					{/* hands the child route a definite height */}
+					<Tabs.Content value="traffic-policy" className="min-h-0 flex-1">
+						<Outlet />
+					</Tabs.Content>
+				</Tabs.Root>
+			</Main>
+		</AppLayout.Body>
+	);
+}
+
+// child route: /endpoints/:type/:id/traffic-policy/editor — owns the toolbar + validity bar
+export function TrafficPolicyEditorRoute() {
+	return (
+		<div className="flex h-full flex-col">
+			<div className="border-card-muted flex shrink-0 items-center gap-3 border-y px-6 py-3">
+				<Badge appearance="muted" color="neutral">
+					YAML
+				</Badge>
+				<Button type="button" appearance="filled" intent="accent" size="sm" className="ml-auto">
+					Save
+				</Button>
+			</div>
+			<div className="min-h-0 flex-1 overflow-y-auto">
+				<pre className="text-body p-6 font-mono text-xs leading-6">{policy}</pre>
+			</div>
+			<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
+				<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
+				Traffic policy is valid
+			</div>
+		</div>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+The nested `min-h-0 flex-1` is what lets the child route's `h-full` resolve — each level hands the next a
+definite height. Miss `min-h-0` at any one level and everything below it overflows the card instead of
+scrolling: the bar is still "pinned" in the markup, it is just pinned somewhere past the fold. That is the
+single most common way this shape goes wrong, and it fails silently — which is why it is worth checking at
+every level rather than only at the leaf.
+
+## Scroll restoration
+
+`AppLayout.Body` is the scroll container, not the document — so React Router's
+[`<ScrollRestoration />`](https://reactrouter.com/api/components/ScrollRestoration) has nothing to restore.
+It saves `window.scrollY` and restores with `window.scrollTo`, and in this shell the window never scrolls
+(`AppLayout.Root` is pinned with `fixed inset-0` and clips with `overflow-clip`). This is not new to the shell
+— it has always been true of any app whose scrolling happens in an inner container.
+
+What that means in practice:
+
+- **Hash links work.** React Router resolves `location.hash` with `element.scrollIntoView()`, which scrolls
+  the nearest scrollable ancestor — so `/endpoints#tls` scrolls the card correctly, with no extra work.
+- **`document.querySelector("main").scrollTop` works**, because `Main` composes onto the scrollport. Code that
+  reads or writes the page's scroll position through the `main` landmark keeps working.
+- **Scroll position is _not_ reset on navigation**, and `preventScrollReset` has no effect. Navigating from a
+  scrolled-down list into a new route leaves the card where it was. If that matters, reset it yourself:
+
+Scroll a page down, then switch pages — the card returns to the top. Navigation in the example is a **fake
+router**, so it can be embedded here; a real shell has no local `pathname` and keys the effect on
+`useLocation().key` instead, so a back/forward entry counts as a navigation too. The ref goes on the same
+element either way: this example leaves `AppLayout.Body` as its default `<div>` because the docs page already
+owns the `Main` landmark, while a real shell puts the ref on the `Main` composed into `AppLayout.Body`.
+
+<CodeExample.Root>
+	<CodeExample.Preview className="p-0 md:p-0">
+		<AppLayoutScrollResetExample />
+	</CodeExample.Preview>
+	<CodeExample.Code>
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Button } from "@ngrok/mantle/button";
+import { useLayoutEffect, useRef, useState } from "react";
+
+const routes = [
+	{ label: "Endpoints", path: "/endpoints" },
+	{ label: "Domains", path: "/domains" },
+] as const;
+
+export function ScrollResetShell() {
+	const scrollportRef = useRef<HTMLDivElement | null>(null);
+	const [pathname, setPathname] = useState("/endpoints");
+	const current = routes.find((route) => route.path === pathname) ?? routes[0];
+
+	// Reset the card's scroll on every navigation. A real shell depends on
+	// `useLocation().key` here rather than on this example's local pathname, so a
+	// back/forward entry is a distinct navigation too.
+	useLayoutEffect(() => {
+		scrollportRef.current?.scrollTo({ top: 0 });
+	}, [pathname]);
+
+	return (
+		<AppLayout.Root className="rounded-lg">
+			<AppLayout.Workspace>
+				<AppLayout.Content>
+					<AppLayout.Header>
+						{routes.map((route) => (
+							<Button
+								key={route.path}
+								type="button"
+								size="sm"
+								appearance={route.path === pathname ? "filled" : "outlined"}
+								intent={route.path === pathname ? "accent" : "neutral"}
+								onClick={() => setPathname(route.path)}
+							>
+								{route.label}
+							</Button>
+						))}
+						<p className="text-muted ml-auto text-xs">Scroll down, then switch pages</p>
+					</AppLayout.Header>
+					<AppLayout.Body ref={scrollportRef}>
+						<div className="space-y-3 p-6">
+							{Array.from({ length: 12 }, (_, index) => (
+								<div key={index} className="border-card-muted rounded-lg border p-4">
+									<p className="text-strong text-sm font-medium">
+										{current.label} row {index + 1}
+									</p>
+								</div>
+							))}
+						</div>
+					</AppLayout.Body>
+				</AppLayout.Content>
+			</AppLayout.Workspace>
+		</AppLayout.Root>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+To restore rather than reset, save `scrollportRef.current.scrollTop` into `sessionStorage` keyed on
+`location.key` in the effect's cleanup, and read it back on the way in.
+
+## Landmarks
+
+Exactly one element in a document may be the Main landmark, so `AppLayout.Body` renders a plain `<div>` by
+default — composing the shell inside a page that already owns the landmark (a docs page, for example) is safe
+by default. But when the shell owns the document — which is the normal case for an app shell —
+`AppLayout.Body` should almost always **be** the Main landmark: compose mantle's
+[Main](/components/primitives/main) via `asChild`, and pair a
+[SkipToMainLink](/components/primitives/skip-to-main-link) as the first child of `AppLayout.Root`. Its
+default `targetId` matches `Main`'s `id="main"`. The framed demos on this page do exactly this — each preview
+is its own document, so each owns a real `Main`.
+
+**Compose `Main` onto `Body`, not onto `Content`.** `Body` is the scroll container, and that is what makes
+the skip link actually useful: the element the link focuses **is** the scrollport, so arrows, `Space`, and
+`PageDown` scroll the page straight away. Put `Main` on the card instead and a keyboard user who takes the
+skip link lands on an element with no scrollable ancestor — the keys do nothing, and `Main` hardcodes its
+`id`, so the consumer cannot patch around it. Composing it here also finally takes the toolbar _out_ of the
+`main` landmark, which is what the skip link's own promise ("jump past the sidebar and toolbar") always
+implied.
+
+The composition below is exactly what every framed preview on this page renders. It is the one example here
+with no inline preview beside it, deliberately: a document may contain only one `main` landmark and this docs
+page already owns one, and the shell pins itself over the whole viewport with `fixed inset-0` — so the live
+version of it can only be a framed preview, which the sections above already are.
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+import { Main } from "@ngrok/mantle/main";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { Outlet } from "react-router";
+
+export function Shell() {
+	return (
+		<AppLayout.Root className="fixed inset-0">
+			<SkipToMainLink />
+			<AppLayout.Workspace>
+				<AppLayout.Content>
+					<AppLayout.Header>
+						<Breadcrumb.Root>
+							<Breadcrumb.List>
+								<Breadcrumb.Item>
+									<Breadcrumb.Page>Endpoints</Breadcrumb.Page>
+								</Breadcrumb.Item>
+							</Breadcrumb.List>
+						</Breadcrumb.Root>
+					</AppLayout.Header>
+					<AppLayout.Body asChild>
+						<Main>
+							<Outlet />
+						</Main>
+					</AppLayout.Body>
+				</AppLayout.Content>
+			</AppLayout.Workspace>
+		</AppLayout.Root>
+	);
+}
+```
 
 ## Accessibility
 
-- `AppLayout.Header` renders a semantic `<header>` scoped to the content region — inside a `Main`-composed
-  `AppLayout.Content` it is deliberately not an ARIA `banner` landmark.
+- `AppLayout.Header` renders a plain `<div>`, not a `<header>`. With `Main` composed onto `AppLayout.Body`,
+  a `<header>` here would have no sectioning ancestor and would therefore **be** the ARIA `banner` landmark
+  — which a card toolbar is not. Compose your own element via `asChild` if you need one.
 - `AppLayout.Notice` is deliberately **not** named Banner — it renders a plain `div` and claims no landmark.
   Give the notice content its own semantics if it needs them.
-- Compose `Main` into `AppLayout.Content` (via `asChild`) and render `SkipToMainLink` first in the shell so
-  keyboard users can jump over the sidebar and toolbar into the content card.
-- The shell never scrolls; only `AppLayout.Content` does. Focus scrolling behaves like any regular scroll
-  container.
+- Compose `Main` into `AppLayout.Body` (via `asChild`) and render `SkipToMainLink` first in the shell, so the
+  landmark the skip link focuses is the scroll container — see [Landmarks](#landmarks).
+- The shell never scrolls; only `AppLayout.Body` does. Focus scrolling behaves like any regular scroll
+  container. Both `AppLayout.Root` and `AppLayout.Content` are `overflow-clip` rather than `overflow-hidden`
+  specifically so neither can become a hidden scroll container: `hidden` scrolls on focus with no scrollbar to
+  scroll back, which a wide toolbar would trigger by translating the whole card — or, on the pinned frame, the
+  whole window — out of view.
+- **Once a `Sidebar` is composed, `AppLayout.Header` stops being optional.** The sidebar can collapse at
+  every breakpoint, `Sidebar.Trigger` is the only way back from a collapsed rail or a closed mobile sheet,
+  and the header is its only natural home. A shell with a collapsible sidebar and no visible trigger is
+  unrecoverable — put the trigger somewhere else if you skip the header, but do not skip both.
 
 ## API Reference
 
@@ -664,11 +1961,17 @@ via `cx` (tailwind-merge-backed, so consumer classes win).
 
 ### AppLayout.Root
 
-The outer frame of the shell: `relative isolate flex h-full w-full flex-col overflow-hidden bg-base`. Fills
+The outer frame of the shell: `bg-base relative isolate flex h-full w-full flex-col overflow-clip`. Fills
 its nearest sized ancestor; merge `className="fixed inset-0"` to pin a real app shell to the viewport. The
-shell itself never scrolls — only `AppLayout.Content` does. When the shell owns the document, render a
+shell itself never scrolls — only [`AppLayout.Body`](#applayoutbody) does. When the shell owns the document, render a
 [SkipToMainLink](/components/primitives/skip-to-main-link) as its first child (see
 [Landmarks](#landmarks)).
+
+It is `overflow-clip`, not `overflow-hidden`, for the same reason
+[`AppLayout.Content`](#applayoutcontent) is: `hidden` **is** a scroll container that paints no scrollbar, so
+anything wider than the frame lets focus scroll the entire shell sideways — translating the notice, the rail,
+and the card out of view with no scrollbar and no gesture to bring them back. On a frame pinned with
+`fixed inset-0` that is the whole window. `clip` is not a scroll container at all.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -691,68 +1994,120 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Notice` styling onto alternative element types or your own components. |
 
-### AppLayout.Body
+### AppLayout.Workspace
 
-The main horizontal region below the notice: a flex row (`flex min-h-0 flex-1`) whose children are the app's
-columns — place a [`Sidebar.Nav`](/components/navigation/sidebar) (or any other rail) before
-`AppLayout.Inset`. The `min-h-0` is what lets `AppLayout.Content` scroll instead of the page.
+The region where the user works — everything below the notice, laid out as a flex row of columns
+(`flex min-h-0 flex-1`). Place a [`Sidebar.Nav`](/components/navigation/sidebar) (or any other rail, on
+either side) beside the `AppLayout.Content` card. The `min-h-0` is what lets `AppLayout.Body` scroll instead
+of the page.
 
-All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
-
-| Prop       | Type      | Default | Description                                                                                                           |
-| ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Body` styling onto alternative element types or your own components. |
-
-### AppLayout.Inset
-
-The content column beside the sidebar: `flex min-w-0 flex-1 flex-col gap-2 p-2`. Wraps the
-`AppLayout.Content` card and owns the card gutter, keeping a consistent gap beside a sidebar (invisible when
-both share `bg-base`).
+It owns **no gutter**, deliberately: the card insets itself with its own margin, so a rail stays flush
+against the window edge and a [collapsed icon rail](/components/navigation/sidebar#collapsing-to-the-icon-rail)
+keeps its flush geometry.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop       | Type      | Default | Description                                                                                                            |
-| ---------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Inset` styling onto alternative element types or your own components. |
+| Prop       | Type      | Default | Description                                                                                                                |
+| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Workspace` styling onto alternative element types or your own components. |
+
+### AppLayout.Content
+
+The card surface beside the sidebar:
+`bg-card border-card-muted relative m-[var(--app-layout-card-gutter,0.5rem)] flex min-w-0 flex-1 flex-col overflow-clip rounded-xl border shadow-sm`.
+Holds `AppLayout.Header` and `AppLayout.Body`.
+
+The card **does not scroll** — [`AppLayout.Body`](#applayoutbody) does. It insets itself from the window edge
+and the rail with its own margin, driven by `--app-layout-card-gutter`, because the gutter has to belong to
+the card: the only other element that could hold it is `AppLayout.Workspace`, which also contains the rail,
+so padding there would push the sidebar off the window edge.
+
+It is `overflow-clip`, not `overflow-hidden`, and the distinction matters: `hidden` **is** a scroll container
+that paints no scrollbar, so a toolbar wider than the card lets <kbd>Tab</kbd> scroll it sideways —
+translating the header and the page out of view with no scrollbar and no gesture to bring them back. `clip`
+is not a scroll container at all. It also keeps a full-bleed page background from painting square corners
+over the card's `rounded-xl`.
+
+It is `relative`, so page content positioned with `absolute` resolves against the card instead of escaping to
+`AppLayout.Root` and painting across the sidebar rail.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                              |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Content` styling onto alternative element types or your own components. |
+
+| CSS Variable               | Default  | Description                                                                                                                                                                                                                                                      |
+| -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--app-layout-card-gutter` | `0.5rem` | The gap between the card and the window edge, the notice above it, and the rail beside it (8px). `AppLayout.Header` subtracts twice this value when deriving its height, so overriding it keeps the toolbar aligned with the sidebar header instead of drifting. |
 
 ### AppLayout.Header
 
-The sticky toolbar row at the top of the content card — render it as `AppLayout.Content`'s **first child**
-(`sticky top-0 z-10` with a `border-card-muted` hairline beneath it, so page content scrolls under it).
-The natural home for a [`Sidebar.Trigger`](/components/navigation/sidebar#sidebartrigger) in its top-left,
-followed by [Breadcrumb](/components/navigation/breadcrumb) navigation, search, or page-level actions.
-Renders a semantic `<header>` scoped to the content region (inside `Main` it is not an ARIA `banner`
-landmark). Optional.
+The toolbar row at the top of the content card — render it as `AppLayout.Content`'s **first child**
+(`border-card-muted flex h-14 shrink-0 items-center gap-2 border-b px-4`). The natural home for a
+[`Sidebar.Trigger`](/components/navigation/sidebar#sidebartrigger) in its top-left, followed by
+[Breadcrumb](/components/navigation/breadcrumb) navigation, search, or page-level actions.
+
+It is **pinned by construction, not by `sticky`**: as a `shrink-0` flex sibling _outside_ the scrolling
+`AppLayout.Body`, it cannot scroll away, cannot be overlapped by a page's own `sticky top-0`, does not
+translate sideways when the page scrolls horizontally, and does not steal height from a page asking for
+`h-full`.
+
+Renders a `<div>`, not a `<header>` — with `Main` composed onto `AppLayout.Body`, a `<header>` here would
+have no sectioning ancestor and would therefore _be_ the ARIA `banner` landmark, which a card toolbar is not.
+Optional standalone; effectively required once a `Sidebar` is composed (see
+[Accessibility](#accessibility)).
 
 **Sidebar alignment is an invariant, not a coincidence:** standalone, the toolbar is `h-14`. When the shell
 contains a `Sidebar.Header` (detected with `:has()` from `AppLayout.Root`), the toolbar instead derives its
 height from the sidebar's public `--sidebar-header-height` token as
-`calc(var(--sidebar-header-height, 4.5rem) - 1rem - 2px)` — subtracting twice the `AppLayout.Inset` gutter
-and twice the content card's hairline border — which keeps the two rows' vertical centers on the same band.
-Override `--sidebar-header-height` on a common ancestor (e.g. `AppLayout.Root`'s `className`) and both rows
-move together.
+`calc(var(--sidebar-header-height, 4.5rem) - 2 * var(--app-layout-card-gutter, 0.5rem) - 2px)` — subtracting
+twice the card gutter and twice the card's hairline border — which keeps the two rows' vertical centers on
+the same band for any header height. Override `--sidebar-header-height` on a common ancestor (e.g.
+`AppLayout.Root`'s `className`) and both rows move together.
 
-All props from [header](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/header#attributes), plus:
-
-| Prop       | Type      | Default | Description                                                                                                             |
-| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Header` styling onto alternative element types or your own components. |
-
-| CSS Variable              | Default  | Description                                                                                                                                                                                                                                       |
-| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--sidebar-header-height` | `4.5rem` | Read (not set) by `AppLayout.Header` when the shell contains a [`Sidebar.Header`](/components/navigation/sidebar#sidebarheader), which owns the token. Set it on a common ancestor of both (e.g. `AppLayout.Root`) so the two rows move together. |
-
-### AppLayout.Content
-
-The scrolling content card of the shell:
-`bg-card border-card-muted scrollbar min-h-0 flex-1 overflow-y-auto overscroll-none rounded-xl border shadow-sm`.
-The shell's only scroll container — the page body never scrolls, and `overscroll-none` keeps scroll from
-bouncing the chrome. Render `AppLayout.Header` as its first child for a sticky in-card toolbar. The card
-renders a `<div>` by default, but in a real app shell this should almost always be the
-[Main](/components/primitives/main) landmark composed via `asChild` (see [Landmarks](#landmarks)).
+> [!NOTE]
+> The alignment is a **desktop-only** coupling. Below the sidebar's `mobileBreakpoint` the sidebar renders
+> inside a `Sheet` portaled to `document.body` — outside the shell subtree — so the `:has()` selector stops
+> matching and this toolbar falls back to its standalone `h-14`. That is a 2px change (54px → 56px) applied
+> after hydration, since the server renders desktop-first. There is nothing to align to on mobile anyway, but
+> it explains the 2px if you are diffing layout across breakpoints.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop       | Type      | Default | Description                                                                                                                                           |
-| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Content` styling onto alternative element types (e.g. `Main`, a `<section>`) or your own components. |
+| Prop       | Type      | Default | Description                                                                                                                                                                                 |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Header` styling onto alternative element types (e.g. a `<header>` when the shell does not own the `main` landmark) or your own components. |
+
+| CSS Variable               | Default  | Description                                                                                                                                                                                                                                       |
+| -------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--sidebar-header-height`  | `4.5rem` | Read (not set) by `AppLayout.Header` when the shell contains a [`Sidebar.Header`](/components/navigation/sidebar#sidebarheader), which owns the token. Set it on a common ancestor of both (e.g. `AppLayout.Root`) so the two rows move together. |
+| `--app-layout-card-gutter` | `0.5rem` | Read (not set) by `AppLayout.Header`; owned by [`AppLayout.Content`](#applayoutcontent). The derived height subtracts twice its value, so changing the card gutter keeps the two rows aligned.                                                    |
+
+### AppLayout.Body
+
+The page region, and the shell's **only** scroll container:
+`scrollbar relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none`. Render it after
+`AppLayout.Header` inside `AppLayout.Content`, and put your `<Outlet />` in it.
+
+It renders a `<div>` by default, but in a real app shell it should almost always be the
+[Main](/components/primitives/main) landmark composed via `asChild` — see [Landmarks](#landmarks).
+
+Every class on it is load-bearing; see [Sizing a page to the card](#sizing-a-page-to-the-card) for what each
+one buys a route author, and [Scroll restoration](#scroll-restoration) for what an inner scrollport means for
+your router.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                                        |
+| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Body` styling onto alternative element types (e.g. `Main`, a `<section>`) or your own components. |
+
+### There is no AppLayout.Footer
+
+Deliberately. A bar pinned to the bottom of the card is almost always a **page's** bar — an editor's validity
+line, a save bar, a selection count — and a route rendering through an `<Outlet />` inside `AppLayout.Body`
+could never reach a shell-level part, because it would be a sibling of the region the route renders into.
+
+Pin it inside `AppLayout.Body` instead:
+[Pinning a footer to the card](#pinning-a-footer-to-the-card).

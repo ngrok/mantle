@@ -1,9 +1,11 @@
 "use client";
 
 import { SidebarSimpleIcon } from "@phosphor-icons/react/SidebarSimple";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, ReactElement, ReactNode } from "react";
 import {
+	cloneElement,
 	createContext,
+	isValidElement,
 	useCallback,
 	useContext,
 	useEffect,
@@ -16,15 +18,17 @@ import invariant from "tiny-invariant";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useIsBelowBreakpoint } from "../../hooks/use-breakpoint.js";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
-import type { WithAsChild } from "../../types/as-child.js";
+import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { isApplePlatform } from "../../utils/platform.js";
 import type { IconButtonProps } from "../button/icon-button.js";
 import { IconButton } from "../button/icon-button.js";
 import { Separator } from "../separator/separator.js";
 import { Sheet } from "../sheet/index.js";
 import { Slot } from "../slot/index.js";
+import { Tooltip } from "../tooltip/index.js";
 
 /**
  * The breakpoints below which `Sidebar.Nav` swaps from the inline desktop
@@ -123,7 +127,7 @@ const SidebarContext = createContext<SidebarState | null>(null);
  * `Sidebar.Root` so misuse fails loudly. Use it to build custom triggers,
  * a keyboard shortcut, or close-on-navigate behavior.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#usesidebar
  *
  * @example
  * ```tsx
@@ -154,6 +158,11 @@ function useSidebarContext(part: string): SidebarState {
 }
 
 type SidebarRootProps = {
+	/**
+	 * The sidebar's parts — a `Sidebar.Nav` and anything that reads the state,
+	 * including a `Sidebar.Trigger` rendered anywhere below (an
+	 * `AppLayout.Header`, for example). `Root` renders no DOM of its own.
+	 */
 	children?: ReactNode;
 	/**
 	 * The initial desktop expanded state for the uncontrolled case.
@@ -186,10 +195,18 @@ type SidebarRootProps = {
 	mobileBreakpoint?: SidebarMobileBreakpoint;
 	/**
 	 * Toggle the sidebar with `⌘B` (macOS) / `Ctrl+B` (Windows/Linux). The
-	 * shortcut requires exactly the platform modifier + `b` — combinations with
-	 * `Shift`/`Alt` (e.g. the browser's own `⌘⇧B`) are left alone. Set `false`
-	 * to opt out, e.g. when the app embeds a rich-text editor where `⌘B` means
-	 * bold.
+	 * shortcut requires exactly the platform modifier + `b`: `⌘` on Apple
+	 * platforms and `Ctrl` everywhere else, resolved per host — the two never
+	 * substitute for each other, so macOS's native `Ctrl+B` ("move the caret
+	 * back one character") is left alone. Combinations with `Shift`/`Alt` (e.g.
+	 * the browser's own `⌘⇧B`) pass through too.
+	 *
+	 * The shortcut is also ignored while focus is in a text-editing or form
+	 * control — an `<input>`, `<textarea>`, `<select>`, or any `contenteditable`
+	 * host — because the chord is usually already bound there (`⌘B` is "bold")
+	 * and this is a `window` listener that calls `preventDefault()`. That covers
+	 * embedded editors like Monaco and CodeMirror, which attach to exactly those
+	 * elements. Set `false` to opt out entirely.
 	 *
 	 * The shortcut has exactly one owner per window: the first mounted root
 	 * with the shortcut enabled. Additional roots (nested or siblings) queue
@@ -215,6 +232,25 @@ const SIDEBAR_KEYBOARD_SHORTCUT = "b";
  * exclusivity is exactly the invariant it exists to hold.
  */
 const keyboardShortcutClaims: Array<symbol> = [];
+
+/**
+ * Whether an event target is a text-editing or form control that owns its own
+ * keyboard handling. A window-level shortcut that `preventDefault()`s must skip
+ * these: the platform modifier + a letter is nearly always already bound there
+ * (`⌘B` is "bold" in every rich-text editor), and embedded editors like Monaco
+ * or CodeMirror attach to exactly these elements.
+ */
+function isTextEditingTarget(target: EventTarget | null): boolean {
+	if (!(target instanceof HTMLElement)) {
+		return false;
+	}
+	return (
+		target.isContentEditable ||
+		target.tagName === "INPUT" ||
+		target.tagName === "TEXTAREA" ||
+		target.tagName === "SELECT"
+	);
+}
 
 /**
  * Claims a place in the keyboard-shortcut ownership queue. The returned
@@ -245,13 +281,24 @@ function claimKeyboardShortcut(): { isOwner: () => boolean; release: () => void 
  * Render exactly one `Sidebar.Nav` per `Sidebar.Root`. Nested roots shadow
  * the outer sidebar for everything below them.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarroot
  *
  * @example
  * ```tsx
  * <Sidebar.Root>
  *   <Sidebar.Nav aria-label="Main">
- *     <Sidebar.Header>…</Sidebar.Header>
+ *     <Sidebar.Header>
+ *       <DropdownMenu.Root>
+ *         <DropdownMenu.Trigger asChild>
+ *           <Sidebar.SwitcherTrigger>
+ *             <GlobeIcon />
+ *             <span className="text-strong min-w-0 flex-1 truncate text-base">Universal Gateway</span>
+ *             <CaretDownIcon className="text-muted size-4 shrink-0" />
+ *           </Sidebar.SwitcherTrigger>
+ *         </DropdownMenu.Trigger>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
+ *       </DropdownMenu.Root>
+ *     </Sidebar.Header>
  *     <Sidebar.Body>
  *       <Sidebar.Group>
  *         <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
@@ -267,11 +314,21 @@ function claimKeyboardShortcut(): { isOwner: () => boolean; release: () => void 
  *         </Sidebar.List>
  *       </Sidebar.Group>
  *     </Sidebar.Body>
- *     <Sidebar.Footer>…</Sidebar.Footer>
+ *     <Sidebar.Footer>
+ *       <Sidebar.Separator />
+ *       <DropdownMenu.Root>
+ *         <DropdownMenu.Trigger asChild>
+ *           <Sidebar.SwitcherTrigger>
+ *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
+ *             <Sidebar.UserAvatar alt="Jane Doe" />
+ *           </Sidebar.SwitcherTrigger>
+ *         </DropdownMenu.Trigger>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
+ *       </DropdownMenu.Root>
+ *     </Sidebar.Footer>
  *   </Sidebar.Nav>
- *   <main>
- *     <Sidebar.Trigger />
- *   </main>
+ *   <Sidebar.Trigger />
  * </Sidebar.Root>
  * ```
  */
@@ -337,8 +394,11 @@ const Root = ({
 		}
 	}, [isMobile, open, openMobile, setOpen, setOpenMobile]);
 
-	// ⌘B / Ctrl+B toggles the sidebar (shadcn-compatible). Exact-modifier
-	// match: Shift/Alt combinations (e.g. the browser's own ⌘⇧B) pass through.
+	// ⌘B (Apple) / Ctrl+B (elsewhere) toggles the sidebar (shadcn-compatible).
+	// Exact-modifier match: Shift/Alt combinations (e.g. the browser's own ⌘⇧B)
+	// pass through, and the two platform modifiers never substitute for each
+	// other — accepting either would hijack macOS's native Ctrl+B ("move the
+	// caret back one character"), which every macOS text field binds.
 	// Ownership: only the registry's first claimant handles the keypress, so
 	// multiple mounted roots (nested or siblings) never toggle together.
 	//
@@ -354,16 +414,28 @@ const Root = ({
 			return;
 		}
 		const claim = claimKeyboardShortcut();
+		// Resolved once per mount rather than per keypress: the host platform
+		// cannot change while the window is open. Reading it here (in an effect)
+		// and never during render is also what keeps it out of hydration.
+		const isApple = isApplePlatform();
 		const handleKeyDown = (event: KeyboardEvent) => {
 			if (!claim.isOwner()) {
 				return;
 			}
-			const hasPlatformModifier = event.metaKey || event.ctrlKey;
+			// Never steal the chord from a text-editing context. This listener is
+			// on `window` in the bubble phase and calls preventDefault(), so
+			// without the guard it reaches inside every input and embedded editor.
+			if (isTextEditingTarget(event.target)) {
+				return;
+			}
+			const platformModifier = isApple ? event.metaKey : event.ctrlKey;
+			const foreignModifier = isApple ? event.ctrlKey : event.metaKey;
 			// toLowerCase: with Caps Lock on, browsers report key "B" with
 			// shiftKey false — the shortcut must not silently die there.
 			if (
 				event.key.toLowerCase() === SIDEBAR_KEYBOARD_SHORTCUT &&
-				hasPlatformModifier &&
+				platformModifier &&
+				!foreignModifier &&
 				!event.altKey &&
 				!event.shiftKey
 			) {
@@ -438,19 +510,39 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  * opens from. Override `--sidebar-width` at `:root` to move both together, or
  * set `--sidebar-row-width` on the outside surface itself.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-state` | `"expanded"` \| `"collapsed"` | On the desktop panel surface. Mirrors the root's expanded state and drives the width collapse to the icon rail; descendant parts style off it with `group-data-[state=collapsed]/sidebar-nav:`. |
+ * | `data-hydrated` | present after hydration | Presence-only, desktop panel surface. The CSS-side twin of the `isHydrated` gate: descendant collapse transitions are enabled only under `group-data-[hydrated]/sidebar-nav:`, so an SSR state correction snaps instead of animating on page load. |
+ * | `data-mobile` | present in the mobile sheet | Presence-only. Marks the `Sheet.Content` presentation used below the root's `mobileBreakpoint`. |
+ * | `data-state` | `"open"` \| `"closed"` | In the mobile sheet only, where the panel *is* the `Sheet`'s Radix dialog content element and Radix owns the attribute — the sheet's open/close animation state, not the desktop expanded state. Consumers style against it too. |
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarnav
  *
  * @example
  * ```tsx
  * <Sidebar.Root>
  *   <Sidebar.Nav aria-label="Main">
- *     <Sidebar.Header>…</Sidebar.Header>
+ *     <Sidebar.Header>
+ *       <DropdownMenu.Root>
+ *         <DropdownMenu.Trigger asChild>
+ *           <Sidebar.SwitcherTrigger>
+ *             <GlobeIcon />
+ *             <span className="text-strong min-w-0 flex-1 truncate text-base">Universal Gateway</span>
+ *             <CaretDownIcon className="text-muted size-4 shrink-0" />
+ *           </Sidebar.SwitcherTrigger>
+ *         </DropdownMenu.Trigger>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
+ *       </DropdownMenu.Root>
+ *     </Sidebar.Header>
  *     <Sidebar.Body>
  *       <Sidebar.Group>
  *         <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
  *         <Sidebar.List>
  *           <Sidebar.Item>
- *             <Sidebar.ItemButton asChild>
+ *             <Sidebar.ItemButton asChild current>
  *               <a href="/endpoints">
  *                 <GraphIcon />
  *                 Endpoints
@@ -460,8 +552,21 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  *         </Sidebar.List>
  *       </Sidebar.Group>
  *     </Sidebar.Body>
- *     <Sidebar.Footer>…</Sidebar.Footer>
+ *     <Sidebar.Footer>
+ *       <Sidebar.Separator />
+ *       <DropdownMenu.Root>
+ *         <DropdownMenu.Trigger asChild>
+ *           <Sidebar.SwitcherTrigger>
+ *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
+ *             <Sidebar.UserAvatar alt="Jane Doe" />
+ *           </Sidebar.SwitcherTrigger>
+ *         </DropdownMenu.Trigger>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
+ *       </DropdownMenu.Root>
+ *     </Sidebar.Footer>
  *   </Sidebar.Nav>
+ *   <Sidebar.Trigger />
  * </Sidebar.Root>
  * ```
  */
@@ -613,7 +718,16 @@ const defaultTriggerIcon = <SidebarSimpleIcon />;
  * `AppLayout.Header`) — it must stay visible at every breakpoint where the
  * sidebar can collapse, or users have no way to reopen it.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-state` | `"expanded"` \| `"collapsed"` | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`. |
+ * | `data-appearance` | `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
+ * | `data-intent` | `"accent"` \| `"danger"` \| `"neutral"` | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`. |
+ * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default. |
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebartrigger
  *
  * @example
  * ```tsx
@@ -668,15 +782,15 @@ const defaultTriggerIcon = <SidebarSimpleIcon />;
  * Placement within an `AppLayout` shell:
  * ```tsx
  * <Sidebar.Root>
- *   <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
- *   <AppLayout.Inset>
+ *   <AppLayout.Workspace>
+ *     <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
  *     <AppLayout.Content>
  *       <AppLayout.Header>
  *         <Sidebar.Trigger />
  *       </AppLayout.Header>
- *       …
+ *       <AppLayout.Body>…</AppLayout.Body>
  *     </AppLayout.Content>
- *   </AppLayout.Inset>
+ *   </AppLayout.Workspace>
  * </Sidebar.Root>
  * ```
  */
@@ -737,7 +851,7 @@ type SidebarHeaderProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * | --- | --- | --- |
  * | `--sidebar-header-height` | `4.5rem` | The header row height (72px). Set it on a common ancestor of the sidebar and `AppLayout.Header`, not on `Sidebar.Nav`, so both rows read one value. |
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarheader
  *
  * @example
  * ```tsx
@@ -805,10 +919,10 @@ const Header = ({
 				// AppLayout.Header toolbar, which derives its height from this same
 				// variable when a sidebar header is present (see AppLayout.Header).
 				"flex h-[var(--sidebar-header-height,4.5rem)] shrink-0 flex-col justify-center gap-2 px-3",
-				// When expanded, the adjacent AppLayout.Inset contributes the
-				// trailing card gutter, so trim the sidebar's own trailing inset
-				// to keep dividers and rows optically centered between the
-				// viewport edge and content card.
+				// When expanded, the adjacent AppLayout.Content contributes the
+				// trailing card gutter with its own margin, so trim the sidebar's
+				// own trailing inset to keep dividers and rows optically centered
+				// between the viewport edge and content card.
 				"group-data-[state=expanded]/sidebar-nav:pr-1",
 				className,
 			)}
@@ -828,7 +942,7 @@ type SidebarBodyProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * `scroll-fade-y` mask; inside the collapsed icon rail the scrollbar and its
  * reserved gutter are hidden and the fade is the only overflow signal.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarbody
  *
  * @example
  * ```tsx
@@ -923,7 +1037,7 @@ type SidebarFooterProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * switcher row (`Sidebar.SwitcherTrigger` with `Sidebar.AccountAvatar` and
  * `Sidebar.UserAvatar`).
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarfooter
  *
  * @example
  * ```tsx
@@ -1025,7 +1139,7 @@ type SidebarGroupProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * group wires it to the list via `aria-labelledby` so assistive technology
  * announces the list with the group's name.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebargroup
  *
  * @example
  * ```tsx
@@ -1112,7 +1226,7 @@ type SidebarGroupLabelProps = ComponentProps<"div"> & WithAsChild & WithDataSlot
  * the sibling list via `aria-labelledby`. Pass `asChild` to render a heading
  * at a level you control.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebargrouplabel
  *
  * @example
  * ```tsx
@@ -1230,7 +1344,7 @@ type SidebarListProps = ComponentProps<"ul"> & WithAsChild & WithDataSlot;
  * has a `Sidebar.GroupLabel`, the list is announced with the group's name via
  * `aria-labelledby`.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarlist
  *
  * @example
  * ```tsx
@@ -1311,7 +1425,7 @@ type SidebarItemProps = ComponentProps<"li"> & WithAsChild & WithDataSlot;
  * element is the `Sidebar.ItemButton` child, so props, `ref`, and `className`
  * all target the list item itself.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaritem
  *
  * @example
  * ```tsx
@@ -1389,6 +1503,10 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
 		 * Marks this row as the current page: sets `aria-current="page"` and the
 		 * `data-current` styling state. Consumers control it from their router,
 		 * e.g. `current={pathname === "/endpoints"}`.
+		 *
+		 * A composed child that sets `aria-current="page"` itself — react-router's
+		 * `NavLink` does — already gets the current-row treatment, so it needs no
+		 * `current`. This prop is for the rows whose parent knows.
 		 */
 		current?: boolean;
 	};
@@ -1399,6 +1517,20 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
  * compose with a router link. `current` sets `aria-current="page"` and the
  * `data-current` visual state.
  *
+ * The current-row treatment follows either attribute, so a composed child that
+ * marks itself as the current page gets it without `current` — a react-router
+ * `NavLink` needs nothing but its `to`, since it already resolved the match the
+ * parent would otherwise re-derive:
+ *
+ * ```tsx
+ * <Sidebar.ItemButton asChild>
+ *   <NavLink to="/endpoints">
+ *     <GraphIcon />
+ *     Endpoints
+ *   </NavLink>
+ * </Sidebar.ItemButton>
+ * ```
+ *
  * The row sizes its **leading** icon to 20px and leaves trailing visuals — a
  * caret, a count, a status dot — to size themselves, so a row composed with
  * `DropdownMenu.Trigger asChild` can end in `<CaretDownIcon className="text-muted
@@ -1408,7 +1540,15 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
  * it keeps the expanded row's width instead of shrinking to this row's 28px
  * rail chip (see `Sidebar.SwitcherTrigger` for the whole contract).
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-current` | present when `current` | Presence-only — never `"false"`, since the `data-current:` variant matches the attribute's existence. Styles the current row. |
+ * | `aria-current` | `"page"` when `current` | Set alongside `data-current`. The current-row styling follows *either*, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop. |
+ * | `data-state` | `"open"` | **Read, not stamped** — supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaritembutton
  *
  * @example
  * ```tsx
@@ -1481,14 +1621,20 @@ const ItemButton = ({
 			className={cx(
 				"ring-focus-accent flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-normal transition-none focus:outline-hidden focus-visible:ring-4",
 				"text-body hover:text-strong hover:bg-neutral-500/10",
+				// The current row is styled from either source of the same truth.
+				// `current` sets both attributes, but a composed child can set
+				// `aria-current="page"` on its own — react-router's `NavLink` does —
+				// and then the router already knows what the parent would have had to
+				// re-derive with `useMatch` to pass `current`.
 				"data-current:bg-neutral-500/15 data-current:text-strong",
+				"aria-[current=page]:bg-neutral-500/15 aria-[current=page]:text-strong",
 				// A row composed as a menu trigger stays highlighted while its menu
 				// is open, matching Sidebar.SwitcherTrigger.
 				"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
 				// Only the leading icon is pinned to 20px: trailing visuals (a menu
 				// caret, a count, a status dot) size themselves, so composing one
 				// does not need an `!` override to escape this rule.
-				"[&>svg]:text-muted hover:[&>svg]:text-strong data-current:[&>svg]:text-strong [&>svg:first-child]:size-5 [&>svg]:shrink-0",
+				"[&>svg]:text-muted hover:[&>svg]:text-strong data-current:[&>svg]:text-strong aria-[current=page]:[&>svg]:text-strong [&>svg:first-child]:size-5 [&>svg]:shrink-0",
 				// In the collapsed icon rail the row returns to its original
 				// 28px square chip. ml-1 keeps body and footer item icons aligned
 				// with their expanded position and the switcher indicators.
@@ -1533,7 +1679,13 @@ type SidebarSwitcherTriggerProps = ComponentProps<"button"> & WithAsChild & With
  * `--sidebar-width-mobile` whenever you widen `--sidebar-width`, or the floor
  * overhangs the sheet.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-state` | `"open"` | **Read, not stamped** — supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarswitchertrigger
  *
  * @example
  * ```tsx
@@ -1626,7 +1778,147 @@ const SwitcherTrigger = ({
 	);
 };
 
-type SidebarSeparatorProps = ComponentProps<typeof Separator>;
+/**
+ * The props for `Sidebar.Tooltip`. `Tooltip.Content`'s props — so `className`,
+ * `style`, `ref`, `asChild`, and any `data-*` reach the tooltip surface — except
+ * the parts this row owns: `children` is the row being labeled (not the tooltip
+ * body, which is `label`), and `side` becomes optional with a sidebar default.
+ */
+type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "children" | "side"> &
+	WithDataSlot & {
+		/**
+		 * The row this labels — a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`,
+		 * optionally already wrapped in a `DropdownMenu.Trigger asChild`.
+		 *
+		 * A single element, required: `Tooltip.Trigger asChild` clones its child, so
+		 * text renders nothing a pointer can hover and no children renders no row at
+		 * all — both silently.
+		 */
+		children: ReactElement;
+		/**
+		 * What the tooltip says. Normally the row's own label text: the rail clips the
+		 * visible one, so this is what a sighted pointer user reads.
+		 */
+		label: ReactNode;
+		/**
+		 * Which side of the row the tooltip opens on. The rail sits at the inline
+		 * start of the viewport, so the default points the tooltip away from it.
+		 *
+		 * @default "right"
+		 */
+		side?: ComponentProps<typeof Tooltip.Content>["side"];
+	};
+
+// Polymorphism forwards to Radix's own escape hatch: the props are
+// `Tooltip.Content`'s, so `asChild` swaps the tooltip surface through the
+// primitive that already implements it rather than through mantle's `Slot`.
+/**
+ * Labels a sidebar row while — and only while — the desktop panel is collapsed
+ * to the icon rail. Wrap it around a `Sidebar.ItemButton` or
+ * `Sidebar.SwitcherTrigger`.
+ *
+ * The collapsed rail keeps every row's label in the accessibility tree (clipped,
+ * not removed), which serves screen-reader users but leaves a sighted pointer
+ * user with an unlabeled icon column. This restores the label for them without
+ * duplicating it for anyone else: expanded rows already read their own text, and
+ * the mobile sheet shows full labels, so the tooltip content only mounts in the
+ * collapsed desktop rail.
+ *
+ * **Requires a `TooltipProvider` ancestor**, like any `Tooltip.Root` — mount one
+ * at your app root. This part deliberately does not provide its own, so tooltip
+ * delay and hover settings stay app-wide rather than being overridden per row.
+ *
+ * It composes with a menu trigger: nest `DropdownMenu.Root >
+ * Sidebar.Tooltip > DropdownMenu.Trigger asChild > Sidebar.ItemButton` for a
+ * row that opens a menu *and* labels itself in the rail. `DropdownMenu.Root` must
+ * stay **outside** the tooltip — it is renderless, and `Tooltip.Trigger asChild`
+ * needs a real element to clone.
+ *
+ * `children` is the row; `label` is what the tooltip says. Every other prop is
+ * `Tooltip.Content`'s and lands on the tooltip surface — `className`, `style`,
+ * `ref`, `data-*`, positioning props such as `align` and `sideOffset`, and
+ * `asChild`, which Radix's `Tooltip.Content` implements itself. `side` defaults
+ * to `"right"` so the tooltip opens away from the rail.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebartooltip
+ *
+ * @example
+ * ```tsx
+ * <TooltipProvider>
+ *   <Sidebar.Root>
+ *     <Sidebar.Nav aria-label="Main">
+ *       <Sidebar.Body>
+ *         <Sidebar.Group>
+ *           <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+ *           <Sidebar.List>
+ *             <Sidebar.Item>
+ *               <Sidebar.Tooltip label="Endpoints">
+ *                 <Sidebar.ItemButton asChild current>
+ *                   <a href="/endpoints">
+ *                     <GraphIcon />
+ *                     Endpoints
+ *                   </a>
+ *                 </Sidebar.ItemButton>
+ *               </Sidebar.Tooltip>
+ *             </Sidebar.Item>
+ *           </Sidebar.List>
+ *         </Sidebar.Group>
+ *       </Sidebar.Body>
+ *       <Sidebar.Footer>
+ *         <DropdownMenu.Root>
+ *           <Sidebar.Tooltip label="Help">
+ *             <DropdownMenu.Trigger asChild>
+ *               <Sidebar.ItemButton>
+ *                 <QuestionIcon />
+ *                 Help
+ *               </Sidebar.ItemButton>
+ *             </DropdownMenu.Trigger>
+ *           </Sidebar.Tooltip>
+ *           <DropdownMenu.Content>…</DropdownMenu.Content>
+ *         </DropdownMenu.Root>
+ *       </Sidebar.Footer>
+ *     </Sidebar.Nav>
+ *     <Sidebar.Trigger />
+ *   </Sidebar.Root>
+ * </TooltipProvider>
+ * ```
+ */
+const SidebarTooltip = ({
+	children,
+	"data-slot": dataSlot,
+	label,
+	side = "right",
+	...props
+}: SidebarTooltipProps) => {
+	const { isMobile, open } = useSidebarContext("Tooltip");
+	const isCollapsedRail = !isMobile && !open;
+
+	return (
+		<Tooltip.Root>
+			<Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
+			{/*
+			 * Gate the Content, never the Root: unmounting the Root would unmount the
+			 * Trigger with it, so toggling the rail would drop focus off the row the
+			 * user was just on.
+			 *
+			 * `className` is not destructured on purpose: it rides `props` into
+			 * `Tooltip.Content`, which already merges it last with `cx`, and this row
+			 * adds no classes of its own to compose ahead of it.
+			 */}
+			{isCollapsedRail && (
+				<Tooltip.Content
+					data-slot={joinDataSlot(dataSlot, "sidebar-tooltip")}
+					side={side}
+					{...props}
+				>
+					{label}
+				</Tooltip.Content>
+			)}
+		</Tooltip.Root>
+	);
+};
+
+type SidebarSeparatorProps = ComponentProps<typeof Separator> & WithDataSlot;
 
 /**
  * An inset hairline between sidebar regions. Composes the mantle `Separator`,
@@ -1636,7 +1928,7 @@ type SidebarSeparatorProps = ComponentProps<typeof Separator>;
  * to the same 36px chip width as `Sidebar.SwitcherTrigger`, balancing the
  * adjacent app-content gutter that sits outside the rail.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarseparator
  *
  * @example
  * ```tsx
@@ -1687,9 +1979,13 @@ type SidebarSeparatorProps = ComponentProps<typeof Separator>;
  * </Sidebar.Root>
  * ```
  */
-const SidebarSeparator = ({ className, ...props }: SidebarSeparatorProps) => (
+const SidebarSeparator = ({
+	className,
+	"data-slot": dataSlot,
+	...props
+}: SidebarSeparatorProps) => (
 	<Separator
-		data-slot="sidebar-separator"
+		data-slot={joinDataSlot(dataSlot, "sidebar-separator")}
 		className={cx("my-3", "group-data-[state=collapsed]/sidebar-nav:w-9", className)}
 		{...props}
 	/>
@@ -1785,22 +2081,31 @@ function getInitials(accountName: string | undefined): string {
 	return initials || "?";
 }
 
-type SidebarAccountAvatarProps = Omit<ComponentProps<"div">, "children"> & {
-	/**
-	 * The account's stable identifier. Used to deterministically select a
-	 * background swatch from the design system's palette so the same account
-	 * always gets the same color.
-	 */
-	accountId: string | undefined;
-	/**
-	 * The account's display name. The first one or two letters become the
-	 * avatar's initials. Falls back to `?` when the name is empty.
-	 */
-	accountName: string | undefined;
-};
+/**
+ * The props for `Sidebar.AccountAvatar`.
+ *
+ * `children` is valid only with `asChild`, where it is the element the avatar
+ * renders as instead of its own `<div>` — pass an empty one, e.g. `<span />`
+ * when the avatar sits inside a `<button>` (which may not contain a `<div>`).
+ * The initials are derived from `accountName`, which a consumer cannot compute,
+ * so they render *inside* that element in place of its own children.
+ */
+type SidebarAccountAvatarProps = Omit<ComponentProps<"div">, "children"> &
+	SelfClosingWithAsChild &
+	WithDataSlot & {
+		/**
+		 * The account's stable identifier. Used to deterministically select a
+		 * background swatch from the design system's palette so the same account
+		 * always gets the same color.
+		 */
+		accountId: string | undefined;
+		/**
+		 * The account's display name. The first one or two letters become the
+		 * avatar's initials. Falls back to `?` when the name is empty.
+		 */
+		accountName: string | undefined;
+	};
 
-// Why no `asChild`: the avatar is a prop-driven leaf (initials + derived
-// color) with no children to slot-swap.
 /**
  * A small rounded-square avatar that represents an account (workspace,
  * organization, etc.). The background color is derived deterministically from
@@ -1810,7 +2115,12 @@ type SidebarAccountAvatarProps = Omit<ComponentProps<"div">, "children"> & {
  * Accounts are rendered as squares to differentiate them visually from users,
  * which use a circular `Sidebar.UserAvatar`.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * Pass `asChild` with a single empty element to swap the `<div>` it renders —
+ * a `<span />` inside a `<button>`, or a link. The initials are derived from
+ * `accountName`, so they render inside the swapped element; anything that
+ * element carried of its own is replaced.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaraccountavatar
  *
  * @example
  * ```tsx
@@ -1864,22 +2174,42 @@ type SidebarAccountAvatarProps = Omit<ComponentProps<"div">, "children"> & {
 const AccountAvatar = ({
 	accountId,
 	accountName,
+	asChild,
+	children,
 	className,
+	"data-slot": dataSlot,
 	...props
-}: SidebarAccountAvatarProps) => (
-	<div
-		data-slot="sidebar-account-avatar"
-		className={cx(
-			"text-static-white flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-medium",
-			pickColorClass(accountId),
-			className,
-		)}
-		aria-hidden="true"
-		{...props}
-	>
-		{getInitials(accountName)}
-	</div>
-);
+}: SidebarAccountAvatarProps) => {
+	const Comp = asChild ? Slot : "div";
+	const initials = getInitials(accountName);
+
+	// The types already require a single element with `asChild`; this catches the
+	// untyped call site and fails with the reason instead of rendering an avatar
+	// with no initials in it.
+	if (asChild) {
+		invariant(
+			isValidElement(children),
+			"When using `asChild`, Sidebar.AccountAvatar must be passed a single child as a JSX tag.",
+		);
+	}
+
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "sidebar-account-avatar")}
+			className={cx(
+				"text-static-white flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-medium",
+				pickColorClass(accountId),
+				className,
+			)}
+			aria-hidden="true"
+			{...props}
+		>
+			{/* `asChild` swaps the avatar's element, not its content: the initials go
+			    inside the swapped child, replacing whatever it carried. */}
+			{isValidElement(children) ? cloneElement(children, {}, initials) : initials}
+		</Comp>
+	);
+};
 
 /**
  * A neutral person silhouette rendered with `currentColor` so it picks up the
@@ -1900,24 +2230,33 @@ const UserSilhouetteIcon = ({ className, ...props }: ComponentProps<"svg">) => (
 	</svg>
 );
 
-type SidebarUserAvatarProps = Omit<ComponentProps<"div">, "children"> & {
-	/**
-	 * Optional URL of the user's profile picture. When provided, the image is
-	 * rendered to fill the avatar with `object-cover`. When omitted (or while
-	 * loading), a neutral person silhouette is shown.
-	 */
-	src?: string;
-	/**
-	 * Accessible label for the avatar. Used as the image's `alt` text and as
-	 * the container's `aria-label` when no image is rendered.
-	 *
-	 * @default "Your account"
-	 */
-	alt?: string;
-};
+/**
+ * The props for `Sidebar.UserAvatar`.
+ *
+ * `children` is valid only with `asChild`, where it is the element the avatar
+ * renders as instead of its own `<div>` — pass an empty one, e.g. `<span />`
+ * when the avatar sits inside a `<button>` (which may not contain a `<div>`).
+ * The avatar's visual (the `src` image, or the silhouette fallback) renders
+ * *inside* that element in place of its own children.
+ */
+type SidebarUserAvatarProps = Omit<ComponentProps<"div">, "children"> &
+	SelfClosingWithAsChild &
+	WithDataSlot & {
+		/**
+		 * Optional URL of the user's profile picture. When provided, the image is
+		 * rendered to fill the avatar with `object-cover`. When omitted (or while
+		 * loading), a neutral person silhouette is shown.
+		 */
+		src?: string;
+		/**
+		 * Accessible label for the avatar. Used as the image's `alt` text and as
+		 * the container's `aria-label` when no image is rendered.
+		 *
+		 * @default "Your account"
+		 */
+		alt?: string;
+	};
 
-// Why no `asChild`: the avatar is a prop-driven leaf (`src`/`alt` with an
-// internal fallback) with no children to slot-swap.
 /**
  * A circular avatar that represents the currently signed-in user. Renders the
  * user's profile picture when `src` is provided, otherwise falls back to a
@@ -1926,7 +2265,12 @@ type SidebarUserAvatarProps = Omit<ComponentProps<"div">, "children"> & {
  * Users are rendered as circles to differentiate them visually from accounts,
  * which use a square `Sidebar.AccountAvatar`.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * Pass `asChild` with a single empty element to swap the `<div>` it renders —
+ * a `<span />` inside a `<button>`, or a link. The image (or the silhouette
+ * fallback) renders inside the swapped element; anything that element carried of
+ * its own is replaced.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaruseravatar
  *
  * @example
  * ```tsx
@@ -1977,22 +2321,54 @@ type SidebarUserAvatarProps = Omit<ComponentProps<"div">, "children"> & {
  * </Sidebar.Root>
  * ```
  */
-const UserAvatar = ({ alt = "Your account", className, src, ...props }: SidebarUserAvatarProps) => (
-	<div
-		data-slot="sidebar-user-avatar"
-		className={cx(
-			"text-muted bg-neutral-500/15 relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full",
-			className,
-		)}
-		// aria-label needs a role that permits naming — a bare div is
-		// role=generic, where accessible names are prohibited.
-		role={src ? undefined : "img"}
-		aria-label={src ? undefined : alt}
-		{...props}
-	>
-		{src ? <img src={src} alt={alt} className="size-full object-cover" /> : <UserSilhouetteIcon />}
-	</div>
-);
+const UserAvatar = ({
+	alt = "Your account",
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	src,
+	...props
+}: SidebarUserAvatarProps) => {
+	const Comp = asChild ? Slot : "div";
+	const visual = src ? (
+		<img src={src} alt={alt} className="size-full object-cover" />
+	) : (
+		<UserSilhouetteIcon />
+	);
+
+	// The types already require a single element with `asChild`; this catches the
+	// untyped call site and fails with the reason instead of rendering an empty
+	// avatar.
+	if (asChild) {
+		invariant(
+			isValidElement(children),
+			"When using `asChild`, Sidebar.UserAvatar must be passed a single child as a JSX tag.",
+		);
+	}
+
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "sidebar-user-avatar")}
+			className={cx(
+				"text-muted bg-neutral-500/15 relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full",
+				className,
+			)}
+			// aria-label needs a role that permits naming — a bare div is
+			// role=generic, where accessible names are prohibited. A swapped child
+			// that already has a naming role (a `<button>`, an `<a>`) can drop both
+			// by passing `role={undefined}`.
+			role={src ? undefined : "img"}
+			aria-label={src ? undefined : alt}
+			{...props}
+		>
+			{/* `asChild` swaps the avatar's element, not its content: the image or
+			    silhouette goes inside the swapped child, replacing whatever it
+			    carried. */}
+			{isValidElement(children) ? cloneElement(children, {}, visual) : visual}
+		</Comp>
+	);
+};
 
 /**
  * A composable, collapsible app-navigation sidebar. `Sidebar.Root` owns the
@@ -2021,8 +2397,10 @@ const UserAvatar = ({ alt = "Your account", className, src, ...props }: SidebarU
  * │   │       ├── Sidebar.GroupLabel
  * │   │       └── Sidebar.List
  * │   │           └── Sidebar.Item
- * │   │               └── Sidebar.ItemButton
+ * │   │               └── Sidebar.Tooltip
+ * │   │                   └── Sidebar.ItemButton
  * │   └── Sidebar.Footer
+ * │       ├── Sidebar.ItemButton
  * │       ├── Sidebar.Separator
  * │       └── Sidebar.SwitcherTrigger
  * │           ├── Sidebar.AccountAvatar
@@ -2085,7 +2463,7 @@ const Sidebar = {
 	 * mobile-sheet state to every part below it so the trigger can live in the
 	 * app shell without coupling it to the sidebar.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarroot
 	 *
 	 * @example
 	 * ```tsx
@@ -2143,7 +2521,16 @@ const Sidebar = {
 	 * `--sidebar-width` / `--sidebar-width-mobile` via its `className` or
 	 * `style`.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value | Description |
+	 * | --- | --- | --- |
+	 * | `data-state` | `"expanded"` \| `"collapsed"` | On the desktop panel surface. Mirrors the root's expanded state and drives the width collapse to the icon rail; descendant parts style off it with `group-data-[state=collapsed]/sidebar-nav:`. |
+	 * | `data-hydrated` | present after hydration | Presence-only, desktop panel surface. The CSS-side twin of the `isHydrated` gate: descendant collapse transitions are enabled only under `group-data-[hydrated]/sidebar-nav:`, so an SSR state correction snaps instead of animating on page load. |
+	 * | `data-mobile` | present in the mobile sheet | Presence-only. Marks the `Sheet.Content` presentation used below the root's `mobileBreakpoint`. |
+	 * | `data-state` | `"open"` \| `"closed"` | In the mobile sheet only, where the panel *is* the `Sheet`'s Radix dialog content element and Radix owns the attribute — the sheet's open/close animation state, not the desktop expanded state. Consumers style against it too. |
+	 *
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarnav
 	 *
 	 * @example
 	 * ```tsx
@@ -2199,7 +2586,16 @@ const Sidebar = {
 	 * The `IconButton` that toggles the sidebar. Place it in the app shell's
 	 * header; it stays functional at every breakpoint.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value | Description |
+	 * | --- | --- | --- |
+	 * | `data-state` | `"expanded"` \| `"collapsed"` | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`. |
+	 * | `data-appearance` | `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
+	 * | `data-intent` | `"accent"` \| `"danger"` \| `"neutral"` | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`. |
+	 * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default. |
+	 *
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebartrigger
 	 *
 	 * @example
 	 * ```tsx
@@ -2256,7 +2652,7 @@ const Sidebar = {
 	 * switcher (`Sidebar.SwitcherTrigger` + `DropdownMenu`/`Dialog`). Its
 	 * height vertically aligns the switcher with an `AppLayout.Header`.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarheader
 	 *
 	 * @example
 	 * ```tsx
@@ -2311,7 +2707,7 @@ const Sidebar = {
 	/**
 	 * The scrollable middle region holding the navigation groups.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarbody
 	 *
 	 * @example
 	 * ```tsx
@@ -2367,7 +2763,7 @@ const Sidebar = {
 	 * The pinned bottom container, typically holding cross-product items and
 	 * the account/user switcher row.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarfooter
 	 *
 	 * @example
 	 * ```tsx
@@ -2423,7 +2819,7 @@ const Sidebar = {
 	 * A grouping container pairing a `GroupLabel` with a `List`; wires the
 	 * label to the list via `aria-labelledby`.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebargroup
 	 *
 	 * @example
 	 * ```tsx
@@ -2479,7 +2875,7 @@ const Sidebar = {
 	 * The muted label of a group. Renders a `<div>`; pass `asChild` to render
 	 * a heading at a level you control.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebargrouplabel
 	 *
 	 * @example
 	 * ```tsx
@@ -2534,7 +2930,7 @@ const Sidebar = {
 	/**
 	 * The `<ul>` of navigation rows in a group.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarlist
 	 *
 	 * @example
 	 * ```tsx
@@ -2589,7 +2985,7 @@ const Sidebar = {
 	/**
 	 * A single `<li>` row wrapper.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaritem
 	 *
 	 * @example
 	 * ```tsx
@@ -2645,7 +3041,15 @@ const Sidebar = {
 	 * The interactive navigation row (icon + truncating label). `asChild` for
 	 * router links; `current` for the active page.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value | Description |
+	 * | --- | --- | --- |
+	 * | `data-current` | present when `current` | Presence-only — never `"false"`, since the `data-current:` variant matches the attribute's existence. Styles the current row. |
+	 * | `aria-current` | `"page"` when `current` | Set alongside `data-current`. The current-row styling follows *either*, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop. |
+	 * | `data-state` | `"open"` | **Read, not stamped** — supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
+	 *
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaritembutton
 	 *
 	 * @example
 	 * ```tsx
@@ -2701,7 +3105,13 @@ const Sidebar = {
 	 * The styled switcher row for the header/footer. Not state-wired — compose
 	 * with `DropdownMenu.Trigger asChild` or `Dialog.Trigger asChild`.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value | Description |
+	 * | --- | --- | --- |
+	 * | `data-state` | `"open"` | **Read, not stamped** — supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
+	 *
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarswitchertrigger
 	 *
 	 * @example
 	 * ```tsx
@@ -2754,10 +3164,74 @@ const Sidebar = {
 	 */
 	SwitcherTrigger,
 	/**
+	 * Labels a row while the panel is collapsed to the icon rail — wrap it
+	 * around a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`. Requires a
+	 * `TooltipProvider` ancestor. Takes `Tooltip.Content`'s props (including
+	 * `asChild`) on the tooltip surface; `side` defaults to `"right"`.
+	 *
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebartooltip
+	 *
+	 * @example
+	 * ```tsx
+	 * <TooltipProvider>
+	 *   <Sidebar.Root>
+	 *     <Sidebar.Nav aria-label="Main">
+	 *       <Sidebar.Header>
+	 *         <DropdownMenu.Root>
+	 *           <DropdownMenu.Trigger asChild>
+	 *             <Sidebar.SwitcherTrigger>
+	 *               <GlobeIcon />
+	 *               <span className="text-strong min-w-0 flex-1 truncate text-base">Universal Gateway</span>
+	 *               <CaretDownIcon className="text-muted size-4 shrink-0" />
+	 *             </Sidebar.SwitcherTrigger>
+	 *           </DropdownMenu.Trigger>
+	 *           <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
+	 *         </DropdownMenu.Root>
+	 *       </Sidebar.Header>
+	 *       <Sidebar.Body>
+	 *         <Sidebar.Group>
+	 *           <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+	 *           <Sidebar.List>
+	 *             <Sidebar.Item>
+	 *               <Sidebar.Tooltip label="Endpoints">
+	 *                 <Sidebar.ItemButton asChild current>
+	 *                   <a href="/endpoints">
+	 *                     <GraphIcon />
+	 *                     Endpoints
+	 *                   </a>
+	 *                 </Sidebar.ItemButton>
+	 *               </Sidebar.Tooltip>
+	 *             </Sidebar.Item>
+	 *           </Sidebar.List>
+	 *         </Sidebar.Group>
+	 *       </Sidebar.Body>
+	 *       <Sidebar.Footer>
+	 *         <Sidebar.Separator />
+	 *         <DropdownMenu.Root>
+	 *           <Sidebar.Tooltip label="Acme Corp">
+	 *             <DropdownMenu.Trigger asChild>
+	 *               <Sidebar.SwitcherTrigger>
+	 *                 <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
+	 *                 <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
+	 *                 <Sidebar.UserAvatar alt="Jane Doe" />
+	 *               </Sidebar.SwitcherTrigger>
+	 *             </DropdownMenu.Trigger>
+	 *           </Sidebar.Tooltip>
+	 *           <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
+	 *         </DropdownMenu.Root>
+	 *       </Sidebar.Footer>
+	 *     </Sidebar.Nav>
+	 *     <Sidebar.Trigger />
+	 *   </Sidebar.Root>
+	 * </TooltipProvider>
+	 * ```
+	 */
+	Tooltip: SidebarTooltip,
+	/**
 	 * An inset hairline between sidebar regions, aligned with the content
 	 * padding.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarseparator
 	 *
 	 * @example
 	 * ```tsx
@@ -2811,9 +3285,10 @@ const Sidebar = {
 	Separator: SidebarSeparator,
 	/**
 	 * A rounded-square account avatar with deterministic, WCAG-compliant
-	 * swatch colors derived from the account id.
+	 * swatch colors derived from the account id. `asChild` swaps its `<div>` for
+	 * a single empty element and renders the initials inside it.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaraccountavatar
 	 *
 	 * @example
 	 * ```tsx
@@ -2866,9 +3341,10 @@ const Sidebar = {
 	 */
 	AccountAvatar,
 	/**
-	 * A circular user avatar with a silhouette fallback.
+	 * A circular user avatar with a silhouette fallback. `asChild` swaps its
+	 * `<div>` for a single empty element and renders the image inside it.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaruseravatar
 	 *
 	 * @example
 	 * ```tsx

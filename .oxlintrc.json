@@ -95,7 +95,8 @@
       "files": ["**/*.test.{ts,tsx}", "**/*.browser.test.{ts,tsx}"],
       "rules": {
         "react/no-object-type-as-default-prop": "off",
-        "unicorn/consistent-function-scoping": "off"
+        "unicorn/consistent-function-scoping": "off",
+        "vitest/expect-expect": ["error", { "assertFunctionNames": ["expect", "expect*"] }]
       }
     }
   ],

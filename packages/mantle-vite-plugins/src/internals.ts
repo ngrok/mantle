@@ -63,6 +63,11 @@ export const VALID_COMPONENT_RE = /^[a-z][a-z0-9-]*$/;
  * and is never read back as a component by {@link parseComponentsFromCssFile}.
  */
 export const INTERNAL_CHUNKS_BY_COMPONENT: ReadonlyMap<string, readonly string[]> = new Map([
+	// AlertCenter renders the `Alert` banner chrome, expand button, and dismiss
+	// button; those class strings are hoisted into `alert-<hash>.js` and none
+	// remain in `alert-center.js`, so an alert-center-only consumer would get
+	// completely unstyled banners.
+	["alert-center", ["alert"]],
 	// The charts render on a shared internal `chart` engine, and that engine's
 	// CopyButton renders an IconButton whose classes live in the `button` chunk;
 	// a chart-only consumer imports neither, so both must be scanned.
@@ -73,6 +78,11 @@ export const INTERNAL_CHUNKS_BY_COMPONENT: ReadonlyMap<string, readonly string[]
 	// SelectableList's styled rows live on the list directory's shared
 	// primitive chunk (list-<hash>.js).
 	["selectable-list", ["list"]],
+	// Sidebar renders four other mantle components — an IconButton trigger, a
+	// Separator, the mobile Sheet, and the icon-rail Tooltip — and `sidebar.js`
+	// keeps none of their class strings; each is hoisted into that component's
+	// own chunk. A sidebar-only consumer imports none of those subpaths.
+	["sidebar", ["button", "separator", "sheet", "tooltip"]],
 ]);
 
 /** Marker inserted before the auto-generated `@source` block. */

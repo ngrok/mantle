@@ -299,7 +299,7 @@ export const layoutRoutes = {
 /** Short descriptions for the layouts index page. */
 export const layoutDescriptions = {
 	"App Layout":
-		"A viewport-locked application shell — a full-width notice strip, a toolbar header, and a rounded content card that is the only scroll container — designed to compose with (but stay decoupled from) the Sidebar.",
+		"A viewport-locked application shell — a full-width notice strip, a toolbar header, and a rounded content card whose page region is the only scroll container — designed to compose with (but stay decoupled from) the Sidebar.",
 	"Centered Layout":
 		"A viewport-filling centered page flow — brand mark, centered content, and a pinned utility footer — for sign-in, onboarding, 404, and other focused full-page states.",
 } as const satisfies Record<(typeof layoutPages)[number], string>;
@@ -312,16 +312,20 @@ export const layoutDescriptions = {
  */
 export const recipePages = [
 	//,
+	"Breadcrumbs from Routes",
 	"Overlays + Async Data",
 ] as const;
 
 /** Route lookup for recipe pages. */
 export const recipeRoutes = {
+	"Breadcrumbs from Routes": "/recipes/breadcrumbs-from-routes",
 	"Overlays + Async Data": "/recipes/overlay-async",
 } as const satisfies Record<(typeof recipePages)[number], Route>;
 
 /** Short descriptions for recipe index pages. */
 export const recipeDescriptions = {
+	"Breadcrumbs from Routes":
+		"Derive a breadcrumb trail from the matched route chain with React Router route handles \u2014 derived state, so it is correct on the server and on the first frame, with no context and no effects.",
 	"Overlays + Async Data":
 		"Open a Sheet, Dialog, or Alert Dialog immediately, then swap the body between pending, loaded, 404, and 500 states with TanStack Query.",
 } as const satisfies Record<(typeof recipePages)[number], string>;

@@ -377,16 +377,18 @@ function ProductSwitcherDialog({
 
 	return (
 		<Dialog.Root>
-			<Dialog.Trigger asChild>
-				<Sidebar.SwitcherTrigger>
-					<ProductIcon product={product} />
-					<span className="text-strong min-w-0 flex-1 truncate text-base">{product.label}</span>
-					{/* the double caret reads "pick one of several", not "a menu drops from
-					    here" — the caret-down below belongs to the account switchers, which
-					    really do open a DropdownMenu */}
-					<CaretUpDownIcon className="text-muted size-4 shrink-0" />
-				</Sidebar.SwitcherTrigger>
-			</Dialog.Trigger>
+			<Sidebar.Tooltip label={product.label}>
+				<Dialog.Trigger asChild>
+					<Sidebar.SwitcherTrigger>
+						<ProductIcon product={product} />
+						<span className="text-strong min-w-0 flex-1 truncate text-base">{product.label}</span>
+						{/* the double caret reads "pick one of several", not "a menu drops from
+						    here" — the caret-down below belongs to the account switchers, which
+						    really do open a DropdownMenu */}
+						<CaretUpDownIcon className="text-muted size-4 shrink-0" />
+					</Sidebar.SwitcherTrigger>
+				</Dialog.Trigger>
+			</Sidebar.Tooltip>
 			<Dialog.Content
 				className="bg-popover"
 				preferredWidth="max-w-xl"
@@ -480,18 +482,20 @@ function DemoNav({
 					<Sidebar.List>
 						{section.items.map((item) => (
 							<Sidebar.Item key={item.path}>
-								<Sidebar.ItemButton asChild current={pathname === item.path}>
-									<a
-										href={item.path}
-										onClick={(event) => {
-											event.preventDefault();
-											navigate(item.path);
-										}}
-									>
-										{item.icon}
-										{item.label}
-									</a>
-								</Sidebar.ItemButton>
+								<Sidebar.Tooltip label={item.label}>
+									<Sidebar.ItemButton asChild current={pathname === item.path}>
+										<a
+											href={item.path}
+											onClick={(event) => {
+												event.preventDefault();
+												navigate(item.path);
+											}}
+										>
+											{item.icon}
+											{item.label}
+										</a>
+									</Sidebar.ItemButton>
+								</Sidebar.Tooltip>
 							</Sidebar.Item>
 						))}
 					</Sidebar.List>
@@ -524,19 +528,21 @@ function DemoSettingsHeader({
 	returnPath: string;
 }) {
 	return (
-		<Sidebar.ItemButton asChild className="font-medium">
-			<a
-				href={returnPath}
-				onClick={(event) => {
-					event.preventDefault();
-					onBack();
-				}}
-			>
-				<ArrowLeftIcon />
-				<span className="text-strong min-w-0 flex-1 truncate text-base">Settings</span>
-				<span className="sr-only">, back to {returnLabel}</span>
-			</a>
-		</Sidebar.ItemButton>
+		<Sidebar.Tooltip label={`Settings, back to ${returnLabel}`}>
+			<Sidebar.ItemButton asChild className="font-medium">
+				<a
+					href={returnPath}
+					onClick={(event) => {
+						event.preventDefault();
+						onBack();
+					}}
+				>
+					<ArrowLeftIcon />
+					<span className="text-strong min-w-0 flex-1 truncate text-base">Settings</span>
+					<span className="sr-only">, back to {returnLabel}</span>
+				</a>
+			</Sidebar.ItemButton>
+		</Sidebar.Tooltip>
 	);
 }
 
@@ -561,13 +567,18 @@ function DemoSettingsHeader({
 function DemoHelpMenu() {
 	return (
 		<DropdownMenu.Root>
-			<DropdownMenu.Trigger asChild>
-				<Sidebar.ItemButton>
-					<QuestionIcon />
-					Help
-					<CaretDownIcon className="text-muted ml-auto size-4 shrink-0" />
-				</Sidebar.ItemButton>
-			</DropdownMenu.Trigger>
+			{/* Sidebar.Tooltip sits INSIDE DropdownMenu.Root: the menu root is
+			    renderless, so Tooltip.Trigger asChild has no element to clone
+			    if the tooltip wraps it */}
+			<Sidebar.Tooltip label="Help">
+				<DropdownMenu.Trigger asChild>
+					<Sidebar.ItemButton>
+						<QuestionIcon />
+						Help
+						<CaretDownIcon className="text-muted ml-auto size-4 shrink-0" />
+					</Sidebar.ItemButton>
+				</DropdownMenu.Trigger>
+			</Sidebar.Tooltip>
 			{/* trigger-width keeps the menu flush with the row it opens from; the
 			    --sidebar-row-width floor keeps it there when the row shrinks into
 			    the icon rail (the menu is portaled, so it inherits no sidebar
@@ -659,15 +670,17 @@ function AppShellAccountSwitcher({
 
 	return (
 		<DropdownMenu.Root>
-			<DropdownMenu.Trigger asChild>
-				<Sidebar.SwitcherTrigger>
-					<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
-					<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
-						{account.name}
-					</span>
-					<Sidebar.UserAvatar alt="Jane Doe" />
-				</Sidebar.SwitcherTrigger>
-			</DropdownMenu.Trigger>
+			<Sidebar.Tooltip label={account.name}>
+				<DropdownMenu.Trigger asChild>
+					<Sidebar.SwitcherTrigger>
+						<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+						<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
+							{account.name}
+						</span>
+						<Sidebar.UserAvatar alt="Jane Doe" />
+					</Sidebar.SwitcherTrigger>
+				</DropdownMenu.Trigger>
+			</Sidebar.Tooltip>
 			<DropdownMenu.Content
 				align="start"
 				side="top"
@@ -740,10 +753,10 @@ function AppShellAccountSwitcher({
  * The canonical Sidebar + AppLayout composition, shared by both docs pages: a
  * decoupled app shell with a sidebar that collapses to the icon rail, a
  * header-mounted trigger, a product-choice dialog in the sidebar header, a
- * toggleable full-window notice strip, and a
- * content card that scrolls internally. The two
- * components never reference each other — `Sidebar.Root` simply wraps the
- * shell so `Sidebar.Trigger` works from `AppLayout.Header`.
+ * toggleable full-window notice strip, and a content card whose `Body` page
+ * region is the only scroll container. The two components never reference each
+ * other — `Sidebar.Root` simply wraps the shell so `Sidebar.Trigger` works from
+ * `AppLayout.Header`.
  *
  * The footer carries the shell's stable rows, bottom-anchored under the
  * scrolling body: the account-scoped destinations every product shares
@@ -759,7 +772,7 @@ function AppShellAccountSwitcher({
  *
  * Renders as an entire framed-preview document (see preview-registry.ts), so
  * it composes exactly like a real app shell: pinned to the viewport with
- * `fixed inset-0`, a `SkipToMainLink`, and `AppLayout.Content` as the real
+ * `fixed inset-0`, a `SkipToMainLink`, and `AppLayout.Body` as the real
  * `Main` landmark. Narrow the preview below `md` for the mobile sheet.
  */
 export function AppShellDemo() {
@@ -823,7 +836,7 @@ export function AppShellDemo() {
 						/>
 					</AlertCenter.Root>
 				</AppLayout.Notice>
-				<AppLayout.Body>
+				<AppLayout.Workspace>
 					{/* the landmark is renamed with the section it is showing */}
 					<Sidebar.Nav aria-label={inSettings ? "Settings" : "Main"}>
 						<Sidebar.Header>
@@ -850,18 +863,20 @@ export function AppShellDemo() {
 						    with the section being shown, these rows never do. */}
 						<Sidebar.Footer>
 							{demoFooterItems.map((item) => (
-								<Sidebar.ItemButton key={item.path} asChild current={pathname === item.path}>
-									<a
-										href={item.path}
-										onClick={(event) => {
-											event.preventDefault();
-											navigate(item.path);
-										}}
-									>
-										{item.icon}
-										{item.label}
-									</a>
-								</Sidebar.ItemButton>
+								<Sidebar.Tooltip key={item.path} label={item.label}>
+									<Sidebar.ItemButton asChild current={pathname === item.path}>
+										<a
+											href={item.path}
+											onClick={(event) => {
+												event.preventDefault();
+												navigate(item.path);
+											}}
+										>
+											{item.icon}
+											{item.label}
+										</a>
+									</Sidebar.ItemButton>
+								</Sidebar.Tooltip>
 							))}
 							<DemoHelpMenu />
 							<Sidebar.Separator />
@@ -873,64 +888,64 @@ export function AppShellDemo() {
 						</Sidebar.Footer>
 					</Sidebar.Nav>
 
-					<AppLayout.Inset>
-						<AppLayout.Content asChild>
-							<Main>
-								<AppLayout.Header>
-									<Sidebar.Trigger />
-									<Breadcrumb.Root>
-										<Breadcrumb.List>
-											{inSettings && (
-												<>
-													<Breadcrumb.Item>
-														<Breadcrumb.Link
-															href={settingsSectionPath}
-															onClick={(event) => {
-																event.preventDefault();
-																navigate(settingsSectionPath);
-															}}
-														>
-															Settings
-														</Breadcrumb.Link>
-													</Breadcrumb.Item>
-													<Breadcrumb.Separator />
-												</>
-											)}
+					<AppLayout.Content>
+						<AppLayout.Header>
+							<Sidebar.Trigger />
+							<Breadcrumb.Root>
+								<Breadcrumb.List>
+									{inSettings && (
+										<>
 											<Breadcrumb.Item>
-												<Breadcrumb.Page>{currentItem?.label ?? "Overview"}</Breadcrumb.Page>
+												<Breadcrumb.Link
+													href={settingsSectionPath}
+													onClick={(event) => {
+														event.preventDefault();
+														navigate(settingsSectionPath);
+													}}
+												>
+													Settings
+												</Breadcrumb.Link>
 											</Breadcrumb.Item>
-										</Breadcrumb.List>
-									</Breadcrumb.Root>
-									<div className="ml-auto flex gap-2">
-										<IconButton
-											type="button"
-											appearance="outlined"
-											intent="neutral"
-											size="sm"
-											label="Toggle notice"
-											icon={<MegaphoneIcon />}
-											onClick={() => setShowNotice((current) => !current)}
-										/>
-										<IconButton
-											type="button"
-											appearance="outlined"
-											intent="neutral"
-											size="sm"
-											label="One warning"
-											icon={<WarningIcon />}
-											onClick={() => chooseAlertExample("single")}
-										/>
-										<IconButton
-											type="button"
-											appearance="outlined"
-											intent="neutral"
-											size="sm"
-											label="Three alerts"
-											icon={<BellIcon />}
-											onClick={() => chooseAlertExample("multiple")}
-										/>
-									</div>
-								</AppLayout.Header>
+											<Breadcrumb.Separator />
+										</>
+									)}
+									<Breadcrumb.Item>
+										<Breadcrumb.Page>{currentItem?.label ?? "Overview"}</Breadcrumb.Page>
+									</Breadcrumb.Item>
+								</Breadcrumb.List>
+							</Breadcrumb.Root>
+							<div className="ml-auto flex gap-2">
+								<IconButton
+									type="button"
+									appearance="outlined"
+									intent="neutral"
+									size="sm"
+									label="Toggle notice"
+									icon={<MegaphoneIcon />}
+									onClick={() => setShowNotice((current) => !current)}
+								/>
+								<IconButton
+									type="button"
+									appearance="outlined"
+									intent="neutral"
+									size="sm"
+									label="One warning"
+									icon={<WarningIcon />}
+									onClick={() => chooseAlertExample("single")}
+								/>
+								<IconButton
+									type="button"
+									appearance="outlined"
+									intent="neutral"
+									size="sm"
+									label="Three alerts"
+									icon={<BellIcon />}
+									onClick={() => chooseAlertExample("multiple")}
+								/>
+							</div>
+						</AppLayout.Header>
+						<AppLayout.Body asChild>
+							<Main>
 								<div className="space-y-4 p-6">
 									{Array.from({ length: 12 }, (_, index) => (
 										<div key={index} className="border-card-muted rounded-lg border p-4">
@@ -938,15 +953,15 @@ export function AppShellDemo() {
 												{currentItem?.label ?? "Overview"} row {index + 1}
 											</p>
 											<p className="text-muted text-sm">
-												The content card is the only scroll container — the page never scrolls.
+												The page region is the only scroll container — the document never scrolls.
 											</p>
 										</div>
 									))}
 								</div>
 							</Main>
-						</AppLayout.Content>
-					</AppLayout.Inset>
-				</AppLayout.Body>
+						</AppLayout.Body>
+					</AppLayout.Content>
+				</AppLayout.Workspace>
 			</AppLayout.Root>
 		</Sidebar.Root>
 	);
@@ -979,15 +994,17 @@ function BridgeAccountSwitcher({
 
 	return (
 		<DropdownMenu.Root>
-			<DropdownMenu.Trigger asChild>
-				<Sidebar.SwitcherTrigger>
-					<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
-					<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
-						{account.name}
-					</span>
-					<CaretDownIcon className="text-muted size-4 shrink-0" />
-				</Sidebar.SwitcherTrigger>
-			</DropdownMenu.Trigger>
+			<Sidebar.Tooltip label={account.name}>
+				<DropdownMenu.Trigger asChild>
+					<Sidebar.SwitcherTrigger>
+						<Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+						<span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">
+							{account.name}
+						</span>
+						<CaretDownIcon className="text-muted size-4 shrink-0" />
+					</Sidebar.SwitcherTrigger>
+				</DropdownMenu.Trigger>
+			</Sidebar.Tooltip>
 			<DropdownMenu.Content align="start" width="trigger" className="min-w-(--sidebar-row-width)">
 				<DropdownMenu.Group>
 					<DropdownMenu.Label className="text-muted py-1 text-xs font-medium">
@@ -1054,7 +1071,7 @@ function BridgeAccountSwitcher({
  *
  * Renders as an entire framed-preview document (see preview-registry.ts), so
  * it composes exactly like a real app shell: pinned to the viewport with
- * `fixed inset-0`, a `SkipToMainLink`, and `AppLayout.Content` as the real
+ * `fixed inset-0`, a `SkipToMainLink`, and `AppLayout.Body` as the real
  * `Main` landmark. Narrow the preview below `md` for the mobile sheet.
  */
 export function BridgeShellDemo() {
@@ -1121,7 +1138,7 @@ export function BridgeShellDemo() {
 						/>
 					</AlertCenter.Root>
 				</AppLayout.Notice>
-				<AppLayout.Body>
+				<AppLayout.Workspace>
 					{/* the landmark is renamed with the section it is showing */}
 					<Sidebar.Nav aria-label={inSettings ? "Settings" : "Main"}>
 						<Sidebar.Header>
@@ -1154,22 +1171,20 @@ export function BridgeShellDemo() {
 							    `aria-current="page"` rows in one landmark would announce two current
 							    pages */}
 							{bridgePinnedItems.map((item) => (
-								<Sidebar.ItemButton
-									key={item.path}
-									asChild
-									current={!inSettings && pathname === item.path}
-								>
-									<a
-										href={item.path}
-										onClick={(event) => {
-											event.preventDefault();
-											navigate(item.path);
-										}}
-									>
-										{item.icon}
-										{item.label}
-									</a>
-								</Sidebar.ItemButton>
+								<Sidebar.Tooltip key={item.path} label={item.label}>
+									<Sidebar.ItemButton asChild current={!inSettings && pathname === item.path}>
+										<a
+											href={item.path}
+											onClick={(event) => {
+												event.preventDefault();
+												navigate(item.path);
+											}}
+										>
+											{item.icon}
+											{item.label}
+										</a>
+									</Sidebar.ItemButton>
+								</Sidebar.Tooltip>
 							))}
 							{/* this shell's account row lives in the header, so the separator
 							    divides the pinned destinations from the Help menu instead */}
@@ -1178,70 +1193,70 @@ export function BridgeShellDemo() {
 						</Sidebar.Footer>
 					</Sidebar.Nav>
 
-					<AppLayout.Inset>
-						<AppLayout.Content asChild>
-							<Main>
-								<AppLayout.Header>
-									<Sidebar.Trigger />
-									<Breadcrumb.Root>
-										<Breadcrumb.List>
+					<AppLayout.Content>
+						<AppLayout.Header>
+							<Sidebar.Trigger />
+							<Breadcrumb.Root>
+								<Breadcrumb.List>
+									<Breadcrumb.Item>
+										<Breadcrumb.Link href="/" onClick={(event) => event.preventDefault()}>
+											Home
+										</Breadcrumb.Link>
+									</Breadcrumb.Item>
+									<Breadcrumb.Separator />
+									{inSettings && (
+										<>
 											<Breadcrumb.Item>
-												<Breadcrumb.Link href="/" onClick={(event) => event.preventDefault()}>
-													Home
+												<Breadcrumb.Link
+													href={settingsSectionPath}
+													onClick={(event) => {
+														event.preventDefault();
+														navigate(settingsSectionPath);
+													}}
+												>
+													Settings
 												</Breadcrumb.Link>
 											</Breadcrumb.Item>
 											<Breadcrumb.Separator />
-											{inSettings && (
-												<>
-													<Breadcrumb.Item>
-														<Breadcrumb.Link
-															href={settingsSectionPath}
-															onClick={(event) => {
-																event.preventDefault();
-																navigate(settingsSectionPath);
-															}}
-														>
-															Settings
-														</Breadcrumb.Link>
-													</Breadcrumb.Item>
-													<Breadcrumb.Separator />
-												</>
-											)}
-											<Breadcrumb.Item>
-												<Breadcrumb.Page>{currentLabel}</Breadcrumb.Page>
-											</Breadcrumb.Item>
-										</Breadcrumb.List>
-									</Breadcrumb.Root>
-									<div className="ml-auto flex gap-2">
-										<IconButton
-											type="button"
-											appearance="outlined"
-											intent="neutral"
-											size="sm"
-											label="Toggle notice"
-											icon={<MegaphoneIcon />}
-											onClick={() => setShowNotice((current) => !current)}
-										/>
-										<IconButton
-											type="button"
-											appearance="outlined"
-											intent="neutral"
-											size="sm"
-											label="One warning"
-											icon={<WarningIcon />}
-											onClick={() => chooseAlertExample("single")}
-										/>
-										<IconButton
-											type="button"
-											appearance="outlined"
-											intent="neutral"
-											size="sm"
-											label="Three alerts"
-											icon={<BellIcon />}
-											onClick={() => chooseAlertExample("multiple")}
-										/>
-									</div>
-								</AppLayout.Header>
+										</>
+									)}
+									<Breadcrumb.Item>
+										<Breadcrumb.Page>{currentLabel}</Breadcrumb.Page>
+									</Breadcrumb.Item>
+								</Breadcrumb.List>
+							</Breadcrumb.Root>
+							<div className="ml-auto flex gap-2">
+								<IconButton
+									type="button"
+									appearance="outlined"
+									intent="neutral"
+									size="sm"
+									label="Toggle notice"
+									icon={<MegaphoneIcon />}
+									onClick={() => setShowNotice((current) => !current)}
+								/>
+								<IconButton
+									type="button"
+									appearance="outlined"
+									intent="neutral"
+									size="sm"
+									label="One warning"
+									icon={<WarningIcon />}
+									onClick={() => chooseAlertExample("single")}
+								/>
+								<IconButton
+									type="button"
+									appearance="outlined"
+									intent="neutral"
+									size="sm"
+									label="Three alerts"
+									icon={<BellIcon />}
+									onClick={() => chooseAlertExample("multiple")}
+								/>
+							</div>
+						</AppLayout.Header>
+						<AppLayout.Body asChild>
+							<Main>
 								<div className="space-y-4 p-6">
 									{Array.from({ length: 12 }, (_, index) => (
 										<div key={index} className="border-card-muted rounded-lg border p-4">
@@ -1249,15 +1264,15 @@ export function BridgeShellDemo() {
 												{currentLabel} row {index + 1}
 											</p>
 											<p className="text-muted text-sm">
-												The content card is the only scroll container — the page never scrolls.
+												The page region is the only scroll container — the document never scrolls.
 											</p>
 										</div>
 									))}
 								</div>
 							</Main>
-						</AppLayout.Content>
-					</AppLayout.Inset>
-				</AppLayout.Body>
+						</AppLayout.Body>
+					</AppLayout.Content>
+				</AppLayout.Workspace>
 			</AppLayout.Root>
 		</Sidebar.Root>
 	);

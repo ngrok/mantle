@@ -1,0 +1,738 @@
+---
+title: Breadcrumbs from Routes
+description: Derive a breadcrumb trail from the matched route chain with React Router's route handles — no context, no effects, correct on the server and on first paint.
+---
+
+import { Example } from "~/components/example";
+import { RouteBreadcrumbsDemo } from "~/features/route-breadcrumbs-demo";
+
+# Breadcrumbs from Routes
+
+A breadcrumb trail is a rendering of _where you are in the route tree_. That means it is
+**derived state**: your router already knows the answer, so nothing needs to store it, push it, or keep it in
+sync. This recipe wires [Breadcrumb](/components/navigation/breadcrumb) to React Router's
+[route handles](https://reactrouter.com/start/framework/route-module#handle) and reads the trail out of
+`useMatches()`.
+
+Pick a URL — the trail grows, the leaf becomes the current page, and its ancestors become links:
+
+<Example>
+	<RouteBreadcrumbsDemo />
+</Example>
+
+> [!NOTE]
+> The demo above switches between **fixture** match arrays rather than really navigating: a demo embedded in
+> this page cannot mount a second router (React Router allows exactly one per tree). That is why the render
+> half takes `crumbs` as a prop — the same component runs against real `useMatches()` output in your app, and
+> against a fixture here and in your tests.
+
+## Why not a context provider
+
+The tempting shape is a provider holding the trail, with pages pushing their crumb up from an effect
+(`useBreadcrumbLabel(endpoint.name)`). Avoid it. It buys nothing the router does not already give you, and
+costs four things:
+
+- **A wrong first paint.** The crumb is pushed in an effect, so the first render has no leaf. Server-rendered
+  HTML has none at all.
+- **Clobbering on navigation.** The outgoing route's cleanup and the incoming route's push race. Whether the
+  new crumb survives depends on effect ordering, not on anything you wrote.
+- **A fixed depth.** A provider with `section` / `intermediate` / `leaf` slots cannot express a four-level
+  trail without a new slot and a new hook.
+- **Two sources of truth.** The route tree already encodes the hierarchy; a provider encodes it again, and the
+  two drift.
+
+Deriving from matches has none of these: it is correct on the server, correct on the first frame, has no
+ordering to get wrong, and is as deep as your route tree.
+
+## Anatomy
+
+```text showLineNumbers=false
+routes.ts                 the route tree — the single source of truth for hierarchy
+└── each route module
+    └── export const handle = { breadcrumb: … }    what this level is called
+        └── <RouteBreadcrumbs />                   reads useMatches(), renders the trail
+            └── Breadcrumb.Root > List > Item > Link | Page
+```
+
+Three pieces, each with one job:
+
+1. **`handle.breadcrumb`** on a route module — the label for that level.
+2. **A pure builder** that filters and maps matches to crumbs. No hooks, trivially testable.
+3. **One component** that calls `useMatches()`, and one that renders. Keeping the hook at the edge is what
+   lets you test the rendering with a fixture.
+
+## The handle
+
+`handle` is a static export of the route module, so — unlike loader data — it is **never serialized**: it is
+read straight off the loaded module in the client bundle, and appears nowhere in React Router's single-fetch
+payload. It is also unconstrained (`RouteObject.handle?: any`; `UIMatch`'s `Handle` parameter defaults to
+`unknown`), so it can hold a function as happily as a string.
+
+**A label must resolve synchronously.** It runs during render, on the server too — that is what keeps the trail
+correct in the initial HTML and stable on the first frame. See [Server rendering](#server-rendering).
+
+This is the whole first file. Copy it as-is:
+
+````ts
+import type { ReactNode } from "react";
+import type { UIMatch } from "react-router";
+
+/**
+ * One crumb a route contributes.
+ *
+ * @example
+ * ```ts
+ * const crumb: Crumb = { label: "Endpoints", to: "/endpoints" };
+ * ```
+ */
+type Crumb = {
+	/** What the crumb says. */
+	label: ReactNode;
+	/**
+	 * Where it links. Defaults to the contributing route's own `pathname`, which
+	 * is right whenever the crumb *is* that route.
+	 */
+	to?: string;
+};
+
+/**
+ * What a route names itself in the trail: a static string, or a function of the
+ * match returning every crumb this route contributes.
+ *
+ * The function form covers three cases with one shape — a label derived from
+ * `params`, a label derived from `loaderData`, and a route that has to name an
+ * ancestor it is not nested under (see the recipe's "The trail follows nesting").
+ *
+ * It must resolve **synchronously**: it runs during render, on the server too, so
+ * the trail is correct in the initial HTML and never changes after the first
+ * paint. Do not reach for a query cache here.
+ *
+ * @example
+ * ```ts
+ * const staticLabel: RouteBreadcrumb = "Endpoints";
+ * const fromParams: RouteBreadcrumb = (match) => [{ label: match.params.endpointId }];
+ * const withAncestor: RouteBreadcrumb = (match) => [
+ *   { label: "Endpoints", to: "/endpoints" },
+ *   { label: match.params.endpointId },
+ * ];
+ * ```
+ */
+type RouteBreadcrumb = string | ((match: UIMatch) => ReadonlyArray<Crumb>);
+
+/**
+ * The `handle` shape a route exports to appear in the trail. Omitting `handle`
+ * entirely is the opt-out — no filter list to maintain.
+ *
+ * @example
+ * ```ts
+ * // app/routes/endpoints.tsx
+ * export const handle = { breadcrumb: "Endpoints" } satisfies BreadcrumbHandle;
+ * ```
+ */
+type BreadcrumbHandle = {
+	breadcrumb: RouteBreadcrumb;
+};
+
+/**
+ * A crumb with its link resolved — what the renderer consumes.
+ *
+ * @example
+ * ```ts
+ * const resolved: ResolvedCrumb = { key: "endpoints:0", label: "Endpoints", to: "/endpoints" };
+ * ```
+ */
+type ResolvedCrumb = {
+	/** Stable React key. One route may contribute several crumbs, so the match id alone is not unique. */
+	key: string;
+	label: ReactNode;
+	to: string;
+};
+
+/**
+ * Whether a route match named itself in the trail.
+ *
+ * `useMatches()` types `handle` as `unknown`, so this is a real type guard rather
+ * than a cast — the narrowing is what lets `buildCrumbs` read `match.handle`
+ * without an assertion.
+ *
+ * @example
+ * ```ts
+ * useMatches().filter(hasBreadcrumb);
+ * ```
+ */
+function hasBreadcrumb(match: UIMatch): match is UIMatch<unknown, BreadcrumbHandle> {
+	const { handle } = match;
+	if (handle == null || typeof handle !== "object" || !("breadcrumb" in handle)) {
+		return false;
+	}
+	const { breadcrumb } = handle;
+	return typeof breadcrumb === "string" || typeof breadcrumb === "function";
+}
+
+/**
+ * Derives the breadcrumb trail from a matched route chain.
+ *
+ * Pure: no hooks, no browser APIs, no clock. It runs identically on the server
+ * and the client, which is the whole reason the trail needs no state and no
+ * effects — and it means you can assert the trail as a plain value.
+ *
+ * @example
+ * ```ts
+ * buildCrumbs(useMatches());
+ * // [{ key: "endpoints:0", label: "Endpoints", to: "/endpoints" }, …]
+ * ```
+ */
+function buildCrumbs(matches: ReadonlyArray<UIMatch>): ReadonlyArray<ResolvedCrumb> {
+	return matches.filter(hasBreadcrumb).flatMap((match) => {
+		const { breadcrumb } = match.handle;
+		const crumbs = typeof breadcrumb === "string" ? [{ label: breadcrumb }] : breadcrumb(match);
+		return crumbs.map((crumb, index) => ({
+			key: `${match.id}:${index}`,
+			label: crumb.label,
+			to: crumb.to ?? match.pathname,
+		}));
+	});
+}
+
+export {
+	//,
+	buildCrumbs,
+	hasBreadcrumb,
+};
+
+export type {
+	//,
+	BreadcrumbHandle,
+	Crumb,
+	ResolvedCrumb,
+	RouteBreadcrumb,
+};
+````
+
+## Choosing a label
+
+In order of preference. Reach for the first one that works.
+
+**1. A static string.** Most levels are a fixed section name. Put it on the route that is an **ancestor** of
+the pages that should show it — see [the trail follows nesting](#the-trail-follows-nesting-not-the-url):
+
+```tsx
+// app/routes/endpoints.tsx — the layout route at path "endpoints"
+import type { BreadcrumbHandle } from "~/features/breadcrumbs/route-breadcrumb";
+
+export const handle = { breadcrumb: "Endpoints" } satisfies BreadcrumbHandle;
+```
+
+**2. Derived from the URL.** Params are on the match, so this is still synchronous. Return an array — a route
+may contribute more than one crumb:
+
+```tsx
+// app/routes/endpoints/$endpointType.$endpointId.tsx
+import type { BreadcrumbHandle } from "~/features/breadcrumbs/route-breadcrumb";
+
+export const handle = {
+	breadcrumb: (match) => [{ label: match.params.endpointId }],
+} satisfies BreadcrumbHandle;
+```
+
+Omitting `to` links the crumb to the contributing route's own `pathname`, which is what you want whenever the
+crumb _is_ that route.
+
+**3. Derived from loader data.** If the label is _already_ in the route's loader data, read it off the match
+with a param fallback. This is SSR-correct and never changes after the first paint:
+
+```tsx
+// app/routes/endpoints/$endpointType.$endpointId.tsx
+import type { BreadcrumbHandle } from "~/features/breadcrumbs/route-breadcrumb";
+import type { Route } from "./+types/$endpointType.$endpointId";
+
+export const handle = {
+	breadcrumb: (match: UIMatch<Route.ComponentProps["loaderData"]>) => [
+		{ label: match.loaderData?.endpoint.url ?? match.params.endpointId },
+	],
+} satisfies BreadcrumbHandle;
+```
+
+> [!NOTE]
+> React Router 8 renamed this field: it is `match.loaderData`, not `match.data` as in v7. Typing the parameter
+> as `UIMatch<YourLoaderData>` is what gives you a checked `loaderData` instead of `unknown`.
+
+### Don't wait on a query for a crumb
+
+The shape to avoid is a crumb that fetches — a component in the `handle` that calls a query hook so it can
+show a friendlier name:
+
+```tsx
+// ✗ don't: the crumb is chrome, and this makes it arrive late
+function EndpointCrumb() {
+	const endpointQuery = useEndpoint({ id: useParams().endpointId });
+	return <>{endpointQuery.data?.endpoint.url ?? "…"}</>;
+}
+```
+
+It fails in a specific, visible way. On a cold load the server has no query data, so the HTML ships the
+fallback; the real name arrives later and the crumb **changes width**, reflowing the whole trail in the shell
+header. And the behavior differs by how you arrived: navigate client-side from a list that already populated
+the cache and the name is instant, hard-reload the same URL and you get the swap. Chrome that flickers
+differently depending on entry path is worse than chrome with a terser label.
+
+So: **end the trail at the last level whose label you know synchronously.** For a resource detail page that
+usually means the trail stops at the section, because the resource's identity is already the page's `<h1>`:
+
+```text showLineNumbers=false
+Endpoints                       ← the trail
+https://forward-labels.test     ← the page's h1, where the name belongs
+```
+
+A crumb repeating the `<h1>` is not adding information — it is adding a second place for the same string to
+render, half a second later. If you genuinely need the name in the trail, put it in the route's loader so it is
+a string (option 3 above) and accept the server round trip deliberately, rather than smuggling a fetch into
+your chrome.
+
+## Building and rendering the trail
+
+The second file. `RouteBreadcrumbs` is the only thing that touches the router; `Breadcrumbs` is pure
+rendering, which is what makes it testable with a fixture — and what lets the demo above use it unmodified.
+
+````tsx
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+import { Fragment } from "react";
+import { Link, useMatches } from "react-router";
+import type { ResolvedCrumb } from "./route-breadcrumb";
+import { buildCrumbs } from "./route-breadcrumb";
+
+/**
+ * Renders a breadcrumb trail from already-resolved crumbs. The last crumb is the
+ * current page (`aria-current="page"`, not a link); every earlier one links to its
+ * route.
+ *
+ * Kept separate from {@link RouteBreadcrumbs} so nothing here touches the router:
+ * this is the half you can render with a fixture in a test, or in a docs demo that
+ * cannot mount a second router.
+ *
+ * @example
+ * ```tsx
+ * <Breadcrumbs
+ *   crumbs={[
+ *     { key: "endpoints:0", label: "Endpoints", to: "/endpoints" },
+ *     { key: "endpoint:0", label: "ep_1", to: "/endpoints/cloud/ep_1" },
+ *   ]}
+ * />
+ * ```
+ */
+function Breadcrumbs({ crumbs }: { crumbs: ReadonlyArray<ResolvedCrumb> }) {
+	if (crumbs.length === 0) {
+		return null;
+	}
+
+	return (
+		<Breadcrumb.Root>
+			<Breadcrumb.List>
+				{crumbs.map((crumb, index) => {
+					const isCurrentPage = index === crumbs.length - 1;
+
+					return (
+						<Fragment key={crumb.key}>
+							{index > 0 && <Breadcrumb.Separator />}
+							<Breadcrumb.Item>
+								{isCurrentPage ? (
+									<Breadcrumb.Page>{crumb.label}</Breadcrumb.Page>
+								) : (
+									// asChild, so the router owns navigation — a bare href on
+									// Breadcrumb.Link would full-page-navigate
+									<Breadcrumb.Link asChild>
+										<Link to={crumb.to}>{crumb.label}</Link>
+									</Breadcrumb.Link>
+								)}
+							</Breadcrumb.Item>
+						</Fragment>
+					);
+				})}
+			</Breadcrumb.List>
+		</Breadcrumb.Root>
+	);
+}
+
+/**
+ * The breadcrumb trail for the current route. Render it once, in your app shell's
+ * header — it derives everything from the matched route chain, so no route needs to
+ * push anything up.
+ *
+ * This is the only piece that touches the router, which keeps the hook at the edge.
+ *
+ * @example
+ * ```tsx
+ * <AppLayout.Header>
+ *   <Sidebar.Trigger />
+ *   <RouteBreadcrumbs />
+ * </AppLayout.Header>
+ * ```
+ */
+function RouteBreadcrumbs() {
+	return <Breadcrumbs crumbs={buildCrumbs(useMatches())} />;
+}
+
+export {
+	//,
+	Breadcrumbs,
+	RouteBreadcrumbs,
+};
+````
+
+`Breadcrumb.Page` clones `aria-current="page"` onto its child, and `Root` / `List` / `Item` render
+`<nav aria-label="Breadcrumb">` → `<ol>` → `<li>`, so the trail is an ordered list to a screen reader rather
+than a row of anonymous text.
+
+## Server rendering
+
+Everything here runs on the server unchanged, which is the point of deriving rather than synchronizing:
+
+- **`useMatches()` is SSR-safe.** The matched chain is what the server router already resolved to render the
+  page, so the trail is in the initial HTML.
+- **`handle` is available on the server.** Route modules are loaded server-side too, so the labels are there
+  for the first render — no `typeof window` guard, no `useEffect`, no hydration-only branch.
+- **`buildCrumbs` is pure.** No hooks, no browser APIs, no `Date.now()`. Same input, same output, both sides.
+- **No hydration mismatch, as long as labels are synchronous.** Server and client first-render compute the
+  label from the same params and loader data, so the markup matches. This is exactly what a query-backed label
+  breaks: it renders a fallback on the server, matches on hydration, then _changes_ — no mismatch warning, but
+  a visible reflow.
+
+The one thing that does **not** survive SSR is a label that depends on client-only state (a query cache,
+`localStorage`, `window.matchMedia`). If you find yourself reaching for one, that is the signal to move the
+crumb's data into the loader or drop the crumb — see
+[Don't wait on a query for a crumb](#dont-wait-on-a-query-for-a-crumb).
+
+`Breadcrumb.Page` clones `aria-current="page"` onto its child, and `Root` / `List` / `Item` render
+`<nav aria-label="Breadcrumb">` → `<ol>` → `<li>`, so the trail is an ordered list to a screen reader rather
+than a row of anonymous text. Compose your router's `Link` through `Breadcrumb.Link`'s `asChild` — a bare
+`href` would full-page-navigate.
+
+## Where it goes in the shell
+
+Render it once, in [`AppLayout.Header`](/layouts/app-layout#applayoutheader):
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Main } from "@ngrok/mantle/main";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { Outlet } from "react-router";
+import { RouteBreadcrumbs } from "~/features/breadcrumbs/breadcrumbs";
+
+<AppLayout.Content>
+	<AppLayout.Header>
+		<Sidebar.Trigger />
+		<RouteBreadcrumbs />
+	</AppLayout.Header>
+	<AppLayout.Body asChild>
+		<Main>
+			<Outlet />
+		</Main>
+	</AppLayout.Body>
+</AppLayout.Content>;
+```
+
+`AppLayout.Header` is a `shrink-0` sibling **outside** the scroll container, so the trail is pinned by
+construction. Resist the urge to hand-roll a `sticky top-0 z-10` breadcrumb bar inside the scrolling region
+instead: a `sticky` element is still in flow, so it silently steals its own height from any page asking for
+`h-full`, and it competes for the same layer as page-authored `sticky` content.
+
+## Choosing which routes get a crumb
+
+Not every matched route deserves one, and this is a judgment call the recipe cannot make for you. Two rules
+that hold up:
+
+- **Omit pathless layouts and gate routes.** They match, but they are not places a user can be. Leaving off
+  `handle.breadcrumb` is the whole opt-out — no filtering list to maintain.
+- **Omit a level that another affordance already owns.** If a detail page renders a tab row
+  (`Overview` / `Traffic Policy` / `Settings`), those tabs _are_ routes — but giving them crumbs prints the
+  same label twice, once as the trail's leaf and once as the selected tab. Let the trail end at the resource
+  and let the tabs own the level below it.
+
+For the same reason, a crumb trail replaces an ad-hoc `← Back` link. Shipping both gives a user two
+competing answers to "where am I".
+
+### The trail follows nesting, not the URL
+
+This is the one that will bite you. `useMatches()` returns the **route ancestry**, which is whatever your
+route config nests — not the URL's path segments. Those two diverge more often than you would guess, because
+a detail page frequently needs to escape its list page's layout:
+
+```ts
+// a real shape, from ngrok's dashboard route config
+route("endpoints", "routes/endpoints/_index.tsx", [
+	route("new", "routes/endpoints/new.tsx"),
+]),
+// detail breaks out of the endpoints list layout
+route("endpoints/:endpointType/:endpointId", "routes/endpoints/$endpointType.$endpointId.tsx", [
+	route("traffic-policy", "…"),
+]),
+```
+
+The detail route is a **sibling** of `endpoints`, not a child. So on `/endpoints/cloud/ep_1` the `endpoints`
+route never matches, its `handle` is never read, and the trail is a single non-link crumb with **no way up** —
+even though the URL clearly has a parent. It fails silently: nothing errors, you just get a shorter trail than
+you designed.
+
+Two ways out, and the right one depends on why the routes are split:
+
+- **Nest the detail route** under the list route if it can share the layout. Then ancestry and URL agree and
+  the crumb comes for free.
+- **Name the ancestor from the detail route** when it genuinely must break out. This is why `breadcrumb`
+  returns an array — one route can contribute the whole trail:
+
+```tsx
+// app/routes/endpoints/$endpointType.$endpointId.tsx
+import type { BreadcrumbHandle } from "~/features/breadcrumbs/route-breadcrumb";
+
+export const handle = {
+	breadcrumb: (match) => [
+		{ label: "Endpoints", to: "/endpoints" },
+		{ label: match.params.endpointId },
+	],
+} satisfies BreadcrumbHandle;
+```
+
+Whichever you pick, **assert it**: a test over `buildCrumbs` for each detail URL you care about is the only
+thing that catches a trail quietly losing its ancestor when someone reorganises the route config. The
+[tests below](#testing-it) include exactly that case.
+
+## Testing it
+
+The split pays off here. `buildCrumbs` is a plain function over an array of matches, so most of the coverage
+needs no router at all. `Breadcrumbs` needs a `MemoryRouter` — just a router context, not your route tree —
+because non-leaf crumbs render a real `Link`. And
+[`createRoutesStub`](https://reactrouter.com/api/utils/createRoutesStub) forwards `handle` from stub routes onto
+the matches, which covers the `useMatches()` edge end to end.
+
+This is the third and last file, verbatim. It runs in this repo — including a guard on the
+[sibling-route trap](#the-trail-follows-nesting-not-the-url), which is the failure most worth pinning down:
+
+```tsx
+// @vitest-environment happy-dom
+import { cleanup, render, screen } from "@testing-library/react";
+import { createRoutesStub, MemoryRouter, type UIMatch } from "react-router";
+import { afterEach, describe, expect, it } from "vitest";
+import { Breadcrumbs, RouteBreadcrumbs } from "./breadcrumbs";
+import { buildCrumbs } from "./route-breadcrumb";
+
+afterEach(() => {
+	cleanup();
+});
+
+/**
+ * Builds a `UIMatch` fixture. Only the four fields `buildCrumbs` reads are
+ * meaningful; the rest of `UIMatch` is irrelevant to it, which is the point of
+ * keeping the builder pure.
+ */
+function match(fields: {
+	id: string;
+	pathname: string;
+	params?: Record<string, string | undefined>;
+	loaderData?: unknown;
+	handle?: unknown;
+}): UIMatch {
+	return {
+		id: fields.id,
+		pathname: fields.pathname,
+		params: fields.params ?? {},
+		loaderData: fields.loaderData,
+		handle: fields.handle,
+	};
+}
+
+describe("buildCrumbs", () => {
+	it("returns nothing when no route named itself", () => {
+		expect(buildCrumbs([match({ id: "root", pathname: "/" })])).toEqual([]);
+	});
+
+	it("skips routes with no breadcrumb handle — omitting it is the opt-out", () => {
+		const crumbs = buildCrumbs([
+			match({ id: "root", pathname: "/" }),
+			match({ id: "gate", pathname: "/", handle: { requiresAuth: true } }),
+			match({ id: "endpoints", pathname: "/endpoints", handle: { breadcrumb: "Endpoints" } }),
+		]);
+		expect(crumbs.map((crumb) => crumb.label)).toEqual(["Endpoints"]);
+	});
+
+	it("defaults a static crumb's link to the contributing route's pathname", () => {
+		const [crumb] = buildCrumbs([
+			match({ id: "endpoints", pathname: "/endpoints", handle: { breadcrumb: "Endpoints" } }),
+		]);
+		expect(crumb).toEqual({ key: "endpoints:0", label: "Endpoints", to: "/endpoints" });
+	});
+
+	it("derives a label from params", () => {
+		const crumbs = buildCrumbs([
+			match({
+				id: "endpoint",
+				pathname: "/endpoints/cloud/ep_1",
+				params: { endpointId: "ep_1" },
+				handle: { breadcrumb: (m: UIMatch) => [{ label: m.params.endpointId }] },
+			}),
+		]);
+		expect(crumbs.map((crumb) => crumb.label)).toEqual(["ep_1"]);
+	});
+
+	it("derives a label from loaderData, falling back to a param", () => {
+		const handle = {
+			breadcrumb: (m: UIMatch<{ url?: string }>) => [
+				{ label: m.loaderData?.url ?? m.params.endpointId },
+			],
+		};
+		const withData = buildCrumbs([
+			match({
+				id: "endpoint",
+				pathname: "/e/ep_1",
+				params: { endpointId: "ep_1" },
+				loaderData: { url: "https://forward-labels.test" },
+				handle,
+			}),
+		]);
+		const withoutData = buildCrumbs([
+			match({ id: "endpoint", pathname: "/e/ep_1", params: { endpointId: "ep_1" }, handle }),
+		]);
+
+		expect(withData.map((crumb) => crumb.label)).toEqual(["https://forward-labels.test"]);
+		expect(withoutData.map((crumb) => crumb.label)).toEqual(["ep_1"]);
+	});
+
+	it("lets one route contribute several crumbs, for an ancestor it is not nested under", () => {
+		// The sibling-route case: `endpoints/:type/:id` is registered beside
+		// `endpoints`, not inside it, so the detail route has to name the ancestor.
+		const crumbs = buildCrumbs([
+			match({
+				id: "endpoint",
+				pathname: "/endpoints/cloud/ep_1",
+				params: { endpointId: "ep_1" },
+				handle: {
+					breadcrumb: (m: UIMatch) => [
+						{ label: "Endpoints", to: "/endpoints" },
+						{ label: m.params.endpointId },
+					],
+				},
+			}),
+		]);
+
+		expect(crumbs).toEqual([
+			{ key: "endpoint:0", label: "Endpoints", to: "/endpoints" },
+			{ key: "endpoint:1", label: "ep_1", to: "/endpoints/cloud/ep_1" },
+		]);
+	});
+
+	it("keys stay unique when one route contributes several crumbs", () => {
+		const crumbs = buildCrumbs([
+			match({
+				id: "endpoint",
+				pathname: "/e",
+				handle: { breadcrumb: () => [{ label: "a" }, { label: "b" }, { label: "c" }] },
+			}),
+		]);
+		expect(new Set(crumbs.map((crumb) => crumb.key)).size).toBe(crumbs.length);
+	});
+});
+
+describe("Breadcrumbs", () => {
+	it("renders nothing for an empty trail", () => {
+		const { container } = render(
+			<MemoryRouter>
+				<Breadcrumbs crumbs={[]} />
+			</MemoryRouter>,
+		);
+		expect(container.querySelector('[data-slot="breadcrumb"]')).toBeNull();
+	});
+
+	it("marks only the deepest crumb as the current page", () => {
+		render(
+			// MemoryRouter, because ancestor crumbs render a router Link
+			<MemoryRouter>
+				<Breadcrumbs
+					crumbs={[
+						{ key: "endpoints:0", label: "Endpoints", to: "/endpoints" },
+						{ key: "endpoint:0", label: "ep_1", to: "/endpoints/cloud/ep_1" },
+					]}
+				/>
+			</MemoryRouter>,
+		);
+
+		expect(screen.getByRole("link", { name: "Endpoints" }).getAttribute("href")).toBe("/endpoints");
+		// the leaf is not a link, and carries aria-current
+		expect(screen.queryByRole("link", { name: "ep_1" })).toBeNull();
+		expect(screen.getByText("ep_1").getAttribute("aria-current")).toBe("page");
+	});
+
+	it("renders an ordered list inside a labeled nav landmark", () => {
+		const { container } = render(
+			<MemoryRouter>
+				<Breadcrumbs crumbs={[{ key: "a:0", label: "Endpoints", to: "/endpoints" }]} />
+			</MemoryRouter>,
+		);
+
+		expect(screen.getByRole("navigation", { name: "Breadcrumb" })).toBeDefined();
+		expect(container.querySelector("ol")).not.toBeNull();
+		expect(container.querySelectorAll("li")).toHaveLength(1);
+	});
+});
+
+describe("RouteBreadcrumbs (through a real router)", () => {
+	it("builds the trail from nested route handles", () => {
+		// createRoutesStub forwards `handle` onto the matches, so this exercises the
+		// real useMatches() path without standing up the whole app.
+		const Stub = createRoutesStub([
+			{
+				path: "/endpoints",
+				handle: { breadcrumb: "Endpoints" },
+				Component: () => <RouteBreadcrumbs />,
+				children: [
+					{
+						path: ":endpointId",
+						handle: { breadcrumb: (m: UIMatch) => [{ label: m.params.endpointId }] },
+					},
+				],
+			},
+		]);
+
+		render(<Stub initialEntries={["/endpoints/ep_1"]} />);
+
+		expect(screen.getByRole("link", { name: "Endpoints" }).getAttribute("href")).toBe("/endpoints");
+		expect(screen.getByText("ep_1").getAttribute("aria-current")).toBe("page");
+	});
+
+	it("loses the ancestor when the detail route is a sibling, not a child", () => {
+		// Regression guard on the recipe's central caveat: the trail follows route
+		// NESTING, not URL depth. Registered as siblings, `/endpoints` never matches
+		// on the detail URL, so its handle is never read.
+		const Stub = createRoutesStub([
+			{ path: "/endpoints", handle: { breadcrumb: "Endpoints" } },
+			{
+				path: "/endpoints/:endpointId",
+				handle: { breadcrumb: (m: UIMatch) => [{ label: m.params.endpointId }] },
+				Component: () => <RouteBreadcrumbs />,
+			},
+		]);
+
+		render(<Stub initialEntries={["/endpoints/ep_1"]} />);
+
+		expect(screen.queryByRole("link", { name: "Endpoints" })).toBeNull();
+		expect(screen.getByText("ep_1").getAttribute("aria-current")).toBe("page");
+	});
+});
+```
+
+> [!NOTE]
+> These use plain DOM assertions (`getAttribute`, `queryByRole(…) === null`) rather than
+> `@testing-library/jest-dom` matchers, so they run with no extra setup. If your app already has jest-dom,
+> `toHaveAttribute` / `toBeInTheDocument` read better — use them.
+
+## Trade-offs
+
+- **No collapsing.** `Breadcrumb` has no ellipsis part, so a long trail wraps (`Breadcrumb.List` is
+  `flex-wrap`) rather than truncating to `Home / … / Current`. Fine to about four levels; past that, consider
+  whether the depth itself is the problem.
+- **Labels must be synchronous.** That is a real constraint, not just a preference: a label you can only get
+  from a query has to either move into the loader or be left out of the trail. See
+  [Don't wait on a query for a crumb](#dont-wait-on-a-query-for-a-crumb).
+- **A `breadcrumb` function runs during the shell's render.** Keep it a plain projection of `params` /
+  `loaderData` with a fallback (the `?? match.params.endpointId` above). If it throws, it throws in the chrome
+  — a wider blast radius than throwing inside the page.
+- **`handle` is not available for unmatched routes.** You cannot build a full sitemap this way — only the
+  chain to the current URL, which is exactly what a breadcrumb is.
