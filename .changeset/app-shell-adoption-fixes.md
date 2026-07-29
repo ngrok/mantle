@@ -57,11 +57,17 @@ renders into. The docs show how to pin one inside the page region with three fle
 - **`AppLayout.Content` is `overflow-clip`, not `overflow-hidden`.** `hidden` is a scroll container that
   paints no scrollbar: a toolbar wider than the card let <kbd>Tab</kbd> scroll it sideways, translating the
   header and page out of view with no way back.
-- **`Slot` warns when `asChild` drops a render prop.** A function `className` resolves to `""` through `cx`
-  and a function `style` is overwritten by prop merging, so a react-router `NavLink` composed through any
-  `asChild` mantle part silently lost `className={({ isActive }) => …}` — the row's highlight just never
-  turned on. It cannot be composed generically, so mantle now reports it in development, once per element
-  and prop, naming the element and the fix.
+- **`Slot` composes a render-prop `className` or `style` instead of dropping it.** A function `className`
+  resolved to `""` through `cx` and a function `style` was overwritten by prop merging, so a react-router
+  `NavLink` composed through an `asChild` mantle part silently lost `className={({ isActive }) => …}` — the
+  row's highlight just never turned on. `Slot` now composes a function of the same shape, forwarding the
+  child's own arguments to the child's function and merging the resolved value at the usual child-wins
+  precedence, so `<Sidebar.ItemButton asChild><NavLink className={({ isActive }) => …} /></Sidebar.ItemButton>`
+  works and no longer needs `current` derived from `useMatch` for accessibility (`NavLink` sets
+  `aria-current="page"` itself). `Slot` never calls the function, so it needs to know nothing about the
+  argument. Parts that forward `asChild` straight to a Radix primitive (`Tooltip.Trigger`,
+  `DropdownMenu.Trigger`, `Dialog.Trigger`) still use Radix's own slot, which joins a function `className`
+  into the class string — nest a mantle-backed part inside those.
 - **`⌘B` / `Ctrl+B` respects the platform and text fields.** The sidebar shortcut accepted *either* modifier
   on *every* platform, so on macOS `Ctrl+B` — the native emacs-style "move the caret back one character" that
   every macOS text field binds — was `preventDefault`ed and toggled the sidebar instead, including inside

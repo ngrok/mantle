@@ -1006,6 +1006,32 @@ export function TrafficNav() {
 }
 ```
 
+### With react-router
+
+The example above fakes a router so this page stays self-contained. With react-router, render a `NavLink` and
+let it own the active state: `Sidebar.ItemButton`'s `asChild` composes `NavLink`'s render-prop `className`, so
+`({ isActive }) => …` resolves normally — see
+[Slot → Render props on the child](/components/primitives/slot#render-props-on-the-child).
+
+```tsx
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { NavLink } from "react-router";
+
+<Sidebar.Item>
+	<Sidebar.ItemButton asChild>
+		<NavLink className={({ isActive }) => (isActive ? "font-medium" : undefined)} to="/endpoints">
+			<GraphIcon />
+			Endpoints
+		</NavLink>
+	</Sidebar.ItemButton>
+</Sidebar.Item>;
+```
+
+`NavLink` sets `aria-current="page"` itself while active, so a row composed this way needs no `current`. Pass
+`current` when you want the row's built-in `data-current` treatment instead of your own classes — derive it
+from `useLocation()` or `useMatch()`, as the examples throughout this page do.
+
 ## Accessibility
 
 - `Sidebar.Nav` renders a `<nav>` landmark named `Main` by default; override `aria-label` when your app has

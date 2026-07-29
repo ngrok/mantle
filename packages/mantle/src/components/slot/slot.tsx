@@ -1,97 +1,97 @@
-import { Slot as RadixSlot } from "@radix-ui/react-slot";
-import { Children, type ComponentProps, cloneElement, isValidElement } from "react";
+import { createSlot } from "@radix-ui/react-slot";
+import {
+	Children,
+	type ComponentProps,
+	type CSSProperties,
+	createElement,
+	type HTMLAttributes,
+	isValidElement,
+} from "react";
+import type { WithStyleProps } from "../../types/with-style-props.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 
-type Props = ComponentProps<typeof RadixSlot> & WithDataSlot;
+/**
+ * A `className` or `style` the child resolves itself, from state only the child
+ * knows — react-router's `NavLink` calls it with
+ * `{ isActive, isPending, isTransitioning }`, another component with something else
+ * entirely. `Slot` never invents arguments for one and never inspects them; it
+ * forwards the ones the child supplied, so they are typed `unknown`.
+ */
+type RenderProp<TValue> = (...args: unknown[]) => TValue | undefined;
 
 /**
- * `process` is not in mantle's lib types — the package targets browsers and
- * deliberately does not depend on `@types/node`. Declare exactly the shape read
- * below instead of pulling in the whole Node surface.
+ * The child props `Slot` composes itself, because Radix's prop merging would
+ * destroy a render prop it finds in them. They are the only two: a handler Radix
+ * composes correctly already, and every other prop it forwards whole, so a render
+ * prop anywhere else survives untouched and has nothing to compose.
  */
-declare const process: { env: { NODE_ENV?: string } } | undefined;
-
-/**
- * Whether to emit development-only diagnostics.
- *
- * `process.env.NODE_ENV` is written out in full, with no optional chaining,
- * because that exact member expression is what every React bundler statically
- * replaces — a production build folds this to `false` and drops the guarded
- * block as dead code, while `process.env?.NODE_ENV` is a different AST node that
- * `define` may not match, which would leave a bare `process` reference in a
- * browser bundle. The `typeof` guard then keeps mantle from throwing in runtimes
- * that have no `process` at all (a browser loading the ESM build directly);
- * there, diagnostics stay off rather than crashing.
- */
-const isDevelopment = typeof process !== "undefined" && process.env.NODE_ENV !== "production";
-
-/**
- * Why a render-prop value cannot survive `asChild`, per prop. A complete
- * `Record` so adding a prop without its explanation is a compile error.
- */
-const functionPropReason: Record<"className" | "style", string> = {
-	className: "`cx` resolves a function to an empty string",
-	style: "prop merging keeps only the last object value",
+type ComposedChildProps = WithDataSlot & {
+	className?: string | RenderProp<string>;
+	style?: CSSProperties | RenderProp<CSSProperties>;
 };
 
 /**
- * Elements already warned about, keyed by element name + prop, so a render-prop
- * mistake reports once instead of on every render. Bounded by the number of
- * distinct offending components.
+ * Radix's `Slot`, retyped to carry a composed render prop. `createSlot`'s props
+ * generic is Radix's own way to type a slot whose child is not a DOM element; it
+ * replaces the default `HTMLAttributes` rather than extending it, so the DOM
+ * attributes are re-added here minus the two props composed above.
  */
-const warnedFunctionProps = new Set<string>();
+const SlotPrimitive = createSlot<
+	HTMLElement,
+	Omit<HTMLAttributes<HTMLElement>, "className" | "style"> & ComposedChildProps
+>("Slot");
 
 /**
- * Names an element for a diagnostic: the tag name for host elements, the
- * component's `displayName` or `name` otherwise.
+ * `Slot`'s own `className` and `style` stay plain values. A render prop is only
+ * meaningful on the child that knows how to call it, so accepting one here would
+ * admit a value nothing ever resolves.
  */
-function describeElementType(type: unknown): string {
-	if (typeof type === "string") {
-		return type;
+type Props = Omit<ComponentProps<typeof SlotPrimitive>, "className" | "style"> & WithStyleProps;
+
+/**
+ * Composes the slot's `className` with the child's, in this precedence
+ * (highest → lowest):
+ *
+ * 1. Child element’s own `className`   ← most specific / closest to the DOM
+ * 2. Slot’s `className`                ← passed from the parent component
+ * 3. Component’s internal base styles  ← applied earlier inside the component
+ *
+ * so a child can fully override parent + base styles when using `asChild` while the
+ * component still defines sensible defaults. A render-prop child composes into a
+ * render prop of the same shape, merging in the same precedence once the child
+ * calls it.
+ */
+function composeClassName(
+	slotClassName: string | undefined,
+	childClassName: string | RenderProp<string> | undefined,
+): string | RenderProp<string> {
+	if (typeof childClassName === "function") {
+		return (...args) => cx(slotClassName, childClassName(...args));
 	}
-	if (typeof type === "function") {
-		return type.name || "Component";
-	}
-	if (typeof type === "object" && type != null && "displayName" in type) {
-		const { displayName } = type;
-		if (typeof displayName === "string" && displayName !== "") {
-			return displayName;
-		}
-	}
-	return "Component";
+	return cx(slotClassName, childClassName);
 }
 
 /**
- * Warns, once per element and prop, that a function `className` or `style` is
- * being dropped by `asChild` composition.
- *
- * This is the single most expensive silent failure in `asChild` composition: a
- * react-router `NavLink` accepts `className={({ isActive }) => …}`, `cx` resolves
- * that function to `""`, and the link renders with no error and no active
- * styling — the highlight simply never turns on. Composing the function is not
- * possible generically, because `Slot` cannot know the arguments the child would
- * have called it with, so reporting it is the contract.
+ * Composes the slot's `style` with the child's, letting the child win per property —
+ * the same precedence {@link composeClassName} uses. A lone side is returned as-is
+ * rather than copied, so a stable `style` object keeps its identity across renders.
  */
-function warnOnFunctionProps(type: unknown, props: { className?: unknown; style?: unknown }): void {
-	for (const prop of ["className", "style"] as const) {
-		if (typeof props[prop] !== "function") {
-			continue;
-		}
-		const elementName = describeElementType(type);
-		const key = `${elementName}.${prop}`;
-		if (warnedFunctionProps.has(key)) {
-			continue;
-		}
-		warnedFunctionProps.add(key);
-		console.warn(
-			`[mantle] asChild dropped the \`${prop}\` render prop on <${elementName}>. ` +
-				`A function \`${prop}\` cannot survive asChild composition (${functionPropReason[prop]}), so it is ignored. ` +
-				`Pass a plain value and derive the state in the parent instead — with react-router, resolve the match yourself ` +
-				`(\`useMatch\`) and pass the result down, e.g. \`<Sidebar.ItemButton asChild current={isCurrent}><Link to="/x">…</Link></Sidebar.ItemButton>\`.`,
-		);
+function composeStyle(
+	slotStyle: CSSProperties | undefined,
+	childStyle: CSSProperties | RenderProp<CSSProperties> | undefined,
+): CSSProperties | RenderProp<CSSProperties> | undefined {
+	if (typeof childStyle === "function") {
+		return (...args) => ({ ...slotStyle, ...childStyle(...args) });
 	}
+	if (slotStyle == null) {
+		return childStyle;
+	}
+	if (childStyle == null) {
+		return slotStyle;
+	}
+	return { ...slotStyle, ...childStyle };
 }
 
 /**
@@ -102,22 +102,22 @@ function warnOnFunctionProps(type: unknown, props: { className?: unknown; style?
  * chain first, then the child's own) so `asChild` composition accumulates the
  * whole slot chain instead of one side clobbering the other.
  *
- * **`className` and `style` must be plain values, not render props.** A function
- * `className` resolves to `""` through `cx`, and a function `style` is
- * overwritten by prop merging — so a react-router `NavLink` composed via
- * `asChild` loses `className={({ isActive }) => …}` entirely and renders with no
- * active styling and no error. `Slot` cannot compose the function generically
- * (it does not know the arguments the child would have supplied), so it warns in
- * development instead. Derive the state in the parent and pass a plain value:
+ * A child that resolves its own `className` or `style` from state only it knows —
+ * react-router's `NavLink`, whose `className` may be `({ isActive }) => …` — keeps
+ * that behavior: the merge composes a function of the same shape, which forwards
+ * the child's arguments to the child's function and merges the resolved value with
+ * the slot's classes or style. `Slot` never calls it, so it needs to know nothing
+ * about the arguments:
  *
  * ```tsx
- * const isCurrent = useMatch("/endpoints") != null;
- * <Sidebar.ItemButton asChild current={isCurrent}>
- *   <Link to="/endpoints">Endpoints</Link>
+ * <Sidebar.ItemButton asChild>
+ *   <NavLink className={({ isActive }) => (isActive ? "font-medium" : undefined)} to="/endpoints">
+ *     Endpoints
+ *   </NavLink>
  * </Sidebar.ItemButton>
  * ```
  *
- * A function `children` is unaffected — it survives `cloneElement` normally.
+ * A function `children` is forwarded to the child as-is.
  *
  * @see https://mantle.ngrok.com/components/primitives/slot
  *
@@ -128,39 +128,44 @@ function warnOnFunctionProps(type: unknown, props: { className?: unknown; style?
  * </Slot>
  * ```
  */
-const Slot = ({ children, className, "data-slot": dataSlot, ref, ...props }: Props) => {
-	if (!isValidElement<{ className?: string; style?: unknown } & WithDataSlot>(children)) {
+const Slot = ({ children, className, "data-slot": dataSlot, ref, style, ...props }: Props) => {
+	if (!isValidElement<ComposedChildProps>(children)) {
 		return Children.only(children);
 	}
 
-	if (isDevelopment) {
-		warnOnFunctionProps(children.type, children.props);
-	}
+	const {
+		className: childClassName,
+		style: childStyle,
+		"data-slot": childDataSlot,
+		...childProps
+	} = children.props;
 
 	return (
-		<RadixSlot ref={ref} {...props}>
-			{cloneElement(children, {
-				...children.props,
-				/**
-				 * ClassName merge precedence (highest → lowest):
-				 *
-				 * 1. Child element’s own `className`   ← most specific / closest to the DOM
-				 * 2. Slot’s `className`                ← passed from the parent component
-				 * 3. Component’s internal base styles  ← applied earlier inside the component
-				 *
-				 * We intentionally merge in this order so the child can fully override
-				 * parent + base styles when using `asChild`, preserving the “most specific wins”
-				 * behavior while still letting the component define sensible defaults.
-				 */
-				className: cx(className, children.props.className),
-				/**
-				 * data-slot concatenates instead: parent chain first, then the child's
-				 * own slot, so the rendered attribute reads in DOM order (outermost
-				 * ancestor → rendered element) all the way down an asChild chain.
-				 */
-				"data-slot": joinDataSlot(dataSlot, children.props["data-slot"]),
+		<SlotPrimitive
+			ref={ref}
+			{...props}
+			className={composeClassName(className, childClassName)}
+			style={composeStyle(style, childStyle)}
+		>
+			{/*
+			 * The child is rebuilt without the composed props rather than cloned with
+			 * them, because a composed value may be a function. Radix's `mergeProps`
+			 * (`@radix-ui/react-slot` 1.3.3) walks the child's own prop keys and rewrites
+			 * `className` with `join(" ")` and `style` with an object spread — which
+			 * stringifies one function and empties the other — while it forwards a slot
+			 * prop the child does not declare untouched. Withholding the props from the
+			 * child is what lets a render prop reach the element that calls it, and the
+			 * render-prop tests pin that contract against a Radix upgrade.
+			 */}
+			{createElement(children.type, {
+				...childProps,
+				"data-slot": joinDataSlot(dataSlot, childDataSlot),
+				// `cloneElement` preserved the child's key; the rebuild carries it
+				// explicitly. `?? undefined` because `createElement` stringifies any
+				// non-`undefined` key, which would turn `null` into the key `"null"`.
+				key: children.key ?? undefined,
 			})}
-		</RadixSlot>
+		</SlotPrimitive>
 	);
 };
 

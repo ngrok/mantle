@@ -1,6 +1,7 @@
+import { createSlot } from "@radix-ui/react-slot";
 import { render } from "@testing-library/react";
-import { type CSSProperties, createRef, type ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { type ComponentProps, type CSSProperties, createRef, type ReactNode } from "react";
+import { describe, expect, it, vi } from "vitest";
 import { Slot } from "./slot.js";
 
 describe("Slot", () => {
@@ -235,22 +236,27 @@ describe("Slot", () => {
 
 /**
  * Stands in for react-router's `NavLink`: `className` and `style` may each be a
- * function of the link's active state, which the component resolves itself. This
- * is the shape that silently loses its styling through `asChild` (issue #1374).
+ * function of the link's active state, which the component — not the `Slot` —
+ * resolves. This is the shape that used to silently lose its styling through
+ * `asChild` (issue #1374).
  */
 type NavLinkishState = { isActive: boolean };
 
-type NavLinkishProps = {
-	className?: string | ((state: NavLinkishState) => string);
+// Shaped like `NavLinkProps`: the three render-prop-capable props replace their
+// anchor counterparts, and everything else is forwarded to the anchor as-is.
+type NavLinkishProps = Omit<ComponentProps<"a">, "children" | "className" | "style"> & {
+	className?: string | ((state: NavLinkishState) => string | undefined);
+	isActive?: boolean;
 	style?: CSSProperties | ((state: NavLinkishState) => CSSProperties);
 	children?: ReactNode | ((state: NavLinkishState) => ReactNode);
 };
 
-function NavLinkish({ children, className, style }: NavLinkishProps) {
-	const state: NavLinkishState = { isActive: true };
+function NavLinkish({ children, className, isActive = true, style, ...props }: NavLinkishProps) {
+	const state: NavLinkishState = { isActive };
 	return (
 		<a
 			href="/endpoints"
+			{...props}
 			className={typeof className === "function" ? className(state) : className}
 			style={typeof style === "function" ? style(state) : style}
 		>
@@ -259,66 +265,172 @@ function NavLinkish({ children, className, style }: NavLinkishProps) {
 	);
 }
 
-describe("Slot render-prop diagnostics", () => {
-	// The dedupe registry is module state keyed by element name + prop, so each
-	// test below must exercise a distinct key (or assert no warning at all).
-	beforeEach(() => {
-		vi.spyOn(console, "warn").mockImplementation(() => {});
-	});
-
-	afterEach(() => {
-		vi.restoreAllMocks();
-	});
-
-	it("drops a function className and warns once, naming the element and the prop", () => {
-		const { getByRole, rerender } = render(
-			<Slot>
-				<NavLinkish className={({ isActive }) => (isActive ? "is-active" : "")}>
-					Endpoints
-				</NavLinkish>
-			</Slot>,
-		);
-
-		// The actual failure this warning exists for: the render prop never ran,
-		// so the active class is simply absent — no error, no styling.
-		expect(getByRole("link")).not.toHaveClass("is-active");
-
-		expect(console.warn).toHaveBeenCalledTimes(1);
-		const [message] = vi.mocked(console.warn).mock.calls[0] ?? [];
-		expect(message).toContain("asChild dropped the `className` render prop on <NavLinkish>");
-
-		// Warns once per element+prop, not once per render.
-		rerender(
-			<Slot>
-				<NavLinkish className={({ isActive }) => (isActive ? "is-active" : "")}>
-					Endpoints
-				</NavLinkish>
-			</Slot>,
-		);
-		expect(console.warn).toHaveBeenCalledTimes(1);
-	});
-
-	it("drops a function style and warns about it separately", () => {
+describe("Slot render-prop className and style", () => {
+	it("composes a function className, resolved by the child with its own state", () => {
 		const { getByRole } = render(
-			<Slot>
+			<Slot className="slot-class">
+				<NavLinkish className={({ isActive }) => (isActive ? "is-active" : undefined)}>
+					Endpoints
+				</NavLinkish>
+			</Slot>,
+		);
+
+		const link = getByRole("link");
+		expect(link).toHaveClass("is-active");
+		expect(link).toHaveClass("slot-class");
+	});
+
+	it("forwards the arguments the child supplies, untouched", () => {
+		const received: NavLinkishState[] = [];
+
+		render(
+			<Slot className="slot-class">
+				<NavLinkish
+					className={(state) => {
+						received.push(state);
+						return "is-active";
+					}}
+					isActive={false}
+				/>
+			</Slot>,
+		);
+
+		// Slot invents no arguments of its own: whatever the child passed is what
+		// the author's function sees.
+		expect(received).toEqual([{ isActive: false }]);
+	});
+
+	it("re-resolves on every render, so the child's state can change", () => {
+		// The composed value has to stay a function all the way to the child. If it
+		// were resolved once at composition time, the class would be frozen at the
+		// state of the first render — which is the whole point of a render prop.
+		const { getByRole, rerender } = render(
+			<Slot className="slot-class">
+				<NavLinkish
+					className={({ isActive }) => (isActive ? "is-active" : "is-inactive")}
+					isActive={false}
+				>
+					Endpoints
+				</NavLinkish>
+			</Slot>,
+		);
+
+		expect(getByRole("link")).toHaveClass("is-inactive");
+
+		rerender(
+			<Slot className="slot-class">
+				<NavLinkish className={({ isActive }) => (isActive ? "is-active" : "is-inactive")} isActive>
+					Endpoints
+				</NavLinkish>
+			</Slot>,
+		);
+
+		expect(getByRole("link")).toHaveClass("is-active");
+		expect(getByRole("link")).not.toHaveClass("is-inactive");
+		expect(getByRole("link")).toHaveClass("slot-class");
+	});
+
+	it("keeps child-wins precedence for a function className, merging conflicting Tailwind classes", () => {
+		const { getByRole } = render(
+			<Slot className="text-red-500 px-4">
+				<NavLinkish className={() => "text-blue-500 py-2"}>Endpoints</NavLinkish>
+			</Slot>,
+		);
+
+		const link = getByRole("link");
+		expect(link).toHaveClass("text-blue-500");
+		expect(link).not.toHaveClass("text-red-500");
+		expect(link).toHaveClass("px-4");
+		expect(link).toHaveClass("py-2");
+	});
+
+	it("composes a function style with the Slot's style, letting the child win per property", () => {
+		const { getByRole } = render(
+			<Slot style={{ color: "blue", fontWeight: 500 }}>
 				<NavLinkish style={({ isActive }) => ({ color: isActive ? "red" : "blue" })}>
 					Endpoints
 				</NavLinkish>
 			</Slot>,
 		);
 
-		// Radix's own mergeProps spreads `style` into an object literal, so a
-		// function becomes `{}` and the element renders with no inline style at all.
-		expect(getByRole("link").getAttribute("style")).toBeFalsy();
-
-		expect(console.warn).toHaveBeenCalledTimes(1);
-		const [message] = vi.mocked(console.warn).mock.calls[0] ?? [];
-		expect(message).toContain("asChild dropped the `style` render prop on <NavLinkish>");
+		expect(getByRole("link")).toHaveStyle({ color: "red", fontWeight: "500" });
 	});
 
-	it("stays silent for plain string className and object style", () => {
+	it("composes a function className and a function style at the same time", () => {
 		const { getByRole } = render(
-			<Slot className="from-slot">
+			<Slot className="slot-class" style={{ fontWeight: 500 }}>
+				<NavLinkish className={() => "is-active"} style={() => ({ color: "red" })}>
+					Endpoints
+				</NavLinkish>
+			</Slot>,
+		);
+
+		const link = getByRole("link");
+		expect(link).toHaveClass("slot-class");
+		expect(link).toHaveClass("is-active");
+		expect(link).toHaveStyle({ color: "red", fontWeight: "500" });
+	});
+
+	it("survives a nested asChild chain, accumulating every ancestor's classes", () => {
+		// What a real composition looks like: an outer mantle part composing an
+		// inner one (`Sidebar.ItemButton asChild > Tooltip.Trigger asChild > NavLink`).
+		const { getByRole } = render(
+			<Slot className="outer-class" data-slot="outer">
+				<Slot className="inner-class" data-slot="inner">
+					<NavLinkish className={({ isActive }) => (isActive ? "is-active" : undefined)}>
+						Endpoints
+					</NavLinkish>
+				</Slot>
+			</Slot>,
+		);
+
+		const link = getByRole("link");
+		expect(link).toHaveClass("outer-class");
+		expect(link).toHaveClass("inner-class");
+		expect(link).toHaveClass("is-active");
+		expect(link).toHaveAttribute("data-slot", "outer inner");
+	});
+
+	it("renders no style attribute when neither the Slot nor the child has one", () => {
+		const { getByRole } = render(
+			<Slot className="slot-class">
+				<NavLinkish className={() => "is-active"}>Endpoints</NavLinkish>
+			</Slot>,
+		);
+
+		expect(getByRole("link")).not.toHaveAttribute("style");
+	});
+
+	it("hands a component child no style prop at all when neither side has one, and its own object when only the Slot does", () => {
+		// A component child forwards what it is given, so an empty object would
+		// travel further down the tree and change a new identity every render.
+		const received: Array<CSSProperties | undefined> = [];
+		const slotStyle: CSSProperties = { fontWeight: 500 };
+
+		function StyleProbe({ style }: { style?: CSSProperties }) {
+			received.push(style);
+			return <a href="/endpoints">Endpoints</a>;
+		}
+
+		const { rerender } = render(
+			<Slot className="slot-class">
+				<StyleProbe />
+			</Slot>,
+		);
+		rerender(
+			<Slot className="slot-class" style={slotStyle}>
+				<StyleProbe />
+			</Slot>,
+		);
+
+		expect(received[0]).toBeUndefined();
+		// Passed through by identity, not copied into a fresh object per render.
+		expect(received[1]).toBe(slotStyle);
+	});
+
+	it("still merges plain string className and object style", () => {
+		const { getByRole } = render(
+			<Slot className="slot-class" style={{ fontWeight: 500 }}>
 				<NavLinkish className="is-active" style={{ color: "red" }}>
 					Endpoints
 				</NavLinkish>
@@ -326,16 +438,13 @@ describe("Slot render-prop diagnostics", () => {
 		);
 
 		const link = getByRole("link");
-		expect(link).toHaveClass("from-slot");
+		expect(link).toHaveClass("slot-class");
 		expect(link).toHaveClass("is-active");
-		expect(link).toHaveStyle({ color: "red" });
-		expect(console.warn).not.toHaveBeenCalled();
+		expect(link).toHaveStyle({ color: "red", fontWeight: "500" });
 	});
 
-	it("stays silent for a function children, which survives composition", () => {
-		// Regression guard on the warning's scope: only className and style are
-		// lost. A render-prop `children` survives cloneElement intact — asserted by
-		// the resolved text actually rendering, not just by the absence of a warning.
+	it("leaves a function children alone", () => {
+		// `children` is forwarded as-is — Slot composes className and style only.
 		const { getByRole } = render(
 			<Slot>
 				<NavLinkish>
@@ -343,7 +452,79 @@ describe("Slot render-prop diagnostics", () => {
 				</NavLinkish>
 			</Slot>,
 		);
+
 		expect(getByRole("link")).toHaveTextContent("Endpoints (current)");
-		expect(console.warn).not.toHaveBeenCalled();
+	});
+
+	it("chains the Slot's event handler with the child's while composing a render prop", () => {
+		const slotOnClick = vi.fn<() => void>();
+		const childOnClick = vi.fn<() => void>();
+
+		const { getByRole } = render(
+			<Slot className="slot-class" onClick={slotOnClick}>
+				<NavLinkish className={() => "is-active"} onClick={childOnClick}>
+					Endpoints
+				</NavLinkish>
+			</Slot>,
+		);
+
+		const link = getByRole("link");
+		expect(link).toHaveClass("is-active");
+
+		link.click();
+
+		// Radix still owns handler merging: withholding className and style from the
+		// child leaves the rest of the merge untouched.
+		expect(slotOnClick).toHaveBeenCalledTimes(1);
+		expect(childOnClick).toHaveBeenCalledTimes(1);
+	});
+
+	it("composes the Slot's ref with the child's own ref", () => {
+		// The child element is rebuilt to compose render props, so its own props —
+		// `ref` included — have to survive that rebuild.
+		const slotRef = createRef<HTMLAnchorElement>();
+		const childRef = createRef<HTMLAnchorElement>();
+
+		const { getByRole } = render(
+			<Slot className="slot-class" ref={slotRef}>
+				<a href="/endpoints" ref={childRef}>
+					Endpoints
+				</a>
+			</Slot>,
+		);
+
+		const link = getByRole("link");
+		expect(slotRef.current).toBe(link);
+		expect(childRef.current).toBe(link);
+	});
+});
+
+describe("Radix prop-merging contract", () => {
+	it("forwards a slot prop the child does not declare untouched", () => {
+		/**
+		 * The one assumption `Slot`'s render-prop composition rests on, asserted
+		 * directly rather than through mantle's output. Radix rewrites `className` and
+		 * `style` only for keys it finds on the child element — that is why `Slot`
+		 * withholds them from the child and hands the composed value to the slot
+		 * instead. If a Radix upgrade starts touching props the child does not declare,
+		 * this fails naming the contract, instead of a `NavLink` somewhere losing its
+		 * highlight.
+		 */
+		const TripwireSlot = createSlot<HTMLElement, { className?: () => string }>("Tripwire");
+		const received: Array<(() => string) | undefined> = [];
+		const renderProp = () => "resolved-by-the-child";
+
+		function ClassNameProbe({ className }: { className?: () => string }) {
+			received.push(className);
+			return <a href="/endpoints">Endpoints</a>;
+		}
+
+		render(
+			<TripwireSlot className={renderProp}>
+				<ClassNameProbe />
+			</TripwireSlot>,
+		);
+
+		expect(received).toEqual([renderProp]);
 	});
 });
