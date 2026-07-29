@@ -77,6 +77,39 @@ renders into. The docs show how to pin one inside the page region with three fle
   active styling in app code. `current` is unchanged and still sets both attributes; keep using it for rows
   whose parent knows (a plain `Link`, a custom matcher).
 
+- **`extractSidebarStateCookie` no longer throws on a malformed cookie.** Its documented contract already
+  said it answers `undefined` for an unparseable value, but the raw `decodeURIComponent` call raised
+  `URIError` on a bad percent-escape — and a `Cookie` header is client-controlled, so a single corrupt or
+  hostile value (`mantle-sidebar-state=%E0%A4%A`) failed the server render on **every** page load until the
+  user cleared it by hand. Cookie reading is now one shared internal helper used by
+  `extractSidebarStateCookie`, `extractThemeCookie`, and `getStoredTheme`, which also fixes a latent
+  truncation bug: the theme readers split on `=` and so would cut a value at its first `=`.
+- **`AppLayout.Root` clips instead of hiding.** `overflow-hidden` is a scroll container that paints no
+  scrollbar — the same trap `AppLayout.Content` was fixed for on this branch, one level up. Anything wider
+  than the frame let <kbd>Tab</kbd> scroll the entire shell sideways, and on a frame pinned with
+  `fixed inset-0` that is the whole window, with no scrollbar and no gesture to bring it back.
+  `AppLayout.Root` is now `overflow-clip`, which is not a scroll container at all.
+- **Two `AlertCenter.Item`s sharing an `id` now throw instead of failing silently.** The projection keys one
+  stable host per id, so two concurrently mounted items with the same id rendered both children sets into one
+  host — duplicated, interleaved content. It fails fast with a descriptive message naming the id. Unmounting
+  and remounting the same id is unaffected: a dismissed alert that returns still resumes its original
+  position.
+
+**Additive API:**
+
+- **`Sidebar.AccountAvatar` and `Sidebar.UserAvatar` accept `asChild`.** Both render a single `<div>`, which
+  is invalid inside a `<button>` — pass an empty element (`<span />`) to swap it. The avatar's own content
+  (the derived initials; the `src` image or silhouette) renders inside your element.
+- **`Sidebar.Tooltip` takes `Tooltip.Content`'s props.** It was a closed `{ children, label }` object, so the
+  tooltip surface it renders was unreachable and `side="right"` was hardcoded. `className`, `style`, `ref`,
+  `data-*`, positioning props such as `align` and `sideOffset`, and `asChild` now land on the tooltip; `side`
+  is a prop defaulting to `"right"`. `children` stays a required single element.
+- **New `data-slot` hooks:** `alert-center-bar-wrapper` (the presence wrapper that owns `data-state`),
+  `alert-center-dismiss-icon-button`, and `alert-center-announcer` (the `role="status"` live region).
+  `AlertCenter.Bar`, `AlertCenter.Content`, and `AlertCenter.DismissIconButton` now join an incoming
+  `data-slot` chain rather than replacing it — note the dismiss button's own slot value replaces the
+  inherited `alert-dismiss-icon-button`; `Alert`'s `data-alert-dismiss` attribute is unchanged.
+
 - **`Sidebar.Separator`, `Sidebar.AccountAvatar` and `Sidebar.UserAvatar` join an incoming `data-slot`
   instead of being clobbered by it.** All three stamped their slot name before spreading rest props, so a
   consumer-passed or ancestor-forwarded `data-slot` replaced `sidebar-separator` /

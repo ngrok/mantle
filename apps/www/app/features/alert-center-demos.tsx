@@ -562,6 +562,102 @@ export function AlertCenterPersistedDismissExample() {
 	);
 }
 
+/** A route path in the route-authored-alert demo, standing in for a router match. */
+type DemoRoutePath = "/agents" | "/endpoints";
+
+const demoRoutes: ReadonlyArray<{ label: string; path: DemoRoutePath }> = [
+	{ label: "Endpoints", path: "/endpoints" },
+	{ label: "Agents", path: "/agents" },
+];
+
+/**
+ * A "route" that raises its own alert. The DNS warning is authored here — deep
+ * inside the page, not in the shell — and still lands in the shell's alert bar,
+ * because `AlertCenter.Root` is hoisted above whatever renders the routes.
+ */
+function EndpointsRoute() {
+	return (
+		<div className="space-y-2 p-6">
+			<AlertCenter.Item id="dns-error" intent="warning">
+				<Alert.Icon />
+				<Alert.Content>
+					<Alert.Title>
+						This domain still needs DNS targets{" "}
+						<a className="font-medium" href="#domains">
+							Review domains
+						</a>
+					</Alert.Title>
+				</Alert.Content>
+			</AlertCenter.Item>
+			<p className="text-strong text-sm font-medium">app.example.com</p>
+		</div>
+	);
+}
+
+/** A route with nothing to report — leaving the endpoint route clears its alert. */
+function AgentsRoute() {
+	return <p className="text-strong p-6 text-sm font-medium">2 agents online</p>;
+}
+
+/**
+ * The hoisted-`Root` demo: `AlertCenter.Root` wraps the whole shell, so a route
+ * rendered inside `AppLayout.Body` can author an alert that lands in the bar
+ * composed up in `AppLayout.Notice`. The route buttons stand in for a router —
+ * a real shell renders its `Outlet` there — and the shell is embedded in a
+ * sized box rather than pinned with `fixed inset-0`, because the docs page
+ * around it already owns the document and its `main` landmark.
+ */
+export function AlertCenterRouteAlertExample() {
+	const [pathname, setPathname] = useState<DemoRoutePath>("/endpoints");
+
+	return (
+		<div className="h-96 w-full max-w-2xl">
+			<AlertCenter.Root>
+				<AppLayout.Root className="border-card-muted rounded-lg border">
+					<AppLayout.Notice>
+						{/* only the chrome lives here — items are authored anywhere below */}
+						<AlertCenter.Bar />
+						<AlertCenter.Content />
+						{/* an account-level alert the shell itself authors */}
+						<AlertCenter.Item id="new-region" intent="info">
+							<Alert.Icon />
+							<Alert.Content>
+								<Alert.Title>
+									New region available: eu-west{" "}
+									<a className="font-medium" href="#regions">
+										Learn more
+									</a>
+								</Alert.Title>
+							</Alert.Content>
+						</AlertCenter.Item>
+					</AppLayout.Notice>
+					<AppLayout.Workspace>
+						<AppLayout.Content>
+							<AppLayout.Header>
+								{demoRoutes.map((route) => (
+									<Button
+										key={route.path}
+										type="button"
+										appearance={pathname === route.path ? "filled" : "outlined"}
+										intent="neutral"
+										size="sm"
+										onClick={() => setPathname(route.path)}
+									>
+										{route.label}
+									</Button>
+								))}
+							</AppLayout.Header>
+							<AppLayout.Body>
+								{pathname === "/endpoints" ? <EndpointsRoute /> : <AgentsRoute />}
+							</AppLayout.Body>
+						</AppLayout.Content>
+					</AppLayout.Workspace>
+				</AppLayout.Root>
+			</AlertCenter.Root>
+		</div>
+	);
+}
+
 /**
  * A custom-content demo: each alert's banner is authored JSX, so anything
  * composes — a custom icon, placement-aware extras, arbitrary elements. The

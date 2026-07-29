@@ -7,12 +7,20 @@ import { Slot } from "../slot/index.js";
 
 /**
  * The outer frame of an application shell. Renders a `<div>` with
- * `relative isolate flex h-full w-full flex-col overflow-hidden`, so
+ * `relative isolate flex h-full w-full flex-col overflow-clip`, so
  * it fills its nearest sized ancestor — which makes it embeddable in docs
  * demos and tests. Real app shells pin it to the viewport by merging
  * `className="fixed inset-0"` (mantle `cx` is tailwind-merge-backed, so the
  * override is deterministic); the shell itself never scrolls — only
  * `AppLayout.Body` does.
+ *
+ * It clips with `overflow-clip` rather than `overflow-hidden` for the same
+ * reason `AppLayout.Content` does: `hidden` **is** a scroll container that
+ * paints no scrollbar, so anything wider than the frame lets focus scroll the
+ * entire shell sideways — translating the notice, the rail, and the card out of
+ * view with no scrollbar and no gesture to bring them back. On a frame pinned
+ * with `fixed inset-0` that is the whole window. `clip` is not a scroll
+ * container at all.
  *
  * When the shell owns the document, render a `SkipToMainLink` as its first
  * child and compose the `Main` landmark into `AppLayout.Body` via `asChild` so
@@ -61,7 +69,12 @@ const Root = ({
 				// group/app-layout lets descendant parts adapt to what the shell
 				// contains (AppLayout.Header derives its height from the sidebar
 				// header's token when one is composed — see AppLayout.Header).
-				"group/app-layout bg-base relative isolate flex h-full w-full flex-col overflow-hidden",
+				"group/app-layout bg-base relative isolate flex h-full w-full flex-col",
+				// clip, not hidden — the same trap AppLayout.Content avoids, one
+				// level up: `hidden` is a scroll container that paints no scrollbar,
+				// so anything overflowing the frame lets focus scroll the whole shell
+				// sideways with no way back. On `fixed inset-0` that is the window.
+				"overflow-clip",
 				className,
 			)}
 			{...props}
@@ -390,8 +403,14 @@ const Header = ({
  *   page at its max width. As a *flex child*, auto margins beat
  *   `align-items: stretch` and the same container shrink-to-fits, getting
  *   *narrower* as the viewport gets wider.
- * - `w-full` keeps it full width even if a `max-w-*` or `mx-auto` is merged
- *   onto it directly.
+ * - `w-full` states the width outright instead of leaning on the flex
+ *   container's cross-axis `stretch`, so an `mx-auto` merged onto `Body` still
+ *   leaves it full width — auto cross-axis margins would otherwise turn a
+ *   stretched item into a shrink-to-fit one. It is no floor, though: `cx` is
+ *   tailwind-merge-backed and the consumer's `className` wins, so a merged
+ *   `w-*` replaces it outright, while a merged `max-w-*` — a separate conflict
+ *   group — survives beside it and clamps the scrollport. Constrain the *page*
+ *   inside `Body`, not `Body` itself.
  *
  * It is `relative` too, so page content positioned with `absolute` is contained
  * by the scrollport the route author is already reasoning about.
@@ -452,6 +471,11 @@ const Body = ({
  * whose `AppLayout.Body` is the only thing that scrolls. It owns structure only
  * and is deliberately unaware of any sidebar: compose `Sidebar.Root` around it
  * and place `Sidebar.Trigger` in `AppLayout.Header` to connect the two.
+ *
+ * Reach for it when a signed-in application needs navigation chrome that
+ * persists across routes. When the page is a single centered task surface with
+ * no rail — sign in, sign up, onboarding, a standalone flow, a 404 — compose
+ * [`CenteredLayout`](https://mantle.ngrok.com/layouts/centered-layout) instead.
  *
  * The card reads exactly like the column beside it and like every other mantle
  * surface — `Content > Header + Body`, the same shape as `Sidebar.Nav`,

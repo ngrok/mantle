@@ -43,6 +43,29 @@ describe("extractSidebarStateCookie", () => {
 		expect(extractSidebarStateCookie("mantle-sidebar-state=EXPANDED")).toBeUndefined();
 	});
 
+	test.for([
+		["a truncated percent-escape", "mantle-sidebar-state=%E0%A4%A"],
+		["a bare percent sign", "mantle-sidebar-state=%"],
+		["a malformed value sitting among other cookies", "theme=dark; mantle-sidebar-state=%; x=1"],
+	] as const)("returns undefined rather than throwing for %s", ([, header]) => {
+		// Regression: `decodeURIComponent` throws URIError ("URI malformed") on a bad
+		// percent-escape, and this ran in a loader on every page load — so one
+		// corrupt or hostile cookie used to fail the whole server render. An
+		// undecodable value IS the documented "unparseable" case.
+		expect(extractSidebarStateCookie(header)).toBeUndefined();
+	});
+
+	test("reads a percent-encoded value that decodes to a known state", () => {
+		// Some cookie libraries encode on write, so the read has to decode. `%63` is
+		// "c", which is what makes this "collapsed".
+		expect(extractSidebarStateCookie("mantle-sidebar-state=%63ollapsed")).toBe(false);
+	});
+
+	test("returns undefined for a value that decodes cleanly but is not a known state", () => {
+		// `%20` decodes to a leading space: well-formed, and still neither state.
+		expect(extractSidebarStateCookie("mantle-sidebar-state=%20expanded")).toBeUndefined();
+	});
+
 	test("does not match a cookie whose name merely ends with ours", () => {
 		// `String.startsWith` on the trimmed segment is what prevents
 		// `x-mantle-sidebar-state` from being read as the real cookie.

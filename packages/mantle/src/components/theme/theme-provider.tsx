@@ -4,6 +4,7 @@ import type { PropsWithChildren } from "react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import invariant from "tiny-invariant";
 import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
+import { findCookiePair, readCookie } from "../../utils/cookie.js";
 import { cx } from "../../utils/cx/cx.js";
 import { canUseDOM } from "../browser-only/browser-only.js";
 import {
@@ -366,6 +367,12 @@ function preventThemeFlash(args: {
 	// Nested helpers below must stay inside `preventThemeFlash` so they are
 	// included when the function is stringified into the inlined FOUC-prevention
 	// script. Hoisting them would leave dangling references at runtime.
+	//
+	// This is also why `getThemeFromCookie` re-implements what
+	// `utils/cookie.ts`'s `readCookie` does everywhere else in the library:
+	// `Function.prototype.toString()` captures only this function's own body, so
+	// an imported helper would be `undefined` in the inlined script. The
+	// duplication is a runtime constraint — do not "de-duplicate" it.
 	// oxlint-disable-next-line unicorn/consistent-function-scoping
 	function getThemeFromCookie(name: string): string | null {
 		const cookie = document.cookie;
@@ -376,7 +383,9 @@ function preventThemeFlash(args: {
 		try {
 			const cookies = cookie.split(";");
 			const themeCookie = cookies.find((c) => c.trim().startsWith(`${name}=`));
-			const cookieValue = themeCookie?.split("=")[1];
+			// Slice past the first "=" rather than split("=")[1], which would
+			// truncate a value that itself contains "=" — matching `readCookie`.
+			const cookieValue = themeCookie?.trim().slice(name.length + 1);
 			const storedTheme = cookieValue ? decodeURIComponent(cookieValue) : null;
 			return storedTheme;
 		} catch {
@@ -639,18 +648,9 @@ function getStoredTheme({ cookie }: GetStoredThemeOptions): Theme {
 		return DEFAULT_THEME;
 	}
 
-	try {
-		const cookies = cookie.split(";");
-		const themeCookie = cookies.find((cookieStr) =>
-			cookieStr.trim().startsWith(`${THEME_STORAGE_KEY}=`),
-		);
-		const cookieValue = themeCookie?.split("=")[1];
-		const storedTheme = cookieValue ? globalThis.decodeURIComponent(cookieValue) : null;
+	const storedTheme = readCookie(cookie, THEME_STORAGE_KEY);
 
-		return isTheme(storedTheme) ? storedTheme : DEFAULT_THEME;
-	} catch {
-		return DEFAULT_THEME;
-	}
+	return isTheme(storedTheme) ? storedTheme : DEFAULT_THEME;
 }
 
 /**
@@ -675,14 +675,7 @@ function getStoredTheme({ cookie }: GetStoredThemeOptions): Theme {
  * @returns The `mantle-ui-theme=<value>` cookie string, or undefined if not found.
  */
 function extractThemeCookie(cookieHeader: string | null | undefined): string | undefined {
-	if (!cookieHeader) {
-		return undefined;
-	}
-
-	return cookieHeader
-		.split(";")
-		.map((part) => part.trim())
-		.find((part) => part.startsWith(`${THEME_STORAGE_KEY}=`));
+	return findCookiePair(cookieHeader, THEME_STORAGE_KEY);
 }
 
 export {

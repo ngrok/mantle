@@ -1,3 +1,5 @@
+import { readCookie } from "../../utils/cookie.js";
+
 /**
  * The cookie name {@link extractSidebarStateCookie} reads and
  * {@link serializeSidebarStateCookie} writes.
@@ -34,10 +36,15 @@ const SIDEBAR_STATE_COOKIE_VALUES = {
  * first-frame correction to hide. Pass the result straight to `defaultOpen` —
  * controlled `open` is not required.
  *
- * Returns `undefined` — not `false` — when the cookie is absent or holds an
- * unrecognized value, so a first-time visitor is distinguishable from one who
- * deliberately collapsed the sidebar. Collapse the state into your own default
- * at the call site with `?? true`.
+ * Returns `undefined` — not `false` — when the cookie is absent or holds a
+ * value this helper does not recognize, so a first-time visitor is
+ * distinguishable from one who deliberately collapsed the sidebar. Collapse the
+ * state into your own default at the call site with `?? true`.
+ *
+ * Never throws: a header is client-controlled, and a value with a malformed
+ * percent-escape (`mantle-sidebar-state=%E0%A4%A`) is unparseable rather than
+ * fatal, so one hostile or corrupt cookie cannot fail the server render on
+ * every page load.
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#persisting-the-collapsed-state
  *
@@ -50,23 +57,10 @@ const SIDEBAR_STATE_COOKIE_VALUES = {
  * ```
  *
  * @param cookieHeader - The raw `Cookie` header string from the request, or null/undefined.
- * @returns `true` when expanded, `false` when collapsed, `undefined` when unset or unparseable.
+ * @returns `true` when expanded, `false` when collapsed, `undefined` when unset, undecodable, or unparseable.
  */
 function extractSidebarStateCookie(cookieHeader: string | null | undefined): boolean | undefined {
-	if (!cookieHeader) {
-		return undefined;
-	}
-
-	const entry = cookieHeader
-		.split(";")
-		.map((part) => part.trim())
-		.find((part) => part.startsWith(`${SIDEBAR_STATE_COOKIE_NAME}=`));
-
-	if (entry == null) {
-		return undefined;
-	}
-
-	const value = decodeURIComponent(entry.slice(`${SIDEBAR_STATE_COOKIE_NAME}=`.length));
+	const value = readCookie(cookieHeader, SIDEBAR_STATE_COOKIE_NAME);
 
 	if (value === SIDEBAR_STATE_COOKIE_VALUES.expanded) {
 		return true;

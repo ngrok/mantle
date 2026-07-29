@@ -4,6 +4,7 @@ import { describe, expect, test } from "vitest";
 import { Main } from "../main/main.js";
 import { Alert } from "../alert/alert.js";
 import { AlertCenter } from "../alert-center/alert-center.js";
+import { Sidebar } from "../sidebar/sidebar.js";
 import { AppLayout } from "./app-layout.js";
 
 describe("AppLayout.Root", () => {
@@ -27,27 +28,57 @@ describe("AppLayout.Root", () => {
 		expect(root.className).toContain("inset-0");
 	});
 
-	test("forwards refs and data-* attributes", () => {
+	test("clips rather than hides, so focus cannot scroll the whole shell sideways", () => {
+		// Regression (issue #1374): `overflow-hidden` IS a scroll container that
+		// paints no scrollbar — the same trap AppLayout.Content avoids, one level up.
+		// Anything wider than the frame lets Tab scroll the entire shell sideways,
+		// translating the notice, the rail, and the card out of view with no
+		// scrollbar and no gesture to bring them back. On a frame pinned with
+		// `fixed inset-0` that is the whole window. `overflow-clip` is not a scroll
+		// container at all.
+		render(<AppLayout.Root data-testid="root">content</AppLayout.Root>);
+		const { className } = screen.getByTestId("root");
+		expect(className).toContain("overflow-clip");
+		expect(className).not.toContain("overflow-hidden");
+	});
+
+	test("forwards className, a ref, and arbitrary data-* to the rendered root", () => {
 		const ref = createRef<HTMLDivElement>();
 		render(
-			<AppLayout.Root data-testid="root" data-flavor="shell" ref={ref}>
+			<AppLayout.Root className="consumer-frame" data-flavor="shell" data-testid="root" ref={ref}>
 				content
 			</AppLayout.Root>,
 		);
 		const root = screen.getByTestId("root");
+		expect(root.className).toContain("h-full");
+		expect(root.className).toContain("consumer-frame");
 		expect(root).toHaveAttribute("data-flavor", "shell");
 		expect(ref.current).toBe(root);
 	});
 
-	test("renders as child element when asChild is true, keeping data-slot", () => {
+	test("joins an ancestor-provided data-slot ahead of its own", () => {
 		render(
-			<AppLayout.Root asChild>
+			<AppLayout.Root data-slot="app-shell" data-testid="root">
+				content
+			</AppLayout.Root>,
+		);
+		expect(screen.getByTestId("root")).toHaveAttribute("data-slot", "app-shell app-layout");
+	});
+
+	test("asChild renders the child, merging classes, data attributes, and the ref", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<AppLayout.Root asChild className="consumer-frame" data-flavor="shell" ref={ref}>
 				<section data-testid="root">content</section>
 			</AppLayout.Root>,
 		);
 		const root = screen.getByTestId("root");
 		expect(root.tagName).toBe("SECTION");
 		expect(root).toHaveAttribute("data-slot", "app-layout");
+		expect(root.className).toContain("h-full");
+		expect(root.className).toContain("consumer-frame");
+		expect(root).toHaveAttribute("data-flavor", "shell");
+		expect(ref.current).toBe(root);
 	});
 });
 
@@ -91,6 +122,53 @@ describe("AppLayout.Notice", () => {
 		expect(notice.querySelector('[data-slot="alert-center-bar"]')).not.toBeNull();
 		expect(notice.compareDocumentPosition(workspace)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 	});
+
+	test("forwards className, a ref, and arbitrary data-* to the rendered root", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<AppLayout.Notice
+				className="consumer-notice"
+				data-flavor="maintenance"
+				data-testid="notice"
+				ref={ref}
+			>
+				maintenance
+			</AppLayout.Notice>,
+		);
+		const notice = screen.getByTestId("notice");
+		expect(notice.className).toContain("shrink-0");
+		expect(notice.className).toContain("consumer-notice");
+		expect(notice).toHaveAttribute("data-flavor", "maintenance");
+		expect(ref.current).toBe(notice);
+	});
+
+	test("joins an ancestor-provided data-slot ahead of its own", () => {
+		render(
+			<AppLayout.Notice data-slot="app-shell" data-testid="notice">
+				maintenance
+			</AppLayout.Notice>,
+		);
+		expect(screen.getByTestId("notice")).toHaveAttribute(
+			"data-slot",
+			"app-shell app-layout-notice",
+		);
+	});
+
+	test("asChild renders the child, merging classes, data attributes, and the ref", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<AppLayout.Notice asChild className="consumer-notice" data-flavor="maintenance" ref={ref}>
+				<aside data-testid="notice">maintenance</aside>
+			</AppLayout.Notice>,
+		);
+		const notice = screen.getByTestId("notice");
+		expect(notice.tagName).toBe("ASIDE");
+		expect(notice).toHaveAttribute("data-slot", "app-layout-notice");
+		expect(notice.className).toContain("shrink-0");
+		expect(notice.className).toContain("consumer-notice");
+		expect(notice).toHaveAttribute("data-flavor", "maintenance");
+		expect(ref.current).toBe(notice);
+	});
 });
 
 describe("AppLayout.Workspace", () => {
@@ -111,6 +189,53 @@ describe("AppLayout.Workspace", () => {
 		// flush collapsed icon rail.
 		render(<AppLayout.Workspace data-testid="workspace">columns</AppLayout.Workspace>);
 		expect([...screen.getByTestId("workspace").classList]).not.toContain("p-2");
+	});
+
+	test("forwards className, a ref, and arbitrary data-* to the rendered root", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<AppLayout.Workspace
+				className="consumer-workspace"
+				data-flavor="columns"
+				data-testid="workspace"
+				ref={ref}
+			>
+				columns
+			</AppLayout.Workspace>,
+		);
+		const workspace = screen.getByTestId("workspace");
+		expect(workspace.className).toContain("min-h-0");
+		expect(workspace.className).toContain("consumer-workspace");
+		expect(workspace).toHaveAttribute("data-flavor", "columns");
+		expect(ref.current).toBe(workspace);
+	});
+
+	test("joins an ancestor-provided data-slot ahead of its own", () => {
+		render(
+			<AppLayout.Workspace data-slot="app-shell" data-testid="workspace">
+				columns
+			</AppLayout.Workspace>,
+		);
+		expect(screen.getByTestId("workspace")).toHaveAttribute(
+			"data-slot",
+			"app-shell app-layout-workspace",
+		);
+	});
+
+	test("asChild renders the child, merging classes, data attributes, and the ref", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<AppLayout.Workspace asChild className="consumer-workspace" data-flavor="columns" ref={ref}>
+				<section data-testid="workspace">columns</section>
+			</AppLayout.Workspace>,
+		);
+		const workspace = screen.getByTestId("workspace");
+		expect(workspace.tagName).toBe("SECTION");
+		expect(workspace).toHaveAttribute("data-slot", "app-layout-workspace");
+		expect(workspace.className).toContain("min-h-0");
+		expect(workspace.className).toContain("consumer-workspace");
+		expect(workspace).toHaveAttribute("data-flavor", "columns");
+		expect(ref.current).toBe(workspace);
 	});
 });
 
@@ -147,15 +272,51 @@ describe("AppLayout.Header", () => {
 		expect(screen.queryByRole("banner")).not.toBeInTheDocument();
 	});
 
-	test("asChild restores a semantic element when the consumer wants one", () => {
+	test("forwards className, a ref, and arbitrary data-* to the rendered root", () => {
+		const ref = createRef<HTMLDivElement>();
 		render(
-			<AppLayout.Header asChild>
+			<AppLayout.Header
+				className="consumer-toolbar"
+				data-flavor="toolbar"
+				data-testid="header"
+				ref={ref}
+			>
+				toolbar
+			</AppLayout.Header>,
+		);
+		const header = screen.getByTestId("header");
+		expect(header.className).toContain("shrink-0");
+		expect(header.className).toContain("consumer-toolbar");
+		expect(header).toHaveAttribute("data-flavor", "toolbar");
+		expect(ref.current).toBe(header);
+	});
+
+	test("joins an ancestor-provided data-slot ahead of its own", () => {
+		render(
+			<AppLayout.Header data-slot="app-shell" data-testid="header">
+				toolbar
+			</AppLayout.Header>,
+		);
+		expect(screen.getByTestId("header")).toHaveAttribute(
+			"data-slot",
+			"app-shell app-layout-header",
+		);
+	});
+
+	test("asChild restores a semantic element, merging classes, data attributes, and the ref", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<AppLayout.Header asChild className="consumer-toolbar" data-flavor="toolbar" ref={ref}>
 				<header data-testid="header">toolbar</header>
 			</AppLayout.Header>,
 		);
 		const header = screen.getByTestId("header");
 		expect(header.tagName).toBe("HEADER");
 		expect(header).toHaveAttribute("data-slot", "app-layout-header");
+		expect(header.className).toContain("shrink-0");
+		expect(header.className).toContain("consumer-toolbar");
+		expect(header).toHaveAttribute("data-flavor", "toolbar");
+		expect(ref.current).toBe(header);
 	});
 
 	test("derives its height from the sidebar header token, net of the card gutter", () => {
@@ -166,6 +327,34 @@ describe("AppLayout.Header", () => {
 		const { className } = screen.getByTestId("header");
 		expect(className).toContain("h-14");
 		expect(className).toContain(
+			"group-has-[[data-slot~=sidebar-header]]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]",
+		);
+	});
+
+	test("both halves of the :has() coupling line up with what Sidebar.Header emits", () => {
+		// The derived height is pure CSS, so happy-dom cannot measure it — but it
+		// can prove the selector has something to match: AppLayout.Root names the
+		// `app-layout` group the variant is scoped to, and Sidebar.Header stamps the
+		// `data-slot` token the `:has()` looks for. Renaming either side silently
+		// unaligns the two rows in a browser, and fails loudly here.
+		// Sidebar.Header is rendered on its own rather than inside a Sidebar.Nav
+		// because Nav requires Sidebar.Root's context and a mocked breakpoint hook,
+		// and `:has()` matches the token at any depth regardless.
+		render(
+			<AppLayout.Root data-testid="root">
+				<AppLayout.Workspace>
+					<Sidebar.Header>account switcher</Sidebar.Header>
+					<AppLayout.Content>
+						<AppLayout.Header data-testid="header">toolbar</AppLayout.Header>
+						<AppLayout.Body>page</AppLayout.Body>
+					</AppLayout.Content>
+				</AppLayout.Workspace>
+			</AppLayout.Root>,
+		);
+		const root = screen.getByTestId("root");
+		expect([...root.classList]).toContain("group/app-layout");
+		expect(root.querySelector('[data-slot~="sidebar-header"]')).not.toBeNull();
+		expect(screen.getByTestId("header").className).toContain(
 			"group-has-[[data-slot~=sidebar-header]]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]",
 		);
 	});
@@ -226,6 +415,53 @@ describe("AppLayout.Content", () => {
 		expect(content.className).toContain("rounded-none");
 		expect(content.className).not.toContain("rounded-xl");
 	});
+
+	test("forwards className, a ref, and arbitrary data-* to the rendered root", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<AppLayout.Content
+				className="consumer-card"
+				data-flavor="card"
+				data-testid="content"
+				ref={ref}
+			>
+				page
+			</AppLayout.Content>,
+		);
+		const content = screen.getByTestId("content");
+		expect(content.className).toContain("bg-card");
+		expect(content.className).toContain("consumer-card");
+		expect(content).toHaveAttribute("data-flavor", "card");
+		expect(ref.current).toBe(content);
+	});
+
+	test("joins an ancestor-provided data-slot ahead of its own", () => {
+		render(
+			<AppLayout.Content data-slot="app-shell" data-testid="content">
+				page
+			</AppLayout.Content>,
+		);
+		expect(screen.getByTestId("content")).toHaveAttribute(
+			"data-slot",
+			"app-shell app-layout-content",
+		);
+	});
+
+	test("asChild renders the child, merging classes, data attributes, and the ref", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<AppLayout.Content asChild className="consumer-card" data-flavor="card" ref={ref}>
+				<article data-testid="content">page</article>
+			</AppLayout.Content>,
+		);
+		const content = screen.getByTestId("content");
+		expect(content.tagName).toBe("ARTICLE");
+		expect(content).toHaveAttribute("data-slot", "app-layout-content");
+		expect(content.className).toContain("bg-card");
+		expect(content.className).toContain("consumer-card");
+		expect(content).toHaveAttribute("data-flavor", "card");
+		expect(ref.current).toBe(content);
+	});
 });
 
 describe("AppLayout.Body", () => {
@@ -270,6 +506,47 @@ describe("AppLayout.Body", () => {
 		expect(main).toHaveAttribute("id", "main");
 		expect(main.className).toContain("overflow-y-auto");
 		expect(main).toHaveAttribute("data-slot", "app-layout-body main");
+	});
+
+	test("forwards className, a ref, and arbitrary data-* to the rendered root", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<AppLayout.Body className="consumer-page" data-flavor="page" data-testid="body" ref={ref}>
+				page
+			</AppLayout.Body>,
+		);
+		const body = screen.getByTestId("body");
+		expect(body.className).toContain("overflow-y-auto");
+		expect(body.className).toContain("consumer-page");
+		expect(body).toHaveAttribute("data-flavor", "page");
+		expect(ref.current).toBe(body);
+	});
+
+	test("joins an ancestor-provided data-slot ahead of its own", () => {
+		render(
+			<AppLayout.Body data-slot="app-shell" data-testid="body">
+				page
+			</AppLayout.Body>,
+		);
+		expect(screen.getByTestId("body")).toHaveAttribute("data-slot", "app-shell app-layout-body");
+	});
+
+	test("asChild renders the child, merging classes, data attributes, and the ref", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<AppLayout.Body asChild className="consumer-page" data-flavor="page" ref={ref}>
+				<Main data-testid="body">page</Main>
+			</AppLayout.Body>,
+		);
+		const body = screen.getByTestId("body");
+		expect(body.tagName).toBe("MAIN");
+		// Main stamps its own slot, so the chain reads in DOM order with the
+		// composed child's name last.
+		expect(body).toHaveAttribute("data-slot", "app-layout-body main");
+		expect(body.className).toContain("overflow-y-auto");
+		expect(body.className).toContain("consumer-page");
+		expect(body).toHaveAttribute("data-flavor", "page");
+		expect(ref.current).toBe(body);
 	});
 });
 
