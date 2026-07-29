@@ -68,6 +68,15 @@ renders into. The docs show how to pin one inside the page region with three fle
   argument. Parts that forward `asChild` straight to a Radix primitive (`Tooltip.Trigger`,
   `DropdownMenu.Trigger`, `Dialog.Trigger`) still use Radix's own slot, which joins a function `className`
   into the class string — nest a mantle-backed part inside those.
+- **`Sidebar.ItemButton` styles its current row from `aria-current="page"` as well as `data-current`.** The
+  row's visual state and its announced state now come from the same attribute, whichever side sets it — so a
+  composed child that already resolved the match marks itself and gets mantle's own row treatment:
+  `<Sidebar.ItemButton asChild><NavLink to="/endpoints">…</NavLink></Sidebar.ItemButton>` highlights with no
+  `current`, no `useMatch`, and no `className`. Before this, a `NavLink` was announced as the current page but
+  looked like every other row unless the parent re-derived the route to pass `current`, or hand-rolled the
+  active styling in app code. `current` is unchanged and still sets both attributes; keep using it for rows
+  whose parent knows (a plain `Link`, a custom matcher).
+
 - **`⌘B` / `Ctrl+B` respects the platform and text fields.** The sidebar shortcut accepted *either* modifier
   on *every* platform, so on macOS `Ctrl+B` — the native emacs-style "move the caret back one character" that
   every macOS text field binds — was `preventDefault`ed and toggled the sidebar instead, including inside

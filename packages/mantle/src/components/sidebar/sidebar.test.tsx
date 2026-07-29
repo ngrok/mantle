@@ -801,6 +801,29 @@ describe("Sidebar.Item + ItemButton", () => {
 		expect(link.className).toContain("custom-class");
 		expect(link.className).toContain("rounded-md");
 	});
+
+	test("styles the current row from either attribute, so a self-marking child needs no current", () => {
+		// A composed child that resolved the match itself — react-router's `NavLink`
+		// sets `aria-current="page"` — gets the row treatment without the parent
+		// re-deriving the route to pass `current`. Both variants ride on every row;
+		// which one applies is the attribute's job, so this pins that the
+		// `aria-current` half is wired at all.
+		render(
+			<Sidebar.ItemButton asChild>
+				<a aria-current="page" href="/endpoints">
+					Endpoints
+				</a>
+			</Sidebar.ItemButton>,
+		);
+		const link = screen.getByRole("link", { name: "Endpoints" });
+
+		expect(link).toHaveAttribute("aria-current", "page");
+		expect(link).not.toHaveAttribute("data-current");
+		expect(link.className).toContain("aria-[current=page]:bg-neutral-500/15");
+		expect(link.className).toContain("aria-[current=page]:text-strong");
+		// `current` keeps driving the same treatment through `data-current`.
+		expect(link.className).toContain("data-current:bg-neutral-500/15");
+	});
 });
 
 describe("Sidebar.SwitcherTrigger", () => {

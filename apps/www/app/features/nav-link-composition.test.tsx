@@ -49,6 +49,41 @@ describe("react-router NavLink composed through asChild", () => {
 		expect(link.getAttribute("aria-current")).toBe("page");
 	});
 
+	it("gets the current-row treatment from NavLink's own aria-current, with no props at all", () => {
+		// The destination shape: no `current`, no `useMatch`, no render prop, and no
+		// mantle internals in app code. `NavLink` resolved the match, so it marks
+		// itself, and `Sidebar.ItemButton` styles the row from that attribute.
+		render(
+			<MemoryRouter initialEntries={["/endpoints"]}>
+				<Sidebar.ItemButton asChild>
+					<NavLink to="/endpoints">Endpoints</NavLink>
+				</Sidebar.ItemButton>
+			</MemoryRouter>,
+		);
+
+		const link = screen.getByRole("link", { name: "Endpoints" });
+
+		expect(link.getAttribute("aria-current")).toBe("page");
+		expect(link.classList.contains("aria-[current=page]:bg-neutral-500/15")).toBe(true);
+		expect(link.classList.contains("aria-[current=page]:text-strong")).toBe(true);
+	});
+
+	it("marks no row as current when the route does not match, so the treatment does not apply", () => {
+		render(
+			<MemoryRouter initialEntries={["/domains"]}>
+				<Sidebar.ItemButton asChild>
+					<NavLink to="/endpoints">Endpoints</NavLink>
+				</Sidebar.ItemButton>
+			</MemoryRouter>,
+		);
+
+		const link = screen.getByRole("link", { name: "Endpoints" });
+
+		// The variant classes ride on every row; the attribute is what gates them.
+		expect(link.getAttribute("aria-current")).toBeNull();
+		expect(link.hasAttribute("data-current")).toBe(false);
+	});
+
 	it("resolves the inactive branch when the route does not match", () => {
 		render(
 			<MemoryRouter initialEntries={["/domains"]}>

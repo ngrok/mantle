@@ -731,7 +731,8 @@ the app, not the design system.
 The navigation parts are plain styled elements: `Sidebar.Group` pairs an optional muted `Sidebar.GroupLabel`
 with a `Sidebar.List` of rows, and links the two with `aria-labelledby` automatically so each list is
 announced with its group's name. `Sidebar.ItemButton` renders a leading icon slot and a truncating label, and
-`current` sets both `aria-current="page"` and the `data-current` visual state.
+`current` sets both `aria-current="page"` and the `data-current` visual state — the row's current treatment
+follows either one, so a composed child that marks itself (react-router's `NavLink`) needs no `current` at all.
 
 > [!IMPORTANT]
 > **The navigation is one level deep.** There is no nested item and no collapsible group — a
@@ -1009,9 +1010,7 @@ export function TrafficNav() {
 ### With react-router
 
 The example above fakes a router so this page stays self-contained. With react-router, render a `NavLink` and
-let it own the active state: `Sidebar.ItemButton`'s `asChild` composes `NavLink`'s render-prop `className`, so
-`({ isActive }) => …` resolves normally — see
-[Slot → Render props on the child](/components/primitives/slot#render-props-on-the-child).
+let it own the active state — **this is the whole integration**:
 
 ```tsx
 import { Sidebar } from "@ngrok/mantle/sidebar";
@@ -1020,7 +1019,7 @@ import { NavLink } from "react-router";
 
 <Sidebar.Item>
 	<Sidebar.ItemButton asChild>
-		<NavLink className={({ isActive }) => (isActive ? "font-medium" : undefined)} to="/endpoints">
+		<NavLink to="/endpoints">
 			<GraphIcon />
 			Endpoints
 		</NavLink>
@@ -1028,9 +1027,23 @@ import { NavLink } from "react-router";
 </Sidebar.Item>;
 ```
 
-`NavLink` sets `aria-current="page"` itself while active, so a row composed this way needs no `current`. Pass
-`current` when you want the row's built-in `data-current` treatment instead of your own classes — derive it
-from `useLocation()` or `useMatch()`, as the examples throughout this page do.
+No `current`, no `useMatch`, no `className` — the row highlights itself. `NavLink` already resolved the match
+and sets `aria-current="page"`, and the current-row treatment follows **either** `aria-current="page"` or
+`data-current`, so the router's own answer drives mantle's own styling. Pass `current` for the rows whose
+parent knows (a plain `Link`, a custom matcher, a row that is current for a reason the URL doesn't express).
+
+Reach for `NavLink`'s render-prop `className` only to add styling of your own on top —
+`Sidebar.ItemButton`'s `asChild` composes it rather than dropping it, at the usual child-wins precedence (see
+[Slot → Render props on the child](/components/primitives/slot#render-props-on-the-child)):
+
+```tsx
+<Sidebar.ItemButton asChild>
+	<NavLink className={({ isPending }) => (isPending ? "animate-pulse" : undefined)} to="/endpoints">
+		<GraphIcon />
+		Endpoints
+	</NavLink>
+</Sidebar.ItemButton>
+```
 
 ## Accessibility
 
@@ -1051,8 +1064,9 @@ from `useLocation()` or `useMatch()`, as the examples throughout this page do.
 - The collapsed icon rail stays fully interactive: row labels are clipped and switcher text is visually
   hidden, but both remain in the tab order and the accessibility tree, so accessible names do not change
   between states.
-- `Sidebar.ItemButton` `current` renders `aria-current="page"`; `Sidebar.GroupLabel` is linked to its
-  `Sidebar.List` via `aria-labelledby`.
+- `Sidebar.ItemButton` `current` renders `aria-current="page"`, and the row's current treatment is styled from
+  that attribute as well as `data-current` — so the announced state and the visual state cannot drift apart,
+  whichever side sets it. `Sidebar.GroupLabel` is linked to its `Sidebar.List` via `aria-labelledby`.
 - The mobile sheet is a modal dialog with focus trapping and `Escape` dismissal, courtesy of
   [Sheet](/components/overlays/sheet). Its accessible name follows the nav's (`"Main"` by default), so
   overriding `aria-label` or `aria-labelledby` on `Sidebar.Nav` renames the dialog too.
@@ -1219,10 +1233,18 @@ demo above is built:
 
 All props from `button` plus:
 
-| Prop       | Type      | Default | Description                                                            |
-| ---------- | --------- | ------- | ---------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Render the single child (e.g. a router link) instead of a `<button>`.  |
-| `current?` | `boolean` | —       | Marks the current page: sets `aria-current="page"` and `data-current`. |
+| Prop       | Type      | Default | Description                                                                                                                                     |
+| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Render the single child (e.g. a router link) instead of a `<button>`.                                                                           |
+| `current?` | `boolean` | —       | Marks the current page: sets `aria-current="page"` and `data-current`. Not needed for a child that marks itself, like react-router's `NavLink`. |
+
+**Data attributes**
+
+| Attribute                | Value                   | Description                                                                                                                                     |
+| ------------------------ | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`              | `"sidebar-item-button"` | Names the part, with any composing ancestor's chain ahead of it.                                                                                |
+| `data-current`           | present when `current`  | The current-row treatment. Styling follows this **or** `aria-current="page"`, so a child that marks itself gets the same row without `current`. |
+| `data-state` (from menu) | `"open"` \| `"closed"`  | Supplied by a composed `DropdownMenu.Trigger`; keeps the row highlighted while its menu is open.                                                |
 
 ### Sidebar.SwitcherTrigger
 
