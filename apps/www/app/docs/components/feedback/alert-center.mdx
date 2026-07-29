@@ -589,6 +589,23 @@ AlertCenter.Root
         AlertCenter.DismissIconButton
 ```
 
+## Polymorphism
+
+Only one part takes `asChild`, and deliberately so:
+
+- **`AlertCenter.DismissIconButton`** inherits it from the
+  [IconButton](/components/actions/icon-button) it renders through
+  [`Alert.DismissIconButton`](/components/feedback/alert#alertdismissiconbutton). Reach for it when dismissal
+  is a link or a form submit rather than a click handler — the required `onClick` still runs, so keep the
+  unmount there.
+
+The rest have no `asChild` on purpose. `AlertCenter.Root` and `AlertCenter.Item` render no DOM at all, so
+there is nothing to swap: `Root` is the state owner, and an `Item` registers its facts and projects its
+children (see [Projection](#projection)). `AlertCenter.Bar` and `AlertCenter.Content` own layout the component
+coordinates — the bar's animation wrapper and the expansion's row list — and the element a consumer would
+actually want to reach, each alert's banner chrome, is an `Alert.Root` whose parts you already author as an
+item's children.
+
 ## API Reference
 
 ### AlertCenter.Root
