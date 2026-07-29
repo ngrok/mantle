@@ -327,7 +327,7 @@ describe("AppLayout.Header", () => {
 		const { className } = screen.getByTestId("header");
 		expect(className).toContain("h-14");
 		expect(className).toContain(
-			"group-has-[[data-slot~=sidebar-header]]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]",
+			"group-has-data-[slot~=sidebar-header]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]",
 		);
 	});
 
@@ -355,7 +355,7 @@ describe("AppLayout.Header", () => {
 		expect([...root.classList]).toContain("group/app-layout");
 		expect(root.querySelector('[data-slot~="sidebar-header"]')).not.toBeNull();
 		expect(screen.getByTestId("header").className).toContain(
-			"group-has-[[data-slot~=sidebar-header]]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]",
+			"group-has-data-[slot~=sidebar-header]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]",
 		);
 	});
 });
@@ -393,7 +393,7 @@ describe("AppLayout.Content", () => {
 	test("owns the card gutter as its own margin, driven by a public variable", () => {
 		render(<AppLayout.Content data-testid="content">page</AppLayout.Content>);
 		expect(screen.getByTestId("content").className).toContain(
-			"m-[var(--app-layout-card-gutter,0.5rem)]",
+			"m-(--app-layout-card-gutter,0.5rem)",
 		);
 	});
 
