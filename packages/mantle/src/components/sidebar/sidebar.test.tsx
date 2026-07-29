@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef, type ReactElement } from "react";
 import { renderToString } from "react-dom/server";
@@ -525,7 +525,7 @@ describe("Sidebar.Nav first paint", () => {
 		);
 		// The label's own transition is gated in CSS rather than in JS, so it ships
 		// in the server markup but only fires once the nav stamps data-hydrated.
-		expect(html).toContain("group-data-[hydrated]/sidebar-nav:transition-opacity");
+		expect(html).toContain("group-data-hydrated/sidebar-nav:transition-opacity");
 		expect(html).not.toContain("data-hydrated=");
 	});
 });
@@ -552,8 +552,8 @@ describe("Sidebar reduced motion", () => {
 			</Sidebar.Group>,
 		);
 		expect(screen.getByTestId("label")).toHaveClass(
-			"group-data-[hydrated]/sidebar-nav:transition-opacity",
-			"group-data-[hydrated]/sidebar-nav:motion-reduce:transition-none",
+			"group-data-hydrated/sidebar-nav:transition-opacity",
+			"group-data-hydrated/sidebar-nav:motion-reduce:transition-none",
 		);
 	});
 });
@@ -968,15 +968,19 @@ describe("Sidebar.Tooltip", () => {
 							</Sidebar.Group>
 						</Sidebar.Body>
 					</Sidebar.Nav>
+					{/* The rail state is what gates the label, so these tests toggle it
+					    the way a user does rather than by re-rendering `defaultOpen` —
+					    which seeds the uncontrolled state once and never collapses it. */}
+					<Sidebar.Trigger />
 				</Sidebar.Root>
 			</TooltipProvider>
 		);
 	}
 
 	/**
-	 * Renders one `Sidebar.Tooltip` in the collapsed desktop rail — the only state
-	 * where its `Tooltip.Content` mounts — hovers the row, and answers with the
-	 * tooltip surface, so a test can assert what reached `Tooltip.Content`.
+	 * Renders one `Sidebar.Tooltip` in the collapsed desktop rail — the only rail
+	 * state that shows a label — hovers the row, and answers with the tooltip
+	 * surface, so a test can assert what reached `Tooltip.Content`.
 	 */
 	async function hoverRailTooltip(tooltip: ReactElement): Promise<HTMLElement> {
 		const user = userEvent.setup();
@@ -1029,7 +1033,134 @@ describe("Sidebar.Tooltip", () => {
 			</TooltipProvider>,
 		);
 
+		const row = screen.getByRole("button", { name: "Endpoints" });
+		await user.hover(row);
+
+		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+		// The mobile arm of the veto, held to the same bar as the expanded panel
+		// below: silent means Radix's own state is closed, not just that the
+		// surface was withheld.
+		expect(row).not.toHaveAttribute("aria-describedby");
+		expect(row).toHaveAttribute("data-state", "closed");
+	});
+
+	test("closes the label when the pointer leaves the row", async () => {
+		const user = userEvent.setup();
+		render(<RailRow defaultOpen={false} />);
+		const row = screen.getByRole("button", { name: "Endpoints" });
+
+		await user.hover(row);
+		expect(await screen.findByRole("tooltip")).toBeInTheDocument();
+
+		await user.unhover(row);
+		await waitFor(() => expect(screen.queryByRole("tooltip")).not.toBeInTheDocument());
+	});
+
+	test("leaves an expanded row undescribed after the pointer sweeps across it", async () => {
+		// The label may not open while the panel is expanded, and "not open" has to
+		// mean Radix's own open state, not just a withheld surface: an open state
+		// with no mounted surface points aria-describedby at an id that is not in
+		// the document.
+		const user = userEvent.setup();
+		render(<RailRow defaultOpen />);
+		const row = screen.getByRole("button", { name: "Endpoints" });
+
+		await user.hover(row);
+
+		expect(row).not.toHaveAttribute("aria-describedby");
+		expect(row).toHaveAttribute("data-state", "closed");
+	});
+
+	test("stays closed when the rail collapses after the pointer swept an expanded row", async () => {
+		// Regression: the pointer crossing an expanded row on its way to the
+		// collapse trigger used to latch the label open — the panel withheld the
+		// surface, so nothing was mounted to close it again — and collapsing then
+		// popped a tooltip nobody was hovering.
+		const user = userEvent.setup();
+		render(<RailRow defaultOpen />);
+		const row = screen.getByRole("button", { name: "Endpoints" });
+
+		await user.hover(row);
+		await user.unhover(row);
+		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+	});
+
+	test("stays closed when the rail collapses while the row holds focus", async () => {
+		// Focus opens a tooltip per the ARIA pattern, so a row focused while the
+		// panel was expanded must not have that pending state cashed in the moment
+		// the rail collapses under it.
+		const user = userEvent.setup();
+		render(<RailRow defaultOpen />);
+		const row = screen.getByRole("button", { name: "Endpoints" });
+		row.focus();
+
+		await user.keyboard(platformChord);
+
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(row).toHaveFocus();
+		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+	});
+
+	test("stays closed when a label shown in the rail survives an expand and a re-collapse", async () => {
+		// The pointer never leaves the row here: it is the rail toggling out from
+		// under it, twice. Neither flip may leave an open state behind to replay.
+		const user = userEvent.setup();
+		render(<RailRow defaultOpen={false} />);
+
 		await user.hover(screen.getByRole("button", { name: "Endpoints" }));
+		expect(await screen.findByRole("tooltip")).toBeInTheDocument();
+
+		await user.keyboard(platformChord);
+		await waitFor(() => expect(screen.queryByRole("tooltip")).not.toBeInTheDocument());
+
+		await user.keyboard(platformChord);
+
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+	});
+
+	test("stays closed when the rail collapses after a menu on the row hands focus back", async () => {
+		// The overlay path into the same bug. Closing a menu restores focus to its
+		// trigger, which here is also the tooltip trigger, so Radix asks for a label
+		// the expanded panel has no use for — a request that must not outlive the
+		// collapse either. The hover first is what makes it a *repeat* request, the
+		// shape a mirror of Radix's state can silently keep queued.
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<Sidebar.Root defaultOpen>
+					<Sidebar.Nav data-testid="nav">
+						<Sidebar.Footer>
+							<DropdownMenu.Root>
+								<Sidebar.Tooltip label="Help">
+									<DropdownMenu.Trigger asChild>
+										<Sidebar.ItemButton>Help</Sidebar.ItemButton>
+									</DropdownMenu.Trigger>
+								</Sidebar.Tooltip>
+								<DropdownMenu.Content>
+									<DropdownMenu.Item>Docs</DropdownMenu.Item>
+								</DropdownMenu.Content>
+							</DropdownMenu.Root>
+						</Sidebar.Footer>
+					</Sidebar.Nav>
+					<Sidebar.Trigger />
+				</Sidebar.Root>
+			</TooltipProvider>,
+		);
+		const row = screen.getByRole("button", { name: "Help" });
+
+		await user.hover(row);
+		await user.click(row);
+		await user.click(await screen.findByRole("menuitem", { name: "Docs" }));
+		await waitFor(() =>
+			expect(screen.queryByRole("menuitem", { name: "Docs" })).not.toBeInTheDocument(),
+		);
+		await user.keyboard(platformChord);
+
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
 		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 	});
 
@@ -1076,15 +1207,19 @@ describe("Sidebar.Tooltip", () => {
 		expect(tooltip).toHaveAttribute("data-side", "top");
 	});
 
-	test("keeps the trigger mounted across a collapse so focus is not dropped", () => {
-		// Regression guard on gating the Content rather than the Root: unmounting
-		// Tooltip.Root would take the Trigger — and the focused row — with it.
-		const { rerender } = render(<RailRow defaultOpen />);
+	test("keeps the trigger mounted across a collapse so focus is not dropped", async () => {
+		// Regression guard on keeping Tooltip.Root mounted across the rail states:
+		// unmounting it would take the Trigger — and the focused row — with it. The
+		// rail collapses by keyboard so focus stays on the row under test.
+		const user = userEvent.setup();
+		render(<RailRow defaultOpen />);
 		const row = screen.getByRole("button", { name: "Endpoints" });
 		row.focus();
 		expect(row).toHaveFocus();
 
-		rerender(<RailRow defaultOpen={false} />);
+		await user.keyboard(platformChord);
+
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
 		expect(screen.getByRole("button", { name: "Endpoints" })).toBe(row);
 		expect(row).toHaveFocus();
 	});
