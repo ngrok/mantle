@@ -4,6 +4,14 @@
  *
  * Exported so an app can clear the cookie on sign-out, or read it with its own
  * cookie library, without hard-coding the name.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebar_state_cookie_name
+ *
+ * @example
+ * ```ts
+ * // clear the persisted rail state on sign-out
+ * headers.append("Set-Cookie", `${SIDEBAR_STATE_COOKIE_NAME}=; Max-Age=0; Path=/`);
+ * ```
  */
 const SIDEBAR_STATE_COOKIE_NAME = "mantle-sidebar-state";
 
@@ -73,6 +81,13 @@ function extractSidebarStateCookie(cookieHeader: string | null | undefined): boo
  * Attributes for {@link serializeSidebarStateCookie}. Deliberately omits
  * `HttpOnly`: the browser writes this cookie from `onOpenChange`, so a
  * server-only cookie could never be updated when the user toggles the rail.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#serializesidebarstatecookie
+ *
+ * @example
+ * ```ts
+ * serializeSidebarStateCookie(open, { maxAge: 60 * 60 * 24 * 365, sameSite: "Lax" });
+ * ```
  */
 type SerializeSidebarStateCookieOptions = {
 	/**

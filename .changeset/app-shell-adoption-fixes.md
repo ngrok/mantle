@@ -77,6 +77,12 @@ renders into. The docs show how to pin one inside the page region with three fle
   active styling in app code. `current` is unchanged and still sets both attributes; keep using it for rows
   whose parent knows (a plain `Link`, a custom matcher).
 
+- **`Sidebar.Separator`, `Sidebar.AccountAvatar` and `Sidebar.UserAvatar` join an incoming `data-slot`
+  instead of being clobbered by it.** All three stamped their slot name before spreading rest props, so a
+  consumer-passed or ancestor-forwarded `data-slot` replaced `sidebar-separator` /
+  `sidebar-account-avatar` / `sidebar-user-avatar` outright and any styling or test selector targeting them
+  silently stopped matching. They now merge the incoming chain ahead of their own name, like every other
+  sidebar part.
 - **`⌘B` / `Ctrl+B` respects the platform and text fields.** The sidebar shortcut accepted *either* modifier
   on *every* platform, so on macOS `Ctrl+B` — the native emacs-style "move the caret back one character" that
   every macOS text field binds — was `preventDefault`ed and toggled the sidebar instead, including inside

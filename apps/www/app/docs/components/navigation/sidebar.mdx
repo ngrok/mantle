@@ -708,7 +708,8 @@ Sidebar.Root
 │   │       ├── Sidebar.GroupLabel
 │   │       └── Sidebar.List
 │   │           └── Sidebar.Item
-│   │               └── Sidebar.ItemButton
+│   │               └── Sidebar.Tooltip
+│   │                   └── Sidebar.ItemButton
 │   └── Sidebar.Footer
 │       ├── Sidebar.ItemButton
 │       ├── Sidebar.Separator
@@ -935,16 +936,19 @@ rail.
 ## Polymorphism
 
 `Sidebar.Header`, `Sidebar.Body`, `Sidebar.Footer`, `Sidebar.Group`, `Sidebar.GroupLabel`, `Sidebar.List`,
-`Sidebar.Item`, `Sidebar.ItemButton`, and `Sidebar.SwitcherTrigger` accept an `asChild` prop. When `true`, the
-part renders its single child instead of its default element, forwarding all class names, `data-*`
-attributes, and the ref onto that child. The most common uses are router links on `Sidebar.ItemButton` (shown
-throughout this page) and composing `Sidebar.SwitcherTrigger` with `DropdownMenu.Trigger asChild` or
-`Dialog.Trigger asChild`.
+`Sidebar.Item`, `Sidebar.ItemButton`, `Sidebar.SwitcherTrigger`, and `Sidebar.Separator` accept an `asChild`
+prop. When `true`, the part renders its single child instead of its default element, forwarding all class
+names, `data-*` attributes, and the ref onto that child. The most common uses are router links on
+`Sidebar.ItemButton` (shown throughout this page) and composing `Sidebar.SwitcherTrigger` with
+`DropdownMenu.Trigger asChild` or `Dialog.Trigger asChild`. `Sidebar.Separator` inherits it from the
+[Separator](/components/structure/separator) it composes.
 
 `Sidebar.Nav` and `Sidebar.Trigger` deliberately do not support `asChild`: the nav renders
 a fixed two-element collapse structure (and a `Sheet` on mobile), and the trigger renders
 a fully-wired control — build custom triggers with `useSidebar` instead. `Sidebar.AccountAvatar` and
-`Sidebar.UserAvatar` are prop-driven leaves.
+`Sidebar.UserAvatar` are prop-driven leaves. `Sidebar.Tooltip` takes no `asChild` either: it configures a
+portalled `Tooltip.Content`, and the row's own polymorphism goes through the `Sidebar.ItemButton` or
+`Sidebar.SwitcherTrigger` you wrap in it.
 
 Below, `Sidebar.GroupLabel` renders a real `<h3>` and each `Sidebar.ItemButton` renders an `<a>` instead of
 its default `<button>`. The parts' classes, `data-*` state, and refs land on your elements, and the
@@ -1097,6 +1101,16 @@ the panel surface in both presentations (the desktop collapse container and the 
 emits a bare `data-hydrated` once client hydration
 completes — an internal gate that lets collapse transitions snap instead of animating when SSR state is
 corrected on load.)
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop               | Type     | Default  | Description                                                                                                                                                   |
+| ------------------ | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `aria-label?`      | `string` | `"Main"` | Names the inner `<nav>` landmark, and the mobile `Sheet` dialog along with it. Override it for localization. Omitted when you pass `aria-labelledby` instead. |
+| `aria-labelledby?` | `string` | —        | Names the `<nav>` from another element's id, and names the mobile sheet dialog directly. Takes precedence over the `aria-label` default.                      |
+| `data-slot?`       | `string` | —        | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-nav` rather than replacing it.                                              |
+
+`Sidebar.Nav` takes no `asChild` — see [Polymorphism](#polymorphism).
 
 | CSS Variable             | Default   | Description                                                                                                                                                                                                                                                                                   |
 | ------------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1278,10 +1292,10 @@ Labels a row while — and only while — the desktop panel is collapsed to the 
 [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor and must be inside a
 `Sidebar.Root` (it throws otherwise).
 
-| Prop        | Type        | Default | Description                                                                                                                            |
-| ----------- | ----------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `label`     | `ReactNode` | —       | What the tooltip says — normally the row's own label text.                                                                             |
-| `children?` | `ReactNode` | —       | The row to label: a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`, optionally already wrapped in a `DropdownMenu.Trigger asChild`. |
+| Prop       | Type           | Default | Description                                                                                                                                                                                                                                                                 |
+| ---------- | -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `label`    | `ReactNode`    | —       | What the tooltip says — normally the row's own label text.                                                                                                                                                                                                                  |
+| `children` | `ReactElement` | —       | The single element row to label: a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`, optionally already wrapped in a `DropdownMenu.Trigger asChild`. Required — `Tooltip.Trigger asChild` clones it, so text or no child renders nothing hoverable and is a compile error. |
 
 The tooltip content is stamped `data-slot="sidebar-tooltip"` for styling and test targeting.
 
@@ -1291,7 +1305,15 @@ An inset hairline between sidebar regions, aligned with the surrounding `Sidebar
 padding (it deliberately does not run edge to edge). When the sidebar is expanded, those regions trim their
 trailing inset to account for the adjacent app-content gutter. When it collapses to the icon rail, the
 separator widens to the collapsed switcher chip width so it stays optically centered between the viewport
-edge and content card. All props from [Separator](/components/structure/separator).
+edge and content card.
+
+All props from [Separator](/components/structure/separator), including:
+
+| Prop           | Type                           | Default        | Description                                                                                                                    |
+| -------------- | ------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `asChild?`     | `boolean`                      | `false`        | Use the `asChild` prop to compose the `Sidebar.Separator` styling onto alternative element types or your own components.       |
+| `orientation?` | `"horizontal"` \| `"vertical"` | `"horizontal"` | The separator's axis. Sidebar regions stack vertically, so the horizontal default is almost always what you want.              |
+| `semantic?`    | `boolean`                      | `false`        | When `true`, renders `role="separator"` and is announced. Leave it `false` for a decorative divider between navigation groups. |
 
 ### Sidebar.AccountAvatar
 

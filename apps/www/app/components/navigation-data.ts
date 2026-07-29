@@ -299,7 +299,7 @@ export const layoutRoutes = {
 /** Short descriptions for the layouts index page. */
 export const layoutDescriptions = {
 	"App Layout":
-		"A viewport-locked application shell — a full-width notice strip, a toolbar header, and a rounded content card that is the only scroll container — designed to compose with (but stay decoupled from) the Sidebar.",
+		"A viewport-locked application shell — a full-width notice strip, a toolbar header, and a rounded content card whose page region is the only scroll container — designed to compose with (but stay decoupled from) the Sidebar.",
 	"Centered Layout":
 		"A viewport-filling centered page flow — brand mark, centered content, and a pinned utility footer — for sign-in, onboarding, 404, and other focused full-page states.",
 } as const satisfies Record<(typeof layoutPages)[number], string>;

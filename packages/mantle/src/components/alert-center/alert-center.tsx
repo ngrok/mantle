@@ -522,12 +522,21 @@ function Announcer({ store }: { store: AlertCenterStore }) {
  * ```
  */
 type AlertCenterRootProps = {
-	/** Controlled expanded state of the additional-alert list. */
+	/** Controlled expanded state of the additional-alert list. Pair with `onOpenChange`. */
 	open?: boolean;
-	/** Uncontrolled initial expanded state of the additional-alert list. */
+	/**
+	 * Uncontrolled initial expanded state of the additional-alert list.
+	 *
+	 * @default false
+	 */
 	defaultOpen?: boolean;
 	/** Called when the additional-alert list expands or collapses. */
 	onOpenChange?: (open: boolean) => void;
+	/**
+	 * The `AlertCenter.Bar`, `AlertCenter.Content`, and every `AlertCenter.Item`.
+	 * Items may be authored anywhere under the root — their children stay in this
+	 * tree and are projected into the bar or an expansion row by rank.
+	 */
 	children?: ReactNode;
 };
 
@@ -1117,8 +1126,29 @@ const singleLineBarControls =
  *   <AlertCenter.Bar />
  *   <AlertCenter.Content />
  *   <AlertCenter.Item id="payment-failed" intent="danger">
- *     …
+ *     <Alert.Icon />
+ *     <Alert.Content>
+ *       <Alert.Title>
+ *         Payment failed — we couldn't charge your card.{" "}
+ *         <a href="/billing">Update payment method</a>
+ *       </Alert.Title>
+ *       <Alert.Description>
+ *         Update your payment method to avoid a service interruption.
+ *       </Alert.Description>
+ *     </Alert.Content>
  *   </AlertCenter.Item>
+ *   {!dismissed.has("transfer-limit") && (
+ *     <AlertCenter.Item id="transfer-limit" intent="warning">
+ *       <Alert.Icon />
+ *       <Alert.Content>
+ *         <Alert.Title>
+ *           You've used 92% of your monthly transfer.{" "}
+ *           <a href="/billing/choose-a-plan">Upgrade</a>
+ *         </Alert.Title>
+ *         <AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
+ *       </Alert.Content>
+ *     </AlertCenter.Item>
+ *   )}
  * </AlertCenter.Root>
  * ```
  */
@@ -1311,9 +1341,23 @@ type AlertCenterContentProps = Omit<ComponentProps<"div">, "children" | "id"> & 
  * <AlertCenter.Root>
  *   <AlertCenter.Bar />
  *   <AlertCenter.Content aria-label="Autres alertes" />
- *   <AlertCenter.Item id="transfer-limit" intent="warning">
- *     …
+ *   <AlertCenter.Item id="payment-failed" intent="danger">
+ *     <Alert.Icon />
+ *     <Alert.Content>
+ *       <Alert.Title>
+ *         Payment failed — <a href="/billing">update your card</a>
+ *       </Alert.Title>
+ *     </Alert.Content>
  *   </AlertCenter.Item>
+ *   {!dismissed.has("transfer-limit") && (
+ *     <AlertCenter.Item id="transfer-limit" intent="warning">
+ *       <Alert.Icon />
+ *       <Alert.Content>
+ *         <Alert.Title>Approaching your data transfer limit</Alert.Title>
+ *         <AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
+ *       </Alert.Content>
+ *     </AlertCenter.Item>
+ *   )}
  * </AlertCenter.Root>
  * ```
  */
@@ -1590,8 +1634,29 @@ const AlertCenter = {
 	 *   <AlertCenter.Bar />
 	 *   <AlertCenter.Content />
 	 *   <AlertCenter.Item id="payment-failed" intent="danger">
-	 *     …
+	 *     <Alert.Icon />
+	 *     <Alert.Content>
+	 *       <Alert.Title>
+	 *         Payment failed — we couldn't charge your card.{" "}
+	 *         <a href="/billing">Update payment method</a>
+	 *       </Alert.Title>
+	 *       <Alert.Description>
+	 *         Update your payment method to avoid a service interruption.
+	 *       </Alert.Description>
+	 *     </Alert.Content>
 	 *   </AlertCenter.Item>
+	 *   {!dismissed.has("transfer-limit") && (
+	 *     <AlertCenter.Item id="transfer-limit" intent="warning">
+	 *       <Alert.Icon />
+	 *       <Alert.Content>
+	 *         <Alert.Title>
+	 *           You've used 92% of your monthly transfer.{" "}
+	 *           <a href="/billing/choose-a-plan">Upgrade</a>
+	 *         </Alert.Title>
+	 *         <AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
+	 *       </Alert.Content>
+	 *     </AlertCenter.Item>
+	 *   )}
 	 * </AlertCenter.Root>
 	 * ```
 	 */
@@ -1610,8 +1675,29 @@ const AlertCenter = {
 	 *   <AlertCenter.Bar />
 	 *   <AlertCenter.Content />
 	 *   <AlertCenter.Item id="payment-failed" intent="danger">
-	 *     …
+	 *     <Alert.Icon />
+	 *     <Alert.Content>
+	 *       <Alert.Title>
+	 *         Payment failed — we couldn't charge your card.{" "}
+	 *         <a href="/billing">Update payment method</a>
+	 *       </Alert.Title>
+	 *       <Alert.Description>
+	 *         Update your payment method to avoid a service interruption.
+	 *       </Alert.Description>
+	 *     </Alert.Content>
 	 *   </AlertCenter.Item>
+	 *   {!dismissed.has("transfer-limit") && (
+	 *     <AlertCenter.Item id="transfer-limit" intent="warning">
+	 *       <Alert.Icon />
+	 *       <Alert.Content>
+	 *         <Alert.Title>
+	 *           You've used 92% of your monthly transfer.{" "}
+	 *           <a href="/billing/choose-a-plan">Upgrade</a>
+	 *         </Alert.Title>
+	 *         <AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
+	 *       </Alert.Content>
+	 *     </AlertCenter.Item>
+	 *   )}
 	 * </AlertCenter.Root>
 	 * ```
 	 */
@@ -1628,9 +1714,23 @@ const AlertCenter = {
 	 * <AlertCenter.Root>
 	 *   <AlertCenter.Bar />
 	 *   <AlertCenter.Content />
-	 *   <AlertCenter.Item id="transfer-limit" intent="warning">
-	 *     …
+	 *   <AlertCenter.Item id="payment-failed" intent="danger">
+	 *     <Alert.Icon />
+	 *     <Alert.Content>
+	 *       <Alert.Title>
+	 *         Payment failed — <a href="/billing">update your card</a>
+	 *       </Alert.Title>
+	 *     </Alert.Content>
 	 *   </AlertCenter.Item>
+	 *   {!dismissed.has("transfer-limit") && (
+	 *     <AlertCenter.Item id="transfer-limit" intent="warning">
+	 *       <Alert.Icon />
+	 *       <Alert.Content>
+	 *         <Alert.Title>Approaching your data transfer limit</Alert.Title>
+	 *         <AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
+	 *       </Alert.Content>
+	 *     </AlertCenter.Item>
+	 *   )}
 	 * </AlertCenter.Root>
 	 * ```
 	 */

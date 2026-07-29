@@ -654,11 +654,18 @@ top-aligns them once the top alert has a description, matching every expansion r
 The chrome `Alert.Root` around each item's children is stamped with data attributes for placement-aware
 styling (e.g. Tailwind's `in-data-[placement=bar]:hidden` inside authored children):
 
-| Attribute        | Values                                    | Description                                        |
-| ---------------- | ----------------------------------------- | -------------------------------------------------- |
-| `data-slot`      | `alert-center-bar` \| `alert-center-item` | The bar banner vs an expansion row.                |
-| `data-placement` | `bar` \| `list`                           | Where the item's children are currently rendering. |
-| `data-alert-id`  | the item's `id`                           | Per-alert styling and testing hook.                |
+| Data Attribute     | Value                                                                                                                       | Description                                                                                                                   |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`        | `alert-center-bar` \| `alert-center-content` \| `alert-center-item` \| `alert-center-bar-mount` \| `alert-center-item-host` | The bar banner, the expansion wrapper, an expansion row, and the two projection mount points.                                 |
+| `data-placement`   | `"bar"` \| `"list"`                                                                                                         | Where the item's children are currently rendering.                                                                            |
+| `data-alert-id`    | the item's `id`                                                                                                             | Per-alert styling and testing hook, on the chrome.                                                                            |
+| `data-state`       | `"open"` \| `"closed"`                                                                                                      | On the bar's animation wrapper and on `AlertCenter.Content`; drives the enter/exit transition. `closed` while the exit plays. |
+| `data-alert-host`  | the item's `id`                                                                                                             | On the stable per-id host that holds an item's projected children across re-ranks.                                            |
+| `data-alert-mount` | the item's `id`                                                                                                             | On an expansion row's mount point — the element a host is adopted into.                                                       |
+
+`AlertCenter`'s own CSS also _reads_ two attributes that [Alert](/components/feedback/alert) stamps, not this
+component: `data-alert-dismiss` and `data-alert-expand`, used to center those controls when an item has no
+`Alert.Description`.
 
 ## Testing
 

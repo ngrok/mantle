@@ -19,7 +19,7 @@ import { Slot } from "../slot/index.js";
  * keyboard users can jump past the sidebar and toolbar straight into the
  * scrolling page region.
  *
- * @see https://mantle.ngrok.com/layouts/app-layout
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutroot
  *
  * @example
  * ```tsx
@@ -82,7 +82,7 @@ const Root = ({
  * `Banner` so it never reads as the ARIA `banner` landmark — it claims no
  * landmark at all.
  *
- * @see https://mantle.ngrok.com/layouts/app-layout
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutnotice
  *
  * @example
  * ```tsx
@@ -145,7 +145,7 @@ const Notice = ({
  * so a rail stays flush against the window edge and a collapsed icon rail keeps
  * its flush geometry.
  *
- * @see https://mantle.ngrok.com/layouts/app-layout
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutworkspace
  *
  * @example
  * ```tsx
@@ -217,7 +217,7 @@ const Workspace = ({
  * | --- | --- | --- |
  * | `--app-layout-card-gutter` | `0.5rem` | The gap between the card and the window edge, the notice above it, and the rail beside it (8px). `AppLayout.Header` subtracts twice this value when deriving its height, so overriding it keeps the toolbar aligned with the sidebar header. |
  *
- * @see https://mantle.ngrok.com/layouts/app-layout
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutcontent
  *
  * @example
  * ```tsx
@@ -302,16 +302,13 @@ const Content = ({
  * `AppLayout.Root`'s `className`) and both rows move together.
  *
  * **CSS variables (public API):**
- * - `--sidebar-header-height` — read, not owned: `Sidebar.Header` owns this
- *   token (default `4.5rem`) and `AppLayout.Header` derives its own height
- *   from it whenever a sidebar header is present in the shell. Set it on a
- *   common ancestor of both rows (e.g. `AppLayout.Root`), never on one of
- *   them, since custom properties only inherit downward.
- * - `--app-layout-card-gutter` — read, not owned: `AppLayout.Content` owns this
- *   token (default `0.5rem`). The derived height subtracts twice its value, so
- *   changing the card gutter keeps the two rows aligned instead of drifting.
  *
- * @see https://mantle.ngrok.com/layouts/app-layout
+ * | CSS Variable | Default | Description |
+ * | --- | --- | --- |
+ * | `--sidebar-header-height` | `4.5rem` | Read, not owned: `Sidebar.Header` owns this token and `AppLayout.Header` derives its own height from it whenever a sidebar header is present in the shell. Set it on a common ancestor of both rows (e.g. `AppLayout.Root`), never on one of them, since custom properties only inherit downward. |
+ * | `--app-layout-card-gutter` | `0.5rem` | Read, not owned: `AppLayout.Content` owns this token. The derived height subtracts twice its value, so changing the card gutter keeps the two rows aligned instead of drifting. |
+ *
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutheader
  *
  * @example
  * ```tsx
@@ -399,7 +396,7 @@ const Header = ({
  * It is `relative` too, so page content positioned with `absolute` is contained
  * by the scrollport the route author is already reasoning about.
  *
- * @see https://mantle.ngrok.com/layouts/app-layout
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutbody
  *
  * @example
  * ```tsx
@@ -507,7 +504,7 @@ const AppLayout = {
 	 * The outer frame. Fills its nearest sized ancestor; merge
 	 * `className="fixed inset-0"` to pin a real app shell to the viewport.
 	 *
-	 * @see https://mantle.ngrok.com/layouts/app-layout
+	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutroot
 	 *
 	 * @example
 	 * ```tsx
@@ -538,7 +535,7 @@ const AppLayout = {
 	 * A full-window-width strip above everything (maintenance notices,
 	 * environment warnings). Unstyled; collapses when empty.
 	 *
-	 * @see https://mantle.ngrok.com/layouts/app-layout
+	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutnotice
 	 *
 	 * @example
 	 * ```tsx
@@ -569,7 +566,7 @@ const AppLayout = {
 	 * The row below the notice where the user works — place a `Sidebar.Nav`
 	 * beside an `AppLayout.Content` card here.
 	 *
-	 * @see https://mantle.ngrok.com/layouts/app-layout
+	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutworkspace
 	 *
 	 * @example
 	 * ```tsx
@@ -601,7 +598,7 @@ const AppLayout = {
 	 * the page region. Insets itself with `--app-layout-card-gutter`; does not
 	 * scroll — `AppLayout.Body` does.
 	 *
-	 * @see https://mantle.ngrok.com/layouts/app-layout
+	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutcontent
 	 *
 	 * @example
 	 * ```tsx
@@ -633,7 +630,7 @@ const AppLayout = {
 	 * first child, with `Sidebar.Trigger` in its top-left followed by
 	 * breadcrumbs. Pinned by `shrink-0`, not `sticky`.
 	 *
-	 * @see https://mantle.ngrok.com/layouts/app-layout
+	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutheader
 	 *
 	 * @example
 	 * ```tsx
@@ -666,7 +663,7 @@ const AppLayout = {
 	 * still center. Compose `Main` here via `asChild` when the shell owns the
 	 * document.
 	 *
-	 * @see https://mantle.ngrok.com/layouts/app-layout
+	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutbody
 	 *
 	 * @example
 	 * ```tsx

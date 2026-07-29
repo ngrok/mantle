@@ -125,7 +125,7 @@ const SidebarContext = createContext<SidebarState | null>(null);
  * `Sidebar.Root` so misuse fails loudly. Use it to build custom triggers,
  * a keyboard shortcut, or close-on-navigate behavior.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#usesidebar
  *
  * @example
  * ```tsx
@@ -156,6 +156,11 @@ function useSidebarContext(part: string): SidebarState {
 }
 
 type SidebarRootProps = {
+	/**
+	 * The sidebar's parts — a `Sidebar.Nav` and anything that reads the state,
+	 * including a `Sidebar.Trigger` rendered anywhere below (an
+	 * `AppLayout.Header`, for example). `Root` renders no DOM of its own.
+	 */
 	children?: ReactNode;
 	/**
 	 * The initial desktop expanded state for the uncontrolled case.
@@ -274,13 +279,24 @@ function claimKeyboardShortcut(): { isOwner: () => boolean; release: () => void 
  * Render exactly one `Sidebar.Nav` per `Sidebar.Root`. Nested roots shadow
  * the outer sidebar for everything below them.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarroot
  *
  * @example
  * ```tsx
  * <Sidebar.Root>
  *   <Sidebar.Nav aria-label="Main">
- *     <Sidebar.Header>…</Sidebar.Header>
+ *     <Sidebar.Header>
+ *       <DropdownMenu.Root>
+ *         <DropdownMenu.Trigger asChild>
+ *           <Sidebar.SwitcherTrigger>
+ *             <GlobeIcon />
+ *             <span className="text-strong min-w-0 flex-1 truncate text-base">Universal Gateway</span>
+ *             <CaretDownIcon className="text-muted size-4 shrink-0" />
+ *           </Sidebar.SwitcherTrigger>
+ *         </DropdownMenu.Trigger>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
+ *       </DropdownMenu.Root>
+ *     </Sidebar.Header>
  *     <Sidebar.Body>
  *       <Sidebar.Group>
  *         <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
@@ -296,11 +312,21 @@ function claimKeyboardShortcut(): { isOwner: () => boolean; release: () => void 
  *         </Sidebar.List>
  *       </Sidebar.Group>
  *     </Sidebar.Body>
- *     <Sidebar.Footer>…</Sidebar.Footer>
+ *     <Sidebar.Footer>
+ *       <Sidebar.Separator />
+ *       <DropdownMenu.Root>
+ *         <DropdownMenu.Trigger asChild>
+ *           <Sidebar.SwitcherTrigger>
+ *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
+ *             <Sidebar.UserAvatar alt="Jane Doe" />
+ *           </Sidebar.SwitcherTrigger>
+ *         </DropdownMenu.Trigger>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
+ *       </DropdownMenu.Root>
+ *     </Sidebar.Footer>
  *   </Sidebar.Nav>
- *   <main>
- *     <Sidebar.Trigger />
- *   </main>
+ *   <Sidebar.Trigger />
  * </Sidebar.Root>
  * ```
  */
@@ -482,19 +508,30 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  * opens from. Override `--sidebar-width` at `:root` to move both together, or
  * set `--sidebar-row-width` on the outside surface itself.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarnav
  *
  * @example
  * ```tsx
  * <Sidebar.Root>
  *   <Sidebar.Nav aria-label="Main">
- *     <Sidebar.Header>…</Sidebar.Header>
+ *     <Sidebar.Header>
+ *       <DropdownMenu.Root>
+ *         <DropdownMenu.Trigger asChild>
+ *           <Sidebar.SwitcherTrigger>
+ *             <GlobeIcon />
+ *             <span className="text-strong min-w-0 flex-1 truncate text-base">Universal Gateway</span>
+ *             <CaretDownIcon className="text-muted size-4 shrink-0" />
+ *           </Sidebar.SwitcherTrigger>
+ *         </DropdownMenu.Trigger>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
+ *       </DropdownMenu.Root>
+ *     </Sidebar.Header>
  *     <Sidebar.Body>
  *       <Sidebar.Group>
  *         <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
  *         <Sidebar.List>
  *           <Sidebar.Item>
- *             <Sidebar.ItemButton asChild>
+ *             <Sidebar.ItemButton asChild current>
  *               <a href="/endpoints">
  *                 <GraphIcon />
  *                 Endpoints
@@ -504,8 +541,21 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  *         </Sidebar.List>
  *       </Sidebar.Group>
  *     </Sidebar.Body>
- *     <Sidebar.Footer>…</Sidebar.Footer>
+ *     <Sidebar.Footer>
+ *       <Sidebar.Separator />
+ *       <DropdownMenu.Root>
+ *         <DropdownMenu.Trigger asChild>
+ *           <Sidebar.SwitcherTrigger>
+ *             <Sidebar.AccountAvatar accountId="acc_123" accountName="Acme Corp" />
+ *             <span className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Acme Corp</span>
+ *             <Sidebar.UserAvatar alt="Jane Doe" />
+ *           </Sidebar.SwitcherTrigger>
+ *         </DropdownMenu.Trigger>
+ *         <DropdownMenu.Content width="trigger" className="min-w-(--sidebar-row-width)">…</DropdownMenu.Content>
+ *       </DropdownMenu.Root>
+ *     </Sidebar.Footer>
  *   </Sidebar.Nav>
+ *   <Sidebar.Trigger />
  * </Sidebar.Root>
  * ```
  */
@@ -657,7 +707,7 @@ const defaultTriggerIcon = <SidebarSimpleIcon />;
  * `AppLayout.Header`) — it must stay visible at every breakpoint where the
  * sidebar can collapse, or users have no way to reopen it.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebartrigger
  *
  * @example
  * ```tsx
@@ -781,7 +831,7 @@ type SidebarHeaderProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * | --- | --- | --- |
  * | `--sidebar-header-height` | `4.5rem` | The header row height (72px). Set it on a common ancestor of the sidebar and `AppLayout.Header`, not on `Sidebar.Nav`, so both rows read one value. |
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarheader
  *
  * @example
  * ```tsx
@@ -872,7 +922,7 @@ type SidebarBodyProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * `scroll-fade-y` mask; inside the collapsed icon rail the scrollbar and its
  * reserved gutter are hidden and the fade is the only overflow signal.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarbody
  *
  * @example
  * ```tsx
@@ -967,7 +1017,7 @@ type SidebarFooterProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * switcher row (`Sidebar.SwitcherTrigger` with `Sidebar.AccountAvatar` and
  * `Sidebar.UserAvatar`).
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarfooter
  *
  * @example
  * ```tsx
@@ -1069,7 +1119,7 @@ type SidebarGroupProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * group wires it to the list via `aria-labelledby` so assistive technology
  * announces the list with the group's name.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebargroup
  *
  * @example
  * ```tsx
@@ -1156,7 +1206,7 @@ type SidebarGroupLabelProps = ComponentProps<"div"> & WithAsChild & WithDataSlot
  * the sibling list via `aria-labelledby`. Pass `asChild` to render a heading
  * at a level you control.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebargrouplabel
  *
  * @example
  * ```tsx
@@ -1274,7 +1324,7 @@ type SidebarListProps = ComponentProps<"ul"> & WithAsChild & WithDataSlot;
  * has a `Sidebar.GroupLabel`, the list is announced with the group's name via
  * `aria-labelledby`.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarlist
  *
  * @example
  * ```tsx
@@ -1355,7 +1405,7 @@ type SidebarItemProps = ComponentProps<"li"> & WithAsChild & WithDataSlot;
  * element is the `Sidebar.ItemButton` child, so props, `ref`, and `className`
  * all target the list item itself.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaritem
  *
  * @example
  * ```tsx
@@ -1470,7 +1520,7 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
  * it keeps the expanded row's width instead of shrinking to this row's 28px
  * rail chip (see `Sidebar.SwitcherTrigger` for the whole contract).
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaritembutton
  *
  * @example
  * ```tsx
@@ -1601,7 +1651,7 @@ type SidebarSwitcherTriggerProps = ComponentProps<"button"> & WithAsChild & With
  * `--sidebar-width-mobile` whenever you widen `--sidebar-width`, or the floor
  * overhangs the sheet.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarswitchertrigger
  *
  * @example
  * ```tsx
@@ -1733,7 +1783,7 @@ type SidebarTooltipProps = {
  * stay **outside** the tooltip — it is renderless, and `Tooltip.Trigger asChild`
  * needs a real element to clone.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebartooltip
  *
  * @example
  * ```tsx
@@ -1797,7 +1847,7 @@ const SidebarTooltip = ({ children, label }: SidebarTooltipProps) => {
 	);
 };
 
-type SidebarSeparatorProps = ComponentProps<typeof Separator>;
+type SidebarSeparatorProps = ComponentProps<typeof Separator> & WithDataSlot;
 
 /**
  * An inset hairline between sidebar regions. Composes the mantle `Separator`,
@@ -1807,7 +1857,7 @@ type SidebarSeparatorProps = ComponentProps<typeof Separator>;
  * to the same 36px chip width as `Sidebar.SwitcherTrigger`, balancing the
  * adjacent app-content gutter that sits outside the rail.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarseparator
  *
  * @example
  * ```tsx
@@ -1858,9 +1908,13 @@ type SidebarSeparatorProps = ComponentProps<typeof Separator>;
  * </Sidebar.Root>
  * ```
  */
-const SidebarSeparator = ({ className, ...props }: SidebarSeparatorProps) => (
+const SidebarSeparator = ({
+	className,
+	"data-slot": dataSlot,
+	...props
+}: SidebarSeparatorProps) => (
 	<Separator
-		data-slot="sidebar-separator"
+		data-slot={joinDataSlot(dataSlot, "sidebar-separator")}
 		className={cx("my-3", "group-data-[state=collapsed]/sidebar-nav:w-9", className)}
 		{...props}
 	/>
@@ -1956,19 +2010,20 @@ function getInitials(accountName: string | undefined): string {
 	return initials || "?";
 }
 
-type SidebarAccountAvatarProps = Omit<ComponentProps<"div">, "children"> & {
-	/**
-	 * The account's stable identifier. Used to deterministically select a
-	 * background swatch from the design system's palette so the same account
-	 * always gets the same color.
-	 */
-	accountId: string | undefined;
-	/**
-	 * The account's display name. The first one or two letters become the
-	 * avatar's initials. Falls back to `?` when the name is empty.
-	 */
-	accountName: string | undefined;
-};
+type SidebarAccountAvatarProps = Omit<ComponentProps<"div">, "children"> &
+	WithDataSlot & {
+		/**
+		 * The account's stable identifier. Used to deterministically select a
+		 * background swatch from the design system's palette so the same account
+		 * always gets the same color.
+		 */
+		accountId: string | undefined;
+		/**
+		 * The account's display name. The first one or two letters become the
+		 * avatar's initials. Falls back to `?` when the name is empty.
+		 */
+		accountName: string | undefined;
+	};
 
 // Why no `asChild`: the avatar is a prop-driven leaf (initials + derived
 // color) with no children to slot-swap.
@@ -1981,7 +2036,7 @@ type SidebarAccountAvatarProps = Omit<ComponentProps<"div">, "children"> & {
  * Accounts are rendered as squares to differentiate them visually from users,
  * which use a circular `Sidebar.UserAvatar`.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaraccountavatar
  *
  * @example
  * ```tsx
@@ -2036,10 +2091,11 @@ const AccountAvatar = ({
 	accountId,
 	accountName,
 	className,
+	"data-slot": dataSlot,
 	...props
 }: SidebarAccountAvatarProps) => (
 	<div
-		data-slot="sidebar-account-avatar"
+		data-slot={joinDataSlot(dataSlot, "sidebar-account-avatar")}
 		className={cx(
 			"text-static-white flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-medium",
 			pickColorClass(accountId),
@@ -2071,21 +2127,22 @@ const UserSilhouetteIcon = ({ className, ...props }: ComponentProps<"svg">) => (
 	</svg>
 );
 
-type SidebarUserAvatarProps = Omit<ComponentProps<"div">, "children"> & {
-	/**
-	 * Optional URL of the user's profile picture. When provided, the image is
-	 * rendered to fill the avatar with `object-cover`. When omitted (or while
-	 * loading), a neutral person silhouette is shown.
-	 */
-	src?: string;
-	/**
-	 * Accessible label for the avatar. Used as the image's `alt` text and as
-	 * the container's `aria-label` when no image is rendered.
-	 *
-	 * @default "Your account"
-	 */
-	alt?: string;
-};
+type SidebarUserAvatarProps = Omit<ComponentProps<"div">, "children"> &
+	WithDataSlot & {
+		/**
+		 * Optional URL of the user's profile picture. When provided, the image is
+		 * rendered to fill the avatar with `object-cover`. When omitted (or while
+		 * loading), a neutral person silhouette is shown.
+		 */
+		src?: string;
+		/**
+		 * Accessible label for the avatar. Used as the image's `alt` text and as
+		 * the container's `aria-label` when no image is rendered.
+		 *
+		 * @default "Your account"
+		 */
+		alt?: string;
+	};
 
 // Why no `asChild`: the avatar is a prop-driven leaf (`src`/`alt` with an
 // internal fallback) with no children to slot-swap.
@@ -2097,7 +2154,7 @@ type SidebarUserAvatarProps = Omit<ComponentProps<"div">, "children"> & {
  * Users are rendered as circles to differentiate them visually from accounts,
  * which use a square `Sidebar.AccountAvatar`.
  *
- * @see https://mantle.ngrok.com/components/navigation/sidebar
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaruseravatar
  *
  * @example
  * ```tsx
@@ -2148,9 +2205,15 @@ type SidebarUserAvatarProps = Omit<ComponentProps<"div">, "children"> & {
  * </Sidebar.Root>
  * ```
  */
-const UserAvatar = ({ alt = "Your account", className, src, ...props }: SidebarUserAvatarProps) => (
+const UserAvatar = ({
+	alt = "Your account",
+	className,
+	"data-slot": dataSlot,
+	src,
+	...props
+}: SidebarUserAvatarProps) => (
 	<div
-		data-slot="sidebar-user-avatar"
+		data-slot={joinDataSlot(dataSlot, "sidebar-user-avatar")}
 		className={cx(
 			"text-muted bg-neutral-500/15 relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full",
 			className,
@@ -2192,8 +2255,10 @@ const UserAvatar = ({ alt = "Your account", className, src, ...props }: SidebarU
  * │   │       ├── Sidebar.GroupLabel
  * │   │       └── Sidebar.List
  * │   │           └── Sidebar.Item
- * │   │               └── Sidebar.ItemButton
+ * │   │               └── Sidebar.Tooltip
+ * │   │                   └── Sidebar.ItemButton
  * │   └── Sidebar.Footer
+ * │       ├── Sidebar.ItemButton
  * │       ├── Sidebar.Separator
  * │       └── Sidebar.SwitcherTrigger
  * │           ├── Sidebar.AccountAvatar
@@ -2256,7 +2321,7 @@ const Sidebar = {
 	 * mobile-sheet state to every part below it so the trigger can live in the
 	 * app shell without coupling it to the sidebar.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarroot
 	 *
 	 * @example
 	 * ```tsx
@@ -2314,7 +2379,7 @@ const Sidebar = {
 	 * `--sidebar-width` / `--sidebar-width-mobile` via its `className` or
 	 * `style`.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarnav
 	 *
 	 * @example
 	 * ```tsx
@@ -2370,7 +2435,7 @@ const Sidebar = {
 	 * The `IconButton` that toggles the sidebar. Place it in the app shell's
 	 * header; it stays functional at every breakpoint.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebartrigger
 	 *
 	 * @example
 	 * ```tsx
@@ -2427,7 +2492,7 @@ const Sidebar = {
 	 * switcher (`Sidebar.SwitcherTrigger` + `DropdownMenu`/`Dialog`). Its
 	 * height vertically aligns the switcher with an `AppLayout.Header`.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarheader
 	 *
 	 * @example
 	 * ```tsx
@@ -2482,7 +2547,7 @@ const Sidebar = {
 	/**
 	 * The scrollable middle region holding the navigation groups.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarbody
 	 *
 	 * @example
 	 * ```tsx
@@ -2538,7 +2603,7 @@ const Sidebar = {
 	 * The pinned bottom container, typically holding cross-product items and
 	 * the account/user switcher row.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarfooter
 	 *
 	 * @example
 	 * ```tsx
@@ -2594,7 +2659,7 @@ const Sidebar = {
 	 * A grouping container pairing a `GroupLabel` with a `List`; wires the
 	 * label to the list via `aria-labelledby`.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebargroup
 	 *
 	 * @example
 	 * ```tsx
@@ -2650,7 +2715,7 @@ const Sidebar = {
 	 * The muted label of a group. Renders a `<div>`; pass `asChild` to render
 	 * a heading at a level you control.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebargrouplabel
 	 *
 	 * @example
 	 * ```tsx
@@ -2705,7 +2770,7 @@ const Sidebar = {
 	/**
 	 * The `<ul>` of navigation rows in a group.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarlist
 	 *
 	 * @example
 	 * ```tsx
@@ -2760,7 +2825,7 @@ const Sidebar = {
 	/**
 	 * A single `<li>` row wrapper.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaritem
 	 *
 	 * @example
 	 * ```tsx
@@ -2816,7 +2881,7 @@ const Sidebar = {
 	 * The interactive navigation row (icon + truncating label). `asChild` for
 	 * router links; `current` for the active page.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaritembutton
 	 *
 	 * @example
 	 * ```tsx
@@ -2872,7 +2937,7 @@ const Sidebar = {
 	 * The styled switcher row for the header/footer. Not state-wired — compose
 	 * with `DropdownMenu.Trigger asChild` or `Dialog.Trigger asChild`.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarswitchertrigger
 	 *
 	 * @example
 	 * ```tsx
@@ -2929,7 +2994,7 @@ const Sidebar = {
 	 * around a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`. Requires a
 	 * `TooltipProvider` ancestor.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebartooltip
 	 *
 	 * @example
 	 * ```tsx
@@ -2991,7 +3056,7 @@ const Sidebar = {
 	 * An inset hairline between sidebar regions, aligned with the content
 	 * padding.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarseparator
 	 *
 	 * @example
 	 * ```tsx
@@ -3047,7 +3112,7 @@ const Sidebar = {
 	 * A rounded-square account avatar with deterministic, WCAG-compliant
 	 * swatch colors derived from the account id.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaraccountavatar
 	 *
 	 * @example
 	 * ```tsx
@@ -3102,7 +3167,7 @@ const Sidebar = {
 	/**
 	 * A circular user avatar with a silhouette fallback.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/sidebar
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaruseravatar
 	 *
 	 * @example
 	 * ```tsx

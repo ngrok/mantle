@@ -208,7 +208,7 @@ describe("AppLayout.Content", () => {
 		);
 	});
 
-	test("is a flex column, so Header/Body/Footer stack and Body can flex", () => {
+	test("is a flex column, so Header and Body stack and Body can flex", () => {
 		render(<AppLayout.Content data-testid="content">page</AppLayout.Content>);
 		const { className } = screen.getByTestId("content");
 		expect(className).toContain("flex");

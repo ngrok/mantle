@@ -1,6 +1,6 @@
 ---
 title: App Layout
-description: A viewport-locked application shell — a full-width notice strip, a toolbar header, and a rounded content card that is the shell's only scroll container.
+description: A viewport-locked application shell — a full-width notice strip, a toolbar header, and a rounded content card whose page region is the shell's only scroll container.
 ---
 
 import { CodeExample } from "~/components/code-example";
@@ -587,7 +587,7 @@ AppLayout.Root
   rail, on either side) beside the `Content` card. The `min-h-0` is what lets `Body` scroll instead of the
   page. It owns **no gutter**, deliberately — so a rail stays flush against the window edge and a collapsed
   icon rail keeps its flush geometry.
-- **`Content`** is the card surface: `bg-card border-card-muted relative m-2 flex min-w-0 flex-1 flex-col
+- **`Content`** is the card surface: `bg-card border-card-muted relative m-[var(--app-layout-card-gutter,0.5rem)] flex min-w-0 flex-1 flex-col
 overflow-clip rounded-xl border shadow-sm`. It insets **itself** with its own margin
   (`--app-layout-card-gutter`), because the gutter has to belong to the card rather than to a wrapper — the
   only other element that could hold it also contains the rail. It does **not** scroll.
@@ -894,6 +894,18 @@ import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 Every part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default
 element, forwarding all class names, `data-*` attributes, and the ref onto that child.
 
+All six parts support it, and each has a reason a consumer would reach for it:
+
+- **`AppLayout.Root`** — a `<form>` when the whole shell is one submission surface, or your own themed frame.
+- **`AppLayout.Notice`** — an `<aside>` or a live region when the strip's content needs its own semantics.
+- **`AppLayout.Workspace`** — rarely; swap it when the columns row needs a different element or a wrapper
+  component of your own.
+- **`AppLayout.Content`** — a `<section>` when the card is a labelled region of a larger document.
+- **`AppLayout.Header`** — a real `<header>`, but only when the shell does _not_ own the `main` landmark (see
+  [Accessibility](#accessibility) for why the default is a `<div>`).
+- **`AppLayout.Body`** — the [Main](/components/primitives/main) landmark, which is what a real app shell
+  should almost always do (see [Landmarks](#landmarks)).
+
 <CodeExample.Root>
 	<CodeExample.Preview className="p-0 md:p-0">
 		<AppLayoutPolymorphismDemo />
@@ -958,7 +970,7 @@ via `cx` (tailwind-merge-backed, so consumer classes win).
 
 The outer frame of the shell: `relative isolate flex h-full w-full flex-col overflow-hidden bg-base`. Fills
 its nearest sized ancestor; merge `className="fixed inset-0"` to pin a real app shell to the viewport. The
-shell itself never scrolls — only `AppLayout.Content` does. When the shell owns the document, render a
+shell itself never scrolls — only [`AppLayout.Body`](#applayoutbody) does. When the shell owns the document, render a
 [SkipToMainLink](/components/primitives/skip-to-main-link) as its first child (see
 [Landmarks](#landmarks)).
 
@@ -1003,7 +1015,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 ### AppLayout.Content
 
 The card surface beside the sidebar:
-`bg-card border-card-muted relative m-2 flex min-w-0 flex-1 flex-col overflow-clip rounded-xl border shadow-sm`.
+`bg-card border-card-muted relative m-[var(--app-layout-card-gutter,0.5rem)] flex min-w-0 flex-1 flex-col overflow-clip rounded-xl border shadow-sm`.
 Holds `AppLayout.Header` and `AppLayout.Body`.
 
 The card **does not scroll** — [`AppLayout.Body`](#applayoutbody) does. It insets itself from the window edge

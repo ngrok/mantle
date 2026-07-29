@@ -373,6 +373,41 @@ describe("writeSourcesToCssFile", () => {
 		expect(listGlobCount).toBe(1);
 	});
 
+	it("emits the alert chunk glob for alert-center without duplicating it when alert is also present", () => {
+		writeFile("global.css", `@import "tailwindcss";\n`);
+		const cssFile = path.join(tmpDir, "global.css");
+		const distDir = path.join(tmpDir, "dist");
+
+		// alert-center alone: AlertCenter's banner chrome classes live in the
+		// alert chunk, so the glob must be emitted with no alert.js entry stub.
+		writeSourcesToCssFile(cssFile, new Set(["alert-center"]), distDir);
+		let content = readFile("global.css");
+		expect(content).toContain(`@source "./dist/alert-*.js";`);
+		expect(content).not.toContain(`@source "./dist/alert.js";`);
+
+		// alert + alert-center: exactly one glob line, plus the alert.js stub.
+		writeSourcesToCssFile(cssFile, new Set(["alert", "alert-center"]), distDir);
+		content = readFile("global.css");
+		expect(content).toContain(`@source "./dist/alert.js";`);
+		const alertGlobCount = (content.match(/"\.\/dist\/alert-\*\.js"/g) ?? []).length;
+		expect(alertGlobCount).toBe(1);
+	});
+
+	it("emits every chunk glob sidebar renders through", () => {
+		writeFile("global.css", `@import "tailwindcss";\n`);
+		const cssFile = path.join(tmpDir, "global.css");
+		const distDir = path.join(tmpDir, "dist");
+
+		// Sidebar renders an IconButton, a Separator, the mobile Sheet, and the
+		// icon-rail Tooltip; none of their classes remain in sidebar.js.
+		writeSourcesToCssFile(cssFile, new Set(["sidebar"]), distDir);
+		const content = readFile("global.css");
+		for (const chunk of ["button", "separator", "sheet", "tooltip"]) {
+			expect(content).toContain(`@source "./dist/${chunk}-*.js";`);
+			expect(content).not.toContain(`@source "./dist/${chunk}.js";`);
+		}
+	});
+
 	it("does not produce prefix collisions between similar component names", () => {
 		// "alert" must not match "alert-dialog"; "code" must not match "code-block".
 		// Each component gets its own exact `.js` and chunk `-*.js` pair.
