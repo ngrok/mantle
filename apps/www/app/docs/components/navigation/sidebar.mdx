@@ -855,7 +855,7 @@ export function PendingAwareRow() {
 ## Width
 
 The panel's width is a CSS variable, not a prop: `Sidebar.Nav` reads each of the three widths with the
-default as its fallback (`w-[var(--sidebar-width,16rem)]`), so there is nothing to thread through your shell
+default as its fallback (`w-(--sidebar-width,16rem)`), so there is nothing to thread through your shell
 and one place to change it.
 
 | CSS Variable             | Default          | What it sizes                                           |
@@ -1025,13 +1025,17 @@ export function LabeledRail() {
 }
 ```
 
-The tooltip only mounts while the desktop panel is collapsed — expanded rows already read their own text and
-the mobile sheet shows full labels, so there is nothing to duplicate. It gates its _content_, not the whole
-`Tooltip.Root`, which keeps the row mounted across a collapse so toggling the rail never drops focus off the
-row the user was on.
+The label shows only while the desktop panel is collapsed — expanded rows already read their own text and the
+mobile sheet shows full labels, so there is nothing to duplicate. The rail state _vetoes_ the tooltip's open
+state rather than withholding its content: the expanded panel and the mobile sheet keep the row at
+`data-state="closed"` with no `aria-describedby`, and toggling the rail dismisses whatever was showing, so
+collapsing the panel cannot pop a label under a pointer that has already moved on. `Tooltip.Root` itself stays
+mounted at every rail state, which keeps the row — and its focus — through a collapse.
 
 It needs a `TooltipProvider` ancestor, like any `Tooltip.Root` — mount one at your app root. The part
-deliberately does not provide its own, so your app-wide tooltip delay and hover settings still apply.
+deliberately does not provide its own, so your app-wide tooltip delay still applies. The one provider setting
+it does override is hoverable content: a rail label holds nothing to hover into, so the label closes when the
+pointer leaves the row instead of waiting for the pointer to leave the label too.
 
 For a row that also opens a menu — the **Help** row above — keep `DropdownMenu.Root` **outside** the tooltip:
 it is renderless, and `Tooltip.Trigger asChild` needs a real element to clone. The menu itself takes the
@@ -1518,12 +1522,12 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 **Data attributes**
 
-| Data Attribute  | Value                         | Description                                                                                                                                                                                                                                        |
-| --------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-state`    | `"expanded"` \| `"collapsed"` | On the desktop panel surface. Mirrors the root's expanded state and drives the width collapse to the icon rail; descendant parts style off it with `group-data-[state=collapsed]/sidebar-nav:`.                                                    |
-| `data-hydrated` | present after hydration       | Presence-only, desktop panel surface. The CSS-side twin of the `isHydrated` gate: descendant collapse transitions are enabled only under `group-data-[hydrated]/sidebar-nav:`, so an SSR state correction snaps instead of animating on page load. |
-| `data-mobile`   | present in the mobile sheet   | Presence-only. Marks the `Sheet.Content` presentation used below the root's `mobileBreakpoint`.                                                                                                                                                    |
-| `data-state`    | `"open"` \| `"closed"`        | In the mobile sheet only, where the panel _is_ the `Sheet`'s Radix dialog content element and Radix owns the attribute — the sheet's open/close animation state, not the desktop expanded state. Consumers style against it too.                   |
+| Data Attribute  | Value                         | Description                                                                                                                                                                                                                                      |
+| --------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `data-state`    | `"expanded"` \| `"collapsed"` | On the desktop panel surface. Mirrors the root's expanded state and drives the width collapse to the icon rail; descendant parts style off it with `group-data-[state=collapsed]/sidebar-nav:`.                                                  |
+| `data-hydrated` | present after hydration       | Presence-only, desktop panel surface. The CSS-side twin of the `isHydrated` gate: descendant collapse transitions are enabled only under `group-data-hydrated/sidebar-nav:`, so an SSR state correction snaps instead of animating on page load. |
+| `data-mobile`   | present in the mobile sheet   | Presence-only. Marks the `Sheet.Content` presentation used below the root's `mobileBreakpoint`.                                                                                                                                                  |
+| `data-state`    | `"open"` \| `"closed"`        | In the mobile sheet only, where the panel _is_ the `Sheet`'s Radix dialog content element and Radix owns the attribute — the sheet's open/close animation state, not the desktop expanded state. Consumers style against it too.                 |
 
 `Sidebar.Header` reads one more public token, [`--sidebar-header-height`](#sidebarheader), which belongs on a
 common ancestor of the sidebar and the app-layout header rather than on the panel.
@@ -1702,6 +1706,11 @@ Labels a row while — and only while — the desktop panel is collapsed to the 
 [Labeling the rail for pointer users](#labeling-the-rail-for-pointer-users). Requires a
 [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor and must be inside a
 `Sidebar.Root` (it throws otherwise).
+
+It opens on hover or focus like any tooltip and closes when the pointer leaves the row — the label itself is
+not hoverable. The rail state vetoes it: the expanded panel and the mobile sheet never show it, and toggling
+the rail dismisses whatever was showing, so collapsing the panel cannot pop a label under a pointer that has
+already moved on.
 
 Its props are [`Tooltip.Content`](/components/overlays/tooltip#tooltipcontent)'s, minus the two this row
 owns, plus:

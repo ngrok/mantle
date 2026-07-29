@@ -681,7 +681,7 @@ AppLayout.Root
   rail, on either side) beside the `Content` card. The `min-h-0` is what lets `Body` scroll instead of the
   page. It owns **no gutter**, deliberately — so a rail stays flush against the window edge and a collapsed
   icon rail keeps its flush geometry.
-- **`Content`** is the card surface: `bg-card border-card-muted relative m-[var(--app-layout-card-gutter,0.5rem)] flex min-w-0 flex-1 flex-col
+- **`Content`** is the card surface: `bg-card border-card-muted relative m-(--app-layout-card-gutter,0.5rem) flex min-w-0 flex-1 flex-col
 overflow-clip rounded-xl border shadow-sm`. It insets **itself** with its own margin
   (`--app-layout-card-gutter`), because the gutter has to belong to the card rather than to a wrapper — the
   only other element that could hold it also contains the rail. It does **not** scroll.
@@ -2014,7 +2014,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 ### AppLayout.Content
 
 The card surface beside the sidebar:
-`bg-card border-card-muted relative m-[var(--app-layout-card-gutter,0.5rem)] flex min-w-0 flex-1 flex-col overflow-clip rounded-xl border shadow-sm`.
+`bg-card border-card-muted relative m-(--app-layout-card-gutter,0.5rem) flex min-w-0 flex-1 flex-col overflow-clip rounded-xl border shadow-sm`.
 Holds `AppLayout.Header` and `AppLayout.Body`.
 
 The card **does not scroll** — [`AppLayout.Body`](#applayoutbody) does. It insets itself from the window edge

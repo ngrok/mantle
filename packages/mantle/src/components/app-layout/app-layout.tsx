@@ -274,7 +274,7 @@ const Content = ({
 				// the only element that could hold padding is Workspace, which also
 				// contains the rail, so padding there would inset the sidebar off the
 				// window edge and break the flush collapsed icon rail.
-				"m-[var(--app-layout-card-gutter,0.5rem)]",
+				"m-(--app-layout-card-gutter,0.5rem)",
 				// clip, not hidden: `hidden` is a scroll container that paints no
 				// scrollbar, so a long toolbar lets focus scroll the card sideways —
 				// translating the header and the page off-screen with no way back.
@@ -367,7 +367,7 @@ const Header = ({
 				// needs its height to be the sidebar header's minus twice each.
 				// Overriding --sidebar-header-height at a common ancestor (e.g.
 				// AppLayout.Root) moves both rows together.
-				"group-has-[[data-slot~=sidebar-header]]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]",
+				"group-has-data-[slot~=sidebar-header]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]",
 				className,
 			)}
 			{...props}

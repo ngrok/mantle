@@ -515,7 +515,7 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-state` | `"expanded"` \| `"collapsed"` | On the desktop panel surface. Mirrors the root's expanded state and drives the width collapse to the icon rail; descendant parts style off it with `group-data-[state=collapsed]/sidebar-nav:`. |
- * | `data-hydrated` | present after hydration | Presence-only, desktop panel surface. The CSS-side twin of the `isHydrated` gate: descendant collapse transitions are enabled only under `group-data-[hydrated]/sidebar-nav:`, so an SSR state correction snaps instead of animating on page load. |
+ * | `data-hydrated` | present after hydration | Presence-only, desktop panel surface. The CSS-side twin of the `isHydrated` gate: descendant collapse transitions are enabled only under `group-data-hydrated/sidebar-nav:`, so an SSR state correction snaps instead of animating on page load. |
  * | `data-mobile` | present in the mobile sheet | Presence-only. Marks the `Sheet.Content` presentation used below the root's `mobileBreakpoint`. |
  * | `data-state` | `"open"` \| `"closed"` | In the mobile sheet only, where the panel *is* the `Sheet`'s Radix dialog content element and Radix owns the attribute — the sheet's open/close animation state, not the desktop expanded state. Consumers style against it too. |
  *
@@ -588,7 +588,7 @@ const Nav = ({
 			<Sheet.Root open={openMobile} onOpenChange={setOpenMobile}>
 				<Sheet.Content
 					side="left"
-					preferredWidth="sm:max-w-[var(--sidebar-width-mobile,18rem)]"
+					preferredWidth="sm:max-w-(--sidebar-width-mobile,18rem)"
 					data-slot={joinDataSlot(dataSlot, "sidebar-nav")}
 					data-mobile=""
 					// A consumer aria-labelledby names the dialog too, keeping the
@@ -596,7 +596,7 @@ const Nav = ({
 					// an explicit undefined would override the Sheet's internal
 					// Title wiring and leave the dialog unnamed.
 					{...(ariaLabelledBy == null ? null : { "aria-labelledby": ariaLabelledBy })}
-					className={cx("bg-base w-[var(--sidebar-width-mobile,18rem)] max-w-full p-0", className)}
+					className={cx("bg-base w-(--sidebar-width-mobile,18rem) max-w-full p-0", className)}
 					{...props}
 				>
 					{/* The dialog's accessible name follows the nav's, so overriding
@@ -628,10 +628,10 @@ const Nav = ({
 			className={cx(
 				// bg lives on this surface (not the inner nav) so consumer
 				// className overrides like `bg-card` take effect on desktop too.
-				"group/sidebar-nav bg-base relative h-full w-[var(--sidebar-width,16rem)] shrink-0 overflow-hidden",
+				"group/sidebar-nav bg-base relative h-full w-(--sidebar-width,16rem) shrink-0 overflow-hidden",
 				// collapsing animates the width down to the skinny icon rail; the
 				// panel content stays interactive and in the accessibility tree.
-				"data-[state=collapsed]:w-[var(--sidebar-width-icon,3.25rem)]",
+				"data-[state=collapsed]:w-(--sidebar-width-icon,3.25rem)",
 				// Pre-hydration only: the server cannot know the viewport, so hide the
 				// desktop panel below the breakpoint in CSS to avoid a flash of the
 				// wrong presentation on a narrow screen. After hydration `isMobile`
@@ -918,7 +918,7 @@ const Header = ({
 				// The height token centers the switcher row on the same line as an
 				// AppLayout.Header toolbar, which derives its height from this same
 				// variable when a sidebar header is present (see AppLayout.Header).
-				"flex h-[var(--sidebar-header-height,4.5rem)] shrink-0 flex-col justify-center gap-2 px-3",
+				"flex h-(--sidebar-header-height,4.5rem) shrink-0 flex-col justify-center gap-2 px-3",
 				// When expanded, the adjacent AppLayout.Content contributes the
 				// trailing card gutter with its own margin, so trim the sidebar's
 				// own trailing inset to keep dividers and rows optically centered
@@ -1327,7 +1327,7 @@ const GroupLabel = ({
 				// motion-reduce must carry the same group gate: the gated
 				// transition rule's selector outranks a bare motion-reduce
 				// override (0,2,0 vs 0,1,0), so an ungated one would lose.
-				"group-data-[hydrated]/sidebar-nav:transition-opacity group-data-[hydrated]/sidebar-nav:duration-200 group-data-[hydrated]/sidebar-nav:ease-linear group-data-[hydrated]/sidebar-nav:motion-reduce:transition-none",
+				"group-data-hydrated/sidebar-nav:transition-opacity group-data-hydrated/sidebar-nav:duration-200 group-data-hydrated/sidebar-nav:ease-linear group-data-hydrated/sidebar-nav:motion-reduce:transition-none",
 				className,
 			)}
 			{...props}
@@ -1751,7 +1751,7 @@ const SwitcherTrigger = ({
 			data-slot={joinDataSlot(dataSlot, "sidebar-switcher-trigger")}
 			type={asChild ? type : (type ?? "button")}
 			className={cx(
-				"text-body hover:text-strong hover:bg-neutral-500/10 flex w-full min-w-0 items-center gap-2 [border-radius:0.625rem] py-1 pr-1.5 pl-1 text-left font-medium transition-none",
+				"text-body hover:text-strong hover:bg-neutral-500/10 flex w-full min-w-0 items-center gap-2 rounded-[0.625rem] py-1 pr-1.5 pl-1 text-left font-medium transition-none",
 				"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
 				"ring-focus-accent focus:outline-hidden focus-visible:ring-4",
 				// The leading account/product tile uses rounded-md (6px) and
@@ -1760,7 +1760,7 @@ const SwitcherTrigger = ({
 				// source components by default; the tighter padding keeps the
 				// switcher row at the same net 36px height while preserving
 				// prototype spacing on the trailing action icon.
-				"[&>:first-child]:size-7",
+				"*:first:size-7",
 				// In the collapsed icon rail only the leading visual (product
 				// icon, account avatar) stays visible; the rest goes sr-only —
 				// visually gone but still part of the button's accessible name.
@@ -1821,12 +1821,20 @@ type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "childre
  * not removed), which serves screen-reader users but leaves a sighted pointer
  * user with an unlabeled icon column. This restores the label for them without
  * duplicating it for anyone else: expanded rows already read their own text, and
- * the mobile sheet shows full labels, so the tooltip content only mounts in the
- * collapsed desktop rail.
+ * the mobile sheet shows full labels, so the collapsed desktop rail is the only
+ * state that shows a label at all.
+ *
+ * It opens the way any tooltip does — the pointer entering the row, or focus
+ * reaching it — and the rail state vetoes it: the expanded panel and the mobile
+ * sheet keep the row at `data-state="closed"` with no `aria-describedby`, and
+ * toggling the rail dismisses whatever was showing, so collapsing the panel
+ * cannot pop a label under a pointer that has already moved on.
  *
  * **Requires a `TooltipProvider` ancestor**, like any `Tooltip.Root` — mount one
- * at your app root. This part deliberately does not provide its own, so tooltip
- * delay and hover settings stay app-wide rather than being overridden per row.
+ * at your app root. This part deliberately does not provide its own, so the
+ * app-wide tooltip delay stays app-wide rather than being overridden per row.
+ * The one provider setting it does override is hoverable content: a rail label
+ * holds nothing to hover into, so the pointer leaving the row closes it.
  *
  * It composes with a menu trigger: nest `DropdownMenu.Root >
  * Sidebar.Tooltip > DropdownMenu.Trigger asChild > Sidebar.ItemButton` for a
@@ -1892,28 +1900,66 @@ const SidebarTooltip = ({
 }: SidebarTooltipProps) => {
 	const { isMobile, open } = useSidebarContext("Tooltip");
 	const isCollapsedRail = !isMobile && !open;
+	const [labelOpen, setLabelOpen] = useState(false);
+	const [previousCollapsedRail, setPreviousCollapsedRail] = useState(isCollapsedRail);
+
+	// A rail flip drops the label. Radix opens on the pointer entering the trigger
+	// and on focus reaching it, both of which can happen in a rail state that has
+	// no business showing a label; without this, the next flip cashes that pending
+	// state in and a tooltip appears under a pointer that is somewhere else
+	// entirely. Reset during render (React's sanctioned "adjust state when a prop
+	// changes" pattern) so Radix never sees the stale value.
+	if (previousCollapsedRail !== isCollapsedRail) {
+		setPreviousCollapsedRail(isCollapsedRail);
+		setLabelOpen(false);
+	}
+
+	/**
+	 * Mirrors Radix's open state, clamped so it can only ever hold `true` in the
+	 * one rail state that shows a label.
+	 *
+	 * The clamp is load-bearing, not belt-and-braces. Radix reports every open it
+	 * wants, including ones the veto below discards, so an unclamped mirror holds
+	 * `true` through the whole expanded panel — and a repeat `open` (a menu on the
+	 * row closing and restoring focus to it, say) then sets the mirror to a value
+	 * it already has. React keeps that no-op update queued, and replays it after
+	 * the rail-flip reset commits, which lands `true` in the collapsed rail with
+	 * nothing hovering the row: the original bug, one path over.
+	 */
+	const setLabelOpenWhenRailShowsLabels = (nextOpen: boolean) => {
+		setLabelOpen(nextOpen && isCollapsedRail);
+	};
 
 	return (
-		<Tooltip.Root>
+		/*
+		 * The rail state vetoes the open state rather than withholding the Content:
+		 * Radix's own pointer close path lives inside `Tooltip.Content`, so a Root
+		 * left to its own devices while the Content is unmounted latches open with
+		 * nothing to close it — and meanwhile points the row's `aria-describedby` at
+		 * an id that is not in the document. Owning `open` keeps the expanded panel
+		 * and the mobile sheet at `data-state="closed"`, which is the truth.
+		 *
+		 * The Root itself stays mounted at every rail state: unmounting it would
+		 * unmount the Trigger with it, dropping focus off the row the user was on.
+		 *
+		 * `disableHoverableContent` moves the close path onto the Trigger, which is
+		 * always mounted. A rail label has nothing to hover into — per the WAI-ARIA
+		 * tooltip pattern it holds no interactive content — so trading the grace
+		 * area for a close that cannot depend on what is mounted is free.
+		 *
+		 * `className` is not destructured on purpose: it rides `props` into
+		 * `Tooltip.Content`, which already merges it last with `cx`, and this row
+		 * adds no classes of its own to compose ahead of it.
+		 */
+		<Tooltip.Root
+			disableHoverableContent
+			onOpenChange={setLabelOpenWhenRailShowsLabels}
+			open={isCollapsedRail && labelOpen}
+		>
 			<Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
-			{/*
-			 * Gate the Content, never the Root: unmounting the Root would unmount the
-			 * Trigger with it, so toggling the rail would drop focus off the row the
-			 * user was just on.
-			 *
-			 * `className` is not destructured on purpose: it rides `props` into
-			 * `Tooltip.Content`, which already merges it last with `cx`, and this row
-			 * adds no classes of its own to compose ahead of it.
-			 */}
-			{isCollapsedRail && (
-				<Tooltip.Content
-					data-slot={joinDataSlot(dataSlot, "sidebar-tooltip")}
-					side={side}
-					{...props}
-				>
-					{label}
-				</Tooltip.Content>
-			)}
+			<Tooltip.Content data-slot={joinDataSlot(dataSlot, "sidebar-tooltip")} side={side} {...props}>
+				{label}
+			</Tooltip.Content>
 		</Tooltip.Root>
 	);
 };
@@ -2526,7 +2572,7 @@ const Sidebar = {
 	 * | Data Attribute | Value | Description |
 	 * | --- | --- | --- |
 	 * | `data-state` | `"expanded"` \| `"collapsed"` | On the desktop panel surface. Mirrors the root's expanded state and drives the width collapse to the icon rail; descendant parts style off it with `group-data-[state=collapsed]/sidebar-nav:`. |
-	 * | `data-hydrated` | present after hydration | Presence-only, desktop panel surface. The CSS-side twin of the `isHydrated` gate: descendant collapse transitions are enabled only under `group-data-[hydrated]/sidebar-nav:`, so an SSR state correction snaps instead of animating on page load. |
+	 * | `data-hydrated` | present after hydration | Presence-only, desktop panel surface. The CSS-side twin of the `isHydrated` gate: descendant collapse transitions are enabled only under `group-data-hydrated/sidebar-nav:`, so an SSR state correction snaps instead of animating on page load. |
 	 * | `data-mobile` | present in the mobile sheet | Presence-only. Marks the `Sheet.Content` presentation used below the root's `mobileBreakpoint`. |
 	 * | `data-state` | `"open"` \| `"closed"` | In the mobile sheet only, where the panel *is* the `Sheet`'s Radix dialog content element and Radix owns the attribute — the sheet's open/close animation state, not the desktop expanded state. Consumers style against it too. |
 	 *
