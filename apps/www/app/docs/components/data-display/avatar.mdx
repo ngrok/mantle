@@ -104,14 +104,6 @@ export function AvatarMediaObjectExample() {
 	);
 }
 
-export function AvatarServerRenderedExample() {
-	return (
-		<Avatar.Root>
-			<img alt="Jane Doe" className="size-full object-cover" src="/example-avatar.svg" />
-		</Avatar.Root>
-	);
-}
-
 export function AvatarLinkExample() {
 	return (
 		<Avatar.Root asChild appearance="square" colorSeed="acc_acme">
@@ -173,14 +165,16 @@ Avatar.Root
 └── Avatar.Fallback
 ```
 
-`Avatar.Image` and `Avatar.Fallback` are siblings, not alternatives you branch on: Radix shows exactly one of
-them, swapping to the image only once it has actually loaded. Render both and there is no loading state to
-handle.
+`Avatar.Image` and `Avatar.Fallback` are siblings, not alternatives you branch on. The fallback renders in flow;
+the image is positioned over it. A loading image shows initials through it, a loaded one covers them, and a
+failed one unmounts itself and reveals them again — no loading state for anyone to handle, and nothing waiting
+on hydration, because the `<img>` is in the server-rendered markup. (A _transparent_ image is the one case where
+initials show through a loaded picture; give it its own backdrop if that matters.)
 
 ## Polymorphism
 
-`Avatar.Root`, `Avatar.Image`, and `Avatar.Fallback` each accept `asChild`, forwarded to Radix's own
-composition. Reach for it on `Root` when the avatar is itself a link or a button, and on `Fallback` when the
+`Avatar.Root`, `Avatar.Image`, and `Avatar.Fallback` each accept `asChild`. Reach for it on `Image` to swap in a
+framework image component, on `Root` when the avatar is itself a link or a button, and on `Fallback` when the
 initials want a more specific element — an `<abbr title="…">`, say.
 
 <Example className="p-4 md:p-8">
@@ -349,37 +343,12 @@ export function MemberRow() {
 }
 ```
 
-## The first paint is the fallback
-
-`Avatar.Image` renders **only once the image has loaded**, which is knowable only in a browser — so
-server-rendered markup always carries the fallback, including for an image already in cache. That is the trade
-for never flashing a broken-image icon at anyone: a slow or dead URL degrades to initials instead.
-
-When an avatar is above the fold and its URL is known good, skip `Avatar.Image` and put a plain `<img>` inside
-`Avatar.Root` instead. The server markup then carries the image, and you own the error case:
-
-<Example className="p-4 md:p-8">
-	<AvatarServerRenderedExample />
-</Example>
-
-```tsx
-import { Avatar } from "@ngrok/mantle/avatar";
-
-export function ServerRenderedAvatar() {
-	return (
-		<Avatar.Root>
-			<img alt="Jane Doe" className="size-full object-cover" src="/example-avatar.svg" />
-		</Avatar.Root>
-	);
-}
-```
-
 ## API Reference
 
 ### Avatar.Root
 
-The sizing, shape, and surface. Renders a `<span>`. Accepts all Radix `Avatar.Root` props (`asChild`,
-`className`, `style`, `ref`, `data-*`, `aria-*`, `role`), plus:
+The sizing, shape, and surface. Renders a `<span>`, so it stays valid inside a switcher row's `<button>`.
+Accepts all `<span>` props (`asChild`, `className`, `style`, `ref`, `data-*`, `aria-*`, `role`), plus:
 
 | Prop          | Type                     | Default    | Description                                                                                                                                                                 |
 | ------------- | ------------------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -395,14 +364,16 @@ The sizing, shape, and surface. Renders a `<span>`. Accepts all Radix `Avatar.Ro
 
 ### Avatar.Image
 
-The picture. Renders an `<img>`, and only once the image has loaded — never during SSR. Accepts all Radix
-`Avatar.Image` props, which are an `<img>`'s (`src`, `referrerPolicy`, `crossOrigin`, `asChild`,
-`onLoadingStatusChange`), plus:
+The picture, layered over the fallback. A plain `<img>`, so the server renders it and a cached image needs no
+hydration to appear. A failed load unmounts it, revealing the fallback. Accepts all `<img>` props (`srcSet`,
+`sizes`, `loading`, `referrerPolicy`, `crossOrigin`, `asChild`, …), plus:
 
-| Prop         | Type     | Default | Description                                                                                                                                                                                                                        |
-| ------------ | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `alt`        | `string` | —       | **Required**, unlike the `<img>` element and unlike Radix — an image with no `alt` announces its URL. Pass `""` when adjacent text already names the subject. It cannot name the avatar in the states where no `<img>` is mounted. |
-| `data-slot?` | `string` | —       | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `avatar-image`.                                                                                                                                           |
+| Prop         | Type                              | Default | Description                                                                                                                                                                                                              |
+| ------------ | --------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `alt`        | `string`                          | —       | **Required**, stricter than the `<img>` element — an image with no `alt` announces its URL. Pass `""` when adjacent text already names the subject. It cannot name the avatar in the states where no `<img>` is mounted. |
+| `src?`       | `string`                          | —       | The picture's URL. Nullish or empty renders nothing and the fallback stands alone, so an optional URL passes straight through without branching.                                                                         |
+| `onError?`   | `(event: SyntheticEvent) => void` | —       | Runs **before** the image unmounts itself; `preventDefault()` keeps it mounted, for a consumer who would rather retry than fall back. Changing `src` is always a fresh attempt.                                          |
+| `data-slot?` | `string`                          | —       | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `avatar-image`.                                                                                                                                 |
 
 **Data attributes**
 
@@ -413,14 +384,13 @@ The picture. Renders an `<img>`, and only once the image has loaded — never du
 ### Avatar.Fallback
 
 What shows when there is no image — while one loads, when it fails, or when there was never one. Renders a
-`<span>`. Accepts all Radix `Avatar.Fallback` props (`delayMs`, `asChild`, `className`, `ref`), plus exactly
-one source of content:
+`<span>` that is always present, behind `Avatar.Image`. Accepts all `<span>` props (`asChild`, `className`,
+`ref`, `aria-*`), plus exactly one source of content:
 
 | Prop         | Type        | Default | Description                                                                                                                                                                                           |
 | ------------ | ----------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `children`   | `ReactNode` | —       | What to show: an icon, a monogram, initials you derived yourself. Announced normally. Mutually exclusive with `name` — the type forbids passing both.                                                 |
 | `name`       | `string`    | —       | A display name, rendered as at most two uppercase initials (`"Acme Corp"` → `"AC"`, an unusable name → `"?"`). `aria-hidden`, since it abbreviates text already beside the avatar. Not for `asChild`. |
-| `delayMs?`   | `number`    | —       | Wait this long before showing the fallback, so a fast image never flashes initials first.                                                                                                             |
 | `data-slot?` | `string`    | —       | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `avatar-fallback`.                                                                                                           |
 
 **Data attributes**

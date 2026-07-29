@@ -1,10 +1,12 @@
 "use client";
 
-import * as AvatarPrimitive from "@radix-ui/react-avatar";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, ReactEventHandler, ReactNode } from "react";
+import { useState } from "react";
+import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { Slot } from "../slot/index.js";
 
 /**
  * The shape an `Avatar.Root` renders as. Circles read as people, rounded
@@ -129,11 +131,12 @@ function initialsFromName(name: string): string {
 }
 
 /**
- * The props for `Avatar.Root`. Radix's `Avatar.Root` props — so `className`,
- * `style`, `ref`, `asChild`, and any `data-*` reach the rendered `<span>` —
+ * The props for `Avatar.Root`. A `<span>`'s props — so `className`, `style`,
+ * `ref`, `asChild`, and any `data-*` or `aria-*` reach the rendered element —
  * plus the shape and swatch this root owns.
  */
-type AvatarRootProps = ComponentProps<typeof AvatarPrimitive.Root> &
+type AvatarRootProps = ComponentProps<"span"> &
+	WithAsChild &
 	WithDataSlot & {
 		/**
 		 * The shape to render. `"circle"` for a person, `"square"` for a rounded
@@ -164,6 +167,9 @@ type AvatarRootProps = ComponentProps<typeof AvatarPrimitive.Root> &
  * must not be able to squeeze it. Override the size with `className`, which
  * merges last and wins.
  *
+ * It renders a `<span>`, not a `<div>`, so it stays valid inside the `<button>`
+ * of a switcher row.
+ *
  * @see https://mantle.ngrok.com/components/data-display/avatar#avatarroot
  *
  * **Data attributes:**
@@ -182,62 +188,80 @@ type AvatarRootProps = ComponentProps<typeof AvatarPrimitive.Root> &
  */
 const Root = ({
 	appearance = "circle",
+	asChild,
 	className,
 	colorSeed,
 	"data-slot": dataSlot,
 	...props
-}: AvatarRootProps) => (
-	<AvatarPrimitive.Root
-		className={cx(
-			"text-body bg-neutral-500/15 relative flex size-7 shrink-0 items-center justify-center overflow-hidden text-xs font-medium select-none",
-			appearanceClassName[appearance],
-			// A seeded swatch is a colored surface, so its content switches to the
-			// static white that stays legible on every hue in both themes.
-			colorSeed != null && ["text-static-white", swatchClassName(colorSeed)],
-			className,
-		)}
-		data-slot={joinDataSlot(dataSlot, "avatar")}
-		{...props}
-	/>
-);
+}: AvatarRootProps) => {
+	const Comp = asChild ? Slot : "span";
+
+	return (
+		<Comp
+			className={cx(
+				// `relative` is load-bearing: `Avatar.Image` positions itself against
+				// this box so it covers the fallback rather than displacing it.
+				"text-body bg-neutral-500/15 relative flex size-7 shrink-0 items-center justify-center overflow-hidden text-xs font-medium select-none",
+				appearanceClassName[appearance],
+				// A seeded swatch is a colored surface, so its content switches to the
+				// static white that stays legible on every hue in both themes.
+				colorSeed != null && ["text-static-white", swatchClassName(colorSeed)],
+				className,
+			)}
+			data-slot={joinDataSlot(dataSlot, "avatar")}
+			{...props}
+		/>
+	);
+};
 
 /**
- * The props for `Avatar.Image`. Radix's `Avatar.Image` props, which are an
- * `<img>`'s — including `src`, `referrerPolicy`, `crossOrigin`, and
- * `onLoadingStatusChange` — with `alt` promoted to required.
+ * The props for `Avatar.Image`. An `<img>`'s props — so `srcSet`, `sizes`,
+ * `loading`, `referrerPolicy`, `crossOrigin`, `className`, `style`, `ref`,
+ * `asChild`, and any `data-*` reach the element — with `alt` promoted to
+ * required.
  */
-type AvatarImageProps = Omit<ComponentProps<typeof AvatarPrimitive.Image>, "alt"> &
+type AvatarImageProps = Omit<ComponentProps<"img">, "alt" | "onError"> &
+	WithAsChild &
 	WithDataSlot & {
 		/**
-		 * The image's alternative text. **Required**, deliberately more strict than
-		 * the `<img>` element and than Radix: an avatar is the one image a developer
-		 * reliably forgets, and an `<img>` with no `alt` falls back to announcing its
-		 * URL.
+		 * The image's alternative text. **Required**, deliberately stricter than the
+		 * `<img>` element: an avatar is the one image a developer reliably forgets,
+		 * and an `<img>` with no `alt` announces its URL.
 		 *
 		 * Pass `alt=""` when adjacent text already names the subject — the common
 		 * case, and the reason this is not just "always pass the name". Pass the name
-		 * when the avatar stands alone, and name `Avatar.Root` as well
-		 * (`role="img"` + `aria-label`) so the label survives the states where the
-		 * image is not mounted.
+		 * when the avatar stands alone, and name `Avatar.Root` as well (`role="img"`
+		 * + `aria-label`) so the label survives the states where the image is gone.
 		 */
 		alt: string;
+		/**
+		 * Called when the image fails to load, **before** it unmounts itself.
+		 * `preventDefault()` keeps it mounted, for a consumer who would rather retry
+		 * a URL than fall back.
+		 *
+		 * Typed against `HTMLElement` rather than `HTMLImageElement`, because
+		 * `asChild` means the element that failed may be a consumer's own.
+		 */
+		onError?: ReactEventHandler<HTMLElement>;
 	};
 
 /**
- * The avatar's picture. It renders **only once the image has loaded**, so a
- * broken or slow URL shows `Avatar.Fallback` instead of a broken-image icon —
- * and it never renders during SSR, because loading status is only knowable in a
- * browser. The first paint is therefore always the fallback, including for a
- * cached image; that is the trade for never flashing a broken image. When an
- * avatar is above the fold and its URL is known good, render a plain
- * `<img className="size-full object-cover">` inside `Avatar.Root` instead and
- * the server markup will carry it.
+ * The avatar's picture, layered over `Avatar.Fallback` so the fallback shows
+ * through until the image paints. It is a plain `<img>` in the markup, which is
+ * the whole point: the server renders it, the browser starts fetching while it
+ * parses the HTML, and a cached image is simply *there* on the first frame — no
+ * hydration, no swap, no flash of initials.
  *
- * `alt` is required — pass `""` when adjacent text already names the subject,
- * which is the common case. Note what `alt` alone cannot do: this `<img>` is
- * absent in exactly the states where a name is most needed (no `src`, a failed
- * load, SSR), so an avatar that must be named in every state names its **root**
- * (`role="img"` + `aria-label`), and `alt` describes the picture within it.
+ * A failed load unmounts the image and leaves the fallback showing. That covers
+ * every failure the client can observe; one it cannot is a load that fails
+ * *before* hydration, where the error event has already come and gone. There the
+ * browser's own rendering stands, which for `alt=""` is nothing at all — the
+ * fallback simply shows through — and is one more reason to prefer `alt=""`
+ * whenever adjacent text names the subject.
+ *
+ * `onError` runs first and can `preventDefault()` to keep the image mounted, for
+ * a consumer who would rather retry a URL than fall back. Changing `src` is
+ * always a fresh attempt: only the exact URL that failed stays unmounted.
  *
  * @see https://mantle.ngrok.com/components/data-display/avatar#avatarimage
  *
@@ -255,31 +279,54 @@ type AvatarImageProps = Omit<ComponentProps<typeof AvatarPrimitive.Image>, "alt"
  * </Avatar.Root>
  * ```
  */
-const Image = ({ className, "data-slot": dataSlot, ...props }: AvatarImageProps) => (
-	<AvatarPrimitive.Image
-		className={cx("size-full object-cover", className)}
-		data-slot={joinDataSlot(dataSlot, "avatar-image")}
-		{...props}
-	/>
-);
+const Image = ({
+	asChild,
+	className,
+	"data-slot": dataSlot,
+	onError,
+	src,
+	...props
+}: AvatarImageProps) => {
+	// The failed URL, not a boolean: a new `src` is a new attempt, so this needs no
+	// reset when the prop changes and cannot strand an avatar that got a good URL
+	// after a bad one.
+	const [failedSrc, setFailedSrc] = useState<string>();
+	const Comp = asChild ? Slot : "img";
+
+	if (src == null || src === "" || src === failedSrc) {
+		return null;
+	}
+
+	return (
+		<Comp
+			className={cx("absolute inset-0 size-full object-cover", className)}
+			data-slot={joinDataSlot(dataSlot, "avatar-image")}
+			onError={(event) => {
+				onError?.(event);
+				if (!event.defaultPrevented) {
+					setFailedSrc(src);
+				}
+			}}
+			src={src}
+			{...props}
+		/>
+	);
+};
 
 /**
- * The props for `Avatar.Fallback`. Radix's `Avatar.Fallback` props — including
- * `delayMs` and `asChild` — with the content stated exactly one way: either
- * `children` you render yourself, or a `name` this part derives initials from.
- * Passing both would leave the winner to precedence, so the type forbids it.
+ * The props for `Avatar.Fallback`. A `<span>`'s props, with the content stated
+ * exactly one way: either `children` you render yourself, or a `name` this part
+ * derives initials from. Passing both would leave the winner to precedence, so
+ * the type forbids it — and `asChild`, which needs a real element to clone,
+ * belongs to the `children` side only.
  */
-type AvatarFallbackProps = Omit<
-	ComponentProps<typeof AvatarPrimitive.Fallback>,
-	"asChild" | "children"
-> &
+type AvatarFallbackProps = Omit<ComponentProps<"span">, "children"> &
 	WithDataSlot &
 	(
 		| {
 				/**
-				 * Render this element instead of the fallback's own `<span>`, forwarded
-				 * to Radix's own composition. Only available beside `children` — there
-				 * has to be an element to clone.
+				 * Render this element instead of the fallback's own `<span>`. Only
+				 * available beside `children` — there has to be an element to clone.
 				 */
 				asChild?: boolean;
 				/**
@@ -303,8 +350,6 @@ type AvatarFallbackProps = Omit<
 				 * the page already carries in text beside the avatar. When the avatar
 				 * is the only thing naming its subject, name it — `role="img"` plus
 				 * `aria-label` on `Avatar.Root` — rather than announcing `"AC"`.
-				 *
-				 * Incompatible with `asChild`, which needs a real element to clone.
 				 */
 				name: string;
 		  }
@@ -312,8 +357,10 @@ type AvatarFallbackProps = Omit<
 
 /**
  * What the avatar shows when there is no picture — initials, an icon, a
- * monogram. Radix renders it whenever `Avatar.Image` is absent, still loading,
- * or failed, which makes it the first paint in every server-rendered page.
+ * monogram. It always renders, sitting *behind* `Avatar.Image`: that is what
+ * makes a loading image show initials instead of an empty box, with no loading
+ * state for anyone to handle. A loaded image covers it, so give a transparent
+ * PNG its own backdrop if you would rather not see initials through it.
  *
  * Pass `name` to render the subject's initials, or `children` for anything else.
  * A fallback is decorative when adjacent text already names the subject, so give
@@ -336,32 +383,37 @@ type AvatarFallbackProps = Omit<
  * ```
  */
 const Fallback = ({
+	asChild,
 	children,
 	className,
 	"data-slot": dataSlot,
 	name,
 	...props
-}: AvatarFallbackProps) => (
-	<AvatarPrimitive.Fallback
-		// Derived initials are a visual shorthand for a name the page already
-		// carries — the row, cell, or card next to the avatar — so announcing them
-		// would read it twice ("A C Acme Corp"). They are decorative by default;
-		// `children` are not, and an explicit `aria-hidden` overrides either way.
-		aria-hidden={name == null ? undefined : true}
-		className={cx("flex size-full items-center justify-center", className)}
-		data-slot={joinDataSlot(dataSlot, "avatar-fallback")}
-		{...props}
-	>
-		{/*
-		 * Keyed on `name`, not on `children ?? initialsFromName(…)`: a conditional
-		 * child that resolves to `null` is still the caller saying "render nothing
-		 * here", and coalescing would answer `{isAdmin && <ShieldIcon />}` with a
-		 * bare `"?"` for everyone else. `name` wins only when it was actually
-		 * passed, which the type already makes exclusive with `children`.
-		 */}
-		{name == null ? children : initialsFromName(name)}
-	</AvatarPrimitive.Fallback>
-);
+}: AvatarFallbackProps) => {
+	const Comp = asChild ? Slot : "span";
+
+	return (
+		<Comp
+			// Derived initials are a visual shorthand for a name the page already
+			// carries — the row, cell, or card next to the avatar — so announcing them
+			// would read it twice ("A C Acme Corp"). They are decorative by default;
+			// `children` are not, and an explicit `aria-hidden` overrides either way.
+			aria-hidden={name == null ? undefined : true}
+			className={cx("flex size-full items-center justify-center", className)}
+			data-slot={joinDataSlot(dataSlot, "avatar-fallback")}
+			{...props}
+		>
+			{/*
+			 * Keyed on `name`, not on `children ?? initialsFromName(…)`: a conditional
+			 * child that resolves to `null` is still the caller saying "render nothing
+			 * here", and coalescing would answer `{isAdmin && <ShieldIcon />}` with a
+			 * bare `"?"` for everyone else. `name` wins only when it was actually
+			 * passed, which the type already makes exclusive with `children`.
+			 */}
+			{name == null ? children : initialsFromName(name)}
+		</Comp>
+	);
+};
 
 /**
  * A small image representing a person or an account, with a text or icon
@@ -375,6 +427,11 @@ const Fallback = ({
  * `colorSeed` gives a subject a stable color derived from its id, so the same
  * account is the same color on every device with nothing stored. Omit it for a
  * neutral surface.
+ *
+ * The picture is a plain `<img>` layered over the fallback, so the server
+ * renders it and a cached image is on screen in the first frame. There is no
+ * loading state to handle: the fallback is simply behind, and shows until the
+ * image paints.
  *
  * For a person's name and title beside their avatar, compose it with
  * [MediaObject](https://mantle.ngrok.com/components/structure/media-object).
@@ -399,11 +456,7 @@ const Fallback = ({
  * </Avatar.Root>
  * ```
  */
-const Avatar: {
-	Root: typeof Root;
-	Image: typeof Image;
-	Fallback: typeof Fallback;
-} = {
+const Avatar = {
 	/**
 	 * A small image representing a person or an account, with a text or icon
 	 * fallback for when there is no picture — or before one loads.
@@ -411,7 +464,8 @@ const Avatar: {
 	 * The root sizes and shapes the avatar and paints the surface behind it. It is
 	 * `size-7` and `shrink-0` by default: an avatar is a fixed-size visual, and the
 	 * flex rows it usually sits in must not be able to squeeze it. Override the
-	 * size with `className`, which merges last and wins.
+	 * size with `className`, which merges last and wins. It renders a `<span>`, so
+	 * it stays valid inside the `<button>` of a switcher row.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/avatar#avatarroot
 	 *
@@ -431,9 +485,10 @@ const Avatar: {
 	 */
 	Root,
 	/**
-	 * The avatar's picture. It renders only once the image has loaded, so a broken
-	 * or slow URL shows `Avatar.Fallback` instead of a broken-image icon — and it
-	 * never renders during SSR, so the fallback is always the first paint.
+	 * The avatar's picture, layered over `Avatar.Fallback` so the fallback shows
+	 * through until the image paints. A plain `<img>` in the markup: the server
+	 * renders it, and a cached image needs no hydration to appear. A failed load
+	 * unmounts it and leaves the fallback showing.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/avatar#avatarimage
 	 *
@@ -454,8 +509,9 @@ const Avatar: {
 	Image,
 	/**
 	 * What the avatar shows when there is no picture — initials, an icon, a
-	 * monogram. Pass `name` to render the subject's initials, or `children` for
-	 * anything else.
+	 * monogram. It always renders, behind `Avatar.Image`, which is what makes a
+	 * loading image show initials rather than an empty box. Pass `name` to render
+	 * the subject's initials, or `children` for anything else.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/avatar#avatarfallback
 	 *

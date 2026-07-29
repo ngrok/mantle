@@ -29,20 +29,22 @@ import { Avatar } from "@ngrok/mantle/avatar";
   `text-static-white`, so a subject keeps its color across renders, sessions, devices and the server with
   nothing stored. Seed it with an **id, not a display name** — a rename would otherwise recolor the avatar.
   Omit it for a neutral surface.
-- **`Avatar.Image`** renders only once the image has actually loaded, so a slow or dead URL degrades to the
-  fallback instead of flashing a broken-image icon. That is knowable only in a browser, so server-rendered
-  markup always carries the fallback; the docs page shows the plain-`<img>` escape hatch for an above-the-fold
-  avatar whose URL is known good. Its **`alt` is required** — stricter than both the `<img>` element and Radix,
-  because an avatar is the one image everyone forgets and an `<img>` with no `alt` announces its URL. Pass
-  `alt=""` when adjacent text already names the subject, which is the common case.
+- **`Avatar.Image`** is a plain `<img>` layered over the fallback — no wrapper library, no loading state. The
+  server renders it, the browser fetches while it parses HTML, and a cached image is on screen in the first
+  frame; a loading one shows initials through it, and a failed one unmounts itself and reveals them again.
+  `onError` runs first and can `preventDefault()` to keep the image mounted, and changing `src` is always a
+  fresh attempt. Its **`alt` is required** — stricter than the `<img>` element, because an avatar is the one
+  image everyone forgets and an `<img>` with no `alt` announces its URL. Pass `alt=""` when adjacent text
+  already names the subject, which is the common case.
 - **`Avatar.Fallback`** takes either `children` (an icon, a monogram) or `name`, which renders at most two
   uppercase initials — punctuation stripped, code points kept whole so an emoji-leading name survives, casing
   locale-invariant so SSR and the client agree. The two are mutually exclusive in the type. Derived initials
   are `aria-hidden`, because they abbreviate a name the page already carries beside the avatar; announcing them
   would read it twice ("A C Acme Corp"). Name the root (`role="img"` + `aria-label`) when the avatar is the only
   thing identifying its subject.
-- Every part takes `asChild`, forwarded to Radix's own composition, and stamps `data-slot` (`avatar`,
-  `avatar-image`, `avatar-fallback`), joining an ancestor-forwarded chain rather than replacing it.
+- Every part takes `asChild` and stamps `data-slot` (`avatar`, `avatar-image`, `avatar-fallback`), joining an
+  ancestor-forwarded chain rather than replacing it. `Avatar.Root` renders a `<span>`, so it stays valid inside
+  the `<button>` of a switcher row.
 
 **`Sidebar.AccountAvatar` and `Sidebar.UserAvatar` are removed.** They were the same component twice, scoped to
 a place an avatar has no reason to be scoped to — the sidebar — which is why the ngrok dashboard had already
