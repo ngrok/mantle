@@ -1,7 +1,6 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
-import { userEvent } from "@testing-library/user-event";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
 
@@ -116,6 +115,21 @@ const readCanvas = (canvas: HTMLCanvasElement): Painted => {
 		height: canvas.height,
 		scale: canvas.width / canvas.getBoundingClientRect().width,
 	};
+};
+
+/**
+ * Wait until the engine has measured the whole plot, not a partial first frame.
+ * The backing store is sized in device pixels, so it reaches at least the CSS
+ * width once the real measurement lands — where a partial frame leaves a canvas
+ * a few pixels wide, a band layout with a near-zero step, and a hover that
+ * resolves every x to the same category.
+ */
+const waitForPlot = async (canvas: HTMLCanvasElement): Promise<void> => {
+	await waitFor(() => {
+		const cssWidth = canvas.getBoundingClientRect().width;
+		expect(cssWidth).toBeGreaterThan(0);
+		expect(canvas.width).toBeGreaterThanOrEqual(cssWidth);
+	});
 };
 
 /**
@@ -256,8 +270,8 @@ describe("stacked bar caps and baselines", () => {
 			</div>,
 		);
 		const canvas = canvasOf(container);
+		await waitForPlot(canvas);
 		await waitFor(() => {
-			expect(canvas.width).toBeGreaterThan(0);
 			const painted = readCanvas(canvas);
 			const bars = columnRunsOf(painted, CHART_1);
 			expect(bars).toHaveLength(2);
@@ -292,8 +306,8 @@ describe("stacked bar caps and baselines", () => {
 			</div>,
 		);
 		const canvas = canvasOf(container);
+		await waitForPlot(canvas);
 		await waitFor(() => {
-			expect(canvas.width).toBeGreaterThan(0);
 			const painted = readCanvas(canvas);
 			const bars = columnRunsOf(painted, CHART_1);
 			expect(bars).toHaveLength(2);
@@ -325,8 +339,8 @@ describe("stacked bar caps and baselines", () => {
 			</div>,
 		);
 		const canvas = canvasOf(container);
+		await waitForPlot(canvas);
 		await waitFor(() => {
-			expect(canvas.width).toBeGreaterThan(0);
 			const painted = readCanvas(canvas);
 			const lower = columnRunsOf(painted, CHART_1)[0];
 			const upper = columnRunsOf(painted, CHART_2)[0];
@@ -357,8 +371,8 @@ describe("stacked bar caps and baselines", () => {
 			</div>,
 		);
 		const canvas = canvasOf(container);
+		await waitForPlot(canvas);
 		await waitFor(() => {
-			expect(canvas.width).toBeGreaterThan(0);
 			const painted = readCanvas(canvas);
 			const bars = rowRunsOf(painted, CHART_1);
 			expect(bars).toHaveLength(2);
@@ -399,8 +413,8 @@ describe("stacked bar caps and baselines", () => {
 			</div>,
 		);
 		const canvas = canvasOf(container);
+		await waitForPlot(canvas);
 		await waitFor(() => {
-			expect(canvas.width).toBeGreaterThan(0);
 			const painted = readCanvas(canvas);
 			let baselineRow = -1;
 			for (let y = 0; y < painted.height; y++) {
@@ -417,7 +431,8 @@ describe("stacked bar caps and baselines", () => {
 /**
  * The hover band overlay. The three overlay layers carry no `data-slot` yet, so
  * pick the band by what distinguishes it behaviorally: among them, the engine
- * writes an inline `width` only on the band.
+ * writes an inline `width` only on the band. It throws until the engine has
+ * positioned the band, which makes it a usable poll condition.
  */
 const hoverBandOf = (container: HTMLElement): HTMLElement => {
 	const layers = container.querySelectorAll('[data-slot="bar-chart-plot"] > [aria-hidden]');
@@ -438,15 +453,31 @@ const overlayOf = (container: HTMLElement): HTMLElement => {
 };
 
 /**
- * Press the pointer at one plot coordinate. The engine reads `offsetX`/`offsetY`
+ * Move the pointer to one plot coordinate. The engine reads `offsetX`/`offsetY`
  * off the native event, and userEvent's pointer API cannot address a point
  * inside the plot, so these tests dispatch the real events themselves — the
- * same approach `bar-chart.browser.test.tsx` takes for hover.
+ * same approach `bar-chart.browser.test.tsx` takes. Keyboard stepping reaches
+ * the same code, but headless CI never focuses the window, so the key would
+ * land nowhere.
  */
+const hoverAt = (overlay: HTMLElement, clientX: number, clientY: number): void => {
+	overlay.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX, clientY }));
+};
+
+/** Press the pointer at one plot coordinate. */
 const pressAt = (overlay: HTMLElement, clientX: number, clientY: number): void => {
-	for (const type of ["pointermove", "pointerdown", "pointerup"]) {
+	hoverAt(overlay, clientX, clientY);
+	for (const type of ["pointerdown", "pointerup"]) {
 		overlay.dispatchEvent(new PointerEvent(type, { bubbles: true, clientX, clientY }));
 	}
+};
+
+/** One band's geometry, measured from the plot's left edge rather than the viewport. */
+type BandBox = {
+	left: number;
+	width: number;
+	right: number;
+	plotWidth: number;
 };
 
 const denseDays = Array.from({ length: 60 }, (_, index) => ({
@@ -458,7 +489,6 @@ describe("hover band geometry", () => {
 	test("the band covers one category, so adjacent categories never share it", async () => {
 		// 60 categories in a 600px box put the step near 9px. A band with a 24px
 		// floor washes over a third of each neighbor.
-		const user = userEvent.setup();
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root data={denseDays} xKey="day" animate={false} aria-label="Dense days">
@@ -469,43 +499,59 @@ describe("hover band geometry", () => {
 			</div>,
 		);
 		const canvas = canvasOf(container);
-		await waitFor(() => {
-			expect(canvas.width).toBeGreaterThan(0);
-		});
+		await waitForPlot(canvas);
 		const overlay = overlayOf(container);
-		overlay.focus();
 
-		// The engine positions the overlay on an animation frame, so each step
-		// settles before the next reads it.
-		await user.keyboard("{Home}");
-		await waitFor(() => {
-			expect(hoverBandOf(container).getBoundingClientRect().width).toBeGreaterThan(0);
-		});
-		const first = hoverBandOf(container).getBoundingClientRect();
+		/** The band, measured against the plot's own left edge. */
+		const measureBand = (): BandBox => {
+			const plot = overlay.getBoundingClientRect();
+			const band = hoverBandOf(container).getBoundingClientRect();
+			return {
+				left: band.left - plot.left,
+				width: band.width,
+				right: band.right - plot.left,
+				plotWidth: plot.width,
+			};
+		};
 
-		await user.keyboard("{ArrowRight}");
-		await waitFor(() => {
-			expect(hoverBandOf(container).getBoundingClientRect().left).not.toBe(first.left);
-		});
-		const second = hoverBandOf(container).getBoundingClientRect();
+		/**
+		 * Hover one plot-relative x until the band lands somewhere new. Both the
+		 * dispatch and the measurement re-read the plot box, because sibling test
+		 * containers move it, and re-dispatching inside `waitFor` covers the first
+		 * pointer event racing the first layout commit — the same reason
+		 * `bar-chart.browser.test.tsx` re-dispatches. Hover at a fixed position is
+		 * idempotent, so repeating it changes nothing.
+		 */
+		const hoverUntilBandMoves = async (
+			offsetX: (plotWidth: number) => number,
+			previousLeft: number | null,
+		): Promise<BandBox> => {
+			await waitFor(() => {
+				const plot = overlay.getBoundingClientRect();
+				expect(plot.width).toBeGreaterThan(0);
+				hoverAt(overlay, plot.left + offsetX(plot.width), plot.top + plot.height / 2);
+				expect(measureBand().left).not.toBe(previousLeft);
+			});
+			return measureBand();
+		};
+
+		const first = await hoverUntilBandMoves((plotWidth) => plotWidth / 2, null);
+		// One pixel past the band belongs to the next category, so the band that
+		// answers must be the neighbor — abutting, never overlapping.
+		const second = await hoverUntilBandMoves(() => first.right + 1, first.left);
 
 		expect(second.width).toBeCloseTo(first.width, 1);
-		// The two bands abut exactly: the hit regions tile the plot.
 		expect(second.left).toBeCloseTo(first.right, 1);
 
-		await user.keyboard("{End}");
-		await waitFor(() => {
-			expect(hoverBandOf(container).getBoundingClientRect().left).not.toBe(second.left);
-		});
-		const last = hoverBandOf(container).getBoundingClientRect();
-		expect(last.right).toBeLessThanOrEqual(overlay.getBoundingClientRect().right + 0.5);
+		const last = await hoverUntilBandMoves((plotWidth) => plotWidth - 1, second.left);
+		expect(last.right).toBeLessThanOrEqual(last.plotWidth + 0.5);
 	});
 });
 
 const threeEqualSegments = [{ day: "Mon", bottom: 1, middle: 1, top: 1 }];
 
 describe("stacked segment hit resolution", () => {
-	test("clicking anywhere inside a segment activates that segment's series", async () => {
+	test("pressing anywhere inside a segment activates that segment's series", async () => {
 		// The mark is the filled span, so the segment under the pointer names the
 		// series. Resolving by nearest cumulative boundary instead hands the half
 		// of every segment nearer the baseline to the series below it.
@@ -527,8 +573,8 @@ describe("stacked segment hit resolution", () => {
 			</div>,
 		);
 		const canvas = canvasOf(container);
+		await waitForPlot(canvas);
 		await waitFor(() => {
-			expect(canvas.width).toBeGreaterThan(0);
 			expect(columnRunsOf(readCanvas(canvas), CHART_2)).toHaveLength(1);
 		});
 
@@ -541,15 +587,30 @@ describe("stacked segment hit resolution", () => {
 		}
 		const extent = verticalExtent(painted, CHART_2, bar);
 		const overlay = overlayOf(container);
-		const overlayRect = overlay.getBoundingClientRect();
-		const clientX = overlayRect.left + (bar.start + bar.end) / 2 / painted.scale;
-		const clientYAt = (deviceY: number) => overlayRect.top + deviceY / painted.scale;
 		const height = extent.end - extent.start;
+
+		/** Press at a fraction of the middle segment's own painted height. */
+		const pressWithinSegment = (fraction: number): void => {
+			const plot = overlay.getBoundingClientRect();
+			pressAt(
+				overlay,
+				plot.left + (bar.start + bar.end) / 2 / painted.scale,
+				plot.top + (extent.start + height * fraction) / painted.scale,
+			);
+		};
+
+		// Warm up the pointer: the first event can race the first layout commit,
+		// and a press with no active index activates nothing at all.
+		await waitFor(() => {
+			pressWithinSegment(0.5);
+			expect(activated).not.toHaveLength(0);
+		});
+		activated.length = 0;
 
 		// Near the data end, the middle of the segment, and near the baseline end:
 		// every one of them is the middle series.
 		for (const fraction of [0.2, 0.5, 0.8]) {
-			pressAt(overlay, clientX, clientYAt(extent.start + height * fraction));
+			pressWithinSegment(fraction);
 		}
 
 		expect(activated).toEqual(["middle", "middle", "middle"]);
@@ -584,20 +645,23 @@ describe("tooltip placement", () => {
 			</div>,
 		);
 		const canvas = canvasOf(container);
-		await waitFor(() => {
-			expect(canvas.width).toBeGreaterThan(0);
-		});
+		await waitForPlot(canvas);
 		const overlay = overlayOf(container);
-		overlay.focus();
-		await userEvent.setup().keyboard("{Home}");
 		const tooltip = tooltipOf(container);
-		const plotBox = overlay.getBoundingClientRect();
 
-		// The engine repositions once its size observer measures the readout, so
-		// poll the settled placement rather than the first frame's.
+		// Re-hover inside the poll: the first pointer event can race the first
+		// layout commit, and the engine repositions again once its size observer
+		// measures the readout. React renders the rows during the event itself
+		// while the engine positions on an animation frame, so wait for the
+		// transform — without it the readout still sits at its unpositioned
+		// origin, which is the very place this test expects to find it.
 		await waitFor(() => {
-			expect(tooltip.getBoundingClientRect().height).toBeGreaterThan(plotBox.height);
-			expect(tooltip.getBoundingClientRect().top).toBeCloseTo(plotBox.top, 1);
+			const plot = overlay.getBoundingClientRect();
+			hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
+			expect(tooltip.style.transform).not.toBe("");
+			const readout = tooltip.getBoundingClientRect();
+			expect(readout.height).toBeGreaterThan(plot.height);
+			expect(readout.top).toBeCloseTo(plot.top, 1);
 		});
 	});
 
@@ -618,21 +682,20 @@ describe("tooltip placement", () => {
 			</div>,
 		);
 		const canvas = canvasOf(container);
-		await waitFor(() => {
-			expect(canvas.width).toBeGreaterThan(0);
-		});
+		await waitForPlot(canvas);
 		const overlay = overlayOf(container);
-		overlay.focus();
-		await userEvent.setup().keyboard("{Home}");
 		const tooltip = tooltipOf(container);
-		const plotBox = overlay.getBoundingClientRect();
 
 		await waitFor(() => {
+			const plot = overlay.getBoundingClientRect();
+			hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
+			expect(tooltip.style.transform).not.toBe("");
 			expect(tooltip.getBoundingClientRect().height).toBeGreaterThan(0);
 		});
-		const tooltipBox = tooltip.getBoundingClientRect();
-		expect(tooltipBox.height).toBeLessThan(plotBox.height);
-		expect(tooltipBox.top).toBeGreaterThanOrEqual(plotBox.top - 0.5);
-		expect(tooltipBox.bottom).toBeLessThanOrEqual(plotBox.bottom + 0.5);
+		const plot = overlay.getBoundingClientRect();
+		const readout = tooltip.getBoundingClientRect();
+		expect(readout.height).toBeLessThan(plot.height);
+		expect(readout.top).toBeGreaterThanOrEqual(plot.top - 0.5);
+		expect(readout.bottom).toBeLessThanOrEqual(plot.bottom + 0.5);
 	});
 });
