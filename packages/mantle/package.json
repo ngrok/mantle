@@ -441,7 +441,7 @@
 		"@radix-ui/react-tabs": "1.1.21",
 		"@radix-ui/react-tooltip": "1.2.16",
 		"@tanstack/react-table": "8.21.3",
-		"@tanstack/react-virtual": "3.14.8",
+		"@tanstack/react-virtual": "3.14.9",
 		"class-variance-authority": "0.7.1",
 		"cmdk": "1.1.1",
 		"d3-scale": "4.0.2",
