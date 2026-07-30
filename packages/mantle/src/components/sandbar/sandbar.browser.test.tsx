@@ -79,23 +79,12 @@ describe("Sandbar (browser)", () => {
 		});
 	});
 
-	test("closing hides the panel via the safety timeout when no CSS transition runs", async () => {
-		// browser tests load no Tailwind, so the exit transition never fires and
-		// the 400ms safety timeout is the path that must close the panel
-		const tree = ({ open }: { open: boolean }) => (
-			<Sandbar.Root open={open}>
-				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-			</Sandbar.Root>
-		);
-		const { rerender } = render(tree({ open: true }));
-		rerender(tree({ open: false }));
-
-		const panel = getPanel();
-		expect(panel).not.toHaveAttribute("hidden");
-		await waitFor(() => {
-			expect(panel).toHaveAttribute("hidden");
-		});
-	});
+	// NOTE: the exit-timeout close path lives in happy-dom instead — see
+	// sandbar.test.tsx's "the safety timeout closes the panel when no transition
+	// ever fires", which pins it deterministically under fake timers. It touches no
+	// real-browser API, so a copy here would only buy Chromium startup. The focus
+	// tests below still exercise the same path incidentally, since browser mode
+	// loads no Tailwind and the transition never fires.
 
 	test("a focused save button going isLoading parks focus on the panel", async () => {
 		const tree = ({ isLoading }: { isLoading: boolean }) => (

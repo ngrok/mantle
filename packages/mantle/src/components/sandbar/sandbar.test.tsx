@@ -190,6 +190,105 @@ describe("Sandbar structure", () => {
 		expect(actionsRef.current).toBe(actions);
 	});
 
+	test("SaveButton and DiscardButton support asChild, merging classes, data-*, and the ref", () => {
+		// callback refs, because both props types declare `Ref<HTMLButtonElement>`
+		// while the swapped child here is an anchor
+		const saveTarget: { current: HTMLElement | null } = { current: null };
+		const discardTarget: { current: HTMLElement | null } = { current: null };
+		render(
+			<Sandbar.Root open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Sandbar.Actions>
+					<Sandbar.DiscardButton
+						asChild
+						className="part-class"
+						ref={(element) => {
+							discardTarget.current = element;
+						}}
+					>
+						<a className="child-class" data-testid="discard" href="/settings">
+							Discard
+						</a>
+					</Sandbar.DiscardButton>
+					<Sandbar.SaveButton
+						asChild
+						className="part-class"
+						ref={(element) => {
+							saveTarget.current = element;
+						}}
+					>
+						<a className="child-class" data-testid="save" href="/settings/save">
+							Save
+						</a>
+					</Sandbar.SaveButton>
+				</Sandbar.Actions>
+			</Sandbar.Root>,
+		);
+
+		const save = screen.getByTestId("save");
+		expect(save.tagName).toBe("A");
+		// the part's slot must survive the swap and still beat `Button`'s own
+		// `data-slot="button"` — the spread order inside Button is what decides it
+		expect(save).toHaveAttribute("data-slot", "sandbar-save-button");
+		expect(save.className).toContain("part-class");
+		expect(save.className).toContain("child-class");
+		expect(saveTarget.current).toBe(save);
+
+		const discard = screen.getByTestId("discard");
+		expect(discard.tagName).toBe("A");
+		expect(discard).toHaveAttribute("data-slot", "sandbar-discard-button");
+		expect(discard.className).toContain("part-class");
+		expect(discard.className).toContain("child-class");
+		expect(discardTarget.current).toBe(discard);
+	});
+
+	test("the blessed buttons stamp Sandbar's own resolved appearance and intent", () => {
+		render(fullTree({ open: true }));
+
+		// `Button` requires `appearance` and `intent`; defaulting them is why these
+		// two parts exist instead of bare Buttons, so the resolved pair is Sandbar's
+		// contract — and Button publishes each one as a documented data attribute
+		const save = screen.getByRole("button", { name: "Save" });
+		expect(save).toHaveAttribute("data-appearance", "filled");
+		expect(save).toHaveAttribute("data-intent", "neutral");
+		expect(save).toHaveAttribute("data-size", "md");
+		expect(save).toHaveAttribute("data-disabled", "false");
+		expect(save).toHaveAttribute("data-loading", "false");
+
+		const discard = screen.getByRole("button", { name: "Discard" });
+		expect(discard).toHaveAttribute("data-appearance", "outlined");
+		expect(discard).toHaveAttribute("data-intent", "neutral");
+		expect(discard).toHaveAttribute("data-size", "md");
+		expect(discard).toHaveAttribute("data-disabled", "false");
+		expect(discard).toHaveAttribute("data-loading", "false");
+	});
+
+	test("a consumer appearance and intent win over the part defaults", () => {
+		render(
+			<Sandbar.Root open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Sandbar.Actions>
+					<Sandbar.DiscardButton appearance="ghost" onClick={() => {}}>
+						Discard
+					</Sandbar.DiscardButton>
+					<Sandbar.SaveButton appearance="link" intent="danger" onClick={() => {}}>
+						Delete
+					</Sandbar.SaveButton>
+				</Sandbar.Actions>
+			</Sandbar.Root>,
+		);
+
+		expect(screen.getByRole("button", { name: "Discard" })).toHaveAttribute(
+			"data-appearance",
+			"ghost",
+		);
+		const save = screen.getByRole("button", { name: "Delete" });
+		expect(save).toHaveAttribute("data-appearance", "link");
+		expect(save).toHaveAttribute("data-intent", "danger");
+		// documented in both JSDoc tables: `data-size` is absent for `link`
+		expect(save).not.toHaveAttribute("data-size");
+	});
+
 	test("every part joins an incoming data-slot chain ahead of its own slot", () => {
 		render(
 			<Sandbar.Root data-slot="outer" open>
@@ -458,10 +557,17 @@ describe("Sandbar presence", () => {
 		expect(document.activeElement).toBe(outside);
 	});
 
-	test("Escape does nothing", () => {
+	test("Escape does nothing", async () => {
+		const user = userEvent.setup();
 		render(fullTree({ open: true }));
 		const panel = getPanel();
-		fireEvent.keyDown(panel, { key: "Escape" });
+
+		// the whole keydown/keypress/keyup sequence, delivered to the focused panel:
+		// a discard wired to keyup, or to the wrapper instead of the panel, would
+		// pass a keydown-only assertion while destroying the user's data
+		panel.focus();
+		await user.keyboard("{Escape}");
+
 		expect(panel).toHaveAttribute("data-state", "open");
 		expect(panel).not.toHaveAttribute("hidden");
 	});

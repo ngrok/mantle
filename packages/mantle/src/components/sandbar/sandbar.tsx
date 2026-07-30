@@ -115,10 +115,8 @@ function alternateAnnouncement(text: string, toggle: { current: boolean }): stri
  * ```tsx
  * const sandbarHandle = useRef<SandbarHandle>(null);
  *
- * useBlockUnsavedNavigation({
- *   enabled: isDirty,
- *   onNavigationBlocked: () => sandbarHandle.current?.shake(),
- * });
+ * // your router's guard owns the blocking; call this when it blocks a navigation
+ * const onNavigationBlocked = () => sandbarHandle.current?.shake();
  *
  * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
  *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
@@ -188,11 +186,11 @@ type SandbarRootProps = ComponentProps<"div"> &
 		 * (e.g. a form's dirty flag) lives in your app, not in the component.
 		 *
 		 * `Sandbar.Root` must stay mounted and be toggled with `open`, never
-		 * conditionally mounted (`{isDirty && <Sandbar.Root …>}`): the screen
-		 * reader announcement only works when the internal live regions exist in
-		 * the tree before the message appears, and the exit animation needs the
-		 * panel alive to play. A Root that mounts with `open` already true does
-		 * not announce (mounting is not a live-region change).
+		 * conditionally mounted (`{isDirty && <Sandbar.Root …>}`). The
+		 * screen-reader announcement only works when the internal live regions
+		 * exist in the tree before the message appears. The exit animation needs
+		 * the panel alive to play. A Root that mounts with `open` already true
+		 * does not announce (mounting is not a live-region change).
 		 */
 		open: boolean;
 		/**
@@ -699,10 +697,9 @@ type SandbarMessageProps = ComponentProps<"p"> & WithAsChild & WithDataSlot;
 
 /**
  * The visible pending-state text (e.g. "You have unsaved changes"). A plain
- * paragraph — the live-region announcement is owned by `Sandbar.Root`'s
- * persistent announcer, not this node, and the panel's accessible name points
- * here via `aria-labelledby` so the group name always matches the visible
- * text.
+ * paragraph: `Sandbar.Root`'s persistent announcer owns the live-region
+ * announcement, not this node. The panel's accessible name points here via
+ * `aria-labelledby`, so the group name always matches the visible text.
  *
  * Data attributes:
  *
@@ -1013,9 +1010,9 @@ const DiscardButton = ({
 /**
  * A persistent, decision-bearing bar that floats near the bottom edge of the
  * viewport. It surfaces pending state — primarily a form's unsaved ("dirty")
- * changes — and stays until the user resolves it. Unlike Toast (which
- * announces something that already happened and leaves on its own), a Sandbar
- * surfaces something pending and stays until the user resolves it.
+ * changes — and stays until the user resolves it. Toast announces something
+ * that already happened and leaves on its own; a Sandbar waits for the user's
+ * decision. When the message needs no decision, reach for Toast or Alert.
  *
  * The name: a sandbar is a bar that blocks navigation — exactly what this
  * component does while changes are pending. Pair it with your app's

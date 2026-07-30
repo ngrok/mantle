@@ -18,9 +18,9 @@ import { useRef, useState } from "react";
  * not on the bar. The bar carries the *pending decision*; a failure is about the
  * content the user is looking at, so it belongs next to it.
  *
- * `role="alert"` plus focus on mount is what makes it reliably announced: an
- * alert node that mounts already populated can be missed by assistive tech, and
- * moving focus also puts the user's attention on what failed.
+ * `role="alert"` plus focus on mount is what makes it reliably announced:
+ * assistive tech can miss an alert node that mounts already populated. Moving
+ * focus also puts the user's attention on what failed.
  */
 function SaveFailedAlert({ children }: PropsWithChildren) {
 	return (

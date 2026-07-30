@@ -12,9 +12,9 @@ A persistent, decision-bearing bar that floats near the bottom edge of the viewp
 pending state — primarily a form's unsaved ("dirty") changes — and stays until the user resolves
 it: save or discard.
 
-Toast announces something that already happened and leaves on its own; **Sandbar surfaces
-something pending and stays until the user resolves it**. If the message needs no decision, reach
-for [Toast](/components/feedback/toast) or [Alert](/components/feedback/alert) instead.
+Toast announces something that already happened and leaves on its own; **a Sandbar waits for the
+user's decision**. If the message needs no decision, reach for
+[Toast](/components/feedback/toast) or [Alert](/components/feedback/alert) instead.
 
 The name: a sandbar is a bar that blocks navigation — exactly what this component does while
 changes are pending. Wire your router's navigation guard to `shake()` on the `SandbarHandle`, and
@@ -178,7 +178,7 @@ Sandbar.Root
 
 `Sandbar.Root` must stay mounted and be toggled with the controlled `open` prop — **never
 conditionally mount it** (`{isDirty && <Sandbar.Root …>}`). The screen-reader announcement only
-works when the internal live regions exist in the tree before the message appears, and the exit
+works when the internal live regions exist in the tree before the message appears. The exit
 animation needs the panel alive to play. A Root that mounts with `open` already true does not
 announce (mounting is not a live-region change).
 
@@ -191,8 +191,8 @@ a different semantic element (e.g. a `<span>` inside a larger sentence) or when 
 should be another framework primitive. `Sandbar.SaveButton` and `Sandbar.DiscardButton` inherit
 `asChild` from [Button](/components/actions/button). `Sandbar.Root` deliberately does not support
 `asChild`: it renders multiple nodes (positioning wrapper, two screen-reader announcers, and the
-panel), so single-child polymorphism has no coherent meaning. The framed demos above render real
-`Sandbar` trees you can adapt; there is no separate polymorphism demo because the bar is a
+panel), so single-child polymorphism has no coherent meaning. The framed demos on this page render
+real `Sandbar` trees you can adapt; there is no separate polymorphism demo because the bar is a
 viewport-fixed singleton that would overlay this page outside a preview frame.
 
 ## Pending decisions beyond saving
@@ -288,9 +288,9 @@ Two things to get right in the error you render:
   error. Give a form-level alert `role="alert"`, or render a field error through
   [`Field.Errors`](/components/forms/field), which wires it into the control's `aria-describedby`
   and flips the field to its error state.
-- **Move focus to it.** An alert node that mounts already populated can be missed by assistive
-  tech, and focusing the failure also puts a sighted user's attention on what went wrong. Focus the
-  alert (`tabIndex={-1}`) for a form-level failure, or the rejected field for a field-level one.
+- **Move focus to it.** Assistive tech can miss an alert node that mounts already populated.
+  Focusing the failure also puts a sighted user's attention on what went wrong. Focus the alert
+  (`tabIndex={-1}`) for a form-level failure, or the rejected field for a field-level one.
 
 Saving in the demo below always fails, so the contextual error appears on every attempt.
 
@@ -406,10 +406,11 @@ dependency, and the split mirrors Shopify's SaveBar / `leaveConfirmation()` and 
 - **Announce success yourself.** The bar closes silently when changes resolve. Pair the save's
   resolution with a status announcement — a success [Toast](/components/feedback/toast) qualifies —
   or screen-reader users hear a save start and never finish.
-- **Focus is never stolen.** The bar appears without taking focus. If focus is inside the bar when
-  it closes (or a focused save button becomes disabled while loading), focus is parked on the
-  panel and restored to the element focused before entering the bar once it closes — with guards:
-  if you already moved focus elsewhere, the bar leaves it alone.
+- **Focus is never stolen.** The bar appears without taking focus. If a focused save button goes
+  disabled while loading, the bar parks focus on the panel so it cannot evaporate mid-save. When
+  the bar finishes closing with focus still inside it, the bar restores focus to the element you
+  focused before entering it — unless you already moved focus elsewhere, in which case the bar
+  leaves it alone.
 - **The exit is unreachable.** The panel goes `inert` the moment it starts leaving, not when it
   finishes — so a user Tabbing toward Discard as the save lands cannot focus or activate a control
   that is already visually gone. Focus that `inert` evicts still restores to the pre-bar element.
@@ -483,8 +484,8 @@ The imperative surface received through `handleRef`. `shake()` wiggles the panel
 
 ### Sandbar.Message
 
-The visible pending-state text. A plain paragraph — the live-region announcement is owned by
-Root's persistent announcer, and the panel's accessible name points here so the group name always
+The visible pending-state text. A plain paragraph: Root's persistent announcer owns the live-region
+announcement, not this node. The panel's accessible name points here, so the group name always
 matches the visible text.
 
 All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#attributes), plus:
