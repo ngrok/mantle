@@ -197,7 +197,10 @@ export function CommandPalette() {
 					<Kbd>K</Kbd>
 				</span>
 			</Button>
-			<Command.DialogRoot open={open} onOpenChange={handleOpenChange}>
+			{/* keyboardShortcut={false}: this palette binds mod+k itself (above) and
+			    controls its own query, so mantle's built-in shortcut would be a
+			    second owner of the same chord. */}
+			<Command.DialogRoot keyboardShortcut={false} open={open} onOpenChange={handleOpenChange}>
 				<Command.DialogContent shouldFilter={false}>
 					<Command.Input placeholder="Search Mantle..." value={query} onValueChange={setQuery} />
 					<Command.List>

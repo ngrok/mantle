@@ -3,7 +3,7 @@ import { defineConfig } from "tsdown";
 export default defineConfig({
 	dts: true,
 	clean: true,
-	external: ["@ngrok/mantle", "shiki"],
+	deps: { neverBundle: ["@ngrok/mantle", "shiki"] },
 	minify: false,
 	sourcemap: true,
 	target: "ES2025",

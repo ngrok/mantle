@@ -1,7 +1,9 @@
-import { type ComponentProps, useEffect, useState } from "react";
+"use client";
+
+import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
-import { isApplePlatform } from "../../utils/platform.js";
 import { Kbd } from "../kbd/kbd.js";
+import { useIsApplePlatform } from "../../hooks/use-is-apple-platform.js";
 
 type Props = Omit<ComponentProps<"kbd">, "children">;
 
@@ -11,7 +13,7 @@ type Mod = "⌘" | "⌃";
  * Renders the platform-appropriate meta key kbd (⌘ or ⌃).
  *
  * - Initializes to `"⌃"` to avoid SSR mismatch.
- * - Updates on mount using `detectMetaKey()`.
+ * - Updates on mount, once {@link useIsApplePlatform} has resolved the host.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#metakey
  *
@@ -23,13 +25,9 @@ type Mod = "⌘" | "⌃";
  * ```
  */
 function MetaKey({ className, ...props }: Props) {
-	const [glyph, setGlyph] = useState<Mod>("⌃");
-
-	useEffect(() => {
-		setGlyph(detectMetaKey());
-	}, []);
-
-	const label = glyph === "⌘" ? "Command" : "Control";
+	const isApple = useIsApplePlatform();
+	const glyph: Mod = isApple ? "⌘" : "⌃";
+	const label = isApple ? "Command" : "Control";
 
 	return (
 		<Kbd
@@ -48,14 +46,3 @@ export {
 	//,
 	MetaKey,
 };
-
-/**
- * Detects the appropriate meta key label for the current platform.
- *
- * SSR-safe: returns `"⌃"` when `navigator` is not available.
- *
- * @returns `"⌘"` for Apple platforms; otherwise `"⌃"`.
- */
-function detectMetaKey(): Mod {
-	return isApplePlatform() ? "⌘" : "⌃";
-}

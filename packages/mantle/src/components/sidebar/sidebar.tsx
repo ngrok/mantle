@@ -15,6 +15,7 @@ import {
 import invariant from "tiny-invariant";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useIsBelowBreakpoint } from "../../hooks/use-breakpoint.js";
+import { useIsApplePlatform } from "../../hooks/use-is-apple-platform.js";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -116,6 +117,12 @@ type SidebarState = {
 	 * triggers.
 	 */
 	navId: string;
+	/**
+	 * Whether this root owns the `⌘B` / `Ctrl+B` shortcut. `Sidebar.Trigger`
+	 * reads it to decide whether its tooltip advertises the chord, so the hint
+	 * can never name a binding that is not bound.
+	 */
+	keyboardShortcut: boolean;
 };
 
 const SidebarContext = createContext<SidebarState | null>(null);
@@ -452,6 +459,7 @@ const Root = ({
 	const contextValue = useMemo<SidebarState>(
 		() => ({
 			isMobile,
+			keyboardShortcut,
 			mobileBreakpoint,
 			navId,
 			open,
@@ -460,7 +468,17 @@ const Root = ({
 			setOpenMobile,
 			toggle,
 		}),
-		[isMobile, mobileBreakpoint, navId, open, openMobile, setOpen, setOpenMobile, toggle],
+		[
+			isMobile,
+			keyboardShortcut,
+			mobileBreakpoint,
+			navId,
+			open,
+			openMobile,
+			setOpen,
+			setOpenMobile,
+			toggle,
+		],
 	);
 
 	return <SidebarContext.Provider value={contextValue}>{children}</SidebarContext.Provider>;
@@ -695,17 +713,56 @@ type SidebarTriggerProps = Omit<
 		 */
 		intent?: IconButtonProps["intent"];
 		/**
-		 * The accessible name for the trigger. Visually hidden but announced to
-		 * assistive technology. Override it for localization.
+		 * The accessible name for the trigger, and what its tooltip says. Visually
+		 * hidden on the button itself but announced to assistive technology.
+		 * Override it for localization.
 		 *
 		 * @default "Toggle Sidebar"
 		 */
 		label?: string;
+		/**
+		 * The keyboard chord that also toggles the sidebar, rendered after the label
+		 * in the tooltip — usually `<><MetaKey /><Kbd>B</Kbd></>`.
+		 *
+		 * Ignored under `Sidebar.Root keyboardShortcut={false}`, so the tooltip can
+		 * never name a binding that is not bound. Passed rather than built in so the
+		 * sidebar does not have to reach into another component for the platform
+		 * modifier glyph — `aria-keyshortcuts` is stamped either way, which is also
+		 * why the chips render `aria-hidden`.
+		 */
+		shortcut?: ReactNode;
 	};
 
 // Module-scope default so the trigger icon keeps referential equality across
 // renders (a JSX default prop value would be re-created every render).
 const defaultTriggerIcon = <SidebarSimpleIcon />;
+
+/**
+ * A tooltip body pairing a row's label with the keyboard chord that reaches it.
+ * Shared by `Sidebar.Trigger` and `Sidebar.Tooltip` so the two can never drift
+ * into differently sized chips.
+ *
+ * The chips are `aria-hidden`: a tooltip is wired as its control's
+ * `aria-describedby`, and the chord is already announced by that control's
+ * `aria-keyshortcuts`, so repeating it here would speak it twice.
+ */
+const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNode }) => {
+	if (shortcut == null) {
+		return label;
+	}
+
+	return (
+		<span className="flex items-center gap-1.5">
+			{label}
+			<span
+				aria-hidden
+				className="inline-flex shrink-0 items-center gap-0.5 [&_kbd]:h-4 [&_kbd]:min-w-4 [&_kbd]:bg-neutral-500/25 [&_kbd]:px-0.5 [&_kbd]:text-xs"
+			>
+				{shortcut}
+			</span>
+		</span>
+	);
+};
 
 // Why no `asChild`: Trigger renders a fully-wired mantle IconButton (icon +
 // sr-only label + aria-expanded/aria-controls); custom triggers compose the
@@ -718,11 +775,23 @@ const defaultTriggerIcon = <SidebarSimpleIcon />;
  * `AppLayout.Header`) — it must stay visible at every breakpoint where the
  * sidebar can collapse, or users have no way to reopen it.
  *
+ * The button is icon-only at every breakpoint, so it always renders a tooltip
+ * showing `label` (plus the optional `shortcut` chips). **That means it requires
+ * a `TooltipProvider` ancestor, like any `Tooltip.Root`, and throws without
+ * one** — mount a single provider at your app root, decoupled from the sidebar,
+ * so the app-wide delay and hover settings stay app-wide.
+ *
+ * It also stamps `aria-keyshortcuts` for the `⌘B` / `Ctrl+B` chord the root
+ * binds, resolved after hydration: the server cannot know the host, so the
+ * first paint is the non-Apple answer. Both the attribute and the chips are
+ * omitted under `Sidebar.Root keyboardShortcut={false}`.
+ *
  * **Data attributes:**
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-state` | `"expanded"` \| `"collapsed"` | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`. |
+ * | `data-slot` | `"sidebar-trigger-tooltip"` | On the tooltip surface, not the button — the styling hook for the label-and-chord popup this part renders. |
  * | `data-appearance` | `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
  * | `data-intent` | `"accent"` \| `"danger"` \| `"neutral"` | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`. |
  * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default. |
@@ -802,9 +871,12 @@ const Trigger = ({
 	intent = "neutral",
 	label = "Toggle Sidebar",
 	onClick,
+	shortcut,
 	...props
 }: SidebarTriggerProps) => {
-	const { isMobile, navId, open, openMobile, toggle } = useSidebarContext("Trigger");
+	const { isMobile, keyboardShortcut, navId, open, openMobile, toggle } =
+		useSidebarContext("Trigger");
+	const isApple = useIsApplePlatform();
 	const expanded = isMobile ? openMobile : open;
 	// The mobile `Sheet` unmounts its content while closed, so the `<nav>` this
 	// would point at does not exist — and `aria-controls` must reference an
@@ -812,24 +884,44 @@ const Trigger = ({
 	// state (collapsing is a width animation), so the reference always resolves.
 	const controlsNav = !isMobile || openMobile;
 
+	// Never name a chord this root does not bind.
+	const hint = keyboardShortcut ? shortcut : undefined;
+	// Announce the chord rather than only binding it. Resolved after hydration,
+	// like every platform-modifier read: the server cannot know the host, so it
+	// renders the non-Apple answer and the effect corrects it.
+	const platformChord = isApple ? "Meta+B" : "Control+B";
+
 	return (
-		<IconButton
-			appearance={appearance}
-			aria-controls={controlsNav ? navId : undefined}
-			aria-expanded={expanded}
-			data-slot={joinDataSlot(dataSlot, "sidebar-trigger")}
-			data-state={expanded ? "expanded" : "collapsed"}
-			icon={icon}
-			intent={intent}
-			label={label}
-			onClick={(event) => {
-				onClick?.(event);
-				if (!event.defaultPrevented) {
-					toggle();
-				}
-			}}
-			{...props}
-		/>
+		// Unlike `Sidebar.Tooltip`, this label is not gated on the rail state: the
+		// trigger is an icon-only button at every breakpoint, so a pointer user has
+		// nothing else to read. Requires a `TooltipProvider` ancestor, like any
+		// `Tooltip.Root` — mount one at your app root, decoupled from the sidebar,
+		// so the app-wide delay and hover settings stay app-wide.
+		<Tooltip.Root>
+			<Tooltip.Trigger asChild>
+				<IconButton
+					appearance={appearance}
+					aria-controls={controlsNav ? navId : undefined}
+					aria-expanded={expanded}
+					aria-keyshortcuts={keyboardShortcut ? platformChord : undefined}
+					data-slot={joinDataSlot(dataSlot, "sidebar-trigger")}
+					data-state={expanded ? "expanded" : "collapsed"}
+					icon={icon}
+					intent={intent}
+					label={label}
+					onClick={(event) => {
+						onClick?.(event);
+						if (!event.defaultPrevented) {
+							toggle();
+						}
+					}}
+					{...props}
+				/>
+			</Tooltip.Trigger>
+			<Tooltip.Content data-slot="sidebar-trigger-tooltip">
+				<TooltipLabel label={label} shortcut={hint} />
+			</Tooltip.Content>
+		</Tooltip.Root>
 	);
 };
 
@@ -1504,6 +1596,30 @@ const Item = ({
 	);
 };
 
+/**
+ * The chrome every row in the panel shares — `Sidebar.ItemButton` and
+ * `Sidebar.SearchTrigger`.
+ *
+ * Shared rather than duplicated because "these are the same row" *is* the
+ * contract: a search row whose geometry drifts from the navigation rows below it
+ * reads as a foreign control, and in the collapsed icon rail it has to be the
+ * same 28px chip in the same column. Both parts add their own state styling on
+ * top (`data-current` for a nav row, the revealed shortcut hint for search).
+ */
+const rowClassName = [
+	"ring-focus-accent flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-normal transition-none focus:outline-hidden focus-visible:ring-4",
+	"text-body hover:text-strong hover:bg-neutral-500/10",
+	// A row composed as a menu or dialog trigger stays highlighted while the
+	// surface it opens is open, matching Sidebar.SwitcherTrigger.
+	"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
+	// In the collapsed icon rail the row returns to its original 28px square
+	// chip. ml-1 keeps body and footer icons aligned with their expanded
+	// position and the switcher indicators.
+	"group-data-[state=collapsed]/sidebar-nav:ml-1",
+	"group-data-[state=collapsed]/sidebar-nav:w-7",
+	"group-data-[state=collapsed]/sidebar-nav:p-1",
+];
+
 type SidebarItemButtonProps = ComponentProps<"button"> &
 	WithAsChild &
 	WithDataSlot & {
@@ -1628,8 +1744,7 @@ const ItemButton = ({
 			aria-current={current ? "page" : undefined}
 			type={asChild ? type : (type ?? "button")}
 			className={cx(
-				"ring-focus-accent flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-normal transition-none focus:outline-hidden focus-visible:ring-4",
-				"text-body hover:text-strong hover:bg-neutral-500/10",
+				rowClassName,
 				// The current row is styled from either source of the same truth.
 				// `current` sets both attributes, but a composed child can set
 				// `aria-current="page"` on its own — react-router's `NavLink` does —
@@ -1637,24 +1752,213 @@ const ItemButton = ({
 				// re-derive with `useMatch` to pass `current`.
 				"data-current:bg-neutral-500/15 data-current:text-strong",
 				"aria-[current=page]:bg-neutral-500/15 aria-[current=page]:text-strong",
-				// A row composed as a menu trigger stays highlighted while its menu
-				// is open, matching Sidebar.SwitcherTrigger.
-				"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
 				// Only the leading icon is pinned to 20px: trailing visuals (a menu
 				// caret, a count, a status dot) size themselves, so composing one
 				// does not need an `!` override to escape this rule.
 				"[&>svg]:text-muted hover:[&>svg]:text-strong data-current:[&>svg]:text-strong aria-[current=page]:[&>svg]:text-strong [&>svg:first-child]:size-5 [&>svg]:shrink-0",
-				// In the collapsed icon rail the row returns to its original
-				// 28px square chip. ml-1 keeps body and footer item icons aligned
-				// with their expanded position and the switcher indicators.
-				"group-data-[state=collapsed]/sidebar-nav:ml-1",
-				"group-data-[state=collapsed]/sidebar-nav:w-7",
-				"group-data-[state=collapsed]/sidebar-nav:p-1",
 				className,
 			)}
 			{...props}
 		>
 			{children}
+		</Comp>
+	);
+};
+
+type SidebarSearchTriggerProps = ComponentProps<"button"> &
+	WithDataSlot &
+	// `shortcut` and `asChild` are mutually exclusive: the hint is a sibling this
+	// part renders after `children`, and a slotted child is cloned, not wrapped —
+	// there is nowhere to put a sibling. With `asChild` the row's whole content is
+	// yours, hint included; `group-hover:`/`group-focus-visible:` still work,
+	// because the row keeps its `group` class either way.
+	(
+		| {
+				/**
+				 * Compose the search row's styling onto your own element. Then the
+				 * row's entire content is yours — including any shortcut hint, which
+				 * `shortcut` cannot add to a cloned child.
+				 */
+				asChild: true;
+				shortcut?: never;
+		  }
+		| {
+				/**
+				 * Compose the search row's styling onto your own element. Then the
+				 * row's entire content is yours — including any shortcut hint, which
+				 * `shortcut` cannot add to a cloned child.
+				 */
+				asChild?: false;
+				/**
+				 * The keyboard hint for the chord that opens the same palette — usually
+				 * `<><MetaKey /><Kbd>K</Kbd></>`.
+				 *
+				 * Rendered pinned to the end of the row and **revealed only on hover or
+				 * keyboard focus**, so the row reads as a quiet navigation item at rest
+				 * and teaches the chord at the moment a user reaches for it. It is
+				 * `aria-hidden` and dropped outright in the collapsed rail: the chord is
+				 * announced by the `aria-keyshortcuts` that `Command.SearchTrigger`
+				 * adds, so repeating it here would announce it twice.
+				 *
+				 * Passed rather than built in, so the sidebar does not have to know
+				 * which chord your palette binds.
+				 */
+				shortcut?: ReactNode;
+		  }
+	);
+
+/**
+ * The search row — the row that opens a search or command palette.
+ *
+ * Put it at the top of `Sidebar.Body`, above the first `Sidebar.Group`: it
+ * needs no height change, and it lands in the same `px-3` gutter as the
+ * navigation rows, so it shares their column in both panel states.
+ *
+ * `Sidebar.Header`, under the switcher, also works — the header's own `gap-2`
+ * sets the spacing — at the cost of a taller header. That height is a fixed one
+ * row so it can align with an `AppLayout.Header` toolbar, so a stack of two
+ * needs `--sidebar-header-height` raised on a **common ancestor of both rows**
+ * (`<AppLayout.Root className="[--sidebar-header-height:6rem]">`). Setting it on
+ * `Sidebar.Nav` only looks right: custom properties inherit downward, so
+ * `AppLayout.Header` would keep the `4.5rem` default and the two rows would stop
+ * being center-aligned.
+ *
+ * It is deliberately a navigation row and not a text field. The row is the same
+ * chrome as a `Sidebar.ItemButton` — same height, padding, radius, hover, and
+ * the same 28px chip in the collapsed icon rail — because a search entry point
+ * in a sidebar is one of the rows, not a form control wedged among them. The
+ * `shortcut` hint appears on hover or focus and is otherwise invisible, which
+ * keeps the resting panel quiet.
+ *
+ * A styled button only — it is not wired to any state. Compose it with
+ * [`Command.SearchTrigger`](https://mantle.ngrok.com/components/navigation/command#commandsearchtrigger),
+ * which supplies the dialog wiring, `aria-keyshortcuts`, and the behavior that
+ * makes typing or pasting into the row open the palette with that text already
+ * in the query. Wrap the pair in `Sidebar.Tooltip` so the row keeps a visible
+ * label once the panel collapses.
+ *
+ * Like every row, the rail clips everything after the leading icon rather than
+ * removing it, so the button keeps its accessible name as a chip.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped** — supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. The row stays highlighted while its palette is open. |
+ *
+ * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger
+ *
+ * @example
+ * ```tsx
+ * <Sidebar.Root>
+ *   <Sidebar.Nav aria-label="Main">
+ *     <Sidebar.Header>
+ *       <Sidebar.SwitcherTrigger>
+ *         <GlobeIcon />
+ *         <span className="text-strong min-w-0 flex-1 truncate text-base">Universal Gateway</span>
+ *       </Sidebar.SwitcherTrigger>
+ *     </Sidebar.Header>
+ *     <Sidebar.Body>
+ *       <Command.DialogRoot>
+ *         <Sidebar.Tooltip label="Search">
+ *           <Command.SearchTrigger>
+ *             <Sidebar.SearchTrigger
+ *               shortcut={
+ *                 <>
+ *                   <MetaKey />
+ *                   <Kbd>K</Kbd>
+ *                 </>
+ *               }
+ *             >
+ *               <MagnifyingGlassIcon />
+ *               <span className="min-w-0 flex-1 truncate">Search</span>
+ *             </Sidebar.SearchTrigger>
+ *           </Command.SearchTrigger>
+ *         </Sidebar.Tooltip>
+ *         <Command.DialogContent>
+ *           <Command.Input placeholder="Search endpoints, agents, and settings..." />
+ *           <Command.List>
+ *             <Command.Empty>No results found.</Command.Empty>
+ *           </Command.List>
+ *         </Command.DialogContent>
+ *       </Command.DialogRoot>
+ *       <Sidebar.Group>
+ *         <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+ *         <Sidebar.List>
+ *           <Sidebar.Item>
+ *             <Sidebar.ItemButton asChild current>
+ *               <a href="/endpoints">
+ *                 <GraphIcon />
+ *                 Endpoints
+ *               </a>
+ *             </Sidebar.ItemButton>
+ *           </Sidebar.Item>
+ *         </Sidebar.List>
+ *       </Sidebar.Group>
+ *     </Sidebar.Body>
+ *   </Sidebar.Nav>
+ *   <Sidebar.Trigger />
+ * </Sidebar.Root>
+ * ```
+ */
+const SearchTrigger = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	shortcut,
+	type,
+	...props
+}: SidebarSearchTriggerProps) => {
+	const Comp = asChild ? Slot : "button";
+
+	// Built up rather than rendered inline so the `asChild` case hands `Slot`
+	// exactly one child: `{shortcut != null && …}` would leave a `false` beside
+	// the cloned element, which `Children.only` rejects.
+	const content =
+		shortcut == null ? (
+			children
+		) : (
+			<>
+				{children}
+				<span
+					aria-hidden
+					// -mr-1 pulls the chips to the row's optical edge past the row
+					// padding; the reveal is CSS-only so nothing re-renders on hover.
+					className={cx(
+						"pointer-events-none -mr-1 ml-auto inline-flex shrink-0 items-center gap-0.5 opacity-0 select-none",
+						"group-hover:opacity-100 group-focus-visible:opacity-100",
+						// The rail has room for the icon and nothing else, and the chord is
+						// already announced via aria-keyshortcuts, so drop the hint outright
+						// instead of letting it fight the 28px chip.
+						"group-data-[state=collapsed]/sidebar-nav:hidden",
+						// Quiet inline keys here rather than the standalone chips `Kbd`
+						// renders elsewhere.
+						"[&_kbd]:text-body [&_kbd]:h-5 [&_kbd]:min-w-5 [&_kbd]:bg-neutral-500/20 [&_kbd]:px-1 [&_kbd]:text-xs [&_kbd]:font-normal",
+					)}
+				>
+					{shortcut}
+				</span>
+			</>
+		);
+
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "sidebar-search-trigger")}
+			type={asChild ? type : (type ?? "button")}
+			className={cx(
+				// `group` scopes the shortcut hint's reveal to this row.
+				"group",
+				rowClassName,
+				// The leading magnifier matches a nav row's leading icon, hover
+				// brightening included — without it the row's label lifts to
+				// `text-strong` while its icon stays muted, which no nav row does.
+				"[&>svg:first-child]:text-muted hover:[&>svg:first-child]:text-strong [&>svg:first-child]:size-5 [&>svg]:shrink-0",
+				className,
+			)}
+			{...props}
+		>
+			{content}
 		</Comp>
 	);
 };
@@ -1811,6 +2115,18 @@ type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "childre
 		 */
 		label: ReactNode;
 		/**
+		 * The keyboard chord that reaches the same row, rendered after the label —
+		 * usually `<><MetaKey /><Kbd>K</Kbd></>`. The rail hides the row's own
+		 * shortcut hint along with its label, so the tooltip is where a pointer user
+		 * can still learn the chord. The chips are `aria-hidden`: a tooltip is wired
+		 * as its row's `aria-describedby`, and the chord is already announced by the
+		 * row's `aria-keyshortcuts`.
+		 *
+		 * Passed rather than built in, so the sidebar does not have to know which
+		 * chord the row's palette or action binds.
+		 */
+		shortcut?: ReactNode;
+		/**
 		 * Which side of the row the tooltip opens on. The rail sits at the inline
 		 * start of the viewport, so the default points the tooltip away from it.
 		 *
@@ -1905,6 +2221,7 @@ const SidebarTooltip = ({
 	children,
 	"data-slot": dataSlot,
 	label,
+	shortcut,
 	side = "right",
 	...props
 }: SidebarTooltipProps) => {
@@ -1968,7 +2285,7 @@ const SidebarTooltip = ({
 		>
 			<Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
 			<Tooltip.Content data-slot={joinDataSlot(dataSlot, "sidebar-tooltip")} side={side} {...props}>
-				{label}
+				<TooltipLabel label={label} shortcut={shortcut} />
 			</Tooltip.Content>
 		</Tooltip.Root>
 	);
@@ -2071,6 +2388,7 @@ const SidebarSeparator = ({
  * │   ├── Sidebar.Header
  * │   │   └── Sidebar.SwitcherTrigger
  * │   ├── Sidebar.Body
+ * │   │   ├── Sidebar.SearchTrigger
  * │   │   └── Sidebar.Group
  * │   │       ├── Sidebar.GroupLabel
  * │   │       └── Sidebar.List
@@ -2789,6 +3107,74 @@ const Sidebar = {
 	 * ```
 	 */
 	ItemButton,
+	/**
+	 * The search row for `Sidebar.Body`: an item-shaped row whose `shortcut` hint
+	 * appears on hover or focus, and the same chip as any other row in the
+	 * collapsed icon rail. Not state-wired — compose with
+	 * `Command.SearchTrigger`.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value | Description |
+	 * | --- | --- | --- |
+	 * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped** — supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. Style the row while its palette is open with `data-state-open:`. |
+	 *
+	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger
+	 *
+	 * @example
+	 * ```tsx
+	 * <Sidebar.Root>
+	 *   <Sidebar.Nav aria-label="Main">
+	 *     <Sidebar.Header>
+	 *       <Sidebar.SwitcherTrigger>
+	 *         <GlobeIcon />
+	 *         <span className="text-strong min-w-0 flex-1 truncate text-base">Universal Gateway</span>
+	 *       </Sidebar.SwitcherTrigger>
+	 *     </Sidebar.Header>
+	 *     <Sidebar.Body>
+	 *       <Command.DialogRoot>
+	 *         <Sidebar.Tooltip label="Search">
+	 *           <Command.SearchTrigger>
+	 *             <Sidebar.SearchTrigger
+	 *               shortcut={
+	 *                 <>
+	 *                   <MetaKey />
+	 *                   <Kbd>K</Kbd>
+	 *                 </>
+	 *               }
+	 *             >
+	 *               <MagnifyingGlassIcon />
+	 *               <span className="min-w-0 flex-1 truncate">Search</span>
+	 *             </Sidebar.SearchTrigger>
+	 *           </Command.SearchTrigger>
+	 *         </Sidebar.Tooltip>
+	 *         <Command.DialogContent>
+	 *           <Command.Input placeholder="Search endpoints, agents, and settings..." />
+	 *           <Command.List>
+	 *             <Command.Empty>No results found.</Command.Empty>
+	 *           </Command.List>
+	 *         </Command.DialogContent>
+	 *       </Command.DialogRoot>
+	 *       <Sidebar.Group>
+	 *         <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+	 *         <Sidebar.List>
+	 *           <Sidebar.Item>
+	 *             <Sidebar.ItemButton asChild current>
+	 *               <a href="/endpoints">
+	 *                 <GraphIcon />
+	 *                 Endpoints
+	 *               </a>
+	 *             </Sidebar.ItemButton>
+	 *           </Sidebar.Item>
+	 *         </Sidebar.List>
+	 *       </Sidebar.Group>
+	 *     </Sidebar.Body>
+	 *   </Sidebar.Nav>
+	 *   <Sidebar.Trigger />
+	 * </Sidebar.Root>
+	 * ```
+	 */
+	SearchTrigger,
 	/**
 	 * The styled switcher row for the header/footer. Not state-wired — compose
 	 * with `DropdownMenu.Trigger asChild` or `Dialog.Trigger asChild`.

@@ -4,10 +4,12 @@ import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Avatar } from "@ngrok/mantle/avatar";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { IconButton } from "@ngrok/mantle/button";
+import { Command, MetaKey } from "@ngrok/mantle/command";
 import { cx } from "@ngrok/mantle/cx";
 import { Dialog } from "@ngrok/mantle/dialog";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { AutoThemeIcon } from "@ngrok/mantle/icons";
+import { Kbd } from "@ngrok/mantle/kbd";
 import { Main } from "@ngrok/mantle/main";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
@@ -29,10 +31,18 @@ import { FingerprintIcon } from "@phosphor-icons/react/Fingerprint";
 import { GearIcon } from "@phosphor-icons/react/Gear";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { BankIcon } from "@phosphor-icons/react/Bank";
+import { CloudArrowUpIcon } from "@phosphor-icons/react/CloudArrowUp";
+import { CubeIcon } from "@phosphor-icons/react/Cube";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { HandWavingIcon } from "@phosphor-icons/react/HandWaving";
+import { IdentificationCardIcon } from "@phosphor-icons/react/IdentificationCard";
+import { KeyIcon } from "@phosphor-icons/react/Key";
+import { ShareFatIcon } from "@phosphor-icons/react/ShareFat";
 import { HashIcon } from "@phosphor-icons/react/Hash";
 import { HeartbeatIcon } from "@phosphor-icons/react/Heartbeat";
 import { ListMagnifyingGlassIcon } from "@phosphor-icons/react/ListMagnifyingGlass";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import { MapPinIcon } from "@phosphor-icons/react/MapPin";
 import { MegaphoneIcon } from "@phosphor-icons/react/Megaphone";
 import { QuestionIcon } from "@phosphor-icons/react/Question";
@@ -101,7 +111,15 @@ type DemoProduct = {
 
 const demoNavSections: ReadonlyArray<DemoNavSection> = [
 	{
-		title: undefined,
+		title: "Getting Started",
+		items: [
+			{ label: "Get Started", icon: <HandWavingIcon />, path: "/get-started" },
+			{ label: "Share Localhost", icon: <ShareFatIcon />, path: "/share-localhost" },
+			{ label: "Your Authtoken", icon: <KeyIcon />, path: "/your-authtoken" },
+		],
+	},
+	{
+		title: "Connectivity",
 		items: [
 			{ label: "Endpoints", icon: <GraphIcon />, path: "/endpoints" },
 			{ label: "Agents", icon: <TerminalWindowIcon />, path: "/agents" },
@@ -115,6 +133,17 @@ const demoNavSections: ReadonlyArray<DemoNavSection> = [
 				icon: <ListMagnifyingGlassIcon />,
 				path: "/traffic-inspector",
 			},
+			{
+				label: "Traffic Identities",
+				icon: <IdentificationCardIcon />,
+				path: "/traffic-identities",
+			},
+			{ label: "Log Export", icon: <CloudArrowUpIcon />, path: "/event-subscriptions" },
+		],
+	},
+	{
+		title: "Network",
+		items: [
 			{ label: "Domains", icon: <GlobeHemisphereWestIcon />, path: "/domains" },
 			{ label: "TCP Addresses", icon: <HashIcon />, path: "/tcp-addresses" },
 		],
@@ -122,10 +151,14 @@ const demoNavSections: ReadonlyArray<DemoNavSection> = [
 	{
 		title: "Resources",
 		items: [
-			{ label: "Vaults & Secrets", icon: <VaultIcon />, path: "/vaults" },
 			{ label: "IP Policies", icon: <MapPinIcon />, path: "/ip-policies" },
 			{ label: "TLS Certificates", icon: <CertificateIcon />, path: "/tls-certs" },
+			{ label: "TLS Cert Authorities", icon: <BankIcon />, path: "/tls-cert-authorities" },
 		],
+	},
+	{
+		title: "Kubernetes",
+		items: [{ label: "K8s Operators", icon: <CubeIcon />, path: "/kubernetes-operators" }],
 	},
 ];
 
@@ -168,6 +201,7 @@ const demoSettingsSections: ReadonlyArray<DemoNavSection> = [
  * announce two current pages.
  */
 const demoFooterItems: ReadonlyArray<DemoNavItem> = [
+	{ label: "Vaults & Secrets", icon: <VaultIcon />, path: "/vaults" },
 	{ label: "Identity & Access", icon: <UsersThreeIcon />, path: "/iam" },
 	{ label: "Usage & Limits", icon: <SpeedometerIcon />, path: "/usage" },
 ];
@@ -455,10 +489,81 @@ function ProductSwitcherDialog({
 }
 
 /**
+ * The sidebar's search row and the palette it opens. The row is a
+ * `Sidebar.SearchTrigger` — an item-shaped row whose ⌘K hint appears on hover or
+ * focus — wrapped in `Command.SearchTrigger`, which is what makes typing or
+ * pasting into the row open the palette with that text already in the query.
+ *
+ * `setOpenMobile(false)` as the palette opens is load-bearing, not tidiness:
+ * below the sidebar's `mobileBreakpoint` the panel *is* a `Sheet`, so leaving it
+ * open would stack a dialog inside a dialog — two focus traps, and two scroll
+ * locks unwinding in an order neither owns.
+ */
+function DemoSearch({
+	onNavigate,
+	sections,
+}: {
+	onNavigate: (path: string) => void;
+	sections: ReadonlyArray<DemoNavSection>;
+}) {
+	const { setOpenMobile } = useSidebar();
+
+	return (
+		<Command.DialogRoot
+			onOpenChange={(open) => {
+				if (open) {
+					setOpenMobile(false);
+				}
+			}}
+		>
+			<Sidebar.Tooltip
+				label="Search"
+				shortcut={
+					<>
+						<MetaKey />
+						<Kbd>K</Kbd>
+					</>
+				}
+			>
+				<Command.SearchTrigger>
+					<Sidebar.SearchTrigger
+						shortcut={
+							<>
+								<MetaKey />
+								<Kbd>K</Kbd>
+							</>
+						}
+					>
+						<MagnifyingGlassIcon />
+						<span className="min-w-0 flex-1 truncate">Search</span>
+					</Sidebar.SearchTrigger>
+				</Command.SearchTrigger>
+			</Sidebar.Tooltip>
+			<Command.DialogContent>
+				<Command.Input placeholder="Search pages…" />
+				<Command.List>
+					<Command.Empty>No results found.</Command.Empty>
+					{sections.map((section) => (
+						<Command.Group heading={section.title ?? "Overview"} key={section.title ?? "top-level"}>
+							{section.items.map((item) => (
+								<Command.Item key={item.path} onSelect={() => onNavigate(item.path)}>
+									{item.icon}
+									{item.label}
+								</Command.Item>
+							))}
+						</Command.Group>
+					))}
+				</Command.List>
+			</Command.DialogContent>
+		</Command.DialogRoot>
+	);
+}
+
+/**
  * The navigation for whichever section is showing — a product's pages or the
- * settings pages. Lives inside `Sidebar.Root`, so it can use `useSidebar` to
- * close the mobile sheet when a nav item "navigates" — the same shape a real app
- * uses with its router.
+ * settings pages, with the search row above them. Lives inside `Sidebar.Root`,
+ * so it can use `useSidebar` to close the mobile sheet when a nav item
+ * "navigates" — the same shape a real app uses with its router.
  */
 function DemoNav({
 	onNavigate,
@@ -828,7 +933,12 @@ export function AppShellDemo() {
 		// `md` (not the `lg` default ngrok's dashboards use) keeps the desktop
 		// panel visible at the framed preview's desktop and tablet widths
 		<Sidebar.Root mobileBreakpoint="md">
-			<AppLayout.Root className="fixed inset-0">
+			{/* --sidebar-header-height: the sidebar header is a fixed height so it can
+			    align with AppLayout.Header's toolbar, and the switcher and search row
+			    stacked need the taller value. It goes on the common ancestor of both
+			    rows — custom properties only inherit downward, so setting it on
+			    Sidebar.Nav would leave AppLayout.Header on the 4.5rem default. */}
+			<AppLayout.Root className="fixed inset-0 [--sidebar-header-height:6rem]">
 				<SkipToMainLink />
 				<AppLayout.Notice>
 					{showNotice && (
@@ -859,6 +969,10 @@ export function AppShellDemo() {
 							) : (
 								<ProductSwitcherDialog productId={productId} onProductChange={setProductId} />
 							)}
+							<DemoSearch
+								sections={inSettings ? demoSettingsSections : demoNavSections}
+								onNavigate={navigate}
+							/>
 						</Sidebar.Header>
 
 						<Sidebar.Body>
@@ -900,7 +1014,14 @@ export function AppShellDemo() {
 
 					<AppLayout.Content>
 						<AppLayout.Header>
-							<Sidebar.Trigger />
+							<Sidebar.Trigger
+								shortcut={
+									<>
+										<MetaKey />
+										<Kbd>B</Kbd>
+									</>
+								}
+							/>
 							<Breadcrumb.Root>
 								<Breadcrumb.List>
 									{inSettings && (
@@ -1131,7 +1252,12 @@ export function BridgeShellDemo() {
 		// `md` (not the `lg` default ngrok's dashboards use) keeps the desktop
 		// panel visible at the framed preview's desktop and tablet widths
 		<Sidebar.Root mobileBreakpoint="md">
-			<AppLayout.Root className="fixed inset-0">
+			{/* --sidebar-header-height: the sidebar header is a fixed height so it can
+			    align with AppLayout.Header's toolbar, and the switcher and search row
+			    stacked need the taller value. It goes on the common ancestor of both
+			    rows — custom properties only inherit downward, so setting it on
+			    Sidebar.Nav would leave AppLayout.Header on the 4.5rem default. */}
+			<AppLayout.Root className="fixed inset-0 [--sidebar-header-height:6rem]">
 				<SkipToMainLink />
 				<AppLayout.Notice>
 					{showNotice && (
@@ -1166,6 +1292,10 @@ export function BridgeShellDemo() {
 									onNavigate={navigate}
 								/>
 							)}
+							<DemoSearch
+								sections={inSettings ? demoSettingsSections : demoNavSections}
+								onNavigate={navigate}
+							/>
 						</Sidebar.Header>
 
 						<Sidebar.Body>
@@ -1206,7 +1336,14 @@ export function BridgeShellDemo() {
 
 					<AppLayout.Content>
 						<AppLayout.Header>
-							<Sidebar.Trigger />
+							<Sidebar.Trigger
+								shortcut={
+									<>
+										<MetaKey />
+										<Kbd>B</Kbd>
+									</>
+								}
+							/>
 							<Breadcrumb.Root>
 								<Breadcrumb.List>
 									<Breadcrumb.Item>

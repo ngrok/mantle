@@ -1,14 +1,24 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
+import { fireEvent, render as renderComponent, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef, type ReactElement } from "react";
 import { renderToString } from "react-dom/server";
-import { afterEach, beforeEach, describe, expect, type MockInstance, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import mantleCss from "../../mantle.css?raw";
 import type * as UseBreakpointModule from "../../hooks/use-breakpoint.js";
 import { Avatar } from "../avatar/index.js";
+import { Command } from "../command/command.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { TooltipProvider } from "../tooltip/index.js";
 import { Sidebar, useSidebar } from "./sidebar.js";
+
+/**
+ * `Sidebar.Trigger` renders a real tooltip, so every subject needs a
+ * `TooltipProvider` — the same ancestor `Sidebar.Tooltip` requires, and the one
+ * an app mounts at its root. Wrapping here keeps it out of every call site; a
+ * nested provider in the tests that mount their own is harmless.
+ */
+const render = (ui: ReactElement) => renderComponent(ui, { wrapper: TooltipProvider });
 
 const { useIsBelowBreakpointMock } = vi.hoisted(() => ({
 	useIsBelowBreakpointMock: vi.fn<(breakpoint: string) => boolean>(() => false),
@@ -209,6 +219,87 @@ describe("Sidebar.Nav (desktop)", () => {
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
 	});
 
+	test("Trigger's tooltip shows its label and shortcut to pointer users", async () => {
+		// Not gated on the rail state the way `Sidebar.Tooltip` is: the trigger is
+		// icon-only at every breakpoint, so a pointer user has nothing else to read.
+		const user = userEvent.setup();
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav />
+				<Sidebar.Trigger shortcut={<kbd>B</kbd>} />
+			</Sidebar.Root>,
+		);
+
+		await user.hover(screen.getByRole("button", { name: "Toggle Sidebar" }));
+
+		const tooltip = await screen.findByRole("tooltip");
+		expect(tooltip).toHaveTextContent("Toggle Sidebar");
+		expect(tooltip).toHaveTextContent("B");
+	});
+
+	test("Trigger's tooltip drops the shortcut when the root does not own it", async () => {
+		const user = userEvent.setup();
+		render(
+			<Sidebar.Root keyboardShortcut={false}>
+				<Sidebar.Nav />
+				<Sidebar.Trigger shortcut={<kbd>B</kbd>} />
+			</Sidebar.Root>,
+		);
+
+		await user.hover(screen.getByRole("button", { name: "Toggle Sidebar" }));
+
+		const tooltip = await screen.findByRole("tooltip");
+		expect(tooltip).toHaveTextContent("Toggle Sidebar");
+		expect(tooltip).not.toHaveTextContent("B");
+	});
+
+	describe("Trigger aria-keyshortcuts", () => {
+		test("advertises Control+B in the server render", () => {
+			// The server cannot know the platform, so it renders the non-Apple answer
+			// and corrects itself in an effect; post-mount state cannot observe the
+			// render path.
+			const html = renderToString(
+				<TooltipProvider>
+					<Sidebar.Root>
+						<Sidebar.Nav />
+						<Sidebar.Trigger />
+					</Sidebar.Root>
+				</TooltipProvider>,
+			);
+			expect(html).toContain('aria-keyshortcuts="Control+B"');
+		});
+
+		test("advertises Meta+B on an Apple platform", async () => {
+			// `restoreMocks` in vitest.config.ts tears the spy down between tests.
+			vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+			render(
+				<Sidebar.Root>
+					<Sidebar.Nav />
+					<Sidebar.Trigger />
+				</Sidebar.Root>,
+			);
+			await waitFor(() => {
+				expect(screen.getByRole("button", { name: "Toggle Sidebar" })).toHaveAttribute(
+					"aria-keyshortcuts",
+					"Meta+B",
+				);
+			});
+		});
+
+		test("is absent when the root does not own the shortcut", () => {
+			// Announcing a chord nothing binds is worse than announcing none.
+			render(
+				<Sidebar.Root keyboardShortcut={false}>
+					<Sidebar.Nav />
+					<Sidebar.Trigger />
+				</Sidebar.Root>,
+			);
+			expect(screen.getByRole("button", { name: "Toggle Sidebar" })).not.toHaveAttribute(
+				"aria-keyshortcuts",
+			);
+		});
+	});
+
 	test("keyboardShortcut={false} disables the toggle", async () => {
 		const user = userEvent.setup();
 		render(
@@ -223,15 +314,9 @@ describe("Sidebar.Nav (desktop)", () => {
 	describe("on Apple platforms", () => {
 		// The handler resolves the platform once per mount, so the stub has to be
 		// installed before `render()` — a `beforeEach` is the only safe place.
-		let platform: MockInstance<() => string> | undefined;
-
+		// `restoreMocks` in vitest.config.ts undoes it between tests.
 		beforeEach(() => {
-			platform = vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
-		});
-
-		afterEach(() => {
-			platform?.mockRestore();
-			platform = undefined;
+			vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
 		});
 
 		test("⌘B toggles the sidebar", async () => {
@@ -951,6 +1036,180 @@ describe("Sidebar.SwitcherTrigger", () => {
 	});
 });
 
+describe("Sidebar.SearchTrigger", () => {
+	test("renders a type=button styled row by default", () => {
+		render(<Sidebar.SearchTrigger>Search…</Sidebar.SearchTrigger>);
+		const button = screen.getByRole("button", { name: "Search…" });
+		expect(button).toHaveAttribute("type", "button");
+		expect(button).toHaveAttribute("data-slot", "sidebar-search-trigger");
+	});
+
+	test("className, ref, and data-* reach the row", () => {
+		const ref = createRef<HTMLButtonElement>();
+		render(
+			<Sidebar.SearchTrigger className="custom-class" data-flavor="primary" ref={ref}>
+				Search…
+			</Sidebar.SearchTrigger>,
+		);
+		const button = screen.getByRole("button", { name: "Search…" });
+		expect(button.className).toContain("custom-class");
+		expect(button).toHaveAttribute("data-flavor", "primary");
+		expect(ref.current).toBe(button);
+	});
+
+	test("asChild renders the consumer element with the search row styles", () => {
+		// `shortcut` is unavailable here by construction — a cloned child has no
+		// room for a sibling hint — so the whole row content is the consumer's.
+		render(
+			<Sidebar.SearchTrigger asChild className="custom-class">
+				<a href="/search">Search…</a>
+			</Sidebar.SearchTrigger>,
+		);
+		const link = screen.getByRole("link", { name: "Search…" });
+		expect(link).toHaveAttribute("data-slot", "sidebar-search-trigger");
+		expect(link.className).toContain("custom-class");
+		expect(link).not.toHaveAttribute("type");
+	});
+
+	test("an incoming data-slot chain is joined, not clobbered", () => {
+		// This is how the row reads once `Command.SearchTrigger` wraps it: the
+		// palette's slot, then the row's.
+		render(
+			<Sidebar.SearchTrigger data-slot="command-search-trigger">Search…</Sidebar.SearchTrigger>,
+		);
+		expect(screen.getByRole("button", { name: "Search…" })).toHaveAttribute(
+			"data-slot",
+			"command-search-trigger sidebar-search-trigger",
+		);
+	});
+
+	test("the shortcut hint is rendered aria-hidden, outside the accessible name", async () => {
+		// The chord is announced by the `aria-keyshortcuts` that
+		// `Command.SearchTrigger` adds, so the visible chips must not repeat it.
+		render(
+			<Sidebar.SearchTrigger shortcut={<kbd>K</kbd>}>
+				<MagnifyingGlassIcon />
+				<span>Search</span>
+			</Sidebar.SearchTrigger>,
+		);
+		const button = screen.getByRole("button", { name: "Search" });
+		const hint = button.querySelector("[aria-hidden='true']");
+		expect(hint).not.toBeNull();
+		expect(hint).toHaveTextContent("K");
+	});
+
+	test("renders no hint element when no shortcut is passed", () => {
+		render(
+			<Sidebar.SearchTrigger>
+				<MagnifyingGlassIcon />
+				<span>Search</span>
+			</Sidebar.SearchTrigger>,
+		);
+		expect(
+			screen.getByRole("button", { name: "Search" }).querySelector("[aria-hidden='true']"),
+		).toBeNull();
+	});
+
+	test("a Sidebar.Tooltip around it opens in the rail, shortcut and all", async () => {
+		// Regression: `Command.SearchTrigger` typed its props as `{ children }` only,
+		// so wrapping it in `Sidebar.Tooltip` dropped every prop Radix's
+		// `Tooltip.Trigger` passes down — the row rendered fine and the tooltip
+		// could never open. This is the composition the docs recommend, so it is
+		// asserted end to end rather than per-part.
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<Sidebar.Root defaultOpen={false}>
+					<Sidebar.Nav>
+						<Command.DialogRoot keyboardShortcut={false}>
+							<Sidebar.Tooltip label="Search" shortcut={<kbd>K</kbd>}>
+								<Command.SearchTrigger>
+									<Sidebar.SearchTrigger>
+										<MagnifyingGlassIcon />
+										<span>Search</span>
+									</Sidebar.SearchTrigger>
+								</Command.SearchTrigger>
+							</Sidebar.Tooltip>
+						</Command.DialogRoot>
+					</Sidebar.Nav>
+				</Sidebar.Root>
+			</TooltipProvider>,
+		);
+
+		await user.hover(screen.getByRole("button", { name: "Search" }));
+
+		const tooltip = await screen.findByRole("tooltip");
+		expect(tooltip).toHaveTextContent("Search");
+		expect(tooltip).toHaveTextContent("K");
+	});
+
+	test("stays highlighted while its palette is open, even inside a Sidebar.Tooltip", async () => {
+		// Cross-part pin: `Tooltip.Trigger` hands its own `data-state` down, and
+		// Radix's prop merge lets the child's value win — so `Command.SearchTrigger`
+		// has to re-stamp the palette's state after the forwarded props. Without
+		// that, this row reads `data-state="closed"` with the palette open and
+		// `rowClassName`'s `data-state-open:` styling never fires.
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<Sidebar.Root>
+					<Sidebar.Nav>
+						<Command.DialogRoot keyboardShortcut={false}>
+							<Sidebar.Tooltip label="Search">
+								<Command.SearchTrigger>
+									<Sidebar.SearchTrigger data-testid="row">
+										<MagnifyingGlassIcon />
+										<span>Search</span>
+									</Sidebar.SearchTrigger>
+								</Command.SearchTrigger>
+							</Sidebar.Tooltip>
+							<Command.DialogContent title="Palette">
+								<Command.Input placeholder="Type a command…" />
+							</Command.DialogContent>
+						</Command.DialogRoot>
+					</Sidebar.Nav>
+				</Sidebar.Root>
+			</TooltipProvider>,
+		);
+
+		const row = screen.getByTestId("row");
+		expect(row).toHaveAttribute("data-state", "closed");
+
+		await user.click(row);
+
+		// Queried by test id: the open modal marks everything outside it
+		// `aria-hidden`, so a role query cannot reach the row any more.
+		await waitFor(() => {
+			expect(screen.getByTestId("row")).toHaveAttribute("data-state", "open");
+		});
+	});
+
+	test("keeps its label in the accessibility tree in the collapsed rail", async () => {
+		// The rail hides everything after the leading icon with `sr-only` rather
+		// than removing it, so the row still has a name when it is just a chip —
+		// the same contract `Sidebar.SwitcherTrigger` keeps.
+		const user = userEvent.setup();
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav data-testid="nav">
+					<Sidebar.Body>
+						<Sidebar.SearchTrigger>
+							<MagnifyingGlassIcon />
+							<span>Search…</span>
+						</Sidebar.SearchTrigger>
+					</Sidebar.Body>
+				</Sidebar.Nav>
+				<Sidebar.Trigger />
+			</Sidebar.Root>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByRole("button", { name: "Search…" })).toBeInTheDocument();
+	});
+});
+
 describe("Sidebar.Tooltip", () => {
 	function RailRow({ defaultOpen }: { defaultOpen: boolean }) {
 		return (
@@ -1530,6 +1789,13 @@ const defaultElementCases: Array<PartCase> = [
 		),
 	},
 	{
+		name: "SearchTrigger",
+		ownClass: "rounded-md",
+		slot: "sidebar-search-trigger",
+		tagName: "BUTTON",
+		renderPart: (probe) => <Sidebar.SearchTrigger {...probe}>Search…</Sidebar.SearchTrigger>,
+	},
+	{
 		name: "SwitcherTrigger",
 		ownClass: "font-medium",
 		slot: "sidebar-switcher-trigger",
@@ -1661,6 +1927,17 @@ const asChildCases: Array<PartCase> = [
 					</Sidebar.ItemButton>
 				</Sidebar.Item>
 			</Sidebar.List>
+		),
+	},
+	{
+		name: "SearchTrigger",
+		ownClass: "rounded-md",
+		slot: "sidebar-search-trigger",
+		tagName: "A",
+		renderPart: (probe) => (
+			<Sidebar.SearchTrigger asChild {...probe}>
+				<a href="/search">Search…</a>
+			</Sidebar.SearchTrigger>
 		),
 	},
 	{
