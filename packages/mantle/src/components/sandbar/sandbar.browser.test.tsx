@@ -1,5 +1,7 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, test, vi } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { createRef } from "react";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import type { SandbarHandle } from "./sandbar.js";
 import { Sandbar } from "./sandbar.js";
 
@@ -19,31 +21,9 @@ function getAlertRegion(): HTMLElement {
 	return region;
 }
 
-/** Mock `matchMedia` to report `prefers-reduced-motion: reduce`. */
-function mockReducedMotion() {
-	// "(prefers-reduced-motion: no-preference)" → matches: false means reduced
-	return vi.spyOn(window, "matchMedia").mockImplementation((query) => ({
-		matches: false,
-		media: query,
-		onchange: null,
-		addListener: vi.fn<() => void>(),
-		removeListener: vi.fn<() => void>(),
-		addEventListener: vi.fn<() => void>(),
-		removeEventListener: vi.fn<() => void>(),
-		dispatchEvent: vi.fn<() => boolean>(),
-	}));
-}
-
-/** Wait out the passive effects that run after a timeout-driven close commit. */
-async function settle() {
-	await new Promise((resolve) => {
-		window.setTimeout(resolve, 50);
-	});
-}
-
 describe("Sandbar (browser)", () => {
 	test("shake animates the panel with the wiggle keyframes", () => {
-		const handle = { current: null as SandbarHandle | null };
+		const handle = createRef<SandbarHandle>();
 		render(
 			<Sandbar.Root handleRef={handle} open>
 				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
@@ -57,11 +37,10 @@ describe("Sandbar (browser)", () => {
 		const [keyframes, options] = animateSpy.mock.calls[0] ?? [];
 		expect(Array.isArray(keyframes) && keyframes.length).toBe(8);
 		expect(options).toMatchObject({ duration: 400, easing: "ease-in-out" });
-		animateSpy.mockRestore();
 	});
 
 	test("a re-triggered shake cancels the in-flight animation", () => {
-		const handle = { current: null as SandbarHandle | null };
+		const handle = createRef<SandbarHandle>();
 		render(
 			<Sandbar.Root handleRef={handle} open>
 				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
@@ -79,8 +58,10 @@ describe("Sandbar (browser)", () => {
 	});
 
 	test("shake under prefers-reduced-motion skips the animation but still announces", async () => {
-		const matchMediaSpy = mockReducedMotion();
-		const handle = { current: null as SandbarHandle | null };
+		// `getPrefersReducedMotion` queries "(prefers-reduced-motion: no-preference)",
+		// and an unprimed query reports `matches: false` — i.e. reduced motion.
+		mockMatchMedia();
+		const handle = createRef<SandbarHandle>();
 		render(
 			<Sandbar.Root handleRef={handle} open>
 				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
@@ -96,9 +77,6 @@ describe("Sandbar (browser)", () => {
 				"You have unsaved changes. Save or discard them before leaving.",
 			);
 		});
-
-		animateSpy.mockRestore();
-		matchMediaSpy.mockRestore();
 	});
 
 	test("closing hides the panel via the safety timeout when no CSS transition runs", async () => {
@@ -201,8 +179,10 @@ describe("Sandbar (browser)", () => {
 		await waitFor(() => {
 			expect(getPanel()).toHaveAttribute("hidden");
 		});
-		// let the passive restore effect run, then confirm it left focus alone
-		await settle();
+		// flush the passive restore effect, then confirm it left focus alone. `act`
+		// drains React's effect queue deterministically — a fixed sleep would let
+		// this assertion pass merely by running before the effect it is guarding.
+		await act(async () => {});
 		expect(document.activeElement).toBe(elsewhere);
 	});
 
@@ -234,7 +214,7 @@ describe("Sandbar (browser)", () => {
 		await waitFor(() => {
 			expect(getPanel()).toHaveAttribute("hidden");
 		});
-		await settle();
+		await act(async () => {});
 		expect(document.activeElement).toBe(fieldB);
 
 		// session 2: reopen and focus the bar directly from <body> — closing must
@@ -246,7 +226,7 @@ describe("Sandbar (browser)", () => {
 		await waitFor(() => {
 			expect(getPanel()).toHaveAttribute("hidden");
 		});
-		await settle();
+		await act(async () => {});
 		expect(document.activeElement).not.toBe(fieldA);
 	});
 
@@ -273,10 +253,11 @@ describe("Sandbar (browser)", () => {
 		await waitFor(() => {
 			expect(getPanel()).toHaveAttribute("hidden");
 		});
-		await settle();
-		// the stored target is disconnected — focus is left where the browser
-		// put it rather than restored to a dead node
-		expect(document.activeElement).toBe(document.body);
+		// the stored target is disconnected — focus is left where the browser put it
+		// rather than restored to a dead node. Poll the focus itself: hiding the
+		// panel drops focus to <body> through the browser's own focus-fixup, which
+		// is not synchronous with the DOM mutation.
+		await expect.poll(() => document.activeElement).toBe(document.body);
 	});
 
 	test("closing restores focus after an in-bar control dropped focus to the body", async () => {
@@ -317,4 +298,93 @@ describe("Sandbar (browser)", () => {
 	// spec-defined no-op, so removing either guard leaves the identical observable
 	// outcome (focus stays on <body>); a black-box focus assertion cannot tell the
 	// two apart. They remain as defensive fast-paths that skip a wasted focus() call.
+
+	test("the panel is inert through the exit, not only once closed", async () => {
+		const tree = ({ open }: { open: boolean }) => (
+			<Sandbar.Root open={open}>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Sandbar.Actions>
+					<Sandbar.DiscardButton onClick={() => {}}>Discard</Sandbar.DiscardButton>
+				</Sandbar.Actions>
+			</Sandbar.Root>
+		);
+		const { rerender } = render(tree({ open: true }));
+
+		const panel = getPanel();
+		const discard = screen.getByRole("button", { name: "Discard" });
+		discard.focus();
+		expect(document.activeElement).toBe(discard);
+		expect(panel).not.toHaveAttribute("inert");
+
+		rerender(tree({ open: false }));
+
+		// Mid-exit: still painted (`hidden` lands only at rest, 400ms later via the
+		// safety timeout) but no longer reachable. Without `inert` here the user
+		// could Tab onto the visually-vanishing Discard button and activate it —
+		// `data-state-closed:pointer-events-none` suppresses only the mouse.
+		expect(panel).not.toHaveAttribute("hidden");
+		expect(panel).toHaveAttribute("inert");
+		// the browser evicts focus from an inert subtree, though not synchronously
+		// with the attribute write
+		await expect.poll(() => panel.contains(document.activeElement)).toBe(false);
+	});
+});
+
+/**
+ * Mirrors the two display utilities Tailwind 4 emits for the panel, in the layer
+ * and selector form it emits them — that is what decides the cascade. Chromium's
+ * own UA stylesheet supplies `[hidden] { display: none }`; Preflight (which would
+ * add `[hidden] { display: none !important }`) is deliberately NOT included,
+ * because a consumer importing only `tailwindcss/theme` + `tailwindcss/utilities`
+ * does not get it either.
+ */
+const DISPLAY_STYLE = `
+@layer utilities {
+	.flex { display: flex; }
+	.\\[\\&\\[hidden\\]\\]\\:hidden[hidden] { display: none; }
+}
+`;
+
+describe("Sandbar closed-state display (browser)", () => {
+	let styleElement: HTMLStyleElement;
+
+	beforeAll(() => {
+		styleElement = document.createElement("style");
+		styleElement.textContent = DISPLAY_STYLE;
+		document.head.appendChild(styleElement);
+	});
+
+	afterAll(() => {
+		styleElement.remove();
+	});
+
+	test("the open panel lays out as a flex row", () => {
+		render(
+			<Sandbar.Root open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+			</Sandbar.Root>,
+		);
+
+		expect(getComputedStyle(getPanel()).display).toBe("flex");
+	});
+
+	test("the closed panel is display:none without Preflight's [hidden] override", async () => {
+		const tree = ({ open }: { open: boolean }) => (
+			<Sandbar.Root open={open}>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+			</Sandbar.Root>
+		);
+		const { rerender } = render(tree({ open: true }));
+		const panel = getPanel();
+
+		rerender(tree({ open: false }));
+		await waitFor(() => {
+			expect(panel).toHaveAttribute("hidden");
+		});
+
+		// `.flex` is author-origin and outranks the UA `[hidden]` rule, so the bar
+		// would stay fully visible, inert and un-dismissable at the bottom of every
+		// page. The attribute-qualified variant on the panel is what wins instead.
+		expect(getComputedStyle(panel).display).toBe("none");
+	});
 });

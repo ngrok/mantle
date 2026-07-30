@@ -164,13 +164,6 @@ function parseDeclarationBlock(
 export {
 	//,
 	extractTopLevelRules,
-	normalizeAlphaFunctions,
 	parseDeclarationBlock,
 	parseDeclarations,
-	stripCssComments,
-};
-
-export type {
-	//,
-	CssRule,
 };

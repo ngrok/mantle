@@ -2,7 +2,7 @@
 
 import { render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { MantleStyleSheets } from "./mantle-style-sheets.js";
+import { fixMediaScriptContent, MantleStyleSheets } from "./mantle-style-sheets.js";
 
 const DARK_LINK_ID = "mantle-dark-styles";
 const LIGHT_HC_LINK_ID = "mantle-light-high-contrast-styles";
@@ -351,5 +351,62 @@ describe("MantleStyleSheets — MutationObserver: runtime theme changes", () => 
 		await waitFor(() => {
 			expect(getDarkLink().media).toBe("all");
 		});
+	});
+});
+
+describe("the inline fix script", () => {
+	/**
+	 * Run the stringified script the way the browser does. Nothing else can see a
+	 * closure-scoping regression in it: `fixMediaScriptContent` serializes
+	 * `fixMediaAttributes` with `Function.prototype.toString()`, so a reference to
+	 * any module-scope binding survives lint, typecheck and build and throws only
+	 * at runtime, before first paint.
+	 */
+	function runFixScript(forceTheme?: Parameters<typeof fixMediaScriptContent>[0]) {
+		new Function(fixMediaScriptContent(forceTheme))();
+	}
+
+	test("promotes the dark link's pair when the applied theme is light", () => {
+		render(<MantleStyleSheets {...TEST_URLS} />);
+		document.documentElement.dataset.appliedTheme = "light";
+
+		runFixScript();
+
+		expect(getDarkLink().media).toBe("all");
+		expect(getLightHcLink().media).toBe(MEDIA_LIGHT_HC);
+		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
+	});
+
+	test("promotes both high-contrast links when the applied theme is high contrast", () => {
+		render(<MantleStyleSheets {...TEST_URLS} />);
+		document.documentElement.dataset.appliedTheme = "dark-high-contrast";
+
+		runFixScript();
+
+		expect(getLightHcLink().media).toBe("all");
+		expect(getDarkHcLink().media).toBe("all");
+		// the other pair stays gated on the OS preference
+		expect(getDarkLink().media).toBe(MEDIA_DARK);
+	});
+
+	test("leaves every link on its OS media query when no theme is applied", () => {
+		render(<MantleStyleSheets {...TEST_URLS} />);
+
+		runFixScript();
+
+		expect(getDarkLink().media).toBe(MEDIA_DARK);
+		expect(getLightHcLink().media).toBe(MEDIA_LIGHT_HC);
+		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
+	});
+
+	test("forceTheme wins over the applied theme", () => {
+		render(<MantleStyleSheets {...TEST_URLS} />);
+		document.documentElement.dataset.appliedTheme = "light-high-contrast";
+
+		runFixScript("dark");
+
+		expect(getDarkLink().media).toBe("all");
+		expect(getLightHcLink().media).toBe(MEDIA_LIGHT_HC);
+		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
 	});
 });

@@ -49,10 +49,21 @@ function serializeThemeRules(css: string): string {
 		.join("\n");
 }
 
-const lightBlock = parseDeclarationBlock(
-	mantleCss,
-	(selector) => selector.startsWith(":root,") && selector.includes(":root.light,"),
-);
+// Light's surface is split across two rules — its own definitions at `:root`
+// (plus islands) and Tailwind's unmodified default ramps scoped to islands only
+// — so the sweep surface is the union. Taking just the page-level block would
+// leave the ramps in the sweep only for as long as the dark block keeps
+// declaring them.
+const lightBlock = new Map([
+	...parseDeclarationBlock(
+		mantleCss,
+		(selector) => selector.startsWith(":root:is(") && selector.endsWith(".invert-theme"),
+	),
+	...parseDeclarationBlock(
+		mantleCss,
+		(selector) => selector.startsWith(":root,") && selector.includes(":root.light,"),
+	),
+]);
 const darkBlock = parseDeclarationBlock(darkCss, (selector) => selector.includes(":root.dark"));
 const lightHcBlock = parseDeclarationBlock(lightHcCss, (selector) =>
 	selector.includes(":root.light-high-contrast"),

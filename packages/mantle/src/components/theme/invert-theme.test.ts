@@ -23,10 +23,26 @@ import {
  * `invert-theme.browser.test.ts` proves the end-to-end computed behavior.
  */
 
-const lightBlock = parseDeclarationBlock(
+/**
+ * Light's own definitions, declared at `:root` and re-declared on islands.
+ */
+const lightPageBlock = parseDeclarationBlock(
 	mantleCss,
 	(selector) => selector.startsWith(":root,") && selector.includes(":root.light,"),
 );
+/**
+ * Tailwind's unmodified default ramps, restated for islands only. Kept out of
+ * the page-level block so they cannot override a consumer's `@theme` palette.
+ */
+const lightIslandBlock = parseDeclarationBlock(
+	mantleCss,
+	(selector) => selector.startsWith(":root:is(") && selector.endsWith(".invert-theme"),
+);
+/**
+ * What an island on a dark page actually resolves: both rules match it, so the
+ * completeness invariants below compare theme blocks against the union.
+ */
+const lightBlock = new Map([...lightIslandBlock, ...lightPageBlock]);
 const darkBlock = parseDeclarationBlock(darkCss, (selector) => selector.includes(":root.dark"));
 const lightHcBlock = parseDeclarationBlock(lightHighContrastCss, (selector) =>
 	selector.includes(":root.light-high-contrast"),
@@ -46,6 +62,8 @@ describe("cardinality floors", () => {
 	// parser regression could satisfy vacuously with empty maps. These floors
 	// make degenerate parses fail loudly.
 	test("the parsed blocks are non-degenerate", () => {
+		expect(lightPageBlock.size).toBeGreaterThan(80);
+		expect(lightIslandBlock.size).toBeGreaterThan(200);
 		expect(lightBlock.size).toBeGreaterThan(250);
 		expect(darkBlock.size).toBeGreaterThan(250);
 		expect(lightHcBlock.size).toBeGreaterThan(240);
@@ -128,6 +146,40 @@ describe("theme block completeness", () => {
 		expect([...lightBlock.keys()].toSorted()).toEqual([...darkBlock.keys()].toSorted());
 	});
 
+	test("no theme block declares a color the light base omits", () => {
+		// The light base is what islands on every non-light page restore, so a ramp
+		// or stop that only a *theme* block declares has no light counterpart: the
+		// island would inherit the page theme's value for it through `:root`. The
+		// light⇄dark equality below covers that pair; this covers the other two,
+		// where the sets legitimately differ from light's.
+		const lightColors = new Set(
+			[...lightBlock.keys()].filter((property) => property.startsWith("--color-")),
+		);
+		const orphans = [darkBlock, lightHcBlock, darkHcBlock].flatMap((block) =>
+			[...block.keys()].filter(
+				(property) => property.startsWith("--color-") && !lightColors.has(property),
+			),
+		);
+		expect([...new Set(orphans)]).toEqual([]);
+	});
+
+	test("each theme stylesheet holds nothing outside its theme-gated rule", () => {
+		// Pair loading means a theme stylesheet is now applied (`media="all"`) on
+		// its partner's pages, so any rule in these files that is NOT gated on a
+		// `:root` theme match would leak globally — onto light pages, from the dark
+		// sheet. Neither the browser sweep nor the rule-count check above can see
+		// such a rule: the sweep re-serializes only `:root`-prefixed rules.
+		for (const [name, css] of [
+			["mantle-dark.css", darkCss],
+			["mantle-light-high-contrast.css", lightHighContrastCss],
+			["mantle-dark-high-contrast.css", darkHighContrastCss],
+		] as const) {
+			const rules = extractTopLevelRules(css);
+			expect(rules.length, `${name} top-level rule count`).toBe(1);
+			expect(rules[0]?.selector, `${name} selector`).toMatch(/^:root/);
+		}
+	});
+
 	test("the high-contrast pair declares identical variable sets", () => {
 		const lightHcKeys = [...lightHcBlock.keys()].toSorted();
 		const darkHcKeys = [...darkHcBlock.keys()].toSorted();
@@ -167,11 +219,42 @@ describe("theme block completeness", () => {
 });
 
 describe("the materialized default palette (mantle.css light base)", () => {
-	// The light block declares its complete palette so islands on dark pages
-	// restore the defaults from the light block itself — mantle-dark.css never
-	// encodes light values. Custom stops that intentionally diverge from the
-	// Tailwind defaults are exempted from the verbatim check.
+	// Light materializes its complete palette so islands on dark pages restore it
+	// from mantle.css itself — mantle-dark.css never encodes light values. The
+	// verbatim Tailwind defaults live in the island-scoped restore rule and light's
+	// own divergences in the page-level block; the union is what an island sees.
+	// Custom stops that intentionally diverge are exempt from the verbatim check.
 	const intentionalCustomStops = new Set(["--color-neutral-950", "--color-sky-600"]);
+
+	test("the page-level light block restates no unmodified Tailwind default", () => {
+		// This is the whole reason for the island-only scope: `@theme` variables are
+		// emitted into `@layer theme` and unlayered author CSS beats every layer, so
+		// a verbatim restatement at `:root` silently overrides a consumer's own
+		// `@theme { --color-rose-500: … }` with mantle's stock value — for every ramp,
+		// with no error anywhere.
+		const restated = [...lightPageBlock]
+			.filter(([property]) => property.startsWith("--color-"))
+			.filter(([property, value]) => tailwindDefaults.get(property) === value)
+			.map(([property]) => property);
+		expect(restated).toEqual([]);
+	});
+
+	test("the palette restore covers exactly the islands the light block covers", () => {
+		// Both rules must match the same islands. If the selectors drift, an island
+		// gets one half of light's values and silently inherits the page theme's for
+		// the other half.
+		const pageRule = extractTopLevelRules(mantleCss).find(({ selector }) =>
+			selector.startsWith(":root,"),
+		);
+		const restoreRule = extractTopLevelRules(mantleCss).find(
+			({ selector }) => selector.startsWith(":root:is(") && selector.endsWith(".invert-theme"),
+		);
+		const restoreSelector = normalizeSelector(restoreRule?.selector);
+		expect(restoreSelector).toBe(
+			':root:is(.dark, [data-theme="dark"], [data-applied-theme="dark"]) .invert-theme',
+		);
+		expect(normalizeSelector(pageRule?.selector)).toContain(restoreSelector);
+	});
 
 	test("mantle-dark.css contains no light values (its only .invert-theme rule is the block extension)", () => {
 		const invertRules = extractTopLevelRules(darkCss).filter(({ selector }) =>

@@ -25,6 +25,7 @@ blocked attempts wiggle the panel and announce assertively to screen readers.
 	<CodeExample.Code>
 
 ```tsx
+import { Alert } from "@ngrok/mantle/alert";
 import { Button } from "@ngrok/mantle/button";
 import { Checkbox } from "@ngrok/mantle/checkbox";
 import { Field } from "@ngrok/mantle/field";
@@ -58,7 +59,7 @@ export function EndpointSettings() {
 	const save = () => {
 		setIsPending(true);
 		setError(null);
-		// stand-in for the real request; fails on demand so the error row is visible
+		// stand-in for the real request; fails on demand so the form's error shows
 		window.setTimeout(() => {
 			setIsPending(false);
 			if (failNextSave) {
@@ -84,6 +85,23 @@ export function EndpointSettings() {
 
 	return (
 		<form>
+			{/* the failure belongs in the form, next to what could not be saved —
+			    see "Reporting a failed save" below */}
+			{error != null && (
+				<Alert.Root
+					intent="danger"
+					ref={(node) => {
+						node?.focus();
+					}}
+					role="alert"
+					tabIndex={-1}
+				>
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Description>{error}</Alert.Description>
+					</Alert.Content>
+				</Alert.Root>
+			)}
 			<Field.Item name="endpoint-name">
 				<Field.Label>Endpoint name</Field.Label>
 				<Field.Control>
@@ -108,7 +126,7 @@ export function EndpointSettings() {
 					id="fail-next-save"
 					onChange={(event) => setFailNextSave(event.target.checked)}
 				/>
-				Fail the next save (shows the error row)
+				Fail the next save (reports the error in the form)
 			</Label>
 			<Button
 				appearance="link"
@@ -135,7 +153,6 @@ export function EndpointSettings() {
 						{isPending ? "Saving…" : "Save changes"}
 					</Sandbar.SaveButton>
 				</Sandbar.Actions>
-				{error != null && <Sandbar.Error>{error}</Sandbar.Error>}
 			</Sandbar.Root>
 			<Toaster />
 		</form>
@@ -154,10 +171,9 @@ Compose the parts of a `Sandbar` together to build your own:
 ```text showLineNumbers=false
 Sandbar.Root
 ├── Sandbar.Message
-├── Sandbar.Actions
-│   ├── Sandbar.DiscardButton
-│   └── Sandbar.SaveButton
-└── Sandbar.Error
+└── Sandbar.Actions
+    ├── Sandbar.DiscardButton
+    └── Sandbar.SaveButton
 ```
 
 `Sandbar.Root` must stay mounted and be toggled with the controlled `open` prop — **never
@@ -165,6 +181,19 @@ conditionally mount it** (`{isDirty && <Sandbar.Root …>}`). The screen-reader 
 works when the internal live regions exist in the tree before the message appears, and the exit
 animation needs the panel alive to play. A Root that mounts with `open` already true does not
 announce (mounting is not a live-region change).
+
+## Polymorphism
+
+`Sandbar.Message` and `Sandbar.Actions` accept an `asChild` prop. When `true`, the part renders
+its single child instead of its default element (`<p>` and `<div>` respectively), forwarding all
+class names, `data-*` attributes, and the ref onto that child. Reach for it when the message needs
+a different semantic element (e.g. a `<span>` inside a larger sentence) or when the actions row
+should be another framework primitive. `Sandbar.SaveButton` and `Sandbar.DiscardButton` inherit
+`asChild` from [Button](/components/actions/button). `Sandbar.Root` deliberately does not support
+`asChild`: it renders multiple nodes (positioning wrapper, two screen-reader announcers, and the
+panel), so single-child polymorphism has no coherent meaning. The framed demos above render real
+`Sandbar` trees you can adapt; there is no separate polymorphism demo because the bar is a
+viewport-fixed singleton that would overlay this page outside a preview frame.
 
 ## Pending decisions beyond saving
 
@@ -244,18 +273,33 @@ export function DraftPosts() {
 
 ## Reporting a failed save
 
-When a save fails, render `Sandbar.Error` on its own row of the panel. It is a danger
-[Alert](/components/feedback/alert) pinned to `intent="danger"`, and it is safe to mount conditionally
-(`{error != null && <Sandbar.Error>{error}</Sandbar.Error>}`) — the assertive announcement is owned by
-`Sandbar.Root`'s persistent live region, not the mounted node, so the alert is heard even though it
-carries no `role="alert"` of its own. Saving in the demo below always fails, so the error row appears on
-every attempt.
+**Report the failure where it happened, not on the bar.** The bar carries the _pending decision_ —
+"you have unsaved changes, resolve them." A failed save is about the content the user is looking at,
+so it belongs next to that content: a field-level message on the field that was rejected, or a
+form-level [Alert](/components/feedback/alert) at the top of the form for a whole-request failure.
+There is deliberately no `Sandbar.Error` part.
+
+Leave the bar open on failure. The changes are still unsaved, so the decision is still pending and
+the user needs the Save button to retry.
+
+Two things to get right in the error you render:
+
+- **Announce it.** The bar's live regions cover opening, saving, and blocked navigation — not your
+  error. Give a form-level alert `role="alert"`, or render a field error through
+  [`Field.Errors`](/components/forms/field), which wires it into the control's `aria-describedby`
+  and flips the field to its error state.
+- **Move focus to it.** An alert node that mounts already populated can be missed by assistive
+  tech, and focusing the failure also puts a sighted user's attention on what went wrong. Focus the
+  alert (`tabIndex={-1}`) for a form-level failure, or the rejected field for a field-level one.
+
+Saving in the demo below always fails, so the contextual error appears on every attempt.
 
 <CodeExample.Root>
-	<CodeExample.PreviewFrame example="sandbar-error" title="Sandbar error demo" />
+	<CodeExample.PreviewFrame example="sandbar-failed-save" title="Sandbar failed save demo" />
 	<CodeExample.Code>
 
 ```tsx
+import { Alert } from "@ngrok/mantle/alert";
 import { Field } from "@ngrok/mantle/field";
 import { Input } from "@ngrok/mantle/input";
 import { Sandbar } from "@ngrok/mantle/sandbar";
@@ -272,7 +316,7 @@ export function EndpointName() {
 	const save = () => {
 		setIsPending(true);
 		setError(null);
-		// stand-in for the real request; this demo always fails so the error row shows
+		// stand-in for the real request; this demo always fails
 		window.setTimeout(() => {
 			setIsPending(false);
 			setError("Something went wrong while saving. Try again.");
@@ -281,6 +325,24 @@ export function EndpointName() {
 
 	return (
 		<form>
+			{/* the failure reports in the form — and takes focus, so it is both
+			    announced reliably and impossible to miss */}
+			{error != null && (
+				<Alert.Root
+					intent="danger"
+					ref={(node) => {
+						node?.focus();
+					}}
+					role="alert"
+					tabIndex={-1}
+				>
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Description>{error}</Alert.Description>
+					</Alert.Content>
+				</Alert.Root>
+			)}
+
 			<Field.Item name="endpoint-name">
 				<Field.Label>Endpoint name</Field.Label>
 				<Field.Control>
@@ -288,6 +350,7 @@ export function EndpointName() {
 				</Field.Control>
 			</Field.Item>
 
+			{/* the bar stays open: the changes are still unsaved, so Save can retry */}
 			<Sandbar.Root open={isDirty}>
 				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
 				<Sandbar.Actions>
@@ -304,7 +367,6 @@ export function EndpointName() {
 						{isPending ? "Saving…" : "Save changes"}
 					</Sandbar.SaveButton>
 				</Sandbar.Actions>
-				{error != null && <Sandbar.Error>{error}</Sandbar.Error>}
 			</Sandbar.Root>
 		</form>
 	);
@@ -315,25 +377,12 @@ export function EndpointName() {
 
 </CodeExample.Root>
 
-## Polymorphism
-
-`Sandbar.Message` and `Sandbar.Actions` accept an `asChild` prop. When `true`, the part renders
-its single child instead of its default element (`<p>` and `<div>` respectively), forwarding all
-class names, `data-*` attributes, and the ref onto that child. Reach for it when the message needs
-a different semantic element (e.g. a `<span>` inside a larger sentence) or when the actions row
-should be another framework primitive. `Sandbar.SaveButton` and `Sandbar.DiscardButton` inherit
-`asChild` from [Button](/components/actions/button). `Sandbar.Root` deliberately does not support
-`asChild`: it renders multiple nodes (positioning wrapper, two screen-reader announcers, and the
-panel), so single-child polymorphism has no coherent meaning. The framed demos above render real
-`Sandbar` trees you can adapt; there is no separate polymorphism demo because the bar is a
-viewport-fixed singleton that would overlay this page outside a preview frame.
-
 ## Theming
 
 The panel is an [inverted theme island](/components/primitives/theme#inverted-theme-islands): it
 renders in the opposite theme of the page — dark on light pages, light on dark pages, and the
 same flip between the high-contrast pair. The inversion covers the entire subtree, so the blessed
-buttons, `Sandbar.Error`, and any custom children you compose inside `Sandbar.Actions` all read as
+buttons and any custom children you compose inside `Sandbar.Actions` all read as
 the opposite theme without extra styling. The panel's own surface uses the inverted theme's
 `bg-base` and `text-strong` tokens; style overrides passed via `className` resolve against the
 inverted theme too.
@@ -352,7 +401,8 @@ dependency, and the split mirrors Shopify's SaveBar / `leaveConfirmation()` and 
 - **Announcements.** `Sandbar.Root` owns two persistent visually-hidden live regions. A polite
   `role="status"` announcer speaks the message when the bar opens and "Saving changes…" while
   `Sandbar.SaveButton` is loading. An assertive `role="alert"` announcer speaks blocked-navigation
-  attempts (from `shake()`) and any `Sandbar.Error` content. This is why Root must stay mounted.
+  attempts (from `shake()`). This is why Root must stay mounted. Errors are _not_ announced here —
+  see [Reporting a failed save](#reporting-a-failed-save).
 - **Announce success yourself.** The bar closes silently when changes resolve. Pair the save's
   resolution with a status announcement — a success [Toast](/components/feedback/toast) qualifies —
   or screen-reader users hear a save start and never finish.
@@ -360,6 +410,9 @@ dependency, and the split mirrors Shopify's SaveBar / `leaveConfirmation()` and 
   it closes (or a focused save button becomes disabled while loading), focus is parked on the
   panel and restored to the element focused before entering the bar once it closes — with guards:
   if you already moved focus elsewhere, the bar leaves it alone.
+- **The exit is unreachable.** The panel goes `inert` the moment it starts leaving, not when it
+  finishes — so a user Tabbing toward Discard as the save lands cannot focus or activate a control
+  that is already visually gone. Focus that `inert` evicts still restores to the pre-bar element.
 - **Escape is intentionally inert.** A one-keypress discard would destroy user data; resolving the
   pending state requires an explicit action.
 - **Reduced motion.** Under `prefers-reduced-motion`, the enter/exit slides degrade to fades and
@@ -504,21 +557,4 @@ All props from [Button](/components/actions/button), with these differences:
 | `data-intent`     | the resolved `intent`      | Stamped by Button.                                                                               |
 | `data-size`       | the resolved `size`        | Stamped by Button; absent for `appearance="link"`.                                               |
 | `data-disabled`   | `"true"` \| `"false"`      | Stamped by Button. Value-based, not presence-based — match on the value.                         |
-
-### Sandbar.Error
-
-A danger [Alert](/components/feedback/alert) row for a failed save, rendered on its own row of the
-panel. Safe to conditionally mount (`{error != null && <Sandbar.Error>{error}</Sandbar.Error>}`):
-the announcement goes through Root's persistent assertive announcer, not the mounted node. Needs
-Title- or Icon-level control? Compose your own `<Alert.Root intent="danger">` inside
-`Sandbar.Root` instead.
-
-All props from [Alert](/components/feedback/alert)'s `Alert.Root` except `intent`, which is pinned
-to `"danger"`.
-
-| Data Attribute | Value             | Description                                                                             |
-| -------------- | ----------------- | --------------------------------------------------------------------------------------- |
-| `data-slot`    | `"sandbar-error"` | Stable styling hook on the alert root. Replaces `Alert.Root`'s own `data-slot="alert"`. |
-
-The nested Alert parts keep their own slots — `alert-icon`, `alert-content`, and
-`alert-description` — so they stay targetable.
+| `data-loading`    | `"true"` \| `"false"`      | Stamped by Button, tracking `isLoading`. Value-based, not presence-based.                        |

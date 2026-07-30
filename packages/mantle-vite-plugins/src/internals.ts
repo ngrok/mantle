@@ -82,6 +82,11 @@ export const INTERNAL_CHUNKS_BY_COMPONENT: ReadonlyMap<string, readonly string[]
 	// lookup is not transitive, and a command-only consumer imports none of those
 	// subpaths.
 	["command", ["button", "dialog", "kbd", "separator"]],
+	// Sandbar renders a Button for each of
+	// `Sandbar.SaveButton`/`Sandbar.DiscardButton`; Button's class strings are
+	// hoisted into `button-<hash>.js` and none remain in `sandbar.js`, so a
+	// sandbar-only consumer would get unstyled action buttons.
+	["sandbar", ["button"]],
 	// SelectableList's styled rows live on the list directory's shared
 	// primitive chunk (list-<hash>.js).
 	["selectable-list", ["list"]],

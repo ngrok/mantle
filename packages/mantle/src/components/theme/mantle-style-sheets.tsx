@@ -121,16 +121,32 @@ function mantleStyleSheetUrls(urls: MantleThemeCssUrls): MantleThemeCssUrls {
  */
 export type MantleStyleSheetsProps = MantleThemeCssUrls & {
 	/**
-	 * Force a specific resolved theme's stylesheet to load unconditionally (`media="all"`),
-	 * regardless of the user's OS preference. Use this when your app is locked to a single
-	 * theme (e.g. a dark-only page) so the required CSS is render-blocking as intended.
+	 * Force a specific resolved theme's stylesheet *pair* to load unconditionally
+	 * (`media="all"`), regardless of the user's OS preference. Use this when your app is locked
+	 * to a single theme (e.g. a dark-only page) so the required CSS is render-blocking as
+	 * intended.
+	 *
+	 * Pairs, not single themes: the partner stylesheet (light ⇄ dark, light-high-contrast ⇄
+	 * dark-high-contrast) is what `invert-theme` islands resolve against, so it is loaded and
+	 * applied too. `forceTheme="light"` therefore renders the dark link (light itself is the
+	 * base theme in `mantle.css`), and `forceTheme="light-high-contrast"` renders both
+	 * high-contrast links. Only the *other* pair is omitted.
+	 *
+	 * Because the partner is *applied*, this prop only controls half the picture: which
+	 * theme block wins is decided by the class on `<html>`. Mirror the same value into
+	 * `PreventWrongThemeFlashScript` and `ThemeProvider` (and `useInitialHtmlThemeProps`
+	 * if you use it) — those own that class. Forcing here alone leaves a user whose stored
+	 * preference is dark with `<html class="dark">` and the dark sheet applied, so a
+	 * `forceTheme="light"` page paints dark.
 	 *
 	 * When omitted, each stylesheet uses its OS media query and becomes non-render-blocking
 	 * for users whose OS preference does not match.
 	 *
 	 * @example
-	 * // Dark-only app — always load dark CSS eagerly
+	 * // Dark-only app — always load the dark/light pair eagerly, and pin the root class
+	 * <PreventWrongThemeFlashScript forceTheme="dark" nonce={nonce} />
 	 * <MantleStyleSheets forceTheme="dark" {...themeUrls} />
+	 * // …and <ThemeProvider forceTheme="dark"> around the app
 	 */
 	forceTheme?: ResolvedTheme;
 	/**
@@ -267,8 +283,10 @@ function fixMediaScriptContent(forceTheme?: ResolvedTheme): string {
  * light-high-contrast ⇄ dark-high-contrast) also gets `media="all"` — so
  * `invert-theme` subtrees always have their opposite theme's CSS applied.
  *
- * When `forceTheme` is set, only the link tags for that theme's pair are rendered — the
- * others are omitted entirely to avoid unnecessary network requests.
+ * When `forceTheme` is set, only the link tags for that theme's pair are rendered — the other
+ * pair is omitted entirely to avoid unnecessary network requests. Note the pair partner is
+ * applied (`media="all"`), not merely fetched, so it is render-blocking; that is what lets
+ * `invert-theme` islands resolve under a forced theme.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme#mantlestylesheets
  *
@@ -364,11 +382,13 @@ function MantleStyleSheets({
 	// in the opposite theme. Light is the base theme with no dedicated lazy
 	// stylesheet, so forceTheme="light" renders only the dark link. When
 	// forceTheme is unset, all three are rendered.
-	const renderDark = !forceTheme || forceTheme === "dark" || forceTheme === "light";
-	const renderLightHighContrast =
+	//
+	// Both high-contrast links share one predicate on purpose: they are a pair, so
+	// they are always rendered together or not at all.
+	const renderDark =
+		!forceTheme || (forceTheme !== "light-high-contrast" && forceTheme !== "dark-high-contrast");
+	const renderHighContrastPair =
 		!forceTheme || forceTheme === "light-high-contrast" || forceTheme === "dark-high-contrast";
-	const renderDarkHighContrast =
-		!forceTheme || forceTheme === "dark-high-contrast" || forceTheme === "light-high-contrast";
 
 	return (
 		<>
@@ -381,7 +401,7 @@ function MantleStyleSheets({
 					suppressHydrationWarning
 				/>
 			)}
-			{renderLightHighContrast && (
+			{renderHighContrastPair && (
 				<link
 					rel="stylesheet"
 					id={LIGHT_HIGH_CONTRAST_LINK_ID}
@@ -390,7 +410,7 @@ function MantleStyleSheets({
 					suppressHydrationWarning
 				/>
 			)}
-			{renderDarkHighContrast && (
+			{renderHighContrastPair && (
 				<link
 					rel="stylesheet"
 					id={DARK_HIGH_CONTRAST_LINK_ID}

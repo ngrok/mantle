@@ -12,7 +12,6 @@ export type {
 	//,
 	SandbarActionsProps,
 	SandbarDiscardButtonProps,
-	SandbarErrorProps,
 	SandbarHandle,
 	SandbarMessageProps,
 	SandbarRootProps,

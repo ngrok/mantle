@@ -20,7 +20,6 @@ import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { Alert } from "../alert/alert.js";
 import type { ButtonProps } from "../button/button.js";
 import { Button } from "../button/button.js";
 import { Slot } from "../slot/index.js";
@@ -81,6 +80,29 @@ const shakeKeyframes: Keyframe[] = [
 ];
 
 /**
+ * Make a live-region injection differ from the one before it by alternating an
+ * invisible trailing no-break space, advancing `toggle` in place.
+ *
+ * Two mechanisms need this. React bails out of a `setState` with an identical
+ * value, so re-announcing a byte-identical string would never mutate the text
+ * node and would say nothing at all (a retried save, a second blocked
+ * navigation). And a live region only announces *changes* — Safari/VoiceOver
+ * additionally skip repeated identical strings even when the node is rewritten.
+ *
+ * @example
+ * ```ts
+ * const toggle = useRef(false);
+ * alternateAnnouncement("Saving changes…", toggle); // "Saving changes…"
+ * alternateAnnouncement("Saving changes…", toggle); // "Saving changes…" + U+00A0
+ * ```
+ */
+function alternateAnnouncement(text: string, toggle: { current: boolean }): string {
+	const padded = toggle.current ? `${text}\u00A0` : text;
+	toggle.current = !toggle.current;
+	return padded;
+}
+
+/**
  * The imperative surface of a {@link Sandbar}, exposed via `Sandbar.Root`'s
  * `handleRef` prop. `shake()` is a compound feedback action — it wiggles the
  * panel (skipped under `prefers-reduced-motion`) and always pushes an
@@ -104,7 +126,6 @@ const shakeKeyframes: Keyframe[] = [
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
- *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
@@ -157,7 +178,6 @@ type SandbarPresence = "closed" | "closing" | "open" | "opening";
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
- *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
@@ -192,8 +212,8 @@ type SandbarRootProps = ComponentProps<"div"> &
  *
  * The panel is an `invert-theme` island: it renders in the opposite theme of
  * the page (light ⇄ dark, light-high-contrast ⇄ dark-high-contrast), and so
- * does everything composed inside it — the blessed buttons, `Sandbar.Error`,
- * and any custom children.
+ * does everything composed inside it — the blessed buttons and any custom
+ * children.
  *
  * `ref`, `className`, and all other props target the panel. Render it in
  * place at the end of the form it saves — `position: fixed` changes paint
@@ -217,7 +237,6 @@ type SandbarRootProps = ComponentProps<"div"> &
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
- *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
@@ -247,8 +266,9 @@ const Root = ({
 	const shakeAnimationRef = useRef<Animation | null>(null);
 	const politeClearTimerRef = useRef<number | undefined>(undefined);
 	const assertiveClearTimerRef = useRef<number | undefined>(undefined);
-	const assertiveFrameRef = useRef<number | undefined>(undefined);
-	const assertiveNbspToggleRef = useRef(false);
+	const focusOutFrameRef = useRef<number | undefined>(undefined);
+	const politeToggleRef = useRef(false);
+	const assertiveToggleRef = useRef(false);
 	const isSavingRef = useRef(false);
 	/**
 	 * The element that was focused immediately before focus entered the bar —
@@ -262,12 +282,18 @@ const Root = ({
 	 * `document.activeElement` is already `<body>`.
 	 */
 	const lastFocusedInsideRef = useRef<HTMLElement | null>(null);
-	const isInitialRenderRef = useRef(true);
 	const previousOpenRef = useRef(open);
 	const previousPresenceRef = useRef(presence);
 
+	// Both announcers inject synchronously and route through
+	// `alternateAnnouncement`, which is what makes a repeat land: a retried save
+	// re-announcing "Saving changes…" and a second blocked navigation are both
+	// byte-identical repeats React would otherwise bail out of, leaving the text
+	// node untouched and the region silent. Injecting on a
+	// `requestAnimationFrame` instead would drop the announcement outright in a
+	// backgrounded tab, where rAF never runs.
 	const announcePolite = useCallback((text: string) => {
-		setPoliteText(text);
+		setPoliteText(alternateAnnouncement(text, politeToggleRef));
 		window.clearTimeout(politeClearTimerRef.current);
 		politeClearTimerRef.current = window.setTimeout(() => {
 			setPoliteText("");
@@ -275,23 +301,11 @@ const Root = ({
 	}, []);
 
 	const announceAssertive = useCallback((text: string) => {
-		// A live region only announces *changes*: clear first, then inject on the
-		// next frame. Alternate a trailing no-break space so byte-identical
-		// repeats (a second blocked navigation) still register as a change —
-		// Safari/VoiceOver skip repeated identical strings otherwise.
-		const padded = assertiveNbspToggleRef.current ? `${text}\u00A0` : text;
-		assertiveNbspToggleRef.current = !assertiveNbspToggleRef.current;
-		setAssertiveText("");
-		if (assertiveFrameRef.current != null) {
-			window.cancelAnimationFrame(assertiveFrameRef.current);
-		}
-		assertiveFrameRef.current = window.requestAnimationFrame(() => {
-			setAssertiveText(padded);
-			window.clearTimeout(assertiveClearTimerRef.current);
-			assertiveClearTimerRef.current = window.setTimeout(() => {
-				setAssertiveText("");
-			}, ANNOUNCEMENT_CLEAR_DELAY_MS);
-		});
+		setAssertiveText(alternateAnnouncement(text, assertiveToggleRef));
+		window.clearTimeout(assertiveClearTimerRef.current);
+		assertiveClearTimerRef.current = window.setTimeout(() => {
+			setAssertiveText("");
+		}, ANNOUNCEMENT_CLEAR_DELAY_MS);
 	}, []);
 
 	const registerMessage = useCallback((id: string) => {
@@ -314,12 +328,18 @@ const Root = ({
 			// the save starts. Park focus on the panel before paint — covering both
 			// fixup behaviors: Chromium has already moved focus to <body>, Firefox
 			// leaves it on the now-disabled button.
+			//
+			// Gated on the button having actually gone disabled: Button resolves
+			// `disabled` as `ariaDisabled ?? disabled ?? isLoading`, so an explicit
+			// `disabled={false}` beside `isLoading` leaves it enabled and focusable.
+			// Parking then would yank focus off a live, still-clickable control.
+			if (button == null || !button.matches(":disabled")) {
+				return;
+			}
 			const activeElement = document.activeElement;
-			const buttonHoldsFocus = button != null && activeElement === button;
+			const buttonHoldsFocus = activeElement === button;
 			const focusFellToBody =
-				button != null &&
-				activeElement === document.body &&
-				lastFocusedInsideRef.current === button;
+				activeElement === document.body && lastFocusedInsideRef.current === button;
 			if (buttonHoldsFocus || focusFellToBody) {
 				panelRef.current?.focus({ preventScroll: true });
 			}
@@ -354,6 +374,9 @@ const Root = ({
 
 	useImperativeHandle(handleRef, () => ({ shake }), [shake]);
 
+	// Deliberately independent of `presence`: every value here is a stable
+	// callback, so the context identity survives the four presence transitions
+	// instead of re-rendering every consumer on each one.
 	const context = useMemo<SandbarContextValue>(
 		() => ({ announceAssertive, registerMessage, reportSaving }),
 		[announceAssertive, registerMessage, reportSaving],
@@ -419,17 +442,15 @@ const Root = ({
 	// already true stays silent (and conditional mounting misses announcements
 	// entirely — pass `open` instead).
 	useEffect(() => {
+		// `previousOpenRef` is seeded with `open`, so the mount pass already reads
+		// `wasOpen === open` and falls through both guards below without announcing
+		// — no separate first-render flag is needed.
 		const wasOpen = previousOpenRef.current;
 		previousOpenRef.current = open;
-		if (isInitialRenderRef.current) {
-			isInitialRenderRef.current = false;
-			return;
-		}
 		if (!open) {
-			// Clear on close so a reopen within the 1s clear window still registers
-			// as a live-region change — re-announcing the byte-identical string
-			// would bail out of the state update and say nothing. Removals are
-			// announcement-silent (`aria-relevant` defaults to `additions text`).
+			// Clear on close so a closed bar never leaves text sitting in the live
+			// region. Removals are announcement-silent (`aria-relevant` defaults to
+			// `additions text`), so this is free.
 			if (wasOpen) {
 				window.clearTimeout(politeClearTimerRef.current);
 				setPoliteText("");
@@ -439,7 +460,9 @@ const Root = ({
 		if (wasOpen) {
 			return;
 		}
-		const messageNode = panelRef.current?.querySelector('[data-slot="sandbar-message"]');
+		// `~=` (not `=`): `joinDataSlot` space-joins an ancestor chain ahead of the
+		// part's own slot, so an exact-match selector misses every composed Message.
+		const messageNode = panelRef.current?.querySelector('[data-slot~="sandbar-message"]');
 		const messageText = messageNode?.textContent?.trim();
 		announcePolite(messageText || ariaLabel || DEFAULT_ACCESSIBLE_NAME);
 	}, [announcePolite, ariaLabel, open]);
@@ -483,8 +506,8 @@ const Root = ({
 		return () => {
 			window.clearTimeout(politeClearTimerRef.current);
 			window.clearTimeout(assertiveClearTimerRef.current);
-			if (assertiveFrameRef.current != null) {
-				window.cancelAnimationFrame(assertiveFrameRef.current);
+			if (focusOutFrameRef.current != null) {
+				window.cancelAnimationFrame(focusOutFrameRef.current);
 			}
 			shakeAnimationRef.current?.cancel();
 		};
@@ -522,7 +545,14 @@ const Root = ({
 		if (!(departed instanceof HTMLElement)) {
 			return;
 		}
-		window.requestAnimationFrame(() => {
+		// Coalesced and cancellable: focus churn inside the bar (a row of controls
+		// going disabled during a save) would otherwise queue one uncancelled
+		// frame per departure, each retaining its `departed` node past unmount.
+		if (focusOutFrameRef.current != null) {
+			window.cancelAnimationFrame(focusOutFrameRef.current);
+		}
+		focusOutFrameRef.current = window.requestAnimationFrame(() => {
+			focusOutFrameRef.current = undefined;
 			const panel = panelRef.current;
 			if (panel == null || panel.hidden) {
 				return;
@@ -556,6 +586,15 @@ const Root = ({
 	const label = labelledby == null ? (ariaLabel ?? DEFAULT_ACCESSIBLE_NAME) : ariaLabel;
 
 	const isClosed = presence === "closed";
+	// `inert` covers the exit, not just the resting closed state: through the
+	// 200ms drop the panel is still painted and still in the tab order, so a user
+	// who was Tabbing toward Discard as the save landed could focus and activate a
+	// control that is visually gone. `data-state-closed:pointer-events-none` only
+	// suppresses the mouse. Focus that `inert` evicts lands on <body> with no
+	// `relatedTarget`, which `handleFocusOut` ignores (the departed control is
+	// neither disconnected, disabled, nor hidden) and which the restore-on-close
+	// effect reads as `focusFellToBody` — so the pre-bar element still gets focus.
+	const isInert = isClosed || presence === "closing";
 
 	return (
 		<SandbarContext.Provider value={context}>
@@ -570,7 +609,7 @@ const Root = ({
 				<div aria-atomic="true" aria-live="polite" className="sr-only" role="status">
 					{politeText}
 				</div>
-				{/* Persistent assertive announcer for blocked navigation and errors. */}
+				{/* Persistent assertive announcer for blocked navigation (`shake()`). */}
 				<div className="sr-only" role="alert">
 					{assertiveText}
 				</div>
@@ -588,6 +627,16 @@ const Root = ({
 						"invert-theme pointer-events-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl border border-transparent bg-base px-4 py-3 text-strong shadow-lg",
 						"max-h-[60svh] overflow-y-auto",
 						"focus:outline-hidden",
+						// The closed state is the `hidden` attribute, and `flex` above would
+						// otherwise beat the UA's `[hidden] { display: none }` — leaving a
+						// permanently visible, inert, un-dismissable bar. Tailwind's Preflight
+						// papers over this with `[hidden] { display: none !important }`, but a
+						// consumer importing only `tailwindcss/theme` + `tailwindcss/utilities`
+						// (a documented v4 setup) has no Preflight. This attribute-qualified
+						// variant compiles to `.…[hidden] { display: none }` — author-origin
+						// and specificity (0,2,0), so it outranks `flex` and any consumer
+						// display utility on its own, with or without Preflight.
+						"[&[hidden]]:hidden",
 						// state-driven transitions (the sonner approach): interruptible and
 						// retargetable, so a reopen mid-exit rises back from wherever the
 						// panel currently is instead of restarting. The closed pose sits a
@@ -615,7 +664,7 @@ const Root = ({
 					data-slot={joinDataSlot(dataSlot, "sandbar")}
 					data-state={presence === "open" ? "open" : "closed"}
 					hidden={isClosed ? true : undefined}
-					inert={isClosed ? true : undefined}
+					inert={isInert ? true : undefined}
 					onTransitionEnd={handleTransitionEnd}
 					ref={composedPanelRef}
 					role="group"
@@ -643,7 +692,6 @@ const Root = ({
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
- *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
@@ -672,7 +720,6 @@ type SandbarMessageProps = ComponentProps<"p"> & WithAsChild & WithDataSlot;
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
- *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
@@ -681,13 +728,24 @@ const Message = ({
 	className,
 	"data-slot": dataSlot,
 	id: propId,
+	ref,
 	...props
 }: SandbarMessageProps) => {
 	const { registerMessage } = useSandbarContext("Sandbar.Message");
 	const generatedId = useId();
 	const id = propId ?? generatedId;
+	const nodeRef = useRef<HTMLParagraphElement>(null);
+	const composedRef = useComposedRefs(nodeRef, ref);
 
-	useIsomorphicLayoutEffect(() => registerMessage(id), [id, registerMessage]);
+	// Register the id the DOM actually carries, not the one passed down: under
+	// `asChild`, Slot's merge lets the child element's own `id` win, so
+	// registering `id` here would aim Root's `aria-labelledby` at an element that
+	// does not exist — and because a present `aria-labelledby` suppresses
+	// `aria-label`, the panel would end up with no accessible name at all.
+	useIsomorphicLayoutEffect(
+		() => registerMessage(nodeRef.current?.id || id),
+		[id, registerMessage],
+	);
 
 	const Comp = asChild ? Slot : "p";
 
@@ -697,6 +755,7 @@ const Message = ({
 			id={id}
 			{...props}
 			data-slot={joinDataSlot(dataSlot, "sandbar-message")}
+			ref={composedRef}
 		/>
 	);
 };
@@ -714,7 +773,6 @@ const Message = ({
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
- *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
@@ -741,7 +799,6 @@ type SandbarActionsProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
- *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
@@ -772,7 +829,6 @@ const Actions = ({ asChild, className, "data-slot": dataSlot, ...props }: Sandba
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
- *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
@@ -827,7 +883,6 @@ type SandbarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "int
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
- *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
@@ -885,7 +940,6 @@ const SaveButton = ({
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
- *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
@@ -922,6 +976,7 @@ type SandbarDiscardButtonProps = Omit<ButtonProps, "appearance" | "children" | "
  * | `data-intent`     | the resolved `intent`      | Stamped by `Button`.                                                                             |
  * | `data-size`       | the resolved `size`        | Stamped by `Button`; absent for `appearance="link"`.                                             |
  * | `data-disabled`   | `"true"` \| `"false"`      | Stamped by `Button`. Value-based, not presence-based — match on the value.                       |
+ * | `data-loading`    | `"true"` \| `"false"`      | Stamped by `Button`, tracking `isLoading`. Value-based, not presence-based.                      |
  *
  * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbardiscardbutton
  *
@@ -933,7 +988,6 @@ type SandbarDiscardButtonProps = Omit<ButtonProps, "appearance" | "children" | "
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
- *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
@@ -957,111 +1011,6 @@ const DiscardButton = ({
 };
 
 /**
- * Props for `Sandbar.Error`. Extends `Alert.Root`'s props except `intent`,
- * which is pinned to `"danger"`. The error's text is read from the rendered
- * content and mirrored through `Sandbar.Root`'s assertive announcer, so
- * conditional mounting is safe.
- *
- * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarerror
- *
- * @example
- * ```tsx
- * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
- *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
- *   <Sandbar.Actions>
- *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
- *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
- *   </Sandbar.Actions>
- *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
- * </Sandbar.Root>
- * ```
- */
-type SandbarErrorProps = Omit<ComponentProps<typeof Alert.Root>, "intent"> & WithDataSlot;
-
-/**
- * A danger alert row for a failed save. Renders a mantle `Alert` pinned to
- * `intent="danger"` on its own row of the panel. Deliberately carries no
- * `role="alert"` itself — mounting a pre-populated alert element is
- * unreliable across assistive tech, so `Sandbar.Root` mirrors the error text
- * through its persistent assertive announcer instead, which makes the usual
- * `{error != null && <Sandbar.Error>{error}</Sandbar.Error>}` conditional
- * mount safe.
- *
- * Needs Title/Icon-level control? Compose your own
- * `<Alert.Root intent="danger">` inside `Sandbar.Root` instead.
- *
- * Data attributes:
- *
- * | Data Attribute | Value             | Description                                                                             |
- * | -------------- | ----------------- | --------------------------------------------------------------------------------------- |
- * | `data-slot`    | `"sandbar-error"` | Stable styling hook on the alert root. Replaces `Alert.Root`'s own `data-slot="alert"`. |
- *
- * The nested `Alert` parts keep their own slots — `alert-icon`,
- * `alert-content`, and `alert-description` — so they stay targetable.
- *
- * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarerror
- *
- * @example
- * ```tsx
- * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
- *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
- *   <Sandbar.Actions>
- *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
- *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
- *   </Sandbar.Actions>
- *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
- * </Sandbar.Root>
- * ```
- */
-// Named SandbarError (not Error) so the global Error constructor is not
-// shadowed for this module; exposed as `Sandbar.Error`.
-const SandbarError = ({
-	children,
-	className,
-	"data-slot": dataSlot,
-	...props
-}: SandbarErrorProps) => {
-	const { announceAssertive } = useSandbarContext("Sandbar.Error");
-	const contentRef = useRef<HTMLDivElement>(null);
-	const lastAnnouncedRef = useRef("");
-
-	useEffect(() => {
-		const text = contentRef.current?.textContent?.trim() ?? "";
-		if (text.length === 0) {
-			lastAnnouncedRef.current = "";
-			return;
-		}
-		if (text !== lastAnnouncedRef.current) {
-			lastAnnouncedRef.current = text;
-			announceAssertive(text);
-		}
-	}, [announceAssertive, children]);
-
-	return (
-		<Alert.Root
-			intent="danger"
-			// The error takes its own full-width row without widening the panel.
-			// The panel is shrink-to-fit (w-fit), so Alert's own `w-full` would
-			// otherwise feed the error text's full single-line width into the
-			// panel's intrinsic size and stretch the bar. `max-w-0` caps that
-			// intrinsic contribution to zero (panel stays sized to the
-			// message/actions row); `min-w-full` wins over it at layout time to
-			// fill the row, which also forces the wrap onto its own line — so
-			// `basis-full` is unnecessary. These are separate properties from
-			// Alert's `width`, so no class-precedence fight and no `!important`.
-			className={cx("max-w-0 min-w-full", className)}
-			{...props}
-			data-slot={joinDataSlot(dataSlot, "sandbar-error")}
-		>
-			<Alert.Icon />
-			<Alert.Content ref={contentRef}>
-				<Alert.Description>{children}</Alert.Description>
-			</Alert.Content>
-		</Alert.Root>
-	);
-};
-
-/**
  * A persistent, decision-bearing bar that floats near the bottom edge of the
  * viewport. It surfaces pending state — primarily a form's unsaved ("dirty")
  * changes — and stays until the user resolves it. Unlike Toast (which
@@ -1080,10 +1029,9 @@ const SandbarError = ({
  * ```
  * Sandbar.Root
  * ├── Sandbar.Message
- * ├── Sandbar.Actions
- * │   ├── Sandbar.DiscardButton
- * │   └── Sandbar.SaveButton
- * └── Sandbar.Error
+ * └── Sandbar.Actions
+ *     ├── Sandbar.DiscardButton
+ *     └── Sandbar.SaveButton
  * ```
  *
  * @example
@@ -1094,7 +1042,6 @@ const SandbarError = ({
  *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
  *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
  *   </Sandbar.Actions>
- *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
  * </Sandbar.Root>
  * ```
  */
@@ -1114,7 +1061,6 @@ const Sandbar = {
 	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
 	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
 	 *   </Sandbar.Actions>
-	 *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
 	 * </Sandbar.Root>
 	 * ```
 	 */
@@ -1133,7 +1079,6 @@ const Sandbar = {
 	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
 	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
 	 *   </Sandbar.Actions>
-	 *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
 	 * </Sandbar.Root>
 	 * ```
 	 */
@@ -1152,7 +1097,6 @@ const Sandbar = {
 	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
 	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
 	 *   </Sandbar.Actions>
-	 *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
 	 * </Sandbar.Root>
 	 * ```
 	 */
@@ -1171,7 +1115,6 @@ const Sandbar = {
 	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
 	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
 	 *   </Sandbar.Actions>
-	 *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
 	 * </Sandbar.Root>
 	 * ```
 	 */
@@ -1189,30 +1132,10 @@ const Sandbar = {
 	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
 	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
 	 *   </Sandbar.Actions>
-	 *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
 	 * </Sandbar.Root>
 	 * ```
 	 */
 	DiscardButton,
-	/**
-	 * A danger alert row for a failed save; safe to conditionally mount —
-	 * announcement goes through the persistent assertive announcer.
-	 *
-	 * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarerror
-	 *
-	 * @example
-	 * ```tsx
-	 * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
-	 *   <Sandbar.Message>You have unsaved changes</Sandbar.Message>
-	 *   <Sandbar.Actions>
-	 *     <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>
-	 *     <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>
-	 *   </Sandbar.Actions>
-	 *   {error != null && <Sandbar.Error>{error}</Sandbar.Error>}
-	 * </Sandbar.Root>
-	 * ```
-	 */
-	Error: SandbarError,
 } as const;
 
 export {
@@ -1223,7 +1146,6 @@ export type {
 	//,
 	SandbarActionsProps,
 	SandbarDiscardButtonProps,
-	SandbarErrorProps,
 	SandbarHandle,
 	SandbarMessageProps,
 	SandbarRootProps,

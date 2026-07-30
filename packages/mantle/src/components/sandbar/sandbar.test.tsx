@@ -1,6 +1,9 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
+import type { TransitionEvent } from "react";
 import { createRef } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import mantleCss from "../../mantle.css?raw";
 import type { SandbarHandle } from "./sandbar.js";
 import { Sandbar } from "./sandbar.js";
 
@@ -22,13 +25,29 @@ function getStatusRegion(): HTMLElement {
 
 function getAlertRegion(): HTMLElement {
 	// the persistent assertive announcer is the sr-only role="alert" sibling of
-	// the panel, not Sandbar.Error's Alert (which deliberately has no role)
+	// the panel — the only role="alert" the component renders
 	const region = document.querySelector('div.sr-only[role="alert"]');
 	if (!(region instanceof HTMLElement)) {
 		throw new Error("assertive region not found");
 	}
 	return region;
 }
+
+/**
+ * An open bar whose save button can be driven through the loading flip that
+ * `reportSaving` keys on. `disabled` is left off unless a test is pinning the
+ * `disabled={false}` beside `isLoading` case.
+ */
+const loadableSaveTree = ({ disabled, isLoading }: { disabled?: boolean; isLoading: boolean }) => (
+	<Sandbar.Root open>
+		<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+		<Sandbar.Actions>
+			<Sandbar.SaveButton disabled={disabled} isLoading={isLoading} onClick={() => {}}>
+				Save
+			</Sandbar.SaveButton>
+		</Sandbar.Actions>
+	</Sandbar.Root>
+);
 
 const fullTree = ({ open }: { open: boolean }) => (
 	<Sandbar.Root open={open}>
@@ -49,7 +68,6 @@ describe("Sandbar structure", () => {
 					<Sandbar.DiscardButton onClick={() => {}}>Discard</Sandbar.DiscardButton>
 					<Sandbar.SaveButton onClick={() => {}}>Save</Sandbar.SaveButton>
 				</Sandbar.Actions>
-				<Sandbar.Error>Save failed</Sandbar.Error>
 			</Sandbar.Root>,
 		);
 
@@ -58,7 +76,6 @@ describe("Sandbar structure", () => {
 		expect(document.querySelector('[data-slot="sandbar-actions"]')).toBeInTheDocument();
 		expect(document.querySelector('[data-slot="sandbar-discard-button"]')).toBeInTheDocument();
 		expect(document.querySelector('[data-slot="sandbar-save-button"]')).toBeInTheDocument();
-		expect(document.querySelector('[data-slot="sandbar-error"]')).toBeInTheDocument();
 	});
 
 	test("the panel is an invert-theme island styled by opposite-theme surface tokens", () => {
@@ -68,11 +85,15 @@ describe("Sandbar structure", () => {
 			</Sandbar.Root>,
 		);
 
-		const panel = getPanel();
-		expect(panel.classList.contains("invert-theme")).toBe(true);
-		// the surface tokens resolve against the inverted theme, not the page theme
-		expect(panel.className).toContain("bg-base");
-		expect(panel.className).toContain("text-strong");
+		// Cross-file spelling pin, asserting BOTH sides together: the panel emits
+		// the class, and mantle.css is what gives it meaning — the theme blocks'
+		// selector extensions (`:root:is(.dark, …) .invert-theme`) plus the
+		// palette-alias rule. Renaming either side alone silently un-themes every
+		// Sandbar. The computed inversion itself is proven end-to-end by
+		// theme/invert-theme.browser.test.ts.
+		expect(getPanel().classList.contains("invert-theme")).toBe(true);
+		expect(mantleCss).toContain(".invert-theme {");
+		expect(mantleCss).toContain(") .invert-theme {");
 	});
 
 	test("Root forwards className, ref, and data-* props to the panel", () => {
@@ -96,7 +117,6 @@ describe("Sandbar structure", () => {
 		const actionsRef = createRef<HTMLDivElement>();
 		const saveRef = createRef<HTMLButtonElement>();
 		const discardRef = createRef<HTMLButtonElement>();
-		const errorRef = createRef<HTMLDivElement>();
 
 		render(
 			<Sandbar.Root open>
@@ -111,9 +131,6 @@ describe("Sandbar structure", () => {
 						Save
 					</Sandbar.SaveButton>
 				</Sandbar.Actions>
-				<Sandbar.Error className="error-class" ref={errorRef}>
-					Save failed
-				</Sandbar.Error>
 			</Sandbar.Root>,
 		);
 
@@ -125,8 +142,6 @@ describe("Sandbar structure", () => {
 		expect(saveRef.current?.className).toContain("save-class");
 		expect(discardRef.current).toHaveAttribute("data-slot", "sandbar-discard-button");
 		expect(discardRef.current?.className).toContain("discard-class");
-		expect(errorRef.current).toHaveAttribute("data-slot", "sandbar-error");
-		expect(errorRef.current?.className).toContain("error-class");
 	});
 
 	test("the message is a plain paragraph with no live-region role", () => {
@@ -187,7 +202,6 @@ describe("Sandbar structure", () => {
 						Save
 					</Sandbar.SaveButton>
 				</Sandbar.Actions>
-				<Sandbar.Error data-slot="outer-error">Save failed</Sandbar.Error>
 			</Sandbar.Root>,
 		);
 
@@ -205,7 +219,6 @@ describe("Sandbar structure", () => {
 		expect(
 			document.querySelector('[data-slot="outer-save sandbar-save-button"]'),
 		).toBeInTheDocument();
-		expect(document.querySelector('[data-slot="outer-error sandbar-error"]')).toBeInTheDocument();
 	});
 
 	test("the panel reflects its presence through data-state", () => {
@@ -219,24 +232,11 @@ describe("Sandbar structure", () => {
 	});
 
 	test("parts throw when rendered outside Sandbar.Root", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		// silence React's own error logging for the intentional render throw
+		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() => {
 			render(<Sandbar.Message>orphan</Sandbar.Message>);
 		}).toThrow(/Sandbar\.Message/);
-		consoleError.mockRestore();
-	});
-
-	test("Sandbar.Error renders a danger alert without role=alert", () => {
-		render(
-			<Sandbar.Root open>
-				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-				<Sandbar.Error>Save failed</Sandbar.Error>
-			</Sandbar.Root>,
-		);
-		const error = document.querySelector('[data-slot="sandbar-error"]');
-		expect(error).toBeInTheDocument();
-		expect(error).not.toHaveAttribute("role");
-		expect(error).toHaveTextContent("Save failed");
 	});
 });
 
@@ -525,7 +525,7 @@ describe("Sandbar announcements", () => {
 	});
 
 	test("shake announces assertively with the default wording", () => {
-		const handle = { current: null as SandbarHandle | null };
+		const handle = createRef<SandbarHandle>();
 		render(
 			<Sandbar.Root handleRef={handle} open>
 				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
@@ -534,15 +534,17 @@ describe("Sandbar announcements", () => {
 
 		act(() => {
 			handle.current?.shake();
-			vi.advanceTimersToNextFrame();
 		});
+		// no frame boundary: the announcer injects synchronously with the commit, so
+		// this also pins that a rAF-deferred injection would regress (rAF never runs
+		// in a backgrounded tab, which would drop the announcement outright)
 		expect(getAlertRegion()).toHaveTextContent(
 			"You have unsaved changes. Save or discard them before leaving.",
 		);
 	});
 
 	test("repeated shakes alternate a trailing no-break space so identical text re-announces", () => {
-		const handle = { current: null as SandbarHandle | null };
+		const handle = createRef<SandbarHandle>();
 		render(
 			<Sandbar.Root handleRef={handle} open>
 				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
@@ -551,13 +553,11 @@ describe("Sandbar announcements", () => {
 
 		act(() => {
 			handle.current?.shake();
-			vi.advanceTimersToNextFrame();
 		});
 		const first = getAlertRegion().textContent;
 
 		act(() => {
 			handle.current?.shake();
-			vi.advanceTimersToNextFrame();
 		});
 		const second = getAlertRegion().textContent;
 
@@ -566,7 +566,7 @@ describe("Sandbar announcements", () => {
 	});
 
 	test("shake accepts a custom announcement for non-save intents", () => {
-		const handle = { current: null as SandbarHandle | null };
+		const handle = createRef<SandbarHandle>();
 		render(
 			<Sandbar.Root handleRef={handle} open>
 				<Sandbar.Message>3 items pending publish</Sandbar.Message>
@@ -575,45 +575,8 @@ describe("Sandbar announcements", () => {
 
 		act(() => {
 			handle.current?.shake({ announcement: "Publish or discard your pending items first." });
-			vi.advanceTimersToNextFrame();
 		});
 		expect(getAlertRegion()).toHaveTextContent("Publish or discard your pending items first.");
-	});
-
-	test("a mounted Sandbar.Error mirrors its text through the assertive announcer", () => {
-		const tree = (error: string | null) => (
-			<Sandbar.Root open>
-				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-				{error != null && <Sandbar.Error>{error}</Sandbar.Error>}
-			</Sandbar.Root>
-		);
-		const { rerender } = render(tree(null));
-		rerender(tree("Something went wrong while saving."));
-
-		act(() => {
-			vi.advanceTimersToNextFrame();
-		});
-		expect(getAlertRegion()).toHaveTextContent("Something went wrong while saving.");
-	});
-
-	test("Sandbar.Error re-announces when its text changes", () => {
-		const tree = (error: string) => (
-			<Sandbar.Root open>
-				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-				<Sandbar.Error>{error}</Sandbar.Error>
-			</Sandbar.Root>
-		);
-		const { rerender } = render(tree("First failure."));
-		act(() => {
-			vi.advanceTimersToNextFrame();
-		});
-		expect(getAlertRegion()).toHaveTextContent("First failure.");
-
-		rerender(tree("Second failure."));
-		act(() => {
-			vi.advanceTimersToNextFrame();
-		});
-		expect(getAlertRegion()).toHaveTextContent("Second failure.");
 	});
 
 	test("opening with no message announces the aria-label politely", () => {
@@ -643,7 +606,7 @@ describe("Sandbar announcements", () => {
 	});
 
 	test("the assertive announcer clears itself after the 1s window", () => {
-		const handle = { current: null as SandbarHandle | null };
+		const handle = createRef<SandbarHandle>();
 		render(
 			<Sandbar.Root handleRef={handle} open>
 				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
@@ -652,7 +615,6 @@ describe("Sandbar announcements", () => {
 
 		act(() => {
 			handle.current?.shake();
-			vi.advanceTimersToNextFrame();
 		});
 		expect(getAlertRegion()).toHaveTextContent(
 			"You have unsaved changes. Save or discard them before leaving.",
@@ -662,5 +624,171 @@ describe("Sandbar announcements", () => {
 			vi.advanceTimersByTime(1_000);
 		});
 		expect(getAlertRegion()).toHaveTextContent("");
+	});
+});
+
+describe("Sandbar interaction", () => {
+	test("clicking the blessed buttons runs the consumer's handlers", async () => {
+		const user = userEvent.setup();
+		const save = vi.fn<() => void>();
+		const discard = vi.fn<() => void>();
+		render(
+			<Sandbar.Root open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Sandbar.Actions>
+					<Sandbar.DiscardButton onClick={discard}>Discard</Sandbar.DiscardButton>
+					<Sandbar.SaveButton onClick={save}>Save</Sandbar.SaveButton>
+				</Sandbar.Actions>
+			</Sandbar.Root>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		expect(save).toHaveBeenCalledTimes(1);
+		expect(discard).not.toHaveBeenCalled();
+
+		await user.click(screen.getByRole("button", { name: "Discard" }));
+		expect(discard).toHaveBeenCalledTimes(1);
+		expect(save).toHaveBeenCalledTimes(1);
+	});
+
+	test("a loading SaveButton is disabled and cannot be activated", async () => {
+		const user = userEvent.setup();
+		const save = vi.fn<() => void>();
+		render(
+			<Sandbar.Root open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Sandbar.Actions>
+					<Sandbar.SaveButton isLoading onClick={save}>
+						Save
+					</Sandbar.SaveButton>
+				</Sandbar.Actions>
+			</Sandbar.Root>,
+		);
+
+		const saveButton = screen.getByRole("button", { name: "Save" });
+		expect(saveButton).toBeDisabled();
+		expect(saveButton).toHaveAttribute("data-loading", "true");
+		await user.click(saveButton);
+		expect(save).not.toHaveBeenCalled();
+	});
+
+	test("Root runs a consumer onTransitionEnd before advancing its own presence", () => {
+		const onTransitionEnd = vi.fn<(event: TransitionEvent<HTMLDivElement>) => void>();
+		const tree = ({ open }: { open: boolean }) => (
+			<Sandbar.Root onTransitionEnd={onTransitionEnd} open={open}>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+			</Sandbar.Root>
+		);
+		const { rerender } = render(tree({ open: true }));
+		rerender(tree({ open: false }));
+
+		const panel = getPanel();
+		const event = new Event("transitionend", { bubbles: true, cancelable: true });
+		Object.assign(event, { propertyName: "translate" });
+		fireEvent(panel, event);
+
+		expect(onTransitionEnd).toHaveBeenCalledTimes(1);
+		// field-by-field, not toMatchObject: the argument is a React SyntheticEvent
+		// whose `target` is a DOM node, and a deep match walks the whole document
+		const forwarded = onTransitionEnd.mock.lastCall?.[0];
+		expect(forwarded?.propertyName).toBe("translate");
+		expect(forwarded?.target).toBe(panel);
+		expect(panel).toHaveAttribute("hidden");
+	});
+});
+
+describe("Sandbar regressions", () => {
+	test("an asChild Message keeps the panel's accessible name pointed at the rendered id", () => {
+		// regression: Slot's merge lets the child's own `id` win, so registering the
+		// generated id aimed aria-labelledby at a non-existent element — and because
+		// a present aria-labelledby suppresses aria-label, the group lost its name
+		render(
+			<Sandbar.Root open>
+				<Sandbar.Message asChild>
+					<span id="consumer-owned-id">You have unsaved changes</span>
+				</Sandbar.Message>
+			</Sandbar.Root>,
+		);
+
+		const panel = getPanel();
+		expect(panel).toHaveAttribute("aria-labelledby", "consumer-owned-id");
+		expect(document.getElementById("consumer-owned-id")).toBeInTheDocument();
+		expect(panel).toHaveAccessibleName("You have unsaved changes");
+	});
+
+	test("a joined data-slot chain still announces the message text", () => {
+		// regression: the lookup used an exact-match [data-slot="sandbar-message"],
+		// which cannot match the chain joinDataSlot produces, so the announcement
+		// silently fell back to the generic default
+		vi.useFakeTimers();
+		try {
+			const tree = ({ open }: { open: boolean }) => (
+				<Sandbar.Root open={open}>
+					<Sandbar.Message data-slot="outer-message">You have 3 unsaved endpoints</Sandbar.Message>
+				</Sandbar.Root>
+			);
+			const { rerender } = render(tree({ open: false }));
+			rerender(tree({ open: true }));
+
+			expect(
+				document.querySelector('[data-slot="outer-message sandbar-message"]'),
+			).toBeInTheDocument();
+			expect(getStatusRegion()).toHaveTextContent("You have 3 unsaved endpoints");
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	test("a repeated polite announcement still reaches the live region", () => {
+		// regression: setPoliteText with a byte-identical string is a React bail-out,
+		// so a retried save never re-announced "Saving changes…"
+		vi.useFakeTimers();
+		try {
+			const { rerender } = render(loadableSaveTree({ isLoading: false }));
+
+			rerender(loadableSaveTree({ isLoading: true }));
+			const first = getStatusRegion().textContent;
+			expect(first).toContain("Saving changes…");
+
+			// the save failed; the user retries with the same announcement text
+			rerender(loadableSaveTree({ isLoading: false }));
+			rerender(loadableSaveTree({ isLoading: true }));
+			const second = getStatusRegion().textContent;
+			expect(second).toContain("Saving changes…");
+			// a live region only speaks on a change, so the two injections must differ
+			expect(second).not.toBe(first);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	test("a focused save button that goes disabled while loading parks focus on the panel", () => {
+		// the gate's positive path, in the same environment as its negative twin
+		// below: Button collapses `isLoading` into the native `disabled` attribute,
+		// so without the park focus evaporates mid-save
+		const { rerender } = render(loadableSaveTree({ isLoading: false }));
+
+		const saveButton = screen.getByRole("button", { name: "Save" });
+		saveButton.focus();
+		expect(document.activeElement).toBe(saveButton);
+
+		rerender(loadableSaveTree({ isLoading: true }));
+		expect(saveButton).toBeDisabled();
+		expect(document.activeElement).toBe(getPanel());
+	});
+
+	test("a save button left explicitly enabled while loading keeps focus", () => {
+		// regression: Button resolves disabled as `ariaDisabled ?? disabled ??
+		// isLoading`, so `disabled={false}` beside `isLoading` leaves it enabled and
+		// focusable — parking focus then yanked it off a live, still-clickable
+		// control onto a panel that renders no focus ring
+		const { rerender } = render(loadableSaveTree({ disabled: false, isLoading: false }));
+
+		const saveButton = screen.getByRole("button", { name: "Save" });
+		saveButton.focus();
+
+		rerender(loadableSaveTree({ disabled: false, isLoading: true }));
+		expect(saveButton).not.toBeDisabled();
+		expect(document.activeElement).toBe(saveButton);
 	});
 });

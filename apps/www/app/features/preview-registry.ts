@@ -9,7 +9,11 @@ import {
 	CenteredLayoutHeaderDemo,
 	CenteredLayoutNoticeDemo,
 } from "~/features/centered-layout-demos";
-import { SandbarDemo, SandbarErrorDemo, SandbarPendingPublishDemo } from "~/features/sandbar-demos";
+import {
+	SandbarDemo,
+	SandbarFailedSaveDemo,
+	SandbarPendingPublishDemo,
+} from "~/features/sandbar-demos";
 import { SidebarPersistenceDemo } from "~/features/sidebar-demos";
 
 type PreviewExample = {
@@ -88,9 +92,9 @@ export const previewExamples = {
 		title: "Sandbar demo",
 		Component: SandbarDemo,
 	},
-	"sandbar-error": {
-		title: "Sandbar error demo",
-		Component: SandbarErrorDemo,
+	"sandbar-failed-save": {
+		title: "Sandbar failed save demo",
+		Component: SandbarFailedSaveDemo,
 	},
 	"sandbar-pending-publish": {
 		title: "Sandbar pending publish demo",

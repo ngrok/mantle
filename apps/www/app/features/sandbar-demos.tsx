@@ -1,3 +1,4 @@
+import { Alert } from "@ngrok/mantle/alert";
 import { Button } from "@ngrok/mantle/button";
 import { Card } from "@ngrok/mantle/card";
 import { Checkbox } from "@ngrok/mantle/checkbox";
@@ -9,7 +10,35 @@ import type { SandbarHandle } from "@ngrok/mantle/sandbar";
 import { Sandbar } from "@ngrok/mantle/sandbar";
 import { TextArea } from "@ngrok/mantle/text-area";
 import { makeToast, Toast, Toaster } from "@ngrok/mantle/toast";
+import type { PropsWithChildren } from "react";
 import { useRef, useState } from "react";
+
+/**
+ * The failed-save report, rendered where the failure happened — inside the form,
+ * not on the bar. The bar carries the *pending decision*; a failure is about the
+ * content the user is looking at, so it belongs next to it.
+ *
+ * `role="alert"` plus focus on mount is what makes it reliably announced: an
+ * alert node that mounts already populated can be missed by assistive tech, and
+ * moving focus also puts the user's attention on what failed.
+ */
+function SaveFailedAlert({ children }: PropsWithChildren) {
+	return (
+		<Alert.Root
+			intent="danger"
+			ref={(node) => {
+				node?.focus();
+			}}
+			role="alert"
+			tabIndex={-1}
+		>
+			<Alert.Icon />
+			<Alert.Content>
+				<Alert.Description>{children}</Alert.Description>
+			</Alert.Content>
+		</Alert.Root>
+	);
+}
 
 type Profile = {
 	name: string;
@@ -23,9 +52,9 @@ const initialProfile: Profile = {
 
 /**
  * The hero Sandbar demo: a small settings form whose dirty state drives the
- * bar, with a simulated async save, a failure toggle that exercises
- * `Sandbar.Error`, and a navigation attempt that gets blocked with `shake()`
- * while changes are pending. Renders as a full preview document.
+ * bar, with a simulated async save, a failure toggle that reports the error
+ * contextually in the form, and a navigation attempt that gets blocked with
+ * `shake()` while changes are pending. Renders as a full preview document.
  */
 export function SandbarDemo() {
 	const [saved, setSaved] = useState<Profile>(initialProfile);
@@ -68,6 +97,7 @@ export function SandbarDemo() {
 		<Main className="min-h-full p-6">
 			<Card.Root className="mx-auto max-w-xl">
 				<Card.Body className="space-y-4">
+					{error != null && <SaveFailedAlert>{error}</SaveFailedAlert>}
 					<Field.Item name="endpoint-name">
 						<Field.Label>Endpoint name</Field.Label>
 						<Field.Control>
@@ -92,7 +122,7 @@ export function SandbarDemo() {
 							id="fail-next-save"
 							onChange={(event) => setFailNextSave(event.target.checked)}
 						/>
-						Fail the next save (shows the error row)
+						Fail the next save (reports the error in the form)
 					</Label>
 					<Button
 						appearance="link"
@@ -121,7 +151,6 @@ export function SandbarDemo() {
 						{isPending ? "Saving…" : "Save changes"}
 					</Sandbar.SaveButton>
 				</Sandbar.Actions>
-				{error != null && <Sandbar.Error>{error}</Sandbar.Error>}
 			</Sandbar.Root>
 			<Toaster />
 		</Main>
@@ -129,11 +158,12 @@ export function SandbarDemo() {
 }
 
 /**
- * A Sandbar whose save always fails, so `Sandbar.Error` is front and center:
- * the danger alert renders on its own row of the panel and its text is mirrored
- * through the assertive announcer. Renders as a full preview document.
+ * A Sandbar whose save always fails, showing where a failure belongs: in the
+ * form, next to the field that could not be saved — while the bar stays open,
+ * because the decision is still pending and the user can retry. Renders as a
+ * full preview document.
  */
-export function SandbarErrorDemo() {
+export function SandbarFailedSaveDemo() {
 	const savedName = "my-agent-endpoint";
 	const [name, setName] = useState("my-agent-endpoint-staging");
 	const [isPending, setIsPending] = useState(false);
@@ -156,6 +186,7 @@ export function SandbarErrorDemo() {
 		<Main className="min-h-full p-6">
 			<Card.Root className="mx-auto max-w-xl">
 				<Card.Body className="space-y-4">
+					{error != null && <SaveFailedAlert>{error}</SaveFailedAlert>}
 					<Field.Item name="endpoint-name">
 						<Field.Label>Endpoint name</Field.Label>
 						<Field.Control>
@@ -182,7 +213,6 @@ export function SandbarErrorDemo() {
 						{isPending ? "Saving…" : "Save changes"}
 					</Sandbar.SaveButton>
 				</Sandbar.Actions>
-				{error != null && <Sandbar.Error>{error}</Sandbar.Error>}
 			</Sandbar.Root>
 		</Main>
 	);

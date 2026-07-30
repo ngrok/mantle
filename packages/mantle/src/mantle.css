@@ -280,6 +280,12 @@ MARK: THEME
 /**
 MARK: LIGHT DEFS
 
+Light's own definitions: the stops that intentionally diverge from Tailwind's
+defaults, and every semantic token built on them. Tailwind's unmodified default
+ramps are NOT restated here — they live in MARK: LIGHT PALETTE RESTORE below,
+scoped to islands, because restating them at `:root` would override a consumer's
+`@theme` palette customization.
+
 The last selector applies this entire block to `.invert-theme` subtrees on
 dark pages: an inverted island is just the opposite theme's own definitions
 re-declared on the island element, where they win over the values inherited
@@ -292,14 +298,151 @@ from `:root` (see MARK: INVERT THEME below).
 :root:is(.dark, [data-theme="dark"], [data-applied-theme="dark"]) .invert-theme {
 	color-scheme: light;
 
-	/*
-	Materialized default palette. The light theme declares its complete palette
-	so `.invert-theme` islands on dark pages restore these values from this
-	block (via the selector extension in this rule's selector list) — the dark
-	stylesheet never encodes light values. --color-white/--color-black restate
-	the @theme literals; every other value is verbatim from tailwindcss/theme.css
-	and the invert-theme test suite pins them against the pinned tailwind version.
-	*/
+	/* custom stops that intentionally diverge from the Tailwind defaults */
+	--color-neutral-950: oklch(18.2% 0 0); /* TW4 default is 14.5% — intentionally lighter */
+	--color-sky-600: oklch(55% 0.158 241.966);
+
+	/* gray is identical to neutral in light mode */
+	--color-gray-50: var(--color-neutral-50);
+	--color-gray-100: var(--color-neutral-100);
+	--color-gray-200: var(--color-neutral-200);
+	--color-gray-300: var(--color-neutral-300);
+	--color-gray-400: var(--color-neutral-400);
+	--color-gray-500: var(--color-neutral-500);
+	--color-gray-600: var(--color-neutral-600);
+	--color-gray-700: var(--color-neutral-700);
+	--color-gray-800: var(--color-neutral-800);
+	--color-gray-900: var(--color-neutral-900);
+	--color-gray-950: var(--color-neutral-950);
+
+	--color-blue-50: oklch(96.8% 0.015 265.9);
+	--color-blue-100: oklch(92.7% 0.0337 265.8);
+	--color-blue-200: oklch(86.7% 0.0622 264.2);
+	--color-blue-300: oklch(77.9% 0.1078 262.4);
+	--color-blue-400: oklch(69.6% 0.1539 262.9);
+	--color-blue-500: oklch(58.4% 0.2069 265.3);
+	--color-blue-600: oklch(52.1% 0.2298 266.7);
+	--color-blue-700: oklch(45.4% 0.2358 266.7);
+	--color-blue-800: oklch(39.8% 0.1951 268.1);
+	--color-blue-900: oklch(35.3% 0.1525 269.7);
+	--color-blue-950: oklch(26.6% 0.0958 273.2);
+
+	--background-color-base: var(--color-neutral-50);
+	--background-color-card: var(--color-white);
+	--background-color-popover: var(--color-white);
+	--background-color-dialog: var(--color-white);
+	--background-color-base-hover: var(--color-neutral-100);
+	--background-color-card-hover: color-mix(
+		in oklab,
+		var(--color-white) 50%,
+		var(--color-neutral-100)
+	);
+	--background-color-popover-hover: color-mix(
+		in oklab,
+		var(--color-white) 50%,
+		var(--color-neutral-100)
+	);
+	--background-color-dialog-hover: color-mix(
+		in oklab,
+		var(--color-white) 50%,
+		var(--color-neutral-100)
+	);
+	--background-color-form: var(--background-color-card);
+	--background-color-form-hover: --alpha(var(--color-neutral-500) / 0.05);
+	--background-color-form-active: --alpha(var(--color-neutral-500) / 0.1);
+	--background-color-overlay: --alpha(#000 / 0.12);
+
+	--border-color-base: var(--color-neutral-300);
+	--border-color-card: var(--color-neutral-300);
+	--border-color-popover: var(--color-neutral-300);
+	--border-color-dialog: var(--color-neutral-300);
+	--border-color-base-muted: var(--color-neutral-200);
+	--border-color-card-muted: var(--color-neutral-200);
+	--border-color-popover-muted: var(--color-neutral-200);
+	--border-color-dialog-muted: var(--color-neutral-200);
+	--border-color-form: var(--color-neutral-300);
+
+	--divide-color-card: var(--color-neutral-300);
+	--divide-color-card-muted: var(--color-neutral-200);
+
+	--color-card-border: var(--color-neutral-300);
+	--color-card-border-muted: var(--color-neutral-200);
+	--color-separator: --alpha(var(--color-gray-500) / 0.2);
+
+	--color-active-menu-item: --alpha(var(--color-neutral-500) / 0.05);
+	--color-selected-menu-item: --alpha(var(--color-accent-500) / 0.1);
+	--color-active-selected-menu-item: --alpha(var(--color-accent-500) / 0.15);
+
+	/* Chart series tokens — light picks validated against the white card surface:
+	   worst adjacent CVD ΔE 14.0 (target ≥ 8), normal-vision floor 15.7 (≥ 15),
+	   all slots ≥ 3:1 contrast. Semantic ramps (sky/emerald/rose/amber/purple) are
+	   deliberately excluded so a series never reads as a status color. */
+	--color-chart-1: var(--color-blue-500);
+	--color-chart-2: var(--color-green-700);
+	--color-chart-3: var(--color-pink-500);
+	--color-chart-4: var(--color-red-600);
+	--color-chart-5: var(--color-teal-600);
+	--color-chart-6: var(--color-orange-600);
+	--color-chart-7: var(--color-violet-500);
+	--color-chart-8: var(--color-yellow-700);
+	--color-chart-other: var(--color-neutral-500);
+
+	--text-color-strong: var(--color-neutral-950);
+	--text-color-body: --alpha(var(--color-neutral-950) / 0.75);
+	--text-color-muted: --alpha(var(--color-neutral-950) / 0.6);
+	--text-color-placeholder: --alpha(var(--color-neutral-950) / 0.5);
+	--text-color-on-filled: #fff;
+
+	/* Theme tokens */
+	--background-color-filled-neutral: var(--color-neutral-950);
+	--background-color-filled-accent: var(--color-accent-600);
+	--background-color-filled-danger: var(--color-danger-600);
+	--background-color-filled-warning: var(--color-warning-600);
+	--background-color-filled-success: var(--color-success-600);
+
+	--background-color-filled-neutral-hover: var(--color-neutral-800);
+	--background-color-filled-accent-hover: var(--color-accent-700);
+	--background-color-filled-danger-hover: var(--color-danger-700);
+	--background-color-filled-warning-hover: var(--color-warning-700);
+	--background-color-filled-success-hover: var(--color-success-700);
+
+	/* Focus tokens */
+	--ring-color-focus-neutral: --alpha(var(--color-neutral-500) / 0.3);
+	--ring-color-focus-accent: --alpha(var(--color-accent-500) / 0.3);
+	--ring-color-focus-danger: --alpha(var(--color-danger-500) / 0.3);
+	--ring-color-focus-warning: --alpha(var(--color-warning-500) / 0.3);
+	--ring-color-focus-success: --alpha(var(--color-success-500) / 0.3);
+
+	--shadow-color: #000;
+	--shadow-first-opacity: 5%;
+	--shadow-second-opacity: 10%;
+	--navigation-shadow: --alpha(var(--shadow-color) / 10%);
+
+	--bg-checked-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 16 16'%3e%3cpath fill='white' d='M12.7071 4.29289c.3905.39053.3905 1.02369 0 1.41422L6.70711 11.7071c-.39053.3905-1.02369.3905-1.41422 0l-2-1.99999c-.39052-.39053-.39052-1.02369 0-1.41422.39053-.39052 1.02369-.39052 1.41422 0L6 9.58579l5.2929-5.2929c.3905-.39052 1.0237-.39052 1.4142 0Z'/%3e%3c/svg%3e");
+	--bg-indeterminate-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 16 16'%3e%3cpath fill='white' d='M4 8c0-.55228.44772-1 1-1h6c.5523 0 1 .44772 1 1s-.4477 1-1 1H5c-.55228 0-1-.44772-1-1Z'/%3e%3c/svg%3e");
+}
+
+/**
+MARK: LIGHT PALETTE RESTORE (islands only)
+
+Tailwind's default light palette, materialized so `.invert-theme` islands on
+dark pages restore it — mantle-dark.css never encodes light values. Every value
+is verbatim from the pinned tailwindcss/theme.css (the invert-theme test suite
+pins them against it).
+
+Scoped to the island selector on purpose: `@theme` variables are emitted into
+`@layer theme`, and unlayered author CSS beats every layer, so declaring these
+at `:root` would silently override a consumer's own
+`@theme { --color-<ramp>-<stop>: … }` for all 22 ramps — and ship ~17 KB of
+dead weight to every page that renders no island. At page level Tailwind's own
+defaults already supply these values, so the page needs nothing here.
+
+Limitation: an island restores *mantle's* pinned defaults, so a consumer who
+rebrands a ramp sees it on the page but not inside an island. Closing that gap
+needs a shadow copy of every ramp under a second name (a generated mirror), a
+cost the inversion feature does not justify.
+*/
+:root:is(.dark, [data-theme="dark"], [data-applied-theme="dark"]) .invert-theme {
 	--color-white: oklch(100% 0 0);
 	--color-black: oklch(0% 0 0);
 
@@ -540,129 +683,6 @@ from `:root` (see MARK: INVERT THEME below).
 	--color-stone-800: oklch(26.8% 0.007 34.298);
 	--color-stone-900: oklch(21.6% 0.006 56.043);
 	--color-stone-950: oklch(14.7% 0.004 49.25);
-
-	/* custom stops that intentionally diverge from the Tailwind defaults */
-	--color-neutral-950: oklch(18.2% 0 0); /* TW4 default is 14.5% — intentionally lighter */
-	--color-sky-600: oklch(55% 0.158 241.966);
-
-	/* gray is identical to neutral in light mode */
-	--color-gray-50: var(--color-neutral-50);
-	--color-gray-100: var(--color-neutral-100);
-	--color-gray-200: var(--color-neutral-200);
-	--color-gray-300: var(--color-neutral-300);
-	--color-gray-400: var(--color-neutral-400);
-	--color-gray-500: var(--color-neutral-500);
-	--color-gray-600: var(--color-neutral-600);
-	--color-gray-700: var(--color-neutral-700);
-	--color-gray-800: var(--color-neutral-800);
-	--color-gray-900: var(--color-neutral-900);
-	--color-gray-950: var(--color-neutral-950);
-
-	--color-blue-50: oklch(96.8% 0.015 265.9);
-	--color-blue-100: oklch(92.7% 0.0337 265.8);
-	--color-blue-200: oklch(86.7% 0.0622 264.2);
-	--color-blue-300: oklch(77.9% 0.1078 262.4);
-	--color-blue-400: oklch(69.6% 0.1539 262.9);
-	--color-blue-500: oklch(58.4% 0.2069 265.3);
-	--color-blue-600: oklch(52.1% 0.2298 266.7);
-	--color-blue-700: oklch(45.4% 0.2358 266.7);
-	--color-blue-800: oklch(39.8% 0.1951 268.1);
-	--color-blue-900: oklch(35.3% 0.1525 269.7);
-	--color-blue-950: oklch(26.6% 0.0958 273.2);
-
-	--background-color-base: var(--color-neutral-50);
-	--background-color-card: var(--color-white);
-	--background-color-popover: var(--color-white);
-	--background-color-dialog: var(--color-white);
-	--background-color-base-hover: var(--color-neutral-100);
-	--background-color-card-hover: color-mix(
-		in oklab,
-		var(--color-white) 50%,
-		var(--color-neutral-100)
-	);
-	--background-color-popover-hover: color-mix(
-		in oklab,
-		var(--color-white) 50%,
-		var(--color-neutral-100)
-	);
-	--background-color-dialog-hover: color-mix(
-		in oklab,
-		var(--color-white) 50%,
-		var(--color-neutral-100)
-	);
-	--background-color-form: var(--background-color-card);
-	--background-color-form-hover: --alpha(var(--color-neutral-500) / 0.05);
-	--background-color-form-active: --alpha(var(--color-neutral-500) / 0.1);
-	--background-color-overlay: --alpha(#000 / 0.12);
-
-	--border-color-base: var(--color-neutral-300);
-	--border-color-card: var(--color-neutral-300);
-	--border-color-popover: var(--color-neutral-300);
-	--border-color-dialog: var(--color-neutral-300);
-	--border-color-base-muted: var(--color-neutral-200);
-	--border-color-card-muted: var(--color-neutral-200);
-	--border-color-popover-muted: var(--color-neutral-200);
-	--border-color-dialog-muted: var(--color-neutral-200);
-	--border-color-form: var(--color-neutral-300);
-
-	--divide-color-card: var(--color-neutral-300);
-	--divide-color-card-muted: var(--color-neutral-200);
-
-	--color-card-border: var(--color-neutral-300);
-	--color-card-border-muted: var(--color-neutral-200);
-	--color-separator: --alpha(var(--color-gray-500) / 0.2);
-
-	--color-active-menu-item: --alpha(var(--color-neutral-500) / 0.05);
-	--color-selected-menu-item: --alpha(var(--color-accent-500) / 0.1);
-	--color-active-selected-menu-item: --alpha(var(--color-accent-500) / 0.15);
-
-	/* Chart series tokens — light picks validated against the white card surface:
-	   worst adjacent CVD ΔE 14.0 (target ≥ 8), normal-vision floor 15.7 (≥ 15),
-	   all slots ≥ 3:1 contrast. Semantic ramps (sky/emerald/rose/amber/purple) are
-	   deliberately excluded so a series never reads as a status color. */
-	--color-chart-1: var(--color-blue-500);
-	--color-chart-2: var(--color-green-700);
-	--color-chart-3: var(--color-pink-500);
-	--color-chart-4: var(--color-red-600);
-	--color-chart-5: var(--color-teal-600);
-	--color-chart-6: var(--color-orange-600);
-	--color-chart-7: var(--color-violet-500);
-	--color-chart-8: var(--color-yellow-700);
-	--color-chart-other: var(--color-neutral-500);
-
-	--text-color-strong: var(--color-neutral-950);
-	--text-color-body: --alpha(var(--color-neutral-950) / 0.75);
-	--text-color-muted: --alpha(var(--color-neutral-950) / 0.6);
-	--text-color-placeholder: --alpha(var(--color-neutral-950) / 0.5);
-	--text-color-on-filled: #fff;
-
-	/* Theme tokens */
-	--background-color-filled-neutral: var(--color-neutral-950);
-	--background-color-filled-accent: var(--color-accent-600);
-	--background-color-filled-danger: var(--color-danger-600);
-	--background-color-filled-warning: var(--color-warning-600);
-	--background-color-filled-success: var(--color-success-600);
-
-	--background-color-filled-neutral-hover: var(--color-neutral-800);
-	--background-color-filled-accent-hover: var(--color-accent-700);
-	--background-color-filled-danger-hover: var(--color-danger-700);
-	--background-color-filled-warning-hover: var(--color-warning-700);
-	--background-color-filled-success-hover: var(--color-success-700);
-
-	/* Focus tokens */
-	--ring-color-focus-neutral: --alpha(var(--color-neutral-500) / 0.3);
-	--ring-color-focus-accent: --alpha(var(--color-accent-500) / 0.3);
-	--ring-color-focus-danger: --alpha(var(--color-danger-500) / 0.3);
-	--ring-color-focus-warning: --alpha(var(--color-warning-500) / 0.3);
-	--ring-color-focus-success: --alpha(var(--color-success-500) / 0.3);
-
-	--shadow-color: #000;
-	--shadow-first-opacity: 5%;
-	--shadow-second-opacity: 10%;
-	--navigation-shadow: --alpha(var(--shadow-color) / 10%);
-
-	--bg-checked-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 16 16'%3e%3cpath fill='white' d='M12.7071 4.29289c.3905.39053.3905 1.02369 0 1.41422L6.70711 11.7071c-.39053.3905-1.02369.3905-1.41422 0l-2-1.99999c-.39052-.39053-.39052-1.02369 0-1.41422.39053-.39052 1.02369-.39052 1.41422 0L6 9.58579l5.2929-5.2929c.3905-.39052 1.0237-.39052 1.4142 0Z'/%3e%3c/svg%3e");
-	--bg-indeterminate-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 16 16'%3e%3cpath fill='white' d='M4 8c0-.55228.44772-1 1-1h6c.5523 0 1 .44772 1 1s-.4477 1-1 1H5c-.55228 0-1-.44772-1-1Z'/%3e%3c/svg%3e");
 }
 
 /**
@@ -708,10 +728,20 @@ Requirements and limitations:
   in the floating part's `className` to invert it too.
 - Theme variant utilities (`dark:*`, `light:*`, `high-contrast:*`,
   `dark-high-contrast:*`) key off the page theme classes on `:root`, not the
-  inversion scope, so they do not flip inside an island. This includes the few
-  mantle internals that carry variant-gated tweaks (table, skeleton, progress)
-  — composing those inside an island mixes page-variant selection with
-  island-resolved variables until they migrate to theme-declared tokens.
+  inversion scope, so they do not flip inside an island. This includes the six
+  mantle internals that still carry variant-gated tweaks — Progress Bar,
+  Progress Donut, RadioGroup, Skeleton, Table, and Toast — so composing those
+  inside an island mixes page-variant selection with island-resolved variables
+  until they migrate to theme-declared tokens. Redefining the variants cannot
+  fix this: they are already scope-relative (`&:where(.dark, .dark *, …)`), and
+  "nearest theme scope wins" is not expressible for a light island under a dark
+  root, so consumer `dark:*` usage inside an island has no remedy either.
+- Semantic tokens are re-declared ON the island (see the palette-alias rule
+  below), and a declaration on the element beats a value inherited from an
+  ancestor. So a consumer who rebrands at the alias level
+  (`:root { --color-accent-600: … }`) does not see it inside islands — rebrand
+  at the ramp level (`--color-sky-600`) instead, which the aliases resolve
+  through.
 - Nesting `invert-theme` inside an inverted subtree is idempotent: the inner
   island stays inverted relative to the page (it does not revert).
 - Box shadows flip with the island: shadow utilities inline
