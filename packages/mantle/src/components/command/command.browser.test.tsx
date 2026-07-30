@@ -92,6 +92,87 @@ describe("Command.Dialog (browser)", () => {
 		});
 	});
 
+	describe("Command.SearchTrigger", () => {
+		/**
+		 * A palette with a real `Command.List`, which is what makes these tests
+		 * browser-mode: cmdk's list measures itself with a `ResizeObserver`, and
+		 * filtering is the whole point of seeding a query.
+		 */
+		const SearchTriggerSubject = () => (
+			<Command.DialogRoot>
+				<Command.SearchTrigger>
+					<button type="button">Search…</button>
+				</Command.SearchTrigger>
+				<Command.DialogContent title="Test Command Palette">
+					<Command.Input placeholder="Type a command or search..." />
+					<Command.List>
+						<Command.Empty>No results found.</Command.Empty>
+						<Command.Group heading="Suggestions">
+							<Command.Item>Calendar</Command.Item>
+							<Command.Item>Endpoints</Command.Item>
+						</Command.Group>
+					</Command.List>
+				</Command.DialogContent>
+			</Command.DialogRoot>
+		);
+
+		test("a keystroke on the trigger seeds the query and filters the list", async () => {
+			const user = userEvent.setup();
+			render(<SearchTriggerSubject />);
+
+			const trigger = screen.getByRole("button", { name: "Search…" });
+			trigger.focus();
+			// "p" appears in "Endpoints" and not in "Calendar", so the filtering is
+			// what the assertion below observes rather than cmdk's fuzzy tolerance.
+			await user.keyboard("p");
+
+			const input = await screen.findByPlaceholderText("Type a command or search...");
+			expect(input).toHaveValue("p");
+			// The seed has to reach cmdk's own search state, not just the field's
+			// value — otherwise the palette opens showing text that filters nothing.
+			await waitFor(() => {
+				expect(screen.getByText("Endpoints")).toBeInTheDocument();
+			});
+			expect(screen.queryByText("Calendar")).not.toBeInTheDocument();
+		});
+
+		test("keystrokes after the first continue into the palette input", async () => {
+			// The race the seeding exists to close: the palette's input has to be
+			// mounted and focused before the next keypress lands, or characters are
+			// dropped between the trigger and the field.
+			const user = userEvent.setup();
+			render(<SearchTriggerSubject />);
+
+			screen.getByRole("button", { name: "Search…" }).focus();
+			await user.keyboard("e");
+			const input = await screen.findByPlaceholderText("Type a command or search...");
+			await waitFor(() => {
+				expect(input).toHaveFocus();
+			});
+
+			await user.keyboard("nd");
+
+			expect(input).toHaveValue("end");
+		});
+
+		test("focus returns to the search trigger after dismissal", async () => {
+			// Free from rendering as a Dialog.Trigger. A hand-rolled trigger has to
+			// capture and restore the focused element itself, and gets it wrong.
+			const user = userEvent.setup();
+			render(<SearchTriggerSubject />);
+
+			const trigger = screen.getByRole("button", { name: "Search…" });
+			await user.click(trigger);
+			await screen.findByPlaceholderText("Type a command or search...");
+
+			await user.keyboard("{Escape}");
+
+			await waitFor(() => {
+				expect(trigger).toHaveFocus();
+			});
+		});
+	});
+
 	describe("Command.Separator auto-hide", () => {
 		test("separator is visible when there is no active search query", async () => {
 			render(<CommandDialogSubject initialOpen />);

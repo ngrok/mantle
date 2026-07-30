@@ -681,6 +681,7 @@ Sidebar.Root
 │   ├── Sidebar.Header
 │   │   └── Sidebar.SwitcherTrigger
 │   ├── Sidebar.Body
+│   │   ├── Sidebar.SearchTrigger
 │   │   └── Sidebar.Group
 │   │       ├── Sidebar.GroupLabel
 │   │       └── Sidebar.List
@@ -1295,6 +1296,109 @@ export function NetworkNav() {
 }
 ```
 
+## The search row
+
+`Sidebar.SearchTrigger` is the row that opens a search or command palette. It is deliberately a navigation row
+and not a text field: the chrome is a `Sidebar.ItemButton`'s, down to the 28px chip it becomes in the collapsed
+rail, because a search entry point in a sidebar is one of the rows rather than a form control wedged among
+them. Its `shortcut` hint appears on hover or keyboard focus and is otherwise invisible, so the resting panel
+stays quiet.
+
+The row is styling only. Wrap it in
+[`Command.SearchTrigger`](/components/navigation/command#commandsearchtrigger) for the dialog wiring,
+`aria-keyshortcuts`, and the behavior that makes typing or pasting into the row open the palette with that text
+already in the query — and in `Sidebar.Tooltip` so the row keeps a visible label once the panel collapses.
+
+Collapse the panel to watch the row join the icon column, or press `⌘K` inside the preview.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="command-search-shell" title="Sidebar search row demo" />
+	<CodeExample.Code>
+
+```tsx
+import { Command, MetaKey } from "@ngrok/mantle/command";
+import { Kbd } from "@ngrok/mantle/kbd";
+import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react";
+
+function SidebarSearch() {
+	const { setOpenMobile } = useSidebar();
+
+	return (
+		<Command.DialogRoot
+			onOpenChange={(open) => {
+				// Below the mobileBreakpoint the panel *is* a Sheet, so leaving it open
+				// would stack a dialog inside a dialog — two focus traps, and two
+				// scroll locks unwinding in an order neither owns.
+				if (open) {
+					setOpenMobile(false);
+				}
+			}}
+		>
+			<Sidebar.Tooltip label="Search">
+				<Command.SearchTrigger>
+					<Sidebar.SearchTrigger
+						shortcut={
+							<>
+								<MetaKey />
+								<Kbd>K</Kbd>
+							</>
+						}
+					>
+						<MagnifyingGlassIcon />
+						<span className="min-w-0 flex-1 truncate">Search</span>
+					</Sidebar.SearchTrigger>
+				</Command.SearchTrigger>
+			</Sidebar.Tooltip>
+			<Command.DialogContent>
+				<Command.Input placeholder="Search pages…" />
+				<Command.List>
+					<Command.Empty>No results found.</Command.Empty>
+					<Command.Group heading="Traffic">
+						<Command.Item>Endpoints</Command.Item>
+						<Command.Item>Edges</Command.Item>
+					</Command.Group>
+				</Command.List>
+			</Command.DialogContent>
+		</Command.DialogRoot>
+	);
+}
+
+function SidebarWithSearch() {
+	return (
+		<Sidebar.Root>
+			<Sidebar.Nav aria-label="Main">
+				<Sidebar.Body>
+					<SidebarSearch />
+					<Sidebar.Group>
+						<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+						<Sidebar.List>
+							<Sidebar.Item>
+								<Sidebar.Tooltip label="Endpoints">
+									<Sidebar.ItemButton current>
+										<GraphIcon />
+										Endpoints
+									</Sidebar.ItemButton>
+								</Sidebar.Tooltip>
+							</Sidebar.Item>
+						</Sidebar.List>
+					</Sidebar.Group>
+				</Sidebar.Body>
+			</Sidebar.Nav>
+			<Sidebar.Trigger />
+		</Sidebar.Root>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+Put it above the first `Sidebar.Group` so it shares the column the navigation rows use in both panel states, and
+mark it up like any other row: a leading icon, then the label in an element of its own so the rail can clip it
+without dropping it from the button's accessible name.
+
 ## Persisting the collapsed state
 
 `Sidebar.Root` supports both uncontrolled (`defaultOpen`) and controlled (`open` + `onOpenChange`) desktop
@@ -1679,6 +1783,40 @@ All props from `button` plus:
 | `data-current` | present when `current`  | Presence-only — never `"false"`, since the `data-current:` variant matches the attribute's existence. Styles the current row.                                                 |
 | `aria-current` | `"page"` when `current` | Set alongside `data-current`. The current-row styling follows _either_, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop. |
 | `data-state`   | `"open"`                | **Read, not stamped** — supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open.          |
+
+### Sidebar.SearchTrigger
+
+The search row for `Sidebar.Body` — the row that opens a search or command palette. Place it above the first
+`Sidebar.Group` so it shares the column the navigation rows use in both panel states.
+
+It is deliberately a navigation row and not a text field. The row is the same chrome as a
+`Sidebar.ItemButton` — same height, padding, radius, hover, and the same 28px chip in the collapsed icon rail —
+because a search entry point in a sidebar is one of the rows, not a form control wedged among them. Its
+`shortcut` hint appears on hover or keyboard focus and is otherwise invisible, which keeps the resting panel
+quiet.
+
+A styled button only — compose it with
+[`Command.SearchTrigger`](/components/navigation/command#commandsearchtrigger), which supplies the dialog
+wiring, `aria-keyshortcuts`, and the behavior that makes typing or pasting into the row open the palette with
+that text already in the query. Wrap the pair in `Sidebar.Tooltip` so the row keeps a visible label in the rail.
+
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
+
+| Prop        | Type        | Default | Description                                                                                                                                                                       |
+| ----------- | ----------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shortcut?` | `ReactNode` |         | The keyboard hint for the chord that opens the same palette, usually `<><MetaKey /><Kbd>K</Kbd></>`. Rendered pinned to the row's end, `aria-hidden`, revealed on hover or focus. |
+| `asChild?`  | `boolean`   | `false` | Use the `asChild` prop to compose the `Sidebar.SearchTrigger` styling onto alternative element types or your own React components.                                                |
+
+**Data attributes**
+
+| Data Attribute | Value                      | Description                                                                                                                                        |
+| -------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"sidebar-search-trigger"` | Names the part, with any composing ancestor's chain ahead of it — `"command-search-trigger sidebar-search-trigger"` once a palette wraps it.       |
+| `data-state`   | `"open"` \| `"closed"`     | **Read, not stamped** — supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. The row stays highlighted while its palette is open. |
+
+The `shortcut` hint is dropped outright in the collapsed rail — the chip has room for the icon and nothing
+else, and `aria-keyshortcuts` already announces the chord. The row's label is clipped rather than removed, so
+the button keeps its accessible name as a chip.
 
 ### Sidebar.SwitcherTrigger
 

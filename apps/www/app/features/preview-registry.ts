@@ -3,6 +3,7 @@ import { AlertCenterShellDemo } from "~/features/alert-center-demos";
 import { AppLayoutDemo } from "~/features/app-layout-demos";
 import { AppLayoutEditorDemo, AppLayoutPinnedFooterDemo } from "~/features/app-layout-editor-demo";
 import { AppShellDemo, BridgeShellDemo } from "~/features/app-shell-demo";
+import { CommandSearchShellDemo } from "~/features/command-demos";
 import {
 	CenteredLayoutDemo,
 	CenteredLayoutHeaderDemo,
@@ -49,6 +50,10 @@ export const previewExamples = {
 	"app-shell": {
 		title: "App shell demo",
 		Component: AppShellDemo,
+	},
+	"command-search-shell": {
+		title: "Sidebar search trigger demo",
+		Component: CommandSearchShellDemo,
 	},
 	"bridge-shell": {
 		title: "Bridge shell demo",
