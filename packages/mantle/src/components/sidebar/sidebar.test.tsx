@@ -1186,7 +1186,7 @@ describe("Sidebar.SearchTrigger", () => {
 
 	test("keeps its label in the accessibility tree in the collapsed rail", async () => {
 		// The rail hides everything after the leading icon with `sr-only` rather
-		// than removing it, so the row still has a name when it is just a chip —
+		// than removing it, so the row still has a name when it is only a chip —
 		// the same contract `Sidebar.SwitcherTrigger` keeps.
 		const user = userEvent.setup();
 		render(

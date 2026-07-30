@@ -11,7 +11,7 @@ type SliderBaseProps = Omit<ComponentProps<typeof SliderPrimitive.Root>, "defaul
 /**
  * Value props for the {@link Slider} component. Either both `defaultValue` and
  * `value` must be the same type (both `number` or both `number[]`), or only one
- * may be provided.
+ * may be set.
  */
 type SliderValueProps =
 	| {

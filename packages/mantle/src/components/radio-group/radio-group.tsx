@@ -130,7 +130,7 @@ type RadioIndicatorProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
 };
 
 /**
- * The default radio indicator.
+ * The circle `RadioGroup.Indicator` draws when a consumer passes no children.
  * @private
  */
 const DefaultRadioIndicator = ({ checked, disabled, focus, hover }: RadioStateContextValue) => (

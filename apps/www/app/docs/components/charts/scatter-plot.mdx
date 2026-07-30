@@ -447,7 +447,7 @@ function DenseScatterExample() {
 
 ## 3D scatter
 
-Provide `zKey` and the scatter renders inside a rotatable cube: drag anywhere in the plot to orbit the camera. The drag captures the pointer, and pitch is clamped so the cube never flips upside down; points depth-sort under a gentle perspective, so nearer points paint over farther ones as the cloud turns. A tap without dragging still inspects and activates the nearest point.
+Set `zKey` and the scatter renders inside a rotatable cube: drag anywhere in the plot to orbit the camera. The drag captures the pointer, and pitch is clamped so the cube never flips upside down; points depth-sort under a gentle perspective, so nearer points paint over farther ones as the cloud turns. A tap without dragging still inspects and activates the nearest point.
 
 Axis parts and reference lines apply to the 2D projection only and are ignored in 3D — the cube frame carries orientation, with each edge labeled by its data key. The hover readout carries the point's z value, and keyboard stepping and the sr-only data table work identically in 3D: arrows walk the projected cloud point by point, announcements append the z value, and the table grows a z column.
 
@@ -803,7 +803,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `aria-labelledby`      | `string`                               |                    | The id of a visible element that names the chart. Preferred over `aria-label` when the chart sits under a heading. Forbidden when `decorative`.                                                                                                                             |
 | `decorative?`          | `boolean`                              | `false`            | Render as a placeholder backdrop, not real data: hidden from assistive tech, out of the tab order, inert to pointer/keyboard, no data table or live region. Mutually exclusive with the accessible-name and interaction props. See [Decorative charts](#decorative-charts). |
 | `xScale?`              | `"linear"` \| `"time"`                 | auto-detected      | Override the auto-detected x scale (`Date` values → `"time"`, numbers → `"linear"`).                                                                                                                                                                                        |
-| `zKey?`                | `Extract<keyof TDatum, string>`        |                    | The key of each row's depth value. Providing it renders the scatter in 3D: drag the plot to rotate the cube. Axis parts and reference lines apply to the 2D projection only and are ignored in 3D (the cube frame carries orientation).                                     |
+| `zKey?`                | `Extract<keyof TDatum, string>`        |                    | The key of each row's depth value. When set, the scatter renders in 3D: drag the plot to rotate the cube. Axis parts and reference lines apply to the 2D projection only and are ignored in 3D (the cube frame carries orientation).                                        |
 | `dimensions?`          | `1 \| 2 \| 3`                          | `3`                | 3D only: how many axes the cloud currently occupies. Changing it morphs the points onto the x axis line (`1`), the xy plane (`2`), or the full cube (`3`) with a smooth glide; the y and z frame edges fade in with their dimension.                                        |
 | `yDomain?`             | `[number \| "auto", number \| "auto"]` | `["auto", "auto"]` | Override the automatic y domain at either end.                                                                                                                                                                                                                              |
 | `animate?`             | `boolean`                              | `true`             | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                                                                                                                                                                     |
@@ -861,7 +861,7 @@ A dashed horizontal marker at a y value — a target, a budget, an SLO threshold
 
 ### ScatterPlot.Tooltip
 
-Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `ScatterPlot.Root`'s interaction contract and renders whether or not this part is composed — compose it to format the label or values, append a footer, or replace the content entirely.
+Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `ScatterPlot.Root`'s interaction contract and renders even when this part is absent — compose it to format the label or values, append a footer, or replace the content entirely.
 
 The `footer` and `children` render props receive a `HoverSnapshot`: the active `index`, `xValue`, the original `datum`, `points`, `viaKeyboard` — and `zValue` in 3D. Scatter `points` are filtered to the relevant series: the hit point's series under the pointer, the row's populated series under the keyboard.
 

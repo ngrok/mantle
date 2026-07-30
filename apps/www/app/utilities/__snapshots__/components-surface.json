@@ -157,8 +157,8 @@
     "category": "Primitives",
     "status": "stable",
     "importPath": "@ngrok/mantle/browser-only",
-    "summary": "A wrapper component that ensures its children only render in the browser, after hydration has completed.",
-    "jsdoc": "A wrapper component that ensures its children only render in the browser, after hydration has completed.",
+    "summary": "A wrapper component that renders its children in the browser only, after hydration completes.",
+    "jsdoc": "A wrapper component that renders its children in the browser only, after hydration completes.",
     "examples": [
       "```tsx\n<BrowserOnly fallback={<div style={{ height: 200 }} />} >\n  {() => <ExpensiveChart />}\n</BrowserOnly>\n```"
     ]
@@ -199,7 +199,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/card",
     "summary": "A container used to display content in a box, resembling a physical card.",
-    "jsdoc": "A container that can be used to display content in a box resembling a physical card.",
+    "jsdoc": "A container that displays content in a box resembling a physical card.",
     "examples": [
       "Composition:\n```\nCard.Root\n├── Card.Header\n│   └── Card.Title\n├── Card.Body\n└── Card.Footer\n```",
       "```tsx\n<Card.Root>\n  <Card.Body>\n    <p>Laborum in aute officia adipisicing elit velit.</p>\n  </Card.Body>\n</Card.Root>\n\n<Card.Root>\n  <Card.Header>\n    <Card.Title>Card Title Here</Card.Title>\n  </Card.Header>\n  <Card.Body>\n    <p>Laborum in aute officia adipisicing elit velit.</p>\n  </Card.Body>\n  <Card.Footer>\n    <p>Card footer</p>\n  </Card.Footer>\n</Card.Root>\n```"
@@ -394,7 +394,7 @@
     "category": "Data Display",
     "status": "stable",
     "importPath": "@ngrok/mantle/flag",
-    "summary": "Displays a flag as an svg based on the provided country code.",
+    "summary": "Displays a flag as an SVG for the country code you pass.",
     "jsdoc": "Renders a country flag from an [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, served as an SVG from ngrok's CDN.",
     "examples": [
       "```tsx\nimport { Flag } from \"@ngrok/mantle/flag\";\n\n<Flag code=\"US\" />\n<Flag code=\"JP\" size=\"m\" loading=\"eager\" />\n<Flag code=\"CA\" size=\"s\" />\n\n// Inline next to a country label.\n<span className=\"inline-flex items-center gap-2\">\n  <Flag code=\"GB\" size=\"s\" aria-hidden />\n  <span>United Kingdom</span>\n</span>\n```"
@@ -459,7 +459,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/input",
     "summary": "Fundamental component for inputs.",
-    "jsdoc": "Used to create interactive controls for web-based forms in order to accept data from the user.",
+    "jsdoc": "An interactive form control that accepts data from the user.",
     "examples": [
       "```tsx\n<Input\n  type=\"email\"\n  placeholder=\"Enter your email\"\n  validation=\"success\"\n/>\n```"
     ]
@@ -839,8 +839,8 @@
     "category": "Actions",
     "status": "stable",
     "importPath": "@ngrok/mantle/split-button",
-    "summary": "A button group which provides a default action with one click while revealing related alternatives through a dropdown menu.",
-    "jsdoc": "A button group which provides a default action with one click while revealing related alternatives through a dropdown menu.",
+    "summary": "A button group that pairs a one-click default action with a dropdown menu of related alternatives.",
+    "jsdoc": "A button group that pairs a one-click default action with a dropdown menu of related alternatives.",
     "examples": [
       "Composition:\n```\nSplitButton.Root\n├── SplitButton.PrimaryAction\n├── SplitButton.MenuTrigger\n└── SplitButton.MenuContent\n    └── SplitButton.MenuItem\n```",
       "```tsx\n<SplitButton.Root>\n  <SplitButton.PrimaryAction icon={<CopyIcon />} onClick={copyMarkdownPage}>\n    Copy page\n  </SplitButton.PrimaryAction>\n  <SplitButton.MenuTrigger label=\"Open doc actions menu\" />\n  <SplitButton.MenuContent>\n    <SplitButton.MenuItem onClick={copyMarkdownPage}>\n      <Icon svg={<CopyIcon />} />\n      Copy page\n    </SplitButton.MenuItem>\n    <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>\n      <a href={markdownUrl} target=\"_blank\" rel=\"noopener noreferrer\">\n        <Icon svg={<FileTextIcon />} />\n        View as Markdown\n      </a>\n    </SplitButton.MenuItem>\n  </SplitButton.MenuContent>\n</SplitButton.Root>\n```"
@@ -931,8 +931,8 @@
     "category": "Feedback",
     "status": "stable",
     "importPath": "@ngrok/mantle/toast",
-    "summary": "A succinct message that is displayed temporarily.",
-    "jsdoc": "A succinct message that is displayed temporarily.",
+    "summary": "A succinct message that appears temporarily.",
+    "jsdoc": "A succinct message that appears temporarily.",
     "examples": [
       "Composition:\n```\nToast.Root\n├── Toast.Icon\n├── Toast.Message\n└── Toast.Action\n```",
       "```tsx\nmakeToast(\n  <Toast.Root intent=\"success\">\n    <Toast.Icon />\n    <Toast.Message>Operation completed successfully!</Toast.Message>\n    <Toast.Action>Dismiss</Toast.Action>\n  </Toast.Root>\n);\n```"

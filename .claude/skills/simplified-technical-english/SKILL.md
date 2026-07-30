@@ -43,7 +43,7 @@ Fix what you find.
 ## What not to do
 
 - Do not sweep unrelated prose into the same pull request. The rules cover the lines you touch.
-- Do not restyle a shipped `decisions/*.md`. Each one is a dated record.
+- Do not change what a shipped `decisions/*.md` decided. Its prose is in scope; its decision and its dated evidence are not.
 - Do not paraphrase quoted upstream text, such as MDN or a spec. Keep it verbatim, and keep its `@see` link.
 - Do not reflow an ASCII composition tree or the code inside an `@example` fence.
 - Do not narrate the check to the user. The `Conventions pass:` note [AGENTS.md](../../../AGENTS.md) requires is where it belongs.

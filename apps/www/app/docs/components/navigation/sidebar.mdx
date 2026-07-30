@@ -932,7 +932,7 @@ read them with a fallback, so any ancestor of `Sidebar.Nav` can set them:
 
 Three consequences of that inheritance direction worth knowing: setting a width on something the panel
 _contains_ does nothing (values flow parent → child, never child → parent); `AppLayout` never needs to
-know the number — the `AppLayout.Content` card simply takes the remaining row space, so a wider sidebar
+know the number — the `AppLayout.Content` card takes the remaining row space, so a wider sidebar
 narrows the card by construction; and a surface that renders _outside_ the panel — a switcher's menu, portaled to
 `document.body` — inherits none of them, which is what
 [`--sidebar-row-width`](#sizing-a-menu-to-a-sidebar-row) exists for.
@@ -1038,7 +1038,7 @@ collapsing the panel cannot pop a label under a pointer that has already moved o
 mounted at every rail state, which keeps the row — and its focus — through a collapse.
 
 It needs a `TooltipProvider` ancestor, like any `Tooltip.Root` — mount one at your app root. The part
-deliberately does not provide its own, so your app-wide tooltip delay still applies. The one provider setting
+deliberately does not mount its own, so your app-wide tooltip delay still applies. The one provider setting
 it does override is hoverable content: a rail label holds nothing to hover into, so the label closes when the
 pointer leaves the row instead of waiting for the pointer to leave the label too.
 
@@ -1577,9 +1577,9 @@ together would collapse the sidebar for everyone's first visit. Choose the defau
 
 `serializeSidebarStateCookie` returns a plain cookie string, valid for both `document.cookie` on the client
 and a `Set-Cookie` header on the server, so it works whichever side of your app owns the write. `Secure` is
-omitted by default so the same call persists over `http://localhost` — pass `{ secure: true }` if your policy
-requires it. There is no `HttpOnly` option: the browser has to write this cookie when the user toggles the
-rail.
+omitted by default so the same call persists over `http://localhost` — if your policy requires it, pass
+`{ secure: true }`. There is no `HttpOnly` option: the browser has to write this cookie when the user toggles
+the rail.
 
 ## Accessibility
 
@@ -1845,7 +1845,7 @@ size-7 to match selected rail icons while the row keeps a compact 36px footprint
 [Avatar](/components/data-display/avatar) is that size by default, which is what an account or user row puts
 there. The control uses a custom 10px radius on all corners so product and account switchers share the same
 shape around their rounded tiles. A styled button only — compose it with `DropdownMenu.Trigger asChild` or
-`Dialog.Trigger asChild`, which provide the open state (`data-state="open"` styling responds automatically).
+`Dialog.Trigger asChild`, which set the open state (`data-state="open"` styling responds automatically).
 
 Match the trailing affordance to the surface the trigger actually opens. A `CaretDown` promises a menu
 dropping from the row, so keep it for `DropdownMenu`-backed switchers; a `Dialog`-backed switcher reads

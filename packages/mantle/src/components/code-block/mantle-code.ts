@@ -20,7 +20,7 @@ const mantleCodeBlockValueBrand: unique symbol = Symbol("MantleCodeBlockValue");
  * by the Vite plugin at build time) and the original code string for the copy button.
  *
  * `~preHtml` is required at render time. Runtime syntax highlighting is intentionally
- * unsupported; only placeholder substitution for interpolated values is performed.
+ * unsupported; `CodeBlock.Code` only substitutes placeholders for interpolated values.
  */
 type MantleCodeBlockValue = {
 	/**

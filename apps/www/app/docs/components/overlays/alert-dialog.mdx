@@ -240,7 +240,7 @@ Every part of `AlertDialog` that renders DOM accepts `asChild`, which swaps the 
 
 ### AlertDialog.Root
 
-The root component for the Alert Dialog.
+Holds the open state and the required `intent` that `AlertDialog.Icon` and `AlertDialog.Action` read for their color.
 
 Its floating `AlertDialog.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
 
@@ -302,7 +302,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 An accessible name to be announced when the dialog is opened.
 
-Alternatively, you can provide `aria-label` or `aria-labelledby` to `AlertDialogContent` and exclude this component.
+Alternatively, you can pass `aria-label` or `aria-labelledby` to `AlertDialogContent` and exclude this component.
 
 Radix [Dialog.Title](https://www.radix-ui.com/primitives/docs/components/dialog#title) props.
 
@@ -310,7 +310,7 @@ Radix [Dialog.Title](https://www.radix-ui.com/primitives/docs/components/dialog#
 
 An accessible description to be announced when the dialog is opened. Renders as a `div` by default, but can be changed to any other element using the `asChild` prop.
 
-Alternatively, you can provide `aria-describedby` to `AlertDialogContent` and exclude this component.
+Alternatively, you can pass `aria-describedby` to `AlertDialogContent` and exclude this component.
 
 Radix [Dialog.Description](https://www.radix-ui.com/primitives/docs/components/dialog#description) props.
 

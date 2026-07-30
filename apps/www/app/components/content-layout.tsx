@@ -38,8 +38,8 @@ export const fullWidthProseMeasure = [
 ];
 
 /**
- * Shared layout for doc pages. Provides the doc actions button,
- * MdxProvider context, and Suspense boundary.
+ * Shared layout for doc pages. Renders the doc actions button, the
+ * `MdxProvider` context, and a Suspense boundary.
  */
 export function ContentLayout({ children, markdownPath }: ContentLayoutProps) {
 	return (

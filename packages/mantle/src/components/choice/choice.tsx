@@ -222,7 +222,7 @@ const Indicator = ({ children, className, ref, ...props }: ChoiceIndicatorProps)
 	// Inject the association props onto the control. `id` and `aria-describedby`
 	// are owned by Choice and always win. `disabled` / `name` / `aria-invalid` /
 	// `aria-errormessage`, though, may have been set on the control itself — only
-	// override those when Choice (or a Field) actually provides a value, so a
+	// override those when Choice (or a Field) actually carries a value, so a
 	// `<Checkbox disabled name="x" />` placed here isn't silently reset.
 	const control: ReactNode = isValidElement<Record<string, unknown>>(children)
 		? cloneElement(children, {

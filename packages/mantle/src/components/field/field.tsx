@@ -546,8 +546,8 @@ type FieldItemProps = ComponentProps<"div"> &
  * tightly under the input.
  *
  * Renders a plain `<div>` — the `<label htmlFor>` ↔ control association
- * already provides the right semantics for a single field, so no implicit
- * `role` is added. `Field.Item` owns the contextual description/error IDs
+ * already carries the right semantics for a single field, so it adds no
+ * implicit `role`. `Field.Item` owns the contextual description/error IDs
  * that `Field.Control` applies to the focusable control. Rendered errors
  * infer an `"error"` validation state unless `validation` is supplied as an
  * explicit override.
@@ -1085,7 +1085,7 @@ const FieldErrorList = ({
  */
 const Field = {
 	/**
-	 * A single form field. Provides message IDs and validation state to
+	 * A single form field. Passes message IDs and validation state to
 	 * `Field.Control`; rendered errors infer `"error"` validation.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/field

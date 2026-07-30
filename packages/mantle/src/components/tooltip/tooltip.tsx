@@ -3,7 +3,7 @@ import type { ComponentProps, ComponentPropsWithoutRef } from "react";
 import { cx } from "../../utils/cx/cx.js";
 
 /**
- * Wraps your app to provide shared global behavior for your tooltips, such
+ * Wraps your app to set shared global behavior for your tooltips, such
  * as consistent delay and hover settings. Mount one instance at the root of
  * your app when you want app-wide tooltip defaults. Children render
  * `Tooltip.Root` / `Tooltip.Trigger` / `Tooltip.Content` trees as usual.

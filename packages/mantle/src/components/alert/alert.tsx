@@ -101,7 +101,7 @@ const alertVariants = cva(
 			} as const satisfies Record<AlertIntent, string>,
 			/**
 			 * Controls the visual style of the Alert.
-			 * - "default" provides standard rounded corners and borders.
+			 * - "default" keeps the standard rounded corners and borders.
 			 * - "banner" creates a banner-style alert with no rounded corners, sticky positioning, and no left/right borders.
 			 *
 			 * @default "default"
@@ -123,7 +123,7 @@ type AlertProps = ComponentProps<"div"> & {
 	intent: AlertIntent;
 	/**
 	 * Controls the visual style of the Alert.
-	 * - "default" provides standard rounded corners and borders.
+	 * - "default" keeps the standard rounded corners and borders.
 	 * - "banner" creates a banner-style alert with no rounded corners, sticky positioning, and no left/right borders.
 	 *
 	 * @default "default"
@@ -610,7 +610,7 @@ const Alert = {
 	 */
 	Description,
 	/**
-	 * An optional dismiss button that can be used to close the alert.
+	 * An optional, compact, trailing control for dismissing an alert.
 	 * It inherits the `--alert-control-color`, `--alert-control-hover-color`, and
 	 * `--alert-control-hover-bg` variables from `Alert.Root`, shared with the
 	 * expand control.

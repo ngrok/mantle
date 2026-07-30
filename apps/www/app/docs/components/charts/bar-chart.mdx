@@ -1097,7 +1097,7 @@ A dashed horizontal marker at a y value — an SLO threshold, a budget, a limit 
 
 ### BarChart.Tooltip
 
-Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `BarChart.Root`'s interaction contract and renders whether or not this part is composed — compose it to format the label or values, append a footer, or replace the content entirely.
+Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `BarChart.Root`'s interaction contract and renders even when this part is absent — compose it to format the label or values, append a footer, or replace the content entirely.
 
 The `HoverSnapshot` passed to `footer` and `children` describes the active category: `{ index, xValue, datum, points, viaKeyboard }`, where `points` lists every series' value at the active index in visual order.
 

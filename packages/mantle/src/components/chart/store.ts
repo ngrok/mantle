@@ -210,9 +210,9 @@ class ChartStore {
 			this.slotFor(spec.dataKey);
 		} else if (isChartColorToken(spec.color) && spec.color !== "chart-other") {
 			// A series pinning a chart token consumes that slot for auto-assignment
-			// and evicts any earlier auto-assignment of the same token, so two
-			// series never end up painted the identical color just because the
-			// unpinned one happened to register first.
+			// and evicts any earlier auto-assignment of the same token, so
+			// registration order alone never leaves two series painted the
+			// identical color.
 			this.#claimedSlots.add(spec.color);
 			this.#evictAutoAssignedSlot({ token: spec.color, pinnedBy: spec.dataKey });
 		}

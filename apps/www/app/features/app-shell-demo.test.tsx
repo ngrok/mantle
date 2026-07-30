@@ -32,7 +32,7 @@ function openMenu(trigger: HTMLElement) {
 // The settings section is pure composition: the demos derive it from their
 // location and swap what Sidebar.Header and Sidebar.Body render. These cover
 // the swap in both directions, since a silent break here reads as a working
-// demo (the product nav simply never leaves). Each shell offers the section
+// demo (the product nav never leaves). Each shell offers the section
 // where its own information architecture puts it — the multi-product shell in
 // the footer's account menu, the bridge shell as a pinned footer link.
 describe.each([

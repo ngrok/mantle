@@ -17,7 +17,7 @@ type Options = {
  * the timer, so rapid successive changes collapse into a single trailing
  * update.
  *
- * SSR-safe: the server render simply returns the current value (timers
+ * SSR-safe: the server render returns the current value (timers
  * never run there). To debounce a function instead of a value, use
  * {@link useDebouncedCallback}.
  *

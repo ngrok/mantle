@@ -23,7 +23,7 @@ function setRef<T>(ref: PossibleRef<T>, node: T | null) {
  *
  * Cleanup propagation: if any inner callback ref returns a cleanup function,
  * the composed ref returns a cleanup which invokes each inner cleanup and
- * performs the legacy `null` write for inner refs that did not return one.
+ * runs the legacy `null` write for inner refs that did not return one.
  * If no inner ref returns a cleanup, the composed ref returns `undefined`
  * and React calls it again with `null` on unmount (legacy behavior).
  *

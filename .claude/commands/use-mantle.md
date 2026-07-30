@@ -41,6 +41,6 @@ While the session continues:
 - Compose class names with `cx`. No string interpolation in `className`.
 - Prefer `asChild` for polymorphism over wrapper divs.
 - Add JSDoc to new components, hooks, props, and types per `CONVENTIONS.md`.
-- Pin new dependencies exactly. Use the workspace catalog if the dep will be shared.
+- Pin new dependencies exactly. When more than one package uses a dep, put it in the workspace catalog.
 - For interactive elements, render the right semantic HTML. Pair every form control with a `Label`.
 - If you're unsure which component fits, run `/find-mantle-component <query>` rather than guessing.

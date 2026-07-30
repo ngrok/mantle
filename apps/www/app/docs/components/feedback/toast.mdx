@@ -1,6 +1,6 @@
 ---
 title: Toast
-description: A succinct message that is displayed temporarily.
+description: A succinct message that appears temporarily.
 ---
 
 import { AlertDialog } from "@ngrok/mantle/alert-dialog";
@@ -15,7 +15,7 @@ import { Example } from "~/components/example";
 
 # Toast
 
-A succinct message that is displayed temporarily. Toasts are used to provide feedback to the user without interrupting their workflow.
+A succinct message that appears temporarily. Toasts give the user feedback without interrupting their workflow.
 
 export function ToastDemo() {
 	const intents = ["info", "success", "warning", "danger"];
@@ -287,11 +287,11 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Toast.Icon
 
-The `Toast.Icon` displays an icon representing the toast intent. If no custom icon is provided, a default icon for the intent is used.
+The `Toast.Icon` displays an icon for the toast intent. When `svg` is omitted, the intent's default icon renders.
 
-| Prop   | Type        | Default | Description                                                                                        |
-| ------ | ----------- | ------- | -------------------------------------------------------------------------------------------------- |
-| `svg?` | `ReactNode` |         | A custom SVG icon to display. If not provided, the default icon for the toast intent will be used. |
+| Prop   | Type        | Default | Description                                                                          |
+| ------ | ----------- | ------- | ------------------------------------------------------------------------------------ |
+| `svg?` | `ReactNode` |         | A custom SVG icon to display. When omitted, the toast intent's default icon renders. |
 
 ### Toast.Message
 

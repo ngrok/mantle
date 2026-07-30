@@ -79,7 +79,7 @@ pnpm -w run changeset
 
 ## 7. Verify
 
-Run from the workspace root and ensure all pass:
+Run from the workspace root. All five must pass:
 
 1. `pnpm -w run lint` — 0 errors.
 2. `pnpm -w run fmt:check` — clean.

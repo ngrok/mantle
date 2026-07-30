@@ -28,7 +28,7 @@ type ThemeIconProps = SvgAttributes & { theme: Theme };
 
 /**
  * An icon that adapts to a specific theme.
- * It will render a different icon based on the provided theme:
+ * It renders a different icon for each `theme`:
  * - `system`: DesktopIcon
  * - `light`: SunIcon
  * - `dark`: MoonIcon

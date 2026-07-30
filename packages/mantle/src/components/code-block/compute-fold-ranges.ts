@@ -82,7 +82,7 @@ type ComputeFoldRangesInput = {
 	/** Resolved supported language; controls which strategy runs. */
 	language: SupportedLanguage;
 	/**
-	 * Tokens produced by Shiki for the same code that will be rendered.
+	 * Tokens from Shiki for the same code the block renders.
 	 * Must include scope explanations (i.e. tokenized with
 	 * `includeExplanation: 'scopeName'` or `true`) so string and comment
 	 * regions can be ignored.

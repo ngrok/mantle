@@ -17,8 +17,8 @@ type Props = {
 };
 
 /**
- * A wrapper component that ensures its children only render in the browser,
- * after hydration has completed.
+ * A wrapper component that renders its children in the browser only,
+ * after hydration completes.
  *
  * This is useful for components that rely on browser-only APIs
  * (e.g. `window`, `document`, `localStorage`, media queries) or that
@@ -50,7 +50,7 @@ function BrowserOnly({ children, fallback = null }: Props) {
  * Returns `true` when running in a windowed browser context where both
  * `window` and a real `document` exist. This will be `false` in SSR/Node.
  *
- * Note: Test environments that provide a DOM shim (e.g. JSDOM) will return `true`.
+ * Note: In a test environment with a DOM shim (e.g. JSDOM), this returns `true`.
  *
  * @returns {boolean} `true` if DOM APIs are available; otherwise `false`.
  *

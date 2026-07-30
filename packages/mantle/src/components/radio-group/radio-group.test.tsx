@@ -35,7 +35,7 @@ describe("RadioGroup", () => {
 		expect(basic).toHaveAttribute("aria-errormessage", errors.id);
 		// `aria-describedby` is owned by Headless UI's Radio primitive (it
 		// reserves the attribute for its own Description tracking and strips
-		// caller-provided values), so `Field.Description` / `Field.Errors`
+		// the values a caller passes), so `Field.Description` / `Field.Errors`
 		// IDREFs can't flow onto the radio. `aria-invalid` and
 		// `aria-errormessage` still wire through.
 	});

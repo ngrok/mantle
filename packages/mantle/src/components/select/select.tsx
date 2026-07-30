@@ -148,7 +148,7 @@ const Root = ({
 
 /**
  * A group of related options within a select menu. Similar to an html `<optgroup>` element.
- * Use in conjunction with Select.Label to ensure good accessibility via automatic labelling.
+ * Pair it with `Select.Label`, which gives the group its accessible name.
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectgroup
  *
@@ -185,7 +185,10 @@ const Group = ({ className, ref, ...props }: ComponentProps<typeof SelectPrimiti
 );
 
 /**
- * The part that reflects the selected value. By default the selected item's text will be rendered. if you require more control, you can instead control the select and pass your own children. It should not be styled to ensure correct positioning. An optional placeholder prop is also available for when the select has no value.
+ * The part that reflects the selected value. Renders the selected item's text
+ * by default. For more control, control the select and pass your own children.
+ * Do not style this part — Radix measures it to align the open content over the selected item. Pass `placeholder` for the
+ * text to show when the select has no value.
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectvalue
  *
@@ -348,7 +351,7 @@ const SelectScrollDownButton = ({
 type SelectContentProps = ComponentProps<typeof SelectPrimitive.Content> & {
 	/**
 	 * The width of the content. Defaults to the width of the trigger.
-	 * If set to "content", the content will use the intrinsic content width; it will be the width of the longest/widest item.
+	 * If set to "content", the content takes its intrinsic width — the width of the widest item.
 	 * @default "trigger"
 	 */
 	width?: "trigger" | "content";
@@ -467,7 +470,8 @@ type SelectItemProps = ComponentProps<typeof SelectPrimitive.Item> & {
 
 /**
  * An option within a select menu. Similar to an html `<option>` element.
- * Has a required `value` prop that will be passed to the `onChange` handler of the `Select` component when this item is selected.
+ * Has a required `value` prop. When a user selects this item, `Select.Root`
+ * passes that value to its `onValueChange` handler.
  * Displays the children as the option's text.
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectitem
@@ -681,7 +685,7 @@ const Select = {
 	Content,
 	/**
 	 * A group of related options within a select menu. Similar to an html `<optgroup>` element.
-	 * Use in conjunction with Select.Label to ensure good accessibility via automatic labelling.
+	 * Pair it with `Select.Label`, which gives the group its accessible name.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selectgroup
 	 *
@@ -711,7 +715,8 @@ const Select = {
 	Group,
 	/**
 	 * An option within a select menu. Similar to an html `<option>` element.
-	 * Has a required `value` prop that will be passed to the `onChange` handler of the `Select` component when this item is selected.
+	 * Has a required `value` prop. When a user selects this item, `Select.Root`
+	 * passes that value to its `onValueChange` handler.
 	 * Displays the children as the option's text.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selectitem
@@ -828,7 +833,10 @@ const Select = {
 	 */
 	Trigger,
 	/**
-	 * The part that reflects the selected value. By default the selected item's text will be rendered. if you require more control, you can instead control the select and pass your own children. It should not be styled to ensure correct positioning. An optional placeholder prop is also available for when the select has no value.
+	 * The part that reflects the selected value. Renders the selected item's text
+	 * by default. For more control, control the select and pass your own children.
+	 * Do not style this part — Radix measures it to align the open content over the selected item. Pass `placeholder` for the
+	 * text to show when the select has no value.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selectvalue
 	 *

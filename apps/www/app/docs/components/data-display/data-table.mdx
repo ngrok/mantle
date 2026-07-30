@@ -209,13 +209,13 @@ Follow these invariants for a correctly styled, accessible, and behaving `DataTa
 
 1. **Type columns with `createColumnHelper<TData>()`.** It threads `TData` through `header`, `cell`, and `row.original` so consumers get inference instead of `unknown`.
 2. **Wrap every body cell in `DataTable.Cell`.** A raw `<td>` skips the mantle typography, padding, and sticky-column styling.
-3. **Wrap every header in `DataTable.Header`.** For sortable columns, also wrap its contents in `DataTable.HeaderSortButton` — the icon, cycling behavior, and screen-reader announcements are provided by that button.
+3. **Wrap every header in `DataTable.Header`.** For sortable columns, also wrap its contents in `DataTable.HeaderSortButton` — that button carries the icon, the cycling behavior, and the screen-reader announcements.
 4. **Key rows with `row.id`.** TanStack Table tracks row identity across sort/filter/pagination; using array indexes will re-mount rows incorrectly.
 5. **Always branch on `rows.length > 0` and render `DataTable.EmptyRow`** for the empty case. The empty row spans all columns and preserves the table's frame — returning `null` leaves an empty `<tbody>` and collapses the frame.
 6. **Place an action column last, using `columnHelper.display({ ... })`.** Pair `DataTable.ActionHeader` (in `header`) with `DataTable.ActionCell` (in `cell`) so the pinned column aligns across header and body when scrolling horizontally.
 7. **Pass `onClick` to `DataTable.Row` for row-click behavior.** The row auto-applies `cursor-pointer` when `onClick` is set — do not add it yourself. Override with another `cursor-*` class (for example, `cursor-wait`) via `className` if needed.
 8. **Stop click propagation inside `DataTable.ActionCell` when the row is clickable.** Without it, clicks on dropdown triggers, buttons, and links inside the action cell will bubble and fire the row `onClick`.
-9. **Provide a keyboard-accessible equivalent for row navigation.** A `<tr>` is not focusable and is not announced as interactive to assistive tech. If clicking a row navigates, render a `<Link>` in the primary cell so keyboard and screen-reader users have a reachable equivalent.
+9. **Add a keyboard-accessible equivalent for row navigation.** A `<tr>` is not focusable and is not announced as interactive to assistive tech. If clicking a row navigates, render a `<Link>` in the primary cell so keyboard and screen-reader users have a reachable equivalent.
 10. **Register the row models you use.** `useReactTable` only wires up what you pass in: `getSortedRowModel()` for sorting, `getPaginationRowModel()` for pagination, `getFilteredRowModel()` for filtering. Missing one and the corresponding feature silently no-ops.
 
 ## Anti-patterns
@@ -443,7 +443,7 @@ columnHelper.display({
 
 ### Customizing cells (badges, numeric, truncation)
 
-Cell rendering is just React. Use `Badge` for status pills, `text-right` for numeric columns, and `truncate max-w-*` for long strings.
+Cell rendering is plain React. Use `Badge` for status pills, `text-right` for numeric columns, and `truncate max-w-*` for long strings.
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -792,7 +792,7 @@ The `<tbody>` container for rows of data. Typically wraps a map of `DataTable.Ro
 
 Renders a single body row using the column definitions from the table instance. Does not accept children — cells come from each column's `cell` definition.
 
-When `onClick` is provided, the row automatically receives `cursor-pointer`. Pass a different `cursor-*` class via `className` (for example, `cursor-wait`) to override.
+When `onClick` is set, the row automatically receives `cursor-pointer`. Pass a different `cursor-*` class via `className` (for example, `cursor-wait`) to override.
 
 | Prop              | Type                                               | Default | Description                                                                                                                         |
 | :---------------- | :------------------------------------------------- | :------ | :---------------------------------------------------------------------------------------------------------------------------------- |
@@ -841,7 +841,7 @@ All additional props from [`Button`](/components/actions/button). Unlike `Button
 
 ### DataTable.Cell
 
-A `<td>` for rendering individual data cells. Provides mantle typography, padding, and alignment. Re-exported from [`Table.Cell`](/components/data-display/table#tablecell).
+A `<td>` for rendering individual data cells. Applies mantle typography, padding, and alignment. Re-exported from [`Table.Cell`](/components/data-display/table#tablecell).
 
 | Prop         | Type        | Default | Description                                                                               |
 | :----------- | :---------- | :------ | :---------------------------------------------------------------------------------------- |

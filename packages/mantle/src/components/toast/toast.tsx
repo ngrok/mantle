@@ -84,19 +84,19 @@ const ToastIdContext = createContext<string | number>("");
 type MakeToastOptions = {
 	/**
 	 * Time in milliseconds that should elapse before automatically closing the toast.
-	 * Will default to the `<Toaster />`'s `duration_ms` if not provided.
+	 * Defaults to the `<Toaster />`'s `duration_ms` when omitted.
 	 *
 	 * You can keep the toast open until manually dismissed by passing a value <= 0 or Number.POSITIVE_INFINITY
 	 */
 	duration_ms?: number;
 	/**
-	 * An optional custom ID for this toast. If not given, a unique ID is provided for you.
+	 * An optional custom ID for this toast. When omitted, the sonner library generates one.
 	 */
 	id?: string;
 };
 
 /**
- * Create a toast. Provide a `<Toast.Root>` component as the `children` to be rendered
+ * Create a toast. Pass a `<Toast.Root>` component as the `children` to render
  * inside the `<Toaster />` section.
  *
  * @see https://mantle.ngrok.com/components/feedback/toast#maketoast
@@ -134,7 +134,7 @@ function makeToast(children: ReactNode, options?: MakeToastOptions) {
 		{
 			//
 			duration,
-			// If a custom ID is provided, use it, else use the toastId provided by the sonner library
+			// If a caller passes a custom ID, use it, else use the toastId from the sonner library
 			// don't set an ID to `undefined` as it breaks the sonner library
 			...(options?.id ? { id: options.id } : {}),
 			unstyled: true,
@@ -172,9 +172,9 @@ type ToastProps = ComponentProps<"div"> &
 	};
 
 /**
- * A succinct message with an intent that is displayed temporarily. The intent
+ * A succinct message with an intent that appears temporarily. The intent
  * is the tone or status that the toast's color communicates.
- * Toasts are used to provide feedback to the user without interrupting their workflow.
+ * Toasts give the user feedback without interrupting their workflow.
  *
  * @see https://mantle.ngrok.com/components/feedback/toast#toastroot
  *
@@ -220,7 +220,7 @@ type ToastIconProps = Partial<SvgOnlyProps>;
 
 /**
  * An icon that visually represents the intent of the toast.
- * If you do not provide an icon, the default icon and color for the intent is used.
+ * If you do not pass an icon, the toast uses the default icon and color for the intent.
  *
  * @see https://mantle.ngrok.com/components/feedback/toast#toasticon
  *
@@ -361,8 +361,8 @@ const Message = ({ asChild, className, ref, ...props }: ToastMessageProps) => {
 };
 
 /**
- * A succinct message that is displayed temporarily. Toasts are used to provide
- * feedback to the user without interrupting their workflow.
+ * A succinct message that appears temporarily. Toasts give the user feedback
+ * without interrupting their workflow.
  *
  * @see https://mantle.ngrok.com/components/feedback/toast
  *
@@ -388,7 +388,7 @@ const Message = ({ asChild, className, ref, ...props }: ToastMessageProps) => {
  */
 const Toast = {
 	/**
-	 * A succinct message with an intent that is displayed temporarily.
+	 * A succinct message with an intent that appears temporarily.
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/toast#toastroot
 	 *

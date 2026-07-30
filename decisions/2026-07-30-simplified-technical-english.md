@@ -79,14 +79,18 @@ The rules apply to prose you write or edit. They do not license a repo-wide rewr
 [COMPONENT_SPEC.md → Scope and status](../COMPONENT_SPEC.md#scope-and-status): new work meets the bar, the
 parts you touch meet the bar, and the rest waits until someone opts into the work. An audit reports the gap.
 
-Two exclusions are permanent, not deferred:
+One exclusion is permanent, not deferred:
 
-- **A shipped `decisions/*.md` keeps its wording.** Do not restyle one. All three `comprehensive` hits in
-  the repo live in one 2025 ADR, and rewriting them would edit the repo's decision history. Note that this
-  is new normative content: `COMPONENT_SPEC.md §1.8` owns decision-doc policy today and says nothing about
-  editing a shipped one.
-- **Quoted upstream text keeps its source wording.** `packages/mantle/src/components/input/types.ts:1-12` is verbatim MDN prose with an
-  `@see` citation. An STE pass would fork it from its source and lose the citation's value.
+- **Quoted upstream text keeps its source wording.** `packages/mantle/src/components/input/types.ts:1-12` is
+  verbatim MDN prose with an `@see` citation, and `packages/mantle/src/components/flag/flag.tsx:23` is the
+  same case. An STE pass would fork the text from its source and lose the citation's value.
+
+A shipped `decisions/*.md` is **in scope**, which this record settles because the first draft said the
+opposite. The argument for excluding one was that its wording is part of a dated record. That conflates two
+things: the decision a doc states, which is the record, and the sentences it states it in, which are not.
+Tightening the prose does not rewrite history. Two limits still hold — never change what a shipped doc
+decided, and never restate its dated evidence as a present-tense claim, because a quoted "before" example is
+evidence and must stay verbatim.
 
 ### 4. The banned-word list ships with its carve-outs
 
@@ -159,7 +163,7 @@ Two surfaces take no descriptive cap at all:
   commit rules. A changeset explains a shipped API to a consumer who never sees the diff, so
   `the diff is the changelog` is false there. Note that a changeset is a live file, not a record: fix one
   you wrote.
-- **`decisions/*.md`** — dated records, and 89 semicolon-joined lines.
+- **`decisions/*.md`** — long-form rationale, and 89 semicolon-joined lines. The word bans still reach them.
 
 The commit cap takes a counting rule for the same reason. Ten words after the `type(scope):` prefix flags 8
 of the last 60 merged subjects, so the section states that the prefix and the `(#1234)` squash suffix do not

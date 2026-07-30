@@ -278,7 +278,7 @@ function claimKeyboardShortcut(): { isOwner: () => boolean; release: () => void 
 
 /**
  * The state owner for a sidebar. Renders no DOM of its own (like
- * `Tooltip.Root`) — it provides the expanded/collapsed and mobile-sheet state
+ * `Tooltip.Root`) — it carries the expanded/collapsed and mobile-sheet state
  * to every part below it, so `Sidebar.Trigger` can live anywhere in the tree
  * (for example inside an `AppLayout.Header`) without coupling the app shell
  * to the sidebar.
@@ -2454,7 +2454,7 @@ const SidebarSeparator = ({
  */
 const Sidebar = {
 	/**
-	 * The state owner for a sidebar. Renders no DOM — provides expanded /
+	 * The state owner for a sidebar. Renders no DOM — carries expanded /
 	 * mobile-sheet state to every part below it so the trigger can live in the
 	 * app shell without coupling it to the sidebar.
 	 *

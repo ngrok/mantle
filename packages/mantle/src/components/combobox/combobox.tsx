@@ -12,7 +12,7 @@ import { Slot } from "../slot/index.js";
 type ComboboxProps = Primitive.ComboboxProviderProps;
 
 /**
- * Root component for a combobox. Provides a combobox store that controls the state of Combobox components.
+ * The outermost part of a combobox. It owns the store that every other Combobox part reads and writes.
  *
  * Use Combobox for a list of options where the user types to filter — large static lists,
  * async/server-side data, or any single-select where search is helpful. For very small
@@ -46,7 +46,7 @@ type ComboboxInputProps = Omit<
 	WithValidation;
 
 /**
- * Renders a combobox input element that can be used to filter a list of items.
+ * Renders a combobox input element for filtering a list of items.
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxinput
  *
@@ -211,7 +211,7 @@ type ComboboxGroupProps = Omit<Primitive.ComboboxGroupProps, "render"> & WithAsC
 /**
  * Renders a group for Combobox.Item elements.
  *
- * Optionally, a Combobox.GroupLabel can be rendered as a child to provide a label for the group.
+ * Optionally, render a Combobox.GroupLabel as a child to label the group.
  *
  * You should only reach for this component when it semantically makes sense to group items together, such as when a label is needed.
  *
@@ -303,7 +303,7 @@ type ComboboxItemValueProps = Omit<Primitive.ComboboxItemValueProps<"span">, "re
  * Should only be used as a child of Combobox.Item.
  * The item value is automatically set to the value of the closest Combobox.Item component's value prop.
  * The user input value is automatically set to the combobox store's value state.
- * Both values can be overridden by providing the value and userValue props, respectively.
+ * Passing `value` or `userValue` overrides them, respectively.
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxitemvalue
  *
@@ -377,8 +377,7 @@ const ComboboxSeparatorComponent = ({
 /**
  * Fill in a React input field with autocomplete & autosuggest functionalities.
  * Choose from a list of suggested values with full keyboard support.
- * This component is based on the WAI-ARIA Combobox Pattern and is powered by the
- * ariakit Combobox.
+ * It follows the WAI-ARIA Combobox Pattern and builds on the ariakit Combobox.
  *
  * Use Combobox for a list of options where the user types to filter — large static lists,
  * async/server-side data, or any single-select where search is helpful. For very small
@@ -419,7 +418,7 @@ const ComboboxSeparatorComponent = ({
  */
 const Combobox = {
 	/**
-	 * Root component for a combobox. Provides a combobox store that controls the state of Combobox components.
+	 * The outermost part of a combobox. It owns the store that every other Combobox part reads and writes.
 	 *
 	 * Use Combobox for a list of options where the user types to filter — large static lists,
 	 * async/server-side data, or any single-select where search is helpful. For very small
@@ -505,7 +504,7 @@ const Combobox = {
 	 */
 	GroupLabel,
 	/**
-	 * Renders a combobox input element that can be used to filter a list of items.
+	 * Renders a combobox input element for filtering a list of items.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxinput
 	 *

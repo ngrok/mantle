@@ -13,7 +13,7 @@ describe("agent manifests", () => {
 		expect(manifest.hooks.length).toBeGreaterThan(0);
 		expect(useBreakpoint).toMatchObject({
 			importPath: "@ngrok/mantle/hooks",
-			summary: expect.stringContaining("React hook that returns the current breakpoint"),
+			summary: expect.stringContaining("largest Tailwind breakpoint"),
 		});
 		expect(useComposedRefs?.summary).toContain("composes multiple refs");
 	});
@@ -90,8 +90,8 @@ describe("examplesFromJsDoc", () => {
 		].join("\n");
 
 		const [example] = examplesFromJsDoc(jsdoc);
-		// Without fence tracking, `@Component()` is mistaken for a tag and the
-		// example is truncated to just the opening fence.
+		// Without fence tracking, the parser mistakes `@Component()` for a tag, so
+		// it truncates the example at the opening fence.
 		expect(example).toContain("@Component()");
 		expect(example).toContain("class Widget {}");
 	});

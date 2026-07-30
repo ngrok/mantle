@@ -153,7 +153,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Card.Footer
 
-The footer container of a card. Usually composed as a direct child of `Card.Root`.
+The band below `Card.Body`, with a top border dividing the two. Pass it as a direct child of `Card.Root`.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -163,7 +163,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Card.Header
 
-The header container of a card. Usually composed as a direct child of `Card.Root`.
+The band above `Card.Body` that holds `Card.Title`. Pass it as a direct child of `Card.Root`.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -173,7 +173,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Card.Title
 
-The title of a card. Usually composed as a direct child of `Card.Header`. Renders as an `h3` element by default, but can be changed to any other element by using the `asChild` prop. Prefer using a heading element (`h1-h6`) for accessibility.
+The heading inside `Card.Header`. Renders an `h3` by default — pass `asChild` to fit the surrounding document outline. Keep it a heading element (`h1`-`h6`) for accessibility.
 
 All props from [h1-h6](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
 

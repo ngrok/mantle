@@ -240,8 +240,8 @@ class AlertCenterStore {
 	 * layout-transparent, so the authored children participate in the chrome's
 	 * flex row as if the host weren't there. `Bar`/`Content` physically adopt
 	 * the host into their chrome (see {@link adoptHost}); an unplaced host
-	 * simply stays detached — its children stay mounted (and stateful) in
-	 * React while contributing nothing to the document.
+	 * stays detached — its children stay mounted (and stateful) in React
+	 * while contributing nothing to the document.
 	 */
 	getHost(id: string): HTMLElement {
 		const existing = this.#hostById.get(id);
@@ -342,7 +342,7 @@ class AlertCenterStore {
 	 * once it is back in the document, so a re-rank never leaves a keyboard user
 	 * on `<body>`, and clears the request once it does. A host that lands nowhere
 	 * visible (no `AlertCenter.Content` composed) never becomes reachable, so the
-	 * request simply idles until the next move replaces it.
+	 * request idles until the next move replaces it.
 	 */
 	flushFocusRestore(): void {
 		const element = this.#pendingFocusRestore;
@@ -671,7 +671,7 @@ type AlertCenterItemProps = {
 	/**
 	 * The banner content: compose `Alert.Icon`, `Alert.Content`, `Alert.Title`,
 	 * `Alert.Description`, and `AlertCenter.DismissIconButton`. Do NOT include
-	 * `Alert.Root` — the center provides the chrome (with this item's `intent`)
+	 * `Alert.Root` — the center renders the chrome (with this item's `intent`)
 	 * at whichever placement the item ranks into.
 	 */
 	children: ReactNode;
@@ -682,7 +682,7 @@ type AlertCenterItemProps = {
  * with the center and renders its children through a portal into a stable
  * per-id host element that `AlertCenter.Bar` / `AlertCenter.Content`
  * physically adopt into their chrome. Mount it to show the alert, unmount it
- * to remove it — dismissal is just your state flipping the condition off.
+ * to remove it — dismissal is your state flipping the condition off.
  *
  * Because the children stay in YOUR React tree (only their DOM lands in the
  * chrome), context providers and error boundaries around the item work, and
@@ -1167,7 +1167,7 @@ const dismissClearsExpandControl =
 // the `transitionend` that completes the exit) around an `Alert.Root` banner —
 // so there is no single default element a Slot swap could coherently replace:
 // swapping the outer element breaks the exit animation, swapping the inner one
-// discards the Alert chrome the part exists to provide. It also takes
+// discards the Alert chrome the part exists to render. It also takes
 // `children?: never` — the banner content is the top item's projected children,
 // so a consumer has nothing to compose in. The element they actually want to
 // reach is each alert's `Alert` chrome, whose parts they already author as that

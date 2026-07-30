@@ -6,13 +6,11 @@ import { Slot } from "../slot/index.js";
 
 type BaseProps = {
 	/**
-	 * Only call `event.preventDefault()` in the `onClick` handler if the user
-	 * has not set `allowClickEventDefault` to `true`. This allows the user to
-	 * control whether or not the default behavior of the click event should be
-	 * allowed.
+	 * Whether the click keeps its default behavior. When `false`, the `onClick`
+	 * handler calls `event.preventDefault()`; propagation stops either way.
 	 *
-	 * This is useful for links or buttons that should navigate or perform some
-	 * action on click.
+	 * Set it to `true` for links or buttons that must navigate or run an action
+	 * on click.
 	 *
 	 * @default false
 	 */
@@ -45,19 +43,14 @@ const sandboxedOnClickProps = ({ allowClickEventDefault = false, onClick }: Even
 		role: "presentation",
 		onClick: (event) => {
 			/**
-			 * we _always_ want to stop propagation to prevent the event from bubbling
-			 * out of the sandboxed container
+			 * _Always_ stop propagation, so the click cannot bubble out of the
+			 * sandboxed container.
 			 */
 			event.stopPropagation();
 
 			/**
-			 * Only call `event.preventDefault()` if the user has not set
-			 * `allowClickEventDefault` to true. This allows the user to control
-			 * whether or not the default behavior of the click event should be
-			 * allowed.
-			 *
-			 * This is useful for links or buttons that should navigate or perform
-			 * some action on click.
+			 * `allowClickEventDefault` lets a link or button inside the sandbox keep
+			 * its own navigation or action on click.
 			 */
 			if (!allowClickEventDefault) {
 				event.preventDefault();

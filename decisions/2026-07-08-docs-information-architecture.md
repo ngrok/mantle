@@ -9,8 +9,8 @@
 
 ## Decision Drivers
 
-- The docs sidebar had grown to a single, flat, ~60-item alphabetical "Components" list — hard to scan for humans, and giving agents no signal about what a component _is_.
-- Layout primitives (app shells, centered flows — see the layout-primitives audit) are approaching graduation into mantle. They are different in kind from components: per-app singletons documented by adoption contracts (slot anatomy, landmark rules, z-index conventions), not just prop tables.
+- The docs sidebar grew to a single, flat, ~60-item alphabetical "Components" list — hard to scan for humans, and giving agents no signal about what a component _is_.
+- Layout primitives (app shells, centered flows — see the layout-primitives audit) are close to graduation into mantle. They are different in kind from components: per-app singletons documented by adoption contracts (slot anatomy, landmark rules, z-index conventions), not just prop tables.
 - "Blocks" undersold what that section actually holds: compositional how-tos that wire multiple primitives together with state, data, or routing — behavior that transcends any single component _or_ layout.
 - The agent surface (`llms.txt`, `/api/components.json`, `.md` twins) should canonicalize the same taxonomy humans see, so both audiences navigate the library the same way.
 

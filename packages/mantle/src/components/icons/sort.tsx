@@ -32,8 +32,9 @@ type Props = SvgAttributes &
 	);
 
 /**
- * A sorting icon that can be used to indicate the sorting direction of a table column or list.
- * It is aware of the sorting mode (alphanumeric or time) and the sorting direction (ascending or descending).
+ * A sorting icon that indicates the sorting direction of a table column or list.
+ * The `mode` (alphanumeric or time) and the `direction` (ascending or descending)
+ * together pick the glyph.
  *
  * @see https://mantle.ngrok.com/components/data-display/icons
  *

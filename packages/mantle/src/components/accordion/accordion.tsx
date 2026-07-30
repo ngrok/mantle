@@ -152,7 +152,7 @@ type AccordionRootProps = (AccordionSingleProps | AccordionMultipleProps) &
 
 /**
  * A vertically stacked set of disclosure sections. The root owns the open/closed
- * state and provides it to its items.
+ * state and passes it to its items.
  *
  * Built without a UI framework's collapsible: each section's collapsed content
  * stays in the DOM with `hidden="until-found"`, so the browser's find-in-page
@@ -166,10 +166,10 @@ type AccordionRootProps = (AccordionSingleProps | AccordionMultipleProps) &
  * the classic accordion where opening a section auto-closes the previously open
  * one.
  *
- * Items are separated by a hairline divider drawn with `divide-y` on the root,
- * colored with the shared `separator` token so it matches `Separator` and every
- * other divider in the system. Disable the dividers with `divide-y-0` on the root
- * (e.g. pair it with `space-y-*` for a spaced-card layout).
+ * `divide-y` on the root draws a hairline divider between items. The shared
+ * `separator` token colors it, so it matches `Separator` and every other divider
+ * in the system. Disable the dividers with `divide-y-0` on the root (e.g. pair it
+ * with `space-y-*` for a spaced-card layout).
  *
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordionroot
  *
@@ -259,7 +259,7 @@ const Root = (props: AccordionRootProps) => {
  * same accessibility role the browser gives a native `<details>`. Derives its
  * open state from {@link Root}.
  *
- * Because the item is just a `<div>`, its header can be any layout — e.g. a flex
+ * Because the item is a plain `<div>`, its header can be any layout — e.g. a flex
  * row with the {@link Trigger} alongside a separate, non-toggling action button.
  *
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordionitem
@@ -318,7 +318,7 @@ const Item = ({
 
 /**
  * The interactive header that toggles its section, rendered as a `<button>` with
- * `aria-expanded` — the disclosure semantics a native `<summary>` provides, but
+ * `aria-expanded` — the disclosure semantics a native `<summary>` carries, but
  * via a real button so the role is consistent across browsers (native summary's
  * role varies). Place the {@link TriggerIcon} as the last child so the default
  * `justify-between` layout pushes it to the trailing edge.

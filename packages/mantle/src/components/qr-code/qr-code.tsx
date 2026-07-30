@@ -317,8 +317,8 @@ const Overlay = ({ asChild, className, ref, ...props }: QrCodeOverlayProps) => {
 /**
  * A QR code. Compose `QrCode.Root` with a `QrCode.Frame` wrapping a
  * `QrCode.Pattern`, and optionally a `QrCode.Overlay` for a centered logo.
- * Encoding is handled by the dependency-free `uqr` library; the render logic is
- * owned by mantle (no headless runtime).
+ * The dependency-free `uqr` library encodes `value`; mantle owns the render
+ * logic (no headless runtime).
  *
  * `Root` and `Overlay` support the `asChild` prop for polymorphic composition.
  * `Frame` and `Pattern` render fixed SVG elements and do not.

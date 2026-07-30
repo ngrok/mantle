@@ -52,7 +52,7 @@ describe("readCookie", () => {
 	});
 
 	test("returns an empty string for a present-but-empty cookie", () => {
-		// Distinct from `undefined`: the cookie exists, it just holds nothing.
+		// Distinct from `undefined`: the cookie exists and holds nothing.
 		expect(readCookie("mantle-theme=", "mantle-theme")).toBe("");
 	});
 

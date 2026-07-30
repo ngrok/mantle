@@ -336,9 +336,8 @@ const OtpInputSlotImpl = ({ className, index, ref, ...props }: OtpInputSlotProps
 				// vertical divider (gray `border-r`) meeting the
 				// accent top/bottom borders at the corner, producing a
 				// visible 1px miter spike. Coloring all borders the
-				// same accent-600 hue makes the corner blend
-				// seamlessly while still keeping the slot grid
-				// readable at full opacity.
+				// same accent-600 hue removes the spike while still
+				// keeping the slot grid readable at full opacity.
 				"group-data-[otp-state=all]/otp:border-accent-600",
 				// Validation overrides. Only the *outer* edges of the
 				// group are tinted (top + bottom on every slot, left on
@@ -374,11 +373,11 @@ const OtpInputSlotImpl = ({ className, index, ref, ...props }: OtpInputSlotProps
 type OtpInputSeparatorProps = ComponentProps<"div"> &
 	WithAsChild & {
 		/**
-		 * If `true`, the separator will be rendered with `role="separator"` so
-		 * assistive tech announces it as a divider between OTP groups.
+		 * If `true`, the separator renders with `role="separator"` so assistive
+		 * tech announces it as a divider between OTP groups.
 		 * If `false`, the separator is purely decorative and is removed from
 		 * the accessibility tree — preferred inside an OTP control where the
-		 * minus icon is just visual chrome between slot groups.
+		 * minus icon is visual chrome between slot groups.
 		 *
 		 * @default false
 		 */

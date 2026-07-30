@@ -20,7 +20,7 @@
 
 ### Developer Experience vs. Tree Shaking
 
-This migration trades off some "tree shakeability" in the academic sense only. In reality, if you are importing something like `Dialog`, chances are you are using most, if not all of the sub-composite components as well.
+This migration trades off some "tree shakeability" in the academic sense only. In reality, if you import something like `Dialog`, chances are you use most, if not all of the sub-composite components as well.
 
 **🔑 Key Thought**: The potential bytes saved of individual component exports are so minimal relative to the benefits to developer experience of compound component exports.
 
@@ -28,7 +28,7 @@ We still get tree shaking between mantle component boundaries, but we "lose" iso
 
 ### What is Tree Shaking?
 
-**Tree shaking** is a non-standard optimization technique that allows a bundler (like `vite` or `webpack`) to remove unused code from your compiled JS bundle output to minimize what you need to ship to the browser.
+**Tree shaking** is a non-standard optimization technique that allows a bundler (like `vite` or `webpack`) to remove unused code from your compiled JS bundle to minimize what you need to ship to the browser.
 
 ## Overview
 
@@ -36,15 +36,15 @@ This document outlines the complete migration plan for converting Mantle compoun
 
 ### What is a Compound Component?
 
-A **compound component** is a design pattern where a single logical component is composed of multiple sub-components that are composed together to create a cohesive user interface. Examples include:
+A **compound component** is a design pattern where a single logical component consists of multiple sub-components that compose together to create a cohesive user interface. Examples include:
 
 - `Dialog` with `Dialog.Root`, `Dialog.Content`, `Dialog.Header`, `Dialog.Title`, etc.
 - `Table` with `Table.Root`, `Table.Header`, `Table.Body`, `Table.Row`, `Table.Cell`, etc.
 - `DropdownMenu` with `DropdownMenu.Root`, `DropdownMenu.Trigger`, `DropdownMenu.Content`, `DropdownMenu.Item`, etc.
 
-These components are designed to be used together and share state or context through React patterns like Context API or compound component composition.
+These components work together and share state or context through React patterns like Context API or compound component composition.
 
-The goal is to improve developer experience by allowing usage like `<Dialog.Root>` so that all sub-components of the Dialog are discoverable (with IntelliSense and examples!) directly off of the imported component! This is in contrast to how it currently works with importing many individual components (e.g. `Dialog`, `DialogContent`, `DialogBody`, etc.) which aren't very discoverable! You are forced to know how to compose and what the sub-components are called before you use them: not very developer friendly!
+The goal is to improve developer experience by allowing usage like `<Dialog.Root>` so that all sub-components of the Dialog are discoverable (with IntelliSense and examples!) directly off of the imported component! This is in contrast to how it currently works with importing many individual components (e.g. `Dialog`, `DialogContent`, `DialogBody`, etc.) which aren't very discoverable! That pattern forces you to know how to compose and what the sub-components are called before you use them: not very developer friendly!
 
 ## Background
 
@@ -129,9 +129,9 @@ We will migrate 17 Mantle components to use a simple POJO namespace pattern wher
 
 ### Excluded Components (DO NOT MIGRATE)
 
-- **`button`** - Imported by many components, would break tree-shaking
+- **`button`** - Many components import it; migration would break tree-shaking
 - **`icon-button`** - Part of button package
-- **`dialog/primitive`** - Used by `sheet` and `alert-dialog` as primitives
+- **`dialog/primitive`** - `sheet` and `alert-dialog` use it as a primitive
 - **`icon`** - Widely used utility component, would break tree-shaking
 - **`separator`** - Simple utility component, migration not needed
 - **`input`** - Complex component with multiple patterns, defer migration
@@ -331,7 +331,7 @@ These components have both namespace objects AND named exports:
 
 ### Using Enhanced POJO Pattern with Inline JSDoc
 
-The migration uses a Plain Old JavaScript Object pattern with **inline JSDoc documentation** for each property to ensure proper IntelliSense support in IDEs. This addresses the issue where JSDoc comments on individual components don't carry over to the namespace object properties.
+The migration uses a Plain Old JavaScript Object pattern with **inline JSDoc documentation** for each property, which is what IDEs read for IntelliSense. This addresses the issue where JSDoc comments on individual components don't carry over to the namespace object properties.
 
 #### Enhanced Pattern Example:
 
@@ -388,7 +388,7 @@ const Dialog = {
 
 ### Why Enhanced Documentation is Required
 
-Without inline JSDoc comments, developers lose the helpful documentation, examples, and links when using the namespace pattern. This enhanced approach ensures:
+Without inline JSDoc comments, developers lose the helpful documentation, examples, and links when using the namespace pattern. This enhanced approach makes sure that:
 
 1. **Full JSDoc documentation** appears in IDE tooltips
 2. **Usage examples** are available for each sub-component
@@ -404,7 +404,7 @@ Certain components serve as providers or have different architectural roles and 
 - **`Toaster`** - Global toast container, separate from individual toast instances
 - **Utility functions** - Like `makeToast`, these remain as named exports
 
-These components are excluded from the namespace pattern because they serve foundational/provider roles rather than being part of the compound component structure.
+The migration excludes these components from the namespace pattern because they serve foundational/provider roles rather than forming part of the compound component structure.
 
 ### Migration Pattern
 
@@ -470,7 +470,7 @@ const Dialog = {
 } as const;
 ````
 
-**Important**: Each property in the namespace object must include comprehensive JSDoc documentation to preserve the developer experience from individual exports.
+**Important**: Each property in the namespace object must include full JSDoc documentation to preserve the developer experience from individual exports.
 
 #### Step 4: Update Exports
 
@@ -892,7 +892,7 @@ You can use Playwright or similar tools to test against the live dev server at h
 - [ ] Display names are preserved
 - [ ] TypeScript types are correct
 - [ ] JSDoc documentation appears in IDE tooltips for namespace properties
-- [ ] IntelliSense provides proper autocomplete with documentation
+- [ ] IntelliSense shows autocomplete with documentation
 
 ### Integration Tests
 
@@ -950,12 +950,12 @@ You can use Playwright or similar tools to test against the live dev server at h
 #### TypeScript Errors
 
 **Problem**: TypeScript can't find component properties
-**Solution**: Check that the POJO namespace object is properly typed with `as const`
+**Solution**: Check that the POJO namespace object uses `as const`
 
 #### Component Not Rendering
 
 **Problem**: Component returns blank/error
-**Solution**: Verify that `Root` component is properly defined and included in the POJO namespace object
+**Solution**: Verify that the file defines `Root` and includes it in the POJO namespace object
 
 #### Tree-Shaking Issues
 
@@ -965,16 +965,16 @@ You can use Playwright or similar tools to test against the live dev server at h
 #### Hot Reload Not Working
 
 **Problem**: Changes don't reflect during development
-**Solution**: Verify `displayName` is set correctly on the namespace object
+**Solution**: Verify the namespace object sets `displayName` correctly
 
 #### Cross-Component Imports Broken
 
 **Problem**: Other components can't import sub-components
-**Solution**: Check if component should be excluded from migration (like button, icon-button)
+**Solution**: Check whether the migration should exclude the component (like button, icon-button)
 
 ### Rollback Plan
 
-If issues arise, components can be quickly rolled back:
+If issues arise, you can quickly roll a component back:
 
 1. Restore original exports in the component file
 2. Restore individual component names
@@ -1043,8 +1043,8 @@ If issues arise, components can be quickly rolled back:
 
 - **Take your time** - This is a large migration, accuracy is more important than speed
 - **Test everything** - Run all validation commands after each change
-- **Follow the enhanced pattern** - Use the inline JSDoc examples provided, don't deviate
-- **Document all properties** - Every property in the namespace object needs comprehensive JSDoc
+- **Follow the enhanced pattern** - Use the inline JSDoc examples in this document, don't deviate
+- **Document all properties** - Every property in the namespace object needs full JSDoc
 - **Test IntelliSense** - Verify that JSDoc documentation appears in IDE tooltips
 - **Copy existing JSDoc** - Use the original component JSDoc as a starting point for inline docs
 - **Document changes** - Keep notes of any issues or deviations
@@ -1073,7 +1073,7 @@ If issues arise, components can be quickly rolled back:
 
 ### Neutral
 
-- Documentation requires comprehensive updates
+- Documentation requires updates
 - WWW site examples need migration
 - Bundle size impact should be minimal due to tree-shaking
 - React DevTools component names preserved via displayName

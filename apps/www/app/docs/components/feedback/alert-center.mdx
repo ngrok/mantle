@@ -29,7 +29,7 @@ composition slot for app-wide messaging. Alerts are **authored as JSX**: each `A
 the normal [`Alert`](/components/feedback/alert) banner parts as children and registers its coordination
 facts (`id`, `intent`) with the center, which derives the count, the top alert, and the
 severity ranking from the registrations. Mount an item to show its alert; unmount it to dismiss — dismissal
-is just your state flipping a condition off. The demo runs in its own framed document — choose the
+is your state flipping a condition off. The demo runs in its own framed document — choose the
 count-and-caret control to expand or collapse the full-width banners, or dismiss alerts (including the top
 one) to watch the next-highest severity promote into the bar.
 
@@ -150,7 +150,7 @@ there is nothing to swap: `Root` is the state owner, and an `Item` registers its
 children (see [Projection](#projection)). `AlertCenter.Bar` and `AlertCenter.Content` each render a fixed
 structure with no single default element a swap could coherently replace — the bar is a presence wrapper that
 owns the exit animation around an `Alert.Root` banner (swap the wrapper and the animation breaks; swap the
-banner and the chrome the part exists to provide is gone), and the expansion is a focus-within container that
+banner and the chrome the part exists to render is gone), and the expansion is a focus-within container that
 owns the collapse animation around the `<ul>` of rows. Both also take `children?: never`, since the content is
 the registered items' projected children. The element a consumer actually wants to reach is each alert's
 banner chrome, an `Alert.Root` whose parts you already author as that item's children.
@@ -187,7 +187,7 @@ Author one `AlertCenter.Item` per alert, composing the `Alert` banner parts as i
 owns dismissal (including any persistence, e.g. `sessionStorage`): compose an
 `AlertCenter.DismissIconButton` whose `onClick` unmounts the item — dismissing the top alert promotes the
 next-highest severity into the bar. An item authored without one (say, a hard-stop billing failure the user
-must resolve) is simply not dismissable — see [Dismissability](#dismissability) for choosing which alerts
+must resolve) is not dismissable — see [Dismissability](#dismissability) for choosing which alerts
 offer it.
 
 <Example>
@@ -518,7 +518,7 @@ which is what makes the projection behave like ordinary composition:
   remounted — so component state in your alert content survives promotions and demotions. In engines with
   `Element.moveBefore` even focus and CSS transitions survive the move; elsewhere the center's focus
   redirects re-establish keyboard position.
-- **Don't compose `Alert.Root` in children.** The center provides the banner chrome — with the item's
+- **Don't compose `Alert.Root` in children.** The center renders the banner chrome — with the item's
   `intent` — at whichever placement the item ranks into. Children are the banner's _content_: `Alert.Icon`,
   `Alert.Content`, `Alert.Title`, `Alert.Description`, `AlertCenter.DismissIconButton`.
 - **Ids identify the projection, so they must be unique.** Both placements adopt the one stable host an id
@@ -532,7 +532,7 @@ The chrome around your children is also a styling hook. It carries `data-placeme
 and shows it only in a row — and `in-data-[placement=list]:hidden` does the reverse.
 
 A mounted item's children always render (React-wise), even while they rank nowhere visible — e.g. below
-the bar with no expansion composed, where the host simply stays detached from the document. Because items
+the bar with no expansion composed, where the host stays detached from the document. Because items
 register from effects, avoid authoring them inside `Suspense` boundaries that can hide them (hiding
 unregisters the alert and the bar animates out), and server-rendered HTML contains no bar — it enters with
 its height animation after hydration, the same entrance every arriving alert gets by design.

@@ -224,9 +224,9 @@ function Example() {
 
 ## Child Elements
 
-You can compose additional visual or functional elements within the `Input` using `children`. The examples below show you how to render start and end icons or buttons. The [Password Input](/components/forms/password-input) is built using this API under the hood! Keep in mind that you will need to manually pass the `InputCapture` component as children too because it is responsible for rendering the actual form `input` element! We provide an `InputCapture` component for you when you don't use the `children` API.
+You can compose additional visual or functional elements within the `Input` using `children`. The examples below show you how to render start and end icons or buttons. The [Password Input](/components/forms/password-input) is built using this API under the hood! Keep in mind that you must also pass the `InputCapture` component as children, because it renders the actual form `input` element! When you do not use the `children` API, `Input` renders an `InputCapture` for you.
 
-Note: when composing with interactive content (e.g. a `button`), you will need to consider whether or not that element should be tab-indexable or receive focus!
+Note: when composing with interactive content (e.g. a `button`), you will need to consider whether that element should be tab-indexable or receive focus!
 
 <Example className="grid grid-cols-2 place-items-center gap-6">
 	<Field.Item className="max-w-80" name="search-start">

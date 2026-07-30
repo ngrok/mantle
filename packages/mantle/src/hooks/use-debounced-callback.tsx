@@ -13,7 +13,7 @@ type Options = {
 };
 
 /**
- * Returns a debounced version of the provided callback. Each call resets a
+ * Returns a debounced version of `callbackFn`. Each call resets a
  * timer; the underlying callback only runs after `options.waitMs` of
  * inactivity has elapsed.
  *

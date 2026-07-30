@@ -352,7 +352,7 @@ const niceDomain = (domain: readonly [number, number], count: number): [number, 
 	// domain and repeat until the step stops changing. A single pass can leave
 	// bounds that don't land on tick values, because widening the domain can
 	// select a coarser step than the one the raw domain implied. Iterations are
-	// bounded — d3 relies on convergence within a couple of passes; the cap just
+	// bounded — d3 relies on convergence within a couple of passes; the cap only
 	// guards a pathological step that never settles.
 	let start = domain[0];
 	let stop = domain[1];

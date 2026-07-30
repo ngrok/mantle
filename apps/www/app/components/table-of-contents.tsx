@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import type { TocEntry } from "~/utilities/docs";
 
-// Matches the `scroll-mt-24` (6rem = 96px) on `HashLinkHeading`. Aligning the
-// trigger with where headings land after a hash-link click ensures the clicked
+// Matches the `scroll-mt-24` (6rem = 96px) on `HashLinkHeading`. The trigger
+// aligns with where headings land after a hash-link click, so the clicked
 // entry — not its predecessor — is the one marked active.
 const HEADER_OFFSET = 96;
 const EASE_START = 0.75;
@@ -151,7 +151,7 @@ export function TableOfContents({ entries }: { entries: Array<TocEntry> }) {
 									// paints over ancestor) and extends 2px rightward into the content
 									// area. We can't extend leftward — the scroll container's `overflow-y-auto`
 									// implicitly clips horizontal overflow, so any negative-margin
-									// extension just gets cut off. Padding compensates so content text
+									// extension gets cut off. Padding compensates so content text
 									// position stays the same as the previous 1px-bar layout.
 									"relative -ml-px block border-l-[3px] py-1 text-xs leading-snug transition-colors",
 									// Focus ring is a pseudo-element offset past the 3px bar so the

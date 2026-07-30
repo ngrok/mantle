@@ -348,7 +348,7 @@ import { Select } from "@ngrok/mantle/select";
 
 ### Custom selected value
 
-By default the selected item's text will be rendered when selected. Sometimes you may need to render something different. You can control the select and pass `children` instead.
+By default the selected item's text renders in the trigger. Sometimes you may need to render something different. You can control the select and pass `children` instead.
 
 <Example>
 	<CustomSelectedValueDemo />
@@ -438,7 +438,7 @@ All props from Radix [Select.Trigger](https://www.radix-ui.com/primitives/docs/c
 
 ### Select.Value
 
-The part that reflects the selected value. By default the selected item's text will be rendered. If you require more control, you can instead control the `Select` and pass your own children. It should not be styled to ensure correct positioning. An optional placeholder prop is also available for when the `Select` has no value.
+The part that reflects the selected value. Renders the selected item's text by default. For more control, control the select and pass your own children. Do not style this part — Radix measures it to align the open content over the selected item. Pass `placeholder` for the text to show when the select has no value.
 
 Radix [Select.Value](https://www.radix-ui.com/primitives/docs/components/select#value) props.
 
@@ -450,13 +450,13 @@ Renders at Tailwind `z-50`, Mantle's shared floating z-index.
 
 All props from Radix [Select.Content](https://www.radix-ui.com/primitives/docs/components/select#content), plus:
 
-| Prop     | Type                     | Default     | Description                                                                                                                                                                                  |
-| -------- | ------------------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `width?` | `"trigger" \| "content"` | `"trigger"` | `trigger` will ensure the content is the same width as the trigger button. `content` will make it the intrinsic size of the content itself; it will be the width of the longest/widest item. |
+| Prop     | Type                     | Default     | Description                                                                                                                                                                     |
+| -------- | ------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `width?` | `"trigger" \| "content"` | `"trigger"` | `trigger` makes the content the same width as the trigger button. `content` makes it the intrinsic size of the content itself; it will be the width of the longest/widest item. |
 
 ### Select.Group
 
-A group of related options within a select menu. Similar to an html `optgroup` element. Use in conjunction with `Select.Label` to ensure good accessibility via automatic labelling.
+A group of related options within a select menu. Similar to an html `optgroup` element. Pair it with `Select.Label`, which gives the group its accessible name.
 
 Radix [Select.Group](https://www.radix-ui.com/primitives/docs/components/select#group) props.
 
@@ -466,12 +466,12 @@ Used to visually separate items in the select. Composed from [Mantle Separator](
 
 ### Select.Item
 
-An option within a select menu. Similar to an html `option` element. Has a required `value` prop that will be passed to the `onValueChange` handler of the `Select` component when this item is selected. Displays the children as the option's text.
+An option within a select menu. Similar to an html `option` element. Has a required `value` prop. When a user selects this item, `Select.Root` passes that value to its `onValueChange` handler. Displays the children as the option's text.
 
 Radix [Select.Item](https://www.radix-ui.com/primitives/docs/components/select#item) props.
 
 ### Select.Label
 
-Used to render the label of a group. It won't be focusable using arrow keys. Use in conjunction with `Select.Group` to ensure good accessibility via automatic labelling of a group.
+Used to render the label of a group. It won't be focusable using arrow keys. Pair it with `Select.Group` — the label gives the group its accessible name.
 
 Radix [Select.Label](https://www.radix-ui.com/primitives/docs/components/select#label) props.

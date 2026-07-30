@@ -1,7 +1,7 @@
 import type { InlineIconProps } from "./types.js";
 
 /**
- * An inline svg icon that renders the ngrok wordmark logo. Fill color is determined by the `color` CSS property.
+ * An inline svg icon that renders the ngrok wordmark logo. The `color` CSS property sets the fill.
  *
  * @see https://mantle.ngrok.com/components/data-display/icons
  *
@@ -19,7 +19,7 @@ function NgrokWordmarkIcon(props: Omit<InlineIconProps, "color">) {
 }
 
 /**
- * An inline svg icon that renders the ngrok lettermark "n" logo. Fill color is determined by the `color` CSS property.
+ * An inline svg icon that renders the ngrok lettermark "n" logo. The `color` CSS property sets the fill.
  *
  * @see https://mantle.ngrok.com/components/data-display/icons
  *

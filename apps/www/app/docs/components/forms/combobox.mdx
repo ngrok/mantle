@@ -70,7 +70,7 @@ window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
 
 # Combobox
 
-Fill in a React input field with autocomplete & autosuggest functionalities. Choose from a list of suggested values with full keyboard support. This component is based on the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) and is powered by the [ariakit Combobox](https://ariakit.org/components/combobox).
+Fill in a React input field with autocomplete & autosuggest functionalities. Choose from a list of suggested values with full keyboard support. `Combobox` follows the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) and builds on the [ariakit Combobox](https://ariakit.org/components/combobox).
 
 ## When to use
 
@@ -364,7 +364,7 @@ The `Combobox` components are built on top of [ariakit Combobox](https://ariakit
 
 ### Combobox.Root
 
-Root component for a combobox. Provides a combobox store that controls the state of Combobox components.
+The outermost part of a combobox. It owns the store that every other Combobox part reads and writes.
 
 Its floating `Combobox.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
 
@@ -372,7 +372,7 @@ All props from ariakit [ComboboxProvider](https://ariakit.org/reference/combobox
 
 ### Combobox.Input
 
-Renders a combobox input element that can be used to filter a list of items.
+Renders a combobox input element for filtering a list of items.
 
 All props from ariakit [Combobox](https://ariakit.org/reference/combobox), plus:
 
@@ -419,7 +419,7 @@ All props from ariakit [ComboboxItemValue](https://ariakit.org/reference/combobo
 
 ### Combobox.Group
 
-Renders a group for `Combobox.Item` elements. Optionally, a `Combobox.GroupLabel` can be rendered as a child to provide a label for the group.
+Renders a group for `Combobox.Item` elements. Optionally, compose a `Combobox.GroupLabel` as a child to label the group.
 
 All props from ariakit [ComboboxGroup](https://ariakit.org/reference/combobox-group), plus:
 

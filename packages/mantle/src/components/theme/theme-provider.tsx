@@ -17,38 +17,33 @@ import {
 } from "./themes.js";
 
 /**
- * prefersDarkModeMediaQuery is the media query used to detect if the user prefers dark mode.
+ * The media query for the OS dark-mode preference.
  */
 const prefersDarkModeMediaQuery = "(prefers-color-scheme: dark)";
 
 /**
- * prefersHighContrastMediaQuery is the media query used to detect if the user prefers high contrast mode.
+ * The media query for the OS high-contrast preference.
  */
 const prefersHighContrastMediaQuery = "(prefers-contrast: more)";
 
 /**
- * THEME_STORAGE_KEY is the key used to store the theme in cookies.
+ * The cookie name the theme persists under.
  */
 const THEME_STORAGE_KEY = "mantle-ui-theme";
 
 /**
- * DEFAULT_THEME is the initial theme to apply if no value is found in storage.
+ * The theme to apply when storage holds no value.
  * {@link themes}
  */
 const DEFAULT_THEME = "system" satisfies Theme;
 
-/**
- * ThemeProviderState is the shape of the state returned by the ThemeProviderContext.
- */
 type ThemeProviderState = [theme: Theme, setTheme: (theme: Theme) => void];
 
-/**
- * Initial state for the ThemeProviderContext.
- */
 const initialState: ThemeProviderState = ["system", () => null];
 
 /**
- * ThemeProviderContext is a React Context that provides the current theme and a function to set the theme.
+ * The `[theme, setTheme]` tuple {@link ThemeProvider} provides. Read it with
+ * {@link useTheme}.
  */
 const ThemeProviderContext = createContext<ThemeProviderState | null>(initialState);
 
@@ -68,7 +63,8 @@ type ThemeProviderProps = PropsWithChildren<{
 }>;
 
 /**
- * ThemeProvider is a React Context Provider that provides the current theme and a function to set the theme.
+ * Tracks the theme preference and applies the resolved class to `<html>`. Stays
+ * in sync with the OS media queries and with the other open tabs.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme#themeprovider
  *
@@ -88,7 +84,7 @@ type ThemeProviderProps = PropsWithChildren<{
  * ```
  */
 function ThemeProvider({ children, forceTheme }: ThemeProviderProps) {
-	// Init once from cookie and apply immediately to avoid flashes
+	// Why apply during init: the resolved class must be on `<html>` before first paint.
 	const [theme, setTheme] = useState<Theme>(() => {
 		const storedTheme = getStoredTheme({
 			cookie: canUseDOM() ? document.cookie : null,
@@ -106,10 +102,10 @@ function ThemeProvider({ children, forceTheme }: ThemeProviderProps) {
 			applyThemeToHtml(newTheme, { forceTheme });
 		}
 
-		// initial sync in case defaultTheme or storageKey changed
+		// Re-sync on mount: the cookie can change between the first render and this effect.
 		syncThemeFromCookie();
 
-		// add cross-tab listeners (prefer broadcast channel, use localStorage as fallback)
+		// Why the `localStorage` ping fallback: Safari before 15.4 ships no `BroadcastChannel`.
 		try {
 			if ("BroadcastChannel" in window) {
 				broadcastChannelRef.current = new BroadcastChannel(THEME_STORAGE_KEY);
@@ -131,7 +127,6 @@ function ThemeProvider({ children, forceTheme }: ThemeProviderProps) {
 		}
 		window.addEventListener("storage", onStorage);
 
-		// add media query listeners for system theme changes
 		const prefersDarkMql = window.matchMedia(prefersDarkModeMediaQuery);
 		const prefersHighContrastMql = window.matchMedia(prefersHighContrastMediaQuery);
 
@@ -151,10 +146,8 @@ function ThemeProvider({ children, forceTheme }: ThemeProviderProps) {
 		// pageshow fires on bfcache restore (event.persisted === true) and some restore-from-freeze cases.
 		window.addEventListener("pageshow", onChange);
 
-		// visibilitychange to handle coming back to a tab
 		document.addEventListener("visibilitychange", onVisibilityChange);
 
-		// don't forget to clean up your slop!
 		return () => {
 			window.removeEventListener("storage", onStorage);
 			prefersDarkMql.removeEventListener("change", onChange);
@@ -235,12 +228,11 @@ function applyThemeToHtml(theme: Theme, { forceTheme }: { forceTheme?: ResolvedT
 	const currentResolvedTheme = isResolvedTheme(htmlAppliedTheme) ? htmlAppliedTheme : undefined;
 
 	if (currentTheme === theme && currentResolvedTheme === resolvedTheme) {
-		// nothing to do: input theme and resolved class already match
 		return;
 	}
 
-	// Clear any stale theme class, then apply the new one
-	html.classList.remove(...resolvedThemes); // ✅ remove all potential theme classes
+	// Remove before add: `resolvedThemes` contains `resolvedTheme`, so the reverse order strips it.
+	html.classList.remove(...resolvedThemes);
 	html.classList.add(resolvedTheme);
 	html.dataset.theme = theme;
 	html.dataset.appliedTheme = resolvedTheme;
@@ -272,8 +264,8 @@ function readThemeFromHtmlElement() {
 }
 
 /**
- * If the theme is "system", it will resolve the theme based on the user's media query preferences, otherwise it will return the theme as is.
- * This will mirror the result that gets applied to the <html> element.
+ * Resolves `"system"` against the user's media query preferences, and returns any other theme unchanged.
+ * The result mirrors what lands on the `<html>` element.
  */
 function resolveTheme(
 	theme: Theme,
@@ -293,8 +285,8 @@ function resolveTheme(
 }
 
 /**
- * If the theme is "system", it will resolve the theme based on the user's media query preferences, otherwise it will return the theme as is.
- * This will mirror the result that gets applied to the <html> element.
+ * Resolves `"system"` against the user's media query preferences, and returns any other theme unchanged.
+ * The result mirrors what lands on the `<html>` element.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme
  */
@@ -356,8 +348,9 @@ export function determineThemeFromMediaQuery({
  *  4. Apply the resolved class to `<html>` and refresh the cookie so subsequent
  *     SSRs see the same value.
  *
- * Why nested helpers: this function is serialized verbatim into the inlined
- * script, so it must be hermetic — every helper it calls has to travel with it.
+ * Why nested helpers: `preventWrongThemeFlashScriptContent` serializes this
+ * function verbatim, so it must be hermetic — every helper it calls has to
+ * travel with it.
  * Hoisting them to module scope would leave dangling references in the inlined
  * source. All catches are intentionally swallowing to keep the script crash-free
  * in environments where cookies / `localStorage` / `matchMedia` throw (sandboxed
@@ -492,15 +485,12 @@ function preventThemeFlash(args: {
 	const resolvedTheme = forceTheme ?? resolveThemeValue(preference, isDark, isHighContrast);
 
 	const html = document.documentElement;
-	// 3) Apply theme to DOM (same order as applyThemeToHtml)
+	// 3) Apply theme to DOM (same remove-before-add order as `applyThemeToHtml`)
 	if (html.dataset.appliedTheme !== resolvedTheme || html.dataset.theme !== preference) {
-		// Remove all theme classes
 		for (const themeClass of resolvedThemes as readonly string[]) {
 			html.classList.remove(themeClass);
 		}
-		// Add resolved theme class
 		html.classList.add(resolvedTheme);
-		// Set data attributes
 		html.dataset.theme = preference;
 		html.dataset.appliedTheme = resolvedTheme;
 	}
@@ -509,7 +499,6 @@ function preventThemeFlash(args: {
 	const hadValidCookie = isTheme(cookieTheme);
 	try {
 		if (isTheme(lsTheme) && !hadValidCookie) {
-			// Migrate from localStorage to cookie
 			writeCookie(storageKey, lsTheme);
 			try {
 				window.localStorage.removeItem(storageKey);
@@ -517,7 +506,6 @@ function preventThemeFlash(args: {
 				// silently swallow errors
 			}
 		} else if (!hadValidCookie) {
-			// Set default cookie if none existed
 			writeCookie(storageKey, preference);
 		}
 	} catch {
@@ -712,7 +700,7 @@ function getStoredTheme({ cookie }: GetStoredThemeOptions): Theme {
 }
 
 /**
- * Extract just the mantle theme cookie from a raw `Cookie` header string.
+ * Extract only the mantle theme cookie from a raw `Cookie` header string.
  *
  * Use this in SSR loaders to safely pass the theme cookie to
  * {@link useInitialHtmlThemeProps} without exposing the full `Cookie` header
@@ -756,12 +744,12 @@ export {
  * Falls back to writing a unique “ping” value to `localStorage`, which triggers
  * the cross-tab `storage` event. Both mechanisms only work across the same origin.
  *
- * Uses a timestamp to ensure the storage value always changes so the event fires.
+ * A timestamp in the ping value makes every write a new value, so the event fires.
  *
  * @remarks
  * - Same-origin only: BroadcastChannel and the `storage` event do not cross subdomains
  *   or different schemes/ports. For cross-subdomain sync, use a postMessage hub or server push.
- * - This function is fire-and-forget and intentionally swallows errors.
+ * - Fire-and-forget: it swallows every error on purpose.
  * - Receivers should re-read the cookie/source of truth and then apply the theme;
  *   don’t trust the payload blindly.
  *
@@ -789,7 +777,6 @@ function notifyOtherTabs(
 ) {
 	const { broadcastChannel, pingKey } = options;
 
-	// first try BroadcastChannel
 	try {
 		if (broadcastChannel) {
 			// BroadcastChannel.postMessage has no `targetOrigin` parameter (unlike Window.postMessage); the rule can't distinguish the two.
@@ -805,7 +792,7 @@ function notifyOtherTabs(
 		// silently swallow errors
 	}
 
-	// fallback to storage event: write a "ping" key (not the real storageKey)
+	// Why a separate ping key: the cookie stays the source of truth for the theme.
 	try {
 		localStorage.setItem(pingKey, JSON.stringify({ theme, timestamp: Date.now() }));
 	} catch {
@@ -815,9 +802,9 @@ function notifyOtherTabs(
 
 function buildThemeCookie(value: string) {
 	const expires = new Date();
-	expires.setFullYear(expires.getFullYear() + 1); // 1 year expiration
+	expires.setFullYear(expires.getFullYear() + 1);
 
-	// Only set .ngrok.com domain for ngrok domains, otherwise let it default to current domain
+	// Why the `.ngrok.com` domain: the theme must follow the user across ngrok subdomains.
 	const { hostname, protocol } = window.location;
 	const domainAttribute =
 		hostname === "ngrok.com" || hostname.endsWith(".ngrok.com") ? "; domain=.ngrok.com" : "";
@@ -827,8 +814,7 @@ function buildThemeCookie(value: string) {
 }
 
 /**
- * Sets a cookie with appropriate domain for the current hostname.
- * Uses .ngrok.com for ngrok domains, otherwise no domain (current domain only).
+ * Writes the theme cookie. Swallows the error when the environment blocks cookie writes.
  */
 function setCookie(value: string) {
 	if (!canUseDOM()) {

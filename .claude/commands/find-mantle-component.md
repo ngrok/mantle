@@ -7,7 +7,7 @@ argument-hint: "<search query>"
 
 Search the `@ngrok/mantle` component manifest for components matching `$ARGUMENTS` and report the best matches with import paths and docs links.
 
-If no argument is provided, ask the user what they're looking for.
+If the user passes no argument, ask what they are looking for.
 
 ## 1. Source the manifest
 

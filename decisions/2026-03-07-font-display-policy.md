@@ -10,7 +10,7 @@
 ## Decision Drivers
 
 - Lighthouse flagged `font-display` behavior, especially for italic faces
-- Previous testing showed `family` was the main source of CLS when using `swap`
+- Previous testing showed `family` was the main source of Cumulative Layout Shift (CLS) with `swap`
 - Italic faces are non-critical and should not compete for startup budget
 
 ## Decision

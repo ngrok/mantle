@@ -77,9 +77,9 @@ type SeparatorProps = ComponentProps<"div"> &
 		 */
 		orientation?: Orientation;
 		/**
-		 * If `true`, the separator will be rendered with all accessibility-related attributes and role="separator".
+		 * If `true`, the separator renders with all accessibility-related attributes and role="separator".
 		 * If `false`, the separator is purely decorative and all accessibility-related attributes
-		 * are updated so that that the rendered element is removed from the accessibility tree.
+		 * are updated so that the rendered element is removed from the accessibility tree.
 		 *
 		 * @default false
 		 */

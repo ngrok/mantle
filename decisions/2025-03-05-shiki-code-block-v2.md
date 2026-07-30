@@ -11,11 +11,11 @@
 
 The existing `CodeBlock` component uses PrismJS for syntax highlighting. Prism runs in the browser via `useEffect`, which causes three problems:
 
-1. **PrismJS bundle shipped to every page** — grammars are loaded eagerly for all supported languages
+1. **PrismJS bundle shipped to every page** — `CodeBlock` loads grammars eagerly for all supported languages
 2. **Hydration mismatches** — SSR renders plain escaped text; client swaps in highlighted HTML in a `useEffect`, requiring `suppressHydrationWarning` on the `<code>` element
 3. **No clean server rendering** — there is no path to get highlighted HTML on the server without shipping Shiki/Prism to the browser
 
-The goal is a **net-new** `ShikiCodeBlock` component that produces identical highlighted output to Shiki running in the browser, but does all highlighting work at build/HMR time via a Vite plugin. Zero Shiki or Prism runtime in the browser bundle. Works for both MDX docs (static code fences) and pure Vite apps (runtime interpolations). For code that is truly dynamic at request time (e.g. traffic inspector showing API response bodies), a React Router server action path is provided.
+The goal is a **net-new** `ShikiCodeBlock` component that produces identical highlighted output to Shiki running in the browser, but does all highlighting work at build/HMR time via a Vite plugin. Zero Shiki or Prism runtime in the browser bundle. Works for both MDX docs (static code fences) and pure Vite apps (runtime interpolations). For code that is truly dynamic at request time (e.g. traffic inspector showing API response bodies), a React Router server action does the highlighting.
 
 ## Decision
 
@@ -57,11 +57,11 @@ A runtime lookup (`map[hash]`) is not tree-shakeable — dynamic key access defe
 
 ### Interpolation Support
 
-Runtime values (props, state, async data) are supported via placeholder substitution:
+Placeholder substitution supports runtime values (props, state, async data):
 
-- At build time: each `${expr}` is replaced with `SHIKI_VAL_N` (a stable identifier token that Shiki tokenizes as a unit)
+- At build time: the plugin replaces each `${expr}` with `SHIKI_VAL_N` (a stable identifier token that Shiki tokenizes as a unit)
 - Shiki pre-renders the static structure with placeholders in place
-- At render time: `SHIKI_VAL_N` is replaced with `escapeHtml(String(val))` for each value
+- At render time: the component replaces each `SHIKI_VAL_N` with `escapeHtml(String(val))`
 
 The token highlighting of the placeholder matches the expected type at that position (e.g., `'SHIKI_VAL_0'` inside string quotes highlights as a string). The actual runtime value inherits that highlighting.
 
@@ -69,7 +69,7 @@ The token highlighting of the placeholder matches the expected type at that posi
 
 ### `shikiCode("lang")` Tagged Template
 
-The language is co-located with the code in the tagged template, eliminating the need for a separate `language` prop on `ShikiCodeBlock.Code`:
+The tagged template co-locates the language with the code, so `ShikiCodeBlock.Code` needs no separate `language` prop:
 
 ```tsx
 // Old CodeBlock (language separate from value):
@@ -83,7 +83,7 @@ The `shikiCode("lang")` runtime function is a no-op that returns a `ShikiCodeVal
 
 ### Server Action Path (`highlightHref`)
 
-For truly dynamic content (traffic inspector showing request/response bodies, user-entered code, account-specific configs), a React Router action handler is provided:
+For truly dynamic content (traffic inspector showing request/response bodies, user-entered code, account-specific configs), `@ngrok/mantle/shiki-server` exports a React Router action handler:
 
 ```tsx
 // app/routes/api.highlight.ts
@@ -101,7 +101,7 @@ The component renders plain escaped text immediately, fetches the highlighted HT
 
 ### CSS Theming: Prism → Shiki CSS Variable Mapping
 
-Shiki's `css-variables` theme outputs inline `style="color:var(--shiki-token-keyword)"` on each token span. CSS variables defined in `mantle.css` map to the same mantle design tokens currently used for Prism, making the visual output identical after migration:
+Shiki's `css-variables` theme outputs inline `style="color:var(--shiki-token-keyword)"` on each token span. CSS variables defined in `mantle.css` map to the same mantle design tokens Prism currently uses, so the visual output is identical after migration:
 
 | Shiki CSS var                     | Mantle token         | Was Prism token                        |
 | --------------------------------- | -------------------- | -------------------------------------- |
@@ -114,7 +114,7 @@ Shiki's `css-variables` theme outputs inline `style="color:var(--shiki-token-key
 | `--shiki-token-function`          | `--color-blue-600`   | `.token.function`, `.token.class-name` |
 | `--shiki-token-parameter`         | `--color-yellow-600` | `.token.variable`, `.token.regex`      |
 
-Dark mode uses `-400` palette variants of the same hues. The Prism CSS block (`MARK: PRISM SYNTAX HIGHLIGHT`, lines 1526–1587 of `mantle.css`) is deleted in Phase 3.
+Dark mode uses `-400` palette variants of the same hues. Phase 3 deletes the Prism CSS block (`MARK: PRISM SYNTAX HIGHLIGHT`, lines 1526–1587 of `mantle.css`).
 
 ## What Ships
 
@@ -124,7 +124,7 @@ Dark mode uses `-400` palette variants of the same hues. The Prism CSS block (`M
 | `@ngrok/mantle/vite-plugin`      | `shikiCodeBlock()` Vite plugin (required for Path 1)                                        |
 | `@ngrok/mantle/shiki-server`     | `shikiHighlightAction` React Router action handler (Path 3)                                 |
 
-`shiki` is a `devDependency` of `@ngrok/mantle` — it is only ever imported in the Vite plugin (Node.js build process) and the server action. It is never in the browser bundle.
+`shiki` is a `devDependency` of `@ngrok/mantle` — only the Vite plugin (Node.js build process) and the server action ever import it. It is never in the browser bundle.
 
 ## Alternatives Considered
 

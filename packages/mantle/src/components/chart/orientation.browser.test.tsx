@@ -7,7 +7,7 @@ import { BarChart } from "../bar-chart/index.js";
 /**
  * Real-browser geometry tests for `BarChart` `orientation="horizontal"`: bars
  * grow rightward from a left baseline with categories banded down the y axis.
- * happy-dom can't provide the real plot layout the engine projects onto, so
+ * happy-dom lacks the real plot layout the engine projects onto, so
  * these sample the painted canvas directly.
  */
 const STYLE = `

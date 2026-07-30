@@ -199,11 +199,11 @@ import { SandboxedOnClick } from "@ngrok/mantle/sandboxed-on-click";
 
 ### SandboxedOnClick
 
-A container that prevents the click event from bubbling out of it. Good to use when you want to provide some action buttons inside of a table row or list item that navigates on click.
+A container that prevents the click event from bubbling out of it. Good to use when you want action buttons inside of a table row or list item that navigates on click.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop                     | Type      | Default | Description                                                                                                                                                                                                                                                                                                                 |
-| ------------------------ | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `allowClickEventDefault` | `boolean` | `false` | Only call `event.preventDefault()` in the `onClick` handler if the user has not set `allowClickEventDefault` to `true`. This allows the user to control whether or not the default behavior of the click event should be allowed. This is useful for links or buttons that should navigate or perform some action on click. |
-| `asChild`                | `boolean` | `false` | Use the `asChild` prop to compose the `SandboxedOnClick` functionality onto alternative element types or your own React components.                                                                                                                                                                                         |
+| Prop                     | Type      | Default | Description                                                                                                                                                                                                                         |
+| ------------------------ | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `allowClickEventDefault` | `boolean` | `false` | Whether the click keeps its default behavior. When `false`, the `onClick` handler calls `event.preventDefault()`; propagation stops either way. Set it to `true` for links or buttons that must navigate or run an action on click. |
+| `asChild`                | `boolean` | `false` | Use the `asChild` prop to compose the `SandboxedOnClick` functionality onto alternative element types or your own React components.                                                                                                 |

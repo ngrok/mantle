@@ -61,8 +61,8 @@ const TagBridgeContext = createContext<TagBridgeContextValue>({
 type MultiSelectProps = Primitive.ComboboxProviderProps<string[]>;
 
 /**
- * Root component for a multi-select combobox. Provides state management for
- * selecting multiple values with typeahead filtering.
+ * Root component for a multi-select combobox. Owns the selected values and the
+ * typeahead query.
  *
  * Use MultiSelect when the user can choose multiple values from a list, with selected
  * items rendered as removable tags/chips. For single selection, use Combobox (with search)
@@ -320,7 +320,7 @@ const Tag = ({
  *
  * Pre-wired handlers included:
  * - `onKeyDown` — arrow-key nav between tags, Backspace/Delete to remove
- * - `onClick` — focuses the tag and ensures the popover opens/stays open
+ * - `onClick` — focuses the tag and opens the popover, or keeps it open
  */
 type TagRenderProps = TagProps & {
 	/** Ref callback — forward this to the tag element to enable keyboard navigation between tags. */
@@ -471,8 +471,7 @@ const TagValues = ({ children, lockedValues = EMPTY_ARRAY }: MultiSelectTagValue
 					// After removal, the array shifts. Focus the next logical tag or the input.
 					if (event.key === "Backspace") {
 						if (index > 0) {
-							// Focus the previous tag (will have same index - 1 after removal)
-							// We need to wait for the next render, so use requestAnimationFrame
+							// Why `raf`: focus lands on the previous tag only after React commits the removal.
 							const prevIndex = index - 1;
 							raf(() => focusTag(prevIndex));
 						} else {
@@ -584,8 +583,8 @@ const TagValues = ({ children, lockedValues = EMPTY_ARRAY }: MultiSelectTagValue
 						}
 					},
 					onKeyDown: (event: KeyboardEvent<HTMLSpanElement>) => handleTagKeyDown(event, index),
-					// Ensure the popover opens/stays open when a tag is clicked,
-					// including when the component was fully blurred before the click.
+					// A tag click opens the popover, or keeps it open — including
+					// when the component was fully blurred before the click.
 					onClick: () => focusTag(index),
 				};
 
@@ -976,7 +975,7 @@ type MultiSelectGroupDescriptionProps = ComponentProps<"p">;
 
 /**
  * Renders a description below a `MultiSelect.GroupLabel` inside a `MultiSelect.Group`.
- * Provides context about the group's purpose or constraints.
+ * States the group's purpose or constraints.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectgroupdescription
  *
@@ -1182,8 +1181,8 @@ const ContentFooter = ({ className, children, ref, ...props }: MultiSelectConten
  */
 const MultiSelect = {
 	/**
-	 * Root component for a multi-select combobox. Provides state management for
-	 * selecting multiple values with typeahead filtering.
+	 * Root component for a multi-select combobox. Owns the selected values and
+	 * the typeahead query.
 	 *
 	 * Use MultiSelect when the user can choose multiple values from a list, with selected
 	 * items rendered as removable tags/chips. For single selection, use Combobox (with search)

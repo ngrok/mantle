@@ -219,10 +219,8 @@ describe("Accordion", () => {
 			</Accordion.Root>,
 		);
 		const body = screen.getByTestId("body-a");
-		// Assert the stable contract: Body is the styleable content slot and forwards
-		// a consumer className. We deliberately avoid asserting specific Tailwind
-		// utilities (e.g. `pb-4`) — those are implementation details that can change,
-		// and `cx`'s last-wins merge has its own dedicated tests.
+		// Why no Tailwind utility assertion: neither vitest project loads Tailwind, so
+		// a class like `pb-4` is only a source literal here.
 		expect(body).toHaveAttribute("data-slot", "accordion-body");
 		expect(body).toHaveClass("custom-body-class");
 	});

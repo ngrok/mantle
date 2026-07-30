@@ -39,7 +39,8 @@ type IconButtonProps = ComponentProps<"button"> &
 		 */
 		intent: ButtonIntent;
 		/**
-		 * The accessible label for the icon. This label will be visually hidden but announced to screen reader users, similar to alt text for img tags.
+		 * The accessible label for the icon. `IconButton` hides this label visually
+		 * and announces it to screen readers, like the `alt` text on an `<img>`.
 		 */
 		label: string;
 		/**
@@ -70,7 +71,7 @@ type IconButtonProps = ComponentProps<"button"> &
 /**
  * Renders a button or a component that looks like a button, an interactive
  * element activated by a user with a mouse, keyboard, finger, voice command, or
- * other assistive technology. Once activated, it then performs an action, such
+ * other assistive technology. Once activated, it then runs an action, such
  * as submitting a form or opening a dialog.
  * Renders only a single icon as children with an accessible, screen-reader-only label.
  *

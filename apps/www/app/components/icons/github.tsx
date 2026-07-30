@@ -1,7 +1,7 @@
 import type { InlineIconProps } from "@ngrok/mantle/icons";
 
 /**
- * An inline svg icon that renders the GitHub logo. Fill color is determined by the `color` CSS property.
+ * An inline svg icon that renders the GitHub logo. The `color` CSS property sets the fill.
  */
 export function GitHubIcon(props: Omit<InlineIconProps, "color">) {
 	return (

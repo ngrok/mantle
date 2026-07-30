@@ -228,7 +228,7 @@ describe("ThemeSwitcher", () => {
 	});
 
 	test("a lone conditional-false child suppresses the default radio group", () => {
-		// Pins the `children ?? default` contract: `false` is provided content
+		// Pins the `children ?? default` contract: `false` is passed content
 		// (renders nothing), not absence — only null/undefined restore the
 		// default. A refactor to `||` or a `"children" in props` check would
 		// change this behavior and must fail here.

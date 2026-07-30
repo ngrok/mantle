@@ -37,7 +37,7 @@ Custom React hooks exported from `@ngrok/mantle/hooks`.
 const breakpoint = useBreakpoint();
 ```
 
-Returns the current responsive breakpoint based on the viewport width. Uses a singleton subscription to a set of min-width media queries and returns the largest matching breakpoint.
+The largest Tailwind breakpoint the viewport width matches, or `"default"` below `2xs`. Shares one app-wide subscription to the min-width media queries.
 
 ```tsx
 import { useBreakpoint } from "@ngrok/mantle/hooks";

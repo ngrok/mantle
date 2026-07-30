@@ -264,9 +264,9 @@ const ReferenceLine = (props: BarChartReferenceLineProps) =>
 
 /**
  * Customizes the hover/keyboard tooltip readout. The tooltip itself is part
- * of `BarChart.Root`'s interaction contract and renders whether or not this
- * part is composed — compose it to format the label or values, append a
- * footer, or replace the content entirely via the render-prop `children`.
+ * of `BarChart.Root`'s interaction contract and renders even when this part is
+ * absent — compose it to format the label or values, append a footer, or
+ * replace the content entirely via the render-prop `children`.
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barcharttooltip
  *

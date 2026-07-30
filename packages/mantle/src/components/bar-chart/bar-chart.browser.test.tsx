@@ -7,7 +7,7 @@ import { BarChart } from "./bar-chart.js";
 /**
  * Real-browser canvas tests: the paint pipeline (device-pixel sizing via
  * ResizeObserver, token-resolved fills, hover overlay geometry) needs real
- * layout and a real 2d context, which happy-dom does not provide.
+ * layout and a real 2d context, which happy-dom lacks.
  *
  * Chart tokens are inlined instead of importing the full mantle stylesheet so
  * the test stays hermetic (mirrors label.browser.test.tsx). The values are the

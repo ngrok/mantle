@@ -18,10 +18,9 @@ afterEach(() => {
 	cleanup();
 });
 
-// Regression: the overlay picker originally nested RadioGroup.ButtonGroup
-// inside RadioGroup.Root, so the buttons bound to an inner, uncontrolled
-// group — nothing was selected by default and every scenario opened a Sheet
-// regardless of the picked overlay.
+// If `RadioGroup.ButtonGroup` nests inside `RadioGroup.Root`, the buttons bind
+// to an inner, uncontrolled group. The picker then starts with no selection, so
+// every scenario opens a Sheet whichever overlay the user picks.
 describe("UserOverlayDemo", () => {
 	it("defaults the overlay picker to Sheet", () => {
 		renderDemo();

@@ -26,26 +26,26 @@ Implement three targeted changes to `mantle.css`:
 
 ### 1. Make `@source` opt-in via `source-all.css` / `mantleSourcePlugin`
 
-`mantle.css` previously declared both `@source "../src"` and `@source "../dist"`. The published npm package ships only `dist/` — `src/` is not included — so `@source "../src"` was a dead path for npm consumers, and the only effective source scan was `@source "../dist"`.
+`mantle.css` previously declared both `@source "../src"` and `@source "../dist"`. The published npm package ships only `dist/`, so `@source "../src"` was a dead path for npm consumers, and the only effective source scan was `@source "../dist"`.
 
 In the new setup, `mantle.css` no longer declares any `@source` rules. Instead, consumers opt in to scanning mantle's sources by using either:
 
 - `source-all.css` — a CSS entrypoint that contains `@source "../dist"` pointing at the entire mantle `dist/` directory, or
 - `mantleSourcePlugin` — a Vite plugin that programmatically injects targeted `@source` directives for only the components the app actually imports.
 
-The workspace `apps/www/app/global.css` imports `source-all.css` so that local development (including HMR for the docs site) still scans `packages/mantle/src` and `packages/mantle/dist`. The published `mantle.css` is free of `@source` and does not force additional scanning in consumer apps by default.
+The workspace `apps/www/app/global.css` imports `source-all.css` so that local development (including hot module replacement, or HMR, for the docs site) still scans `packages/mantle/src` and `packages/mantle/dist`. The published `mantle.css` is free of `@source` and does not force additional scanning in consumer apps by default.
 
 ### 2. Deduplicate `--color-gray-*` in light and dark themes
 
 In the light and dark `:root` blocks, replace the 11 literal `oklch()` gray definitions with `var(--color-neutral-*)` references. These values are always identical to `neutral` in those themes.
 
-High-contrast themes (`light-high-contrast`, `dark-high-contrast`) define distinct gray values and are left unchanged.
+High-contrast themes (`light-high-contrast`, `dark-high-contrast`) define distinct gray values. This change leaves them unchanged.
 
 ### 3. Remove redundant light-theme color overrides
 
 The light theme `:root` block previously redeclared `--color-neutral-50` through `--color-neutral-900` and all 11 `--color-red-*` shades. Cross-referencing against Tailwind v4's `@theme default {}` (in `tailwindcss/theme.css`) confirmed these values are byte-for-byte identical to the Tailwind defaults — they were overriding the defaults with the same values.
 
-These 21 definitions have been removed. The only neutral shade that remains is `--color-neutral-950` (`oklch(18.2% 0 0)`), which is intentionally lighter than the Tailwind default (`14.5%`).
+This change removes those 21 definitions. The only neutral shade that remains is `--color-neutral-950` (`oklch(18.2% 0 0)`), which is intentionally lighter than the Tailwind default (`14.5%`).
 
 **Why gray aliases are NOT redundant:** Tailwind v4's default `--color-gray-*` scale has a slight blue-gray chroma (e.g. `oklch(98.5% 0.002 247.839)` for gray-50), while mantle's gray is deliberately pure achromatic (chroma=0, aliased to neutral). The gray aliases remain.
 
@@ -55,7 +55,7 @@ These 21 definitions have been removed. The only neutral shade that remains is `
 
 The ~60 semantic color tokens (background, border, text, ring, divide) were registered in the main `@theme {}` block using a self-referencing pattern (`--background-color-base: var(--background-color-base)`). This caused Tailwind to generate utility classes like `bg-background-color-base` for all of them. No code in the monorepo uses these generated utilities.
 
-Moving them to `@theme inline {}` retains the Tailwind token registration (consumers can still reference them via arbitrary values) while preventing the generation of unused utility classes, reducing the compiled CSS output size.
+Moving them to `@theme inline {}` keeps the Tailwind token registration (consumers can still reference them via arbitrary values) and stops Tailwind from generating the unused utility classes, which shrinks the compiled CSS output.
 
 Shadow tokens (`--shadow-sm`, `--shadow-md`, etc.) are actively used as utilities and remain in `@theme {}`.
 
@@ -67,11 +67,11 @@ Forces all consumers to scan the entire mantle `dist/` directory, inflating gene
 
 ### Keep both `@source "../src"` and `@source "../dist"` in `mantle.css` (previous state)
 
-Works but causes double-scanning in the workspace — both src and the compiled dist are scanned, and the generated CSS is identical (Tailwind deduplicates class names). The output size is unchanged; the only cost is slightly longer build/scan time.
+Works but causes double-scanning in the workspace — Tailwind scans both src and the compiled dist, and the generated CSS is identical (it deduplicates class names). The output size is unchanged; the only cost is slightly longer build/scan time.
 
 ### Keep all light-theme color overrides (rejected)
 
-Explicitly declaring values identical to Tailwind defaults pins them against future Tailwind updates. Since `tailwindcss` is version-pinned exactly in this repo, and the TW4 `@theme default {}` keyword means overrides are explicit opt-ins, the coupling risk is acceptable and the redundancy outweighs the safety benefit.
+Explicitly declaring values identical to Tailwind defaults pins them against future Tailwind updates. Since this repo pins `tailwindcss` to an exact version, and the Tailwind v4 `@theme default {}` keyword means overrides are explicit opt-ins, the coupling risk is acceptable and the redundancy outweighs the safety benefit.
 
 ### Remove semantic tokens from `@theme` entirely
 
@@ -89,7 +89,7 @@ High-impact but high-effort changes that require the consuming app (www / ngrok.
 
 ### Positive
 
-- Generated CSS output size is smaller (fewer unused utility classes)
+- The generated CSS is smaller (fewer unused utility classes)
 - `mantle.css` no longer forces `@source` scanning on consumers; opt-in via `source-all.css` or `mantleSourcePlugin`
 - Workspace HMR still works via `source-all.css` imported in `apps/www/app/global.css`
 - Gray color definitions in light/dark themes are DRY and self-documenting
@@ -97,7 +97,7 @@ High-impact but high-effort changes that require the consuming app (www / ngrok.
 
 ### Negative
 
-- Consumers who relied on `bg-background-color-base`-style utility classes (if any exist outside this monorepo) would need to use arbitrary values or CSS variables directly. No such usage was found during the audit.
+- Consumers who relied on `bg-background-color-base`-style utility classes (if any exist outside this monorepo) would need to use arbitrary values or CSS variables directly. The audit found no such usage.
 - Gray-to-neutral aliasing in light/dark adds one extra `var()` indirection — negligible in practice.
 
 ### 5. `@ngrok/mantle-vite-plugins` — targeted `@source` injection
@@ -106,11 +106,11 @@ A new standalone npm package, `@ngrok/mantle-vite-plugins`, was created alongsid
 
 **How it works:**
 
-- **`configResolved`** — After Vite resolves its configuration, the plugin locates `@ngrok/mantle`'s `dist/` directory via `require.resolve`, walks the directories listed in `include` (default: `["src"]`) and scans every `.ts/.tsx/.js/.jsx/.mdx/.md` file for `@ngrok/mantle/<name>` import statements. It then writes a block of targeted `@source "<rel/path/to/dist/<name>.js"` directives directly into the target CSS file on disk (between `MARKER_START` and `MARKER_END` comments), immediately after the last `@import` line. The write is idempotent — the file is only touched when the content would actually change.
+- **`configResolved`** — After Vite resolves its configuration, the plugin locates `@ngrok/mantle`'s `dist/` directory via `require.resolve`, walks the directories listed in `include` (default: `["src"]`) and scans every `.ts/.tsx/.js/.jsx/.mdx/.md` file for `@ngrok/mantle/<name>` import statements. It then writes a block of targeted `@source "<rel/path/to/dist/<name>.js"` directives directly into the target CSS file on disk (between `MARKER_START` and `MARKER_END` comments), immediately after the last `@import` line. The write is idempotent — the plugin touches the file only when the content would actually change.
 
-- **`configureServer`** — In development, the plugin watches source files via `server.watcher`. When a file change introduces a mantle import for a component not previously detected, the CSS file is updated in place and Tailwind's own file watcher picks up the change — no server restart required.
+- **`configureServer`** — In development, the plugin watches source files via `server.watcher`. When a file change introduces a mantle import for a component not previously detected, the plugin updates the CSS file in place and Tailwind's own file watcher picks up the change — no server restart required.
 
-**Why write to disk:** `@tailwindcss/vite` reads CSS files from disk at dev-server startup to initialize its file-system scanner and set up watchers, before Vite's `transform` pipeline runs. Injecting `@source` via a `transform` hook works for production builds but is invisible to Tailwind's dev-mode scanner. Writing directly to disk ensures the directives are present when Tailwind first reads the file.
+**Why write to disk:** `@tailwindcss/vite` reads CSS files from disk at dev-server startup to initialize its file-system scanner and set up watchers, before Vite's `transform` pipeline runs. Injecting `@source` via a `transform` hook works for production builds but is invisible to Tailwind's dev-mode scanner. Writing directly to disk puts the directives in the file before Tailwind first reads it.
 
 **`source-all.css` alternative:** For apps that use most or all mantle components, or where build tooling configuration is undesirable, `@import "@ngrok/mantle/source-all.css"` is the zero-configuration option. It adds a single `@source` pointing at the entire `dist/` directory. `apps/www` uses this approach since it imports virtually every component.
 
@@ -132,7 +132,7 @@ A new standalone npm package, `@ngrok/mantle-vite-plugins`, was created alongsid
 
 ### 6. Split dark and high-contrast themes into lazy-loaded `<link>` stylesheets
 
-`mantle.css` is split into four files. The light theme (default) remains in `mantle.css` and is loaded as before. The other three themes are extracted into separate files loaded via `<link media="...">` tags, making them non-render-blocking for users whose OS preference does not match the media query.
+This change splits `mantle.css` into four files. The light theme (default) remains in `mantle.css` and loads as before. The other three themes move into separate files that load via `<link media="...">` tags, so they are non-render-blocking for users whose OS preference does not match the media query.
 
 | File                             | Content                    | Default `media` attribute                                    |
 | -------------------------------- | -------------------------- | ------------------------------------------------------------ |
@@ -143,13 +143,13 @@ A new standalone npm package, `@ngrok/mantle-vite-plugins`, was created alongsid
 
 **`MantleStylesheets` component** (exported from `@ngrok/mantle/theme`) renders the three `<link>` tags. It accepts:
 
-- `forceTheme?: ResolvedTheme` — when set, the corresponding stylesheet's `media` is forced to `"all"` so it loads unconditionally (useful for dark-only apps like ngrok.com).
-- `ssrCookie?: string` — the extracted theme cookie from the incoming HTTP request (via `extractThemeCookie`). When a non-system theme is resolved from the cookie, the server renders the correct `media` attribute directly in the SSR HTML and omits the inline fix script entirely, eliminating FOUC for users with a manual theme override without relying on JavaScript.
-- `nonce?: string` — CSP nonce for the inline fix script (see below).
+- `forceTheme?: ResolvedTheme` — when set, the component forces the corresponding stylesheet's `media` to `"all"` so it loads unconditionally (useful for dark-only apps like ngrok.com).
+- `ssrCookie?: string` — the extracted theme cookie from the incoming HTTP request (via `extractThemeCookie`). When the server resolves a non-system theme from the cookie, it renders the correct `media` attribute directly in the SSR HTML and omits the inline fix script entirely, eliminating FOUC for users with a manual theme override without relying on JavaScript.
+- `nonce?: string` — Content Security Policy (CSP) nonce for the inline fix script (see below).
 
 On the client, the component uses a `MutationObserver` on `html[data-applied-theme]` to detect manual theme changes (e.g. light-OS user picks dark) and updates the relevant `<link media>` attribute to `"all"` so the stylesheet becomes active.
 
-**Inline fix script:** An inline `<script>` is rendered after the `<link>` tags. It runs synchronously before first paint, reads `html.dataset.appliedTheme` (already set by `PreventWrongThemeFlashScript`), and corrects any `media` attributes that were rendered with the wrong value. This is a safety net for cases where `ssrCookie` is not provided or the stored theme is `"system"` (which cannot be resolved server-side without OS preference). When `ssrCookie` provides a non-system theme, the SSR HTML is already correct and the inline script is a no-op.
+**Inline fix script:** The component renders an inline `<script>` after the `<link>` tags. It runs synchronously before first paint, reads `html.dataset.appliedTheme` (already set by `PreventWrongThemeFlashScript`), and corrects any `media` attributes that were rendered with the wrong value. This is a safety net for cases where `ssrCookie` is omitted or the stored theme is `"system"` (which cannot be resolved server-side without OS preference). When `ssrCookie` carries a non-system theme, the SSR HTML is already correct and the inline script is a no-op.
 
 **FOUC analysis:**
 
@@ -158,7 +158,7 @@ On the client, the component uses a `MutationObserver` on `html[data-applied-the
 | System theme = light (majority)                       | None | Dark/HC stylesheets have restrictive media — not applied, not render-blocking                                                                                                                                  |
 | System theme = dark                                   | None | Dark stylesheet media matches — browser applies it before paint                                                                                                                                                |
 | System theme = high-contrast                          | None | HC stylesheet media matches — applied before paint                                                                                                                                                             |
-| Manual theme override + `ssrCookie` provided          | None | Server renders `media="all"` for the active theme directly — fix script is omitted                                                                                                                             |
+| Manual theme override + `ssrCookie` set               | None | Server renders `media="all"` for the active theme directly — fix script is omitted                                                                                                                             |
 | Manual theme override, no `ssrCookie` (or `"system"`) | None | Inline fix script runs synchronously before paint, reads `html[data-applied-theme]` set by `PreventWrongThemeFlashScript`, and corrects `media` attributes. Dark CSS was already downloaded so no visible FOUC |
 | `forceTheme` set (e.g. dark-only app)                 | None | `media="all"` is rendered on SSR — stylesheet is render-blocking as intended                                                                                                                                   |
 
@@ -168,7 +168,7 @@ On the client, the component uses a `MutationObserver` on `html[data-applied-the
 
 ### 7. Move syntax highlight token styles into the code-block component
 
-The `.token.*` CSS rules were removed from `mantle.css` and placed in `packages/mantle/src/components/code-block/syntax-highlight.css`, which is imported as a side-effect directly in `code-block.tsx`:
+This change moves the `.token.*` CSS rules out of `mantle.css` and into `packages/mantle/src/components/code-block/syntax-highlight.css`, which `code-block.tsx` imports directly as a side-effect:
 
 ```ts
 import "./syntax-highlight.css";
@@ -176,4 +176,4 @@ import "./syntax-highlight.css";
 
 Vite bundles this as a CSS chunk associated with the code-block JS module. Apps that never import `@ngrok/mantle/code-block` no longer pay the cost of these styles in their critical CSS. Apps that do import code-block get the styles automatically — no manual import required.
 
-The file is named `syntax-highlight.css` (not `prism.css`) because the `.token.*` selector convention is shared across highlighters and the styles are not Prism-specific.
+The file is named `syntax-highlight.css` (not `prism.css`) because highlighters share the `.token.*` selector convention and the styles are not Prism-specific.

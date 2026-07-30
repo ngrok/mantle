@@ -18,7 +18,9 @@ import { useCommandShortcut } from "./use-command-shortcut.js";
 type CommandRootProps = ComponentProps<typeof CommandPrimitive>;
 
 /**
- * The root component for the Command. It provides the context for all other command sub-components.
+ * The inline palette, wrapping `Command.Input` and `Command.List`. It owns the
+ * filtering and the active item for every part below it — `Command.DialogContent`
+ * renders one itself, so a modal palette does not add it.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commandroot
  *
@@ -120,7 +122,7 @@ type CommandDialogRootProps = Omit<
 
 /**
  * The state owner for a command palette. Renders no DOM of its own — it owns
- * the open state, the query text, and the `⌘K` shortcut, and provides them to
+ * the open state, the query text, and the `⌘K` shortcut, and carries them to
  * every part below through `useCommandDialog()`.
  *
  * Owning the query is what makes typing into `Command.SearchTrigger` work: the
@@ -371,7 +373,7 @@ const CommandDialogContent = ({
 };
 
 /**
- * The input component for the Command. It provides the input for the command palette.
+ * The palette's query field.
  *
  * Inside a `Command.DialogRoot` the palette owns the query by default, which is
  * what lets `Command.SearchTrigger` open with a seeded value and what
@@ -472,7 +474,7 @@ const CommandInput = ({
 };
 
 /**
- * The list component for the Command. It provides the list for the command palette.
+ * The scrolling container for the palette's groups and items.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commandlist
  *
@@ -512,7 +514,7 @@ const CommandList = ({ className, ...props }: ComponentProps<typeof CommandPrimi
 );
 
 /**
- * The empty component for the Command. It provides the empty state for the command palette.
+ * The empty-state message; it renders only when no item matches the query.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commandempty
  *
@@ -552,7 +554,7 @@ const CommandEmpty = ({ className, ...props }: ComponentProps<typeof CommandPrim
 );
 
 /**
- * The group component for the Command. It provides the group for the command palette.
+ * A labeled section of items; the `heading` prop names it.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commandgroup
  *
@@ -595,7 +597,7 @@ const CommandGroup = ({ className, ...props }: ComponentProps<typeof CommandPrim
 );
 
 /**
- * The separator component for the Command. It provides the separator for the command palette.
+ * A horizontal rule between two groups of items.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commandseparator
  *
@@ -636,7 +638,7 @@ const CommandSeparator = ({
 );
 
 /**
- * The item component for the Command. It provides the item for the command palette.
+ * One selectable row in the palette's list.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commanditem
  *
@@ -679,7 +681,7 @@ const CommandItem = ({ className, ...props }: ComponentProps<typeof CommandPrimi
 );
 
 /**
- * The shortcut component for the Command. It provides the shortcut for the command palette.
+ * The keyboard hint for a `Command.Item`, aligned to the end of the row.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commandshortcut
  *
@@ -777,7 +779,9 @@ const CommandShortcut = ({ className, ...props }: ComponentProps<"span">) => (
  */
 const Command = {
 	/**
-	 * The root component for the Command component.
+	 * The inline palette, wrapping `Command.Input` and `Command.List`. It owns the
+	 * filtering and the active item for every part below it — `Command.DialogContent`
+	 * renders one itself, so a modal palette does not add it.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/command#commandroot
 	 *
@@ -951,7 +955,7 @@ const Command = {
 	 */
 	DialogContent: CommandDialogContent,
 	/**
-	 * The input component for the Command component.
+	 * The palette's query field.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/command#commandinput
 	 *
@@ -984,7 +988,7 @@ const Command = {
 	 */
 	Input: CommandInput,
 	/**
-	 * The list component for the Command component.
+	 * The scrolling container for the palette's groups and items.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/command#commandlist
 	 *
@@ -1017,7 +1021,7 @@ const Command = {
 	 */
 	List: CommandList,
 	/**
-	 * The empty component for the Command component.
+	 * The empty-state message; it renders only when no item matches the query.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/command#commandempty
 	 *
@@ -1050,7 +1054,7 @@ const Command = {
 	 */
 	Empty: CommandEmpty,
 	/**
-	 * The group component for the Command component.
+	 * A labeled section of items; the `heading` prop names it.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/command#commandgroup
 	 *
@@ -1083,7 +1087,7 @@ const Command = {
 	 */
 	Group: CommandGroup,
 	/**
-	 * The item component for the Command component.
+	 * One selectable row in the palette's list.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/command#commanditem
 	 *
@@ -1116,7 +1120,7 @@ const Command = {
 	 */
 	Item: CommandItem,
 	/**
-	 * The shortcut component for the Command component.
+	 * The keyboard hint for a `Command.Item`, aligned to the end of the row.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/command#commandshortcut
 	 *
@@ -1149,7 +1153,7 @@ const Command = {
 	 */
 	Shortcut: CommandShortcut,
 	/**
-	 * The separator component for the Command component.
+	 * A horizontal rule between two groups of items.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/command#commandseparator
 	 *
