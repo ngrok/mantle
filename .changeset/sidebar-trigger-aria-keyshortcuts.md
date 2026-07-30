@@ -1,5 +1,5 @@
 ---
-"@ngrok/mantle": patch
+"@ngrok/mantle": minor
 ---
 
 **`Sidebar.Trigger` gets a tooltip and announces the shortcut it binds.**

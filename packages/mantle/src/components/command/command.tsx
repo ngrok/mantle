@@ -6,6 +6,8 @@ import { Command as CommandPrimitive, useCommandState } from "cmdk";
 import type { ComponentProps, ComponentPropsWithoutRef, ReactNode, Ref } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Dialog } from "../dialog/dialog.js";
 import { Separator } from "../separator/separator.js";
 import type { CommandDialogState } from "./dialog-context.js";
@@ -23,7 +25,9 @@ type CommandRootProps = ComponentProps<typeof CommandPrimitive>;
  * @example
  * ```tsx
  * <Command.DialogRoot>
- *   <Command.SearchTrigger />
+ *   <Command.SearchTrigger>
+ *     <button type="button">Search…</button>
+ *   </Command.SearchTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -96,9 +100,10 @@ type CommandDialogRootProps = Omit<
 	 * a second palette never opens alongside the first.
 	 *
 	 * Set `false` to bind the chord yourself with `useCommandDialog()`.
-	 * `Command.SearchTrigger` then renders no shortcut hint and no
-	 * `aria-keyshortcuts`, so the UI never advertises a binding mantle does not
-	 * own.
+	 * `Command.SearchTrigger` then adds no `aria-keyshortcuts` of its own — pass
+	 * one to announce the chord you bound — and `useCommandDialog().keyboardShortcut`
+	 * reports the same flag. The *visible* hint always belongs to the trigger's
+	 * child, so gating that on the flag is the child's job.
 	 *
 	 * @default true
 	 */
@@ -137,7 +142,9 @@ type CommandDialogRootProps = Omit<
  * @example
  * ```tsx
  * <Command.DialogRoot>
- *   <Command.SearchTrigger />
+ *   <Command.SearchTrigger>
+ *     <button type="button">Search…</button>
+ *   </Command.SearchTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -284,7 +291,9 @@ type CommandDialogContentProps = {
  * @example
  * ```tsx
  * <Command.DialogRoot>
- *   <Command.SearchTrigger />
+ *   <Command.SearchTrigger>
+ *     <button type="button">Search…</button>
+ *   </Command.SearchTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -326,7 +335,9 @@ const CommandDialogContent = ({
 				// its value*, which would make the first keystroke after a seeded open
 				// replace the seed instead of extending it. Take the focus over and
 				// collapse the caret to the end.
-				const input = contentRef.current?.querySelector('[data-slot="command-input"]');
+				// `~=`, not `=`: `Command.Input` joins a forwarded `data-slot` chain
+				// ahead of its own, so the attribute is a space-separated list.
+				const input = contentRef.current?.querySelector('[data-slot~="command-input"]');
 				// No input, or one that cannot take focus: Radix's default is the
 				// right answer, and preventing it would leave focus outside the
 				// dialog with no focus trap.
@@ -381,14 +392,16 @@ const CommandDialogContent = ({
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"command-input-wrapper"` | The row holding the magnifier and the field. |
- * | `data-slot` | `"command-input"` | The `<input>` itself. Load-bearing beyond styling: `Command.DialogContent` finds the field by this slot when the palette opens, to place the caret after a seeded query instead of over it. |
+ * | `data-slot` | `"command-input"` | The `<input>` itself, joined after any `data-slot` you forward. Load-bearing beyond styling: `Command.DialogContent` finds the field by this slot when the palette opens, to place the caret after a seeded query instead of over it, so this part of the chain is never replaced. |
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commandinput
  *
  * @example
  * ```tsx
  * <Command.DialogRoot>
- *   <Command.SearchTrigger />
+ *   <Command.SearchTrigger>
+ *     <button type="button">Search…</button>
+ *   </Command.SearchTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -412,13 +425,15 @@ const CommandDialogContent = ({
  */
 const CommandInput = ({
 	className,
+	"data-slot": dataSlot,
 	onValueChange,
 	ref,
 	value,
 	...props
-}: ComponentPropsWithoutRef<typeof CommandPrimitive.Input> & {
-	ref?: Ref<HTMLDivElement>;
-}) => {
+}: ComponentPropsWithoutRef<typeof CommandPrimitive.Input> &
+	WithDataSlot & {
+		ref?: Ref<HTMLDivElement>;
+	}) => {
 	const dialog = useOptionalCommandDialog();
 	const isControlled = value != null;
 	// cmdk treats a non-nullish `value` as controlled and syncs it into its own
@@ -435,7 +450,6 @@ const CommandInput = ({
 		>
 			<MagnifyingGlassIcon className="size-5 shrink-0 opacity-50" />
 			<CommandPrimitive.Input
-				data-slot="command-input"
 				className={cx(
 					"placeholder:text-muted flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
 					className,
@@ -448,6 +462,10 @@ const CommandInput = ({
 				}}
 				value={resolvedValue}
 				{...props}
+				// After the spread, and joined rather than replaced: this slot is how
+				// `Command.DialogContent` finds the field to place the caret, so a
+				// forwarded `data-slot` must not be able to take it away.
+				data-slot={joinDataSlot(dataSlot, "command-input")}
 			/>
 		</div>
 	);
@@ -461,7 +479,9 @@ const CommandInput = ({
  * @example
  * ```tsx
  * <Command.DialogRoot>
- *   <Command.SearchTrigger />
+ *   <Command.SearchTrigger>
+ *     <button type="button">Search…</button>
+ *   </Command.SearchTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -499,7 +519,9 @@ const CommandList = ({ className, ...props }: ComponentProps<typeof CommandPrimi
  * @example
  * ```tsx
  * <Command.DialogRoot>
- *   <Command.SearchTrigger />
+ *   <Command.SearchTrigger>
+ *     <button type="button">Search…</button>
+ *   </Command.SearchTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -537,7 +559,9 @@ const CommandEmpty = ({ className, ...props }: ComponentProps<typeof CommandPrim
  * @example
  * ```tsx
  * <Command.DialogRoot>
- *   <Command.SearchTrigger />
+ *   <Command.SearchTrigger>
+ *     <button type="button">Search…</button>
+ *   </Command.SearchTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -578,7 +602,9 @@ const CommandGroup = ({ className, ...props }: ComponentProps<typeof CommandPrim
  * @example
  * ```tsx
  * <Command.DialogRoot>
- *   <Command.SearchTrigger />
+ *   <Command.SearchTrigger>
+ *     <button type="button">Search…</button>
+ *   </Command.SearchTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -617,7 +643,9 @@ const CommandSeparator = ({
  * @example
  * ```tsx
  * <Command.DialogRoot>
- *   <Command.SearchTrigger />
+ *   <Command.SearchTrigger>
+ *     <button type="button">Search…</button>
+ *   </Command.SearchTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -658,7 +686,9 @@ const CommandItem = ({ className, ...props }: ComponentProps<typeof CommandPrimi
  * @example
  * ```tsx
  * <Command.DialogRoot>
- *   <Command.SearchTrigger />
+ *   <Command.SearchTrigger>
+ *     <button type="button">Search…</button>
+ *   </Command.SearchTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -721,7 +751,9 @@ const CommandShortcut = ({ className, ...props }: ComponentProps<"span">) => (
  * @example
  * ```tsx
  * <Command.DialogRoot>
- *   <Command.SearchTrigger />
+ *   <Command.SearchTrigger>
+ *     <button type="button">Search…</button>
+ *   </Command.SearchTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -752,7 +784,9 @@ const Command = {
 	 * @example
 	 * ```tsx
 	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger />
+	 *   <Command.SearchTrigger>
+	 *     <button type="button">Search…</button>
+	 *   </Command.SearchTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
@@ -784,7 +818,9 @@ const Command = {
 	 * @example
 	 * ```tsx
 	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger />
+	 *   <Command.SearchTrigger>
+	 *     <button type="button">Search…</button>
+	 *   </Command.SearchTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
@@ -816,7 +852,9 @@ const Command = {
 	 * @example
 	 * ```tsx
 	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger />
+	 *   <Command.SearchTrigger>
+	 *     <button type="button">Search…</button>
+	 *   </Command.SearchTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
@@ -887,7 +925,9 @@ const Command = {
 	 * @example
 	 * ```tsx
 	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger />
+	 *   <Command.SearchTrigger>
+	 *     <button type="button">Search…</button>
+	 *   </Command.SearchTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
@@ -918,7 +958,9 @@ const Command = {
 	 * @example
 	 * ```tsx
 	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger />
+	 *   <Command.SearchTrigger>
+	 *     <button type="button">Search…</button>
+	 *   </Command.SearchTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
@@ -949,7 +991,9 @@ const Command = {
 	 * @example
 	 * ```tsx
 	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger />
+	 *   <Command.SearchTrigger>
+	 *     <button type="button">Search…</button>
+	 *   </Command.SearchTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
@@ -980,7 +1024,9 @@ const Command = {
 	 * @example
 	 * ```tsx
 	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger />
+	 *   <Command.SearchTrigger>
+	 *     <button type="button">Search…</button>
+	 *   </Command.SearchTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
@@ -1011,7 +1057,9 @@ const Command = {
 	 * @example
 	 * ```tsx
 	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger />
+	 *   <Command.SearchTrigger>
+	 *     <button type="button">Search…</button>
+	 *   </Command.SearchTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
@@ -1042,7 +1090,9 @@ const Command = {
 	 * @example
 	 * ```tsx
 	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger />
+	 *   <Command.SearchTrigger>
+	 *     <button type="button">Search…</button>
+	 *   </Command.SearchTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
@@ -1073,7 +1123,9 @@ const Command = {
 	 * @example
 	 * ```tsx
 	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger />
+	 *   <Command.SearchTrigger>
+	 *     <button type="button">Search…</button>
+	 *   </Command.SearchTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>
@@ -1104,7 +1156,9 @@ const Command = {
 	 * @example
 	 * ```tsx
 	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger />
+	 *   <Command.SearchTrigger>
+	 *     <button type="button">Search…</button>
+	 *   </Command.SearchTrigger>
 	 *   <Command.DialogContent>
 	 *     <Command.Input placeholder="Type a command or search..." />
 	 *     <Command.List>

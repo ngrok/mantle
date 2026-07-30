@@ -61,7 +61,8 @@ describe("searchActionFromKeyDown", () => {
 			["ArrowDown", "ArrowDown"],
 			["Shift", "Shift"],
 			// A dead key (the first half of a composed accent) and an unmappable key
-			// both report multi-character names.
+			// both report multi-character names. An engine that also flags the dead
+			// key as IME processing is the `keyCode: 229` case below, not this one.
 			["Dead", "Dead"],
 			["Unidentified", "Unidentified"],
 		] as const)("%s", ([, key]) => {
@@ -92,6 +93,11 @@ describe("searchActionFromKeyDown", () => {
 			["a keystroke inside an active composition", { key: "a", isComposing: true }],
 			["the engine-reported IME key", { key: "Process" }],
 			["the legacy IME keyCode", { key: "a", keyCode: 229 }],
+			// Chrome on macOS routes dead keys through the IME path — `⌥e` arrives
+			// as `key: "Dead"` with `keyCode: 229`. Without the `keyCode` this case
+			// falls into the named-key `ignore` above and the test agrees with
+			// itself instead of with a browser.
+			["a dead key the engine flags as IME processing", { key: "Dead", keyCode: 229 }],
 		] as const)("%s", ([, event]) => {
 			expect(searchActionFromKeyDown(keyDown(event))).toEqual({ type: "open" });
 		});

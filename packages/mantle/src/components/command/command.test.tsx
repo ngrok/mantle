@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef, type ComponentProps } from "react";
 import { renderToString } from "react-dom/server";
-import { afterEach, beforeEach, describe, expect, type MockInstance, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { Command } from "./command.js";
 import { useCommandDialog } from "./dialog-context.js";
 
@@ -138,12 +138,12 @@ describe("Command.SearchTrigger", () => {
 		});
 
 		test("advertises Meta+K on an Apple platform", async () => {
-			const platform = vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+			// `restoreMocks` in vitest.config.ts tears the spy down between tests.
+			vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
 			render(<Palette />);
 			await waitFor(() => {
 				expect(trigger()).toHaveAttribute("aria-keyshortcuts", "Meta+K");
 			});
-			platform.mockRestore();
 		});
 
 		test("is absent when the root does not own the shortcut", () => {
@@ -152,6 +152,23 @@ describe("Command.SearchTrigger", () => {
 			// child's to render and reads the same flag through
 			// `useCommandDialog().keyboardShortcut`.
 			expect(trigger()).not.toHaveAttribute("aria-keyshortcuts");
+		});
+
+		test("a consumer-supplied value wins over the platform chord", () => {
+			// The documented escape hatch: `keyboardShortcut={false}` means the app
+			// binds the chord, so the app also owns what is announced. Overwriting it
+			// with `undefined` would silently un-announce a real binding.
+			render(
+				<Command.DialogRoot keyboardShortcut={false}>
+					<Command.SearchTrigger aria-keyshortcuts="Alt+S">
+						<SearchButton />
+					</Command.SearchTrigger>
+					<Command.DialogContent title="Test Command Palette">
+						<Command.Input placeholder="Type a command or search..." />
+					</Command.DialogContent>
+				</Command.DialogRoot>,
+			);
+			expect(trigger()).toHaveAttribute("aria-keyshortcuts", "Alt+S");
 		});
 	});
 
@@ -405,15 +422,9 @@ describe("Command.DialogRoot", () => {
 		describe("on Apple platforms", () => {
 			// The handler resolves the platform once per mount, so the stub has to be
 			// installed before `render()` — a `beforeEach` is the only safe place.
-			let platform: MockInstance<() => string> | undefined;
-
+			// `restoreMocks` in vitest.config.ts undoes it between tests.
 			beforeEach(() => {
-				platform = vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
-			});
-
-			afterEach(() => {
-				platform?.mockRestore();
-				platform = undefined;
+				vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
 			});
 
 			test("⌘K opens the palette and ⌘K again closes it", async () => {
@@ -528,11 +539,38 @@ describe("Command.DialogRoot", () => {
 				expect(queryInput()).toBeInTheDocument();
 			});
 
-			expect(document.querySelector('[data-slot="command-input"]')).toBe(input());
+			expect(document.querySelector('[data-slot~="command-input"]')).toBe(input());
 			await waitFor(() => {
 				expect(input()).toHaveFocus();
 			});
 			expect(input()).toHaveValue("e");
+			expect(input()).toHaveProperty("selectionStart", 1);
+			expect(input()).toHaveProperty("selectionEnd", 1);
+		});
+
+		test("a forwarded data-slot on Command.Input cannot take the caret fix away", async () => {
+			// Same cross-part pin from the consumer's side: `command-input` is joined
+			// after the spread rather than replaced by it, so a styling hook on the
+			// field cannot silently restore Radix's select-the-whole-value autofocus.
+			const user = userEvent.setup();
+			render(
+				<Command.DialogRoot>
+					<Command.SearchTrigger>
+						<SearchButton />
+					</Command.SearchTrigger>
+					<Command.DialogContent title="Test Command Palette">
+						<Command.Input placeholder="Type a command or search..." data-slot="app-field" />
+					</Command.DialogContent>
+				</Command.DialogRoot>,
+			);
+			await focusTrigger(user);
+
+			await user.keyboard("e");
+			await waitFor(() => {
+				expect(queryInput()).toBeInTheDocument();
+			});
+
+			expect(input()).toHaveAttribute("data-slot", "app-field command-input");
 			expect(input()).toHaveProperty("selectionStart", 1);
 			expect(input()).toHaveProperty("selectionEnd", 1);
 		});

@@ -933,7 +933,12 @@ export function AppShellDemo() {
 		// `md` (not the `lg` default ngrok's dashboards use) keeps the desktop
 		// panel visible at the framed preview's desktop and tablet widths
 		<Sidebar.Root mobileBreakpoint="md">
-			<AppLayout.Root className="fixed inset-0">
+			{/* --sidebar-header-height: the sidebar header is a fixed height so it can
+			    align with AppLayout.Header's toolbar, and the switcher and search row
+			    stacked need the taller value. It goes on the common ancestor of both
+			    rows — custom properties only inherit downward, so setting it on
+			    Sidebar.Nav would leave AppLayout.Header on the 4.5rem default. */}
+			<AppLayout.Root className="fixed inset-0 [--sidebar-header-height:6rem]">
 				<SkipToMainLink />
 				<AppLayout.Notice>
 					{showNotice && (
@@ -953,14 +958,7 @@ export function AppShellDemo() {
 				</AppLayout.Notice>
 				<AppLayout.Workspace>
 					{/* the landmark is renamed with the section it is showing */}
-					<Sidebar.Nav
-						aria-label={inSettings ? "Settings" : "Main"}
-						// The header is a fixed height so it can align with
-						// AppLayout.Header's toolbar; the switcher and the search row
-						// stacked need the taller value. `--sidebar-header-height` is
-						// public API for exactly this.
-						className="[--sidebar-header-height:6rem]"
-					>
+					<Sidebar.Nav aria-label={inSettings ? "Settings" : "Main"}>
 						<Sidebar.Header>
 							{inSettings ? (
 								<DemoSettingsHeader
@@ -1254,7 +1252,12 @@ export function BridgeShellDemo() {
 		// `md` (not the `lg` default ngrok's dashboards use) keeps the desktop
 		// panel visible at the framed preview's desktop and tablet widths
 		<Sidebar.Root mobileBreakpoint="md">
-			<AppLayout.Root className="fixed inset-0">
+			{/* --sidebar-header-height: the sidebar header is a fixed height so it can
+			    align with AppLayout.Header's toolbar, and the switcher and search row
+			    stacked need the taller value. It goes on the common ancestor of both
+			    rows — custom properties only inherit downward, so setting it on
+			    Sidebar.Nav would leave AppLayout.Header on the 4.5rem default. */}
+			<AppLayout.Root className="fixed inset-0 [--sidebar-header-height:6rem]">
 				<SkipToMainLink />
 				<AppLayout.Notice>
 					{showNotice && (
@@ -1274,14 +1277,7 @@ export function BridgeShellDemo() {
 				</AppLayout.Notice>
 				<AppLayout.Workspace>
 					{/* the landmark is renamed with the section it is showing */}
-					<Sidebar.Nav
-						aria-label={inSettings ? "Settings" : "Main"}
-						// The header is a fixed height so it can align with
-						// AppLayout.Header's toolbar; the switcher and the search row
-						// stacked need the taller value. `--sidebar-header-height` is
-						// public API for exactly this.
-						className="[--sidebar-header-height:6rem]"
-					>
+					<Sidebar.Nav aria-label={inSettings ? "Settings" : "Main"}>
 						<Sidebar.Header>
 							{inSettings ? (
 								<DemoSettingsHeader

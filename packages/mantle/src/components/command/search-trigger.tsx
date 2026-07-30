@@ -51,11 +51,16 @@ type CommandSearchTriggerProps = Omit<ComponentProps<typeof Slot>, "children"> &
  *
  * What it contributes to the child:
  *
- * - `aria-haspopup="dialog"`, `aria-expanded`, `aria-controls`, `data-state`,
- *   and focus restoration on close, from the `Dialog.Trigger` it composes.
+ * - `aria-haspopup="dialog"`, `aria-expanded`, `aria-controls`, and focus
+ *   restoration on close, from the `Dialog.Trigger` it composes.
+ * - `data-state="open" | "closed"`, stamped from the palette's own state so it
+ *   survives being wrapped in another cloning trigger — a `Sidebar.Tooltip`
+ *   passes its own `data-state` down, and Radix's prop merge would otherwise
+ *   let it win.
  * - `aria-keyshortcuts`, so the `⌘K` binding is announced rather than only
  *   drawn — present only when `Command.DialogRoot` owns the shortcut, so it can
- *   never advertise a binding that is not bound.
+ *   never advertise a binding that is not bound. Pass your own value to
+ *   announce a chord you bound yourself.
  * - `onKeyDown` and `onPaste`, composed with the child's own handlers.
  * - `data-slot="command-search-trigger"`, joined ahead of the child's own slot.
  *
@@ -136,38 +141,43 @@ type CommandSearchTriggerProps = Omit<ComponentProps<typeof Slot>, "children"> &
 // cloning is unconditional rather than opt-in — the same shape as
 // `Sidebar.Tooltip`, which also takes a required single-element `children`.
 const CommandSearchTrigger = ({
+	"aria-keyshortcuts": ariaKeyshortcuts,
 	children,
 	"data-slot": dataSlot,
 	onKeyDown,
 	onPaste,
 	...props
 }: CommandSearchTriggerProps) => {
-	const { keyboardShortcut, openWithQuery } = useCommandDialogContext("SearchTrigger");
+	const { keyboardShortcut, open, openWithQuery } = useCommandDialogContext("SearchTrigger");
 	const isApple = useIsApplePlatform();
 
 	const applyAction = (action: SearchAction) => {
-		switch (action.type) {
-			case "seed":
-				openWithQuery(action.query);
-				return;
-			case "open":
-				openWithQuery();
-				return;
-			case "ignore":
-				return;
+		if (action.type === "ignore") {
+			return;
 		}
+		openWithQuery(action.type === "seed" ? action.query : undefined);
 	};
+
+	const platformChord = isApple ? "Meta+K" : "Control+K";
 
 	return (
 		<Dialog.Trigger asChild>
 			<Slot
 				// Rest props first: composing this inside another cloning trigger — a
 				// `Sidebar.Tooltip`, say — routes that trigger's pointer and focus
-				// handlers, `aria-describedby`, and `data-state` through here, and
-				// dropping them leaves the outer trigger inert.
+				// handlers and `aria-describedby` through here, and dropping them
+				// leaves the outer trigger inert.
 				{...props}
-				aria-keyshortcuts={keyboardShortcut ? (isApple ? "Meta+K" : "Control+K") : undefined}
+				// A consumer that binds the chord itself (`keyboardShortcut={false}`)
+				// owns the announcement, so their value wins over ours.
+				aria-keyshortcuts={ariaKeyshortcuts ?? (keyboardShortcut ? platformChord : undefined)}
 				data-slot={joinDataSlot(dataSlot, "command-search-trigger")}
+				// Stamped last, and from the palette's own state, because an outer
+				// cloning trigger's `data-state` arrives in `props` and Radix's
+				// `mergeProps` gives the child's value priority — so a
+				// `Sidebar.Tooltip` wrapper would otherwise hand the row the
+				// *tooltip's* state and the palette's open highlight would never fire.
+				data-state={open ? "open" : "closed"}
 				onKeyDown={(event) => {
 					onKeyDown?.(event);
 					if (event.defaultPrevented) {

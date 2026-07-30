@@ -195,7 +195,7 @@ export function CommandSearchShellDemo() {
 		<Sidebar.Root mobileBreakpoint="md">
 			<AppLayout.Root className="fixed inset-0">
 				<AppLayout.Workspace>
-					<Sidebar.Nav aria-label="Main" className="[--sidebar-header-height:6rem]">
+					<Sidebar.Nav aria-label="Main">
 						<Sidebar.Header>
 							<Sidebar.SwitcherTrigger>
 								<GlobeIcon />
@@ -204,9 +204,9 @@ export function CommandSearchShellDemo() {
 								</span>
 								<CaretDownIcon className="text-muted size-4 shrink-0" />
 							</Sidebar.SwitcherTrigger>
-							<SidebarSearch />
 						</Sidebar.Header>
 						<Sidebar.Body>
+							<SidebarSearch />
 							<Sidebar.Group>
 								<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
 								<Sidebar.List>

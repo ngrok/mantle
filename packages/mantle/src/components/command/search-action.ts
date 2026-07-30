@@ -94,7 +94,10 @@ const activationKeys = new Set([" ", "Enter"]);
  *   element that started it and cannot be forwarded, so seeding is impossible;
  *   opening empty at least lands the user in a real text field instead of
  *   swallowing the keystroke. This is the case the blog's original trigger got
- *   wrong — it silently did nothing for CJK input.
+ *   wrong — it silently did nothing for CJK input. Engines that route dead keys
+ *   through the IME path report them the same way (Chrome on macOS sends
+ *   `key: "Dead"` with `keyCode: 229` for `⌥e`), so those open empty too rather
+ *   than falling through to the named-key case below.
  * - **Any of `⌘` / `Ctrl` / `Alt` held → `"ignore"`.** Those are shortcuts, not
  *   text: the palette's own `⌘K`, `⌘V` (the paste path handles it), and the
  *   browser/OS accelerators. `Alt` is excluded even though macOS `⌥` produces
@@ -105,7 +108,9 @@ const activationKeys = new Set([" ", "Enter"]);
  * - **A single code point → `"seed"`.** Counted by spreading rather than
  *   `.length`, so astral characters (emoji, less common CJK) count as one
  *   instead of two and are not dropped. Every named key (`"Tab"`,
- *   `"ArrowDown"`, `"Dead"`, `"Unidentified"`) is longer and falls through.
+ *   `"ArrowDown"`, `"Dead"`, `"Unidentified"`) is longer and falls through —
+ *   except when the engine also flags it as IME processing, which the case
+ *   above claims first.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#searchactionfromkeydown
  *
@@ -192,4 +197,6 @@ export {
 export type {
 	//,
 	SearchAction,
+	SearchKeyDownEvent,
+	SearchPasteEvent,
 };

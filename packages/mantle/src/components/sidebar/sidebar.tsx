@@ -727,7 +727,8 @@ type SidebarTriggerProps = Omit<
 		 * Ignored under `Sidebar.Root keyboardShortcut={false}`, so the tooltip can
 		 * never name a binding that is not bound. Passed rather than built in so the
 		 * sidebar does not have to reach into another component for the platform
-		 * modifier glyph — `aria-keyshortcuts` is stamped either way.
+		 * modifier glyph — `aria-keyshortcuts` is stamped either way, which is also
+		 * why the chips render `aria-hidden`.
 		 */
 		shortcut?: ReactNode;
 	};
@@ -735,6 +736,33 @@ type SidebarTriggerProps = Omit<
 // Module-scope default so the trigger icon keeps referential equality across
 // renders (a JSX default prop value would be re-created every render).
 const defaultTriggerIcon = <SidebarSimpleIcon />;
+
+/**
+ * A tooltip body pairing a row's label with the keyboard chord that reaches it.
+ * Shared by `Sidebar.Trigger` and `Sidebar.Tooltip` so the two can never drift
+ * into differently sized chips.
+ *
+ * The chips are `aria-hidden`: a tooltip is wired as its control's
+ * `aria-describedby`, and the chord is already announced by that control's
+ * `aria-keyshortcuts`, so repeating it here would speak it twice.
+ */
+const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNode }) => {
+	if (shortcut == null) {
+		return label;
+	}
+
+	return (
+		<span className="flex items-center gap-1.5">
+			{label}
+			<span
+				aria-hidden
+				className="inline-flex shrink-0 items-center gap-0.5 [&_kbd]:h-4 [&_kbd]:min-w-4 [&_kbd]:bg-neutral-500/25 [&_kbd]:px-0.5 [&_kbd]:text-xs"
+			>
+				{shortcut}
+			</span>
+		</span>
+	);
+};
 
 // Why no `asChild`: Trigger renders a fully-wired mantle IconButton (icon +
 // sr-only label + aria-expanded/aria-controls); custom triggers compose the
@@ -747,11 +775,23 @@ const defaultTriggerIcon = <SidebarSimpleIcon />;
  * `AppLayout.Header`) — it must stay visible at every breakpoint where the
  * sidebar can collapse, or users have no way to reopen it.
  *
+ * The button is icon-only at every breakpoint, so it always renders a tooltip
+ * showing `label` (plus the optional `shortcut` chips). **That means it requires
+ * a `TooltipProvider` ancestor, like any `Tooltip.Root`, and throws without
+ * one** — mount a single provider at your app root, decoupled from the sidebar,
+ * so the app-wide delay and hover settings stay app-wide.
+ *
+ * It also stamps `aria-keyshortcuts` for the `⌘B` / `Ctrl+B` chord the root
+ * binds, resolved after hydration: the server cannot know the host, so the
+ * first paint is the non-Apple answer. Both the attribute and the chips are
+ * omitted under `Sidebar.Root keyboardShortcut={false}`.
+ *
  * **Data attributes:**
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-state` | `"expanded"` \| `"collapsed"` | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`. |
+ * | `data-slot` | `"sidebar-trigger-tooltip"` | On the tooltip surface, not the button — the styling hook for the label-and-chord popup this part renders. |
  * | `data-appearance` | `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
  * | `data-intent` | `"accent"` \| `"danger"` \| `"neutral"` | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`. |
  * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default. |
@@ -846,6 +886,10 @@ const Trigger = ({
 
 	// Never name a chord this root does not bind.
 	const hint = keyboardShortcut ? shortcut : undefined;
+	// Announce the chord rather than only binding it. Resolved after hydration,
+	// like every platform-modifier read: the server cannot know the host, so it
+	// renders the non-Apple answer and the effect corrects it.
+	const platformChord = isApple ? "Meta+B" : "Control+B";
 
 	return (
 		// Unlike `Sidebar.Tooltip`, this label is not gated on the rail state: the
@@ -859,11 +903,7 @@ const Trigger = ({
 					appearance={appearance}
 					aria-controls={controlsNav ? navId : undefined}
 					aria-expanded={expanded}
-					// Announce the chord rather than only binding it. Resolved after
-					// hydration, like every platform-modifier read: the server cannot know
-					// the host, so it renders the non-Apple answer and the effect corrects
-					// it.
-					aria-keyshortcuts={keyboardShortcut ? (isApple ? "Meta+B" : "Control+B") : undefined}
+					aria-keyshortcuts={keyboardShortcut ? platformChord : undefined}
 					data-slot={joinDataSlot(dataSlot, "sidebar-trigger")}
 					data-state={expanded ? "expanded" : "collapsed"}
 					icon={icon}
@@ -879,16 +919,7 @@ const Trigger = ({
 				/>
 			</Tooltip.Trigger>
 			<Tooltip.Content data-slot="sidebar-trigger-tooltip">
-				{hint == null ? (
-					label
-				) : (
-					<span className="flex items-center gap-1.5">
-						{label}
-						<span className="inline-flex shrink-0 items-center gap-0.5 [&_kbd]:h-4 [&_kbd]:min-w-4 [&_kbd]:bg-neutral-500/25 [&_kbd]:px-0.5 [&_kbd]:text-xs">
-							{hint}
-						</span>
-					</span>
-				)}
+				<TooltipLabel label={label} shortcut={hint} />
 			</Tooltip.Content>
 		</Tooltip.Root>
 	);
@@ -1779,16 +1810,18 @@ type SidebarSearchTriggerProps = ComponentProps<"button"> &
 /**
  * The search row — the row that opens a search or command palette.
  *
- * Put it in `Sidebar.Header`, under the switcher, where the header's own `gap-2`
- * sets the spacing between them. The header is a fixed height so it can align
- * with an `AppLayout.Header` toolbar, and that height is sized for one row, so
- * raise it for two: `<Sidebar.Nav className="[--sidebar-header-height:6rem]">`.
- * Placing the row at the top of `Sidebar.Body` also works and needs no height
- * change, at the cost of a wider gap under the switcher (the header centers its
- * single row, and the body adds its own top padding).
+ * Put it at the top of `Sidebar.Body`, above the first `Sidebar.Group`: it
+ * needs no height change, and it lands in the same `px-3` gutter as the
+ * navigation rows, so it shares their column in both panel states.
  *
- * Either way it lands in the same `px-3` gutter as the navigation rows, so it
- * shares their column in both panel states.
+ * `Sidebar.Header`, under the switcher, also works — the header's own `gap-2`
+ * sets the spacing — at the cost of a taller header. That height is a fixed one
+ * row so it can align with an `AppLayout.Header` toolbar, so a stack of two
+ * needs `--sidebar-header-height` raised on a **common ancestor of both rows**
+ * (`<AppLayout.Root className="[--sidebar-header-height:6rem]">`). Setting it on
+ * `Sidebar.Nav` only looks right: custom properties inherit downward, so
+ * `AppLayout.Header` would keep the `4.5rem` default and the two rows would stop
+ * being center-aligned.
  *
  * It is deliberately a navigation row and not a text field. The row is the same
  * chrome as a `Sidebar.ItemButton` — same height, padding, radius, hover, and
@@ -1917,8 +1950,10 @@ const SearchTrigger = ({
 				// `group` scopes the shortcut hint's reveal to this row.
 				"group",
 				rowClassName,
-				// The leading magnifier matches a nav row's leading icon.
-				"[&>svg:first-child]:text-muted [&>svg:first-child]:size-5 [&>svg]:shrink-0",
+				// The leading magnifier matches a nav row's leading icon, hover
+				// brightening included — without it the row's label lifts to
+				// `text-strong` while its icon stays muted, which no nav row does.
+				"[&>svg:first-child]:text-muted hover:[&>svg:first-child]:text-strong [&>svg:first-child]:size-5 [&>svg]:shrink-0",
 				className,
 			)}
 			{...props}
@@ -2083,7 +2118,9 @@ type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "childre
 		 * The keyboard chord that reaches the same row, rendered after the label —
 		 * usually `<><MetaKey /><Kbd>K</Kbd></>`. The rail hides the row's own
 		 * shortcut hint along with its label, so the tooltip is where a pointer user
-		 * can still learn the chord.
+		 * can still learn the chord. The chips are `aria-hidden`: a tooltip is wired
+		 * as its row's `aria-describedby`, and the chord is already announced by the
+		 * row's `aria-keyshortcuts`.
 		 *
 		 * Passed rather than built in, so the sidebar does not have to know which
 		 * chord the row's palette or action binds.
@@ -2248,16 +2285,7 @@ const SidebarTooltip = ({
 		>
 			<Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
 			<Tooltip.Content data-slot={joinDataSlot(dataSlot, "sidebar-tooltip")} side={side} {...props}>
-				{shortcut == null ? (
-					label
-				) : (
-					<span className="flex items-center gap-1.5">
-						{label}
-						<span className="inline-flex shrink-0 items-center gap-0.5 [&_kbd]:h-4 [&_kbd]:min-w-4 [&_kbd]:bg-neutral-500/25 [&_kbd]:px-0.5 [&_kbd]:text-xs">
-							{shortcut}
-						</span>
-					</span>
-				)}
+				<TooltipLabel label={label} shortcut={shortcut} />
 			</Tooltip.Content>
 		</Tooltip.Root>
 	);

@@ -3,7 +3,7 @@ import { fireEvent, render as renderComponent, screen, waitFor } from "@testing-
 import { userEvent } from "@testing-library/user-event";
 import { createRef, type ReactElement } from "react";
 import { renderToString } from "react-dom/server";
-import { afterEach, beforeEach, describe, expect, type MockInstance, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import mantleCss from "../../mantle.css?raw";
 import type * as UseBreakpointModule from "../../hooks/use-breakpoint.js";
 import { Avatar } from "../avatar/index.js";
@@ -270,7 +270,8 @@ describe("Sidebar.Nav (desktop)", () => {
 		});
 
 		test("advertises Meta+B on an Apple platform", async () => {
-			const platform = vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+			// `restoreMocks` in vitest.config.ts tears the spy down between tests.
+			vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
 			render(
 				<Sidebar.Root>
 					<Sidebar.Nav />
@@ -283,7 +284,6 @@ describe("Sidebar.Nav (desktop)", () => {
 					"Meta+B",
 				);
 			});
-			platform.mockRestore();
 		});
 
 		test("is absent when the root does not own the shortcut", () => {
@@ -314,15 +314,9 @@ describe("Sidebar.Nav (desktop)", () => {
 	describe("on Apple platforms", () => {
 		// The handler resolves the platform once per mount, so the stub has to be
 		// installed before `render()` — a `beforeEach` is the only safe place.
-		let platform: MockInstance<() => string> | undefined;
-
+		// `restoreMocks` in vitest.config.ts undoes it between tests.
 		beforeEach(() => {
-			platform = vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
-		});
-
-		afterEach(() => {
-			platform?.mockRestore();
-			platform = undefined;
+			vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
 		});
 
 		test("⌘B toggles the sidebar", async () => {
@@ -1149,6 +1143,47 @@ describe("Sidebar.SearchTrigger", () => {
 		expect(tooltip).toHaveTextContent("K");
 	});
 
+	test("stays highlighted while its palette is open, even inside a Sidebar.Tooltip", async () => {
+		// Cross-part pin: `Tooltip.Trigger` hands its own `data-state` down, and
+		// Radix's prop merge lets the child's value win — so `Command.SearchTrigger`
+		// has to re-stamp the palette's state after the forwarded props. Without
+		// that, this row reads `data-state="closed"` with the palette open and
+		// `rowClassName`'s `data-state-open:` styling never fires.
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<Sidebar.Root>
+					<Sidebar.Nav>
+						<Command.DialogRoot keyboardShortcut={false}>
+							<Sidebar.Tooltip label="Search">
+								<Command.SearchTrigger>
+									<Sidebar.SearchTrigger data-testid="row">
+										<MagnifyingGlassIcon />
+										<span>Search</span>
+									</Sidebar.SearchTrigger>
+								</Command.SearchTrigger>
+							</Sidebar.Tooltip>
+							<Command.DialogContent title="Palette">
+								<Command.Input placeholder="Type a command…" />
+							</Command.DialogContent>
+						</Command.DialogRoot>
+					</Sidebar.Nav>
+				</Sidebar.Root>
+			</TooltipProvider>,
+		);
+
+		const row = screen.getByTestId("row");
+		expect(row).toHaveAttribute("data-state", "closed");
+
+		await user.click(row);
+
+		// Queried by test id: the open modal marks everything outside it
+		// `aria-hidden`, so a role query cannot reach the row any more.
+		await waitFor(() => {
+			expect(screen.getByTestId("row")).toHaveAttribute("data-state", "open");
+		});
+	});
+
 	test("keeps its label in the accessibility tree in the collapsed rail", async () => {
 		// The rail hides everything after the leading icon with `sr-only` rather
 		// than removing it, so the row still has a name when it is just a chip —
@@ -1754,6 +1789,13 @@ const defaultElementCases: Array<PartCase> = [
 		),
 	},
 	{
+		name: "SearchTrigger",
+		ownClass: "rounded-md",
+		slot: "sidebar-search-trigger",
+		tagName: "BUTTON",
+		renderPart: (probe) => <Sidebar.SearchTrigger {...probe}>Search…</Sidebar.SearchTrigger>,
+	},
+	{
 		name: "SwitcherTrigger",
 		ownClass: "font-medium",
 		slot: "sidebar-switcher-trigger",
@@ -1885,6 +1927,17 @@ const asChildCases: Array<PartCase> = [
 					</Sidebar.ItemButton>
 				</Sidebar.Item>
 			</Sidebar.List>
+		),
+	},
+	{
+		name: "SearchTrigger",
+		ownClass: "rounded-md",
+		slot: "sidebar-search-trigger",
+		tagName: "A",
+		renderPart: (probe) => (
+			<Sidebar.SearchTrigger asChild {...probe}>
+				<a href="/search">Search…</a>
+			</Sidebar.SearchTrigger>
 		),
 	},
 	{

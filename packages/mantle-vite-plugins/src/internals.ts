@@ -75,11 +75,13 @@ export const INTERNAL_CHUNKS_BY_COMPONENT: ReadonlyMap<string, readonly string[]
 	["bar-chart", ["chart", "button"]],
 	["line-chart", ["chart", "button"]],
 	["scatter-plot", ["chart", "button"]],
-	// Command renders the Dialog shell around its palette, a Separator between
-	// groups, and a Kbd chip per key in Command.SearchTrigger's ⌘K hint; each
-	// component's class strings are hoisted into its own chunk, and a
-	// command-only consumer imports none of those subpaths.
-	["command", ["dialog", "kbd", "separator"]],
+	// Command renders the Dialog shell around its palette (whose close control is
+	// an IconButton, hoisted one level further into the button chunk), a
+	// Separator between groups, and — via the `MetaKey` it re-exports — a Kbd
+	// chip. Each component's class strings are hoisted into its own chunk, the
+	// lookup is not transitive, and a command-only consumer imports none of those
+	// subpaths.
+	["command", ["button", "dialog", "kbd", "separator"]],
 	// SelectableList's styled rows live on the list directory's shared
 	// primitive chunk (list-<hash>.js).
 	["selectable-list", ["list"]],

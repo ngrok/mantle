@@ -1319,7 +1319,8 @@ Collapse the panel to watch the row join the icon column, or press `⌘K` inside
 import { Command, MetaKey } from "@ngrok/mantle/command";
 import { Kbd } from "@ngrok/mantle/kbd";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 
 function SidebarSearch() {
 	const { setOpenMobile } = useSidebar();
@@ -1335,7 +1336,17 @@ function SidebarSearch() {
 				}
 			}}
 		>
-			<Sidebar.Tooltip label="Search">
+			{/* the rail drops the row's own hint along with its label, so the
+			    tooltip repeats the chord for a pointer user */}
+			<Sidebar.Tooltip
+				label="Search"
+				shortcut={
+					<>
+						<MetaKey />
+						<Kbd>K</Kbd>
+					</>
+				}
+			>
 				<Command.SearchTrigger>
 					<Sidebar.SearchTrigger
 						shortcut={
@@ -1653,18 +1664,27 @@ common ancestor of the sidebar and the app-layout header rather than on the pane
 An [IconButton](/components/actions/icon-button) wired to toggle the sidebar. All `IconButton` props except
 `asChild` and `children`, with sidebar defaults:
 
-| Prop          | Type                                | Default                 | Description                                 |
-| ------------- | ----------------------------------- | ----------------------- | ------------------------------------------- |
-| `appearance?` | `"ghost" \| "outlined"`             | `"ghost"`               | The visual style of the trigger.            |
-| `icon?`       | `ReactNode`                         | `<SidebarSimpleIcon />` | The icon rendered inside the trigger.       |
-| `intent?`     | `"accent" \| "danger" \| "neutral"` | `"neutral"`             | The color intent of the trigger.            |
-| `label?`      | `string`                            | `"Toggle Sidebar"`      | Accessible name; override for localization. |
+| Prop          | Type                                | Default                 | Description                                                                                                                                                                                                                     |
+| ------------- | ----------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance?` | `"ghost" \| "outlined"`             | `"ghost"`               | The visual style of the trigger.                                                                                                                                                                                                |
+| `icon?`       | `ReactNode`                         | `<SidebarSimpleIcon />` | The icon rendered inside the trigger.                                                                                                                                                                                           |
+| `intent?`     | `"accent" \| "danger" \| "neutral"` | `"neutral"`             | The color intent of the trigger.                                                                                                                                                                                                |
+| `label?`      | `string`                            | `"Toggle Sidebar"`      | Accessible name, and what the tooltip says; override for localization.                                                                                                                                                          |
+| `shortcut?`   | `ReactNode`                         | —                       | Chord chips rendered after the label in the tooltip — usually `<><MetaKey /><Kbd>B</Kbd></>`. Dropped under `Sidebar.Root keyboardShortcut={false}`, and `aria-hidden` because `aria-keyshortcuts` already announces the chord. |
+
+The button is icon-only at every breakpoint, so it always renders a tooltip showing `label`. **That means it
+requires a [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, like any
+`Tooltip.Root`, and throws without one** — mount a single provider at your app root, decoupled from the
+sidebar, so the app-wide delay and hover settings stay app-wide. It also stamps `aria-keyshortcuts`
+(`"Meta+B"` on Apple platforms, `"Control+B"` elsewhere, resolved after hydration), omitted along with the
+chips under `Sidebar.Root keyboardShortcut={false}`.
 
 **Data attributes**
 
 | Data Attribute | Value                         | Description                                                                                                                                      |
 | -------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `data-state`   | `"expanded"` \| `"collapsed"` | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`. |
+| `data-slot`    | `"sidebar-trigger-tooltip"`   | On the tooltip surface, not the button — the styling hook for the label-and-chord popup this part renders.                                       |
 
 ### Sidebar.Header
 
@@ -1870,6 +1890,7 @@ owns, plus:
 | ------------ | ---------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `children`   | `ReactElement`                                 | —         | The single element row to label: a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`, optionally already wrapped in a `DropdownMenu.Trigger asChild`. Required — `Tooltip.Trigger asChild` clones it, so text or no child renders nothing hoverable and is a compile error. |
 | `label`      | `ReactNode`                                    | —         | What the tooltip says — normally the row's own label text.                                                                                                                                                                                                                  |
+| `shortcut?`  | `ReactNode`                                    | —         | Chord chips rendered after the label — usually `<><MetaKey /><Kbd>K</Kbd></>`. The rail hides the row's own hint along with its text, so the tooltip is where a pointer user can still learn it. `aria-hidden`, since the row's `aria-keyshortcuts` already announces it.   |
 | `side?`      | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | `"right"` | Which side of the row the tooltip opens on. The rail sits at the inline start of the viewport, so the default points the tooltip away from it.                                                                                                                              |
 | `asChild?`   | `boolean`                                      | `false`   | Radix's own `Tooltip.Content` swap, forwarded straight through: it replaces the **tooltip surface**, not the row you wrap — see [Polymorphism](#polymorphism).                                                                                                              |
 | `className?` | `string`                                       | —         | Merged onto the tooltip surface, last, by `Tooltip.Content` — this part adds no classes of its own.                                                                                                                                                                         |
@@ -1877,7 +1898,8 @@ owns, plus:
 
 Every remaining `Tooltip.Content` prop — `style`, `ref`, `align`, `sideOffset`, `collisionPadding`, any
 `data-*` — lands on the tooltip surface as usual, and so do the attributes
-[Tooltip](/components/overlays/tooltip#tooltipcontent) itself emits there (`data-state`, `data-side`).
+[Tooltip](/components/overlays/tooltip#tooltipcontent) itself emits there (`data-state`, `data-side`). The
+four in the table above are the exceptions: this part reads them itself.
 
 **Data attributes**
 
@@ -1906,16 +1928,17 @@ All props from [Separator](/components/structure/separator), including:
 A hook returning the nearest `Sidebar.Root` state (`SidebarState`) — throws outside a root. Use it for custom
 triggers, close-on-navigate, or a keyboard shortcut:
 
-| Field              | Type                      | Description                                                  |
-| ------------------ | ------------------------- | ------------------------------------------------------------ |
-| `open`             | `boolean`                 | Desktop expanded state.                                      |
-| `setOpen`          | `(open: boolean) => void` | Set the desktop expanded state.                              |
-| `openMobile`       | `boolean`                 | Mobile sheet open state.                                     |
-| `setOpenMobile`    | `(open: boolean) => void` | Set the mobile sheet state (e.g. close on navigation).       |
-| `isMobile`         | `boolean`                 | Whether the viewport is below `mobileBreakpoint`.            |
-| `mobileBreakpoint` | `"sm" \| "md" \| "lg"`    | The configured mobile breakpoint.                            |
-| `toggle`           | `() => void`              | Toggle whichever presentation is active.                     |
-| `navId`            | `string`                  | The nav landmark's id, for custom triggers' `aria-controls`. |
+| Field              | Type                      | Description                                                                                                                              |
+| ------------------ | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `open`             | `boolean`                 | Desktop expanded state.                                                                                                                  |
+| `setOpen`          | `(open: boolean) => void` | Set the desktop expanded state.                                                                                                          |
+| `openMobile`       | `boolean`                 | Mobile sheet open state.                                                                                                                 |
+| `setOpenMobile`    | `(open: boolean) => void` | Set the mobile sheet state (e.g. close on navigation).                                                                                   |
+| `isMobile`         | `boolean`                 | Whether the viewport is below `mobileBreakpoint`.                                                                                        |
+| `mobileBreakpoint` | `"sm" \| "md" \| "lg"`    | The configured mobile breakpoint.                                                                                                        |
+| `toggle`           | `() => void`              | Toggle whichever presentation is active.                                                                                                 |
+| `navId`            | `string`                  | The nav landmark's id, for custom triggers' `aria-controls`.                                                                             |
+| `keyboardShortcut` | `boolean`                 | Whether this root binds `⌘B` / `Ctrl+B`. Read it in a custom trigger so a visible chord hint can never name a binding that is not bound. |
 
 ### extractSidebarStateCookie
 

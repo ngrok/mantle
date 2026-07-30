@@ -1,5 +1,5 @@
 ---
-"@ngrok/mantle": patch
+"@ngrok/mantle": minor
 ---
 
 **Command: a search trigger, a stateful `DialogRoot`, and the `⌘K` shortcut.**

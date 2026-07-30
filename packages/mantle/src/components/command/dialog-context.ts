@@ -63,9 +63,9 @@ type CommandDialogState = {
 	setQuery: (query: string) => void;
 	/**
 	 * Whether this root owns the `⌘K` / `Ctrl+K` shortcut. `Command.SearchTrigger`
-	 * reads it to decide whether to render its shortcut hint and
-	 * `aria-keyshortcuts`, so the hint can never advertise a binding that is
-	 * not there.
+	 * reads it to decide whether to stamp `aria-keyshortcuts`; read it yourself
+	 * in the trigger's child to gate its *visible* hint, so neither can advertise
+	 * a binding that is not there.
 	 */
 	keyboardShortcut: boolean;
 };

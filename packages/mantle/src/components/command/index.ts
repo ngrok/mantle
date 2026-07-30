@@ -39,6 +39,8 @@ export {
 export type {
 	//,
 	SearchAction,
+	SearchKeyDownEvent,
+	SearchPasteEvent,
 } from "./search-action.js";
 
 export type {

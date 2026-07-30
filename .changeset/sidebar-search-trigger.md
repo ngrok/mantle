@@ -1,10 +1,10 @@
 ---
-"@ngrok/mantle": patch
+"@ngrok/mantle": minor
 ---
 
 **`Sidebar.SearchTrigger`: the sidebar's search row.**
 
-A new part for `Sidebar.Header` (under the switcher) or the top of `Sidebar.Body` — the row that opens a search or command palette.
+A new part for the top of `Sidebar.Body` (or `Sidebar.Header`, under the switcher) — the row that opens a search or command palette.
 
 It is deliberately a navigation row and not a text field. The chrome is a `Sidebar.ItemButton`'s, down to the 28px chip it becomes in the collapsed icon rail, because a search entry point in a sidebar is one of the rows rather than a form control wedged among them. `Sidebar.ItemButton` and `Sidebar.SearchTrigger` now share one row-chrome constant instead of repeating it, because "these are the same row" is the contract: a search row whose geometry drifts from the navigation rows below it reads as a foreign control.
 
@@ -14,6 +14,6 @@ The row is styling only — it is not wired to any state. Compose it with [`Comm
 
 `Sidebar.Tooltip` also gained a `shortcut` prop, which renders the chord after the label. The rail hides a row's own hint along with its text, so the tooltip is where a pointer user can still learn it.
 
-`Sidebar.Header` is a fixed height so it can align with an `AppLayout.Header` toolbar, and that height is sized for one row — raise it when the switcher and the search row are stacked: `<Sidebar.Nav className="[--sidebar-header-height:6rem]">`.
+`Sidebar.Header` is a fixed height so it can align with an `AppLayout.Header` toolbar, and that height is sized for one row. If you stack the switcher and the search row there, raise `--sidebar-header-height` on a **common ancestor of both rows** — `<AppLayout.Root className="[--sidebar-header-height:6rem]">`. Setting it on `Sidebar.Nav` only looks right: custom properties inherit downward, so `AppLayout.Header` would keep the `4.5rem` default and the two rows would stop being center-aligned.
 
 Docs: https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger
