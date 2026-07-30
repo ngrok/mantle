@@ -102,7 +102,7 @@ These rules are [ASD-STE100](https://www.asd-ste100.org/) Simplified Technical E
   - `perform` — cut the vague verb, so `performs an action` becomes `runs an action`. The noun `performance` and the API `performance.now()` stay.
   - `enable` — use the verb for a real flag only (`Whether to enable filtering of command items.`). The adjective `enabled` is the antonym of `disabled`, not the verb. It always stays, and so does `oxlint-enable`.
   - `just` — where deleting it changes no meaning, cut it. Contrastive `not just`, comparative `just as` and `just like`, temporal `just` (`the index just past the closing quote`), and `justify-*` all stay.
-  - `seamless` — cut the quality adjective. It stays for a tile that repeats with no visible seam (`chart/texture.ts`).
+  - `seamless` — cut the quality adjective. It stays for a tile that repeats with no visible seam (`packages/mantle/src/components/chart/texture.ts`).
 - **Cap a noun stack at three words.** A backticked identifier counts as one word. `retry backoff config` passes. `user account credential rotation policy handler` fails — add a preposition: `handler for rotating user account credentials`.
 - **Spell out a new abbreviation on first use in the file.** Never invent one. Two lists decide it:
   - **Bare is fine** — `HTTP`, `API`, `SQL`, `TLS`, `URL`, `DOM`, `CSS`, `HTML`, `JSON`, `SVG`, `JSX`, `UI`, `ID`, `SSR`, `ARIA`, `a11y`, `WAI`, `APG`, `FOUC`, `CDN`, `POJO`, and the initialisms [Readability & Maintainability](#readability--maintainability) allows in identifiers.
@@ -137,7 +137,7 @@ These rules are [ASD-STE100](https://www.asd-ste100.org/) Simplified Technical E
 - **Restructure instead of explaining.** If a comment excuses confusing code, rename or split the code.
 - **`@example` prose follows these rules; the code in the fence does not.** Never paraphrase example code. Never de-duplicate the repeated full-tree examples [COMPONENT_SPEC.md §4.2](./COMPONENT_SPEC.md#42-compound-components-the-full-tree-rule) requires.
 - **Editing a JSDoc summary is a multi-file change.** The same summary often repeats on a part declaration, its namespace property, and an `.mdx` page — fix every copy. Editing a summary or an `@example` also changes `apps/www/app/utilities/__snapshots__/components-surface.json` — regenerate it with `pnpm -F @app/www test -u` or CI fails.
-- **Two spans are not yours to edit.** Never rewrite quoted upstream text that carries a `@see` citation — MDN's `autocomplete` values in `input/types.ts` — because an edit forks it from its source. oxlint parses the `oxlint-disable` and `oxlint-enable` directive text, so only the `-- reason` clause after it is prose. A fragment there is fine.
+- **Two spans are not yours to edit.** Never rewrite quoted upstream text that carries a `@see` citation — MDN's `autocomplete` values in `packages/mantle/src/components/input/types.ts` — because an edit forks it from its source. oxlint parses the `oxlint-disable` and `oxlint-enable` directive text, so only the `-- reason` clause after it is prose. A fragment there is fine.
 
 ```tsx
 // ❌ restates the identifier, and the second sentence adds nothing

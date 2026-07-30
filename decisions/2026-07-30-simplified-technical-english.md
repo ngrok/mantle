@@ -12,20 +12,20 @@ Agent-written prose in this repo over-explains. It restates the code, it hedges,
 investigation. A pass over `packages/mantle/src`, `apps/www`, and the agent docs found four repeating
 shapes:
 
-- **The summary restates the identifier.** `command/command.tsx:374` reads
+- **The summary restates the identifier.** `packages/mantle/src/components/command/command.tsx:374` reads
   `The input component for the Command. It provides the input for the command palette.` Sentence two says
   nothing sentence one did not. That shape repeats at eight more part declarations in the same file, and
   the namespace copies degrade further — `:954` reads `The input component for the Command component.`
-  `theme/theme-provider.tsx:51` and `:58` carry one sentence twice, on a context and on its provider.
-- **One sentence carries four ideas.** `select/select.tsx:188` runs 55 words on a single line, drops into a
+  `packages/mantle/src/components/theme/theme-provider.tsx:51` and `:58` carry one sentence twice, on a context and on its provider.
+- **One sentence carries four ideas.** `packages/mantle/src/components/select/select.tsx:188` runs 55 words on a single line, drops into a
   lowercase `if` mid-block, and states the default in the future passive:
   `By default the selected item's text will be rendered.`
-- **The comment names nothing.** `card/card.tsx:9` reads
+- **The comment names nothing.** `packages/mantle/src/components/card/card.tsx:9` reads
   `A container that can be used to display content in a box resembling a physical card.`
-  `table/table.tsx:7` promises `styling and additional functionality`. Neither tells a reader what the part
+  `packages/mantle/src/components/table/table.tsx:7` promises `styling and additional functionality`. Neither tells a reader what the part
   does that a sibling does not.
-- **The comment narrates the investigation.** `table/table.tsx:415` ships `// This could be removed, or simplified`
-  inside a live `cx()` call. `hooks/use-breakpoint.tsx:102` narrates the implementation instead of stating
+- **The comment narrates the investigation.** `packages/mantle/src/components/table/table.tsx:415` ships `// This could be removed, or simplified`
+  inside a live `cx()` call. `packages/mantle/src/hooks/use-breakpoint.tsx:102` narrates the implementation instead of stating
   the contract.
 
 Every one of those lines costs a reader on each read, and every one of them ships. JSDoc is the surface for
@@ -85,7 +85,7 @@ Two exclusions are permanent, not deferred:
   the repo live in one 2025 ADR, and rewriting them would edit the repo's decision history. Note that this
   is new normative content: `COMPONENT_SPEC.md §1.8` owns decision-doc policy today and says nothing about
   editing a shipped one.
-- **Quoted upstream text keeps its source wording.** `input/types.ts:1-12` is verbatim MDN prose with an
+- **Quoted upstream text keeps its source wording.** `packages/mantle/src/components/input/types.ts:1-12` is verbatim MDN prose with an
   `@see` citation. An STE pass would fork it from its source and lose the citation's value.
 
 ### 4. The banned-word list ships with its carve-outs
@@ -105,7 +105,7 @@ the section publishes each carve-out beside the ban:
   stay; six of ten hits are the noun or the API, three of them inside `@example` blocks that rule 2 forbids
   paraphrasing.
 - **`seamless`** — ban the quality adjective. The tiling term of art stays, because it names a real
-  geometric property: `chart/texture.ts:57`, pinned by `texture.test.ts:47`.
+  geometric property: `packages/mantle/src/components/chart/texture.ts:57`, pinned by `packages/mantle/src/components/chart/texture.test.ts:47`.
 - **`leverage`** — ban the verb. The noun `high-leverage` stays.
 - **`ensure`** — no carve-out. `make sure`, the standard's replacement, already has one precedent in
   `CONVENTIONS.md § Testing`.
@@ -144,9 +144,9 @@ Measured over 2,296 JSDoc summary sentences in `packages/mantle/src`: median 10 
 (11.0%) over 20 words, and 129 (5.6%) over 25.
 
 The cap catches the wrong prose. All eight worst over-explaining comments found in the corpus pass the
-20-word cap: `command.tsx:374` is 6 words, `select.tsx:188` is 7, `card.tsx:9` is 16. Meanwhile the
+20-word cap: `packages/mantle/src/components/command/command.tsx:374` is 6 words, `packages/mantle/src/components/select/select.tsx:188` is 7, `packages/mantle/src/components/card/card.tsx:9` is 16. Meanwhile the
 over-limit summaries cluster in the newest components, which were built to the current spec bar — 30% of
-`list`, 28% of `avatar`, 19% of `chart`. `avatar.tsx:93` spends 49 words to pin the whole initials contract,
+`list`, 28% of `avatar`, 19% of `chart`. `packages/mantle/src/components/avatar/avatar.tsx:93` spends 49 words to pin the whole initials contract,
 and it should keep them.
 
 So the section keeps the limits as a smell and names the productive rewrite. A summary past 25 words is
@@ -208,7 +208,7 @@ CONVENTIONS.md § Writing owns how the sentences read.
 - Editing a JSDoc summary stays a multi-file change. The summary and every `@example` feed
   `apps/www/app/utilities/__snapshots__/components-surface.json`, and CI fails until
   `pnpm -F @app/www test -u` regenerates it. A cleanup pass must budget for that, and for the duplicated
-  text — `select.tsx:188`, `select.tsx:831`, and `select.mdx:441` are one sentence in three places.
+  text — `packages/mantle/src/components/select/select.tsx:188`, `packages/mantle/src/components/select/select.tsx:831`, and `apps/www/app/docs/components/forms/select.mdx:441` are one sentence in three places.
 - No changeset. The adoption diff touches no file under `packages/mantle/src` and nothing published changes.
 - There is no linter for any of this. `oxlint` does not read markdown, and `fmt:check` only formats it. The
   diff-audit checklist, the skill trigger, and human review are the enforcement.
