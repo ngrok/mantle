@@ -28,14 +28,14 @@
     "@types/node": "catalog:",
     "husky": "9.1.7",
     "lint-staged": "17.2.0",
-    "oxfmt": "0.60.0",
-    "oxlint": "1.75.0",
+    "oxfmt": "0.61.0",
+    "oxlint": "1.76.0",
     "tsx": "catalog:",
-    "turbo": "2.10.6",
+    "turbo": "2.10.7",
     "vitest": "4.1.10"
   },
   "engines": {
     "node": "^24.0.0"
   },
-  "packageManager": "pnpm@11.17.0"
+  "packageManager": "pnpm@11.18.0"
 }
