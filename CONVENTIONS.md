@@ -1,6 +1,6 @@
 # Conventions
 
-Single source of truth for code style, patterns, and conventions in the Mantle design system monorepo. All rules below are mandatory — call out and fix violations.
+Single source of truth for code style, prose style, patterns, and conventions in the Mantle design system monorepo. All rules below are mandatory — call out and fix violations.
 
 ## Files & Modules
 
@@ -22,7 +22,7 @@ Single source of truth for code style, patterns, and conventions in the Mantle d
 - Optimize for readability and changeability over terseness or cleverness. Code is read far more often than it is written.
 - Always brace control flow — no single-line `if`/`for` bodies.
 - Descriptive names — `error` not `e`, `event` not `evt`, `element` not `el`. Widely-known initialisms (`URL`, `CSS`, `SSR`) are fine.
-- Comments explain _why_, not _what_. Do not restate the code.
+- Comments explain _why_, not _what_. Do not restate the code. [Writing](#writing) governs how the sentence itself reads.
 - Prefer inline single-use event handlers when they improve locality and readability. Hoist handlers only when reused, memoized, or meaningfully simplifying the render body.
 - Avoid nested ternaries. Prefer early returns or component-based branching. A single ternary is fine; nesting harms readability.
 - Never use `React.FC` / `FC` — use inline function types.
@@ -59,7 +59,7 @@ Single source of truth for code style, patterns, and conventions in the Mantle d
 
 - Add JSDoc to all exported functions, methods, hooks, components, and prop types.
 - Add JSDoc to complex file-local logic whose intent or contract would not be immediately obvious from the implementation and types alone.
-- Prefer concise contract-oriented documentation over implementation commentary.
+- JSDoc prose follows [Writing](#writing): lead with one summary sentence stating the contract, not implementation commentary.
 - JSDoc for functions, hooks, and components SHOULD include at least one concise `@example`.
 - Each `@example` should demonstrate the intended call or render shape with realistic inputs/props and the key expected behavior or result. Keep setup minimal.
 - Generated code, code-gen output, and config files are exempt.
@@ -77,6 +77,108 @@ Single source of truth for code style, patterns, and conventions in the Mantle d
   - framework/runtime boundaries where external typing is impossible to model correctly
 - Type assertions must never be used to silence TypeScript errors or bypass proper type modeling.
 - Prefer discriminated unions, narrowing, and explicit state modeling over optional-property-heavy “bag of props” types.
+
+## Writing
+
+These rules are [ASD-STE100](https://www.asd-ste100.org/) Simplified Technical English, Issue 9, adapted to this repo. Claude Code surfaces the same rules as the `simplified-technical-english` skill; this section is the normative copy.
+
+- **In scope:** code comments, JSDoc, `.changeset/*.md` release notes, `decisions/*.md`, docs-page copy under `apps/www/app/docs/`, commit subjects and bodies, PR descriptions, and these agent docs.
+- **Out of scope:** chat replies, product copy, marketing text, vendored code (`packages/mantle/src/utils/cx/vendor/**`), and the generated code and config files [JSDoc](#jsdoc) already exempts.
+- **Identifier naming** stays with [Readability & Maintainability](#readability--maintainability).
+
+**Scope and status** — the stance is [COMPONENT_SPEC.md § Scope and status](./COMPONENT_SPEC.md#scope-and-status). This is the bar for prose you write or edit. Prose you touch comes up to the bar; the rest waits until someone opts into the work. An audit reports a prose gap; it does not open a migration inside an unrelated PR. Never restyle a shipped `decisions/*.md` — its wording is part of a dated record. Never reflow a verbatim quote, an ASCII composition tree, or an `@example`.
+
+### Words
+
+- **One word, one meaning, within one file.** Reuse one term per concept verbatim. `cache`, `store`, and `buffer` in one file read as three things.
+- **Match the code.** Write the identifier's exact name and casing, in backticks — `ThemeProvider`, `data-slot`, `performance.now()`. Never paraphrase an identifier. The backticks are load-bearing: no word rule below reaches inside a backtick span. That is what keeps `justify-center`, `enabled`, and `oxlint-enable` off the ban list.
+- **Prefer the short common verb** — `use`, `get`, `set`, `add`, `remove`, `keep`, `read`, `write`, `start`, `stop`, `fix`.
+- **Never write** `utilize`, `facilitate`, `orchestrate`, `basically`, `essentially`, `comprehensive`, `robust`, or `ensure`. None of them states a fact. For `ensure`, write `make sure` — [Testing](#testing) already uses it — or name the mechanism that guarantees the outcome.
+- **Never write `simply`.** The ban is word-exact: `simplify`, `simpler`, and `simplified` are fine.
+- **Cut the hedges.** Delete `it seems`, `arguably`, `might possibly`, `should probably`, and `this could be removed`. Keep `must`, `can`, `may`, `never`, and `always` — each states a constraint or a real option.
+- **These six carry a second, earned sense in mantle's prose. Ban the first sense only:**
+  - `provide` — cut the verb; write `pass`, `set`, or `carry`. Write `when set` for `when provided`, and `when omitted` for `if not provided`. The `Provider` and `*Provider` identifiers stay, and so does React context vocabulary (`the context Root provides`).
+  - `leverage` — cut the verb; write `use`. The noun `high-leverage` stays.
+  - `perform` — cut the vague verb, so `performs an action` becomes `runs an action`. The noun `performance` and the API `performance.now()` stay.
+  - `enable` — use the verb for a real flag only (`Whether to enable filtering of command items.`). The adjective `enabled` is the antonym of `disabled`, not the verb. It always stays, and so does `oxlint-enable`.
+  - `just` — where deleting it changes no meaning, cut it. Contrastive `not just`, comparative `just as` and `just like`, temporal `just` (`the index just past the closing quote`), and `justify-*` all stay.
+  - `seamless` — cut the quality adjective. It stays for a tile that repeats with no visible seam (`chart/texture.ts`).
+- **Cap a noun stack at three words.** A backticked identifier counts as one word. `retry backoff config` passes. `user account credential rotation policy handler` fails — add a preposition: `handler for rotating user account credentials`.
+- **Spell out a new abbreviation on first use in the file.** Never invent one. Two lists decide it:
+  - **Bare is fine** — `HTTP`, `API`, `SQL`, `TLS`, `URL`, `DOM`, `CSS`, `HTML`, `JSON`, `SVG`, `JSX`, `UI`, `ID`, `SSR`, `ARIA`, `a11y`, `WAI`, `APG`, `FOUC`, `CDN`, `POJO`, and the initialisms [Readability & Maintainability](#readability--maintainability) allows in identifiers.
+  - **Spell it out** — anything narrower, such as `MQL`, `OTP`, or `TZ`.
+
+### Sentences
+
+- **Use the active voice.** Write `The processor drops the event.`, not `The event is dropped by the processor.` When the actor is unknown or irrelevant, the passive voice is correct.
+- **Use simple tenses only** — present, past, future, imperative, infinitive. Write `renders`, not `will be rendered`. Never use an `-ing` form as the main verb.
+- **Put one idea in each sentence.** When both halves stand alone, split the sentence on `and` or `but`.
+- **The em-dash aside and the prose semicolon are house style. They stay.** When the aside names an exception, a fallback, a consequence, or the mechanism, keep it — `the consumer's own id when they pass one, else the label's generated id`. When it restates the first half, cut it. An aside is not a second idea.
+- **Put the condition first.** Write `If the lease expires, the worker exits.`, not `The worker exits if the lease expires.`
+- **Do not drop words to shorten.** Keep the articles, subjects, and verbs inside a sentence. Concision removes ideas, not grammar: rewrite `// resets cursor on flush` as `// The flush resets the cursor.`
+- **A fragment is correct in three places, and the rule above does not reach them:**
+  - a list item, including a label-colon bullet
+  - a JSDoc summary or prop doc that names a thing — `The click event handler.`
+  - a `Why <topic>:` comment label
+- **Never add a verb to turn one of those three into a sentence.** Most bullets in this file, and most mantle JSDoc summaries, are verbless by design.
+- **Three or more parallel items make a list**, not a longer sentence.
+- **Length is a smell, not a gate.** Keep procedural text — a commit subject, a step, a `TODO` — to 20 words, and descriptive text to 25. The limits do not reach `.changeset/*.md` or `decisions/*.md`. When a descriptive sentence runs past 25 words, ask which one it is:
+  - a clause, a colon, and an enumeration — write a list.
+  - several facts in one sentence — split it.
+  - one contract that needs every word — keep it. Most JSDoc summaries here land near 10 words. A 40-word summary that pins a whole contract beats four vague ones.
+
+### Comments and JSDoc
+
+- **State the constraint, the trade-off, or the surprise.** The code already states what it does — see [Readability & Maintainability](#readability--maintainability). Never restate the identifier.
+- **Prefer the `Why <topic>:` label for a constraint** — `// Why: navigator.platform is deprecated…`, `// Why no asChild:`, `// Why event delegation:`. Do not expand a label into a sentence.
+- **Never narrate the investigation.** What you checked, tried, or read belongs in the PR description.
+- **Put the warning above the code it guards.**
+- **Lead with one summary sentence, then state the contract** — inputs, outputs, errors, units, invariants. [JSDoc](#jsdoc) says which exports need one. [COMPONENT_SPEC.md §4](./COMPONENT_SPEC.md#4-jsdoc) owns _what_ a component's JSDoc must contain; this section owns _how_ those sentences read.
+- **Restructure instead of explaining.** If a comment excuses confusing code, rename or split the code.
+- **`@example` prose follows these rules; the code in the fence does not.** Never paraphrase example code. Never de-duplicate the repeated full-tree examples [COMPONENT_SPEC.md §4.2](./COMPONENT_SPEC.md#42-compound-components-the-full-tree-rule) requires.
+- **Editing a JSDoc summary is a multi-file change.** The same summary often repeats on a part declaration, its namespace property, and an `.mdx` page — fix every copy. Editing a summary or an `@example` also changes `apps/www/app/utilities/__snapshots__/components-surface.json` — regenerate it with `pnpm -F @app/www test -u` or CI fails.
+- **Two spans are not yours to edit.** Never rewrite quoted upstream text that carries a `@see` citation — MDN's `autocomplete` values in `input/types.ts` — because an edit forks it from its source. oxlint parses the `oxlint-disable` and `oxlint-enable` directive text, so only the `-- reason` clause after it is prose. A fragment there is fine.
+
+```tsx
+// ❌ restates the identifier, and the second sentence adds nothing
+/** The input component for the Command. It provides the input for the command palette. */
+// ✅ names what this part does that a sibling does not
+/** The palette's query field. */
+```
+
+Worked before/after pairs live in the `simplified-technical-english` skill, out of always-on context.
+
+### Changesets, decision docs, and docs pages
+
+- **A changeset is release notes, not a commit message.** `.changeset/*.md` ships verbatim into the public `CHANGELOG.md`, for a consumer who will never read the diff. The word bans hold; the length limits and the commit rules do not. [COMPONENT_SPEC.md §2.5](./COMPONENT_SPEC.md#25-changesets) owns what the body must cover.
+- **Write a new decision doc to these rules.** Leave the shipped ones alone.
+- **Docs-page copy follows these rules.** [COMPONENT_SPEC.md §7.4](./COMPONENT_SPEC.md#74-prose-rules) owns what that copy must cover.
+
+### Commit messages and PR descriptions
+
+- **Write the subject in the imperative, after the conventional-commit prefix this repo uses** — `fix(breadcrumb): mute current page text`. Keep it to ten words or fewer after the prefix, with no trailing period. The `(#1234)` suffix GitHub appends on squash-merge does not count.
+- **The one-idea rule governs prose sentences, not the subject line.** A multi-part change gets one subject, and the parts go in the body — `feat(command): add SearchTrigger, a stateful DialogRoot, and ⌘K`.
+- **When the subject is not enough, add a body.** State the reason for the change. Then state how the behavior changes. Files are not behavior.
+- **Never list the changed files.** The diff is the changelog.
+- **This repo ships no PR template, so this is the section order:**
+  - **Why** — the problem, the trigger, and the intended outcome.
+  - **How** — the approach in one or two sentences. Do not tour the diff.
+  - **Validation** — one line per check. Include only what a reviewer cannot read off CI.
+  - Investigation detail, rejected alternatives, and links belong here, not in the source.
+- **Cut the boilerplate.** No generated footer, no empty section, no restated file list.
+
+### Self-check
+
+Before you return text or report a diff complete, read what you wrote for:
+
+- a banned word that no carve-out covers
+- the passive voice, a compound tense, or an `-ing` form as the main verb
+- a sentence with two independent ideas, or a condition at the end
+- a noun stack over three words, or an unexpanded abbreviation that is not exempt
+- a comment or summary that restates the identifier, the code, or itself
+- a changed JSDoc summary whose other copies and `components-surface.json` snapshot are still stale
+
+Fix what you find. Report it in the `Conventions pass:` note [AGENTS.md](./AGENTS.md) requires.
 
 ## className Composition
 
@@ -183,7 +285,7 @@ For logic that is stringified into an inline `<script>`, evaluate the produced s
 - **No arbitrary sleeps.** `await new Promise((resolve) => setTimeout(resolve, 100))` is a race, not a wait. Use `waitFor`, `findBy*`, or `expect.poll` on the state you actually need — for observer-driven measurement, poll the measured value itself.
 - Never mutate state inside a `waitFor` callback; it can run many times.
 - Install spies **after** `userEvent.setup()`. `setup()` swaps `navigator.clipboard` for its own stub, so a patch applied before it is silently discarded.
-- Every test-bearing package sets `restoreMocks`, `unstubEnvs`, and `unstubGlobals` in its Vitest config (both mantle projects, `apps/www`, `mantle-vite-plugins`, `mantle-server-syntax-highlighter`), so `vi.spyOn` spies and `vi.stubGlobal`/`vi.stubEnv` stubs are torn down between tests automatically. A trailing `spy.mockRestore()` in a test body is dead code — and relying on one is a leak, since a test that throws never reaches it. `restoreMocks` does **not** clear a `vi.fn()`'s implementation or call history, so a `vi.fn()` shared across tests still needs `mockReset()` — put it in `beforeEach`, or just create the mock there. A spy that must survive across tests in a file goes in `beforeEach`, not `beforeAll`.
+- Every test-bearing package sets `restoreMocks`, `unstubEnvs`, and `unstubGlobals` in its Vitest config (both mantle projects, `apps/www`, `mantle-vite-plugins`, `mantle-server-syntax-highlighter`), so `vi.spyOn` spies and `vi.stubGlobal`/`vi.stubEnv` stubs are torn down between tests automatically. A trailing `spy.mockRestore()` in a test body is dead code — and relying on one is a leak, since a test that throws never reaches it. `restoreMocks` does **not** clear a `vi.fn()`'s implementation or call history, so a `vi.fn()` shared across tests still needs `mockReset()` — put it in `beforeEach`, or create the mock there. A spy that must survive across tests in a file goes in `beforeEach`, not `beforeAll`.
 - No test may depend on another test having run. Verify with `pnpm vitest run --project unit --sequence.shuffle.tests --sequence.shuffle.files --sequence.seed=<n>` across a few seeds.
 - Locale- and timezone-sensitive assertions rely on `TZ`/`LC_ALL` being pinned in the Vitest config, not in a package script — a pin in a script is lost the moment anyone runs a single file directly. The happy-dom project pins them via `test.env`; the browser project pins Chromium's own `locale`/`timezoneId` through the Playwright `contextOptions`, which `process.env` cannot reach.
 - Never assert a wall-clock duration or a throughput threshold. Benchmarks belong in `bench()`, not `test()`.

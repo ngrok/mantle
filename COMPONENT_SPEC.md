@@ -33,10 +33,10 @@ is a bug in the rule.
 
 - **This file governs component questions** — artifacts, API shape, JSDoc, CSS variables, data attributes,
   docs page, tests, wiring.
-- [CONVENTIONS.md](./CONVENTIONS.md) governs general code style for the whole monorepo (formatting, imports,
-  package management, TypeScript rules that are not component-specific). Where a component requirement depends
-  on a style rule, this file restates it so the checklist is complete; CONVENTIONS.md remains authoritative for
-  the rule itself.
+- [CONVENTIONS.md](./CONVENTIONS.md) governs general code and prose style for the whole monorepo (formatting,
+  imports, package management, prose in comments/JSDoc/changesets, TypeScript rules that are not
+  component-specific). Where a component requirement depends on a style rule, this file restates it so the
+  checklist is complete; CONVENTIONS.md remains authoritative for the rule itself.
 - [AGENTS.md](./AGENTS.md) governs how you work (verification cadence, diff auditing).
 - The [Philosophy page](./apps/www/app/docs/philosophy.mdx) explains the _why_ at length. §0 below is its
   actionable distillation.
@@ -496,6 +496,9 @@ JSDoc is the API surface for IntelliSense, `llms.txt`, `/api/components.json`, a
 library. It is not optional and it is not a summary of the implementation. It is also snapshot-guarded: the
 summary and every `@example` feed `components-surface.json` ([§2.1](#21-artifacts)).
 
+This section owns _what_ the JSDoc must contain. [CONVENTIONS.md § Writing](./CONVENTIONS.md#writing) owns how
+its sentences read.
+
 ### 4.1. Every exported symbol
 
 Components, hooks, functions, and prop types each need:
@@ -694,6 +697,9 @@ multi-file example app. Keep the live example and its code block in sync; the li
 generated dataset. Icons come from `@phosphor-icons/react`.
 
 ### 7.4. Prose rules
+
+Sentence-level style — voice, tense, sentence length, noun stacks, banned filler — is
+[CONVENTIONS.md § Writing](./CONVENTIONS.md#writing). These bullets are what the docs prose must cover.
 
 - Explain the _why_ behind non-obvious API, especially anything a reader would otherwise "fix" — a fake router
   in a demo, a deliberate absence of a part, an intentional ARIA choice.

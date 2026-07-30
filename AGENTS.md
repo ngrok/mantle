@@ -8,7 +8,7 @@ This file follows the [AGENTS.md standard](https://agents.md) and is the canonic
 
 This file, [CONVENTIONS.md](./CONVENTIONS.md), and [COMPONENT_SPEC.md](./COMPONENT_SPEC.md) are active instructions, not background reading. Work is incomplete until the agent has verified its own changed files against them.
 
-The three divide as follows: **CONVENTIONS.md** governs code style everywhere in the monorepo, **COMPONENT_SPEC.md** is the self-contained standard for authoring a `@ngrok/mantle` component (principles, artifacts, API shape, JSDoc, CSS-variable and data-attribute documentation, docs page, tests, wiring, changeset, and the audit procedure), and this file governs how you work. On a component question where the spec and the conventions appear to disagree, COMPONENT_SPEC.md governs.
+The three divide as follows: **CONVENTIONS.md** governs code and prose style everywhere in the monorepo (including comments, JSDoc, changesets, commit messages, and PR descriptions), **COMPONENT_SPEC.md** is the self-contained standard for authoring a `@ngrok/mantle` component (principles, artifacts, API shape, JSDoc, CSS-variable and data-attribute documentation, docs page, tests, wiring, changeset, and the audit procedure), and this file governs how you work. On a component question where the spec and the conventions appear to disagree, COMPONENT_SPEC.md governs.
 
 The spec is the bar for new components and for the parts of a component you are changing; existing components are brought up to it over time, not in a sweep. See its [Scope and status](./COMPONENT_SPEC.md#scope-and-status).
 
@@ -34,6 +34,7 @@ Required diff-audit checklist:
 
 - **Components: work [COMPONENT_SPEC.md's review checklist](./COMPONENT_SPEC.md#11-review-checklist) against the diff.** It is the complete list for anything under `packages/mantle/src/components/` or its docs, tests, and wiring — artifacts, API shape, `data-slot` and `asChild`, JSDoc, CSS variables and data attributes documented in **both** the JSDoc and the docs-page API reference, and the wiring that no verification command catches.
 - JSDoc: exported functions, hooks, components, and prop types are documented; required `@example` blocks are present.
+- Prose: comments, JSDoc, changesets, decision docs, docs-page copy, the commit subject, and the PR description follow [CONVENTIONS.md § Writing](./CONVENTIONS.md#writing) — active voice, simple tenses, one idea per sentence, condition first, no comment that restates the code, and none of the banned filler (`utilize`, `facilitate`, `ensure`, `robust`, `comprehensive`, `simply`, and the six carve-out words).
 - Tests: bug fixes have regression tests; business logic has edge-case tests (transformations, validation, conditional rendering, state machines, parsing/formatting). For every test you added or changed, name the one-line implementation change it would catch — if you can't, it doesn't count. Anything interactive must be driven with a real event (`user.click` / `user.keyboard`) and assert the resulting DOM/ARIA state, not just initial markup. No Tailwind utility-string assertions, no arbitrary `setTimeout` waits, no `toBeDefined()`/`not.toThrow()` as a test's only assertion, no bare `toHaveBeenCalled()` where the count matters. See [CONVENTIONS.md § Testing](./CONVENTIONS.md#testing).
 - TypeScript: no `any`, no forbidden `as Type` assertions, no non-null assertions (`value!`), no `React.FC`; prefer `type` over `interface`.
 - Nullish checks: `== null` / `!= null`, not `=== undefined` / `!== undefined`.
@@ -77,7 +78,7 @@ packages/mantle/src/components/my-component/
 
 ## Commands
 
-All commands run from workspace root (leverages turbo caching):
+All commands run from workspace root, which reuses the turbo cache:
 
 - `pnpm -w run start` — Start docs site with hot reload
 - `pnpm -w run build` — Build everything
@@ -94,7 +95,7 @@ Use `-F` to scope: `pnpm -w run build -F @ngrok/mantle`, `pnpm -w run test -F @n
 
 ## Verification
 
-Run these from the workspace root once a coherent chunk of work is done and before the final response (see the Agent Contract's verification cadence) — not after every edit. Ensure they pass:
+Run these from the workspace root once a coherent chunk of work is done and before the final response (see the Agent Contract's verification cadence) — not after every edit. Make sure they pass:
 
 1. `pnpm -w run lint` — 0 errors
 2. `pnpm -w run fmt:check` — 0 errors (run `pnpm -w run fmt` to auto-fix)
@@ -123,7 +124,7 @@ Run these from the workspace root once a coherent chunk of work is done and befo
 ## Common Issues & Solutions
 
 - **Build failures**: Run `pnpm run clean` then `pnpm run build`
-- **Type errors**: Ensure all packages are built before typechecking
+- **Type errors**: Build all packages before typechecking
 - **Hot reload issues**: Restart dev server or clear `.react-router/` cache
 - **Toolchain drift**: Run `mise run doctor` to verify Node and pnpm match committed pins. Re-run `./scripts/setup` if they don't.
 - **Lockfile drift** (CI flags `mise.lock` out of sync with `.nvmrc` / `package.json#packageManager`): bump the source pin in `.nvmrc` or `package.json#packageManager`, then `mise run relock && mise install` and commit `mise.lock` alongside the pin change.
