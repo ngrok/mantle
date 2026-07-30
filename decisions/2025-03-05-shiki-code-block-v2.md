@@ -15,7 +15,7 @@ The existing `CodeBlock` component uses PrismJS for syntax highlighting. Prism r
 2. **Hydration mismatches** — SSR renders plain escaped text; client swaps in highlighted HTML in a `useEffect`, requiring `suppressHydrationWarning` on the `<code>` element
 3. **No clean server rendering** — there is no path to get highlighted HTML on the server without shipping Shiki/Prism to the browser
 
-The goal is a **net-new** `ShikiCodeBlock` component that produces identical highlighted output to Shiki running in the browser, but does all highlighting work at build/HMR time via a Vite plugin. Zero Shiki or Prism runtime in the browser bundle. Works for both MDX docs (static code fences) and pure Vite apps (runtime interpolations). For code that is truly dynamic at request time (e.g. traffic inspector showing API response bodies), a React Router server action does the highlighting.
+The goal is a **net-new** `ShikiCodeBlock` component that produces identical highlighted output to Shiki running in the browser, but does all highlighting work at build/HMR time via a Vite plugin. Zero Shiki or Prism runtime in the browser bundle. Works for both MDX docs (static code fences) and pure Vite apps (runtime interpolations). For code that is truly dynamic at request time (e.g. traffic inspector showing API response bodies), a React Router server action will do the highlighting.
 
 ## Decision
 
@@ -83,7 +83,7 @@ The `shikiCode("lang")` runtime function is a no-op that returns a `ShikiCodeVal
 
 ### Server Action Path (`highlightHref`)
 
-For truly dynamic content (traffic inspector showing request/response bodies, user-entered code, account-specific configs), `@ngrok/mantle/shiki-server` exports a React Router action handler:
+For truly dynamic content (traffic inspector showing request/response bodies, user-entered code, account-specific configs), the plan adds a React Router action handler under `@ngrok/mantle/shiki-server`:
 
 ```tsx
 // app/routes/api.highlight.ts

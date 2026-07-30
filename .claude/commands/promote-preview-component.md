@@ -85,7 +85,7 @@ Run from the workspace root. All five must pass:
 2. `pnpm -w run fmt:check` — clean.
 3. `pnpm -w run typecheck` — 0 errors.
 4. `pnpm -w run build -F @ngrok/mantle` — succeeds.
-5. `pnpm -w run test -F @ngrok/mantle` — all tests pass.
+5. `pnpm -w run test` — all tests pass. Run it **unscoped**: `-F @ngrok/mantle` cannot reach the `@app/www` suite, which is what pins the component manifest a promotion changes.
 
 ## 8. Report
 

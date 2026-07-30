@@ -43,6 +43,16 @@ import { cx } from "../../utils/cx/cx.js";
  * </Table.Root>
  * ```
  *
+ * Data attributes it stamps on the outer element, for your own CSS to target:
+ *
+ * - `data-x-overflow="true" | "false"` — whether the content is wider than the
+ *   container. Always present, so match the value, not the attribute.
+ * - `data-x-scroll-end="true" | "false"` — whether an overflowing container is
+ *   scrolled to its right edge. Always present.
+ * - `data-sticky-active` — present only while the container overflows and is not
+ *   scrolled to the end. `DataTable`'s pinned action column keys its shadow off
+ *   this through `group-data-sticky-active/table:`.
+ *
  * @see https://mantle.ngrok.com/components/data-display/table#tableroot
  */
 const Root = ({ children, className, ref, ...props }: ComponentProps<"div">) => {
@@ -407,8 +417,8 @@ const Foot = ({ children, className, ref, ...props }: ComponentProps<"tfoot">) =
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tablerow
  */
-const Row = ({ children, className, ref, ...props }: ComponentProps<"tr">) => (
-	<tr data-slot="table-row" ref={ref} className={cx(className)} {...props}>
+const Row = ({ children, ref, ...props }: ComponentProps<"tr">) => (
+	<tr data-slot="table-row" ref={ref} {...props}>
 		{children}
 	</tr>
 );

@@ -89,8 +89,8 @@ const Body = ({ asChild = false, className, children, ref, ...rest }: CardProps)
 };
 
 /**
- * The band below `Card.Body`, with a top border dividing the two. Pass it as a
- * direct child of `Card.Root`.
+ * The band below `Card.Body`. Unless it is the first child, it draws a top border
+ * dividing the two. Pass it as a direct child of `Card.Root`.
  *
  * @see https://mantle.ngrok.com/components/structure/card#cardfooter
  *
@@ -264,7 +264,7 @@ const Card = {
 	 */
 	Body,
 	/**
-	 * The band below `Card.Body`, with a top border dividing the two.
+	 * The band below `Card.Body`, divided from it by a top border.
 	 *
 	 * @see https://mantle.ngrok.com/components/structure/card#cardfooter
 	 *

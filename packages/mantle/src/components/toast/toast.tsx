@@ -90,7 +90,7 @@ type MakeToastOptions = {
 	 */
 	duration_ms?: number;
 	/**
-	 * An optional custom ID for this toast. When omitted, the sonner library generates one.
+	 * An optional custom ID for this toast. When omitted, the toast gets a unique generated ID.
 	 */
 	id?: string;
 };

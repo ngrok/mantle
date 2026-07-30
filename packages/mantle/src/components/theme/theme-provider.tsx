@@ -105,7 +105,8 @@ function ThemeProvider({ children, forceTheme }: ThemeProviderProps) {
 		// Re-sync on mount: the cookie can change between the first render and this effect.
 		syncThemeFromCookie();
 
-		// Why the `localStorage` ping fallback: Safari before 15.4 ships no `BroadcastChannel`.
+		// Why the feature test and the catch: Safari before 15.4 ships no
+		// `BroadcastChannel`, and the constructor throws in a sandboxed iframe.
 		try {
 			if ("BroadcastChannel" in window) {
 				broadcastChannelRef.current = new BroadcastChannel(THEME_STORAGE_KEY);
@@ -120,6 +121,9 @@ function ThemeProvider({ children, forceTheme }: ThemeProviderProps) {
 			// silently swallow errors
 		}
 
+		// The receive side of the `localStorage` ping. It stays registered even when
+		// `BroadcastChannel` is available, because `notifyOtherTabs` writes the ping on
+		// every call.
 		function onStorage(event: StorageEvent) {
 			if (event.key === `${THEME_STORAGE_KEY}__ping`) {
 				syncThemeFromCookie();
@@ -499,6 +503,8 @@ function preventThemeFlash(args: {
 	const hadValidCookie = isTheme(cookieTheme);
 	try {
 		if (isTheme(lsTheme) && !hadValidCookie) {
+			// Migrate the pre-cookie `localStorage` theme, then delete it so this
+			// branch runs at most once per browser.
 			writeCookie(storageKey, lsTheme);
 			try {
 				window.localStorage.removeItem(storageKey);
@@ -506,6 +512,7 @@ function preventThemeFlash(args: {
 				// silently swallow errors
 			}
 		} else if (!hadValidCookie) {
+			// No stored theme at all: seed the cookie so the next SSR resolves it.
 			writeCookie(storageKey, preference);
 		}
 	} catch {

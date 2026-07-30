@@ -18,9 +18,10 @@ afterEach(() => {
 	cleanup();
 });
 
-// If `RadioGroup.ButtonGroup` nests inside `RadioGroup.Root`, the buttons bind
-// to an inner, uncontrolled group. The picker then starts with no selection, so
-// every scenario opens a Sheet whichever overlay the user picks.
+// Regression: the picker once nested `RadioGroup.ButtonGroup` inside
+// `RadioGroup.Root`, so the buttons bound to an inner, uncontrolled group. The
+// picker started with no selection, so every scenario opened a Sheet whichever
+// overlay the user picked.
 describe("UserOverlayDemo", () => {
 	it("defaults the overlay picker to Sheet", () => {
 		renderDemo();

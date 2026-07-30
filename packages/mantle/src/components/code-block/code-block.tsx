@@ -538,8 +538,9 @@ type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "children" | "typ
 	};
 
 /**
- * The (optional) copy button of the `CodeBlock`. Copies the code content
- * to the clipboard when clicked.
+ * The optional copy button. Copies the raw source of the mounted
+ * `CodeBlock.Code` to the clipboard — in a tabbed block, the active tab's code.
+ * Omit it to render the code block without a copy control.
  *
  * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockcopybutton
  *

@@ -695,7 +695,7 @@ Sidebar.Root
 └── Sidebar.Trigger
 ```
 
-`Sidebar.Root` renders no DOM — it only provides state, so `Sidebar.Trigger` can live anywhere under it,
+`Sidebar.Root` renders no DOM — it only carries state, so `Sidebar.Trigger` can live anywhere under it,
 including inside layout components that know nothing about the sidebar. Render exactly one `Sidebar.Nav` per
 `Sidebar.Root`; nested roots shadow the outer sidebar for everything below them.
 There is deliberately no account-switcher part: a "Switch accounts" submenu is a composition of

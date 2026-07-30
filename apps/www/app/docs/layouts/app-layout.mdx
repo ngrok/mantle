@@ -1425,9 +1425,9 @@ export function PageShapes() {
 Why each class on `AppLayout.Body` is there — and what breaks without it:
 
 - **`min-h-0 flex-1`** gives it a definite height, so `h-full` on a page resolves to exactly the card's
-  interior. Keep the toolbar out of that box. An in-flow `sticky` header still takes flow space, so `h-full`
-  resolves against the full content box. Every such page then overflows by exactly the toolbar's height — a
-  bottom-pinned bar hangs below the fold on every load.
+  interior. Before the toolbar moved out of the scroll container, an in-flow `sticky` header took flow space,
+  so `h-full` resolved against the full content box. Every such page then overflowed by exactly the toolbar's
+  height — a bottom-pinned bar hung below the fold on every load.
 - **block inside, not flex.** This is the trap worth knowing about even though the part now absorbs it: if the
   page region were a flex container, **auto margins beat `align-items: stretch`**, so a route root of
   `mx-auto max-w-7xl` would shrink-to-fit — getting _narrower_ as the viewport gets _wider_. Keeping the page

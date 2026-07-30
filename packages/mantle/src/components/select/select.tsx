@@ -187,8 +187,9 @@ const Group = ({ className, ref, ...props }: ComponentProps<typeof SelectPrimiti
 /**
  * The part that reflects the selected value. Renders the selected item's text
  * by default. For more control, control the select and pass your own children.
- * Do not style this part — Radix measures it to align the open content over the selected item. Pass `placeholder` for the
- * text to show when the select has no value.
+ * Do not style this part — under `Select.Content position="item-aligned"`, Radix
+ * measures its box to align the open list over the selected item. Pass
+ * `placeholder` for the text to show when the select has no value.
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectvalue
  *
@@ -835,8 +836,9 @@ const Select = {
 	/**
 	 * The part that reflects the selected value. Renders the selected item's text
 	 * by default. For more control, control the select and pass your own children.
-	 * Do not style this part — Radix measures it to align the open content over the selected item. Pass `placeholder` for the
-	 * text to show when the select has no value.
+	 * Do not style this part — under `Select.Content position="item-aligned"`, Radix
+	 * measures its box to align the open list over the selected item. Pass
+	 * `placeholder` for the text to show when the select has no value.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selectvalue
 	 *

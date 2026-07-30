@@ -12,7 +12,7 @@ import { Slot } from "../slot/index.js";
 type ComboboxProps = Primitive.ComboboxProviderProps;
 
 /**
- * The outermost part of a combobox. It owns the store that every other Combobox part reads and writes.
+ * The outermost part of a combobox. It owns the ariakit store that `Combobox.Input`, `Combobox.Content`, and `Combobox.Item` read and write.
  *
  * Use Combobox for a list of options where the user types to filter — large static lists,
  * async/server-side data, or any single-select where search is helpful. For very small
@@ -418,7 +418,7 @@ const ComboboxSeparatorComponent = ({
  */
 const Combobox = {
 	/**
-	 * The outermost part of a combobox. It owns the store that every other Combobox part reads and writes.
+	 * The outermost part of a combobox. It owns the ariakit store that `Combobox.Input`, `Combobox.Content`, and `Combobox.Item` read and write.
 	 *
 	 * Use Combobox for a list of options where the user types to filter — large static lists,
 	 * async/server-side data, or any single-select where search is helpful. For very small

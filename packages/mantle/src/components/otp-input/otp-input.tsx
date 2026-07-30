@@ -469,7 +469,7 @@ const Separator = ({
 const OtpInput = {
 	/**
 	 * The root of the OTP input. Wraps the hidden input that captures
-	 * keystrokes, paste, and autofill, and provides per-slot state to
+	 * keystrokes, paste, and autofill, and exposes per-slot state to
 	 * descendant `OtpInput.Slot` parts.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/otp-input

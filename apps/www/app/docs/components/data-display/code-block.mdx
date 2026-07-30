@@ -568,7 +568,7 @@ All props from [standard HTML h3 attributes](https://developer.mozilla.org/en-US
 
 ### CodeBlock.CopyButton
 
-The (optional) copy button of the `CodeBlock`. Render this as a child of the `CodeBlock.Body` to allow users to copy the code block contents to their clipboard.
+The optional copy button. Render it as a child of `CodeBlock.Body`. It copies the raw source of the mounted `CodeBlock.Code` to the clipboard — in a tabbed block, the active tab's code.
 
 All props from [standard HTML button attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
 
@@ -602,7 +602,7 @@ All props from [Icon](/components/data-display/icon), plus:
 
 ### CodeBlock.TabList
 
-A tab list for the `CodeBlock` header. Renders pill-styled tab triggers that switch which code is displayed. Place this inside `CodeBlock.Header` and pair with `CodeBlock.TabContent` in `CodeBlock.Body`. Tab state is managed by `CodeBlock.Root` via `defaultTab` / `activeTab` / `onActiveTabChange`.
+A tab list for the `CodeBlock` header. Renders pill-styled tab triggers that switch which code is displayed. Place this inside `CodeBlock.Header` and pair with `CodeBlock.TabContent` in `CodeBlock.Body`. `CodeBlock.Root` owns the tab state via `defaultTab` / `activeTab` / `onActiveTabChange`.
 
 All props from [standard HTML div attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
 

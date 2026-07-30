@@ -94,12 +94,14 @@ function useOffsetPagination({
 	const [currentPage, setCurrentPage] = useState(1);
 	const [currentPageSize, setCurrentPageSize] = useState(pageSize);
 
-	// Why reset the page: a page index past the new last page renders an empty table.
+	// Why reset to page 1: the old index means something else against a new page
+	// size. A larger page size can also put it past the new last page.
 	useEffect(() => {
 		setCurrentPageSize(pageSize);
 		setCurrentPage(1);
 	}, [pageSize]);
 
+	// Why reset to page 1: a shorter list can put the current index past the end.
 	useEffect(() => {
 		setCurrentPage(1);
 	}, [listSize]);

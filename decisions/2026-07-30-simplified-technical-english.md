@@ -5,6 +5,7 @@
 **Applies to:** every comment, JSDoc block, changeset, decision doc, docs page, commit subject, and pull-request description written in this repo
 **Distilled rules:** [CONVENTIONS.md → Writing](../CONVENTIONS.md#writing)
 **Source:** [ngrok-private/ngrok#45954](https://github.com/ngrok-private/ngrok/pull/45954), which added these rules to the ngrok monorepo as a Claude Code skill. Upstream standard: [ASD-STE100](https://www.asd-ste100.org/).
+**Evidence:** every `file:line` citation and count below names the tree at commit `3e79a45f`, which shipped this record. The repo-wide pass in `8a3899d7` then rewrote most of the prose they quote. Read them as a dated "before", not as live code.
 
 ## Context
 
@@ -12,23 +13,23 @@ Agent-written prose in this repo over-explains. It restates the code, it hedges,
 investigation. A pass over `packages/mantle/src`, `apps/www`, and the agent docs found four repeating
 shapes:
 
-- **The summary restates the identifier.** `packages/mantle/src/components/command/command.tsx:374` reads
+- **The summary restates the identifier.** `packages/mantle/src/components/command/command.tsx:374` read
   `The input component for the Command. It provides the input for the command palette.` Sentence two says
-  nothing sentence one did not. That shape repeats at eight more part declarations in the same file, and
-  the namespace copies degrade further — `:954` reads `The input component for the Command component.`
-  `packages/mantle/src/components/theme/theme-provider.tsx:51` and `:58` carry one sentence twice, on a context and on its provider.
-- **One sentence carries four ideas.** `packages/mantle/src/components/select/select.tsx:188` runs 55 words on a single line, drops into a
-  lowercase `if` mid-block, and states the default in the future passive:
+  nothing sentence one did not. That shape repeated at eight more part declarations in the same file, and
+  the namespace copies degraded further — `:954` read `The input component for the Command component.`
+  `packages/mantle/src/components/theme/theme-provider.tsx:51` and `:58` carried one sentence twice, on a context and on its provider.
+- **One sentence carries four ideas.** `packages/mantle/src/components/select/select.tsx:188` ran 55 words on a single line, dropped into a
+  lowercase `if` mid-block, and stated the default in the future passive:
   `By default the selected item's text will be rendered.`
-- **The comment names nothing.** `packages/mantle/src/components/card/card.tsx:9` reads
+- **The comment names nothing.** `packages/mantle/src/components/card/card.tsx:9` read
   `A container that can be used to display content in a box resembling a physical card.`
-  `packages/mantle/src/components/table/table.tsx:7` promises `styling and additional functionality`. Neither tells a reader what the part
+  `packages/mantle/src/components/table/table.tsx:7` promised `styling and additional functionality`. Neither told a reader what the part
   does that a sibling does not.
-- **The comment narrates the investigation.** `packages/mantle/src/components/table/table.tsx:415` ships `// This could be removed, or simplified`
-  inside a live `cx()` call. `packages/mantle/src/hooks/use-breakpoint.tsx:102` narrates the implementation instead of stating
+- **The comment narrates the investigation.** `packages/mantle/src/components/table/table.tsx:415` shipped `// This could be removed, or simplified`
+  inside a live `cx()` call. `packages/mantle/src/hooks/use-breakpoint.tsx:102` narrated the implementation instead of stating
   the contract.
 
-Every one of those lines costs a reader on each read, and every one of them ships. JSDoc is the surface for
+Every one of those lines cost a reader on each read, and every one of them shipped. JSDoc is the surface for
 IntelliSense, `llms.txt`, `/api/components.json`, and each agent that reads the library, so bad prose
 propagates into generated consumer code.
 
@@ -147,8 +148,8 @@ semicolon included, because oxlint parses the directive text.
 Measured over 2,296 JSDoc summary sentences in `packages/mantle/src`: median 10 words, p90 21 words, 253
 (11.0%) over 20 words, and 129 (5.6%) over 25.
 
-The cap catches the wrong prose. All eight worst over-explaining comments found in the corpus pass the
-20-word cap: `packages/mantle/src/components/command/command.tsx:374` is 6 words, `packages/mantle/src/components/select/select.tsx:188` is 7, `packages/mantle/src/components/card/card.tsx:9` is 16. Meanwhile the
+The cap catches the wrong prose. All eight worst over-explaining comments found in the corpus passed the
+20-word cap: `packages/mantle/src/components/command/command.tsx:374` was 6 words, `packages/mantle/src/components/select/select.tsx:188` was 7, `packages/mantle/src/components/card/card.tsx:9` was 16. Meanwhile the
 over-limit summaries cluster in the newest components, which were built to the current spec bar — 30% of
 `list`, 28% of `avatar`, 19% of `chart`. `packages/mantle/src/components/avatar/avatar.tsx:93` spends 49 words to pin the whole initials contract,
 and it should keep them.

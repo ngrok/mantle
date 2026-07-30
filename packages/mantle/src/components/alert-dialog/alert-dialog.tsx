@@ -524,8 +524,9 @@ const actionIntentByDialogIntent = {
 
 /**
  * A button that confirms the Alert Dialog action.
- * Will default to appearance="filled", with a tone derived from the `AlertDialog`'s
- * intent: danger dialogs get a danger button, info dialogs get a neutral one.
+ * Defaults to `appearance="filled"`, with a tone derived from the parent
+ * `AlertDialog.Root`'s intent: danger dialogs get a danger button, info dialogs
+ * get a neutral one.
  * Does not close the alert dialog by default.
  *
  * These buttons should be distinguished visually from the AlertDialogCancel button.
@@ -606,7 +607,7 @@ type AlertDialogCancelProps = Omit<ButtonProps, "appearance" | "intent"> & {
 
 /**
  * A button that closes the dialog and cancels the action.
- * Will default to appearance="outlined" and intent="neutral".
+ * Defaults to `appearance="outlined"` and `intent="neutral"`.
  *
  * This button should be distinguished visually from AlertDialogAction buttons.
  *

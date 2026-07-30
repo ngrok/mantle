@@ -22,7 +22,7 @@ For full accessibility, an app embedding mantle must:
 2. Place [`<SkipToMainLink />`](/components/primitives/skip-to-main-link) as the very first focusable element in `<body>`, paired with a [`<Main>`](/components/primitives/main) landmark wrapping the page's primary content.
 3. Render a single `<h1>` per page that names the page.
 4. Use real form elements with associated [`<Label>`](/components/forms/label)s.
-5. Set accessible names on icon-only controls — [`IconButton`](/components/actions/icon-button) requires `aria-label`.
+5. Set accessible names on icon-only controls — [`IconButton`](/components/actions/icon-button) requires a `label` prop.
 
 ## Skip-to-main and landmarks
 
@@ -80,7 +80,7 @@ The table below summarizes the keyboard contract for the most common interactive
 
 Mantle components emit appropriate roles automatically. Consumers need to add:
 
-- `aria-label` on [`IconButton`](/components/actions/icon-button), and any [`Button`](/components/actions/button) whose label is icon-only.
+- `label` on [`IconButton`](/components/actions/icon-button), which it renders as visually-hidden text. `aria-label` on any [`Button`](/components/actions/button) whose content is icon-only.
 - `aria-label` or visually-hidden text on [`Kbd`](/components/data-display/kbd) when the visible glyph is a symbol (e.g. `⌘`).
 - `aria-describedby` linking error/help text to form controls. [`Input`](/components/forms/input) and friends do this for you when you use the validation prop, but custom messages should be wired manually.
 - `aria-current="page"` on the active item in primary navigation (use react-router's `NavLink` for this).

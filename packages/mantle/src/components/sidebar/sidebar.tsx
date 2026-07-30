@@ -2157,7 +2157,7 @@ type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "childre
  * cannot pop a label under a pointer that has already moved on.
  *
  * **Requires a `TooltipProvider` ancestor**, like any `Tooltip.Root` — mount one
- * at your app root. This part deliberately does not provide its own, so the
+ * at your app root. This part deliberately does not mount its own, so the
  * app-wide tooltip delay stays app-wide rather than being overridden per row.
  * The one provider setting it does override is hoverable content: a rail label
  * holds nothing to hover into, so the pointer leaving the row closes it.

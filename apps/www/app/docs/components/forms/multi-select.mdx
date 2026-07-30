@@ -1156,7 +1156,7 @@ Renders the selected values as removable tags. Place this inside `MultiSelect.Tr
 | `locked`    | `boolean`                                         | Whether this tag is locked (cannot be removed). Forwarded from `lockedValues`.                 |
 | `ref`       | `(node: HTMLSpanElement \| null) => void`         | Forward to the tag element to register it for keyboard navigation between tags.                |
 | `onKeyDown` | `(event: KeyboardEvent<HTMLSpanElement>) => void` | Forward to the tag element to enable ArrowLeft/Right/Backspace/Delete navigation between tags. |
-| `onClick`   | `() => void`                                      | Forward to the tag element to focus it and ensure the popover opens/stays open on click.       |
+| `onClick`   | `() => void`                                      | Forward to the tag element to focus it and keep the popover open on click.                     |
 
 ### MultiSelect.Input
 

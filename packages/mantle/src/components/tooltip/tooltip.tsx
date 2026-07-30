@@ -4,9 +4,10 @@ import { cx } from "../../utils/cx/cx.js";
 
 /**
  * Wraps your app to set shared global behavior for your tooltips, such
- * as consistent delay and hover settings. Mount one instance at the root of
- * your app when you want app-wide tooltip defaults. Children render
- * `Tooltip.Root` / `Tooltip.Trigger` / `Tooltip.Content` trees as usual.
+ * as consistent delay and hover settings. Mount exactly one instance, preferably
+ * at the root of your app — a second provider gives part of the tree a different
+ * delay. Children render `Tooltip.Root` / `Tooltip.Trigger` /
+ * `Tooltip.Content` trees as usual.
  *
  * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltipprovider
  *

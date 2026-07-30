@@ -219,8 +219,9 @@ describe("Accordion", () => {
 			</Accordion.Root>,
 		);
 		const body = screen.getByTestId("body-a");
-		// Why no Tailwind utility assertion: neither vitest project loads Tailwind, so
-		// a class like `pb-4` is only a source literal here.
+		// This is the tailwind-merge override contract: it pins that Body forwards a
+		// consumer `className`. Why no `pb-4` assertion: neither vitest project loads
+		// Tailwind, so an internal utility is only a source literal here.
 		expect(body).toHaveAttribute("data-slot", "accordion-body");
 		expect(body).toHaveClass("custom-body-class");
 	});

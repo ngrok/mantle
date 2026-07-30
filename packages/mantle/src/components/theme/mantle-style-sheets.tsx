@@ -276,7 +276,7 @@ function fixMediaScriptContent(forceTheme?: ResolvedTheme): string {
  *
  * On the client, a `MutationObserver` watches `html[data-applied-theme]` (kept in sync by
  * `ThemeProvider`) and updates the `media` attributes to `"all"` when the user manually
- * selects a theme that differs from their OS preference, ensuring the correct CSS is applied.
+ * selects a theme that differs from their OS preference, so the browser applies the correct CSS.
  *
  * Theme pairs load together — the active theme's pair partner (light ⇄ dark,
  * light-high-contrast ⇄ dark-high-contrast) also gets `media="all"` — so
