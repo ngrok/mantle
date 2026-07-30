@@ -24,16 +24,29 @@ type StackBoundaries = {
 	/** Extent of the outermost boundaries — the stacked y domain. */
 	min: number;
 	max: number;
+	/**
+	 * The series index at the data end of each column's positive pile — the last
+	 * series with a value above zero there. `-1` marks a column with no positive
+	 * segment, which matches no series index. Zero-valued and `NaN` series paint
+	 * nothing, so they never claim the end.
+	 */
+	positiveEnd: Int32Array;
+	/** The negative pile's mirror of {@link StackBoundaries.positiveEnd}. */
+	negativeEnd: Int32Array;
 };
 
 /**
  * Accumulate stacked boundaries in registration order (first series sits at
- * the baseline; later series stack outward).
+ * the baseline; later series stack outward), and record which series lands at
+ * each column's data end. The ends are per column, not per series: a series
+ * that is zero on one column and the tallest on the next tops only the second,
+ * and only the topper wears the renderer's rounded cap.
  *
  * @example
  * ```ts
- * const { lower, upper, min, max } = computeStackBoundaries([httpValues, tcpValues]);
+ * const { lower, upper, positiveEnd } = computeStackBoundaries([httpValues, tcpValues]);
  * // tcp's band at i spans lower[1][i] → upper[1][i]
+ * // positiveEnd[i] is 0 wherever tcp is zero and http is not
  * ```
  */
 const computeStackBoundaries = (seriesValues: readonly Float64Array[]): StackBoundaries => {
@@ -50,6 +63,9 @@ const computeStackBoundaries = (seriesValues: readonly Float64Array[]): StackBou
 	let max = 0;
 	const positiveSum = new Float64Array(pointCount);
 	const negativeSum = new Float64Array(pointCount);
+	// -1 is the empty-pile marker; Int32Array zero-fills, which is a real index.
+	const positiveEnd = new Int32Array(pointCount).fill(-1);
+	const negativeEnd = new Int32Array(pointCount).fill(-1);
 
 	for (let series = 0; series < seriesCount; series++) {
 		const values = seriesValues[series];
@@ -76,6 +92,10 @@ const computeStackBoundaries = (seriesValues: readonly Float64Array[]): StackBou
 				if (end > max) {
 					max = end;
 				}
+				if (value > 0) {
+					// Series ascend, so the last writer is the outermost segment.
+					positiveEnd[index] = series;
+				}
 			} else {
 				const start = negativeSum[index] ?? 0;
 				const end = start + value;
@@ -85,11 +105,12 @@ const computeStackBoundaries = (seriesValues: readonly Float64Array[]): StackBou
 				if (end < min) {
 					min = end;
 				}
+				negativeEnd[index] = series;
 			}
 		}
 	}
 
-	return { lower, upper, min, max };
+	return { lower, upper, min, max, positiveEnd, negativeEnd };
 };
 
 export type {

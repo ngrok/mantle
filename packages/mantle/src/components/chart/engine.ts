@@ -1,4 +1,5 @@
 import invariant from "tiny-invariant";
+import { stackedSegmentEdges } from "./bar-geometry.js";
 import type { ChartChromeColors } from "./colors.js";
 import type { DecimatedColumns } from "./decimate.js";
 import type { BandLayout } from "./scales.js";
@@ -38,12 +39,14 @@ import {
 } from "./projection.js";
 import {
 	bandCenter,
+	bandHitRegion,
 	bandStart,
 	computeBandLayout,
 	invertBand,
 	linearCoefficients,
 	linearTicks,
 	niceDomain,
+	niceZeroAnchoredDomain,
 	timeTickFormatter,
 	timeTicks,
 } from "./scales.js";
@@ -1130,7 +1133,12 @@ class ChartEngine {
 		if (this.#rowCount === 0) {
 			return [0, 1];
 		}
-		const niced = niceDomain([min, max], Y_TICK_COUNT);
+		// Bars measure length from zero, so their axis minimum is documented as
+		// fixed at the baseline; the other kinds may float their domain.
+		const niced =
+			this.#kind === "bar"
+				? niceZeroAnchoredDomain([min, max], Y_TICK_COUNT)
+				: niceDomain([min, max], Y_TICK_COUNT);
 		// Never let niceness move an explicit override or re-cross a zero baseline.
 		return [
 			typeof minOverride === "number" ? minOverride : niced[0],
@@ -1886,6 +1894,36 @@ class ChartEngine {
 		return tween?.values()[0] ?? 1;
 	}
 
+	/**
+	 * The baseline-side boundary of one bar segment: the stacked lower boundary,
+	 * or the zero baseline when the chart does not stack. `computeStackBoundaries`
+	 * pairs its `NaN`s, so a defined upper implies a defined lower — the fallback
+	 * only keeps a torn column anchored at zero instead of at `NaN`.
+	 */
+	#segmentLower(lower: Float64Array | null, index: number): number {
+		if (lower == null) {
+			return 0;
+		}
+		const value = lower[index] ?? 0;
+		return Number.isNaN(value) ? 0 : value;
+	}
+
+	/**
+	 * Whether this segment sits at the data end of its column's pile, and so
+	 * wears the renderer's rounded cap. Every unstacked bar is its own data end.
+	 * Stacked, the answer is per column: the last series is the top of the stack
+	 * only on the columns where it actually has a value, and rounding it
+	 * everywhere leaves a square cap wherever it is zero.
+	 */
+	#isDataEnd(seriesIndex: number, index: number, upperValue: number): boolean {
+		const stack = this.#stack;
+		if (stack == null) {
+			return true;
+		}
+		const ends = upperValue > 0 ? stack.positiveEnd : stack.negativeEnd;
+		return seriesIndex === ends[index];
+	}
+
 	#paintBars(
 		ctx: CanvasRenderingContext2D,
 		specs: readonly SeriesSpec[],
@@ -1896,13 +1934,13 @@ class ChartEngine {
 		if (layout == null || colors == null || this.#rowCount === 0 || specs.length === 0) {
 			return;
 		}
-		const baselineY = 0 * yCo.k + yCo.b;
 		const stacked = this.#stack != null;
 		const groupCount = stacked ? 1 : specs.length;
 		const gap =
 			layout.bandwidth >= 8 * groupCount ? BAR_GAP : layout.bandwidth >= 3 * groupCount ? 1 : 0;
 		const slotWidth = (layout.bandwidth - gap * (groupCount - 1)) / groupCount;
 		const barWidth = Math.min(BAR_MAX_THICKNESS, slotWidth);
+		const toPixel = (value: number): number => value * yCo.k + yCo.b;
 
 		specs.forEach((spec, seriesIndex) => {
 			const reveal = this.#reveal(spec.dataKey);
@@ -1911,34 +1949,31 @@ class ChartEngine {
 			const upper = stacked
 				? this.#paintedValues(spec, "upper")
 				: this.#paintedValues(spec, "value");
-			const isOutermost = seriesIndex === specs.length - 1;
 			for (let index = 0; index < this.#rowCount; index++) {
 				const upperValue = upper[index] ?? Number.NaN;
 				if (Number.isNaN(upperValue)) {
 					continue;
 				}
-				const lowerValue = lower == null ? 0 : (lower[index] ?? 0);
+				const lowerValue = this.#segmentLower(lower, index);
 				const slotStart = stacked
 					? bandStart(layout, index) + (layout.bandwidth - barWidth) / 2
 					: bandStart(layout, index) +
 						(layout.bandwidth - (slotWidth * groupCount + gap * (groupCount - 1))) / 2 +
 						seriesIndex * (slotWidth + gap) +
 						(slotWidth - barWidth) / 2;
-				let baseY = Number.isNaN(lowerValue) ? baselineY : lowerValue * yCo.k + yCo.b;
-				let valueY = upperValue * yCo.k + yCo.b;
-				// Enter reveal: grow from the baseline.
-				valueY = baseY + (valueY - baseY) * reveal;
-				// 2px surface gap between stacked segments, carved entirely from the
-				// outer segment's baseline side (geometric, not painted).
-				if (stacked && lower != null && seriesIndex > 0 && !Number.isNaN(lowerValue) && gap > 0) {
-					baseY -= Math.sign(baseY - valueY) * gap;
-				}
+				const edges = stackedSegmentEdges({
+					lower: lowerValue,
+					upper: upperValue,
+					toPixel,
+					reveal,
+					gap: stacked ? gap : 0,
+				});
 				rects.push({
 					x: slotStart,
 					width: barWidth,
-					baselineY: baseY,
-					valueY,
-					rounded: !stacked || isOutermost,
+					baselineY: edges.baseline,
+					valueY: edges.value,
+					rounded: this.#isDataEnd(seriesIndex, index, upperValue),
 				});
 			}
 			// Textured series paint with their cached pattern; a missing pattern
@@ -1966,13 +2001,13 @@ class ChartEngine {
 			return;
 		}
 		const valueCo = this.#valueCoefficients();
-		const baselineX = 0 * valueCo.k + valueCo.b;
 		const stacked = this.#stack != null;
 		const groupCount = stacked ? 1 : specs.length;
 		const gap =
 			layout.bandwidth >= 8 * groupCount ? BAR_GAP : layout.bandwidth >= 3 * groupCount ? 1 : 0;
 		const slotHeight = (layout.bandwidth - gap * (groupCount - 1)) / groupCount;
 		const barThickness = Math.min(BAR_MAX_THICKNESS, slotHeight);
+		const toPixel = (value: number): number => value * valueCo.k + valueCo.b;
 
 		specs.forEach((spec, seriesIndex) => {
 			const reveal = this.#reveal(spec.dataKey);
@@ -1981,34 +2016,31 @@ class ChartEngine {
 			const upper = stacked
 				? this.#paintedValues(spec, "upper")
 				: this.#paintedValues(spec, "value");
-			const isOutermost = seriesIndex === specs.length - 1;
 			for (let index = 0; index < this.#rowCount; index++) {
 				const upperValue = upper[index] ?? Number.NaN;
 				if (Number.isNaN(upperValue)) {
 					continue;
 				}
-				const lowerValue = lower == null ? 0 : (lower[index] ?? 0);
+				const lowerValue = this.#segmentLower(lower, index);
 				const slotStart = stacked
 					? bandStart(layout, index) + (layout.bandwidth - barThickness) / 2
 					: bandStart(layout, index) +
 						(layout.bandwidth - (slotHeight * groupCount + gap * (groupCount - 1))) / 2 +
 						seriesIndex * (slotHeight + gap) +
 						(slotHeight - barThickness) / 2;
-				let baseX = Number.isNaN(lowerValue) ? baselineX : lowerValue * valueCo.k + valueCo.b;
-				let valueX = upperValue * valueCo.k + valueCo.b;
-				// Enter reveal: grow from the baseline.
-				valueX = baseX + (valueX - baseX) * reveal;
-				// 2px surface gap between stacked segments, carved entirely from the
-				// outer segment's baseline side (geometric, not painted).
-				if (stacked && lower != null && seriesIndex > 0 && !Number.isNaN(lowerValue) && gap > 0) {
-					baseX -= Math.sign(baseX - valueX) * gap;
-				}
+				const edges = stackedSegmentEdges({
+					lower: lowerValue,
+					upper: upperValue,
+					toPixel,
+					reveal,
+					gap: stacked ? gap : 0,
+				});
 				rects.push({
 					y: slotStart,
 					height: barThickness,
-					baselineX: baseX,
-					valueX,
-					rounded: !stacked || isOutermost,
+					baselineX: edges.baseline,
+					valueX: edges.value,
+					rounded: this.#isDataEnd(seriesIndex, index, upperValue),
 				});
 			}
 			drawHorizontalBars(ctx, {
@@ -2247,10 +2279,33 @@ class ChartEngine {
 			const slot = Math.floor((withinBand / Math.max(1, layout.bandwidth)) * specs.length);
 			return specs[Math.min(specs.length - 1, Math.max(0, slot))]?.dataKey ?? null;
 		}
-		// Otherwise pick the series whose painted value sits nearest the pointer
-		// along the value axis (x when horizontal, y otherwise).
 		const { k, b } = horizontal ? this.#valueCoefficients() : this.#yCoefficients();
 		const pointerAlongValue = horizontal ? cssX : cssY;
+		// Stacked bars: a segment is a filled span, not a boundary, so the segment
+		// CONTAINING the pointer names the series. Nearest-boundary would hand the
+		// half of every segment nearer the baseline to the series below it.
+		const stack = this.#stack;
+		if (this.#kind === "bar" && stack != null) {
+			for (let seriesIndex = 0; seriesIndex < specs.length; seriesIndex++) {
+				const lower = stack.lower[seriesIndex]?.[index] ?? Number.NaN;
+				const upper = stack.upper[seriesIndex]?.[index] ?? Number.NaN;
+				if (Number.isNaN(lower) || Number.isNaN(upper) || lower === upper) {
+					continue;
+				}
+				const lowerPixel = lower * k + b;
+				const upperPixel = upper * k + b;
+				if (
+					pointerAlongValue >= Math.min(lowerPixel, upperPixel) &&
+					pointerAlongValue <= Math.max(lowerPixel, upperPixel)
+				) {
+					return specs[seriesIndex]?.dataKey ?? null;
+				}
+			}
+		}
+		// Otherwise pick the series whose painted value sits nearest the pointer
+		// along the value axis (x when horizontal, y otherwise) — the mark IS the
+		// boundary for a line or an area, and a pointer clear of a stack still
+		// names the segment it is closest to.
 		let nearest: string | null = null;
 		let bestDistance = Number.POSITIVE_INFINITY;
 		specs.forEach((spec, seriesIndex) => {
@@ -2708,15 +2763,19 @@ class ChartEngine {
 		if (isBar) {
 			const layout = this.#bandLayout;
 			if (layout != null) {
-				const stepStart = bandStart(layout, index) - (layout.step - layout.bandwidth) / 2;
+				// The highlight is the hit region itself. A wider one would wash over
+				// the neighbors it does not select — at 60 categories the old 24px
+				// floor reached a third of the way into the next bar.
+				const region = bandHitRegion(layout, index);
+				const size = Math.max(1, region.size);
 				if (horizontal) {
 					// The band spans the full plot width at the category's y row.
-					band.style.transform = `translate3d(${plot.left}px, ${stepStart}px, 0)`;
+					band.style.transform = `translate3d(${plot.left}px, ${region.start}px, 0)`;
 					band.style.width = `${plot.width}px`;
-					band.style.height = `${Math.max(layout.step, 24)}px`;
+					band.style.height = `${size}px`;
 				} else {
-					band.style.transform = `translate3d(${stepStart}px, ${plot.top}px, 0)`;
-					band.style.width = `${Math.max(layout.step, 24)}px`;
+					band.style.transform = `translate3d(${region.start}px, ${plot.top}px, 0)`;
+					band.style.width = `${size}px`;
 					band.style.height = `${plot.height}px`;
 				}
 			}
@@ -2773,8 +2832,11 @@ class ChartEngine {
 	}
 
 	/**
-	 * Position the tooltip near an anchor point, flipping sides at the plot
-	 * edge and clamping vertically inside the plot.
+	 * Position the tooltip near an anchor point, flipping sides at the plot edge
+	 * and clamping vertically inside the plot wrapper. The vertical clamp uses
+	 * the wrapper's own box, not the inset plot rect: a readout taller than the
+	 * plot would otherwise pin to the plot top and spill the whole overflow past
+	 * the bottom edge.
 	 */
 	#positionTooltip(anchorX: number, anchorY: number): void {
 		const plot = this.#plot;
@@ -2789,10 +2851,10 @@ class ChartEngine {
 			tooltipLeft = anchorX - gapX - size.width;
 		}
 		const tooltipTop = Math.min(
-			Math.max(plot.top, anchorY - size.height / 2),
-			plot.top + plot.height - size.height,
+			Math.max(0, anchorY - size.height / 2),
+			Math.max(0, this.#cssHeight - size.height),
 		);
-		tooltip.style.transform = `translate3d(${tooltipLeft}px, ${Math.max(plot.top, tooltipTop)}px, 0)`;
+		tooltip.style.transform = `translate3d(${tooltipLeft}px, ${tooltipTop}px, 0)`;
 	}
 }
 

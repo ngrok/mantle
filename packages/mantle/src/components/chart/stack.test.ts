@@ -63,3 +63,50 @@ describe("computeStackBoundaries", () => {
 		expect(max).toBe(0);
 	});
 });
+
+describe("computeStackBoundaries pile ends", () => {
+	test("the end is the last series with a value, per column, not the last series overall", () => {
+		// Column 0's top is series 1; column 1's is series 0; column 2 has neither.
+		const { positiveEnd } = computeStackBoundaries([
+			Float64Array.from([10, 20, 0]),
+			Float64Array.from([5, 0, 0]),
+		]);
+		expect([...positiveEnd]).toEqual([1, 0, -1]);
+	});
+
+	test("a zero-valued series never claims the end it paints nothing at", () => {
+		const { positiveEnd } = computeStackBoundaries([
+			Float64Array.from([10]),
+			Float64Array.from([0]),
+		]);
+		expect([...positiveEnd]).toEqual([0]);
+	});
+
+	test("a gap (NaN) never claims the end, which falls to the series below", () => {
+		const { positiveEnd } = computeStackBoundaries([
+			Float64Array.from([10]),
+			Float64Array.from([Number.NaN]),
+		]);
+		expect([...positiveEnd]).toEqual([0]);
+	});
+
+	test("the two piles are tracked separately, so a diverging column has both ends", () => {
+		const { positiveEnd, negativeEnd } = computeStackBoundaries([
+			Float64Array.from([10, -10]),
+			Float64Array.from([-5, -20]),
+		]);
+		// Column 0 diverges: series 0 tops the positive pile, series 1 bottoms the
+		// negative one. Column 1 is all negative, so it has no positive end.
+		expect([...positiveEnd]).toEqual([0, -1]);
+		expect([...negativeEnd]).toEqual([1, 1]);
+	});
+
+	test("an all-zero column has no end in either pile", () => {
+		const { positiveEnd, negativeEnd } = computeStackBoundaries([
+			Float64Array.from([0]),
+			Float64Array.from([0]),
+		]);
+		expect([...positiveEnd]).toEqual([-1]);
+		expect([...negativeEnd]).toEqual([-1]);
+	});
+});

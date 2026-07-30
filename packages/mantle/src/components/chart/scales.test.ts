@@ -1,12 +1,14 @@
 import { describe, expect, test } from "vitest";
 import {
 	bandCenter,
+	bandHitRegion,
 	bandStart,
 	computeBandLayout,
 	invertBand,
 	linearCoefficients,
 	linearTicks,
 	niceDomain,
+	niceZeroAnchoredDomain,
 	timeTicks,
 } from "./scales.js";
 
@@ -111,6 +113,65 @@ describe("invertBand", () => {
 			paddingOuter: 0.1,
 		});
 		expect(invertBand(empty, 100)).toBe(null);
+	});
+});
+
+describe("bandHitRegion", () => {
+	// The hover band is drawn from this region, so a region wider or narrower
+	// than what invertBand selects paints the highlight over the wrong category.
+	test.each([3, 30, 60, 90])(
+		"the region is exactly what invertBand maps back, at %i bands",
+		(count) => {
+			const layout = computeBandLayout({
+				count,
+				rangeStart: 0,
+				rangeEnd: 1024,
+				paddingInner: 0.2,
+				paddingOuter: 0.1,
+			});
+			for (let index = 0; index < count; index++) {
+				const region = bandHitRegion(layout, index);
+				expect(region.size).toBeCloseTo(layout.step, 10);
+				expect(invertBand(layout, region.start + 0.01)).toBe(index);
+				expect(invertBand(layout, region.start + region.size / 2)).toBe(index);
+				expect(invertBand(layout, region.start + region.size - 0.01)).toBe(index);
+			}
+			// One pixel past a region belongs to the next category, never to this one.
+			for (let index = 0; index < count - 1; index++) {
+				const region = bandHitRegion(layout, index);
+				expect(invertBand(layout, region.start + region.size + 0.01)).toBe(index + 1);
+			}
+		},
+	);
+
+	test("the regions tile the range end to end, leaving no pixel unclaimed", () => {
+		const layout = computeBandLayout({
+			count: 5,
+			rangeStart: 0,
+			rangeEnd: 400,
+			paddingInner: 0.2,
+			paddingOuter: 0.1,
+		});
+		const first = bandHitRegion(layout, 0);
+		const last = bandHitRegion(layout, 4);
+		expect(first.start).toBeCloseTo(0, 10);
+		expect(last.start + last.size).toBeCloseTo(400, 10);
+		for (let index = 0; index < 4; index++) {
+			const region = bandHitRegion(layout, index);
+			expect(region.start + region.size).toBeCloseTo(bandHitRegion(layout, index + 1).start, 10);
+		}
+	});
+
+	test("the band it covers sits centered in the region", () => {
+		const layout = computeBandLayout({
+			count: 4,
+			rangeStart: 0,
+			rangeEnd: 400,
+			paddingInner: 0.2,
+			paddingOuter: 0.1,
+		});
+		const region = bandHitRegion(layout, 2);
+		expect(bandCenter(layout, 2)).toBeCloseTo(region.start + region.size / 2, 10);
 	});
 });
 
@@ -229,5 +290,23 @@ describe("niceDomain", () => {
 		expect(min).toBe(0);
 		expect(max).toBe(100);
 		expect(Number.isNaN(min)).toBe(false);
+	});
+});
+
+describe("niceZeroAnchoredDomain", () => {
+	test("an all-zero domain keeps the baseline at the axis minimum", () => {
+		// Regression: niceDomain pads a flat domain to [-1, 1], which floats a bar
+		// chart's zero baseline into the middle of the plot.
+		expect(niceZeroAnchoredDomain([0, 0], 5)).toEqual([0, 1]);
+	});
+
+	test("a domain starting at zero never widens below it", () => {
+		expect(niceZeroAnchoredDomain([0, 0.4], 5)[0]).toBe(0);
+		expect(niceZeroAnchoredDomain([0, 97], 5)).toEqual([0, 100]);
+	});
+
+	test("a domain that genuinely reaches below zero keeps its niced bound", () => {
+		expect(niceZeroAnchoredDomain([-3, 5], 5)).toEqual(niceDomain([-3, 5], 5));
+		expect(niceZeroAnchoredDomain([-5, 0], 5)).toEqual(niceDomain([-5, 0], 5));
 	});
 });
