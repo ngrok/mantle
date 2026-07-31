@@ -191,7 +191,7 @@ type ChartRootBaseProps = Omit<ComponentProps<"div">, "aria-label" | "aria-label
 	WithDataSlot & {
 		/** Override the automatic y domain. */
 		yDomain?: YDomain;
-		/** Stack the composed series (bar/area charts). */
+		/** Stack the series in registration order, from the baseline out (bar/area charts). */
 		stacked?: boolean;
 		/** Animate enter/update transitions. `prefers-reduced-motion` always wins. */
 		animate?: boolean;
@@ -559,17 +559,25 @@ const ChartRootPrimitive = ({
 							</span>
 						</>
 					)}
+					{/* All three hover layers mount on every kind and stay at opacity 0
+					    until the kind that owns one activates: the crosshair on line and
+					    area, the band on bar, the markers on everything but bar. The
+					    engine writes their geometry as inline styles, so a consumer
+					    restyles them through the slot and leaves the transform alone. */}
 					<div
+						data-slot={`${slotName}-crosshair`}
 						ref={crosshairRef}
 						aria-hidden
 						className="bg-neutral-500 pointer-events-none absolute left-0 top-0 w-px opacity-0"
 					/>
 					<div
+						data-slot={`${slotName}-hover-band`}
 						ref={bandRef}
 						aria-hidden
 						className="bg-neutral-500/10 pointer-events-none absolute left-0 top-0 rounded-sm opacity-0"
 					/>
 					<div
+						data-slot={`${slotName}-markers`}
 						ref={markersRef}
 						aria-hidden
 						className="pointer-events-none absolute inset-0 opacity-0"

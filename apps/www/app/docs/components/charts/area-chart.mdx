@@ -377,7 +377,7 @@ const trafficData = [
 </AreaChart.Root>;
 ```
 
-With `stacked` on the Root, series stack in composition order from the baseline up: the first `Area` sits on the baseline and each later `Area` stacks on top of it. The tooltip lists series top-of-stack first, matching the visual order at the crosshair. Every multi-series chart must compose `AreaChart.Legend` — series identity must never rely on color-matching alone. (For a single series the legend renders nothing; the chart's title already names it.)
+With `stacked` on the Root, series stack from the baseline up in registration order: areas that mount together register in composition order, so the first `Area` sits on the baseline and each later `Area` stacks on top of it. An `Area` that mounts later stacks on top of every series already registered, whatever its position in the JSX, and a `dataKey` that unmounts and returns resumes its original position. Reordering the parts of a mounted chart does not restack it — the position sticks to the `dataKey`, which is what keeps a series from jumping when you rename its `label`. The tooltip lists the top of the pile first, matching what a reader scans at the crosshair. Every multi-series chart must compose `AreaChart.Legend` — series identity must never rely on color-matching alone. (For a single series the legend renders nothing; the chart's title already names it.)
 
 The tooltip, crosshair, and keyboard cursor are part of `AreaChart.Root`'s interaction contract — composing `AreaChart.Tooltip` customizes the readout, and omitting it never removes the hover layer.
 
@@ -776,7 +776,7 @@ AreaChart.Root
 ```
 
 - **`Root`** owns the data, the scales, the canvas renderer, and the entire interaction contract. Every other part must be composed inside it.
-- **`Area`** registers one series per part; with `stacked` on the Root, areas stack in composition order with the first series at the baseline.
+- **`Area`** registers one series per part; with `stacked` on the Root, areas stack in registration order with the first-registered series at the baseline.
 - **`Grid`**, **`XAxis`**, **`YAxis`**, and **`ReferenceLine`** register chart chrome that the Root paints on canvas. Omit a part to omit that chrome.
 - **`Tooltip`** customizes the always-on hover/keyboard readout; omitting it never removes the hover layer.
 - **`Legend`** renders series names keyed by color swatches as real DOM in flow below the plot. Always compose it on multi-series charts; it renders nothing for a single series.
@@ -821,7 +821,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `decorative?`         | `boolean`                           | `false`       | Render as a placeholder backdrop, not real data: hidden from assistive tech, out of the tab order, inert to pointer/keyboard, no data table or live region. Mutually exclusive with the accessible-name and interaction props. See [Decorative charts](#decorative-charts). |
 | `xScale`              | `"time"` \| `"linear"` \| `"point"` | auto-detected | Override the auto-detected x scale (`Date` values → `"time"`, numbers → `"linear"`, strings → `"point"`).                                                                                                                                                                   |
 | `yDomain`             | `[0, number \| "auto"]`             | `[0, "auto"]` | Override the automatic y maximum. The minimum is always the zero baseline.                                                                                                                                                                                                  |
-| `stacked`             | `boolean`                           | `false`       | Stack the composed series in composition order, the first series at the baseline.                                                                                                                                                                                           |
+| `stacked`             | `boolean`                           | `false`       | Stack the series in registration order, the first-registered series at the baseline.                                                                                                                                                                                        |
 | `animate`             | `boolean`                           | `true`        | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                                                                                                                                                                     |
 | `pending`             | `boolean`                           | `false`       | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                                                                              |
 | `activeIndex`         | `number \| null`                    |               | Controlled active datum index (`null` = none). Omit for uncontrolled hover. Forbidden when `decorative`.                                                                                                                                                                    |
@@ -829,6 +829,20 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `onDatumActivate`     | `(event: ChartDatumEvent) => void`  |               | Notified on datum activation: a mark click, or <kbd>Enter</kbd>/<kbd>Space</kbd> on the focused chart. Forbidden when `decorative`.                                                                                                                                         |
 
 `ChartDatumEvent` is importable from `@ngrok/mantle/area-chart`: `{ index: number; xValue: string | number | Date; datum: object; dataKey: string | null }` (`datum` is the original row — narrow it to your row type), where `dataKey` names the series nearest the pointer on mouse activation and is `null` for keyboard activation.
+
+**Data attributes**
+
+| Data Attribute | Value                     | Description                                                                                       |
+| -------------- | ------------------------- | ------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"area-chart"`            | The Root wrapper, with any forwarded chain ahead of it.                                           |
+| `data-slot`    | `"area-chart-plot"`       | The plot box. Every overlay layer positions against it, and the resize observer measures it.      |
+| `data-slot`    | `"area-chart-canvas"`     | The `<canvas>` the marks paint on. Always `aria-hidden`.                                          |
+| `data-slot`    | `"area-chart-crosshair"`  | The vertical hairline snapped to the active x. The engine writes its geometry as an inline style. |
+| `data-slot`    | `"area-chart-hover-band"` | The category highlight. Mounted on every kind; an area chart never shows it.                      |
+| `data-slot`    | `"area-chart-markers"`    | The container the engine syncs one hover dot per series into.                                     |
+| `data-slot`    | `"area-chart-tooltip"`    | The tooltip surface. The Root renders it; `AreaChart.Tooltip` configures it.                      |
+| `data-slot`    | `"area-chart-data-table"` | The `sr-only` table twin. Omitted when `decorative`.                                              |
+| `data-slot`    | `"chart-active-point"`    | One hover dot inside the markers layer. Also carries `data-shape`.                                |
 
 ### AreaChart.Area
 
@@ -893,7 +907,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `footer`      | `ReactNode \| (snapshot: HoverSnapshot) => ReactNode` |          | Extra content appended below the series rows (e.g. a "view logs" hint). |
 | `children`    | `(snapshot: HoverSnapshot) => ReactNode`              |          | Replace the entire readout.                                             |
 
-The `HoverSnapshot` passed to `footer` and `children` describes the active x position: `{ index, xValue, datum, points, viaKeyboard }`, where `points` holds every series' value at that position in visual order.
+The `HoverSnapshot` passed to `footer` and `children` describes the active x position: `{ index, xValue, datum, points, viaKeyboard }`, where `points` holds every series' value at that position. Stacked, the rows run from the top of the pile back to the baseline; unstacked, they follow registration order.
 
 ### AreaChart.Legend
 
@@ -922,7 +936,7 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-Series without an explicit `color` claim the ordered `--color-chart-1` … `--color-chart-8` tokens in composition order. The palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the chart surface in all four themes (light, dark, high-contrast light, high-contrast dark). A claimed slot is sticky per `dataKey` for the chart's lifetime — filtering series in and out never repaints the survivors, so color follows the entity, never its rank. The ninth and later series all paint with `--color-chart-other`: fold the long tail into a single "Other" series rather than inventing more hues.
+A series without an explicit `color` claims the next never-used slot from the ordered `--color-chart-1` … `--color-chart-8` tokens when it first registers. The palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the chart surface in all four themes (light, dark, high-contrast light, high-contrast dark). A claimed slot is sticky per `dataKey` for the chart's lifetime — filtering series in and out never repaints the survivors, so color follows the entity, never its rank. An explicit `color` reserves its token, so the next unpinned series skips past it. The cursor counts every `dataKey` the Root has ever registered, not the mounted count — cycle more than eight keys through one Root and the later ones paint with `--color-chart-other`. Key the Root on whatever chooses the series to start the palette over, and fold a long tail into a single "Other" series rather than inventing more hues.
 
 | CSS Variable          | Description                                                                                 |
 | --------------------- | ------------------------------------------------------------------------------------------- |

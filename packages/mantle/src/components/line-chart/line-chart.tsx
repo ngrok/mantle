@@ -137,6 +137,12 @@ type LineChartCopyButtonProps = CopyButtonPrimitiveProps;
  * Rendering is canvas with min/max decimation, so series of 100k+ points stay
  * smooth. Compose the chrome and series parts as children.
  *
+ * The Root's own subtree is addressable by slot: `line-chart` on the wrapper,
+ * then `line-chart-plot`, `line-chart-canvas`, `line-chart-crosshair`,
+ * `line-chart-hover-band`, `line-chart-markers`, `line-chart-tooltip`, and
+ * `line-chart-data-table`. A line chart shows the crosshair and one marker dot
+ * per series, and never the band, but all three layers mount on every kind.
+ *
  * @see https://mantle.ngrok.com/components/charts/line-chart#linechartroot
  *
  * @example

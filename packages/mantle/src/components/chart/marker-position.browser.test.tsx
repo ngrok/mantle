@@ -101,7 +101,7 @@ const mustBe = <T extends Element>(
 	throw new Error(`expected ${what} to render`);
 };
 
-/** The engine-managed active-point dots, in series composition order. */
+/** The engine-managed active-point dots, in series registration order. */
 const activeDots = (container: HTMLElement): HTMLElement[] =>
 	[...container.querySelectorAll('[data-slot="chart-active-point"]')].filter(
 		(element): element is HTMLElement => element instanceof HTMLElement,

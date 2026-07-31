@@ -147,6 +147,41 @@ describe("ScatterPlot.Root", () => {
 	});
 });
 
+describe("ScatterPlot data slots", () => {
+	// Every row is public API: a rename breaks consumer CSS, and nothing else in
+	// the suite would notice.
+	test.each([
+		["scatter-plot", "DIV"],
+		["scatter-plot-plot", "DIV"],
+		["scatter-plot-canvas", "CANVAS"],
+		["scatter-plot-crosshair", "DIV"],
+		["scatter-plot-hover-band", "DIV"],
+		["scatter-plot-markers", "DIV"],
+		["scatter-plot-tooltip", "DIV"],
+		["scatter-plot-legend", "DIV"],
+		["scatter-plot-data-table", "DIV"],
+	])("%s lands on a %s", (slot, tagName) => {
+		const { container } = renderChart();
+		const element = container.querySelector(`[data-slot="${slot}"]`);
+		expect(element).toBeInTheDocument();
+		expect(element?.tagName).toBe(tagName);
+	});
+
+	test("the three hover layers sit inside the plot and stay hidden from assistive tech", () => {
+		const { container } = renderChart();
+		const plot = container.querySelector('[data-slot="scatter-plot-plot"]');
+		for (const slot of [
+			"scatter-plot-crosshair",
+			"scatter-plot-hover-band",
+			"scatter-plot-markers",
+		]) {
+			const layer = container.querySelector(`[data-slot="${slot}"]`);
+			expect(plot?.contains(layer ?? null)).toBe(true);
+			expect(layer).toHaveAttribute("aria-hidden", "true");
+		}
+	});
+});
+
 describe("ScatterPlot parts outside Root", () => {
 	test("a part rendered outside Root throws", () => {
 		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});

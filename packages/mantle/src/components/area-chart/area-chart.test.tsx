@@ -113,6 +113,37 @@ describe("AreaChart.Root", () => {
 	});
 });
 
+describe("AreaChart data slots", () => {
+	// Every row is public API: a rename breaks consumer CSS, and nothing else in
+	// the suite would notice.
+	test.each([
+		["area-chart", "DIV"],
+		["area-chart-plot", "DIV"],
+		["area-chart-canvas", "CANVAS"],
+		["area-chart-crosshair", "DIV"],
+		["area-chart-hover-band", "DIV"],
+		["area-chart-markers", "DIV"],
+		["area-chart-tooltip", "DIV"],
+		["area-chart-legend", "DIV"],
+		["area-chart-data-table", "DIV"],
+	])("%s lands on a %s", (slot, tagName) => {
+		const { container } = renderChart();
+		const element = container.querySelector(`[data-slot="${slot}"]`);
+		expect(element).toBeInTheDocument();
+		expect(element?.tagName).toBe(tagName);
+	});
+
+	test("the three hover layers sit inside the plot and stay hidden from assistive tech", () => {
+		const { container } = renderChart();
+		const plot = container.querySelector('[data-slot="area-chart-plot"]');
+		for (const slot of ["area-chart-crosshair", "area-chart-hover-band", "area-chart-markers"]) {
+			const layer = container.querySelector(`[data-slot="${slot}"]`);
+			expect(plot?.contains(layer ?? null)).toBe(true);
+			expect(layer).toHaveAttribute("aria-hidden", "true");
+		}
+	});
+});
+
 describe("AreaChart parts outside Root", () => {
 	test("a part rendered outside Root throws", () => {
 		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -296,7 +327,7 @@ describe("AreaChart stacked tooltip order", () => {
 		expect(text.indexOf("TCP")).toBeLessThan(text.indexOf("HTTP"));
 	});
 
-	test("unstacked charts preserve composition order in the tooltip", async () => {
+	test("unstacked charts keep registration order in the tooltip", async () => {
 		const user = userEvent.setup();
 		render(
 			<AreaChart.Root data={data} xKey="date" aria-label="Traffic by protocol">

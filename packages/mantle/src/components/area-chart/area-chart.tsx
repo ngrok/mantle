@@ -132,8 +132,15 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  * tooltip, keyboard stepping with polite announcements, an sr-only data
  * table, Enter/Space + click activation). Areas fill with a 10% wash of the
  * series color plus a 2px band-edge stroke; `stacked` on the Root stacks the
- * composed series, the first series at the baseline. Large datasets decimate
- * before painting on canvas. Compose the chrome and series parts as children.
+ * series in registration order, the first-registered series at the baseline.
+ * Large datasets decimate before painting on canvas. Compose the chrome and
+ * series parts as children.
+ *
+ * The Root's own subtree is addressable by slot: `area-chart` on the wrapper,
+ * then `area-chart-plot`, `area-chart-canvas`, `area-chart-crosshair`,
+ * `area-chart-hover-band`, `area-chart-markers`, `area-chart-tooltip`, and
+ * `area-chart-data-table`. An area chart shows the crosshair and one marker dot
+ * per series, and never the band, but all three layers mount on every kind.
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartroot
  *
@@ -163,8 +170,9 @@ const Root = <TDatum extends ChartDatum = ChartDatum>(props: AreaChartRootProps<
 /**
  * One area series. Renders nothing itself — it registers the series with the
  * chart, which paints it on canvas. Compose one `Area` per series; with
- * `stacked` on the Root, areas stack in composition order with the first
- * series at the baseline.
+ * `stacked` on the Root, areas stack in registration order with the
+ * first-registered series at the baseline, so an `Area` that mounts later
+ * stacks on top whatever its position in the JSX.
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartarea
  *
@@ -345,8 +353,8 @@ const CopyButton = (props: AreaChartCopyButtonProps) => (
  * A canvas-rendered area chart for showing how values — and, when stacked, a
  * total and its parts — change over a continuous x axis. Each area fills with
  * a 10% wash of the series color plus a 2px band-edge stroke; the Root-level
- * `stacked` prop stacks the composed series in composition order from the
- * baseline. Series colors come from the theme's validated `--color-chart-*`
+ * `stacked` prop stacks the series in registration order from the baseline.
+ * Series colors come from the theme's validated `--color-chart-*`
  * tokens; areas keep a fixed slot color for the chart's lifetime even as
  * other series are filtered in and out. Interaction — a crosshair with an
  * every-series tooltip, keyboard stepping, aria-live announcements, and an

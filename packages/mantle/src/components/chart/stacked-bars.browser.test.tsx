@@ -607,19 +607,19 @@ describe("stacked bar caps and baselines", () => {
 });
 
 /**
- * The hover band overlay. The three overlay layers carry no `data-slot` yet, so
- * pick the band by what distinguishes it behaviorally: among them, the engine
- * writes an inline `width` only on the band. It throws until the engine has
- * positioned the band, which makes it a usable poll condition.
+ * The hover band overlay, addressed by its public slot. The engine writes the
+ * band's `width` as an inline style, so an empty one means it has not painted
+ * yet — that makes this a usable poll condition as well as a query.
  */
 const hoverBandOf = (container: HTMLElement): HTMLElement => {
-	const layers = container.querySelectorAll('[data-slot="bar-chart-plot"] > [aria-hidden]');
-	for (const layer of layers) {
-		if (layer instanceof HTMLElement && layer.style.width !== "") {
-			return layer;
-		}
+	const band = container.querySelector('[data-slot="bar-chart-hover-band"]');
+	if (!(band instanceof HTMLElement)) {
+		throw new Error("expected the hover band to render");
 	}
-	throw new Error("expected the hover band to be positioned");
+	if (band.style.width === "") {
+		throw new Error("expected the hover band to be positioned");
+	}
+	return band;
 };
 
 const overlayOf = (container: HTMLElement): HTMLElement => {

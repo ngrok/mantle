@@ -144,6 +144,13 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
  * series, x, y — and z in 3D. With `zKey` the plot becomes a rotatable 3D
  * cube: drag to orbit, with points depth-sorted under gentle perspective.
  *
+ * The Root's own subtree is addressable by slot: `scatter-plot` on the wrapper,
+ * then `scatter-plot-plot`, `scatter-plot-canvas`, `scatter-plot-crosshair`,
+ * `scatter-plot-hover-band`, `scatter-plot-markers`, `scatter-plot-tooltip`,
+ * and `scatter-plot-data-table`. A scatter plot shows one marker dot on the hit
+ * point, and never the crosshair or the band, but all three layers mount on
+ * every kind.
+ *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotroot
  *
  * @example

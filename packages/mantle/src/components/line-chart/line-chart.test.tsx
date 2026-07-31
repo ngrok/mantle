@@ -225,6 +225,37 @@ describe("LineChart.CopyButton", () => {
 	});
 });
 
+describe("LineChart data slots", () => {
+	// Every row is public API: a rename breaks consumer CSS, and nothing else in
+	// the suite would notice.
+	test.each([
+		["line-chart", "DIV"],
+		["line-chart-plot", "DIV"],
+		["line-chart-canvas", "CANVAS"],
+		["line-chart-crosshair", "DIV"],
+		["line-chart-hover-band", "DIV"],
+		["line-chart-markers", "DIV"],
+		["line-chart-tooltip", "DIV"],
+		["line-chart-legend", "DIV"],
+		["line-chart-data-table", "DIV"],
+	])("%s lands on a %s", (slot, tagName) => {
+		const { container } = renderChart();
+		const element = container.querySelector(`[data-slot="${slot}"]`);
+		expect(element).toBeInTheDocument();
+		expect(element?.tagName).toBe(tagName);
+	});
+
+	test("the three hover layers sit inside the plot and stay hidden from assistive tech", () => {
+		const { container } = renderChart();
+		const plot = container.querySelector('[data-slot="line-chart-plot"]');
+		for (const slot of ["line-chart-crosshair", "line-chart-hover-band", "line-chart-markers"]) {
+			const layer = container.querySelector(`[data-slot="${slot}"]`);
+			expect(plot?.contains(layer ?? null)).toBe(true);
+			expect(layer).toHaveAttribute("aria-hidden", "true");
+		}
+	});
+});
+
 describe("LineChart parts outside Root", () => {
 	test("a part rendered outside Root throws", () => {
 		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});

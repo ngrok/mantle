@@ -447,7 +447,7 @@ function GroupedBarChartExample() {
 
 ## Stacked bars
 
-Add `stacked` to the Root to stack the composed series instead of grouping them. Bars stack in composition order from the baseline up — the first `BarChart.Bar` sits on the baseline, the last on top — and the tooltip lists series top-of-stack first so the readout matches the visual stacking.
+Add `stacked` to the Root to stack the composed series instead of grouping them. Bars stack from the baseline up in registration order: series that mount together register in composition order, so the first `BarChart.Bar` sits on the baseline and the last on top. A `Bar` that mounts later stacks on top of every series already registered, whatever its position in the JSX, and a `dataKey` that unmounts and returns resumes its original position. Reordering the parts of a mounted chart does not restack it — the position sticks to the `dataKey`, which is what keeps a series from jumping when you rename its `label`. The tooltip lists the far end of the stack first, so a vertical chart reads top-down and a horizontal one reads from the far end back to the baseline.
 
 <Example>
 	<StackedBarChartExample />
@@ -1040,7 +1040,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `aria-labelledby`      | `string`                           |               | ID of a visible title element that names the chart. Preferred when the chart sits under a heading — no drift-prone duplicated text. Forbidden when `decorative`.                                                                                                                                            |
 | `decorative?`          | `boolean`                          | `false`       | Render as a placeholder backdrop, not real data: hidden from assistive tech, out of the tab order, inert to pointer/keyboard, no data table or live region. Mutually exclusive with the accessible-name and interaction props. See [Decorative charts](#decorative-charts).                                 |
 | `yDomain?`             | `[0, number \| "auto"]`            | `[0, "auto"]` | Override the automatic y maximum. The minimum is always the zero baseline.                                                                                                                                                                                                                                  |
-| `stacked?`             | `boolean`                          | `false`       | Stack the composed series in composition order from the baseline up.                                                                                                                                                                                                                                        |
+| `stacked?`             | `boolean`                          | `false`       | Stack the series from the baseline up in registration order. See [Stacked bars](#stacked-bars).                                                                                                                                                                                                             |
 | `orientation?`         | `"vertical" \| "horizontal"`       | `"vertical"`  | The direction the bars point (not an axis): `"vertical"` bars stand up from a bottom baseline (categories along x); `"horizontal"` bars run rightward from a left baseline (categories down y). See [Horizontal bars](#horizontal-bars).                                                                    |
 | `animate?`             | `boolean`                          | `true`        | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                                                                                                                                                                                                     |
 | `pending?`             | `boolean`                          | `false`       | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                                                                                                              |
@@ -1048,9 +1048,22 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `onActiveIndexChange?` | `(index: number \| null) => void`  |               | Notified when hover/keyboard moves the active index. Forbidden when `decorative`.                                                                                                                                                                                                                           |
 | `onDatumActivate?`     | `(event: ChartDatumEvent) => void` |               | Notified on datum activation: bar click, or Enter/Space on the focused chart. The event carries `{ index, xValue, datum, dataKey }`; `dataKey` is the stacked segment the pointer sits in, else the series nearest the pointer, and `null` for keyboard/whole-band activation. Forbidden when `decorative`. |
 
+**Data attributes**
+
+| Data Attribute | Value                    | Description                                                                                                     |
+| -------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"bar-chart"`            | The Root wrapper, with any forwarded chain ahead of it.                                                         |
+| `data-slot`    | `"bar-chart-plot"`       | The plot box. Every overlay layer positions against it, and the resize observer measures it.                    |
+| `data-slot`    | `"bar-chart-canvas"`     | The `<canvas>` the marks paint on. Always `aria-hidden`.                                                        |
+| `data-slot`    | `"bar-chart-crosshair"`  | The vertical hairline. Mounted on every kind; a bar chart never shows it.                                       |
+| `data-slot`    | `"bar-chart-hover-band"` | The highlight behind the active category, one category wide. The engine writes its geometry as an inline style. |
+| `data-slot`    | `"bar-chart-markers"`    | The container for the per-series hover dots. Mounted on every kind; a bar chart never fills it.                 |
+| `data-slot`    | `"bar-chart-tooltip"`    | The tooltip surface. The Root renders it; `BarChart.Tooltip` configures it.                                     |
+| `data-slot`    | `"bar-chart-data-table"` | The `sr-only` table twin. Omitted when `decorative`.                                                            |
+
 ### BarChart.Bar
 
-One bar series. Renders nothing itself — it registers the series with the chart, which paints it on canvas. Compose one `Bar` per series; with `stacked` on the Root, bars stack in composition order from the baseline up. Accepts no `className` or DOM props.
+One bar series. Renders nothing itself — it registers the series with the chart, which paints it on canvas. Compose one `Bar` per series; with `stacked` on the Root, bars stack from the baseline up in registration order. Accepts no `className` or DOM props.
 
 | Prop       | Type                                                                                 | Default          | Description                                                                                                                                                             |
 | ---------- | ------------------------------------------------------------------------------------ | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1099,7 +1112,7 @@ A dashed horizontal marker at a y value — an SLO threshold, a budget, a limit 
 
 Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `BarChart.Root`'s interaction contract and renders whether or not this part is composed — compose it to format the label or values, append a footer, or replace the content entirely.
 
-The `HoverSnapshot` passed to `footer` and `children` describes the active category: `{ index, xValue, datum, points, viaKeyboard }`, where `points` lists every series' value at the active index in visual order.
+The `HoverSnapshot` passed to `footer` and `children` describes the active category: `{ index, xValue, datum, points, viaKeyboard }`, where `points` lists every series' value at the active index. Stacked, the rows run from the far end of the pile back to the baseline; unstacked, they follow registration order.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded to the tooltip element the Root owns) except `children`, plus:
 
@@ -1136,7 +1149,7 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-Series colors default to the ordered `--color-chart-1` through `--color-chart-8` tokens. Each theme picks the ramp step that passes mantle's palette validation gates — colorblind-safe adjacency and at least 3:1 contrast against the card surface — in all four themes (light, dark, and both high-contrast variants). Slots are assigned in composition order and stick to their `dataKey` for the chart's lifetime: a series keeps its color even as other series are filtered in and out. Series past the eighth use `--color-chart-other` — but prefer folding the long tail into a single "Other" series instead of plotting nine-plus indistinguishable ones.
+Series colors default to the ordered `--color-chart-1` through `--color-chart-8` tokens. Each theme picks the ramp step that passes mantle's palette validation gates — colorblind-safe adjacency and at least 3:1 contrast against the card surface — in all four themes (light, dark, and both high-contrast variants). A series without an explicit `color` claims the next never-used slot when it first registers. It keeps that slot for the chart's lifetime, so filtering series out never repaints the survivors, and a `dataKey` that returns gets its old slot back. An explicit `color` reserves its token, so the next unpinned series skips past it. The cursor counts every `dataKey` the Root has ever registered, not the mounted count — cycle more than eight keys through one Root and the later ones wear `--color-chart-other`. Key the Root on whatever chooses the series to start the palette over. Either way, prefer folding the long tail into a single "Other" series over plotting nine-plus indistinguishable ones.
 
 | CSS Variable          | Description                                                                                            |
 | --------------------- | ------------------------------------------------------------------------------------------------------ |

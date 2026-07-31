@@ -2405,7 +2405,9 @@ class ChartEngine {
 			};
 		});
 		if (this.#options.stacked) {
-			// Tooltip rows match the visual top-to-bottom order of the stack.
+			// Rows run from the far end of the pile back to the baseline, so they
+			// match what a reader scans: top-down on a vertical chart, and from the
+			// right-hand end leftward on a horizontal one.
 			points.reverse();
 		}
 		if (this.#kind === "scatter") {
