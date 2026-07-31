@@ -15,8 +15,9 @@ Seven JSDoc blocks were wrong before this pass, so their published text changes 
   horizontally with a fading scroll edge. The old summary called that "additional functionality".
 - **`Select.Item`** points at `onValueChange` instead of the deprecated `onChange`.
 - **`Combobox.ItemValue`** says that `value` and `userValue` override the defaults only when you pass them.
-- **`TooltipProvider`** restores the one-instance rule: a second provider gives part of the tree a different
-  delay.
+- **`TooltipProvider`** restores the one-instance rule and names what a second provider actually changes: it
+  applies its own timing props to its subtree, and it tracks `skipDelayDuration` separately, so a pointer
+  that moves between the two waits the delay again.
 - **`useBreakpoint`** states what it returns — the largest matching Tailwind breakpoint, or `"default"` below
   `2xs` — rather than narrating `useSyncExternalStore`.
 - **`useIsBelowBreakpoint`** states what it returns: `true` while the viewport is narrower than the given
