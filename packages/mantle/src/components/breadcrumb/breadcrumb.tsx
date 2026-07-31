@@ -1,7 +1,11 @@
+"use client";
+
 import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 import type { ComponentProps, ReactNode } from "react";
-import { cloneElement, isValidElement } from "react";
+import { cloneElement, isValidElement, useEffect, useRef } from "react";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { WithAsChild } from "../../types/as-child.js";
+import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -12,9 +16,12 @@ import { Slot } from "../slot/index.js";
  * The breadcrumb landmark. Renders a `<nav>` with a default
  * `aria-label="Breadcrumb"` per the WAI-ARIA breadcrumb pattern — pass your
  * own `aria-label` to override it (e.g. for localization or when a page has
- * multiple breadcrumb trails). Carries no visual styling of its own.
+ * multiple breadcrumb trails). Carries no visual styling. Its one layout class
+ * is `min-w-0`: inside a flex row such as `AppLayout.Header` the landmark must
+ * shrink below the trail's width, or `Breadcrumb.List` never scrolls and the
+ * crumbs push their siblings out of the row.
  *
- * @see https://mantle.ngrok.com/components/navigation/breadcrumb
+ * @see https://mantle.ngrok.com/components/navigation/breadcrumb#breadcrumbroot
  *
  * @example
  * ```tsx
@@ -38,6 +45,7 @@ import { Slot } from "../slot/index.js";
 const Root = ({
 	asChild,
 	children,
+	className,
 	"data-slot": dataSlot,
 	ref,
 	...props
@@ -49,6 +57,7 @@ const Root = ({
 			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "breadcrumb")}
 			aria-label="Breadcrumb"
+			className={cx("min-w-0", className)}
 			{...props}
 		>
 			{children}
@@ -57,11 +66,64 @@ const Root = ({
 };
 
 /**
+ * Scrolls a trail to its end, where the current page is, when that end has moved
+ * since the last pin. A moved end is the only thing that takes the scroll
+ * position away from the reader: their own scroll survives every other commit,
+ * resize, and re-measure.
+ *
+ * @param element - The trail's scroll container.
+ * @param previousEnd - The end offset this last pinned at, or `undefined` before
+ *   the first pin.
+ * @returns The end offset it pinned at, or `previousEnd` when it left the trail
+ *   alone.
+ *
+ * @example
+ * pinnedEnd.current = pinTrailToEnd(list, pinnedEnd.current);
+ */
+function pinTrailToEnd(element: Element, previousEnd: number | undefined) {
+	// The end is an offset, not a width, so a row that narrows around unchanged
+	// crumbs moves it just as a swapped trail does.
+	const end = element.scrollWidth - element.clientWidth;
+	// The end sits where it did, so whatever the reader scrolled to still shows
+	// them what they scrolled it to show.
+	if (end === previousEnd) {
+		return previousEnd;
+	}
+
+	// A crumb under focus outranks the current page: scrolling now would carry the
+	// focus ring out of view, and the reader has no gesture that brings it back.
+	if (element.contains(document.activeElement)) {
+		return previousEnd;
+	}
+
+	element.scrollLeft = end;
+
+	return end;
+}
+
+/**
  * The ordered list of crumbs. Renders an `<ol>` — an **ordered** list, because
  * the order of the items is the hierarchy, from the root to the current page.
- * Lays crumbs out inline with wrapping and muted, small text.
+ * Lays the crumbs out in one row of muted, small text.
  *
- * @see https://mantle.ngrok.com/components/navigation/breadcrumb
+ * A trail wider than its container scrolls sideways instead of wrapping to a
+ * second row, which a one-row app header has no space for. Its edges carry the
+ * same `scroll-fade-x` mask as `Tabs.List`: an edge with crumbs beyond it fades
+ * out, and an edge with nothing beyond it stays flush.
+ *
+ * The trail keeps its end in view, because the end is the current page. It
+ * scrolls itself there whenever that end moves — on mount, when a navigation
+ * swaps the crumbs, and when the row around it resizes — and leaves the reader's
+ * own scroll position alone the rest of the time, including while a crumb holds
+ * focus. Tabbing to a crumb the trail has scrolled past is the browser's own
+ * job, and `scroll-padding` the width of the fade zone is what lands that crumb
+ * clear of the fade rather than under it.
+ *
+ * To wrap instead, pass `className="flex-wrap overflow-x-visible"`. The mask
+ * needs a scrollport to animate against, so without one it renders fully
+ * opaque and the row wraps as it did before.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/breadcrumb#breadcrumblist
  *
  * @example
  * ```tsx
@@ -91,12 +153,62 @@ const List = ({
 	...props
 }: ComponentProps<"ol"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "ol";
+	const scrollRef = useRef<HTMLOListElement>(null);
+	const composedRef = useComposedRefs(scrollRef, ref);
+	// The end offset the trail last pinned at, which is what tells a commit that
+	// swapped the crumbs apart from one that changed nothing about them.
+	const pinnedEnd = useRef<number | undefined>(undefined);
+
+	// A navigation swaps the crumbs without touching the row's own size, so only a
+	// fresh measurement after the commit can see the end move.
+	useIsomorphicLayoutEffect(() => {
+		const element = scrollRef.current;
+		if (element != null) {
+			pinnedEnd.current = pinTrailToEnd(element, pinnedEnd.current);
+		}
+	});
+
+	useEffect(() => {
+		const element = scrollRef.current;
+		if (element == null) {
+			return;
+		}
+
+		// Why an observer: a window drag, a sidebar collapse, or a zoom change moves
+		// the end with no render to hang a measurement off, and a narrower row moves
+		// the end further away — leaving the current page off to the right, out of
+		// view, until something else re-renders.
+		const observer = new ResizeObserver(() => {
+			pinnedEnd.current = pinTrailToEnd(element, pinnedEnd.current);
+		});
+		observer.observe(element);
+
+		return () => {
+			observer.disconnect();
+		};
+	}, []);
 
 	return (
 		<Comp
-			ref={ref}
+			ref={composedRef}
 			data-slot={joinDataSlot(dataSlot, "breadcrumb-list")}
-			className={cx("text-muted flex flex-wrap items-center gap-1.5 text-sm", className)}
+			className={cx(
+				"text-muted flex items-center gap-1.5 text-sm",
+				// The trail scrolls rather than wraps, masked at both edges like
+				// Tabs.List. min-w-0 is what lets the row shrink — and so scroll —
+				// when the list is itself a flex item.
+				"scroll-fade-x min-w-0 overflow-x-auto overscroll-x-none",
+				// overflow-x-auto promotes overflow-y to auto, and the mask paints
+				// nothing outside the border box, so a focused crumb's ring needs room
+				// reserved inside the scrollport; the negative margin gives that room
+				// back to the surrounding layout. Same trade as CodeBlock.TabList.
+				"-m-1 p-1",
+				// The mask fades 40px at each edge, and the browser scrolls a crumb it
+				// tabs to only as far as the scroll padding asks for — 40px matches the
+				// two, so a focused crumb lands clear of the fade instead of under it.
+				"scroll-px-10",
+				className,
+			)}
 			{...props}
 		>
 			{children}
@@ -108,7 +220,11 @@ const List = ({
  * A single crumb. Renders an `<li>` (`role="listitem"`) that lays out its
  * content — a `Breadcrumb.Link` or `Breadcrumb.Page` — inline.
  *
- * @see https://mantle.ngrok.com/components/navigation/breadcrumb
+ * The crumb never shrinks (`shrink-0`). A squeezed crumb would break its own
+ * label across two lines, so a trail too wide for its container scrolls in
+ * `Breadcrumb.List` instead.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/breadcrumb#breadcrumbitem
  *
  * @example
  * ```tsx
@@ -143,7 +259,7 @@ const Item = ({
 		<Comp
 			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "breadcrumb-item")}
-			className={cx("inline-flex items-center gap-1.5", className)}
+			className={cx("inline-flex shrink-0 items-center gap-1.5", className)}
 			{...props}
 		>
 			{children}
@@ -290,7 +406,10 @@ type BreadcrumbSeparatorProps = Omit<ComponentProps<"li">, "children"> &
  * your own children (e.g. a slash) to replace it. With `asChild`, children
  * are required — the child element is what renders.
  *
- * @see https://mantle.ngrok.com/components/navigation/breadcrumb
+ * Like `Breadcrumb.Item`, the divider never shrinks (`shrink-0`), so a trail
+ * too wide for its container scrolls in `Breadcrumb.List` instead.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/breadcrumb#breadcrumbseparator
  *
  * @example
  * ```tsx
@@ -314,6 +433,7 @@ type BreadcrumbSeparatorProps = Omit<ComponentProps<"li">, "children"> &
 const Separator = ({
 	asChild,
 	children,
+	className,
 	"data-slot": dataSlot,
 	ref,
 	...props
@@ -330,6 +450,7 @@ const Separator = ({
 		<Comp
 			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "breadcrumb-separator")}
+			className={cx("shrink-0", className)}
 			{...props}
 			role="presentation"
 			aria-hidden="true"
@@ -343,7 +464,8 @@ const Separator = ({
  * Compound component for WAI-ARIA breadcrumb navigation — the path from a
  * root to the current page as an ordered list of links inside a labeled
  * `<nav>` landmark. Router-agnostic: compose `Breadcrumb.Link` onto your app
- * router's link via `asChild`.
+ * router's link via `asChild`. A trail too wide for its row scrolls sideways
+ * with faded edges instead of wrapping, and starts at the current page.
  *
  * @see https://mantle.ngrok.com/components/navigation/breadcrumb
  *
@@ -382,9 +504,10 @@ const Breadcrumb = {
 	/**
 	 * The breadcrumb landmark. Renders a `<nav>` with a default
 	 * `aria-label="Breadcrumb"` — pass your own `aria-label` to override it.
-	 * Carries no visual styling of its own.
+	 * Carries no visual styling; `min-w-0` is what lets the landmark shrink
+	 * inside a flex row so the trail scrolls.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/breadcrumb
+	 * @see https://mantle.ngrok.com/components/navigation/breadcrumb#breadcrumbroot
 	 *
 	 * @example
 	 * ```tsx
@@ -408,9 +531,11 @@ const Breadcrumb = {
 	Root,
 	/**
 	 * The ordered list of crumbs. Renders an `<ol>` — the order of the items
-	 * is the hierarchy, from the root to the current page.
+	 * is the hierarchy, from the root to the current page. A trail wider than
+	 * its container scrolls sideways with a faded edge instead of wrapping, and
+	 * starts at the current page.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/breadcrumb
+	 * @see https://mantle.ngrok.com/components/navigation/breadcrumb#breadcrumblist
 	 *
 	 * @example
 	 * ```tsx
@@ -434,9 +559,10 @@ const Breadcrumb = {
 	List,
 	/**
 	 * A single crumb. Renders an `<li>` containing a `Breadcrumb.Link` or
-	 * `Breadcrumb.Page`.
+	 * `Breadcrumb.Page`. The crumb never shrinks, so a wide trail scrolls
+	 * instead of breaking a label across two lines.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/breadcrumb
+	 * @see https://mantle.ngrok.com/components/navigation/breadcrumb#breadcrumbitem
 	 *
 	 * @example
 	 * ```tsx
@@ -514,9 +640,10 @@ const Breadcrumb = {
 	/**
 	 * A purely visual divider between crumbs, hidden from assistive
 	 * technology (`role="presentation"` + `aria-hidden`). Children default to
-	 * a caret icon; pass your own (e.g. a slash) to replace it.
+	 * a caret icon; pass your own (e.g. a slash) to replace it. Like the crumbs
+	 * it divides, it never shrinks.
 	 *
-	 * @see https://mantle.ngrok.com/components/navigation/breadcrumb
+	 * @see https://mantle.ngrok.com/components/navigation/breadcrumb#breadcrumbseparator
 	 *
 	 * @example
 	 * ```tsx
