@@ -725,9 +725,9 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 
 ## Trade-offs
 
-- **No collapsing.** `Breadcrumb` has no ellipsis part, so a long trail wraps (`Breadcrumb.List` is
-  `flex-wrap`) rather than truncating to `Home / … / Current`. Fine to about four levels; past that, consider
-  whether the depth itself is the problem.
+- **No collapsing.** `Breadcrumb` has no ellipsis part, so a long trail scrolls sideways from the current page
+  rather than truncating to `Home / … / Current`. Fine to about four levels; past that, consider whether the
+  depth itself is the problem.
 - **Labels must be synchronous.** That is a real constraint, not just a preference: a label you can only get
   from a query has to either move into the loader or be left out of the trail. See
   [Don't wait on a query for a crumb](#dont-wait-on-a-query-for-a-crumb).

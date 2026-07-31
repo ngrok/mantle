@@ -1,7 +1,28 @@
 import { render, screen } from "@testing-library/react";
-import { createRef } from "react";
-import { describe, expect, test } from "vitest";
+import { userEvent } from "@testing-library/user-event";
+import { createRef, Fragment } from "react";
+import { renderToString } from "react-dom/server";
+import { describe, expect, test, vi } from "vitest";
 import { Breadcrumb } from "./breadcrumb.js";
+
+const Trail = ({ crumbs }: { crumbs: ReadonlyArray<string> }) => (
+	<Breadcrumb.Root>
+		<Breadcrumb.List>
+			{crumbs.map((crumb, index) => (
+				<Fragment key={crumb}>
+					{index > 0 && <Breadcrumb.Separator />}
+					<Breadcrumb.Item>
+						{index === crumbs.length - 1 ? (
+							<Breadcrumb.Page>{crumb}</Breadcrumb.Page>
+						) : (
+							<Breadcrumb.Link href={`/${crumb}`}>{crumb}</Breadcrumb.Link>
+						)}
+					</Breadcrumb.Item>
+				</Fragment>
+			))}
+		</Breadcrumb.List>
+	</Breadcrumb.Root>
+);
 
 describe("Breadcrumb", () => {
 	test("Root renders a nav landmark labeled Breadcrumb by default", () => {
@@ -45,13 +66,25 @@ describe("Breadcrumb", () => {
 		expect(root).toHaveAttribute("aria-label", "Breadcrumb");
 	});
 
-	test("Root merges custom className", () => {
+	// tailwind-merge override contract: min-w-0 is what lets the landmark shrink
+	// inside a flex row, so a consumer's className must compose with it rather
+	// than replace it — and a conflicting min-w-* must win outright.
+	test("Root keeps its min-width default beside a consumer className", () => {
 		render(
 			<Breadcrumb.Root className="custom-class" data-testid="root">
 				crumbs
 			</Breadcrumb.Root>,
 		);
-		expect(screen.getByTestId("root").className).toContain("custom-class");
+		expect(screen.getByTestId("root").className).toBe("min-w-0 custom-class");
+	});
+
+	test("Root's min-width default loses to a consumer min-w-* utility", () => {
+		render(
+			<Breadcrumb.Root className="min-w-full" data-testid="root">
+				crumbs
+			</Breadcrumb.Root>,
+		);
+		expect(screen.getByTestId("root").className).toBe("min-w-full");
 	});
 
 	test("Root forwards a ref to the nav element", () => {
@@ -88,7 +121,9 @@ describe("Breadcrumb", () => {
 		expect(list).toHaveAttribute("data-slot", "breadcrumb-list");
 	});
 
-	test("List merges custom className with base classes", () => {
+	// tailwind-merge override contract: a consumer's gap replaces the default one
+	// instead of landing beside it, while the scroll treatment survives.
+	test("List's gap default loses to a consumer gap utility", () => {
 		render(
 			<Breadcrumb.Root>
 				<Breadcrumb.List className="gap-3">
@@ -100,7 +135,24 @@ describe("Breadcrumb", () => {
 		);
 		const list = screen.getByRole("list");
 		expect(list.className).toContain("gap-3");
-		expect(list.className).toContain("flex-wrap");
+		expect(list.className).not.toContain("gap-1.5");
+		expect(list.className).toContain("overflow-x-auto");
+	});
+
+	// Cross-file spelling pin: `scroll-fade-x` is the @utility declared in
+	// packages/mantle/src/mantle.css that masks the scrolled edges, so renaming
+	// the class here without renaming it there silently drops the fade.
+	test("List carries the scroll-fade-x edge mask", () => {
+		render(
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Item>
+						<Breadcrumb.Link href="/">Home</Breadcrumb.Link>
+					</Breadcrumb.Item>
+				</Breadcrumb.List>
+			</Breadcrumb.Root>,
+		);
+		expect(screen.getByRole("list").className).toContain("scroll-fade-x");
 	});
 
 	test("Item renders a listitem and merges custom className", () => {
@@ -268,6 +320,19 @@ describe("Breadcrumb", () => {
 		expect(separator.querySelector("svg")).not.toBeNull();
 	});
 
+	test("Separator merges a consumer className beside its own", () => {
+		render(
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Separator className="mx-2" data-testid="separator" />
+				</Breadcrumb.List>
+			</Breadcrumb.Root>,
+		);
+		// tailwind-merge override contract: mx-2 does not conflict with shrink-0, so
+		// the consumer's spacing lands beside the part's own non-shrinking default.
+		expect(screen.getByTestId("separator").className).toBe("shrink-0 mx-2");
+	});
+
 	test("Separator custom children replace the default caret", () => {
 		render(
 			<Breadcrumb.Root>
@@ -335,5 +400,112 @@ describe("Breadcrumb", () => {
 		expect(items[2]).toHaveTextContent("ep_2h8");
 		expect(screen.getAllByRole("link")).toHaveLength(2);
 		expect(screen.getByText("ep_2h8")).toHaveAttribute("aria-current", "page");
+	});
+
+	describe("List scroll position", () => {
+		// happy-dom reports every layout metric as 0, so the trail's geometry comes
+		// from prototype stubs. `scrollLeft` there is a plain property, which records
+		// whatever offset the component assigns. The end of a trail is its scroll
+		// width less the width of the row it has to fit into.
+		const stubTrail = ({
+			scrollWidth,
+			clientWidth,
+		}: {
+			scrollWidth: number;
+			clientWidth: number;
+		}) => ({
+			scrollWidth: vi
+				.spyOn(HTMLElement.prototype, "scrollWidth", "get")
+				.mockReturnValue(scrollWidth),
+			clientWidth: vi
+				.spyOn(HTMLElement.prototype, "clientWidth", "get")
+				.mockReturnValue(clientWidth),
+		});
+
+		test("the trail starts at its end, so the current page is in view", () => {
+			stubTrail({ scrollWidth: 400, clientWidth: 100 });
+			render(<Trail crumbs={["Home", "Endpoints", "ep_2h8"]} />);
+			expect(screen.getByRole("list").scrollLeft).toBe(300);
+		});
+
+		test("a navigation that swaps the crumbs re-pins the trail to its new end", () => {
+			const { scrollWidth } = stubTrail({ scrollWidth: 400, clientWidth: 100 });
+			const { rerender } = render(<Trail crumbs={["Home", "Endpoints"]} />);
+			const list = screen.getByRole("list");
+			expect(list.scrollLeft).toBe(300);
+
+			scrollWidth.mockReturnValue(700);
+			rerender(<Trail crumbs={["Home", "Endpoints", "Cloud Endpoints", "ep_2h8"]} />);
+			expect(list.scrollLeft).toBe(600);
+		});
+
+		test("a re-render that leaves the trail unchanged keeps the reader's scroll position", () => {
+			stubTrail({ scrollWidth: 400, clientWidth: 100 });
+			const { rerender } = render(<Trail crumbs={["Home", "Endpoints", "ep_2h8"]} />);
+			const list = screen.getByRole("list");
+
+			// The reader scrolls back to the root of the hierarchy.
+			list.scrollLeft = 0;
+			rerender(<Trail crumbs={["Home", "Endpoints", "ep_2h8"]} />);
+			expect(list.scrollLeft).toBe(0);
+		});
+
+		test("a crumb under focus keeps its place when the trail changes around it", async () => {
+			const user = userEvent.setup();
+			const { scrollWidth } = stubTrail({ scrollWidth: 400, clientWidth: 100 });
+			const { rerender } = render(<Trail crumbs={["Home", "Endpoints", "ep_2h8"]} />);
+			const list = screen.getByRole("list");
+
+			await user.tab();
+			// The reader is reading the crumb they tabbed to, wherever it sits.
+			list.scrollLeft = 40;
+
+			scrollWidth.mockReturnValue(700);
+			rerender(<Trail crumbs={["Home", "Endpoints", "Cloud Endpoints", "ep_2h8"]} />);
+
+			expect(screen.getByRole("link", { name: "Home" })).toHaveFocus();
+			expect(list.scrollLeft).toBe(40);
+		});
+
+		test("a trail that could not be measured at first pins once it can", () => {
+			// A trail first rendered inside a display:none ancestor measures zero on
+			// every axis, so the end it has to reach only exists once it is shown.
+			const { scrollWidth, clientWidth } = stubTrail({ scrollWidth: 0, clientWidth: 0 });
+			const { rerender } = render(<Trail crumbs={["Home", "Endpoints", "ep_2h8"]} />);
+			const list = screen.getByRole("list");
+
+			scrollWidth.mockReturnValue(400);
+			clientWidth.mockReturnValue(100);
+			rerender(<Trail crumbs={["Home", "Endpoints", "ep_2h8"]} />);
+
+			expect(list.scrollLeft).toBe(300);
+		});
+	});
+
+	test("the server render carries the whole trail, scroll container and all", () => {
+		const html = renderToString(<Trail crumbs={["Home", "Endpoints", "ep_2h8"]} />);
+
+		// The scroll pin runs in an effect, so nothing about it may hold the trail
+		// back to the client: the first paint has to be the finished trail, not an
+		// empty row that fills in after hydration.
+		expect(html).toContain('data-slot="breadcrumb-list"');
+		expect(html).toContain("Endpoints");
+		expect(html).toContain('aria-current="page"');
+		expect(html).toContain("ep_2h8");
+	});
+
+	test("focus reaching a crumb scrolls nothing itself", async () => {
+		const user = userEvent.setup();
+		const scrollIntoView = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
+		render(<Trail crumbs={["Home", "Endpoints", "ep_2h8"]} />);
+
+		await user.tab();
+
+		// Bringing a tabbed-to crumb into view is the browser's own job, driven by
+		// the list's scroll padding. Doing it here as well would fire between a
+		// press and its release and slide the crumb out from under the pointer,
+		// so the click would land on whatever replaced it.
+		expect(screen.getByRole("link", { name: "Home" })).toHaveFocus();
+		expect(scrollIntoView).not.toHaveBeenCalled();
 	});
 });

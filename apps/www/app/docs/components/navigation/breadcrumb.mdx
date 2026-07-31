@@ -52,6 +52,36 @@ export function BreadcrumbSlashSeparatorExample() {
 	);
 }
 
+export function BreadcrumbOverflowExample() {
+	return (
+		<div className="border-card-muted bg-card flex w-full max-w-sm items-center gap-2 rounded-lg border px-4 py-3">
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Item>
+						<Breadcrumb.Link href="#">Acme Corp</Breadcrumb.Link>
+					</Breadcrumb.Item>
+					<Breadcrumb.Separator />
+					<Breadcrumb.Item>
+						<Breadcrumb.Link href="#">Endpoints</Breadcrumb.Link>
+					</Breadcrumb.Item>
+					<Breadcrumb.Separator />
+					<Breadcrumb.Item>
+						<Breadcrumb.Link href="#">Cloud Endpoints</Breadcrumb.Link>
+					</Breadcrumb.Item>
+					<Breadcrumb.Separator />
+					<Breadcrumb.Item>
+						<Breadcrumb.Link href="#">Traffic Policy</Breadcrumb.Link>
+					</Breadcrumb.Item>
+					<Breadcrumb.Separator />
+					<Breadcrumb.Item>
+						<Breadcrumb.Page>ep_2h8xyz</Breadcrumb.Page>
+					</Breadcrumb.Item>
+				</Breadcrumb.List>
+			</Breadcrumb.Root>
+		</div>
+	);
+}
+
 export function BreadcrumbRouterLinkExample() {
 	return (
 		<Breadcrumb.Root>
@@ -147,7 +177,7 @@ Breadcrumb.Root
 ```
 
 - **`Root`** is the `<nav>` landmark, labeled `"Breadcrumb"` by default (overridable via `aria-label`). It carries no visual styling of its own.
-- **`List`** is the `<ol>` — an ordered list, because the order of the items **is** the hierarchy, from the root to the current page.
+- **`List`** is the `<ol>` — an ordered list, because the order of the items **is** the hierarchy, from the root to the current page. It lays the crumbs out in one row and scrolls them sideways when the trail is wider than its container (see [Overflow](#overflow)).
 - **`Item`** is one crumb: an `<li>` wrapping a `Link` or the `Page`.
 - **`Link`** is a plain `<a>` to an ancestor page; compose it onto your router's link via `asChild`.
 - **`Page`** marks the current page — a `<span>` with `aria-current="page"`, not a link.
@@ -186,6 +216,61 @@ import { Link, href } from "react-router";
 </Breadcrumb.Root>;
 ```
 
+## Overflow
+
+An app header is one row tall, so a trail wider than that row scrolls sideways instead of wrapping onto a second one. `Breadcrumb.List` is the scroll container, and its edges carry the same [`scroll-fade-x`](/base/scroll-fade#horizontal--scroll-fade-x) mask as [Tabs](/components/navigation/tabs): the edge with crumbs beyond it fades out, and the edge with nothing beyond it stays flush.
+
+The trail starts at its end, because the end is the current page. It scrolls itself there whenever that end moves — on mount, when a navigation swaps the crumbs, and when the row around it resizes — and leaves the reader's own scroll position alone the rest of the time, including while a crumb holds focus. Tabbing to a crumb the trail has scrolled past is the browser's own job; the list carries `scroll-padding` the width of the fade zone, so that crumb lands clear of the fade rather than under it.
+
+For this to work inside a flex row such as [`AppLayout.Header`](/layouts/app-layout#applayoutheader), `Breadcrumb.Root` carries `min-w-0`: the landmark gives up width to the row instead of pushing its siblings out of it. The crumbs themselves never shrink, so a crumb keeps its label on one line.
+
+<Example>
+	<BreadcrumbOverflowExample />
+</Example>
+
+```tsx
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+
+<div className="border-card-muted bg-card flex w-full max-w-sm items-center gap-2 rounded-lg border px-4 py-3">
+	<Breadcrumb.Root>
+		<Breadcrumb.List>
+			<Breadcrumb.Item>
+				<Breadcrumb.Link href="/">Acme Corp</Breadcrumb.Link>
+			</Breadcrumb.Item>
+			<Breadcrumb.Separator />
+			<Breadcrumb.Item>
+				<Breadcrumb.Link href="/endpoints">Endpoints</Breadcrumb.Link>
+			</Breadcrumb.Item>
+			<Breadcrumb.Separator />
+			<Breadcrumb.Item>
+				<Breadcrumb.Link href="/endpoints/cloud">Cloud Endpoints</Breadcrumb.Link>
+			</Breadcrumb.Item>
+			<Breadcrumb.Separator />
+			<Breadcrumb.Item>
+				<Breadcrumb.Link href="/endpoints/cloud/policy">Traffic Policy</Breadcrumb.Link>
+			</Breadcrumb.Item>
+			<Breadcrumb.Separator />
+			<Breadcrumb.Item>
+				<Breadcrumb.Page>ep_2h8xyz</Breadcrumb.Page>
+			</Breadcrumb.Item>
+		</Breadcrumb.List>
+	</Breadcrumb.Root>
+</div>;
+```
+
+Two constraints come with the mask, both covered in full on the [scroll fade](/base/scroll-fade) page:
+
+- The mask fades everything `Breadcrumb.List` paints, its own background and border included. Keep that styling on a wrapper, as the example above does.
+- The mask owns the element's `mask-image`. A second mask on the same element replaces it.
+
+To wrap instead, hand the scrollport back:
+
+```tsx
+<Breadcrumb.List className="flex-wrap overflow-x-visible">
+```
+
+The mask needs a scroll container to animate against. Without one it stays fully opaque, and the row wraps as it did before.
+
 ## Accessibility
 
 Breadcrumb follows the [APG breadcrumb pattern](https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/):
@@ -199,7 +284,7 @@ Breadcrumb follows the [APG breadcrumb pattern](https://www.w3.org/WAI/ARIA/apg/
 
 ### Breadcrumb.Root
 
-The `<nav>` landmark containing the trail.
+The `<nav>` landmark containing the trail. It carries no visual styling; its one layout class is `min-w-0`, which lets the landmark shrink inside a flex row so `Breadcrumb.List` scrolls (see [Overflow](#overflow)).
 
 All props from [nav](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/nav#attributes), plus:
 
@@ -210,7 +295,7 @@ All props from [nav](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/n
 
 ### Breadcrumb.List
 
-The ordered list of crumbs — the order is the hierarchy.
+The ordered list of crumbs — the order is the hierarchy. It is also the scroll container: a trail wider than its container scrolls sideways with a faded edge and starts at the current page, and `className="flex-wrap overflow-x-visible"` trades that back for wrapping (see [Overflow](#overflow)).
 
 All props from [ol](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol#attributes), plus:
 
@@ -220,7 +305,7 @@ All props from [ol](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol
 
 ### Breadcrumb.Item
 
-A single crumb wrapping a `Link` or the `Page`.
+A single crumb wrapping a `Link` or the `Page`. The crumb never shrinks, so it keeps its label on one line and the trail scrolls instead.
 
 All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes), plus:
 
@@ -250,7 +335,7 @@ All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/
 
 ### Breadcrumb.Separator
 
-A purely visual divider between crumbs, hidden from assistive technology.
+A purely visual divider between crumbs, hidden from assistive technology. Like the crumbs it divides, it never shrinks.
 
 All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes), plus:
 
