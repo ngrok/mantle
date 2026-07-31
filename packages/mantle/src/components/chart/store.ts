@@ -95,11 +95,23 @@ const displayColor = (color: SeriesSpec["color"], slot: ChartColorToken): string
  * claims the next never-used slot, unmounting does not free it, and a
  * returning dataKey gets its old slot back — filtering a series out never
  * repaints the survivors (color follows the entity, not its row number).
- * The one exception: a series pinning a chart token evicts any earlier
- * auto-assignment of that token (the evicted dataKey moves to the next free
- * slot and stays sticky there), so an explicit pin wins its color regardless
- * of registration order. Unpinned series past the eighth slot all use
- * `chart-other`; fold them into an "Other" series or facet instead.
+ *
+ * Two things override stickiness, and neither can repaint a mounted series:
+ *
+ * - A series pinning a chart token evicts any earlier auto-assignment of that
+ *   token (the evicted dataKey moves to the next free slot and stays sticky
+ *   there), so an explicit pin wins its color regardless of registration order.
+ * - Once the never-used slots run out, an incoming series takes a slot back
+ *   from an UNMOUNTED holder rather than falling to `chart-other`, oldest
+ *   registration first. Without it the cursor counts every dataKey the store
+ *   has ever seen, so a Root that swaps one series vocabulary for another paints
+ *   the overflow gray while the chart shows two series. The cost is that a
+ *   reclaimed dataKey no longer returns to its original slot — stickiness holds
+ *   for as long as the palette has room, which is the whole eight-slot budget.
+ *
+ * A chart that genuinely mounts more than eight unpinned series still paints the
+ * ninth and later with `chart-other`; fold them into an "Other" series or facet
+ * instead.
  */
 class ChartStore {
 	#listeners = new Set<() => void>();
@@ -151,6 +163,29 @@ class ChartStore {
 			.map((entry) => entry.spec);
 	}
 
+	/**
+	 * The auto-assigned slot a dataKey holds that no mounted series needs — the
+	 * one an incoming series takes rather than falling to `chart-other`.
+	 *
+	 * Only an unmounted holder is a candidate, which is what keeps a mounted
+	 * series from ever repainting. Among candidates the longest-registered key
+	 * gives its slot up first: `#sequenceByKey` already outlives unmount, so the
+	 * order needs no new state and does not depend on unmount timing.
+	 */
+	#reclaimableSlot(): { dataKey: string; slot: ChartColorToken } | null {
+		let oldest: { dataKey: string; slot: ChartColorToken; sequence: number } | null = null;
+		for (const [dataKey, slot] of this.#slotByKey) {
+			if (this.#seriesByKey.has(dataKey)) {
+				continue;
+			}
+			const sequence = this.#sequenceByKey.get(dataKey) ?? Number.POSITIVE_INFINITY;
+			if (oldest == null || sequence < oldest.sequence) {
+				oldest = { dataKey, slot, sequence };
+			}
+		}
+		return oldest == null ? null : { dataKey: oldest.dataKey, slot: oldest.slot };
+	}
+
 	/** The sticky slot for a dataKey (assigned on first registration). */
 	slotFor(dataKey: string): ChartColorToken {
 		const existing = this.#slotByKey.get(dataKey);
@@ -166,6 +201,18 @@ class ChartStore {
 			this.#claimedSlots.has(SLOT_ORDER[this.#nextSlot] ?? "chart-other")
 		) {
 			this.#nextSlot += 1;
+		}
+		if (this.#nextSlot >= SLOT_ORDER.length) {
+			// The cursor counts every dataKey the store has ever seen, so a Root that
+			// swaps one vocabulary for another runs out of never-used slots while the
+			// chart shows two series. Take a slot back from an unmounted holder
+			// before falling to the overflow gray.
+			const reclaimed = this.#reclaimableSlot();
+			if (reclaimed != null) {
+				this.#slotByKey.delete(reclaimed.dataKey);
+				this.#slotByKey.set(dataKey, reclaimed.slot);
+				return reclaimed.slot;
+			}
 		}
 		const slot = SLOT_ORDER[this.#nextSlot] ?? "chart-other";
 		if (this.#nextSlot < SLOT_ORDER.length) {

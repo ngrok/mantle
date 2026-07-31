@@ -45,6 +45,28 @@ export function StackedAreaExample() {
 	);
 }
 
+export const noTrafficYet = [
+	{ date: new Date("2026-07-08"), requests: 0 },
+	{ date: new Date("2026-07-09"), requests: 0 },
+	{ date: new Date("2026-07-10"), requests: 0 },
+	{ date: new Date("2026-07-11"), requests: 0 },
+	{ date: new Date("2026-07-12"), requests: 0 },
+	{ date: new Date("2026-07-13"), requests: 0 },
+	{ date: new Date("2026-07-14"), requests: 0 },
+];
+
+export function NoTrafficYetAreaChartExample() {
+	return (
+		<AreaChart.Root data={noTrafficYet} xKey="date" aria-label="Requests per day">
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="requests" label="Requests" />
+			<AreaChart.Tooltip />
+		</AreaChart.Root>
+	);
+}
+
 export const regionData = [
 	{ date: new Date("2026-07-01"), usEast: 2400, euWest: 1900 },
 	{ date: new Date("2026-07-02"), usEast: 2600, euWest: 2100 },
@@ -333,6 +355,8 @@ Reach for an `AreaChart` when the magnitude of a value over time is the story �
 - Prefer [`LineChart`](/components/charts/line-chart) when composition doesn't matter and you are comparing the shapes of trajectories.
 - Prefer [`BarChart`](/components/charts/bar-chart) when the x axis is categorical and the comparison is between discrete things, not over time.
 
+**Keep it to eight series or fewer.** The default chart tokens are eight validated categorical slots. The ninth series onward all wear the neutral `--color-chart-other`, so a dozen keys legend as a wall of identical gray. Eight is the palette's measured limit, not a style preference: a ninth hue cannot clear the colorblind-safe adjacency gates the eight already sit close to. Rank by the window's total, keep the top seven, and sum the rest into one `"Other"` series. The Bar Chart page carries [a worked fold](/components/charts/bar-chart#when-to-use). Pin the fold's own `Area` with `color="chart-other"`, so it reads as the tail rather than claiming a categorical slot. Keep it last, so it sits at the top of a stack.
+
 Compose `AreaChart.Root` with the chrome parts (`Grid`, `XAxis`, `YAxis`) and one `AreaChart.Area` per series. A stacked chart of connections by protocol over two weeks:
 
 <Example>
@@ -579,6 +603,43 @@ const outageData = [
 ```
 
 In a stacked chart a gap in one series contributes nothing to the stack at that x position, and the boundary stays continuous so the series above it don't tear.
+
+## No traffic yet
+
+An all-zero series is data, not an empty state. Areas fill from the zero baseline, so the value axis stays
+anchored there and the baseline sits on the axis rather than floating through the middle of the plot. Keep the
+accessible name, the tooltip, and the data table — "0" is the answer, and a screen reader needs to hear it. Reach
+for `decorative` only when the values are a synthetic backdrop behind an empty-state message.
+
+<Example>
+	<NoTrafficYetAreaChartExample />
+</Example>
+
+```tsx
+import { AreaChart } from "@ngrok/mantle/area-chart";
+
+const noTrafficYet = [
+	{ date: new Date("2026-07-08"), requests: 0 },
+	{ date: new Date("2026-07-09"), requests: 0 },
+	{ date: new Date("2026-07-10"), requests: 0 },
+	{ date: new Date("2026-07-11"), requests: 0 },
+	{ date: new Date("2026-07-12"), requests: 0 },
+	{ date: new Date("2026-07-13"), requests: 0 },
+	{ date: new Date("2026-07-14"), requests: 0 },
+];
+
+function NoTrafficYetAreaChartExample() {
+	return (
+		<AreaChart.Root data={noTrafficYet} xKey="date" aria-label="Requests per day">
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="requests" label="Requests" />
+			<AreaChart.Tooltip />
+		</AreaChart.Root>
+	);
+}
+```
 
 ## Reference lines
 
@@ -936,18 +997,18 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-A series without an explicit `color` claims the next never-used slot from the ordered `--color-chart-1` … `--color-chart-8` tokens when it first registers. The palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the chart surface in all four themes (light, dark, high-contrast light, high-contrast dark). A claimed slot is sticky per `dataKey` for the chart's lifetime — filtering series in and out never repaints the survivors, so color follows the entity, never its rank. An explicit `color` reserves its token, so the next unpinned series skips past it. The cursor counts every `dataKey` the Root has ever registered, not the mounted count — cycle more than eight keys through one Root and the later ones paint with `--color-chart-other`. Key the Root on whatever chooses the series to start the palette over, and fold a long tail into a single "Other" series rather than inventing more hues.
+A series without an explicit `color` claims the next never-used slot from the ordered `--color-chart-1` … `--color-chart-8` tokens when it first registers. The palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the chart surface in all four themes (light, dark, high-contrast light, high-contrast dark). A claimed slot is sticky per `dataKey` for the chart's lifetime — filtering series in and out never repaints the survivors, so color follows the entity, never its rank. An explicit `color` reserves its token, so the next unpinned series skips past it. A series that unmounts keeps its slot while the palette has room. Once the never-used slots run out, an incoming series takes a slot back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Fold the long tail into a single "Other" series rather than inventing more hues.
 
-| CSS Variable          | Description                                                                                 |
-| --------------------- | ------------------------------------------------------------------------------------------- |
-| `--color-chart-1`     | The first categorical series slot.                                                          |
-| `--color-chart-2`     | The second categorical series slot.                                                         |
-| `--color-chart-3`     | The third categorical series slot.                                                          |
-| `--color-chart-4`     | The fourth categorical series slot.                                                         |
-| `--color-chart-5`     | The fifth categorical series slot.                                                          |
-| `--color-chart-6`     | The sixth categorical series slot.                                                          |
-| `--color-chart-7`     | The seventh categorical series slot.                                                        |
-| `--color-chart-8`     | The eighth categorical series slot.                                                         |
-| `--color-chart-other` | The fold slot for the ninth-and-later series — group the tail into a single "Other" series. |
+| CSS Variable          | Description                                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `--color-chart-1`     | The first categorical series slot.                                                                          |
+| `--color-chart-2`     | The second categorical series slot.                                                                         |
+| `--color-chart-3`     | The third categorical series slot.                                                                          |
+| `--color-chart-4`     | The fourth categorical series slot.                                                                         |
+| `--color-chart-5`     | The fifth categorical series slot.                                                                          |
+| `--color-chart-6`     | The sixth categorical series slot.                                                                          |
+| `--color-chart-7`     | The seventh categorical series slot.                                                                        |
+| `--color-chart-8`     | The eighth categorical series slot.                                                                         |
+| `--color-chart-other` | The fold slot, worn once more than eight series show at once — group the tail into a single "Other" series. |
 
 Custom `color` strings are an escape hatch, not a shortcut: a raw hex value does not adapt across themes, and any custom palette must be re-validated for colorblind-safe adjacency and surface contrast. A series that carries good or bad meaning — an error rate, a success rate — should wear the semantic status colors, never a categorical slot.

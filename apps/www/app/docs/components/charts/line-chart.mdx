@@ -283,6 +283,8 @@ A `LineChart` answers "how is this changing?" and "do these series move together
 
 The x scale is auto-detected from the first row's x value: `Date` values get a `"time"` scale with calendar-aware ticks, numbers get `"linear"`, and strings get `"point"` (evenly spaced categories). Pass `xScale` when detection guesses wrong — for example, epoch-millisecond numbers auto-detect as `"linear"`, so pass `xScale="time"` to read them as time.
 
+**Keep it to eight series or fewer.** The default chart tokens are eight validated categorical slots. The ninth series onward all wear the neutral `--color-chart-other`, so a dozen keys legend as a wall of identical gray. Eight is the palette's measured limit, not a style preference: a ninth hue cannot clear the colorblind-safe adjacency gates the eight already sit close to. Rank by the window's total, keep the top seven, and sum the rest into one `"Other"` series. The Bar Chart page carries [a worked fold](/components/charts/bar-chart#when-to-use). Pin the fold's own `Line` with `color="chart-other"`, so it reads as the tail rather than claiming a categorical slot.
+
 Compose `LineChart.Root` with one `LineChart.Line` per series. Every chart requires an accessible name (`aria-label` or `aria-labelledby`), and every multi-series chart composes `LineChart.Legend` — identity must never rely on color-matching alone. Hover or focus the chart and arrow around: the tooltip reads every series at the active x.
 
 <Example>
@@ -833,18 +835,18 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-Series without an explicit `color` claim the next slot in the ordered `--color-chart-1`…`--color-chart-8` tokens. Each theme's palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the card surface in all four themes (light, dark, and both high-contrast variants), and the semantic ramps are deliberately excluded so a series never reads as a status color. Slots are sticky per `dataKey`: a series keeps its color for the chart's lifetime, even as other series are filtered in and out. An explicit `color` reserves its token, so the next unpinned series skips past it. The cursor counts every `dataKey` the Root has ever registered, not the mounted count — cycle more than eight keys through one Root and the later ones wear `--color-chart-other`. Key the Root on whatever chooses the series to start the palette over, and fold a long tail into a single "Other" series rather than plotting nine distinguishable colors, which do not exist.
+Series without an explicit `color` claim the next slot in the ordered `--color-chart-1`…`--color-chart-8` tokens. Each theme's palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the card surface in all four themes (light, dark, and both high-contrast variants), and the semantic ramps are deliberately excluded so a series never reads as a status color. Slots are sticky per `dataKey`: a series keeps its color for the chart's lifetime, even as other series are filtered in and out. An explicit `color` reserves its token, so the next unpinned series skips past it. A series that unmounts keeps its slot while the palette has room. Once the never-used slots run out, an incoming series takes a slot back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Fold the long tail into a single "Other" series instead. Eight is the validated limit for adjacent slots, and no ninth hue clears it.
 
-| CSS Variable          | Description                                                                                                     |
-| --------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `--color-chart-1`     | The first categorical series slot (blue).                                                                       |
-| `--color-chart-2`     | The second categorical series slot (green).                                                                     |
-| `--color-chart-3`     | The third categorical series slot (pink).                                                                       |
-| `--color-chart-4`     | The fourth categorical series slot (red).                                                                       |
-| `--color-chart-5`     | The fifth categorical series slot (teal).                                                                       |
-| `--color-chart-6`     | The sixth categorical series slot (orange).                                                                     |
-| `--color-chart-7`     | The seventh categorical series slot (violet).                                                                   |
-| `--color-chart-8`     | The eighth categorical series slot (yellow).                                                                    |
-| `--color-chart-other` | The fold slot for series beyond the eighth (neutral gray). Collapse the long tail into a single "Other" series. |
+| CSS Variable          | Description                                                                                                                       |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `--color-chart-1`     | The first categorical series slot (blue).                                                                                         |
+| `--color-chart-2`     | The second categorical series slot (green).                                                                                       |
+| `--color-chart-3`     | The third categorical series slot (pink).                                                                                         |
+| `--color-chart-4`     | The fourth categorical series slot (red).                                                                                         |
+| `--color-chart-5`     | The fifth categorical series slot (teal).                                                                                         |
+| `--color-chart-6`     | The sixth categorical series slot (orange).                                                                                       |
+| `--color-chart-7`     | The seventh categorical series slot (violet).                                                                                     |
+| `--color-chart-8`     | The eighth categorical series slot (yellow).                                                                                      |
+| `--color-chart-other` | The fold slot, worn once more than eight series show at once (neutral gray). Collapse the long tail into a single "Other" series. |
 
 The `color` escape hatch accepts any CSS color string, but static colors (a raw hex) do not adapt across themes — prefer a `var(...)` reference to a theme-aware token, and validate custom palettes for colorblind-safe adjacency and surface contrast just like the defaults. A series that carries good/bad meaning — an error rate, a pass/fail split — should wear the semantic status colors (e.g. `var(--color-danger-600)`), never a categorical slot.
