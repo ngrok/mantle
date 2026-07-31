@@ -300,8 +300,10 @@ describe("niceZeroAnchoredDomain", () => {
 		expect(niceZeroAnchoredDomain([0, 0], 5)).toEqual([0, 1]);
 	});
 
-	test("a domain starting at zero never widens below it", () => {
-		expect(niceZeroAnchoredDomain([0, 0.4], 5)[0]).toBe(0);
+	test("the anchor leaves the upper bound to niceDomain", () => {
+		// The flat case above is the only domain the anchor changes, so these pin
+		// that it holds the minimum without also pinning the maximum.
+		expect(niceZeroAnchoredDomain([0, 0.4], 5)).toEqual(niceDomain([0, 0.4], 5));
 		expect(niceZeroAnchoredDomain([0, 97], 5)).toEqual([0, 100]);
 	});
 

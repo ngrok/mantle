@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { stackedSegmentEdges } from "./bar-geometry.js";
+import { isStackedDataEnd, stackedSegmentEdges } from "./bar-geometry.js";
 
 /**
  * A vertical value axis 200px tall: value `0` sits at pixel 200 and value `1`
@@ -7,6 +7,13 @@ import { stackedSegmentEdges } from "./bar-geometry.js";
  * the engine's y coefficients produce.
  */
 const toPixel = (value: number): number => 200 - value * 200;
+
+/**
+ * The horizontal mirror: value `0` sits at pixel 0 and a taller value maps to a
+ * larger pixel, which is the sign the engine's value coefficients produce for
+ * `orientation="horizontal"`.
+ */
+const toPixelRight = (value: number): number => value * 200;
 
 const GAP = 2;
 
@@ -35,20 +42,43 @@ describe("stackedSegmentEdges", () => {
 		});
 	});
 
-	test("a segment shorter than the gap keeps its full extent instead of inverting", () => {
-		// 0.400 → 0.4045 is 0.9px tall. Carving 2px would push the baseline edge
-		// past the data edge, and the renderer would draw the rect on the wrong
-		// side of its own boundary.
-		const edges = stackedSegmentEdges({ lower: 0.4, upper: 0.4045, toPixel, reveal: 1, gap: GAP });
-		expect(edges.baseline).toBeCloseTo(120, 10);
-		expect(edges.value).toBeCloseTo(119.1, 10);
+	test("a column whose stack below rounds to no ink stays welded to the zero baseline", () => {
+		// The series below contributes 0.0001, which is 0.02px — nonzero, but it
+		// paints nothing. Carving against it floats the visible column off the axis
+		// and shows the grid through the seam.
+		const edges = stackedSegmentEdges({ lower: 0.0001, upper: 0.4, toPixel, reveal: 1, gap: GAP });
+		expect(edges.baseline).toBeCloseTo(199.98, 10);
+		expect(edges.value).toBeCloseTo(120, 10);
 	});
 
-	test("a segment exactly as tall as the gap survives instead of collapsing to nothing", () => {
-		// Carving the full 2px would make the two edges meet, and the renderer
-		// drops a zero-height rect outright.
-		const edges = stackedSegmentEdges({ lower: 0.4, upper: 0.41, toPixel, reveal: 1, gap: GAP });
-		expect(Math.abs(edges.baseline - edges.value)).toBeCloseTo(GAP, 10);
+	test("a segment shorter than twice the gap gives up half its extent, never all of it", () => {
+		// 0.400 → 0.4045 is 0.9px tall. Carving the full 2px would push the baseline
+		// edge past the data edge, and the renderer would draw the rect on the wrong
+		// side of its own boundary.
+		const edges = stackedSegmentEdges({ lower: 0.4, upper: 0.4045, toPixel, reveal: 1, gap: GAP });
+		expect(edges.value).toBeCloseTo(119.1, 10);
+		expect(edges.baseline).toBeCloseTo(119.55, 10);
+	});
+
+	test("a taller segment always paints taller, across the gap threshold", () => {
+		// A carve that switches off below the gap and on above it is a cliff: 2.5px
+		// of data would paint 0.5px while 2.0px of data painted 2.0px, so the bigger
+		// number would read four times smaller.
+		const painted = [1, 1.9, 2, 2.1, 2.5, 3, 4, 8].map((extent) => {
+			const edges = stackedSegmentEdges({
+				lower: 0.4,
+				upper: 0.4 + extent / 200,
+				toPixel,
+				reveal: 1,
+				gap: GAP,
+			});
+			return Math.abs(edges.baseline - edges.value);
+		});
+		for (let index = 1; index < painted.length; index++) {
+			expect(painted[index]).toBeGreaterThan(painted[index - 1] ?? Number.NaN);
+		}
+		// Every one of them survives the carve with something left to paint.
+		expect(Math.min(...painted)).toBeGreaterThan(0);
 	});
 
 	test("a negative segment runs away from zero, so the data end is its lower boundary", () => {
@@ -85,5 +115,51 @@ describe("stackedSegmentEdges", () => {
 			baseline: 160,
 			value: 120,
 		});
+	});
+
+	test("a horizontal axis carves toward its data end too, not toward zero", () => {
+		// The value axis runs the other way for `orientation="horizontal"`, and the
+		// carve follows the pixel direction rather than assuming the vertical sign.
+		expect(
+			stackedSegmentEdges({ lower: 0.2, upper: 0.4, toPixel: toPixelRight, reveal: 1, gap: GAP }),
+		).toEqual({ baseline: 42, value: 80 });
+	});
+
+	test("a horizontal negative segment welds at zero and runs left", () => {
+		expect(
+			stackedSegmentEdges({ lower: -0.5, upper: 0, toPixel: toPixelRight, reveal: 1, gap: GAP }),
+		).toEqual({ baseline: 0, value: -100 });
+	});
+});
+
+describe("isStackedDataEnd", () => {
+	test("the outermost segment of the pile wears the cap and the ones under it do not", () => {
+		const pile = { pileOuter: 3, toPixel };
+		expect(isStackedDataEnd({ lower: 2, upper: 3, ...pile })).toBe(true);
+		expect(isStackedDataEnd({ lower: 1, upper: 2, ...pile })).toBe(false);
+		expect(isStackedDataEnd({ lower: 0, upper: 1, ...pile })).toBe(false);
+	});
+
+	test("a segment the column cannot show never takes the cap from the one it can", () => {
+		// The top series contributes 0.001 against a 100-unit column, which is
+		// 0.2px. It keeps a cap nobody sees; the 100-unit segment under it gets the
+		// cap that reads, so the column does not render square-topped.
+		const coarse = (value: number): number => 300 - value * 2.5;
+		expect(isStackedDataEnd({ lower: 0, upper: 100, pileOuter: 100.001, toPixel: coarse })).toBe(
+			true,
+		);
+		expect(
+			isStackedDataEnd({ lower: 100, upper: 100.001, pileOuter: 100.001, toPixel: coarse }),
+		).toBe(true);
+	});
+
+	test("a negative pile is measured from its own outer edge", () => {
+		// `stack.ts` stores a negative segment inverted, so the data end is `lower`.
+		expect(isStackedDataEnd({ lower: -0.5, upper: -0.2, pileOuter: -0.5, toPixel })).toBe(true);
+		expect(isStackedDataEnd({ lower: -0.2, upper: 0, pileOuter: -0.5, toPixel })).toBe(false);
+	});
+
+	test("a torn pile end caps nothing", () => {
+		expect(isStackedDataEnd({ lower: 0, upper: 1, pileOuter: Number.NaN, toPixel })).toBe(false);
 	});
 });

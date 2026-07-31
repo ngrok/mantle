@@ -2,6 +2,7 @@
 
 import { render, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { AreaChart } from "../area-chart/index.js";
 import { BarChart } from "../bar-chart/index.js";
 
 /**
@@ -15,6 +16,9 @@ import { BarChart } from "../bar-chart/index.js";
  * which is the shape a "usage by access key" chart produces. Those columns used
  * to render square-topped and floating 2px off the baseline, because the cap
  * and the gap were decided per series instead of per column.
+ *
+ * The zero-anchored value axis rides along here because it surfaces on the same
+ * "no usage yet" card, and `AreaChart` shares the anchor with `BarChart`.
  */
 const STYLE = `
 :root {
@@ -41,21 +45,25 @@ const STYLE = `
 }
 /* Browser tests load no Tailwind build; mirror the chart's structural layout so
    the plot geometry is realistic. */
-[data-slot="bar-chart"] {
+[data-slot="bar-chart"],
+[data-slot="area-chart"] {
 	position: relative;
 	display: flex;
 	flex-direction: column;
 	width: 100%;
 	height: 100%;
 }
-[data-slot="bar-chart-plot"] {
+[data-slot="bar-chart-plot"],
+[data-slot="area-chart-plot"] {
 	position: relative;
 	flex: 1;
 	min-height: 0;
 	width: 100%;
 }
 [data-slot="bar-chart-plot"] > canvas,
-[data-slot="bar-chart-plot"] > [tabindex] {
+[data-slot="bar-chart-plot"] > [tabindex],
+[data-slot="area-chart-plot"] > canvas,
+[data-slot="area-chart-plot"] > [tabindex] {
 	position: absolute;
 	inset: 0;
 	width: 100%;
@@ -84,6 +92,7 @@ type Rgb = readonly [number, number, number];
 
 const CHART_1: Rgb = [62, 111, 244];
 const CHART_2: Rgb = [0, 129, 56];
+const CHART_3: Rgb = [246, 51, 154];
 const BASELINE: Rgb = [255, 0, 0];
 
 /** The painted canvas, with the device-pixel ratio it was sized at. */
@@ -242,6 +251,20 @@ const horizontalExtent = (painted: Painted, color: Rgb, bar: Span): Span => {
 };
 
 /**
+ * The row carrying the zero-baseline rule. The chart draws it across the plot
+ * in a color no other chrome wears, so the widest run of that color names it.
+ */
+const baselineRowOf = (painted: Painted): number => {
+	let row = -1;
+	for (let y = 0; y < painted.height; y++) {
+		if (rowRunLength(painted, y, BASELINE) > painted.width / 2) {
+			row = y;
+		}
+	}
+	return row;
+};
+
+/**
  * Two columns of equal total, each carrying its value on a different series.
  * The last-registered series ("second") is zero on the first column, which is
  * exactly the case a per-series cap flag renders square.
@@ -250,6 +273,9 @@ const sparseStack = [
 	{ day: "Mon", first: 100, second: 0 },
 	{ day: "Tue", first: 0, second: 100 },
 ];
+
+/** One column of three equal segments, each on its own series. */
+const threeEqualSegments = [{ day: "Mon", bottom: 1, middle: 1, top: 1 }];
 
 describe("stacked bar caps and baselines", () => {
 	test("every column's topmost painted segment wears the rounded cap", async () => {
@@ -311,13 +337,131 @@ describe("stacked bar caps and baselines", () => {
 			const painted = readCanvas(canvas);
 			const bars = columnRunsOf(painted, CHART_1);
 			expect(bars).toHaveLength(2);
-			const [monday, tuesday] = bars;
-			if (monday == null || tuesday == null) {
-				throw new Error("expected both bars to paint");
+			// Measure against the painted axis, not against the sibling column: a
+			// carve that lifts both columns equally leaves them agreeing with each
+			// other while both float off the baseline.
+			const baselineRow = baselineRowOf(painted);
+			expect(baselineRow).toBeGreaterThan(0);
+			for (const bar of bars) {
+				const bottom = verticalExtent(painted, CHART_1, bar).end;
+				expect(Math.abs(bottom - baselineRow)).toBeLessThanOrEqual(painted.scale);
 			}
-			const mondayBottom = verticalExtent(painted, CHART_1, monday).end;
-			const tuesdayBottom = verticalExtent(painted, CHART_1, tuesday).end;
-			expect(Math.abs(mondayBottom - tuesdayBottom)).toBeLessThanOrEqual(1);
+		});
+	});
+
+	test("a segment below the top of its column never wears the cap", async () => {
+		// Three equal segments in one column: only the top one is the data end, so
+		// rounding every segment would render the column as a stack of pills.
+		const { container } = render(
+			<div style={{ width: 600, height: 400 }}>
+				<BarChart.Root
+					data={threeEqualSegments}
+					xKey="day"
+					stacked
+					animate={false}
+					aria-label="Three segments capping"
+				>
+					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
+					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
+					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
+				</BarChart.Root>
+			</div>,
+		);
+		const canvas = canvasOf(container);
+		await waitForPlot(canvas);
+		await waitFor(() => {
+			const painted = readCanvas(canvas);
+			const middle = columnRunsOf(painted, CHART_2)[0];
+			const top = columnRunsOf(painted, CHART_3)[0];
+			if (middle == null || top == null) {
+				throw new Error("expected the middle and top segments to paint");
+			}
+			const middleExtent = verticalExtent(painted, CHART_2, middle);
+			const topExtent = verticalExtent(painted, CHART_3, top);
+			const bodyOffset = Math.round(5 * painted.scale);
+			// The top segment narrows at its own top row; the middle segment, which
+			// is interior, keeps its full width there.
+			const topCap = rowRunLength(painted, topExtent.start, CHART_3, top.start, top.end + 1);
+			const topBody = rowRunLength(
+				painted,
+				topExtent.start + bodyOffset,
+				CHART_3,
+				top.start,
+				top.end + 1,
+			);
+			const middleCap = rowRunLength(
+				painted,
+				middleExtent.start,
+				CHART_2,
+				middle.start,
+				middle.end + 1,
+			);
+			const middleBody = rowRunLength(
+				painted,
+				middleExtent.start + bodyOffset,
+				CHART_2,
+				middle.start,
+				middle.end + 1,
+			);
+			expect(topBody).toBeGreaterThan(0);
+			expect(topCap).toBeLessThan(topBody * 0.9);
+			expect(middleBody).toBeGreaterThan(0);
+			expect(middleCap).toBe(middleBody);
+		});
+	});
+
+	test("a diverging column caps both piles at the end facing away from zero", async () => {
+		// The negative pile grows downward, so its cap belongs on its bottom row.
+		// Reading the segment's boundaries in array order, or looking a negative
+		// segment up in the positive pile, puts it on the edge facing zero instead.
+		const { container } = render(
+			<div style={{ width: 600, height: 400 }}>
+				<BarChart.Root
+					data={[{ day: "Mon", up: 40, down: -40 }]}
+					xKey="day"
+					stacked
+					animate={false}
+					aria-label="Diverging stack"
+				>
+					<BarChart.Bar dataKey="up" label="Up" color="chart-1" />
+					<BarChart.Bar dataKey="down" label="Down" color="chart-2" />
+				</BarChart.Root>
+			</div>,
+		);
+		const canvas = canvasOf(container);
+		await waitForPlot(canvas);
+		await waitFor(() => {
+			const painted = readCanvas(canvas);
+			const up = columnRunsOf(painted, CHART_1)[0];
+			const down = columnRunsOf(painted, CHART_2)[0];
+			if (up == null || down == null) {
+				throw new Error("expected both piles to paint");
+			}
+			const upExtent = verticalExtent(painted, CHART_1, up);
+			const downExtent = verticalExtent(painted, CHART_2, down);
+			const bodyOffset = Math.round(5 * painted.scale);
+			const upCap = rowRunLength(painted, upExtent.start, CHART_1, up.start, up.end + 1);
+			const upBody = rowRunLength(
+				painted,
+				upExtent.start + bodyOffset,
+				CHART_1,
+				up.start,
+				up.end + 1,
+			);
+			const downCap = rowRunLength(painted, downExtent.end, CHART_2, down.start, down.end + 1);
+			const downBody = rowRunLength(
+				painted,
+				downExtent.end - bodyOffset,
+				CHART_2,
+				down.start,
+				down.end + 1,
+			);
+			expect(upBody).toBeGreaterThan(0);
+			expect(upCap).toBeLessThan(upBody * 0.9);
+			expect(downBody).toBeGreaterThan(0);
+			expect(downCap).toBeLessThan(downBody * 0.9);
+			// The negative pile really is below the axis.
+			expect(downExtent.start).toBeGreaterThan(upExtent.end);
 		});
 	});
 
@@ -416,14 +560,48 @@ describe("stacked bar caps and baselines", () => {
 		await waitForPlot(canvas);
 		await waitFor(() => {
 			const painted = readCanvas(canvas);
-			let baselineRow = -1;
-			for (let y = 0; y < painted.height; y++) {
-				if (rowRunLength(painted, y, BASELINE) > painted.width / 2) {
-					baselineRow = y;
-				}
-			}
+			const baselineRow = baselineRowOf(painted);
 			expect(baselineRow).toBeGreaterThan(0);
 			expect(baselineRow / painted.height).toBeGreaterThan(0.75);
+		});
+	});
+
+	test("an all-zero area chart keeps its baseline at the axis minimum too", async () => {
+		// `AreaChart` fills from the same zero baseline and documents the same fixed
+		// minimum, so the anchor covers both kinds. Left to `niceDomain`, the flat
+		// domain pads to [-1, 1] and the collapsed area floats to mid-plot.
+		const { container } = render(
+			<div style={{ width: 600, height: 300 }}>
+				<AreaChart.Root
+					data={[
+						{ day: "Mon", value: 0 },
+						{ day: "Tue", value: 0 },
+					]}
+					xKey="day"
+					animate={false}
+					aria-label="No usage yet, area"
+				>
+					<AreaChart.Area dataKey="value" label="Value" color="chart-1" />
+				</AreaChart.Root>
+			</div>,
+		);
+		const canvas = canvasOf(container);
+		await waitForPlot(canvas);
+		await waitFor(() => {
+			const painted = readCanvas(canvas);
+			// The collapsed area paints as its stroked edge, so the row carrying the
+			// longest run of the series color is the baseline it sits on.
+			let seriesRow = -1;
+			let longest = 0;
+			for (let y = 0; y < painted.height; y++) {
+				const run = rowRunLength(painted, y, CHART_1);
+				if (run > longest) {
+					longest = run;
+					seriesRow = y;
+				}
+			}
+			expect(longest).toBeGreaterThan(painted.width / 4);
+			expect(seriesRow / painted.height).toBeGreaterThan(0.75);
 		});
 	});
 });
@@ -548,8 +726,6 @@ describe("hover band geometry", () => {
 	});
 });
 
-const threeEqualSegments = [{ day: "Mon", bottom: 1, middle: 1, top: 1 }];
-
 describe("stacked segment hit resolution", () => {
 	test("pressing anywhere inside a segment activates that segment's series", async () => {
 		// The mark is the filled span, so the segment under the pointer names the
@@ -627,9 +803,9 @@ const tooltipOf = (container: HTMLElement): HTMLElement => {
 
 describe("tooltip placement", () => {
 	test("a readout taller than the plot starts at the top of the plot box", async () => {
-		// The clamp is against the plot wrapper, not the inset plot rect: clamping
-		// against the inset silently degrades to "pin below the padding, then spill
-		// the whole overflow past the bottom".
+		// A readout that cannot fit the plot rect falls back to the wrapper's top
+		// edge. Clamping it against the inset rect instead pins it below the top
+		// padding and spills the whole overflow past the bottom.
 		const series = Array.from({ length: 12 }, (_, index) => `key${index}`);
 		const row: Record<string, string | number> = { day: "Mon" };
 		for (const key of series) {
@@ -697,5 +873,47 @@ describe("tooltip placement", () => {
 		expect(readout.height).toBeLessThan(plot.height);
 		expect(readout.top).toBeGreaterThanOrEqual(plot.top - 0.5);
 		expect(readout.bottom).toBeLessThanOrEqual(plot.bottom + 0.5);
+	});
+
+	test("a readout that fits keeps clear of the x-axis tick labels", async () => {
+		// The engine reserves the bottom of the wrapper for the tick labels, so a
+		// clamp that reaches the wrapper's own bottom edge covers them. Hovering
+		// low is what exposes it — a centered hover never engages the clamp.
+		const xAxisBand = 24;
+		const { container } = render(
+			<div style={{ width: 600, height: 300 }}>
+				<BarChart.Root
+					data={threeEqualSegments}
+					xKey="day"
+					stacked
+					animate={false}
+					aria-label="Three segments with an axis"
+				>
+					<BarChart.XAxis />
+					<BarChart.YAxis />
+					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
+					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
+					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
+				</BarChart.Root>
+			</div>,
+		);
+		const canvas = canvasOf(container);
+		await waitForPlot(canvas);
+		const overlay = overlayOf(container);
+		const tooltip = tooltipOf(container);
+
+		const plot = overlay.getBoundingClientRect();
+		hoverAt(overlay, plot.left + plot.width / 2, plot.bottom - xAxisBand - 2);
+		// One hover is enough: the engine repositions again on its own once the
+		// size observer measures the readout, so the poll needs no second event.
+		// Wait for the transform first — an unpositioned readout still sits at its
+		// `top: 0` origin, which satisfies a bottom-edge assertion for free.
+		await waitFor(() => {
+			expect(tooltip.style.transform).not.toBe("");
+			const readout = tooltip.getBoundingClientRect();
+			expect(readout.height).toBeGreaterThan(0);
+			expect(readout.height).toBeLessThan(plot.height - xAxisBand);
+			expect(readout.bottom).toBeLessThanOrEqual(plot.bottom - xAxisBand + 0.5);
+		});
 	});
 });

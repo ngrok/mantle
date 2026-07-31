@@ -213,7 +213,12 @@ type ChartDatumEvent<TDatum extends ChartDatum = ChartDatum> = {
 	xValue: XValue;
 	/** The activated row itself. */
 	datum: TDatum;
-	/** The series nearest the pointer when activated by mouse; `null` for keyboard/whole-band activation. */
+	/**
+	 * The series the pointer selects when activated by mouse; `null` for
+	 * keyboard/whole-band activation. A stacked bar resolves to the segment the
+	 * pointer sits in, because the mark is the filled span. Every other mark
+	 * resolves to the series nearest the pointer.
+	 */
 	dataKey: string | null;
 };
 

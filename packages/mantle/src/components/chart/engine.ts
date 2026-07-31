@@ -1,5 +1,5 @@
 import invariant from "tiny-invariant";
-import { stackedSegmentEdges } from "./bar-geometry.js";
+import { isStackedDataEnd, stackedSegmentEdges } from "./bar-geometry.js";
 import type { ChartChromeColors } from "./colors.js";
 import type { DecimatedColumns } from "./decimate.js";
 import type { BandLayout } from "./scales.js";
@@ -1133,12 +1133,12 @@ class ChartEngine {
 		if (this.#rowCount === 0) {
 			return [0, 1];
 		}
-		// Bars measure length from zero, so their axis minimum is documented as
-		// fixed at the baseline; the other kinds may float their domain.
-		const niced =
-			this.#kind === "bar"
-				? niceZeroAnchoredDomain([min, max], Y_TICK_COUNT)
-				: niceDomain([min, max], Y_TICK_COUNT);
+		// Bars and areas measure length from zero, so both document an axis minimum
+		// fixed at the baseline. A line or a scatter may float its domain.
+		const zeroAnchored = this.#kind === "bar" || this.#kind === "area";
+		const niced = zeroAnchored
+			? niceZeroAnchoredDomain([min, max], Y_TICK_COUNT)
+			: niceDomain([min, max], Y_TICK_COUNT);
 		// Never let niceness move an explicit override or re-cross a zero baseline.
 		return [
 			typeof minOverride === "number" ? minOverride : niced[0],
@@ -1911,17 +1911,29 @@ class ChartEngine {
 	/**
 	 * Whether this segment sits at the data end of its column's pile, and so
 	 * wears the renderer's rounded cap. Every unstacked bar is its own data end.
-	 * Stacked, the answer is per column: the last series is the top of the stack
-	 * only on the columns where it actually has a value, and rounding it
-	 * everywhere leaves a square cap wherever it is zero.
+	 *
+	 * Stacked, the answer is per column and per pile. The last-registered series
+	 * tops the stack only where it carries a value. Rounding it everywhere leaves
+	 * a square cap on every column where it is zero. Boundaries come from the
+	 * settled stack, which holds the cap still through a transition.
 	 */
-	#isDataEnd(seriesIndex: number, index: number, upperValue: number): boolean {
+	#isDataEnd(seriesIndex: number, index: number, toPixel: (value: number) => number): boolean {
 		const stack = this.#stack;
 		if (stack == null) {
 			return true;
 		}
-		const ends = upperValue > 0 ? stack.positiveEnd : stack.negativeEnd;
-		return seriesIndex === ends[index];
+		const lower = stack.lower[seriesIndex]?.[index] ?? Number.NaN;
+		const upper = stack.upper[seriesIndex]?.[index] ?? Number.NaN;
+		if (Number.isNaN(lower) || Number.isNaN(upper)) {
+			return false;
+		}
+		const negative = lower < 0;
+		const end = (negative ? stack.negativeEnd : stack.positiveEnd)[index] ?? -1;
+		if (end < 0) {
+			return false;
+		}
+		const pileOuter = (negative ? stack.lower : stack.upper)[end]?.[index] ?? Number.NaN;
+		return isStackedDataEnd({ lower, upper, pileOuter, toPixel });
 	}
 
 	#paintBars(
@@ -1973,7 +1985,7 @@ class ChartEngine {
 					width: barWidth,
 					baselineY: edges.baseline,
 					valueY: edges.value,
-					rounded: this.#isDataEnd(seriesIndex, index, upperValue),
+					rounded: this.#isDataEnd(seriesIndex, index, toPixel),
 				});
 			}
 			// Textured series paint with their cached pattern; a missing pattern
@@ -2040,7 +2052,7 @@ class ChartEngine {
 					height: barThickness,
 					baselineX: edges.baseline,
 					valueX: edges.value,
-					rounded: this.#isDataEnd(seriesIndex, index, upperValue),
+					rounded: this.#isDataEnd(seriesIndex, index, toPixel),
 				});
 			}
 			drawHorizontalBars(ctx, {
@@ -2765,16 +2777,19 @@ class ChartEngine {
 			if (layout != null) {
 				// The highlight is the hit region itself. A wider one would wash over
 				// the neighbors it does not select — at 60 categories the old 24px
-				// floor reached a third of the way into the next bar.
+				// floor reached a third of the way into the next bar. A region under
+				// a pixel wide rasterizes to nothing, so the band keeps 1px and stays
+				// centered on the region rather than growing off one end.
 				const region = bandHitRegion(layout, index);
 				const size = Math.max(1, region.size);
+				const start = region.start - (size - region.size) / 2;
 				if (horizontal) {
 					// The band spans the full plot width at the category's y row.
-					band.style.transform = `translate3d(${plot.left}px, ${region.start}px, 0)`;
+					band.style.transform = `translate3d(${plot.left}px, ${start}px, 0)`;
 					band.style.width = `${plot.width}px`;
 					band.style.height = `${size}px`;
 				} else {
-					band.style.transform = `translate3d(${region.start}px, ${plot.top}px, 0)`;
+					band.style.transform = `translate3d(${start}px, ${plot.top}px, 0)`;
 					band.style.width = `${size}px`;
 					band.style.height = `${plot.height}px`;
 				}
@@ -2833,10 +2848,10 @@ class ChartEngine {
 
 	/**
 	 * Position the tooltip near an anchor point, flipping sides at the plot edge
-	 * and clamping vertically inside the plot wrapper. The vertical clamp uses
-	 * the wrapper's own box, not the inset plot rect: a readout taller than the
-	 * plot would otherwise pin to the plot top and spill the whole overflow past
-	 * the bottom edge.
+	 * and clamping vertically. The inner clamp holds the readout inside the plot
+	 * rect, which keeps it off the tick labels the x-axis band reserves below.
+	 * When the readout is taller than the plot, the outer clamp pins it to the
+	 * wrapper's top edge instead of spilling the overflow past the bottom.
 	 */
 	#positionTooltip(anchorX: number, anchorY: number): void {
 		const plot = this.#plot;
@@ -2850,9 +2865,9 @@ class ChartEngine {
 		) {
 			tooltipLeft = anchorX - gapX - size.width;
 		}
-		const tooltipTop = Math.min(
-			Math.max(0, anchorY - size.height / 2),
-			Math.max(0, this.#cssHeight - size.height),
+		const tooltipTop = Math.max(
+			0,
+			Math.min(anchorY - size.height / 2, plot.top + plot.height - size.height),
 		);
 		tooltip.style.transform = `translate3d(${tooltipLeft}px, ${tooltipTop}px, 0)`;
 	}

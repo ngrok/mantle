@@ -20,30 +20,44 @@ type SegmentEdges = {
 };
 
 /**
+ * The shortest extent that covers a device pixel at a device-pixel ratio of
+ * `1`. Anything below it paints nothing, so it can neither own a column's cap
+ * nor push its neighbor off the zero baseline. Value equality cannot stand in
+ * for this: a sub-cent contribution against a dollar-scale axis is a nonzero
+ * value that rounds to no ink.
+ */
+const MIN_VISIBLE_EXTENT = 0.5;
+
+/**
+ * The data-end boundary of one segment — the one further from zero. A positive
+ * segment runs `lower` → `upper`; a negative one runs `upper` → `lower`.
+ */
+const dataEndOf = (lower: number, upper: number): number => (lower < 0 ? lower : upper);
+
+/**
  * The pixel edges of one bar segment, with the enter reveal applied and the
  * surface gap carved from its baseline side.
  *
- * `lower` and `upper` are the segment's cumulative boundaries. A positive
- * segment runs `lower` → `upper` away from zero and a negative one runs
- * `upper` → `lower`, so the data end is whichever boundary sits further from
- * zero — pick the ends by pile, or the cap, the reveal, and the gap all land
- * on the wrong edge of a diverging stack. Pass `lower: 0` for an unstacked bar.
+ * `lower` and `upper` are the segment's cumulative boundaries. Pick the two
+ * ends by pile, or the cap, the reveal, and the gap all land on the wrong edge
+ * of a diverging stack. Pass `lower: 0` for an unstacked bar.
  *
- * Two guards keep the gap from damaging the segment it separates:
+ * Two rules keep the gap from damaging the segment it separates:
  *
- * - Carve only when the baseline-side boundary is off zero. A segment that
- *   starts at zero has nothing below it to separate from, so carving would
- *   lift the whole column off the axis. Sparse stacks hit this constantly —
- *   every series below the first non-zero one contributes nothing.
- * - Carve only when the segment is longer than the gap. A shorter one would
- *   invert, and the renderer draws an inverted rect on the wrong side of its
- *   own boundary, or drops it when the two edges meet.
+ * - Carve only when the baseline edge clears the zero pixel. A column whose
+ *   stack below paints nothing has nothing to separate from, and carving there
+ *   lifts the whole column off the axis. Sparse stacks hit this constantly.
+ * - Carve at most half the painted extent. A full carve off a short segment
+ *   inverts it, and the renderer draws an inverted rect on the wrong side of
+ *   its own boundary. Halving keeps the painted extent rising with the value.
+ *   Skipping the carve below a threshold instead makes a taller segment paint
+ *   shorter than the one beside it.
  *
  * @example
  * ```ts
  * // The 0.4 → 0.6 segment of a stack, on an axis where 0 is 200px and 1 is 0px.
  * stackedSegmentEdges({ lower: 0.4, upper: 0.6, toPixel: (v) => 200 - v * 200, reveal: 1, gap: 2 });
- * // { baseline: 122, value: 80 } — 2px carved off the 120px baseline edge
+ * // { baseline: 118, value: 80 } — 2px carved off the 120px baseline edge
  * ```
  */
 const stackedSegmentEdges = (options: {
@@ -57,21 +71,53 @@ const stackedSegmentEdges = (options: {
 }): SegmentEdges => {
 	const { lower, upper, toPixel, reveal, gap } = options;
 	const negative = lower < 0;
-	const baselineValue = negative ? upper : lower;
-	const dataValue = negative ? lower : upper;
-	const baseline = toPixel(baselineValue);
-	const value = baseline + (toPixel(dataValue) - baseline) * reveal;
-	if (baselineValue === 0 || Math.abs(baseline - value) <= gap) {
+	const baseline = toPixel(negative ? upper : lower);
+	const value = baseline + (toPixel(dataEndOf(lower, upper)) - baseline) * reveal;
+	if (Math.abs(baseline - toPixel(0)) < MIN_VISIBLE_EXTENT) {
 		return { baseline, value };
 	}
-	return { baseline: baseline - Math.sign(baseline - value) * gap, value };
+	const carve = Math.min(gap, Math.abs(baseline - value) / 2);
+	return { baseline: baseline - Math.sign(baseline - value) * carve, value };
 };
 
-export type {
-	//,
-	SegmentEdges,
+/**
+ * Whether one stacked segment wears the renderer's rounded cap: its data edge
+ * must land within a device pixel of the outer edge of the pile it belongs to.
+ *
+ * `computeStackBoundaries` records the outermost series that carries a value.
+ * A segment thinner than a pixel paints nothing, so the cap has to follow what
+ * the column shows instead. Pixel distance answers both at once: the invisible
+ * segment keeps a cap nobody can see, and the segment under it gets the one
+ * that reads.
+ *
+ * Pass boundaries from the settled stack, never from a tween. A tweened edge
+ * measured against a settled pile end matches nothing until the tween lands,
+ * which strips the cap for the whole transition.
+ *
+ * @example
+ * ```ts
+ * // A 100-unit segment under a 0.001-unit one still tops the column it paints.
+ * isStackedDataEnd({ lower: 0, upper: 100, pileOuter: 100.001, toPixel: (v) => 300 - v * 2.5 });
+ * // true
+ * ```
+ */
+const isStackedDataEnd = (options: {
+	lower: number;
+	upper: number;
+	/** The pile's outer boundary at this column, from the settled stack. */
+	pileOuter: number;
+	toPixel: (value: number) => number;
+}): boolean => {
+	const { lower, upper, pileOuter, toPixel } = options;
+	if (Number.isNaN(pileOuter)) {
+		return false;
+	}
+	const dataEnd = toPixel(dataEndOf(lower, upper));
+	return Math.abs(dataEnd - toPixel(pileOuter)) < MIN_VISIBLE_EXTENT;
 };
+
 export {
 	//,
+	isStackedDataEnd,
 	stackedSegmentEdges,
 };
