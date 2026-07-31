@@ -45,6 +45,28 @@ export function StackedAreaExample() {
 	);
 }
 
+export const noTrafficYet = [
+	{ date: new Date("2026-07-08"), requests: 0 },
+	{ date: new Date("2026-07-09"), requests: 0 },
+	{ date: new Date("2026-07-10"), requests: 0 },
+	{ date: new Date("2026-07-11"), requests: 0 },
+	{ date: new Date("2026-07-12"), requests: 0 },
+	{ date: new Date("2026-07-13"), requests: 0 },
+	{ date: new Date("2026-07-14"), requests: 0 },
+];
+
+export function NoTrafficYetAreaChartExample() {
+	return (
+		<AreaChart.Root data={noTrafficYet} xKey="date" aria-label="Requests per day">
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="requests" label="Requests" />
+			<AreaChart.Tooltip />
+		</AreaChart.Root>
+	);
+}
+
 export const regionData = [
 	{ date: new Date("2026-07-01"), usEast: 2400, euWest: 1900 },
 	{ date: new Date("2026-07-02"), usEast: 2600, euWest: 2100 },
@@ -581,6 +603,43 @@ const outageData = [
 ```
 
 In a stacked chart a gap in one series contributes nothing to the stack at that x position, and the boundary stays continuous so the series above it don't tear.
+
+## No traffic yet
+
+An all-zero series is data, not an empty state. Areas fill from the zero baseline, so the value axis stays
+anchored there and the baseline sits on the axis rather than floating through the middle of the plot. Keep the
+accessible name, the tooltip, and the data table — "0" is the answer, and a screen reader needs to hear it. Reach
+for `decorative` only when the values are a synthetic backdrop behind an empty-state message.
+
+<Example>
+	<NoTrafficYetAreaChartExample />
+</Example>
+
+```tsx
+import { AreaChart } from "@ngrok/mantle/area-chart";
+
+const noTrafficYet = [
+	{ date: new Date("2026-07-08"), requests: 0 },
+	{ date: new Date("2026-07-09"), requests: 0 },
+	{ date: new Date("2026-07-10"), requests: 0 },
+	{ date: new Date("2026-07-11"), requests: 0 },
+	{ date: new Date("2026-07-12"), requests: 0 },
+	{ date: new Date("2026-07-13"), requests: 0 },
+	{ date: new Date("2026-07-14"), requests: 0 },
+];
+
+function NoTrafficYetAreaChartExample() {
+	return (
+		<AreaChart.Root data={noTrafficYet} xKey="date" aria-label="Requests per day">
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis />
+			<AreaChart.Area dataKey="requests" label="Requests" />
+			<AreaChart.Tooltip />
+		</AreaChart.Root>
+	);
+}
+```
 
 ## Reference lines
 

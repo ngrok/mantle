@@ -8,6 +8,243 @@ import { Button } from "@ngrok/mantle/button";
 import { useEffect, useState } from "react";
 import { Example } from "~/components/example";
 
+export const endpointsByRegion = [
+	{ month: "January", usEast: 41, euWest: 0, apSouth: 0 },
+	{ month: "February", usEast: 52, euWest: 0, apSouth: 0 },
+	{ month: "March", usEast: 0, euWest: 38, apSouth: 0 },
+	{ month: "April", usEast: 0, euWest: 44, apSouth: 12 },
+	{ month: "May", usEast: 18, euWest: 0, apSouth: 26 },
+	{ month: "June", usEast: 23, euWest: 51, apSouth: 31 },
+];
+
+export function SparseStackBarChartExample() {
+	return (
+		<div className="grid w-full gap-6 sm:grid-cols-2">
+			<BarChart.Root
+				data={endpointsByRegion}
+				xKey="month"
+				stacked
+				aria-label="Active endpoints by region"
+			>
+				<BarChart.Grid />
+				<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+				<BarChart.YAxis />
+				<BarChart.Bar dataKey="usEast" label="US East" />
+				<BarChart.Bar dataKey="euWest" label="EU West" />
+				<BarChart.Bar dataKey="apSouth" label="AP South" />
+				<BarChart.Legend />
+			</BarChart.Root>
+			<BarChart.Root
+				data={endpointsByRegion}
+				xKey="month"
+				stacked
+				orientation="horizontal"
+				aria-label="Active endpoints by region, horizontal"
+			>
+				<BarChart.Grid lines="vertical" />
+				<BarChart.XAxis />
+				<BarChart.YAxis tickFormat={(month) => String(month).slice(0, 3)} />
+				<BarChart.Bar dataKey="usEast" label="US East" />
+				<BarChart.Bar dataKey="euWest" label="EU West" />
+				<BarChart.Bar dataKey="apSouth" label="AP South" />
+				<BarChart.Legend />
+			</BarChart.Root>
+		</div>
+	);
+}
+
+export const monthlySpend = [
+	{ month: "January", endpoints: 39, transfer: 11.42, events: 0.28 },
+	{ month: "February", endpoints: 39, transfer: 12.06, events: 0.31 },
+	{ month: "March", endpoints: 39, transfer: 9.87, events: 0.004 },
+	{ month: "April", endpoints: 39, transfer: 14.55, events: 0.19 },
+	{ month: "May", endpoints: 39, transfer: 13.02, events: 0 },
+	{ month: "June", endpoints: 39, transfer: 15.31, events: 0.42 },
+];
+
+export function SubCentBarChartExample() {
+	return (
+		<BarChart.Root data={monthlySpend} xKey="month" stacked aria-label="Monthly spend by line item">
+			<BarChart.Grid />
+			<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+			<BarChart.YAxis tickFormat={(value) => `$${value}`} />
+			<BarChart.Bar dataKey="endpoints" label="Endpoints" />
+			<BarChart.Bar dataKey="transfer" label="Transfer" />
+			<BarChart.Bar dataKey="events" label="Events" />
+			<BarChart.Tooltip valueFormat={(value) => `$${value.toFixed(3)}`} />
+			<BarChart.Legend />
+		</BarChart.Root>
+	);
+}
+
+export const netEndpointChange = [
+	{ month: "January", added: 128, churned: -34, suspended: -11 },
+	{ month: "February", added: 96, churned: -52, suspended: -8 },
+	{ month: "March", added: 141, churned: -27, suspended: -19 },
+	{ month: "April", added: 62, churned: -88, suspended: -24 },
+	{ month: "May", added: 118, churned: -41, suspended: 0 },
+	{ month: "June", added: 154, churned: -36, suspended: -14 },
+];
+
+export function DivergingBarChartExample() {
+	return (
+		<BarChart.Root
+			data={netEndpointChange}
+			xKey="month"
+			stacked
+			aria-label="Net change in active endpoints"
+		>
+			<BarChart.Grid />
+			<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+			<BarChart.YAxis />
+			<BarChart.Bar dataKey="added" label="Added" />
+			<BarChart.Bar dataKey="churned" label="Churned" color="var(--color-danger-500)" />
+			<BarChart.Bar dataKey="suspended" label="Suspended" color="var(--color-warning-500)" />
+			<BarChart.Tooltip />
+			<BarChart.Legend />
+		</BarChart.Root>
+	);
+}
+
+export const requestsByProtocol = [
+	{ month: "January", http: 1240, tcp: 910, tls: 640 },
+	{ month: "February", http: 1385, tcp: 845, tls: 705 },
+	{ month: "March", http: 1520, tcp: 1010, tls: 590 },
+	{ month: "April", http: 1180, tcp: 1145, tls: 820 },
+	{ month: "May", http: 1660, tcp: 980, tls: 735 },
+	{ month: "June", http: 1745, tcp: 1220, tls: 880 },
+];
+
+export function StackedActivationBarChartExample() {
+	const [lastActivated, setLastActivated] = useState("Click a segment.");
+	return (
+		<div className="w-full">
+			<BarChart.Root
+				data={requestsByProtocol}
+				xKey="month"
+				stacked
+				aria-label="Requests by protocol"
+				onDatumActivate={(event) => {
+					const series = event.dataKey == null ? "whole month" : event.dataKey;
+					setLastActivated(`Activated ${String(event.xValue)} (${series}).`);
+				}}
+			>
+				<BarChart.Grid />
+				<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+				<BarChart.YAxis tickFormat={(value) => `${value}k`} />
+				<BarChart.Bar dataKey="http" label="HTTP" />
+				<BarChart.Bar dataKey="tcp" label="TCP" />
+				<BarChart.Bar dataKey="tls" label="TLS" />
+				<BarChart.Legend />
+			</BarChart.Root>
+			<p className="text-muted mt-3 text-sm">{lastActivated}</p>
+		</div>
+	);
+}
+
+export const noUsageYet = [
+	{ month: "January", requests: 0 },
+	{ month: "February", requests: 0 },
+	{ month: "March", requests: 0 },
+	{ month: "April", requests: 0 },
+	{ month: "May", requests: 0 },
+	{ month: "June", requests: 0 },
+];
+
+export function NoUsageYetBarChartExample() {
+	return (
+		<BarChart.Root data={noUsageYet} xKey="month" aria-label="Requests by month">
+			<BarChart.Grid />
+			<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+			<BarChart.YAxis />
+			<BarChart.Bar dataKey="requests" label="Requests" />
+			<BarChart.Tooltip />
+		</BarChart.Root>
+	);
+}
+
+export const spendByProvider = [
+	{ month: "April", aws: 1610, gcp: 1145, azure: 520, onPrem: 141 },
+	{ month: "May", aws: 1745, gcp: 1080, azure: 565, onPrem: 133 },
+	{ month: "June", aws: 1890, gcp: 1220, azure: 610, onPrem: 152 },
+];
+
+export const spendByRegion = [
+	{ month: "April", usEast: 1495, usWest: 828, euWest: 690, apSouth: 403 },
+	{ month: "May", usEast: 1580, usWest: 874, euWest: 745, apSouth: 434 },
+	{ month: "June", usEast: 1712, usWest: 940, euWest: 803, apSouth: 417 },
+];
+
+export const spendByAccessKey = [
+	{ month: "April", ci: 1240, staging: 762, production: 1330, laptop: 84 },
+	{ month: "May", ci: 1315, staging: 810, production: 1440, laptop: 68 },
+	{ month: "June", ci: 1428, staging: 869, production: 1560, laptop: 15 },
+];
+
+export const groupings = {
+	provider: {
+		label: "By provider",
+		data: spendByProvider,
+		series: [
+			["aws", "AWS"],
+			["gcp", "GCP"],
+			["azure", "Azure"],
+			["onPrem", "On-prem"],
+		],
+	},
+	region: {
+		label: "By region",
+		data: spendByRegion,
+		series: [
+			["usEast", "US East"],
+			["usWest", "US West"],
+			["euWest", "EU West"],
+			["apSouth", "AP South"],
+		],
+	},
+	accessKey: {
+		label: "By access key",
+		data: spendByAccessKey,
+		series: [
+			["ci", "CI"],
+			["staging", "Staging"],
+			["production", "Production"],
+			["laptop", "Laptop"],
+		],
+	},
+};
+
+export function RegroupBarChartExample() {
+	const [grouping, setGrouping] = useState("provider");
+	const active = groupings[grouping];
+	return (
+		<div className="w-full">
+			<div className="mb-3 flex flex-wrap gap-2">
+				{Object.entries(groupings).map(([key, option]) => (
+					<Button
+						key={key}
+						appearance={key === grouping ? "filled" : "outlined"}
+						onClick={() => setGrouping(key)}
+					>
+						{option.label}
+					</Button>
+				))}
+			</div>
+			{/* No `key` on the Root: remounting it would reset the palette and hide
+			    the behavior this example exists to show. */}
+			<BarChart.Root data={active.data} xKey="month" aria-label="Monthly requests by grouping">
+				<BarChart.Grid />
+				<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+				<BarChart.YAxis />
+				{active.series.map(([dataKey, label]) => (
+					<BarChart.Bar key={dataKey} dataKey={dataKey} label={label} />
+				))}
+				<BarChart.Legend />
+			</BarChart.Root>
+		</div>
+	);
+}
+
 export const monthlyVisitors = [
 	{ month: "January", desktop: 186, mobile: 80 },
 	{ month: "February", desktop: 305, mobile: 200 },
@@ -505,6 +742,288 @@ function StackedBarChartExample() {
 }
 ```
 
+## Sparse stacks
+
+A stack whose series are zero on most columns is the shape a "usage by region" or "usage by access key" chart
+produces. Every geometry decision on a stacked bar is per column, not per series: the rounded cap goes to the
+segment that is actually outermost on that column, and the 2px surface gap is carved only where a neighbor
+adjoins. March carries one series, so its column sits flat on the axis and wears the cap on the segment a reader
+can see. June carries all three, so its seams are separated. Both orientations follow the same rule.
+
+<Example>
+	<SparseStackBarChartExample />
+</Example>
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+
+const endpointsByRegion = [
+	{ month: "January", usEast: 41, euWest: 0, apSouth: 0 },
+	{ month: "February", usEast: 52, euWest: 0, apSouth: 0 },
+	{ month: "March", usEast: 0, euWest: 38, apSouth: 0 },
+	{ month: "April", usEast: 0, euWest: 44, apSouth: 12 },
+	{ month: "May", usEast: 18, euWest: 0, apSouth: 26 },
+	{ month: "June", usEast: 23, euWest: 51, apSouth: 31 },
+];
+
+function SparseStackBarChartExample() {
+	return (
+		<div className="grid w-full gap-6 sm:grid-cols-2">
+			<BarChart.Root
+				data={endpointsByRegion}
+				xKey="month"
+				stacked
+				aria-label="Active endpoints by region"
+			>
+				<BarChart.Grid />
+				<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+				<BarChart.YAxis />
+				<BarChart.Bar dataKey="usEast" label="US East" />
+				<BarChart.Bar dataKey="euWest" label="EU West" />
+				<BarChart.Bar dataKey="apSouth" label="AP South" />
+				<BarChart.Legend />
+			</BarChart.Root>
+			<BarChart.Root
+				data={endpointsByRegion}
+				xKey="month"
+				stacked
+				orientation="horizontal"
+				aria-label="Active endpoints by region, horizontal"
+			>
+				<BarChart.Grid lines="vertical" />
+				<BarChart.XAxis />
+				<BarChart.YAxis tickFormat={(month) => String(month).slice(0, 3)} />
+				<BarChart.Bar dataKey="usEast" label="US East" />
+				<BarChart.Bar dataKey="euWest" label="EU West" />
+				<BarChart.Bar dataKey="apSouth" label="AP South" />
+				<BarChart.Legend />
+			</BarChart.Root>
+		</div>
+	);
+}
+```
+
+### Segments smaller than the surface gap
+
+A segment can be worth less than one pixel — a sub-cent line item against a dollar-scale axis. The gap carves at
+most half of a segment's painted extent, so a short segment paints shorter rather than inverting or vanishing,
+and a taller segment never paints shorter than the one beside it. A segment that rounds to no ink at all cannot
+take the rounded cap from the segment a reader can see: March's `events` value is `$0.004`, so the column reads
+the same as May's exact `$0`.
+
+<Example>
+	<SubCentBarChartExample />
+</Example>
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+
+const monthlySpend = [
+	{ month: "January", endpoints: 39, transfer: 11.42, events: 0.28 },
+	{ month: "February", endpoints: 39, transfer: 12.06, events: 0.31 },
+	{ month: "March", endpoints: 39, transfer: 9.87, events: 0.004 },
+	{ month: "April", endpoints: 39, transfer: 14.55, events: 0.19 },
+	{ month: "May", endpoints: 39, transfer: 13.02, events: 0 },
+	{ month: "June", endpoints: 39, transfer: 15.31, events: 0.42 },
+];
+
+function SubCentBarChartExample() {
+	return (
+		<BarChart.Root data={monthlySpend} xKey="month" stacked aria-label="Monthly spend by line item">
+			<BarChart.Grid />
+			<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+			<BarChart.YAxis tickFormat={(value) => `$${value}`} />
+			<BarChart.Bar dataKey="endpoints" label="Endpoints" />
+			<BarChart.Bar dataKey="transfer" label="Transfer" />
+			<BarChart.Bar dataKey="events" label="Events" />
+			<BarChart.Tooltip valueFormat={(value) => `$${value.toFixed(3)}`} />
+			<BarChart.Legend />
+		</BarChart.Root>
+	);
+}
+```
+
+## Diverging stacks
+
+Negative values pile downward from the zero baseline while positive values pile up, and each pile caps its own
+outer end. The axis grows below zero on its own — no `yDomain` override, because a bar chart's minimum is the
+baseline, not the data floor. April is the month worth looking at: 62 endpoints added against 112 lost, so the
+net is negative and the two piles are visibly unequal. Series that carry good or bad meaning wear the semantic
+status colors here rather than categorical slots.
+
+<Example>
+	<DivergingBarChartExample />
+</Example>
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+
+const netEndpointChange = [
+	{ month: "January", added: 128, churned: -34, suspended: -11 },
+	{ month: "February", added: 96, churned: -52, suspended: -8 },
+	{ month: "March", added: 141, churned: -27, suspended: -19 },
+	{ month: "April", added: 62, churned: -88, suspended: -24 },
+	{ month: "May", added: 118, churned: -41, suspended: 0 },
+	{ month: "June", added: 154, churned: -36, suspended: -14 },
+];
+
+function DivergingBarChartExample() {
+	return (
+		<BarChart.Root
+			data={netEndpointChange}
+			xKey="month"
+			stacked
+			aria-label="Net change in active endpoints"
+		>
+			<BarChart.Grid />
+			<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+			<BarChart.YAxis />
+			<BarChart.Bar dataKey="added" label="Added" />
+			<BarChart.Bar dataKey="churned" label="Churned" color="var(--color-danger-500)" />
+			<BarChart.Bar dataKey="suspended" label="Suspended" color="var(--color-warning-500)" />
+			<BarChart.Tooltip />
+			<BarChart.Legend />
+		</BarChart.Root>
+	);
+}
+```
+
+## No usage yet
+
+An all-zero series is data, not an empty state: it reports that nothing happened. The value axis stays anchored
+at the baseline, so the zero line sits on the axis instead of floating through the middle of the plot. Keep the
+accessible name, the tooltip, and the data table — a reader and a screen reader both need to hear "0", not
+nothing. Reach for `decorative` only when the values are a synthetic backdrop behind an empty-state message; see
+[Decorative charts](#decorative-charts).
+
+<Example>
+	<NoUsageYetBarChartExample />
+</Example>
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+
+const noUsageYet = [
+	{ month: "January", requests: 0 },
+	{ month: "February", requests: 0 },
+	{ month: "March", requests: 0 },
+	{ month: "April", requests: 0 },
+	{ month: "May", requests: 0 },
+	{ month: "June", requests: 0 },
+];
+
+function NoUsageYetBarChartExample() {
+	return (
+		<BarChart.Root data={noUsageYet} xKey="month" aria-label="Requests by month">
+			<BarChart.Grid />
+			<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+			<BarChart.YAxis />
+			<BarChart.Bar dataKey="requests" label="Requests" />
+			<BarChart.Tooltip />
+		</BarChart.Root>
+	);
+}
+```
+
+## Regrouping a live chart
+
+A dashboard that regroups one chart — by provider, then by region, then by access key — cycles a new set of
+`dataKey`s through the same Root. Slots stay sticky per `dataKey` while the palette has room, and once the eight
+never-used slots run out an incoming series takes one back from a series that is off screen. So the third
+grouping still paints four distinct validated colors rather than four identical grays.
+
+Do not put a `key` on the Root to work around this. Remounting discards the tween state, the measured layout,
+and the hover position, and it replays the enter animation on every switch. Cycle the series instead and let the
+Root keep its store.
+
+One honest consequence: a `dataKey` whose slot was reclaimed while off screen does not come back to its original
+color, so switching back to an earlier grouping after a full cycle can recolor it. Stickiness holds while the
+palette has room, which is the eight-slot budget rather than forever.
+
+<Example>
+	<RegroupBarChartExample />
+</Example>
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+import { Button } from "@ngrok/mantle/button";
+import { useState } from "react";
+
+const groupings = {
+	provider: {
+		label: "By provider",
+		data: [
+			{ month: "April", aws: 1610, gcp: 1145, azure: 520, onPrem: 141 },
+			{ month: "May", aws: 1745, gcp: 1080, azure: 565, onPrem: 133 },
+			{ month: "June", aws: 1890, gcp: 1220, azure: 610, onPrem: 152 },
+		],
+		series: [
+			["aws", "AWS"],
+			["gcp", "GCP"],
+			["azure", "Azure"],
+			["onPrem", "On-prem"],
+		],
+	},
+	region: {
+		label: "By region",
+		data: [
+			{ month: "April", usEast: 1495, usWest: 828, euWest: 690, apSouth: 403 },
+			{ month: "May", usEast: 1580, usWest: 874, euWest: 745, apSouth: 434 },
+			{ month: "June", usEast: 1712, usWest: 940, euWest: 803, apSouth: 417 },
+		],
+		series: [
+			["usEast", "US East"],
+			["usWest", "US West"],
+			["euWest", "EU West"],
+			["apSouth", "AP South"],
+		],
+	},
+	accessKey: {
+		label: "By access key",
+		data: [
+			{ month: "April", ci: 1240, staging: 762, production: 1330, laptop: 84 },
+			{ month: "May", ci: 1315, staging: 810, production: 1440, laptop: 68 },
+			{ month: "June", ci: 1428, staging: 869, production: 1560, laptop: 15 },
+		],
+		series: [
+			["ci", "CI"],
+			["staging", "Staging"],
+			["production", "Production"],
+			["laptop", "Laptop"],
+		],
+	},
+};
+
+function RegroupBarChartExample() {
+	const [grouping, setGrouping] = useState("provider");
+	const active = groupings[grouping];
+	return (
+		<div className="w-full">
+			<div className="mb-3 flex flex-wrap gap-2">
+				{Object.entries(groupings).map(([key, option]) => (
+					<Button
+						key={key}
+						appearance={key === grouping ? "filled" : "outlined"}
+						onClick={() => setGrouping(key)}
+					>
+						{option.label}
+					</Button>
+				))}
+			</div>
+			<BarChart.Root data={active.data} xKey="month" aria-label="Monthly requests by grouping">
+				<BarChart.Grid />
+				<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+				<BarChart.YAxis />
+				{active.series.map(([dataKey, label]) => (
+					<BarChart.Bar key={dataKey} dataKey={dataKey} label={label} />
+				))}
+				<BarChart.Legend />
+			</BarChart.Root>
+		</div>
+	);
+}
+```
+
 ## Horizontal bars
 
 `orientation` names the direction the bars point, not an axis: `"vertical"` (the default) bars stand up, `"horizontal"` bars lie across. Set `orientation="horizontal"` to grow bars rightward from a left baseline with categories banded down the y axis. Reach for it when category labels are long (they read straight instead of angled or truncated under the axis) or when there are many categories to rank. `xKey` still names the category and `YAxis` still labels the value — only the drawing flips: the category axis moves to the left gutter, the value axis to the bottom, and the baseline, reference lines, and `"perpendicular"` texture all rotate to match. Everything else — grouping, stacking, hover, keyboard, the data table — works unchanged.
@@ -769,6 +1288,58 @@ function ActivationBarChartExample() {
 				<BarChart.YAxis />
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Legend />
+			</BarChart.Root>
+			<p className="text-muted mt-3 text-sm">{lastActivated}</p>
+		</div>
+	);
+}
+```
+
+### Activating a stacked segment
+
+On a stacked chart `dataKey` names the segment the pointer sits **in**, never the boundary it sits near, because
+the mark is the filled span. Click the lower third of a band and the readout still names that band. Resolving by
+the nearest cumulative boundary instead would hand the baseline-side half of every segment to the series below
+it.
+
+<Example>
+	<StackedActivationBarChartExample />
+</Example>
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+import { useState } from "react";
+
+const requestsByProtocol = [
+	{ month: "January", http: 1240, tcp: 910, tls: 640 },
+	{ month: "February", http: 1385, tcp: 845, tls: 705 },
+	{ month: "March", http: 1520, tcp: 1010, tls: 590 },
+	{ month: "April", http: 1180, tcp: 1145, tls: 820 },
+	{ month: "May", http: 1660, tcp: 980, tls: 735 },
+	{ month: "June", http: 1745, tcp: 1220, tls: 880 },
+];
+
+function StackedActivationBarChartExample() {
+	const [lastActivated, setLastActivated] = useState("Click a segment.");
+	return (
+		<div className="w-full">
+			<BarChart.Root
+				data={requestsByProtocol}
+				xKey="month"
+				stacked
+				aria-label="Requests by protocol"
+				onDatumActivate={(event) => {
+					const series = event.dataKey == null ? "whole month" : event.dataKey;
+					setLastActivated(`Activated ${String(event.xValue)} (${series}).`);
+				}}
+			>
+				<BarChart.Grid />
+				<BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
+				<BarChart.YAxis tickFormat={(value) => `${value}k`} />
+				<BarChart.Bar dataKey="http" label="HTTP" />
+				<BarChart.Bar dataKey="tcp" label="TCP" />
+				<BarChart.Bar dataKey="tls" label="TLS" />
 				<BarChart.Legend />
 			</BarChart.Root>
 			<p className="text-muted mt-3 text-sm">{lastActivated}</p>
