@@ -209,9 +209,9 @@ const defaultIcons = {
 } as const satisfies Record<AlertIntent, ReactNode>;
 
 /**
- * An optional icon that visually represents the intent of the Alert.
+ * An optional icon that visually represents the intent of the `Alert`.
  *
- * The default rendered icon be overridden with a custom icon using the `svg` prop.
+ * Pass the `svg` prop to replace the default icon.
  *
  * @see https://mantle.ngrok.com/components/feedback/alert#alerticon
  *
@@ -632,7 +632,9 @@ const Alert = {
 	 */
 	DismissIconButton,
 	/**
-	 * An optional icon that visually represents the intent of the Alert.
+	 * An optional icon that visually represents the intent of the `Alert`.
+	 *
+	 * Pass the `svg` prop to replace the default icon.
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/alert#alerticon
 	 *

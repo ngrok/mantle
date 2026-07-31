@@ -264,7 +264,8 @@ const Card = {
 	 */
 	Body,
 	/**
-	 * The band below `Card.Body`, divided from it by a top border.
+	 * The band below `Card.Body`. Unless it is the first child, it draws a top border
+	 * dividing the two. Pass it as a direct child of `Card.Root`.
 	 *
 	 * @see https://mantle.ngrok.com/components/structure/card#cardfooter
 	 *
