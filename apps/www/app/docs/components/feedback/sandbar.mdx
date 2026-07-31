@@ -387,6 +387,113 @@ the opposite theme without extra styling. The panel's own surface uses the inver
 `bg-base` and `text-strong` tokens; style overrides passed via `className` resolve against the
 inverted theme too.
 
+## Reduced motion
+
+Under `prefers-reduced-motion: reduce` the bar keeps its fades and drops everything that travels:
+the enter no longer rises, the exit no longer drops, and `shake()` announces without wiggling. The
+announcement is the load-bearing feedback, so blocked navigation stays perceivable with the motion
+switched off.
+
+Two mechanisms do it, and neither needs a prop. The enter/exit travel sits behind `motion-safe:`, so
+the media query alone removes it. `shake()` reads the preference with `getPrefersReducedMotion()` —
+the imperative sibling of [`usePrefersReducedMotion`](/hooks#useprefersreducedmotion) — and skips
+`panel.animate(...)` when it returns `true`.
+
+A page cannot change an operating-system preference, so the demo below carries a switch that
+reproduces the same two outcomes for a reader whose system allows motion. It does that through
+`className`, which `Sandbar.Root` merges last — the same escape hatch you have. The readout tracks
+the real preference live, because `usePrefersReducedMotion` subscribes to the query.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="sandbar-reduced-motion" title="Sandbar reduced motion demo" />
+	<CodeExample.Code>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { usePrefersReducedMotion } from "@ngrok/mantle/hooks";
+import { Label } from "@ngrok/mantle/label";
+import { Sandbar, type SandbarHandle } from "@ngrok/mantle/sandbar";
+import { Switch } from "@ngrok/mantle/switch";
+import { useRef, useState } from "react";
+
+// What a reduced-motion visitor sees, reproduced through the consumer `className`
+// that `Sandbar.Root` merges last. The variant chain has to match the internal
+// utility exactly — a bare `data-state-closed:translate-y-0` would sit beside the
+// panel's own travel instead of replacing it.
+//
+// `transform-none!` is what stops the `shake()` wiggle: the wiggle is a Web
+// Animations transform, and an `!important` author declaration outranks an
+// animation in the cascade. It leaves the fades alone, because those animate the
+// standalone `translate` property.
+const STILLNESS = "motion-safe:data-state-closed:translate-y-0 transform-none!";
+
+export function ReducedMotionExample() {
+	const prefersReducedMotion = usePrefersReducedMotion();
+	const [simulate, setSimulate] = useState(false);
+	const [isDirty, setIsDirty] = useState(true);
+	const sandbarHandle = useRef<SandbarHandle>(null);
+
+	// the real preference already wins on its own; the switch only covers a
+	// reader whose system allows motion
+	const isStill = prefersReducedMotion || simulate;
+
+	return (
+		<>
+			<p>
+				Your system reports{" "}
+				<strong>{prefersReducedMotion ? "reduced motion" : "motion allowed"}</strong>.
+			</p>
+
+			<Label className="flex items-center gap-2" htmlFor="simulate-reduced-motion">
+				<Switch checked={simulate} id="simulate-reduced-motion" onCheckedChange={setSimulate} />
+				Simulate reduced motion
+			</Label>
+
+			<Button
+				appearance="outlined"
+				intent="neutral"
+				onClick={() => setIsDirty((current) => !current)}
+				type="button"
+			>
+				{isDirty ? "Hide the bar" : "Show the bar"}
+			</Button>
+			<Button
+				appearance="link"
+				intent="neutral"
+				onClick={() => {
+					// stand-in for a router guard: while dirty, block and shake
+					if (isDirty) {
+						sandbarHandle.current?.shake();
+					}
+				}}
+				type="button"
+			>
+				Continue to dashboard →
+			</Button>
+
+			<Sandbar.Root
+				className={isStill ? STILLNESS : undefined}
+				handleRef={sandbarHandle}
+				open={isDirty}
+			>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Sandbar.Actions>
+					<Sandbar.DiscardButton onClick={() => setIsDirty(false)}>Discard</Sandbar.DiscardButton>
+					<Sandbar.SaveButton onClick={() => setIsDirty(false)}>Save changes</Sandbar.SaveButton>
+				</Sandbar.Actions>
+			</Sandbar.Root>
+		</>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+Do not reach for `STILLNESS` in an app. It exists to demonstrate the reduced-motion result to a
+reader who has motion switched on; in production the preference does this by itself.
+
 ## Blocking navigation
 
 The bar renders the decision; your app owns the guard. Pair `open` with your router's blocker
@@ -418,7 +525,7 @@ dependency, and the split mirrors Shopify's SaveBar / `leaveConfirmation()` and 
   pending state requires an explicit action.
 - **Reduced motion.** Under `prefers-reduced-motion`, the enter/exit slides degrade to fades and
   `shake()` skips the wiggle — the assertive announcement still fires, so blocked navigation stays
-  perceivable.
+  perceivable. See [Reduced motion](#reduced-motion) for a demo you can drive.
 - **Zoom and small viewports.** The panel wraps its actions under the message and caps its height,
   so it stays usable at 320px-wide viewports (400% zoom).
 

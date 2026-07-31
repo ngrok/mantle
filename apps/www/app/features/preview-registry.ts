@@ -13,6 +13,7 @@ import {
 	SandbarDemo,
 	SandbarFailedSaveDemo,
 	SandbarPendingPublishDemo,
+	SandbarReducedMotionDemo,
 } from "~/features/sandbar-demos";
 import { SidebarPersistenceDemo } from "~/features/sidebar-demos";
 
@@ -99,6 +100,10 @@ export const previewExamples = {
 	"sandbar-pending-publish": {
 		title: "Sandbar pending publish demo",
 		Component: SandbarPendingPublishDemo,
+	},
+	"sandbar-reduced-motion": {
+		title: "Sandbar reduced motion demo",
+		Component: SandbarReducedMotionDemo,
 	},
 	"sidebar-persistence": {
 		title: "Sidebar persistence demo",

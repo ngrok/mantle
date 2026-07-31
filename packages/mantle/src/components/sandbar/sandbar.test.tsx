@@ -294,6 +294,33 @@ describe("Sandbar structure", () => {
 		expect(save).not.toHaveAttribute("data-size");
 	});
 
+	test("a consumer className can cancel the enter/exit travel", () => {
+		// tailwind-merge override contract, asserting the merge OUTCOME rather than a
+		// list of internal defaults. The docs' reduced-motion demo cancels the panel's
+		// travel this way, and it only works when the consumer's variant chain matches
+		// the internal utility exactly — a bare `data-state-closed:translate-y-0` sits
+		// beside `motion-safe:data-state-closed:translate-y-[…]` and loses to it.
+		const { unmount } = render(
+			<Sandbar.Root open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+			</Sandbar.Root>,
+		);
+		// the control: without an override the travel really is on the panel, so the
+		// negative assertion below cannot pass just because the utility was renamed
+		expect(getPanel().className).toContain("translate-y-[calc(100%+2.5rem)]");
+		unmount();
+
+		render(
+			<Sandbar.Root className="motion-safe:data-state-closed:translate-y-0" open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+			</Sandbar.Root>,
+		);
+
+		const panel = getPanel();
+		expect(panel.className).toContain("motion-safe:data-state-closed:translate-y-0");
+		expect(panel.className).not.toContain("translate-y-[calc(100%+2.5rem)]");
+	});
+
 	test("every part joins an incoming data-slot chain ahead of its own slot", () => {
 		render(
 			<Sandbar.Root data-slot="outer" open>

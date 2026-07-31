@@ -3,11 +3,13 @@ import { Button } from "@ngrok/mantle/button";
 import { Card } from "@ngrok/mantle/card";
 import { Checkbox } from "@ngrok/mantle/checkbox";
 import { Field } from "@ngrok/mantle/field";
+import { usePrefersReducedMotion } from "@ngrok/mantle/hooks";
 import { Input } from "@ngrok/mantle/input";
 import { Label } from "@ngrok/mantle/label";
 import { Main } from "@ngrok/mantle/main";
 import type { SandbarHandle } from "@ngrok/mantle/sandbar";
 import { Sandbar } from "@ngrok/mantle/sandbar";
+import { Switch } from "@ngrok/mantle/switch";
 import { TextArea } from "@ngrok/mantle/text-area";
 import { makeToast, Toast, Toaster } from "@ngrok/mantle/toast";
 import type { PropsWithChildren } from "react";
@@ -283,6 +285,111 @@ export function SandbarPendingPublishDemo() {
 					<Button appearance="filled" intent="neutral" type="button" onClick={() => setPending([])}>
 						Publish all
 					</Button>
+				</Sandbar.Actions>
+			</Sandbar.Root>
+		</Main>
+	);
+}
+
+/**
+ * The two class strings that reproduce what a reduced-motion visitor sees.
+ *
+ * `Sandbar.Root` merges a consumer `className` last, so these win over the
+ * panel's own defaults. The variant chain has to match the internal utility
+ * exactly — `motion-safe:data-state-closed:translate-y-0` replaces the travel,
+ * while a bare `data-state-closed:translate-y-0` would sit beside it and lose.
+ *
+ * - `motion-safe:data-state-closed:translate-y-0` cancels the enter/exit
+ *   travel, leaving the fades — the same result `motion-safe:` produces when
+ *   the preference is real.
+ * - `transform-none!` stops the `shake()` wiggle. The wiggle is a Web
+ *   Animations transform, and an `!important` author declaration outranks an
+ *   animation in the cascade. It cannot touch the fades, which animate the
+ *   standalone `translate` property instead.
+ */
+const STILLNESS = "motion-safe:data-state-closed:translate-y-0 transform-none!";
+
+/**
+ * Shows what `Sandbar` does under `prefers-reduced-motion: reduce` — no enter
+ * or exit travel, and no wiggle from `shake()`.
+ *
+ * The switch is here because a page cannot change an operating-system
+ * preference. It reproduces the two *outcomes* through `className`, so a reader
+ * whose system allows motion can still see them. The real preference needs no
+ * switch and no reload: `usePrefersReducedMotion` subscribes to the media
+ * query, so the readout below follows the OS setting as it changes.
+ */
+export function SandbarReducedMotionDemo() {
+	const prefersReducedMotion = usePrefersReducedMotion();
+	const [simulate, setSimulate] = useState(false);
+	const [isDirty, setIsDirty] = useState(true);
+	const sandbarHandle = useRef<SandbarHandle>(null);
+
+	// the system preference already wins on its own, so the switch only has to
+	// cover the reader whose system allows motion
+	const isStill = prefersReducedMotion || simulate;
+
+	return (
+		<Main className="min-h-full p-6">
+			<Card.Root className="mx-auto max-w-xl">
+				<Card.Body className="space-y-4">
+					<div className="space-y-1">
+						<h2 className="text-strong font-medium">Reduced motion</h2>
+						<p className="text-muted text-sm">
+							Your system reports{" "}
+							<strong className="text-strong">
+								{prefersReducedMotion ? "reduced motion" : "motion allowed"}
+							</strong>
+							. Change it in your OS accessibility settings and this line follows along, with no
+							reload.
+						</p>
+					</div>
+
+					<Label className="flex items-center gap-2" htmlFor="simulate-reduced-motion">
+						<Switch checked={simulate} id="simulate-reduced-motion" onCheckedChange={setSimulate} />
+						Simulate reduced motion
+					</Label>
+
+					<p className="text-muted text-sm">
+						{isStill
+							? "The bar fades in and out where it would otherwise rise and drop, and a blocked navigation announces without wiggling."
+							: "The bar rises 400ms on enter, drops 200ms on exit, and wiggles when a navigation is blocked."}
+					</p>
+
+					<div className="flex flex-wrap gap-2">
+						<Button
+							appearance="outlined"
+							intent="neutral"
+							onClick={() => setIsDirty((current) => !current)}
+							type="button"
+						>
+							{isDirty ? "Hide the bar" : "Show the bar"}
+						</Button>
+						<Button
+							appearance="link"
+							intent="neutral"
+							onClick={() => {
+								if (isDirty) {
+									sandbarHandle.current?.shake();
+								}
+							}}
+							type="button"
+						>
+							Continue to dashboard →
+						</Button>
+					</div>
+				</Card.Body>
+			</Card.Root>
+
+			<Sandbar.Root
+				className={isStill ? STILLNESS : undefined}
+				handleRef={sandbarHandle}
+				open={isDirty}
+			>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Sandbar.Actions>
+					<Sandbar.DiscardButton onClick={() => setIsDirty(false)}>Discard</Sandbar.DiscardButton>
+					<Sandbar.SaveButton onClick={() => setIsDirty(false)}>Save changes</Sandbar.SaveButton>
 				</Sandbar.Actions>
 			</Sandbar.Root>
 		</Main>
