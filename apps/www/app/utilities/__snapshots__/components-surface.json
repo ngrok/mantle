@@ -434,8 +434,8 @@
     "category": "Actions",
     "status": "stable",
     "importPath": "@ngrok/mantle/button",
-    "summary": "Initiates an action, such as completing a task or submitting information. Renders only a single icon as children with an accessible, screen-reader-only label.",
-    "jsdoc": "Renders a button or a component that looks like a button, an interactive element activated by a user with a mouse, keyboard, finger, voice command, or other assistive technology.",
+    "summary": "Initiates an action, such as completing a task or submitting information. Renders one icon and nothing else, with a required label prop that carries the accessible name.",
+    "jsdoc": "A button that renders one icon and nothing else.",
     "examples": [
       "```tsx\n<IconButton\n  icon={<TrashIcon />}\n  label=\"Delete item\"\n  appearance=\"ghost\"\n  intent=\"danger\"\n  size=\"sm\"\n  onClick={handleDelete}\n/>\n```",
       "Submit a form — opt in with `type=\"submit\"` (the default `\"button\"` does not submit):\n```tsx\n<IconButton\n  type=\"submit\"\n  appearance=\"outlined\"\n  intent=\"neutral\"\n  icon={<MagnifyingGlassIcon />}\n  label=\"Search\"\n/>\n```"
@@ -449,7 +449,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/icons",
     "summary": "Custom icons used throughout ngrok UI.",
-    "jsdoc": "Re-exports for the Icons component."
+    "jsdoc": "Re-exports for the Icons component — the ngrok-specific icons that `@phosphor-icons/react` does not ship."
   },
   {
     "name": "Input",
@@ -582,7 +582,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/pagination",
     "summary": "Components and hooks for navigating through paged data with cursor-based and offset-based pagination strategies.",
-    "jsdoc": "Re-exports for the Pagination component."
+    "jsdoc": "Re-exports for the Pagination component family — `CursorPagination`'s parts for cursor paging, and `useOffsetPagination` for offset paging."
   },
   {
     "name": "Password Input",
@@ -853,8 +853,8 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/switch",
-    "summary": "A control that allows the user to toggle between checked and not checked.",
-    "jsdoc": "A form control that allows the user to toggle between checked and not checked.",
+    "summary": "A form control that toggles one setting on or off. Unlike Checkbox, it has no indeterminate state.",
+    "jsdoc": "A form control that toggles one setting on or off.",
     "examples": [
       "```tsx\n<form>\n  <Label htmlFor=\"airplane-mode\" className=\"flex items-center gap-2\">\n    Airplane Mode\n    <Switch name=\"airplane-mode\" id=\"airplane-mode\" />\n  </Label>\n</form>\n```"
     ]
@@ -908,7 +908,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/theme",
     "summary": "Theme primitives — ThemeProvider, MantleStyleSheets, and FOUC prevention — for light, dark, and high-contrast modes.",
-    "jsdoc": "Re-exports for the Theme component."
+    "jsdoc": "Re-exports for the Theme component — the provider and hooks that carry the applied theme, plus the document tags that stop a wrong-theme flash."
   },
   {
     "name": "Theme Switcher",

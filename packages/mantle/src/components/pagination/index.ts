@@ -1,5 +1,6 @@
 /**
- * Re-exports for the Pagination component.
+ * Re-exports for the Pagination component family — `CursorPagination`'s parts
+ * for cursor paging, and `useOffsetPagination` for offset paging.
  *
  * @see https://mantle.ngrok.com/components/navigation/pagination
  */

@@ -1,6 +1,6 @@
 ---
 title: Icon Button
-description: Initiates an action, such as completing a task or submitting information. Renders only a single icon as children with an accessible, screen-reader-only label.
+description: Initiates an action, such as completing a task or submitting information. Renders one icon and nothing else, with a required label prop that carries the accessible name.
 ---
 
 import { IconButton } from "@ngrok/mantle/button";
@@ -11,7 +11,7 @@ import { Example } from "~/components/example";
 
 # Icon Button
 
-Initiates an action, such as completing a task or submitting information. Renders only a single icon as children with an accessible, screen-reader-only label.
+Initiates an action, such as completing a task or submitting information. Renders one icon and nothing else, with a required `label` prop that carries the accessible name.
 
 Every `IconButton` states what it means: `appearance` (visual weight) and `intent` (tone) are **required** — there are no implicit defaults. `intent="neutral"` is the workhorse tone for most icon buttons; reach for `"danger"` on destructive actions.
 

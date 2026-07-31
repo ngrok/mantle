@@ -1,5 +1,6 @@
 /**
- * Re-exports for the Theme component.
+ * Re-exports for the Theme component — the provider and hooks that carry the
+ * applied theme, plus the document tags that stop a wrong-theme flash.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme
  */

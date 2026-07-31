@@ -69,11 +69,8 @@ type IconButtonProps = ComponentProps<"button"> &
 	};
 
 /**
- * Renders a button or a component that looks like a button, an interactive
- * element activated by a user with a mouse, keyboard, finger, voice command, or
- * other assistive technology. Once activated, it then runs an action, such
- * as submitting a form or opening a dialog.
- * Renders only a single icon as children with an accessible, screen-reader-only label.
+ * A button that renders one icon and nothing else. Its required `label` prop
+ * carries the accessible name.
  *
  * `appearance` (visual weight) and `intent` (tone) are required — every call
  * site states what it means; there are no implicit defaults. `intent="neutral"`
