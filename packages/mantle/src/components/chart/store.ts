@@ -112,7 +112,10 @@ const displayColor = (color: SeriesSpec["color"], slot: ChartColorToken): string
  *   explicit pin wins its color regardless of registration order. This is the
  *   one path that repaints a mounted series, and a full palette can push the
  *   holder it displaces onto `chart-other`. It never moves a mounted series that
- *   pins the same token: pinned-vs-pinned is the consumer's explicit choice.
+ *   pins the same token: pinned-vs-pinned is the consumer's explicit choice. Such
+ *   a group holds that single slot between its members, not one slot each, so
+ *   pinning one token across several series — each with its own `texture` —
+ *   paints more series than the eight slots alone allow.
  * - Once every slot is held, an incoming series takes one back from an
  *   UNMOUNTED holder rather than falling to `chart-other`, oldest registration
  *   first. Without it the ledger holds slots for every dataKey still on the

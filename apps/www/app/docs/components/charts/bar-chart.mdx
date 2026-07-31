@@ -394,12 +394,12 @@ export function HorizontalBarChartExample() {
 }
 
 export const deviceVisitors = [
-	{ month: "January", desktop: 186, mobile: 80, tablet: 47 },
-	{ month: "February", desktop: 305, mobile: 200, tablet: 65 },
-	{ month: "March", desktop: 237, mobile: 120, tablet: 52 },
-	{ month: "April", desktop: 73, mobile: 190, tablet: 41 },
-	{ month: "May", desktop: 209, mobile: 130, tablet: 58 },
-	{ month: "June", desktop: 214, mobile: 140, tablet: 63 },
+	{ month: "January", desktop: 186, mobile: 80, tablet: 47, tv: 22, kiosk: 14 },
+	{ month: "February", desktop: 305, mobile: 200, tablet: 65, tv: 31, kiosk: 18 },
+	{ month: "March", desktop: 237, mobile: 120, tablet: 52, tv: 26, kiosk: 12 },
+	{ month: "April", desktop: 73, mobile: 190, tablet: 41, tv: 19, kiosk: 9 },
+	{ month: "May", desktop: 209, mobile: 130, tablet: 58, tv: 28, kiosk: 16 },
+	{ month: "June", desktop: 214, mobile: 140, tablet: 63, tv: 34, kiosk: 21 },
 ];
 
 export function TexturedBarChartExample() {
@@ -416,6 +416,40 @@ export function TexturedBarChartExample() {
 			<BarChart.Bar dataKey="desktop" label="Desktop" />
 			<BarChart.Bar dataKey="mobile" label="Mobile" texture="hatch" />
 			<BarChart.Bar dataKey="tablet" label="Tablet" texture="dots" />
+			<BarChart.Bar dataKey="tv" label="TV" texture="parallel" />
+			<BarChart.Bar dataKey="kiosk" label="Kiosk" texture="grid" />
+			<BarChart.Legend />
+		</BarChart.Root>
+	);
+}
+
+export const requestsByZone = [
+	{ day: "Mon", usEast1a: 1240, usEast1b: 1080, usEast1c: 760, euWest1: 1410 },
+	{ day: "Tue", usEast1a: 1310, usEast1b: 1140, usEast1c: 820, euWest1: 1520 },
+	{ day: "Wed", usEast1a: 1190, usEast1b: 1020, usEast1c: 900, euWest1: 1470 },
+	{ day: "Thu", usEast1a: 1420, usEast1b: 1210, usEast1c: 870, euWest1: 1630 },
+	{ day: "Fri", usEast1a: 1580, usEast1b: 1330, usEast1c: 940, euWest1: 1710 },
+];
+
+export function SharedSlotBarChartExample() {
+	return (
+		<BarChart.Root
+			data={requestsByZone}
+			xKey="day"
+			stacked
+			aria-label="Requests by availability zone"
+		>
+			<BarChart.Grid />
+			<BarChart.XAxis />
+			<BarChart.YAxis tickFormat={(count) => `${count / 1000}k`} />
+			{/* One region, one hue: the three us-east zones pin the token by name and
+			    stay apart by texture. The group holds one slot between them, so
+			    eu-west-1 paints chart-2 rather than chart-4. */}
+			<BarChart.Bar dataKey="usEast1a" label="us-east-1a" color="chart-1" />
+			<BarChart.Bar dataKey="usEast1b" label="us-east-1b" color="chart-1" texture="hatch" />
+			<BarChart.Bar dataKey="usEast1c" label="us-east-1c" color="chart-1" texture="dots" />
+			<BarChart.Bar dataKey="euWest1" label="eu-west-1" />
+			<BarChart.Tooltip />
 			<BarChart.Legend />
 		</BarChart.Root>
 	);
@@ -661,7 +695,7 @@ Use a `BarChart` to compare values across discrete categories — months, endpoi
 - Prefer `LineChart` for trends over continuous time — sampled measurements at every timestamp read as a stream, not buckets.
 - Prefer `AreaChart` for cumulative composition over continuous time.
 
-**Keep it to eight series or fewer.** The default chart tokens are eight validated categorical slots. The ninth series onward all wear the neutral `--color-chart-other`, so a dozen access keys legend as a wall of identical gray. Eight is the palette's measured limit, not a style preference: a ninth hue cannot clear the colorblind-safe adjacency gates the eight already sit close to. Rank by the window's total, keep the top seven, and sum the rest into one `"Other"` series.
+**Keep it to eight series or fewer.** The default chart tokens are eight validated categorical slots. The ninth series onward all wear the neutral `--color-chart-other`, so a dozen access keys legend as a wall of identical gray. Eight is the palette's measured limit, not a style preference: a ninth hue cannot clear the colorblind-safe adjacency gates the eight already sit close to. Rank by the window's total, keep the top seven, and sum the rest into one `"Other"` series. Series that belong to one thing are the narrow exception: they can pin one token — one slot for the whole group — and stay apart by `texture`. See [Sharing one color slot](#sharing-one-color-slot).
 
 ```tsx
 const TOP_N = 7;
@@ -1114,7 +1148,9 @@ vision, and 6.85 under simulated color vision deficiency (CVD). That 6.85 clears
 target of 8, which mantle's own palette treats as legal only with a second encoding, so the example gives Claude a
 `texture`. Swap Claude and Gemini and Claude lands against `chart-4` at 14.36 ΔE in light and 6.74 in
 dark-high-contrast, under the full-color floor of 15. When a pair does collide, reorder the series, change the
-color, or add a `texture`.
+color, or add a `texture`. When several entities belong to one family — zones of a region, tiers of one plan —
+pin them all to the same token on purpose and keep them apart by `texture`. See
+[Sharing one color slot](#sharing-one-color-slot).
 
 Three limits are worth knowing:
 
@@ -1182,7 +1218,7 @@ and keeps it, which is what makes a regrouped chart stable — see [Regrouping a
 
 ## Horizontal bars
 
-`orientation` names the direction the bars point, not an axis: `"vertical"` (the default) bars stand up, `"horizontal"` bars lie across. Set `orientation="horizontal"` to grow bars rightward from a left baseline with categories banded down the y axis. Reach for it when category labels are long (they read straight instead of angled or truncated under the axis) or when there are many categories to rank. `xKey` still names the category and `YAxis` still labels the value — only the drawing flips: the category axis moves to the left gutter, the value axis to the bottom, and the baseline, reference lines, and `"perpendicular"` texture all rotate to match. Everything else — grouping, stacking, hover, keyboard, the data table — works unchanged.
+`orientation` names the direction the bars point, not an axis: `"vertical"` (the default) bars stand up, `"horizontal"` bars lie across. Set `orientation="horizontal"` to grow bars rightward from a left baseline with categories banded down the y axis. Reach for it when category labels are long (they read straight instead of angled or truncated under the axis) or when there are many categories to rank. `xKey` still names the category and `YAxis` still labels the value — only the drawing flips: the category axis moves to the left gutter, the value axis to the bottom, and the baseline, reference lines, and the two rung textures (`"perpendicular"` and `"parallel"`) all rotate to match. The `"grid"` lattice inks both rung directions, so it looks the same either way. Everything else — grouping, stacking, hover, keyboard, the data table — works unchanged.
 
 <Example>
 	<HorizontalBarChartExample />
@@ -1219,7 +1255,7 @@ function HorizontalBarChartExample() {
 
 ## Textures
 
-When a multi-series or stacked chart can't rely on color alone — color-vision deficiencies, grayscale print and exports, forced-colors mode — give each series a fill `texture`. Textures are a redundant identity encoding alongside color: `"hatch"` (diagonal lines at 45°), `"hatch-reverse"` (its 135° mirror), `"crosshatch"` (both), `"perpendicular"` (rungs perpendicular to the bar's length — horizontal lines on vertical bars), and `"dots"` (an offset dot grid). The ink is tone-on-tone — a darker step of each series' own fill, at equal loudness across slots — and every legend key wears its series' pattern, so the mapping never depends on hue.
+When a multi-series or stacked chart can't rely on color alone — color-vision deficiencies, grayscale print and exports, forced-colors mode — give each series a fill `texture`. Textures are a redundant identity encoding alongside color: `"hatch"` (diagonal lines at 45°), `"hatch-reverse"` (its 135° mirror), `"crosshatch"` (both), `"perpendicular"` (rungs across the bar's length — horizontal lines on vertical bars), `"parallel"` (rungs along it — vertical lines on vertical bars), `"grid"` (both rung directions crossed), and `"dots"` (an offset dot field). The two rung textures flip with `orientation`, in opposite senses. Every other value draws the same whichever way the bars point, `"grid"` included — it is the orthogonal lattice against `"crosshatch"`'s diagonal one. Counting the default `"solid"`, eight textures match the palette's eight color slots. The ink is tone-on-tone — a darker step of each series' own fill, at equal loudness across slots — and every legend key wears its series' pattern, so the mapping never depends on hue.
 
 Texture is opt-in and purposeful, never decorative. Keep solid fills when color alone already carries identity. When it does not, either leave the first series solid and texture the rest, or texture only the series in the pair that collides — the [Diverging stacks](#diverging-stacks) and [Fixed colors](#fixed-colors-for-known-entities) examples above take the targeted form.
 
@@ -1231,12 +1267,12 @@ Texture is opt-in and purposeful, never decorative. Keep solid fills when color 
 import { BarChart } from "@ngrok/mantle/bar-chart";
 
 const deviceVisitors = [
-	{ month: "January", desktop: 186, mobile: 80, tablet: 47 },
-	{ month: "February", desktop: 305, mobile: 200, tablet: 65 },
-	{ month: "March", desktop: 237, mobile: 120, tablet: 52 },
-	{ month: "April", desktop: 73, mobile: 190, tablet: 41 },
-	{ month: "May", desktop: 209, mobile: 130, tablet: 58 },
-	{ month: "June", desktop: 214, mobile: 140, tablet: 63 },
+	{ month: "January", desktop: 186, mobile: 80, tablet: 47, tv: 22, kiosk: 14 },
+	{ month: "February", desktop: 305, mobile: 200, tablet: 65, tv: 31, kiosk: 18 },
+	{ month: "March", desktop: 237, mobile: 120, tablet: 52, tv: 26, kiosk: 12 },
+	{ month: "April", desktop: 73, mobile: 190, tablet: 41, tv: 19, kiosk: 9 },
+	{ month: "May", desktop: 209, mobile: 130, tablet: 58, tv: 28, kiosk: 16 },
+	{ month: "June", desktop: 214, mobile: 140, tablet: 63, tv: 34, kiosk: 21 },
 ];
 
 function TexturedBarChartExample() {
@@ -1253,6 +1289,61 @@ function TexturedBarChartExample() {
 			<BarChart.Bar dataKey="desktop" label="Desktop" />
 			<BarChart.Bar dataKey="mobile" label="Mobile" texture="hatch" />
 			<BarChart.Bar dataKey="tablet" label="Tablet" texture="dots" />
+			<BarChart.Bar dataKey="tv" label="TV" texture="parallel" />
+			<BarChart.Bar dataKey="kiosk" label="Kiosk" texture="grid" />
+			<BarChart.Legend />
+		</BarChart.Root>
+	);
+}
+```
+
+### Sharing one color slot
+
+Two series that pin the same chart token both keep it. Mantle reads a repeated pin as a deliberate choice rather than a collision, so it repaints neither series. The group holds one slot between them, not one slot per member: the three zones pinned to `chart-1` below still leave `chart-2` for `eu-west-1`.
+
+Reach for it when several series belong to one thing — zones of a region, shards of a cluster, tiers of one plan. Series that share no family belong in one `"Other"` series instead. Eight is a measured ceiling, not a style preference: the palette gates validate each token against the tokens next to it, so a ninth hue has nowhere to sit. Adjacency is also the limit of that guarantee: grouped bars compare every series to every other, so two tokens that are not neighbors can still run close. A shared token plus one `texture` per member encodes more series than the slots alone reach. It also reads as the family it is.
+
+Two rules make it work.
+
+- **Every member pins the token by name.** A pin shares with another pin, never with an automatic assignment. If a series pins the token an unpinned sibling already claimed, the pin takes that token over. The sibling moves to the next free slot. On a full palette it wears the overflow gray instead.
+- **Every member carries its own `texture`.** Mantle never reads `texture` when it hands out slots. Two series that share a token and a texture paint identically. Nothing warns you. One member may stay solid; the rest take a value each.
+
+Count the costs before you reach for it. One hue no longer names one series, so the legend carries the mapping. Every member needs a `label`. The shared token still has to clear the gates against the series next to it — a `texture` is a second encoding on a legal color, never a license to reuse an illegal one. A member that later drops its pin needs a slot of its own. When the palette has none free, that member wears the overflow gray.
+
+<Example>
+	<SharedSlotBarChartExample />
+</Example>
+
+```tsx
+import { BarChart } from "@ngrok/mantle/bar-chart";
+
+const requestsByZone = [
+	{ day: "Mon", usEast1a: 1240, usEast1b: 1080, usEast1c: 760, euWest1: 1410 },
+	{ day: "Tue", usEast1a: 1310, usEast1b: 1140, usEast1c: 820, euWest1: 1520 },
+	{ day: "Wed", usEast1a: 1190, usEast1b: 1020, usEast1c: 900, euWest1: 1470 },
+	{ day: "Thu", usEast1a: 1420, usEast1b: 1210, usEast1c: 870, euWest1: 1630 },
+	{ day: "Fri", usEast1a: 1580, usEast1b: 1330, usEast1c: 940, euWest1: 1710 },
+];
+
+function SharedSlotBarChartExample() {
+	return (
+		<BarChart.Root
+			data={requestsByZone}
+			xKey="day"
+			stacked
+			aria-label="Requests by availability zone"
+		>
+			<BarChart.Grid />
+			<BarChart.XAxis />
+			<BarChart.YAxis tickFormat={(count) => `${count / 1000}k`} />
+			{/* One region, one hue: the three us-east zones pin the token by name and
+			    stay apart by texture. The group holds one slot between them, so
+			    eu-west-1 paints chart-2 rather than chart-4. */}
+			<BarChart.Bar dataKey="usEast1a" label="us-east-1a" color="chart-1" />
+			<BarChart.Bar dataKey="usEast1b" label="us-east-1b" color="chart-1" texture="hatch" />
+			<BarChart.Bar dataKey="usEast1c" label="us-east-1c" color="chart-1" texture="dots" />
+			<BarChart.Bar dataKey="euWest1" label="eu-west-1" />
+			<BarChart.Tooltip />
 			<BarChart.Legend />
 		</BarChart.Root>
 	);
@@ -1818,12 +1909,12 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 One bar series. Renders nothing itself — it registers the series with the chart, which paints it on canvas. Compose one `Bar` per series; with `stacked` on the Root, bars stack from the baseline up in registration order. Accepts no `className` or DOM props.
 
-| Prop       | Type                                                                                 | Default          | Description                                                                                                                                                             |
-| ---------- | ------------------------------------------------------------------------------------ | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dataKey`  | `string`                                                                             |                  | The row key this series reads its numeric values from.                                                                                                                  |
-| `label?`   | `string`                                                                             | `dataKey`        | Display name for the legend, tooltip, and data table.                                                                                                                   |
-| `color?`   | `SeriesColor`                                                                        | next sticky slot | One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`) or any CSS color string as an escape hatch. See [Chart color tokens](#chart-color-tokens). |
-| `texture?` | `"solid" \| "hatch" \| "hatch-reverse" \| "crosshatch" \| "perpendicular" \| "dots"` | `"solid"`        | The fill texture the bars and their legend key wear — a redundant identity encoding alongside color. See [Textures](#textures).                                         |
+| Prop       | Type                                                                                                         | Default          | Description                                                                                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------ | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dataKey`  | `string`                                                                                                     |                  | The row key this series reads its numeric values from.                                                                                                                  |
+| `label?`   | `string`                                                                                                     | `dataKey`        | Display name for the legend, tooltip, and data table.                                                                                                                   |
+| `color?`   | `SeriesColor`                                                                                                | next sticky slot | One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`) or any CSS color string as an escape hatch. See [Chart color tokens](#chart-color-tokens). |
+| `texture?` | `"solid" \| "hatch" \| "hatch-reverse" \| "crosshatch" \| "perpendicular" \| "parallel" \| "grid" \| "dots"` | `"solid"`        | The fill texture the bars and their legend key wear — a redundant identity encoding alongside color. See [Textures](#textures).                                         |
 
 ### BarChart.Grid
 
@@ -1887,6 +1978,13 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | ----------- | ------------------------------------- | ------- | ----------------------------------------------------------------- |
 | `children?` | `(series: SeriesMeta[]) => ReactNode` |         | Replace the default legend items; receives the registered series. |
 
+**Data attributes**
+
+| Data Attribute | Value                                                                                                        | Description                                                                                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"bar-chart-legend"`                                                                                         | The legend list. `BarChart.Legend` renders it in flow below the plot.                                                                                                 |
+| `data-texture` | `"solid" \| "hatch" \| "hatch-reverse" \| "crosshatch" \| "perpendicular" \| "parallel" \| "grid" \| "dots"` | On each series' swatch, naming the `texture` its [BarChart.Bar](#barchartbar) registered. The swatch paints the pattern itself, so target this only to restyle a key. |
+
 ### BarChart.CopyButton
 
 A button that copies the chart's current data to the clipboard as a GitHub-flavored markdown table: the category column plus one column per series in paint order. Values are machine-stable — plain un-separated numbers, an em dash for gaps — so the paste target receives parseable data, not locale formatting. Renders an icon button in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner (e.g. `absolute right-0 top-0`).
@@ -1902,7 +2000,7 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-Series colors default to the ordered `--color-chart-1` through `--color-chart-8` tokens. Each theme picks the ramp step that passes mantle's palette validation gates — colorblind-safe adjacency and at least 3:1 contrast against the card surface — in all four themes (light, dark, and both high-contrast variants). A series without an explicit `color` claims the lowest free slot when it first registers. It keeps that slot for the chart's lifetime, so filtering series out never repaints the survivors, and a `dataKey` that returns gets its old slot back. An explicit `color` spends a slot, so the next unpinned series skips past it — a chart token spends that token, and any other CSS color spends the next slot in order. Pinning the `chart-other` token spends nothing, because every series past the eighth shares the overflow gray. Spelled as a raw `var(--color-chart-other)` it is a CSS color like any other, so it spends a slot. A series that unmounts keeps its slot while the palette has room. Once every slot is held, an incoming series takes one back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Prefer folding the long tail into a single "Other" series over plotting nine-plus indistinguishable ones.
+Series colors default to the ordered `--color-chart-1` through `--color-chart-8` tokens. Each theme picks the ramp step that passes mantle's palette validation gates — colorblind-safe adjacency and at least 3:1 contrast against the card surface — in all four themes (light, dark, and both high-contrast variants). A series without an explicit `color` claims the lowest free slot when it first registers. It keeps that slot for the chart's lifetime, so filtering series out never repaints the survivors, and a `dataKey` that returns gets its old slot back. An explicit `color` spends a slot, so the next unpinned series skips past it — a chart token spends that token, and any other CSS color spends the next slot in order. Pinning the `chart-other` token spends nothing, because every series past the eighth shares the overflow gray. Spelled as a raw `var(--color-chart-other)` it is a CSS color like any other, so it spends a slot. Several mounted series that pin the same chart token all keep it, and the group holds that one slot between them — see [Sharing one color slot](#sharing-one-color-slot). A series that unmounts keeps its slot while the palette has room. Once every slot is held, an incoming series takes one back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Prefer folding the long tail into a single "Other" series over plotting nine-plus indistinguishable ones.
 
 | CSS Variable          | Description                                                                                                                |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------- |

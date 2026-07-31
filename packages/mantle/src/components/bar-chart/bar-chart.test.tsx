@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
 import { describe, expect, test, vi } from "vitest";
+import type { BarTexture } from "../chart/types.js";
 import { BarChart } from "./bar-chart.js";
 
 const data = [
@@ -415,6 +416,22 @@ describe("BarChart controlled activeIndex", () => {
 	});
 });
 
+/**
+ * Every `BarTexture` value, keyed by itself. The mapped key type makes a missing
+ * or misspelled value a compile error, and `Object.values` reads the list back
+ * typed and in declaration order.
+ */
+const EVERY_TEXTURE = {
+	solid: "solid",
+	hatch: "hatch",
+	"hatch-reverse": "hatch-reverse",
+	crosshatch: "crosshatch",
+	perpendicular: "perpendicular",
+	parallel: "parallel",
+	grid: "grid",
+	dots: "dots",
+} as const satisfies { [Texture in BarTexture]: Texture };
+
 describe("BarChart textures", () => {
 	const texturedChart = (
 		<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
@@ -444,29 +461,26 @@ describe("BarChart textures", () => {
 	});
 
 	test("every texture value flows through to its legend key", () => {
-		const quarterly = [
-			{ month: "January", desktop: 186, mobile: 80, tablet: 40, kiosk: 12, tv: 6, watch: 3 },
-			{ month: "February", desktop: 305, mobile: 200, tablet: 60, kiosk: 18, tv: 8, watch: 5 },
-		];
+		// `data-texture` is public API, so every value needs a key that carries it.
+		// The table is keyed by `BarTexture` itself, so a ninth value fails to
+		// typecheck here until it has a bar. A hand-copied list would keep
+		// compiling and cover nothing new.
+		const textures = Object.values(EVERY_TEXTURE);
+		const row = {
+			month: "January",
+			...Object.fromEntries(textures.map((texture, index) => [texture, 10 * (index + 1)])),
+		};
 		const { container } = render(
-			<BarChart.Root data={quarterly} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" texture="hatch" />
-				<BarChart.Bar dataKey="tablet" label="Tablet" texture="hatch-reverse" />
-				<BarChart.Bar dataKey="kiosk" label="Kiosk" texture="crosshatch" />
-				<BarChart.Bar dataKey="tv" label="TV" texture="perpendicular" />
-				<BarChart.Bar dataKey="watch" label="Watch" texture="dots" />
+			<BarChart.Root data={[row]} xKey="month" aria-label="Visitors by month">
+				{textures.map((texture) => (
+					<BarChart.Bar key={texture} dataKey={texture} label={texture} texture={texture} />
+				))}
 				<BarChart.Legend />
 			</BarChart.Root>,
 		);
-		expect(legendSwatches(container).map((swatch) => swatch.getAttribute("data-texture"))).toEqual([
-			"solid",
-			"hatch",
-			"hatch-reverse",
-			"crosshatch",
-			"perpendicular",
-			"dots",
-		]);
+		expect(legendSwatches(container).map((swatch) => swatch.getAttribute("data-texture"))).toEqual(
+			textures,
+		);
 	});
 });
 

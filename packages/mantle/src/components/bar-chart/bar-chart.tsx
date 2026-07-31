@@ -52,7 +52,8 @@ type BarChartRootProps<TDatum extends ChartDatum = ChartDatum> = Omit<
 		 * categories along the x axis; `"horizontal"` bars run rightward from a
 		 * left baseline with categories down the y axis — better for long category
 		 * labels or many categories. The value axis, baseline, reference lines, and
-		 * `"perpendicular"` texture all flip to match.
+		 * the two rung textures (`"perpendicular"` and `"parallel"`) all flip to
+		 * match.
 		 */
 		orientation?: BarOrientation;
 	};
@@ -76,6 +77,10 @@ type BarChartBarProps = {
 	 * color, so a brand hex can still paint next to a near-identical slot. Check
 	 * that pair yourself, and when the two read as one series, change the color.
 	 *
+	 * Several mounted series that pin the same chart token all keep it. The group
+	 * spends that one slot between them, so a distinct `texture` per member is
+	 * what keeps the series apart.
+	 *
 	 * A static color (raw hex) cannot follow the four themes, so prefer a
 	 * `var(--your-token)` declared per theme. A series that carries good/bad
 	 * meaning should wear the semantic status colors, never a categorical slot.
@@ -85,13 +90,22 @@ type BarChartBarProps = {
 	 * The fill texture the series wears, on canvas and on its legend key:
 	 * `"solid"` (default), diagonal hatch lines at 45° (`"hatch"`), the 135°
 	 * mirror (`"hatch-reverse"`), both (`"crosshatch"`), rungs perpendicular
-	 * to the bar's length (`"perpendicular"`), or an offset dot grid
-	 * (`"dots"`). Texture is a redundant identity encoding alongside color —
-	 * tone-on-tone ink from the series' own fill — so grouped and stacked
-	 * series stay distinguishable without color vision, in grayscale print,
-	 * and under forced colors. Keep it opt-in and purposeful, never
-	 * decorative: leave the first series solid and texture the rest, or texture
-	 * only the series in a pair that color alone cannot separate.
+	 * to the bar's length (`"perpendicular"` — horizontal lines on vertical
+	 * bars), rungs parallel to it (`"parallel"` — vertical lines on vertical
+	 * bars), the orthogonal lattice of both rung directions (`"grid"`), or an
+	 * offset dot field (`"dots"`).
+	 *
+	 * The two rung textures flip with the Root's `orientation`, in opposite
+	 * senses. Every other value is direction-free, `"grid"` included — it is the
+	 * orthogonal lattice against `"crosshatch"`'s diagonal one. Eight values
+	 * match the palette's eight color slots.
+	 *
+	 * Texture is a redundant identity encoding alongside color — tone-on-tone
+	 * ink from the series' own fill — so grouped and stacked series stay
+	 * distinguishable without color vision, in grayscale print, and under
+	 * forced colors. Keep it opt-in and purposeful, never decorative: leave the
+	 * first series solid and texture the rest, or texture only the series in a
+	 * pair that color alone cannot separate.
 	 */
 	texture?: BarTexture;
 };
@@ -174,8 +188,8 @@ const Root = <TDatum extends ChartDatum = ChartDatum>(props: BarChartRootProps<T
  * chart, which paints it on canvas. Compose one `Bar` per series; with
  * `stacked` on the Root, bars stack from the baseline up in registration
  * order, so a `Bar` that mounts later stacks on top whatever its position in
- * the JSX. `texture` adds a diagonal-hatch fill as a redundant identity
- * encoding alongside color, worn by the bars and the series' legend key alike.
+ * the JSX. `texture` adds a pattern fill as a redundant identity encoding
+ * alongside color, worn by the bars and the series' legend key alike.
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartbar
  *
@@ -303,6 +317,13 @@ const Tooltip = (props: BarChartTooltipProps) => useTooltipPrimitive("BarChart.T
  * flow below the plot. Always compose it on multi-series charts — identity
  * must never rely on color-matching alone. It renders nothing for a single
  * series (the chart's title already names it).
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"bar-chart-legend"` | The legend list. `BarChart.Legend` renders it in flow below the plot. |
+ * | `data-texture` | `"solid"` \| `"hatch"` \| `"hatch-reverse"` \| `"crosshatch"` \| `"perpendicular"` \| `"parallel"` \| `"grid"` \| `"dots"` | On each series' swatch, naming the `texture` its `BarChart.Bar` registered. The swatch paints the pattern itself, so target this only to restyle a key. |
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartlegend
  *

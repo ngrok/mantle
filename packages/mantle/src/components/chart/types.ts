@@ -72,6 +72,11 @@ type ChartColorToken =
  * color, so a brand hex can still paint next to a near-identical slot, and that
  * pair is the consumer's to fix.
  *
+ * Several mounted series that pin the same chart token all keep it. The group
+ * spends that one slot between them, so each member needs its own second
+ * encoding to stay apart — `texture` on a bar series, `shape` on a line, area,
+ * or scatter series.
+ *
  * A static color (raw hex) cannot follow the four themes, so prefer a
  * `var(--your-token)` a consumer declares per theme. A series that carries
  * good/bad meaning (error rate, pass/fail) should wear the semantic status
@@ -95,13 +100,29 @@ type PointShape = "circle" | "square" | "triangle" | "diamond";
  * The fill texture a bar series wears: solid color (the default), diagonal
  * hatch lines at 45° (`"hatch"`), the 135° mirror (`"hatch-reverse"`), both
  * (`"crosshatch"`), rungs perpendicular to the bar's length
- * (`"perpendicular"` — horizontal lines on vertical bars), or an offset dot
- * grid (`"dots"`). Texture is a redundant identity encoding alongside color —
- * inked tone-on-tone at equal loudness across slots — so grouped and stacked
- * series stay distinguishable without color vision, in grayscale print, and
- * under forced colors.
+ * (`"perpendicular"` — horizontal lines on vertical bars), rungs parallel to
+ * it (`"parallel"` — vertical lines on vertical bars), the orthogonal lattice
+ * of both rung directions (`"grid"`), or an offset dot field (`"dots"`).
+ *
+ * The two rung textures flip with `orientation`, in opposite senses. Every
+ * other value is direction-free, `"grid"` included — it is the orthogonal
+ * lattice against `"crosshatch"`'s diagonal one. Eight values match the
+ * palette's eight color slots.
+ *
+ * Texture is a redundant identity encoding alongside color — inked tone-on-tone
+ * at equal loudness across slots — so grouped and stacked series stay
+ * distinguishable without color vision, in grayscale print, and under forced
+ * colors.
  */
-type BarTexture = "solid" | "hatch" | "hatch-reverse" | "crosshatch" | "perpendicular" | "dots";
+type BarTexture =
+	| "solid"
+	| "hatch"
+	| "hatch-reverse"
+	| "crosshatch"
+	| "perpendicular"
+	| "parallel"
+	| "grid"
+	| "dots";
 
 /**
  * The direction a bar chart's bars run: vertical columns rising from a bottom

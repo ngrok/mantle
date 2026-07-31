@@ -1284,8 +1284,8 @@ class ChartEngine {
 		const root = this.#elements.root;
 		// Pattern tiles rasterize at the device pixel ratio, so a dpr change
 		// (zoom, monitor move) re-resolves alongside theme changes. Orientation is
-		// in the key too: the "perpendicular" texture rung flips with the bars, so
-		// a runtime orientation change must regenerate the cached patterns.
+		// in the key too: both single-rung textures flip with the bars, so a
+		// runtime orientation change must regenerate the cached patterns.
 		const signature = `${themeSignature(root.ownerDocument.documentElement)}|${this.#dpr}|${this.#options.orientation}`;
 		if (this.#colors?.signature === signature) {
 			return;

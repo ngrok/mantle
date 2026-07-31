@@ -4,9 +4,10 @@ import type { BarOrientation, BarTexture } from "./types.js";
  * Pattern-fill tiles for textured bar series.
  *
  * Texture is a redundant identity encoding alongside color: diagonal hatch
- * families at 45° and its 135° mirror, rungs perpendicular to the bar's
- * length, and an offset dot grid. The ink is tone-on-tone — a darker step of
- * the series' own fill, at equal loudness across every slot — so a textured
+ * families at 45° and its 135° mirror, their crossed lattice, one rung per
+ * tile across or along the bar's length, the orthogonal lattice of both rung
+ * directions, and an offset dot field. The ink is tone-on-tone — a darker step
+ * of the series' own fill, at equal loudness across every slot — so a textured
  * series never shouts over a solid one.
  *
  * Tiles are rasterized at the device pixel ratio and the returned pattern is
@@ -23,11 +24,21 @@ const TEXTURE_LINE_WIDTH = 1.5;
 /** Crosshatch inks two line families, so each thins to stay near single-family loudness. */
 const CROSSHATCH_LINE_WIDTH = 1;
 /**
- * The perpendicular rung is thicker than a hatch line: one short rung per
- * tile carries less run-length than a diagonal, so 2px keeps its ink coverage
- * at the same loudness — and lands on the device grid at integer ratios.
+ * A single rung is thicker than a hatch line: one rung per tile carries less
+ * run-length than a diagonal, so 2px keeps its ink coverage at the same
+ * loudness — and lands on the device grid at integer ratios. Both single-rung
+ * textures read it: `"parallel"` is `"perpendicular"` rotated a quarter turn.
+ * Either way the rung measures 25% ink at every device pixel ratio.
  */
-const PERPENDICULAR_LINE_WIDTH = 2;
+const RUNG_LINE_WIDTH = 2;
+/**
+ * Why grid needs its own width: it inks two rung families a full tile apart,
+ * where crosshatch's two diagonal families sit 5.66px apart. The wider spacing
+ * costs ink, so neither shipped width fits. The crosshatch width measures 23%
+ * and the rung width 44%, against a shipped band of 25% to 32%. 1.1px measures
+ * 25.6%, between `"perpendicular"` and `"hatch"` at every device pixel ratio.
+ */
+const GRID_LINE_WIDTH = 1.1;
 /** Dot radius sized so two dots per tile match the hatch families' loudness. */
 const DOT_RADIUS = 1.6;
 
@@ -90,6 +101,117 @@ const traceDiagonalLines = (
 	tileContext.lineTo(overhang, size + overhang);
 };
 
+/**
+ * Ink one horizontal rung across the middle of the tile. Centered, it tiles
+ * with no visible seam — an edge-anchored rung stitches against its neighbor.
+ */
+const fillHorizontalRung = (
+	tileContext: CanvasRenderingContext2D,
+	options: { size: number; width: number },
+): void => {
+	const { size, width } = options;
+	tileContext.fillRect(0, size / 2 - width / 2, size, width);
+};
+
+/**
+ * Ink one vertical rung down the middle of the tile — the quarter turn of
+ * {@link fillHorizontalRung}, centered for the same reason.
+ */
+const fillVerticalRung = (
+	tileContext: CanvasRenderingContext2D,
+	options: { size: number; width: number },
+): void => {
+	const { size, width } = options;
+	tileContext.fillRect(size / 2 - width / 2, 0, width, size);
+};
+
+/** What a tile painter inks with. */
+type TilePaint = {
+	/** The tile edge in CSS pixels. */
+	size: number;
+	/** The resolved tone-on-tone line ink (see {@link textureInkColor}). */
+	ink: string;
+	/** The chart's bar direction, read by the two single-rung textures. */
+	orientation: BarOrientation;
+};
+
+/**
+ * Ink one texture's marks into a tile whose ground the caller already filled.
+ * Each painter sets its own ink, width, and path, so no width leaks from one
+ * texture to the next.
+ */
+type TilePainter = (tileContext: CanvasRenderingContext2D, paint: TilePaint) => void;
+
+/**
+ * One painter per non-solid texture, keyed by the union itself. A total record
+ * makes a half-painted tile a compile error: the compiler names a ninth
+ * `BarTexture` value's missing entry, where a fall-through would paint that
+ * value as another texture.
+ */
+const TILE_PAINTERS: Record<Exclude<BarTexture, "solid">, TilePainter> = {
+	hatch: (tileContext, { size, ink }) => {
+		tileContext.strokeStyle = ink;
+		tileContext.lineWidth = TEXTURE_LINE_WIDTH;
+		tileContext.beginPath();
+		traceDiagonalLines(tileContext, size, "up");
+		tileContext.stroke();
+	},
+	"hatch-reverse": (tileContext, { size, ink }) => {
+		tileContext.strokeStyle = ink;
+		tileContext.lineWidth = TEXTURE_LINE_WIDTH;
+		tileContext.beginPath();
+		traceDiagonalLines(tileContext, size, "down");
+		tileContext.stroke();
+	},
+	crosshatch: (tileContext, { size, ink }) => {
+		tileContext.strokeStyle = ink;
+		tileContext.lineWidth = CROSSHATCH_LINE_WIDTH;
+		tileContext.beginPath();
+		traceDiagonalLines(tileContext, size, "up");
+		traceDiagonalLines(tileContext, size, "down");
+		tileContext.stroke();
+	},
+	perpendicular: (tileContext, { size, ink, orientation }) => {
+		// Why the flip: this rung runs across the bar's length, so vertical bars
+		// wear a horizontal rung and horizontal bars a vertical one.
+		tileContext.fillStyle = ink;
+		if (orientation === "horizontal") {
+			fillVerticalRung(tileContext, { size, width: RUNG_LINE_WIDTH });
+		} else {
+			fillHorizontalRung(tileContext, { size, width: RUNG_LINE_WIDTH });
+		}
+	},
+	parallel: (tileContext, { size, ink, orientation }) => {
+		// The complement of `"perpendicular"`: this rung runs along the bar's
+		// length, so the flip resolves the other way — vertical bars wear a
+		// vertical rung.
+		tileContext.fillStyle = ink;
+		if (orientation === "horizontal") {
+			fillHorizontalRung(tileContext, { size, width: RUNG_LINE_WIDTH });
+		} else {
+			fillVerticalRung(tileContext, { size, width: RUNG_LINE_WIDTH });
+		}
+	},
+	grid: (tileContext, { size, ink }) => {
+		// Why no orientation branch: both rung families ink either way, so a
+		// runtime orientation change leaves the lattice identical.
+		tileContext.fillStyle = ink;
+		fillHorizontalRung(tileContext, { size, width: GRID_LINE_WIDTH });
+		fillVerticalRung(tileContext, { size, width: GRID_LINE_WIDTH });
+	},
+	dots: (tileContext, { size, ink }) => {
+		// An offset field: two dots per tile on the quarter points, interior to
+		// the tile so no dot straddles a seam.
+		tileContext.fillStyle = ink;
+		tileContext.beginPath();
+		tileContext.arc(size / 4, size / 4, DOT_RADIUS, 0, Math.PI * 2);
+		// A fresh subpath — otherwise the arcs join with a connecting line.
+		tileContext.moveTo((3 * size) / 4 + DOT_RADIUS, (3 * size) / 4);
+		tileContext.arc((3 * size) / 4, (3 * size) / 4, DOT_RADIUS, 0, Math.PI * 2);
+		tileContext.fill();
+	},
+};
+
 type BarTexturePatternOptions = {
 	/** The non-solid texture to rasterize. */
 	texture: Exclude<BarTexture, "solid">;
@@ -100,8 +222,10 @@ type BarTexturePatternOptions = {
 	/** The device pixel ratio the engine's canvas transform is scaled by. */
 	devicePixelRatio: number;
 	/**
-	 * The chart's bar direction — the `"perpendicular"` rung runs across the
-	 * bar's length, so it flips with the bars (other textures are direction-free).
+	 * The chart's bar direction, read by the two single-rung textures. The
+	 * `"perpendicular"` rung runs across the bar's length and the `"parallel"`
+	 * rung along it, so the two flip with the bars in opposite senses. Every
+	 * other texture, `"grid"` included, is direction-free.
 	 */
 	orientation: BarOrientation;
 };
@@ -141,48 +265,7 @@ const createBarTexturePattern = (
 	tileContext.scale(deviceScale, deviceScale);
 	tileContext.fillStyle = color;
 	tileContext.fillRect(0, 0, size, size);
-	if (texture === "perpendicular") {
-		// One centered rung per tile, perpendicular to the bar's length —
-		// horizontal on vertical bars, vertical on horizontal bars. Centered,
-		// it tiles with no edge stitching.
-		tileContext.fillStyle = ink;
-		if (orientation === "horizontal") {
-			tileContext.fillRect(
-				size / 2 - PERPENDICULAR_LINE_WIDTH / 2,
-				0,
-				PERPENDICULAR_LINE_WIDTH,
-				size,
-			);
-		} else {
-			tileContext.fillRect(
-				0,
-				size / 2 - PERPENDICULAR_LINE_WIDTH / 2,
-				size,
-				PERPENDICULAR_LINE_WIDTH,
-			);
-		}
-	} else if (texture === "dots") {
-		// An offset grid: two dots per tile on the quarter points, interior to
-		// the tile so no dot straddles a seam.
-		tileContext.fillStyle = ink;
-		tileContext.beginPath();
-		tileContext.arc(size / 4, size / 4, DOT_RADIUS, 0, Math.PI * 2);
-		// A fresh subpath — otherwise the arcs join with a connecting line.
-		tileContext.moveTo((3 * size) / 4 + DOT_RADIUS, (3 * size) / 4);
-		tileContext.arc((3 * size) / 4, (3 * size) / 4, DOT_RADIUS, 0, Math.PI * 2);
-		tileContext.fill();
-	} else {
-		tileContext.strokeStyle = ink;
-		tileContext.lineWidth = texture === "crosshatch" ? CROSSHATCH_LINE_WIDTH : TEXTURE_LINE_WIDTH;
-		tileContext.beginPath();
-		if (texture === "hatch" || texture === "crosshatch") {
-			traceDiagonalLines(tileContext, size, "up");
-		}
-		if (texture === "hatch-reverse" || texture === "crosshatch") {
-			traceDiagonalLines(tileContext, size, "down");
-		}
-		tileContext.stroke();
-	}
+	TILE_PAINTERS[texture](tileContext, { size, ink, orientation });
 	const pattern = context.createPattern(tile, "repeat");
 	// The tile is rasterized at device resolution; scale it back to CSS pixels
 	// so the engine's dpr transform lands it 1:1 on the device grid.

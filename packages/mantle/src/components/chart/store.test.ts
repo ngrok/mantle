@@ -189,6 +189,67 @@ describe("ChartStore color slots", () => {
 		expect(meta.find((series) => series.dataKey === "b")?.color).toBe("var(--color-chart-1)");
 		expect(meta.find((series) => series.dataKey === "c")?.color).toBe("var(--color-chart-2)");
 	});
+
+	test("several series pinning one token share a single slot", () => {
+		// The store leaves this reuse alone on purpose: co-pinned series are the
+		// consumer's explicit choice. They hold one slot between them, and a
+		// distinct `texture` keeps them apart. Without the shared hold the fourth
+		// series skips to chart-4 and the palette runs out two series early.
+		const store = new ChartStore();
+		store.registerSeries(
+			makeSeries("us-east", { mark: "bar", color: "chart-1", texture: "solid" }),
+		);
+		store.registerSeries(
+			makeSeries("us-west", { mark: "bar", color: "chart-1", texture: "hatch" }),
+		);
+		store.registerSeries(makeSeries("eu-west", { mark: "bar", color: "chart-1", texture: "grid" }));
+		store.registerSeries(makeSeries("total", { mark: "bar" }));
+		const meta = store.seriesMeta();
+		expect(meta.map((series) => series.color)).toStrictEqual([
+			"var(--color-chart-1)",
+			"var(--color-chart-1)",
+			"var(--color-chart-1)",
+			"var(--color-chart-2)",
+		]);
+		expect(meta.map((series) => series.colorInput)).toStrictEqual([
+			"chart-1",
+			"chart-1",
+			"chart-1",
+			"chart-2",
+		]);
+		// The store never reads `texture`; it copies each registered value through
+		// to the legend, the channel that tells the group apart.
+		expect(meta.map((series) => series.texture)).toStrictEqual(["solid", "hatch", "grid", "solid"]);
+	});
+
+	test("co-pinning one token carries ten series with no overflow gray", () => {
+		// The capacity the chart pages promise: a co-pinned group spends one slot,
+		// so the seven slots left still reach the unpinned siblings. Ten series stay
+		// legible — three textures on chart-1, then chart-2 through chart-8.
+		const store = new ChartStore();
+		for (const texture of ["hatch", "parallel", "grid"] as const) {
+			store.registerSeries(
+				makeSeries(`shard-${texture}`, { mark: "bar", color: "chart-1", texture }),
+			);
+		}
+		for (let index = 0; index < 7; index++) {
+			store.registerSeries(makeSeries(`auto-${index}`, { mark: "bar" }));
+		}
+		const colors = store.seriesMeta().map((series) => series.color);
+		expect(colors).toStrictEqual([
+			"var(--color-chart-1)",
+			"var(--color-chart-1)",
+			"var(--color-chart-1)",
+			"var(--color-chart-2)",
+			"var(--color-chart-3)",
+			"var(--color-chart-4)",
+			"var(--color-chart-5)",
+			"var(--color-chart-6)",
+			"var(--color-chart-7)",
+			"var(--color-chart-8)",
+		]);
+		expect(colors).not.toContain("var(--color-chart-other)");
+	});
 });
 
 describe("ChartStore slot reclaim", () => {
@@ -522,6 +583,26 @@ describe("ChartStore color slots across a color prop change", () => {
 		expect(meta.find((series) => series.dataKey === "auto-7")?.color).toBe("var(--color-chart-1)");
 		expect(meta.find((series) => series.dataKey === "b")?.color).toBe("var(--color-chart-other)");
 		expect(new Set(meta.map((series) => series.color)).size).toBe(meta.length);
+	});
+
+	test("a co-pinned series that drops its pin under a full palette goes gray", () => {
+		// The cost of co-pinning, stated so it cannot change silently: the shared
+		// token belongs to whoever still pins it, so the series that lets go needs a
+		// slot of its own. When no slot is free it wears the overflow gray rather
+		// than the color its former partner keeps painting.
+		const store = new ChartStore();
+		const unregisterA = store.registerSeries(
+			makeSeries("a", { mark: "bar", color: "chart-1", texture: "hatch" }),
+		);
+		store.registerSeries(makeSeries("b", { mark: "bar", color: "chart-1", texture: "grid" }));
+		for (let index = 0; index < 7; index++) {
+			store.registerSeries(makeSeries(`auto-${index}`, { mark: "bar" }));
+		}
+		unregisterA();
+		store.registerSeries(makeSeries("a", { mark: "bar", texture: "hatch" }));
+		const meta = store.seriesMeta();
+		expect(meta.find((series) => series.dataKey === "a")?.color).toBe("var(--color-chart-other)");
+		expect(meta.find((series) => series.dataKey === "b")?.color).toBe("var(--color-chart-1)");
 	});
 });
 
