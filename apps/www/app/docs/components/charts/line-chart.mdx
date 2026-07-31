@@ -283,6 +283,8 @@ A `LineChart` answers "how is this changing?" and "do these series move together
 
 The x scale is auto-detected from the first row's x value: `Date` values get a `"time"` scale with calendar-aware ticks, numbers get `"linear"`, and strings get `"point"` (evenly spaced categories). Pass `xScale` when detection guesses wrong — for example, epoch-millisecond numbers auto-detect as `"linear"`, so pass `xScale="time"` to read them as time.
 
+**Keep it to eight series or fewer.** The default chart tokens are eight validated categorical slots. The ninth series onward all wear the neutral `--color-chart-other`, so a dozen keys legend as a wall of identical gray. Eight is the palette's measured limit, not a style preference: a ninth hue cannot clear the colorblind-safe adjacency gates the eight already sit close to. Rank by the window's total, keep the top seven, and sum the rest into one `"Other"` series. The Bar Chart page carries [a worked fold](/components/charts/bar-chart#when-to-use). Pin the fold's own `Line` with `color="chart-other"`, so it reads as the tail rather than claiming a categorical slot.
+
 Compose `LineChart.Root` with one `LineChart.Line` per series. Every chart requires an accessible name (`aria-label` or `aria-labelledby`), and every multi-series chart composes `LineChart.Legend` — identity must never rely on color-matching alone. Hover or focus the chart and arrow around: the tooltip reads every series at the active x.
 
 <Example>

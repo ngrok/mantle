@@ -45,10 +45,10 @@ type ContinuousXScale = Exclude<XScaleKind, "band">;
 type SeriesMark = "bar" | "line" | "area" | "scatter";
 
 /**
- * The ordered chart color tokens. Slots are assigned to series in registration
- * order and stick to their `dataKey` while the palette has room. Once the eight
+ * The ordered chart color tokens. A series claims a slot on its first
+ * registration and keeps it while the palette has room. Once the eight
  * never-used slots run out, an incoming series takes a slot back from an
- * unmounted holder; a chart showing more than eight series at once paints the
+ * unmounted holder. A chart showing more than eight series at once paints the
  * ninth and later with `"chart-other"`.
  */
 type ChartColorToken =
