@@ -448,7 +448,7 @@ describe("ScatterPlot sticky series colors", () => {
 		expect(betaBefore).toContain("chart-2");
 		// Filter alpha out and introduce a new series: beta must keep chart-2
 		// (color follows the entity, never its position) and the newcomer claims
-		// the next never-used slot.
+		// the lowest free slot.
 		rerender(
 			<ScatterPlot.Root data={filterableData} xKey="latency" aria-label="Latency by region">
 				<ScatterPlot.Point dataKey="beta" label="Beta" />

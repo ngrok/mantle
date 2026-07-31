@@ -996,7 +996,7 @@ function NoUsageYetBarChartExample() {
 
 A dashboard that regroups one chart — by provider, then by region, then by access key — cycles a new set of
 `dataKey`s through the same Root. Slots stay sticky per `dataKey` while the palette has room, and once the eight
-never-used slots run out an incoming series takes one back from a series that is off screen. So the third
+every slot is held an incoming series takes one back from a series that is off screen. So the third
 grouping still paints four distinct validated colors rather than four identical grays.
 
 Do not put a `key` on the Root to work around this. Remounting discards the tween state, the measured layout,
@@ -1221,7 +1221,7 @@ function HorizontalBarChartExample() {
 
 When a multi-series or stacked chart can't rely on color alone — color-vision deficiencies, grayscale print and exports, forced-colors mode — give each series a fill `texture`. Textures are a redundant identity encoding alongside color: `"hatch"` (diagonal lines at 45°), `"hatch-reverse"` (its 135° mirror), `"crosshatch"` (both), `"perpendicular"` (rungs perpendicular to the bar's length — horizontal lines on vertical bars), and `"dots"` (an offset dot grid). The ink is tone-on-tone — a darker step of each series' own fill, at equal loudness across slots — and every legend key wears its series' pattern, so the mapping never depends on hue.
 
-Texture is opt-in and purposeful, never decorative: leave the first series solid and texture the rest, and keep solid fills when color alone already carries identity.
+Texture is opt-in and purposeful, never decorative. Keep solid fills when color alone already carries identity. When it does not, either leave the first series solid and texture the rest, or texture only the series in the pair that collides — the [Diverging stacks](#diverging-stacks) and [Fixed colors](#fixed-colors-for-known-entities) examples above take the targeted form.
 
 <Example>
 	<TexturedBarChartExample />
@@ -1902,7 +1902,7 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-Series colors default to the ordered `--color-chart-1` through `--color-chart-8` tokens. Each theme picks the ramp step that passes mantle's palette validation gates — colorblind-safe adjacency and at least 3:1 contrast against the card surface — in all four themes (light, dark, and both high-contrast variants). A series without an explicit `color` claims the next never-used slot when it first registers. It keeps that slot for the chart's lifetime, so filtering series out never repaints the survivors, and a `dataKey` that returns gets its old slot back. An explicit `color` spends a slot, so the next unpinned series skips past it — a chart token spends that token, and any other CSS color spends the next slot in order. Pinning the `chart-other` token spends nothing, because every series past the eighth shares the overflow gray. Spelled as a raw `var(--color-chart-other)` it is a CSS color like any other, so it spends a slot. A series that unmounts keeps its slot while the palette has room. Once the never-used slots run out, an incoming series takes a slot back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Prefer folding the long tail into a single "Other" series over plotting nine-plus indistinguishable ones.
+Series colors default to the ordered `--color-chart-1` through `--color-chart-8` tokens. Each theme picks the ramp step that passes mantle's palette validation gates — colorblind-safe adjacency and at least 3:1 contrast against the card surface — in all four themes (light, dark, and both high-contrast variants). A series without an explicit `color` claims the lowest free slot when it first registers. It keeps that slot for the chart's lifetime, so filtering series out never repaints the survivors, and a `dataKey` that returns gets its old slot back. An explicit `color` spends a slot, so the next unpinned series skips past it — a chart token spends that token, and any other CSS color spends the next slot in order. Pinning the `chart-other` token spends nothing, because every series past the eighth shares the overflow gray. Spelled as a raw `var(--color-chart-other)` it is a CSS color like any other, so it spends a slot. A series that unmounts keeps its slot while the palette has room. Once every slot is held, an incoming series takes one back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Prefer folding the long tail into a single "Other" series over plotting nine-plus indistinguishable ones.
 
 | CSS Variable          | Description                                                                                                                |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------- |

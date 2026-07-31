@@ -779,8 +779,8 @@ describe("LineChart sticky series colors", () => {
 		const [, p99Before] = swatchColors();
 		expect(p99Before).toContain("chart-2");
 		// Filter p50 out and introduce a new series: p99 must keep chart-2 (color
-		// follows the entity, never its position) and the newcomer claims the next
-		// never-used slot.
+		// follows the entity, never its position) and the newcomer claims the
+		// lowest free slot.
 		rerender(
 			<LineChart.Root data={filterableData} xKey="time" aria-label="Request latency">
 				<LineChart.Line dataKey="p99" label="p99" />

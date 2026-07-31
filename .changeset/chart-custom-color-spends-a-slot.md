@@ -36,9 +36,10 @@ and a forward-only cursor that could disagree with it. Four shapes stop losing c
   always claimed. That held on a first registration only.
 - A series that overflowed a full palette takes a real slot once one comes free, instead of wearing the gray for
   the Root's lifetime.
-- Two mounted series can no longer wear one color. Reclaim asks whether a mounted series holds the slot, not
-  whether the record's own key is mounted — a renamed `dataKey` pinning the same brand token holds it alongside
-  the record the departed key left behind.
+- A series that never asked for a color can no longer be handed one another series is painting. Two `dataKey`s can
+  hold one slot — a renamed key pinning the same brand token holds it alongside the record the departed key left
+  behind — so the reclaim and the auto-assignment both ask who holds the slot now, not who pins it. Two series
+  that both pin one token still both paint it: that collision is the consumer's explicit choice.
 
 The `color` prop's documented contract changes with it: all four chart pages said an explicit `color` reserves its
 token, which was true only for `--color-chart-1` through `--color-chart-8`. The pages now name the `chart-other`

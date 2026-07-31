@@ -449,7 +449,7 @@ describe("AreaChart sticky series colors", () => {
 		expect(tcpBefore).toContain("chart-2");
 		// Filter http out and introduce a new series: tcp must keep chart-2
 		// (color follows the entity, never its position) and the newcomer claims
-		// the next never-used slot.
+		// the lowest free slot.
 		rerender(
 			<AreaChart.Root data={filterableData} xKey="date" aria-label="Traffic by protocol">
 				<AreaChart.Area dataKey="tcp" label="TCP" />

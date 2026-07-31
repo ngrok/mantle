@@ -90,8 +90,8 @@ type BarChartBarProps = {
 	 * tone-on-tone ink from the series' own fill — so grouped and stacked
 	 * series stay distinguishable without color vision, in grayscale print,
 	 * and under forced colors. Keep it opt-in and purposeful, never
-	 * decorative: on a multi-series chart, leave the first series solid and
-	 * texture the rest.
+	 * decorative: leave the first series solid and texture the rest, or texture
+	 * only the series in a pair that color alone cannot separate.
 	 */
 	texture?: BarTexture;
 };

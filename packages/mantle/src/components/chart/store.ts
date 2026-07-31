@@ -92,7 +92,7 @@ const displayColor = (color: SeriesSpec["color"], slot: ChartColorToken): string
  * Create the store a chart Root owns for its lifetime.
  *
  * Color slots are STICKY per `dataKey`: the first registration of a dataKey
- * claims the next never-used slot, unmounting does not free it, and a
+ * claims the lowest slot no series holds, unmounting does not free it, and a
  * returning dataKey gets its old slot back — filtering a series out never
  * repaints the survivors (color follows the entity, not its row number).
  *
@@ -113,11 +113,11 @@ const displayColor = (color: SeriesSpec["color"], slot: ChartColorToken): string
  *   one path that repaints a mounted series, and a full palette can push the
  *   holder it displaces onto `chart-other`. It never moves a mounted series that
  *   pins the same token: pinned-vs-pinned is the consumer's explicit choice.
- * - Once the never-used slots run out, an incoming series takes a slot back
- *   from an UNMOUNTED holder rather than falling to `chart-other`, oldest
- *   registration first. Without it the ledger counts every dataKey the store
- *   has ever seen, so a Root that swaps one series vocabulary for another paints
- *   the overflow gray while the chart shows two series. A slot a mounted series
+ * - Once every slot is held, an incoming series takes one back from an
+ *   UNMOUNTED holder rather than falling to `chart-other`, oldest registration
+ *   first. Without it the ledger holds slots for every dataKey still on the
+ *   books, so a Root that swaps one series vocabulary for another paints the
+ *   overflow gray while the chart shows two series. A slot a mounted series
  *   holds is never a candidate. The cost is that a reclaimed dataKey no longer
  *   returns to its original slot — stickiness holds for as long as the palette
  *   has room, which is the whole eight-slot budget.
@@ -211,19 +211,21 @@ class ChartStore {
 	}
 
 	/**
-	 * Whether another mounted series pins the slot `dataKey` holds.
+	 * Whether another mounted series holds the slot `dataKey` holds.
 	 *
-	 * Two series may pin one token, and the store leaves both alone. When one of
-	 * them drops its pin, its record still names the survivor's painted color, so
-	 * the record has to go rather than become an unpinned hold on a live color.
+	 * Two series may pin one token, and the store leaves both alone — so two
+	 * records can name one slot, and one of them can outlive the pin that made it.
+	 * The question is who holds the slot now, never who pins it: a key that stops
+	 * pinning must let the slot go rather than keep an unpinned hold on it, or two
+	 * mounted series end up painting the one color.
 	 */
-	#pinnedByAnother(dataKey: string): boolean {
+	#heldByAnotherMounted(dataKey: string): boolean {
 		const held = this.#slotByKey.get(dataKey);
 		if (held == null) {
 			return false;
 		}
 		for (const other of this.#seriesByKey.keys()) {
-			if (other !== dataKey && this.#slotByKey.get(other) === held && this.#pinsItsSlot(other)) {
+			if (other !== dataKey && this.#slotByKey.get(other) === held) {
 				return true;
 			}
 		}
@@ -302,10 +304,10 @@ class ChartStore {
 			this.#slotByKey.set(dataKey, free);
 			return free;
 		}
-		// The ledger counts every dataKey the store has ever seen, so a Root that
-		// swaps one vocabulary for another spends the palette while the chart shows
-		// two series. Take a slot back from an unmounted holder before falling to
-		// the overflow gray.
+		// The ledger holds a slot for every dataKey still on the books, so a Root
+		// that swaps one vocabulary for another spends the palette while the chart
+		// shows two series. Take a slot back from an unmounted holder before falling
+		// to the overflow gray.
 		const reclaimed = this.#reclaimableSlot();
 		if (reclaimed != null) {
 			this.#slotByKey.delete(reclaimed.dataKey);
@@ -378,9 +380,9 @@ class ChartStore {
 			this.#evictHoldersOf({ token: spec.color, pinnedBy: spec.dataKey });
 			return;
 		}
-		if (this.#pinnedByAnother(spec.dataKey)) {
-			// The series dropped a pin two series held, so its record still names the
-			// survivor's painted color. Let go and take a slot of this series' own.
+		if (this.#heldByAnotherMounted(spec.dataKey)) {
+			// The series dropped a pin two series held, so its record still names a
+			// slot someone else holds. Let go and take a slot of this series' own.
 			this.#slotByKey.delete(spec.dataKey);
 		}
 		this.#slotFor(spec.dataKey);

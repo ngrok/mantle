@@ -590,7 +590,7 @@ describe("BarChart sticky series colors", () => {
 		expect(mobileBefore).toContain("chart-2");
 		// Filter desktop out and introduce a new series: mobile must keep chart-2
 		// (color follows the entity, never its position) and the newcomer claims
-		// the next never-used slot.
+		// the lowest free slot.
 		rerender(
 			<BarChart.Root data={filterableData} xKey="month" aria-label="Visitors by month">
 				<BarChart.Bar dataKey="mobile" label="Mobile" />

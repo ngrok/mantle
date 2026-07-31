@@ -202,9 +202,9 @@ describe("ChartStore slot reclaim", () => {
 
 	test("a Root that swaps its series vocabulary keeps painting real colors", () => {
 		// The reported symptom: a monthly chart grouped by provider, regrouped by
-		// access key. Eight provider keys register and leave, so the cursor has no
-		// never-used slot left — and the four keys on screen used to paint the
-		// overflow gray, all four identical.
+		// access key. Eight provider keys register and leave, so every slot is still
+		// held — and the four keys on screen used to paint the overflow gray, all
+		// four identical.
 		const store = new ChartStore();
 		cycleThrough(store, ["p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7"]);
 		for (const key of ["k0", "k1", "k2", "k3"]) {
@@ -363,7 +363,7 @@ describe("ChartStore slot reclaim", () => {
 	test("an off-screen series displaced by a pin takes no slot until it returns", () => {
 		// Regression: eviction re-ran the slot assignment for the displaced key
 		// without checking that it was mounted, so a series no reader sees spent a
-		// never-used slot and permuted the colors of the ones on screen.
+		// free slot and permuted the colors of the ones on screen.
 		const store = new ChartStore();
 		const unregisterGone = store.registerSeries(makeSeries("gone"));
 		unregisterGone();
@@ -487,6 +487,41 @@ describe("ChartStore color slots across a color prop change", () => {
 		const meta = store.seriesMeta();
 		expect(meta.find((series) => series.dataKey === "a")?.color).toBe("var(--color-chart-3)");
 		expect(meta.find((series) => series.dataKey === "f")?.color).toBe("var(--color-chart-1)");
+	});
+
+	test("both pins dropping on one token leaves two colors, not one", () => {
+		// Regression: asking whether another series still PINS the slot let both
+		// records survive once neither did, so the two returned unpinned onto the
+		// same chart-1. The question has to be who holds the slot now.
+		const store = new ChartStore();
+		const unregisterA = store.registerSeries(makeSeries("a", { color: "chart-1" }));
+		const unregisterB = store.registerSeries(makeSeries("b", { color: "chart-1" }));
+		unregisterA();
+		unregisterB();
+		store.registerSeries(makeSeries("b"));
+		store.registerSeries(makeSeries("a"));
+		const meta = store.seriesMeta();
+		expect(meta.find((series) => series.dataKey === "b")?.color).toBe("var(--color-chart-1)");
+		expect(meta.find((series) => series.dataKey === "a")?.color).toBe("var(--color-chart-2)");
+	});
+
+	test("a record the reclaim left behind never duplicates the color it lost", () => {
+		// Regression: two records named chart-1, the reclaim moved only the older
+		// one, and the survivor returned unpinned onto the color the reclaimer now
+		// paints. The overflow gray is the correct answer for a full palette.
+		const store = new ChartStore();
+		const unregisterA = store.registerSeries(makeSeries("a", { color: "chart-1" }));
+		const unregisterB = store.registerSeries(makeSeries("b", { color: "chart-1" }));
+		unregisterA();
+		unregisterB();
+		for (let index = 0; index < 8; index++) {
+			store.registerSeries(makeSeries(`auto-${index}`));
+		}
+		store.registerSeries(makeSeries("b"));
+		const meta = store.seriesMeta();
+		expect(meta.find((series) => series.dataKey === "auto-7")?.color).toBe("var(--color-chart-1)");
+		expect(meta.find((series) => series.dataKey === "b")?.color).toBe("var(--color-chart-other)");
+		expect(new Set(meta.map((series) => series.color)).size).toBe(meta.length);
 	});
 });
 
