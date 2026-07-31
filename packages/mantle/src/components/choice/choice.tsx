@@ -467,14 +467,7 @@ const Description = ({ asChild, className, ref, ...props }: ComponentProps<"p"> 
  * </Choice.Root>
  * ```
  */
-const Choice: {
-	Root: typeof Root;
-	Indicator: typeof Indicator;
-	Content: typeof Content;
-	Label: typeof ChoiceLabel;
-	Title: typeof Title;
-	Description: typeof Description;
-} = {
+const Choice = {
 	/**
 	 * Root: the layout + id/association owner. Reads `FieldControlContext` when
 	 * present so a `Field`'s id/name/aria flow onto the control.
