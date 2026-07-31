@@ -454,7 +454,7 @@ const MyComponent = {
   type. Without it an `@types/react` bump surfaces `TS2883` at build time — which is why
   [§9](#9-verification) runs the build.
 - **The annotation costs every member's JSDoc.** The build emits the annotation in place of the object
-  literal, so each member's summary, `@see`, and `@example` drops out of the published `.d.ts` — the only
+  literal, so each member's summary, `@see`, and `@example` drop out of the published `.d.ts` — the only
   channel that feeds editor tooltips. The annotation also discards the `readonly` modifiers `as const` adds.
   Reach for it only when a member's type comes from outside the package, because `as const` alone already
   emits `readonly Root: typeof Root`.
