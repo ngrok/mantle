@@ -602,4 +602,42 @@ describe("BarChart sticky series colors", () => {
 		expect(mobileAfter).toBe(mobileBefore);
 		expect(tabletAfter).toContain("chart-3");
 	});
+
+	test("regrouping a monthly chart does not exhaust the palette", () => {
+		// A monthly time series grouped by provider, then regrouped by access key,
+		// is the shape that used to break: eight provider keys register and leave,
+		// so the four keys on screen all painted the overflow gray. One `groupBy`
+		// click was enough. The Root is deliberately NOT keyed — remounting it
+		// would discard the tween and replay the enter animation.
+		const providers = ["aws", "gcp", "azure", "fly", "vercel", "render", "railway", "heroku"];
+		const accessKeys = ["key-a", "key-b", "key-c", "key-d"];
+		const monthlyRow = (month: string, keys: readonly string[]) => {
+			const row: Record<string, string | number> = { month };
+			for (const [index, key] of keys.entries()) {
+				row[key] = 100 + index * 10;
+			}
+			return row;
+		};
+		const monthsFor = (keys: readonly string[]) =>
+			["January", "February", "March"].map((month) => monthlyRow(month, keys));
+		const chartFor = (keys: readonly string[]) => (
+			<BarChart.Root data={monthsFor(keys)} xKey="month" stacked aria-label="Spend by month">
+				{keys.map((key) => (
+					<BarChart.Bar key={key} dataKey={key} label={key} />
+				))}
+				<BarChart.Legend />
+			</BarChart.Root>
+		);
+
+		const { container, rerender } = render(chartFor(providers));
+		rerender(chartFor(accessKeys));
+
+		const legend = container.querySelector('[data-slot="bar-chart-legend"]');
+		const swatches = [...(legend?.querySelectorAll("span[data-texture]") ?? [])].map(
+			(swatch) => swatch instanceof HTMLElement && swatch.style.backgroundColor,
+		);
+		expect(swatches).toHaveLength(accessKeys.length);
+		expect(swatches).not.toContain("var(--color-chart-other)");
+		expect(new Set(swatches).size).toBe(accessKeys.length);
+	});
 });

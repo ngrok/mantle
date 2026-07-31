@@ -914,20 +914,20 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-Series without an explicit `color` claim the next slot in the ordered `--color-chart-1`…`--color-chart-8` tokens. Each theme's palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the card surface in all four themes (light, dark, and both high-contrast variants), and the semantic ramps are deliberately excluded so a series never reads as a status color. Slots are sticky per `dataKey`: a series keeps its color for the chart's lifetime, even as other series are filtered in and out. An explicit `color` reserves its token, so the next unpinned series skips past it. The cursor counts every `dataKey` the Root has ever registered, not the mounted count — cycle more than eight keys through one Root and the later ones wear `--color-chart-other`. Key the Root on whatever chooses the series to start the palette over.
+Series without an explicit `color` claim the next slot in the ordered `--color-chart-1`…`--color-chart-8` tokens. Each theme's palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the card surface in all four themes (light, dark, and both high-contrast variants), and the semantic ramps are deliberately excluded so a series never reads as a status color. Slots are sticky per `dataKey`: a series keeps its color for the chart's lifetime, even as other series are filtered in and out. An explicit `color` reserves its token, so the next unpinned series skips past it. A series that unmounts keeps its slot while the palette has room. Once the never-used slots run out, an incoming series takes a slot back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`.
 
 One caveat is scatter-specific: the standard palette gate validates _adjacent_ slots, which is enough for a line, bar, or area form, where a series can only neighbor the series stacked or drawn beside it — but scatter marks can neighbor any other mark, so its colors must survive _all-pairs_ comparison, and that validation covers the **first four slots**. The four-series cap in [When to use](#when-to-use) is not a style preference; it is the palette's validated limit for scatter forms. Fold the long tail into a single "Other" series or facet into small multiples rather than plotting a fifth categorical color.
 
-| CSS Variable          | Description                                                                                                     |
-| --------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `--color-chart-1`     | The first categorical series slot (blue) — all-pairs validated for scatter.                                     |
-| `--color-chart-2`     | The second categorical series slot (green) — all-pairs validated for scatter.                                   |
-| `--color-chart-3`     | The third categorical series slot (pink) — all-pairs validated for scatter.                                     |
-| `--color-chart-4`     | The fourth categorical series slot (red) — the last all-pairs-validated slot for scatter.                       |
-| `--color-chart-5`     | The fifth categorical series slot (teal). Past the scatter cap — fold or facet instead.                         |
-| `--color-chart-6`     | The sixth categorical series slot (orange). Past the scatter cap.                                               |
-| `--color-chart-7`     | The seventh categorical series slot (violet). Past the scatter cap.                                             |
-| `--color-chart-8`     | The eighth categorical series slot (yellow). Past the scatter cap.                                              |
-| `--color-chart-other` | The fold slot for series beyond the eighth (neutral gray). Collapse the long tail into a single "Other" series. |
+| CSS Variable          | Description                                                                                                                       |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `--color-chart-1`     | The first categorical series slot (blue) — all-pairs validated for scatter.                                                       |
+| `--color-chart-2`     | The second categorical series slot (green) — all-pairs validated for scatter.                                                     |
+| `--color-chart-3`     | The third categorical series slot (pink) — all-pairs validated for scatter.                                                       |
+| `--color-chart-4`     | The fourth categorical series slot (red) — the last all-pairs-validated slot for scatter.                                         |
+| `--color-chart-5`     | The fifth categorical series slot (teal). Past the scatter cap — fold or facet instead.                                           |
+| `--color-chart-6`     | The sixth categorical series slot (orange). Past the scatter cap.                                                                 |
+| `--color-chart-7`     | The seventh categorical series slot (violet). Past the scatter cap.                                                               |
+| `--color-chart-8`     | The eighth categorical series slot (yellow). Past the scatter cap.                                                                |
+| `--color-chart-other` | The fold slot, worn once more than eight series show at once (neutral gray). Collapse the long tail into a single "Other" series. |
 
 The `color` escape hatch accepts any CSS color string, but static colors (a raw hex) do not adapt across themes — prefer a `var(...)` reference to a theme-aware token, and validate custom palettes for colorblind safety and surface contrast just like the defaults; for scatter that means every pair, not just neighbors. A series that carries good/bad meaning — an error rate, a pass/fail split — should wear the semantic status colors (e.g. `var(--color-danger-600)`), never a categorical slot.

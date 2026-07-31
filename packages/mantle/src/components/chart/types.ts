@@ -46,8 +46,10 @@ type SeriesMark = "bar" | "line" | "area" | "scatter";
 
 /**
  * The ordered chart color tokens. Slots are assigned to series in registration
- * order and stick to their `dataKey` for the chart's lifetime; series past the
- * eighth slot use `"chart-other"`.
+ * order and stick to their `dataKey` while the palette has room. Once the eight
+ * never-used slots run out, an incoming series takes a slot back from an
+ * unmounted holder; a chart showing more than eight series at once paints the
+ * ninth and later with `"chart-other"`.
  */
 type ChartColorToken =
 	| "chart-1"

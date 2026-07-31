@@ -1149,18 +1149,18 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-Series colors default to the ordered `--color-chart-1` through `--color-chart-8` tokens. Each theme picks the ramp step that passes mantle's palette validation gates — colorblind-safe adjacency and at least 3:1 contrast against the card surface — in all four themes (light, dark, and both high-contrast variants). A series without an explicit `color` claims the next never-used slot when it first registers. It keeps that slot for the chart's lifetime, so filtering series out never repaints the survivors, and a `dataKey` that returns gets its old slot back. An explicit `color` reserves its token, so the next unpinned series skips past it. The cursor counts every `dataKey` the Root has ever registered, not the mounted count — cycle more than eight keys through one Root and the later ones wear `--color-chart-other`. Key the Root on whatever chooses the series to start the palette over. Either way, prefer folding the long tail into a single "Other" series over plotting nine-plus indistinguishable ones.
+Series colors default to the ordered `--color-chart-1` through `--color-chart-8` tokens. Each theme picks the ramp step that passes mantle's palette validation gates — colorblind-safe adjacency and at least 3:1 contrast against the card surface — in all four themes (light, dark, and both high-contrast variants). A series without an explicit `color` claims the next never-used slot when it first registers. It keeps that slot for the chart's lifetime, so filtering series out never repaints the survivors, and a `dataKey` that returns gets its old slot back. An explicit `color` reserves its token, so the next unpinned series skips past it. A series that unmounts keeps its slot while the palette has room. Once the never-used slots run out, an incoming series takes a slot back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Prefer folding the long tail into a single "Other" series over plotting nine-plus indistinguishable ones.
 
-| CSS Variable          | Description                                                                                            |
-| --------------------- | ------------------------------------------------------------------------------------------------------ |
-| `--color-chart-1`     | Categorical series slot 1 (blue) — the first slot a chart assigns.                                     |
-| `--color-chart-2`     | Categorical series slot 2 (green).                                                                     |
-| `--color-chart-3`     | Categorical series slot 3 (pink).                                                                      |
-| `--color-chart-4`     | Categorical series slot 4 (red).                                                                       |
-| `--color-chart-5`     | Categorical series slot 5 (teal).                                                                      |
-| `--color-chart-6`     | Categorical series slot 6 (orange).                                                                    |
-| `--color-chart-7`     | Categorical series slot 7 (violet).                                                                    |
-| `--color-chart-8`     | Categorical series slot 8 (yellow).                                                                    |
-| `--color-chart-other` | The neutral overflow slot for series past the eighth — prefer folding the tail into an "Other" series. |
+| CSS Variable          | Description                                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `--color-chart-1`     | Categorical series slot 1 (blue) — the first slot a chart assigns.                                                         |
+| `--color-chart-2`     | Categorical series slot 2 (green).                                                                                         |
+| `--color-chart-3`     | Categorical series slot 3 (pink).                                                                                          |
+| `--color-chart-4`     | Categorical series slot 4 (red).                                                                                           |
+| `--color-chart-5`     | Categorical series slot 5 (teal).                                                                                          |
+| `--color-chart-6`     | Categorical series slot 6 (orange).                                                                                        |
+| `--color-chart-7`     | Categorical series slot 7 (violet).                                                                                        |
+| `--color-chart-8`     | Categorical series slot 8 (yellow).                                                                                        |
+| `--color-chart-other` | The neutral overflow slot, worn once more than eight series show at once — prefer folding the tail into an "Other" series. |
 
 The `color` prop on `BarChart.Bar` accepts any CSS color string as an escape hatch, but a static color (raw hex) does not adapt across themes — custom palettes must be theme-aware and validated for colorblind-safe adjacency and surface contrast just like the built-in tokens. A series that _means_ good or bad — error rate, pass/fail — should wear the semantic status colors (e.g. `var(--color-danger-500)`), never a categorical slot.
