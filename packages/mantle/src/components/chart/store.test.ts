@@ -338,6 +338,156 @@ describe("ChartStore slot reclaim", () => {
 		expect(new Set(colors).size).toBe(8);
 		expect(colors).not.toContain("var(--color-chart-other)");
 	});
+
+	test("a mounted pin keeps its token while an older holder of it is off screen", () => {
+		// Regression: two records can name one token, because a renamed dataKey
+		// pinning the same brand token inherits it from the key that left. Testing
+		// the holder key rather than the slot let the reclaim hand the newcomer a
+		// token the mounted pin was painting, so both wore chart-1.
+		const store = new ChartStore();
+		const unregisterOld = store.registerSeries(makeSeries("provider-openai", { color: "chart-1" }));
+		store.registerSeries(makeSeries("openai", { color: "chart-1" }));
+		unregisterOld();
+		for (let index = 0; index < 7; index++) {
+			store.registerSeries(makeSeries(`held-${index}`));
+		}
+		store.registerSeries(makeSeries("newcomer"));
+		const meta = store.seriesMeta();
+		expect(meta.find((series) => series.dataKey === "openai")?.color).toBe("var(--color-chart-1)");
+		expect(meta.find((series) => series.dataKey === "newcomer")?.color).toBe(
+			"var(--color-chart-other)",
+		);
+		expect(new Set(meta.map((series) => series.color)).size).toBe(meta.length);
+	});
+
+	test("an off-screen series displaced by a pin takes no slot until it returns", () => {
+		// Regression: eviction re-ran the slot assignment for the displaced key
+		// without checking that it was mounted, so a series no reader sees spent a
+		// never-used slot and permuted the colors of the ones on screen.
+		const store = new ChartStore();
+		const unregisterGone = store.registerSeries(makeSeries("gone"));
+		unregisterGone();
+		store.registerSeries(makeSeries("pin", { color: "chart-1" }));
+		for (let index = 0; index < 6; index++) {
+			store.registerSeries(makeSeries(`held-${index}`));
+		}
+		expect(store.seriesMeta().map((series) => series.color)).toStrictEqual([
+			"var(--color-chart-1)",
+			"var(--color-chart-2)",
+			"var(--color-chart-3)",
+			"var(--color-chart-4)",
+			"var(--color-chart-5)",
+			"var(--color-chart-6)",
+			"var(--color-chart-7)",
+		]);
+	});
+
+	test("an overflowed series takes a real slot once one comes free", () => {
+		// Regression: the ninth series recorded `chart-other` and kept it, so it
+		// stayed gray for the Root's lifetime with real slots idle. Custom colors
+		// now spend slots, which puts a nine-series chart in reach of this.
+		const store = new ChartStore();
+		const unregisters = Array.from({ length: 8 }, (_, index) =>
+			store.registerSeries(makeSeries(`brand-${index}`, { color: `var(--brand-${index})` })),
+		);
+		const unregisterOverflow = store.registerSeries(makeSeries("overflow"));
+		expect(store.seriesMeta().at(-1)?.color).toBe("var(--color-chart-other)");
+		// Four brands leave, then a prop change re-registers the gray series.
+		for (const unregister of unregisters.slice(0, 4)) {
+			unregister();
+		}
+		unregisterOverflow();
+		store.registerSeries(makeSeries("overflow"));
+		expect(store.seriesMeta().find((series) => series.dataKey === "overflow")?.color).toBe(
+			"var(--color-chart-1)",
+		);
+	});
+});
+
+describe("ChartStore color slots across a color prop change", () => {
+	// A series part lists `color` in its layout-effect deps, so changing the prop
+	// unregisters and re-registers the same dataKey. Each case below is that
+	// sequence, and each used to strand the slot the key held before the change.
+
+	test("a slot the series abandons goes back to the palette", () => {
+		// Regression: the pin overwrote the dataKey's record and left the old slot
+		// marked spent with no holder, so nothing painted it and nothing could
+		// reclaim it. Eight series then shared seven colors.
+		const store = new ChartStore();
+		const unregisterAuto = store.registerSeries(makeSeries("a"));
+		expect(store.seriesMeta()[0]?.color).toBe("var(--color-chart-1)");
+		unregisterAuto();
+		store.registerSeries(makeSeries("a", { color: "chart-5" }));
+		for (let index = 0; index < 7; index++) {
+			store.registerSeries(makeSeries(`b${index}`));
+		}
+		const colors = store.seriesMeta().map((series) => series.color);
+		expect(new Set(colors).size).toBe(8);
+		expect(colors).not.toContain("var(--color-chart-other)");
+	});
+
+	test("a pin that moves to another token releases the one it left", () => {
+		const store = new ChartStore();
+		const unregisterFirst = store.registerSeries(makeSeries("a", { color: "chart-1" }));
+		unregisterFirst();
+		store.registerSeries(makeSeries("a", { color: "chart-2" }));
+		store.registerSeries(makeSeries("b"));
+		expect(store.seriesMeta().find((series) => series.dataKey === "b")?.color).toBe(
+			"var(--color-chart-1)",
+		);
+	});
+
+	test("switching to chart-other gives the slot back, because the gray is shared", () => {
+		// The contract the four chart pages document. It held on a first
+		// registration only: the early return left the earlier record in place, so
+		// the series went on spending a slot it no longer painted.
+		const store = new ChartStore();
+		const unregisterAuto = store.registerSeries(makeSeries("a"));
+		unregisterAuto();
+		store.registerSeries(makeSeries("a", { color: "chart-other" }));
+		store.registerSeries(makeSeries("b"));
+		const meta = store.seriesMeta();
+		expect(meta.find((series) => series.dataKey === "a")?.color).toBe("var(--color-chart-other)");
+		expect(meta.find((series) => series.dataKey === "b")?.color).toBe("var(--color-chart-1)");
+	});
+
+	test("switching from a token to a custom color keeps the slot, and a pin can take it", () => {
+		// The slot stays spent — the series is still one identity — but it stops
+		// being the painted color, so a later pin of that token wins it.
+		const store = new ChartStore();
+		const unregisterPinned = store.registerSeries(makeSeries("a", { color: "chart-1" }));
+		unregisterPinned();
+		store.registerSeries(makeSeries("a", { color: "#10a37f" }));
+		store.registerSeries(makeSeries("b"));
+		expect(store.seriesMeta().find((series) => series.dataKey === "b")?.color).toBe(
+			"var(--color-chart-2)",
+		);
+		store.registerSeries(makeSeries("pin", { color: "chart-1" }));
+		const meta = store.seriesMeta();
+		expect(meta.find((series) => series.dataKey === "a")?.color).toBe("#10a37f");
+		expect(meta.find((series) => series.dataKey === "pin")?.color).toBe("var(--color-chart-1)");
+		// "a" was displaced off chart-1 and takes the first slot still free.
+		expect(meta.find((series) => series.dataKey === "b")?.color).toBe("var(--color-chart-2)");
+		store.registerSeries(makeSeries("c"));
+		expect(store.seriesMeta().find((series) => series.dataKey === "c")?.color).toBe(
+			"var(--color-chart-4)",
+		);
+	});
+
+	test("dropping one of two pins on a token never paints the other's color", () => {
+		// Regression: the store leaves pinned-vs-pinned alone, so both series held
+		// chart-3. When one dropped its pin, its record still named chart-3 and the
+		// series went back to painting it — two mounted series, one color, and the
+		// second one never asked for it.
+		const store = new ChartStore();
+		const unregisterFirst = store.registerSeries(makeSeries("f", { color: "chart-3" }));
+		store.registerSeries(makeSeries("a", { color: "chart-3" }));
+		unregisterFirst();
+		store.registerSeries(makeSeries("f"));
+		const meta = store.seriesMeta();
+		expect(meta.find((series) => series.dataKey === "a")?.color).toBe("var(--color-chart-3)");
+		expect(meta.find((series) => series.dataKey === "f")?.color).toBe("var(--color-chart-1)");
+	});
 });
 
 describe("ChartStore registrations", () => {

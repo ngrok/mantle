@@ -100,10 +100,10 @@ export function DivergingBarChartExample() {
 			<BarChart.Bar dataKey="added" label="Added" />
 			<BarChart.Bar dataKey="churned" label="Churned" color="var(--color-danger-500)" />
 			{/*
-			 * Both negative series stack below zero, so they always touch. The two
-			 * semantic reds sit at CVD ΔE 7.89 in light-high-contrast, inside the band
-			 * a second encoding relieves, so the texture carries the difference hue
-			 * alone does not.
+			 * Both negative series stack below zero, so they always touch. In
+			 * light-high-contrast the two semantic reds sit 14.05 ΔE apart for
+			 * full-color vision, under the 15 the palette holds its own slots to, so
+			 * the texture carries a difference hue alone does not.
 			 */}
 			<BarChart.Bar
 				dataKey="suspended"
@@ -280,9 +280,16 @@ export function BrandColorBarChartExample() {
 			<BarChart.XAxis />
 			<BarChart.YAxis tickFormat={(count) => `${count / 1000}k`} />
 			{/* Known providers keep one color for as long as the app declares it. Claude
-			    sits between the other two on purpose — see the note above. */}
+			    sits between the other two on purpose, and wears a texture because it runs
+			    close to OpenAI under simulated color vision deficiency — see the note
+			    above. */}
 			<BarChart.Bar dataKey="openai" label="OpenAI" color="var(--provider-openai)" />
-			<BarChart.Bar dataKey="claude" label="Claude" color="var(--provider-claude)" />
+			<BarChart.Bar
+				dataKey="claude"
+				label="Claude"
+				color="var(--provider-claude)"
+				texture="hatch"
+			/>
 			<BarChart.Bar dataKey="gemini" label="Gemini" color="var(--provider-gemini)" />
 			{/* Bring-your-own providers take chart-4 and chart-5: the three brand
 			    colors above already spent chart-1 through chart-3. */}
@@ -930,10 +937,10 @@ function DivergingBarChartExample() {
 			<BarChart.Bar dataKey="added" label="Added" />
 			<BarChart.Bar dataKey="churned" label="Churned" color="var(--color-danger-500)" />
 			{/*
-			 * Both negative series stack below zero, so they always touch. The two
-			 * semantic reds sit at CVD ΔE 7.89 in light-high-contrast, inside the band
-			 * a second encoding relieves, so the texture carries the difference hue
-			 * alone does not.
+			 * Both negative series stack below zero, so they always touch. In
+			 * light-high-contrast the two semantic reds sit 14.05 ΔE apart for
+			 * full-color vision, under the 15 the palette holds its own slots to, so
+			 * the texture carries a difference hue alone does not.
 			 */}
 			<BarChart.Bar
 				dataKey="suspended"
@@ -1088,12 +1095,12 @@ function RegroupBarChartExample() {
 
 A chart of named things — AI model providers, cloud vendors, plan tiers — often wants one recognizable color per
 thing, held across every chart and every page. Declare the values as custom properties on the Root and pin each
-series to one. The canvas resolves them through a probe inside the Root, and the legend swatch and tooltip stroke
+series to one. The canvas resolves them through a probe inside the Root. The legend swatch and the tooltip stroke
 emit the same `var()`, so one declaration set covers all three surfaces.
 
-Pin `var(--your-token)` rather than a raw hex. A hex freezes: the same value paints on white and on near-black,
-and neither high-contrast theme can adjust it. A custom property lets you give each theme its own value, and
-mantle re-resolves it whenever the theme changes.
+Pin `var(--your-token)` rather than a raw hex. A hex freezes: the same value paints on white and on near-black.
+Neither high-contrast theme can adjust it. A custom property lets you give each theme its own value, and mantle
+re-resolves it whenever the theme changes.
 
 Every color spends a slot, so the two bring-your-own providers below take `chart-4` and `chart-5` — never a color
 already on screen. The slot a custom color spends is its position in registration order, **not** the slot the
@@ -1101,16 +1108,21 @@ color resembles. Mantle runs no color math on a value you pass, because the answ
 theme switch would then reassign a neighbor's color.
 
 **So check your own palette against the eight slots, and against itself.** Series order decides whether a
-collision bites, because a stacked chart only ever puts consecutive series against each other. The
-example below runs OpenAI, Claude, Gemini, which keeps every touching pair clear of both floors in all four
-themes — 23.4 ΔE at worst for full-color vision, and 6.8 under simulated color vision deficiency. Swap
-Claude and Gemini and Claude lands against `chart-4` at 14.36 in light and 6.74 in dark-high-contrast, under the
-floor of 15. When a pair does collide, reorder the series, change the color, or add a `texture`.
+collision bites, because a stacked chart only ever puts consecutive series against each other. The example below
+runs OpenAI, Claude, Gemini, which clears both hard floors in all four themes — 23.45 ΔE at worst for full-color
+vision, and 6.85 under simulated color vision deficiency (CVD). That 6.85 clears the CVD floor of 6 and misses the
+target of 8, which mantle's own palette treats as legal only with a second encoding, so the example gives Claude a
+`texture`. Swap Claude and Gemini and Claude lands against `chart-4` at 14.36 ΔE in light and 6.74 in
+dark-high-contrast, under the full-color floor of 15. When a pair does collide, reorder the series, change the
+color, or add a `texture`.
 
-Three limits are worth knowing. Grouped bars and scatter plots compare every series to every other, not only its
-neighbors, and this set does not clear that bar — ChatGPT green sits 4.71 from `chart-5` `#009689`. Brand colors
-also collide with each other: five of the major AI providers use nearly the same blue. And a black or near-black
-brand color falls below the chroma floor, so it reads as the overflow gray no matter which slot it spends.
+Three limits are worth knowing:
+
+- Grouped bars and scatter plots compare every series to every other, not only its neighbors. This set does not
+  clear that bar: ChatGPT green sits 4.71 ΔE from `chart-5` `#009689`.
+- Brand colors collide with each other. Five of the major AI providers use nearly the same blue.
+- A black or near-black brand color falls below the chroma floor, so it carries no identity at all — no slot it
+  spends can give it one.
 
 <Example>
 	<BrandColorBarChartExample />
@@ -1143,9 +1155,16 @@ function BrandColorBarChartExample() {
 			<BarChart.XAxis />
 			<BarChart.YAxis tickFormat={(count) => `${count / 1000}k`} />
 			{/* Known providers keep one color for as long as the app declares it. Claude
-			    sits between the other two on purpose — see the note above. */}
+			    sits between the other two on purpose, and wears a texture because it runs
+			    close to OpenAI under simulated color vision deficiency — see the note
+			    above. */}
 			<BarChart.Bar dataKey="openai" label="OpenAI" color="var(--provider-openai)" />
-			<BarChart.Bar dataKey="claude" label="Claude" color="var(--provider-claude)" />
+			<BarChart.Bar
+				dataKey="claude"
+				label="Claude"
+				color="var(--provider-claude)"
+				texture="hatch"
+			/>
 			<BarChart.Bar dataKey="gemini" label="Gemini" color="var(--provider-gemini)" />
 			{/* Bring-your-own providers take chart-4 and chart-5: the three brand
 			    colors above already spent chart-1 through chart-3. */}
@@ -1883,7 +1902,7 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-Series colors default to the ordered `--color-chart-1` through `--color-chart-8` tokens. Each theme picks the ramp step that passes mantle's palette validation gates — colorblind-safe adjacency and at least 3:1 contrast against the card surface — in all four themes (light, dark, and both high-contrast variants). A series without an explicit `color` claims the next never-used slot when it first registers. It keeps that slot for the chart's lifetime, so filtering series out never repaints the survivors, and a `dataKey` that returns gets its old slot back. An explicit `color` spends a slot, so the next unpinned series skips past it — a chart token spends that token, and any other CSS color spends the next slot in order. Pinning `--color-chart-other` spends nothing, because every series past the eighth shares the overflow gray. A series that unmounts keeps its slot while the palette has room. Once the never-used slots run out, an incoming series takes a slot back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Prefer folding the long tail into a single "Other" series over plotting nine-plus indistinguishable ones.
+Series colors default to the ordered `--color-chart-1` through `--color-chart-8` tokens. Each theme picks the ramp step that passes mantle's palette validation gates — colorblind-safe adjacency and at least 3:1 contrast against the card surface — in all four themes (light, dark, and both high-contrast variants). A series without an explicit `color` claims the next never-used slot when it first registers. It keeps that slot for the chart's lifetime, so filtering series out never repaints the survivors, and a `dataKey` that returns gets its old slot back. An explicit `color` spends a slot, so the next unpinned series skips past it — a chart token spends that token, and any other CSS color spends the next slot in order. Pinning the `chart-other` token spends nothing, because every series past the eighth shares the overflow gray. Spelled as a raw `var(--color-chart-other)` it is a CSS color like any other, so it spends a slot. A series that unmounts keeps its slot while the palette has room. Once the never-used slots run out, an incoming series takes a slot back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Prefer folding the long tail into a single "Other" series over plotting nine-plus indistinguishable ones.
 
 | CSS Variable          | Description                                                                                                                |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------- |

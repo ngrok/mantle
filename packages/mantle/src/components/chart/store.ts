@@ -101,22 +101,26 @@ const displayColor = (color: SeriesSpec["color"], slot: ChartColorToken): string
  * A series with a custom CSS color paints that color and still spends a slot;
  * `#claimSlot` states what each color shape spends.
  *
+ * `#slotByKey` is the whole ledger. A slot is spent exactly while a record names
+ * it, so dropping a record hands the slot straight back. No separate claimed-set
+ * or cursor can fall out of step with the ledger, and no slot can stay spent
+ * with nobody holding it.
+ *
  * Two things override stickiness:
  *
- * - A series pinning a chart token evicts the holder of that token (the evicted
- *   dataKey moves to the next free slot and stays sticky there), so an explicit
- *   pin wins its color regardless of registration order. This is the one path
- *   that repaints a mounted series. It moves only a holder whose slot is a
- *   reservation, never one that paints the token itself.
+ * - A series pinning a chart token evicts the holder of that token, so an
+ *   explicit pin wins its color regardless of registration order. This is the
+ *   one path that repaints a mounted series, and a full palette can push the
+ *   holder it displaces onto `chart-other`. It never moves a mounted series that
+ *   pins the same token: pinned-vs-pinned is the consumer's explicit choice.
  * - Once the never-used slots run out, an incoming series takes a slot back
  *   from an UNMOUNTED holder rather than falling to `chart-other`, oldest
- *   registration first. Without it the cursor counts every dataKey the store
+ *   registration first. Without it the ledger counts every dataKey the store
  *   has ever seen, so a Root that swaps one series vocabulary for another paints
- *   the overflow gray while the chart shows two series. A mounted series is
- *   never a candidate, which is what makes the reclaim safe by construction. The
- *   cost is that a reclaimed dataKey no longer returns to its original slot —
- *   stickiness holds for as long as the palette has room, which is the whole
- *   eight-slot budget.
+ *   the overflow gray while the chart shows two series. A slot a mounted series
+ *   holds is never a candidate. The cost is that a reclaimed dataKey no longer
+ *   returns to its original slot — stickiness holds for as long as the palette
+ *   has room, which is the whole eight-slot budget.
  *
  * A chart that genuinely mounts more than eight series still paints the ninth
  * and later with `chart-other`; fold them into an "Other" series or facet
@@ -138,15 +142,19 @@ class ChartStore {
 	#seriesByKey = new Map<string, { spec: SeriesSpec; sequence: number }>();
 	#sequenceByKey = new Map<string, number>();
 	/**
-	 * The slot each dataKey holds. `pinned` marks a slot that IS the series'
-	 * painted color, which eviction must never move; an unpinned entry is a
-	 * budget reservation held by a series that paints the slot itself or paints a
-	 * custom color. Both kinds outlive unmount, and both are reclaimable.
+	 * The slot each dataKey holds, kept past unmount so a returning dataKey gets
+	 * its old color back. A slot is spent exactly while a record names it, which
+	 * is the invariant every other method reads: `#freeSlot` looks for a slot no
+	 * record names, and `#reclaimableSlot` looks for a record no mounted series
+	 * needs. A dataKey that drops its record therefore releases its slot with no
+	 * second structure to update.
+	 *
+	 * Only the eight palette slots are ever recorded. No record means the series
+	 * wears the shared `chart-other` gray, whether it pinned the token or
+	 * overflowed a full palette.
 	 */
-	#slotByKey = new Map<string, { slot: ChartColorToken; pinned: boolean }>();
-	#claimedSlots = new Set<ChartColorToken>();
+	#slotByKey = new Map<string, ChartColorToken>();
 	#nextSequence = 0;
-	#nextSlot = 0;
 
 	#grid: { lines: GridLines | undefined } | null = null;
 	#orientation: BarOrientation = "vertical";
@@ -179,89 +187,162 @@ class ChartStore {
 	}
 
 	/**
-	 * The auto-assigned slot a dataKey holds that no mounted series needs — the
-	 * one an incoming series takes rather than falling to `chart-other`.
+	 * Whether `dataKey`'s registered spec pins the very slot it holds, which makes
+	 * the slot the series' own painted color.
 	 *
-	 * Only an unmounted holder is a candidate, which is what keeps a mounted
-	 * series from ever repainting. Among candidates the longest-registered key
-	 * gives its slot up first: `#sequenceByKey` already outlives unmount, so the
-	 * order needs no new state and does not depend on unmount timing.
+	 * Derived from the spec rather than stored beside the slot. A pin is a fact
+	 * about a mounted registration, so an unmounted holder pins nothing and its
+	 * slot is free to move — a stored flag instead outlived the series that set
+	 * it, and eviction then refused to move a token two records already named.
+	 */
+	#pinsItsSlot(dataKey: string): boolean {
+		const held = this.#slotByKey.get(dataKey);
+		return held != null && this.#seriesByKey.get(dataKey)?.spec.color === held;
+	}
+
+	/** Whether a mounted series holds `slot`, which puts it out of reach. */
+	#heldByMounted(slot: ChartColorToken): boolean {
+		for (const [dataKey, held] of this.#slotByKey) {
+			if (held === slot && this.#seriesByKey.has(dataKey)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Whether another mounted series pins the slot `dataKey` holds.
+	 *
+	 * Two series may pin one token, and the store leaves both alone. When one of
+	 * them drops its pin, its record still names the survivor's painted color, so
+	 * the record has to go rather than become an unpinned hold on a live color.
+	 */
+	#pinnedByAnother(dataKey: string): boolean {
+		const held = this.#slotByKey.get(dataKey);
+		if (held == null) {
+			return false;
+		}
+		for (const other of this.#seriesByKey.keys()) {
+			if (other !== dataKey && this.#slotByKey.get(other) === held && this.#pinsItsSlot(other)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Whether any dataKey holds `slot`, mounted or not. */
+	#held(slot: ChartColorToken): boolean {
+		for (const held of this.#slotByKey.values()) {
+			if (held === slot) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * The first palette slot no dataKey holds, or `null` when all eight are spent.
+	 *
+	 * Scanned rather than tracked by a cursor. A cursor only moves forward, so it
+	 * cannot see a slot that a dataKey released — and releasing a slot is the
+	 * whole point of the reclaim.
+	 */
+	#freeSlot(): ChartColorToken | null {
+		return SLOT_ORDER.find((slot) => !this.#held(slot)) ?? null;
+	}
+
+	/**
+	 * The slot a dataKey holds that no mounted series needs — the one an incoming
+	 * series takes rather than falling to `chart-other`.
+	 *
+	 * A candidate must be held by an unmounted dataKey AND held by no mounted one.
+	 * Two records can name a single token: a pin arriving after a rename inherits
+	 * the token the departed key still holds. So the second test reads the slot,
+	 * not the key, which is what keeps a mounted series from repainting. Among
+	 * candidates the longest-registered key gives its slot up first:
+	 * `#sequenceByKey` already outlives unmount, so the order needs no new state.
 	 *
 	 * A pinned holder is a candidate too. Its token is the color it painted while
 	 * mounted, so retiring the slot forever would starve the palette: a dashboard
 	 * that pins eight providers and then regroups by API key would paint every
 	 * series the overflow gray. If the pinned series remounts, its pin evicts
 	 * whichever series took the token.
+	 *
+	 * The mounted set is what React last told the store, and React runs every
+	 * layout-effect cleanup before any setup. A series that re-registers in the
+	 * same commit that mounts a newcomer is therefore absent while the newcomer
+	 * claims, so the newcomer can take its slot and push it to `chart-other`.
 	 */
 	#reclaimableSlot(): { dataKey: string; slot: ChartColorToken } | null {
 		let oldest: { dataKey: string; slot: ChartColorToken; sequence: number } | null = null;
-		for (const [dataKey, held] of this.#slotByKey) {
-			if (this.#seriesByKey.has(dataKey)) {
+		for (const [dataKey, slot] of this.#slotByKey) {
+			if (this.#seriesByKey.has(dataKey) || this.#heldByMounted(slot)) {
 				continue;
 			}
 			const sequence = this.#sequenceByKey.get(dataKey) ?? Number.POSITIVE_INFINITY;
 			if (oldest == null || sequence < oldest.sequence) {
-				oldest = { dataKey, slot: held.slot, sequence };
+				oldest = { dataKey, slot, sequence };
 			}
 		}
 		return oldest == null ? null : { dataKey: oldest.dataKey, slot: oldest.slot };
 	}
 
 	/** The sticky slot for a dataKey (assigned on first registration). */
-	slotFor(dataKey: string): ChartColorToken {
+	#slotFor(dataKey: string): ChartColorToken {
 		const existing = this.#slotByKey.get(dataKey);
 		if (existing != null) {
-			return existing.slot;
+			return existing;
 		}
-		// Skip slots another series pinned explicitly, so an unpinned series
-		// never claims a pinned color. The reverse arrival order — a pin
-		// registering after its token was auto-claimed — is handled by eviction
-		// in `registerSeries`.
-		while (
-			this.#nextSlot < SLOT_ORDER.length &&
-			this.#claimedSlots.has(SLOT_ORDER[this.#nextSlot] ?? "chart-other")
-		) {
-			this.#nextSlot += 1;
+		// Skip a slot another series already holds, so an unpinned series never
+		// claims a color that is spoken for. The reverse arrival order — a pin
+		// registering after its token was auto-claimed — is handled by eviction in
+		// `#claimSlot`.
+		const free = this.#freeSlot();
+		if (free != null) {
+			this.#slotByKey.set(dataKey, free);
+			return free;
 		}
-		if (this.#nextSlot >= SLOT_ORDER.length) {
-			// The cursor counts every dataKey the store has ever seen, so a Root that
-			// swaps one vocabulary for another runs out of never-used slots while the
-			// chart shows two series. Take a slot back from an unmounted holder
-			// before falling to the overflow gray.
-			const reclaimed = this.#reclaimableSlot();
-			if (reclaimed != null) {
-				this.#slotByKey.delete(reclaimed.dataKey);
-				this.#slotByKey.set(dataKey, { slot: reclaimed.slot, pinned: false });
-				return reclaimed.slot;
-			}
+		// The ledger counts every dataKey the store has ever seen, so a Root that
+		// swaps one vocabulary for another spends the palette while the chart shows
+		// two series. Take a slot back from an unmounted holder before falling to
+		// the overflow gray.
+		const reclaimed = this.#reclaimableSlot();
+		if (reclaimed != null) {
+			this.#slotByKey.delete(reclaimed.dataKey);
+			this.#slotByKey.set(dataKey, reclaimed.slot);
+			return reclaimed.slot;
 		}
-		const slot = SLOT_ORDER[this.#nextSlot] ?? "chart-other";
-		if (this.#nextSlot < SLOT_ORDER.length) {
-			this.#nextSlot += 1;
-		}
-		this.#slotByKey.set(dataKey, { slot, pinned: false });
-		this.#claimedSlots.add(slot);
-		return slot;
+		// Every slot is on screen, so this series overflows to the shared gray and
+		// records nothing. Recording it would strand the series: `chart-other` is no
+		// palette slot, so the record could only shadow a real candidate in the
+		// reclaim and hold the series gray for the Root's lifetime. With no record
+		// the next registration takes a slot that has since come free.
+		return "chart-other";
 	}
 
 	/**
-	 * Move the dataKey holding `token` as a reservation (if any) to the next free
-	 * slot because `pinnedBy` just pinned that token explicitly — a pin wins its
-	 * color regardless of registration order. Idempotent: once no other dataKey
-	 * holds the token as a reservation this is a no-op, so effect re-runs of the
-	 * pinned series never churn slots. Another pin of the same token is left
-	 * alone: pinned-vs-pinned collisions are the consumer's explicit choice.
+	 * Take `token` back from every dataKey that holds it without pinning it,
+	 * because `pinnedBy` just pinned it explicitly — a pin wins its color
+	 * regardless of registration order. Idempotent: once no such holder is left
+	 * this is a no-op, so effect re-runs of the pinned series never churn slots. A
+	 * mounted series pinning the same token is left alone: pinned-vs-pinned
+	 * collisions are the consumer's explicit choice.
+	 *
+	 * An unmounted holder gives the token up and takes nothing back. Handing it a
+	 * fresh slot would spend the palette on a series no reader sees and permute
+	 * the colors of the ones who do; it claims again when it remounts.
 	 */
-	#evictReservedSlot({ token, pinnedBy }: { token: ChartColorToken; pinnedBy: string }): void {
-		for (const [dataKey, held] of this.#slotByKey) {
-			if (held.slot !== token || dataKey === pinnedBy || held.pinned) {
-				continue;
-			}
+	#evictHoldersOf({ token, pinnedBy }: { token: ChartColorToken; pinnedBy: string }): void {
+		const displaced = [...this.#slotByKey]
+			.filter(
+				([dataKey, held]) => held === token && dataKey !== pinnedBy && !this.#pinsItsSlot(dataKey),
+			)
+			.map(([dataKey]) => dataKey);
+		for (const dataKey of displaced) {
 			this.#slotByKey.delete(dataKey);
-			this.slotFor(dataKey);
-			// `slotFor` never assigns an already-claimed token, so at most one
-			// reservation holder can exist per token.
-			return;
+			if (this.#seriesByKey.has(dataKey)) {
+				this.#slotFor(dataKey);
+			}
 		}
 	}
 
@@ -273,32 +354,36 @@ class ChartStore {
 	 *
 	 * - No `color` — the series paints its slot. A later pin of that token may
 	 *   move it.
-	 * - A chart token — the slot IS the painted color, so nothing moves it.
+	 * - A chart token — the slot IS the painted color, so nothing moves it while
+	 *   the series is mounted.
 	 * - Any other CSS color — the series paints that color and still spends a
-	 *   slot, so an unpinned sibling is never handed a color the consumer already
-	 *   put on screen. The reservation is movable, because the series does not
-	 *   paint it.
+	 *   slot, so the palette never hands an unpinned sibling a color the consumer
+	 *   already put on screen. The slot is movable: the series does not paint it.
 	 * - `chart-other` — the overflow gray is shared by every series past the
 	 *   eighth, so pinning it spends nothing.
+	 *
+	 * A `color` prop can change between registrations, so each branch writes the
+	 * dataKey's one record outright. The slot it held before goes back to the
+	 * palette, because a slot is spent only while a record names it.
 	 */
 	#claimSlot(spec: SeriesSpec): void {
 		if (spec.color === "chart-other") {
+			this.#slotByKey.delete(spec.dataKey);
 			return;
 		}
 		if (spec.color != null && isChartColorToken(spec.color)) {
-			this.#claimedSlots.add(spec.color);
-			this.#slotByKey.set(spec.dataKey, { slot: spec.color, pinned: true });
-			this.#evictReservedSlot({ token: spec.color, pinnedBy: spec.dataKey });
+			// Record the pin before evicting: that is what makes the token spent, so
+			// a displaced holder cannot be handed the same slot straight back.
+			this.#slotByKey.set(spec.dataKey, spec.color);
+			this.#evictHoldersOf({ token: spec.color, pinnedBy: spec.dataKey });
 			return;
 		}
-		const held = this.#slotByKey.get(spec.dataKey);
-		if (held?.pinned) {
-			// The series pinned a token on an earlier registration and now carries a
-			// custom color, so its slot goes back to a movable reservation.
-			this.#slotByKey.set(spec.dataKey, { slot: held.slot, pinned: false });
-			return;
+		if (this.#pinnedByAnother(spec.dataKey)) {
+			// The series dropped a pin two series held, so its record still names the
+			// survivor's painted color. Let go and take a slot of this series' own.
+			this.#slotByKey.delete(spec.dataKey);
 		}
-		this.slotFor(spec.dataKey);
+		this.#slotFor(spec.dataKey);
 	}
 
 	registerSeries(spec: SeriesSpec): () => void {
@@ -306,10 +391,9 @@ class ChartStore {
 		// store's lifetime so toggling a series round-trips to the same slot.
 		const sequence = this.#sequenceByKey.get(spec.dataKey) ?? this.#nextSequence++;
 		this.#sequenceByKey.set(spec.dataKey, sequence);
-		// Mount before claiming: `#reclaimableSlot` reads `#seriesByKey` to tell an
-		// unmounted holder from a mounted one, so a series that is not there yet
-		// looks reclaimable to its own registration. A remounting pin would hand its
-		// token straight back to whichever series took it.
+		// Mount before claiming: `#pinsItsSlot` and `#heldByMounted` both read
+		// `#seriesByKey`, so the mounted set has to include this series before
+		// anything derives from it.
 		this.#seriesByKey.set(spec.dataKey, { spec, sequence });
 		this.#claimSlot(spec);
 		this.#publishRegistrations({ seriesChanged: true });
@@ -408,15 +492,18 @@ class ChartStore {
 
 	/** Build display metadata for DOM consumers (legend, tooltip, data table). */
 	seriesMeta(): SeriesMeta[] {
-		return this.seriesSpecs().map((spec) => ({
-			dataKey: spec.dataKey,
-			label: spec.label,
-			mark: spec.mark,
-			color: displayColor(spec.color, this.#slotByKey.get(spec.dataKey)?.slot ?? "chart-other"),
-			colorInput: spec.color ?? this.#slotByKey.get(spec.dataKey)?.slot ?? "chart-other",
-			shape: spec.shape,
-			texture: spec.texture,
-		}));
+		return this.seriesSpecs().map((spec) => {
+			const slot = this.#slotByKey.get(spec.dataKey) ?? "chart-other";
+			return {
+				dataKey: spec.dataKey,
+				label: spec.label,
+				mark: spec.mark,
+				color: displayColor(spec.color, slot),
+				colorInput: spec.color ?? slot,
+				shape: spec.shape,
+				texture: spec.texture,
+			};
+		});
 	}
 
 	#publishRegistrations(options: { seriesChanged: boolean } = { seriesChanged: false }): void {
