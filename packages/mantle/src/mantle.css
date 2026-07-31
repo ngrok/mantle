@@ -293,9 +293,10 @@ from `:root` (see MARK: INVERT THEME below).
 */
 :root,
 :root.light,
-:root[data-theme="light"],
+:root[data-theme="light"]:not([data-applied-theme]),
 :root[data-applied-theme="light"],
-:root:is(.dark, [data-theme="dark"], [data-applied-theme="dark"]) .invert-theme {
+:root:is(.dark, [data-theme="dark"]:not([data-applied-theme]), [data-applied-theme="dark"])
+	.invert-theme {
 	color-scheme: light;
 
 	/* custom stops that intentionally diverge from the Tailwind defaults */
@@ -442,7 +443,8 @@ rebrands a ramp sees it on the page but not inside an island. Closing that gap
 needs a shadow copy of every ramp under a second name (a generated mirror), a
 cost the inversion feature does not justify.
 */
-:root:is(.dark, [data-theme="dark"], [data-applied-theme="dark"]) .invert-theme {
+:root:is(.dark, [data-theme="dark"]:not([data-applied-theme]), [data-applied-theme="dark"])
+	.invert-theme {
 	--color-white: oklch(100% 0 0);
 	--color-black: oklch(0% 0 0);
 
@@ -833,10 +835,10 @@ theme's sky-500 before the island can flip it. Keep it in sync with the
 /**
 MARK: CUSTOM VARIANTS
 */
-@custom-variant light (&:where(.light, .light *, [data-theme="light"], [data-applied-theme="light"]));
-@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-applied-theme="dark"]));
-@custom-variant high-contrast (&:where(.light-high-contrast, .light-high-contrast *, [data-theme="light-high-contrast"], [data-applied-theme="light-high-contrast"]));
-@custom-variant dark-high-contrast (&:where(.dark-high-contrast, .dark-high-contrast *, [data-theme="dark-high-contrast"], [data-applied-theme="dark-high-contrast"]));
+@custom-variant light (&:where(.light, .light *, [data-theme="light"]:not([data-applied-theme]), [data-applied-theme="light"]));
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"]:not([data-applied-theme]), [data-applied-theme="dark"]));
+@custom-variant high-contrast (&:where(.light-high-contrast, .light-high-contrast *, [data-theme="light-high-contrast"]:not([data-applied-theme]), [data-applied-theme="light-high-contrast"]));
+@custom-variant dark-high-contrast (&:where(.dark-high-contrast, .dark-high-contrast *, [data-theme="dark-high-contrast"]:not([data-applied-theme]), [data-applied-theme="dark-high-contrast"]));
 
 @custom-variant aria-collapsed (&[aria-expanded="false"]);
 @custom-variant aria-invalid (&[aria-invalid="true"]);

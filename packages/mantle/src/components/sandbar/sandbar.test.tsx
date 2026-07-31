@@ -91,9 +91,14 @@ describe("Sandbar structure", () => {
 		// palette-alias rule. Renaming either side alone silently un-themes every
 		// Sandbar. The computed inversion itself is proven end-to-end by
 		// theme/invert-theme.browser.test.ts.
+		//
+		// Whitespace-normalized because oxfmt wraps these selector lists once they
+		// grow past the print width — the pin is on the selector shape, not on where
+		// the formatter chose to break the line.
+		const normalizedCss = mantleCss.replace(/\s+/g, " ");
 		expect(getPanel().classList.contains("invert-theme")).toBe(true);
-		expect(mantleCss).toContain(".invert-theme {");
-		expect(mantleCss).toContain(") .invert-theme {");
+		expect(normalizedCss).toContain(".invert-theme {");
+		expect(normalizedCss).toContain(") .invert-theme {");
 	});
 
 	test("Root forwards className, ref, and data-* props to the panel", () => {

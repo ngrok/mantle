@@ -70,10 +70,17 @@ describe("forceTheme pins what lands on <html>", () => {
 
 	// `MantleStyleSheets`' `forceTheme` applies a theme's stylesheet *pair*, so the
 	// partner sheet is live on every forced page. Which block wins is then decided
-	// purely by the class on `<html>` — and these three writers are what put it
-	// there. If any of them resolves the stored preference instead of the forced
-	// theme, a user whose cookie says dark gets `<html class="dark">` with the dark
-	// sheet applied, and a `forceTheme="light"` page paints dark.
+	// by the class and `data-applied-theme` on `<html>` — and these three writers
+	// are what put them there. If any of them resolves the stored preference
+	// instead of the forced theme, a user whose cookie says dark gets
+	// `<html class="dark">` with the dark sheet applied, and a `forceTheme="light"`
+	// page paints dark.
+	//
+	// `data-theme` is deliberately NOT one of the deciders, even though every theme
+	// block lists it: it holds the preference, which a forced page leaves
+	// disagreeing, so each of those selectors carries `:not([data-applied-theme])`.
+	// force-theme.browser.test.ts proves the computed result; these tests only pin
+	// the attributes, which is why they cannot see a cascade regression.
 
 	test("the inline FOUC script applies the forced theme over a conflicting cookie", () => {
 		mockMatchMedia({ [PREFERS_DARK]: true });

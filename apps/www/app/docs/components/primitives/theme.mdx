@@ -453,6 +453,10 @@ The stored preference is still read, and `setTheme` still writes it — so a the
 working and other pages honor the user's choice. Only what this page paints is pinned:
 `data-applied-theme` and the class are the forced theme, while `data-theme` remains the preference.
 
+That divergence is safe by construction. Every theme block guards its `data-theme` selector with
+`:not([data-applied-theme])`, so once anything applies a theme, the preference stops selecting one.
+Set `data-theme` on its own and it still picks the theme, exactly as before.
+
 ## API Reference
 
 ### ThemeProvider

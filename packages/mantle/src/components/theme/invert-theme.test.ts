@@ -86,7 +86,7 @@ describe("theme block selector extensions", () => {
 			selector.startsWith(":root,"),
 		);
 		expect(normalizeSelector(rule?.selector)).toContain(
-			':root:is(.dark, [data-theme="dark"], [data-applied-theme="dark"]) .invert-theme',
+			':root:is(.dark, [data-theme="dark"]:not([data-applied-theme]), [data-applied-theme="dark"]) .invert-theme',
 		);
 	});
 
@@ -108,15 +108,47 @@ describe("theme block selector extensions", () => {
 			selector.includes(":root.light-high-contrast"),
 		);
 		expect(normalizeSelector(lightHcRule?.selector)).toContain(
-			':root:is(.dark-high-contrast, [data-theme="dark-high-contrast"], [data-applied-theme="dark-high-contrast"]) .invert-theme',
+			':root:is(.dark-high-contrast, [data-theme="dark-high-contrast"]:not([data-applied-theme]), [data-applied-theme="dark-high-contrast"]) .invert-theme',
 		);
 
 		const darkHcRule = extractTopLevelRules(darkHighContrastCss).find(({ selector }) =>
 			selector.includes(":root.dark-high-contrast"),
 		);
 		expect(normalizeSelector(darkHcRule?.selector)).toContain(
-			':root:is(.light-high-contrast, [data-theme="light-high-contrast"], [data-applied-theme="light-high-contrast"]) .invert-theme',
+			':root:is(.light-high-contrast, [data-theme="light-high-contrast"]:not([data-applied-theme]), [data-applied-theme="light-high-contrast"]) .invert-theme',
 		);
+	});
+
+	test("every data-theme selector is guarded against an applied theme", () => {
+		// `data-theme` carries the stored *preference*, which `forceTheme` leaves
+		// disagreeing with the theme actually applied. Pair loading then keeps the
+		// partner stylesheet live, so a bare `[data-theme="dark"]` matches a
+		// `forceTheme="light"` page and the later sheet wins the cascade — the page
+		// paints dark. The guard is what makes the applied theme authoritative.
+		// force-theme.browser.test.ts proves the computed outcome; this pins the
+		// spelling in all four sheets so a new selector cannot reintroduce it.
+		const sheets = {
+			"mantle.css": mantleCss,
+			"mantle-dark.css": darkCss,
+			"mantle-light-high-contrast.css": lightHighContrastCss,
+			"mantle-dark-high-contrast.css": darkHighContrastCss,
+		};
+		const unguarded: string[] = [];
+		let guarded = 0;
+		for (const [name, css] of Object.entries(sheets)) {
+			for (const match of css.matchAll(
+				/\[data-theme="[a-z-]+"\](:not\(\[data-applied-theme\]\))?/g,
+			)) {
+				if (match[1] == null) {
+					unguarded.push(`${name}: ${match[0]}`);
+				} else {
+					guarded += 1;
+				}
+			}
+		}
+		expect(unguarded).toEqual([]);
+		// a floor, so deleting the selectors entirely cannot pass this test
+		expect(guarded).toBe(15);
 	});
 });
 
@@ -251,7 +283,7 @@ describe("the materialized default palette (mantle.css light base)", () => {
 		);
 		const restoreSelector = normalizeSelector(restoreRule?.selector);
 		expect(restoreSelector).toBe(
-			':root:is(.dark, [data-theme="dark"], [data-applied-theme="dark"]) .invert-theme',
+			':root:is(.dark, [data-theme="dark"]:not([data-applied-theme]), [data-applied-theme="dark"]) .invert-theme',
 		);
 		expect(normalizeSelector(pageRule?.selector)).toContain(restoreSelector);
 	});

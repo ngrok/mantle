@@ -7,17 +7,17 @@ opposite theme's own definitions re-declared on the island element. See
 MARK: INVERT THEME in mantle.css for the full strategy.
 */
 :root.dark,
-:root[data-theme="dark"],
+:root[data-theme="dark"]:not([data-applied-theme]),
 :root[data-applied-theme="dark"],
 :root:not(
 		.dark,
-		[data-theme="dark"],
+		[data-theme="dark"]:not([data-applied-theme]),
 		[data-applied-theme="dark"],
 		.light-high-contrast,
-		[data-theme="light-high-contrast"],
+		[data-theme="light-high-contrast"]:not([data-applied-theme]),
 		[data-applied-theme="light-high-contrast"],
 		.dark-high-contrast,
-		[data-theme="dark-high-contrast"],
+		[data-theme="dark-high-contrast"]:not([data-applied-theme]),
 		[data-applied-theme="dark-high-contrast"]
 	)
 	.invert-theme {

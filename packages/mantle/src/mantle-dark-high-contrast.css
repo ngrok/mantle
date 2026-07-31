@@ -7,11 +7,11 @@ definitions re-declared on the island element. See MARK: INVERT THEME in
 mantle.css for the full strategy.
 */
 :root.dark-high-contrast,
-:root[data-theme="dark-high-contrast"],
+:root[data-theme="dark-high-contrast"]:not([data-applied-theme]),
 :root[data-applied-theme="dark-high-contrast"],
 :root:is(
 		.light-high-contrast,
-		[data-theme="light-high-contrast"],
+		[data-theme="light-high-contrast"]:not([data-applied-theme]),
 		[data-applied-theme="light-high-contrast"]
 	)
 	.invert-theme {
