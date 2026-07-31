@@ -35,10 +35,11 @@ import type { PaletteMode, WorstPair } from "./palette-gates.js";
  * answers.
  *
  * It replaced a test that compared alias NAMES, which could not see any of the
- * regressions that matter — a ramp step edited by one digit, a surface change, a
- * deleted override that falls through to Tailwind, or an upstream Tailwind
- * re-tune. The light theme resolves eight of its nine chart slots inside
- * `tailwindcss/theme.css`, so those are colors mantle ships without owning.
+ * regressions that matter — a ramp step edited by one digit, a surface change, or
+ * a deleted override that drops a slot through to Tailwind's own ramp. Every
+ * light slot resolves inside `mantle.css` today, so mantle owns all four
+ * palettes; the resolver still reaches Tailwind, and the recorded source below is
+ * what would catch a slot falling back to it.
  *
  * **When this test fails, re-step a slot. Never widen a threshold and never
  * update an expectation to match.** The thresholds are the contract; the palette
@@ -139,22 +140,22 @@ const DARK_HIGH_CONTRAST_BAND_WAIVER = { slots: [1, 2, 3, 4, 5, 6, 7, 8], driftC
  *
  * This is the recorded shape of the palette, and it is the only gate that sees a
  * deleted override — a slot that falls through to a different file keeps passing
- * every color measurement. Eight of the light theme's nine rows land in
- * `tailwindcss/theme.css`, which is the fact worth staring at: those are colors
- * mantle ships in its default theme without owning their values, so an upstream
- * ramp re-tune moves them. Move one into mantle's own `:root` and update the row.
+ * every color measurement. Every row lands in a mantle theme file today, so no
+ * chart color depends on a Tailwind ramp value. A row that flips to
+ * `tailwindcss/theme.css` means an override went missing and an upstream re-tune
+ * can now move a shipped series color.
  */
 const PROVENANCE: Record<string, Array<{ slot: string; alias: string; source: string }>> = {
 	light: [
 		{ slot: "chart-1", alias: "--color-blue-500", source: "mantle.css" },
-		{ slot: "chart-2", alias: "--color-green-700", source: "tailwindcss/theme.css" },
-		{ slot: "chart-3", alias: "--color-pink-500", source: "tailwindcss/theme.css" },
-		{ slot: "chart-4", alias: "--color-red-600", source: "tailwindcss/theme.css" },
-		{ slot: "chart-5", alias: "--color-teal-600", source: "tailwindcss/theme.css" },
-		{ slot: "chart-6", alias: "--color-orange-600", source: "tailwindcss/theme.css" },
-		{ slot: "chart-7", alias: "--color-violet-500", source: "tailwindcss/theme.css" },
-		{ slot: "chart-8", alias: "--color-yellow-700", source: "tailwindcss/theme.css" },
-		{ slot: "chart-other", alias: "--color-neutral-500", source: "tailwindcss/theme.css" },
+		{ slot: "chart-2", alias: "--color-green-700", source: "mantle.css" },
+		{ slot: "chart-3", alias: "--color-pink-500", source: "mantle.css" },
+		{ slot: "chart-4", alias: "--color-red-600", source: "mantle.css" },
+		{ slot: "chart-5", alias: "--color-teal-600", source: "mantle.css" },
+		{ slot: "chart-6", alias: "--color-orange-600", source: "mantle.css" },
+		{ slot: "chart-7", alias: "--color-violet-500", source: "mantle.css" },
+		{ slot: "chart-8", alias: "--color-yellow-700", source: "mantle.css" },
+		{ slot: "chart-other", alias: "--color-neutral-500", source: "mantle.css" },
 	],
 	dark: [
 		{ slot: "chart-1", alias: "--color-blue-500", source: "mantle-dark.css" },

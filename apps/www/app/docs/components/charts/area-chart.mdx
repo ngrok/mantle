@@ -938,22 +938,18 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-<<<<<<< HEAD
 A series without an explicit `color` claims the next never-used slot from the ordered `--color-chart-1` … `--color-chart-8` tokens when it first registers. The palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the chart surface in all four themes (light, dark, high-contrast light, high-contrast dark). A claimed slot is sticky per `dataKey` for the chart's lifetime — filtering series in and out never repaints the survivors, so color follows the entity, never its rank. An explicit `color` reserves its token, so the next unpinned series skips past it. A series that unmounts keeps its slot while the palette has room. Once the never-used slots run out, an incoming series takes a slot back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Fold the long tail into a single "Other" series rather than inventing more hues.
-=======
-Series without an explicit `color` claim the ordered `--color-chart-1` … `--color-chart-8` tokens in composition order. The palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the chart surface in all four themes (light, dark, high-contrast light, high-contrast dark). A claimed slot is sticky per `dataKey` for the chart's lifetime — filtering series in and out never repaints the survivors, so color follows the entity, never its rank. A series that unmounts keeps its slot while the palette has room. Once the never-used slots run out, an incoming series takes a slot back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Fold the long tail into a single "Other" series rather than inventing more hues.
->>>>>>> 4eaa4250 (docs(chart): call out the eight-slot cap with a worked top-N fold)
 
-| CSS Variable          | Description                                                                                 |
-| --------------------- | ------------------------------------------------------------------------------------------- |
-| `--color-chart-1`     | The first categorical series slot.                                                          |
-| `--color-chart-2`     | The second categorical series slot.                                                         |
-| `--color-chart-3`     | The third categorical series slot.                                                          |
-| `--color-chart-4`     | The fourth categorical series slot.                                                         |
-| `--color-chart-5`     | The fifth categorical series slot.                                                          |
-| `--color-chart-6`     | The sixth categorical series slot.                                                          |
-| `--color-chart-7`     | The seventh categorical series slot.                                                        |
-| `--color-chart-8`     | The eighth categorical series slot.                                                         |
+| CSS Variable          | Description                                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `--color-chart-1`     | The first categorical series slot.                                                                          |
+| `--color-chart-2`     | The second categorical series slot.                                                                         |
+| `--color-chart-3`     | The third categorical series slot.                                                                          |
+| `--color-chart-4`     | The fourth categorical series slot.                                                                         |
+| `--color-chart-5`     | The fifth categorical series slot.                                                                          |
+| `--color-chart-6`     | The sixth categorical series slot.                                                                          |
+| `--color-chart-7`     | The seventh categorical series slot.                                                                        |
+| `--color-chart-8`     | The eighth categorical series slot.                                                                         |
 | `--color-chart-other` | The fold slot, worn once more than eight series show at once — group the tail into a single "Other" series. |
 
 Custom `color` strings are an escape hatch, not a shortcut: a raw hex value does not adapt across themes, and any custom palette must be re-validated for colorblind-safe adjacency and surface contrast. A series that carries good or bad meaning — an error rate, a success rate — should wear the semantic status colors, never a categorical slot.
