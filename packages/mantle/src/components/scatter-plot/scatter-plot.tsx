@@ -86,10 +86,17 @@ type ScatterPlotPointProps = {
 	/**
 	 * One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`)
 	 * or any CSS color as an escape hatch. Defaults to the next sticky slot in
-	 * mount order. Static colors (raw hex) do not adapt across themes; custom
-	 * palettes must be validated for colorblind-safe adjacency and surface
-	 * contrast, and a series that carries good/bad meaning should wear the
-	 * semantic status colors, never a categorical slot.
+	 * mount order.
+	 *
+	 * Every color but `"chart-other"` spends one of the eight slots, so an
+	 * unpinned sibling is never handed a color already on screen. A custom color
+	 * spends the next slot in order, not the slot it resembles: mantle measures no
+	 * color, so a brand hex can still paint next to a near-identical slot. Check
+	 * that pair yourself, and change the color when the two read as one series.
+	 *
+	 * A static color (raw hex) cannot follow the four themes, so prefer a
+	 * `var(--your-token)` declared per theme. A series that carries good/bad
+	 * meaning should wear the semantic status colors, never a categorical slot.
 	 */
 	color?: SeriesColor;
 	/**

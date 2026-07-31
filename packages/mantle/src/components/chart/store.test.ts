@@ -70,12 +70,45 @@ describe("ChartStore color slots", () => {
 		expect(meta[9]?.color).toBe("var(--color-chart-other)");
 	});
 
-	test("explicitly colored series do not consume slots", () => {
+	test("a custom-colored series spends a slot, so the next unpinned series skips it", () => {
+		// One series is one identity, so it spends one of the eight slots even when
+		// it paints a color the consumer chose. Without this the palette hands out
+		// all eight while three series already wear brand colors, and a chart of
+		// five series can be handed a ninth identity.
 		const store = new ChartStore();
 		store.registerSeries(makeSeries("pinned", { color: "var(--color-success-600)" }));
 		store.registerSeries(makeSeries("auto"));
 		const meta = store.seriesMeta();
 		expect(meta[0]?.color).toBe("var(--color-success-600)");
+		expect(meta[1]?.color).toBe("var(--color-chart-2)");
+	});
+
+	test("a custom color spends its slot in registration order", () => {
+		// The slot a custom color spends is positional, never measured against the
+		// color itself: mantle cannot know a brand hex resembles chart-5 without
+		// running color math whose answer differs per theme.
+		const store = new ChartStore();
+		for (const key of ["openai", "claude", "gemini"]) {
+			store.registerSeries(makeSeries(key, { color: `var(--provider-${key})` }));
+		}
+		store.registerSeries(makeSeries("byo-one"));
+		store.registerSeries(makeSeries("byo-two"));
+		const meta = store.seriesMeta();
+		expect(meta.map((series) => series.color)).toStrictEqual([
+			"var(--provider-openai)",
+			"var(--provider-claude)",
+			"var(--provider-gemini)",
+			"var(--color-chart-4)",
+			"var(--color-chart-5)",
+		]);
+	});
+
+	test("pinning chart-other spends nothing — the overflow gray is shared", () => {
+		const store = new ChartStore();
+		store.registerSeries(makeSeries("tail", { color: "chart-other" }));
+		store.registerSeries(makeSeries("auto"));
+		const meta = store.seriesMeta();
+		expect(meta[0]?.color).toBe("var(--color-chart-other)");
 		expect(meta[1]?.color).toBe("var(--color-chart-1)");
 	});
 
@@ -229,10 +262,12 @@ describe("ChartStore slot reclaim", () => {
 		expect(meta.find((series) => series.dataKey === "a")?.color).toBe("var(--color-chart-2)");
 	});
 
-	test("a token an unmounted series pinned is never reclaimed", () => {
-		// An explicit pin is a standing declaration, so its token stays reserved
-		// even while the series is off screen. Seven mounted holders take the rest,
-		// which leaves the newcomer the overflow rather than the pinned color.
+	test("a token an unmounted series pinned is reclaimed rather than retired", () => {
+		// A pinned token that stayed reserved forever starved the palette: a
+		// dashboard pinning eight providers and regrouping by API key painted every
+		// series the overflow gray, which is the exhaustion bug the reclaim exists
+		// to prevent. Seven mounted holders take the rest, and the newcomer gets the
+		// pinned series' token because that series is off screen.
 		const store = new ChartStore();
 		const unregisterPinned = store.registerSeries(makeSeries("pinned", { color: "chart-1" }));
 		unregisterPinned();
@@ -241,6 +276,49 @@ describe("ChartStore slot reclaim", () => {
 		}
 		store.registerSeries(makeSeries("newcomer"));
 		expect(store.seriesMeta().find((series) => series.dataKey === "newcomer")?.color).toBe(
+			"var(--color-chart-1)",
+		);
+	});
+
+	test("eight pinned providers unmount, then a regroup paints real colors", () => {
+		// The reported shape: group by provider, then regroup by API key. Every
+		// provider pinned a token and left, so without reclaiming pinned slots the
+		// four keys on screen all painted chart-other.
+		const store = new ChartStore();
+		const unregisters = Array.from({ length: 8 }, (_, index) =>
+			store.registerSeries(makeSeries(`provider-${index}`, { color: `chart-${index + 1}` })),
+		);
+		for (const unregister of unregisters) {
+			unregister();
+		}
+		for (let index = 0; index < 4; index++) {
+			store.registerSeries(makeSeries(`api-key-${index}`));
+		}
+		expect(store.seriesMeta().map((series) => series.color)).toStrictEqual([
+			"var(--color-chart-1)",
+			"var(--color-chart-2)",
+			"var(--color-chart-3)",
+			"var(--color-chart-4)",
+		]);
+	});
+
+	test("a remounting pin takes its token back from the series that reclaimed it", () => {
+		// The reclaim's counterpart: the pin is authoritative, so a returning
+		// pinned series evicts the holder instead of painting a duplicate.
+		const store = new ChartStore();
+		const unregisterPinned = store.registerSeries(makeSeries("openai", { color: "chart-1" }));
+		unregisterPinned();
+		for (let index = 0; index < 8; index++) {
+			store.registerSeries(makeSeries(`api-key-${index}`));
+		}
+		const reclaimer = store
+			.seriesMeta()
+			.find((series) => series.color === "var(--color-chart-1)")?.dataKey;
+		expect(reclaimer).toBe("api-key-7");
+		store.registerSeries(makeSeries("openai", { color: "chart-1" }));
+		const meta = store.seriesMeta();
+		expect(meta.find((series) => series.dataKey === "openai")?.color).toBe("var(--color-chart-1)");
+		expect(meta.find((series) => series.dataKey === "api-key-7")?.color).toBe(
 			"var(--color-chart-other)",
 		);
 	});

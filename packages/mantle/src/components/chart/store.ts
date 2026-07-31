@@ -96,21 +96,30 @@ const displayColor = (color: SeriesSpec["color"], slot: ChartColorToken): string
  * returning dataKey gets its old slot back — filtering a series out never
  * repaints the survivors (color follows the entity, not its row number).
  *
- * Two things override stickiness, and neither can repaint a mounted series:
+ * Every series that carries one identity spends one of the eight slots, so the
+ * budget counts what a reader sees rather than what auto-assignment handed out.
+ * A series with a custom CSS color paints that color and still spends a slot;
+ * `#claimSlot` states what each color shape spends.
  *
- * - A series pinning a chart token evicts any earlier auto-assignment of that
- *   token (the evicted dataKey moves to the next free slot and stays sticky
- *   there), so an explicit pin wins its color regardless of registration order.
+ * Two things override stickiness:
+ *
+ * - A series pinning a chart token evicts the holder of that token (the evicted
+ *   dataKey moves to the next free slot and stays sticky there), so an explicit
+ *   pin wins its color regardless of registration order. This is the one path
+ *   that repaints a mounted series. It moves only a holder whose slot is a
+ *   reservation, never one that paints the token itself.
  * - Once the never-used slots run out, an incoming series takes a slot back
  *   from an UNMOUNTED holder rather than falling to `chart-other`, oldest
  *   registration first. Without it the cursor counts every dataKey the store
  *   has ever seen, so a Root that swaps one series vocabulary for another paints
- *   the overflow gray while the chart shows two series. The cost is that a
- *   reclaimed dataKey no longer returns to its original slot — stickiness holds
- *   for as long as the palette has room, which is the whole eight-slot budget.
+ *   the overflow gray while the chart shows two series. A mounted series is
+ *   never a candidate, which is what makes the reclaim safe by construction. The
+ *   cost is that a reclaimed dataKey no longer returns to its original slot —
+ *   stickiness holds for as long as the palette has room, which is the whole
+ *   eight-slot budget.
  *
- * A chart that genuinely mounts more than eight unpinned series still paints the
- * ninth and later with `chart-other`; fold them into an "Other" series or facet
+ * A chart that genuinely mounts more than eight series still paints the ninth
+ * and later with `chart-other`; fold them into an "Other" series or facet
  * instead.
  */
 class ChartStore {
@@ -128,7 +137,13 @@ class ChartStore {
 
 	#seriesByKey = new Map<string, { spec: SeriesSpec; sequence: number }>();
 	#sequenceByKey = new Map<string, number>();
-	#slotByKey = new Map<string, ChartColorToken>();
+	/**
+	 * The slot each dataKey holds. `pinned` marks a slot that IS the series'
+	 * painted color, which eviction must never move; an unpinned entry is a
+	 * budget reservation held by a series that paints the slot itself or paints a
+	 * custom color. Both kinds outlive unmount, and both are reclaimable.
+	 */
+	#slotByKey = new Map<string, { slot: ChartColorToken; pinned: boolean }>();
 	#claimedSlots = new Set<ChartColorToken>();
 	#nextSequence = 0;
 	#nextSlot = 0;
@@ -171,16 +186,22 @@ class ChartStore {
 	 * series from ever repainting. Among candidates the longest-registered key
 	 * gives its slot up first: `#sequenceByKey` already outlives unmount, so the
 	 * order needs no new state and does not depend on unmount timing.
+	 *
+	 * A pinned holder is a candidate too. Its token is the color it painted while
+	 * mounted, so retiring the slot forever would starve the palette: a dashboard
+	 * that pins eight providers and then regroups by API key would paint every
+	 * series the overflow gray. If the pinned series remounts, its pin evicts
+	 * whichever series took the token.
 	 */
 	#reclaimableSlot(): { dataKey: string; slot: ChartColorToken } | null {
 		let oldest: { dataKey: string; slot: ChartColorToken; sequence: number } | null = null;
-		for (const [dataKey, slot] of this.#slotByKey) {
+		for (const [dataKey, held] of this.#slotByKey) {
 			if (this.#seriesByKey.has(dataKey)) {
 				continue;
 			}
 			const sequence = this.#sequenceByKey.get(dataKey) ?? Number.POSITIVE_INFINITY;
 			if (oldest == null || sequence < oldest.sequence) {
-				oldest = { dataKey, slot, sequence };
+				oldest = { dataKey, slot: held.slot, sequence };
 			}
 		}
 		return oldest == null ? null : { dataKey: oldest.dataKey, slot: oldest.slot };
@@ -190,7 +211,7 @@ class ChartStore {
 	slotFor(dataKey: string): ChartColorToken {
 		const existing = this.#slotByKey.get(dataKey);
 		if (existing != null) {
-			return existing;
+			return existing.slot;
 		}
 		// Skip slots another series pinned explicitly, so an unpinned series
 		// never claims a pinned color. The reverse arrival order — a pin
@@ -210,7 +231,7 @@ class ChartStore {
 			const reclaimed = this.#reclaimableSlot();
 			if (reclaimed != null) {
 				this.#slotByKey.delete(reclaimed.dataKey);
-				this.#slotByKey.set(dataKey, reclaimed.slot);
+				this.#slotByKey.set(dataKey, { slot: reclaimed.slot, pinned: false });
 				return reclaimed.slot;
 			}
 		}
@@ -218,34 +239,66 @@ class ChartStore {
 		if (this.#nextSlot < SLOT_ORDER.length) {
 			this.#nextSlot += 1;
 		}
-		this.#slotByKey.set(dataKey, slot);
+		this.#slotByKey.set(dataKey, { slot, pinned: false });
 		this.#claimedSlots.add(slot);
 		return slot;
 	}
 
 	/**
-	 * Move the dataKey auto-holding `token` (if any) to the next free slot
-	 * because `pinnedBy` just pinned that token explicitly — a pin wins its
+	 * Move the dataKey holding `token` as a reservation (if any) to the next free
+	 * slot because `pinnedBy` just pinned that token explicitly — a pin wins its
 	 * color regardless of registration order. Idempotent: once no other dataKey
-	 * auto-holds the token this is a no-op, so effect re-runs of the pinned
-	 * series never churn slots. A holder whose registered spec pins the same
-	 * token is left alone: pinned-vs-pinned collisions are the consumer's
-	 * explicit choice.
+	 * holds the token as a reservation this is a no-op, so effect re-runs of the
+	 * pinned series never churn slots. Another pin of the same token is left
+	 * alone: pinned-vs-pinned collisions are the consumer's explicit choice.
 	 */
-	#evictAutoAssignedSlot({ token, pinnedBy }: { token: ChartColorToken; pinnedBy: string }): void {
-		for (const [dataKey, slot] of this.#slotByKey) {
-			if (slot !== token || dataKey === pinnedBy) {
-				continue;
-			}
-			if (this.#seriesByKey.get(dataKey)?.spec.color === token) {
+	#evictReservedSlot({ token, pinnedBy }: { token: ChartColorToken; pinnedBy: string }): void {
+		for (const [dataKey, held] of this.#slotByKey) {
+			if (held.slot !== token || dataKey === pinnedBy || held.pinned) {
 				continue;
 			}
 			this.#slotByKey.delete(dataKey);
 			this.slotFor(dataKey);
 			// `slotFor` never assigns an already-claimed token, so at most one
-			// auto holder can exist per token.
+			// reservation holder can exist per token.
 			return;
 		}
+	}
+
+	/**
+	 * Take the slot this series spends out of circulation.
+	 *
+	 * One series carries one identity, so it spends one of the eight slots and the
+	 * budget counts the series a reader sees:
+	 *
+	 * - No `color` — the series paints its slot. A later pin of that token may
+	 *   move it.
+	 * - A chart token — the slot IS the painted color, so nothing moves it.
+	 * - Any other CSS color — the series paints that color and still spends a
+	 *   slot, so an unpinned sibling is never handed a color the consumer already
+	 *   put on screen. The reservation is movable, because the series does not
+	 *   paint it.
+	 * - `chart-other` — the overflow gray is shared by every series past the
+	 *   eighth, so pinning it spends nothing.
+	 */
+	#claimSlot(spec: SeriesSpec): void {
+		if (spec.color === "chart-other") {
+			return;
+		}
+		if (spec.color != null && isChartColorToken(spec.color)) {
+			this.#claimedSlots.add(spec.color);
+			this.#slotByKey.set(spec.dataKey, { slot: spec.color, pinned: true });
+			this.#evictReservedSlot({ token: spec.color, pinnedBy: spec.dataKey });
+			return;
+		}
+		const held = this.#slotByKey.get(spec.dataKey);
+		if (held?.pinned) {
+			// The series pinned a token on an earlier registration and now carries a
+			// custom color, so its slot goes back to a movable reservation.
+			this.#slotByKey.set(spec.dataKey, { slot: held.slot, pinned: false });
+			return;
+		}
+		this.slotFor(spec.dataKey);
 	}
 
 	registerSeries(spec: SeriesSpec): () => void {
@@ -253,17 +306,12 @@ class ChartStore {
 		// store's lifetime so toggling a series round-trips to the same slot.
 		const sequence = this.#sequenceByKey.get(spec.dataKey) ?? this.#nextSequence++;
 		this.#sequenceByKey.set(spec.dataKey, sequence);
-		if (spec.color == null) {
-			this.slotFor(spec.dataKey);
-		} else if (isChartColorToken(spec.color) && spec.color !== "chart-other") {
-			// A series pinning a chart token consumes that slot for auto-assignment
-			// and evicts any earlier auto-assignment of the same token, so
-			// registration order alone never leaves two series painted the
-			// identical color.
-			this.#claimedSlots.add(spec.color);
-			this.#evictAutoAssignedSlot({ token: spec.color, pinnedBy: spec.dataKey });
-		}
+		// Mount before claiming: `#reclaimableSlot` reads `#seriesByKey` to tell an
+		// unmounted holder from a mounted one, so a series that is not there yet
+		// looks reclaimable to its own registration. A remounting pin would hand its
+		// token straight back to whichever series took it.
 		this.#seriesByKey.set(spec.dataKey, { spec, sequence });
+		this.#claimSlot(spec);
 		this.#publishRegistrations({ seriesChanged: true });
 		return () => {
 			const current = this.#seriesByKey.get(spec.dataKey);
@@ -364,8 +412,8 @@ class ChartStore {
 			dataKey: spec.dataKey,
 			label: spec.label,
 			mark: spec.mark,
-			color: displayColor(spec.color, this.#slotByKey.get(spec.dataKey) ?? "chart-other"),
-			colorInput: spec.color ?? this.#slotByKey.get(spec.dataKey) ?? "chart-other",
+			color: displayColor(spec.color, this.#slotByKey.get(spec.dataKey)?.slot ?? "chart-other"),
+			colorInput: spec.color ?? this.#slotByKey.get(spec.dataKey)?.slot ?? "chart-other",
 			shape: spec.shape,
 			texture: spec.texture,
 		}));

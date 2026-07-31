@@ -65,10 +65,17 @@ type ChartColorToken =
 /**
  * A series color: one of the validated chart tokens (preferred — they adapt to
  * light/dark/high-contrast themes) or any CSS color string as an escape hatch.
- * Static colors (e.g. raw hex) do not adapt across themes; custom palettes
- * must be validated for colorblind-safe adjacency and surface contrast. A
- * series that carries good/bad meaning (error rate, pass/fail) should wear the
- * semantic status colors, never a categorical chart slot.
+ *
+ * Every color but `"chart-other"` spends one of the eight slots, so an unpinned
+ * sibling is never handed a color already on screen. A custom color spends the
+ * next slot in order, not the slot it resembles: mantle measures no color, so a
+ * brand hex can still paint next to a near-identical slot, and that pair is the
+ * consumer's to fix.
+ *
+ * A static color (raw hex) cannot follow the four themes, so prefer a
+ * `var(--your-token)` a consumer declares per theme. A series that carries
+ * good/bad meaning (error rate, pass/fail) should wear the semantic status
+ * colors, never a categorical chart slot.
  */
 type SeriesColor = ChartColorToken | (string & {});
 
@@ -113,7 +120,10 @@ type SeriesSpec = {
 	dataKey: string;
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */
 	label: string;
-	/** Explicit color; when omitted the series claims the next sticky slot. */
+	/**
+	 * Explicit color; when omitted the series claims the next sticky slot. Either
+	 * way the series spends a slot, unless it pins `"chart-other"`.
+	 */
 	color: SeriesColor | undefined;
 	/** The mark this series paints. */
 	mark: SeriesMark;
