@@ -111,8 +111,9 @@ function findPrecedingJsDoc(source: string, declarationIndex: number): string | 
  * or up to the first `@<tag>` line — whichever comes first. The
  * uppercase-letter requirement avoids prematurely splitting on common
  * Latin abbreviations like "e.g." or "i.e." that are followed by inline
- * code or quoted text. Returns `undefined` when no description text is
- * present.
+ * code or quoted text. The search runs over the first paragraph only, so a
+ * summary that ends in front of a markdown block stops there. Returns
+ * `undefined` when no description text is present.
  */
 function firstSentenceFromJsDoc(jsdoc: string): string | undefined {
 	const stripped = jsdoc
@@ -133,9 +134,15 @@ function firstSentenceFromJsDoc(jsdoc: string): string | undefined {
 		return undefined;
 	}
 
+	// Why the paragraph cut: a summary that ends in front of a markdown block —
+	// a bold lead-in, a bullet list, a table row — has no uppercase letter after
+	// its period, so the sentence search below reaches `\.$` and swallows the
+	// whole block. Cut before the `\s+` collapse destroys the paragraph break.
+	const [firstParagraph] = description.split(/\n[ \t]*\n/);
+
 	// Inline `{@link Target}` / `{@link Target label}` tags read as raw JSDoc
 	// syntax in plain-text summaries — render them as their label (or target).
-	const flattened = description
+	const flattened = (firstParagraph ?? description)
 		.replace(/\s+/g, " ")
 		.replace(
 			/\{@link\s+([^}|\s]+)(?:[|\s]+([^}]+))?\}/g,
@@ -369,4 +376,9 @@ export async function buildHooksManifest(): Promise<HooksManifest> {
 	return cachedManifest;
 }
 
-export { examplesFromJsDoc, extractExamplesForName, extractFirstSentenceForName };
+export {
+	examplesFromJsDoc,
+	extractExamplesForName,
+	extractFirstSentenceForName,
+	firstSentenceFromJsDoc,
+};

@@ -103,7 +103,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/avatar",
     "summary": "A small image representing a person or an account, with a text or icon fallback.",
-    "jsdoc": "A small image representing a person or an account, with a text or icon fallback for when there is no picture — or before one loads. `appearance` carries the meaning: `\"circle\"` for a person, `\"square\"` (a rounded square) for an account, workspace, team, or organization.",
+    "jsdoc": "A small image representing a person or an account, with a text or icon fallback for when there is no picture — or before one loads.",
     "examples": [
       "Composition:\n```\nAvatar.Root\n├── Avatar.Image\n└── Avatar.Fallback\n```",
       "```tsx\n<Avatar.Root appearance=\"square\" colorSeed=\"acc_123\">\n  <Avatar.Image src=\"https://example.com/acme.png\" alt=\"\" />\n  <Avatar.Fallback name=\"Acme Corp\" />\n</Avatar.Root>\n```"
@@ -117,7 +117,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/badge",
     "summary": "A non-interactive label used to highlight short, scannable information — a status, a category tag, or a count — in the smallest possible footprint.",
-    "jsdoc": "A non-interactive label used to highlight short, scannable information — a status, a category tag, or a count — in the smallest possible footprint. **When to use** - Status indicators: `Succeeded`, `Failed`, `Pending`, `Beta`. - Category or tag chips alongside list items, table rows, or cards. - Counts (e.g. `12 new`) when paired with brief context. **When not to use** - For interactive UI.",
+    "jsdoc": "A non-interactive label used to highlight short, scannable information — a status, a category tag, or a count — in the smallest possible footprint.",
     "examples": [
       "```tsx\nimport { Badge } from \"@ngrok/mantle/badge\";\nimport { CheckCircleIcon } from \"@phosphor-icons/react/CheckCircle\";\n\n<Badge appearance=\"muted\" color=\"success\" icon={<CheckCircleIcon />}>\n  Succeeded\n</Badge>\n\n// Polymorphic — render the badge as a link, preserving its styling.\n<Badge appearance=\"muted\" color=\"info\" asChild>\n  <a href=\"/status\">Operational</a>\n</Badge>\n```"
     ]
@@ -353,7 +353,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/dropdown-menu",
     "summary": "Displays a menu to the user — such as a set of actions or functions — triggered by a button.",
-    "jsdoc": "A menu of options or actions, triggered by a button. `DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind `z-50`, Mantle's shared floating z-index.",
+    "jsdoc": "A menu of options or actions, triggered by a button.",
     "examples": [
       "Composition:\n```\nDropdownMenu.Root\n├── DropdownMenu.Trigger\n└── DropdownMenu.Content\n    ├── DropdownMenu.Group\n    │   ├── DropdownMenu.Label\n    │   ├── DropdownMenu.Item\n    │   │   └── DropdownMenu.Shortcut\n    │   ├── DropdownMenu.CheckboxItem\n    │   └── DropdownMenu.RadioGroup\n    │       └── DropdownMenu.RadioItem\n    ├── DropdownMenu.Separator\n    └── DropdownMenu.Sub\n        ├── DropdownMenu.SubTrigger\n        └── DropdownMenu.SubContent\n```",
       "```tsx\n<DropdownMenu.Root>\n  <DropdownMenu.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">\n      Open Menu\n    </Button>\n  </DropdownMenu.Trigger>\n  <DropdownMenu.Content>\n    <DropdownMenu.Item>Item 1</DropdownMenu.Item>\n    <DropdownMenu.Item>Item 2</DropdownMenu.Item>\n  </DropdownMenu.Content>\n</DropdownMenu.Root>\n```"
