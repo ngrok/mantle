@@ -2,7 +2,7 @@
 "@ngrok/mantle": minor
 ---
 
-feat(sandbar): add the Sandbar component — a floating save bar for unsaved changes
+Add **`Sandbar`** — a floating save bar for unsaved changes.
 
 `Sandbar` is a persistent, decision-bearing bar that floats near the bottom edge of the viewport. It surfaces pending state — primarily a form's unsaved ("dirty") changes — and stays until the user resolves it: save or discard. Unlike Toast, which announces something that already happened and leaves on its own, a Sandbar waits for the user's decision. (The name: a sandbar is a bar that blocks navigation.)
 

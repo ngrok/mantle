@@ -115,7 +115,7 @@ function alternateAnnouncement(text: string, toggle: { current: boolean }): stri
  * ```tsx
  * const sandbarHandle = useRef<SandbarHandle>(null);
  *
- * // your router's guard owns the blocking; call this when it blocks a navigation
+ * // hand this to your router's guard — it owns the blocking, the bar reacts
  * const onNavigationBlocked = () => sandbarHandle.current?.shake();
  *
  * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
@@ -569,7 +569,13 @@ const Root = ({
 			return;
 		}
 		// only the presence transition's own properties advance the machine —
-		// a consumer-added transition on another property must not close early
+		// a consumer-added transition on another property must not close early.
+		//
+		// Why no "transform": Tailwind v4's `translate-y-*` writes the standalone
+		// `translate` property, never `transform`. `motion-safe` gates only that
+		// half, so the `opacity` transition runs in every engine and under reduced
+		// motion — it is the guaranteed path, and widening this list would let a
+		// consumer's own `transform` transition close the panel mid-exit.
 		if (event.propertyName !== "opacity" && event.propertyName !== "translate") {
 			return;
 		}
@@ -634,6 +640,11 @@ const Root = ({
 						// variant compiles to `.…[hidden] { display: none }` — author-origin
 						// and specificity (0,2,0), so it outranks `flex` and any consumer
 						// display utility on its own, with or without Preflight.
+						//
+						// Why the explicit `&`: editors suggest the `[[hidden]]:hidden` shorthand,
+						// but Tailwind 4.3.3 compiles that to `.…:is([hidden])` instead. Same
+						// specificity, different selector text — and the browser test injects this
+						// one verbatim, so keep the two spellings in step if you ever switch.
 						"[&[hidden]]:hidden",
 						// state-driven transitions (the sonner approach): interruptible and
 						// retargetable, so a reopen mid-exit rises back from wherever the

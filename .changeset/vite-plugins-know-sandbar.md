@@ -2,11 +2,11 @@
 "@ngrok/mantle-vite-plugins": patch
 ---
 
-fix(tw-source): teach `mantleTwSourcePlugin` about `Sandbar`'s internal chunks
+Teach `mantleTwSourcePlugin` about the new `sandbar` subpath, so a consumer importing
+`@ngrok/mantle/sandbar` gets its classes scanned by Tailwind instead of an unstyled bar.
 
-Map `sandbar` to the `button` internal chunk in `INTERNAL_CHUNKS_BY_COMPONENT`.
-`Sandbar` renders a `Button` for each of `Sandbar.SaveButton` /
-`Sandbar.DiscardButton`, and the build hoists Button's class strings into
-`button-<hash>.js`, leaving none in `sandbar.js` — so without the mapping a
-consumer importing only `@ngrok/mantle/sandbar` got a styled panel wrapped
-around unstyled action buttons.
+`Sandbar` also needs its action buttons scanned: it renders a `Button` for each of
+`Sandbar.SaveButton` and `Sandbar.DiscardButton`, and the build hoists Button's class strings into
+`button-<hash>.js`, leaving none in `sandbar.js`. The plugin now scans the `button` chunk for
+`sandbar` too — without it, a consumer importing only `@ngrok/mantle/sandbar` got a styled panel
+wrapped around unstyled action buttons. No behavior change for any other component.

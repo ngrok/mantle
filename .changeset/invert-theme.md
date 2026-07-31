@@ -2,7 +2,7 @@
 "@ngrok/mantle": minor
 ---
 
-feat(theme): add `invert-theme` — a first-class class that renders a DOM subtree in the opposite theme
+Add **`invert-theme`** — a first-class class that renders a DOM subtree in the opposite theme.
 
 Add the `invert-theme` class to any element and its subtree renders in the opposite theme of the page: light ⇄ dark and light-high-contrast ⇄ dark-high-contrast. The island is styled by the opposite theme's own definitions (each theme block's selector list also targets `.invert-theme` subtrees on its pair partner's pages), so every mantle component and color token inside works there — no conditional rendering, no per-component overrides.
 
