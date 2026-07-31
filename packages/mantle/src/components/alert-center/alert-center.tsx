@@ -862,7 +862,7 @@ type AlertCenterBarProps = Omit<
  * The bar's enter/exit animation, applied to a padding-free wrapper around the
  * banner. On appearance it eases down from zero height while fading in; on
  * disappearance it collapses back the same way but faster (the exit answers a
- * dismissal, so it drops away sooner — the sonner/PowerBar cadence). The
+ * dismissal, so it drops away sooner — the sonner/Sandbar cadence). The
  * wrapper carries no padding — like `Accordion.Content` — so its height
  * reaches a true zero that the banner's own `py-2` would otherwise clamp, and
  * the opacity fade hides the opening/closing frame. `@starting-style` (the

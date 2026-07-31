@@ -2,7 +2,7 @@
 
 import { render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { MantleStyleSheets } from "./mantle-style-sheets.js";
+import { fixMediaScriptContent, MantleStyleSheets } from "./mantle-style-sheets.js";
 
 const DARK_LINK_ID = "mantle-dark-styles";
 const LIGHT_HC_LINK_ID = "mantle-light-high-contrast-styles";
@@ -98,7 +98,12 @@ describe("MantleStyleSheets — link element rendering", () => {
 	});
 });
 
-describe("MantleStyleSheets — forceTheme omits unused link tags", () => {
+describe("MantleStyleSheets — forceTheme renders only the theme pair's link tags", () => {
+	// Theme pairs ship together (light ⇄ dark, light-HC ⇄ dark-HC) so
+	// `.invert-theme` subtrees always have their opposite theme's CSS applied.
+	// Light has no dedicated stylesheet (it is the base in mantle.css), so the
+	// light ⇄ dark pair renders only the dark link.
+
 	test('forceTheme="dark" renders only the dark link', () => {
 		render(<MantleStyleSheets {...TEST_URLS} forceTheme="dark" />);
 		expect(document.getElementById(DARK_LINK_ID)).toBeInstanceOf(HTMLLinkElement);
@@ -106,25 +111,25 @@ describe("MantleStyleSheets — forceTheme omits unused link tags", () => {
 		expect(document.getElementById(DARK_HC_LINK_ID)).toBeNull();
 	});
 
-	test('forceTheme="light-high-contrast" renders only the light-HC link', () => {
+	test('forceTheme="light" renders only the dark link (its pair partner)', () => {
+		render(<MantleStyleSheets {...TEST_URLS} forceTheme="light" />);
+		expect(document.getElementById(DARK_LINK_ID)).toBeInstanceOf(HTMLLinkElement);
+		expect(document.getElementById(LIGHT_HC_LINK_ID)).toBeNull();
+		expect(document.getElementById(DARK_HC_LINK_ID)).toBeNull();
+	});
+
+	test('forceTheme="light-high-contrast" renders both high-contrast links', () => {
 		render(<MantleStyleSheets {...TEST_URLS} forceTheme="light-high-contrast" />);
 		expect(document.getElementById(DARK_LINK_ID)).toBeNull();
 		expect(document.getElementById(LIGHT_HC_LINK_ID)).toBeInstanceOf(HTMLLinkElement);
-		expect(document.getElementById(DARK_HC_LINK_ID)).toBeNull();
-	});
-
-	test('forceTheme="dark-high-contrast" renders only the dark-HC link', () => {
-		render(<MantleStyleSheets {...TEST_URLS} forceTheme="dark-high-contrast" />);
-		expect(document.getElementById(DARK_LINK_ID)).toBeNull();
-		expect(document.getElementById(LIGHT_HC_LINK_ID)).toBeNull();
 		expect(document.getElementById(DARK_HC_LINK_ID)).toBeInstanceOf(HTMLLinkElement);
 	});
 
-	test('forceTheme="light" renders no link tags (light is the base theme, no dedicated stylesheet)', () => {
-		render(<MantleStyleSheets {...TEST_URLS} forceTheme="light" />);
+	test('forceTheme="dark-high-contrast" renders both high-contrast links', () => {
+		render(<MantleStyleSheets {...TEST_URLS} forceTheme="dark-high-contrast" />);
 		expect(document.getElementById(DARK_LINK_ID)).toBeNull();
-		expect(document.getElementById(LIGHT_HC_LINK_ID)).toBeNull();
-		expect(document.getElementById(DARK_HC_LINK_ID)).toBeNull();
+		expect(document.getElementById(LIGHT_HC_LINK_ID)).toBeInstanceOf(HTMLLinkElement);
+		expect(document.getElementById(DARK_HC_LINK_ID)).toBeInstanceOf(HTMLLinkElement);
 	});
 });
 
@@ -151,21 +156,21 @@ describe("MantleStyleSheets — forceTheme media attributes", () => {
 		expect(getDarkLink().media).toBe("all");
 	});
 
-	test('forceTheme="light-high-contrast" sets light-HC link to media="all"', () => {
-		render(<MantleStyleSheets {...TEST_URLS} forceTheme="light-high-contrast" />);
-		expect(getLightHcLink().media).toBe("all");
+	test('forceTheme="light" sets the dark link (its pair partner) to media="all"', () => {
+		render(<MantleStyleSheets {...TEST_URLS} forceTheme="light" />);
+		expect(getDarkLink().media).toBe("all");
 	});
 
-	test('forceTheme="dark-high-contrast" sets dark-HC link to media="all"', () => {
-		render(<MantleStyleSheets {...TEST_URLS} forceTheme="dark-high-contrast" />);
+	test('forceTheme="light-high-contrast" sets both high-contrast links to media="all"', () => {
+		render(<MantleStyleSheets {...TEST_URLS} forceTheme="light-high-contrast" />);
+		expect(getLightHcLink().media).toBe("all");
 		expect(getDarkHcLink().media).toBe("all");
 	});
 
-	test('forceTheme="light" renders no link tags (light is the base theme, no dedicated stylesheet)', () => {
-		render(<MantleStyleSheets {...TEST_URLS} forceTheme="light" />);
-		expect(document.getElementById(DARK_LINK_ID)).toBeNull();
-		expect(document.getElementById(LIGHT_HC_LINK_ID)).toBeNull();
-		expect(document.getElementById(DARK_HC_LINK_ID)).toBeNull();
+	test('forceTheme="dark-high-contrast" sets both high-contrast links to media="all"', () => {
+		render(<MantleStyleSheets {...TEST_URLS} forceTheme="dark-high-contrast" />);
+		expect(getLightHcLink().media).toBe("all");
+		expect(getDarkHcLink().media).toBe("all");
 	});
 });
 
@@ -193,35 +198,35 @@ describe("MantleStyleSheets — ssrCookie prop", () => {
 		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
 	});
 
-	test('ssrCookie with stored light-high-contrast theme renders light-HC link as media="all"', async () => {
+	test('ssrCookie with stored light-high-contrast theme renders both high-contrast links as media="all"', async () => {
 		document.documentElement.dataset.appliedTheme = "light-high-contrast";
 		render(<MantleStyleSheets {...TEST_URLS} ssrCookie="mantle-ui-theme=light-high-contrast" />);
 
 		await waitFor(() => {
 			expect(getLightHcLink().media).toBe("all");
 		});
+		expect(getDarkHcLink().media).toBe("all");
 		expect(getDarkLink().media).toBe(MEDIA_DARK);
-		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
 	});
 
-	test('ssrCookie with stored dark-high-contrast theme renders dark-HC link as media="all"', async () => {
+	test('ssrCookie with stored dark-high-contrast theme renders both high-contrast links as media="all"', async () => {
 		document.documentElement.dataset.appliedTheme = "dark-high-contrast";
 		render(<MantleStyleSheets {...TEST_URLS} ssrCookie="mantle-ui-theme=dark-high-contrast" />);
 
 		await waitFor(() => {
 			expect(getDarkHcLink().media).toBe("all");
 		});
+		expect(getLightHcLink().media).toBe("all");
 		expect(getDarkLink().media).toBe(MEDIA_DARK);
-		expect(getLightHcLink().media).toBe(MEDIA_LIGHT_HC);
 	});
 
-	test("ssrCookie with stored light theme uses OS media queries for all links", async () => {
+	test('ssrCookie with stored light theme renders the dark link (its pair partner) as media="all"', async () => {
 		document.documentElement.dataset.appliedTheme = "light";
 		render(<MantleStyleSheets {...TEST_URLS} ssrCookie="mantle-ui-theme=light" />);
 
 		await waitFor(() => {
-			// The useEffect should have run; light theme → all links keep OS media queries
-			expect(getDarkLink().media).toBe(MEDIA_DARK);
+			// light pairs with dark so `.invert-theme` islands can render dark
+			expect(getDarkLink().media).toBe("all");
 		});
 		expect(getLightHcLink().media).toBe(MEDIA_LIGHT_HC);
 		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
@@ -273,7 +278,7 @@ describe("MantleStyleSheets — MutationObserver: runtime theme changes", () => 
 		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
 	});
 
-	test('setting html[data-applied-theme="light-high-contrast"] updates light-HC link to media="all"', async () => {
+	test('setting html[data-applied-theme="light-high-contrast"] updates both high-contrast links to media="all"', async () => {
 		render(<MantleStyleSheets {...TEST_URLS} />);
 
 		document.documentElement.dataset.appliedTheme = "light-high-contrast";
@@ -281,11 +286,11 @@ describe("MantleStyleSheets — MutationObserver: runtime theme changes", () => 
 		await waitFor(() => {
 			expect(getLightHcLink().media).toBe("all");
 		});
+		expect(getDarkHcLink().media).toBe("all");
 		expect(getDarkLink().media).toBe(MEDIA_DARK);
-		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
 	});
 
-	test('setting html[data-applied-theme="dark-high-contrast"] updates dark-HC link to media="all"', async () => {
+	test('setting html[data-applied-theme="dark-high-contrast"] updates both high-contrast links to media="all"', async () => {
 		render(<MantleStyleSheets {...TEST_URLS} />);
 
 		document.documentElement.dataset.appliedTheme = "dark-high-contrast";
@@ -293,24 +298,25 @@ describe("MantleStyleSheets — MutationObserver: runtime theme changes", () => 
 		await waitFor(() => {
 			expect(getDarkHcLink().media).toBe("all");
 		});
+		expect(getLightHcLink().media).toBe("all");
 		expect(getDarkLink().media).toBe(MEDIA_DARK);
-		expect(getLightHcLink().media).toBe(MEDIA_LIGHT_HC);
 	});
 
-	test('setting html[data-applied-theme="light"] restores all links to OS media queries', async () => {
-		// Start with dark applied
-		document.documentElement.dataset.appliedTheme = "dark";
+	test('setting html[data-applied-theme="light"] applies the dark link (its pair partner) as media="all"', async () => {
+		// Start with dark-high-contrast applied
+		document.documentElement.dataset.appliedTheme = "dark-high-contrast";
 		render(<MantleStyleSheets {...TEST_URLS} />);
 
 		await waitFor(() => {
-			expect(getDarkLink().media).toBe("all");
+			expect(getDarkHcLink().media).toBe("all");
 		});
 
-		// Switch back to light
+		// Switch to light — dark applies so `.invert-theme` islands can render dark,
+		// and the high-contrast pair returns to its OS media queries
 		document.documentElement.dataset.appliedTheme = "light";
 
 		await waitFor(() => {
-			expect(getDarkLink().media).toBe(MEDIA_DARK);
+			expect(getDarkLink().media).toBe("all");
 		});
 		expect(getLightHcLink().media).toBe(MEDIA_LIGHT_HC);
 		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
@@ -329,8 +335,8 @@ describe("MantleStyleSheets — MutationObserver: runtime theme changes", () => 
 		await waitFor(() => {
 			expect(getLightHcLink().media).toBe("all");
 		});
+		expect(getDarkHcLink().media).toBe("all");
 		expect(getDarkLink().media).toBe(MEDIA_DARK);
-		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
 	});
 
 	test("forceTheme overrides MutationObserver — applied-theme change does not affect media", async () => {
@@ -345,5 +351,62 @@ describe("MantleStyleSheets — MutationObserver: runtime theme changes", () => 
 		await waitFor(() => {
 			expect(getDarkLink().media).toBe("all");
 		});
+	});
+});
+
+describe("the inline fix script", () => {
+	/**
+	 * Run the stringified script the way the browser does. Nothing else can see a
+	 * closure-scoping regression in it: `fixMediaScriptContent` serializes
+	 * `fixMediaAttributes` with `Function.prototype.toString()`, so a reference to
+	 * any module-scope binding survives lint, typecheck and build and throws only
+	 * at runtime, before first paint.
+	 */
+	function runFixScript(forceTheme?: Parameters<typeof fixMediaScriptContent>[0]) {
+		new Function(fixMediaScriptContent(forceTheme))();
+	}
+
+	test("promotes the dark link's pair when the applied theme is light", () => {
+		render(<MantleStyleSheets {...TEST_URLS} />);
+		document.documentElement.dataset.appliedTheme = "light";
+
+		runFixScript();
+
+		expect(getDarkLink().media).toBe("all");
+		expect(getLightHcLink().media).toBe(MEDIA_LIGHT_HC);
+		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
+	});
+
+	test("promotes both high-contrast links when the applied theme is high contrast", () => {
+		render(<MantleStyleSheets {...TEST_URLS} />);
+		document.documentElement.dataset.appliedTheme = "dark-high-contrast";
+
+		runFixScript();
+
+		expect(getLightHcLink().media).toBe("all");
+		expect(getDarkHcLink().media).toBe("all");
+		// the other pair stays gated on the OS preference
+		expect(getDarkLink().media).toBe(MEDIA_DARK);
+	});
+
+	test("leaves every link on its OS media query when no theme is applied", () => {
+		render(<MantleStyleSheets {...TEST_URLS} />);
+
+		runFixScript();
+
+		expect(getDarkLink().media).toBe(MEDIA_DARK);
+		expect(getLightHcLink().media).toBe(MEDIA_LIGHT_HC);
+		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
+	});
+
+	test("forceTheme wins over the applied theme", () => {
+		render(<MantleStyleSheets {...TEST_URLS} />);
+		document.documentElement.dataset.appliedTheme = "light-high-contrast";
+
+		runFixScript("dark");
+
+		expect(getDarkLink().media).toBe("all");
+		expect(getLightHcLink().media).toBe(MEDIA_LIGHT_HC);
+		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
 	});
 });

@@ -32,16 +32,24 @@ type MediaValues = {
  * Compute the `media` attribute value for each stylesheet given the active theme.
  * When a theme is active (either from the resolved applied theme or a forced override),
  * its stylesheet's `media` is set to `"all"` so the CSS is applied regardless of OS preference.
+ *
+ * Theme *pairs* activate together (light with dark, light-high-contrast with
+ * dark-high-contrast): the `invert-theme` class renders a subtree in the
+ * opposite theme, so the pair partner's stylesheet must be applied too. The
+ * light base ships in `mantle.css` and is always applied, so the light ⇄ dark
+ * pair only needs the dark stylesheet forced.
  */
 function computeMediaValues(
 	appliedTheme: ResolvedTheme | undefined,
 	forceTheme: ResolvedTheme | undefined,
 ): MediaValues {
 	const theme = forceTheme ?? appliedTheme;
+	const standardPair = theme === "light" || theme === "dark";
+	const highContrastPair = theme === "light-high-contrast" || theme === "dark-high-contrast";
 	return {
-		dark: theme === "dark" ? "all" : MEDIA_DARK,
-		lightHighContrast: theme === "light-high-contrast" ? "all" : MEDIA_LIGHT_HC,
-		darkHighContrast: theme === "dark-high-contrast" ? "all" : MEDIA_DARK_HC,
+		dark: standardPair ? "all" : MEDIA_DARK,
+		lightHighContrast: highContrastPair ? "all" : MEDIA_LIGHT_HC,
+		darkHighContrast: highContrastPair ? "all" : MEDIA_DARK_HC,
 	};
 }
 
@@ -113,16 +121,32 @@ function mantleStyleSheetUrls(urls: MantleThemeCssUrls): MantleThemeCssUrls {
  */
 export type MantleStyleSheetsProps = MantleThemeCssUrls & {
 	/**
-	 * Force a specific resolved theme's stylesheet to load unconditionally (`media="all"`),
-	 * regardless of the user's OS preference. Use this when your app is locked to a single
-	 * theme (e.g. a dark-only page) so the required CSS is render-blocking as intended.
+	 * Force a specific resolved theme's stylesheet *pair* to load unconditionally
+	 * (`media="all"`), regardless of the user's OS preference. Use this when your app is locked
+	 * to a single theme (e.g. a dark-only page) so the required CSS is render-blocking as
+	 * intended.
+	 *
+	 * Pairs, not single themes: the partner stylesheet (light ⇄ dark, light-high-contrast ⇄
+	 * dark-high-contrast) is what `invert-theme` islands resolve against, so it is loaded and
+	 * applied too. `forceTheme="light"` therefore renders the dark link (light itself is the
+	 * base theme in `mantle.css`), and `forceTheme="light-high-contrast"` renders both
+	 * high-contrast links. Only the *other* pair is omitted.
+	 *
+	 * Because the partner is *applied*, this prop only controls half the picture: which
+	 * theme block wins is decided by the class on `<html>`. Mirror the same value into
+	 * `PreventWrongThemeFlashScript` and `ThemeProvider` (and `useInitialHtmlThemeProps`
+	 * if you use it) — those own that class. Forcing here alone leaves a user whose stored
+	 * preference is dark with `<html class="dark">` and the dark sheet applied, so a
+	 * `forceTheme="light"` page paints dark.
 	 *
 	 * When omitted, each stylesheet uses its OS media query and becomes non-render-blocking
 	 * for users whose OS preference does not match.
 	 *
 	 * @example
-	 * // Dark-only app — always load dark CSS eagerly
+	 * // Dark-only app — always load the dark/light pair eagerly, and pin the root class
+	 * <PreventWrongThemeFlashScript forceTheme="dark" nonce={nonce} />
 	 * <MantleStyleSheets forceTheme="dark" {...themeUrls} />
+	 * // …and <ThemeProvider forceTheme="dark"> around the app
 	 */
 	forceTheme?: ResolvedTheme;
 	/**
@@ -180,19 +204,24 @@ function fixMediaAttributes(args: {
 	} = args;
 	const appliedTheme = document.documentElement.dataset.appliedTheme;
 	const theme = forceTheme ?? appliedTheme;
+	// Theme pairs activate together so `.invert-theme` subtrees always have
+	// their opposite theme's stylesheet applied (light pairs with dark,
+	// light-high-contrast with dark-high-contrast).
+	const standardPair = theme === "light" || theme === "dark";
+	const highContrastPair = theme === "light-high-contrast" || theme === "dark-high-contrast";
 
 	const darkLink = document.getElementById(darkLinkId) as HTMLLinkElement | null;
 	const lightHcLink = document.getElementById(lightHcLinkId) as HTMLLinkElement | null;
 	const darkHcLink = document.getElementById(darkHcLinkId) as HTMLLinkElement | null;
 
 	if (darkLink) {
-		darkLink.media = theme === "dark" ? "all" : mediaDark;
+		darkLink.media = standardPair ? "all" : mediaDark;
 	}
 	if (lightHcLink) {
-		lightHcLink.media = theme === "light-high-contrast" ? "all" : mediaLightHc;
+		lightHcLink.media = highContrastPair ? "all" : mediaLightHc;
 	}
 	if (darkHcLink) {
-		darkHcLink.media = theme === "dark-high-contrast" ? "all" : mediaDarkHc;
+		darkHcLink.media = highContrastPair ? "all" : mediaDarkHc;
 	}
 }
 
@@ -250,8 +279,14 @@ function fixMediaScriptContent(forceTheme?: ResolvedTheme): string {
  * `ThemeProvider`) and updates the `media` attributes to `"all"` when the user manually
  * selects a theme that differs from their OS preference, ensuring the correct CSS is applied.
  *
- * When `forceTheme` is set, only the link tag for that theme is rendered — the others are
- * omitted entirely to avoid unnecessary network requests.
+ * Theme pairs load together — the active theme's pair partner (light ⇄ dark,
+ * light-high-contrast ⇄ dark-high-contrast) also gets `media="all"` — so
+ * `invert-theme` subtrees always have their opposite theme's CSS applied.
+ *
+ * When `forceTheme` is set, only the link tags for that theme's pair are rendered — the other
+ * pair is omitted entirely to avoid unnecessary network requests. Note the pair partner is
+ * applied (`media="all"`), not merely fetched, so it is render-blocking; that is what lets
+ * `invert-theme` islands resolve under a forced theme.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme#mantlestylesheets
  *
@@ -341,12 +376,19 @@ function MantleStyleSheets({
 	// forceTheme provide a deterministic answer at render time.
 	const needsFixScript = !forceTheme && ssrAppliedTheme == null;
 
-	// When forceTheme is set, only render the link tag for that specific theme's stylesheet.
-	// Light is the base theme with no dedicated lazy stylesheet, so forceTheme="light" renders
-	// no link tags at all. When forceTheme is unset, all three are rendered.
-	const renderDark = !forceTheme || forceTheme === "dark";
-	const renderLightHighContrast = !forceTheme || forceTheme === "light-high-contrast";
-	const renderDarkHighContrast = !forceTheme || forceTheme === "dark-high-contrast";
+	// When forceTheme is set, only render the link tags for that theme's *pair*
+	// (light with dark, light-high-contrast with dark-high-contrast) — the pair
+	// partner's stylesheet must be applied so `.invert-theme` subtrees can render
+	// in the opposite theme. Light is the base theme with no dedicated lazy
+	// stylesheet, so forceTheme="light" renders only the dark link. When
+	// forceTheme is unset, all three are rendered.
+	//
+	// Both high-contrast links share one predicate on purpose: they are a pair, so
+	// they are always rendered together or not at all.
+	const renderDark =
+		!forceTheme || (forceTheme !== "light-high-contrast" && forceTheme !== "dark-high-contrast");
+	const renderHighContrastPair =
+		!forceTheme || forceTheme === "light-high-contrast" || forceTheme === "dark-high-contrast";
 
 	return (
 		<>
@@ -359,7 +401,7 @@ function MantleStyleSheets({
 					suppressHydrationWarning
 				/>
 			)}
-			{renderLightHighContrast && (
+			{renderHighContrastPair && (
 				<link
 					rel="stylesheet"
 					id={LIGHT_HIGH_CONTRAST_LINK_ID}
@@ -368,7 +410,7 @@ function MantleStyleSheets({
 					suppressHydrationWarning
 				/>
 			)}
-			{renderDarkHighContrast && (
+			{renderHighContrastPair && (
 				<link
 					rel="stylesheet"
 					id={DARK_HIGH_CONTRAST_LINK_ID}
