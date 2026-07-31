@@ -58,7 +58,7 @@ The "Why" section above is the user-perceived case for the pattern. These rules 
 2. **Branch only the body on query state.** `query.isPending`, `query.isError`, and `query.isSuccess` belong inside the overlay's `Body` region. Header, close button, and footer stay outside the conditional.
 3. **Factor the query into a hook.** `useUserQuery` owns fetching, retry, stale-time, and cancellation. The components that render query results (the shells, `UserDetailsBody`) consume a `UseQueryResult` and never reach into TanStack Query directly. The cache-observability bits in `UserOverlayDemo` (the `useQueryClient` subscription and `removeQueries` reset) are demo-only — production overlays shouldn't touch the cache.
 4. **Encode the retry policy in `useQuery`.** Return `false` from `retry` for terminal errors like `404`. Return a bounded `failureCount` check for transient ones like `500`.
-5. **Match the retry UI to the retry policy.** Show a retry button on recoverable errors. Omit it on terminal ones — retrying a definitive not-found is just latency without recovery.
+5. **Match the retry UI to the retry policy.** Show a retry button on recoverable errors. Omit it on terminal ones — retrying a definitive not-found adds latency without recovery.
 
 ## Complete Recipe
 
@@ -368,7 +368,7 @@ type SelectedUserOverlay = {
 	scenario: UserRequestScenario;
 };
 
-/** Query key for the success scenario, used to observe and clear just the happy-path cache entry. */
+/** Query key for the success scenario, used to observe and clear only the happy-path cache entry. */
 const HAPPY_PATH_QUERY_KEY = [...USER_QUERY_KEY_ROOT, userIdForScenario("success"), "success"];
 
 /** Tracks whether the happy-path query has a successful response in the cache. The 404 and 500 scenarios throw, so they never reach a successful cache state. */

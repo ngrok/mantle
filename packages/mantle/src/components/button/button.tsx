@@ -21,7 +21,7 @@ import type { ButtonSize } from "./sizes.js";
  * - `"outlined"` — bordered on the form background
  * - `"ghost"` — no border or fill until hovered
  * - `"link"` — renders like an inline link (inherits surrounding typography)
- *   while remaining a button that performs an action
+ *   while remaining a button that runs an action
  */
 type ButtonAppearance = "filled" | "ghost" | "link" | "outlined";
 
@@ -41,9 +41,9 @@ const buttonVariants = cva("", {
 			link: "text-accent-600 focus-visible:ring-focus-accent not-disabled:hover:underline group/button-link border-transparent",
 		} satisfies Record<ButtonAppearance, string>,
 		/**
-		 * Whether or not the button is in a loading state, default `false`. Setting `isLoading` will
-		 * replace any `icon` with a spinner, or add one if an icon wasn't given.
-		 * It will also disable user interaction with the button and set `disabled`.
+		 * Whether the button is in a loading state, default `false`. Setting `isLoading`
+		 * replaces any `icon` with a spinner, or adds one when the button has no icon.
+		 * It also disables user interaction with the button and sets `disabled`.
 		 */
 		isLoading: {
 			false: "",
@@ -224,7 +224,7 @@ type ButtonProps = ComponentProps<"button"> &
 /**
  * Renders a button or a component that looks like a button, an interactive
  * element activated by a user with a mouse, keyboard, finger, voice command, or
- * other assistive technology. Once activated, it then performs an action, such
+ * other assistive technology. Once activated, it then runs an action, such
  * as submitting a form or opening a dialog.
  *
  * `appearance` (visual weight) and `intent` (tone) are required — every call

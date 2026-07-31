@@ -75,10 +75,11 @@ const breakpoints = ["default", ...tailwindBreakpoints] as const;
 type Breakpoint = (typeof breakpoints)[number];
 
 /**
- * React hook that returns the current breakpoint based on the viewport width.
+ * The largest Tailwind breakpoint the viewport width matches, or `"default"`
+ * below `2xs`.
  *
- * Uses a singleton subscription to a set of min-width media queries via
- * `useSyncExternalStore` and returns the largest matching breakpoint.
+ * Shares one app-wide subscription to the min-width media queries through
+ * `useSyncExternalStore`.
  *
  * @returns {Breakpoint} The current breakpoint that matches the viewport width.
  *
@@ -97,10 +98,10 @@ function useBreakpoint(): Breakpoint {
 }
 
 /**
- * React hook that returns true if the current viewport width is below the specified breakpoint.
+ * `true` while the viewport is narrower than the given breakpoint.
  *
- * This hook uses `window.matchMedia` with a max-width media query and leverages
- * `useSyncExternalStore` to stay compliant with React's concurrent rendering model.
+ * Reads a `window.matchMedia` max-width query through `useSyncExternalStore`, so
+ * the value stays correct under React's concurrent rendering.
  *
  * @param {TailwindBreakpoint} breakpoint - The breakpoint to check against (e.g., "md", "lg").
  *
@@ -154,8 +155,8 @@ type MaxWidthQuery = `(max-width: ${number}rem)`;
 /**
  * Precomputed min-width media query strings for each Tailwind breakpoint.
  *
- * Using constants avoids template string work in hot paths and ensures type
- * safety against the `MinWidthQuery` template literal type.
+ * Constants avoid template string work in hot paths. The `satisfies` clause
+ * checks each value against the `MinWidthQuery` template literal type.
  *
  * @remarks
  * These are expressed in `rem`. If your CSS breakpoints are in `px`, consider
@@ -272,15 +273,15 @@ const breakpointListeners = new Set<() => void>();
 /**
  * Flag indicating whether global media-query listeners are currently attached.
  *
- * Prevents duplicate registrations and enables full teardown when unused.
+ * Prevents duplicate registrations and allows full teardown when unused.
  *
  * @private
  */
 let breakpointSubscriptionActive = false;
 
 /**
- * Compute the current breakpoint by checking cached min-width MQLs
- * from largest to smallest.
+ * Compute the current breakpoint by checking the cached min-width
+ * `MediaQueryList` objects from largest to smallest.
  *
  * @returns {Breakpoint} The largest matching breakpoint, or `"default"`.
  * @private
@@ -323,9 +324,9 @@ function updateCurrentBreakpoint() {
 /**
  * Subscribe a component to breakpoint changes (singleton pattern).
  *
- * Ensures only one set of MQL listeners exists app-wide. Also reconciles the
- * `useSyncExternalStore` initial snapshot/subscribe race by invoking the
- * subscriber once on mount.
+ * Only one set of `MediaQueryList` listeners exists app-wide. The callback also
+ * runs once on mount, which reconciles the `useSyncExternalStore` initial
+ * snapshot/subscribe race.
  *
  * @param callback - Listener invoked when the breakpoint value may have changed.
  * @returns Cleanup function to unsubscribe the listener.
@@ -342,7 +343,7 @@ function subscribeToBreakpointChanges(callback: () => void) {
 		// Initialize current value synchronously
 		currentBreakpointValue = getCurrentBreakpoint();
 
-		// Attach listeners to all breakpoint MQLs
+		// Attach listeners to every breakpoint's `MediaQueryList`
 		for (const mql of Object.values(mqls)) {
 			mql.addEventListener("change", updateCurrentBreakpoint);
 		}
@@ -382,8 +383,8 @@ function getCurrentBreakpointSnapshot(): Breakpoint {
  * Cached `subscribe` functions keyed by breakpoint.
  *
  * Without caching, `useSyncExternalStore` receives a new function reference on
- * every render, causing it to tear down and re-attach the MQL listener each
- * time — the primary source of resize sluggishness.
+ * every render, causing it to tear down and re-attach the `MediaQueryList`
+ * listener each time — the primary source of resize sluggishness.
  *
  * @private
  */
@@ -436,8 +437,8 @@ function createBelowBreakpointSubscribe(breakpoint: TailwindBreakpoint) {
 /**
  * Cached `getSnapshot` functions keyed by breakpoint.
  *
- * Ensures `useSyncExternalStore` receives a referentially stable function,
- * preventing unnecessary subscription churn.
+ * Gives `useSyncExternalStore` a referentially stable function, which avoids
+ * needless subscription churn.
  *
  * @private
  */

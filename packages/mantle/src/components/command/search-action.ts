@@ -154,7 +154,7 @@ function searchActionFromKeyDown(event: SearchKeyDownEvent): SearchAction {
 
 /**
  * Classifies a `paste` on a search trigger. A paste is unambiguous search
- * intent — a control that looks like a text field will be pasted into — so it
+ * intent — the user pasted into a control that looks like a text field — so it
  * always opens the palette, and seeds it whenever the clipboard holds text.
  * Never returns `"ignore"`.
  *

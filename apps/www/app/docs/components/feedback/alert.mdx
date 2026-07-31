@@ -419,10 +419,10 @@ Displays a callout for user attention. Root container for all `Alert` sub-compon
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop          | Type                                                                  | Default     | Description                                                                                                                                                                                                    |
-| ------------- | --------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `appearance?` | `"default"` \| `"banner"`                                             | `"default"` | Controls the visual style. `"default"` provides standard rounded corners and borders. `"banner"` creates a banner-style alert with no rounded corners, sticky positioning, and no top, left, or right borders. |
-| `intent`      | `"danger"` \| `"important"` \| `"info"` \| `"success"` \| `"warning"` |             | The tone of the `Alert`. Sets the color, styling, and default icon to communicate the status it reports.                                                                                                       |
+| Prop          | Type                                                                  | Default     | Description                                                                                                                                                                                                     |
+| ------------- | --------------------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance?` | `"default"` \| `"banner"`                                             | `"default"` | Controls the visual style. `"default"` keeps the standard rounded corners and borders. `"banner"` creates a banner-style alert with no rounded corners, sticky positioning, and no top, left, or right borders. |
+| `intent`      | `"danger"` \| `"important"` \| `"info"` \| `"success"` \| `"warning"` |             | The tone of the `Alert`. Sets the color, styling, and default icon to communicate the status it reports.                                                                                                        |
 
 #### Trailing control CSS variables
 
@@ -463,7 +463,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Alert.Icon
 
-An optional icon that visually represents the intent of the `Alert`. The default rendered icon can be overridden with a custom icon using the `svg` prop.
+An optional icon that visually represents the intent of the `Alert`. Pass the `svg` prop to replace the default icon.
 
 All props from [svg](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/svg#attributes), plus:
 

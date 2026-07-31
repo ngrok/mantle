@@ -47,7 +47,7 @@ import { Avatar } from "@ngrok/mantle/avatar";
   the `<button>` of a switcher row.
 
 **`Sidebar.AccountAvatar` and `Sidebar.UserAvatar` are removed.** They were the same component twice, scoped to
-a place an avatar has no reason to be scoped to — the sidebar — which is why the ngrok dashboard had already
+a place an avatar has no reason to be scoped to — the sidebar — which is why the ngrok dashboard already
 hand-rolled its own copy of the initials and swatch logic beside them. Migration:
 
 ```tsx

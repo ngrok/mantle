@@ -54,9 +54,9 @@ const iconButtonVariants = cva(baseIconButtonClasses, {
 			neutral: "",
 		} satisfies Record<ButtonIntent, string>,
 		/**
-		 * Whether or not the button is in a loading state, default `false`. Setting `isLoading` will
-		 * replace the `icon` with a spinner.
-		 * It will also disable user interaction with the button and set `aria-disabled`.
+		 * Whether the button is in a loading state, default `false`. `isLoading` replaces
+		 * the `icon` with a spinner.
+		 * It also disables user interaction with the button and sets `aria-disabled`.
 		 */
 		isLoading: {
 			false: "",

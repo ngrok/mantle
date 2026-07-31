@@ -1,33 +1,33 @@
 /**
- * resolvedThemes is a tuple of valid themes that have been resolved from "system" to a specific theme.
+ * The four concrete themes `"system"` resolves to.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme
  */
 const resolvedThemes = ["light", "dark", "light-high-contrast", "dark-high-contrast"] as const;
 
 /**
- * ResolvedTheme is a type that represents a theme that has been resolved from "system" to a specific theme.
+ * One concrete theme, never `"system"`.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme
  */
 type ResolvedTheme = (typeof resolvedThemes)[number];
 
 /**
- * themes is a tuple of valid themes.
+ * Every theme a consumer can set, including `"system"`.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme
  */
 const themes = ["system", ...resolvedThemes] as const;
 
 /**
- * Theme is a string literal type that represents a valid theme.
+ * One theme a consumer can set, including `"system"`.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme
  */
 type Theme = (typeof themes)[number];
 
 /**
- * $theme is a helper which translates the Theme type into a string literal type.
+ * Narrows a theme literal to its own type instead of widening it to `Theme`.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme
  */
@@ -47,7 +47,7 @@ function isTheme(value: unknown): value is Theme {
 }
 
 /**
- * $resolvedTheme is a helper which translates the ResolvedTheme type into a string literal type.
+ * Narrows a resolved-theme literal to its own type instead of widening it to `ResolvedTheme`.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme
  */

@@ -1,6 +1,6 @@
 ---
 title: BrowserOnly
-description: A wrapper component that ensures its children only render in the browser, after hydration has completed.
+description: A wrapper component that renders its children in the browser only, after hydration completes.
 ---
 
 import { BrowserOnly } from "@ngrok/mantle/browser-only";
@@ -8,7 +8,7 @@ import { Example } from "~/components/example";
 
 # BrowserOnly
 
-A wrapper component that ensures its children only render in the browser, after hydration has completed. Useful for components that rely on browser-only APIs like `window`, `document`, `localStorage`, or media queries.
+A wrapper component that renders its children in the browser only, after hydration completes. Useful for components that rely on browser-only APIs like `window`, `document`, `localStorage`, or media queries.
 
 <Example className="flex-col gap-4">
 	<BrowserOnly fallback={<div className="h-8 w-32 bg-gray-200 animate-pulse rounded" />}>

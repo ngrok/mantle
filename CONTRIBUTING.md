@@ -90,13 +90,13 @@ To bump a version:
 
 We use [Turborepo](https://turbo.build/) and pnpm workspaces to help manage the Mantle monorepo.
 
-To get started, simply run:
+To get started, run:
 
 ```
 pnpm -w run start
 ```
 
-This will spin up the react-router documentation site, and is configured to watch for changes to components (so your changes will be instantly reflected).
+This starts the react-router documentation site. It watches components for changes, so your changes appear instantly.
 
 ## Scaffolding a New Component
 
@@ -137,7 +137,7 @@ SKIP_HOOKS=1 git commit -m "wip"
 
 Before working on a large change, it is best to open an issue first to discuss.
 
-After making your changes locally, go ahead and submit a pull request. The Mantle team will review your changes and provide feedback or suggestions for improvement. We may also make additional changes to your pull request to ensure that it meets the standards of Mantle.
+After you make your changes locally, submit a pull request. The Mantle team reviews your changes and suggests improvements. We may also push additional changes to your pull request so it meets the Mantle standards.
 
 We use [changesets](https://github.com/changesets/changesets) to help us manage versioning and changelogs. You can think of a changeset as an _intent to change_. If your changes require a publish and release, feel free to add a changeset to your PR, otherwise we can add one for you if you're unsure.
 
@@ -149,12 +149,12 @@ pnpm -w run changeset
 
 Some helpful tips:
 
-- You don't have to use the cli if you prefer to just create one manually (though the cli is definitely easiest).
-- Feel free to edit the changeset file however many times you want (it's just an `.md` file) while working on your PR.
+- If you prefer to create one by hand, you don't have to use the cli (though the cli is easiest).
+- Feel free to edit the changeset file however many times you want (it's only an `.md` file) while working on your PR.
 - Check out their [common questions](https://github.com/changesets/changesets/blob/main/docs/common-questions.md) for more tips or read their [docs](https://github.com/changesets/changesets/tree/main/docs).
 
-Once your pull request has been reviewed and any necessary changes have been made, it will be merged.
+After the review and any necessary changes, the Mantle team merges your pull request.
 
 ## Code of conduct
 
-We ask that all contributors follow our [code of conduct](CODE_OF_CONDUCT.md) when contributing. This code of conduct outlines our expectations for behavior and helps ensure that the ngrok community is a welcoming and inclusive place for everyone.
+We ask that all contributors follow our [code of conduct](CODE_OF_CONDUCT.md) when contributing. It outlines our expectations for behavior. It helps keep the ngrok community a welcoming and inclusive place for everyone.

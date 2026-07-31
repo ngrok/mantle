@@ -25,7 +25,7 @@ styling layered on top. The underlying element always does the heavy lifting.
 Enhancement is deliberate, and so is degradation. [Accordion](/components/data-display/accordion)
 keeps collapsed content in the DOM with `hidden="until-found"`, so find-in-page can
 reveal matches inside closed sections; its height animation rides CSS `interpolate-size`
-and simply snaps in engines without it. [SkipToMainLink](/components/primitives/skip-to-main-link)
+and snaps in engines without it. [SkipToMainLink](/components/primitives/skip-to-main-link)
 is a plain `href="#main"` anchor that works with JavaScript disabled, then enhances with
 `history.replaceState` and scroll-free focus. The [scroll fade](/base/scroll-fade)
 utilities are pure CSS scroll-driven animations: where a browser lacks support, the fade

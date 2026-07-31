@@ -103,7 +103,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/avatar",
     "summary": "A small image representing a person or an account, with a text or icon fallback.",
-    "jsdoc": "A small image representing a person or an account, with a text or icon fallback for when there is no picture — or before one loads. `appearance` carries the meaning: `\"circle\"` for a person, `\"square\"` (a rounded square) for an account, workspace, team, or organization.",
+    "jsdoc": "A small image representing a person or an account, with a text or icon fallback for when there is no picture — or before one loads.",
     "examples": [
       "Composition:\n```\nAvatar.Root\n├── Avatar.Image\n└── Avatar.Fallback\n```",
       "```tsx\n<Avatar.Root appearance=\"square\" colorSeed=\"acc_123\">\n  <Avatar.Image src=\"https://example.com/acme.png\" alt=\"\" />\n  <Avatar.Fallback name=\"Acme Corp\" />\n</Avatar.Root>\n```"
@@ -117,7 +117,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/badge",
     "summary": "A non-interactive label used to highlight short, scannable information — a status, a category tag, or a count — in the smallest possible footprint.",
-    "jsdoc": "A non-interactive label used to highlight short, scannable information — a status, a category tag, or a count — in the smallest possible footprint. **When to use** - Status indicators: `Succeeded`, `Failed`, `Pending`, `Beta`. - Category or tag chips alongside list items, table rows, or cards. - Counts (e.g. `12 new`) when paired with brief context. **When not to use** - For interactive UI.",
+    "jsdoc": "A non-interactive label used to highlight short, scannable information — a status, a category tag, or a count — in the smallest possible footprint.",
     "examples": [
       "```tsx\nimport { Badge } from \"@ngrok/mantle/badge\";\nimport { CheckCircleIcon } from \"@phosphor-icons/react/CheckCircle\";\n\n<Badge appearance=\"muted\" color=\"success\" icon={<CheckCircleIcon />}>\n  Succeeded\n</Badge>\n\n// Polymorphic — render the badge as a link, preserving its styling.\n<Badge appearance=\"muted\" color=\"info\" asChild>\n  <a href=\"/status\">Operational</a>\n</Badge>\n```"
     ]
@@ -157,8 +157,8 @@
     "category": "Primitives",
     "status": "stable",
     "importPath": "@ngrok/mantle/browser-only",
-    "summary": "A wrapper component that ensures its children only render in the browser, after hydration has completed.",
-    "jsdoc": "A wrapper component that ensures its children only render in the browser, after hydration has completed.",
+    "summary": "A wrapper component that renders its children in the browser only, after hydration completes.",
+    "jsdoc": "A wrapper component that renders its children in the browser only, after hydration completes.",
     "examples": [
       "```tsx\n<BrowserOnly fallback={<div style={{ height: 200 }} />} >\n  {() => <ExpensiveChart />}\n</BrowserOnly>\n```"
     ]
@@ -199,7 +199,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/card",
     "summary": "A container used to display content in a box, resembling a physical card.",
-    "jsdoc": "A container that can be used to display content in a box resembling a physical card.",
+    "jsdoc": "A container that displays content in a box resembling a physical card.",
     "examples": [
       "Composition:\n```\nCard.Root\n├── Card.Header\n│   └── Card.Title\n├── Card.Body\n└── Card.Footer\n```",
       "```tsx\n<Card.Root>\n  <Card.Body>\n    <p>Laborum in aute officia adipisicing elit velit.</p>\n  </Card.Body>\n</Card.Root>\n\n<Card.Root>\n  <Card.Header>\n    <Card.Title>Card Title Here</Card.Title>\n  </Card.Header>\n  <Card.Body>\n    <p>Laborum in aute officia adipisicing elit velit.</p>\n  </Card.Body>\n  <Card.Footer>\n    <p>Card footer</p>\n  </Card.Footer>\n</Card.Root>\n```"
@@ -353,7 +353,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/dropdown-menu",
     "summary": "Displays a menu to the user — such as a set of actions or functions — triggered by a button.",
-    "jsdoc": "A menu of options or actions, triggered by a button. `DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind `z-50`, Mantle's shared floating z-index.",
+    "jsdoc": "A menu of options or actions, triggered by a button.",
     "examples": [
       "Composition:\n```\nDropdownMenu.Root\n├── DropdownMenu.Trigger\n└── DropdownMenu.Content\n    ├── DropdownMenu.Group\n    │   ├── DropdownMenu.Label\n    │   ├── DropdownMenu.Item\n    │   │   └── DropdownMenu.Shortcut\n    │   ├── DropdownMenu.CheckboxItem\n    │   └── DropdownMenu.RadioGroup\n    │       └── DropdownMenu.RadioItem\n    ├── DropdownMenu.Separator\n    └── DropdownMenu.Sub\n        ├── DropdownMenu.SubTrigger\n        └── DropdownMenu.SubContent\n```",
       "```tsx\n<DropdownMenu.Root>\n  <DropdownMenu.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">\n      Open Menu\n    </Button>\n  </DropdownMenu.Trigger>\n  <DropdownMenu.Content>\n    <DropdownMenu.Item>Item 1</DropdownMenu.Item>\n    <DropdownMenu.Item>Item 2</DropdownMenu.Item>\n  </DropdownMenu.Content>\n</DropdownMenu.Root>\n```"
@@ -394,7 +394,7 @@
     "category": "Data Display",
     "status": "stable",
     "importPath": "@ngrok/mantle/flag",
-    "summary": "Displays a flag as an svg based on the provided country code.",
+    "summary": "Displays a flag as an SVG for the country code you pass.",
     "jsdoc": "Renders a country flag from an [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, served as an SVG from ngrok's CDN.",
     "examples": [
       "```tsx\nimport { Flag } from \"@ngrok/mantle/flag\";\n\n<Flag code=\"US\" />\n<Flag code=\"JP\" size=\"m\" loading=\"eager\" />\n<Flag code=\"CA\" size=\"s\" />\n\n// Inline next to a country label.\n<span className=\"inline-flex items-center gap-2\">\n  <Flag code=\"GB\" size=\"s\" aria-hidden />\n  <span>United Kingdom</span>\n</span>\n```"
@@ -434,8 +434,8 @@
     "category": "Actions",
     "status": "stable",
     "importPath": "@ngrok/mantle/button",
-    "summary": "Initiates an action, such as completing a task or submitting information. Renders only a single icon as children with an accessible, screen-reader-only label.",
-    "jsdoc": "Renders a button or a component that looks like a button, an interactive element activated by a user with a mouse, keyboard, finger, voice command, or other assistive technology.",
+    "summary": "Initiates an action, such as completing a task or submitting information. Renders one icon and nothing else, with a required label prop that carries the accessible name.",
+    "jsdoc": "A button that renders one icon and nothing else.",
     "examples": [
       "```tsx\n<IconButton\n  icon={<TrashIcon />}\n  label=\"Delete item\"\n  appearance=\"ghost\"\n  intent=\"danger\"\n  size=\"sm\"\n  onClick={handleDelete}\n/>\n```",
       "Submit a form — opt in with `type=\"submit\"` (the default `\"button\"` does not submit):\n```tsx\n<IconButton\n  type=\"submit\"\n  appearance=\"outlined\"\n  intent=\"neutral\"\n  icon={<MagnifyingGlassIcon />}\n  label=\"Search\"\n/>\n```"
@@ -449,7 +449,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/icons",
     "summary": "Custom icons used throughout ngrok UI.",
-    "jsdoc": "Re-exports for the Icons component."
+    "jsdoc": "Re-exports for the Icons component — the ngrok-specific icons that `@phosphor-icons/react` does not ship."
   },
   {
     "name": "Input",
@@ -459,7 +459,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/input",
     "summary": "Fundamental component for inputs.",
-    "jsdoc": "Used to create interactive controls for web-based forms in order to accept data from the user.",
+    "jsdoc": "An interactive form control that accepts data from the user.",
     "examples": [
       "```tsx\n<Input\n  type=\"email\"\n  placeholder=\"Enter your email\"\n  validation=\"success\"\n/>\n```"
     ]
@@ -582,7 +582,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/pagination",
     "summary": "Components and hooks for navigating through paged data with cursor-based and offset-based pagination strategies.",
-    "jsdoc": "Re-exports for the Pagination component."
+    "jsdoc": "Re-exports for the Pagination component family — `CursorPagination`'s parts for cursor paging, and `useOffsetPagination` for offset paging."
   },
   {
     "name": "Password Input",
@@ -839,8 +839,8 @@
     "category": "Actions",
     "status": "stable",
     "importPath": "@ngrok/mantle/split-button",
-    "summary": "A button group which provides a default action with one click while revealing related alternatives through a dropdown menu.",
-    "jsdoc": "A button group which provides a default action with one click while revealing related alternatives through a dropdown menu.",
+    "summary": "A button group that pairs a one-click default action with a dropdown menu of related alternatives.",
+    "jsdoc": "A button group that pairs a one-click default action with a dropdown menu of related alternatives.",
     "examples": [
       "Composition:\n```\nSplitButton.Root\n├── SplitButton.PrimaryAction\n├── SplitButton.MenuTrigger\n└── SplitButton.MenuContent\n    └── SplitButton.MenuItem\n```",
       "```tsx\n<SplitButton.Root>\n  <SplitButton.PrimaryAction icon={<CopyIcon />} onClick={copyMarkdownPage}>\n    Copy page\n  </SplitButton.PrimaryAction>\n  <SplitButton.MenuTrigger label=\"Open doc actions menu\" />\n  <SplitButton.MenuContent>\n    <SplitButton.MenuItem onClick={copyMarkdownPage}>\n      <Icon svg={<CopyIcon />} />\n      Copy page\n    </SplitButton.MenuItem>\n    <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>\n      <a href={markdownUrl} target=\"_blank\" rel=\"noopener noreferrer\">\n        <Icon svg={<FileTextIcon />} />\n        View as Markdown\n      </a>\n    </SplitButton.MenuItem>\n  </SplitButton.MenuContent>\n</SplitButton.Root>\n```"
@@ -853,8 +853,8 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/switch",
-    "summary": "A control that allows the user to toggle between checked and not checked.",
-    "jsdoc": "A form control that allows the user to toggle between checked and not checked.",
+    "summary": "A form control that toggles one setting on or off. Unlike Checkbox, it has no indeterminate state.",
+    "jsdoc": "A form control that toggles one setting on or off.",
     "examples": [
       "```tsx\n<form>\n  <Label htmlFor=\"airplane-mode\" className=\"flex items-center gap-2\">\n    Airplane Mode\n    <Switch name=\"airplane-mode\" id=\"airplane-mode\" />\n  </Label>\n</form>\n```"
     ]
@@ -908,7 +908,7 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/theme",
     "summary": "Theme primitives — ThemeProvider, MantleStyleSheets, and FOUC prevention — for light, dark, and high-contrast modes.",
-    "jsdoc": "Re-exports for the Theme component."
+    "jsdoc": "Re-exports for the Theme component — the provider and hooks that carry the applied theme, plus the document tags that stop a wrong-theme flash."
   },
   {
     "name": "Theme Switcher",
@@ -931,8 +931,8 @@
     "category": "Feedback",
     "status": "stable",
     "importPath": "@ngrok/mantle/toast",
-    "summary": "A succinct message that is displayed temporarily.",
-    "jsdoc": "A succinct message that is displayed temporarily.",
+    "summary": "A succinct message that appears temporarily.",
+    "jsdoc": "A succinct message that appears temporarily.",
     "examples": [
       "Composition:\n```\nToast.Root\n├── Toast.Icon\n├── Toast.Message\n└── Toast.Action\n```",
       "```tsx\nmakeToast(\n  <Toast.Root intent=\"success\">\n    <Toast.Icon />\n    <Toast.Message>Operation completed successfully!</Toast.Message>\n    <Toast.Action>Dismiss</Toast.Action>\n  </Toast.Root>\n);\n```"

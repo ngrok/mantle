@@ -94,13 +94,14 @@ function useOffsetPagination({
 	const [currentPage, setCurrentPage] = useState(1);
 	const [currentPageSize, setCurrentPageSize] = useState(pageSize);
 
-	// Reset the current page to 1 when the page size prop changes
+	// Why reset to page 1: the old index means something else against a new page
+	// size. A larger page size can also put it past the new last page.
 	useEffect(() => {
 		setCurrentPageSize(pageSize);
 		setCurrentPage(1);
 	}, [pageSize]);
 
-	// Reset the current page to 1 when the list size prop changes
+	// Why reset to page 1: a shorter list can put the current index past the end.
 	useEffect(() => {
 		setCurrentPage(1);
 	}, [listSize]);

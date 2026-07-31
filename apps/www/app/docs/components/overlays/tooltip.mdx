@@ -13,7 +13,7 @@ A popup that displays information related to an element when the element receive
 
 ## When to use
 
-A `Tooltip` shows a short, non-interactive label when a control receives keyboard focus or a pointer hover. Reach for it to clarify the purpose of an icon-only button, surface a keyboard shortcut, or provide a brief hint about a control. Do NOT put buttons, links, or form controls inside a `Tooltip`.
+A `Tooltip` shows a short, non-interactive label when a control receives keyboard focus or a pointer hover. Reach for it to clarify the purpose of an icon-only button, surface a keyboard shortcut, or show a brief hint about a control. Do NOT put buttons, links, or form controls inside a `Tooltip`.
 
 - Prefer [`Popover`](/components/overlays/popover) when the floating content needs buttons, links, inputs, or anything else focusable.
 - Prefer [`HoverCard`](/components/overlays/hover-card) for a sighted-only preview of content that already lives behind a link.
@@ -86,7 +86,7 @@ Tooltip.Root
 
 ### TooltipProvider
 
-Wraps your app to provide global functionality to your tooltips. Only one instance of this component should be rendered in your app, preferably at the root.
+Wraps your app to set shared global behavior for your tooltips, such as consistent delay and hover settings. Mount exactly one instance, preferably at the root of your app. A nested provider applies its own timing props to its subtree. It also tracks `skipDelayDuration` separately, so a pointer that moves from one provider's trigger to the other's waits the delay again.
 
 | Prop                       | Type      | Default | Description                                                                                                  |
 | -------------------------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------ |

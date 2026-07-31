@@ -157,9 +157,17 @@ The `Table` is a structured way to display data in rows and columns. The API mat
 
 ### Table.Root
 
-Root container for all `Table` sub-components. Should be the parent of all other table sub-components. It provides styling and additional functionality, such as horizontal overflow detection.
+Root container for all `Table` sub-components. Should be the parent of all other table sub-components. It draws the border and rounded corners, and scrolls wide content horizontally with a fading scroll edge.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
+
+`Table.Root` stamps these data attributes on its outer element for your own CSS to target:
+
+| Attribute            | Value                 | Description                                                                                                                                                                       |
+| -------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-x-overflow`    | `"true"` \| `"false"` | Whether the content is wider than the container. Always present, so match the value, not the attribute.                                                                           |
+| `data-x-scroll-end`  | `"true"` \| `"false"` | Whether an overflowing container is scrolled to its right edge. Always present.                                                                                                   |
+| `data-sticky-active` | present, or absent    | Present only while the container overflows and is not scrolled to the end. `DataTable`'s pinned action column keys its shadow off this through `group-data-sticky-active/table:`. |
 
 ### Table.Element
 
@@ -215,6 +223,6 @@ All props from [td](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/td
 
 ### Table.Caption
 
-Specifies the caption (or title) of a table, providing the table an accessible description.
+Specifies the caption (or title) of a table, which gives the table an accessible description.
 
 All props from [caption](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/caption#attributes).

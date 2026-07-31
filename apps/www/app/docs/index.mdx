@@ -17,7 +17,8 @@ prioritizes accessibility, performance, and long-term maintainability. Developed
 [TypeScript](https://www.typescriptlang.org/), it offers strong typing, rich IDE support, and
 increased confidence through compile-time safety. By progressively enhancing standard DOM
 elements, it not only improves usability and accessibility, but also fills functional
-gaps—providing a robust foundation for building cohesive, modern UIs throughout the platform.
+gaps. The result is a stable foundation for building cohesive, modern UIs throughout
+the platform.
 
 To learn more about the design principles and architectural decisions that guide Mantle, see the
 [Philosophy](/philosophy) page.
@@ -29,8 +30,8 @@ around the following unstyled primitive component libraries:
 - [Ariakit](https://ariakit.org/components)
 - [Headless UI](https://headlessui.com/)
 
-Mantle uses [Phosphor Icons](https://phosphoricons.com/) as the primary icon library, providing
-a versatile and consistent set of icons. In addition, custom-designed icons tailored to ngrok's
+Mantle uses [Phosphor Icons](https://phosphoricons.com/) as the primary icon library, a versatile
+and consistent set of icons. In addition, custom-designed icons tailored to ngrok's
 needs are available through the [`@ngrok/mantle/icons`](/components/data-display/icons) module.
 
 ## Status
@@ -220,7 +221,7 @@ You are now ready to use mantle components in your application! For example, you
 
 For apps **behind authentication** where responses are **not publicly cached by a CDN**, you can
 pass the theme cookie to `useInitialHtmlThemeProps` to eliminate the hydration mismatch entirely.
-This ensures the server renders the correct theme class, so React hydration matches the inline
+The server then renders the correct theme class, so React hydration matches the inline
 script without needing `suppressHydrationWarning`.
 
 > [!CAUTION]

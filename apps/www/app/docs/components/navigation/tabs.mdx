@@ -984,7 +984,7 @@ The `Tabs` components accept the following props.
 
 ### Tabs.Root
 
-The root container of the tabs component that provides context for all tab components. Based on [Radix Tabs Root](https://www.radix-ui.com/primitives/docs/components/tabs#root).
+A set of layered sections of content—known as tab panels—that are displayed one at a time. The outermost part; it owns `orientation` and `appearance`. It stamps both as `data-orientation` and `data-appearance` for the parts below to style against. Based on [Radix Tabs Root](https://www.radix-ui.com/primitives/docs/components/tabs#root).
 
 | Prop             | Type                           | Default        | Description                                                                                                                    |
 | ---------------- | ------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -1028,7 +1028,7 @@ Contains the content associated with each trigger. Based on [Radix Tabs Content]
 
 ### Tabs.Badge
 
-A badge component that can be used inside tab triggers to display additional information like counts or status indicators.
+A badge to render inside a tab trigger, typically a count or a status indicator.
 
 | Prop         | Type        | Default | Description                                           |
 | ------------ | ----------- | ------- | ----------------------------------------------------- |

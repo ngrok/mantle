@@ -59,8 +59,8 @@ in the light theme.
   IconButton visibly underfills its 48px box (42% fill vs 83% at `xs`). Same follow-up as
   typography: revisit with design input; scaling later is additive.
 - **`size` has no effect on `appearance="link"`.** Link buttons deliberately inherit surrounding
-  typography and have no box to size. `data-size` is not emitted for link buttons so the DOM never
-  claims a size that isn't applied. We deliberately do **not** encode this exclusion at the type
+  typography and have no box to size. They emit no `data-size`, so the DOM never claims a size
+  that isn't applied. We deliberately do **not** encode this exclusion at the type
   level: a discriminated union on `appearance` would reject legitimate dynamic call sites
   (`appearance={condition ? "link" : "filled"}`) that only discriminate at runtime.
 - `SplitButton.Root` owns `size` and drives both halves through context; `PrimaryAction` and
@@ -107,9 +107,9 @@ in light theme or a deeper tint. For reference, `text-muted` itself passes both 
 ### 4. Migration: hard cutover with a codemod prompt, no deprecation aliases
 
 We will not ship long-lived deprecated aliases. The Phase 2 release removes `priority` outright;
-migration is performed by a codemod-like prompt (run by the mantle maintainers against consuming
-repos). The prompt's contract is this mapping — old implicit defaults are resolved to explicit
-props, so no call site changes appearance:
+the mantle maintainers migrate consuming repos with a codemod-like prompt. The prompt's contract
+is this mapping — it resolves old implicit defaults to explicit props, so no call site changes
+appearance:
 
 | Old (as written)                                         | New (explicit)                                 |
 | -------------------------------------------------------- | ---------------------------------------------- |

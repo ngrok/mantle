@@ -22,7 +22,7 @@ For full accessibility, an app embedding mantle must:
 2. Place [`<SkipToMainLink />`](/components/primitives/skip-to-main-link) as the very first focusable element in `<body>`, paired with a [`<Main>`](/components/primitives/main) landmark wrapping the page's primary content.
 3. Render a single `<h1>` per page that names the page.
 4. Use real form elements with associated [`<Label>`](/components/forms/label)s.
-5. Provide accessible names on icon-only controls — [`IconButton`](/components/actions/icon-button) requires `aria-label`.
+5. Set accessible names on icon-only controls — [`IconButton`](/components/actions/icon-button) requires a `label` prop.
 
 ## Skip-to-main and landmarks
 
@@ -74,13 +74,13 @@ The table below summarizes the keyboard contract for the most common interactive
 - **Trap on modal surfaces.** `Dialog`, `AlertDialog`, and `Sheet` trap focus while open and restore it to the trigger on close.
 - **Don't trap on non-modal surfaces.** `Popover` and `HoverCard` allow focus to escape — that's intentional.
 - **Programmatic focus is fine.** When a route changes, focus the page's `<h1>` (or the `<Main>` landmark via `document.getElementById("main")?.focus()`) so screen reader users hear the page change.
-- **Visible focus rings.** Mantle uses `:focus-visible` so focus styles appear for keyboard users without distracting mouse users. Don't override `outline` without providing an equivalent ring.
+- **Visible focus rings.** Mantle uses `:focus-visible` so focus styles appear for keyboard users without distracting mouse users. Don't override `outline` without setting an equivalent ring.
 
 ## ARIA roles and labels
 
 Mantle components emit appropriate roles automatically. Consumers need to add:
 
-- `aria-label` on [`IconButton`](/components/actions/icon-button), and any [`Button`](/components/actions/button) whose label is icon-only.
+- `label` on [`IconButton`](/components/actions/icon-button), which it renders as visually-hidden text. `aria-label` on any [`Button`](/components/actions/button) whose content is icon-only.
 - `aria-label` or visually-hidden text on [`Kbd`](/components/data-display/kbd) when the visible glyph is a symbol (e.g. `⌘`).
 - `aria-describedby` linking error/help text to form controls. [`Input`](/components/forms/input) and friends do this for you when you use the validation prop, but custom messages should be wired manually.
 - `aria-current="page"` on the active item in primary navigation (use react-router's `NavLink` for this).
@@ -89,7 +89,7 @@ Mantle components emit appropriate roles automatically. Consumers need to add:
 ## Color contrast and themes
 
 - Color tokens (`text-strong`, `text-muted`, `bg-form`, `border-accent-600`, etc.) target WCAG AA contrast in both light and dark themes.
-- High-contrast variants are provided via dedicated stylesheets — import [`@ngrok/mantle/mantle-light-high-contrast.css`](https://www.npmjs.com/package/@ngrok/mantle?activeTab=code) or `@ngrok/mantle/mantle-dark-high-contrast.css` to opt in.
+- High-contrast variants ship as dedicated stylesheets — import [`@ngrok/mantle/mantle-light-high-contrast.css`](https://www.npmjs.com/package/@ngrok/mantle?activeTab=code) or `@ngrok/mantle/mantle-dark-high-contrast.css` to opt in.
 - Don't communicate state by color alone. Use color **and** a label, icon, or copy. `Badge` and `Alert` do this by default; custom components should follow suit.
 
 ## Reduced motion
@@ -123,6 +123,6 @@ If a third-party widget or constraint makes a component temporarily inaccessible
 
 1. Document it in a code comment that explains the _why_ and links to the tracking issue.
 2. Communicate the limitation to the user — don't ship invisible inaccessibility.
-3. Provide a fallback path (e.g. a plain `<a>` with the same target) so keyboard and screen-reader users are not blocked.
+3. Add a fallback path (e.g. a plain `<a>` with the same target) so keyboard and screen-reader users are not blocked.
 
 The goal isn't perfect compliance forever — it's making the right choice the default and surfacing the exceptions honestly.

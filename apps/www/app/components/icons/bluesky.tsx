@@ -1,7 +1,7 @@
 import type { InlineIconProps } from "@ngrok/mantle/icons";
 
 /**
- * An inline svg icon that renders the Bluesky logo. Fill color is determined by the `color` CSS property.
+ * An inline svg icon that renders the Bluesky logo. The `color` CSS property sets the fill.
  */
 export function BlueskyIcon(props: Omit<InlineIconProps, "color">) {
 	return (

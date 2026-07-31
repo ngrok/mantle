@@ -72,4 +72,4 @@ function composeRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T>;
 type PossibleRef<T> = React.Ref<T> | undefined;
 ```
 
-Accepts any number of refs (callback refs, `RefObject`s, or `undefined`). Returns a single callback ref that, when called with a node, assigns the node to all provided refs. `undefined` refs are safely skipped. When a callback ref returns a React 19 ref cleanup function, the composed ref propagates it, so each cleanup runs on unmount.
+Accepts any number of refs (callback refs, `RefObject`s, or `undefined`). Returns a single callback ref that, when called with a node, assigns the node to every given ref. `undefined` refs are safely skipped. When a callback ref returns a React 19 ref cleanup function, the composed ref propagates it, so each cleanup runs on unmount.

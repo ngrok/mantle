@@ -536,7 +536,7 @@ function LinkedChartsExample() {
 
 ## Live data
 
-For streaming data, append points to the end of a sliding window and let the chart supply the motion. The x domain does not play a fixed-duration tween per append — it exponentially chases its target, so a new point arriving mid-glide just redirects the motion and back-to-back appends read as one continuous scroll, never ease-stop-jump ticks. As the window slides, tick labels fade in and out per label (gridlines share their labels' fade) instead of popping between tick sets. `prefers-reduced-motion` snaps everything: appends land instantly, with no glide and no fades.
+For streaming data, append points to the end of a sliding window and let the chart supply the motion. The x domain does not play a fixed-duration tween per append — it exponentially chases its target, so a new point arriving mid-glide redirects the motion and back-to-back appends read as one continuous scroll, never ease-stop-jump ticks. As the window slides, tick labels fade in and out per label (gridlines share their labels' fade) instead of popping between tick sets. `prefers-reduced-motion` snaps everything: appends land instantly, with no glide and no fades.
 
 This demo appends one point every 150ms to a sliding 240-point window, dropping the oldest point each time. Both series derive from pure sine compositions over a tick counter and a fixed epoch — a slow drift plus faster waves — so the demo renders deterministically; a real chart would append measurements as they arrive.
 
@@ -780,7 +780,7 @@ A dashed horizontal marker at a y value — an SLO threshold, a budget, a limit.
 
 ### LineChart.Tooltip
 
-Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `LineChart.Root`'s interaction contract and renders whether or not this part is composed — compose it to format the label or values, append a footer, or replace the content entirely.
+Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `LineChart.Root`'s interaction contract and renders even when this part is absent — compose it to format the label or values, append a footer, or replace the content entirely.
 
 The `footer` and `children` render props receive a `HoverSnapshot`: the active `index`, `xValue`, the original `datum`, `points` (every series' `dataKey`, `label`, `value`, and `color` at the active x, in visual order), and `viaKeyboard`. `labelFormat` receives the x value directly and `valueFormat` receives `(value, dataKey)` — not the snapshot.
 

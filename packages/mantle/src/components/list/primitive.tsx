@@ -262,7 +262,7 @@ const ITEM_CONTROL_SELECTOR =
 
 /**
  * The focusable control of a mounted row element, or `null` when the row hosts
- * none (a static row is simply not a keyboard-navigation stop). An `asChild`
+ * none (a static row is not a keyboard-navigation stop). An `asChild`
  * row may *be* the control (e.g. `<Item asChild><a href…>`), so the row
  * itself is checked before its descendants.
  */
@@ -409,7 +409,7 @@ function listFocusNavigationProps({
  * the mounted window), **skipping rows flagged by {@link isItemDisabled}** so
  * keyboard navigation only lands on actionable rows (matching the `MultiSelect`
  * popover), and `scrollToIndex` reveals + mounts the target. Scrolling happens
- * **only** on keyboard navigation — focus (from a Tab or a row click) just makes
+ * **only** on keyboard navigation — focus (from a Tab or a row click) makes
  * the focused row active without moving the viewport, so clicking a row never
  * yanks the scroll. Because keyboard navigation keeps focus on the collection
  * (never on a row), it survives virtualization.
@@ -475,7 +475,7 @@ function useGridNavigation({
 		findEnabledIndex({ start, step, count, isItemDisabled: isDisabled });
 
 	// Make an enabled row active and scroll it into view; ignore `-1` (no target,
-	// e.g. arrowing past the last enabled row) so the active row simply holds.
+	// e.g. arrowing past the last enabled row) so the active row holds.
 	const activate = (index: number) => {
 		if (index < 0) {
 			return;

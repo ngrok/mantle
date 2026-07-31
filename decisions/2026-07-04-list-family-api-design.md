@@ -27,7 +27,7 @@ undocumented — mirroring `dialog/primitive`.
   primitive's docs page mostly told readers not to use it — the tell that it
   shouldn't have been public.
 - "ScrollableList" was a weak name (every list scrolls); its real identity was
-  simply _the list component_, so it took the `List` name when the family
+  only _the list component_, so it took the `List` name when the family
   collapsed.
 - The asymmetry that decided it: **promoting a private primitive later is
   additive and non-breaking; un-shipping a public one is breaking.** Ship the
@@ -85,7 +85,7 @@ children-prop sniffing only sees the outermost composed element and fails
 silently when consumers wrap items (a `cloneElement`-injection bug this family
 actually had and removed). Rendering stays composable via the viewport
 render-prop. `List` stays fully children-based because everything it does
-derives from the children it is handed.
+derives from the children it receives.
 
 The general rule: **membership is data when collection-level behavior outlives
 mounting; presentation is always composition.** And never smuggle collection

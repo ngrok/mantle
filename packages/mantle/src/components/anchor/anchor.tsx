@@ -69,7 +69,7 @@ type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
  *
  * **Accessibility.** Link text must be self-describing — avoid "click
  * here" / "read more". For purely decorative icons, no extra labeling is
- * needed; for icon-only links, provide an `aria-label`.
+ * needed; for icon-only links, pass an `aria-label`.
  *
  * @see https://mantle.ngrok.com/components/navigation/anchor
  *
@@ -154,7 +154,7 @@ const Anchor = ({
 /**
  * Resolves the `rel` attribute to a string.
  *
- * If the value is an array, it will be filtered for empty values, ensure uniqueness, sorted, and joined with a space.
+ * If the value is an array, it drops the empty values, de-duplicates, sorts, and joins with a space.
  */
 function resolveRel(
 	rel: Rel | (string & {}) | undefined | null | (Rel | (string & {}) | undefined | null)[],

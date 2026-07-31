@@ -249,8 +249,8 @@ describe("isInteractiveItemTarget", () => {
 	});
 
 	test("ignores interactive ancestors outside the row", () => {
-		// The row is nested inside a button; a click on the row's own text must not
-		// be treated as interactive just because an ancestor is.
+		// The row is nested inside a button. A click on the row's own text is not
+		// interactive, even though an ancestor is.
 		const outerButton = document.createElement("button");
 		const row = document.createElement("div");
 		const text = document.createElement("p");
@@ -277,7 +277,7 @@ describe("List grid row ids", () => {
 	test("a custom itemId leaves the row's own id alone instead of duplicating the referenced id", () => {
 		// Regression: the row used to stamp itemId(index) as its own DOM id even when
 		// the consumer's itemId pointed at an element *inside* the row — producing
-		// duplicate ids — and silently discarded a consumer-provided row id.
+		// duplicate ids — and silently discarded the consumer's own row id.
 		render(
 			<ListRoot semantics="grid" aria-label="grid" itemId={(index) => `ctrl-${index}`}>
 				<ListItem id="consumer-row">

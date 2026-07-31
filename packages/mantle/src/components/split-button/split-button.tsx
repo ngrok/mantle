@@ -34,9 +34,9 @@ type RootProps = ComponentProps<typeof DropdownMenu.Root> &
 	};
 
 /**
- * A button group which provides a default action with one click while revealing
- * related alternatives through a dropdown menu. Best for when users typically
- * want one action but occasionally need variants.
+ * A button group that pairs a one-click default action with a dropdown menu
+ * of related alternatives. Best for when users typically want one action but
+ * occasionally need variants.
  *
  * @see https://mantle.ngrok.com/components/actions/split-button#splitbuttonroot
  *
@@ -264,9 +264,9 @@ const MenuItem = ({ className, ...props }: ComponentProps<typeof DropdownMenu.It
 };
 
 /**
- * A button group which provides a default action with one click while revealing
- * related alternatives through a dropdown menu. Best for when users typically
- * want one action but occasionally need variants.
+ * A button group that pairs a one-click default action with a dropdown menu
+ * of related alternatives. Best for when users typically want one action but
+ * occasionally need variants.
  *
  * @see https://mantle.ngrok.com/components/actions/split-button
  *
@@ -304,9 +304,9 @@ const MenuItem = ({ className, ...props }: ComponentProps<typeof DropdownMenu.It
  */
 const SplitButton = {
 	/**
-	 * A button group which provides a default action with one click while revealing
-	 * related alternatives through a dropdown menu. Best for when users typically
-	 * want one action but occasionally need variants.
+	 * A button group that pairs a one-click default action with a dropdown menu
+	 * of related alternatives. Best for when users typically want one action but
+	 * occasionally need variants.
 	 *
 	 * @see https://mantle.ngrok.com/components/actions/split-button#splitbuttonroot
 	 *

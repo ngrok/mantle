@@ -52,8 +52,8 @@ type Props = SvgAttributes & {
 	strokeWidth?: StrokeWidth;
 	/**
 	 * The current value of the progress bar.
-	 * This attribute specifies how much of the task that has been completed.
-	 * It must be a valid floating point number between 0 and max, or between 0 and 100 if max is omitted.
+	 * This attribute specifies how much of the task is complete.
+	 * It must be a valid floating point number between 0 and `max`, or, when `max` is omitted, between 0 and 100.
 	 * If set to `"indeterminate"`, the progress bar is considered indeterminate.
 	 *
 	 * @default 0

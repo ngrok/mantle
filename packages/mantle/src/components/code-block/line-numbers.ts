@@ -49,7 +49,6 @@ export function resolveLineNumbers(...items: (LineRange | number)[]): Set<number
 				continue;
 			}
 
-			// add all line numbers in the range, inclusive
 			for (let i = start; i <= end; i++) {
 				lineNumberSet.add(i);
 			}

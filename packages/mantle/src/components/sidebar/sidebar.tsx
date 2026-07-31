@@ -278,7 +278,7 @@ function claimKeyboardShortcut(): { isOwner: () => boolean; release: () => void 
 
 /**
  * The state owner for a sidebar. Renders no DOM of its own (like
- * `Tooltip.Root`) — it provides the expanded/collapsed and mobile-sheet state
+ * `Tooltip.Root`) — it carries the expanded/collapsed and mobile-sheet state
  * to every part below it, so `Sidebar.Trigger` can live anywhere in the tree
  * (for example inside an `AppLayout.Header`) without coupling the app shell
  * to the sidebar.
@@ -2157,7 +2157,7 @@ type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "childre
  * cannot pop a label under a pointer that has already moved on.
  *
  * **Requires a `TooltipProvider` ancestor**, like any `Tooltip.Root` — mount one
- * at your app root. This part deliberately does not provide its own, so the
+ * at your app root. This part deliberately does not mount its own, so the
  * app-wide tooltip delay stays app-wide rather than being overridden per row.
  * The one provider setting it does override is hoverable content: a rail label
  * holds nothing to hover into, so the pointer leaving the row closes it.
@@ -2454,7 +2454,7 @@ const SidebarSeparator = ({
  */
 const Sidebar = {
 	/**
-	 * The state owner for a sidebar. Renders no DOM — provides expanded /
+	 * The state owner for a sidebar. Renders no DOM — carries expanded /
 	 * mobile-sheet state to every part below it so the trigger can live in the
 	 * app shell without coupling it to the sidebar.
 	 *

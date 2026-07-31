@@ -84,7 +84,7 @@ type SelectableListOption = {
 );
 
 /**
- * The plain-text form of an option's label: `labelText` when provided,
+ * The plain-text form of an option's label: `labelText` when set,
  * otherwise the `label` itself when it is a string. This is what the default
  * filter matches; reuse it in a custom `filter` predicate to keep label
  * matching consistent while adding your own criteria. The option type requires
@@ -789,7 +789,7 @@ type SelectableListViewportProps = Omit<ComponentProps<"div">, "children"> & {
  * checkbox rows inside the bordered, rounded `bg-popover` viewport. Renders
  * **every** filtered row — the non-virtualized default; for long lists, swap in
  * `SelectableList.VirtualViewport`. Renders nothing when the filter matches
- * nothing — pair with `SelectableList.Empty`. Provide an `aria-label` (or
+ * nothing — pair with `SelectableList.Empty`. Pass an `aria-label` (or
  * `aria-labelledby`) and **bound the height** (`max-h-*`, `h-*`, or
  * `min-h-0 flex-1`).
  *

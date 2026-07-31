@@ -8,18 +8,18 @@ import { BlackWhiteDemo } from "~/features/colors-demo";
 
 # Colors
 
-Colors are a key component of any design system. They are used to convey meaning, attract
-attention, and provide feedback. Mantle's color system is designed to be accessible
-and flexible with dark and high contrast modes.
+Colors are a key component of any design system. They convey meaning, attract
+attention, and give feedback. Mantle's color system is accessible and flexible,
+with dark and high contrast modes.
 
 ## Tailwind
 
 Mantle uses Tailwind under the hood for all its CSS styling. However, we differ from
-Tailwind when it comes to colors. Mantle provides a full color library that automatically
-provides dark and high contrast modes. This is different from standard Tailwind usage
-that _requires_ dark class variations. By simply specifying light colors provided
-by Mantle, you'll get dark and high contrast modes for free. If you require
-additional customization, you can provide dark variant classes as an override.
+Tailwind when it comes to colors. Mantle ships a full color library with automatic
+dark and high contrast modes. This is different from standard Tailwind usage
+that _requires_ dark class variations. Specify Mantle's light colors and you get
+dark and high contrast modes for free. If you require additional customization,
+you can add dark variant classes as an override.
 
 ## Variables
 
@@ -28,8 +28,8 @@ Mantle's colors are delivered as CSS variables via Tailwind's API e.g.
 
 ## Black and White Color Variables
 
-Mantle overrides what "black" and "white" mean depending on the theme. We transformed
-these colors to be semantic colors instead of literal colors. For dark modes, we swap them
+Mantle overrides what "black" and "white" mean depending on the theme. They are
+semantic colors, not literal ones. For dark modes, we swap them
 so that white is actually black and vice versa. Pay attention to the example below when
 swapping between our themes!
 
@@ -40,7 +40,7 @@ swapping between our themes!
 Most colors should appropriately swap for sensible values in dark and high contrast modes.
 However, there are often cases where you'll need to specify an override. The
 `dark:` variant is well-documented on [Tailwind's website](https://tailwindcss.com/docs/dark-mode).
-Mantle provides additional variants for high contrast and dark high contrast mode with
+Mantle adds variants for high contrast and dark high contrast mode with
 `high-contrast:` and `dark-high-contrast:` respectively.
 
 ## Functional Colors
@@ -314,7 +314,7 @@ slate, zinc, etc. since we only want to use our own custom branded gray.
 ## Reserve Palette
 
 These additional colors are available when you need more color variety than the extended
-palette provides, such as for line charts, data visualization, or categorical distinctions.
+palette covers, such as for line charts, data visualization, or categorical distinctions.
 They are less harmonious with the rest of the Mantle palette, so prefer functional and
 extended colors first.
 

@@ -3,10 +3,12 @@ import type { ComponentProps, ComponentPropsWithoutRef } from "react";
 import { cx } from "../../utils/cx/cx.js";
 
 /**
- * Wraps your app to provide shared global behavior for your tooltips, such
- * as consistent delay and hover settings. Mount one instance at the root of
- * your app when you want app-wide tooltip defaults. Children render
- * `Tooltip.Root` / `Tooltip.Trigger` / `Tooltip.Content` trees as usual.
+ * Wraps your app to set shared global behavior for your tooltips, such
+ * as consistent delay and hover settings. Mount exactly one instance, preferably
+ * at the root of your app. A nested provider applies its own timing props to its
+ * subtree. It also tracks `skipDelayDuration` separately, so a pointer that moves
+ * from one provider's trigger to the other's waits the delay again. Children
+ * render `Tooltip.Root` / `Tooltip.Trigger` / `Tooltip.Content` trees as usual.
  *
  * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltipprovider
  *

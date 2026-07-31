@@ -105,7 +105,7 @@ columnHelper.display({
 });
 ```
 
-No other changes are required. The styling (sticky positioning, background, and left-side fade indicator) is applied by `DataTable.ActionHeader` itself.
+`DataTable.ActionHeader` applies the sticky positioning, the background, and the left-side fade indicator itself. It needs no other changes from you.
 
 ---
 
@@ -233,7 +233,7 @@ This is a purely additive change to the `DataTable` API:
 - `DataTable.ActionCell` behavior is unchanged from the consumer's perspective — it is still a sticky `<td>` positioned at the right of the row. Internally it now renders a left-side indicator span (1px divider + soft shadow gradient) and uses `bg-inherit` for an opaque background that tracks the row's hover state.
 - `DataTable.ActionHeader` is empty-state aware — when the table body has no rows, it renders as a plain `<th>` (no sticky positioning, no indicator, no right-side fade suppression) so the empty state looks natural.
 - Tables without an action column need no changes.
-- Tables with an action column that keep using the old `DataTable.Header` for the header will continue to render correctly — they just won't get the aligned sticky header or the matching fade indicator on the header row.
+- Tables with an action column that keep using the old `DataTable.Header` for the header will continue to render correctly — they won't get the aligned sticky header or the matching fade indicator on the header row.
 
 Migrating every data table that has a `DataTable.ActionCell` is recommended for visual consistency, but can be done incrementally.
 
@@ -244,7 +244,7 @@ Migrating every data table that has a `DataTable.ActionCell` is recommended for 
 Alongside `DataTable.ActionHeader`, `Table.Root` (and therefore every `DataTable.Root`) received the following internal behavior changes. Consumers typically do not need to do anything — they are listed here for completeness:
 
 - **Scroll fade mask is now applied inside the border.** `Table.Root` now renders an outer wrapper (border, rounded corners, background) and an inner scroll container (mask + horizontal scrolling). The border and rounded corners stay crisp at every scroll position; the fade only affects the scrolling table content.
-- **Bidirectional scroll fade via `scroll-fade-x`.** Both left and right edges fade based on scroll position. When the table contains a sticky right column (`DataTable.ActionCell` / `DataTable.ActionHeader`), the right-side fade is suppressed so the pinned column stays fully opaque — the pinned column provides its own left-side indicator instead.
+- **Bidirectional scroll fade via `scroll-fade-x`.** Both left and right edges fade based on scroll position. When the table contains a sticky right column (`DataTable.ActionCell` / `DataTable.ActionHeader`), the right-side fade is suppressed so the pinned column stays fully opaque — the pinned column renders its own left-side indicator instead.
 - **Y-scroll is disabled on the scroll container.** The inner scroll container uses `overflow-x: auto; overflow-y: clip` so the table only scrolls horizontally. Tall tables grow the container; page-level scrolling handles vertical overflow as before.
 - **Overscroll bounce is disabled on both axes** via `overscroll-behavior: none`.
 - **Sticky cells are opaque.** `DataTable.ActionCell` and `DataTable.ActionHeader` use `background-color: inherit` so they pick up the row's current background (including hover state) and cover scrolling content behind them.

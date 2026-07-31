@@ -42,7 +42,7 @@ short description
   - `patch` for doc/JSDoc/comment-only changes (no public API impact)
   - `minor` for new exports, new components, new behavior
   - `major` for breaking changes (removed exports, renamed APIs, behavior changes that break existing usage)
-- If a changeset exists but uses a bump type that seems wrong for the diff (e.g., `patch` while a new export is being added), warn but do not fail.
+- If a changeset exists but uses a bump type that does not match the diff (e.g., `patch` when the diff adds a new export), warn but do not fail.
 - If a changeset is NOT required and one exists for `@ngrok/mantle`: warn that it may be unnecessary, but don't fail.
 
 ## 5. Report

@@ -470,7 +470,7 @@ route("endpoints/:endpointType/:endpointId", "routes/endpoints/$endpointType.$en
 
 The detail route is a **sibling** of `endpoints`, not a child. So on `/endpoints/cloud/ep_1` the `endpoints`
 route never matches, its `handle` is never read, and the trail is a single non-link crumb with **no way up** —
-even though the URL clearly has a parent. It fails silently: nothing errors, you just get a shorter trail than
+even though the URL clearly has a parent. It fails silently: nothing errors, you get a shorter trail than
 you designed.
 
 Two ways out, and the right one depends on why the routes are split:

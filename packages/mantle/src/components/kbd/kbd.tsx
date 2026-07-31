@@ -18,7 +18,7 @@ import { cx } from "../../utils/cx/cx.js";
  *   `<Kbd>` elements separated by `+` text instead.
  *
  * **Accessibility.** Symbol-only glyphs (`⌘`, `⌃`, `↵`) are not announced
- * meaningfully by screen readers. Provide an accessible name via
+ * meaningfully by screen readers. Set an accessible name via
  * `aria-label` on the `<Kbd>` or include a visually-hidden label inside,
  * and mark the visible glyph `aria-hidden`.
  *

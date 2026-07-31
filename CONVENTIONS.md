@@ -86,7 +86,7 @@ These rules are [ASD-STE100](https://www.asd-ste100.org/) Simplified Technical E
 - **Out of scope:** chat replies, product copy, marketing text, vendored code (`packages/mantle/src/utils/cx/vendor/**`), and the generated code and config files [JSDoc](#jsdoc) already exempts.
 - **Identifier naming** stays with [Readability & Maintainability](#readability--maintainability).
 
-**Scope and status** — the stance is [COMPONENT_SPEC.md § Scope and status](./COMPONENT_SPEC.md#scope-and-status). This is the bar for prose you write or edit. Prose you touch comes up to the bar; the rest waits until someone opts into the work. An audit reports a prose gap; it does not open a migration inside an unrelated PR. Never restyle a shipped `decisions/*.md` — its wording is part of a dated record. Never reflow a verbatim quote, an ASCII composition tree, or an `@example`.
+**Scope and status** — the stance is [COMPONENT_SPEC.md § Scope and status](./COMPONENT_SPEC.md#scope-and-status). This is the bar for prose you write or edit. Prose you touch comes up to the bar; the rest waits until someone opts into the work. An audit reports a prose gap; it does not open a migration inside an unrelated PR. Never reflow a verbatim quote, an ASCII composition tree, or an `@example`.
 
 ### Words
 
@@ -151,7 +151,7 @@ Worked before/after pairs live in the `simplified-technical-english` skill, out 
 ### Changesets, decision docs, and docs pages
 
 - **A changeset is release notes, not a commit message.** `.changeset/*.md` ships verbatim into the public `CHANGELOG.md`, for a consumer who will never read the diff. The word bans hold; the length limits and the commit rules do not. [COMPONENT_SPEC.md §2.5](./COMPONENT_SPEC.md#25-changesets) owns what the body must cover.
-- **Write a new decision doc to these rules.** Leave the shipped ones alone.
+- **A decision doc follows these rules, new or shipped.** Its record is the decision, not the wording, so tightening the prose does not rewrite history. Never change what a shipped one decided, and never restate its dated evidence as a present-tense claim.
 - **Docs-page copy follows these rules.** [COMPONENT_SPEC.md §7.4](./COMPONENT_SPEC.md#74-prose-rules) owns what that copy must cover.
 
 ### Commit messages and PR descriptions
@@ -318,5 +318,5 @@ Beware the inverse trap in happy-dom: `offsetWidth`/`offsetHeight`/`getBoundingC
 ## Package Management
 
 - All external deps use exact pinned versions (no `^` / `~`). Single-use: `pnpm add -E <package>`.
-- Shared deps go through the `catalog:` in `pnpm-workspace.yaml`, then referenced as `catalog:`. Add to catalog first if the dep will be used across packages.
+- Shared deps go through the `catalog:` in `pnpm-workspace.yaml`; each package then references `catalog:`. When more than one package uses a dep, add it to the catalog first.
 - For `@pkg/*` workspace packages, use `catalog:` in `devDependencies` and `peerDependencies` (not `dependencies`) so apps install the dep themselves and avoid duplicates.

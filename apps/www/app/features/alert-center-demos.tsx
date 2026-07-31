@@ -30,7 +30,7 @@ const demoNavItems: ReadonlyArray<DemoNavItem> = [
  * informational notice, all dismissable so the demos can prove that dismissing
  * the bar's top alert promotes the next severity up. `AlertCenter` ranks them
  * by severity, so "Payment failed" leads the bar until dismissed; dismissal is
- * just the consumer unmounting an item.
+ * the consumer unmounting an item.
  */
 function DemoAlerts({
 	dismissed,

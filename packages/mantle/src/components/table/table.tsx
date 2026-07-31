@@ -5,8 +5,8 @@ import { cx } from "../../utils/cx/cx.js";
 
 /**
  * The `<Table.Root>` is the root container element for all `Table`s.
- * It provides styling and additional functionality, such as horizontal overflow
- * detection.
+ * It draws the border and rounded corners, and scrolls wide content
+ * horizontally with a fading scroll edge.
  *
  * Must be used as the parent of a `<Table.Element>`.
  *
@@ -43,6 +43,16 @@ import { cx } from "../../utils/cx/cx.js";
  * </Table.Root>
  * ```
  *
+ * Data attributes it stamps on the outer element, for your own CSS to target:
+ *
+ * - `data-x-overflow="true" | "false"` — whether the content is wider than the
+ *   container. Always present, so match the value, not the attribute.
+ * - `data-x-scroll-end="true" | "false"` — whether an overflowing container is
+ *   scrolled to its right edge. Always present.
+ * - `data-sticky-active` — present only while the container overflows and is not
+ *   scrolled to the end. `DataTable`'s pinned action column keys its shadow off
+ *   this through `group-data-sticky-active/table:`.
+ *
  * @see https://mantle.ngrok.com/components/data-display/table#tableroot
  */
 const Root = ({ children, className, ref, ...props }: ComponentProps<"div">) => {
@@ -72,7 +82,7 @@ const Root = ({ children, className, ref, ...props }: ComponentProps<"div">) => 
 					// scroll-driven animation). When the table contains a sticky right column
 					// (e.g., DataTable.ActionCell / DataTable.ActionHeader), suppress the
 					// container's right-side fade so the pinned column stays fully opaque. The
-					// pinned column provides its own left-side gradient for the scroll-under
+					// pinned column draws its own left-side gradient for the scroll-under
 					// effect.
 					"has-data-mantle-table-sticky-right:[--_fade-right:black]",
 				)}
@@ -407,24 +417,16 @@ const Foot = ({ children, className, ref, ...props }: ComponentProps<"tfoot">) =
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tablerow
  */
-const Row = ({ children, className, ref, ...props }: ComponentProps<"tr">) => (
-	<tr
-		data-slot="table-row"
-		ref={ref}
-		className={cx(
-			// This could be removed, or simplified
-			className,
-		)}
-		{...props}
-	>
+const Row = ({ children, ref, ...props }: ComponentProps<"tr">) => (
+	<tr data-slot="table-row" ref={ref} {...props}>
 		{children}
 	</tr>
 );
 
 /**
  * The `<Table.Header>` defines a cell as the header of a group of table cells
- * and may be used as a child of a `<Table.Row>`. The exact nature of this group
- * is defined by the scope and headers attributes.
+ * and may be used as a child of a `<Table.Row>`. The `scope` and `headers`
+ * attributes define the exact nature of this group.
  *
  * Must be used as a child of a `<Table.Row>`.
  *
@@ -538,7 +540,7 @@ const Cell = ({ children, className, ref, ...props }: ComponentProps<"td">) => (
 
 /**
  * The optional `<Table.Caption>` specifies the caption (or title) of a table,
- * providing the table an accessible description.
+ * which gives the table an accessible description.
  *
  * If used, must be the first child of a `<Table.Element>`.
  *
@@ -690,7 +692,7 @@ const Table = {
 	 */
 	Body,
 	/**
-	 * An optional caption that specifies the caption (or title) of a table, providing an accessible description.
+	 * An optional caption (or title) for a table, which gives the table an accessible description.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/table#tablecaption
 	 *
@@ -924,7 +926,7 @@ const Table = {
 	 */
 	Header,
 	/**
-	 * The root container element for all tables. Provides styling and additional functionality like horizontal overflow detection.
+	 * The root container element for all tables. It draws the border and rounded corners, and scrolls wide content horizontally with a fading scroll edge.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/table#tableroot
 	 *

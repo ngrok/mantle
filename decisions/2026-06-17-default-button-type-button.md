@@ -52,7 +52,7 @@ forwarded to the child, so a wrapped anchor never inherits a `button` `type`).
 
 The current required-prop design is the _only_ option that is un-footgunnable in **both**
 directions: you cannot accidentally submit, and you cannot accidentally fail to submit,
-because you are forced to choose. Defaulting to `"button"` trades the loud, obvious
+because it forces you to choose. Defaulting to `"button"` trades the loud, obvious
 accidental-submit footgun for a quiet one: a form whose submit button is written
 `<Button>Submit</Button>` and relies on **native** form submission will silently not submit —
 with no compile error, just wrong runtime behavior.
@@ -60,7 +60,7 @@ with no compile error, just wrong runtime behavior.
 This is low-risk in practice because most form code uses an explicit `onClick`/`onSubmit`
 handler rather than native submission, but it is the reason this is a real decision and not a
 pure win. Mitigation is documentation (see below): make `type="submit"` prominent wherever
-forms are shown.
+the docs show forms.
 
 ## Implementation plan
 
@@ -103,14 +103,14 @@ forms are shown.
 6. **Docs site.**
    - `apps/www/app/docs/components/button.mdx`, `icon-button.mdx`, `split-button.mdx`: drop
      any "type is required" wording; show the defaulted common case.
-   - Ensure the Field/form docs and any form example prominently use `type="submit"` to
+   - Use `type="submit"` prominently in the Field/form docs and any form example to
      counter the reverse footgun.
    - Regenerate the agent surface snapshot
      (`apps/www/app/utilities/__snapshots__/components-surface.json`) — it derives from the
      JSDoc and will pick up the new `@default`/examples.
 
 7. **Changeset — `patch`.** The public type contract changes (required → optional) and a new
-   runtime default is introduced; both are backward compatible and additive. We shipped this as a
+   runtime default lands; both are backward compatible and additive. We shipped this as a
    `patch`: every existing call site already passes `type`, so no published behavior changes for
    current consumers — the relaxation only removes a compile error from previously-invalid code.
    (`minor` is defensible too, treating the new optional-usage capability as a feature.)

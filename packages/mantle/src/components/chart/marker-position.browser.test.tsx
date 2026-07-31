@@ -10,7 +10,7 @@ import { ScatterPlot } from "../scatter-plot/index.js";
 /**
  * Real-browser hover-marker geometry tests: the active-point dots are DOM
  * overlay elements the engine positions from real plot layout, which
- * happy-dom cannot provide (degenerate geometry collapses every y to the
+ * happy-dom does not model (degenerate geometry collapses every y to the
  * same pixel).
  *
  * Regression suite for the stacked-area bug where dots rendered at each

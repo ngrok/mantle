@@ -98,7 +98,7 @@ import "prismjs/themes/prism-tomorrow.css";
 // or any custom .token.keyword { color: ... } styles
 ```
 
-Mantle's `mantle.css` already includes the Shiki CSS variable theme. Just ensure you import it:
+Mantle's `mantle.css` already includes the Shiki CSS variable theme. Import it:
 
 ```tsx
 import "@ngrok/mantle/mantle.css";
@@ -527,7 +527,7 @@ function TrafficPolicyExample() {
 
 ### 4. Dynamic code highlighting (Option A: plain text fallback)
 
-If `~preHtml` is not provided, CodeBlock gracefully falls back to rendering the code as escaped plain text (no colors, but still functional with copy button, line numbers, etc.).
+When `~preHtml` is omitted, CodeBlock falls back to rendering the code as escaped plain text (no colors, but still functional with copy button, line numbers, etc.).
 
 ```tsx
 import { CodeBlock, createMantleCodeBlockValue } from "@ngrok/mantle/code-block";
@@ -788,13 +788,13 @@ Health check: `GET /health` returns `200 {"status":"ok"}` when ready, `503 {"sta
 
 ### CSS / Theming
 
-CodeBlock uses Mantle's built-in CSS variable theme (`mantle-css-variables`). Ensure your app imports the Mantle CSS:
+CodeBlock uses Mantle's built-in CSS variable theme (`mantle-css-variables`). Import the Mantle CSS in your app:
 
 ```ts
 import "@ngrok/mantle/mantle.css";
 ```
 
-Light/dark mode is handled automatically via the Mantle `ThemeProvider`. The highlighted HTML uses CSS variable class names that respond to the active theme.
+The Mantle `ThemeProvider` handles light/dark mode automatically. The highlighted HTML uses CSS variable class names that respond to the active theme.
 
 ---
 
@@ -802,7 +802,7 @@ Light/dark mode is handled automatically via the Mantle `ThemeProvider`. The hig
 
 ### `mantleCode` returns plain text (no syntax highlighting)
 
-The Vite plugin is not configured. `mantleCode` is a no-op at runtime — it requires the Vite plugin to transform tagged templates at build time. Ensure `mantleCodeBlockPlugins().vitePlugins` is in your Vite config. In development, you may see a warning in the console.
+The Vite plugin is not configured. `mantleCode` is a no-op at runtime — it requires the Vite plugin to transform tagged templates at build time. Add `mantleCodeBlockPlugins().vitePlugins` to your Vite config. In development, you may see a warning in the console.
 
 ### Unsupported language silently falls back to plain text
 
@@ -814,7 +814,7 @@ Line numbers are 1-based. Passing `0` in `highlightLines` (e.g., `[0, 3]`) silen
 
 ### `preHtml` must come from a trusted source
 
-`preHtml` is rendered via `dangerouslySetInnerHTML`. Only pass HTML produced by Shiki through the Vite plugin, `createMantleServerSyntaxHighlighter`, or the highlight server. Never pass user-provided HTML strings.
+`preHtml` is rendered via `dangerouslySetInnerHTML`. Only pass HTML produced by Shiki through the Vite plugin, `createMantleServerSyntaxHighlighter`, or the highlight server. Never pass HTML strings that came from a user.
 
 ### Tab width is hardcoded to 2 spaces
 

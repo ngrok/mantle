@@ -5,6 +5,7 @@
 **Applies to:** every comment, JSDoc block, changeset, decision doc, docs page, commit subject, and pull-request description written in this repo
 **Distilled rules:** [CONVENTIONS.md → Writing](../CONVENTIONS.md#writing)
 **Source:** [ngrok-private/ngrok#45954](https://github.com/ngrok-private/ngrok/pull/45954), which added these rules to the ngrok monorepo as a Claude Code skill. Upstream standard: [ASD-STE100](https://www.asd-ste100.org/).
+**Evidence:** every `file:line` citation and count below names the tree at commit `3e79a45f`, which shipped this record. The repo-wide pass in `8a3899d7` then rewrote most of the prose they quote. Read them as a dated "before", not as live code.
 
 ## Context
 
@@ -12,23 +13,23 @@ Agent-written prose in this repo over-explains. It restates the code, it hedges,
 investigation. A pass over `packages/mantle/src`, `apps/www`, and the agent docs found four repeating
 shapes:
 
-- **The summary restates the identifier.** `packages/mantle/src/components/command/command.tsx:374` reads
+- **The summary restates the identifier.** `packages/mantle/src/components/command/command.tsx:374` read
   `The input component for the Command. It provides the input for the command palette.` Sentence two says
-  nothing sentence one did not. That shape repeats at eight more part declarations in the same file, and
-  the namespace copies degrade further — `:954` reads `The input component for the Command component.`
-  `packages/mantle/src/components/theme/theme-provider.tsx:51` and `:58` carry one sentence twice, on a context and on its provider.
-- **One sentence carries four ideas.** `packages/mantle/src/components/select/select.tsx:188` runs 55 words on a single line, drops into a
-  lowercase `if` mid-block, and states the default in the future passive:
+  nothing sentence one did not. That shape repeated at eight more part declarations in the same file, and
+  the namespace copies degraded further — `:954` read `The input component for the Command component.`
+  `packages/mantle/src/components/theme/theme-provider.tsx:51` and `:58` carried one sentence twice, on a context and on its provider.
+- **One sentence carries four ideas.** `packages/mantle/src/components/select/select.tsx:188` ran 55 words on a single line, dropped into a
+  lowercase `if` mid-block, and stated the default in the future passive:
   `By default the selected item's text will be rendered.`
-- **The comment names nothing.** `packages/mantle/src/components/card/card.tsx:9` reads
+- **The comment names nothing.** `packages/mantle/src/components/card/card.tsx:9` read
   `A container that can be used to display content in a box resembling a physical card.`
-  `packages/mantle/src/components/table/table.tsx:7` promises `styling and additional functionality`. Neither tells a reader what the part
+  `packages/mantle/src/components/table/table.tsx:7` promised `styling and additional functionality`. Neither told a reader what the part
   does that a sibling does not.
-- **The comment narrates the investigation.** `packages/mantle/src/components/table/table.tsx:415` ships `// This could be removed, or simplified`
-  inside a live `cx()` call. `packages/mantle/src/hooks/use-breakpoint.tsx:102` narrates the implementation instead of stating
+- **The comment narrates the investigation.** `packages/mantle/src/components/table/table.tsx:415` shipped `// This could be removed, or simplified`
+  inside a live `cx()` call. `packages/mantle/src/hooks/use-breakpoint.tsx:102` narrated the implementation instead of stating
   the contract.
 
-Every one of those lines costs a reader on each read, and every one of them ships. JSDoc is the surface for
+Every one of those lines cost a reader on each read, and every one of them shipped. JSDoc is the surface for
 IntelliSense, `llms.txt`, `/api/components.json`, and each agent that reads the library, so bad prose
 propagates into generated consumer code.
 
@@ -79,14 +80,18 @@ The rules apply to prose you write or edit. They do not license a repo-wide rewr
 [COMPONENT_SPEC.md → Scope and status](../COMPONENT_SPEC.md#scope-and-status): new work meets the bar, the
 parts you touch meet the bar, and the rest waits until someone opts into the work. An audit reports the gap.
 
-Two exclusions are permanent, not deferred:
+One exclusion is permanent, not deferred:
 
-- **A shipped `decisions/*.md` keeps its wording.** Do not restyle one. All three `comprehensive` hits in
-  the repo live in one 2025 ADR, and rewriting them would edit the repo's decision history. Note that this
-  is new normative content: `COMPONENT_SPEC.md §1.8` owns decision-doc policy today and says nothing about
-  editing a shipped one.
-- **Quoted upstream text keeps its source wording.** `packages/mantle/src/components/input/types.ts:1-12` is verbatim MDN prose with an
-  `@see` citation. An STE pass would fork it from its source and lose the citation's value.
+- **Quoted upstream text keeps its source wording.** `packages/mantle/src/components/input/types.ts:1-12` is
+  verbatim MDN prose with an `@see` citation, and `packages/mantle/src/components/flag/flag.tsx:23` is the
+  same case. An STE pass would fork the text from its source and lose the citation's value.
+
+A shipped `decisions/*.md` is **in scope**, which this record settles because the first draft said the
+opposite. The argument for excluding one was that its wording is part of a dated record. That conflates two
+things: the decision a doc states, which is the record, and the sentences it states it in, which are not.
+Tightening the prose does not rewrite history. Two limits still hold — never change what a shipped doc
+decided, and never restate its dated evidence as a present-tense claim, because a quoted "before" example is
+evidence and must stay verbatim.
 
 ### 4. The banned-word list ships with its carve-outs
 
@@ -143,8 +148,8 @@ semicolon included, because oxlint parses the directive text.
 Measured over 2,296 JSDoc summary sentences in `packages/mantle/src`: median 10 words, p90 21 words, 253
 (11.0%) over 20 words, and 129 (5.6%) over 25.
 
-The cap catches the wrong prose. All eight worst over-explaining comments found in the corpus pass the
-20-word cap: `packages/mantle/src/components/command/command.tsx:374` is 6 words, `packages/mantle/src/components/select/select.tsx:188` is 7, `packages/mantle/src/components/card/card.tsx:9` is 16. Meanwhile the
+The cap catches the wrong prose. All eight worst over-explaining comments found in the corpus passed the
+20-word cap: `packages/mantle/src/components/command/command.tsx:374` was 6 words, `packages/mantle/src/components/select/select.tsx:188` was 7, `packages/mantle/src/components/card/card.tsx:9` was 16. Meanwhile the
 over-limit summaries cluster in the newest components, which were built to the current spec bar — 30% of
 `list`, 28% of `avatar`, 19% of `chart`. `packages/mantle/src/components/avatar/avatar.tsx:93` spends 49 words to pin the whole initials contract,
 and it should keep them.
@@ -159,7 +164,7 @@ Two surfaces take no descriptive cap at all:
   commit rules. A changeset explains a shipped API to a consumer who never sees the diff, so
   `the diff is the changelog` is false there. Note that a changeset is a live file, not a record: fix one
   you wrote.
-- **`decisions/*.md`** — dated records, and 89 semicolon-joined lines.
+- **`decisions/*.md`** — long-form rationale, and 89 semicolon-joined lines. The word bans still reach them.
 
 The commit cap takes a counting rule for the same reason. Ten words after the `type(scope):` prefix flags 8
 of the last 60 merged subjects, so the section states that the prefix and the `(#1234)` squash suffix do not

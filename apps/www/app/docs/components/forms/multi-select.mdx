@@ -1118,7 +1118,7 @@ The `MultiSelect` components are built on top of [ariakit Combobox](https://aria
 
 ### MultiSelect.Root
 
-Root component for the multi-select. Provides state management for selecting multiple values with typeahead filtering.
+Root component for a multi-select combobox. Owns the selected values and the typeahead query.
 
 Its floating `MultiSelect.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
 
@@ -1156,7 +1156,7 @@ Renders the selected values as removable tags. Place this inside `MultiSelect.Tr
 | `locked`    | `boolean`                                         | Whether this tag is locked (cannot be removed). Forwarded from `lockedValues`.                 |
 | `ref`       | `(node: HTMLSpanElement \| null) => void`         | Forward to the tag element to register it for keyboard navigation between tags.                |
 | `onKeyDown` | `(event: KeyboardEvent<HTMLSpanElement>) => void` | Forward to the tag element to enable ArrowLeft/Right/Backspace/Delete navigation between tags. |
-| `onClick`   | `() => void`                                      | Forward to the tag element to focus it and ensure the popover opens/stays open on click.       |
+| `onClick`   | `() => void`                                      | Forward to the tag element to focus it and keep the popover open on click.                     |
 
 ### MultiSelect.Input
 
@@ -1213,7 +1213,7 @@ All props from ariakit [ComboboxItem](https://ariakit.org/reference/combobox-ite
 
 ### MultiSelect.Group
 
-Renders a group for `MultiSelect.Item` elements. Optionally, a `MultiSelect.GroupLabel` can be rendered as a child to provide a label for the group.
+Renders a group for `MultiSelect.Item` elements. Optionally, render a `MultiSelect.GroupLabel` as a child to label the group.
 
 All props from ariakit [ComboboxGroup](https://ariakit.org/reference/combobox-group), plus:
 
@@ -1233,7 +1233,7 @@ All props from ariakit [ComboboxGroupLabel](https://ariakit.org/reference/combob
 
 ### MultiSelect.GroupDescription
 
-Renders a descriptive paragraph inside a `MultiSelect.Group`, placed after `MultiSelect.GroupLabel`. Provides additional context about the group's items.
+Renders a descriptive paragraph inside a `MultiSelect.Group`, placed after `MultiSelect.GroupLabel`. Adds context about the group's items.
 
 Standard `p` element props.
 

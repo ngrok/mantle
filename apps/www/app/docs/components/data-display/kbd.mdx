@@ -85,7 +85,7 @@ import { Kbd } from "@ngrok/mantle/kbd";
 
 ## Accessibility
 
-Symbol-only glyphs (`⌘`, `⌃`, `↵`) are not announced meaningfully by screen readers. Provide an accessible name via `aria-label` on the `<Kbd>` or include a visually-hidden label inside, and mark the visible glyph `aria-hidden`.
+Screen readers do not announce symbol-only glyphs (`⌘`, `⌃`, `↵`) meaningfully. Set an accessible name with `aria-label` on the `<Kbd>` or include a visually-hidden label inside, and mark the visible glyph `aria-hidden`.
 
 <Example>
 	<div className="flex items-center gap-2">

@@ -223,7 +223,7 @@ function isSettingsPath(path: string) {
  * The demo account alerts, authored as `AlertCenter.Item` JSX under a
  * stay-mounted `AlertCenter.Root` — the toggle mounts and unmounts items, so
  * flipping everything off collapses the bar with its exit animation instead of
- * popping it out. The single example shows just the usage-limit warning; the
+ * popping it out. The single example shows only the usage-limit warning; the
  * multiple example adds a billing failure (the danger takes the bar) and a
  * member-limit warning. The warnings are dismissable per the docs' best
  * practice — the billing failure withholds its dismiss button — and choosing
@@ -870,7 +870,7 @@ function AppShellAccountSwitcher({
  * header-mounted trigger, a product-choice dialog in the sidebar header, a
  * toggleable full-window notice strip, and a content card whose `Body` page
  * region is the only scroll container. The two components never reference each
- * other — `Sidebar.Root` simply wraps the shell so `Sidebar.Trigger` works from
+ * other — `Sidebar.Root` wraps the shell so `Sidebar.Trigger` works from
  * `AppLayout.Header`.
  *
  * The footer carries the shell's stable rows, bottom-anchored under the

@@ -79,7 +79,7 @@ That is all. The plugin writes the correct `@source` lines into your CSS file be
 
 4. **`configureServer`** — In development, the plugin also watches your source files via Vite's built-in file watcher. When a file change introduces a mantle import for a component not previously detected, the CSS file is updated in place and Tailwind's own watcher picks up the change automatically — no server restart required.
 
-**Why write to disk:** `@tailwindcss/vite` reads CSS files from disk at dev-server startup to initialize its file-system scanner and set up watchers, before Vite's `transform` pipeline runs. Injecting `@source` via a `transform` hook works in production builds but is invisible to Tailwind's dev-mode scanner. Writing to disk ensures the directives are present when Tailwind first reads the file.
+**Why write to disk:** `@tailwindcss/vite` reads CSS files from disk at dev-server startup to initialize its file-system scanner and set up watchers, before Vite's `transform` pipeline runs. Injecting `@source` via a `transform` hook works in production builds but is invisible to Tailwind's dev-mode scanner. The disk write puts the directives in place before Tailwind first reads the file.
 
 #### The generated block
 
@@ -97,7 +97,7 @@ The plugin writes a deterministic, human-readable block that is safe to commit:
 /* @ngrok/mantle-vite-plugins:source:end */
 ```
 
-To remove it, delete the lines between the `source:start` and `source:end` markers, or remove the plugin from your Vite config and it will be cleaned up on the next build.
+To remove it, delete the lines between the `source:start` and `source:end` markers. Or remove the plugin from your Vite config, and the next build cleans up the block.
 
 ### `mantleCodeBlockPlugins(options?)`
 

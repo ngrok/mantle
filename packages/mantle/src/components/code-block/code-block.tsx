@@ -233,7 +233,7 @@ const preValPatternCache = new Map<string, RegExp>();
 
 /**
  * Returns the cached `RegExp` for the given `preValToken`, falling back to the
- * legacy `SHIKI_VAL_<n>` pattern when no token is provided.
+ * legacy `SHIKI_VAL_<n>` pattern when the token is missing or empty.
  */
 function getTemplateValPattern(preValToken: string | undefined): RegExp {
 	if (preValToken == null || preValToken.length === 0) {
@@ -305,7 +305,7 @@ type CodeBlockCodeProps = Omit<ComponentProps<"pre">, "children"> & {
 /**
  * The `CodeBlock` content. Renders pre-highlighted code from `mantleCode()`.
  *
- * `value["~preHtml"]` must be provided by Mantle's Vite plugin or server highlighter.
+ * Mantle's Vite plugin or server highlighter must set `value["~preHtml"]`.
  * Runtime highlighting and runtime line decoration are intentionally unsupported.
  *
  * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockcode
@@ -522,7 +522,7 @@ const Title = ({
 type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "children" | "type"> &
 	SelfClosingWithAsChild & {
 		/**
-		 * The accessible label for the copy button. This label will be visually hidden but announced to screen reader users, similar to alt text for img tags.
+		 * The accessible label for the copy button. Mantle hides this label visually and announces it to screen readers, like the `alt` text on an `img` tag.
 		 *
 		 * @default "Copy code"
 		 */
@@ -538,8 +538,9 @@ type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "children" | "typ
 	};
 
 /**
- * The (optional) copy button of the `CodeBlock`. Copies the code content
- * to the clipboard when clicked.
+ * The optional copy button. Copies the raw source of the mounted
+ * `CodeBlock.Code` to the clipboard — in a tabbed block, the active tab's code.
+ * Omit it to render the code block without a copy control.
  *
  * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockcopybutton
  *
@@ -783,7 +784,7 @@ type CodeBlockTabListProps = Omit<ComponentProps<typeof RadixTabsList>, "asChild
  *
  * Place this inside `CodeBlock.Header` and pair with `CodeBlock.TabContent`
  * in `CodeBlock.Body` to conditionally render code based on the active tab.
- * Tab state is managed by `CodeBlock.Root` via `defaultTab` / `activeTab` / `onActiveTabChange`.
+ * `CodeBlock.Root` owns the tab state via `defaultTab` / `activeTab` / `onActiveTabChange`.
  *
  * When the tabs exceed the available width they scroll horizontally with an edge
  * fade (`scroll-fade-x`) instead of wrapping to a second row.
@@ -1019,7 +1020,9 @@ const CodeBlock = {
 	 */
 	Code,
 	/**
-	 * The optional copy button.
+	 * The optional copy button. Copies the raw source of the mounted
+	 * `CodeBlock.Code` to the clipboard — in a tabbed block, the active tab's
+	 * code. Omit it to render the code block without a copy control.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockcopybutton
 	 *

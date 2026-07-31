@@ -52,8 +52,8 @@ the highest-leverage surface — the source JSDoc — while staying inside the p
 
 Pagination (C) is more defensible than empty states (C) because the wiring is mechanical and
 uniform, but it still couples `DataTable` to `CursorPagination` and grows the public API for
-~15 lines of copy. Deferred under YAGNI; revisit if a concrete, repeated, identical need
-emerges across consumers.
+~15 lines of copy. Deferred under YAGNI; if a concrete, repeated, identical need emerges
+across consumers, revisit it.
 
 ## Consequences
 
@@ -63,5 +63,5 @@ emerges across consumers.
   example and cross-link DataTable.
 - The `data-table` source JSDoc `@example` on `DataTable` now teaches the two-state `Empty`
   pattern and `CursorPagination`; the regenerated `components-surface.json` snapshot reflects it.
-  One minimal bare-string empty example is kept for the trivial case.
+  One minimal bare-string empty example stays for the trivial case.
 - No `@ngrok/mantle` runtime API change — only JSDoc/docs. Shipped as a `patch`.

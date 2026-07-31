@@ -30,8 +30,8 @@ type InputProps = Omit<ComponentProps<"input">, "autoComplete" | "type"> &
 	PropsWithChildren;
 
 /**
- * Used to create interactive controls for web-based forms in order to accept data from the user.
- * A versatile input element that supports various types, validation states, and can be composed with other elements.
+ * An interactive form control that accepts data from the user. Supports many
+ * input types and validation states, and composes with adornment children.
  *
  * @see https://mantle.ngrok.com/components/forms/input
  *
@@ -150,7 +150,8 @@ type InputContainerProps = InputHTMLAttributes<HTMLInputElement> &
 	};
 
 /**
- * The container for the input element.
+ * The chrome around a bare `<input>` — the border, the `focus-within` ring, and
+ * the `data-slot` hook. A click anywhere on it focuses that input.
  */
 const InputContainer = ({
 	"aria-invalid": _ariaInvalid,

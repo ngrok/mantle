@@ -113,7 +113,7 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 
 ## Custom Maximum Value
 
-You can set a custom maximum value using the `max` prop. The progress value will be calculated as a percentage of this maximum.
+Set a custom maximum value with the `max` prop. The progress bar renders the value as a percentage of that maximum.
 
 <Example>
 	<ProgressBar.Root value={150} max={200}>
@@ -221,6 +221,6 @@ The `ProgressBar.Root` accepts the following props in addition to the [standard 
 
 ### ProgressBar.Indicator
 
-The indicator portion of the progress bar that shows the completed progress. This component is automatically positioned and sized based on the current value relative to the maximum value.
+The indicator portion of the progress bar that shows the completed progress. It positions itself from the current value relative to `max`.
 
 All props from [HTML div element](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div).

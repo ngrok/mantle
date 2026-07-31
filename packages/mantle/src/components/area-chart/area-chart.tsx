@@ -271,9 +271,9 @@ const ReferenceLine = (props: AreaChartReferenceLineProps) =>
 
 /**
  * Customizes the hover/keyboard tooltip readout. The tooltip itself is part
- * of `AreaChart.Root`'s interaction contract and renders whether or not this
- * part is composed — compose it to format the label or values, append a
- * footer, or replace the content entirely via the render-prop `children`.
+ * of `AreaChart.Root`'s interaction contract and renders even when this part
+ * is absent — compose it to format the label or values, append a footer, or
+ * replace the content entirely via the render-prop `children`.
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areacharttooltip
  *

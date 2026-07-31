@@ -34,7 +34,7 @@ deliberately decoupled — `AppLayout` never references sidebar state — but co
 in the top-left of `AppLayout.Header`. The
 [collapsed icon rail](/components/navigation/sidebar#collapsing-to-the-icon-rail) is entirely the sidebar's
 business — the shell markup does not change, and the rail shares the shell's `bg-base` surface, so the card
-gutter stays visually seamless. Every row here is wrapped in
+gutter shows no seam. Every row here is wrapped in
 [`Sidebar.Tooltip`](/components/navigation/sidebar#sidebartooltip), which is what labels the rail for
 pointer users once it collapses; it needs a `TooltipProvider` ancestor, which a real app mounts at its root.
 The demo runs in its own framed document, exactly like a real app: collapse
@@ -1425,8 +1425,8 @@ export function PageShapes() {
 Why each class on `AppLayout.Body` is there — and what breaks without it:
 
 - **`min-h-0 flex-1`** gives it a definite height, so `h-full` on a page resolves to exactly the card's
-  interior. Before the toolbar moved out of the scroll container, a `sticky` header was still _in flow_, so
-  `h-full` resolved against the full content box and every such page overflowed by exactly the toolbar's
+  interior. Before the toolbar moved out of the scroll container, an in-flow `sticky` header took flow space,
+  so `h-full` resolved against the full content box. Every such page then overflowed by exactly the toolbar's
   height — a bottom-pinned bar hung below the fold on every load.
 - **block inside, not flex.** This is the trap worth knowing about even though the part now absorbs it: if the
   page region were a flex container, **auto margins beat `align-items: stretch`**, so a route root of
@@ -1957,9 +1957,9 @@ export function Shell() {
 
 - `AppLayout.Header` renders a plain `<div>`, not a `<header>`. With `Main` composed onto `AppLayout.Body`,
   a `<header>` here would have no sectioning ancestor and would therefore **be** the ARIA `banner` landmark
-  — which a card toolbar is not. Compose your own element via `asChild` if you need one.
+  — which a card toolbar is not. If you need one, compose your own element via `asChild`.
 - `AppLayout.Notice` is deliberately **not** named Banner — it renders a plain `div` and claims no landmark.
-  Give the notice content its own semantics if it needs them.
+  If the notice content needs its own semantics, put them on the content.
 - Compose `Main` into `AppLayout.Body` (via `asChild`) and render `SkipToMainLink` first in the shell, so the
   landmark the skip link focuses is the scroll container — see [Landmarks](#landmarks).
 - The shell never scrolls; only `AppLayout.Body` does. Focus scrolling behaves like any regular scroll

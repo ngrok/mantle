@@ -140,8 +140,8 @@ type ListItemProps = Omit<ComponentProps<"button">, "type"> &
  * from the internal list primitive; renders a `<button>` by default (with
  * `onClick`), or your own element via `asChild` — e.g. an `<a>` for navigation
  * (account switching, SSO selection). The button/link fills its pill, so
- * clicking anywhere on the item triggers it, and the pill's hover / `current`
- * accent is provided by the enclosing listitem.
+ * clicking anywhere on the item triggers it, and the enclosing listitem carries
+ * the pill's hover / `current` accent.
  *
  * @see https://mantle.ngrok.com/components/data-display/list
  *

@@ -249,14 +249,14 @@ type AvatarImageProps = Omit<ComponentProps<"img">, "alt" | "onError"> &
  * The avatar's picture, layered over `Avatar.Fallback` so the fallback shows
  * through until the image paints. It is a plain `<img>` in the markup, which is
  * the whole point: the server renders it, the browser starts fetching while it
- * parses the HTML, and a cached image is simply *there* on the first frame — no
+ * parses the HTML, and a cached image is *there* on the first frame — no
  * hydration, no swap, no flash of initials.
  *
  * A failed load unmounts the image and leaves the fallback showing. That covers
  * every failure the client can observe; one it cannot is a load that fails
  * *before* hydration, where the error event has already come and gone. There the
  * browser's own rendering stands, which for `alt=""` is nothing at all — the
- * fallback simply shows through — and is one more reason to prefer `alt=""`
+ * fallback shows through — and is one more reason to prefer `alt=""`
  * whenever adjacent text names the subject.
  *
  * `onError` runs first and can `preventDefault()` to keep the image mounted, for
@@ -330,8 +330,8 @@ type AvatarFallbackProps = Omit<ComponentProps<"span">, "children"> &
 				 */
 				asChild?: boolean;
 				/**
-				 * What to show when there is no image: initials, an icon, anything. Use
-				 * `name` instead when the content is just the subject's initials.
+				 * What to show when there is no image: initials, an icon, anything.
+				 * When the content is only the subject's initials, use `name` instead.
 				 */
 				children: ReactNode;
 				name?: never;
@@ -363,8 +363,8 @@ type AvatarFallbackProps = Omit<ComponentProps<"span">, "children"> &
  * PNG its own backdrop if you would rather not see initials through it.
  *
  * Pass `name` to render the subject's initials, or `children` for anything else.
- * A fallback is decorative when adjacent text already names the subject, so give
- * an icon child `aria-hidden` unless the avatar is the only label.
+ * A fallback is decorative when adjacent text already names the subject, so
+ * unless the avatar is the only label, give an icon child `aria-hidden`.
  *
  * @see https://mantle.ngrok.com/components/data-display/avatar#avatarfallback
  *
@@ -430,7 +430,7 @@ const Fallback = ({
  *
  * The picture is a plain `<img>` layered over the fallback, so the server
  * renders it and a cached image is on screen in the first frame. There is no
- * loading state to handle: the fallback is simply behind, and shows until the
+ * loading state to handle: the fallback is behind, and shows until the
  * image paints.
  *
  * For a person's name and title beside their avatar, compose it with

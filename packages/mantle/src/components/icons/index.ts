@@ -1,5 +1,6 @@
 /**
- * Re-exports for the Icons component.
+ * Re-exports for the Icons component — the ngrok-specific icons that
+ * `@phosphor-icons/react` does not ship.
  *
  * @see https://mantle.ngrok.com/components/data-display/icons
  */

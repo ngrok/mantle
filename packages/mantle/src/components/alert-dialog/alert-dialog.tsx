@@ -39,8 +39,8 @@ type AlertDialogProps = ComponentProps<typeof AlertDialogPrimitive.Root> & {
 
 /**
  * A modal dialog that interrupts the user with important content and expects a
- * response.
- * The root stateful component for the Alert Dialog.
+ * response. Holds the open state and the `intent` that `AlertDialog.Icon` and
+ * `AlertDialog.Action` read.
  *
  * `AlertDialog` renders its floating layer at Tailwind `z-50`, Mantle's
  * shared floating z-index. When multiple shared layers are open, the most
@@ -128,7 +128,8 @@ const Trigger = ({ ref, ...props }: ComponentProps<typeof AlertDialogPrimitive.T
 );
 
 /**
- * The portal for the Alert Dialog.
+ * Mounts `AlertDialogOverlay` and `AlertDialog.Content` outside the app's DOM
+ * tree.
  *
  * @private
  */
@@ -398,7 +399,7 @@ const Footer = ({
 /**
  * An accessible name to be announced when the dialog is opened.
  *
- * Alternatively, you can provide `aria-label` or `aria-labelledby` to
+ * Alternatively, pass `aria-label` or `aria-labelledby` to
  * `AlertDialogContent` and exclude this component.
  *
  * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogtitle
@@ -447,7 +448,7 @@ const Title = ({ className, ref, ...props }: ComponentProps<typeof AlertDialogPr
  * Renders as a `div` by default, but can be changed to any other element using
  * the `asChild` prop.
  *
- * Alternatively, you can provide `aria-describedby` to `AlertDialogContent` and
+ * Alternatively, pass `aria-describedby` to `AlertDialogContent` and
  * exclude this component.
  *
  * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogdescription
@@ -523,8 +524,9 @@ const actionIntentByDialogIntent = {
 
 /**
  * A button that confirms the Alert Dialog action.
- * Will default to appearance="filled", with a tone derived from the `AlertDialog`'s
- * intent: danger dialogs get a danger button, info dialogs get a neutral one.
+ * Defaults to `appearance="filled"`, with a tone derived from the parent
+ * `AlertDialog.Root`'s intent: danger dialogs get a danger button, info dialogs
+ * get a neutral one.
  * Does not close the alert dialog by default.
  *
  * These buttons should be distinguished visually from the AlertDialogCancel button.
@@ -605,7 +607,7 @@ type AlertDialogCancelProps = Omit<ButtonProps, "appearance" | "intent"> & {
 
 /**
  * A button that closes the dialog and cancels the action.
- * Will default to appearance="outlined" and intent="neutral".
+ * Defaults to `appearance="outlined"` and `intent="neutral"`.
  *
  * This button should be distinguished visually from AlertDialogAction buttons.
  *
@@ -745,7 +747,7 @@ const Icon = ({ className, ref, svg, ...props }: AlertDialogIconProps) => {
  * `AlertDialog.Cancel` already closes the dialog by default. Reach for
  * `AlertDialog.Close` when you need to attach close behavior to a custom
  * element (typically wrapping `AlertDialog.Action` with `asChild` so the
- * action both performs the operation and dismisses the dialog).
+ * action both runs the operation and dismisses the dialog).
  *
  * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogclose
  *
@@ -848,11 +850,10 @@ const Close = ({ ref, ...props }: ComponentProps<typeof AlertDialogPrimitive.Clo
  */
 const AlertDialog = {
 	/**
-	 * The root stateful component for the Alert Dialog. Wraps the trigger and
-	 * content and exposes the required `intent` prop (`"danger"` for
-	 * destructive actions, `"info"` for informational confirmations) — the tone
-	 * its color communicates — which propagates color to descendants like
-	 * `AlertDialog.Icon` and `AlertDialog.Action`.
+	 * Wraps the trigger and the content. Holds the open state and the required
+	 * `intent` prop — `"danger"` for destructive actions, `"info"` for
+	 * informational confirmations. `AlertDialog.Icon` and `AlertDialog.Action`
+	 * read that intent for their color.
 	 *
 	 * `AlertDialog` renders its floating layer at Tailwind `z-50`, Mantle's
 	 * shared floating z-index. When multiple shared layers are open, the most
@@ -895,8 +896,8 @@ const AlertDialog = {
 	 * A button that confirms the Alert Dialog action. Defaults to
 	 * `appearance="filled"`, with a tone derived from the parent
 	 * `AlertDialog.Root`'s intent: danger dialogs get a danger button, info
-	 * dialogs get a neutral one. Does not close the dialog by default — wrap with
-	 * `AlertDialog.Close asChild` if the action should also dismiss.
+	 * dialogs get a neutral one. Does not close the dialog by default — if the
+	 * action should also dismiss, wrap it with `AlertDialog.Close asChild`.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogaction
 	 *
@@ -1008,7 +1009,7 @@ const AlertDialog = {
 	Cancel,
 	/**
 	 * A button that closes the Alert Dialog. (Unstyled) Typically wrapped
-	 * around `AlertDialog.Action` with `asChild` so the action both performs
+	 * around `AlertDialog.Action` with `asChild` so the action both runs
 	 * the operation and dismisses the dialog.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogclose
@@ -1238,7 +1239,7 @@ const AlertDialog = {
 	Icon,
 	/**
 	 * An accessible name to be announced when the dialog is opened.
-	 * Alternatively, provide `aria-label` or `aria-labelledby` to
+	 * Alternatively, pass `aria-label` or `aria-labelledby` to
 	 * `AlertDialog.Content` and exclude this component.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogtitle

@@ -26,9 +26,9 @@ import {
 
 /**
  * Props for {@link ScatterPlot.Root}. Scatter x values must be continuous
- * (numbers or `Date`s — there is no categorical scatter axis). Providing
- * `zKey` switches the chart into the 3D projection: points render inside a
- * rotatable cube (drag to orbit), depth-sorted with gentle perspective.
+ * (numbers or `Date`s — there is no categorical scatter axis). Set `zKey` to
+ * switch the chart into the 3D projection: points render inside a rotatable
+ * cube (drag to orbit), depth-sorted with gentle perspective.
  *
  * Scatter is an all-pairs chart form — any two marks can sit side by side —
  * so with the default chart tokens keep it to FOUR series or fewer; beyond
@@ -55,7 +55,7 @@ type ScatterPlotRootProps<TDatum extends ChartDatum = ChartDatum> = Omit<
 type ScatterPlotDepthProps<TDatum extends ChartDatum = ChartDatum> =
 	| {
 			/**
-			 * The key of each row's depth value. Providing it renders the scatter in
+			 * The key of each row's depth value. When set, the scatter renders in
 			 * 3D: drag the plot to rotate the cube. Axis parts and reference lines
 			 * apply to the 2D projection only and are ignored in 3D (the cube frame
 			 * carries orientation).
@@ -278,9 +278,9 @@ const ReferenceLine = (props: ScatterPlotReferenceLineProps) =>
 
 /**
  * Customizes the hover/keyboard tooltip readout. The tooltip itself is part
- * of `ScatterPlot.Root`'s interaction contract and renders whether or not
- * this part is composed — compose it to format the label or values, append a
- * footer, or replace the content entirely via the render-prop `children`.
+ * of `ScatterPlot.Root`'s interaction contract and renders even when this
+ * part is absent — compose it to format the label or values, append a footer,
+ * or replace the content entirely via the render-prop `children`.
  * In 3D the readout also carries the point's z value.
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplottooltip

@@ -12,24 +12,24 @@ Custom React hooks exported from `@ngrok/mantle/hooks`.
 
 ## Overview
 
-| Hook                        | Description                                                                         |
-| --------------------------- | ----------------------------------------------------------------------------------- |
-| `useBreakpoint`             | Returns the current responsive breakpoint based on the viewport width.              |
-| `useIsBelowBreakpoint`      | Returns `true` if the viewport width is below a given breakpoint.                   |
-| `useCallbackRef`            | Returns a memoized callback that always refers to the latest function passed to it. |
-| `useComposedRefs`           | Composes multiple React refs into a single callback ref.                            |
-| `useCopyToClipboard`        | Copies a string to the clipboard.                                                   |
-| `useDebounce`               | Returns a debounced copy of a value that updates after changes pause.               |
-| `useDebouncedCallback`      | Creates a debounced version of a callback function.                                 |
-| `useIsHydrated`             | Returns whether the component tree has been hydrated on the client.                 |
-| `useIsomorphicLayoutEffect` | Uses `useLayoutEffect` on the client and `useEffect` on the server.                 |
-| `useLocalStorage`           | SSR-safe localStorage string state, synced across hook instances and tabs.          |
-| `useSessionStorage`         | SSR-safe sessionStorage string state for per-tab persistence.                       |
-| `useMatchesMediaQuery`      | Subscribes to and returns the result of a CSS media query.                          |
-| `usePrefersReducedMotion`   | Returns `true` when the user prefers reduced motion.                                |
-| `useScrollBehavior`         | Returns a `ScrollBehavior` that respects the user's reduced motion preference.      |
-| `useInView`                 | Returns `true` when a DOM element is visible within the viewport.                   |
-| `useUndoRedo`               | Generic undo/redo history stacks for snapshotting state.                            |
+| Hook                        | Description                                                                             |
+| --------------------------- | --------------------------------------------------------------------------------------- |
+| `useBreakpoint`             | The largest Tailwind breakpoint the viewport width matches, or `"default"` below `2xs`. |
+| `useIsBelowBreakpoint`      | `true` while the viewport is narrower than the given breakpoint.                        |
+| `useCallbackRef`            | Returns a memoized callback that always refers to the latest function passed to it.     |
+| `useComposedRefs`           | Composes multiple React refs into a single callback ref.                                |
+| `useCopyToClipboard`        | Copies a string to the clipboard.                                                       |
+| `useDebounce`               | Returns a debounced copy of a value that updates after changes pause.                   |
+| `useDebouncedCallback`      | Creates a debounced version of a callback function.                                     |
+| `useIsHydrated`             | Returns whether the component tree has been hydrated on the client.                     |
+| `useIsomorphicLayoutEffect` | Uses `useLayoutEffect` on the client and `useEffect` on the server.                     |
+| `useLocalStorage`           | SSR-safe localStorage string state, synced across hook instances and tabs.              |
+| `useSessionStorage`         | SSR-safe sessionStorage string state for per-tab persistence.                           |
+| `useMatchesMediaQuery`      | Subscribes to and returns the result of a CSS media query.                              |
+| `usePrefersReducedMotion`   | Returns `true` when the user prefers reduced motion.                                    |
+| `useScrollBehavior`         | Returns a `ScrollBehavior` that respects the user's reduced motion preference.          |
+| `useInView`                 | Returns `true` when a DOM element is visible within the viewport.                       |
+| `useUndoRedo`               | Generic undo/redo history stacks for snapshotting state.                                |
 
 ## useBreakpoint
 
@@ -37,7 +37,7 @@ Custom React hooks exported from `@ngrok/mantle/hooks`.
 const breakpoint = useBreakpoint();
 ```
 
-Returns the current responsive breakpoint based on the viewport width. Uses a singleton subscription to a set of min-width media queries and returns the largest matching breakpoint.
+The largest Tailwind breakpoint the viewport width matches, or `"default"` below `2xs`. Shares one app-wide subscription to the min-width media queries.
 
 ```tsx
 import { useBreakpoint } from "@ngrok/mantle/hooks";
@@ -54,7 +54,7 @@ function ResponsiveComponent() {
 const isMobile = useIsBelowBreakpoint("md");
 ```
 
-Returns `true` if the current viewport width is below the specified breakpoint. Accepts a `TailwindBreakpoint` (`"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"2xl"`).
+`true` while the viewport is narrower than the given breakpoint. Accepts a `TailwindBreakpoint` (`"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"2xl"`).
 
 ```tsx
 import { useIsBelowBreakpoint } from "@ngrok/mantle/hooks";

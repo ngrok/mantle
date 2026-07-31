@@ -39,6 +39,12 @@ const ComponentEntry = {
 		markdownUrl: { type: "string", format: "uri" },
 		summary: { type: "string", description: "One-line summary from docs frontmatter." },
 		jsdoc: { type: "string", description: "First sentence of the source JSDoc, if available." },
+		examples: {
+			type: "array",
+			items: { type: "string" },
+			description:
+				"Body of each `@example` block on the primary exported identifier, in declaration order. Omitted when the source has none.",
+		},
 	},
 } as const;
 

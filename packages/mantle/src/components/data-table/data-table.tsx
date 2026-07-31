@@ -369,7 +369,7 @@ type DataTableRowProps<TData> = Omit<ComponentProps<typeof Table.Row>, "children
 	 * Renders an inline detail panel beneath the row. Called only while the row is
 	 * expanded (`row.getIsExpanded()`), so the panel — and any expensive work it
 	 * does — stays lazy. Mantle wraps the returned content in a sibling
-	 * `DataTable.ExpandedRow` spanning every visible column, so return just the
+	 * `DataTable.ExpandedRow` spanning every visible column, so return the
 	 * panel content (not a `<tr>`). Requires the table to be configured for
 	 * expansion (`getExpandedRowModel`, plus `getRowCanExpand` for detail panels);
 	 * pair it with a `DataTable.RowExpandButton` toggle in a leading column. For
@@ -383,7 +383,7 @@ type DataTableRowProps<TData> = Omit<ComponentProps<typeof Table.Row>, "children
  * A single data table body row rendered from a TanStack Table row instance.
  * Does not accept children — cells come from each column's `cell` definition.
  *
- * When `onClick` is provided, the row automatically receives `cursor-pointer`.
+ * When `onClick` is set, the row automatically receives `cursor-pointer`.
  * Pass a different `cursor-*` class via `className` (e.g. `cursor-default`,
  * `cursor-wait`) to override. For keyboard and screen-reader access, also
  * render a `<Link>` inside the primary cell — a `<tr>` is not focusable.
@@ -1453,7 +1453,7 @@ const DataTable = {
 	 * A single data table body row rendered from a TanStack Table row instance.
 	 * Does not accept children — cells come from each column's `cell` definition.
 	 *
-	 * When `onClick` is provided, the row automatically receives `cursor-pointer`.
+	 * When `onClick` is set, the row automatically receives `cursor-pointer`.
 	 * Pass a different `cursor-*` class via `className` to override. For keyboard
 	 * and screen-reader access, also render a `<Link>` inside the primary cell.
 	 *

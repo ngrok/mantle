@@ -32,7 +32,7 @@ describe("Button", () => {
 		);
 		expect(screen.getByRole("link")).toHaveTextContent("click me");
 
-		// Ensure the `type` attribute is not passed to the anchor element
+		// The `type` attribute must never reach the anchor element.
 		expect(screen.getByRole("link")).not.toHaveAttribute("type");
 	});
 

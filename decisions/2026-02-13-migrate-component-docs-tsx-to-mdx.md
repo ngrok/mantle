@@ -143,9 +143,9 @@ pnpm -w run start        # manually verify the page renders correctly
 
 ## Gotchas
 
-- **`fmtCode` tagged template literals**: These are only used in the old TSX `CodeBlock.Code` components. In MDX, replace with a standard fenced code block. Do NOT import or use `fmtCode`.
+- **`fmtCode` tagged template literals**: Only the old TSX `CodeBlock.Code` components use these. In MDX, replace with a standard fenced code block. Do NOT import or use `fmtCode`.
 - **Duplicate IDs in examples**: If multiple examples render the same component with `id` props, make sure each `id` is unique across the entire page to avoid React warnings.
-- **Controlled input warnings**: Static examples with `checked` or `value` props need a `readOnly` prop if there's no `onChange` handler.
-- **`asChild` prop**: Many components support `asChild`. Document it in the props table when the source component type includes it.
+- **Controlled input warnings**: If a static example passes `checked` or `value` with no `onChange` handler, it needs a `readOnly` prop.
+- **`asChild` prop**: Many components support `asChild`. When the source component type includes it, document it in the props table.
 - **Dialog/Sheet autofill handling**: For overlay components (Dialog, Sheet), document the `onPointerDownOutside` + `isDialogOverlayTarget` pattern to prevent password managers from closing them.
-- **Code Block page**: Excluded from migration due to JSX-heavy dynamic examples. Skip it for now.
+- **Code Block page**: This migration excludes it because its examples are JSX-heavy and dynamic. Skip it for now.

@@ -83,10 +83,10 @@ record warns against.
 
 ## Consequences
 
-- Breaking change for `<ThemeSwitcher />`/`contentProps` call sites; released
-  as a **patch** by explicit maintainer decision (pre-1.0-style tolerance for
-  breaking changes in mantle's release train). The changeset documents the
-  migration.
+- Breaking change for `<ThemeSwitcher />`/`contentProps` call sites; the
+  maintainers explicitly chose to release it as a **patch** (pre-1.0-style
+  tolerance for breaking changes in mantle's release train). The changeset
+  documents the migration.
 - `data-slot` values are now per-part: `theme-switcher-trigger` on the trigger
   (previously a single `theme-switcher`) and
   `theme-switcher-content dropdown-menu-content` on the menu —

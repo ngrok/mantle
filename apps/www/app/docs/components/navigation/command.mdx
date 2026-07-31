@@ -410,11 +410,11 @@ useHotkeys("mod+k", () => setOpen(true), { preventDefault: true });
 
 ## API Reference
 
-The `Command` component is built on top of [cmdk](https://cmdk.paco.me/) and provides a complete set of sub-components for building command palettes.
+The `Command` component is built on top of [cmdk](https://cmdk.paco.me/) and ships a complete set of sub-components for command palettes.
 
 ### Command.Root
 
-The root component for the Command. It provides the context for all other command sub-components. Use it for an inline palette; use `Command.DialogRoot` for a modal one.
+The inline palette, wrapping `Command.Input` and `Command.List`. It owns the filtering and the active item for every part below it — `Command.DialogContent` renders one itself, so a modal palette does not add it.
 
 All props from cmdk's [Command Root](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#command-cmdk-root).
 
@@ -479,7 +479,7 @@ When the palette opens, this part takes over the dialog's initial focus so the c
 
 ### Command.Input
 
-The input component for the Command. It provides the input for the command palette.
+The palette's query field.
 
 Inside a `Command.DialogRoot` the palette owns the query by default — see [Who owns the query](#who-owns-the-query). Under a bare `Command.Root` it stays uncontrolled and cmdk owns the text. `ref` lands on the wrapper; `className` and rest props land on the `<input>`.
 
@@ -492,25 +492,25 @@ All other props from cmdk's [Command Input](https://github.com/pacocoursey/cmdk?
 
 ### Command.List
 
-The list component for the Command. It provides the scrollable list for the command palette.
+The scrolling container for the palette's groups and items.
 
 All props from cmdk's [Command List](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#list-cmdk-list).
 
 ### Command.Empty
 
-The empty component for the Command. Displayed when no results match the search query.
+The empty-state message; it renders only when no item matches the query.
 
 All props from cmdk's [Command Empty](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#empty-cmdk-empty).
 
 ### Command.Group
 
-The group component for the Command. Used to group related command items together.
+A labeled section of items; the `heading` prop names it.
 
 All props from cmdk's [Command Group](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#group-cmdk-group-hidden).
 
 ### Command.Item
 
-The item component for the Command. Represents a selectable command in the palette.
+One selectable row in the palette's list.
 
 All props from cmdk's [Command Item](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#item-cmdk-item-data-disabled-data-selected).
 
@@ -576,7 +576,7 @@ Classifies a `paste` on a search trigger. A paste is unambiguous search intent, 
 
 Renders the platform-appropriate meta key label (`⌘` for macOS/iOS or `Ctrl` for other platforms). It detects the platform on mount and is SSR-safe, defaulting to `Ctrl` to avoid hydration mismatches.
 
-Use it in keyboard shortcut hints and `Command.Shortcut` labels to ensure the correct modifier key is displayed for each platform.
+Use it in keyboard shortcut hints and `Command.Shortcut` labels so each platform shows its own modifier key.
 
 <Example>
 	<kbd className="bg-muted text-muted inline-flex h-5 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium">

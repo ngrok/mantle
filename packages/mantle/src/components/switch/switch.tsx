@@ -15,7 +15,8 @@ type SwitchProps = ComponentProps<typeof SwitchPrimitiveRoot> &
 	};
 
 /**
- * A form control that allows the user to toggle between checked and not checked.
+ * A form control that toggles one setting on or off. Unlike `Checkbox`, it has no
+ * indeterminate state.
  *
  * Pair it with a [`Label`](/components/forms/label) for a single-line caption, or
  * compose it inside [`Choice`](/components/forms/choice) for a titled, multi-line

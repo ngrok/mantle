@@ -595,7 +595,7 @@ function userIdForScenario(scenario: UserRequestScenario): string {
 	return "user_01J8Q7Z5K2";
 }
 
-/** Query key for the success scenario, used to observe and clear just the happy-path cache entry. */
+/** Query key for the success scenario, used to observe and clear only the happy-path cache entry. */
 const HAPPY_PATH_QUERY_KEY = [...USER_QUERY_KEY_ROOT, userIdForScenario("success"), "success"];
 
 /** Tracks whether the happy-path query has a successful response in the cache. The 404 and 500 scenarios throw, so they never reach a successful cache state. */

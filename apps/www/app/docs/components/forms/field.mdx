@@ -203,7 +203,7 @@ The canonical slot order inside a `Field.Item` is `Field.Label` → `Field.Contr
 
 Use `Field.Errors` below the control when validation fails. It accepts string messages, trims them, filters empty values, removes duplicates, and renders a semantic `<ul>` with `<li>` items so screen readers announce the errors as a list. When the list renders, `Field.Item` infers error state so the visual state and ARIA invalid state stay in sync.
 
-For custom list markup or rich error content, compose the lower-level `Field.ErrorList` and `Field.ErrorItem` parts directly. A single error is still just a list of one.
+For custom list markup or rich error content, compose the lower-level `Field.ErrorList` and `Field.ErrorItem` parts directly. A single error is still a list of one.
 
 When a `Field.Description` follows directly after `Field.Errors` or `Field.ErrorList`, `Field.Description` automatically collapses the parent's `gap-1.5` with a matching negative top margin so the errors + helper read as one tight block — matching the figma. Pass any margin utility on `Field.Description` (e.g. `className="mt-1"`, `className="mt-0"`) to override.
 
@@ -696,7 +696,7 @@ Skip `Field.Set` for unrelated fields stacked together — `<fieldset>` semantic
 
 ## Polymorphism
 
-Layout parts plus `Field.Description`, `Field.Optional`, and `Field.ErrorList` accept an `asChild` prop. When `true`, the part renders its single child instead of its default element, forwarding all class names, `data-*` attributes, and the ref onto that child. `Field.Set`, `Field.Legend`, and `Field.ErrorItem` always render `<fieldset>`, `<legend>`, and `<li>` respectively, because those elements are the semantics those parts exist to provide.
+Layout parts plus `Field.Description`, `Field.Optional`, and `Field.ErrorList` accept an `asChild` prop. When `true`, the part renders its single child instead of its default element, forwarding all class names, `data-*` attributes, and the ref onto that child. `Field.Set`, `Field.Legend`, and `Field.ErrorItem` always render `<fieldset>`, `<legend>`, and `<li>` respectively, because those elements are the semantics those parts exist to carry.
 
 <Example className="w-full">
 	<Field.Item name="username" className="max-w-80">
@@ -771,7 +771,7 @@ All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#a
 
 ### Field.Item
 
-A single form field. Renders a plain `<div>` with `flex flex-col gap-1.5` so `Field.Label`, control, and helper / error siblings stack tightly together. No implicit ARIA role — the `<label htmlFor>` ↔ control association already provides the right semantics for a single field. Provides description/error IDs and validation state to `Field.Control`; rendered errors infer `"error"` unless `validation` is provided.
+A single form field. Renders a plain `<div>` with `flex flex-col gap-1.5` so `Field.Label`, control, and helper / error siblings stack tightly together. No implicit ARIA role — the `<label htmlFor>` ↔ control association already carries the right semantics for a single field. It owns the description/error IDs and validation state that `Field.Control` applies; rendered errors infer `"error"` unless `validation` is set.
 
 **Single-slot constraint.** A `Field.Item` owns one description ID and one errors ID, so render at most one `Field.Description` and one `Field.Errors` _or_ `Field.ErrorList` (not both) per item. A second instance would duplicate the slot `id` in the DOM — pass multiple messages to one `Field.Errors`, or multiple `Field.ErrorItem` children to one `Field.ErrorList`, instead.
 
@@ -935,7 +935,7 @@ All props from [ul](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ul
 
 ### Field.ErrorItem
 
-A single error message for a field. Renders an `<li>` in `text-danger-600`, so it must be nested inside a `Field.ErrorList`. Empty or blank children render nothing. A single error is just a list of one.
+A single error message for a field. Renders an `<li>` in `text-danger-600`, so it must be nested inside a `Field.ErrorList`. Empty or blank children render nothing. A single error is a list of one.
 
 All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes).
 

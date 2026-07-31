@@ -101,7 +101,7 @@ const alertVariants = cva(
 			} as const satisfies Record<AlertIntent, string>,
 			/**
 			 * Controls the visual style of the Alert.
-			 * - "default" provides standard rounded corners and borders.
+			 * - "default" keeps the standard rounded corners and borders.
 			 * - "banner" creates a banner-style alert with no rounded corners, sticky positioning, and no left/right borders.
 			 *
 			 * @default "default"
@@ -123,7 +123,7 @@ type AlertProps = ComponentProps<"div"> & {
 	intent: AlertIntent;
 	/**
 	 * Controls the visual style of the Alert.
-	 * - "default" provides standard rounded corners and borders.
+	 * - "default" keeps the standard rounded corners and borders.
 	 * - "banner" creates a banner-style alert with no rounded corners, sticky positioning, and no left/right borders.
 	 *
 	 * @default "default"
@@ -209,9 +209,9 @@ const defaultIcons = {
 } as const satisfies Record<AlertIntent, ReactNode>;
 
 /**
- * An optional icon that visually represents the intent of the Alert.
+ * An optional icon that visually represents the intent of the `Alert`.
  *
- * The default rendered icon be overridden with a custom icon using the `svg` prop.
+ * Pass the `svg` prop to replace the default icon.
  *
  * @see https://mantle.ngrok.com/components/feedback/alert#alerticon
  *
@@ -610,7 +610,7 @@ const Alert = {
 	 */
 	Description,
 	/**
-	 * An optional dismiss button that can be used to close the alert.
+	 * An optional, compact, trailing control for dismissing an alert.
 	 * It inherits the `--alert-control-color`, `--alert-control-hover-color`, and
 	 * `--alert-control-hover-bg` variables from `Alert.Root`, shared with the
 	 * expand control.
@@ -632,7 +632,9 @@ const Alert = {
 	 */
 	DismissIconButton,
 	/**
-	 * An optional icon that visually represents the intent of the Alert.
+	 * An optional icon that visually represents the intent of the `Alert`.
+	 *
+	 * Pass the `svg` prop to replace the default icon.
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/alert#alerticon
 	 *

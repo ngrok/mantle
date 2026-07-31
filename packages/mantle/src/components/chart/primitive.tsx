@@ -214,7 +214,7 @@ type ChartRootPrimitiveProps = ChartRootBaseProps &
 		 */
 		xScale?: ContinuousXScale;
 		/**
-		 * Scatter plots only: the row key of each point's depth value. Providing
+		 * Scatter plots only: the row key of each point's depth value. Setting
 		 * it switches the scatter into the 3D projection (drag to rotate).
 		 */
 		zKey?: string;
@@ -758,7 +758,7 @@ type TooltipPrimitiveProps = Omit<ComponentProps<"div">, "children"> & {
 
 /**
  * Register tooltip customization (renderless — Root owns the tooltip element
- * so the hover layer exists whether or not this part is composed).
+ * so the hover layer exists even when this part is absent).
  */
 const useTooltipPrimitive = (partName: string, props: TooltipPrimitiveProps): null => {
 	const context = useChartContext(partName);
@@ -1088,9 +1088,9 @@ const ChartLegendPrimitive = ({
 type CopyButtonPrimitiveProps = Omit<ComponentProps<"button">, "children" | "type" | "onCopy"> &
 	SelfClosingWithAsChild & {
 		/**
-		 * The accessible label for the copy button. This label will be visually
-		 * hidden but announced to screen reader users, similar to alt text for
-		 * img tags.
+		 * The accessible label for the copy button. `CopyButton` hides this label
+		 * visually and announces it to screen readers, like the `alt` text on an
+		 * `<img>`.
 		 *
 		 * @default "Copy data as Markdown"
 		 */

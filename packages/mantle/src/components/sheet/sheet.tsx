@@ -195,8 +195,7 @@ const Trigger = SheetPrimitive.Trigger;
 const Close = SheetPrimitive.Close;
 
 /**
- * The portal for a sheet. Should be rendered as a child of the `Sheet` component.
- * Renders a portal that the `SheetOverlay` and `Sheet.Content` is rendered into.
+ * Mounts `SheetOverlay` and `Sheet.Content` outside the app's DOM tree.
  *
  * @private
  */

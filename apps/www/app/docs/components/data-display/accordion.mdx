@@ -256,7 +256,7 @@ most one section is open at a time:
 ## When not to use
 
 - Switching between mutually exclusive views of the same region — use [`Tabs`](/components/navigation/tabs) instead.
-- A single, always-relevant block of content — don't hide it behind a toggle; just render it.
+- A single, always-relevant block of content — don't hide it behind a toggle; render it.
 - Content a user must not miss — a collapsed section is easy to overlook, so keep critical information visible.
 
 ## Examples
@@ -375,7 +375,7 @@ function ControlledAccordionExample() {
 ### Custom header with an inline action
 
 The dashboard's Traffic Policy GUI puts a monospace label, a count badge, and an always-visible **Add Rule** action in
-each header. Because the `Item` is a plain `<div>` and the `Trigger` is a real `<button>`, the header is just a flex
+each header. Because the `Item` is a plain `<div>` and the `Trigger` is a real `<button>`, the header is a flex
 row holding the `Trigger`, a divider, and the action button as **siblings** — a clean composition with no overlay and
 no absolute positioning. The `Trigger` toggles its section; the **Add Rule** button is an independent sibling that
 never toggles it; and the `Content` spans full-width below. Override the defaults (`space-y-*` and `divide-y-0` on
@@ -696,7 +696,7 @@ discriminated union that shapes the open value:
 > `type` defaults to `"multiple"`, so sections open independently. **If you want opening one section to auto-close
 > the others, you must set `type="single"` explicitly.**
 
-Provide `value` + `onValueChange` for controlled usage, or `defaultValue` for uncontrolled usage. Accepts all `<div>`
+Pass `value` + `onValueChange` for controlled usage, or `defaultValue` for uncontrolled usage. Accepts all `<div>`
 props, plus:
 
 | Prop             | Type                                                   | Default      | Description                                                                                                             |
@@ -720,7 +720,7 @@ with the `Trigger` beside a separate, non-toggling action button. Accepts all `<
 ### Accordion.Trigger
 
 The clickable header that toggles its section, rendered as a `<button aria-expanded>` — the disclosure semantics a
-native `<summary>` provides, via a real button so the role is consistent across browsers. Defaults to full-width with
+native `<summary>` carries, via a real button so the role is consistent across browsers. Defaults to full-width with
 the `TriggerIcon` pushed to the trailing edge; set `w-auto` when placing it in a custom header row. A consumer `onClick`
 runs first and the section still toggles afterward (calling `preventDefault()` does not stop the toggle). Accepts all
 `<button>` props except `type`, which is always `"button"`.

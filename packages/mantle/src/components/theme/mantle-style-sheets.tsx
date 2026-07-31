@@ -151,10 +151,9 @@ export type MantleStyleSheetsProps = MantleThemeCssUrls & {
 	forceTheme?: ResolvedTheme;
 	/**
 	 * The theme cookie string from the incoming HTTP request (e.g. `request.headers.get("Cookie")`
-	 * or the pre-extracted value from {@link extractThemeCookie}). When provided, the server can
-	 * resolve the stored theme and render the correct `media` attribute directly in the SSR HTML,
-	 * eliminating the need for the inline fix script in cases where the user has a non-system
-	 * theme stored in their cookie.
+	 * or the pre-extracted value from {@link extractThemeCookie}). When set, the server can
+	 * resolve the stored theme and render the correct `media` attribute directly in the SSR HTML.
+	 * When the cookie stores a non-system theme, that removes the need for the inline fix script.
 	 *
 	 * @example
 	 * ```tsx
@@ -277,7 +276,7 @@ function fixMediaScriptContent(forceTheme?: ResolvedTheme): string {
  *
  * On the client, a `MutationObserver` watches `html[data-applied-theme]` (kept in sync by
  * `ThemeProvider`) and updates the `media` attributes to `"all"` when the user manually
- * selects a theme that differs from their OS preference, ensuring the correct CSS is applied.
+ * selects a theme that differs from their OS preference, so the browser applies the correct CSS.
  *
  * Theme pairs load together — the active theme's pair partner (light ⇄ dark,
  * light-high-contrast ⇄ dark-high-contrast) also gets `media="all"` — so
@@ -373,7 +372,7 @@ function MantleStyleSheets({
 	// The inline fix script corrects media attributes for users whose stored theme differs from
 	// their OS preference. It is only needed when the SSR HTML may have been rendered with
 	// incorrect media values — i.e. when neither ssrCookie (with a non-system theme) nor
-	// forceTheme provide a deterministic answer at render time.
+	// forceTheme determines the theme at render time.
 	const needsFixScript = !forceTheme && ssrAppliedTheme == null;
 
 	// When forceTheme is set, only render the link tags for that theme's *pair*
