@@ -709,7 +709,7 @@ The twin doubles as the chart's machine-readable surface. Date row headers carry
 
 ### LineChart.Root
 
-The root of a line chart: owns the data, the scales, the canvas renderer, and the entire interaction contract. Renders a `<div>` wrapper (defaulting to a 16:9 aspect ratio, overridable via `className`) containing the canvas, the focusable interaction overlay, the aria-live region, and the sr-only data table. Lines encode value by vertical position, not length from a baseline, so the full y domain is overridable via `yDomain` — and lines never stack, so there is no `stacked` prop.
+The root of a line chart: owns the data, the scales, the canvas renderer, and the entire interaction contract. Renders a `<div>` wrapper (defaulting to a 16:9 aspect ratio, overridable via `className`) containing the canvas, the focusable interaction overlay, the crosshair, hover-band, and marker layers, the aria-live region, and the sr-only data table. Lines encode value by vertical position, not length from a baseline, so the full y domain is overridable via `yDomain` — and lines never stack, so there is no `stacked` prop.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -727,6 +727,20 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `activeIndex?`         | `number \| null`                       |                    | Controlled active datum index (`null` = none). Omit for uncontrolled hover. Forbidden when `decorative`.                                                                                                                                                                    |
 | `onActiveIndexChange?` | `(index: number \| null) => void`      |                    | Notified when hover/keyboard moves the active index. Forbidden when `decorative`.                                                                                                                                                                                           |
 | `onDatumActivate?`     | `(event: ChartDatumEvent) => void`     |                    | Notified on datum activation: mark click, or Enter/Space on the focused chart. The event carries `index`, `xValue`, `datum`, and the `dataKey` of the series nearest the pointer (`null` for keyboard activation). Forbidden when `decorative`.                             |
+
+**Data attributes**
+
+| Data Attribute | Value                     | Description                                                                                       |
+| -------------- | ------------------------- | ------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"line-chart"`            | The Root wrapper, with any forwarded chain ahead of it.                                           |
+| `data-slot`    | `"line-chart-plot"`       | The plot box. Every overlay layer positions against it, and the resize observer measures it.      |
+| `data-slot`    | `"line-chart-canvas"`     | The `<canvas>` the marks paint on. Always `aria-hidden`.                                          |
+| `data-slot`    | `"line-chart-crosshair"`  | The vertical hairline snapped to the active x. The engine writes its geometry as an inline style. |
+| `data-slot`    | `"line-chart-hover-band"` | The category highlight. Mounted on every kind; a line chart never shows it.                       |
+| `data-slot`    | `"line-chart-markers"`    | The container the engine syncs one hover dot per series into.                                     |
+| `data-slot`    | `"line-chart-tooltip"`    | The tooltip surface. The Root renders it; `LineChart.Tooltip` configures it.                      |
+| `data-slot`    | `"line-chart-data-table"` | The `sr-only` table twin. Omitted when `decorative`.                                              |
+| `data-slot`    | `"chart-active-point"`    | One hover dot inside the markers layer. Also carries `data-shape`.                                |
 
 ### LineChart.Line
 
@@ -782,7 +796,7 @@ A dashed horizontal marker at a y value — an SLO threshold, a budget, a limit.
 
 Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `LineChart.Root`'s interaction contract and renders even when this part is absent — compose it to format the label or values, append a footer, or replace the content entirely.
 
-The `footer` and `children` render props receive a `HoverSnapshot`: the active `index`, `xValue`, the original `datum`, `points` (every series' `dataKey`, `label`, `value`, and `color` at the active x, in visual order), and `viaKeyboard`. `labelFormat` receives the x value directly and `valueFormat` receives `(value, dataKey)` — not the snapshot.
+The `footer` and `children` render props receive a `HoverSnapshot`: the active `index`, `xValue`, the original `datum`, `points` (every series' `dataKey`, `label`, `value`, and `color` at the active x, in registration order), and `viaKeyboard`. `labelFormat` receives the x value directly and `valueFormat` receives `(value, dataKey)` — not the snapshot.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded to the tooltip element the `Root` renders), plus:
 
@@ -819,7 +833,7 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-Series without an explicit `color` claim the next slot in the ordered `--color-chart-1`…`--color-chart-8` tokens. Each theme's palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the card surface in all four themes (light, dark, and both high-contrast variants), and the semantic ramps are deliberately excluded so a series never reads as a status color. Slots are sticky per `dataKey`: a series keeps its color for the chart's lifetime, even as other series are filtered in and out. Series beyond the eighth all wear `--color-chart-other` — fold the long tail into a single "Other" series rather than plotting nine distinguishable colors, which do not exist.
+Series without an explicit `color` claim the next slot in the ordered `--color-chart-1`…`--color-chart-8` tokens. Each theme's palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the card surface in all four themes (light, dark, and both high-contrast variants), and the semantic ramps are deliberately excluded so a series never reads as a status color. Slots are sticky per `dataKey`: a series keeps its color for the chart's lifetime, even as other series are filtered in and out. An explicit `color` reserves its token, so the next unpinned series skips past it. The cursor counts every `dataKey` the Root has ever registered, not the mounted count — cycle more than eight keys through one Root and the later ones wear `--color-chart-other`. Key the Root on whatever chooses the series to start the palette over, and fold a long tail into a single "Other" series rather than plotting nine distinguishable colors, which do not exist.
 
 | CSS Variable          | Description                                                                                                     |
 | --------------------- | --------------------------------------------------------------------------------------------------------------- |

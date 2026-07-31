@@ -189,7 +189,12 @@ type HoverSnapshot = {
 	xValue: XValue;
 	/** The original consumer datum at the active index. */
 	datum: ChartDatum;
-	/** Every registered series' value at the active index, in visual order. */
+	/**
+	 * Every registered series' value at the active index. Stacked, the order runs
+	 * from the far end of the stack back to the baseline, so the rows match the
+	 * stack a reader sees. Unstacked, the order is the paint order the series
+	 * registered in.
+	 */
 	points: Array<{
 		dataKey: string;
 		label: string;
@@ -213,7 +218,12 @@ type ChartDatumEvent<TDatum extends ChartDatum = ChartDatum> = {
 	xValue: XValue;
 	/** The activated row itself. */
 	datum: TDatum;
-	/** The series nearest the pointer when activated by mouse; `null` for keyboard/whole-band activation. */
+	/**
+	 * The series the pointer selects when activated by mouse; `null` for
+	 * keyboard/whole-band activation. A stacked bar resolves to the segment the
+	 * pointer sits in, because the mark is the filled span. Every other mark
+	 * resolves to the series nearest the pointer.
+	 */
 	dataKey: string | null;
 };
 

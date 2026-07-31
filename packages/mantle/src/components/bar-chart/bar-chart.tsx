@@ -132,6 +132,12 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
  * table, Enter/Space + click activation). Compose the chrome and series parts
  * as children.
  *
+ * The Root's own subtree is addressable by slot: `bar-chart` on the wrapper,
+ * then `bar-chart-plot`, `bar-chart-canvas`, `bar-chart-crosshair`,
+ * `bar-chart-hover-band`, `bar-chart-markers`, `bar-chart-tooltip`, and
+ * `bar-chart-data-table`. A bar chart shows the band and never the crosshair
+ * or the markers, but all three layers mount on every kind.
+ *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartroot
  *
  * @example
@@ -159,9 +165,10 @@ const Root = <TDatum extends ChartDatum = ChartDatum>(props: BarChartRootProps<T
 /**
  * One bar series. Renders nothing itself — it registers the series with the
  * chart, which paints it on canvas. Compose one `Bar` per series; with
- * `stacked` on the Root, bars stack in composition order from the baseline up.
- * `texture` adds a diagonal-hatch fill as a redundant identity encoding
- * alongside color, worn by the bars and the series' legend key alike.
+ * `stacked` on the Root, bars stack from the baseline up in registration
+ * order, so a `Bar` that mounts later stacks on top whatever its position in
+ * the JSX. `texture` adds a diagonal-hatch fill as a redundant identity
+ * encoding alongside color, worn by the bars and the series' legend key alike.
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartbar
  *

@@ -234,6 +234,23 @@ const bandCenter = (layout: BandLayout, index: number): number =>
 	bandStart(layout, index) + layout.bandwidth / 2;
 
 /**
+ * The pixel span that hits band `index` — the whole step, including the
+ * padding air on either side of the band itself. This is exactly the span
+ * {@link invertBand} maps back to `index`, so a hover highlight drawn from it
+ * covers one category and no part of a neighbor.
+ *
+ * @example
+ * ```ts
+ * const region = bandHitRegion(layout, index);
+ * band.style.width = `${region.size}px`;
+ * ```
+ */
+const bandHitRegion = (layout: BandLayout, index: number): { start: number; size: number } => ({
+	start: bandStart(layout, index) - (layout.step - layout.bandwidth) / 2,
+	size: layout.step,
+});
+
+/**
  * Invert a pixel position to the nearest band index, clamped to the domain.
  * Returns `null` when the layout has no bands. Any pixel within a band's whole
  * step (including its padding air) hits that band, so hover targets are never
@@ -377,6 +394,27 @@ const niceDomain = (domain: readonly [number, number], count: number): [number, 
 	return [start, stop];
 };
 
+/**
+ * {@link niceDomain}, with the lower bound held at zero when the data starts
+ * there. Bars encode value by length from a zero baseline, so nicing must
+ * never widen the axis below it: an all-zero series has a flat domain, which
+ * `niceDomain` pads to `[-1, 1]` and which would float the baseline mid-plot.
+ * A domain that genuinely reaches below zero keeps its niced bound.
+ *
+ * @example
+ * ```ts
+ * niceZeroAnchoredDomain([0, 0], 5); // [0, 1]
+ * niceZeroAnchoredDomain([-3, 5], 5); // [-4, 6] — same as niceDomain
+ * ```
+ */
+const niceZeroAnchoredDomain = (
+	domain: readonly [number, number],
+	count: number,
+): [number, number] => {
+	const niced = niceDomain(domain, count);
+	return domain[0] === 0 ? [0, niced[1]] : niced;
+};
+
 export type {
 	//,
 	BandLayout,
@@ -385,12 +423,14 @@ export type {
 export {
 	//,
 	bandCenter,
+	bandHitRegion,
 	bandStart,
 	computeBandLayout,
 	invertBand,
 	linearCoefficients,
 	linearTicks,
 	niceDomain,
+	niceZeroAnchoredDomain,
 	timeTickFormatter,
 	timeTicks,
 };

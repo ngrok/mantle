@@ -118,6 +118,97 @@ describe("BarChart.Root", () => {
 	});
 });
 
+describe("BarChart data slots", () => {
+	// Every row is public API: a rename breaks consumer CSS and the browser
+	// tests' own selectors, and nothing else in the suite would notice.
+	test.each([
+		["bar-chart", "DIV"],
+		["bar-chart-plot", "DIV"],
+		["bar-chart-canvas", "CANVAS"],
+		["bar-chart-crosshair", "DIV"],
+		["bar-chart-hover-band", "DIV"],
+		["bar-chart-markers", "DIV"],
+		["bar-chart-tooltip", "DIV"],
+		["bar-chart-legend", "DIV"],
+		["bar-chart-data-table", "DIV"],
+	])("%s lands on a %s", (slot, tagName) => {
+		const { container } = renderChart();
+		const element = container.querySelector(`[data-slot="${slot}"]`);
+		expect(element).toBeInTheDocument();
+		expect(element?.tagName).toBe(tagName);
+	});
+
+	test("the three hover layers sit inside the plot and stay hidden from assistive tech", () => {
+		const { container } = renderChart();
+		const plot = container.querySelector('[data-slot="bar-chart-plot"]');
+		for (const slot of ["bar-chart-crosshair", "bar-chart-hover-band", "bar-chart-markers"]) {
+			const layer = container.querySelector(`[data-slot="${slot}"]`);
+			expect(plot?.contains(layer ?? null)).toBe(true);
+			expect(layer).toHaveAttribute("aria-hidden", "true");
+		}
+	});
+
+	test("a decorative chart still renders the hover layers", () => {
+		// They sit outside the `decorative` guard on purpose: the engine drives
+		// their opacity, and a decorative chart never activates.
+		const { container } = render(
+			<BarChart.Root data={data} xKey="month" decorative>
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+			</BarChart.Root>,
+		);
+		expect(container.querySelector('[data-slot="bar-chart-hover-band"]')).toBeInTheDocument();
+		expect(container.querySelector('[data-slot="bar-chart-markers"]')).toBeInTheDocument();
+		expect(container.querySelector('[role="application"]')).not.toBeInTheDocument();
+	});
+});
+
+describe("BarChart series paint order", () => {
+	/** The data table's series columns, in the order the store paints them. */
+	const seriesColumns = () =>
+		screen
+			.getAllByRole("columnheader")
+			.map((header) => header.textContent)
+			.filter((text) => text === "Desktop" || text === "Mobile" || text === "Tablet");
+
+	test("reordering the Bar parts does not reorder the series", () => {
+		const { rerender } = render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" />
+			</BarChart.Root>,
+		);
+		expect(seriesColumns()).toEqual(["Desktop", "Mobile"]);
+		rerender(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+			</BarChart.Root>,
+		);
+		// The position sticks to the dataKey, which is what keeps a series from
+		// jumping when only its label or color changes.
+		expect(seriesColumns()).toEqual(["Desktop", "Mobile"]);
+	});
+
+	test("a series that mounts later paints last, whatever its position in the JSX", () => {
+		const withTablet = [
+			{ month: "January", desktop: 186, mobile: 80, tablet: 40 },
+			{ month: "February", desktop: 305, mobile: 200, tablet: 60 },
+		];
+		const { rerender } = render(
+			<BarChart.Root data={withTablet} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+			</BarChart.Root>,
+		);
+		rerender(
+			<BarChart.Root data={withTablet} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="tablet" label="Tablet" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+			</BarChart.Root>,
+		);
+		expect(seriesColumns()).toEqual(["Desktop", "Tablet"]);
+	});
+});
+
 describe("BarChart parts outside Root", () => {
 	test("a part rendered outside Root throws", () => {
 		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
