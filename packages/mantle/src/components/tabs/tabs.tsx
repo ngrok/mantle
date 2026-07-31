@@ -39,7 +39,8 @@ const TabsStateContext = createContext<TabsStateContextValue>({
 
 /**
  * A set of layered sections of content—known as tab panels—that are displayed one at a time.
- * The outermost part; its context carries `orientation` and `appearance` to `Tabs.List` and `Tabs.Trigger`.
+ * The outermost part; it owns `orientation` and `appearance`. It stamps both as
+ * `data-orientation` and `data-appearance` for the parts below to style against.
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabsroot
  *
@@ -511,7 +512,8 @@ const Content = ({ className, ...props }: ComponentProps<typeof TabsPrimitiveCon
 const Tabs = {
 	/**
 	 * A set of layered sections of content—known as tab panels—that are displayed one at a time.
-	 * The outermost part; its context carries `orientation` and `appearance` to `Tabs.List` and `Tabs.Trigger`.
+	 * The outermost part; it owns `orientation` and `appearance`. It stamps both as
+	 * `data-orientation` and `data-appearance` for the parts below to style against.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabsroot
 	 *

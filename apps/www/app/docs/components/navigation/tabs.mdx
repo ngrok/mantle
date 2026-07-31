@@ -984,7 +984,7 @@ The `Tabs` components accept the following props.
 
 ### Tabs.Root
 
-A set of layered sections of content—known as tab panels—that are displayed one at a time. The outermost part; its context carries `orientation` and `appearance` to `Tabs.List` and `Tabs.Trigger`. Based on [Radix Tabs Root](https://www.radix-ui.com/primitives/docs/components/tabs#root).
+A set of layered sections of content—known as tab panels—that are displayed one at a time. The outermost part; it owns `orientation` and `appearance`. It stamps both as `data-orientation` and `data-appearance` for the parts below to style against. Based on [Radix Tabs Root](https://www.radix-ui.com/primitives/docs/components/tabs#root).
 
 | Prop             | Type                           | Default        | Description                                                                                                                    |
 | ---------------- | ------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
