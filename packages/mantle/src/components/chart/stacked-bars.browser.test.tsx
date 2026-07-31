@@ -902,13 +902,15 @@ describe("tooltip placement", () => {
 		const overlay = overlayOf(container);
 		const tooltip = tooltipOf(container);
 
-		const plot = overlay.getBoundingClientRect();
-		hoverAt(overlay, plot.left + plot.width / 2, plot.bottom - xAxisBand - 2);
-		// One hover is enough: the engine repositions again on its own once the
-		// size observer measures the readout, so the poll needs no second event.
-		// Wait for the transform first — an unpositioned readout still sits at its
-		// `top: 0` origin, which satisfies a bottom-edge assertion for free.
+		// Re-hover inside the poll, as the sibling test above does: the engine
+		// positions the readout on an animation frame, so a single event dispatched
+		// before the first layout commit leaves the transform empty and nothing
+		// fires again. Hovering one fixed point is idempotent. Wait for the
+		// transform first — an unpositioned readout still sits at its `top: 0`
+		// origin, which satisfies a bottom-edge assertion for free.
 		await waitFor(() => {
+			const plot = overlay.getBoundingClientRect();
+			hoverAt(overlay, plot.left + plot.width / 2, plot.bottom - xAxisBand - 2);
 			expect(tooltip.style.transform).not.toBe("");
 			const readout = tooltip.getBoundingClientRect();
 			expect(readout.height).toBeGreaterThan(0);
