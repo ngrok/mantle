@@ -10,8 +10,10 @@ import { BarChart } from "./bar-chart.js";
  * layout and a real 2d context, which happy-dom lacks.
  *
  * Chart tokens are inlined instead of importing the full mantle stylesheet so
- * the test stays hermetic (mirrors label.browser.test.tsx). The values are the
- * light-theme chart token resolutions.
+ * the test stays hermetic (mirrors label.browser.test.tsx). The values are
+ * fixtures in the shipped hue families, not copies of today's literals. These
+ * tests measure which channel dominates a painted pixel. `chart/tokens.test.ts`
+ * pins the shipped palette.
  */
 const STYLE = `
 :root {
@@ -29,6 +31,12 @@ const STYLE = `
 }
 :root[data-test-theme="flipped"] {
 	--color-chart-1: #ff0000;
+}
+/* What Tailwind compiles the arbitrary-property class [--color-chart-1:#e11d48]
+   to. Browser tests load no Tailwind build, so the override a consumer writes on
+   BarChart.Root is spelled out here instead. */
+.scoped-chart-1 {
+	--color-chart-1: #e11d48;
 }
 .sr-only {
 	position: absolute;
@@ -216,5 +224,65 @@ describe("BarChart canvas painting", () => {
 		});
 		const band = container.querySelector('[data-slot="bar-chart"] [aria-hidden]');
 		expect(band).toBeInstanceOf(HTMLElement);
+	});
+});
+
+describe("overriding a chart color token", () => {
+	/** Two charts side by side, only the first carrying the token override. */
+	const renderPair = () =>
+		render(
+			<>
+				<div style={{ width: 600, height: 300 }}>
+					<BarChart.Root
+						data={data}
+						xKey="month"
+						animate={false}
+						aria-label="Overridden"
+						className="scoped-chart-1"
+					>
+						<BarChart.Bar dataKey="desktop" label="Desktop" />
+					</BarChart.Root>
+				</div>
+				<div style={{ width: 600, height: 300 }}>
+					<BarChart.Root data={data} xKey="month" animate={false} aria-label="Default">
+						<BarChart.Bar dataKey="desktop" label="Desktop" />
+					</BarChart.Root>
+				</div>
+			</>,
+		);
+
+	/** The canvas of the nth rendered chart, in document order. */
+	const canvasAt = (container: HTMLElement, index: number, what: string) =>
+		mustBe(
+			container.querySelectorAll('[data-slot="bar-chart"]')[index]?.querySelector("canvas") ?? null,
+			HTMLCanvasElement,
+			`the ${what} chart canvas`,
+		);
+
+	test("a --color-chart-N override on the Root repaints only that chart", async () => {
+		// The contract colors.ts states: the resolution probe is appended INSIDE the
+		// chart root, so a custom property scoped to one root wins for that chart and
+		// leaves its siblings alone. A consumer writes this as Tailwind's
+		// `[--color-chart-1:#e11d48]`; without a Tailwind build the injected
+		// `.scoped-chart-1` rule stands in for it.
+		const { container } = renderPair();
+		const overridden = canvasAt(container, 0, "overridden");
+		const untouched = canvasAt(container, 1, "default");
+		await waitFor(() => {
+			expect(overridden.width).toBeGreaterThan(0);
+			expect(untouched.width).toBeGreaterThan(0);
+		});
+		const isRed = (red: number, green: number, blue: number, alpha: number) =>
+			alpha > 200 && red > 150 && red > blue + 60;
+		const isBlue = (red: number, green: number, blue: number, alpha: number) =>
+			alpha > 200 && blue > 200 && blue > red + 80;
+		await waitFor(() => {
+			// The override paints #e11d48, so red dominates and no default blue is left.
+			expect(countPixels(overridden, isRed)).toBeGreaterThan(1000);
+			expect(countPixels(overridden, isBlue)).toBe(0);
+			// The sibling never saw the override and still paints the token default.
+			expect(countPixels(untouched, isBlue)).toBeGreaterThan(1000);
+			expect(countPixels(untouched, isRed)).toBe(0);
+		});
 	});
 });

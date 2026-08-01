@@ -342,6 +342,30 @@ export function EmptyStateAreaChartExample() {
 	);
 }
 
+export function OverrideSlotAreaChartExample() {
+	return (
+		<AreaChart.Root
+			data={trafficData}
+			xKey="date"
+			stacked
+			// An app declares its brand token once, high in the tree. This example
+			// declares it beside the override so it stands alone. A theme that needs
+			// its own value takes a variant: `dark:[--color-brand:…]`.
+			className="max-w-2xl [--color-brand:#d07c00] [--color-chart-1:var(--color-brand)]"
+			aria-label="Connections by protocol, first slot rethemed"
+		>
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
+			<AreaChart.Area dataKey="http" label="HTTP" />
+			<AreaChart.Area dataKey="tcp" label="TCP" />
+			<AreaChart.Area dataKey="tls" label="TLS" color="var(--color-accent-600)" />
+			<AreaChart.Tooltip />
+			<AreaChart.Legend />
+		</AreaChart.Root>
+	);
+}
+
 # Area Chart
 
 A canvas-rendered area chart for showing how values — and, when stacked, a total and its parts — change over a continuous x axis. Each area fills with a 10% wash of its series color plus a 2px stroke on the band edge, rising from a shared zero baseline. Interaction ships with the Root unconditionally: a crosshair with an every-series tooltip, keyboard stepping with polite announcements, an sr-only data table, and click / <kbd>Enter</kbd> / <kbd>Space</kbd> activation. Large datasets decimate before painting.
@@ -355,7 +379,7 @@ Reach for an `AreaChart` when the magnitude of a value over time is the story �
 - Prefer [`LineChart`](/components/charts/line-chart) when composition doesn't matter and you are comparing the shapes of trajectories.
 - Prefer [`BarChart`](/components/charts/bar-chart) when the x axis is categorical and the comparison is between discrete things, not over time.
 
-**Keep it to eight series or fewer.** The default chart tokens are eight validated categorical slots. The ninth series onward all wear the neutral `--color-chart-other`, so a dozen keys legend as a wall of identical gray. Eight is the palette's measured limit, not a style preference: a ninth hue cannot clear the colorblind-safe adjacency gates the eight already sit close to. Rank by the window's total, keep the top seven, and sum the rest into one `"Other"` series. The Bar Chart page carries [a worked fold](/components/charts/bar-chart#when-to-use). Pin the fold's own `Area` with `color="chart-other"`, so it reads as the tail rather than claiming a categorical slot. Keep it last, so it sits at the top of a stack.
+**Keep it to eight series or fewer.** The default chart tokens are eight validated categorical slots. The ninth series onward all wear the neutral `--color-chart-other`, so a dozen keys legend as a wall of identical gray. Eight is the palette's measured limit, not a style preference: all 28 pairs of the eight clear the colorblind-safe gates, and the closest pair clears its floor by 0.054 ΔE. A ninth hue has nowhere to sit. Rank by the window's total, keep the top seven, and sum the rest into one `"Other"` series. The Bar Chart page carries [a worked fold](/components/charts/bar-chart#when-to-use). Pin the fold's own `Area` with `color="chart-other"`, so it reads as the tail rather than claiming a categorical slot. Keep it last, so it sits at the top of a stack.
 
 Compose `AreaChart.Root` with the chrome parts (`Grid`, `XAxis`, `YAxis`) and one `AreaChart.Area` per series. A stacked chart of connections by protocol over two weeks:
 
@@ -997,18 +1021,76 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-A series without an explicit `color` claims the lowest free slot from the ordered `--color-chart-1` … `--color-chart-8` tokens when it first registers. The palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the chart surface in all four themes (light, dark, high-contrast light, high-contrast dark). A claimed slot is sticky per `dataKey` for the chart's lifetime — filtering series in and out never repaints the survivors, so color follows the entity, never its rank. An explicit `color` spends a slot, so the next unpinned series skips past it — a chart token spends that token, and any other CSS color spends the next slot in order. Pinning the `chart-other` token spends nothing, because every series past the eighth shares the overflow gray. Spelled as a raw `var(--color-chart-other)` it is a CSS color like any other, so it spends a slot. A series that unmounts keeps its slot while the palette has room. Once every slot is held, an incoming series takes one back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Fold the long tail into a single "Other" series rather than inventing more hues.
+A series without an explicit `color` claims the lowest free slot from the ordered `--color-chart-1` … `--color-chart-8` tokens when it first registers. Each of the four themes (light, dark, high-contrast light, high-contrast dark) authors its own eight `oklch()` literals, measured so all 28 pairs hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia, and so every slot clears 3:1 against that theme's chart surface. A claimed slot is sticky per `dataKey` for the chart's lifetime — filtering series in and out never repaints the survivors, so color follows the entity, never its rank. An explicit `color` spends a slot, so the next unpinned series skips past it — a chart token spends that token, and any other CSS color spends the next slot in order. Pinning the `chart-other` token spends nothing, because every series past the eighth shares the overflow gray. Spelled as a raw `var(--color-chart-other)` it is a CSS color like any other, so it spends a slot. A series that unmounts keeps its slot while the palette has room. Once every slot is held, an incoming series takes one back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Fold the long tail into a single "Other" series rather than inventing more hues.
 
 | CSS Variable          | Description                                                                                                 |
 | --------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `--color-chart-1`     | The first categorical series slot.                                                                          |
-| `--color-chart-2`     | The second categorical series slot.                                                                         |
-| `--color-chart-3`     | The third categorical series slot.                                                                          |
-| `--color-chart-4`     | The fourth categorical series slot.                                                                         |
-| `--color-chart-5`     | The fifth categorical series slot.                                                                          |
-| `--color-chart-6`     | The sixth categorical series slot.                                                                          |
-| `--color-chart-7`     | The seventh categorical series slot.                                                                        |
-| `--color-chart-8`     | The eighth categorical series slot.                                                                         |
+| `--color-chart-1`     | The first categorical series slot (blue).                                                                   |
+| `--color-chart-2`     | The second categorical series slot (green).                                                                 |
+| `--color-chart-3`     | The third categorical series slot (pink).                                                                   |
+| `--color-chart-4`     | The fourth categorical series slot (red-orange).                                                            |
+| `--color-chart-5`     | The fifth categorical series slot (teal).                                                                   |
+| `--color-chart-6`     | The sixth categorical series slot (magenta).                                                                |
+| `--color-chart-7`     | The seventh categorical series slot (violet).                                                               |
+| `--color-chart-8`     | The eighth categorical series slot (amber).                                                                 |
 | `--color-chart-other` | The fold slot, worn once more than eight series show at once — group the tail into a single "Other" series. |
 
-Custom `color` strings are an escape hatch, not a shortcut: a raw hex value does not adapt across themes, and any custom palette must be re-validated for colorblind-safe adjacency and surface contrast. A series that carries good or bad meaning — an error rate, a success rate — should wear the semantic status colors, never a categorical slot.
+The Bar Chart page records [what each theme measures](/components/charts/bar-chart#chart-color-tokens) over those 28 pairs.
+
+Custom `color` strings are an escape hatch, not a shortcut: a raw hex value does not adapt across themes, and any custom palette must be re-validated for surface contrast and for colorblind-safe separation from every other color on the chart. A series that carries good or bad meaning — an error rate, a success rate — should wear the semantic status colors, never a categorical slot.
+
+#### Overriding a slot
+
+Two public paths change the color a series paints.
+
+- **One series** — pass `color` on `AreaChart.Area`. It takes a chart token by name or any CSS color string. Either spends a slot, so the next unpinned series skips past it.
+- **One chart** — redeclare the token on `AreaChart.Root`: `className="[--color-chart-1:var(--color-brand)]"`. Every series that lands in slot 1 picks the new value up. So do its legend key, band fill, and hover dot.
+
+The chart resolves every token through a probe element it appends inside `Root`. The probe sits in that Root's own cascade, so a declaration scoped to one Root wins for that chart alone. Sibling charts on the page keep the theme value. Declare the same custom property higher up — on a dashboard wrapper, or at `:root` — to retheme a whole subtree.
+
+An overridden slot leaves mantle's gates behind, so measure the value you set against the slots its neighbors hold. The `#d07c00` below shares a band edge with `chart-2`, and it clears 8 ΔE from that green under simulated protanopia and deuteranopia in all four themes.
+
+<Example>
+	<OverrideSlotAreaChartExample />
+</Example>
+
+```tsx
+import { AreaChart } from "@ngrok/mantle/area-chart";
+
+const trafficData = [
+	{ date: new Date("2026-07-01"), http: 4200, tcp: 1400, tls: 860 },
+	{ date: new Date("2026-07-02"), http: 4600, tcp: 1350, tls: 900 },
+	{ date: new Date("2026-07-03"), http: 5100, tcp: 1500, tls: 940 },
+	{ date: new Date("2026-07-04"), http: 3800, tcp: 1250, tls: 780 },
+	{ date: new Date("2026-07-05"), http: 3500, tcp: 1200, tls: 750 },
+	{ date: new Date("2026-07-06"), http: 4900, tcp: 1550, tls: 980 },
+	{ date: new Date("2026-07-07"), http: 5400, tcp: 1600, tls: 1050 },
+	{ date: new Date("2026-07-08"), http: 5800, tcp: 1700, tls: 1100 },
+	{ date: new Date("2026-07-09"), http: 5200, tcp: 1650, tls: 1020 },
+	{ date: new Date("2026-07-10"), http: 6100, tcp: 1800, tls: 1150 },
+	{ date: new Date("2026-07-11"), http: 4400, tcp: 1450, tls: 880 },
+	{ date: new Date("2026-07-12"), http: 4100, tcp: 1400, tls: 840 },
+	{ date: new Date("2026-07-13"), http: 5600, tcp: 1750, tls: 1080 },
+	{ date: new Date("2026-07-14"), http: 6300, tcp: 1900, tls: 1200 },
+];
+
+<AreaChart.Root
+	data={trafficData}
+	xKey="date"
+	stacked
+	// An app declares its brand token once, high in the tree. This example
+	// declares it beside the override so it stands alone. A theme that needs
+	// its own value takes a variant: `dark:[--color-brand:…]`.
+	className="max-w-2xl [--color-brand:#d07c00] [--color-chart-1:var(--color-brand)]"
+	aria-label="Connections by protocol, first slot rethemed"
+>
+	<AreaChart.Grid />
+	<AreaChart.XAxis />
+	<AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
+	<AreaChart.Area dataKey="http" label="HTTP" />
+	<AreaChart.Area dataKey="tcp" label="TCP" />
+	<AreaChart.Area dataKey="tls" label="TLS" color="var(--color-accent-600)" />
+	<AreaChart.Tooltip />
+	<AreaChart.Legend />
+</AreaChart.Root>;
+```

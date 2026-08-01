@@ -5,8 +5,8 @@
  * This module is internal shared implementation — it is not exported from the
  * package. `tokens.test.ts` is its only consumer: it resolves every
  * `--color-chart-*` slot in every theme down to a concrete color and runs the
- * gates on the result, so a ramp step that drifts below a threshold fails CI
- * instead of shipping.
+ * gates on the result, so a slot that drifts below a threshold fails CI instead
+ * of shipping.
  *
  * The thresholds and the pairlist rules come from the ASD dataviz color formula
  * this repo follows. The sRGB transfer functions, the OKLab matrices, the WCAG
@@ -48,6 +48,29 @@ const NORMAL_VISION_FLOOR = 15;
 /** Minimum WCAG contrast ratio of a mark against the chart surface. */
 const CONTRAST_MIN = 3;
 
+/**
+ * The lowest contrast ratio each theme's marks may reach on its own card
+ * surface. Every entry is that theme's measured minimum rounded down to two
+ * places, so a re-tuned slot that costs a theme contrast fails here instead of
+ * sliding down to `CONTRAST_MIN`. Two places is the precision, not a preference:
+ * `Math.pow` is not bit-identical across platforms, and a third digit would
+ * ratchet the gate into that noise.
+ *
+ * Raise an entry whenever a re-step lifts a theme's minimum. The shipped
+ * measurements are light 3.6102:1, dark 3.6520:1, light-high-contrast 3.6960:1,
+ * and dark-high-contrast 6.7630:1.
+ *
+ * `CONTRAST_MIN` is the absolute floor the standard sets, and no entry may sit
+ * under it. The high-contrast themes earn far more than 3:1, and a flat gate
+ * would let them regress to the same floor as the standard themes.
+ */
+const CONTRAST_FLOOR_BY_THEME = {
+	light: 3.61,
+	dark: 3.65,
+	"light-high-contrast": 3.69,
+	"dark-high-contrast": 6.76,
+} as const;
+
 /** Machado, Oliveira & Fernandes (2009) at severity 1.0, for linear sRGB. */
 const CVD_MATRICES = {
 	protan: [
@@ -72,6 +95,9 @@ type CvdKind = keyof typeof CVD_MATRICES;
 
 /** A light-mode or dark-mode theme, which picks the lightness band. */
 type PaletteMode = keyof typeof LIGHTNESS_BAND;
+
+/** One of the four theme entry points mantle ships a chart palette for. */
+type ThemeName = keyof typeof CONTRAST_FLOOR_BY_THEME;
 
 type Rgb = readonly [number, number, number];
 
@@ -361,21 +387,25 @@ const worstNormalPair = (hexes: readonly string[], scope: PairScope): WorstPair 
 	closestPair(hexes, scope, ["normal"]);
 
 /**
- * The slots that do not clear the contrast minimum against the chart surface.
+ * The slots that do not clear a contrast minimum against the chart surface.
+ * `minimum` defaults to the absolute `CONTRAST_MIN`; pass a theme's own floor
+ * from `CONTRAST_FLOOR_BY_THEME` to hold that theme to what it measures today.
  * Empty is a pass.
  *
  * @example
  * ```ts
- * lowContrastSlots(["#3e6ff4"], "#ffffff"); // [] — 4.39:1 clears 3:1
+ * lowContrastSlots(["#3e6ff4"], "#ffffff");                  // [] — 4.39:1 clears 3:1
+ * lowContrastSlots(["#3e6ff4"], "#ffffff", { minimum: 4.5 }); // one entry — 4.39:1 misses 4.5:1
  * ```
  */
 const lowContrastSlots = (
 	hexes: readonly string[],
 	surface: string,
+	{ minimum = CONTRAST_MIN }: { minimum?: number } = {},
 ): Array<{ slot: number; hex: string; ratio: number }> =>
 	hexes
 		.map((hex, index) => ({ slot: index + 1, hex, ratio: contrastRatio(hex, surface) }))
-		.filter(({ ratio }) => ratio < CONTRAST_MIN);
+		.filter(({ ratio }) => ratio < minimum);
 
 /** One stylesheet in a lookup chain, with its declarations already collected. */
 type StyleSheetLayer = { name: string; declarations: Map<string, string> };
@@ -474,45 +504,24 @@ const resolveProperty = (chain: readonly StyleSheetLayer[], property: string): R
 	}
 };
 
-/**
- * The single alias step a property declares, and the file that declares it —
- * `--color-chart-1` → `--color-blue-500`. Throws when the property is not a
- * lone `var()`.
- *
- * @example
- * ```ts
- * aliasOf(chain, "--color-chart-1");
- * // { alias: "--color-blue-500", declaredIn: "mantle.css" }
- * ```
- */
-const aliasOf = (
-	chain: readonly StyleSheetLayer[],
-	property: string,
-): { alias: string; declaredIn: string } => {
-	for (const sheet of chain) {
-		const value = sheet.declarations.get(property);
-		if (value == null) {
-			continue;
-		}
-		const alias = value.match(ALIAS_ONLY);
-		if (alias?.[1] == null) {
-			throw new Error(`${property} is not a single var() alias: ${value}`);
-		}
-		return { alias: alias[1], declaredIn: sheet.name };
-	}
-	throw new Error(`unresolved custom property ${property}`);
+export type {
+	CvdKind,
+	OffBandSlot,
+	PairScope,
+	PaletteMode,
+	ResolvedProperty,
+	ThemeName,
+	WorstPair,
 };
-
-export type { CvdKind, OffBandSlot, PairScope, PaletteMode, ResolvedProperty, WorstPair };
 export {
 	//,
 	CHROMA_FLOOR,
+	CONTRAST_FLOOR_BY_THEME,
 	CONTRAST_MIN,
 	CVD_FLOOR,
 	CVD_TARGET,
 	LIGHTNESS_BAND,
 	NORMAL_VISION_FLOOR,
-	aliasOf,
 	collectDeclarations,
 	contrastRatio,
 	deltaE,

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
-	aliasOf,
+	CONTRAST_FLOOR_BY_THEME,
+	CONTRAST_MIN,
 	collectDeclarations,
 	contrastRatio,
 	deltaE,
@@ -160,6 +161,20 @@ describe("the gates", () => {
 		expect(lowContrastSlots(["#8e51ff"], "#767676")).toHaveLength(1);
 	});
 
+	test("lowContrastSlots defaults to the absolute minimum and takes a stricter one", () => {
+		// The two grays straddle 3:1 on white by one 8-bit step — #949494 is 3.034:1
+		// and #959595 is 2.995:1 — so this call omits `minimum` and still pins the
+		// `CONTRAST_MIN` default rather than any looser number.
+		expect(lowContrastSlots(["#949494", "#959595"], "#ffffff")).toEqual([
+			{ slot: 2, hex: "#959595", ratio: expect.closeTo(2.995, 3) },
+		]);
+		// #8e51ff is 4.40:1 on white: over that default, under a 4.5:1 floor.
+		expect(lowContrastSlots(["#8e51ff"], "#ffffff", { minimum: CONTRAST_MIN })).toEqual([]);
+		expect(lowContrastSlots(["#8e51ff"], "#ffffff", { minimum: 4.5 })).toEqual([
+			{ slot: 1, hex: "#8e51ff", ratio: expect.closeTo(4.4, 2) },
+		]);
+	});
+
 	test("worstCvdPair picks the closest pair and names the deficiency", () => {
 		const worst = worstCvdPair(["#009689", "#e7000b"], "adjacent");
 		expect(worst.deltaE).toBeCloseTo(14.11, 1);
@@ -245,17 +260,25 @@ describe("resolveProperty", () => {
 	});
 });
 
-describe("aliasOf", () => {
-	test("reports the single alias step and the declaring file", () => {
-		const chain = [layer("theme.css", "--color-chart-1: var(--color-blue-500);")];
-		expect(aliasOf(chain, "--color-chart-1")).toEqual({
-			alias: "--color-blue-500",
-			declaredIn: "theme.css",
-		});
+describe("CONTRAST_FLOOR_BY_THEME", () => {
+	test("no theme is held to less than the absolute minimum", () => {
+		// The map records each theme's measured minimum, rounded down to two places.
+		// An entry under CONTRAST_MIN would ship a palette the standard already
+		// rejects.
+		const belowStandard = Object.entries(CONTRAST_FLOOR_BY_THEME).filter(
+			([, floor]) => floor < CONTRAST_MIN,
+		);
+		expect(belowStandard).toEqual([]);
 	});
 
-	test("throws when a slot is written as a literal instead of an alias", () => {
-		const chain = [layer("theme.css", "--color-chart-1: oklch(58.4% 0.2069 265.3);")];
-		expect(() => aliasOf(chain, "--color-chart-1")).toThrow(/not a single var\(\) alias/);
+	test("each high-contrast theme is held above its standard twin", () => {
+		// The whole reason the map exists: a flat gate lets a high-contrast theme
+		// regress to the floor a standard theme sits on.
+		expect(CONTRAST_FLOOR_BY_THEME["light-high-contrast"]).toBeGreaterThan(
+			CONTRAST_FLOOR_BY_THEME.light,
+		);
+		expect(CONTRAST_FLOOR_BY_THEME["dark-high-contrast"]).toBeGreaterThan(
+			CONTRAST_FLOOR_BY_THEME.dark,
+		);
 	});
 });

@@ -270,6 +270,28 @@ export function EmptyStateLineChartExample() {
 	);
 }
 
+export function OverrideSlotLineChartExample() {
+	return (
+		<LineChart.Root
+			data={signupsData}
+			xKey="day"
+			// An app declares its brand token once, high in the tree. This example
+			// declares it beside the override so it stands alone. A theme that needs
+			// its own value takes a variant: `dark:[--color-brand:…]`.
+			className="[--color-brand:#d07c00] [--color-chart-1:var(--color-brand)]"
+			aria-label="Signups by day of week"
+		>
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis />
+			<LineChart.Line dataKey="thisWeek" label="This week" />
+			<LineChart.Line dataKey="lastWeek" label="Last week" color="var(--color-accent-600)" />
+			<LineChart.Tooltip />
+			<LineChart.Legend />
+		</LineChart.Root>
+	);
+}
+
 # Line Chart
 
 A canvas-rendered line chart for trends over a continuous x axis — time above all. Rendering is canvas with min/max decimation, so series of 100,000+ points stay smooth, and the entire interaction contract — a crosshair snapped to the nearest x with an every-series tooltip, keyboard stepping, polite announcements, and a screen-reader data table — ships with `LineChart.Root` unconditionally. No part removal can strip keyboard access to the data.
@@ -283,7 +305,7 @@ A `LineChart` answers "how is this changing?" and "do these series move together
 
 The x scale is auto-detected from the first row's x value: `Date` values get a `"time"` scale with calendar-aware ticks, numbers get `"linear"`, and strings get `"point"` (evenly spaced categories). Pass `xScale` when detection guesses wrong — for example, epoch-millisecond numbers auto-detect as `"linear"`, so pass `xScale="time"` to read them as time.
 
-**Keep it to eight series or fewer.** The default chart tokens are eight validated categorical slots. The ninth series onward all wear the neutral `--color-chart-other`, so a dozen keys legend as a wall of identical gray. Eight is the palette's measured limit, not a style preference: a ninth hue cannot clear the colorblind-safe adjacency gates the eight already sit close to. Rank by the window's total, keep the top seven, and sum the rest into one `"Other"` series. The Bar Chart page carries [a worked fold](/components/charts/bar-chart#when-to-use). Pin the fold's own `Line` with `color="chart-other"`, so it reads as the tail rather than claiming a categorical slot.
+**Keep it to eight series or fewer.** The default chart tokens are eight validated categorical slots. The ninth series onward all wear the neutral `--color-chart-other`, so a dozen keys legend as a wall of identical gray. Eight is the palette's measured limit, not a style preference: all 28 pairs of the eight clear the colorblind-safe gates, and the closest pair clears its floor by 0.054 ΔE. A ninth hue has nowhere to sit. Rank by the window's total, keep the top seven, and sum the rest into one `"Other"` series. The Bar Chart page carries [a worked fold](/components/charts/bar-chart#when-to-use). Pin the fold's own `Line` with `color="chart-other"`, so it reads as the tail rather than claiming a categorical slot.
 
 Compose `LineChart.Root` with one `LineChart.Line` per series. Every chart requires an accessible name (`aria-label` or `aria-labelledby`), and every multi-series chart composes `LineChart.Legend` — identity must never rely on color-matching alone. Hover or focus the chart and arrow around: the tooltip reads every series at the active x.
 
@@ -835,18 +857,71 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-Series without an explicit `color` claim the next slot in the ordered `--color-chart-1`…`--color-chart-8` tokens. Each theme's palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the card surface in all four themes (light, dark, and both high-contrast variants), and the semantic ramps are deliberately excluded so a series never reads as a status color. Slots are sticky per `dataKey`: a series keeps its color for the chart's lifetime, even as other series are filtered in and out. An explicit `color` spends a slot, so the next unpinned series skips past it — a chart token spends that token, and any other CSS color spends the next slot in order. Pinning the `chart-other` token spends nothing, because every series past the eighth shares the overflow gray. Spelled as a raw `var(--color-chart-other)` it is a CSS color like any other, so it spends a slot. A series that unmounts keeps its slot while the palette has room. Once every slot is held, an incoming series takes one back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Fold the long tail into a single "Other" series instead. Eight is the validated limit for adjacent slots, and no ninth hue clears it.
+Series without an explicit `color` claim the next slot in the ordered `--color-chart-1`…`--color-chart-8` tokens. Each of the four themes (light, dark, and both high-contrast variants) authors its own eight `oklch()` literals, measured so all 28 pairs hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia, and so every slot clears 3:1 against that theme's card surface. The semantic ramps are deliberately excluded, so a series never reads as a status color. Slots are sticky per `dataKey`: a series keeps its color for the chart's lifetime, even as other series are filtered in and out. An explicit `color` spends a slot, so the next unpinned series skips past it — a chart token spends that token, and any other CSS color spends the next slot in order. Pinning the `chart-other` token spends nothing, because every series past the eighth shares the overflow gray. Spelled as a raw `var(--color-chart-other)` it is a CSS color like any other, so it spends a slot. A series that unmounts keeps its slot while the palette has room. Once every slot is held, an incoming series takes one back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Fold the long tail into a single "Other" series instead. Eight is the validated limit, and no ninth hue clears it.
 
 | CSS Variable          | Description                                                                                                                       |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `--color-chart-1`     | The first categorical series slot (blue).                                                                                         |
 | `--color-chart-2`     | The second categorical series slot (green).                                                                                       |
 | `--color-chart-3`     | The third categorical series slot (pink).                                                                                         |
-| `--color-chart-4`     | The fourth categorical series slot (red).                                                                                         |
+| `--color-chart-4`     | The fourth categorical series slot (red-orange).                                                                                  |
 | `--color-chart-5`     | The fifth categorical series slot (teal).                                                                                         |
-| `--color-chart-6`     | The sixth categorical series slot (orange).                                                                                       |
+| `--color-chart-6`     | The sixth categorical series slot (magenta).                                                                                      |
 | `--color-chart-7`     | The seventh categorical series slot (violet).                                                                                     |
-| `--color-chart-8`     | The eighth categorical series slot (yellow).                                                                                      |
+| `--color-chart-8`     | The eighth categorical series slot (amber).                                                                                       |
 | `--color-chart-other` | The fold slot, worn once more than eight series show at once (neutral gray). Collapse the long tail into a single "Other" series. |
 
-The `color` escape hatch accepts any CSS color string, but static colors (a raw hex) do not adapt across themes — prefer a `var(...)` reference to a theme-aware token, and validate custom palettes for colorblind-safe adjacency and surface contrast just like the defaults. A series that carries good/bad meaning — an error rate, a pass/fail split — should wear the semantic status colors (e.g. `var(--color-danger-600)`), never a categorical slot.
+The Bar Chart page records [what each theme measures](/components/charts/bar-chart#chart-color-tokens) over those 28 pairs.
+
+The `color` escape hatch accepts any CSS color string, but static colors (a raw hex) do not adapt across themes — prefer a `var(...)` reference to a theme-aware token, and validate custom palettes for surface contrast and for colorblind-safe separation from every other color on the chart, just like the defaults. A series that carries good/bad meaning — an error rate, a pass/fail split — should wear the semantic status colors (e.g. `var(--color-danger-600)`), never a categorical slot.
+
+#### Overriding a slot
+
+Two public paths change the color a series paints.
+
+- **One series** — pass `color` on `LineChart.Line`. It takes a chart token by name or any CSS color string. Either spends a slot, so the next unpinned series skips past it.
+- **One chart** — redeclare the token on `LineChart.Root`: `className="[--color-chart-1:var(--color-brand)]"`. Every series that lands in slot 1 picks the new value up. So do its legend key and hover dot.
+
+The chart resolves every token through a probe element it appends inside `Root`. The probe sits in that Root's own cascade, so a declaration scoped to one Root wins for that chart alone. Sibling charts on the page keep the theme value. Declare the same custom property higher up — on a dashboard wrapper, or at `:root` — to retheme a whole subtree.
+
+An overridden slot leaves mantle's gates behind, so measure the value you set against the slots its neighbors hold.
+
+<Example>
+	<OverrideSlotLineChartExample />
+</Example>
+
+```tsx
+import { LineChart } from "@ngrok/mantle/line-chart";
+
+const signupsData = [
+	{ day: "Mon", thisWeek: 42, lastWeek: 38 },
+	{ day: "Tue", thisWeek: 61, lastWeek: 47 },
+	{ day: "Wed", thisWeek: 55, lastWeek: 60 },
+	{ day: "Thu", thisWeek: 67, lastWeek: 52 },
+	{ day: "Fri", thisWeek: 74, lastWeek: 66 },
+	{ day: "Sat", thisWeek: 30, lastWeek: 34 },
+	{ day: "Sun", thisWeek: 26, lastWeek: 22 },
+];
+
+function OverrideSlotLineChartExample() {
+	return (
+		<LineChart.Root
+			data={signupsData}
+			xKey="day"
+			// An app declares its brand token once, high in the tree. This example
+			// declares it beside the override so it stands alone. A theme that needs
+			// its own value takes a variant: `dark:[--color-brand:…]`.
+			className="[--color-brand:#d07c00] [--color-chart-1:var(--color-brand)]"
+			aria-label="Signups by day of week"
+		>
+			<LineChart.Grid />
+			<LineChart.XAxis />
+			<LineChart.YAxis />
+			<LineChart.Line dataKey="thisWeek" label="This week" />
+			<LineChart.Line dataKey="lastWeek" label="Last week" color="var(--color-accent-600)" />
+			<LineChart.Tooltip />
+			<LineChart.Legend />
+		</LineChart.Root>
+	);
+}
+```

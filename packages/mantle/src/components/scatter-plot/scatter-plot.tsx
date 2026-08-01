@@ -30,9 +30,9 @@ import {
  * switch the chart into the 3D projection: points render inside a rotatable
  * cube (drag to orbit), depth-sorted with gentle perspective.
  *
- * Scatter is an all-pairs chart form — any two marks can sit side by side —
- * so with the default chart tokens keep it to FOUR series or fewer; beyond
- * that, fold into an "Other" series or facet into small multiples.
+ * Scatter is an all-pairs chart form — any two marks can sit side by side. The
+ * eight default chart tokens hold at every pair, so keep it to eight series or
+ * fewer. Past eight, fold into an "Other" series or facet into small multiples.
  */
 type ScatterPlotRootProps<TDatum extends ChartDatum = ChartDatum> = Omit<
 	ChartRootBaseProps,
@@ -362,8 +362,22 @@ const CopyButton = (props: ScatterPlotCopyButtonProps) => (
  * the 3D projection (`zKey`), which renders a rotatable, depth-sorted point
  * cloud (drag to orbit). Hover hits the nearest point within 24px; keyboard
  * stepping, polite announcements, and the sr-only data table ship with `Root`
- * unconditionally. Scatter is an all-pairs chart form: with the default chart
- * tokens keep it to four series or fewer.
+ * unconditionally. Scatter is an all-pairs chart form: the eight default chart
+ * tokens hold at every pair, so keep it to eight series or fewer.
+ *
+ * **CSS variables (public API):**
+ *
+ * | CSS Variable | Default | Description |
+ * | --- | --- | --- |
+ * | `--color-chart-1` … `--color-chart-8` | per theme | The validated categorical series slots, in assignment order. |
+ * | `--color-chart-other` | `--color-neutral-500` | The neutral overflow slot a series wears once every slot is held. |
+ *
+ * Two ways to change a series color, both public API. The `color` prop on
+ * `ScatterPlot.Point` sets one series and takes any CSS color. To restyle a slot itself,
+ * redeclare its token on `Root` —
+ * `className="[--color-chart-1:var(--color-brand)]"`. The engine resolves every
+ * token through a probe inside `Root`, so a declaration scoped there wins for
+ * that chart and leaves every other chart on the page alone.
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot
  *

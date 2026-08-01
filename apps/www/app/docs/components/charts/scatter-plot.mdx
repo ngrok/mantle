@@ -293,6 +293,33 @@ export function EmptyStateScatterPlotExample() {
 	);
 }
 
+export function OverrideSlotScatterPlotExample() {
+	return (
+		<ScatterPlot.Root
+			data={regionThroughput}
+			xKey="latency"
+			// An app declares its brand token once, high in the tree. This example
+			// declares it beside the override so it stands alone. A theme that needs
+			// its own value takes a variant: `dark:[--color-brand:…]`.
+			className="[--color-brand:#d07c00] [--color-chart-1:var(--color-brand)]"
+			aria-label="Latency vs throughput by region, first slot rethemed"
+		>
+			<ScatterPlot.Grid />
+			<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
+			<ScatterPlot.YAxis />
+			<ScatterPlot.Point dataKey="usEast" label="US East" />
+			<ScatterPlot.Point
+				dataKey="euWest"
+				label="EU West"
+				shape="triangle"
+				color="var(--color-accent-600)"
+			/>
+			<ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
+			<ScatterPlot.Legend />
+		</ScatterPlot.Root>
+	);
+}
+
 # Scatter Plot
 
 A canvas-rendered scatter plot for correlating two continuous measures — three with the rotatable 3D projection. Hover hits the nearest point within 24px of the pointer, and the entire interaction contract — the tooltip, keyboard stepping, polite announcements, and a screen-reader data table — ships with `ScatterPlot.Root` unconditionally. No part removal can strip keyboard access to the data.
@@ -305,7 +332,7 @@ A `ScatterPlot` answers "are these two measures related?" — latency vs through
 - Prefer [`LineChart`](/components/charts/line-chart) for trends over a continuous x — lines connect ordered samples of one measure; scatter treats every row as an independent observation.
 - Prefer [`BarChart`](/components/charts/bar-chart) to compare values across discrete categories — bars encode value by length from a zero baseline.
 
-**Keep it to four series or fewer.** Scatter is an all-pairs chart form: any point can land next to any point from any other series, so every pair of series colors must stay distinguishable — not just the neighbors in a legend. The gates validate the default chart tokens all-pairs across the first three slots in every theme. The standard light and dark themes clear the first four. Past four, fold the extras into a single "Other" series or facet into small multiples.
+**Keep it to eight series or fewer.** Scatter is an all-pairs chart form: any point can land next to any point from any other series, so every pair of series colors must stay distinguishable — not just the neighbors in a legend. The default chart tokens clear that bar in every theme: all 28 pairs of the eight slots hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia. Only four point `shape`s exist, so a fifth series repeats a glyph and leans on color alone. Past eight, fold the extras into a single "Other" series or facet into small multiples.
 
 Compose everything inside `ScatterPlot.Root`: gridlines, axes, one `ScatterPlot.Point` per series, and the legend. Hover anywhere near a point — the chart hits the nearest point within 24px of the pointer, so a 4px dot is never a pinpoint target, and the tooltip names the hit point's series alone. Always compose `ScatterPlot.Legend` on multi-series charts: series identity must never rely on color-matching alone.
 
@@ -828,7 +855,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### ScatterPlot.Point
 
-One point series. Renders nothing itself — it registers the series with the chart, which paints its points on canvas: 4px dots with a 2px surface ring, degrading gracefully past thousands of points (see [Dense scatter](#dense-scatter)). Compose one `Point` per series — four or fewer with the default tokens, because scatter is an all-pairs form.
+One point series. Renders nothing itself — it registers the series with the chart, which paints its points on canvas: 4px dots with a 2px surface ring, degrading gracefully past thousands of points (see [Dense scatter](#dense-scatter)). Compose one `Point` per series — eight or fewer with the default tokens, which are validated over every pair, not only neighbors.
 
 | Prop      | Type                                                    | Default          | Description                                                                                                                                                                                                                                  |
 | --------- | ------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -914,22 +941,71 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-Series without an explicit `color` claim the next slot in the ordered `--color-chart-1`…`--color-chart-8` tokens. Each theme's palette is validated for colorblind-safe adjacency and at least 3:1 contrast against the card surface in all four themes (light, dark, and both high-contrast variants), and the semantic ramps are deliberately excluded so a series never reads as a status color. Slots are sticky per `dataKey`: a series keeps its color for the chart's lifetime, even as other series are filtered in and out. An explicit `color` spends a slot, so the next unpinned series skips past it — a chart token spends that token, and any other CSS color spends the next slot in order. Pinning the `chart-other` token spends nothing, because every series past the eighth shares the overflow gray. Spelled as a raw `var(--color-chart-other)` it is a CSS color like any other, so it spends a slot. A series that unmounts keeps its slot while the palette has room. Once every slot is held, an incoming series takes one back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`.
+Series without an explicit `color` claim the next slot in the ordered `--color-chart-1`…`--color-chart-8` tokens. Each of the four themes (light, dark, and both high-contrast variants) authors its own eight `oklch()` literals, measured so all 28 pairs hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia, and so every slot clears 3:1 against that theme's card surface. The semantic ramps are deliberately excluded, so a series never reads as a status color. Slots are sticky per `dataKey`: a series keeps its color for the chart's lifetime, even as other series are filtered in and out. An explicit `color` spends a slot, so the next unpinned series skips past it — a chart token spends that token, and any other CSS color spends the next slot in order. Pinning the `chart-other` token spends nothing, because every series past the eighth shares the overflow gray. Spelled as a raw `var(--color-chart-other)` it is a CSS color like any other, so it spends a slot. A series that unmounts keeps its slot while the palette has room. Once every slot is held, an incoming series takes one back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`.
 
-One caveat is scatter-specific: the standard palette gate validates _adjacent_ slots, which is enough for a line, bar, or area form, where a series can only neighbor the series stacked or drawn beside it — but scatter marks can neighbor any other mark, so its colors must survive _all-pairs_ comparison. That validation covers the **first three slots** in every theme, and the first four in the standard light and dark themes. `light-high-contrast` puts slots 2 and 4 under the colorblind-safe separation floor for deuteranopia, so a four-series scatter is not safe there. The four-series cap in [When to use](#when-to-use) is not a style preference; it is the palette's validated limit for scatter forms. Fold the long tail into a single "Other" series or facet into small multiples rather than plotting a fifth categorical color.
+All-pairs is the scope scatter needs. A line, bar, or area series can only neighbor the series stacked or drawn beside it, but a scatter mark can land next to any other mark, so its colors must survive every comparison rather than the neighboring ones. The eight slots are gated at that scope in all four themes, which is why the cap in [When to use](#when-to-use) is the palette's own eight. Fold the long tail into a single "Other" series or facet into small multiples rather than inventing a ninth hue.
 
-That validated prefix is also why series order matters here. Because every color spends a slot, a series with an explicit `color` registered first pushes its unpinned siblings onto `chart-2`, `chart-3`, and `chart-4` — and slots 2 and 4 are the pair `light-high-contrast` puts under the floor. Register the explicitly colored series last, so the unpinned ones keep `chart-1` through `chart-3`, or give every series its own `shape`.
+Series order decides which slots the unpinned series get, because every color spends one. It does not decide whether they stay apart — the defaults hold at every pair, in any order. A color you pin yourself is the one the gates never see, so measure it against the slots its siblings take, or give every series its own `shape`.
 
 | CSS Variable          | Description                                                                                                                       |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `--color-chart-1`     | The first categorical series slot (blue) — all-pairs validated in every theme.                                                    |
-| `--color-chart-2`     | The second categorical series slot (green) — all-pairs validated in every theme.                                                  |
-| `--color-chart-3`     | The third categorical series slot (pink) — all-pairs validated in every theme.                                                    |
-| `--color-chart-4`     | The fourth categorical series slot (red) — all-pairs validated in light and dark only, not high contrast.                         |
-| `--color-chart-5`     | The fifth categorical series slot (teal). Past the scatter cap — fold or facet instead.                                           |
-| `--color-chart-6`     | The sixth categorical series slot (orange). Past the scatter cap.                                                                 |
-| `--color-chart-7`     | The seventh categorical series slot (violet). Past the scatter cap.                                                               |
-| `--color-chart-8`     | The eighth categorical series slot (yellow). Past the scatter cap.                                                                |
+| `--color-chart-1`     | The first categorical series slot (blue).                                                                                         |
+| `--color-chart-2`     | The second categorical series slot (green).                                                                                       |
+| `--color-chart-3`     | The third categorical series slot (pink).                                                                                         |
+| `--color-chart-4`     | The fourth categorical series slot (red-orange).                                                                                  |
+| `--color-chart-5`     | The fifth categorical series slot (teal).                                                                                         |
+| `--color-chart-6`     | The sixth categorical series slot (magenta).                                                                                      |
+| `--color-chart-7`     | The seventh categorical series slot (violet).                                                                                     |
+| `--color-chart-8`     | The eighth categorical series slot (amber).                                                                                       |
 | `--color-chart-other` | The fold slot, worn once more than eight series show at once (neutral gray). Collapse the long tail into a single "Other" series. |
 
-The `color` escape hatch accepts any CSS color string, but static colors (a raw hex) do not adapt across themes — prefer a `var(...)` reference to a theme-aware token, and validate custom palettes for colorblind safety and surface contrast just like the defaults; for scatter that means every pair, not just neighbors. A series that carries good/bad meaning — an error rate, a pass/fail split — should wear the semantic status colors (e.g. `var(--color-danger-600)`), never a categorical slot.
+The Bar Chart page records [what each theme measures](/components/charts/bar-chart#chart-color-tokens) over those 28 pairs.
+
+The `color` escape hatch accepts any CSS color string, but static colors (a raw hex) do not adapt across themes — prefer a `var(...)` reference to a theme-aware token, and validate custom palettes for surface contrast and for colorblind-safe separation, just like the defaults; for scatter that means every pair, not just neighbors. A series that carries good/bad meaning — an error rate, a pass/fail split — should wear the semantic status colors (e.g. `var(--color-danger-600)`), never a categorical slot.
+
+#### Overriding a slot
+
+Two public paths change the color a series paints.
+
+- **One series** — pass `color` on `ScatterPlot.Point`. It takes a chart token by name or any CSS color string. Either spends a slot, so the next unpinned series skips past it.
+- **One chart** — redeclare the token on `ScatterPlot.Root`: `className="[--color-chart-1:var(--color-brand)]"`. Every series that lands in slot 1 picks the new value up. So do its legend key and hover dot.
+
+The chart resolves every token through a probe element it appends inside `Root`. The probe sits in that Root's own cascade, so a declaration scoped to one Root wins for that chart alone. Sibling charts on the page keep the theme value. Declare the same custom property higher up — on a dashboard wrapper, or at `:root` — to retheme a whole subtree.
+
+An overridden slot leaves mantle's gates behind. Measure the value you set against every other color on the plot, because scatter marks meet at every pair.
+
+<Example>
+	<OverrideSlotScatterPlotExample />
+</Example>
+
+```tsx
+import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
+
+const regionThroughput = [
+	...regionPoints({ key: "usEast", seed: 11, latencyBase: 18 }),
+	...regionPoints({ key: "euWest", seed: 47, latencyBase: 62 }),
+];
+
+<ScatterPlot.Root
+	data={regionThroughput}
+	xKey="latency"
+	// An app declares its brand token once, high in the tree. This example
+	// declares it beside the override so it stands alone. A theme that needs
+	// its own value takes a variant: `dark:[--color-brand:…]`.
+	className="[--color-brand:#d07c00] [--color-chart-1:var(--color-brand)]"
+	aria-label="Latency vs throughput by region, first slot rethemed"
+>
+	<ScatterPlot.Grid />
+	<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
+	<ScatterPlot.YAxis />
+	<ScatterPlot.Point dataKey="usEast" label="US East" />
+	<ScatterPlot.Point
+		dataKey="euWest"
+		label="EU West"
+		shape="triangle"
+		color="var(--color-accent-600)"
+	/>
+	<ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
+	<ScatterPlot.Legend />
+</ScatterPlot.Root>;
+```

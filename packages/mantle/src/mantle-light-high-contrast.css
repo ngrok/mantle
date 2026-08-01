@@ -294,19 +294,20 @@ mantle.css for the full strategy.
 	--color-selected-menu-item: var(--color-accent-50);
 	--color-active-selected-menu-item: var(--color-accent-100);
 
-	/* Chart series tokens — light-high-contrast picks validated against the white
-	   card surface: all gates pass (worst adjacent CVD ΔE 11.6, normal-vision
-	   floor 18.3, all slots ≥ 3.65:1). Pink and teal use the 300 step here (the
-	   only steps clearing the chroma floor and adjacency gates in this theme's
-	   compressed ramps); every other slot matches the base light picks. */
-	--color-chart-1: var(--color-blue-500);
-	--color-chart-2: var(--color-green-700);
-	--color-chart-3: var(--color-pink-300);
-	--color-chart-4: var(--color-red-600);
-	--color-chart-5: var(--color-teal-300);
-	--color-chart-6: var(--color-orange-600);
-	--color-chart-7: var(--color-violet-500);
-	--color-chart-8: var(--color-yellow-700);
+	/* Chart series tokens — light-high-contrast's eight marks, in slot order: blue,
+	   green, pink, red-orange, teal, magenta, violet, amber. The hue families match
+	   light, and every literal differs: this theme re-tunes lightness, chroma, and
+	   hue together to hold a higher contrast floor. Measured on the white card
+	   surface: worst pair ΔE 15.15 for full-color vision, 9.62 under simulated
+	   protanopia or deuteranopia, 3.70:1 lowest contrast. */
+	--color-chart-1: oklch(0.464 0.174 259.5); /* #0c52b8 */
+	--color-chart-2: oklch(0.468 0.102 160.5); /* #096b46 */
+	--color-chart-3: oklch(0.649 0.252 1.6); /* #fd1c84 */
+	--color-chart-4: oklch(0.512 0.196 31.5); /* #bd1c01 */
+	--color-chart-5: oklch(0.598 0.101 203.3); /* #06919b */
+	--color-chart-6: oklch(0.468 0.208 333.4); /* #97038a */
+	--color-chart-7: oklch(0.633 0.193 288.5); /* #896ff5 */
+	--color-chart-8: oklch(0.621 0.128 78); /* #b07b06 */
 	--color-chart-other: var(--color-neutral-500);
 
 	--text-color-strong: var(--color-black);

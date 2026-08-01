@@ -353,6 +353,20 @@ const CopyButton = (props: LineChartCopyButtonProps) => (
  * announcements, and an sr-only data table — ships with `Root`
  * unconditionally. Min/max decimation keeps 100k+ point series smooth.
  *
+ * **CSS variables (public API):**
+ *
+ * | CSS Variable | Default | Description |
+ * | --- | --- | --- |
+ * | `--color-chart-1` … `--color-chart-8` | per theme | The validated categorical series slots, in assignment order. |
+ * | `--color-chart-other` | `--color-neutral-500` | The neutral overflow slot a series wears once every slot is held. |
+ *
+ * Two ways to change a series color, both public API. The `color` prop on
+ * `LineChart.Line` sets one series and takes any CSS color. To restyle a slot itself,
+ * redeclare its token on `Root` —
+ * `className="[--color-chart-1:var(--color-brand)]"`. The engine resolves every
+ * token through a probe inside `Root`, so a declaration scoped there wins for
+ * that chart and leaves every other chart on the page alone.
+ *
  * @see https://mantle.ngrok.com/components/charts/line-chart
  *
  * @example
