@@ -11,7 +11,7 @@ against `chart-3`, and so on down the order. A chart puts pairs on screen that t
 
 - a legend lists all eight slots in one column;
 - a scatter mark can neighbor any other mark;
-- a chart that filters or pins a series leaves the painted slots non-consecutive.
+- fixed series slots can leave the painted slots non-consecutive.
 
 Over all 28 pairs the shipped palette fell to ΔE 1.90 under simulated color vision deficiency (CVD) in
 `light` and in `dark`, 1.55 in `light-high-contrast`, and 1.71 in `dark-high-contrast`. At 1.90, `chart-1`
@@ -57,7 +57,7 @@ One consequence for anyone who re-tunes mantle's ramps: a chart slot no longer f
 consumer who redeclares `--color-blue-500` no longer moves `chart-1`. Override the chart token itself
 instead.
 
-**To pin a series to a hue you control, redeclare the token on the chart's `Root`:**
+**To retheme one built-in slot, redeclare the token on the chart's `Root`:**
 
 ```tsx
 <BarChart.Root className="[--color-chart-1:var(--color-brand)]" data={monthlySpend} xKey="month">

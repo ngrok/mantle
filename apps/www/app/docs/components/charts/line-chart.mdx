@@ -264,7 +264,7 @@ export function EmptyStateLineChartExample() {
 	);
 }
 
-export function OverrideSlotLineChartExample() {
+export function SeriesIdentityLineChartExample() {
 	return (
 		<LineChart.Root
 			data={signupsData}
@@ -279,7 +279,12 @@ export function OverrideSlotLineChartExample() {
 			<LineChart.XAxis />
 			<LineChart.YAxis />
 			<LineChart.Line dataKey="thisWeek" label="This week" />
-			<LineChart.Line dataKey="lastWeek" label="Last week" color="var(--color-accent-600)" />
+			<LineChart.Line
+				dataKey="lastWeek"
+				label="Last week"
+				seriesSlot={4}
+				color="var(--color-accent-600)"
+			/>
 			<LineChart.Tooltip />
 			<LineChart.Legend />
 		</LineChart.Root>
@@ -299,7 +304,7 @@ A `LineChart` answers "how is this changing?" and "do these series move together
 
 The x scale is auto-detected from the first row's x value: `Date` values get a `"time"` scale with calendar-aware ticks, numbers get `"linear"`, and strings get `"point"` (evenly spaced categories). Pass `xScale` when detection guesses wrong — for example, epoch-millisecond numbers auto-detect as `"linear"`, so pass `xScale="time"` to read them as time.
 
-**Keep it to eight series or fewer.** The default chart tokens are eight validated categorical slots. The ninth series onward all wear the neutral `--color-chart-other`, so a dozen keys legend as a wall of identical gray. Eight is the palette's measured limit, not a style preference: all 28 pairs of the eight clear the colorblind-safe gates, and the closest pair clears its floor by 0.054 ΔE. A ninth hue has nowhere to sit. Rank by the window's total, keep the top seven, and sum the rest into one `"Other"` series. The Bar Chart page carries [a worked fold](/components/charts/bar-chart#when-to-use). Pin the fold's own `Line` with `color="chart-other"`, so it reads as the tail rather than claiming a categorical slot.
+**Keep it to eight series or fewer.** The default chart tokens are eight validated categorical slots. The ninth series onward all wear the neutral `--color-chart-other`, so a dozen keys legend as a wall of identical gray. Eight is the palette's measured limit, not a style preference: all 28 pairs of the eight clear the colorblind-safe gates, and the closest pair clears its floor by 0.054 ΔE. A ninth hue has nowhere to sit. Rank by the window's total, keep the top seven, and sum the rest into one `"Other"` series. The Bar Chart page carries [a worked fold](/components/charts/bar-chart#when-to-use). Set the fold's own `Line` to `seriesSlot="other"`, so it reads as the tail rather than taking a categorical slot.
 
 Compose `LineChart.Root` with one `LineChart.Line` per series. Every chart requires an accessible name (`aria-label` or `aria-labelledby`), and every multi-series chart composes `LineChart.Legend` — identity must never rely on color-matching alone. Hover or focus the chart and arrow around: the tooltip reads every series at the active x.
 
@@ -337,7 +342,7 @@ function LatencyExample() {
 
 `curve` controls interpolation between points: `"linear"` (the default), `"monotone"` (smoothed without overshooting the data), or `"step"`. `markers` draws a dot with a surface ring at each point — markers auto-hide when points get denser than ~12px apart, so a chart that grows dense never turns to gravel. `shape` picks the marker glyph per series, and the hover dot and legend key wear it too.
 
-Eight glyphs match the palette's eight color slots — `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`, `"plus"`, `"cross"`, `"star"`, in that order. A series that sets no `shape` wears the glyph of the slot it holds. Neither line below sets one: this week takes slot 1 and its circle, last week slot 2 and its square, on the markers, in the legend, and under the crosshair. Every chart therefore carries a second identity channel by default. That channel matters where color cannot carry identity alone — a reader with a color vision deficiency, a grayscale print or export, forced-colors mode. Pairing reads the slot rather than the registration order, so a series pinning `color="chart-3"` wears the triangle. Slots stay sticky per `dataKey`, so filtering a series out reshuffles no survivor's glyph. Set `shape` to override the pairing. The glyph set is shared across the chart family; [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full treatment.
+Eight glyphs match the palette's eight series slots — `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`, `"plus"`, `"cross"`, `"star"`, in that order. A series that sets no `shape` wears the glyph of its slot. Neither line below sets one: this week takes slot 1 and its circle, last week slot 2 and its square, on the markers, in the legend, and under the crosshair. Every chart therefore carries a second identity channel by default. That channel matters where color cannot carry identity alone — a reader with a color vision deficiency, a grayscale print or export, forced-colors mode. Set `seriesSlot={3}` for a fixed triangle identity. Set `shape` to override only the glyph. All chart families share the glyph set; [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full treatment.
 
 String x values put the chart on a `"point"` scale: evenly spaced categorical positions with no band thickness.
 
@@ -746,32 +751,33 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 **Data attributes**
 
-| Data Attribute | Value                                                                                               | Description                                                                                                                                                                                 |
-| -------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"line-chart"`                                                                                      | The Root wrapper, with any forwarded chain ahead of it.                                                                                                                                     |
-| `data-slot`    | `"line-chart-plot"`                                                                                 | The plot box. Every overlay layer positions against it, and the resize observer measures it.                                                                                                |
-| `data-slot`    | `"line-chart-canvas"`                                                                               | The `<canvas>` the marks paint on. Always `aria-hidden`.                                                                                                                                    |
-| `data-slot`    | `"line-chart-crosshair"`                                                                            | The vertical hairline snapped to the active x. The engine writes its geometry as an inline style.                                                                                           |
-| `data-slot`    | `"line-chart-hover-band"`                                                                           | The category highlight. Mounted on every kind; a line chart never shows it.                                                                                                                 |
-| `data-slot`    | `"line-chart-markers"`                                                                              | The container the engine syncs one hover dot per series into.                                                                                                                               |
-| `data-slot`    | `"line-chart-tooltip"`                                                                              | The tooltip surface. The Root renders it; `LineChart.Tooltip` configures it.                                                                                                                |
-| `data-slot`    | `"line-chart-data-table"`                                                                           | The `sr-only` table twin. Omitted when `decorative`.                                                                                                                                        |
-| `data-slot`    | `"chart-active-point"`                                                                              | One hover dot inside the markers layer. Also carries `data-shape`.                                                                                                                          |
-| `data-shape`   | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | On each hover dot, naming the glyph its series wears — the `shape` it set, else the one paired to its color slot. The dot clips itself to that glyph, so target this only to restyle a dot. |
+| Data Attribute | Value                                                                                               | Description                                                                                                                                                                                  |
+| -------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"line-chart"`                                                                                      | The Root wrapper, with any forwarded chain ahead of it.                                                                                                                                      |
+| `data-slot`    | `"line-chart-plot"`                                                                                 | The plot box. Every overlay layer positions against it, and the resize observer measures it.                                                                                                 |
+| `data-slot`    | `"line-chart-canvas"`                                                                               | The `<canvas>` the marks paint on. Always `aria-hidden`.                                                                                                                                     |
+| `data-slot`    | `"line-chart-crosshair"`                                                                            | The vertical hairline snapped to the active x. The engine writes its geometry as an inline style.                                                                                            |
+| `data-slot`    | `"line-chart-hover-band"`                                                                           | The category highlight. Mounted on every kind; a line chart never shows it.                                                                                                                  |
+| `data-slot`    | `"line-chart-markers"`                                                                              | The container the engine syncs one hover dot per series into.                                                                                                                                |
+| `data-slot`    | `"line-chart-tooltip"`                                                                              | The tooltip surface. The Root renders it; `LineChart.Tooltip` configures it.                                                                                                                 |
+| `data-slot`    | `"line-chart-data-table"`                                                                           | The `sr-only` table twin. Omitted when `decorative`.                                                                                                                                         |
+| `data-slot`    | `"chart-active-point"`                                                                              | One hover dot inside the markers layer. Also carries `data-shape`.                                                                                                                           |
+| `data-shape`   | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | On each hover dot, naming the glyph its series wears — the `shape` it set, else the one paired to its series slot. The dot clips itself to that glyph, so target this only to restyle a dot. |
 
 ### LineChart.Line
 
 One line series. Renderless — it registers the series with the chart, which paints it on canvas. Compose one `Line` per series.
 
-| Prop            | Type                                                                                                | Default                                    | Description                                                                                                                                                                                                                                 |
-| --------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dataKey`       | `string`                                                                                            |                                            | The row key this series reads its numeric values from.                                                                                                                                                                                      |
-| `label?`        | `string`                                                                                            | `dataKey`                                  | Display name for the legend, tooltip, and data table.                                                                                                                                                                                       |
-| `color?`        | `SeriesColor`                                                                                       | next sticky slot                           | One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`) or any CSS color string as an escape hatch. See [Chart color tokens](#chart-color-tokens).                                                                     |
-| `curve?`        | `"linear"` \| `"monotone"` \| `"step"`                                                              | `"linear"`                                 | Interpolation between points. `"monotone"` smooths without overshooting the data.                                                                                                                                                           |
-| `markers?`      | `boolean`                                                                                           | `false`                                    | Draw point markers with a surface ring. Auto-hidden when points are denser than ~12px apart.                                                                                                                                                |
-| `connectNulls?` | `boolean`                                                                                           | `false`                                    | Join across `null`/missing values instead of leaving gaps. Gaps are the default and usually correct.                                                                                                                                        |
-| `shape?`        | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | the glyph paired to the series' color slot | The glyph the hover dot, the canvas point markers, and the legend key wear. When omitted, the series takes its color slot's glyph, so color and shape name the same slot. See [Point shapes](/components/charts/scatter-plot#point-shapes). |
+| Prop            | Type                                                                                                | Default                             | Description                                                                                                                                                                   |
+| --------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dataKey`       | `string`                                                                                            |                                     | The row key this series reads its numeric values from.                                                                                                                        |
+| `label?`        | `string`                                                                                            | `dataKey`                           | Display name for the legend, tooltip, and data table.                                                                                                                         |
+| `seriesSlot?`   | `1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| "other"`                                                   | next unreserved slot                | Give the series a fixed color-and-shape identity. See [Chart color tokens](#chart-color-tokens).                                                                              |
+| `color?`        | `SeriesColor`                                                                                       | color from the resolved slot        | Override only the color channel with a chart token or CSS color string. This does not change the series slot or default shape. See [Chart color tokens](#chart-color-tokens). |
+| `curve?`        | `"linear"` \| `"monotone"` \| `"step"`                                                              | `"linear"`                          | Interpolation between points. `"monotone"` smooths without overshooting the data.                                                                                             |
+| `markers?`      | `boolean`                                                                                           | `false`                             | Draw point markers with a surface ring. Auto-hidden when points are denser than ~12px apart.                                                                                  |
+| `connectNulls?` | `boolean`                                                                                           | `false`                             | Join across `null`/missing values instead of leaving gaps. Gaps are the default and usually correct.                                                                          |
+| `shape?`        | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | the glyph paired to the series slot | The glyph the hover dot, canvas point markers, and legend key wear. This overrides only the shape channel. See [Point shapes](/components/charts/scatter-plot#point-shapes).  |
 
 ### LineChart.Grid
 
@@ -857,9 +863,9 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-Series without an explicit `color` claim the next slot in the ordered `--color-chart-1`…`--color-chart-8` tokens. Each of the four themes (light, dark, and both high-contrast variants) authors its own eight `oklch()` literals, measured so all 28 pairs hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia, and so every slot clears 3:1 against that theme's card surface. The semantic ramps are deliberately excluded, so a series never reads as a status color. Slots are sticky per `dataKey`: a series keeps its color for the chart's lifetime, even as other series are filtered in and out. An explicit `color` spends a slot, so the next unpinned series skips past it — a chart token spends that token, and any other CSS color spends the next slot in order. Pinning the `chart-other` token spends nothing, because every series past the eighth shares the overflow gray. Spelled as a raw `var(--color-chart-other)` it is a CSS color like any other, so it spends a slot. A series that unmounts keeps its slot while the palette has room. Once every slot is held, an incoming series takes one back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Fold the long tail into a single "Other" series instead. Eight is the validated limit, and no ninth hue clears it.
+The ordered `--color-chart-1`…`--color-chart-8` tokens define the built-in series identities. Each of the four themes (light, dark, and both high-contrast variants) authors its own eight `oklch()` literals, measured so all 28 pairs hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia, and so every slot clears 3:1 against that theme's card surface. The semantic ramps are deliberately excluded, so a series never reads as a status color.
 
-The slot carries the series' point glyph as well as its color, so both channels stay sticky together and both name one slot — see [Curves, markers, and shapes](#curves-markers-and-shapes).
+Series receive unreserved slots in composition order. Set `seriesSlot` to give a series a fixed visual identity. Mantle reserves fixed slots before automatic series take the remaining slots. Removing an automatic series closes the gap. The `color` and `shape` props override only their own channels and never change slot assignment. `seriesSlot="other"` selects the neutral tail treatment without reserving a categorical slot. When the chart runs out of unreserved categorical slots, later automatic series paint with `--color-chart-other`. Fold the long tail into a single "Other" series instead. Eight is the validated limit, and no ninth hue clears it.
 
 | CSS Variable          | Description                                                                                                                       |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -877,19 +883,20 @@ The Bar Chart page records [what each theme measures](/components/charts/bar-cha
 
 The `color` escape hatch accepts any CSS color string, but static colors (a raw hex) do not adapt across themes — prefer a `var(...)` reference to a theme-aware token, and validate custom palettes for surface contrast and for colorblind-safe separation from every other color on the chart, just like the defaults. A series that carries good/bad meaning — an error rate, a pass/fail split — should wear the semantic status colors (e.g. `var(--color-danger-600)`), never a categorical slot.
 
-#### Overriding a slot
+#### Series identity and color
 
-Two public paths change the color a series paints.
+Three public paths control a series identity or color.
 
-- **One series** — pass `color` on `LineChart.Line`. It takes a chart token by name or any CSS color string. Either spends a slot, so the next unpinned series skips past it.
+- **Fixed identity** — pass `seriesSlot` on `LineChart.Line`. It reserves one built-in color-and-shape pairing before automatic series take the remaining slots.
+- **One color channel** — pass `color` on `LineChart.Line`. It takes a chart token by name or any CSS color string without changing the slot or default shape.
 - **One chart** — redeclare the token on `LineChart.Root`: `className="[--color-chart-1:var(--color-brand)]"`. Every series that lands in slot 1 picks the new value up. So do its legend key and hover dot.
 
 The chart resolves every token through a probe element it appends inside `Root`. The probe sits in that Root's own cascade, so a declaration scoped to one Root wins for that chart alone. Sibling charts on the page keep the theme value. Declare the same custom property higher up — on a dashboard wrapper, or at `:root` — to retheme a whole subtree.
 
-An overridden slot leaves mantle's gates behind, so measure the value you set against the slots its neighbors hold.
+An overridden color leaves mantle's gates behind, so measure the value you set against the slots its neighbors hold. The example fixes Last week at slot 4 for a diamond identity, then overrides only its paint.
 
 <Example>
-	<OverrideSlotLineChartExample />
+	<SeriesIdentityLineChartExample />
 </Example>
 
 ```tsx
@@ -905,7 +912,7 @@ const signupsData = [
 	{ day: "Sun", thisWeek: 26, lastWeek: 22 },
 ];
 
-function OverrideSlotLineChartExample() {
+function SeriesIdentityLineChartExample() {
 	return (
 		<LineChart.Root
 			data={signupsData}
@@ -920,7 +927,12 @@ function OverrideSlotLineChartExample() {
 			<LineChart.XAxis />
 			<LineChart.YAxis />
 			<LineChart.Line dataKey="thisWeek" label="This week" />
-			<LineChart.Line dataKey="lastWeek" label="Last week" color="var(--color-accent-600)" />
+			<LineChart.Line
+				dataKey="lastWeek"
+				label="Last week"
+				seriesSlot={4}
+				color="var(--color-accent-600)"
+			/>
 			<LineChart.Tooltip />
 			<LineChart.Legend />
 		</LineChart.Root>

@@ -273,13 +273,13 @@ const deltaE = (first: string, second: string, kind?: CvdKind): number => {
 /**
  * Which pairs of slots a chart form can put side by side. A stack, bar, or line
  * only ever touches its neighbor, so `"adjacent"` gates the palette as a chart
- * of unpinned series hands it out, in order. Scatter marks can neighbor any
+ * of automatic series hands it out, in order. Scatter marks can neighbor any
  * other mark, so a scatter palette must clear every pair — a strictly harder
  * test that caps how many series the form can carry.
  *
- * Neither scope covers a chart that pins a color: an explicit `color` spends a
- * slot without painting it, so the slots on screen are no longer consecutive.
- * `bar-chart.mdx` makes that check the consumer's.
+ * Neither scope covers a consumer color override because that paint sits
+ * outside the categorical palette. Fixed series slots can appear in any order,
+ * so the all-pairs scope covers those combinations.
  */
 type PairScope = "adjacent" | "all";
 

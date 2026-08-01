@@ -380,8 +380,8 @@ describe.each(THEMES)("chart palette gates — $name", (theme) => {
 
 	test("every pair of slots stays apart under simulated color vision deficiency", () => {
 		// All-pairs scope is the honest one for eight slots. A scatter neighbors any
-		// mark with any other, a legend lists all eight in a column, and a chart that
-		// pins or filters a series leaves the painted slots non-consecutive. Adjacent
+		// mark with any other, a legend lists all eight in a column, and fixed series
+		// slots can leave the painted slots non-consecutive. Adjacent
 		// scope alone let light's chart-1 and chart-7 ship at ΔE 1.90.
 		const worst = worstCvdPair(theme.slots, "all");
 		const violations =

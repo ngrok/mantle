@@ -270,9 +270,9 @@ describe("hover marker geometry", () => {
 		});
 	});
 
-	test("hover dots wear the glyph paired to each series' color slot", async () => {
+	test("hover dots wear the glyph paired to each series slot", async () => {
 		// A consumer who sets no `shape` still gets a distinct dot per series.
-		// "p999" pins slot 6, so its plus can only come from the slot, never from
+		// "p999" fixes slot 6, so its plus can only come from the slot, never from
 		// the order it registered in.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
@@ -287,7 +287,7 @@ describe("hover marker geometry", () => {
 				>
 					<LineChart.Line dataKey="p50" label="p50" />
 					<LineChart.Line dataKey="p99" label="p99" />
-					<LineChart.Line dataKey="p999" label="p999" color="chart-6" />
+					<LineChart.Line dataKey="p999" label="p999" seriesSlot={6} />
 				</LineChart.Root>
 			</div>,
 		);
@@ -472,7 +472,7 @@ describe("line canvas markers", () => {
 		// The canvas markers resolve their glyph through the store, exactly as the
 		// legend key and the hover dot do. Reading the raw `shape` prop here would
 		// paint circles under star-shaped legend keys. Only pixels can see that.
-		// All three lines pin slot 8, so one color and one layout hold across
+		// All three lines fix slot 8, so one color and one layout hold across
 		// them: a differing byte is a differing marker path and nothing else.
 		const { container } = render(
 			<div style={{ display: "flex" }}>
@@ -485,7 +485,7 @@ describe("line canvas markers", () => {
 				).map(([name, shape]) => (
 					<div key={name} data-line={name} style={{ width: 400, height: 240 }}>
 						<LineChart.Root data={latency} xKey="t" animate={false} aria-label={`${name} line`}>
-							<LineChart.Line dataKey="p50" label="p50" color="chart-8" markers shape={shape} />
+							<LineChart.Line dataKey="p50" label="p50" seriesSlot={8} markers shape={shape} />
 						</LineChart.Root>
 					</div>
 				))}

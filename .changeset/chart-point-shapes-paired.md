@@ -2,13 +2,13 @@
 "@ngrok/mantle": patch
 ---
 
-**A series that sets no `shape` now wears the glyph paired to its color slot.** Unless a consumer picked a glyph
+**A series that sets no `shape` now wears the glyph paired to its series slot.** Unless a consumer picked a glyph
 by hand, every line, area, and scatter series used to draw a circle. Shape carried no identity of its own. Slot 1
 now takes the circle, slot 2 the square, slot 3 the triangle, slot 4 the diamond, and four new glyphs carry slots
 5 through 8. Every line, area, and scatter chart gains a second identity channel with no code change — a distinct
 color and a distinct glyph, on the canvas marks, the hover dots, and the legend keys.
 
-**`PointShape` grows from four values to eight**, one per color slot: `"circle"`, `"square"`, `"triangle"`,
+**`PointShape` grows from four values to eight**, one per series slot: `"circle"`, `"square"`, `"triangle"`,
 `"diamond"`, `"triangle-down"`, `"plus"`, `"cross"`, `"star"`. The four additions:
 
 - **`"triangle-down"`** — the triangle mirrored, apex down.
@@ -32,14 +32,13 @@ ring on the glyph's own outline, and that ring eats inward along the whole perim
 of its fill: at the default marker radius the plus and the cross keep about half the circle's colored ink, and the
 star about 44%.
 
-**The pairing reads the color slot, never the registration order.** A series pinning `color="chart-3"` wears the
-triangle from whatever position it registers in, so the two channels can never disagree. A series wearing the
-shared `--color-chart-other` gray holds no slot, so it falls back to the circle. Several series that pin one token
-share that slot, so they share its glyph too — give each member its own `shape`, the way you give each its own
-`texture`.
+**The pairing reads the series slot.** Automatic series take unreserved slots in composition order. A series with
+`seriesSlot={3}` wears the triangle from whatever position it registers in. A series with `seriesSlot="other"`
+wears the circle. Several series may share one slot. If another channel must tell them apart, give each member its
+own `shape` or `texture`.
 
-**The glyph is sticky exactly as the slot is.** A slot belongs to its `dataKey` for as long as the series stays
-mounted. Filtering a series out reshuffles no survivor's shape, exactly as it repaints no survivor's color.
+**Automatic glyphs follow the current composition.** Removing an automatic series closes the gap. When a series
+must keep one color-and-shape identity as siblings appear or disappear, set `seriesSlot`.
 
 **An explicit `shape` still wins.** The paired glyph is a default, not a policy. A chart that already sets `shape`
 on every series paints exactly as it did before.

@@ -14,6 +14,7 @@ import type {
 import type {
 	ChartDatum,
 	ChartDatumEvent,
+	ChartSeriesSlot,
 	ContinuousXScale,
 	CurveKind,
 	PointShape,
@@ -61,15 +62,22 @@ type LineChartLineProps = {
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */
 	label?: string;
 	/**
-	 * One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`)
-	 * or any CSS color as an escape hatch. Defaults to the next sticky slot in
-	 * mount order.
+	 * A fixed visual identity slot. Slots `1` through `8` select a paired chart
+	 * color and point shape. `"other"` selects the shared neutral treatment.
 	 *
-	 * Every color but `"chart-other"` spends one of the eight slots, so the palette
-	 * never hands an unpinned sibling a color already on screen. A custom color
-	 * spends the next slot in order, not the slot it resembles: mantle measures no
-	 * color, so a brand hex can still paint next to a near-identical slot. Check
-	 * that pair yourself, and when the two read as one series, change the color.
+	 * Series receive unreserved slots in composition order. Set `seriesSlot` to
+	 * give a series a fixed visual identity.
+	 *
+	 * @example
+	 * ```tsx
+	 * <LineChart.Line dataKey="errors" seriesSlot={4} />
+	 * ```
+	 */
+	seriesSlot?: ChartSeriesSlot;
+	/**
+	 * Override the color channel with a chart token or any CSS color. This does
+	 * not change the series slot or its paired point shape. When omitted, the
+	 * series paints the color from its slot.
 	 *
 	 * A static color (raw hex) cannot follow the four themes, so prefer a
 	 * `var(--your-token)` declared per theme. A series that carries good/bad
@@ -96,7 +104,7 @@ type LineChartLineProps = {
 	 * wear: `"circle"`, `"square"`, `"triangle"`, `"diamond"`,
 	 * `"triangle-down"`, `"plus"`, `"cross"`, or `"star"`. Shape is a redundant
 	 * encoding alongside color that keeps series distinguishable without color
-	 * vision. When omitted, the series wears the glyph paired to its color
+	 * vision. When omitted, the series wears the glyph paired to its series
 	 * slot, so both channels name one slot.
 	 */
 	shape?: PointShape;
@@ -313,7 +321,7 @@ const Tooltip = (props: LineChartTooltipProps) => useTooltipPrimitive("LineChart
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"line-chart-legend"` | The legend list. `LineChart.Legend` renders it in flow below the plot. |
- * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On the glyph riding each swatch's stroke, naming what its `LineChart.Line` wears — the `shape` it set, else the one paired to its color slot. The glyph clips itself to that shape, so target this only to restyle a key. |
+ * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On the glyph riding each swatch's stroke, naming what its `LineChart.Line` wears — the `shape` it set, else the one paired to its series slot. The glyph clips itself to that shape, so target this only to restyle a key. |
  *
  * @see https://mantle.ngrok.com/components/charts/line-chart#linechartlegend
  *

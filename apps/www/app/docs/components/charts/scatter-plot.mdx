@@ -293,7 +293,7 @@ export function EmptyStateScatterPlotExample() {
 	);
 }
 
-export function OverrideSlotScatterPlotExample() {
+export function SeriesIdentityScatterPlotExample() {
 	return (
 		<ScatterPlot.Root
 			data={regionThroughput}
@@ -311,7 +311,7 @@ export function OverrideSlotScatterPlotExample() {
 			<ScatterPlot.Point
 				dataKey="euWest"
 				label="EU West"
-				shape="triangle"
+				seriesSlot={4}
 				color="var(--color-accent-600)"
 			/>
 			<ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
@@ -390,9 +390,9 @@ function RegionScatterExample() {
 
 ## Point shapes
 
-Eight glyphs match the palette's eight color slots, one glyph per slot. A series that sets no `shape` wears the glyph of the slot it holds, so a multi-series chart carries a distinct color **and** a distinct glyph with no consumer effort.
+Eight glyphs match the palette's eight series slots, one glyph per slot. A series that sets no `shape` wears the glyph of its slot, so a multi-series chart carries a distinct color **and** a distinct glyph with no consumer effort.
 
-| Color slot    | Paired glyph      |
+| Series slot   | Paired glyph      |
 | ------------- | ----------------- |
 | `chart-1`     | `"circle"`        |
 | `chart-2`     | `"square"`        |
@@ -412,15 +412,13 @@ The second channel earns its keep in three places where color alone fails:
 
 The glyph carries the same identity through all three, and it costs nothing — the mark paints some shape either way.
 
-Pairing reads the slot, never the registration order. A series pinning `color="chart-3"` wears the triangle, so the two channels always name one slot. A custom CSS color spends a slot too, so that series still takes its slot's glyph. The `chart-other` gray is no slot, so every series past the eighth falls back to the circle.
-
-Slots are sticky per `dataKey`, which makes the glyph sticky as well: filtering a series out reshuffles no survivor's shape, exactly as it repaints no survivor's color.
+Set `seriesSlot={3}` for a fixed triangle identity. Automatic series take the unreserved slots in composition order, and removing one closes the gap. A custom `color` changes only paint, so the series keeps the glyph of its automatic or fixed slot. The `"other"` slot uses the circle.
 
 Set `shape` to override the pairing — an explicit value always wins. Every painted mark carries the circle's fill area, so no glyph reads louder than its siblings. The legend keys and hover dots clip those same silhouettes out of a small box, so a spiky glyph like the star reads lighter there than the square.
 
 The encoding is family-wide — the same prop, glyph set, slot pairing, and equal-weight sizing on every chart — and how much of it you see tracks how much of the mark the glyph occupies. Here the glyph is the mark itself. On a [line chart](/components/charts/line-chart#curves-markers-and-shapes) it appears on the canvas point markers (when `markers` is on) and the hover dot; on an [area chart](/components/charts/area-chart#shapes) a filled band has no per-point mark, so the hover dot and legend key wear it. Bars carry no glyph at all — a bar's identity is its position, its color, and its `texture`. Mantle never assigns that texture for you, so bars are the one form with no automatic second channel. Legend keys mirror the glyph on every chart form: the glyph itself for scatter points and areas, the glyph riding a short stroke for lines.
 
-US East and EU West below set no `shape`, so they wear their slots' circle and square. AP South pins `shape="star"`, which beats the triangle its slot would hand it.
+US East and EU West below set no `shape`, so they wear their slots' circle and square. AP South sets `shape="star"`, which beats the triangle its slot would hand it.
 
 <Example>
 	<PointShapesExample />
@@ -583,7 +581,7 @@ function Scatter3dExample() {
 
 ## Dimensions
 
-`dimensions` controls how many axes the cloud currently occupies — the pattern behind "watch the clusters separate" explainers. At `1` every point collapses onto the x axis line and the four clusters below read as one jumbled strip — only their glyphs still tell them apart; at `2` they spread across the plane; at `3` they fill the cube. Each cluster wears the glyph paired to its color slot — circle, square, triangle, diamond — so cluster identity survives even where position collapses. Changing it morphs every point along a smooth glide (the same chase that drives the domains), the y and z frame edges fade in with their dimension, and `prefers-reduced-motion` snaps the whole move.
+`dimensions` controls how many axes the cloud currently occupies — the pattern behind "watch the clusters separate" explainers. At `1` every point collapses onto the x axis line and the four clusters below read as one jumbled strip — only their glyphs still tell them apart; at `2` they spread across the plane; at `3` they fill the cube. Each cluster wears the glyph paired to its series slot — circle, square, triangle, diamond — so cluster identity survives even where position collapses. Changing it morphs every point along a smooth glide (the same chase that drives the domains), the y and z frame edges fade in with their dimension, and `prefers-reduced-motion` snaps the whole move.
 
 <Example>
 	<DimensionsExample />
@@ -869,29 +867,30 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 **Data attributes**
 
-| Data Attribute | Value                                                                                               | Description                                                                                                                                                                                |
-| -------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `data-slot`    | `"scatter-plot"`                                                                                    | The Root wrapper, with any forwarded chain ahead of it.                                                                                                                                    |
-| `data-slot`    | `"scatter-plot-plot"`                                                                               | The plot box. Every overlay layer positions against it, and the resize observer measures it.                                                                                               |
-| `data-slot`    | `"scatter-plot-canvas"`                                                                             | The `<canvas>` the marks paint on. Always `aria-hidden`.                                                                                                                                   |
-| `data-slot`    | `"scatter-plot-crosshair"`                                                                          | The vertical hairline. Mounted on every kind; a scatter plot never shows it.                                                                                                               |
-| `data-slot`    | `"scatter-plot-hover-band"`                                                                         | The category highlight. Mounted on every kind; a scatter plot never shows it.                                                                                                              |
-| `data-slot`    | `"scatter-plot-markers"`                                                                            | The container the engine syncs the hit point's hover dot into.                                                                                                                             |
-| `data-slot`    | `"scatter-plot-tooltip"`                                                                            | The tooltip surface. The Root renders it; `ScatterPlot.Tooltip` configures it.                                                                                                             |
-| `data-slot`    | `"scatter-plot-data-table"`                                                                         | The `sr-only` table twin. Omitted when `decorative`.                                                                                                                                       |
-| `data-slot`    | `"chart-active-point"`                                                                              | The hover dot on the hit point, inside the markers layer. Also carries `data-shape`.                                                                                                       |
-| `data-shape`   | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | On the hover dot, naming the glyph its series wears — the `shape` it set, else the one paired to its color slot. The dot clips itself to that glyph, so target this only to restyle a dot. |
+| Data Attribute | Value                                                                                               | Description                                                                                                                                                                                 |
+| -------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"scatter-plot"`                                                                                    | The Root wrapper, with any forwarded chain ahead of it.                                                                                                                                     |
+| `data-slot`    | `"scatter-plot-plot"`                                                                               | The plot box. Every overlay layer positions against it, and the resize observer measures it.                                                                                                |
+| `data-slot`    | `"scatter-plot-canvas"`                                                                             | The `<canvas>` the marks paint on. Always `aria-hidden`.                                                                                                                                    |
+| `data-slot`    | `"scatter-plot-crosshair"`                                                                          | The vertical hairline. Mounted on every kind; a scatter plot never shows it.                                                                                                                |
+| `data-slot`    | `"scatter-plot-hover-band"`                                                                         | The category highlight. Mounted on every kind; a scatter plot never shows it.                                                                                                               |
+| `data-slot`    | `"scatter-plot-markers"`                                                                            | The container the engine syncs the hit point's hover dot into.                                                                                                                              |
+| `data-slot`    | `"scatter-plot-tooltip"`                                                                            | The tooltip surface. The Root renders it; `ScatterPlot.Tooltip` configures it.                                                                                                              |
+| `data-slot`    | `"scatter-plot-data-table"`                                                                         | The `sr-only` table twin. Omitted when `decorative`.                                                                                                                                        |
+| `data-slot`    | `"chart-active-point"`                                                                              | The hover dot on the hit point, inside the markers layer. Also carries `data-shape`.                                                                                                        |
+| `data-shape`   | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | On the hover dot, naming the glyph its series wears — the `shape` it set, else the one paired to its series slot. The dot clips itself to that glyph, so target this only to restyle a dot. |
 
 ### ScatterPlot.Point
 
 One point series. Renders nothing itself — it registers the series with the chart, which paints its points on canvas: 4px dots with a 2px surface ring, degrading gracefully past thousands of points (see [Dense scatter](#dense-scatter)). Compose one `Point` per series — eight or fewer with the default tokens, which are validated over every pair, not only neighbors.
 
-| Prop      | Type                                                                                                | Default                                    | Description                                                                                                                                                                                                        |
-| --------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `dataKey` | `string`                                                                                            |                                            | The row key this series reads its y values from.                                                                                                                                                                   |
-| `label?`  | `string`                                                                                            | `dataKey`                                  | Display name for the legend, tooltip, and data table.                                                                                                                                                              |
-| `color?`  | `SeriesColor`                                                                                       | next sticky slot                           | One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`) or any CSS color string as an escape hatch. See [Chart color tokens](#chart-color-tokens).                                            |
-| `shape?`  | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | the glyph paired to the series' color slot | The glyph this series' points wear, mirrored by the legend key and the hover dot. When omitted, the series takes its color slot's glyph, so color and shape name the same slot. See [Point shapes](#point-shapes). |
+| Prop          | Type                                                                                                | Default                             | Description                                                                                                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dataKey`     | `string`                                                                                            |                                     | The row key this series reads its y values from.                                                                                                                              |
+| `label?`      | `string`                                                                                            | `dataKey`                           | Display name for the legend, tooltip, and data table.                                                                                                                         |
+| `seriesSlot?` | `1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| "other"`                                                   | next unreserved slot                | Give the series a fixed color-and-shape identity. See [Chart color tokens](#chart-color-tokens).                                                                              |
+| `color?`      | `SeriesColor`                                                                                       | color from the resolved slot        | Override only the color channel with a chart token or CSS color string. This does not change the series slot or default shape. See [Chart color tokens](#chart-color-tokens). |
+| `shape?`      | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | the glyph paired to the series slot | The glyph this series' points wear, mirrored by the legend key and hover dot. This overrides only the shape channel. See [Point shapes](#point-shapes).                       |
 
 ### ScatterPlot.Grid
 
@@ -977,13 +976,13 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Chart color tokens
 
-Series without an explicit `color` claim the next slot in the ordered `--color-chart-1`…`--color-chart-8` tokens. Each of the four themes (light, dark, and both high-contrast variants) authors its own eight `oklch()` literals, measured so all 28 pairs hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia, and so every slot clears 3:1 against that theme's card surface. The semantic ramps are deliberately excluded, so a series never reads as a status color. Slots are sticky per `dataKey`: a series keeps its color for the chart's lifetime, even as other series are filtered in and out. An explicit `color` spends a slot, so the next unpinned series skips past it — a chart token spends that token, and any other CSS color spends the next slot in order. Pinning the `chart-other` token spends nothing, because every series past the eighth shares the overflow gray. Spelled as a raw `var(--color-chart-other)` it is a CSS color like any other, so it spends a slot. A series that unmounts keeps its slot while the palette has room. Once every slot is held, an incoming series takes one back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`.
+The ordered `--color-chart-1`…`--color-chart-8` tokens define the built-in series identities. Each of the four themes (light, dark, and both high-contrast variants) authors its own eight `oklch()` literals, measured so all 28 pairs hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia, and so every slot clears 3:1 against that theme's card surface. The semantic ramps are deliberately excluded, so a series never reads as a status color.
 
-The slot carries the series' glyph as well as its color, so both channels stay sticky together and both name one slot — see [Point shapes](#point-shapes).
+Series receive unreserved slots in composition order. Set `seriesSlot` to give a series a fixed visual identity. Mantle reserves fixed slots before automatic series take the remaining slots. Removing an automatic series closes the gap. The `color` and `shape` props override only their own channels and never change slot assignment. `seriesSlot="other"` selects the neutral tail treatment without reserving a categorical slot. When the chart runs out of unreserved categorical slots, later automatic series paint with `--color-chart-other`.
 
 All-pairs is the scope scatter needs. A line, bar, or area series can only neighbor the series stacked or drawn beside it, but a scatter mark can land next to any other mark, so its colors must survive every comparison rather than the neighboring ones. The eight slots are gated at that scope in all four themes, which is why the cap in [When to use](#when-to-use) is the palette's own eight. Fold the long tail into a single "Other" series or facet into small multiples rather than inventing a ninth hue.
 
-Series order decides which slots the unpinned series get, because every color spends one. It does not decide whether they stay apart — the defaults hold at every pair, in any order. A color you pin yourself is the one the gates never see, so measure it against the slots its siblings take, or give every series its own `shape`.
+Composition order decides which unreserved slots automatic series get. It does not decide whether they stay apart — the defaults hold at every pair, in any order. A color you set yourself is the one the gates never see, so measure it against the slots its siblings take, or give every series its own `shape`.
 
 | CSS Variable          | Description                                                                                                                       |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -1001,19 +1000,20 @@ The Bar Chart page records [what each theme measures](/components/charts/bar-cha
 
 The `color` escape hatch accepts any CSS color string, but static colors (a raw hex) do not adapt across themes — prefer a `var(...)` reference to a theme-aware token, and validate custom palettes for surface contrast and for colorblind-safe separation, just like the defaults; for scatter that means every pair, not just neighbors. A series that carries good/bad meaning — an error rate, a pass/fail split — should wear the semantic status colors (e.g. `var(--color-danger-600)`), never a categorical slot.
 
-#### Overriding a slot
+#### Series identity and color
 
-Two public paths change the color a series paints.
+Three public paths control a series identity or color.
 
-- **One series** — pass `color` on `ScatterPlot.Point`. It takes a chart token by name or any CSS color string. Either spends a slot, so the next unpinned series skips past it.
+- **Fixed identity** — pass `seriesSlot` on `ScatterPlot.Point`. It reserves one built-in color-and-shape pairing before automatic series take the remaining slots.
+- **One color channel** — pass `color` on `ScatterPlot.Point`. It takes a chart token by name or any CSS color string without changing the slot or default shape.
 - **One chart** — redeclare the token on `ScatterPlot.Root`: `className="[--color-chart-1:var(--color-brand)]"`. Every series that lands in slot 1 picks the new value up. So do its legend key and hover dot.
 
 The chart resolves every token through a probe element it appends inside `Root`. The probe sits in that Root's own cascade, so a declaration scoped to one Root wins for that chart alone. Sibling charts on the page keep the theme value. Declare the same custom property higher up — on a dashboard wrapper, or at `:root` — to retheme a whole subtree.
 
-An overridden slot leaves mantle's gates behind. Measure the value you set against every other color on the plot, because scatter marks meet at every pair.
+An overridden color leaves mantle's gates behind. Measure the value you set against every other color on the plot, because scatter marks meet at every pair. EU West fixes slot 4 for a diamond identity, then overrides only its paint.
 
 <Example>
-	<OverrideSlotScatterPlotExample />
+	<SeriesIdentityScatterPlotExample />
 </Example>
 
 ```tsx
@@ -1040,7 +1040,7 @@ const regionThroughput = [
 	<ScatterPlot.Point
 		dataKey="euWest"
 		label="EU West"
-		shape="triangle"
+		seriesSlot={4}
 		color="var(--color-accent-600)"
 	/>
 	<ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />

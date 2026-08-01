@@ -259,7 +259,7 @@ describe("ScatterPlot.Legend glyphs", () => {
 		{ latency: 28, alpha: 610, beta: 590, gamma: 480, delta: 290 },
 	];
 
-	test("a series that sets no shape wears the glyph paired to its color slot", () => {
+	test("a series that sets no shape wears the glyph paired to its series slot", () => {
 		// The default a consumer gets for free: color and glyph name one slot, so
 		// the legend stays readable without color vision.
 		const { container } = render(
@@ -274,13 +274,13 @@ describe("ScatterPlot.Legend glyphs", () => {
 		expect(legendShapes(container)).toEqual(["circle", "square", "triangle", "diamond"]);
 	});
 
-	test("the glyph follows a pinned color slot, not the registration order", () => {
+	test("the glyph follows a fixed series slot, not composition order", () => {
 		// Pairing on order would draw these two as the circle and the square while
 		// the plot paints slots 5 and 7.
 		const { container } = render(
 			<ScatterPlot.Root data={cloudData} xKey="latency" aria-label="Latency by region">
-				<ScatterPlot.Point dataKey="alpha" label="Alpha" color="chart-5" />
-				<ScatterPlot.Point dataKey="beta" label="Beta" color="chart-7" />
+				<ScatterPlot.Point dataKey="alpha" label="Alpha" seriesSlot={5} />
+				<ScatterPlot.Point dataKey="beta" label="Beta" seriesSlot={7} />
 				<ScatterPlot.Legend />
 			</ScatterPlot.Root>,
 		);
@@ -497,8 +497,8 @@ describe("ScatterPlot controlled activeIndex", () => {
 	});
 });
 
-describe("ScatterPlot sticky series identity", () => {
-	test("filtering a series out does not recolor the survivors", () => {
+describe("ScatterPlot series slots", () => {
+	test("automatic series close composition gaps", () => {
 		const filterableData = [
 			{ latency: 12, alpha: 840, beta: 720, gamma: 500 },
 			{ latency: 28, alpha: 610, beta: 590, gamma: 480 },
@@ -515,11 +515,7 @@ describe("ScatterPlot sticky series identity", () => {
 			const items = legend == null ? [] : [...legend.querySelectorAll("span")];
 			return items.map((item) => item.style.backgroundColor);
 		};
-		const [, betaBefore] = swatchColors();
-		expect(betaBefore).toContain("chart-2");
-		// Filter alpha out and introduce a new series: beta must keep chart-2
-		// (color follows the entity, never its position) and the newcomer claims
-		// the lowest free slot.
+		expect(swatchColors()[1]).toContain("chart-2");
 		rerender(
 			<ScatterPlot.Root data={filterableData} xKey="latency" aria-label="Latency by region">
 				<ScatterPlot.Point dataKey="beta" label="Beta" />
@@ -528,13 +524,11 @@ describe("ScatterPlot sticky series identity", () => {
 			</ScatterPlot.Root>,
 		);
 		const [betaAfter, gammaAfter] = swatchColors();
-		expect(betaAfter).toBe(betaBefore);
-		expect(gammaAfter).toContain("chart-3");
+		expect(betaAfter).toContain("chart-1");
+		expect(gammaAfter).toContain("chart-2");
 	});
 
-	test("filtering a series out does not reshape the survivors", () => {
-		// The glyph rides the same sticky slot the color does. A reader learns
-		// "the square is Beta", so unchecking Alpha must not hand the square on.
+	test("a fixed slot keeps the paired shape across conditional composition", () => {
 		const filterableData = [
 			{ latency: 12, alpha: 840, beta: 720, gamma: 500 },
 			{ latency: 28, alpha: 610, beta: 590, gamma: 480 },
@@ -542,20 +536,19 @@ describe("ScatterPlot sticky series identity", () => {
 		const { container, rerender } = render(
 			<ScatterPlot.Root data={filterableData} xKey="latency" aria-label="Latency by region">
 				<ScatterPlot.Point dataKey="alpha" label="Alpha" />
-				<ScatterPlot.Point dataKey="beta" label="Beta" />
+				<ScatterPlot.Point dataKey="beta" label="Beta" seriesSlot={2} />
 				<ScatterPlot.Legend />
 			</ScatterPlot.Root>,
 		);
 		expect(legendShapes(container)).toEqual(["circle", "square"]);
 		rerender(
 			<ScatterPlot.Root data={filterableData} xKey="latency" aria-label="Latency by region">
-				<ScatterPlot.Point dataKey="beta" label="Beta" />
+				<ScatterPlot.Point dataKey="beta" label="Beta" seriesSlot={2} />
 				<ScatterPlot.Point dataKey="gamma" label="Gamma" />
 				<ScatterPlot.Legend />
 			</ScatterPlot.Root>,
 		);
-		// Beta keeps slot 2's square; Gamma claims the lowest free slot's triangle.
-		expect(legendShapes(container)).toEqual(["square", "triangle"]);
+		expect(legendShapes(container)).toEqual(["square", "circle"]);
 	});
 });
 

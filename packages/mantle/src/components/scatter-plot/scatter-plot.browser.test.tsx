@@ -215,7 +215,7 @@ describe("ScatterPlot slot-paired point glyphs on the canvas", () => {
 	/**
 	 * Three clouds that differ only in the glyph they should paint: one that
 	 * sets no `shape`, one that names the star its slot pairs with, and one that
-	 * names the circle the series used to fall back to. All three pin slot 8, so
+	 * names the circle the series used to fall back to. All three fix slot 8, so
 	 * they carry one color and one layout — a byte that differs between two of
 	 * them is a differing marker path and nothing else.
 	 */
@@ -237,7 +237,7 @@ describe("ScatterPlot slot-paired point glyphs on the canvas", () => {
 							animate={false}
 							aria-label={`${name} cloud`}
 						>
-							<ScatterPlot.Point dataKey="y" label="Cluster" color="chart-8" shape={shape} />
+							<ScatterPlot.Point dataKey="y" label="Cluster" seriesSlot={8} shape={shape} />
 						</ScatterPlot.Root>
 					</div>
 				))}

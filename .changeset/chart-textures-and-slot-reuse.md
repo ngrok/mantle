@@ -22,29 +22,25 @@ of the series' own fill — so a chart keeps its series apart without color visi
 colors. Keep it opt-in: leave the first series solid and texture the rest, or texture only the pair that color alone
 cannot separate.
 
-**Several series may share one color slot on purpose.** Two mounted series that both pin the same chart token both
-paint it, and together they spend a single one of the eight slots. That was already true — a pin never moves a mounted
-series that pins the same token. What changes here is the guidance. Pin one token across several series, give each
-member its own `texture`, and the chart encodes more series than the eight slots alone allow. Three series pinning
-`chart-1` with three textures leave seven slots for their unpinned siblings, so ten series paint in real colors and none
-falls to `--color-chart-other`. Each co-pinned group costs one slot rather than one per member.
+**Several series may share one series slot on purpose.** Set the same `seriesSlot` on every member, then give each
+member its own `texture`. The chart reserves that slot once. Three series with `seriesSlot={1}` and three textures
+leave seven slots for their automatic siblings, so ten series paint in categorical colors and none falls to
+`--color-chart-other`.
 
 Four things to know before you reach for it:
 
-- **Every member pins the token explicitly.** A pin shares with another pin. It evicts an auto-assigned holder: when a
-  series pins the token a sibling already claimed, that sibling moves to the next free slot. On a full palette it drops
-  to `--color-chart-other` instead.
-- **Give every member a distinct `texture`.** Nothing checks it. Two series may pin one token with the same texture,
+- **Every member sets the same `seriesSlot`.** Mantle reserves fixed slots before automatic series take the remaining
+  slots.
+- **Give every member a distinct `texture`.** Nothing checks it. Two series may share one slot with the same texture,
   paint pixel-identically, and draw no warning.
-- **A member that drops its pin needs a slot of its own.** The shared token belongs to whoever still pins it, so on a
-  full palette the series that lets go wears `--color-chart-other`.
+- **A member that drops `seriesSlot` needs a slot of its own.** It takes the next unreserved slot in composition order.
 - **One hue across several series reads as one group.** Reach for the technique when those series really do belong
   together, keep the legend on screen, and check the shared token against its neighbors first. Texture is a second
   encoding on top of a legal color, and it never makes an illegal color legal: a pair under the colorblind-safe floor
   stays illegible whatever the fill.
 
 Eight series or fewer is still the default advice — rank by the window's total, keep the top seven, and sum the rest
-into one `"Other"` series. Co-pinning is the narrow exception, for series that really do belong together.
+into one `"Other"` series. A shared slot is the narrow exception, for series that really do belong together.
 
 Docs: [Textures](https://mantle.ngrok.com/components/charts/bar-chart#textures) and
 [Chart color tokens](https://mantle.ngrok.com/components/charts/bar-chart#chart-color-tokens).

@@ -427,8 +427,8 @@ describe("AreaChart controlled activeIndex", () => {
 	});
 });
 
-describe("AreaChart sticky series colors", () => {
-	test("filtering a series out does not recolor the survivors", () => {
+describe("AreaChart series slots", () => {
+	test("a fixed slot keeps a series identity across conditional composition", () => {
 		const filterableData = [
 			{ date: new Date(2026, 6, 15), http: 420, tcp: 140, udp: 40 },
 			{ date: new Date(2026, 6, 16), http: 510, tcp: 165, udp: 60 },
@@ -436,7 +436,7 @@ describe("AreaChart sticky series colors", () => {
 		const { container, rerender } = render(
 			<AreaChart.Root data={filterableData} xKey="date" aria-label="Traffic by protocol">
 				<AreaChart.Area dataKey="http" label="HTTP" />
-				<AreaChart.Area dataKey="tcp" label="TCP" />
+				<AreaChart.Area dataKey="tcp" label="TCP" seriesSlot={2} />
 				<AreaChart.Legend />
 			</AreaChart.Root>,
 		);
@@ -447,19 +447,16 @@ describe("AreaChart sticky series colors", () => {
 		};
 		const [, tcpBefore] = swatchColors();
 		expect(tcpBefore).toContain("chart-2");
-		// Filter http out and introduce a new series: tcp must keep chart-2
-		// (color follows the entity, never its position) and the newcomer claims
-		// the lowest free slot.
 		rerender(
 			<AreaChart.Root data={filterableData} xKey="date" aria-label="Traffic by protocol">
-				<AreaChart.Area dataKey="tcp" label="TCP" />
+				<AreaChart.Area dataKey="tcp" label="TCP" seriesSlot={2} />
 				<AreaChart.Area dataKey="udp" label="UDP" />
 				<AreaChart.Legend />
 			</AreaChart.Root>,
 		);
 		const [tcpAfter, udpAfter] = swatchColors();
 		expect(tcpAfter).toBe(tcpBefore);
-		expect(udpAfter).toContain("chart-3");
+		expect(udpAfter).toContain("chart-1");
 	});
 });
 

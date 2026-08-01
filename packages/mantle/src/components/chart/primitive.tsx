@@ -33,6 +33,7 @@ import type {
 	BarTexture,
 	ChartDatum,
 	ChartDatumEvent,
+	ChartSeriesSlot,
 	ContinuousXScale,
 	CurveKind,
 	GridLines,
@@ -309,7 +310,7 @@ const ChartRootPrimitive = ({
 	tabIndex,
 	...props
 }: InternalRootProps) => {
-	// One store per Root lifetime: sticky color slots and part registrations
+	// One store per Root lifetime: series identity and part registrations
 	// survive re-renders (and StrictMode's double effect pass).
 	const [store] = useState(() => new ChartStore());
 	const engineRef = useRef<ChartEngine | null>(null);
@@ -617,6 +618,7 @@ const ChartRootPrimitive = ({
 type SeriesPrimitiveProps = {
 	dataKey: string;
 	label?: string;
+	seriesSlot?: ChartSeriesSlot;
 	color?: SeriesColor;
 	curve?: CurveKind;
 	markers?: boolean;
@@ -624,7 +626,7 @@ type SeriesPrimitiveProps = {
 	/**
 	 * The point glyph (scatter marks, line markers, hover dots) — worn by the
 	 * marks and their legend key. When omitted the series wears the glyph paired
-	 * to its color slot, so shape and color name the same slot with no consumer
+	 * to its series slot, so shape and color name the same slot with no consumer
 	 * effort.
 	 */
 	shape?: PointShape;
@@ -649,11 +651,12 @@ const useSeriesPrimitive = (
 	const {
 		dataKey,
 		label,
+		seriesSlot,
 		color,
 		curve = "linear",
 		markers = false,
 		connectNulls = false,
-		// No default: the store pairs an unset shape with the series' color slot,
+		// No default: the store pairs an unset shape with the series slot,
 		// and only `undefined` tells it the consumer chose nothing.
 		shape,
 		texture = "solid",
@@ -663,6 +666,7 @@ const useSeriesPrimitive = (
 			context.store.registerSeries({
 				dataKey,
 				label: label ?? dataKey,
+				seriesSlot,
 				color,
 				mark,
 				curve,
@@ -671,7 +675,19 @@ const useSeriesPrimitive = (
 				shape,
 				texture,
 			}),
-		[context.store, dataKey, label, color, mark, curve, markers, connectNulls, shape, texture],
+		[
+			context.store,
+			dataKey,
+			label,
+			seriesSlot,
+			color,
+			mark,
+			curve,
+			markers,
+			connectNulls,
+			shape,
+			texture,
+		],
 	);
 	return null;
 };

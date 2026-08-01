@@ -42,7 +42,7 @@ const isChartColorToken = (value: string): value is ChartColorToken =>
 const chartTokenVariable = (token: ChartColorToken): string => `--color-${token}`;
 
 /**
- * The default sticky-slot order series claim colors in.
+ * The order automatic series take unreserved slots in.
  */
 const SLOT_ORDER: readonly ChartColorToken[] = [
 	"chart-1",

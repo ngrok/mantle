@@ -360,7 +360,7 @@ describe("textured legend keys", () => {
 
 	/**
 	 * Render one bar per texture and read every legend chip's computed paint.
-	 * Every series pins the same chart token on purpose: one ink across all eight
+	 * Every series shares one series slot on purpose: one ink across all eight
 	 * chips leaves the stripe geometry as the only thing that can differ.
 	 */
 	const chipPaint = (orientation: BarOrientation): Map<BarTexture, ChipPaint> => {
@@ -381,7 +381,7 @@ describe("textured legend keys", () => {
 				{textures.map((texture) => (
 					<BarChart.Bar
 						key={texture}
-						color="chart-1"
+						seriesSlot={1}
 						dataKey={texture}
 						label={texture}
 						texture={texture}
@@ -439,7 +439,7 @@ describe("textured legend keys", () => {
 		// The chip layers are a lookup keyed by the union. Its predecessor was an
 		// if-chain ending in the dot gradient, so an unhandled value rendered as
 		// dots — a wrong chip that looks deliberate. All eight series share one
-		// pinned token here, so two equal backgrounds can only mean two values
+		// series slot here, so two equal backgrounds can only mean two values
 		// reading one entry.
 		const paint = chipPaint("vertical");
 		expect(paint.size).toBe(Object.keys(EVERY_TEXTURE).length);

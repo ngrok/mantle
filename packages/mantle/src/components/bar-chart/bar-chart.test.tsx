@@ -582,8 +582,24 @@ describe("BarChart decorative mode", () => {
 	});
 });
 
-describe("BarChart sticky series colors", () => {
-	test("filtering a series out does not recolor the survivors", () => {
+describe("BarChart series slots", () => {
+	test("automatic bars skip fixed slots", () => {
+		const { container } = render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" seriesSlot={1} />
+				<BarChart.Legend />
+			</BarChart.Root>,
+		);
+		const legend = container.querySelector('[data-slot="bar-chart-legend"]');
+		const swatches = legend == null ? [] : [...legend.querySelectorAll("span")];
+		expect(swatches.map((swatch) => swatch.style.backgroundColor)).toStrictEqual([
+			"var(--color-chart-2)",
+			"var(--color-chart-1)",
+		]);
+	});
+
+	test("automatic series close composition gaps", () => {
 		const filterableData = [
 			{ month: "January", desktop: 186, mobile: 80, tablet: 40 },
 			{ month: "February", desktop: 305, mobile: 200, tablet: 60 },
@@ -600,11 +616,7 @@ describe("BarChart sticky series colors", () => {
 			const items = legend == null ? [] : [...legend.querySelectorAll("span")];
 			return items.map((item) => item.style.backgroundColor);
 		};
-		const [, mobileBefore] = swatchColors();
-		expect(mobileBefore).toContain("chart-2");
-		// Filter desktop out and introduce a new series: mobile must keep chart-2
-		// (color follows the entity, never its position) and the newcomer claims
-		// the lowest free slot.
+		expect(swatchColors()[1]).toContain("chart-2");
 		rerender(
 			<BarChart.Root data={filterableData} xKey="month" aria-label="Visitors by month">
 				<BarChart.Bar dataKey="mobile" label="Mobile" />
@@ -613,8 +625,8 @@ describe("BarChart sticky series colors", () => {
 			</BarChart.Root>,
 		);
 		const [mobileAfter, tabletAfter] = swatchColors();
-		expect(mobileAfter).toBe(mobileBefore);
-		expect(tabletAfter).toContain("chart-3");
+		expect(mobileAfter).toContain("chart-1");
+		expect(tabletAfter).toContain("chart-2");
 	});
 
 	test("regrouping a monthly chart does not exhaust the palette", () => {

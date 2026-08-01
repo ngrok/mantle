@@ -45,11 +45,9 @@ type ContinuousXScale = Exclude<XScaleKind, "band">;
 type SeriesMark = "bar" | "line" | "area" | "scatter";
 
 /**
- * The ordered chart color tokens. A series claims a slot on its first
- * registration and keeps it while the palette has room. Once every one of the
- * eight is held, an incoming series takes one back from an unmounted holder. A
- * chart showing more than eight series at once paints the ninth and later with
- * `"chart-other"`.
+ * The ordered chart color tokens. Series use the first eight through automatic
+ * or fixed identity slots. `"chart-other"` is the shared neutral treatment for
+ * overflow and folded-tail series.
  */
 type ChartColorToken =
 	| "chart-1"
@@ -63,20 +61,19 @@ type ChartColorToken =
 	| "chart-other";
 
 /**
+ * A series' visual identity slot. Slots `1` through `8` pair one validated
+ * chart color with one point shape. `"other"` selects the shared neutral
+ * overflow treatment.
+ */
+type ChartSeriesSlot = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | "other";
+
+/**
  * A series color: one of the validated chart tokens (preferred — they adapt to
  * light/dark/high-contrast themes) or any CSS color string as an escape hatch.
  *
- * Every color but `"chart-other"` spends one of the eight slots, so the palette
- * never hands an unpinned sibling a color already on screen. A custom color
- * spends the next slot in order, not the slot it resembles: mantle measures no
- * color, so a brand hex can still paint next to a near-identical slot, and that
- * pair is the consumer's to fix.
- *
- * Several mounted series that pin the same chart token all keep it. The group
- * spends that one slot between them, so each member needs its own second
- * encoding to stay apart — `texture` on a bar series, `shape` on a line, area,
- * or scatter series. The automatic glyph follows the slot, so the whole group
- * wears one shape until a member sets its own.
+ * `color` overrides only the color channel. It does not select or reserve a
+ * series slot. When sibling series can mount or unmount, use `seriesSlot` on a
+ * series part to keep its visual identity fixed.
  *
  * A static color (raw hex) cannot follow the four themes, so prefer a
  * `var(--your-token)` a consumer declares per theme. A series that carries
@@ -95,11 +92,10 @@ type CurveKind = "linear" | "monotone" | "step";
  * the hover dot on line/area charts. Shape is a redundant encoding alongside
  * color, so series stay distinguishable without color vision.
  *
- * Eight values match the palette's eight color slots. This union's order is
+ * Eight values match the palette's eight series slots. This union's order is
  * the pairing: a series that sets no `shape` wears the glyph of the slot it
  * holds — slot 1 the circle, slot 2 the square, on down to slot 8 and the
- * star. A series wearing the shared `"chart-other"` gray holds no slot, so it
- * wears the circle.
+ * star. The shared `"chart-other"` treatment uses the circle.
  *
  * What each added name draws:
  *
@@ -134,7 +130,7 @@ type PointShape =
  * The two rung textures flip with `orientation`, in opposite senses. Every
  * other value is direction-free, `"grid"` included — it is the orthogonal
  * lattice against `"crosshatch"`'s diagonal one. Eight values match the
- * palette's eight color slots.
+ * palette's eight series slots.
  *
  * Texture is a redundant identity encoding alongside color — inked tone-on-tone
  * at equal loudness across slots — so grouped and stacked series stay
@@ -161,16 +157,17 @@ type BarOrientation = "vertical" | "horizontal";
 
 /**
  * A registered series' configuration, captured from a series part
- * (`BarChart.Bar`, `LineChart.Line`, `AreaChart.Area`).
+ * (`BarChart.Bar`, `LineChart.Line`, `AreaChart.Area`, `ScatterPlot.Point`).
  */
 type SeriesSpec = {
 	/** The row key this series reads its numeric values from. */
 	dataKey: string;
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */
 	label: string;
+	/** Fixed visual identity slot; `undefined` takes the next unreserved slot. */
+	seriesSlot: ChartSeriesSlot | undefined;
 	/**
-	 * Explicit color; when omitted the series claims the next sticky slot. Unless
-	 * it pins `"chart-other"`, the series spends a slot either way.
+	 * Explicit color override. When omitted, the series paints its resolved slot.
 	 */
 	color: SeriesColor | undefined;
 	/** The mark this series paints. */
@@ -184,7 +181,7 @@ type SeriesSpec = {
 	/**
 	 * Explicit point glyph (scatter marks, line markers, hover dots).
 	 * `undefined` means the consumer chose none, so the series wears the glyph
-	 * paired to its color slot.
+	 * paired to its series slot.
 	 */
 	shape: PointShape | undefined;
 	/** The fill texture (bar marks only). */
@@ -206,7 +203,7 @@ type SeriesMeta = {
 	/**
 	 * The point glyph the series wears (scatter marks, legend keys, hover
 	 * dots): the explicit `shape` when it set one, else the glyph paired to its
-	 * color slot.
+	 * series slot.
 	 *
 	 * A bar paints no glyph. Its legend key wears `texture` instead, so nothing
 	 * draws the glyph a bar series is paired with.
@@ -334,6 +331,7 @@ export type {
 	ChartDatum,
 	ChartDatumEvent,
 	ChartOptions,
+	ChartSeriesSlot,
 	ContinuousXScale,
 	CurveKind,
 	GridLines,

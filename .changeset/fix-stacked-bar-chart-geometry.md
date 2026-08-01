@@ -59,13 +59,11 @@ Two additions cover all four chart families:
   instead of a structural child selector. Each family's docs page gains a data-attribute table listing the
   Root's whole slot inventory. The layers mount on every kind, and the engine writes their geometry as inline
   styles — restyle color and border, and leave the transform alone.
-- **The docs no longer promise composition order.** The store keys a series' paint position and color slot to
-  its `dataKey` on first registration, and never releases either. Series that mount together do register in
-  composition order, but a series that mounts later paints last whatever its position in the JSX, a `dataKey`
-  that returns resumes its original position, and reordering the parts of a mounted chart restacks nothing.
-  Nine sentences across the four pages and their JSDoc twins said otherwise. The palette cursor also counts
-  every `dataKey` a Root has ever registered rather than the mounted count, which the pages now say — key the
-  Root on whatever chooses the series to start the eight slots over.
+- **The docs describe paint order precisely.** The store keys a series' paint position to its `dataKey` on first
+  registration. Series that mount together register in composition order, but a series that mounts later paints
+  last whatever its position in the JSX. A `dataKey` that returns resumes its original position, and reordering
+  the parts of a mounted chart restacks nothing. Nine sentences across the four pages and their JSDoc twins said
+  otherwise.
 
 Nothing here changes a prop or an export. Grouped bars, single-series bars, and the line and scatter families
 keep their geometry.
