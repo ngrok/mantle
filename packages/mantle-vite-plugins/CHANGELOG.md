@@ -1,5 +1,31 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.1.4
+
+### Patch Changes
+
+- [#1382](https://github.com/ngrok/mantle/pull/1382) [`2f1d03c`](https://github.com/ngrok/mantle/commit/2f1d03c4da2e7d059b1535c8e862de738ae00bd7) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Scan the `button`, `dialog`, `kbd`, and `separator` chunks for consumers that import `@ngrok/mantle/command`.
+
+  `Command` renders the Dialog shell around its palette — whose close control is an `IconButton`, hoisted one level further into the `button` chunk — a Separator between groups, and a Kbd chip for every key in the `MetaKey` it re-exports. Each of those components' class strings is hoisted into its own dist chunk, the chunk lookup is not transitive, and none of the per-component `@source` globs matched for a command-only consumer — so the palette's dialog chrome, its close button, separators, and shortcut chips rendered unstyled with lint, typecheck, test, and build all green.
+
+- [#1371](https://github.com/ngrok/mantle/pull/1371) [`0d9bf76`](https://github.com/ngrok/mantle/commit/0d9bf76e077d6b0707db1dc1d1487d3c20a2cfec) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump the `oxc-parser` runtime dependency to `0.142.0`.
+
+- [#1380](https://github.com/ngrok/mantle/pull/1380) [`c2f1cb0`](https://github.com/ngrok/mantle/commit/c2f1cb0c681d674b60cf0ec978cdf95bfb9db7dc) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Teach `mantleTwSourcePlugin` about the new `avatar` subpath, so a consumer importing `@ngrok/mantle/avatar`
+  gets its classes scanned by Tailwind instead of an unstyled avatar. Generated from `@ngrok/mantle`'s export
+  map — no behavior change for any other component.
+
+- [#1341](https://github.com/ngrok/mantle/pull/1341) [`6793a7c`](https://github.com/ngrok/mantle/commit/6793a7c5f5d52b8b0192ccdab1edcf2551f8ea10) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Teach `mantleTwSourcePlugin` about the new `sandbar` subpath, so a consumer importing
+  `@ngrok/mantle/sandbar` gets its classes scanned by Tailwind instead of an unstyled bar.
+
+  `Sandbar` also needs its action buttons scanned: it renders a `Button` for each of
+  `Sandbar.SaveButton` and `Sandbar.DiscardButton`, and the build hoists Button's class strings into
+  `button-<hash>.js`, leaving none in `sandbar.js`. The plugin now scans the `button` chunk for
+  `sandbar` too — without it, a consumer importing only `@ngrok/mantle/sandbar` got a styled panel
+  wrapped around unstyled action buttons. No behavior change for any other component.
+
+- Updated dependencies [[`0d9bf76`](https://github.com/ngrok/mantle/commit/0d9bf76e077d6b0707db1dc1d1487d3c20a2cfec)]:
+  - @ngrok/mantle-server-syntax-highlighter@1.1.9
+
 ## 1.1.3
 
 ### Patch Changes

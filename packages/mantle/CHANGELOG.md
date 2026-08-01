@@ -1,5 +1,548 @@
 # @ngrok/mantle
 
+## 0.83.0
+
+### Minor Changes
+
+- [#1380](https://github.com/ngrok/mantle/pull/1380) [`c2f1cb0`](https://github.com/ngrok/mantle/commit/c2f1cb0c681d674b60cf0ec978cdf95bfb9db7dc) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add **`Avatar`** — a small image representing a person or an account, with a text or icon fallback for when
+  there is no picture, or before one loads. Import from `@ngrok/mantle/avatar`.
+
+  ```tsx
+  import { Avatar } from "@ngrok/mantle/avatar";
+
+  // an account: a rounded square whose color is derived from its id
+  <Avatar.Root appearance="square" colorSeed={account.id}>
+  	<Avatar.Fallback name={account.name} />
+  </Avatar.Root>
+
+  // a person: a circle, with the fallback covering the load and any failure
+  <Avatar.Root>
+  	<Avatar.Image src={user.avatarUrl} alt="Jane Doe" />
+  	<Avatar.Fallback name="Jane Doe" />
+  </Avatar.Root>
+  ```
+
+  - **`Avatar.Root`** owns the shape, size and surface. `appearance="circle"` (default) is a person;
+    `appearance="square"` is a rounded square for the things people belong to — an account, workspace, or team.
+    Keeping the two shapes distinct is what lets a row showing both stay legible without labels. It is `size-7`
+    and `shrink-0`, so the flex rows an avatar usually sits in cannot squeeze it; `className` merges last, so
+    `className="size-10"` wins.
+  - **`colorSeed`** hashes a stable id into one of 17 swatches and switches the foreground to
+    `text-static-white`, so a subject keeps its color across renders, sessions, devices and the server with
+    nothing stored. Seed it with an **id, not a display name** — a rename would otherwise recolor the avatar.
+    Omit it for a neutral surface.
+  - **`Avatar.Image`** is a plain `<img>` layered over the fallback — no wrapper library, no loading state. The
+    server renders it, the browser fetches while it parses HTML, and a cached image is on screen in the first
+    frame; a loading one shows initials through it, and a failed one unmounts itself and reveals them again.
+    `onError` runs first and can `preventDefault()` to keep the image mounted, and changing `src` is always a
+    fresh attempt. Its **`alt` is required** — stricter than the `<img>` element, because an avatar is the one
+    image everyone forgets and an `<img>` with no `alt` announces its URL. Pass `alt=""` when adjacent text
+    already names the subject, which is the common case.
+  - **`Avatar.Fallback`** takes either `children` (an icon, a monogram) or `name`, which renders at most two
+    uppercase initials — punctuation stripped, code points kept whole so an emoji-leading name survives, casing
+    locale-invariant so SSR and the client agree. The two are mutually exclusive in the type. Derived initials
+    are `aria-hidden`, because they abbreviate a name the page already carries beside the avatar; announcing them
+    would read it twice ("A C Acme Corp"). Name the root (`role="img"` + `aria-label`) when the avatar is the only
+    thing identifying its subject.
+  - Every part takes `asChild` and stamps `data-slot` (`avatar`, `avatar-image`, `avatar-fallback`), joining an
+    ancestor-forwarded chain rather than replacing it. `Avatar.Root` renders a `<span>`, so it stays valid inside
+    the `<button>` of a switcher row.
+
+  **`Sidebar.AccountAvatar` and `Sidebar.UserAvatar` are removed.** They were the same component twice, scoped to
+  a place an avatar has no reason to be scoped to — the sidebar — which is why the ngrok dashboard already
+  hand-rolled its own copy of the initials and swatch logic beside them. Migration:
+
+  ```tsx
+  // before
+  <Sidebar.AccountAvatar accountId={account.id} accountName={account.name} />
+  // after
+  <Avatar.Root appearance="square" colorSeed={account.id}>
+  	<Avatar.Fallback name={account.name} />
+  </Avatar.Root>
+
+  // before
+  <Sidebar.UserAvatar alt="Jane Doe" />
+  // after
+  <Avatar.Root aria-label="Jane Doe" className="text-muted" role="img">
+  	<Avatar.Fallback>
+  		<UserIcon className="size-4" />
+  	</Avatar.Fallback>
+  </Avatar.Root>
+
+  // before — with a photo
+  <Sidebar.UserAvatar src={user.avatarUrl} alt="Jane Doe" />
+  // after
+  <Avatar.Root>
+  	<Avatar.Image src={user.avatarUrl} alt="Jane Doe" />
+  	<Avatar.Fallback name="Jane Doe" />
+  </Avatar.Root>
+  ```
+
+  The swatch palette and its hash are unchanged, so accounts keep the colors they already have. Two behavior
+  notes: the person silhouette is gone in favor of any icon you compose (the docs use Phosphor's `UserIcon`), and
+  `data-slot="sidebar-account-avatar"` / `"sidebar-user-avatar"` become `"avatar"` — update any selector or test
+  matching them.
+
+  Docs: https://mantle.ngrok.com/components/data-display/avatar
+
+- [#1382](https://github.com/ngrok/mantle/pull/1382) [`2f1d03c`](https://github.com/ngrok/mantle/commit/2f1d03c4da2e7d059b1535c8e862de738ae00bd7) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - **Command: a search trigger, a stateful `DialogRoot`, and the `⌘K` shortcut.**
+
+  **`Command.SearchTrigger`** is a new part that makes any control behave like a search field that opens the palette. It renders no DOM of its own — it clones its single child — so presentation belongs entirely to that child and the part never has an opinion about how the trigger looks or how it behaves in a collapsed sidebar rail. The child stays a `<button>`, not a text field: it opens a modal palette, so it announces "has popup dialog" while looking like a field. Because a search-shaped control invites typing, typing works — a printable keystroke or a paste opens the palette with that text already in `Command.Input`, so no character is lost.
+
+  It ships the accessibility rather than leaving it to the call site: `aria-haspopup="dialog"`, `aria-expanded`, `aria-controls`, `data-state`, and focus restoration come from the dialog trigger it composes; `aria-keyshortcuts` announces the `⌘K` binding that is usually drawn but never spoken; and it adds no accessible name, so the child's visible label is the name and the two cannot drift apart. Its `data-slot="command-search-trigger"` joins ahead of the child's own.
+
+  `Command.DialogRoot` is now a real state owner instead of an alias for `Dialog.Root`. It owns:
+
+  - **The open state**, controlled (`open` / `onOpenChange`) or uncontrolled (`defaultOpen`) — unchanged for existing consumers.
+  - **The query text**, which is what makes seeding work: the seed and the open state land in one state update, so `Command.Input` mounts with the character already in it rather than racing the dialog's mount. Every open starts from a known query — the seed, or empty — so dismissing and reopening never resurrects the previous search. Read it with `useCommandDialog().query` when your palette does its own matching; `Command.Input` still accepts `value` to take the query over completely.
+  - **The `⌘K` / `Ctrl+K` shortcut**, new and on by default (`keyboardShortcut`). It claims the event (Firefox binds `⌘K` to its own search bar), keeps the two platform modifiers distinct so macOS's native `Ctrl+K` still works, has exactly one owner per window so two palettes never open on one keypress, and yields inside `contenteditable` hosts and `<textarea>`s where `⌘K` is already bound.
+
+  **If you already bind `⌘K` yourself, pass `keyboardShortcut={false}`** — otherwise the chord has two owners after this upgrade. `Command.SearchTrigger` then adds no `aria-keyshortcuts`, and `useCommandDialog().keyboardShortcut` reports the same flag so your row can drop its visible `⌘K` hint too — the UI never advertises a binding mantle does not own.
+
+  Also new, for triggers that cannot use `Command.SearchTrigger` at all: `useCommandDialog()` (`open`, `setOpen`, `openWithQuery`, `toggle`, `query`, `setQuery`, `keyboardShortcut`), and the pure helpers `searchActionFromKeyDown` / `searchActionFromPaste`, which classify a keystroke or paste into a `SearchAction` — `seed`, `open`, or `ignore`. They handle the cases a hand-rolled `event.key.length === 1` check gets wrong: `Space` seeding a stray space, astral characters counted as two and dropped, composition in an input method editor silently doing nothing, and paste doing nothing at all.
+
+  `Command.DialogContent` now takes over the dialog's initial focus so the caret lands at the end of a seeded query — Radix's own open-autofocus selects the focused field's whole value, which would make the first keystroke after a seeded open replace the seed instead of extending it.
+
+  In a sidebar, the control it wraps is [`Sidebar.SearchTrigger`](https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger) — see that component's own release note.
+
+  Docs: https://mantle.ngrok.com/components/navigation/command
+
+- [#1341](https://github.com/ngrok/mantle/pull/1341) [`6793a7c`](https://github.com/ngrok/mantle/commit/6793a7c5f5d52b8b0192ccdab1edcf2551f8ea10) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add **`invert-theme`** — a first-class class that renders a DOM subtree in the opposite theme.
+
+  Add the `invert-theme` class to any element and its subtree renders in the opposite theme of the page: light ⇄ dark and light-high-contrast ⇄ dark-high-contrast. The island is styled by the opposite theme's own definitions (each theme block's selector list also targets `.invert-theme` subtrees on its pair partner's pages), so every mantle component and color token inside works there — no conditional rendering, no per-component overrides.
+
+  **Action required if you pass `forceTheme` anything other than `"dark"`.** `forceTheme` now belongs on four components, not one. Applying the pair partner means a forced page has the opposite theme's stylesheet live, so the theme class on `<html>` is what decides which one wins. `ThemeProvider`, `PreventWrongThemeFlashScript`, `preventWrongThemeFlashScriptContent()`, and `useInitialHtmlThemeProps` all accept `forceTheme` and pin the class, `data-applied-theme`, and the pre-paint write to it. **If you use `forceTheme` on `MantleStyleSheets`, pass the same value to those too** — otherwise a user whose stored preference resolves to dark gets `<html class="dark">` on a `forceTheme="light"` page and it paints dark. Before this release `forceTheme="light"` rendered no link tags at all, so the same page painted light. `forceTheme="dark"` renders and applies exactly what it did before, so it needs no change. The stored preference is still read and `setTheme` still writes it, so `data-theme` and theme switchers are unaffected. See [Locking a page to one theme](https://mantle.ngrok.com/components/primitives/theme#locking-a-page-to-one-theme).
+
+  - `MantleStyleSheets` now applies theme _pairs_ together: the active theme's pair partner also gets `media="all"`, so inverted islands always have their opposite theme's CSS applied. `forceTheme` renders the forced theme's pair of link tags (`forceTheme="light"` now renders the dark link).
+  - **An applied theme now outranks the stored preference in the CSS.** Every theme block guards its `data-theme` selector with `:not([data-applied-theme])`, so `[data-theme="dark"]` no longer selects the dark block on a page whose `data-applied-theme` says otherwise. This is what makes a forced page hold its theme while `data-theme` keeps the preference for the theme switcher. `data-theme` on its own still selects a theme, so a consumer who sets it without a provider is unaffected. If you set both attributes yourself to disagreeing values, the applied one now wins.
+  - **Payload note.** Applying the pair partner makes it render-blocking, so a light page now blocks first paint on `mantle-dark.css` (~16 KB raw / ~4.5 KB gzip) and a high-contrast page on both high-contrast sheets (~30 KB raw / ~8.4 KB gzip combined), whether or not it renders an island. There is no opt-out. `mantle.css` itself grows only by what islands need — from ~34 KB to ~53 KB raw, and from ~8 KB to ~13 KB gzip: Tailwind's default light palette is materialized in a rule scoped to the island selector, so it never reaches `:root` and cannot override a consumer's own `@theme { --color-<ramp>-<stop>: … }`. The flip side is that an island restores mantle's pinned defaults, so a ramp you rebrand applies to the page but not inside an island.
+  - `Sandbar`'s floating panel is now an `invert-theme` island: the bar, its buttons, and any custom composed children all render inverted from the page theme in all four themes — matching the origin design.
+  - Documented on the Theme page, including the limitations: portaled floating content escapes the island (pass `invert-theme` to the floating part's `className`), theme-variant utilities (`dark:*`, …) keep page-theme semantics, nesting is idempotent, and shadows flip with the island (shadow tokens resolve at the consuming element, keeping the island's interior coherent).
+
+- [#1341](https://github.com/ngrok/mantle/pull/1341) [`6793a7c`](https://github.com/ngrok/mantle/commit/6793a7c5f5d52b8b0192ccdab1edcf2551f8ea10) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add **`Sandbar`** — a floating save bar for unsaved changes.
+
+  `Sandbar` is a persistent, decision-bearing bar that floats near the bottom edge of the viewport. It surfaces pending state — primarily a form's unsaved ("dirty") changes — and stays until the user resolves it: save or discard. Unlike Toast, which announces something that already happened and leaves on its own, a Sandbar waits for the user's decision. (The name: a sandbar is a bar that blocks navigation.)
+
+  - Compound parts: `Sandbar.Root` (always-mounted, controlled `open` prop), `Sandbar.Message`, `Sandbar.Actions`, `Sandbar.SaveButton`, `Sandbar.DiscardButton`. There is deliberately no error part — a failed save is reported contextually in the form (field message, or a form-level `Alert` that takes focus), because the bar carries the _pending decision_, not the outcome of the request
+  - Accessible by default: persistent polite + assertive live regions announce opening, pending saves, and blocked navigation; the panel is a `role="group"` named by the visible message; focus is parked and restored around loading/close transitions; Escape is intentionally inert
+  - `handleRef` receives a `SandbarHandle` — `shake(options?: { announcement?: string })` wiggles the panel (skipped under `prefers-reduced-motion`) and always announces assertively; wire it to your router's navigation guard
+  - Sonner-style interruptible motion: state-driven CSS transitions (a reopen mid-exit retargets smoothly from the panel's current position); the panel slides fully off the viewport edge with a motion-led, late fade — 400ms enter, 200ms exit — degrading to fade-only under reduced motion
+  - Data attributes: every part stamps a `data-slot` (`sandbar`, `sandbar-message`, `sandbar-actions`, `sandbar-save-button`, `sandbar-discard-button`) and joins any incoming chain ahead of its own name, so `asChild` composition accumulates the whole chain instead of clobbering it. The panel also stamps `data-state="open" | "closed"`, which drives the enter/exit transition. No public CSS variables.
+
+  Import it: `import { Sandbar } from "@ngrok/mantle/sandbar"`.
+
+  Docs: https://mantle.ngrok.com/components/feedback/sandbar
+
+- [#1382](https://github.com/ngrok/mantle/pull/1382) [`2f1d03c`](https://github.com/ngrok/mantle/commit/2f1d03c4da2e7d059b1535c8e862de738ae00bd7) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - **`Sidebar.SearchTrigger`: the sidebar's search row.**
+
+  A new part for the top of `Sidebar.Body` (or `Sidebar.Header`, under the switcher) — the row that opens a search or command palette.
+
+  It is deliberately a navigation row and not a text field. The chrome is a `Sidebar.ItemButton`'s, down to the 28px chip it becomes in the collapsed icon rail, because a search entry point in a sidebar is one of the rows rather than a form control wedged among them. `Sidebar.ItemButton` and `Sidebar.SearchTrigger` now share one row-chrome constant instead of repeating it, because "these are the same row" is the contract: a search row whose geometry drifts from the navigation rows below it reads as a foreign control.
+
+  Its `shortcut` prop takes the keyboard hint — usually `<><MetaKey /><Kbd>K</Kbd></>` — and reveals it only on hover or keyboard focus, so the resting panel stays quiet. The hint is `aria-hidden` (the `aria-keyshortcuts` that `Command.SearchTrigger` adds announces the chord) and dropped outright in the rail, where the row's label is clipped rather than removed so the button keeps its accessible name as a chip. `shortcut` and `asChild` are mutually exclusive in the type: the hint is a sibling this part renders, and a slotted child is cloned rather than wrapped, so there is nowhere to put one.
+
+  The row is styling only — it is not wired to any state. Compose it with [`Command.SearchTrigger`](https://mantle.ngrok.com/components/navigation/command#commandsearchtrigger) for the dialog wiring and the typing behavior, and with `Sidebar.Tooltip` so the row keeps a visible label in the rail.
+
+  `Sidebar.Tooltip` also gained a `shortcut` prop, which renders the chord after the label. The rail hides a row's own hint along with its text, so the tooltip is where a pointer user can still learn it.
+
+  `Sidebar.Header` is a fixed height so it can align with an `AppLayout.Header` toolbar, and that height is sized for one row. If you stack the switcher and the search row there, raise `--sidebar-header-height` on a **common ancestor of both rows** — `<AppLayout.Root className="[--sidebar-header-height:6rem]">`. Setting it on `Sidebar.Nav` only looks right: custom properties inherit downward, so `AppLayout.Header` would keep the `4.5rem` default and the two rows would stop being center-aligned.
+
+  Docs: https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger
+
+- [#1382](https://github.com/ngrok/mantle/pull/1382) [`2f1d03c`](https://github.com/ngrok/mantle/commit/2f1d03c4da2e7d059b1535c8e862de738ae00bd7) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - **`Sidebar.Trigger` gets a tooltip and announces the shortcut it binds.**
+
+  `Sidebar.Root` has bound `⌘B` / `Ctrl+B` since the sidebar shipped, but the trigger told nobody: assistive technology got no `aria-keyshortcuts`, and pointer users got no label at all — the button is icon-only at every breakpoint, and its name was `sr-only`.
+
+  Both are fixed. The trigger now stamps `aria-keyshortcuts` (`"Meta+B"` on Apple platforms, `"Control+B"` elsewhere), resolved after hydration like every platform-modifier read: the server renders the non-Apple answer because it cannot know the host, and an effect corrects it. And it renders a tooltip showing `label` — plus the new `shortcut` prop, for the visible `⌘B` chips (`shortcut={<><MetaKey /><Kbd>B</Kbd></>}`). Unlike `Sidebar.Tooltip`, that tooltip is not gated on the rail state, because the trigger has nothing else to read at any width.
+
+  Under `Sidebar.Root keyboardShortcut={false}`, the trigger omits both the attribute and the chips, so it can never advertise a binding that is not bound. `useSidebar()` exposes the same `keyboardShortcut` flag so a custom trigger can be equally honest.
+
+  **`Sidebar.Trigger` now requires a `TooltipProvider` ancestor**, like any `Tooltip.Root` — and like `Sidebar.Tooltip` already did. Rendering one without a provider throws. Mount a single provider at your app root, decoupled from the sidebar and the app layout, so the app-wide tooltip delay stays app-wide:
+
+  ```tsx
+  import { TooltipProvider } from "@ngrok/mantle/tooltip";
+
+  <TooltipProvider>
+  	<App />
+  </TooltipProvider>;
+  ```
+
+### Patch Changes
+
+- [#1389](https://github.com/ngrok/mantle/pull/1389) [`793d82a`](https://github.com/ngrok/mantle/commit/793d82ad822886aaffbc53193a84486ceca2f980) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Keep a long `Breadcrumb` trail on one row: it now scrolls sideways with a faded edge instead of wrapping.
+
+  An app header is one row tall, so the trail wrapping onto a second row pushed the page down and left the
+  current page in the wrong place. `Breadcrumb.List` is now the scroll container, and its edges carry the same
+  `scroll-fade-x` mask as `Tabs.List` — the edge with crumbs beyond it fades out, and the edge with nothing
+  beyond it stays flush.
+
+  The trail starts at its end, because the end is the current page. It scrolls itself there whenever that end
+  moves — on mount, when a navigation swaps the crumbs, and when the row around it resizes — and leaves the
+  reader's own scroll position alone the rest of the time, including while a crumb holds focus. Tabbing to a
+  crumb the trail has scrolled past stays the browser's own job; the list carries `scroll-padding` the width of
+  the fade zone, so that crumb lands clear of the fade rather than under it.
+
+  Two supporting changes make that work in a real header:
+
+  - `Breadcrumb.Root` carries `min-w-0`, so inside a flex row such as `AppLayout.Header` the landmark gives up
+    width to the row instead of pushing its siblings out of it.
+  - `Breadcrumb.Item` and `Breadcrumb.Separator` no longer shrink, so a crumb keeps its label on one line and
+    the trail scrolls instead of breaking a label in two.
+
+  No prop, part, or export changed. Two things follow from the mask, both covered on the
+  [scroll fade](https://mantle.ngrok.com/base/scroll-fade) page: it fades everything `Breadcrumb.List` paints,
+  its own background and border included, so keep that styling on a wrapper; and it owns the element's
+  `mask-image`, so a second mask on the same element replaces it.
+
+  To keep the old wrapping behavior, hand the scrollport back:
+
+  ```tsx
+  <Breadcrumb.List className="flex-wrap overflow-x-visible">
+  ```
+
+  Without a scroll container the mask has nothing to animate against, so it stays fully opaque and the row wraps
+  as before. See https://mantle.ngrok.com/components/navigation/breadcrumb#overflow.
+
+- [#1390](https://github.com/ngrok/mantle/pull/1390) [`c117f9e`](https://github.com/ngrok/mantle/commit/c117f9ec67f22ce63475effed0af135d657fad3c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - **Every chart repaints: all eight series colors change, in all four themes.** `BarChart`, `LineChart`,
+  `AreaChart`, and `ScatterPlot` all paint from the same eight `--color-chart-*` slots. Every slot gets a new
+  value here. The slot count stays at eight. The token names stay the same, so only the values move.
+
+  **What was wrong.** The palette gates measured adjacent pairs only — `chart-1` against `chart-2`, `chart-2`
+  against `chart-3`, and so on down the order. A chart puts pairs on screen that those gates never looked at:
+
+  - a legend lists all eight slots in one column;
+  - a scatter mark can neighbor any other mark;
+  - fixed series slots can leave the painted slots non-consecutive.
+
+  Over all 28 pairs the shipped palette fell to ΔE 1.90 under simulated color vision deficiency (CVD) in
+  `light` and in `dark`, 1.55 in `light-high-contrast`, and 1.71 in `dark-high-contrast`. At 1.90, `chart-1`
+  and `chart-7` are one color to a deuteranope. A two-series chart on those slots reads as a single series.
+
+  **What it is now.** Each theme declares its own eight colors. All 28 pairs clear the ΔE 15 floor for
+  full-color vision and the ΔE 8 target under simulated CVD. The worst pair in any theme measures 9.55. The
+  gate suite runs the all-pairs comparison in every theme from here on. It also holds each theme to the
+  contrast that theme measures today, rather than to the flat 3:1 minimum.
+
+  | Theme                 | All-pairs ΔE, full color | All-pairs ΔE, simulated CVD | Lowest contrast   |
+  | --------------------- | ------------------------ | --------------------------- | ----------------- |
+  | `light`               | 7.53 → 15.475            | 1.90 → 9.580                | 3.584:1 → 3.610:1 |
+  | `dark`                | 7.53 → 15.072            | 1.90 → 9.551                | 3.625:1 → 3.652:1 |
+  | `light-high-contrast` | 6.32 → 15.145            | 1.55 → 9.617                | 3.651:1 → 3.696:1 |
+  | `dark-high-contrast`  | 8.45 → 15.054            | 1.71 → 9.572                | 6.762:1 → 6.763:1 |
+
+  Contrast rose a little in three themes and held in the fourth, so no theme regressed. No lightness band moved
+  or widened to fit a new color. `light`, `dark`, and `light-high-contrast` keep every slot inside their band.
+  `dark-high-contrast` keeps the above-the-ceiling waiver it already carried, with its marks between lightness
+  0.672 and 0.898. A slot also keeps its family across the four themes: the largest hue drift for any slot is
+  11.32 degrees. Every literal sits inside the sRGB gamut, so no browser clamps a mark to a color nobody
+  measured.
+
+  **The overflow gray is the one distance that got worse.** Every series past the eighth wears
+  `--color-chart-other`. In `dark`, the closest categorical slot to that gray falls from ΔE 4.86 to 3.81 under
+  simulated CVD. The other three themes rise: `light` to 6.24, `light-high-contrast` to 8.72, and
+  `dark-high-contrast` to 3.12. No palette closes the gap. The overflow has to be achromatic so it reads as
+  "not a category", and the dichromacy simulations strip chroma, so a gray always lands near a mark of its own
+  lightness. The gate suite now records each theme's distance, so it cannot shrink further unseen. Keep folding
+  the tail into one "Other" series rather than painting a ninth.
+
+  **Slot 6 changes family, from orange to magenta.** Orange sits between slot 4 and slot 8 on the hue circle.
+  Deuteranopia pulls those three toward one another, and that span cannot carry three marks. Magenta near hue
+  334 sits away from both. That one substitution is what buys the all-pairs result. The families in slot order
+  now read: blue, green, pink, red-orange, teal, magenta, violet, amber. Slot 4 spans hue 31 in `light` to hue
+  43 in `dark-high-contrast`, so it reads as a red on a white card and as a burnt orange on a black one.
+
+  **The slots are bespoke `oklch()` literals now, not aliases of Tailwind ramp steps.** A published ramp step
+  lands where its own designer put it. The ramps cannot supply eight all-pairs-safe colors: they top out at
+  seven in `dark` and six in `dark-high-contrast`. Each theme file therefore carries its own eight literals.
+  One consequence for anyone who re-tunes mantle's ramps: a chart slot no longer follows a ramp step. A
+  consumer who redeclares `--color-blue-500` no longer moves `chart-1`. Override the chart token itself
+  instead.
+
+  **To retheme one built-in slot, redeclare the token on the chart's `Root`:**
+
+  ```tsx
+  <BarChart.Root className="[--color-chart-1:var(--color-brand)]" data={monthlySpend} xKey="month">
+  	<BarChart.Bar dataKey="endpoints" label="Endpoints" />
+  </BarChart.Root>
+  ```
+
+  The engine resolves every token through a probe inside `Root`, so the declaration wins for that chart and
+  leaves every other chart on the page alone. For one series rather than one slot, pass the `color` prop:
+
+  ```tsx
+  <BarChart.Bar dataKey="requests" color="var(--color-brand)" />
+  ```
+
+  Either way, measure your own color against the eight slots. The gates validate the palette mantle ships, not
+  the colors you put in its place.
+
+  Docs: [Chart color tokens](https://mantle.ngrok.com/components/charts/bar-chart#chart-color-tokens).
+
+- [#1390](https://github.com/ngrok/mantle/pull/1390) [`c117f9e`](https://github.com/ngrok/mantle/commit/c117f9ec67f22ce63475effed0af135d657fad3c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - **A series that sets no `shape` now wears the glyph paired to its series slot.** Unless a consumer picked a glyph
+  by hand, every line, area, and scatter series used to draw a circle. Shape carried no identity of its own. Slot 1
+  now takes the circle, slot 2 the square, slot 3 the triangle, slot 4 the diamond, and four new glyphs carry slots
+  5 through 8. Every line, area, and scatter chart gains a second identity channel with no code change — a distinct
+  color and a distinct glyph, on the canvas marks, the hover dots, and the legend keys.
+
+  **`PointShape` grows from four values to eight**, one per series slot: `"circle"`, `"square"`, `"triangle"`,
+  `"diamond"`, `"triangle-down"`, `"plus"`, `"cross"`, `"star"`. The four additions:
+
+  - **`"triangle-down"`** — the triangle mirrored, apex down.
+  - **`"plus"`** — a filled Greek cross whose arms are a third of its span, not a stroked line pair.
+  - **`"cross"`** — that plus turned 45°, so a solid X.
+  - **`"star"`** — a filled five-pointed star at the classic pentagram notch.
+
+  All four paint on the canvas marks, on the DOM hover dot, and on the legend key. The key's `data-shape` attribute
+  carries the new values for consumer CSS.
+
+  **Every glyph carries the circle's fill area**, so no series reads heavier than its neighbors. Each new size
+  solves area = πr² the way the shipped three do: the mirrored triangle keeps the triangle's 1.55r circumradius, the
+  plus reaches 1.189r, the cross reaches the same 1.189r because a rotation keeps the area, and the star's outer
+  radius is 1.673r against an inner 0.639r. On a real canvas the four measure between 0.994 and 1.000 of the
+  circle's ink, inside the band the shipped four already span.
+
+  Two surfaces cannot hold that contract exactly, and both predate this change. The hover dot and the legend key
+  clip a box rather than trace a path, so a polygon there paints its own share of the box — the shipped triangle
+  already paints 64% of the circle's ink, and the star paints 39%. Line and scatter markers stroke a 2px surface
+  ring on the glyph's own outline, and that ring eats inward along the whole perimeter, so a spiky glyph keeps less
+  of its fill: at the default marker radius the plus and the cross keep about half the circle's colored ink, and the
+  star about 44%.
+
+  **The pairing reads the series slot.** Automatic series take unreserved slots in composition order. A series with
+  `seriesSlot={3}` wears the triangle from whatever position it registers in. A series with `seriesSlot="other"`
+  wears the circle. Several series may share one slot. If another channel must tell them apart, give each member its
+  own `shape` or `texture`.
+
+  **Automatic glyphs follow the current composition.** Removing an automatic series closes the gap. When a series
+  must keep one color-and-shape identity as siblings appear or disappear, set `seriesSlot`.
+
+  **An explicit `shape` still wins.** The paired glyph is a default, not a policy. A chart that already sets `shape`
+  on every series paints exactly as it did before.
+
+  **Bar series are unchanged.** A bar encodes identity by `texture` rather than by glyph, and texture stays opt-in —
+  nothing assigns one for you. `shape` serves the line, area, and scatter marks.
+
+- [#1390](https://github.com/ngrok/mantle/pull/1390) [`c117f9e`](https://github.com/ngrok/mantle/commit/c117f9ec67f22ce63475effed0af135d657fad3c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `seriesSlot` to `BarChart.Bar`, `LineChart.Line`, `AreaChart.Area`, and `ScatterPlot.Point` for charts that need a fixed visual identity.
+
+  Series receive unreserved slots in composition order. Set `seriesSlot` to give a series a fixed visual identity. Slots `1` through `8` select the built-in color-and-shape pair. `"other"` selects the neutral tail treatment. Several related series may share one slot.
+
+  Automatic assignments now derive from the currently composed series. Removing an automatic series closes the gap. Mantle reserves fixed slots before automatic series take the remaining slots.
+
+  The `color` and `shape` props now override only their own channels. They do not change slot assignment. When the intent is to select the fourth built-in identity rather than to override only the paint, replace `color="chart-4"` with `seriesSlot={4}`.
+
+- [#1390](https://github.com/ngrok/mantle/pull/1390) [`c117f9e`](https://github.com/ngrok/mantle/commit/c117f9ec67f22ce63475effed0af135d657fad3c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - **Bar Chart: two new fill textures, one per color slot.** `BarChart.Bar`'s `texture` prop takes eight values now —
+  `"solid"`, `"hatch"`, `"hatch-reverse"`, `"crosshatch"`, `"perpendicular"`, `"parallel"`, `"grid"`, `"dots"` — one for
+  each of the palette's eight validated color slots. Both additions paint on the bars and on the series' legend key. The
+  key's `data-texture` attribute carries the new values for consumer CSS.
+
+  **`"parallel"`** inks one rung per tile along the bar's length: vertical lines on vertical bars, horizontal lines on
+  horizontal bars. It is the exact complement of `"perpendicular"`, whose rung runs across the bar's length instead. Both
+  rung textures flip with the Root's `orientation`, in opposite senses, so a horizontal chart keeps the two apart.
+
+  **`"grid"`** inks both rung directions at once — the orthogonal lattice against `"crosshatch"`'s diagonal one. It is
+  direction-free: an `orientation` change leaves the lattice identical. Two rung directions ink twice over, so its rungs
+  are thinner than `"perpendicular"`'s lone rung; at the rung width a grid tile would read as a darker solid. Both new
+  tiles measure inside the ink-coverage band the five non-solid values before them set, so a textured series never shouts
+  over a solid one.
+
+  Texture stays a redundant identity encoding alongside color, never decoration. The ink is tone-on-tone — a darker step
+  of the series' own fill — so a chart keeps its series apart without color vision, in grayscale print, and under forced
+  colors. Keep it opt-in: leave the first series solid and texture the rest, or texture only the pair that color alone
+  cannot separate.
+
+  **Several series may share one series slot on purpose.** Set the same `seriesSlot` on every member, then give each
+  member its own `texture`. The chart reserves that slot once. Three series with `seriesSlot={1}` and three textures
+  leave seven slots for their automatic siblings, so ten series paint in categorical colors and none falls to
+  `--color-chart-other`.
+
+  Four things to know before you reach for it:
+
+  - **Every member sets the same `seriesSlot`.** Mantle reserves fixed slots before automatic series take the remaining
+    slots.
+  - **Give every member a distinct `texture`.** Nothing checks it. Two series may share one slot with the same texture,
+    paint pixel-identically, and draw no warning.
+  - **A member that drops `seriesSlot` needs a slot of its own.** It takes the next unreserved slot in composition order.
+  - **One hue across several series reads as one group.** Reach for the technique when those series really do belong
+    together, keep the legend on screen, and check the shared token against its neighbors first. Texture is a second
+    encoding on top of a legal color, and it never makes an illegal color legal: a pair under the colorblind-safe floor
+    stays illegible whatever the fill.
+
+  Eight series or fewer is still the default advice — rank by the window's total, keep the top seven, and sum the rest
+  into one `"Other"` series. A shared slot is the narrow exception, for series that really do belong together.
+
+  Docs: [Textures](https://mantle.ngrok.com/components/charts/bar-chart#textures) and
+  [Chart color tokens](https://mantle.ngrok.com/components/charts/bar-chart#chart-color-tokens).
+
+- [#1387](https://github.com/ngrok/mantle/pull/1387) [`69d6c7b`](https://github.com/ngrok/mantle/commit/69d6c7ba9b5ba94163a2b86dad93a613068327a4) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix `Choice` publishing none of its per-part documentation, so hovering `Choice.Root` in an editor showed
+  nothing.
+
+  Each `Choice` part carries a summary, a `@see` link to its docs anchor, and an `@example` in the source, and
+  none of it reached the published types. The namespace object was declared with an explicit type annotation —
+  `const Choice: { Root: typeof Root; … } = { … } as const` — and the build emits the annotation in place of
+  the documented object literal. `dist` shipped a bare member list. `Choice` was the only namespace in the
+  package written that way, so every other compound component already documented its parts here.
+
+  The annotation is gone. `as const` alone emits the same named member types and keeps the documentation, and
+  it restores the `readonly` modifiers the annotation was discarding: `readonly Root: typeof Root` instead of
+  `Root: typeof Root`. The parts, their props, and their runtime behavior are unchanged.
+
+  `COMPONENT_SPEC.md` asks for the annotation when a member's type comes from a third-party namespace, and it
+  now records this cost, because the published types are the only channel that feeds editor tooltips.
+
+- [#1371](https://github.com/ngrok/mantle/pull/1371) [`0d9bf76`](https://github.com/ngrok/mantle/commit/0d9bf76e077d6b0707db1dc1d1487d3c20a2cfec) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump the `@tanstack/react-virtual` runtime dependency to 3.14.9.
+
+- [#1378](https://github.com/ngrok/mantle/pull/1378) [`4b74f6c`](https://github.com/ngrok/mantle/commit/4b74f6cd5bec5c9774823ae798e15f564b438bcd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix `Sidebar.Tooltip` popping a label when the panel collapses, with no pointer anywhere near the row.
+
+  The part gated its `Tooltip.Content` on the collapsed rail state but left `Tooltip.Root` to manage its own
+  open state — and Radix's pointer close path lives _inside_ the content, which tracks the pointer leaving the
+  trigger. With the content withheld, nothing could close it: the pointer crossing an expanded row on its way
+  to the collapse trigger latched that row's label open, invisibly, and collapsing the panel then mounted every
+  latched label at once. The app shell demos put the account switcher row right beside the `Sidebar.Trigger`, so
+  a tooltip appeared on nearly every collapse. The same stale open state pointed the row's `aria-describedby` at
+  an id that was not in the document and left `data-state="instant-open"` on rows in the expanded panel.
+
+  A row wrapped in a menu or dialog trigger latched the same way without any hover: closing the overlay restores
+  focus to the row, and Radix opens a tooltip on focus. In the shell demos that is the account switcher, which
+  is why collapsing right after using its menu showed the account's name in the rail.
+
+  The rail state is now a veto on a controlled open state rather than a gate on the content, and a rail toggle
+  resets it, so:
+
+  - the expanded panel and the mobile sheet keep every row at `data-state="closed"` with no `aria-describedby`;
+  - collapsing or expanding dismisses the label instead of replaying a stale one — including the reverse case,
+    where a label shown in the rail survived an expand and reappeared on the next collapse;
+  - the label closes when the pointer leaves the row. `disableHoverableContent` moves that close onto the
+    trigger, which is mounted at every rail state, and a rail label has nothing to hover into — per the
+    WAI-ARIA tooltip pattern it holds no interactive content.
+
+  Opening is unchanged otherwise: the pointer entering a row in the collapsed rail, or focus reaching it, still
+  shows the label. `Tooltip.Root` still stays mounted at every rail state, so toggling the rail never drops
+  focus off the row the user was on.
+
+- [#1386](https://github.com/ngrok/mantle/pull/1386) [`9db190a`](https://github.com/ngrok/mantle/commit/9db190a647644f2c73d2ee74164f4d343e8e1820) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix `BarChart` rendering on stacked charts whose series are zero on most columns — the shape a "usage by
+  provider" or "usage by access key" chart produces. Five defects, all of which got louder as the series count
+  grew.
+
+  **The rounded cap went to the last-registered series, not to the segment on top.** `rounded` came from
+  `seriesIndex === specs.length - 1`, computed once per series outside the per-column loop. A value of exactly
+  `0` is not a gap — it stacks with `lower === upper` — so the last series pushed a zero-extent rect carrying the
+  column's only rounded corner, and the renderer dropped it for having no height. Two columns with
+  pixel-identical silhouettes rendered one square and one capped, decided by which alphabetically-sorted series
+  happened to have data. `computeStackBoundaries` now records the data end of each column's positive and
+  negative pile, and the cap goes to every segment reaching that end within a pixel. Pixel distance settles the
+  sub-pixel case too: a series contributing a fraction of a pixel paints no ink, so it can no longer take the
+  cap away from the segment the column actually shows.
+
+  **The 2px surface gap carved against nothing.** The old gate asked only `seriesIndex > 0`, which never asked
+  whether a segment painted below. With sparse data the first painted segment routinely sits at a nonzero series
+  index with a stacked lower boundary still at `0`, so the whole column lifted 2px off the zero baseline and
+  showed the grid through the seam. The gate is now the zero pixel: a column whose stack below rounds to no ink
+  stays welded to the axis.
+
+  **The gap also erased segments shorter than 2px.** Subtracting the full gap from a 1px segment pushed its
+  baseline edge past its data edge, and the renderer drew the inverted rect on the wrong side of its own
+  boundary — or dropped it outright when the two edges met. Sub-cent contributions against a dollar-scale axis
+  land in that regime constantly. The carve now takes at most half the segment, so a taller segment always
+  paints taller.
+
+  **Diverging stacks capped the wrong end.** `computeStackBoundaries` stores a negative segment inverted, so
+  reading `lower` as the baseline side put the cap, the enter reveal, and the gap on the edge facing zero. Each
+  segment now picks its ends by pile.
+
+  **`orientation="horizontal"` had all four defects verbatim.** Both orientations now share one pure
+  `stackedSegmentEdges` helper instead of mirrored copies.
+
+  Alongside those, three fixes to how a bar chart reads under the pointer:
+
+  - **The hover band no longer washes over its neighbors.** It drew at `max(step, 24)px` while the hit region is
+    exactly one step, so above roughly 43 categories the highlight reached into the next bar — at 60 categories,
+    a third of the way — and at the last category it spilled past the plot edge. The band now covers the same
+    span the hit test inverts, and it centers itself when a dense axis drives the step below a pixel.
+  - **A stacked segment resolves by containment.** `onDatumActivate`'s `dataKey` came from the nearest cumulative
+    boundary, which is right for a stacked line or area, where the mark _is_ the boundary. For a bar the mark is
+    the filled span, so the half of every segment nearer the baseline reported the series below it.
+  - **A tooltip no longer covers the x-axis tick labels.** The vertical clamp reached the bottom of the plot
+    wrapper, which is the row the axis band reserves for its labels. The clamp now holds the readout inside the
+    plot rect and falls back to the wrapper's top edge only for a readout too tall to fit.
+
+  Finally, **an all-zero bar or area chart keeps its baseline at the axis minimum.** Nicing a flat domain pads it
+  to `[-1, 1]`, which floated the zero line through the middle of the plot on a chart whose minimum is
+  documented as fixed at `0` — visible on any "no usage yet" card.
+
+  Two additions cover all four chart families:
+
+  - **The three hover layers now carry a `data-slot`.** `<family>-crosshair`, `<family>-hover-band`, and
+    `<family>-markers` join the slots the Root already stamps, so a consumer restyles a layer through the slot
+    instead of a structural child selector. Each family's docs page gains a data-attribute table listing the
+    Root's whole slot inventory. The layers mount on every kind, and the engine writes their geometry as inline
+    styles — restyle color and border, and leave the transform alone.
+  - **The docs describe paint order precisely.** The store keys a series' paint position to its `dataKey` on first
+    registration. Series that mount together register in composition order, but a series that mounts later paints
+    last whatever its position in the JSX. A `dataKey` that returns resumes its original position, and reordering
+    the parts of a mounted chart restacks nothing. Nine sentences across the four pages and their JSDoc twins said
+    otherwise.
+
+  Nothing here changes a prop or an export. Grouped bars, single-series bars, and the line and scatter families
+  keep their geometry.
+
+- [#1385](https://github.com/ngrok/mantle/pull/1385) [`6e679f6`](https://github.com/ngrok/mantle/commit/6e679f6efcb96b843a504805dd291e69a2e08e87) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Rewrote comments and JSDoc across the library against the new `CONVENTIONS.md § Writing` standard. This is a
+  prose change: no component behavior, API, prop, type, or class name moves. The rewritten JSDoc ships in the
+  published `.d.ts`, so consumers see it in editor tooltips.
+
+  Seven JSDoc blocks were wrong before this pass, so their published text changes meaning:
+
+  - **`Select.Value`** now names the case where the styling restriction bites: under
+    `Select.Content position="item-aligned"`, Radix measures this element's box to align the open list over the
+    selected item. The old text gave the instruction with no reason.
+  - **`Table.Root`** names what it does — it draws the border and rounded corners, and scrolls wide content
+    horizontally with a fading scroll edge. The old summary called that "additional functionality".
+  - **`Select.Item`** points at `onValueChange` instead of the deprecated `onChange`.
+  - **`Combobox.ItemValue`** says that `value` and `userValue` override the defaults only when you pass them.
+  - **`TooltipProvider`** restores the one-instance rule and names what a second provider actually changes: it
+    applies its own timing props to its subtree, and it tracks `skipDelayDuration` separately, so a pointer
+    that moves between the two waits the delay again.
+  - **`useBreakpoint`** states what it returns — the largest matching Tailwind breakpoint, or `"default"` below
+    `2xs` — rather than narrating `useSyncExternalStore`.
+  - **`useIsBelowBreakpoint`** states what it returns: `true` while the viewport is narrower than the given
+    breakpoint.
+
+  Several summaries that restated their own identifier now name what the part does that a sibling does not.
+  `Card.Header`, `Card.Footer`, `Card.Title`, `Command.Root`, `Command.Input`, `Command.List`, `Command.Empty`,
+  `Command.Group`, `Command.Item`, `Combobox.Root`, `MultiSelect.Root`, `Tabs.Root`, `Tabs.Badge`,
+  `AlertDialog.Root`, `Table.Root`, and `Theme` are the visible ones, and each docs-page copy moved with them.
+
+  `Tabs.Root` and `Combobox.Root` state what they own rather than which parts read it. The earlier wording named
+  the parts that read the context, which under-reported the reach: `Tabs.Content` carries `data-orientation`
+  through Radix's own context, and `Combobox.ItemValue` and `Combobox.Group` read the ariakit store through
+  ariakit. `Tabs.Root` now names the `data-orientation` and `data-appearance` attributes it stamps, which any
+  descendant can select against.
+
+  Four summaries no longer read as a copy of a sibling's:
+
+  - **`IconButton`** leads with what makes it an icon button — one icon and nothing else, with the required
+    `label` prop carrying the accessible name. It opened with `Button`'s three sentences verbatim.
+  - **`Switch`** names its difference from `Checkbox`: no indeterminate state. The two shared one sentence.
+  - **`Icons`**, **`Pagination`**, and **`Theme`** say what their module exports. Each published only
+    "Re-exports for the … component."
+  - **`Alert.Icon`** was missing a verb, and its three copies disagreed three ways.
+
+- [#1378](https://github.com/ngrok/mantle/pull/1378) [`4b74f6c`](https://github.com/ngrok/mantle/commit/4b74f6cd5bec5c9774823ae798e15f564b438bcd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Modernize the `Sidebar` and `AppLayout` class strings to Tailwind v4 syntax. The compiled CSS is unchanged —
+  these are the shorthands v4 added for what the bracket forms already expressed:
+
+  | Before                                      | After                                     |
+  | ------------------------------------------- | ----------------------------------------- |
+  | `w-[var(--sidebar-width,16rem)]`            | `w-(--sidebar-width,16rem)`               |
+  | `m-[var(--app-layout-card-gutter,0.5rem)]`  | `m-(--app-layout-card-gutter,0.5rem)`     |
+  | `group-data-[hydrated]/sidebar-nav:`        | `group-data-hydrated/sidebar-nav:`        |
+  | `group-has-[[data-slot~=sidebar-header]]/…` | `group-has-data-[slot~=sidebar-header]/…` |
+  | `[border-radius:0.625rem]`                  | `rounded-[0.625rem]`                      |
+  | `[&>:first-child]:size-7`                   | `*:first:size-7`                          |
+
+  The CSS variables, their fallbacks, and the selectors they compile to are identical — the variable shorthand
+  carries its fallback (`w-(--sidebar-width,16rem)` still emits `width: var(--sidebar-width,16rem)`), and both
+  `:has()` forms match the same `data-slot` token. Only the class strings on the elements changed, so update any
+  test or stylesheet that matches them literally.
+
 ## 0.82.1
 
 ### Patch Changes
