@@ -262,10 +262,11 @@ MARK: THEME
 	--ring-color-focus-success: var(--ring-color-focus-success);
 
 	/* Chart series tokens — an ordered categorical palette for data visualization.
-	   Each theme file picks the ramp step that passes the palette validation gates
-	   (CVD-safe adjacency, normal-vision floor, >= 3:1 contrast on the card surface)
-	   for that theme. Assign slots to series in order and never re-assign a series'
-	   slot when others are filtered out; series beyond 8 use --color-chart-other. */
+	   Each theme file authors its own eight oklch() literals, measured so every
+	   pair of slots stays apart for full-color readers and for dichromats, and so
+	   every slot clears 3:1 on that theme's card surface. Assign slots to series in
+	   order and never re-assign a series' slot when others are filtered out; series
+	   beyond 8 use --color-chart-other. */
 	--color-chart-1: var(--color-chart-1);
 	--color-chart-2: var(--color-chart-2);
 	--color-chart-3: var(--color-chart-3);
@@ -374,18 +375,20 @@ from `:root` (see MARK: INVERT THEME below).
 	--color-selected-menu-item: --alpha(var(--color-accent-500) / 0.1);
 	--color-active-selected-menu-item: --alpha(var(--color-accent-500) / 0.15);
 
-	/* Chart series tokens — light picks validated against the white card surface:
-	   worst adjacent CVD ΔE 14.0 (target ≥ 8), normal-vision floor 15.7 (≥ 15),
-	   all slots ≥ 3:1 contrast. Semantic ramps (sky/emerald/rose/amber/purple) are
-	   deliberately excluded so a series never reads as a status color. */
-	--color-chart-1: var(--color-blue-500);
-	--color-chart-2: var(--color-green-700);
-	--color-chart-3: var(--color-pink-500);
-	--color-chart-4: var(--color-red-600);
-	--color-chart-5: var(--color-teal-600);
-	--color-chart-6: var(--color-orange-600);
-	--color-chart-7: var(--color-violet-500);
-	--color-chart-8: var(--color-yellow-700);
+	/* Chart series tokens — light's eight marks, in slot order: blue, green, pink,
+	   red-orange, teal, magenta, violet, amber. Each is a bespoke oklch() literal,
+	   tuned so all 28 pairs clear the gates; the ramp steps this replaced held only
+	   the adjacent ones. Measured on the white card surface: worst pair ΔE 15.47 for
+	   full-color vision, 9.58 under simulated protanopia or deuteranopia, 3.61:1
+	   lowest contrast. chart/tokens.test.ts re-measures every number here. */
+	--color-chart-1: oklch(0.622 0.203 259); /* #2d81fe */
+	--color-chart-2: oklch(0.478 0.106 159.7); /* #086f47 */
+	--color-chart-3: oklch(0.644 0.258 1.2); /* #fd0983 */
+	--color-chart-4: oklch(0.519 0.192 31.8); /* #be2409 */
+	--color-chart-5: oklch(0.611 0.103 204.6); /* #0895a0 */
+	--color-chart-6: oklch(0.501 0.208 334.3); /* #a31992 */
+	--color-chart-7: oklch(0.473 0.227 290.6); /* #632bce */
+	--color-chart-8: oklch(0.621 0.125 80.1); /* #ad7d0f */
 	--color-chart-other: var(--color-neutral-500);
 
 	--text-color-strong: var(--color-neutral-950);

@@ -258,6 +258,14 @@ describe("the materialized default palette (mantle.css light base)", () => {
 	// Custom stops that intentionally diverge are exempt from the verbatim check.
 	const intentionalCustomStops = new Set(["--color-neutral-950", "--color-sky-600"]);
 
+	/**
+	 * The eight chart slots, which no default can match. Each theme authors its
+	 * own `oklch()` literal. `@theme inline` registers the name alone.
+	 * `components/chart/tokens.test.ts` gates those values: it pins every slot's
+	 * literal and its declaring file in all four themes.
+	 */
+	const isChartSlot = (property: string) => /^--color-chart-[1-8]$/.test(property);
+
 	test("the page-level light block restates no unmodified Tailwind default", () => {
 		// This is the whole reason for the island-only scope: `@theme` variables are
 		// emitted into `@layer theme` and unlayered author CSS beats every layer, so
@@ -296,12 +304,17 @@ describe("the materialized default palette (mantle.css light base)", () => {
 		expect(invertRules[0]?.selector).toContain(":root.dark");
 	});
 
-	test("every light color is a Tailwind default, a mantle @theme literal, an alias, or an intentional custom stop", () => {
+	test("every light color is a Tailwind default, a mantle @theme literal, an alias, a chart slot, or an intentional custom stop", () => {
 		const mismatches = [...lightBlock]
 			.filter(([property]) => property.startsWith("--color-"))
 			.filter(([property, value]) => {
-				if (intentionalCustomStops.has(property) || property.startsWith("--color-blue-")) {
-					// the blue ramp and the custom stops are mantle's own light values
+				if (
+					intentionalCustomStops.has(property) ||
+					property.startsWith("--color-blue-") ||
+					isChartSlot(property)
+				) {
+					// the blue ramp, the chart slots, and the custom stops are mantle's own
+					// light values
 					return false;
 				}
 				if (value.includes("var(")) {

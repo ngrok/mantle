@@ -756,8 +756,8 @@ describe("LineChart.Legend", () => {
 	});
 });
 
-describe("LineChart sticky series colors", () => {
-	test("filtering a series out does not recolor the survivors", () => {
+describe("LineChart series slots", () => {
+	test("a fixed slot keeps a series identity across conditional composition", () => {
 		const filterableData = [
 			{ time: new Date("2026-07-18T10:00:00Z"), p50: 120, p99: 480, p95: 300 },
 			{ time: new Date("2026-07-18T10:01:00Z"), p50: 132, p99: 510, p95: 320 },
@@ -765,7 +765,7 @@ describe("LineChart sticky series colors", () => {
 		const { container, rerender } = render(
 			<LineChart.Root data={filterableData} xKey="time" aria-label="Request latency">
 				<LineChart.Line dataKey="p50" label="p50" />
-				<LineChart.Line dataKey="p99" label="p99" />
+				<LineChart.Line dataKey="p99" label="p99" seriesSlot={2} />
 				<LineChart.Legend />
 			</LineChart.Root>,
 		);
@@ -778,19 +778,16 @@ describe("LineChart sticky series colors", () => {
 		};
 		const [, p99Before] = swatchColors();
 		expect(p99Before).toContain("chart-2");
-		// Filter p50 out and introduce a new series: p99 must keep chart-2 (color
-		// follows the entity, never its position) and the newcomer claims the next
-		// never-used slot.
 		rerender(
 			<LineChart.Root data={filterableData} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p99" label="p99" />
+				<LineChart.Line dataKey="p99" label="p99" seriesSlot={2} />
 				<LineChart.Line dataKey="p95" label="p95" />
 				<LineChart.Legend />
 			</LineChart.Root>,
 		);
 		const [p99After, p95After] = swatchColors();
 		expect(p99After).toBe(p99Before);
-		expect(p95After).toContain("chart-3");
+		expect(p95After).toContain("chart-1");
 	});
 });
 

@@ -330,17 +330,22 @@ MARK: INVERT THEME in mantle.css for the full strategy.
 	--color-card-border-muted: var(--color-neutral-200);
 	--color-separator: --alpha(var(--color-gray-600) / 0.2);
 
-	/* Chart series tokens — dark picks validated against the dark card surface
-	   (neutral-100). Dark ramps mirror light (step N = light step 1000−N), so each
-	   slot resolves to the same color as its light twin while staying on-token. */
-	--color-chart-1: var(--color-blue-500);
-	--color-chart-2: var(--color-green-300);
-	--color-chart-3: var(--color-pink-500);
-	--color-chart-4: var(--color-red-400);
-	--color-chart-5: var(--color-teal-400);
-	--color-chart-6: var(--color-orange-400);
-	--color-chart-7: var(--color-violet-500);
-	--color-chart-8: var(--color-yellow-300);
+	/* Chart series tokens — dark's eight marks, in slot order: blue, green, pink,
+	   red-orange, teal, magenta, violet, amber. A slot keeps its family across the
+	   themes. Nothing else carries over: this theme re-tunes lightness, chroma, and
+	   hue together against the dark card surface (neutral-100), so every slot is its
+	   own literal. Chroma moves the most — chart-6 gains 25% over light's — and
+	   chart-4's hue drifts 9.4 degrees. Measured on that surface: worst pair ΔE
+	   15.07 for full-color vision, 9.55 under simulated protanopia or deuteranopia,
+	   3.65:1 lowest contrast. */
+	--color-chart-1: oklch(0.668 0.168 260.3); /* #5492fa */
+	--color-chart-2: oklch(0.537 0.121 160.1); /* #018355 */
+	--color-chart-3: oklch(0.627 0.242 6.7); /* #f41a70 */
+	--color-chart-4: oklch(0.565 0.169 41.2); /* #c3490a */
+	--color-chart-5: oklch(0.668 0.112 198.8); /* #0da9ae */
+	--color-chart-6: oklch(0.584 0.261 332.9); /* #cc04bb */
+	--color-chart-7: oklch(0.573 0.244 285.4); /* #744ffe */
+	--color-chart-8: oklch(0.668 0.137 83.5); /* #bd8c01 */
 	--color-chart-other: var(--color-neutral-500);
 
 	--text-color-strong: #fff;

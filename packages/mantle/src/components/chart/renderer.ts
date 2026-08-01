@@ -419,6 +419,139 @@ const drawDecimatedArea = (
 type PathTraceContext = Pick<CanvasRenderingContext2D, "arc" | "moveTo" | "lineTo" | "closePath">;
 
 /**
+ * A closed outline as unit offsets from the glyph's center, in the winding
+ * order the path traces. A tracer multiplies each offset by one length, so the
+ * shape's whole size lives in that single constant.
+ */
+type UnitOutline = readonly (readonly [number, number])[];
+
+/**
+ * Trace a unit outline scaled by `size` and centered on (x, y).
+ */
+const traceOutline = (
+	ctx: PathTraceContext,
+	x: number,
+	y: number,
+	size: number,
+	outline: UnitOutline,
+): void => {
+	let started = false;
+	for (const [unitX, unitY] of outline) {
+		if (started) {
+			ctx.lineTo(x + unitX * size, y + unitY * size);
+		} else {
+			ctx.moveTo(x + unitX * size, y + unitY * size);
+			started = true;
+		}
+	}
+	ctx.closePath();
+};
+
+/**
+ * The Greek cross in units of its half-extent, clockwise from the upper arm's
+ * left corner. Arms are a third of the span, which is what the area constant
+ * in the `plus` tracer solves for.
+ */
+const GREEK_CROSS_OUTLINE: UnitOutline = [
+	[-1 / 3, -1],
+	[1 / 3, -1],
+	[1 / 3, -1 / 3],
+	[1, -1 / 3],
+	[1, 1 / 3],
+	[1 / 3, 1 / 3],
+	[1 / 3, 1],
+	[-1 / 3, 1],
+	[-1 / 3, 1 / 3],
+	[-1, 1 / 3],
+	[-1, -1 / 3],
+	[-1 / 3, -1 / 3],
+];
+
+/**
+ * The same Greek cross turned 45°. Rotation keeps every distance, so the
+ * `cross` tracer scales it by the `plus` tracer's half-extent unchanged.
+ */
+const DIAGONAL_CROSS_OUTLINE: UnitOutline = GREEK_CROSS_OUTLINE.map(
+	([unitX, unitY]) => [(unitX - unitY) / Math.SQRT2, (unitX + unitY) / Math.SQRT2] as const,
+);
+
+/**
+ * The five-pointed star in units of its outer radius, apex up: ten vertices
+ * alternating between the outer radius and the classic 0.382 pentagram notch
+ * (cos 72° / cos 36°, the ratio d3's `symbolStar` uses).
+ */
+const STAR_OUTLINE: UnitOutline = Array.from({ length: 10 }, (_unused, vertex) => {
+	const angle = -Math.PI / 2 + (vertex * Math.PI) / 5;
+	const distance = vertex % 2 === 0 ? 1 : 0.382;
+	return [Math.cos(angle) * distance, Math.sin(angle) * distance] as const;
+});
+
+/**
+ * One path tracer per {@link PointShape}, keyed by the union so a new glyph
+ * cannot ship without a canvas path. Every non-circle constant solves
+ * area = πr², so no glyph carries more ink than its siblings.
+ */
+const POINT_SHAPE_TRACERS: Record<
+	PointShape,
+	(ctx: PathTraceContext, x: number, y: number, radius: number) => void
+> = {
+	circle: (ctx, x, y, radius) => {
+		ctx.arc(x, y, radius, 0, Math.PI * 2);
+	},
+	square: (ctx, x, y, radius) => {
+		// side 2·0.886r ⇒ area (1.772r)² ≈ πr².
+		const half = radius * 0.886;
+		ctx.moveTo(x - half, y - half);
+		ctx.lineTo(x + half, y - half);
+		ctx.lineTo(x + half, y + half);
+		ctx.lineTo(x - half, y + half);
+		ctx.closePath();
+	},
+	triangle: (ctx, x, y, radius) => {
+		// Equilateral with circumradius 1.55r ⇒ (3√3/4)(1.55r)² ≈ πr².
+		const circumradius = radius * 1.55;
+		ctx.moveTo(x, y - circumradius);
+		ctx.lineTo(x + circumradius * 0.866, y + circumradius * 0.5);
+		ctx.lineTo(x - circumradius * 0.866, y + circumradius * 0.5);
+		ctx.closePath();
+	},
+	diamond: (ctx, x, y, radius) => {
+		// Half-diagonal 1.253r ⇒ 2(1.253r)² ≈ πr².
+		const half = radius * 1.253;
+		ctx.moveTo(x, y - half);
+		ctx.lineTo(x + half, y);
+		ctx.lineTo(x, y + half);
+		ctx.lineTo(x - half, y);
+		ctx.closePath();
+	},
+	"triangle-down": (ctx, x, y, radius) => {
+		// Equilateral with circumradius 1.55r, the triangle flipped
+		// ⇒ (3√3/4)(1.55r)² ≈ πr².
+		const circumradius = radius * 1.55;
+		ctx.moveTo(x, y + circumradius);
+		ctx.lineTo(x + circumradius * 0.866, y - circumradius * 0.5);
+		ctx.lineTo(x - circumradius * 0.866, y - circumradius * 0.5);
+		ctx.closePath();
+	},
+	plus: (ctx, x, y, radius) => {
+		// Greek cross, arms a third of the span: half-extent 1.189r
+		// ⇒ 5(2.378r)²/9 ≈ πr².
+		traceOutline(ctx, x, y, radius * 1.189, GREEK_CROSS_OUTLINE);
+	},
+	cross: (ctx, x, y, radius) => {
+		// The plus turned 45° — rotation keeps the area, so the same 1.189r
+		// half-extent holds. Widening it to fill a box would multiply the ink by
+		// 9/8 and break the pair.
+		traceOutline(ctx, x, y, radius * 1.189, DIAGONAL_CROSS_OUTLINE);
+	},
+	star: (ctx, x, y, radius) => {
+		// Five-pointed star at the classic 0.382 notch: outer radius 1.673r
+		// (inner 0.639r) ⇒ 5·0.382·sin36°·(1.673r)² ≈ πr².
+		traceOutline(ctx, x, y, radius * 1.673, STAR_OUTLINE);
+	},
+};
+
+/**
  * Trace one point glyph into the current path, centered on (x, y). Non-circle
  * sizes are scaled so every shape carries roughly the same visual weight
  * (equal fill area) as a circle of `radius`.
@@ -437,36 +570,7 @@ const tracePointShape = (
 	radius: number,
 	shape: PointShape,
 ): void => {
-	if (shape === "square") {
-		// side 2·0.886r ⇒ area (1.772r)² ≈ πr².
-		const half = radius * 0.886;
-		ctx.moveTo(x - half, y - half);
-		ctx.lineTo(x + half, y - half);
-		ctx.lineTo(x + half, y + half);
-		ctx.lineTo(x - half, y + half);
-		ctx.closePath();
-		return;
-	}
-	if (shape === "triangle") {
-		// Equilateral with circumradius 1.55r ⇒ (3√3/4)(1.55r)² ≈ πr².
-		const circumradius = radius * 1.55;
-		ctx.moveTo(x, y - circumradius);
-		ctx.lineTo(x + circumradius * 0.866, y + circumradius * 0.5);
-		ctx.lineTo(x - circumradius * 0.866, y + circumradius * 0.5);
-		ctx.closePath();
-		return;
-	}
-	if (shape === "diamond") {
-		// Half-diagonal 1.253r ⇒ 2(1.253r)² ≈ πr².
-		const half = radius * 1.253;
-		ctx.moveTo(x, y - half);
-		ctx.lineTo(x + half, y);
-		ctx.lineTo(x, y + half);
-		ctx.lineTo(x - half, y);
-		ctx.closePath();
-		return;
-	}
-	ctx.arc(x, y, radius, 0, Math.PI * 2);
+	POINT_SHAPE_TRACERS[shape](ctx, x, y, radius);
 };
 
 /**

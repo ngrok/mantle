@@ -33,6 +33,7 @@ import type {
 	BarTexture,
 	ChartDatum,
 	ChartDatumEvent,
+	ChartSeriesSlot,
 	ContinuousXScale,
 	CurveKind,
 	GridLines,
@@ -309,7 +310,7 @@ const ChartRootPrimitive = ({
 	tabIndex,
 	...props
 }: InternalRootProps) => {
-	// One store per Root lifetime: sticky color slots and part registrations
+	// One store per Root lifetime: series identity and part registrations
 	// survive re-renders (and StrictMode's double effect pass).
 	const [store] = useState(() => new ChartStore());
 	const engineRef = useRef<ChartEngine | null>(null);
@@ -617,10 +618,17 @@ const ChartRootPrimitive = ({
 type SeriesPrimitiveProps = {
 	dataKey: string;
 	label?: string;
+	seriesSlot?: ChartSeriesSlot;
 	color?: SeriesColor;
 	curve?: CurveKind;
 	markers?: boolean;
 	connectNulls?: boolean;
+	/**
+	 * The point glyph (scatter marks, line markers, hover dots) — worn by the
+	 * marks and their legend key. When omitted the series wears the glyph paired
+	 * to its series slot, so shape and color name the same slot with no consumer
+	 * effort.
+	 */
 	shape?: PointShape;
 	/** The fill texture (bar marks only) — worn by the bars and their legend key. */
 	texture?: BarTexture;
@@ -643,11 +651,14 @@ const useSeriesPrimitive = (
 	const {
 		dataKey,
 		label,
+		seriesSlot,
 		color,
 		curve = "linear",
 		markers = false,
 		connectNulls = false,
-		shape = "circle",
+		// No default: the store pairs an unset shape with the series slot,
+		// and only `undefined` tells it the consumer chose nothing.
+		shape,
 		texture = "solid",
 	} = props;
 	useLayoutEffect(
@@ -655,6 +666,7 @@ const useSeriesPrimitive = (
 			context.store.registerSeries({
 				dataKey,
 				label: label ?? dataKey,
+				seriesSlot,
 				color,
 				mark,
 				curve,
@@ -663,7 +675,19 @@ const useSeriesPrimitive = (
 				shape,
 				texture,
 			}),
-		[context.store, dataKey, label, color, mark, curve, markers, connectNulls, shape, texture],
+		[
+			context.store,
+			dataKey,
+			label,
+			seriesSlot,
+			color,
+			mark,
+			curve,
+			markers,
+			connectNulls,
+			shape,
+			texture,
+		],
 	);
 	return null;
 };
@@ -940,9 +964,54 @@ const LEGEND_SWATCH_PAINT_CLASSES =
 	"forced-color-adjust-none [print-color-adjust:exact] [-webkit-print-color-adjust:exact]";
 
 /**
+ * The legend chip's background layers, one entry per non-solid texture. Dots
+ * tile a sized radial gradient; every hatch and rung texture lays one or two
+ * stripe gradients. A two-family texture widens its period, so the 8px chip
+ * does not read as a darker solid.
+ *
+ * A total record makes a missing chip a compile error. The compiler names a
+ * ninth `BarTexture` value's missing entry, where a fall-through would paint it
+ * as dots — a wrong-but-plausible key nobody would question.
+ */
+const LEGEND_TEXTURE_LAYERS: Record<
+	Exclude<BarTexture, "solid">,
+	(paint: { ink: string; orientation: BarOrientation }) => CSSProperties
+> = {
+	hatch: ({ ink }) => ({ backgroundImage: legendHatchGradient("135deg", ink) }),
+	"hatch-reverse": ({ ink }) => ({ backgroundImage: legendHatchGradient("45deg", ink) }),
+	crosshatch: ({ ink }) => ({
+		// A wider period than the single-direction hatches: two 3px-period
+		// families on an 8px chip are ~56% ink and read as a darker solid.
+		backgroundImage: `${legendHatchGradient("135deg", ink, 4)}, ${legendHatchGradient("45deg", ink, 4)}`,
+	}),
+	perpendicular: ({ ink, orientation }) => ({
+		// The rung runs across the bar's length, so it flips with the bars:
+		// horizontal rungs on vertical bars, vertical rungs on horizontal bars —
+		// matching the canvas tile in texture.ts.
+		backgroundImage: legendHatchGradient(orientation === "horizontal" ? "90deg" : "0deg", ink),
+	}),
+	parallel: ({ ink, orientation }) => ({
+		// The complement of `"perpendicular"`, so the angles swap: vertical rungs
+		// on vertical bars, horizontal rungs on horizontal bars. Chip and tile
+		// must agree in direction, or the key stops matching the bars it names.
+		backgroundImage: legendHatchGradient(orientation === "horizontal" ? "0deg" : "90deg", ink),
+	}),
+	grid: ({ ink }) => ({
+		// Two families, so the period widens exactly as crosshatch's does: three
+		// 1px stripes per family are ~61% ink on an 8px chip, louder than every
+		// shipped key. Both families ink either way, which keeps the chip
+		// direction-free like its tile.
+		backgroundImage: `${legendHatchGradient("0deg", ink, 4)}, ${legendHatchGradient("90deg", ink, 4)}`,
+	}),
+	dots: ({ ink }) => ({
+		backgroundImage: `radial-gradient(circle at 1px 1px, ${ink} 0.75px, transparent 0.8px)`,
+		backgroundSize: "3px 3px",
+	}),
+};
+
+/**
  * The background layers mirroring a bar series' canvas texture on its legend
- * key — empty for solid fills so the plain swatch color shows. Dots tile a
- * sized radial gradient; every line texture is a repeating stripe gradient.
+ * key — empty for solid fills so the plain swatch color shows.
  */
 const legendTextureStyle = (
 	texture: BarTexture,
@@ -952,32 +1021,7 @@ const legendTextureStyle = (
 	if (texture === "solid") {
 		return {};
 	}
-	const ink = textureInkColor(color);
-	if (texture === "hatch") {
-		return { backgroundImage: legendHatchGradient("135deg", ink) };
-	}
-	if (texture === "hatch-reverse") {
-		return { backgroundImage: legendHatchGradient("45deg", ink) };
-	}
-	if (texture === "crosshatch") {
-		// A wider period than the single-direction hatches: two 3px-period
-		// families on an 8px chip are ~56% ink and read as a darker solid.
-		return {
-			backgroundImage: `${legendHatchGradient("135deg", ink, 4)}, ${legendHatchGradient("45deg", ink, 4)}`,
-		};
-	}
-	if (texture === "perpendicular") {
-		// The rung runs across the bar's length, so it flips with the bars:
-		// horizontal rungs on vertical bars, vertical rungs on horizontal bars —
-		// matching the canvas tile in texture.ts.
-		return {
-			backgroundImage: legendHatchGradient(orientation === "horizontal" ? "90deg" : "0deg", ink),
-		};
-	}
-	return {
-		backgroundImage: `radial-gradient(circle at 1px 1px, ${ink} 0.75px, transparent 0.8px)`,
-		backgroundSize: "3px 3px",
-	};
+	return LEGEND_TEXTURE_LAYERS[texture]({ ink: textureInkColor(color), orientation });
 };
 
 /**

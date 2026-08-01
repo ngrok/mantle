@@ -295,21 +295,23 @@ mantle.css for the full strategy.
 	--color-selected-menu-item: var(--color-accent-50);
 	--color-active-selected-menu-item: var(--color-accent-100);
 
-	/* Chart series tokens — dark-high-contrast picks validated against the card
-	   surface (#121212): CVD adjacency (worst ΔE 9.6), normal-vision floor
-	   (15.1), chroma, and contrast (6.76:1–12.23:1, zero warns) all pass. The
-	   standard dark lightness band (L ≤ 0.67) is unsatisfiable by construction
-	   in this theme — its ramps are bimodal around the band, and every in-band
-	   step fails 3:1 contrast — so these deliberately brighter marks are the
-	   correct high-contrast trade-off. */
-	--color-chart-1: var(--color-blue-300);
-	--color-chart-2: var(--color-green-300);
-	--color-chart-3: var(--color-pink-600);
-	--color-chart-4: var(--color-red-300);
-	--color-chart-5: var(--color-teal-300);
-	--color-chart-6: var(--color-orange-300);
-	--color-chart-7: var(--color-violet-300);
-	--color-chart-8: var(--color-yellow-300);
+	/* Chart series tokens — dark-high-contrast's eight marks, in slot order: blue,
+	   green, pink, red-orange, teal, magenta, violet, amber. Measured on the card
+	   surface (#121212): worst pair ΔE 15.05 for full-color vision, 9.57 under
+	   simulated protanopia or deuteranopia, 6.76:1 lowest contrast. All eight marks
+	   sit above the standard dark lightness ceiling (L 0.67) on purpose. At that
+	   ceiling only a narrow green window — hue 141 to 151 — reaches the 6.76:1 this
+	   theme holds, and all eight hues below fall outside it. Each caps under the
+	   floor there, the magenta lowest at 6.27:1.
+	   chart/tokens.test.ts records that waiver and runs every other gate unwaived. */
+	--color-chart-1: oklch(0.689 0.171 248.8); /* #2da0ff */
+	--color-chart-2: oklch(0.673 0.163 155.7); /* #07b269 */
+	--color-chart-3: oklch(0.813 0.107 12.6); /* #ffa5af */
+	--color-chart-4: oklch(0.71 0.19 42.7); /* #ff702c */
+	--color-chart-5: oklch(0.898 0.107 195.2); /* #7ef4f3 */
+	--color-chart-6: oklch(0.717 0.198 344.4); /* #f567c1 */
+	--color-chart-7: oklch(0.803 0.1 279.4); /* #b1b8ff */
+	--color-chart-8: oklch(0.835 0.133 88.5); /* #ecc458 */
 	--color-chart-other: var(--color-neutral-500);
 
 	--text-color-strong: var(--color-black);

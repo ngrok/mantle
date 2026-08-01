@@ -1284,8 +1284,8 @@ class ChartEngine {
 		const root = this.#elements.root;
 		// Pattern tiles rasterize at the device pixel ratio, so a dpr change
 		// (zoom, monitor move) re-resolves alongside theme changes. Orientation is
-		// in the key too: the "perpendicular" texture rung flips with the bars, so
-		// a runtime orientation change must regenerate the cached patterns.
+		// in the key too: both single-rung textures flip with the bars, so a
+		// runtime orientation change must regenerate the cached patterns.
 		const signature = `${themeSignature(root.ownerDocument.documentElement)}|${this.#dpr}|${this.#options.orientation}`;
 		if (this.#colors?.signature === signature) {
 			return;
@@ -2124,7 +2124,7 @@ class ChartEngine {
 					drawMarkers(ctx, {
 						color,
 						surface: colors.chrome.surface,
-						shape: spec.shape,
+						shape: this.#store.seriesShape(spec.dataKey),
 						indexes,
 						xAt,
 						yAt,
@@ -2468,7 +2468,7 @@ class ChartEngine {
 			drawScatterPoints(ctx, {
 				color: colors.series.get(spec.dataKey) ?? "currentColor",
 				surface: colors.chrome.surface,
-				shape: spec.shape,
+				shape: this.#store.seriesShape(spec.dataKey),
 				totalPointCount,
 				indexes,
 				xAt: (index) => (this.#xs[index] ?? 0) * xCo.k + xCo.b,
@@ -2610,6 +2610,9 @@ class ChartEngine {
 			order[slot] = slot;
 		}
 		order.sort((a, b) => (depths[b] ?? 0) - (depths[a] ?? 0));
+		// Resolve each series' glyph once per frame: `shapeAt` runs per point, and
+		// the cloud can carry tens of thousands of them.
+		const shapes = specs.map((spec) => this.#store.seriesShape(spec.dataKey));
 		drawDepthSortedPoints(ctx, {
 			count,
 			order,
@@ -2620,7 +2623,7 @@ class ChartEngine {
 				const spec = specs[projected.seriesIndex[slot] ?? 0];
 				return spec == null ? "currentColor" : (colors.series.get(spec.dataKey) ?? "currentColor");
 			},
-			shapeAt: (slot) => specs[projected.seriesIndex[slot] ?? 0]?.shape ?? "circle",
+			shapeAt: (slot) => shapes[projected.seriesIndex[slot] ?? 0] ?? "circle",
 			alphaAt: (slot) => seriesReveal[projected.seriesIndex[slot] ?? 0] ?? 1,
 			surface: colors.chrome.surface,
 		});
@@ -2944,12 +2947,23 @@ const advanceLabelFade = (
  * Per-glyph clip paths for the DOM hover dots and legend keys. The square is
  * inset toward equal fill area with the circle; the polygons are naturally
  * lighter than their box.
+ *
+ * The box is the ceiling here, not the polygon, so this family cannot hold the
+ * canvas paths' equal-area contract — the shipped triangle paints 64% of the
+ * circle's ink, and the star 39%. Each polygon does hold its canvas twin's
+ * silhouette. The cross is the plus rotated in place rather than widened to
+ * fill the box, so that pair carries equal ink here too.
  */
 const POINT_SHAPE_CLIP_PATHS: Record<PointShape, string> = {
 	circle: "circle(50%)",
 	square: "inset(8%)",
 	triangle: "polygon(50% 0%, 100% 100%, 0% 100%)",
 	diamond: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
+	"triangle-down": "polygon(0% 0%, 100% 0%, 50% 100%)",
+	plus: "polygon(33.33% 0%, 66.67% 0%, 66.67% 33.33%, 100% 33.33%, 100% 66.67%, 66.67% 66.67%, 66.67% 100%, 33.33% 100%, 33.33% 66.67%, 0% 66.67%, 0% 33.33%, 33.33% 33.33%)",
+	cross:
+		"polygon(73.57% 2.86%, 97.14% 26.43%, 73.57% 50%, 97.14% 73.57%, 73.57% 97.14%, 50% 73.57%, 26.43% 97.14%, 2.86% 73.57%, 26.43% 50%, 2.86% 26.43%, 26.43% 2.86%, 50% 26.43%)",
+	star: "polygon(50% 2.45%, 61.8% 38.77%, 100% 38.77%, 69.1% 61.23%, 80.9% 97.55%, 50% 75.1%, 19.1% 97.55%, 30.9% 61.23%, 0% 38.77%, 38.2% 38.77%)",
 };
 
 /**

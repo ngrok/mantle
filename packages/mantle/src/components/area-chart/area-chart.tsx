@@ -14,6 +14,7 @@ import type {
 import type {
 	ChartDatum,
 	ChartDatumEvent,
+	ChartSeriesSlot,
 	ContinuousXScale,
 	CurveKind,
 	PointShape,
@@ -63,12 +64,26 @@ type AreaChartAreaProps = {
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */
 	label?: string;
 	/**
-	 * One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`)
-	 * or any CSS color as an escape hatch. Defaults to the next sticky slot in
-	 * mount order. Static colors (raw hex) do not adapt across themes; custom
-	 * palettes must be validated for colorblind-safe adjacency and surface
-	 * contrast, and a series that carries good/bad meaning should wear the
-	 * semantic status colors, never a categorical slot.
+	 * A fixed visual identity slot. Slots `1` through `8` select a paired chart
+	 * color and point shape. `"other"` selects the shared neutral treatment.
+	 *
+	 * Series receive unreserved slots in composition order. Set `seriesSlot` to
+	 * give a series a fixed visual identity.
+	 *
+	 * @example
+	 * ```tsx
+	 * <AreaChart.Area dataKey="errors" seriesSlot={4} />
+	 * ```
+	 */
+	seriesSlot?: ChartSeriesSlot;
+	/**
+	 * Override the color channel with a chart token or any CSS color. This does
+	 * not change the series slot or its paired point shape. When omitted, the
+	 * series paints the color from its slot.
+	 *
+	 * A static color (raw hex) cannot follow the four themes, so prefer a
+	 * `var(--your-token)` declared per theme. A series that carries good/bad
+	 * meaning should wear the semantic status colors, never a categorical slot.
 	 */
 	color?: SeriesColor;
 	/**
@@ -82,9 +97,11 @@ type AreaChartAreaProps = {
 	 */
 	connectNulls?: boolean;
 	/**
-	 * The glyph the hover dot wears: `"circle"` (default), `"square"`,
-	 * `"triangle"`, or `"diamond"` — a redundant encoding alongside color that
-	 * keeps series distinguishable without color vision.
+	 * The glyph the hover dot and the legend key wear: `"circle"`, `"square"`,
+	 * `"triangle"`, `"diamond"`, `"triangle-down"`, `"plus"`, `"cross"`, or
+	 * `"star"`. Shape is a redundant encoding alongside color that keeps series
+	 * distinguishable without color vision. When omitted, the series wears the
+	 * glyph paired to its series slot, so both channels name one slot.
 	 */
 	shape?: PointShape;
 };
@@ -141,6 +158,9 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  * `area-chart-hover-band`, `area-chart-markers`, `area-chart-tooltip`, and
  * `area-chart-data-table`. An area chart shows the crosshair and one marker dot
  * per series, and never the band, but all three layers mount on every kind.
+ * Each hover dot carries `chart-active-point` plus a `data-shape` of
+ * `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`,
+ * `"plus"`, `"cross"`, or `"star"`, naming the glyph its series wears.
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartroot
  *
@@ -306,6 +326,13 @@ const Tooltip = (props: AreaChartTooltipProps) => useTooltipPrimitive("AreaChart
  * must never rely on color-matching alone. It renders nothing for a single
  * series (the chart's title already names it).
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"area-chart-legend"` | The legend list. `AreaChart.Legend` renders it in flow below the plot. |
+ * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On each series' swatch, naming the glyph its `AreaChart.Area` wears — the `shape` it set, else the one paired to its series slot. The swatch clips itself to that glyph, so target this only to restyle a key. |
+ *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartlegend
  *
  * @example
@@ -360,6 +387,20 @@ const CopyButton = (props: AreaChartCopyButtonProps) => (
  * every-series tooltip, keyboard stepping, aria-live announcements, and an
  * sr-only data table — ships with `Root` unconditionally; large datasets
  * decimate before painting on canvas.
+ *
+ * **CSS variables (public API):**
+ *
+ * | CSS Variable | Default | Description |
+ * | --- | --- | --- |
+ * | `--color-chart-1` … `--color-chart-8` | per theme | The validated categorical series slots, in assignment order. |
+ * | `--color-chart-other` | `--color-neutral-500` | The neutral overflow slot a series wears once every slot is held. |
+ *
+ * Two ways to change a series color, both public API. The `color` prop on
+ * `AreaChart.Area` sets one series and takes any CSS color. To restyle a slot itself,
+ * redeclare its token on `Root` —
+ * `className="[--color-chart-1:var(--color-brand)]"`. The engine resolves every
+ * token through a probe inside `Root`, so a declaration scoped there wins for
+ * that chart and leaves every other chart on the page alone.
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart
  *

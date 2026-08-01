@@ -11,7 +11,13 @@ import type {
 	XAxisPrimitiveProps,
 	YAxisPrimitiveProps,
 } from "../chart/primitive.js";
-import type { ChartDatum, ChartDatumEvent, PointShape, SeriesColor } from "../chart/types.js";
+import type {
+	ChartDatum,
+	ChartDatumEvent,
+	ChartSeriesSlot,
+	PointShape,
+	SeriesColor,
+} from "../chart/types.js";
 import {
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
@@ -30,9 +36,9 @@ import {
  * switch the chart into the 3D projection: points render inside a rotatable
  * cube (drag to orbit), depth-sorted with gentle perspective.
  *
- * Scatter is an all-pairs chart form — any two marks can sit side by side —
- * so with the default chart tokens keep it to FOUR series or fewer; beyond
- * that, fold into an "Other" series or facet into small multiples.
+ * Scatter is an all-pairs chart form — any two marks can sit side by side. The
+ * eight default chart tokens hold at every pair, so keep it to eight series or
+ * fewer. Past eight, fold into an "Other" series or facet into small multiples.
  */
 type ScatterPlotRootProps<TDatum extends ChartDatum = ChartDatum> = Omit<
 	ChartRootBaseProps,
@@ -84,20 +90,35 @@ type ScatterPlotPointProps = {
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */
 	label?: string;
 	/**
-	 * One of the validated chart tokens (`"chart-1"`…`"chart-8"`, `"chart-other"`)
-	 * or any CSS color as an escape hatch. Defaults to the next sticky slot in
-	 * mount order. Static colors (raw hex) do not adapt across themes; custom
-	 * palettes must be validated for colorblind-safe adjacency and surface
-	 * contrast, and a series that carries good/bad meaning should wear the
-	 * semantic status colors, never a categorical slot.
+	 * A fixed visual identity slot. Slots `1` through `8` select a paired chart
+	 * color and point shape. `"other"` selects the shared neutral treatment.
+	 *
+	 * Series receive unreserved slots in composition order. Set `seriesSlot` to
+	 * give a series a fixed visual identity.
+	 *
+	 * @example
+	 * ```tsx
+	 * <ScatterPlot.Point dataKey="errors" seriesSlot={4} />
+	 * ```
+	 */
+	seriesSlot?: ChartSeriesSlot;
+	/**
+	 * Override the color channel with a chart token or any CSS color. This does
+	 * not change the series slot or its paired point shape. When omitted, the
+	 * series paints the color from its slot.
+	 *
+	 * A static color (raw hex) cannot follow the four themes, so prefer a
+	 * `var(--your-token)` declared per theme. A series that carries good/bad
+	 * meaning should wear the semantic status colors, never a categorical slot.
 	 */
 	color?: SeriesColor;
 	/**
-	 * The glyph this series' points wear: `"circle"` (default), `"square"`,
-	 * `"triangle"`, or `"diamond"`. Give each series a distinct shape on
-	 * multi-series scatters — shape is the redundant encoding that keeps
-	 * overlapping clouds distinguishable without color vision. The legend key
-	 * and hover dot mirror it.
+	 * The glyph this series' points wear, mirrored by the legend key and the
+	 * hover dot: `"circle"`, `"square"`, `"triangle"`, `"diamond"`,
+	 * `"triangle-down"`, `"plus"`, `"cross"`, or `"star"`. Shape is the
+	 * redundant encoding that keeps overlapping clouds distinguishable without
+	 * color vision. When omitted, the series wears the glyph paired to its
+	 * series slot, so both channels name one slot.
 	 */
 	shape?: PointShape;
 };
@@ -149,7 +170,9 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
  * `scatter-plot-hover-band`, `scatter-plot-markers`, `scatter-plot-tooltip`,
  * and `scatter-plot-data-table`. A scatter plot shows one marker dot on the hit
  * point, and never the crosshair or the band, but all three layers mount on
- * every kind.
+ * every kind. That dot carries `chart-active-point` plus a `data-shape` of
+ * `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`,
+ * `"plus"`, `"cross"`, or `"star"`, naming the glyph its series wears.
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotroot
  *
@@ -310,6 +333,13 @@ const Tooltip = (props: ScatterPlotTooltipProps) =>
  * never rely on color-matching alone. It renders nothing for a single series
  * (the chart's title already names it).
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"scatter-plot-legend"` | The legend list. `ScatterPlot.Legend` renders it in flow below the plot. |
+ * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On each series' swatch, naming the glyph its `ScatterPlot.Point` wears — the `shape` it set, else the one paired to its series slot. The swatch clips itself to that glyph, so target this only to restyle a key. |
+ *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotlegend
  *
  * @example
@@ -355,8 +385,22 @@ const CopyButton = (props: ScatterPlotCopyButtonProps) => (
  * the 3D projection (`zKey`), which renders a rotatable, depth-sorted point
  * cloud (drag to orbit). Hover hits the nearest point within 24px; keyboard
  * stepping, polite announcements, and the sr-only data table ship with `Root`
- * unconditionally. Scatter is an all-pairs chart form: with the default chart
- * tokens keep it to four series or fewer.
+ * unconditionally. Scatter is an all-pairs chart form: the eight default chart
+ * tokens hold at every pair, so keep it to eight series or fewer.
+ *
+ * **CSS variables (public API):**
+ *
+ * | CSS Variable | Default | Description |
+ * | --- | --- | --- |
+ * | `--color-chart-1` … `--color-chart-8` | per theme | The validated categorical series slots, in assignment order. |
+ * | `--color-chart-other` | `--color-neutral-500` | The neutral overflow slot a series wears once every slot is held. |
+ *
+ * Two ways to change a series color, both public API. The `color` prop on
+ * `ScatterPlot.Point` sets one series and takes any CSS color. To restyle a slot itself,
+ * redeclare its token on `Root` —
+ * `className="[--color-chart-1:var(--color-brand)]"`. The engine resolves every
+ * token through a probe inside `Root`, so a declaration scoped there wins for
+ * that chart and leaves every other chart on the page alone.
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot
  *

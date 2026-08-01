@@ -45,11 +45,9 @@ type ContinuousXScale = Exclude<XScaleKind, "band">;
 type SeriesMark = "bar" | "line" | "area" | "scatter";
 
 /**
- * The ordered chart color tokens. A series claims a slot on its first
- * registration and keeps it while the palette has room. Once the eight
- * never-used slots run out, an incoming series takes a slot back from an
- * unmounted holder. A chart showing more than eight series at once paints the
- * ninth and later with `"chart-other"`.
+ * The ordered chart color tokens. Series use the first eight through automatic
+ * or fixed identity slots. `"chart-other"` is the shared neutral treatment for
+ * overflow and folded-tail series.
  */
 type ChartColorToken =
 	| "chart-1"
@@ -63,12 +61,24 @@ type ChartColorToken =
 	| "chart-other";
 
 /**
+ * A series' visual identity slot. Slots `1` through `8` pair one validated
+ * chart color with one point shape. `"other"` selects the shared neutral
+ * overflow treatment.
+ */
+type ChartSeriesSlot = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | "other";
+
+/**
  * A series color: one of the validated chart tokens (preferred — they adapt to
  * light/dark/high-contrast themes) or any CSS color string as an escape hatch.
- * Static colors (e.g. raw hex) do not adapt across themes; custom palettes
- * must be validated for colorblind-safe adjacency and surface contrast. A
- * series that carries good/bad meaning (error rate, pass/fail) should wear the
- * semantic status colors, never a categorical chart slot.
+ *
+ * `color` overrides only the color channel. It does not select or reserve a
+ * series slot. When sibling series can mount or unmount, use `seriesSlot` on a
+ * series part to keep its visual identity fixed.
+ *
+ * A static color (raw hex) cannot follow the four themes, so prefer a
+ * `var(--your-token)` a consumer declares per theme. A series that carries
+ * good/bad meaning (error rate, pass/fail) should wear the semantic status
+ * colors, never a categorical chart slot.
  */
 type SeriesColor = ChartColorToken | (string & {});
 
@@ -81,20 +91,61 @@ type CurveKind = "linear" | "monotone" | "step";
  * The glyph a series' points wear: scatter marks, line canvas markers, and
  * the hover dot on line/area charts. Shape is a redundant encoding alongside
  * color, so series stay distinguishable without color vision.
+ *
+ * Eight values match the palette's eight series slots. This union's order is
+ * the pairing: a series that sets no `shape` wears the glyph of the slot it
+ * holds — slot 1 the circle, slot 2 the square, on down to slot 8 and the
+ * star. The shared `"chart-other"` treatment uses the circle.
+ *
+ * What each added name draws:
+ *
+ * - `"triangle-down"` is the triangle mirrored.
+ * - `"plus"` is a filled Greek cross.
+ * - `"cross"` is that plus turned 45°.
+ * - `"star"` is a filled five-pointed star.
+ *
+ * Every painted mark carries the circle's fill area, so no glyph reads louder
+ * than its siblings. Legend keys and hover dots clip those same silhouettes
+ * out of a small box instead, where a spiky glyph like the star reads lighter
+ * than the square.
  */
-type PointShape = "circle" | "square" | "triangle" | "diamond";
+type PointShape =
+	| "circle"
+	| "square"
+	| "triangle"
+	| "diamond"
+	| "triangle-down"
+	| "plus"
+	| "cross"
+	| "star";
 
 /**
  * The fill texture a bar series wears: solid color (the default), diagonal
  * hatch lines at 45° (`"hatch"`), the 135° mirror (`"hatch-reverse"`), both
  * (`"crosshatch"`), rungs perpendicular to the bar's length
- * (`"perpendicular"` — horizontal lines on vertical bars), or an offset dot
- * grid (`"dots"`). Texture is a redundant identity encoding alongside color —
- * inked tone-on-tone at equal loudness across slots — so grouped and stacked
- * series stay distinguishable without color vision, in grayscale print, and
- * under forced colors.
+ * (`"perpendicular"` — horizontal lines on vertical bars), rungs parallel to
+ * it (`"parallel"` — vertical lines on vertical bars), the orthogonal lattice
+ * of both rung directions (`"grid"`), or an offset dot field (`"dots"`).
+ *
+ * The two rung textures flip with `orientation`, in opposite senses. Every
+ * other value is direction-free, `"grid"` included — it is the orthogonal
+ * lattice against `"crosshatch"`'s diagonal one. Eight values match the
+ * palette's eight series slots.
+ *
+ * Texture is a redundant identity encoding alongside color — inked tone-on-tone
+ * at equal loudness across slots — so grouped and stacked series stay
+ * distinguishable without color vision, in grayscale print, and under forced
+ * colors.
  */
-type BarTexture = "solid" | "hatch" | "hatch-reverse" | "crosshatch" | "perpendicular" | "dots";
+type BarTexture =
+	| "solid"
+	| "hatch"
+	| "hatch-reverse"
+	| "crosshatch"
+	| "perpendicular"
+	| "parallel"
+	| "grid"
+	| "dots";
 
 /**
  * The direction a bar chart's bars run: vertical columns rising from a bottom
@@ -106,14 +157,18 @@ type BarOrientation = "vertical" | "horizontal";
 
 /**
  * A registered series' configuration, captured from a series part
- * (`BarChart.Bar`, `LineChart.Line`, `AreaChart.Area`).
+ * (`BarChart.Bar`, `LineChart.Line`, `AreaChart.Area`, `ScatterPlot.Point`).
  */
 type SeriesSpec = {
 	/** The row key this series reads its numeric values from. */
 	dataKey: string;
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */
 	label: string;
-	/** Explicit color; when omitted the series claims the next sticky slot. */
+	/** Fixed visual identity slot; `undefined` takes the next unreserved slot. */
+	seriesSlot: ChartSeriesSlot | undefined;
+	/**
+	 * Explicit color override. When omitted, the series paints its resolved slot.
+	 */
 	color: SeriesColor | undefined;
 	/** The mark this series paints. */
 	mark: SeriesMark;
@@ -123,8 +178,12 @@ type SeriesSpec = {
 	markers: boolean;
 	/** Join across `null`/missing values instead of leaving gaps. */
 	connectNulls: boolean;
-	/** The point glyph (scatter marks, line markers, hover dots). */
-	shape: PointShape;
+	/**
+	 * Explicit point glyph (scatter marks, line markers, hover dots).
+	 * `undefined` means the consumer chose none, so the series wears the glyph
+	 * paired to its series slot.
+	 */
+	shape: PointShape | undefined;
 	/** The fill texture (bar marks only). */
 	texture: BarTexture;
 };
@@ -141,7 +200,14 @@ type SeriesMeta = {
 	color: string;
 	/** The color as authored (token name or custom string) before resolution. */
 	colorInput: SeriesColor;
-	/** The point glyph the series wears (scatter marks, legend keys, hover dots). */
+	/**
+	 * The point glyph the series wears (scatter marks, legend keys, hover
+	 * dots): the explicit `shape` when it set one, else the glyph paired to its
+	 * series slot.
+	 *
+	 * A bar paints no glyph. Its legend key wears `texture` instead, so nothing
+	 * draws the glyph a bar series is paired with.
+	 */
 	shape: PointShape;
 	/** The fill texture the series wears (bar marks and their legend keys). */
 	texture: BarTexture;
@@ -265,6 +331,7 @@ export type {
 	ChartDatum,
 	ChartDatumEvent,
 	ChartOptions,
+	ChartSeriesSlot,
 	ContinuousXScale,
 	CurveKind,
 	GridLines,
