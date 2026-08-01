@@ -75,7 +75,8 @@ type ChartColorToken =
  * Several mounted series that pin the same chart token all keep it. The group
  * spends that one slot between them, so each member needs its own second
  * encoding to stay apart — `texture` on a bar series, `shape` on a line, area,
- * or scatter series.
+ * or scatter series. The automatic glyph follows the slot, so the whole group
+ * wears one shape until a member sets its own.
  *
  * A static color (raw hex) cannot follow the four themes, so prefer a
  * `var(--your-token)` a consumer declares per theme. A series that carries
@@ -93,8 +94,34 @@ type CurveKind = "linear" | "monotone" | "step";
  * The glyph a series' points wear: scatter marks, line canvas markers, and
  * the hover dot on line/area charts. Shape is a redundant encoding alongside
  * color, so series stay distinguishable without color vision.
+ *
+ * Eight values match the palette's eight color slots. This union's order is
+ * the pairing: a series that sets no `shape` wears the glyph of the slot it
+ * holds — slot 1 the circle, slot 2 the square, on down to slot 8 and the
+ * star. A series wearing the shared `"chart-other"` gray holds no slot, so it
+ * wears the circle.
+ *
+ * What each added name draws:
+ *
+ * - `"triangle-down"` is the triangle mirrored.
+ * - `"plus"` is a filled Greek cross.
+ * - `"cross"` is that plus turned 45°.
+ * - `"star"` is a filled five-pointed star.
+ *
+ * Every painted mark carries the circle's fill area, so no glyph reads louder
+ * than its siblings. Legend keys and hover dots clip those same silhouettes
+ * out of a small box instead, where a spiky glyph like the star reads lighter
+ * than the square.
  */
-type PointShape = "circle" | "square" | "triangle" | "diamond";
+type PointShape =
+	| "circle"
+	| "square"
+	| "triangle"
+	| "diamond"
+	| "triangle-down"
+	| "plus"
+	| "cross"
+	| "star";
 
 /**
  * The fill texture a bar series wears: solid color (the default), diagonal
@@ -154,8 +181,12 @@ type SeriesSpec = {
 	markers: boolean;
 	/** Join across `null`/missing values instead of leaving gaps. */
 	connectNulls: boolean;
-	/** The point glyph (scatter marks, line markers, hover dots). */
-	shape: PointShape;
+	/**
+	 * Explicit point glyph (scatter marks, line markers, hover dots).
+	 * `undefined` means the consumer chose none, so the series wears the glyph
+	 * paired to its color slot.
+	 */
+	shape: PointShape | undefined;
 	/** The fill texture (bar marks only). */
 	texture: BarTexture;
 };
@@ -172,7 +203,14 @@ type SeriesMeta = {
 	color: string;
 	/** The color as authored (token name or custom string) before resolution. */
 	colorInput: SeriesColor;
-	/** The point glyph the series wears (scatter marks, legend keys, hover dots). */
+	/**
+	 * The point glyph the series wears (scatter marks, legend keys, hover
+	 * dots): the explicit `shape` when it set one, else the glyph paired to its
+	 * color slot.
+	 *
+	 * A bar paints no glyph. Its legend key wears `texture` instead, so nothing
+	 * draws the glyph a bar series is paired with.
+	 */
 	shape: PointShape;
 	/** The fill texture the series wears (bar marks and their legend keys). */
 	texture: BarTexture;

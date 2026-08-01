@@ -6,12 +6,14 @@ import { AreaChart } from "../area-chart/index.js";
 import { BarChart } from "../bar-chart/index.js";
 import { LineChart } from "../line-chart/index.js";
 import { ScatterPlot } from "../scatter-plot/index.js";
+import { POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 
 /**
- * Real-browser hover-marker geometry tests: the active-point dots are DOM
- * overlay elements the engine positions from real plot layout, which
- * happy-dom does not model (degenerate geometry collapses every y to the
- * same pixel).
+ * Real-browser marker tests: the active-point dots are DOM overlay elements
+ * the engine positions from real plot layout, which happy-dom does not model
+ * (degenerate geometry collapses every y to the same pixel). The canvas
+ * markers need the same layout — the engine skips them until the plot is wide
+ * enough per row — plus a real 2d context to read the painted glyph back.
  *
  * Regression suite for the stacked-area bug where dots rendered at each
  * series' RAW value near the plot bottom instead of on the painted (stacked)
@@ -22,6 +24,11 @@ const STYLE = `
 	--color-chart-1: #3e6ff4;
 	--color-chart-2: #008138;
 	--color-chart-3: #f6339a;
+	--color-chart-4: #7f22fe;
+	--color-chart-5: #d08700;
+	--color-chart-6: #009689;
+	--color-chart-7: #ff6900;
+	--color-chart-8: #4f39f6;
 	--color-chart-other: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
@@ -100,6 +107,9 @@ const mustBe = <T extends Element>(
 	}
 	throw new Error(`expected ${what} to render`);
 };
+
+/** The engine's clip-path table, keyed by the string a `data-shape` carries. */
+const clipPathByShape = new Map<string, string>(Object.entries(POINT_SHAPE_CLIP_PATHS));
 
 /** The engine-managed active-point dots, in series registration order. */
 const activeDots = (container: HTMLElement): HTMLElement[] =>
@@ -260,6 +270,76 @@ describe("hover marker geometry", () => {
 		});
 	});
 
+	test("hover dots wear the glyph paired to each series' color slot", async () => {
+		// A consumer who sets no `shape` still gets a distinct dot per series.
+		// "p999" pins slot 6, so its plus can only come from the slot, never from
+		// the order it registered in.
+		const { container } = render(
+			<div style={{ width: 600, height: 300 }}>
+				<LineChart.Root
+					data={[
+						{ t: 1, p50: 10, p99: 50, p999: 90 },
+						{ t: 2, p50: 12, p99: 55, p999: 95 },
+					]}
+					xKey="t"
+					animate={false}
+					aria-label="Latency"
+				>
+					<LineChart.Line dataKey="p50" label="p50" />
+					<LineChart.Line dataKey="p99" label="p99" />
+					<LineChart.Line dataKey="p999" label="p999" color="chart-6" />
+				</LineChart.Root>
+			</div>,
+		);
+		await assertDatumGeometry(container, "Home", () => {
+			expect(activeDots(container).map((dot) => dot.getAttribute("data-shape"))).toEqual([
+				"circle",
+				"square",
+				"plus",
+			]);
+		});
+	});
+
+	test("each hover dot clips both of its layers to the glyph data-shape names", async () => {
+		// The ring is faked by stacking two same-clipped layers, so a dot whose
+		// layers disagree paints a ring that is not the glyph's outline. Pin the
+		// pair against the engine's table, which the legend key reads too.
+		const { container } = render(
+			<div style={{ width: 600, height: 300 }}>
+				<LineChart.Root
+					data={[
+						{ t: 1, p50: 10, p99: 90 },
+						{ t: 2, p50: 12, p99: 95 },
+					]}
+					xKey="t"
+					animate={false}
+					aria-label="Latency"
+				>
+					<LineChart.Line dataKey="p50" label="p50" shape="star" />
+					<LineChart.Line dataKey="p99" label="p99" />
+				</LineChart.Root>
+			</div>,
+		);
+		await assertDatumGeometry(container, "Home", () => {
+			const dots = activeDots(container);
+			expect(dots.map((dot) => dot.getAttribute("data-shape"))).toEqual(["star", "square"]);
+			for (const dot of dots) {
+				const shape = dot.getAttribute("data-shape");
+				const clip = shape == null ? undefined : clipPathByShape.get(shape);
+				if (clip == null) {
+					throw new Error(`hover dot carries no known data-shape, got "${shape}"`);
+				}
+				const layers = [...dot.children].filter(
+					(child): child is HTMLElement => child instanceof HTMLElement,
+				);
+				expect(layers).toHaveLength(2);
+				for (const layer of layers) {
+					expect(layer.style.clipPath).toBe(clip);
+				}
+			}
+		});
+	});
+
 	test("the scatter hover dot mirrors the active series' shape", async () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
@@ -355,6 +435,81 @@ describe("hover marker geometry", () => {
 			// (2, 90) sits to the right of and above (1, 10) in screen space.
 			expect(last.x).toBeGreaterThan(first.x);
 			expect(last.y).toBeLessThan(first.y);
+		});
+	});
+});
+
+/** Every painted byte of a canvas, for pixel-exact comparison between frames. */
+const framePixels = (canvas: HTMLCanvasElement): Uint8ClampedArray => {
+	const context = canvas.getContext("2d");
+	if (context == null || canvas.width === 0 || canvas.height === 0) {
+		throw new Error("expected a sized canvas with a 2d context");
+	}
+	return context.getImageData(0, 0, canvas.width, canvas.height).data;
+};
+
+/** How many bytes two equally sized frames disagree on. */
+const differingBytes = (left: Uint8ClampedArray, right: Uint8ClampedArray): number => {
+	if (left.length !== right.length) {
+		throw new Error("expected two frames of the same size");
+	}
+	let count = 0;
+	for (let offset = 0; offset < left.length; offset++) {
+		if (left[offset] !== right[offset]) {
+			count += 1;
+		}
+	}
+	return count;
+};
+
+describe("line canvas markers", () => {
+	const latency = Array.from({ length: 8 }, (_unused, index) => ({
+		t: index,
+		p50: 20 + Math.sin(index) * 15,
+	}));
+
+	test("a line series that sets no shape paints its slot's glyph, not the circle", async () => {
+		// The canvas markers resolve their glyph through the store, exactly as the
+		// legend key and the hover dot do. Reading the raw `shape` prop here would
+		// paint circles under star-shaped legend keys. Only pixels can see that.
+		// All three lines pin slot 8, so one color and one layout hold across
+		// them: a differing byte is a differing marker path and nothing else.
+		const { container } = render(
+			<div style={{ display: "flex" }}>
+				{(
+					[
+						["paired", undefined],
+						["star", "star"],
+						["circle", "circle"],
+					] as const
+				).map(([name, shape]) => (
+					<div key={name} data-line={name} style={{ width: 400, height: 240 }}>
+						<LineChart.Root data={latency} xKey="t" animate={false} aria-label={`${name} line`}>
+							<LineChart.Line dataKey="p50" label="p50" color="chart-8" markers shape={shape} />
+						</LineChart.Root>
+					</div>
+				))}
+			</div>,
+		);
+		const canvasFor = (name: string) =>
+			mustBe(
+				container.querySelector(`[data-line="${name}"] canvas`),
+				HTMLCanvasElement,
+				`the ${name} canvas`,
+			);
+		await waitFor(() => {
+			for (const name of ["paired", "star", "circle"]) {
+				expect(canvasFor(name).width).toBeGreaterThan(0);
+			}
+			// Slot 8 pairs with the star, so the unset series must paint the same
+			// frame as the one that asked for a star by name.
+			expect(differingBytes(framePixels(canvasFor("paired")), framePixels(canvasFor("star")))).toBe(
+				0,
+			);
+			// And a different frame from the circle it used to fall back to.
+			expect(
+				differingBytes(framePixels(canvasFor("paired")), framePixels(canvasFor("circle"))),
+			).toBeGreaterThan(500);
 		});
 	});
 });

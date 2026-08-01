@@ -3,6 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
+import { POINT_SHAPE_CLIP_PATHS } from "../chart/engine.js";
 import type { ChartDatumEvent } from "./scatter-plot.js";
 import { ScatterPlot } from "./scatter-plot.js";
 
@@ -225,22 +226,6 @@ describe("ScatterPlot.Legend", () => {
 		expect(container.querySelector('[data-slot="scatter-plot-legend"]')).not.toBeInTheDocument();
 	});
 
-	test("legend keys mirror each series' configured point shape", () => {
-		const { container } = render(
-			<ScatterPlot.Root data={data} xKey="latency" aria-label="Latency by region">
-				<ScatterPlot.Point dataKey="regionA" label="Region A" shape="triangle" />
-				<ScatterPlot.Point dataKey="regionB" label="Region B" />
-				<ScatterPlot.Legend />
-			</ScatterPlot.Root>,
-		);
-		const legend = container.querySelector('[data-slot="scatter-plot-legend"]');
-		const swatches = legend == null ? [] : [...legend.querySelectorAll("span[data-shape]")];
-		expect(swatches.map((swatch) => swatch.getAttribute("data-shape"))).toEqual([
-			"triangle",
-			"circle",
-		]);
-	});
-
 	test("supports a render-prop for custom legends", () => {
 		render(
 			<ScatterPlot.Root data={data} xKey="latency" aria-label="Latency by region">
@@ -253,6 +238,92 @@ describe("ScatterPlot.Legend", () => {
 		);
 		expect(screen.getByText("custom Region A")).toBeInTheDocument();
 		expect(screen.getByText("custom Region B")).toBeInTheDocument();
+	});
+});
+
+/** The engine's clip-path table, keyed by the string a `data-shape` carries. */
+const clipPathByShape = new Map<string, string>(Object.entries(POINT_SHAPE_CLIP_PATHS));
+
+/** Every legend key's `data-shape`, in registration order. */
+const legendShapes = (container: HTMLElement): Array<string | null> => {
+	const legend = container.querySelector('[data-slot="scatter-plot-legend"]');
+	const swatches = legend == null ? [] : [...legend.querySelectorAll("span[data-shape]")];
+	return swatches.map((swatch) => swatch.getAttribute("data-shape"));
+};
+
+describe("ScatterPlot.Legend glyphs", () => {
+	// Four keys so the pairing runs past the first slot, where an off-by-one
+	// table and the `chart-other` fallback both still read as "circle".
+	const cloudData = [
+		{ latency: 12, alpha: 840, beta: 720, gamma: 500, delta: 310 },
+		{ latency: 28, alpha: 610, beta: 590, gamma: 480, delta: 290 },
+	];
+
+	test("a series that sets no shape wears the glyph paired to its color slot", () => {
+		// The default a consumer gets for free: color and glyph name one slot, so
+		// the legend stays readable without color vision.
+		const { container } = render(
+			<ScatterPlot.Root data={cloudData} xKey="latency" aria-label="Latency by region">
+				<ScatterPlot.Point dataKey="alpha" label="Alpha" />
+				<ScatterPlot.Point dataKey="beta" label="Beta" />
+				<ScatterPlot.Point dataKey="gamma" label="Gamma" />
+				<ScatterPlot.Point dataKey="delta" label="Delta" />
+				<ScatterPlot.Legend />
+			</ScatterPlot.Root>,
+		);
+		expect(legendShapes(container)).toEqual(["circle", "square", "triangle", "diamond"]);
+	});
+
+	test("the glyph follows a pinned color slot, not the registration order", () => {
+		// Pairing on order would draw these two as the circle and the square while
+		// the plot paints slots 5 and 7.
+		const { container } = render(
+			<ScatterPlot.Root data={cloudData} xKey="latency" aria-label="Latency by region">
+				<ScatterPlot.Point dataKey="alpha" label="Alpha" color="chart-5" />
+				<ScatterPlot.Point dataKey="beta" label="Beta" color="chart-7" />
+				<ScatterPlot.Legend />
+			</ScatterPlot.Root>,
+		);
+		expect(legendShapes(container)).toEqual(["triangle-down", "cross"]);
+	});
+
+	test("an explicit shape wins, and its siblings keep their slot's glyph", () => {
+		const { container } = render(
+			<ScatterPlot.Root data={cloudData} xKey="latency" aria-label="Latency by region">
+				<ScatterPlot.Point dataKey="alpha" label="Alpha" shape="star" />
+				<ScatterPlot.Point dataKey="beta" label="Beta" />
+				<ScatterPlot.Legend />
+			</ScatterPlot.Root>,
+		);
+		expect(legendShapes(container)).toEqual(["star", "square"]);
+	});
+
+	test("each legend key clips to the glyph its data-shape names", () => {
+		// Two halves of one contract in two files: `data-shape` is the public hook
+		// consumer CSS targets; the clip-path in the engine's table is what the
+		// reader sees. A rename on one side alone paints a lie.
+		const { container } = render(
+			<ScatterPlot.Root data={cloudData} xKey="latency" aria-label="Latency by region">
+				<ScatterPlot.Point dataKey="alpha" label="Alpha" shape="plus" />
+				<ScatterPlot.Point dataKey="beta" label="Beta" shape="star" />
+				<ScatterPlot.Point dataKey="gamma" label="Gamma" />
+				<ScatterPlot.Legend />
+			</ScatterPlot.Root>,
+		);
+		const legend = container.querySelector('[data-slot="scatter-plot-legend"]');
+		const swatches = legend == null ? [] : [...legend.querySelectorAll("span[data-shape]")];
+		expect(swatches).toHaveLength(3);
+		for (const swatch of swatches) {
+			if (!(swatch instanceof HTMLElement)) {
+				throw new Error("expected the legend key to be an element with a style");
+			}
+			const shape = swatch.getAttribute("data-shape");
+			const clip = shape == null ? undefined : clipPathByShape.get(shape);
+			if (clip == null) {
+				throw new Error(`legend key carries no known data-shape, got "${shape}"`);
+			}
+			expect(swatch.style.clipPath).toBe(clip);
+		}
 	});
 });
 
@@ -426,7 +497,7 @@ describe("ScatterPlot controlled activeIndex", () => {
 	});
 });
 
-describe("ScatterPlot sticky series colors", () => {
+describe("ScatterPlot sticky series identity", () => {
 	test("filtering a series out does not recolor the survivors", () => {
 		const filterableData = [
 			{ latency: 12, alpha: 840, beta: 720, gamma: 500 },
@@ -459,6 +530,32 @@ describe("ScatterPlot sticky series colors", () => {
 		const [betaAfter, gammaAfter] = swatchColors();
 		expect(betaAfter).toBe(betaBefore);
 		expect(gammaAfter).toContain("chart-3");
+	});
+
+	test("filtering a series out does not reshape the survivors", () => {
+		// The glyph rides the same sticky slot the color does. A reader learns
+		// "the square is Beta", so unchecking Alpha must not hand the square on.
+		const filterableData = [
+			{ latency: 12, alpha: 840, beta: 720, gamma: 500 },
+			{ latency: 28, alpha: 610, beta: 590, gamma: 480 },
+		];
+		const { container, rerender } = render(
+			<ScatterPlot.Root data={filterableData} xKey="latency" aria-label="Latency by region">
+				<ScatterPlot.Point dataKey="alpha" label="Alpha" />
+				<ScatterPlot.Point dataKey="beta" label="Beta" />
+				<ScatterPlot.Legend />
+			</ScatterPlot.Root>,
+		);
+		expect(legendShapes(container)).toEqual(["circle", "square"]);
+		rerender(
+			<ScatterPlot.Root data={filterableData} xKey="latency" aria-label="Latency by region">
+				<ScatterPlot.Point dataKey="beta" label="Beta" />
+				<ScatterPlot.Point dataKey="gamma" label="Gamma" />
+				<ScatterPlot.Legend />
+			</ScatterPlot.Root>,
+		);
+		// Beta keeps slot 2's square; Gamma claims the lowest free slot's triangle.
+		expect(legendShapes(container)).toEqual(["square", "triangle"]);
 	});
 });
 

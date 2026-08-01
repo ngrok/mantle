@@ -89,9 +89,11 @@ type AreaChartAreaProps = {
 	 */
 	connectNulls?: boolean;
 	/**
-	 * The glyph the hover dot wears: `"circle"` (default), `"square"`,
-	 * `"triangle"`, or `"diamond"` — a redundant encoding alongside color that
-	 * keeps series distinguishable without color vision.
+	 * The glyph the hover dot and the legend key wear: `"circle"`, `"square"`,
+	 * `"triangle"`, `"diamond"`, `"triangle-down"`, `"plus"`, `"cross"`, or
+	 * `"star"`. Shape is a redundant encoding alongside color that keeps series
+	 * distinguishable without color vision. When omitted, the series wears the
+	 * glyph paired to its color slot, so both channels name one slot.
 	 */
 	shape?: PointShape;
 };
@@ -148,6 +150,9 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  * `area-chart-hover-band`, `area-chart-markers`, `area-chart-tooltip`, and
  * `area-chart-data-table`. An area chart shows the crosshair and one marker dot
  * per series, and never the band, but all three layers mount on every kind.
+ * Each hover dot carries `chart-active-point` plus a `data-shape` of
+ * `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`,
+ * `"plus"`, `"cross"`, or `"star"`, naming the glyph its series wears.
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartroot
  *
@@ -312,6 +317,13 @@ const Tooltip = (props: AreaChartTooltipProps) => useTooltipPrimitive("AreaChart
  * flow below the plot. Always compose it on multi-series charts — identity
  * must never rely on color-matching alone. It renders nothing for a single
  * series (the chart's title already names it).
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"area-chart-legend"` | The legend list. `AreaChart.Legend` renders it in flow below the plot. |
+ * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On each series' swatch, naming the glyph its `AreaChart.Area` wears — the `shape` it set, else the one paired to its color slot. The swatch clips itself to that glyph, so target this only to restyle a key. |
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartlegend
  *

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { SeriesSpec } from "./types.js";
-import { ChartStore, displayColor } from "./store.js";
+import { ChartStore, displayColor, displayShape } from "./store.js";
 
 const makeSeries = (dataKey: string, overrides: Partial<SeriesSpec> = {}): SeriesSpec => ({
 	dataKey,
@@ -10,7 +10,9 @@ const makeSeries = (dataKey: string, overrides: Partial<SeriesSpec> = {}): Serie
 	curve: "linear",
 	markers: false,
 	connectNulls: false,
-	shape: "circle",
+	// A series part registers `undefined` when the consumer sets no `shape`, so
+	// the default here has to be `undefined` for the slot pairing to run.
+	shape: undefined,
 	texture: "solid",
 	...overrides,
 });
@@ -24,6 +26,33 @@ describe("displayColor", () => {
 	test("custom CSS colors pass through", () => {
 		expect(displayColor("#e40014", "chart-1")).toBe("#e40014");
 		expect(displayColor("var(--color-success-600)", "chart-1")).toBe("var(--color-success-600)");
+	});
+});
+
+describe("displayShape", () => {
+	// The `PointShape` union's order IS the pairing, so a table shifted by one
+	// still hands out eight distinct glyphs and no other test notices. Pin every
+	// slot to the glyph the docs page promises it.
+	test.each([
+		["chart-1", "circle"],
+		["chart-2", "square"],
+		["chart-3", "triangle"],
+		["chart-4", "diamond"],
+		["chart-5", "triangle-down"],
+		["chart-6", "plus"],
+		["chart-7", "cross"],
+		["chart-8", "star"],
+	] as const)("slot %s pairs with the %s", (slot, shape) => {
+		expect(displayShape(undefined, slot)).toBe(shape);
+	});
+
+	test("the shared overflow gray holds no slot, so its series wear the circle", () => {
+		expect(displayShape(undefined, "chart-other")).toBe("circle");
+	});
+
+	test("an explicit shape beats the slot pairing", () => {
+		expect(displayShape("star", "chart-1")).toBe("star");
+		expect(displayShape("circle", "chart-8")).toBe("circle");
 	});
 });
 
@@ -249,6 +278,126 @@ describe("ChartStore color slots", () => {
 			"var(--color-chart-8)",
 		]);
 		expect(colors).not.toContain("var(--color-chart-other)");
+	});
+});
+
+describe("ChartStore point glyphs", () => {
+	test("eight unpinned series wear the eight glyphs, each paired to its own color slot", () => {
+		// The chart ships redundant encoding with no consumer effort: color and
+		// glyph name one slot, so the pairs must line up down the whole palette.
+		const store = new ChartStore();
+		for (let index = 0; index < 8; index++) {
+			store.registerSeries(makeSeries(`series-${index}`));
+		}
+		expect(store.seriesMeta().map((series) => [series.color, series.shape])).toStrictEqual([
+			["var(--color-chart-1)", "circle"],
+			["var(--color-chart-2)", "square"],
+			["var(--color-chart-3)", "triangle"],
+			["var(--color-chart-4)", "diamond"],
+			["var(--color-chart-5)", "triangle-down"],
+			["var(--color-chart-6)", "plus"],
+			["var(--color-chart-7)", "cross"],
+			["var(--color-chart-8)", "star"],
+		]);
+	});
+
+	test("the glyph follows the slot a series pins, not the order it registered in", () => {
+		// Pairing on registration order would hand these three the circle, the
+		// square, and the triangle — glyphs that name slots 1, 2, and 3 while the
+		// colors on screen name 3, 8, and 5.
+		const store = new ChartStore();
+		store.registerSeries(makeSeries("errors", { color: "chart-3" }));
+		store.registerSeries(makeSeries("warnings", { color: "chart-8" }));
+		store.registerSeries(makeSeries("info", { color: "chart-5" }));
+		expect(store.seriesMeta().map((series) => [series.colorInput, series.shape])).toStrictEqual([
+			["chart-3", "triangle"],
+			["chart-8", "star"],
+			["chart-5", "triangle-down"],
+		]);
+	});
+
+	test("an explicit shape wins, and leaves its siblings on their slot's glyph", () => {
+		const store = new ChartStore();
+		store.registerSeries(makeSeries("a", { shape: "star" }));
+		store.registerSeries(makeSeries("b"));
+		store.registerSeries(makeSeries("c", { shape: "circle" }));
+		store.registerSeries(makeSeries("d"));
+		expect(store.seriesMeta().map((series) => series.shape)).toStrictEqual([
+			"star",
+			"square",
+			"circle",
+			"diamond",
+		]);
+	});
+
+	test("a custom color still spends a slot, so its series wears that slot's glyph", () => {
+		// A brand hex holds one of the eight, so the glyph keeps naming the slot
+		// even though the color no longer does — and the unpinned sibling lands on
+		// slot 4's diamond, not on slot 1's circle.
+		const store = new ChartStore();
+		for (const key of ["openai", "claude", "gemini"]) {
+			store.registerSeries(makeSeries(key, { color: `var(--provider-${key})` }));
+		}
+		store.registerSeries(makeSeries("byo"));
+		expect(store.seriesMeta().map((series) => series.shape)).toStrictEqual([
+			"circle",
+			"square",
+			"triangle",
+			"diamond",
+		]);
+	});
+
+	test("a series wearing the overflow gray falls back to the circle", () => {
+		const store = new ChartStore();
+		for (let index = 0; index < 9; index++) {
+			store.registerSeries(makeSeries(`series-${index}`));
+		}
+		const ninth = store.seriesMeta()[8];
+		expect(ninth?.color).toBe("var(--color-chart-other)");
+		expect(ninth?.shape).toBe("circle");
+	});
+
+	test("pinning chart-other spends no slot, so that series wears the circle too", () => {
+		const store = new ChartStore();
+		store.registerSeries(makeSeries("tail", { color: "chart-other" }));
+		store.registerSeries(makeSeries("auto"));
+		expect(store.seriesMeta().map((series) => series.shape)).toStrictEqual(["circle", "circle"]);
+	});
+
+	test("glyphs are sticky: filtering a series out never reshapes the survivors", () => {
+		// The twin of the sticky-color test. A reader learns "the square is TCP",
+		// so unchecking HTTP must not hand the square to someone else.
+		const store = new ChartStore();
+		const unregisterHttp = store.registerSeries(makeSeries("http"));
+		store.registerSeries(makeSeries("tcp"));
+		store.registerSeries(makeSeries("tls"));
+		unregisterHttp();
+		store.registerSeries(makeSeries("udp"));
+		expect(store.seriesMeta().map((series) => [series.dataKey, series.shape])).toStrictEqual([
+			["tcp", "square"],
+			["tls", "triangle"],
+			["udp", "diamond"],
+		]);
+		// http coming back reclaims slot 1, so it reclaims the circle with it.
+		store.registerSeries(makeSeries("http"));
+		expect(store.seriesMeta().find((series) => series.dataKey === "http")?.shape).toBe("circle");
+	});
+
+	test("seriesShape answers the canvas exactly what seriesMeta publishes to the DOM", () => {
+		// The canvas paints from `seriesShape` and the legend key and hover dot
+		// read `seriesMeta`. Split the two and a square legend key labels a series
+		// the plot draws as a circle.
+		const store = new ChartStore();
+		store.registerSeries(makeSeries("auto"));
+		store.registerSeries(makeSeries("pinned", { color: "chart-6" }));
+		store.registerSeries(makeSeries("explicit", { shape: "star" }));
+		store.registerSeries(makeSeries("gray", { color: "chart-other" }));
+		const meta = store.seriesMeta();
+		// "explicit" holds slot 2, so its star can only come from its own prop.
+		expect(meta.map((series) => series.shape)).toStrictEqual(["circle", "plus", "star", "circle"]);
+		expect(meta.map((series) => store.seriesShape(series.dataKey))).toStrictEqual(
+			meta.map((series) => series.shape),
+		);
 	});
 });
 
@@ -659,8 +808,9 @@ describe("ChartStore registrations", () => {
 		store.registerSeries(makeSeries("a", { mark: "scatter", shape: "triangle" }));
 		store.registerSeries(makeSeries("b", { mark: "scatter" }));
 		const meta = store.seriesMeta();
+		// "a" chose its own glyph; "b" chose none, so it wears slot 2's square.
 		expect(meta[0]?.shape).toBe("triangle");
-		expect(meta[1]?.shape).toBe("circle");
+		expect(meta[1]?.shape).toBe("square");
 	});
 
 	test("series meta carries the registered bar texture through to DOM consumers", () => {

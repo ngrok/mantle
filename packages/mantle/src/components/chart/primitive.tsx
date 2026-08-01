@@ -621,6 +621,12 @@ type SeriesPrimitiveProps = {
 	curve?: CurveKind;
 	markers?: boolean;
 	connectNulls?: boolean;
+	/**
+	 * The point glyph (scatter marks, line markers, hover dots) — worn by the
+	 * marks and their legend key. When omitted the series wears the glyph paired
+	 * to its color slot, so shape and color name the same slot with no consumer
+	 * effort.
+	 */
 	shape?: PointShape;
 	/** The fill texture (bar marks only) — worn by the bars and their legend key. */
 	texture?: BarTexture;
@@ -647,7 +653,9 @@ const useSeriesPrimitive = (
 		curve = "linear",
 		markers = false,
 		connectNulls = false,
-		shape = "circle",
+		// No default: the store pairs an unset shape with the series' color slot,
+		// and only `undefined` tells it the consumer chose nothing.
+		shape,
 		texture = "solid",
 	} = props;
 	useLayoutEffect(

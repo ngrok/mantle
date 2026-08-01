@@ -96,7 +96,7 @@ export function OverlappingAreasExample() {
 			<AreaChart.XAxis />
 			<AreaChart.YAxis />
 			<AreaChart.Area dataKey="usEast" label="US East" />
-			<AreaChart.Area dataKey="euWest" label="EU West" shape="diamond" />
+			<AreaChart.Area dataKey="euWest" label="EU West" />
 			<AreaChart.Tooltip />
 			<AreaChart.Legend />
 		</AreaChart.Root>
@@ -136,8 +136,8 @@ export function ShapesExample() {
 			<AreaChart.XAxis />
 			<AreaChart.YAxis />
 			<AreaChart.Area dataKey="usEast" label="US East" />
-			<AreaChart.Area dataKey="euWest" label="EU West" shape="diamond" />
-			<AreaChart.Area dataKey="apSouth" label="AP South" shape="triangle" />
+			<AreaChart.Area dataKey="euWest" label="EU West" />
+			<AreaChart.Area dataKey="apSouth" label="AP South" shape="star" />
 			<AreaChart.Tooltip />
 			<AreaChart.Legend />
 		</AreaChart.Root>
@@ -431,7 +431,7 @@ The tooltip, crosshair, and keyboard cursor are part of `AreaChart.Root`'s inter
 
 ## Overlapping areas
 
-Without `stacked`, every series fills from the zero baseline and the areas overlap. The 10% wash is what keeps this legible: with two series you can read both bands and the region where they cross. `shape` gives a series' hover dot a distinct glyph (hover the crossing — EU West wears diamonds), a redundant encoding alongside color for where the bands overlap — see [Shapes](#shapes) below.
+Without `stacked`, every series fills from the zero baseline and the areas overlap. The 10% wash is what keeps this legible: with two series you can read both bands and the region where they cross. Each series' hover dot also wears the glyph paired to its color slot (hover the crossing — US East wears circles, EU West squares), a redundant encoding alongside color for where the bands overlap — see [Shapes](#shapes) below.
 
 <Example>
 	<OverlappingAreasExample />
@@ -462,7 +462,7 @@ const regionData = [
 	<AreaChart.XAxis />
 	<AreaChart.YAxis />
 	<AreaChart.Area dataKey="usEast" label="US East" />
-	<AreaChart.Area dataKey="euWest" label="EU West" shape="diamond" />
+	<AreaChart.Area dataKey="euWest" label="EU West" />
 	<AreaChart.Tooltip />
 	<AreaChart.Legend />
 </AreaChart.Root>;
@@ -472,7 +472,11 @@ Overlap stops scaling: past two or three series the intersections turn to mud. W
 
 ## Shapes
 
-An area chart wears its glyphs on the legend keys and the active-point dots: a filled band has no per-point mark, so `shape` — `"circle"` (the default), `"square"`, `"triangle"`, or `"diamond"`, sized for equal visual weight — shows in the legend and on the dots that ride the band edges at the crosshair. This example pins a controlled `activeIndex` (falling back to a fixed point when the pointer leaves) so the dots stay visible without hovering: US East wears circles, EU West diamonds, AP South triangles. Move the crosshair and each dot keeps its series' glyph at every position. [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full family treatment.
+An area chart wears its glyphs on the legend keys and the active-point dots: a filled band has no per-point mark, so the glyph shows in the legend and on the dots that ride the band edges at the crosshair.
+
+Eight glyphs match the palette's eight color slots — `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`, `"plus"`, `"cross"`, `"star"`, in that order. A series that sets no `shape` wears the glyph of the slot it holds, so every band carries a second identity channel by default. That channel matters where color cannot carry identity alone: a reader with a color vision deficiency, a grayscale print or export, forced-colors mode. Pairing reads the slot rather than the registration order, so a series pinning `color="chart-3"` wears the triangle. Slots stay sticky per `dataKey`, so filtering a series out reshuffles no survivor's glyph.
+
+Set `shape` to override the pairing — an explicit value always wins. The example below pins a controlled `activeIndex` (falling back to a fixed point when the pointer leaves) so the dots stay visible without hovering: US East and EU West take their slots' circle and square, and AP South pins the star over the triangle its slot would hand it. Move the crosshair and each dot keeps its series' glyph at every position. [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full family treatment.
 
 <Example>
 	<ShapesExample />
@@ -516,8 +520,8 @@ function ShapesExample() {
 			<AreaChart.XAxis />
 			<AreaChart.YAxis />
 			<AreaChart.Area dataKey="usEast" label="US East" />
-			<AreaChart.Area dataKey="euWest" label="EU West" shape="diamond" />
-			<AreaChart.Area dataKey="apSouth" label="AP South" shape="triangle" />
+			<AreaChart.Area dataKey="euWest" label="EU West" />
+			<AreaChart.Area dataKey="apSouth" label="AP South" shape="star" />
 			<AreaChart.Tooltip />
 			<AreaChart.Legend />
 		</AreaChart.Root>
@@ -917,30 +921,31 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 **Data attributes**
 
-| Data Attribute | Value                     | Description                                                                                       |
-| -------------- | ------------------------- | ------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"area-chart"`            | The Root wrapper, with any forwarded chain ahead of it.                                           |
-| `data-slot`    | `"area-chart-plot"`       | The plot box. Every overlay layer positions against it, and the resize observer measures it.      |
-| `data-slot`    | `"area-chart-canvas"`     | The `<canvas>` the marks paint on. Always `aria-hidden`.                                          |
-| `data-slot`    | `"area-chart-crosshair"`  | The vertical hairline snapped to the active x. The engine writes its geometry as an inline style. |
-| `data-slot`    | `"area-chart-hover-band"` | The category highlight. Mounted on every kind; an area chart never shows it.                      |
-| `data-slot`    | `"area-chart-markers"`    | The container the engine syncs one hover dot per series into.                                     |
-| `data-slot`    | `"area-chart-tooltip"`    | The tooltip surface. The Root renders it; `AreaChart.Tooltip` configures it.                      |
-| `data-slot`    | `"area-chart-data-table"` | The `sr-only` table twin. Omitted when `decorative`.                                              |
-| `data-slot`    | `"chart-active-point"`    | One hover dot inside the markers layer. Also carries `data-shape`.                                |
+| Data Attribute | Value                                                                                               | Description                                                                                                                                                                                 |
+| -------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"area-chart"`                                                                                      | The Root wrapper, with any forwarded chain ahead of it.                                                                                                                                     |
+| `data-slot`    | `"area-chart-plot"`                                                                                 | The plot box. Every overlay layer positions against it, and the resize observer measures it.                                                                                                |
+| `data-slot`    | `"area-chart-canvas"`                                                                               | The `<canvas>` the marks paint on. Always `aria-hidden`.                                                                                                                                    |
+| `data-slot`    | `"area-chart-crosshair"`                                                                            | The vertical hairline snapped to the active x. The engine writes its geometry as an inline style.                                                                                           |
+| `data-slot`    | `"area-chart-hover-band"`                                                                           | The category highlight. Mounted on every kind; an area chart never shows it.                                                                                                                |
+| `data-slot`    | `"area-chart-markers"`                                                                              | The container the engine syncs one hover dot per series into.                                                                                                                               |
+| `data-slot`    | `"area-chart-tooltip"`                                                                              | The tooltip surface. The Root renders it; `AreaChart.Tooltip` configures it.                                                                                                                |
+| `data-slot`    | `"area-chart-data-table"`                                                                           | The `sr-only` table twin. Omitted when `decorative`.                                                                                                                                        |
+| `data-slot`    | `"chart-active-point"`                                                                              | One hover dot inside the markers layer. Also carries `data-shape`.                                                                                                                          |
+| `data-shape`   | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | On each hover dot, naming the glyph its series wears — the `shape` it set, else the one paired to its color slot. The dot clips itself to that glyph, so target this only to restyle a dot. |
 
 ### AreaChart.Area
 
 One area series. Renderless — it registers the series with the chart, which paints it on canvas. Compose one `Area` per series.
 
-| Prop           | Type                                                     | Default              | Description                                                                                                                  |
-| -------------- | -------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `dataKey`      | `string`                                                 |                      | The row key this series reads its numeric values from.                                                                       |
-| `label`        | `string`                                                 | `dataKey`            | Display name for the legend, tooltip, and data table.                                                                        |
-| `color`        | `"chart-1"` … `"chart-8"` \| `"chart-other"` \| `string` | the next sticky slot | One of the validated chart tokens, or any CSS color as an escape hatch. See [Chart color tokens](#chart-color-tokens).       |
-| `curve`        | `"linear"` \| `"monotone"` \| `"step"`                   | `"linear"`           | Interpolation between points: straight segments, smoothed without overshoot, or held steps.                                  |
-| `connectNulls` | `boolean`                                                | `false`              | Join across `null`/missing values instead of leaving gaps. Gaps are the default and usually correct.                         |
-| `shape`        | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"`  | `"circle"`           | The glyph the hover dot wears — a redundant encoding alongside color that keeps series distinguishable without color vision. |
+| Prop           | Type                                                                                                | Default                                    | Description                                                                                                                                                           |
+| -------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dataKey`      | `string`                                                                                            |                                            | The row key this series reads its numeric values from.                                                                                                                |
+| `label`        | `string`                                                                                            | `dataKey`                                  | Display name for the legend, tooltip, and data table.                                                                                                                 |
+| `color`        | `"chart-1"` … `"chart-8"` \| `"chart-other"` \| `string`                                            | the next sticky slot                       | One of the validated chart tokens, or any CSS color as an escape hatch. See [Chart color tokens](#chart-color-tokens).                                                |
+| `curve`        | `"linear"` \| `"monotone"` \| `"step"`                                                              | `"linear"`                                 | Interpolation between points: straight segments, smoothed without overshoot, or held steps.                                                                           |
+| `connectNulls` | `boolean`                                                                                           | `false`                                    | Join across `null`/missing values instead of leaving gaps. Gaps are the default and usually correct.                                                                  |
+| `shape`        | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | the glyph paired to the series' color slot | The glyph the hover dot and the legend key wear. When omitted, the series takes its color slot's glyph, so color and shape name the same slot. See [Shapes](#shapes). |
 
 ### AreaChart.Grid
 
@@ -1004,7 +1009,14 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | ---------- | ------------------------------------- | ------- | ----------------------------------------------------------------- |
 | `children` | `(series: SeriesMeta[]) => ReactNode` |         | Replace the default legend items; receives the registered series. |
 
-Each `SeriesMeta` is `{ dataKey, label, mark, color, colorInput }`, where `color` is the CSS color string the series paints with.
+Each `SeriesMeta` is `{ dataKey, label, mark, color, colorInput, shape, texture }`, where `color` is the CSS color string the series paints with and `shape` is the resolved glyph — the `shape` the series set, else the one paired to its color slot.
+
+**Data attributes**
+
+| Data Attribute | Value                                                                                               | Description                                                                                                                                                       |
+| -------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"area-chart-legend"`                                                                               | The legend list. `AreaChart.Legend` renders it in flow below the plot.                                                                                            |
+| `data-shape`   | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | On each series' swatch, naming the glyph its [AreaChart.Area](#areachartarea) wears. The swatch clips itself to that glyph, so target this only to restyle a key. |
 
 ### AreaChart.CopyButton
 
@@ -1022,6 +1034,8 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 ### Chart color tokens
 
 A series without an explicit `color` claims the lowest free slot from the ordered `--color-chart-1` … `--color-chart-8` tokens when it first registers. Each of the four themes (light, dark, high-contrast light, high-contrast dark) authors its own eight `oklch()` literals, measured so all 28 pairs hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia, and so every slot clears 3:1 against that theme's chart surface. A claimed slot is sticky per `dataKey` for the chart's lifetime — filtering series in and out never repaints the survivors, so color follows the entity, never its rank. An explicit `color` spends a slot, so the next unpinned series skips past it — a chart token spends that token, and any other CSS color spends the next slot in order. Pinning the `chart-other` token spends nothing, because every series past the eighth shares the overflow gray. Spelled as a raw `var(--color-chart-other)` it is a CSS color like any other, so it spends a slot. A series that unmounts keeps its slot while the palette has room. Once every slot is held, an incoming series takes one back from a series that is off screen instead of painting the overflow gray. A chart showing more than eight series at once still paints the ninth and later with `--color-chart-other`. Fold the long tail into a single "Other" series rather than inventing more hues.
+
+The slot carries the series' point glyph as well as its color, so both channels stay sticky together and both name one slot — see [Shapes](#shapes).
 
 | CSS Variable          | Description                                                                                                 |
 | --------------------- | ----------------------------------------------------------------------------------------------------------- |

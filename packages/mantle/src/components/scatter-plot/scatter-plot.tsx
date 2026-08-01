@@ -100,11 +100,12 @@ type ScatterPlotPointProps = {
 	 */
 	color?: SeriesColor;
 	/**
-	 * The glyph this series' points wear: `"circle"` (default), `"square"`,
-	 * `"triangle"`, or `"diamond"`. Give each series a distinct shape on
-	 * multi-series scatters — shape is the redundant encoding that keeps
-	 * overlapping clouds distinguishable without color vision. The legend key
-	 * and hover dot mirror it.
+	 * The glyph this series' points wear, mirrored by the legend key and the
+	 * hover dot: `"circle"`, `"square"`, `"triangle"`, `"diamond"`,
+	 * `"triangle-down"`, `"plus"`, `"cross"`, or `"star"`. Shape is the
+	 * redundant encoding that keeps overlapping clouds distinguishable without
+	 * color vision. When omitted, the series wears the glyph paired to its
+	 * color slot, so both channels name one slot.
 	 */
 	shape?: PointShape;
 };
@@ -156,7 +157,9 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
  * `scatter-plot-hover-band`, `scatter-plot-markers`, `scatter-plot-tooltip`,
  * and `scatter-plot-data-table`. A scatter plot shows one marker dot on the hit
  * point, and never the crosshair or the band, but all three layers mount on
- * every kind.
+ * every kind. That dot carries `chart-active-point` plus a `data-shape` of
+ * `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`,
+ * `"plus"`, `"cross"`, or `"star"`, naming the glyph its series wears.
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotroot
  *
@@ -316,6 +319,13 @@ const Tooltip = (props: ScatterPlotTooltipProps) =>
  * below the plot. Always compose it on multi-series charts — identity must
  * never rely on color-matching alone. It renders nothing for a single series
  * (the chart's title already names it).
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"scatter-plot-legend"` | The legend list. `ScatterPlot.Legend` renders it in flow below the plot. |
+ * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On each series' swatch, naming the glyph its `ScatterPlot.Point` wears — the `shape` it set, else the one paired to its color slot. The swatch clips itself to that glyph, so target this only to restyle a key. |
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotlegend
  *

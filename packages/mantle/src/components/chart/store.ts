@@ -4,6 +4,7 @@ import type {
 	ChartColorToken,
 	GridLines,
 	HoverSnapshot,
+	PointShape,
 	ReferenceLineSpec,
 	SeriesMeta,
 	SeriesSpec,
@@ -89,6 +90,44 @@ const displayColor = (color: SeriesSpec["color"], slot: ChartColorToken): string
 };
 
 /**
+ * The glyph paired to each color slot, in slot order. `"chart-other"` is the
+ * shared overflow gray rather than a slot, so its series fall back to the
+ * circle.
+ */
+const SHAPE_BY_SLOT: Record<ChartColorToken, PointShape> = {
+	"chart-1": "circle",
+	"chart-2": "square",
+	"chart-3": "triangle",
+	"chart-4": "diamond",
+	"chart-5": "triangle-down",
+	"chart-6": "plus",
+	"chart-7": "cross",
+	"chart-8": "star",
+	"chart-other": "circle",
+};
+
+/**
+ * The glyph a series wears: the `shape` it set, else the one paired to the
+ * slot it holds. A chart therefore ships redundant encoding with no consumer
+ * effort — distinct color AND distinct glyph.
+ *
+ * Pairing reads the slot, never the registration order, so a series pinning
+ * `"chart-3"` wears the triangle. The two channels can then never disagree.
+ * The slot is sticky per `dataKey`, which makes the glyph sticky too:
+ * filtering a series out reshuffles no survivor's shape, exactly as it
+ * repaints none.
+ *
+ * @example
+ * ```ts
+ * displayShape(undefined, "chart-2"); // "square"
+ * displayShape("star", "chart-2"); // "star"
+ * displayShape(undefined, "chart-other"); // "circle"
+ * ```
+ */
+const displayShape = (shape: SeriesSpec["shape"], slot: ChartColorToken): PointShape =>
+	shape ?? SHAPE_BY_SLOT[slot];
+
+/**
  * Create the store a chart Root owns for its lifetime.
  *
  * Color slots are STICKY per `dataKey`: the first registration of a dataKey
@@ -128,6 +167,10 @@ const displayColor = (color: SeriesSpec["color"], slot: ChartColorToken): string
  * A chart that genuinely mounts more than eight series still paints the ninth
  * and later with `chart-other`; fold them into an "Other" series or facet
  * instead.
+ *
+ * Point glyphs ride the same ledger. `displayShape` pairs a series that set no
+ * `shape` with the glyph of the slot it holds, so the glyph is sticky for the
+ * same reason the color is, and the two channels always name one slot.
  */
 class ChartStore {
 	#listeners = new Set<() => void>();
@@ -187,6 +230,19 @@ class ChartStore {
 		return [...this.#seriesByKey.values()]
 			.toSorted((a, b) => a.sequence - b.sequence)
 			.map((entry) => entry.spec);
+	}
+
+	/**
+	 * The glyph one registered series wears, resolved against its color slot —
+	 * the spec-side twin of the `shape` `seriesMeta` publishes to the DOM.
+	 *
+	 * The canvas paints from `seriesSpecs`, where `shape` is still the raw prop.
+	 * Reading it there would paint a circle under a legend key wearing the
+	 * paired glyph.
+	 */
+	seriesShape(dataKey: string): PointShape {
+		const slot = this.#slotByKey.get(dataKey) ?? "chart-other";
+		return displayShape(this.#seriesByKey.get(dataKey)?.spec.shape, slot);
 	}
 
 	/**
@@ -505,7 +561,7 @@ class ChartStore {
 				mark: spec.mark,
 				color: displayColor(spec.color, slot),
 				colorInput: spec.color ?? slot,
-				shape: spec.shape,
+				shape: displayShape(spec.shape, slot),
 				texture: spec.texture,
 			};
 		});
@@ -548,4 +604,5 @@ export {
 	//,
 	ChartStore,
 	displayColor,
+	displayShape,
 };
