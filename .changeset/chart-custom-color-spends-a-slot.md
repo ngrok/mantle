@@ -9,9 +9,9 @@ bring-your-own provider takes a `--color-chart-*` slot.
 **A custom `color` now spends a slot.** Only a chart token used to reserve one, so a `BarChart`, `LineChart`,
 `AreaChart`, or `ScatterPlot` series pinning a hex or a `var()` reserved nothing. The palette then handed out all
 eight slots while three series already wore colors the consumer chose, and an unpinned sibling could be given a
-color already on screen — ChatGPT green `#10a37f` sits 4.71 ΔE from `--color-chart-5`, and Gemini blue `#3186ff`
-sits 5.65 from `--color-chart-1`, against a floor of 15. Every color but `--color-chart-other` now spends one of
-the eight, so the budget counts the series a reader sees.
+color already on screen. OpenAI green `#10a37f` sits 7.53 ΔE from `--color-chart-5` in the light theme, and
+Gemini blue `#3186ff` sits 1.34 from `--color-chart-1`, against a floor of 15. Every color but
+`--color-chart-other` now spends one of the eight, so the budget counts the series a reader sees.
 
 The slot a custom color spends is its position in registration order, never the slot the color resembles. Mantle
 measures no color you pass: the nearest slot differs per theme, so measuring it would reassign a neighbor's color

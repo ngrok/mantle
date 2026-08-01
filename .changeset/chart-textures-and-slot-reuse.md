@@ -1,5 +1,5 @@
 ---
-"@ngrok/mantle": minor
+"@ngrok/mantle": patch
 ---
 
 **Bar Chart: two new fill textures, one per color slot.** `BarChart.Bar`'s `texture` prop takes eight values now —
