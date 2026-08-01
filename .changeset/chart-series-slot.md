@@ -1,5 +1,5 @@
 ---
-"@ngrok/mantle": minor
+"@ngrok/mantle": patch
 ---
 
 Add `seriesSlot` to `BarChart.Bar`, `LineChart.Line`, `AreaChart.Area`, and `ScatterPlot.Point` for charts that need a fixed visual identity.
