@@ -175,11 +175,19 @@ describe("empty-state text over a recessed decorative chart", () => {
 		expect(shippedRecessionAlpha()).toBe(0.7);
 	});
 
-	test("the scrim repaints the surface the contrast math assumes", () => {
-		// The whole gate rests on the scrim restoring a flat card behind the copy.
-		// Pointing its fallback at another token silently changes what the message
-		// is measured against.
+	test("the scrim repaints the surface the contrast math assumes, at full opacity", () => {
+		// Two premises, and the measurements below rest on both. The surface token
+		// decides what the copy is measured against, so pointing the fallback at
+		// another token silently changes every ratio. The missing alpha modifier is
+		// why no chart color reaches the copy at all: give the background one and
+		// the recessed marks blend back under the text, which is exactly the case
+		// the scrim tests stop measuring.
 		expect(shippedScrimSurface()).toBe("--background-color-card");
+		const { container } = render(<Empty.Scrim />);
+		const scrim = container.querySelector('[data-slot="empty-scrim"]');
+		expect(scrim?.className).toMatch(
+			/(?:^|\s)bg-\[var\(--empty-scrim-color,var\(--background-color-card\)\)\](?:\s|$)/,
+		);
 	});
 
 	test("the bare recession is not enough on its own, which is why Empty.Scrim exists", () => {
@@ -204,24 +212,24 @@ describe("empty-state text over a recessed decorative chart", () => {
 	});
 
 	test.each(THEMES.map((theme) => [theme.name, theme] as const))(
-		"%s: Empty over a scrim clears AA against every chart slot",
+		"%s: Empty over the scrim clears AA",
 		(_name, theme) => {
-			const alpha = shippedRecessionAlpha();
-			for (const [index, mark] of theme.slots.entries()) {
-				// The scrim's ellipse is opaque across the copy and fades out past it,
-				// so the text's background is the scrim surface itself.
-				const backdrop = over(theme.scrim, over(mark, theme.surface, alpha), 1);
-				const measure = (text: TextColor) =>
-					contrastRatio(over(text.color, backdrop, text.alpha), backdrop);
-				expect(
-					measure(theme.strong),
-					`${theme.name} chart-${index + 1}: Empty.Title (text-strong) over the scrim`,
-				).toBeGreaterThanOrEqual(CONTRAST_FLOOR);
-				expect(
-					measure(theme.muted),
-					`${theme.name} chart-${index + 1}: Empty.Description (text-muted) over the scrim`,
-				).toBeGreaterThanOrEqual(CONTRAST_FLOOR);
-			}
+			// No chart slot appears in this math, and that is the whole point of the
+			// scrim: its core is opaque across the copy, so no recessed mark reaches
+			// the text and the backdrop is the scrim surface alone. Looping the eight
+			// slots here would assert one identical pairing eight times and read as
+			// per-slot coverage the measurement cannot have. The per-slot work is the
+			// bare-recession test above, where the mark does reach the text.
+			const measure = (text: TextColor) =>
+				contrastRatio(over(text.color, theme.scrim, text.alpha), theme.scrim);
+			expect(
+				measure(theme.strong),
+				`${theme.name}: Empty.Title (text-strong) over the scrim`,
+			).toBeGreaterThanOrEqual(CONTRAST_FLOOR);
+			expect(
+				measure(theme.muted),
+				`${theme.name}: Empty.Description (text-muted) over the scrim`,
+			).toBeGreaterThanOrEqual(CONTRAST_FLOOR);
 		},
 	);
 });
