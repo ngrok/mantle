@@ -29,13 +29,11 @@ const SECTION_ORDER: readonly Section[] = [
 			slug === "changelog",
 	},
 	{ id: "base", title: "Base", match: (slug) => slug.startsWith("base/") },
-	...componentCategories.map(
-		(category): Section => ({
-			id: `components-${componentCategorySlugs[category]}`,
-			title: `Components: ${category}`,
-			match: (slug) => slug.startsWith(`components/${componentCategorySlugs[category]}/`),
-		}),
-	),
+	...componentCategories.map((category): Section => ({
+		id: `components-${componentCategorySlugs[category]}`,
+		title: `Components: ${category}`,
+		match: (slug) => slug.startsWith(`components/${componentCategorySlugs[category]}/`),
+	})),
 	{
 		id: "preview",
 		title: "Preview Components",
