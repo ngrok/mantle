@@ -1,5 +1,15 @@
 # @ngrok/mantle-server-syntax-highlighter
 
+## 1.1.10
+
+### Patch Changes
+
+- [#1395](https://github.com/ngrok/mantle/pull/1395) [`f5a47f4`](https://github.com/ngrok/mantle/commit/f5a47f4cb2059b8a3dd6e8e22c57a2f203b2b754) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump the `shiki` runtime dependency from 4.3.1 to 4.4.1.
+
+  Shiki 4.4.0 updates its bundled grammars and themes, so the tokens and colors in highlighted output can
+  shift for some languages. It also fixes language detection, so a document's frontmatter segments now read
+  as YAML. Shiki 4.4.1 updates Shiki's own dependencies and changes no API.
+
 ## 1.1.9
 
 ### Patch Changes
