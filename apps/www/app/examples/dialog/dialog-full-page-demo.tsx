@@ -1,6 +1,5 @@
 import { Badge } from "@ngrok/mantle/badge";
 import { Button } from "@ngrok/mantle/button";
-import { cx } from "@ngrok/mantle/cx";
 import { Dialog } from "@ngrok/mantle/dialog";
 import { Label } from "@ngrok/mantle/label";
 import { Switch } from "@ngrok/mantle/switch";
@@ -21,16 +20,16 @@ const requestLog = Array.from({ length: 7 })
 	.map((request, index) => ({ ...request, id: `req_${4200 + index}` }));
 
 /**
- * Demonstrates a full-page `Dialog`. `preferredWidth="max-w-none"` and `h-full`
- * fill the 16px-inset box that `Dialog.Content` positions itself in. The body's
- * switch toggles the edge-to-edge override, which trades that inset and the
- * rounded corners for the whole viewport.
+ * Demonstrates a full-page `Dialog`. `appearance="full-page"` fills the
+ * 16px-inset box that `Dialog.Content` positions itself in, and the body's
+ * switch swaps to `"full-bleed"`, which trades that inset and the rounded
+ * corners for the whole viewport.
  *
  * @example
  * <FullPageDialogDemo />
  */
 export function FullPageDialogDemo() {
-	const [edgeToEdge, setEdgeToEdge] = useState(false);
+	const [fullBleed, setFullBleed] = useState(false);
 	const switchId = useId();
 
 	return (
@@ -40,20 +39,15 @@ export function FullPageDialogDemo() {
 					Open full-page dialog
 				</Button>
 			</Dialog.Trigger>
-			{/* Why no max-h override: a fixed element measures against the viewport,
-			    so the base `max-h-full` already resolves to the full viewport height. */}
-			<Dialog.Content
-				preferredWidth="max-w-none"
-				className={cx("h-full", edgeToEdge && "fixed inset-0 rounded-none border-0")}
-			>
+			<Dialog.Content appearance={fullBleed ? "full-bleed" : "full-page"}>
 				<Dialog.Header>
 					<Dialog.Title>Request log</Dialog.Title>
 					<Dialog.CloseIconButton />
 				</Dialog.Header>
 				<Dialog.Body className="p-0">
 					<div className="border-dialog-muted bg-dialog sticky top-0 flex items-center gap-2 border-b px-6 py-3">
-						<Switch id={switchId} checked={edgeToEdge} onCheckedChange={setEdgeToEdge} />
-						<Label htmlFor={switchId}>Edge to edge</Label>
+						<Switch id={switchId} checked={fullBleed} onCheckedChange={setFullBleed} />
+						<Label htmlFor={switchId}>Full bleed</Label>
 					</div>
 					<div className="divide-card-muted divide-y font-mono text-sm">
 						{requestLog.map((request) => (

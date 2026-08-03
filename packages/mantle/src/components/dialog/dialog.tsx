@@ -205,17 +205,77 @@ const Overlay = ({ className, ref, ...props }: ComponentProps<typeof DialogPrimi
 	/>
 );
 
-type ContentProps = ComponentProps<typeof DialogPrimitive.Content> & {
-	/**
-	 * The preferred width of the `Dialog.Content` as a tailwind `max-w-` class.
-	 *
-	 * By default, a `Dialog`'s content width is responsive with a default
-	 * preferred width: the maximum width of the `Dialog.Content`
-	 *
-	 * @default `max-w-lg`
-	 */
-	preferredWidth?: `max-w-${string}`;
+/**
+ * How much of the viewport a `Dialog.Content` claims, and what it looks like
+ * there. The three values move together as one decision, because a dialog that
+ * fills the viewport has no width to cap and no corner left to round.
+ *
+ * - `"centered"` — a card capped at `preferredWidth`, inset 16px from every
+ *   viewport edge, rounded and bordered.
+ * - `"full-page"` — fills that same 16px-inset box, still rounded and bordered.
+ * - `"full-bleed"` — fills the whole viewport, square and unbordered.
+ */
+type DialogAppearance = "centered" | "full-page" | "full-bleed";
+
+/**
+ * The viewport inset each {@link DialogAppearance} positions its content in. A
+ * complete `Record` (not cva) so adding an appearance without its classes is a
+ * compile error.
+ */
+const wrapperClassName: Record<DialogAppearance, string> = {
+	centered: "inset-4",
+	"full-page": "inset-4",
+	"full-bleed": "inset-0",
 };
+
+/**
+ * The box each {@link DialogAppearance} paints inside that inset. `"centered"`
+ * takes its width from `preferredWidth` instead, so it sets none here.
+ */
+const contentClassName: Record<DialogAppearance, string> = {
+	centered: "border-dialog rounded-xl border",
+	"full-page": "border-dialog h-full max-w-none rounded-xl border",
+	"full-bleed": "h-full max-w-none",
+};
+
+type ContentProps = ComponentProps<typeof DialogPrimitive.Content> &
+	(
+		| {
+				/**
+				 * How much of the viewport the dialog claims. `"centered"` is a card
+				 * capped at `preferredWidth`; `"full-page"` fills the 16px-inset box
+				 * `Dialog.Content` already positions itself in; `"full-bleed"` fills the
+				 * viewport edge to edge, square and unbordered.
+				 *
+				 * Reflected as `data-appearance`.
+				 *
+				 * @default "centered"
+				 */
+				appearance?: "centered";
+				/**
+				 * The maximum width of a `"centered"` dialog, as a Tailwind `max-w-`
+				 * class. The dialog stays responsive below it.
+				 *
+				 * @default "max-w-lg"
+				 */
+				preferredWidth?: `max-w-${string}`;
+		  }
+		| {
+				/**
+				 * How much of the viewport the dialog claims. `"full-page"` fills the
+				 * 16px-inset box `Dialog.Content` already positions itself in;
+				 * `"full-bleed"` fills the whole viewport, square and unbordered.
+				 *
+				 * Reflected as `data-appearance`.
+				 */
+				appearance: "full-page" | "full-bleed";
+				/**
+				 * Never set here. A `"full-page"` or `"full-bleed"` dialog fills its box,
+				 * so it has no width to cap — pass `appearance="centered"` to cap it.
+				 */
+				preferredWidth?: never;
+		  }
+	);
 
 /**
  * The container for the dialog content.
@@ -224,6 +284,15 @@ type ContentProps = ComponentProps<typeof DialogPrimitive.Content> & {
  * `Dialog.Content` renders its floating layer at Tailwind `z-50`, Mantle's
  * shared floating z-index. When multiple shared layers are open, the most
  * recently mounted layer renders on top.
+ *
+ * `appearance` decides how much of the viewport the dialog claims. `"centered"`
+ * caps it at `preferredWidth`, `"full-page"` fills the 16px-inset box, and
+ * `"full-bleed"` fills the whole viewport.
+ *
+ * | Data Attribute    | Value                                            | Description                                                          |
+ * | ----------------- | ------------------------------------------------ | -------------------------------------------------------------------- |
+ * | `data-appearance` | `"centered"` \| `"full-page"` \| `"full-bleed"`   | Reflects the resolved `appearance`.                                  |
+ * | `data-state`      | `"open"` \| `"closed"`                           | Stamped by Radix; drives the open and close animation.               |
  *
  * @see https://mantle.ngrok.com/components/overlays/dialog#dialogcontent
  *
@@ -251,26 +320,58 @@ type ContentProps = ComponentProps<typeof DialogPrimitive.Content> & {
  *   </Dialog.Content>
  * </Dialog.Root>
  * ```
+ *
+ * @example
+ * Full bleed, for content that needs the whole viewport:
+ * ```tsx
+ * <Dialog.Root>
+ *   <Dialog.Trigger asChild>
+ *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
+ *   </Dialog.Trigger>
+ *   <Dialog.Content appearance="full-bleed">
+ *     <Dialog.Header>
+ *       <Dialog.Title>Request log</Dialog.Title>
+ *       <Dialog.CloseIconButton />
+ *     </Dialog.Header>
+ *     <Dialog.Body>
+ *       <p>This is the dialog content.</p>
+ *     </Dialog.Body>
+ *     <Dialog.Footer>
+ *       <Dialog.Close asChild>
+ *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
+ *       </Dialog.Close>
+ *     </Dialog.Footer>
+ *   </Dialog.Content>
+ * </Dialog.Root>
+ * ```
  */
 const Content = ({
+	appearance = "centered",
 	children,
 	className,
-	preferredWidth = "max-w-lg",
+	preferredWidth,
 	ref,
 	...props
 }: ContentProps) => (
 	<Portal>
+		{/* Why the overlay stays at full bleed: the content opens at `zoom-in-95`,
+		    so a sliver of viewport edge is uncovered for the length of the
+		    animation and would otherwise show the raw page. */}
 		<Overlay />
-		<div className="fixed inset-4 z-50 flex items-center justify-center">
+		<div
+			className={cx("fixed z-50 flex items-center justify-center", wrapperClassName[appearance])}
+		>
 			<DialogPrimitive.Content
+				data-appearance={appearance}
 				data-mantle-modal-content
 				data-slot="dialog-content"
 				className={cx(
 					"flex max-h-full w-full flex-1 flex-col",
 					"outline-hidden focus-within:outline-hidden",
-					"border-dialog bg-dialog rounded-xl border shadow-lg transition-transform duration-200",
+					"bg-dialog shadow-lg transition-transform duration-200",
 					"data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95",
-					preferredWidth,
+					contentClassName[appearance],
+					appearance === "centered" && (preferredWidth ?? "max-w-lg"),
 					className,
 				)}
 				ref={ref}
@@ -755,6 +856,15 @@ const Dialog = {
 	 * shared floating z-index. When multiple shared layers are open, the most
 	 * recently mounted layer renders on top.
 	 *
+	 * `appearance` decides how much of the viewport the dialog claims. `"centered"`
+	 * caps it at `preferredWidth`, `"full-page"` fills the 16px-inset box, and
+	 * `"full-bleed"` fills the whole viewport.
+	 *
+	 * | Data Attribute    | Value                                            | Description                                                          |
+	 * | ----------------- | ------------------------------------------------ | -------------------------------------------------------------------- |
+	 * | `data-appearance` | `"centered"` \| `"full-page"` \| `"full-bleed"`   | Reflects the resolved `appearance`.                                  |
+	 * | `data-state`      | `"open"` \| `"closed"`                           | Stamped by Radix; drives the open and close animation.               |
+	 *
 	 * @see https://mantle.ngrok.com/components/overlays/dialog#dialogcontent
 	 *
 	 * @example
@@ -777,6 +887,30 @@ const Dialog = {
 	 *         <Button type="button" appearance="outlined" intent="neutral">Cancel</Button>
 	 *       </Dialog.Close>
 	 *       <Button type="button" appearance="filled" intent="neutral">Save</Button>
+	 *     </Dialog.Footer>
+	 *   </Dialog.Content>
+	 * </Dialog.Root>
+	 * ```
+	 *
+	 * @example
+	 * Full bleed, for content that needs the whole viewport:
+	 * ```tsx
+	 * <Dialog.Root>
+	 *   <Dialog.Trigger asChild>
+	 *     <Button type="button" appearance="filled" intent="neutral">Open Dialog</Button>
+	 *   </Dialog.Trigger>
+	 *   <Dialog.Content appearance="full-bleed">
+	 *     <Dialog.Header>
+	 *       <Dialog.Title>Request log</Dialog.Title>
+	 *       <Dialog.CloseIconButton />
+	 *     </Dialog.Header>
+	 *     <Dialog.Body>
+	 *       <p>This is the dialog content.</p>
+	 *     </Dialog.Body>
+	 *     <Dialog.Footer>
+	 *       <Dialog.Close asChild>
+	 *         <Button type="button" appearance="outlined" intent="neutral">Close</Button>
+	 *       </Dialog.Close>
 	 *     </Dialog.Footer>
 	 *   </Dialog.Content>
 	 * </Dialog.Root>
