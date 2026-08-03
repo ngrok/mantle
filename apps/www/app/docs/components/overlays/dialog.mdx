@@ -9,6 +9,7 @@ import { Sheet } from "@ngrok/mantle/sheet";
 import { Tooltip } from "@ngrok/mantle/tooltip";
 import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 import { Example } from "~/components/example";
+import { FullPageDialogDemo } from "~/examples/dialog/dialog-full-page-demo";
 import { TanStackFormDemo } from "~/examples/dialog/dialog-tanstack-form-demo";
 
 # Dialog
@@ -128,6 +129,113 @@ Dialog.Root
     ├── Dialog.Body
     └── Dialog.Footer
         └── Dialog.Close
+```
+
+## Full-page dialog
+
+Every dialog already sits 16px from each viewport edge — `Dialog.Content` positions itself inside a `fixed inset-4` wrapper, so you never add that margin yourself. `appearance` decides how much of the box it claims from there:
+
+| `appearance`   | Width                      | Viewport inset | Corners and border   |
+| -------------- | -------------------------- | -------------- | -------------------- |
+| `"centered"`   | capped at `preferredWidth` | 16px           | rounded and bordered |
+| `"full-page"`  | fills the box              | 16px           | rounded and bordered |
+| `"full-bleed"` | fills the box              | none           | square, no border    |
+
+The three values move together as one decision, because a dialog that fills the viewport has no width left to cap and no corner left to round. `preferredWidth` therefore belongs to `"centered"` only — passing it beside `"full-page"` or `"full-bleed"` is a type error, not a prop that silently does nothing.
+
+```tsx
+// a card, capped — the default
+<Dialog.Content preferredWidth="max-w-2xl">
+
+// fills the 16px-inset box, still a rounded card
+<Dialog.Content appearance="full-page">
+
+// fills the whole viewport, square and unbordered
+<Dialog.Content appearance="full-bleed">
+```
+
+The parts keep their roles at every appearance. Because `Dialog.Content` is a flex column with `Dialog.Body` at `flex-1 overflow-y-auto`, the header and footer stay pinned while the body scrolls.
+
+When the content needs the whole viewport, reach for this — a request log, a diff, a media preview, a multi-column editor. When the content deserves its own URL, a back button, or a shareable link, a route beats a dialog.
+
+`"full-bleed"` keeps its backdrop. The content opens at `zoom-in-95`, so a sliver of viewport edge stays uncovered for the length of the animation, and the overlay is what fills it.
+
+The switch in the demo body swaps `"full-page"` for `"full-bleed"`.
+
+<Example className="w-full">
+	<FullPageDialogDemo />
+</Example>
+
+```tsx
+import { Badge } from "@ngrok/mantle/badge";
+import { Button } from "@ngrok/mantle/button";
+import { Dialog } from "@ngrok/mantle/dialog";
+import { Label } from "@ngrok/mantle/label";
+import { Switch } from "@ngrok/mantle/switch";
+import { useId, useState } from "react";
+
+const sampleRequests = [
+	{ method: "GET", path: "/api/v2/endpoints", status: 200, durationMs: 12 },
+	{ method: "POST", path: "/api/v2/tunnels", status: 201, durationMs: 84 },
+	{ method: "GET", path: "/api/v2/reserved_domains", status: 200, durationMs: 21 },
+	{ method: "DELETE", path: "/api/v2/endpoints/ep_2f8c1a", status: 204, durationMs: 33 },
+	{ method: "GET", path: "/api/v2/edges/https/edghts_1x9d", status: 502, durationMs: 1204 },
+	{ method: "PATCH", path: "/api/v2/api_keys/ak_71bd", status: 200, durationMs: 47 },
+];
+
+// The sample repeats so the log overflows `Dialog.Body` at full height.
+const requestLog = Array.from({ length: 7 })
+	.flatMap(() => sampleRequests)
+	.map((request, index) => ({ ...request, id: `req_${4200 + index}` }));
+
+function RequestLogDialog() {
+	const [fullBleed, setFullBleed] = useState(false);
+	const switchId = useId();
+
+	return (
+		<Dialog.Root>
+			<Dialog.Trigger asChild>
+				<Button type="button" appearance="filled" intent="neutral">
+					Open full-page dialog
+				</Button>
+			</Dialog.Trigger>
+			<Dialog.Content appearance={fullBleed ? "full-bleed" : "full-page"}>
+				<Dialog.Header>
+					<Dialog.Title>Request log</Dialog.Title>
+					<Dialog.CloseIconButton />
+				</Dialog.Header>
+				<Dialog.Body className="p-0">
+					<div className="border-dialog-muted bg-dialog sticky top-0 flex items-center gap-2 border-b px-6 py-3">
+						<Switch id={switchId} checked={fullBleed} onCheckedChange={setFullBleed} />
+						<Label htmlFor={switchId}>Full bleed</Label>
+					</div>
+					<div className="divide-card-muted divide-y font-mono text-sm">
+						{requestLog.map((request) => (
+							<div
+								key={request.id}
+								className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 px-4 py-2 sm:px-6"
+							>
+								<span className="text-muted">{request.method}</span>
+								<span className="text-strong truncate">{request.path}</span>
+								<Badge appearance="muted" color={request.status >= 500 ? "danger" : "success"}>
+									{request.status}
+								</Badge>
+								<span className="text-muted text-right">{request.durationMs}ms</span>
+							</div>
+						))}
+					</div>
+				</Dialog.Body>
+				<Dialog.Footer>
+					<Dialog.Close asChild>
+						<Button type="button" appearance="outlined" intent="neutral">
+							Close
+						</Button>
+					</Dialog.Close>
+				</Dialog.Footer>
+			</Dialog.Content>
+		</Dialog.Root>
+	);
+}
 ```
 
 ## Combining with a Tooltip
@@ -513,11 +621,17 @@ The container for the dialog content. Renders on top of the overlay and is cente
 
 Renders at Tailwind `z-50`, Mantle's shared floating z-index.
 
-| Prop                 | Type                             | Default      | Description                                                                                                                |
-| -------------------- | -------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| `preferredWidth?`    | `` `max-w-${string}` ``          | `"max-w-lg"` | The preferred width of the dialog content as a Tailwind `max-w-` class. Controls the maximum width of the dialog.          |
-| `onEscapeKeyDown?`   | `(event: KeyboardEvent) => void` |              | Event handler called when the escape key is down. It can be prevented by calling `event.preventDefault`.                   |
-| `onInteractOutside?` | `(event: Event) => void`         |              | Event handler called when the user interacts outside the component. It can be prevented by calling `event.preventDefault`. |
+| Prop                 | Type                                            | Default      | Description                                                                                                                                                |
+| -------------------- | ----------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance?`        | `"centered"` \| `"full-page"` \| `"full-bleed"` | `"centered"` | How much of the viewport the dialog claims. See [Full-page dialog](#full-page-dialog).                                                                     |
+| `preferredWidth?`    | `` `max-w-${string}` ``                         | `"max-w-lg"` | The maximum width of a `"centered"` dialog, as a Tailwind `max-w-` class. Accepted for `appearance="centered"` only — a filled dialog has no width to cap. |
+| `onEscapeKeyDown?`   | `(event: KeyboardEvent) => void`                |              | Event handler called when the escape key is down. It can be prevented by calling `event.preventDefault`.                                                   |
+| `onInteractOutside?` | `(event: Event) => void`                        |              | Event handler called when the user interacts outside the component. It can be prevented by calling `event.preventDefault`.                                 |
+
+| Data Attribute    | Value                                           | Description                                            |
+| ----------------- | ----------------------------------------------- | ------------------------------------------------------ |
+| `data-appearance` | `"centered"` \| `"full-page"` \| `"full-bleed"` | Reflects the resolved `appearance`.                    |
+| `data-state`      | `"open"` \| `"closed"`                          | Stamped by Radix; drives the open and close animation. |
 
 ### Dialog.Header
 
