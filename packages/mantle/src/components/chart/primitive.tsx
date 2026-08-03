@@ -110,6 +110,9 @@ type ChartInteractionProps = {
  *   hidden from assistive technology (no accessible name, no sr-only data
  *   table, no live region), removed from the tab order, and inert to pointer
  *   and keyboard, so the accessible-name and interaction props are forbidden.
+ *   It also paints recessed — softly blurred, at 70% opacity — so an
+ *   overlaid message reads as the foreground. Compose `Empty.Scrim` into that
+ *   message: the recession alone leaves the description under WCAG AA.
  *
  * `decorative` communicates intent — "these values are not information" —
  * where a `disabled` flag would be ambiguous (a chart is not a form control).
@@ -118,15 +121,57 @@ type ChartAccessibilityProps =
 	| ({ decorative?: false } & ChartAccessibleName & ChartInteractionProps)
 	| {
 			/**
-			 * Render the chart as a decorative placeholder: it keeps its visual
-			 * rendering and animation but is hidden from assistive technology,
-			 * removed from the tab order, and inert to pointer and keyboard — no
-			 * hover band, tooltip, data table, or live region. Use it for
-			 * empty-state backdrops and atmospheric graphics whose values are not
-			 * real data; it forbids the accessible-name and interaction props,
-			 * which have no meaning without real data.
+			 * Render the chart as a decorative placeholder — a backdrop whose
+			 * values are not information. Use it for an empty-state graphic or an
+			 * atmospheric hero, never for data a reader might act on.
+			 *
+			 * A decorative chart keeps its canvas rendering and its animation. It
+			 * drops every layer that only real data needs:
+			 *
+			 * - hidden from assistive technology — no accessible name, no sr-only
+			 *   data table, no live region
+			 * - out of the tab order, and inert to pointer and keyboard — no hover
+			 *   band, no tooltip, no activation
+			 * - the accessible-name and interaction props are forbidden at the type
+			 *   level, because they have no meaning without real data
+			 *
+			 * It also paints recessed: `blur-xs` at `opacity-70`, so the marks read
+			 * as a backdrop and the message reads as the foreground. The blur is
+			 * the depth cue only — under the middle of a mark it leaves the color
+			 * where it was, so it moves no contrast.
+			 *
+			 * **Compose `Empty.Scrim` into any message you lay over the chart.**
+			 * `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a
+			 * bare light card — 0.38 over the 4.5:1 floor for 14px text. A mark
+			 * under that text spends the headroom: at this recession the worst of
+			 * the eight chart slots puts the description at 2.74:1, under WCAG AA.
+			 * The scrim restores the flat surface behind the copy and the message
+			 * measures what it would on a bare card.
+			 * `chart/recession-contrast.test.tsx` measures every slot in every
+			 * theme.
+			 *
+			 * Both classes are defaults `cx` merges away. Pass your own `blur-*` or
+			 * `opacity-*` in `className` to retune the recession, and re-measure
+			 * the message against the marks when you do.
 			 *
 			 * @default false
+			 *
+			 * @example
+			 * ```tsx
+			 * // The message is a sibling of the chart, so AT still announces it.
+			 * <div className="relative w-full">
+			 *   <BarChart.Root data={placeholderUsage} xKey="day" decorative>
+			 *     <BarChart.Bar dataKey="value" />
+			 *   </BarChart.Root>
+			 *   <Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
+			 *     <Empty.Scrim />
+			 *     <Empty.Title>No usage yet</Empty.Title>
+			 *     <Empty.Description>
+			 *       <p>Traffic will appear here once your endpoints start receiving requests.</p>
+			 *     </Empty.Description>
+			 *   </Empty.Root>
+			 * </div>
+			 * ```
 			 */
 			decorative: true;
 			"aria-label"?: never;
@@ -271,8 +316,9 @@ const AUTO_Y_DOMAIN: YDomain = ["auto", "auto"];
  *
  * When `decorative`, it keeps the canvas and hover overlay elements (the engine
  * still paints) but omits the interaction overlay, the aria-live region, and
- * the sr-only data table, and marks the root `aria-hidden` — a placeholder
- * backdrop with no interaction and nothing for assistive technology.
+ * the sr-only data table, marks the root `aria-hidden`, and recesses the whole
+ * chart behind a blur — a placeholder backdrop with no interaction and nothing
+ * for assistive technology.
  *
  * No `asChild`: Root owns a fixed internal structure (canvas + observers +
  * overlay) whose lifecycles are bound to this exact element tree, so
@@ -458,7 +504,19 @@ const ChartRootPrimitive = ({
 			data-slot={joinDataSlot(dataSlot, slotName)}
 			// relative: DOM parts composed as children (e.g. CopyButton) can dock
 			// against the whole chart with absolute positioning.
-			className={cx("relative flex aspect-video w-full flex-col", className)}
+			className={cx(
+				"relative flex aspect-video w-full flex-col",
+				// Why recessed at all: a decorative chart is the backdrop behind an
+				// empty-state message, and the marks must not compete with the copy.
+				// The depth is capped by legibility, not taste — `Empty.Description`
+				// sits on `text-muted`, which holds only 0.38 over the AA floor on a
+				// bare light card, so a mark under that text spends the headroom.
+				// `Empty.Scrim` is what buys it back; this opacity is what keeps the
+				// marks a backdrop. See recession-contrast.test.tsx. `cx` merges both
+				// classes away when a consumer passes their own `blur-*`/`opacity-*`.
+				decorative && "opacity-70 blur-xs",
+				className,
+			)}
 			// A decorative chart is a placeholder backdrop, not information: hide the
 			// whole visualization from assistive technology and keep it out of the tab
 			// order, always winning over any consumer value. Interactive charts name

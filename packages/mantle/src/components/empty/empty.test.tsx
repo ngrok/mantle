@@ -168,6 +168,76 @@ describe("Empty", () => {
 		expect(actions.className).toContain("gap-4");
 	});
 
+	test("Scrim renders behind the content, out of the accessibility tree and the hit area", () => {
+		// The scrim exists to sit under the copy: if it ever paints above, it
+		// hides the message, and if it takes pointer events it eats clicks meant
+		// for the actions beside it.
+		render(
+			<Empty.Root data-testid="root">
+				<Empty.Scrim data-testid="scrim" />
+				<Empty.Title>No usage yet</Empty.Title>
+			</Empty.Root>,
+		);
+		const scrim = screen.getByTestId("scrim");
+		expect(scrim).toHaveAttribute("data-slot", "empty-scrim");
+		expect(scrim).toHaveAttribute("aria-hidden", "true");
+		expect(scrim).toHaveClass("pointer-events-none", "absolute", "-z-10");
+		// -z-10 only stays inside the empty state when Root isolates; without it
+		// the scrim drops behind the backdrop the empty state is layered over.
+		expect(screen.getByTestId("root")).toHaveClass("isolate", "relative");
+		// A decorative wash carries no text, so nothing of it reaches AT.
+		expect(scrim).toBeEmptyDOMElement();
+	});
+
+	test("Scrim keeps its decorative contract even when a consumer spreads over it", () => {
+		// The three guarantees a purely painted shape owes: nothing to announce,
+		// nothing to focus, nothing to click. A spread arrives before them in the
+		// element, so passing these is the exact way the contract would break.
+		render(
+			<Empty.Root>
+				<Empty.Scrim aria-hidden={false} tabIndex={0} data-testid="scrim" />
+				{/* @ts-expect-error — the scrim takes no children, and the assertions below are why */}
+				<Empty.Scrim data-testid="scrim-with-children">Nested copy</Empty.Scrim>
+				<Empty.Title>No usage yet</Empty.Title>
+			</Empty.Root>,
+		);
+		const scrim = screen.getByTestId("scrim");
+		expect(scrim).toHaveAttribute("aria-hidden", "true");
+		expect(scrim).not.toHaveAttribute("tabindex");
+		expect(scrim).toHaveClass("pointer-events-none");
+		// The hazard the type forbids: nested copy paints, and no screen reader
+		// ever reaches it, because the scrim hides its whole subtree.
+		const nested = screen.getByTestId("scrim-with-children");
+		expect(nested).toHaveTextContent("Nested copy");
+		expect(nested).toHaveAttribute("aria-hidden", "true");
+		// The title beside it stays announceable — the scrim hides itself only.
+		expect(screen.getByRole("heading", { name: "No usage yet" })).toBeInTheDocument();
+	});
+
+	test("Scrim paints the card surface by default and takes a color override", () => {
+		// The default is the pair that makes the contrast math hold: the wash
+		// repaints the same surface the empty state would sit on unaided.
+		const { rerender } = render(
+			<Empty.Root>
+				<Empty.Scrim data-testid="scrim" />
+			</Empty.Root>,
+		);
+		expect(screen.getByTestId("scrim").className).toContain(
+			"var(--empty-scrim-color,var(--background-color-card))",
+		);
+		rerender(
+			<Empty.Root>
+				<Empty.Scrim
+					data-testid="scrim"
+					className="[--empty-scrim-color:var(--background-color-popover)]"
+				/>
+			</Empty.Root>,
+		);
+		expect(screen.getByTestId("scrim").className).toContain(
+			"[--empty-scrim-color:var(--background-color-popover)]",
+		);
+	});
+
 	test("renders a full composition", () => {
 		render(
 			<Empty.Root data-testid="root">

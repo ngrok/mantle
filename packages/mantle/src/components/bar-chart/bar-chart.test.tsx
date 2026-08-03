@@ -509,6 +509,38 @@ describe("BarChart decorative mode", () => {
 		expect(container.querySelector("[tabindex]")).not.toBeInTheDocument();
 	});
 
+	test("recesses the chart so an overlaid empty-state message reads as the foreground", () => {
+		// The blur and the opacity are the whole visible contract of the recession.
+		// They land as classes with no data attribute of their own (matching
+		// `pending`), so the class list is the only thing that can catch their loss.
+		const { container } = renderDecorative();
+		const decorativeRoot = container.querySelector('[data-slot="bar-chart"]');
+		expect(decorativeRoot).toHaveClass("blur-xs", "opacity-70");
+		const interactive = render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+			</BarChart.Root>,
+		);
+		const interactiveRoot = interactive.container.querySelector('[data-slot="bar-chart"]');
+		// A chart with real data is the foreground, so it never recesses.
+		expect(interactiveRoot?.className).not.toMatch(/blur|opacity/);
+	});
+
+	test("a consumer's own blur and opacity beat the recessed defaults", () => {
+		// tailwind-merge override contract: the recession is a default, so the two
+		// classes must sit before `className` in the `cx` call. Swapping the order
+		// would pin every decorative chart at one blur and one opacity.
+		const { container } = render(
+			<BarChart.Root data={data} xKey="month" decorative className="opacity-100 blur-none">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+			</BarChart.Root>,
+		);
+		const root = container.querySelector('[data-slot="bar-chart"]');
+		expect(root).toHaveClass("blur-none", "opacity-100");
+		// Bounded: a substring check would match `opacity-70` inside `opacity-700`.
+		expect(root?.className).not.toMatch(/(?:^|\s)(?:blur-xs|opacity-70)(?:\s|$)/);
+	});
+
 	test("forces off a consumer-passed tabIndex so a decorative chart cannot become focusable", () => {
 		// tabIndex is a valid div prop the decorative branch does not forbid, so it
 		// would otherwise ride `{...props}` onto the aria-hidden root and reintroduce

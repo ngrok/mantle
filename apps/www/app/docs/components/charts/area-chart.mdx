@@ -4,6 +4,7 @@ description: A canvas-rendered area chart for showing how values — and, when s
 ---
 
 import { AreaChart } from "@ngrok/mantle/area-chart";
+import { Empty } from "@ngrok/mantle/empty";
 import { useEffect, useState } from "react";
 import { Example } from "~/components/example";
 
@@ -329,15 +330,16 @@ export const placeholderTraffic = [30, 48, 40, 62, 55, 74, 66, 80].map((value, i
 export function EmptyStateAreaChartExample() {
 	return (
 		<div className="relative w-full">
-			<AreaChart.Root data={placeholderTraffic} xKey="minute" decorative className="opacity-40">
+			<AreaChart.Root data={placeholderTraffic} xKey="minute" decorative>
 				<AreaChart.Area dataKey="value" curve="monotone" />
 			</AreaChart.Root>
-			<div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center">
-				<p className="text-strong text-sm font-medium">No traffic yet</p>
-				<p className="text-muted max-w-xs text-sm">
-					Throughput will appear here once your endpoints start serving traffic.
-				</p>
-			</div>
+			<Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
+				<Empty.Scrim />
+				<Empty.Title>No traffic yet</Empty.Title>
+				<Empty.Description>
+					<p>Throughput will appear here once your endpoints start serving traffic.</p>
+				</Empty.Description>
+			</Empty.Root>
 		</div>
 	);
 }
@@ -813,15 +815,20 @@ import { AreaChart } from "@ngrok/mantle/area-chart";
 
 Set `decorative` to render the chart as a placeholder backdrop instead of real data — a synthetic area behind an empty state, an atmospheric hero graphic. A decorative chart keeps its visual rendering and animation but drops every layer that only makes sense for real data: it is hidden from assistive technology, removed from the tab order, and inert to pointer and keyboard, with no hover band, tooltip, sr-only data table, or live region. Because the values aren't information, `decorative` is mutually exclusive with the accessible-name props (`aria-label` / `aria-labelledby`) and the interaction props (`activeIndex`, `onActiveIndexChange`, `onDatumActivate`) — the type won't compile with both.
 
+A decorative chart also paints recessed: a soft blur at 70% opacity. The recession gives an overlaid message depth, so the copy reads as the foreground and the area as the backdrop. Pass your own `blur-*` or `opacity-*` in `className` to retune it.
+
+**Compose [`Empty.Scrim`](/components/feedback/empty#scrim) into the message.** `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card — 0.38 over the 4.5:1 floor for 14px text. A mark under that text spends the headroom. At this recession the worst chart slot leaves the description at 2.74:1 in the light theme, under WCAG AA. The scrim repaints the surface behind the copy, so the message measures what it would on a bare card and the recession stays free to look like a chart. The blur buys none of that: under the middle of a mark it leaves the color where it was, so it is the depth cue alone. Set `--empty-scrim-color` when the chart sits on a surface other than a card, or the wash reads as a patch behind the copy.
+
 Reach for `decorative` over hand-rolled `inert` + CSS: it removes the interaction overlay at the source, so consumers never target chart internals to neutralize it. Keep the real empty-state message as a sibling of the chart (not inside it) so screen readers still announce it — the decorative chart itself is silent.
 
 `decorative` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For a chart with real data that should stay readable through its data table but skip pointer/keyboard exploration, that's a different, not-yet-shipped concern — don't reach for `decorative`.
 
-<Example>
+<Example className="bg-card">
 	<EmptyStateAreaChartExample />
 </Example>
 
 ```tsx
+import { Empty } from "@ngrok/mantle/empty";
 import { AreaChart } from "@ngrok/mantle/area-chart";
 
 /** Synthetic area — a backdrop, not data — so no Math.random and no real values. */
@@ -833,16 +840,17 @@ const placeholderTraffic = [30, 48, 40, 62, 55, 74, 66, 80].map((value, index) =
 function EmptyStateAreaChartExample() {
 	return (
 		<div className="relative w-full">
-			<AreaChart.Root data={placeholderTraffic} xKey="minute" decorative className="opacity-40">
+			<AreaChart.Root data={placeholderTraffic} xKey="minute" decorative>
 				<AreaChart.Area dataKey="value" curve="monotone" />
 			</AreaChart.Root>
 			{/* The real message is a sibling of the chart, so AT still announces it. */}
-			<div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center">
-				<p className="text-strong text-sm font-medium">No traffic yet</p>
-				<p className="text-muted max-w-xs text-sm">
-					Throughput will appear here once your endpoints start serving traffic.
-				</p>
-			</div>
+			<Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
+				<Empty.Scrim />
+				<Empty.Title>No traffic yet</Empty.Title>
+				<Empty.Description>
+					<p>Throughput will appear here once your endpoints start serving traffic.</p>
+				</Empty.Description>
+			</Empty.Root>
 		</div>
 	);
 }
@@ -901,21 +909,21 @@ The root of an area chart: owns the data, the scales, the canvas renderer, and t
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop                  | Type                                | Default       | Description                                                                                                                                                                                                                                                                 |
-| --------------------- | ----------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data`                | `readonly TDatum[]`                 |               | Rows of data; each `AreaChart.Area` reads one numeric key per row.                                                                                                                                                                                                          |
-| `xKey`                | `Extract<keyof TDatum, string>`     |               | The key of each row's x value.                                                                                                                                                                                                                                              |
-| `aria-label`          | `string`                            |               | The chart's accessible name (interactive charts). Exactly one of `aria-label` or `aria-labelledby` is required — enforced at the type level. Forbidden when `decorative`.                                                                                                   |
-| `aria-labelledby`     | `string`                            |               | The id of a visible element that names the chart. Preferred over `aria-label` when the chart sits under a visible heading. Forbidden when `decorative`.                                                                                                                     |
-| `decorative?`         | `boolean`                           | `false`       | Render as a placeholder backdrop, not real data: hidden from assistive tech, out of the tab order, inert to pointer/keyboard, no data table or live region. Mutually exclusive with the accessible-name and interaction props. See [Decorative charts](#decorative-charts). |
-| `xScale`              | `"time"` \| `"linear"` \| `"point"` | auto-detected | Override the auto-detected x scale (`Date` values → `"time"`, numbers → `"linear"`, strings → `"point"`).                                                                                                                                                                   |
-| `yDomain`             | `[0, number \| "auto"]`             | `[0, "auto"]` | Override the automatic y maximum. The minimum is always the zero baseline.                                                                                                                                                                                                  |
-| `stacked`             | `boolean`                           | `false`       | Stack the series in registration order, the first-registered series at the baseline.                                                                                                                                                                                        |
-| `animate`             | `boolean`                           | `true`        | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                                                                                                                                                                     |
-| `pending`             | `boolean`                           | `false`       | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                                                                              |
-| `activeIndex`         | `number \| null`                    |               | Controlled active datum index (`null` = none). Omit for uncontrolled hover. Forbidden when `decorative`.                                                                                                                                                                    |
-| `onActiveIndexChange` | `(index: number \| null) => void`   |               | Notified when hover or keyboard stepping moves the active index. Forbidden when `decorative`.                                                                                                                                                                               |
-| `onDatumActivate`     | `(event: ChartDatumEvent) => void`  |               | Notified on datum activation: a mark click, or <kbd>Enter</kbd>/<kbd>Space</kbd> on the focused chart. Forbidden when `decorative`.                                                                                                                                         |
+| Prop                  | Type                                | Default       | Description                                                                                                                                                                                                                                                                                              |
+| --------------------- | ----------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data`                | `readonly TDatum[]`                 |               | Rows of data; each `AreaChart.Area` reads one numeric key per row.                                                                                                                                                                                                                                       |
+| `xKey`                | `Extract<keyof TDatum, string>`     |               | The key of each row's x value.                                                                                                                                                                                                                                                                           |
+| `aria-label`          | `string`                            |               | The chart's accessible name (interactive charts). Exactly one of `aria-label` or `aria-labelledby` is required — enforced at the type level. Forbidden when `decorative`.                                                                                                                                |
+| `aria-labelledby`     | `string`                            |               | The id of a visible element that names the chart. Preferred over `aria-label` when the chart sits under a visible heading. Forbidden when `decorative`.                                                                                                                                                  |
+| `decorative?`         | `boolean`                           | `false`       | Render as a placeholder backdrop, not real data: recessed behind a soft blur, hidden from assistive tech, out of the tab order, inert to pointer/keyboard, no data table or live region. Mutually exclusive with the accessible-name and interaction props. See [Decorative charts](#decorative-charts). |
+| `xScale`              | `"time"` \| `"linear"` \| `"point"` | auto-detected | Override the auto-detected x scale (`Date` values → `"time"`, numbers → `"linear"`, strings → `"point"`).                                                                                                                                                                                                |
+| `yDomain`             | `[0, number \| "auto"]`             | `[0, "auto"]` | Override the automatic y maximum. The minimum is always the zero baseline.                                                                                                                                                                                                                               |
+| `stacked`             | `boolean`                           | `false`       | Stack the series in registration order, the first-registered series at the baseline.                                                                                                                                                                                                                     |
+| `animate`             | `boolean`                           | `true`        | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                                                                                                                                                                                                  |
+| `pending`             | `boolean`                           | `false`       | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                                                                                                           |
+| `activeIndex`         | `number \| null`                    |               | Controlled active datum index (`null` = none). Omit for uncontrolled hover. Forbidden when `decorative`.                                                                                                                                                                                                 |
+| `onActiveIndexChange` | `(index: number \| null) => void`   |               | Notified when hover or keyboard stepping moves the active index. Forbidden when `decorative`.                                                                                                                                                                                                            |
+| `onDatumActivate`     | `(event: ChartDatumEvent) => void`  |               | Notified on datum activation: a mark click, or <kbd>Enter</kbd>/<kbd>Space</kbd> on the focused chart. Forbidden when `decorative`.                                                                                                                                                                      |
 
 `ChartDatumEvent` is importable from `@ngrok/mantle/area-chart`: `{ index: number; xValue: string | number | Date; datum: object; dataKey: string | null }` (`datum` is the original row — narrow it to your row type), where `dataKey` names the series nearest the pointer on mouse activation and is `null` for keyboard activation.
 
