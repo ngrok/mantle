@@ -350,15 +350,18 @@ and entries in `layoutPages`, `layoutRoutes`, and `layoutDescriptions`. Layouts 
 
 ### 2.5. Changesets
 
-| Change                                           | Bump                                                            |
-| ------------------------------------------------ | --------------------------------------------------------------- |
-| New component                                    | `minor`                                                         |
-| New export, part, or prop on a shipped component | `minor`                                                         |
-| Bug fix, behavior fix, JSDoc-only change         | `patch`                                                         |
-| Breaking rename or removal                       | `major` (and a migration note in the changeset)                 |
-| Preview → stable promotion                       | `minor`                                                         |
-| Docs-site-only change (`apps/www/**`)            | none — `@app/*` is ignored in `.changeset/config.json`          |
-| Change to a component not yet released           | none — fold the description into that component's own changeset |
+[VERSIONING.md](./VERSIONING.md) decides the bump, and it outranks any semver habit from another repo:
+mantle is `0.x`, so there is no major, and additive changes are a `patch`. The component-shaped rows:
+
+| Change                                              | Bump                                                            |
+| --------------------------------------------------- | --------------------------------------------------------------- |
+| New top-level component                             | `minor`                                                         |
+| Preview → stable promotion                          | `minor`                                                         |
+| Breaking rename or removal                          | `minor` (and a migration note in the changeset)                 |
+| New part, prop, data attribute, or CSS variable     | `patch` — additive, so a consumer does nothing                  |
+| Bug fix, behavior fix, styling fix, JSDoc-only edit | `patch`                                                         |
+| Docs-site-only change (`apps/www/**`)               | none — `@app/*` is ignored in `.changeset/config.json`          |
+| Change to a component not yet released              | none — fold the description into that component's own changeset |
 
 An edit to `packages/mantle-vite-plugins` needs its own changeset for that package.
 
