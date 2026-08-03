@@ -33,7 +33,7 @@
   "dependencies": {
     "oxc-parser": "catalog:",
     "parse5": "8.0.1",
-    "shiki": "4.3.1"
+    "shiki": "4.4.1"
   },
   "devDependencies": {
     "@cfg/tsconfig": "workspace:*",

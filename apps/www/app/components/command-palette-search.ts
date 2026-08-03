@@ -201,15 +201,13 @@ export function buildPaletteCommands(mantleVersion: string): PaletteCommand[] {
 				preview: true,
 			}),
 		),
-		...themes.map(
-			(theme): ThemePaletteCommand => ({
-				kind: "theme",
-				id: `theme-${theme}`,
-				title: themeCommandTitles[theme],
-				group: "Theme",
-				theme,
-			}),
-		),
+		...themes.map((theme): ThemePaletteCommand => ({
+			kind: "theme",
+			id: `theme-${theme}`,
+			title: themeCommandTitles[theme],
+			group: "Theme",
+			theme,
+		})),
 	];
 }
 
