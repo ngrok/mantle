@@ -71,6 +71,14 @@ type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
  * here" / "read more". For purely decorative icons, no extra labeling is
  * needed; for icon-only links, pass an `aria-label`.
  *
+ * **Structure.** `children` render inside an inline
+ * `<span data-slot="anchor-label">`, between the two `icon` slots. Target that
+ * slot to style the link text.
+ *
+ * | Data Attribute | Value            | Description                                                                 |
+ * | -------------- | ---------------- | --------------------------------------------------------------------------- |
+ * | `data-slot`    | `"anchor-label"` | On the `<span>` wrapping `children`. Stable styling hook for the link text. |
+ *
  * @see https://mantle.ngrok.com/components/navigation/anchor
  *
  * @example
@@ -134,7 +142,8 @@ const Anchor = ({
 						{icon && iconPlacement === "start" && (
 							<Icon className="inline-block mr-1.5" svg={icon} />
 						)}
-						{grandchildren}
+						{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+						<span data-slot="anchor-label">{grandchildren}</span>
 						{icon && iconPlacement === "end" && <Icon className="inline-block ml-1.5" svg={icon} />}
 					</>,
 				)}
@@ -145,7 +154,8 @@ const Anchor = ({
 	return (
 		<a {...componentProps}>
 			{icon && iconPlacement === "start" && <Icon className="inline-block mr-1.5" svg={icon} />}
-			{children}
+			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+			<span data-slot="anchor-label">{children}</span>
 			{icon && iconPlacement === "end" && <Icon className="inline-block ml-1.5" svg={icon} />}
 		</a>
 	);

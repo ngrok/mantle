@@ -1,7 +1,9 @@
+import { PlusIcon } from "@phosphor-icons/react/Plus";
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { act, useState } from "react";
 import { describe, expect, test } from "vitest";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Button } from "./button.js";
 
 describe("Button", () => {
@@ -322,5 +324,98 @@ describe("Button", () => {
 		expect(screen.getByRole("button")).toHaveAttribute("data-loading", "true");
 		expect(screen.getByTestId("submit-state")).toHaveTextContent("idle");
 		expect(screen.getByTestId("click-state")).toHaveTextContent("idle");
+	});
+
+	describe("on a browser-translated page", () => {
+		test("keeps rendering when `isLoading` turns on", () => {
+			const { rerender } = render(
+				<Button appearance="filled" intent="neutral">
+					Save changes
+				</Button>,
+			);
+			translateTextNodes(screen.getByRole("button"));
+
+			rerender(
+				<Button appearance="filled" intent="neutral" isLoading>
+					Save changes
+				</Button>,
+			);
+
+			const button = screen.getByRole("button");
+			expect(button).toHaveAttribute("data-loading", "true");
+			// The label span takes the spinner's `insertBefore`, so the translated
+			// text node stays where the translation engine put it.
+			expect(button).toHaveTextContent("[Save changes-es]");
+			expect(button.querySelector("svg")).toBeInTheDocument();
+		});
+
+		test("keeps rendering when an `icon` appears", () => {
+			const { rerender } = render(
+				<Button appearance="outlined" intent="neutral">
+					Deploy
+				</Button>,
+			);
+			translateTextNodes(screen.getByRole("button"));
+
+			rerender(
+				<Button appearance="outlined" intent="neutral" icon={<PlusIcon />}>
+					Deploy
+				</Button>,
+			);
+
+			const button = screen.getByRole("button");
+			expect(button).toHaveTextContent("[Deploy-es]");
+			expect(button.querySelector("svg")).toBeInTheDocument();
+		});
+
+		test(`keeps rendering when \`isLoading\` turns on with iconPlacement="end"`, () => {
+			const { rerender } = render(
+				<Button appearance="outlined" intent="neutral" iconPlacement="end">
+					Continue
+				</Button>,
+			);
+			translateTextNodes(screen.getByRole("button"));
+
+			rerender(
+				<Button appearance="outlined" intent="neutral" iconPlacement="end" isLoading>
+					Continue
+				</Button>,
+			);
+
+			const button = screen.getByRole("button");
+			expect(button).toHaveAttribute("data-loading", "true");
+			expect(button).toHaveTextContent("[Continue-es]");
+		});
+
+		test("keeps rendering when `isLoading` turns on with `asChild`", () => {
+			const { rerender } = render(
+				<Button appearance="filled" intent="neutral" asChild>
+					<a href="#yolo">Save changes</a>
+				</Button>,
+			);
+			translateTextNodes(screen.getByRole("link"));
+
+			rerender(
+				<Button appearance="filled" intent="neutral" asChild isLoading>
+					<a href="#yolo">Save changes</a>
+				</Button>,
+			);
+
+			const link = screen.getByRole("link");
+			expect(link).toHaveAttribute("data-loading", "true");
+			expect(link).toHaveTextContent("[Save changes-es]");
+		});
+	});
+
+	test(`wraps children in a span carrying data-slot="button-label"`, () => {
+		render(
+			<Button appearance="filled" intent="neutral">
+				Save changes
+			</Button>,
+		);
+
+		const label = screen.getByRole("button").querySelector("[data-slot='button-label']");
+		expect(label?.tagName).toBe("SPAN");
+		expect(label).toHaveTextContent("Save changes");
 	});
 });

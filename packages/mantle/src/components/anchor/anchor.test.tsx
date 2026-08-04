@@ -1,5 +1,54 @@
+import { BookIcon } from "@phosphor-icons/react/Book";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
-import { resolveRel } from "./anchor.js";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { Anchor, resolveRel } from "./anchor.js";
+
+describe("Anchor", () => {
+	test(`wraps children in a span carrying data-slot="anchor-label"`, () => {
+		render(<Anchor href="https://ngrok.com/">ngrok.com</Anchor>);
+
+		const label = screen.getByRole("link").querySelector("[data-slot='anchor-label']");
+		expect(label?.tagName).toBe("SPAN");
+		expect(label).toHaveTextContent("ngrok.com");
+	});
+
+	describe("on a browser-translated page", () => {
+		test("keeps rendering when a leading `icon` appears", () => {
+			const { rerender } = render(<Anchor href="https://ngrok.com/docs">ngrok docs</Anchor>);
+			translateTextNodes(screen.getByRole("link"));
+
+			rerender(
+				<Anchor href="https://ngrok.com/docs" icon={<BookIcon />}>
+					ngrok docs
+				</Anchor>,
+			);
+
+			const link = screen.getByRole("link");
+			expect(link).toHaveTextContent("[ngrok docs-es]");
+			expect(link.querySelector("svg")).toBeInTheDocument();
+		});
+
+		test("keeps rendering when a leading `icon` appears with `asChild`", () => {
+			const { rerender } = render(
+				<Anchor asChild>
+					<a href="https://ngrok.com/docs">ngrok docs</a>
+				</Anchor>,
+			);
+			translateTextNodes(screen.getByRole("link"));
+
+			rerender(
+				<Anchor asChild icon={<BookIcon />}>
+					<a href="https://ngrok.com/docs">ngrok docs</a>
+				</Anchor>,
+			);
+
+			const link = screen.getByRole("link");
+			expect(link).toHaveTextContent("[ngrok docs-es]");
+			expect(link.querySelector("svg")).toBeInTheDocument();
+		});
+	});
+});
 
 describe("resolveRel", () => {
 	test("given nothing or undefined, returns undefined", () => {

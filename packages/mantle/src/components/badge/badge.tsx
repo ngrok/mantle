@@ -50,6 +50,13 @@ type BadgeProps = ComponentProps<"span"> &
  * element — useful when the badge wraps a link or other semantic element
  * while keeping the badge styling.
  *
+ * **Structure.** `children` render inside a `<span data-slot="badge-label">`,
+ * beside the `icon` slot. Target that slot to style the label text.
+ *
+ * | Data Attribute | Value           | Description                                                                  |
+ * | -------------- | --------------- | ---------------------------------------------------------------------------- |
+ * | `data-slot`    | `"badge-label"` | On the `<span>` wrapping `children`. Stable styling hook for the label text. |
+ *
  * @see https://mantle.ngrok.com/components/data-display/badge
  *
  * @example
@@ -102,7 +109,8 @@ const Badge = ({
 					{},
 					<>
 						{icon && <SvgOnly className="size-4" svg={icon} />}
-						{grandchildren}
+						{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+						<span data-slot="badge-label">{grandchildren}</span>
 					</>,
 				)}
 			</Slot>
@@ -112,7 +120,8 @@ const Badge = ({
 	return (
 		<span data-slot="badge" className={badgeClasses} {...props}>
 			{icon && <SvgOnly className="size-4" svg={icon} />}
-			{children}
+			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+			<span data-slot="badge-label">{children}</span>
 		</span>
 	);
 };

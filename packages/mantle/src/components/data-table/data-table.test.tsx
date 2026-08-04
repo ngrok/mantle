@@ -3,6 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { type ComponentProps, Fragment, type MouseEvent, useMemo, useState } from "react";
 import invariant from "tiny-invariant";
 import { describe, expect, test, vi } from "vitest";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type { ButtonAppearance, ButtonIntent, IconButtonAppearance } from "../button/index.js";
 import {
 	DataTable,
@@ -140,6 +141,92 @@ describe("DataTable.HeaderSortButton", () => {
 		render(<SortableHarness intent="danger" />);
 		const button = screen.getByRole("button", { name: "Name" });
 		expect(button).not.toHaveClass("text-muted");
+	});
+
+	test("announces the sort direction only once the column is sorted", async () => {
+		const user = userEvent.setup();
+		render(<SortableHarness />);
+		expect(screen.getByRole("button", { name: "Name" })).toHaveAttribute(
+			"data-sort-direction",
+			"unsorted",
+		);
+
+		await user.click(screen.getByRole("button", { name: "Name" }));
+
+		const sorted = screen.getByRole("button", { name: /Column sorted in ascending order/ });
+		expect(sorted).toHaveAttribute("data-sort-direction", "asc");
+
+		await user.click(sorted);
+
+		expect(
+			screen.getByRole("button", { name: /Column sorted in descending order/ }),
+		).toHaveAttribute("data-sort-direction", "desc");
+	});
+
+	test("keeps rendering when the first click sorts a browser-translated header", async () => {
+		const user = userEvent.setup();
+		render(<SortableHarness />);
+		const button = screen.getByRole("button", { name: "Name" });
+		translateTextNodes(button);
+
+		await user.click(button);
+
+		const sorted = screen.getByRole("button");
+		expect(sorted).toHaveAttribute("data-sort-direction", "asc");
+		// The announcer is always mounted, so the sort state arrives as a text
+		// rewrite rather than an insert aimed at the translated header text.
+		expect(sorted).toHaveTextContent("Column sorted in ascending order");
+		expect(sorted).toHaveTextContent("[Name-es]");
+	});
+});
+
+/**
+ * Renders a table whose action column header carries text, so `ActionHeader`'s
+ * empty-to-populated transition can be exercised against a translated header.
+ */
+function ActionHeaderHarness({ rows }: { rows: Row[] }) {
+	const actionColumns = useMemo(
+		() => [
+			columnHelper.accessor("name", {
+				id: "name",
+				header: () => <DataTable.Header>Name</DataTable.Header>,
+				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+			}),
+			columnHelper.display({
+				id: "actions",
+				header: () => <DataTable.ActionHeader>Actions</DataTable.ActionHeader>,
+				cell: () => <DataTable.ActionCell>Edit</DataTable.ActionCell>,
+			}),
+		],
+		[],
+	);
+	const table = useReactTable({
+		data: rows,
+		columns: actionColumns,
+		getCoreRowModel: getCoreRowModel(),
+	});
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row key={row.id} row={row} />
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+describe("DataTable.ActionHeader", () => {
+	test("keeps rendering when the first page of rows arrives on a browser-translated page", () => {
+		const { rerender } = render(<ActionHeaderHarness rows={[]} />);
+		const header = screen.getByRole("columnheader", { name: "Actions" });
+		translateTextNodes(header);
+
+		rerender(<ActionHeaderHarness rows={data} />);
+
+		expect(screen.getByRole("columnheader", { name: "[Actions-es]" })).toBeInTheDocument();
+		expect(screen.getByRole("cell", { name: "Alice" })).toBeInTheDocument();
 	});
 });
 

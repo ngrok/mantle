@@ -88,3 +88,10 @@ All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/
 | `asChild?`   | `boolean`                                                                                                                                                                                                                                                   | `false`     | Use the `asChild` prop to compose the `Badge` styling onto alternative element types or your own React components. |
 | `color?`     | `"neutral"` \| `"danger"` \| `"important"` \| `"info"` \| `"success"` \| `"warning"` \| `"blue"` \| `"cyan"` \| `"fuchsia"` \| `"gray"` \| `"green"` \| `"indigo"` \| `"lime"` \| `"orange"` \| `"pink"` \| `"purple"` \| `"red"` \| `"teal"` \| `"yellow"` | `"neutral"` | The color variant of the `Badge`. Supports all [named colors](/base/colors), both functional and from the palette. |
 | `icon?`      | `ReactNode`                                                                                                                                                                                                                                                 |             | An icon to render inside the badge. Will be automatically sized for you.                                           |
+
+#### Data attributes
+
+| Data Attribute | Value           | Description                                                                                          |
+| -------------- | --------------- | ---------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"badge"`       | On the badge element. Stable styling hook that survives a `className` override or an `asChild` swap. |
+| `data-slot`    | `"badge-label"` | On the `<span>` wrapping `children`, beside the `icon` slot. Target it to style the label text.      |
