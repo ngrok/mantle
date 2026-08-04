@@ -150,6 +150,7 @@ export default [
 		// structure
 		...docRoute("components/structure/card"),
 		...docRoute("components/structure/media-object"),
+		...docRoute("components/structure/parfait"),
 		...docRoute("components/structure/separator"),
 		...docRoute("components/structure/well"),
 

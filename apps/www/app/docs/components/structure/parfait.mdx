@@ -1,0 +1,315 @@
+---
+title: Parfait
+description: A page of titled sections, each one explained beside its content — the shape of a settings page or a configuration editor.
+---
+
+import { CodeExample } from "~/components/code-example";
+
+# Parfait
+
+A page of titled sections, each one explained beside its content. Every section pairs a header — its title and description — with the controls that header describes. `Parfait.Root` stacks the sections with a hairline between them. It is the shape of a settings page, a resource configuration editor, and any form long enough that each group needs its own sentence.
+
+Below the `md` breakpoint the header stacks above its own content, so a narrow viewport keeps the pairing rather than squeezing two columns into one. The component owns structure only: the grid, the vertical rhythm, and the rules between sections. Form state, validation, and the controls themselves arrive as composed JSX.
+
+Reach for [Card](/components/structure/card) when a group needs a raised surface of its own, for [Media Object](/components/structure/media-object) when the thing beside the text is an image or an icon, and for [Description List](/components/data-display/description-list) when the pairs are read-only term and value data rather than headed sections.
+
+Each demo below runs in its own framed document, so its media queries track the frame instead of your browser window. Switch the frame to tablet — Tailwind's `md` boundary, where the split is at its narrowest — and then to mobile, where every header stacks above its own controls.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="parfait" title="Parfait demo" />
+	<CodeExample.Code>
+
+```tsx
+import { Badge } from "@ngrok/mantle/badge";
+import { Button } from "@ngrok/mantle/button";
+import { Main } from "@ngrok/mantle/main";
+import { Parfait } from "@ngrok/mantle/parfait";
+import { RadioGroup } from "@ngrok/mantle/radio-group";
+import { PlusIcon } from "@phosphor-icons/react/Plus";
+import { useState } from "react";
+
+export function AccessKeyConfiguration() {
+	const [providerScope, setProviderScope] = useState("allow-only");
+
+	return (
+		<Main className="mx-auto min-h-full max-w-5xl px-6 py-8">
+			<h1 className="text-strong mb-4 text-2xl font-medium">corby-pickles-config</h1>
+			<Parfait.Root>
+				<Parfait.Section>
+					<Parfait.Header>
+						<Parfait.Title>Providers</Parfait.Title>
+						<Parfait.Description>What providers keys may call.</Parfait.Description>
+					</Parfait.Header>
+					<Parfait.Body>
+						<RadioGroup.Root
+							className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+							value={providerScope}
+							onChange={setProviderScope}
+						>
+							<RadioGroup.Card className="flex" value="allow-all">
+								<RadioGroup.ItemContent className="flex-1 space-y-1 text-sm">
+									<span className="text-strong font-medium">Allow all</span>
+									<p className="text-body">No provider restrictions.</p>
+								</RadioGroup.ItemContent>
+								<RadioGroup.Indicator />
+							</RadioGroup.Card>
+							<RadioGroup.Card className="flex" value="allow-only">
+								<RadioGroup.ItemContent className="flex-1 space-y-1 text-sm">
+									<span className="text-strong font-medium">Allow only</span>
+									<p className="text-body">Limit keys to selected providers.</p>
+								</RadioGroup.ItemContent>
+								<RadioGroup.Indicator />
+							</RadioGroup.Card>
+						</RadioGroup.Root>
+					</Parfait.Body>
+				</Parfait.Section>
+				<Parfait.Section>
+					<Parfait.Header>
+						<Parfait.Title>Routing rules</Parfait.Title>
+						<Parfait.Description>Define how requests are authenticated.</Parfait.Description>
+					</Parfait.Header>
+					<Parfait.Body>
+						<div className="flex justify-end">
+							<Button type="button" appearance="outlined" intent="neutral" icon={<PlusIcon />}>
+								Add rule
+							</Button>
+						</div>
+						<div className="border-card divide-card-muted divide-y rounded-md border text-sm">
+							<div className="flex items-center gap-2 px-3 py-2">
+								OpenAI <Badge appearance="muted">Custom</Badge>
+							</div>
+							<div className="flex items-center gap-2 px-3 py-2">
+								Anthropic <Badge appearance="muted">Custom</Badge>
+							</div>
+						</div>
+					</Parfait.Body>
+				</Parfait.Section>
+			</Parfait.Root>
+		</Main>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+## Composition
+
+```text showLineNumbers=false
+Parfait.Root
+└── Parfait.Section
+    ├── Parfait.Header
+    │   ├── Parfait.Title
+    │   └── Parfait.Description
+    └── Parfait.Body
+```
+
+- **`Root`** is the stack. It rules a hairline between adjacent `Section` children — never above the first or below the last — and it is the place to set `--parfait-columns` for every section at once.
+- **`Section`** is one titled band. It owns its own vertical rhythm (`py-8 first:pt-0`) rather than taking it from `Root`, so a single section reads correctly on a page with nothing else on it. Below `md` it stacks `Header` above `Body`; at `md` and up it splits them into a `1fr 2fr` grid.
+- **`Header`** is the introductory column — `Title` and `Description`, spaced by `gap-2`. It renders a semantic `<header>`, which groups the introductory content of its own `<section>`; see [Accessibility](#accessibility) for why that is not a second `banner` landmark.
+- **`Title`** renders an `<h2>`, one level below the page's `<h1>`. Compose `asChild` when a page nests its sections deeper.
+- **`Description`** is the sentence that says what the section's controls do. Optional — a section whose title says everything may omit it.
+- **`Body`** is the content column: the controls, cards, or table the header describes. Its `gap-4` spaces stacked children, and a consumer's own `gap-*` replaces it.
+
+## Polymorphism
+
+Every part accepts `asChild`, so the structure composes onto the element a page actually needs. `Root` renders as the `<form>` below, which keeps the form element outside every section instead of repeating one per band. `Title` renders as an `<h3>` because this section sits under a sub-heading rather than directly under the page `<h1>`.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="parfait-polymorphism" title="Parfait polymorphism demo" />
+	<CodeExample.Code>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Main } from "@ngrok/mantle/main";
+import { Parfait } from "@ngrok/mantle/parfait";
+
+export function AdvancedSettings() {
+	return (
+		<Main className="mx-auto min-h-full max-w-5xl px-6 py-8">
+			<h1 className="text-strong text-2xl font-medium">corby-pickles-config</h1>
+			<h2 className="text-strong mt-6 mb-4 text-xl font-medium">Advanced</h2>
+			<Parfait.Root asChild>
+				<form onSubmit={(event) => event.preventDefault()}>
+					<Parfait.Section>
+						<Parfait.Header>
+							<Parfait.Title asChild>
+								<h3>Danger zone</h3>
+							</Parfait.Title>
+							<Parfait.Description>Deleting a configuration cannot be undone.</Parfait.Description>
+						</Parfait.Header>
+						<Parfait.Body>
+							<div className="flex justify-end">
+								<Button type="submit" appearance="outlined" intent="danger">
+									Delete configuration
+								</Button>
+							</div>
+						</Parfait.Body>
+					</Parfait.Section>
+				</form>
+			</Parfait.Root>
+		</Main>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+## Column split
+
+At `md` and up, `Section` reads its `grid-template-columns` from `--parfait-columns`, defaulting to `1fr 2fr`. Set the variable on `Root` to re-split every section at once, or on a single `Section` to move only that one — custom properties inherit, so the nearest declaration wins. Below `md` the variable goes quiet, because the two parts stack.
+
+The default suits a short label beside a wide set of controls. When the explanation carries as much weight as the controls, an even split reads better — switch the frame to mobile to watch both splits collapse to the same stack:
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="parfait-columns" title="Parfait column split demo" />
+	<CodeExample.Code>
+
+```tsx
+import { Main } from "@ngrok/mantle/main";
+import { Parfait } from "@ngrok/mantle/parfait";
+
+export function ModelSettings() {
+	return (
+		<Main className="mx-auto min-h-full max-w-5xl px-6 py-8">
+			<h1 className="text-strong mb-4 text-2xl font-medium">Model access</h1>
+			<Parfait.Root className="[--parfait-columns:1fr_1fr]">
+				<Parfait.Section>
+					<Parfait.Header>
+						<Parfait.Title>Models</Parfait.Title>
+						<Parfait.Description>
+							An even split gives a long explanation the same room as its controls.
+						</Parfait.Description>
+					</Parfait.Header>
+					<Parfait.Body>
+						<div className="border-card text-body rounded-md border px-3 py-2 text-sm">
+							Allow all models
+						</div>
+					</Parfait.Body>
+				</Parfait.Section>
+				<Parfait.Section>
+					<Parfait.Header>
+						<Parfait.Title>Rate limits</Parfait.Title>
+						<Parfait.Description>
+							Requests over the limit receive a 429 until the window resets.
+						</Parfait.Description>
+					</Parfait.Header>
+					<Parfait.Body>
+						<div className="border-card text-body rounded-md border px-3 py-2 text-sm">
+							60 requests per minute
+						</div>
+					</Parfait.Body>
+				</Parfait.Section>
+			</Parfait.Root>
+		</Main>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+## Accessibility
+
+- **Sections carry no landmark, by design.** `Section` renders a `<section>` with no accessible name, so it stays generic in the accessibility tree. Its `Title` heading is the navigation affordance instead. A heading outline can run long and nest deeply; a landmark list only stays useful while it is short enough that `main` and `nav` are one keypress away. A named `<section>` is a `region` landmark, so one per section turns that list into a second table of contents the headings already provide.
+- **A landmark does not disambiguate controls.** When two sections hold controls that read alike — two radio groups both offering "Allow all" — reach for [`Field.Set` and `Field.Legend`](/components/forms/field#fieldset), which name the group on every control inside it. Assistive technology announces a landmark once, on entry, so naming the `Section` fixes nothing here.
+- **Name a `Section` only when it is a destination.** Pass `aria-labelledby` pointing at the `Title`'s `id` when a returning user jumps straight to that section _and_ its container beats its heading as the landing spot — a live log, a status readout, or a chart whose heading is separated from its content by a toolbar. One or two such sections on a page is already a lot. Past that, headings do the job better.
+- **Header is not a second banner.** `Header` renders a `<header>`, which maps to the `banner` landmark only when its nearest sectioning ancestor is the document body. Nested inside `Section`'s `<section>`, it is generic, so a page carries as many headers as it has sections.
+- **Heading level is yours.** `Title` defaults to `<h2>` for a section directly under a page `<h1>`. When the sections sit deeper, compose `asChild` with the correct level rather than letting the outline skip — mantle cannot see the surrounding document.
+- **Controls keep their own labels.** The `Title` is a heading, not a label. A group of inputs inside `Body` still needs its own [Field](/components/forms/field) legend or label; a heading above a group names the section, not the control.
+
+## API Reference
+
+### Parfait.Root
+
+The stack of sections. Rules a hairline between adjacent `Parfait.Section` children — never above the first or below the last — and scopes `--parfait-columns` for all of them.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                         |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Parfait.Root` styling onto alternative element types or your own components. |
+
+| Data Attribute | Value       | Description                                                        |
+| -------------- | ----------- | ------------------------------------------------------------------ |
+| `data-slot`    | `"parfait"` | Stable styling hook. Survives `className` overrides and `asChild`. |
+
+Every part joins an incoming `data-slot` chain ahead of its own name, so composing a part through an ancestor's `asChild` yields `data-slot="parfait parfait-section"` rather than losing one of the two.
+
+### Parfait.Section
+
+One titled band of the page. Stacks `Parfait.Header` above `Parfait.Body` below the `md` breakpoint, then splits the two into a grid at `md` and up. Carries its own vertical rhythm (`py-8 first:pt-0`).
+
+All props from [section](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/section#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                            |
+| ---------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Parfait.Section` styling onto alternative element types or your own components. |
+
+| CSS Variable        | Default   | Description                                                                                                                           |
+| ------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `--parfait-columns` | `1fr 2fr` | The `grid-template-columns` value at `md` and up. Set it on `Parfait.Root` to re-split every section, or here for this section alone. |
+
+| Data Attribute | Value               | Description                                                        |
+| -------------- | ------------------- | ------------------------------------------------------------------ |
+| `data-slot`    | `"parfait-section"` | Stable styling hook. Survives `className` overrides and `asChild`. |
+
+### Parfait.Header
+
+A section's introductory column — its `Parfait.Title` and `Parfait.Description`, spaced by `gap-2`. Renders a semantic `<header>`, which is generic rather than a `banner` landmark inside `Parfait.Section`.
+
+All props from [header](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/header#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                           |
+| ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Parfait.Header` styling onto alternative element types or your own components. |
+
+| Data Attribute | Value              | Description                                                        |
+| -------------- | ------------------ | ------------------------------------------------------------------ |
+| `data-slot`    | `"parfait-header"` | Stable styling hook. Survives `className` overrides and `asChild`. |
+
+### Parfait.Title
+
+The section's heading. Renders an `<h2>`, one level below the page's `<h1>`. Compose `asChild` with the right element when a page nests its sections deeper.
+
+All props from [h2](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                          |
+| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Parfait.Title` styling onto alternative element types or your own components. |
+
+| Data Attribute | Value             | Description                                                        |
+| -------------- | ----------------- | ------------------------------------------------------------------ |
+| `data-slot`    | `"parfait-title"` | Stable styling hook. Survives `className` overrides and `asChild`. |
+
+### Parfait.Description
+
+The sentence that says what the section's controls do. Renders a `<p>` in muted body text beneath `Parfait.Title`. Optional.
+
+All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                |
+| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Parfait.Description` styling onto alternative element types or your own components. |
+
+| Data Attribute | Value                   | Description                                                        |
+| -------------- | ----------------------- | ------------------------------------------------------------------ |
+| `data-slot`    | `"parfait-description"` | Stable styling hook. Survives `className` overrides and `asChild`. |
+
+### Parfait.Body
+
+The section's content column — the controls, cards, or table `Parfait.Header` describes. Its `gap-4` spaces stacked children, and a consumer's own `gap-*` replaces it.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                         |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Parfait.Body` styling onto alternative element types or your own components. |
+
+| Data Attribute | Value            | Description                                                        |
+| -------------- | ---------------- | ------------------------------------------------------------------ |
+| `data-slot`    | `"parfait-body"` | Stable styling hook. Survives `className` overrides and `asChild`. |

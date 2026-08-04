@@ -10,6 +10,11 @@ import {
 	CenteredLayoutNoticeDemo,
 } from "~/features/centered-layout-demos";
 import {
+	ParfaitColumnsExample,
+	ParfaitExample,
+	ParfaitPolymorphismExample,
+} from "~/features/parfait-demos";
+import {
 	SandbarDemo,
 	SandbarFailedSaveDemo,
 	SandbarPendingPublishDemo,
@@ -105,6 +110,21 @@ export const previewExamples = {
 		title: "Centered layout notice demo",
 		Component: CenteredLayoutNoticeDemo,
 		sourceFile: "centered-layout-demos.tsx",
+	},
+	parfait: {
+		title: "Parfait demo",
+		Component: ParfaitExample,
+		sourceFile: "parfait-demos.tsx",
+	},
+	"parfait-columns": {
+		title: "Parfait column split demo",
+		Component: ParfaitColumnsExample,
+		sourceFile: "parfait-demos.tsx",
+	},
+	"parfait-polymorphism": {
+		title: "Parfait polymorphism demo",
+		Component: ParfaitPolymorphismExample,
+		sourceFile: "parfait-demos.tsx",
 	},
 	sandbar: {
 		title: "Sandbar demo",

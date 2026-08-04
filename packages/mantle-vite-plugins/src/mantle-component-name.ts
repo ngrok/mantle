@@ -57,6 +57,7 @@ export const MANTLE_COMPONENT_NAMES = [
 	"multi-select",
 	"otp-input",
 	"pagination",
+	"parfait",
 	"popover",
 	"progress",
 	"qr-code",

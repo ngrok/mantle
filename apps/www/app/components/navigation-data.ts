@@ -109,7 +109,7 @@ export const componentsByCategory = {
 	// Structure: contains, divides, or arranges arbitrary content — vs Data
 	// Display, which presents specific content. Page/viewport structure
 	// belongs to the top-level Layouts section, not here.
-	Structure: ["Card", "Media Object", "Separator", "Well"],
+	Structure: ["Card", "Media Object", "Parfait", "Separator", "Well"],
 } as const satisfies Record<ComponentCategory, readonly string[]>;
 
 /** Display name of a production-ready component. */
@@ -175,6 +175,7 @@ export const prodReadyComponentRouteLookup = {
 	"Multi Select": "/components/forms/multi-select",
 	"OTP Input": "/components/forms/otp-input",
 	Pagination: "/components/navigation/pagination",
+	Parfait: "/components/structure/parfait",
 	"Password Input": "/components/forms/password-input",
 	Popover: "/components/overlays/popover",
 	"Progress Bar": "/components/feedback/progress-bar",

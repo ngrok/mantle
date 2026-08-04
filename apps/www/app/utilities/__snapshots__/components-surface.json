@@ -585,6 +585,20 @@
     "jsdoc": "Re-exports for the Pagination component family — `CursorPagination`'s parts for cursor paging, and `useOffsetPagination` for offset paging."
   },
   {
+    "name": "Parfait",
+    "slug": "components/structure/parfait",
+    "kind": "component",
+    "category": "Structure",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/parfait",
+    "summary": "A page of titled sections, each one explained beside its content — the shape of a settings page or a configuration editor.",
+    "jsdoc": "A page of titled sections, each one explained beside its content.",
+    "examples": [
+      "Composition:\n```\nParfait.Root\n└── Parfait.Section\n    ├── Parfait.Header\n    │   ├── Parfait.Title\n    │   └── Parfait.Description\n    └── Parfait.Body\n```",
+      "```tsx\n<Parfait.Root>\n  <Parfait.Section>\n    <Parfait.Header>\n      <Parfait.Title>Providers</Parfait.Title>\n      <Parfait.Description>What providers keys may call.</Parfait.Description>\n    </Parfait.Header>\n    <Parfait.Body>\n      <ProviderScopePicker />\n    </Parfait.Body>\n  </Parfait.Section>\n  <Parfait.Section>\n    <Parfait.Header>\n      <Parfait.Title>Routing rules</Parfait.Title>\n      <Parfait.Description>Define how requests are authenticated.</Parfait.Description>\n    </Parfait.Header>\n    <Parfait.Body>\n      <RoutingRuleList />\n    </Parfait.Body>\n  </Parfait.Section>\n</Parfait.Root>\n```"
+    ]
+  },
+  {
     "name": "Password Input",
     "slug": "components/forms/password-input",
     "kind": "component",
