@@ -179,6 +179,25 @@ describe("Alert", () => {
 			expect(label?.contains(caret ?? null)).toBe(false);
 		});
 
+		test("keeps the caret side tighter than the text side", () => {
+			const { container } = render(
+				<Alert.Root intent="warning">
+					<Alert.Content>
+						<Alert.Title>Usage limit approaching</Alert.Title>
+						<Alert.ExpandButton count={3} expanded={false} />
+					</Alert.Content>
+				</Alert.Root>,
+			);
+
+			// A tailwind-merge override contract. `Button` adds `pe-2` for the icon side
+			// whenever `icon` is set, and a `px-*` shorthand cannot beat that longhand:
+			// both survive the merge, and Tailwind emits `pe-*` last. Asserting the merge
+			// outcome is what catches the caret drifting 2px away from the edge.
+			const button = container.querySelector('[data-slot="alert-expand-button"]');
+			expect(button).toHaveClass("ps-1.5", "pe-1");
+			expect(button).not.toHaveClass("pe-2");
+		});
+
 		test("keeps the count and the word as flex items of the button", () => {
 			const { container } = render(
 				<Alert.Root intent="warning">

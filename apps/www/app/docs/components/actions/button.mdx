@@ -169,6 +169,8 @@ When `asChild` is used, `type` has no effect and is not forwarded to the child, 
 
 Use the `icon` prop to add an icon to the button. By default, it will render on the logical start side of the button. Use the `iconPlacement` prop to change the side the icon is rendered on.
 
+A button with an icon tightens the padding on the icon's side by `0.125rem`, so the glyph reads optically aligned with the text block. That arrives as a `ps-*` or `pe-*` longhand, which a `px-*` override cannot beat — both survive the class merge, and Tailwind emits the longhand last. Override padding on a button with an icon in longhands too: `className="ps-1.5 pe-1"`, not `className="px-1.5"`.
+
 <Example>
 	<div className="flex items-center gap-2">
 		<Button appearance="outlined" intent="neutral" icon={<FireIcon weight="fill" />}>
