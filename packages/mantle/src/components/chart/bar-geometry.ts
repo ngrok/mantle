@@ -38,7 +38,7 @@ const BAR_STEP_FILL = 0.6;
 const BAR_DENSE_THICKNESS = 24;
 
 /**
- * The thickest a bar paints, however wide its band. Four categories across a
+ * The thickest a bar paints, however wide its band. Two categories across a
  * 650px plot would fill 195px each without it, and a bar that wide reads as a
  * panel rather than a mark.
  */

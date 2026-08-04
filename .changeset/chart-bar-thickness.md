@@ -7,7 +7,7 @@ no longer reads gap-toothed.
 
 Seven days across a wide card used to paint 24px bars inside a 93px step, which left 69px of air beside every
 bar. A bar now fills its slot up to a cap of 60% of one step, floored at the old 24px and ceilinged at 64px:
-those seven bars paint about 47px.
+those seven bars paint about 56px.
 
 - **A dense chart is untouched.** The floor and the fill rule meet at a step of exactly 40px, so every chart
   whose categories sit closer than that paints the pixels it painted before.
