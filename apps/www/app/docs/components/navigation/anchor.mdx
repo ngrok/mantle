@@ -111,3 +111,10 @@ All props from [a](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#a
 | `icon?`          | `ReactNode`          |           | An icon to render inside the anchor.                                                                                |
 | `iconPlacement?` | `"start"` \| `"end"` | `"start"` | The side that the icon will render on, if one is present.                                                           |
 | `asChild?`       | `boolean`            | `false`   | Use the `asChild` prop to compose the `Anchor` styling onto alternative element types or your own React components. |
+
+#### Data attributes
+
+| Data Attribute | Value            | Description                                                                                            |
+| -------------- | ---------------- | ------------------------------------------------------------------------------------------------------ |
+| `data-slot`    | `"anchor"`       | On the anchor element. Stable styling hook that survives a `className` override or an `asChild` swap.  |
+| `data-slot`    | `"anchor-label"` | On the inline `<span>` wrapping `children`, between the two `icon` slots. Target it to style the text. |

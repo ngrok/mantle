@@ -6,6 +6,7 @@ description: Initiates an action, such as completing a task or submitting inform
 import { Button, IconButton } from "@ngrok/mantle/button";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { FireIcon } from "@phosphor-icons/react/Fire";
+import { PlusIcon } from "@phosphor-icons/react/Plus";
 import { Link, href } from "react-router";
 import { Example } from "~/components/example";
 
@@ -231,6 +232,35 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 />;
 ```
 
+An icon is also not a child. `children` share one label slot, so an icon passed as a child sits flush against the text — the button's `gap` falls between the `icon` slot and the label, not between two children. Pass it through `icon`.
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { PlusIcon } from "@phosphor-icons/react/Plus";
+
+// ❌ Wrong — the icon lands inside the label slot, with no gap
+<Button appearance="filled" intent="neutral">
+	<PlusIcon />
+	Create endpoint
+</Button>;
+```
+
+<Example>
+	<Button appearance="filled" intent="neutral" icon={<PlusIcon />}>
+		Create endpoint
+	</Button>
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { PlusIcon } from "@phosphor-icons/react/Plus";
+
+// ✅ Correct — `icon` gets its own slot beside the label
+<Button appearance="filled" intent="neutral" icon={<PlusIcon />}>
+	Create endpoint
+</Button>;
+```
+
 ## isLoading
 
 `isLoading` sets whether the button is in a loading state, default `false`. Setting `isLoading` replaces any `icon` with a spinner, or adds one when the button has no icon. It also disables user interaction with the button and sets `aria-disabled`.
@@ -343,3 +373,10 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 | `isLoading?`     | `boolean`                                           | `false`    | Whether the button is in a loading state. Setting `isLoading` replaces any `icon` with a spinner, or adds one when the button has no icon. It also disables user interaction with the button and sets `aria-disabled`.                                                                                                                                                                                     |
 | `size?`          | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`      | `"md"`     | The size of the `Button`, controlling its box height and horizontal padding. Shared scale with `IconButton` — the same size name renders the same box height. Has no effect when `appearance="link"`.                                                                                                                                                                                                      |
 | `type?`          | `"button"` \| `"reset"` \| `"submit"`               | `"button"` | The behavior of the `Button` when activated. Defaults to `"button"`, so a `Button` inside a `<form>` will **not** submit it — pass `type="submit"` to submit the form. When `asChild` is used, `type` has no effect and is not forwarded to the child. See [the MDN docs](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#type) for more information.                                     |
+
+#### Data attributes
+
+| Data Attribute | Value            | Description                                                                                                                                     |
+| -------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"button"`       | On the button element. Stable styling hook that survives a `className` override or an `asChild` swap.                                           |
+| `data-slot`    | `"button-label"` | On the `<span>` wrapping `children`, beside the `icon` slot. Target it to style the label — for example `min-w-0 truncate` to clamp a long one. |

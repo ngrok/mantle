@@ -158,6 +158,48 @@ type DataTableHeaderSortButtonProps<TData, TValue> = Omit<
 		  }
 	);
 
+type SortStateAnnouncementOptions = {
+	/** Whether the column can sort at all. */
+	canSort: boolean;
+	/** The column's current sort direction. */
+	sortDirection: SortDirection;
+	/** The column's sorting mode, absent when sorting is disabled. */
+	sortingMode: SortingMode | undefined;
+};
+
+/**
+ * The screen-reader announcement for a column's current sort state. Returns an
+ * empty string for a column that cannot sort or sits unsorted, so the announcer
+ * element stays mounted with nothing to read out.
+ *
+ * @example
+ * ```ts
+ * sortStateAnnouncement({ canSort: true, sortDirection: "asc", sortingMode: "alphanumeric" })
+ * // => "Column sorted in ascending order"
+ *
+ * sortStateAnnouncement({ canSort: true, sortDirection: "asc", sortingMode: "time" })
+ * // => "Column sorted in oldest-to-newest order"
+ *
+ * sortStateAnnouncement({ canSort: true, sortDirection: "unsorted", sortingMode: "alphanumeric" })
+ * // => ""
+ * ```
+ */
+function sortStateAnnouncement({
+	canSort,
+	sortDirection,
+	sortingMode,
+}: SortStateAnnouncementOptions): string {
+	if (!canSort || sortDirection === "unsorted") {
+		return "";
+	}
+
+	if (sortingMode === "alphanumeric") {
+		return `Column sorted in ${sortDirection === "asc" ? "ascending" : "descending"} order`;
+	}
+
+	return `Column sorted in ${$timeSortingDirection(sortDirection)} order`;
+}
+
 /**
  * A sortable button toggle for a column header in a data table. Renders a sort
  * icon that reflects the current direction, handles ARIA announcements, and
@@ -240,17 +282,13 @@ function HeaderSortButton<TData, TValue>({
 			type="button"
 			{...props}
 		>
-			{canSort && sortDirection !== "unsorted" && (
-				<span className="sr-only">
-					Column sorted in{" "}
-					{sortingMode === "alphanumeric"
-						? sortDirection === "asc"
-							? "ascending"
-							: "descending"
-						: $timeSortingDirection(sortDirection)}{" "}
-					order
-				</span>
-			)}
+			{/* Always mounted, with one string child: mounting it only while sorted
+			    would aim an `insertBefore` at the label, which throws once a
+			    browser translation engine has reparented that text node. See
+			    decisions/2026-08-04-translation-safe-label-wrappers.md. */}
+			<span className="sr-only">
+				{sortStateAnnouncement({ canSort, sortDirection, sortingMode })}
+			</span>
 			{children}
 		</Button>
 	);
@@ -648,8 +686,13 @@ function ActionHeader({ children, className, ...props }: DataTableActionHeaderPr
 			)}
 			{...props}
 		>
-			{hasRows && <StickyColIndicator />}
 			{children}
+			{/* Last, not first: the indicator is absolutely positioned outside the
+			    cell's content box, so DOM order costs nothing here — and mounting it
+			    before `children` would aim an `insertBefore` at header text that a
+			    browser translation engine has reparented, which throws. See
+			    decisions/2026-08-04-translation-safe-label-wrappers.md. */}
+			{hasRows && <StickyColIndicator />}
 		</Table.Header>
 	);
 }

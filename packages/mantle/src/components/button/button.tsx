@@ -239,6 +239,16 @@ type ButtonProps = ComponentProps<"button"> &
  * while `IconButton` requires a screen-reader `label` and renders a square
  * box on the same shared size scale.
  *
+ * **Structure.** `children` render inside a `<span data-slot="button-label">`,
+ * beside the `icon` slot. Target that slot to style the label — for example, to
+ * clamp a long one with `min-w-0 truncate`. The label is one flex item, so the
+ * button's `gap` falls between the icon and the label, never between two
+ * `children`: pass an icon through `icon`, not as a child.
+ *
+ * | Data Attribute | Value            | Description                                                                  |
+ * | -------------- | ---------------- | ---------------------------------------------------------------------------- |
+ * | `data-slot`    | `"button-label"` | On the `<span>` wrapping `children`. Stable styling hook for the label text. |
+ *
  * @see https://mantle.ngrok.com/components/actions/button
  *
  * @example
@@ -326,7 +336,8 @@ const Button = ({
 					{},
 					<>
 						{icon && <Icon svg={icon} className={clsx(iconPlacement === "end" && "order-last")} />}
-						{children.props.children}
+						{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+						<span data-slot="button-label">{children.props.children}</span>
 					</>,
 				)}
 			</Slot>
@@ -337,7 +348,8 @@ const Button = ({
 		// oxlint-disable-next-line react/button-has-type -- `type` defaults to "button" at runtime via the `?? "button"` fallback; the static analyzer can't resolve that expression.
 		<button {...buttonProps} type={type ?? "button"}>
 			{icon && <Icon svg={icon} className={clsx(iconPlacement === "end" && "order-last")} />}
-			{children}
+			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+			<span data-slot="button-label">{children}</span>
 		</button>
 	);
 };
