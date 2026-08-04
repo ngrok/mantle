@@ -5,6 +5,7 @@ description: A canvas-rendered bar chart for comparing values across categories,
 
 import { BarChart } from "@ngrok/mantle/bar-chart";
 import { Button } from "@ngrok/mantle/button";
+import { Empty } from "@ngrok/mantle/empty";
 import { useEffect, useState } from "react";
 import { Example } from "~/components/example";
 
@@ -706,15 +707,15 @@ export const placeholderUsage = [40, 62, 51, 78, 66, 89, 72].map((value, index) 
 export function EmptyStateBarChartExample() {
 	return (
 		<div className="relative w-full">
-			<BarChart.Root data={placeholderUsage} xKey="day" decorative className="opacity-40">
+			<BarChart.Root data={placeholderUsage} xKey="day" decorative>
 				<BarChart.Bar dataKey="value" />
 			</BarChart.Root>
-			<div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center">
-				<p className="text-strong text-sm font-medium">No usage yet</p>
-				<p className="text-muted max-w-xs text-sm">
-					Traffic will appear here once your endpoints start receiving requests.
-				</p>
-			</div>
+			<Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
+				<Empty.Title>No usage yet</Empty.Title>
+				<Empty.Description>
+					<p>Traffic will appear here once your endpoints start receiving requests.</p>
+				</Empty.Description>
+			</Empty.Root>
 		</div>
 	);
 }
@@ -1832,6 +1833,10 @@ function CopyMarkdownExample() {
 
 Set `decorative` to render the chart as a placeholder backdrop instead of real data — synthetic bars behind an empty state, an atmospheric hero graphic. A decorative chart keeps its visual rendering and animation but drops every layer that only makes sense for real data: it is hidden from assistive technology, removed from the tab order, and inert to pointer and keyboard, with no hover band, tooltip, sr-only data table, or live region. Because the values aren't information, `decorative` is mutually exclusive with the accessible-name props (`aria-label` / `aria-labelledby`) and the interaction props (`activeIndex`, `onActiveIndexChange`, `onDatumActivate`) — the type won't compile with both.
 
+A decorative chart also drops the categorical palette. Every series paints `--color-chart-decorative`, one neutral fill that outranks a series' `color` and `seriesSlot`. A backdrop carries no series identity, and a hue on values that are not information invites a reader to decode it.
+
+**That fill is what keeps an overlaid message readable.** `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card — 0.38 over the 4.5:1 floor for 14px text, so any tint under that copy spends the headroom. `--color-chart-decorative` is the darkest neutral step that still clears the floor in every theme: 4.56:1 in light, 4.93:1 in dark, 9.08:1 and 8.14:1 in the high-contrast pair. The message needs no scrim behind it, no dimming, and no blur. Redeclare the token on the Root to retune the fill — `className="[--color-chart-decorative:var(--color-neutral-100)]"` — and re-measure the copy against the value you pick.
+
 Reach for `decorative` over hand-rolled `inert` + CSS: it removes the interaction overlay at the source, so consumers never target chart internals to neutralize it. Keep the real empty-state message as a sibling of the chart (not inside it) so screen readers still announce it — the decorative chart itself is silent.
 
 `decorative` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For a chart with real data that should stay readable through its data table but skip pointer/keyboard exploration, that's a different, not-yet-shipped concern — don't reach for `decorative`.
@@ -1842,6 +1847,7 @@ Reach for `decorative` over hand-rolled `inert` + CSS: it removes the interactio
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
+import { Empty } from "@ngrok/mantle/empty";
 
 /** Synthetic bars — a backdrop, not data — so no Math.random and no real values. */
 const placeholderUsage = [40, 62, 51, 78, 66, 89, 72].map((value, index) => ({
@@ -1852,16 +1858,16 @@ const placeholderUsage = [40, 62, 51, 78, 66, 89, 72].map((value, index) => ({
 function EmptyStateBarChartExample() {
 	return (
 		<div className="relative w-full">
-			<BarChart.Root data={placeholderUsage} xKey="day" decorative className="opacity-40">
+			<BarChart.Root data={placeholderUsage} xKey="day" decorative>
 				<BarChart.Bar dataKey="value" />
 			</BarChart.Root>
 			{/* The real message is a sibling of the chart, so AT still announces it. */}
-			<div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center">
-				<p className="text-strong text-sm font-medium">No usage yet</p>
-				<p className="text-muted max-w-xs text-sm">
-					Traffic will appear here once your endpoints start receiving requests.
-				</p>
-			</div>
+			<Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
+				<Empty.Title>No usage yet</Empty.Title>
+				<Empty.Description>
+					<p>Traffic will appear here once your endpoints start receiving requests.</p>
+				</Empty.Description>
+			</Empty.Root>
 		</div>
 	);
 }
@@ -1911,21 +1917,21 @@ The root of a bar chart: owns the data, the scales, the canvas renderer, and the
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop                   | Type                               | Default       | Description                                                                                                                                                                                                                                                                                                 |
-| ---------------------- | ---------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data`                 | `readonly TDatum[]`                |               | Rows of data; each `BarChart.Bar` reads one numeric key per row. Missing keys and `null` values render as gaps.                                                                                                                                                                                             |
-| `xKey`                 | `Extract<keyof TDatum, string>`    |               | The key of each row's category (x) value.                                                                                                                                                                                                                                                                   |
-| `aria-label`           | `string`                           |               | The chart's accessible name (interactive charts). Exactly one of `aria-label` or `aria-labelledby` is required — enforced at the type level. Forbidden when `decorative`.                                                                                                                                   |
-| `aria-labelledby`      | `string`                           |               | ID of a visible title element that names the chart. Preferred when the chart sits under a heading — no drift-prone duplicated text. Forbidden when `decorative`.                                                                                                                                            |
-| `decorative?`          | `boolean`                          | `false`       | Render as a placeholder backdrop, not real data: hidden from assistive tech, out of the tab order, inert to pointer/keyboard, no data table or live region. Mutually exclusive with the accessible-name and interaction props. See [Decorative charts](#decorative-charts).                                 |
-| `yDomain?`             | `[0, number \| "auto"]`            | `[0, "auto"]` | Override the automatic y maximum. The minimum is always the zero baseline.                                                                                                                                                                                                                                  |
-| `stacked?`             | `boolean`                          | `false`       | Stack the series from the baseline up in registration order. See [Stacked bars](#stacked-bars).                                                                                                                                                                                                             |
-| `orientation?`         | `"vertical" \| "horizontal"`       | `"vertical"`  | The direction the bars point (not an axis): `"vertical"` bars stand up from a bottom baseline (categories along x); `"horizontal"` bars run rightward from a left baseline (categories down y). See [Horizontal bars](#horizontal-bars).                                                                    |
-| `animate?`             | `boolean`                          | `true`        | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                                                                                                                                                                                                     |
-| `pending?`             | `boolean`                          | `false`       | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                                                                                                              |
-| `activeIndex?`         | `number \| null`                   |               | Controlled active datum index (`null` = none). Omit for uncontrolled hover. Forbidden when `decorative`.                                                                                                                                                                                                    |
-| `onActiveIndexChange?` | `(index: number \| null) => void`  |               | Notified when hover/keyboard moves the active index. Forbidden when `decorative`.                                                                                                                                                                                                                           |
-| `onDatumActivate?`     | `(event: ChartDatumEvent) => void` |               | Notified on datum activation: bar click, or Enter/Space on the focused chart. The event carries `{ index, xValue, datum, dataKey }`; `dataKey` is the stacked segment the pointer sits in, else the series nearest the pointer, and `null` for keyboard/whole-band activation. Forbidden when `decorative`. |
+| Prop                   | Type                               | Default       | Description                                                                                                                                                                                                                                                                                                                                  |
+| ---------------------- | ---------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data`                 | `readonly TDatum[]`                |               | Rows of data; each `BarChart.Bar` reads one numeric key per row. Missing keys and `null` values render as gaps.                                                                                                                                                                                                                              |
+| `xKey`                 | `Extract<keyof TDatum, string>`    |               | The key of each row's category (x) value.                                                                                                                                                                                                                                                                                                    |
+| `aria-label`           | `string`                           |               | The chart's accessible name (interactive charts). Exactly one of `aria-label` or `aria-labelledby` is required — enforced at the type level. Forbidden when `decorative`.                                                                                                                                                                    |
+| `aria-labelledby`      | `string`                           |               | ID of a visible title element that names the chart. Preferred when the chart sits under a heading — no drift-prone duplicated text. Forbidden when `decorative`.                                                                                                                                                                             |
+| `decorative?`          | `boolean`                          | `false`       | Render as a placeholder backdrop, not real data: every series paints the neutral `--color-chart-decorative` fill, hidden from assistive tech, out of the tab order, inert to pointer/keyboard, no data table or live region. Mutually exclusive with the accessible-name and interaction props. See [Decorative charts](#decorative-charts). |
+| `yDomain?`             | `[0, number \| "auto"]`            | `[0, "auto"]` | Override the automatic y maximum. The minimum is always the zero baseline.                                                                                                                                                                                                                                                                   |
+| `stacked?`             | `boolean`                          | `false`       | Stack the series from the baseline up in registration order. See [Stacked bars](#stacked-bars).                                                                                                                                                                                                                                              |
+| `orientation?`         | `"vertical" \| "horizontal"`       | `"vertical"`  | The direction the bars point (not an axis): `"vertical"` bars stand up from a bottom baseline (categories along x); `"horizontal"` bars run rightward from a left baseline (categories down y). See [Horizontal bars](#horizontal-bars).                                                                                                     |
+| `animate?`             | `boolean`                          | `true`        | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                                                                                                                                                                                                                                      |
+| `pending?`             | `boolean`                          | `false`       | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                                                                                                                                               |
+| `activeIndex?`         | `number \| null`                   |               | Controlled active datum index (`null` = none). Omit for uncontrolled hover. Forbidden when `decorative`.                                                                                                                                                                                                                                     |
+| `onActiveIndexChange?` | `(index: number \| null) => void`  |               | Notified when hover/keyboard moves the active index. Forbidden when `decorative`.                                                                                                                                                                                                                                                            |
+| `onDatumActivate?`     | `(event: ChartDatumEvent) => void` |               | Notified on datum activation: bar click, or Enter/Space on the focused chart. The event carries `{ index, xValue, datum, dataKey }`; `dataKey` is the stacked segment the pointer sits in, else the series nearest the pointer, and `null` for keyboard/whole-band activation. Forbidden when `decorative`.                                  |
 
 **Data attributes**
 
@@ -1943,6 +1949,8 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 ### BarChart.Bar
 
 One bar series. Renders nothing itself — it registers the series with the chart, which paints it on canvas. Compose one `Bar` per series; with `stacked` on the Root, bars stack from the baseline up in registration order. Accepts no `className` or DOM props.
+
+**Bar thickness follows the category spacing; there is no `barSize` prop.** A bar fills its slot up to a cap of 60% of one category's step, floored at 24px and ceilinged at 64px. Few categories therefore grow the bars rather than the air between them — seven days across a 93px step paint ~56px bars, not 24px bars in 69px of air — while a dense chart keeps filling its slot exactly as before. Grouped series split the band and each bar fills its own slot, so a group tightens instead of outgrowing its category. The rule reads the step alone, so the same data at the same width always paints the same pixels, and thickness only ever rises as categories thin out.
 
 | Prop          | Type                                                                                                         | Default                      | Description                                                                                                                                                  |
 | ------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -2040,17 +2048,18 @@ Series colors default to the ordered `--color-chart-1` through `--color-chart-8`
 
 Series receive unreserved slots in composition order. Set `seriesSlot` to give a series a fixed visual identity. Mantle reserves fixed slots before automatic series take the remaining slots. Several related series may share one. `seriesSlot="other"` selects the neutral tail treatment without reserving a categorical slot. Removing an automatic series closes the gap. The `color` and `shape` props override only their own channels and never change slot assignment. When the chart runs out of unreserved categorical slots, later automatic series paint with `--color-chart-other`. Prefer folding the long tail into a single "Other" series over plotting nine-plus indistinguishable ones.
 
-| CSS Variable          | Description                                                                                                                |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `--color-chart-1`     | Categorical series slot 1 (blue) — the first slot a chart assigns.                                                         |
-| `--color-chart-2`     | Categorical series slot 2 (green).                                                                                         |
-| `--color-chart-3`     | Categorical series slot 3 (pink).                                                                                          |
-| `--color-chart-4`     | Categorical series slot 4 (red-orange).                                                                                    |
-| `--color-chart-5`     | Categorical series slot 5 (teal).                                                                                          |
-| `--color-chart-6`     | Categorical series slot 6 (magenta).                                                                                       |
-| `--color-chart-7`     | Categorical series slot 7 (violet).                                                                                        |
-| `--color-chart-8`     | Categorical series slot 8 (amber).                                                                                         |
-| `--color-chart-other` | The neutral overflow slot, worn once more than eight series show at once — prefer folding the tail into an "Other" series. |
+| CSS Variable               | Description                                                                                                                |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `--color-chart-1`          | Categorical series slot 1 (blue) — the first slot a chart assigns.                                                         |
+| `--color-chart-2`          | Categorical series slot 2 (green).                                                                                         |
+| `--color-chart-3`          | Categorical series slot 3 (pink).                                                                                          |
+| `--color-chart-4`          | Categorical series slot 4 (red-orange).                                                                                    |
+| `--color-chart-5`          | Categorical series slot 5 (teal).                                                                                          |
+| `--color-chart-6`          | Categorical series slot 6 (magenta).                                                                                       |
+| `--color-chart-7`          | Categorical series slot 7 (violet).                                                                                        |
+| `--color-chart-8`          | Categorical series slot 8 (amber).                                                                                         |
+| `--color-chart-other`      | The neutral overflow slot, worn once more than eight series show at once — prefer folding the tail into an "Other" series. |
+| `--color-chart-decorative` | The neutral fill every series wears on a [decorative chart](#decorative-charts), in place of its categorical slot.         |
 
 What each theme measures across its eight slots:
 

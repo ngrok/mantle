@@ -348,6 +348,10 @@ MARK: INVERT THEME in mantle.css for the full strategy.
 	--color-chart-8: oklch(0.668 0.137 83.5); /* #bd8c01 */
 	--color-chart-other: var(--color-neutral-500);
 
+	/* The decorative-chart fill — this theme's neutral-200, which holds
+	   --text-color-muted at 4.93:1. See mantle.css for the derivation. */
+	--color-chart-decorative: var(--color-neutral-200);
+
 	--text-color-strong: #fff;
 	--text-color-body: --alpha(#fff / 0.7);
 	--text-color-muted: --alpha(#fff / 0.5);

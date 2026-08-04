@@ -39,10 +39,16 @@ short description
 ## 4. Validate
 
 - If a changeset is required AND no candidate changeset names `@ngrok/mantle`: **FAIL**. Recommend running `pnpm -w run changeset` and proposing a bump type:
-  - `patch` for doc/JSDoc/comment-only changes (no public API impact)
-  - `minor` for new exports, new components, new behavior
-  - `major` for breaking changes (removed exports, renamed APIs, behavior changes that break existing usage)
-- If a changeset exists but uses a bump type that does not match the diff (e.g., `patch` when the diff adds a new export), warn but do not fail.
+  Read [VERSIONING.md](../../VERSIONING.md) and apply it. Do not apply stock semver — mantle is `0.x`, there is
+  no `major`, and additive changes are a `patch`:
+  - `patch` for a bug fix, a new prop, a new part in a shipped namespace, a new data attribute or CSS variable,
+    a styling change, a dependency bump, or a JSDoc-only edit
+  - `minor` only when existing API breaks or disappears (a removed or renamed export, a renamed or
+    newly-required prop, a dropped peer), or when a new top-level component ships, or on a preview → stable
+    promotion
+  - `major` is never correct. Nothing in this repo has ever used it.
+- If a changeset exists but uses a bump type that VERSIONING.md does not support, warn but do not fail. Never
+  "correct" a bump a maintainer set by hand.
 - If a changeset is NOT required and one exists for `@ngrok/mantle`: warn that it may be unnecessary, but don't fail.
 
 ## 5. Report

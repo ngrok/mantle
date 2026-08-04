@@ -80,7 +80,7 @@ Pick the category from the nine in §2.4 (`Actions`, `Charts`, `Data Display`, `
 
 Run all five commands in [§9](../../COMPONENT_SPEC.md#9-verification), then commit the generated files it names (`components-surface.json`, `mantle-component-name.ts`).
 
-Add a `minor` changeset for `@ngrok/mantle` written as release notes for consumers, per [§2.5](../../COMPONENT_SPEC.md#25-changesets).
+Add a `minor` changeset for `@ngrok/mantle` written as release notes for consumers, per [§2.5](../../COMPONENT_SPEC.md#25-changesets). A new top-level component is the one additive change that takes a `minor` — see [VERSIONING.md](../../VERSIONING.md).
 
 ## 6. Self-review
 

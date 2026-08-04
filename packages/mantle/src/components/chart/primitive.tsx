@@ -110,6 +110,8 @@ type ChartInteractionProps = {
  *   hidden from assistive technology (no accessible name, no sr-only data
  *   table, no live region), removed from the tab order, and inert to pointer
  *   and keyboard, so the accessible-name and interaction props are forbidden.
+ *   It also paints every series in one neutral fill instead of the categorical
+ *   palette, low enough in contrast that a message laid over it stays readable.
  *
  * `decorative` communicates intent — "these values are not information" —
  * where a `disabled` flag would be ambiguous (a chart is not a form control).
@@ -118,15 +120,51 @@ type ChartAccessibilityProps =
 	| ({ decorative?: false } & ChartAccessibleName & ChartInteractionProps)
 	| {
 			/**
-			 * Render the chart as a decorative placeholder: it keeps its visual
-			 * rendering and animation but is hidden from assistive technology,
-			 * removed from the tab order, and inert to pointer and keyboard — no
-			 * hover band, tooltip, data table, or live region. Use it for
-			 * empty-state backdrops and atmospheric graphics whose values are not
-			 * real data; it forbids the accessible-name and interaction props,
-			 * which have no meaning without real data.
+			 * Render the chart as a decorative placeholder — a backdrop whose
+			 * values are not information. Use it for an empty-state graphic or an
+			 * atmospheric hero, never for data a reader might act on.
+			 *
+			 * A decorative chart keeps its canvas rendering and its animation. It
+			 * drops every layer that only real data needs:
+			 *
+			 * - hidden from assistive technology — no accessible name, no sr-only
+			 *   data table, no live region
+			 * - out of the tab order, and inert to pointer and keyboard — no hover
+			 *   band, no tooltip, no activation
+			 * - the accessible-name and interaction props are forbidden at the type
+			 *   level, because they have no meaning without real data
+			 *
+			 * It also drops the categorical palette. Every series paints
+			 * `--color-chart-decorative`, one neutral fill that outranks a series'
+			 * `color` and `seriesSlot` — a backdrop encodes no series identity, and
+			 * a hue on values that are not information invites a reader to decode
+			 * it. The token is the darkest neutral step that keeps `text-muted`
+			 * over the WCAG AA floor for 14px text in all four themes (4.56:1 in
+			 * light, 4.93:1 in dark), so an overlaid message needs no scrim, no
+			 * blur, and no dimming to stay readable.
+			 * `chart/decorative-contrast.test.tsx` measures every theme.
+			 *
+			 * Retune the fill per chart by redeclaring the token in `className`:
+			 * `[--color-chart-decorative:var(--color-neutral-100)]`. Re-measure the
+			 * message against the new value when you do.
 			 *
 			 * @default false
+			 *
+			 * @example
+			 * ```tsx
+			 * // The message is a sibling of the chart, so AT still announces it.
+			 * <div className="relative w-full">
+			 *   <BarChart.Root data={placeholderUsage} xKey="day" decorative>
+			 *     <BarChart.Bar dataKey="value" />
+			 *   </BarChart.Root>
+			 *   <Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
+			 *     <Empty.Title>No usage yet</Empty.Title>
+			 *     <Empty.Description>
+			 *       <p>Traffic will appear here once your endpoints start receiving requests.</p>
+			 *     </Empty.Description>
+			 *   </Empty.Root>
+			 * </div>
+			 * ```
 			 */
 			decorative: true;
 			"aria-label"?: never;
@@ -271,7 +309,8 @@ const AUTO_Y_DOMAIN: YDomain = ["auto", "auto"];
  *
  * When `decorative`, it keeps the canvas and hover overlay elements (the engine
  * still paints) but omits the interaction overlay, the aria-live region, and
- * the sr-only data table, and marks the root `aria-hidden` — a placeholder
+ * the sr-only data table, marks the root `aria-hidden`, and publishes the
+ * decorative fill to the store so every series paints neutral — a placeholder
  * backdrop with no interaction and nothing for assistive technology.
  *
  * No `asChild`: Root owns a fixed internal structure (canvas + observers +
@@ -407,8 +446,12 @@ const ChartRootPrimitive = ({
 		// Publish the orientation to DOM consumers too: the legend mirrors bar
 		// textures whose direction-dependent stripes must match the bars.
 		store.setOrientation(orientation);
+		// The neutral decorative fill replaces the categorical palette in the store,
+		// so the canvas and every DOM surface read one color from one place.
+		store.setDecorative(decorative);
 	}, [
 		store,
+		decorative,
 		xKey,
 		resolvedXScale,
 		yDomainMin,

@@ -74,7 +74,7 @@ grep -rn "components/preview/<component-name>" apps/www/app/docs/
 pnpm -w run changeset
 ```
 
-- Bump type: `minor` for `@ngrok/mantle` (promotion is a stability/feature signal, even though no source code changes).
+- Bump type: `minor` for `@ngrok/mantle` (promotion is a stability/feature signal, even though no source code changes). See [VERSIONING.md](../../VERSIONING.md).
 - Description: `Promote <ComponentName> from preview to stable`.
 
 ## 7. Verify

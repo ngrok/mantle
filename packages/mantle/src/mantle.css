@@ -266,7 +266,8 @@ MARK: THEME
 	   pair of slots stays apart for full-color readers and for dichromats, and so
 	   every slot clears 3:1 on that theme's card surface. Assign slots to series in
 	   order and never re-assign a series' slot when others are filtered out; series
-	   beyond 8 use --color-chart-other. */
+	   beyond 8 use --color-chart-other, and a decorative chart paints every series
+	   with --color-chart-decorative. */
 	--color-chart-1: var(--color-chart-1);
 	--color-chart-2: var(--color-chart-2);
 	--color-chart-3: var(--color-chart-3);
@@ -276,6 +277,7 @@ MARK: THEME
 	--color-chart-7: var(--color-chart-7);
 	--color-chart-8: var(--color-chart-8);
 	--color-chart-other: var(--color-chart-other);
+	--color-chart-decorative: var(--color-chart-decorative);
 }
 
 /**
@@ -390,6 +392,14 @@ from `:root` (see MARK: INVERT THEME below).
 	--color-chart-7: oklch(0.473 0.227 290.6); /* #632bce */
 	--color-chart-8: oklch(0.621 0.125 80.1); /* #ad7d0f */
 	--color-chart-other: var(--color-neutral-500);
+
+	/* The fill every series wears on a decorative chart, in place of its categorical
+	   slot. It is neutral because a placeholder encodes no series identity, and it is
+	   this light because the message laid over it must stay readable: --text-color-muted
+	   over neutral-200 measures 4.56:1 here, and neutral-300 drops it to 4.24:1 — under
+	   the 4.5:1 floor for 14px text. Each theme aliases its own neutral-200, and
+	   chart/decorative-contrast.test.tsx measures all four. */
+	--color-chart-decorative: var(--color-neutral-200);
 
 	--text-color-strong: var(--color-neutral-950);
 	--text-color-body: --alpha(var(--color-neutral-950) / 0.75);

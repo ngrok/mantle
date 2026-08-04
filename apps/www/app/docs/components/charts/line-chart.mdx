@@ -3,6 +3,7 @@ title: Line Chart
 description: A canvas-rendered line chart for trends over a continuous x axis — time above all. Min/max decimation keeps 100,000+ point series smooth.
 ---
 
+import { Empty } from "@ngrok/mantle/empty";
 import { LineChart } from "@ngrok/mantle/line-chart";
 import { useEffect, useState } from "react";
 import { Example } from "~/components/example";
@@ -251,15 +252,15 @@ export const placeholderLatency = [120, 138, 126, 152, 141, 168, 150, 162].map((
 export function EmptyStateLineChartExample() {
 	return (
 		<div className="relative w-full">
-			<LineChart.Root data={placeholderLatency} xKey="minute" decorative className="opacity-40">
+			<LineChart.Root data={placeholderLatency} xKey="minute" decorative>
 				<LineChart.Line dataKey="value" curve="monotone" />
 			</LineChart.Root>
-			<div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center">
-				<p className="text-strong text-sm font-medium">No latency data yet</p>
-				<p className="text-muted max-w-xs text-sm">
-					Percentile latencies will appear here once requests flow through your endpoints.
-				</p>
-			</div>
+			<Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
+				<Empty.Title>No latency data yet</Empty.Title>
+				<Empty.Description>
+					<p>Percentile latencies will appear here once requests flow through your endpoints.</p>
+				</Empty.Description>
+			</Empty.Root>
 		</div>
 	);
 }
@@ -652,6 +653,10 @@ import { LineChart } from "@ngrok/mantle/line-chart";
 
 Set `decorative` to render the chart as a placeholder backdrop instead of real data — a synthetic line behind an empty state, an atmospheric hero graphic. A decorative chart keeps its visual rendering and animation but drops every layer that only makes sense for real data: it is hidden from assistive technology, removed from the tab order, and inert to pointer and keyboard, with no hover band, tooltip, sr-only data table, or live region. Because the values aren't information, `decorative` is mutually exclusive with the accessible-name props (`aria-label` / `aria-labelledby`) and the interaction props (`activeIndex`, `onActiveIndexChange`, `onDatumActivate`) — the type won't compile with both.
 
+A decorative chart also drops the categorical palette. Every series paints `--color-chart-decorative`, one neutral fill that outranks a series' `color` and `seriesSlot`. A backdrop carries no series identity, and a hue on values that are not information invites a reader to decode it.
+
+**That fill is what keeps an overlaid message readable.** `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card — 0.38 over the 4.5:1 floor for 14px text, so any tint under that copy spends the headroom. `--color-chart-decorative` is the darkest neutral step that still clears the floor in every theme: 4.56:1 in light, 4.93:1 in dark, 9.08:1 and 8.14:1 in the high-contrast pair. The message needs no scrim behind it, no dimming, and no blur. Redeclare the token on the Root to retune the fill — `className="[--color-chart-decorative:var(--color-neutral-100)]"` — and re-measure the copy against the value you pick.
+
 Reach for `decorative` over hand-rolled `inert` + CSS: it removes the interaction overlay at the source, so consumers never target chart internals to neutralize it. Keep the real empty-state message as a sibling of the chart (not inside it) so screen readers still announce it — the decorative chart itself is silent.
 
 `decorative` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For a chart with real data that should stay readable through its data table but skip pointer/keyboard exploration, that's a different, not-yet-shipped concern — don't reach for `decorative`.
@@ -661,6 +666,7 @@ Reach for `decorative` over hand-rolled `inert` + CSS: it removes the interactio
 </Example>
 
 ```tsx
+import { Empty } from "@ngrok/mantle/empty";
 import { LineChart } from "@ngrok/mantle/line-chart";
 
 /** Synthetic line — a backdrop, not data — so no Math.random and no real values. */
@@ -672,16 +678,16 @@ const placeholderLatency = [120, 138, 126, 152, 141, 168, 150, 162].map((value, 
 function EmptyStateLineChartExample() {
 	return (
 		<div className="relative w-full">
-			<LineChart.Root data={placeholderLatency} xKey="minute" decorative className="opacity-40">
+			<LineChart.Root data={placeholderLatency} xKey="minute" decorative>
 				<LineChart.Line dataKey="value" curve="monotone" />
 			</LineChart.Root>
 			{/* The real message is a sibling of the chart, so AT still announces it. */}
-			<div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center">
-				<p className="text-strong text-sm font-medium">No latency data yet</p>
-				<p className="text-muted max-w-xs text-sm">
-					Percentile latencies will appear here once requests flow through your endpoints.
-				</p>
-			</div>
+			<Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
+				<Empty.Title>No latency data yet</Empty.Title>
+				<Empty.Description>
+					<p>Percentile latencies will appear here once requests flow through your endpoints.</p>
+				</Empty.Description>
+			</Empty.Root>
 		</div>
 	);
 }
@@ -734,20 +740,20 @@ The root of a line chart: owns the data, the scales, the canvas renderer, and th
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop                   | Type                                   | Default            | Description                                                                                                                                                                                                                                                                 |
-| ---------------------- | -------------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data`                 | `readonly TDatum[]`                    |                    | Rows of data; each `LineChart.Line` reads one numeric key per row.                                                                                                                                                                                                          |
-| `xKey`                 | `Extract<keyof TDatum, string>`        |                    | The key of each row's x value.                                                                                                                                                                                                                                              |
-| `aria-label`           | `string`                               |                    | The chart's accessible name (interactive charts). Exactly one of `aria-label` or `aria-labelledby` is required — enforced at the type level. Forbidden when `decorative`.                                                                                                   |
-| `aria-labelledby`      | `string`                               |                    | The id of a visible element that names the chart. Preferred over `aria-label` when the chart sits under a heading. Forbidden when `decorative`.                                                                                                                             |
-| `decorative?`          | `boolean`                              | `false`            | Render as a placeholder backdrop, not real data: hidden from assistive tech, out of the tab order, inert to pointer/keyboard, no data table or live region. Mutually exclusive with the accessible-name and interaction props. See [Decorative charts](#decorative-charts). |
-| `xScale?`              | `"time"` \| `"linear"` \| `"point"`    | auto-detected      | Override the auto-detected x scale (`Date` values → `"time"`, numbers → `"linear"`, strings → `"point"`).                                                                                                                                                                   |
-| `yDomain?`             | `[number \| "auto", number \| "auto"]` | `["auto", "auto"]` | Override the automatic y domain at either end.                                                                                                                                                                                                                              |
-| `animate?`             | `boolean`                              | `true`             | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                                                                                                                                                                     |
-| `pending?`             | `boolean`                              | `false`            | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                                                                              |
-| `activeIndex?`         | `number \| null`                       |                    | Controlled active datum index (`null` = none). Omit for uncontrolled hover. Forbidden when `decorative`.                                                                                                                                                                    |
-| `onActiveIndexChange?` | `(index: number \| null) => void`      |                    | Notified when hover/keyboard moves the active index. Forbidden when `decorative`.                                                                                                                                                                                           |
-| `onDatumActivate?`     | `(event: ChartDatumEvent) => void`     |                    | Notified on datum activation: mark click, or Enter/Space on the focused chart. The event carries `index`, `xValue`, `datum`, and the `dataKey` of the series nearest the pointer (`null` for keyboard activation). Forbidden when `decorative`.                             |
+| Prop                   | Type                                   | Default            | Description                                                                                                                                                                                                                                                                                                                                  |
+| ---------------------- | -------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data`                 | `readonly TDatum[]`                    |                    | Rows of data; each `LineChart.Line` reads one numeric key per row.                                                                                                                                                                                                                                                                           |
+| `xKey`                 | `Extract<keyof TDatum, string>`        |                    | The key of each row's x value.                                                                                                                                                                                                                                                                                                               |
+| `aria-label`           | `string`                               |                    | The chart's accessible name (interactive charts). Exactly one of `aria-label` or `aria-labelledby` is required — enforced at the type level. Forbidden when `decorative`.                                                                                                                                                                    |
+| `aria-labelledby`      | `string`                               |                    | The id of a visible element that names the chart. Preferred over `aria-label` when the chart sits under a heading. Forbidden when `decorative`.                                                                                                                                                                                              |
+| `decorative?`          | `boolean`                              | `false`            | Render as a placeholder backdrop, not real data: every series paints the neutral `--color-chart-decorative` fill, hidden from assistive tech, out of the tab order, inert to pointer/keyboard, no data table or live region. Mutually exclusive with the accessible-name and interaction props. See [Decorative charts](#decorative-charts). |
+| `xScale?`              | `"time"` \| `"linear"` \| `"point"`    | auto-detected      | Override the auto-detected x scale (`Date` values → `"time"`, numbers → `"linear"`, strings → `"point"`).                                                                                                                                                                                                                                    |
+| `yDomain?`             | `[number \| "auto", number \| "auto"]` | `["auto", "auto"]` | Override the automatic y domain at either end.                                                                                                                                                                                                                                                                                               |
+| `animate?`             | `boolean`                              | `true`             | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                                                                                                                                                                                                                                      |
+| `pending?`             | `boolean`                              | `false`            | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                                                                                                                                               |
+| `activeIndex?`         | `number \| null`                       |                    | Controlled active datum index (`null` = none). Omit for uncontrolled hover. Forbidden when `decorative`.                                                                                                                                                                                                                                     |
+| `onActiveIndexChange?` | `(index: number \| null) => void`      |                    | Notified when hover/keyboard moves the active index. Forbidden when `decorative`.                                                                                                                                                                                                                                                            |
+| `onDatumActivate?`     | `(event: ChartDatumEvent) => void`     |                    | Notified on datum activation: mark click, or Enter/Space on the focused chart. The event carries `index`, `xValue`, `datum`, and the `dataKey` of the series nearest the pointer (`null` for keyboard activation). Forbidden when `decorative`.                                                                                              |
 
 **Data attributes**
 
@@ -867,17 +873,18 @@ The ordered `--color-chart-1`…`--color-chart-8` tokens define the built-in ser
 
 Series receive unreserved slots in composition order. Set `seriesSlot` to give a series a fixed visual identity. Mantle reserves fixed slots before automatic series take the remaining slots. Removing an automatic series closes the gap. The `color` and `shape` props override only their own channels and never change slot assignment. `seriesSlot="other"` selects the neutral tail treatment without reserving a categorical slot. When the chart runs out of unreserved categorical slots, later automatic series paint with `--color-chart-other`. Fold the long tail into a single "Other" series instead. Eight is the validated limit, and no ninth hue clears it.
 
-| CSS Variable          | Description                                                                                                                       |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `--color-chart-1`     | The first categorical series slot (blue).                                                                                         |
-| `--color-chart-2`     | The second categorical series slot (green).                                                                                       |
-| `--color-chart-3`     | The third categorical series slot (pink).                                                                                         |
-| `--color-chart-4`     | The fourth categorical series slot (red-orange).                                                                                  |
-| `--color-chart-5`     | The fifth categorical series slot (teal).                                                                                         |
-| `--color-chart-6`     | The sixth categorical series slot (magenta).                                                                                      |
-| `--color-chart-7`     | The seventh categorical series slot (violet).                                                                                     |
-| `--color-chart-8`     | The eighth categorical series slot (amber).                                                                                       |
-| `--color-chart-other` | The fold slot, worn once more than eight series show at once (neutral gray). Collapse the long tail into a single "Other" series. |
+| CSS Variable               | Description                                                                                                                       |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `--color-chart-1`          | The first categorical series slot (blue).                                                                                         |
+| `--color-chart-2`          | The second categorical series slot (green).                                                                                       |
+| `--color-chart-3`          | The third categorical series slot (pink).                                                                                         |
+| `--color-chart-4`          | The fourth categorical series slot (red-orange).                                                                                  |
+| `--color-chart-5`          | The fifth categorical series slot (teal).                                                                                         |
+| `--color-chart-6`          | The sixth categorical series slot (magenta).                                                                                      |
+| `--color-chart-7`          | The seventh categorical series slot (violet).                                                                                     |
+| `--color-chart-8`          | The eighth categorical series slot (amber).                                                                                       |
+| `--color-chart-other`      | The fold slot, worn once more than eight series show at once (neutral gray). Collapse the long tail into a single "Other" series. |
+| `--color-chart-decorative` | The neutral fill every series wears on a [decorative chart](#decorative-charts), in place of its categorical slot.                |
 
 The Bar Chart page records [what each theme measures](/components/charts/bar-chart#chart-color-tokens) over those 28 pairs.
 

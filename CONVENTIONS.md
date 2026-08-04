@@ -150,7 +150,7 @@ Worked before/after pairs live in the `simplified-technical-english` skill, out 
 
 ### Changesets, decision docs, and docs pages
 
-- **A changeset is release notes, not a commit message.** `.changeset/*.md` ships verbatim into the public `CHANGELOG.md`, for a consumer who will never read the diff. The word bans hold; the length limits and the commit rules do not. [COMPONENT_SPEC.md §2.5](./COMPONENT_SPEC.md#25-changesets) owns what the body must cover.
+- **A changeset is release notes, not a commit message.** `.changeset/*.md` ships verbatim into the public `CHANGELOG.md`, for a consumer who will never read the diff. The word bans hold; the length limits and the commit rules do not. [COMPONENT_SPEC.md §2.5](./COMPONENT_SPEC.md#25-changesets) owns what the body must cover, and [VERSIONING.md](./VERSIONING.md) owns which bump it takes.
 - **A decision doc follows these rules, new or shipped.** Its record is the decision, not the wording, so tightening the prose does not rewrite history. Never change what a shipped one decided, and never restate its dated evidence as a present-tense claim.
 - **Docs-page copy follows these rules.** [COMPONENT_SPEC.md §7.4](./COMPONENT_SPEC.md#74-prose-rules) owns what that copy must cover.
 

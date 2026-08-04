@@ -4,6 +4,7 @@ import { render, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { AreaChart } from "../area-chart/index.js";
 import { BarChart } from "../bar-chart/index.js";
+import { BAR_CORNER_RADIUS } from "./renderer.js";
 
 /**
  * Real-browser geometry tests for stacked `BarChart` segments: which segment
@@ -151,6 +152,18 @@ const isColor = (painted: Painted, offset: number, color: Rgb, tolerance = 20): 
 	Math.abs((painted.data[offset] ?? 0) - color[0]) <= tolerance &&
 	Math.abs((painted.data[offset + 1] ?? 0) - color[1]) <= tolerance &&
 	Math.abs((painted.data[offset + 2] ?? 0) - color[2]) <= tolerance;
+
+/**
+ * Assert one bar's edge row (or column) is cut in from its body by a rounded
+ * cap. Measured in pixels against the shipped corner radius, never as a share
+ * of the body: a bar's thickness tracks the category spacing (see
+ * ./bar-geometry.js) while the radius stays fixed, so a share drifts with the
+ * bar count and a fat bar reads as square-topped to a ratio gate.
+ */
+const expectRoundedCap = (painted: Painted, { cap, body }: { cap: number; body: number }): void => {
+	expect(body).toBeGreaterThan(0);
+	expect(body - cap).toBeGreaterThanOrEqual(BAR_CORNER_RADIUS * painted.scale);
+};
 
 /** How many pixels of `color` row `y` carries between `from` and `to`. */
 const rowRunLength = (painted: Painted, y: number, color: Rgb, from = 0, to = painted.width) => {
@@ -333,8 +346,7 @@ describe("stacked bar caps and baselines", () => {
 				// 5 CSS px below the top clears the 4px corner radius entirely.
 				const bodyRow = extent.start + Math.round(5 * painted.scale);
 				const bodyWidth = rowRunLength(painted, bodyRow, CHART_1, bar.start, bar.end + 1);
-				expect(bodyWidth).toBeGreaterThan(0);
-				expect(capWidth).toBeLessThan(bodyWidth * 0.9);
+				expectRoundedCap(painted, { cap: capWidth, body: bodyWidth });
 			}
 		});
 	});
@@ -478,8 +490,7 @@ describe("stacked bar caps and baselines", () => {
 				middle.start,
 				middle.end + 1,
 			);
-			expect(topBody).toBeGreaterThan(0);
-			expect(topCap).toBeLessThan(topBody * 0.9);
+			expectRoundedCap(painted, { cap: topCap, body: topBody });
 			expect(middleBody).toBeGreaterThan(0);
 			expect(middleCap).toBe(middleBody);
 		});
@@ -531,10 +542,8 @@ describe("stacked bar caps and baselines", () => {
 				down.start,
 				down.end + 1,
 			);
-			expect(upBody).toBeGreaterThan(0);
-			expect(upCap).toBeLessThan(upBody * 0.9);
-			expect(downBody).toBeGreaterThan(0);
-			expect(downCap).toBeLessThan(downBody * 0.9);
+			expectRoundedCap(painted, { cap: upCap, body: upBody });
+			expectRoundedCap(painted, { cap: downCap, body: downBody });
 			// The negative pile really is below the axis.
 			expect(downExtent.start).toBeGreaterThan(upExtent.end);
 		});
@@ -602,8 +611,7 @@ describe("stacked bar caps and baselines", () => {
 				const capHeight = columnRunLength(painted, extent.end, CHART_1, bar.start, bar.end + 1);
 				const bodyColumn = extent.end - Math.round(5 * painted.scale);
 				const bodyHeight = columnRunLength(painted, bodyColumn, CHART_1, bar.start, bar.end + 1);
-				expect(bodyHeight).toBeGreaterThan(0);
-				expect(capHeight).toBeLessThan(bodyHeight * 0.9);
+				expectRoundedCap(painted, { cap: capHeight, body: bodyHeight });
 			}
 			// Against the painted axis, not against each other: comparing the two
 			// rows passes when a carve lifts both by the same 2px, which is exactly

@@ -1,10 +1,12 @@
 /**
- * Pixel geometry for one bar segment along the value axis.
+ * Pixel geometry for one bar: its two edges along the value axis, and its
+ * thickness across the category axis.
  *
  * Stacking accumulates in value space (see ./stack.js); this module turns one
- * segment's boundaries into the two pixel edges the renderer fills. It works
- * along the value axis alone, so vertical and horizontal bars share it instead
- * of keeping mirrored copies that drift apart.
+ * segment's boundaries into the two pixel edges the renderer fills. Both axes
+ * are handled in one direction-free vocabulary — value edges and a thickness —
+ * so vertical and horizontal bars share the math instead of keeping mirrored
+ * copies that drift apart.
  *
  * This module is internal shared implementation — not exported from the package.
  */
@@ -17,6 +19,59 @@ type SegmentEdges = {
 	baseline: number;
 	/** Pixel of the edge nearer the data end. */
 	value: number;
+};
+
+/**
+ * The share of its band step one bar fills once the step is wide enough for
+ * that share to beat {@link BAR_DENSE_THICKNESS}. A bar reads as a tooth only
+ * while it stays wider than the air beside it, which is what picks this over an
+ * even split: 60/40 still reads as bars at a glance, and 50/50 reads as stripes.
+ */
+const BAR_STEP_FILL = 0.6;
+
+/**
+ * The thickest a bar paints while the fill rule has not taken over — the cap a
+ * dense chart keeps. `BAR_STEP_FILL` reaches it at a step of exactly 40px, so
+ * the two rules meet with no jump, and every chart whose step is narrower than
+ * that paints exactly what it painted before the fill rule existed.
+ */
+const BAR_DENSE_THICKNESS = 24;
+
+/**
+ * The thickest a bar paints, however wide its band. Two categories across a
+ * 650px plot would fill 195px each without it, and a bar that wide reads as a
+ * panel rather than a mark.
+ */
+const BAR_MAX_THICKNESS = 64;
+
+/**
+ * The thickness one bar paints across the category axis: its slot, capped so a
+ * wide band grows the bar instead of the air beside it.
+ *
+ * A fixed cap makes a sparse chart look gap-toothed — seven bars across a wide
+ * plot each took 24px of a 93px step and left 69px of air. The cap therefore
+ * tracks the step: `BAR_STEP_FILL` of it, floored at `BAR_DENSE_THICKNESS` and
+ * ceilinged at `BAR_MAX_THICKNESS`. The result depends on the step and the slot
+ * alone — same layout, same pixels, and monotonic in both — and the two clamps
+ * meet the fill line without a step change, so a chart never jumps thickness as
+ * a row arrives or the container resizes.
+ *
+ * Pass the slot, not the bandwidth. Grouped series split one band, and each bar
+ * fills its own slot up to the same cap, so a group tightens rather than
+ * outgrowing its band.
+ *
+ * @example
+ * ```ts
+ * // Seven days across a 650px plot: a 93px step, a 74px band.
+ * barThickness({ step: 92.9, slot: 74.3 }); // 55.7 — the fill rule
+ * // Sixty points across the same plot: the step is too narrow to reach the cap.
+ * barThickness({ step: 10.8, slot: 8.7 }); // 8.7 — the whole slot
+ * ```
+ */
+const barThickness = (options: { step: number; slot: number }): number => {
+	const { step, slot } = options;
+	const cap = Math.min(BAR_MAX_THICKNESS, Math.max(BAR_DENSE_THICKNESS, step * BAR_STEP_FILL));
+	return Math.min(slot, cap);
 };
 
 /**
@@ -118,6 +173,10 @@ const isStackedDataEnd = (options: {
 
 export {
 	//,
+	BAR_DENSE_THICKNESS,
+	BAR_MAX_THICKNESS,
+	BAR_STEP_FILL,
+	barThickness,
 	isStackedDataEnd,
 	stackedSegmentEdges,
 };

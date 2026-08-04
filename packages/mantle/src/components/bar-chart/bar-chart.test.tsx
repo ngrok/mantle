@@ -509,6 +509,50 @@ describe("BarChart decorative mode", () => {
 		expect(container.querySelector("[tabindex]")).not.toBeInTheDocument();
 	});
 
+	test("paints every series neutral, so no mark on a backdrop reads as data", () => {
+		// The Root prop has to reach the store for the neutral fill to land, and the
+		// legend swatch is where a DOM surface publishes what a series paints. The
+		// canvas reads the same value from the same place — the browser sweep in
+		// chart/decorative-paint.browser.test.tsx samples the painted pixels.
+		const { container } = render(
+			<BarChart.Root data={data} xKey="month" decorative>
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="chart-4" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Legend />
+			</BarChart.Root>,
+		);
+		const swatches = [
+			...(container.querySelectorAll<HTMLElement>(
+				'[data-slot="bar-chart-legend"] span[data-texture]',
+			) ?? []),
+		];
+		expect(swatches).toHaveLength(2);
+		for (const swatch of swatches) {
+			// A `color` override loses to the fill too: a decorative chart carries no
+			// series identity for a reader to decode.
+			expect(swatch.style.backgroundColor).toBe("var(--color-chart-decorative)");
+		}
+	});
+
+	test("a chart with real data keeps its palette and paints no neutral fill", () => {
+		const { container } = render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Legend />
+			</BarChart.Root>,
+		);
+		const swatches = [
+			...container.querySelectorAll<HTMLElement>(
+				'[data-slot="bar-chart-legend"] span[data-texture]',
+			),
+		];
+		expect(swatches.map((swatch) => swatch.style.backgroundColor)).toEqual([
+			"var(--color-chart-1)",
+			"var(--color-chart-2)",
+		]);
+	});
+
 	test("forces off a consumer-passed tabIndex so a decorative chart cannot become focusable", () => {
 		// tabIndex is a valid div prop the decorative branch does not forbid, so it
 		// would otherwise ride `{...props}` onto the aria-hidden root and reintroduce

@@ -7,8 +7,9 @@ import type { DecimatedColumns } from "./decimate.js";
  * the data, never the chrome):
  *
  * - lines: 2px, round join/cap
- * - bars: ≤ 24px thick, 4px rounded data-end, square at the baseline,
- *   2px surface gaps between touching fills
+ * - bars: as thick as `barThickness` allows the band (24px through 64px, see
+ *   ./bar-geometry.js), 4px rounded data-end, square at the baseline, 2px
+ *   surface gaps between touching fills
  * - area fills: the series hue at 10% opacity with a 2px band-edge stroke
  * - grid/axes: solid 1px hairlines, one step off the surface, never dashed
  * - markers: r ≥ 4 dots with a 2px surface ring
@@ -31,7 +32,6 @@ type PlotRect = {
 };
 
 const LINE_WIDTH = 2;
-const BAR_MAX_THICKNESS = 24;
 const BAR_CORNER_RADIUS = 4;
 const BAR_GAP = 2;
 const MARKER_RADIUS = 4;
@@ -955,7 +955,6 @@ export {
 	AXIS_FONT_SIZE,
 	BAR_CORNER_RADIUS,
 	BAR_GAP,
-	BAR_MAX_THICKNESS,
 	drawAreaPath,
 	drawAxisLabels,
 	drawBars,

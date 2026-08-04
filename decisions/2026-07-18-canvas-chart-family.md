@@ -218,6 +218,30 @@ An `interactive={false}` mode — real, table-readable data without pointer/
 keyboard exploration — remains a separate, unshipped concern; do not conflate
 it with `decorative`.
 
+Shipped after that prop (a change to it, not a new one): a decorative chart
+paints every series with `--color-chart-decorative` instead of its categorical
+slot, and that one fill is the whole legibility mechanism for a message laid
+over it. `Empty.Description` sits on `text-muted`, which holds 0.38 over the
+4.5:1 floor for 14px text on a bare light card, so any tint under that copy
+spends the headroom. The token is each theme's `neutral-200` — the darkest
+neutral step that still clears the floor in all four (4.56:1 light, 4.93:1
+dark, 9.08:1 and 8.14:1 in the high-contrast pair), which is why the fill sits
+one step off the surface rather than at a mid gray. Two alternatives lost: a
+blur at 70% opacity moved no contrast, because a blur leaves the color under
+the middle of a mark where it was; and a scrim behind the copy bought the
+contrast back at the cost of a new public part plus a second surface token to
+keep in sync with the chart. `chart/decorative-contrast.test.tsx` measures
+every theme, and `chart/decorative-paint.browser.test.tsx` samples the painted
+canvas.
+
+Shipped after the initial draft: bar thickness tracks the category step. A bar
+fills its slot up to a cap of 60% of one step, floored at 24px and ceilinged at
+64px (`chart/bar-geometry.ts`). The flat 24px cap it replaced made a sparse
+chart read gap-toothed — seven bars in a 93px step each sat in 69px of air.
+The floor and the fill line meet at a 40px step, so a dense chart paints what
+it always did, and the curve has no jump at either clamp. There is no
+`barSize` prop: thickness stays a property of the layout.
+
 ## Alternatives rejected
 
 - **One `@ngrok/mantle/charts` subpath:** chart-specific parts (Bar/Line/
