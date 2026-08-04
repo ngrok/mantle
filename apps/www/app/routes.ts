@@ -53,6 +53,7 @@ export default [
 		// core/base top-level pages
 		...docRoute("philosophy"),
 		...docRoute("accessibility"),
+		...docRoute("browser-translation"),
 		...docRoute("for-ai-agents"),
 		// /changelog renders app/docs/changelog.mdx, which embeds the
 		// published @ngrok/mantle CHANGELOG.md. /changelog.md serves the

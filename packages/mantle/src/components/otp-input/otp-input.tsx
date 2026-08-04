@@ -257,7 +257,7 @@ const Group = ({ asChild, children, className, ref, ...props }: OtpInputGroupPro
 	);
 };
 
-type OtpInputSlotProps = ComponentProps<"div"> & {
+type OtpInputSlotProps = Omit<ComponentProps<"div">, "translate"> & {
 	/**
 	 * The zero-based index of the character slot to render. Must be a valid
 	 * index within the parent `OtpInput.Root`'s `maxLength`.
@@ -271,7 +271,16 @@ type OtpInputSlotProps = ComponentProps<"div"> & {
  * the nearest `OtpInput.Root` via context — so this part must always be
  * rendered inside an `OtpInput.Root`.
  *
+ * **Translation.** The slot always carries `translate="no"`, so a browser
+ * translation engine skips the character inside it. A translated passcode
+ * character is wrong. The engine also wraps that character's text node in a
+ * `<font>`, which detaches the node React holds. The next keystroke then makes
+ * React remove a node its parent no longer owns, and the DOM raises
+ * `NotFoundError`. The `translate` prop is omitted from the type, so no call
+ * site can turn the guard off.
+ *
  * @see https://mantle.ngrok.com/components/forms/otp-input
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate
  *
  * @example
  * ```tsx
@@ -359,6 +368,10 @@ const OtpInputSlotImpl = ({ className, index, ref, ...props }: OtpInputSlotProps
 				className,
 			)}
 			{...props}
+			// Why after the spread: a wider props object can still carry `translate`
+			// past the type, and a translated passcode character is wrong at every
+			// call site.
+			translate="no"
 		>
 			{char}
 			{hasFakeCaret && (
@@ -520,6 +533,9 @@ const OtpInput = {
 	 * A single character slot. Must be rendered inside an `OtpInput.Root`.
 	 * Reads its character, active state, and fake caret position from the
 	 * root via context.
+	 *
+	 * The slot always carries `translate="no"`, so a browser translation
+	 * engine skips the character inside it.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/otp-input
 	 *

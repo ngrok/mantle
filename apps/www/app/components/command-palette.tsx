@@ -192,10 +192,7 @@ export function CommandPalette() {
 			>
 				<span className="sr-only">Search Mantle</span>
 				Search
-				{/* `ms-1.5` because Button's children share one label slot, so the
-				    button's own `gap` falls between the icon and the label — not
-				    between the word and this shortcut hint. */}
-				<span className="ms-1.5 inline-flex gap-1 items-center pointer-events-none select-none">
+				<span className="inline-flex gap-1 items-center pointer-events-none select-none">
 					<MetaKey />
 					<Kbd>K</Kbd>
 				</span>

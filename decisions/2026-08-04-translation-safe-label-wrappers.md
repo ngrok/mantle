@@ -87,6 +87,10 @@ Both the plain and the `asChild` path wrap, because both render the same shape.
 
 ### 2. The label is one flex item. Pass an icon through `icon`, not as a child
 
+**Revised the same day — see [the amendment](#amendment-2026-08-04-the-wrapper-is-display-contents).**
+The label is no longer one flex item. Passing an icon through `icon` is still the
+guidance, for the reasons the docs page now gives.
+
 `Button` and `Badge` are flex containers, and bare text children were an
 anonymous flex item. A real span is one flex item too, so a single-child button
 lays out identically — but multiple children now share one item, and the
@@ -124,6 +128,34 @@ mount into an `appendChild`.
 
 Prefer this over a wrapper when the conditional element is decorative and
 out of flow. It adds no DOM.
+
+## Amendment, 2026-08-04: the wrapper is `display: contents`
+
+Decision 2 held for one release. `Alert.ExpandButton` renders a count, a word, and a
+caret, and all three collapsed into `+3more` the moment the label slot became one
+flex item. Product code hit the same shape in several places. The trade-off the
+decision priced as "call sites own their own spacing" was really "every call site
+with more than one child re-does its layout", which a patch release must not ask.
+
+`Button` and `Badge` now render the label span with `display: contents`. The span
+generates no box, so every child is a flex item of the button or badge again and the
+container's `gap` falls between them — the layout is identical to the release before
+the wrapper. The crash fix is untouched, because the span stays in the DOM and an
+icon's `insertBefore` still names an element.
+
+This reverses the alternative rejected under decision 1. That rejection traded a
+shipped layout regression for an affordance nothing used: a search of this repo and of
+`ngrok-private/frontend` found no call site that styles a label slot. What call sites
+do instead is style a child they own — `ai-dashboard`'s access-key chip gives its label
+`min-w-0 flex-1 truncate` between two icons — and that shape needs the child to stay a
+flex item, which is exactly what the box took away. The slot keeps its other uses:
+finding the label and reading its text.
+
+`Anchor` keeps a plain inline span. Its label never changed layout, because an anchor
+lays its children out in inline flow and spaces its icons with margins.
+
+Decisions 3 and 4 stand. An always-mounted announcer and a trailing decorative
+sibling are still the right shapes, and neither depends on how the wrapper displays.
 
 ## Consequences
 

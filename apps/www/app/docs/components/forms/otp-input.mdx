@@ -442,6 +442,16 @@ semantic span, or wrapping a group in a styled label.
 </OtpInput.Separator>
 ```
 
+## Translation
+
+Every `OtpInput.Slot` carries [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate), so a browser translation engine skips the character inside it. A translated passcode character is wrong, and the reader types it back anyway.
+
+The attribute also protects the render. Google Translate wraps each text node in a `<font>`, which detaches the node React holds — so the next keystroke makes React remove a node its parent no longer owns, and the DOM raises `NotFoundError`. Without the guard, a backspace on a translated page tears down the root.
+
+`OtpInput.Slot` omits the `translate` prop from its type, so no call site can turn the guard off. A passcode character is never translatable, unlike [`Code`](/components/data-display/code), which also styles terms that are not code and therefore takes the override.
+
+[Browser translation](/browser-translation) covers what an engine does to a React DOM, and the rule your own components need.
+
 ## API Reference
 
 ### OtpInput.Root
@@ -477,9 +487,9 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### OtpInput.Slot
 
-A single character slot. Must be rendered inside an `OtpInput.Root`. Reads its character, active state, and fake caret position from the root via context.
+A single character slot. Must be rendered inside an `OtpInput.Root`. Reads its character, active state, and fake caret position from the root via context. Always renders `translate="no"` — see [Translation](#translation).
 
-All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) except `translate`, plus:
 
 | Prop    | Type     | Default | Description                                                    |
 | ------- | -------- | ------- | -------------------------------------------------------------- |

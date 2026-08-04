@@ -1,3 +1,4 @@
+import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
@@ -405,6 +406,87 @@ describe("Button", () => {
 			expect(link).toHaveAttribute("data-loading", "true");
 			expect(link).toHaveTextContent("[Save changes-es]");
 		});
+
+		test("keeps rendering when the button carries a second icon as a child", () => {
+			const { rerender } = render(
+				<Button appearance="outlined" intent="neutral" icon={<PlusIcon />}>
+					Create endpoint
+					<CaretDownIcon data-testid="trailing" />
+				</Button>,
+			);
+			translateTextNodes(screen.getByRole("button"));
+
+			// The spinner replaces the `icon` slot, which is the label span's sibling —
+			// so the swap never aims an insert at a child of the label.
+			rerender(
+				<Button appearance="outlined" intent="neutral" icon={<PlusIcon />} isLoading>
+					Create endpoint
+					<CaretDownIcon data-testid="trailing" />
+				</Button>,
+			);
+
+			const button = screen.getByRole("button");
+			expect(button).toHaveTextContent("[Create endpoint-es]");
+			expect(screen.getByTestId("trailing")).toBeInTheDocument();
+		});
+
+		test("a child element that appears after the label text appends, and survives", () => {
+			// The children stay an array of two across the update, so the text node
+			// stays mounted. A lone string child instead takes React's
+			// replace-children path, which rebuilds the text and hides the hazard.
+			const subject = (showTrailing: boolean) => (
+				<Button appearance="outlined" intent="neutral">
+					Create endpoint
+					{showTrailing && <CaretDownIcon data-testid="trailing" />}
+				</Button>
+			);
+			const { rerender } = render(subject(false));
+			translateTextNodes(screen.getByRole("button"));
+
+			// Mounting after the text is an append, which the DOM allows against a
+			// reparented text node. A trailing child icon is therefore safe.
+			rerender(subject(true));
+
+			expect(screen.getByRole("button")).toHaveTextContent("[Create endpoint-es]");
+			expect(screen.getByTestId("trailing")).toBeInTheDocument();
+		});
+
+		test("the label span does not protect a child element that mounts before bare text", () => {
+			const subject = (showLeading: boolean) => (
+				<Button appearance="outlined" intent="neutral">
+					{showLeading && <CaretDownIcon />}
+					Create endpoint
+				</Button>
+			);
+			const { rerender } = render(subject(false));
+			translateTextNodes(screen.getByRole("button"));
+
+			// The boundary of the guard, pinned on purpose: the span protects the
+			// `icon` slot's insert, because that insert names the span. It cannot
+			// protect an insert a call site aims *inside* the span. React inserts the
+			// icon before the reparented text node, and the DOM throws.
+			expect(() => {
+				rerender(subject(true));
+			}).toThrow(/not a child of this node/);
+		});
+
+		test("wrapping that same text in an element makes the call site safe", () => {
+			const subject = (showLeading: boolean) => (
+				<Button appearance="outlined" intent="neutral">
+					{showLeading && <CaretDownIcon data-testid="leading" />}
+					<span>Create endpoint</span>
+				</Button>
+			);
+			const { rerender } = render(subject(false));
+			translateTextNodes(screen.getByRole("button"));
+
+			// The fix for the case above, and the reason mantle's own parts wrap: the
+			// insert now names the consumer's span, which no engine moves.
+			rerender(subject(true));
+
+			expect(screen.getByRole("button")).toHaveTextContent("[Create endpoint-es]");
+			expect(screen.getByTestId("leading")).toBeInTheDocument();
+		});
 	});
 
 	test(`wraps children in a span carrying data-slot="button-label"`, () => {
@@ -417,5 +499,20 @@ describe("Button", () => {
 		const label = screen.getByRole("button").querySelector("[data-slot='button-label']");
 		expect(label?.tagName).toBe("SPAN");
 		expect(label).toHaveTextContent("Save changes");
+	});
+
+	test("lays out the label slot as contents so it adds no box of its own", () => {
+		render(
+			<Button appearance="filled" intent="neutral" icon={<PlusIcon />}>
+				Create endpoint
+			</Button>,
+		);
+
+		// The class is the only observable form of this contract: the slot generates
+		// no box, so every child stays a flex item of the button and the button's
+		// `gap` still falls between them. Drop it and multiple children collapse
+		// into one gapless item. See decisions/2026-08-04-translation-safe-label-wrappers.md.
+		const label = screen.getByRole("button").querySelector("[data-slot='button-label']");
+		expect(label).toHaveClass("contents");
 	});
 });

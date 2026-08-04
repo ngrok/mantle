@@ -25,6 +25,7 @@ const SECTION_ORDER: readonly Section[] = [
 			slug === "index" ||
 			slug === "philosophy" ||
 			slug === "accessibility" ||
+			slug === "browser-translation" ||
 			slug === "for-ai-agents" ||
 			slug === "changelog",
 	},

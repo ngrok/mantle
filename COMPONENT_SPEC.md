@@ -496,6 +496,25 @@ Errors are control flow. `console.error` is not error handling.
   SSR) or a browser-API hook that declares its server answer. `useIsHydrated` is the sanctioned escape hatch.
 - Never branch on `typeof window` inside render.
 
+### 3.8. Browser translation
+
+A translation engine reparents the text nodes React holds, which turns a routine update into a thrown
+`DOMException` and a blank page.
+[CONVENTIONS.md → Browser Translation](./CONVENTIONS.md#browser-translation) owns both rules and the mechanism.
+What they mean for a part:
+
+- **No part renders a conditional element immediately before bare text children.** Wrap the text in an element
+  carrying `<component-name>-label`, move the conditional element after the text, or mount that element
+  unconditionally. A wrapper's `data-slot` is public API, so document it like every other one
+  ([§6](#6-data-attributes-are-api)).
+- **A part that renders code, a key, a filename, an ID, or a passcode sets `translate="no"`.** Lock it —
+  `Omit<ComponentProps<…>, "translate">`, plus the attribute stamped after the props spread — when the part can
+  never hold prose. Keep the prop when it can, and document the default in the JSDoc and the API reference.
+
+`Kbd`, `CodeBlock.Code`, and `OtpInput.Slot` lock the attribute. `Code` and `CodeBlock.Title` default it.
+`Button`, `Badge`, and `Anchor` wrap their label. `DataTable` moves one indicator after its children, and keeps
+its sort announcer mounted at all times.
+
 ---
 
 ## 4. JSDoc
@@ -746,6 +765,9 @@ Minimums:
   the producer emits what the consumer selects.
 - SSR-only branches and first-paint behavior ([§3.7](#37-ssr-and-first-paint)) are asserted with
   `renderToString`; post-mount state cannot observe the render path.
+- Translation safety ([§3.8](#38-browser-translation)): a locked `translate="no"` is asserted on the rendered
+  element, and a label wrapper is driven against a translated DOM — `translateTextNodes` from
+  `../../test-utils/translate-text-nodes.js`, then the update that used to throw.
 
 Every test must be able to fail: name the one-line implementation change it would catch. See
 [CONVENTIONS.md → Testing](./CONVENTIONS.md#testing) for the full rules on that, on why Tailwind
@@ -884,6 +906,8 @@ Run this against the diff before calling a component done. Each line is a defect
       `== null` for nullish checks.
 - [ ] Invariants throw descriptively; no `console.error` as handling.
 - [ ] Animation honors reduced motion; SSR renders the final paint.
+- [ ] No conditional element sits immediately before bare text children; code, keys, filenames, IDs, and
+      passcodes carry `translate="no"`, locked when the part can never hold prose.
 
 **Docs**
 

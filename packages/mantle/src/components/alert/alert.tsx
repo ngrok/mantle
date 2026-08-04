@@ -428,9 +428,9 @@ const DismissIconButton = ({
 
 type AlertExpandButtonProps = Omit<
 	ButtonProps,
-	// `asChild` is omitted: ExpandButton always renders multiple children (count,
-	// label, caret), which would trip Button's single-child `Children.only`
-	// invariant at runtime — so the invalid configuration is unrepresentable.
+	// `asChild` is omitted: ExpandButton always renders two children (the count and
+	// the word), which would trip Button's single-child `Children.only` invariant at
+	// runtime — so the invalid configuration is unrepresentable.
 	"appearance" | "asChild" | "children" | "icon" | "iconPlacement" | "intent" | "size"
 > & {
 	/** The number of alerts hidden by a collapsed alert center. */
@@ -477,8 +477,24 @@ const ExpandButton = ({ count, expanded, className, ...props }: AlertExpandButto
 			}
 			data-slot="alert-expand-button"
 			data-alert-expand
+			icon={
+				<CaretDownIcon
+					weight="bold"
+					className={cx(
+						"size-4 transition-transform ease-out duration-150",
+						expanded && "-rotate-180",
+					)}
+				/>
+			}
+			iconPlacement="end"
 			className={cx(
-				"right-1.5 top-1.5 absolute gap-1 px-1.5",
+				// Why two longhands instead of `px-1.5`: `Button` tightens the icon side
+				// by 0.125rem so the glyph reads optically aligned, and it spells that as
+				// `pe-2`. A shorthand cannot override a longhand — tailwind-merge keeps
+				// both, and Tailwind emits `pe-*` after `px-*`, so `pe-2` would win and
+				// leave the caret side looser than the text side. `pe-1` is `ps-1.5` less
+				// that same 0.125rem, and it replaces `pe-2` outright.
+				"right-1.5 top-1.5 absolute gap-1 ps-1.5 pe-1",
 				"text-[var(--alert-control-color,currentColor)]",
 				"not-disabled:hover:bg-[var(--alert-control-hover-bg,transparent)] not-disabled:hover:text-[var(--alert-control-hover-color,currentColor)]",
 				className,
@@ -487,13 +503,6 @@ const ExpandButton = ({ count, expanded, className, ...props }: AlertExpandButto
 		>
 			<span className="min-w-[2ch] text-center tabular-nums">+{count}</span>
 			<span className="hidden md:inline">more</span>
-			<CaretDownIcon
-				weight="bold"
-				className={cx(
-					"size-4 transition-transform ease-out duration-150",
-					expanded && "-rotate-180",
-				)}
-			/>
 		</Button>
 	);
 };

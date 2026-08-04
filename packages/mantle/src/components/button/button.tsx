@@ -240,14 +240,17 @@ type ButtonProps = ComponentProps<"button"> &
  * box on the same shared size scale.
  *
  * **Structure.** `children` render inside a `<span data-slot="button-label">`,
- * beside the `icon` slot. Target that slot to style the label — for example, to
- * clamp a long one with `min-w-0 truncate`. The label is one flex item, so the
- * button's `gap` falls between the icon and the label, never between two
- * `children`: pass an icon through `icon`, not as a child.
+ * beside the `icon` slot. The span carries `display: contents`, so it lays out
+ * nothing of its own — every child stays a flex item of the button, and the
+ * button's `gap` still falls between them. The span exists so a newly-appearing
+ * icon inserts before an element sibling: a browser translation engine reparents
+ * text nodes, and an insert aimed at one throws. To style the label as a box —
+ * `truncate` to clamp a long one — give the slot a display of its own first, with
+ * `[&>[data-slot=button-label]]:block`.
  *
- * | Data Attribute | Value            | Description                                                                  |
- * | -------------- | ---------------- | ---------------------------------------------------------------------------- |
- * | `data-slot`    | `"button-label"` | On the `<span>` wrapping `children`. Stable styling hook for the label text. |
+ * | Data Attribute | Value            | Description                                                                                   |
+ * | -------------- | ---------------- | --------------------------------------------------------------------------------------------- |
+ * | `data-slot`    | `"button-label"` | On the `<span>` wrapping `children`. `display: contents`, so it changes no layout by itself. |
  *
  * @see https://mantle.ngrok.com/components/actions/button
  *
@@ -337,7 +340,9 @@ const Button = ({
 					<>
 						{icon && <Icon svg={icon} className={clsx(iconPlacement === "end" && "order-last")} />}
 						{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
-						<span data-slot="button-label">{children.props.children}</span>
+						<span data-slot="button-label" className="contents">
+							{children.props.children}
+						</span>
 					</>,
 				)}
 			</Slot>
@@ -349,7 +354,9 @@ const Button = ({
 		<button {...buttonProps} type={type ?? "button"}>
 			{icon && <Icon svg={icon} className={clsx(iconPlacement === "end" && "order-last")} />}
 			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
-			<span data-slot="button-label">{children}</span>
+			<span data-slot="button-label" className="contents">
+				{children}
+			</span>
 		</button>
 	);
 };

@@ -16,6 +16,11 @@
  * The `-es` suffix stands in for a translated string, so a test can tell the
  * translated text apart from what React rendered.
  *
+ * An element carrying `translate="no"` keeps its whole subtree, because a real
+ * engine never enters one. That is what makes the attribute testable: a
+ * component that stamps it survives a mutation that would otherwise detach the
+ * text nodes React holds.
+ *
  * @param root - The subtree to translate in place.
  *
  * @example
@@ -32,7 +37,12 @@
  * ```
  */
 function translateTextNodes(root: Node): void {
-	const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+	const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+		acceptNode: (node) =>
+			node.parentElement?.closest("[translate=no]") == null
+				? NodeFilter.FILTER_ACCEPT
+				: NodeFilter.FILTER_REJECT,
+	});
 	const translatable: { node: Node; text: string }[] = [];
 
 	// Collect first, then mutate. Wrapping as the walker advances would make it

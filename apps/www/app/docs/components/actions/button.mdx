@@ -4,6 +4,7 @@ description: Initiates an action, such as completing a task or submitting inform
 ---
 
 import { Button, IconButton } from "@ngrok/mantle/button";
+import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { FireIcon } from "@phosphor-icons/react/Fire";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
@@ -168,6 +169,8 @@ When `asChild` is used, `type` has no effect and is not forwarded to the child, 
 
 Use the `icon` prop to add an icon to the button. By default, it will render on the logical start side of the button. Use the `iconPlacement` prop to change the side the icon is rendered on.
 
+A button with an icon tightens the padding on the icon's side by `0.125rem`, so the glyph reads optically aligned with the text block. That arrives as a `ps-*` or `pe-*` longhand, which a `px-*` override cannot beat — both survive the class merge, and Tailwind emits the longhand last. Override padding on a button with an icon in longhands too: `className="ps-1.5 pe-1"`, not `className="px-1.5"`.
+
 <Example>
 	<div className="flex items-center gap-2">
 		<Button appearance="outlined" intent="neutral" icon={<FireIcon weight="fill" />}>
@@ -232,13 +235,13 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 />;
 ```
 
-An icon is also not a child. `children` share one label slot, so an icon passed as a child sits flush against the text — the button's `gap` falls between the `icon` slot and the label, not between two children. Pass it through `icon`.
+An icon is also not a child. The `icon` slot sizes the icon, holds it at `shrink-0`, tightens the padding on its side so it reads as optically aligned, and hands its place to the spinner when `isLoading` turns on. A child icon gets none of that. A button can still carry a **second** icon as a child — see [Browser translation](/browser-translation#buttons-with-an-icon-or-two) for the shape that stays safe on a translated page.
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 
-// ❌ Wrong — the icon lands inside the label slot, with no gap
+// ❌ Wrong — the icon keeps its own size, and `isLoading` renders a second glyph beside it
 <Button appearance="filled" intent="neutral">
 	<PlusIcon />
 	Create endpoint
@@ -337,6 +340,56 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 </Button>
 ```
 
+## The label slot
+
+`children` render inside a `<span data-slot="button-label">`, beside the `icon` slot. The span exists so an appearing icon or spinner inserts before an element sibling — a browser translation engine reparents text nodes, and an insert aimed at one throws. [Browser translation](/browser-translation) covers the mechanism and the rule your own components need.
+
+The span carries `display: contents`, so it generates no box: every child stays a flex item of the button, and the button's `gap` still falls between them. Two children therefore lay out exactly as they did before the span existed.
+
+<Example>
+	<Button appearance="outlined" intent="neutral" icon={<PlusIcon />}>
+		<span>Create endpoint</span>
+		<CaretDownIcon />
+	</Button>
+</Example>
+
+```tsx
+<Button appearance="outlined" intent="neutral" icon={<PlusIcon />}>
+	<span>Create endpoint</span>
+	<CaretDownIcon />
+</Button>
+```
+
+Style the label by styling your own child, not the slot. A label that has to shrink inside a width-constrained button takes `min-w-0 flex-1 truncate` — those work because the child is a flex item of the button.
+
+<Example>
+	<Button
+		appearance="outlined"
+		intent="neutral"
+		className="max-w-48 min-w-0 justify-start"
+		icon={<PlusIcon />}
+	>
+		<span className="min-w-0 flex-1 truncate text-left">
+			A label far too long for the width of this button
+		</span>
+		<CaretDownIcon />
+	</Button>
+</Example>
+
+```tsx
+<Button
+	appearance="outlined"
+	intent="neutral"
+	className="max-w-48 min-w-0 justify-start"
+	icon={<PlusIcon />}
+>
+	<span className="min-w-0 flex-1 truncate text-left">
+		A label far too long for the width of this button
+	</span>
+	<CaretDownIcon />
+</Button>
+```
+
 ## Polymorphism
 
 When you want to render _something else_ as a `Button`, you can use the `asChild` prop to compose. This is useful when you want to splat the `Button` styling onto a `react-router` `Link`. Keep in mind that when you use `asChild` the `type` prop will **NOT** be passed to the child component.
@@ -376,7 +429,7 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 #### Data attributes
 
-| Data Attribute | Value            | Description                                                                                                                                     |
-| -------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"button"`       | On the button element. Stable styling hook that survives a `className` override or an `asChild` swap.                                           |
-| `data-slot`    | `"button-label"` | On the `<span>` wrapping `children`, beside the `icon` slot. Target it to style the label — for example `min-w-0 truncate` to clamp a long one. |
+| Data Attribute | Value            | Description                                                                                                                                                                                                                      |
+| -------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"button"`       | On the button element. Stable styling hook that survives a `className` override or an `asChild` swap.                                                                                                                            |
+| `data-slot`    | `"button-label"` | On the `<span>` wrapping `children`, beside the `icon` slot. `display: contents`, so every child stays a flex item of the button and the `gap` still falls between them. Style a label by styling your own child, not this slot. |
