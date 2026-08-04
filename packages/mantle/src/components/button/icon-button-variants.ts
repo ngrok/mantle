@@ -6,11 +6,14 @@ import type { ButtonSize } from "./sizes.js";
 
 /**
  * The visual style of an `IconButton`: how much visual weight it carries,
- * independent of its tone (`intent`). IconButton has no `filled` or `link`
- * appearance — a filled icon-only box reads as a toggle, and an icon-only
- * link has no text to read as a link.
+ * independent of its tone (`intent`). The union matches `Button`'s without
+ * `link` — an icon-only link has no text to read as a link.
+ *
+ * - `"filled"` — solid fill; the heaviest weight on the page
+ * - `"ghost"` — no border or fill until hovered
+ * - `"outlined"` — bordered on the form background
  */
-type IconButtonAppearance = "ghost" | "outlined";
+type IconButtonAppearance = "filled" | "ghost" | "outlined";
 
 const baseIconButtonClasses = cx(
 	"icon-button",
@@ -38,6 +41,8 @@ const iconButtonVariants = cva(baseIconButtonClasses, {
 		 * tone; danger and neutral tones override via compoundVariants.
 		 */
 		appearance: {
+			filled:
+				"bg-filled-accent text-white focus-visible:ring-focus-accent not-disabled:hover:bg-filled-accent-hover border-transparent",
 			ghost:
 				"text-accent-600 focus-visible:ring-focus-accent not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 border-transparent",
 			outlined:
@@ -96,6 +101,12 @@ const iconButtonVariants = cva(baseIconButtonClasses, {
 				"border-danger-600 bg-form text-danger-600 focus-visible:ring-focus-danger not-disabled:hover:border-danger-700 not-disabled:hover:bg-danger-500/10 not-disabled:hover:text-danger-700",
 		},
 		{
+			appearance: "filled",
+			intent: "danger",
+			class:
+				"bg-filled-danger focus-visible:ring-focus-danger not-disabled:hover:bg-filled-danger-hover border-transparent",
+		},
+		{
 			appearance: "ghost",
 			intent: "neutral",
 			class:
@@ -106,6 +117,12 @@ const iconButtonVariants = cva(baseIconButtonClasses, {
 			intent: "neutral",
 			class:
 				"border-form bg-form text-strong focus-visible:border-accent-600 focus-visible:ring-focus-accent not-disabled:hover:border-neutral-400 not-disabled:hover:bg-form-hover not-disabled:hover:text-strong focus-visible:not-disabled:hover:border-accent-600 focus-visible:not-disabled:active:border-accent-600",
+		},
+		{
+			appearance: "filled",
+			intent: "neutral",
+			class:
+				"bg-filled-neutral not-disabled:hover:bg-filled-neutral-hover border-transparent focus-visible:border-transparent text-neutral-50",
 		},
 	],
 });

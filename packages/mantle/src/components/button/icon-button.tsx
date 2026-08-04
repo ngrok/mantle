@@ -19,9 +19,11 @@ type IconButtonProps = ComponentProps<"button"> &
 	Omit<IconButtonVariants, "appearance" | "intent"> & {
 		/**
 		 * The visual style of the IconButton. Required — there is no default,
-		 * so every call site states the weight it means.
+		 * so every call site states the weight it means. The union matches
+		 * `Button`'s without `link`.
 		 *
 		 * @enum
+		 * - `"filled"`: solid fill; the heaviest visual weight
 		 * - `"ghost"`: no border or fill until hovered
 		 * - `"outlined"`: bordered on the form background
 		 */
@@ -75,6 +77,10 @@ type IconButtonProps = ComponentProps<"button"> &
  * `appearance` (visual weight) and `intent` (tone) are required — every call
  * site states what it means; there are no implicit defaults. `intent="neutral"`
  * matches how IconButton rendered before it had an intent axis.
+ *
+ * `IconButton` draws every `appearance` and `intent` pair that `Button` draws,
+ * without `link` — an icon-only link has no text to read as a link. A pair
+ * renders the same tone and weight on both components.
  *
  * The border radius is driven by the `--icon-button-border-radius` CSS
  * variable (default: `0.375rem`). Wrappers can set it to slot icon buttons
