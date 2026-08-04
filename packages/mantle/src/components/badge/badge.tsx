@@ -51,11 +51,16 @@ type BadgeProps = ComponentProps<"span"> &
  * while keeping the badge styling.
  *
  * **Structure.** `children` render inside a `<span data-slot="badge-label">`,
- * beside the `icon` slot. Target that slot to style the label text.
+ * beside the `icon` slot. The span carries `display: contents`, so it lays out
+ * nothing of its own — every child stays a flex item of the badge, and the badge's
+ * `gap` still falls between them. The span exists so a newly-appearing icon
+ * inserts before an element sibling: a browser translation engine reparents text
+ * nodes, and an insert aimed at one throws. To style the label as a box, give the
+ * slot a display of its own first, with `[&>[data-slot=badge-label]]:block`.
  *
- * | Data Attribute | Value           | Description                                                                  |
- * | -------------- | --------------- | ---------------------------------------------------------------------------- |
- * | `data-slot`    | `"badge-label"` | On the `<span>` wrapping `children`. Stable styling hook for the label text. |
+ * | Data Attribute | Value           | Description                                                                                  |
+ * | -------------- | --------------- | -------------------------------------------------------------------------------------------- |
+ * | `data-slot`    | `"badge-label"` | On the `<span>` wrapping `children`. `display: contents`, so it changes no layout by itself. |
  *
  * @see https://mantle.ngrok.com/components/data-display/badge
  *
@@ -110,7 +115,9 @@ const Badge = ({
 					<>
 						{icon && <SvgOnly className="size-4" svg={icon} />}
 						{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
-						<span data-slot="badge-label">{grandchildren}</span>
+						<span data-slot="badge-label" className="contents">
+							{grandchildren}
+						</span>
 					</>,
 				)}
 			</Slot>
@@ -121,7 +128,9 @@ const Badge = ({
 		<span data-slot="badge" className={badgeClasses} {...props}>
 			{icon && <SvgOnly className="size-4" svg={icon} />}
 			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
-			<span data-slot="badge-label">{children}</span>
+			<span data-slot="badge-label" className="contents">
+				{children}
+			</span>
 		</span>
 	);
 };

@@ -232,13 +232,13 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 />;
 ```
 
-An icon is also not a child. `children` share one label slot, so an icon passed as a child sits flush against the text — the button's `gap` falls between the `icon` slot and the label, not between two children. Pass it through `icon`.
+An icon is also not a child. The `icon` slot sizes the icon, holds it at `shrink-0`, tightens the padding on its side so it reads as optically aligned, and hands its place to the spinner when `isLoading` turns on. A child icon gets none of that.
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 
-// ❌ Wrong — the icon lands inside the label slot, with no gap
+// ❌ Wrong — the icon keeps its own size, and `isLoading` renders a second glyph beside it
 <Button appearance="filled" intent="neutral">
 	<PlusIcon />
 	Create endpoint
@@ -376,7 +376,7 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 #### Data attributes
 
-| Data Attribute | Value            | Description                                                                                                                                     |
-| -------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"button"`       | On the button element. Stable styling hook that survives a `className` override or an `asChild` swap.                                           |
-| `data-slot`    | `"button-label"` | On the `<span>` wrapping `children`, beside the `icon` slot. Target it to style the label — for example `min-w-0 truncate` to clamp a long one. |
+| Data Attribute | Value            | Description                                                                                                                                                                                                                                                                                                               |
+| -------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"button"`       | On the button element. Stable styling hook that survives a `className` override or an `asChild` swap.                                                                                                                                                                                                                     |
+| `data-slot`    | `"button-label"` | On the `<span>` wrapping `children`, beside the `icon` slot. `display: contents`, so every child stays a flex item of the button and the `gap` still falls between them. To style the label as a box — `min-w-0 truncate` to clamp a long one — give the slot a display first, with `[&>[data-slot=button-label]]:block`. |

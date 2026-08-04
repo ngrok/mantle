@@ -418,4 +418,19 @@ describe("Button", () => {
 		expect(label?.tagName).toBe("SPAN");
 		expect(label).toHaveTextContent("Save changes");
 	});
+
+	test("lays out the label slot as contents so it adds no box of its own", () => {
+		render(
+			<Button appearance="filled" intent="neutral" icon={<PlusIcon />}>
+				Create endpoint
+			</Button>,
+		);
+
+		// The class is the only observable form of this contract: the slot generates
+		// no box, so every child stays a flex item of the button and the button's
+		// `gap` still falls between them. Drop it and multiple children collapse
+		// into one gapless item. See decisions/2026-08-04-translation-safe-label-wrappers.md.
+		const label = screen.getByRole("button").querySelector("[data-slot='button-label']");
+		expect(label).toHaveClass("contents");
+	});
 });

@@ -17,6 +17,21 @@ describe("Badge", () => {
 		expect(badge.closest("[data-slot='badge']")).toBeInTheDocument();
 	});
 
+	test("lays out the label slot as contents so it adds no box of its own", () => {
+		render(
+			<Badge appearance="muted" color="success">
+				Succeeded
+			</Badge>,
+		);
+
+		// The class is the only observable form of this contract: the slot generates
+		// no box, so every child stays a flex item of the badge and the badge's `gap`
+		// still falls between them. See decisions/2026-08-04-translation-safe-label-wrappers.md.
+		expect(screen.getByText("Succeeded", { selector: "[data-slot='badge-label']" })).toHaveClass(
+			"contents",
+		);
+	});
+
 	describe("on a browser-translated page", () => {
 		test("keeps rendering when an `icon` appears", () => {
 			const { rerender } = render(

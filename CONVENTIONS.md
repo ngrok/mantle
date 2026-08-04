@@ -222,7 +222,8 @@ the first click of every submit button, because `isLoading` synthesizes the icon
 Three fixes work, and the conditional element decides which one:
 
 - **Wrap the text in an element.** The wrapper carries its own `data-slot` — `button-label`, `badge-label`,
-  `anchor-label` — so a consumer can style the label.
+  `anchor-label` — so a consumer can find the label. Give it `display: contents` inside a flex container,
+  because a wrapper that lays out a box takes every child out of the parent's `gap`.
 - **Move the element after the text.** The mount becomes an `appendChild`, which is safe. Prefer this for a
   decorative element that sits out of flow, because it adds no DOM (`DataTable.ActionHeader`).
 - **Mount the element unconditionally and write text into it.** A `textContent` write is safe and self-healing, because

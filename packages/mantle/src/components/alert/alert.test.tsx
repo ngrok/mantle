@@ -179,7 +179,7 @@ describe("Alert", () => {
 			expect(label?.contains(caret ?? null)).toBe(false);
 		});
 
-		test("lays the count and the word out as flex items of the button", () => {
+		test("keeps the count and the word as flex items of the button", () => {
 			const { container } = render(
 				<Alert.Root intent="warning">
 					<Alert.Content>
@@ -189,13 +189,13 @@ describe("Alert", () => {
 				</Alert.Root>,
 			);
 
-			// A cross-file spelling pin: this variant selects the `button-label` slot
-			// that `button.tsx` stamps around children. Both sides render here, so a
-			// rename on either cannot silently collapse the count, the word, and the
-			// caret into one gapless item.
+			// A cross-file contract: `button.tsx` renders the label slot as
+			// `display: contents`, which is where the `gap-1` between the count and the
+			// word comes from. Give that slot a box and all three items run together.
 			const button = container.querySelector('[data-slot="alert-expand-button"]');
-			expect(button).toHaveClass("[&>[data-slot=button-label]]:contents");
-			expect(button?.querySelector('[data-slot="button-label"]')).not.toBeNull();
+			const label = button?.querySelector('[data-slot="button-label"]');
+			expect(label).toHaveClass("contents");
+			expect(label).toContainElement(screen.getByText("+3"));
 		});
 
 		test("`asChild` is not accepted at the type level", () => {
