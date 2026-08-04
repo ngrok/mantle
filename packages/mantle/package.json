@@ -370,6 +370,11 @@
 			"types": "./dist/split-button.d.ts",
 			"import": "./dist/split-button.js"
 		},
+		"./strata": {
+			"@ngrok/src-live-types": "./src/components/strata/index.ts",
+			"types": "./dist/strata.d.ts",
+			"import": "./dist/strata.js"
+		},
 		"./switch": {
 			"@ngrok/src-live-types": "./src/components/switch/index.ts",
 			"types": "./dist/switch.d.ts",

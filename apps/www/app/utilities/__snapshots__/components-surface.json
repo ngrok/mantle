@@ -860,6 +860,20 @@
     ]
   },
   {
+    "name": "Strata",
+    "slug": "components/structure/strata",
+    "kind": "component",
+    "category": "Structure",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/strata",
+    "summary": "A page of titled sections, each one explained beside its content — the shape of a settings page or a configuration editor.",
+    "jsdoc": "A page of titled sections, each one explained beside its content.",
+    "examples": [
+      "Composition:\n```\nStrata.Root\n└── Strata.Section\n    ├── Strata.Header\n    │   ├── Strata.Title\n    │   └── Strata.Description\n    └── Strata.Body\n```",
+      "```tsx\n<Strata.Root>\n  <Strata.Section>\n    <Strata.Header>\n      <Strata.Title>Providers</Strata.Title>\n      <Strata.Description>What providers keys may call.</Strata.Description>\n    </Strata.Header>\n    <Strata.Body>\n      <ProviderScopePicker />\n    </Strata.Body>\n  </Strata.Section>\n  <Strata.Section>\n    <Strata.Header>\n      <Strata.Title>Routing rules</Strata.Title>\n      <Strata.Description>Define how requests are authenticated.</Strata.Description>\n    </Strata.Header>\n    <Strata.Body>\n      <RoutingRuleList />\n    </Strata.Body>\n  </Strata.Section>\n</Strata.Root>\n```"
+    ]
+  },
+  {
     "name": "Switch",
     "slug": "components/forms/switch",
     "kind": "component",
