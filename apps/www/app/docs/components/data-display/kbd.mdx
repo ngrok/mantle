@@ -105,11 +105,17 @@ import { Kbd } from "@ngrok/mantle/kbd";
 </div>;
 ```
 
+## Translation
+
+The `<kbd>` element always carries [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate), so a browser translation engine skips the subtree. A translated shortcut names a key the reader's keyboard does not have.
+
+`Kbd` omits the `translate` prop from its type, so no call site can turn the guard off. See [`Code`](/components/data-display/code) for the second reason the attribute matters: a translation engine that rewrites the text nodes React holds can also break the render.
+
 ## API Reference
 
 ### Kbd
 
-The `Kbd` accepts the following props in addition to the [standard HTML kbd attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/kbd).
+The `Kbd` accepts the following props in addition to the [standard HTML kbd attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/kbd), except `translate`.
 
 | Prop         | Type        | Default | Description                                                  |
 | :----------- | :---------- | :------ | :----------------------------------------------------------- |

@@ -410,7 +410,7 @@
     "summary": "For sighted users to preview content available behind a link.",
     "jsdoc": "A floating card that appears when a user hovers over a trigger element.",
     "examples": [
-      "Composition:\n```\nHoverCard.Root\n├── HoverCard.Trigger\n└── HoverCard.Content\n```",
+      "Composition:\n```\nHoverCard.Root\n├── HoverCard.Trigger\n└── HoverCard.Content\n    └── HoverCard.Arrow\n```",
       "```tsx\n<HoverCard.Root>\n  <HoverCard.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">\n      Hover me\n    </Button>\n  </HoverCard.Trigger>\n  <HoverCard.Content>\n    <p>This is the hover card content.</p>\n  </HoverCard.Content>\n</HoverCard.Root>\n```"
     ]
   },
@@ -607,7 +607,7 @@
     "summary": "Displays rich content in a portal, triggered by a button.",
     "jsdoc": "A floating overlay that displays rich content in a portal, triggered by a button.",
     "examples": [
-      "Composition:\n```\nPopover.Root\n├── Popover.Trigger\n├── Popover.Anchor\n└── Popover.Content\n    └── Popover.Close\n```",
+      "Composition:\n```\nPopover.Root\n├── Popover.Trigger\n├── Popover.Anchor\n└── Popover.Content\n    ├── Popover.Arrow\n    └── Popover.Close\n```",
       "```tsx\n<Popover.Root>\n  <Popover.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">\n      Open Popover\n    </Button>\n  </Popover.Trigger>\n  <Popover.Content>\n    <p>This is the popover content.</p>\n  </Popover.Content>\n</Popover.Root>\n```"
     ]
   },

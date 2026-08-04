@@ -80,6 +80,43 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 </HoverCard.Root>;
 ```
 
+## Arrow
+
+Render `HoverCard.Arrow` as a child of `HoverCard.Content` when the card previews one specific link and needs a tip pointing at it. Radix positions the arrow with floating-ui's arrow middleware, so it stays centered on the trigger when collision detection shifts or flips the content. The arrow's fill and border repaint `HoverCard.Content`'s own edge across its base, so the two edges read as one line. The tip also casts its own shadow, because `shadow-md` on `HoverCard.Content` stops at that content's border and an unshadowed tip reads as pasted on. That shadow is clipped at the base, so it never darkens the content's interior.
+
+`HoverCard.Arrow` takes no `asChild`. The shape is two layers — a filled polygon, plus a polyline that strokes the slanted edges only — and a swapped element loses the border. Restyle it with `className` instead: `fill-*` for the surface and a `stroke-*` on the arrow's `polyline` child for the edge, since Radix renders the arrow as an `svg` where `bg-*` paints nothing.
+
+<Example className="gap-2">
+	<HoverCard.Root>
+		<HoverCard.Trigger asChild>
+			<Button type="button" appearance="link" intent="accent">
+				@ngrok/mantle
+			</Button>
+		</HoverCard.Trigger>
+		<HoverCard.Content className="w-64">
+			<HoverCard.Arrow />
+			<p className="text-sm">The Design System – created and maintained by @ngrok.</p>
+		</HoverCard.Content>
+	</HoverCard.Root>
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { HoverCard } from "@ngrok/mantle/hover-card";
+
+<HoverCard.Root>
+	<HoverCard.Trigger asChild>
+		<Button type="button" appearance="link" intent="accent">
+			@ngrok/mantle
+		</Button>
+	</HoverCard.Trigger>
+	<HoverCard.Content className="w-64">
+		<HoverCard.Arrow />
+		<p className="text-sm">The Design System – created and maintained by @ngrok.</p>
+	</HoverCard.Content>
+</HoverCard.Root>;
+```
+
 ## Layering and z-index
 
 `HoverCard.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
@@ -94,6 +131,7 @@ Compose the parts of a `HoverCard` together to build your own:
 HoverCard.Root
 ├── HoverCard.Trigger
 └── HoverCard.Content
+    └── HoverCard.Arrow
 ```
 
 ## API Reference
@@ -139,6 +177,18 @@ Renders at Tailwind `z-50`, Mantle's shared floating z-index.
 | `collisionPadding`  | `number \| Partial<Record<Side, number>>`      | `0`         | The distance in pixels from the boundary edges where collision detection should occur.                                                  |
 | `sticky`            | `"partial"` \| `"always"`                      | `"partial"` | The sticky behavior on the align axis.                                                                                                  |
 | `hideWhenDetached`  | `boolean`                                      | `false`     | Whether to hide the content when the trigger becomes fully occluded.                                                                    |
+
+### HoverCard.Arrow
+
+An optional tip that points from `HoverCard.Content` at its trigger. Render it as a child of `HoverCard.Content`. Radix renders it as an `svg`, so `fill-*` paints the surface and `bg-*` paints nothing.
+
+It takes no `asChild` — the shape is a filled polygon plus a polyline that strokes the slanted edges, and a swapped element loses the border that continues `HoverCard.Content`'s edge.
+
+| Prop        | Type     | Default | Description                                                                                                                                                                               |
+| ----------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `width`     | `number` | `14`    | The width of the arrow in pixels.                                                                                                                                                         |
+| `height`    | `number` | `7`     | The height of the arrow in pixels. Radix adds this to `sideOffset`, so the tip lands `sideOffset` pixels from the trigger.                                                                |
+| `className` | `string` |         | Classes for the `svg`. Reach for `fill-*` for the surface, and target the `polyline` child for the edge: `[&>polyline]:…`. The part already sets `filter` and `clip-path` for its shadow. |
 
 ### HoverCard.Portal
 

@@ -55,11 +55,17 @@ import { Code } from "@ngrok/mantle/code";
 </Code>;
 ```
 
+## Translation
+
+The `<code>` element always carries [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate), so a browser translation engine skips the subtree. A translated CLI flag, env var, or YAML key is wrong, and the reader copies it anyway.
+
+`Code` omits the `translate` prop from its type, so no call site can turn the guard off. The attribute also protects the render itself: Google Translate replaces each text node with a `<font>` wrapper, which detaches the text nodes React holds — so React either writes updates into a node the DOM no longer shows, or throws `NotFoundError` from `removeChild` and tears down the root.
+
 ## API Reference
 
 ### Code
 
-All props from [code](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/code#attributes), plus:
+All props from [code](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/code#attributes) except `translate`, plus:
 
 | Prop         | Type        | Default | Description                                                                                                       |
 | ------------ | ----------- | ------- | ----------------------------------------------------------------------------------------------------------------- |

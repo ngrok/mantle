@@ -20,7 +20,13 @@ import { Slot } from "../slot/index.js";
  * **Polymorphism.** Pass `asChild` to render `Code` styling on a different
  * element (e.g. a link wrapping a code-styled label).
  *
+ * **Translation.** The `<code>` element always carries `translate="no"`, so a
+ * browser translation engine skips the subtree. A translated CLI flag, env var,
+ * or YAML key is wrong, and the reader copies it anyway. The `translate` prop is
+ * omitted from the type, so no call site can turn the guard off.
+ *
  * @see https://mantle.ngrok.com/components/data-display/code
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate
  *
  * @example
  * ```tsx
@@ -36,7 +42,12 @@ import { Slot } from "../slot/index.js";
  * </Code>
  * ```
  */
-const Code = ({ asChild, className, ref, ...props }: ComponentProps<"code"> & WithAsChild) => {
+const Code = ({
+	asChild,
+	className,
+	ref,
+	...props
+}: Omit<ComponentProps<"code">, "translate"> & WithAsChild) => {
 	const Comp = asChild ? Slot : "code";
 	return (
 		<Comp
@@ -47,6 +58,9 @@ const Code = ({ asChild, className, ref, ...props }: ComponentProps<"code"> & Wi
 				className,
 			)}
 			{...props}
+			// Why after the spread: a wider props object can still carry `translate`
+			// past the type, and translated code is wrong at every call site.
+			translate="no"
 		/>
 	);
 };

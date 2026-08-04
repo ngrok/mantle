@@ -107,6 +107,43 @@ import { Popover } from "@ngrok/mantle/popover";
 </Popover.Root>;
 ```
 
+## Arrow
+
+Render `Popover.Arrow` as a child of `Popover.Content` when the popover explains one specific control and needs a tip pointing at it. Radix positions the arrow with floating-ui's arrow middleware, so it stays centered on the anchor when collision detection shifts or flips the content — a hand-rolled tip is a fixed offset and drifts off the anchor as soon as the content moves. The arrow's fill and border repaint `Popover.Content`'s own edge across its base, so the two edges read as one line. The tip also casts its own shadow, because `shadow-md` on `Popover.Content` stops at that content's border and an unshadowed tip reads as pasted on. That shadow is clipped at the base, so it never darkens the content's interior.
+
+`Popover.Arrow` takes no `asChild`. The shape is two layers — a filled polygon, plus a polyline that strokes the slanted edges only — and a swapped element loses the border. Restyle it with `className` instead: `fill-*` for the surface and a `stroke-*` on the arrow's `polyline` child for the edge, since Radix renders the arrow as an `svg` where `bg-*` paints nothing.
+
+<Example className="gap-2">
+	<Popover.Root>
+		<Popover.Trigger asChild>
+			<Button type="button" appearance="filled" intent="neutral">
+				What moved?
+			</Button>
+		</Popover.Trigger>
+		<Popover.Content side="right" preferredWidth="max-w-64">
+			<Popover.Arrow />
+			<p className="text-sm">Products moved up here.</p>
+		</Popover.Content>
+	</Popover.Root>
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Popover } from "@ngrok/mantle/popover";
+
+<Popover.Root>
+	<Popover.Trigger asChild>
+		<Button type="button" appearance="filled" intent="neutral">
+			What moved?
+		</Button>
+	</Popover.Trigger>
+	<Popover.Content side="right" preferredWidth="max-w-64">
+		<Popover.Arrow />
+		<p className="text-sm">Products moved up here.</p>
+	</Popover.Content>
+</Popover.Root>;
+```
+
 ## Layering and z-index
 
 `Popover.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
@@ -122,6 +159,7 @@ Popover.Root
 ├── Popover.Trigger
 ├── Popover.Anchor
 └── Popover.Content
+    ├── Popover.Arrow
     └── Popover.Close
 ```
 
@@ -188,3 +226,17 @@ All props from Radix [Popover.Close](https://www.radix-ui.com/primitives/docs/co
 | Prop       | Type      | Default | Description                                                           |
 | :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+
+### Popover.Arrow
+
+An optional tip that points from `Popover.Content` at its anchor. Render it as a child of `Popover.Content`. Radix renders it as an `svg`, so `fill-*` paints the surface and `bg-*` paints nothing.
+
+It takes no `asChild` — the shape is a filled polygon plus a polyline that strokes the slanted edges, and a swapped element loses the border that continues `Popover.Content`'s edge.
+
+All props from Radix [Popover.Arrow](https://www.radix-ui.com/primitives/docs/components/popover#arrow) except `asChild` and `children`, plus:
+
+| Prop        | Type     | Default | Description                                                                                                                                                                               |
+| :---------- | :------- | :------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `width?`    | `number` | `14`    | The width of the arrow in pixels.                                                                                                                                                         |
+| `height?`   | `number` | `7`     | The height of the arrow in pixels. Radix adds this to `sideOffset`, so the tip lands `sideOffset` pixels from the anchor.                                                                 |
+| `className` | `string` |         | Classes for the `svg`. Reach for `fill-*` for the surface, and target the `polyline` child for the edge: `[&>polyline]:…`. The part already sets `filter` and `clip-path` for its shadow. |

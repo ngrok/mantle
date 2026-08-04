@@ -22,7 +22,13 @@ import { cx } from "../../utils/cx/cx.js";
  * `aria-label` on the `<Kbd>` or include a visually-hidden label inside,
  * and mark the visible glyph `aria-hidden`.
  *
+ * **Translation.** The `<kbd>` element always carries `translate="no"`, so a
+ * browser translation engine skips the subtree. A translated shortcut names a
+ * key the reader's keyboard does not have. The `translate` prop is omitted from
+ * the type, so no call site can turn the guard off.
+ *
  * @see https://mantle.ngrok.com/components/data-display/kbd
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate
  *
  * @example
  * ```tsx
@@ -43,7 +49,7 @@ import { cx } from "../../utils/cx/cx.js";
  * </Kbd>
  * ```
  */
-function Kbd({ children, className, ...props }: ComponentProps<"kbd">) {
+function Kbd({ children, className, ...props }: Omit<ComponentProps<"kbd">, "translate">) {
 	return (
 		<kbd
 			data-slot="kbd"
@@ -53,6 +59,9 @@ function Kbd({ children, className, ...props }: ComponentProps<"kbd">) {
 				className,
 			)}
 			{...props}
+			// Why after the spread: a wider props object can still carry `translate`
+			// past the type, and a translated shortcut key names the wrong key.
+			translate="no"
 		>
 			{children}
 		</kbd>

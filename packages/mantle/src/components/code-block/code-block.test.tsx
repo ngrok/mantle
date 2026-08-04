@@ -121,6 +121,89 @@ describe("CodeBlock", () => {
 			expect(code?.innerHTML).toContain("SHIKI_VAL_0");
 			expect(code?.innerHTML).toContain('"&lt;safe&gt;"');
 		});
+
+		test('renders translate="no" so a translation engine skips the code', () => {
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code value={makeValue("const x = 1;")} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			expect(document.querySelector("pre")).toHaveAttribute("translate", "no");
+		});
+
+		test('keeps translate="no" when a call site passes translate', () => {
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code
+							// @ts-expect-error `translate` is omitted from the props type on purpose. This
+							// pins the runtime guard for a caller who spreads a wider props object past it.
+							translate="yes"
+							value={makeValue("const x = 1;")}
+						/>
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			expect(document.querySelector("pre")).toHaveAttribute("translate", "no");
+		});
+	});
+
+	describe("Title", () => {
+		test('renders translate="no" so a translation engine skips the filename', () => {
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Header>
+						<CodeBlock.Title>example.ts</CodeBlock.Title>
+					</CodeBlock.Header>
+				</CodeBlock.Root>,
+			);
+
+			expect(screen.getByRole("heading", { name: "example.ts" })).toHaveAttribute(
+				"translate",
+				"no",
+			);
+		});
+
+		test('keeps translate="no" when a call site passes translate', () => {
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Header>
+						<CodeBlock.Title
+							// @ts-expect-error `translate` is omitted from the props type on purpose. This
+							// pins the runtime guard for a caller who spreads a wider props object past it.
+							translate="yes"
+						>
+							example.ts
+						</CodeBlock.Title>
+					</CodeBlock.Header>
+				</CodeBlock.Root>,
+			);
+
+			expect(screen.getByRole("heading", { name: "example.ts" })).toHaveAttribute(
+				"translate",
+				"no",
+			);
+		});
+
+		test('asChild carries translate="no" onto the consumer\'s element', () => {
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Header>
+						<CodeBlock.Title asChild>
+							<span data-testid="title">example.ts</span>
+						</CodeBlock.Title>
+					</CodeBlock.Header>
+				</CodeBlock.Root>,
+			);
+
+			const title = screen.getByTestId("title");
+			expect(title.tagName).toBe("SPAN");
+			expect(title).toHaveAttribute("translate", "no");
+		});
 	});
 
 	describe("CopyButton", () => {

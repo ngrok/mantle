@@ -166,6 +166,78 @@ const Content = ({
 	</PopoverPrimitive.Portal>
 );
 
+type PopoverArrowProps = Omit<
+	ComponentProps<typeof PopoverPrimitive.Arrow>,
+	"asChild" | "children"
+>;
+
+/**
+ * An optional tip that points from `Popover.Content` at its anchor. Render it as
+ * a child of `Popover.Content`. Radix positions it with floating-ui's arrow
+ * middleware, so it stays centered on the anchor when collision detection shifts
+ * or flips the content. It also repaints `Popover.Content`'s fill and border
+ * across its base, so the two edges read as one line, and carries its own shadow,
+ * clipped at that base so it never darkens the content's interior.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/popover#popoverarrow
+ *
+ * @example
+ * ```tsx
+ * <Popover.Root>
+ *   <Popover.Trigger asChild>
+ *     <Button type="button" appearance="outlined" intent="neutral">
+ *       Open Popover
+ *     </Button>
+ *   </Popover.Trigger>
+ *   <Popover.Content side="right">
+ *     <Popover.Arrow />
+ *     <p>This is the popover content.</p>
+ *   </Popover.Content>
+ * </Popover.Root>
+ * ```
+ */
+const Arrow = ({ className, height = 7, width = 14, ...props }: PopoverArrowProps) => (
+	// Why no asChild: the shape is two layers — a filled polygon, plus a polyline
+	// that strokes the slanted edges only — and a swapped element loses the border
+	// that continues `Popover.Content`'s edge. Restyle with `className` instead.
+	<PopoverPrimitive.Arrow
+		aria-hidden="true"
+		asChild
+		data-slot="popover-arrow"
+		height={height}
+		width={width}
+		{...props}
+	>
+		<svg
+			className={cx(
+				// The wrapper Radix renders sits the base flush on the content's outer
+				// edge, where the content's own border still paints. `-translate-y-px`
+				// sinks the base 1px in — toward the content on every side, since Radix
+				// rotates the wrapper per side — so the fill covers that border.
+				"-translate-y-px fill-[var(--background-color-popover)]",
+				// Why filter and clip-path: `Popover.Content`'s `shadow-md` stops at its
+				// own border, so an unshadowed tip reads as pasted on. The filter casts
+				// the tip's own shadow, and the clip trims it at the base, because the
+				// arrow paints above the content and the shadow would otherwise darken
+				// the content's interior. Both layers stay symmetric — Radix rotates the
+				// wrapper per side, which would swing an offset shadow with it.
+				"[clip-path:inset(0_-200%_-200%_-200%)]",
+				"[filter:drop-shadow(0_0_6px_color-mix(in_oklab,var(--shadow-color)_var(--shadow-first-opacity),transparent))_drop-shadow(0_0_2px_color-mix(in_oklab,var(--shadow-color)_var(--shadow-second-opacity),transparent))]",
+				className,
+			)}
+		>
+			<polygon points="0,0 30,0 15,10" />
+			<polyline
+				className="stroke-[color:var(--border-color-popover)]"
+				fill="none"
+				points="0,0 15,10 30,0"
+				strokeWidth={1}
+				vectorEffect="non-scaling-stroke"
+			/>
+		</svg>
+	</PopoverPrimitive.Arrow>
+);
+
 /**
  * A floating overlay that displays rich content in a portal, triggered by a button.
  *
@@ -196,6 +268,7 @@ const Content = ({
  * ├── Popover.Trigger
  * ├── Popover.Anchor
  * └── Popover.Content
+ *     ├── Popover.Arrow
  *     └── Popover.Close
  * ```
  *
@@ -260,6 +333,33 @@ const Popover = {
 	 * ```
 	 */
 	Anchor,
+	/**
+	 * An optional tip that points from `Popover.Content` at its anchor. It stays
+	 * centered on the anchor when collision detection shifts or flips the content,
+	 * and its border continues `Popover.Content`'s own edge.
+	 *
+	 * @see https://mantle.ngrok.com/components/overlays/popover#popoverarrow
+	 *
+	 * @example
+	 * ```tsx
+	 * <Popover.Root>
+	 *   <Popover.Anchor asChild>
+	 *     <button type="button">Anchor</button>
+	 *   </Popover.Anchor>
+	 *   <Popover.Trigger asChild>
+	 *     <Button type="button" appearance="outlined" intent="neutral">Open Popover</Button>
+	 *   </Popover.Trigger>
+	 *   <Popover.Content side="right">
+	 *     <Popover.Arrow />
+	 *     <Text>Products moved up here</Text>
+	 *     <Popover.Close asChild>
+	 *       <Button type="button" appearance="outlined" intent="neutral">Got it</Button>
+	 *     </Popover.Close>
+	 *   </Popover.Content>
+	 * </Popover.Root>
+	 * ```
+	 */
+	Arrow,
 	/**
 	 * A button that closes an open popover. Can be placed anywhere within the popover content.
 	 *

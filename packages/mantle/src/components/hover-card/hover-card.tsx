@@ -138,6 +138,76 @@ const Content = ({
 	</Portal>
 );
 
+type HoverCardArrowProps = Omit<
+	ComponentProps<typeof HoverCardPrimitive.Arrow>,
+	"asChild" | "children"
+>;
+
+/**
+ * An optional tip that points from `HoverCard.Content` at its trigger. Render it
+ * as a child of `HoverCard.Content`. Radix positions it with floating-ui's arrow
+ * middleware, so it stays centered on the trigger when collision detection shifts
+ * or flips the content. It also repaints `HoverCard.Content`'s fill and border
+ * across its base, so the two edges read as one line, and carries its own shadow,
+ * clipped at that base so it never darkens the content's interior.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardarrow
+ *
+ * @example
+ * ```tsx
+ * <HoverCard.Root>
+ *   <HoverCard.Trigger asChild>
+ *     <Button type="button" appearance="link" intent="accent">@username</Button>
+ *   </HoverCard.Trigger>
+ *   <HoverCard.Content>
+ *     <HoverCard.Arrow />
+ *     <p>This is the hover card content.</p>
+ *   </HoverCard.Content>
+ * </HoverCard.Root>
+ * ```
+ */
+const Arrow = ({ className, height = 7, width = 14, ...props }: HoverCardArrowProps) => (
+	// Why no asChild: the shape is two layers — a filled polygon, plus a polyline
+	// that strokes the slanted edges only — and a swapped element loses the border
+	// that continues `HoverCard.Content`'s edge. Restyle with `className` instead.
+	<HoverCardPrimitive.Arrow
+		aria-hidden="true"
+		asChild
+		data-slot="hover-card-arrow"
+		height={height}
+		width={width}
+		{...props}
+	>
+		<svg
+			className={cx(
+				// The wrapper Radix renders sits the base flush on the content's outer
+				// edge, where the content's own border still paints. `-translate-y-px`
+				// sinks the base 1px in — toward the content on every side, since Radix
+				// rotates the wrapper per side — so the fill covers that border.
+				"-translate-y-px fill-[var(--background-color-popover)]",
+				// Why filter and clip-path: `HoverCard.Content`'s `shadow-md` stops at
+				// its own border, so an unshadowed tip reads as pasted on. The filter
+				// casts the tip's own shadow, and the clip trims it at the base, because
+				// the arrow paints above the content and the shadow would otherwise
+				// darken the content's interior. Both layers stay symmetric — Radix
+				// rotates the wrapper per side, which would swing an offset shadow.
+				"[clip-path:inset(0_-200%_-200%_-200%)]",
+				"[filter:drop-shadow(0_0_6px_color-mix(in_oklab,var(--shadow-color)_var(--shadow-first-opacity),transparent))_drop-shadow(0_0_2px_color-mix(in_oklab,var(--shadow-color)_var(--shadow-second-opacity),transparent))]",
+				className,
+			)}
+		>
+			<polygon points="0,0 30,0 15,10" />
+			<polyline
+				className="stroke-[color:var(--border-color-popover)]"
+				fill="none"
+				points="0,0 15,10 30,0"
+				strokeWidth={1}
+				vectorEffect="non-scaling-stroke"
+			/>
+		</svg>
+	</HoverCardPrimitive.Arrow>
+);
+
 /**
  * A floating card that appears when a user hovers over a trigger element.
  *
@@ -161,6 +231,7 @@ const Content = ({
  * HoverCard.Root
  * ├── HoverCard.Trigger
  * └── HoverCard.Content
+ *     └── HoverCard.Arrow
  * ```
  *
  * @example
@@ -202,6 +273,30 @@ const HoverCard = {
 	 * ```
 	 */
 	Root,
+	/**
+	 * An optional tip that points from `HoverCard.Content` at its trigger. It stays
+	 * centered on the trigger when collision detection shifts or flips the content,
+	 * and its border continues `HoverCard.Content`'s own edge.
+	 *
+	 * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardarrow
+	 *
+	 * @example
+	 * ```tsx
+	 * <HoverCard.Root>
+	 *   <HoverCard.Trigger asChild>
+	 *     <Button type="button" appearance="link" intent="accent">@username</Button>
+	 *   </HoverCard.Trigger>
+	 *   <HoverCard.Content side="top">
+	 *     <HoverCard.Arrow />
+	 *     <div className="space-y-2">
+	 *       <Text weight="strong">User Profile</Text>
+	 *       <Text>Additional information about the user.</Text>
+	 *     </div>
+	 *   </HoverCard.Content>
+	 * </HoverCard.Root>
+	 * ```
+	 */
+	Arrow,
 	/**
 	 * The content to render inside the hover card. Appears in a portal with rich styling and animations.
 	 *
