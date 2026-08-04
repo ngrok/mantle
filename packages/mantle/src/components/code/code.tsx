@@ -20,7 +20,15 @@ import { Slot } from "../slot/index.js";
  * **Polymorphism.** Pass `asChild` to render `Code` styling on a different
  * element (e.g. a link wrapping a code-styled label).
  *
+ * **Translation.** The `<code>` element carries `translate="no"` by default, so a
+ * browser translation engine skips the subtree. A translated CLI flag, env var,
+ * or YAML key is wrong, and the reader copies it anyway. `Code` also styles terms
+ * that are not code, so pass `translate="yes"` when the content is prose.
+ * `Kbd` and `CodeBlock.Code` take no such override — a key and a block of code
+ * are never translatable.
+ *
  * @see https://mantle.ngrok.com/components/data-display/code
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate
  *
  * @example
  * ```tsx
@@ -46,6 +54,7 @@ const Code = ({ asChild, className, ref, ...props }: ComponentProps<"code"> & Wi
 				"border-gray-500/15 rounded-md border bg-gray-500/5 px-1 font-mono text-[0.8em]",
 				className,
 			)}
+			translate="no"
 			{...props}
 		/>
 	);

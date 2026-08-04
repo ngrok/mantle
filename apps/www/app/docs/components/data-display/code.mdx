@@ -55,14 +55,39 @@ import { Code } from "@ngrok/mantle/code";
 </Code>;
 ```
 
+## Translation
+
+The `<code>` element carries [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate) by default, so a browser translation engine skips the subtree. A translated CLI flag, env var, or YAML key is wrong, and the reader copies it anyway.
+
+The attribute also protects the render itself: Google Translate replaces each text node with a `<font>` wrapper, which detaches the text nodes React holds — so React either writes updates into a node the DOM no longer shows, or throws `NotFoundError` from `removeChild` and tears down the root.
+
+`Code` also styles terms that are not code, so the default is overridable. Pass `translate="yes"` when the content is prose:
+
+<Example>
+	<p>
+		Open the <Code translate="yes">dashboard</Code> to see your endpoints.
+	</p>
+</Example>
+
+```tsx
+import { Code } from "@ngrok/mantle/code";
+
+<p>
+	Open the <Code translate="yes">dashboard</Code> to see your endpoints.
+</p>;
+```
+
+[`Kbd`](/components/data-display/kbd) and `CodeBlock.Code` take no such override — a key and a block of code are never translatable.
+
 ## API Reference
 
 ### Code
 
 All props from [code](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/code#attributes), plus:
 
-| Prop         | Type        | Default | Description                                                                                                       |
-| ------------ | ----------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
-| `asChild?`   | `boolean`   | `false` | Use the `asChild` prop to compose the `Code` styling onto alternative element types or your own React components. |
-| `children`   | `ReactNode` |         | The content to be rendered inside the inline code element.                                                        |
-| `className?` | `string`    |         | Additional CSS classes to apply to the inline code element.                                                       |
+| Prop         | Type              | Default | Description                                                                                                       |
+| ------------ | ----------------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
+| `asChild?`   | `boolean`         | `false` | Use the `asChild` prop to compose the `Code` styling onto alternative element types or your own React components. |
+| `children`   | `ReactNode`       |         | The content to be rendered inside the inline code element.                                                        |
+| `className?` | `string`          |         | Additional CSS classes to apply to the inline code element.                                                       |
+| `translate?` | `"yes"` \| `"no"` | `"no"`  | Whether a browser translation engine may translate the content. Pass `"yes"` when the content is prose.           |

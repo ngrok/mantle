@@ -509,6 +509,14 @@ The remaining parts do not accept `asChild`. `CodeBlock.Code` owns the highlight
 > [!WARNING]
 > `CodeBlock.ExpanderButton` advertises `asChild` in its prop types but **throws at runtime** (`React.Children.only expected to receive a single React element child`). It renders its own "Show more" / "Show less" label and caret icon, so the slot receives more than one child. Style it with `className` instead.
 
+## Translation
+
+`CodeBlock.Code` and `CodeBlock.Title` carry [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate), so a browser translation engine skips the code and the filename. A translated CLI flag, env var, or YAML key is wrong, and the reader copies it anyway. A translated `example.ts` names a file that does not exist.
+
+The attribute also protects the render itself: Google Translate replaces each text node with a `<font>` wrapper, which detaches the text nodes React holds — so React either writes updates into a node the DOM no longer shows, or throws `NotFoundError` from `removeChild` and tears down the root.
+
+The two parts differ on whether a call site may turn the guard off. `CodeBlock.Code` omits the `translate` prop from its type, because a block of code is never translatable. `CodeBlock.Title` keeps it, because the slot takes arbitrary children — pass `translate="yes"` for a title that is prose rather than a filename.
+
 ## API Reference
 
 The `CodeBlock` renders and applies syntax highlighting to blocks of code and is composed of several sub-components.
@@ -540,7 +548,9 @@ All props from [standard HTML div attributes](https://developer.mozilla.org/en-U
 
 The `CodeBlock` content. This is where the code is rendered with pre-highlighted Shiki HTML.
 
-All props from [standard HTML pre attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/pre#attributes), plus:
+The `<pre>` always carries `translate="no"`.
+
+All props from [standard HTML pre attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/pre#attributes) except `translate`, plus:
 
 | Prop    | Type                   | Default | Description                                                                                        |
 | :------ | :--------------------- | :------ | :------------------------------------------------------------------------------------------------- |
@@ -560,11 +570,14 @@ All props from [standard HTML div attributes](https://developer.mozilla.org/en-U
 
 The (optional) title of a `CodeBlock`. Default renders as an `h3` element; use `asChild` to render something else.
 
+The heading carries `translate="no"` by default, because the title usually names a file.
+
 All props from [standard HTML h3 attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
 
-| Prop       | Type      | Default | Description                                                                                                                                    |
-| :--------- | :-------- | :------ | :--------------------------------------------------------------------------------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `CodeBlock.Title` styling and functionality onto alternative element types or your own React components. |
+| Prop         | Type              | Default | Description                                                                                                                                    |
+| :----------- | :---------------- | :------ | :--------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?`   | `boolean`         | `false` | Use the `asChild` prop to compose the `CodeBlock.Title` styling and functionality onto alternative element types or your own React components. |
+| `translate?` | `"yes"` \| `"no"` | `"no"`  | Whether a browser translation engine may translate the title. Pass `"yes"` for a title that is prose rather than a filename.                   |
 
 ### CodeBlock.CopyButton
 

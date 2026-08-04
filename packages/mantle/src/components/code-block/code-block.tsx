@@ -293,7 +293,7 @@ function substitutePreValsPlainText(
 	return substituteTemplateVals(text, vals, preValToken, (value) => String(value));
 }
 
-type CodeBlockCodeProps = Omit<ComponentProps<"pre">, "children"> & {
+type CodeBlockCodeProps = Omit<ComponentProps<"pre">, "children" | "translate"> & {
 	/**
 	 * The code value produced by `mantleCode("lang")` tagged template.
 	 * Contains pre-rendered Shiki HTML (when the Vite plugin is active) and
@@ -308,7 +308,13 @@ type CodeBlockCodeProps = Omit<ComponentProps<"pre">, "children"> & {
  * Mantle's Vite plugin or server highlighter must set `value["~preHtml"]`.
  * Runtime highlighting and runtime line decoration are intentionally unsupported.
  *
+ * The `<pre>` always carries `translate="no"`, so a browser translation engine
+ * skips the code. A translated CLI flag, env var, or YAML key is wrong, and the
+ * reader copies it anyway. The `translate` prop is omitted from the type, so no
+ * call site can turn the guard off.
+ *
  * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockcode
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate
  *
  * @example
  * ```tsx
@@ -431,6 +437,9 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 				} as ComponentProps<"pre">["style"]
 			}
 			{...props}
+			// Why after the spread: a wider props object can still carry `translate`
+			// past the type, and translated code is wrong at every call site.
+			translate="no"
 		>
 			<code
 				className="text-size-inherit block min-w-full w-max"
@@ -485,6 +494,12 @@ const Header = ({
  * The (optional) title of the `CodeBlock`. Renders as `h3` by default;
  * use `asChild` to render a different element.
  *
+ * The heading carries `translate="no"` by default, because the title usually names
+ * a file — `example.ts` — and a translated filename names a file that does not
+ * exist. The slot takes arbitrary children though, so pass `translate="yes"` when
+ * the title is prose rather than a filename. `CodeBlock.Code` takes no such
+ * override — a block of code is never translatable.
+ *
  * @see https://mantle.ngrok.com/components/data-display/code-block#codeblocktitle
  *
  * @example
@@ -514,6 +529,7 @@ const Title = ({
 			data-slot="code-block-title"
 			ref={ref}
 			className={cx("m-0 font-sans text-xs font-medium", className)}
+			translate="no"
 			{...props}
 		/>
 	);
@@ -1001,6 +1017,9 @@ const CodeBlock = {
 	/**
 	 * The code content. Renders pre-highlighted Shiki HTML when the Vite plugin is active.
 	 *
+	 * The `<pre>` always carries `translate="no"`, so a browser translation engine
+	 * skips the code.
+	 *
 	 * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockcode
 	 *
 	 * @example
@@ -1188,6 +1207,9 @@ const CodeBlock = {
 	TabTrigger,
 	/**
 	 * The optional title rendered in the header.
+	 *
+	 * The heading carries `translate="no"` by default, because the title usually
+	 * names a file. Pass `translate="yes"` when the title is prose instead.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/code-block#codeblocktitle
 	 *
