@@ -1,5 +1,99 @@
 # @ngrok/mantle
 
+## 0.83.2
+
+### Patch Changes
+
+- [#1398](https://github.com/ngrok/mantle/pull/1398) [`60057c6`](https://github.com/ngrok/mantle/commit/60057c6721ff4b47f1dc6b86e2cd9aacd26c2f8a) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `BarChart` bars now grow with the category spacing instead of stopping at 24px, so a chart with few categories
+  no longer reads gap-toothed.
+
+  Seven days across a wide card used to paint 24px bars inside a 93px step, which left 69px of air beside every
+  bar. A bar now fills its slot up to a cap of 60% of one step, floored at the old 24px and ceilinged at 64px:
+  those seven bars paint about 56px.
+
+  - **A dense chart is untouched.** The floor and the fill rule meet at a step of exactly 40px, so every chart
+    whose categories sit closer than that paints the pixels it painted before.
+  - **The ceiling stops the other extreme.** Two categories across a 650px plot would fill 195px each unclamped,
+    and a bar that wide reads as a panel rather than a mark.
+  - **Grouped series split the band as before,** and each bar fills its own slot up to the same cap, so a group
+    tightens rather than outgrowing its category.
+  - **Horizontal bars follow the same rule** on their own band axis.
+
+  The thickness reads the step alone, so the same data at the same width always paints the same pixels, and the
+  curve rises with no jump at either clamp — a row arriving or a container resize can never pop the bars to
+  another width. `chart/bar-geometry.test.ts` pins the rule and
+  `chart/bar-thickness.browser.test.tsx` measures the painted bars.
+
+  There is no `barSize` prop, and this adds none: bar thickness stays a property of the layout.
+
+  Docs: https://mantle.ngrok.com/components/charts/bar-chart#barchartbar
+
+- [#1398](https://github.com/ngrok/mantle/pull/1398) [`60057c6`](https://github.com/ngrok/mantle/commit/60057c6721ff4b47f1dc6b86e2cd9aacd26c2f8a) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `BarChart.Root`, `LineChart.Root`, `AreaChart.Root`, and `ScatterPlot.Root` now paint a `decorative` chart
+  neutral: every series wears the new `--color-chart-decorative` fill instead of its categorical slot.
+
+  A decorative chart is the backdrop behind an empty-state message. Its values are not information, so nothing
+  about a mark may read as a series — the fill outranks both `seriesSlot` and a series' own `color`, and it
+  reaches the canvas, the legend swatches, and the tooltip strokes from one place. Slots keep resolving
+  underneath it, so a chart that leaves `decorative` gets its palette back unshuffled.
+
+  **The fill is also what keeps an overlaid message readable, with no help from the call site.**
+  `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card — 0.38 over the 4.5:1
+  floor for 14px text, so any tint under that copy spends the headroom. `--color-chart-decorative` is the
+  darkest neutral step that still clears the floor in all four themes: 4.56:1 in light, 4.93:1 in dark, 9.08:1
+  in light-high-contrast, and 8.14:1 in dark-high-contrast. `chart/decorative-contrast.test.tsx` measures every
+  theme, and `chart/decorative-paint.browser.test.tsx` samples the painted canvas.
+
+  - **`--color-chart-decorative` is a new token, one per theme, aliased to that theme's `neutral-200`.**
+    Redeclare it on a Root to retune one chart —
+    `className="[--color-chart-decorative:var(--color-neutral-100)]"` — and re-measure the copy against the
+    value you pick.
+  - **No scrim, no dimming, and no blur.** A blur leaves the color under the middle of a mark where it was, and
+    dimming a categorical slot far enough to rescue `text-muted` erases the chart.
+
+  Every `decorative` chart picks the fill up with no call-site change. Drop an `opacity-*` you added to a
+  decorative chart to tame its colors — the fill replaces it, and dimming on top only washes the marks out.
+
+  An interactive chart is unchanged. It carries real data, so it is never a backdrop.
+
+  Docs: https://mantle.ngrok.com/components/charts/bar-chart#decorative-charts
+
+- [#1401](https://github.com/ngrok/mantle/pull/1401) [`b53e6fb`](https://github.com/ngrok/mantle/commit/b53e6fbe91a6062008fa2feffe397f62d0650ba1) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Sidebar.Header` now stacks rows below its alignment band, so a pinned search row can sit under the product
+  switcher without resizing the `AppLayout.Header` toolbar.
+
+  `--sidebar-header-height` did two jobs at once: it fixed the header's height, and it named the band an
+  `AppLayout.Header` toolbar matches. Stacking a switcher row and a `Sidebar.SearchTrigger` in the header
+  therefore meant raising the token, which grew the toolbar from 54px to 78px and left neither row on the
+  toolbar's center.
+
+  The header is now a grid whose first track is that token. Its first child centers on the band, every later
+  child takes its own row below, and the header grows to fit. The toolbar keeps matching the switcher row alone:
+
+  ```tsx
+  <Sidebar.Header>
+  	{/* the first child keeps the band, so the toolbar keeps its 54px */}
+  	<Sidebar.SwitcherTrigger>…</Sidebar.SwitcherTrigger>
+  	{/* its own row below, pinned above the scrolling body */}
+  	<Sidebar.SearchTrigger>…</Sidebar.SearchTrigger>
+  </Sidebar.Header>
+  ```
+
+  Rows after the first stack flush, the way rows stack in `Sidebar.Footer` — the band's own lower half is the
+  space between them. The second row also inherits the header's gutter, so it lines up with the navigation rows
+  without a copy of `Sidebar.Body`'s padding. The header reserves no scrollbar gutter, so on a platform whose
+  scrollbars take space the row runs wider than the rows inside `Sidebar.Body`.
+
+  A single-row header with no layout overrides on it renders exactly as before, pixel for pixel. If you already
+  stack two rows in `Sidebar.Header`, check three things:
+
+  - **Delete the `--sidebar-header-height` override you raised for the taller header.** The token is now the
+    first row's band, so a raised value moves the switcher row and the toolbar down together while the header
+    keeps growing for the second row — and everything below the header moves down with it.
+  - Keep the aligned row as the header's **first direct child**. A wrapper around both rows takes the band
+    itself, and a first row taller than the band overflows it — raise the token instead.
+  - The header is a grid now, so `items-*` is what centers the first row on the band (under the old flex column
+    it only moved rows horizontally), a flex property on a direct child (`flex-1`) no longer sizes it, and a
+    `className` that replaces the header's `display` drops the band with it.
+
 ## 0.83.1
 
 ### Patch Changes
