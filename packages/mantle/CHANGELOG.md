@@ -1,5 +1,83 @@
 # @ngrok/mantle
 
+## 0.83.4
+
+### Patch Changes
+
+- [#1409](https://github.com/ngrok/mantle/pull/1409) [`272814d`](https://github.com/ngrok/mantle/commit/272814d08655ece08f0c8ece1d1d6caf2b4116aa) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Alert.ExpandButton` renders its caret through `Button`'s `icon` slot, rather than as a third child beside the
+  count and the word.
+
+  The slot is what the caret wanted all along. It sizes the glyph, holds it at `shrink-0`, tightens the padding on
+  its side, and hands its place to the spinner when a button loads. `iconPlacement="end"` keeps the caret where it
+  has always drawn, after the label.
+
+  The control renders `+3 more ⌄` as it did before, and the count keeps the `min-width` that stops a two-digit
+  count from shifting the label. Its own padding moves to `ps-1.5 pe-1`, which keeps the caret side `0.125rem`
+  tighter than the text side.
+
+  That last part is worth knowing at any call site. A button with an icon tightens the icon side through a `ps-*`
+  or `pe-*` longhand, and a `px-*` override cannot beat a longhand — both survive the class merge, and Tailwind
+  emits the longhand last. Override the padding of a button with an icon in longhands too.
+
+- [#1409](https://github.com/ngrok/mantle/pull/1409) [`272814d`](https://github.com/ngrok/mantle/commit/272814d08655ece08f0c8ece1d1d6caf2b4116aa) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Button` and `Badge` render their label slot with `display: contents`, so the wrapper 0.83.3 added changes no
+  layout.
+
+  That release wrapped `children` in a `<span data-slot="button-label">` to keep a browser translation engine
+  from crashing the page. The span was also a box, which made every child one flex item: a call site that passed
+  more than one child lost the container's `gap` between them, and a `min-width` on a child lost the formatting
+  context that held it. `Alert.ExpandButton` rendered `+3more` instead of `+3 more ⌄`.
+
+  The span now generates no box. Every child is a flex item of the button or the badge again, the `gap` falls
+  between them, and a child's own width applies — the layout matches the release before the wrapper. The span
+  stays in the DOM, so the crash fix stands: an icon's `insertBefore` still names an element, never a text node
+  the engine reparented.
+
+  This restores the shape a chip or a picker trigger needs, where the label absorbs the slack between two icons:
+
+  ```tsx
+  <Button
+  	appearance="outlined"
+  	intent="neutral"
+  	className="max-w-48 min-w-0 justify-start"
+  	icon={<KeyIcon />}
+  >
+  	<span className="min-w-0 flex-1 truncate text-left">{selectedLabel}</span>
+  	<CaretDownIcon />
+  </Button>
+  ```
+
+  `flex-1` and `min-w-0` reach that span only while it is a flex item of the button, so the wrapper's box dropped
+  both and the label pushed past `max-w-48` instead of clamping.
+
+  `Anchor` is unchanged. Its label span never changed layout, because an anchor lays its children out in inline
+  flow.
+
+- [#1409](https://github.com/ngrok/mantle/pull/1409) [`272814d`](https://github.com/ngrok/mantle/commit/272814d08655ece08f0c8ece1d1d6caf2b4116aa) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `OtpInput.Slot` now renders `translate="no"`, so a browser translation engine skips the passcode character
+  inside it.
+
+  A one-time passcode is never translatable. An engine that treats the character as prose shows the reader a
+  character the code does not contain, and the reader types it back.
+
+  The attribute also protects the render. Google Translate wraps each text node in a `<font>`, which detaches
+  the node React holds. The next keystroke then makes React remove a node its parent no longer owns, and the
+  DOM raises `NotFoundError` — which tears down the root when no error boundary sits above it. Backspacing a
+  digit on a translated page hit this. `translate="no"` prevents it, because the engine never enters the slot.
+
+  The slot omits `translate` from its props type, so passing it is a compile error, and it stamps the attribute
+  after the props spread, so a wider props object cannot carry a value past the type either. `Kbd` and
+  `CodeBlock.Code` already lock the attribute the same way.
+
+  ```tsx
+  import { OtpInput } from "@ngrok/mantle/otp-input";
+
+  // <div data-slot="otp-input-slot" … translate="no">4</div>
+  <OtpInput.Root maxLength={6}>
+  	<OtpInput.Group>
+  		<OtpInput.Slot index={0} />
+  	</OtpInput.Group>
+  </OtpInput.Root>;
+  ```
+
 ## 0.83.3
 
 ### Patch Changes
