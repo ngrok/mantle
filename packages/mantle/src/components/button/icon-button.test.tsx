@@ -50,17 +50,19 @@ describe("IconButton", () => {
 						<IconButton
 							appearance={appearance}
 							intent={intent}
-							label="globe"
+							label="icon button"
 							icon={<GlobeIcon />}
 						/>
 						<Button appearance={appearance} intent={intent}>
-							globe
+							button
 						</Button>
 					</>,
 				);
-				const [iconButton, button] = screen.getAllByRole("button");
-				expect(iconButton).toHaveClass(toneClass);
-				expect(button).toHaveClass(toneClass);
+				// Each query names the button it wants, so a third button in the
+				// tree throws here rather than shifting a positional index and
+				// asserting the pair against the wrong element.
+				expect(screen.getByRole("button", { name: "icon button" })).toHaveClass(toneClass);
+				expect(screen.getByRole("button", { name: "button" })).toHaveClass(toneClass);
 			},
 		);
 	});
