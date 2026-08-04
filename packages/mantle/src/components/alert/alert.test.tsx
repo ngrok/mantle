@@ -158,6 +158,46 @@ describe("Alert", () => {
 			expect(count).not.toHaveClass("w-[2ch]");
 		});
 
+		test("renders the caret through Button's icon slot, outside the label", () => {
+			const { container } = render(
+				<Alert.Root intent="warning">
+					<Alert.Content>
+						<Alert.Title>Usage limit approaching</Alert.Title>
+						<Alert.ExpandButton count={3} expanded={false} />
+					</Alert.Content>
+				</Alert.Root>,
+			);
+
+			const button = container.querySelector('[data-slot="alert-expand-button"]');
+			const label = button?.querySelector('[data-slot="button-label"]');
+			const caret = button?.querySelector("svg");
+			expect(label).toHaveTextContent("+3");
+			// The caret is the label's sibling, not its descendant, so the button's
+			// `gap` falls between the two and `iconPlacement="end"` orders the caret
+			// last. Passing it as a child puts it inside the label instead.
+			expect(caret?.parentElement).toBe(button);
+			expect(label?.contains(caret ?? null)).toBe(false);
+		});
+
+		test("lays the count and the word out as flex items of the button", () => {
+			const { container } = render(
+				<Alert.Root intent="warning">
+					<Alert.Content>
+						<Alert.Title>Usage limit approaching</Alert.Title>
+						<Alert.ExpandButton count={3} expanded={false} />
+					</Alert.Content>
+				</Alert.Root>,
+			);
+
+			// A cross-file spelling pin: this variant selects the `button-label` slot
+			// that `button.tsx` stamps around children. Both sides render here, so a
+			// rename on either cannot silently collapse the count, the word, and the
+			// caret into one gapless item.
+			const button = container.querySelector('[data-slot="alert-expand-button"]');
+			expect(button).toHaveClass("[&>[data-slot=button-label]]:contents");
+			expect(button?.querySelector('[data-slot="button-label"]')).not.toBeNull();
+		});
+
 		test("`asChild` is not accepted at the type level", () => {
 			const withAsChild = (
 				<Alert.Root intent="warning">

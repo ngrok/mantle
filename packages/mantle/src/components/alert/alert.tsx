@@ -428,9 +428,9 @@ const DismissIconButton = ({
 
 type AlertExpandButtonProps = Omit<
 	ButtonProps,
-	// `asChild` is omitted: ExpandButton always renders multiple children (count,
-	// label, caret), which would trip Button's single-child `Children.only`
-	// invariant at runtime — so the invalid configuration is unrepresentable.
+	// `asChild` is omitted: ExpandButton always renders two children (the count and
+	// the word), which would trip Button's single-child `Children.only` invariant at
+	// runtime — so the invalid configuration is unrepresentable.
 	"appearance" | "asChild" | "children" | "icon" | "iconPlacement" | "intent" | "size"
 > & {
 	/** The number of alerts hidden by a collapsed alert center. */
@@ -477,8 +477,24 @@ const ExpandButton = ({ count, expanded, className, ...props }: AlertExpandButto
 			}
 			data-slot="alert-expand-button"
 			data-alert-expand
+			icon={
+				<CaretDownIcon
+					weight="bold"
+					className={cx(
+						"size-4 transition-transform ease-out duration-150",
+						expanded && "-rotate-180",
+					)}
+				/>
+			}
+			iconPlacement="end"
 			className={cx(
 				"right-1.5 top-1.5 absolute gap-1 px-1.5",
+				// Why `contents` on the label: `Button` gives its children one label
+				// slot, which makes them a single flex item — the button's `gap` then
+				// falls only between that label and the caret, and the count's `min-w`
+				// has no formatting context to hold its width in. `contents` makes the
+				// count and the word flex items of the button again.
+				"[&>[data-slot=button-label]]:contents",
 				"text-[var(--alert-control-color,currentColor)]",
 				"not-disabled:hover:bg-[var(--alert-control-hover-bg,transparent)] not-disabled:hover:text-[var(--alert-control-hover-color,currentColor)]",
 				className,
@@ -487,13 +503,6 @@ const ExpandButton = ({ count, expanded, className, ...props }: AlertExpandButto
 		>
 			<span className="min-w-[2ch] text-center tabular-nums">+{count}</span>
 			<span className="hidden md:inline">more</span>
-			<CaretDownIcon
-				weight="bold"
-				className={cx(
-					"size-4 transition-transform ease-out duration-150",
-					expanded && "-rotate-180",
-				)}
-			/>
 		</Button>
 	);
 };
