@@ -46,9 +46,9 @@ docs page, and a new subpath export, so consumers want it called out. Everything
 | --------------------------------------------------------- | ------------------------------------------------ |
 | Bug fix, behavior fix, security fix                       | `fix(breadcrumb): mute current page text`        |
 | **A new prop on a shipped component**                     | `add appearance to Dialog.Content`, `seriesSlot` |
-| **A new sub-component or part in a shipped namespace**    | `Empty.Scrim`                                    |
+| **A new sub-component or part in a shipped namespace**    | `add DataTable.ActionHeader`                     |
 | A new data attribute, `data-slot`, or CSS variable        | `main-joins-data-slot`                           |
-| Visual or styling change that keeps the API               | `recess decorative charts`                       |
+| Visual or styling change that keeps the API               | `paint decorative charts neutral`                |
 | Dependency bump                                           | `bump @ariakit/react from 0.4.34 to 0.4.35`      |
 | JSDoc, comment, or docs-page prose that ships in the type | `ste-prose-sweep`, `audit-component-sweep`       |
 | Emit or build fix                                         | `publish the per-part JSDoc in the built types`  |

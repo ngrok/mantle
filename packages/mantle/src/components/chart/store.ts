@@ -13,7 +13,12 @@ import type {
 	XValue,
 	YAxisSpec,
 } from "./types.js";
-import { chartTokenVariable, isChartColorToken, SLOT_ORDER } from "./colors.js";
+import {
+	CHART_DECORATIVE_COLOR,
+	chartTokenVariable,
+	isChartColorToken,
+	SLOT_ORDER,
+} from "./colors.js";
 
 /**
  * Tooltip customization registered by a composed Tooltip part. Root renders
@@ -204,6 +209,7 @@ class ChartStore {
 	#nextSequence = 0;
 
 	#grid: { lines: GridLines | undefined } | null = null;
+	#decorative = false;
 	#orientation: BarOrientation = "vertical";
 	#xAxis: XAxisSpec | null = null;
 	#yAxis: YAxisSpec | null = null;
@@ -261,6 +267,23 @@ class ChartStore {
 				this.#publishRegistrations({ seriesChanged: true });
 			}
 		};
+	}
+
+	/**
+	 * Root-side: publish whether the chart is a decorative placeholder, which
+	 * repaints every series with the one neutral fill.
+	 *
+	 * Publishing as a series change is what makes a runtime flip repaint. The
+	 * engine's color cache keys on the theme, not on the series, and re-resolves
+	 * only when an ingest sees a series' paint input change — which is exactly
+	 * what this is.
+	 */
+	setDecorative(decorative: boolean): void {
+		if (this.#decorative === decorative) {
+			return;
+		}
+		this.#decorative = decorative;
+		this.#publishRegistrations({ seriesChanged: true });
 	}
 
 	/** Root-side: publish the bar direction so DOM consumers (legend keys) can mirror it. */
@@ -353,12 +376,18 @@ class ChartStore {
 		const slots = assignSeriesSlots(specs);
 		return specs.map((spec) => {
 			const slot = slots.get(spec.dataKey) ?? "chart-other";
+			// A decorative chart paints the neutral fill and outranks a `color`
+			// override: the values are not information, so nothing about the marks
+			// may read as a series. Slots still resolve above, so a chart that
+			// leaves `decorative` gets its palette identity back unshuffled.
+			const color = this.#decorative ? CHART_DECORATIVE_COLOR : displayColor(spec.color, slot);
+			const colorInput = this.#decorative ? CHART_DECORATIVE_COLOR : (spec.color ?? slot);
 			return {
 				dataKey: spec.dataKey,
 				label: spec.label,
 				mark: spec.mark,
-				color: displayColor(spec.color, slot),
-				colorInput: spec.color ?? slot,
+				color,
+				colorInput,
 				shape: displayShape(spec.shape, slot),
 				texture: spec.texture,
 			};

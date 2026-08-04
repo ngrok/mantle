@@ -29,100 +29,11 @@ const Root = ({ asChild, children, className, ...props }: ComponentProps<"div"> 
 	return (
 		<Comp
 			data-slot="empty"
-			// isolate: Empty.Scrim sits at -z-10 so it paints under the content.
-			// Without a stacking context here that would put it under the backdrop
-			// the empty state is layered over, and the scrim would never be seen.
-			className={cx(
-				"relative isolate mx-auto flex max-w-lg flex-col items-center p-6 text-center",
-				className,
-			)}
+			className={cx("mx-auto flex max-w-lg flex-col items-center p-6 text-center", className)}
 			{...props}
 		>
 			{children}
 		</Comp>
-	);
-};
-
-/**
- * A soft wash that sits behind the empty state's content, so the copy stays
- * readable over a busy backdrop. Compose it as the first child of
- * `Empty.Root`; it paints an ellipse of the surface color that fades to
- * nothing well before the container's edge, and it takes no space.
- *
- * **It is paint, and nothing else.** The scrim is `aria-hidden`, never a tab
- * stop, and inert to pointer events, so it reaches neither assistive
- * technology nor the hit area of the actions beside it. Those three hold even
- * when a consumer spreads their own values over the part. It takes no
- * children: content nested here would render inside an `aria-hidden` subtree,
- * which is how copy goes silently missing from the accessibility tree.
- *
- * `Empty.Root` positions it — the root carries `relative isolate`, and the
- * scrim paints at `-z-10` inside that stacking context. The isolation is what
- * keeps the scrim between the content and the backdrop instead of behind both.
- *
- * **Compose it whenever the empty state sits over anything but a flat
- * surface** — a [decorative chart](https://mantle.ngrok.com/components/charts/bar-chart#decorative-charts),
- * an image, a pattern. `Empty.Description` sits on `text-muted`, which
- * measures 4.88:1 on a bare light card — 0.38 over the 4.5:1 floor for 14px
- * text. Anything tinted under that text spends the headroom and drops it
- * under WCAG AA. The scrim restores the flat surface locally, so the message
- * measures what it would on a bare card.
- *
- * | CSS Variable          | Default                          | Description                                                                                            |
- * | --------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------ |
- * | `--empty-scrim-color` | `var(--background-color-card)`   | The color the wash paints. Set it to the surface the empty state actually sits on — `var(--background-color-popover)` inside a popover. |
- *
- * @see https://mantle.ngrok.com/components/feedback/empty
- *
- * @example
- * ```tsx
- * <div className="relative w-full">
- *   <BarChart.Root data={placeholderUsage} xKey="day" decorative>
- *     <BarChart.Bar dataKey="value" />
- *   </BarChart.Root>
- *   <Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
- *     <Empty.Scrim />
- *     <Empty.Title>No usage yet</Empty.Title>
- *     <Empty.Description>
- *       <p>Traffic will appear here once your endpoints start receiving requests.</p>
- *     </Empty.Description>
- *   </Empty.Root>
- * </div>
- * ```
- */
-/**
- * The scrim paints; it never holds content. Children are unrepresentable
- * rather than discouraged: anything nested here would render inside an
- * `aria-hidden` subtree, which is how copy goes silently missing from the
- * accessibility tree.
- */
-type EmptyScrimProps = Omit<ComponentProps<"div">, "children"> & { children?: never };
-
-const Scrim = ({ className, ...props }: EmptyScrimProps) => {
-	return (
-		<div
-			data-slot="empty-scrim"
-			// A blurred ellipse, not a radial gradient: a gradient's alpha ramps
-			// linearly and leaves a visible shoulder where it meets the backdrop,
-			// while a blur is Gaussian and has none. The core stays fully opaque —
-			// blur(24px) is a 12px sigma, and the copy sits several sigma inside the
-			// edge — which is what keeps the contrast math in
-			// chart/recession-contrast.test.tsx honest.
-			className={cx(
-				"pointer-events-none absolute -inset-6 -z-10 rounded-[50%] blur-xl",
-				"bg-[var(--empty-scrim-color,var(--background-color-card))]",
-				className,
-			)}
-			{...props}
-			// After the spread on purpose: the decorative contract is not a default
-			// a consumer can spread over. `aria-hidden` keeps a shape that carries
-			// no information out of the accessibility tree, and clearing `tabIndex`
-			// keeps it out of the tab order — a focusable `aria-hidden` element is
-			// a WCAG failure in its own right, because focus lands somewhere the
-			// screen reader cannot announce.
-			aria-hidden
-			tabIndex={undefined}
-		/>
 	);
 };
 
@@ -293,7 +204,6 @@ const Actions = ({
  * Composition:
  * ```
  * Empty.Root
- * ├── Empty.Scrim
  * ├── Empty.Icon
  * ├── Empty.Title
  * ├── Empty.Description
@@ -334,35 +244,6 @@ const Empty = {
 	 * ```
 	 */
 	Root,
-	/**
-	 * A soft wash behind the content, so the copy stays readable over a busy
-	 * backdrop. Compose it as the first child of `Empty.Root` whenever the empty
-	 * state sits over anything but a flat surface — a decorative chart, an
-	 * image, a pattern.
-	 *
-	 * | CSS Variable          | Default                        | Description                                                                  |
-	 * | --------------------- | ------------------------------ | ------------------------------------------------------------------------------ |
-	 * | `--empty-scrim-color` | `var(--background-color-card)` | The color the wash paints. Set it to the surface the empty state sits on. |
-	 *
-	 * @see https://mantle.ngrok.com/components/feedback/empty
-	 *
-	 * @example
-	 * ```tsx
-	 * <div className="relative w-full">
-	 *   <BarChart.Root data={placeholderUsage} xKey="day" decorative>
-	 *     <BarChart.Bar dataKey="value" />
-	 *   </BarChart.Root>
-	 *   <Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
-	 *     <Empty.Scrim />
-	 *     <Empty.Title>No usage yet</Empty.Title>
-	 *     <Empty.Description>
-	 *       <p>Traffic will appear here once your endpoints start receiving requests.</p>
-	 *     </Empty.Description>
-	 *   </Empty.Root>
-	 * </div>
-	 * ```
-	 */
-	Scrim,
 	/**
 	 * Renders a large icon for the empty state. Pass a single SVG icon element
 	 * via the `svg` prop.

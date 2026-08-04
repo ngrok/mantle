@@ -1,5 +1,5 @@
 import invariant from "tiny-invariant";
-import { isStackedDataEnd, stackedSegmentEdges } from "./bar-geometry.js";
+import { barThickness, isStackedDataEnd, stackedSegmentEdges } from "./bar-geometry.js";
 import type { ChartChromeColors } from "./colors.js";
 import type { DecimatedColumns } from "./decimate.js";
 import type { BandLayout } from "./scales.js";
@@ -54,7 +54,6 @@ import type { BarRect, HorizontalBarRect, PlotRect } from "./renderer.js";
 import {
 	AXIS_FONT_SIZE,
 	BAR_GAP,
-	BAR_MAX_THICKNESS,
 	drawAreaPath,
 	drawAxisLabels,
 	drawBars,
@@ -1951,7 +1950,7 @@ class ChartEngine {
 		const gap =
 			layout.bandwidth >= 8 * groupCount ? BAR_GAP : layout.bandwidth >= 3 * groupCount ? 1 : 0;
 		const slotWidth = (layout.bandwidth - gap * (groupCount - 1)) / groupCount;
-		const barWidth = Math.min(BAR_MAX_THICKNESS, slotWidth);
+		const barWidth = barThickness({ step: layout.step, slot: slotWidth });
 		const toPixel = (value: number): number => value * yCo.k + yCo.b;
 
 		specs.forEach((spec, seriesIndex) => {
@@ -2018,7 +2017,7 @@ class ChartEngine {
 		const gap =
 			layout.bandwidth >= 8 * groupCount ? BAR_GAP : layout.bandwidth >= 3 * groupCount ? 1 : 0;
 		const slotHeight = (layout.bandwidth - gap * (groupCount - 1)) / groupCount;
-		const barThickness = Math.min(BAR_MAX_THICKNESS, slotHeight);
+		const barHeight = barThickness({ step: layout.step, slot: slotHeight });
 		const toPixel = (value: number): number => value * valueCo.k + valueCo.b;
 
 		specs.forEach((spec, seriesIndex) => {
@@ -2035,11 +2034,11 @@ class ChartEngine {
 				}
 				const lowerValue = this.#segmentLower(lower, index);
 				const slotStart = stacked
-					? bandStart(layout, index) + (layout.bandwidth - barThickness) / 2
+					? bandStart(layout, index) + (layout.bandwidth - barHeight) / 2
 					: bandStart(layout, index) +
 						(layout.bandwidth - (slotHeight * groupCount + gap * (groupCount - 1))) / 2 +
 						seriesIndex * (slotHeight + gap) +
-						(slotHeight - barThickness) / 2;
+						(slotHeight - barHeight) / 2;
 				const edges = stackedSegmentEdges({
 					lower: lowerValue,
 					upper: upperValue,
@@ -2049,7 +2048,7 @@ class ChartEngine {
 				});
 				rects.push({
 					y: slotStart,
-					height: barThickness,
+					height: barHeight,
 					baselineX: edges.baseline,
 					valueX: edges.value,
 					rounded: this.#isDataEnd(seriesIndex, index, toPixel),

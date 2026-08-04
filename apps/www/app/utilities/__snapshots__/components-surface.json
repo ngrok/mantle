@@ -369,7 +369,7 @@
     "summary": "Display a placeholder when there is no data or content to show.",
     "jsdoc": "Compound component for rendering empty states.",
     "examples": [
-      "Composition:\n```\nEmpty.Root\n├── Empty.Scrim\n├── Empty.Icon\n├── Empty.Title\n├── Empty.Description\n└── Empty.Actions\n```",
+      "Composition:\n```\nEmpty.Root\n├── Empty.Icon\n├── Empty.Title\n├── Empty.Description\n└── Empty.Actions\n```",
       "```tsx\n<Empty.Root>\n  <Empty.Icon svg={<GhostIcon />} />\n  <Empty.Title>No endpoints yet</Empty.Title>\n  <Empty.Description>\n    Create your first endpoint to get started.\n  </Empty.Description>\n  <Empty.Actions>\n    <Button appearance=\"filled\" intent=\"neutral\">Create endpoint</Button>\n  </Empty.Actions>\n</Empty.Root>\n```"
     ]
   },

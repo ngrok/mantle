@@ -42,6 +42,18 @@ const isChartColorToken = (value: string): value is ChartColorToken =>
 const chartTokenVariable = (token: ChartColorToken): string => `--color-${token}`;
 
 /**
+ * The color every series paints on a `decorative` chart, whatever slot or
+ * `color` it would otherwise wear. A placeholder encodes no series identity, so
+ * one neutral fill replaces the categorical palette — and the token is tuned so
+ * a message laid over the marks stays above the WCAG AA text floor without a
+ * scrim or a blur. `chart/decorative-contrast.test.tsx` measures every theme.
+ *
+ * Kept out of {@link CHART_COLOR_TOKENS} on purpose: it is a mode, not a slot a
+ * consumer can assign a series to.
+ */
+const CHART_DECORATIVE_COLOR = "var(--color-chart-decorative)";
+
+/**
  * The order automatic series take unreserved slots in.
  */
 const SLOT_ORDER: readonly ChartColorToken[] = [
@@ -177,6 +189,7 @@ export type {
 export {
 	//,
 	CHART_COLOR_TOKENS,
+	CHART_DECORATIVE_COLOR,
 	chartTokenVariable,
 	isChartColorToken,
 	needsComputedResolution,

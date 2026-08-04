@@ -3,16 +3,10 @@ title: Empty
 description: Display a placeholder when there is no data or content to show.
 ---
 
-import { BarChart } from "@ngrok/mantle/bar-chart";
 import { Empty } from "@ngrok/mantle/empty";
 import { Button } from "@ngrok/mantle/button";
 import { GhostIcon, MagnifyingGlassIcon, PlusIcon, SmileyMeltingIcon } from "@phosphor-icons/react";
 import { Example } from "~/components/example";
-
-export const placeholderUsage = [40, 62, 51, 78, 66, 89, 72].map((value, index) => ({
-	day: `Day ${index + 1}`,
-	value,
-}));
 
 # Empty
 
@@ -220,55 +214,12 @@ import { GhostIcon } from "@phosphor-icons/react";
 </Empty.Root>;
 ```
 
-## Over a backdrop
-
-An empty state that sits over anything but a flat surface needs `Empty.Scrim`. Compose it as the first child of `Empty.Root`: it paints an ellipse of the surface color that fades to nothing before the container's edge, it takes no space, and it stays out of the accessibility tree.
-
-The reason is measured, not decorative. `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card — 0.38 over the 4.5:1 floor for 14px text. Anything tinted under that text spends the headroom and drops the description under WCAG AA. A [decorative chart](/components/charts/bar-chart#decorative-charts) recessed to 70% opacity leaves the worst chart slot at 2.74:1. The scrim restores the flat surface locally, so the message measures what it would on a bare card.
-
-Set `--empty-scrim-color` when the empty state sits on a surface other than a card, so the wash repaints the right color. A mismatch reads as a lighter or darker patch behind the copy, and dark mode shows it first: the card and page surfaces sit 2.3 lightness points apart there, against 0.4 in light mode.
-
-<Example className="bg-card">
-	<div className="relative w-full">
-		<BarChart.Root data={placeholderUsage} xKey="day" decorative>
-			<BarChart.Bar dataKey="value" />
-		</BarChart.Root>
-		<Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
-			<Empty.Scrim />
-			<Empty.Title>No usage yet</Empty.Title>
-			<Empty.Description>
-				<p>Traffic will appear here once your endpoints start receiving requests.</p>
-			</Empty.Description>
-		</Empty.Root>
-	</div>
-</Example>
-
-```tsx
-import { BarChart } from "@ngrok/mantle/bar-chart";
-import { Empty } from "@ngrok/mantle/empty";
-
-<div className="relative w-full">
-	<BarChart.Root data={placeholderUsage} xKey="day" decorative>
-		<BarChart.Bar dataKey="value" />
-	</BarChart.Root>
-	{/* The message is a sibling of the chart, so AT still announces it. */}
-	<Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
-		<Empty.Scrim />
-		<Empty.Title>No usage yet</Empty.Title>
-		<Empty.Description>
-			<p>Traffic will appear here once your endpoints start receiving requests.</p>
-		</Empty.Description>
-	</Empty.Root>
-</div>;
-```
-
 ## Composition
 
 Compose the parts of an `Empty` state together to build your own:
 
 ```text showLineNumbers=false
 Empty.Root
-├── Empty.Scrim
 ├── Empty.Icon
 ├── Empty.Title
 ├── Empty.Description
@@ -294,20 +245,6 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | Prop       | Type      | Default | Description                                       |
 | ---------- | --------- | ------- | ------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |
-
-### Empty.Scrim
-
-A soft wash behind the content, so the copy stays readable over a busy backdrop. Compose it as the first child of `Empty.Root`.
-
-The scrim is paint and nothing else. It is `aria-hidden`, never a tab stop, inert to pointer events, and it takes no space. Those hold even when you spread your own values over the part, so a stray `tabIndex` cannot strand focus on a shape a screen reader will not announce. It takes no children either — content nested inside an `aria-hidden` subtree goes missing from the accessibility tree.
-
-`aria-disabled` is deliberately absent. It describes a widget a user can perceive but not operate, and the scrim is neither a widget nor perceivable once `aria-hidden` removes it.
-
-All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), except `children`.
-
-| CSS Variable          | Default                        | Description                                                                                                                    |
-| --------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `--empty-scrim-color` | `var(--background-color-card)` | The color the wash paints. Set it to the surface the empty state sits on — `var(--background-color-popover)` inside a popover. |
 
 ### Empty.Icon
 

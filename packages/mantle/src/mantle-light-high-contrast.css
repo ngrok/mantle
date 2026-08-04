@@ -310,6 +310,10 @@ mantle.css for the full strategy.
 	--color-chart-8: oklch(0.621 0.128 78); /* #b07b06 */
 	--color-chart-other: var(--color-neutral-500);
 
+	/* The decorative-chart fill — this theme's neutral-200, which holds
+	   --text-color-muted at 9.08:1. See mantle.css for the derivation. */
+	--color-chart-decorative: var(--color-neutral-200);
+
 	--text-color-strong: var(--color-black);
 	--text-color-body: var(--color-neutral-950);
 	--text-color-muted: --alpha(var(--color-black) / 0.75);

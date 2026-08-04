@@ -169,6 +169,57 @@ describe("ChartStore series presentation", () => {
 		]);
 	});
 
+	test("a decorative chart paints every series with the neutral fill", () => {
+		// The values are not information, so nothing about a mark may read as a
+		// series — not the slot a series took, and not a color it asked for. Both
+		// halves of the meta move: `color` is what the legend and tooltip paint,
+		// `colorInput` is what the canvas resolves.
+		const store = new ChartStore();
+		store.registerSeries(makeSeries("requests"));
+		store.registerSeries(makeSeries("brand", { color: "var(--color-brand)" }));
+		store.registerSeries(makeSeries("p99", { seriesSlot: 8 }));
+		store.setDecorative(true);
+		expect(store.seriesMeta().map((series) => [series.color, series.colorInput])).toStrictEqual([
+			["var(--color-chart-decorative)", "var(--color-chart-decorative)"],
+			["var(--color-chart-decorative)", "var(--color-chart-decorative)"],
+			["var(--color-chart-decorative)", "var(--color-chart-decorative)"],
+		]);
+	});
+
+	test("leaving decorative restores each series' own identity, unshuffled", () => {
+		// Slots keep resolving underneath the fill, so a chart that swaps out of
+		// decorative gets the palette it would have had — never a re-deal that
+		// repaints an unrelated series.
+		const store = new ChartStore();
+		store.registerSeries(makeSeries("requests"));
+		store.registerSeries(makeSeries("errors", { seriesSlot: 4 }));
+		const identities = store.seriesMeta().map((series) => series.color);
+		store.setDecorative(true);
+		store.setDecorative(false);
+		expect(store.seriesMeta().map((series) => series.color)).toStrictEqual(identities);
+		expect(identities).toStrictEqual(["var(--color-chart-1)", "var(--color-chart-4)"]);
+	});
+
+	test("flipping decorative re-ingests, because the engine's color cache keys on the theme", () => {
+		// A presentation-only publish would repaint with the colors already resolved
+		// for the old palette. Only the series hook invalidates them.
+		const store = new ChartStore();
+		let seriesChanges = 0;
+		let presentationChanges = 0;
+		store.onSeriesChange = () => {
+			seriesChanges += 1;
+		};
+		store.onPresentationChange = () => {
+			presentationChanges += 1;
+		};
+		store.setDecorative(true);
+		expect(seriesChanges).toBe(1);
+		expect(presentationChanges).toBe(0);
+		// Idempotent: a re-render that passes the same value publishes nothing.
+		store.setDecorative(true);
+		expect(seriesChanges).toBe(1);
+	});
+
 	test("an explicit shape changes no sibling identity", () => {
 		const store = new ChartStore();
 		store.registerSeries(makeSeries("p50", { shape: "star" }));
