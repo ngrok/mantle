@@ -1,5 +1,117 @@
 # @ngrok/mantle
 
+## 0.83.3
+
+### Patch Changes
+
+- [#1405](https://github.com/ngrok/mantle/pull/1405) [`aebf20c`](https://github.com/ngrok/mantle/commit/aebf20cad8f821fe0c06bd0f687430c49e8c7b2f) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Popover` and `HoverCard` now export an `Arrow` part — a tip that points from the content at what it is anchored
+  to. Render it as a child of the content:
+
+  ```tsx
+  import { Button } from "@ngrok/mantle/button";
+  import { Popover } from "@ngrok/mantle/popover";
+
+  <Popover.Root>
+  	<Popover.Anchor asChild>
+  		<button type="button">Anchor</button>
+  	</Popover.Anchor>
+  	<Popover.Trigger asChild>
+  		<Button type="button" appearance="outlined" intent="neutral">
+  			What moved?
+  		</Button>
+  	</Popover.Trigger>
+  	<Popover.Content side="right">
+  		<Popover.Arrow />
+  		<p>Products moved up here.</p>
+  	</Popover.Content>
+  </Popover.Root>;
+  ```
+
+  Radix positions the part with floating-ui's arrow middleware, so the tip stays centered on the anchor when
+  collision detection shifts or flips the content. A hand-rolled tip is a fixed offset, so it drifts off the anchor as soon as the
+  content moves, and it needs a pinned `align` per anchor to land on the right row at all.
+
+  Mantle styles the tip to read as a continuation of the content's edge. `Popover.Content` and
+  `HoverCard.Content` both paint a `bg-popover` fill behind a `border-popover` edge, and Radix renders the arrow
+  as an `svg`, where `bg-*` paints nothing. Each arrow is therefore two layers: a polygon filled with the popover
+  surface, and a polyline that strokes the two slanted edges only. The base carries no stroke and sits 1px inside
+  the content, so the fill covers the content's own border across the base and the two border lines read as one.
+
+  The tip carries its own shadow, built from the same `--shadow-color` and `--shadow-first-opacity` tokens the
+  content's `shadow-md` uses. `box-shadow` stops at the content's border, so a tip without one reads as pasted on.
+  A `clip-path` trims that shadow at the base, because the arrow paints above the content and the shadow would
+  otherwise darken the content's interior. It is one wide, faint layer, matching what the content's shadow leaves
+  along the edge the tip grows out of — a tighter layer muddies a shape this small. The offsets are symmetric,
+  since Radix rotates the arrow's wrapper per side and an offset shadow would swing with it.
+
+  `Popover.Content` and `HoverCard.Content` now set `position: relative`. The arrow's wrapper is absolutely
+  positioned, and the open animation's `scale` made the content that wrapper's containing block for the length of
+  the animation and no longer — which moved the arrow 1px the moment the animation ended. Positioning the content
+  keeps the containing block the same before, during, and after. Two side effects a consumer can observe: an
+  absolutely-positioned child of the content now anchors to the content, and the content's `z-50` now applies to
+  the content itself rather than only being read off it, so the content is a stacking context.
+
+  The border stroke is 1.5px against the content's 1px border. Antialiasing spreads a diagonal hairline across
+  two device rows at partial coverage, so a geometric 1px reads thinner than the content's axis-aligned edge.
+  Measured against that edge at both 1x and 2x, 1.5 is the width that matches it.
+
+  `data-slot` is `popover-arrow` and `hover-card-arrow`. `width` defaults to `14` and `height` to `7`; Radix adds
+  the measured height to `sideOffset`, so the tip lands `sideOffset` pixels from the anchor. Neither part takes
+  `asChild`, because a swapped element loses the two-layer shape — restyle with `className` (`fill-*` for the
+  surface, and target the `polyline` child for the edge), remembering that the part already sets `filter` and
+  `clip-path`.
+
+  `Tooltip` needs no new part: `Tooltip.Content` already renders its own arrow.
+
+- [#1405](https://github.com/ngrok/mantle/pull/1405) [`aebf20c`](https://github.com/ngrok/mantle/commit/aebf20cad8f821fe0c06bd0f687430c49e8c7b2f) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Code`, `Kbd`, `CodeBlock.Code`, and `CodeBlock.Title` now render `translate="no"`, so a browser translation
+  engine skips the text inside them.
+
+  A translation engine translates the text inside `<code>` and `<kbd>` like any other prose. A translated CLI
+  flag, YAML key, env var, or shortcut key is wrong, and the reader copies it anyway. `translate` is the standard
+  way to mark a subtree an engine must skip, and code content is the clearest place to set it, because code must
+  never be translated.
+
+  The attribute also protects the render. Google Translate replaces each text node with a `<font>` wrapper, which
+  detaches the text nodes React holds. React then either writes an update into a node the DOM no longer shows —
+  stale text, no error — or calls `removeChild` on a node that moved and throws `NotFoundError`, which tears down
+  the root when no error boundary sits above it. `translate="no"` on the element, or on any ancestor, prevents
+  both, because the engine never enters the subtree.
+
+  Two of the four lock the attribute, and two leave it overridable, on whether the part can ever hold prose.
+
+  `Kbd` and `CodeBlock.Code` lock it. A key and a block of code are never translatable, so both omit `translate`
+  from their props type — passing it is a compile error — and both stamp the attribute after the props spread, so
+  a wider props object cannot carry a value past the type either.
+
+  `Code` and `CodeBlock.Title` keep the prop. `Code` also styles terms that are not code, and `CodeBlock.Title`
+  takes arbitrary children, so `translate="no"` is a default rather than a rule: pass `translate="yes"` when the
+  content is prose.
+
+  ```tsx
+  import { Code } from "@ngrok/mantle/code";
+  import { Kbd } from "@ngrok/mantle/kbd";
+
+  // <code data-slot="code" … translate="no">npm install</code>
+  <Code>npm install</Code>;
+
+  // <kbd data-slot="kbd" … translate="no">K</kbd>
+  <Kbd>K</Kbd>;
+
+  // <code data-slot="code" … translate="yes">dashboard</code>
+  <Code translate="yes">dashboard</Code>;
+  ```
+
+  `CodeBlock.Title` is included because the title usually names a file — `example.ts` — and a translated filename
+  names a file that does not exist.
+
+- [#1408](https://github.com/ngrok/mantle/pull/1408) [`0f50685`](https://github.com/ngrok/mantle/commit/0f5068570c3e105a800f0b32e140f761f8c59871) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix a crash on browser-translated pages. `Button` threw `DOMException: Failed to execute 'insertBefore' on 'Node'` the moment `isLoading` turned on, which tore down the React root and blanked the page. `Badge`, `Anchor`, `DataTable.HeaderSortButton`, and `DataTable.ActionHeader` shared the same failure.
+
+  Google Translate wraps each text node in a `<font>` element, which reparents the original node: React's reference to it stays alive, but its parent is now the `<font>`. An `insertBefore` aimed at that node then names a child its parent no longer owns, and the DOM raises `NotFoundError`. Every affected component rendered a conditional element immediately before bare `children`, so the first click of any submit button threw before the loading spinner could render.
+
+  `Button`, `Badge`, and `Anchor` now render `children` inside a span carrying a new `data-slot` — `button-label`, `badge-label`, and `anchor-label`. Each one is public API: target it to style the label, for example with `min-w-0 truncate` to clamp a long one. `DataTable.HeaderSortButton` keeps its screen-reader sort announcer mounted at all times, and `DataTable.ActionHeader` renders its sticky-column indicator after `children`.
+
+  One layout note. The label is a single flex item, so `Button`'s and `Badge`'s `gap` falls between the icon slot and the label, never between two `children`. A call site that passed an icon as a child instead of through `icon` loses that gap, and `<Button icon={<PlusIcon />}>Create endpoint</Button>` is the intended shape. A call site that keeps a trailing hint as a child owns its own spacing.
+
 ## 0.83.2
 
 ### Patch Changes
