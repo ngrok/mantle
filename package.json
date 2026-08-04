@@ -20,7 +20,7 @@
     "prepare": "husky",
     "changeset": "changeset",
     "changeset:version": "changeset version",
-    "changeset:publish": "turbo run build --filter=@ngrok/mantle --filter=@ngrok/mantle-vite-plugins --filter=@ngrok/mantle-server-syntax-highlighter && changeset publish"
+    "changeset:publish": "turbo run build --filter=@ngrok/mantle --filter=@ngrok/mantle-vite-plugins --filter=@ngrok/mantle-server-syntax-highlighter --filter=@ngrok/oxlint-plugin && changeset publish"
   },
   "devDependencies": {
     "@changesets/changelog-github": "0.7.0",
@@ -29,7 +29,7 @@
     "husky": "9.1.7",
     "lint-staged": "17.3.0",
     "oxfmt": "0.62.0",
-    "oxlint": "1.77.0",
+    "oxlint": "catalog:",
     "tsx": "catalog:",
     "turbo": "2.10.8",
     "vitest": "4.1.10"
