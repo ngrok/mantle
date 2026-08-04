@@ -2,28 +2,12 @@
 "@ngrok/mantle": patch
 ---
 
-`Alert.ExpandButton` renders its caret through `Button`'s `icon` slot again, so the count, the word, and the
-caret sit apart instead of running together as `+3more`.
+`Alert.ExpandButton` renders its caret through `Button`'s `icon` slot, rather than as a third child beside the
+count and the word.
 
-Version 0.83.3 wrapped a button's children in one label slot, which made them a single flex item. The button's
-`gap` then fell between that label and nothing else, and the count's `min-width` lost the formatting context
-that held its width. `Alert.ExpandButton` passed all three pieces as children, so it collapsed.
+The slot is what the caret wanted all along. It sizes the glyph, holds it at `shrink-0`, tightens the padding on
+its side, and hands its place to the spinner when a button loads. `iconPlacement="end"` keeps the caret where it
+has always drawn, after the label.
 
-The caret now goes through `icon` with `iconPlacement="end"`, which is what the label-slot change asks every
-call site to do. The count and the word stay children, and the button sets `display: contents` on the label
-slot, so both are flex items of the button again.
-
-A call site of your own that passes an icon as a child needs the same move:
-
-```tsx
-// ❌ the icon and the label share one flex item, so the button's `gap` never falls between them
-<Button appearance="filled" intent="neutral">
-	<PlusIcon />
-	Create endpoint
-</Button>
-
-// ✅
-<Button appearance="filled" intent="neutral" icon={<PlusIcon />}>
-	Create endpoint
-</Button>
-```
+The control renders `+3 more ⌄` as it did before, and the count keeps the `min-width` that stops a two-digit
+count from shifting the label.
