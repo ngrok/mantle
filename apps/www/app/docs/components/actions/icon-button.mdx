@@ -15,12 +15,114 @@ Initiates an action, such as completing a task or submitting information. Render
 
 Every `IconButton` states what it means: `appearance` (visual weight) and `intent` (tone) are **required** — there are no implicit defaults. `intent="neutral"` is the workhorse tone for most icon buttons; reach for `"danger"` on destructive actions.
 
+`IconButton` draws every `appearance` and `intent` pair that [`Button`](/components/actions/button) draws, without `link` — an icon-only link has no text to read as a link. A pair renders the same tone and weight on both components, so an icon button sits beside a button without a color or weight seam.
+
+<Example className="flex flex-col items-center gap-6">
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Neutral</p>
+		<div className="flex items-center gap-2">
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				label="prestige worldwide"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="filled"
+				intent="neutral"
+				label="prestige worldwide"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="outlined"
+				intent="neutral"
+				label="prestige worldwide"
+				icon={<GlobeIcon />}
+			/>
+		</div>
+	</div>
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Accent</p>
+		<div className="flex items-center gap-2">
+			<IconButton
+				appearance="ghost"
+				intent="accent"
+				label="prestige worldwide"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="filled"
+				intent="accent"
+				label="prestige worldwide"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="outlined"
+				intent="accent"
+				label="prestige worldwide"
+				icon={<GlobeIcon />}
+			/>
+		</div>
+	</div>
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Danger</p>
+		<div className="flex items-center gap-2">
+			<IconButton
+				appearance="ghost"
+				intent="danger"
+				label="prestige worldwide"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="filled"
+				intent="danger"
+				label="prestige worldwide"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="outlined"
+				intent="danger"
+				label="prestige worldwide"
+				icon={<GlobeIcon />}
+			/>
+		</div>
+	</div>
+</Example>
+
+```tsx
+import { IconButton } from "@ngrok/mantle/button";
+import { GlobeIcon } from "@phosphor-icons/react/Globe";
+
+<IconButton appearance="ghost" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
+<IconButton appearance="filled" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
+<IconButton appearance="outlined" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
+
+<IconButton appearance="ghost" intent="accent" label="prestige worldwide" icon={<GlobeIcon />} />
+<IconButton appearance="filled" intent="accent" label="prestige worldwide" icon={<GlobeIcon />} />
+<IconButton appearance="outlined" intent="accent" label="prestige worldwide" icon={<GlobeIcon />} />
+
+<IconButton appearance="ghost" intent="danger" label="prestige worldwide" icon={<GlobeIcon />} />
+<IconButton appearance="filled" intent="danger" label="prestige worldwide" icon={<GlobeIcon />} />
+<IconButton appearance="outlined" intent="danger" label="prestige worldwide" icon={<GlobeIcon />} />
+```
+
+## Size
+
+Use the `size` prop to control the box size of the icon button, default `md`. The scale is shared with [Button](/components/actions/button) and [SplitButton](/components/actions/split-button) — the same size name always renders the same box height, so mixed compositions stay aligned.
+
 <Example className="flex flex-wrap gap-6">
 	<div>
 		<p className="mb-2 text-center font-mono text-xs">Size xs</p>
 		<div className="flex items-center gap-2">
 			<IconButton
 				appearance="ghost"
+				intent="neutral"
+				label="prestige worldwide"
+				size="xs"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="filled"
 				intent="neutral"
 				label="prestige worldwide"
 				size="xs"
@@ -46,6 +148,13 @@ Every `IconButton` states what it means: `appearance` (visual weight) and `inten
 				icon={<GlobeIcon />}
 			/>
 			<IconButton
+				appearance="filled"
+				intent="neutral"
+				label="prestige worldwide"
+				size="sm"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
 				appearance="outlined"
 				intent="neutral"
 				label="prestige worldwide"
@@ -59,6 +168,12 @@ Every `IconButton` states what it means: `appearance` (visual weight) and `inten
 		<div className="flex items-center gap-2">
 			<IconButton
 				appearance="ghost"
+				intent="neutral"
+				label="prestige worldwide"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="filled"
 				intent="neutral"
 				label="prestige worldwide"
 				icon={<GlobeIcon />}
@@ -82,6 +197,13 @@ Every `IconButton` states what it means: `appearance` (visual weight) and `inten
 				icon={<GlobeIcon />}
 			/>
 			<IconButton
+				appearance="filled"
+				intent="neutral"
+				label="prestige worldwide"
+				size="lg"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
 				appearance="outlined"
 				intent="neutral"
 				label="prestige worldwide"
@@ -95,6 +217,13 @@ Every `IconButton` states what it means: `appearance` (visual weight) and `inten
 		<div className="flex items-center gap-2">
 			<IconButton
 				appearance="ghost"
+				intent="neutral"
+				label="prestige worldwide"
+				size="xl"
+				icon={<GlobeIcon />}
+			/>
+			<IconButton
+				appearance="filled"
 				intent="neutral"
 				label="prestige worldwide"
 				size="xl"
@@ -128,6 +257,18 @@ Every `IconButton` states what it means: `appearance` (visual weight) and `inten
 				<Tooltip.Trigger asChild>
 					<IconButton
 						disabled
+						appearance="filled"
+						intent="neutral"
+						label="prestige worldwide"
+						icon={<GlobeIcon />}
+					/>
+				</Tooltip.Trigger>
+				<Tooltip.Content>Tooltips work on disabled buttons!</Tooltip.Content>
+			</Tooltip.Root>
+			<Tooltip.Root>
+				<Tooltip.Trigger asChild>
+					<IconButton
+						disabled
 						appearance="outlined"
 						intent="neutral"
 						label="prestige worldwide"
@@ -145,18 +286,23 @@ import { IconButton } from "@ngrok/mantle/button";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
 
 <IconButton appearance="ghost" intent="neutral" label="prestige worldwide" size="xs" icon={<GlobeIcon />} />
+<IconButton appearance="filled" intent="neutral" label="prestige worldwide" size="xs" icon={<GlobeIcon />} />
 <IconButton appearance="outlined" intent="neutral" label="prestige worldwide" size="xs" icon={<GlobeIcon />} />
 
 <IconButton appearance="ghost" intent="neutral" label="prestige worldwide" size="sm" icon={<GlobeIcon />} />
+<IconButton appearance="filled" intent="neutral" label="prestige worldwide" size="sm" icon={<GlobeIcon />} />
 <IconButton appearance="outlined" intent="neutral" label="prestige worldwide" size="sm" icon={<GlobeIcon />} />
 
 <IconButton appearance="ghost" intent="neutral" label="prestige worldwide" size="md" icon={<GlobeIcon />} />
+<IconButton appearance="filled" intent="neutral" label="prestige worldwide" size="md" icon={<GlobeIcon />} />
 <IconButton appearance="outlined" intent="neutral" label="prestige worldwide" size="md" icon={<GlobeIcon />} />
 
 <IconButton appearance="ghost" intent="neutral" label="prestige worldwide" size="lg" icon={<GlobeIcon />} />
+<IconButton appearance="filled" intent="neutral" label="prestige worldwide" size="lg" icon={<GlobeIcon />} />
 <IconButton appearance="outlined" intent="neutral" label="prestige worldwide" size="lg" icon={<GlobeIcon />} />
 
 <IconButton appearance="ghost" intent="neutral" label="prestige worldwide" size="xl" icon={<GlobeIcon />} />
+<IconButton appearance="filled" intent="neutral" label="prestige worldwide" size="xl" icon={<GlobeIcon />} />
 <IconButton appearance="outlined" intent="neutral" label="prestige worldwide" size="xl" icon={<GlobeIcon />} />
 ```
 
@@ -256,7 +402,7 @@ The `IconButton` accepts the following props in addition to the [standard HTML b
 
 | Prop         | Type                                           | Default    | Description                                                                                                                                                                                                                                                                                                                |
 | ------------ | ---------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `appearance` | `"ghost"` \| `"outlined"`                      |            | The visual style of the `IconButton`. **Required** — there is no default, so every call site states the visual weight it means.                                                                                                                                                                                            |
+| `appearance` | `"filled"` \| `"ghost"` \| `"outlined"`        |            | The visual style of the `IconButton`. **Required** — there is no default, so every call site states the visual weight it means. Matches `Button`'s union without `"link"`.                                                                                                                                                 |
 | `asChild`    | `boolean`                                      | `false`    | Use the `asChild` prop to compose the `IconButton` styling and functionality onto alternative element types or your own React components.                                                                                                                                                                                  |
 | `icon`       | `ReactNode`                                    |            | The icon to render inside the button. When `isLoading` is `true`, the icon is automatically replaced with a spinner.                                                                                                                                                                                                       |
 | `intent`     | `"accent"` \| `"danger"` \| `"neutral"`        |            | The tone of the `IconButton` — the purpose its color communicates to the user: `"neutral"` for the workhorse tone (most icon buttons), `"accent"` for deliberate brand emphasis, and `"danger"` for a destructive or irreversible action. **Required** — there is no default, so every call site states the tone it means. |

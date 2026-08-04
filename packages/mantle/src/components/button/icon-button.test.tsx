@@ -1,6 +1,7 @@
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
+import { Button } from "./button.js";
 import { IconButton } from "./icon-button.js";
 
 describe("IconButton", () => {
@@ -9,6 +10,61 @@ describe("IconButton", () => {
 			<IconButton appearance="outlined" intent="neutral" label="globe" icon={<GlobeIcon />} />,
 		);
 		expect(screen.getByRole("button", { name: "globe" })).toBeInTheDocument();
+	});
+
+	describe("appearance", () => {
+		test.each([
+			["filled", "bg-filled-accent"],
+			["ghost", "text-accent-600"],
+			["outlined", "border-accent-600"],
+		] as const)(
+			`renders appearance="%s" with data-appearance and weight class %s`,
+			(appearance, weightClass) => {
+				render(
+					<IconButton appearance={appearance} intent="accent" label="globe" icon={<GlobeIcon />} />,
+				);
+				const button = screen.getByRole("button");
+				expect(button).toHaveAttribute("data-appearance", appearance);
+				expect(button).toHaveClass(weightClass);
+			},
+		);
+
+		// Parity pin: every appearance/intent pair below is the class `Button`
+		// draws for the same pair, so a permuted lookup table on either component
+		// splits the two apart. IconButton has no `link` appearance.
+		test.each([
+			["filled", "accent", "bg-filled-accent"],
+			["filled", "danger", "bg-filled-danger"],
+			["filled", "neutral", "bg-filled-neutral"],
+			["ghost", "accent", "text-accent-600"],
+			["ghost", "danger", "text-danger-600"],
+			["ghost", "neutral", "text-strong"],
+			["outlined", "accent", "border-accent-600"],
+			["outlined", "danger", "border-danger-600"],
+			["outlined", "neutral", "border-form"],
+		] as const)(
+			`appearance="%s" intent="%s" matches Button's %s`,
+			(appearance, intent, toneClass) => {
+				render(
+					<>
+						<IconButton
+							appearance={appearance}
+							intent={intent}
+							label="icon button"
+							icon={<GlobeIcon />}
+						/>
+						<Button appearance={appearance} intent={intent}>
+							button
+						</Button>
+					</>,
+				);
+				// Each query names the button it wants, so a third button in the
+				// tree throws here rather than shifting a positional index and
+				// asserting the pair against the wrong element.
+				expect(screen.getByRole("button", { name: "icon button" })).toHaveClass(toneClass);
+				expect(screen.getByRole("button", { name: "button" })).toHaveClass(toneClass);
+			},
+		);
 	});
 
 	describe("intent", () => {
@@ -21,6 +77,15 @@ describe("IconButton", () => {
 			const button = screen.getByRole("button");
 			expect(button).toHaveAttribute("data-intent", intent);
 			expect(button).toHaveClass(toneClass);
+		});
+
+		test(`intent="neutral" filled renders the neutral fill, not the accent fill`, () => {
+			render(
+				<IconButton appearance="filled" intent="neutral" label="globe" icon={<GlobeIcon />} />,
+			);
+			const button = screen.getByRole("button");
+			expect(button).toHaveClass("bg-filled-neutral", "text-neutral-50");
+			expect(button).not.toHaveClass("bg-filled-accent");
 		});
 
 		test(`intent="neutral" outlined renders the pre-intent IconButton box`, () => {
