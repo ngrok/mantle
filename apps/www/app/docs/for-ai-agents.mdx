@@ -23,7 +23,7 @@ utilities have their own manifests at /api/hooks.json and /api/utils.json.
 | URL                                                | Purpose                                                                                                                                                                                                                                                                                                                                                                               |
 | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`/llms.txt`](/llms.txt)                           | Curated index of every docs page (title, description, html + markdown URLs). Follows the [llms.txt convention](https://llmstxt.org).                                                                                                                                                                                                                                                  |
-| [`/llms-full.txt`](/llms-full.txt)                 | Concatenated plain-markdown of every docs page. Drop into a context window when full coverage is needed.                                                                                                                                                                                                                                                                              |
+| [`/llms-full.txt`](/llms-full.txt)                 | Concatenated plain-markdown of every docs page, then `# Framed preview sources` — the whole React source of the app-shell and layout demos the pages embed. Drop into a context window when full coverage is needed, and read a preview's source rather than a page's fence when you are building a shell.                                                                            |
 | [`/api/components.json`](/api/components.json)     | Structured component manifest. Each entry has `name`, `slug`, `kind`, `status`, `importPath`, `docsUrl`, `markdownUrl`, a one-line `summary`, the source `jsdoc` first sentence, and `examples` — the body of each `@example` block, which for a compound component is the full part tree. `kind: "component"` entries also carry `category` (layouts are a flat family and omit it). |
 | [`/api/hooks.json`](/api/hooks.json)               | Structured hooks manifest. Each entry has `name`, `importPath`, `docsUrl`, `markdownUrl`, and an optional `summary`.                                                                                                                                                                                                                                                                  |
 | [`/api/utils.json`](/api/utils.json)               | Structured utilities manifest. Same shape as hooks.                                                                                                                                                                                                                                                                                                                                   |
@@ -62,7 +62,10 @@ design system. Conventions:
   delay or hover settings.
 - All external dependencies must be exact-pinned (no `^` or `~`).
 - Reference the canonical docs at https://mantle.ngrok.com or fetch
-  https://mantle.ngrok.com/llms.txt for the full index.
+  https://mantle.ngrok.com/llms.txt for the full index. When building an
+  app shell, read the demo sources under `# Framed preview sources` in
+  https://mantle.ngrok.com/llms-full.txt — the fences on the docs pages
+  are shorter excerpts of them.
 ```
 
 ## Conventions agents should know

@@ -711,6 +711,35 @@ describe("--sidebar-row-width", () => {
 	});
 });
 
+describe("--sidebar-header-height", () => {
+	// The band is a grid track, and a track emits no data attribute — the class is
+	// the only thing that observes it here, and happy-dom lays out nothing, so
+	// header-band.browser.test.tsx measures what the track actually does. These two
+	// assertions cover what that file cannot: the spelling AppLayout.Header's calc()
+	// reads (see app-layout.test.tsx), and the absence of the fixed height that
+	// squeezed a second row before issue #1399.
+	test("the header sizes its first row from the token and caps nothing", () => {
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav>
+					<Sidebar.Header data-testid="header" />
+				</Sidebar.Nav>
+			</Sidebar.Root>,
+		);
+		const header = screen.getByTestId("header");
+		// toHaveClass matches whole tokens, so a permuted track (grid-rows-2) or a
+		// dropped items-center fails here rather than silently unaligning the toolbar.
+		expect(header).toHaveClass(
+			"grid",
+			"grid-rows-(--sidebar-header-height,4.5rem)",
+			"items-center",
+		);
+		// A `h-*` of any kind would clamp the header again, which is what forced
+		// consumers to raise the token — and the toolbar with it — for two rows.
+		expect([...header.classList].filter((name) => name.startsWith("h-"))).toEqual([]);
+	});
+});
+
 describe("Sidebar.Nav (mobile)", () => {
 	beforeEach(() => {
 		useIsBelowBreakpointMock.mockReturnValue(true);

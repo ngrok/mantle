@@ -228,7 +228,7 @@ const Workspace = ({
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
- * | `--app-layout-card-gutter` | `0.5rem` | The gap between the card and the window edge, the notice above it, and the rail beside it (8px). `AppLayout.Header` subtracts twice this value when deriving its height, so overriding it keeps the toolbar aligned with the sidebar header. |
+ * | `--app-layout-card-gutter` | `0.5rem` | The gap between the card and the window edge, the notice above it, and the rail beside it (8px). `AppLayout.Header` subtracts twice this value when deriving its height, so overriding it keeps the toolbar aligned with the sidebar header's band. |
  *
  * @see https://mantle.ngrok.com/layouts/app-layout#applayoutcontent
  *
@@ -309,16 +309,18 @@ const Content = ({
  * toolbar is `h-14`. When the shell contains a `Sidebar.Header` (detected via
  * `:has()` from `AppLayout.Root`), the toolbar instead derives its height from
  * the sidebar's public `--sidebar-header-height` token, subtracting twice the
- * card gutter and twice the card's hairline border — which keeps the two rows'
- * vertical centers on the same band by construction, for any header height.
- * Override `--sidebar-header-height` on a common ancestor (e.g.
- * `AppLayout.Root`'s `className`) and both rows move together.
+ * card gutter and twice the card's hairline border — which keeps this toolbar's
+ * vertical center on the band that token names, by construction, for any band
+ * height. The band belongs to the sidebar header's first row, so a header that
+ * stacks a second row grows downward and this toolbar keeps matching the
+ * switcher row alone. Override `--sidebar-header-height` on a common ancestor
+ * (e.g. `AppLayout.Root`'s `className`) and both rows move together.
  *
  * **CSS variables (public API):**
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
- * | `--sidebar-header-height` | `4.5rem` | Read, not owned: `Sidebar.Header` owns this token and `AppLayout.Header` derives its own height from it whenever a sidebar header is present in the shell. Set it on a common ancestor of both rows (e.g. `AppLayout.Root`), never on one of them, since custom properties only inherit downward. |
+ * | `--sidebar-header-height` | `4.5rem` | Read, not owned: `Sidebar.Header` owns this token — the band its first row sits on — and `AppLayout.Header` derives its own height from it whenever a sidebar header is present in the shell. Set it on a common ancestor of both rows (e.g. `AppLayout.Root`), never on one of them, since custom properties only inherit downward. |
  * | `--app-layout-card-gutter` | `0.5rem` | Read, not owned: `AppLayout.Content` owns this token. The derived height subtracts twice its value, so changing the card gutter keeps the two rows aligned instead of drifting. |
  *
  * @see https://mantle.ngrok.com/layouts/app-layout#applayoutheader
@@ -364,9 +366,11 @@ const Header = ({
 				// With a sidebar header in the shell, derive the height from its
 				// token so the two rows' centers align by construction: this toolbar
 				// sits below the card's gutter and its 1px border, so center parity
-				// needs its height to be the sidebar header's minus twice each.
-				// Overriding --sidebar-header-height at a common ancestor (e.g.
-				// AppLayout.Root) moves both rows together.
+				// needs its height to be the sidebar header's band minus twice each.
+				// The band is the sidebar header's first row, so a header stacking a
+				// second row leaves this height alone. Overriding
+				// --sidebar-header-height at a common ancestor (e.g. AppLayout.Root)
+				// moves both rows together.
 				"group-has-data-[slot~=sidebar-header]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]",
 				className,
 			)}

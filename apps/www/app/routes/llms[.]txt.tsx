@@ -124,6 +124,8 @@ async function buildBody(): Promise<string> {
 		"",
 		"Every docs page is also available as plain markdown by appending `.md` to its URL (e.g. `/components/actions/button.md`).",
 		"",
+		"The framed app-shell and layout demos embedded in those pages ship their full React source in `/llms-full.txt`, under `# Framed preview sources`. Read those rather than a page's fence when you are building a shell — the fences are shorter excerpts.",
+		"",
 	];
 
 	const hooksManifest = await buildHooksManifest();

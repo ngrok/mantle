@@ -70,18 +70,45 @@ type Handler = (node: MdxJsxElement) => HandlerResult;
  * represented in the plain markdown output. Anything not listed here falls
  * through to {@link defaultHandler}.
  */
+/** A JSX string attribute's value, or `undefined` when it is absent or an expression. */
+function stringAttribute(node: MdxJsxElement, name: string): string | undefined {
+	for (const attribute of node.attributes) {
+		if (attribute.type === "mdxJsxAttribute" && attribute.name === name) {
+			return typeof attribute.value === "string" ? attribute.value : undefined;
+		}
+	}
+	return undefined;
+}
+
 const handlers: Record<string, Handler> = {
 	// `<Example>` wraps a live preview of a component, and is always followed
 	// by a fenced code block that contains the same code in textual form.
 	// Dropping it removes a wall of rendered DOM without losing information.
 	Example: () => ({ kind: "drop" }),
-	// `<CodeExample>` is the tabbed Preview/Code example. The preview panels
-	// wrap a live demo (dropped, like `<Example>`) — `PreviewFrame` is the
-	// iframed variant; every other part is a structural wrapper around real
-	// markdown — unwrap them so the fenced code block inside
+	// `<CodeExample>` is the tabbed Preview/Code example. `Preview` wraps a live
+	// demo and is dropped like `<Example>`; every other part is a structural
+	// wrapper around real markdown — unwrap them so the fenced code block inside
 	// `CodeExample.Code` lands in the markdown output.
 	CodeExample: (node) => {
-		if (node.name === "CodeExample.Preview" || node.name === "CodeExample.PreviewFrame") {
+		if (node.name === "CodeExample.PreviewFrame") {
+			// The iframed variant runs a registered demo module whose whole source
+			// ships in /llms-full.txt, while the fence beside it here is a shorter
+			// hand-written excerpt. Leave the pointer rather than dropping silently:
+			// a reader of the `.md` twin has no other way to learn the fuller source
+			// exists (issue #1399).
+			const example = stringAttribute(node, "example");
+			const preview = example == null ? "framed preview" : `framed preview /preview/${example}`;
+			return {
+				kind: "replace",
+				nodes: [
+					{
+						type: "html",
+						value: `<!-- ${preview} — full source in /llms-full.txt under "# Framed preview sources" -->`,
+					},
+				],
+			};
+		}
+		if (node.name === "CodeExample.Preview") {
 			return { kind: "drop" };
 		}
 		return { kind: "unwrap" };

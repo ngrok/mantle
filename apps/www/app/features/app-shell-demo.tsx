@@ -933,12 +933,7 @@ export function AppShellDemo() {
 		// `md` (not the `lg` default ngrok's dashboards use) keeps the desktop
 		// panel visible at the framed preview's desktop and tablet widths
 		<Sidebar.Root mobileBreakpoint="md">
-			{/* --sidebar-header-height: the sidebar header is a fixed height so it can
-			    align with AppLayout.Header's toolbar, and the switcher and search row
-			    stacked need the taller value. It goes on the common ancestor of both
-			    rows — custom properties only inherit downward, so setting it on
-			    Sidebar.Nav would leave AppLayout.Header on the 4.5rem default. */}
-			<AppLayout.Root className="fixed inset-0 [--sidebar-header-height:6rem]">
+			<AppLayout.Root className="fixed inset-0">
 				<SkipToMainLink />
 				<AppLayout.Notice>
 					{showNotice && (
@@ -1252,12 +1247,7 @@ export function BridgeShellDemo() {
 		// `md` (not the `lg` default ngrok's dashboards use) keeps the desktop
 		// panel visible at the framed preview's desktop and tablet widths
 		<Sidebar.Root mobileBreakpoint="md">
-			{/* --sidebar-header-height: the sidebar header is a fixed height so it can
-			    align with AppLayout.Header's toolbar, and the switcher and search row
-			    stacked need the taller value. It goes on the common ancestor of both
-			    rows — custom properties only inherit downward, so setting it on
-			    Sidebar.Nav would leave AppLayout.Header on the 4.5rem default. */}
-			<AppLayout.Root className="fixed inset-0 [--sidebar-header-height:6rem]">
+			<AppLayout.Root className="fixed inset-0">
 				<SkipToMainLink />
 				<AppLayout.Notice>
 					{showNotice && (

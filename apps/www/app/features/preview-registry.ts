@@ -31,6 +31,13 @@ type PreviewExample = {
 	 * `SkipToMainLink`).
 	 */
 	Component: ComponentType;
+	/**
+	 * `Component`'s module, named relative to `app/features/`. `/llms-full.txt`
+	 * publishes that file verbatim, so an agent reading the offline docs builds
+	 * against the code the preview runs rather than a docs-page excerpt of it.
+	 * Several examples may name one module.
+	 */
+	sourceFile: string;
 };
 
 /**
@@ -52,62 +59,77 @@ export const previewExamples = {
 	"alert-center-shell": {
 		title: "Alert Center app shell demo",
 		Component: AlertCenterShellDemo,
+		sourceFile: "alert-center-demos.tsx",
 	},
 	"app-shell": {
 		title: "App shell demo",
 		Component: AppShellDemo,
+		sourceFile: "app-shell-demo.tsx",
 	},
 	"command-search-shell": {
 		title: "Sidebar search trigger demo",
 		Component: CommandSearchShellDemo,
+		sourceFile: "command-demos.tsx",
 	},
 	"bridge-shell": {
 		title: "Bridge shell demo",
 		Component: BridgeShellDemo,
+		sourceFile: "app-shell-demo.tsx",
 	},
 	"app-layout-standalone": {
 		title: "Standalone app layout demo",
 		Component: AppLayoutDemo,
+		sourceFile: "app-layout-demos.tsx",
 	},
 	"app-layout-editor": {
 		title: "Editor page demo",
 		Component: AppLayoutEditorDemo,
+		sourceFile: "app-layout-editor-demo.tsx",
 	},
 	"app-layout-pinned-footer": {
 		title: "Pinned footer demo",
 		Component: AppLayoutPinnedFooterDemo,
+		sourceFile: "app-layout-editor-demo.tsx",
 	},
 	"centered-layout": {
 		title: "Centered layout demo",
 		Component: CenteredLayoutDemo,
+		sourceFile: "centered-layout-demos.tsx",
 	},
 	"centered-layout-header": {
 		title: "Centered layout header demo",
 		Component: CenteredLayoutHeaderDemo,
+		sourceFile: "centered-layout-demos.tsx",
 	},
 	"centered-layout-notice": {
 		title: "Centered layout notice demo",
 		Component: CenteredLayoutNoticeDemo,
+		sourceFile: "centered-layout-demos.tsx",
 	},
 	sandbar: {
 		title: "Sandbar demo",
 		Component: SandbarDemo,
+		sourceFile: "sandbar-demos.tsx",
 	},
 	"sandbar-failed-save": {
 		title: "Sandbar failed save demo",
 		Component: SandbarFailedSaveDemo,
+		sourceFile: "sandbar-demos.tsx",
 	},
 	"sandbar-pending-publish": {
 		title: "Sandbar pending publish demo",
 		Component: SandbarPendingPublishDemo,
+		sourceFile: "sandbar-demos.tsx",
 	},
 	"sandbar-reduced-motion": {
 		title: "Sandbar reduced motion demo",
 		Component: SandbarReducedMotionDemo,
+		sourceFile: "sandbar-demos.tsx",
 	},
 	"sidebar-persistence": {
 		title: "Sidebar persistence demo",
 		Component: SidebarPersistenceDemo,
+		sourceFile: "sidebar-demos.tsx",
 	},
 } as const satisfies Record<string, PreviewExample>;
 
