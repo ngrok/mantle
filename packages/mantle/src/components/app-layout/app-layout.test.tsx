@@ -320,9 +320,10 @@ describe("AppLayout.Header", () => {
 	});
 
 	test("derives its height from the sidebar header token, net of the card gutter", () => {
-		// The alignment invariant: h = sidebar header height - 2*(gutter + border).
-		// Both the gutter and the border are doubled, which is what keeps the two
-		// rows' centers on the same band for ANY header height.
+		// The alignment invariant: h = sidebar header band - 2*(gutter + border).
+		// Both the gutter and the border are doubled, which is what keeps this
+		// toolbar's center on the band for ANY band height. The band is the sidebar
+		// header's first row, so a header stacking a second row leaves this alone.
 		render(<AppLayout.Header data-testid="header">toolbar</AppLayout.Header>);
 		const { className } = screen.getByTestId("header");
 		expect(className).toContain("h-14");
@@ -343,7 +344,7 @@ describe("AppLayout.Header", () => {
 		render(
 			<AppLayout.Root data-testid="root">
 				<AppLayout.Workspace>
-					<Sidebar.Header>account switcher</Sidebar.Header>
+					<Sidebar.Header data-testid="sidebar-header">account switcher</Sidebar.Header>
 					<AppLayout.Content>
 						<AppLayout.Header data-testid="header">toolbar</AppLayout.Header>
 						<AppLayout.Body>page</AppLayout.Body>
@@ -356,6 +357,13 @@ describe("AppLayout.Header", () => {
 		expect(root.querySelector('[data-slot~="sidebar-header"]')).not.toBeNull();
 		expect(screen.getByTestId("header").className).toContain(
 			"group-has-data-[slot~=sidebar-header]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]",
+		);
+		// The other half of the token contract: the sidebar header spends the same
+		// variable, with the same fallback, on the grid track its first row sits in.
+		// Two files spelling one token, so they are pinned in one test — rename it on
+		// either side and the toolbar stops matching the switcher row.
+		expect(screen.getByTestId("sidebar-header")).toHaveClass(
+			"grid-rows-(--sidebar-header-height,4.5rem)",
 		);
 	});
 });

@@ -29,7 +29,10 @@ describe("renderMdxToMarkdown", () => {
 		expect(result).not.toContain("omitted in markdown output");
 	});
 
-	test("drops the self-closing CodeExample.PreviewFrame and keeps the fence", () => {
+	test("replaces the self-closing CodeExample.PreviewFrame with a source pointer", () => {
+		// The page's fence is a hand-written excerpt of the framed demo, so a reader
+		// of the `.md` twin gets the preview's name and where its full source lives
+		// (issue #1399) instead of a silently dropped element.
 		const result = renderMdxToMarkdown(
 			[
 				"<CodeExample.Root>",
@@ -47,8 +50,20 @@ describe("renderMdxToMarkdown", () => {
 
 		expect(result).toContain("const answer = 42;");
 		expect(result).not.toContain("CodeExample");
-		expect(result).not.toContain("centered-layout");
+		expect(result).toContain(
+			'<!-- framed preview /preview/centered-layout — full source in /llms-full.txt under "# Framed preview sources" -->',
+		);
 		expect(result).not.toContain("omitted in markdown output");
+	});
+
+	test("names no preview when the frame carries no example attribute", () => {
+		const result = renderMdxToMarkdown("<CodeExample.PreviewFrame />\n\nAfter.");
+
+		expect(result).toContain(
+			'<!-- framed preview — full source in /llms-full.txt under "# Framed preview sources" -->',
+		);
+		expect(result).toContain("After.");
+		expect(result).not.toContain("/preview/");
 	});
 
 	test("drops Example previews without a trail comment", () => {

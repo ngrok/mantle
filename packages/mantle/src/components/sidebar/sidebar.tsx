@@ -930,19 +930,31 @@ type SidebarHeaderProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 /**
  * The top container of a `Sidebar.Nav`, pinned above the scrollable
  * `Sidebar.Body`. Typically holds an app/product switcher built from
- * `Sidebar.SwitcherTrigger` composed with a `DropdownMenu` or `Dialog`. Its
- * height is the public `--sidebar-header-height` CSS variable (default
- * `4.5rem`), which centers the switcher row on the same horizontal band as an
- * `AppLayout.Header` toolbar — when a sidebar header is composed inside an
- * `AppLayout`, the toolbar derives its own height from the same variable, so
- * overriding it at a shared ancestor (e.g. `AppLayout.Root`) moves both rows
- * together and the alignment holds by construction.
+ * `Sidebar.SwitcherTrigger` composed with a `DropdownMenu` or `Dialog`.
+ *
+ * Its **first child** owns a band exactly `--sidebar-header-height` tall
+ * (default `4.5rem`) and centers inside it. When a sidebar header is composed
+ * inside an `AppLayout`, the toolbar derives its own height from the same
+ * variable, so overriding it at a shared ancestor (e.g. `AppLayout.Root`) moves
+ * the switcher row and the toolbar together and the alignment holds by
+ * construction.
+ *
+ * Every child after the first stacks flush below the band in its own row, the
+ * way rows stack in `Sidebar.Footer` — the band's own lower half is the space
+ * between them. The header grows to fit them. The band, and with it the toolbar,
+ * stays the height of the switcher row alone, so a search row pinned under the
+ * switcher (`Sidebar.SearchTrigger`) needs no override and no hand-copied
+ * padding.
+ *
+ * The alignment is positional: keep the aligned row as the header's first direct
+ * child. A wrapper around both rows takes the band itself. A first row taller
+ * than the band overflows it — raise the variable instead.
  *
  * **CSS variables (public API):**
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
- * | `--sidebar-header-height` | `4.5rem` | The header row height (72px). Set it on a common ancestor of the sidebar and `AppLayout.Header`, not on `Sidebar.Nav`, so both rows read one value. |
+ * | `--sidebar-header-height` | `4.5rem` | The first child's band (72px) — the height an `AppLayout.Header` toolbar matches, not a cap on the header, which grows for every row after the first. Set it on a common ancestor of the sidebar and `AppLayout.Header`, not on `Sidebar.Nav`, so both rows read one value. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarheader
  *
@@ -1009,10 +1021,16 @@ const Header = ({
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "sidebar-header")}
 			className={cx(
-				// The height token centers the switcher row on the same line as an
-				// AppLayout.Header toolbar, which derives its height from this same
-				// variable when a sidebar header is present (see AppLayout.Header).
-				"flex h-(--sidebar-header-height,4.5rem) shrink-0 flex-col justify-center gap-2 px-3",
+				// Why grid: the first track is exactly --sidebar-header-height, so the
+				// first child owns the band an AppLayout.Header toolbar sizes itself
+				// against (see AppLayout.Header) while every later child gets its own
+				// auto track below it — a search row stacks under the switcher without
+				// moving it off that band, and neither row needs a token override. The
+				// single minmax(0,1fr) column keeps a long switcher label truncating
+				// instead of widening the track.
+				// No gap: the band's own lower half already separates the first row from
+				// the next, the way Sidebar.Footer stacks its rows flush.
+				"grid grid-cols-1 grid-rows-(--sidebar-header-height,4.5rem) shrink-0 items-center px-3",
 				// When expanded, the adjacent AppLayout.Content contributes the
 				// trailing card gutter with its own margin, so trim the sidebar's
 				// own trailing inset to keep dividers and rows optically centered
@@ -1810,18 +1828,17 @@ type SidebarSearchTriggerProps = ComponentProps<"button"> &
 /**
  * The search row — the row that opens a search or command palette.
  *
- * Put it at the top of `Sidebar.Body`, above the first `Sidebar.Group`: it
- * needs no height change, and it lands in the same `px-3` gutter as the
- * navigation rows, so it shares their column in both panel states.
+ * Put it at the top of `Sidebar.Body`, above the first `Sidebar.Group`: it lands
+ * in the same `px-3` gutter as the navigation rows, so it shares their column in
+ * both panel states, and it scrolls with them.
  *
- * `Sidebar.Header`, under the switcher, also works — the header's own `gap-2`
- * sets the spacing — at the cost of a taller header. That height is a fixed one
- * row so it can align with an `AppLayout.Header` toolbar, so a stack of two
- * needs `--sidebar-header-height` raised on a **common ancestor of both rows**
- * (`<AppLayout.Root className="[--sidebar-header-height:6rem]">`). Setting it on
- * `Sidebar.Nav` only looks right: custom properties inherit downward, so
- * `AppLayout.Header` would keep the `4.5rem` default and the two rows would stop
- * being center-aligned.
+ * `Sidebar.Header`, under the switcher, also works, and pins the row above the
+ * scrolling body instead. The switcher stays the header's first child, so it
+ * keeps the `--sidebar-header-height` band an `AppLayout.Header` toolbar
+ * matches, and this row takes the next row down — the header grows for it, so
+ * nothing needs a token override. The header reserves no scrollbar gutter, so on
+ * a platform whose scrollbars take space the row runs wider than the navigation
+ * rows below it, which sit inside `Sidebar.Body`'s reserved gutter.
  *
  * It is deliberately a navigation row and not a text field. The row is the same
  * chrome as a `Sidebar.ItemButton` — same height, padding, radius, hover, and
@@ -2647,8 +2664,9 @@ const Sidebar = {
 	Trigger,
 	/**
 	 * The pinned top container of the panel, typically holding the app
-	 * switcher (`Sidebar.SwitcherTrigger` + `DropdownMenu`/`Dialog`). Its
-	 * height vertically aligns the switcher with an `AppLayout.Header`.
+	 * switcher (`Sidebar.SwitcherTrigger` + `DropdownMenu`/`Dialog`). Its first
+	 * child owns the band that aligns the switcher with an `AppLayout.Header`;
+	 * later rows stack below the band.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarheader
 	 *
@@ -3108,9 +3126,10 @@ const Sidebar = {
 	 */
 	ItemButton,
 	/**
-	 * The search row for `Sidebar.Body`: an item-shaped row whose `shortcut` hint
-	 * appears on hover or focus, and the same chip as any other row in the
-	 * collapsed icon rail. Not state-wired — compose with
+	 * The search row: an item-shaped row whose `shortcut` hint appears on hover or
+	 * focus, and the same chip as any other row in the collapsed icon rail. Goes
+	 * in `Sidebar.Body` to scroll with the navigation, or in `Sidebar.Header` to
+	 * stay pinned above it. Not state-wired — compose with
 	 * `Command.SearchTrigger`.
 	 *
 	 * **Data attributes:**

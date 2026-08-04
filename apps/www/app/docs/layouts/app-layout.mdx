@@ -702,7 +702,8 @@ overflow-clip rounded-xl border shadow-sm`. It insets **itself** with its own ma
   beneath it). The natural home for a `Sidebar.Trigger` in its top-left, followed by
   [Breadcrumb](/components/navigation/breadcrumb) navigation or page actions. It is `h-14` standalone; with a
   `Sidebar.Header` in the shell it derives its height from the sidebar's `--sidebar-header-height` token
-  instead, so the app switcher and content header stay center-aligned as one row by construction. It is
+  instead — the band that header's first row sits on — so the app switcher and the toolbar stay center-aligned
+  as one row by construction, however many rows the sidebar header stacks below the band. It is
   pinned by `shrink-0`, not by `sticky` — it sits **outside** the scroll container, so it cannot scroll away,
   cannot be overlapped by a page's own `sticky top-0`, and does not steal height from a page asking for
   `h-full`. Optional standalone, but effectively **required** once you compose a `Sidebar` — see
@@ -2055,9 +2056,9 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Content` styling onto alternative element types or your own components. |
 
-| CSS Variable               | Default  | Description                                                                                                                                                                                                                                                      |
-| -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--app-layout-card-gutter` | `0.5rem` | The gap between the card and the window edge, the notice above it, and the rail beside it (8px). `AppLayout.Header` subtracts twice this value when deriving its height, so overriding it keeps the toolbar aligned with the sidebar header instead of drifting. |
+| CSS Variable               | Default  | Description                                                                                                                                                                                                                                                             |
+| -------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--app-layout-card-gutter` | `0.5rem` | The gap between the card and the window edge, the notice above it, and the rail beside it (8px). `AppLayout.Header` subtracts twice this value when deriving its height, so overriding it keeps the toolbar aligned with the sidebar header's band instead of drifting. |
 
 ### AppLayout.Header
 
@@ -2080,9 +2081,12 @@ Optional standalone; effectively required once a `Sidebar` is composed (see
 contains a `Sidebar.Header` (detected with `:has()` from `AppLayout.Root`), the toolbar instead derives its
 height from the sidebar's public `--sidebar-header-height` token as
 `calc(var(--sidebar-header-height, 4.5rem) - 2 * var(--app-layout-card-gutter, 0.5rem) - 2px)` — subtracting
-twice the card gutter and twice the card's hairline border — which keeps the two rows' vertical centers on
-the same band for any header height. Override `--sidebar-header-height` on a common ancestor (e.g.
-`AppLayout.Root`'s `className`) and both rows move together.
+twice the card gutter and twice the card's hairline border — which keeps this toolbar's vertical center on
+the band that token names, for any band height. The band belongs to the
+[sidebar header's first row](/components/navigation/sidebar#sidebarheader), so a header that stacks a second
+row grows downward while this toolbar keeps matching the switcher row alone. Override
+`--sidebar-header-height` on a common ancestor (e.g. `AppLayout.Root`'s `className`) and both rows move
+together.
 
 > [!NOTE]
 > The alignment is a **desktop-only** coupling. Below the sidebar's `mobileBreakpoint` the sidebar renders
@@ -2097,10 +2101,10 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Header` styling onto alternative element types (e.g. a `<header>` when the shell does not own the `main` landmark) or your own components. |
 
-| CSS Variable               | Default  | Description                                                                                                                                                                                                                                       |
-| -------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--sidebar-header-height`  | `4.5rem` | Read (not set) by `AppLayout.Header` when the shell contains a [`Sidebar.Header`](/components/navigation/sidebar#sidebarheader), which owns the token. Set it on a common ancestor of both (e.g. `AppLayout.Root`) so the two rows move together. |
-| `--app-layout-card-gutter` | `0.5rem` | Read (not set) by `AppLayout.Header`; owned by [`AppLayout.Content`](#applayoutcontent). The derived height subtracts twice its value, so changing the card gutter keeps the two rows aligned.                                                    |
+| CSS Variable               | Default  | Description                                                                                                                                                                                                                                                                        |
+| -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--sidebar-header-height`  | `4.5rem` | Read (not set) by `AppLayout.Header` when the shell contains a [`Sidebar.Header`](/components/navigation/sidebar#sidebarheader), which owns the token — the band its first row sits on. Set it on a common ancestor of both (e.g. `AppLayout.Root`) so the two rows move together. |
+| `--app-layout-card-gutter` | `0.5rem` | Read (not set) by `AppLayout.Header`; owned by [`AppLayout.Content`](#applayoutcontent). The derived height subtracts twice its value, so changing the card gutter keeps the two rows aligned.                                                                                     |
 
 ### AppLayout.Body
 

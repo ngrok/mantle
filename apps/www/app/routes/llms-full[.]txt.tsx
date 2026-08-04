@@ -1,6 +1,7 @@
 import { canonicalHref } from "~/utilities/canonical-origin";
 import { rawDocContent, urlToFileMap } from "~/utilities/docs";
 import { etagFor } from "~/utilities/etag";
+import { collectPreviewSources } from "~/utilities/preview-source.server";
 import { renderMdxToMarkdown } from "~/utilities/render-mdx-to-markdown.server";
 import type { Route } from "./+types/llms-full[.]txt";
 
@@ -12,7 +13,7 @@ function buildBody(): string {
 	const sections: string[] = [
 		"# @ngrok/mantle — Full Documentation",
 		"",
-		"> Concatenated markdown for every page on https://mantle.ngrok.com. Each section is preceded by its canonical docs URL. JSX preview blocks (`<Example>`) are dropped; code fences are preserved verbatim.",
+		"> Concatenated markdown for every page on https://mantle.ngrok.com. Each section is preceded by its canonical docs URL. JSX preview blocks (`<Example>`) are dropped; code fences are preserved verbatim. The framed demos those pages embed follow the last page, under `# Framed preview sources`.",
 		"",
 		`Docs index: ${canonicalHref("/llms.txt")}`,
 		`Component manifest: ${canonicalHref("/api/components.json")}`,
@@ -44,6 +45,34 @@ function buildBody(): string {
 		);
 	}
 
+	// The docs pages' own fences are hand-written excerpts, so an agent reading
+	// them offline builds a simpler shell than the framed demo beside them
+	// renders. Publish the demo modules themselves, whole, so the richer
+	// composition is readable without the browser.
+	sections.push(
+		"# Framed preview sources",
+		"",
+		"> The React source of the framed demos the pages above embed, verbatim. Each module renders one or more previews at `/preview/<name>` and is the code that preview actually runs — the fences on the docs pages are shorter, hand-written excerpts. The preview URLs a module serves are listed above it.",
+		"",
+		"---",
+		"",
+	);
+
+	for (const { path, previewNames, source } of collectPreviewSources()) {
+		const previewUrls = previewNames.map((name) => canonicalHref(`/preview/${name}`)).join(", ");
+		sections.push(
+			`<!-- source: ${path} -->`,
+			`<!-- previews: ${previewUrls} -->`,
+			"",
+			"```tsx",
+			source.trimEnd(),
+			"```",
+			"",
+			"---",
+			"",
+		);
+	}
+
 	return sections.join("\n");
 }
 
@@ -68,13 +97,15 @@ function getPayload(): { body: string; etag: string } {
 }
 
 /**
- * Serve `/llms-full.txt` — the concatenated markdown of every docs page,
- * suitable for shoving into an LLM context window when an agent needs
- * full coverage of the library rather than just the per-page index.
+ * Serve `/llms-full.txt` — the concatenated markdown of every docs page, then
+ * the React source of every framed preview those pages embed, suitable for
+ * shoving into an LLM context window when an agent needs full coverage of the
+ * library rather than just the per-page index.
  *
- * Each section is delimited by a heading with the docs URL so agents can
+ * Each page section is delimited by a heading with the docs URL so agents can
  * cite specific pages, and content is the same plain-markdown rendering
- * served at `/<slug>.md`.
+ * served at `/<slug>.md`. Each preview module follows under `# Framed preview
+ * sources`, in a `tsx` fence headed by its repo path and preview URLs.
  */
 export async function loader({ request }: Route.LoaderArgs) {
 	const { body, etag } = getPayload();

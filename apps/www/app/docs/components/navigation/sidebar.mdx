@@ -1309,6 +1309,13 @@ The row is styling only. Wrap it in
 `aria-keyshortcuts`, and the behavior that makes typing or pasting into the row open the palette with that text
 already in the query — and in `Sidebar.Tooltip` so the row keeps a visible label once the panel collapses.
 
+`Sidebar.Body` is the default home — above the first `Sidebar.Group`, in the same column as the navigation
+rows. Put the row in [`Sidebar.Header`](#sidebarheader) instead when it has to stay put while the navigation
+scrolls: the switcher keeps the header's alignment band, the search row takes its own row below, and the
+[`AppLayout.Header`](/layouts/app-layout#applayoutheader) toolbar keeps matching the switcher row alone. The
+header reserves no scrollbar gutter, so on a platform whose scrollbars take space a row there runs wider than
+the rows inside `Sidebar.Body`.
+
 Collapse the panel to watch the row join the icon column, or press `⌘K` inside the preview.
 
 <CodeExample.Root>
@@ -1689,9 +1696,16 @@ chips under `Sidebar.Root keyboardShortcut={false}`.
 ### Sidebar.Header
 
 The pinned structural container at the top of `Sidebar.Nav` — the app/product switcher row lives here. Its
-height is the public `--sidebar-header-height` token (default `4.5rem`); when the sidebar composes into an
-`AppLayout`, [`AppLayout.Header`](/layouts/app-layout#applayoutheader) derives its own height from the same
-token, so the two rows stay center-aligned by construction.
+**first child** owns a band exactly `--sidebar-header-height` tall (default `4.5rem`) and centers inside it.
+When the sidebar composes into an `AppLayout`,
+[`AppLayout.Header`](/layouts/app-layout#applayoutheader) derives its own height from the same token, so the
+two rows stay center-aligned by construction.
+
+Every child after the first stacks below the band in its own row, and the header grows to fit. That is how a
+[search row](#the-search-row) pins under the switcher: the band — and with it the toolbar — stays the height
+of the switcher row alone, and the row inherits the header's gutter, so neither the token nor the padding
+needs a copy. The alignment is positional, so keep the aligned row as the header's first direct child. A
+wrapper around both rows takes the band itself, and a first row taller than the band overflows it.
 
 > [!NOTE]
 > **The alignment is a desktop-only coupling.** `AppLayout.Header` finds the sidebar header with
@@ -1708,9 +1722,9 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.Header` styling onto alternative element types or your own React components. |
 
-| CSS Variable              | Default  | Description                                                                                                                                                                                                                                      |
-| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `--sidebar-header-height` | `4.5rem` | The header row height (72px). Set it on a common ancestor of the sidebar and [`AppLayout.Header`](/layouts/app-layout#applayoutheader) — e.g. `AppLayout.Root` — not on `Sidebar.Nav`, so both rows read the same value and stay center-aligned. |
+| CSS Variable              | Default  | Description                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--sidebar-header-height` | `4.5rem` | The first child's band (72px) — the height [`AppLayout.Header`](/layouts/app-layout#applayoutheader) matches, not a cap on the header, which grows for every row after the first. Set it on a common ancestor of the sidebar and the app-layout header — e.g. `AppLayout.Root` — not on `Sidebar.Nav`, so both rows read the same value and stay center-aligned. |
 
 ### Sidebar.Body
 
@@ -1806,8 +1820,10 @@ All props from `button` plus:
 
 ### Sidebar.SearchTrigger
 
-The search row for `Sidebar.Body` — the row that opens a search or command palette. Place it above the first
-`Sidebar.Group` so it shares the column the navigation rows use in both panel states.
+The row that opens a search or command palette. Place it in `Sidebar.Body` above the first `Sidebar.Group`, so
+it shares the column the navigation rows use in both panel states and scrolls with them, or in
+[`Sidebar.Header`](#sidebarheader) when it has to stay pinned while the navigation scrolls — see
+[The search row](#the-search-row).
 
 It is deliberately a navigation row and not a text field. The row is the same chrome as a
 `Sidebar.ItemButton` — same height, padding, radius, hover, and the same 28px chip in the collapsed icon rail —
