@@ -192,6 +192,76 @@ import { cx } from "@ngrok/mantle/cx";
 <div className={`foo ${condition ? "bar" : ""}`} />
 ```
 
+## Browser Translation
+
+A browser translation engine rewrites the DOM under React. Google Translate wraps each text node in a `<font>`
+and reparents the original node, so React's reference points at a node its parent no longer owns. Two rules
+follow, and both bind `packages/` and `apps/` alike. The mechanism, the update-by-update table of what breaks,
+and the rejected alternatives are in
+[`decisions/2026-08-04-translation-safe-label-wrappers.md`](./decisions/2026-08-04-translation-safe-label-wrappers.md).
+
+### Never render a conditional element immediately before bare text children
+
+```tsx
+// ❌ when `icon` appears, React inserts it before a reparented text node, and the DOM raises `NotFoundError`
+<button>
+	{icon && <Icon svg={icon} />}
+	{children}
+</button>
+
+// ✅ the icon inserts before an element sibling
+<button>
+	{icon && <Icon svg={icon} />}
+	<span data-slot="button-label">{children}</span>
+</button>
+```
+
+React re-throws the raw `DOMException`, so the root tears down and the page goes blank. `Button` hit this on
+the first click of every submit button, because `isLoading` synthesizes the icon.
+
+Three fixes work, and the conditional element decides which one:
+
+- **Wrap the text in an element.** The wrapper carries its own `data-slot` — `button-label`, `badge-label`,
+  `anchor-label` — so a consumer can style the label.
+- **Move the element after the text.** The mount becomes an `appendChild`, which is safe. Prefer this for a
+  decorative element that sits out of flow, because it adds no DOM (`DataTable.ActionHeader`).
+- **Mount the element unconditionally and write text into it.** A `textContent` write is safe and self-healing, because
+  it wipes the `<font>`. Prefer this for an `sr-only` announcer, which costs no layout
+  (`DataTable.HeaderSortButton`).
+
+A lone expression child is already safe: React writes it through `setTextContent`, which repairs the subtree.
+The failure needs a sibling.
+
+### Mark untranslatable content `translate="no"`
+
+A reader copies or retypes some strings: code, a CLI flag, an env var, a YAML key, a shortcut key, a filename,
+an ID, a one-time passcode. A translated one is wrong, and the reader uses it anyway. Set
+[`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate) on
+the element that holds the string. Descendants inherit the attribute, so it also keeps the engine out of the
+subtree — which makes it the second fix for the crash above.
+
+When the element can never hold prose, lock the attribute. Omit `translate` from the props type, and stamp it
+**after** the props spread, so a wider props object cannot carry a value past the type either:
+
+```tsx
+function Kbd({ children, ...props }: Omit<ComponentProps<"kbd">, "translate">) {
+	return (
+		<kbd
+			{...props}
+			// Why after the spread: a wider props object can still carry `translate`
+			// past the type, and a translated shortcut key names the wrong key.
+			translate="no"
+		>
+			{children}
+		</kbd>
+	);
+}
+```
+
+`Kbd`, `CodeBlock.Code`, and `OtpInput.Slot` lock it. Keep the prop when the element can hold prose, so
+`translate="no"` reads as a default: `Code` also styles terms that are not code, and a `CodeBlock.Title` is
+not always a filename.
+
 ## Compound Components
 
 Mantle compound components use a **single-level POJO namespace** — sub-components are members of one namespace object, never nested namespaces, and the outermost part is always `Root`:
