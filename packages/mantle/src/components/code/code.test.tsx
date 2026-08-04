@@ -45,15 +45,15 @@ describe("Code", () => {
 		expect(screen.getByTestId("code")).toHaveAttribute("translate", "no");
 	});
 
-	test('keeps translate="no" when a call site passes translate', () => {
+	test('a call site can opt back in with translate="yes"', () => {
+		// `Code` also styles terms that are not code, so the default is overridable
+		// here — unlike `Kbd`, where a key is never translatable.
 		render(
-			// @ts-expect-error `translate` is omitted from the props type on purpose. This
-			// pins the runtime guard for a caller who spreads a wider props object past it.
 			<Code data-testid="code" translate="yes">
-				npm install
+				dashboard
 			</Code>,
 		);
-		expect(screen.getByTestId("code")).toHaveAttribute("translate", "no");
+		expect(screen.getByTestId("code")).toHaveAttribute("translate", "yes");
 	});
 
 	test("asChild renders its child, merging classes, data-slot, and the ref onto it", () => {

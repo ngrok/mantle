@@ -73,6 +73,28 @@ describe("Popover", () => {
 			expect(border).toHaveAttribute("vector-effect", "non-scaling-stroke");
 		});
 
+		test("relies on Popover.Content positioning itself", async () => {
+			const user = userEvent.setup();
+			render(
+				<Popover.Root>
+					<Popover.Trigger>Open</Popover.Trigger>
+					<Popover.Content>
+						<Popover.Arrow />
+					</Popover.Content>
+				</Popover.Root>,
+			);
+
+			await user.click(screen.getByRole("button", { name: "Open" }));
+
+			// A cross-element pin, asserted where both sides render together. The arrow's
+			// wrapper is absolutely positioned, so `Popover.Content` has to be its
+			// containing block — otherwise the open animation's `scale` becomes that
+			// containing block for one frame and the arrow lands 1px off. No Tailwind runs
+			// in either vitest project, so the class is the only observable form here;
+			// `popover.browser.test.tsx` measures the geometry it buys.
+			expect(await screen.findByRole("dialog")).toHaveClass("relative");
+		});
+
 		test("takes a consumer className and forwards arbitrary props", async () => {
 			const user = userEvent.setup();
 			render(

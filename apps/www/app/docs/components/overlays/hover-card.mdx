@@ -166,6 +166,8 @@ The content to render inside the hover card. Appears in a portal with rich styli
 
 Renders at Tailwind `z-50`, Mantle's shared floating z-index.
 
+`HoverCard.Content` sets `position: relative`, so `HoverCard.Arrow`'s absolutely-positioned wrapper keeps one containing block through the open animation. An absolutely-positioned child of the content therefore anchors to the content.
+
 | Prop                | Type                                           | Default     | Description                                                                                                                             |
 | ------------------- | ---------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `side`              | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | `"bottom"`  | The preferred side of the trigger to render against when open. Will be reversed when collisions occur and `avoidCollisions` is enabled. |

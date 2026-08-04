@@ -61,6 +61,22 @@ describe("HoverCard", () => {
 			expect(border).toHaveAttribute("vector-effect", "non-scaling-stroke");
 		});
 
+		test("relies on HoverCard.Content positioning itself", async () => {
+			const user = userEvent.setup();
+			renderHoverCard();
+
+			await user.hover(screen.getByRole("link", { name: "@ngrok/mantle" }));
+			await screen.findByText("The Design System");
+
+			// A cross-element pin, asserted where both sides render together. The arrow's
+			// wrapper is absolutely positioned, so `HoverCard.Content` has to be its
+			// containing block — otherwise the open animation's `scale` becomes that
+			// containing block for one frame and the arrow lands 1px off. No Tailwind runs
+			// in either vitest project, so the class is the only observable form here;
+			// `popover.browser.test.tsx` measures the same geometry on the shared shape.
+			expect(document.querySelector("[data-slot='hover-card-content']")).toHaveClass("relative");
+		});
+
 		test("takes a consumer className and forwards arbitrary props", async () => {
 			const user = userEvent.setup();
 			renderHoverCard(

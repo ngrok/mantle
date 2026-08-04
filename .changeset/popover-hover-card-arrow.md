@@ -35,11 +35,23 @@ as an `svg`, where `bg-*` paints nothing. Each arrow is therefore two layers: a 
 surface, and a polyline that strokes the two slanted edges only. The base carries no stroke and sits 1px inside
 the content, so the fill covers the content's own border across the base and the two border lines read as one.
 
-The tip carries its own shadow, built from the same `--shadow-color` and `--shadow-*-opacity` tokens the
+The tip carries its own shadow, built from the same `--shadow-color` and `--shadow-first-opacity` tokens the
 content's `shadow-md` uses. `box-shadow` stops at the content's border, so a tip without one reads as pasted on.
 A `clip-path` trims that shadow at the base, because the arrow paints above the content and the shadow would
-otherwise darken the content's interior. Both shadow layers are symmetric, since Radix rotates the arrow's
-wrapper per side and an offset shadow would swing with it.
+otherwise darken the content's interior. It is one wide, faint layer, matching what the content's shadow leaves
+along the edge the tip grows out of — a tighter layer muddies a shape this small. The offsets are symmetric,
+since Radix rotates the arrow's wrapper per side and an offset shadow would swing with it.
+
+`Popover.Content` and `HoverCard.Content` now set `position: relative`. The arrow's wrapper is absolutely
+positioned, and the open animation's `scale` made the content that wrapper's containing block for the length of
+the animation and no longer — which moved the arrow 1px the moment the animation ended. Positioning the content
+keeps the containing block the same before, during, and after. Two side effects a consumer can observe: an
+absolutely-positioned child of the content now anchors to the content, and the content's `z-50` now applies to
+the content itself rather than only being read off it, so the content is a stacking context.
+
+The border stroke is 1.5px against the content's 1px border. Antialiasing spreads a diagonal hairline across
+two device rows at partial coverage, so a geometric 1px reads thinner than the content's axis-aligned edge.
+Measured against that edge at both 1x and 2x, 1.5 is the width that matches it.
 
 `data-slot` is `popover-arrow` and `hover-card-arrow`. `width` defaults to `14` and `height` to `7`; Radix adds
 the measured height to `sideOffset`, so the tip lands `sideOffset` pixels from the anchor. Neither part takes

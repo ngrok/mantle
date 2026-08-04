@@ -168,24 +168,20 @@ describe("CodeBlock", () => {
 			);
 		});
 
-		test('keeps translate="no" when a call site passes translate', () => {
+		test('a call site can opt back in with translate="yes"', () => {
+			// The slot takes arbitrary children, so a title that is prose rather than a
+			// filename can override the default — unlike `CodeBlock.Code`.
 			render(
 				<CodeBlock.Root>
 					<CodeBlock.Header>
-						<CodeBlock.Title
-							// @ts-expect-error `translate` is omitted from the props type on purpose. This
-							// pins the runtime guard for a caller who spreads a wider props object past it.
-							translate="yes"
-						>
-							example.ts
-						</CodeBlock.Title>
+						<CodeBlock.Title translate="yes">Request headers</CodeBlock.Title>
 					</CodeBlock.Header>
 				</CodeBlock.Root>,
 			);
 
-			expect(screen.getByRole("heading", { name: "example.ts" })).toHaveAttribute(
+			expect(screen.getByRole("heading", { name: "Request headers" })).toHaveAttribute(
 				"translate",
-				"no",
+				"yes",
 			);
 		});
 

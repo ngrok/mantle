@@ -93,6 +93,10 @@ const Portal = HoverCardPrimitive.Portal;
  * z-index. When multiple shared layers are open, the most recently mounted
  * layer renders on top.
  *
+ * It sets `position: relative`, so `HoverCard.Arrow`'s absolutely-positioned
+ * wrapper keeps one containing block through the open animation. An
+ * absolutely-positioned child of the content therefore anchors to the content.
+ *
  * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardcontent
  *
  * @example
@@ -122,6 +126,11 @@ const Content = ({
 			align={align}
 			sideOffset={sideOffset}
 			className={cx(
+				// Why relative: `HoverCard.Arrow`'s wrapper is absolutely positioned, and
+				// the open animation's `scale` makes this element its containing block for
+				// one frame — then drops it, moving the arrow 1px. Positioning this element
+				// keeps that containing block the same before, during, and after.
+				"relative",
 				"bg-popover border-popover z-50 w-64 rounded-md border p-4 shadow-md outline-hidden",
 				"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 data-state-closed:zoom-out-95 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2",
 				className,
@@ -180,19 +189,20 @@ const Arrow = ({ className, height = 7, width = 14, ...props }: HoverCardArrowPr
 	>
 		<svg
 			className={cx(
-				// The wrapper Radix renders sits the base flush on the content's outer
-				// edge, where the content's own border still paints. `-translate-y-px`
-				// sinks the base 1px in — toward the content on every side, since Radix
-				// rotates the wrapper per side — so the fill covers that border.
-				"-translate-y-px fill-[var(--background-color-popover)]",
+				// `HoverCard.Content` is the wrapper's containing block, so Radix's own
+				// `0` offset resolves to that content's padding box — the base lands 1px
+				// inside the border box, and the fill covers the border it sits on.
+				"fill-[var(--background-color-popover)]",
 				// Why filter and clip-path: `HoverCard.Content`'s `shadow-md` stops at
 				// its own border, so an unshadowed tip reads as pasted on. The filter
 				// casts the tip's own shadow, and the clip trims it at the base, because
 				// the arrow paints above the content and the shadow would otherwise
-				// darken the content's interior. Both layers stay symmetric — Radix
-				// rotates the wrapper per side, which would swing an offset shadow.
+				// darken the content's interior. One wide, faint layer only, matching
+				// what the content's shadow leaves along the edge the tip grows out of —
+				// a tighter layer muddies a shape this small. The offsets stay symmetric,
+				// since Radix rotates the wrapper per side and would swing an offset.
 				"[clip-path:inset(0_-200%_-200%_-200%)]",
-				"[filter:drop-shadow(0_0_6px_color-mix(in_oklab,var(--shadow-color)_var(--shadow-first-opacity),transparent))_drop-shadow(0_0_2px_color-mix(in_oklab,var(--shadow-color)_var(--shadow-second-opacity),transparent))]",
+				"[filter:drop-shadow(0_0_4px_color-mix(in_oklab,var(--shadow-color)_var(--shadow-first-opacity),transparent))]",
 				className,
 			)}
 		>
@@ -201,7 +211,11 @@ const Arrow = ({ className, height = 7, width = 14, ...props }: HoverCardArrowPr
 				className="stroke-[color:var(--border-color-popover)]"
 				fill="none"
 				points="0,0 15,10 30,0"
-				strokeWidth={1}
+				// Why 1.5 against the content's 1px border: antialiasing spreads a
+				// diagonal hairline across two device rows at partial coverage, so a
+				// geometric 1px reads thinner than the content's axis-aligned edge.
+				// Measured against that edge at 1x and 2x, 1.5 matches it.
+				strokeWidth={1.5}
 				vectorEffect="non-scaling-stroke"
 			/>
 		</svg>
