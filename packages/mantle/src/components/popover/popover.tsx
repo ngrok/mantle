@@ -206,9 +206,11 @@ type PopoverArrowProps = Omit<
  * ```
  */
 const Arrow = ({ className, height = 7, width = 14, ...props }: PopoverArrowProps) => (
-	// Why no asChild: the shape is two layers — a filled polygon, plus a polyline
-	// that strokes the slanted edges only — and a swapped element loses the border
-	// that continues `Popover.Content`'s edge. Restyle with `className` instead.
+	// Why no asChild prop: a swapped element loses the two-layer shape — a filled
+	// polygon, plus a polyline that strokes the slanted edges only — that continues
+	// `Popover.Content`'s border. `PopoverArrowProps` omits the prop, so restyle with
+	// `className` instead. The `asChild` below is mantle's own, and hands that shape
+	// to the primitive.
 	<PopoverPrimitive.Arrow
 		aria-hidden="true"
 		asChild
