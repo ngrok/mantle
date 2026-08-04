@@ -1,0 +1,172 @@
+---
+title: Browser Translation
+description: What a browser translation engine does to a React DOM, which guarantees mantle ships, and the one rule your own components must follow to survive it.
+---
+
+import { Button } from "@ngrok/mantle/button";
+import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
+import { PlusIcon } from "@phosphor-icons/react/Plus";
+import { Example } from "~/components/example";
+
+# Browser Translation
+
+A reader who runs Google Translate on your page gets a rewritten DOM. That breaks two things.
+
+The content goes wrong. A translated CLI flag, env var, shortcut key, or one-time passcode names something that does not exist, and the reader copies it anyway.
+
+The render goes wrong. The engine replaces each text node with a `<font>` wrapper and **reparents** the original node: React's reference to it stays alive, but its parent is now the `<font>`. The next update that names that node — an icon inserting before it, or the node itself unmounting — asks the DOM to touch a child its parent no longer owns. The DOM raises `NotFoundError`, React re-throws the raw `DOMException`, and with no error boundary above it the React root tears down. The page goes blank.
+
+This is not hypothetical. It shipped in mantle 0.83.2: the first click of any submit button blanked a translated page, because `isLoading` synthesized an icon beside bare text children.
+
+## What survives the rewrite and what does not
+
+The failure needs React to insert before, or remove, a **text** node the engine reparented. Element children are never reparented.
+
+| Update                                          | Result                                  |
+| ----------------------------------------------- | --------------------------------------- |
+| Insert an element before a translated text node | **Throws**                              |
+| Remove a text child while siblings remain       | **Throws**                              |
+| A text child changes type to an element         | **Throws**                              |
+| Change a text child's value                     | Safe. The translation reverts.          |
+| Reorder or remove **element** children          | Safe. Elements are never reparented.    |
+| **Append** after a translated text node         | Safe.                                   |
+| Unmount the whole subtree                       | Safe. React removes the outermost node. |
+| A **lone** expression child                     | Safe, and self-healing.                 |
+
+The last row is the one to design toward. When `children` is the only child of a host element, React writes it through `textContent`, which wipes the `<font>` wrapper and repairs the subtree instead of fighting it.
+
+## What mantle guarantees
+
+- [`Button`](/components/actions/button), [`Badge`](/components/data-display/badge), and [`Anchor`](/components/navigation/anchor) render `children` inside a label slot, so an appearing `icon` or `isLoading` spinner inserts before an **element** sibling. In `Button` and `Badge` that slot is `display: contents`, so it adds no box and changes no layout.
+- `DataTable.HeaderSortButton` keeps its screen-reader sort announcer mounted at all times, and takes a single computed string, so every sort change is a `textContent` write.
+- `DataTable.ActionHeader` renders its sticky indicator after `children`, which turns the mount into an append.
+- [`Code`](/components/data-display/code), [`Kbd`](/components/data-display/kbd), `CodeBlock.Code`, `CodeBlock.Title`, and `OtpInput.Slot` mark their content [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate), so the engine skips those subtrees entirely.
+
+A label slot protects the insert **mantle** makes. It cannot protect an insert your own children make inside it — that is the next section.
+
+## The one rule for your own code
+
+**Never render a conditional element immediately before bare text children.**
+
+```tsx
+// ❌ when `isNew` flips on, React inserts the icon before the translated text node
+<div className="flex items-center gap-2">
+	{isNew && <SparkleIcon />}
+	Endpoint created
+</div>
+
+// ✅ the insert names an element, which no engine moves
+<div className="flex items-center gap-2">
+	{isNew && <SparkleIcon />}
+	<span>Endpoint created</span>
+</div>
+```
+
+Three fixes work. Pick by what the conditional element is:
+
+- **Wrap the text in an element.** The default answer, and what mantle's own parts do.
+- **Move the element after the text.** A mount then becomes an append, which is safe. Prefer this when the element is decorative and out of flow, because it adds no DOM.
+- **Mount the element unconditionally and write text into it.** A `textContent` write is safe and self-healing. Prefer this for a `sr-only` announcer, which costs no layout.
+
+The rule is narrow on purpose. Static children never throw, however many there are — the hazard is a sibling that **appears** beside text that stays mounted.
+
+## Buttons with an icon, or two
+
+Pass a button's icon through `icon`, never as a child. The slot sizes the glyph, holds it at `shrink-0`, tightens the padding on its side, and hands its place to the spinner when `isLoading` turns on.
+
+A button can still carry a second icon. Put it after the label text as a child: the `icon` slot and every child of the label slot are flex items of the button, so the button's `gap` falls between all of them.
+
+<Example>
+	<Button appearance="outlined" intent="neutral" icon={<PlusIcon />}>
+		<span>Create endpoint</span>
+		<CaretDownIcon />
+	</Button>
+</Example>
+
+```tsx
+<Button appearance="outlined" intent="neutral" icon={<PlusIcon />}>
+	<span>Create endpoint</span>
+	<CaretDownIcon />
+</Button>
+```
+
+The label text is wrapped, which matters when that second icon is conditional: a trailing icon appends and is safe either way, but a **leading** child icon inserts before the text, and the wrapper is what keeps it from throwing.
+
+## Marking content untranslatable
+
+Set `translate="no"` on the element that holds a string a reader copies or retypes: code, a CLI flag, an env var, a YAML key, a shortcut key, a filename, an ID, a passcode. Descendants inherit the attribute, so it also keeps the engine out of the subtree — which makes it a second cure for the crash above.
+
+```tsx
+<span translate="no">{endpointId}</span>
+```
+
+`Code` and `CodeBlock.Title` set the attribute as an overridable default, because both also hold prose. Pass `translate="yes"` there when the content is a word rather than a token. `Kbd`, `CodeBlock.Code`, and `OtpInput.Slot` lock it — those omit the prop from their types, so no call site can turn the guard off.
+
+## A label that has to shrink
+
+The label slot takes no styling of its own — `display: contents` generates no box, so there is nothing there to size. Style your own child instead, which is still a flex item of the button:
+
+<Example>
+	<Button
+		appearance="outlined"
+		intent="neutral"
+		className="max-w-48 min-w-0 justify-start"
+		icon={<PlusIcon />}
+	>
+		<span className="min-w-0 flex-1 truncate text-left">
+			A label far too long for the width of this button
+		</span>
+		<CaretDownIcon />
+	</Button>
+</Example>
+
+```tsx
+<Button
+	appearance="outlined"
+	intent="neutral"
+	className="max-w-48 min-w-0 justify-start"
+	icon={<PlusIcon />}
+>
+	<span className="min-w-0 flex-1 truncate text-left">
+		A label far too long for the width of this button
+	</span>
+	<CaretDownIcon />
+</Button>
+```
+
+This is the shape a wrapper box breaks. `flex-1` and `min-w-0` need the span to be a flex item of the button, so a label slot that laid out a box would drop both and the text would push past the button's width instead of clamping.
+
+## Testing it
+
+Reproduce what the engine does, then run the update that used to throw. Wrapping the text nodes is the whole model:
+
+```ts
+/** Wrap every non-blank text node under `root` in a `<font>`, the way Google Translate does. */
+function translateTextNodes(root: Node) {
+	const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+		acceptNode: (node) =>
+			node.parentElement?.closest("[translate=no]") == null
+				? NodeFilter.FILTER_ACCEPT
+				: NodeFilter.FILTER_REJECT,
+	});
+	const nodes: Text[] = [];
+	for (let node = walker.nextNode(); node != null; node = walker.nextNode()) {
+		if (node.nodeValue?.trim()) {
+			nodes.push(node as Text);
+		}
+	}
+	for (const node of nodes) {
+		const font = document.createElement("font");
+		node.parentNode?.insertBefore(font, node);
+		font.appendChild(node);
+	}
+}
+```
+
+Rejecting a `translate="no"` subtree is what makes that attribute testable: a component that stamps it survives a mutation that would otherwise detach the text nodes React holds. happy-dom raises the same `NotFoundError` as Chromium here, so these tests need no real browser.
+
+## Limits
+
+The model is a reparent, which is what Google Translate does. An engine that instead detaches and replaces the text node produces a different symptom. Safari and Firefox translation are unverified.
+
+Nothing here patches the DOM. A `Node.prototype.removeChild` fallback would make arbitrary product code safe, and mantle does not install one — the guarantees above are structural, per component.

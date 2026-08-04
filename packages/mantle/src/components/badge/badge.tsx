@@ -55,8 +55,8 @@ type BadgeProps = ComponentProps<"span"> &
  * nothing of its own — every child stays a flex item of the badge, and the badge's
  * `gap` still falls between them. The span exists so a newly-appearing icon
  * inserts before an element sibling: a browser translation engine reparents text
- * nodes, and an insert aimed at one throws. To style the label as a box, give the
- * slot a display of its own first, with `[&>[data-slot=badge-label]]:block`.
+ * nodes, and an insert aimed at one throws. A label that must shrink stays a child
+ * you own, because that child is still a flex item.
  *
  * | Data Attribute | Value           | Description                                                                                  |
  * | -------------- | --------------- | -------------------------------------------------------------------------------------------- |

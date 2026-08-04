@@ -144,11 +144,12 @@ the wrapper. The crash fix is untouched, because the span stays in the DOM and a
 icon's `insertBefore` still names an element.
 
 This reverses the alternative rejected under decision 1. That rejection traded a
-shipped layout regression for an affordance nothing used, and it named the cost
-correctly: a `contents` box cannot be styled. A consumer who wants to style the label
-restores a display first — `[&>[data-slot=button-label]]:block` outranks the span's
-own class on specificity — and the slot's other uses (finding the label, reading its
-text) are unaffected.
+shipped layout regression for an affordance nothing used: a search of this repo and of
+`ngrok-private/frontend` found no call site that styles a label slot. What call sites
+do instead is style a child they own — `ai-dashboard`'s access-key chip gives its label
+`min-w-0 flex-1 truncate` between two icons — and that shape needs the child to stay a
+flex item, which is exactly what the box took away. The slot keeps its other uses:
+finding the label and reading its text.
 
 `Anchor` keeps a plain inline span. Its label never changed layout, because an anchor
 lays its children out in inline flow and spaces its icons with margins.

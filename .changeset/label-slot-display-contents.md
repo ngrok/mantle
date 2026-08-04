@@ -15,18 +15,22 @@ between them, and a child's own width applies — the layout matches the release
 stays in the DOM, so the crash fix stands: an icon's `insertBefore` still names an element, never a text node
 the engine reparented.
 
-Styling the slot as a box now takes one extra class, since a `contents` box has nothing to style:
+This restores the shape a chip or a picker trigger needs, where the label absorbs the slack between two icons:
 
 ```tsx
-// Clamp a long label — restore a display first.
 <Button
-	appearance="filled"
+	appearance="outlined"
 	intent="neutral"
-	className="max-w-40 [&>[data-slot=button-label]]:block [&>[data-slot=button-label]]:truncate"
+	className="max-w-48 min-w-0 justify-start"
+	icon={<KeyIcon />}
 >
-	A label long enough to need clamping
+	<span className="min-w-0 flex-1 truncate text-left">{selectedLabel}</span>
+	<CaretDownIcon />
 </Button>;
 ```
+
+`flex-1` and `min-w-0` reach that span only while it is a flex item of the button, so the wrapper's box dropped
+both and the label pushed past `max-w-48` instead of clamping.
 
 `Anchor` is unchanged. Its label span never changed layout, because an anchor lays its children out in inline
 flow.
