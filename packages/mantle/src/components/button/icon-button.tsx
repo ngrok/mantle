@@ -7,9 +7,12 @@ import { parseBooleanish } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Icon } from "../icon/index.js";
 import { Slot } from "../slot/index.js";
-import type { IconButtonAppearance, IconButtonVariants } from "./icon-button-variants.js";
+import type {
+	IconButtonAppearance,
+	IconButtonIntent,
+	IconButtonVariants,
+} from "./icon-button-variants.js";
 import { iconButtonVariants } from "./icon-button-variants.js";
-import type { ButtonIntent } from "./intents.js";
 
 /**
  * The props for the `IconButton` component.
@@ -29,17 +32,15 @@ type IconButtonProps = ComponentProps<"button"> &
 		 */
 		appearance: IconButtonAppearance;
 		/**
-		 * The tone of the IconButton — the purpose its color communicates to
-		 * the user. Required — there is no default, so every call site states
-		 * the tone it means. `"neutral"` is the workhorse tone (and matches
-		 * how IconButton rendered before it had an intent axis).
+		 * The tone of the IconButton. Narrower than `Button`'s — `"neutral"` is
+		 * the only tone `IconButton` draws, so the accent and danger tones are
+		 * a type error here. Still required, so a call site reads the same on
+		 * both components and keeps compiling if more tones land.
 		 *
 		 * @enum
 		 * - `"neutral"`: the workhorse tone — routine and secondary actions
-		 * - `"accent"`: deliberate brand emphasis; reach for it when an action should carry the brand color
-		 * - `"danger"`: a destructive or irreversible action
 		 */
-		intent: ButtonIntent;
+		intent: IconButtonIntent;
 		/**
 		 * The accessible label for the icon. `IconButton` hides this label visually
 		 * and announces it to screen readers, like the `alt` text on an `<img>`.
@@ -75,12 +76,13 @@ type IconButtonProps = ComponentProps<"button"> &
  * carries the accessible name.
  *
  * `appearance` (visual weight) and `intent` (tone) are required — every call
- * site states what it means; there are no implicit defaults. `intent="neutral"`
- * matches how IconButton rendered before it had an intent axis.
+ * site states what it means; there are no implicit defaults.
  *
- * `IconButton` draws every `appearance` and `intent` pair that `Button` draws,
- * without `link` — an icon-only link has no text to read as a link. A pair
- * renders the same tone and weight on both components.
+ * `IconButton` draws all three of `Button`'s box appearances, each in the
+ * neutral tone only, and each one matches its `Button` twin. `link` stays off
+ * the union — an icon-only link has no text to read as a link. The accent and
+ * danger tones stay off `intent` — an icon carries no text to name the action
+ * a tone colors.
  *
  * The border radius is driven by the `--icon-button-border-radius` CSS
  * variable (default: `0.375rem`). Wrappers can set it to slot icon buttons
@@ -95,7 +97,7 @@ type IconButtonProps = ComponentProps<"button"> &
  *   icon={<TrashIcon />}
  *   label="Delete item"
  *   appearance="ghost"
- *   intent="danger"
+ *   intent="neutral"
  *   size="sm"
  *   onClick={handleDelete}
  * />
@@ -180,5 +182,6 @@ export {
 export type {
 	//,
 	IconButtonAppearance,
+	IconButtonIntent,
 	IconButtonProps,
 };

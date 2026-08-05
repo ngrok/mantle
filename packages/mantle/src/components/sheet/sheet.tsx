@@ -5,9 +5,9 @@ import { cx } from "../../utils/cx/cx.js";
 import {
 	IconButton,
 	type IconButtonAppearance,
+	type IconButtonIntent,
 	type IconButtonProps,
 } from "../button/icon-button.js";
-import type { ButtonIntent } from "../button/intents.js";
 import * as SheetPrimitive from "../dialog/primitive.js";
 
 /**
@@ -347,11 +347,12 @@ type SheetCloseIconButtonProps = Partial<
 	appearance?: IconButtonAppearance;
 	/**
 	 * The tone of the close icon button. Optional here — `Sheet.CloseIconButton`
-	 * defaults to `"neutral"`, the workhorse tone for routine dismissal.
+	 * defaults to `"neutral"`, the workhorse tone for routine dismissal, and the
+	 * only tone `IconButton` draws.
 	 *
 	 * @default "neutral"
 	 */
-	intent?: ButtonIntent;
+	intent?: IconButtonIntent;
 };
 
 /**

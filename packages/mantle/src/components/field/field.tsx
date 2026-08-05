@@ -18,9 +18,9 @@ import { cx } from "../../utils/cx/cx.js";
 import {
 	IconButton,
 	type IconButtonAppearance,
+	type IconButtonIntent,
 	type IconButtonProps,
 } from "../button/icon-button.js";
-import type { ButtonIntent } from "../button/intents.js";
 import { Label } from "../label/label.js";
 import { Popover } from "../popover/index.js";
 import { Slot } from "../slot/index.js";
@@ -316,11 +316,11 @@ type FieldHelpTriggerProps = Partial<
 		/**
 		 * The tone of the trigger button. Optional here — `Field.HelpTrigger`
 		 * defaults to `"neutral"` because opening contextual help is a routine
-		 * action.
+		 * action, and it is the only tone `IconButton` draws.
 		 *
 		 * @default "neutral"
 		 */
-		intent?: ButtonIntent;
+		intent?: IconButtonIntent;
 	};
 
 /**

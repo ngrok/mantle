@@ -235,7 +235,6 @@ type ExpandableHarnessProps = {
 	onRowClick?: () => void;
 	buttonOnClick?: (event: MouseEvent<HTMLButtonElement>) => void;
 	buttonAppearance?: IconButtonAppearance;
-	buttonIntent?: ButtonIntent;
 	detailColSpan?: number;
 };
 
@@ -248,7 +247,6 @@ function ExpandableHarness({
 	onRowClick,
 	buttonOnClick,
 	buttonAppearance,
-	buttonIntent,
 	detailColSpan,
 }: ExpandableHarnessProps) {
 	const [expanded, setExpanded] = useState<ExpandedState>({});
@@ -264,7 +262,6 @@ function ExpandableHarness({
 							label={props.row.original.name}
 							onClick={buttonOnClick}
 							appearance={buttonAppearance}
-							intent={buttonIntent}
 						/>
 					</DataTable.Cell>
 				),
@@ -275,7 +272,7 @@ function ExpandableHarness({
 				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 			}),
 		],
-		[buttonOnClick, buttonAppearance, buttonIntent],
+		[buttonOnClick, buttonAppearance],
 	);
 	const table = useReactTable({
 		data,
@@ -318,11 +315,12 @@ describe("DataTable.RowExpandButton", () => {
 		expect(button).toHaveAttribute("data-intent", "neutral");
 	});
 
-	test("forwards explicit `appearance`/`intent` overrides to the underlying IconButton", () => {
-		render(<ExpandableHarness buttonAppearance="outlined" buttonIntent="danger" />);
+	// `intent` has no override case: `IconButton` draws the neutral tone only,
+	// so a forwarded `intent` cannot differ from the wrapper's own default.
+	test("forwards an explicit `appearance` override to the underlying IconButton", () => {
+		render(<ExpandableHarness buttonAppearance="outlined" />);
 		const button = screen.getByRole("button", { name: "Show details for Alice" });
 		expect(button).toHaveAttribute("data-appearance", "outlined");
-		expect(button).toHaveAttribute("data-intent", "danger");
 	});
 
 	test("renders a collapsed toggle labelled `Show details for …` with no aria-controls", () => {

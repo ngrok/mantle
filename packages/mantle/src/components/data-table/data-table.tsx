@@ -19,7 +19,11 @@ import invariant from "tiny-invariant";
 import { cx } from "../../utils/cx/cx.js";
 import { $timeSortingDirection, type SortingMode } from "../../utils/sorting/direction.js";
 import { Button, type ButtonAppearance } from "../button/button.js";
-import { IconButton, type IconButtonAppearance } from "../button/icon-button.js";
+import {
+	IconButton,
+	type IconButtonAppearance,
+	type IconButtonIntent,
+} from "../button/icon-button.js";
 import type { ButtonIntent } from "../button/intents.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { SortIcon } from "../icons/sort.js";
@@ -792,10 +796,11 @@ type DataTableRowExpandButtonProps<TData> = Omit<
 	appearance?: IconButtonAppearance;
 	/**
 	 * The tone of the expand toggle. Optional — the row expand button's design
-	 * is neutral-toned, so the wrapper defaults it.
+	 * is neutral-toned, so the wrapper defaults it, and it is the only tone
+	 * `IconButton` draws.
 	 * @default "neutral"
 	 */
-	intent?: ButtonIntent;
+	intent?: IconButtonIntent;
 	/**
 	 * The TanStack Table row this button toggles. The table must be configured for
 	 * expansion (`getExpandedRowModel`, plus `getRowCanExpand: () => true` for
