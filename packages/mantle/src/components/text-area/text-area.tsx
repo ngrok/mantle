@@ -61,13 +61,13 @@ const TextArea = ({
 			data-validation={validation || undefined}
 			data-slot="text-area"
 			className={cx(
-				appearance === "monospaced" && "pointer-coarse:text-[0.9375rem] font-mono text-[0.8125rem]",
-				"border-input bg-form data-drag-over:border-dashed data-drag-over:ring-4 pointer-coarse:py-[calc(theme(spacing[2.5])-1px)] pointer-coarse:text-base flex min-h-24 w-full rounded-md border px-3 py-[calc(theme(spacing[2])-1px)] focus-visible:outline-hidden focus-visible:ring-4 disabled:pointer-events-none disabled:opacity-50",
+				"border-input bg-form data-drag-over:border-dashed data-drag-over:ring-4 pointer-coarse:py-[calc(theme(spacing[2.5])-1px)] pointer-coarse:text-base text-sm flex min-h-24 w-full rounded-md border px-3 py-[calc(theme(spacing[2])-1px)] focus-visible:outline-hidden focus-visible:ring-4 disabled:pointer-events-none disabled:opacity-50",
 				"placeholder:text-placeholder data-drag-over:border-dashed",
 				"border-form text-strong ring-focus-accent focus:border-accent-600 data-drag-over:border-accent-600",
 				"data-validation-error:border-danger-600 data-validation-error:ring-focus-danger data-validation-error:focus-visible:border-danger-600 data-validation-error:data-drag-over:border-danger-600",
 				"data-validation-success:border-success-600 data-validation-success:ring-focus-success data-validation-success:focus-visible:border-success-600 data-validation-success:data-drag-over:border-success-600",
 				"data-validation-warning:border-warning-600 data-validation-warning:ring-focus-warning data-validation-warning:focus-visible:border-warning-600 data-validation-warning:data-drag-over:border-warning-600",
+				appearance === "monospaced" && "font-mono pointer-coarse:text-base text-xs/5",
 				className,
 			)}
 			data-drag-over={isDragOver}
