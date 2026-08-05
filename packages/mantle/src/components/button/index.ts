@@ -34,6 +34,7 @@ export type {
 export type {
 	//,
 	IconButtonAppearance,
+	IconButtonIntent,
 	IconButtonProps,
 } from "./icon-button.js";
 export type {

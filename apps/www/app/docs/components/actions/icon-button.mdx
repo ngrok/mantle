@@ -13,80 +13,26 @@ import { Example } from "~/components/example";
 
 Initiates an action, such as completing a task or submitting information. Renders one icon and nothing else, with a required `label` prop that carries the accessible name.
 
-Every `IconButton` states what it means: `appearance` (visual weight) and `intent` (tone) are **required** — there are no implicit defaults. `intent="neutral"` is the workhorse tone for most icon buttons; reach for `"danger"` on destructive actions.
+Every `IconButton` states what it means: `appearance` (visual weight) and `intent` (tone) are **required** — there are no implicit defaults. `intent` takes `"neutral"` alone: an icon carries no text to name the action a tone colors, so `IconButton` draws no accent or danger tone.
 
-`IconButton` draws every `appearance` and `intent` pair that [`Button`](/components/actions/button) draws, without `link` — an icon-only link has no text to read as a link. A pair renders the same tone and weight on both components, so an icon button sits beside a button without a color or weight seam.
+## Appearance
 
-<Example className="flex flex-col items-center gap-6">
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Neutral</p>
-		<div className="flex items-center gap-2">
-			<IconButton
-				appearance="ghost"
-				intent="neutral"
-				label="prestige worldwide"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="filled"
-				intent="neutral"
-				label="prestige worldwide"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="outlined"
-				intent="neutral"
-				label="prestige worldwide"
-				icon={<GlobeIcon />}
-			/>
-		</div>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Accent</p>
-		<div className="flex items-center gap-2">
-			<IconButton
-				appearance="ghost"
-				intent="accent"
-				label="prestige worldwide"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="filled"
-				intent="accent"
-				label="prestige worldwide"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="outlined"
-				intent="accent"
-				label="prestige worldwide"
-				icon={<GlobeIcon />}
-			/>
-		</div>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Danger</p>
-		<div className="flex items-center gap-2">
-			<IconButton
-				appearance="ghost"
-				intent="danger"
-				label="prestige worldwide"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="filled"
-				intent="danger"
-				label="prestige worldwide"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="outlined"
-				intent="danger"
-				label="prestige worldwide"
-				icon={<GlobeIcon />}
-			/>
-		</div>
-	</div>
+`IconButton` draws all three of [`Button`](/components/actions/button)'s box appearances, and each one matches its `Button` twin. `link` stays off the union — an icon-only link has no text to read as a link. An icon button sits beside a button with no color or weight seam.
+
+<Example className="flex items-center justify-center gap-2">
+	<IconButton appearance="ghost" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
+	<IconButton
+		appearance="filled"
+		intent="neutral"
+		label="prestige worldwide"
+		icon={<GlobeIcon />}
+	/>
+	<IconButton
+		appearance="outlined"
+		intent="neutral"
+		label="prestige worldwide"
+		icon={<GlobeIcon />}
+	/>
 </Example>
 
 ```tsx
@@ -96,14 +42,6 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 <IconButton appearance="ghost" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
 <IconButton appearance="filled" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
 <IconButton appearance="outlined" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
-
-<IconButton appearance="ghost" intent="accent" label="prestige worldwide" icon={<GlobeIcon />} />
-<IconButton appearance="filled" intent="accent" label="prestige worldwide" icon={<GlobeIcon />} />
-<IconButton appearance="outlined" intent="accent" label="prestige worldwide" icon={<GlobeIcon />} />
-
-<IconButton appearance="ghost" intent="danger" label="prestige worldwide" icon={<GlobeIcon />} />
-<IconButton appearance="filled" intent="danger" label="prestige worldwide" icon={<GlobeIcon />} />
-<IconButton appearance="outlined" intent="danger" label="prestige worldwide" icon={<GlobeIcon />} />
 ```
 
 ## Size
@@ -400,16 +338,16 @@ import { Link, href } from "react-router";
 
 The `IconButton` accepts the following props in addition to the [standard HTML button attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button).
 
-| Prop         | Type                                           | Default    | Description                                                                                                                                                                                                                                                                                                                |
-| ------------ | ---------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `appearance` | `"filled"` \| `"ghost"` \| `"outlined"`        |            | The visual style of the `IconButton`. **Required** — there is no default, so every call site states the visual weight it means. Matches `Button`'s union without `"link"`.                                                                                                                                                 |
-| `asChild`    | `boolean`                                      | `false`    | Use the `asChild` prop to compose the `IconButton` styling and functionality onto alternative element types or your own React components.                                                                                                                                                                                  |
-| `icon`       | `ReactNode`                                    |            | The icon to render inside the button. When `isLoading` is `true`, the icon is automatically replaced with a spinner.                                                                                                                                                                                                       |
-| `intent`     | `"accent"` \| `"danger"` \| `"neutral"`        |            | The tone of the `IconButton` — the purpose its color communicates to the user: `"neutral"` for the workhorse tone (most icon buttons), `"accent"` for deliberate brand emphasis, and `"danger"` for a destructive or irreversible action. **Required** — there is no default, so every call site states the tone it means. |
-| `isLoading`  | `boolean`                                      | `false`    | Determines whether the icon button is in a loading state. Setting `isLoading` replaces the icon with a spinner. It also disables user interaction with the button and sets `aria-disabled`.                                                                                                                                |
-| `label`      | `string`                                       |            | The accessible label for the icon. `IconButton` hides this label visually and announces it to screen readers, like the `alt` text on an `<img>`.                                                                                                                                                                           |
-| `size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | `"md"`     | The size of the `IconButton`, controlling its box size. Shared scale with `Button` — the same size name renders the same box height. Only the box scales; the icon glyph stays the same size.                                                                                                                              |
-| `type`       | `"button"` \| `"reset"` \| `"submit"`          | `"button"` | The behavior of the `IconButton` when activated. Defaults to `"button"`, so an `IconButton` inside a `<form>` will **not** submit it — pass `type="submit"` to submit the form. When `asChild` is used, `type` has no effect and is not forwarded to the child.                                                            |
+| Prop         | Type                                           | Default    | Description                                                                                                                                                                                                                                                                           |
+| ------------ | ---------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance` | `"filled"` \| `"ghost"` \| `"outlined"`        |            | The visual style of the `IconButton`. **Required** — there is no default, so every call site states the visual weight it means. Matches `Button`'s union without `"link"`.                                                                                                            |
+| `asChild`    | `boolean`                                      | `false`    | Use the `asChild` prop to compose the `IconButton` styling and functionality onto alternative element types or your own React components.                                                                                                                                             |
+| `icon`       | `ReactNode`                                    |            | The icon to render inside the button. When `isLoading` is `true`, the icon is automatically replaced with a spinner.                                                                                                                                                                  |
+| `intent`     | `"neutral"`                                    |            | The tone of the `IconButton` — the purpose its color communicates to the user. Narrower than `Button`'s: `"neutral"` is the only tone `IconButton` draws, so the accent and danger tones are a type error here. Still **required**, so a call site reads the same on both components. |
+| `isLoading`  | `boolean`                                      | `false`    | Determines whether the icon button is in a loading state. Setting `isLoading` replaces the icon with a spinner. It also disables user interaction with the button and sets `aria-disabled`.                                                                                           |
+| `label`      | `string`                                       |            | The accessible label for the icon. `IconButton` hides this label visually and announces it to screen readers, like the `alt` text on an `<img>`.                                                                                                                                      |
+| `size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | `"md"`     | The size of the `IconButton`, controlling its box size. Shared scale with `Button` — the same size name renders the same box height. Only the box scales; the icon glyph stays the same size.                                                                                         |
+| `type`       | `"button"` \| `"reset"` \| `"submit"`          | `"button"` | The behavior of the `IconButton` when activated. Defaults to `"button"`, so an `IconButton` inside a `<form>` will **not** submit it — pass `type="submit"` to submit the form. When `asChild` is used, `type` has no effect and is not forwarded to the child.                       |
 
 The `IconButton` also exposes the following CSS variables as part of its API.
 

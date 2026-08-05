@@ -4,9 +4,9 @@ import { cx } from "../../utils/cx/cx.js";
 import {
 	IconButton,
 	type IconButtonAppearance,
+	type IconButtonIntent,
 	type IconButtonProps,
 } from "../button/icon-button.js";
-import type { ButtonIntent } from "../button/intents.js";
 import * as DialogPrimitive from "./primitive.js";
 
 /**
@@ -439,11 +439,12 @@ type CloseIconButtonProps = Partial<Omit<IconButtonProps, "appearance" | "icon" 
 	/**
 	 * The tone of the close icon button. Optional here —
 	 * `Dialog.CloseIconButton` defaults to `"neutral"`, the workhorse tone for
-	 * routine actions like dismissing a dialog.
+	 * routine actions like dismissing a dialog, and the only tone `IconButton`
+	 * draws.
 	 *
 	 * @default "neutral"
 	 */
-	intent?: ButtonIntent;
+	intent?: IconButtonIntent;
 };
 
 /**

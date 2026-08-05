@@ -13,47 +13,25 @@ describe("IconButton", () => {
 	});
 
 	describe("appearance", () => {
+		// Parity pin: each class below is the one `Button` draws for the same
+		// appearance at the neutral tone, so a permuted lookup table on either
+		// component splits the two apart. IconButton has no `link` appearance.
 		test.each([
-			["filled", "bg-filled-accent"],
-			["ghost", "text-accent-600"],
-			["outlined", "border-accent-600"],
+			["filled", "bg-filled-neutral"],
+			["ghost", "text-strong"],
+			["outlined", "border-form"],
 		] as const)(
-			`renders appearance="%s" with data-appearance and weight class %s`,
-			(appearance, weightClass) => {
-				render(
-					<IconButton appearance={appearance} intent="accent" label="globe" icon={<GlobeIcon />} />,
-				);
-				const button = screen.getByRole("button");
-				expect(button).toHaveAttribute("data-appearance", appearance);
-				expect(button).toHaveClass(weightClass);
-			},
-		);
-
-		// Parity pin: every appearance/intent pair below is the class `Button`
-		// draws for the same pair, so a permuted lookup table on either component
-		// splits the two apart. IconButton has no `link` appearance.
-		test.each([
-			["filled", "accent", "bg-filled-accent"],
-			["filled", "danger", "bg-filled-danger"],
-			["filled", "neutral", "bg-filled-neutral"],
-			["ghost", "accent", "text-accent-600"],
-			["ghost", "danger", "text-danger-600"],
-			["ghost", "neutral", "text-strong"],
-			["outlined", "accent", "border-accent-600"],
-			["outlined", "danger", "border-danger-600"],
-			["outlined", "neutral", "border-form"],
-		] as const)(
-			`appearance="%s" intent="%s" matches Button's %s`,
-			(appearance, intent, toneClass) => {
+			`appearance="%s" stamps data-appearance and matches Button's %s`,
+			(appearance, toneClass) => {
 				render(
 					<>
 						<IconButton
 							appearance={appearance}
-							intent={intent}
+							intent="neutral"
 							label="icon button"
 							icon={<GlobeIcon />}
 						/>
-						<Button appearance={appearance} intent={intent}>
+						<Button appearance={appearance} intent="neutral">
 							button
 						</Button>
 					</>,
@@ -61,55 +39,64 @@ describe("IconButton", () => {
 				// Each query names the button it wants, so a third button in the
 				// tree throws here rather than shifting a positional index and
 				// asserting the pair against the wrong element.
-				expect(screen.getByRole("button", { name: "icon button" })).toHaveClass(toneClass);
+				const iconButton = screen.getByRole("button", { name: "icon button" });
+				expect(iconButton).toHaveAttribute("data-appearance", appearance);
+				expect(iconButton).toHaveClass(toneClass);
 				expect(screen.getByRole("button", { name: "button" })).toHaveClass(toneClass);
 			},
 		);
 	});
 
 	describe("intent", () => {
+		test.each(["filled", "ghost", "outlined"] as const)(
+			`appearance="%s" stamps data-intent="neutral"`,
+			(appearance) => {
+				render(
+					<IconButton
+						appearance={appearance}
+						intent="neutral"
+						label="globe"
+						icon={<GlobeIcon />}
+					/>,
+				);
+				expect(screen.getByRole("button")).toHaveAttribute("data-intent", "neutral");
+			},
+		);
+
+		// Tone pin: the accent and danger tones are off the `intent` union, so
+		// no appearance may draw one. `data-intent` cannot catch that — it
+		// stamps `"neutral"` whatever the classes say — so the class is the
+		// only observable difference.
 		test.each([
-			["accent", "text-accent-600"],
-			["danger", "text-danger-600"],
-			["neutral", "text-strong"],
-		] as const)(`renders intent="%s" with data-intent and tone class %s`, (intent, toneClass) => {
-			render(<IconButton appearance="ghost" intent={intent} label="globe" icon={<GlobeIcon />} />);
-			const button = screen.getByRole("button");
-			expect(button).toHaveAttribute("data-intent", intent);
-			expect(button).toHaveClass(toneClass);
-		});
-
-		test(`intent="neutral" filled renders the neutral fill, not the accent fill`, () => {
-			render(
-				<IconButton appearance="filled" intent="neutral" label="globe" icon={<GlobeIcon />} />,
-			);
-			const button = screen.getByRole("button");
-			expect(button).toHaveClass("bg-filled-neutral", "text-neutral-50");
-			expect(button).not.toHaveClass("bg-filled-accent");
-		});
-
-		test(`intent="neutral" outlined renders the pre-intent IconButton box`, () => {
-			// Parity pin: before IconButton had an intent axis, its outlined
-			// appearance rendered these neutral-toned classes.
-			render(
-				<IconButton appearance="outlined" intent="neutral" label="globe" icon={<GlobeIcon />} />,
-			);
-			const button = screen.getByRole("button");
-			expect(button).toHaveClass("border-form", "bg-form", "text-strong");
-		});
-
-		test("`appearance` and `intent` are required at the type level", () => {
-			const missingIntent = (
-				// @ts-expect-error -- intent is required on IconButton
-				<IconButton appearance="ghost" label="globe" icon={<GlobeIcon />} />
-			);
-			const missingAppearance = (
-				// @ts-expect-error -- appearance is required on IconButton
-				<IconButton intent="neutral" label="globe" icon={<GlobeIcon />} />
-			);
-			expect(missingIntent).toBeDefined();
-			expect(missingAppearance).toBeDefined();
-		});
+			[
+				"filled",
+				["bg-filled-neutral", "text-neutral-50"],
+				["bg-filled-accent", "bg-filled-danger"],
+			],
+			["ghost", ["text-strong"], ["text-accent-600", "text-danger-600"]],
+			[
+				"outlined",
+				["border-form", "bg-form", "text-strong"],
+				["border-accent-600", "border-danger-600"],
+			],
+		] as const)(
+			`appearance="%s" draws the neutral tone and no other`,
+			(appearance, neutral, others) => {
+				render(
+					<IconButton
+						appearance={appearance}
+						intent="neutral"
+						label="globe"
+						icon={<GlobeIcon />}
+					/>,
+				);
+				const button = screen.getByRole("button");
+				expect(button).toHaveClass(...neutral);
+				for (const toneClass of others) {
+					expect(button).not.toHaveClass(toneClass);
+				}
+			},
+		);
 	});
 
 	describe("size", () => {
@@ -230,3 +217,28 @@ describe("IconButton", () => {
 		});
 	});
 });
+
+/**
+ * Type-level contracts, owned by `pnpm typecheck` rather than by a `test()`: a
+ * `@ts-expect-error` that compiles is the assertion, and pairing it with a runtime
+ * `expect` would read as coverage the vitest run does not have.
+ *
+ * `appearance` and `intent` are both required, so no call site inherits a weight or
+ * a tone it did not state. `intent` takes `"neutral"` alone — `IconButton` draws no
+ * accent or danger tone, and a call site that asks for one would otherwise compile
+ * and then render neutral.
+ */
+export function typeLevelContracts() {
+	return (
+		<>
+			{/* @ts-expect-error -- appearance is required on IconButton */}
+			<IconButton intent="neutral" label="globe" icon={<GlobeIcon />} />
+			{/* @ts-expect-error -- intent is required on IconButton */}
+			<IconButton appearance="ghost" label="globe" icon={<GlobeIcon />} />
+			{/* @ts-expect-error -- IconButton draws the neutral tone only */}
+			<IconButton appearance="ghost" intent="accent" label="globe" icon={<GlobeIcon />} />
+			{/* @ts-expect-error -- IconButton draws the neutral tone only */}
+			<IconButton appearance="filled" intent="danger" label="globe" icon={<GlobeIcon />} />
+		</>
+	);
+}

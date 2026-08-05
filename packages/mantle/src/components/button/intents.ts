@@ -1,6 +1,6 @@
 /**
- * The tone axis shared by the button family (`Button` and `IconButton`) —
- * the purpose a button's color communicates to the user:
+ * The tone axis of the text-labelled button family (`Button` and
+ * `SplitButton`) — the purpose a button's color communicates to the user:
  *
  * - `"neutral"` — the workhorse tone: routine and secondary actions, and the
  *   default primary action (`appearance="filled" intent="neutral"`)
@@ -10,7 +10,9 @@
  * - `"danger"` — a destructive or irreversible action
  *
  * There is no default: `intent` is a required prop on the button family so
- * every call site states the tone it means.
+ * every call site states the tone it means. `IconButton` takes the narrower
+ * `IconButtonIntent` — an icon carries no text to name the action a tone
+ * colors, so it draws the neutral tone only.
  *
  * See `decisions/2026-07-13-button-size-and-intent-api.md`.
  *

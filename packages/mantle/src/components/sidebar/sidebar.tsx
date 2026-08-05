@@ -792,8 +792,8 @@ const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNo
  * | --- | --- | --- |
  * | `data-state` | `"expanded"` \| `"collapsed"` | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`. |
  * | `data-slot` | `"sidebar-trigger-tooltip"` | On the tooltip surface, not the button — the styling hook for the label-and-chord popup this part renders. |
- * | `data-appearance` | `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
- * | `data-intent` | `"accent"` \| `"danger"` \| `"neutral"` | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`. |
+ * | `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
+ * | `data-intent` | `"neutral"` | Read, not stamped: the underlying `IconButton` reflects its `intent`, and it draws the neutral tone only. |
  * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebartrigger
@@ -2605,8 +2605,8 @@ const Sidebar = {
 	 * | Data Attribute | Value | Description |
 	 * | --- | --- | --- |
 	 * | `data-state` | `"expanded"` \| `"collapsed"` | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`. |
-	 * | `data-appearance` | `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
-	 * | `data-intent` | `"accent"` \| `"danger"` \| `"neutral"` | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`. |
+	 * | `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
+	 * | `data-intent` | `"neutral"` | Read, not stamped: the underlying `IconButton` reflects its `intent`, and it draws the neutral tone only. |
 	 * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebartrigger

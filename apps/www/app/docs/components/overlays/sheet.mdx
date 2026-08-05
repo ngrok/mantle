@@ -557,12 +557,12 @@ All props from Radix [Dialog.Content](https://www.radix-ui.com/primitives/docs/c
 
 An icon button that closes the `Sheet` when clicked. Should be rendered within the `Sheet.Header` as a child of `Sheet.Actions`.
 
-| Prop          | Type                                           | Default         | Description                                                              |
-| ------------- | ---------------------------------------------- | --------------- | ------------------------------------------------------------------------ |
-| `appearance?` | `"filled"` \| `"ghost"` \| `"outlined"`        | `"ghost"`       | The visual style of the close icon button.                               |
-| `intent?`     | `"accent"` \| `"danger"` \| `"neutral"`        | `"neutral"`     | The tone of the close icon button.                                       |
-| `size?`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | `"md"`          | The size of the close icon button.                                       |
-| `label?`      | `string`                                       | `"Close Sheet"` | The accessible label for the close button. Important for screen readers. |
+| Prop          | Type                                           | Default         | Description                                                                  |
+| ------------- | ---------------------------------------------- | --------------- | ---------------------------------------------------------------------------- |
+| `appearance?` | `"filled"` \| `"ghost"` \| `"outlined"`        | `"ghost"`       | The visual style of the close icon button.                                   |
+| `intent?`     | `"neutral"`                                    | `"neutral"`     | The tone of the close icon button. `IconButton` draws the neutral tone only. |
+| `size?`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | `"md"`          | The size of the close icon button.                                           |
+| `label?`      | `string`                                       | `"Close Sheet"` | The accessible label for the close button. Important for screen readers.     |
 
 All remaining props (except `icon`, which is fixed to an X icon) forward to the [Mantle IconButton](/components/actions/icon-button).
 

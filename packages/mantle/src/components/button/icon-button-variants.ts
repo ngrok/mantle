@@ -1,19 +1,27 @@
 import { cva } from "class-variance-authority";
 import type { VariantProps } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
-import type { ButtonIntent } from "./intents.js";
 import type { ButtonSize } from "./sizes.js";
 
 /**
- * The visual style of an `IconButton`: how much visual weight it carries,
- * independent of its tone (`intent`). The union matches `Button`'s without
- * `link` — an icon-only link has no text to read as a link.
+ * The visual style of an `IconButton`: how much visual weight it carries.
+ * The union matches `Button`'s without `link` — an icon-only link has no text
+ * to read as a link.
  *
  * - `"filled"` — solid fill; the heaviest weight on the page
  * - `"ghost"` — no border or fill until hovered
  * - `"outlined"` — bordered on the form background
  */
 type IconButtonAppearance = "filled" | "ghost" | "outlined";
+
+/**
+ * The tone of an `IconButton` — the purpose its color communicates to the
+ * user. Narrower than `ButtonIntent`: an icon carries no text to name the
+ * action a tone colors, so `IconButton` draws the neutral tone only.
+ *
+ * - `"neutral"` — the workhorse tone; the only tone `IconButton` draws
+ */
+type IconButtonIntent = "neutral";
 
 const baseIconButtonClasses = cx(
 	"icon-button",
@@ -37,27 +45,25 @@ const baseIconButtonClasses = cx(
 const iconButtonVariants = cva(baseIconButtonClasses, {
 	variants: {
 		/**
-		 * The visual style of the IconButton. The base classes carry the accent
-		 * tone; danger and neutral tones override via compoundVariants.
+		 * The visual style of the IconButton. Each appearance carries the neutral
+		 * tone outright, because that is the only tone `IconButton` draws.
 		 */
 		appearance: {
 			filled:
-				"bg-filled-accent text-white focus-visible:ring-focus-accent not-disabled:hover:bg-filled-accent-hover border-transparent",
+				"bg-filled-neutral text-neutral-50 focus-visible:ring-focus-accent focus-visible:border-transparent not-disabled:hover:bg-filled-neutral-hover border-transparent",
 			ghost:
-				"text-accent-600 focus-visible:ring-focus-accent not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 border-transparent",
+				"text-strong focus-visible:ring-focus-accent not-disabled:hover:bg-neutral-500/10 not-disabled:hover:text-strong border-transparent",
 			outlined:
-				"border-accent-600 bg-form text-accent-600 focus-visible:ring-focus-accent not-disabled:hover:border-accent-700 not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700",
+				"border-form bg-form text-strong focus-visible:border-accent-600 focus-visible:ring-focus-accent not-disabled:hover:border-neutral-400 not-disabled:hover:bg-form-hover not-disabled:hover:text-strong focus-visible:not-disabled:hover:border-accent-600 focus-visible:not-disabled:active:border-accent-600",
 		} satisfies Record<IconButtonAppearance, string>,
 		/**
-		 * The tone of the IconButton — the purpose its color communicates. The
-		 * accent tone is styled by the appearance base classes; danger and
-		 * neutral override via compoundVariants.
+		 * The tone of the IconButton. One value, and it styles nothing — the
+		 * appearance classes already draw it. The variant stays so a call site
+		 * that names its tone, like `Calendar`'s nav buttons, keeps compiling.
 		 */
 		intent: {
-			accent: "",
-			danger: "",
 			neutral: "",
-		} satisfies Record<ButtonIntent, string>,
+		} satisfies Record<IconButtonIntent, string>,
 		/**
 		 * Whether the button is in a loading state, default `false`. `isLoading` replaces
 		 * the `icon` with a spinner.
@@ -80,51 +86,9 @@ const iconButtonVariants = cva(baseIconButtonClasses, {
 		} satisfies Record<ButtonSize, string>,
 	},
 	defaultVariants: {
-		// Runtime fallback only: `intent` is required in IconButtonProps, but
-		// untyped call sites that still omit it (the compiler cannot flag them)
-		// must keep the pre-intent neutral rendering, not silently flip to the
-		// accent tone the appearance base classes carry.
 		intent: "neutral",
 		size: "md",
 	},
-	compoundVariants: [
-		{
-			appearance: "ghost",
-			intent: "danger",
-			class:
-				"text-danger-600 focus-visible:ring-focus-danger not-disabled:hover:bg-danger-500/10 not-disabled:hover:text-danger-700 border-transparent",
-		},
-		{
-			appearance: "outlined",
-			intent: "danger",
-			class:
-				"border-danger-600 bg-form text-danger-600 focus-visible:ring-focus-danger not-disabled:hover:border-danger-700 not-disabled:hover:bg-danger-500/10 not-disabled:hover:text-danger-700",
-		},
-		{
-			appearance: "filled",
-			intent: "danger",
-			class:
-				"bg-filled-danger focus-visible:ring-focus-danger not-disabled:hover:bg-filled-danger-hover border-transparent",
-		},
-		{
-			appearance: "ghost",
-			intent: "neutral",
-			class:
-				"text-strong focus-visible:ring-focus-accent not-disabled:hover:bg-neutral-500/10 not-disabled:hover:text-strong border-transparent",
-		},
-		{
-			appearance: "outlined",
-			intent: "neutral",
-			class:
-				"border-form bg-form text-strong focus-visible:border-accent-600 focus-visible:ring-focus-accent not-disabled:hover:border-neutral-400 not-disabled:hover:bg-form-hover not-disabled:hover:text-strong focus-visible:not-disabled:hover:border-accent-600 focus-visible:not-disabled:active:border-accent-600",
-		},
-		{
-			appearance: "filled",
-			intent: "neutral",
-			class:
-				"bg-filled-neutral not-disabled:hover:bg-filled-neutral-hover border-transparent focus-visible:border-transparent text-neutral-50",
-		},
-	],
 });
 
 type IconButtonVariants = VariantProps<typeof iconButtonVariants>;
@@ -137,5 +101,6 @@ export {
 export type {
 	//,
 	IconButtonAppearance,
+	IconButtonIntent,
 	IconButtonVariants,
 };

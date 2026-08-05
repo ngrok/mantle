@@ -202,6 +202,9 @@ const ProductButton = ({ intent = "neutral", ...props }: ProductButtonProps) => 
 - **IconButton ≠ Button parity values.** A bare `Button` becomes `intent="accent"`; a bare
   `IconButton` becomes `intent="neutral"`. Applying the Button rule to IconButton restyles every
   icon button from gray to blue — the most likely mistake in this migration.
+- **IconButton takes `intent="neutral"` alone.** A later change narrowed the union, so step 2's
+  rename turns an `IconButton priority="accent"` or `priority="danger"` into a type error. Reach
+  for `Button` where the tone carries meaning, or drop to `intent="neutral"`.
 - **Filled Buttons that omitted `priority` change pixels — on purpose.** They map to
   `intent="neutral"`, the system's default primary action, not the accent tone they used to
   inherit. This is the only mapping in this guide that changes rendering. Do not "fix" it back
