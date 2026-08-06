@@ -25,6 +25,7 @@ Single source of truth for code style, prose style, patterns, and conventions in
 - Comments explain _why_, not _what_. Do not restate the code. [Writing](#writing) governs how the sentence itself reads.
 - Prefer inline single-use event handlers when they improve locality and readability. Hoist handlers only when reused, memoized, or meaningfully simplifying the render body.
 - Avoid nested ternaries. Prefer early returns or component-based branching. A single ternary is fine; nesting harms readability.
+- Render conditional JSX with `{condition && <Thing />}`, not `{condition ? <Thing /> : null}`. React drops `false` children the same way it drops `null`, so the `: null` arm is noise. Guard non-boolean conditions first (`items.length > 0 && …`) so a `0` or `""` never renders. Use a ternary only when both branches render something.
 - Never use `React.FC` / `FC` — use inline function types.
 - Never use `forwardRef` — mantle targets React 19+, where `ref` is a regular prop. Base props on `ComponentProps<…>` (which includes `ref`) and destructure `ref` from props when the implementation needs it.
 - Prefer named options objects over positional params: any boolean param, 3+ params, or 2 params when call sites would not be self-evident (`fn({ enabled: true })`, not `fn(true)`).
