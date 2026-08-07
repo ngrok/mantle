@@ -36,6 +36,7 @@ const mantleShikiLanguageGrammarIds = [
 	"ruby",
 	"rust",
 	"shell",
+	"terraform",
 	"tsx",
 	"typescript",
 	"xml",

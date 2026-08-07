@@ -61,6 +61,8 @@ describe("foldStrategyFor", () => {
 		expect(foldStrategyFor("csharp")).toBe("bracket");
 		expect(foldStrategyFor("css")).toBe("bracket");
 		expect(foldStrategyFor("json")).toBe("bracket");
+		expect(foldStrategyFor("terraform")).toBe("bracket");
+		expect(foldStrategyFor("tf")).toBe("bracket");
 	});
 
 	test("returns 'indentation' for whitespace-significant languages", () => {

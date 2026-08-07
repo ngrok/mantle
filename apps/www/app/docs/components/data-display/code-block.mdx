@@ -250,7 +250,7 @@ const value = createMantleCodeBlockValue({
 
 ### Foldable code blocks
 
-Code blocks automatically render editor-style fold carets in the gutter for any block whose language has a folding strategy — AST-based (JS/TS/JSX/TSX, HTML, XML), raw-source (JSON, CSS), bracket-paired (Go, Java, C#, Rust), indentation-based (Python, YAML), keyword-paired (Bash/Shell), or bracket + keyword (Ruby). Click the caret (or focus and press `Enter` / `Space`) to collapse the inner lines; the opener and closer lines stay visible, and a `⋯` placeholder marks the collapsed region.
+Code blocks automatically render editor-style fold carets in the gutter for any block whose language has a folding strategy — AST-based (JS/TS/JSX/TSX, HTML, XML), raw-source (JSON, CSS), bracket-paired (Go, Java, C#, Rust, Terraform), indentation-based (Python, YAML), keyword-paired (Bash/Shell), or bracket + keyword (Ruby). Click the caret (or focus and press `Enter` / `Space`) to collapse the inner lines; the opener and closer lines stay visible, and a `⋯` placeholder marks the collapsed region.
 
 Folding is computed before the block reaches the browser, and the entire interaction runs through a single delegated click handler per code block — no per-line listeners and no React re-renders on toggle. This keeps fold/unfold cheap even for code blobs with thousands of lines.
 
