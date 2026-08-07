@@ -1,15 +1,27 @@
 import { supportedLanguages } from "@ngrok/mantle/highlight-utils";
 import { describe, expect, test } from "vitest";
-import { highlightWithMantleShiki } from "./engine.js";
+import { getMantleShikiHighlighter, highlightWithMantleShiki } from "./engine.js";
 
-describe("highlightWithMantleShiki", () => {
-	test("resolves every supported language to its own grammar, never the text fallback", async () => {
+describe("getMantleShikiHighlighter", () => {
+	test("loads a grammar for every supported language outside the plain-text family", async () => {
+		const highlighter = await getMantleShikiHighlighter();
+		const loadedLanguages = highlighter.getLoadedLanguages();
+		// Why the exclusion: Shiki special-cases the plain-text ids and never
+		// registers a grammar for them. Every other supported language must
+		// appear in the loaded list — grammar names and their aliases both
+		// register, so a missing entry in `mantleShikiLanguageGrammarIds`
+		// turns this red.
+		const plainTextFamily = new Set(["plain", "plaintext", "text", "txt"]);
 		for (const language of supportedLanguages) {
-			const result = await highlightWithMantleShiki({ code: "x", language });
-			expect(result.language).toEqual(language);
+			if (plainTextFamily.has(language)) {
+				continue;
+			}
+			expect(loadedLanguages).toContain(language);
 		}
 	});
+});
 
+describe("highlightWithMantleShiki", () => {
 	test("highlights Terraform tokens through the `tf` alias", async () => {
 		const result = await highlightWithMantleShiki({
 			code: 'resource "ngrok_domain" "api" {\n  domain = "api.example.com"\n}',
