@@ -1,5 +1,53 @@
 # @ngrok/mantle
 
+## 0.83.5
+
+### Patch Changes
+
+- [#1412](https://github.com/ngrok/mantle/pull/1412) [`3d5b964`](https://github.com/ngrok/mantle/commit/3d5b964b306d5cc8ac44014be167cbd09e504a00) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `IconButton` gains the `filled` appearance, and narrows `intent` to `"neutral"`.
+
+  Before this, `IconButton` stopped at `ghost` and `outlined`. A primary action that happened to be icon-only had
+  no way to carry the weight its text-labelled sibling carried, so call sites either dropped to `outlined` or
+  hand-rolled the fill. `filled` closes that: `appearance="filled" intent="neutral"` is the same solid box on both
+  components.
+
+  `intent` now takes `"neutral"` alone. An icon carries no text to name the action a tone colors, so an accent or
+  danger icon button reads as decoration rather than as a warning. `intent="accent"` and `intent="danger"` are a
+  type error on `IconButton` and on the wrappers that forward the prop — `Dialog.CloseIconButton`,
+  `Sheet.CloseIconButton`, `Field.HelpTrigger`, `DataTable.ExpandButton`, and `Sidebar.Trigger`. Reach for `Button`
+  where the tone carries meaning. The prop stays required, so a call site reads the same on both components, and a
+  later widening costs no second break. `data-intent` is still stamped, always `"neutral"`.
+
+  `link` stays off the appearance union. An icon-only link has no text to read as a link.
+
+  One shared pair also drifted between the two components. `Button`'s `outlined` + `neutral` kept its accent border
+  while focused and hovered, but dropped back to the resting border the moment the button was pressed;
+  `IconButton` held the accent border through the press. `Button` now holds it too, so a focused button and a
+  focused icon button draw the same border for the whole click.
+
+  ```tsx
+  <IconButton appearance="filled" intent="neutral" icon={<PlusIcon />} label="Create endpoint" />
+  <IconButton appearance="ghost" intent="neutral" icon={<TrashIcon />} label="Delete endpoint" />
+  ```
+
+- [#1425](https://github.com/ngrok/mantle/pull/1425) [`25ed46c`](https://github.com/ngrok/mantle/commit/25ed46c5c85807967f26df8f3e0cfbed626991df) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `terraform` and `tf` join the supported code block languages. `mantleCode("terraform")`, Markdown fences, and the server highlighter render HCL with Shiki's Terraform grammar, which ships in the existing `shiki` dependency.
+
+  Terraform blocks fold as bracket pairs — `resource "type" "name" { … }`, object values, and multi-line lists all get gutter toggles. Indentation normalizes to spaces, which matches `terraform fmt`.
+
+- [#1419](https://github.com/ngrok/mantle/pull/1419) [`5ee7365`](https://github.com/ngrok/mantle/commit/5ee736595b0106d2fb873e93e3501610cafbd2d8) Thanks [@forzalupo](https://github.com/forzalupo)! - `TextArea` now renders its default appearance at the same font size as `Input` and `Select`, and its
+  `monospaced` appearance a step smaller.
+
+  The default (non-monospaced) `TextArea` only set `pointer-coarse:text-base`, so on a fine pointer (desktop) it
+  had no font-size class and fell back to the 16px UA/root default — 2px larger than the `text-sm` (14px) that
+  `Input` and `Select` use. Adding the missing `text-sm` base brings it in line: 14px on desktop, 16px on touch,
+  matching the other form controls.
+
+  The `monospaced` appearance drops from the arbitrary `0.8125rem`/`0.9375rem` sizes to `text-xs/5` on desktop
+  (12px font with the `text-sm` `1.25rem` line-height, so its rows and baseline stay aligned with the default
+  appearance) and `pointer-coarse:text-base` (16px) on touch. The 16px touch size matches the other form
+  controls and, crucially, stays at or above the 16px threshold that iOS Safari uses to decide whether to
+  auto-zoom into a focused field — so tapping the monospaced textarea on iOS no longer triggers a zoom.
+
 ## 0.83.4
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.1.6
+
+### Patch Changes
+
+- Updated dependencies [[`25ed46c`](https://github.com/ngrok/mantle/commit/25ed46c5c85807967f26df8f3e0cfbed626991df)]:
+  - @ngrok/mantle-server-syntax-highlighter@1.1.11
+
 ## 1.1.5
 
 ### Patch Changes
