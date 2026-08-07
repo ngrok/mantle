@@ -280,6 +280,11 @@
 			"types": "./dist/pagination.d.ts",
 			"import": "./dist/pagination.js"
 		},
+		"./parfait": {
+			"@ngrok/src-live-types": "./src/components/parfait/index.ts",
+			"types": "./dist/parfait.d.ts",
+			"import": "./dist/parfait.js"
+		},
 		"./popover": {
 			"@ngrok/src-live-types": "./src/components/popover/index.ts",
 			"types": "./dist/popover.d.ts",
