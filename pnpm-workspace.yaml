@@ -27,7 +27,7 @@ catalog:
   "@testing-library/dom": "10.4.1"
   "@testing-library/jest-dom": "7.0.0"
   "@testing-library/react": "16.3.2"
-  "@testing-library/user-event": "14.6.1"
+  "@testing-library/user-event": "14.6.3"
   "@tsdown/css": "0.22.14"
   "@types/node": "24.13.3"
   "@vitest/browser-playwright": "4.1.10"
