@@ -3,7 +3,7 @@ import { TooltipProvider } from "@ngrok/mantle/tooltip";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentType } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { AppShellDemo, BridgeShellDemo } from "./app-shell-demo";
+import { AppShellDemo } from "./app-shell-demo";
 
 afterEach(() => {
 	cleanup();
@@ -29,31 +29,19 @@ function openMenu(trigger: HTMLElement) {
 	fireEvent.pointerDown(trigger);
 }
 
-// The settings section is pure composition: the demos derive it from their
-// location and swap what Sidebar.Header and Sidebar.Body render. These cover
+// The settings section is pure composition: the demo derives it from its
+// location and swaps what Sidebar.Header and Sidebar.Body render. These cover
 // the swap in both directions, since a silent break here reads as a working
-// demo (the product nav never leaves). Each shell offers the section
-// where its own information architecture puts it — the multi-product shell in
-// the footer's account menu, the bridge shell as a pinned footer link.
-describe.each([
-	{
-		name: "AppShellDemo",
-		Demo: AppShellDemo,
-		enterSettings: () => {
-			openMenu(screen.getByRole("button", { name: /Acme Corp/ }));
-			fireEvent.click(screen.getByRole("menuitem", { name: "Account settings" }));
-		},
-	},
-	{
-		name: "BridgeShellDemo",
-		Demo: BridgeShellDemo,
-		enterSettings: () => {
-			fireEvent.click(screen.getByRole("link", { name: "Account settings" }));
-		},
-	},
-])("$name settings section", ({ Demo, enterSettings }) => {
+// demo (the product nav never leaves). The shell offers the section where its
+// information architecture puts it — the footer's account menu.
+describe("AppShellDemo settings section", () => {
+	function enterSettings() {
+		openMenu(screen.getByRole("button", { name: /Acme Corp/ }));
+		fireEvent.click(screen.getByRole("menuitem", { name: "Account settings" }));
+	}
+
 	it("shows the product navigation under the Main landmark by default", () => {
-		renderShell(Demo);
+		renderShell(AppShellDemo);
 
 		expect(screen.getByRole("navigation", { name: "Main" })).toBeDefined();
 		expect(screen.getByRole("link", { name: "Endpoints" })).toBeDefined();
@@ -61,7 +49,7 @@ describe.each([
 	});
 
 	it("swaps the navigation and renames the landmark when the section is entered", () => {
-		renderShell(Demo);
+		renderShell(AppShellDemo);
 
 		enterSettings();
 
@@ -77,7 +65,7 @@ describe.each([
 	});
 
 	it("returns to the product page the reader left", () => {
-		renderShell(Demo);
+		renderShell(AppShellDemo);
 
 		fireEvent.click(screen.getByRole("link", { name: "Agents" }));
 		enterSettings();
@@ -90,16 +78,13 @@ describe.each([
 	});
 });
 
-// Both shells share the footer's Help row: a Sidebar.ItemButton composed as a
+// The footer's Help row: a Sidebar.ItemButton composed as a
 // DropdownMenu.Trigger. The row is a menu button, not a link, and its items are
 // menu items — a regression here (a plain row, or items that stop rendering)
 // reads as a working demo until a reader clicks it.
-describe.each([
-	{ name: "AppShellDemo", Demo: AppShellDemo },
-	{ name: "BridgeShellDemo", Demo: BridgeShellDemo },
-])("$name footer help menu", ({ Demo }) => {
+describe("AppShellDemo footer help menu", () => {
 	it("opens a menu of help destinations from the footer row", () => {
-		renderShell(Demo);
+		renderShell(AppShellDemo);
 
 		openMenu(screen.getByRole("button", { name: "Help" }));
 
