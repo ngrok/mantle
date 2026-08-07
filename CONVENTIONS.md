@@ -201,6 +201,12 @@ follow, and both bind `packages/` and `apps/` alike. The mechanism, the update-b
 and the rejected alternatives are in
 [`decisions/2026-08-04-translation-safe-label-wrappers.md`](./decisions/2026-08-04-translation-safe-label-wrappers.md).
 
+`oxlint` reports all three shapes through [`@ngrok/oxlint-plugin`](./packages/oxlint-plugin/README.md). This
+repo loads it from source, and any other repo installs it from npm — its README carries the config. The rules
+are not a substitute for reading the section: each one skips the branch it cannot read statically, so
+`{expanded && belowTheFold}` and a component that wraps an untranslatable string both pass a clean lint. Name
+such a component in the `jsx-require-translate-no` `elements` option when you add one.
+
 ### Never render a conditional element immediately before bare text children
 
 ```tsx

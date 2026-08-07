@@ -1,0 +1,53 @@
+{
+  "name": "@ngrok/oxlint-plugin",
+  "version": "0.0.0",
+  "description": "ngrok's house oxlint rules, including the browser-translation crash rules for JSX.",
+  "keywords": [
+    "jsx",
+    "oxlint",
+    "oxlint-plugin",
+    "react",
+    "translation"
+  ],
+  "homepage": "https://mantle.ngrok.com",
+  "license": "MIT",
+  "author": "ngrok",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ngrok/mantle"
+  },
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "@ngrok/src-live-types": "./src/index.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "prepack": "node ../../scripts/clean-publish-manifest.js clean",
+    "postpack": "node ../../scripts/clean-publish-manifest.js restore",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@cfg/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "oxlint": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "oxlint": "^1.77.0"
+  },
+  "engines": {
+    "node": "^24.0.0"
+  }
+}

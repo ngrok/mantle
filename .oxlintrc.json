@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": ["./packages/oxlint-plugin/src/index.ts"],
   "plugins": [
     "jsdoc",
     "jsx-a11y",
@@ -48,6 +49,9 @@
     "jsdoc/require-property": "off",
     "jsdoc/require-throws-description": "warn",
     "jsdoc/require-yields": "off",
+    "ngrok/jsx-no-conditional-before-text": "error",
+    "ngrok/jsx-no-conditional-text-with-siblings": "error",
+    "ngrok/jsx-require-translate-no": "error",
     "no-explicit-any": "warn",
     "no-fallthrough": "error",
     "no-promise-executor-return": "error",

@@ -226,7 +226,7 @@ describe("Sidebar.Nav (desktop)", () => {
 		render(
 			<Sidebar.Root>
 				<Sidebar.Nav />
-				<Sidebar.Trigger shortcut={<kbd>B</kbd>} />
+				<Sidebar.Trigger shortcut={<kbd translate="no">B</kbd>} />
 			</Sidebar.Root>,
 		);
 
@@ -242,7 +242,7 @@ describe("Sidebar.Nav (desktop)", () => {
 		render(
 			<Sidebar.Root keyboardShortcut={false}>
 				<Sidebar.Nav />
-				<Sidebar.Trigger shortcut={<kbd>B</kbd>} />
+				<Sidebar.Trigger shortcut={<kbd translate="no">B</kbd>} />
 			</Sidebar.Root>,
 		);
 
@@ -1116,7 +1116,7 @@ describe("Sidebar.SearchTrigger", () => {
 		// The chord is announced by the `aria-keyshortcuts` that
 		// `Command.SearchTrigger` adds, so the visible chips must not repeat it.
 		render(
-			<Sidebar.SearchTrigger shortcut={<kbd>K</kbd>}>
+			<Sidebar.SearchTrigger shortcut={<kbd translate="no">K</kbd>}>
 				<MagnifyingGlassIcon />
 				<span>Search</span>
 			</Sidebar.SearchTrigger>,
@@ -1151,7 +1151,7 @@ describe("Sidebar.SearchTrigger", () => {
 				<Sidebar.Root defaultOpen={false}>
 					<Sidebar.Nav>
 						<Command.DialogRoot keyboardShortcut={false}>
-							<Sidebar.Tooltip label="Search" shortcut={<kbd>K</kbd>}>
+							<Sidebar.Tooltip label="Search" shortcut={<kbd translate="no">K</kbd>}>
 								<Command.SearchTrigger>
 									<Sidebar.SearchTrigger>
 										<MagnifyingGlassIcon />

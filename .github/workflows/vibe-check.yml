@@ -207,7 +207,18 @@ jobs:
             --concurrency="${TURBO_TEST_CONCURRENCY}" \
             --continue=always \
             --filter='!@ngrok/mantle' \
+            --filter='!@ngrok/oxlint-plugin' \
             -- --shard="${{ matrix.shard }}/${{ matrix.shard_total }}" --maxWorkers="${TURBO_TEST_CONCURRENCY}" || non_mantle_status=$?
+
+          # `@ngrok/oxlint-plugin` runs unsharded: vitest rejects a shard count that is not below
+          # the number of test files, and this package has fewer files than there are shards. The
+          # whole suite takes about 200ms, so every shard runs it rather than one shard owning it.
+          oxlint_plugin_status=0
+          pnpm exec turbo run test \
+            --concurrency="${TURBO_TEST_CONCURRENCY}" \
+            --continue=always \
+            --filter='@ngrok/oxlint-plugin' \
+            -- --maxWorkers="${TURBO_TEST_CONCURRENCY}" || oxlint_plugin_status=$?
 
           mantle_status=0
           pnpm exec turbo run test \
@@ -217,9 +228,10 @@ jobs:
             -- --project=unit --shard="${{ matrix.shard }}/${{ matrix.shard_total }}" --maxWorkers="${TURBO_TEST_CONCURRENCY}" || mantle_status=$?
 
           echo "non-mantle test status: ${non_mantle_status}"
+          echo "oxlint-plugin test status: ${oxlint_plugin_status}"
           echo "mantle unit test status: ${mantle_status}"
 
-          if [[ "${non_mantle_status}" -ne 0 || "${mantle_status}" -ne 0 ]]; then
+          if [[ "${non_mantle_status}" -ne 0 || "${oxlint_plugin_status}" -ne 0 || "${mantle_status}" -ne 0 ]]; then
             exit 1
           fi
 
