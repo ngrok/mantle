@@ -31,11 +31,12 @@ type PreviewSourceModule = {
 
 /**
  * Every demo module that owns a framed preview, deduped and sorted by path.
- * Several previews can share one module (`app-shell` and `bridge-shell` both
- * live in `app-shell-demo.tsx`), so each module appears once and names all of
- * them. Throws when a registered `sourceFile` matches no module, because that is
- * a renamed file the registry never heard about — and the alternative is a
- * silent hole in the published docs.
+ * Several previews can share one module (`centered-layout` and
+ * `centered-layout-header` both live in `centered-layout-demos.tsx`), so each
+ * module appears once and names all of them. Throws when a registered
+ * `sourceFile` matches no module, because that is a renamed file the registry
+ * never heard about — and the alternative is a silent hole in the published
+ * docs.
  *
  * @example
  * ```ts

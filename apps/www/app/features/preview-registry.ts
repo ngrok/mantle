@@ -2,7 +2,7 @@ import type { ComponentType } from "react";
 import { AlertCenterShellDemo } from "~/features/alert-center-demos";
 import { AppLayoutDemo } from "~/features/app-layout-demos";
 import { AppLayoutEditorDemo, AppLayoutPinnedFooterDemo } from "~/features/app-layout-editor-demo";
-import { AppShellDemo, BridgeShellDemo } from "~/features/app-shell-demo";
+import { AppShellDemo } from "~/features/app-shell-demo";
 import { CommandSearchShellDemo } from "~/features/command-demos";
 import {
 	CenteredLayoutDemo,
@@ -70,11 +70,6 @@ export const previewExamples = {
 		title: "Sidebar search trigger demo",
 		Component: CommandSearchShellDemo,
 		sourceFile: "command-demos.tsx",
-	},
-	"bridge-shell": {
-		title: "Bridge shell demo",
-		Component: BridgeShellDemo,
-		sourceFile: "app-shell-demo.tsx",
 	},
 	"app-layout-standalone": {
 		title: "Standalone app layout demo",

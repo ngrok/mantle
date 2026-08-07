@@ -36,13 +36,19 @@ describe("collectPreviewSources", () => {
 	it("lists a module once, however many previews it renders", () => {
 		const modules = collectPreviewSources();
 		const paths = modules.map((module) => module.path);
-		const appShell = modules.filter((module) => module.path.endsWith("app-shell-demo.tsx"));
+		const centeredLayout = modules.filter((module) =>
+			module.path.endsWith("centered-layout-demos.tsx"),
+		);
 
-		// deduped and sorted: publishing app-shell-demo.tsx twice would double the
-		// biggest module in /llms-full.txt
+		// deduped and sorted: publishing centered-layout-demos.tsx three times
+		// would triple the module in /llms-full.txt
 		expect(paths).toEqual([...new Set(paths)].toSorted());
-		expect(appShell).toHaveLength(1);
-		expect(appShell[0]?.previewNames.toSorted()).toEqual(["app-shell", "bridge-shell"]);
+		expect(centeredLayout).toHaveLength(1);
+		expect(centeredLayout[0]?.previewNames.toSorted()).toEqual([
+			"centered-layout",
+			"centered-layout-header",
+			"centered-layout-notice",
+		]);
 	});
 
 	// `/llms-full.txt` wraps each source in a ```tsx fence. A demo module's own
