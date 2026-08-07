@@ -78,6 +78,8 @@ const spaceIndentedLanguages = [
 	"yml",
 	"ruby",
 	"rb",
+	"terraform",
+	"tf",
 ] as const satisfies SupportedLanguage[];
 
 const spaceIndentedLanguageSet = new Set<string>(spaceIndentedLanguages);

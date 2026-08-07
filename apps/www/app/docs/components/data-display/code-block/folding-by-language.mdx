@@ -17,6 +17,7 @@ import {
 	FoldingPythonDemo,
 	FoldingRubyDemo,
 	FoldingRustDemo,
+	FoldingTerraformDemo,
 	FoldingTsxDemo,
 	FoldingTypeScriptDemo,
 	FoldingXmlDemo,
@@ -31,7 +32,7 @@ Mantle dispatches each supported language to the folding strategy that best fits
 - **AST-based (HTML / XML)** — `parse5` tokenizes the source with `sourceCodeLocationInfo`, so void elements never open folds, self-closing XML tags are honored, and nested content inside `<template>` folds normally. Multi-line opening tags fold their attribute list into the tag name.
 - **Raw-source (CSS / JSON)** — single-pass, parser-quality delimiter matchers. CSS folds `{ … }`; JSON folds `{ … }` and `[ … ]`; both skip strings and escapes, and CSS also skips comments.
 - **Indentation-based (Python / YAML)** — blocks are detected by leading whitespace; the opener line stays visible and child lines collapse.
-- **Bracket-paired (Go / Rust / Java / C#)** — multi-line `{ … }` / `[ … ]` ranges fold via TextMate-scope-aware token walking; brackets inside strings, comments, or regular expressions are ignored.
+- **Bracket-paired (Go / Rust / Java / C# / Terraform)** — multi-line `{ … }` / `[ … ]` ranges fold via TextMate-scope-aware token walking; brackets inside strings, comments, or regular expressions are ignored.
 - **Keyword-paired (Bash / Shell)** — opener / closer keyword pairs from VS Code's grammars: `if … fi`, `case … esac`, `for|while|until|select … do … done`, and brace-form function bodies. Same-line close markers are command-boundary aware, so variables or arguments named `done`, `fi`, or `esac` do not suppress valid folds.
 - **Bracket + keyword (Ruby)** — combines bracket-paired folding (block-style `{ … }`, arrays) with Ruby's keyword pairs: `def`, `class`, `module`, `begin`, `do`, `if`, `case`, etc., all closing on `end`.
 
@@ -114,6 +115,12 @@ XML-mode parsing routes through `parse5`'s SVG fragment context for XML-like (fo
 ### Rust
 
 <FoldingRustDemo />
+
+### Terraform
+
+HCL blocks (`resource "type" "name" { … }`), object values, and multi-line lists all fold as bracket pairs.
+
+<FoldingTerraformDemo />
 
 ## Keyword-paired languages
 

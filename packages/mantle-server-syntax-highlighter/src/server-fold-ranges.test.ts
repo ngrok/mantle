@@ -53,12 +53,14 @@ describe("serverFoldStrategyFor", () => {
 		expect(serverFoldStrategyFor("txt")).toBe("none");
 	});
 
-	test("dispatches Go / Rust / Java / C# to the bracket strategy", () => {
+	test("dispatches Go / Rust / Java / C# / Terraform to the bracket strategy", () => {
 		expect(serverFoldStrategyFor("go")).toBe("token-bracket");
 		expect(serverFoldStrategyFor("rust")).toBe("token-bracket");
 		expect(serverFoldStrategyFor("java")).toBe("token-bracket");
 		expect(serverFoldStrategyFor("csharp")).toBe("token-bracket");
 		expect(serverFoldStrategyFor("cs")).toBe("token-bracket");
+		expect(serverFoldStrategyFor("terraform")).toBe("token-bracket");
+		expect(serverFoldStrategyFor("tf")).toBe("token-bracket");
 	});
 });
 

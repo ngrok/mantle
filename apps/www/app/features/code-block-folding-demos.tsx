@@ -390,6 +390,52 @@ export function FoldingRustDemo() {
 	);
 }
 
+/** Terraform fold demo — bracket-paired strategy. */
+export function FoldingTerraformDemo() {
+	return (
+		<CodeBlock.Root>
+			<CodeBlock.Header>
+				<CodeBlock.Icon preset="file" />
+				<CodeBlock.Title>main.tf</CodeBlock.Title>
+			</CodeBlock.Header>
+			<CodeBlock.Body>
+				<CodeBlock.CopyButton />
+				<CodeBlock.Code
+					value={mantleCode("terraform")`
+							resource "ngrok_domain" "api" {
+							  domain      = "api.example.com"
+							  description = "Production API"
+							}
+
+							resource "ngrok_cloud_endpoint" "api" {
+							  url         = "https://\${ngrok_domain.api.domain}"
+							  description = "Production API endpoint"
+
+							  traffic_policy = jsonencode({
+							    on_http_request = [
+							      {
+							        name = "RateLimit"
+							        actions = [{
+							          type = "rate-limit"
+							          config = {
+							            name       = "per-ip"
+							            algorithm  = "sliding_window"
+							            capacity   = 100
+							            rate       = "60s"
+							            bucket_key = ["conn.client_ip"]
+							          }
+							        }]
+							      },
+							    ]
+							  })
+							}
+						`}
+				/>
+			</CodeBlock.Body>
+		</CodeBlock.Root>
+	);
+}
+
 /** Ruby fold demo — bracket + keyword strategy. */
 export function FoldingRubyDemo() {
 	return (

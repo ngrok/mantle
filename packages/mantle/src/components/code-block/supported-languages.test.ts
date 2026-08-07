@@ -35,6 +35,11 @@ describe("parseLanguage", () => {
 		expect(lang).toEqual("tsx");
 	});
 
+	test("given terraform language classes, returns the terraform languages", () => {
+		expect(parseLanguage("language-terraform")).toEqual("terraform");
+		expect(parseLanguage("lang-tf")).toEqual("tf");
+	});
+
 	test("given `language-${supportedLanguage}`, returns that language", () => {
 		for (const lang of supportedLanguages) {
 			const className = `language-${lang}` as const;
