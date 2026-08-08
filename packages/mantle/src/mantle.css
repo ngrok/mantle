@@ -230,6 +230,14 @@ MARK: THEME
 	--color-card-border-muted: var(--color-card-border-muted);
 	--color-separator: var(--color-separator);
 
+	/* Steps tokens — the rail and marker fill, and the number painted on the
+	   marker. Both are opaque in all four themes: the marker's stubs overlay the
+	   rail in the same color, and a translucent fill double-composites there and
+	   shows a seam. The two move together, so a theme that darkens the rail
+	   lightens the number. steps/tokens.test.tsx re-measures both. */
+	--color-steps-rail: var(--color-steps-rail);
+	--color-steps-number: var(--color-steps-number);
+
 	--color-active-menu-item: var(--color-active-menu-item);
 	--color-selected-menu-item: var(--color-selected-menu-item);
 	--color-active-selected-menu-item: var(--color-active-selected-menu-item);
@@ -372,6 +380,12 @@ from `:root` (see MARK: INVERT THEME below).
 	--color-card-border: var(--color-neutral-300);
 	--color-card-border-muted: var(--color-neutral-200);
 	--color-separator: --alpha(var(--color-gray-500) / 0.2);
+
+	/* The rail runs beside the panels a step's content sits in, so it takes the
+	   same step the card borders take. The number rides the far end of the same
+	   neutral ramp, which inverts with the theme. */
+	--color-steps-rail: var(--color-neutral-300);
+	--color-steps-number: var(--color-neutral-950);
 
 	--color-active-menu-item: --alpha(var(--color-neutral-500) / 0.05);
 	--color-selected-menu-item: --alpha(var(--color-accent-500) / 0.1);

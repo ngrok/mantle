@@ -152,6 +152,7 @@ export default [
 		...docRoute("components/structure/card"),
 		...docRoute("components/structure/media-object"),
 		...docRoute("components/structure/separator"),
+		...docRoute("components/structure/steps"),
 		...docRoute("components/structure/well"),
 
 		// hooks 🪝
