@@ -52,6 +52,36 @@ export function BreadcrumbSlashSeparatorExample() {
 	);
 }
 
+export function BreadcrumbPrefixCrumbExample() {
+	return (
+		<Breadcrumb.Root>
+			<Breadcrumb.List>
+				<Breadcrumb.Item>
+					<Breadcrumb.Label>Settings</Breadcrumb.Label>
+				</Breadcrumb.Item>
+				<Breadcrumb.Separator />
+				<Breadcrumb.Item>
+					<Breadcrumb.Page>General</Breadcrumb.Page>
+				</Breadcrumb.Item>
+			</Breadcrumb.List>
+		</Breadcrumb.Root>
+	);
+}
+
+export function BreadcrumbSkeletonExample() {
+	return (
+		<Breadcrumb.Root>
+			<Breadcrumb.List>
+				<Breadcrumb.Item>
+					<Breadcrumb.Link href="#">Apps</Breadcrumb.Link>
+				</Breadcrumb.Item>
+				<Breadcrumb.Separator />
+				<Breadcrumb.Skeleton className="w-40" />
+			</Breadcrumb.List>
+		</Breadcrumb.Root>
+	);
+}
+
 export function BreadcrumbOverflowExample() {
 	return (
 		<div className="border-card-muted bg-card flex w-full max-w-sm items-center gap-2 rounded-lg border px-4 py-3">
@@ -172,20 +202,26 @@ Breadcrumb.Root
     ├── Breadcrumb.Item
     │   └── Breadcrumb.Link
     ├── Breadcrumb.Separator
-    └── Breadcrumb.Item
-        └── Breadcrumb.Page
+    ├── Breadcrumb.Item
+    │   └── Breadcrumb.Label
+    ├── Breadcrumb.Separator
+    ├── Breadcrumb.Item
+    │   └── Breadcrumb.Page
+    └── Breadcrumb.Skeleton
 ```
 
 - **`Root`** is the `<nav>` landmark, labeled `"Breadcrumb"` by default (overridable via `aria-label`). It carries no visual styling of its own.
 - **`List`** is the `<ol>` — an ordered list, because the order of the items **is** the hierarchy, from the root to the current page. It lays the crumbs out in one row and scrolls them sideways when the trail is wider than its container (see [Overflow](#overflow)).
-- **`Item`** is one crumb: an `<li>` wrapping a `Link` or the `Page`.
+- **`Item`** is one crumb: an `<li>` wrapping a `Link`, a `Label`, or the `Page`.
 - **`Link`** is a plain `<a>` to an ancestor page; compose it onto your router's link via `asChild`.
+- **`Label`** is a crumb that is not a link — a level with no page of its own (see [The prefix crumb](#the-prefix-crumb)). A `<span>` with no `aria-current`.
 - **`Page`** marks the current page — a `<span>` with `aria-current="page"`, not a link.
 - **`Separator`** is a purely visual divider between crumbs (`role="presentation"`, `aria-hidden`), rendering a caret by default.
+- **`Skeleton`** is the placeholder crumb for a label that is still loading (see [The pending trail](#the-pending-trail)): one `<li>` as a crumb-sized pulsing bar with a screen-reader-only status announcement.
 
 ## Polymorphism
 
-Every part supports `asChild`. The one that matters most is `Breadcrumb.Link`: the component never imports a router, so compose the link styling onto your framework's link — a `react-router` `Link` here — to get client-side navigation:
+Every part except `Breadcrumb.Skeleton` supports `asChild` — the skeleton's whole value is the placeholder content it generates, so there is no element to swap. The one that matters most is `Breadcrumb.Link`: the component never imports a router, so compose the link styling onto your framework's link — a `react-router` `Link` here — to get client-side navigation:
 
 <Example>
 	<BreadcrumbRouterLinkExample />
@@ -215,6 +251,66 @@ import { Link, href } from "react-router";
 	</Breadcrumb.List>
 </Breadcrumb.Root>;
 ```
+
+## The prefix crumb
+
+Not every crumb is a destination. In a trail like `Settings > General`, `Settings` is a section prefix: its index URL only redirects to `/settings/general`, so a link there would bounce the user back to the page they are already on. Render that crumb as a `Breadcrumb.Label` — muted text like the rest of the trail, with no `href` and no `aria-current`:
+
+<Example>
+	<BreadcrumbPrefixCrumbExample />
+</Example>
+
+```tsx
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+
+<Breadcrumb.Root>
+	<Breadcrumb.List>
+		<Breadcrumb.Item>
+			<Breadcrumb.Label>Settings</Breadcrumb.Label>
+		</Breadcrumb.Item>
+		<Breadcrumb.Separator />
+		<Breadcrumb.Item>
+			<Breadcrumb.Page>General</Breadcrumb.Page>
+		</Breadcrumb.Item>
+	</Breadcrumb.List>
+</Breadcrumb.Root>;
+```
+
+The label stays an `Item` in the `<ol>`, so it still counts as a step in the trail — assistive technology reads it as a crumb, without offering it as a link. To derive a trail like this from your route tree, see [the prefix crumb in the breadcrumbs-from-routes recipe](/recipes/breadcrumbs-from-routes#the-prefix-crumb): a layout route contributes the label, and its child routes contribute the pages under it.
+
+## The pending trail
+
+Some labels only exist in fetched data — `Apps > my-app > Settings`, where `my-app` is a resource name the URL does not carry. While that query is pending, `Breadcrumb.Skeleton` stands in for the unresolved segment: one crumb-sized pulsing bar, plus a screen-reader-only `role="status"` announcement ("Loading breadcrumbs…" by default; set `label` for localization). The bar is `w-24` by default — pass a `w-*` utility for your best-guess width, so the row's shape holds when the real crumbs replace it:
+
+<Example>
+	<BreadcrumbSkeletonExample />
+</Example>
+
+```tsx
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+
+<Breadcrumb.Root>
+	<Breadcrumb.List>
+		<Breadcrumb.Item>
+			<Breadcrumb.Link href="/apps">Apps</Breadcrumb.Link>
+		</Breadcrumb.Item>
+		<Breadcrumb.Separator />
+		<Breadcrumb.Skeleton className="w-40" />
+	</Breadcrumb.List>
+</Breadcrumb.Root>;
+```
+
+The skeleton is one `<li>`, so the pending segment counts as one crumb until the real items arrive, and the status announcement is all assistive technology hears. One skeleton usually stands in for a whole segment; compose several with `Breadcrumb.Separator` between them when the segment's shape matters. The full pattern — a route contributes a component that shares the page's query and swaps the skeleton for real crumbs on resolve — is [the query-backed crumb in the breadcrumbs-from-routes recipe](/recipes/breadcrumbs-from-routes#choosing-a-label).
+
+## Trails from route matches
+
+`@ngrok/mantle/breadcrumb` also exports the route-trail model the [breadcrumbs-from-routes recipe](/recipes/breadcrumbs-from-routes) builds on: a route names itself in its `handle` export, and a pure builder turns the matched chain into crumbs. The exports are router-agnostic — `buildCrumbs` reads only `id`, `pathname`, and `handle` off each match, which react-router's `UIMatch` satisfies structurally.
+
+- [`routeBreadcrumb`](#routebreadcrumb) creates the crumbs a route contributes: a link crumb by default, `routeBreadcrumb.label` for a [prefix crumb](#the-prefix-crumb) that never links, and `routeBreadcrumb.content` for a segment that renders itself from fetched data (see [The pending trail](#the-pending-trail)).
+- [`buildCrumbs`](#buildcrumbs) derives the resolved trail from `useMatches()`; [`hasBreadcrumb`](#hasbreadcrumb) is the type guard it filters with.
+- `BreadcrumbHandle<TMatch>` types a route's `handle` export; `Crumb` and `ResolvedCrumb` are the discriminated unions the factory and builder produce.
+
+The recipe shows the whole thing wired together, including the one file an app copies — the renderer that owns your router's `Link`.
 
 ## Overflow
 
@@ -278,6 +374,7 @@ Breadcrumb follows the [APG breadcrumb pattern](https://www.w3.org/WAI/ARIA/apg/
 - The trail lives in a `<nav>` landmark labeled `"Breadcrumb"`, so screen reader users can jump straight to it. The label is overridable via `aria-label` on `Root` — do so for localization, or to distinguish multiple breadcrumb trails on one page.
 - The crumbs are an `<ol>`, so assistive technology announces the total count and each item's position — the order conveys the hierarchy.
 - The final crumb is a `Breadcrumb.Page` with `aria-current="page"`, announcing that it represents the current page. It is a `<span>`, not a link — linking to the page you are already on is a trap.
+- A `Breadcrumb.Label` crumb is plain text: no link role, no `aria-current`. Its `Item` stays in the `<ol>`, so screen readers count it as a step in the trail without offering it as a destination.
 - Separators are `role="presentation"` and `aria-hidden="true"`: purely visual, never counted as crumbs, never read aloud.
 
 ## API Reference
@@ -323,6 +420,16 @@ All props from [a](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#a
 | ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Breadcrumb.Link` styling onto alternative element types or your own React components — most commonly your app router's link. |
 
+### Breadcrumb.Label
+
+A crumb that is not a link — a level with no page of its own, such as a section whose index URL only redirects (see [The prefix crumb](#the-prefix-crumb)). It emits no `aria-current` and no link semantics.
+
+All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/span#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                   |
+| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Breadcrumb.Label` styling onto alternative element types or your own React components. |
+
 ### Breadcrumb.Page
 
 The current page — the last crumb. Always emits `aria-current="page"`.
@@ -343,3 +450,66 @@ All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li
 | ----------- | ----------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `children?` | `ReactNode` | `<Icon svg={<CaretRightIcon />} className="size-3.5" />` | The separator glyph. Defaults to a size-3.5 caret icon; pass your own children (e.g. a slash) to replace it. Required when `asChild` is set — the child element is what renders. |
 | `asChild?`  | `boolean`   | `false`                                                  | Use the `asChild` prop to compose the `Breadcrumb.Separator` styling onto alternative element types or your own React components. Requires `children`.                           |
+
+### Breadcrumb.Skeleton
+
+A placeholder crumb for a label that is still loading (see [The pending trail](#the-pending-trail)): one `<li>` as a crumb-sized pulsing bar, plus a screen-reader-only `role="status"` announcement. The bar is `w-24` by default — pass a `w-*` utility in `className` for your best-guess width. It takes no `children` and no `asChild` — the part's whole value is the placeholder bar it renders.
+
+All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes) except `children`, plus:
+
+| Prop     | Type     | Default                  | Description                                                                           |
+| -------- | -------- | ------------------------ | ------------------------------------------------------------------------------------- |
+| `label?` | `string` | `"Loading breadcrumbs…"` | The screen-reader status announcement while the crumb loads. Set it for localization. |
+
+### routeBreadcrumb
+
+Creates the `Crumb` a route contributes (see [Trails from route matches](#trails-from-route-matches)). The plain call creates a link crumb; two members cover the crumbs that are not plain links. There is no page variant on purpose — page-ness is positional, so the renderer draws the deepest crumb as `Breadcrumb.Page`.
+
+```tsx
+import { routeBreadcrumb } from "@ngrok/mantle/breadcrumb";
+
+routeBreadcrumb("Endpoints"); // links to the contributing route's pathname
+routeBreadcrumb("Endpoints", { to: "/endpoints" }); // links to an explicit path
+routeBreadcrumb.label("Settings"); // never links — renders as Breadcrumb.Label
+routeBreadcrumb.content(<AppTrail appId="app_123" />); // renders its own items from query data
+```
+
+| Parameter     | Type        | Description                                                                                                |
+| ------------- | ----------- | ---------------------------------------------------------------------------------------------------------- |
+| `label`       | `ReactNode` | What the crumb says.                                                                                       |
+| `options.to?` | `string`    | Where the crumb links. When omitted, `buildCrumbs` resolves it to the contributing route's own `pathname`. |
+
+### buildCrumbs
+
+Derives the trail — a `ReadonlyArray<ResolvedCrumb>` — from a matched route chain. Pure and router-agnostic: it reads only `id`, `pathname`, and `handle` off each match (the `BreadcrumbMatch` shape), which react-router's `UIMatch` satisfies structurally. Matches without a `breadcrumb` handle contribute nothing.
+
+```tsx
+import { buildCrumbs } from "@ngrok/mantle/breadcrumb";
+import { useMatches } from "react-router";
+
+buildCrumbs(useMatches());
+// [{ kind: "link", key: "endpoints:0", label: "Endpoints", to: "/endpoints" }, …]
+```
+
+### hasBreadcrumb
+
+Whether a route match named itself in the trail — the type guard `buildCrumbs` filters with. Routers type `handle` as `unknown`, and the narrowing is what lets the builder read it without an assertion.
+
+```tsx
+import { hasBreadcrumb } from "@ngrok/mantle/breadcrumb";
+import { useMatches } from "react-router";
+
+useMatches().filter(hasBreadcrumb);
+```
+
+### Crumb types
+
+The types behind the factory and the builder, all exported from `@ngrok/mantle/breadcrumb`:
+
+| Type                       | Description                                                                                                                                                         |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Crumb`                    | One crumb a route contributes — a discriminated union on `kind` (`"link"` \| `"label"` \| `"content"`). Create these with [`routeBreadcrumb`](#routebreadcrumb).    |
+| `ResolvedCrumb`            | A crumb with its link and React key resolved — what a trail renderer consumes. A label crumb carries no `to` at all, so an unlinked link crumb is unrepresentable.  |
+| `RouteBreadcrumb<TMatch>`  | What a route names itself: a static string, or a function of the router's match returning every crumb the route contributes.                                        |
+| `BreadcrumbHandle<TMatch>` | The `handle` shape a route exports to appear in the trail. Pass your router's match type — react-router's `UIMatch` — when the breadcrumb function reads the match. |
+| `BreadcrumbMatch`          | The three fields `buildCrumbs` reads off a match: `id`, `pathname`, and `handle`.                                                                                   |

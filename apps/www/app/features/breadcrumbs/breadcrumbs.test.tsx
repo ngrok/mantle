@@ -1,123 +1,37 @@
 // @vitest-environment happy-dom
+import { Breadcrumb, buildCrumbs, routeBreadcrumb } from "@ngrok/mantle/breadcrumb";
 import { cleanup, render, screen } from "@testing-library/react";
 import { createRoutesStub, MemoryRouter, type UIMatch } from "react-router";
 import { afterEach, describe, expect, it } from "vitest";
 import { Breadcrumbs, RouteBreadcrumbs } from "./breadcrumbs";
-import { buildCrumbs } from "./route-breadcrumb";
 
 afterEach(() => {
 	cleanup();
 });
 
-/**
- * Builds a `UIMatch` fixture. Only the four fields `buildCrumbs` reads are
- * meaningful; the rest of `UIMatch` is irrelevant to it, which is the point of
- * keeping the builder pure.
- */
-function match(fields: {
-	id: string;
-	pathname: string;
-	params?: Record<string, string | undefined>;
-	loaderData?: unknown;
-	handle?: unknown;
-}): UIMatch {
-	return {
-		id: fields.id,
-		pathname: fields.pathname,
-		params: fields.params ?? {},
-		loaderData: fields.loaderData,
-		handle: fields.handle,
-	};
-}
-
 describe("buildCrumbs", () => {
-	it("returns nothing when no route named itself", () => {
-		expect(buildCrumbs([match({ id: "root", pathname: "/" })])).toEqual([]);
-	});
-
-	it("skips routes with no breadcrumb handle — omitting it is the opt-out", () => {
-		const crumbs = buildCrumbs([
-			match({ id: "root", pathname: "/" }),
-			match({ id: "gate", pathname: "/", handle: { requiresAuth: true } }),
-			match({ id: "endpoints", pathname: "/endpoints", handle: { breadcrumb: "Endpoints" } }),
-		]);
-		expect(crumbs.map((crumb) => crumb.label)).toEqual(["Endpoints"]);
-	});
-
-	it("defaults a static crumb's link to the contributing route's pathname", () => {
-		const [crumb] = buildCrumbs([
-			match({ id: "endpoints", pathname: "/endpoints", handle: { breadcrumb: "Endpoints" } }),
-		]);
-		expect(crumb).toEqual({ key: "endpoints:0", label: "Endpoints", to: "/endpoints" });
-	});
-
-	it("derives a label from params", () => {
-		const crumbs = buildCrumbs([
-			match({
-				id: "endpoint",
-				pathname: "/endpoints/cloud/ep_1",
-				params: { endpointId: "ep_1" },
-				handle: { breadcrumb: (m: UIMatch) => [{ label: m.params.endpointId }] },
-			}),
-		]);
-		expect(crumbs.map((crumb) => crumb.label)).toEqual(["ep_1"]);
-	});
-
-	it("derives a label from loaderData, falling back to a param", () => {
-		const handle = {
-			breadcrumb: (m: UIMatch<{ url?: string }>) => [
-				{ label: m.loaderData?.url ?? m.params.endpointId },
-			],
-		};
-		const withData = buildCrumbs([
-			match({
-				id: "endpoint",
-				pathname: "/e/ep_1",
-				params: { endpointId: "ep_1" },
-				loaderData: { url: "https://forward-labels.test" },
-				handle,
-			}),
-		]);
-		const withoutData = buildCrumbs([
-			match({ id: "endpoint", pathname: "/e/ep_1", params: { endpointId: "ep_1" }, handle }),
-		]);
-
-		expect(withData.map((crumb) => crumb.label)).toEqual(["https://forward-labels.test"]);
-		expect(withoutData.map((crumb) => crumb.label)).toEqual(["ep_1"]);
-	});
-
-	it("lets one route contribute several crumbs, for an ancestor it is not nested under", () => {
+	// Mantle owns buildCrumbs' contract; what belongs here is a trail-shaped
+	// assertion per detail URL your app cares about, like this one.
+	it("keeps the ancestor a sibling detail route names for itself", () => {
 		// The sibling-route case: `endpoints/:type/:id` is registered beside
 		// `endpoints`, not inside it, so the detail route has to name the ancestor.
 		const crumbs = buildCrumbs([
-			match({
+			{
 				id: "endpoint",
 				pathname: "/endpoints/cloud/ep_1",
-				params: { endpointId: "ep_1" },
 				handle: {
-					breadcrumb: (m: UIMatch) => [
-						{ label: "Endpoints", to: "/endpoints" },
-						{ label: m.params.endpointId },
+					breadcrumb: () => [
+						routeBreadcrumb("Endpoints", { to: "/endpoints" }),
+						routeBreadcrumb("ep_1"),
 					],
 				},
-			}),
+			},
 		]);
 
 		expect(crumbs).toEqual([
-			{ key: "endpoint:0", label: "Endpoints", to: "/endpoints" },
-			{ key: "endpoint:1", label: "ep_1", to: "/endpoints/cloud/ep_1" },
+			{ kind: "link", key: "endpoint:0", label: "Endpoints", to: "/endpoints" },
+			{ kind: "link", key: "endpoint:1", label: "ep_1", to: "/endpoints/cloud/ep_1" },
 		]);
-	});
-
-	it("keys stay unique when one route contributes several crumbs", () => {
-		const crumbs = buildCrumbs([
-			match({
-				id: "endpoint",
-				pathname: "/e",
-				handle: { breadcrumb: () => [{ label: "a" }, { label: "b" }, { label: "c" }] },
-			}),
-		]);
-		expect(new Set(crumbs.map((crumb) => crumb.key)).size).toBe(crumbs.length);
 	});
 });
 
@@ -137,8 +51,8 @@ describe("Breadcrumbs", () => {
 			<MemoryRouter>
 				<Breadcrumbs
 					crumbs={[
-						{ key: "endpoints:0", label: "Endpoints", to: "/endpoints" },
-						{ key: "endpoint:0", label: "ep_1", to: "/endpoints/cloud/ep_1" },
+						{ kind: "link", key: "endpoints:0", label: "Endpoints", to: "/endpoints" },
+						{ kind: "link", key: "endpoint:0", label: "ep_1", to: "/endpoints/cloud/ep_1" },
 					]}
 				/>
 			</MemoryRouter>,
@@ -150,16 +64,65 @@ describe("Breadcrumbs", () => {
 		expect(screen.getByText("ep_1").getAttribute("aria-current")).toBe("page");
 	});
 
-	it("renders an ordered list inside a labeled nav landmark", () => {
-		const { container } = render(
+	it("renders a prefix crumb as plain text — no link, no aria-current", () => {
+		render(
 			<MemoryRouter>
-				<Breadcrumbs crumbs={[{ key: "a:0", label: "Endpoints", to: "/endpoints" }]} />
+				<Breadcrumbs
+					crumbs={[
+						{ kind: "label", key: "settings:0", label: "Settings" },
+						{ kind: "link", key: "general:0", label: "General", to: "/settings/general" },
+					]}
+				/>
 			</MemoryRouter>,
 		);
 
-		expect(screen.getByRole("navigation", { name: "Breadcrumb" })).toBeDefined();
-		expect(container.querySelector("ol")).not.toBeNull();
-		expect(container.querySelectorAll("li")).toHaveLength(1);
+		const settings = screen.getByText("Settings");
+		expect(settings.closest("a")).toBeNull();
+		expect(settings.getAttribute("aria-current")).toBeNull();
+		expect(screen.getByText("General").getAttribute("aria-current")).toBe("page");
+	});
+
+	it("renders a content crumb's own items after its separator", () => {
+		const { container } = render(
+			<MemoryRouter>
+				<Breadcrumbs
+					crumbs={[
+						{ kind: "link", key: "apps:0", label: "Apps", to: "/apps" },
+						{
+							kind: "content",
+							key: "app:0",
+							content: (
+								<Breadcrumb.Item>
+									<Breadcrumb.Page>my-app</Breadcrumb.Page>
+								</Breadcrumb.Item>
+							),
+						},
+					]}
+				/>
+			</MemoryRouter>,
+		);
+
+		expect(screen.getByText("my-app").getAttribute("aria-current")).toBe("page");
+		expect(container.querySelectorAll('[data-slot="breadcrumb-separator"]')).toHaveLength(1);
+	});
+
+	it("renders a pending content crumb as the skeleton placeholder", () => {
+		render(
+			<MemoryRouter>
+				<Breadcrumbs
+					crumbs={[
+						{
+							kind: "content",
+							key: "app:0",
+							content: <Breadcrumb.Skeleton className="w-40" />,
+						},
+					]}
+				/>
+			</MemoryRouter>,
+		);
+
+		expect(screen.getByRole("status").textContent).toBe("Loading breadcrumbs…");
+		expect(screen.queryByRole("link")).toBeNull();
 	});
 });
 
@@ -175,7 +138,7 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 				children: [
 					{
 						path: ":endpointId",
-						handle: { breadcrumb: (m: UIMatch) => [{ label: m.params.endpointId }] },
+						handle: { breadcrumb: (m: UIMatch) => [routeBreadcrumb(m.params.endpointId)] },
 					},
 				],
 			},
@@ -187,6 +150,48 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 		expect(screen.getByText("ep_1").getAttribute("aria-current")).toBe("page");
 	});
 
+	it("renders a layout route's prefix crumb as a non-link", () => {
+		// The settings shape: `/settings` only redirects to `/settings/general`, so
+		// the layout route opts its crumb out of linking with `routeBreadcrumb.label`.
+		const Stub = createRoutesStub([
+			{
+				path: "/settings",
+				handle: { breadcrumb: () => [routeBreadcrumb.label("Settings")] },
+				Component: () => <RouteBreadcrumbs />,
+				children: [{ path: "general", handle: { breadcrumb: "General" } }],
+			},
+		]);
+
+		render(<Stub initialEntries={["/settings/general"]} />);
+
+		const settings = screen.getByText("Settings");
+		expect(settings.closest("a")).toBeNull();
+		expect(settings.getAttribute("aria-current")).toBeNull();
+		expect(screen.getByText("General").getAttribute("aria-current")).toBe("page");
+	});
+
+	it("renders a route's content crumb", () => {
+		const Stub = createRoutesStub([
+			{
+				path: "/apps/:appId",
+				handle: {
+					breadcrumb: () => [
+						routeBreadcrumb.content(
+							<Breadcrumb.Item>
+								<Breadcrumb.Page>my-app</Breadcrumb.Page>
+							</Breadcrumb.Item>,
+						),
+					],
+				},
+				Component: () => <RouteBreadcrumbs />,
+			},
+		]);
+
+		render(<Stub initialEntries={["/apps/app_123"]} />);
+
+		expect(screen.getByText("my-app").getAttribute("aria-current")).toBe("page");
+	});
+
 	it("loses the ancestor when the detail route is a sibling, not a child", () => {
 		// Regression guard on the recipe's central caveat: the trail follows route
 		// NESTING, not URL depth. Registered as siblings, `/endpoints` never matches
@@ -195,7 +200,7 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 			{ path: "/endpoints", handle: { breadcrumb: "Endpoints" } },
 			{
 				path: "/endpoints/:endpointId",
-				handle: { breadcrumb: (m: UIMatch) => [{ label: m.params.endpointId }] },
+				handle: { breadcrumb: (m: UIMatch) => [routeBreadcrumb(m.params.endpointId)] },
 				Component: () => <RouteBreadcrumbs />,
 			},
 		]);

@@ -209,6 +209,52 @@ describe("Breadcrumb", () => {
 		expect(link.className).toContain("router-link");
 	});
 
+	test("Label renders a non-link crumb — no anchor, no aria-current", () => {
+		render(
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Item>
+						<Breadcrumb.Label>Settings</Breadcrumb.Label>
+					</Breadcrumb.Item>
+					<Breadcrumb.Separator />
+					<Breadcrumb.Item>
+						<Breadcrumb.Page>General</Breadcrumb.Page>
+					</Breadcrumb.Item>
+				</Breadcrumb.List>
+			</Breadcrumb.Root>,
+		);
+		const label = screen.getByText("Settings");
+		expect(label.tagName).toBe("SPAN");
+		expect(label).toHaveAttribute("data-slot", "breadcrumb-label");
+		expect(label).not.toHaveAttribute("aria-current");
+		expect(screen.queryByRole("link")).not.toBeInTheDocument();
+		// The prefix names a level, so it counts as a crumb — unlike a separator.
+		expect(screen.getAllByRole("listitem")).toHaveLength(2);
+		expect(screen.getByText("General")).toHaveAttribute("aria-current", "page");
+	});
+
+	test("Label renders as child element when asChild is true, merging className, data attributes, and ref", () => {
+		const ref = createRef<HTMLElement>();
+		render(
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Item>
+						<Breadcrumb.Label asChild className="font-medium" ref={ref}>
+							<span className="section-prefix" data-testid="label">
+								Settings
+							</span>
+						</Breadcrumb.Label>
+					</Breadcrumb.Item>
+				</Breadcrumb.List>
+			</Breadcrumb.Root>,
+		);
+		const label = screen.getByTestId("label");
+		expect(label).toHaveAttribute("data-slot", "breadcrumb-label");
+		expect(label.className).toContain("font-medium");
+		expect(label.className).toContain("section-prefix");
+		expect(ref.current).toBe(label);
+	});
+
 	test("Page renders a span with aria-current=page and is not a link", () => {
 		render(
 			<Breadcrumb.Root>
@@ -346,6 +392,60 @@ describe("Breadcrumb", () => {
 		const separator = screen.getByTestId("separator");
 		expect(separator).toHaveTextContent("/");
 		expect(separator.querySelector("svg")).toBeNull();
+	});
+
+	test("Skeleton renders one crumb-shaped placeholder with a status announcement", () => {
+		render(
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Item>
+						<Breadcrumb.Link href="/apps">Apps</Breadcrumb.Link>
+					</Breadcrumb.Item>
+					<Breadcrumb.Separator />
+					<Breadcrumb.Skeleton data-testid="skeleton" />
+				</Breadcrumb.List>
+			</Breadcrumb.Root>,
+		);
+		const skeleton = screen.getByTestId("skeleton");
+		expect(skeleton.tagName).toBe("LI");
+		// The part composes the Skeleton block onto its own <li>, so the chain
+		// carries both stamps in DOM order.
+		expect(skeleton).toHaveAttribute("data-slot", "skeleton breadcrumb-skeleton");
+		// The placeholder is one crumb until the real one replaces it.
+		expect(screen.getAllByRole("listitem")).toHaveLength(2);
+		expect(screen.getByRole("status")).toHaveTextContent("Loading breadcrumbs…");
+	});
+
+	test("Skeleton's announcement label is overridable for localization", () => {
+		render(
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Skeleton label="Chargement du fil d'Ariane…" />
+				</Breadcrumb.List>
+			</Breadcrumb.Root>,
+		);
+		expect(screen.getByRole("status")).toHaveTextContent("Chargement du fil d'Ariane…");
+		expect(screen.queryByText("Loading breadcrumbs…")).not.toBeInTheDocument();
+	});
+
+	// tailwind-merge override contract: the part is the mantle Skeleton composed
+	// onto an <li>, so the block's own classes must land beside the part's
+	// layout defaults — and a consumer's width must beat the default w-24.
+	test("Skeleton carries the pulsing block's classes, and a consumer width wins", () => {
+		const ref = createRef<HTMLLIElement>();
+		render(
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Skeleton className="w-40" ref={ref} data-testid="skeleton" />
+				</Breadcrumb.List>
+			</Breadcrumb.Root>,
+		);
+		const skeleton = screen.getByTestId("skeleton");
+		expect(ref.current).toBe(skeleton);
+		expect(skeleton.className).toContain("animate-pulse");
+		expect(skeleton.className).toContain("shrink-0");
+		expect(skeleton.className).toContain("w-40");
+		expect(skeleton.className).not.toContain("w-24");
 	});
 
 	test("Separators are excluded from the accessible listitem count", () => {

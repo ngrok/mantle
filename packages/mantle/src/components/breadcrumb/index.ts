@@ -8,3 +8,19 @@ export {
 	//,
 	Breadcrumb,
 } from "./breadcrumb.js";
+
+export {
+	//,
+	buildCrumbs,
+	hasBreadcrumb,
+	routeBreadcrumb,
+} from "./route-breadcrumb.js";
+
+export type {
+	//,
+	BreadcrumbHandle,
+	BreadcrumbMatch,
+	Crumb,
+	ResolvedCrumb,
+	RouteBreadcrumb,
+} from "./route-breadcrumb.js";
