@@ -1,14 +1,16 @@
-import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+import type { ResolvedCrumb } from "@ngrok/mantle/breadcrumb";
+import { Breadcrumb, buildCrumbs } from "@ngrok/mantle/breadcrumb";
 import { Fragment } from "react";
 import { Link, useMatches } from "react-router";
-import type { ResolvedCrumb } from "./route-breadcrumb";
-import { buildCrumbs } from "./route-breadcrumb";
+
+/** A crumb the renderer wraps in its own `Breadcrumb.Item`. */
+type ItemCrumb = Exclude<ResolvedCrumb, { kind: "content" }>;
 
 /**
  * One crumb's content. The deepest crumb is the current page; a label crumb is
  * a plain `Breadcrumb.Label`; every other crumb links to its route.
  */
-function CrumbContent({ crumb, isCurrentPage }: { crumb: ResolvedCrumb; isCurrentPage: boolean }) {
+function CrumbContent({ crumb, isCurrentPage }: { crumb: ItemCrumb; isCurrentPage: boolean }) {
 	if (isCurrentPage) {
 		return <Breadcrumb.Page>{crumb.label}</Breadcrumb.Page>;
 	}
@@ -30,8 +32,11 @@ function CrumbContent({ crumb, isCurrentPage }: { crumb: ResolvedCrumb; isCurren
 
 /**
  * Renders a breadcrumb trail from already-resolved crumbs. The last crumb is the
- * current page (`aria-current="page"`, not a link); every earlier one links to its
- * route, except a label crumb, which renders as a non-link `Breadcrumb.Label`.
+ * current page (`aria-current="page"`, not a link), and every earlier one links
+ * to its route — except a label crumb, which renders as a non-link
+ * `Breadcrumb.Label`, and a content crumb, which renders its own items. A
+ * content crumb decides link vs current page itself, because the renderer
+ * cannot see inside it.
  *
  * Kept separate from {@link RouteBreadcrumbs} so nothing here touches the router:
  * this is the half you can render with a fixture in a test, or in a docs demo that
@@ -58,9 +63,13 @@ function Breadcrumbs({ crumbs }: { crumbs: ReadonlyArray<ResolvedCrumb> }) {
 				{crumbs.map((crumb, index) => (
 					<Fragment key={crumb.key}>
 						{index > 0 && <Breadcrumb.Separator />}
-						<Breadcrumb.Item>
-							<CrumbContent crumb={crumb} isCurrentPage={index === crumbs.length - 1} />
-						</Breadcrumb.Item>
+						{crumb.kind === "content" ? (
+							crumb.content
+						) : (
+							<Breadcrumb.Item>
+								<CrumbContent crumb={crumb} isCurrentPage={index === crumbs.length - 1} />
+							</Breadcrumb.Item>
+						)}
 					</Fragment>
 				))}
 			</Breadcrumb.List>

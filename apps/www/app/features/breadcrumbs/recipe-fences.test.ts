@@ -13,7 +13,6 @@ import { describe, expect, it } from "vitest";
 const RECIPE = "app/docs/recipes/breadcrumbs-from-routes.mdx";
 
 const FENCED_FILES = [
-	"app/features/breadcrumbs/route-breadcrumb.ts",
 	"app/features/breadcrumbs/breadcrumbs.tsx",
 	"app/features/breadcrumbs/breadcrumbs.test.tsx",
 ] as const;

@@ -146,7 +146,7 @@
     "summary": "Hierarchy-path navigation — an ordered list of links from a root to the current page, in a labeled nav landmark.",
     "jsdoc": "Compound component for WAI-ARIA breadcrumb navigation — the path from a root to the current page as an ordered list of links inside a labeled `<nav>` landmark.",
     "examples": [
-      "Composition:\n```\nBreadcrumb.Root\n└── Breadcrumb.List\n    ├── Breadcrumb.Item\n    │   └── Breadcrumb.Link\n    ├── Breadcrumb.Separator\n    ├── Breadcrumb.Item\n    │   └── Breadcrumb.Label\n    ├── Breadcrumb.Separator\n    └── Breadcrumb.Item\n        └── Breadcrumb.Page\n```",
+      "Composition:\n```\nBreadcrumb.Root\n└── Breadcrumb.List\n    ├── Breadcrumb.Item\n    │   └── Breadcrumb.Link\n    ├── Breadcrumb.Separator\n    ├── Breadcrumb.Item\n    │   └── Breadcrumb.Label\n    ├── Breadcrumb.Separator\n    ├── Breadcrumb.Item\n    │   └── Breadcrumb.Page\n    └── Breadcrumb.Skeleton\n```",
       "```tsx\n<Breadcrumb.Root>\n\t<Breadcrumb.List>\n\t\t<Breadcrumb.Item>\n\t\t\t<Breadcrumb.Link href=\"/\">Home</Breadcrumb.Link>\n\t\t</Breadcrumb.Item>\n\t\t<Breadcrumb.Separator />\n\t\t<Breadcrumb.Item>\n\t\t\t<Breadcrumb.Link href=\"/endpoints\">Endpoints</Breadcrumb.Link>\n\t\t</Breadcrumb.Item>\n\t\t<Breadcrumb.Separator />\n\t\t<Breadcrumb.Item>\n\t\t\t<Breadcrumb.Page>ep_2h8…</Breadcrumb.Page>\n\t\t</Breadcrumb.Item>\n\t</Breadcrumb.List>\n</Breadcrumb.Root>\n```"
     ]
   },

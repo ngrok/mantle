@@ -394,6 +394,59 @@ describe("Breadcrumb", () => {
 		expect(separator.querySelector("svg")).toBeNull();
 	});
 
+	test("Skeleton renders one crumb-shaped placeholder with a status announcement", () => {
+		render(
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Item>
+						<Breadcrumb.Link href="/apps">Apps</Breadcrumb.Link>
+					</Breadcrumb.Item>
+					<Breadcrumb.Separator />
+					<Breadcrumb.Skeleton itemCount={3} data-testid="skeleton" />
+				</Breadcrumb.List>
+			</Breadcrumb.Root>,
+		);
+		const skeleton = screen.getByTestId("skeleton");
+		expect(skeleton.tagName).toBe("LI");
+		expect(skeleton).toHaveAttribute("data-slot", "breadcrumb-skeleton");
+		// The placeholder is one crumb until the real items replace it.
+		expect(screen.getAllByRole("listitem")).toHaveLength(2);
+		// Three bars stand in for three crumbs, divided by two carets.
+		expect(skeleton.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(3);
+		expect(skeleton.querySelectorAll("svg")).toHaveLength(2);
+		expect(screen.getByRole("status")).toHaveTextContent("Loading breadcrumbs…");
+	});
+
+	test("Skeleton's announcement label is overridable for localization", () => {
+		render(
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Skeleton itemCount={1} label="Chargement du fil d'Ariane…" />
+				</Breadcrumb.List>
+			</Breadcrumb.Root>,
+		);
+		expect(screen.getByRole("status")).toHaveTextContent("Chargement du fil d'Ariane…");
+		expect(screen.queryByText("Loading breadcrumbs…")).not.toBeInTheDocument();
+	});
+
+	test("Skeleton merges className, forwards a ref, and hides its bars from assistive technology", () => {
+		const ref = createRef<HTMLLIElement>();
+		render(
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Skeleton itemCount={2} className="pl-2" ref={ref} data-testid="skeleton" />
+				</Breadcrumb.List>
+			</Breadcrumb.Root>,
+		);
+		const skeleton = screen.getByTestId("skeleton");
+		expect(ref.current).toBe(skeleton);
+		expect(skeleton.className).toContain("pl-2");
+		expect(skeleton.className).toContain("shrink-0");
+		for (const bar of skeleton.querySelectorAll('[data-slot="skeleton"]')) {
+			expect(bar).toHaveAttribute("aria-hidden", "true");
+		}
+	});
+
 	test("Separators are excluded from the accessible listitem count", () => {
 		render(
 			<Breadcrumb.Root>
