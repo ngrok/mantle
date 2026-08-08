@@ -13,7 +13,7 @@ type Trail = { url: string; crumbs: ReadonlyArray<ResolvedCrumb> };
  */
 const endpointsTrail = {
 	url: "/endpoints",
-	crumbs: [{ key: "endpoints:0", label: "Endpoints", to: "#" }],
+	crumbs: [{ kind: "link", key: "endpoints:0", label: "Endpoints", to: "#" }],
 } satisfies Trail;
 
 /**
@@ -32,26 +32,26 @@ const trails = [
 	{
 		url: "/endpoints/cloud/ep_3Exgo",
 		crumbs: [
-			{ key: "endpoints:0", label: "Endpoints", to: "#" },
+			{ kind: "link", key: "endpoints:0", label: "Endpoints", to: "#" },
 			// derived from loader data, with the URL param as the fallback
-			{ key: "endpoint:0", label: "https://forward-labels.test", to: "#" },
+			{ kind: "link", key: "endpoint:0", label: "https://forward-labels.test", to: "#" },
 		],
 	},
 	{
 		url: "/endpoints/cloud/ep_3Exgo/traffic-policy",
 		crumbs: [
-			{ key: "endpoints:0", label: "Endpoints", to: "#" },
-			{ key: "endpoint:0", label: "https://forward-labels.test", to: "#" },
-			{ key: "traffic-policy:0", label: "Traffic Policy", to: "#" },
+			{ kind: "link", key: "endpoints:0", label: "Endpoints", to: "#" },
+			{ kind: "link", key: "endpoint:0", label: "https://forward-labels.test", to: "#" },
+			{ kind: "link", key: "traffic-policy:0", label: "Traffic Policy", to: "#" },
 		],
 	},
 	{
 		url: "/settings/general",
 		crumbs: [
-			// a prefix crumb: `/settings` only redirects, so `to: null` renders it
-			// as a non-link Breadcrumb.Label
-			{ key: "settings:0", label: "Settings", to: null },
-			{ key: "general:0", label: "General", to: "#" },
+			// a prefix crumb: `/settings` only redirects, so `routeBreadcrumb.label`
+			// makes it a label crumb, rendered as a non-link Breadcrumb.Label
+			{ kind: "label", key: "settings:0", label: "Settings" },
+			{ kind: "link", key: "general:0", label: "General", to: "#" },
 		],
 	},
 ] satisfies ReadonlyArray<Trail>;

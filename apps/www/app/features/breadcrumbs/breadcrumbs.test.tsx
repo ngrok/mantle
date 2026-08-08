@@ -3,7 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { createRoutesStub, MemoryRouter, type UIMatch } from "react-router";
 import { afterEach, describe, expect, it } from "vitest";
 import { Breadcrumbs, RouteBreadcrumbs } from "./breadcrumbs";
-import { buildCrumbs } from "./route-breadcrumb";
+import { buildCrumbs, routeBreadcrumb } from "./route-breadcrumb";
 
 afterEach(() => {
 	cleanup();
@@ -48,7 +48,12 @@ describe("buildCrumbs", () => {
 		const [crumb] = buildCrumbs([
 			match({ id: "endpoints", pathname: "/endpoints", handle: { breadcrumb: "Endpoints" } }),
 		]);
-		expect(crumb).toEqual({ key: "endpoints:0", label: "Endpoints", to: "/endpoints" });
+		expect(crumb).toEqual({
+			kind: "link",
+			key: "endpoints:0",
+			label: "Endpoints",
+			to: "/endpoints",
+		});
 	});
 
 	it("derives a label from params", () => {
@@ -57,7 +62,7 @@ describe("buildCrumbs", () => {
 				id: "endpoint",
 				pathname: "/endpoints/cloud/ep_1",
 				params: { endpointId: "ep_1" },
-				handle: { breadcrumb: (m: UIMatch) => [{ label: m.params.endpointId }] },
+				handle: { breadcrumb: (m: UIMatch) => [routeBreadcrumb(m.params.endpointId)] },
 			}),
 		]);
 		expect(crumbs.map((crumb) => crumb.label)).toEqual(["ep_1"]);
@@ -66,7 +71,7 @@ describe("buildCrumbs", () => {
 	it("derives a label from loaderData, falling back to a param", () => {
 		const handle = {
 			breadcrumb: (m: UIMatch<{ url?: string }>) => [
-				{ label: m.loaderData?.url ?? m.params.endpointId },
+				routeBreadcrumb(m.loaderData?.url ?? m.params.endpointId),
 			],
 		};
 		const withData = buildCrumbs([
@@ -96,28 +101,29 @@ describe("buildCrumbs", () => {
 				params: { endpointId: "ep_1" },
 				handle: {
 					breadcrumb: (m: UIMatch) => [
-						{ label: "Endpoints", to: "/endpoints" },
-						{ label: m.params.endpointId },
+						routeBreadcrumb("Endpoints", { to: "/endpoints" }),
+						routeBreadcrumb(m.params.endpointId),
 					],
 				},
 			}),
 		]);
 
 		expect(crumbs).toEqual([
-			{ key: "endpoint:0", label: "Endpoints", to: "/endpoints" },
-			{ key: "endpoint:1", label: "ep_1", to: "/endpoints/cloud/ep_1" },
+			{ kind: "link", key: "endpoint:0", label: "Endpoints", to: "/endpoints" },
+			{ kind: "link", key: "endpoint:1", label: "ep_1", to: "/endpoints/cloud/ep_1" },
 		]);
 	});
 
-	it("keeps a prefix crumb's `to: null` instead of defaulting it to the pathname", () => {
+	it("resolves routeBreadcrumb.label to a crumb with no destination", () => {
 		const crumbs = buildCrumbs([
 			match({
 				id: "settings",
 				pathname: "/settings",
-				handle: { breadcrumb: () => [{ label: "Settings", to: null }] },
+				handle: { breadcrumb: () => [routeBreadcrumb.label("Settings")] },
 			}),
 		]);
-		expect(crumbs).toEqual([{ key: "settings:0", label: "Settings", to: null }]);
+		// no `to` at all — an unlinked link crumb is unrepresentable
+		expect(crumbs).toEqual([{ kind: "label", key: "settings:0", label: "Settings" }]);
 	});
 
 	it("keys stay unique when one route contributes several crumbs", () => {
@@ -125,7 +131,9 @@ describe("buildCrumbs", () => {
 			match({
 				id: "endpoint",
 				pathname: "/e",
-				handle: { breadcrumb: () => [{ label: "a" }, { label: "b" }, { label: "c" }] },
+				handle: {
+					breadcrumb: () => [routeBreadcrumb("a"), routeBreadcrumb("b"), routeBreadcrumb("c")],
+				},
 			}),
 		]);
 		expect(new Set(crumbs.map((crumb) => crumb.key)).size).toBe(crumbs.length);
@@ -148,8 +156,8 @@ describe("Breadcrumbs", () => {
 			<MemoryRouter>
 				<Breadcrumbs
 					crumbs={[
-						{ key: "endpoints:0", label: "Endpoints", to: "/endpoints" },
-						{ key: "endpoint:0", label: "ep_1", to: "/endpoints/cloud/ep_1" },
+						{ kind: "link", key: "endpoints:0", label: "Endpoints", to: "/endpoints" },
+						{ kind: "link", key: "endpoint:0", label: "ep_1", to: "/endpoints/cloud/ep_1" },
 					]}
 				/>
 			</MemoryRouter>,
@@ -166,8 +174,8 @@ describe("Breadcrumbs", () => {
 			<MemoryRouter>
 				<Breadcrumbs
 					crumbs={[
-						{ key: "settings:0", label: "Settings", to: null },
-						{ key: "general:0", label: "General", to: "/settings/general" },
+						{ kind: "label", key: "settings:0", label: "Settings" },
+						{ kind: "link", key: "general:0", label: "General", to: "/settings/general" },
 					]}
 				/>
 			</MemoryRouter>,
@@ -182,7 +190,9 @@ describe("Breadcrumbs", () => {
 	it("renders an ordered list inside a labeled nav landmark", () => {
 		const { container } = render(
 			<MemoryRouter>
-				<Breadcrumbs crumbs={[{ key: "a:0", label: "Endpoints", to: "/endpoints" }]} />
+				<Breadcrumbs
+					crumbs={[{ kind: "link", key: "a:0", label: "Endpoints", to: "/endpoints" }]}
+				/>
 			</MemoryRouter>,
 		);
 
@@ -204,7 +214,7 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 				children: [
 					{
 						path: ":endpointId",
-						handle: { breadcrumb: (m: UIMatch) => [{ label: m.params.endpointId }] },
+						handle: { breadcrumb: (m: UIMatch) => [routeBreadcrumb(m.params.endpointId)] },
 					},
 				],
 			},
@@ -218,11 +228,11 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 
 	it("renders a layout route's prefix crumb as a non-link", () => {
 		// The settings shape: `/settings` only redirects to `/settings/general`, so
-		// the layout route opts its crumb out of linking with `to: null`.
+		// the layout route opts its crumb out of linking with `routeBreadcrumb.label`.
 		const Stub = createRoutesStub([
 			{
 				path: "/settings",
-				handle: { breadcrumb: () => [{ label: "Settings", to: null }] },
+				handle: { breadcrumb: () => [routeBreadcrumb.label("Settings")] },
 				Component: () => <RouteBreadcrumbs />,
 				children: [{ path: "general", handle: { breadcrumb: "General" } }],
 			},
@@ -244,7 +254,7 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 			{ path: "/endpoints", handle: { breadcrumb: "Endpoints" } },
 			{
 				path: "/endpoints/:endpointId",
-				handle: { breadcrumb: (m: UIMatch) => [{ label: m.params.endpointId }] },
+				handle: { breadcrumb: (m: UIMatch) => [routeBreadcrumb(m.params.endpointId)] },
 				Component: () => <RouteBreadcrumbs />,
 			},
 		]);

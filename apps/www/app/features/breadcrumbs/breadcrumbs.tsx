@@ -5,16 +5,15 @@ import type { ResolvedCrumb } from "./route-breadcrumb";
 import { buildCrumbs } from "./route-breadcrumb";
 
 /**
- * One crumb's content. The deepest crumb is the current page; a crumb with no
- * destination (`to: null`) is a plain `Breadcrumb.Label`; every other crumb
- * links to its route.
+ * One crumb's content. The deepest crumb is the current page; a label crumb is
+ * a plain `Breadcrumb.Label`; every other crumb links to its route.
  */
 function CrumbContent({ crumb, isCurrentPage }: { crumb: ResolvedCrumb; isCurrentPage: boolean }) {
 	if (isCurrentPage) {
 		return <Breadcrumb.Page>{crumb.label}</Breadcrumb.Page>;
 	}
 
-	if (crumb.to == null) {
+	if (crumb.kind === "label") {
 		// a section prefix whose index URL only redirects — a link there would
 		// bounce the user back to where they already are
 		return <Breadcrumb.Label>{crumb.label}</Breadcrumb.Label>;
@@ -32,8 +31,7 @@ function CrumbContent({ crumb, isCurrentPage }: { crumb: ResolvedCrumb; isCurren
 /**
  * Renders a breadcrumb trail from already-resolved crumbs. The last crumb is the
  * current page (`aria-current="page"`, not a link); every earlier one links to its
- * route, except a prefix crumb (`to: null`), which renders as a non-link
- * `Breadcrumb.Label`.
+ * route, except a label crumb, which renders as a non-link `Breadcrumb.Label`.
  *
  * Kept separate from {@link RouteBreadcrumbs} so nothing here touches the router:
  * this is the half you can render with a fixture in a test, or in a docs demo that
@@ -43,8 +41,8 @@ function CrumbContent({ crumb, isCurrentPage }: { crumb: ResolvedCrumb; isCurren
  * ```tsx
  * <Breadcrumbs
  *   crumbs={[
- *     { key: "endpoints:0", label: "Endpoints", to: "/endpoints" },
- *     { key: "endpoint:0", label: "ep_1", to: "/endpoints/cloud/ep_1" },
+ *     { kind: "link", key: "endpoints:0", label: "Endpoints", to: "/endpoints" },
+ *     { kind: "link", key: "endpoint:0", label: "ep_1", to: "/endpoints/cloud/ep_1" },
  *   ]}
  * />
  * ```

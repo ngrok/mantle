@@ -2,25 +2,75 @@ import type { ReactNode } from "react";
 import type { UIMatch } from "react-router";
 
 /**
- * One crumb a route contributes.
+ * One crumb a route contributes — a discriminated union on `kind`. Create these
+ * with {@link routeBreadcrumb}; the factory stamps the discriminant, so no call
+ * site hand-writes one.
  *
  * @example
  * ```ts
- * const crumb: Crumb = { label: "Endpoints", to: "/endpoints" };
+ * const link: Crumb = routeBreadcrumb("Endpoints", { to: "/endpoints" });
+ * const prefix: Crumb = routeBreadcrumb.label("Settings");
  * ```
  */
-type Crumb = {
-	/** What the crumb says. */
-	label: ReactNode;
-	/**
-	 * Where it links. When omitted, defaults to the contributing route's own
-	 * `pathname`, which is right whenever the crumb *is* that route. Pass `null`
-	 * for a crumb that is not a destination — a section prefix whose index URL
-	 * only redirects — and the renderer draws it as a non-link `Breadcrumb.Label`
-	 * (see the recipe's "The prefix crumb").
-	 */
-	to?: string | null;
-};
+type Crumb =
+	| {
+			kind: "link";
+			/** What the crumb says. */
+			label: ReactNode;
+			/**
+			 * Where it links. When omitted, resolves to the contributing route's own
+			 * `pathname`, which is right whenever the crumb *is* that route.
+			 */
+			to?: string;
+	  }
+	| {
+			/**
+			 * A prefix crumb: it names a level with no page of its own — a section
+			 * whose index URL only redirects — so the renderer draws it as a non-link
+			 * `Breadcrumb.Label` (see the recipe's "The prefix crumb").
+			 */
+			kind: "label";
+			/** What the crumb says. */
+			label: ReactNode;
+	  };
+
+/**
+ * Creates the crumb a route contributes: a link crumb, whose omitted `to`
+ * resolves to the contributing route's own `pathname`. `routeBreadcrumb.label`
+ * creates the prefix crumb instead — one that never links, for a section whose
+ * index URL only redirects.
+ *
+ * There is no page variant on purpose. Page-ness is positional, not declared:
+ * the deepest crumb renders as `Breadcrumb.Page`, because the same route's
+ * crumb is the current page at its own URL and a link when the trail goes
+ * deeper.
+ *
+ * @example
+ * ```ts
+ * routeBreadcrumb("Endpoints");                       // links to the contributing route's pathname
+ * routeBreadcrumb("Endpoints", { to: "/endpoints" }); // links to an explicit path
+ * routeBreadcrumb.label("Settings");                  // never links — renders as Breadcrumb.Label
+ * ```
+ */
+const routeBreadcrumb = Object.assign(
+	(label: ReactNode, options: { to?: string } = {}): Crumb => ({
+		kind: "link",
+		label,
+		...options,
+	}),
+	{
+		/**
+		 * Creates a prefix crumb — one that never links. The renderer draws it as
+		 * a non-link `Breadcrumb.Label`.
+		 *
+		 * @example
+		 * ```ts
+		 * const handle = { breadcrumb: () => [routeBreadcrumb.label("Settings")] };
+		 * ```
+		 */
+		label: (label: ReactNode): Crumb => ({ kind: "label", label }),
+	},
+);
 
 /**
  * What a route names itself in the trail: a static string, or a function of the
@@ -38,12 +88,12 @@ type Crumb = {
  * @example
  * ```ts
  * const staticLabel: RouteBreadcrumb = "Endpoints";
- * const fromParams: RouteBreadcrumb = (match) => [{ label: match.params.endpointId }];
+ * const fromParams: RouteBreadcrumb = (match) => [routeBreadcrumb(match.params.endpointId)];
  * const withAncestor: RouteBreadcrumb = (match) => [
- *   { label: "Endpoints", to: "/endpoints" },
- *   { label: match.params.endpointId },
+ *   routeBreadcrumb("Endpoints", { to: "/endpoints" }),
+ *   routeBreadcrumb(match.params.endpointId),
  * ];
- * const sectionPrefix: RouteBreadcrumb = () => [{ label: "Settings", to: null }];
+ * const sectionPrefix: RouteBreadcrumb = () => [routeBreadcrumb.label("Settings")];
  * ```
  */
 type RouteBreadcrumb = string | ((match: UIMatch) => ReadonlyArray<Crumb>);
@@ -63,20 +113,29 @@ type BreadcrumbHandle = {
 };
 
 /**
- * A crumb with its link resolved — what the renderer consumes.
+ * A crumb with its link resolved — what the renderer consumes. Link crumbs
+ * carry a definite `to`; label crumbs carry none, which is what makes an
+ * unlinked link crumb unrepresentable.
  *
  * @example
  * ```ts
- * const resolved: ResolvedCrumb = { key: "endpoints:0", label: "Endpoints", to: "/endpoints" };
+ * const resolved: ResolvedCrumb = { kind: "link", key: "endpoints:0", label: "Endpoints", to: "/endpoints" };
  * ```
  */
-type ResolvedCrumb = {
-	/** Stable React key. One route may contribute several crumbs, so the match id alone is not unique. */
-	key: string;
-	label: ReactNode;
-	/** Where it links, or `null` for a prefix crumb that is not a destination. */
-	to: string | null;
-};
+type ResolvedCrumb =
+	| {
+			kind: "link";
+			/** Stable React key. One route may contribute several crumbs, so the match id alone is not unique. */
+			key: string;
+			label: ReactNode;
+			to: string;
+	  }
+	| {
+			kind: "label";
+			/** Stable React key. One route may contribute several crumbs, so the match id alone is not unique. */
+			key: string;
+			label: ReactNode;
+	  };
 
 /**
  * Whether a route match named itself in the trail.
@@ -109,20 +168,21 @@ function hasBreadcrumb(match: UIMatch): match is UIMatch<unknown, BreadcrumbHand
  * @example
  * ```ts
  * buildCrumbs(useMatches());
- * // [{ key: "endpoints:0", label: "Endpoints", to: "/endpoints" }, …]
+ * // [{ kind: "link", key: "endpoints:0", label: "Endpoints", to: "/endpoints" }, …]
  * ```
  */
 function buildCrumbs(matches: ReadonlyArray<UIMatch>): ReadonlyArray<ResolvedCrumb> {
 	return matches.filter(hasBreadcrumb).flatMap((match) => {
 		const { breadcrumb } = match.handle;
-		const crumbs = typeof breadcrumb === "string" ? [{ label: breadcrumb }] : breadcrumb(match);
-		return crumbs.map((crumb, index) => ({
-			key: `${match.id}:${index}`,
-			label: crumb.label,
-			// Why `=== undefined` and not `??`: `null` means "not a destination" and
-			// must survive resolution; only an omitted `to` defaults to the pathname.
-			to: crumb.to === undefined ? match.pathname : crumb.to,
-		}));
+		const crumbs =
+			typeof breadcrumb === "string" ? [routeBreadcrumb(breadcrumb)] : breadcrumb(match);
+		return crumbs.map((crumb, index): ResolvedCrumb => {
+			const key = `${match.id}:${index}`;
+			if (crumb.kind === "label") {
+				return { kind: "label", key, label: crumb.label };
+			}
+			return { kind: "link", key, label: crumb.label, to: crumb.to ?? match.pathname };
+		});
 	});
 }
 
@@ -130,6 +190,7 @@ export {
 	//,
 	buildCrumbs,
 	hasBreadcrumb,
+	routeBreadcrumb,
 };
 
 export type {
