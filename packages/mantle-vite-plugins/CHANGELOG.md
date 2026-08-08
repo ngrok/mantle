@@ -1,5 +1,14 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.1.7
+
+### Patch Changes
+
+- [#1432](https://github.com/ngrok/mantle/pull/1432) [`391093a`](https://github.com/ngrok/mantle/commit/391093afd7216dab1ccbd1ae554eccf1b4a6c8df) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Scan the `skeleton` chunk for `breadcrumb` consumers. `Breadcrumb.Skeleton` renders the `Skeleton` block, whose class strings are hoisted into `skeleton-<hash>.js`, so a breadcrumb-only consumer would get an invisible placeholder bar without the extra `@source` glob.
+
+- Updated dependencies []:
+  - @ngrok/mantle-server-syntax-highlighter@1.1.11
+
 ## 1.1.6
 
 ### Patch Changes
