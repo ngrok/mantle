@@ -52,6 +52,22 @@ export function BreadcrumbSlashSeparatorExample() {
 	);
 }
 
+export function BreadcrumbPrefixCrumbExample() {
+	return (
+		<Breadcrumb.Root>
+			<Breadcrumb.List>
+				<Breadcrumb.Item>
+					<Breadcrumb.Label>Settings</Breadcrumb.Label>
+				</Breadcrumb.Item>
+				<Breadcrumb.Separator />
+				<Breadcrumb.Item>
+					<Breadcrumb.Page>General</Breadcrumb.Page>
+				</Breadcrumb.Item>
+			</Breadcrumb.List>
+		</Breadcrumb.Root>
+	);
+}
+
 export function BreadcrumbOverflowExample() {
 	return (
 		<div className="border-card-muted bg-card flex w-full max-w-sm items-center gap-2 rounded-lg border px-4 py-3">
@@ -172,14 +188,18 @@ Breadcrumb.Root
     ├── Breadcrumb.Item
     │   └── Breadcrumb.Link
     ├── Breadcrumb.Separator
+    ├── Breadcrumb.Item
+    │   └── Breadcrumb.Label
+    ├── Breadcrumb.Separator
     └── Breadcrumb.Item
         └── Breadcrumb.Page
 ```
 
 - **`Root`** is the `<nav>` landmark, labeled `"Breadcrumb"` by default (overridable via `aria-label`). It carries no visual styling of its own.
 - **`List`** is the `<ol>` — an ordered list, because the order of the items **is** the hierarchy, from the root to the current page. It lays the crumbs out in one row and scrolls them sideways when the trail is wider than its container (see [Overflow](#overflow)).
-- **`Item`** is one crumb: an `<li>` wrapping a `Link` or the `Page`.
+- **`Item`** is one crumb: an `<li>` wrapping a `Link`, a `Label`, or the `Page`.
 - **`Link`** is a plain `<a>` to an ancestor page; compose it onto your router's link via `asChild`.
+- **`Label`** is a crumb that is not a link — a level with no page of its own (see [The prefix crumb](#the-prefix-crumb)). A `<span>` with no `aria-current`.
 - **`Page`** marks the current page — a `<span>` with `aria-current="page"`, not a link.
 - **`Separator`** is a purely visual divider between crumbs (`role="presentation"`, `aria-hidden`), rendering a caret by default.
 
@@ -215,6 +235,32 @@ import { Link, href } from "react-router";
 	</Breadcrumb.List>
 </Breadcrumb.Root>;
 ```
+
+## The prefix crumb
+
+Not every crumb is a destination. In a trail like `Settings > General`, `Settings` is a section prefix: its index URL only redirects to `/settings/general`, so a link there would bounce the user back to the page they are already on. Render that crumb as a `Breadcrumb.Label` — muted text like the rest of the trail, with no `href` and no `aria-current`:
+
+<Example>
+	<BreadcrumbPrefixCrumbExample />
+</Example>
+
+```tsx
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+
+<Breadcrumb.Root>
+	<Breadcrumb.List>
+		<Breadcrumb.Item>
+			<Breadcrumb.Label>Settings</Breadcrumb.Label>
+		</Breadcrumb.Item>
+		<Breadcrumb.Separator />
+		<Breadcrumb.Item>
+			<Breadcrumb.Page>General</Breadcrumb.Page>
+		</Breadcrumb.Item>
+	</Breadcrumb.List>
+</Breadcrumb.Root>;
+```
+
+The label stays an `Item` in the `<ol>`, so it still counts as a step in the trail — assistive technology reads it as a crumb, without offering it as a link. To derive a trail like this from your route tree, see [the prefix crumb in the breadcrumbs-from-routes recipe](/recipes/breadcrumbs-from-routes#the-prefix-crumb): a layout route contributes the label, and its child routes contribute the pages under it.
 
 ## Overflow
 
@@ -278,6 +324,7 @@ Breadcrumb follows the [APG breadcrumb pattern](https://www.w3.org/WAI/ARIA/apg/
 - The trail lives in a `<nav>` landmark labeled `"Breadcrumb"`, so screen reader users can jump straight to it. The label is overridable via `aria-label` on `Root` — do so for localization, or to distinguish multiple breadcrumb trails on one page.
 - The crumbs are an `<ol>`, so assistive technology announces the total count and each item's position — the order conveys the hierarchy.
 - The final crumb is a `Breadcrumb.Page` with `aria-current="page"`, announcing that it represents the current page. It is a `<span>`, not a link — linking to the page you are already on is a trap.
+- A `Breadcrumb.Label` crumb is plain text: no link role, no `aria-current`. Its `Item` stays in the `<ol>`, so screen readers count it as a step in the trail without offering it as a destination.
 - Separators are `role="presentation"` and `aria-hidden="true"`: purely visual, never counted as crumbs, never read aloud.
 
 ## API Reference
@@ -322,6 +369,16 @@ All props from [a](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#a
 | Prop       | Type      | Default | Description                                                                                                                                                         |
 | ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Breadcrumb.Link` styling onto alternative element types or your own React components — most commonly your app router's link. |
+
+### Breadcrumb.Label
+
+A crumb that is not a link — a level with no page of its own, such as a section whose index URL only redirects (see [The prefix crumb](#the-prefix-crumb)). It emits no `aria-current` and no link semantics.
+
+All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/span#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                   |
+| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Breadcrumb.Label` styling onto alternative element types or your own React components. |
 
 ### Breadcrumb.Page
 

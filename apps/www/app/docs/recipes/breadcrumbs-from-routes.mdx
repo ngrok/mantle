@@ -51,7 +51,7 @@ routes.ts                 the route tree — the single source of truth for hier
 └── each route module
     └── export const handle = { breadcrumb: … }    what this level is called
         └── <RouteBreadcrumbs />                   reads useMatches(), renders the trail
-            └── Breadcrumb.Root > List > Item > Link | Page
+            └── Breadcrumb.Root > List > Item > Link | Label | Page
 ```
 
 Three pieces, each with one job:
@@ -89,19 +89,23 @@ type Crumb = {
 	/** What the crumb says. */
 	label: ReactNode;
 	/**
-	 * Where it links. Defaults to the contributing route's own `pathname`, which
-	 * is right whenever the crumb *is* that route.
+	 * Where it links. When omitted, defaults to the contributing route's own
+	 * `pathname`, which is right whenever the crumb *is* that route. Pass `null`
+	 * for a crumb that is not a destination — a section prefix whose index URL
+	 * only redirects — and the renderer draws it as a non-link `Breadcrumb.Label`
+	 * (see the recipe's "The prefix crumb").
 	 */
-	to?: string;
+	to?: string | null;
 };
 
 /**
  * What a route names itself in the trail: a static string, or a function of the
  * match returning every crumb this route contributes.
  *
- * The function form covers three cases with one shape — a label derived from
- * `params`, a label derived from `loaderData`, and a route that has to name an
- * ancestor it is not nested under (see the recipe's "The trail follows nesting").
+ * The function form covers four cases with one shape — a label derived from
+ * `params`, a label derived from `loaderData`, a route that has to name an
+ * ancestor it is not nested under (see the recipe's "The trail follows nesting"),
+ * and a section prefix that is not a destination (see "The prefix crumb").
  *
  * It must resolve **synchronously**: it runs during render, on the server too, so
  * the trail is correct in the initial HTML and never changes after the first
@@ -115,6 +119,7 @@ type Crumb = {
  *   { label: "Endpoints", to: "/endpoints" },
  *   { label: match.params.endpointId },
  * ];
+ * const sectionPrefix: RouteBreadcrumb = () => [{ label: "Settings", to: null }];
  * ```
  */
 type RouteBreadcrumb = string | ((match: UIMatch) => ReadonlyArray<Crumb>);
@@ -145,7 +150,8 @@ type ResolvedCrumb = {
 	/** Stable React key. One route may contribute several crumbs, so the match id alone is not unique. */
 	key: string;
 	label: ReactNode;
-	to: string;
+	/** Where it links, or `null` for a prefix crumb that is not a destination. */
+	to: string | null;
 };
 
 /**
@@ -189,7 +195,9 @@ function buildCrumbs(matches: ReadonlyArray<UIMatch>): ReadonlyArray<ResolvedCru
 		return crumbs.map((crumb, index) => ({
 			key: `${match.id}:${index}`,
 			label: crumb.label,
-			to: crumb.to ?? match.pathname,
+			// Why `=== undefined` and not `??`: `null` means "not a destination" and
+			// must survive resolution; only an omitted `to` defaults to the pathname.
+			to: crumb.to === undefined ? match.pathname : crumb.to,
 		}));
 	});
 }
@@ -289,6 +297,33 @@ render, half a second later. If you genuinely need the name in the trail, put it
 a string (option 3 above) and accept the server round trip deliberately, rather than smuggling a fetch into
 your chrome.
 
+## The prefix crumb
+
+Some levels are sections, not destinations. In ngrok's dashboard settings area the trail reads
+`Settings > General`, but `/settings` only redirects to `/settings/general` — a `Settings` link would
+bounce the user back to the page they are already on. The crumb still belongs in the trail; the link
+does not.
+
+Opt the crumb out of linking with `to: null`, on the **layout route** that owns the section:
+
+```tsx
+// app/routes/settings.tsx — the layout route at path "settings"
+import type { BreadcrumbHandle } from "~/features/breadcrumbs/route-breadcrumb";
+
+export const handle = {
+	breadcrumb: () => [{ label: "Settings", to: null }],
+} satisfies BreadcrumbHandle;
+```
+
+The renderer draws it as a
+[`Breadcrumb.Label`](/components/navigation/breadcrumb#the-prefix-crumb): muted text with no `href` and
+no `aria-current`, still counted as a step in the `<ol>`. Every child route contributes its own crumb
+under it, so `/settings/general` renders `Settings > General` and `/settings/auth` renders
+`Settings > Auth` with no per-page wiring.
+
+`null` and omitted mean different things here. An omitted `to` defaults the link to the contributing
+route's own `pathname`; `to: null` says the crumb has no destination at all.
+
 ## Building and rendering the trail
 
 The second file. `RouteBreadcrumbs` is the only thing that touches the router; `Breadcrumbs` is pure
@@ -302,9 +337,35 @@ import type { ResolvedCrumb } from "./route-breadcrumb";
 import { buildCrumbs } from "./route-breadcrumb";
 
 /**
+ * One crumb's content. The deepest crumb is the current page; a crumb with no
+ * destination (`to: null`) is a plain `Breadcrumb.Label`; every other crumb
+ * links to its route.
+ */
+function CrumbContent({ crumb, isCurrentPage }: { crumb: ResolvedCrumb; isCurrentPage: boolean }) {
+	if (isCurrentPage) {
+		return <Breadcrumb.Page>{crumb.label}</Breadcrumb.Page>;
+	}
+
+	if (crumb.to == null) {
+		// a section prefix whose index URL only redirects — a link there would
+		// bounce the user back to where they already are
+		return <Breadcrumb.Label>{crumb.label}</Breadcrumb.Label>;
+	}
+
+	return (
+		// asChild, so the router owns navigation — a bare href on
+		// Breadcrumb.Link would full-page-navigate
+		<Breadcrumb.Link asChild>
+			<Link to={crumb.to}>{crumb.label}</Link>
+		</Breadcrumb.Link>
+	);
+}
+
+/**
  * Renders a breadcrumb trail from already-resolved crumbs. The last crumb is the
  * current page (`aria-current="page"`, not a link); every earlier one links to its
- * route.
+ * route, except a prefix crumb (`to: null`), which renders as a non-link
+ * `Breadcrumb.Label`.
  *
  * Kept separate from {@link RouteBreadcrumbs} so nothing here touches the router:
  * this is the half you can render with a fixture in a test, or in a docs demo that
@@ -328,26 +389,14 @@ function Breadcrumbs({ crumbs }: { crumbs: ReadonlyArray<ResolvedCrumb> }) {
 	return (
 		<Breadcrumb.Root>
 			<Breadcrumb.List>
-				{crumbs.map((crumb, index) => {
-					const isCurrentPage = index === crumbs.length - 1;
-
-					return (
-						<Fragment key={crumb.key}>
-							{index > 0 && <Breadcrumb.Separator />}
-							<Breadcrumb.Item>
-								{isCurrentPage ? (
-									<Breadcrumb.Page>{crumb.label}</Breadcrumb.Page>
-								) : (
-									// asChild, so the router owns navigation — a bare href on
-									// Breadcrumb.Link would full-page-navigate
-									<Breadcrumb.Link asChild>
-										<Link to={crumb.to}>{crumb.label}</Link>
-									</Breadcrumb.Link>
-								)}
-							</Breadcrumb.Item>
-						</Fragment>
-					);
-				})}
+				{crumbs.map((crumb, index) => (
+					<Fragment key={crumb.key}>
+						{index > 0 && <Breadcrumb.Separator />}
+						<Breadcrumb.Item>
+							<CrumbContent crumb={crumb} isCurrentPage={index === crumbs.length - 1} />
+						</Breadcrumb.Item>
+					</Fragment>
+				))}
 			</Breadcrumb.List>
 		</Breadcrumb.Root>
 	);
@@ -401,11 +450,6 @@ The one thing that does **not** survive SSR is a label that depends on client-on
 `localStorage`, `window.matchMedia`). If you find yourself reaching for one, that is the signal to move the
 crumb's data into the loader or drop the crumb — see
 [Don't wait on a query for a crumb](#dont-wait-on-a-query-for-a-crumb).
-
-`Breadcrumb.Page` clones `aria-current="page"` onto its child, and `Root` / `List` / `Item` render
-`<nav aria-label="Breadcrumb">` → `<ol>` → `<li>`, so the trail is an ordered list to a screen reader rather
-than a row of anonymous text. Compose your router's `Link` through `Breadcrumb.Link`'s `asChild` — a bare
-`href` would full-page-navigate.
 
 ## Where it goes in the shell
 
@@ -619,6 +663,17 @@ describe("buildCrumbs", () => {
 		]);
 	});
 
+	it("keeps a prefix crumb's `to: null` instead of defaulting it to the pathname", () => {
+		const crumbs = buildCrumbs([
+			match({
+				id: "settings",
+				pathname: "/settings",
+				handle: { breadcrumb: () => [{ label: "Settings", to: null }] },
+			}),
+		]);
+		expect(crumbs).toEqual([{ key: "settings:0", label: "Settings", to: null }]);
+	});
+
 	it("keys stay unique when one route contributes several crumbs", () => {
 		const crumbs = buildCrumbs([
 			match({
@@ -660,6 +715,24 @@ describe("Breadcrumbs", () => {
 		expect(screen.getByText("ep_1").getAttribute("aria-current")).toBe("page");
 	});
 
+	it("renders a prefix crumb as plain text — no link, no aria-current", () => {
+		render(
+			<MemoryRouter>
+				<Breadcrumbs
+					crumbs={[
+						{ key: "settings:0", label: "Settings", to: null },
+						{ key: "general:0", label: "General", to: "/settings/general" },
+					]}
+				/>
+			</MemoryRouter>,
+		);
+
+		const settings = screen.getByText("Settings");
+		expect(settings.closest("a")).toBeNull();
+		expect(settings.getAttribute("aria-current")).toBeNull();
+		expect(screen.getByText("General").getAttribute("aria-current")).toBe("page");
+	});
+
 	it("renders an ordered list inside a labeled nav landmark", () => {
 		const { container } = render(
 			<MemoryRouter>
@@ -695,6 +768,26 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 
 		expect(screen.getByRole("link", { name: "Endpoints" }).getAttribute("href")).toBe("/endpoints");
 		expect(screen.getByText("ep_1").getAttribute("aria-current")).toBe("page");
+	});
+
+	it("renders a layout route's prefix crumb as a non-link", () => {
+		// The settings shape: `/settings` only redirects to `/settings/general`, so
+		// the layout route opts its crumb out of linking with `to: null`.
+		const Stub = createRoutesStub([
+			{
+				path: "/settings",
+				handle: { breadcrumb: () => [{ label: "Settings", to: null }] },
+				Component: () => <RouteBreadcrumbs />,
+				children: [{ path: "general", handle: { breadcrumb: "General" } }],
+			},
+		]);
+
+		render(<Stub initialEntries={["/settings/general"]} />);
+
+		const settings = screen.getByText("Settings");
+		expect(settings.closest("a")).toBeNull();
+		expect(settings.getAttribute("aria-current")).toBeNull();
+		expect(screen.getByText("General").getAttribute("aria-current")).toBe("page");
 	});
 
 	it("loses the ancestor when the detail route is a sibling, not a child", () => {

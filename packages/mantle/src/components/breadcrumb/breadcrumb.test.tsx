@@ -209,6 +209,52 @@ describe("Breadcrumb", () => {
 		expect(link.className).toContain("router-link");
 	});
 
+	test("Label renders a non-link crumb — no anchor, no aria-current", () => {
+		render(
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Item>
+						<Breadcrumb.Label>Settings</Breadcrumb.Label>
+					</Breadcrumb.Item>
+					<Breadcrumb.Separator />
+					<Breadcrumb.Item>
+						<Breadcrumb.Page>General</Breadcrumb.Page>
+					</Breadcrumb.Item>
+				</Breadcrumb.List>
+			</Breadcrumb.Root>,
+		);
+		const label = screen.getByText("Settings");
+		expect(label.tagName).toBe("SPAN");
+		expect(label).toHaveAttribute("data-slot", "breadcrumb-label");
+		expect(label).not.toHaveAttribute("aria-current");
+		expect(screen.queryByRole("link")).not.toBeInTheDocument();
+		// The prefix names a level, so it counts as a crumb — unlike a separator.
+		expect(screen.getAllByRole("listitem")).toHaveLength(2);
+		expect(screen.getByText("General")).toHaveAttribute("aria-current", "page");
+	});
+
+	test("Label renders as child element when asChild is true, merging className, data attributes, and ref", () => {
+		const ref = createRef<HTMLElement>();
+		render(
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Item>
+						<Breadcrumb.Label asChild className="font-medium" ref={ref}>
+							<span className="section-prefix" data-testid="label">
+								Settings
+							</span>
+						</Breadcrumb.Label>
+					</Breadcrumb.Item>
+				</Breadcrumb.List>
+			</Breadcrumb.Root>,
+		);
+		const label = screen.getByTestId("label");
+		expect(label).toHaveAttribute("data-slot", "breadcrumb-label");
+		expect(label.className).toContain("font-medium");
+		expect(label.className).toContain("section-prefix");
+		expect(ref.current).toBe(label);
+	});
+
 	test("Page renders a span with aria-current=page and is not a link", () => {
 		render(
 			<Breadcrumb.Root>

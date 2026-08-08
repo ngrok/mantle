@@ -24,8 +24,8 @@ const endpointsTrail = {
  * component rendering them is the real `Breadcrumbs`, unmodified, so what you see
  * is what the recipe ships.
  *
- * Every `to` is `"#"` so clicking an ancestor stays on this page. In an app they
- * are real paths and the router handles the navigation.
+ * Every linked `to` is `"#"` so clicking an ancestor stays on this page. In an
+ * app they are real paths and the router handles the navigation.
  */
 const trails = [
 	endpointsTrail,
@@ -45,12 +45,22 @@ const trails = [
 			{ key: "traffic-policy:0", label: "Traffic Policy", to: "#" },
 		],
 	},
+	{
+		url: "/settings/general",
+		crumbs: [
+			// a prefix crumb: `/settings` only redirects, so `to: null` renders it
+			// as a non-link Breadcrumb.Label
+			{ key: "settings:0", label: "Settings", to: null },
+			{ key: "general:0", label: "General", to: "#" },
+		],
+	},
 ] satisfies ReadonlyArray<Trail>;
 
 /**
- * Switches between three trails so a reader can watch it grow — and watch the leaf
+ * Switches between four trails so a reader can watch it grow — and watch the leaf
  * become `aria-current="page"` while its ancestors become links — without leaving
- * the docs page.
+ * the docs page. The last trail carries a prefix crumb, rendered as a non-link
+ * `Breadcrumb.Label`.
  *
  * @example
  * ```tsx

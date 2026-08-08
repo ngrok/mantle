@@ -13,19 +13,23 @@ type Crumb = {
 	/** What the crumb says. */
 	label: ReactNode;
 	/**
-	 * Where it links. Defaults to the contributing route's own `pathname`, which
-	 * is right whenever the crumb *is* that route.
+	 * Where it links. When omitted, defaults to the contributing route's own
+	 * `pathname`, which is right whenever the crumb *is* that route. Pass `null`
+	 * for a crumb that is not a destination — a section prefix whose index URL
+	 * only redirects — and the renderer draws it as a non-link `Breadcrumb.Label`
+	 * (see the recipe's "The prefix crumb").
 	 */
-	to?: string;
+	to?: string | null;
 };
 
 /**
  * What a route names itself in the trail: a static string, or a function of the
  * match returning every crumb this route contributes.
  *
- * The function form covers three cases with one shape — a label derived from
- * `params`, a label derived from `loaderData`, and a route that has to name an
- * ancestor it is not nested under (see the recipe's "The trail follows nesting").
+ * The function form covers four cases with one shape — a label derived from
+ * `params`, a label derived from `loaderData`, a route that has to name an
+ * ancestor it is not nested under (see the recipe's "The trail follows nesting"),
+ * and a section prefix that is not a destination (see "The prefix crumb").
  *
  * It must resolve **synchronously**: it runs during render, on the server too, so
  * the trail is correct in the initial HTML and never changes after the first
@@ -39,6 +43,7 @@ type Crumb = {
  *   { label: "Endpoints", to: "/endpoints" },
  *   { label: match.params.endpointId },
  * ];
+ * const sectionPrefix: RouteBreadcrumb = () => [{ label: "Settings", to: null }];
  * ```
  */
 type RouteBreadcrumb = string | ((match: UIMatch) => ReadonlyArray<Crumb>);
@@ -69,7 +74,8 @@ type ResolvedCrumb = {
 	/** Stable React key. One route may contribute several crumbs, so the match id alone is not unique. */
 	key: string;
 	label: ReactNode;
-	to: string;
+	/** Where it links, or `null` for a prefix crumb that is not a destination. */
+	to: string | null;
 };
 
 /**
@@ -113,7 +119,9 @@ function buildCrumbs(matches: ReadonlyArray<UIMatch>): ReadonlyArray<ResolvedCru
 		return crumbs.map((crumb, index) => ({
 			key: `${match.id}:${index}`,
 			label: crumb.label,
-			to: crumb.to ?? match.pathname,
+			// Why `=== undefined` and not `??`: `null` means "not a destination" and
+			// must survive resolution; only an omitted `to` defaults to the pathname.
+			to: crumb.to === undefined ? match.pathname : crumb.to,
 		}));
 	});
 }

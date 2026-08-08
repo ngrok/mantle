@@ -218,7 +218,8 @@ const List = ({
 
 /**
  * A single crumb. Renders an `<li>` (`role="listitem"`) that lays out its
- * content — a `Breadcrumb.Link` or `Breadcrumb.Page` — inline.
+ * content — a `Breadcrumb.Link`, a `Breadcrumb.Label`, or a `Breadcrumb.Page`
+ * — inline.
  *
  * The crumb never shrinks (`shrink-0`). A squeezed crumb would break its own
  * label across two lines, so a trail too wide for its container scrolls in
@@ -316,6 +317,53 @@ const Link = ({
 			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "breadcrumb-link")}
 			className={cx("hover:text-strong transition-colors", className)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
+
+/**
+ * A crumb that is not a link — a level with no page of its own, such as a
+ * section whose index URL only redirects (`Settings` in `Settings > General`).
+ * Renders a `<span>` with no `aria-current` and no link semantics, so the
+ * trail shows the level without offering it as a destination. Use
+ * `Breadcrumb.Link` for an ancestor a user can visit and `Breadcrumb.Page`
+ * for the current page.
+ *
+ * @see https://mantle.ngrok.com/components/navigation/breadcrumb#breadcrumblabel
+ *
+ * @example
+ * ```tsx
+ * <Breadcrumb.Root>
+ * 	<Breadcrumb.List>
+ * 		<Breadcrumb.Item>
+ * 			<Breadcrumb.Label>Settings</Breadcrumb.Label>
+ * 		</Breadcrumb.Item>
+ * 		<Breadcrumb.Separator />
+ * 		<Breadcrumb.Item>
+ * 			<Breadcrumb.Page>General</Breadcrumb.Page>
+ * 		</Breadcrumb.Item>
+ * 	</Breadcrumb.List>
+ * </Breadcrumb.Root>
+ * ```
+ */
+const Label = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	ref,
+	...props
+}: ComponentProps<"span"> & WithAsChild & WithDataSlot) => {
+	const Comp = asChild ? Slot : "span";
+
+	return (
+		<Comp
+			ref={ref}
+			data-slot={joinDataSlot(dataSlot, "breadcrumb-label")}
+			className={cx("text-muted", className)}
 			{...props}
 		>
 			{children}
@@ -477,6 +525,9 @@ const Separator = ({
  *     ├── Breadcrumb.Item
  *     │   └── Breadcrumb.Link
  *     ├── Breadcrumb.Separator
+ *     ├── Breadcrumb.Item
+ *     │   └── Breadcrumb.Label
+ *     ├── Breadcrumb.Separator
  *     └── Breadcrumb.Item
  *         └── Breadcrumb.Page
  * ```
@@ -558,9 +609,9 @@ const Breadcrumb = {
 	 */
 	List,
 	/**
-	 * A single crumb. Renders an `<li>` containing a `Breadcrumb.Link` or
-	 * `Breadcrumb.Page`. The crumb never shrinks, so a wide trail scrolls
-	 * instead of breaking a label across two lines.
+	 * A single crumb. Renders an `<li>` containing a `Breadcrumb.Link`, a
+	 * `Breadcrumb.Label`, or a `Breadcrumb.Page`. The crumb never shrinks, so a
+	 * wide trail scrolls instead of breaking a label across two lines.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/breadcrumb#breadcrumbitem
 	 *
@@ -610,6 +661,29 @@ const Breadcrumb = {
 	 * ```
 	 */
 	Link,
+	/**
+	 * A crumb that is not a link — a level with no page of its own, such as a
+	 * section whose index URL only redirects. Renders a `<span>` with no
+	 * `aria-current` and no link semantics.
+	 *
+	 * @see https://mantle.ngrok.com/components/navigation/breadcrumb#breadcrumblabel
+	 *
+	 * @example
+	 * ```tsx
+	 * <Breadcrumb.Root>
+	 * 	<Breadcrumb.List>
+	 * 		<Breadcrumb.Item>
+	 * 			<Breadcrumb.Label>Settings</Breadcrumb.Label>
+	 * 		</Breadcrumb.Item>
+	 * 		<Breadcrumb.Separator />
+	 * 		<Breadcrumb.Item>
+	 * 			<Breadcrumb.Page>General</Breadcrumb.Page>
+	 * 		</Breadcrumb.Item>
+	 * 	</Breadcrumb.List>
+	 * </Breadcrumb.Root>
+	 * ```
+	 */
+	Label,
 	/**
 	 * The current page — the last crumb. Renders a `<span>` (not a link) with
 	 * `aria-current="page"`; the ARIA is the part's whole contract and is not

@@ -109,6 +109,17 @@ describe("buildCrumbs", () => {
 		]);
 	});
 
+	it("keeps a prefix crumb's `to: null` instead of defaulting it to the pathname", () => {
+		const crumbs = buildCrumbs([
+			match({
+				id: "settings",
+				pathname: "/settings",
+				handle: { breadcrumb: () => [{ label: "Settings", to: null }] },
+			}),
+		]);
+		expect(crumbs).toEqual([{ key: "settings:0", label: "Settings", to: null }]);
+	});
+
 	it("keys stay unique when one route contributes several crumbs", () => {
 		const crumbs = buildCrumbs([
 			match({
@@ -150,6 +161,24 @@ describe("Breadcrumbs", () => {
 		expect(screen.getByText("ep_1").getAttribute("aria-current")).toBe("page");
 	});
 
+	it("renders a prefix crumb as plain text — no link, no aria-current", () => {
+		render(
+			<MemoryRouter>
+				<Breadcrumbs
+					crumbs={[
+						{ key: "settings:0", label: "Settings", to: null },
+						{ key: "general:0", label: "General", to: "/settings/general" },
+					]}
+				/>
+			</MemoryRouter>,
+		);
+
+		const settings = screen.getByText("Settings");
+		expect(settings.closest("a")).toBeNull();
+		expect(settings.getAttribute("aria-current")).toBeNull();
+		expect(screen.getByText("General").getAttribute("aria-current")).toBe("page");
+	});
+
 	it("renders an ordered list inside a labeled nav landmark", () => {
 		const { container } = render(
 			<MemoryRouter>
@@ -185,6 +214,26 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 
 		expect(screen.getByRole("link", { name: "Endpoints" }).getAttribute("href")).toBe("/endpoints");
 		expect(screen.getByText("ep_1").getAttribute("aria-current")).toBe("page");
+	});
+
+	it("renders a layout route's prefix crumb as a non-link", () => {
+		// The settings shape: `/settings` only redirects to `/settings/general`, so
+		// the layout route opts its crumb out of linking with `to: null`.
+		const Stub = createRoutesStub([
+			{
+				path: "/settings",
+				handle: { breadcrumb: () => [{ label: "Settings", to: null }] },
+				Component: () => <RouteBreadcrumbs />,
+				children: [{ path: "general", handle: { breadcrumb: "General" } }],
+			},
+		]);
+
+		render(<Stub initialEntries={["/settings/general"]} />);
+
+		const settings = screen.getByText("Settings");
+		expect(settings.closest("a")).toBeNull();
+		expect(settings.getAttribute("aria-current")).toBeNull();
+		expect(screen.getByText("General").getAttribute("aria-current")).toBe("page");
 	});
 
 	it("loses the ancestor when the detail route is a sibling, not a child", () => {
