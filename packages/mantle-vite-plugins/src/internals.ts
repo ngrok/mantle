@@ -77,8 +77,8 @@ export const INTERNAL_CHUNKS_BY_COMPONENT: ReadonlyMap<string, readonly string[]
 	["scatter-plot", ["chart", "button"]],
 	// Breadcrumb.Skeleton renders the `Skeleton` block; its pulse and background
 	// class strings are hoisted into `skeleton-<hash>.js` and none remain in
-	// `breadcrumb.js`, so a breadcrumb-only consumer would get invisible
-	// placeholder bars.
+	// `breadcrumb.js`, so a breadcrumb-only consumer would get an invisible
+	// placeholder bar.
 	["breadcrumb", ["skeleton"]],
 	// Command renders the Dialog shell around its palette (whose close control is
 	// an IconButton, hoisted one level further into the button chunk), a

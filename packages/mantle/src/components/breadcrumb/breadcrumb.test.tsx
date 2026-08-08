@@ -402,18 +402,17 @@ describe("Breadcrumb", () => {
 						<Breadcrumb.Link href="/apps">Apps</Breadcrumb.Link>
 					</Breadcrumb.Item>
 					<Breadcrumb.Separator />
-					<Breadcrumb.Skeleton itemCount={3} data-testid="skeleton" />
+					<Breadcrumb.Skeleton data-testid="skeleton" />
 				</Breadcrumb.List>
 			</Breadcrumb.Root>,
 		);
 		const skeleton = screen.getByTestId("skeleton");
 		expect(skeleton.tagName).toBe("LI");
-		expect(skeleton).toHaveAttribute("data-slot", "breadcrumb-skeleton");
-		// The placeholder is one crumb until the real items replace it.
+		// The part composes the Skeleton block onto its own <li>, so the chain
+		// carries both stamps in DOM order.
+		expect(skeleton).toHaveAttribute("data-slot", "skeleton breadcrumb-skeleton");
+		// The placeholder is one crumb until the real one replaces it.
 		expect(screen.getAllByRole("listitem")).toHaveLength(2);
-		// Three bars stand in for three crumbs, divided by two carets.
-		expect(skeleton.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(3);
-		expect(skeleton.querySelectorAll("svg")).toHaveLength(2);
 		expect(screen.getByRole("status")).toHaveTextContent("Loading breadcrumbs…");
 	});
 
@@ -421,7 +420,7 @@ describe("Breadcrumb", () => {
 		render(
 			<Breadcrumb.Root>
 				<Breadcrumb.List>
-					<Breadcrumb.Skeleton itemCount={1} label="Chargement du fil d'Ariane…" />
+					<Breadcrumb.Skeleton label="Chargement du fil d'Ariane…" />
 				</Breadcrumb.List>
 			</Breadcrumb.Root>,
 		);
@@ -429,22 +428,24 @@ describe("Breadcrumb", () => {
 		expect(screen.queryByText("Loading breadcrumbs…")).not.toBeInTheDocument();
 	});
 
-	test("Skeleton merges className, forwards a ref, and hides its bars from assistive technology", () => {
+	// tailwind-merge override contract: the part is the mantle Skeleton composed
+	// onto an <li>, so the block's own classes must land beside the part's
+	// layout defaults — and a consumer's width must beat the default w-24.
+	test("Skeleton carries the pulsing block's classes, and a consumer width wins", () => {
 		const ref = createRef<HTMLLIElement>();
 		render(
 			<Breadcrumb.Root>
 				<Breadcrumb.List>
-					<Breadcrumb.Skeleton itemCount={2} className="pl-2" ref={ref} data-testid="skeleton" />
+					<Breadcrumb.Skeleton className="w-40" ref={ref} data-testid="skeleton" />
 				</Breadcrumb.List>
 			</Breadcrumb.Root>,
 		);
 		const skeleton = screen.getByTestId("skeleton");
 		expect(ref.current).toBe(skeleton);
-		expect(skeleton.className).toContain("pl-2");
+		expect(skeleton.className).toContain("animate-pulse");
 		expect(skeleton.className).toContain("shrink-0");
-		for (const bar of skeleton.querySelectorAll('[data-slot="skeleton"]')) {
-			expect(bar).toHaveAttribute("aria-hidden", "true");
-		}
+		expect(skeleton.className).toContain("w-40");
+		expect(skeleton.className).not.toContain("w-24");
 	});
 
 	test("Separators are excluded from the accessible listitem count", () => {

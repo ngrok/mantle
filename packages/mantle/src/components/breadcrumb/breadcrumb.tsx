@@ -2,7 +2,7 @@
 
 import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 import type { ComponentProps, ReactNode } from "react";
-import { cloneElement, Fragment, isValidElement, useEffect, useRef } from "react";
+import { cloneElement, isValidElement, useEffect, useRef } from "react";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
@@ -515,13 +515,7 @@ const Separator = ({
  */
 type BreadcrumbSkeletonProps = Omit<ComponentProps<"li">, "children"> & {
 	/**
-	 * How many crumbs the placeholder stands in for. Match it to the trail the
-	 * resolved content renders, so the row keeps its width when the real crumbs
-	 * arrive.
-	 */
-	itemCount: number;
-	/**
-	 * The screen-reader status announcement while the trail loads. Set it for
+	 * The screen-reader status announcement while the crumb loads. Set it for
 	 * localization.
 	 *
 	 * @default "Loading breadcrumbs…"
@@ -530,12 +524,12 @@ type BreadcrumbSkeletonProps = Omit<ComponentProps<"li">, "children"> & {
 };
 
 /**
- * A placeholder for a trail segment whose labels are still loading. Renders
- * one `<li>` holding `itemCount` crumb-sized bars divided by carets, plus a
- * screen-reader-only `role="status"` announcement. Use it as the pending
- * fallback for a crumb whose label only exists in fetched data, and match
- * `itemCount` to the trail the resolved content renders, so the row keeps its
- * width when the real crumbs replace it.
+ * A placeholder crumb for a label that is still loading. Renders one `<li>`
+ * as a crumb-sized pulsing bar carrying a screen-reader-only `role="status"`
+ * announcement. The bar is `w-24` by default — pass a `w-*` utility for your
+ * best-guess width, so the row's shape holds when the real crumb replaces it.
+ * One skeleton usually stands in for a whole pending segment; compose several
+ * with `Breadcrumb.Separator` when the segment's shape matters.
  *
  * @see https://mantle.ngrok.com/components/navigation/breadcrumb#breadcrumbskeleton
  *
@@ -547,39 +541,32 @@ type BreadcrumbSkeletonProps = Omit<ComponentProps<"li">, "children"> & {
  * 			<Breadcrumb.Link href="/apps">Apps</Breadcrumb.Link>
  * 		</Breadcrumb.Item>
  * 		<Breadcrumb.Separator />
- * 		<Breadcrumb.Skeleton itemCount={2} />
+ * 		<Breadcrumb.Skeleton className="w-40" />
  * 	</Breadcrumb.List>
  * </Breadcrumb.Root>
  * ```
  */
-// Why no asChild: the part's whole value is the placeholder content it
-// generates; a swapped element would discard the bars and the announcer.
+// Why no asChild: the part's whole value is the placeholder bar it renders;
+// a swapped element would discard the announcer wired inside it.
 const BreadcrumbSkeleton = ({
 	className,
 	"data-slot": dataSlot,
-	itemCount,
 	label = "Loading breadcrumbs…",
 	ref,
 	...props
 }: BreadcrumbSkeletonProps & WithDataSlot) => (
-	<li
-		ref={ref}
-		data-slot={joinDataSlot(dataSlot, "breadcrumb-skeleton")}
-		className={cx("inline-flex shrink-0 items-center gap-1.5", className)}
-		{...props}
-	>
-		<span role="status" className="sr-only">
-			{label}
-		</span>
-		{Array.from({ length: itemCount }, (_, index) => (
-			<Fragment key={index}>
-				{index > 0 && <Icon svg={<CaretRightIcon />} className="size-3.5" aria-hidden="true" />}
-				{/* Why the alternating widths: a trail's labels differ in length, and a
-				stable guess beats a measured swap. */}
-				<Skeleton aria-hidden="true" className={cx(index % 2 === 0 ? "w-24" : "w-16")} />
-			</Fragment>
-		))}
-	</li>
+	<Skeleton asChild>
+		<li
+			ref={ref}
+			data-slot={joinDataSlot(dataSlot, "breadcrumb-skeleton")}
+			className={cx("w-24 shrink-0", className)}
+			{...props}
+		>
+			<span role="status" className="sr-only">
+				{label}
+			</span>
+		</li>
+	</Skeleton>
 );
 
 /**
@@ -815,11 +802,10 @@ const Breadcrumb = {
 	 */
 	Separator,
 	/**
-	 * A placeholder for a trail segment whose labels are still loading: one
-	 * `<li>` holding `itemCount` crumb-sized bars divided by carets, plus a
-	 * screen-reader-only `role="status"` announcement. Match `itemCount` to the
-	 * trail the resolved content renders, so the row keeps its width when the
-	 * real crumbs replace it.
+	 * A placeholder crumb for a label that is still loading: one `<li>` as a
+	 * crumb-sized pulsing bar, plus a screen-reader-only `role="status"`
+	 * announcement. `w-24` by default — pass a `w-*` utility for your
+	 * best-guess width, so the row's shape holds when the real crumb arrives.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/breadcrumb#breadcrumbskeleton
 	 *
@@ -831,7 +817,7 @@ const Breadcrumb = {
 	 * 			<Breadcrumb.Link href="/apps">Apps</Breadcrumb.Link>
 	 * 		</Breadcrumb.Item>
 	 * 		<Breadcrumb.Separator />
-	 * 		<Breadcrumb.Skeleton itemCount={2} />
+	 * 		<Breadcrumb.Skeleton className="w-40" />
 	 * 	</Breadcrumb.List>
 	 * </Breadcrumb.Root>
 	 * ```

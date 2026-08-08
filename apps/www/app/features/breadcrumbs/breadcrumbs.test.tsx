@@ -114,7 +114,7 @@ describe("Breadcrumbs", () => {
 						{
 							kind: "content",
 							key: "app:0",
-							content: <Breadcrumb.Skeleton itemCount={2} />,
+							content: <Breadcrumb.Skeleton className="w-40" />,
 						},
 					]}
 				/>

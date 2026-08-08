@@ -24,7 +24,8 @@ function DemoAppTrail() {
 	}, []);
 
 	if (appName == null) {
-		return <Breadcrumb.Skeleton itemCount={2} />;
+		// a stable best-guess width for the two crumbs the segment resolves to
+		return <Breadcrumb.Skeleton className="w-40" />;
 	}
 
 	return (

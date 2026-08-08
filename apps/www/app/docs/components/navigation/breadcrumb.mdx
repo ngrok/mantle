@@ -76,7 +76,7 @@ export function BreadcrumbSkeletonExample() {
 					<Breadcrumb.Link href="#">Apps</Breadcrumb.Link>
 				</Breadcrumb.Item>
 				<Breadcrumb.Separator />
-				<Breadcrumb.Skeleton itemCount={2} />
+				<Breadcrumb.Skeleton className="w-40" />
 			</Breadcrumb.List>
 		</Breadcrumb.Root>
 	);
@@ -217,7 +217,7 @@ Breadcrumb.Root
 - **`Label`** is a crumb that is not a link — a level with no page of its own (see [The prefix crumb](#the-prefix-crumb)). A `<span>` with no `aria-current`.
 - **`Page`** marks the current page — a `<span>` with `aria-current="page"`, not a link.
 - **`Separator`** is a purely visual divider between crumbs (`role="presentation"`, `aria-hidden`), rendering a caret by default.
-- **`Skeleton`** is the placeholder for a trail segment whose labels are still loading (see [The pending trail](#the-pending-trail)): one `<li>` of crumb-sized bars with a screen-reader-only status announcement.
+- **`Skeleton`** is the placeholder crumb for a label that is still loading (see [The pending trail](#the-pending-trail)): one `<li>` as a crumb-sized pulsing bar with a screen-reader-only status announcement.
 
 ## Polymorphism
 
@@ -280,7 +280,7 @@ The label stays an `Item` in the `<ol>`, so it still counts as a step in the tra
 
 ## The pending trail
 
-Some labels only exist in fetched data — `Apps > my-app > Settings`, where `my-app` is a resource name the URL does not carry. While that query is pending, `Breadcrumb.Skeleton` stands in for the unresolved segment: `itemCount` crumb-sized bars divided by carets, plus a screen-reader-only `role="status"` announcement ("Loading breadcrumbs…" by default; set `label` for localization). Match `itemCount` to the trail the resolved content renders, so the row keeps its width when the real crumbs replace it:
+Some labels only exist in fetched data — `Apps > my-app > Settings`, where `my-app` is a resource name the URL does not carry. While that query is pending, `Breadcrumb.Skeleton` stands in for the unresolved segment: one crumb-sized pulsing bar, plus a screen-reader-only `role="status"` announcement ("Loading breadcrumbs…" by default; set `label` for localization). The bar is `w-24` by default — pass a `w-*` utility for your best-guess width, so the row's shape holds when the real crumbs replace it:
 
 <Example>
 	<BreadcrumbSkeletonExample />
@@ -295,12 +295,12 @@ import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 			<Breadcrumb.Link href="/apps">Apps</Breadcrumb.Link>
 		</Breadcrumb.Item>
 		<Breadcrumb.Separator />
-		<Breadcrumb.Skeleton itemCount={2} />
+		<Breadcrumb.Skeleton className="w-40" />
 	</Breadcrumb.List>
 </Breadcrumb.Root>;
 ```
 
-The skeleton is one `<li>`, so the pending segment counts as one crumb until the real items arrive, and its bars are `aria-hidden` — the status announcement is all assistive technology hears. The full pattern — a route contributes a component that shares the page's query and swaps the skeleton for real crumbs on resolve — is [the query-backed crumb in the breadcrumbs-from-routes recipe](/recipes/breadcrumbs-from-routes#choosing-a-label).
+The skeleton is one `<li>`, so the pending segment counts as one crumb until the real items arrive, and the status announcement is all assistive technology hears. One skeleton usually stands in for a whole segment; compose several with `Breadcrumb.Separator` between them when the segment's shape matters. The full pattern — a route contributes a component that shares the page's query and swaps the skeleton for real crumbs on resolve — is [the query-backed crumb in the breadcrumbs-from-routes recipe](/recipes/breadcrumbs-from-routes#choosing-a-label).
 
 ## Trails from route matches
 
@@ -453,14 +453,13 @@ All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li
 
 ### Breadcrumb.Skeleton
 
-A placeholder for a trail segment whose labels are still loading (see [The pending trail](#the-pending-trail)): one `<li>` holding `itemCount` crumb-sized bars divided by carets, plus a screen-reader-only `role="status"` announcement. It takes no `children` and no `asChild` — the part's whole value is the placeholder content it generates.
+A placeholder crumb for a label that is still loading (see [The pending trail](#the-pending-trail)): one `<li>` as a crumb-sized pulsing bar, plus a screen-reader-only `role="status"` announcement. The bar is `w-24` by default — pass a `w-*` utility in `className` for your best-guess width. It takes no `children` and no `asChild` — the part's whole value is the placeholder bar it renders.
 
 All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes) except `children`, plus:
 
-| Prop        | Type     | Default                  | Description                                                                                                                   |
-| ----------- | -------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| `itemCount` | `number` | —                        | How many crumbs the placeholder stands in for. Match it to the resolved trail, so the row keeps its width when the swap runs. |
-| `label?`    | `string` | `"Loading breadcrumbs…"` | The screen-reader status announcement while the trail loads. Set it for localization.                                         |
+| Prop     | Type     | Default                  | Description                                                                           |
+| -------- | -------- | ------------------------ | ------------------------------------------------------------------------------------- |
+| `label?` | `string` | `"Loading breadcrumbs…"` | The screen-reader status announcement while the crumb loads. Set it for localization. |
 
 ### routeBreadcrumb
 

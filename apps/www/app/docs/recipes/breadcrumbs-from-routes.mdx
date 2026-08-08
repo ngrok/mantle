@@ -176,8 +176,8 @@ export function AppSettingsTrail({ appId }: { appId: string | undefined }) {
 	const appQuery = useApp(appId);
 
 	if (appQuery.isPending) {
-		// two bars: the app crumb and the Settings crumb the segment resolves to
-		return <Breadcrumb.Skeleton itemCount={2} />;
+		// a stable best-guess width for the two crumbs the segment resolves to
+		return <Breadcrumb.Skeleton className="w-40" />;
 	}
 
 	return (
@@ -201,8 +201,8 @@ Three rules keep the pending trail honest:
 - **Share the page's query.** The content component calls the same TanStack Query hook as the route's
   page, so both read one cache entry. Navigate in from a list that already populated the cache and the
   name is instant, with no skeleton at all.
-- **Size the skeleton to the resolved trail.** `itemCount` matches the items the segment renders once
-  data arrives, so the row keeps its width on resolve instead of reflowing the shell header.
+- **Size the skeleton to the resolved trail.** Pass a `w-*` utility that approximates the segment the
+  skeleton stands in for, so the row keeps its width on resolve instead of reflowing the shell header.
 - **The segment owns link vs current page.** The trail builder cannot see inside a content node, so the
   deepest-crumb-becomes-`Breadcrumb.Page` rule stops at its boundary — the component renders
   `Breadcrumb.Page` on its own last item.
@@ -617,7 +617,7 @@ describe("Breadcrumbs", () => {
 						{
 							kind: "content",
 							key: "app:0",
-							content: <Breadcrumb.Skeleton itemCount={2} />,
+							content: <Breadcrumb.Skeleton className="w-40" />,
 						},
 					]}
 				/>
