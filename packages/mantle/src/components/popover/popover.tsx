@@ -1,14 +1,20 @@
+"use client";
+
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 
 /**
  * A floating overlay that displays rich content in a portal, triggered by a button.
  * This is the root, stateful component that manages the open/closed state of the popover.
  *
- * `Popover.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `Popover.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+ * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+ * that overlay's positioner and paints above the overlay that owns it. Outside
+ * every overlay, it portals to `document.body`, below the overlay tier
+ * (`z-60`). When sibling floats share a container, the most recently mounted
+ * float paints on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/popover#popoverroot
  *
@@ -112,9 +118,12 @@ type PopoverContentProps = ComponentProps<typeof PopoverPrimitive.Content> & {
 /**
  * The content to render inside the popover.
  *
- * `Popover.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `Popover.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+ * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+ * that overlay's positioner and paints above the overlay that owns it. Outside
+ * every overlay, it portals to `document.body`, below the overlay tier
+ * (`z-60`). When sibling floats share a container, the most recently mounted
+ * float paints on top.
  *
  * It sets `position: relative`, so `Popover.Arrow`'s absolutely-positioned
  * wrapper keeps one containing block through the open animation. An
@@ -145,35 +154,39 @@ const Content = ({
 	ref,
 	sideOffset = 4,
 	...props
-}: PopoverContentProps) => (
-	<PopoverPrimitive.Portal>
-		<PopoverPrimitive.Content
-			align={align}
-			data-slot="popover-content"
-			className={cx(
-				// Why relative: `Popover.Arrow`'s wrapper is absolutely positioned, and the
-				// open animation's `scale` makes this element its containing block for one
-				// frame — then drops it, moving the arrow 1px. Positioning this element
-				// keeps that containing block the same before, during, and after.
-				"relative",
-				"text-popover-foreground border-popover bg-popover data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 z-50 rounded-md border p-4 shadow-md outline-hidden",
-				preferredWidth,
-				className,
-			)}
-			onClick={(event) => {
-				/**
-				 * Prevent the click event from propagating up to parent/containing elements
-				 * of the PopoverContent
-				 */
-				event.stopPropagation();
-				onClick?.(event);
-			}}
-			ref={ref}
-			sideOffset={sideOffset}
-			{...props}
-		/>
-	</PopoverPrimitive.Portal>
-);
+}: PopoverContentProps) => {
+	const layerContainer = useLayerContainer();
+
+	return (
+		<PopoverPrimitive.Portal container={layerContainer}>
+			<PopoverPrimitive.Content
+				align={align}
+				data-slot="popover-content"
+				className={cx(
+					// Why relative: `Popover.Arrow`'s wrapper is absolutely positioned, and the
+					// open animation's `scale` makes this element its containing block for one
+					// frame — then drops it, moving the arrow 1px. Positioning this element
+					// keeps that containing block the same before, during, and after.
+					"relative",
+					"text-popover-foreground border-popover bg-popover data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 z-50 rounded-md border p-4 shadow-md outline-hidden",
+					preferredWidth,
+					className,
+				)}
+				onClick={(event) => {
+					/**
+					 * Prevent the click event from propagating up to parent/containing elements
+					 * of the PopoverContent
+					 */
+					event.stopPropagation();
+					onClick?.(event);
+				}}
+				ref={ref}
+				sideOffset={sideOffset}
+				{...props}
+			/>
+		</PopoverPrimitive.Portal>
+	);
+};
 
 type PopoverArrowProps = Omit<
 	ComponentProps<typeof PopoverPrimitive.Arrow>,
@@ -270,9 +283,12 @@ const Arrow = ({ className, height = 7, width = 14, ...props }: PopoverArrowProp
  * the content, block interaction with the rest of the page, and lock body
  * scroll while the popover is open.
  *
- * `Popover.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `Popover.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+ * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+ * that overlay's positioner and paints above the overlay that owns it. Outside
+ * every overlay, it portals to `document.body`, below the overlay tier
+ * (`z-60`). When sibling floats share a container, the most recently mounted
+ * float paints on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/popover
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/
@@ -306,9 +322,12 @@ const Popover = {
 	/**
 	 * The root, stateful component that manages the open/closed state of the popover.
 	 *
-	 * `Popover.Content` renders at Tailwind `z-50`, Mantle's shared floating
-	 * z-index. When multiple shared layers are open, the most recently mounted
-	 * layer renders on top.
+	 * `Popover.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+	 * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+	 * that overlay's positioner and paints above the overlay that owns it. Outside
+	 * every overlay, it portals to `document.body`, below the overlay tier
+	 * (`z-60`). When sibling floats share a container, the most recently mounted
+	 * float paints on top.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/popover#popoverroot
 	 *
@@ -403,9 +422,12 @@ const Popover = {
 	/**
 	 * The content to render inside the popover. Appears in a portal with rich styling and animations.
 	 *
-	 * `Popover.Content` renders at Tailwind `z-50`, Mantle's shared floating
-	 * z-index. When multiple shared layers are open, the most recently mounted
-	 * layer renders on top.
+	 * `Popover.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+	 * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+	 * that overlay's positioner and paints above the overlay that owns it. Outside
+	 * every overlay, it portals to `document.body`, below the overlay tier
+	 * (`z-60`). When sibling floats share a container, the most recently mounted
+	 * float paints on top.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/popover#popovercontent
 	 *

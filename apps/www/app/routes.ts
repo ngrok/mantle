@@ -66,6 +66,7 @@ export default [
 		...docRoute("base/colors"),
 		...docRoute("base/scroll-fade"),
 		...docRoute("base/shadows"),
+		...docRoute("base/stacking-layers"),
 		...docRoute("base/tailwind-variants"),
 		...docRoute("base/typography"),
 

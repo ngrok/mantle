@@ -246,6 +246,7 @@ export const basePages = [
 	"Colors",
 	"Scroll Fade",
 	"Shadows",
+	"Stacking Layers",
 	"Tailwind Variants",
 	"Typography",
 ] as const;
@@ -256,6 +257,7 @@ export const baseRoutes = {
 	Colors: "/base/colors",
 	"Scroll Fade": "/base/scroll-fade",
 	Shadows: "/base/shadows",
+	"Stacking Layers": "/base/stacking-layers",
 	"Tailwind Variants": "/base/tailwind-variants",
 	Typography: "/base/typography",
 } as const satisfies Record<(typeof basePages)[number], Route>;

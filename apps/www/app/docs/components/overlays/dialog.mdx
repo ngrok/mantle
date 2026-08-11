@@ -89,7 +89,7 @@ import { Button } from "@ngrok/mantle/button";
 
 ## Layering and z-index
 
-`Dialog.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+`Dialog.Content` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="dialog-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
 
 `Dialog`, `Sheet`, and `AlertDialog` each render their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
 
@@ -337,7 +337,7 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 
 ## Stacking a Sheet over a Dialog
 
-`Dialog` and `Sheet` share the same `z-50` layer, so the most recently mounted layer renders on top. Open the dialog below first, then open the sheet from inside it — the sheet stacks over the dialog rather than disappearing behind it. Each layer renders its own backdrop, so the dialog beneath is dimmed by the sheet's overlay.
+`Dialog` and `Sheet` share the overlay tier (`z-60`), so the most recently mounted overlay renders on top. Open the dialog below first, then open the sheet from inside it — the sheet stacks over the dialog rather than disappearing behind it. Each overlay renders its own backdrop, so the dialog beneath is dimmed by the sheet's overlay.
 
 <Example>
 	<Dialog.Root>
@@ -598,7 +598,7 @@ function Example() {
 
 The root stateful component that manages the open/closed state of the dialog.
 
-Its floating `Dialog.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`Dialog` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="dialog-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
 
 | Prop            | Type                      | Default | Description                                                                                                                                                   |
 | --------------- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -619,7 +619,9 @@ A button that opens the dialog.
 
 The container for the dialog content. Renders on top of the overlay and is centered in the viewport.
 
-Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`Dialog.Content` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="dialog-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
+
+`Dialog.Content` renders inside a positioner element (`data-slot="dialog-positioner"`) that lays out the content and receives floats portaled from inside the dialog. The full stacking contract lives at [Stacking Layers](/base/stacking-layers).
 
 | Prop                 | Type                                            | Default      | Description                                                                                                                                                |
 | -------------------- | ----------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |

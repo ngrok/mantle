@@ -433,7 +433,7 @@ function Example() {
 
 ## Layering and z-index
 
-`MultiSelect.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+`MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest `data-mantle-modal-content` element — an enclosing overlay's content — else the nearest overlay's positioner, else `document.body`. Inside an overlay it paints above the content that contains it. Outside one, an open overlay (`z-60`) covers it.
 
 `MultiSelect` does not render a backdrop by default. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
 
@@ -1120,7 +1120,7 @@ The `MultiSelect` components are built on top of [ariakit Combobox](https://aria
 
 Root component for a multi-select combobox. Owns the selected values and the typeahead query.
 
-Its floating `MultiSelect.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest `data-mantle-modal-content` element — an enclosing overlay's content — else the nearest overlay's positioner, else `document.body`. Inside an overlay it paints above the content that contains it. Outside one, an open overlay (`z-60`) covers it.
 
 All props from ariakit [ComboboxProvider](https://ariakit.org/reference/combobox-provider) (typed to `string[]` for multi-select), plus:
 
@@ -1188,7 +1188,7 @@ Also accepts all standard `span` element props (except `children`). The `onKeyDo
 
 Renders a popover that contains multi-select content.
 
-Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest `data-mantle-modal-content` element — an enclosing overlay's content — else the nearest overlay's positioner, else `document.body`. Inside an overlay it paints above the content that contains it. Outside one, an open overlay (`z-60`) covers it.
 
 All props from ariakit [ComboboxPopover](https://ariakit.org/reference/combobox-popover), plus:
 

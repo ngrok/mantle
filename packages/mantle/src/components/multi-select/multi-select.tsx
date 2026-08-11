@@ -18,6 +18,7 @@ import type { WithAsChild } from "../../types/as-child.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { WithValidation } from "../field/validation.js";
@@ -76,9 +77,11 @@ type MultiSelectProps = Primitive.ComboboxProviderProps<string[]>;
  * combobox input — so a native form submit sends the selected values, not the
  * typeahead filter text.
  *
- * `MultiSelect.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest
+ * `data-mantle-modal-content` element — an enclosing overlay's content — else
+ * the nearest overlay's positioner, else `document.body`. Inside an overlay it
+ * paints above the content that contains
+ * it. Outside one, an open overlay (`z-60`) covers it.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectroot
  *
@@ -712,9 +715,11 @@ type MultiSelectContentProps = Omit<Primitive.ComboboxPopoverProps, "render"> & 
  * Renders a popover that contains multi-select content, such as items, groups,
  * and separators. Opens below the trigger.
  *
- * `MultiSelect.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest
+ * `data-mantle-modal-content` element — an enclosing overlay's content — else
+ * the nearest overlay's positioner, else `document.body`. Inside an overlay it
+ * paints above the content that contains
+ * it. Outside one, an open overlay (`z-60`) covers it.
  *
  * By default, mantle disables Ariakit's body scroll lock when the trigger is
  * inside a mantle modal (`Dialog`, `Sheet`, `AlertDialog`) — the modal already
@@ -751,6 +756,7 @@ const Content = ({
 	...props
 }: MultiSelectContentProps) => {
 	const triggerRef = useContext(TriggerRefContext);
+	const layerContainer = useLayerContainer();
 
 	// When the trigger lives inside a mantle modal (Dialog/Sheet), the modal
 	// already scroll-locks the body. Ariakit's own body scroll lock must stay
@@ -758,10 +764,14 @@ const Content = ({
 	// modal's transient `pointer-events: none`) and re-applies that stale
 	// snapshot on an animation frame after unmount, permanently freezing the
 	// page (see multi-select.browser.test.tsx regression test).
-	const [isInsideModal, setIsInsideModal] = useState(false);
+	// A non-null layer container also means an overlay encloses the trigger —
+	// `closest` alone misses that when the trigger sits in a float portaled
+	// into the overlay's positioner.
+	const [isInsideModalContent, setIsInsideModalContent] = useState(false);
 	useEffect(() => {
-		setIsInsideModal(triggerRef.current?.closest("[data-mantle-modal-content]") != null);
+		setIsInsideModalContent(triggerRef.current?.closest("[data-mantle-modal-content]") != null);
 	}, [triggerRef]);
+	const isInsideModal = isInsideModalContent || layerContainer != null;
 
 	const getAnchorRect = useCallback(() => {
 		return triggerRef.current?.getBoundingClientRect() ?? null;
@@ -773,13 +783,18 @@ const Content = ({
 				return portalElement(element);
 			}
 
+			// Why the layer-container fallback: when the trigger sits in a float
+			// portaled into an overlay's positioner, `closest` cannot reach the
+			// overlay's content element — the popup would land on `document.body`
+			// at `z-50`, under the overlay tier.
 			return (
 				portalElement ??
 				triggerRef.current?.closest<HTMLElement>("[data-mantle-modal-content]") ??
+				(layerContainer instanceof HTMLElement ? layerContainer : null) ??
 				element.ownerDocument.body
 			);
 		},
-		[portalElement, triggerRef],
+		[layerContainer, portalElement, triggerRef],
 	);
 
 	const hideOnInteractOutside = useCallback(
@@ -1139,9 +1154,11 @@ const ContentFooter = ({ className, children, ref, ...props }: MultiSelectConten
  * items rendered as removable tags/chips. For single selection, use Combobox (with search)
  * or Select (without).
  *
- * `MultiSelect.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest
+ * `data-mantle-modal-content` element — an enclosing overlay's content — else
+ * the nearest overlay's positioner, else `document.body`. Inside an overlay it
+ * paints above the content that contains
+ * it. Outside one, an open overlay (`z-60`) covers it.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
@@ -1188,9 +1205,10 @@ const MultiSelect = {
 	 * items rendered as removable tags/chips. For single selection, use Combobox (with search)
 	 * or Select (without).
 	 *
-	 * `MultiSelect.Content` renders at Tailwind `z-50`, Mantle's shared
-	 * floating z-index. When multiple shared layers are open, the most recently
-	 * mounted layer renders on top.
+	 * `MultiSelect.Content` renders at Tailwind `z-50` and portals into the
+	 * closest `data-mantle-modal-content` element — an enclosing overlay's content
+	 * — else `document.body`. Inside an overlay it paints above the content that
+	 * contains it. Outside one, an open overlay (`z-60`) covers it.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectroot
 	 *
@@ -1312,9 +1330,10 @@ const MultiSelect = {
 	/**
 	 * Renders a popover that contains multi-select content.
 	 *
-	 * `MultiSelect.Content` renders at Tailwind `z-50`, Mantle's shared
-	 * floating z-index. When multiple shared layers are open, the most recently
-	 * mounted layer renders on top.
+	 * `MultiSelect.Content` renders at Tailwind `z-50` and portals into the
+	 * closest `data-mantle-modal-content` element — an enclosing overlay's content
+	 * — else `document.body`. Inside an overlay it paints above the content that
+	 * contains it. Outside one, an open overlay (`z-60`) covers it.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontent
 	 *

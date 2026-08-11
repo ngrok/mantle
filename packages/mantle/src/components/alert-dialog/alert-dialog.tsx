@@ -6,6 +6,7 @@ import { type ComponentProps, type ReactNode, createContext, useContext, useMemo
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { Button, type ButtonAppearance, type ButtonProps } from "../button/button.js";
 import type { ButtonIntent } from "../button/intents.js";
 import * as AlertDialogPrimitive from "../dialog/primitive.js";
@@ -42,9 +43,11 @@ type AlertDialogProps = ComponentProps<typeof AlertDialogPrimitive.Root> & {
  * response. Holds the open state and the `intent` that `AlertDialog.Icon` and
  * `AlertDialog.Action` read.
  *
- * `AlertDialog` renders its floating layer at Tailwind `z-50`, Mantle's
- * shared floating z-index. When multiple shared layers are open, the most
- * recently mounted layer renders on top.
+ * `AlertDialog` renders its floating layer at Tailwind `z-60`, Mantle's overlay
+ * tier, above every float (`z-50`). Floats composed inside the content portal
+ * into the positioner (`data-slot="alert-dialog-positioner"`) and paint above
+ * the content. When multiple overlays are open, the most recently mounted
+ * overlay renders on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogroot
  *
@@ -148,7 +151,7 @@ const AlertDialogOverlay = ({
 	<AlertDialogPrimitive.Overlay
 		data-slot="alert-dialog-overlay"
 		className={cx(
-			"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 bg-overlay fixed inset-0 z-50 backdrop-blur-xs",
+			"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 bg-overlay fixed inset-0 z-60 backdrop-blur-xs",
 			className,
 		)}
 		{...props}
@@ -173,9 +176,11 @@ type AlertDialogContentProps = ComponentProps<typeof AlertDialogPrimitive.Conten
  *
  * Renders on top of the overlay and is centered in the viewport.
  *
- * `AlertDialog.Content` renders its floating layer at Tailwind `z-50`,
- * Mantle's shared floating z-index. When multiple shared layers are open, the
- * most recently mounted layer renders on top.
+ * `AlertDialog.Content` renders its floating layer at Tailwind `z-60`, Mantle's
+ * overlay tier, above every float (`z-50`). Floats composed inside the content
+ * portal into the positioner (`data-slot="alert-dialog-positioner"`) and paint
+ * above the content. When multiple overlays are open, the most recently mounted
+ * overlay renders on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogcontent
  *
@@ -217,7 +222,15 @@ const Content = ({
 }: AlertDialogContentProps) => (
 	<AlertDialogPortal>
 		<AlertDialogOverlay />
-		<div className="fixed inset-4 z-50 flex items-center justify-center">
+		{/* Why the positioner is the layer container: floats composed inside the
+		    alert dialog portal into it, after the content, so they paint above
+		    the content inside the alert dialog's own stacking context. It stays
+		    free of transforms — the open animation lives on the content — so a
+		    portaled float's `position: fixed` still resolves against the viewport. */}
+		<LayerContainer
+			data-slot="alert-dialog-positioner"
+			className="fixed inset-4 z-60 flex items-center justify-center"
+		>
 			<AlertDialogPrimitive.Content
 				data-slot="alert-dialog-content"
 				data-mantle-modal-content
@@ -233,7 +246,7 @@ const Content = ({
 				)}
 				{...props}
 			/>
-		</div>
+		</LayerContainer>
 	</AlertDialogPortal>
 );
 
@@ -796,9 +809,11 @@ const Close = ({ ref, ...props }: ComponentProps<typeof AlertDialogPrimitive.Clo
  * `Dialog` instead. For side-panel content (filter panels, detail views,
  * navigation drawers), use `Sheet`.
  *
- * `AlertDialog` renders its floating layer at Tailwind `z-50`, Mantle's
- * shared floating z-index. When multiple shared layers are open, the most
- * recently mounted layer renders on top.
+ * `AlertDialog` renders its floating layer at Tailwind `z-60`, Mantle's overlay
+ * tier, above every float (`z-50`). Floats composed inside the content portal
+ * into the positioner (`data-slot="alert-dialog-positioner"`) and paint above
+ * the content. When multiple overlays are open, the most recently mounted
+ * overlay renders on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/alert-dialog
  *
@@ -855,9 +870,11 @@ const AlertDialog = {
 	 * informational confirmations. `AlertDialog.Icon` and `AlertDialog.Action`
 	 * read that intent for their color.
 	 *
-	 * `AlertDialog` renders its floating layer at Tailwind `z-50`, Mantle's
-	 * shared floating z-index. When multiple shared layers are open, the most
-	 * recently mounted layer renders on top.
+	 * `AlertDialog` renders its floating layer at Tailwind `z-60`, Mantle's
+	 * overlay tier, above every float (`z-50`). Floats composed inside the content
+	 * portal into the positioner (`data-slot="alert-dialog-positioner"`) and paint
+	 * above the content. When multiple overlays are open, the most recently
+	 * mounted overlay renders on top.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogroot
 	 *
@@ -1051,9 +1068,12 @@ const AlertDialog = {
 	 * The popover alert dialog container. Renders on top of the overlay,
 	 * centered in the viewport.
 	 *
-	 * `AlertDialog.Content` renders its floating layer at Tailwind `z-50`,
-	 * Mantle's shared floating z-index. When multiple shared layers are open,
-	 * the most recently mounted layer renders on top.
+	 * `AlertDialog.Content` renders its floating layer at Tailwind `z-60`,
+	 * Mantle's overlay tier, above every float (`z-50`). Floats composed inside
+	 * the content portal into the positioner
+	 * (`data-slot="alert-dialog-positioner"`) and paint above the content. When
+	 * multiple overlays are open, the most recently mounted overlay renders on
+	 * top.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogcontent
 	 *

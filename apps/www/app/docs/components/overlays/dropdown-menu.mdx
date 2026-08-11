@@ -195,7 +195,7 @@ function Example() {
 
 ## Layering and z-index
 
-`DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+`DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and paint above the overlay that owns them. Outside every overlay, they portal to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
 `DropdownMenu` does not render a backdrop by default. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
 
@@ -228,7 +228,7 @@ The `DropdownMenu` components are built on top of [Radix Dropdown Menu](https://
 
 The root, stateful component that manages the open/closed state of the dropdown menu.
 
-Its floating `DropdownMenu.Content` and `DropdownMenu.SubContent` layers render at Tailwind `z-50`, Mantle's shared floating z-index.
+`DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and paint above the overlay that owns them. Outside every overlay, they portal to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
 | Prop            | Type                      | Default | Description                                                                                                                                                        |
 | :-------------- | :------------------------ | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -250,7 +250,7 @@ The trigger button that opens the dropdown menu.
 
 The container for the dropdown menu content. Appears in a portal with scrolling and animations.
 
-Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and paint above the overlay that owns them. Outside every overlay, they portal to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
 All props from Radix [DropdownMenu.Content](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#content), plus:
 
@@ -347,7 +347,7 @@ The trigger item that opens a submenu when hovered or focused.
 
 The content container for submenu items. Appears in a portal with scrolling and animations.
 
-Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and paint above the overlay that owns them. Outside every overlay, they portal to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
 | Prop    | Type      | Default | Description                                                                         |
 | :------ | :-------- | :------ | :---------------------------------------------------------------------------------- |

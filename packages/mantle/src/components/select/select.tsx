@@ -15,6 +15,7 @@ import type {
 import { createContext, useContext, useMemo } from "react";
 import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { WithValidation } from "../field/validation.js";
@@ -83,9 +84,12 @@ type SelectProps = PropsWithChildren & {
  * state — suppress the inferred error by passing `validation` on `Field.Item`
  * if a non-error `Select.Root` state needs to win in that case.
  *
- * `Select.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `Select.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+ * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+ * that overlay's positioner and paints above the overlay that owns it. Outside
+ * every overlay, it portals to `document.body`, below the overlay tier
+ * (`z-60`). When sibling floats share a container, the most recently mounted
+ * float paints on top.
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectroot
  *
@@ -362,9 +366,12 @@ type SelectContentProps = ComponentProps<typeof SelectPrimitive.Content> & {
  * The component that pops out when the select is open as a portal adjacent to the trigger button.
  * It contains a scrolling viewport of the select items.
  *
- * `Select.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `Select.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+ * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+ * that overlay's positioner and paints above the overlay that owns it. Outside
+ * every overlay, it portals to `document.body`, below the overlay tier
+ * (`z-60`). When sibling floats share a container, the most recently mounted
+ * float paints on top.
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectcontent
  *
@@ -398,35 +405,39 @@ const Content = ({
 	ref,
 	width = "trigger",
 	...props
-}: SelectContentProps) => (
-	<SelectPrimitive.Portal>
-		<SelectPrimitive.Content
-			ref={ref}
-			data-slot="select-content"
-			className={cx(
-				"border-popover data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 relative z-50 max-h-96 min-w-32 overflow-hidden rounded-md border shadow-md",
-				"bg-popover font-sans",
-				position === "popper" &&
-					"data-side-bottom:translate-y-2 data-side-left:-translate-x-2 data-side-right:translate-x-2 data-side-top:-translate-y-2 max-h-(--radix-select-content-available-height)",
-				width === "trigger" && "w-(--radix-select-trigger-width)",
-				className,
-			)}
-			position={position}
-			{...props}
-		>
-			<SelectScrollUpButton />
-			<SelectPrimitive.Viewport
+}: SelectContentProps) => {
+	const layerContainer = useLayerContainer();
+
+	return (
+		<SelectPrimitive.Portal container={layerContainer}>
+			<SelectPrimitive.Content
+				ref={ref}
+				data-slot="select-content"
 				className={cx(
-					"p-1 space-y-px",
-					position === "popper" && "h-(--radix-select-trigger-height) w-full",
+					"border-popover data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 relative z-50 max-h-96 min-w-32 overflow-hidden rounded-md border shadow-md",
+					"bg-popover font-sans",
+					position === "popper" &&
+						"data-side-bottom:translate-y-2 data-side-left:-translate-x-2 data-side-right:translate-x-2 data-side-top:-translate-y-2 max-h-(--radix-select-content-available-height)",
+					width === "trigger" && "w-(--radix-select-trigger-width)",
+					className,
 				)}
+				position={position}
+				{...props}
 			>
-				{children}
-			</SelectPrimitive.Viewport>
-			<SelectScrollDownButton />
-		</SelectPrimitive.Content>
-	</SelectPrimitive.Portal>
-);
+				<SelectScrollUpButton />
+				<SelectPrimitive.Viewport
+					className={cx(
+						"p-1 space-y-px",
+						position === "popper" && "h-(--radix-select-trigger-height) w-full",
+					)}
+				>
+					{children}
+				</SelectPrimitive.Viewport>
+				<SelectScrollDownButton />
+			</SelectPrimitive.Content>
+		</SelectPrimitive.Portal>
+	);
+};
 
 /**
  * Used to render the label of a group. It won't be focusable using arrow keys.
@@ -570,9 +581,12 @@ const SelectSeparatorComponent = ({
  * and search/filtering is unnecessary. For larger lists or async/searchable data, use
  * Combobox. For picking multiple options, use MultiSelect.
  *
- * `Select.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `Select.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+ * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+ * that overlay's positioner and paints above the overlay that owns it. Outside
+ * every overlay, it portals to `document.body`, below the overlay tier
+ * (`z-60`). When sibling floats share a container, the most recently mounted
+ * float paints on top.
  *
  * @see https://mantle.ngrok.com/components/forms/select
  *
@@ -620,9 +634,12 @@ const Select = {
 	 * and search/filtering is unnecessary. For larger lists or async/searchable data, use
 	 * Combobox. For picking multiple options, use MultiSelect.
 	 *
-	 * `Select.Content` renders at Tailwind `z-50`, Mantle's shared floating
-	 * z-index. When multiple shared layers are open, the most recently mounted
-	 * layer renders on top.
+	 * `Select.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+	 * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+	 * that overlay's positioner and paints above the overlay that owns it. Outside
+	 * every overlay, it portals to `document.body`, below the overlay tier
+	 * (`z-60`). When sibling floats share a container, the most recently mounted
+	 * float paints on top.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selectroot
 	 *
@@ -654,9 +671,12 @@ const Select = {
 	 * The component that pops out when the select is open as a portal adjacent to the trigger button.
 	 * It contains a scrolling viewport of the select items.
 	 *
-	 * `Select.Content` renders at Tailwind `z-50`, Mantle's shared floating
-	 * z-index. When multiple shared layers are open, the most recently mounted
-	 * layer renders on top.
+	 * `Select.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+	 * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+	 * that overlay's positioner and paints above the overlay that owns it. Outside
+	 * every overlay, it portals to `document.body`, below the overlay tier
+	 * (`z-60`). When sibling floats share a container, the most recently mounted
+	 * float paints on top.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selectcontent
 	 *

@@ -146,7 +146,7 @@ import { Popover } from "@ngrok/mantle/popover";
 
 ## Layering and z-index
 
-`Popover.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+`Popover.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
 `Popover` does not render a backdrop by default. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
 
@@ -171,7 +171,7 @@ The `Popover` components are built on top of [Radix Popover](https://www.radix-u
 
 The root, stateful component that manages the open/closed state of the popover.
 
-Its floating `Popover.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`Popover.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
 All props from Radix [Popover.Root](https://www.radix-ui.com/primitives/docs/components/popover#root).
 
@@ -196,7 +196,7 @@ All props from Radix [Popover.Trigger](https://www.radix-ui.com/primitives/docs/
 
 The content to render inside the popover. Appears in a portal with styling and animations.
 
-Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`Popover.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
 `Popover.Content` sets `position: relative`, so `Popover.Arrow`'s absolutely-positioned wrapper keeps one containing block through the open animation. An absolutely-positioned child of the content therefore anchors to the content.
 

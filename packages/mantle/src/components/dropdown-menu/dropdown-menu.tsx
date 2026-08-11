@@ -1,8 +1,11 @@
+"use client";
+
 import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 import { CheckIcon } from "@phosphor-icons/react/Check";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon } from "../icon/icon.js";
@@ -13,8 +16,11 @@ import { Separator } from "../separator/separator.js";
  * This is the root, stateful component that manages the open/closed state of the dropdown menu.
  *
  * `DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind
- * `z-50`, Mantle's shared floating z-index. When multiple shared layers are
- * open, the most recently mounted layer renders on top.
+ * `z-50`, Mantle's float tier. When composed inside an open `Dialog`,
+ * `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and
+ * paint above the overlay that owns them. Outside every overlay, they portal to
+ * `document.body`, below the overlay tier (`z-60`). When sibling floats share a
+ * container, the most recently mounted float paints on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenuroot
  *
@@ -86,9 +92,14 @@ const Group = ({ className, ...props }: ComponentProps<typeof DropdownMenuPrimit
 );
 
 /**
- * The portal container for rendering dropdown content outside the normal DOM tree.
+ * Mounts dropdown content into the nearest layer container — an enclosing
+ * overlay's positioner when one is open, else `document.body`. An explicit
+ * `container` prop wins over both.
  */
-const Portal = DropdownMenuPrimitive.Portal;
+const Portal = ({ container, ...props }: ComponentProps<typeof DropdownMenuPrimitive.Portal>) => {
+	const layerContainer = useLayerContainer();
+	return <DropdownMenuPrimitive.Portal container={container ?? layerContainer} {...props} />;
+};
 
 /**
  * A submenu container for creating nested dropdown menus.
@@ -192,9 +203,12 @@ const SubTrigger = ({
 /**
  * The content container for a dropdown menu sub-menu.
  *
- * `DropdownMenu.SubContent` renders at Tailwind `z-50`, Mantle's shared
- * floating z-index. When multiple shared layers are open, the most recently
- * mounted layer renders on top.
+ * `DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind
+ * `z-50`, Mantle's float tier. When composed inside an open `Dialog`,
+ * `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and
+ * paint above the overlay that owns them. Outside every overlay, they portal to
+ * `document.body`, below the overlay tier (`z-60`). When sibling floats share a
+ * container, the most recently mounted float paints on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenusubcontent
  *
@@ -245,9 +259,12 @@ type DropdownMenuContentProps = ComponentProps<typeof DropdownMenuPrimitive.Cont
 /**
  * The container for the dropdown menu content.
  *
- * `DropdownMenu.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind
+ * `z-50`, Mantle's float tier. When composed inside an open `Dialog`,
+ * `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and
+ * paint above the overlay that owns them. Outside every overlay, they portal to
+ * `document.body`, below the overlay tier (`z-60`). When sibling floats share a
+ * container, the most recently mounted float paints on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenucontent
  *
@@ -523,8 +540,11 @@ const Shortcut = ({ className, ...props }: ComponentProps<"span">) => {
  * A menu of options or actions, triggered by a button.
  *
  * `DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind
- * `z-50`, Mantle's shared floating z-index. When multiple shared layers are
- * open, the most recently mounted layer renders on top.
+ * `z-50`, Mantle's float tier. When composed inside an open `Dialog`,
+ * `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and
+ * paint above the overlay that owns them. Outside every overlay, they portal to
+ * `document.body`, below the overlay tier (`z-60`). When sibling floats share a
+ * container, the most recently mounted float paints on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu
  *
@@ -567,8 +587,11 @@ const DropdownMenu = {
 	 * The root, stateful component that manages the open/closed state of the dropdown menu.
 	 *
 	 * `DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind
-	 * `z-50`, Mantle's shared floating z-index. When multiple shared layers are
-	 * open, the most recently mounted layer renders on top.
+	 * `z-50`, Mantle's float tier. When composed inside an open `Dialog`,
+	 * `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and
+	 * paint above the overlay that owns them. Outside every overlay, they portal
+	 * to `document.body`, below the overlay tier (`z-60`). When sibling floats
+	 * share a container, the most recently mounted float paints on top.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenuroot
 	 *
@@ -608,9 +631,12 @@ const DropdownMenu = {
 	/**
 	 * The container for the dropdown menu content. Appears in a portal with scrolling and animations.
 	 *
-	 * `DropdownMenu.Content` renders at Tailwind `z-50`, Mantle's shared
-	 * floating z-index. When multiple shared layers are open, the most recently
-	 * mounted layer renders on top.
+	 * `DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind
+	 * `z-50`, Mantle's float tier. When composed inside an open `Dialog`,
+	 * `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and
+	 * paint above the overlay that owns them. Outside every overlay, they portal
+	 * to `document.body`, below the overlay tier (`z-60`). When sibling floats
+	 * share a container, the most recently mounted float paints on top.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenucontent
 	 *
@@ -787,9 +813,12 @@ const DropdownMenu = {
 	/**
 	 * The content container for submenu items.
 	 *
-	 * `DropdownMenu.SubContent` renders at Tailwind `z-50`, Mantle's shared
-	 * floating z-index. When multiple shared layers are open, the most recently
-	 * mounted layer renders on top.
+	 * `DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind
+	 * `z-50`, Mantle's float tier. When composed inside an open `Dialog`,
+	 * `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and
+	 * paint above the overlay that owns them. Outside every overlay, they portal
+	 * to `document.body`, below the overlay tier (`z-60`). When sibling floats
+	 * share a container, the most recently mounted float paints on top.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenusubcontent
 	 *

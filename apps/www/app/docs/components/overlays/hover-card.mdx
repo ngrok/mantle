@@ -119,7 +119,7 @@ import { HoverCard } from "@ngrok/mantle/hover-card";
 
 ## Layering and z-index
 
-`HoverCard.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+`HoverCard.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
 `HoverCard` does not render a backdrop. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
 
@@ -142,7 +142,7 @@ The `HoverCard` component is built on top of [Radix UI Hover Card](https://www.r
 
 The root stateful component that manages the open/closed state of the hover card.
 
-Its floating `HoverCard.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`HoverCard.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
 | Prop           | Type                      | Default | Description                                                                                                         |
 | -------------- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
@@ -164,7 +164,7 @@ The trigger element that opens the hover card when hovered.
 
 The content to render inside the hover card. Appears in a portal with rich styling and animations.
 
-Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`HoverCard.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
 `HoverCard.Content` sets `position: relative`, so `HoverCard.Arrow`'s absolutely-positioned wrapper keeps one containing block through the open animation. An absolutely-positioned child of the content therefore anchors to the content.
 

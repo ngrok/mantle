@@ -224,7 +224,7 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 
 ## Layering and z-index
 
-`Sheet.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+`Sheet.Content` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="sheet-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
 
 `Sheet`, `Dialog`, and `AlertDialog` each render their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
 
@@ -524,7 +524,7 @@ The `Sheet` components are built on top of [Radix Dialog](https://www.radix-ui.c
 
 The root component for a `Sheet`. Should compose the `Sheet.Trigger` and `Sheet.Content`. Acts as a stateful provider for the Sheet's open/closed state.
 
-Its floating `Sheet.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`Sheet` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="sheet-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
 
 All props from Radix [Dialog.Root](https://www.radix-ui.com/primitives/docs/components/dialog#root).
 
@@ -544,7 +544,9 @@ Radix [Dialog.Close](https://www.radix-ui.com/primitives/docs/components/dialog#
 
 The main container for a `Sheet`. Should be rendered as a child of the `Sheet` component. Renders on top of the overlay backdrop. Should contain the `Sheet.Header`, `Sheet.Body`, and `Sheet.Footer`.
 
-Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`Sheet.Content` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="sheet-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
+
+`Sheet.Content` renders inside a positioner element (`data-slot="sheet-positioner"`) that lays out the content and receives floats portaled from inside the sheet. The full stacking contract lives at [Stacking Layers](/base/stacking-layers).
 
 All props from Radix [Dialog.Content](https://www.radix-ui.com/primitives/docs/components/dialog#content), plus:
 
