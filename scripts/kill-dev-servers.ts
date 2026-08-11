@@ -239,7 +239,7 @@ function getProcessCommand({ pid, fallback }: { pid: number; fallback: string })
  * await stopTargetProcesses(targets);
  * ```
  */
-async function stopTargetProcesses(targets: readonly TargetListener[]): Promise<StopResult> {
+export async function stopTargetProcesses(targets: readonly TargetListener[]): Promise<StopResult> {
 	const targetPortsByPid = new Map<number, Set<number>>();
 	for (const target of targets) {
 		const targetPorts = targetPortsByPid.get(target.pid) ?? new Set<number>();
