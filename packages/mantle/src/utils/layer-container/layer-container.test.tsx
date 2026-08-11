@@ -325,6 +325,34 @@ describe("layer containers", () => {
 			expect(inner != null && inner.contains(floatContent)).toBe(true);
 		});
 
+		test("an alert dialog opened from inside a dialog portals into the dialog's positioner", async () => {
+			const user = userEvent.setup();
+			render(
+				<Dialog.Root open>
+					<Dialog.Content>
+						<Dialog.Title>Outer</Dialog.Title>
+						<Dialog.Body>
+							<AlertDialog.Root intent="danger">
+								<AlertDialog.Trigger>Open alert</AlertDialog.Trigger>
+								<AlertDialog.Content>
+									<AlertDialog.Body>
+										<AlertDialog.Title>Inner alert</AlertDialog.Title>
+									</AlertDialog.Body>
+								</AlertDialog.Content>
+							</AlertDialog.Root>
+						</Dialog.Body>
+					</Dialog.Content>
+				</Dialog.Root>,
+			);
+
+			await user.click(screen.getByRole("button", { name: "Open alert" }));
+			await screen.findByText("Inner alert");
+
+			const dialogPositioner = getPositioner("dialog-positioner");
+			const alertDialogPositioner = getPositioner("alert-dialog-positioner");
+			expect(dialogPositioner.contains(alertDialogPositioner)).toBe(true);
+		});
+
 		test("DropdownMenu.SubContent portals into the same positioner as its menu", async () => {
 			const user = userEvent.setup();
 			render(
@@ -575,6 +603,30 @@ describe("layer containers", () => {
 			).toBeTruthy();
 		});
 
+		test("a HoverCard inside a base popover shares the popover's container and follows it", async () => {
+			const user = userEvent.setup();
+			render(
+				<Popover.Root>
+					<Popover.Trigger>Open host</Popover.Trigger>
+					<Popover.Content>
+						<HoverCard.Root open>
+							<HoverCard.Trigger>anchor</HoverCard.Trigger>
+							<HoverCard.Content>float content</HoverCard.Content>
+						</HoverCard.Root>
+					</Popover.Content>
+				</Popover.Root>,
+			);
+
+			await user.click(screen.getByRole("button", { name: "Open host" }));
+			const hoverCardContent = await screen.findByText("float content");
+
+			const popoverContent = getPositioner("popover-content");
+			expect(popoverContent.contains(hoverCardContent)).toBe(false);
+			expect(
+				popoverContent.compareDocumentPosition(hoverCardContent) & Node.DOCUMENT_POSITION_FOLLOWING,
+			).toBeTruthy();
+		});
+
 		test("a MultiSelect inside a base popover portals to document.body", async () => {
 			const user = userEvent.setup();
 			render(
@@ -687,6 +739,50 @@ describe("layer containers", () => {
 			const dialogContent = getPositioner("dialog-content");
 			expect(dialogContent.hasAttribute("data-mantle-modal-content")).toBe(true);
 			expect(dialogContent.contains(popup)).toBe(true);
+		});
+
+		test("Combobox renders its popup in place inside the alert dialog content element", async () => {
+			const user = userEvent.setup();
+			render(
+				overlays[1].renderOpen(
+					<Combobox.Root>
+						<Combobox.Input aria-label="Fruit" />
+						<Combobox.Content>
+							<Combobox.Item value="Apple" />
+						</Combobox.Content>
+					</Combobox.Root>,
+				),
+			);
+
+			await user.click(screen.getByRole("combobox", { name: "Fruit" }));
+			await user.keyboard("App");
+			const popup = await screen.findByRole("listbox");
+
+			expect(getPositioner("alert-dialog-content").contains(popup)).toBe(true);
+		});
+
+		test("MultiSelect portals its popup into the alert dialog's `data-mantle-modal-content` element", async () => {
+			const user = userEvent.setup();
+			render(
+				overlays[1].renderOpen(
+					<MultiSelect.Root>
+						<MultiSelect.Trigger>
+							<MultiSelect.TagValues />
+							<MultiSelect.Input placeholder="Select items..." />
+						</MultiSelect.Trigger>
+						<MultiSelect.Content>
+							<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+						</MultiSelect.Content>
+					</MultiSelect.Root>,
+				),
+			);
+
+			await user.click(screen.getByPlaceholderText("Select items..."));
+			const popup = await screen.findByRole("listbox");
+
+			const alertDialogContent = getPositioner("alert-dialog-content");
+			expect(alertDialogContent.hasAttribute("data-mantle-modal-content")).toBe(true);
+			expect(alertDialogContent.contains(popup)).toBe(true);
 		});
 
 		test("Combobox renders its popup in place inside the sheet content element", async () => {
