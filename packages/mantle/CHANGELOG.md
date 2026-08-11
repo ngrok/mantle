@@ -1,5 +1,13 @@
 # @ngrok/mantle
 
+## 0.83.7
+
+### Patch Changes
+
+- [#1441](https://github.com/ngrok/mantle/pull/1441) [`d9829f3`](https://github.com/ngrok/mantle/commit/d9829f348b016b1207b4db1a037f8e379f4ef283) Thanks [@forzalupo](https://github.com/forzalupo)! - `Sidebar` ships a narrower default expanded panel: `--sidebar-width` is now `13rem` (208px), down from `16rem` (256px). `--sidebar-row-width` follows to `12rem` (192px), so menus floored at that token stay flush with a row.
+
+  Override `--sidebar-width` (on `Sidebar.Nav` or at `:root`) if you want the previous width back. See https://mantle.ngrok.com/components/navigation/sidebar#width.
+
 ## 0.83.6
 
 ### Patch Changes
