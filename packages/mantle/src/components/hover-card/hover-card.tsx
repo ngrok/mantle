@@ -3,14 +3,21 @@
 import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import {
+	LayerContainerContext,
+	useLayerContainer,
+} from "../../utils/layer-container/layer-container.js";
 
 /**
  * A floating card that appears when a user hovers over a trigger element.
  * This is the root, stateful component that manages the open/closed state of the hover card.
  *
- * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+ * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+ * that overlay's positioner and paints above the overlay that owns it. Outside
+ * every overlay, it portals to `document.body`, below the overlay tier
+ * (`z-60`). When sibling floats share a container, the most recently mounted
+ * float paints on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardroot
  *
@@ -66,6 +73,9 @@ const Trigger = (props: ComponentProps<typeof HoverCardPrimitive.Trigger>) => (
  * customize portal placement (e.g., pass a `container` prop) or wrap multiple
  * `HoverCard.Content` instances in a shared portal.
  *
+ * When `container` is omitted, content mounts into the nearest layer container —
+ * an enclosing overlay's positioner when one is open, else `document.body`.
+ *
  * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardportal
  *
  * @example
@@ -84,14 +94,29 @@ const Trigger = (props: ComponentProps<typeof HoverCardPrimitive.Trigger>) => (
  * </HoverCard.Root>
  * ```
  */
-const Portal = HoverCardPrimitive.Portal;
+const Portal = ({ container, ...props }: ComponentProps<typeof HoverCardPrimitive.Portal>) => {
+	const layerContainer = useLayerContainer();
+	const resolvedContainer = container ?? layerContainer;
+
+	// Why the provider: `HoverCard.Content` portals again internally, so the
+	// resolved container must also become the layer container for the wrapped
+	// subtree — otherwise the inner portal would ignore an explicit `container`.
+	return (
+		<LayerContainerContext.Provider value={resolvedContainer}>
+			<HoverCardPrimitive.Portal container={resolvedContainer} {...props} />
+		</LayerContainerContext.Provider>
+	);
+};
 
 /**
  * The content to render inside the hover card.
  *
- * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+ * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+ * that overlay's positioner and paints above the overlay that owns it. Outside
+ * every overlay, it portals to `document.body`, below the overlay tier
+ * (`z-60`). When sibling floats share a container, the most recently mounted
+ * float paints on top.
  *
  * It sets `position: relative`, so `HoverCard.Arrow`'s absolutely-positioned
  * wrapper keeps one containing block through the open animation. An
@@ -235,9 +260,12 @@ const Arrow = ({ className, height = 7, width = 14, ...props }: HoverCardArrowPr
  * For short, non-interactive labels or hints, use `Tooltip`. For
  * interactive overlays the user opens deliberately, use `Popover`.
  *
- * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+ * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+ * that overlay's positioner and paints above the overlay that owns it. Outside
+ * every overlay, it portals to `document.body`, below the overlay tier
+ * (`z-60`). When sibling floats share a container, the most recently mounted
+ * float paints on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/hover-card
  *
@@ -268,9 +296,12 @@ const HoverCard = {
 	/**
 	 * The root, stateful component that manages the open/closed state of the hover card.
 	 *
-	 * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's shared floating
-	 * z-index. When multiple shared layers are open, the most recently mounted
-	 * layer renders on top.
+	 * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+	 * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+	 * that overlay's positioner and paints above the overlay that owns it. Outside
+	 * every overlay, it portals to `document.body`, below the overlay tier
+	 * (`z-60`). When sibling floats share a container, the most recently mounted
+	 * float paints on top.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardroot
 	 *
@@ -316,9 +347,12 @@ const HoverCard = {
 	/**
 	 * The content to render inside the hover card. Appears in a portal with rich styling and animations.
 	 *
-	 * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's shared floating
-	 * z-index. When multiple shared layers are open, the most recently mounted
-	 * layer renders on top.
+	 * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+	 * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+	 * that overlay's positioner and paints above the overlay that owns it. Outside
+	 * every overlay, it portals to `document.body`, below the overlay tier
+	 * (`z-60`). When sibling floats share a container, the most recently mounted
+	 * float paints on top.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardcontent
 	 *

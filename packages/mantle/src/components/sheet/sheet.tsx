@@ -2,6 +2,7 @@ import { XIcon } from "@phosphor-icons/react/X";
 import { type VariantProps, cva } from "class-variance-authority";
 import type { ComponentProps, HTMLAttributes } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import {
 	IconButton,
 	type IconButtonAppearance,
@@ -14,9 +15,11 @@ import * as SheetPrimitive from "../dialog/primitive.js";
  * The root component for a `Sheet`. Should compose the `Sheet.Trigger` and `Sheet.Content`.
  * Acts as a stateful provider for the Sheet's open/closed state.
  *
- * `Sheet` renders its floating layer at Tailwind `z-50`, Mantle's shared
- * floating z-index. When multiple shared layers are open, the most recently
- * mounted layer renders on top.
+ * `Sheet` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier,
+ * above every float (`z-50`). Floats composed inside the content portal into
+ * the positioner (`data-slot="sheet-positioner"`) and paint above the content.
+ * When multiple overlays are open, the most recently mounted overlay renders on
+ * top.
  *
  * @see https://mantle.ngrok.com/components/overlays/sheet#sheetroot
  *
@@ -216,7 +219,7 @@ const SheetOverlay = ({
 	<SheetPrimitive.Overlay
 		data-slot="sheet-overlay"
 		className={cx(
-			"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 fixed inset-0 z-50 backdrop-blur-xs",
+			"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 fixed inset-0 z-60 backdrop-blur-xs",
 			className,
 		)}
 		{...props}
@@ -225,7 +228,7 @@ const SheetOverlay = ({
 );
 
 const SheetVariants = cva(
-	"bg-dialog border-dialog inset-y-0 h-full w-full fixed z-50 flex flex-col shadow-lg outline-hidden transition ease-in-out focus-within:outline-hidden data-state-closed:duration-100 data-state-closed:animate-out data-state-open:duration-100 data-state-open:animate-in",
+	"bg-dialog border-dialog inset-y-0 h-full w-full fixed flex flex-col shadow-lg outline-hidden transition ease-in-out focus-within:outline-hidden data-state-closed:duration-100 data-state-closed:animate-out data-state-open:duration-100 data-state-open:animate-in",
 	{
 		variants: {
 			/**
@@ -262,9 +265,11 @@ type SheetContentProps = ComponentProps<typeof SheetPrimitive.Content> &
  * Renders on top of the overlay backdrop.
  * Should contain the `Sheet.Header`, `Sheet.Body`, and `Sheet.Footer`.
  *
- * `Sheet.Content` renders its floating layer at Tailwind `z-50`, Mantle's
- * shared floating z-index. When multiple shared layers are open, the most
- * recently mounted layer renders on top.
+ * `Sheet.Content` renders its floating layer at Tailwind `z-60`, Mantle's
+ * overlay tier, above every float (`z-50`). Floats composed inside the content
+ * portal into the positioner (`data-slot="sheet-positioner"`) and paint above
+ * the content. When multiple overlays are open, the most recently mounted
+ * overlay renders on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/sheet#sheetcontent
  *
@@ -322,15 +327,24 @@ const Content = ({
 }: SheetContentProps) => (
 	<SheetPortal>
 		<SheetOverlay />
-		<SheetPrimitive.Content
-			data-slot="sheet-content"
-			data-mantle-modal-content
-			className={cx(SheetVariants({ side }), preferredWidth, className)}
-			ref={ref}
-			{...props}
-		>
-			{children}
-		</SheetPrimitive.Content>
+		{/* Why the positioner is the layer container: floats composed inside the
+		    sheet portal into it, after the content, so they paint above the
+		    content inside the sheet's own stacking context. The content cannot be
+		    the container itself — its slide animation carries a transform, which
+		    would turn a portaled float's `position: fixed` into a position
+		    relative to the content. The positioner has no box of its own; the
+		    content keeps its own fixed positioning. */}
+		<LayerContainer data-slot="sheet-positioner" className="fixed z-60">
+			<SheetPrimitive.Content
+				data-slot="sheet-content"
+				data-mantle-modal-content
+				className={cx(SheetVariants({ side }), preferredWidth, className)}
+				ref={ref}
+				{...props}
+			>
+				{children}
+			</SheetPrimitive.Content>
+		</LayerContainer>
 	</SheetPortal>
 );
 
@@ -864,9 +878,11 @@ const Actions = ({ children, className, ref, ...props }: ComponentProps<"div">) 
  * interrupts the user, use `Dialog` (or `AlertDialog` for destructive
  * confirmations).
  *
- * `Sheet` renders its floating layer at Tailwind `z-50`, Mantle's shared
- * floating z-index. When multiple shared layers are open, the most recently
- * mounted layer renders on top.
+ * `Sheet` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier,
+ * above every float (`z-50`). Floats composed inside the content portal into
+ * the positioner (`data-slot="sheet-positioner"`) and paint above the content.
+ * When multiple overlays are open, the most recently mounted overlay renders on
+ * top.
  *
  * @see https://mantle.ngrok.com/components/overlays/sheet
  *
@@ -984,9 +1000,11 @@ const Sheet = {
 	 * The root component for a `Sheet`. Should compose the `Sheet.Trigger` and `Sheet.Content`.
 	 * Acts as a stateful provider for the Sheet's open/closed state.
 	 *
-	 * `Sheet` renders its floating layer at Tailwind `z-50`, Mantle's shared
-	 * floating z-index. When multiple shared layers are open, the most recently
-	 * mounted layer renders on top.
+	 * `Sheet` renders its floating layer at Tailwind `z-60`, Mantle's overlay
+	 * tier, above every float (`z-50`). Floats composed inside the content portal
+	 * into the positioner (`data-slot="sheet-positioner"`) and paint above the
+	 * content. When multiple overlays are open, the most recently mounted overlay
+	 * renders on top.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetroot
 	 *
@@ -1182,9 +1200,11 @@ const Sheet = {
 	 * Renders on top of the overlay backdrop.
 	 * Should contain the `Sheet.Header`, `Sheet.Body`, and `Sheet.Footer`.
 	 *
-	 * `Sheet.Content` renders its floating layer at Tailwind `z-50`, Mantle's
-	 * shared floating z-index. When multiple shared layers are open, the most
-	 * recently mounted layer renders on top.
+	 * `Sheet.Content` renders its floating layer at Tailwind `z-60`, Mantle's
+	 * overlay tier, above every float (`z-50`). Floats composed inside the content
+	 * portal into the positioner (`data-slot="sheet-positioner"`) and paint above
+	 * the content. When multiple overlays are open, the most recently mounted
+	 * overlay renders on top.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetcontent
 	 *

@@ -1,6 +1,7 @@
 import { XIcon } from "@phosphor-icons/react/X";
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import {
 	IconButton,
 	type IconButtonAppearance,
@@ -13,9 +14,11 @@ import * as DialogPrimitive from "./primitive.js";
  * A window overlaid on either the primary window or another dialog window.
  * The root stateful component for the Dialog.
  *
- * `Dialog` renders its floating layer at Tailwind `z-50`, Mantle's shared
- * floating z-index. When multiple shared layers are open, the most recently
- * mounted layer renders on top.
+ * `Dialog` renders its floating layer at Tailwind `z-60`, Mantle's overlay
+ * tier, above every float (`z-50`). Floats composed inside the content portal
+ * into the positioner (`data-slot="dialog-positioner"`) and paint above the
+ * content. When multiple overlays are open, the most recently mounted overlay
+ * renders on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/dialog#dialogroot
  *
@@ -198,7 +201,7 @@ const Overlay = ({ className, ref, ...props }: ComponentProps<typeof DialogPrimi
 		ref={ref}
 		data-slot="dialog-overlay"
 		className={cx(
-			"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 fixed inset-0 z-50 backdrop-blur-xs",
+			"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 fixed inset-0 z-60 backdrop-blur-xs",
 			className,
 		)}
 		{...props}
@@ -281,9 +284,11 @@ type ContentProps = ComponentProps<typeof DialogPrimitive.Content> &
  * The container for the dialog content.
  * Renders on top of the overlay and is centered in the viewport.
  *
- * `Dialog.Content` renders its floating layer at Tailwind `z-50`, Mantle's
- * shared floating z-index. When multiple shared layers are open, the most
- * recently mounted layer renders on top.
+ * `Dialog.Content` renders its floating layer at Tailwind `z-60`, Mantle's
+ * overlay tier, above every float (`z-50`). Floats composed inside the content
+ * portal into the positioner (`data-slot="dialog-positioner"`) and paint above
+ * the content. When multiple overlays are open, the most recently mounted
+ * overlay renders on top.
  *
  * `appearance` decides how much of the viewport the dialog claims. `"centered"`
  * caps it at `preferredWidth`, `"full-page"` fills the 16px-inset box, and
@@ -358,8 +363,14 @@ const Content = ({
 		    so a sliver of viewport edge is uncovered for the length of the
 		    animation and would otherwise show the raw page. */}
 		<Overlay />
-		<div
-			className={cx("fixed z-50 flex items-center justify-center", wrapperClassName[appearance])}
+		{/* Why the positioner is the layer container: floats composed inside the
+		    dialog portal into it, after the content, so they paint above the
+		    content inside the dialog's own stacking context. It stays free of
+		    transforms — the open animation lives on the content — so a portaled
+		    float's `position: fixed` still resolves against the viewport. */}
+		<LayerContainer
+			data-slot="dialog-positioner"
+			className={cx("fixed z-60 flex items-center justify-center", wrapperClassName[appearance])}
 		>
 			<DialogPrimitive.Content
 				data-appearance={appearance}
@@ -379,7 +390,7 @@ const Content = ({
 			>
 				{children}
 			</DialogPrimitive.Content>
-		</div>
+		</LayerContainer>
 	</Portal>
 );
 
@@ -673,9 +684,11 @@ const Description = ({
  * For side-panel content that slides in from an edge (filter panels, detail
  * views, navigation drawers), prefer `Sheet`.
  *
- * `Dialog` renders its floating layer at Tailwind `z-50`, Mantle's shared
- * floating z-index. When multiple shared layers are open, the most recently
- * mounted layer renders on top.
+ * `Dialog` renders its floating layer at Tailwind `z-60`, Mantle's overlay
+ * tier, above every float (`z-50`). Floats composed inside the content portal
+ * into the positioner (`data-slot="dialog-positioner"`) and paint above the
+ * content. When multiple overlays are open, the most recently mounted overlay
+ * renders on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/dialog
  *
@@ -724,9 +737,11 @@ const Dialog = {
 	 * A window overlaid on either the primary window or another dialog window.
 	 * The root stateful component for the Dialog.
 	 *
-	 * `Dialog` renders its floating layer at Tailwind `z-50`, Mantle's shared
-	 * floating z-index. When multiple shared layers are open, the most recently
-	 * mounted layer renders on top.
+	 * `Dialog` renders its floating layer at Tailwind `z-60`, Mantle's overlay
+	 * tier, above every float (`z-50`). Floats composed inside the content portal
+	 * into the positioner (`data-slot="dialog-positioner"`) and paint above the
+	 * content. When multiple overlays are open, the most recently mounted overlay
+	 * renders on top.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/dialog#dialogroot
 	 *
@@ -853,9 +868,11 @@ const Dialog = {
 	 * The container for the dialog content.
 	 * Renders on top of the overlay and is centered in the viewport.
 	 *
-	 * `Dialog.Content` renders its floating layer at Tailwind `z-50`, Mantle's
-	 * shared floating z-index. When multiple shared layers are open, the most
-	 * recently mounted layer renders on top.
+	 * `Dialog.Content` renders its floating layer at Tailwind `z-60`, Mantle's
+	 * overlay tier, above every float (`z-50`). Floats composed inside the content
+	 * portal into the positioner (`data-slot="dialog-positioner"`) and paint above
+	 * the content. When multiple overlays are open, the most recently mounted
+	 * overlay renders on top.
 	 *
 	 * `appearance` decides how much of the viewport the dialog claims. `"centered"`
 	 * caps it at `preferredWidth`, `"full-page"` fills the 16px-inset box, and

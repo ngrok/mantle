@@ -93,7 +93,7 @@ import { Button } from "@ngrok/mantle/button";
 
 ## Layering and z-index
 
-`AlertDialog.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+`AlertDialog.Content` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="alert-dialog-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
 
 `AlertDialog`, `Dialog`, and `Sheet` each render their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
 
@@ -242,7 +242,7 @@ Every part of `AlertDialog` that renders DOM accepts `asChild`, which swaps the 
 
 Holds the open state and the required `intent` that `AlertDialog.Icon` and `AlertDialog.Action` read for their color.
 
-Its floating `AlertDialog.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`AlertDialog` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="alert-dialog-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
 
 All props from Radix [Dialog.Root](https://www.radix-ui.com/primitives/docs/components/dialog#root), plus:
 
@@ -260,7 +260,9 @@ Radix [Dialog.Trigger](https://www.radix-ui.com/primitives/docs/components/dialo
 
 The popover Alert Dialog container. Renders on top of the overlay and is centered in the viewport.
 
-Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`AlertDialog.Content` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="alert-dialog-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
+
+`AlertDialog.Content` renders inside a positioner element (`data-slot="alert-dialog-positioner"`) that lays out the content and receives floats portaled from inside the alert dialog. The full stacking contract lives at [Stacking Layers](/base/stacking-layers).
 
 Radix [Dialog.Content](https://www.radix-ui.com/primitives/docs/components/dialog#content) props, plus:
 

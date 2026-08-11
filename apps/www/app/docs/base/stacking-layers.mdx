@@ -1,0 +1,564 @@
+---
+title: Stacking Layers
+description: The z-index tiers mantle's floating UI stacks on, what each tier means, and how to place custom UI on the scale
+---
+
+import { Button } from "@ngrok/mantle/button";
+import { Combobox } from "@ngrok/mantle/combobox";
+import { Dialog } from "@ngrok/mantle/dialog";
+import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { MultiSelect } from "@ngrok/mantle/multi-select";
+import { Popover } from "@ngrok/mantle/popover";
+import { Select } from "@ngrok/mantle/select";
+import { Sheet } from "@ngrok/mantle/sheet";
+import { Toast, makeToast } from "@ngrok/mantle/toast";
+import { Tooltip } from "@ngrok/mantle/tooltip";
+import { Example } from "~/components/example";
+import { LateAnnouncementDemo } from "~/features/stacking-layers-demos";
+
+# Stacking Layers
+
+Every mantle surface that floats above the page stacks on one shared scale. Two rules decide what paints on top:
+
+1. **The tier decides between kinds of layers.** An overlay always paints above a float, no matter which one opened first.
+2. **Ownership decides within a tier.** A float composed inside an overlay portals into that overlay's positioner, so it paints above the overlay that owns it. Sibling layers in the same tier and container paint in mount order — the most recently mounted one wins.
+
+## The tiers
+
+| Tier        | z-index     | Layers                                                                                                                                                                                                                 | Renders into                                                       |
+| ----------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Page chrome | `z-50`      | [Sandbar](/components/feedback/sandbar), [AlertCenter](/components/feedback/alert-center) banners, sticky headers                                                                                                      | In place, in the page's own stacking context                       |
+| Float       | `z-50`      | [Popover](/components/overlays/popover), [Tooltip](/components/overlays/tooltip), [Select](/components/forms/select), [DropdownMenu](/components/overlays/dropdown-menu), [HoverCard](/components/overlays/hover-card) | The nearest overlay's positioner, else `document.body`             |
+| Overlay     | `z-60`      | [Dialog](/components/overlays/dialog), [AlertDialog](/components/overlays/alert-dialog), [Sheet](/components/overlays/sheet), [Command](/components/navigation/command)'s palette                                      | The nearest overlay's positioner, else `document.body`             |
+| Toast       | `999999999` | [Toast](/components/feedback/toast) (sonner's own viewport)                                                                                                                                                            | In place where `<Toaster />` renders; painted above both tiers     |
+| Skip link   | `z-max`     | [SkipToMainLink](/components/navigation/skip-to-main-link)                                                                                                                                                             | In place; `--z-index-max` so nothing covers keyboard escape routes |
+
+Two components place themselves differently on purpose:
+
+- [Combobox](/components/forms/combobox)`.Content` renders in place at `z-50` — it does not portal, so the dialog primitive's Escape handling can see it.
+- [MultiSelect](/components/forms/multi-select)`.Content` portals into the closest `data-mantle-modal-content` element — an enclosing overlay's content — else the nearest overlay's positioner, else `document.body`.
+
+## Layer containers
+
+Each overlay renders a **positioner**: the fixed element that lays out its content. The positioner doubles as the overlay's layer container — floats composed inside the overlay portal into it, after the content, so they paint above the content inside the overlay's own stacking context. The positioner is a styling hook:
+
+| Overlay       | Positioner slot                       |
+| ------------- | ------------------------------------- |
+| `Dialog`      | `data-slot="dialog-positioner"`       |
+| `AlertDialog` | `data-slot="alert-dialog-positioner"` |
+| `Sheet`       | `data-slot="sheet-positioner"`        |
+
+Ownership comes from composition, not timing. A float rendered inside `Dialog.Content` belongs to that dialog and paints above it. A float rendered outside stays at `document.body` and paints below every overlay — even when it opens later. Before this contract, every layer shared `z-50` and mount order alone decided, so a popover that opened late (an onboarding popover after hydration, for example) painted on top of an open full-bleed dialog.
+
+Floats do not register a container of their own. A select opened from inside a popover shares the popover's container and paints above the popover by mount order — the right rule for layers the user opened in sequence.
+
+## See the contract work
+
+Every rule above has a live permutation below, and each also has an automated twin in mantle's layering test matrix (`layer-container.test.tsx` pins DOM placement; `layer-container.browser.test.tsx` proves paint order with real hit-testing).
+
+### A base float never paints above an overlay
+
+The bug shape the overlay tier exists for: an announcement popover opens on its own while a takeover dialog covers its anchor. Open the takeover, then trigger the late announcement from inside it — the announcement stays under the dialog, and it waits on the page when the dialog closes.
+
+<Example>
+	<LateAnnouncementDemo />
+</Example>
+
+```tsx collapsible
+import { Button } from "@ngrok/mantle/button";
+import { Dialog } from "@ngrok/mantle/dialog";
+import { Popover } from "@ngrok/mantle/popover";
+import { useState } from "react";
+
+export function LateAnnouncementDemo() {
+	const [announcementOpen, setAnnouncementOpen] = useState(false);
+
+	return (
+		<div className="flex flex-wrap items-center gap-4">
+			<Popover.Root open={announcementOpen} onOpenChange={setAnnouncementOpen}>
+				<Popover.Anchor asChild>
+					<Button
+						type="button"
+						appearance="outlined"
+						intent="neutral"
+						onClick={() => setAnnouncementOpen(true)}
+					>
+						Show announcement
+					</Button>
+				</Popover.Anchor>
+				<Popover.Content
+					// A click anywhere else must not dismiss the announcement — only
+					// its own button does, like a real onboarding popover.
+					onInteractOutside={(event) => {
+						event.preventDefault();
+					}}
+					side="bottom"
+					className="flex flex-col gap-2"
+				>
+					<p className="text-strong text-sm font-medium">Your account moved down here</p>
+					<Popover.Close asChild>
+						<Button type="button" appearance="filled" intent="neutral" size="sm">
+							Got it
+						</Button>
+					</Popover.Close>
+				</Popover.Content>
+			</Popover.Root>
+			<Dialog.Root>
+				<Dialog.Trigger asChild>
+					<Button type="button" appearance="filled" intent="neutral">
+						Open takeover
+					</Button>
+				</Dialog.Trigger>
+				<Dialog.Content appearance="full-page">
+					<Dialog.Header>
+						<Dialog.Title>Takeover</Dialog.Title>
+						<Dialog.CloseIconButton />
+					</Dialog.Header>
+					<Dialog.Body className="space-y-4">
+						<p>
+							This button opens the page-level announcement popover while the dialog is on top — the
+							way an onboarding popover opens on its own after hydration.
+						</p>
+						<Button
+							type="button"
+							appearance="outlined"
+							intent="neutral"
+							onClick={() => setAnnouncementOpen(true)}
+						>
+							Trigger the late announcement
+						</Button>
+						<p>
+							The announcement stays under this dialog because it belongs to the page, not to the
+							dialog. Close the dialog to find it waiting where it belongs.
+						</p>
+					</Dialog.Body>
+				</Dialog.Content>
+			</Dialog.Root>
+		</div>
+	);
+}
+```
+
+### Floats inside a dialog paint above it
+
+Each float composed inside the dialog portals into the dialog's positioner, so it opens on top of the dialog — never behind it, never clipped by it.
+
+<Example>
+	<Dialog.Root>
+		<Dialog.Trigger asChild>
+			<Button type="button" appearance="filled" intent="neutral">
+				Open dialog
+			</Button>
+		</Dialog.Trigger>
+		<Dialog.Content>
+			<Dialog.Header>
+				<Dialog.Title>Floats in a dialog</Dialog.Title>
+				<Dialog.CloseIconButton />
+			</Dialog.Header>
+			<Dialog.Body className="space-y-4">
+				<Popover.Root>
+					<Popover.Trigger asChild>
+						<Button type="button" appearance="outlined" intent="neutral">
+							Open popover
+						</Button>
+					</Popover.Trigger>
+					<Popover.Content>
+						<p>This popover paints above the dialog that owns it.</p>
+					</Popover.Content>
+				</Popover.Root>
+				<Select.Root>
+					<Select.Trigger className="w-45">
+						<Select.Value placeholder="Open select" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+						<Select.Item value="banana">Banana</Select.Item>
+					</Select.Content>
+				</Select.Root>
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger asChild>
+						<Button type="button" appearance="outlined" intent="neutral">
+							Open menu
+						</Button>
+					</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<DropdownMenu.Item>Menu item</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+				<Tooltip.Root>
+					<Tooltip.Trigger asChild>
+						<Button type="button" appearance="outlined" intent="neutral">
+							Hover for a tooltip
+						</Button>
+					</Tooltip.Trigger>
+					<Tooltip.Content>This tooltip paints above the dialog.</Tooltip.Content>
+				</Tooltip.Root>
+			</Dialog.Body>
+		</Dialog.Content>
+	</Dialog.Root>
+</Example>
+
+```tsx collapsible
+<Dialog.Root>
+	<Dialog.Trigger asChild>
+		<Button type="button" appearance="filled" intent="neutral">
+			Open dialog
+		</Button>
+	</Dialog.Trigger>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>Floats in a dialog</Dialog.Title>
+			<Dialog.CloseIconButton />
+		</Dialog.Header>
+		<Dialog.Body className="space-y-4">
+			<Popover.Root>
+				<Popover.Trigger asChild>
+					<Button type="button" appearance="outlined" intent="neutral">
+						Open popover
+					</Button>
+				</Popover.Trigger>
+				<Popover.Content>
+					<p>This popover paints above the dialog that owns it.</p>
+				</Popover.Content>
+			</Popover.Root>
+			<Select.Root>
+				<Select.Trigger className="w-45">
+					<Select.Value placeholder="Open select" />
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value="apple">Apple</Select.Item>
+					<Select.Item value="banana">Banana</Select.Item>
+				</Select.Content>
+			</Select.Root>
+			<DropdownMenu.Root>
+				<DropdownMenu.Trigger asChild>
+					<Button type="button" appearance="outlined" intent="neutral">
+						Open menu
+					</Button>
+				</DropdownMenu.Trigger>
+				<DropdownMenu.Content>
+					<DropdownMenu.Item>Menu item</DropdownMenu.Item>
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>
+			<Tooltip.Root>
+				<Tooltip.Trigger asChild>
+					<Button type="button" appearance="outlined" intent="neutral">
+						Hover for a tooltip
+					</Button>
+				</Tooltip.Trigger>
+				<Tooltip.Content>This tooltip paints above the dialog.</Tooltip.Content>
+			</Tooltip.Root>
+		</Dialog.Body>
+	</Dialog.Content>
+</Dialog.Root>
+```
+
+### Pickers inside a sheet place themselves
+
+`Combobox.Content` renders in place and `MultiSelect.Content` portals into the sheet's content element, so both open above the sheet and scroll with it.
+
+<Example>
+	<Sheet.Root>
+		<Sheet.Trigger asChild>
+			<Button type="button" appearance="filled" intent="neutral">
+				Open sheet
+			</Button>
+		</Sheet.Trigger>
+		<Sheet.Content>
+			<Sheet.Header>
+				<Sheet.TitleGroup>
+					<Sheet.Title>Pickers in a sheet</Sheet.Title>
+					<Sheet.Actions>
+						<Sheet.CloseIconButton />
+					</Sheet.Actions>
+				</Sheet.TitleGroup>
+			</Sheet.Header>
+			<Sheet.Body className="space-y-4">
+				<Combobox.Root>
+					<Combobox.Input placeholder="Search fruits..." />
+					<Combobox.Content>
+						<Combobox.Item value="Apple" />
+						<Combobox.Item value="Banana" />
+						<Combobox.Item value="Cherry" />
+					</Combobox.Content>
+				</Combobox.Root>
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.TagValues />
+						<MultiSelect.Input placeholder="Select fruits..." />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+						<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>
+			</Sheet.Body>
+		</Sheet.Content>
+	</Sheet.Root>
+</Example>
+
+```tsx collapsible
+<Sheet.Root>
+	<Sheet.Trigger asChild>
+		<Button type="button" appearance="filled" intent="neutral">
+			Open sheet
+		</Button>
+	</Sheet.Trigger>
+	<Sheet.Content>
+		<Sheet.Header>
+			<Sheet.TitleGroup>
+				<Sheet.Title>Pickers in a sheet</Sheet.Title>
+				<Sheet.Actions>
+					<Sheet.CloseIconButton />
+				</Sheet.Actions>
+			</Sheet.TitleGroup>
+		</Sheet.Header>
+		<Sheet.Body className="space-y-4">
+			<Combobox.Root>
+				<Combobox.Input placeholder="Search fruits..." />
+				<Combobox.Content>
+					<Combobox.Item value="Apple" />
+					<Combobox.Item value="Banana" />
+					<Combobox.Item value="Cherry" />
+				</Combobox.Content>
+			</Combobox.Root>
+			<MultiSelect.Root>
+				<MultiSelect.Trigger>
+					<MultiSelect.TagValues />
+					<MultiSelect.Input placeholder="Select fruits..." />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
+				</MultiSelect.Content>
+			</MultiSelect.Root>
+		</Sheet.Body>
+	</Sheet.Content>
+</Sheet.Root>
+```
+
+### Floats inside a float stack by mount order
+
+A float does not register a layer container, so a select opened from a popover shares the popover's container and paints above the popover that spawned it.
+
+<Example>
+	<Popover.Root>
+		<Popover.Trigger asChild>
+			<Button type="button" appearance="filled" intent="neutral">
+				Open popover
+			</Button>
+		</Popover.Trigger>
+		<Popover.Content className="space-y-2">
+			<p>Open the select — it paints above this popover.</p>
+			<Select.Root>
+				<Select.Trigger className="w-45">
+					<Select.Value placeholder="Open select" />
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value="apple">Apple</Select.Item>
+					<Select.Item value="banana">Banana</Select.Item>
+				</Select.Content>
+			</Select.Root>
+		</Popover.Content>
+	</Popover.Root>
+</Example>
+
+```tsx collapsible
+<Popover.Root>
+	<Popover.Trigger asChild>
+		<Button type="button" appearance="filled" intent="neutral">
+			Open popover
+		</Button>
+	</Popover.Trigger>
+	<Popover.Content className="space-y-2">
+		<p>Open the select — it paints above this popover.</p>
+		<Select.Root>
+			<Select.Trigger className="w-45">
+				<Select.Value placeholder="Open select" />
+			</Select.Trigger>
+			<Select.Content>
+				<Select.Item value="apple">Apple</Select.Item>
+				<Select.Item value="banana">Banana</Select.Item>
+			</Select.Content>
+		</Select.Root>
+	</Popover.Content>
+</Popover.Root>
+```
+
+### Overlays stack in mount order
+
+An overlay opened from inside another overlay portals into the outer overlay's positioner and paints above it, backdrop and all. The popover at the end of the chain paints above both.
+
+<Example>
+	<Dialog.Root>
+		<Dialog.Trigger asChild>
+			<Button type="button" appearance="filled" intent="neutral">
+				Open dialog
+			</Button>
+		</Dialog.Trigger>
+		<Dialog.Content>
+			<Dialog.Header>
+				<Dialog.Title>First overlay</Dialog.Title>
+				<Dialog.CloseIconButton />
+			</Dialog.Header>
+			<Dialog.Body>
+				<Sheet.Root>
+					<Sheet.Trigger asChild>
+						<Button type="button" appearance="outlined" intent="neutral">
+							Open a sheet over this dialog
+						</Button>
+					</Sheet.Trigger>
+					<Sheet.Content>
+						<Sheet.Header>
+							<Sheet.TitleGroup>
+								<Sheet.Title>Second overlay</Sheet.Title>
+								<Sheet.Actions>
+									<Sheet.CloseIconButton />
+								</Sheet.Actions>
+							</Sheet.TitleGroup>
+						</Sheet.Header>
+						<Sheet.Body>
+							<Popover.Root>
+								<Popover.Trigger asChild>
+									<Button type="button" appearance="outlined" intent="neutral">
+										Open a popover over the sheet
+									</Button>
+								</Popover.Trigger>
+								<Popover.Content>
+									<p>Dialog, then sheet, then this popover — each paints above the last.</p>
+								</Popover.Content>
+							</Popover.Root>
+						</Sheet.Body>
+					</Sheet.Content>
+				</Sheet.Root>
+			</Dialog.Body>
+		</Dialog.Content>
+	</Dialog.Root>
+</Example>
+
+```tsx collapsible
+<Dialog.Root>
+	<Dialog.Trigger asChild>
+		<Button type="button" appearance="filled" intent="neutral">
+			Open dialog
+		</Button>
+	</Dialog.Trigger>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>First overlay</Dialog.Title>
+			<Dialog.CloseIconButton />
+		</Dialog.Header>
+		<Dialog.Body>
+			<Sheet.Root>
+				<Sheet.Trigger asChild>
+					<Button type="button" appearance="outlined" intent="neutral">
+						Open a sheet over this dialog
+					</Button>
+				</Sheet.Trigger>
+				<Sheet.Content>
+					<Sheet.Header>
+						<Sheet.TitleGroup>
+							<Sheet.Title>Second overlay</Sheet.Title>
+							<Sheet.Actions>
+								<Sheet.CloseIconButton />
+							</Sheet.Actions>
+						</Sheet.TitleGroup>
+					</Sheet.Header>
+					<Sheet.Body>
+						<Popover.Root>
+							<Popover.Trigger asChild>
+								<Button type="button" appearance="outlined" intent="neutral">
+									Open a popover over the sheet
+								</Button>
+							</Popover.Trigger>
+							<Popover.Content>
+								<p>Dialog, then sheet, then this popover — each paints above the last.</p>
+							</Popover.Content>
+						</Popover.Root>
+					</Sheet.Body>
+				</Sheet.Content>
+			</Sheet.Root>
+		</Dialog.Body>
+	</Dialog.Content>
+</Dialog.Root>
+```
+
+### Toasts clear every tier
+
+A toast fired from inside an overlay renders in sonner's viewport, far above both tiers, so results stay visible no matter what is open.
+
+<Example>
+	<Dialog.Root>
+		<Dialog.Trigger asChild>
+			<Button type="button" appearance="filled" intent="neutral">
+				Open dialog
+			</Button>
+		</Dialog.Trigger>
+		<Dialog.Content>
+			<Dialog.Header>
+				<Dialog.Title>Toast from a dialog</Dialog.Title>
+				<Dialog.CloseIconButton />
+			</Dialog.Header>
+			<Dialog.Body>
+				<Button
+					type="button"
+					appearance="outlined"
+					intent="neutral"
+					onClick={() => {
+						makeToast(
+							<Toast.Root intent="success">
+								<Toast.Icon />
+								<Toast.Message>This toast paints above the dialog.</Toast.Message>
+							</Toast.Root>,
+						);
+					}}
+				>
+					Fire a toast
+				</Button>
+			</Dialog.Body>
+		</Dialog.Content>
+	</Dialog.Root>
+</Example>
+
+```tsx collapsible
+<Dialog.Root>
+	<Dialog.Trigger asChild>
+		<Button type="button" appearance="filled" intent="neutral">
+			Open dialog
+		</Button>
+	</Dialog.Trigger>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>Toast from a dialog</Dialog.Title>
+			<Dialog.CloseIconButton />
+		</Dialog.Header>
+		<Dialog.Body>
+			<Button
+				type="button"
+				appearance="outlined"
+				intent="neutral"
+				onClick={() => {
+					makeToast(
+						<Toast.Root intent="success">
+							<Toast.Icon />
+							<Toast.Message>This toast paints above the dialog.</Toast.Message>
+						</Toast.Root>,
+					);
+				}}
+			>
+				Fire a toast
+			</Button>
+		</Dialog.Body>
+	</Dialog.Content>
+</Dialog.Root>
+```
+
+## Placing custom UI on the scale
+
+- **Chrome that floats above page content but under overlays** — a fixed action bar, a floating panel: use `z-50` in the page, the same tier as page chrome. An open dialog covers it, which is almost always correct.
+- **UI that must paint above open overlays**: use `z-60` and mount it after the overlay, or render it inside the overlay's content so it joins the overlay's layer. Reach for this rarely — above the overlay tier, only toasts and the skip link should live.
+- **Never out-stack toasts.** Toasts announce results of actions taken anywhere, including inside overlays.
+- **Custom portals inside an overlay**: pass the overlay's positioner as the portal target (query the `data-slot` above), or compose a mantle float, which resolves it automatically. `Dialog.Portal` and `HoverCard.Portal` accept a `container` prop when you need explicit control.
+- **Do not select a float's portal as a direct `body` child** (`body > [data-radix-popper-content-wrapper]`). Inside an overlay the float lives in the positioner. Target the float's `data-slot` instead.
+
+The full rationale, the alternatives considered, and the paint-order test matrix live in the repo's decision doc, `decisions/2026-08-11-floating-layer-tiers.md`.

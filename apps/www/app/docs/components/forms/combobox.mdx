@@ -232,7 +232,7 @@ import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
 
 ## Layering and z-index
 
-`Combobox.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+`Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier — it does not portal, so the dialog primitive's Escape guard can see it. Inside an overlay it paints with the overlay's content. Outside one, an open overlay (`z-60`) covers it.
 
 `Combobox` does not render a backdrop. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
 
@@ -366,7 +366,7 @@ The `Combobox` components are built on top of [ariakit Combobox](https://ariakit
 
 The outermost part of a combobox. It owns the ariakit store that holds the query text, the open state, and the selection.
 
-Its floating `Combobox.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier — it does not portal, so the dialog primitive's Escape guard can see it. Inside an overlay it paints with the overlay's content. Outside one, an open overlay (`z-60`) covers it.
 
 All props from ariakit [ComboboxProvider](https://ariakit.org/reference/combobox-provider).
 
@@ -386,7 +386,7 @@ All props from ariakit [Combobox](https://ariakit.org/reference/combobox), plus:
 
 Renders a popover that contains combobox content, e.g. items, groups, and separators.
 
-Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier — it does not portal, so the dialog primitive's Escape guard can see it. Inside an overlay it paints with the overlay's content. Outside one, an open overlay (`z-60`) covers it.
 
 All props from ariakit [ComboboxPopover](https://ariakit.org/reference/combobox-popover), plus:
 

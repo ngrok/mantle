@@ -14,6 +14,10 @@ import {
 import { Slot } from "../slot/index.js";
 import { preventCloseOnPromptInteraction } from "../toast/prevent-close-on-prompt-interaction.js";
 import { parseBooleanish } from "../../types/booleanish.js";
+import {
+	LayerContainerContext,
+	useLayerContainer,
+} from "../../utils/layer-container/layer-container.js";
 
 type DialogPrimitiveContentProps = ComponentProps<typeof DialogPrimitive.Content>;
 
@@ -40,7 +44,24 @@ function Root(props: ComponentPropsWithoutRef<typeof DialogPrimitive.Root>) {
 
 const Trigger = DialogPrimitive.Trigger;
 
-const Portal = DialogPrimitive.Portal;
+/**
+ * Mounts dialog layers into the nearest layer container — an enclosing
+ * overlay's positioner when one is open, else `document.body`. An explicit
+ * `container` prop wins over both.
+ */
+const Portal = ({ container, ...props }: ComponentProps<typeof DialogPrimitive.Portal>) => {
+	const layerContainer = useLayerContainer();
+	const resolvedContainer = container ?? layerContainer;
+
+	// Why the provider: `Dialog.Content` portals again internally, so the
+	// resolved container must also become the layer container for the wrapped
+	// subtree — otherwise the inner portal would ignore an explicit `container`.
+	return (
+		<LayerContainerContext.Provider value={resolvedContainer}>
+			<DialogPrimitive.Portal container={resolvedContainer} {...props} />
+		</LayerContainerContext.Provider>
+	);
+};
 
 const Close = DialogPrimitive.Close;
 

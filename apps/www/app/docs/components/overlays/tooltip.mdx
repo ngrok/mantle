@@ -54,7 +54,7 @@ import { Tooltip } from "@ngrok/mantle/tooltip";
 
 ## Layering and z-index
 
-`Tooltip.Content` renders at Tailwind `z-50`, Mantle's shared floating z-index. The shared layer includes `Dialog`, `Sheet`, `AlertDialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Combobox`, and `MultiSelect`. When more than one shared layer is open, equal z-index means DOM or portal mount order decides the visual order, so the most recently mounted layer renders on top.
+`Tooltip.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
 `Tooltip` does not render a backdrop. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
 
@@ -98,7 +98,7 @@ Wraps your app to set shared global behavior for your tooltips, such as consiste
 
 The root component that manages the open/closed state of the tooltip. Wrap your app in `TooltipProvider` when you want shared app-wide delay and hover settings.
 
-Its floating `Tooltip.Content` layer renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`Tooltip.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
 | Prop                       | Type                      | Default | Description                                                                                                             |
 | -------------------------- | ------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -120,7 +120,7 @@ The button that toggles the tooltip. By default, the `Tooltip.Content` will posi
 
 The component that pops out when the tooltip is open.
 
-Renders at Tailwind `z-50`, Mantle's shared floating z-index.
+`Tooltip.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
 | Prop               | Type                                     | Default    | Description                                                                                                                             |
 | ------------------ | ---------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- |

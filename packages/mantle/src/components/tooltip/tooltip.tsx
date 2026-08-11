@@ -1,6 +1,9 @@
+"use client";
+
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import type { ComponentProps, ComponentPropsWithoutRef } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 
 /**
  * Wraps your app to set shared global behavior for your tooltips, such
@@ -45,9 +48,12 @@ const TooltipProvider = ({
  * the tooltip. Wrap your app in `TooltipProvider` when you want shared
  * app-wide delay and hover settings.
  *
- * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+ * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+ * that overlay's positioner and paints above the overlay that owns it. Outside
+ * every overlay, it portals to `document.body`, below the overlay tier
+ * (`z-60`). When sibling floats share a container, the most recently mounted
+ * float paints on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltiproot
  *
@@ -95,9 +101,12 @@ function Trigger(props: ComponentProps<typeof TooltipPrimitive.Trigger>) {
 /**
  * The content to render inside the tooltip.
  *
- * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+ * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+ * that overlay's positioner and paints above the overlay that owns it. Outside
+ * every overlay, it portals to `document.body`, below the overlay tier
+ * (`z-60`). When sibling floats share a container, the most recently mounted
+ * float paints on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltipcontent
  *
@@ -121,25 +130,29 @@ const Content = ({
 	ref,
 	sideOffset = 4,
 	...props
-}: ComponentProps<typeof TooltipPrimitive.Content>) => (
-	<TooltipPrimitive.Portal>
-		<TooltipPrimitive.Content
-			className={cx(
-				"bg-tooltip text-tooltip animate-in fade-in-0 zoom-in-95 data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 z-50 max-w-72 overflow-visible wrap-break-word rounded-md px-3 py-1.5 text-sm font-sans shadow",
-				className,
-			)}
-			data-slot="tooltip-content"
-			ref={ref}
-			sideOffset={sideOffset}
-			{...props}
-		>
-			{children}
-			<TooltipPrimitive.Arrow asChild>
-				<div className="bg-tooltip z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-xs" />
-			</TooltipPrimitive.Arrow>
-		</TooltipPrimitive.Content>
-	</TooltipPrimitive.Portal>
-);
+}: ComponentProps<typeof TooltipPrimitive.Content>) => {
+	const layerContainer = useLayerContainer();
+
+	return (
+		<TooltipPrimitive.Portal container={layerContainer}>
+			<TooltipPrimitive.Content
+				className={cx(
+					"bg-tooltip text-tooltip animate-in fade-in-0 zoom-in-95 data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 z-50 max-w-72 overflow-visible wrap-break-word rounded-md px-3 py-1.5 text-sm font-sans shadow",
+					className,
+				)}
+				data-slot="tooltip-content"
+				ref={ref}
+				sideOffset={sideOffset}
+				{...props}
+			>
+				{children}
+				<TooltipPrimitive.Arrow asChild>
+					<div className="bg-tooltip z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-xs" />
+				</TooltipPrimitive.Arrow>
+			</TooltipPrimitive.Content>
+		</TooltipPrimitive.Portal>
+	);
+};
 
 /**
  * A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.
@@ -156,9 +169,12 @@ const Content = ({
  * Mount a `<TooltipProvider>` once at the app root when you want shared
  * tooltip behavior such as consistent delay and hover settings.
  *
- * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+ * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+ * that overlay's positioner and paints above the overlay that owns it. Outside
+ * every overlay, it portals to `document.body`, below the overlay tier
+ * (`z-60`). When sibling floats share a container, the most recently mounted
+ * float paints on top.
  *
  * @see https://mantle.ngrok.com/components/overlays/tooltip
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/
@@ -192,9 +208,12 @@ const Tooltip = {
 	 * the tooltip. Wrap your app in `TooltipProvider` when you want shared
 	 * app-wide delay and hover settings.
 	 *
-	 * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's shared floating
-	 * z-index. When multiple shared layers are open, the most recently mounted
-	 * layer renders on top.
+	 * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+	 * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+	 * that overlay's positioner and paints above the overlay that owns it. Outside
+	 * every overlay, it portals to `document.body`, below the overlay tier
+	 * (`z-60`). When sibling floats share a container, the most recently mounted
+	 * float paints on top.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltiproot
 	 *
@@ -216,9 +235,12 @@ const Tooltip = {
 	/**
 	 * The content to render inside the tooltip.
 	 *
-	 * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's shared floating
-	 * z-index. When multiple shared layers are open, the most recently mounted
-	 * layer renders on top.
+	 * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+	 * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+	 * that overlay's positioner and paints above the overlay that owns it. Outside
+	 * every overlay, it portals to `document.body`, below the overlay tier
+	 * (`z-60`). When sibling floats share a container, the most recently mounted
+	 * float paints on top.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltipcontent
 	 *

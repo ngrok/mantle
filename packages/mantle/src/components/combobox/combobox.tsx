@@ -18,9 +18,10 @@ type ComboboxProps = Primitive.ComboboxProviderProps;
  * async/server-side data, or any single-select where search is helpful. For very small
  * finite lists with no filtering, prefer Select. For multi-selection, prefer MultiSelect.
  *
- * `Combobox.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier —
+ * it does not portal, so the dialog primitive's Escape guard can see it. Inside
+ * an overlay it paints with the overlay's content. Outside one, an open overlay
+ * (`z-60`) covers it.
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxroot
  *
@@ -108,9 +109,10 @@ type ComboboxContentProps = Omit<Primitive.ComboboxPopoverProps, "render"> & Wit
 /**
  * Renders a popover that contains combobox content, e.g. Combobox.Items, Combobox.Groups, and Combobox.Separators.
  *
- * `Combobox.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier —
+ * it does not portal, so the dialog primitive's Escape guard can see it. Inside
+ * an overlay it paints with the overlay's content. Outside one, an open overlay
+ * (`z-60`) covers it.
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxcontent
  *
@@ -383,9 +385,10 @@ const ComboboxSeparatorComponent = ({
  * async/server-side data, or any single-select where search is helpful. For very small
  * finite lists with no filtering, prefer Select. For multi-selection, prefer MultiSelect.
  *
- * `Combobox.Content` renders at Tailwind `z-50`, Mantle's shared floating
- * z-index. When multiple shared layers are open, the most recently mounted
- * layer renders on top.
+ * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier —
+ * it does not portal, so the dialog primitive's Escape guard can see it. Inside
+ * an overlay it paints with the overlay's content. Outside one, an open overlay
+ * (`z-60`) covers it.
  *
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
  * @see https://ariakit.org/components/combobox
@@ -424,9 +427,10 @@ const Combobox = {
 	 * async/server-side data, or any single-select where search is helpful. For very small
 	 * finite lists with no filtering, prefer Select. For multi-selection, prefer MultiSelect.
 	 *
-	 * `Combobox.Content` renders at Tailwind `z-50`, Mantle's shared floating
-	 * z-index. When multiple shared layers are open, the most recently mounted
-	 * layer renders on top.
+	 * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier
+	 * — it does not portal, so the dialog primitive's Escape guard can see it.
+	 * Inside an overlay it paints with the overlay's content. Outside one, an open
+	 * overlay (`z-60`) covers it.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxroot
 	 *
@@ -445,9 +449,10 @@ const Combobox = {
 	/**
 	 * Renders a popover that contains combobox content, e.g. Combobox.Items, Combobox.Groups, and Combobox.Separators.
 	 *
-	 * `Combobox.Content` renders at Tailwind `z-50`, Mantle's shared floating
-	 * z-index. When multiple shared layers are open, the most recently mounted
-	 * layer renders on top.
+	 * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier
+	 * — it does not portal, so the dialog primitive's Escape guard can see it.
+	 * Inside an overlay it paints with the overlay's content. Outside one, an open
+	 * overlay (`z-60`) covers it.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxcontent
 	 *
