@@ -209,7 +209,17 @@ const Body = ({
 	return (
 		<Component
 			data-slot="code-block-body"
-			className={cx("relative", className)}
+			className={cx(
+				"relative",
+				// Why only the first two lines reserve copy-button space: the size-7
+				// button sits at `right-3 top-3`, over the first two text-mono lines
+				// only. Per-line padding adds to the max-content width of the `w-max`
+				// <code>, so a blanket reserve forced a horizontal scrollbar even when
+				// every line fit the container. The `:has()` scope drops the reserve
+				// when no copy button is rendered.
+				"[&:has([data-slot=code-block-copy-button])_.mantle-code-line:nth-child(-n+2)]:pr-14",
+				className,
+			)}
 			ref={ref}
 			{...props}
 		/>

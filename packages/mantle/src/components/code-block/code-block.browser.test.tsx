@@ -88,12 +88,21 @@ describe("CodeBlock (browser)", () => {
 
 	describe("horizontal overflow", () => {
 		/**
+		 * The copy-button clearance utility on `CodeBlock.Body`. `LAYOUT_STYLE`
+		 * expands it to the CSS Tailwind emits for it, keyed by `CSS.escape` to
+		 * this exact class string — when the component's class drifts from this
+		 * constant, the rule stops matching and the clearance assertions fail.
+		 */
+		const CLEARANCE_CLASS =
+			"[&:has([data-slot=code-block-copy-button])_.mantle-code-line:nth-child(-n+2)]:pr-14";
+
+		/**
 		 * Mirrors the CSS that lays out `CodeBlock.Code`: the Tailwind utilities on
-		 * the `<pre>` and `<code>` (`overflow-x-auto`, `block min-w-full w-max`) and
-		 * the `.mantle-code-line` rules from `mantle.css`. We inline the rules
-		 * because browser tests load no Tailwind and no mantle stylesheet. Keep the
-		 * selectors and values in sync with `mantle.css` — this test pins both
-		 * sides of the copy-button clearance contract.
+		 * `CodeBlock.Body`, the `<pre>`, and the `<code>` (`overflow-x-auto`,
+		 * `block min-w-full w-max`), and the `.mantle-code-line` rules from
+		 * `mantle.css`. We inline the rules because browser tests load no Tailwind
+		 * and no mantle stylesheet. Keep the selectors and values in sync with
+		 * their sources — this test pins both sides of the clearance contract.
 		 */
 		const LAYOUT_STYLE = `
 			pre[data-slot="code-block-code"] {
@@ -113,7 +122,7 @@ describe("CodeBlock (browser)", () => {
 				min-width: 100%;
 				box-sizing: border-box;
 			}
-			[data-slot="code-block-body"]:has([data-slot="code-block-copy-button"])
+			.${CSS.escape(CLEARANCE_CLASS)}:has([data-slot=code-block-copy-button])
 				.mantle-code-line:nth-child(-n + 2) {
 				padding-right: 3.5rem;
 			}
