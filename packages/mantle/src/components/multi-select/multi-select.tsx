@@ -1207,8 +1207,9 @@ const MultiSelect = {
 	 *
 	 * `MultiSelect.Content` renders at Tailwind `z-50` and portals into the
 	 * closest `data-mantle-modal-content` element — an enclosing overlay's content
-	 * — else `document.body`. Inside an overlay it paints above the content that
-	 * contains it. Outside one, an open overlay (`z-60`) covers it.
+	 * — else the nearest overlay's positioner, else `document.body`. Inside an
+	 * overlay it paints above the content that contains it. Outside one, an open
+	 * overlay (`z-60`) covers it.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectroot
 	 *
@@ -1332,8 +1333,9 @@ const MultiSelect = {
 	 *
 	 * `MultiSelect.Content` renders at Tailwind `z-50` and portals into the
 	 * closest `data-mantle-modal-content` element — an enclosing overlay's content
-	 * — else `document.body`. Inside an overlay it paints above the content that
-	 * contains it. Outside one, an open overlay (`z-60`) covers it.
+	 * — else the nearest overlay's positioner, else `document.body`. Inside an
+	 * overlay it paints above the content that contains it. Outside one, an open
+	 * overlay (`z-60`) covers it.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontent
 	 *
