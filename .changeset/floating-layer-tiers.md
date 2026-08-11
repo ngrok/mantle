@@ -1,5 +1,5 @@
 ---
-"@ngrok/mantle": minor
+"@ngrok/mantle": patch
 ---
 
 Stack floating UI in two tiers so a background popover can never paint over an open dialog.
@@ -10,7 +10,7 @@ The positioner is a new styling hook on each overlay: `data-slot="dialog-positio
 
 An explicit `container` on `Dialog.Portal` or `HoverCard.Portal` now also carries into the parts that portal internally, so the content lands in that container — before, the inner portal ignored it.
 
-Migration, for the rare consumer this breaks:
+Notes, for the rare consumer that depended on the old stacking:
 
 - Custom fixed chrome at `z-50` that must paint above an open mantle overlay needs `z-60` or higher.
 - CSS that selects a float's portal as a direct `body` child (for example `body > [data-radix-popper-content-wrapper]`) no longer matches when the float is composed inside an overlay. Select the float's `data-slot` instead.
