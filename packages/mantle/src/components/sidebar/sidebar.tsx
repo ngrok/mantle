@@ -509,12 +509,12 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
- * | `--sidebar-width` | `16rem` | Expanded desktop panel width (256px). |
+ * | `--sidebar-width` | `13rem` | Expanded desktop panel width (208px). |
  * | `--sidebar-width-mobile` | `18rem` | Mobile sheet width (288px). |
  * | `--sidebar-width-icon` | `3.25rem` | Collapsed icon rail width (52px). |
- * | `--sidebar-row-width` | `15rem` | Derived, not set: one row's width in the expanded panel (240px), for sizing surfaces that render *outside* it. See below and `Sidebar.SwitcherTrigger`. |
+ * | `--sidebar-row-width` | `12rem` | Derived, not set: one row's width in the expanded panel (192px), for sizing surfaces that render *outside* it. See below and `Sidebar.SwitcherTrigger`. |
  *
- * `--sidebar-row-width` is `calc(var(--sidebar-width,16rem) - 1rem)`, declared
+ * `--sidebar-row-width` is `calc(var(--sidebar-width,13rem) - 1rem)`, declared
  * at `:root` by `mantle.css` — the panel width minus the row gutter this
  * component's regions apply.
  *
@@ -646,7 +646,7 @@ const Nav = ({
 			className={cx(
 				// bg lives on this surface (not the inner nav) so consumer
 				// className overrides like `bg-card` take effect on desktop too.
-				"group/sidebar-nav bg-base relative h-full w-(--sidebar-width,16rem) shrink-0 overflow-hidden",
+				"group/sidebar-nav bg-base relative h-full w-(--sidebar-width,13rem) shrink-0 overflow-hidden",
 				// collapsing animates the width down to the skinny icon rail; the
 				// panel content stays interactive and in the accessibility tree.
 				"data-[state=collapsed]:w-(--sidebar-width-icon,3.25rem)",
@@ -2005,7 +2005,7 @@ type SidebarSwitcherTriggerProps = ComponentProps<"button"> & WithAsChild & With
  * no-op while the panel is expanded (the row already measures that wide), and
  * inert in the mobile sheet as long as its row is the wider of the two
  * (`--sidebar-width-mobile` minus `1.5rem` and the sheet's 1px border, vs
- * `--sidebar-width` minus `1rem`; 263px vs 240px at the defaults) — so widen
+ * `--sidebar-width` minus `1rem`; 263px vs 192px at the defaults) — so widen
  * `--sidebar-width-mobile` whenever you widen `--sidebar-width`, or the floor
  * overhangs the sheet.
  *

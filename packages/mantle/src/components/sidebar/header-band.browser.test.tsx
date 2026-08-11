@@ -52,7 +52,7 @@ const STYLE = `
 	.h-14 { height: calc(var(--spacing) * 14); }
 	.h-full { height: 100%; }
 	.min-h-0 { min-height: 0px; }
-	.w-\\(--sidebar-width\\,16rem\\) { width: var(--sidebar-width,16rem); }
+	.w-\\(--sidebar-width\\,13rem\\) { width: var(--sidebar-width,13rem); }
 	.w-full { width: 100%; }
 	.min-w-0 { min-width: 0px; }
 	.flex-1 { flex: 1; }

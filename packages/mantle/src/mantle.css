@@ -717,7 +717,7 @@ MARK: COMPONENT GEOMETRY
    `--sidebar-width-mobile` with it, or the floor outgrows the sheet's row),
    or set `--sidebar-row-width` on the outside surface itself. */
 :root {
-	--sidebar-row-width: calc(var(--sidebar-width, 16rem) - 1rem);
+	--sidebar-row-width: calc(var(--sidebar-width, 13rem) - 1rem);
 }
 
 /**

@@ -860,12 +860,12 @@ export function PendingAwareRow() {
 ## Width
 
 The panel's width is a CSS variable, not a prop: `Sidebar.Nav` reads each of the three widths with the
-default as its fallback (`w-(--sidebar-width,16rem)`), so there is nothing to thread through your shell
+default as its fallback (`w-(--sidebar-width,13rem)`), so there is nothing to thread through your shell
 and one place to change it.
 
 | CSS Variable             | Default          | What it sizes                                           |
 | ------------------------ | ---------------- | ------------------------------------------------------- |
-| `--sidebar-width`        | `16rem` (256px)  | The expanded desktop panel                              |
+| `--sidebar-width`        | `13rem` (208px)  | The expanded desktop panel                              |
 | `--sidebar-width-icon`   | `3.25rem` (52px) | The [collapsed icon rail](#collapsing-to-the-icon-rail) |
 | `--sidebar-width-mobile` | `18rem` (288px)  | The mobile `Sheet` panel                                |
 
@@ -1059,7 +1059,7 @@ variables either: it renders in a portal on `document.body`, so it inherits noth
 
 | CSS Variable          | Default | Description                                                                                                                                                                 |
 | --------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--sidebar-row-width` | `15rem` | One row's width inside the expanded panel (240px): `calc(var(--sidebar-width, 16rem) - 1rem)`, the panel width minus the gutter `Sidebar.Header`/`Body`/`Footer` all apply. |
+| `--sidebar-row-width` | `12rem` | One row's width inside the expanded panel (192px): `calc(var(--sidebar-width, 13rem) - 1rem)`, the panel width minus the gutter `Sidebar.Header`/`Body`/`Footer` all apply. |
 
 Keep `width="trigger"` and floor the menu at it. The switcher row below is a collapsed chip; open its menu,
 expand the panel with the trigger, and open it again — the menu is the same width both times:
@@ -1143,7 +1143,7 @@ One static class covers all three presentations at the default widths. Expanded,
 row already measures that wide, so the menu is flush with it. Collapsed, the floor holds the menu at the
 expanded row's width, so it looks identical in the rail. In the mobile `Sheet` the floor is inert because the
 sheet's row is the wider of the two — `--sidebar-width-mobile` − `1.5rem` − the sheet's 1px `border-r` = 263px,
-against 240px — so `width="trigger"` wins.
+against 192px — so `width="trigger"` wins.
 
 That last one is a condition, not a guarantee: **widen `--sidebar-width-mobile` whenever you widen
 `--sidebar-width`**, or the floor outgrows the sheet's row and the menu overhangs the panel it opened from
@@ -1649,10 +1649,10 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 | CSS Variable             | Default   | Description                                                                                                                                                                                                                                                                                   |
 | ------------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--sidebar-width`        | `16rem`   | Expanded desktop width (256px). Set it on `Sidebar.Nav` for one sidebar or on any ancestor (`:root`) for every sidebar — see [Width](#width).                                                                                                                                                 |
+| `--sidebar-width`        | `13rem`   | Expanded desktop width (208px). Set it on `Sidebar.Nav` for one sidebar or on any ancestor (`:root`) for every sidebar — see [Width](#width).                                                                                                                                                 |
 | `--sidebar-width-mobile` | `18rem`   | Mobile sheet width (288px). Set it on `Sidebar.Nav` or any ancestor — see [Width](#width).                                                                                                                                                                                                    |
 | `--sidebar-width-icon`   | `3.25rem` | Collapsed icon rail width (52px). Set it on `Sidebar.Nav` or any ancestor — see [Width](#width).                                                                                                                                                                                              |
-| `--sidebar-row-width`    | `15rem`   | Read, not set: one row's width in the expanded panel (240px), derived as `calc(var(--sidebar-width, 16rem) - 1rem)` and declared at `:root` by `mantle.css` so surfaces rendered outside the panel can size to a row — see [Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row). |
+| `--sidebar-row-width`    | `12rem`   | Read, not set: one row's width in the expanded panel (192px), derived as `calc(var(--sidebar-width, 13rem) - 1rem)` and declared at `:root` by `mantle.css` so surfaces rendered outside the panel can size to a row — see [Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row). |
 
 **Data attributes**
 
