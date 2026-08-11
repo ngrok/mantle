@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../config/tsconfig/tsconfig.client-package.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "lib": ["ES2025"],
+    "types": ["node"]
+  },
+  "include": ["*.ts"]
+}

@@ -27,8 +27,11 @@
     "//#install:playwright": {
       "cache": false
     },
+    "//#test:scripts": {
+      "inputs": ["scripts/**"]
+    },
     "test": {
-      "dependsOn": ["^build", "//#install:playwright"]
+      "dependsOn": ["^build", "//#install:playwright", "//#test:scripts"]
     },
     "test:watch": {
       "cache": false,
