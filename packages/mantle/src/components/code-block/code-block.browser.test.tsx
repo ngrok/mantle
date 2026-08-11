@@ -97,15 +97,21 @@ describe("CodeBlock (browser)", () => {
 		"[&:has([data-slot=code-block-copy-button])_.mantle-code-line:nth-child(-n+2)]:pr-14";
 
 	/**
+	 * The end-of-line breathing-room utility on `CodeBlock.Body`: every line
+	 * reserves `1rem`, so the longest line stays clear of the container edge
+	 * at the end of the scroll range. Keyed to the exact class string the same
+	 * way as `CLEARANCE_CLASS`.
+	 */
+	const BREATHING_ROOM_CLASS = "[&_.mantle-code-line]:pr-4";
+
+	/**
 	 * Mirrors the CSS that lays out `CodeBlock.Code`: the Tailwind utilities on
 	 * `CodeBlock.Body`, the `<pre>`, and the `<code>` (`overflow-x-auto`,
 	 * `block min-w-full w-max`), and the `.mantle-code-line` rules from
 	 * `mantle.css`, including the pinned line-number gutter. We inline the rules
 	 * because browser tests load no Tailwind and no mantle stylesheet. Keep the
 	 * selectors and values in sync with their sources — these tests pin both
-	 * sides of the clearance and pinned-gutter contracts. The scroll-driven seam
-	 * animation is omitted: its resting value is transparent and nothing here
-	 * asserts it.
+	 * sides of the clearance and pinned-gutter contracts.
 	 */
 	const LAYOUT_STYLE = `
 		:root {
@@ -131,6 +137,9 @@ describe("CodeBlock (browser)", () => {
 			align-items: flex-start;
 			min-width: 100%;
 			box-sizing: border-box;
+		}
+		.${CSS.escape(BREATHING_ROOM_CLASS)} .mantle-code-line {
+			padding-right: 1rem;
 		}
 		.${CSS.escape(CLEARANCE_CLASS)}:has([data-slot=code-block-copy-button])
 			.mantle-code-line:nth-child(-n + 2) {
@@ -226,6 +235,15 @@ describe("CodeBlock (browser)", () => {
 		});
 	}
 
+	/**
+	 * The root font size in pixels. The `rem` values in `LAYOUT_STYLE` resolve
+	 * against it, so the pixel expectations derive from it instead of assuming
+	 * a 16px browser default.
+	 */
+	function rootFontSizePx(): number {
+		return Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+	}
+
 	function getPre(): HTMLPreElement {
 		const pre = document.querySelector("pre[data-slot='code-block-code']");
 		if (!(pre instanceof HTMLPreElement)) {
@@ -254,7 +272,7 @@ describe("CodeBlock (browser)", () => {
 			expect(pre.scrollWidth).toBe(pre.clientWidth);
 		});
 
-		test("scroll width matches the longest line when a line overflows", () => {
+		test("the scroll range ends one breathing-room reserve past the longest line", () => {
 			render(
 				<div style={{ width: 340 }}>
 					<CodeBlock.Root>
@@ -268,8 +286,9 @@ describe("CodeBlock (browser)", () => {
 
 			const pre = getPre();
 			expect(pre.scrollWidth).toBeGreaterThan(pre.clientWidth);
-			// Why exactly 400: the longest line carries no copy-button clearance.
-			expect(pre.scrollWidth).toBe(400);
+			// Why 400 plus 1rem: the longest line carries no copy-button clearance,
+			// only the end-of-line breathing room.
+			expect(pre.scrollWidth).toBe(400 + rootFontSizePx());
 		});
 
 		test("only the first two lines reserve copy-button clearance, and only when a CopyButton is rendered", () => {
@@ -288,10 +307,10 @@ describe("CodeBlock (browser)", () => {
 			if (first == null || second == null || third == null) {
 				throw new Error("expected three code lines");
 			}
-			// Why 56px: 3.5rem at the default 16px root font size.
-			expect(getComputedStyle(first).paddingRight).toBe("56px");
-			expect(getComputedStyle(second).paddingRight).toBe("56px");
-			expect(getComputedStyle(third).paddingRight).toBe("0px");
+			const remPx = rootFontSizePx();
+			expect(getComputedStyle(first).paddingRight).toBe(`${3.5 * remPx}px`);
+			expect(getComputedStyle(second).paddingRight).toBe(`${3.5 * remPx}px`);
+			expect(getComputedStyle(third).paddingRight).toBe(`${remPx}px`);
 
 			rerender(
 				<div style={{ width: 340 }}>
@@ -303,8 +322,10 @@ describe("CodeBlock (browser)", () => {
 				</div>,
 			);
 
+			// Without a CopyButton the clearance drops, and only the 1rem
+			// breathing room remains.
 			for (const line of document.querySelectorAll(".mantle-code-line")) {
-				expect(getComputedStyle(line).paddingRight).toBe("0px");
+				expect(getComputedStyle(line).paddingRight).toBe(`${rootFontSizePx()}px`);
 			}
 		});
 	});

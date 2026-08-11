@@ -1295,44 +1295,6 @@ at `:root` (same reason as the palette-alias rule in MARK: INVERT THEME).
 }
 
 /*
- * The pinned-gutter scroll shadow color. Registered as <color> so a
- * scroll-driven animation can fade it in; `inherits: true` carries the
- * animated value from the <pre> to the gutter pseudo-element that paints it.
- * Transparent is the resting value, and the only value wherever
- * `animation-timeline: scroll()` is unsupported.
- */
-@property --_code-gutter-shadow {
-	syntax: "<color>";
-	inherits: true;
-	initial-value: transparent;
-}
-
-/*
- * Why `--color-gray-300` over the shadow tokens: the seam must read on both
- * themes, and a black shadow vanishes on a dark base. The block's own frame
- * already draws its border in this gray, so the seam matches it.
- */
-@keyframes code-gutter-shadow {
-	to {
-		--_code-gutter-shadow: var(--color-gray-300);
-	}
-}
-
-@supports (animation-timeline: scroll()) {
-	pre[data-slot="code-block-code"][data-mantle-line-numbers="true"] {
-		animation-name: code-gutter-shadow;
-		animation-fill-mode: both;
-		/* Linear so the fade tracks scroll position 1:1 across the range. */
-		animation-timing-function: linear;
-		/* Fade in across the first 16px of scroll, independent of total scroll width. */
-		animation-range: 0 16px;
-		animation-timeline: scroll(self inline);
-		/* Driven by the scroll timeline; a non-auto duration is required by some engines. */
-		animation-duration: 1ms;
-	}
-}
-
-/*
  * Why sticky: only the code scrolls; the line numbers stay pinned to the
  * inline-start edge of the scrollport. `z-index: 1` also scopes the
  * backdrop pseudo-element below, so its `z-index: -1` stays inside this
@@ -1355,9 +1317,6 @@ at `:root` (same reason as the palette-alias rule in MARK: INVERT THEME).
  * The opaque gutter backdrop. Scrolled code slides under the pinned numbers,
  * so this masks it across the whole gutter band — the number column plus its
  * gap, and the fold gutter on fold-enabled blocks (`--_gutter-overhang`).
- * The box-shadow is the scrolled-edge seam, driven by the scroll timeline
- * above; `clip-path` trims it to the band's right edge so adjacent rows tile
- * without darkened overlaps.
  */
 .mantle-code-line-number::before {
 	content: "";
@@ -1365,11 +1324,6 @@ at `:root` (same reason as the palette-alias rule in MARK: INVERT THEME).
 	inset: 0 calc(-1 * var(--_gutter-overhang, var(--mantle-code-line-number-gap))) 0 0;
 	z-index: -1;
 	background-color: var(--background-color-base);
-	/* A hairline plus a soft falloff, both in the animated seam color. */
-	box-shadow:
-		1px 0 0 0 var(--_code-gutter-shadow),
-		6px 0 8px -6px var(--_code-gutter-shadow);
-	clip-path: inset(0 -8px 0 0);
 }
 
 pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-number::before {
