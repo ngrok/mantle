@@ -209,7 +209,22 @@ const Body = ({
 	return (
 		<Component
 			data-slot="code-block-body"
-			className={cx("relative", className)}
+			className={cx(
+				"relative",
+				// Why per-line breathing room: the scroll range ends at the edge of
+				// the max-content <code>, so without a small reserve the longest
+				// line touches the container edge at the end of the scroll range.
+				"[&_.mantle-code-line]:pr-4",
+				// Why only the first two lines reserve copy-button space: the size-7
+				// button sits at `right-3 top-3`, over the first two text-mono lines
+				// only. Per-line padding adds to the max-content width of the `w-max`
+				// <code>, so a blanket reserve forced a horizontal scrollbar even when
+				// every line fit the container. The `:has()` scope drops the reserve
+				// when no copy button is rendered. This rule outranks the breathing
+				// room above on specificity.
+				"[&:has([data-slot=code-block-copy-button])_.mantle-code-line:nth-child(-n+2)]:pr-14",
+				className,
+			)}
 			ref={ref}
 			{...props}
 		/>
@@ -408,7 +423,7 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 			data-slot="code-block-code"
 			aria-expanded={hasCodeExpander ? isCodeExpanded : undefined}
 			className={cx(
-				"scrollbar overflow-x-auto overflow-y-hidden py-4",
+				"scrollbar overflow-x-auto overscroll-x-none overflow-y-hidden py-4",
 				!isPreRendered && "pr-14",
 				"data-[mantle-line-numbers~='false']:pl-4",
 				"text-mono m-0 font-mono outline-hidden",
