@@ -652,7 +652,7 @@ describe("--sidebar-row-width", () => {
 	// happy-dom loads no stylesheet, so guard the declaration itself.
 	test("mantle.css derives it at :root from the expanded panel width", () => {
 		expect(mantleCss).toMatch(
-			/:root\s*\{[^}]*--sidebar-row-width:\s*calc\(\s*var\(\s*--sidebar-width\s*,\s*16rem\s*\)\s*-\s*1rem\s*\)/,
+			/:root\s*\{[^}]*--sidebar-row-width:\s*calc\(\s*var\(\s*--sidebar-width\s*,\s*13rem\s*\)\s*-\s*1rem\s*\)/,
 		);
 	});
 
