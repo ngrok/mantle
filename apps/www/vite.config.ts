@@ -9,6 +9,7 @@ import { remarkMdxGithubAlerts } from "@ngrok/remark-mdx-github-alerts";
 import remarkGfm from "remark-gfm";
 import remarkMdxFrontmatter from "remark-mdx-frontmatter";
 import { defineConfig } from "vite";
+import babel from "vite-plugin-babel";
 import devtoolsJson from "vite-plugin-devtools-json";
 
 import { remarkMdxNoParagraphWrap } from "@ngrok/remark-mdx-no-paragraph-wrap";
@@ -59,6 +60,24 @@ export default defineConfig(({ command }) => ({
 		// check that throws when .tsx modules load under Vitest, and tests
 		// don't need the framework plugin — component tests render directly.
 		...(process.env.VITEST ? [] : [reactRouter()]),
+		// The React Compiler runs on this app's modules and on the mantle
+		// source that `resolve.conditions` maps in. The published dist ships
+		// compiled output (see `packages/mantle/tsdown.config.ts`), so
+		// compiling mantle here keeps docs pages rendering the library
+		// exactly as npm consumers get it.
+		babel({
+			include: [
+				`${path.resolve(import.meta.dirname, "app")}/**/*.{ts,tsx}`,
+				`${path.resolve(import.meta.dirname, "../../packages/mantle/src")}/**/*.{ts,tsx}`,
+			],
+			exclude: [
+				`${path.resolve(import.meta.dirname, "../../packages/mantle/src")}/**/*.test.{ts,tsx}`,
+			],
+			babelConfig: {
+				presets: ["@babel/preset-typescript"],
+				plugins: ["babel-plugin-react-compiler"],
+			},
+		}),
 	],
 	// A spy or global stub a test installs and then fails to tear down leaks into every test that
 	// runs after it, turning an unrelated failure into a cascade and making results order-dependent.

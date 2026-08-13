@@ -39,6 +39,8 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@babel/core": "catalog:",
+    "@babel/preset-typescript": "catalog:",
     "@cfg/tsconfig": "workspace:*",
     "@mdx-js/rollup": "3.1.1",
     "@ngrok/remark-mdx-github-alerts": "0.1.0",
@@ -51,6 +53,7 @@
     "@types/mdast": "4.0.4",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "babel-plugin-react-compiler": "catalog:",
     "estree-util-value-to-estree": "3.5.0",
     "happy-dom": "catalog:",
     "rehype-slug": "6.0.0",
@@ -62,6 +65,7 @@
     "typescript": "catalog:",
     "unist-util-visit": "5.1.0",
     "vite": "catalog:",
+    "vite-plugin-babel": "catalog:",
     "vite-plugin-devtools-json": "1.1.0"
   },
   "engines": {

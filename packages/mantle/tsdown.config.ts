@@ -1,3 +1,4 @@
+import { transformAsync } from "@babel/core";
 import fs from "node:fs";
 import { defineConfig } from "tsdown";
 import packageJson from "./package.json" with { type: "json" };
@@ -56,6 +57,39 @@ const utilPackages = allUtils
 		acc[name] = utilPath(name);
 		return acc;
 	}, {});
+
+/** Matches the mantle source modules the React Compiler pass transforms. */
+const REACT_COMPILER_SOURCE_RE = /[\\/]src[\\/].+\.tsx?$/;
+
+/**
+ * Compiles components and hooks with the React Compiler, so the published
+ * dist ships memoized output. App-level compilation never reaches
+ * `node_modules`, so this pass is the only way consumers get compiled
+ * mantle components. The vitest config runs the same compiler over `src`,
+ * which keeps the tested code equal to the shipped code. React 19 carries
+ * `react/compiler-runtime`, so the emitted import resolves for every
+ * consumer the peer range allows.
+ */
+const reactCompiler = () => ({
+	name: "react-compiler",
+	transform: async (code: string, id: string) => {
+		if (!REACT_COMPILER_SOURCE_RE.test(id)) {
+			return null;
+		}
+		const result = await transformAsync(code, {
+			filename: id,
+			babelrc: false,
+			configFile: false,
+			presets: ["@babel/preset-typescript"],
+			plugins: ["babel-plugin-react-compiler"],
+			sourceMaps: true,
+		});
+		if (result?.code == null) {
+			throw new Error(`The React Compiler pass produced no output for ${id}`);
+		}
+		return { code: result.code, map: result.map };
+	},
+});
 
 /** Extracts the owning component directory from a module id. */
 const COMPONENT_DIR_RE = /[\\/]src[\\/]components[\\/]([^\\/]+)[\\/]/;
@@ -189,6 +223,7 @@ export default defineConfig((options) => [
 		tsconfig: "tsconfig.build.json",
 		fixedExtension: false,
 		format: "esm",
+		plugins: [reactCompiler()],
 		outputOptions: {
 			// Name shared chunks after their owning component directory so the
 			// tw-source plugin's `@source "<name>-*.js"` globs match them (see
