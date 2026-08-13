@@ -1,3 +1,10 @@
+// Why "use no memo": TanStack Table's `table`/`row`/`column` instances are
+// referentially stable but internally mutable, which breaks the React
+// Compiler's memoization model — compiled parts served stale sort and
+// expansion state, and the HeaderSortButton and RowExpandButton tests catch
+// it. TanStack documents this opt-out as the supported escape hatch.
+"use no memo";
+
 import { MinusIcon } from "@phosphor-icons/react/Minus";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 import {

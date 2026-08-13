@@ -1,5 +1,12 @@
 "use client";
 
+// Why "use no memo": `useVirtualizer` returns a referentially stable,
+// internally mutable instance, so a compiled component reuses stale
+// `getVirtualItems()` output after a scroll. The suite cannot catch this one
+// — happy-dom geometry is degenerate — so the directive rides on TanStack's
+// documented React Compiler guidance, the same break as `data-table.tsx`.
+"use no memo";
+
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { VirtualItem, Virtualizer } from "@tanstack/react-virtual";
 import { Children, isValidElement, useCallback, useEffect, useMemo, useRef } from "react";

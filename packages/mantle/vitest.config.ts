@@ -1,4 +1,5 @@
 import { playwright, type PlaywrightProviderOptions } from "@vitest/browser-playwright";
+import babel from "vite-plugin-babel";
 import { configDefaults, defineConfig } from "vitest/config";
 
 type ContextOptions = Pick<PlaywrightProviderOptions, "contextOptions">["contextOptions"];
@@ -33,11 +34,26 @@ const localeHygiene = {
 	},
 } as const;
 
+// The published dist ships React Compiler output (see `tsdown.config.ts`), so tests must run the
+// same compiled components — a suite that runs uncompiled source never executes what npm consumers
+// get. Test files stay uncompiled, because a consumer's own code is not compiled either.
+const reactCompiler = () =>
+	babel({
+		include: [`${import.meta.dirname}/src/**/*.{ts,tsx}`],
+		exclude: [`${import.meta.dirname}/src/**/*.test.{ts,tsx}`],
+		babelConfig: {
+			presets: ["@babel/preset-typescript"],
+			plugins: ["babel-plugin-react-compiler"],
+			sourceMaps: true,
+		},
+	});
+
 export default defineConfig({
 	test: {
 		reporters: ["verbose"],
 		projects: [
 			{
+				plugins: [reactCompiler()],
 				test: {
 					name: "unit",
 					environment: "happy-dom",
@@ -50,6 +66,7 @@ export default defineConfig({
 				},
 			},
 			{
+				plugins: [reactCompiler()],
 				test: {
 					name: "browser",
 					include: ["**/*.browser.test.{ts,tsx}"],
