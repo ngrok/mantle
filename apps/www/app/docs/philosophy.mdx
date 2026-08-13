@@ -1,6 +1,6 @@
 ---
 title: Philosophy
-description: The design principles behind mantle, ngrok's UI library and design system—and the shipped code that proves them
+description: The design principles behind Mantle, ngrok's UI library and design system—and the shipped code that proves them
 ---
 
 # Philosophy
@@ -53,10 +53,10 @@ porting from the ecosystem; vocabulary is re-derived from what the component emi
 
 ## The right foundation, per problem
 
-Mantle is not "built on Radix." Where the platform is enough, components are native:
+Mantle isn't "built on Radix." Where the platform is enough, components are native:
 Accordion is hand-rolled precisely because a headless collapsible would lose the
 find-in-page behavior above, and [Field](/components/forms/field) is real
-`<fieldset>`/`<legend>`/`<label>` elements with mantle-owned wiring. Where the behavior
+`<fieldset>`/`<legend>`/`<label>` elements with Mantle-owned wiring. Where the behavior
 is genuinely hard, Mantle wraps the best engine for that specific problem:
 [Radix](https://www.radix-ui.com) for [Dialog](/components/overlays/dialog),
 [Ariakit](https://ariakit.org) for [Combobox](/components/forms/combobox),
@@ -64,7 +64,7 @@ is genuinely hard, Mantle wraps the best engine for that specific problem:
 [Command](/components/navigation/command), TanStack Table for [DataTable](/components/data-display/data-table),
 sonner (mounted unstyled) for [Toast](/components/feedback/toast).
 
-You cannot tell which is which from the outside, and that is the point. Every foundation
+You can't tell which is which from the outside, and that's the point. Every foundation
 is normalized behind one house API: flat compound namespaces, `asChild` polymorphism, a
 `data-slot` attribute on every rendered part, and consumer `className` merged last with
 [cx](/utils/cx). A vendor is a starting point, not a ceiling:
@@ -103,7 +103,7 @@ Components compose with each other and with your code. The `asChild` pattern, po
 [Slot](/components/primitives/slot), swaps the rendered element entirely—internal navigation is
 `<Anchor asChild><Link to="…" /></Anchor>`, not an `href` prop with router flags—so
 Mantle never forces a DOM structure on you. Configuration props handle the common case;
-composition handles everything else — never a prop bag: a component does not forward
+composition handles everything else—never a prop bag: a component doesn't forward
 `contentProps`-style objects to elements it renders internally, because needing to reach
 an internal element means the component is a compound and that element is a part.
 Composition is also how new components get built:
@@ -136,9 +136,9 @@ Where a contract can live in the type system, it does.
 becomes a rich ReactNode, so a filter that would silently stop matching becomes a compile
 error instead. And [Badge](/components/data-display/badge)'s palette tables are exhaustiveness-checked
 with `satisfies Record<Color, string>` against the [color](/utils/color) vocabulary, so a
-new color cannot ship half-styled.
+new color can't ship half-styled.
 
-What the compiler cannot catch fails loudly at runtime. Compound parts rendered outside
+What the compiler can't catch fails loudly at runtime. Compound parts rendered outside
 their `Root`—[Choice](/components/forms/choice)'s, [QrCode](/components/data-display/qr-code)'s,
 SelectableList's—throw a descriptive invariant instead of rendering an inert shell.
 Utilities treat errors as control flow: `copyToClipboard` throws when both clipboard
@@ -154,13 +154,13 @@ raw IntersectionObserver and [`useInView`](/hooks) is its hook,
 [`useCopyToClipboard`](/hooks) returns the same plain async function everything else
 uses. The vocabulary utilities, [color](/utils/color) and [sorting](/utils/sorting),
 derive their union types, type guards, and helpers from single const arrays, so runtime
-values and TypeScript types cannot drift apart. Components obey the same layering:
+values and TypeScript types can't drift apart. Components obey the same layering:
 [SelectableList](/components/data-display/selectable-list)'s filtering and selection math are exported
 pure functions, tested apart from rendering.
 
 ## Accessibility is engineered, then given away
 
-The promise is not that semantic markup makes accessibility free. The promise is that
+The promise isn't that semantic markup makes accessibility free. The promise is that
 Mantle does the engineering so you get it free. [Field](/components/forms/field) generates
 control, description, and error ids and flows them through context, so `htmlFor`,
 `aria-describedby`, and `aria-errormessage` always resolve without hand-threading—and
@@ -191,7 +191,7 @@ parses.
 
 Hydration safety is a shipped primitive, not an app-side hack.
 [BrowserOnly](/components/primitives/browser-only) takes children as a render function so
-client-only code cannot even evaluate during SSR. Every browser-API hook declares its
+client-only code can't even evaluate during SSR. Every browser-API hook declares its
 server answer: [`useBreakpoint`](/hooks) returns `"default"`,
 [`useMatchesMediaQuery`](/hooks) returns `false`, and [`useIsHydrated`](/hooks)—built on
 `useSyncExternalStore` precisely for consistent server and client snapshots—is the
@@ -209,7 +209,7 @@ components with the same vocabulary you already know—custom styling stays on-s
 default. [Colors](/base/colors) and [Typography](/base/typography) document the
 vocabulary.
 
-Your overrides are guaranteed to win. Every component composes consumer `className` last
+Your overrides always win. Every component composes consumer `className` last
 through [cx](/utils/cx), whose merge engine Mantle vendors with the house spacing scale
 baked in rather than taking clsx and tailwind-merge as dependencies—className merging is
 core infrastructure, so Mantle owns it. Interactive state is styled through custom
@@ -224,7 +224,7 @@ that doesn't exist. [CodeBlock](/components/data-display/code-block) highlights 
 time, so no highlighter JavaScript ships to the browser—and its React-free core is
 published as [highlight-utils](/utils/highlight-utils) so servers, workers, and build
 tools can produce the same HTML. The Tailwind source plugin scopes the utility scan to
-the mantle components an app actually imports, so unused components cost no CSS, and
+the Mantle components an app actually imports, so unused components cost no CSS, and
 non-active theme stylesheets never block rendering.
 
 The runtime work that remains gets moved to the platform or measured down.
@@ -233,7 +233,7 @@ are CSS scroll-driven animations with zero scroll listeners.
 [Table](/components/data-display/table) coalesces resize, mutation, and scroll into one
 `requestAnimationFrame` layout read to drive its overflow affordance. And
 [`useBreakpoint`](/hooks) shares a single app-wide set of `matchMedia` subscriptions
-across every caller—its subscribe functions are cached because unstable references
+across every caller—it caches its subscribe functions because unstable references
 measurably made window resizing sluggish.
 
 ## Safe, ecosystem-normal defaults
@@ -241,7 +241,7 @@ measurably made window resizing sluggish.
 A default is the library exercising judgment on your behalf, so Mantle's are safe and
 unsurprising. [Button](/components/actions/button) defaults `type="button"`, matching the
 ecosystem and ending accidental form submits. [AlertDialog](/components/overlays/alert-dialog)'s
-`Action` deliberately does not close the dialog, so destructive handlers must opt in to
+`Action` deliberately doesn't close the dialog, so destructive handlers must opt in to
 dismissal. [Anchor](/components/navigation/anchor)'s `rel` accepts an array it merges and de-dupes,
 so `noopener` and `noreferrer` compose safely. [QrCode](/components/data-display/qr-code) renders
 static black-on-white in every theme because inverted codes fail real scanners. And
@@ -254,7 +254,7 @@ Every export carries JSDoc with `@example` blocks and when-to-use guidance, and 
 examples feed the published types, `llms.txt`, and the component manifest. That makes
 them normative: humans and AI agents reproduce them verbatim—one recorded migration
 copied the patterns the docs showed into ~57 call sites before the docs were fixed—so
-examples are maintained with the same care as API. Every docs page ships a
+we maintain examples with the same care as API. Every docs page ships a
 plain-markdown twin, and agents get a canonical entry point at
 [For AI Agents](/for-ai-agents), because this library now has two audiences that write
 code with it.
