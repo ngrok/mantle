@@ -117,7 +117,7 @@ AlertDialog.Root
 
 ## With TanStack Form
 
-Compose an `AlertDialog` with [TanStack Form](https://tanstack.com/form) and [`Field`](/components/forms/field) when the destructive action requires explicit acknowledgment. Render `AlertDialog.Body` as the `<form>` element with `asChild` so the header, field, and footer keep the alert dialog layout. `AlertDialog.Action` does not close the dialog by default — make it the submit button (`type="submit"`) and close the dialog from the form's `onSubmit`, which only runs once validation passes. Control `AlertDialog.Root` with `open` / `onOpenChange` and reset the form on close so the acknowledgment is required every time the dialog opens.
+Compose an `AlertDialog` with [TanStack Form](https://tanstack.com/form) and [`Field`](/components/forms/field) when the destructive action requires explicit acknowledgment. Render `AlertDialog.Body` as the `<form>` element with `asChild` so the header, field, and footer keep the alert dialog layout. `AlertDialog.Action` does not close the dialog by default: make it the submit button (`type="submit"`) and close the dialog from the form's `onSubmit`, which only runs once validation passes. Control `AlertDialog.Root` with `open` / `onOpenChange` and reset the form on close so the acknowledgment is required every time the dialog opens.
 
 The acknowledgment row composes [`Choice`](/components/forms/choice) inside `Field.Control`, so the checkbox aligns to the first line of its label and the field's `name` and ARIA wiring flow onto the checkbox automatically.
 

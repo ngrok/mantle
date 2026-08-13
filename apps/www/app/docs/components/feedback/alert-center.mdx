@@ -18,8 +18,8 @@ import {
 
 <PageHeader id="alert-center">Alert Center</PageHeader>
 
-A single, top-level entry point for one-to-many account alerts — usage limits, hard limits, billing
-problems — and the upgrade CTAs that resolve them. It replaces a stack of independent window banners with
+A single, top-level entry point for one-to-many account alerts (usage limits, hard limits, billing
+problems) and the upgrade CTAs that resolve them. It replaces a stack of independent window banners with
 **one** severity-colored bar that surfaces the highest-priority alert inline (its message _and_ its
 call-to-action), plus a compact count-and-caret trigger that expands the remaining alerts as full-width banners,
 ranked by severity.
@@ -29,7 +29,7 @@ composition slot for app-wide messaging. Alerts are **authored as JSX**: each `A
 the normal [`Alert`](/components/feedback/alert) banner parts as children and registers its coordination
 facts (`id`, `intent`) with the center, which derives the count, the top alert, and the
 severity ranking from the registrations. Mount an item to show its alert; unmount it to dismiss — dismissal
-is your state flipping a condition off. The demo runs in its own framed document — choose the
+is your state flipping a condition off. The demo runs in its own framed document. Choose the
 count-and-caret control to expand or collapse the full-width banners, or dismiss alerts (including the top
 one) to watch the next-highest severity promote into the bar.
 
@@ -123,7 +123,7 @@ export function Shell() {
 
 ## Composition
 
-Compose the parts of an `AlertCenter` together to build your own. Items render `null` in place — their
+Compose the parts of an `AlertCenter` together to build your own. Items render `null` in place; their
 children are projected into the bar or an expansion row by rank:
 
 ```text showLineNumbers=false
@@ -142,13 +142,13 @@ Only one part takes `asChild`, and deliberately so:
 - **`AlertCenter.DismissIconButton`** inherits it from the
   [IconButton](/components/actions/icon-button) it renders through
   [`Alert.DismissIconButton`](/components/feedback/alert#alertdismissiconbutton). Reach for it when dismissal
-  is a link or a form submit rather than a click handler — the required `onClick` still runs, so keep the
+  is a link or a form submit rather than a click handler. The required `onClick` still runs, so keep the
   unmount there.
 
 The rest have no `asChild` on purpose. `AlertCenter.Root` and `AlertCenter.Item` render no DOM at all, so
 there is nothing to swap: `Root` is the state owner, and an `Item` registers its facts and projects its
 children (see [Projection](#projection)). `AlertCenter.Bar` and `AlertCenter.Content` each render a fixed
-structure with no single default element a swap could coherently replace — the bar is a presence wrapper that
+structure with no single default element a swap could coherently replace: the bar is a presence wrapper that
 owns the exit animation around an `Alert.Root` banner (swap the wrapper and the animation breaks; swap the
 banner and the chrome the part exists to render is gone), and the expansion is a focus-within container that
 owns the collapse animation around the `<ul>` of rows. Both also take `children?: never`, since the content is
@@ -158,25 +158,25 @@ banner chrome, an `Alert.Root` whose parts you already author as that item's chi
 ## How it works
 
 - **The bar surfaces the top alert inline.** `AlertCenter.Bar` renders the highest-severity item's authored
-  children — icon, title, description, and call-to-action — directly in the strip, so the most urgent CTA is
+  children (icon, title, description, and call-to-action) directly in the strip, so the most urgent CTA is
   one glance and zero extra clicks away. Hiding _every_ CTA behind a click is exactly what makes banners fail
   to convert.
 - **The count-and-caret control expands the full list.** When two or more alerts are active, the bar renders
   a compact control that expands `AlertCenter.Content` beneath it. The additional alerts render as compact,
   full-width one- or two-line banners, push the app layout down, and can be collapsed by the same control.
 - **Content is composed; facts are registered.** Each `AlertCenter.Item` renders no DOM where it's
-  authored — it registers `{ id, intent }` and portals its children into a stable host the bar or an
+  authored: it registers `{ id, intent }` and portals its children into a stable host the bar or an
   expansion row adopts (see [Projection](#projection)). You get real anchors, router links, stateful and
   context-aware JSX in every banner, while the count, the top alert, and the ordering stay derived and
   deterministic.
 - **Ranking is severity, then arrival.** `danger` › `warning` › `important` › `info` › `success`; within an
-  intent, alerts keep the order they first appeared — items mounting together rank in authored order, later
+  intent, alerts keep the order they first appeared: items mounting together rank in authored order, later
   arrivals append after their same-intent peers, and a dismissed alert that returns resumes its original
   position.
 - **It collapses when empty.** With no items mounted the bar animates out and renders nothing, mirroring
   `AppLayout.Notice`, so `Root`, `Bar`, and `Content` can all stay mounted unconditionally.
 - **It announces politely.** A persistent, visually-hidden `role="status"` live region (mounted by
-  `AlertCenter.Root`) announces the top alert and how many more as alerts arrive or re-rank — a live region
+  `AlertCenter.Root`) announces the top alert and how many more as alerts arrive or re-rank. A live region
   must exist before its text changes to be announced reliably. Its headline is the top alert's **rendered**
   `Alert.Title` text (inline CTA anchors stripped), re-read on every commit so the announcement stays in
   lockstep with the visible copy. The bar itself claims no ARIA `banner` landmark.
@@ -185,9 +185,9 @@ banner chrome, an `Alert.Root` whose parts you already author as that item's chi
 
 Author one `AlertCenter.Item` per alert, composing the `Alert` banner parts as its children. The consumer
 owns dismissal (including any persistence, e.g. `sessionStorage`): compose an
-`AlertCenter.DismissIconButton` whose `onClick` unmounts the item — dismissing the top alert promotes the
+`AlertCenter.DismissIconButton` whose `onClick` unmounts the item; dismissing the top alert promotes the
 next-highest severity into the bar. An item authored without one (say, a hard-stop billing failure the user
-must resolve) is not dismissable — see [Dismissability](#dismissability) for choosing which alerts
+must resolve) is not dismissable; see [Dismissability](#dismissability) for choosing which alerts
 offer it.
 
 <Example>
@@ -271,20 +271,20 @@ export function AccountAlerts() {
 Dismissability is composition, not configuration: an alert can be dismissed exactly when its children
 include an `AlertCenter.DismissIconButton`. Choose per alert, with the intent as your default policy:
 
-- **`danger` alerts should generally not be dismissable.** They represent hard-stop conditions — a failed
-  payment, an expired certificate — that only resolving the underlying problem should clear. A dismissable
+- **`danger` alerts should generally not be dismissable.** They represent hard-stop conditions (a failed
+  payment, an expired certificate) that only resolving the underlying problem should clear. A dismissable
   danger alert trains users to swat away the one banner that genuinely blocks them.
-- **`warning` and `info` alerts should generally be dismissable.** They are acknowledgeable by nature —
-  usage nags, rollout notices — and a nag that cannot be acknowledged erodes trust in the whole bar.
-- Both are best practices, not constraints the API enforces — dismissability stays a per-alert composition
+- **`warning` and `info` alerts should generally be dismissable.** They are acknowledgeable by nature
+  (usage nags, rollout notices), and a nag that cannot be acknowledged erodes trust in the whole bar.
+- Both are best practices, not constraints the API enforces; dismissability stays a per-alert composition
   choice in either direction. A warning that describes an active blockage (a hard limit already being
   enforced) can withhold the dismiss button like a danger alert, and a danger alert can still compose one
-  when your product calls for it — the framed shell demo at the top of this page does exactly that, so you
+  when your product calls for it. The framed shell demo at the top of this page does exactly that, so you
   can watch the top slot re-rank when its danger alert is dismissed.
 
 Because the bar always surfaces the top-ranked alert, a non-dismissable danger alert keeps the bar pinned
 to the most urgent call-to-action while acknowledgeable alerts come and go beneath it. This demo opens
-expanded — note the top danger alert and the hard-limit warning render no dismiss button:
+expanded; note the top danger alert and the hard-limit warning render no dismiss button:
 
 <Example>
 	<AlertCenterMixedDismissabilityExample />
@@ -354,7 +354,7 @@ export function Example() {
 ## Persisting dismissals
 
 Dismissal is your state, so persistence is your choice of store. Session scope is usually the right default
-for acknowledgements — [`useSessionStorage`](/hooks#usesessionstorage) keeps a dismissal for the rest of the
+for acknowledgements: [`useSessionStorage`](/hooks#usesessionstorage) keeps a dismissal for the rest of the
 tab session (a reload doesn't resurrect acknowledged nags) while a fresh session starts clean.
 
 Most real alert bars render **server state**: the backend reports the currently-true conditions on every
@@ -362,17 +362,17 @@ fetch, and the client authors one `AlertCenter.Item` per condition. Two rules ma
 same alerts keep arriving as state:
 
 - **Key dismissals on stable condition ids.** Use the id of the _condition_ (`"transfer-limit"`), not a
-  per-occurrence UUID — otherwise every refetch mints a "new" alert and dismissal never sticks. Filter the
+  per-occurrence UUID; otherwise every refetch mints a "new" alert and dismissal never sticks. Filter the
   server's list against the dismissed set before mounting items: the server keeps reporting the condition,
   and the client keeps suppressing it.
 - **Prune dismissals the server no longer reports.** When a condition clears server-side and later recurs,
-  it is a new occurrence the user hasn't acknowledged — drop stale ids from the dismissed set whenever the
+  it is a new occurrence the user hasn't acknowledged. Drop stale ids from the dismissed set whenever the
   server list changes, so recurrences resurface instead of staying silenced forever. (If your backend
-  versions occurrences — say a `raisedAt` timestamp — key dismissals on `id:raisedAt` and skip the pruning.)
+  versions occurrences, say a `raisedAt` timestamp, key dismissals on `id:raisedAt` and skip the pruning.)
   Thanks to sticky ranking, a returning condition resumes its original position within its intent tier.
 
 The demo simulates the fetch loop: dismiss the transfer warning, then resolve and re-raise the condition on
-the "server" — the alert returns even though its id was acknowledged, because the dismissal was pruned when
+the "server". The alert returns even though its id was acknowledged, because the dismissal was pruned when
 the condition cleared. Reload the page mid-session and acknowledged alerts stay away.
 
 <Example>
@@ -450,7 +450,7 @@ export function AccountAlerts({ serverAlerts }: { serverAlerts: ReadonlyArray<Se
 
 ## Supporting copy in the bar
 
-The bar renders the top alert **as authored** — icon, title, `Alert.Description`, call-to-action — so it is
+The bar renders the top alert **as authored** (icon, title, `Alert.Description`, call-to-action), so it is
 a single line for a title alone and a two-line banner once a description is composed, exactly like the same
 alert renders as an expansion row. Nothing is suppressed by placement, so a CTA reads naturally from the
 description (`Please update your payment method.`) instead of being crammed into the title.
@@ -500,52 +500,52 @@ Two things still argue for a title on every alert, and for keeping bar copy shor
 - **The bar pushes the app shell down.** It is the topmost thing in the window, so every line it grows costs
   the page. Detail that only matters once someone is reading the full list belongs in the expansion: the
   chrome around your children carries `data-placement="bar"` in the bar and `data-placement="list"` in the
-  expansion, so `in-data-[placement=bar]:hidden` on any element — a description included — keeps it out of
+  expansion, so `in-data-[placement=bar]:hidden` on any element (a description included) keeps it out of
   the bar and shows it only in a row.
 
 ## Projection
 
 `AlertCenter.Item` renders no DOM where it's authored; its children render through a portal into a stable
 per-item host element that the `Bar`/`Content` chrome physically adopts (typically inside
-`AppLayout.Notice`). The children's _React tree_ stays where the item is written — only their DOM moves —
+`AppLayout.Notice`). The children's _React tree_ stays where the item is written (only their DOM moves),
 which is what makes the projection behave like ordinary composition:
 
 - **Context and events flow from the authoring site.** Providers and error boundaries wrapping an
   individual item work, router links resolve against the route that renders the item, and the children's
-  React events (clicks, focus) bubble to the author's tree — a wrapper around one item observes only its
+  React events (clicks, focus) bubble to the author's tree; a wrapper around one item observes only its
   own alert.
-- **Content keeps its state across re-ranks.** The host element is moved between the bar and a row — never
-  remounted — so component state in your alert content survives promotions and demotions. In engines with
+- **Content keeps its state across re-ranks.** The host element is moved between the bar and a row (never
+  remounted), so component state in your alert content survives promotions and demotions. In engines with
   `Element.moveBefore` even focus and CSS transitions survive the move; elsewhere the center's focus
   redirects re-establish keyboard position.
-- **Don't compose `Alert.Root` in children.** The center renders the banner chrome — with the item's
-  `intent` — at whichever placement the item ranks into. Children are the banner's _content_: `Alert.Icon`,
+- **Don't compose `Alert.Root` in children.** The center renders the banner chrome, with the item's
+  `intent`, at whichever placement the item ranks into. Children are the banner's _content_: `Alert.Icon`,
   `Alert.Content`, `Alert.Title`, `Alert.Description`, `AlertCenter.DismissIconButton`.
 - **Ids identify the projection, so they must be unique.** Both placements adopt the one stable host an id
   owns, so a second _mounted_ item claiming an already-registered id throws rather than silently stealing the
-  first item's content. Unmounting and remounting the same id is fine — that is what dismissal and a
+  first item's content. Unmounting and remounting the same id is fine: that is what dismissal and a
   server-reported condition recurring are, and the returning alert resumes its original position.
 
 The chrome around your children is also a styling hook. It carries `data-placement="bar"` in the bar and
 `data-placement="list"` in an expansion row (plus `data-alert-id` for the alert it holds), so
 `in-data-[placement=bar]:hidden` on any element inside an item's children keeps that element out of the bar
-and shows it only in a row — and `in-data-[placement=list]:hidden` does the reverse.
+and shows it only in a row; `in-data-[placement=list]:hidden` does the reverse.
 
-A mounted item's children always render (React-wise), even while they rank nowhere visible — e.g. below
-the bar with no expansion composed, where the host stays detached from the document. Because items
+A mounted item's children always render (React-wise), even while they rank nowhere visible (e.g. below
+the bar with no expansion composed, where the host stays detached from the document). Because items
 register from effects, avoid authoring them inside `Suspense` boundaries that can hide them (hiding
-unregisters the alert and the bar animates out), and server-rendered HTML contains no bar — it enters with
+unregisters the alert and the bar animates out), and server-rendered HTML contains no bar: it enters with
 its height animation after hydration, the same entrance every arriving alert gets by design.
 
 ### Where `AlertCenter.Root` goes
 
 Every other example on this page puts `AlertCenter.Root` inside `AppLayout.Notice` with its items as
 siblings, which is all a **shell-authored** alert needs. But projection's whole point is that a **route** can
-author an alert — and `AlertCenter.Item` throws outside a `Root`, so for that to work `Root` has to be an
+author an alert. `AlertCenter.Item` throws outside a `Root`, so for that to work `Root` has to be an
 ancestor of whatever renders your routes.
 
 So wrap the shell, and leave only the chrome in the notice slot. Any route below can then raise an alert into
-the shell's bar by rendering an item — no shell state, no prop drilling, no context of your own. Choose
+the shell's bar by rendering an item: no shell state, no prop drilling, no context of your own. Choose
 **Endpoints** to have the route raise a DNS warning that outranks the account notice, then **Agents** to
 watch it clear:
 
@@ -637,14 +637,14 @@ export function Shell() {
 ```
 
 The item unmounts with the route, so the alert clears on navigation for free. The route buttons stand in for
-a router — a real shell renders its `Outlet` inside `AppLayout.Body`, pins the shell with
+a router; a real shell renders its `Outlet` inside `AppLayout.Body`, pins the shell with
 `className="fixed inset-0"`, and composes the `Main` landmark onto `AppLayout.Body` with `asChild`, exactly
 as in the [example at the top of this page](#alert-center). This demo is embedded in a docs page that already
 owns the document, so it does neither.
 
 One consequence worth knowing: `AlertCenter.Root` renders the `sr-only` live region at its **own** position
 in the tree, so hoisting it also moves that element out of the notice slot. It is visually hidden either way,
-and it must stay mounted to announce anything, so this is harmless — but it is why `Root` is renderless rather
+and it must stay mounted to announce anything, so this is harmless. But it is why `Root` is renderless rather
 than a wrapper you can style.
 
 ## A single alert
@@ -721,7 +721,7 @@ export function AccountAlerts() {
 }
 ```
 
-Need a fully custom bar — different chrome, your own expand affordance? That's outside `AlertCenter`'s
+Need a fully custom bar (different chrome, your own expand affordance)? That's outside `AlertCenter`'s
 scope by design: compose [`Alert`](/components/feedback/alert#banners)'s banner parts (including
 `Alert.ExpandButton`) directly and manage your own state.
 
@@ -729,7 +729,7 @@ scope by design: compose [`Alert`](/components/feedback/alert#banners)'s banner 
 
 **An alert's title is in the accessibility tree more than once, by design.** `AlertCenter.Root` mounts an
 `sr-only` polite live region that headlines with the top alert's title, and the bar renders that same title
-visibly — and if the item composes an `AlertCenter.DismissIconButton`, its accessible name (`"Dismiss
+visibly. If the item composes an `AlertCenter.DismissIconButton`, its accessible name (`"Dismiss
 &lt;title&gt;"`) is a third copy. None of them is `aria-hidden`: a polite region has to pre-exist in the tree to
 announce anything, and hiding the visible title would break the bar.
 
@@ -753,7 +753,7 @@ expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
 await user.click(screen.getByRole("button", { name: "Dismiss Payment failed" }));
 ```
 
-`getByText` is still fine for a **description**, which the live region never contains — it headlines with the
+`getByText` is still fine for a **description**, which the live region never contains; it headlines with the
 title only.
 
 Two more things worth knowing when writing these tests:

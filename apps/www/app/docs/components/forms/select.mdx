@@ -96,7 +96,7 @@ Displays a list of options for the user to pick from—triggered by a button.
 
 Use `Select` for a small, finite list of options (~2-15) where the user picks exactly one and search/filtering is unnecessary. For larger lists, async data, or any single-select where typing to filter is helpful, use [`Combobox`](/components/forms/combobox). For picking multiple options, use [`Multi Select`](/components/forms/multi-select).
 
-When a `Select` is rendered inside `Field.Item`, wrap `Select.Root` in `Field.Control`. `Field.Control` flows the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` through to the focusable `Select.Trigger` — the `name` lands on `Select.Root` (so the hidden form input picks it up) and the trigger reads the ARIA props from context.
+When a `Select` is rendered inside `Field.Item`, wrap `Select.Root` in `Field.Control`. `Field.Control` flows the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` through to the focusable `Select.Trigger`: the `name` lands on `Select.Root` (so the hidden form input picks it up) and the trigger reads the ARIA props from context.
 
 <Example>
 	<Field.Item className="max-w-64" name="fruits">
@@ -396,12 +396,12 @@ Select.Root
 
 `Select.Group`, `Select.Label`, `Select.Value`, and `Select.Separator` accept `asChild`, which swaps the part's default element for your single child while keeping its styling and the select's keyboard and selection behavior.
 
-`Select.Value asChild` is the useful one — reach for it when the displayed value needs its own element for truncation or badge chrome. `Select.Label asChild` helps when a group heading must be a specific element for the page's outline.
+`Select.Value asChild` is the useful one: reach for it when the displayed value needs its own element for truncation or badge chrome. `Select.Label asChild` helps when a group heading must be a specific element for the page's outline.
 
 `Select.Root` is a state provider that renders no DOM, so it takes no `asChild`.
 
 > [!WARNING]
-> `Select.Trigger`, `Select.Content`, and `Select.Item` currently advertise `asChild` in their prop types but **throw at runtime** (`Primitive.* failed to slot onto its children`). Each one renders its own chrome next to your content — the trigger's caret, the content's scroll buttons and viewport, the item's check indicator — so the underlying Radix `Slot` receives more than the single child it requires. Do not use `asChild` on these three parts. To customize the trigger's content, pass it as `children` instead.
+> `Select.Trigger`, `Select.Content`, and `Select.Item` currently advertise `asChild` in their prop types but **throw at runtime** (`Primitive.* failed to slot onto its children`). Each one renders its own chrome next to your content (the trigger's caret, the content's scroll buttons and viewport, the item's check indicator), so the underlying Radix `Slot` receives more than the single child it requires. Do not use `asChild` on these three parts. To customize the trigger's content, pass it as `children` instead.
 
 ## API Reference
 

@@ -14,7 +14,7 @@ A reader who runs Google Translate on your page gets a rewritten DOM. That break
 
 The content goes wrong. A translated CLI flag, env var, shortcut key, or one-time passcode names something that does not exist, and the reader copies it anyway.
 
-The render goes wrong. The engine replaces each text node with a `<font>` wrapper and **reparents** the original node: React's reference to it stays alive, but its parent is now the `<font>`. The next update that names that node — an icon inserting before it, or the node itself unmounting — asks the DOM to touch a child its parent no longer owns. The DOM raises `NotFoundError`, React re-throws the raw `DOMException`, and with no error boundary above it the React root tears down. The page goes blank.
+The render goes wrong. The engine replaces each text node with a `<font>` wrapper and **reparents** the original node: React's reference to it stays alive, but its parent is now the `<font>`. The next update that names that node (an icon inserting before it, or the node itself unmounting) asks the DOM to touch a child its parent no longer owns. The DOM raises `NotFoundError`, React re-throws the raw `DOMException`, and with no error boundary above it the React root tears down. The page goes blank.
 
 This is not hypothetical. It shipped in mantle 0.83.2: the first click of any submit button blanked a translated page, because `isLoading` synthesized an icon beside bare text children.
 
@@ -42,7 +42,7 @@ The last row is the one to design toward. When `children` is the only child of a
 - `DataTable.ActionHeader` renders its sticky indicator after `children`, which turns the mount into an append.
 - [`Code`](/components/data-display/code), [`Kbd`](/components/data-display/kbd), `CodeBlock.Code`, `CodeBlock.Title`, and `OtpInput.Slot` mark their content [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate), so the engine skips those subtrees entirely.
 
-A label slot protects the insert **mantle** makes. It cannot protect an insert your own children make inside it — that is the next section.
+A label slot protects the insert **mantle** makes. It cannot protect an insert your own children make inside it; that is the next section.
 
 ## The one rule for your own code
 
@@ -68,7 +68,7 @@ Three fixes work. Pick by what the conditional element is:
 - **Move the element after the text.** A mount then becomes an append, which is safe. Prefer this when the element is decorative and out of flow, because it adds no DOM.
 - **Mount the element unconditionally and write text into it.** A `textContent` write is safe and self-healing. Prefer this for a `sr-only` announcer, which costs no layout.
 
-The rule is narrow on purpose. Static children never throw, however many there are — the hazard is a sibling that **appears** beside text that stays mounted.
+The rule is narrow on purpose. Static children never throw, however many there are. The hazard is a sibling that **appears** beside text that stays mounted.
 
 ## Buttons with an icon, or two
 
@@ -94,17 +94,17 @@ The label text is wrapped, which matters when that second icon is conditional: a
 
 ## Marking content untranslatable
 
-Set `translate="no"` on the element that holds a string a reader copies or retypes: code, a CLI flag, an env var, a YAML key, a shortcut key, a filename, an ID, a passcode. Descendants inherit the attribute, so it also keeps the engine out of the subtree — which makes it a second cure for the crash above.
+Set `translate="no"` on the element that holds a string a reader copies or retypes: code, a CLI flag, an env var, a YAML key, a shortcut key, a filename, an ID, a passcode. Descendants inherit the attribute, so it also keeps the engine out of the subtree, which makes it a second cure for the crash above.
 
 ```tsx
 <span translate="no">{endpointId}</span>
 ```
 
-`Code` and `CodeBlock.Title` set the attribute as an overridable default, because both also hold prose. Pass `translate="yes"` there when the content is a word rather than a token. `Kbd`, `CodeBlock.Code`, and `OtpInput.Slot` lock it — those omit the prop from their types, so no call site can turn the guard off.
+`Code` and `CodeBlock.Title` set the attribute as an overridable default, because both also hold prose. Pass `translate="yes"` there when the content is a word rather than a token. `Kbd`, `CodeBlock.Code`, and `OtpInput.Slot` lock it: those omit the prop from their types, so no call site can turn the guard off.
 
 ## A label that has to shrink
 
-The label slot takes no styling of its own — `display: contents` generates no box, so there is nothing there to size. Style your own child instead, which is still a flex item of the button:
+The label slot takes no styling of its own: `display: contents` generates no box, so there is nothing there to size. Style your own child instead, which is still a flex item of the button:
 
 <Example>
 	<Button
@@ -169,4 +169,4 @@ Rejecting a `translate="no"` subtree is what makes that attribute testable: a co
 
 The model is a reparent, which is what Google Translate does. An engine that instead detaches and replaces the text node produces a different symptom. Safari and Firefox translation are unverified.
 
-Nothing here patches the DOM. A `Node.prototype.removeChild` fallback would make arbitrary product code safe, and mantle does not install one — the guarantees above are structural, per component.
+Nothing here patches the DOM. A `Node.prototype.removeChild` fallback would make arbitrary product code safe, and mantle does not install one: the guarantees above are structural, per component.

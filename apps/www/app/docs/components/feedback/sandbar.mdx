@@ -1,6 +1,6 @@
 ---
 title: Sandbar
-description: A floating save bar for unsaved changes — batch save form state with save and discard actions, announce pending state to screen readers, and block navigation until changes are resolved.
+description: A floating save bar for unsaved changes. Batch save form state with save and discard actions, announce pending state to screen readers, and block navigation until changes are resolved.
 ---
 
 import { CodeExample } from "~/components/code-example";
@@ -176,7 +176,7 @@ Sandbar.Root
     └── Sandbar.SaveButton
 ```
 
-`Sandbar.Root` must stay mounted and be toggled with the controlled `open` prop — **never
+`Sandbar.Root` must stay mounted and be toggled with the controlled `open` prop: **never
 conditionally mount it** (`{isDirty && <Sandbar.Root …>}`). The screen-reader announcement only
 works when the internal live regions exist in the tree before the message appears. The exit
 animation needs the panel alive to play. A Root that mounts with `open` already true does not
@@ -273,7 +273,7 @@ export function DraftPosts() {
 
 ## Reporting a failed save
 
-**Report the failure where it happened, not on the bar.** The bar carries the _pending decision_ —
+**Report the failure where it happened, not on the bar.** The bar carries the _pending decision_:
 "you have unsaved changes, resolve them." A failed save is about the content the user is looking at,
 so it belongs next to that content: a field-level message on the field that was rejected, or a
 form-level [Alert](/components/feedback/alert) at the top of the form for a whole-request failure.
@@ -284,7 +284,7 @@ the user needs the Save button to retry.
 
 Two things to get right in the error you render:
 
-- **Announce it.** The bar's live regions cover opening, saving, and blocked navigation — not your
+- **Announce it.** The bar's live regions cover opening, saving, and blocked navigation, not your
   error. Give a form-level alert `role="alert"`, or render a field error through
   [`Field.Errors`](/components/forms/field), which wires it into the control's `aria-describedby`
   and flips the field to its error state.
@@ -380,7 +380,7 @@ export function EndpointName() {
 ## Theming
 
 The panel is an [inverted theme island](/components/primitives/theme#inverted-theme-islands): it
-renders in the opposite theme of the page — dark on light pages, light on dark pages, and the
+renders in the opposite theme of the page: dark on light pages, light on dark pages, and the
 same flip between the high-contrast pair. The inversion covers the entire subtree, so the blessed
 buttons and any custom children you compose inside `Sandbar.Actions` all read as
 the opposite theme without extra styling. The panel's own surface uses the inverted theme's
@@ -395,13 +395,13 @@ announcement carries the feedback, so blocked navigation stays perceivable with 
 switched off.
 
 Two mechanisms do it, and neither needs a prop. The enter/exit travel sits behind `motion-safe:`, so
-the media query alone removes it. `shake()` reads the preference with `getPrefersReducedMotion()` —
-the imperative sibling of [`usePrefersReducedMotion`](/hooks#useprefersreducedmotion) — and skips
+the media query alone removes it. `shake()` reads the preference with `getPrefersReducedMotion()`
+(the imperative sibling of [`usePrefersReducedMotion`](/hooks#useprefersreducedmotion)) and skips
 `panel.animate(...)` when it returns `true`.
 
 A page cannot change an operating-system preference, so the demo below carries a switch that
 reproduces the same two outcomes for a reader whose system allows motion. It does that through
-`className`, which `Sandbar.Root` merges last — the same escape hatch you have. The readout tracks
+`className`, which `Sandbar.Root` merges last (the same escape hatch you have). The readout tracks
 the real preference live, because `usePrefersReducedMotion` subscribes to the query.
 
 <CodeExample.Root>
@@ -498,7 +498,7 @@ reader who has motion switched on; in production the preference does this by its
 
 The bar renders the decision; your app owns the guard. Pair `open` with your router's blocker
 (e.g. react-router's `useBlocker` plus a `beforeunload` listener while dirty) and call
-`sandbarHandle.current?.shake()` when a navigation attempt is blocked — the hero example above
+`sandbarHandle.current?.shake()` when a navigation attempt is blocked; the hero example above
 shows the wiring with a stand-in guard. Keep the guard out of the component: mantle has no router
 dependency, and the split mirrors Shopify's SaveBar / `leaveConfirmation()` and UIKit's
 `isModalInPresentation` / `presentationControllerDidAttemptToDismiss`.
@@ -508,23 +508,23 @@ dependency, and the split mirrors Shopify's SaveBar / `leaveConfirmation()` and 
 - **Announcements.** `Sandbar.Root` owns two persistent visually-hidden live regions. A polite
   `role="status"` announcer speaks the message when the bar opens and "Saving changes…" while
   `Sandbar.SaveButton` is loading. An assertive `role="alert"` announcer speaks blocked-navigation
-  attempts (from `shake()`). This is why Root must stay mounted. Errors are _not_ announced here —
+  attempts (from `shake()`). This is why Root must stay mounted. Errors are _not_ announced here;
   see [Reporting a failed save](#reporting-a-failed-save).
 - **Announce success yourself.** The bar closes silently when changes resolve. Pair the save's
-  resolution with a status announcement — a success [Toast](/components/feedback/toast) qualifies —
+  resolution with a status announcement (a success [Toast](/components/feedback/toast) qualifies),
   or screen-reader users hear a save start and never finish.
 - **Focus is never stolen.** The bar appears without taking focus. If a focused save button goes
   disabled while loading, the bar parks focus on the panel so it cannot evaporate mid-save. When
   the bar finishes closing with focus still inside it, the bar restores focus to the element you
-  focused before entering it — unless you already moved focus elsewhere, in which case the bar
+  focused before entering it, unless you already moved focus elsewhere, in which case the bar
   leaves it alone.
 - **The exit is unreachable.** The panel goes `inert` the moment it starts leaving, not when it
-  finishes — so a user Tabbing toward Discard as the save lands cannot focus or activate a control
+  finishes, so a user Tabbing toward Discard as the save lands cannot focus or activate a control
   that is already visually gone. Focus that `inert` evicts still restores to the pre-bar element.
 - **Escape is intentionally inert.** A one-keypress discard would destroy user data; resolving the
   pending state requires an explicit action.
 - **Reduced motion.** Under `prefers-reduced-motion`, the enter/exit slides degrade to fades and
-  `shake()` skips the wiggle — the assertive announcement still fires, so blocked navigation stays
+  `shake()` skips the wiggle; the assertive announcement still fires, so blocked navigation stays
   perceivable. See [Reduced motion](#reduced-motion) for a demo you can drive.
 - **Zoom and small viewports.** The panel wraps its actions under the message and caps its height,
   so it stays usable at 320px-wide viewports (400% zoom).
@@ -536,18 +536,18 @@ the panel is a centered island rather than an edge-to-edge strip, and it floats 
 edge. For long forms, additionally set `scroll-padding-bottom` (roughly the bar height plus its
 offset, ~`6rem`) on the scrolling container while the bar is open, so keyboard-driven
 scroll-into-view lands fields above the bar. Scroll padding only helps elements being scrolled
-into view — an element already in view behind the bar is only partially obscured thanks to the
+into view. An element already in view behind the bar is only partially obscured thanks to the
 island shape, which satisfies the AA criterion.
 
 ## Placement
 
-Render `Sandbar.Root` in place, inside or immediately after the form it saves — `position: fixed`
+Render `Sandbar.Root` in place, inside or immediately after the form it saves; `position: fixed`
 changes paint position, not DOM or tab order, so Tab from the last form field lands directly on
 Discard/Save. Two caveats:
 
 - An ancestor with `transform`, `filter`, or `will-change` becomes the containing block for
   `position: fixed` (common with page-transition wrappers). If you cannot render Root outside the
-  transformed ancestor, portal it yourself with `createPortal(<Sandbar.Root …/>, document.body)` —
+  transformed ancestor, portal it yourself with `createPortal(<Sandbar.Root …/>, document.body)`,
   and accept that this severs the form→actions tab-order adjacency.
 - Only render one Sandbar per page: it is a singleton surface, like a page's primary save action.
 

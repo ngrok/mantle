@@ -373,9 +373,9 @@ A canvas-rendered area chart for showing how values — and, when stacked, a tot
 
 ## When to use
 
-Reach for an `AreaChart` when the magnitude of a value over time is the story — the fill gives the value physical weight. Add `stacked` and it becomes a part-to-whole chart over time: the top edge of the stack is the total, and each band shows how much of it a series contributes.
+Reach for an `AreaChart` when the magnitude of a value over time is the story: the fill gives the value physical weight. Add `stacked` and it becomes a part-to-whole chart over time: the top edge of the stack is the total, and each band shows how much of it a series contributes.
 
-- The fill is a deliberate 10% wash with a 2px band-edge stroke, so an area chart reads as a line chart with weight — never a saturated block that hides the grid and its siblings.
+- The fill is a deliberate 10% wash with a 2px band-edge stroke, so an area chart reads as a line chart with weight, never a saturated block that hides the grid and its siblings.
 - Areas always fill from a zero baseline: the y-domain minimum is fixed at `0` at the type level (`yDomain?: [0, number | "auto"]`), so a truncated-baseline area chart is unrepresentable.
 - Prefer [`LineChart`](/components/charts/line-chart) when composition doesn't matter and you are comparing the shapes of trajectories.
 - Prefer [`BarChart`](/components/charts/bar-chart) when the x axis is categorical and the comparison is between discrete things, not over time.
@@ -426,13 +426,13 @@ const trafficData = [
 </AreaChart.Root>;
 ```
 
-With `stacked` on the Root, series stack from the baseline up in registration order: areas that mount together register in composition order, so the first `Area` sits on the baseline and each later `Area` stacks on top of it. An `Area` that mounts later stacks on top of every series already registered, whatever its position in the JSX, and a `dataKey` that unmounts and returns resumes its original position. Reordering the parts of a mounted chart does not restack it — the position sticks to the `dataKey`, which is what keeps a series from jumping when you rename its `label`. The tooltip lists the top of the pile first, matching what a reader scans at the crosshair. Every multi-series chart must compose `AreaChart.Legend` — series identity must never rely on color-matching alone. (For a single series the legend renders nothing; the chart's title already names it.)
+With `stacked` on the Root, series stack from the baseline up in registration order: areas that mount together register in composition order, so the first `Area` sits on the baseline and each later `Area` stacks on top of it. An `Area` that mounts later stacks on top of every series already registered, whatever its position in the JSX, and a `dataKey` that unmounts and returns resumes its original position. Reordering the parts of a mounted chart does not restack it: the position sticks to the `dataKey`, which is what keeps a series from jumping when you rename its `label`. The tooltip lists the top of the pile first, matching what a reader scans at the crosshair. Every multi-series chart must compose `AreaChart.Legend` — series identity must never rely on color-matching alone. (For a single series the legend renders nothing; the chart's title already names it.)
 
-The tooltip, crosshair, and keyboard cursor are part of `AreaChart.Root`'s interaction contract — composing `AreaChart.Tooltip` customizes the readout, and omitting it never removes the hover layer.
+The tooltip, crosshair, and keyboard cursor are part of `AreaChart.Root`'s interaction contract: composing `AreaChart.Tooltip` customizes the readout, and omitting it never removes the hover layer.
 
 ## Overlapping areas
 
-Without `stacked`, every series fills from the zero baseline and the areas overlap. The 10% wash is what keeps this legible: with two series you can read both bands and the region where they cross. Each series' hover dot also wears the glyph paired to its series slot (hover the crossing — US East wears circles, EU West squares), a redundant encoding alongside color for where the bands overlap — see [Shapes](#shapes) below.
+Without `stacked`, every series fills from the zero baseline and the areas overlap. The 10% wash is what keeps this legible: with two series you can read both bands and the region where they cross. Each series' hover dot also wears the glyph paired to its series slot (hover the crossing: US East wears circles, EU West squares), a redundant encoding alongside color for where the bands overlap; see [Shapes](#shapes) below.
 
 <Example>
 	<OverlappingAreasExample />
@@ -475,9 +475,9 @@ Overlap stops scaling: past two or three series the intersections turn to mud. W
 
 An area chart wears its glyphs on the legend keys and the active-point dots: a filled band has no per-point mark, so the glyph shows in the legend and on the dots that ride the band edges at the crosshair.
 
-Eight glyphs match the palette's eight series slots — `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`, `"plus"`, `"cross"`, `"star"`, in that order. A series that sets no `shape` wears the glyph of its slot, so every band carries a second identity channel by default. That channel matters where color cannot carry identity alone: a reader with a color vision deficiency, a grayscale print or export, forced-colors mode. Set `seriesSlot={3}` for a fixed triangle identity.
+Eight glyphs match the palette's eight series slots: `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`, `"plus"`, `"cross"`, `"star"`, in that order. A series that sets no `shape` wears the glyph of its slot, so every band carries a second identity channel by default. That channel matters where color cannot carry identity alone: a reader with a color vision deficiency, a grayscale print or export, forced-colors mode. Set `seriesSlot={3}` for a fixed triangle identity.
 
-Set `shape` to override the pairing — an explicit value always wins. The example below pins a controlled `activeIndex` (falling back to a fixed point when the pointer leaves) so the dots stay visible without hovering: US East and EU West take their slots' circle and square, and AP South pins the star over the triangle its slot would hand it. Move the crosshair and each dot keeps its series' glyph at every position. [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full family treatment.
+Set `shape` to override the pairing; an explicit value always wins. The example below pins a controlled `activeIndex` (falling back to a fixed point when the pointer leaves) so the dots stay visible without hovering: US East and EU West take their slots' circle and square, and AP South pins the star over the triangle its slot would hand it. Move the crosshair and each dot keeps its series' glyph at every position. [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full family treatment.
 
 <Example>
 	<ShapesExample />
@@ -532,7 +532,7 @@ function ShapesExample() {
 
 ## Curve interpolation
 
-`curve` picks the interpolation between points: `"linear"` (the default) draws straight segments, `"monotone"` smooths the band without overshooting the data, and `"step"` holds each value until the next point. Smoothing is presentation only — the plotted values, tooltip readout, and keyboard cursor are identical in both charts below.
+`curve` picks the interpolation between points: `"linear"` (the default) draws straight segments, `"monotone"` smooths the band without overshooting the data, and `"step"` holds each value until the next point. Smoothing is presentation only: the plotted values, tooltip readout, and keyboard cursor are identical in both charts below.
 
 <Example>
 	<CurveExample />
@@ -581,7 +581,7 @@ const sessionData = [
 
 ## Gaps in the data
 
-`null` (or missing) values render as gaps by default — a hole in the band that says "no data here", which is usually the honest choice for missed scrapes and collection outages. Set `connectNulls` on the `Area` to join across the hole when the gap is a collection artifact rather than a real absence.
+`null` (or missing) values render as gaps by default: a hole in the band that says "no data here", which is usually the honest choice for missed scrapes and collection outages. Set `connectNulls` on the `Area` to join across the hole when the gap is a collection artifact rather than a real absence.
 
 <Example>
 	<GapsExample />
@@ -637,7 +637,7 @@ In a stacked chart a gap in one series contributes nothing to the stack at that 
 
 An all-zero series is data, not an empty state. Areas fill from the zero baseline, so the value axis stays
 anchored there and the baseline sits on the axis rather than floating through the middle of the plot. Keep the
-accessible name, the tooltip, and the data table — "0" is the answer, and a screen reader needs to hear it. Reach
+accessible name, the tooltip, and the data table: "0" is the answer, and a screen reader needs to hear it. Reach
 for `decorative` only when the values are a synthetic backdrop behind an empty-state message.
 
 <Example>
@@ -719,7 +719,7 @@ const trafficData = [
 
 ## Live data
 
-For live charts, append points to the end of a sliding window and let the chart do the rest. Appends animate the x domain as a continuous glide — the domain exponentially chases its target, so a new point arriving mid-glide redirects the motion and back-to-back appends never stutter — while the plotted data itself never wobbles: new data must never make old data appear to move. As the window slides, axis tick labels (and the gridlines that share their fade) fade in and out instead of popping between tick sets, and the marks dissolve through a fade band at the plot's left edge — a scroll mask — so points exiting the window slide out smoothly instead of being clipped away. The mask activates automatically when the chart detects a sliding window and retires on its own once the stream idles. `prefers-reduced-motion` snaps everything instantly: no glide, no fades.
+For live charts, append points to the end of a sliding window and let the chart do the rest. Appends animate the x domain as a continuous glide (the domain exponentially chases its target, so a new point arriving mid-glide redirects the motion and back-to-back appends never stutter), while the plotted data itself never wobbles: new data must never make old data appear to move. As the window slides, axis tick labels (and the gridlines that share their fade) fade in and out instead of popping between tick sets, and the marks dissolve through a fade band at the plot's left edge (a scroll mask), so points exiting the window slide out smoothly instead of being clipped away. The mask activates automatically when the chart detects a sliding window and retires on its own once the stream idles. `prefers-reduced-motion` snaps everything instantly: no glide, no fades.
 
 This demo appends one point every 200ms to a sliding 60-point window. Each point derives from a pure formula over a tick counter and a fixed epoch, so every render is deterministic; a real chart would append measurements as they arrive.
 
@@ -788,7 +788,7 @@ function LiveAreaExample() {
 
 ## Copy as markdown
 
-`AreaChart.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table — one x column plus one column per series in paint order (ISO 8601 dates, plain un-separated numbers, an em dash for gaps) — pasteable into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
+`AreaChart.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table: one x column plus one column per series in paint order (ISO 8601 dates, plain un-separated numbers, an em dash for gaps), pasteable into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
 
 <Example>
 	<CopyMarkdownExample />
@@ -812,15 +812,15 @@ import { AreaChart } from "@ngrok/mantle/area-chart";
 
 ## Decorative charts
 
-Set `decorative` to render the chart as a placeholder backdrop instead of real data — a synthetic area behind an empty state, an atmospheric hero graphic. A decorative chart keeps its visual rendering and animation but drops every layer that only makes sense for real data: it is hidden from assistive technology, removed from the tab order, and inert to pointer and keyboard, with no hover band, tooltip, sr-only data table, or live region. Because the values aren't information, `decorative` is mutually exclusive with the accessible-name props (`aria-label` / `aria-labelledby`) and the interaction props (`activeIndex`, `onActiveIndexChange`, `onDatumActivate`) — the type won't compile with both.
+Set `decorative` to render the chart as a placeholder backdrop instead of real data: a synthetic area behind an empty state, an atmospheric hero graphic. A decorative chart keeps its visual rendering and animation but drops every layer that only makes sense for real data: it is hidden from assistive technology, removed from the tab order, and inert to pointer and keyboard, with no hover band, tooltip, sr-only data table, or live region. Because the values aren't information, `decorative` is mutually exclusive with the accessible-name props (`aria-label` / `aria-labelledby`) and the interaction props (`activeIndex`, `onActiveIndexChange`, `onDatumActivate`); the type won't compile with both.
 
 A decorative chart also drops the categorical palette. Every series paints `--color-chart-decorative`, one neutral fill that outranks a series' `color` and `seriesSlot`. A backdrop carries no series identity, and a hue on values that are not information invites a reader to decode it.
 
-**That fill is what keeps an overlaid message readable.** `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card — 0.38 over the 4.5:1 floor for 14px text, so any tint under that copy spends the headroom. `--color-chart-decorative` is the darkest neutral step that still clears the floor in every theme: 4.56:1 in light, 4.93:1 in dark, 9.08:1 and 8.14:1 in the high-contrast pair. The message needs no scrim behind it, no dimming, and no blur. Redeclare the token on the Root to retune the fill — `className="[--color-chart-decorative:var(--color-neutral-100)]"` — and re-measure the copy against the value you pick.
+**That fill is what keeps an overlaid message readable.** `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card: 0.38 over the 4.5:1 floor for 14px text, so any tint under that copy spends the headroom. `--color-chart-decorative` is the darkest neutral step that still clears the floor in every theme: 4.56:1 in light, 4.93:1 in dark, 9.08:1 and 8.14:1 in the high-contrast pair. The message needs no scrim behind it, no dimming, and no blur. Redeclare the token on the Root to retune the fill (`className="[--color-chart-decorative:var(--color-neutral-100)]"`) and re-measure the copy against the value you pick.
 
-Reach for `decorative` over hand-rolled `inert` + CSS: it removes the interaction overlay at the source, so consumers never target chart internals to neutralize it. Keep the real empty-state message as a sibling of the chart (not inside it) so screen readers still announce it — the decorative chart itself is silent.
+Reach for `decorative` over hand-rolled `inert` + CSS: it removes the interaction overlay at the source, so consumers never target chart internals to neutralize it. Keep the real empty-state message as a sibling of the chart (not inside it) so screen readers still announce it; the decorative chart itself is silent.
 
-`decorative` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For a chart with real data that should stay readable through its data table but skip pointer/keyboard exploration, that's a different, not-yet-shipped concern — don't reach for `decorative`.
+`decorative` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For a chart with real data that should stay readable through its data table but skip pointer/keyboard exploration, that's a different, not-yet-shipped concern; don't reach for `decorative`.
 
 <Example>
 	<EmptyStateAreaChartExample />
@@ -878,7 +878,7 @@ AreaChart.Root
 
 ## Accessibility
 
-Every interactive chart must have an accessible name: the Root requires exactly one of `aria-label` or `aria-labelledby`, enforced at the type level. Prefer `aria-labelledby` referencing a visible title when the chart sits under a heading — no drift-prone duplicated text. The name lands on the focusable interaction overlay — the chart's single named element (the canvas itself is hidden from assistive technology so the chart is never announced twice). [Decorative charts](#decorative-charts) are the exception: they carry no real data, so they take no accessible name and are hidden from assistive technology entirely.
+Every interactive chart must have an accessible name: the Root requires exactly one of `aria-label` or `aria-labelledby`, enforced at the type level. Prefer `aria-labelledby` referencing a visible title when the chart sits under a heading — no drift-prone duplicated text. The name lands on the focusable interaction overlay, the chart's single named element (the canvas itself is hidden from assistive technology so the chart is never announced twice). [Decorative charts](#decorative-charts) are the exception: they carry no real data, so they take no accessible name and are hidden from assistive technology entirely.
 
 The plot is a single tab stop with a keyboard point cursor:
 
@@ -895,7 +895,7 @@ Keyboard stepping announces the x value and every series' value at it through a 
 
 Every chart also renders an sr-only data table twin of the plotted data, bounded to the first 150 rows with a caption stating the summarization when the data is larger. Tooltips enhance, they never gate: every plotted value is reachable through the keyboard point cursor or the table.
 
-The twin doubles as the chart's machine-readable surface: date row headers carry the exact ISO timestamp in `<time dateTime>` and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="area-chart-data-table"`.
+The twin doubles as the chart's machine-readable surface: date row headers carry the exact ISO timestamp in `<time dateTime>` and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting. Assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="area-chart-data-table"`.
 
 ## API Reference
 

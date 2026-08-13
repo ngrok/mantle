@@ -13,13 +13,13 @@ import { CodeExample } from "~/components/code-example";
 
 A command palette that allows users to search and execute commands. Built on top of [cmdk](https://cmdk.paco.me/).
 
-`Command.DialogRoot` owns the palette: its open state, its query text, and the `⌘K` shortcut. `Command.SearchTrigger` wraps whatever control opens it and makes that control behave like a search field — typing or pasting into it opens the palette with your text already in the query. It renders no DOM of its own, so the appearance is always the child's: in a sidebar that child is [`Sidebar.SearchTrigger`](https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger), which owns how the row looks in both panel states.
+`Command.DialogRoot` owns the palette: its open state, its query text, and the `⌘K` shortcut. `Command.SearchTrigger` wraps whatever control opens it and makes that control behave like a search field: typing or pasting into it opens the palette with your text already in the query. It renders no DOM of its own, so the appearance is always the child's: in a sidebar that child is [`Sidebar.SearchTrigger`](https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger), which owns how the row looks in both panel states.
 
 For a text field that filters options in place rather than opening a modal, the component is [Combobox](https://mantle.ngrok.com/components/forms/combobox), not this one.
 
 ### Search trigger example
 
-`Command.SearchTrigger` gives its child the dialog wiring and the typing behavior. Give the button focus and start typing — the palette opens seeded with what you typed. Pasting works too.
+`Command.SearchTrigger` gives its child the dialog wiring and the typing behavior. Give the button focus and start typing: the palette opens seeded with what you typed. Pasting works too.
 
 <Example className="flex flex-col gap-6">
 	<CommandSearchTriggerDemo />
@@ -86,7 +86,7 @@ function SearchPalette() {
 
 ### Inline example
 
-`Command.Root` is the always-visible palette — the same list and filtering without a dialog around it.
+`Command.Root` is the always-visible palette: the same list and filtering without a dialog around it.
 
 <Example className="flex flex-col gap-6">
 	<Command.Root className="rounded-lg border border-dialog shadow-lg bg-dialog md:min-w-112.5">
@@ -153,7 +153,7 @@ import { CalculatorIcon, CalendarIcon, SmileyIcon, UserIcon } from "@phosphor-ic
 
 ### Button trigger example
 
-When the trigger should not behave like a search field at all, use `Command.DialogTrigger` with your own element. It carries no typing behavior — wrap the element in `Command.SearchTrigger` instead when it should.
+When the trigger should not behave like a search field at all, use `Command.DialogTrigger` with your own element. It carries no typing behavior; wrap the element in `Command.SearchTrigger` instead when it should.
 
 <Example className="flex flex-col gap-6">
 	<CommandDialogDemo />
@@ -206,7 +206,7 @@ function ButtonTriggerPalette() {
 
 ## Composition
 
-Compose the parts of a `Command` together to build your own. `Command.SearchTrigger` and `Command.DialogTrigger` are alternatives — use one or the other, not both:
+Compose the parts of a `Command` together to build your own. `Command.SearchTrigger` and `Command.DialogTrigger` are alternatives; use one or the other, not both:
 
 ```text showLineNumbers=false
 Command.DialogRoot
@@ -226,32 +226,32 @@ Command.DialogRoot
 
 `Command.Input`, `Command.Item`, `Command.Separator`, and `Command.Empty` accept `asChild`, forwarded to the underlying [cmdk](https://cmdk.paco.me/) primitive. `Command.DialogTrigger` accepts it too, forwarded to its Radix dialog trigger.
 
-The common case is `Command.Item asChild` with an `<a>` or a router `Link`, so selecting a result navigates while the item keeps its filtering, keyboard selection, and highlight behavior. `Command.DialogTrigger asChild` is the other frequent one — it lets any element, usually a `Button`, open the command dialog.
+The common case is `Command.Item asChild` with an `<a>` or a router `Link`, so selecting a result navigates while the item keeps its filtering, keyboard selection, and highlight behavior. `Command.DialogTrigger asChild` is the other frequent one: it lets any element, usually a `Button`, open the command dialog.
 
 `Command.DialogRoot` and `Command.DialogContent` own the dialog's state and panel, and `Command.Shortcut` is a plain `<span>` for key hints, so none of those take `asChild`. `Command.SearchTrigger` has no `asChild` prop for the opposite reason: cloning is all it does, so its single-element `children` is always the trigger and there is nothing to opt into.
 
 > [!WARNING]
-> `Command.Root`, `Command.List`, and `Command.Group` advertise `asChild` through their cmdk props but **throw at runtime** (`Cannot use 'in' operator to search for 'render' in div`) — cmdk's own slot handling does not accept a plain element child for these three. Style them with `className` instead.
+> `Command.Root`, `Command.List`, and `Command.Group` advertise `asChild` through their cmdk props but **throw at runtime** (`Cannot use 'in' operator to search for 'render' in div`): cmdk's own slot handling does not accept a plain element child for these three. Style them with `className` instead.
 
 ## The keyboard shortcut
 
 `Command.DialogRoot` binds `⌘K` on macOS and `Ctrl+K` everywhere else, and toggles the palette. You do not need a hotkey library, and you should not add one.
 
-It lives on the root rather than on the trigger because the trigger can be unmounted while the shortcut must still work — a sidebar rendered as a mobile sheet unmounts its whole tree when the sheet is closed.
+It lives on the root rather than on the trigger because the trigger can be unmounted while the shortcut must still work: a sidebar rendered as a mobile sheet unmounts its whole tree when the sheet is closed.
 
 What it deliberately does:
 
 - **Requires exactly the platform modifier.** `⌘` on Apple platforms, `Ctrl` elsewhere; the two never substitute for each other, so macOS's native `Ctrl+K` ("kill to end of line") keeps working. `⌘⇧K` and friends pass through to the browser.
 - **Claims the event.** Firefox binds `⌘K` to its own search bar, so a shortcut that does not `preventDefault()` runs both actions.
 - **Has exactly one owner per window.** The first mounted root that wants the shortcut gets it; later roots queue and take over only when that one unmounts. Two palettes never open on one keypress.
-- **Yields inside editors.** The chord is ignored while focus is in a `contenteditable` host or a `<textarea>` — where `⌘K` is already "insert link" or a chord prefix, and where Monaco and CodeMirror attach. It still fires from a plain `<input>`, including the palette's own `Command.Input`, so the chord closes what it opened.
+- **Yields inside editors.** The chord is ignored while focus is in a `contenteditable` host or a `<textarea>`, where `⌘K` is already "insert link" or a chord prefix, and where Monaco and CodeMirror attach. It still fires from a plain `<input>`, including the palette's own `Command.Input`, so the chord closes what it opened.
 - **Yields to a handler that already ran.** Inside an open palette on Windows and Linux, cmdk's own vim bindings map `Ctrl+K` to "previous item" and claim the event, so the chord moves the selection instead of closing the palette. `Escape`, the close button, and clicking away all still dismiss it.
 
-Pass `keyboardShortcut={false}` to bind the chord yourself with [`useCommandDialog()`](#usecommanddialog). `Command.SearchTrigger` then adds no `aria-keyshortcuts`, and the hook reports the same flag as `keyboardShortcut` so your trigger can drop its visible `⌘K` hint too — the UI never advertises a binding mantle does not own.
+Pass `keyboardShortcut={false}` to bind the chord yourself with [`useCommandDialog()`](#usecommanddialog). `Command.SearchTrigger` then adds no `aria-keyshortcuts`, and the hook reports the same flag as `keyboardShortcut` so your trigger can drop its visible `⌘K` hint too. The UI never advertises a binding mantle does not own.
 
 ## Who owns the query
 
-By default the palette owns its query text, which is what makes seeding work: the seed and the open state land in one state update, so `Command.Input` mounts with the character already in it rather than racing the dialog's mount. **Every open starts from a known query** — the seed, or empty — so dismissing and reopening never resurrects the previous search.
+By default the palette owns its query text, which is what makes seeding work: the seed and the open state land in one state update, so `Command.Input` mounts with the character already in it rather than racing the dialog's mount. **Every open starts from a known query** (the seed, or empty), so dismissing and reopening never resurrects the previous search.
 
 Read it with [`useCommandDialog()`](#usecommanddialog) when your palette does its own matching:
 
@@ -291,7 +291,7 @@ Passing `value` to `Command.Input` takes the query over completely: your value w
 
 ## In a sidebar
 
-In a sidebar the search row is a [`Sidebar.SearchTrigger`](https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger): the same row chrome as a `Sidebar.ItemButton`, with a `⌘K` hint that appears on hover or keyboard focus and is otherwise invisible. It is deliberately a row and not a text field — a search entry point in a sidebar is one of the rows, not a form control wedged among them — which is also why it becomes the same icon chip as its neighbors once the panel collapses to the rail. All of that is owned by `Sidebar`, where the rail lives, and `Command.SearchTrigger` supplies only the behavior. Wrap the pair in `Sidebar.Tooltip` so the row still has a visible label in the rail.
+In a sidebar the search row is a [`Sidebar.SearchTrigger`](https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger): the same row chrome as a `Sidebar.ItemButton`, with a `⌘K` hint that appears on hover or keyboard focus and is otherwise invisible. It is deliberately a row and not a text field (a search entry point in a sidebar is one of the rows, not a form control wedged among them), which is also why it becomes the same icon chip as its neighbors once the panel collapses to the rail. All of that is owned by `Sidebar`, where the rail lives, and `Command.SearchTrigger` supplies only the behavior. Wrap the pair in `Sidebar.Tooltip` so the row still has a visible label in the rail.
 
 Collapse the panel with the toggle to watch the row become a chip. The preview is its own document, so `⌘K` works inside it.
 
@@ -385,12 +385,12 @@ function SidebarWithSearch() {
 
 </CodeExample.Root>
 
-The row goes in `Sidebar.Body` rather than `Sidebar.Header` so it shares the item rows' column and collapses into the same icon stack. `Sidebar.SearchTrigger` marks the `shortcut` hint `aria-hidden` — `Command.SearchTrigger`'s `aria-keyshortcuts` already announces the chord — and drops it entirely in the rail, where the label is clipped rather than removed so the button keeps its accessible name as a chip.
+The row goes in `Sidebar.Body` rather than `Sidebar.Header` so it shares the item rows' column and collapses into the same icon stack. `Sidebar.SearchTrigger` marks the `shortcut` hint `aria-hidden` (`Command.SearchTrigger`'s `aria-keyshortcuts` already announces the chord) and drops it entirely in the rail, where the label is clipped rather than removed so the button keeps its accessible name as a chip.
 
 Both `searchActionFromKeyDown` and `searchActionFromPaste` are exported for a trigger that cannot use `Command.SearchTrigger` at all; they take the **native** event (`event.nativeEvent`), because React's synthetic keyboard event does not carry `isComposing`.
 
 > [!WARNING]
-> Below the sidebar's `mobileBreakpoint` the panel **is** a `Sheet`, so a palette opened from inside it stacks a dialog on a dialog: two focus traps, and two scroll locks unwinding in an order neither owns. Close the sheet as the palette opens — `const { setOpenMobile } = useSidebar()` and call `setOpenMobile(false)` from the root's `onOpenChange` — or render the trigger outside the sheet at those widths.
+> Below the sidebar's `mobileBreakpoint` the panel **is** a `Sheet`, so a palette opened from inside it stacks a dialog on a dialog: two focus traps, and two scroll locks unwinding in an order neither owns. Close the sheet as the palette opens (`const { setOpenMobile } = useSidebar()` and call `setOpenMobile(false)` from the root's `onOpenChange`), or render the trigger outside the sheet at those widths.
 
 ## Common mistakes
 

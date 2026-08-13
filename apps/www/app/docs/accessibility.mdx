@@ -10,7 +10,7 @@ Mantle is built so the accessible thing and the easy thing are the same thing. C
 ## Principles
 
 - **Semantic HTML first.** A [`Button`](/components/actions/button) is a `<button>`. A [`Main`](/components/primitives/main) is a `<main>`. Form controls are real `<input>` / `<select>` / `<textarea>` elements. See [Philosophy](/philosophy#semantic-html-then-everything-else) for the full argument.
-- **Composition over re-implementation.** Where the platform doesn't ship a primitive (combobox, dialog, tabs), we wrap a vetted unstyled library — we never re-implement keyboard or ARIA logic from scratch.
+- **Composition over re-implementation.** Where the platform doesn't ship a primitive (combobox, dialog, tabs), we wrap a vetted unstyled library; we never re-implement keyboard or ARIA logic from scratch.
 - **Progressive enhancement.** CSS-failure and no-JS rendering should still produce a usable page where possible. The skip link, semantic landmarks, and form constraint validation all work without script.
 - **High contrast and reduced motion are not opt-ins.** Themes ship with high-contrast variants and animations respect `prefers-reduced-motion`.
 
@@ -22,7 +22,7 @@ For full accessibility, an app embedding mantle must:
 2. Place [`<SkipToMainLink />`](/components/primitives/skip-to-main-link) as the very first focusable element in `<body>`, paired with a [`<Main>`](/components/primitives/main) landmark wrapping the page's primary content.
 3. Render a single `<h1>` per page that names the page.
 4. Use real form elements with associated [`<Label>`](/components/forms/label)s.
-5. Set accessible names on icon-only controls — [`IconButton`](/components/actions/icon-button) requires a `label` prop.
+5. Set accessible names on icon-only controls: [`IconButton`](/components/actions/icon-button) requires a `label` prop.
 
 ## Skip-to-main and landmarks
 
@@ -51,7 +51,7 @@ export default function App() {
 
 ## Keyboard interactions per component
 
-The table below summarizes the keyboard contract for the most common interactive components. Underlying primitives (Radix, Ariakit) implement the full WAI-ARIA pattern — these are the keys consumers most often need to remember.
+The table below summarizes the keyboard contract for the most common interactive components. Underlying primitives (Radix, Ariakit) implement the full WAI-ARIA pattern; these are the keys consumers most often need to remember.
 
 | Component                                                                                                                   | Keys                                                                                                                                              |
 | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -72,7 +72,7 @@ The table below summarizes the keyboard contract for the most common interactive
 ## Focus management
 
 - **Trap on modal surfaces.** `Dialog`, `AlertDialog`, and `Sheet` trap focus while open and restore it to the trigger on close.
-- **Don't trap on non-modal surfaces.** `Popover` and `HoverCard` allow focus to escape — that's intentional.
+- **Don't trap on non-modal surfaces.** `Popover` and `HoverCard` allow focus to escape; that's intentional.
 - **Programmatic focus is fine.** When a route changes, focus the page's `<h1>` (or the `<Main>` landmark via `document.getElementById("main")?.focus()`) so screen reader users hear the page change.
 - **Visible focus rings.** Mantle uses `:focus-visible` so focus styles appear for keyboard users without distracting mouse users. Don't override `outline` without setting an equivalent ring.
 
@@ -84,12 +84,12 @@ Mantle components emit appropriate roles automatically. Consumers need to add:
 - `aria-label` or visually-hidden text on [`Kbd`](/components/data-display/kbd) when the visible glyph is a symbol (e.g. `⌘`).
 - `aria-describedby` linking error/help text to form controls. [`Input`](/components/forms/input) and friends do this for you when you use the validation prop, but custom messages should be wired manually.
 - `aria-current="page"` on the active item in primary navigation (use react-router's `NavLink` for this).
-- Live-region semantics — use [`Toast`](/components/feedback/toast) for transient announcements; use the [`Alert`](/components/feedback/alert) component with `role="alert"` for inline warnings.
+- Live-region semantics: use [`Toast`](/components/feedback/toast) for transient announcements; use the [`Alert`](/components/feedback/alert) component with `role="alert"` for inline warnings.
 
 ## Color contrast and themes
 
 - Color tokens (`text-strong`, `text-muted`, `bg-form`, `border-accent-600`, etc.) target WCAG AA contrast in both light and dark themes.
-- High-contrast variants ship as dedicated stylesheets — import [`@ngrok/mantle/mantle-light-high-contrast.css`](https://www.npmjs.com/package/@ngrok/mantle?activeTab=code) or `@ngrok/mantle/mantle-dark-high-contrast.css` to opt in.
+- High-contrast variants ship as dedicated stylesheets: import [`@ngrok/mantle/mantle-light-high-contrast.css`](https://www.npmjs.com/package/@ngrok/mantle?activeTab=code) or `@ngrok/mantle/mantle-dark-high-contrast.css` to opt in.
 - Don't communicate state by color alone. Use color **and** a label, icon, or copy. `Badge` and `Alert` do this by default; custom components should follow suit.
 
 ## Reduced motion
@@ -110,10 +110,10 @@ Manual smoke checks per page or PR:
 
 1. **Keyboard-only.** Hide your mouse. `Tab` from the top of the page. You should be able to reach every interactive element, see focus on each, activate it with the appropriate key, and never get stuck.
 2. **Skip link.** First `Tab` from the top of the page should reveal the skip link; activating it should land focus inside `<Main>`.
-3. **Screen reader.** A quick pass with VoiceOver (Mac, `Cmd+F5`) or NVDA (Windows) — every interactive element should announce its role and accessible name.
+3. **Screen reader.** A quick pass with VoiceOver (Mac, `Cmd+F5`) or NVDA (Windows): every interactive element should announce its role and accessible name.
 4. **Reduced motion.** In OS settings, enable Reduce Motion. Repeat any animated flow.
 5. **High contrast.** Switch the imported theme to `*-high-contrast.css`. Confirm legibility.
-6. **Zoom.** Zoom to 200% in Chrome — content should reflow without horizontal scroll.
+6. **Zoom.** Zoom to 200% in Chrome; content should reflow without horizontal scroll.
 
 For automated testing, [`axe-core`](https://github.com/dequelabs/axe-core) integrated via Playwright catches the bulk of WCAG issues. Mantle does not ship a custom axe runner, but the conventions in `CONVENTIONS.md` favor structures that pass it.
 
@@ -122,7 +122,7 @@ For automated testing, [`axe-core`](https://github.com/dequelabs/axe-core) integ
 If a third-party widget or constraint makes a component temporarily inaccessible:
 
 1. Document it in a code comment that explains the _why_ and links to the tracking issue.
-2. Communicate the limitation to the user — don't ship invisible inaccessibility.
+2. Communicate the limitation to the user: don't ship invisible inaccessibility.
 3. Add a fallback path (e.g. a plain `<a>` with the same target) so keyboard and screen-reader users are not blocked.
 
-The goal isn't perfect compliance forever — it's making the right choice the default and surfacing the exceptions honestly.
+The goal isn't perfect compliance forever; it's making the right choice the default and surfacing the exceptions honestly.

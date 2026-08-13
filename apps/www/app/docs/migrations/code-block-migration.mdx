@@ -453,7 +453,7 @@ If you also have code blocks in React components (not MDX), use `mantleCode` tag
 
 ### What you DON'T need
 
-- No `@ngrok/mantle-server-syntax-highlighter` — all highlighting is build-time
+- No `@ngrok/mantle-server-syntax-highlighter`: all highlighting is build-time
 - No API routes for highlighting
 - No `createMantleCodeBlockValue` unless you're composing values manually in React components
 
@@ -495,7 +495,7 @@ export default defineConfig({
 
 ### 3. Use CodeBlock in components (build-time highlighting)
 
-Exactly the same as Use Case 1, Step 3. `mantleCode` tagged templates are transformed at Vite build time — the Go server is not involved.
+Exactly the same as Use Case 1, Step 3. `mantleCode` tagged templates are transformed at Vite build time; the Go server is not involved.
 
 ```tsx
 import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
@@ -802,7 +802,7 @@ The Mantle `ThemeProvider` handles light/dark mode automatically. The highlighte
 
 ### `mantleCode` returns plain text (no syntax highlighting)
 
-The Vite plugin is not configured. `mantleCode` is a no-op at runtime — it requires the Vite plugin to transform tagged templates at build time. Add `mantleCodeBlockPlugins().vitePlugins` to your Vite config. In development, you may see a warning in the console.
+The Vite plugin is not configured. `mantleCode` is a no-op at runtime: it requires the Vite plugin to transform tagged templates at build time. Add `mantleCodeBlockPlugins().vitePlugins` to your Vite config. In development, you may see a warning in the console.
 
 ### Unsupported language silently falls back to plain text
 
@@ -822,7 +822,7 @@ The `<pre>` element renders with `tab-size: 2`. This is not configurable via pro
 
 ### Title whitespace is trimmed
 
-The `title` meta key value is trimmed — leading/trailing whitespace is removed.
+The `title` meta key value is trimmed: leading/trailing whitespace is removed.
 
 ### CodeBlock works without CopyButton, Header, or ExpanderButton
 

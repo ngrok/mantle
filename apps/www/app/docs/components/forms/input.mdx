@@ -325,9 +325,9 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 
 ## When to use InputCapture
 
-For 90% of cases — a simple input with optional icons or validation — pass children directly to `<Input>` (or omit children entirely). The `Input` renders an `InputCapture` for you internally, so you do not need to import or render it yourself.
+For 90% of cases (a simple input with optional icons or validation), pass children directly to `<Input>` or omit children entirely. The `Input` renders an `InputCapture` for you internally, so you do not need to import or render it yourself.
 
-`InputCapture` is the actual `<input>` element wrapper. Reach for it only when composing custom adornments — for example, a left-side prefix and a right-side suffix where the existing `Input` slots don't fit. When you supply your own `children`, you must include `<InputCapture />` so the form `input` element is still rendered. The [Password Input](/components/forms/password-input) is built using this API under the hood.
+`InputCapture` is the actual `<input>` element wrapper. Reach for it only when composing custom adornments: for example, a left-side prefix and a right-side suffix where the existing `Input` slots don't fit. When you supply your own `children`, you must include `<InputCapture />` so the form `input` element is still rendered. The [Password Input](/components/forms/password-input) is built using this API under the hood.
 
 ## API Reference
 

@@ -1,6 +1,6 @@
 ---
 name: ngrok-style
-description: "ngrok writing style guide for voice, tone, and grammar/mechanics. Use when writing or editing user-facing prose: docs-site page copy under apps/www/app/docs (published at mantle.ngrok.com), emails, or social posts. Not for code comments, JSDoc, changesets, decision docs, commits, or PR descriptions; those follow the simplified-technical-english skill. Docs-page copy is in both scopes — Simplified Technical English owns the mechanics and wins on conflict; this skill adds voice, tone, and the AI-pattern bans."
+description: "ngrok writing style guide for voice, tone, and grammar/mechanics. Use when writing or editing user-facing prose: docs-site page copy under apps/www/app/docs (published at mantle.ngrok.com), emails, or social posts. Not for code comments, JSDoc, changesets, decision docs, commits, or PR descriptions; those follow the simplified-technical-english skill. Docs-page copy is in both scopes: Simplified Technical English owns the mechanics and wins on conflict; this skill adds voice, tone, and the AI-pattern bans."
 ---
 
 # ngrok Style Guide
@@ -17,7 +17,7 @@ This skill governs user-facing prose only:
 
 Do not apply it to technical prose: code comments, JSDoc, changesets, decision docs, commit messages, PR titles and descriptions, review comments, or repo markdown (README, AGENTS.md, CONVENTIONS.md). Those follow the `simplified-technical-english` skill ([CONVENTIONS.md § Writing](../../../CONVENTIONS.md#writing)).
 
-Docs-page copy is in both scopes. Simplified Technical English owns the sentence mechanics — its spaced em-dash asides and prose semicolons stay — and wins wherever the two disagree. This skill adds what STE does not reach: voice, tone, and the AI-pattern bans below.
+Docs-page copy is in both scopes. Simplified Technical English owns the sentence mechanics and wins wherever the two disagree. The two agree on em dashes: rewrite the sentence to avoid one. This skill adds what STE does not reach: voice, tone, and the AI-pattern bans below.
 
 ---
 

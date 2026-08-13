@@ -76,7 +76,7 @@ Fill in a React input field with autocomplete & autosuggest functionalities. Cho
 
 Use `Combobox` for a list where the user types to filter — large static lists, async/server-side data, or any single-select where search is helpful. For small finite lists without filtering, use [`Select`](/components/forms/select). For multi-selection, use [`Multi Select`](/components/forms/multi-select).
 
-Pair with `Field.*` for label/description/error wiring in forms — wrap `Combobox.Input` in `Field.Control`. `Field.Control` flows the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` onto the focusable input.
+Pair with `Field.*` for label/description/error wiring in forms: wrap `Combobox.Input` in `Field.Control`. `Field.Control` flows the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` onto the focusable input.
 
 <Example>
 	<Field.Item name="subdomain" className="max-w-96">

@@ -365,7 +365,7 @@ import { Sheet } from "@ngrok/mantle/sheet";
 
 ### With TanStack Form
 
-Sheets often host small create/edit forms. Use [TanStack Form](https://tanstack.com/form) with [`Field`](/components/forms/field) for label, description, and error wiring. `Sheet.Content` is a flex column, so wrap `Sheet.Body` and `Sheet.Footer` in a `display: contents` form — the footer's submit button participates in the form while the body keeps its scrollable layout. Close the sheet from the form's `onSubmit` (it only runs once validation passes) and reset the form when the sheet closes so a cancelled draft doesn't leak into the next open.
+Sheets often host small create/edit forms. Use [TanStack Form](https://tanstack.com/form) with [`Field`](/components/forms/field) for label, description, and error wiring. `Sheet.Content` is a flex column, so wrap `Sheet.Body` and `Sheet.Footer` in a `display: contents` form; the footer's submit button participates in the form while the body keeps its scrollable layout. Close the sheet from the form's `onSubmit` (it only runs once validation passes) and reset the form when the sheet closes so a cancelled draft doesn't leak into the next open.
 
 <Example className="w-full">
 	<TanStackFormDemo />
@@ -512,7 +512,7 @@ Sheet.Root
 
 `Sheet.Trigger`, `Sheet.Close`, `Sheet.Content`, `Sheet.Title`, `Sheet.Description`, and `Sheet.CloseIconButton` accept `asChild`, which renders your single child instead of the part's default element while keeping its styling and behavior.
 
-`Sheet.Trigger asChild` is the most common — it makes your own `Button` open the sheet rather than nesting a button inside one. `Sheet.Close asChild` lets any element dismiss the sheet, which is handy for a "Cancel" button in `Sheet.Footer`, and `Sheet.Title asChild` adjusts the heading level to fit the page outline.
+`Sheet.Trigger asChild` is the most common: it makes your own `Button` open the sheet rather than nesting a button inside one. `Sheet.Close asChild` lets any element dismiss the sheet, which is handy for a "Cancel" button in `Sheet.Footer`, and `Sheet.Title asChild` adjusts the heading level to fit the page outline.
 
 `Sheet.Root` renders no DOM of its own, so it takes no `asChild`. `Sheet.Header`, `Sheet.Body`, `Sheet.Footer`, `Sheet.TitleGroup`, and `Sheet.Actions` are layout containers that do not currently accept it.
 

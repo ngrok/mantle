@@ -72,7 +72,7 @@ Many code blocks will be single line command line prompts and should be able to 
 
 This example is included to demonstrate that code blocks can scroll horizontally if the content is too wide. Mantle attempts to normalize scrollbar styling across browsers and platforms.
 
-When line numbers are shown, the gutter — numbers and fold toggles — stays pinned to the left edge while the code scrolls under it.
+When line numbers are shown, the gutter (numbers and fold toggles) stays pinned to the left edge while the code scrolls under it.
 
 <HorizontalScrollingDemo />
 
@@ -155,7 +155,7 @@ This example is included to show the interaction between the copy button and hor
 
 ### Server-rendered syntax highlighting
 
-The `CodeBlock` supports server-rendered syntax highlighting for dynamic or user-supplied code. Use `createMantleCodeBlockValue()` to construct a value from server-highlighted HTML and pass it to `CodeBlock.Code`. This is useful when the code to highlight isn't known at build time — for example, user input or API responses.
+The `CodeBlock` supports server-rendered syntax highlighting for dynamic or user-supplied code. Use `createMantleCodeBlockValue()` to construct a value from server-highlighted HTML and pass it to `CodeBlock.Code`. This is useful when the code to highlight isn't known at build time (for example, user input or API responses).
 
 <ServerRenderedHighlightingDemo />
 
@@ -194,7 +194,7 @@ const value: MantleCodeBlockValue = createMantleCodeBlockValue({
 
 ### Highlight microservice (for Go / non-Node.js backends)
 
-For frontends backed by non-Node.js services (Go, Python, etc.), deploy a small Node.js highlight service as a sidecar or shared microservice. This gives you the same server-rendered highlighting without shipping Shiki to the browser — the frontend calls the API with `fetch`.
+For frontends backed by non-Node.js services (Go, Python, etc.), deploy a small Node.js highlight service as a sidecar or shared microservice. This gives you the same server-rendered highlighting without shipping Shiki to the browser; the frontend calls the API with `fetch`.
 
 Create a highlight server using `createMantleServerSyntaxHighlighter`:
 
@@ -252,9 +252,9 @@ const value = createMantleCodeBlockValue({
 
 ### Foldable code blocks
 
-Code blocks automatically render editor-style fold carets in the gutter for any block whose language has a folding strategy — AST-based (JS/TS/JSX/TSX, HTML, XML), raw-source (JSON, CSS), bracket-paired (Go, Java, C#, Rust, Terraform), indentation-based (Python, YAML), keyword-paired (Bash/Shell), or bracket + keyword (Ruby). Click the caret (or focus and press `Enter` / `Space`) to collapse the inner lines; the opener and closer lines stay visible, and a `⋯` placeholder marks the collapsed region.
+Code blocks automatically render editor-style fold carets in the gutter for any block whose language has a folding strategy: AST-based (JS/TS/JSX/TSX, HTML, XML), raw-source (JSON, CSS), bracket-paired (Go, Java, C#, Rust, Terraform), indentation-based (Python, YAML), keyword-paired (Bash/Shell), or bracket + keyword (Ruby). Click the caret (or focus and press `Enter` / `Space`) to collapse the inner lines; the opener and closer lines stay visible, and a `⋯` placeholder marks the collapsed region.
 
-Folding is computed before the block reaches the browser, and the entire interaction runs through a single delegated click handler per code block — no per-line listeners and no React re-renders on toggle. This keeps fold/unfold cheap even for code blobs with thousands of lines.
+Folding is computed before the block reaches the browser, and the entire interaction runs through a single delegated click handler per code block: no per-line listeners and no React re-renders on toggle. This keeps fold/unfold cheap even for code blobs with thousands of lines.
 
 The `mantleCode()` Vite transform, MDX code fences, and `createMantleServerSyntaxHighlighter()` use the full server-side folding dispatcher. The lower-level `computeFoldRanges({ language, tokens })` export from `@ngrok/mantle/highlight-utils` is intentionally token-only for custom integrations; it covers bracket, indentation, and tag folds only. Use `@ngrok/mantle-server-syntax-highlighter` for AST, raw-source, or keyword strategies.
 
@@ -295,9 +295,9 @@ import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
 
 ### Highlighting runtime JSON on the client
 
-`mantleCode()` highlights at **build time**, so it can't highlight a value you only have at runtime — an API response, a table row's underlying record, anything fetched or computed in the browser. For that, use `jsonCodeBlockValue(value)`: it serializes the value with `JSON.stringify` (2-space indent), tokenizes it, and returns a `MantleCodeBlockValue` you pass straight to `CodeBlock.Code` — **entirely on the client, with no Shiki runtime, grammar, or WASM shipped to the browser** (~1 KB). Because Mantle highlights with a CSS-variables theme the colors already live in CSS, so only tokenization happens at runtime; the output is byte-for-byte identical to a server/build-time highlighted block and adapts to light/dark themes for free.
+`mantleCode()` highlights at **build time**, so it can't highlight a value you only have at runtime: an API response, a table row's underlying record, anything fetched or computed in the browser. For that, use `jsonCodeBlockValue(value)`: it serializes the value with `JSON.stringify` (2-space indent), tokenizes it, and returns a `MantleCodeBlockValue` you pass straight to `CodeBlock.Code`, **entirely on the client, with no Shiki runtime, grammar, or WASM shipped to the browser** (~1 KB). Because Mantle highlights with a CSS-variables theme the colors already live in CSS, so only tokenization happens at runtime; the output is byte-for-byte identical to a server/build-time highlighted block and adapts to light/dark themes for free.
 
-Multi-line objects and arrays are collapsible by default — the same fold runtime as every other JSON block — so pass `{ foldable: false }` for a flat panel, or `{ showLineNumbers: true }` for a gutter. Serialization is safe and never throws: `BigInt` renders as its decimal string, circular/repeated references collapse to `"[Circular]"`, and values that serialize to `undefined` render as an empty string. It's ideal for inspecting a record inside a [`DataTable.ExpandedRow`](/components/data-display/data-table#expandable-rows).
+Multi-line objects and arrays are collapsible by default (the same fold runtime as every other JSON block), so pass `{ foldable: false }` for a flat panel, or `{ showLineNumbers: true }` for a gutter. Serialization is safe and never throws: `BigInt` renders as its decimal string, circular/repeated references collapse to `"[Circular]"`, and values that serialize to `undefined` render as an empty string. It's ideal for inspecting a record inside a [`DataTable.ExpandedRow`](/components/data-display/data-table#expandable-rows).
 
 <JsonCodeBlockValueDemo />
 
@@ -350,13 +350,13 @@ const policyJson = mantleCode("json")`…`;
 </CodeBlock.Root>;
 ```
 
-When the tabs are too wide for the header, `CodeBlock.TabList` scrolls horizontally with a [`scroll-fade-x`](/base/scroll-fade#horizontal--scroll-fade-x) edge fade instead of wrapping onto a second row — no extra wiring required.
+When the tabs are too wide for the header, `CodeBlock.TabList` scrolls horizontally with a [`scroll-fade-x`](/base/scroll-fade#horizontal-scroll-fade-x) edge fade instead of wrapping onto a second row (no extra wiring required).
 
 <ScrollingTabListDemo />
 
 ### Reusing fragments with nested interpolation
 
-A `mantleCode` value can be embedded into another `mantleCode` template by interpolating its `.code` property. When the Vite plugin recognizes the reference, it inlines the fragment's source **at build time** — so the embedded code is highlighted line-for-line in its host language (correct line numbers, folding, and copy text) with **no runtime substitution cost**.
+A `mantleCode` value can be embedded into another `mantleCode` template by interpolating its `.code` property. When the Vite plugin recognizes the reference, it inlines the fragment's source **at build time**, so the embedded code is highlighted line-for-line in its host language (correct line numbers, folding, and copy text) with **no runtime substitution cost**.
 
 This is ideal for sharing a Traffic Policy or config snippet across multiple SDK examples without duplicating it. The fragment can live at the top level of the same module, or be imported from another module:
 
@@ -386,16 +386,16 @@ ${oauthPolicyFragment.code}
 var listener = agent.listen(policy);`;
 ```
 
-The fragment must be a top-level `mantleCode` `const` referenced as `.code` — either declared earlier in the same module, or a named import of a directly-exported top-level `const` from another module. Nested fragments are resolved recursively. Interpolations that can't be resolved statically (dynamic values, re-exports, bare identifiers without `.code`) fall back to runtime placeholder substitution, and an unresolved imported `.code` reference emits a build warning. The embedded source is highlighted with the **outer** language's grammar — e.g. the YAML above is highlighted as Java text-block content, not as YAML.
+The fragment must be a top-level `mantleCode` `const` referenced as `.code`: either declared earlier in the same module, or a named import of a directly-exported top-level `const` from another module. Nested fragments are resolved recursively. Interpolations that can't be resolved statically (dynamic values, re-exports, bare identifiers without `.code`) fall back to runtime placeholder substitution, and an unresolved imported `.code` reference emits a build warning. The embedded source is highlighted with the **outer** language's grammar (e.g. the YAML above is highlighted as Java text-block content, not as YAML).
 
 ### `mantleCode()` options
 
 The `mantleCode()` tagged template accepts an optional second argument with the following options:
 
-- **`showLineNumbers`** — Whether to show line numbers. Defaults to `true` for most languages, but `false` for single-line shell snippets (`bash`, `sh`, `shell`). Pass `false` to hide them or `true` to force them on.
-- **`highlightLines`** — An array of line numbers or ranges (e.g. `[2, "4-5"]`) to visually highlight.
-- **`lineNumberStart`** — The starting line number when line numbers are displayed. Defaults to `1`.
-- **`indentation`** — Override the default indentation style (`"tabs"` or `"spaces"`).
+- **`showLineNumbers`**: Whether to show line numbers. Defaults to `true` for most languages, but `false` for single-line shell snippets (`bash`, `sh`, `shell`). Pass `false` to hide them or `true` to force them on.
+- **`highlightLines`**: An array of line numbers or ranges (e.g. `[2, "4-5"]`) to visually highlight.
+- **`lineNumberStart`**: The starting line number when line numbers are displayed. Defaults to `1`.
+- **`indentation`**: Override the default indentation style (`"tabs"` or `"spaces"`).
 
 <MantleCodeOptionsDemo />
 
@@ -504,7 +504,7 @@ CodeBlock.Root
 
 `CodeBlock.Root`, `CodeBlock.Header`, `CodeBlock.Title`, `CodeBlock.Body`, and `CodeBlock.CopyButton` accept `asChild`. When `true` the part renders its single child instead of its default element, forwarding class names, `data-*` attributes, and `ref` onto it.
 
-Reach for it when `Root` should be a semantic `<figure>` or `<section>`, when `Title` needs a different heading level than the default `<h3>`, or when `Header` and `Body` should be `<header>` and `<section>`. `CopyButton` has no children of its own, so it is typed `SelfClosingWithAsChild` — `<CodeBlock.CopyButton asChild>` requires exactly one child to clone, and forbids children otherwise.
+Reach for it when `Root` should be a semantic `<figure>` or `<section>`, when `Title` needs a different heading level than the default `<h3>`, or when `Header` and `Body` should be `<header>` and `<section>`. `CopyButton` has no children of its own, so it is typed `SelfClosingWithAsChild`: `<CodeBlock.CopyButton asChild>` requires exactly one child to clone, and forbids children otherwise.
 
 The remaining parts do not accept `asChild`. `CodeBlock.Code` owns the highlighted markup it renders, and `CodeBlock.TabList`, `CodeBlock.TabTrigger`, and `CodeBlock.TabContent` each explicitly omit the prop because their behavior and mounting are driven by the active tab. `CodeBlock.Icon` takes its element through the `svg` prop instead.
 
@@ -515,9 +515,9 @@ The remaining parts do not accept `asChild`. `CodeBlock.Code` owns the highlight
 
 `CodeBlock.Code` and `CodeBlock.Title` carry [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate), so a browser translation engine skips the code and the filename. A translated CLI flag, env var, or YAML key is wrong, and the reader copies it anyway. A translated `example.ts` names a file that does not exist.
 
-The attribute also protects the render itself: Google Translate replaces each text node with a `<font>` wrapper, which detaches the text nodes React holds — so React either writes updates into a node the DOM no longer shows, or throws `NotFoundError` from `removeChild` and tears down the root.
+The attribute also protects the render itself: Google Translate replaces each text node with a `<font>` wrapper, which detaches the text nodes React holds, so React either writes updates into a node the DOM no longer shows, or throws `NotFoundError` from `removeChild` and tears down the root.
 
-The two parts differ on whether a call site may turn the guard off. `CodeBlock.Code` omits the `translate` prop from its type, because a block of code is never translatable. `CodeBlock.Title` keeps it, because the slot takes arbitrary children — pass `translate="yes"` for a title that is prose rather than a filename.
+The two parts differ on whether a call site may turn the guard off. `CodeBlock.Code` omits the `translate` prop from its type, because a block of code is never translatable. `CodeBlock.Title` keeps it, because the slot takes arbitrary children; pass `translate="yes"` for a title that is prose rather than a filename.
 
 ## API Reference
 

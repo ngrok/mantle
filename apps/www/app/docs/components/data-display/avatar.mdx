@@ -119,7 +119,7 @@ export function AvatarLinkExample() {
 A small image representing a person or an account, with a text or icon fallback for when there is no picture —
 or before one loads.
 
-The shape carries the meaning. `appearance="circle"` is a person; `appearance="square"` — a rounded square —
+The shape carries the meaning. `appearance="circle"` is a person; `appearance="square"` (a rounded square)
 is one of the things people belong to: an account, workspace, team, or organization. A row that shows both, an
 account switcher with the signed-in user's photo beside it, stays readable without labels because the two never
 look alike.
@@ -167,7 +167,7 @@ Avatar.Root
 
 `Avatar.Image` and `Avatar.Fallback` are siblings, not alternatives you branch on. The fallback renders in flow;
 the image is positioned over it. A loading image shows initials through it, a loaded one covers them, and a
-failed one unmounts itself and reveals them again — no loading state for anyone to handle, and nothing waiting
+failed one unmounts itself and reveals them again: no loading state for anyone to handle, and nothing waiting
 on hydration, because the `<img>` is in the server-rendered markup. (A _transparent_ image is the one case where
 initials show through a loaded picture; give it its own backdrop if that matters.)
 
@@ -175,7 +175,7 @@ initials show through a loaded picture; give it its own backdrop if that matters
 
 `Avatar.Root`, `Avatar.Image`, and `Avatar.Fallback` each accept `asChild`. Reach for it on `Image` to swap in a
 framework image component, on `Root` when the avatar is itself a link or a button, and on `Fallback` when the
-initials want a more specific element — an `<abbr title="…">`, say.
+initials want a more specific element (an `<abbr title="…">`, say).
 
 <Example className="p-4 md:p-8">
 	<AvatarLinkExample />
@@ -197,7 +197,7 @@ export function LinkedAvatar() {
 
 ## Appearance
 
-Circles are people, rounded squares are accounts. Nothing enforces it — but keeping the two distinct is what
+Circles are people, rounded squares are accounts. Nothing enforces it, but keeping the two distinct is what
 lets a dense row of both stay legible, so pick per subject rather than per screen.
 
 <Example className="p-4 md:p-8">
@@ -231,7 +231,7 @@ export function Appearances() {
 
 `colorSeed` hashes a stable identifier into one of a fixed set of swatches, so an account is the same color on
 every device and every session with nothing stored and nothing fetched. Seed it with an **id, not a display
-name** — names get edited, and a rename would silently recolor the avatar.
+name**: names get edited, and a rename would silently recolor the avatar.
 
 Omit `colorSeed` for a neutral surface, or set your own `bg-*` through `className` to opt out entirely.
 
@@ -268,8 +268,8 @@ export function SeededAvatars() {
 
 ## Sizing
 
-An avatar is `size-7` and `shrink-0`: a fixed-size visual that the flex rows it usually sits in — a switcher
-row, a table cell, a comment header — must not be able to squeeze. Override the size with `className`, which
+An avatar is `size-7` and `shrink-0`: a fixed-size visual that the flex rows it usually sits in (a switcher
+row, a table cell, a comment header) must not be able to squeeze. Override the size with `className`, which
 merges last and wins, and scale the text with it so initials stay proportional.
 
 <Example className="p-4 md:p-8">
@@ -304,11 +304,11 @@ export function Sizes() {
 An avatar is almost always redundant with text beside it, and mantle defaults to that reading:
 
 - **Initials derived from `name` are `aria-hidden`.** They abbreviate a name the page already carries, so
-  announcing them would read it twice — "A C Acme Corp". Children are not hidden; you own their semantics.
-- **When the avatar is the only thing naming its subject** — a collapsed rail, a bare stack of members — name
+  announcing them would read it twice ("A C Acme Corp"). Children are not hidden; you own their semantics.
+- **When the avatar is the only thing naming its subject** (a collapsed rail, a bare stack of members), name
   the root: `role="img"` plus `aria-label="Acme Corp"`. A bare `<span>` is `role="generic"`, where accessible
   names are prohibited, so the role is what makes the label count.
-- **`alt` on `Avatar.Image` is required**, and mantle makes it required deliberately — an `<img>` with no `alt`
+- **`alt` on `Avatar.Image` is required**, and mantle makes it required deliberately: an `<img>` with no `alt`
   announces its URL. Pass `""` when adjacent text already names the subject. What `alt` cannot do is name the
   avatar in every state: that `<img>` is absent whenever there is no `src`, the load fails, or the page is
   server-rendered, so an avatar that must always be named needs the `role="img"` + `aria-label` above as well.

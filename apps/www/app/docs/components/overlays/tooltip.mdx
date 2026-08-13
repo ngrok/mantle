@@ -21,7 +21,7 @@ A `Tooltip` shows a short, non-interactive label when a control receives keyboar
 Mount `TooltipProvider` once at the app root when you want shared tooltip behavior, such as consistent delay and hover settings.
 
 > [!WARNING]
-> Per the [WAI-ARIA tooltip pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/), tooltips must not contain interactive or focusable content — the tooltip itself never receives focus, so anything inside it is unreachable for keyboard users. If the floating content needs to be interactive, use [`Popover`](/components/overlays/popover) instead.
+> Per the [WAI-ARIA tooltip pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/), tooltips must not contain interactive or focusable content: the tooltip itself never receives focus, so anything inside it is unreachable for keyboard users. If the floating content needs to be interactive, use [`Popover`](/components/overlays/popover) instead.
 
 <Example>
 	<Tooltip.Root>
@@ -72,7 +72,7 @@ Tooltip.Root
 
 `Tooltip.Trigger` accepts `asChild`, which renders your single child in place of the default trigger element while keeping the tooltip's hover, focus, and dismissal behavior.
 
-`Tooltip.Trigger asChild` is the standard way to use this component: wrap the element that should show the tooltip — a `Button`, an `IconButton`, a link, or any focusable control — so the trigger behavior attaches to it instead of nesting it inside an extra element. Remember that the trigger must be focusable for the tooltip to be reachable by keyboard.
+`Tooltip.Trigger asChild` is the standard way to use this component: wrap the element that should show the tooltip (a `Button`, an `IconButton`, a link, or any focusable control) so the trigger behavior attaches to it instead of nesting it inside an extra element. Remember that the trigger must be focusable for the tooltip to be reachable by keyboard.
 
 `Tooltip.Root` is a state provider and renders no DOM, so it takes no `asChild`.
 

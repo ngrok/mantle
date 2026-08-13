@@ -107,7 +107,7 @@ const MyInput = ({ ref: forwardedRef, ...props }: ComponentProps<"input">) => {
 const copy = useCopyToClipboard();
 ```
 
-Returns a stable async function that copies a string to the clipboard. Uses the Clipboard API when available and falls back to a polyfill for older browsers. `await` the call to observe success — it throws when copying fails.
+Returns a stable async function that copies a string to the clipboard. Uses the Clipboard API when available and falls back to a polyfill for older browsers. `await` the call to observe success; it throws when copying fails.
 
 ```tsx
 import { useCopyToClipboard } from "@ngrok/mantle/hooks";
@@ -285,7 +285,7 @@ function DarkModeDetector() {
 const reduce = usePrefersReducedMotion();
 ```
 
-Returns `true` when the user has opted out of animations (i.e., prefers reduced motion). Defaults to `true` during SSR and before hydration — animations are suppressed until the real preference is known on the client.
+Returns `true` when the user has opted out of animations (i.e., prefers reduced motion). Defaults to `true` during SSR and before hydration: animations are suppressed until the real preference is known on the client.
 
 ```tsx
 import { usePrefersReducedMotion } from "@ngrok/mantle/hooks";

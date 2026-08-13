@@ -14,7 +14,7 @@ Displays rich content in a portal, triggered by a button.
 
 ## When to use
 
-A `Popover` is a non-modal dialog anchored to a trigger. Use it when the floating content must be interactive — forms, menus of actions, filters, settings.
+A `Popover` is a non-modal dialog anchored to a trigger. Use it when the floating content must be interactive: forms, menus of actions, filters, settings.
 
 - Prefer [`Tooltip`](/components/overlays/tooltip) for a short, non-interactive label on a control (for example, the purpose of an icon-only button).
 - Prefer [`HoverCard`](/components/overlays/hover-card) for a sighted-only preview of content that already lives behind a link.
@@ -109,9 +109,9 @@ import { Popover } from "@ngrok/mantle/popover";
 
 ## Arrow
 
-Render `Popover.Arrow` as a child of `Popover.Content` when the popover explains one specific control and needs a tip pointing at it. Radix positions the arrow with floating-ui's arrow middleware, so it stays centered on the anchor when collision detection shifts or flips the content — a hand-rolled tip is a fixed offset and drifts off the anchor as soon as the content moves. The arrow's fill and border repaint `Popover.Content`'s own edge across its base, so the two edges read as one line. The tip also casts its own shadow, because `shadow-md` on `Popover.Content` stops at that content's border and an unshadowed tip reads as pasted on. That shadow is clipped at the base, so it never darkens the content's interior.
+Render `Popover.Arrow` as a child of `Popover.Content` when the popover explains one specific control and needs a tip pointing at it. Radix positions the arrow with floating-ui's arrow middleware, so it stays centered on the anchor when collision detection shifts or flips the content. A hand-rolled tip is a fixed offset and drifts off the anchor as soon as the content moves. The arrow's fill and border repaint `Popover.Content`'s own edge across its base, so the two edges read as one line. The tip also casts its own shadow, because `shadow-md` on `Popover.Content` stops at that content's border and an unshadowed tip reads as pasted on. That shadow is clipped at the base, so it never darkens the content's interior.
 
-`Popover.Arrow` takes no `asChild`. The shape is two layers — a filled polygon, plus a polyline that strokes the slanted edges only — and a swapped element loses the border. Restyle it with `className` instead: `fill-*` for the surface and a `stroke-*` on the arrow's `polyline` child for the edge, since Radix renders the arrow as an `svg` where `bg-*` paints nothing.
+`Popover.Arrow` takes no `asChild`. The shape is two layers (a filled polygon, plus a polyline that strokes the slanted edges only), and a swapped element loses the border. Restyle it with `className` instead: `fill-*` for the surface and a `stroke-*` on the arrow's `polyline` child for the edge, since Radix renders the arrow as an `svg` where `bg-*` paints nothing.
 
 <Example className="gap-2">
 	<Popover.Root>

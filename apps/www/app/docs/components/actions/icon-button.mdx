@@ -13,7 +13,7 @@ import { Example } from "~/components/example";
 
 Initiates an action, such as completing a task or submitting information. Renders one icon and nothing else, with a required `label` prop that carries the accessible name.
 
-Every `IconButton` states what it means: `appearance` (visual weight) and `intent` (tone) are **required** — there are no implicit defaults. `intent` takes `"neutral"` alone: an icon carries no text to name the action a tone colors, so `IconButton` draws no accent or danger tone.
+Every `IconButton` states what it means: `appearance` (visual weight) and `intent` (tone) are **required**; there are no implicit defaults. `intent` takes `"neutral"` alone: an icon carries no text to name the action a tone colors, so `IconButton` draws no accent or danger tone.
 
 ## Appearance
 
@@ -46,7 +46,7 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 
 ## Size
 
-Use the `size` prop to control the box size of the icon button, default `md`. The scale is shared with [Button](/components/actions/button) and [SplitButton](/components/actions/split-button) — the same size name always renders the same box height, so mixed compositions stay aligned.
+Use the `size` prop to control the box size of the icon button, default `md`. The scale is shared with [Button](/components/actions/button) and [SplitButton](/components/actions/split-button): the same size name always renders the same box height, so mixed compositions stay aligned.
 
 <Example className="flex flex-wrap gap-6">
 	<div>

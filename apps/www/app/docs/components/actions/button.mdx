@@ -17,7 +17,7 @@ export const copyPage = () => {};
 
 Initiates an action, such as completing a task or submitting information.
 
-Every `Button` states what it means: `appearance` (visual weight) and `intent` (tone) are **required** — there are no implicit defaults, so every call site declares both.
+Every `Button` states what it means: `appearance` (visual weight) and `intent` (tone) are **required**; there are no implicit defaults, so every call site declares both.
 
 The primary action button should be `appearance="filled" intent="neutral"` — the system's default primary action. Reserve `intent="accent"` for deliberate brand emphasis.
 
@@ -96,9 +96,9 @@ import { Button } from "@ngrok/mantle/button";
 
 ## Size
 
-Use the `size` prop to control the height and horizontal padding of the button, default `md`. The scale is shared with [IconButton](/components/actions/icon-button) and [SplitButton](/components/actions/split-button) — the same size name always renders the same box height, so mixed compositions stay aligned.
+Use the `size` prop to control the height and horizontal padding of the button, default `md`. The scale is shared with [IconButton](/components/actions/icon-button) and [SplitButton](/components/actions/split-button): the same size name always renders the same box height, so mixed compositions stay aligned.
 
-Only the box scales — every size keeps the same typography (`text-sm font-medium`) and icon glyph size.
+Only the box scales: every size keeps the same typography (`text-sm font-medium`) and icon glyph size.
 
 `size` has no effect when `appearance="link"`: link buttons inherit the surrounding typography and have no box to size.
 
@@ -151,7 +151,7 @@ import { Button } from "@ngrok/mantle/button";
 
 ## Type
 
-Unlike the native `<button>` element — which defaults to `type="submit"` — a mantle `Button` defaults to **`type="button"`**. This matches the wider React ecosystem (Radix, shadcn, MUI, …) and stops a button from accidentally submitting a surrounding `<form>` when all you wanted was an `onClick`.
+Unlike the native `<button>` element (which defaults to `type="submit"`), a mantle `Button` defaults to **`type="button"`**. This matches the wider React ecosystem (Radix, shadcn, MUI, …) and stops a button from accidentally submitting a surrounding `<form>` when all you wanted was an `onClick`.
 
 The tradeoff: a button that _should_ submit a form has to opt in with `type="submit"` (or `type="reset"` to reset it). A plain `<Button>` that relies on native form submission will silently do nothing.
 
@@ -169,7 +169,7 @@ When `asChild` is used, `type` has no effect and is not forwarded to the child, 
 
 Use the `icon` prop to add an icon to the button. By default, it will render on the logical start side of the button. Use the `iconPlacement` prop to change the side the icon is rendered on.
 
-A button with an icon tightens the padding on the icon's side by `0.125rem`, so the glyph reads optically aligned with the text block. That arrives as a `ps-*` or `pe-*` longhand, which a `px-*` override cannot beat — both survive the class merge, and Tailwind emits the longhand last. Override padding on a button with an icon in longhands too: `className="ps-1.5 pe-1"`, not `className="px-1.5"`.
+A button with an icon tightens the padding on the icon's side by `0.125rem`, so the glyph reads optically aligned with the text block. That arrives as a `ps-*` or `pe-*` longhand, which a `px-*` override cannot beat: both survive the class merge, and Tailwind emits the longhand last. Override padding on a button with an icon in longhands too: `className="ps-1.5 pe-1"`, not `className="px-1.5"`.
 
 <Example>
 	<div className="flex items-center gap-2">
@@ -201,7 +201,7 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 
 ## Common mistakes
 
-An icon-only button is not a `Button` — use [`IconButton`](/components/actions/icon-button) instead. `Button`'s `icon` prop places an icon _beside_ its text children; render it with no children and the button has no accessible name (screen readers announce nothing) and keeps its text-box horizontal padding, so it draws as an off-square lozenge instead of a square. `IconButton` requires an accessible `label` (visually hidden, announced to screen readers) and renders a square box on the same shared size scale.
+An icon-only button is not a `Button`: use [`IconButton`](/components/actions/icon-button) instead. `Button`'s `icon` prop places an icon _beside_ its text children; render it with no children and the button has no accessible name (screen readers announce nothing) and keeps its text-box horizontal padding, so it draws as an off-square lozenge instead of a square. `IconButton` requires an accessible `label` (visually hidden, announced to screen readers) and renders a square box on the same shared size scale.
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -235,7 +235,7 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 />;
 ```
 
-An icon is also not a child. The `icon` slot sizes the icon, holds it at `shrink-0`, tightens the padding on its side so it reads as optically aligned, and hands its place to the spinner when `isLoading` turns on. A child icon gets none of that. A button can still carry a **second** icon as a child — see [Browser translation](/browser-translation#buttons-with-an-icon-or-two) for the shape that stays safe on a translated page.
+An icon is also not a child. The `icon` slot sizes the icon, holds it at `shrink-0`, tightens the padding on its side so it reads as optically aligned, and hands its place to the spinner when `isLoading` turns on. A child icon gets none of that. A button can still carry a **second** icon as a child; see [Browser translation](/browser-translation#buttons-with-an-icon-or-two) for the shape that stays safe on a translated page.
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -342,7 +342,7 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 
 ## The label slot
 
-`children` render inside a `<span data-slot="button-label">`, beside the `icon` slot. The span exists so an appearing icon or spinner inserts before an element sibling — a browser translation engine reparents text nodes, and an insert aimed at one throws. [Browser translation](/browser-translation) covers the mechanism and the rule your own components need.
+`children` render inside a `<span data-slot="button-label">`, beside the `icon` slot. The span exists so an appearing icon or spinner inserts before an element sibling: a browser translation engine reparents text nodes, and an insert aimed at one throws. [Browser translation](/browser-translation) covers the mechanism and the rule your own components need.
 
 The span carries `display: contents`, so it generates no box: every child stays a flex item of the button, and the button's `gap` still falls between them. Two children therefore lay out exactly as they did before the span existed.
 
@@ -360,7 +360,7 @@ The span carries `display: contents`, so it generates no box: every child stays 
 </Button>
 ```
 
-Style the label by styling your own child, not the slot. A label that has to shrink inside a width-constrained button takes `min-w-0 flex-1 truncate` — those work because the child is a flex item of the button.
+Style the label by styling your own child, not the slot. A label that has to shrink inside a width-constrained button takes `min-w-0 flex-1 truncate`; those work because the child is a flex item of the button.
 
 <Example>
 	<Button

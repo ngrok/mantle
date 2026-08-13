@@ -230,7 +230,7 @@ script without needing `suppressHydrationWarning`.
 > For public/CDN-cached apps, rely on `suppressHydrationWarning` instead (shown above).
 
 > [!WARNING]
-> Never return the full `Cookie` header from a loader — it would leak HttpOnly/session cookies
+> Never return the full `Cookie` header from a loader; it would leak HttpOnly/session cookies
 > into the HTML. Always use `extractThemeCookie` to return only the theme cookie.
 
 ```tsx

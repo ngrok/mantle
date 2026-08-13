@@ -21,7 +21,7 @@ import { LateAnnouncementDemo } from "~/features/stacking-layers-demos";
 Every mantle surface that floats above the page stacks on one shared scale. Two rules decide what paints on top:
 
 1. **The tier decides between kinds of layers.** An overlay always paints above a float, no matter which one opened first.
-2. **Ownership decides within a tier.** A float composed inside an overlay portals into that overlay's positioner, so it paints above the overlay that owns it. Sibling layers in the same tier and container paint in mount order — the most recently mounted one wins.
+2. **Ownership decides within a tier.** A float composed inside an overlay portals into that overlay's positioner, so it paints above the overlay that owns it. Sibling layers in the same tier and container paint in mount order: the most recently mounted one wins.
 
 ## The tiers
 
@@ -35,12 +35,12 @@ Every mantle surface that floats above the page stacks on one shared scale. Two 
 
 Two components place themselves differently on purpose:
 
-- [Combobox](/components/forms/combobox)`.Content` renders in place at `z-50` — it does not portal, so the dialog primitive's Escape handling can see it.
+- [Combobox](/components/forms/combobox)`.Content` renders in place at `z-50`: it does not portal, so the dialog primitive's Escape handling can see it.
 - [MultiSelect](/components/forms/multi-select)`.Content` portals into the closest `data-mantle-modal-content` element — an enclosing overlay's content — else the nearest overlay's positioner, else `document.body`.
 
 ## Layer containers
 
-Each overlay renders a **positioner**: the fixed element that lays out its content. The positioner doubles as the overlay's layer container — floats composed inside the overlay portal into it, after the content, so they paint above the content inside the overlay's own stacking context. The positioner is a styling hook:
+Each overlay renders a **positioner**: the fixed element that lays out its content. The positioner doubles as the overlay's layer container: floats composed inside the overlay portal into it, after the content, so they paint above the content inside the overlay's own stacking context. The positioner is a styling hook:
 
 | Overlay       | Positioner slot                       |
 | ------------- | ------------------------------------- |
@@ -48,9 +48,9 @@ Each overlay renders a **positioner**: the fixed element that lays out its conte
 | `AlertDialog` | `data-slot="alert-dialog-positioner"` |
 | `Sheet`       | `data-slot="sheet-positioner"`        |
 
-Ownership comes from composition, not timing. A float rendered inside `Dialog.Content` belongs to that dialog and paints above it. A float rendered outside stays at `document.body` and paints below every overlay — even when it opens later. Before this contract, every layer shared `z-50` and mount order alone decided, so a popover that opened late (an onboarding popover after hydration, for example) painted on top of an open full-bleed dialog.
+Ownership comes from composition, not timing. A float rendered inside `Dialog.Content` belongs to that dialog and paints above it. A float rendered outside stays at `document.body` and paints below every overlay, even when it opens later. Before this contract, every layer shared `z-50` and mount order alone decided, so a popover that opened late (an onboarding popover after hydration, for example) painted on top of an open full-bleed dialog.
 
-Floats do not register a container of their own. A select opened from inside a popover shares the popover's container and paints above the popover by mount order — the right rule for layers the user opened in sequence.
+Floats do not register a container of their own. A select opened from inside a popover shares the popover's container and paints above the popover by mount order: the right rule for layers the user opened in sequence.
 
 ## See the contract work
 
@@ -58,7 +58,7 @@ Every rule above has a live permutation below, and each also has an automated tw
 
 ### A base float never paints above an overlay
 
-The bug shape the overlay tier exists for: an announcement popover opens on its own while a takeover dialog covers its anchor. Open the takeover, then trigger the late announcement from inside it — the announcement stays under the dialog, and it waits on the page when the dialog closes.
+The bug shape the overlay tier exists for: an announcement popover opens on its own while a takeover dialog covers its anchor. Open the takeover, then trigger the late announcement from inside it: the announcement stays under the dialog, and it waits on the page when the dialog closes.
 
 <Example>
 	<LateAnnouncementDemo />
@@ -141,7 +141,7 @@ export function LateAnnouncementDemo() {
 
 ### Floats inside a dialog paint above it
 
-Each float composed inside the dialog portals into the dialog's positioner, so it opens on top of the dialog — never behind it, never clipped by it.
+Each float composed inside the dialog portals into the dialog's positioner, so it opens on top of the dialog: never behind it, never clipped by it.
 
 <Example>
 	<Dialog.Root>
@@ -555,8 +555,8 @@ A toast fired from inside an overlay renders in sonner's viewport, far above bot
 
 ## Placing custom UI on the scale
 
-- **Chrome that floats above page content but under overlays** — a fixed action bar, a floating panel: use `z-50` in the page, the same tier as page chrome. An open dialog covers it, which is almost always correct.
-- **UI that must paint above open overlays**: use `z-60` and mount it after the overlay, or render it inside the overlay's content so it joins the overlay's layer. Reach for this rarely — above the overlay tier, only toasts and the skip link should live.
+- **Chrome that floats above page content but under overlays** (a fixed action bar, a floating panel): use `z-50` in the page, the same tier as page chrome. An open dialog covers it, which is almost always correct.
+- **UI that must paint above open overlays**: use `z-60` and mount it after the overlay, or render it inside the overlay's content so it joins the overlay's layer. Reach for this rarely: above the overlay tier, only toasts and the skip link should live.
 - **Never out-stack toasts.** Toasts announce results of actions taken anywhere, including inside overlays.
 - **Custom portals inside an overlay**: pass the overlay's positioner as the portal target (query the `data-slot` above), or compose a mantle float, which resolves it automatically. `Dialog.Portal` and `HoverCard.Portal` accept a `container` prop when you need explicit control.
 - **Do not select a float's portal as a direct `body` child** (`body > [data-radix-popper-content-wrapper]`). Inside an overlay the float lives in the positioner. Target the float's `data-slot` instead.

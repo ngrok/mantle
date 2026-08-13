@@ -20,10 +20,10 @@ Tables purposefully designed for dynamic, application data with features like so
 
 ## When to use
 
-A `DataTable` is for **dynamic, application data** — anywhere users need to sort, filter, paginate, select, or click rows. It is built on top of [`Table`](/components/data-display/table) and wires up [TanStack Table](https://tanstack.com/table/latest/docs/introduction) so you get those behaviors out of the box.
+A `DataTable` is for **dynamic, application data**: anywhere users need to sort, filter, paginate, select, or click rows. It is built on top of [`Table`](/components/data-display/table) and wires up [TanStack Table](https://tanstack.com/table/latest/docs/introduction) so you get those behaviors out of the box.
 
 - Prefer [`Table`](/components/data-display/table) for **static, presentational** tabular content (pricing matrices, reference tables, invoice summaries).
-- All TanStack Table utilities (`createColumnHelper`, `getCoreRowModel`, `getSortedRowModel`, `getPaginationRowModel`, `getFilteredRowModel`, `useReactTable`, etc.) are re-exported from `@ngrok/mantle/data-table` — you do not need to add `@tanstack/react-table` as a separate dependency.
+- All TanStack Table utilities (`createColumnHelper`, `getCoreRowModel`, `getSortedRowModel`, `getPaginationRowModel`, `getFilteredRowModel`, `useReactTable`, etc.) are re-exported from `@ngrok/mantle/data-table`; you do not need to add `@tanstack/react-table` as a separate dependency.
 
 <Example className="flex-col gap-6">
 	<div className="w-full">
@@ -91,7 +91,7 @@ function MyTable({ data }: { data: Row[] }) {
 }
 ```
 
-A fuller example matching the demo above — sortable columns, pagination, filtering, row-click navigation, and a sticky action column:
+A fuller example matching the demo above, with sortable columns, pagination, filtering, row-click navigation, and a sticky action column:
 
 ```tsx
 import {
@@ -209,11 +209,11 @@ Follow these invariants for a correctly styled, accessible, and behaving `DataTa
 
 1. **Type columns with `createColumnHelper<TData>()`.** It threads `TData` through `header`, `cell`, and `row.original` so consumers get inference instead of `unknown`.
 2. **Wrap every body cell in `DataTable.Cell`.** A raw `<td>` skips the mantle typography, padding, and sticky-column styling.
-3. **Wrap every header in `DataTable.Header`.** For sortable columns, also wrap its contents in `DataTable.HeaderSortButton` — that button carries the icon, the cycling behavior, and the screen-reader announcements.
+3. **Wrap every header in `DataTable.Header`.** For sortable columns, also wrap its contents in `DataTable.HeaderSortButton`: that button carries the icon, the cycling behavior, and the screen-reader announcements.
 4. **Key rows with `row.id`.** TanStack Table tracks row identity across sort/filter/pagination; using array indexes will re-mount rows incorrectly.
-5. **Always branch on `rows.length > 0` and render `DataTable.EmptyRow`** for the empty case. The empty row spans all columns and preserves the table's frame — returning `null` leaves an empty `<tbody>` and collapses the frame.
+5. **Always branch on `rows.length > 0` and render `DataTable.EmptyRow`** for the empty case. The empty row spans all columns and preserves the table's frame; returning `null` leaves an empty `<tbody>` and collapses the frame.
 6. **Place an action column last, using `columnHelper.display({ ... })`.** Pair `DataTable.ActionHeader` (in `header`) with `DataTable.ActionCell` (in `cell`) so the pinned column aligns across header and body when scrolling horizontally.
-7. **Pass `onClick` to `DataTable.Row` for row-click behavior.** The row auto-applies `cursor-pointer` when `onClick` is set — do not add it yourself. Override with another `cursor-*` class (for example, `cursor-wait`) via `className` if needed.
+7. **Pass `onClick` to `DataTable.Row` for row-click behavior.** The row auto-applies `cursor-pointer` when `onClick` is set; do not add it yourself. Override with another `cursor-*` class (for example, `cursor-wait`) via `className` if needed.
 8. **Stop click propagation inside `DataTable.ActionCell` when the row is clickable.** Without it, clicks on dropdown triggers, buttons, and links inside the action cell will bubble and fire the row `onClick`.
 9. **Add a keyboard-accessible equivalent for row navigation.** A `<tr>` is not focusable and is not announced as interactive to assistive tech. If clicking a row navigates, render a `<Link>` in the primary cell so keyboard and screen-reader users have a reachable equivalent.
 10. **Register the row models you use.** `useReactTable` only wires up what you pass in: `getSortedRowModel()` for sorting, `getPaginationRowModel()` for pagination, `getFilteredRowModel()` for filtering. Missing one and the corresponding feature silently no-ops.
@@ -283,10 +283,10 @@ useReactTable({
 
 A list has **two** distinct empty states, and they need different copy and actions:
 
-1. **No data** — nothing exists yet. Informational, optionally a primary "create" action.
-2. **No results for the active filter/search** — the user filtered to nothing and needs a way out: a **Clear filters** button.
+1. **No data**: nothing exists yet. Informational, optionally a primary "create" action.
+2. **No results for the active filter/search**: the user filtered to nothing and needs a way out (a **Clear filters** button).
 
-Branch on `rows.length`, then on whether a filter is active, and host an [`Empty`](/components/feedback/empty) inside `DataTable.EmptyRow` for each branch. `EmptyRow` already spans every column (auto `colSpan`) and `Empty.Root` centers itself — drop a single `Empty.Root` in as the child; don't hand-roll a `<td>` or any centering. Type into the filter below to see the "no results" branch and its working `Clear filters` reset:
+Branch on `rows.length`, then on whether a filter is active, and host an [`Empty`](/components/feedback/empty) inside `DataTable.EmptyRow` for each branch. `EmptyRow` already spans every column (auto `colSpan`) and `Empty.Root` centers itself. Drop a single `Empty.Root` in as the child; don't hand-roll a `<td>` or any centering. Type into the filter below to see the "no results" branch and its working `Clear filters` reset:
 
 <Example>
 	<FilteredEmptyStateDemo />
@@ -346,7 +346,7 @@ const isFiltered = globalFilter.trim() !== ""; // or table.getState().columnFilt
 
 ### Navigating on row click
 
-Pass `onClick` to `DataTable.Row` and navigate with React Router's `href()` + `useNavigate()`. Render a `<Link>` inside the primary cell for keyboard and screen-reader users — the row `onClick` is a larger pointer target on top.
+Pass `onClick` to `DataTable.Row` and navigate with React Router's `href()` + `useNavigate()`. Render a `<Link>` inside the primary cell for keyboard and screen-reader users; the row `onClick` is a larger pointer target on top.
 
 ```tsx
 import { DataTable } from "@ngrok/mantle/data-table";
@@ -509,7 +509,7 @@ columnHelper.accessor("url", {
 
 ### Pagination controls
 
-Register `getPaginationRowModel()`, then wire [`CursorPagination`](/components/navigation/pagination) to the table instance for a page-size dropdown plus previous/next buttons — no hand-rolled `Button`s or `Page X of Y` span needed.
+Register `getPaginationRowModel()`, then wire [`CursorPagination`](/components/navigation/pagination) to the table instance for a page-size dropdown plus previous/next buttons: no hand-rolled `Button`s or `Page X of Y` span needed.
 
 <Example>
 	<PaginatedPaymentsDemo />
@@ -575,13 +575,13 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 **Rules:**
 
 - `defaultPageSize` must be present in `CursorPagination.PageSizeSelect`'s `pageSizes` (default `5 | 10 | 20 | 50 | 100`) or the select renders blank.
-- `defaultPageSize` is an _uncontrolled_ seed — derive it from the table's initial page size once; don't pass the live `table.getState().pagination.pageSize` (it changes and would thrash the select).
+- `defaultPageSize` is an _uncontrolled_ seed: derive it from the table's initial page size once; don't pass the live `table.getState().pagination.pageSize` (it changes and would thrash the select).
 - Reset to page 0 on a size change.
 - **Server/cursor data** (no `getPaginationRowModel`): wire `Buttons` to your fetch's has-next/has-prev + load callbacks, and use the read-only `CursorPagination.PageSizeValue` when the page size is fixed server-side rather than `PageSizeSelect`. See [Pagination → Within a data table](/components/navigation/pagination#within-a-data-table).
 
 ### Row selection with checkboxes
 
-Add a `columnHelper.display` checkbox column — the header checkbox toggles every row (and goes indeterminate when only some are selected), each cell checkbox toggles its row. Drive `rowSelection` through `useReactTable` and read it back from the table instance. mantle's [`Checkbox`](/components/forms/checkbox) is a native input, so handle changes with `onChange` + `event.target.checked` (not `onCheckedChange`), and resolve the header's tri-state with the exported [`selectAllChecked`](/components/forms/checkbox#select-all-helper) helper.
+Add a `columnHelper.display` checkbox column: the header checkbox toggles every row (and goes indeterminate when only some are selected), each cell checkbox toggles its row. Drive `rowSelection` through `useReactTable` and read it back from the table instance. mantle's [`Checkbox`](/components/forms/checkbox) is a native input, so handle changes with `onChange` + `event.target.checked` (not `onCheckedChange`), and resolve the header's tri-state with the exported [`selectAllChecked`](/components/forms/checkbox#select-all-helper) helper.
 
 <Example>
 	<SelectablePaymentsDemo />
@@ -660,11 +660,11 @@ function SelectableTable({ data }: { data: Payment[] }) {
 
 ### Expandable rows
 
-Expand a row into an inline detail panel with a `+`/`−` toggle — ideal for inspecting a row's underlying record without leaving the table. Expansion is driven entirely by [TanStack Table's expansion state](https://tanstack.com/table/latest/docs/guide/expanding) (mantle does not invent its own), so wire it up on `useReactTable` with `getExpandedRowModel()` and `getRowCanExpand: () => true` (required — without sub-rows, no row is expandable by default). A stable `getRowId` keeps both the expansion keys and the toggle's `aria-controls` association stable.
+Expand a row into an inline detail panel with a `+`/`−` toggle, ideal for inspecting a row's underlying record without leaving the table. Expansion is driven entirely by [TanStack Table's expansion state](https://tanstack.com/table/latest/docs/guide/expanding) (mantle does not invent its own), so wire it up on `useReactTable` with `getExpandedRowModel()` and `getRowCanExpand: () => true` (required: without sub-rows, no row is expandable by default). A stable `getRowId` keeps both the expansion keys and the toggle's `aria-controls` association stable.
 
-Two parts cover the toggle: `DataTable.ExpandHeader` (the toggle column header) and `DataTable.RowExpandButton` (the accessible `+`/`−` toggle, dropped into a leading `columnHelper.display` cell). For the detail panel itself, pass `renderExpanded` to `DataTable.Row` — when the row is expanded it renders its data row plus a sibling detail row holding the returned content, so you never hand-write the extra `<tr>` or the expand conditional. `renderExpanded` is called lazily (only while the row is open), so collapsed rows never build their panel. The detail row spans every visible column and sits on an opaque surface, so it coexists with a sticky [action column](#action-column-with-a-dropdown-menu).
+Two parts cover the toggle: `DataTable.ExpandHeader` (the toggle column header) and `DataTable.RowExpandButton` (the accessible `+`/`−` toggle, dropped into a leading `columnHelper.display` cell). For the detail panel itself, pass `renderExpanded` to `DataTable.Row`: when the row is expanded it renders its data row plus a sibling detail row holding the returned content, so you never hand-write the extra `<tr>` or the expand conditional. `renderExpanded` is called lazily (only while the row is open), so collapsed rows never build their panel. The detail row spans every visible column and sits on an opaque surface, so it coexists with a sticky [action column](#action-column-with-a-dropdown-menu).
 
-The detail panel below renders each row's object as JSON via [`CodeBlock`](/components/data-display/code-block), highlighted with [`jsonCodeBlockValue`](/components/data-display/code-block) — entirely on the client, with no Shiki runtime shipped to the browser, no build-time plugin, and no server roundtrip. Multi-line objects and arrays are collapsible by default, just like every other JSON code block (pass `{ foldable: false }` for a flat panel).
+The detail panel below renders each row's object as JSON via [`CodeBlock`](/components/data-display/code-block), highlighted with [`jsonCodeBlockValue`](/components/data-display/code-block). It runs entirely on the client, with no Shiki runtime shipped to the browser, no build-time plugin, and no server roundtrip. Multi-line objects and arrays are collapsible by default, just like every other JSON code block (pass `{ foldable: false }` for a flat panel).
 
 <Example>
 	<ExpandableRowsDemo />
@@ -738,7 +738,7 @@ function ExpandableTable({ data }: { data: Payment[] }) {
 }
 ```
 
-For full control over the detail row — a custom `colSpan`, multiple panels, or bespoke markup — omit `renderExpanded` and render `DataTable.ExpandedRow` yourself, directly after `DataTable.Row` and wrapped in a `Fragment` (never a DOM element, since a node between `<tbody>` and `<tr>` is invalid HTML):
+For full control over the detail row (a custom `colSpan`, multiple panels, or bespoke markup), omit `renderExpanded` and render `DataTable.ExpandedRow` yourself, directly after `DataTable.Row` and wrapped in a `Fragment` (never a DOM element, since a node between `<tbody>` and `<tr>` is invalid HTML):
 
 ```tsx
 import { Fragment } from "react";

@@ -161,9 +161,9 @@ import { CursorPagination } from "@ngrok/mantle/pagination";
 
 ## Within a data table
 
-`CursorPagination` pairs with a [`DataTable`](/components/data-display/data-table) — drive its `Buttons` and `PageSizeSelect` from a TanStack Table instance.
+`CursorPagination` pairs with a [`DataTable`](/components/data-display/data-table): drive its `Buttons` and `PageSizeSelect` from a TanStack Table instance.
 
-**Client-paginated** — the table holds every row and `getPaginationRowModel()` slices them. Read `getCanPreviousPage()` / `getCanNextPage()` for the buttons and call `setPageSize()` / `setPageIndex(0)` when the size changes:
+**Client-paginated:** the table holds every row and `getPaginationRowModel()` slices them. Read `getCanPreviousPage()` / `getCanNextPage()` for the buttons and call `setPageSize()` / `setPageIndex(0)` when the size changes:
 
 <Example>
 	<PaginatedPaymentsDemo />
@@ -252,7 +252,7 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 }
 ```
 
-**Server / cursor data** — the server returns one page at a time, so there is no `getPaginationRowModel` and no total count. Wire `Buttons` to your fetch's has-next / has-prev and load callbacks, and show the fixed, server-controlled page size with the read-only `PageSizeValue` instead of `PageSizeSelect`. The example simulates the server's cursor state with a page index:
+**Server / cursor data:** the server returns one page at a time, so there is no `getPaginationRowModel` and no total count. Wire `Buttons` to your fetch's has-next / has-prev and load callbacks, and show the fixed, server-controlled page size with the read-only `PageSizeValue` instead of `PageSizeSelect`. The example simulates the server's cursor state with a page index:
 
 <Example>
 	<ServerCursorPaginationExample />
