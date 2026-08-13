@@ -1,13 +1,13 @@
 ---
 title: Philosophy
-description: The design principles behind Mantle, ngrok's UI library and design system—and the shipped code that proves them
+description: The design principles behind Mantle (ngrok's UI library and design system) and the shipped code that proves them
 ---
 
 # Philosophy
 
 Every architectural decision in Mantle traces back to a simple premise: start with the
 web platform, then layer on just enough abstraction to make it great. These principles
-guide what we build, how we build it, and—just as importantly—what we choose not to
+guide what we build, how we build it, and (just as importantly) what we choose not to
 build. They apply to the whole library: components, hooks, utilities, theming, and the
 docs themselves.
 
@@ -19,7 +19,7 @@ renders a `<button>`, not a styled `<div>` with click handlers.
 CSS, so it participates in native forms without wrapper elements or a scripted check icon.
 [DescriptionList](/components/data-display/description-list) is real `<dl>`/`<dt>`/`<dd>`, and
 [Kbd](/components/data-display/kbd) is a real `<kbd>`. From that foundation, Mantle progressively
-enhances. A button is still a button—but with loading states, icon slots, and variant
+enhances. A button is still a button, but with loading states, icon slots, and variant
 styling layered on top. The underlying element always does the heavy lifting.
 
 Enhancement is deliberate, and so is degradation. [Accordion](/components/data-display/accordion)
@@ -35,8 +35,8 @@ This extends to how components are _named_. Parts take the web platform's vocabu
 what they actually render: a [List](/components/data-display/list) contains `Item`s because `<li>` is
 literally a list item, a [Table](/components/data-display/table) contains `Row`s because that's what
 `<tr>` is, and every compound's outermost part is `Root`. Props read as the semantics
-they emit—`List.Item`'s `current` prop sets `aria-current`—so the API tells the truth
-about the markup. And where WAI-ARIA offers competing patterns, the component makes the
+they emit, so the API tells the truth about the markup: `List.Item`'s `current` prop
+sets `aria-current`. And where WAI-ARIA offers competing patterns, the component makes the
 choice for you: List is a semantic `role="list"` so every item keeps its natural tab
 stop, while [SelectableList](/components/data-display/selectable-list) is an APG grid because
 selectable rows carrying real controls require it. You never pick a role; you pick an
@@ -44,11 +44,11 @@ intent.
 
 Because names promise behavior, ARIA's pattern words are earned rather than borrowed. A
 `Menu` owes you roving focus, typeahead, `Escape` to dismiss, and a single tab stop, so
-only a real `role="menu"` component gets that name—[DropdownMenu](/components/overlays/dropdown-menu)
-has it; a `<ul>` of navigation links does not, however many other libraries call that
+only a real `role="menu"` component gets that name. [DropdownMenu](/components/overlays/dropdown-menu)
+has it; a `<ul>` of navigation links doesn't, however many other libraries call that
 markup a menu. The same goes for `Listbox`, `Tab`, `Tree`, `Grid`, and `Combobox`. When a
-name and the markup disagree, we rename the part—never add the role to justify the name,
-which is how a perfectly good list of links loses its tab order. Mechanics are worth
+name and the markup disagree, we rename the part. We never add the role to justify the
+name; that's how a perfectly good list of links loses its tab order. Mechanics are worth
 porting from the ecosystem; vocabulary is re-derived from what the component emits.
 
 ## The right foundation, per problem
@@ -80,7 +80,7 @@ Every public component answers a distinct question. "Click an item to go somewhe
 something" is [List](/components/data-display/list); "check items to select them" is
 [SelectableList](/components/data-display/selectable-list). "Pick one of a few known options" is
 [Select](/components/forms/select); "type to filter many" is [Combobox](/components/forms/combobox);
-"pick several" is [MultiSelect](/components/forms/multi-select)—and the JSDoc on each names
+"pick several" is [MultiSelect](/components/forms/multi-select). The JSDoc on each names
 its siblings, so the boundary ships with the component. When two designs answer the same
 question, they become one component: a variant is a prop or a sibling part
 ([RadioGroup](/components/forms/radio-group)'s card and segmented arrangements are parts, not
@@ -93,17 +93,17 @@ components. Publishing a primitive later is an additive, non-breaking change; un
 one is a breaking change forever. Refusing surface applies to props, too: when DataTable
 needed empty states and pagination, the answer was documented recipes built from existing
 parts ([Empty](/components/feedback/empty) drops straight into a table's empty row), not a new
-built-in API—the gap was documentation, not primitives. Mantle ships the smallest
+built-in API. The gap was documentation, not primitives. Mantle ships the smallest
 surface that solves the problem and grows it only when real usage demands: the API you
 learn is the API that stays.
 
 ## Composition over configuration
 
 Components compose with each other and with your code. The `asChild` pattern, powered by
-[Slot](/components/primitives/slot), swaps the rendered element entirely—internal navigation is
-`<Anchor asChild><Link to="…" /></Anchor>`, not an `href` prop with router flags—so
-Mantle never forces a DOM structure on you. Configuration props handle the common case;
-composition handles everything else—never a prop bag: a component doesn't forward
+[Slot](/components/primitives/slot), swaps the rendered element entirely, so Mantle never forces
+a DOM structure on you: internal navigation is `<Anchor asChild><Link to="…" /></Anchor>`,
+not an `href` prop with router flags. Configuration props handle the common case;
+composition handles everything else. Never a prop bag: a component doesn't forward
 `contentProps`-style objects to elements it renders internally, because needing to reach
 an internal element means the component is a compound and that element is a part.
 Composition is also how new components get built:
@@ -121,8 +121,8 @@ The exception is deliberate: a component takes a **data** prop instead of childr
 when its behavior must reach items that aren't rendered yet.
 [DataTable](/components/data-display/data-table) takes `data` and
 [SelectableList](/components/data-display/selectable-list) takes `options` because filtering, "select
-all", and virtualization operate over the whole collection—including rows that are
-windowed out of the DOM—which no children-based API can see. Even then, _rendering_
+all", and virtualization operate over the whole collection (including rows that are
+windowed out of the DOM), which no children-based API can see. Even then, _rendering_
 stays composable: a render-prop draws each row, and the data stays a thin description (a
 value, its text, a disabled flag). Membership is data when behavior outlives mounting;
 presentation is always composition.
@@ -139,8 +139,8 @@ with `satisfies Record<Color, string>` against the [color](/utils/color) vocabul
 new color can't ship half-styled.
 
 What the compiler can't catch fails loudly at runtime. Compound parts rendered outside
-their `Root`—[Choice](/components/forms/choice)'s, [QrCode](/components/data-display/qr-code)'s,
-SelectableList's—throw a descriptive invariant instead of rendering an inert shell.
+their `Root` ([Choice](/components/forms/choice)'s, [QrCode](/components/data-display/qr-code)'s,
+SelectableList's) throw a descriptive invariant instead of rendering an inert shell.
 Utilities treat errors as control flow: `copyToClipboard` throws when both clipboard
 strategies fail rather than no-oping. A silent fallback is a bug you find in production;
 a loud failure is one you fix in development.
@@ -163,8 +163,8 @@ pure functions, tested apart from rendering.
 The promise isn't that semantic markup makes accessibility free. The promise is that
 Mantle does the engineering so you get it free. [Field](/components/forms/field) generates
 control, description, and error ids and flows them through context, so `htmlFor`,
-`aria-describedby`, and `aria-errormessage` always resolve without hand-threading—and
-its help affordance is a [Popover](/components/overlays/popover) rather than a tooltip, so touch
+`aria-describedby`, and `aria-errormessage` always resolve without hand-threading. Its
+help affordance is a [Popover](/components/overlays/popover) rather than a tooltip, so touch
 users can reach it. [List](/components/data-display/list)'s disabled `asChild` items swallow clicks
 because assistive technology dispatches clicks without hit testing. Virtualized rows
 announce `aria-posinset` and `aria-setsize`, so a windowed list still reads as the whole
@@ -182,8 +182,8 @@ faith from a vendor.
 
 Mantle assumes a server, and if it renders wrong for one frame, that's a bug. The
 [theme](/components/primitives/theme) preference persists in a cookie, not just localStorage, so SSR
-renders the correct `<html>` class; a blocking inline script—written as a plain
-TypeScript function and stringified into the `<head>`—resolves the cookie and OS
+renders the correct `<html>` class; a blocking inline script (written as a plain
+TypeScript function and stringified into the `<head>`) resolves the cookie and OS
 preferences before first paint, and theme changes sync across open tabs. The three
 non-light theme stylesheets load as media-gated `<link>`s so they never block rendering,
 and font preloads can ship as HTTP `Link` headers so fetches start before the HTML
@@ -193,8 +193,8 @@ Hydration safety is a shipped primitive, not an app-side hack.
 [BrowserOnly](/components/primitives/browser-only) takes children as a render function so
 client-only code can't even evaluate during SSR. Every browser-API hook declares its
 server answer: [`useBreakpoint`](/hooks) returns `"default"`,
-[`useMatchesMediaQuery`](/hooks) returns `false`, and [`useIsHydrated`](/hooks)—built on
-`useSyncExternalStore` precisely for consistent server and client snapshots—is the
+[`useMatchesMediaQuery`](/hooks) returns `false`, and [`useIsHydrated`](/hooks), built on
+`useSyncExternalStore` precisely for consistent server and client snapshots, is the
 sanctioned escape hatch.
 
 ## Tailwind is the design language
@@ -202,16 +202,16 @@ sanctioned escape hatch.
 There is no theme object and no CSS-in-JS: the design system is a Tailwind CSS 4
 CSS-first configuration. Tokens layer from raw oklch palettes through semantic aliases to
 surface and intent tokens, so one authored class (`bg-card`, `text-muted`) is correct in
-all four resolved themes—light, dark, and two first-class high-contrast variants.
+all four resolved themes: light, dark, and two first-class high-contrast variants.
 `dark:` is an override, not a requirement, and even `white` and `black` are semantic,
 theme-swapped tokens. Because the tokens are expressed as Tailwind utilities, you extend
-components with the same vocabulary you already know—custom styling stays on-system by
-default. [Colors](/base/colors) and [Typography](/base/typography) document the
+components with the same vocabulary you already know, so custom styling stays on-system
+by default. [Colors](/base/colors) and [Typography](/base/typography) document the
 vocabulary.
 
 Your overrides always win. Every component composes consumer `className` last
 through [cx](/utils/cx), whose merge engine Mantle vendors with the house spacing scale
-baked in rather than taking clsx and tailwind-merge as dependencies—className merging is
+baked in rather than taking clsx and tailwind-merge as dependencies: className merging is
 core infrastructure, so Mantle owns it. Interactive state is styled through custom
 [Tailwind variants](/base/tailwind-variants) that match the DOM the headless layers
 actually emit (`data-state-*`, `aria-*`), and key internal defaults are wrapped in
@@ -221,7 +221,7 @@ actually emit (`data-state-*`, `aria-*`), and key internal defaults are wrapped 
 
 The fastest code is the code that never runs, and the most reliable code is the code
 that doesn't exist. [CodeBlock](/components/data-display/code-block) highlights with Shiki at build
-time, so no highlighter JavaScript ships to the browser—and its React-free core is
+time, so no highlighter JavaScript ships to the browser. Its React-free core is
 published as [highlight-utils](/utils/highlight-utils) so servers, workers, and build
 tools can produce the same HTML. The Tailwind source plugin scopes the utility scan to
 the Mantle components an app actually imports, so unused components cost no CSS, and
@@ -233,7 +233,7 @@ are CSS scroll-driven animations with zero scroll listeners.
 [Table](/components/data-display/table) coalesces resize, mutation, and scroll into one
 `requestAnimationFrame` layout read to drive its overflow affordance. And
 [`useBreakpoint`](/hooks) shares a single app-wide set of `matchMedia` subscriptions
-across every caller—it caches its subscribe functions because unstable references
+across every caller. It caches its subscribe functions because unstable references
 measurably made window resizing sluggish.
 
 ## Safe, ecosystem-normal defaults
@@ -252,8 +252,8 @@ wrapped event handlers run your callback first and bail if you called
 
 Every export carries JSDoc with `@example` blocks and when-to-use guidance, and those
 examples feed the published types, `llms.txt`, and the component manifest. That makes
-them normative: humans and AI agents reproduce them verbatim—one recorded migration
-copied the patterns the docs showed into ~57 call sites before the docs were fixed—so
+them normative: humans and AI agents reproduce them verbatim (one recorded migration
+copied the patterns the docs showed into ~57 call sites before the docs were fixed), so
 we maintain examples with the same care as API. Every docs page ships a
 plain-markdown twin, and agents get a canonical entry point at
 [For AI Agents](/for-ai-agents), because this library now has two audiences that write
@@ -269,6 +269,6 @@ admits the tree-shaking cost, and the button-type record names the silent non-su
 footgun it accepts. Their conclusions are distilled into
 [conventions](https://github.com/ngrok/mantle/blob/main/CONVENTIONS.md) that gate new
 work, so the next component starts where the last argument ended. Unstable surface says
-so out loud—[Calendar](/components/preview/calendar) ships flagged `@preview` with an
-open invitation to file issues—and breaking cleanups wait for majors. A principle you
+so out loud: [Calendar](/components/preview/calendar) ships flagged `@preview` with an
+open invitation to file issues. Breaking cleanups wait for majors. A principle you
 can't cite is a slogan; every principle on this page has a paper trail.
