@@ -74,7 +74,7 @@
     "kind": "layout",
     "status": "stable",
     "importPath": "@ngrok/mantle/app-layout",
-    "summary": "A viewport-locked application shell — a full-width notice strip, a toolbar header, and a rounded content card whose page region is the shell's only scroll container.",
+    "summary": "A viewport-locked application shell: a full-width notice strip, a toolbar header, and a rounded content card whose page region is the shell's only scroll container.",
     "jsdoc": "A viewport-locked application shell: an optional full-width `AppLayout.Notice` strip on top, then an `AppLayout.Workspace` row holding the app's columns — typically a `Sidebar.Nav` beside an `AppLayout.Content` card whose `AppLayout.Body` is the only thing that scrolls.",
     "examples": [
       "Composition:\n```\nAppLayout.Root\n├── AppLayout.Notice\n└── AppLayout.Workspace\n    └── AppLayout.Content\n        ├── AppLayout.Header\n        └── AppLayout.Body\n```",
@@ -143,7 +143,7 @@
     "category": "Navigation",
     "status": "stable",
     "importPath": "@ngrok/mantle/breadcrumb",
-    "summary": "Hierarchy-path navigation — an ordered list of links from a root to the current page, in a labeled nav landmark.",
+    "summary": "Hierarchy-path navigation, an ordered list of links from a root to the current page, in a labeled nav landmark.",
     "jsdoc": "Compound component for WAI-ARIA breadcrumb navigation — the path from a root to the current page as an ordered list of links inside a labeled `<nav>` landmark.",
     "examples": [
       "Composition:\n```\nBreadcrumb.Root\n└── Breadcrumb.List\n    ├── Breadcrumb.Item\n    │   └── Breadcrumb.Link\n    ├── Breadcrumb.Separator\n    ├── Breadcrumb.Item\n    │   └── Breadcrumb.Label\n    ├── Breadcrumb.Separator\n    ├── Breadcrumb.Item\n    │   └── Breadcrumb.Page\n    └── Breadcrumb.Skeleton\n```",
@@ -211,7 +211,7 @@
     "kind": "layout",
     "status": "stable",
     "importPath": "@ngrok/mantle/centered-layout",
-    "summary": "A viewport-filling centered page flow — utility header and footer strips around a growing, centered content region.",
+    "summary": "A viewport-filling centered page flow, with utility header and footer strips around a growing, centered content region.",
     "jsdoc": "A viewport-filling centered page flow for sign-in, sign-up, onboarding, 404, checkout, and other focused full-page states.",
     "examples": [
       "Composition:\n```\nCenteredLayout.Root\n├── CenteredLayout.Notice\n├── CenteredLayout.Header\n├── CenteredLayout.Body\n└── CenteredLayout.Footer\n```",
@@ -238,7 +238,7 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/choice",
-    "summary": "A reusable indicator-left / content-right layout for a single choice — a control beside a titled, multi-line label.",
+    "summary": "A reusable indicator-left / content-right layout for a single choice (a control beside a titled, multi-line label).",
     "jsdoc": "A reusable indicator-left / content-right layout for a single choice: a control (checkbox, radio, switch) beside an emphasized title and an optional de-emphasized description.",
     "examples": [
       "Composition:\n```\nChoice.Root\n├── Choice.Indicator\n└── Choice.Content\n    ├── Choice.Label        (or Choice.Title — pick one)\n    └── Choice.Description\n```",
@@ -352,7 +352,7 @@
     "category": "Overlays",
     "status": "stable",
     "importPath": "@ngrok/mantle/dropdown-menu",
-    "summary": "Displays a menu to the user — such as a set of actions or functions — triggered by a button.",
+    "summary": "Displays a menu to the user (such as a set of actions or functions), triggered by a button.",
     "jsdoc": "A menu of options or actions, triggered by a button.",
     "examples": [
       "Composition:\n```\nDropdownMenu.Root\n├── DropdownMenu.Trigger\n└── DropdownMenu.Content\n    ├── DropdownMenu.Group\n    │   ├── DropdownMenu.Label\n    │   ├── DropdownMenu.Item\n    │   │   └── DropdownMenu.Shortcut\n    │   ├── DropdownMenu.CheckboxItem\n    │   └── DropdownMenu.RadioGroup\n    │       └── DropdownMenu.RadioItem\n    ├── DropdownMenu.Separator\n    └── DropdownMenu.Sub\n        ├── DropdownMenu.SubTrigger\n        └── DropdownMenu.SubContent\n```",
@@ -380,7 +380,7 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/field",
-    "summary": "Layout primitive for a single form field — label, control, helper text, and error messaging stacked together with consistent spacing.",
+    "summary": "Layout primitive for a single form field: label, control, helper text, and error messaging stacked together with consistent spacing.",
     "jsdoc": "Compound component for semantic, accessible form fields.",
     "examples": [
       "Composition:\n```\nField.Group\n└── Field.Item\n    ├── Field.LabelRow\n    │   ├── Field.Label            (or Field.LabelText for control-less rows)\n    │   │   └── Field.Optional\n    │   └── Field.Help\n    │       ├── Field.HelpTrigger\n    │       └── Field.HelpContent\n    ├── Field.Control\n    │   └── (control)\n    ├── Field.Errors             (or)\n    ├── Field.ErrorList\n    │   └── Field.ErrorItem\n    └── Field.Description\n```",
@@ -660,7 +660,7 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/radio-group",
-    "summary": "A set of checkable buttons—known as radio buttons—where no more than one of the buttons can be checked at a time.",
+    "summary": "A set of checkable buttons (known as radio buttons) where no more than one of the buttons can be checked at a time.",
     "jsdoc": "A group of radio items.",
     "examples": [
       "Composition:\n```\n# Default radios\nRadioGroup.Root\n└── RadioGroup.Item\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# List layout with descriptions\nRadioGroup.List\n└── RadioGroup.ListItem\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# Segmented button group\nRadioGroup.ButtonGroup\n└── RadioGroup.Button\n\n# Card-style radios\nRadioGroup.Root\n└── RadioGroup.Card\n    └── RadioGroup.Indicator\n\n# Rich option layout (Choice)\nRadioGroup.Root\n└── RadioGroup.Item\n    └── Choice.Root\n        ├── Choice.Indicator\n        │   └── RadioGroup.Indicator\n        └── Choice.Content\n            ├── Choice.Title\n            └── Choice.Description\n```",
@@ -674,7 +674,7 @@
     "category": "Feedback",
     "status": "stable",
     "importPath": "@ngrok/mantle/sandbar",
-    "summary": "A floating save bar for unsaved changes — batch save form state with save and discard actions, announce pending state to screen readers, and block navigation until changes are resolved.",
+    "summary": "A floating save bar for unsaved changes. Batch save form state with save and discard actions, announce pending state to screen readers, and block navigation until changes are resolved.",
     "jsdoc": "A persistent, decision-bearing bar that floats near the bottom edge of the viewport.",
     "examples": [
       "Composition:\n```\nSandbar.Root\n├── Sandbar.Message\n└── Sandbar.Actions\n    ├── Sandbar.DiscardButton\n    └── Sandbar.SaveButton\n```",
@@ -701,7 +701,7 @@
     "category": "Charts",
     "status": "stable",
     "importPath": "@ngrok/mantle/scatter-plot",
-    "summary": "A canvas-rendered scatter plot for correlating two continuous measures — three with the rotatable 3D projection.",
+    "summary": "A canvas-rendered scatter plot for correlating two continuous measures (three with the rotatable 3D projection).",
     "jsdoc": "A canvas-rendered scatter plot for correlating two measures — three with the 3D projection (`zKey`), which renders a rotatable, depth-sorted point cloud (drag to orbit).",
     "examples": [
       "Composition:\n```\nScatterPlot.Root\n├── ScatterPlot.Grid\n├── ScatterPlot.XAxis\n├── ScatterPlot.YAxis\n├── ScatterPlot.Point (one per series)\n├── ScatterPlot.ReferenceLine\n├── ScatterPlot.Tooltip\n├── ScatterPlot.Legend\n└── ScatterPlot.CopyButton\n```",
@@ -907,7 +907,7 @@
     "category": "Primitives",
     "status": "stable",
     "importPath": "@ngrok/mantle/theme",
-    "summary": "Theme primitives — ThemeProvider, MantleStyleSheets, and FOUC prevention — for light, dark, and high-contrast modes.",
+    "summary": "Theme primitives (ThemeProvider, MantleStyleSheets, and FOUC prevention) for light, dark, and high-contrast modes.",
     "jsdoc": "Re-exports for the Theme component — the provider and hooks that carry the applied theme, plus the document tags that stop a wrong-theme flash."
   },
   {
@@ -917,7 +917,7 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/theme-switcher",
-    "summary": "The canonical picker for mantle's five themes — a compact dropdown switcher, plus a radio group that embeds theme selection in any dropdown menu.",
+    "summary": "The canonical picker for mantle's five themes (a compact dropdown switcher), plus a radio group that embeds theme selection in any dropdown menu.",
     "jsdoc": "The canonical picker for mantle's theme system: a compact `IconButton` trigger (ghost by default) that opens a `DropdownMenu` hosting `ThemeDropdownMenuRadioGroup`, the theme-selection radio group.",
     "examples": [
       "Composition:\n```\nThemeSwitcher.Root\n├── ThemeSwitcher.Trigger\n└── ThemeSwitcher.Content\n```",

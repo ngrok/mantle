@@ -84,7 +84,7 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 
 Render `HoverCard.Arrow` as a child of `HoverCard.Content` when the card previews one specific link and needs a tip pointing at it. Radix positions the arrow with floating-ui's arrow middleware, so it stays centered on the trigger when collision detection shifts or flips the content. The arrow's fill and border repaint `HoverCard.Content`'s own edge across its base, so the two edges read as one line. The tip also casts its own shadow, because `shadow-md` on `HoverCard.Content` stops at that content's border and an unshadowed tip reads as pasted on. That shadow is clipped at the base, so it never darkens the content's interior.
 
-`HoverCard.Arrow` takes no `asChild`. The shape is two layers — a filled polygon, plus a polyline that strokes the slanted edges only — and a swapped element loses the border. Restyle it with `className` instead: `fill-*` for the surface and a `stroke-*` on the arrow's `polyline` child for the edge, since Radix renders the arrow as an `svg` where `bg-*` paints nothing.
+`HoverCard.Arrow` takes no `asChild`. The shape is two layers (a filled polygon, plus a polyline that strokes the slanted edges only), and a swapped element loses the border. Restyle it with `className` instead: `fill-*` for the surface and a `stroke-*` on the arrow's `polyline` child for the edge, since Radix renders the arrow as an `svg` where `bg-*` paints nothing.
 
 <Example className="gap-2">
 	<HoverCard.Root>

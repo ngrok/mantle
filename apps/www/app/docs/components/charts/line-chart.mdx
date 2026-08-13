@@ -298,12 +298,12 @@ A canvas-rendered line chart for trends over a continuous x axis — time above 
 
 ## When to use
 
-A `LineChart` answers "how is this changing?" and "do these series move together?" — latency percentiles, request rates, resource usage over time. Lines encode value by vertical position along a shared y axis, which makes them the right mark for trends over a continuous x.
+A `LineChart` answers "how is this changing?" and "do these series move together?": latency percentiles, request rates, resource usage over time. Lines encode value by vertical position along a shared y axis, which makes them the right mark for trends over a continuous x.
 
-- Prefer [`BarChart`](/components/charts/bar-chart) to compare discrete categories — bars encode value by length from a zero baseline.
-- Prefer [`AreaChart`](/components/charts/area-chart) when cumulative composition matters — stacked areas show how parts sum to a total.
+- Prefer [`BarChart`](/components/charts/bar-chart) to compare discrete categories: bars encode value by length from a zero baseline.
+- Prefer [`AreaChart`](/components/charts/area-chart) when cumulative composition matters: stacked areas show how parts sum to a total.
 
-The x scale is auto-detected from the first row's x value: `Date` values get a `"time"` scale with calendar-aware ticks, numbers get `"linear"`, and strings get `"point"` (evenly spaced categories). Pass `xScale` when detection guesses wrong — for example, epoch-millisecond numbers auto-detect as `"linear"`, so pass `xScale="time"` to read them as time.
+The x scale is auto-detected from the first row's x value: `Date` values get a `"time"` scale with calendar-aware ticks, numbers get `"linear"`, and strings get `"point"` (evenly spaced categories). Pass `xScale` when detection guesses wrong. For example, epoch-millisecond numbers auto-detect as `"linear"`, so pass `xScale="time"` to read them as time.
 
 **Keep it to eight series or fewer.** The default chart tokens are eight validated categorical slots. The ninth series onward all wear the neutral `--color-chart-other`, so a dozen keys legend as a wall of identical gray. Eight is the palette's measured limit, not a style preference: all 28 pairs of the eight clear the colorblind-safe gates, and the closest pair clears its floor by 0.054 ΔE. A ninth hue has nowhere to sit. Rank by the window's total, keep the top seven, and sum the rest into one `"Other"` series. The Bar Chart page carries [a worked fold](/components/charts/bar-chart#when-to-use). Set the fold's own `Line` to `seriesSlot="other"`, so it reads as the tail rather than taking a categorical slot.
 
@@ -341,9 +341,9 @@ function LatencyExample() {
 
 ## Curves, markers, and shapes
 
-`curve` controls interpolation between points: `"linear"` (the default), `"monotone"` (smoothed without overshooting the data), or `"step"`. `markers` draws a dot with a surface ring at each point — markers auto-hide when points get denser than ~12px apart, so a chart that grows dense never turns to gravel. `shape` picks the marker glyph per series, and the hover dot and legend key wear it too.
+`curve` controls interpolation between points: `"linear"` (the default), `"monotone"` (smoothed without overshooting the data), or `"step"`. `markers` draws a dot with a surface ring at each point. Markers auto-hide when points get denser than ~12px apart, so a chart that grows dense never turns to gravel. `shape` picks the marker glyph per series, and the hover dot and legend key wear it too.
 
-Eight glyphs match the palette's eight series slots — `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`, `"plus"`, `"cross"`, `"star"`, in that order. A series that sets no `shape` wears the glyph of its slot. Neither line below sets one: this week takes slot 1 and its circle, last week slot 2 and its square, on the markers, in the legend, and under the crosshair. Every chart therefore carries a second identity channel by default. That channel matters where color cannot carry identity alone — a reader with a color vision deficiency, a grayscale print or export, forced-colors mode. Set `seriesSlot={3}` for a fixed triangle identity. Set `shape` to override only the glyph. All chart families share the glyph set; [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full treatment.
+Eight glyphs match the palette's eight series slots: `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`, `"plus"`, `"cross"`, `"star"`, in that order. A series that sets no `shape` wears the glyph of its slot. Neither line below sets one: this week takes slot 1 and its circle, last week slot 2 and its square, on the markers, in the legend, and under the crosshair. Every chart therefore carries a second identity channel by default. That channel matters where color cannot carry identity alone: a reader with a color vision deficiency, a grayscale print or export, forced-colors mode. Set `seriesSlot={3}` for a fixed triangle identity. Set `shape` to override only the glyph. All chart families share the glyph set; [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full treatment.
 
 String x values put the chart on a `"point"` scale: evenly spaced categorical positions with no band thickness.
 
@@ -381,7 +381,7 @@ function CurveMarkersExample() {
 
 ## High-density series
 
-This chart plots a 50,000-point seeded pseudo-random walk on a `"linear"` x scale. Past 4 points per device pixel, the engine decimates each series to its min/max per device-pixel column, so a redraw costs O(plot width), not O(points) — and it is visually lossless, because a line through every intermediate value paints the same column of pixels anyway. The idle chart costs zero CPU: there is no always-on render loop; every mutation coalesces into a single `requestAnimationFrame` commit. And hover never repaints the canvas — the crosshair, active-point markers, and tooltip are DOM overlay elements moved with transforms.
+This chart plots a 50,000-point seeded pseudo-random walk on a `"linear"` x scale. Past 4 points per device pixel, the engine decimates each series to its min/max per device-pixel column, so a redraw costs O(plot width), not O(points). It is also visually lossless, because a line through every intermediate value paints the same column of pixels anyway. The idle chart costs zero CPU: there is no always-on render loop; every mutation coalesces into a single `requestAnimationFrame` commit. And hover never repaints the canvas: the crosshair, active-point markers, and tooltip are DOM overlay elements moved with transforms.
 
 <Example>
 	<HighDensityExample />
@@ -501,7 +501,7 @@ function ReferenceLineExample() {
 
 ## Linked charts
 
-The active position is controllable: pass `activeIndex` and `onActiveIndexChange` to share one crosshair across charts plotted over the same rows — the dashboard "linked crosshair" pattern. Hover or arrow through either chart and both move together, so a latency spike and its error spike line up without eyeballing timestamps.
+The active position is controllable: pass `activeIndex` and `onActiveIndexChange` to share one crosshair across charts plotted over the same rows (the dashboard "linked crosshair" pattern). Hover or arrow through either chart and both move together, so a latency spike and its error spike line up without eyeballing timestamps.
 
 <Example>
 	<LinkedChartsExample />
@@ -558,9 +558,9 @@ function LinkedChartsExample() {
 
 ## Live data
 
-For streaming data, append points to the end of a sliding window and let the chart supply the motion. The x domain does not play a fixed-duration tween per append — it exponentially chases its target, so a new point arriving mid-glide redirects the motion and back-to-back appends read as one continuous scroll, never ease-stop-jump ticks. As the window slides, tick labels fade in and out per label (gridlines share their labels' fade) instead of popping between tick sets. `prefers-reduced-motion` snaps everything: appends land instantly, with no glide and no fades.
+For streaming data, append points to the end of a sliding window and let the chart supply the motion. The x domain does not play a fixed-duration tween per append: it exponentially chases its target, so a new point arriving mid-glide redirects the motion and back-to-back appends read as one continuous scroll, never ease-stop-jump ticks. As the window slides, tick labels fade in and out per label (gridlines share their labels' fade) instead of popping between tick sets. `prefers-reduced-motion` snaps everything: appends land instantly, with no glide and no fades.
 
-This demo appends one point every 150ms to a sliding 240-point window, dropping the oldest point each time. Both series derive from pure sine compositions over a tick counter and a fixed epoch — a slow drift plus faster waves — so the demo renders deterministically; a real chart would append measurements as they arrive.
+This demo appends one point every 150ms to a sliding 240-point window, dropping the oldest point each time. Both series derive from pure sine compositions over a tick counter and a fixed epoch (a slow drift plus faster waves), so the demo renders deterministically; a real chart would append measurements as they arrive.
 
 <Example>
 	<LiveLineExample />
@@ -626,7 +626,7 @@ function LiveLineExample() {
 
 ## Copy as markdown
 
-Every chart already renders its data as real DOM: the screen-reader table twin carries exact machine-readable values — ISO timestamps in `<time dateTime>` and raw numbers in `data-value` — so an agent reading the page gets the series, not a picture of it. `LineChart.CopyButton` is the hand-off counterpart: one click copies the current rows to the clipboard as a GitHub-flavored markdown table, one x column plus one column per series in paint order. The output is machine-stable — ISO 8601 dates, plain un-separated numbers, an em dash for gaps — so it stays parseable wherever it lands: Slack, an issue, a spreadsheet, an LLM chat.
+Every chart already renders its data as real DOM: the screen-reader table twin carries exact machine-readable values (ISO timestamps in `<time dateTime>` and raw numbers in `data-value`), so an agent reading the page gets the series, not a picture of it. `LineChart.CopyButton` is the hand-off counterpart: one click copies the current rows to the clipboard as a GitHub-flavored markdown table, one x column plus one column per series in paint order. The output is machine-stable (ISO 8601 dates, plain un-separated numbers, an em dash for gaps), so it stays parseable wherever it lands: Slack, an issue, a spreadsheet, an LLM chat.
 
 The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner instead.
 
@@ -651,15 +651,15 @@ import { LineChart } from "@ngrok/mantle/line-chart";
 
 ## Decorative charts
 
-Set `decorative` to render the chart as a placeholder backdrop instead of real data — a synthetic line behind an empty state, an atmospheric hero graphic. A decorative chart keeps its visual rendering and animation but drops every layer that only makes sense for real data: it is hidden from assistive technology, removed from the tab order, and inert to pointer and keyboard, with no hover band, tooltip, sr-only data table, or live region. Because the values aren't information, `decorative` is mutually exclusive with the accessible-name props (`aria-label` / `aria-labelledby`) and the interaction props (`activeIndex`, `onActiveIndexChange`, `onDatumActivate`) — the type won't compile with both.
+Set `decorative` to render the chart as a placeholder backdrop instead of real data: a synthetic line behind an empty state, an atmospheric hero graphic. A decorative chart keeps its visual rendering and animation but drops every layer that only makes sense for real data: it is hidden from assistive technology, removed from the tab order, and inert to pointer and keyboard, with no hover band, tooltip, sr-only data table, or live region. Because the values aren't information, `decorative` is mutually exclusive with the accessible-name props (`aria-label` / `aria-labelledby`) and the interaction props (`activeIndex`, `onActiveIndexChange`, `onDatumActivate`); the type won't compile with both.
 
 A decorative chart also drops the categorical palette. Every series paints `--color-chart-decorative`, one neutral fill that outranks a series' `color` and `seriesSlot`. A backdrop carries no series identity, and a hue on values that are not information invites a reader to decode it.
 
-**That fill is what keeps an overlaid message readable.** `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card — 0.38 over the 4.5:1 floor for 14px text, so any tint under that copy spends the headroom. `--color-chart-decorative` is the darkest neutral step that still clears the floor in every theme: 4.56:1 in light, 4.93:1 in dark, 9.08:1 and 8.14:1 in the high-contrast pair. The message needs no scrim behind it, no dimming, and no blur. Redeclare the token on the Root to retune the fill — `className="[--color-chart-decorative:var(--color-neutral-100)]"` — and re-measure the copy against the value you pick.
+**That fill is what keeps an overlaid message readable.** `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card: 0.38 over the 4.5:1 floor for 14px text, so any tint under that copy spends the headroom. `--color-chart-decorative` is the darkest neutral step that still clears the floor in every theme: 4.56:1 in light, 4.93:1 in dark, 9.08:1 and 8.14:1 in the high-contrast pair. The message needs no scrim behind it, no dimming, and no blur. Redeclare the token on the Root to retune the fill (`className="[--color-chart-decorative:var(--color-neutral-100)]"`) and re-measure the copy against the value you pick.
 
-Reach for `decorative` over hand-rolled `inert` + CSS: it removes the interaction overlay at the source, so consumers never target chart internals to neutralize it. Keep the real empty-state message as a sibling of the chart (not inside it) so screen readers still announce it — the decorative chart itself is silent.
+Reach for `decorative` over hand-rolled `inert` + CSS: it removes the interaction overlay at the source, so consumers never target chart internals to neutralize it. Keep the real empty-state message as a sibling of the chart (not inside it) so screen readers still announce it; the decorative chart itself is silent.
 
-`decorative` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For a chart with real data that should stay readable through its data table but skip pointer/keyboard exploration, that's a different, not-yet-shipped concern — don't reach for `decorative`.
+`decorative` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For a chart with real data that should stay readable through its data table but skip pointer/keyboard exploration, that's a different, not-yet-shipped concern; don't reach for `decorative`.
 
 <Example>
 	<EmptyStateLineChartExample />
@@ -711,7 +711,7 @@ LineChart.Root
 
 ## Accessibility
 
-Every interactive chart must have an accessible name: either a direct `aria-label` or an `aria-labelledby` reference to a visible title (preferred when the chart sits under a heading — no drift-prone duplicated text). This is enforced at the type level — omitting both is a compile error, not a runtime warning. The name lands on the focusable interaction overlay — the chart's single named element (the canvas itself is hidden from assistive technology so the chart is never announced twice). [Decorative charts](#decorative-charts) are the exception: they carry no real data, so they take no accessible name and are hidden from assistive technology entirely.
+Every interactive chart must have an accessible name: either a direct `aria-label` or an `aria-labelledby` reference to a visible title (preferred when the chart sits under a heading — no drift-prone duplicated text). This is enforced at the type level: omitting both is a compile error, not a runtime warning. The name lands on the focusable interaction overlay, the chart's single named element (the canvas itself is hidden from assistive technology so the chart is never announced twice). [Decorative charts](#decorative-charts) are the exception: they carry no real data, so they take no accessible name and are hidden from assistive technology entirely.
 
 The chart is a single tab stop with a full keyboard point cursor:
 
@@ -724,11 +724,11 @@ The chart is a single tab stop with a full keyboard point cursor:
 | `Enter` / `Space`          | Activate the current point — fires `onDatumActivate`.                                                                                                                     |
 | `Escape`                   | Dismiss the crosshair and tooltip.                                                                                                                                        |
 
-Keyboard stepping announces the active point — the x value and every series value — through a debounced polite `aria-live` region, so rapid arrowing never floods the screen-reader queue.
+Keyboard stepping announces the active point (the x value and every series value) through a debounced polite `aria-live` region, so rapid arrowing never floods the screen-reader queue.
 
 Every chart also renders a screen-reader-only data table twin: one column for the x value and one per series, bounded to the first 150 rows with a caption stating the summarization (an unbounded table at 100,000 rows would be unusable to assistive tech anyway). Tooltips enhance, they never gate: every plotted value is reachable through the table or the keyboard point cursor.
 
-The twin doubles as the chart's machine-readable surface. Date row headers carry the exact ISO timestamp in a `<time dateTime>` attribute and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="line-chart-data-table"`.
+The twin doubles as the chart's machine-readable surface. Date row headers carry the exact ISO timestamp in a `<time dateTime>` attribute and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting. Assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="line-chart-data-table"`.
 
 ## API Reference
 

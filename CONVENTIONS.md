@@ -114,7 +114,7 @@ These rules are [ASD-STE100](https://www.asd-ste100.org/) Simplified Technical E
 - **Use the active voice.** Write `The processor drops the event.`, not `The event is dropped by the processor.` When the actor is unknown or irrelevant, the passive voice is correct.
 - **Use simple tenses only** — present, past, future, imperative, infinitive. Write `renders`, not `will be rendered`. Never use an `-ing` form as the main verb.
 - **Put one idea in each sentence.** When both halves stand alone, split the sentence on `and` or `but`.
-- **The em-dash aside and the prose semicolon are house style. They stay.** When the aside names an exception, a fallback, a consequence, or the mechanism, keep it — `the consumer's own id when they pass one, else the label's generated id`. When it restates the first half, cut it. An aside is not a second idea.
+- **Rewrite the em-dash aside as a parenthetical, a colon, a comma, or its own sentence. The prose semicolon is house style and stays.** When the aside names an exception, a fallback, a consequence, or the mechanism, keep the content and move it behind a colon or into parentheses (`the consumer's own id when they pass one, else the label's generated id`). When it restates the first half, cut it. An aside is not a second idea.
 - **Put the condition first.** Write `If the lease expires, the worker exits.`, not `The worker exits if the lease expires.`
 - **Do not drop words to shorten.** Keep the articles, subjects, and verbs inside a sentence. Concision removes ideas, not grammar: rewrite `// resets cursor on flush` as `// The flush resets the cursor.`
 - **A fragment is correct in three places, and the rule above does not reach them:**
@@ -174,6 +174,7 @@ Before you return text or report a diff complete, read what you wrote for:
 
 - a banned word that no carve-out covers
 - the passive voice, a compound tense, or an `-ing` form as the main verb
+- an em-dash aside that a parenthetical, a colon, a comma, or a split sentence should replace
 - a sentence with two independent ideas, or a condition at the end
 - a noun stack over three words, or an unexpanded abbreviation that is not exempt
 - a comment or summary that restates the identifier, the code, or itself

@@ -12,18 +12,18 @@ Edge-fade utilities for scroll containers. They mask the edge of an overflowing
 container so content gently fades out where there is more to scroll, and render
 cleanly once you reach that edge (or when there is no overflow at all).
 
-The fade is driven entirely by a CSS [scroll-driven animation](https://developer.mozilla.org/en-US/docs/Web/CSS/animation-timeline/scroll) —
+The fade is driven entirely by a CSS [scroll-driven animation](https://developer.mozilla.org/en-US/docs/Web/CSS/animation-timeline/scroll):
 there is no scroll listener, `ResizeObserver`, or JavaScript involved. Apply the
 utility directly to the scroll container itself (the element with
 `overflow-*-auto`).
 
 > [!NOTE]
 > Where `animation-timeline: scroll()` is unsupported (Firefox stable as of
-> mid-2026), the fade is absent — content is never clipped.
+> mid-2026), the fade is absent; content is never clipped.
 
 ## Both edges
 
-### Vertical — `scroll-fade-y`
+### Vertical (`scroll-fade-y`)
 
 Fades the top and bottom edges of a vertically scrolling container. Scroll the
 list to see each edge fade in and out.
@@ -61,7 +61,7 @@ list to see each edge fade in and out.
 <div className="scroll-fade-y h-56 overflow-y-auto">{/* tall content */}</div>
 ```
 
-### Horizontal — `scroll-fade-x`
+### Horizontal (`scroll-fade-x`)
 
 Fades the left and right edges of a horizontally scrolling container.
 
@@ -97,8 +97,8 @@ Fades the left and right edges of a horizontally scrolling container.
 
 ## Single edge
 
-When only one edge should fade — for example a sidebar that fades content
-scrolling under a sticky header but stays flush at the bottom — use a single-edge
+When only one edge should fade (for example, a sidebar that fades content
+scrolling under a sticky header but stays flush at the bottom), use a single-edge
 utility. The opposite edge always stays fully opaque.
 
 | Utility         | Axis       | Fades       |
@@ -108,7 +108,7 @@ utility. The opposite edge always stays fully opaque.
 | `scroll-fade-l` | horizontal | left edge   |
 | `scroll-fade-r` | horizontal | right edge  |
 
-Use them exactly like the axis utilities — put the edge class on the scroll
+Use them exactly like the axis utilities: put the edge class on the scroll
 container. The sidebar example above becomes:
 
 ```tsx
@@ -124,13 +124,13 @@ out against the flush opposite edge.
 
 ## Requirements
 
-- Apply the utility to the scroll container itself — the element that has
+- Apply the utility to the scroll container itself: the element that has
   `overflow-x-auto` / `overflow-y-auto`. The fade follows that element's own
   scroll position.
 - The utility uses `mask-image`, so it composes with the element's background and
   content but cannot be combined with a different `mask-image` on the same
   element.
-- The mask fades _everything_ the element paints — border and background
+- The mask fades _everything_ the element paints, border and background
   included. If the scroll container sits inside a visible card, keep the
   `border`, `background`, and `rounded-*` on a wrapper element (plus
   `overflow-hidden` to clip the corners) and apply the fade utility to an inner

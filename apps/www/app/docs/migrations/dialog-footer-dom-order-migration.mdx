@@ -1,12 +1,12 @@
 ---
 title: Dialog.Footer DOM Order Migration
-description: Dialog.Footer no longer reverses its children — reverse footer children to preserve their visual layout.
+description: Dialog.Footer no longer reverses its children; reverse footer children to preserve their visual layout.
 ---
 
 # Mantle Dialog.Footer DOM Order Migration Guide
 
 `@ngrok/mantle`'s `Dialog.Footer` no longer reverses its children. Previously it
-applied `flex-row-reverse`, which laid its children out **right-to-left** — so
+applied `flex-row-reverse`, which laid its children out **right-to-left**, so
 the DOM order was the visual mirror of what you wrote. It now uses normal
 `flex` with `justify-end`, so children render **left-to-right in DOM order**,
 matching `Sheet.Footer` and `AlertDialog.Footer`.
@@ -25,7 +25,7 @@ right). Footers with a single child need no change.
    renamed imports of the same component (e.g. `const { Footer } = Dialog;` or
    `import { Footer } from "@ngrok/mantle/dialog"`).
 2. For each `Dialog.Footer` with **two or more direct children**, reverse the
-   order of those direct children. Do not touch the children's internals — only
+   order of those direct children. Do not touch the children's internals, only
    their order.
 3. Leave `Dialog.Footer` instances with **zero or one** direct child unchanged.
 4. **Do not** touch `Sheet.Footer` or `AlertDialog.Footer`. They already render
@@ -41,7 +41,7 @@ right). Footers with a single child need no change.
 
 ---
 
-## Before → After
+## Before → after
 
 ### Two actions (most common)
 
@@ -107,7 +107,7 @@ right). Footers with a single child need no change.
 </Dialog.Footer>
 ```
 
-### Single action — no change
+### Single action: no change
 
 ```tsx
 // A footer with one child renders identically before and after. Leave it alone.
@@ -133,7 +133,7 @@ right). Footers with a single child need no change.
   unchanged.
 - **Custom `className` on `Dialog.Footer`.** If a footer overrode the layout
   (e.g. added its own `flex-row-reverse`, `flex-row`, or `justify-*`), review it
-  by hand — the base class change may interact with the override. The base now
+  by hand: the base class change may interact with the override. The base now
   contributes `flex justify-end`.
 - **`Dialog.Footer` with non-action content** (text, links, a left-aligned
   hint alongside buttons): verify the layout visually. If it relied on the
@@ -149,6 +149,6 @@ right). Footers with a single child need no change.
    order as before the change (typically secondary/cancel on the left, primary
    on the right).
 2. Confirm tab order now follows visual order left-to-right. (This is a
-   secondary benefit of the change — under the old reversal, keyboard tab order
+   secondary benefit of the change: under the old reversal, keyboard tab order
    did not match visual order.)
 3. Run the project's formatter, linter, type checker, and tests.

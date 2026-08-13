@@ -726,12 +726,12 @@ A canvas-rendered bar chart for comparing values across categories, with grouped
 
 ## When to use
 
-Use a `BarChart` to compare values across discrete categories — months, endpoints, plans. Bars encode value by length from a shared zero baseline, so the y-axis minimum is fixed at `0` and a truncated-bar axis is unrepresentable.
+Use a `BarChart` to compare values across discrete categories: months, endpoints, plans. Bars encode value by length from a shared zero baseline, so the y-axis minimum is fixed at `0` and a truncated-bar axis is unrepresentable.
 
-- Time-binned aggregates — requests per day, cost per week — are categories too: each bar is a bucket's total, so a dense daily chart like the one below belongs here.
+- Time-binned aggregates (requests per day, cost per week) are categories too: each bar is a bucket's total, so a dense daily chart like the one below belongs here.
 - Grouped bars (the default) compare series side by side within each category.
 - Stacked bars (`stacked` on the Root) show how parts compose each category's total.
-- Prefer `LineChart` for trends over continuous time — sampled measurements at every timestamp read as a stream, not buckets.
+- Prefer `LineChart` for trends over continuous time: sampled measurements at every timestamp read as a stream, not buckets.
 - Prefer `AreaChart` for cumulative composition over continuous time.
 
 **Keep it to eight series or fewer.** The default chart tokens are eight validated categorical slots. The ninth series onward all wear the neutral `--color-chart-other`, so a dozen access keys legend as a wall of identical gray. Eight is the palette's measured limit, not a style preference: all 28 pairs of the eight clear the colorblind-safe gates, and the closest pair clears its floor by 0.054 ΔE. A ninth hue has nowhere to sit. Rank by the window's total, keep the top seven, and sum the rest into one `"Other"` series. Series that belong to one thing are the narrow exception: they can share one `seriesSlot` and stay apart by `texture`. See [Sharing one color slot](#sharing-one-color-slot).
@@ -760,9 +760,9 @@ function foldTail(rows, keys) {
 
 Set the fold's own series to `seriesSlot="other"`, so it always reads as the tail rather than taking a categorical slot. Keep it last, so it sits at the far end of a stack.
 
-Compose everything inside `BarChart.Root`: gridlines, axes, one `BarChart.Bar` per series, and (on multi-series charts) the legend. The interaction layer — per-category hover band and tooltip, keyboard stepping, polite announcements, and an sr-only data table — ships with `Root` unconditionally.
+Compose everything inside `BarChart.Root`: gridlines, axes, one `BarChart.Bar` per series, and (on multi-series charts) the legend. The interaction layer (per-category hover band and tooltip, keyboard stepping, polite announcements, and an sr-only data table) ships with `Root` unconditionally.
 
-Density takes care of itself: this chart plots 91 daily bars, and the band axis thins its own labels — evenly spaced from the first day, skipped rather than rotated when they'd collide. `Date` x values format as dates in the tooltip, land as exact ISO timestamps in the data-table twin, and take a `tickFormat` for short axis labels.
+Density takes care of itself: this chart plots 91 daily bars, and the band axis thins its own labels (evenly spaced from the first day, skipped rather than rotated when they'd collide). `Date` x values format as dates in the tooltip, land as exact ISO timestamps in the data-table twin, and take a `tickFormat` for short axis labels.
 
 <Example>
 	<DailyBarChartExample />
@@ -804,7 +804,7 @@ function DailyBarChartExample() {
 
 ## Grouped bars
 
-The default layout draws one bar per series side by side within each category — the head-to-head comparison. Always compose `BarChart.Legend` on multi-series charts: series identity must never rely on color-matching alone.
+The default layout draws one bar per series side by side within each category: the head-to-head comparison. Always compose `BarChart.Legend` on multi-series charts: series identity must never rely on color-matching alone.
 
 <Example>
 	<GroupedBarChartExample />
@@ -839,7 +839,7 @@ function GroupedBarChartExample() {
 
 ## Stacked bars
 
-Add `stacked` to the Root to stack the composed series instead of grouping them. Bars stack from the baseline up in registration order: series that mount together register in composition order, so the first `BarChart.Bar` sits on the baseline and the last on top. A `Bar` that mounts later stacks on top of every series already registered, whatever its position in the JSX, and a `dataKey` that unmounts and returns resumes its original position. Reordering the parts of a mounted chart does not restack it — the position sticks to the `dataKey`, which is what keeps a series from jumping when you rename its `label`. The tooltip lists the far end of the stack first, so a vertical chart reads top-down and a horizontal one reads from the far end back to the baseline.
+Add `stacked` to the Root to stack the composed series instead of grouping them. Bars stack from the baseline up in registration order: series that mount together register in composition order, so the first `BarChart.Bar` sits on the baseline and the last on top. A `Bar` that mounts later stacks on top of every series already registered, whatever its position in the JSX, and a `dataKey` that unmounts and returns resumes its original position. Reordering the parts of a mounted chart does not restack it: the position sticks to the `dataKey`, which is what keeps a series from jumping when you rename its `label`. The tooltip lists the far end of the stack first, so a vertical chart reads top-down and a horizontal one reads from the far end back to the baseline.
 
 <Example>
 	<StackedBarChartExample />
@@ -934,7 +934,7 @@ function SparseStackBarChartExample() {
 
 ### Segments smaller than the surface gap
 
-A segment can be worth less than one pixel — a sub-cent line item against a dollar-scale axis. The gap carves at
+A segment can be worth less than one pixel: a sub-cent line item against a dollar-scale axis. The gap carves at
 most half of a segment's painted extent, so a short segment paints shorter rather than inverting or vanishing,
 and a taller segment never paints shorter than the one beside it. A segment that rounds to no ink at all cannot
 take the rounded cap from the segment a reader can see: March's `events` value is `$0.004`, so the column reads
@@ -975,7 +975,7 @@ function SubCentBarChartExample() {
 ## Diverging stacks
 
 Negative values pile downward from the zero baseline while positive values pile up, and each pile caps its own
-outer end. The axis grows below zero on its own — no `yDomain` override, because a bar chart's minimum is the
+outer end. The axis grows below zero on its own: no `yDomain` override, because a bar chart's minimum is the
 baseline, not the data floor. April is the month worth looking at: 62 endpoints added against 112 lost, so the
 net is negative and the two piles are visibly unequal. Series that carry good or bad meaning wear the semantic
 status colors here rather than categorical slots.
@@ -1032,7 +1032,7 @@ function DivergingBarChartExample() {
 
 An all-zero series is data, not an empty state: it reports that nothing happened. The value axis stays anchored
 at the baseline, so the zero line sits on the axis instead of floating through the middle of the plot. Keep the
-accessible name, the tooltip, and the data table — a reader and a screen reader both need to hear "0", not
+accessible name, the tooltip, and the data table: a reader and a screen reader both need to hear "0", not
 nothing. Reach for `decorative` only when the values are a synthetic backdrop behind an empty-state message; see
 [Decorative charts](#decorative-charts).
 
@@ -1067,7 +1067,7 @@ function NoUsageYetBarChartExample() {
 
 ## Regrouping a live chart
 
-A dashboard that regroups one chart — by provider, then by region, then by access key — cycles a new set of
+A dashboard that regroups one chart (by provider, then by region, then by access key) cycles a new set of
 `dataKey`s through the same Root. Automatic series take the unreserved slots in composition order. Each grouping
 therefore starts at slot 1 and paints four distinct validated colors.
 
@@ -1164,7 +1164,7 @@ function RegroupBarChartExample() {
 
 ## Fixed colors for known entities
 
-A chart of named things — AI model providers, cloud vendors, plan tiers — often wants one recognizable color per
+A chart of named things (AI model providers, cloud vendors, plan tiers) often wants one recognizable color per
 thing across every chart and every page. Declare the values as custom properties on the Root and pass each one to
 the matching series. The canvas resolves them through a probe inside the Root. The legend swatch and the tooltip
 stroke emit the same `var()`, so one declaration set covers all three surfaces.
@@ -1179,12 +1179,12 @@ both an app-defined color and a fixed identity position, use this combination.
 
 **So check your own palette against the eight slots, and against itself.** Series order decides whether a
 collision bites, because a stacked chart only ever puts consecutive series against each other. The example below
-runs OpenAI, Claude, Gemini, which clears both hard floors in all four themes — 23.45 ΔE at worst for full-color
+runs OpenAI, Claude, Gemini, which clears both hard floors in all four themes: 23.45 ΔE at worst for full-color
 vision, and 6.85 under simulated color vision deficiency (CVD). That 6.85 clears the CVD floor of 6 and misses the
 target of 8, which mantle's own palette treats as legal only with a second encoding, so the example gives Claude a
 `texture`. Swap Claude and Gemini and Claude lands against `chart-4` at 11.42 ΔE in dark and 7.17 in
 dark-high-contrast, under the full-color floor of 15. When a pair does collide, reorder the series, change the
-color, or add a `texture`. When several entities belong to one family — zones of a region, tiers of one plan —
+color, or add a `texture`. When several entities belong to one family (zones of a region, tiers of one plan),
 give them the same `seriesSlot` on purpose and keep them apart by `texture`. See
 [Sharing one color slot](#sharing-one-color-slot).
 
@@ -1254,7 +1254,7 @@ unreserved slot. When the entity must keep one built-in identity, set `seriesSlo
 
 ## Horizontal bars
 
-`orientation` names the direction the bars point, not an axis: `"vertical"` (the default) bars stand up, `"horizontal"` bars lie across. Set `orientation="horizontal"` to grow bars rightward from a left baseline with categories banded down the y axis. Reach for it when category labels are long (they read straight instead of angled or truncated under the axis) or when there are many categories to rank. `xKey` still names the category and `YAxis` still labels the value — only the drawing flips: the category axis moves to the left gutter, the value axis to the bottom, and the baseline, reference lines, and the two rung textures (`"perpendicular"` and `"parallel"`) all rotate to match. The `"grid"` lattice inks both rung directions, so it looks the same either way. Everything else — grouping, stacking, hover, keyboard, the data table — works unchanged.
+`orientation` names the direction the bars point, not an axis: `"vertical"` (the default) bars stand up, `"horizontal"` bars lie across. Set `orientation="horizontal"` to grow bars rightward from a left baseline with categories banded down the y axis. Reach for it when category labels are long (they read straight instead of angled or truncated under the axis) or when there are many categories to rank. `xKey` still names the category and `YAxis` still labels the value. Only the drawing flips: the category axis moves to the left gutter, the value axis to the bottom, and the baseline, reference lines, and the two rung textures (`"perpendicular"` and `"parallel"`) all rotate to match. The `"grid"` lattice inks both rung directions, so it looks the same either way. Everything else (grouping, stacking, hover, keyboard, the data table) works unchanged.
 
 <Example>
 	<HorizontalBarChartExample />
@@ -1291,9 +1291,9 @@ function HorizontalBarChartExample() {
 
 ## Textures
 
-When a multi-series or stacked chart can't rely on color alone — color-vision deficiencies, grayscale print and exports, forced-colors mode — give each series a fill `texture`. Textures are a redundant identity encoding alongside color: `"hatch"` (diagonal lines at 45°), `"hatch-reverse"` (its 135° mirror), `"crosshatch"` (both), `"perpendicular"` (rungs across the bar's length — horizontal lines on vertical bars), `"parallel"` (rungs along it — vertical lines on vertical bars), `"grid"` (both rung directions crossed), and `"dots"` (an offset dot field). The two rung textures flip with `orientation`, in opposite senses. Every other value draws the same whichever way the bars point, `"grid"` included — it is the orthogonal lattice against `"crosshatch"`'s diagonal one. Counting the default `"solid"`, eight textures match the palette's eight color slots. The ink is tone-on-tone — a darker step of each series' own fill, at equal loudness across slots — and every legend key wears its series' pattern, so the mapping never depends on hue.
+When a multi-series or stacked chart can't rely on color alone (color-vision deficiencies, grayscale print and exports, forced-colors mode), give each series a fill `texture`. Textures are a redundant identity encoding alongside color: `"hatch"` (diagonal lines at 45°), `"hatch-reverse"` (its 135° mirror), `"crosshatch"` (both), `"perpendicular"` (rungs across the bar's length: horizontal lines on vertical bars), `"parallel"` (rungs along it: vertical lines on vertical bars), `"grid"` (both rung directions crossed), and `"dots"` (an offset dot field). The two rung textures flip with `orientation`, in opposite senses. Every other value draws the same whichever way the bars point, `"grid"` included: it is the orthogonal lattice against `"crosshatch"`'s diagonal one. Counting the default `"solid"`, eight textures match the palette's eight color slots. The ink is tone-on-tone (a darker step of each series' own fill, at equal loudness across slots), and every legend key wears its series' pattern, so the mapping never depends on hue.
 
-Texture is opt-in and purposeful, never decorative. Mantle assigns none of it for you. A line, area, or scatter series takes the [point glyph](/components/charts/scatter-plot#point-shapes) paired to its series slot with no prop at all, and a bar carries no glyph, so the `texture` you set is a bar's only second channel. Keep solid fills when color alone already carries identity. When it does not, either leave the first series solid and texture the rest, or texture only the series in the pair that collides — the [Diverging stacks](#diverging-stacks) and [Fixed colors](#fixed-colors-for-known-entities) examples above take the targeted form.
+Texture is opt-in and purposeful, never decorative. Mantle assigns none of it for you. A line, area, or scatter series takes the [point glyph](/components/charts/scatter-plot#point-shapes) paired to its series slot with no prop at all, and a bar carries no glyph, so the `texture` you set is a bar's only second channel. Keep solid fills when color alone already carries identity. When it does not, either leave the first series solid and texture the rest, or texture only the series in the pair that collides. The [Diverging stacks](#diverging-stacks) and [Fixed colors](#fixed-colors-for-known-entities) examples above take the targeted form.
 
 <Example>
 	<TexturedBarChartExample />
@@ -1337,7 +1337,7 @@ function TexturedBarChartExample() {
 
 Several series can share one `seriesSlot`. The group reserves that slot once: the three zones assigned to slot 1 below still leave slot 2 for `eu-west-1`.
 
-When several series belong to one thing — zones of a region, shards of a cluster, tiers of one plan — reach for it. Series that share no family belong in one `"Other"` series instead. Eight is a measured ceiling, not a style preference: the gates validate all 28 pairs of the eight tokens, so a ninth hue has nowhere to sit. Every pair clears, so grouped bars — which compare every series to every other — are as safe as a stack. A shared slot plus one `texture` per member encodes more series than the slots alone reach. It also reads as the family it is.
+When several series belong to one thing (zones of a region, shards of a cluster, tiers of one plan), reach for it. Series that share no family belong in one `"Other"` series instead. Eight is a measured ceiling, not a style preference: the gates validate all 28 pairs of the eight tokens, so a ninth hue has nowhere to sit. Every pair clears, so grouped bars (which compare every series to every other) are as safe as a stack. A shared slot plus one `texture` per member encodes more series than the slots alone reach. It also reads as the family it is.
 
 Two rules make it work.
 
@@ -1388,7 +1388,7 @@ function SharedSlotBarChartExample() {
 
 ## Single series
 
-A single-series chart draws every bar in one hue — the first categorical slot, `--color-chart-1`. One series means one color: never color bars by their own value, and never assign each category its own hue — that adds a false second encoding to data the bar lengths already show. There is no legend either; `BarChart.Legend` renders nothing for a single series because the chart's title already names it. Here the visible title carries the accessible name via `aria-labelledby`.
+A single-series chart draws every bar in one hue: the first categorical slot, `--color-chart-1`. One series means one color: never color bars by their own value, and never assign each category its own hue; that adds a false second encoding to data the bar lengths already show. There is no legend either; `BarChart.Legend` renders nothing for a single series because the chart's title already names it. Here the visible title carries the accessible name via `aria-labelledby`.
 
 <Example>
 	<SingleSeriesBarChartExample />
@@ -1428,7 +1428,7 @@ function SingleSeriesBarChartExample() {
 
 ## Integer counts
 
-Counts are integers, and the value axis knows it: when every series value is a whole number, ticks step by whole numbers — this chart's `[0, 3]` domain ticks at 0, 1, 2, 3 rather than inventing a meaningless "1.5 failures" gridline. Nothing to configure; the behavior follows the data, so a single fractional value (an average, a rate) restores sub-integer ticks. The same guarantee covers the value axis of horizontal bars and linear x axes on the other chart families.
+Counts are integers, and the value axis knows it: when every series value is a whole number, ticks step by whole numbers. This chart's `[0, 3]` domain ticks at 0, 1, 2, 3 rather than inventing a meaningless "1.5 failures" gridline. Nothing to configure; the behavior follows the data, so a single fractional value (an average, a rate) restores sub-integer ticks. The same guarantee covers the value axis of horizontal bars and linear x axes on the other chart families.
 
 <Example>
 	<IntegerCountsBarChartExample />
@@ -1495,7 +1495,7 @@ function ReferenceLineBarChartExample() {
 
 ## Custom tooltip
 
-The tooltip is part of `BarChart.Root`'s interaction contract and is always on — composing `BarChart.Tooltip` never adds or removes it, it only customizes the readout. Use `labelFormat` and `valueFormat` to format the rows, `footer` to append a hint below them, or the render-prop `children` to replace the content entirely.
+The tooltip is part of `BarChart.Root`'s interaction contract and is always on: composing `BarChart.Tooltip` never adds or removes it, it only customizes the readout. Use `labelFormat` and `valueFormat` to format the rows, `footer` to append a hint below them, or the render-prop `children` to replace the content entirely.
 
 <Example>
 	<CustomTooltipBarChartExample />
@@ -1633,7 +1633,7 @@ function StackedActivationBarChartExample() {
 
 ## Controlled hover
 
-Pass `activeIndex` with `onActiveIndexChange` to control the active category from outside the chart — pin a category from a linked table row, or sync hover across sibling charts. Omit `activeIndex` for uncontrolled hover.
+Pass `activeIndex` with `onActiveIndexChange` to control the active category from outside the chart: pin a category from a linked table row, or sync hover across sibling charts. Omit `activeIndex` for uncontrolled hover.
 
 <Example>
 	<ControlledHoverBarChartExample />
@@ -1691,7 +1691,7 @@ function ControlledHoverBarChartExample() {
 
 ## Pending data
 
-Set `pending` while a refetch is in flight: the chart holds the previous frame at reduced opacity instead of unmounting. Never swap a chart that has rendered once for a skeleton — the held frame keeps the axes, scales, and the user's place stable while fresh data loads.
+Set `pending` while a refetch is in flight: the chart holds the previous frame at reduced opacity instead of unmounting. Never swap a chart that has rendered once for a skeleton: the held frame keeps the axes, scales, and the user's place stable while fresh data loads.
 
 <Example>
 	<PendingBarChartExample />
@@ -1744,9 +1744,9 @@ function PendingBarChartExample() {
 
 ## Live data
 
-Live values on a bar chart update in place — the categories are fixed, so bars never scroll. Each update morphs every bar from its current height to its new value with a per-datum tween, while the y axis glides to fit: the domain continuously chases its target and the value tick labels fade between tick sets instead of popping. `prefers-reduced-motion` snaps every update instantly. When the live dimension is time — a sliding window of appends — reach for a [`LineChart`](/components/charts/line-chart) or [`AreaChart`](/components/charts/area-chart) instead: bars at every timestamp read as categories, not a stream.
+Live values on a bar chart update in place: the categories are fixed, so bars never scroll. Each update morphs every bar from its current height to its new value with a per-datum tween, while the y axis glides to fit: the domain continuously chases its target and the value tick labels fade between tick sets instead of popping. `prefers-reduced-motion` snaps every update instantly. When the live dimension is time (a sliding window of appends), reach for a [`LineChart`](/components/charts/line-chart) or [`AreaChart`](/components/charts/area-chart) instead: bars at every timestamp read as categories, not a stream.
 
-This demo recomputes all six regions every 400ms from a pure function of a tick counter — offset sine waves per region — so it renders deterministically; a real chart would replace `data` as new readings arrive.
+This demo recomputes all six regions every 400ms from a pure function of a tick counter (offset sine waves per region), so it renders deterministically; a real chart would replace `data` as new readings arrive.
 
 <Example>
 	<LiveBarChartExample />
@@ -1795,7 +1795,7 @@ function LiveBarChartExample() {
 
 ## Copy as markdown
 
-`BarChart.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table — the category column plus one column per series in paint order (plain un-separated numbers, an em dash for gaps) — pasteable into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
+`BarChart.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table: the category column plus one column per series in paint order (plain un-separated numbers, an em dash for gaps). The table pastes into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
 
 <Example>
 	<CopyMarkdownExample />
@@ -1831,15 +1831,15 @@ function CopyMarkdownExample() {
 
 ## Decorative charts
 
-Set `decorative` to render the chart as a placeholder backdrop instead of real data — synthetic bars behind an empty state, an atmospheric hero graphic. A decorative chart keeps its visual rendering and animation but drops every layer that only makes sense for real data: it is hidden from assistive technology, removed from the tab order, and inert to pointer and keyboard, with no hover band, tooltip, sr-only data table, or live region. Because the values aren't information, `decorative` is mutually exclusive with the accessible-name props (`aria-label` / `aria-labelledby`) and the interaction props (`activeIndex`, `onActiveIndexChange`, `onDatumActivate`) — the type won't compile with both.
+Set `decorative` to render the chart as a placeholder backdrop instead of real data: synthetic bars behind an empty state, an atmospheric hero graphic. A decorative chart keeps its visual rendering and animation but drops every layer that only makes sense for real data: it is hidden from assistive technology, removed from the tab order, and inert to pointer and keyboard, with no hover band, tooltip, sr-only data table, or live region. Because the values aren't information, `decorative` is mutually exclusive with the accessible-name props (`aria-label` / `aria-labelledby`) and the interaction props (`activeIndex`, `onActiveIndexChange`, `onDatumActivate`); the type won't compile with both.
 
 A decorative chart also drops the categorical palette. Every series paints `--color-chart-decorative`, one neutral fill that outranks a series' `color` and `seriesSlot`. A backdrop carries no series identity, and a hue on values that are not information invites a reader to decode it.
 
-**That fill is what keeps an overlaid message readable.** `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card — 0.38 over the 4.5:1 floor for 14px text, so any tint under that copy spends the headroom. `--color-chart-decorative` is the darkest neutral step that still clears the floor in every theme: 4.56:1 in light, 4.93:1 in dark, 9.08:1 and 8.14:1 in the high-contrast pair. The message needs no scrim behind it, no dimming, and no blur. Redeclare the token on the Root to retune the fill — `className="[--color-chart-decorative:var(--color-neutral-100)]"` — and re-measure the copy against the value you pick.
+**That fill is what keeps an overlaid message readable.** `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card (0.38 over the 4.5:1 floor for 14px text), so any tint under that copy spends the headroom. `--color-chart-decorative` is the darkest neutral step that still clears the floor in every theme: 4.56:1 in light, 4.93:1 in dark, 9.08:1 and 8.14:1 in the high-contrast pair. The message needs no scrim behind it, no dimming, and no blur. Redeclare the token on the Root to retune the fill (`className="[--color-chart-decorative:var(--color-neutral-100)]"`) and re-measure the copy against the value you pick.
 
-Reach for `decorative` over hand-rolled `inert` + CSS: it removes the interaction overlay at the source, so consumers never target chart internals to neutralize it. Keep the real empty-state message as a sibling of the chart (not inside it) so screen readers still announce it — the decorative chart itself is silent.
+Reach for `decorative` over hand-rolled `inert` + CSS: it removes the interaction overlay at the source, so consumers never target chart internals to neutralize it. Keep the real empty-state message as a sibling of the chart (not inside it) so screen readers still announce it; the decorative chart itself is silent.
 
-`decorative` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For a chart with real data that should stay readable through its data table but skip pointer/keyboard exploration, that's a different, not-yet-shipped concern — don't reach for `decorative`.
+`decorative` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For a chart with real data that should stay readable through its data table but skip pointer/keyboard exploration, that's a different, not-yet-shipped concern; don't reach for `decorative`.
 
 <Example>
 	<EmptyStateBarChartExample />
@@ -1891,7 +1891,7 @@ BarChart.Root
 
 ## Accessibility
 
-Every interactive chart must have an accessible name — either a direct `aria-label` or an `aria-labelledby` reference to a visible title. This is enforced at the type level: `BarChart.Root` does not compile without exactly one of the two. Prefer `aria-labelledby` when the chart sits under a visible heading, so the name never drifts from the title. The name lands on the focusable interaction overlay — the chart's single named element (the canvas itself is hidden from assistive technology so the chart is never announced twice). [Decorative charts](#decorative-charts) are the exception: they carry no real data, so they take no accessible name and are hidden from assistive technology entirely.
+Every interactive chart must have an accessible name: either a direct `aria-label` or an `aria-labelledby` reference to a visible title. This is enforced at the type level: `BarChart.Root` does not compile without exactly one of the two. Prefer `aria-labelledby` when the chart sits under a visible heading, so the name never drifts from the title. The name lands on the focusable interaction overlay, the chart's single named element (the canvas itself is hidden from assistive technology so the chart is never announced twice). [Decorative charts](#decorative-charts) are the exception: they carry no real data, so they take no accessible name and are hidden from assistive technology entirely.
 
 The chart is a single Tab stop with a full keyboard model, and it exposes usage instructions to assistive technology via `aria-describedby`:
 
@@ -1903,9 +1903,9 @@ The chart is a single Tab stop with a full keyboard model, and it exposes usage 
 
 Keyboard stepping announces the category and each series' value through a debounced `aria-live="polite"` region, so rapid arrowing doesn't flood the screen-reader queue.
 
-`BarChart.Root` also renders an sr-only data table twin of the chart — the category column plus one column per series — bounded to the first 150 rows, with a caption stating the summarization when the data is longer. Tooltips enhance, they never gate: every plotted value is reachable through the table or the keyboard point cursor, and no part removal can strip keyboard access to the data.
+`BarChart.Root` also renders an sr-only data table twin of the chart (the category column plus one column per series), bounded to the first 150 rows, with a caption stating the summarization when the data is longer. Tooltips enhance, they never gate: every plotted value is reachable through the table or the keyboard point cursor, and no part removal can strip keyboard access to the data.
 
-The twin doubles as the chart's machine-readable surface: value cells carry the raw number in `data-value` (and date row headers, where present, the exact ISO timestamp in `<time dateTime>`), so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="bar-chart-data-table"`.
+The twin doubles as the chart's machine-readable surface: value cells carry the raw number in `data-value` (and date row headers, where present, the exact ISO timestamp in `<time dateTime>`), so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting. Assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="bar-chart-data-table"`.
 
 ## API Reference
 

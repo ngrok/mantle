@@ -81,7 +81,7 @@ timeSortingByDirection["asc"]; // "oldest-to-newest"
 timeSortingByDirection["desc"]; // "newest-to-oldest"
 ```
 
-## Type Guards
+## Type guards
 
 ### `isSortingMode(value)`
 
@@ -116,7 +116,7 @@ isTimeSortingDirection("asc"); // false
 isTimeSortingDirection("foo"); // false
 ```
 
-## Runtime Value Helpers (`$` prefix)
+## Runtime value helpers (`$` prefix)
 
 The `$`-prefixed helpers are identity functions that return a runtime value with the correct inferred type. Useful for deriving typed values from string literals without a `as const` cast.
 
@@ -152,7 +152,7 @@ $timeSortingDirection("oldest-to-newest"); // "oldest-to-newest"
 $timeSortingDirection("newest-to-oldest"); // "newest-to-oldest"
 ```
 
-## Date Comparators
+## Date comparators
 
 ### `compareDatesNewestToOldest(a, b)`
 

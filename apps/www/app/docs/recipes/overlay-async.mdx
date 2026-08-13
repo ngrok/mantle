@@ -8,12 +8,12 @@ import { UserOverlayDemo } from "~/features/overlay-async-demo";
 
 # Overlays + Async Data (React Query)
 
-Opening a floating overlay — a [`Sheet`](/components/overlays/sheet), a [`Dialog`](/components/overlays/dialog), or an [`Alert Dialog`](/components/overlays/alert-dialog) — is a navigation: the user has already committed to seeing more context by clicking the trigger. When the overlay's body needs remote data, fetching before opening turns a 404 or 500 into a silent drop back to the parent view, and a spinner on the trigger leaves the click feeling unregistered. This recipe mounts the shell immediately and resolves data inside it, so every click produces forward motion and every error stays in the place the user navigated to.
+Opening a floating overlay (a [`Sheet`](/components/overlays/sheet), a [`Dialog`](/components/overlays/dialog), or an [`Alert Dialog`](/components/overlays/alert-dialog)) is a navigation: the user has already committed to seeing more context by clicking the trigger. When the overlay's body needs remote data, fetching before opening turns a 404 or 500 into a silent drop back to the parent view, and a spinner on the trigger leaves the click feeling unregistered. This recipe mounts the shell immediately and resolves data inside it, so every click produces forward motion and every error stays in the place the user navigated to.
 
-The pattern is identical across all three overlays — only the shell changes. The query hook, the body-state components, and the retry policy below are shared verbatim; the demo lets you host them in any of the three shells.
+The pattern is identical across all three overlays: only the shell changes. The query hook, the body-state components, and the retry policy below are shared verbatim; the demo lets you host them in any of the three shells.
 
 > [!IMPORTANT]
-> Don't copy this UI verbatim. This recipe teaches how to **reason about asynchronous server state** — mount the shell on the click, branch only the body, encode the retry policy, gate actions on success — so the overlay paints immediately and perceived loading time stays low. The user-details layout, copy, and demo controls are deliberately plain stand-ins (the dialog and alert-dialog bodies in particular are not layouts you'd ship as-is); swap them for your product's real content and visual design, and keep the state structure.
+> Don't copy this UI verbatim. This recipe teaches how to **reason about asynchronous server state** (mount the shell on the click, branch only the body, encode the retry policy, gate actions on success) so the overlay paints immediately and perceived loading time stays low. The user-details layout, copy, and demo controls are deliberately plain stand-ins (the dialog and alert-dialog bodies in particular are not layouts you'd ship as-is); swap them for your product's real content and visual design, and keep the state structure.
 
 <Example className="rounded-b-lg border-b">
 	<UserOverlayDemo />
@@ -21,10 +21,10 @@ The pattern is identical across all three overlays — only the shell changes. T
 
 ## Why open the overlay first?
 
-- **The open should feel instant, especially on slow networks.** The user already committed to the navigation by clicking the trigger. Waiting for the request to resolve before opening means dead air at the parent view, and the wait scales with request latency — long-running endpoints or slow connections turn into seconds where users can't tell whether the click registered. Mounting the shell immediately decouples click feedback from request time.
-- **No flashing across the open → load → close → reopen cycle.** Within a single open, only the overlay's `Body` region branches between pending, success, and error, so header, close, and footer stay mounted and layout shift is contained to one region. Across opens, TanStack Query's cache lets a re-trigger after a successful fetch skip the pending state entirely — fetch-then-open does the opposite, re-running the request on every trigger and flashing the chrome in only after each fetch resolves.
+- **The open should feel instant, especially on slow networks.** The user already committed to the navigation by clicking the trigger. Waiting for the request to resolve before opening means dead air at the parent view, and the wait scales with request latency: long-running endpoints or slow connections turn into seconds where users can't tell whether the click registered. Mounting the shell immediately decouples click feedback from request time.
+- **No flashing across the open → load → close → reopen cycle.** Within a single open, only the overlay's `Body` region branches between pending, success, and error, so header, close, and footer stay mounted and layout shift is contained to one region. Across opens, TanStack Query's cache lets a re-trigger after a successful fetch skip the pending state entirely; fetch-then-open does the opposite, re-running the request on every trigger and flashing the chrome in only after each fetch resolves.
 - **Errors stay where the user intended to be.** An inline error inside the overlay preserves the navigation and keeps recovery actions in reach. Closing on error forces a re-trigger and re-orientation from the parent view.
-- **Actions gate on data, not hope.** The footer's primary action — "Save changes" in a sheet or dialog, the destructive confirm in an alert dialog — stays disabled until the query succeeds. This matters most for `AlertDialog`: confirming a destructive action against a record that failed to load is never safe.
+- **Actions gate on data, not hope.** The footer's primary action ("Save changes" in a sheet or dialog, the destructive confirm in an alert dialog) stays disabled until the query succeeds. This matters most for `AlertDialog`: confirming a destructive action against a record that failed to load is never safe.
 - **Retry is a product decision, not a default.** Transient `500` responses are worth another attempt; a definitive `404` is not. The query hook owns that policy so the view stays free of conditional retry logic and the intent stays reviewable in one place.
 
 ## What this covers
@@ -35,7 +35,7 @@ The pattern is identical across all three overlays — only the shell changes. T
 | 404 error  | Waits 1.5 seconds once, then renders a not-found empty state.                     |
 | 500 error  | Waits 1.5 seconds per request, retries twice, then renders a service empty state. |
 
-The demo's segmented control picks which shell hosts the async body — the same three scenarios run identically in a `Sheet`, a `Dialog`, and an `AlertDialog`.
+The demo's segmented control picks which shell hosts the async body; the same three scenarios run identically in a `Sheet`, a `Dialog`, and an `AlertDialog`.
 
 The route is also available as plain markdown at [`/recipes/overlay-async.md`](/recipes/overlay-async.md), so humans and LLM tools can fetch the same recipe without scraping the rendered page.
 
@@ -54,17 +54,17 @@ Parent selection state
 
 The "Why" section above is the user-perceived case for the pattern. These rules are how to wire it up so the code stays consistent with that intent.
 
-1. **Mount the overlay on the click event.** Set selection state synchronously in the handler — never gate it on a fetch result.
+1. **Mount the overlay on the click event.** Set selection state synchronously in the handler; never gate it on a fetch result.
 2. **Branch only the body on query state.** `query.isPending`, `query.isError`, and `query.isSuccess` belong inside the overlay's `Body` region. Header, close button, and footer stay outside the conditional.
-3. **Factor the query into a hook.** `useUserQuery` owns fetching, retry, stale-time, and cancellation. The components that render query results (the shells, `UserDetailsBody`) consume a `UseQueryResult` and never reach into TanStack Query directly. The cache-observability bits in `UserOverlayDemo` (the `useQueryClient` subscription and `removeQueries` reset) are demo-only — production overlays shouldn't touch the cache.
+3. **Factor the query into a hook.** `useUserQuery` owns fetching, retry, stale-time, and cancellation. The components that render query results (the shells, `UserDetailsBody`) consume a `UseQueryResult` and never reach into TanStack Query directly. The cache-observability bits in `UserOverlayDemo` (the `useQueryClient` subscription and `removeQueries` reset) are demo-only; production overlays shouldn't touch the cache.
 4. **Encode the retry policy in `useQuery`.** Return `false` from `retry` for terminal errors like `404`. Return a bounded `failureCount` check for transient ones like `500`.
-5. **Match the retry UI to the retry policy.** Show a retry button on recoverable errors. Omit it on terminal ones — retrying a definitive not-found adds latency without recovery.
+5. **Match the retry UI to the retry policy.** Show a retry button on recoverable errors. Omit it on terminal ones: retrying a definitive not-found adds latency without recovery.
 
-## Complete Recipe
+## Complete recipe
 
 The worked example below uses `Sheet` as the shell; the [next section](#swapping-the-shell) shows the `Dialog` and `AlertDialog` shells consuming the exact same hook and body components. Copy the UI recipe into a client component that already has a `QueryClientProvider` mounted near the app root. The demo-only mock API is shown in the appendix below; in production, replace that import with your real API client and error type.
 
-What transfers is the **structure**: the synchronous mount, the single branching region, the hook-owned retry policy, and the success-gated actions. What doesn't is the markup inside each state — `UserDetails`, the skeleton shapes, and the header/footer copy are demo content standing in for your real UI.
+What transfers is the **structure**: the synchronous mount, the single branching region, the hook-owned retry policy, and the success-gated actions. What doesn't is the markup inside each state: `UserDetails`, the skeleton shapes, and the header/footer copy are demo content standing in for your real UI.
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -537,9 +537,9 @@ function shouldRetryUserQuery({ error, failureCount }: ShouldRetryUserQueryOptio
 }
 ```
 
-## Swapping the Shell
+## Swapping the shell
 
-Everything above the shell — `useUserQuery`, `UserDetailsBody`, the loading/error/success components, the retry policy — is overlay-agnostic. To host the same async body in a different overlay, swap only the shell component. The live demo at the top of this page renders all three shells from the same parent selection state behind a segmented control.
+Everything above the shell (`useUserQuery`, `UserDetailsBody`, the loading/error/success components, the retry policy) is overlay-agnostic. To host the same async body in a different overlay, swap only the shell component. The live demo at the top of this page renders all three shells from the same parent selection state behind a segmented control.
 
 ### Dialog
 
@@ -595,7 +595,7 @@ export function UserDialog({ onClose, scenario, userId }: UserOverlayProps) {
 
 ### Alert Dialog
 
-An `AlertDialog` confirms a consequential — usually destructive — action, which sharpens the pattern's stakes: the record the user is about to act on is exactly the thing being fetched. Two rules are non-negotiable here:
+An `AlertDialog` confirms a consequential (usually destructive) action, which sharpens the pattern's stakes: the record the user is about to act on is exactly the thing being fetched. Two rules are non-negotiable here:
 
 - **The destructive `Action` stays disabled until the query succeeds.** Confirming against a record that hasn't loaded (or definitively doesn't exist) is never safe. On a 404, the disabled action plus the inline not-found state is the correct terminal UI.
 - **Errors never auto-close the confirmation.** The user chose to act; an inline error with a retry (for transient failures) keeps them in that intent instead of silently dropping it.
@@ -646,7 +646,7 @@ export function UserAlertDialog({ onClose, scenario, userId }: UserOverlayProps)
 }
 ```
 
-## Mock API Appendix
+## Mock API appendix
 
 The code above imports a mock API module so the overlays can demonstrate happy, 404, and 500 states without a backend. In production, replace this file with your real API client and preserve the same query behavior: accept `signal`, throw typed errors, and let the UI decide which errors are retryable.
 
@@ -802,11 +802,11 @@ function createDemoRequestId({ status, userId }: CreateDemoRequestIdOptions): st
 }
 ```
 
-## Production Notes
+## Production notes
 
-- Keep each overlay shell in one component and keep API details behind `fetchUser` or your app's equivalent data client. The shell is the only overlay-specific code — everything else is shared.
+- Keep each overlay shell in one component and keep API details behind `fetchUser` or your app's equivalent data client. The shell is the only overlay-specific code; everything else is shared.
 - Use the `signal` argument from TanStack Query's `queryFn` when your API client supports cancellation.
 - Tune `retry` by status code. This demo does not retry 404 because the server already answered definitively. Retry not-found responses only when eventual consistency is expected.
-- Gate footer actions on `query.isSuccess`. For `AlertDialog` specifically, never enable the destructive `Action` while the query is pending or errored — the confirmation is only meaningful against loaded data.
-- Let `staleTime` and `gcTime` govern cache lifetime; the overlay does not need to manually evict on close. The demo's "Clear cache" button only exists to make the cache state observable in docs — production overlays typically don't surface a manual reset.
+- Gate footer actions on `query.isSuccess`. For `AlertDialog` specifically, never enable the destructive `Action` while the query is pending or errored: the confirmation is only meaningful against loaded data.
+- Let `staleTime` and `gcTime` govern cache lifetime; the overlay does not need to manually evict on close. The demo's "Clear cache" button only exists to make the cache state observable in docs; production overlays typically don't surface a manual reset.
 - Prefer explicit query state branches here over `useSuspenseQuery`. Suspense works, but error recovery requires an additional reset boundary and is harder to copy into route-controlled overlays.

@@ -19,7 +19,7 @@ Key design principle: **syntax highlighting never runs in the browser**. It happ
 
 ---
 
-## Migrating from PrismJS (Before → After)
+## Migrating from PrismJS (before → after)
 
 If your app currently uses PrismJS (directly or via `react-syntax-highlighter`), here are the patterns you need to find and replace.
 
@@ -112,7 +112,7 @@ pnpm remove prismjs react-syntax-highlighter @types/prismjs @types/react-syntax-
 
 ---
 
-## Use Case 1: React 19 + Vite + Node Server (e.g. React Router 7 / Express)
+## Use case 1: React 19 + Vite + Node server (e.g. React Router 7 / Express)
 
 This is the most common setup. You have a Vite-built React app served by a Node.js server (React Router 7, Express, Fastify, etc.). You want:
 
@@ -166,7 +166,7 @@ mantleCodeBlockPlugins({
 });
 ```
 
-If you don't use MDX, you can disable it: `mantleCodeBlockPlugins({ mdx: false })`.
+If you don't use MDX, disable it: `mantleCodeBlockPlugins({ mdx: false })`.
 If you only use MDX and not tagged templates: `mantleCodeBlockPlugins({ runtime: false })`.
 
 ### 3. Use CodeBlock in components (build-time highlighting)
@@ -376,7 +376,7 @@ const z = x + y;
 
 ---
 
-## Use Case 2: React 19 + Vite + MDX Static Content
+## Use case 2: React 19 + Vite + MDX static content
 
 This is for static sites or documentation sites where all code is known at build time in MDX files. No server-side highlighting is needed.
 
@@ -453,13 +453,13 @@ If you also have code blocks in React components (not MDX), use `mantleCode` tag
 
 ### What you DON'T need
 
-- No `@ngrok/mantle-server-syntax-highlighter` — all highlighting is build-time
+- No `@ngrok/mantle-server-syntax-highlighter`: all highlighting is build-time
 - No API routes for highlighting
 - No `createMantleCodeBlockValue` unless you're composing values manually in React components
 
 ---
 
-## Use Case 3: Vite SPA + Go Server
+## Use case 3: Vite SPA + Go server
 
 This is for apps where the frontend is a Vite-built React SPA and the backend is a Go server. The Go server cannot run Shiki (it's JavaScript/Wasm), so you have two options for dynamic code:
 
@@ -495,7 +495,7 @@ export default defineConfig({
 
 ### 3. Use CodeBlock in components (build-time highlighting)
 
-Exactly the same as Use Case 1, Step 3. `mantleCode` tagged templates are transformed at Vite build time — the Go server is not involved.
+Exactly the same as Use Case 1, Step 3. `mantleCode` tagged templates are transformed at Vite build time; the Go server is not involved.
 
 ```tsx
 import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
@@ -525,7 +525,7 @@ function TrafficPolicyExample() {
 }
 ```
 
-### 4. Dynamic code highlighting (Option A: plain text fallback)
+### 4. Dynamic code highlighting (option A: plain text fallback)
 
 When `~preHtml` is omitted, CodeBlock falls back to rendering the code as escaped plain text (no colors, but still functional with copy button, line numbers, etc.).
 
@@ -550,7 +550,7 @@ function DynamicCodeBlock({ code, language }: { code: string; language: string }
 }
 ```
 
-### 4. Dynamic code highlighting (Option B: sidecar highlight service)
+### 4. Dynamic code highlighting (option B: sidecar highlight service)
 
 Run a small Node.js sidecar alongside your Go server that uses `@ngrok/mantle-server-syntax-highlighter` to highlight code on demand. A minimal service should expose an HTTP endpoint like the following:
 
@@ -642,9 +642,9 @@ As of this release, `@ngrok/mantle` requires `react@^19` and `react-dom@^19`.
 
 ---
 
-## Component Reference
+## Component reference
 
-### Compound Component Structure
+### Compound component structure
 
 ```tsx
 <CodeBlock.Root>
@@ -668,7 +668,7 @@ As of this release, `@ngrok/mantle` requires `react@^19` and `react-dom@^19`.
 </CodeBlock.Root>
 ```
 
-### Tabbed Code Blocks
+### Tabbed code blocks
 
 Use tabs when showing the same concept in multiple languages:
 
@@ -701,7 +701,7 @@ function MultiLanguageExample() {
 
 For controlled tabs, use `activeTab` and `onActiveTabChange` instead of `defaultTab`.
 
-### Collapsible Code Blocks
+### Collapsible code blocks
 
 Use `ExpanderButton` for long code blocks. The collapsed height is approximately 4 lines (~13.6rem):
 
@@ -727,13 +727,13 @@ In MDX, use the `collapsible` meta key:
 ```
 ````
 
-### Supported Languages (28)
+### Supported languages (28)
 
 `bash`, `cs`, `csharp`, `css`, `go`, `html`, `java`, `javascript`, `js`, `json`, `jsx`, `plain`, `plaintext`, `py`, `python`, `rb`, `ruby`, `rust`, `sh`, `shell`, `text`, `ts`, `tsx`, `txt`, `typescript`, `xml`, `yaml`, `yml`
 
 Many are aliases: `js`↔`javascript`, `ts`↔`typescript`, `py`↔`python`, `rb`↔`ruby`, `sh`↔`bash`↔`shell`, `cs`↔`csharp`, `yml`↔`yaml`, `plain`↔`plaintext`↔`text`↔`txt`. Unsupported languages fall back to `"text"` (plain text, no highlighting).
 
-### Key Imports
+### Key imports
 
 ```tsx
 // Components and factories
@@ -770,7 +770,7 @@ import { mantleCodeBlockPlugins } from "@ngrok/mantle-vite-plugins";
 import { createMantleServerSyntaxHighlighter } from "@ngrok/mantle-server-syntax-highlighter";
 ```
 
-### Highlight Server API
+### Highlight server API
 
 The sidecar highlight server accepts `POST /` with:
 
@@ -786,7 +786,7 @@ Responds with `{ code, html, language, highlightLines, lineNumberStart, showLine
 
 Health check: `GET /health` returns `200 {"status":"ok"}` when ready, `503 {"status":"starting"}` during Shiki preload.
 
-### CSS / Theming
+### CSS / theming
 
 CodeBlock uses Mantle's built-in CSS variable theme (`mantle-css-variables`). Import the Mantle CSS in your app:
 
@@ -798,11 +798,11 @@ The Mantle `ThemeProvider` handles light/dark mode automatically. The highlighte
 
 ---
 
-## Troubleshooting & Gotchas
+## Troubleshooting & gotchas
 
 ### `mantleCode` returns plain text (no syntax highlighting)
 
-The Vite plugin is not configured. `mantleCode` is a no-op at runtime — it requires the Vite plugin to transform tagged templates at build time. Add `mantleCodeBlockPlugins().vitePlugins` to your Vite config. In development, you may see a warning in the console.
+The Vite plugin is not configured. `mantleCode` is a no-op at runtime: it requires the Vite plugin to transform tagged templates at build time. Add `mantleCodeBlockPlugins().vitePlugins` to your Vite config. In development, you may see a warning in the console.
 
 ### Unsupported language silently falls back to plain text
 
@@ -822,7 +822,7 @@ The `<pre>` element renders with `tab-size: 2`. This is not configurable via pro
 
 ### Title whitespace is trimmed
 
-The `title` meta key value is trimmed — leading/trailing whitespace is removed.
+The `title` meta key value is trimmed: leading/trailing whitespace is removed.
 
 ### CodeBlock works without CopyButton, Header, or ExpanderButton
 

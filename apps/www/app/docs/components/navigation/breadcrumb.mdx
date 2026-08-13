@@ -1,6 +1,6 @@
 ---
 title: Breadcrumb
-description: Hierarchy-path navigation — an ordered list of links from a root to the current page, in a labeled nav landmark.
+description: Hierarchy-path navigation, an ordered list of links from a root to the current page, in a labeled nav landmark.
 ---
 
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
@@ -138,7 +138,7 @@ export function BreadcrumbRouterLinkExample() {
 
 <PageHeader id="breadcrumb">Breadcrumb</PageHeader>
 
-Hierarchy-path navigation per the [WAI-ARIA breadcrumb pattern](https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/): an ordered list of links from a root to the current page, inside a `<nav>` landmark labeled "Breadcrumb". Use it on detail pages inside deep hierarchies — an endpoint under a project under an account — so users can see how they got here and jump back up a level. It answers a different intent than [Tabs](/components/navigation/tabs), which switches _what you're looking at_ within one place; a breadcrumb tells you _where you are_ and offers the way up. It is router-agnostic — each `Breadcrumb.Link` is a plain `<a>` you can compose onto your router's link via `asChild` (see [Polymorphism](#polymorphism)), and [Anchor](/components/navigation/anchor) remains the right primitive for standalone external links.
+Hierarchy-path navigation per the [WAI-ARIA breadcrumb pattern](https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/): an ordered list of links from a root to the current page, inside a `<nav>` landmark labeled "Breadcrumb". Use it on detail pages inside deep hierarchies (an endpoint under a project under an account) so users can see how they got here and jump back up a level. It answers a different intent than [Tabs](/components/navigation/tabs), which switches _what you're looking at_ within one place; a breadcrumb tells you _where you are_ and offers the way up. It is router-agnostic: each `Breadcrumb.Link` is a plain `<a>` you can compose onto your router's link via `asChild` (see [Polymorphism](#polymorphism)), and [Anchor](/components/navigation/anchor) remains the right primitive for standalone external links.
 
 <Example>
 	<BreadcrumbExample />
@@ -164,7 +164,7 @@ import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 </Breadcrumb.Root>;
 ```
 
-`Breadcrumb.Separator` renders a caret icon by default; pass your own children to replace it — a slash, for instance:
+`Breadcrumb.Separator` renders a caret icon by default; pass your own children to replace it (a slash, for instance):
 
 <Example>
 	<BreadcrumbSlashSeparatorExample />
@@ -211,17 +211,17 @@ Breadcrumb.Root
 ```
 
 - **`Root`** is the `<nav>` landmark, labeled `"Breadcrumb"` by default (overridable via `aria-label`). It carries no visual styling of its own.
-- **`List`** is the `<ol>` — an ordered list, because the order of the items **is** the hierarchy, from the root to the current page. It lays the crumbs out in one row and scrolls them sideways when the trail is wider than its container (see [Overflow](#overflow)).
+- **`List`** is the `<ol>`: an ordered list, because the order of the items **is** the hierarchy, from the root to the current page. It lays the crumbs out in one row and scrolls them sideways when the trail is wider than its container (see [Overflow](#overflow)).
 - **`Item`** is one crumb: an `<li>` wrapping a `Link`, a `Label`, or the `Page`.
 - **`Link`** is a plain `<a>` to an ancestor page; compose it onto your router's link via `asChild`.
-- **`Label`** is a crumb that is not a link — a level with no page of its own (see [The prefix crumb](#the-prefix-crumb)). A `<span>` with no `aria-current`.
-- **`Page`** marks the current page — a `<span>` with `aria-current="page"`, not a link.
+- **`Label`** is a crumb that is not a link: a level with no page of its own (see [The prefix crumb](#the-prefix-crumb)). A `<span>` with no `aria-current`.
+- **`Page`** marks the current page: a `<span>` with `aria-current="page"`, not a link.
 - **`Separator`** is a purely visual divider between crumbs (`role="presentation"`, `aria-hidden`), rendering a caret by default.
 - **`Skeleton`** is the placeholder crumb for a label that is still loading (see [The pending trail](#the-pending-trail)): one `<li>` as a crumb-sized pulsing bar with a screen-reader-only status announcement.
 
 ## Polymorphism
 
-Every part except `Breadcrumb.Skeleton` supports `asChild` — the skeleton's whole value is the placeholder content it generates, so there is no element to swap. The one that matters most is `Breadcrumb.Link`: the component never imports a router, so compose the link styling onto your framework's link — a `react-router` `Link` here — to get client-side navigation:
+Every part except `Breadcrumb.Skeleton` supports `asChild`: the skeleton's whole value is the placeholder content it generates, so there is no element to swap. The one that matters most is `Breadcrumb.Link`: the component never imports a router, so compose the link styling onto your framework's link (a `react-router` `Link` here) to get client-side navigation:
 
 <Example>
 	<BreadcrumbRouterLinkExample />
@@ -254,7 +254,7 @@ import { Link, href } from "react-router";
 
 ## The prefix crumb
 
-Not every crumb is a destination. In a trail like `Settings > General`, `Settings` is a section prefix: its index URL only redirects to `/settings/general`, so a link there would bounce the user back to the page they are already on. Render that crumb as a `Breadcrumb.Label` — muted text like the rest of the trail, with no `href` and no `aria-current`:
+Not every crumb is a destination. In a trail like `Settings > General`, `Settings` is a section prefix: its index URL only redirects to `/settings/general`, so a link there would bounce the user back to the page they are already on. Render that crumb as a `Breadcrumb.Label`, muted text like the rest of the trail, with no `href` and no `aria-current`:
 
 <Example>
 	<BreadcrumbPrefixCrumbExample />
@@ -276,11 +276,11 @@ import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 </Breadcrumb.Root>;
 ```
 
-The label stays an `Item` in the `<ol>`, so it still counts as a step in the trail — assistive technology reads it as a crumb, without offering it as a link. To derive a trail like this from your route tree, see [the prefix crumb in the breadcrumbs-from-routes recipe](/recipes/breadcrumbs-from-routes#the-prefix-crumb): a layout route contributes the label, and its child routes contribute the pages under it.
+The label stays an `Item` in the `<ol>`, so it still counts as a step in the trail: assistive technology reads it as a crumb, without offering it as a link. To derive a trail like this from your route tree, see [the prefix crumb in the breadcrumbs-from-routes recipe](/recipes/breadcrumbs-from-routes#the-prefix-crumb): a layout route contributes the label, and its child routes contribute the pages under it.
 
 ## The pending trail
 
-Some labels only exist in fetched data — `Apps > my-app > Settings`, where `my-app` is a resource name the URL does not carry. While that query is pending, `Breadcrumb.Skeleton` stands in for the unresolved segment: one crumb-sized pulsing bar, plus a screen-reader-only `role="status"` announcement ("Loading breadcrumbs…" by default; set `label` for localization). The bar is `w-24` by default — pass a `w-*` utility for your best-guess width, so the row's shape holds when the real crumbs replace it:
+Some labels only exist in fetched data: `Apps > my-app > Settings`, where `my-app` is a resource name the URL does not carry. While that query is pending, `Breadcrumb.Skeleton` stands in for the unresolved segment: one crumb-sized pulsing bar, plus a screen-reader-only `role="status"` announcement ("Loading breadcrumbs…" by default; set `label` for localization). The bar is `w-24` by default — pass a `w-*` utility for your best-guess width, so the row's shape holds when the real crumbs replace it:
 
 <Example>
 	<BreadcrumbSkeletonExample />
@@ -300,21 +300,21 @@ import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 </Breadcrumb.Root>;
 ```
 
-The skeleton is one `<li>`, so the pending segment counts as one crumb until the real items arrive, and the status announcement is all assistive technology hears. One skeleton usually stands in for a whole segment; compose several with `Breadcrumb.Separator` between them when the segment's shape matters. The full pattern — a route contributes a component that shares the page's query and swaps the skeleton for real crumbs on resolve — is [the query-backed crumb in the breadcrumbs-from-routes recipe](/recipes/breadcrumbs-from-routes#choosing-a-label).
+The skeleton is one `<li>`, so the pending segment counts as one crumb until the real items arrive, and the status announcement is all assistive technology hears. One skeleton usually stands in for a whole segment; compose several with `Breadcrumb.Separator` between them when the segment's shape matters. The full pattern (a route contributes a component that shares the page's query and swaps the skeleton for real crumbs on resolve) is [the query-backed crumb in the breadcrumbs-from-routes recipe](/recipes/breadcrumbs-from-routes#choosing-a-label).
 
 ## Trails from route matches
 
-`@ngrok/mantle/breadcrumb` also exports the route-trail model the [breadcrumbs-from-routes recipe](/recipes/breadcrumbs-from-routes) builds on: a route names itself in its `handle` export, and a pure builder turns the matched chain into crumbs. The exports are router-agnostic — `buildCrumbs` reads only `id`, `pathname`, and `handle` off each match, which react-router's `UIMatch` satisfies structurally.
+`@ngrok/mantle/breadcrumb` also exports the route-trail model the [breadcrumbs-from-routes recipe](/recipes/breadcrumbs-from-routes) builds on: a route names itself in its `handle` export, and a pure builder turns the matched chain into crumbs. The exports are router-agnostic: `buildCrumbs` reads only `id`, `pathname`, and `handle` off each match, which react-router's `UIMatch` satisfies structurally.
 
 - [`routeBreadcrumb`](#routebreadcrumb) creates the crumbs a route contributes: a link crumb by default, `routeBreadcrumb.label` for a [prefix crumb](#the-prefix-crumb) that never links, and `routeBreadcrumb.content` for a segment that renders itself from fetched data (see [The pending trail](#the-pending-trail)).
 - [`buildCrumbs`](#buildcrumbs) derives the resolved trail from `useMatches()`; [`hasBreadcrumb`](#hasbreadcrumb) is the type guard it filters with.
 - `BreadcrumbHandle<TMatch>` types a route's `handle` export; `Crumb` and `ResolvedCrumb` are the discriminated unions the factory and builder produce.
 
-The recipe shows the whole thing wired together, including the one file an app copies — the renderer that owns your router's `Link`.
+The recipe shows the whole thing wired together, including the one file an app copies: the renderer that owns your router's `Link`.
 
 ## Overflow
 
-An app header is one row tall, so a trail wider than that row scrolls sideways instead of wrapping onto a second one. `Breadcrumb.List` is the scroll container, and its edges carry the same [`scroll-fade-x`](/base/scroll-fade#horizontal--scroll-fade-x) mask as [Tabs](/components/navigation/tabs): the edge with crumbs beyond it fades out, and the edge with nothing beyond it stays flush.
+An app header is one row tall, so a trail wider than that row scrolls sideways instead of wrapping onto a second one. `Breadcrumb.List` is the scroll container, and its edges carry the same [`scroll-fade-x`](/base/scroll-fade#horizontal-scroll-fade-x) mask as [Tabs](/components/navigation/tabs): the edge with crumbs beyond it fades out, and the edge with nothing beyond it stays flush.
 
 The trail starts at its end, because the end is the current page. It scrolls itself there whenever that end moves — on mount, when a navigation swaps the crumbs, and when the row around it resizes — and leaves the reader's own scroll position alone the rest of the time, including while a crumb holds focus. Tabbing to a crumb the trail has scrolled past is the browser's own job; the list carries `scroll-padding` the width of the fade zone, so that crumb lands clear of the fade rather than under it.
 
@@ -371,9 +371,9 @@ The mask needs a scroll container to animate against. Without one it stays fully
 
 Breadcrumb follows the [APG breadcrumb pattern](https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/):
 
-- The trail lives in a `<nav>` landmark labeled `"Breadcrumb"`, so screen reader users can jump straight to it. The label is overridable via `aria-label` on `Root` — do so for localization, or to distinguish multiple breadcrumb trails on one page.
-- The crumbs are an `<ol>`, so assistive technology announces the total count and each item's position — the order conveys the hierarchy.
-- The final crumb is a `Breadcrumb.Page` with `aria-current="page"`, announcing that it represents the current page. It is a `<span>`, not a link — linking to the page you are already on is a trap.
+- The trail lives in a `<nav>` landmark labeled `"Breadcrumb"`, so screen reader users can jump straight to it. The label is overridable via `aria-label` on `Root`; do so for localization, or to distinguish multiple breadcrumb trails on one page.
+- The crumbs are an `<ol>`, so assistive technology announces the total count and each item's position; the order conveys the hierarchy.
+- The final crumb is a `Breadcrumb.Page` with `aria-current="page"`, announcing that it represents the current page. It is a `<span>`, not a link: linking to the page you are already on is a trap.
 - A `Breadcrumb.Label` crumb is plain text: no link role, no `aria-current`. Its `Item` stays in the `<ol>`, so screen readers count it as a step in the trail without offering it as a destination.
 - Separators are `role="presentation"` and `aria-hidden="true"`: purely visual, never counted as crumbs, never read aloud.
 

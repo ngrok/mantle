@@ -125,7 +125,7 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 
 ## Within a data table
 
-Inside a [`DataTable`](/components/data-display/data-table), host `Empty` in `DataTable.EmptyRow`. The row already spans every column (auto `colSpan`) and `Empty.Root` centers itself, so you don't hand-roll a `<td>` or any centering. Branch on whether a filter is active to choose between the "no data yet" and "no results" copy — see the [DataTable empty-states recipe](/components/data-display/data-table#empty-states-no-data-vs-no-results) for the full two-state pattern.
+Inside a [`DataTable`](/components/data-display/data-table), host `Empty` in `DataTable.EmptyRow`. The row already spans every column (auto `colSpan`) and `Empty.Root` centers itself, so you don't hand-roll a `<td>` or any centering. Branch on whether a filter is active to choose between the "no data yet" and "no results" copy. See the [DataTable empty-states recipe](/components/data-display/data-table#empty-states-no-data-vs-no-results) for the full two-state pattern.
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -193,7 +193,7 @@ function EmptyInTableExample({ data }: { data: Row[] }) {
 
 ## Minimal
 
-You can use only the sub-components you need.
+Use only the sub-components you need.
 
 <Example>
 	<Empty.Root>
@@ -228,7 +228,7 @@ Empty.Root
 
 `Empty.Root`, `Empty.Title`, `Empty.Description`, and `Empty.Actions` accept `asChild`. When `true` the part renders its single child instead of its default element, forwarding class names, `data-*` attributes, and `ref`.
 
-Reach for it when the empty state is a semantic landmark — `Empty.Root asChild` around a `<section>` — or when `Empty.Title` needs a heading level that fits the page outline rather than the default. `Empty.Actions asChild` is useful when the action row should be a `<form>` or a navigation element.
+Reach for it when the empty state is a semantic landmark (`Empty.Root asChild` around a `<section>`), or when `Empty.Title` needs a heading level that fits the page outline rather than the default. `Empty.Actions asChild` is useful when the action row should be a `<form>` or a navigation element.
 
 `Empty.Icon` is the documented exception: it takes its element through the `svg` prop and clones it, so polymorphism already goes through that prop rather than `asChild`.
 

@@ -93,7 +93,7 @@ import { Button } from "@ngrok/mantle/button";
 
 `Dialog`, `Sheet`, and `AlertDialog` each render their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
 
-## Handling Autofill Overlays
+## Handling autofill overlays
 
 When a dialog contains form inputs, browser autofill or password-manager plugins (e.g. 1Password) may render overlays as siblings to the dialog content. By default, clicking these overlays triggers `onPointerDownOutside`, which closes the dialog. Use `isDialogOverlayTarget` to prevent this:
 
@@ -133,7 +133,7 @@ Dialog.Root
 
 ## Full-page dialog
 
-Every dialog already sits 16px from each viewport edge — `Dialog.Content` positions itself inside a `fixed inset-4` wrapper, so you never add that margin yourself. `appearance` decides how much of the box it claims from there:
+Every dialog already sits 16px from each viewport edge: `Dialog.Content` positions itself inside a `fixed inset-4` wrapper, so you never add that margin yourself. `appearance` decides how much of the box it claims from there:
 
 | `appearance`   | Width                      | Viewport inset | Corners and border   |
 | -------------- | -------------------------- | -------------- | -------------------- |
@@ -141,7 +141,7 @@ Every dialog already sits 16px from each viewport edge — `Dialog.Content` posi
 | `"full-page"`  | fills the box              | 16px           | rounded and bordered |
 | `"full-bleed"` | fills the box              | none           | square, no border    |
 
-The three values move together as one decision, because a dialog that fills the viewport has no width left to cap and no corner left to round. `preferredWidth` therefore belongs to `"centered"` only — passing it beside `"full-page"` or `"full-bleed"` is a type error, not a prop that silently does nothing.
+The three values move together as one decision, because a dialog that fills the viewport has no width left to cap and no corner left to round. `preferredWidth` therefore belongs to `"centered"` only: passing it beside `"full-page"` or `"full-bleed"` is a type error, not a prop that silently does nothing.
 
 ```tsx
 // a card, capped — the default
@@ -156,7 +156,7 @@ The three values move together as one decision, because a dialog that fills the 
 
 The parts keep their roles at every appearance. Because `Dialog.Content` is a flex column with `Dialog.Body` at `flex-1 overflow-y-auto`, the header and footer stay pinned while the body scrolls.
 
-When the content needs the whole viewport, reach for this — a request log, a diff, a media preview, a multi-column editor. When the content deserves its own URL, a back button, or a shareable link, a route beats a dialog.
+When the content needs the whole viewport, reach for this: a request log, a diff, a media preview, a multi-column editor. When the content deserves its own URL, a back button, or a shareable link, a route beats a dialog.
 
 `"full-bleed"` keeps its backdrop. The content opens at `zoom-in-95`, so a sliver of viewport edge stays uncovered for the length of the animation, and the overlay is what fills it.
 
@@ -337,7 +337,7 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 
 ## Stacking a Sheet over a Dialog
 
-`Dialog` and `Sheet` share the overlay tier (`z-60`), so the most recently mounted overlay renders on top. Open the dialog below first, then open the sheet from inside it — the sheet stacks over the dialog rather than disappearing behind it. Each overlay renders its own backdrop, so the dialog beneath is dimmed by the sheet's overlay.
+`Dialog` and `Sheet` share the overlay tier (`z-60`), so the most recently mounted overlay renders on top. Open the dialog below first, then open the sheet from inside it: the sheet stacks over the dialog rather than disappearing behind it. Each overlay renders its own backdrop, so the dialog beneath is dimmed by the sheet's overlay.
 
 <Example>
 	<Dialog.Root>
@@ -457,9 +457,9 @@ import { Button } from "@ngrok/mantle/button";
 
 ## With TanStack Form
 
-Use [TanStack Form](https://tanstack.com/form) with [`Field`](/components/forms/field) to gather validated input in a dialog. `Dialog.Content` is a flex column, so wrap `Dialog.Body` and `Dialog.Footer` in a `display: contents` form — the footer's submit button participates in the form while the body keeps its scrollable layout. Close the dialog from the form's `onSubmit` (it only runs once validation passes) and reset the form when the dialog closes so a cancelled draft doesn't leak into the next open. The form sets `noValidate` so the browser's native `type="email"` validation doesn't block the submit event — the schema owns validation and errors render consistently through `Field.Errors`.
+Use [TanStack Form](https://tanstack.com/form) with [`Field`](/components/forms/field) to gather validated input in a dialog. `Dialog.Content` is a flex column, so wrap `Dialog.Body` and `Dialog.Footer` in a `display: contents` form: the footer's submit button participates in the form while the body keeps its scrollable layout. Close the dialog from the form's `onSubmit` (it only runs once validation passes) and reset the form when the dialog closes so a cancelled draft doesn't leak into the next open. The form sets `noValidate` so the browser's native `type="email"` validation doesn't block the submit event: the schema owns validation and errors render consistently through `Field.Errors`.
 
-If password managers or browser autofill overlays interfere with outside-click dismissal, see [Handling Autofill Overlays](#handling-autofill-overlays).
+If password managers or browser autofill overlays interfere with outside-click dismissal, see [Handling autofill overlays](#handling-autofill-overlays).
 
 <Example className="w-full">
 	<TanStackFormDemo />
@@ -588,9 +588,9 @@ function Example() {
 
 `Dialog.Trigger`, `Dialog.Close`, `Dialog.Overlay`, `Dialog.Content`, `Dialog.Title`, `Dialog.Description`, and `Dialog.CloseIconButton` accept `asChild`, which renders your single child in place of the part's default element while keeping its styling and behavior.
 
-`Dialog.Trigger asChild` is by far the most common — it makes your own `Button` open the dialog instead of nesting a button inside one. Use `Dialog.Close asChild` to let any element dismiss the dialog, and `Dialog.Title asChild` when the heading level must fit the surrounding page outline.
+`Dialog.Trigger asChild` is by far the most common: it makes your own `Button` open the dialog instead of nesting a button inside one. Use `Dialog.Close asChild` to let any element dismiss the dialog, and `Dialog.Title asChild` when the heading level must fit the surrounding page outline.
 
-`Dialog.Root` and `Dialog.Portal` render no DOM of their own — `Root` is a state provider and `Portal` only relocates its children — so neither takes `asChild`. `Dialog.Header`, `Dialog.Body`, and `Dialog.Footer` are plain layout `<div>`s that do not currently accept it.
+`Dialog.Root` and `Dialog.Portal` render no DOM of their own (`Root` is a state provider and `Portal` only relocates its children), so neither takes `asChild`. `Dialog.Header`, `Dialog.Body`, and `Dialog.Footer` are plain layout `<div>`s that do not currently accept it.
 
 ## API Reference
 

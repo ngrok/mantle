@@ -1,6 +1,6 @@
 ---
 title: Centered Layout
-description: A viewport-filling centered page flow — utility header and footer strips around a growing, centered content region.
+description: A viewport-filling centered page flow, with utility header and footer strips around a growing, centered content region.
 ---
 
 import { Card } from "@ngrok/mantle/card";
@@ -36,7 +36,7 @@ export function CenteredLayoutAsChildExample() {
 
 <PageHeader id="centered-layout">Centered Layout</PageHeader>
 
-A viewport-filling centered page flow for sign-in, sign-up, onboarding, 404, and other focused full-page states. It is a **layout**: it owns _where things go_ — the flex/overflow skeleton and region ordering — not what they are. App state (routing, sessions, data) never enters it; the brand mark, form card, and footer links arrive as composed JSX. It consolidates the centered "auth shell" that was duplicated across ngrok's dashboard and login apps. The demo runs in its own framed document, exactly like a real sign-in page — the layout owns the document, so it composes a real [Main](/components/primitives/main) landmark and a skip link (see [Landmarks](#landmarks)).
+A viewport-filling centered page flow for sign-in, sign-up, onboarding, 404, and other focused full-page states. It is a **layout**: it owns _where things go_ (the flex/overflow skeleton and region ordering), not what they are. App state (routing, sessions, data) never enters it; the brand mark, form card, and footer links arrive as composed JSX. It consolidates the centered "auth shell" that was duplicated across ngrok's dashboard and login apps. The demo runs in its own framed document, exactly like a real sign-in page: the layout owns the document, so it composes a real [Main](/components/primitives/main) landmark and a skip link (see [Landmarks](#landmarks)).
 
 <CodeExample.Root>
 	<CodeExample.PreviewFrame example="centered-layout" title="Centered layout demo" />
@@ -108,14 +108,14 @@ CenteredLayout.Root
 ```
 
 - **`Root`** is the outer frame. It fills its nearest sized ancestor (`min-h-full`) and stacks `Notice` and `Header` (pinned top), `Body` (which grows), and `Footer` (pinned bottom). Merge `h-full` via `className` when the host requires an exact height — `cx` is tailwind-merge-backed, so the override is deterministic.
-- **`Notice`** is a full-window-width strip pinned above everything else — including `Header` — for maintenance notices, environment warnings, and similar app-wide messaging. It is unstyled (`w-full shrink-0`): the notice content brings its own colors, and the part collapses to nothing when empty. The same slot contract as [`AppLayout.Notice`](/layouts/app-layout#applayoutnotice), so an app-wide banner composes identically across mantle's layouts — see [Notice](#notice). Optional.
-- **`Header`** is a utility strip at the top — an account chip, a close button — rendered **outside** the centered region as a semantic `<header>`, the mirror of `Footer`. Optional; see [Header](#header) for the window-pinned variant.
-- **`Body`** is the growing, centered region (`flex-1`, centered, `gap-6`). By convention the brand mark — a fully-styled logo/wordmark anchor — is its **first child**, and the primary content follows as composed JSX (a `div`, or the [Main](/components/primitives/main) landmark when the layout owns the document — see [Landmarks](#landmarks)). There is deliberately no `Logo` or `Content` part because they would own nothing: vertical spacing comes from `Body`'s `gap-6`, and both arrive as already-styled JSX. Content taller than the viewport top-flows and the page scrolls, because `Root` grows instead of clipping.
+- **`Notice`** is a full-window-width strip pinned above everything else — including `Header` — for maintenance notices, environment warnings, and similar app-wide messaging. It is unstyled (`w-full shrink-0`): the notice content brings its own colors, and the part collapses to nothing when empty. The same slot contract as [`AppLayout.Notice`](/layouts/app-layout#applayoutnotice), so an app-wide banner composes identically across mantle's layouts; see [Notice](#notice). Optional.
+- **`Header`** is a utility strip at the top (an account chip, a close button) rendered **outside** the centered region as a semantic `<header>`, the mirror of `Footer`. Optional; see [Header](#header) for the window-pinned variant.
+- **`Body`** is the growing, centered region (`flex-1`, centered, `gap-6`). By convention the brand mark (a fully-styled logo/wordmark anchor) is its **first child**, and the primary content follows as composed JSX (a `div`, or the [Main](/components/primitives/main) landmark when the layout owns the document; see [Landmarks](#landmarks)). There is deliberately no `Logo` or `Content` part because they would own nothing: vertical spacing comes from `Body`'s `gap-6`, and both arrive as already-styled JSX. Content taller than the viewport top-flows and the page scrolls, because `Root` grows instead of clipping.
 - **`Footer`** is a pinned utility strip (theme switcher, legal links) rendered **outside** the centered `flex-1` region — which is exactly why `Body` exists as a separate part: `Root` cannot own the centering because `Header` and `Footer` must sit outside it. `Footer` is optional; omitting it is fine.
 
 ## Header
 
-Focused flows that the user can leave — checkout, plan pickers, onboarding steps — carry a utility strip at the top: who is signed in on the left, a close button on the right. `Header` is that strip, the mirror of `Footer`. To keep the close button reachable while the page scrolls, merge `sticky top-0 z-10` (and a background) via `className` — prefer `sticky` over `fixed`, which removes the strip from flow and underlaps the content below it. The demo runs in its own framed document, so its page really does own the scroller — scroll it to see the header stay pinned. On a real page, give the document scroller `overscroll-none` to suppress rubber-banding and pull-to-refresh; don't set it on a nested scroller, where cutting scroll chaining swallows the wheel at the scroller's edge instead of handing it back to the page.
+Focused flows that the user can leave (checkout, plan pickers, onboarding steps) carry a utility strip at the top: who is signed in on the left, a close button on the right. `Header` is that strip, the mirror of `Footer`. To keep the close button reachable while the page scrolls, merge `sticky top-0 z-10` (and a background) via `className` — prefer `sticky` over `fixed`, which removes the strip from flow and underlaps the content below it. The demo runs in its own framed document, so its page really does own the scroller; scroll it to see the header stay pinned. On a real page, give the document scroller `overscroll-none` to suppress rubber-banding and pull-to-refresh; don't set it on a nested scroller, where cutting scroll chaining swallows the wheel at the scroller's edge instead of handing it back to the page.
 
 <CodeExample.Root>
 	<CodeExample.PreviewFrame example="centered-layout-header" title="Centered layout header demo" />
@@ -155,10 +155,10 @@ import { XIcon } from "@phosphor-icons/react/X";
 
 ## Notice
 
-App-wide messaging — a maintenance notice, an environment warning — belongs in a strip pinned above
+App-wide messaging (a maintenance notice, an environment warning) belongs in a strip pinned above
 everything else on the page, **including the header**. `Notice` is that strip: the same slot contract as
 [`AppLayout.Notice`](/layouts/app-layout#applayoutnotice), so a banner composes identically across
-mantle's layouts. It is unstyled (`w-full shrink-0`) — the notice content brings its own colors — and it collapses to
+mantle's layouts. It is unstyled (`w-full shrink-0`): the notice content brings its own colors, and it collapses to
 nothing when empty, so it can stay mounted and conditionally render its contents. Toggle the notice in the
 demo to see it push the whole page (header included) down. On flows that scroll, it scrolls away with the
 page by default; merge `sticky top-0 z-20` via `className` to pin it to the window. To keep a sticky
@@ -218,7 +218,7 @@ export function CheckoutPage() {
 
 ## Landmarks
 
-Exactly one element in a document may be the Main landmark, so the layout does not render one for you — content arrives as composed JSX, and composing the layout inside a shell that already owns the landmark (an app frame, or this page's inline [Polymorphism](#polymorphism) example) is safe by default. When the layout owns the document — a sign-in page, a 404 — compose mantle's [Main](/components/primitives/main) directly in `Body`, and pair a [SkipToMainLink](/components/primitives/skip-to-main-link) as the first child of `Root`: its default `targetId` matches `Main`'s `id="main"`, so keyboard users can jump past the brand mark straight to the content. The framed demos on this page do exactly this — each preview is its own document, so each owns a real `Main`.
+Exactly one element in a document may be the Main landmark, so the layout does not render one for you: content arrives as composed JSX, and composing the layout inside a shell that already owns the landmark (an app frame, or this page's inline [Polymorphism](#polymorphism) example) is safe by default. When the layout owns the document (a sign-in page, a 404), compose mantle's [Main](/components/primitives/main) directly in `Body`, and pair a [SkipToMainLink](/components/primitives/skip-to-main-link) as the first child of `Root`: its default `targetId` matches `Main`'s `id="main"`, so keyboard users can jump past the brand mark straight to the content. The framed demos on this page do exactly this: each preview is its own document, so each owns a real `Main`.
 
 ```tsx
 import { CenteredLayout } from "@ngrok/mantle/centered-layout";
@@ -240,7 +240,7 @@ import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 
 ## Polymorphism
 
-Every part supports `asChild` to compose its structure onto alternative element types — here `Root` renders as a labelled `<section>`.
+Every part supports `asChild` to compose its structure onto alternative element types: here `Root` renders as a labelled `<section>`.
 
 <CodeExample.Root>
 	<CodeExample.Preview className="p-0 md:p-0">
@@ -279,9 +279,9 @@ import { CenteredLayout } from "@ngrok/mantle/centered-layout";
 
 ## Accessibility
 
-- **One Main landmark per document.** Two `<main>` elements in one document is invalid HTML and confuses screen-reader landmark navigation — so the layout renders none by default. Compose [Main](/components/primitives/main) directly in `Body` when the layout owns the document (see [Landmarks](#landmarks)); inside a shell that already renders one, use a plain `div` and no duplicate can occur.
+- **One Main landmark per document.** Two `<main>` elements in one document is invalid HTML and confuses screen-reader landmark navigation, so the layout renders none by default. Compose [Main](/components/primitives/main) directly in `Body` when the layout owns the document (see [Landmarks](#landmarks)); inside a shell that already renders one, use a plain `div` and no duplicate can occur.
 - **Skip link pairing.** The composed `Main` is focusable (`id="main"`, `tabIndex={-1}`), so a [SkipToMainLink](/components/primitives/skip-to-main-link) placed as the first child of `Root` sends keyboard users directly to the content.
-- **Header and Footer landmarks.** `Header` is a semantic `<header>` (`banner`) and `Footer` a semantic `<footer>` (`contentinfo`) for the page-level frame — unlike `Card.Footer`'s generic `div`. Note that these mappings only apply when the element is not nested inside a sectioning element, so rendering `Root` as a `<section>` via `asChild` (as in the [Polymorphism](#polymorphism) example) scopes both to that section instead.
+- **Header and Footer landmarks.** `Header` is a semantic `<header>` (`banner`) and `Footer` a semantic `<footer>` (`contentinfo`) for the page-level frame, unlike `Card.Footer`'s generic `div`. These mappings only apply when the element is not nested inside a sectioning element, so rendering `Root` as a `<section>` via `asChild` (as in the [Polymorphism](#polymorphism) example) scopes both to that section instead.
 
 ## API Reference
 

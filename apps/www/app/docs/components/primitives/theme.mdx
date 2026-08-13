@@ -1,6 +1,6 @@
 ---
 title: Theme
-description: Theme primitives — ThemeProvider, MantleStyleSheets, and FOUC prevention — for light, dark, and high-contrast modes.
+description: Theme primitives (ThemeProvider, MantleStyleSheets, and FOUC prevention) for light, dark, and high-contrast modes.
 ---
 
 import { Select } from "@ngrok/mantle/select";
@@ -48,7 +48,7 @@ To use the `ThemeProvider`, wrap your application's entry point. This should be 
 
 For SSR apps, add `PreventWrongThemeFlashScript` and `MantleStyleSheets` to the `<head>` to prevent a Flash of Unstyled Content (FOUC), and send font preloads as HTTP `Link` response headers using `preloadFontLink`. Delivering font hints as headers starts fetches before the browser parses any HTML, improving LCP on mobile.
 
-`MantleStyleSheets` renders `<link rel="stylesheet">` tags for the dark, light-high-contrast, and dark-high-contrast theme CSS files. Each stylesheet is gated behind a `media` attribute matching its OS preference so it is non-render-blocking for users who do not need it. Pass `ssrCookie` (from `extractThemeCookie`) so the server can render the correct `media` attribute for users with a manually-selected theme — when a non-system theme is resolved from the cookie, the SSR HTML is already correct and no inline fix script is needed, avoiding FOUC without relying on JavaScript hydration.
+`MantleStyleSheets` renders `<link rel="stylesheet">` tags for the dark, light-high-contrast, and dark-high-contrast theme CSS files. Each stylesheet is gated behind a `media` attribute matching its OS preference so it is non-render-blocking for users who do not need it. Pass `ssrCookie` (from `extractThemeCookie`) so the server can render the correct `media` attribute for users with a manually-selected theme: when a non-system theme is resolved from the cookie, the SSR HTML is already correct and no inline fix script is needed, avoiding FOUC without relying on JavaScript hydration.
 
 The CSS URLs must be passed as props. Import them with `?url` in your app code so Vite's URL transform applies correctly:
 
@@ -125,7 +125,7 @@ export function Layout({ children }: PropsWithChildren) {
 }
 ```
 
-## Non-SSR / No Header Control
+## Non-SSR / no header control
 
 If you cannot set HTTP response headers (e.g. a plain Vite SPA), omit `ssrCookie` from `MantleStyleSheets` and use `PreloadFont` elements instead of `preloadFontLink`. The inline fix script inside `MantleStyleSheets` still handles FOUC correctly at runtime.
 
@@ -155,13 +155,13 @@ const themeUrls = mantleStyleSheetUrls({
 </head>;
 ```
 
-## Non-React Head
+## Non-React head
 
-If your server cannot render React components (e.g. a legacy Go service), inline the two script strings directly into your HTML `<head>`, surrounding the three theme `<link>` tags. Generate the strings via `preventWrongThemeFlashScriptContent` and `fixMediaScriptContent` from `@ngrok/mantle/theme` — run them in a Node.js build step and embed the output into your template.
+If your server cannot render React components (e.g. a legacy Go service), inline the two script strings directly into your HTML `<head>`, surrounding the three theme `<link>` tags. Generate the strings via `preventWrongThemeFlashScriptContent` and `fixMediaScriptContent` from `@ngrok/mantle/theme`: run them in a Node.js build step and embed the output into your template.
 
 The FOUC prevention script must run before `<body>` to write `html[data-applied-theme]`. The media fix script must run after the `<link>` tags so they are already in the DOM when it executes.
 
-Both generators take the same optional forced theme — `preventWrongThemeFlashScriptContent("light")` and `fixMediaScriptContent("light")`. Pass it to both or neither; see [Locking a page to one theme](#locking-a-page-to-one-theme).
+Both generators take the same optional forced theme: `preventWrongThemeFlashScriptContent("light")` and `fixMediaScriptContent("light")`. Pass it to both or neither; see [Locking a page to one theme](#locking-a-page-to-one-theme).
 
 ```html
 <!-- 1. FOUC prevention: runs immediately, reads the stored theme from cookie/localStorage
@@ -316,7 +316,7 @@ Both generators take the same optional forced theme — `preventWrongThemeFlashS
 
 ## Usage
 
-In your application, you can use the `useTheme` hook to get and change the current theme:
+Use the `useTheme` hook to get and change the current theme:
 
 <Example>
 	<ThemeSwitcherExample />
@@ -357,11 +357,11 @@ function App() {
 }
 ```
 
-## Inverted Theme Islands
+## Inverted theme islands
 
 Add the `invert-theme` class to any element to render that subtree in the opposite theme of the
 page: light ⇄ dark and light-high-contrast ⇄ dark-high-contrast. The island is styled by the
-opposite theme's own definitions, so every mantle component and color token inside it just works —
+opposite theme's own definitions, so every mantle component and color token inside it just works:
 no conditional rendering, no per-component overrides.
 
 ```tsx
@@ -380,7 +380,7 @@ island, which is why the bar and its buttons always read inverted from the page 
 themes.
 
 How it works: every mantle color utility resolves a CSS custom property at the element that uses
-it, and custom properties inherit — so each theme's definitions are also applied directly to
+it, and custom properties inherit, so each theme's definitions are also applied directly to
 `.invert-theme` elements on its pair partner's pages, re-declaring the theme variables where they
 win over the values inherited from `:root`.
 
@@ -389,41 +389,41 @@ Things to know:
 - **Requires the theme stylesheets.** `MantleStyleSheets` applies theme pairs together (the
   active theme's partner also gets `media="all"`), so inversion works automatically. If you load
   the theme CSS by hand, both pair members' stylesheets must be applied. Like manual theme
-  selection generally, the pairing on OS-default pages is applied by the inline fix script — with
+  selection generally, the pairing on OS-default pages is applied by the inline fix script; with
   JavaScript disabled, islands gracefully stay page-themed.
 - **Portals escape the island.** Floating content that portals to `<body>` (dropdown menus,
   tooltips, dialogs, …) renders in the page theme. Pass `invert-theme` in the floating part's
   `className` to invert it too.
 - **Theme variant utilities do not flip.** `dark:*`, `light:*`, `high-contrast:*`, and
-  `dark-high-contrast:*` key off the page theme on `<html>`, not the inversion scope — this
+  `dark-high-contrast:*` key off the page theme on `<html>`, not the inversion scope; this
   applies to your own utilities as much as to mantle's. Six mantle internals still carry small
-  variant-gated tweaks (Progress Bar, Progress Donut, RadioGroup, Skeleton, Table, Toast) —
-  avoid composing those inside an island until they migrate to theme-declared tokens.
+  variant-gated tweaks (Progress Bar, Progress Donut, RadioGroup, Skeleton, Table, Toast).
+  Avoid composing those inside an island until they migrate to theme-declared tokens.
 - **Rebrand at the ramp, not the alias.** Islands re-declare the semantic aliases
   (`--color-accent-*`, `--color-danger-*`, …) on themselves so they re-resolve against the
   inverted ramps, and a declaration on the element beats an inherited value. Override
   `--color-sky-600` rather than `--color-accent-600` and the change flows into islands too.
 - **Nesting is idempotent.** An `invert-theme` inside an inverted subtree stays inverted relative
-  to the page — it does not revert to the page theme.
+  to the page; it does not revert to the page theme.
 - **Rebranding a ramp does not reach islands.** An island restores mantle's pinned Tailwind
   defaults, so a consumer `@theme` palette override applies to the page but not inside an island.
   Closing that would need a shadow copy of every ramp under a second name.
 - **Shadows flip with the island.** Shadow utilities resolve the shadow tokens at the element
-  that uses them, and islands re-declare those tokens — so content inside a light island gets
+  that uses them, and islands re-declare those tokens, so content inside a light island gets
   light-theme shadows, keeping the island's interior coherent.
 
 ## Locking a page to one theme
 
-`forceTheme` is not one prop — it is the same value passed to every piece that decides what the
+`forceTheme` is not one prop: it is the same value passed to every piece that decides what the
 page renders in. Two independent things have to agree:
 
-1. **Which stylesheets are applied** — owned by `MantleStyleSheets` (and its inline fix script).
-2. **Which theme class is on `<html>`** — owned by `PreventWrongThemeFlashScript` before first
+1. **Which stylesheets are applied**: owned by `MantleStyleSheets` (and its inline fix script).
+2. **Which theme class is on `<html>`**: owned by `PreventWrongThemeFlashScript` before first
    paint, by `ThemeProvider` after mount, and by `useInitialHtmlThemeProps` in the SSR'd markup.
 
 Forcing only the first is a trap. Because theme pairs are applied together, a `forceTheme="light"`
 page has `mantle-dark.css` live; if the stored preference resolves to dark, the writers above put
-`class="dark"` on `<html>`, `:root.dark` outranks the light base, and the page paints dark — the
+`class="dark"` on `<html>`, `:root.dark` outranks the light base, and the page paints dark, the
 opposite of what was asked for. Pass the same value everywhere:
 
 ```tsx
@@ -449,7 +449,7 @@ export default function Root() {
 }
 ```
 
-The stored preference is still read, and `setTheme` still writes it — so a theme switcher keeps
+The stored preference is still read, and `setTheme` still writes it, so a theme switcher keeps
 working and other pages honor the user's choice. Only what this page paints is pinned:
 `data-applied-theme` and the class are the forced theme, while `data-theme` remains the preference.
 
@@ -468,7 +468,7 @@ The `ThemeProvider` accepts the following props in addition to the [PropsWithChi
 | `children`    | `ReactNode`     |         | The React components to be wrapped by the theme provider context.                                                                                                                                    |
 | `forceTheme?` | `ResolvedTheme` |         | Pin the theme that renders, ignoring the stored preference and the OS. See [Locking a page to one theme](#locking-a-page-to-one-theme) — pass the same value to every component that forces a theme. |
 
-**Note:** The `ThemeProvider` uses a hardcoded storage key of `mantle-ui-theme` and defaults to `system` theme. The provider manages both values internally, so they need no configuration.
+The `ThemeProvider` uses a hardcoded storage key of `mantle-ui-theme` and defaults to `system` theme. The provider manages both values internally, so they need no configuration.
 
 ### MantleStyleSheets
 
@@ -630,4 +630,4 @@ The `useInitialHtmlThemeProps` hook returns props that should be applied to the 
 
 **Returns:** An object with `className`, `data-theme`, and `data-applied-theme` props to spread onto your `<html>` element.
 
-**Note:** On the server, when `ssrCookie` is set, the hook reads the theme from the cookie to render the correct class. When omitted, it defaults to `system` theme (resolved to `light`). On the client, it reads the current theme from `document.cookie` to match what the FOUC prevention script applied, so React hydration succeeds.
+On the server, when `ssrCookie` is set, the hook reads the theme from the cookie to render the correct class. When omitted, it defaults to `system` theme (resolved to `light`). On the client, it reads the current theme from `document.cookie` to match what the FOUC prevention script applied, so React hydration succeeds.

@@ -26,7 +26,7 @@ you can add dark variant classes as an override.
 Mantle's colors are delivered as CSS variables via Tailwind's API e.g.
 `.text-blue-500`. They can be directly accessed via `var(--color-blue-500)` and use `oklch()` color space.
 
-## Black and White Color Variables
+## Black and white color variables
 
 Mantle overrides what "black" and "white" mean depending on the theme. They are
 semantic colors, not literal ones. For dark modes, we swap them
@@ -43,7 +43,7 @@ However, there are often cases where you'll need to specify an override. The
 Mantle adds variants for high contrast and dark high contrast mode with
 `high-contrast:` and `dark-high-contrast:` respectively.
 
-## Functional Colors
+## Functional colors
 
 Mantle generally limits its color choices to the following functional colors for primary
 actions, and various states like danger and warnings.
@@ -160,7 +160,7 @@ actions, and various states like danger and warnings.
 	<Swatch className="bg-warning-50">50</Swatch>
 </Palette>
 
-## Extended Palette
+## Extended palette
 
 Mantle also supports a curated subset of Tailwind's color palette in light, dark, and high
 contrast variants. These are to be used when there is no functional meaning behind the color
@@ -311,7 +311,7 @@ slate, zinc, etc. since we only want to use our own custom branded gray.
 	<Swatch className="bg-rose-50">50</Swatch>
 </Palette>
 
-## Reserve Palette
+## Reserve palette
 
 These additional colors are available when you need more color variety than the extended
 palette covers, such as for line charts, data visualization, or categorical distinctions.

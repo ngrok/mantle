@@ -9,7 +9,7 @@ import { Example } from "~/components/example";
 
 # QR Code
 
-Render a scannable QR code from any string — a URL, an `otpauth://` MFA
+Render a scannable QR code from any string: a URL, an `otpauth://` MFA
 enrollment URI, a Wi-Fi credential, and so on. The value is encoded with the
 dependency-free [`uqr`](https://github.com/unjs/uqr) library.
 
@@ -48,7 +48,7 @@ import { NgrokLettermarkIcon } from "@ngrok/mantle/icons";
 </QrCode.Root>;
 ```
 
-The tile is intentionally white with dark modules in every theme — inverting a
+The tile is intentionally white with dark modules in every theme: inverting a
 QR code's colors makes it unreliable for many scanners, so it stays
 black-on-white by default for scannability.
 
@@ -133,8 +133,8 @@ import { QrCode } from "@ngrok/mantle/qr-code";
 
 ## Quiet zone
 
-A QR code includes a margin of light modules around the pattern — the _quiet
-zone_ — that scanners rely on to locate the code. It's encoded into the grid
+A QR code includes a margin of light modules around the pattern (the _quiet
+zone_) that scanners rely on to locate the code. It's encoded into the grid
 itself, not cosmetic CSS padding, so adjust it with the `quietZone` prop on
 `Root` rather than `className`. It defaults to `4`, the QR spec's recommended
 margin. Lower it to tighten the surrounding whitespace; avoid `0`, which makes
@@ -173,11 +173,11 @@ QrCode.Root
 
 `QrCode.Root` and `QrCode.Overlay` support the `asChild` prop. When `asChild` is
 `true`, the part renders its single child instead of its default element,
-forwarding all class names, `data-*` attributes, and behavior onto that child —
-for example, to render the whole code as a link.
+forwarding all class names, `data-*` attributes, and behavior onto that child
+(for example, to render the whole code as a link).
 
 `QrCode.Frame` and `QrCode.Pattern` render fixed SVG elements (`svg` and `path`)
-and do not support `asChild` — the QR pattern must live inside an svg, so those
+and do not support `asChild`: the QR pattern must live inside an svg, so those
 elements cannot be swapped.
 
 <Example>

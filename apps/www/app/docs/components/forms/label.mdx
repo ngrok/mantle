@@ -59,7 +59,7 @@ A caption for a form control — input, checkbox, radio, switch, select. Renders
 
 ## When not to use
 
-- For static UI text that isn't labeling a control — use a heading or plain `<p>`/`<span>`.
+- For static UI text that isn't labeling a control, use a heading or plain `<p>`/`<span>`.
 - As a substitute for `aria-label` on non-`<input>` widgets that don't support `<label for>` association.
 
 ## Two ways to associate
@@ -86,7 +86,7 @@ function EmailField() {
 }
 ```
 
-When you're using [TanStack Form](https://tanstack.com/form), `field.name` is already a stable, unique string for each field — pass it as both `htmlFor` on the `Label` and `id` on the input. You get a guaranteed-correct association for free without calling `useId()` separately:
+When you're using [TanStack Form](https://tanstack.com/form), `field.name` is already a stable, unique string for each field: pass it as both `htmlFor` on the `Label` and `id` on the input. You get a guaranteed-correct association for free without calling `useId()` separately:
 
 <Example>
 	<TanStackFormExample />
@@ -127,7 +127,7 @@ function Example() {
 
 ## Font weight
 
-A `Label` automatically gets `font-medium` when it doesn't contain a nested form control (`<input>`, `<textarea>`, `<select>`, `<button>`, or `[contenteditable]`). The default is detected via `:has()` and applied through a `:where()`-wrapped variant so its specificity is `0` — any font-weight utility you pass on the `Label` itself overrides cleanly:
+A `Label` automatically gets `font-medium` when it doesn't contain a nested form control (`<input>`, `<textarea>`, `<select>`, `<button>`, or `[contenteditable]`). The default is detected via `:has()` and applied through a `:where()`-wrapped variant so its specificity is `0`; any font-weight utility you pass on the `Label` itself overrides cleanly:
 
 <Example className="flex flex-col gap-6">
 	<div className="flex flex-col gap-1.5">
@@ -154,7 +154,7 @@ A `Label` automatically gets `font-medium` when it doesn't contain a nested form
 </div>
 ```
 
-When the `Label` _wraps_ a control, the auto-default is skipped on purpose — otherwise the control's own typography would inherit the medium weight from the label. In that case, apply `font-medium` to your own caption element (a `<span>` or `<p>`) inside the label:
+When the `Label` _wraps_ a control, the auto-default is skipped on purpose: otherwise the control's own typography would inherit the medium weight from the label. In that case, apply `font-medium` to your own caption element (a `<span>` or `<p>`) inside the label:
 
 <Example>
 	<Label htmlFor="email-fw-3" className="flex flex-col gap-1.5">

@@ -123,11 +123,11 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 </div>
 ```
 
-## Indeterminate Value
+## Indeterminate value
 
-You can set the `value` prop to `"indeterminate"` to show the progress bar in an indeterminate state.
+Set the `value` prop to `"indeterminate"` to show the donut in an indeterminate state.
 
-You can control the rotation speed with the `indeterminateRotationSpeed` prop.
+Control the rotation speed with the `indeterminateRotationSpeed` prop.
 
 <Example className="flex-col gap-6">
 	<ProgressDonut.Root className="size-10" value="indeterminate" strokeWidth="0.375rem">
@@ -160,9 +160,9 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 </ProgressDonut.Root>
 ```
 
-## Dynamic Colors
+## Dynamic colors
 
-The color of the `ProgressDonut.Indicator` is inherited from the parent text color using `currentColor`. Using this, you can easily change the color of it based on the current progress value.
+`ProgressDonut.Indicator` inherits its color from the parent text color through `currentColor`. Set the parent's text color to change the indicator based on the current progress value.
 
 <Example>
 	<DynamicColorsExample />

@@ -38,7 +38,7 @@ import { Code } from "@ngrok/mantle/code";
 
 ## Polymorphism
 
-Pass `asChild` to render `Code` styling on a different element — for example, a link wrapping a code-styled label.
+Pass `asChild` to render `Code` styling on a different element (for example, a link wrapping a code-styled label).
 
 <Example>
 	<Code asChild>
@@ -59,7 +59,7 @@ import { Code } from "@ngrok/mantle/code";
 
 The `<code>` element carries [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate) by default, so a browser translation engine skips the subtree. A translated CLI flag, env var, or YAML key is wrong, and the reader copies it anyway.
 
-The attribute also protects the render itself: Google Translate replaces each text node with a `<font>` wrapper, which detaches the text nodes React holds — so React either writes updates into a node the DOM no longer shows, or throws `NotFoundError` from `removeChild` and tears down the root.
+The attribute also protects the render itself: Google Translate replaces each text node with a `<font>` wrapper, which detaches the text nodes React holds, so React either writes updates into a node the DOM no longer shows, or throws `NotFoundError` from `removeChild` and tears down the root.
 
 `Code` also styles terms that are not code, so the default is overridable. Pass `translate="yes"` when the content is prose:
 

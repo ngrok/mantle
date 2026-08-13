@@ -222,11 +222,11 @@ function Example() {
 }
 ```
 
-## Child Elements
+## Child elements
 
-You can compose additional visual or functional elements within the `Input` using `children`. The examples below show you how to render start and end icons or buttons. The [Password Input](/components/forms/password-input) is built using this API under the hood! Keep in mind that you must also pass the `InputCapture` component as children, because it renders the actual form `input` element! When you do not use the `children` API, `Input` renders an `InputCapture` for you.
+Compose additional visual or functional elements within the `Input` using `children`. The examples below show how to render start and end icons or buttons. The [Password Input](/components/forms/password-input) is built with this API under the hood! You must also pass the `InputCapture` component as children, because it renders the actual form `input` element! When you do not use the `children` API, `Input` renders an `InputCapture` for you.
 
-Note: when composing with interactive content (e.g. a `button`), you will need to consider whether that element should be tab-indexable or receive focus!
+When composing with interactive content (e.g. a `button`), consider whether that element should be tab-indexable or receive focus!
 
 <Example className="grid grid-cols-2 place-items-center gap-6">
 	<Field.Item className="max-w-80" name="search-start">
@@ -325,9 +325,9 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 
 ## When to use InputCapture
 
-For 90% of cases — a simple input with optional icons or validation — pass children directly to `<Input>` (or omit children entirely). The `Input` renders an `InputCapture` for you internally, so you do not need to import or render it yourself.
+For 90% of cases (a simple input with optional icons or validation), pass children directly to `<Input>` or omit children entirely. The `Input` renders an `InputCapture` for you internally, so you do not need to import or render it yourself.
 
-`InputCapture` is the actual `<input>` element wrapper. Reach for it only when composing custom adornments — for example, a left-side prefix and a right-side suffix where the existing `Input` slots don't fit. When you supply your own `children`, you must include `<InputCapture />` so the form `input` element is still rendered. The [Password Input](/components/forms/password-input) is built using this API under the hood.
+`InputCapture` is the actual `<input>` element wrapper. Reach for it only when composing custom adornments: for example, a left-side prefix and a right-side suffix where the existing `Input` slots don't fit. When you supply your own `children`, you must include `<InputCapture />` so the form `input` element is still rendered. The [Password Input](/components/forms/password-input) is built using this API under the hood.
 
 ## API Reference
 

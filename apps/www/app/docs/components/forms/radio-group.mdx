@@ -1,6 +1,6 @@
 ---
 title: Radio Group
-description: A set of checkable buttons—known as radio buttons—where no more than one of the buttons can be checked at a time.
+description: A set of checkable buttons (known as radio buttons) where no more than one of the buttons can be checked at a time.
 ---
 
 import { Button } from "@ngrok/mantle/button";
@@ -79,7 +79,7 @@ window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
 
 # Radio Group
 
-A set of checkable buttons—known as radio buttons—where no more than one of the buttons can be checked at a time.
+A set of checkable buttons (known as radio buttons) where no more than one of the buttons can be checked at a time.
 
 Pair with `Field.Set` and `Field.Legend` for grouped label/description/error wiring in forms. `RadioGroup` keeps its own `name` prop on `RadioGroup.Root`:
 
@@ -388,9 +388,9 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 </RadioGroup.Root>;
 ```
 
-Use **`Choice.Title`** here, not `Choice.Label`: the whole `RadioGroup.Item` is the click target, and a `<label htmlFor>` can't associate with the radio's `role="radio"` element — the option's accessible name comes from its content. Because `role="radio"` flattens its children, the `Choice.Title` **and** `Choice.Description` text both fold into that accessible name, so the description is announced as part of the option (not as a separate `aria-describedby`). For helper text that is **programmatically** associated as a description, prefer the `Field.Set` / `Field.Legend` composition above; Headless UI owns the radio's `aria-describedby`, so a `Choice.Description` inside a radio is presented visually rather than wired via `aria-describedby`.
+Use **`Choice.Title`** here, not `Choice.Label`: the whole `RadioGroup.Item` is the click target, and a `<label htmlFor>` can't associate with the radio's `role="radio"` element; the option's accessible name comes from its content. Because `role="radio"` flattens its children, the `Choice.Title` **and** `Choice.Description` text both fold into that accessible name, so the description is announced as part of the option (not as a separate `aria-describedby`). For helper text that is **programmatically** associated as a description, prefer the `Field.Set` / `Field.Legend` composition above; Headless UI owns the radio's `aria-describedby`, so a `Choice.Description` inside a radio is presented visually rather than wired via `aria-describedby`.
 
-Give the `RadioGroup` itself an accessible name — an `aria-label` (as above) or a `Field.Set` / `Field.Legend` wrapper — so the group is announced as a named set rather than an anonymous `radiogroup`.
+Give the `RadioGroup` itself an accessible name (an `aria-label`, as above, or a `Field.Set` / `Field.Legend` wrapper) so the group is announced as a named set rather than an anonymous `radiogroup`.
 
 To bind the same group into a form, wrap it in a `Field.Set` / `Field.Legend`: the legend names the set, and keeping `aria-label` on `RadioGroup.Root` names the inner `radiogroup` role too.
 
@@ -567,9 +567,9 @@ RadioGroup.Root
 
 ## Polymorphism
 
-`RadioGroup.ItemContent` accepts `asChild`. When `true` it renders its single child instead of its default `<div>`, forwarding class names, `data-*` attributes, and `ref` onto that child — reach for it when the label-and-description block beside a radio needs to be a specific element, such as a `<label>` you control or a link wrapping the whole content area.
+`RadioGroup.ItemContent` accepts `asChild`. When `true` it renders its single child instead of its default `<div>`, forwarding class names, `data-*` attributes, and `ref` onto that child. Reach for it when the label-and-description block beside a radio needs to be a specific element, such as a `<label>` you control or a link wrapping the whole content area.
 
-The rest of the family deliberately does not take `asChild`. `RadioGroup.Root`, `List`, and `ButtonGroup` own the group's roving-focus and arrow-key contract; `Item`, `ListItem`, `Card`, and `Button` each render a real `<input type="radio">` plus its sandboxed hit target, and `Indicator` paints the control itself. For a richer option layout, compose [`Choice`](/components/forms/choice) inside `RadioGroup.Item` — see [Rich option layout with `Choice`](#rich-option-layout-with-choice) — rather than swapping these elements out.
+The rest of the family deliberately does not take `asChild`. `RadioGroup.Root`, `List`, and `ButtonGroup` own the group's roving-focus and arrow-key contract; `Item`, `ListItem`, `Card`, and `Button` each render a real `<input type="radio">` plus its sandboxed hit target, and `Indicator` paints the control itself. For a richer option layout, compose [`Choice`](/components/forms/choice) inside `RadioGroup.Item` (see [Rich option layout with `Choice`](#rich-option-layout-with-choice)) rather than swapping these elements out.
 
 ## API Reference
 

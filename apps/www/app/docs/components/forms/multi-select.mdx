@@ -323,7 +323,7 @@ A typeahead multi-select combobox that allows users to select multiple values wi
 
 Use `Multi Select` when the user can choose multiple values from a list, with selected values rendered as removable tags/chips. For single selection, use [`Combobox`](/components/forms/combobox) (with search) or [`Select`](/components/forms/select) (without).
 
-Pair with `Field.*` for label/description/error wiring in forms — wrap `MultiSelect.Root` in `Field.Control`. `Field.Control` flows the generated `id`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` through to the focusable `MultiSelect.Input` via `FieldControlContext`. The field `name` flows through too, but lands on one hidden input per selected value rather than on the combobox input — the input's value is the typeahead filter text, so a native form submit sends the selected values instead of what the user typed.
+Pair with `Field.*` for label/description/error wiring in forms: wrap `MultiSelect.Root` in `Field.Control`. `Field.Control` flows the generated `id`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` through to the focusable `MultiSelect.Input` via `FieldControlContext`. The field `name` flows through too, but lands on one hidden input per selected value rather than on the combobox input: the input's value is the typeahead filter text, so a native form submit sends the selected values instead of what the user typed.
 
 <Example>
 	<Field.Item name="fruits" className="max-w-96">
@@ -642,7 +642,7 @@ const filteredVeggies = useMemo(
 </Sheet.Root>;
 ```
 
-### Locked Values
+### Locked values
 
 Use `lockedValues` on `MultiSelect.TagValues` to pin specific tags that cannot be removed. Locked tags display a lock icon instead of an ✕ and shake when the user tries to remove them. Locked values also cannot be deselected by clicking them in the popover.
 
@@ -696,7 +696,7 @@ function Example() {
 
 ### Creatable
 
-Render a dynamic "Create …" item when the search text doesn't match any existing option. When selected, add the new value to both your options list and the selection. No component changes needed — consumers own the items rendered in `Content`.
+Render a dynamic "Create …" item when the search text doesn't match any existing option. When selected, add the new value to both your options list and the selection. No component changes needed: consumers own the items rendered in `Content`.
 
 <Example>
 	<CreatableDemo />
@@ -758,7 +758,7 @@ function Example() {
 }
 ```
 
-### With Groups
+### With groups
 
 Use `MultiSelect.Group`, `MultiSelect.GroupLabel`, and `MultiSelect.Separator` to organize items.
 
@@ -903,7 +903,7 @@ function Example() {
 }
 ```
 
-### Validation States
+### Validation states
 
 Use the `validation` prop on `MultiSelect.Trigger` to show validation states.
 
@@ -923,7 +923,7 @@ Use the `validation` prop on `MultiSelect.Trigger` to show validation states.
 </MultiSelect.Root>
 ```
 
-### Region Pinning
+### Region pinning
 
 A real-world example with three groups (regional aliases, PoPs, dedicated IPs), disabled items, secondary metadata per item, a stacked item description layout, a trailing link in the trigger, and a sticky footer CTA inside the content.
 
@@ -1105,12 +1105,12 @@ MultiSelect.Root
 
 `MultiSelect.Content`, `MultiSelect.Group`, `MultiSelect.GroupLabel`, and `MultiSelect.Separator` accept `asChild`, rendering your single child in place of the part's default element while keeping its selection and keyboard behavior.
 
-`MultiSelect.GroupLabel asChild` is the useful one — reach for it when a group heading must be a specific element for the page's outline. `MultiSelect.Content asChild` lets you own the popover panel element.
+`MultiSelect.GroupLabel asChild` is the useful one: reach for it when a group heading must be a specific element for the page's outline. `MultiSelect.Content asChild` lets you own the popover panel element.
 
 The trigger-side parts (`MultiSelect.Root`, `Trigger`, `Input`, `Tag`, `TagValues`) own input and tag behavior that depends on the elements they render, so they do not accept `asChild`.
 
 > [!WARNING]
-> `MultiSelect.Item` advertises `asChild` in its prop types but **throws at runtime** (`React.Children.only expected to receive a single React element child`). The item renders its own check indicator alongside your children, so the slot receives two. To give an option a custom layout, pass it as `children` — a [`MediaObject`](/components/structure/media-object) with an avatar, say — which is unrestricted.
+> `MultiSelect.Item` advertises `asChild` in its prop types but **throws at runtime** (`React.Children.only expected to receive a single React element child`). The item renders its own check indicator alongside your children, so the slot receives two. To give an option a custom layout, pass it as `children` (a [`MediaObject`](/components/structure/media-object) with an avatar, say), which is unrestricted.
 
 ## API Reference
 

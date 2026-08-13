@@ -72,7 +72,7 @@ window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
 
 # OTP Input
 
-Capture a short, fixed-length one-time passcode (OTP) — for two-factor codes,
+Capture a short, fixed-length one-time passcode (OTP), for two-factor codes,
 email verification codes, magic-link codes, and similar flows. Built on top of
 [`input-otp`](https://github.com/guilhermerodz/input-otp), it renders a single
 hidden input that handles paste, autofill, and IME correctly while displaying
@@ -415,7 +415,7 @@ OtpInput.Root
 `OtpInput.Group` and `OtpInput.Separator` accept an `asChild` prop. When `true`,
 the part renders its single child instead of its default `div`, forwarding all
 class names, `data-*` attributes, and the ref onto that child. Use this when you
-need a different underlying element — for example, rendering the separator as a
+need a different underlying element: for example, rendering the separator as a
 semantic span, or wrapping a group in a styled label.
 
 <Example>
@@ -446,7 +446,7 @@ semantic span, or wrapping a group in a styled label.
 
 Every `OtpInput.Slot` carries [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate), so a browser translation engine skips the character inside it. A translated passcode character is wrong, and the reader types it back anyway.
 
-The attribute also protects the render. Google Translate wraps each text node in a `<font>`, which detaches the node React holds — so the next keystroke makes React remove a node its parent no longer owns, and the DOM raises `NotFoundError`. Without the guard, a backspace on a translated page tears down the root.
+The attribute also protects the render. Google Translate wraps each text node in a `<font>`, which detaches the node React holds. The next keystroke then makes React remove a node its parent no longer owns, and the DOM raises `NotFoundError`. Without the guard, a backspace on a translated page tears down the root.
 
 `OtpInput.Slot` omits the `translate` prop from its type, so no call site can turn the guard off. A passcode character is never translatable, unlike [`Code`](/components/data-display/code), which also styles terms that are not code and therefore takes the override.
 

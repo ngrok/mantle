@@ -61,7 +61,7 @@ import { Button } from "@ngrok/mantle/button";
 </Button>
 ```
 
-## Class Name Merging
+## Class name merging
 
 `Slot` automatically merges `className` props using Tailwind CSS's merge logic. Child classes take priority over parent classes for conflicting styles, while non-conflicting classes are preserved.
 
@@ -83,7 +83,7 @@ import { Slot } from "@ngrok/mantle/slot";
 
 ## Render props on the child
 
-Some components resolve their own `className` or `style` from state only they know — react-router's
+Some components resolve their own `className` or `style` from state only they know: react-router's
 `NavLink` calls `className={({ isActive }) => …}` with its own match state. `Slot` composes those: when the
 child's `className` or `style` is a function, the merged value is a function of the same shape, which forwards
 the child's own arguments to the child's function and merges the result at the same child-wins precedence.
@@ -105,7 +105,7 @@ import { NavLink } from "react-router";
 </Sidebar.Item>;
 ```
 
-`Slot` never calls the function itself — it cannot know the argument is `{ isActive, isPending, isTransitioning }`,
+`Slot` never calls the function itself: it cannot know the argument is `{ isActive, isPending, isTransitioning }`,
 and it does not need to. `NavLink` calls it.
 
 Reach for this to add styling of your own. You do **not** need it for the active row treatment a mantle part
@@ -118,7 +118,7 @@ A function `children` is forwarded untouched, so `NavLink`'s `children={({ isAct
 
 > [!NOTE]
 > This is `Slot`'s behavior, so it covers every part that composes through it. A part that forwards `asChild`
-> straight to a Radix primitive — `Tooltip.Trigger`, `DropdownMenu.Trigger`, `Dialog.Trigger` — uses Radix's
+> straight to a Radix primitive (`Tooltip.Trigger`, `DropdownMenu.Trigger`, `Dialog.Trigger`) uses Radix's
 > own slot, which joins a function `className` into the class string instead of composing it. Put the render
 > prop on a mantle-backed part: nesting works, so
 > `DropdownMenu.Trigger asChild > Sidebar.ItemButton asChild > NavLink` composes fine.

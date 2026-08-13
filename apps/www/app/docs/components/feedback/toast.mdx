@@ -254,7 +254,7 @@ Toast.Root
 
 `Toast.Action` and `Toast.Message` accept `asChild`. When `true` the part renders its single child instead of its default element, forwarding class names, `data-*` attributes, and `ref` onto that child.
 
-Reach for `Toast.Action asChild` when the action must be a link — "View logs" navigating rather than firing a handler — and `Toast.Message asChild` when the message needs its own element to carry richer markup.
+Reach for `Toast.Action asChild` when the action must be a link ("View logs" navigating rather than firing a handler), and `Toast.Message asChild` when the message needs its own element to carry richer markup.
 
 `Toast.Icon` takes its element through the `svg` prop and clones it, so it needs no `asChild`.
 
@@ -267,12 +267,12 @@ Reach for `Toast.Action asChild` when the action must be a link — "View logs" 
 
 The `Toaster` component renders all toasts. It accepts the following props:
 
-| Prop                  | Type                                                                                              | Default        | Description                                                                                                                                                                                                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `position?`           | `"top-left" \| "top-center" \| "top-right" \| "bottom-left" \| "bottom-center" \| "bottom-right"` | `"top-center"` | The position where toasts will appear on the screen.                                                                                                                                                                                                         |
-| `duration_ms?`        | `number`                                                                                          | `4000`         | Time in milliseconds that should elapse before automatically dismissing toasts. When set here, this will be the default duration for all toasts. You can keep toasts open until manually dismissed by passing a value &lt;= 0 or `Number.POSITIVE_INFINITY`. |
-| `containerAriaLabel?` | `string`                                                                                          |                | Aria label for the toast container for screen readers.                                                                                                                                                                                                       |
-| `dir?`                | `"ltr" \| "rtl"`                                                                                  |                | Direction of text for internationalization support.                                                                                                                                                                                                          |
+| Prop                  | Type                                                                                              | Default        | Description                                                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `position?`           | `"top-left" \| "top-center" \| "top-right" \| "bottom-left" \| "bottom-center" \| "bottom-right"` | `"top-center"` | The position where toasts will appear on the screen.                                                                                                                                                                   |
+| `duration_ms?`        | `number`                                                                                          | `4000`         | Time in milliseconds before toasts dismiss automatically. When set here, this is the default duration for all toasts. Pass a value &lt;= 0 or `Number.POSITIVE_INFINITY` to keep toasts open until manually dismissed. |
+| `containerAriaLabel?` | `string`                                                                                          |                | ARIA label for the toast container for screen readers.                                                                                                                                                                 |
+| `dir?`                | `"ltr" \| "rtl"`                                                                                  |                | Direction of text for internationalization support.                                                                                                                                                                    |
 
 ### Toast.Root
 
@@ -313,7 +313,7 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 | ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Toast.Action` styling and functionality onto alternative element types or your own React components. |
 
-**Note:** You can prevent the toast from being dismissed on click by calling `event.preventDefault()` in your `onClick` handler.
+To keep the toast open on click, call `event.preventDefault()` in your `onClick` handler.
 
 ### makeToast
 

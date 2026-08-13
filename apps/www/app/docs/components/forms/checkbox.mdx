@@ -196,7 +196,7 @@ import { Label } from "@ngrok/mantle/label";
 
 ## Multi-line label with description
 
-For a checkbox with an emphasized title and a supplementary description beneath it, compose it inside [`Choice`](/components/forms/choice): drop the `Checkbox` into `Choice.Indicator` and pair `Choice.Label` (a real `<label>` — clicking it toggles the box) with an optional `Choice.Description`. The box aligns to the leading of the title's first line, and the description associates via `aria-describedby`.
+For a checkbox with an emphasized title and a supplementary description beneath it, compose it inside [`Choice`](/components/forms/choice): drop the `Checkbox` into `Choice.Indicator` and pair `Choice.Label` (a real `<label>`, so clicking it toggles the box) with an optional `Choice.Description`. The box aligns to the leading of the title's first line, and the description associates via `aria-describedby`.
 
 <Example>
 	<div className="w-full max-w-md">
@@ -231,7 +231,7 @@ import { Choice } from "@ngrok/mantle/choice";
 </Choice.Root>;
 ```
 
-Wrap that same `Choice` in a `Field.Item` / `Field.Control` to bind a form `name` and pick up validation. The field's `id` / `name` / `aria-*` flow onto the checkbox, and the `Field.Description` (or a `Field.Errors`) is merged into the control's `aria-describedby` alongside the `Choice.Description` — no duplicate ids, no manual wiring:
+Wrap that same `Choice` in a `Field.Item` / `Field.Control` to bind a form `name` and pick up validation. The field's `id` / `name` / `aria-*` flow onto the checkbox, and the `Field.Description` (or a `Field.Errors`) is merged into the control's `aria-describedby` alongside the `Choice.Description` (no duplicate ids, no manual wiring):
 
 <Example>
 	<div className="w-full max-w-md">
@@ -347,7 +347,7 @@ function Example() {
 
 ## Select-all helper
 
-`selectAllChecked` resolves the tri-state `checked` value for a "select all" checkbox from the current selection counts — `true` when everything is selected, `"indeterminate"` when only some is, and `false` when nothing is. Use it to keep the header checkbox of a multi-select list correct without hand-rolling the tri-state branch. It pairs directly with a [`DataTable`](/components/data-display/data-table#row-selection-with-checkboxes) row-selection column:
+`selectAllChecked` resolves the tri-state `checked` value for a "select all" checkbox from the current selection counts: `true` when everything is selected, `"indeterminate"` when only some is, and `false` when nothing is. Use it to keep the header checkbox of a multi-select list correct without hand-rolling the tri-state branch. It pairs directly with a [`DataTable`](/components/data-display/data-table#row-selection-with-checkboxes) row-selection column:
 
 <Example className="w-full">
 	<SelectAllExample />

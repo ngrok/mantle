@@ -29,23 +29,23 @@ The sidebar is routing-agnostic. Compose router links with `asChild` on `Sidebar
 app: switch the preview to the mobile viewport to see the sheet presentation, use the trigger in the header
 to collapse and expand the panel, open the product switcher at the top of the sidebar to choose a product
 from a centered [Dialog](/components/overlays/dialog), and toggle the notice to see the shell's full-window
-[`AppLayout.Notice`](/layouts/app-layout) strip push everything — sidebar included — down.
+[`AppLayout.Notice`](/layouts/app-layout) strip push everything (sidebar included) down.
 
 `Sidebar.Footer` holds the panel's stable rows, bottom-anchored under the scrolling body: the
 account-scoped destinations every product shares, a **Help** row, a `Sidebar.Separator`, and the
 account switcher. The Help row and the switcher row are ordinary sidebar rows composed with
 `DropdownMenu.Trigger asChild`, so each keeps the panel's row treatment, stays highlighted while its menu is
-open, and opens the menu upward (`side="top"`) — the footer sits at the bottom of the viewport, so downward
+open, and opens the menu upward (`side="top"`); the footer sits at the bottom of the viewport, so downward
 is off-screen. The switcher's one menu covers both scopes it names: account destinations and switching, then
-user-level items including a **Theme** submenu — mantle's
+user-level items including a **Theme** submenu; mantle's
 [`ThemeDropdownMenuRadioGroup`](/components/forms/theme-switcher) exists for exactly that spot.
 
 Choosing **Account settings** from that menu shows a second **section** of navigation in the same
 sidebar: the header's switcher becomes a back link, `Sidebar.Body` renders the settings groups, and the
-`<nav>` landmark renames itself from `Main` to `Settings`. That is composition, not a feature — the sidebar
+`<nav>` landmark renames itself from `Main` to `Settings`. That is composition, not a feature: the sidebar
 never knows which section it is showing; the app derives it from the route and renders different children.
 The footer does not move while that happens.
-Click into the frame and press <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> — the shortcut binds to the frame's own
+Click into the frame and press <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd>; the shortcut binds to the frame's own
 window, not this page. The demo narrows `mobileBreakpoint` to `md` so the desktop panel survives the
 preview's desktop and tablet widths; ngrok's dashboards keep the `lg` default.
 
@@ -695,12 +695,12 @@ Sidebar.Root
 └── Sidebar.Trigger
 ```
 
-`Sidebar.Root` renders no DOM — it only carries state, so `Sidebar.Trigger` can live anywhere under it,
+`Sidebar.Root` renders no DOM: it only carries state, so `Sidebar.Trigger` can live anywhere under it,
 including inside layout components that know nothing about the sidebar. Render exactly one `Sidebar.Nav` per
 `Sidebar.Root`; nested roots shadow the outer sidebar for everything below them.
 There is deliberately no account-switcher part: a "Switch accounts" submenu is a composition of
 [DropdownMenu](/components/overlays/dropdown-menu)'s `RadioGroup`/`RadioItem` with
-[Avatar](/components/data-display/avatar), exactly as the shell demo above shows — the account model (what a
+[Avatar](/components/data-display/avatar), exactly as the shell demo above shows: the account model (what a
 row contains, badges, ordering) belongs to the app, not the design system.
 
 ## Polymorphism
@@ -712,17 +712,17 @@ forwarding all class names, `data-*` attributes, and the ref onto that child. Th
 links on `Sidebar.ItemButton` (shown throughout this page) and composing `Sidebar.SwitcherTrigger` with
 `DropdownMenu.Trigger asChild` or `Dialog.Trigger asChild`. `Sidebar.Separator` inherits it from the
 [Separator](/components/structure/separator) it composes, and `Sidebar.Tooltip` forwards it to the
-[`Tooltip.Content`](/components/overlays/tooltip#tooltipcontent) whose props it takes — Radix implements that
+[`Tooltip.Content`](/components/overlays/tooltip#tooltipcontent) whose props it takes: Radix implements that
 swap itself, so it replaces the **tooltip surface**, not the row you wrap. The row's own polymorphism goes
 through the `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger` inside it.
 
 `Sidebar.Root`, `Sidebar.Nav`, and `Sidebar.Trigger` are the exceptions. `Sidebar.Root` renders no DOM at
 all, so there is nothing to swap; the nav renders a fixed two-element collapse structure (and a `Sheet` on
-mobile); and the trigger renders a fully-wired control — build custom triggers with `useSidebar` instead.
+mobile); and the trigger renders a fully-wired control (build custom triggers with `useSidebar` instead).
 
 Below, `Sidebar.GroupLabel` renders a real `<h3>` and each `Sidebar.ItemButton` renders an `<a>` instead of
 its default `<button>`. The parts' classes, `data-*` state, and refs land on your elements, and the
-group's `aria-labelledby` wiring still names the list — inspect the rendered markup to see it.
+group's `aria-labelledby` wiring still names the list. Inspect the rendered markup to see it.
 
 <Example className="p-4 md:p-8">
 	<SidebarPolymorphismDemo />
@@ -784,13 +784,13 @@ export function TrafficNav() {
 ### With react-router
 
 The example above fakes a router so this page stays self-contained. With react-router, render a `NavLink` and
-let it own the active state — **this is the whole integration**.
+let it own the active state. **This is the whole integration**.
 
 The two snippets in this section are the only ones on this page with nothing running above them, and
 deliberately so: this documentation site is itself a react-router app, react-router permits exactly one
 router per tree, and a live `NavLink` here would resolve against the docs site's own URLs and navigate the
 reader off the page on click. That is also why every other example on this page fakes a router. Both snippets
-are complete components — copy either one straight into a real app, where its `NavLink`s resolve against your
+are complete components; copy either one straight into a real app, where its `NavLink`s resolve against your
 routes:
 
 ```tsx
@@ -826,12 +826,12 @@ export function TrafficNavLinks() {
 }
 ```
 
-No `current`, no `useMatch`, no `className` — the row highlights itself. `NavLink` already resolved the match
+No `current`, no `useMatch`, no `className`: the row highlights itself. `NavLink` already resolved the match
 and sets `aria-current="page"`, and the current-row treatment follows **either** `aria-current="page"` or
 `data-current`, so the router's own answer drives mantle's own styling. Pass `current` for the rows whose
 parent knows (a plain `Link`, a custom matcher, a row that is current for a reason the URL doesn't express).
 
-Reach for `NavLink`'s render-prop `className` only to add styling of your own on top —
+Reach for `NavLink`'s render-prop `className` only to add styling of your own on top;
 `Sidebar.ItemButton`'s `asChild` composes it rather than dropping it, at the usual child-wins precedence (see
 [Slot → Render props on the child](/components/primitives/slot#render-props-on-the-child)):
 
@@ -869,7 +869,7 @@ and one place to change it.
 | `--sidebar-width-icon`   | `3.25rem` (52px) | The [collapsed icon rail](#collapsing-to-the-icon-rail) |
 | `--sidebar-width-mobile` | `18rem` (288px)  | The mobile `Sheet` panel                                |
 
-Override one sidebar by setting the variable on `Sidebar.Nav` — a Tailwind arbitrary property is the
+Override one sidebar by setting the variable on `Sidebar.Nav`: a Tailwind arbitrary property is the
 shortest route, and `cx` keeps it deterministic. The panel below is `18rem` wide expanded; collapse it with
 the trigger and the rail still uses the default `--sidebar-width-icon`:
 
@@ -932,33 +932,33 @@ read them with a fallback, so any ancestor of `Sidebar.Nav` can set them:
 
 Three consequences of that inheritance direction worth knowing: setting a width on something the panel
 _contains_ does nothing (values flow parent → child, never child → parent); `AppLayout` never needs to
-know the number — the `AppLayout.Content` card takes the remaining row space, so a wider sidebar
-narrows the card by construction; and a surface that renders _outside_ the panel — a switcher's menu, portaled to
-`document.body` — inherits none of them, which is what
+know the number: the `AppLayout.Content` card takes the remaining row space, so a wider sidebar
+narrows the card by construction; and a surface that renders _outside_ the panel (a switcher's menu,
+portaled to `document.body`) inherits none of them, which is what
 [`--sidebar-row-width`](#sizing-a-menu-to-a-sidebar-row) exists for.
 
 ## Collapsing to the icon rail
 
 On desktop the panel collapses to a skinny icon rail that keeps every row's leading icon visible and
-clickable: each row becomes a square chip around its icon, group labels fade out in place — their rows are
+clickable: each row becomes a square chip around its icon, group labels fade out in place (their rows are
 retained, so icon groups stay visually separated and every icon keeps the exact position it has when
-expanded — the switcher rows in the header and footer collapse to their leading visual (product icon,
-account avatar), and the rail keeps the same `bg-base` surface as the expanded panel — no border, no
-separate chrome. The rail width is the `--sidebar-width-icon` CSS variable (default `3.25rem`) — see
+expanded), the switcher rows in the header and footer collapse to their leading visual (product icon,
+account avatar), and the rail keeps the same `bg-base` surface as the expanded panel: no border, no
+separate chrome. The rail width is the `--sidebar-width-icon` CSS variable (default `3.25rem`); see
 [Width](#width).
 
-Everything in the icon rail stays in the tab order and the accessibility tree — labels are clipped or
-visually hidden, not removed — so screen readers announce the full row names and lists keep their group
+Everything in the icon rail stays in the tab order and the accessibility tree (labels are clipped or
+visually hidden, not removed), so screen readers announce the full row names and lists keep their group
 names. The scrollable `Sidebar.Body` always fades its overflowing edges; in the collapsed rail it also
 hides its scrollbar and relies on the fade alone. Collapse and expand the shell demo at the top of this page
-with its header trigger or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> (click into the frame first — the shortcut binds
+with its header trigger or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> (click into the frame first; the shortcut binds
 to the frame's own window).
 
 ### Labeling the rail for pointer users
 
 Keeping labels in the accessibility tree serves screen-reader users, but a sighted pointer user hovering the
 collapsed rail sees an unlabeled icon column. Wrap a row in `Sidebar.Tooltip` to give them the label back.
-The panel below starts collapsed — hover either icon to see its label, and use the trigger to expand it:
+The panel below starts collapsed; hover either icon to see its label, and use the trigger to expand it:
 
 <Example className="p-4 md:p-8">
 	<SidebarRailTooltipExample />
@@ -1030,19 +1030,19 @@ export function LabeledRail() {
 }
 ```
 
-The label shows only while the desktop panel is collapsed — expanded rows already read their own text and the
+The label shows only while the desktop panel is collapsed: expanded rows already read their own text and the
 mobile sheet shows full labels, so there is nothing to duplicate. The rail state _vetoes_ the tooltip's open
 state rather than withholding its content: the expanded panel and the mobile sheet keep the row at
 `data-state="closed"` with no `aria-describedby`, and toggling the rail dismisses whatever was showing, so
 collapsing the panel cannot pop a label under a pointer that has already moved on. `Tooltip.Root` itself stays
-mounted at every rail state, which keeps the row — and its focus — through a collapse.
+mounted at every rail state, which keeps the row (and its focus) through a collapse.
 
-It needs a `TooltipProvider` ancestor, like any `Tooltip.Root` — mount one at your app root. The part
+It needs a `TooltipProvider` ancestor, like any `Tooltip.Root`: mount one at your app root. The part
 deliberately does not mount its own, so your app-wide tooltip delay still applies. The one provider setting
 it does override is hoverable content: a rail label holds nothing to hover into, so the label closes when the
 pointer leaves the row instead of waiting for the pointer to leave the label too.
 
-For a row that also opens a menu — the **Help** row above — keep `DropdownMenu.Root` **outside** the tooltip:
+For a row that also opens a menu (the **Help** row above), keep `DropdownMenu.Root` **outside** the tooltip:
 it is renderless, and `Tooltip.Trigger asChild` needs a real element to clone. The menu itself takes the
 `--sidebar-row-width` floor, so it keeps the expanded row's width in the rail (see
 [Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row)).
@@ -1051,7 +1051,7 @@ it is renderless, and `Tooltip.Trigger asChild` needs a real element to clone. T
 
 A menu opened from a sidebar row should be as wide as the row it opens from, and
 [`DropdownMenu.Content`](/components/overlays/dropdown-menu#dropdownmenucontent)'s `width="trigger"` does
-exactly that — until the panel collapses to the icon rail, where the trigger is a 36px chip (28px for a
+exactly that, until the panel collapses to the icon rail, where the trigger is a 36px chip (28px for a
 `Sidebar.ItemButton` row) and the menu shrinks with it. The menu cannot solve this from the sidebar's
 variables either: it renders in a portal on `document.body`, so it inherits nothing the panel sets.
 
@@ -1062,7 +1062,7 @@ variables either: it renders in a portal on `document.body`, so it inherits noth
 | `--sidebar-row-width` | `12rem` | One row's width inside the expanded panel (192px): `calc(var(--sidebar-width, 13rem) - 1rem)`, the panel width minus the gutter `Sidebar.Header`/`Body`/`Footer` all apply. |
 
 Keep `width="trigger"` and floor the menu at it. The switcher row below is a collapsed chip; open its menu,
-expand the panel with the trigger, and open it again — the menu is the same width both times:
+expand the panel with the trigger, and open it again; the menu is the same width both times:
 
 <Example className="p-4 md:p-8">
 	<SidebarRowWidthMenuExample />
@@ -1139,18 +1139,18 @@ export function AccountRowMenu() {
 }
 ```
 
-One static class covers all three presentations at the default widths. Expanded, the floor is a no-op — the
+One static class covers all three presentations at the default widths. Expanded, the floor is a no-op: the
 row already measures that wide, so the menu is flush with it. Collapsed, the floor holds the menu at the
 expanded row's width, so it looks identical in the rail. In the mobile `Sheet` the floor is inert because the
-sheet's row is the wider of the two — `--sidebar-width-mobile` − `1.5rem` − the sheet's 1px `border-r` = 263px,
-against 192px — so `width="trigger"` wins.
+sheet's row is the wider of the two (`--sidebar-width-mobile` − `1.5rem` − the sheet's 1px `border-r` =
+263px, against 192px), so `width="trigger"` wins.
 
 That last one is a condition, not a guarantee: **widen `--sidebar-width-mobile` whenever you widen
 `--sidebar-width`**, or the floor outgrows the sheet's row and the menu overhangs the panel it opened from
 (`--sidebar-width: 22rem` alone gives a 336px menu inside a 288px sheet).
 
 The same asymmetry applies to a per-sidebar override. Because the token resolves at `:root`, a
-`--sidebar-width` set on a single `Sidebar.Nav` does not reach it in either direction — a narrower panel
+`--sidebar-width` set on a single `Sidebar.Nav` does not reach it in either direction: a narrower panel
 leaves the floor _wider_ than its row. Override `--sidebar-width` at `:root` (see [Width](#width)) to move the
 panel and its menus together, or declare the token on the menu content for a one-off, which works because a
 custom property is read from the element that declares it. The panel below is `12rem` wide and its Help menu
@@ -1225,18 +1225,18 @@ export function NarrowSidebarMenu() {
 The navigation parts are plain styled elements: `Sidebar.Group` pairs an optional muted `Sidebar.GroupLabel`
 with a `Sidebar.List` of rows, and links the two with `aria-labelledby` automatically so each list is
 announced with its group's name. `Sidebar.ItemButton` renders a leading icon slot and a truncating label, and
-`current` sets both `aria-current="page"` and the `data-current` visual state — the row's current treatment
+`current` sets both `aria-current="page"` and the `data-current` visual state: the row's current treatment
 follows either one, so a composed child that marks itself (react-router's `NavLink`) needs no `current` at all.
 
 > [!IMPORTANT]
-> **The navigation is one level deep.** There is no nested item and no collapsible group — a
+> **The navigation is one level deep.** There is no nested item and no collapsible group: a
 > `Sidebar.List` holds rows, not sub-lists. A two-level nav cannot be lifted and shifted onto this component;
 > it has to flatten into `Sidebar.GroupLabel` + rows, which also means every row that was previously a
 > second-level text link now needs a leading icon (the collapsed rail is icon-only, so a row without one
 > becomes a blank chip). Budget for that before you start: it is usually the largest single chunk of a
 > migration, and it is a design decision, not a mechanical one.
 >
-> This is deliberate — a disclosure tree is a different ARIA pattern with its own keyboard contract, and
+> This is deliberate: a disclosure tree is a different ARIA pattern with its own keyboard contract, and
 > nesting it inside a rail that collapses to icons has no coherent collapsed presentation. If you genuinely
 > need a tree, compose one from [Accordion](/components/data-display/accordion) inside `Sidebar.Body` rather than
 > expecting the rail to collapse it.
@@ -1306,10 +1306,11 @@ stays quiet.
 
 The row is styling only. Wrap it in
 [`Command.SearchTrigger`](/components/navigation/command#commandsearchtrigger) for the dialog wiring,
-`aria-keyshortcuts`, and the behavior that makes typing or pasting into the row open the palette with that text
-already in the query — and in `Sidebar.Tooltip` so the row keeps a visible label once the panel collapses.
+`aria-keyshortcuts`, and the behavior that makes typing or pasting into the row open the palette with that
+text already in the query; and in `Sidebar.Tooltip` so the row keeps a visible label once the panel
+collapses.
 
-`Sidebar.Body` is the default home — above the first `Sidebar.Group`, in the same column as the navigation
+`Sidebar.Body` is the default home: above the first `Sidebar.Group`, in the same column as the navigation
 rows. Put the row in [`Sidebar.Header`](#sidebarheader) instead when it has to stay put while the navigation
 scrolls: the switcher keeps the header's alignment band, the search row takes its own row below, and the
 [`AppLayout.Header`](/layouts/app-layout#applayoutheader) toolbar keeps matching the switcher row alone. The
@@ -1427,14 +1428,14 @@ state across visits, use the **fully controlled** form with
 > [!IMPORTANT]
 > With **storage-backed** persistence in an SSR app, `defaultOpen` does not work: the uncontrolled state
 > initializes exactly once at the hydration render, before the stored value is available, so controlled
-> `open` is the reliable form. This does **not** apply to the cookie recipe below — a cookie is available
+> `open` is the reliable form. This does **not** apply to the cookie recipe below: a cookie is available
 > to the server, so `defaultOpen` is correct there.
 
 This recipe is SSR-safe: [`useLocalStorage`](/hooks#uselocalstorage) is `useSyncExternalStore`-backed with a
 server snapshot, so the server render and the hydration render agree (no hydration mismatch), and the
 sidebar deliberately suppresses its collapse transition until after hydration, so a persisted-collapsed
 sidebar **snaps** shut instead of animating on page load. What no localStorage recipe can do is affect the
-server-rendered HTML itself — a persisted-collapsed sidebar paints expanded for one frame before the
+server-rendered HTML itself: a persisted-collapsed sidebar paints expanded for one frame before the
 post-hydration correction. If that frame matters, [persist to a **cookie**](#persisting-to-a-cookie-ssr)
 instead, the same way the theme system solves FOUC server-side.
 
@@ -1497,7 +1498,7 @@ export function PersistedShell() {
 
 </CodeExample.Root>
 
-Toggle the sidebar in the demo, then reload the preview with the toolbar's reload button — the collapsed
+Toggle the sidebar in the demo, then reload the preview with the toolbar's reload button: the collapsed
 state is restored from localStorage.
 
 ### Persisting to a cookie (SSR)
@@ -1508,7 +1509,7 @@ mirroring [`extractThemeCookie`](/components/primitives/theme#extractthemecookie
 
 This is the one recipe on this page with no live preview above it, because the thing being demonstrated is a
 **server** render: the value has to arrive from a loader, in the initial HTML, before any of this page's
-JavaScript runs. Here is the whole route module — a react-router 7 root, complete as written:
+JavaScript runs. Here is the whole route module, a react-router 7 root, complete as written:
 
 ```tsx
 // app/root.tsx
@@ -1574,7 +1575,7 @@ export default function Root({ loaderData }: Route.ComponentProps) {
 }
 ```
 
-`defaultOpen` is correct here — **not** controlled `open`. The value is already available at the server
+`defaultOpen` is correct here, **not** controlled `open`. The value is already available at the server
 render and the hydration render, so the uncontrolled state initializes to the right value once and stays
 there; the server HTML ships `data-state="collapsed"` directly, with zero flash.
 
@@ -1584,7 +1585,7 @@ together would collapse the sidebar for everyone's first visit. Choose the defau
 
 `serializeSidebarStateCookie` returns a plain cookie string, valid for both `document.cookie` on the client
 and a `Set-Cookie` header on the server, so it works whichever side of your app owns the write. `Secure` is
-omitted by default so the same call persists over `http://localhost` — if your policy requires it, pass
+omitted by default so the same call persists over `http://localhost`; if your policy requires it, pass
 `{ secure: true }`. There is no `HttpOnly` option: the browser has to write this cookie when the user toggles
 the rail.
 
@@ -1593,22 +1594,22 @@ the rail.
 - `Sidebar.Nav` renders a `<nav>` landmark named `Main` by default; override `aria-label` when your app has
   multiple navigation landmarks (breadcrumbs, pagination) or for localization.
 - `Sidebar.Trigger` follows the disclosure pattern: `aria-expanded` reflects the state and `aria-controls`
-  references the nav. Keep a trigger visible at every breakpoint where the sidebar can collapse — a collapsed
+  references the nav. Keep a trigger visible at every breakpoint where the sidebar can collapse: a collapsed
   sidebar with no visible trigger is unrecoverable.
-- `⌘B` / `Ctrl+B` toggles the sidebar. The modifier is resolved per platform — `⌘` on Apple platforms,
-  `Ctrl` everywhere else — and the two never substitute for each other, so macOS's native `Ctrl+B`
+- `⌘B` / `Ctrl+B` toggles the sidebar. The modifier is resolved per platform (`⌘` on Apple platforms,
+  `Ctrl` everywhere else), and the two never substitute for each other, so macOS's native `Ctrl+B`
   ("move the caret back one character", which every macOS text field binds) is left alone. The shortcut is
   also ignored while focus is in an `<input>`, `<textarea>`, `<select>`, or any `contenteditable` host,
   which covers embedded editors like Monaco and CodeMirror. Opt out entirely with
   `keyboardShortcut={false}` on `Sidebar.Root`.
 - When the shell owns the document, pair the sidebar with a `SkipToMainLink` and compose `Main` onto
   `AppLayout.Body` so keyboard users can jump past the sidebar's tab gauntlet straight into the scrolling
-  page region — see [App Layout → Landmarks](/layouts/app-layout#landmarks).
+  page region (see [App Layout → Landmarks](/layouts/app-layout#landmarks)).
 - The collapsed icon rail stays fully interactive: row labels are clipped and switcher text is visually
   hidden, but both remain in the tab order and the accessibility tree, so accessible names do not change
   between states.
 - `Sidebar.ItemButton` `current` renders `aria-current="page"`, and the row's current treatment is styled from
-  that attribute as well as `data-current` — so the announced state and the visual state cannot drift apart,
+  that attribute as well as `data-current`, so the announced state and the visual state cannot drift apart,
   whichever side sets it. `Sidebar.GroupLabel` is linked to its `Sidebar.List` via `aria-labelledby`.
 - The mobile sheet is a modal dialog with focus trapping and `Escape` dismissal, courtesy of
   [Sheet](/components/overlays/sheet). Its accessible name follows the nav's (`"Main"` by default), so

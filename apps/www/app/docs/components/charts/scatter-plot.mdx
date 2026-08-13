@@ -1,6 +1,6 @@
 ---
 title: Scatter Plot
-description: A canvas-rendered scatter plot for correlating two continuous measures — three with the rotatable 3D projection.
+description: A canvas-rendered scatter plot for correlating two continuous measures (three with the rotatable 3D projection).
 ---
 
 import { Button } from "@ngrok/mantle/button";
@@ -323,19 +323,19 @@ export function SeriesIdentityScatterPlotExample() {
 
 # Scatter Plot
 
-A canvas-rendered scatter plot for correlating two continuous measures — three with the rotatable 3D projection. Hover hits the nearest point within 24px of the pointer, and the entire interaction contract — the tooltip, keyboard stepping, polite announcements, and a screen-reader data table — ships with `ScatterPlot.Root` unconditionally. No part removal can strip keyboard access to the data.
+A canvas-rendered scatter plot for correlating two continuous measures (three with the rotatable 3D projection). Hover hits the nearest point within 24px of the pointer, and the entire interaction contract (the tooltip, keyboard stepping, polite announcements, and a screen-reader data table) ships with `ScatterPlot.Root` unconditionally. No part removal can strip keyboard access to the data.
 
 ## When to use
 
-A `ScatterPlot` answers "are these two measures related?" — latency vs throughput, payload size vs duration, CPU vs memory. Every mark is one independent observation positioned by two continuous values, so correlation, clusters, and outliers surface as shape. With `zKey` on the Root it correlates three measures, projecting the points into a rotatable 3D cube.
+A `ScatterPlot` answers "are these two measures related?" (latency vs throughput, payload size vs duration, CPU vs memory). Every mark is one independent observation positioned by two continuous values, so correlation, clusters, and outliers surface as shape. With `zKey` on the Root it correlates three measures, projecting the points into a rotatable 3D cube.
 
-- Scatter x values must be continuous — numbers or `Date`s. There is no categorical scatter axis.
-- Prefer [`LineChart`](/components/charts/line-chart) for trends over a continuous x — lines connect ordered samples of one measure; scatter treats every row as an independent observation.
-- Prefer [`BarChart`](/components/charts/bar-chart) to compare values across discrete categories — bars encode value by length from a zero baseline.
+- Scatter x values must be continuous: numbers or `Date`s. There is no categorical scatter axis.
+- Prefer [`LineChart`](/components/charts/line-chart) for trends over a continuous x: lines connect ordered samples of one measure; scatter treats every row as an independent observation.
+- Prefer [`BarChart`](/components/charts/bar-chart) to compare values across discrete categories: bars encode value by length from a zero baseline.
 
-**Keep it to eight series or fewer.** Scatter is an all-pairs chart form: any point can land next to any point from any other series, so every pair of series colors must stay distinguishable — not just the neighbors in a legend. The default chart tokens clear that bar in every theme: all 28 pairs of the eight slots hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia. Eight point `shape`s match those eight slots. A series takes its slot's glyph automatically, so a chart at the cap still gives every series its own mark. Past eight, every extra wears the overflow gray and the circle, so fold them into a single "Other" series or facet into small multiples.
+**Keep it to eight series or fewer.** Scatter is an all-pairs chart form: any point can land next to any point from any other series, so every pair of series colors must stay distinguishable, not just the neighbors in a legend. The default chart tokens clear that bar in every theme: all 28 pairs of the eight slots hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia. Eight point `shape`s match those eight slots. A series takes its slot's glyph automatically, so a chart at the cap still gives every series its own mark. Past eight, every extra wears the overflow gray and the circle, so fold them into a single "Other" series or facet into small multiples.
 
-Compose everything inside `ScatterPlot.Root`: gridlines, axes, one `ScatterPlot.Point` per series, and the legend. Hover anywhere near a point — the chart hits the nearest point within 24px of the pointer, so a 4px dot is never a pinpoint target, and the tooltip names the hit point's series alone. Always compose `ScatterPlot.Legend` on multi-series charts: series identity must never rely on color-matching alone.
+Compose everything inside `ScatterPlot.Root`: gridlines, axes, one `ScatterPlot.Point` per series, and the legend. Hover anywhere near a point: the chart hits the nearest point within 24px of the pointer, so a 4px dot is never a pinpoint target, and the tooltip names the hit point's series alone. Always compose `ScatterPlot.Legend` on multi-series charts: series identity must never rely on color-matching alone.
 
 <Example>
 	<RegionScatterExample />
@@ -411,13 +411,13 @@ The second channel earns its keep in three places where color alone fails:
 - print and grayscale exports, which flatten every slot to one gray
 - forced-colors mode, which replaces every hue with the user's own
 
-The glyph carries the same identity through all three, and it costs nothing — the mark paints some shape either way.
+The glyph carries the same identity through all three, and it costs nothing: the mark paints some shape either way.
 
 Set `seriesSlot={3}` for a fixed triangle identity. Automatic series take the unreserved slots in composition order, and removing one closes the gap. A custom `color` changes only paint, so the series keeps the glyph of its automatic or fixed slot. The `"other"` slot uses the circle.
 
-Set `shape` to override the pairing — an explicit value always wins. Every painted mark carries the circle's fill area, so no glyph reads louder than its siblings. The legend keys and hover dots clip those same silhouettes out of a small box, so a spiky glyph like the star reads lighter there than the square.
+Set `shape` to override the pairing: an explicit value always wins. Every painted mark carries the circle's fill area, so no glyph reads louder than its siblings. The legend keys and hover dots clip those same silhouettes out of a small box, so a spiky glyph like the star reads lighter there than the square.
 
-The encoding is family-wide — the same prop, glyph set, slot pairing, and equal-weight sizing on every chart — and how much of it you see tracks how much of the mark the glyph occupies. Here the glyph is the mark itself. On a [line chart](/components/charts/line-chart#curves-markers-and-shapes) it appears on the canvas point markers (when `markers` is on) and the hover dot; on an [area chart](/components/charts/area-chart#shapes) a filled band has no per-point mark, so the hover dot and legend key wear it. Bars carry no glyph at all — a bar's identity is its position, its color, and its `texture`. Mantle never assigns that texture for you, so bars are the one form with no automatic second channel. Legend keys mirror the glyph on every chart form: the glyph itself for scatter points and areas, the glyph riding a short stroke for lines.
+The encoding is family-wide (the same prop, glyph set, slot pairing, and equal-weight sizing on every chart), and how much of it you see tracks how much of the mark the glyph occupies. Here the glyph is the mark itself. On a [line chart](/components/charts/line-chart#curves-markers-and-shapes) it appears on the canvas point markers (when `markers` is on) and the hover dot; on an [area chart](/components/charts/area-chart#shapes) a filled band has no per-point mark, so the hover dot and legend key wear it. Bars carry no glyph at all: a bar's identity is its position, its color, and its `texture`. Mantle never assigns that texture for you, so bars are the one form with no automatic second channel. Legend keys mirror the glyph on every chart form: the glyph itself for scatter points and areas, the glyph riding a short stroke for lines.
 
 US East and EU West below set no `shape`, so they wear their slots' circle and square. AP South sets `shape="star"`, which beats the triangle its slot would hand it.
 
@@ -452,7 +452,7 @@ const shapedRegions = [
 
 ## Dense scatter
 
-This chart plots 8,000 seeded points in a single series. Rendering degrades by total point count in tiers, never all at once: past 5,000 points the dots drop their 2px surface ring (three canvas ops per point become one), and past 20,000 they become fast-path rects with no arc calls at all. Hover stays nearest-point at every tier — the hit test walks the data, not the pixels — so a dense cloud is exactly as inspectable as a sparse one. A single series also means no legend: `ScatterPlot.Legend` renders nothing for one series, because the chart's title already names it.
+This chart plots 8,000 seeded points in a single series. Rendering degrades by total point count in tiers, never all at once: past 5,000 points the dots drop their 2px surface ring (three canvas ops per point become one), and past 20,000 they become fast-path rects with no arc calls at all. Hover stays nearest-point at every tier (the hit test walks the data, not the pixels), so a dense cloud is exactly as inspectable as a sparse one. A single series also means no legend: `ScatterPlot.Legend` renders nothing for one series, because the chart's title already names it.
 
 <Example>
 	<DenseScatterExample />
@@ -503,7 +503,7 @@ function DenseScatterExample() {
 
 Set `zKey` and the scatter renders inside a rotatable cube: drag anywhere in the plot to orbit the camera. The drag captures the pointer, and pitch is clamped so the cube never flips upside down; points depth-sort under a gentle perspective, so nearer points paint over farther ones as the cloud turns. A tap without dragging still inspects and activates the nearest point.
 
-Axis parts and reference lines apply to the 2D projection only and are ignored in 3D — the cube frame carries orientation, with each edge labeled by its data key. The hover readout carries the point's z value, and keyboard stepping and the sr-only data table work identically in 3D: arrows walk the projected cloud point by point, announcements append the z value, and the table grows a z column.
+Axis parts and reference lines apply to the 2D projection only and are ignored in 3D; the cube frame carries orientation, with each edge labeled by its data key. The hover readout carries the point's z value, and keyboard stepping and the sr-only data table work identically in 3D: arrows walk the projected cloud point by point, announcements append the z value, and the table grows a z column.
 
 The glyphs carry into the projection too, and each one depth-sorts with its point. None of the three series below sets `shape`, so they wear their slots' circle, square, and triangle. The redundant encoding earns its keep in 3D more than anywhere: rotation constantly changes which clouds overlap, and the glyphs keep every series identifiable at any camera angle, with or without color vision.
 
@@ -582,7 +582,7 @@ function Scatter3dExample() {
 
 ## Dimensions
 
-`dimensions` controls how many axes the cloud currently occupies — the pattern behind "watch the clusters separate" explainers. At `1` every point collapses onto the x axis line and the four clusters below read as one jumbled strip — only their glyphs still tell them apart; at `2` they spread across the plane; at `3` they fill the cube. Each cluster wears the glyph paired to its series slot — circle, square, triangle, diamond — so cluster identity survives even where position collapses. Changing it morphs every point along a smooth glide (the same chase that drives the domains), the y and z frame edges fade in with their dimension, and `prefers-reduced-motion` snaps the whole move.
+`dimensions` controls how many axes the cloud currently occupies: the pattern behind "watch the clusters separate" explainers. At `1` every point collapses onto the x axis line and the four clusters below read as one jumbled strip (only their glyphs still tell them apart); at `2` they spread across the plane; at `3` they fill the cube. Each cluster wears the glyph paired to its series slot (circle, square, triangle, diamond), so cluster identity survives even where position collapses. Changing it morphs every point along a smooth glide (the same chase that drives the domains), the y and z frame edges fade in with their dimension, and `prefers-reduced-motion` snaps the whole move.
 
 <Example>
 	<DimensionsExample />
@@ -688,7 +688,7 @@ function DimensionsExample() {
 
 ## Reference lines
 
-`ScatterPlot.ReferenceLine` paints a dashed horizontal marker at a y value — a target, a budget, an SLO — in the neutral reference color, with an optional label above its right end. Like the axis parts, it applies to the 2D projection only and is ignored in 3D.
+`ScatterPlot.ReferenceLine` paints a dashed horizontal marker at a y value (a target, a budget, an SLO) in the neutral reference color, with an optional label above its right end. Like the axis parts, it applies to the 2D projection only and is ignored in 3D.
 
 <Example>
 	<ReferenceLineScatterExample />
@@ -732,7 +732,7 @@ function ReferenceLineScatterExample() {
 
 ## Copy as markdown
 
-`ScatterPlot.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table — one x column plus one column per series in paint order, and the z column in 3D (ISO 8601 dates, plain un-separated numbers, an em dash for gaps) — pasteable into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
+`ScatterPlot.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table: one x column plus one column per series in paint order, and the z column in 3D (ISO 8601 dates, plain un-separated numbers, an em dash for gaps). The table pastes into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
 
 <Example>
 	<CopyMarkdownExample />
@@ -759,15 +759,15 @@ import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 
 ## Decorative charts
 
-Set `decorative` to render the chart as a placeholder backdrop instead of real data — synthetic points behind an empty state, an atmospheric hero graphic. A decorative chart keeps its visual rendering and animation but drops every layer that only makes sense for real data: it is hidden from assistive technology, removed from the tab order, and inert to pointer and keyboard, with no hover band, tooltip, sr-only data table, or live region. Because the values aren't information, `decorative` is mutually exclusive with the accessible-name props (`aria-label` / `aria-labelledby`) and the interaction props (`activeIndex`, `onActiveIndexChange`, `onDatumActivate`) — the type won't compile with both.
+Set `decorative` to render the chart as a placeholder backdrop instead of real data: synthetic points behind an empty state, an atmospheric hero graphic. A decorative chart keeps its visual rendering and animation but drops every layer that only makes sense for real data: it is hidden from assistive technology, removed from the tab order, and inert to pointer and keyboard, with no hover band, tooltip, sr-only data table, or live region. Because the values aren't information, `decorative` is mutually exclusive with the accessible-name props (`aria-label` / `aria-labelledby`) and the interaction props (`activeIndex`, `onActiveIndexChange`, `onDatumActivate`); the type won't compile with both.
 
 A decorative chart also drops the categorical palette. Every series paints `--color-chart-decorative`, one neutral fill that outranks a series' `color` and `seriesSlot`. A backdrop carries no series identity, and a hue on values that are not information invites a reader to decode it.
 
-**That fill is what keeps an overlaid message readable.** `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card — 0.38 over the 4.5:1 floor for 14px text, so any tint under that copy spends the headroom. `--color-chart-decorative` is the darkest neutral step that still clears the floor in every theme: 4.56:1 in light, 4.93:1 in dark, 9.08:1 and 8.14:1 in the high-contrast pair. The message needs no scrim behind it, no dimming, and no blur. Redeclare the token on the Root to retune the fill — `className="[--color-chart-decorative:var(--color-neutral-100)]"` — and re-measure the copy against the value you pick.
+**That fill is what keeps an overlaid message readable.** `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card (0.38 over the 4.5:1 floor for 14px text), so any tint under that copy spends the headroom. `--color-chart-decorative` is the darkest neutral step that still clears the floor in every theme: 4.56:1 in light, 4.93:1 in dark, 9.08:1 and 8.14:1 in the high-contrast pair. The message needs no scrim behind it, no dimming, and no blur. Redeclare the token on the Root to retune the fill (`className="[--color-chart-decorative:var(--color-neutral-100)]"`) and re-measure the copy against the value you pick.
 
-Reach for `decorative` over hand-rolled `inert` + CSS: it removes the interaction overlay at the source, so consumers never target chart internals to neutralize it. Keep the real empty-state message as a sibling of the chart (not inside it) so screen readers still announce it — the decorative chart itself is silent.
+Reach for `decorative` over hand-rolled `inert` + CSS: it removes the interaction overlay at the source, so consumers never target chart internals to neutralize it. Keep the real empty-state message as a sibling of the chart (not inside it) so screen readers still announce it; the decorative chart itself is silent.
 
-`decorative` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For a chart with real data that should stay readable through its data table but skip pointer/keyboard exploration, that's a different, not-yet-shipped concern — don't reach for `decorative`.
+`decorative` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For a chart with real data that should stay readable through its data table but skip pointer/keyboard exploration, that's a different, not-yet-shipped concern; don't reach for `decorative`.
 
 <Example>
 	<EmptyStateScatterPlotExample />
@@ -825,7 +825,7 @@ ScatterPlot.Root
 
 ## Accessibility
 
-Every interactive chart must have an accessible name: either a direct `aria-label` or an `aria-labelledby` reference to a visible title (preferred when the chart sits under a heading — no drift-prone duplicated text). This is enforced at the type level — omitting both is a compile error, not a runtime warning. The name lands on the focusable interaction overlay — the chart's single named element (the canvas itself is hidden from assistive technology so the chart is never announced twice). [Decorative charts](#decorative-charts) are the exception: they carry no real data, so they take no accessible name and are hidden from assistive technology entirely.
+Every interactive chart must have an accessible name: either a direct `aria-label` or an `aria-labelledby` reference to a visible title (preferred when the chart sits under a heading: no drift-prone duplicated text). This is enforced at the type level: omitting both is a compile error, not a runtime warning. The name lands on the focusable interaction overlay, the chart's single named element (the canvas itself is hidden from assistive technology so the chart is never announced twice). [Decorative charts](#decorative-charts) are the exception: they carry no real data, so they take no accessible name and are hidden from assistive technology entirely.
 
 The chart is a single tab stop with a full keyboard point cursor, identical in 2D and 3D:
 
@@ -838,11 +838,11 @@ The chart is a single tab stop with a full keyboard point cursor, identical in 2
 | `Enter` / `Space`          | Activate the current point — fires `onDatumActivate`.     |
 | `Escape`                   | Dismiss the readout.                                      |
 
-The tooltip names only the relevant series, never a column of em dashes: under the pointer it reads the hit point's series, and under keyboard stepping it reads the row's populated series. Keyboard stepping announces the active point through a debounced polite `aria-live` region, so rapid arrowing never floods the screen-reader queue — and in 3D, the announcement carries the point's z value.
+The tooltip names only the relevant series, never a column of em dashes: under the pointer it reads the hit point's series, and under keyboard stepping it reads the row's populated series. Keyboard stepping announces the active point through a debounced polite `aria-live` region, so rapid arrowing never floods the screen-reader queue. In 3D, the announcement carries the point's z value.
 
-Every chart also renders a screen-reader-only data table twin: one column for the x value and one per series — plus a z column in 3D — bounded to the first 150 rows with a caption stating the summarization. Tooltips enhance, they never gate: every plotted value is reachable through the table or the keyboard point cursor.
+Every chart also renders a screen-reader-only data table twin: one column for the x value and one per series (plus a z column in 3D), bounded to the first 150 rows with a caption stating the summarization. Tooltips enhance, they never gate: every plotted value is reachable through the table or the keyboard point cursor.
 
-The twin doubles as the chart's machine-readable surface: date row headers carry the exact ISO timestamp in `<time dateTime>` and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting — assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="scatter-plot-data-table"`.
+The twin doubles as the chart's machine-readable surface: date row headers carry the exact ISO timestamp in `<time dateTime>` and value cells carry the raw number in `data-value`, so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting. Assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="scatter-plot-data-table"`.
 
 ## API Reference
 
