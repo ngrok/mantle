@@ -1,6 +1,6 @@
 ---
 name: ngrok-style
-description: ngrok writing style guide for voice, tone, and grammar/mechanics. Use when writing or editing user-facing prose: docs-site page copy under apps/www/app/docs (published at mantle.ngrok.com), emails, or social posts. Not for code comments, JSDoc, changesets, decision docs, commits, or PR descriptions; those follow the simplified-technical-english skill. Docs-page copy is in both scopes — Simplified Technical English owns the mechanics and wins on conflict; this skill adds voice, tone, and the AI-pattern bans.
+description: "ngrok writing style guide for voice, tone, and grammar/mechanics. Use when writing or editing user-facing prose: docs-site page copy under apps/www/app/docs (published at mantle.ngrok.com), emails, or social posts. Not for code comments, JSDoc, changesets, decision docs, commits, or PR descriptions; those follow the simplified-technical-english skill. Docs-page copy is in both scopes — Simplified Technical English owns the mechanics and wins on conflict; this skill adds voice, tone, and the AI-pattern bans."
 ---
 
 # ngrok Style Guide
