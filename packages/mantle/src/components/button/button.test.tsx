@@ -455,6 +455,7 @@ describe("Button", () => {
 			const subject = (showLeading: boolean) => (
 				<Button appearance="outlined" intent="neutral">
 					{showLeading && <CaretDownIcon />}
+					{/* oxlint-disable-next-line ngrok/jsx-no-conditional-before-text -- the test asserts the crash this rule reports */}
 					Create endpoint
 				</Button>
 			);

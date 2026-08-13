@@ -43,7 +43,7 @@ Required diff-audit checklist:
 - Nullish checks: `== null` / `!= null`, not `=== undefined` / `!== undefined`.
 - Imports: relative paths in `packages/`, `~/...` aliases in `apps/`; named exports; `import type` for type-only imports.
 - className: composed with `cx` from `@ngrok/mantle/cx` — no string interpolation, `+`, or ternaries inside `className`.
-- Translation: no conditional element renders immediately before bare text children. A translated text node makes that insert throw, and the page goes blank. Untranslatable content — code, a key, a filename, an ID, a passcode — carries `translate="no"`, locked out of the props type when the element can never hold prose. See [CONVENTIONS.md § Browser Translation](./CONVENTIONS.md#browser-translation).
+- Translation: no conditional element renders immediately before bare text children. A translated text node makes that insert throw, and the page goes blank. Untranslatable content — code, a key, a filename, an ID, a passcode — carries `translate="no"`, locked out of the props type when the element can never hold prose. `pnpm -w run lint` reports all three shapes through `@ngrok/oxlint-plugin`, but it skips the branch it cannot read statically — so read the section rather than trusting a clean run. See [CONVENTIONS.md § Browser Translation](./CONVENTIONS.md#browser-translation).
 - Deps: exact-pinned versions (no `^`/`~`); shared deps go through the `catalog:` in `pnpm-workspace.yaml`.
 
 ## Setup
@@ -71,6 +71,7 @@ All rules live in [CONVENTIONS.md](./CONVENTIONS.md) and are mandatory. The `@./
   - `mantle` (UI component library, built with tsdown)
   - `mantle-vite-plugins` (Vite + rehype plugins for code-block highlighting and Tailwind CSS source optimization)
   - `mantle-server-syntax-highlighter` (server-side syntax highlighting engine powered by Shiki)
+  - `oxlint-plugin` (ngrok's house oxlint rules, shared with `ngrok-private/frontend`)
 - **Config** (`config/`): `tsconfig` (shared TypeScript configs via `@cfg/tsconfig`)
 
 ```

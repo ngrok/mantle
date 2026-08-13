@@ -1,0 +1,13 @@
+{
+  "extends": "@cfg/tsconfig/tsconfig.client-package.json",
+  "compilerOptions": {
+    "types": ["node", "vitest/globals"],
+    // Why `.ts` specifiers here, and nowhere else in the monorepo: oxlint loads this plugin from
+    // source, and Node's type stripping resolves the specifier as written rather than mapping
+    // `.js` back to `.ts`. CI lints right after install with no build, so a `dist` import would
+    // break `pnpm lint`. tsdown rewrites the extensions when it bundles.
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true
+  },
+  "include": ["src/**/*"]
+}
