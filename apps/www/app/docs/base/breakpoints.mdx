@@ -9,11 +9,11 @@ import { BreakpointsLiveDemo } from "~/features/breakpoints-demo";
 
 Responsive breakpoints for building adaptive layouts.
 
-## Live Demo
+## Live demo
 
 <BreakpointsLiveDemo />
 
-## Breakpoint Values
+## Breakpoint values
 
 There are seven breakpoints by default, inspired by common device resolutions:
 
@@ -28,7 +28,7 @@ There are seven breakpoints by default, inspired by common device resolutions:
 | `xl`              | 80rem (1280px)  | `@media (width >= 80rem) { ... }`   |
 | `2xl`             | 96rem (1536px)  | `@media (width >= 96rem) { ... }`   |
 
-## useBreakpoint Hook
+## useBreakpoint hook
 
 The `useBreakpoint` hook returns the current breakpoint based on the viewport width. It efficiently tracks all breakpoints and returns the largest one that currently matches.
 
@@ -54,11 +54,11 @@ function ResponsiveComponent() {
 - **Real-time updates:** Automatically updates when the viewport size changes
 - **TypeScript support:** Fully typed with autocompletion for all breakpoints
 
-### Return Value
+### Return value
 
 Returns a `Breakpoint` type that can be one of: `"default"`, `"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, or `"2xl"`.
 
-## useIsBelowBreakpoint Hook
+## useIsBelowBreakpoint hook
 
 The `useIsBelowBreakpoint` hook returns `true` if the current viewport width is below the specified breakpoint. Perfect for mobile-first responsive design patterns.
 
@@ -80,7 +80,7 @@ function ResponsiveSidebar() {
 
 Accepts a `TailwindBreakpoint` which can be one of: `"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, or `"2xl"`.
 
-### Common Use Cases
+### Common use cases
 
 - **Mobile detection:** `useIsBelowBreakpoint("md")` for mobile-first layouts
 - **Conditional rendering:** Show/hide components based on screen size

@@ -834,7 +834,7 @@ export function Shell() {
 
 ## Sizing a page to the card
 
-`AppLayout.Body` is a flex **item** that is **block inside**, and both halves are load-bearing. Together they
+`AppLayout.Body` is a flex **item** that is **block inside**, and neither half is optional. Together they
 mean a route author never has to reason about the shell's geometry — the four page shapes each need at most
 one class on the route root:
 
@@ -1669,7 +1669,7 @@ The page region, and the shell's **only** scroll container:
 It renders a `<div>` by default, but in a real app shell it should almost always be the
 [Main](/components/primitives/main) landmark composed via `asChild` — see [Landmarks](#landmarks).
 
-Every class on it is load-bearing; see [Sizing a page to the card](#sizing-a-page-to-the-card) for what each
+Every class on it has a job; see [Sizing a page to the card](#sizing-a-page-to-the-card) for what each
 one buys a route author, and [Scroll restoration](#scroll-restoration) for what an inner scrollport means for
 your router.
 

@@ -391,7 +391,7 @@ inverted theme too.
 
 Under `prefers-reduced-motion: reduce` the bar keeps its fades and drops everything that travels:
 the enter no longer rises, the exit no longer drops, and `shake()` announces without wiggling. The
-announcement is the load-bearing feedback, so blocked navigation stays perceivable with the motion
+announcement carries the feedback, so blocked navigation stays perceivable with the motion
 switched off.
 
 Two mechanisms do it, and neither needs a prop. The enter/exit travel sits behind `motion-safe:`, so
@@ -535,9 +535,9 @@ A fixed bar can cover the focused element behind it (WCAG 2.4.11). Two mitigatio
 the panel is a centered island rather than an edge-to-edge strip, and it floats above the bottom
 edge. For long forms, additionally set `scroll-padding-bottom` (roughly the bar height plus its
 offset, ~`6rem`) on the scrolling container while the bar is open, so keyboard-driven
-scroll-into-view lands fields above the bar. Note that scroll padding only helps elements being
-scrolled into view — an element already in view behind the bar is only partially obscured thanks
-to the island shape, which satisfies the AA criterion.
+scroll-into-view lands fields above the bar. Scroll padding only helps elements being scrolled
+into view — an element already in view behind the bar is only partially obscured thanks to the
+island shape, which satisfies the AA criterion.
 
 ## Placement
 

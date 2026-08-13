@@ -19,7 +19,7 @@ import {
 import type { Color, NamedColor, FunctionalColor } from "@ngrok/mantle/color";
 ```
 
-## Color Categories
+## Color categories
 
 Mantle has two categories of colors:
 
@@ -84,7 +84,7 @@ import { colors } from "@ngrok/mantle/color";
 colors; // readonly [...namedColors, ...functionalColors]
 ```
 
-## Type Guards
+## Type guards
 
 ### `isNamedColor(value)`
 
@@ -130,7 +130,7 @@ isColor("foo"); // false
 | `FunctionalColor` | One of the 6 semantic role colors  |
 | `Color`           | `NamedColor \| FunctionalColor`    |
 
-## Example: Color Prop
+## Example: Color prop
 
 ```tsx
 import { isColor } from "@ngrok/mantle/color";

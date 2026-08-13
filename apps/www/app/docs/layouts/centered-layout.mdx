@@ -281,7 +281,7 @@ import { CenteredLayout } from "@ngrok/mantle/centered-layout";
 
 - **One Main landmark per document.** Two `<main>` elements in one document is invalid HTML and confuses screen-reader landmark navigation — so the layout renders none by default. Compose [Main](/components/primitives/main) directly in `Body` when the layout owns the document (see [Landmarks](#landmarks)); inside a shell that already renders one, use a plain `div` and no duplicate can occur.
 - **Skip link pairing.** The composed `Main` is focusable (`id="main"`, `tabIndex={-1}`), so a [SkipToMainLink](/components/primitives/skip-to-main-link) placed as the first child of `Root` sends keyboard users directly to the content.
-- **Header and Footer landmarks.** `Header` is a semantic `<header>` (`banner`) and `Footer` a semantic `<footer>` (`contentinfo`) for the page-level frame — unlike `Card.Footer`'s generic `div`. Note that these mappings only apply when the element is not nested inside a sectioning element, so rendering `Root` as a `<section>` via `asChild` (as in the [Polymorphism](#polymorphism) example) scopes both to that section instead.
+- **Header and Footer landmarks.** `Header` is a semantic `<header>` (`banner`) and `Footer` a semantic `<footer>` (`contentinfo`) for the page-level frame — unlike `Card.Footer`'s generic `div`. These mappings only apply when the element is not nested inside a sectioning element, so rendering `Root` as a `<section>` via `asChild` (as in the [Polymorphism](#polymorphism) example) scopes both to that section instead.
 
 ## API Reference
 

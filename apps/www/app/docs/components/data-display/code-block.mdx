@@ -45,7 +45,7 @@ import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
 
 ## Examples
 
-### Single Line with a Header
+### Single line with a header
 
 Many code blocks will be single line command line prompts and should be able to render with a header and copy button. This makes it absolutely clear that this example is a command line prompt and not a code sample.
 
@@ -68,7 +68,7 @@ Many code blocks will be single line command line prompts and should be able to 
 </CodeBlock.Root>
 ```
 
-### Horizontal Scrolling
+### Horizontal scrolling
 
 This example is included to demonstrate that code blocks can scroll horizontally if the content is too wide. Mantle attempts to normalize scrollbar styling across browsers and platforms.
 
@@ -108,7 +108,7 @@ When line numbers are shown, the gutter — numbers and fold toggles — stays p
 </CodeBlock.Root>
 ```
 
-### No Header or Copy Button
+### No header or copy button
 
 This is the most simple example of our code block component. While very useful, the copy button is optional. It is also perfectly acceptable to render a code block without a header, especially if the surrounding content carries the context or the code block is self-explanatory eg. "In your index.js file, paste the following:".
 
@@ -134,7 +134,7 @@ This is the most simple example of our code block component. While very useful, 
 </CodeBlock.Root>
 ```
 
-### Single Line with Horizontal Scrolling
+### Single line with horizontal scrolling
 
 This example is included to show the interaction between the copy button and horizontal scrolling on a single verbose terminal command.
 
@@ -153,7 +153,7 @@ This example is included to show the interaction between the copy button and hor
 </CodeBlock.Root>
 ```
 
-### Server-Rendered Syntax Highlighting
+### Server-rendered syntax highlighting
 
 The `CodeBlock` supports server-rendered syntax highlighting for dynamic or user-supplied code. Use `createMantleCodeBlockValue()` to construct a value from server-highlighted HTML and pass it to `CodeBlock.Code`. This is useful when the code to highlight isn't known at build time — for example, user input or API responses.
 
@@ -192,7 +192,7 @@ const value: MantleCodeBlockValue = createMantleCodeBlockValue({
 </CodeBlock.Root>;
 ```
 
-### Highlight Microservice (for Go / non-Node.js backends)
+### Highlight microservice (for Go / non-Node.js backends)
 
 For frontends backed by non-Node.js services (Go, Python, etc.), deploy a small Node.js highlight service as a sidecar or shared microservice. This gives you the same server-rendered highlighting without shipping Shiki to the browser — the frontend calls the API with `fetch`.
 
@@ -319,7 +319,7 @@ jsonCodeBlockValue(record, { showLineNumbers: true });
 
 For lower-level control, `jsonToShikiHtml(code)` returns only the Shiki-identical inner HTML for a `<code>` element (no line-number or fold decoration); `jsonCodeBlockValue` builds on it.
 
-### Tabbed Code Block
+### Tabbed code block
 
 Use `CodeBlock.TabList`, `CodeBlock.TabTrigger`, and `CodeBlock.TabContent` to create a tabbed code block. Pass `defaultTab` (or `activeTab` / `onActiveTabChange` for controlled mode) to `CodeBlock.Root`, place the tab triggers in the `CodeBlock.Header`, and wrap each `CodeBlock.Code` in a `CodeBlock.TabContent`. The copy button automatically copies whichever code is currently displayed.
 
@@ -354,7 +354,7 @@ When the tabs are too wide for the header, `CodeBlock.TabList` scrolls horizonta
 
 <ScrollingTabListDemo />
 
-### Reusing Fragments with Nested Interpolation
+### Reusing fragments with nested interpolation
 
 A `mantleCode` value can be embedded into another `mantleCode` template by interpolating its `.code` property. When the Vite plugin recognizes the reference, it inlines the fragment's source **at build time** — so the embedded code is highlighted line-for-line in its host language (correct line numbers, folding, and copy text) with **no runtime substitution cost**.
 
@@ -386,9 +386,9 @@ ${oauthPolicyFragment.code}
 var listener = agent.listen(policy);`;
 ```
 
-The fragment must be a top-level `mantleCode` `const` referenced as `.code` — either declared earlier in the same module, or a named import of a directly-exported top-level `const` from another module. Nested fragments are resolved recursively. Interpolations that can't be resolved statically (dynamic values, re-exports, bare identifiers without `.code`) fall back to runtime placeholder substitution, and an unresolved imported `.code` reference emits a build warning. Note that the embedded source is highlighted using the **outer** language's grammar — e.g. the YAML above is highlighted as Java text-block content, not as YAML.
+The fragment must be a top-level `mantleCode` `const` referenced as `.code` — either declared earlier in the same module, or a named import of a directly-exported top-level `const` from another module. Nested fragments are resolved recursively. Interpolations that can't be resolved statically (dynamic values, re-exports, bare identifiers without `.code`) fall back to runtime placeholder substitution, and an unresolved imported `.code` reference emits a build warning. The embedded source is highlighted with the **outer** language's grammar — e.g. the YAML above is highlighted as Java text-block content, not as YAML.
 
-### `mantleCode()` Options
+### `mantleCode()` options
 
 The `mantleCode()` tagged template accepts an optional second argument with the following options:
 
@@ -432,7 +432,7 @@ import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
 </CodeBlock.Root>;
 ```
 
-### Overriding Defaults
+### Overriding defaults
 
 The `mantleCode()` options let you customize how code is displayed. By default, line numbers are shown starting at 1 and indentation is inferred from the language. You can also specify highlighted lines per code block. The first example below uses the defaults (YAML auto-detects space indentation), while the second overrides all options: custom indentation, line number start, highlighted lines, and visible line numbers.
 

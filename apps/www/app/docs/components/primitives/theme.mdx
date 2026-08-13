@@ -125,7 +125,7 @@ export function Layout({ children }: PropsWithChildren) {
 }
 ```
 
-## Non-SSR / No Header Control
+## Non-SSR / no header control
 
 If you cannot set HTTP response headers (e.g. a plain Vite SPA), omit `ssrCookie` from `MantleStyleSheets` and use `PreloadFont` elements instead of `preloadFontLink`. The inline fix script inside `MantleStyleSheets` still handles FOUC correctly at runtime.
 
@@ -155,7 +155,7 @@ const themeUrls = mantleStyleSheetUrls({
 </head>;
 ```
 
-## Non-React Head
+## Non-React head
 
 If your server cannot render React components (e.g. a legacy Go service), inline the two script strings directly into your HTML `<head>`, surrounding the three theme `<link>` tags. Generate the strings via `preventWrongThemeFlashScriptContent` and `fixMediaScriptContent` from `@ngrok/mantle/theme` — run them in a Node.js build step and embed the output into your template.
 
@@ -316,7 +316,7 @@ Both generators take the same optional forced theme — `preventWrongThemeFlashS
 
 ## Usage
 
-In your application, you can use the `useTheme` hook to get and change the current theme:
+Use the `useTheme` hook to get and change the current theme:
 
 <Example>
 	<ThemeSwitcherExample />
@@ -357,7 +357,7 @@ function App() {
 }
 ```
 
-## Inverted Theme Islands
+## Inverted theme islands
 
 Add the `invert-theme` class to any element to render that subtree in the opposite theme of the
 page: light ⇄ dark and light-high-contrast ⇄ dark-high-contrast. The island is styled by the
@@ -468,7 +468,7 @@ The `ThemeProvider` accepts the following props in addition to the [PropsWithChi
 | `children`    | `ReactNode`     |         | The React components to be wrapped by the theme provider context.                                                                                                                                    |
 | `forceTheme?` | `ResolvedTheme` |         | Pin the theme that renders, ignoring the stored preference and the OS. See [Locking a page to one theme](#locking-a-page-to-one-theme) — pass the same value to every component that forces a theme. |
 
-**Note:** The `ThemeProvider` uses a hardcoded storage key of `mantle-ui-theme` and defaults to `system` theme. The provider manages both values internally, so they need no configuration.
+The `ThemeProvider` uses a hardcoded storage key of `mantle-ui-theme` and defaults to `system` theme. The provider manages both values internally, so they need no configuration.
 
 ### MantleStyleSheets
 
@@ -630,4 +630,4 @@ The `useInitialHtmlThemeProps` hook returns props that should be applied to the 
 
 **Returns:** An object with `className`, `data-theme`, and `data-applied-theme` props to spread onto your `<html>` element.
 
-**Note:** On the server, when `ssrCookie` is set, the hook reads the theme from the cookie to render the correct class. When omitted, it defaults to `system` theme (resolved to `light`). On the client, it reads the current theme from `document.cookie` to match what the FOUC prevention script applied, so React hydration succeeds.
+On the server, when `ssrCookie` is set, the hook reads the theme from the cookie to render the correct class. When omitted, it defaults to `system` theme (resolved to `light`). On the client, it reads the current theme from `document.cookie` to match what the FOUC prevention script applied, so React hydration succeeds.

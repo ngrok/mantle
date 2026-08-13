@@ -232,7 +232,7 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 
 ### Router or state management controlled Sheet
 
-You can control when to render a Sheet with a router or via outside state management. This will allow you to open and close the Sheet programmatically without using a `Sheet.Trigger`.
+Control when to render a Sheet with a router or with outside state management to open and close it programmatically without a `Sheet.Trigger`.
 
 <Example>
 	<WithoutTriggerExample />
@@ -283,7 +283,7 @@ export default function Component() {
 
 ### Setting a preferred width of the Sheet
 
-By default, a `Sheet`'s content width is responsive with a default _preferred width_: the maximum width of the `Sheet.Content` when the window viewport is larger than the mobile breakpoint (`sm`). You can control the preferred width of the `Sheet.Content` by using the `preferredWidth` prop:
+By default, a `Sheet`'s content width is responsive with a default _preferred width_: the maximum width of the `Sheet.Content` when the window viewport is larger than the mobile breakpoint (`sm`). Control the preferred width of the `Sheet.Content` with the `preferredWidth` prop:
 
 <Example>
 	<Sheet.Root>

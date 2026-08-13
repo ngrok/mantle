@@ -60,7 +60,7 @@ The "Why" section above is the user-perceived case for the pattern. These rules 
 4. **Encode the retry policy in `useQuery`.** Return `false` from `retry` for terminal errors like `404`. Return a bounded `failureCount` check for transient ones like `500`.
 5. **Match the retry UI to the retry policy.** Show a retry button on recoverable errors. Omit it on terminal ones — retrying a definitive not-found adds latency without recovery.
 
-## Complete Recipe
+## Complete recipe
 
 The worked example below uses `Sheet` as the shell; the [next section](#swapping-the-shell) shows the `Dialog` and `AlertDialog` shells consuming the exact same hook and body components. Copy the UI recipe into a client component that already has a `QueryClientProvider` mounted near the app root. The demo-only mock API is shown in the appendix below; in production, replace that import with your real API client and error type.
 
@@ -537,7 +537,7 @@ function shouldRetryUserQuery({ error, failureCount }: ShouldRetryUserQueryOptio
 }
 ```
 
-## Swapping the Shell
+## Swapping the shell
 
 Everything above the shell — `useUserQuery`, `UserDetailsBody`, the loading/error/success components, the retry policy — is overlay-agnostic. To host the same async body in a different overlay, swap only the shell component. The live demo at the top of this page renders all three shells from the same parent selection state behind a segmented control.
 
@@ -646,7 +646,7 @@ export function UserAlertDialog({ onClose, scenario, userId }: UserOverlayProps)
 }
 ```
 
-## Mock API Appendix
+## Mock API appendix
 
 The code above imports a mock API module so the overlays can demonstrate happy, 404, and 500 states without a backend. In production, replace this file with your real API client and preserve the same query behavior: accept `signal`, throw typed errors, and let the UI decide which errors are retryable.
 
@@ -802,7 +802,7 @@ function createDemoRequestId({ status, userId }: CreateDemoRequestIdOptions): st
 }
 ```
 
-## Production Notes
+## Production notes
 
 - Keep each overlay shell in one component and keep API details behind `fetchUser` or your app's equivalent data client. The shell is the only overlay-specific code — everything else is shared.
 - Use the `signal` argument from TanStack Query's `queryFn` when your API client supports cancellation.

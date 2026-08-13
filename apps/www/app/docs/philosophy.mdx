@@ -11,7 +11,7 @@ guide what we build, how we build it, and—just as importantly—what we choose
 build. They apply to the whole library: components, hooks, utilities, theming, and the
 docs themselves.
 
-## Semantic HTML, Then Everything Else
+## Semantic HTML, then everything else
 
 The right HTML element is always the starting point. A [Button](/components/actions/button)
 renders a `<button>`, not a styled `<div>` with click handlers.
@@ -51,7 +51,7 @@ name and the markup disagree, we rename the part—never add the role to justify
 which is how a perfectly good list of links loses its tab order. Mechanics are worth
 porting from the ecosystem; vocabulary is re-derived from what the component emits.
 
-## The Right Foundation, Per Problem
+## The right foundation, per problem
 
 Mantle is not "built on Radix." Where the platform is enough, components are native:
 Accordion is hand-rolled precisely because a headless collapsible would lose the
@@ -74,7 +74,7 @@ strips Radix's dangling `aria-describedby` when no description is mounted, and
 component's. If you understand how one Mantle component works, you can predict how the
 rest behave. Learn the system once; apply it everywhere.
 
-## One Component Per Intent
+## One component per intent
 
 Every public component answers a distinct question. "Click an item to go somewhere or do
 something" is [List](/components/data-display/list); "check items to select them" is
@@ -97,7 +97,7 @@ built-in API—the gap was documentation, not primitives. Mantle ships the small
 surface that solves the problem and grows it only when real usage demands: the API you
 learn is the API that stays.
 
-## Composition Over Configuration
+## Composition over configuration
 
 Components compose with each other and with your code. The `asChild` pattern, powered by
 [Slot](/components/primitives/slot), swaps the rendered element entirely—internal navigation is
@@ -127,7 +127,7 @@ stays composable: a render-prop draws each row, and the data stays a thin descri
 value, its text, a disabled flag). Membership is data when behavior outlives mounting;
 presentation is always composition.
 
-## Make Invalid States Unrepresentable
+## Make invalid states unrepresentable
 
 Where a contract can live in the type system, it does.
 [Accordion](/components/data-display/accordion)'s `type` prop is a discriminated union that retypes
@@ -145,7 +145,7 @@ Utilities treat errors as control flow: `copyToClipboard` throws when both clipb
 strategies fail rather than no-oping. A silent fallback is a bug you find in production;
 a loud failure is one you fix in development.
 
-## Pure Cores, Thin Bindings
+## Pure cores, thin bindings
 
 Logic you can test without a framework is logic you can trust. Mantle's utilities are
 framework-free cores with React bound on at the edge: [in-view](/utils/in-view) wraps a
@@ -158,7 +158,7 @@ values and TypeScript types cannot drift apart. Components obey the same layerin
 [SelectableList](/components/data-display/selectable-list)'s filtering and selection math are exported
 pure functions, tested apart from rendering.
 
-## Accessibility Is Engineered, Then Given Away
+## Accessibility is engineered, then given away
 
 The promise is not that semantic markup makes accessibility free. The promise is that
 Mantle does the engineering so you get it free. [Field](/components/forms/field) generates
@@ -178,7 +178,7 @@ live on the [Accessibility](/accessibility) page. This page owns only the stance
 accessibility here is designed and reviewed like any other behavior, never inherited on
 faith from a vendor.
 
-## The First Paint Is Part of the API
+## The first paint is part of the API
 
 Mantle assumes a server, and if it renders wrong for one frame, that's a bug. The
 [theme](/components/primitives/theme) preference persists in a cookie, not just localStorage, so SSR
@@ -197,7 +197,7 @@ server answer: [`useBreakpoint`](/hooks) returns `"default"`,
 `useSyncExternalStore` precisely for consistent server and client snapshots—is the
 sanctioned escape hatch.
 
-## Tailwind Is the Design Language
+## Tailwind is the design language
 
 There is no theme object and no CSS-in-JS: the design system is a Tailwind CSS 4
 CSS-first configuration. Tokens layer from raw oklch palettes through semantic aliases to
@@ -217,7 +217,7 @@ core infrastructure, so Mantle owns it. Interactive state is styled through cust
 actually emit (`data-state-*`, `aria-*`), and key internal defaults are wrapped in
 `:where()` so a single utility class from you outranks them.
 
-## Performance Happens Before the Browser
+## Performance happens before the browser
 
 The fastest code is the code that never runs, and the most reliable code is the code
 that doesn't exist. [CodeBlock](/components/data-display/code-block) highlights with Shiki at build
@@ -236,7 +236,7 @@ are CSS scroll-driven animations with zero scroll listeners.
 across every caller—its subscribe functions are cached because unstable references
 measurably made window resizing sluggish.
 
-## Safe, Ecosystem-Normal Defaults
+## Safe, ecosystem-normal defaults
 
 A default is the library exercising judgment on your behalf, so Mantle's are safe and
 unsurprising. [Button](/components/actions/button) defaults `type="button"`, matching the
@@ -248,7 +248,7 @@ static black-on-white in every theme because inverted codes fail real scanners. 
 wrapped event handlers run your callback first and bail if you called
 `event.preventDefault()`.
 
-## Docs Are Executable Contracts
+## Docs are executable contracts
 
 Every export carries JSDoc with `@example` blocks and when-to-use guidance, and those
 examples feed the published types, `llms.txt`, and the component manifest. That makes
@@ -259,7 +259,7 @@ plain-markdown twin, and agents get a canonical entry point at
 [For AI Agents](/for-ai-agents), because this library now has two audiences that write
 code with it.
 
-## Decisions, Recorded
+## Decisions, recorded
 
 These principles are conclusions, not aspirations. Significant trade-offs land as
 decision records in the repository's

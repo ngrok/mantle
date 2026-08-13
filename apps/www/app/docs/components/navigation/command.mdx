@@ -17,7 +17,7 @@ A command palette that allows users to search and execute commands. Built on top
 
 For a text field that filters options in place rather than opening a modal, the component is [Combobox](https://mantle.ngrok.com/components/forms/combobox), not this one.
 
-### Search Trigger Example
+### Search trigger example
 
 `Command.SearchTrigger` gives its child the dialog wiring and the typing behavior. Give the button focus and start typing — the palette opens seeded with what you typed. Pasting works too.
 
@@ -84,7 +84,7 @@ function SearchPalette() {
 > [!NOTE]
 > The demos on this page pass `keyboardShortcut={false}` because this documentation site binds `⌘K` to its own search palette and two palettes must not answer one chord. Leave it at its default in your app.
 
-### Inline Example
+### Inline example
 
 `Command.Root` is the always-visible palette — the same list and filtering without a dialog around it.
 
@@ -151,7 +151,7 @@ import { CalculatorIcon, CalendarIcon, SmileyIcon, UserIcon } from "@phosphor-ic
 </Command.Root>;
 ```
 
-### Button Trigger Example
+### Button trigger example
 
 When the trigger should not behave like a search field at all, use `Command.DialogTrigger` with your own element. It carries no typing behavior — wrap the element in `Command.SearchTrigger` instead when it should.
 

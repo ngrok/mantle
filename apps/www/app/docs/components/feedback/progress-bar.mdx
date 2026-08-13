@@ -111,7 +111,7 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 </div>
 ```
 
-## Custom Maximum Value
+## Custom maximum value
 
 Set a custom maximum value with the `max` prop. The progress bar renders the value as a percentage of that maximum.
 
@@ -129,9 +129,9 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 </ProgressBar.Root>;
 ```
 
-## Indeterminate Value
+## Indeterminate value
 
-You can set the `value` prop to `"indeterminate"` to show the progress bar in an indeterminate state. Currently, this displays as a progress bar at 0% but maintains accessibility attributes for screen readers.
+Set the `value` prop to `"indeterminate"` to show the progress bar in an indeterminate state. Currently, this displays as a progress bar at 0% but keeps accessibility attributes for screen readers.
 
 <Example>
 	<ProgressBar.Root value="indeterminate">
@@ -147,9 +147,9 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 </ProgressBar.Root>;
 ```
 
-## Dynamic Colors
+## Dynamic colors
 
-The color of the `ProgressBar.Indicator` can be customized using the `className` prop. This allows you to change colors based on the current progress value or application state.
+Set the color of the `ProgressBar.Indicator` with the `className` prop to change colors based on the current progress value or application state.
 
 <Example>
 	<DynamicColorsExample />

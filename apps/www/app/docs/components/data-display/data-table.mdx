@@ -346,7 +346,7 @@ const isFiltered = globalFilter.trim() !== ""; // or table.getState().columnFilt
 
 ### Navigating on row click
 
-Pass `onClick` to `DataTable.Row` and navigate with React Router's `href()` + `useNavigate()`. Render a `<Link>` inside the primary cell for keyboard and screen-reader users — the row `onClick` acts as a larger pointer target on top.
+Pass `onClick` to `DataTable.Row` and navigate with React Router's `href()` + `useNavigate()`. Render a `<Link>` inside the primary cell for keyboard and screen-reader users — the row `onClick` is a larger pointer target on top.
 
 ```tsx
 import { DataTable } from "@ngrok/mantle/data-table";

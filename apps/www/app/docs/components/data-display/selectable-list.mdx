@@ -517,7 +517,7 @@ function Example() {
 
 No other part accepts `asChild`, and that is deliberate: `SelectableList` owns a `role="grid"` structure whose semantics depend on the elements it renders. `Root`, `Filter`, `SelectAll`, `Viewport`, and `VirtualViewport` own the grid semantics, filtering, select-all wiring, and virtualization measurement. `Item` renders the `role="row"` and its `gridcell` children around a real `Checkbox`, so swapping its element would break the row's `aria-selected` contract — compose your own layout through its `children` instead, which is unrestricted. `ItemTitle` forwards to `Choice.Label`, a real `<label>` wired to the checkbox by `htmlFor`, which is why it takes no `asChild` even though `ItemDescription` does.
 
-Note that unlike [`List`](/components/data-display/list), a selectable row is not a link: use `List` when the row's job is to navigate.
+Unlike [`List`](/components/data-display/list), a selectable row is not a link: use `List` when the row's job is to navigate.
 
 ## Accessibility
 

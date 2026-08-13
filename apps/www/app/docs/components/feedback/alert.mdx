@@ -156,7 +156,7 @@ import { Alert } from "@ngrok/mantle/alert";
 </Alert.Root>;
 ```
 
-You can mix and match what you put inside the `Alert` component to create different types of Alert layouts.
+Mix and match what you put inside the `Alert` component to create different Alert layouts.
 
 <Example className="flex-col gap-4">
 	<div className="w-full max-w-screen-sm space-y-2">
@@ -272,7 +272,7 @@ import { Alert } from "@ngrok/mantle/alert";
 </Alert.Root>;
 ```
 
-## Expand Button
+## Expand button
 
 Use `Alert.ExpandButton` for a compact control that reveals related alerts. It sits in the same trailing position as the dismiss button and reserves space for the count and caret, so alert copy remains contained on narrow viewports. It shows `+N` on mobile and `+N more` from the `md` (tablet) breakpoint.
 
@@ -301,7 +301,7 @@ const toggle = () => {};
 </Alert.Root>;
 ```
 
-## Dismiss and Expand
+## Dismiss and expand
 
 `Alert.DismissIconButton` and `Alert.ExpandButton` compose safely in the same alert. Both stay absolutely positioned at the trailing edge; when both are present, the dismiss button moves to the left of the expander and `Alert.Content` reserves room for the pair. This also handles an alert that first renders dismissable and later gains an expander as more alerts arrive.
 
@@ -382,7 +382,7 @@ import { Alert } from "@ngrok/mantle/alert";
 </Alert.Root>;
 ```
 
-## Custom Dismiss Icon
+## Custom dismiss icon
 
 Use the `icon` prop on `Alert.DismissIconButton` to render a custom icon in place of the default `X`.
 

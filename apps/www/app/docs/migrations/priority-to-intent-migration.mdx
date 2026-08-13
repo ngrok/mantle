@@ -63,7 +63,7 @@ value}` — or better, fix the upstream type/value source. Types written as
    `appearance`/`priority`/`intent`); HTML `fetchpriority`; the word "priority" in prose,
    comments, variable names, or non-mantle components. Local variables/types named after
    priority (e.g. a `priority` state feeding the prop) may keep their names — only the JSX prop
-   and mantle type imports are load-bearing — but rename them too if it is cheap and clarifies.
+   and mantle type imports must change — but rename them too if it is cheap and clarifies.
 9. After editing, run the project's formatter, linter, and type checker. The type checker is the
    safety net: every missed call site is a compile error, never a silent visual change.
 
@@ -90,7 +90,7 @@ value}` — or better, fix the upstream type/value source. Types written as
 
 ---
 
-## Before → After
+## Before → after
 
 ### Bare Button (was implicit accent + outlined)
 
@@ -231,8 +231,7 @@ const ProductButton = ({ intent = "neutral", ...props }: ProductButtonProps) => 
   renders un-toned and `Toast.Icon`/`Alert.Icon` will throw at runtime — treat any such crash
   as a missed rename.
 - **Do not "clean up" while migrating.** `intent="neutral"` on 500 buttons may look redundant —
-  it is now required and load-bearing. Choosing different intents happens in deliberate
-  follow-up PRs.
+  it is now required. Choosing different intents happens in deliberate follow-up PRs.
 
 ---
 
