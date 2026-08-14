@@ -1,30 +1,155 @@
 import { type RouteConfig, index, layout, route } from "@react-router/dev/routes";
 
-// Helper to create markdown-backed routes (handles /path and /path.md URLs,
-// plus a permanent redirect from the never-served /path.mdx source URL)
-function markdownRoute(path: string, idPrefix: string, idPath = path) {
-	const id = `${idPrefix}-${idPath.replace(/\//g, "-")}`;
+function docRouteId(idPrefix: string, idPath: string) {
+	return `${idPrefix}-${idPath.replace(/\//g, "-")}`;
+}
+
+// Helper to create a docs page route. The route module is the MDX file
+// itself, nested under the doc-page pathless layout, so the router loads the
+// compiled content before it renders: no Suspense fallback and no
+// client-side MDX resolution.
+function docPageRoute(path: string, idPrefix: string, idPath = path) {
+	return route(path, `./docs/${path}.mdx`, { id: docRouteId(idPrefix, idPath) });
+}
+
+// Helper to create a page's markdown alias routes, registered outside the
+// doc-page layout: /path.md serves raw markdown, and /path.mdx permanently
+// redirects the never-served source URL to the canonical page.
+function markdownAliasRoutes(path: string, idPrefix: string, idPath = path) {
+	const id = docRouteId(idPrefix, idPath);
 	return [
-		route(path, "./routes/$.tsx", { id }),
 		route(`${path}.md`, "./routes/$.md.tsx", { id: `${id}-md` }),
 		route(`${path}.mdx`, "./routes/$.mdx.tsx", { id: `${id}-mdx` }),
 	];
 }
 
-// Helper to create doc routes (handles both /path and /path.md URLs)
-function docRoute(path: string) {
-	return markdownRoute(path, "docs");
-}
+// MDX docs from app/docs/**/*.mdx, addressed by their URL path.
+const docsPages = [
+	// core/base top-level pages
+	"philosophy",
+	"accessibility",
+	"browser-translation",
+	"for-ai-agents",
+	"base/breakpoints",
+	"base/colors",
+	"base/scroll-fade",
+	"base/shadows",
+	"base/stacking-layers",
+	"base/tailwind-variants",
+	"base/typography",
 
-// Helper to create recipe routes under /recipes (handles both /recipes/path and /recipes/path.md URLs)
-function recipeRoute(path: string) {
-	return markdownRoute(`recipes/${path}`, "recipes", path);
-}
+	// component docs — /components/<category>/<component>, alphabetical by
+	// full slug (category blocks and entries within each block)
+	// actions
+	"components/actions/button",
+	"components/actions/icon-button",
+	"components/actions/split-button",
+	// charts
+	"components/charts/area-chart",
+	"components/charts/bar-chart",
+	"components/charts/line-chart",
+	"components/charts/scatter-plot",
+	// data display
+	"components/data-display/accordion",
+	"components/data-display/avatar",
+	"components/data-display/badge",
+	"components/data-display/code",
+	"components/data-display/code-block",
+	// Sub-page linked from the Code Block doc; intentionally excluded from
+	// the sidebar nav.
+	"components/data-display/code-block/folding-by-language",
+	"components/data-display/data-table",
+	"components/data-display/description-list",
+	"components/data-display/flag",
+	"components/data-display/icon",
+	"components/data-display/icons",
+	"components/data-display/kbd",
+	"components/data-display/list",
+	"components/data-display/qr-code",
+	"components/data-display/selectable-list",
+	"components/data-display/table",
+	// feedback
+	"components/feedback/alert",
+	"components/feedback/alert-center",
+	"components/feedback/empty",
+	"components/feedback/progress-bar",
+	"components/feedback/progress-donut",
+	"components/feedback/sandbar",
+	"components/feedback/skeleton",
+	"components/feedback/toast",
+	// forms
+	"components/forms/checkbox",
+	"components/forms/choice",
+	"components/forms/combobox",
+	"components/forms/field",
+	"components/forms/input",
+	"components/forms/label",
+	"components/forms/multi-select",
+	"components/forms/otp-input",
+	"components/forms/password-input",
+	"components/forms/radio-group",
+	"components/forms/select",
+	"components/forms/slider",
+	"components/forms/switch",
+	"components/forms/text-area",
+	"components/forms/theme-switcher",
+	// navigation
+	"components/navigation/anchor",
+	"components/navigation/breadcrumb",
+	"components/navigation/command",
+	"components/navigation/pagination",
+	"components/navigation/sidebar",
+	"components/navigation/tabs",
+	// overlays
+	"components/overlays/alert-dialog",
+	"components/overlays/dialog",
+	"components/overlays/dropdown-menu",
+	"components/overlays/hover-card",
+	"components/overlays/popover",
+	"components/overlays/sheet",
+	"components/overlays/tooltip",
+	// preview (lifecycle namespace, not a category)
+	"components/preview/calendar",
+	// primitives
+	"components/primitives/browser-only",
+	"components/primitives/main",
+	"components/primitives/sandboxed-on-click",
+	"components/primitives/skip-to-main-link",
+	"components/primitives/slot",
+	"components/primitives/theme",
+	// structure
+	"components/structure/card",
+	"components/structure/media-object",
+	"components/structure/separator",
+	"components/structure/well",
 
-// Helper to create migration routes under /migrations (handles both /migrations/path and /migrations/path.md URLs)
-function migrationRoute(path: string) {
-	return markdownRoute(`migrations/${path}`, "migrations", path);
-}
+	// hooks 🪝
+	"hooks",
+
+	// utilities
+	"utils/color",
+	"utils/compose-refs",
+	"utils/cx",
+	"utils/highlight-utils",
+	"utils/in-view",
+	"utils/sorting",
+];
+
+// layouts section — published page/viewport structure primitives. Add
+// slugs here as they graduate (see
+// decisions/2026-07-08-docs-information-architecture.md).
+const layoutsPages = ["app-layout", "centered-layout"];
+
+// recipes section — compositional how-tos spanning multiple primitives
+const recipesPages = ["breadcrumbs-from-routes", "overlay-async"];
+
+// migrations section
+const migrationsPages = [
+	"code-block-migration",
+	"data-table-action-header-migration",
+	"dialog-footer-dom-order-migration",
+	"priority-to-intent-migration",
+];
 
 export default [
 	route("robots.txt", "./routes/robots[.]txt.tsx", { id: "robots-txt" }),
@@ -44,154 +169,57 @@ export default [
 
 	// docs layout
 	layout("./routes/docs-layout.tsx", [
-		index("./routes/_index.tsx"),
 		route("index.md", "./routes/$.md.tsx", { id: "docs-index-md" }),
-
-		// MDX docs: auto-discovers docs from app/docs/**/*.mdx
-		// Handles both /path and /path.md URLs (returns HTML or raw markdown respectively)
-
-		// core/base top-level pages
-		...docRoute("philosophy"),
-		...docRoute("accessibility"),
-		...docRoute("browser-translation"),
-		...docRoute("for-ai-agents"),
-		// /changelog renders app/docs/changelog.mdx, which embeds the
-		// published @ngrok/mantle CHANGELOG.md. /changelog.md serves the
-		// raw package CHANGELOG bytes (not the MDX-roundtripped version),
-		// so it bypasses $.md.tsx.
-		route("changelog", "./routes/$.tsx", { id: "docs-changelog" }),
+		// /changelog.md serves the raw package CHANGELOG bytes (not the
+		// MDX-roundtripped version), so it bypasses $.md.tsx.
 		route("changelog.md", "./routes/changelog[.]md.tsx", { id: "changelog-md" }),
 		route("changelog.mdx", "./routes/$.mdx.tsx", { id: "changelog-mdx" }),
-		...docRoute("base/breakpoints"),
-		...docRoute("base/colors"),
-		...docRoute("base/scroll-fade"),
-		...docRoute("base/shadows"),
-		...docRoute("base/stacking-layers"),
-		...docRoute("base/tailwind-variants"),
-		...docRoute("base/typography"),
+		...docsPages.flatMap((path) => markdownAliasRoutes(path, "docs")),
 
-		// component docs — /components/<category>/<component>, alphabetical by
-		// full slug (category blocks and entries within each block)
-		// actions
-		...docRoute("components/actions/button"),
-		...docRoute("components/actions/icon-button"),
-		...docRoute("components/actions/split-button"),
-		// charts
-		...docRoute("components/charts/area-chart"),
-		...docRoute("components/charts/bar-chart"),
-		...docRoute("components/charts/line-chart"),
-		...docRoute("components/charts/scatter-plot"),
-		// data display
-		...docRoute("components/data-display/accordion"),
-		...docRoute("components/data-display/avatar"),
-		...docRoute("components/data-display/badge"),
-		...docRoute("components/data-display/code"),
-		...docRoute("components/data-display/code-block"),
-		// Sub-page linked from the Code Block doc; intentionally excluded from
-		// the sidebar nav.
-		...docRoute("components/data-display/code-block/folding-by-language"),
-		...docRoute("components/data-display/data-table"),
-		...docRoute("components/data-display/description-list"),
-		...docRoute("components/data-display/flag"),
-		...docRoute("components/data-display/icon"),
-		...docRoute("components/data-display/icons"),
-		...docRoute("components/data-display/kbd"),
-		...docRoute("components/data-display/list"),
-		...docRoute("components/data-display/qr-code"),
-		...docRoute("components/data-display/selectable-list"),
-		...docRoute("components/data-display/table"),
-		// feedback
-		...docRoute("components/feedback/alert"),
-		...docRoute("components/feedback/alert-center"),
-		...docRoute("components/feedback/empty"),
-		...docRoute("components/feedback/progress-bar"),
-		...docRoute("components/feedback/progress-donut"),
-		...docRoute("components/feedback/sandbar"),
-		...docRoute("components/feedback/skeleton"),
-		...docRoute("components/feedback/toast"),
-		// forms
-		...docRoute("components/forms/checkbox"),
-		...docRoute("components/forms/choice"),
-		...docRoute("components/forms/combobox"),
-		...docRoute("components/forms/field"),
-		...docRoute("components/forms/input"),
-		...docRoute("components/forms/label"),
-		...docRoute("components/forms/multi-select"),
-		...docRoute("components/forms/otp-input"),
-		...docRoute("components/forms/password-input"),
-		...docRoute("components/forms/radio-group"),
-		...docRoute("components/forms/select"),
-		...docRoute("components/forms/slider"),
-		...docRoute("components/forms/switch"),
-		...docRoute("components/forms/text-area"),
-		...docRoute("components/forms/theme-switcher"),
-		// navigation
-		...docRoute("components/navigation/anchor"),
-		...docRoute("components/navigation/breadcrumb"),
-		...docRoute("components/navigation/command"),
-		...docRoute("components/navigation/pagination"),
-		...docRoute("components/navigation/sidebar"),
-		...docRoute("components/navigation/tabs"),
-		// overlays
-		...docRoute("components/overlays/alert-dialog"),
-		...docRoute("components/overlays/dialog"),
-		...docRoute("components/overlays/dropdown-menu"),
-		...docRoute("components/overlays/hover-card"),
-		...docRoute("components/overlays/popover"),
-		...docRoute("components/overlays/sheet"),
-		...docRoute("components/overlays/tooltip"),
-		// preview (lifecycle namespace, not a category)
-		...docRoute("components/preview/calendar"),
-		// primitives
-		...docRoute("components/primitives/browser-only"),
-		...docRoute("components/primitives/main"),
-		...docRoute("components/primitives/sandboxed-on-click"),
-		...docRoute("components/primitives/skip-to-main-link"),
-		...docRoute("components/primitives/slot"),
-		...docRoute("components/primitives/theme"),
-		// structure
-		...docRoute("components/structure/card"),
-		...docRoute("components/structure/media-object"),
-		...docRoute("components/structure/separator"),
-		...docRoute("components/structure/well"),
-
-		// hooks 🪝
-		...docRoute("hooks"),
-
-		// utilities
-		...docRoute("utils/color"),
-		...docRoute("utils/compose-refs"),
-		...docRoute("utils/cx"),
-		...docRoute("utils/highlight-utils"),
-		...docRoute("utils/in-view"),
-		...docRoute("utils/sorting"),
+		layout("./routes/doc-page.tsx", { id: "docs-doc-page" }, [
+			index("./docs/index.mdx"),
+			// /changelog renders app/docs/changelog.mdx, which embeds the
+			// published @ngrok/mantle CHANGELOG.md.
+			route("changelog", "./docs/changelog.mdx", { id: "docs-changelog" }),
+			...docsPages.map((path) => docPageRoute(path, "docs")),
+		]),
 	]),
 
-	// layouts layout — published page/viewport structure primitives. Add
-	// `...markdownRoute("layouts/<slug>", "layouts", "<slug>")` entries here as
-	// they graduate (see decisions/2026-07-08-docs-information-architecture.md).
+	// layouts layout
 	layout("./routes/layouts-layout.tsx", [
 		// The explicit id is load-bearing: layouts-layout.tsx matches on it to
 		// keep the section index on the standard centered container.
 		route("layouts", "./routes/layouts.tsx", { id: "layouts-index" }),
-		...markdownRoute("layouts/app-layout", "layouts", "app-layout"),
-		...markdownRoute("layouts/centered-layout", "layouts", "centered-layout"),
+		...layoutsPages.flatMap((slug) => markdownAliasRoutes(`layouts/${slug}`, "layouts", slug)),
+		layout(
+			"./routes/doc-page.tsx",
+			{ id: "layouts-doc-page" },
+			layoutsPages.map((slug) => docPageRoute(`layouts/${slug}`, "layouts", slug)),
+		),
 	]),
 
-	// recipes layout — compositional how-tos spanning multiple primitives
+	// recipes layout
 	layout("./routes/recipes-layout.tsx", [
 		route("recipes", "./routes/recipes.tsx"),
-		...recipeRoute("breadcrumbs-from-routes"),
-		...recipeRoute("overlay-async"),
+		...recipesPages.flatMap((slug) => markdownAliasRoutes(`recipes/${slug}`, "recipes", slug)),
+		layout(
+			"./routes/doc-page.tsx",
+			{ id: "recipes-doc-page" },
+			recipesPages.map((slug) => docPageRoute(`recipes/${slug}`, "recipes", slug)),
+		),
 	]),
 
 	// migrations layout
 	layout("./routes/migrations-layout.tsx", [
 		route("migrations", "./routes/migrations.tsx"),
-		...migrationRoute("code-block-migration"),
-		...migrationRoute("data-table-action-header-migration"),
-		...migrationRoute("dialog-footer-dom-order-migration"),
-		...migrationRoute("priority-to-intent-migration"),
+		...migrationsPages.flatMap((slug) =>
+			markdownAliasRoutes(`migrations/${slug}`, "migrations", slug),
+		),
+		layout(
+			"./routes/doc-page.tsx",
+			{ id: "migrations-doc-page" },
+			migrationsPages.map((slug) => docPageRoute(`migrations/${slug}`, "migrations", slug)),
+		),
 	]),
 
 	// chrome-less framed example previews — the document the docs pages' iframe

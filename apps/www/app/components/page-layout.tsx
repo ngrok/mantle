@@ -20,7 +20,7 @@ const mobileDrawerLinks = [
 	{ to: href("/migrations"), label: "Migrations" },
 ];
 
-const matchDataWithTocSchema = z.object({
+const handleWithTocSchema = z.object({
 	toc: z.array(
 		z.object({
 			id: z.string(),
@@ -29,6 +29,23 @@ const matchDataWithTocSchema = z.object({
 		}),
 	),
 });
+
+type Toc = z.infer<typeof handleWithTocSchema>["toc"];
+
+/**
+ * The toc from the deepest match whose route `handle` carries one. A docs
+ * page's leaf match is its MDX route module, and the docs pipeline injects
+ * `handle = { frontmatter, toc }` into every compiled doc.
+ */
+export function tocFromMatches(matches: Array<{ handle?: unknown } | undefined>): Toc {
+	for (let index = matches.length - 1; index >= 0; index--) {
+		const parsed = handleWithTocSchema.safeParse(matches[index]?.handle);
+		if (parsed.success) {
+			return parsed.data.toc;
+		}
+	}
+	return [];
+}
 
 /**
  * Shared page frame used by section layouts (docs, blocks, …). Renders the
@@ -39,8 +56,7 @@ const matchDataWithTocSchema = z.object({
 export function PageLayout({ className, children, sidebar, ...props }: PageLayoutProps) {
 	const { showNavigation, setShowNavigation } = useNavigation();
 	const matches = useMatches();
-	const leafToc =
-		matchDataWithTocSchema.safeParse(matches[matches.length - 1]?.loaderData).data?.toc ?? [];
+	const toc = tocFromMatches(matches);
 
 	const closeMobileNavigation = () => {
 		setShowNavigation(false);
@@ -52,9 +68,12 @@ export function PageLayout({ className, children, sidebar, ...props }: PageLayou
 				<div className="scroll-fade-y scrollbar sticky top-15 hidden max-h-[calc(100vh-3.75rem)] w-44 overflow-y-auto px-1 pb-4 md:block">
 					{sidebar}
 				</div>
-				<Main className="w-0 flex-1 pb-[80vh] sm:px-8">{children}</Main>
+				{/* The xl:pb-[80vh] tail lets late headings reach the scroll-spy
+				trigger line; it exists for the ToC aside, so below xl (no ToC,
+				no spy) the page keeps a normal end-of-page gap. */}
+				<Main className="w-0 flex-1 pb-16 xl:pb-[80vh] sm:px-8">{children}</Main>
 				<aside className="hidden w-40 xl:block">
-					<TableOfContents entries={leafToc} />
+					<TableOfContents entries={toc} />
 				</aside>
 			</PageContainer>
 			{showNavigation && (

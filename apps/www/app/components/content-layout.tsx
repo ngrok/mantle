@@ -1,12 +1,11 @@
 import type { ReactNode } from "react";
-import { Suspense } from "react";
 import { DocActions } from "~/components/doc-actions";
 import { MdxProvider } from "~/components/mdx-provider";
 
 type ContentLayoutProps = {
 	/**
 	 * The MDX content to render inside the layout. Wrapped in MdxProvider
-	 * and Suspense automatically.
+	 * automatically.
 	 */
 	children: ReactNode;
 	/**
@@ -39,7 +38,9 @@ export const fullWidthProseMeasure = [
 
 /**
  * Shared layout for doc pages. Renders the doc actions button, the
- * `MdxProvider` context, and a Suspense boundary.
+ * `MdxProvider` context, and the MDX content. The content is the matched MDX
+ * route module, so it renders synchronously. No Suspense boundary sits
+ * between the document and the page text.
  */
 export function ContentLayout({ children, markdownPath }: ContentLayoutProps) {
 	return (
@@ -48,14 +49,12 @@ export function ContentLayout({ children, markdownPath }: ContentLayoutProps) {
 				<DocActions markdownPath={markdownPath} />
 			</div>
 			<MdxProvider>
-				<Suspense fallback={null}>
-					{/* don't overlap the doc actions; data-mdx-content is a stable styling
-					hook so section layouts can target the MDX flow children (e.g. the
-					prose measure on full-width sections) */}
-					<div data-mdx-content className="sm:[&>h1:first-child]:pr-40">
-						{children}
-					</div>
-				</Suspense>
+				{/* don't overlap the doc actions; data-mdx-content is a stable styling
+				hook so section layouts can target the MDX flow children (e.g. the
+				prose measure on full-width sections) */}
+				<div data-mdx-content className="sm:[&>h1:first-child]:pr-40">
+					{children}
+				</div>
 			</MdxProvider>
 		</div>
 	);

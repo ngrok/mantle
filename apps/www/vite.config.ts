@@ -7,7 +7,6 @@ import rehypeSlug from "rehype-slug";
 import remarkFrontmatter from "remark-frontmatter";
 import { remarkMdxGithubAlerts } from "@ngrok/remark-mdx-github-alerts";
 import remarkGfm from "remark-gfm";
-import remarkMdxFrontmatter from "remark-mdx-frontmatter";
 import { defineConfig } from "vite";
 import devtoolsJson from "vite-plugin-devtools-json";
 
@@ -15,7 +14,9 @@ import { remarkMdxNoParagraphWrap } from "@ngrok/remark-mdx-no-paragraph-wrap";
 import { mantleChangelogMdx } from "./vite-plugins/mantle-changelog-mdx";
 import { mdxDocComponentImports } from "./vite-plugins/mdx-doc-component-imports";
 import { rawMdxDocs } from "./vite-plugins/raw-mdx-docs";
-import { rehypeMdxToc } from "./vite-plugins/rehype-mdx-toc";
+import { rehypeMdxDocHandle } from "./vite-plugins/rehype-mdx-doc-handle";
+import { remarkMdxDemoteLowercaseExports } from "./vite-plugins/remark-mdx-demote-lowercase-exports";
+import { remarkMdxFrontmatterData } from "./vite-plugins/remark-mdx-frontmatter-data";
 
 const codeBlockPlugins = mantleCodeBlockPlugins();
 
@@ -40,19 +41,22 @@ export default defineConfig(({ command }) => ({
 			// `mantleChangelogMdx`, which intentionally ends in `.md` so MDX
 			// runs in CommonMark-only mode.
 			include: [/\.mdx$/, /__virtual__\/@ngrok\/mantle\/changelog\.md$/],
+			// Docs MDX files are route modules, so their exports must stay
+			// compatible with React Fast Refresh: component exports plus the
+			// route exports React Router accept-lists (`handle`). Frontmatter
+			// and toc ship in the `handle` export that `rehypeMdxDocHandle`
+			// emits, and author-written lowercase exports (demo data, a schema)
+			// compile as plain module-local declarations.
 			remarkPlugins: [
 				remarkFrontmatter,
-				// Use `export: "namespace"` to attach frontmatter as a property on
-				// the default export component (MDXContent.frontmatter) instead of a
-				// separate named export. This is required for React Refresh (Fast
-				// Refresh) compatibility — modules that export non-component values
-				// cause React Refresh to bail out and trigger a full page reload.
-				[remarkMdxFrontmatter, { export: "namespace" }],
+				// Parses the YAML block into `file.data` for `rehypeMdxDocHandle`.
+				remarkMdxFrontmatterData,
+				remarkMdxDemoteLowercaseExports,
 				remarkGfm,
 				remarkMdxGithubAlerts,
 				remarkMdxNoParagraphWrap,
 			],
-			rehypePlugins: [rehypeSlug, rehypeMdxToc, ...codeBlockPlugins.rehypePlugins],
+			rehypePlugins: [rehypeSlug, rehypeMdxDocHandle, ...codeBlockPlugins.rehypePlugins],
 			providerImportSource: "@mdx-js/react",
 		}),
 		// The React Router plugin's Fast Refresh transform injects a preamble
