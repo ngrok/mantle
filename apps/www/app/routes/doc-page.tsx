@@ -29,35 +29,12 @@ const indexDescription = "mantle is ngrok's UI library and design system";
  */
 export function meta({ loaderData, location }: Route.MetaArgs) {
 	const canonicalUrl = canonicalHref(location.pathname);
-
-	if (location.pathname === "/") {
-		return [
-			{ title: indexTitle },
-			{ name: "description", content: indexDescription },
-			{ property: "og:title", content: indexTitle },
-			{ name: "twitter:title", content: indexTitle },
-			{ property: "og:description", content: indexDescription },
-			{ name: "twitter:description", content: indexDescription },
-			{ tagName: "link" as const, rel: "canonical", href: canonicalUrl },
-			{ property: "og:type", content: "website" },
-			{ name: "og:url", property: "og:url", content: canonicalUrl },
-			{ name: "twitter:url", content: canonicalUrl },
-			jsonLdGraphMetaDescriptor([
-				mantleWebsiteJsonLd(),
-				mantleWebPageJsonLd({
-					name: indexTitle,
-					description: indexDescription,
-					pathname: "/",
-				}),
-			]),
-		];
-	}
+	const isIndex = location.pathname === "/";
 
 	// The loader's schema rejects an empty title or description, so both are
 	// always present here.
-	const { frontmatter } = loaderData;
-	const title = `${frontmatter.title} - @ngrok/mantle`;
-	const description = frontmatter.description;
+	const title = isIndex ? indexTitle : `${loaderData.frontmatter.title} - @ngrok/mantle`;
+	const description = isIndex ? indexDescription : loaderData.frontmatter.description;
 
 	const jsonLdValues = [
 		mantleWebsiteJsonLd(),
@@ -66,11 +43,15 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
 			description,
 			pathname: location.pathname,
 		}),
-		mantleTechArticleJsonLd({
-			title: frontmatter.title,
-			description,
-			pathname: location.pathname,
-		}),
+		...(isIndex
+			? []
+			: [
+					mantleTechArticleJsonLd({
+						title: loaderData.frontmatter.title,
+						description,
+						pathname: location.pathname,
+					}),
+				]),
 	];
 
 	return [
@@ -81,7 +62,7 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
 		{ property: "og:description", content: description },
 		{ name: "twitter:description", content: description },
 		{ tagName: "link" as const, rel: "canonical", href: canonicalUrl },
-		{ property: "og:type", content: "article" },
+		{ property: "og:type", content: isIndex ? "website" : "article" },
 		{ name: "og:url", property: "og:url", content: canonicalUrl },
 		{ name: "twitter:url", content: canonicalUrl },
 		jsonLdGraphMetaDescriptor(jsonLdValues),
@@ -147,7 +128,7 @@ export function shouldRevalidate({
  * Shared frame for MDX docs pages. The matched child route module is the
  * compiled MDX itself, so the router loads it before rendering: on the
  * server, at hydration, and on client navigations. The content is always in
- * the initial HTML with no Suspense fallback and no client-side MDX
+ * the initial HTML with no `Suspense` fallback and no client-side MDX
  * resolution.
  */
 export default function DocPage() {

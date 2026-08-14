@@ -39,7 +39,7 @@ export const fullWidthProseMeasure = [
 /**
  * Shared layout for doc pages. Renders the doc actions button, the
  * `MdxProvider` context, and the MDX content. The content is the matched MDX
- * route module, so it renders synchronously. No Suspense boundary sits
+ * route module, so it renders synchronously. No `Suspense` boundary sits
  * between the document and the page text.
  */
 export function ContentLayout({ children, markdownPath }: ContentLayoutProps) {

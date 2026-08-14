@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
+import { useMemo } from "react";
 import { href, Link, useMatches } from "react-router";
 import { z } from "zod";
 import { useNavigation } from "./navigation-context";
@@ -36,6 +37,12 @@ type Toc = z.infer<typeof handleWithTocSchema>["toc"];
  * The toc from the deepest match whose route `handle` carries one. A docs
  * page's leaf match is its MDX route module, and the docs pipeline injects
  * `handle = { frontmatter, toc }` into every compiled doc.
+ *
+ * @example
+ * const matches = useMatches();
+ * const toc = tocFromMatches(matches);
+ * // on a docs page: [{ id: "usage", text: "Usage", level: 2 }, …]
+ * // on a section index with no doc handle: []
  */
 export function tocFromMatches(matches: Array<{ handle?: unknown } | undefined>): Toc {
 	for (let index = matches.length - 1; index >= 0; index--) {
@@ -56,7 +63,10 @@ export function tocFromMatches(matches: Array<{ handle?: unknown } | undefined>)
 export function PageLayout({ className, children, sidebar, ...props }: PageLayoutProps) {
 	const { showNavigation, setShowNavigation } = useNavigation();
 	const matches = useMatches();
-	const toc = tocFromMatches(matches);
+	// Why `useMemo`: zod clones its output, so an unmemoized parse hands the
+	// scroll-spy effect a new `toc` identity on every render. The effect then
+	// re-attaches its listeners and re-measures every heading.
+	const toc = useMemo(() => tocFromMatches(matches), [matches]);
 
 	const closeMobileNavigation = () => {
 		setShowNavigation(false);
@@ -68,8 +78,8 @@ export function PageLayout({ className, children, sidebar, ...props }: PageLayou
 				<div className="scroll-fade-y scrollbar sticky top-15 hidden max-h-[calc(100vh-3.75rem)] w-44 overflow-y-auto px-1 pb-4 md:block">
 					{sidebar}
 				</div>
-				{/* The xl:pb-[80vh] tail lets late headings reach the scroll-spy
-				trigger line; it exists for the ToC aside, so below xl (no ToC,
+				{/* The `xl:pb-[80vh]` tail lets late headings reach the scroll-spy
+				trigger line; it exists for the TOC aside, so below `xl` (no TOC,
 				no spy) the page keeps a normal end-of-page gap. */}
 				<Main className="w-0 flex-1 pb-16 xl:pb-[80vh] sm:px-8">{children}</Main>
 				<aside className="hidden w-40 xl:block">

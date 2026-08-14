@@ -24,12 +24,8 @@ function headingNode(id: string, text: string): Root["children"][number] {
 	};
 }
 
-test("injects an `export const handle` with frontmatter and toc", () => {
-	const tree: Root = { type: "root", children: [headingNode("usage", "Usage")] };
-	const file = { data: { frontmatter: { title: "Button" } } };
-
-	rehypeMdxDocHandle()(tree, file);
-
+/** Dig to the injected `handle` declarator, asserting each step of the shape. */
+function injectedHandleDeclarator(tree: Root) {
 	const first = tree.children[0];
 	if (first?.type !== "mdxjsEsm") {
 		throw new Error("Expected an injected mdxjsEsm node at the tree root");
@@ -43,14 +39,28 @@ test("injects an `export const handle` with frontmatter and toc", () => {
 		throw new Error("Expected a const declaration");
 	}
 	const declarator = declaration.declarations[0];
-	if (declarator == null || declarator.id.type !== "Identifier") {
+	if (declarator == null) {
+		throw new Error("Expected a declarator");
+	}
+	const { id, init } = declarator;
+	if (id.type !== "Identifier") {
 		throw new Error("Expected an identifier binding");
 	}
-	expect(declarator.id.name).toBe("handle");
+	return { id, init };
+}
+
+test("injects an `export const handle` with frontmatter and toc", () => {
+	const tree: Root = { type: "root", children: [headingNode("usage", "Usage")] };
+	const file = { data: { frontmatter: { title: "Button" } } };
+
+	rehypeMdxDocHandle()(tree, file);
+
+	const injected = injectedHandleDeclarator(tree);
+	expect(injected.id.name).toBe("handle");
 
 	// The literal carries both halves: the parsed frontmatter and the
 	// heading's id/text collected into the toc.
-	const serialized = JSON.stringify(declarator.init);
+	const serialized = JSON.stringify(injected.init);
 	expect(serialized).toContain('"frontmatter"');
 	expect(serialized).toContain('"Button"');
 	expect(serialized).toContain('"toc"');
@@ -63,11 +73,22 @@ test("falls back to an empty frontmatter object when the file has none", () => {
 
 	rehypeMdxDocHandle()(tree, { data: {} });
 
-	const first = tree.children[0];
-	if (first?.type !== "mdxjsEsm") {
-		throw new Error("Expected an injected mdxjsEsm node at the tree root");
+	const injected = injectedHandleDeclarator(tree);
+	if (injected.init?.type !== "ObjectExpression") {
+		throw new Error("Expected an object literal init");
 	}
-	expect(JSON.stringify(first.data?.estree)).toContain('"frontmatter"');
+	const frontmatterProperty = injected.init.properties.find(
+		(property) =>
+			property.type === "Property" &&
+			((property.key.type === "Literal" && property.key.value === "frontmatter") ||
+				(property.key.type === "Identifier" && property.key.name === "frontmatter")),
+	);
+	if (frontmatterProperty?.type !== "Property") {
+		throw new Error("Expected a frontmatter property");
+	}
+	// Without the plugin's `?? {}`, absent frontmatter serializes as
+	// `undefined`, and every doc-page loader 500s on the schema check.
+	expect(frontmatterProperty.value).toMatchObject({ type: "ObjectExpression", properties: [] });
 });
 
 test("throws when the doc already declares a `handle` binding", () => {
@@ -88,4 +109,33 @@ test("throws when the doc imports a `handle` binding", () => {
 	};
 
 	expect(() => rehypeMdxDocHandle()(tree, { data: {} })).toThrow(/handle/);
+});
+
+test("throws when the doc re-exports another binding as `handle`", () => {
+	const tree: Root = {
+		type: "root",
+		children: [mdxEsmNode('export { docHandle as handle } from "./shared";')],
+	};
+
+	expect(() => rehypeMdxDocHandle()(tree, { data: {} })).toThrow(/handle/);
+});
+
+test("throws when the doc binds `handle` through a destructuring pattern", () => {
+	const tree: Root = {
+		type: "root",
+		children: [mdxEsmNode("export const { handle } = pageConfig;")],
+	};
+
+	expect(() => rehypeMdxDocHandle()(tree, { data: {} })).toThrow(/handle/);
+});
+
+test("throws when the doc exports a route-module export like `meta`", () => {
+	const tree: Root = {
+		type: "root",
+		children: [mdxEsmNode("export const meta = { title: 'Endpoints' };")],
+	};
+
+	expect(() => rehypeMdxDocHandle()(tree, { data: {}, path: "docs/example.mdx" })).toThrow(
+		/meta.*docs\/example\.mdx/,
+	);
 });

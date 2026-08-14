@@ -1,11 +1,13 @@
 import type { Root } from "mdast";
 import { visit } from "unist-util-visit";
 
-// React Router reads these lowercase route-module exports without an import,
-// so demoting one would silently discard route behavior. `handle` stays here
-// too: the docs pipeline injects its own, and `rehypeMdxDocHandle` reports an
-// author-written one with a clear error instead of a dead local binding.
-const ROUTE_MODULE_EXPORTS = new Set([
+/**
+ * The lowercase route-module exports React Router reads without an import.
+ * The demote plugin keeps them exported, so demotion never silently discards
+ * route behavior. `rehypeMdxDocHandle` then throws on every author-written
+ * one, so a docs page cannot define route behavior by accident.
+ */
+export const ROUTE_MODULE_EXPORTS = new Set([
 	"action",
 	"clientAction",
 	"clientLoader",
@@ -38,7 +40,9 @@ const ROUTE_MODULE_EXPORTS = new Set([
  * uppercase letter (a component), when any declared name is a route-module
  * export React Router reads (`meta`, `loader`, `handle`, …), when the
  * statement re-exports from another module, or when it binds through a
- * destructuring pattern.
+ * destructuring pattern. An all-caps constant (`CHART_DATA`) reads as a
+ * component by this test and keeps its export; Fast Refresh then falls back
+ * to a full reload when that doc is edited.
  *
  * @example
  * // in vite.config.ts, after remark-mdx-frontmatter-data:
@@ -77,8 +81,10 @@ export function remarkMdxDemoteLowercaseExports() {
 				} else {
 					return statement;
 				}
+				// Not-uppercase-first rather than lowercase-first: `_rows` and `$rows`
+				// are not components either. A kept export breaks Fast Refresh.
 				const allDemotable = names.every(
-					(name) => /^[a-z]/.test(name) && !ROUTE_MODULE_EXPORTS.has(name),
+					(name) => !/^[A-Z]/.test(name) && !ROUTE_MODULE_EXPORTS.has(name),
 				);
 				if (!allDemotable) {
 					return statement;

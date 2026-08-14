@@ -39,7 +39,15 @@ function mdxSafeVercelPreset(): Preset {
 						const ancestor = bundlesArgs.branch
 							.slice(0, index)
 							.findLast((candidate) => !candidate.file.endsWith(".mdx"));
-						return ancestor ? { ...routeEntry, file: ancestor.file } : routeEntry;
+						// Why throw: without an ancestor the raw `.mdx` path reaches
+						// ts-morph, and the build dies with a parse error that points
+						// at compiled output instead of `routes.ts`.
+						if (!ancestor) {
+							throw new Error(
+								`Nest the MDX route ${routeEntry.id} (${routeEntry.file}) under a TypeScript layout such as doc-page.tsx: the Vercel config scan needs a file ts-morph can parse.`,
+							);
+						}
+						return { ...routeEntry, file: ancestor.file };
 					});
 					return serverBundles({ ...bundlesArgs, branch });
 				},

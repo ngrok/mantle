@@ -2,8 +2,8 @@
 // them. A compiled doc exports its default component plus `handle`, the one
 // non-component export React Router's Fast Refresh runtime accept-lists, so
 // an edited page hot-swaps in place. Frontmatter and toc ship inside
-// `handle`; `useMatches()` reads it on the client and loaders read it off
-// the module through `~/utilities/docs`.
+// `handle`. `useMatches()` reads it on the client. Loaders read it off the
+// module through `~/utilities/docs`.
 declare module "*.mdx" {
 	import type { ReactNode } from "react";
 	import type { DocHandle } from "../vite-plugins/rehype-mdx-doc-handle";

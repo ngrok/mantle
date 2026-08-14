@@ -1,5 +1,5 @@
 import { cx } from "@ngrok/mantle/cx";
-import { useMatchesMediaQuery } from "@ngrok/mantle/hooks";
+import { useIsBelowBreakpoint } from "@ngrok/mantle/hooks";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import type { TocEntry } from "~/utilities/docs";
@@ -9,10 +9,6 @@ import type { TocEntry } from "~/utilities/docs";
 // entry — not its predecessor — is the one marked active.
 const HEADER_OFFSET = 96;
 const EASE_START = 0.75;
-
-// Matches the `xl:` gate on the ToC aside in PageLayout. Below it the nav is
-// hidden, so the scroll spy must not measure headings on every scroll frame.
-const TOC_VISIBLE_MEDIA_QUERY = "(min-width: 80rem)";
 
 function clamp01(value: number): number {
 	return Math.min(1, Math.max(0, value));
@@ -30,7 +26,10 @@ function clamp01(value: number): number {
 function useActiveHeading(entries: Array<TocEntry>): string | undefined {
 	const [activeId, setActiveId] = useState<string | undefined>(() => entries[0]?.id);
 	const location = useLocation();
-	const tocIsVisible = useMatchesMediaQuery(TOC_VISIBLE_MEDIA_QUERY);
+	// Matches the `xl:` gate on the TOC aside in `PageLayout`. Below it the
+	// nav is hidden, so the scroll spy must not measure headings on every
+	// scroll frame.
+	const tocIsVisible = !useIsBelowBreakpoint("xl");
 
 	useEffect(() => {
 		if (entries.length === 0) {

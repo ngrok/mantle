@@ -135,12 +135,12 @@ const docsPages = [
 	"utils/sorting",
 ];
 
-// layouts section — published page/viewport structure primitives. Add
+// layouts section: published page/viewport structure primitives. Add
 // slugs here as they graduate (see
 // decisions/2026-07-08-docs-information-architecture.md).
 const layoutsPages = ["app-layout", "centered-layout"];
 
-// recipes section — compositional how-tos spanning multiple primitives
+// recipes section: compositional how-tos spanning multiple primitives
 const recipesPages = ["breadcrumbs-from-routes", "overlay-async"];
 
 // migrations section

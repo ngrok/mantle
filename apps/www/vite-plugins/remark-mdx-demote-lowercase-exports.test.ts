@@ -44,6 +44,16 @@ test("keeps a PascalCase component export", () => {
 	expect(types).toEqual(["ExportNamedDeclaration"]);
 });
 
+test("demotes an underscore-prefixed export", () => {
+	const types = transformedStatementTypes("export const _seededRows = [1, 2, 3];");
+	expect(types).toEqual(["VariableDeclaration"]);
+});
+
+test("keeps an all-caps constant export, which reads as a component by name", () => {
+	const types = transformedStatementTypes("export const CHART_DATA = [1, 2, 3];");
+	expect(types).toEqual(["ExportNamedDeclaration"]);
+});
+
 test("keeps a PascalCase arrow component export", () => {
 	const types = transformedStatementTypes("export const DynamicColorsExample = () => null;");
 	expect(types).toEqual(["ExportNamedDeclaration"]);
@@ -95,8 +105,17 @@ test("keeps re-exports and leaves imports untouched", () => {
 });
 
 test("ignores export-shaped text inside code fences", () => {
-	const types = transformedStatementTypes(
-		["```ts", "export const invoices = [];", "```"].join("\n"),
-	);
-	expect(types).toEqual([]);
+	const source = ["```ts", "export const invoices = [];", "```"].join("\n");
+	const tree = unified().use(remarkParse).use(remarkMdx).parse(source);
+
+	remarkMdxDemoteLowercaseExports()(tree);
+
+	// The fence parses as a `code` node, never as ESM, so the plugin has no
+	// statement to rewrite. The fenced text survives verbatim.
+	const codeNode = tree.children.find((child) => child.type === "code");
+	if (codeNode?.type !== "code") {
+		throw new Error("Expected the fence to parse as a code node");
+	}
+	expect(codeNode.value).toBe("export const invoices = [];");
+	expect(tree.children.some((child) => child.type === "mdxjsEsm")).toBe(false);
 });

@@ -1,9 +1,9 @@
-import type { ComponentType } from "react";
 import rawMdxDocs from "virtual:raw-mdx-docs";
 import type { DocHandle, TocEntry } from "../../vite-plugins/rehype-mdx-doc-handle";
 
+// The slice of a compiled doc module this file reads. The full module shape
+// (default component plus `handle`) lives in `app/mdx-modules.d.ts`.
 type MdxModule = {
-	default: ComponentType;
 	/** The route `handle` the `rehypeMdxDocHandle` plugin injects: frontmatter and toc. */
 	handle?: DocHandle;
 };

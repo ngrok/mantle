@@ -159,9 +159,11 @@ function mdxDocComponentImports(docsDir: string): Plugin {
 			if (!(file.startsWith(docsDir) && file.endsWith(".mdx"))) {
 				return;
 			}
-			// Only the SSR graph imports the virtual module (the markdown
-			// renderer is server code). Bust it quietly: the next request
-			// re-imports it fresh, and the client update list stays untouched.
+			// No module imports the virtual module today. A markdown handler
+			// imports it lazily on demand, from server code (see
+			// render-mdx-to-markdown.server.ts). Bust the ssr copy quietly
+			// when it exists: the next import re-runs `load`, and the client
+			// update list stays untouched.
 			if (this.environment.name !== "ssr") {
 				return;
 			}

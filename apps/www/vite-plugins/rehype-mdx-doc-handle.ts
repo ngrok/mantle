@@ -1,5 +1,6 @@
 import { valueToEstree } from "estree-util-value-to-estree";
 import type { ElementContent, Root } from "hast";
+import { ROUTE_MODULE_EXPORTS } from "./remark-mdx-demote-lowercase-exports";
 
 /** A heading entry collected for a doc page's table of contents. */
 export type TocEntry = {
@@ -19,9 +20,75 @@ export type DocHandle = {
 	toc: Array<TocEntry>;
 };
 
-/** Collect every top-level name an mdxjsEsm program binds. */
-function collectTopLevelBindings(tree: Root): Set<string> {
-	const names = new Set<string>();
+type MdxjsEsmNode = Extract<Root["children"][number], { type: "mdxjsEsm" }>;
+type EsmProgram = NonNullable<NonNullable<MdxjsEsmNode["data"]>["estree"]>;
+type EsmStatement = EsmProgram["body"][number];
+type EsmDeclaration = NonNullable<
+	Extract<EsmStatement, { type: "ExportNamedDeclaration" }>["declaration"]
+>;
+type EsmPattern = Extract<
+	EsmDeclaration,
+	{ type: "VariableDeclaration" }
+>["declarations"][number]["id"];
+
+/** Collect every name a binding pattern declares, through nested destructuring. */
+function collectPatternNames(pattern: EsmPattern, names: Set<string>): void {
+	switch (pattern.type) {
+		case "Identifier":
+			names.add(pattern.name);
+			break;
+		case "ObjectPattern":
+			for (const property of pattern.properties) {
+				collectPatternNames(
+					property.type === "Property" ? property.value : property.argument,
+					names,
+				);
+			}
+			break;
+		case "ArrayPattern":
+			for (const element of pattern.elements) {
+				if (element != null) {
+					collectPatternNames(element, names);
+				}
+			}
+			break;
+		case "AssignmentPattern":
+			collectPatternNames(pattern.left, names);
+			break;
+		case "RestElement":
+			collectPatternNames(pattern.argument, names);
+			break;
+		default:
+			// A MemberExpression cannot appear in a declaration pattern.
+			break;
+	}
+}
+
+/** Add every name a variable, function, or class declaration declares. */
+function addDeclarationNames(declaration: EsmStatement | EsmDeclaration, names: Set<string>): void {
+	if (declaration.type === "VariableDeclaration") {
+		for (const declarator of declaration.declarations) {
+			collectPatternNames(declarator.id, names);
+		}
+	} else if (
+		(declaration.type === "FunctionDeclaration" || declaration.type === "ClassDeclaration") &&
+		declaration.id
+	) {
+		names.add(declaration.id.name);
+	}
+}
+
+type EsmNames = {
+	/** Top-level names the program binds: imports, declarations, and demoted exports. */
+	bindings: Set<string>;
+	/** Names the program exports: declaration, specifier, and namespace re-exports. */
+	exported: Set<string>;
+};
+
+/** Collect the top-level bound and exported names across a tree's mdxjsEsm nodes. */
+function collectEsmNames(tree: Root): EsmNames {
+	const bindings = new Set<string>();
+	const exported = new Set<string>();
 	for (const node of tree.children) {
 		if (node.type !== "mdxjsEsm") {
 			continue;
@@ -31,29 +98,41 @@ function collectTopLevelBindings(tree: Root): Set<string> {
 			continue;
 		}
 		for (const statement of estree.body) {
-			const declaration =
-				statement.type === "ExportNamedDeclaration" ? statement.declaration : statement;
-			if (declaration?.type === "VariableDeclaration") {
-				for (const declarator of declaration.declarations) {
-					if (declarator.id.type === "Identifier") {
-						names.add(declarator.id.name);
+			if (statement.type === "ImportDeclaration") {
+				for (const specifier of statement.specifiers) {
+					bindings.add(specifier.local.name);
+				}
+			} else if (statement.type === "ExportAllDeclaration") {
+				if (statement.exported) {
+					exported.add(
+						statement.exported.type === "Identifier"
+							? statement.exported.name
+							: String(statement.exported.value),
+					);
+				}
+			} else if (statement.type === "ExportNamedDeclaration") {
+				for (const specifier of statement.specifiers) {
+					exported.add(
+						specifier.exported.type === "Identifier"
+							? specifier.exported.name
+							: String(specifier.exported.value),
+					);
+				}
+				if (statement.declaration) {
+					const declared = new Set<string>();
+					addDeclarationNames(statement.declaration, declared);
+					for (const name of declared) {
+						bindings.add(name);
+						exported.add(name);
 					}
 				}
-			} else if (
-				declaration?.type === "FunctionDeclaration" ||
-				declaration?.type === "ClassDeclaration"
-			) {
-				if (declaration.id) {
-					names.add(declaration.id.name);
-				}
-			} else if (statement.type === "ImportDeclaration") {
-				for (const specifier of statement.specifiers) {
-					names.add(specifier.local.name);
-				}
+			} else {
+				// A demoted author export compiles to a plain top-level declaration.
+				addDeclarationNames(statement, bindings);
 			}
 		}
 	}
-	return names;
+	return { bindings, exported };
 }
 
 const HEADING_LEVELS: Record<string, 1 | 2 | 3> = {
@@ -91,9 +170,14 @@ function getElementText(nodes: Array<ElementContent>): string {
  * matched route, so `useMatches()` reads it with no loader roundtrip, and
  * server code reads it off the module.
  *
- * Throws when the doc already binds `handle`: the injected export would
- * collide with it, and the resulting duplicate-declaration parse error
- * points at compiled output instead of the source file.
+ * Throws when the doc already binds or exports `handle` (in any form: a
+ * declaration, a destructuring pattern, a specifier, or a namespace
+ * re-export): the injected export would collide with it, and the resulting
+ * duplicate-declaration parse error points at compiled output instead of the
+ * source file. Also throws when the doc exports any other route-module
+ * export (`meta`, `loader`, `links`, …): React Router would read it as route
+ * behavior. An escaped code fence would otherwise hijack the page's loader
+ * or meta silently.
  *
  * @example
  * // in vite.config.ts, after rehype-slug:
@@ -101,10 +185,19 @@ function getElementText(nodes: Array<ElementContent>): string {
  */
 export function rehypeMdxDocHandle() {
 	return (tree: Root, file: { data: Record<string, unknown>; path?: string }) => {
-		if (collectTopLevelBindings(tree).has("handle")) {
+		const { bindings, exported } = collectEsmNames(tree);
+		const fileLabel = file.path ?? "this MDX file";
+		if (bindings.has("handle") || exported.has("handle")) {
 			throw new Error(
-				`Rename the "handle" binding in ${file.path ?? "this MDX file"}: the docs pipeline injects \`export const handle\` with the doc's frontmatter and toc.`,
+				`Rename the "handle" binding in ${fileLabel}: the docs pipeline injects \`export const handle\` with the doc's frontmatter and toc.`,
 			);
+		}
+		for (const name of exported) {
+			if (ROUTE_MODULE_EXPORTS.has(name)) {
+				throw new Error(
+					`Move the \`${name}\` export in ${fileLabel} into a code fence or rename it: a docs MDX file is a route module, and React Router reads an exported \`${name}\` as route behavior.`,
+				);
+			}
 		}
 
 		const entries: Array<TocEntry> = [];

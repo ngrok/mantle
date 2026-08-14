@@ -332,7 +332,7 @@ as the `<category>` URL segment. Page/viewport structure primitives are Layouts,
 
 **Stable component:**
 
-- `apps/www/app/routes.ts`: `...docRoute("components/<category>/<component-name>"),` in alphabetical order.
+- `apps/www/app/routes.ts`: add `"components/<category>/<component-name>"` to the `docsPages` array, alphabetical within its category block. The route module is the MDX file itself. `markdownAliasRoutes` derives the `.md`/`.mdx` aliases from the same entry.
 - `navigation-data.ts`: add `<Display Name>` to its category array in `componentsByCategory`, and the route to
   `prodReadyComponentRouteLookup` (both alphabetical). `prodReadyComponents` is derived — never edit it.
 - If the docs slug leaf is not also the `@ngrok/mantle/*` import subpath (a family-directory component), add
@@ -341,12 +341,13 @@ as the `<category>` URL segment. Page/viewport structure primitives are Layouts,
   looks in a directory that does not exist.
 
 **Preview component:** `previewComponents`, `previewComponentsRouteLookup`, and
-`previewComponentCategoryLookup`; docs at `docs/components/preview/<component-name>.mdx`; route
-`components/preview/<component-name>`; and the page's header carries `isPreview` ([§7.2](#72-required-structure-in-order)).
+`previewComponentCategoryLookup`; docs at `docs/components/preview/<component-name>.mdx`; the
+`"components/preview/<component-name>"` entry in `docsPages`; and the page's header carries `isPreview`
+([§7.2](#72-required-structure-in-order)).
 
-**Layout:** docs at `apps/www/app/docs/layouts/<layout-name>.mdx`, route `...docRoute("layouts/<layout-name>")`,
-and entries in `layoutPages`, `layoutRoutes`, and `layoutDescriptions`. Layouts are not in
-`componentsByCategory`.
+**Layout:** docs at `apps/www/app/docs/layouts/<layout-name>.mdx`, the bare `"<layout-name>"` slug in the
+`layoutsPages` array in `apps/www/app/routes.ts` (the array adds the `layouts/` prefix itself), and entries in
+`layoutPages`, `layoutRoutes`, and `layoutDescriptions`. Layouts are not in `componentsByCategory`.
 
 ### 2.5. Changesets
 
@@ -685,8 +686,8 @@ plain-markdown twin (`/api/…`, `llms-full.txt`) generated from it.
    `<PageHeader id="<component-name>">Display Name</PageHeader>` when the page needs a copyable hash anchor or
    a lifecycle badge (`isPreview` for preview pages, `isUnreleased` for an unpublished component). Note the
    trade-off: `PageHeader` is currently invisible to `render-mdx-to-markdown.server.ts` and
-   `rehype-mdx-toc.ts`, so a page using it loses its H1 in the markdown twin and its level-1 TOC entry until
-   those two files learn to handle it. Follow the title with prose stating what the component is for and which
+   `rehype-mdx-doc-handle.ts`, so a page using it loses its H1 in the markdown twin and its level-1 TOC entry
+   until those two files learn to handle it. Follow the title with prose stating what the component is for and which
    decisions it encodes.
 4. **A primary live example** with its code block.
 5. **`## Composition`** — compound components only: the ASCII tree in a ` ```text showLineNumbers=false `
