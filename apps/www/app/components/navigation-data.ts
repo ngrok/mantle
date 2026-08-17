@@ -109,7 +109,7 @@ export const componentsByCategory = {
 	// Structure: contains, divides, or arranges arbitrary content — vs Data
 	// Display, which presents specific content. Page/viewport structure
 	// belongs to the top-level Layouts section, not here.
-	Structure: ["Card", "Media Object", "Separator", "Well"],
+	Structure: ["Card", "Media Object", "Separator", "Steps", "Well"],
 } as const satisfies Record<ComponentCategory, readonly string[]>;
 
 /** Display name of a production-ready component. */
@@ -194,6 +194,7 @@ export const prodReadyComponentRouteLookup = {
 	Slider: "/components/forms/slider",
 	Slot: "/components/primitives/slot",
 	"Split Button": "/components/actions/split-button",
+	Steps: "/components/structure/steps",
 	Switch: "/components/forms/switch",
 	Table: "/components/data-display/table",
 	Tabs: "/components/navigation/tabs",

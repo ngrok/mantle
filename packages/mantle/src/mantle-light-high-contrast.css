@@ -290,6 +290,11 @@ mantle.css for the full strategy.
 	--color-card-border-muted: var(--color-neutral-300);
 	--color-separator: var(--color-black);
 
+	/* A quiet rail disappears here, so this theme takes both poles, the way
+	   --color-separator above it does. */
+	--color-steps-rail: var(--color-black);
+	--color-steps-number: var(--color-white);
+
 	--color-active-menu-item: var(--color-neutral-100);
 	--color-selected-menu-item: var(--color-accent-50);
 	--color-active-selected-menu-item: var(--color-accent-100);

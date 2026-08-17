@@ -365,6 +365,11 @@
 			"types": "./dist/split-button.d.ts",
 			"import": "./dist/split-button.js"
 		},
+		"./steps": {
+			"@ngrok/src-live-types": "./src/components/steps/index.ts",
+			"types": "./dist/steps.d.ts",
+			"import": "./dist/steps.js"
+		},
 		"./switch": {
 			"@ngrok/src-live-types": "./src/components/switch/index.ts",
 			"types": "./dist/switch.d.ts",

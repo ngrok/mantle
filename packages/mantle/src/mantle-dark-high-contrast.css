@@ -291,6 +291,11 @@ mantle.css for the full strategy.
 	--color-card-border-muted: var(--color-neutral-300);
 	--color-separator: var(--color-black);
 
+	/* This theme redefines --color-black and --color-white, so the declaration
+	   light-high-contrast makes resolves to the opposite pair here. */
+	--color-steps-rail: var(--color-black);
+	--color-steps-number: var(--color-white);
+
 	--color-active-menu-item: var(--color-neutral-100);
 	--color-selected-menu-item: var(--color-accent-50);
 	--color-active-selected-menu-item: var(--color-accent-100);

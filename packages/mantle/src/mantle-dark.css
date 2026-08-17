@@ -330,6 +330,12 @@ MARK: INVERT THEME in mantle.css for the full strategy.
 	--color-card-border-muted: var(--color-neutral-200);
 	--color-separator: --alpha(var(--color-gray-600) / 0.2);
 
+	/* Dark inverts the neutral ramp, so the two stops light gives the rail and
+	   the number keep their roles here — a quiet rail, and a number that reads
+	   on it. */
+	--color-steps-rail: var(--color-neutral-300);
+	--color-steps-number: var(--color-neutral-950);
+
 	/* Chart series tokens — dark's eight marks, in slot order: blue, green, pink,
 	   red-orange, teal, magenta, violet, amber. A slot keeps its family across the
 	   themes. Nothing else carries over: this theme re-tunes lightness, chroma, and

@@ -74,6 +74,7 @@ export const MANTLE_COMPONENT_NAMES = [
 	"slider",
 	"slot",
 	"split-button",
+	"steps",
 	"switch",
 	"table",
 	"tabs",
