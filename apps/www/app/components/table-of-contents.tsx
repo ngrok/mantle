@@ -1,4 +1,5 @@
 import { cx } from "@ngrok/mantle/cx";
+import { useIsBelowBreakpoint } from "@ngrok/mantle/hooks";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import type { TocEntry } from "~/utilities/docs";
@@ -25,6 +26,10 @@ function clamp01(value: number): number {
 function useActiveHeading(entries: Array<TocEntry>): string | undefined {
 	const [activeId, setActiveId] = useState<string | undefined>(() => entries[0]?.id);
 	const location = useLocation();
+	// Matches the `xl:` gate on the TOC aside in `PageLayout`. Below it the
+	// nav is hidden, so the scroll spy must not measure headings on every
+	// scroll frame.
+	const tocIsVisible = !useIsBelowBreakpoint("xl");
 
 	useEffect(() => {
 		if (entries.length === 0) {
@@ -40,7 +45,7 @@ function useActiveHeading(entries: Array<TocEntry>): string | undefined {
 	}, [entries, location.hash]);
 
 	useEffect(() => {
-		if (entries.length === 0) {
+		if (entries.length === 0 || !tocIsVisible) {
 			return;
 		}
 
@@ -94,7 +99,7 @@ function useActiveHeading(entries: Array<TocEntry>): string | undefined {
 			window.removeEventListener("scroll", schedule);
 			window.removeEventListener("resize", schedule);
 		};
-	}, [entries]);
+	}, [entries, tocIsVisible]);
 
 	return activeId;
 }

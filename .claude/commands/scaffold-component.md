@@ -70,7 +70,7 @@ Every runnable example must be **live** and **complete** — no fragments, no `�
 Per [§2](../../COMPONENT_SPEC.md#2-what-a-component-must-ship):
 
 1. `packages/mantle/package.json` — the `"./<component-name>"` export entry, alphabetical (§2.3).
-2. `apps/www/app/routes.ts` — `...docRoute("components/<category>/<component-name>"),` alphabetical (§2.4).
+2. `apps/www/app/routes.ts` — add `"components/<category>/<component-name>"` to the `docsPages` array, alphabetical within its category block (§2.4).
 3. `apps/www/app/components/navigation-data.ts` — `componentsByCategory` + `prodReadyComponentRouteLookup` for a stable component, the three preview lookups for a preview component, or the layout arrays for a layout. Add `componentImportPathOverrides` if the docs slug is not the export key (§2.4).
 4. The conditional build-config edits in §2.1's second table, if they apply — `INTERNAL_CHUNKS_BY_COMPONENT` in particular, since missing it ships an unstyled component with every check green.
 

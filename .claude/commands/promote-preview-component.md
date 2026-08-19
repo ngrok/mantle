@@ -53,8 +53,8 @@ git mv apps/www/app/docs/components/preview/<component-name>.mdx \
 
 In `apps/www/app/routes.ts`:
 
-1. Find `...docRoute("components/preview/<component-name>"),` and remove it.
-2. Add `...docRoute("components/<category>/<component-name>"),` in alphabetical order among the stable component routes.
+1. In the `docsPages` array, find the `"components/preview/<component-name>"` entry and remove it.
+2. Add `"components/<category>/<component-name>"` to `docsPages`, alphabetical within its category block.
 
 ## 4.a. Drop the preview badge
 

@@ -155,12 +155,22 @@ function mdxDocComponentImports(docsDir: string): Plugin {
 
 			return `${importLines.join("\n")}\n\nexport default {\n\t${mapEntries.join(",\n\t")},\n};\n`;
 		},
-		handleHotUpdate({ file, server }) {
-			if (file.startsWith(docsDir) && file.endsWith(".mdx")) {
-				const mod = server.moduleGraph.getModuleById(resolvedId);
-				if (mod) {
-					server.moduleGraph.invalidateModule(mod);
-				}
+		hotUpdate({ file }) {
+			if (!(file.startsWith(docsDir) && file.endsWith(".mdx"))) {
+				return;
+			}
+			// No module imports the virtual module today. A markdown handler
+			// imports it lazily on demand, from server code (see
+			// render-mdx-to-markdown.server.ts). Bust the ssr copy quietly
+			// when it exists: the next import re-runs `load`, and the client
+			// update list stays untouched.
+			if (this.environment.name !== "ssr") {
+				return;
+			}
+			const moduleGraph = this.environment.moduleGraph;
+			const mod = moduleGraph.getModuleById(resolvedId);
+			if (mod) {
+				moduleGraph.invalidateModule(mod);
 			}
 		},
 	};

@@ -35,16 +35,21 @@ function rawMdxDocs(docsDir: string): Plugin {
 
 			return `export default ${JSON.stringify(entries)};`;
 		},
-		handleHotUpdate({ file, server, modules }) {
-			if (file.startsWith(docsDir) && file.endsWith(".mdx")) {
-				const mod = server.moduleGraph.getModuleById(resolvedId);
-				if (mod) {
-					server.moduleGraph.invalidateModule(mod);
-					// Append the virtual module to the default update list rather than
-					// replacing it — this ensures the MDX module itself still goes
-					// through React Refresh so components hot-update in place.
-					return [...modules, mod];
-				}
+		hotUpdate({ file }) {
+			if (!(file.startsWith(docsDir) && file.endsWith(".mdx"))) {
+				return;
+			}
+			// Only the SSR graph imports the virtual module (docs.ts is loader and
+			// server code). Bust it quietly: the next request re-imports it fresh.
+			// Returning it as a client update would drag modules with no accepting
+			// boundary into the update and demote the edit to a full page reload.
+			if (this.environment.name !== "ssr") {
+				return;
+			}
+			const moduleGraph = this.environment.moduleGraph;
+			const mod = moduleGraph.getModuleById(resolvedId);
+			if (mod) {
+				moduleGraph.invalidateModule(mod);
 			}
 		},
 	};
