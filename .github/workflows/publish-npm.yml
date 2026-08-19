@@ -50,12 +50,15 @@ jobs:
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
-        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        uses: changesets/action@8488615a623b1b9c987934bb89eae8af6a946ac1 # v2.1.1
         with:
-          publish: pnpm -w changeset:publish
-          version: pnpm -w changeset:version
+          # Why the input, not a GITHUB_TOKEN env var: action v2 reads only the
+          # input, and the env var would silently fall back to the read-only
+          # default token.
+          github-token: ${{ steps.generate-token.outputs.token }}
+          publish-script: pnpm -w changeset:publish
+          version-script: pnpm -w changeset:version
         env:
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
           NPM_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
 
@@ -63,7 +66,7 @@ jobs:
         if: steps.changesets.outputs.published == 'true'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_PUBLISH_WEBHOOK_URL }}
-          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
+          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.published-packages }}
         run: |
           echo "$PUBLISHED_PACKAGES" | jq -c '.[]' | while IFS= read -r pkg; do
             name=$(echo "$pkg" | jq -r '.name')
