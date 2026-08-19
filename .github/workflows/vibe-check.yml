@@ -259,6 +259,7 @@ jobs:
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
 
       - name: Restore Playwright browser cache 🎭
+        id: playwright-cache
         uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
         with:
           path: ~/.cache/ms-playwright
@@ -273,8 +274,13 @@ jobs:
         run: pnpm install --frozen-lockfile --trust-lockfile
 
       - name: Install Playwright Chromium 🎭
-        # --with-deps re-applies the apt system libraries (not covered by the browser
-        # cache) and skips the browser download itself on a cache hit.
+        # Why gated on the cache: a hit means the pinned browser build is already
+        # restored, and the apt system libraries --with-deps re-applies ship on the
+        # ubuntu-latest image. Skipping keeps apt off the hot path: an apt-mirror
+        # outage once hung this step for the whole 20-minute job timeout. The step
+        # timeout makes a hang on the rare cache-miss path fail fast instead.
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 10
         run: pnpm -F @ngrok/mantle exec playwright install --with-deps chromium
 
       - name: Configure test worker limits

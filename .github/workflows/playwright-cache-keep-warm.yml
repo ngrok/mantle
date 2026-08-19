@@ -1,0 +1,66 @@
+name: Playwright Cache Keep-Warm
+
+# GitHub evicts an Actions cache entry after 7 days without an access, so a
+# quiet week (a freeze, a holiday) drops the Playwright browser cache and the
+# next `browser-test` run pays the download and the apt path again. This
+# schedule touches the cache twice a week to reset that timer, and re-creates
+# the entry when the key is new (a Playwright bump) or already evicted — so
+# `browser-test` on a PR always restores a warm cache from `main`.
+
+on:
+  schedule:
+    # Twice a week, so one failed run still leaves a touch inside the 7-day
+    # eviction window.
+    - cron: "0 6 * * 1,4"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DO_NOT_TRACK: 1
+
+jobs:
+  keep-warm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # Use pnpm version from root package.json#packageManager
+      - name: Install pnpm 📦
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          run_install: false
+
+      - name: Resolve Playwright version 🎭
+        id: playwright
+        run: |
+          version="$(yq -r '.catalog.playwright' pnpm-workspace.yaml)"
+          if [[ -z "${version}" || "${version}" == "null" ]]; then
+            echo "::error::Could not resolve .catalog.playwright from pnpm-workspace.yaml — refusing to cache an invalid Playwright browser build."
+            exit 1
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Restore Playwright browser cache 🎭
+        id: playwright-cache
+        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        with:
+          path: ~/.cache/ms-playwright
+          # The same key `browser-test` in vibe-check.yml restores — a restore
+          # here counts as an access and resets the 7-day eviction timer.
+          key: playwright-browsers-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Playwright Chromium 🎭
+        # Runs only when the key missed (a Playwright bump or an evicted
+        # entry); the cache action's post step then saves the fresh entry.
+        # `pnpm dlx` fetches the pinned playwright package alone, so the job
+        # skips the full workspace install. No --with-deps: this job only
+        # populates ~/.cache/ms-playwright, never launches the browser.
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 10
+        run: pnpm dlx playwright@${{ steps.playwright.outputs.version }} install chromium
