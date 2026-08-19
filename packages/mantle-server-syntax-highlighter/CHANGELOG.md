@@ -1,5 +1,13 @@
 # @ngrok/mantle-server-syntax-highlighter
 
+## 1.1.12
+
+### Patch Changes
+
+- [#1427](https://github.com/ngrok/mantle/pull/1427) [`00c346c`](https://github.com/ngrok/mantle/commit/00c346c0425be34b5aa01795a64faf09cec0a354) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump runtime dependencies: `shiki` to 4.4.3 and `oxc-parser` to 0.146.0.
+
+  Shiki 4.4.3 updates its bundled grammars, so the tokens and colors in highlighted output can shift for some languages.
+
 ## 1.1.11
 
 ### Patch Changes

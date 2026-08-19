@@ -1,5 +1,16 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.1.8
+
+### Patch Changes
+
+- [#1427](https://github.com/ngrok/mantle/pull/1427) [`00c346c`](https://github.com/ngrok/mantle/commit/00c346c0425be34b5aa01795a64faf09cec0a354) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump runtime dependencies: `magic-string` to 1.2.1 and `oxc-parser` to 0.146.0.
+
+  The `vite` peer dependency floor rises to `^8.2.1`. Consumers still on vite 8.2.0 see an unmet-peer warning until they upgrade.
+
+- Updated dependencies [[`00c346c`](https://github.com/ngrok/mantle/commit/00c346c0425be34b5aa01795a64faf09cec0a354)]:
+  - @ngrok/mantle-server-syntax-highlighter@1.1.12
+
 ## 1.1.7
 
 ### Patch Changes

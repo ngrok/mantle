@@ -1,5 +1,19 @@
 # @ngrok/mantle
 
+## 0.83.9
+
+### Patch Changes
+
+- [#1450](https://github.com/ngrok/mantle/pull/1450) [`32a7532`](https://github.com/ngrok/mantle/commit/32a7532695c7e8b05d26a93defdb4a31b283d2c3) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `IconButton` and `PasswordInput`'s visibility toggle now carry their accessible name as `aria-label` instead of a visually hidden `<span>`. Voice-control tools (Rango, Voice Control, Voice Access) treat DOM text as a visible label, so they skipped these icon-only buttons. Screen readers announce `aria-label` the same way, so nothing changes for them.
+
+  `IconButtonProps` now rejects `aria-label` (typed `never`): the `label` prop is the single way to name the button. Components built on `IconButton` (`ThemeSwitcher.Trigger`, `Sidebar.Trigger`, `DataTable.RowExpandButton`, `CodeBlock.CopyButton`, and the chart copy buttons) inherit the fix.
+
+- [#1427](https://github.com/ngrok/mantle/pull/1427) [`00c346c`](https://github.com/ngrok/mantle/commit/00c346c0425be34b5aa01795a64faf09cec0a354) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump runtime dependencies: `@ariakit/react` to 0.4.37, `@tanstack/react-virtual` to 3.14.10, `input-otp` to 1.5.0, and `sonner` to 2.0.8.
+
+  The ariakit bump changes two behaviors in mantle's ariakit-backed parts (`Combobox`, `MultiSelect`): a select-style popup now takes focus every time it opens, not only when the trigger itself had focus, and a prop set to an explicit `undefined` now behaves like an omitted prop, so the component keeps its computed default.
+
+  The `input-otp` bump hardens `OTPInput`: the browser no longer spellchecks the code, a 16px font-size fallback prevents the iOS focus zoom, and the library's own container now carries `translate="no"`, which backs up the lock mantle already puts on each slot.
+
 ## 0.83.8
 
 ### Patch Changes
