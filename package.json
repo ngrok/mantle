@@ -30,14 +30,14 @@
     "@types/node": "catalog:",
     "husky": "9.1.7",
     "lint-staged": "17.3.0",
-    "oxfmt": "0.62.0",
-    "oxlint": "1.77.0",
+    "oxfmt": "0.64.0",
+    "oxlint": "1.79.0",
     "tsx": "catalog:",
-    "turbo": "2.10.8",
-    "vitest": "4.1.10"
+    "turbo": "2.10.11",
+    "vitest": "4.1.11"
   },
   "engines": {
     "node": "^24.0.0"
   },
-  "packageManager": "pnpm@11.20.0"
+  "packageManager": "pnpm@11.22.0"
 }
