@@ -50,6 +50,9 @@
     "jsdoc/require-yields": "off",
     "no-explicit-any": "warn",
     "no-fallthrough": "error",
+    // Why skipComments: zero-width spaces in JSDoc keep literal `*/` examples
+    // from closing the comment block (parse-theme-css.ts, compute-css-fold-ranges.ts).
+    "no-irregular-whitespace": ["error", { "skipComments": true }],
     "no-promise-executor-return": "error",
     "no-prototype-builtins": "error",
     "no-restricted-globals": [
@@ -70,6 +73,18 @@
     "react/checked-requires-onchange-or-readonly": "error",
     "react/display-name": "warn",
     "react/exhaustive-deps": "error",
+    // Why off: these six port React Compiler diagnostics and assume
+    // compiler-managed memoization, which mantle has not adopted. They flag
+    // deliberate patterns in shipped components: ref reads during render,
+    // setState that syncs an external system, and effects keyed on an
+    // external trigger. Each site needs its own reviewed refactor, not a
+    // lint sweep. `react/exhaustive-deps` above still catches missing deps.
+    "react/exhaustive-effect-dependencies": "off",
+    "react/immutability": "off",
+    "react/incompatible-library": "off",
+    "react/preserve-manual-memoization": "off",
+    "react/refs": "off",
+    "react/set-state-in-effect": "off",
     "react/iframe-missing-sandbox": "error",
     "react/jsx-no-constructed-context-values": "error",
     "react/jsx-no-script-url": "error",

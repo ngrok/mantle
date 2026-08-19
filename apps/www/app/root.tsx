@@ -24,7 +24,6 @@ import {
 	Outlet,
 	Scripts,
 	ScrollRestoration,
-	type ShouldRevalidateFunctionArgs,
 	useMatches,
 	useRouteLoaderData,
 } from "react-router";
@@ -119,7 +118,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 	} as const;
 };
 
-export function shouldRevalidate(_: ShouldRevalidateFunctionArgs) {
+export function shouldRevalidate() {
 	/**
 	 * never revalidate root loader
 	 * env variables and meta are static per deployment
