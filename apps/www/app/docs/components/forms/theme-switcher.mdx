@@ -168,7 +168,7 @@ If you need a fully custom control, [Embedding in an existing menu](#embedding-i
 ## Accessibility
 
 - The theme options are `role="menuitemradio"` items from `DropdownMenu.RadioGroup`: the active theme is announced as checked (`aria-checked`), and choosing an item behaves like picking one of a set of mutually exclusive options.
-- `ThemeSwitcher.Trigger` has an accessible name (`"Change Theme"` by default, visually hidden but announced to screen readers), which you can override via the `label` prop (e.g. for localization).
+- `ThemeSwitcher.Trigger` has an accessible name (`"Change Theme"` by default, rendered as its `aria-label`), which you can override via the `label` prop (e.g. for localization).
 - The trigger icon is decorative: it mirrors the currently _applied_ theme (always a sun or moon, since `"system"` resolves to light or dark before the icon renders; the desktop glyph appears only on the "System Preference" menu item) and conveys no information beyond the accessible label.
 - The trigger icon is SSR-safe: the applied theme is unknowable server-side, so a `Skeleton` placeholder renders until hydration completes, then the themed icon appears.
 
@@ -184,12 +184,12 @@ All props from [`DropdownMenu.Root`](/components/overlays/dropdown-menu#dropdown
 
 The button that opens the theme menu: an `IconButton` with an SSR-safe themed icon. The icon and its `"neutral"` intent are owned by the trigger — to render a completely custom trigger, compose `DropdownMenu` + `ThemeDropdownMenuRadioGroup` directly.
 
-All props from [`IconButton`](/components/actions/icon-button) except `icon`, `intent`, `asChild`, and `children` (the trigger renders only its icon and visually-hidden label), plus:
+All props from [`IconButton`](/components/actions/icon-button) except `icon`, `intent`, `asChild`, and `children` (the trigger renders only its icon and `aria-label`), plus:
 
-| Prop          | Type                                | Default          | Description                                                                                        |
-| ------------- | ----------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------- |
-| `appearance?` | `"filled" \| "ghost" \| "outlined"` | `"ghost"`        | The visual style of the trigger `IconButton`.                                                      |
-| `label?`      | `string`                            | `"Change Theme"` | The accessible name for the trigger `IconButton`. Visually hidden but announced to screen readers. |
+| Prop          | Type                                | Default          | Description                                                                                                   |
+| ------------- | ----------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| `appearance?` | `"filled" \| "ghost" \| "outlined"` | `"ghost"`        | The visual style of the trigger `IconButton`.                                                                 |
+| `label?`      | `string`                            | `"Change Theme"` | The accessible name for the trigger `IconButton`, rendered as its `aria-label`. Override it for localization. |
 
 ### ThemeSwitcher.Content
 

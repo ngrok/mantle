@@ -107,6 +107,9 @@ const PasswordInput = ({
 			<button
 				type="button"
 				tabIndex={-1}
+				// Why aria-label and not hidden text: voice-control tools treat DOM
+				// text as a visible label, so they skip a button that hides one.
+				aria-label={`Turn password visibility ${showPassword ? "off" : "on"}`}
 				className="text-body hover:text-strong ml-1 cursor-pointer bg-inherit p-0"
 				onClick={() => {
 					// Cancel any in-flight animation so rapid clicks are never blocked
@@ -134,7 +137,6 @@ const PasswordInput = ({
 					}
 				}}
 			>
-				<span className="sr-only">Turn password visibility {showPassword ? "off" : "on"}</span>
 				<Icon ref={iconRef} svg={<EyeCon aria-hidden />} />
 			</button>
 		</Input>

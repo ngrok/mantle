@@ -80,7 +80,7 @@ The table below summarizes the keyboard contract for the most common interactive
 
 Mantle components emit appropriate roles automatically. Consumers need to add:
 
-- `label` on [`IconButton`](/components/actions/icon-button), which it renders as visually-hidden text. `aria-label` on any [`Button`](/components/actions/button) whose content is icon-only.
+- `label` on [`IconButton`](/components/actions/icon-button), which it renders as `aria-label`. `aria-label` on any [`Button`](/components/actions/button) whose content is icon-only.
 - `aria-label` or visually-hidden text on [`Kbd`](/components/data-display/kbd) when the visible glyph is a symbol (e.g. `⌘`).
 - `aria-describedby` linking error/help text to form controls. [`Input`](/components/forms/input) and friends do this for you when you use the validation prop, but custom messages should be wired manually.
 - `aria-current="page"` on the active item in primary navigation (use react-router's `NavLink` for this).

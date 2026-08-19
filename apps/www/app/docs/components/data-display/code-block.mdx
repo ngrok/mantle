@@ -589,7 +589,7 @@ All props from [standard HTML button attributes](https://developer.mozilla.org/e
 
 | Prop           | Type                       | Default       | Description                                                                                                                                         |
 | :------------- | :------------------------- | :------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `label?`       | `string`                   | `"Copy code"` | The accessible label for the copy button. Visually hidden but announced to screen reader users.                                                     |
+| `label?`       | `string`                   | `"Copy code"` | The accessible name for the copy button, rendered as its `aria-label`.                                                                              |
 | `onCopy?`      | `(value: string) => void`  |               | Callback fired when the copy button is clicked, passes the copied text as an argument.                                                              |
 | `onCopyError?` | `(error: unknown) => void` |               | Callback fired when an error occurs during copying.                                                                                                 |
 | `asChild?`     | `boolean`                  | `false`       | Use the `asChild` prop to compose the `CodeBlock.CopyButton` styling and functionality onto alternative element types or your own React components. |

@@ -685,7 +685,7 @@ const Nav = ({
 /**
  * The props for `Sidebar.Trigger`. `IconButton`'s props, except the parts the
  * trigger owns: `asChild` and `children` are removed (the trigger renders
- * only its icon and sr-only label — build custom triggers with `useSidebar`
+ * only its icon and `aria-label`; build custom triggers with `useSidebar`
  * instead), and `appearance`, `icon`, `intent`, and `label` become optional
  * with sidebar defaults.
  */
@@ -713,9 +713,8 @@ type SidebarTriggerProps = Omit<
 		 */
 		intent?: IconButtonProps["intent"];
 		/**
-		 * The accessible name for the trigger, and what its tooltip says. Visually
-		 * hidden on the button itself but announced to assistive technology.
-		 * Override it for localization.
+		 * The accessible name for the trigger, and what its tooltip says. Renders
+		 * as the button's `aria-label`. Override it for localization.
 		 *
 		 * @default "Toggle Sidebar"
 		 */
@@ -765,7 +764,7 @@ const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNo
 };
 
 // Why no `asChild`: Trigger renders a fully-wired mantle IconButton (icon +
-// sr-only label + aria-expanded/aria-controls); custom triggers compose the
+// aria-label + aria-expanded/aria-controls); custom triggers compose the
 // same behavior from `useSidebar()` instead of slot-swapping this one.
 /**
  * The button that toggles the sidebar: the mobile sheet below the root's

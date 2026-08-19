@@ -550,10 +550,17 @@ const Title = ({
 	);
 };
 
-type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "children" | "type"> &
+type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "aria-label" | "children" | "type"> &
 	SelfClosingWithAsChild & {
 		/**
-		 * The accessible label for the copy button. Mantle hides this label visually and announces it to screen readers, like the `alt` text on an `img` tag.
+		 * Not part of the API: `label` is the single way to name the button.
+		 * Typed `never` rather than only omitted because TypeScript skips
+		 * excess-attribute checks for hyphenated JSX attributes; the `never`
+		 * type makes the JSX call site a compile error.
+		 */
+		"aria-label"?: never;
+		/**
+		 * The accessible name for the copy button, rendered as its `aria-label` (like the `alt` text on an `<img>`).
 		 *
 		 * @default "Copy code"
 		 */
