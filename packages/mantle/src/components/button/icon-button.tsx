@@ -17,9 +17,16 @@ import { iconButtonVariants } from "./icon-button-variants.js";
 /**
  * The props for the `IconButton` component.
  */
-type IconButtonProps = ComponentProps<"button"> &
+type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
 	WithAsChild &
 	Omit<IconButtonVariants, "appearance" | "intent"> & {
+		/**
+		 * Not part of the API: `label` is the single way to name the button.
+		 * Typed `never` rather than only omitted because TypeScript skips
+		 * excess-attribute checks for hyphenated JSX attributes; the `never`
+		 * type makes the JSX call site a compile error.
+		 */
+		"aria-label"?: never;
 		/**
 		 * The visual style of the IconButton. Required — there is no default,
 		 * so every call site states the weight it means. The union matches
@@ -42,8 +49,18 @@ type IconButtonProps = ComponentProps<"button"> &
 		 */
 		intent: IconButtonIntent;
 		/**
-		 * The accessible label for the icon. `IconButton` hides this label visually
-		 * and announces it to screen readers, like the `alt` text on an `<img>`.
+		 * The accessible name for the button, rendered as its `aria-label` (like
+		 * the `alt` text on an `<img>`). Passing `aria-label` directly is a
+		 * compile error, so this prop is the only way to name the button. Why an
+		 * attribute and not hidden text: voice-control tools treat DOM text as a
+		 * visible label, so they skip a button that hides one.
+		 *
+		 * Name the action, not the icon: `"Delete API key"`, not `"Trash"` or
+		 * `"Trash icon"`. Keep it short: a voice-control user speaks the label
+		 * to click the button. Keep it specific: `"Delete"` alone cannot tell
+		 * two delete buttons on the same page apart. Never include the word
+		 * "button": the role already announces it, so a screen reader would say
+		 * "Delete button, button".
 		 */
 		label: string;
 		/**
@@ -147,14 +164,12 @@ const IconButton = ({
 		disabled,
 		ref,
 		...props,
+		// Why after the spread: untyped JS can still put `aria-label` in props
+		// at runtime, and a second name source would silently beat `label`.
+		"aria-label": label,
 	};
 
-	const innerChildren = (
-		<>
-			<span className="sr-only">{label}</span>
-			<Icon svg={icon} />
-		</>
-	);
+	const innerChildren = <Icon svg={icon} />;
 
 	if (asChild) {
 		invariant(

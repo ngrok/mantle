@@ -975,7 +975,7 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 | Prop           | Type                       | Default                   | Description                                                                    |
 | -------------- | -------------------------- | ------------------------- | ------------------------------------------------------------------------------ |
-| `label?`       | `string`                   | `"Copy data as Markdown"` | The accessible label, visually hidden but announced to screen readers.         |
+| `label?`       | `string`                   | `"Copy data as Markdown"` | The accessible name, rendered as the button's `aria-label`.                    |
 | `onCopy?`      | `(value: string) => void`  |                           | Callback fired after a successful copy, passes the serialized markdown.        |
 | `onCopyError?` | `(error: unknown) => void` |                           | Callback fired when an error occurs during copying.                            |
 | `asChild?`     | `boolean`                  | `false`                   | Compose the copy behavior onto your own element instead of the default button. |

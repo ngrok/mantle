@@ -135,9 +135,9 @@ const Root = (props: ThemeSwitcherRootProps) => <DropdownMenu.Root {...props} />
  * The props for the `ThemeSwitcher.Trigger` component. Forwards
  * `IconButton`'s props, except the parts the trigger owns: `icon` (the
  * SSR-safe themed icon) and `intent` (always `"neutral"`). `asChild` and
- * `children` are removed — the trigger renders only its icon and sr-only
- * label, so both would be silently meaningless. `appearance` and `label`
- * become optional with theme-switcher defaults.
+ * `children` are removed: the trigger renders only its icon (the `label`
+ * renders as `aria-label`), so both would be silently meaningless.
+ * `appearance` and `label` become optional with theme-switcher defaults.
  */
 type ThemeSwitcherTriggerProps = Omit<
 	IconButtonProps,
@@ -153,8 +153,8 @@ type ThemeSwitcherTriggerProps = Omit<
 		 */
 		appearance?: IconButtonAppearance;
 		/**
-		 * The accessible name for the trigger `IconButton`. Visually hidden but
-		 * announced to screen readers. Override it for localization.
+		 * The accessible name for the trigger `IconButton`, rendered as its
+		 * `aria-label`. Override it for localization.
 		 *
 		 * @default "Change Theme"
 		 */

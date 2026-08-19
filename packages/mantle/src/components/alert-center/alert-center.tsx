@@ -141,9 +141,9 @@ function alertTitleText(banner: Element): string {
 		return normalizeText(title.textContent ?? "");
 	}
 	// Buttons are stripped on EVERY path: no control's text belongs in the
-	// title-derived string — and a DismissIconButton composed inside the title
-	// would otherwise read back its own sr-only label, growing the derived
-	// string on every layout pass (an infinite update loop).
+	// title-derived string, and a button composed inside the title would
+	// otherwise read its text back into the derived string, growing it on
+	// every layout pass (an infinite update loop).
 	for (const button of clone.querySelectorAll("button")) {
 		button.remove();
 	}

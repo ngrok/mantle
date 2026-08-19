@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
 import { PasswordInput } from "./password-input.js";
 
-describe("Checkbox", () => {
+describe("PasswordInput", () => {
 	test('given validation={false}, renders an input with aria-invalid="false" and not have data-validation', () => {
 		render(<PasswordInput placeholder="test" validation={false} />);
 		expect(screen.getByPlaceholderText("test")).toHaveAttribute("aria-invalid", "false");
@@ -43,5 +43,15 @@ describe("Checkbox", () => {
 		render(<PasswordInput placeholder="test" aria-invalid="true" validation="error" />);
 		expect(screen.getByPlaceholderText("test")).toHaveAttribute("aria-invalid", "true");
 		expect(screen.getByPlaceholderText("test")).toHaveAttribute("data-validation", "error");
+	});
+
+	// Regression: voice-control tools (e.g. Rango) treat DOM text as a visible
+	// label, so a hidden label span suppressed their hints on the toggle. The
+	// name must be the `aria-label` attribute, with no text node in the button.
+	test("names the visibility toggle with aria-label and no text content", () => {
+		render(<PasswordInput placeholder="test" />);
+		const toggle = screen.getByRole("button", { name: "Turn password visibility on" });
+		expect(toggle).toHaveAttribute("aria-label", "Turn password visibility on");
+		expect(toggle.textContent).toBe("");
 	});
 });

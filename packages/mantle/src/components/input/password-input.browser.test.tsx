@@ -17,9 +17,12 @@ describe("PasswordInput (browser)", () => {
 
 		await user.click(toggle);
 		expect(input).toHaveAttribute("type", "text");
+		// The accessible name flips with the state, via aria-label.
+		expect(toggle).toHaveAccessibleName("Turn password visibility off");
 
 		await user.click(toggle);
 		expect(input).toHaveAttribute("type", "password");
+		expect(toggle).toHaveAccessibleName("Turn password visibility on");
 	});
 
 	test("clicking the toggle fires onValueVisibilityChange with the new visibility", async () => {

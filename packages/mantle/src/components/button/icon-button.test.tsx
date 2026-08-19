@@ -12,6 +12,30 @@ describe("IconButton", () => {
 		expect(screen.getByRole("button", { name: "globe" })).toBeInTheDocument();
 	});
 
+	describe("label", () => {
+		// Regression: voice-control tools (e.g. Rango) treat DOM text as a
+		// visible label, so a hidden label span suppressed their hints on every
+		// icon button. The name must be the `aria-label` attribute, with no text
+		// node in the button.
+		test("renders the label as aria-label with no text content", () => {
+			render(<IconButton appearance="ghost" intent="neutral" label="globe" icon={<GlobeIcon />} />);
+			const button = screen.getByRole("button", { name: "globe" });
+			expect(button).toHaveAttribute("aria-label", "globe");
+			expect(button.textContent).toBe("");
+		});
+
+		test("stamps the label as aria-label onto an asChild anchor", () => {
+			render(
+				<IconButton appearance="ghost" intent="neutral" asChild label="home" icon={<GlobeIcon />}>
+					<a href="#home" />
+				</IconButton>,
+			);
+			const link = screen.getByRole("link", { name: "home" });
+			expect(link).toHaveAttribute("aria-label", "home");
+			expect(link.textContent).toBe("");
+		});
+	});
+
 	describe("appearance", () => {
 		// Parity pin: each class below is the one `Button` draws for the same
 		// appearance at the neutral tone, so a permuted lookup table on either
@@ -226,7 +250,9 @@ describe("IconButton", () => {
  * `appearance` and `intent` are both required, so no call site inherits a weight or
  * a tone it did not state. `intent` takes `"neutral"` alone — `IconButton` draws no
  * accent or danger tone, and a call site that asks for one would otherwise compile
- * and then render neutral.
+ * and then render neutral. `aria-label` is typed `never`, so `label` is the single
+ * naming interface — TypeScript skips excess-attribute checks for hyphenated JSX
+ * attributes, and the `never` type is what makes the call site an error anyway.
  */
 export function typeLevelContracts() {
 	return (
@@ -239,6 +265,14 @@ export function typeLevelContracts() {
 			<IconButton appearance="ghost" intent="accent" label="globe" icon={<GlobeIcon />} />
 			{/* @ts-expect-error -- IconButton draws the neutral tone only */}
 			<IconButton appearance="filled" intent="danger" label="globe" icon={<GlobeIcon />} />
+			{/* @ts-expect-error -- aria-label is typed never; `label` is the single naming interface */}
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				label="globe"
+				aria-label="globe"
+				icon={<GlobeIcon />}
+			/>
 		</>
 	);
 }

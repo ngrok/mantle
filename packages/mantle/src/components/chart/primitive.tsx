@@ -1180,12 +1180,21 @@ const ChartLegendPrimitive = ({
 // The native `onCopy` clipboard event handler is omitted so the part's own
 // callback (fired with the serialized markdown) can own the name — on a copy
 // button, the DOM event is noise and the collision would poison both types.
-type CopyButtonPrimitiveProps = Omit<ComponentProps<"button">, "children" | "type" | "onCopy"> &
+type CopyButtonPrimitiveProps = Omit<
+	ComponentProps<"button">,
+	"aria-label" | "children" | "type" | "onCopy"
+> &
 	SelfClosingWithAsChild & {
 		/**
-		 * The accessible label for the copy button. `CopyButton` hides this label
-		 * visually and announces it to screen readers, like the `alt` text on an
-		 * `<img>`.
+		 * Not part of the API: `label` is the single way to name the button.
+		 * Typed `never` rather than only omitted because TypeScript skips
+		 * excess-attribute checks for hyphenated JSX attributes; the `never`
+		 * type makes the JSX call site a compile error.
+		 */
+		"aria-label"?: never;
+		/**
+		 * The accessible name for the copy button, rendered as its `aria-label`
+		 * (like the `alt` text on an `<img>`).
 		 *
 		 * @default "Copy data as Markdown"
 		 */
