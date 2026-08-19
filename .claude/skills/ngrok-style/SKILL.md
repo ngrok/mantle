@@ -218,6 +218,11 @@ ngrok is great for:
 - ✅ ngrok handles TLS termination and authentication automatically.
 - ❌ ngrok is fast, reliable, and secure.
 
+**Cut the "no X needed" tail.** This construction reassures the reader about a problem they didn't ask about, and it pads a claim that should stand on its own. State what happens and stop.
+
+- ✅ ngrok terminates TLS automatically.
+- ❌ ngrok terminates TLS automatically, no extra configuration needed.
+
 ### Bold UI elements, don't italicize
 
 - ✅ Click **+ Cloud Endpoint** to get started.
