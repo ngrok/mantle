@@ -227,7 +227,7 @@ const SheetOverlay = ({
 	/>
 );
 
-const SheetVariants = cva(
+const sheetVariants = cva(
 	"bg-dialog border-dialog inset-y-0 h-full w-full fixed flex flex-col shadow-lg outline-hidden transition ease-in-out focus-within:outline-hidden data-state-closed:duration-100 data-state-closed:animate-out data-state-open:duration-100 data-state-open:animate-in",
 	{
 		variants: {
@@ -247,7 +247,7 @@ const SheetVariants = cva(
 );
 
 type SheetContentProps = ComponentProps<typeof SheetPrimitive.Content> &
-	VariantProps<typeof SheetVariants> & {
+	VariantProps<typeof sheetVariants> & {
 		/**
 		 * The preferred width of the `Sheet.Content` as a tailwind `max-w-` class.
 		 *
@@ -338,7 +338,7 @@ const Content = ({
 			<SheetPrimitive.Content
 				data-slot="sheet-content"
 				data-mantle-modal-content
-				className={cx(SheetVariants({ side }), preferredWidth, className)}
+				className={cx(sheetVariants({ side }), preferredWidth, className)}
 				ref={ref}
 				{...props}
 			>
