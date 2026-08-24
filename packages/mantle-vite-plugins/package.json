@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@ngrok/mantle-server-syntax-highlighter": "workspace:*",
-    "magic-string": "1.2.1",
+    "magic-string": "1.2.2",
     "oxc-parser": "catalog:"
   },
   "devDependencies": {
