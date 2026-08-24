@@ -31,7 +31,7 @@ catalog:
   "@tsdown/css": "0.22.14"
   "@types/node": "24.13.3"
   "@vitest/browser-playwright": "4.1.11"
-  "happy-dom": "20.11.2"
+  "happy-dom": "20.11.6"
   "oxc-parser": "0.146.0"
   "playwright-core": "1.62.1"
   "playwright": "1.62.1"
