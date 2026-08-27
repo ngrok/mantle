@@ -255,6 +255,11 @@
 			"types": "./dist/list.d.ts",
 			"import": "./dist/list.js"
 		},
+		"./live-region": {
+			"@ngrok/src-live-types": "./src/components/live-region/index.ts",
+			"types": "./dist/live-region.d.ts",
+			"import": "./dist/live-region.js"
+		},
 		"./main": {
 			"@ngrok/src-live-types": "./src/components/main/index.ts",
 			"types": "./dist/main.d.ts",
@@ -414,6 +419,11 @@
 			"@ngrok/src-live-types": "./src/utils/index.ts",
 			"types": "./dist/utils.d.ts",
 			"import": "./dist/utils.js"
+		},
+		"./visually-hidden": {
+			"@ngrok/src-live-types": "./src/components/visually-hidden/index.ts",
+			"types": "./dist/visually-hidden.d.ts",
+			"import": "./dist/visually-hidden.js"
 		},
 		"./well": {
 			"@ngrok/src-live-types": "./src/components/well/index.ts",

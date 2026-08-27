@@ -105,7 +105,16 @@ export const componentsByCategory = {
 		"Sheet",
 		"Tooltip",
 	],
-	Primitives: ["Browser Only", "Main", "SandboxedOnClick", "Skip to Main Link", "Slot", "Theme"],
+	Primitives: [
+		"Browser Only",
+		"Live Region",
+		"Main",
+		"SandboxedOnClick",
+		"Skip to Main Link",
+		"Slot",
+		"Theme",
+		"Visually Hidden",
+	],
 	// Structure: contains, divides, or arranges arbitrary content — vs Data
 	// Display, which presents specific content. Page/viewport structure
 	// belongs to the top-level Layouts section, not here.
@@ -170,6 +179,7 @@ export const prodReadyComponentRouteLookup = {
 	Label: "/components/forms/label",
 	"Line Chart": "/components/charts/line-chart",
 	List: "/components/data-display/list",
+	"Live Region": "/components/primitives/live-region",
 	Main: "/components/primitives/main",
 	"Media Object": "/components/structure/media-object",
 	"Multi Select": "/components/forms/multi-select",
@@ -202,6 +212,7 @@ export const prodReadyComponentRouteLookup = {
 	"Theme Switcher": "/components/forms/theme-switcher",
 	Toast: "/components/feedback/toast",
 	Tooltip: "/components/overlays/tooltip",
+	"Visually Hidden": "/components/primitives/visually-hidden",
 	Well: "/components/structure/well",
 } as const satisfies Record<ProdReadyComponent, Route>;
 

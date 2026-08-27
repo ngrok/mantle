@@ -1,0 +1,121 @@
+---
+title: Visually Hidden
+description: Render content that screen readers announce and sighted users never see.
+---
+
+import { Anchor } from "@ngrok/mantle/anchor";
+import { VisuallyHidden } from "@ngrok/mantle/visually-hidden";
+import { Example } from "~/components/example";
+
+# Visually Hidden
+
+Content for assistive technology only. `VisuallyHidden` renders a native `<span>` clipped to a one-pixel box (the `sr-only` technique, never `display: none`), so screen readers read the content and sighted users never see it. The content also stays in copied and searched text.
+
+**When to use**
+
+- State context the visual design already carries: "(opens in a new tab)" on an external link, a caption on a layout table.
+- Give a screen reader a text alternative for content it cannot read, such as a decorative chart.
+- Style the message of a [`LiveRegion`](/components/primitives/live-region), which builds on the same technique.
+
+**When not to use**
+
+- To name an icon-only control. Voice-control software skips a control whose only label is hidden DOM text, so use `aria-label`, as [`IconButton`](/components/actions/icon-button)'s required `label` prop does.
+- To hide content from assistive technology too. Use the `hidden` attribute or `aria-hidden`.
+- For a link that appears on focus. Use [`SkipToMainLink`](/components/primitives/skip-to-main-link).
+
+<Example>
+	<p>
+		Read the{" "}
+		<Anchor href="https://status.ngrok.com" target="_blank" rel="noreferrer">
+			status page
+			<VisuallyHidden> (opens in a new tab)</VisuallyHidden>
+		</Anchor>{" "}
+		before you file an incident.
+	</p>
+</Example>
+
+```tsx
+import { Anchor } from "@ngrok/mantle/anchor";
+import { VisuallyHidden } from "@ngrok/mantle/visually-hidden";
+
+<p>
+	Read the{" "}
+	<Anchor href="https://status.ngrok.com" target="_blank" rel="noreferrer">
+		status page
+		<VisuallyHidden> (opens in a new tab)</VisuallyHidden>
+	</Anchor>{" "}
+	before you file an incident.
+</p>;
+```
+
+## Polymorphism
+
+`VisuallyHidden` accepts an `asChild` prop. When `true`, it renders its single child instead of its default `<span>`, forwarding its class names, `data-*` attributes, and ref onto that child. When the hidden content should be a more semantic element (a `<caption>`, a `<legend>`, a heading), reach for `asChild`.
+
+<Example>
+	<table className="w-full text-sm">
+		<VisuallyHidden asChild>
+			<caption>Monthly revenue by region</caption>
+		</VisuallyHidden>
+		<thead>
+			<tr>
+				<th className="text-left font-medium">Region</th>
+				<th className="text-right font-medium">Revenue</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>North America</td>
+				<td className="text-right">$1,204</td>
+			</tr>
+			<tr>
+				<td>Europe</td>
+				<td className="text-right">$986</td>
+			</tr>
+		</tbody>
+	</table>
+</Example>
+
+```tsx
+import { VisuallyHidden } from "@ngrok/mantle/visually-hidden";
+
+<table>
+	<VisuallyHidden asChild>
+		<caption>Monthly revenue by region</caption>
+	</VisuallyHidden>
+	<thead>
+		<tr>
+			<th>Region</th>
+			<th>Revenue</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>North America</td>
+			<td>$1,204</td>
+		</tr>
+		<tr>
+			<td>Europe</td>
+			<td>$986</td>
+		</tr>
+	</tbody>
+</table>;
+```
+
+## API Reference
+
+### VisuallyHidden
+
+All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/span#attributes), plus:
+
+| Prop         | Type        | Default | Description                                                                                                                |
+| ------------ | ----------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?`   | `boolean`   | `false` | Use the `asChild` prop to compose the `VisuallyHidden` hiding onto alternative element types or your own React components. |
+| `children`   | `ReactNode` |         | The content read to screen readers.                                                                                        |
+| `className?` | `string`    |         | Additional CSS classes to apply to the hidden element.                                                                     |
+
+#### Data attributes
+
+| Data Attribute | Value               | Description                                                               |
+| -------------- | ------------------- | ------------------------------------------------------------------------- |
+| `data-slot`    | `"visually-hidden"` | Stamped on the rendered element, and joined onto the child via `asChild`. |
