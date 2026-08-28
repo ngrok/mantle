@@ -5,8 +5,8 @@ import { Slot } from "../slot/index.js";
 
 /**
  * Content for assistive technology only. Renders a native `<span>` clipped to
- * a one-pixel box (the `sr-only` technique, never `display: none`), so screen
- * readers read the content and sighted users never see it.
+ * a one-pixel box (the `sr-only` technique, never `display: none`). Screen
+ * readers read the content; sighted users never see it.
  *
  * **When to use**
  * - State context the visual design already carries: "(opens in a new tab)" on an external link, a caption on a layout table.
@@ -20,6 +20,10 @@ import { Slot } from "../slot/index.js";
  *
  * **Polymorphism.** Pass `asChild` to hide a more semantic element instead of
  * the default `<span>` (a `<caption>`, a `<legend>`, a heading).
+ *
+ * | Data Attribute | Value               | Description                                                               |
+ * | -------------- | ------------------- | ------------------------------------------------------------------------- |
+ * | `data-slot`    | `"visually-hidden"` | Stamped on the rendered element, and joined onto the child via `asChild`. |
  *
  * @see https://mantle.ngrok.com/components/primitives/visually-hidden
  * @see https://webaim.org/techniques/css/invisiblecontent/

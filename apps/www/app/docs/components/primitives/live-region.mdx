@@ -10,9 +10,9 @@ import { Example } from "~/components/example";
 
 # Live Region
 
-Announces its text to screen readers when the text changes. `LiveRegion` renders a persistent, visually hidden `<span>` live region with `role="status"` and `aria-live="polite"` (or `role="alert"` and `aria-live="assertive"` when `politeness` is `"assertive"`). It stamps both the role and `aria-live` because some screen reader and browser pairs honor only one of the two.
+Announces its text to screen readers when the text changes. `LiveRegion` renders a persistent, visually hidden `<span>` live region with `role="status"` and `aria-live="polite"`. When `politeness` is `"assertive"`, it renders `role="alert"` and `aria-live="assertive"`. It stamps both the role and `aria-live` because some screen reader and browser pairs honor only one of the two.
 
-A live region announces reliably only when it already exists in the accessibility tree before its text changes, so keep `LiveRegion` mounted from first paint and swap only its children. A screen reader does not re-announce a message identical to the previous one; when the same message must repeat, clear the children first.
+A live region announces reliably only when it already exists in the accessibility tree before its text changes. Keep `LiveRegion` mounted from first paint and swap only its children. A screen reader does not re-announce a message identical to the previous one; when the same message must repeat, clear the children first.
 
 **When to use**
 

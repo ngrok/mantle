@@ -18,12 +18,12 @@ type LiveRegionProps = ComponentProps<"span"> &
 /**
  * Announces its text to screen readers when the text changes. Renders a
  * persistent, visually hidden `<span>` live region with `role="status"` and
- * `aria-live="polite"` (or `role="alert"` and `aria-live="assertive"` when
- * `politeness` is `"assertive"`).
+ * `aria-live="polite"`. When `politeness` is `"assertive"`, it renders
+ * `role="alert"` and `aria-live="assertive"`.
  *
  * A live region announces reliably only when it already exists in the
- * accessibility tree before its text changes, so keep `LiveRegion` mounted
- * from first paint and swap only its children. A screen reader does not
+ * accessibility tree before its text changes. Keep `LiveRegion` mounted from
+ * first paint and swap only its children. A screen reader does not
  * re-announce a message identical to the previous one; when the same message
  * must repeat, clear the children first. The derived `role` and `aria-live`
  * read as defaults: a `role` or `aria-live` prop wins.
@@ -38,6 +38,10 @@ type LiveRegionProps = ComponentProps<"span"> &
  *
  * **Polymorphism.** Pass `asChild` to render the live region as a different
  * element instead of the default `<span>`.
+ *
+ * | Data Attribute | Value           | Description                                                               |
+ * | -------------- | --------------- | ------------------------------------------------------------------------- |
+ * | `data-slot`    | `"live-region"` | Stamped on the rendered element, and joined onto the child via `asChild`. |
  *
  * @see https://mantle.ngrok.com/components/primitives/live-region
  * @see https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Guides/Live_regions
