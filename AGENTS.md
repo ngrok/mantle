@@ -69,7 +69,7 @@ All rules live in [CONVENTIONS.md](./CONVENTIONS.md) and are mandatory. The `@./
 - **Apps** (`apps/`): `www` (documentation site, React Router 7)
 - **Packages** (`packages/`):
   - `mantle` (UI component library, built with tsdown)
-  - `mantle-vite-plugins` (Vite + rehype plugins for code-block highlighting and Tailwind CSS source optimization)
+  - `mantle-vite-plugins` (Vite + rehype plugins for code-block highlighting)
   - `mantle-server-syntax-highlighter` (server-side syntax highlighting engine powered by Shiki)
 - **Config** (`config/`): `tsconfig` (shared TypeScript configs via `@cfg/tsconfig`)
 

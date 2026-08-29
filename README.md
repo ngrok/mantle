@@ -20,11 +20,11 @@ This monorepo is managed with pnpm workspaces, [Turborepo](https://turbo.build/)
 
 ## Packages
 
-| Package                                                                                  | Description                                                                            | npm                                                                          |
-| ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [`@ngrok/mantle`](./packages/mantle)                                                     | UI component library (React, Tailwind, Radix)                                          | [npm](https://www.npmjs.com/package/@ngrok/mantle)                           |
-| [`@ngrok/mantle-vite-plugins`](./packages/mantle-vite-plugins)                           | Vite + rehype plugins for code block highlighting and Tailwind CSS source optimization | [npm](https://www.npmjs.com/package/@ngrok/mantle-vite-plugins)              |
-| [`@ngrok/mantle-server-syntax-highlighter`](./packages/mantle-server-syntax-highlighter) | Server-side syntax highlighting engine powered by Shiki                                | [npm](https://www.npmjs.com/package/@ngrok/mantle-server-syntax-highlighter) |
+| Package                                                                                  | Description                                             | npm                                                                          |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [`@ngrok/mantle`](./packages/mantle)                                                     | UI component library (React, Tailwind, Radix)           | [npm](https://www.npmjs.com/package/@ngrok/mantle)                           |
+| [`@ngrok/mantle-vite-plugins`](./packages/mantle-vite-plugins)                           | Vite + rehype plugins for code block highlighting       | [npm](https://www.npmjs.com/package/@ngrok/mantle-vite-plugins)              |
+| [`@ngrok/mantle-server-syntax-highlighter`](./packages/mantle-server-syntax-highlighter) | Server-side syntax highlighting engine powered by Shiki | [npm](https://www.npmjs.com/package/@ngrok/mantle-server-syntax-highlighter) |
 
 ## Local Development
 

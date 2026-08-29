@@ -23,7 +23,7 @@ Mantle ships `source-all.css` — a single `@source` that covers every component
 @import "@ngrok/mantle/source-all.css";
 ```
 
-Earlier versions of this package shipped `mantleTwSourcePlugin`, which injected per-component `@source` directives. It was removed because its source scan missed files in some setups and produced incomplete CSS. If you used it, remove `mantleTwSourcePlugin()` from `vite.config.ts`, delete the generated block between the `/* @ngrok/mantle-vite-plugins:source:start */` and `:end` markers in your global CSS, and add the `source-all.css` import above.
+Earlier versions of this package shipped `mantleTwSourcePlugin`, which injected per-component `@source` directives. It was removed because its source scan missed files in some setups and produced incomplete CSS. If you used it, remove the `mantleTwSourcePlugin` import and its call from `vite.config.ts`, delete the generated block between the `/* @ngrok/mantle-vite-plugins:source:start */` and `:end` markers in your global CSS, and add the `source-all.css` import above.
 
 ## Plugins
 
