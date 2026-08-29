@@ -1,0 +1,354 @@
+---
+title: Route Announcer
+description: Announce completed client-side navigations to screen readers by pairing a persistent LiveRegion with React Router's location, with page-name fallbacks and repeat-message handling.
+---
+
+# Route Announcer
+
+A full page load announces itself: the browser fires a navigation event and the screen reader reads
+the new document title. A client-side navigation does neither. React Router swaps the route, the page
+repaints, and a screen reader user hears nothing. This recipe pairs a persistent
+[LiveRegion](/components/primitives/live-region) with `useLocation()` so every completed navigation
+publishes `Navigated to {page}`.
+
+This site runs the exact file below. Turn on a screen reader and click through the sidebar to hear it.
+
+## Why a recipe, not a component
+
+The announcer needs one thing mantle cannot own: your router. `useLocation` here is React Router's;
+with another router, read the pathname from its own location API. TanStack Router's `useLocation()`
+returns a location object, so the destructure carries over; Next.js's `usePathname()` returns the
+pathname string itself. Mantle ships the announcement mechanics as
+[LiveRegion](/components/primitives/live-region); this file is the router glue, and it lives in your
+app.
+
+## The message
+
+The announcement reads `Navigated to {page}`. The prefix marks the message as a navigation. Without
+it, a bare page name lands mid-stream with no context and reads as unrelated status text.
+
+The page name resolves in order:
+
+1. **The page `<h1>`.** The most accurate name for where the user landed.
+2. **`document.title`.** The fallback when a page renders no heading. It can lag: a route without a
+   `meta` export keeps the previous page's title, which is why the heading wins.
+3. **The pathname.** The last resort, so the announcement never goes out empty.
+
+## Deliberate non-behaviors
+
+Three silences are on purpose:
+
+- **The initial document load stays silent.** The screen reader reads the document title itself on a
+  full load; announcing it again doubles it.
+- **Search-param and hash changes stay silent.** They are in-page state, not a new page. The effect
+  keys on `pathname` alone, so `?tab=examples` and `#api-reference` never announce.
+- **Focus never moves.** A focus move announces on its own, and the two announcements would race.
+  Announcing and moving focus are different recipes; this one only speaks.
+
+## Clearing before publishing
+
+A live region only announces a DOM change, and consecutive pages can resolve to the same text: two
+detail pages titled `Alert`, or two routes sharing a fallback title. Writing the same string again is
+not a change, so the second navigation stays silent. The effect clears the region first, then
+publishes on the next frame, so every navigation mutates the DOM even when the text repeats.
+
+## The component
+
+This is the one file to copy. Render it once, inside the router context in the root layout:
+
+````tsx
+import { LiveRegion } from "@ngrok/mantle/live-region";
+import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router";
+
+/**
+ * Announces completed client-side navigations to assistive technology.
+ *
+ * React Router swaps the route without a document load, so screen readers
+ * hear nothing. This component publishes "Navigated to {page}" to a
+ * persistent polite `LiveRegion` after each pathname change. The prefix marks
+ * the message as a navigation, so it does not read as unrelated status text.
+ *
+ * The announcement prefers the page `<h1>` over `document.title` because
+ * routes without a `meta` export keep the previous document title. The
+ * pathname is the last resort.
+ *
+ * Deliberate non-behaviors:
+ * - The initial document load stays silent; assistive technology reads the
+ *   document title itself.
+ * - Search-param and hash changes stay silent; they are in-page state.
+ * - Focus never moves; a focus move announces on its own, and the two
+ *   announcements would race.
+ *
+ * Render it once, inside the router context in the root layout.
+ *
+ * @example
+ * ```tsx
+ * <RouteAnnouncer />
+ * <ScrollRestoration />
+ * <Scripts />
+ * ```
+ */
+function RouteAnnouncer() {
+	const { pathname } = useLocation();
+	const [announcement, setAnnouncement] = useState("");
+	const previousPathname = useRef(pathname);
+
+	useEffect(() => {
+		if (previousPathname.current === pathname) {
+			return;
+		}
+		previousPathname.current = pathname;
+
+		const pageHeading = document.querySelector("h1")?.textContent?.trim();
+		const pageName = pageHeading || document.title || pathname;
+		const message = `Navigated to ${pageName}`;
+
+		// Clear first, then publish on the next frame. Consecutive pages can
+		// resolve to the same text, and a live region only announces a DOM change.
+		setAnnouncement("");
+		const frame = requestAnimationFrame(() => {
+			setAnnouncement(message);
+		});
+		return () => {
+			cancelAnimationFrame(frame);
+		};
+	}, [pathname]);
+
+	return <LiveRegion>{announcement}</LiveRegion>;
+}
+
+export {
+	//,
+	RouteAnnouncer,
+};
+````
+
+## Where it goes
+
+Mount it once per document, in the root layout, inside the router context. A live region announces
+reliably only when it already exists in the accessibility tree before its text changes, so it must
+render from first paint and never unmount. In a React Router app, next to `<ScrollRestoration />`
+works:
+
+```tsx
+<body>
+	<AppShell>{children}</AppShell>
+	<RouteAnnouncer />
+	<ScrollRestoration />
+	<Scripts />
+</body>
+```
+
+DOM position does not matter beyond that: a live region announces on content mutation, not on
+document order.
+
+## Coexisting with toasts
+
+[Toast](/components/feedback/toast) renders its own polite live region, and the two do not conflict.
+Screen readers queue polite announcements across regions, so a toast that fires during a navigation
+reads back to back with the route announcement instead of clobbering it.
+
+One caveat: a modal [Dialog](/components/overlays/dialog) stamps `aria-hidden` on the other children
+of `<body>` while it is open, which mutes any live region outside it. A navigation normally closes
+the modal first, so this rarely bites, but an announcement raced against a closing modal can go
+unread.
+
+## Testing it
+
+This is the component's test file, verbatim, and it runs in this repo. The publish lands one frame
+after the clearing write, so the `flushAnnouncement` helper waits out one `requestAnimationFrame`
+inside `act` before every assertion:
+
+```tsx
+// @vitest-environment happy-dom
+import { act, cleanup, render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
+import { createMemoryRouter, MemoryRouter, Outlet, RouterProvider } from "react-router";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { RouteAnnouncer } from "./route-announcer";
+
+afterEach(() => {
+	cleanup();
+});
+
+/**
+ * Renders the announcer in a persistent layout route, the way the app root
+ * hosts it, with leaf routes that cover the heading/no-heading branches.
+ */
+function renderWithRouter(initialPath = "/") {
+	const router = createMemoryRouter(
+		[
+			{
+				element: (
+					<>
+						<RouteAnnouncer />
+						<button type="button">persistent control</button>
+						<Outlet />
+					</>
+				),
+				children: [
+					{ path: "/", element: <h1>Home</h1> },
+					{ path: "/components", element: <h1>Components</h1> },
+					{ path: "/no-heading", element: <p>A page without a heading</p> },
+					{ path: "/components/feedback/alert", element: <h1>Alert</h1> },
+					{ path: "/components/feedback/toast", element: <h1>Alert</h1> },
+				],
+			},
+		],
+		{ initialEntries: [initialPath] },
+	);
+	render(<RouterProvider router={router} />);
+	return router;
+}
+
+/** Runs the announcer's next-frame publish, which follows the clearing write. */
+async function flushAnnouncement() {
+	await act(async () => {
+		await new Promise<void>((resolve) => {
+			requestAnimationFrame(() => {
+				resolve();
+			});
+		});
+	});
+}
+
+describe("RouteAnnouncer", () => {
+	beforeEach(() => {
+		document.title = "";
+	});
+
+	test("server-renders an empty polite live region", () => {
+		const html = renderToString(
+			<MemoryRouter>
+				<RouteAnnouncer />
+			</MemoryRouter>,
+		);
+
+		expect(html).toContain('role="status"');
+		expect(html).toContain('aria-live="polite"');
+	});
+
+	test("does not announce the initial page load", async () => {
+		renderWithRouter();
+
+		await flushAnnouncement();
+
+		expect(screen.getByRole("status").textContent).toBe("");
+	});
+
+	test("announces the new page heading after a navigation", async () => {
+		const router = renderWithRouter();
+
+		await act(() => router.navigate("/components"));
+		await flushAnnouncement();
+
+		expect(screen.getByRole("status").textContent).toBe("Navigated to Components");
+	});
+
+	test("prefers the page heading over the document title", async () => {
+		const router = renderWithRouter();
+		document.title = "Stale title from the previous page";
+
+		await act(() => router.navigate("/components"));
+		await flushAnnouncement();
+
+		expect(screen.getByRole("status").textContent).toBe("Navigated to Components");
+	});
+
+	test("falls back to the document title when the page has no heading", async () => {
+		const router = renderWithRouter();
+		document.title = "Kbd — @ngrok/mantle";
+
+		await act(() => router.navigate("/no-heading"));
+		await flushAnnouncement();
+
+		expect(screen.getByRole("status").textContent).toBe("Navigated to Kbd — @ngrok/mantle");
+	});
+
+	test("falls back to the pathname when there is no heading and no title", async () => {
+		const router = renderWithRouter();
+
+		await act(() => router.navigate("/no-heading"));
+		await flushAnnouncement();
+
+		expect(screen.getByRole("status").textContent).toBe("Navigated to /no-heading");
+	});
+
+	test("stays silent when only the search params change", async () => {
+		const router = renderWithRouter();
+
+		await act(() => router.navigate("/?tab=examples"));
+		await flushAnnouncement();
+
+		expect(screen.getByRole("status").textContent).toBe("");
+	});
+
+	test("stays silent when only the hash changes", async () => {
+		const router = renderWithRouter();
+
+		await act(() => router.navigate("/#api-reference"));
+		await flushAnnouncement();
+
+		expect(screen.getByRole("status").textContent).toBe("");
+	});
+
+	test("announces again when the user returns to a previous page", async () => {
+		const router = renderWithRouter();
+
+		await act(() => router.navigate("/components"));
+		await flushAnnouncement();
+		await act(() => router.navigate("/"));
+		await flushAnnouncement();
+
+		expect(screen.getByRole("status").textContent).toBe("Navigated to Home");
+	});
+
+	test("mutates the region even when two pages share the same heading", async () => {
+		const router = renderWithRouter();
+
+		await act(() => router.navigate("/components/feedback/alert"));
+		await flushAnnouncement();
+		const region = screen.getByRole("status");
+		expect(region.textContent).toBe("Navigated to Alert");
+
+		// A live region only announces a DOM change. The clear-then-publish
+		// sequence must mutate the region even when the text is identical.
+		const mutations: MutationRecord[] = [];
+		const observer = new MutationObserver((records) => {
+			mutations.push(...records);
+		});
+		observer.observe(region, { characterData: true, childList: true, subtree: true });
+
+		await act(() => router.navigate("/components/feedback/toast"));
+		await flushAnnouncement();
+		mutations.push(...observer.takeRecords());
+		observer.disconnect();
+
+		expect(region.textContent).toBe("Navigated to Alert");
+		expect(mutations.length).toBeGreaterThan(0);
+	});
+
+	test("does not move focus when it announces", async () => {
+		const router = renderWithRouter();
+		const control = screen.getByRole("button", { name: "persistent control" });
+		control.focus();
+
+		await act(() => router.navigate("/components"));
+		await flushAnnouncement();
+
+		expect(document.activeElement).toBe(control);
+	});
+});
+```
+
+## Trade-offs
+
+- **`document.querySelector("h1")` takes the document's first `<h1>`.** In a one-`h1`-per-page app
+  (which yours should be), that is the page heading. A page that renders several gets whichever comes
+  first in the DOM.
+- **The heading must exist when the effect runs.** A page whose `<h1>` streams in later (deferred
+  data, a lazy boundary) falls back to `document.title` for that navigation. If that fallback reads
+  wrong, move the name into the route's `meta` export.
+- **English is baked into the prefix.** A localized app should pull `Navigated to` from its i18n
+  layer along with everything else on the page.

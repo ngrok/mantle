@@ -519,6 +519,19 @@
     ]
   },
   {
+    "name": "Live Region",
+    "slug": "components/primitives/live-region",
+    "kind": "component",
+    "category": "Primitives",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/live-region",
+    "summary": "A persistent, visually hidden region that announces its text to screen readers when the text changes.",
+    "jsdoc": "Announces its text to screen readers when the text changes.",
+    "examples": [
+      "```tsx\nimport { LiveRegion } from \"@ngrok/mantle/live-region\";\n\n// Mount the region before the first message, then swap the message.\nfunction SearchResults({ results }: { results: string[] }) {\n  return (\n    <>\n      <LiveRegion>{`${results.length} results found`}</LiveRegion>\n      <ul>\n        {results.map((result) => (\n          <li key={result}>{result}</li>\n        ))}\n      </ul>\n    </>\n  );\n}\n```"
+    ]
+  },
+  {
     "name": "Main",
     "slug": "components/primitives/main",
     "kind": "component",
@@ -950,6 +963,19 @@
     "examples": [
       "Composition:\n```\nTooltip.Root\n├── Tooltip.Trigger\n└── Tooltip.Content\n```",
       "```tsx\n<Tooltip.Root>\n  <Tooltip.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">\n      Hover me\n    </Button>\n  </Tooltip.Trigger>\n  <Tooltip.Content>\n    This is a tooltip\n  </Tooltip.Content>\n</Tooltip.Root>\n```"
+    ]
+  },
+  {
+    "name": "Visually Hidden",
+    "slug": "components/primitives/visually-hidden",
+    "kind": "component",
+    "category": "Primitives",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/visually-hidden",
+    "summary": "Render content that screen readers announce and sighted users never see.",
+    "jsdoc": "Content for assistive technology only.",
+    "examples": [
+      "```tsx\nimport { VisuallyHidden } from \"@ngrok/mantle/visually-hidden\";\n\n<a href=\"https://status.ngrok.com\" target=\"_blank\" rel=\"noreferrer\">\n  ngrok status\n  <VisuallyHidden> (opens in a new tab)</VisuallyHidden>\n</a>\n```"
     ]
   },
   {

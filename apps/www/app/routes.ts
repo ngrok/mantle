@@ -112,11 +112,13 @@ const docsPages = [
 	"components/preview/calendar",
 	// primitives
 	"components/primitives/browser-only",
+	"components/primitives/live-region",
 	"components/primitives/main",
 	"components/primitives/sandboxed-on-click",
 	"components/primitives/skip-to-main-link",
 	"components/primitives/slot",
 	"components/primitives/theme",
+	"components/primitives/visually-hidden",
 	// structure
 	"components/structure/card",
 	"components/structure/media-object",
@@ -141,7 +143,7 @@ const docsPages = [
 const layoutsPages = ["app-layout", "centered-layout"];
 
 // recipes section: compositional how-tos spanning multiple primitives
-const recipesPages = ["breadcrumbs-from-routes", "overlay-async"];
+const recipesPages = ["breadcrumbs-from-routes", "overlay-async", "route-announcer"];
 
 // migrations section
 const migrationsPages = [

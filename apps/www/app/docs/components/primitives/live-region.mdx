@@ -1,0 +1,239 @@
+---
+title: Live Region
+description: A persistent, visually hidden region that announces its text to screen readers when the text changes.
+---
+
+import { Button } from "@ngrok/mantle/button";
+import { LiveRegion } from "@ngrok/mantle/live-region";
+import { useState } from "react";
+import { Example } from "~/components/example";
+
+# Live Region
+
+Announces its text to screen readers when the text changes. `LiveRegion` renders a persistent, visually hidden `<span>` live region with `role="status"` and `aria-live="polite"`; the redundant `aria-live` covers screen reader and browser pairs that honor only one of the two. When `politeness` is `"assertive"`, it renders `role="alert"` alone: the role already carries assertive live-region semantics, and a redundant `aria-live` makes VoiceOver on iOS announce the message twice.
+
+A live region announces reliably only when it already exists in the accessibility tree before its text changes. Keep `LiveRegion` mounted from first paint and swap only its children. A screen reader does not re-announce a message identical to the previous one; when the same message must repeat, clear the children first.
+
+**When to use**
+
+- Announce a completed client-side navigation: the new page name, after a route change.
+- Announce an async result that moves focus nowhere: "3 results found", "Draft saved".
+
+**When not to use**
+
+- For status the user must see. Use [`Alert`](/components/feedback/alert) or [`Toast`](/components/feedback/toast), which pair visible UI with their own announcements.
+- For hidden text that never changes. Use [`VisuallyHidden`](/components/primitives/visually-hidden).
+
+export function ResultsExample() {
+	const [count, setCount] = useState(3);
+	return (
+		<div className="flex flex-col items-start gap-4">
+			<Button
+				type="button"
+				appearance="filled"
+				intent="neutral"
+				onClick={() => setCount((current) => current + 1)}
+			>
+				Add a result
+			</Button>
+			<LiveRegion>{`${count} results found`}</LiveRegion>
+			<ul className="list-disc pl-5 text-sm">
+				{Array.from({ length: count }, (_, index) => (
+					<li key={index}>Result {index + 1}</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+
+<Example>
+	<ResultsExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { LiveRegion } from "@ngrok/mantle/live-region";
+import { useState } from "react";
+
+function ResultsExample() {
+	const [count, setCount] = useState(3);
+	return (
+		<div className="flex flex-col items-start gap-4">
+			<Button
+				type="button"
+				appearance="filled"
+				intent="neutral"
+				onClick={() => setCount((current) => current + 1)}
+			>
+				Add a result
+			</Button>
+			<LiveRegion>{`${count} results found`}</LiveRegion>
+			<ul className="list-disc pl-5 text-sm">
+				{Array.from({ length: count }, (_, index) => (
+					<li key={index}>Result {index + 1}</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+```
+
+## Polymorphism
+
+`LiveRegion` accepts an `asChild` prop. When `true`, it renders its single child instead of its default `<span>`, forwarding its class names, ARIA attributes, `data-*` attributes, and ref onto that child.
+
+<Example>
+	<LiveRegion asChild>
+		<p>Ready.</p>
+	</LiveRegion>
+	<p className="text-muted text-sm">The live region above is a hidden paragraph element.</p>
+</Example>
+
+```tsx
+import { LiveRegion } from "@ngrok/mantle/live-region";
+
+<LiveRegion asChild>
+	<p>Ready.</p>
+</LiveRegion>;
+```
+
+## Politeness
+
+`politeness` defaults to `"polite"`: the announcement waits for the screen reader's current utterance to finish. Pass `"assertive"` only when a delayed announcement would mislead the user (a session about to expire, a failed save). An assertive region interrupts the screen reader's current utterance.
+
+export function AssertiveExample() {
+	const [message, setMessage] = useState("");
+	return (
+		<div className="flex flex-col items-start gap-4">
+			<Button
+				type="button"
+				appearance="outlined"
+				intent="danger"
+				onClick={() => setMessage("Session expired. Sign in again.")}
+			>
+				Expire the session
+			</Button>
+			<LiveRegion politeness="assertive">{message}</LiveRegion>
+			<p className="text-muted text-sm">{message || "The session is active."}</p>
+		</div>
+	);
+}
+
+<Example>
+	<AssertiveExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { LiveRegion } from "@ngrok/mantle/live-region";
+import { useState } from "react";
+
+function AssertiveExample() {
+	const [message, setMessage] = useState("");
+	return (
+		<div className="flex flex-col items-start gap-4">
+			<Button
+				type="button"
+				appearance="outlined"
+				intent="danger"
+				onClick={() => setMessage("Session expired. Sign in again.")}
+			>
+				Expire the session
+			</Button>
+			<LiveRegion politeness="assertive">{message}</LiveRegion>
+			<p className="text-muted text-sm">{message || "The session is active."}</p>
+		</div>
+	);
+}
+```
+
+## Announcing route changes
+
+A single-page app repaints on navigation without a page load, so screen readers announce nothing. Feed a persistent `LiveRegion` the page name from your router's location, so it announces each completed navigation. The demo swaps pages with local state because the docs site cannot navigate inside an example. In your app, derive `pageName` from the router's location instead. The [Route Announcer recipe](/recipes/route-announcer) is the complete pattern wired to React Router: page-name fallbacks, repeat-message handling, and tests.
+
+export function RouteAnnouncerExample() {
+	const [pageName, setPageName] = useState("Dashboard");
+	return (
+		<div className="flex flex-col items-start gap-4">
+			<nav className="flex gap-2">
+				<Button
+					type="button"
+					appearance="outlined"
+					intent="neutral"
+					onClick={() => setPageName("Dashboard")}
+				>
+					Dashboard
+				</Button>
+				<Button
+					type="button"
+					appearance="outlined"
+					intent="neutral"
+					onClick={() => setPageName("Settings")}
+				>
+					Settings
+				</Button>
+			</nav>
+			<LiveRegion>{`Navigated to ${pageName}`}</LiveRegion>
+			<h3 className="text-lg font-medium">{pageName}</h3>
+		</div>
+	);
+}
+
+<Example>
+	<RouteAnnouncerExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { LiveRegion } from "@ngrok/mantle/live-region";
+import { useState } from "react";
+
+function RouteAnnouncerExample() {
+	const [pageName, setPageName] = useState("Dashboard");
+	return (
+		<div className="flex flex-col items-start gap-4">
+			<nav className="flex gap-2">
+				<Button
+					type="button"
+					appearance="outlined"
+					intent="neutral"
+					onClick={() => setPageName("Dashboard")}
+				>
+					Dashboard
+				</Button>
+				<Button
+					type="button"
+					appearance="outlined"
+					intent="neutral"
+					onClick={() => setPageName("Settings")}
+				>
+					Settings
+				</Button>
+			</nav>
+			<LiveRegion>{`Navigated to ${pageName}`}</LiveRegion>
+			<h3 className="text-lg font-medium">{pageName}</h3>
+		</div>
+	);
+}
+```
+
+## API Reference
+
+### LiveRegion
+
+All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/span#attributes), plus:
+
+| Prop          | Type                      | Default    | Description                                                                                                                                                                                |
+| ------------- | ------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `asChild?`    | `boolean`                 | `false`    | Use the `asChild` prop to compose the `LiveRegion` behavior onto alternative element types or your own React components.                                                                   |
+| `children?`   | `ReactNode`               |            | The message to announce. Screen readers announce it each time it changes; keep the region mounted and swap only this.                                                                      |
+| `className?`  | `string`                  |            | Additional CSS classes to apply to the region.                                                                                                                                             |
+| `politeness?` | `"polite" \| "assertive"` | `"polite"` | How urgently a screen reader announces a changed message: `"polite"` waits for the current utterance to finish, `"assertive"` interrupts it. Also derives `role`: `"status"` or `"alert"`. |
+
+The derived `role` and `aria-live` read as defaults: a `role` or `aria-live` prop wins. `aria-atomic` defaults to `"true"` so the region re-reads the whole message, not the changed characters.
+
+#### Data attributes
+
+| Data Attribute | Value           | Description                                                               |
+| -------------- | --------------- | ------------------------------------------------------------------------- |
+| `data-slot`    | `"live-region"` | Stamped on the rendered element, and joined onto the child via `asChild`. |

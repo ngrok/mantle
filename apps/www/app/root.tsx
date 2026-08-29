@@ -34,6 +34,7 @@ import { Header } from "./components/header";
 import { NavigationProvider } from "./components/navigation-context";
 import { PageContainer } from "./components/page-container";
 import { useNonce } from "./components/nonce";
+import { RouteAnnouncer } from "./features/route-announcer";
 import "./global.css";
 import { canonicalDomain, canonicalHref } from "./utilities/canonical-origin";
 import { parseMantleVersion } from "./utilities/mantle-version.server";
@@ -218,6 +219,10 @@ export function Layout({ children }: PropsWithChildren) {
 						</QueryClientProvider>
 					</TooltipProvider>
 				</ThemeProvider>
+				{/* Suppressed inside framed example previews: nothing navigates inside
+				    the preview iframe, and each iframe would add its own status region
+				    to the page. */}
+				{!isFramedPreview && <RouteAnnouncer />}
 				<ScrollRestoration nonce={nonce} />
 				<Scripts nonce={nonce} />
 			</body>
