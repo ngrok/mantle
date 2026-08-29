@@ -464,9 +464,6 @@ importers:
       tsdown:
         specifier: 'catalog:'
         version: 0.22.14(@tsdown/css@0.22.14)(tsx@4.23.12)(typescript@7.0.2)
-      tsx:
-        specifier: 'catalog:'
-        version: 4.23.12
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

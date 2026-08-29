@@ -72,13 +72,13 @@ Per [§2](../../COMPONENT_SPEC.md#2-what-a-component-must-ship):
 1. `packages/mantle/package.json` — the `"./<component-name>"` export entry, alphabetical (§2.3).
 2. `apps/www/app/routes.ts` — add `"components/<category>/<component-name>"` to the `docsPages` array, alphabetical within its category block (§2.4).
 3. `apps/www/app/components/navigation-data.ts` — `componentsByCategory` + `prodReadyComponentRouteLookup` for a stable component, the three preview lookups for a preview component, or the layout arrays for a layout. Add `componentImportPathOverrides` if the docs slug is not the export key (§2.4).
-4. The conditional build-config edits in §2.1's second table, if they apply — `INTERNAL_CHUNKS_BY_COMPONENT` in particular, since missing it ships an unstyled component with every check green.
+4. The conditional build-config edits in §2.1's second table, if they apply — `doNotPublish` in particular when the component adds an internal engine directory.
 
 Pick the category from the nine in §2.4 (`Actions`, `Charts`, `Data Display`, `Feedback`, `Forms`, `Navigation`, `Overlays`, `Primitives`, `Structure`) and use its slug from `componentCategorySlugs`. Ask the user if genuinely ambiguous.
 
 ## 5. Verify and changeset
 
-Run all five commands in [§9](../../COMPONENT_SPEC.md#9-verification), then commit the generated files it names (`components-surface.json`, `mantle-component-name.ts`).
+Run all five commands in [§9](../../COMPONENT_SPEC.md#9-verification), then commit the generated file it names (`components-surface.json`).
 
 Add a `minor` changeset for `@ngrok/mantle` written as release notes for consumers, per [§2.5](../../COMPONENT_SPEC.md#25-changesets). A new top-level component is the one additive change that takes a `minor` — see [VERSIONING.md](../../VERSIONING.md).
 

@@ -74,10 +74,10 @@ const result = await highlighter.highlight({
 
 ## Related Packages
 
-| Package                                   | Description                                                                            | Links                                                                                                                                                                        |
-| ----------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@ngrok/mantle-vite-plugins`              | Vite + rehype plugins for code block highlighting and Tailwind CSS source optimization | [GitHub](https://github.com/ngrok/mantle/tree/main/packages/mantle-vite-plugins) · [npm](https://www.npmjs.com/package/@ngrok/mantle-vite-plugins)                           |
-| `@ngrok/mantle-server-syntax-highlighter` | Server-side syntax highlighting engine powered by Shiki                                | [GitHub](https://github.com/ngrok/mantle/tree/main/packages/mantle-server-syntax-highlighter) · [npm](https://www.npmjs.com/package/@ngrok/mantle-server-syntax-highlighter) |
+| Package                                   | Description                                             | Links                                                                                                                                                                        |
+| ----------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@ngrok/mantle-vite-plugins`              | Vite + rehype plugins for code block highlighting       | [GitHub](https://github.com/ngrok/mantle/tree/main/packages/mantle-vite-plugins) · [npm](https://www.npmjs.com/package/@ngrok/mantle-vite-plugins)                           |
+| `@ngrok/mantle-server-syntax-highlighter` | Server-side syntax highlighting engine powered by Shiki | [GitHub](https://github.com/ngrok/mantle/tree/main/packages/mantle-server-syntax-highlighter) · [npm](https://www.npmjs.com/package/@ngrok/mantle-server-syntax-highlighter) |
 
 ## Contributing
 

@@ -65,16 +65,16 @@ const COMPONENT_DIR_RE = /[\\/]src[\\/]components[\\/]([^\\/]+)[\\/]/;
  * a code-split chunk, or `null` when the chunk contains no component modules
  * or mixes modules from multiple component directories.
  *
- * Why: `mantleTwSourcePlugin` (in `@ngrok/mantle-vite-plugins`) tells
- * Tailwind which dist files to scan via per-component `@source "<name>-*.js"`
- * globs. Rolldown's default chunk naming picks an arbitrary module inside the
- * chunk — the shared chart engine became `primitive-<hash>.js` and the list
- * family's shared primitive became `virtual-<hash>.js` — names no
- * per-component glob matches, so the Tailwind classes inside were never
- * scanned and consumers got unstyled components. Naming shared chunks after
- * their owning component directory keeps every class inside a glob-matchable
- * file (chart's engine chunk becomes `chart-<hash>.js`, like dialog's
- * `dialog-<hash>.js`).
+ * Why: per-component `@source "<name>-*.js"` globs (hand-written, or injected
+ * by published 1.x versions of the retired `mantleTwSourcePlugin` in
+ * `@ngrok/mantle-vite-plugins`) only match dist files named after a component.
+ * Rolldown's default chunk naming picks an arbitrary module inside the chunk
+ * (the shared chart engine became `primitive-<hash>.js`, and the list family's
+ * shared primitive became `virtual-<hash>.js`). No per-component glob matched
+ * those names, so Tailwind never scanned the classes inside and consumers got
+ * unstyled components. Naming shared chunks after their owning component
+ * directory keeps every class inside a glob-matchable file (chart's engine
+ * chunk becomes `chart-<hash>.js`, like dialog's `dialog-<hash>.js`).
  */
 function owningComponentDir(moduleIds: readonly string[]): string | null {
 	let owner: string | null = null;
@@ -190,8 +190,8 @@ export default defineConfig((options) => [
 		fixedExtension: false,
 		format: "esm",
 		outputOptions: {
-			// Name shared chunks after their owning component directory so the
-			// tw-source plugin's `@source "<name>-*.js"` globs match them (see
+			// Name shared chunks after their owning component directory so
+			// per-component `@source "<name>-*.js"` globs match them (see
 			// owningComponentDir). Chunks without a single owning component keep
 			// rolldown's default `[name]-[hash].js` naming.
 			chunkFileNames: (chunk) => {

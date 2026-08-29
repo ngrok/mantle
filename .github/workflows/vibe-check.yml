@@ -207,7 +207,20 @@ jobs:
             --concurrency="${TURBO_TEST_CONCURRENCY}" \
             --continue=always \
             --filter='!@ngrok/mantle' \
+            --filter='!@ngrok/mantle-vite-plugins' \
             -- --shard="${{ matrix.shard }}/${{ matrix.shard_total }}" --maxWorkers="${TURBO_TEST_CONCURRENCY}" || non_mantle_status=$?
+
+          # Why unsharded on shard 1 only: vitest rejects --shard when a package
+          # has fewer test files than shard_total, and @ngrok/mantle-vite-plugins
+          # has two.
+          vite_plugins_status=0
+          if [[ "${{ matrix.shard }}" == "1" ]]; then
+            pnpm exec turbo run test \
+              --concurrency="${TURBO_TEST_CONCURRENCY}" \
+              --continue=always \
+              --filter='@ngrok/mantle-vite-plugins' \
+              -- --maxWorkers="${TURBO_TEST_CONCURRENCY}" || vite_plugins_status=$?
+          fi
 
           mantle_status=0
           pnpm exec turbo run test \
@@ -217,9 +230,10 @@ jobs:
             -- --project=unit --shard="${{ matrix.shard }}/${{ matrix.shard_total }}" --maxWorkers="${TURBO_TEST_CONCURRENCY}" || mantle_status=$?
 
           echo "non-mantle test status: ${non_mantle_status}"
+          echo "mantle-vite-plugins test status: ${vite_plugins_status}"
           echo "mantle unit test status: ${mantle_status}"
 
-          if [[ "${non_mantle_status}" -ne 0 || "${mantle_status}" -ne 0 ]]; then
+          if [[ "${non_mantle_status}" -ne 0 || "${vite_plugins_status}" -ne 0 || "${mantle_status}" -ne 0 ]]; then
             exit 1
           fi
 

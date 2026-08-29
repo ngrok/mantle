@@ -2,13 +2,8 @@
  * @ngrok/mantle/source-all.css
  *
  * Import this alongside mantle.css to tell Tailwind to scan ALL mantle component
- * dist files for utility class names. This is equivalent to what mantle.css used
- * to do automatically and is the correct choice for apps that use most or all
- * mantle components (e.g. a dashboard).
- *
- * For apps that use a small subset of mantle (e.g. a marketing site), prefer the
- * @ngrok/mantle Vite plugin instead — it automatically injects @source directives
- * only for the components your app actually imports, reducing generated CSS size.
+ * dist files for utility class names. This is the supported way to register
+ * mantle's Tailwind sources.
  *
  * Usage:
  *   @import "@ngrok/mantle/mantle.css";
