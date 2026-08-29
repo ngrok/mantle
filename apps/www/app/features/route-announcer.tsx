@@ -6,8 +6,9 @@ import { useLocation } from "react-router";
  * Announces completed client-side navigations to assistive technology.
  *
  * React Router swaps the route without a document load, so screen readers
- * hear nothing. This component publishes the new page's name to a persistent
- * polite `LiveRegion` after each pathname change.
+ * hear nothing. This component publishes "Navigated to {page}" to a
+ * persistent polite `LiveRegion` after each pathname change. The prefix marks
+ * the message as a navigation, so it does not read as unrelated status text.
  *
  * The announcement prefers the page `<h1>` over `document.title` because
  * routes without a `meta` export keep the previous document title. The
@@ -41,7 +42,8 @@ function RouteAnnouncer() {
 		previousPathname.current = pathname;
 
 		const pageHeading = document.querySelector("h1")?.textContent?.trim();
-		const message = pageHeading || document.title || pathname;
+		const pageName = pageHeading || document.title || pathname;
+		const message = `Navigated to ${pageName}`;
 
 		// Clear first, then publish on the next frame. Consecutive pages can
 		// resolve to the same text, and a live region only announces a DOM change.

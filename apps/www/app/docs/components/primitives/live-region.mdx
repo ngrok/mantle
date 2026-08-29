@@ -130,7 +130,7 @@ function AssertiveExample() {
 
 ## Announcing route changes
 
-A single-page app repaints on navigation without a page load, so screen readers announce nothing. Feed a persistent `LiveRegion` the page name from your router's location, so it announces each completed navigation. The demo swaps pages with local state because the docs site cannot navigate inside an example. In your app, derive `pageName` from the router's location instead.
+A single-page app repaints on navigation without a page load, so screen readers announce nothing. Feed a persistent `LiveRegion` the page name from your router's location, so it announces each completed navigation. The demo swaps pages with local state because the docs site cannot navigate inside an example. In your app, derive `pageName` from the router's location instead. The [Route Announcer recipe](/recipes/route-announcer) is the complete pattern wired to React Router: page-name fallbacks, repeat-message handling, and tests.
 
 export function RouteAnnouncerExample() {
 	const [pageName, setPageName] = useState("Dashboard");

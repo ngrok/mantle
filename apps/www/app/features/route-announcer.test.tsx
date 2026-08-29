@@ -80,7 +80,7 @@ describe("RouteAnnouncer", () => {
 		await act(() => router.navigate("/components"));
 		await flushAnnouncement();
 
-		expect(screen.getByRole("status").textContent).toBe("Components");
+		expect(screen.getByRole("status").textContent).toBe("Navigated to Components");
 	});
 
 	test("prefers the page heading over the document title", async () => {
@@ -90,7 +90,7 @@ describe("RouteAnnouncer", () => {
 		await act(() => router.navigate("/components"));
 		await flushAnnouncement();
 
-		expect(screen.getByRole("status").textContent).toBe("Components");
+		expect(screen.getByRole("status").textContent).toBe("Navigated to Components");
 	});
 
 	test("falls back to the document title when the page has no heading", async () => {
@@ -100,7 +100,7 @@ describe("RouteAnnouncer", () => {
 		await act(() => router.navigate("/no-heading"));
 		await flushAnnouncement();
 
-		expect(screen.getByRole("status").textContent).toBe("Kbd — @ngrok/mantle");
+		expect(screen.getByRole("status").textContent).toBe("Navigated to Kbd — @ngrok/mantle");
 	});
 
 	test("falls back to the pathname when there is no heading and no title", async () => {
@@ -109,7 +109,7 @@ describe("RouteAnnouncer", () => {
 		await act(() => router.navigate("/no-heading"));
 		await flushAnnouncement();
 
-		expect(screen.getByRole("status").textContent).toBe("/no-heading");
+		expect(screen.getByRole("status").textContent).toBe("Navigated to /no-heading");
 	});
 
 	test("stays silent when only the search params change", async () => {
@@ -138,7 +138,7 @@ describe("RouteAnnouncer", () => {
 		await act(() => router.navigate("/"));
 		await flushAnnouncement();
 
-		expect(screen.getByRole("status").textContent).toBe("Home");
+		expect(screen.getByRole("status").textContent).toBe("Navigated to Home");
 	});
 
 	test("mutates the region even when two pages share the same heading", async () => {
@@ -147,7 +147,7 @@ describe("RouteAnnouncer", () => {
 		await act(() => router.navigate("/components/feedback/alert"));
 		await flushAnnouncement();
 		const region = screen.getByRole("status");
-		expect(region.textContent).toBe("Alert");
+		expect(region.textContent).toBe("Navigated to Alert");
 
 		// A live region only announces a DOM change. The clear-then-publish
 		// sequence must mutate the region even when the text is identical.
@@ -162,7 +162,7 @@ describe("RouteAnnouncer", () => {
 		mutations.push(...observer.takeRecords());
 		observer.disconnect();
 
-		expect(region.textContent).toBe("Alert");
+		expect(region.textContent).toBe("Navigated to Alert");
 		expect(mutations.length).toBeGreaterThan(0);
 	});
 

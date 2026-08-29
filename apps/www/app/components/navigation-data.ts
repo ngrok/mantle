@@ -333,12 +333,14 @@ export const recipePages = [
 	//,
 	"Breadcrumbs from Routes",
 	"Overlays + Async Data",
+	"Route Announcer",
 ] as const;
 
 /** Route lookup for recipe pages. */
 export const recipeRoutes = {
 	"Breadcrumbs from Routes": "/recipes/breadcrumbs-from-routes",
 	"Overlays + Async Data": "/recipes/overlay-async",
+	"Route Announcer": "/recipes/route-announcer",
 } as const satisfies Record<(typeof recipePages)[number], Route>;
 
 /** Short descriptions for recipe index pages. */
@@ -347,6 +349,8 @@ export const recipeDescriptions = {
 		"Derive a breadcrumb trail from the matched route chain with React Router route handles \u2014 derived state, so it is correct on the server and on the first frame, with no context and no effects.",
 	"Overlays + Async Data":
 		"Open a Sheet, Dialog, or Alert Dialog immediately, then swap the body between pending, loaded, 404, and 500 states with TanStack Query.",
+	"Route Announcer":
+		"Announce completed client-side navigations to screen readers by pairing a persistent LiveRegion with React Router's location, with page-name fallbacks and repeat-message handling.",
 } as const satisfies Record<(typeof recipePages)[number], string>;
 
 /** Migration guide pages. */

@@ -143,7 +143,7 @@ const docsPages = [
 const layoutsPages = ["app-layout", "centered-layout"];
 
 // recipes section: compositional how-tos spanning multiple primitives
-const recipesPages = ["breadcrumbs-from-routes", "overlay-async"];
+const recipesPages = ["breadcrumbs-from-routes", "overlay-async", "route-announcer"];
 
 // migrations section
 const migrationsPages = [
