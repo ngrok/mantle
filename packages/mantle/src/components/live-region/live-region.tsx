@@ -19,7 +19,9 @@ type LiveRegionProps = ComponentProps<"span"> &
  * Announces its text to screen readers when the text changes. Renders a
  * persistent, visually hidden `<span>` live region with `role="status"` and
  * `aria-live="polite"`. When `politeness` is `"assertive"`, it renders
- * `role="alert"` and `aria-live="assertive"`.
+ * `role="alert"` alone: the role already carries assertive live-region
+ * semantics, and a redundant `aria-live` makes VoiceOver on iOS announce the
+ * message twice.
  *
  * A live region announces reliably only when it already exists in the
  * accessibility tree before its text changes. Keep `LiveRegion` mounted from
@@ -77,10 +79,11 @@ const LiveRegion = ({
 		<Comp
 			ref={ref}
 			data-slot="live-region"
-			// Why both role and aria-live: some screen reader and browser pairs
-			// honor only one of the two, so the region stamps the pair.
+			// Why a redundant aria-live next to role="status" only: some screen
+			// reader and browser pairs honor only one of the two, but the same
+			// pairing with role="alert" double-speaks in VoiceOver on iOS.
 			role={politeness === "assertive" ? "alert" : "status"}
-			aria-live={politeness}
+			aria-live={politeness === "assertive" ? undefined : "polite"}
 			aria-atomic="true"
 			className={cx("sr-only", className)}
 			{...props}

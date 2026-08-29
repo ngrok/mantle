@@ -24,7 +24,9 @@ describe("LiveRegion", () => {
 		);
 		const region = screen.getByTestId("region");
 		expect(region).toHaveAttribute("role", "alert");
-		expect(region).toHaveAttribute("aria-live", "assertive");
+		// role="alert" already carries assertive live-region semantics, and a
+		// redundant aria-live double-speaks in VoiceOver on iOS.
+		expect(region).not.toHaveAttribute("aria-live");
 	});
 
 	test("is visually hidden by the sr-only class", () => {
@@ -57,13 +59,15 @@ describe("LiveRegion", () => {
 		expect(html).toContain('aria-live="polite"');
 	});
 
-	test("lets a consumer's role prop win over the derived role", () => {
+	test("lets a consumer's role and aria-live props win over the derived pair", () => {
 		render(
-			<LiveRegion data-testid="region" role="log">
+			<LiveRegion data-testid="region" role="log" aria-live="off">
 				new chat message
 			</LiveRegion>,
 		);
-		expect(screen.getByTestId("region")).toHaveAttribute("role", "log");
+		const region = screen.getByTestId("region");
+		expect(region).toHaveAttribute("role", "log");
+		expect(region).toHaveAttribute("aria-live", "off");
 	});
 
 	test("forwards ref to the underlying span", () => {
@@ -94,7 +98,7 @@ describe("LiveRegion", () => {
 		expect(region.tagName).toBe("P");
 		expect(region).toHaveAttribute("data-slot", "live-region");
 		expect(region).toHaveAttribute("role", "alert");
-		expect(region).toHaveAttribute("aria-live", "assertive");
+		expect(region).not.toHaveAttribute("aria-live");
 		// Split before matching: a substring check would also match `not-sr-only`.
 		const classes = region.className.split(" ");
 		expect(classes).toContain("custom-class");

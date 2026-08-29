@@ -16,9 +16,11 @@ This site runs the exact file below. Turn on a screen reader and click through t
 ## Why a recipe, not a component
 
 The announcer needs one thing mantle cannot own: your router. `useLocation` here is React Router's;
-with TanStack Router or Next.js, swap that one import and keep everything else. Mantle ships the
-announcement mechanics as [LiveRegion](/components/primitives/live-region); this file is the router
-glue, and it lives in your app.
+with another router, read the pathname from its own location API. TanStack Router's `useLocation()`
+returns a location object, so the destructure carries over; Next.js's `usePathname()` returns the
+pathname string itself. Mantle ships the announcement mechanics as
+[LiveRegion](/components/primitives/live-region); this file is the router glue, and it lives in your
+app.
 
 ## The message
 
@@ -147,7 +149,7 @@ document order.
 Screen readers queue polite announcements across regions, so a toast that fires during a navigation
 reads back to back with the route announcement instead of clobbering it.
 
-One caveat: a modal [Dialog](/components/overlay/dialog) stamps `aria-hidden` on the other children
+One caveat: a modal [Dialog](/components/overlays/dialog) stamps `aria-hidden` on the other children
 of `<body>` while it is open, which mutes any live region outside it. A navigation normally closes
 the modal first, so this rarely bites, but an announcement raced against a closing modal can go
 unread.
