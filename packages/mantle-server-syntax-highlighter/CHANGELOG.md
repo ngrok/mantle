@@ -1,5 +1,11 @@
 # @ngrok/mantle-server-syntax-highlighter
 
+## 1.1.13
+
+### Patch Changes
+
+- [#1459](https://github.com/ngrok/mantle/pull/1459) [`edbca2c`](https://github.com/ngrok/mantle/commit/edbca2c9e91edf0f1232f59670a63494e8bdd89c) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump runtime dependencies: `oxc-parser` to 0.147.0.
+
 ## 1.1.12
 
 ### Patch Changes
