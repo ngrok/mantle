@@ -5,7 +5,7 @@ lockfile = true
 idiomatic_version_file_enable_tools = ["node"]
 
 [tools]
-ast-grep = "0.45.1"
+ast-grep = "0.45.2"
 ripgrep = "15.2.0"
 # Keep pnpm's version single-sourced in root package.json#packageManager.
 # The helper avoids needing Node before mise has installed Node.

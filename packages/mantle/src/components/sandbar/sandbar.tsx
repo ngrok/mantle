@@ -362,6 +362,10 @@ const Root = ({
 				shakeAnimationRef.current = null;
 			}
 			const animation = panel.animate(shakeKeyframes, { duration: 400, easing: "ease-in-out" });
+			// Why: `cancel()` rejects `finished` with an `AbortError`. Browsers
+			// suppress the report when nobody read `finished`, but happy-dom
+			// surfaces it as an unhandled rejection and fails the test run.
+			animation.finished.catch(() => {});
 			animation.onfinish = () => {
 				shakeAnimationRef.current = null;
 			};
