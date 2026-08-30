@@ -1,5 +1,29 @@
 # @ngrok/mantle
 
+## 0.84.0
+
+### Minor Changes
+
+- [#1463](https://github.com/ngrok/mantle/pull/1463) [`178b4d3`](https://github.com/ngrok/mantle/commit/178b4d30ff50c8515c017d949dadd62930f216c5) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `LiveRegion`, a persistent, visually hidden live region that announces its text to screen readers when the text changes. The `politeness` prop picks the urgency: `"polite"` (the default) renders `role="status"` and `aria-live="polite"`, and `"assertive"` renders `role="alert"` alone, because a redundant `aria-live` makes VoiceOver on iOS announce the message twice. The region stamps `aria-atomic="true"` and `data-slot="live-region"`, takes `asChild`, and treats the derived `role` and `aria-live` as defaults a consumer prop can override. Keep the region mounted from first paint and swap only its children: a region created after the fact announces unreliably.
+
+  Docs: https://mantle.ngrok.com/components/primitives/live-region
+
+- [#1463](https://github.com/ngrok/mantle/pull/1463) [`178b4d3`](https://github.com/ngrok/mantle/commit/178b4d30ff50c8515c017d949dadd62930f216c5) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `VisuallyHidden`, a primitive that renders content for screen readers without showing it. It renders a `<span>` clipped to a one-pixel box (never `display: none`), stamps `data-slot="visually-hidden"`, and takes `asChild` to hide a more semantic element (a `<caption>`, a `<legend>`, a heading). Do not use it to name an icon-only control: voice-control software skips a control whose only label is hidden DOM text, so use `aria-label` there instead.
+
+  Docs: https://mantle.ngrok.com/components/primitives/visually-hidden
+
+### Patch Changes
+
+- [#1459](https://github.com/ngrok/mantle/pull/1459) [`edbca2c`](https://github.com/ngrok/mantle/commit/edbca2c9e91edf0f1232f59670a63494e8bdd89c) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump runtime dependencies: `@ariakit/react` to 0.4.38.
+
+  The ariakit bump changes keyboard activation in mantle's ariakit-backed parts (`Combobox`, `MultiSelect`): the click that `Enter` or `Space` synthesizes on an item is now a `PointerEvent` with `pointerId: -1` and an empty `pointerType`, the same shape browsers dispatch for a click no pointer caused, so an `onClick` handler that reads `event.pointerType` or checks `instanceof PointerEvent` now sees the native shape.
+
+  It also fixes hover handling while the popup is closed: an item's hover no longer activates it or clears the active item, so a collapsed list no longer changes value or moves focus on a stray hover.
+
+- [#1459](https://github.com/ngrok/mantle/pull/1459) [`edbca2c`](https://github.com/ngrok/mantle/commit/edbca2c9e91edf0f1232f59670a63494e8bdd89c) Thanks [@dependabot](https://github.com/apps/dependabot)! - `Sandbar` now attaches a rejection handler to the shake animation's `finished` promise. Canceling a shake (a rapid second blocked attempt, or unmount mid-wiggle) rejects that promise with an `AbortError`, which surfaced as an unhandled rejection in test environments such as happy-dom 20.12.0.
+
+- [#1464](https://github.com/ngrok/mantle/pull/1464) [`86758b4`](https://github.com/ngrok/mantle/commit/86758b433d0870c7f06f6c10441a655f1a146aee) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Update the `source-all.css` header comment: it no longer recommends the retired `mantleTwSourcePlugin` for apps that use a subset of mantle. Import `source-all.css` alongside `mantle.css` to register mantle's Tailwind sources.
+
 ## 0.83.9
 
 ### Patch Changes

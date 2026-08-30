@@ -1,5 +1,22 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.2.0
+
+### Minor Changes
+
+- [#1464](https://github.com/ngrok/mantle/pull/1464) [`86758b4`](https://github.com/ngrok/mantle/commit/86758b433d0870c7f06f6c10441a655f1a146aee) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Remove `mantleTwSourcePlugin` and its `MantleTwSourcePluginOptions` type. The plugin scanned app source for `@ngrok/mantle/*` imports and injected per-component Tailwind `@source` directives, but its scan missed source files in some setups and produced incomplete CSS.
+
+  Migration: remove the `mantleTwSourcePlugin` import and its call from `vite.config.ts`, along with any `MantleTwSourcePluginOptions` usage. Delete the generated block between the `/* @ngrok/mantle-vite-plugins:source:start */` and `/* @ngrok/mantle-vite-plugins:source:end */` markers in your global CSS. Then add `@import "@ngrok/mantle/source-all.css";` next to your `mantle.css` import so Tailwind scans every mantle component.
+
+### Patch Changes
+
+- [#1459](https://github.com/ngrok/mantle/pull/1459) [`edbca2c`](https://github.com/ngrok/mantle/commit/edbca2c9e91edf0f1232f59670a63494e8bdd89c) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump runtime dependencies: `magic-string` to 1.2.3 and `oxc-parser` to 0.147.0.
+
+  The `vite` peer dependency floor rises to `^8.2.2`. Consumers still on vite 8.2.1 see an unmet-peer warning until they upgrade.
+
+- Updated dependencies [[`edbca2c`](https://github.com/ngrok/mantle/commit/edbca2c9e91edf0f1232f59670a63494e8bdd89c)]:
+  - @ngrok/mantle-server-syntax-highlighter@1.1.13
+
 ## 1.1.8
 
 ### Patch Changes
