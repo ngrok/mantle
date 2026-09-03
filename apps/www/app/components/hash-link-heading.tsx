@@ -64,7 +64,7 @@ function HashLinkHeading({ id, className, children, ...props }: Props) {
 						// where the absolutely-positioned link icon slides in, WITHOUT
 						// shifting the heading box (a pl/-ml gutter breaks on pages that
 						// center MDX children with mx-auto, which clobbers negative margins)
-						"group relative w-fit font-family scroll-mt-24 before:absolute before:top-0 before:-left-9 before:h-full before:w-9 [@media(hover:hover)]:w-auto",
+						"group relative w-fit scroll-mt-24 before:absolute before:top-0 before:-left-9 before:h-full before:w-9 [@media(hover:hover)]:w-auto",
 						className,
 						singleChild.props.className,
 					),

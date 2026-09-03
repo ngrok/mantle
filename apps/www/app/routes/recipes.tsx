@@ -14,7 +14,7 @@ export const meta = () => {
 export default function RecipesPage() {
 	return (
 		<div>
-			<h1 className="text-4xl font-medium text-strong sm:text-5xl font-family mb-4">Recipes</h1>
+			<h1 className="text-4xl font-medium text-strong sm:text-5xl mb-4">Recipes</h1>
 			<p className="mb-4 leading-relaxed text-pretty text-body">
 				Compositional how-tos that wire multiple mantle primitives together with state, data, or
 				routing. Use these when a component page is too small and a full app flow is too much. Each
