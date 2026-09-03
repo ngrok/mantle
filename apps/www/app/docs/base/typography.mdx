@@ -13,21 +13,24 @@ Mantle ships typography tokens for consistency and readability.
 
 Mantle ships a general type scale for the headers throughout our products. Text styling is independent of the actual markup, so a Heading 1 can be styled as a Heading 2 or Heading 5 as appropriate.
 
-<p className="mt-4 text-5xl font-medium font-family">Heading 1</p>
-<p className="mt-4 text-3xl font-medium font-family">Heading 2</p>
-<p className="mt-4 text-2xl font-medium font-family">Heading 3</p>
-<p className="mt-4 text-xl font-medium font-family">Heading 4</p>
+Headings do not set a font family. They inherit the body font, so keep `font-sans`, `font-family`, and
+`font-mono` off them.
+
+<p className="mt-4 text-5xl font-medium">Heading 1</p>
+<p className="mt-4 text-3xl font-medium">Heading 2</p>
+<p className="mt-4 text-2xl font-medium">Heading 3</p>
+<p className="mt-4 text-xl font-medium">Heading 4</p>
 <p className="mt-4 text-base font-medium">Heading 5</p>
 <p className="mt-4 text-xs font-medium uppercase tracking-widest">Heading 6</p>
 
-| Level     | Class                  | Size        | Weight        | Additional                  |
-| --------- | ---------------------- | ----------- | ------------- | --------------------------- |
-| Heading 1 | `text-5xl font-family` | `text-5xl`  | `font-medium` | `font-family`               |
-| Heading 2 | `text-3xl font-family` | `text-3xl`  | `font-medium` | `font-family`               |
-| Heading 3 | `text-2xl font-family` | `text-2xl`  | `font-medium` | `font-family`               |
-| Heading 4 | `text-xl font-family`  | `text-xl`   | `font-medium` | `font-family`               |
-| Heading 5 | `text-base`            | `text-base` | `font-medium` | `-`                         |
-| Heading 6 | `text-xs`              | `text-xs`   | `font-medium` | `uppercase tracking-widest` |
+| Level     | Class       | Size        | Weight        | Additional                  |
+| --------- | ----------- | ----------- | ------------- | --------------------------- |
+| Heading 1 | `text-5xl`  | `text-5xl`  | `font-medium` | `-`                         |
+| Heading 2 | `text-3xl`  | `text-3xl`  | `font-medium` | `-`                         |
+| Heading 3 | `text-2xl`  | `text-2xl`  | `font-medium` | `-`                         |
+| Heading 4 | `text-xl`   | `text-xl`   | `font-medium` | `-`                         |
+| Heading 5 | `text-base` | `text-base` | `font-medium` | `-`                         |
+| Heading 6 | `text-xs`   | `text-xs`   | `font-medium` | `uppercase tracking-widest` |
 
 ## Colors
 
@@ -44,10 +47,10 @@ When possible, render text with the following tokens. They add hierarchy outside
 
 ## Fonts
 
-Mantle specifies Roobert as the default font for UI and headings. We also use JetBrains Mono as a monospace typeface, and Family for longform prose and h1s.
+Mantle specifies Roobert as the default font for UI and headings. We also use JetBrains Mono as a monospace typeface, and Family for longform prose.
 
 | Class         | Font Family                                                                                      | Description                                                                       |
 | ------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
 | `font-sans`   | `"Roobert"`, `ui-sans-serif`, `system-ui`, `sans-serif`                                          | The default font for rendering UI and headings. Also applied by `default`.        |
-| `font-family` | `"Family"`, `"Georgia"`, `serif`                                                                 | Best when used in longform writing like prose documentation or h1 headings.       |
+| `font-family` | `"Family"`, `"Georgia"`, `serif`                                                                 | Best when used in longform writing like prose documentation. Not for headings.    |
 | `font-mono`   | `"JetBrains Mono"`, `ui-monospace`, `SFMono-Regular`, `Menlo`, `Monaco`, `Consolas`, `monospace` | Used to render code and tokens. Adjust the size a step down in most applications. |

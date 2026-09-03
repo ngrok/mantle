@@ -14,7 +14,7 @@ export const meta = () => {
 export default function LayoutsPage() {
 	return (
 		<div>
-			<h1 className="text-4xl font-medium text-strong sm:text-5xl font-family mb-4">Layouts</h1>
+			<h1 className="text-4xl font-medium text-strong sm:text-5xl mb-4">Layouts</h1>
 			<p className="mb-4 leading-relaxed text-pretty text-body">
 				Published <code>@ngrok/mantle</code> primitives that own page and viewport structure: region
 				skeletons, landmark wiring, and scroll architecture. A layout is the frame you put
