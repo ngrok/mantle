@@ -1,5 +1,21 @@
 # @ngrok/mantle
 
+## 0.84.1
+
+### Patch Changes
+
+- [#1470](https://github.com/ngrok/mantle/pull/1470) [`b5f83e8`](https://github.com/ngrok/mantle/commit/b5f83e888cd564da4d319dda6dee10d383bf38c9) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Choice.Description` now forwards its click to the sibling `Choice.Label`, so the whole content column toggles the control. The accessible name stays the label alone, and the description stays wired through `aria-describedby`.
+
+  The forward skips a click on a link, a button, a form control, a nested label, a `<details>`, or an ARIA widget inside the description: the same rule a `List` row applies to its own click-to-activate. It runs after a consumer `onClick`, so `event.preventDefault()` cancels it. After it forwards, it marks the click handled, so a click on a `SelectableList` row's description toggles the row once. When the choice uses `Choice.Title`, the description forwards nothing, because an ancestor already owns that click. The description also shows the pointer cursor when a `Choice.Label` precedes it.
+
+  `List` and `SelectableList` rows now also defer a bare row click that lands inside a `<details>`, so a `<summary>` toggle no longer activates the row.
+
+- [#1471](https://github.com/ngrok/mantle/pull/1471) [`b5dd7a6`](https://github.com/ngrok/mantle/commit/b5dd7a6c0c6fdbf589327c36e645d3ad74dcbe54) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `useLocalStorage` and `useSessionStorage` now guard every storage access. Before, a `setItem` that threw (a full origin, Safari private browsing, blocked site data) skipped the sync event, so the hook's value never advanced and the caller got no signal: a dismissible banner that gates its visibility on the stored value never closed. A storage read that threw during render took down the subtree.
+
+  If a write fails, the hook now keeps the value in memory, so every same-key instance still advances until the page reloads. A later write that succeeds, or a `storage` event from another document, restores storage as the source of truth. If the browser denies storage access, the read resolves to the default instead of throwing.
+
+- [#1470](https://github.com/ngrok/mantle/pull/1470) [`b5f83e8`](https://github.com/ngrok/mantle/commit/b5f83e888cd564da4d319dda6dee10d383bf38c9) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Slot` no longer erases a component child's own `data-slot`. It passed `data-slot: undefined` to the child when neither side set one, and a part that spreads its props after its own `data-slot` lost the attribute. `Field.Control` wraps its child in `Slot`, so a `Checkbox` or `Choice.Root` inside one rendered without `data-slot="checkbox"` or `data-slot="choice"`.
+
 ## 0.84.0
 
 ### Minor Changes
