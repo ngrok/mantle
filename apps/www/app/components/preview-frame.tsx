@@ -8,8 +8,6 @@ import { DeviceMobileIcon } from "@phosphor-icons/react/DeviceMobile";
 import { DeviceTabletIcon } from "@phosphor-icons/react/DeviceTablet";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { href } from "react-router";
-import type { PreviewExampleName } from "~/features/preview-registry";
 
 const viewportValues = ["desktop", "tablet", "mobile"] as const;
 
@@ -38,8 +36,12 @@ const viewportWidthClasses = {
 } as const satisfies Record<Viewport, string>;
 
 type PreviewFrameProps = {
-	/** Which registered preview example the frame renders (see preview-registry.ts). */
-	example: PreviewExampleName;
+	/**
+	 * The chrome-less document the iframe loads: a registry example's
+	 * `/preview/:exampleName` URL, or the entry path of a routed demo below
+	 * `/preview/`. `CodeExample.PreviewFrame` builds it from a typed target.
+	 */
+	src: string;
 	/**
 	 * Human-readable name of the example — the iframe's accessible title and
 	 * part of the toolbar buttons' labels. Usually matches the registry title.
@@ -50,25 +52,26 @@ type PreviewFrameProps = {
 };
 
 /**
- * A framed, viewport-switchable live example: an iframe pointed at the
- * chrome-less `/preview/:exampleName` route with a toolbar to preview the
- * example at desktop, tablet (48rem), and mobile (375px) widths, reload it,
- * or open it in a new tab. Because the example is its own document it gets a
- * real `Main` landmark, its own `window` (document-level keyboard shortcuts
- * stay inside the frame), and media queries driven by the frame — not the
- * reader's browser window. Theme changes on the docs page propagate automatically:
- * both documents share mantle's cookie + BroadcastChannel theme sync.
+ * A framed, viewport-switchable live example: an iframe pointed at a
+ * chrome-less `/preview/` document with a toolbar to preview the example at
+ * desktop, tablet (48rem), and mobile (375px) widths, reload it, or open it
+ * in a new tab. Because the example is its own document it gets a real `Main`
+ * landmark, its own `window` (document-level keyboard shortcuts stay inside
+ * the frame), its own router history, and media queries driven by the frame,
+ * not the reader's browser window. Theme changes on the docs page propagate
+ * automatically: both documents share mantle's cookie + BroadcastChannel
+ * theme sync.
  *
  * @example
  * ```tsx
- * <PreviewFrame example="centered-layout" title="Centered layout demo" />
+ * <PreviewFrame src="/preview/centered-layout" title="Centered layout demo" />
  * ```
  */
-export function PreviewFrame({ example, title, className }: PreviewFrameProps) {
+export function PreviewFrame({ src, title, className }: PreviewFrameProps) {
 	const [viewport, setViewport] = useState<Viewport>("desktop");
 	// remounting the iframe with a new key is a full document reload
 	const [reloadCount, setReloadCount] = useState(0);
-	const previewHref = href("/preview/:exampleName", { exampleName: example });
+	const previewHref = src;
 
 	return (
 		<div

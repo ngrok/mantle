@@ -128,15 +128,20 @@ export function shouldRevalidate() {
 }
 
 /**
- * Whether the matched route is a chrome-less framed example preview
- * (`/preview/:exampleName`). Matched on route identity, not pathname —
- * mirroring the `layouts-index` pattern in layouts-layout.tsx. Preview
- * documents render inside the docs pages' iframes, so they skip the site
- * chrome and the forced scrollbar gutter.
+ * The route ids of the chrome-less framed example previews: the registry's
+ * `/preview/:exampleName` document and the breadcrumbs recipe's routed demo.
+ */
+const framedPreviewRouteIds = new Set(["preview-example", "preview-breadcrumbs-from-routes"]);
+
+/**
+ * Whether the matched route is a chrome-less framed example preview. Matched
+ * on route identity, not pathname, mirroring the `layouts-index` pattern in
+ * layouts-layout.tsx. Preview documents render inside the docs pages'
+ * iframes, so they skip the site chrome and the forced scrollbar gutter.
  */
 function useIsFramedPreview() {
 	const matches = useMatches();
-	return matches.some((match) => match.id === "preview-example");
+	return matches.some((match) => framedPreviewRouteIds.has(match.id));
 }
 
 const ReactQueryDevtoolsLazy = lazy(() =>
@@ -219,9 +224,8 @@ export function Layout({ children }: PropsWithChildren) {
 						</QueryClientProvider>
 					</TooltipProvider>
 				</ThemeProvider>
-				{/* Suppressed inside framed example previews: nothing navigates inside
-				    the preview iframe, and each iframe would add its own status region
-				    to the page. */}
+				{/* Suppressed inside framed example previews: each iframe would add its
+				    own status region to the docs page that embeds it. */}
 				{!isFramedPreview && <RouteAnnouncer />}
 				<ScrollRestoration nonce={nonce} />
 				<Scripts nonce={nonce} />
