@@ -115,6 +115,52 @@ describe("Choice (browser) — clicking the label toggles the control", () => {
 	});
 });
 
+describe("Choice (browser) — clicking the description toggles the control", () => {
+	test("checkbox", async () => {
+		const user = userEvent.setup();
+		render(
+			<Choice.Root name="terms">
+				<Choice.Indicator>
+					<Checkbox />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Label>I agree to the terms</Choice.Label>
+					<Choice.Description>You can change this later.</Choice.Description>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+
+		const checkbox = screen.getByRole("checkbox");
+		expect(checkbox).not.toBeChecked();
+		await user.click(screen.getByText("You can change this later."));
+		expect(checkbox).toBeChecked();
+		await user.click(screen.getByText("You can change this later."));
+		expect(checkbox).not.toBeChecked();
+	});
+
+	test("switch", async () => {
+		const user = userEvent.setup();
+		render(
+			<Choice.Root name="airplane-mode">
+				<Choice.Indicator>
+					<Switch />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Label>Airplane mode</Choice.Label>
+					<Choice.Description>Disables wireless radios while in flight.</Choice.Description>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+
+		// The forward clicks the <label>, whose activation behavior reaches the
+		// <button role="switch"> the same way a direct label click does.
+		const toggle = screen.getByRole("switch");
+		expect(toggle).not.toBeChecked();
+		await user.click(screen.getByText("Disables wireless radios while in flight."));
+		expect(toggle).toBeChecked();
+	});
+});
+
 describe("Choice (browser) — radio options", () => {
 	test("clicking an option selects that radio, and the description is part of its accessible name", async () => {
 		const user = userEvent.setup();

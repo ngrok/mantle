@@ -196,7 +196,7 @@ import { Label } from "@ngrok/mantle/label";
 
 ## Multi-line label with description
 
-For a checkbox with an emphasized title and a supplementary description beneath it, compose it inside [`Choice`](/components/forms/choice): drop the `Checkbox` into `Choice.Indicator` and pair `Choice.Label` (a real `<label>`, so clicking it toggles the box) with an optional `Choice.Description`. The box aligns to the leading of the title's first line, and the description associates via `aria-describedby`.
+For a checkbox with an emphasized title and a supplementary description beneath it, compose it inside [`Choice`](/components/forms/choice): drop the `Checkbox` into `Choice.Indicator` and pair `Choice.Label` (a real `<label>`, so clicking it toggles the box) with an optional `Choice.Description`. The description forwards its click to that label, so the whole text block toggles the box. The box aligns to the leading of the title's first line, and the description associates via `aria-describedby`.
 
 <Example>
 	<div className="w-full max-w-md">

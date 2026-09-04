@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
-import { isInteractiveItemTarget, Item as ListItem, Root as ListRoot } from "./primitive.js";
+import { Item as ListItem, Root as ListRoot } from "./primitive.js";
 
 /**
  * Focus the grid the way a Tab-in would. happy-dom's `focus()` moves
@@ -221,42 +221,6 @@ describe("List isItemDisabled", () => {
 
 		await user.click(screen.getByText("Item 0"));
 		expect(onActivate).not.toHaveBeenCalled();
-	});
-});
-
-describe("isInteractiveItemTarget", () => {
-	test("returns true for a control or label inside the row (activation must not fire twice)", () => {
-		const row = document.createElement("div");
-		const button = document.createElement("button");
-		row.append(button);
-		expect(isInteractiveItemTarget(button, row)).toBe(true);
-
-		const label = document.createElement("label");
-		row.append(label);
-		expect(isInteractiveItemTarget(label, row)).toBe(true);
-	});
-
-	test("returns false for non-interactive row content (the row activates)", () => {
-		const row = document.createElement("div");
-		const description = document.createElement("p");
-		row.append(description);
-		expect(isInteractiveItemTarget(description, row)).toBe(false);
-	});
-
-	test("returns false for a non-element target", () => {
-		const row = document.createElement("div");
-		expect(isInteractiveItemTarget(null, row)).toBe(false);
-	});
-
-	test("ignores interactive ancestors outside the row", () => {
-		// The row is nested inside a button. A click on the row's own text is not
-		// interactive, even though an ancestor is.
-		const outerButton = document.createElement("button");
-		const row = document.createElement("div");
-		const text = document.createElement("p");
-		outerButton.append(row);
-		row.append(text);
-		expect(isInteractiveItemTarget(text, row)).toBe(false);
 	});
 });
 

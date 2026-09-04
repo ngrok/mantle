@@ -1,10 +1,20 @@
 "use client";
 
-import { cloneElement, createContext, isValidElement, useContext, useId, useMemo } from "react";
-import type { ComponentProps, ReactNode } from "react";
+import {
+	cloneElement,
+	createContext,
+	isValidElement,
+	useContext,
+	useId,
+	useMemo,
+	useRef,
+} from "react";
+import type { ComponentProps, MouseEvent, ReactNode, RefObject } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
+import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import { isInteractiveTarget } from "../../utils/interactive-target.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { Label } from "../label/label.js";
 import { Slot } from "../slot/index.js";
@@ -36,6 +46,11 @@ type ChoiceContextValue = {
 	descriptionId: string;
 	/** Whether the choice is disabled, so `Label` / `Title` / `Description` dim in step. */
 	disabled: boolean;
+	/**
+	 * The rendered `Choice.Label` element, or `null` when the choice uses
+	 * `Choice.Title`. `Choice.Description` forwards its click here.
+	 */
+	labelRef: RefObject<HTMLLabelElement | null>;
 	/** Props `Choice.Indicator` injects onto its control child. */
 	controlProps: ChoiceControlProps;
 };
@@ -136,6 +151,7 @@ const Root = ({
 	const fieldErrorMessage = fieldControl?.["aria-errormessage"];
 	const generatedId = useId();
 	const descriptionId = useId();
+	const labelRef = useRef<HTMLLabelElement>(null);
 	const controlId = fieldId ?? id ?? generatedId;
 	// Reference our own description slot and append any inherited describedby
 	// (a Field.Control's description/error ids, or a caller-supplied one). Inside
@@ -151,6 +167,7 @@ const Root = ({
 			controlId,
 			descriptionId,
 			disabled,
+			labelRef,
 			controlProps: {
 				id: controlId,
 				name: fieldName ?? name,
@@ -325,14 +342,16 @@ type ChoiceLabelProps = Omit<ComponentProps<typeof Label>, "htmlFor" | "disabled
  * ```
  */
 const ChoiceLabel = ({ className, ref, ...props }: ChoiceLabelProps) => {
-	const { controlId, disabled } = useChoiceContext("Label");
+	const { controlId, disabled, labelRef } = useChoiceContext("Label");
+	// `Choice.Description` clicks this element to reach the control.
+	const composedRef = useComposedRefs(labelRef, ref);
 
 	// Reuse the real `Label` rather than re-implementing it, so the title keeps
 	// all of `Label`'s styling and behavior. `htmlFor` / `disabled` come from
 	// `Choice.Root` and are applied after `{...props}` so the wiring always wins.
 	return (
 		<Label
-			ref={ref}
+			ref={composedRef}
 			data-slot="choice-label"
 			className={cx(disabled && "opacity-50", className)}
 			{...props}
@@ -385,9 +404,35 @@ const Title = ({ asChild, className, ref, ...props }: ComponentProps<"p"> & With
 };
 
 /**
+ * Whether a click on the description should forward to the `Choice.Label`.
+ * Returns `false` when a consumer handler called `preventDefault()`, when the
+ * click landed on interactive content inside the description (the same rule a
+ * `List` row applies), or when an ancestor `<label>` already forwards the click
+ * (a second forward would toggle the control twice).
+ */
+function shouldForwardDescriptionClick(event: MouseEvent<HTMLElement>): boolean {
+	if (event.defaultPrevented) {
+		return false;
+	}
+	if (isInteractiveTarget(event.target, event.currentTarget)) {
+		return false;
+	}
+	return event.currentTarget.closest("label") == null;
+}
+
+/**
  * The de-emphasized supplementary line of a `Choice`, in the muted body color
  * and wired to the control via `aria-describedby` (never a second label).
  * Renders a `<p>`; pass `asChild` to supply your own element.
+ *
+ * A click on the description forwards to the sibling `Choice.Label`, so the
+ * whole content column toggles the control while the accessible name stays the
+ * label alone. The forward skips a click on a link or other interactive content
+ * inside the description. After it forwards, it marks the click handled with
+ * `preventDefault()`, so a click-to-activate ancestor (a `SelectableList` row)
+ * does not toggle the control a second time. When the choice uses
+ * `Choice.Title`, the description forwards nothing, because an ancestor owns
+ * that click.
  *
  * @see https://mantle.ngrok.com/components/forms/choice
  *
@@ -404,8 +449,14 @@ const Title = ({ asChild, className, ref, ...props }: ComponentProps<"p"> & With
  * </Choice.Root>
  * ```
  */
-const Description = ({ asChild, className, ref, ...props }: ComponentProps<"p"> & WithAsChild) => {
-	const { descriptionId, disabled } = useChoiceContext("Description");
+const Description = ({
+	asChild,
+	className,
+	onClick,
+	ref,
+	...props
+}: ComponentProps<"p"> & WithAsChild) => {
+	const { descriptionId, disabled, labelRef } = useChoiceContext("Description");
 	const Comp = asChild ? Slot : "p";
 
 	return (
@@ -413,7 +464,26 @@ const Description = ({ asChild, className, ref, ...props }: ComponentProps<"p"> 
 			ref={ref}
 			id={descriptionId}
 			data-slot="choice-description"
-			className={cx("text-body text-sm leading-4", disabled && "opacity-50", className)}
+			className={cx(
+				"text-body text-sm leading-4",
+				// The description extends the label's click target, so it shares the
+				// label's pointer cursor. The sibling selector keeps the text cursor when
+				// the choice uses `Choice.Title` and an ancestor owns the click.
+				!disabled && "[[data-slot~=choice-label]~&]:cursor-pointer",
+				disabled && "opacity-50",
+				className,
+			)}
+			onClick={(event: MouseEvent<HTMLParagraphElement>) => {
+				onClick?.(event);
+				if (shouldForwardDescriptionClick(event)) {
+					// `HTMLElement.click()` on the label runs its activation behavior, so
+					// the control receives the same click a direct label click sends.
+					labelRef.current?.click();
+					// Why: a click-to-activate ancestor (a `SelectableList` row) reads
+					// `defaultPrevented` as "handled", so the forward toggles once.
+					event.preventDefault();
+				}
+			}}
 			{...props}
 		/>
 	);
@@ -568,7 +638,8 @@ const Choice = {
 	 */
 	Title,
 	/**
-	 * Description: the supplementary line, wired via `aria-describedby`.
+	 * Description: the supplementary line, wired via `aria-describedby`. A click
+	 * on it forwards to `Choice.Label`.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/choice
 	 *

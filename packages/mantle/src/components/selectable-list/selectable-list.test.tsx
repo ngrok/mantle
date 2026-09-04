@@ -263,6 +263,52 @@ describe("SelectableList selection state", () => {
 		expect(screen.getByRole("checkbox", { name: "Apple" })).not.toBeChecked();
 	});
 
+	test("a click on the row's description toggles selection once", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(values: string[]) => void>();
+		render(
+			<SelectableList.Root
+				options={[{ value: "a", label: "Apple", description: "fruit-a" }]}
+				onValueChange={onValueChange}
+			>
+				<SelectableList.Viewport aria-label="Fruit" />
+			</SelectableList.Root>,
+		);
+		// The description forwards to the row's label, which toggles the checkbox.
+		// The same click then bubbles to the row, which must not toggle again.
+		await user.click(screen.getByText("fruit-a"));
+		expect(screen.getByRole("checkbox", { name: "Apple" })).toBeChecked();
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenLastCalledWith(["a"]);
+	});
+
+	test("a <summary> inside the row's description toggles neither the row nor the checkbox", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(values: string[]) => void>();
+		render(
+			<SelectableList.Root options={options} onValueChange={onValueChange}>
+				<SelectableList.Viewport aria-label="Fruit">
+					{(option) => (
+						<SelectableList.Item value={option.value}>
+							<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+							<SelectableList.ItemDescription asChild>
+								<div>
+									<details>
+										<summary>More about {option.label}</summary>
+										Grown locally.
+									</details>
+								</div>
+							</SelectableList.ItemDescription>
+						</SelectableList.Item>
+					)}
+				</SelectableList.Viewport>
+			</SelectableList.Root>,
+		);
+		await user.click(screen.getByText("More about Apple"));
+		expect(screen.getByRole("checkbox", { name: "Apple" })).not.toBeChecked();
+		expect(onValueChange).not.toHaveBeenCalled();
+	});
+
 	test("a disabled option cannot be toggled by a bare row click", async () => {
 		const user = userEvent.setup();
 		const onValueChange = vi.fn<(values: string[]) => void>();

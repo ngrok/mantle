@@ -139,6 +139,7 @@ const Slot = ({ children, className, "data-slot": dataSlot, ref, style, ...props
 		"data-slot": childDataSlot,
 		...childProps
 	} = children.props;
+	const joinedDataSlot = joinDataSlot(dataSlot, childDataSlot);
 
 	return (
 		<SlotPrimitive
@@ -159,7 +160,9 @@ const Slot = ({ children, className, "data-slot": dataSlot, ref, style, ...props
 			 */}
 			{createElement(children.type, {
 				...childProps,
-				"data-slot": joinDataSlot(dataSlot, childDataSlot),
+				// Why only when set: a component child spreads its props after its own
+				// `data-slot`, so an explicit `undefined` here erases that slot.
+				...(joinedDataSlot != null && { "data-slot": joinedDataSlot }),
 				// `cloneElement` preserved the child's key; the rebuild carries it
 				// explicitly. `?? undefined` because `createElement` stringifies any
 				// non-`undefined` key, which would turn `null` into the key `"null"`.
