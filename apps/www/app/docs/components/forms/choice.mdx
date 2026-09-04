@@ -198,7 +198,7 @@ import { Choice } from "@ngrok/mantle/choice";
 ## Accessibility
 
 - The control placed in `Choice.Indicator` receives the generated `id`; `Choice.Label`'s `htmlFor` and the description's `aria-describedby` resolve to it without manual wiring.
-- `Choice.Description` associates via `aria-describedby` only; it is **never** a second label.
+- `Choice.Description` associates via `aria-describedby` only; it is **never** a second label. A click on it forwards to `Choice.Label`, so the whole content column toggles the control while the accessible name stays the label alone.
 - Use exactly one of `Choice.Label` / `Choice.Title` per choice. `Choice.Title` is label-less text for when an ancestor (clickable row, radio item, or `Field.Label`) carries the accessible name, so labels never nest.
 - Inside a `Field`, the control adopts the field's `id` and its `aria-describedby` is merged (never duplicated) with the field's description and error ids.
 
@@ -250,7 +250,7 @@ All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#a
 
 ### Choice.Description
 
-The supplementary description, wired to the control via `aria-describedby`. Renders a `<p>`.
+The supplementary description, wired to the control via `aria-describedby`. Renders a `<p>`. A click on it forwards to the sibling `Choice.Label`, so the description extends the label's click target. The forward skips a click on a link or other interactive content inside the description. When the choice uses `Choice.Title`, the description forwards nothing, because an ancestor owns that click.
 
 All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#attributes), plus:
 

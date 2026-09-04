@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { describe, expect, test } from "vitest";
+import { Checkbox } from "../checkbox/checkbox.js";
 import { Input } from "../input/input.js";
 import type { FieldControlAriaProps } from "./field-context.js";
 import { Field } from "./field.js";
@@ -1061,5 +1062,18 @@ describe("Field", () => {
 			expect(screen.getByTestId("err")).toHaveTextContent("Email is required.");
 			expect(screen.getByTestId("desc")).toHaveTextContent("We'll never share your email.");
 		});
+	});
+});
+
+describe("Field.Control + control data-slot", () => {
+	test("keeps the control's own data-slot when it clones the child", () => {
+		render(
+			<Field.Item name="terms">
+				<Field.Control>
+					<Checkbox aria-label="Accept terms" />
+				</Field.Control>
+			</Field.Item>,
+		);
+		expect(screen.getByRole("checkbox")).toHaveAttribute("data-slot", "checkbox");
 	});
 });

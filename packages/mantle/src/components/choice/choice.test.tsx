@@ -1,5 +1,7 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { userEvent } from "@testing-library/user-event";
+import type { MouseEvent } from "react";
+import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { Switch } from "../switch/switch.js";
 import { Choice } from "./choice.js";
@@ -177,6 +179,94 @@ describe("Choice", () => {
 		expect(() => render(<Choice.Label>orphan</Choice.Label>)).toThrow(
 			/Choice\.Label must be rendered inside Choice\.Root/,
 		);
+	});
+});
+
+describe("Choice — Description extends the label's click target", () => {
+	test("clicking the Description toggles the control once, through Choice.Label", async () => {
+		const user = userEvent.setup();
+		const onChange = vi.fn<() => void>();
+		render(
+			<Choice.Root>
+				<Choice.Indicator>
+					<input type="checkbox" aria-label="control" onChange={onChange} />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Label>Email</Choice.Label>
+					<Choice.Description>Get notified by email.</Choice.Description>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+		const control = screen.getByRole("checkbox");
+		expect(control).not.toBeChecked();
+		await user.click(screen.getByText("Get notified by email."));
+		expect(control).toBeChecked();
+		expect(onChange).toHaveBeenCalledTimes(1);
+	});
+
+	test("with Choice.Title the Description forwards nothing, so an ancestor label toggles the control once", async () => {
+		const user = userEvent.setup();
+		const onChange = vi.fn<() => void>();
+		render(
+			// oxlint-disable-next-line jsx-a11y/label-has-associated-control -- `Choice.Title` renders the label text
+			<label htmlFor="onboarding-key">
+				<Choice.Root id="onboarding-key">
+					<Choice.Indicator>
+						<input type="checkbox" onChange={onChange} />
+					</Choice.Indicator>
+					<Choice.Content>
+						<Choice.Title>Onboarding Key</Choice.Title>
+						<Choice.Description>ng-3FaThZL***8xiA</Choice.Description>
+					</Choice.Content>
+				</Choice.Root>
+			</label>,
+		);
+		const control = screen.getByRole("checkbox");
+		await user.click(screen.getByText("ng-3FaThZL***8xiA"));
+		expect(control).toBeChecked();
+		expect(onChange).toHaveBeenCalledTimes(1);
+	});
+
+	test("a click on a link inside the Description does not toggle the control", async () => {
+		const user = userEvent.setup();
+		render(
+			<Choice.Root>
+				<Choice.Indicator>
+					<input type="checkbox" aria-label="control" />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Label>Email</Choice.Label>
+					<Choice.Description asChild>
+						<div>
+							Supports <a href="#docs">rich content</a> when rendered as a div.
+						</div>
+					</Choice.Description>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+		await user.click(screen.getByRole("link", { name: "rich content" }));
+		expect(screen.getByRole("checkbox")).not.toBeChecked();
+	});
+
+	test("a consumer onClick runs first, and preventDefault() cancels the forward", async () => {
+		const user = userEvent.setup();
+		const onClick = vi.fn<(event: MouseEvent<HTMLElement>) => void>((event) => {
+			event.preventDefault();
+		});
+		render(
+			<Choice.Root>
+				<Choice.Indicator>
+					<input type="checkbox" aria-label="control" />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Label>Email</Choice.Label>
+					<Choice.Description onClick={onClick}>Get notified by email.</Choice.Description>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+		await user.click(screen.getByText("Get notified by email."));
+		expect(onClick).toHaveBeenCalledTimes(1);
+		expect(screen.getByRole("checkbox")).not.toBeChecked();
 	});
 });
 

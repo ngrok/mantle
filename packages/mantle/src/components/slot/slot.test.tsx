@@ -212,6 +212,18 @@ describe("Slot", () => {
 		expect(withoutSlot.querySelector("div")).not.toHaveAttribute("data-slot");
 	});
 
+	it("keeps a component child's own data-slot when neither side passes one", () => {
+		// A part stamps its slot before `{...props}`, so an explicit `data-slot: undefined`
+		// from the Slot would erase it.
+		const Part = (props: ComponentProps<"div">) => <div data-slot="part" {...props} />;
+		const { container } = render(
+			<Slot>
+				<Part>Content</Part>
+			</Slot>,
+		);
+		expect(container.querySelector("div")).toHaveAttribute("data-slot", "part");
+	});
+
 	it("handles event handlers passed via Slot and child (both are called)", () => {
 		const slotOnClick = vi.fn<() => void>();
 		const childOnClick = vi.fn<() => void>();
