@@ -222,7 +222,7 @@ describe("useLocalStorage", () => {
 		expect(result.current[0]).toBe("persisted");
 		expect(storage.getItem(recoveryKey)).toBe(JSON.stringify("persisted"));
 
-		// storage wins from here on: a cross-tab change replaces the value
+		// storage wins from here on: a change from another tab replaces the value
 		act(() => {
 			storage.setItem(recoveryKey, JSON.stringify("other-tab-value"));
 			window.dispatchEvent(
@@ -234,6 +234,48 @@ describe("useLocalStorage", () => {
 			);
 		});
 		expect(result.current[0]).toBe("other-tab-value");
+	});
+
+	test("a storage change from another tab replaces a refused write", () => {
+		const overtakenKey = "test-preference-overtaken";
+		const storage = window.localStorage;
+		vi.spyOn(window, "localStorage", "get").mockReturnValue(refuseWrites(storage));
+		const { result } = renderHook(() => useLocalStorage(overtakenKey, defaultValue));
+
+		act(() => {
+			result.current[1]("held-in-memory");
+		});
+		expect(result.current[0]).toBe("held-in-memory");
+
+		act(() => {
+			storage.setItem(overtakenKey, JSON.stringify("other-document-value"));
+			window.dispatchEvent(
+				new StorageEvent("storage", {
+					key: overtakenKey,
+					newValue: JSON.stringify("other-document-value"),
+					storageArea: window.localStorage,
+				}),
+			);
+		});
+		expect(result.current[0]).toBe("other-document-value");
+	});
+
+	test("a clear-all storage event drops a refused write", () => {
+		const clearedKey = "test-preference-cleared";
+		vi.spyOn(window, "localStorage", "get").mockReturnValue(refuseWrites(window.localStorage));
+		const { result } = renderHook(() => useLocalStorage(clearedKey, defaultValue));
+
+		act(() => {
+			result.current[1]("held-in-memory");
+		});
+		expect(result.current[0]).toBe("held-in-memory");
+
+		act(() => {
+			window.dispatchEvent(
+				new StorageEvent("storage", { key: null, storageArea: window.localStorage }),
+			);
+		});
+		expect(result.current[0]).toBe(defaultValue);
 	});
 
 	test("a denied storage read resolves to the default instead of throwing during render", () => {

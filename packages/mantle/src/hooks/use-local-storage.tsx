@@ -8,6 +8,28 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
 const memoryFallback = new Map<string, string>();
 
 /**
+ * Lets a matching `storage` event outrank the memory fallback. Another
+ * document changed storage, so the event's `newValue` replaces the refused
+ * write, and a null `newValue` (a remove) deletes it. A clear-all event
+ * (`key` is null) empties the whole fallback. The hook's own echo of a
+ * refused write carries the fallback value, so it changes nothing.
+ */
+function reconcileMemoryFallback(event: StorageEvent): void {
+	if (event.key == null) {
+		memoryFallback.clear();
+		return;
+	}
+	if (!memoryFallback.has(event.key)) {
+		return;
+	}
+	if (event.newValue == null) {
+		memoryFallback.delete(event.key);
+	} else {
+		memoryFallback.set(event.key, event.newValue);
+	}
+}
+
+/**
  * Resolves `window.localStorage`, or null where the browser denies access.
  *
  * Why a guard on the property read: with site data blocked, Chrome throws a
@@ -36,6 +58,7 @@ function subscribeToLocalStorageKey(key: string): (onStoreChange: () => void) =>
 			const matchesStore = event.storageArea == null || event.storageArea === getLocalStorageArea();
 			const matchesKey = event.key == null || event.key === key;
 			if (matchesStore && matchesKey) {
+				reconcileMemoryFallback(event);
 				onStoreChange();
 			}
 		}
@@ -126,8 +149,8 @@ function parseStoredValue(raw: string, defaultValue: string): string {
  *   the value resolves to `defaultValue`. If `setItem` throws (a full
  *   origin, Safari private browsing, blocked site data), the hook keeps
  *   the value in memory, so every same-key instance still advances until
- *   the page reloads. A later write that succeeds restores storage as the
- *   source of truth.
+ *   the page reloads. A later write that succeeds, or a `storage` event
+ *   from another document, restores storage as the source of truth.
  *
  * @param key - The localStorage key to read and write.
  * @param defaultValue - Returned when no valid entry exists for `key` and

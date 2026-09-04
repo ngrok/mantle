@@ -191,7 +191,8 @@ describe("useSessionStorage", () => {
 		expect(result.current[0]).toBe("persisted");
 		expect(storage.getItem(recoveryKey)).toBe(JSON.stringify("persisted"));
 
-		// storage wins from here on: a cross-tab change replaces the value
+		// storage wins from here on: a change from another document in the tab
+		// (an iframe on the same origin) replaces the value
 		act(() => {
 			storage.setItem(recoveryKey, JSON.stringify("other-tab-value"));
 			window.dispatchEvent(
@@ -203,6 +204,48 @@ describe("useSessionStorage", () => {
 			);
 		});
 		expect(result.current[0]).toBe("other-tab-value");
+	});
+
+	test("a storage change from another document in the tab replaces a refused write", () => {
+		const overtakenKey = "test-session-preference-overtaken";
+		const storage = window.sessionStorage;
+		vi.spyOn(window, "sessionStorage", "get").mockReturnValue(refuseWrites(storage));
+		const { result } = renderHook(() => useSessionStorage(overtakenKey, defaultValue));
+
+		act(() => {
+			result.current[1]("held-in-memory");
+		});
+		expect(result.current[0]).toBe("held-in-memory");
+
+		act(() => {
+			storage.setItem(overtakenKey, JSON.stringify("other-document-value"));
+			window.dispatchEvent(
+				new StorageEvent("storage", {
+					key: overtakenKey,
+					newValue: JSON.stringify("other-document-value"),
+					storageArea: window.sessionStorage,
+				}),
+			);
+		});
+		expect(result.current[0]).toBe("other-document-value");
+	});
+
+	test("a clear-all storage event drops a refused write", () => {
+		const clearedKey = "test-session-preference-cleared";
+		vi.spyOn(window, "sessionStorage", "get").mockReturnValue(refuseWrites(window.sessionStorage));
+		const { result } = renderHook(() => useSessionStorage(clearedKey, defaultValue));
+
+		act(() => {
+			result.current[1]("held-in-memory");
+		});
+		expect(result.current[0]).toBe("held-in-memory");
+
+		act(() => {
+			window.dispatchEvent(
+				new StorageEvent("storage", { key: null, storageArea: window.sessionStorage }),
+			);
+		});
+		expect(result.current[0]).toBe(defaultValue);
 	});
 
 	test("a denied storage read resolves to the default instead of throwing during render", () => {
