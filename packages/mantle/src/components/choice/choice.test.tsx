@@ -248,8 +248,8 @@ describe("Choice — Description extends the label's click target", () => {
 		expect(screen.getByRole("checkbox")).not.toBeChecked();
 	});
 
-	// Each row pins one entry of the interactive-content selector: drop that entry
-	// and its row toggles the control.
+	// The shared predicate's own table lives in `utils/interactive-target.test.ts`;
+	// these rows pin that the description consults it.
 	test.each([
 		{
 			name: "a <summary> inside a <details>",
@@ -269,15 +269,6 @@ describe("Choice — Description extends the label's click target", () => {
 				</label>
 			),
 			query: () => screen.getByText("Also"),
-		},
-		{
-			name: "a <video controls>",
-			content: (
-				<video controls aria-label="preview">
-					<track kind="captions" />
-				</video>
-			),
-			query: () => screen.getByLabelText("preview"),
 		},
 	])(
 		"a click on $name inside the Description does not toggle the control",
@@ -300,6 +291,57 @@ describe("Choice — Description extends the label's click target", () => {
 			expect(screen.getByRole("checkbox", { name: "control" })).not.toBeChecked();
 		},
 	);
+
+	test("after the forward, the click is marked handled so a click-to-activate ancestor defers", async () => {
+		const user = userEvent.setup();
+		const onAncestorClick = vi.fn<(event: MouseEvent<HTMLDivElement>) => void>();
+		render(
+			<div role="presentation" onClick={onAncestorClick}>
+				<Choice.Root>
+					<Choice.Indicator>
+						<input type="checkbox" aria-label="control" />
+					</Choice.Indicator>
+					<Choice.Content>
+						<Choice.Label>Email</Choice.Label>
+						<Choice.Description>Get notified by email.</Choice.Description>
+					</Choice.Content>
+				</Choice.Root>
+			</div>,
+		);
+		await user.click(screen.getByText("Get notified by email."));
+		expect(screen.getByRole("checkbox")).toBeChecked();
+		// The description's own click arrives handled; the forwarded label click
+		// and the control's click bubble too, and those stay untouched.
+		const descriptionClick = onAncestorClick.mock.calls.find(
+			([event]) => event.target === screen.getByText("Get notified by email."),
+		);
+		expect(descriptionClick?.[0].defaultPrevented).toBe(true);
+	});
+
+	test("a skipped forward leaves the click unhandled for the ancestor", async () => {
+		const user = userEvent.setup();
+		const onAncestorClick = vi.fn<(event: MouseEvent<HTMLDivElement>) => void>();
+		render(
+			<div role="presentation" onClick={onAncestorClick}>
+				<Choice.Root>
+					<Choice.Indicator>
+						<input type="checkbox" aria-label="control" />
+					</Choice.Indicator>
+					<Choice.Content>
+						<Choice.Label>Email</Choice.Label>
+						<Choice.Description asChild>
+							<div>
+								See the <a href="#docs">docs</a>.
+							</div>
+						</Choice.Description>
+					</Choice.Content>
+				</Choice.Root>
+			</div>,
+		);
+		await user.click(screen.getByRole("link", { name: "docs" }));
+		expect(onAncestorClick).toHaveBeenCalledTimes(1);
+		expect(onAncestorClick.mock.calls[0]?.[0].defaultPrevented).toBe(false);
+	});
 
 	test("a <details> that wraps the whole choice does not stop the forward", async () => {
 		const user = userEvent.setup();

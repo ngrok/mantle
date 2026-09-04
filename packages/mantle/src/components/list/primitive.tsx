@@ -25,6 +25,7 @@ import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import { isInteractiveTarget } from "../../utils/interactive-target.js";
 import { Slot } from "../slot/index.js";
 
 // This module is internal shared implementation — it is not exported from the
@@ -292,36 +293,6 @@ function itemFromEventTarget(target: EventTarget | null): { item: Element; index
 }
 
 /**
- * Selector for the interactive elements inside a row that handle their own
- * click — a checkbox, a `<label>`, nested links/buttons. A bare row click that
- * lands inside one of these is left alone so grid activation never fires twice.
- */
-const INTERACTIVE_ITEM_TARGET_SELECTOR =
-	'a[href], button, input, select, textarea, label, [role="button"], [role="link"], [role="menuitem"], [contenteditable="true"]';
-
-/**
- * Whether a row click originated on an element (within `row`) that already
- * handles the click — a checkbox, a label, or nested interactive content — so
- * the grid's click-to-activate should defer to it. Pure over the DOM; testable
- * in isolation.
- *
- * @example
- * ```ts
- * // click on the row's checkbox → true (activation must not fire twice)
- * isInteractiveItemTarget(checkboxEl, rowEl); // → true
- * // click on the row's description text → false (the row activates)
- * isInteractiveItemTarget(descriptionEl, rowEl); // → false
- * ```
- */
-function isInteractiveItemTarget(target: EventTarget | null, item: Element): boolean {
-	if (!(target instanceof Element)) {
-		return false;
-	}
-	const interactive = target.closest(INTERACTIVE_ITEM_TARGET_SELECTOR);
-	return interactive != null && item.contains(interactive);
-}
-
-/**
  * Collection-element props for `"list"` semantics arrow-key navigation:
  * `ArrowUp` / `ArrowDown` / `Home` / `End` pressed on a row's focused control
  * move **real focus** to the next enabled row's control (native tab order is
@@ -521,7 +492,7 @@ function useGridNavigation({
 				if (
 					clicked == null ||
 					isDisabled(clicked.index) ||
-					isInteractiveItemTarget(event.target, clicked.item)
+					isInteractiveTarget(event.target, clicked.item)
 				) {
 					return;
 				}
@@ -1005,7 +976,6 @@ const Root = ({
 export {
 	//,
 	findItemControl,
-	isInteractiveItemTarget,
 	isItemChildDisabled,
 	Item,
 	ListItemContext,

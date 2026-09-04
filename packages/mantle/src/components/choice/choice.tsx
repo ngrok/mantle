@@ -14,6 +14,7 @@ import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import { isInteractiveTarget } from "../../utils/interactive-target.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { Label } from "../label/label.js";
 import { Slot } from "../slot/index.js";
@@ -403,46 +404,17 @@ const Title = ({ asChild, className, ref, ...props }: ComponentProps<"p"> & With
 };
 
 /**
- * The HTML interactive content set. When a click lands on one of these inside
- * the description, the forward stops, the same as the native `<label>`
- * activation rule for interactive descendants. A `<summary>` counts through
- * its `<details>` parent.
- *
- * @see https://html.spec.whatwg.org/multipage/dom.html#interactive-content
- */
-const interactiveContentSelector = [
-	"a[href]",
-	"audio[controls]",
-	"button",
-	"details",
-	"embed",
-	"iframe",
-	"img[usemap]",
-	"input:not([type=hidden])",
-	"label",
-	"select",
-	"textarea",
-	"video[controls]",
-].join(", ");
-
-/**
  * Whether a click on the description should forward to the `Choice.Label`.
  * Returns `false` when a consumer handler called `preventDefault()`, when the
- * click landed on interactive content inside the description, or when an
- * ancestor `<label>` already forwards the click (a second forward would toggle
- * the control twice).
+ * click landed on interactive content inside the description (the same rule a
+ * `List` row applies), or when an ancestor `<label>` already forwards the click
+ * (a second forward would toggle the control twice).
  */
 function shouldForwardDescriptionClick(event: MouseEvent<HTMLElement>): boolean {
 	if (event.defaultPrevented) {
 		return false;
 	}
-	if (!(event.target instanceof Element)) {
-		return false;
-	}
-	// Why the `contains` check: `closest` also walks past the description, and a
-	// `<details>` that wraps the whole choice must not stop the forward.
-	const interactiveContent = event.target.closest(interactiveContentSelector);
-	if (interactiveContent != null && event.currentTarget.contains(interactiveContent)) {
+	if (isInteractiveTarget(event.target, event.currentTarget)) {
 		return false;
 	}
 	return event.currentTarget.closest("label") == null;
@@ -456,8 +428,11 @@ function shouldForwardDescriptionClick(event: MouseEvent<HTMLElement>): boolean 
  * A click on the description forwards to the sibling `Choice.Label`, so the
  * whole content column toggles the control while the accessible name stays the
  * label alone. The forward skips a click on a link or other interactive content
- * inside the description. When the choice uses `Choice.Title`, the description
- * forwards nothing, because an ancestor owns that click.
+ * inside the description. After it forwards, it marks the click handled with
+ * `preventDefault()`, so a click-to-activate ancestor (a `SelectableList` row)
+ * does not toggle the control a second time. When the choice uses
+ * `Choice.Title`, the description forwards nothing, because an ancestor owns
+ * that click.
  *
  * @see https://mantle.ngrok.com/components/forms/choice
  *
@@ -504,6 +479,9 @@ const Description = ({
 					// `HTMLElement.click()` on the label runs its activation behavior, so
 					// the control receives the same click a direct label click sends.
 					labelRef.current?.click();
+					// Why: a click-to-activate ancestor (a `SelectableList` row) reads
+					// `defaultPrevented` as "handled", so the forward toggles once.
+					event.preventDefault();
 				}
 			}}
 			{...props}

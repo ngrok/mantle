@@ -250,7 +250,7 @@ All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#a
 
 ### Choice.Description
 
-The supplementary description, wired to the control via `aria-describedby`. Renders a `<p>`. A click on it forwards to the sibling `Choice.Label`, so the description extends the label's click target. The forward skips a click on a link or other interactive content inside the description. When the choice uses `Choice.Title`, the description forwards nothing, because an ancestor owns that click.
+The supplementary description, wired to the control via `aria-describedby`. Renders a `<p>`. A click on it forwards to the sibling `Choice.Label`, so the description extends the label's click target. The forward skips a click on a link or other interactive content inside the description. After it forwards, it marks the click handled with `preventDefault()`, so a click-to-activate ancestor (a `SelectableList` row) does not toggle the control a second time. When the choice uses `Choice.Title`, the description forwards nothing, because an ancestor owns that click.
 
 All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#attributes), plus:
 
