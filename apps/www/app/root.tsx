@@ -35,6 +35,7 @@ import { NavigationProvider } from "./components/navigation-context";
 import { PageContainer } from "./components/page-container";
 import { useNonce } from "./components/nonce";
 import { RouteAnnouncer } from "./features/route-announcer";
+import { FramedPreviewHistory } from "./features/preview-history/framed-preview-history";
 import "./global.css";
 import { canonicalDomain, canonicalHref } from "./utilities/canonical-origin";
 import { parseMantleVersion } from "./utilities/mantle-version.server";
@@ -227,6 +228,8 @@ export function Layout({ children }: PropsWithChildren) {
 				{/* Suppressed inside framed example previews: each iframe would add its
 				    own status region to the docs page that embeds it. */}
 				{!isFramedPreview && <RouteAnnouncer />}
+				{/* The framed side of the preview toolbar's Back and Forward buttons. */}
+				{isFramedPreview && <FramedPreviewHistory />}
 				<ScrollRestoration nonce={nonce} />
 				<Scripts nonce={nonce} />
 			</body>

@@ -64,10 +64,10 @@ route("preview/breadcrumbs-from-routes", "./examples/breadcrumbs-from-routes/she
 > [!NOTE]
 > The demo is a real React Router app in its own document, framed by this page. Every page below
 > `/preview/breadcrumbs-from-routes` is a route module with a `handle`, the shell renders the
-> `RouteBreadcrumbs` this recipe ships, and every link is a real `Link`. Because it is its own document,
-> your browser's Back button steps through the demo's history too. The braces toggle at the header's
-> trailing edge shows the router state the trail derives from: `location.pathname`, `location.state`,
-> and every match with its `handle` keys.
+> `RouteBreadcrumbs` this recipe ships, and every link is a real `Link`. The frame's Back and Forward
+> buttons step through the demo's own history, and because it is its own document, your browser's Back
+> button does too. The braces toggle at the header's trailing edge shows the router state the trail
+> derives from: `location.pathname`, `location.state`, and every match with its `handle` keys.
 
 ## Why not a context provider
 
@@ -748,8 +748,8 @@ the right: from `Endpoints > ep_3Exgo`, following the domain link reads
 `Endpoints > https://forward-labels.test > rd_2Kq9a`. Following an endpoint from
 `Domains > rd_2Kq9a` reads `Domains > forward-labels.test > ep_3Exgo`. The current page's own ancestors
 step aside, because they are not where the reader was; a plain `Link` (the sidebar) brings the hierarchy
-back. In the demo, open an endpoint, follow its domain link, then press Back and Forward: the braces toggle
-shows the state under each history entry.
+back. In the demo, open an endpoint, follow its domain link, then use the frame's Back and Forward
+buttons: the braces toggle shows the state under each history entry.
 
 The state behind the stack is a bounded, deduplicated list of resource **references**, one per hop, each
 with the static crumbs that stood above its page. A hop renders through a label component, so it shows

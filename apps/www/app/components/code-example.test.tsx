@@ -1,4 +1,7 @@
 // @vitest-environment happy-dom
+// @vitest-environment-options {"settings": {"disableIframePageLoading": true}}
+// (happy-dom otherwise fetches iframe src documents for real; these tests only
+// assert the iframe's attributes)
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { CodeExample } from "./code-example";
