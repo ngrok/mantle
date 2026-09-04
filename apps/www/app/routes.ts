@@ -231,6 +231,52 @@ export default [
 	// prerendering and served by the runtime SSR function.
 	route("preview/:exampleName", "./routes/preview.tsx", { id: "preview-example" }),
 
+	// The breadcrumbs-from-routes recipe demo: real nested routes under a
+	// chrome-less shell, because the recipe reads `useMatches()` and
+	// `location.state`, which no fixture prop can stand in for. root.tsx
+	// matches the id to skip the site chrome, and react-router.config.ts keeps
+	// every /preview/ path out of prerendering so the framing headers apply.
+	route(
+		"preview/breadcrumbs-from-routes",
+		"./examples/breadcrumbs-from-routes/shell.tsx",
+		{ id: "preview-breadcrumbs-from-routes" },
+		[
+			index("./examples/breadcrumbs-from-routes/home.tsx"),
+			route("endpoints", "./examples/breadcrumbs-from-routes/endpoints.tsx"),
+			// the detail is a sibling of its list, the dashboard's real shape
+			route("endpoints/:endpointId", "./examples/breadcrumbs-from-routes/endpoint.tsx", [
+				index("./examples/breadcrumbs-from-routes/endpoint-overview.tsx"),
+				route("traffic-policy", "./examples/breadcrumbs-from-routes/endpoint-traffic-policy.tsx"),
+			]),
+			// a hub: URL siblings share chrome through a pathless layout
+			layout("./examples/breadcrumbs-from-routes/domains-hub.tsx", [
+				route("domains", "./examples/breadcrumbs-from-routes/domains.tsx"),
+				route("tls-certs", "./examples/breadcrumbs-from-routes/tls-certs.tsx"),
+			]),
+			// a full-page detail stays out from under the hub's tabs
+			route("domains/:domainId", "./examples/breadcrumbs-from-routes/domain.tsx"),
+			route("apps", "./examples/breadcrumbs-from-routes/apps.tsx"),
+			route("apps/:appId", "./examples/breadcrumbs-from-routes/app.tsx"),
+			// a demo-only entry that lands on a domain page with an origin trail,
+			// because a frame can point at a URL but not at a history entry with state
+			route(
+				"from-endpoint/:endpointId",
+				"./examples/breadcrumbs-from-routes/arrive-from-endpoint.tsx",
+			),
+			// settings: a gate layout that contributes nothing, then one pathless
+			// section layout per group that contributes its label
+			layout("./examples/breadcrumbs-from-routes/settings-gate.tsx", [
+				layout("./examples/breadcrumbs-from-routes/settings-account.tsx", [
+					route("settings/general", "./examples/breadcrumbs-from-routes/settings-general.tsx"),
+					route("billing", "./examples/breadcrumbs-from-routes/billing.tsx"),
+				]),
+				layout("./examples/breadcrumbs-from-routes/settings-identity-access.tsx", [
+					route("team-members", "./examples/breadcrumbs-from-routes/team-members.tsx"),
+				]),
+			]),
+		],
+	),
+
 	// 404 + legacy redirects — splat catch-all for any unmatched URL. Matches
 	// (so ancestor loaders run) and 301s known pre-IA-reorg paths (e.g.
 	// /components/button, /blocks/*) to their new homes, returning a 404

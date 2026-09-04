@@ -20,7 +20,7 @@ function getIframe(): HTMLIFrameElement {
 
 describe("PreviewFrame", () => {
 	it("renders an iframe pointed at the example's chrome-less preview route", () => {
-		render(<PreviewFrame example="centered-layout" title="Centered layout demo" />);
+		render(<PreviewFrame src="/preview/centered-layout" title="Centered layout demo" />);
 
 		const iframe = getIframe();
 		expect(iframe.getAttribute("src")).toBe("/preview/centered-layout");
@@ -28,7 +28,7 @@ describe("PreviewFrame", () => {
 	});
 
 	it("defaults to the desktop viewport", () => {
-		render(<PreviewFrame example="centered-layout" title="Centered layout demo" />);
+		render(<PreviewFrame src="/preview/centered-layout" title="Centered layout demo" />);
 
 		expect(
 			screen.getByRole("radio", { name: "Desktop viewport" }).getAttribute("aria-checked"),
@@ -37,7 +37,7 @@ describe("PreviewFrame", () => {
 	});
 
 	it("resizes the frame when a viewport preset is picked", () => {
-		render(<PreviewFrame example="centered-layout" title="Centered layout demo" />);
+		render(<PreviewFrame src="/preview/centered-layout" title="Centered layout demo" />);
 
 		fireEvent.click(screen.getByRole("radio", { name: "Tablet viewport" }));
 		expect(getIframe().parentElement?.className).toContain("w-192");
@@ -47,7 +47,7 @@ describe("PreviewFrame", () => {
 	});
 
 	it("reloads the preview by remounting the iframe", () => {
-		render(<PreviewFrame example="centered-layout" title="Centered layout demo" />);
+		render(<PreviewFrame src="/preview/centered-layout" title="Centered layout demo" />);
 
 		const before = getIframe();
 		fireEvent.click(
@@ -60,7 +60,7 @@ describe("PreviewFrame", () => {
 	});
 
 	it("links to the preview route in a new tab", () => {
-		render(<PreviewFrame example="centered-layout" title="Centered layout demo" />);
+		render(<PreviewFrame src="/preview/centered-layout" title="Centered layout demo" />);
 
 		const link = screen.getByRole("link", {
 			name: "Open the Centered layout demo preview in a new tab",

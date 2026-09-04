@@ -70,6 +70,11 @@ export default {
 		// `.mdx` paths exist only to 301-redirect stale source URLs to the canonical
 		// doc page; they are not pages to snapshot. Visiting them during prerender
 		// fails because the framework treats the 301 as an unexpected status.
-		return getStaticPaths().filter((path) => !path.endsWith(".mdx"));
+		// `/preview/` documents stay dynamic: the SSR function sets the same-origin
+		// framing headers the docs pages' iframes need, and the breadcrumbs demo's
+		// index redirects, which a prerender also treats as a failure.
+		return getStaticPaths().filter(
+			(path) => !path.endsWith(".mdx") && !path.startsWith("/preview/"),
+		);
 	},
 } satisfies Config;

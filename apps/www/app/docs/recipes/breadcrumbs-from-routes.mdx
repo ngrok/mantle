@@ -3,8 +3,8 @@ title: Breadcrumbs from Routes
 description: Derive a breadcrumb trail from the matched route chain with React Router's route handles (no context, no effects, correct on the server and on first paint).
 ---
 
-import { Example } from "~/components/example";
-import { RouteBreadcrumbsDemo } from "~/features/route-breadcrumbs-demo";
+import { CodeExample } from "~/components/code-example";
+import { PreviewFrame } from "~/components/preview-frame";
 
 # Breadcrumbs from Routes
 
@@ -14,17 +14,60 @@ sync. This recipe wires [Breadcrumb](/components/navigation/breadcrumb) to React
 [route handles](https://reactrouter.com/start/framework/route-module#handle) and reads the trail out of
 `useMatches()`.
 
-Pick a URL. The trail grows, the leaf becomes the current page, and its ancestors become links:
+Pick a page in the sidebar, open a resource, and follow a link inside it. The trail grows, the leaf
+becomes the current page, and its ancestors become links:
 
-<Example>
-	<RouteBreadcrumbsDemo />
-</Example>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame
+		path="/preview/breadcrumbs-from-routes/endpoints"
+		title="Breadcrumbs from routes demo"
+	/>
+	<CodeExample.Code>
+
+```ts
+// the demo's route tree, from app/routes.ts; every path is below /preview/breadcrumbs-from-routes
+route("preview/breadcrumbs-from-routes", "./examples/breadcrumbs-from-routes/shell.tsx", [
+	index("./examples/breadcrumbs-from-routes/home.tsx"),
+	route("endpoints", "./examples/breadcrumbs-from-routes/endpoints.tsx"),
+	// the detail is a sibling of its list, the dashboard's real shape
+	route("endpoints/:endpointId", "./examples/breadcrumbs-from-routes/endpoint.tsx", [
+		index("./examples/breadcrumbs-from-routes/endpoint-overview.tsx"),
+		route("traffic-policy", "./examples/breadcrumbs-from-routes/endpoint-traffic-policy.tsx"),
+	]),
+	// a hub: URL siblings share chrome through a pathless layout
+	layout("./examples/breadcrumbs-from-routes/domains-hub.tsx", [
+		route("domains", "./examples/breadcrumbs-from-routes/domains.tsx"),
+		route("tls-certs", "./examples/breadcrumbs-from-routes/tls-certs.tsx"),
+	]),
+	// a full-page detail stays out from under the hub's tabs
+	route("domains/:domainId", "./examples/breadcrumbs-from-routes/domain.tsx"),
+	route("apps", "./examples/breadcrumbs-from-routes/apps.tsx"),
+	route("apps/:appId", "./examples/breadcrumbs-from-routes/app.tsx"),
+	// settings: a gate layout that contributes nothing, then one pathless
+	// section layout per group that contributes its label
+	layout("./examples/breadcrumbs-from-routes/settings-gate.tsx", [
+		layout("./examples/breadcrumbs-from-routes/settings-account.tsx", [
+			route("settings/general", "./examples/breadcrumbs-from-routes/settings-general.tsx"),
+			route("billing", "./examples/breadcrumbs-from-routes/billing.tsx"),
+		]),
+		layout("./examples/breadcrumbs-from-routes/settings-identity-access.tsx", [
+			route("team-members", "./examples/breadcrumbs-from-routes/team-members.tsx"),
+		]),
+	]),
+]),
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 > [!NOTE]
-> The demo above switches between **fixture** match arrays rather than really navigating: a demo embedded in
-> this page cannot mount a second router (React Router allows exactly one per tree). That is why the render
-> half takes `crumbs` as a prop: the same component runs against real `useMatches()` output in your app, and
-> against a fixture here and in your tests.
+> The demo is a real React Router app in its own document, framed by this page. Every page below
+> `/preview/breadcrumbs-from-routes` is a route module with a `handle`, the shell renders the
+> `RouteBreadcrumbs` this recipe ships, and every link is a real `Link`. The frame's Back and Forward
+> buttons step through the demo's own history, and because it is its own document, your browser's Back
+> button does too. The braces toggle at the header's trailing edge shows the router state the trail
+> derives from: `location.pathname`, `location.state`, and every match with its `handle` keys.
 
 ## Why not a context provider
 
@@ -123,7 +166,14 @@ export const handle = {
 ```
 
 Omitting `to` links the crumb to the contributing route's own `pathname`, which is what you want whenever the
-crumb _is_ that route.
+crumb _is_ that route. The endpoint's crumb below is its id from the URL, so it is in the HTML on the first
+byte; the heading, which needs a fetch, is not:
+
+<PreviewFrame
+	src="/preview/breadcrumbs-from-routes/endpoints/ep_3Exgo"
+	title="URL-derived label demo"
+	className="mb-6 h-112"
+/>
 
 **3. Derived from loader data.** If the label is _already_ in the route's loader data, read it off the match
 with a param fallback. This is SSR-correct and never changes after the first paint:
@@ -207,6 +257,15 @@ Three rules keep the pending trail honest:
   deepest-crumb-becomes-`Breadcrumb.Page` rule stops at its boundary: the component renders
   `Breadcrumb.Page` on its own last item.
 
+Open an app below. Its list did not fetch the app, so the crumb holds the row's shape with a skeleton until
+the name arrives; go back and open it again, and the warm cache makes the name instant:
+
+<PreviewFrame
+	src="/preview/breadcrumbs-from-routes/apps"
+	title="Query-backed crumb demo"
+	className="mb-6 h-112"
+/>
+
 The shape to avoid is the fetch **without** the skeleton, a label that renders a text fallback and swaps:
 
 ```tsx
@@ -234,44 +293,80 @@ resource is an ancestor of the current page, not the page itself (`Apps > my-app
 
 ## The prefix crumb
 
-Some levels are sections, not destinations. In ngrok's dashboard settings area the trail reads
-`Settings > General`, but `/settings` only redirects to `/settings/general`; a `Settings` link would
-bounce the user back to the page they are already on. The crumb still belongs in the trail; the link
-does not.
+Some levels are sections, not destinations. ngrok's dashboard groups its settings pages into sections
+(`Account`, `Identity & Access`) that have no landing page of their own: `/settings` only redirects to
+`/settings/general`, and a link to a section would bounce the user back to the page they are already
+on. The crumb still belongs in the trail; the link does not.
 
-Give the **layout route** that owns the section a `routeBreadcrumb.label` crumb:
+Give the **layout route** that owns the section a `routeBreadcrumb.label` crumb. That layout is
+**pathless**: the section's pages keep the URLs they have (`/settings/general`, `/billing`), and the
+route tree, not the URL, puts them under the section.
 
 ```tsx
-// app/routes/settings.tsx — the layout route at path "settings"
+// app/routes/layouts/settings-account.tsx (pathless: no path, no loader, an Outlet)
 import { routeBreadcrumb, type BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
+import { Outlet } from "react-router";
 
 export const handle = {
-	breadcrumb: () => [routeBreadcrumb.label("Settings")],
+	breadcrumb: () => [routeBreadcrumb.label("Account")],
 } satisfies BreadcrumbHandle;
+
+export default function SettingsAccountSection() {
+	return <Outlet />;
+}
+```
+
+```ts
+// app/routes.ts: the section layouts wrap the pages; the URLs do not change
+layout("routes/layouts/settings-account.tsx", [
+	route("settings/general", "routes/settings/general.tsx"),
+	route("billing", "routes/billing.tsx"),
+]),
+layout("routes/layouts/settings-identity-access.tsx", [
+	route("team-members", "routes/team-members.tsx"),
+]),
 ```
 
 The renderer draws it as a
 [`Breadcrumb.Label`](/components/navigation/breadcrumb#the-prefix-crumb): muted text with no `href` and
 no `aria-current`, still counted as a step in the `<ol>`. Every child route contributes its own crumb
-under it, so `/settings/general` renders `Settings > General` and `/settings/auth` renders
-`Settings > Auth` with no per-page wiring.
+under it, so `/settings/general` renders `Account > General` and `/team-members` renders
+`Identity & Access > Team Members` with no per-page wiring. A page that moves sections moves in the
+route tree, and its own handle does not change. The demo's Settings group is this shape:
+
+<PreviewFrame
+	src="/preview/breadcrumbs-from-routes/team-members"
+	title="Section crumb demo"
+	className="mb-6 h-112"
+/>
 
 A label crumb carries no `to` at all: `Crumb` is a discriminated union on `kind`, and the
 `routeBreadcrumb` factory stamps the discriminant, so an unlinked link crumb is unrepresentable and no
 call site hand-writes one.
 
+> [!WARNING]
+> A pathless layout matches, but it owns no URL segment, so its `match.pathname` is its **parent's**. A
+> label crumb never notices, because it has no `to`. A **link** crumb on a pathless layout must pass an
+> explicit `to`, or it links to the parent's URL. The [hub layout](#hubs-over-url-siblings) is that case.
+
 ## Building and rendering the trail
 
 The one file this recipe asks you to copy. `RouteBreadcrumbs` is the only thing that touches the router;
-`Breadcrumbs` is pure rendering, which is what makes it testable with a fixture, and what lets the demo
-above use it unmodified. It stays in your app rather than in mantle because it owns the one decision mantle
-cannot make: which `Link` component your router uses.
+`Breadcrumbs` is pure rendering, which is what makes it testable with a fixture. It stays in your app
+rather than in mantle because it owns the one decision mantle cannot make: which `Link` component your
+router uses.
+
+`RouteBreadcrumbs` composes two derived lists. With no [origin trail](#where-you-came-from), it renders
+the route trail: where the reader is. With one, it renders a stack: the first page's ancestors, one crumb
+per hop, and this page's leaf. If your app has no origin trail, drop the `useOriginCrumbs()` line and the
+ternary; nothing else changes.
 
 ````tsx
 import type { ResolvedCrumb } from "@ngrok/mantle/breadcrumb";
 import { Breadcrumb, buildCrumbs } from "@ngrok/mantle/breadcrumb";
 import { Fragment } from "react";
 import { Link, useMatches } from "react-router";
+import { useOriginCrumbs } from "~/features/navigation-origin/use-origin-crumbs";
 
 /** A crumb the renderer wraps in its own `Breadcrumb.Item`. */
 type ItemCrumb = Exclude<ResolvedCrumb, { kind: "content" }>;
@@ -309,8 +404,7 @@ function CrumbContent({ crumb, isCurrentPage }: { crumb: ItemCrumb; isCurrentPag
  * cannot see inside it.
  *
  * Kept separate from {@link RouteBreadcrumbs} so nothing here touches the router:
- * this is the half you can render with a fixture in a test, or in a docs demo that
- * cannot mount a second router.
+ * this is the half you can render with a fixture in a test.
  *
  * @example
  * ```tsx
@@ -349,10 +443,17 @@ function Breadcrumbs({ crumbs }: { crumbs: ReadonlyArray<ResolvedCrumb> }) {
 
 /**
  * The breadcrumb trail for the current route. Render it once, in your app shell's
- * header — it derives everything from the matched route chain, so no route needs to
- * push anything up.
+ * header: it derives everything from the matched route chain and from
+ * `location.state`, so no route needs to push anything up.
  *
- * This is the only piece that touches the router, which keeps the hook at the edge.
+ * Two derived lists, composed. With no origin, the trail is the route trail:
+ * where the reader is. With an origin, it is a stack: the first page's
+ * ancestors, one crumb per hop, and this page's leaf. This page's own ancestors
+ * step aside, because they are not where the reader was. If your app has no
+ * origin trail, drop the `useOriginCrumbs()` line and the ternary; nothing else
+ * changes.
+ *
+ * This is the only piece that touches the router, which keeps the hooks at the edge.
  *
  * @example
  * ```tsx
@@ -363,7 +464,11 @@ function Breadcrumbs({ crumbs }: { crumbs: ReadonlyArray<ResolvedCrumb> }) {
  * ```
  */
 function RouteBreadcrumbs() {
-	return <Breadcrumbs crumbs={buildCrumbs(useMatches())} />;
+	const originCrumbs = useOriginCrumbs();
+	const routeCrumbs = buildCrumbs(useMatches());
+	const crumbs =
+		originCrumbs.length === 0 ? routeCrumbs : [...originCrumbs, ...routeCrumbs.slice(-1)];
+	return <Breadcrumbs crumbs={crumbs} />;
 }
 
 export {
@@ -394,9 +499,21 @@ Everything here runs on the server unchanged, which is the point of deriving rat
   pending branch renders. Because `Breadcrumb.Skeleton` is sized like the resolved trail, the row's
   shape is stable from the first byte. The labels fill in client-side, which is the deliberate trade a
   [query-backed crumb](#choosing-a-label) makes.
+- **`location.state` exists only in the browser.** The server never sees it, and the browser keeps it
+  across a reload, so the [origin trail](#where-you-came-from) renders only after hydration
+  (`useIsHydrated`). The route trail does not wait; only the origin crumbs do.
 
 A label that depends on other client-only state (`localStorage`, `window.matchMedia`) has no place in the
 trail at all: move the data into the loader or drop the crumb.
+
+Reload the frame below with its toolbar button. The `Apps` crumb and the skeleton are in the HTML the server
+sends; the name fills in when the query resolves, and the row never changes shape:
+
+<PreviewFrame
+	src="/preview/breadcrumbs-from-routes/apps/app_123"
+	title="Server-rendered trail demo"
+	className="mb-6 h-112"
+/>
 
 ## Where it goes in the shell
 
@@ -429,18 +546,35 @@ instead: a `sticky` element is still in flow, so it silently steals its own heig
 
 ## Choosing which routes get a crumb
 
-Not every matched route deserves one, and this is a judgment call the recipe cannot make for you. Two rules
-that hold up:
+Not every matched route deserves one, and this is a judgment call the recipe cannot make for you. Three
+rules that hold up:
 
-- **Omit pathless layouts and gate routes.** They match, but they are not places a user can be. Leaving off
-  `handle.breadcrumb` is the whole opt-out: no filtering list to maintain.
+- **Omit a gate.** An authentication check, a feature-flag redirect, an account-type gate: these are
+  pathless layouts that match on every URL below them, but they are not places a user can be. Leaving off
+  `handle.breadcrumb` is the whole opt-out: no filtering list to maintain. The demo's `settings-gate.tsx`
+  is one; open the braces toggle on a settings page and it appears in the matches with no `handle`.
+- **Keep a grouping.** A pathless layout that names a level of the information architecture (a
+  [settings section](#the-prefix-crumb), a [hub](#hubs-over-url-siblings)) contributes a prefix even
+  though it owns no URL. The trail reads the route tree, and the tree is where the grouping lives.
 - **Omit a level that another affordance already owns.** If a detail page renders a tab row
-  (`Overview` / `Traffic Policy` / `Settings`), those tabs _are_ routes, but giving them crumbs prints the
-  same label twice, once as the trail's leaf and once as the selected tab. Let the trail end at the resource
-  and let the tabs own the level below it.
+  (`Overview` / `Traffic Policy`), those tabs _are_ routes, but giving them crumbs prints the same label
+  twice, once as the trail's leaf and once as the selected tab. Let the trail end at the resource and let
+  the tabs own the level below it. The exception is a tab that is a **destination of its own**, with its
+  own top-level URL and a former sidebar row: a hub member. Its crumb is the page's name and the hub is its
+  parent; [Hubs](#hubs-over-url-siblings) explains why the two tab rows differ.
 
 For the same reason, a crumb trail replaces an ad-hoc `← Back` link. Shipping both gives a user two
-competing answers to "where am I".
+competing answers to "where am I". When "where you came from" is real information, [carry it in
+`location.state`](#where-you-came-from) and render it in the trail, not beside it.
+
+The endpoint's tabs below are child routes with no `handle`, so the trail ends at the endpoint while the
+tab row names the view. Open the braces toggle: the tab's match is there, with no `handle`:
+
+<PreviewFrame
+	src="/preview/breadcrumbs-from-routes/endpoints/ep_3Exgo/traffic-policy"
+	title="Tabs own the level demo"
+	className="mb-6 h-112"
+/>
 
 ### The trail follows nesting, not the URL
 
@@ -484,9 +618,633 @@ export const handle = {
 } satisfies BreadcrumbHandle<UIMatch>;
 ```
 
+The domain page below is that shape: it is a sibling of the Domains hub, so it names `Domains` itself, and
+the hub's tab row never renders over it:
+
+<PreviewFrame
+	src="/preview/breadcrumbs-from-routes/domains/rd_2Kq9a"
+	title="Sibling detail route demo"
+	className="mb-6 h-112"
+/>
+
+A third case is the mirror image: **URL siblings that share one place**. `/domains` and `/tls-certs` are
+two top-level URLs with one header and one tab row. They cannot nest, because React Router rejects an
+absolute child path that does not start with its parent's (`Absolute route path "/tls-certs" nested
+under path "/domains" is not valid`). Put both under a pathless layout that contributes the shared
+ancestor. That is a [hub](#hubs-over-url-siblings).
+
 Whichever you pick, **assert it**: a test over `buildCrumbs` for each detail URL you care about is the only
 thing that catches a trail quietly losing its ancestor when someone reorganises the route config. The
 [tests below](#testing-it) include exactly that case.
+
+## Hubs over URL siblings
+
+A hub is one page header, one tab row, and two or more top-level URLs behind it: `Domains`, with
+`Domains` and `TLS Certificates` tabs at `/domains` and `/tls-certs`. The URLs stay flat (bookmarks, docs
+links, and the gateway's routing table all see them), so the members cannot nest in the route tree. The
+only thing that can share chrome across URL siblings is a **pathless layout**:
+
+```ts
+// app/routes.ts: the members keep their URLs; the layout owns only the chrome
+layout("routes/layouts/domains-hub.tsx", [
+	route("domains", "routes/domains/_index.tsx"),
+	route("tls-certs", "routes/tls-certs/_index.tsx"),
+]),
+// a full-page detail is a sibling of the hub, so it never renders under the tabs
+route("domains/:domainId", "routes/domains/$domainId.tsx"),
+```
+
+```tsx
+// app/routes/layouts/domains-hub.tsx
+import { routeBreadcrumb, type BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
+import { Tabs } from "@ngrok/mantle/tabs";
+import { href, Link, Outlet, useMatches } from "react-router";
+
+const hubTabs = [
+	{ value: "domains", label: "Domains", to: href("/domains") },
+	{ value: "tls-certs", label: "TLS Certificates", to: href("/tls-certs") },
+];
+
+export const handle = {
+	// a pathless layout's own `match.pathname` is its parent's, so the link
+	// crumb has to say where the hub lives
+	breadcrumb: () => [routeBreadcrumb("Domains", { to: href("/domains") })],
+} satisfies BreadcrumbHandle;
+
+export default function DomainsHub() {
+	const matches = useMatches();
+	const selected = matches.findLast((match) => hubTabs.some((tab) => tab.to === match.pathname));
+	const value = hubTabs.find((tab) => tab.to === selected?.pathname)?.value ?? "";
+
+	return (
+		<>
+			<h1>Domains</h1>
+			<Tabs.Root value={value} activationMode="manual">
+				<Tabs.List aria-label="Domains sections">
+					{hubTabs.map((tab) => (
+						<Tabs.Trigger key={tab.value} value={tab.value} asChild>
+							<Link to={tab.to} prefetch="intent">
+								{tab.label}
+							</Link>
+						</Tabs.Trigger>
+					))}
+				</Tabs.List>
+			</Tabs.Root>
+			<Outlet />
+		</>
+	);
+}
+```
+
+Four lines carry the design, and a reviewer will ask about each:
+
+- **The hub crumb passes an explicit `to`.** A pathless layout's `match.pathname` is its parent's (see
+  [the prefix crumb](#the-prefix-crumb)); without `to`, the `Domains` crumb links to the app root.
+- **The hub's first member has no `handle`.** The layout already contributes `Domains`; a second one
+  reads `Domains > Domains`. The second member keeps its own (`TLS Certificates`), so `/tls-certs` reads
+  `Domains > TLS Certificates` and `/domains` reads `Domains`.
+- **The tabs are links, and the router owns the value.** `Tabs.Trigger asChild` around a `Link`, no
+  `onValueChange`, no `navigate()`. Click and Enter navigate through the anchor. Arrow keys move focus
+  only (`activationMode="manual"`), so a keyboard user picks a tab before the page changes. The selected
+  tab derives from `useMatches()`, so the server and the client agree on first paint. Space on a focused
+  tab does nothing, which is what a native anchor does.
+- **The tab list is static.** It cannot derive from handles, because `useMatches()` sees only the
+  matched branch, and the inactive members are not in it.
+
+The layout stays mounted across a tab switch, so the trigger the reader clicked keeps focus and the
+active indicator moves in place. A shared header component rendered by each member page would remount on
+every click and drop focus to `body`; that is the decisive reason for a layout. The demo's Domains hub is
+this module with the demo's paths, and its test clicks a tab and asserts the trigger still has focus. Tab
+between the two members below and watch the trail and the sidebar row:
+
+<PreviewFrame
+	src="/preview/breadcrumbs-from-routes/tls-certs"
+	title="Hub demo"
+	className="mb-6 h-112"
+/>
+
+**Detail pages stay out from under the tabs.** A sheet or drawer over the member's list is fine as a
+child of the member. A full-page detail is not: register it as a sibling of the hub and let it name
+`Domains` itself, the same way a [sibling detail route](#the-trail-follows-nesting-not-the-url) names
+its list.
+
+Why the leaf crumb stays here when a detail page's tab crumbs do not: on `ep_1`'s Traffic Policy tab
+the trail ends at `ep_1`, because `ep_1` is the real container of its tabs and each tab is a view of it.
+On a hub, the container's name is also the first member's name. A trail that ended at the hub would
+show `Domains` as the current page while the selected tab said `TLS Certificates`. The two tab rows look
+alike and mean different things, and the trail follows the meaning. If your design review lands the
+other way, drop the `TLS Certificates` handle and the trail ends at the hub; nothing else changes.
+
+## Where you came from
+
+Sometimes the trail's ancestors are not the whole story. A reader opens endpoint `ep_1`, follows the link
+to its domain, and lands on `Domains > forward-labels.test`. The trail is correct: that _is_ where the
+domain lives. But the reader came from an endpoint, and the only page that knows it is the one they just
+left. This is **contextual navigation**, and it is a different thing from hierarchy: the hierarchy is a
+property of the route tree, and the origin is a property of _this_ visit.
+
+Model it as a **stack**. The trail the reader was looking at stays, and the page they move to is pushed on
+the right: from `Endpoints > ep_3Exgo`, following the domain link reads
+`Endpoints > https://forward-labels.test > rd_2Kq9a`. Following an endpoint from
+`Domains > rd_2Kq9a` reads `Domains > forward-labels.test > ep_3Exgo`. The current page's own ancestors
+step aside, because they are not where the reader was; a plain `Link` (the sidebar) brings the hierarchy
+back. In the demo, open an endpoint, follow its domain link, then use the frame's Back and Forward
+buttons: the braces toggle shows the state under each history entry.
+
+The state behind the stack is a bounded, deduplicated list of resource **references**, one per hop, each
+with the static crumbs that stood above its page. A hop renders through a label component, so it shows
+the resource's name (the endpoint's URL) where the leaf showed the id from the URL. If your design wants
+the two to match, make the leaf a content crumb that uses the same component.
+
+The frame below opens on the domain as if you had followed that link. The first two crumbs are the page
+you came from, and the endpoint links back. Follow it, and the stack pops; open the second endpoint
+instead, and the stack grows. A frame can point at a URL but not at a history entry with state, so the
+demo has an entry route that replaces itself with the domain page and carries the state; nothing else in
+the demo is staged.
+
+<PreviewFrame
+	src="/preview/breadcrumbs-from-routes/from-endpoint/ep_3Exgo"
+	title="Origin trail demo"
+	className="mb-6 h-112"
+/>
+
+### Storage: `location.state`, one entry per history entry
+
+- **Back and Forward restore the right trail for free**, because each history entry owns its state.
+- **A plain `Link` clears it.** The sidebar, a table row, a redirect: none of them carry state, so any
+  navigation that is not an origin link ends the context. The choice is visible at the link.
+- **The server never sees it, and the browser keeps it across a reload.** Rendering gates on
+  `useIsHydrated`. Computing the next link's `state` prop does not, because a prop is not DOM.
+- **An imperative `navigate()` or an action redirect drops it.** That is correct: a mutation ends the
+  context.
+
+Rejected: an in-memory store (context or module state). It would have to mirror Back and Forward by
+hand, which is the fragile state machine [the provider section](#why-not-a-context-provider) warns
+about. The state stores **references, never resource labels**: `{ kind, id, to, ancestors }`. A hop's
+label resolves at render time the way a [content crumb](#choosing-a-label) does, so a renamed resource
+never shows a stale name. The ancestors are the static section crumbs above the page (`Endpoints`,
+`Account`), captured when the page is pushed, so the root of the stack keeps its section; only the oldest
+entry's ancestors render.
+
+### Identity: the route declares who it is
+
+A resource route adds `origin` beside `breadcrumb`. `findSelfOrigin` takes the deepest match with one,
+stamps `to: match.pathname`, and keeps the route trail above the leaf as the ancestors. `match.pathname`
+is cumulative and stops at that route, so a tab under the detail route still resolves to the resource
+root, and the resource's own tabs never enter the trail.
+
+```tsx
+// app/routes/endpoints/$endpointId.tsx
+import { routeBreadcrumb, type BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
+import { href, type UIMatch } from "react-router";
+import type { OriginHandle } from "~/features/navigation-origin/origin-trail";
+
+export const handle = {
+	breadcrumb: (match) => [
+		routeBreadcrumb("Endpoints", { to: href("/endpoints") }),
+		routeBreadcrumb(match.params.endpointId),
+	],
+	origin: (match) =>
+		match.params.endpointId == null ? null : { kind: "endpoint", id: match.params.endpointId },
+} satisfies BreadcrumbHandle<UIMatch> & OriginHandle<UIMatch>;
+```
+
+### Push: pop back when the target is already in the trail
+
+`pushOrigin` runs during the link's render: a `findIndex` over at most three entries. Returning to a
+resource already in the trail resumes its context instead of appending, so two pages that link each
+other never grow the trail:
+
+| Path                | Trail on arrival          | Why                                 |
+| ------------------- | ------------------------- | ----------------------------------- |
+| A → B               | `[A]`                     | push                                |
+| A → B → A           | `[]`                      | A is at index 0: pop back to before |
+| A → B → A → B → A … | alternates `[A]` and `[]` | never grows                         |
+| A → B → C → B       | `[A]`                     | B is at index 1: slice to `[A]`     |
+| A → B → C → D → E   | `[B, C, D]`               | the cap drops the oldest            |
+
+An origin crumb is itself an `OriginLink`, so following the trail back is the fourth row: from C, the
+crumb for B lands on B with `[A]` behind it. A plain `Link` there would drop the whole trail.
+
+### The module
+
+Four files, and only the last one is app-specific. `origin-trail.ts` is the pure model. `OriginLink` is
+the one link component that carries state. `useOriginCrumbs` turns the state into content crumbs. And
+`origin-labels.tsx` names one crumb component per `kind`: add a kind without a component and the
+`satisfies` fails the build. These files run in this repo and drive the demo above.
+
+````ts
+import type { BreadcrumbMatch, ResolvedCrumb } from "@ngrok/mantle/breadcrumb";
+import { buildCrumbs } from "@ngrok/mantle/breadcrumb";
+import { z } from "zod";
+
+/**
+ * The resource kinds a route can identify itself as. Add a kind here and give
+ * it a crumb component in `origin-labels.tsx`; the `satisfies` there turns a
+ * missing one into a type error.
+ */
+const originKinds = ["endpoint", "domain"] as const;
+
+type OriginKind = (typeof originKinds)[number];
+
+/** What a route says it is. {@link findSelfOrigin} adds the location. */
+type OriginIdentity = {
+	kind: OriginKind;
+	id: string;
+};
+
+/**
+ * A static crumb above an origin page: a section name and, for a link crumb,
+ * where it goes. Only the oldest entry's ancestors render, as the root of the
+ * stack.
+ */
+type OriginAncestor = {
+	label: string;
+	to?: string | undefined;
+};
+
+/**
+ * One step of the origin trail: a resource reference, never a label. The
+ * label resolves at render time from the reference, the way a content crumb
+ * does, so a renamed resource never shows a stale name. The ancestors are the
+ * static crumbs above the page when it was pushed, so the root of the stack
+ * keeps its section; a content crumb or a non-string label is not
+ * serializable, so it is left out.
+ */
+type OriginEntry = OriginIdentity & {
+	/** The resource root, which is where the crumb links back to. */
+	to: string;
+	ancestors: ReadonlyArray<OriginAncestor>;
+};
+
+const originAncestorSchema = z.object({
+	label: z.string(),
+	to: z.string().startsWith("/").optional(),
+});
+
+const originEntrySchema = z.object({
+	kind: z.enum(originKinds),
+	id: z.string().min(1),
+	to: z.string().startsWith("/"),
+	// Why default: an entry a previous build wrote without ancestors still renders
+	ancestors: z.array(originAncestorSchema).default([]),
+});
+
+/**
+ * How many resources the trail keeps. Three covers every pair of resources
+ * that link each other today, with one hop of room between them.
+ */
+const MAX_ORIGIN_DEPTH = 3;
+
+/**
+ * Reads the origin trail out of `location.state`. Anything that is not a
+ * well-formed entry is dropped: a stale tab, a hand-written state object, or
+ * a kind this build no longer knows must not crash the header.
+ *
+ * @example
+ * ```ts
+ * readOriginTrail(useLocation().state);
+ * // [{ kind: "endpoint", id: "ep_1", to: "/endpoints/ep_1", ancestors: [{ label: "Endpoints", to: "/endpoints" }] }]
+ * ```
+ */
+function readOriginTrail(state: unknown): ReadonlyArray<OriginEntry> {
+	if (state == null || typeof state !== "object" || !("origin" in state)) {
+		return [];
+	}
+	if (!Array.isArray(state.origin)) {
+		return [];
+	}
+	const candidates: ReadonlyArray<unknown> = state.origin;
+	return candidates.flatMap((candidate) => {
+		const result = originEntrySchema.safeParse(candidate);
+		return result.success ? [result.data] : [];
+	});
+}
+
+/**
+ * The trail the target page receives when the reader follows a link from the
+ * current page. A target already in the trail pops the trail back to before
+ * it, so going back and forth between two pages never grows it. A page with
+ * no identity passes the trail through unchanged.
+ *
+ * @example
+ * ```ts
+ * pushOrigin([], endpoint, "/domains/rd_1"); // [endpoint]
+ * pushOrigin([endpoint], domain, "/endpoints/ep_1"); // []: back to where the trail started
+ * ```
+ */
+function pushOrigin(
+	trail: ReadonlyArray<OriginEntry>,
+	self: OriginEntry | null,
+	targetTo: string,
+): ReadonlyArray<OriginEntry> {
+	const index = trail.findIndex((entry) => entry.to === targetTo);
+	if (index !== -1) {
+		return trail.slice(0, index);
+	}
+	if (self == null || self.to === targetTo) {
+		return trail;
+	}
+	return [...trail, self].slice(-MAX_ORIGIN_DEPTH);
+}
+
+/**
+ * The `handle` shape a resource route exports to identify itself. Return
+ * `null` when the match cannot name a resource. Links inside the resource
+ * (its tabs) must forward `location.state`, or the trail drops on the first
+ * tab click; keep those links in one component per resource.
+ *
+ * @example
+ * ```ts
+ * export const handle = {
+ * 	origin: (match) => (match.params.endpointId == null ? null : { kind: "endpoint", id: match.params.endpointId }),
+ * } satisfies OriginHandle<UIMatch>;
+ * ```
+ */
+type OriginHandle<TMatch = unknown> = {
+	origin: (match: TMatch) => OriginIdentity | null;
+};
+
+/**
+ * The fields {@link findSelfOrigin} reads off a route match: the same three
+ * `buildCrumbs` reads, because the ancestors come from the route trail.
+ */
+type OriginMatch = BreadcrumbMatch;
+
+/**
+ * The route trail above its leaf, kept to what `location.state` can hold: a
+ * string label and, for a link, its `to`. A content crumb has no
+ * serializable label, so it is skipped.
+ */
+function serializableAncestors(
+	crumbs: ReadonlyArray<ResolvedCrumb>,
+): ReadonlyArray<OriginAncestor> {
+	return crumbs.slice(0, -1).flatMap((crumb): ReadonlyArray<OriginAncestor> => {
+		if (crumb.kind === "content" || typeof crumb.label !== "string") {
+			return [];
+		}
+		if (crumb.kind === "link") {
+			return [{ label: crumb.label, to: crumb.to }];
+		}
+		return [{ label: crumb.label }];
+	});
+}
+
+/**
+ * Whether a route match identifies itself as a resource. A real type guard,
+ * so {@link findSelfOrigin} reads `match.handle` without an assertion.
+ *
+ * @example
+ * ```ts
+ * useMatches().findLast(hasOrigin);
+ * ```
+ */
+function hasOrigin<TMatch extends OriginMatch>(
+	match: TMatch,
+): match is TMatch & { handle: OriginHandle<TMatch> } {
+	const { handle } = match;
+	if (handle == null || typeof handle !== "object" || !("origin" in handle)) {
+		return false;
+	}
+	return typeof handle.origin === "function";
+}
+
+/**
+ * The current page's identity, stamped with its resource root and the static
+ * crumbs above it. The deepest match with an `origin` handle wins. Its
+ * cumulative `pathname` stops at that route, so a tab under a detail route
+ * still resolves to the resource root, not to the tab.
+ *
+ * @example
+ * ```ts
+ * findSelfOrigin(useMatches());
+ * // on /endpoints/ep_1/traffic-policy:
+ * // { kind: "endpoint", id: "ep_1", to: "/endpoints/ep_1", ancestors: [{ label: "Endpoints", to: "/endpoints" }] }
+ * ```
+ */
+function findSelfOrigin<TMatch extends OriginMatch>(
+	matches: ReadonlyArray<TMatch>,
+): OriginEntry | null {
+	const match = matches.findLast(hasOrigin);
+	if (match == null) {
+		return null;
+	}
+	const identity = match.handle.origin(match);
+	if (identity == null) {
+		return null;
+	}
+	// the chain up to the resource: a crumb a deeper child contributes is below
+	// the resource, not above it
+	const chainToSelf = matches.slice(0, matches.indexOf(match) + 1);
+	return {
+		...identity,
+		to: match.pathname,
+		ancestors: serializableAncestors(buildCrumbs(chainToSelf)),
+	};
+}
+
+export {
+	//,
+	findSelfOrigin,
+	hasOrigin,
+	MAX_ORIGIN_DEPTH,
+	originKinds,
+	pushOrigin,
+	readOriginTrail,
+};
+
+export type {
+	//,
+	OriginAncestor,
+	OriginEntry,
+	OriginHandle,
+	OriginIdentity,
+	OriginKind,
+	OriginMatch,
+};
+````
+
+````tsx
+import type { ComponentProps } from "react";
+import { Link, useLocation, useMatches, useResolvedPath } from "react-router";
+import { findSelfOrigin, pushOrigin, readOriginTrail } from "./origin-trail";
+
+type OriginLinkProps = Omit<ComponentProps<typeof Link>, "state">;
+
+/**
+ * A `Link` that carries the origin trail to its target, so the target page
+ * shows where the reader came from. Use it for a link from one resource to
+ * another. A plain `Link` drops the trail, which is right for the sidebar, a
+ * table row, and a redirect: the choice is visible at the link.
+ *
+ * The trail is computed during render from `location.state` and the matched
+ * chain. The `state` prop is not DOM, so it needs no hydration gate.
+ *
+ * @example
+ * ```tsx
+ * <OriginLink to={href("/domains/:domainId", { domainId })}>{domain.name}</OriginLink>
+ * ```
+ */
+function OriginLink({ to, prefetch = "intent", ...props }: OriginLinkProps) {
+	const location = useLocation();
+	const matches = useMatches();
+	// resolve `to` the way Link does, so a relative target compares by pathname
+	const target = useResolvedPath(to);
+	const trail = pushOrigin(
+		readOriginTrail(location.state),
+		findSelfOrigin(matches),
+		target.pathname,
+	);
+
+	return <Link {...props} to={to} prefetch={prefetch} state={{ origin: trail }} />;
+}
+
+export {
+	//,
+	OriginLink,
+};
+````
+
+````tsx
+import type { ResolvedCrumb } from "@ngrok/mantle/breadcrumb";
+import { useIsHydrated } from "@ngrok/mantle/hooks";
+import { useLocation } from "react-router";
+import { originCrumbs } from "./origin-labels";
+import { readOriginTrail } from "./origin-trail";
+
+/**
+ * The origin trail as crumbs: the oldest entry's static ancestors, then one
+ * content crumb per hop. Put the current page's leaf after them and the trail
+ * reads as a stack. Empty on the server and during hydration: the browser
+ * keeps `location.state` across a reload, the server never sees it, and
+ * reading it in the hydration pass would mismatch the HTML.
+ *
+ * @example
+ * ```tsx
+ * const originCrumbs = useOriginCrumbs();
+ * const routeCrumbs = buildCrumbs(useMatches());
+ * <Breadcrumbs crumbs={originCrumbs.length === 0 ? routeCrumbs : [...originCrumbs, ...routeCrumbs.slice(-1)]} />
+ * ```
+ */
+function useOriginCrumbs(): ReadonlyArray<ResolvedCrumb> {
+	const location = useLocation();
+	const isHydrated = useIsHydrated();
+
+	if (!isHydrated) {
+		return [];
+	}
+
+	const entries = readOriginTrail(location.state);
+	const [root] = entries;
+	if (root == null) {
+		return [];
+	}
+
+	const ancestorCrumbs = root.ancestors.map((ancestor, index): ResolvedCrumb => {
+		const key = `origin-ancestor:${index}`;
+		if (ancestor.to == null) {
+			return { kind: "label", key, label: ancestor.label };
+		}
+		return { kind: "link", key, label: ancestor.label, to: ancestor.to };
+	});
+	const hopCrumbs = entries.map((entry): ResolvedCrumb => {
+		const OriginCrumb = originCrumbs[entry.kind];
+		return {
+			kind: "content",
+			key: `origin:${entry.kind}:${entry.id}`,
+			content: <OriginCrumb {...entry} />,
+		};
+	});
+
+	return [...ancestorCrumbs, ...hopCrumbs];
+}
+
+export {
+	//,
+	useOriginCrumbs,
+};
+````
+
+```tsx
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+import type { ComponentType, ReactNode } from "react";
+// In your app these are the resource query hooks the detail pages already call.
+import { useDomain, useEndpoint } from "~/examples/breadcrumbs-from-routes/queries";
+import { OriginLink } from "./origin-link";
+import type { OriginEntry, OriginKind } from "./origin-trail";
+
+/**
+ * One origin crumb's item: a link back to the resource root. It is an
+ * `OriginLink`, so stepping back along the trail pops the trail to that
+ * entry instead of dropping it. Every kind renders through it, so the
+ * trail's items look alike.
+ */
+function OriginItem({ to, children }: { to: string; children: ReactNode }) {
+	return (
+		<Breadcrumb.Item>
+			<Breadcrumb.Link asChild>
+				<OriginLink to={to}>{children}</OriginLink>
+			</Breadcrumb.Link>
+		</Breadcrumb.Item>
+	);
+}
+
+/**
+ * An endpoint's origin crumb. It calls the endpoint page's own query hook,
+ * so a reader who arrives from that page finds the cache warm and sees the
+ * URL on the first frame. A cold cache (a reload) shows the skeleton first.
+ */
+function EndpointOriginCrumb({ id, to }: OriginEntry) {
+	const endpointQuery = useEndpoint(id);
+
+	if (endpointQuery.isPending) {
+		return <Breadcrumb.Skeleton className="w-40" />;
+	}
+
+	return <OriginItem to={to}>{endpointQuery.data?.url ?? id}</OriginItem>;
+}
+
+/** A domain's origin crumb: its name once loaded, its id on error. */
+function DomainOriginCrumb({ id, to }: OriginEntry) {
+	const domainQuery = useDomain(id);
+
+	if (domainQuery.isPending) {
+		return <Breadcrumb.Skeleton className="w-32" />;
+	}
+
+	return <OriginItem to={to}>{domainQuery.data?.name ?? id}</OriginItem>;
+}
+
+/**
+ * The crumb component for each kind. The `satisfies` makes a kind without a
+ * component a type error, so the trail never meets a reference it cannot
+ * render.
+ */
+const originCrumbs = {
+	endpoint: EndpointOriginCrumb,
+	domain: DomainOriginCrumb,
+} as const satisfies Record<OriginKind, ComponentType<OriginEntry>>;
+
+export {
+	//,
+	originCrumbs,
+};
+```
+
+### Dragons specific to this part
+
+- **In-resource links must forward the state, or the trail drops on the first tab click.** The demo's
+  tab component passes `state={location.state}` on every tab. Keep a resource's own links in one
+  component per resource, so the forwarding lives in one place.
+- **A label component calls the resource page's own query hook.** The referring page was just open, so
+  the query is warm and the name resolves on the first client render. A reload starts cold and shows
+  `Breadcrumb.Skeleton`. In the demo, open an endpoint, follow its domain link, then reload the frame to
+  see both.
+- **A Zod schema validates `location.state` on read.** An unknown `kind` or a malformed entry is
+  dropped, so a stale tab from an older build cannot crash the header.
+- **This page's ancestors step aside.** With an origin, `RouteBreadcrumbs` keeps only the route trail's
+  leaf, so the header reads as the path the reader took, not as two hierarchies glued together. The page's
+  section is one sidebar click away, and that click is a plain `Link`, which restores the hierarchy trail.
 
 ## Testing it
 
@@ -721,6 +1479,13 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 > `@testing-library/jest-dom` matchers, so they run with no extra setup. If your app already has jest-dom,
 > `toHaveAttribute` / `toBeInTheDocument` read better; use them.
 
+The demo and the origin module carry their own tests, in this repo beside their source. Three are worth
+copying. The hub test renders the real layout and handle through `createRoutesStub`, asserts the
+`Domains` crumb's `href` (drop `{ to }` from the handle and it turns red), clicks a tab, and asserts the
+trigger still has focus after the route changes. The origin trail test walks the traces in the table
+above through `pushOrigin`. The `OriginLink` test clicks a link on a route with an `origin` handle and
+reads the target's `location.state`, then clicks a plain `Link` and reads `null`.
+
 ## Trade-offs
 
 - **No collapsing.** `Breadcrumb` has no ellipsis part, so a long trail scrolls sideways from the current page
@@ -734,4 +1499,8 @@ describe("RouteBreadcrumbs (through a real router)", () => {
   `loaderData` with a fallback (the `?? match.params.endpointId` above). If it throws, it throws in the chrome,
   a wider blast radius than throwing inside the page.
 - **`handle` is not available for unmatched routes.** You cannot build a full sitemap this way: only the
-  chain to the current URL, which is exactly what a breadcrumb is.
+  chain to the current URL, which is exactly what a breadcrumb is. A hub's tab list is static for the
+  same reason.
+- **The origin trail is opt-in and bounded.** `MAX_ORIGIN_DEPTH` is three; two may be enough for the
+  pairs of resources that link each other today. A resource's own links (its tabs) must forward
+  `location.state`, and a `navigate()` or redirect drops it. Both are correct, and both are silent.
