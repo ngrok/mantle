@@ -1,6 +1,28 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 /**
+ * The JSON-encoded value of the last refused write, per key. A write lands
+ * here when `setItem` throws, so the hook still advances until the page
+ * reloads. A later write that succeeds deletes the entry.
+ */
+const memoryFallback = new Map<string, string>();
+
+/**
+ * Resolves `window.localStorage`, or null where the browser denies access.
+ *
+ * Why a guard on the property read: with site data blocked, Chrome throws a
+ * `SecurityError` from the `localStorage` getter itself, before any method
+ * call.
+ */
+function getLocalStorageArea(): Storage | null {
+	try {
+		return window.localStorage;
+	} catch {
+		return null;
+	}
+}
+
+/**
  * Builds the subscribe function for one localStorage key. It notifies only
  * for `storage` events that could change that key: a matching `key` (or a
  * clear-all event, where `key` is null) in localStorage — or an event whose
@@ -11,7 +33,7 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
 function subscribeToLocalStorageKey(key: string): (onStoreChange: () => void) => () => void {
 	return function subscribe(onStoreChange: () => void): () => void {
 		function handleStorageEvent(event: StorageEvent): void {
-			const matchesStore = event.storageArea == null || event.storageArea === window.localStorage;
+			const matchesStore = event.storageArea == null || event.storageArea === getLocalStorageArea();
 			const matchesKey = event.key == null || event.key === key;
 			if (matchesStore && matchesKey) {
 				onStoreChange();
@@ -36,6 +58,40 @@ function getLocalStorageServerSnapshot(): null {
 }
 
 /**
+ * Reads the raw entry for `key`. If the memory fallback holds an entry, it
+ * wins: storage refused that write and still returns the older entry. If
+ * storage access throws, the entry resolves to null, so a denied storage
+ * can never crash the render.
+ */
+function readLocalStorageItem(key: string): string | null {
+	const fallback = memoryFallback.get(key);
+	if (fallback != null) {
+		return fallback;
+	}
+
+	try {
+		return window.localStorage.getItem(key);
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Writes the raw entry for `key`. If `setItem` throws (a full origin,
+ * Safari private browsing, blocked site data), the value lands in the
+ * memory fallback instead, so the hook still advances. A write that
+ * succeeds deletes the fallback, so storage is the source of truth again.
+ */
+function writeLocalStorageItem(key: string, encoded: string): void {
+	try {
+		window.localStorage.setItem(key, encoded);
+		memoryFallback.delete(key);
+	} catch {
+		memoryFallback.set(key, encoded);
+	}
+}
+
+/**
  * Decodes a raw localStorage entry written by this hook. A corrupt or
  * non-string entry resolves to the default instead of throwing, so a bad
  * stored value can never crash the render.
@@ -55,7 +111,7 @@ function parseStoredValue(raw: string, defaultValue: string): string {
  * Contract:
  *
  * - Server rendering returns `defaultValue` and never touches localStorage.
- * - Values are JSON-encoded on write and JSON-decoded on read — the same
+ * - Values are JSON-encoded on write and JSON-decoded on read: the same
  *   wire format popular hooks libraries (e.g. `@uidotdev/usehooks`) use,
  *   so existing stored entries remain readable.
  * - The setter dispatches a synthetic `storage` event (tagged with its
@@ -66,6 +122,12 @@ function parseStoredValue(raw: string, defaultValue: string): string {
  * - Missing, corrupt, or non-string entries resolve to `defaultValue`; the
  *   hook never seeds `defaultValue` into storage on its own (reading is
  *   side-effect free).
+ * - Reads and writes never throw. If the browser denies storage access,
+ *   the value resolves to `defaultValue`. If `setItem` throws (a full
+ *   origin, Safari private browsing, blocked site data), the hook keeps
+ *   the value in memory, so every same-key instance still advances until
+ *   the page reloads. A later write that succeeds restores storage as the
+ *   source of truth.
  *
  * @param key - The localStorage key to read and write.
  * @param defaultValue - Returned when no valid entry exists for `key` and
@@ -88,7 +150,7 @@ function useLocalStorage(
 
 	const rawValue = useSyncExternalStore(
 		subscribe,
-		() => window.localStorage.getItem(key),
+		() => readLocalStorageItem(key),
 		getLocalStorageServerSnapshot,
 	);
 
@@ -97,9 +159,9 @@ function useLocalStorage(
 	const setValue = useCallback(
 		(next: string) => {
 			const encoded = JSON.stringify(next);
-			window.localStorage.setItem(key, encoded);
+			writeLocalStorageItem(key, encoded);
 			window.dispatchEvent(
-				new StorageEvent("storage", { key, newValue: encoded, storageArea: window.localStorage }),
+				new StorageEvent("storage", { key, newValue: encoded, storageArea: getLocalStorageArea() }),
 			);
 		},
 		[key],

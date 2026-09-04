@@ -220,6 +220,8 @@ const [value, setValue] = useLocalStorage("key", "default");
 
 SSR-safe localStorage-backed string state. Server rendering returns the default and never touches localStorage. Values are JSON-encoded on write and decoded on read. The setter keeps every same-key hook instance in the tab in sync, and cross-tab changes arrive via the native `storage` event. Missing or corrupt entries resolve to the default instead of throwing.
 
+Reads and writes never throw. If the browser denies storage access, the value is the default. If a write fails (a full origin, Safari private browsing, blocked site data), the hook keeps the value in memory, so it still advances until the page reloads. A later write that succeeds restores storage as the source of truth.
+
 ```tsx
 import { useLocalStorage } from "@ngrok/mantle/hooks";
 

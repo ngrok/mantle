@@ -1,6 +1,28 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 /**
+ * The JSON-encoded value of the last refused write, per key. A write lands
+ * here when `setItem` throws, so the hook still advances until the page
+ * reloads. A later write that succeeds deletes the entry.
+ */
+const memoryFallback = new Map<string, string>();
+
+/**
+ * Resolves `window.sessionStorage`, or null where the browser denies access.
+ *
+ * Why a guard on the property read: with site data blocked, Chrome throws a
+ * `SecurityError` from the `sessionStorage` getter itself, before any method
+ * call.
+ */
+function getSessionStorageArea(): Storage | null {
+	try {
+		return window.sessionStorage;
+	} catch {
+		return null;
+	}
+}
+
+/**
  * Builds the subscribe function for one sessionStorage key. It notifies only
  * for `storage` events that could change that key: a matching `key` (or a
  * clear-all event, where `key` is null) in sessionStorage — or an event
@@ -11,7 +33,8 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
 function subscribeToSessionStorageKey(key: string): (onStoreChange: () => void) => () => void {
 	return function subscribe(onStoreChange: () => void): () => void {
 		function handleStorageEvent(event: StorageEvent): void {
-			const matchesStore = event.storageArea == null || event.storageArea === window.sessionStorage;
+			const matchesStore =
+				event.storageArea == null || event.storageArea === getSessionStorageArea();
 			const matchesKey = event.key == null || event.key === key;
 			if (matchesStore && matchesKey) {
 				onStoreChange();
@@ -33,6 +56,40 @@ function subscribeToSessionStorageKey(key: string): (onStoreChange: () => void) 
  */
 function getSessionStorageServerSnapshot(): null {
 	return null;
+}
+
+/**
+ * Reads the raw entry for `key`. If the memory fallback holds an entry, it
+ * wins: storage refused that write and still returns the older entry. If
+ * storage access throws, the entry resolves to null, so a denied storage
+ * can never crash the render.
+ */
+function readSessionStorageItem(key: string): string | null {
+	const fallback = memoryFallback.get(key);
+	if (fallback != null) {
+		return fallback;
+	}
+
+	try {
+		return window.sessionStorage.getItem(key);
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Writes the raw entry for `key`. If `setItem` throws (a full origin,
+ * Safari private browsing, blocked site data), the value lands in the
+ * memory fallback instead, so the hook still advances. A write that
+ * succeeds deletes the fallback, so storage is the source of truth again.
+ */
+function writeSessionStorageItem(key: string, encoded: string): void {
+	try {
+		window.sessionStorage.setItem(key, encoded);
+		memoryFallback.delete(key);
+	} catch {
+		memoryFallback.set(key, encoded);
+	}
 }
 
 /**
@@ -62,6 +119,12 @@ function parseStoredValue(raw: string, defaultValue: string): string {
  * - Missing, corrupt, or non-string entries resolve to `defaultValue`; the
  *   hook never seeds `defaultValue` into storage on its own (reading is
  *   side-effect free).
+ * - Reads and writes never throw. If the browser denies storage access,
+ *   the value resolves to `defaultValue`. If `setItem` throws (a full
+ *   origin, Safari private browsing, blocked site data), the hook keeps
+ *   the value in memory, so every same-key instance still advances until
+ *   the page reloads. A later write that succeeds restores storage as the
+ *   source of truth.
  *
  * @param key - The sessionStorage key to read and write.
  * @param defaultValue - Returned when no valid entry exists for `key` and
@@ -84,7 +147,7 @@ function useSessionStorage(
 
 	const rawValue = useSyncExternalStore(
 		subscribe,
-		() => window.sessionStorage.getItem(key),
+		() => readSessionStorageItem(key),
 		getSessionStorageServerSnapshot,
 	);
 
@@ -93,9 +156,13 @@ function useSessionStorage(
 	const setValue = useCallback(
 		(next: string) => {
 			const encoded = JSON.stringify(next);
-			window.sessionStorage.setItem(key, encoded);
+			writeSessionStorageItem(key, encoded);
 			window.dispatchEvent(
-				new StorageEvent("storage", { key, newValue: encoded, storageArea: window.sessionStorage }),
+				new StorageEvent("storage", {
+					key,
+					newValue: encoded,
+					storageArea: getSessionStorageArea(),
+				}),
 			);
 		},
 		[key],
