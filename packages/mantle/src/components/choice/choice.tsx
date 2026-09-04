@@ -403,11 +403,27 @@ const Title = ({ asChild, className, ref, ...props }: ComponentProps<"p"> & With
 };
 
 /**
- * Interactive content that keeps its own click. When a click lands on one of
- * these inside the description, the forward stops, the same as the native
- * `<label>` activation rule for interactive descendants.
+ * The HTML interactive content set. When a click lands on one of these inside
+ * the description, the forward stops, the same as the native `<label>`
+ * activation rule for interactive descendants. A `<summary>` counts through
+ * its `<details>` parent.
+ *
+ * @see https://html.spec.whatwg.org/multipage/dom.html#interactive-content
  */
-const interactiveContentSelector = "a, button, input, select, textarea";
+const interactiveContentSelector = [
+	"a[href]",
+	"audio[controls]",
+	"button",
+	"details",
+	"embed",
+	"iframe",
+	"img[usemap]",
+	"input:not([type=hidden])",
+	"label",
+	"select",
+	"textarea",
+	"video[controls]",
+].join(", ");
 
 /**
  * Whether a click on the description should forward to the `Choice.Label`.
@@ -423,7 +439,10 @@ function shouldForwardDescriptionClick(event: MouseEvent<HTMLElement>): boolean 
 	if (!(event.target instanceof Element)) {
 		return false;
 	}
-	if (event.target.closest(interactiveContentSelector) != null) {
+	// Why the `contains` check: `closest` also walks past the description, and a
+	// `<details>` that wraps the whole choice must not stop the forward.
+	const interactiveContent = event.target.closest(interactiveContentSelector);
+	if (interactiveContent != null && event.currentTarget.contains(interactiveContent)) {
 		return false;
 	}
 	return event.currentTarget.closest("label") == null;

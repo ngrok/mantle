@@ -248,6 +248,79 @@ describe("Choice — Description extends the label's click target", () => {
 		expect(screen.getByRole("checkbox")).not.toBeChecked();
 	});
 
+	// Each row pins one entry of the interactive-content selector: drop that entry
+	// and its row toggles the control.
+	test.each([
+		{
+			name: "a <summary> inside a <details>",
+			content: (
+				<details>
+					<summary>More</summary>
+					Extra text.
+				</details>
+			),
+			query: () => screen.getByText("More"),
+		},
+		{
+			name: "a nested <label>",
+			content: (
+				<label>
+					Also <input type="checkbox" />
+				</label>
+			),
+			query: () => screen.getByText("Also"),
+		},
+		{
+			name: "a <video controls>",
+			content: (
+				<video controls aria-label="preview">
+					<track kind="captions" />
+				</video>
+			),
+			query: () => screen.getByLabelText("preview"),
+		},
+	])(
+		"a click on $name inside the Description does not toggle the control",
+		async ({ content, query }) => {
+			const user = userEvent.setup();
+			render(
+				<Choice.Root>
+					<Choice.Indicator>
+						<input type="checkbox" aria-label="control" />
+					</Choice.Indicator>
+					<Choice.Content>
+						<Choice.Label>Email</Choice.Label>
+						<Choice.Description asChild>
+							<div>{content}</div>
+						</Choice.Description>
+					</Choice.Content>
+				</Choice.Root>,
+			);
+			await user.click(query());
+			expect(screen.getByRole("checkbox", { name: "control" })).not.toBeChecked();
+		},
+	);
+
+	test("a <details> that wraps the whole choice does not stop the forward", async () => {
+		const user = userEvent.setup();
+		render(
+			<details open>
+				<summary>Notifications</summary>
+				<Choice.Root>
+					<Choice.Indicator>
+						<input type="checkbox" aria-label="control" />
+					</Choice.Indicator>
+					<Choice.Content>
+						<Choice.Label>Email</Choice.Label>
+						<Choice.Description>Get notified by email.</Choice.Description>
+					</Choice.Content>
+				</Choice.Root>
+			</details>,
+		);
+		await user.click(screen.getByText("Get notified by email."));
+		expect(screen.getByRole("checkbox")).toBeChecked();
+	});
+
 	test("a consumer onClick runs first, and preventDefault() cancels the forward", async () => {
 		const user = userEvent.setup();
 		const onClick = vi.fn<(event: MouseEvent<HTMLElement>) => void>((event) => {
