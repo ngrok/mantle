@@ -1,0 +1,136 @@
+---
+title: Field.Item Control Id Migration
+description: Field.Item owns the control id. Move a child id to Field.Item, drop htmlFor from Field.Label, and update PasswordInput toggle selectors.
+---
+
+# Mantle Field.Item Control Id Migration Guide
+
+`@ngrok/mantle`'s `Field.Item` now owns the DOM id of its focusable control. Its `id` prop names the control, not the wrapping `<div>`. `Field.Control` splats that id onto the control and `Field.Label` points its `htmlFor` at it. Two props are gone: `Field.Label` no longer takes `htmlFor`, and `Field.Control` no longer takes `id`. When `Field.Item` has no `id`, it generates a stable one, as before.
+
+In the same release the `PasswordInput` visibility toggle became a keyboard-reachable toggle button. Its accessible name is now the fixed string "Show value". It was "Turn password visibility on" or "Turn password visibility off".
+
+**TL;DR:** Move any `id` from a control inside `Field.Control` to the surrounding `Field.Item`. Delete every `htmlFor` on `Field.Label`. Delete every `id` on `Field.Control`. In tests, select the `PasswordInput` toggle by the name "Show value" and use an exact match for the input's label.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every `Field.Label` with an `htmlFor` prop. Delete the prop. If the value was a literal id that must stay stable, move it to `id` on the surrounding `Field.Item`.
+2. Find every `Field.Control` with an `id` prop. Delete the prop. Move a literal id to `id` on the surrounding `Field.Item`.
+3. Find every control rendered as the direct child of a `Field.Control` that has an `id` prop (`Input`, `PasswordInput`, `TextArea`, `Checkbox`, `Switch`, `Select.Trigger`, a native `<input>`, and so on). Delete the `id`. If a test or an anchor link depends on that id, move it to `id` on the surrounding `Field.Item`.
+4. Find every `Field.Item` that already has an `id` prop. That id used to land on the wrapping `<div>`. It now lands on the control. If CSS or a test selected the wrapper by that id, change the selector to `[data-slot="field-item"]` or a `data-*` attribute.
+5. Find every `useId()` whose only purpose was a `Label` / control pair inside a `Field.Item`. Delete the `useId()` call and the `id` / `htmlFor` pair. `Field.Item` wires them.
+6. In test code, replace a selector for the `PasswordInput` toggle that matches "Turn password visibility" with the exact name "Show value". Where a test selects the password input by label, use an exact match (`getByLabel("Password", { exact: true })` in Playwright).
+7. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why one owner?** `Field.Label` is a sibling of `Field.Control`, so it cannot read an `id` from the control element. `Field.Item` is the only common ancestor. When both the label and the control read the id from `Field.Item`, they cannot drift apart.
+
+---
+
+## Before → after
+
+### A control with a hand-wired id
+
+```tsx
+// BEFORE: the child id is overwritten, and the label points at a generated id
+<Field.Item name="password">
+	<Field.Label htmlFor="password">Password</Field.Label>
+	<Field.Control>
+		<PasswordInput id="password" autoComplete="current-password" />
+	</Field.Control>
+</Field.Item>
+```
+
+```tsx
+// AFTER: Field.Item names the control; the label and the toggle's aria-controls follow it
+<Field.Item name="password" id="password">
+	<Field.Label>Password</Field.Label>
+	<Field.Control>
+		<PasswordInput autoComplete="current-password" />
+	</Field.Control>
+</Field.Item>
+```
+
+### A checkbox row wired with `useId`
+
+```tsx
+// BEFORE
+const termsId = useId();
+
+<Field.Item name="terms">
+	<Field.Label htmlFor={termsId} className="flex items-center gap-2">
+		<Checkbox id={termsId} />
+		Accept terms and conditions
+	</Field.Label>
+</Field.Item>;
+```
+
+```tsx
+// AFTER: no useId, no id, no htmlFor
+<Field.Item name="terms">
+	<Field.Label className="flex items-center gap-2">
+		<Field.Control>
+			<Checkbox />
+		</Field.Control>
+		Accept terms and conditions
+	</Field.Label>
+</Field.Item>
+```
+
+### A control that needs no stable id
+
+```tsx
+// BEFORE
+<Field.Item name="email">
+	<Field.Label>Email</Field.Label>
+	<Field.Control>
+		<Input id="email" type="email" />
+	</Field.Control>
+</Field.Item>
+```
+
+```tsx
+// AFTER: delete the id; Field.Item generates one
+<Field.Item name="email">
+	<Field.Label>Email</Field.Label>
+	<Field.Control>
+		<Input type="email" />
+	</Field.Control>
+</Field.Item>
+```
+
+### A Playwright page object for a login form
+
+```ts
+// BEFORE: substring match hits the input and the toggle, and the toggle name changes with state
+const password = page.getByLabel("Password");
+const toggle = page.getByRole("button", { name: /turn password visibility/i });
+```
+
+```ts
+// AFTER: one element each
+const password = page.getByLabel("Password", { exact: true });
+const toggle = page.getByRole("button", { name: "Show value" });
+```
+
+With `<Field.Item name="password" id="password">`, `page.locator("#password")` also resolves to the input.
+
+---
+
+## Edge cases & gotchas
+
+- **A control rendered outside `Field.Control`.** `Field.Label` points at `Field.Item`'s control id, and nothing puts that id on a control outside `Field.Control`. Move the control inside `Field.Control`, or use the render-prop form of `Field.Control` to place the generated props on the focusable element by hand.
+- **A compound control** (`Select`, `MultiSelect`, `Slider`, `OtpInput`, `RadioGroup`, `Choice`). Wrap it as its docs page shows. The trigger reads the id from `FieldControlContext`, so `id` on `Field.Item` reaches it too.
+- **`Field.Label` used as a plain `Label` outside a `Field.Item`.** It renders a `<label>` with no `for` attribute. Use `Label` from `@ngrok/mantle/label` when you need `htmlFor` without a `Field.Item`.
+- **The toggle's `aria-controls`.** `PasswordInput` points the toggle at the input's id. Inside a `Field.Item`, that is the `Field.Item` id, or the generated one. Nothing to set by hand.
+- **Type errors after the upgrade** (`htmlFor` on `Field.Label`, `id` on `Field.Control`) are the migration's checklist. Fix each one by the steps above.
+
+---
+
+## How to verify
+
+1. Type check. A leftover `htmlFor` on `Field.Label` or `id` on `Field.Control` fails the build.
+2. For each migrated field, click the label and confirm the control takes focus.
+3. Where a test selects a control by id, confirm the id is on the control element, not on the `Field.Item` wrapper.
+4. Tab into a `PasswordInput` and confirm the next Tab lands on the toggle. Press Space and confirm the value shows and focus stays on the toggle.
+5. Run the project's formatter, linter, type checker, and tests.

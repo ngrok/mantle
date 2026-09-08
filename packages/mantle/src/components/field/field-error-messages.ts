@@ -20,10 +20,10 @@ type FieldError = { readonly message?: string | undefined } | string | null | un
  *
  * @example
  * ```tsx
- * <Field.Item>
- *   <Field.Label htmlFor={field.name}>Email</Field.Label>
+ * <Field.Item name={field.name}>
+ *   <Field.Label>Email</Field.Label>
  *   <Field.Control>
- *     <Input id={field.name} value={field.state.value} />
+ *     <Input value={field.state.value} />
  *   </Field.Control>
  *   <Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
  * </Field.Item>

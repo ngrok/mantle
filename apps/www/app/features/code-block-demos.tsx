@@ -10,7 +10,6 @@ import {
 } from "@ngrok/mantle/code-block";
 import { Field } from "@ngrok/mantle/field";
 import { Input } from "@ngrok/mantle/input";
-import { Label } from "@ngrok/mantle/label";
 import { Switch } from "@ngrok/mantle/switch";
 import { TextArea } from "@ngrok/mantle/text-area";
 import { useForm } from "@tanstack/react-form";
@@ -306,93 +305,95 @@ export function ServerRenderedHighlightingDemo() {
 				<form.Field name="language">
 					{(field) => (
 						<Field.Item name={field.name}>
-							<Label htmlFor={field.name}>Language</Label>
-							<select
-								id={field.name}
-								name={field.name}
-								className="bg-form border-form rounded-md border px-2 py-1"
-								value={field.state.value}
-								onBlur={field.handleBlur}
-								onChange={(event) => {
-									field.handleChange(event.currentTarget.value);
-								}}
-							>
-								<option value="typescript">typescript</option>
-								<option value="javascript">javascript</option>
-								<option value="json">json</option>
-								<option value="bash">bash</option>
-							</select>
+							<Field.Label>Language</Field.Label>
+							<Field.Control>
+								<select
+									className="bg-form border-form rounded-md border px-2 py-1"
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(event) => {
+										field.handleChange(event.currentTarget.value);
+									}}
+								>
+									<option value="typescript">typescript</option>
+									<option value="javascript">javascript</option>
+									<option value="json">json</option>
+									<option value="bash">bash</option>
+								</select>
+							</Field.Control>
 						</Field.Item>
 					)}
 				</form.Field>
 				<form.Field name="code">
 					{(field) => (
 						<Field.Item name={field.name}>
-							<Label htmlFor={field.name}>Code</Label>
-							<TextArea
-								appearance="monospaced"
-								id={field.name}
-								name={field.name}
-								className="min-h-28 w-full"
-								value={field.state.value}
-								onBlur={field.handleBlur}
-								onChange={(event) => {
-									field.handleChange(event.currentTarget.value);
-								}}
-							/>
-						</Field.Item>
-					)}
-				</form.Field>
-				<div className="flex flex-wrap items-end gap-4">
-					<form.Field name="showLineNumbers">
-						{(field) => (
-							<Label htmlFor={field.name} className="mb-2 flex items-center gap-2">
-								<Switch
-									id={field.name}
-									name={field.name}
-									checked={field.state.value}
-									onBlur={field.handleBlur}
-									onCheckedChange={(value) => {
-										field.handleChange(value);
-									}}
-								/>
-								Show line numbers
-							</Label>
-						)}
-					</form.Field>
-					<form.Field name="highlightLines">
-						{(field) => (
-							<Field.Item name={field.name}>
-								<Label htmlFor={field.name}>Highlight lines</Label>
-								<Input
-									id={field.name}
-									name={field.name}
-									type="text"
-									placeholder="e.g. 1, 2-3"
+							<Field.Label>Code</Field.Label>
+							<Field.Control>
+								<TextArea
+									appearance="monospaced"
+									className="min-h-28 w-full"
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(event) => {
 										field.handleChange(event.currentTarget.value);
 									}}
 								/>
+							</Field.Control>
+						</Field.Item>
+					)}
+				</form.Field>
+				<div className="flex flex-wrap items-end gap-4">
+					<form.Field name="showLineNumbers">
+						{(field) => (
+							<Field.Item name={field.name} className="mb-2 w-auto">
+								<Field.Label className="flex items-center gap-2">
+									<Field.Control>
+										<Switch
+											checked={field.state.value}
+											onBlur={field.handleBlur}
+											onCheckedChange={(value) => {
+												field.handleChange(value);
+											}}
+										/>
+									</Field.Control>
+									Show line numbers
+								</Field.Label>
+							</Field.Item>
+						)}
+					</form.Field>
+					<form.Field name="highlightLines">
+						{(field) => (
+							<Field.Item name={field.name}>
+								<Field.Label>Highlight lines</Field.Label>
+								<Field.Control>
+									<Input
+										type="text"
+										placeholder="e.g. 1, 2-3"
+										value={field.state.value}
+										onBlur={field.handleBlur}
+										onChange={(event) => {
+											field.handleChange(event.currentTarget.value);
+										}}
+									/>
+								</Field.Control>
 							</Field.Item>
 						)}
 					</form.Field>
 					<form.Field name="lineNumberStart">
 						{(field) => (
 							<Field.Item name={field.name}>
-								<Label htmlFor={field.name}>Line number start</Label>
-								<Input
-									id={field.name}
-									name={field.name}
-									type="number"
-									min={1}
-									value={String(field.state.value)}
-									onBlur={field.handleBlur}
-									onChange={(event) => {
-										field.handleChange(Number(event.currentTarget.value) || 1);
-									}}
-								/>
+								<Field.Label>Line number start</Field.Label>
+								<Field.Control>
+									<Input
+										type="number"
+										min={1}
+										value={String(field.state.value)}
+										onBlur={field.handleBlur}
+										onChange={(event) => {
+											field.handleChange(Number(event.currentTarget.value) || 1);
+										}}
+									/>
+								</Field.Control>
 							</Field.Item>
 						)}
 					</form.Field>

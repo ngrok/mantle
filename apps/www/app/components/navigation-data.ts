@@ -359,6 +359,7 @@ export const migrationPages = [
 	"CodeBlock",
 	"DataTable Action Column",
 	"Dialog.Footer DOM Order",
+	"Field.Item Control Id",
 	"Priority → Intent",
 ] as const;
 
@@ -367,6 +368,7 @@ export const migrationRoutes = {
 	CodeBlock: "/migrations/code-block-migration",
 	"DataTable Action Column": "/migrations/data-table-action-header-migration",
 	"Dialog.Footer DOM Order": "/migrations/dialog-footer-dom-order-migration",
+	"Field.Item Control Id": "/migrations/field-item-owns-control-id-migration",
 	"Priority → Intent": "/migrations/priority-to-intent-migration",
 } as const satisfies Record<(typeof migrationPages)[number], Route>;
 
@@ -377,6 +379,8 @@ export const migrationDescriptions = {
 		"Switch a pinned action column's header to DataTable.ActionHeader so it stays aligned on horizontal scroll.",
 	"Dialog.Footer DOM Order":
 		"Dialog.Footer now renders children in DOM order — reverse footer children to preserve their layout.",
+	"Field.Item Control Id":
+		"Field.Item owns the control id: move a child id to Field.Item, drop htmlFor from Field.Label, and update PasswordInput toggle selectors.",
 	"Priority → Intent":
 		"priority is now intent across Button, Alert, AlertDialog, and Toast — and Button and IconButton require explicit appearance and intent.",
 } as const satisfies Record<(typeof migrationPages)[number], string>;

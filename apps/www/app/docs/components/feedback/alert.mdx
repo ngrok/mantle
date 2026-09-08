@@ -108,6 +108,23 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 </Alert.Root>
 ```
 
+## Announcing a dynamic alert
+
+`Alert.Root` renders a plain `<div>` with no ARIA role. A static alert that is on the page at load does not need one. When your code inserts an alert after an action, such as "Invalid email or password." after a submit, pass `role="alert"` so a screen reader announces it. Pass `role="status"` for a less urgent message that waits until the user is idle.
+
+```tsx
+{
+	error && (
+		<Alert.Root intent="danger" role="alert">
+			<Alert.Icon />
+			<Alert.Content>
+				<Alert.Description>{error}</Alert.Description>
+			</Alert.Content>
+		</Alert.Root>
+	);
+}
+```
+
 ## Composition
 
 Compose the parts of an `Alert` together to build your own:
@@ -415,7 +432,7 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 
 ### Alert.Root
 
-Displays a callout for user attention. Root container for all `Alert` sub-components.
+Displays a callout for user attention. Root container for all `Alert` sub-components. It has no ARIA role of its own: pass `role="alert"` when your code inserts the alert after an action, so a screen reader announces it.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 

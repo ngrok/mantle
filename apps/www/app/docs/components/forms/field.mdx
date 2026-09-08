@@ -132,11 +132,11 @@ export const WithoutToErrorMessagesExample = () => {
 
 `Field.Label` wraps the mantle [`Label`](/components/forms/label) for ergonomic field composition. It keeps the same click-to-focus, disabled, and typography behavior as `Label`; see the [Label docs](/components/forms/label) for the full surface.
 
-**Label-to-control association is automatic inside a `Field.Item`.** `Field.Item` generates a stable control id, `Field.Control` splats that id onto its focusable child, and `Field.Label` consumes the same id as the default `htmlFor`. The required `name` on `Field.Item` is the single source of truth for the control's form name, so you can write `<Field.Label>Email</Field.Label>` next to `<Field.Control><Input /></Field.Control>` without threading a matching `htmlFor` / `id` pair (or a separate `useId()` call) at the call site. Pass an explicit `htmlFor` on `Field.Label` to opt out, for example when the focusable element is rendered outside of `Field.Control` and the auto-generated id never lands on it.
+**Label-to-control association is automatic inside a `Field.Item`.** `Field.Item` generates a stable control id, `Field.Control` splats that id onto its focusable child, and `Field.Label` consumes the same id as the default `htmlFor`. The required `name` on `Field.Item` is the single source of truth for the control's form name, so you can write `<Field.Label>Email</Field.Label>` next to `<Field.Control><Input /></Field.Control>` without threading a matching `htmlFor` / `id` pair (or a separate `useId()` call) at the call site. Pass `id` on `Field.Item` to set that id yourself, for example when a Playwright locator or an anchor link must find the control by id: `Field.Control` and `Field.Label` both follow it, and the wrapping `<div>` carries no id. `Field.Label` has no `htmlFor` prop and `Field.Control` has no `id` prop, so `Field.Item` is the one owner. Render the focusable element inside `Field.Control` so the id lands on it.
 
 Wrap the focusable control in `Field.Control` so `Field.Item` can associate descriptions and rendered errors via `aria-describedby` / `aria-errormessage`. A rendered `Field.Errors` or `Field.ErrorList` infers error state; pass `validation` on `Field.Item` only when you need to override that state.
 
-**`Field.Item` owns the full control contract.** When a focusable control is wrapped in `Field.Control`, the surrounding `Field.Item` owns its `id`, `name`, `aria-describedby`, `aria-errormessage`, `aria-invalid`, and `validation`; anything supplied on the child element (or on `Field.Control`) is overwritten. There's one place to override: `Field.Item` itself. To opt out of the contract entirely, render the control without `Field.Control`.
+**`Field.Item` owns the full control contract.** When a focusable control is wrapped in `Field.Control`, the surrounding `Field.Item` owns its `id`, `name`, `aria-describedby`, `aria-errormessage`, `aria-invalid`, and `validation`; anything supplied on the child element (or on `Field.Control`) is overwritten. There's one place to override: `Field.Item` itself, with `id`, `name`, or `validation`. To opt out of the contract entirely, render the control without `Field.Control`.
 
 <Example className="w-full">
 	<Field.Item name="username" className="max-w-80">
@@ -726,11 +726,11 @@ import { Field } from "@ngrok/mantle/field";
 
 ### Field.Label
 
-`Field.Label` wraps [`Label`](/components/forms/label) and defaults `htmlFor` from the surrounding `Field.Item`. Use it inside `Field.Item` to give the control an accessible name and click-to-focus behavior.
+`Field.Label` wraps [`Label`](/components/forms/label) and always points `htmlFor` at the surrounding `Field.Item`'s control id. `htmlFor` is not a prop; set `id` on `Field.Item` to choose the id. Use it inside `Field.Item` to give the control an accessible name and click-to-focus behavior.
 
 See the [Label docs](/components/forms/label) for association patterns, disabled state, and typography behavior.
 
-All props from [`Label`](/components/forms/label).
+All props from [`Label`](/components/forms/label) except `htmlFor`.
 
 ### Field.LabelText
 
@@ -777,17 +777,18 @@ A single form field. Renders a plain `<div>` with `flex flex-col gap-1.5` so `Fi
 
 **When to use:** for every individual field — text inputs, selects, single checkboxes, switches, password inputs, etc.
 
-All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) except `id`, plus:
 
-| Prop          | Type                                         | Default | Description                                                                                                                                                                              |
-| ------------- | -------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`        | `string`                                     | —       | Form field name. Splats onto the focusable child rendered inside `Field.Control`; `Field.Item` also owns the generated id used by `Field.Control` and `Field.Label`'s default `htmlFor`. |
-| `asChild?`    | `boolean`                                    | `false` | Render as a different element by passing a child.                                                                                                                                        |
-| `validation?` | `"error" \| "success" \| "warning" \| false` | —       | Override the validation state inherited by `Field.Control`.                                                                                                                              |
+| Prop          | Type                                         | Default | Description                                                                                                                                                                                                      |
+| ------------- | -------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | `string`                                     | —       | Form field name. Splats onto the focusable child rendered inside `Field.Control`; `Field.Item` also owns the generated id used by `Field.Control` and `Field.Label`'s default `htmlFor`.                         |
+| `asChild?`    | `boolean`                                    | `false` | Render as a different element by passing a child.                                                                                                                                                                |
+| `id?`         | `string`                                     | —       | DOM id for the focusable control, not for the wrapping `<div>`. `Field.Control` splats it onto the control and `Field.Label` uses it as the default `htmlFor`. When omitted, `Field.Item` generates a stable id. |
+| `validation?` | `"error" \| "success" \| "warning" \| false` | —       | Override the validation state inherited by `Field.Control`.                                                                                                                                                      |
 
 ### Field.Control
 
-Applies `Field.Item` description, error, identity, and validation state to a single control. It always behaves like an `asChild` slot: pass one child element to receive the generated props, or use a function child to place those props manually. Mantle compound controls that consume `FieldControlContext` can be wrapped at the root when their docs show that composition; otherwise use the render-prop form to place the generated props on the actual focusable element. Override validation on the surrounding `Field.Item`.
+Applies `Field.Item` description, error, identity, and validation state to a single control. It always behaves like an `asChild` slot: pass one child element to receive the generated props, or use a function child to place those props manually. Mantle compound controls that consume `FieldControlContext` can be wrapped at the root when their docs show that composition; otherwise use the render-prop form to place the generated props on the actual focusable element. Override validation on the surrounding `Field.Item`. `id` is not a prop here either; set it on `Field.Item`.
 
 For the simple element-child form, see the [primary example](#field) above; to wrap a compound control (`Select`, `MultiSelect`) at its root, follow the composition shown in that control's own docs.
 

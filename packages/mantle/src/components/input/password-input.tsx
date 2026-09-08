@@ -2,7 +2,7 @@
 
 import { EyeIcon } from "@phosphor-icons/react/Eye";
 import { EyeClosedIcon } from "@phosphor-icons/react/EyeClosed";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ComponentProps } from "react";
 import { flushSync } from "react-dom";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
@@ -48,9 +48,17 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  * to be notified when the user toggles via the built-in button.
  *
  * **Accessibility.** Always pair with a {@link https://mantle.ngrok.com/components/forms/label Label}.
- * The toggle button has its own accessible name announcing the current
- * state. The input keeps `autocomplete="current-password"` /
- * `"new-password"` semantics — set `autoComplete` explicitly per flow.
+ * The toggle is a focusable `aria-pressed` button named "Show value". Its
+ * name does not change with state, and it does not contain the word
+ * "password", so a label query for the input matches one element. Its
+ * `aria-controls` points at the input's `id`: the `id` you pass, else a
+ * generated one. The input keeps `autocomplete="current-password"` /
+ * `"new-password"` semantics. Set `autoComplete` explicitly per flow.
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"password-input"` | The chrome around the input. |
+ * | `data-slot` | `"password-input-toggle"` | The visibility toggle button. |
  *
  * **Browser password managers.** When revealed, the input switches to
  * `type="text"` — some password managers may pause autofill in this state,
@@ -86,11 +94,14 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  * ```
  */
 const PasswordInput = ({
+	id: idProp,
 	onValueVisibilityChange,
 	ref,
 	showValue = false,
 	...props
 }: PasswordInputProps) => {
+	const generatedId = useId();
+	const id = idProp ?? generatedId;
 	const [showPassword, setShowPassword] = useState<boolean>(showValue);
 	const type: PasswordInputType = showPassword ? "text" : "password";
 	const EyeCon = showPassword ? EyeIcon : EyeClosedIcon;
@@ -102,15 +113,20 @@ const PasswordInput = ({
 	}, [showValue]);
 
 	return (
-		<Input data-slot="password-input" type={type} ref={ref} {...props}>
+		<Input data-slot="password-input" id={id} type={type} ref={ref} {...props}>
 			<InputCapture />
 			<button
 				type="button"
-				tabIndex={-1}
+				data-slot="password-input-toggle"
 				// Why aria-label and not hidden text: voice-control tools treat DOM
 				// text as a visible label, so they skip a button that hides one.
-				aria-label={`Turn password visibility ${showPassword ? "off" : "on"}`}
-				className="text-body hover:text-strong ml-1 cursor-pointer bg-inherit p-0"
+				// Why a fixed name: `aria-pressed` carries the state, and a name
+				// without "password" keeps a substring label query on the input
+				// from matching the toggle too.
+				aria-label="Show value"
+				aria-pressed={showPassword}
+				aria-controls={id}
+				className="text-body hover:text-strong focus-visible:ring-focus-accent ml-1 cursor-pointer rounded-xs bg-inherit p-0 focus-visible:ring-2 focus-visible:outline-hidden"
 				onClick={() => {
 					// Cancel any in-flight animation so rapid clicks are never blocked
 					if (animationRef.current) {
@@ -134,6 +150,10 @@ const PasswordInput = ({
 						animationRef.current.onfinish = () => {
 							animationRef.current = null;
 						};
+						// Why: `cancel()` rejects `finished` with an AbortError, and nothing
+						// awaits it, so a rapid second click would surface an unhandled
+						// rejection.
+						animationRef.current.finished.catch(() => {});
 					}
 				}}
 			>

@@ -11,18 +11,21 @@ describe("PasswordInput (browser)", () => {
 		render(<PasswordInput placeholder="test" />);
 
 		const input = screen.getByPlaceholderText("test");
-		const toggle = screen.getByRole("button", { name: /turn password visibility/i });
+		const toggle = screen.getByRole("button", { name: "Show value" });
 
 		expect(input).toHaveAttribute("type", "password");
+		expect(toggle).toHaveAttribute("aria-pressed", "false");
 
 		await user.click(toggle);
 		expect(input).toHaveAttribute("type", "text");
-		// The accessible name flips with the state, via aria-label.
-		expect(toggle).toHaveAccessibleName("Turn password visibility off");
+		// The name stays fixed; `aria-pressed` carries the state.
+		expect(toggle).toHaveAccessibleName("Show value");
+		expect(toggle).toHaveAttribute("aria-pressed", "true");
 
 		await user.click(toggle);
 		expect(input).toHaveAttribute("type", "password");
-		expect(toggle).toHaveAccessibleName("Turn password visibility on");
+		expect(toggle).toHaveAccessibleName("Show value");
+		expect(toggle).toHaveAttribute("aria-pressed", "false");
 	});
 
 	test("clicking the toggle fires onValueVisibilityChange with the new visibility", async () => {
@@ -30,7 +33,7 @@ describe("PasswordInput (browser)", () => {
 		const handleChange = vi.fn<(visible: boolean) => void>();
 		render(<PasswordInput placeholder="test" onValueVisibilityChange={handleChange} />);
 
-		const toggle = screen.getByRole("button", { name: /turn password visibility/i });
+		const toggle = screen.getByRole("button", { name: "Show value" });
 
 		await user.click(toggle);
 		expect(handleChange).toHaveBeenCalledWith(true);
@@ -54,7 +57,7 @@ describe("PasswordInput (browser)", () => {
 		}));
 
 		render(<PasswordInput placeholder="test" />);
-		const toggle = screen.getByRole("button", { name: /turn password visibility/i });
+		const toggle = screen.getByRole("button", { name: "Show value" });
 		const icon = toggle.querySelector("svg");
 		expect(icon).toBeInTheDocument();
 

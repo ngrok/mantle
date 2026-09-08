@@ -5,7 +5,6 @@ import { Checkbox } from "@ngrok/mantle/checkbox";
 import { Field } from "@ngrok/mantle/field";
 import { usePrefersReducedMotion } from "@ngrok/mantle/hooks";
 import { Input } from "@ngrok/mantle/input";
-import { Label } from "@ngrok/mantle/label";
 import { Main } from "@ngrok/mantle/main";
 import type { SandbarHandle } from "@ngrok/mantle/sandbar";
 import { Sandbar } from "@ngrok/mantle/sandbar";
@@ -118,14 +117,17 @@ export function SandbarDemo() {
 							/>
 						</Field.Control>
 					</Field.Item>
-					<Label className="flex items-center gap-2" htmlFor="fail-next-save">
-						<Checkbox
-							checked={failNextSave}
-							id="fail-next-save"
-							onChange={(event) => setFailNextSave(event.target.checked)}
-						/>
-						Fail the next save (reports the error in the form)
-					</Label>
+					<Field.Item name="fail-next-save">
+						<Field.Label className="flex items-center gap-2">
+							<Field.Control>
+								<Checkbox
+									checked={failNextSave}
+									onChange={(event) => setFailNextSave(event.target.checked)}
+								/>
+							</Field.Control>
+							Fail the next save (reports the error in the form)
+						</Field.Label>
+					</Field.Item>
 					<Button
 						appearance="link"
 						intent="neutral"
@@ -345,10 +347,14 @@ export function SandbarReducedMotionDemo() {
 						</p>
 					</div>
 
-					<Label className="flex items-center gap-2" htmlFor="simulate-reduced-motion">
-						<Switch checked={simulate} id="simulate-reduced-motion" onCheckedChange={setSimulate} />
-						Simulate reduced motion
-					</Label>
+					<Field.Item name="simulate-reduced-motion">
+						<Field.Label className="flex items-center gap-2">
+							<Field.Control>
+								<Switch checked={simulate} onCheckedChange={setSimulate} />
+							</Field.Control>
+							Simulate reduced motion
+						</Field.Label>
+					</Field.Item>
 
 					<p className="text-muted text-sm">
 						{isStill

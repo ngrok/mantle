@@ -1,9 +1,9 @@
 import { Badge } from "@ngrok/mantle/badge";
 import { Button } from "@ngrok/mantle/button";
 import { Dialog } from "@ngrok/mantle/dialog";
-import { Label } from "@ngrok/mantle/label";
+import { Field } from "@ngrok/mantle/field";
 import { Switch } from "@ngrok/mantle/switch";
-import { useId, useState } from "react";
+import { useState } from "react";
 
 const sampleRequests = [
 	{ method: "GET", path: "/api/v2/endpoints", status: 200, durationMs: 12 },
@@ -30,7 +30,6 @@ const requestLog = Array.from({ length: 7 })
  */
 export function FullPageDialogDemo() {
 	const [fullBleed, setFullBleed] = useState(false);
-	const switchId = useId();
 
 	return (
 		<Dialog.Root>
@@ -45,9 +44,15 @@ export function FullPageDialogDemo() {
 					<Dialog.CloseIconButton />
 				</Dialog.Header>
 				<Dialog.Body className="p-0">
-					<div className="border-dialog-muted bg-dialog sticky top-0 flex items-center gap-2 border-b px-6 py-3">
-						<Switch id={switchId} checked={fullBleed} onCheckedChange={setFullBleed} />
-						<Label htmlFor={switchId}>Full bleed</Label>
+					<div className="border-dialog-muted bg-dialog sticky top-0 border-b px-6 py-3">
+						<Field.Item name="fullBleed">
+							<Field.Label className="flex items-center gap-2">
+								<Field.Control>
+									<Switch checked={fullBleed} onCheckedChange={setFullBleed} />
+								</Field.Control>
+								Full bleed
+							</Field.Label>
+						</Field.Item>
 					</div>
 					<div className="divide-card-muted divide-y font-mono text-sm">
 						{requestLog.map((request) => (

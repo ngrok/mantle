@@ -2,11 +2,50 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { act, useEffect, useRef, useState } from "react";
 import type { ComponentRef } from "react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { Input, InputCapture } from "./input.js";
 
 describe("Input", () => {
+	test("keyboard activation of an adornment button keeps focus on the button", async () => {
+		const user = userEvent.setup();
+		const handleClick = vi.fn<() => void>();
+		render(
+			<Input placeholder="test">
+				<InputCapture />
+				<button type="button" onClick={handleClick}>
+					Copy
+				</button>
+			</Input>,
+		);
+
+		const button = screen.getByRole("button", { name: "Copy" });
+		await user.tab();
+		await user.tab();
+		expect(button).toHaveFocus();
+
+		await user.keyboard("{Enter}");
+		expect(handleClick).toHaveBeenCalledTimes(1);
+		expect(button).toHaveFocus();
+
+		await user.keyboard("[Space]");
+		expect(handleClick).toHaveBeenCalledTimes(2);
+		expect(button).toHaveFocus();
+	});
+
+	test("a pointer click on an adornment button focuses the input", async () => {
+		const user = userEvent.setup();
+		render(
+			<Input placeholder="test">
+				<InputCapture />
+				<button type="button">Copy</button>
+			</Input>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Copy" }));
+		expect(screen.getByPlaceholderText("test")).toHaveFocus();
+	});
+
 	test('without children or validation="error", renders an input with aria-invalid="false" and placeholder="Testy McTestface"', () => {
 		render(<Input placeholder="Testy McTestface" />);
 		expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "false");

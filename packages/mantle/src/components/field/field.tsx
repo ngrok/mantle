@@ -116,24 +116,27 @@ const Legend = ({ className, ref, ...props }: ComponentProps<"legend">) => {
 };
 
 /**
+ * Props for `Field.Label`: the Mantle `Label` props without `htmlFor`.
+ */
+type FieldLabelProps = Omit<ComponentProps<typeof Label>, "htmlFor">;
+
+/**
  * Caption for a `Field.Item`. Renders the Mantle `Label` with the same
- * `htmlFor`, click-to-focus, disabled, and typography behavior — but inside a
- * `Field.Item`, the label-to-control association is automatic: `Field.Item`
- * generates a stable control id, `Field.Control` splats that id onto its
- * focusable child, and `Field.Label` consumes the same id as the default
- * `htmlFor`. The required `name` on `Field.Item` is the single source of truth
- * for the control's form name — no matching `htmlFor` / `id` pair, no separate
- * `useId()` call.
+ * click-to-focus, disabled, and typography behavior, and always points its
+ * `htmlFor` at the surrounding `Field.Item`'s control id. `Field.Item` owns
+ * that id (its `id` prop, else a generated one), `Field.Control` splats it
+ * onto the focusable child, and `Field.Label` follows it. `htmlFor` is not a
+ * prop here, so a label and its control cannot drift apart.
  *
- * Pass an explicit `htmlFor` to opt out — for example when the focusable
- * element is rendered outside of `Field.Control` and the auto-generated id
- * never lands on it.
+ * Render the focusable element inside `Field.Control` so the id lands on it.
+ * For a checkbox or switch row, wrap the `Field.Control` in the `Field.Label`;
+ * the label then also names the control by nesting.
  *
  * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
  * ```tsx
- * // htmlFor is wired automatically from Field.Item's name.
+ * // htmlFor is wired automatically from Field.Item.
  * <Field.Item name="apiKey">
  *   <Field.Label>API key</Field.Label>
  *   <Field.Control>
@@ -141,17 +144,37 @@ const Legend = ({ className, ref, ...props }: ComponentProps<"legend">) => {
  *   </Field.Control>
  * </Field.Item>
  *
- * // Opt out with an explicit htmlFor when needed.
- * <Field.Item name="legacy">
- *   <Field.Label htmlFor="legacy-control">Legacy field</Field.Label>
- *   <input id="legacy-control" />
+ * // Field.Item's id names the control; the label follows it.
+ * <Field.Item name="password" id="password">
+ *   <Field.Label>Password</Field.Label>
+ *   <Field.Control>
+ *     <PasswordInput />
+ *   </Field.Control>
+ * </Field.Item>
+ *
+ * // A checkbox row: the label wraps the control.
+ * <Field.Item name="terms">
+ *   <Field.Label className="flex items-center gap-2">
+ *     <Field.Control>
+ *       <Checkbox />
+ *     </Field.Control>
+ *     Accept terms and conditions
+ *   </Field.Label>
  * </Field.Item>
  * ```
  */
-const FieldLabel = ({ htmlFor, ref, ...props }: ComponentProps<typeof Label>) => {
+const FieldLabel = ({ ref, ...props }: FieldLabelProps) => {
 	const context = useContext(FieldItemContext);
 
-	return <Label ref={ref} htmlFor={htmlFor ?? context?.controlId} {...props} />;
+	return (
+		<Label
+			ref={ref}
+			{...props}
+			// Why after the spread: a wider props object can still carry `htmlFor`
+			// past the type, and `Field.Item` owns the control id.
+			htmlFor={context?.controlId}
+		/>
+	);
 };
 
 /**
@@ -528,9 +551,17 @@ const Group = ({ asChild, className, ref, ...props }: ComponentProps<"div"> & Wi
 /**
  * Props for `Field.Item`.
  */
-type FieldItemProps = ComponentProps<"div"> &
+type FieldItemProps = Omit<ComponentProps<"div">, "id"> &
 	WithAsChild &
 	WithValidation & {
+		/**
+		 * DOM id for the focusable control, not for the wrapping `<div>`.
+		 * `Field.Control` splats it onto the control and `Field.Label` uses it
+		 * as the default `htmlFor`. When omitted, `Field.Item` generates a
+		 * stable id. Set it when a test locator or an anchor link must find the
+		 * control by id.
+		 */
+		id?: string;
 		/**
 		 * Form-value name for the field. Required so `Field.Control` can splat
 		 * it onto the focusable child while `Field.Item` owns the stable
@@ -551,6 +582,11 @@ type FieldItemProps = ComponentProps<"div"> &
  * that `Field.Control` applies to the focusable control. Rendered errors
  * infer an `"error"` validation state unless `validation` is supplied as an
  * explicit override.
+ *
+ * **Control id.** `Field.Item` owns the control's DOM id, so its `id` prop
+ * names the control, not the wrapping `<div>`. It generates one by default;
+ * pass `id` to set it yourself, and both `Field.Control` and `Field.Label`
+ * follow it. An `id` on the control element itself is overwritten.
  *
  * **Single-slot constraint.** A `Field.Item` owns one description ID and one
  * errors ID, so render at most one `Field.Description` and one
@@ -587,13 +623,15 @@ const Item = ({
 	asChild,
 	children,
 	className,
+	id: idProp,
 	name,
 	ref,
 	validation: validationProp,
 	...props
 }: FieldItemProps) => {
 	const Comp = asChild ? Slot : "div";
-	const controlId = useId();
+	const generatedControlId = useId();
+	const controlId = idProp ?? generatedControlId;
 	const descriptionId = useId();
 	const errorId = useId();
 	const [hasErrors, setHasErrors] = useState(false);
@@ -639,13 +677,14 @@ const Item = ({
 
 type FieldControlSlotProps = Omit<
 	ComponentProps<typeof Slot>,
-	"aria-describedby" | "aria-errormessage" | "aria-invalid" | "children"
+	"aria-describedby" | "aria-errormessage" | "aria-invalid" | "children" | "id"
 >;
 
 /**
  * Element-child form of `Field.Control`. Renders via `Slot`, so it accepts
  * any HTML/Slot props, including `ref` — those land on the single child
- * element along with the generated ARIA props.
+ * element along with the generated ARIA props. `id` is not a prop here;
+ * `Field.Item` owns the control id.
  */
 type FieldControlElementProps = FieldControlSlotProps & {
 	/**
@@ -718,8 +757,9 @@ type FieldControlProps = FieldControlElementProps | FieldControlRenderProps;
  * `Field.Item` owns the full control contract — `id`, `name`, `aria-*`, and
  * `validation` all flow down from the surrounding `Field.Item` and overwrite
  * anything passed on the child. To override these values, set them on
- * `Field.Item` itself (e.g. `<Field.Item validation="error">`); to opt out of
- * the contract entirely, render your control without `Field.Control`.
+ * `Field.Item` itself (`<Field.Item id="password">`,
+ * `<Field.Item validation="error">`); to opt out of the contract entirely,
+ * render your control without `Field.Control`.
  *
  * @see https://mantle.ngrok.com/components/forms/field
  *
@@ -1217,19 +1257,17 @@ const Field = {
 	 */
 	Legend,
 	/**
-	 * The Mantle `Label`, exposed on `Field` for field composition. Inside a
-	 * `Field.Item`, `htmlFor` defaults to the same stable id that `Field.Control`
-	 * splats onto its focusable child — so the label-to-control association is
-	 * automatic from `Field.Item`'s required `name` and you don't need to thread
-	 * a matching `htmlFor` / `id` pair by hand. Pass an explicit `htmlFor` to
-	 * opt out (e.g. when the focusable element is rendered outside of
-	 * `Field.Control`).
+	 * The Mantle `Label`, exposed on `Field` for field composition. Its
+	 * `htmlFor` always points at the surrounding `Field.Item`'s control id, the
+	 * same id `Field.Control` splats onto its focusable child, so the
+	 * label-to-control association needs no `htmlFor` / `id` pair by hand.
+	 * `htmlFor` is not a prop; set `id` on `Field.Item` to choose the id.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/field#fieldlabel
 	 *
 	 * @example
 	 * ```tsx
-	 * // htmlFor is wired automatically from Field.Item's name.
+	 * // htmlFor is wired automatically from Field.Item.
 	 * <Field.Group>
 	 *   <Field.Item name="apiKey">
 	 *     <Field.LabelRow>
