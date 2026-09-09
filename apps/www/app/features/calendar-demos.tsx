@@ -44,6 +44,28 @@ export function SingleCalendarExample() {
 	);
 }
 
+// Why a fixed date: the demo stands in for a loader value, so the server and
+// the browser render the same grid.
+const today = new Date(2024, 4, 15);
+
+/**
+ * Server-rendered calendar demo. One date seeds `today` and `defaultMonth`.
+ */
+export function ServerRenderedCalendarExample() {
+	const [date, setDate] = useState<Date | undefined>(undefined);
+
+	return (
+		<Calendar
+			mode="single"
+			today={today}
+			defaultMonth={today}
+			selected={date}
+			onSelect={setDate}
+			className="border-card rounded-md border p-2 shadow-md"
+		/>
+	);
+}
+
 /**
  * Range date selection calendar demo.
  */

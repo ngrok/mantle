@@ -3,8 +3,6 @@ title: Calendar
 description: A calendar component that allows users to select a date or a range of dates.
 ---
 
-import { Calendar } from "@ngrok/mantle/calendar";
-import { useState } from "react";
 import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
 import {
@@ -13,24 +11,9 @@ import {
 	PopoverCalendarExample,
 	RangeCalendarExample,
 	RangeMultipleCalendarExample,
+	ServerRenderedCalendarExample,
 	SingleCalendarExample,
 } from "~/features/calendar-demos";
-
-export const today = new Date(2024, 4, 15);
-
-export function ServerRenderedCalendarExample() {
-	const [date, setDate] = useState(undefined);
-	return (
-		<Calendar
-			mode="single"
-			today={today}
-			defaultMonth={today}
-			selected={date}
-			onSelect={setDate}
-			className="border-card rounded-md border p-2 shadow-md"
-		/>
-	);
-}
 
 <PageHeader id="calendar" isPreview>
 	Calendar

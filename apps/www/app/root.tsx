@@ -155,6 +155,7 @@ export function Layout({ children }: PropsWithChildren) {
 	const loaderData = useRouteLoaderData<typeof loader>("root");
 	const initialHtmlThemeProps = useInitialHtmlThemeProps({
 		className: "h-full",
+		ssrCookie: loaderData?.ssrCookie,
 	});
 	const scrollBehavior = useScrollBehavior();
 	const isFramedPreview = useIsFramedPreview();
