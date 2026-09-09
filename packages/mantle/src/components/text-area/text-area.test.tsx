@@ -1,9 +1,18 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { TextArea } from "./text-area.js";
 
 describe("TextArea", () => {
+	test("a callback ref fires once with the textarea across a re-render", () => {
+		const refSpy = vi.fn<(node: HTMLTextAreaElement | null) => void>();
+		const { rerender } = render(<TextArea ref={refSpy} value="a" onChange={() => {}} />);
+		rerender(<TextArea ref={refSpy} value="a" onChange={() => {}} />);
+
+		expect(refSpy).toHaveBeenCalledTimes(1);
+		expect(refSpy).toHaveBeenLastCalledWith(screen.getByRole("textbox"));
+	});
+
 	test('given validation={false}, renders a textarea with aria-invalid="false" and not have data-validation', () => {
 		render(<TextArea validation={false} />);
 		expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "false");

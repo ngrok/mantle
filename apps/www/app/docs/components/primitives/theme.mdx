@@ -48,7 +48,7 @@ To use the `ThemeProvider`, wrap your application's entry point. This should be 
 
 For SSR apps, add `PreventWrongThemeFlashScript` and `MantleStyleSheets` to the `<head>` to prevent a Flash of Unstyled Content (FOUC), and send font preloads as HTTP `Link` response headers using `preloadFontLink`. Delivering font hints as headers starts fetches before the browser parses any HTML, improving LCP on mobile.
 
-`MantleStyleSheets` renders `<link rel="stylesheet">` tags for the dark, light-high-contrast, and dark-high-contrast theme CSS files. Each stylesheet is gated behind a `media` attribute matching its OS preference so it is non-render-blocking for users who do not need it. Pass `ssrCookie` (from `extractThemeCookie`) so the server can render the correct `media` attribute for users with a manually-selected theme: when a non-system theme is resolved from the cookie, the SSR HTML is already correct and no inline fix script is needed, avoiding FOUC without relying on JavaScript hydration.
+`MantleStyleSheets` renders `<link rel="stylesheet">` tags for the dark, light-high-contrast, and dark-high-contrast theme CSS files. Each stylesheet is gated behind a `media` attribute matching its OS preference so it is non-render-blocking for users who do not need it. Pass `ssrCookie` (from `extractThemeCookie`) so the server can render the correct `media` attribute for users with a manually-selected theme: when a non-system theme is resolved from the cookie, the SSR HTML is already correct and no inline fix script is needed, avoiding FOUC without relying on JavaScript hydration. Pass the same `ssrCookie` to `ThemeProvider`. The server then seeds `useTheme` and `useAppliedTheme` with the stored theme, and the client hydrates without a mismatch.
 
 The CSS URLs must be passed as props. Import them with `?url` in your app code so Vite's URL transform applies correctly:
 
@@ -118,7 +118,7 @@ export function Layout({ children }: PropsWithChildren) {
 				<Links />
 			</head>
 			<body>
-				<ThemeProvider>{children}</ThemeProvider>
+				<ThemeProvider ssrCookie={loaderData?.ssrCookie}>{children}</ThemeProvider>
 			</body>
 		</html>
 	);
@@ -440,7 +440,7 @@ export default function Root() {
 				<MantleStyleSheets forceTheme={FORCED_THEME} {...themeUrls} nonce={nonce} />
 			</head>
 			<body>
-				<ThemeProvider forceTheme={FORCED_THEME}>
+				<ThemeProvider forceTheme={FORCED_THEME} ssrCookie={ssrCookie}>
 					<App />
 				</ThemeProvider>
 			</body>
@@ -463,10 +463,11 @@ Set `data-theme` on its own and it still picks the theme, exactly as before.
 
 The `ThemeProvider` accepts the following props in addition to the [PropsWithChildren](https://react.dev/reference/react/PropsWithChildren).
 
-| Prop          | Type            | Default | Description                                                                                                                                                                                          |
-| ------------- | --------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `children`    | `ReactNode`     |         | The React components to be wrapped by the theme provider context.                                                                                                                                    |
-| `forceTheme?` | `ResolvedTheme` |         | Pin the theme that renders, ignoring the stored preference and the OS. See [Locking a page to one theme](#locking-a-page-to-one-theme) — pass the same value to every component that forces a theme. |
+| Prop          | Type            | Default | Description                                                                                                                                                                                                                                                                                                        |
+| ------------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `children`    | `ReactNode`     |         | The React components to be wrapped by the theme provider context.                                                                                                                                                                                                                                                  |
+| `forceTheme?` | `ResolvedTheme` |         | Pin the theme that renders, ignoring the stored preference and the OS. See [Locking a page to one theme](#locking-a-page-to-one-theme) — pass the same value to every component that forces a theme.                                                                                                               |
+| `ssrCookie?`  | `string`        |         | The theme cookie pair from the request, via `extractThemeCookie`. On the server, the provider seeds the theme from it, so `useTheme` and `useAppliedTheme` hydrate without a mismatch. When omitted, the server renders `system`. Pass the same value you pass `MantleStyleSheets` and `useInitialHtmlThemeProps`. |
 
 The `ThemeProvider` uses a hardcoded storage key of `mantle-ui-theme` and defaults to `system` theme. The provider manages both values internally, so they need no configuration.
 
@@ -602,7 +603,7 @@ import { PreloadFont } from "@ngrok/mantle/theme";
 
 ### extractThemeCookie
 
-Extracts only the theme cookie key-value pair from a full `Cookie` header string. Pass the result to `MantleStyleSheets` and `useInitialHtmlThemeProps` as `ssrCookie` — this avoids exposing other cookies from the request in loader data.
+Extracts only the theme cookie key-value pair from a full `Cookie` header string. Pass the result to `ThemeProvider`, `MantleStyleSheets`, and `useInitialHtmlThemeProps` as `ssrCookie`. This keeps the other cookies from the request out of loader data.
 
 ```ts
 import { extractThemeCookie } from "@ngrok/mantle/theme";

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { ComponentProps, ComponentRef } from "react";
-import { composeRefs } from "../../utils/compose-refs/index.js";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
+import { useComposedRefs } from "../../utils/compose-refs/index.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { WithValidation } from "../field/validation.js";
@@ -69,6 +70,7 @@ const Checkbox = ({
 	...props
 }: Props) => {
 	const innerRef = useRef<ComponentRef<"input">>(null);
+	const composedRef = useComposedRefs(innerRef, ref);
 	const [defaultChecked] = useState(_defaultChecked);
 	const fieldValidation = useFieldValidation();
 	const { ariaInvalid, validation } = parseValidation({
@@ -76,14 +78,15 @@ const Checkbox = ({
 		validation: _validation ?? fieldValidation,
 	});
 
-	// `indeterminate` is a DOM-only property (it has no HTML attribute), so set it
-	// imperatively from the *effective* checked state — the controlled `checked`
-	// when present, otherwise the (stable) initial `defaultChecked`. A single effect
-	// keyed on that value avoids two competing effects clobbering each other on
-	// mount, which previously dropped the indeterminate visual for a controlled
-	// `checked="indeterminate"`.
+	// `indeterminate` is a DOM-only property with no HTML attribute, so the effect
+	// below sets it from the effective checked state: the controlled `checked` when
+	// present, else the stable initial `defaultChecked`. One effect keyed on that
+	// value avoids two competing effects that clobber each other on mount, which
+	// once dropped the indeterminate visual for a controlled `checked="indeterminate"`.
+	// Why a layout effect: the committed input is unchecked until this write. A
+	// passive effect can run after the browser paints that frame.
 	const effectiveChecked = _checked != null ? _checked : defaultChecked;
-	useEffect(() => {
+	useIsomorphicLayoutEffect(() => {
 		if (innerRef.current) {
 			innerRef.current.indeterminate = isIndeterminate(effectiveChecked);
 		}
@@ -91,12 +94,12 @@ const Checkbox = ({
 
 	// React warns (and the linter flags) when both `checked` and `defaultChecked` are
 	// passed on the same input. Pick exactly one based on whether the consumer is in
-	// controlled mode (`_checked != null`). The indeterminate *visual* is applied
-	// to the DOM node imperatively via the `useEffect`s above on both paths — so in
-	// controlled mode we still pass a boolean `checked` (treating indeterminate as
-	// unchecked) and never let it become `undefined`. Passing `checked: undefined` for
-	// the indeterminate frame flips the input controlled → uncontrolled and trips
-	// React's "changing a controlled input to be uncontrolled" warning.
+	// controlled mode (`_checked != null`). The `useIsomorphicLayoutEffect` above
+	// applies the indeterminate visual on both paths. In controlled mode the input
+	// still gets a boolean `checked` (indeterminate reads as unchecked), never
+	// `undefined`. Passing `checked: undefined` for the indeterminate frame flips
+	// the input controlled → uncontrolled and trips React's "changing a controlled
+	// input to be uncontrolled" warning.
 	const checkedProp =
 		_checked != null
 			? { checked: isIndeterminate(_checked) ? false : _checked }
@@ -134,7 +137,7 @@ const Checkbox = ({
 				onClick?.(event);
 			}}
 			readOnly={readOnly}
-			ref={composeRefs(innerRef, ref)}
+			ref={composedRef}
 			type="checkbox"
 			{...props}
 		/>

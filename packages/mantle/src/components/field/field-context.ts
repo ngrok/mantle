@@ -61,12 +61,6 @@ type FieldItemContextValue = {
 	 */
 	name: string;
 	/**
-	 * `true` while a non-empty `Field.Errors` / `Field.ErrorList` is mounted
-	 * under this `Field.Item`. Used by `Field.Item` to infer an `"error"`
-	 * validation state when no explicit `validation` prop is supplied.
-	 */
-	hasErrors: boolean;
-	/**
 	 * Marks a non-empty `Field.Errors` / `Field.ErrorList` as mounted. Returns
 	 * its cleanup callback.
 	 */

@@ -756,11 +756,24 @@ const countryCodes = [
 ] as const;
 type CountryCode = (typeof countryCodes)[number];
 
+// Why a Set: a consumer narrows one code per table row. A linear scan of
+// `countryCodes` on every call grows with the row count. The Set answers in
+// constant time.
+const countryCodeSet: ReadonlySet<string> = new Set(countryCodes);
+
 /**
- * Type Predicate: check if the given value is a valid country code
+ * Narrows an unknown value to a `CountryCode`. Only an exact, case-sensitive
+ * entry of `countryCodes` passes; any non-string returns `false`.
+ *
+ * @example
+ * ```ts
+ * isCountryCode("GB-ENG"); // true
+ * isCountryCode("us"); // false, codes are upper-case
+ * isCountryCode(16); // false
+ * ```
  */
 function isCountryCode(value: unknown): value is CountryCode {
-	return countryCodes.includes(value as CountryCode);
+	return typeof value === "string" && countryCodeSet.has(value);
 }
 
 export {

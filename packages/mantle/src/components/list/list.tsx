@@ -90,7 +90,9 @@ type ListVirtualRootProps = Omit<
  * identically to `Root` (same `Item` children), so opting into
  * virtualization never changes the call site. Reach for it only when a list is
  * long enough to need it; **bound its height** so the virtualizer has a
- * viewport to measure.
+ * viewport to measure. The server renders the first slice of rows, sized by
+ * `estimateItemHeight` and `overscan`. The rest mount after hydration
+ * measures the viewport.
  *
  * @see https://mantle.ngrok.com/components/data-display/list
  *
@@ -370,7 +372,9 @@ const List = {
 	 * identically to `Root` (same `Item` children), so opting into
 	 * virtualization never changes the call site. Reach for it only when a list is
 	 * long enough to need it; **bound its height** so the virtualizer has a
-	 * viewport to measure.
+	 * viewport to measure. The server renders the first slice of rows, sized by
+	 * `estimateItemHeight` and `overscan`. The rest mount after hydration
+	 * measures the viewport.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/list
 	 *

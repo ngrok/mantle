@@ -202,7 +202,7 @@ export function Layout({ children }: PropsWithChildren) {
 					scrollBehavior === "smooth" && "scroll-smooth",
 				)}
 			>
-				<ThemeProvider>
+				<ThemeProvider ssrCookie={loaderData?.ssrCookie}>
 					<TooltipProvider>
 						<Toaster />
 						<QueryClientProvider client={queryClient}>

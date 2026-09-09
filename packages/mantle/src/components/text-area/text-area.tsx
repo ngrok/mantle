@@ -2,7 +2,7 @@
 
 import type { ComponentProps, ComponentRef } from "react";
 import { useRef, useState } from "react";
-import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { WithValidation } from "../field/validation.js";
@@ -54,6 +54,7 @@ const TextArea = ({
 	});
 	const [isDragOver, setIsDragOver] = useState(false);
 	const innerRef = useRef<ComponentRef<"textarea">>(null);
+	const composedRef = useComposedRefs(innerRef, ref);
 
 	return (
 		<textarea
@@ -84,7 +85,7 @@ const TextArea = ({
 				innerRef.current?.focus();
 				onDropCapture?.(event);
 			}}
-			ref={composeRefs(innerRef, ref)}
+			ref={composedRef}
 			{...props}
 		/>
 	);

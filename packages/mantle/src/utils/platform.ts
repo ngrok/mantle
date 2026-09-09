@@ -17,9 +17,10 @@ function hasUserAgentData(
  * which every macOS text field implements.
  *
  * SSR-safe: returns `false` when `navigator` is unavailable, matching the
- * non-Apple default. Call it from an effect or an event handler rather than
- * during render — a render-time call disagrees with the server on Apple
- * platforms and produces a hydration mismatch.
+ * non-Apple default. Call it from an event handler, an effect, or through
+ * `useIsApplePlatform`, which reads it as a `useSyncExternalStore` snapshot.
+ * A bare render-time call disagrees with the server on Apple platforms and
+ * produces a hydration mismatch.
  *
  * @example
  * ```ts

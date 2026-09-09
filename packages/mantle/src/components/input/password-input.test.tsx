@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import { Profiler, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { PasswordInput } from "./password-input.js";
@@ -186,6 +187,110 @@ describe("PasswordInput", () => {
 		expect(input).toHaveAttribute("type", "text");
 		expect(toggle).toHaveAttribute("aria-pressed", "true");
 		expect(input).toHaveFocus();
+	});
+
+	// Regression: an effect mirrored `showValue` into local state. The click
+	// handler flipped that state without a controlled check, so a static
+	// `showValue={false}` still revealed the value on click.
+	describe("controlled showValue", () => {
+		test("given showValue={false} and a consumer that does not echo, a click keeps the value hidden", async () => {
+			const user = userEvent.setup();
+			const handleChange = vi.fn<(visible: boolean) => void>();
+			const handleRender = vi.fn<() => void>();
+			render(
+				<Profiler id="password-input" onRender={handleRender}>
+					<PasswordInput
+						placeholder="test"
+						showValue={false}
+						onValueVisibilityChange={handleChange}
+					/>
+				</Profiler>,
+			);
+
+			const input = screen.getByPlaceholderText("test");
+			const toggle = screen.getByRole("button", { name: "Show value" });
+			expect(handleRender).toHaveBeenCalledTimes(1);
+
+			await user.click(toggle);
+			expect(handleChange).toHaveBeenCalledTimes(1);
+			expect(handleChange).toHaveBeenLastCalledWith(true);
+			expect(input).toHaveAttribute("type", "password");
+			expect(toggle).toHaveAttribute("aria-pressed", "false");
+			// Why the commit count: a controlled click must not write the internal
+			// state. A write there commits a second time and leaves stale state
+			// behind for a consumer who later drops `showValue`.
+			expect(handleRender).toHaveBeenCalledTimes(1);
+
+			await user.click(toggle);
+			expect(handleChange).toHaveBeenCalledTimes(2);
+			expect(handleChange).toHaveBeenLastCalledWith(true);
+			expect(input).toHaveAttribute("type", "password");
+			expect(toggle).toHaveAttribute("aria-pressed", "false");
+		});
+
+		test("given a consumer that echoes the toggle, a click reveals the value and animates the icon now in the DOM", async () => {
+			const user = userEvent.setup();
+			const animateSpy = vi.spyOn(SVGSVGElement.prototype, "animate");
+			const Subject = () => {
+				const [show, setShow] = useState(false);
+				return (
+					<PasswordInput placeholder="test" showValue={show} onValueVisibilityChange={setShow} />
+				);
+			};
+			render(<Subject />);
+
+			const input = screen.getByPlaceholderText("test");
+			const toggle = screen.getByRole("button", { name: "Show value" });
+
+			await user.click(toggle);
+			expect(input).toHaveAttribute("type", "text");
+			expect(toggle).toHaveAttribute("aria-pressed", "true");
+			// The parent's setState is the render that swaps the icon, so the
+			// animation must target the `<svg>` in the toggle after the click, not
+			// the one the click removed.
+			expect(animateSpy).toHaveBeenCalledTimes(1);
+			expect(animateSpy.mock.contexts[0]).toBe(toggle.querySelector("svg"));
+
+			await user.click(toggle);
+			expect(input).toHaveAttribute("type", "password");
+			expect(toggle).toHaveAttribute("aria-pressed", "false");
+			expect(animateSpy).toHaveBeenCalledTimes(2);
+			expect(animateSpy.mock.contexts[1]).toBe(toggle.querySelector("svg"));
+		});
+
+		// `Profiler` counts commits. A mirror effect commits the stale `type`
+		// first and the corrected one second; derivation commits once.
+		test("a showValue change swaps the type and aria-pressed in one commit", () => {
+			const handleRender = vi.fn<() => void>();
+			const { rerender } = render(
+				<Profiler id="password-input" onRender={handleRender}>
+					<PasswordInput placeholder="test" showValue={false} />
+				</Profiler>,
+			);
+
+			const input = screen.getByPlaceholderText("test");
+			const toggle = screen.getByRole("button", { name: "Show value" });
+			expect(input).toHaveAttribute("type", "password");
+			expect(handleRender).toHaveBeenCalledTimes(1);
+
+			rerender(
+				<Profiler id="password-input" onRender={handleRender}>
+					<PasswordInput placeholder="test" showValue />
+				</Profiler>,
+			);
+			expect(input).toHaveAttribute("type", "text");
+			expect(toggle).toHaveAttribute("aria-pressed", "true");
+			expect(handleRender).toHaveBeenCalledTimes(2);
+
+			rerender(
+				<Profiler id="password-input" onRender={handleRender}>
+					<PasswordInput placeholder="test" showValue={false} />
+				</Profiler>,
+			);
+			expect(input).toHaveAttribute("type", "password");
+			expect(toggle).toHaveAttribute("aria-pressed", "false");
+			expect(handleRender).toHaveBeenCalledTimes(3);
+		});
 	});
 
 	test("stamps data-slot on the chrome and the toggle", () => {

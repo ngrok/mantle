@@ -1,5 +1,5 @@
-import { render, renderHook } from "@testing-library/react";
-import { createRef } from "react";
+import { render, renderHook, screen } from "@testing-library/react";
+import { createRef, useRef } from "react";
 import type { Ref } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { composeRefs, useComposedRefs } from "./compose-refs.js";
@@ -141,5 +141,57 @@ describe("useComposedRefs", () => {
 		expect(cleanupRef).toHaveBeenCalledTimes(1);
 		expect(cleanupRef).not.toHaveBeenCalledWith(null);
 		expect(objectRef.current).toBeNull();
+	});
+
+	// Why a keyed node: React attaches a stable callback ref once, so only a
+	// remount of the node makes the composed ref read the refs again.
+	function KeyedInput({ nodeKey, ref }: { nodeKey: string; ref: Ref<HTMLInputElement> }) {
+		const internalRef = useRef<HTMLInputElement>(null);
+		const composedRef = useComposedRefs(internalRef, ref);
+		return <input key={nodeKey} ref={composedRef} />;
+	}
+
+	test("a ref swapped on one render is written by the next attach", () => {
+		const initialRef = createRef<HTMLInputElement>();
+		const latestRef = createRef<HTMLInputElement>();
+
+		const { rerender } = render(<KeyedInput nodeKey="first" ref={initialRef} />);
+		expect(initialRef.current).toBe(screen.getByRole("textbox"));
+
+		rerender(<KeyedInput nodeKey="first" ref={latestRef} />);
+		// The swap alone re-attaches nothing, so the new ref stays empty.
+		expect(latestRef.current).toBeNull();
+
+		rerender(<KeyedInput nodeKey="second" ref={latestRef} />);
+		expect(latestRef.current).toBe(screen.getByRole("textbox"));
+	});
+
+	test("an attach in the same commit that swaps the refs writes the new refs", () => {
+		const firstRef = vi.fn<(node: HTMLInputElement | null) => void>();
+		const secondRef = vi.fn<(node: HTMLInputElement | null) => void>();
+
+		const { rerender } = render(<KeyedInput nodeKey="first" ref={firstRef} />);
+		const firstInput = screen.getByRole("textbox");
+		expect(firstRef).toHaveBeenCalledTimes(1);
+		// Why identity: vitest compares DOM nodes with `isEqualNode`. Two empty
+		// inputs are equal, so `toHaveBeenCalledWith` cannot tell them apart.
+		expect(firstRef.mock.calls[0]?.[0]).toBe(firstInput);
+
+		rerender(<KeyedInput nodeKey="second" ref={secondRef} />);
+		const secondInput = screen.getByRole("textbox");
+		// The hook publishes the new refs in an insertion effect, before React
+		// attaches the remounted node. The detach of the first node runs earlier
+		// in the same commit and still targets the first ref.
+		expect(firstRef).toHaveBeenCalledTimes(2);
+		expect(firstRef.mock.calls[1]?.[0]).toBeNull();
+		expect(secondRef).toHaveBeenCalledTimes(1);
+		expect(secondRef.mock.calls[0]?.[0]).toBe(secondInput);
+
+		rerender(<KeyedInput nodeKey="third" ref={secondRef} />);
+		const thirdInput = screen.getByRole("textbox");
+		expect(secondRef).toHaveBeenCalledTimes(3);
+		expect(secondRef.mock.calls[1]?.[0]).toBeNull();
+		expect(secondRef.mock.calls[2]?.[0]).toBe(thirdInput);
+		expect(firstRef).toHaveBeenCalledTimes(2);
 	});
 });

@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { useIsApplePlatform } from "./use-is-apple-platform.js";
@@ -10,34 +10,36 @@ function Probe() {
 
 describe("useIsApplePlatform", () => {
 	test("renders the non-Apple answer on the server, even on an Apple host", () => {
-		// The whole point of the hook: the server cannot know the platform, so it
-		// must not read it during render. Reading `isApplePlatform()` there would
-		// disagree with the client and produce a hydration mismatch — and asserting
-		// only post-mount state cannot see the render path at all.
+		// The server cannot know the platform, so the server snapshot must not
+		// read it. A server snapshot that read `isApplePlatform()` would put `true`
+		// in the HTML from an Apple build host and mismatch every other client.
+		// Post-mount state cannot see this render path, so `renderToString` must.
 		vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
 
 		expect(renderToString(<Probe />)).toContain("false");
 	});
 
-	test("corrects itself to true after mount on an Apple host", async () => {
+	test("renders true in the first render of a client mount on an Apple host", () => {
 		vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+		const renderedValues: boolean[] = [];
 
-		const { result } = renderHook(() => useIsApplePlatform());
-
-		await waitFor(() => {
-			expect(result.current).toBe(true);
+		renderHook(() => {
+			renderedValues.push(useIsApplePlatform());
 		});
+
+		// One render with the real value. A `useState(false)` seed corrected in an
+		// effect records `[false, true]` and commits twice.
+		expect(renderedValues).toEqual([true]);
 	});
 
-	test("stays false after mount on a non-Apple host", async () => {
+	test("renders false in the first render of a client mount on a non-Apple host", () => {
 		vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32");
+		const renderedValues: boolean[] = [];
 
-		const { result } = renderHook(() => useIsApplePlatform());
-
-		// Polled rather than asserted once: the effect has already flushed by the
-		// time `renderHook` returns, so a value that flipped would be visible here.
-		await waitFor(() => {
-			expect(result.current).toBe(false);
+		renderHook(() => {
+			renderedValues.push(useIsApplePlatform());
 		});
+
+		expect(renderedValues).toEqual([false]);
 	});
 });

@@ -1,6 +1,8 @@
+"use client";
+
 import type { ComponentProps, ComponentRef } from "react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 
 /**
@@ -60,6 +62,7 @@ import { cx } from "../../utils/cx/cx.js";
  */
 const Root = ({ children, className, ref, ...props }: ComponentProps<"div">) => {
 	const horizontalOverflow = useHorizontalOverflowObserver<ComponentRef<"div">>();
+	const scrollContainerRef = useComposedRefs(horizontalOverflow.ref, ref);
 
 	return (
 		<div
@@ -89,7 +92,7 @@ const Root = ({ children, className, ref, ...props }: ComponentProps<"div">) => 
 					// effect.
 					"has-data-mantle-table-sticky-right:[--_fade-right:black]",
 				)}
-				ref={composeRefs(horizontalOverflow.ref, ref)}
+				ref={scrollContainerRef}
 			>
 				{children}
 			</div>

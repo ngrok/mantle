@@ -240,17 +240,23 @@ class ChartStore {
 	}
 
 	/**
-	 * The glyph one registered series wears, resolved against its series slot —
-	 * the spec-side twin of the `shape` `seriesMeta` publishes to the DOM.
+	 * The glyph one registered series wears, resolved against its series slot:
+	 * the same `shape` that `seriesMeta` publishes to the DOM.
 	 *
 	 * The canvas paints from `seriesSpecs`, where `shape` is still the raw prop.
 	 * Reading it there would paint a circle under a legend key wearing the
 	 * paired glyph.
+	 *
+	 * Why the snapshot: the engine calls this per series on every painted
+	 * frame. `#publishRegistrations` resolves every slot on each registration
+	 * change, so the lookup costs one `find`. An unregistered key gets the
+	 * `"chart-other"` glyph.
 	 */
 	seriesShape(dataKey: string): PointShape {
-		const specs = this.seriesSpecs();
-		const slot = assignSeriesSlots(specs).get(dataKey) ?? "chart-other";
-		return displayShape(specs.find((spec) => spec.dataKey === dataKey)?.shape, slot);
+		return (
+			this.#snapshot.series.find((series) => series.dataKey === dataKey)?.shape ??
+			SHAPE_BY_SLOT["chart-other"]
+		);
 	}
 
 	registerSeries(spec: SeriesSpec): () => void {

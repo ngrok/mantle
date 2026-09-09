@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 type UseUndoRedoReturn<T> = {
 	/** Whether there are actions to undo. */
@@ -11,6 +11,17 @@ type UseUndoRedoReturn<T> = {
 	undo: (current: T) => T | undefined;
 	/** Pop the last snapshot from the redo stack. Returns `undefined` if empty. */
 	redo: (current: T) => T | undefined;
+};
+
+/**
+ * The two stack lengths, mirrored into state after every mutation so render
+ * derives `canUndo` and `canRedo` without reading a ref.
+ */
+type StackLengths = {
+	/** Number of snapshots on the undo stack. */
+	undo: number;
+	/** Number of snapshots on the redo stack. */
+	redo: number;
 };
 
 /**
@@ -87,17 +98,18 @@ function useUndoRedo<T extends NonNullable<unknown>>(): UseUndoRedoReturn<T> {
 	 * history *and* return the popped snapshot. With reducer state, the
 	 * callbacks close over the stacks from the last committed render, so two
 	 * calls within the same event handler would both pop (and return) the
-	 * same snapshot. Refs are always current; the version counter below
-	 * re-renders consumers so `canUndo`/`canRedo` stay in sync.
+	 * same snapshot. Refs are always current. Each callback then writes both
+	 * stack lengths into `lengths`, so `canUndo` and `canRedo` derive from
+	 * state and render never reads a ref.
 	 */
 	const undoStackRef = useRef<T[]>([]);
 	const redoStackRef = useRef<T[]>([]);
-	const [, bumpVersion] = useReducer((version: number) => version + 1, 0);
+	const [lengths, setLengths] = useState<StackLengths>({ undo: 0, redo: 0 });
 
 	const push = useCallback((snapshot: T) => {
 		undoStackRef.current.push(snapshot);
 		redoStackRef.current = [];
-		bumpVersion();
+		setLengths({ undo: undoStackRef.current.length, redo: 0 });
 	}, []);
 
 	const undo = useCallback((current: T): T | undefined => {
@@ -107,7 +119,7 @@ function useUndoRedo<T extends NonNullable<unknown>>(): UseUndoRedoReturn<T> {
 		}
 		undoStackRef.current.pop();
 		redoStackRef.current.push(current);
-		bumpVersion();
+		setLengths({ undo: undoStackRef.current.length, redo: redoStackRef.current.length });
 		return previous;
 	}, []);
 
@@ -118,12 +130,12 @@ function useUndoRedo<T extends NonNullable<unknown>>(): UseUndoRedoReturn<T> {
 		}
 		redoStackRef.current.pop();
 		undoStackRef.current.push(current);
-		bumpVersion();
+		setLengths({ undo: undoStackRef.current.length, redo: redoStackRef.current.length });
 		return next;
 	}, []);
 
-	const canUndo = undoStackRef.current.length > 0;
-	const canRedo = redoStackRef.current.length > 0;
+	const canUndo = lengths.undo > 0;
+	const canRedo = lengths.redo > 0;
 
 	return useMemo(
 		() => ({

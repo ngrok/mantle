@@ -1,14 +1,20 @@
 import { act, render, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, test } from "vitest";
+import type { ReactElement } from "react";
+import type { Root } from "react-dom/client";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import {
 	determineThemeFromMediaQuery,
+	PreventWrongThemeFlashScript,
 	preventWrongThemeFlashScriptContent,
 	ThemeProvider,
+	useAppliedTheme,
 	useInitialHtmlThemeProps,
 	useTheme,
 } from "./theme-provider.js";
-import { resolvedThemes } from "./themes.js";
+import { resolvedThemes, type Theme } from "./themes.js";
 
 const THEME_COOKIE = "mantle-ui-theme";
 const PREFERS_DARK = "(prefers-color-scheme: dark)";
@@ -24,6 +30,29 @@ function resetRootTheme() {
 	html.removeAttribute("data-theme");
 	html.removeAttribute("data-applied-theme");
 	document.cookie = `${THEME_COOKIE}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+}
+
+/**
+ * Renders on the server path. happy-dom defines `window`, so `canUseDOM()`
+ * returns true. The `window` stub routes the initializer to `ssrCookie`.
+ */
+function renderOnServer(element: ReactElement): string {
+	vi.stubGlobal("window", undefined);
+	try {
+		return renderToString(element);
+	} finally {
+		vi.unstubAllGlobals();
+	}
+}
+
+/**
+ * Prints the context theme and the resolved theme, so a server render and a
+ * hydration render compare by their markup.
+ */
+function ThemeProbe() {
+	const [theme] = useTheme();
+	const appliedTheme = useAppliedTheme();
+	return <span>{`theme=${theme} applied=${appliedTheme}`}</span>;
 }
 
 describe("useTheme", () => {
@@ -82,6 +111,119 @@ describe("determineThemeFromMediaQuery", () => {
 				prefersHighContrast: true,
 			}),
 		).toBe("light-high-contrast");
+	});
+});
+
+describe("ssrCookie seeds the server render", () => {
+	afterEach(() => {
+		resetRootTheme();
+	});
+
+	test("the server render resolves the stored theme from ssrCookie", () => {
+		const html = renderOnServer(
+			<ThemeProvider ssrCookie={`${THEME_COOKIE}=dark`}>
+				<ThemeProbe />
+			</ThemeProvider>,
+		);
+
+		expect(html).toContain("theme=dark applied=dark");
+	});
+
+	// Why the first render: the mount effect re-reads `document.cookie` and repairs
+	// the state, so a post-mount assertion cannot see which source seeded it.
+	test("the client seeds from document.cookie, not ssrCookie, on its first render", () => {
+		mockMatchMedia({});
+		document.cookie = `${THEME_COOKIE}=dark; path=/`;
+		const seen: Theme[] = [];
+		function RecordTheme() {
+			seen.push(useTheme()[0]);
+			return null;
+		}
+
+		render(
+			<ThemeProvider ssrCookie={`${THEME_COOKIE}=light`}>
+				<RecordTheme />
+			</ThemeProvider>,
+		);
+
+		expect(seen[0]).toBe("dark");
+	});
+
+	test("hydrates without a mismatch when ssrCookie and document.cookie agree", () => {
+		mockMatchMedia({});
+		document.cookie = `${THEME_COOKIE}=dark; path=/`;
+		const app = (
+			<ThemeProvider ssrCookie={`${THEME_COOKIE}=dark`}>
+				<ThemeProbe />
+			</ThemeProvider>
+		);
+		const container = document.createElement("div");
+		container.innerHTML = renderOnServer(app);
+		document.body.append(container);
+		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		const onRecoverableError = vi.fn<(error: unknown) => void>();
+
+		let root: Root | undefined;
+		act(() => {
+			root = hydrateRoot(container, app, { onRecoverableError });
+		});
+
+		expect(onRecoverableError).toHaveBeenCalledTimes(0);
+		expect(consoleError).toHaveBeenCalledTimes(0);
+		expect(container.textContent).toBe("theme=dark applied=dark");
+
+		act(() => {
+			root?.unmount();
+		});
+		container.remove();
+	});
+});
+
+describe("ThemeProvider closes the cross-tab channel on unmount", () => {
+	afterEach(() => {
+		resetRootTheme();
+	});
+
+	test("closes the channel once and survives a close() that throws", () => {
+		mockMatchMedia({});
+		const close = vi.fn<() => void>(() => {
+			throw new Error("channel already closed");
+		});
+		class ThrowingBroadcastChannel {
+			close = close;
+			addEventListener() {}
+		}
+		vi.stubGlobal("BroadcastChannel", ThrowingBroadcastChannel);
+		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+		const { unmount } = render(
+			<ThemeProvider>
+				<span>content</span>
+			</ThemeProvider>,
+		);
+
+		expect(() => unmount()).not.toThrow();
+		expect(close).toHaveBeenCalledTimes(1);
+		expect(consoleError).toHaveBeenCalledTimes(0);
+	});
+});
+
+describe("PreventWrongThemeFlashScript", () => {
+	test("renders the forced script under the CSP nonce", () => {
+		const html = renderToString(<PreventWrongThemeFlashScript nonce="n1" forceTheme="light" />);
+
+		expect(html).toContain('<script nonce="n1">');
+		expect(html).toContain('"forceTheme":"light"');
+		expect(html).toContain(preventWrongThemeFlashScriptContent("light"));
+	});
+
+	test("omits nonce and forceTheme when neither is set", () => {
+		const html = renderToString(<PreventWrongThemeFlashScript />);
+
+		expect(html).toContain("<script>");
+		expect(html).not.toContain("nonce");
+		expect(html).not.toContain('"forceTheme"');
+		expect(html).toContain(preventWrongThemeFlashScriptContent());
 	});
 });
 

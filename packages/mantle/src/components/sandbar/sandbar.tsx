@@ -367,6 +367,10 @@ const Root = ({
 	// transition from it; reopening mid-exit goes straight to open, letting
 	// the transition retarget smoothly from the panel's current position
 	// (never restarting from the bottom — the sonner behavior).
+	//
+	// Why an effect: the machine steps on commits, not renders. Each step reads
+	// the committed `presence` and lands one pose per commit. The double-rAF
+	// below counts painted frames from that committed `"opening"` pose.
 	useEffect(() => {
 		if (open) {
 			setPresence((current) => {

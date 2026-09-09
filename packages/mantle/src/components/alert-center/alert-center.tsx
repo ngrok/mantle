@@ -1296,16 +1296,20 @@ const Bar = ({ className, "data-slot": dataSlot, ref, ...props }: AlertCenterBar
 	const { isMounted, dataState, onExitTransitionEnd } = useBarPresence({ present });
 
 	// Retain the last alert so the collapsing bar keeps its chrome through the
-	// exit slide instead of blanking the instant the alerts empty. Captured in a
-	// layout effect (never during render) so it's ready on the commit that begins
-	// the exit, when `topAlert` has already gone null.
-	const lastAlertRef = useRef(topAlert);
-	useIsomorphicLayoutEffect(() => {
-		if (topAlert != null) {
-			lastAlertRef.current = topAlert;
-		}
-	}, [topAlert]);
-	const alert = topAlert ?? lastAlertRef.current;
+	// exit slide instead of a blank strip the instant the alerts empty. When
+	// `topAlert` goes null, `lastAlert` still holds the previous registration.
+	// Why state adjusted during render, not a ref: the React Compiler rejects a
+	// ref read during render and skips the whole component. A set during render
+	// makes React discard this pass and re-run `Bar` with the new value before
+	// commit. Keep the `!==` guard: a render-phase set skips the same-value
+	// bailout, so an unguarded set re-runs until React throws
+	// `Too many re-renders`. React's `useState` reference documents this shape
+	// as "storing information from previous renders".
+	const [lastAlert, setLastAlert] = useState(topAlert);
+	if (topAlert != null && topAlert !== lastAlert) {
+		setLastAlert(topAlert);
+	}
+	const alert = topAlert ?? lastAlert;
 
 	// Adopt the top alert's host into the bar chrome — declared before the
 	// focus redirect and label effects so both read post-adoption DOM. No

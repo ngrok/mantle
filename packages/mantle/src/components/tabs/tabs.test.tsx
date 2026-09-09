@@ -27,6 +27,24 @@ describe("Tabs", () => {
 	});
 
 	describe("List", () => {
+		test("a callback ref on Tabs.List fires once with the tablist across a re-render", () => {
+			const refSpy = vi.fn<(node: HTMLDivElement | null) => void>();
+			// Why a factory: React bails out of a re-render when it receives the same
+			// element object, so each render needs fresh elements with the same props.
+			const renderTree = () => (
+				<Tabs.Root orientation="horizontal" defaultValue="a">
+					<Tabs.List ref={refSpy}>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			);
+			const { rerender } = render(renderTree());
+			rerender(renderTree());
+
+			expect(refSpy).toHaveBeenCalledTimes(1);
+			expect(refSpy).toHaveBeenLastCalledWith(screen.getByRole("tablist"));
+		});
+
 		// scroll-fade-x lives on the shared horizontal-orientation variant, so both
 		// appearances inherit it. This guards against a regression that would scope
 		// the overflow handling to only the classic appearance.

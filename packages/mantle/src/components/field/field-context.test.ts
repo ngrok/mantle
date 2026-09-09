@@ -6,11 +6,6 @@ import { resolveFieldControlAriaProps, type FieldItemContextValue } from "./fiel
  */
 type CreateFieldItemContextOptions = {
 	/**
-	 * Whether a non-empty `Field.Errors` / `Field.ErrorList` is mounted in the
-	 * fixture context.
-	 */
-	hasErrors?: boolean;
-	/**
 	 * Validation state exposed by the fixture context.
 	 */
 	validation?: FieldItemContextValue["validation"];
@@ -19,12 +14,11 @@ type CreateFieldItemContextOptions = {
 /**
  * Creates a minimal `Field.Item` context value for ARIA resolver tests.
  */
-const createFieldItemContext = ({ hasErrors = false, validation }: CreateFieldItemContextOptions) =>
+const createFieldItemContext = ({ validation }: CreateFieldItemContextOptions) =>
 	({
 		controlId: "control",
 		descriptionId: "description",
 		errorId: "error",
-		hasErrors,
 		name: "field",
 		registerError: () => () => {},
 		validation,
@@ -34,7 +28,7 @@ describe("field context helpers", () => {
 	describe("resolveFieldControlAriaProps", () => {
 		test("emits both slot IDs in aria-describedby when the resolved validation state is valid", () => {
 			const result = resolveFieldControlAriaProps({
-				context: createFieldItemContext({ hasErrors: true }),
+				context: createFieldItemContext({}),
 			});
 
 			expect(result).toEqual({
@@ -51,10 +45,7 @@ describe("field context helpers", () => {
 
 		test("wires aria-errormessage when validation resolves invalid", () => {
 			const result = resolveFieldControlAriaProps({
-				context: createFieldItemContext({
-					hasErrors: true,
-					validation: "error",
-				}),
+				context: createFieldItemContext({ validation: "error" }),
 			});
 
 			expect(result).toEqual({
@@ -71,10 +62,7 @@ describe("field context helpers", () => {
 
 		test("emits both slot IDs even when description is not mounted (dangling IDREFs are ignored by AT)", () => {
 			const result = resolveFieldControlAriaProps({
-				context: createFieldItemContext({
-					hasErrors: true,
-					validation: "error",
-				}),
+				context: createFieldItemContext({ validation: "error" }),
 			});
 
 			expect(result.ariaProps["aria-describedby"]).toBe("description error");
@@ -98,7 +86,7 @@ describe("field context helpers", () => {
 			// The resolver no longer accepts a child-side aria-invalid override.
 			// Context validation alone drives aria-invalid / aria-errormessage.
 			const result = resolveFieldControlAriaProps({
-				context: createFieldItemContext({ hasErrors: true }),
+				context: createFieldItemContext({}),
 			});
 
 			expect(result).toEqual({

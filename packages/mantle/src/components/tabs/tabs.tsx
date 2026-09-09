@@ -1,3 +1,5 @@
+"use client";
+
 import {
 	Content as TabsPrimitiveContent,
 	List as TabsPrimitiveList,
@@ -18,7 +20,7 @@ import {
 } from "react";
 import invariant from "tiny-invariant";
 import { parseBooleanish } from "../../types/booleanish.js";
-import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
@@ -221,6 +223,7 @@ const List = ({
 }) => {
 	const { orientation, appearance } = useContext(TabsStateContext);
 	const scrollRef = useRef<ComponentRef<typeof TabsPrimitiveList>>(null);
+	const composedRef = useComposedRefs(scrollRef, ref);
 
 	useEffect(() => {
 		const element = scrollRef.current;
@@ -289,7 +292,7 @@ const List = ({
 			data-slot="tabs-list"
 			data-hide-border={hideBorder ? "" : undefined}
 			className={cx(listVariants({ orientation, appearance, hideBorder }), className)}
-			ref={composeRefs(scrollRef, ref)}
+			ref={composedRef}
 			{...props}
 		/>
 	);

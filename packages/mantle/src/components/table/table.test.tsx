@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { Table } from "./table.js";
 
 function renderTable() {
@@ -60,6 +60,28 @@ describe("Table", () => {
 			"scope",
 			"colgroup",
 		);
+	});
+
+	test("a callback ref on Table.Root fires once with the scroll container across a re-render", () => {
+		const refSpy = vi.fn<(node: HTMLDivElement | null) => void>();
+		// Why a factory: React bails out of a re-render when it receives the same
+		// element object, so each render needs fresh elements with the same props.
+		const renderTree = () => (
+			<Table.Root ref={refSpy}>
+				<Table.Element>
+					<Table.Body>
+						<Table.Row>
+							<Table.Cell>INV001</Table.Cell>
+						</Table.Row>
+					</Table.Body>
+				</Table.Element>
+			</Table.Root>
+		);
+		const { rerender } = render(renderTree());
+		rerender(renderTree());
+
+		expect(refSpy).toHaveBeenCalledTimes(1);
+		expect(refSpy).toHaveBeenLastCalledWith(screen.getByRole("table").parentElement);
 	});
 
 	test("Table.Root stamps the overflow attributes with values, and no sticky flag while nothing overflows", () => {

@@ -3,6 +3,8 @@ title: Calendar
 description: A calendar component that allows users to select a date or a range of dates.
 ---
 
+import { Calendar } from "@ngrok/mantle/calendar";
+import { useState } from "react";
 import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
 import {
@@ -13,6 +15,22 @@ import {
 	RangeMultipleCalendarExample,
 	SingleCalendarExample,
 } from "~/features/calendar-demos";
+
+export const today = new Date(2024, 4, 15);
+
+export function ServerRenderedCalendarExample() {
+	const [date, setDate] = useState(undefined);
+	return (
+		<Calendar
+			mode="single"
+			today={today}
+			defaultMonth={today}
+			selected={date}
+			onSelect={setDate}
+			className="border-card rounded-md border p-2 shadow-md"
+		/>
+	);
+}
 
 <PageHeader id="calendar" isPreview>
 	Calendar
@@ -200,6 +218,39 @@ function Example() {
 			selected={date}
 			onSelect={setDate}
 			disabled={disabledDays}
+			className="border-card rounded-md border p-2 shadow-md"
+		/>
+	);
+}
+```
+
+## Server rendering
+
+`Calendar` highlights today's date and prefixes that day's `aria-label` with `Today,`. If you omit `today`, `DayPicker` reads the clock during render, once on the server and again in the browser. If the two clocks or time zones disagree on the date, the highlight and the label land on different days. React then reports a hydration mismatch. If you also omit `month` and `defaultMonth`, the grid opens on different months.
+
+Under SSR, pass `today` and `defaultMonth` (or `month`) from one date the request produced, such as a loader value. `timeZone` aligns the zone only, not the clock, so it doesn't replace `today`.
+
+<Example>
+	<ServerRenderedCalendarExample />
+</Example>
+
+```tsx
+import { Calendar } from "@ngrok/mantle/calendar";
+import { useState } from "react";
+
+// Under SSR, take `today` from the request, such as a loader value.
+const today = new Date(2024, 4, 15);
+
+function Example() {
+	const [date, setDate] = useState<Date | undefined>(undefined);
+
+	return (
+		<Calendar
+			mode="single"
+			today={today}
+			defaultMonth={today}
+			selected={date}
+			onSelect={setDate}
 			className="border-card rounded-md border p-2 shadow-md"
 		/>
 	);

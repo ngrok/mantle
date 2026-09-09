@@ -12,8 +12,10 @@ type Mod = "⌘" | "⌃";
 /**
  * Renders the platform-appropriate meta key kbd (⌘ or ⌃).
  *
- * - Initializes to `"⌃"` to avoid SSR mismatch.
- * - Updates on mount, once {@link useIsApplePlatform} has resolved the host.
+ * - Renders `"⌃"` in the server HTML and the hydration render, because the
+ *   server cannot know the platform. React re-renders it once after hydration.
+ * - A client mount after hydration renders the host's glyph in its first
+ *   render, through {@link useIsApplePlatform}.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#metakey
  *

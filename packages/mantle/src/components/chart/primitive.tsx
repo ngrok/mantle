@@ -18,7 +18,7 @@ import invariant from "tiny-invariant";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
 import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { alternateAnnouncement } from "../../utils/alternate-announcement.js";
-import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
+import { composeRefs, useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -212,6 +212,55 @@ const useStoreSnapshot = (store: ChartStore) =>
 	useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 
 /**
+ * Subscribe to the registered series only. `publishHover` replaces the
+ * snapshot object but keeps the `series` reference. A part that never reads
+ * `hover` therefore skips the hover re-render.
+ */
+const useStoreSeries = (store: ChartStore): SeriesMeta[] =>
+	useSyncExternalStore(
+		store.subscribe,
+		() => store.getSnapshot().series,
+		() => store.getSnapshot().series,
+	);
+
+/** Subscribe to the registered bar direction only (see {@link useStoreSeries}). */
+const useStoreOrientation = (store: ChartStore): BarOrientation =>
+	useSyncExternalStore(
+		store.subscribe,
+		() => store.getSnapshot().orientation,
+		() => store.getSnapshot().orientation,
+	);
+
+/** Whether two objects hold the same own keys with `Object.is`-equal values. */
+const shallowEqualObjects = (a: object, b: object): boolean => {
+	const keys = Object.keys(a);
+	if (keys.length !== Object.keys(b).length) {
+		return false;
+	}
+	return keys.every(
+		(key) => Object.hasOwn(b, key) && Object.is(Reflect.get(a, key), Reflect.get(b, key)),
+	);
+};
+
+/**
+ * Return the previous render's object while the new one is shallow-equal to
+ * it, so a rest object rebuilt every render can sit in a dependency array.
+ *
+ * Why a render-phase `setStable`: the previous object must survive between
+ * renders, and React allows a conditional set of the component's own state
+ * during render (it re-runs the render with the new value). A ref read during
+ * render does the same job, but the React Compiler rejects it.
+ */
+const useShallowStable = <T extends object>(value: T): T => {
+	const [stable, setStable] = useState(value);
+	if (shallowEqualObjects(stable, value)) {
+		return stable;
+	}
+	setStable(value);
+	return value;
+};
+
+/**
  * Rows the sr-only data-table twin renders before summarizing. Screen-reader
  * users navigate the keyboard point cursor for dense data; the table is the
  * bounded structural alternative (an unbounded table at 100k rows would be a
@@ -355,17 +404,20 @@ const ChartRootPrimitive = ({
 	// survive re-renders (and StrictMode's double effect pass).
 	const [store] = useState(() => new ChartStore());
 	const engineRef = useRef<ChartEngine | null>(null);
+	// Why a hoisted ref: the context object is state, so a write through
+	// `context.dataRef.current` reads as a state mutation to the React Compiler.
+	const dataRef = useRef({ data, xKey, zKey });
 	const [context] = useState<ChartContextValue>(() => ({
 		kind,
 		componentName,
 		store,
 		engineRef,
-		dataRef: { current: { data, xKey, zKey } },
+		dataRef,
 	}));
 
 	useLayoutEffect(() => {
-		context.dataRef.current = { data, xKey, zKey };
-	}, [context, data, xKey, zKey]);
+		dataRef.current = { data, xKey, zKey };
+	}, [data, xKey, zKey]);
 
 	const rootRef = useRef<HTMLDivElement | null>(null);
 	const composedRootRef = useComposedRefs(rootRef, ref);
@@ -846,15 +898,22 @@ type TooltipPrimitiveProps = Omit<ComponentProps<"div">, "children"> & {
 const useTooltipPrimitive = (partName: string, props: TooltipPrimitiveProps): null => {
 	const context = useChartContext(partName);
 	const { labelFormat, valueFormat, indicator = "line", footer, children, ...divProps } = props;
-	useLayoutEffect(() =>
-		context.store.registerTooltip({
-			labelFormat,
-			valueFormat,
-			indicator,
-			footer,
-			children,
-			divProps,
-		}),
+	// Why a stable rest object: every render rebuilds `divProps`. Without a
+	// stable identity, every parent re-render re-registers the tooltip. Each
+	// registration republishes to every DOM consumer and repaints the canvas
+	// with nothing changed.
+	const stableDivProps = useShallowStable(divProps);
+	useLayoutEffect(
+		() =>
+			context.store.registerTooltip({
+				labelFormat,
+				valueFormat,
+				indicator,
+				footer,
+				children,
+				divProps: stableDivProps,
+			}),
+		[context.store, labelFormat, valueFormat, indicator, footer, children, stableDivProps],
 	);
 	return null;
 };
@@ -903,26 +962,23 @@ const ChartTooltipSurface = ({
 	const composedRef = useComposedRefs(tooltipRef, surfaceRef);
 	// The consumer's ref arrives through the store AFTER this div first mounts
 	// (the Tooltip part registers in a later layout effect), so composing it
-	// into the element's ref prop would never re-fire — the composed callback's
+	// into the element's ref prop would never re-fire: the composed callback's
 	// identity is stable. Attach it imperatively, keyed on the ref itself.
+	// Why `composeRefs`: it owns the `.current` write, so a callback ref's
+	// cleanup and an object ref's `null` reset follow one contract. The React
+	// Compiler also sees an opaque call instead of a mutation of snapshot data.
 	useLayoutEffect(() => {
 		if (consumerRef == null) {
 			return;
 		}
-		const node = surfaceRef.current;
-		if (typeof consumerRef === "function") {
-			const cleanup = consumerRef(node);
-			return () => {
-				if (typeof cleanup === "function") {
-					cleanup();
-				} else {
-					consumerRef(null);
-				}
-			};
-		}
-		consumerRef.current = node;
+		const attach = composeRefs(consumerRef);
+		const cleanup = attach(surfaceRef.current);
 		return () => {
-			consumerRef.current = null;
+			if (typeof cleanup === "function") {
+				cleanup();
+			} else {
+				attach(null);
+			}
 		};
 	}, [consumerRef]);
 	const footer = config?.footer;
@@ -1158,8 +1214,10 @@ const ChartLegendPrimitive = ({
 	...props
 }: LegendPrimitiveProps & { partName: string; slotName: string }) => {
 	const context = useChartContext(partName);
-	const snapshot = useStoreSnapshot(context.store);
-	if (snapshot.series.length < 2) {
+	// Selector subscriptions: a hover publish must not re-render the legend.
+	const series = useStoreSeries(context.store);
+	const orientation = useStoreOrientation(context.store);
+	if (series.length < 2) {
 		return null;
 	}
 	return (
@@ -1172,11 +1230,11 @@ const ChartLegendPrimitive = ({
 			{...props}
 		>
 			{children != null
-				? children(snapshot.series)
-				: snapshot.series.map((series) => (
-						<div key={series.dataKey} className="flex items-center gap-1.5">
-							<LegendSwatch series={series} orientation={snapshot.orientation} />
-							{series.label}
+				? children(series)
+				: series.map((item) => (
+						<div key={item.dataKey} className="flex items-center gap-1.5">
+							<LegendSwatch series={item} orientation={orientation} />
+							{item.label}
 						</div>
 					))}
 		</div>
@@ -1269,7 +1327,11 @@ const ChartCopyButtonPrimitive = ({
 				ref={ref}
 				onClick={async (event) => {
 					try {
-						onClick?.(event);
+						// Why braced guards: React Compiler 1.0 skips a component whose
+						// `try` block holds an optional call.
+						if (onClick != null) {
+							onClick(event);
+						}
 						if (event.defaultPrevented) {
 							// The consumer took over the click, so cancel any pending revert and
 							// return the icon to its idle copy state, rather than stranding the
@@ -1289,7 +1351,9 @@ const ChartCopyButtonPrimitive = ({
 							series: context.store.getSnapshot().series,
 						});
 						await copyToClipboard(markdown);
-						onCopy?.(markdown);
+						if (onCopy != null) {
+							onCopy(markdown);
+						}
 						setAnnouncement(alternateAnnouncement("Copied", announceToggle));
 						if (timeoutHandle.current != null) {
 							clearTimeout(timeoutHandle.current);
@@ -1331,8 +1395,9 @@ const ChartAnnouncer = ({
 	const hover = snapshot.hover;
 	useEffect(() => {
 		if (hover == null || !hover.viaKeyboard) {
-			// Clear so re-stepping to the same datum after Escape/blur produces a
-			// DOM change — identical consecutive text is not re-announced by AT.
+			// Why sync setState: the clear must be a real DOM change before the
+			// debounced write, because AT does not re-announce identical text.
+			// Derived state flashes the previous datum's text first.
 			setAnnouncement("");
 			return;
 		}
@@ -1414,9 +1479,12 @@ const ChartDataTable = ({
 	xKey: string;
 	zKey: string | undefined;
 }) => {
-	const snapshot = useStoreSnapshot(store);
+	// Why a selector: `publishHover` replaces the snapshot on every index
+	// change. Without the selector, the table reconciles up to 150 rows for a
+	// value it never reads.
+	const series = useStoreSeries(store);
 	const resolvedLabel = useResolvedChartLabel(label, labelledBy);
-	if (data.length === 0 || snapshot.series.length === 0) {
+	if (data.length === 0 || series.length === 0) {
 		return null;
 	}
 	const rows = data.slice(0, CHART_TABLE_ROW_LIMIT);
@@ -1435,9 +1503,9 @@ const ChartDataTable = ({
 				<thead>
 					<tr>
 						<th scope="col">{xKey}</th>
-						{snapshot.series.map((series) => (
-							<th key={series.dataKey} scope="col">
-								{series.label}
+						{series.map((column) => (
+							<th key={column.dataKey} scope="col">
+								{column.label}
 							</th>
 						))}
 						{zKey == null ? null : <th scope="col">{zKey}</th>}
@@ -1464,11 +1532,11 @@ const ChartDataTable = ({
 								>
 									{isValidDate ? <time dateTime={x.toISOString()}>{xText}</time> : xText}
 								</th>
-								{snapshot.series.map((series) => {
-									const value = datumValue(row, series.dataKey);
+								{series.map((column) => {
+									const value = datumValue(row, column.dataKey);
 									const isFinite = typeof value === "number" && Number.isFinite(value);
 									return (
-										<td key={series.dataKey} data-value={isFinite ? value : undefined}>
+										<td key={column.dataKey} data-value={isFinite ? value : undefined}>
 											{isFinite ? formatNumber(value) : "—"}
 										</td>
 									);

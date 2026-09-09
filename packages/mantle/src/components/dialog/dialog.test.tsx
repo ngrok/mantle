@@ -154,6 +154,48 @@ describe("Dialog.Content", () => {
 			expect(screen.queryByRole("dialog")).toBeNull();
 		});
 	});
+
+	describe("accessible description", () => {
+		it("carries no aria-describedby when no Description is rendered", async () => {
+			const user = userEvent.setup();
+			render(
+				<Dialog.Root>
+					<Dialog.Trigger asChild>
+						<button type="button">Open</button>
+					</Dialog.Trigger>
+					<Dialog.Content>
+						<Dialog.Title>Request log</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>,
+			);
+			await user.click(screen.getByRole("button", { name: "Open" }));
+
+			const content = await screen.findByRole("dialog");
+			expect(content).not.toHaveAttribute("aria-describedby");
+		});
+
+		it("points aria-describedby at the Description when one is rendered", async () => {
+			const user = userEvent.setup();
+			render(
+				<Dialog.Root>
+					<Dialog.Trigger asChild>
+						<button type="button">Open</button>
+					</Dialog.Trigger>
+					<Dialog.Content>
+						<Dialog.Title>Request log</Dialog.Title>
+						<Dialog.Description>Every request from the last hour.</Dialog.Description>
+					</Dialog.Content>
+				</Dialog.Root>,
+			);
+			await user.click(screen.getByRole("button", { name: "Open" }));
+
+			const content = await screen.findByRole("dialog");
+			const description = screen.getByText("Every request from the last hour.");
+			expect(description.id).not.toBe("");
+			expect(content).toHaveAttribute("aria-describedby", description.id);
+			expect(content).toHaveAccessibleDescription("Every request from the last hour.");
+		});
+	});
 });
 
 /**

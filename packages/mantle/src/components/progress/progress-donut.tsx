@@ -116,6 +116,11 @@ const Root = ({
 	const strokeWidthPx = deriveStrokeWidthPx(_strokeWidth ?? defaultContextValue.strokeWidth);
 	const valueNow = isNumber(value) ? value : undefined;
 	const radius = calcRadius(strokeWidthPx);
+	// Why before `useMemo`: the React Compiler reads `$cssProperties` as an
+	// opaque call that may mutate its argument. `radius` derives from
+	// `strokeWidthPx`, a memo dependency. If the call sits after the memo, the
+	// compiler cannot preserve the memo and skips `Root`.
+	const trackStyle = $cssProperties({ "--radius": radius });
 
 	const ctx: ProgressContextValue = useMemo(
 		() => ({
@@ -161,7 +166,7 @@ const Root = ({
 					fill="transparent"
 					stroke="currentColor"
 					strokeWidth={strokeWidthPx}
-					style={$cssProperties({ "--radius": radius })}
+					style={trackStyle}
 				/>
 				{children}
 			</svg>

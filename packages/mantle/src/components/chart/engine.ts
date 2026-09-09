@@ -203,11 +203,19 @@ class ChartEngine {
 	#rows: readonly ChartDatum[] = [];
 	#rowCount = 0;
 	#xs = new Float64Array(0);
+	/**
+	 * The consumer's raw x value per view index, on band and point scales only.
+	 * A continuous scale derives its `Date` or number from `#xs` at the read
+	 * (`#xValueAt`), so a 100k-row ingest never retains 100k `Date` objects.
+	 */
 	#xValues: XValue[] = [];
 	#order: Int32Array | null = null;
 	/** source index → view index; -1 for rows dropped at ingest. Built iff `#order` is. */
 	#orderInverse: Int32Array | null = null;
-	/** Any x value carries a time-of-day component (drives date label granularity). */
+	/**
+	 * Any category x value carries a time-of-day component. `#xTicks` reads it
+	 * for date label granularity on band and point scales only.
+	 */
 	#xHasTimeOfDay = false;
 	#pendingIngest = false;
 	#columns = new Map<string, Float64Array>();
@@ -231,6 +239,8 @@ class ChartEngine {
 	#xTween = new ChaseTween({ speed: 0.2 });
 	#valueTweens = new Map<string, ValueTween>();
 	#revealTweens = new Map<string, ValueTween>();
+	/** The reduced-motion query, created on the first read (see `#reducedMotion`). */
+	#reducedMotionQuery: MediaQueryList | null = null;
 	#hasIngested = false;
 	#xLabelFade = new Map<number, { alpha: number; target: number; text: string }>();
 	#yLabelFade = new Map<number, { alpha: number; target: number; text: string }>();
@@ -438,11 +448,24 @@ class ChartEngine {
 			previous.xKey !== options.xKey ||
 			previous.xScale !== options.xScale ||
 			previous.zKey !== options.zKey ||
-			previous.stacked !== options.stacked ||
-			previous.yDomain[0] !== options.yDomain[0] ||
-			previous.yDomain[1] !== options.yDomain[1]
+			previous.stacked !== options.stacked
 		) {
 			this.#pendingIngest = true;
+		}
+		if (previous.yDomain[0] !== options.yDomain[0] || previous.yDomain[1] !== options.yDomain[1]) {
+			// Why no re-ingest: `#ingest` never reads `yDomain`. The override only
+			// moves the value tween's target, so re-aim it here. The columns, the
+			// stack, and the decimation cache (keyed by the x domain) stay. Every
+			// mark moves, so drop the cached hover pixel (plot space) the way the
+			// resize observer does.
+			this.#activeScreen = null;
+			if (this.#hasIngested) {
+				if (this.#tweenDuration() === 0) {
+					this.#yTween.jump(this.#targetYDomain());
+				} else {
+					this.#yTween.aim(this.#targetYDomain(), performance.now());
+				}
+			}
 		}
 		this.#schedule();
 	}
@@ -611,7 +634,7 @@ class ChartEngine {
 		this.#callbacks.onDatumActivate?.({
 			// Public indexes address the consumer's data array, not the sorted view.
 			index: sourceIndex,
-			xValue: this.#xValues[index] ?? "",
+			xValue: this.#xValueAt(index),
 			datum,
 			dataKey,
 		});
@@ -804,7 +827,6 @@ class ChartEngine {
 			const ordered = sortedAscending ? entries : entries.toSorted((a, b) => a.x - b.x);
 			const count = ordered.length;
 			const xs = new Float64Array(count);
-			const xValues: XValue[] = Array.from({ length: count }, () => "");
 			let identityOrder = count === rows.length;
 			let xsAllIntegers = true;
 			const order = new Int32Array(count);
@@ -816,11 +838,6 @@ class ChartEngine {
 				xs[index] = entry.x;
 				if (!Number.isInteger(entry.x)) {
 					xsAllIntegers = false;
-				}
-				if (xScale === "time") {
-					xValues[index] = new Date(entry.x);
-				} else {
-					xValues[index] = entry.x;
 				}
 				order[index] = entry.source;
 				if (entry.source !== index) {
@@ -845,11 +862,16 @@ class ChartEngine {
 			}
 			this.#rowCount = count;
 			this.#xs = xs;
-			this.#xValues = xValues;
+			// Why reset: after a scale change from band to linear, the category
+			// array would outlive its scale, and the time-of-day scan below reads it.
+			this.#xValues = [];
 			this.#xsAllIntegers = xsAllIntegers;
 		}
 		// Date label granularity is a dataset property, not a sample property:
 		// the midnight point inside an hourly series must keep its time of day.
+		// Only the category axis reads the flag (`#xTicks` under `#bandLayout`),
+		// so the scan covers `#xValues` alone. A continuous ingest leaves that
+		// array empty, so a time scale allocates no `Date` here.
 		let xHasTime = false;
 		for (const value of this.#xValues) {
 			if (value instanceof Date && hasTimeOfDay(value)) {
@@ -1048,6 +1070,7 @@ class ChartEngine {
 		// morph each point into its neighbor's value.
 		const perDatum = this.#rowCount > 0 && this.#rowCount <= PER_DATUM_TWEEN_LIMIT && sameXVector;
 		const activeKeys = new Set<string>();
+		const registeredKeys = new Set<string>();
 		const retargetBuffer = (tweenKey: string, target: Float64Array, hadPrevious: boolean) => {
 			activeKeys.add(tweenKey);
 			let tween = this.#valueTweens.get(tweenKey);
@@ -1060,6 +1083,7 @@ class ChartEngine {
 		};
 
 		specs.forEach((spec, seriesIndex) => {
+			registeredKeys.add(spec.dataKey);
 			const hadPrevious = previousColumns.has(spec.dataKey);
 			if (this.#stack != null) {
 				retargetBuffer(
@@ -1080,18 +1104,28 @@ class ChartEngine {
 				);
 			}
 
-			// Enter reveal: once per series, on its first non-empty data.
+			// Enter reveal: once per registered series, on its first non-empty data.
 			if (!this.#revealTweens.has(spec.dataKey) && this.#rowCount > 0) {
 				const reveal = new ValueTween();
 				reveal.retarget([0], { duration: 0, now });
-				reveal.retarget([1], { duration: this.#tweenDuration(), now });
+				reveal.retarget([1], { duration, now });
 				this.#revealTweens.set(spec.dataKey, reveal);
 			}
 		});
 
+		// Prune both maps to the registered series. A series that unmounts and
+		// later remounts enters again, so it plays its enter reveal again; a prop
+		// change re-registers inside one commit, before the flush, and keeps its
+		// entry. Without the prune, a chart that churns series keys (a top-N by
+		// endpoint) keeps one tween per key it ever saw for the engine's lifetime.
 		for (const key of this.#valueTweens.keys()) {
 			if (!activeKeys.has(key)) {
 				this.#valueTweens.delete(key);
+			}
+		}
+		for (const key of this.#revealTweens.keys()) {
+			if (!registeredKeys.has(key)) {
+				this.#revealTweens.delete(key);
 			}
 		}
 	}
@@ -1100,13 +1134,26 @@ class ChartEngine {
 		if (!this.#options.animate) {
 			return 0;
 		}
-		if (
-			typeof matchMedia !== "undefined" &&
-			matchMedia("(prefers-reduced-motion: reduce)").matches
-		) {
+		if (this.#reducedMotion()) {
 			return 0;
 		}
 		return CHART_TWEEN_DURATION_MS;
+	}
+
+	/**
+	 * Whether the viewer prefers reduced motion. `#paint` reads this on every
+	 * animated frame. `matchMedia` allocates a `MediaQueryList` and parses the
+	 * query per call, so one query lives per engine. `matches` is live, so a
+	 * preference toggled mid-session still snaps the next frame.
+	 */
+	#reducedMotion(): boolean {
+		if (typeof matchMedia === "undefined") {
+			return false;
+		}
+		if (this.#reducedMotionQuery == null) {
+			this.#reducedMotionQuery = matchMedia("(prefers-reduced-motion: reduce)");
+		}
+		return this.#reducedMotionQuery.matches;
 	}
 
 	#targetYDomain(): [number, number] {
@@ -1867,8 +1914,19 @@ class ChartEngine {
 		return desired;
 	}
 
-	#paintedValues(spec: SeriesSpec, boundary: "value" | "lower" | "upper"): Float64Array {
-		const key = boundary === "value" ? spec.dataKey : `${spec.dataKey}:${boundary}`;
+	/**
+	 * The values one series paints this frame: the in-flight per-datum tween
+	 * when one applies, else the settled column or stack boundary. `seriesIndex`
+	 * is the series' position in `seriesSpecs()` paint order. `#ingest` built the
+	 * stack in that order. Every caller iterates that list and already holds the
+	 * index.
+	 */
+	#paintedValues(
+		series: Pick<SeriesSpec, "dataKey">,
+		boundary: "value" | "lower" | "upper",
+		seriesIndex: number,
+	): Float64Array {
+		const key = boundary === "value" ? series.dataKey : `${series.dataKey}:${boundary}`;
 		// Never feed tween frames into the decimated path: decimated columns are
 		// cached by (x domain, width), which doesn't change while values tween, so
 		// the first frame's columns would be cached and painted forever.
@@ -1879,13 +1937,10 @@ class ChartEngine {
 			}
 		}
 		if (boundary === "value") {
-			return this.#columns.get(spec.dataKey) ?? new Float64Array(0);
+			return this.#columns.get(series.dataKey) ?? new Float64Array(0);
 		}
-		const specIndex = this.#store
-			.seriesSpecs()
-			.findIndex((entry) => entry.dataKey === spec.dataKey);
 		const rows = boundary === "lower" ? this.#stack?.lower : this.#stack?.upper;
-		return rows?.[specIndex] ?? new Float64Array(0);
+		return rows?.[seriesIndex] ?? new Float64Array(0);
 	}
 
 	#reveal(dataKey: string): number {
@@ -1956,10 +2011,10 @@ class ChartEngine {
 		specs.forEach((spec, seriesIndex) => {
 			const reveal = this.#reveal(spec.dataKey);
 			const rects: BarRect[] = [];
-			const lower = stacked ? this.#paintedValues(spec, "lower") : null;
+			const lower = stacked ? this.#paintedValues(spec, "lower", seriesIndex) : null;
 			const upper = stacked
-				? this.#paintedValues(spec, "upper")
-				: this.#paintedValues(spec, "value");
+				? this.#paintedValues(spec, "upper", seriesIndex)
+				: this.#paintedValues(spec, "value", seriesIndex);
 			for (let index = 0; index < this.#rowCount; index++) {
 				const upperValue = upper[index] ?? Number.NaN;
 				if (Number.isNaN(upperValue)) {
@@ -2023,10 +2078,10 @@ class ChartEngine {
 		specs.forEach((spec, seriesIndex) => {
 			const reveal = this.#reveal(spec.dataKey);
 			const rects: HorizontalBarRect[] = [];
-			const lower = stacked ? this.#paintedValues(spec, "lower") : null;
+			const lower = stacked ? this.#paintedValues(spec, "lower", seriesIndex) : null;
 			const upper = stacked
-				? this.#paintedValues(spec, "upper")
-				: this.#paintedValues(spec, "value");
+				? this.#paintedValues(spec, "upper", seriesIndex)
+				: this.#paintedValues(spec, "value", seriesIndex);
 			for (let index = 0; index < this.#rowCount; index++) {
 				const upperValue = upper[index] ?? Number.NaN;
 				if (Number.isNaN(upperValue)) {
@@ -2076,7 +2131,7 @@ class ChartEngine {
 		const xAt = (index: number): number =>
 			layout != null ? bandCenter(layout, index) : (this.#xs[index] ?? 0) * xCo.k + xCo.b;
 
-		specs.forEach((spec) => {
+		specs.forEach((spec, seriesIndex) => {
 			const color = colors.series.get(spec.dataKey) ?? "currentColor";
 			const reveal = this.#reveal(spec.dataKey);
 			ctx.save();
@@ -2086,13 +2141,13 @@ class ChartEngine {
 				ctx.clip();
 			}
 			if (this.#decimated) {
-				this.#paintDecimatedSeries(ctx, spec, color, yCo);
+				this.#paintDecimatedSeries(ctx, spec, seriesIndex, color, yCo);
 				ctx.restore();
 				return;
 			}
 			const isArea = spec.mark === "area";
-			const upper = this.#paintedValues(spec, this.#stack != null ? "upper" : "value");
-			const lower = this.#stack != null ? this.#paintedValues(spec, "lower") : null;
+			const upper = this.#paintedValues(spec, this.#stack != null ? "upper" : "value", seriesIndex);
+			const lower = this.#stack != null ? this.#paintedValues(spec, "lower", seriesIndex) : null;
 			const definedAt = (index: number): boolean => !Number.isNaN(upper[index] ?? Number.NaN);
 			// connectNulls joins across gaps by drawing only the finite indexes;
 			// without it, NaN indexes stay in the list and defined() breaks the path.
@@ -2138,6 +2193,7 @@ class ChartEngine {
 	#paintDecimatedSeries(
 		ctx: CanvasRenderingContext2D,
 		spec: SeriesSpec,
+		seriesIndex: number,
 		color: string,
 		yCo: { k: number; b: number },
 	): void {
@@ -2146,14 +2202,14 @@ class ChartEngine {
 		if (spec.mark === "area") {
 			const upper = this.#decimatedFor(
 				`${spec.dataKey}:upper`,
-				this.#paintedValues(spec, this.#stack != null ? "upper" : "value"),
+				this.#paintedValues(spec, this.#stack != null ? "upper" : "value", seriesIndex),
 				columnCount,
 			);
 			const lower =
 				this.#stack != null
 					? this.#decimatedFor(
 							`${spec.dataKey}:lower`,
-							this.#paintedValues(spec, "lower"),
+							this.#paintedValues(spec, "lower", seriesIndex),
 							columnCount,
 						)
 					: null;
@@ -2180,7 +2236,7 @@ class ChartEngine {
 		}
 		const columns = this.#decimatedFor(
 			spec.dataKey,
-			this.#paintedValues(spec, "value"),
+			this.#paintedValues(spec, "value", seriesIndex),
 			columnCount,
 		);
 		drawDecimatedLine(ctx, { color, columns, columnToX, valueK: yCo.k, valueB: yCo.b });
@@ -2253,6 +2309,28 @@ class ChartEngine {
 		}
 		const view = this.#orderInverse[clamped] ?? -1;
 		return view === -1 ? null : view;
+	}
+
+	/**
+	 * The public x value at a view index:
+	 * - the consumer's category on a band or point scale
+	 * - a `Date` on a time scale
+	 * - a number on a linear scale
+	 * - `""` out of range
+	 *
+	 * A continuous scale builds the value from `#xs` per read, so each snapshot
+	 * and activation carries its own `Date`.
+	 */
+	#xValueAt(index: number): XValue {
+		if (index < 0 || index >= this.#rowCount) {
+			return "";
+		}
+		const { xScale } = this.#options;
+		if (xScale === "band" || xScale === "point") {
+			return this.#xValues[index] ?? "";
+		}
+		const x = this.#xs[index] ?? 0;
+		return xScale === "time" ? new Date(x) : x;
 	}
 
 	#indexAtPixel(cssX: number, cssY: number): number | null {
@@ -2392,7 +2470,9 @@ class ChartEngine {
 		}
 		const sourceIndex = this.#toSourceIndex(index);
 		const datum = this.#rows[sourceIndex] ?? {};
-		const meta = this.#store.seriesMeta();
+		// The store rebuilds `series` on every registration change, so reading it
+		// costs no sort per hover; `seriesMeta()` re-sorts per call.
+		const meta = this.#store.getSnapshot().series;
 		let points = meta.map((series) => {
 			const values = this.#columns.get(series.dataKey);
 			const value = values?.[index] ?? Number.NaN;
@@ -2421,7 +2501,7 @@ class ChartEngine {
 		const snapshot: HoverSnapshot = {
 			// Public indexes address the consumer's data array, not the sorted view.
 			index: sourceIndex,
-			xValue: this.#xValues[index] ?? "",
+			xValue: this.#xValueAt(index),
 			datum,
 			points,
 			viaKeyboard: this.#viaKeyboard,
@@ -2448,8 +2528,8 @@ class ChartEngine {
 		const xCo = this.#xCoefficients();
 		// Degradation tiers count PAINTED points: sparse all-pairs data (each row
 		// populating one series) must not inflate the count by the series factor.
-		const seriesIndexes = specs.map((spec) => {
-			const values = this.#paintedValues(spec, "value");
+		const seriesIndexes = specs.map((spec, seriesIndex) => {
+			const values = this.#paintedValues(spec, "value", seriesIndex);
 			const indexes: number[] = [];
 			for (let index = 0; index < this.#rowCount; index++) {
 				if (!Number.isNaN(values[index] ?? Number.NaN)) {
@@ -2460,7 +2540,7 @@ class ChartEngine {
 		});
 		const totalPointCount = seriesIndexes.reduce((sum, indexes) => sum + indexes.length, 0);
 		specs.forEach((spec, seriesIndex) => {
-			const values = this.#paintedValues(spec, "value");
+			const values = this.#paintedValues(spec, "value", seriesIndex);
 			const indexes = seriesIndexes[seriesIndex] ?? [];
 			ctx.save();
 			ctx.globalAlpha = this.#reveal(spec.dataKey);
@@ -2572,7 +2652,7 @@ class ChartEngine {
 		const depths = projected.depths;
 		let count = 0;
 		specs.forEach((spec, seriesIndex) => {
-			const values = this.#paintedValues(spec, "value");
+			const values = this.#paintedValues(spec, "value", seriesIndex);
 			for (let index = 0; index < this.#rowCount; index++) {
 				const value = values[index] ?? Number.NaN;
 				const z = this.#zs[index] ?? Number.NaN;
@@ -2757,7 +2837,7 @@ class ChartEngine {
 			}
 			const dot = markers.children[0];
 			if (dot instanceof HTMLElement) {
-				const meta = this.#store.seriesMeta();
+				const meta = this.#store.getSnapshot().series;
 				const active =
 					this.#activeSeriesKey == null
 						? meta.find((series) => {
@@ -2802,9 +2882,10 @@ class ChartEngine {
 			crosshair.style.transform = `translate3d(${xPx}px, ${plot.top}px, 0)`;
 			crosshair.style.height = `${plot.height}px`;
 
-			// One marker dot per series, synced imperatively.
-			const meta = this.#store.seriesMeta();
-			const specs = this.#store.seriesSpecs();
+			// One marker dot per series, synced imperatively. The overlay syncs on
+			// every hover frame, so read the store's cached paint-order list instead
+			// of re-sorting the registrations per sync.
+			const meta = this.#store.getSnapshot().series;
 			while (markers.children.length > meta.length) {
 				markers.lastElementChild?.remove();
 			}
@@ -2822,12 +2903,10 @@ class ChartEngine {
 				// PAINTED value — the stacked upper boundary when stacking — so the
 				// dot sits on its series' drawn line, never at the unstacked height.
 				const raw = this.#columns.get(series.dataKey)?.[index] ?? Number.NaN;
-				const spec = specs[seriesIndex];
 				const painted =
-					spec == null
-						? Number.NaN
-						: (this.#paintedValues(spec, this.#stack != null ? "upper" : "value")[index] ??
-							Number.NaN);
+					this.#paintedValues(series, this.#stack != null ? "upper" : "value", seriesIndex)[
+						index
+					] ?? Number.NaN;
 				if (Number.isNaN(raw) || Number.isNaN(painted)) {
 					dot.style.opacity = "0";
 					return;

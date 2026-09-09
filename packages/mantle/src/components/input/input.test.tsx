@@ -288,6 +288,60 @@ describe("Input", () => {
 		expect(screen.getByRole("textbox")).toHaveValue("ello govna");
 	});
 
+	// Regression: `InputCapture` composed its refs with a fresh closure on every
+	// render. React then detached and re-attached the `<input>` ref on each
+	// re-render, so a consumer callback ref saw `null`, then the element again.
+	describe("callback ref", () => {
+		test("without children, fires once on mount and not again on re-render", () => {
+			const ref = vi.fn<(node: HTMLInputElement | null) => void>();
+			const { rerender } = render(<Input ref={ref} placeholder="first" />);
+			expect(ref).toHaveBeenCalledTimes(1);
+			expect(ref).toHaveBeenLastCalledWith(screen.getByRole("textbox"));
+
+			rerender(<Input ref={ref} placeholder="second" />);
+			expect(screen.getByRole("textbox")).toHaveAttribute("placeholder", "second");
+			expect(ref).toHaveBeenCalledTimes(1);
+		});
+
+		test("with children, a ref on Input fires once on mount and not again on re-render", () => {
+			const ref = vi.fn<(node: HTMLInputElement | null) => void>();
+			const { rerender } = render(
+				<Input ref={ref} placeholder="first">
+					<InputCapture />
+				</Input>,
+			);
+			expect(ref).toHaveBeenCalledTimes(1);
+			expect(ref).toHaveBeenLastCalledWith(screen.getByRole("textbox"));
+
+			rerender(
+				<Input ref={ref} placeholder="second">
+					<InputCapture />
+				</Input>,
+			);
+			expect(screen.getByRole("textbox")).toHaveAttribute("placeholder", "second");
+			expect(ref).toHaveBeenCalledTimes(1);
+		});
+
+		test("with children, a ref on InputCapture fires once on mount and not again on re-render", () => {
+			const ref = vi.fn<(node: HTMLInputElement | null) => void>();
+			const { rerender } = render(
+				<Input placeholder="first">
+					<InputCapture ref={ref} />
+				</Input>,
+			);
+			expect(ref).toHaveBeenCalledTimes(1);
+			expect(ref).toHaveBeenLastCalledWith(screen.getByRole("textbox"));
+
+			rerender(
+				<Input placeholder="second">
+					<InputCapture ref={ref} />
+				</Input>,
+			);
+			expect(screen.getByRole("textbox")).toHaveAttribute("placeholder", "second");
+			expect(ref).toHaveBeenCalledTimes(1);
+		});
+	});
+
 	describe("data-disabled", () => {
 		test("stamps data-disabled when disabled", () => {
 			const { container } = render(<Input disabled placeholder="test" />);

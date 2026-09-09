@@ -13,6 +13,7 @@ import {
 } from "react";
 import type { ComponentProps, ReactElement, ReactNode } from "react";
 import invariant from "tiny-invariant";
+import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Checkbox, selectAllChecked } from "../checkbox/checkbox.js";
 import { Choice } from "../choice/choice.js";
@@ -309,23 +310,29 @@ const Root = ({
 	const [internalQuery, setInternalQuery] = useState(defaultQuery ?? "");
 	const query = isQueryControlled ? queryProp : internalQuery;
 
+	// Why useCallbackRef: an inline `onValueChange` or `onQueryChange` is a new
+	// function on every parent render. A dependency on the raw prop would rebuild
+	// the context below and re-render every mounted `Item` on parent renders that
+	// change none of `value`, `options`, or `query`.
+	const stableOnValueChange = useCallbackRef(onValueChange);
+	const stableOnQueryChange = useCallbackRef(onQueryChange);
 	const commitSelection = useCallback(
 		(next: string[]) => {
 			if (!isControlled) {
 				setInternalValue(next);
 			}
-			onValueChange?.(next);
+			stableOnValueChange(next);
 		},
-		[isControlled, onValueChange],
+		[isControlled, stableOnValueChange],
 	);
 	const setQuery = useCallback(
 		(next: string) => {
 			if (!isQueryControlled) {
 				setInternalQuery(next);
 			}
-			onQueryChange?.(next);
+			stableOnQueryChange(next);
 		},
-		[isQueryControlled, onQueryChange],
+		[isQueryControlled, stableOnQueryChange],
 	);
 
 	const selectedSet = useMemo(() => new Set(selectedValues), [selectedValues]);
@@ -852,9 +859,11 @@ type SelectableListVirtualViewportProps = SelectableListViewportProps & {
 /**
  * The windowed counterpart to `SelectableList.Viewport`: renders only the
  * visible slice of filtered rows via `@tanstack/react-virtual`, sharing the
- * same grid semantics and row layout. Authored identically to `Viewport` — same
- * `aria-label`, same optional render-prop — so opting into virtualization never
+ * same grid semantics and row layout. Authored identically to `Viewport` (same
+ * `aria-label`, same optional render prop), so opting into virtualization never
  * changes the call site. **Bound the height** so the virtualizer has a viewport.
+ * The server renders the first slice of rows, sized by `estimateItemHeight` and
+ * `overscan`. The rest mount after hydration measures the viewport.
  *
  * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
@@ -1076,6 +1085,8 @@ const SelectableList = {
 	 * same grid semantics and row layout. Authored identically to `Viewport` (same
 	 * `aria-label`, same optional render prop), so opting into virtualization never
 	 * changes the call site. **Bound the height** so the virtualizer has a viewport.
+	 * The server renders the first slice of rows, sized by `estimateItemHeight` and
+	 * `overscan`. The rest mount after hydration measures the viewport.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *

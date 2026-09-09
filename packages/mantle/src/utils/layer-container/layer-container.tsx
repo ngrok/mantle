@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, type ComponentProps, useContext, useState } from "react";
-import { composeRefs } from "../compose-refs/compose-refs.js";
+import { useComposedRefs } from "../compose-refs/compose-refs.js";
 
 /**
  * The portal target for floating layers composed inside an overlay.
@@ -61,9 +61,10 @@ function useLayerContainer(): Element | DocumentFragment | null {
  */
 function LayerContainer({ children, ref, ...props }: ComponentProps<"div">) {
 	const [element, setElement] = useState<HTMLDivElement | null>(null);
+	const composedRef = useComposedRefs(ref, setElement);
 
 	return (
-		<div ref={composeRefs(ref, setElement)} {...props}>
+		<div ref={composedRef} {...props}>
 			<LayerContainerContext.Provider value={element}>{children}</LayerContainerContext.Provider>
 		</div>
 	);

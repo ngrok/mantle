@@ -583,6 +583,13 @@ type FieldItemProps = Omit<ComponentProps<"div">, "id"> &
  * infer an `"error"` validation state unless `validation` is supplied as an
  * explicit override.
  *
+ * **Server rendering.** The inference runs on the client, so the inferred
+ * `"error"` state applies after hydration. Before that, the server HTML
+ * carries the error list but no `aria-invalid="true"`, `aria-errormessage`, or
+ * `data-validation="error"`. When an error can render on the server, set
+ * `validation={messages.length > 0 && "error"}` on `Field.Item`: an explicit
+ * `validation` reaches the server HTML.
+ *
  * **Control id.** `Field.Item` owns the control's DOM id, so its `id` prop
  * names the control, not the wrapping `<div>`. It generates one by default;
  * pass `id` to set it yourself, and both `Field.Control` and `Field.Label`
@@ -650,12 +657,11 @@ const Item = ({
 			controlId,
 			descriptionId,
 			errorId,
-			hasErrors,
 			name,
 			registerError,
 			validation,
 		}),
-		[controlId, descriptionId, errorId, hasErrors, name, registerError, validation],
+		[controlId, descriptionId, errorId, name, registerError, validation],
 	);
 
 	return (
@@ -963,6 +969,11 @@ type FieldErrorsProps = Omit<ComponentProps<"ul">, "children" | "id"> & {
  * `Field.Errors` *or* `Field.ErrorList` per item, not both, and pass multiple
  * messages to one `Field.Errors` instead of rendering it twice.
  *
+ * **Server rendering.** The `"error"` state this list infers applies after
+ * hydration. The server HTML carries the list but not the invalid state. When
+ * the messages can render on the server, set
+ * `validation={messages.length > 0 && "error"}` on `Field.Item`.
+ *
  * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
@@ -1011,6 +1022,11 @@ const FieldErrors = ({ messages, ref, ...props }: FieldErrorsProps) => (
  * per item, not both, and put multiple `Field.ErrorItem` children inside the
  * single list instead of rendering two `Field.ErrorList`s.
  *
+ * **Server rendering.** The `"error"` state this list infers applies after
+ * hydration. The server HTML carries the list but not the invalid state. When
+ * the items can render on the server, set
+ * `validation={errors.length > 0 && "error"}` on `Field.Item`.
+ *
  * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example
@@ -1044,6 +1060,10 @@ const FieldErrorList = ({
 	const context = useContext(FieldItemContext);
 	const registerError = context?.registerError;
 
+	// Why an effect: the list is a later sibling of `Field.Control`, so the
+	// render pass cannot hand its state to the control. The server runs no
+	// effects, so the server HTML carries the error state only when
+	// `Field.Item` gets an explicit `validation`.
 	useIsomorphicLayoutEffect(() => {
 		if (!hasRenderableChildren || registerError == null) {
 			return;
@@ -1127,6 +1147,9 @@ const Field = {
 	/**
 	 * A single form field. Passes message IDs and validation state to
 	 * `Field.Control`; rendered errors infer `"error"` validation.
+	 *
+	 * The inferred state applies after hydration. For a server-rendered error,
+	 * set `validation` on `Field.Item`.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
@@ -1495,6 +1518,9 @@ const Field = {
 	 * filters empty values, and renders a `Field.ErrorList` with one
 	 * `Field.ErrorItem` for each remaining message.
 	 *
+	 * The inferred `"error"` state applies after hydration. For a
+	 * server-rendered error, set `validation` on `Field.Item`.
+	 *
 	 * @see https://mantle.ngrok.com/components/forms/field
 	 *
 	 * @example
@@ -1523,6 +1549,9 @@ const Field = {
 	/**
 	 * Wraps one or more `Field.ErrorItem` children in a semantic `<ul>`.
 	 * Renders nothing when given no renderable children.
+	 *
+	 * The inferred `"error"` state applies after hydration. For a
+	 * server-rendered error, set `validation` on `Field.Item`.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/field
 	 *

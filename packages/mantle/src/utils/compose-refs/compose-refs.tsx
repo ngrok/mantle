@@ -1,5 +1,5 @@
 import type { Ref, RefCallback } from "react";
-import { useCallback, useRef } from "react";
+import { useCallback, useInsertionEffect, useRef } from "react";
 
 type PossibleRef<T> = Ref<T> | undefined;
 
@@ -64,10 +64,15 @@ function composeRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T> {
 
 /**
  * A custom hook that composes multiple refs into a single stable callback
- * ref. Accepts callback refs and RefObject(s); the latest refs passed on
- * each render are the ones written to, and any cleanup the composed ref
- * returns targets the refs captured when React attached the node (see
- * {@link composeRefs} for the cleanup propagation contract).
+ * ref. Accepts callback refs and RefObject(s). The callback keeps one
+ * identity for the life of the component, so React attaches it once. A
+ * consumer callback ref fires once per mount, not once per render. A later
+ * attach or detach writes the refs passed on the latest render. Any cleanup
+ * the composed ref returns targets the refs captured when React attached the
+ * node (see {@link composeRefs} for the cleanup propagation contract).
+ *
+ * React runs the write before it attaches any ref in the commit, so a node
+ * that remounts in the same commit that changes the refs writes the new refs.
  *
  * @example
  * function MyInput({ ref, ...props }: ComponentProps<"input">) {
@@ -78,7 +83,14 @@ function composeRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T> {
  */
 function useComposedRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T> {
 	const latestRefs = useRef(refs);
-	latestRefs.current = refs;
+	// Why an insertion effect: React Compiler skips a hook that writes a ref
+	// during render. A render write also publishes the refs of a render that
+	// React discards. React runs insertion effects before it attaches any ref
+	// in the commit, so a node that remounts in the same commit that changes
+	// the refs reads the new refs. A layout effect runs after that attach.
+	useInsertionEffect(() => {
+		latestRefs.current = refs;
+	});
 	return useCallback((node: T | null) => composeRefs(...latestRefs.current)(node), []);
 }
 

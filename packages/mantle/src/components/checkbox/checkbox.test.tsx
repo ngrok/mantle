@@ -1,8 +1,31 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import { useLayoutEffect, useRef } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { Checkbox, selectAllChecked } from "./checkbox.js";
+import type { CheckedState } from "./checkbox.js";
+
+type IndeterminateProbeProps = {
+	checked?: CheckedState;
+	defaultChecked?: CheckedState;
+	onLayout: (value: boolean) => void;
+};
+
+// Why a parent layout effect: React runs the child's layout effects before the
+// parent's, and passive effects after both. The probe reads the DOM property
+// before the browser paints, so it sees `true` only when `Checkbox` wrote it in
+// a layout effect.
+function IndeterminateProbe({ checked, defaultChecked, onLayout }: IndeterminateProbeProps) {
+	const ref = useRef<HTMLInputElement>(null);
+	useLayoutEffect(() => {
+		onLayout(ref.current?.indeterminate ?? false);
+	});
+	if (checked != null) {
+		return <Checkbox ref={ref} checked={checked} onChange={() => {}} />;
+	}
+	return <Checkbox ref={ref} defaultChecked={defaultChecked} />;
+}
 
 describe("Checkbox", () => {
 	test('given validation={false}, renders a checkbox with aria-invalid="false" and not have data-validation', () => {
@@ -71,11 +94,50 @@ describe("Checkbox", () => {
 		expect(screen.getByRole("checkbox")).toHaveAttribute("data-validation", "error");
 	});
 
+	test("a callback ref fires once with the input across a re-render", () => {
+		const refSpy = vi.fn<(node: HTMLInputElement | null) => void>();
+		const { rerender } = render(<Checkbox ref={refSpy} checked={false} onChange={() => {}} />);
+		rerender(<Checkbox ref={refSpy} checked={false} onChange={() => {}} />);
+
+		expect(refSpy).toHaveBeenCalledTimes(1);
+		expect(refSpy).toHaveBeenLastCalledWith(screen.getByRole("checkbox"));
+	});
+
 	test('given checked="indeterminate", reports aria-checked="mixed"', () => {
-		// The native `indeterminate` DOM property is asserted in the browser test —
-		// happy-dom doesn't implement it. Here we cover the accessible signal.
 		render(<Checkbox checked="indeterminate" onChange={() => {}} />);
 		expect(screen.getByRole("checkbox")).toHaveAttribute("aria-checked", "mixed");
+	});
+
+	describe("native indeterminate property", () => {
+		test.each([
+			{ label: 'checked="indeterminate"', props: { checked: "indeterminate" as const } },
+			{
+				label: 'defaultChecked="indeterminate"',
+				props: { defaultChecked: "indeterminate" as const },
+			},
+		])("given $label, the property is set before the parent layout effect runs", ({ props }) => {
+			const onLayout = vi.fn<(value: boolean) => void>();
+			render(<IndeterminateProbe {...props} onLayout={onLayout} />);
+
+			expect(onLayout).toHaveBeenCalledTimes(1);
+			expect(onLayout).toHaveBeenLastCalledWith(true);
+			expect(screen.getByRole<HTMLInputElement>("checkbox").indeterminate).toBe(true);
+		});
+
+		test("a controlled change to and from indeterminate rewrites the property before paint", () => {
+			const onLayout = vi.fn<(value: boolean) => void>();
+			const { rerender } = render(<IndeterminateProbe checked={false} onLayout={onLayout} />);
+			expect(onLayout).toHaveBeenLastCalledWith(false);
+
+			rerender(<IndeterminateProbe checked="indeterminate" onLayout={onLayout} />);
+			expect(onLayout).toHaveBeenCalledTimes(2);
+			expect(onLayout).toHaveBeenLastCalledWith(true);
+
+			rerender(<IndeterminateProbe checked={true} onLayout={onLayout} />);
+			expect(onLayout).toHaveBeenCalledTimes(3);
+			expect(onLayout).toHaveBeenLastCalledWith(false);
+			expect(screen.getByRole<HTMLInputElement>("checkbox").checked).toBe(true);
+		});
 	});
 
 	test("toggling a controlled checkbox through indeterminate does not warn about controlled/uncontrolled (regression)", () => {

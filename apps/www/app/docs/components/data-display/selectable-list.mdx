@@ -360,6 +360,8 @@ The whole row is click-to-toggle, but it is **not** a `<label>`; it's a grid `ro
 
 `SelectableList.Viewport` renders every filtered row. For a large option set (hundreds+), swap in `SelectableList.VirtualViewport`: it windows the rows via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. Same props, same render-prop; only the tag changes. (`@tanstack/react-virtual` ships with every list entrypoint; it is small, a few kB gzipped, and does no windowing work until a `VirtualViewport` renders.) The example below has 60 options; scroll to see rows mount and unmount.
 
+On the server, `VirtualViewport` renders the first slice of rows, sized by `estimateItemHeight` and `overscan`. The rest mount after hydration measures the viewport. `Viewport` renders every row in the server HTML. If the whole list must be in that HTML (for find-in-page, or for a reader without JavaScript), pick `Viewport`.
+
 <Example>
 	<VirtualViewportExample />
 </Example>

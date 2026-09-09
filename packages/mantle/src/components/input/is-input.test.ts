@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { isInput } from "./is-input.js";
 
 describe("isInput", () => {
@@ -34,5 +34,12 @@ describe("isInput", () => {
 
 	test("given [], returns false", () => {
 		expect(isInput([])).toBe(false);
+	});
+
+	// Regression: the guard read `HTMLInputElement` bare, so a server call with a
+	// non-null value threw `ReferenceError` instead of answering `false`.
+	test("given no HTMLInputElement global, returns false for a non-null value", () => {
+		vi.stubGlobal("HTMLInputElement", undefined);
+		expect(isInput({})).toBe(false);
 	});
 });

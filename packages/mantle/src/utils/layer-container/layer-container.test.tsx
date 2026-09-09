@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { renderToString } from "react-dom/server";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { AlertDialog } from "../../components/alert-dialog/alert-dialog.js";
 import { Combobox } from "../../components/combobox/combobox.js";
 import { Command } from "../../components/command/command.js";
@@ -14,6 +14,7 @@ import { Select } from "../../components/select/select.js";
 import { Sheet } from "../../components/sheet/sheet.js";
 import { makeToast, Toaster } from "../../components/toast/toast.js";
 import { Tooltip, TooltipProvider } from "../../components/tooltip/tooltip.js";
+import { LayerContainer } from "./layer-container.js";
 
 /**
  * The layering contract these tests pin:
@@ -924,5 +925,23 @@ describe("layer tiers", () => {
 		// The tier lives on the positioner; the content must not carry a stale
 		// tier of its own.
 		expect(getPositioner("sheet-content")).not.toHaveClass("z-50");
+	});
+});
+
+describe("LayerContainer", () => {
+	test("a callback ref fires once with the container across a re-render", () => {
+		const refSpy = vi.fn<(node: HTMLDivElement | null) => void>();
+		// Why a factory: React bails out of a re-render when it receives the same
+		// element object, so each render needs fresh elements with the same props.
+		const renderTree = () => (
+			<LayerContainer data-testid="container" ref={refSpy}>
+				<p>body</p>
+			</LayerContainer>
+		);
+		const { rerender } = render(renderTree());
+		rerender(renderTree());
+
+		expect(refSpy).toHaveBeenCalledTimes(1);
+		expect(refSpy).toHaveBeenLastCalledWith(screen.getByTestId("container"));
 	});
 });

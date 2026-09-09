@@ -1,7 +1,7 @@
 "use client";
 
 import * as Primitive from "@ariakit/react";
-import { type ComponentProps, createContext } from "react";
+import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
@@ -156,8 +156,6 @@ const Content = ({
 
 type ComboboxItemProps = Omit<Primitive.ComboboxItemProps, "render"> & WithAsChild;
 
-const ComboboxItemValueContext = createContext<string | undefined>(undefined);
-
 /**
  * Renders a combobox item inside a Combobox.Content component.
  *
@@ -185,26 +183,22 @@ const Item = ({
 	...props
 }: ComboboxItemProps) => {
 	return (
-		<ComboboxItemValueContext.Provider value={value}>
-			<Primitive.ComboboxItem
-				data-slot="combobox-item"
-				className={cx(
-					"cursor-pointer rounded-md px-2 py-1.5 text-strong text-sm flex min-w-0 gap-2 items-center [&>svg]:size-5 [&_svg]:shrink-0",
-					"data-active-item:bg-active-menu-item",
-					"aria-disabled:opacity-50",
-					className,
-				)}
-				focusOnHover={focusOnHover}
-				ref={ref}
-				render={
-					asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined
-				}
-				value={value}
-				{...props}
-			>
-				{children}
-			</Primitive.ComboboxItem>
-		</ComboboxItemValueContext.Provider>
+		<Primitive.ComboboxItem
+			data-slot="combobox-item"
+			className={cx(
+				"cursor-pointer rounded-md px-2 py-1.5 text-strong text-sm flex min-w-0 gap-2 items-center [&>svg]:size-5 [&_svg]:shrink-0",
+				"data-active-item:bg-active-menu-item",
+				"aria-disabled:opacity-50",
+				className,
+			)}
+			focusOnHover={focusOnHover}
+			ref={ref}
+			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
+			value={value}
+			{...props}
+		>
+			{children}
+		</Primitive.ComboboxItem>
 	);
 };
 

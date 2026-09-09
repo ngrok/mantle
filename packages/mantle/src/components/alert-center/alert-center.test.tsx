@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createContext, createRef, useContext, useState } from "react";
+import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { Alert } from "../alert/alert.js";
 import {
@@ -463,6 +464,32 @@ describe("AlertCenter.Bar", () => {
 		} finally {
 			vi.useRealTimers();
 		}
+	});
+
+	test("keeps the exiting alert's id and intent on the chrome while the exit plays", () => {
+		// The ghost snapshot fills the banner. The chrome's own props come from the
+		// retained registration, so `data-alert-id` and the intent's control color
+		// must still name the alert that left.
+		const { rerender } = render(
+			<AlertCenter.Root>
+				<AlertCenter.Bar />
+				<AlertCenter.Item id="payment" intent="danger">
+					<AlertBody title="Payment failed" />
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+		expect(getBarChrome()).toHaveAttribute("data-alert-id", "payment");
+
+		rerender(
+			<AlertCenter.Root>
+				<AlertCenter.Bar />
+			</AlertCenter.Root>,
+		);
+		expect(getBarWrapper()).toHaveAttribute("data-state", "closed");
+		const chrome = getBarChrome();
+		expect(chrome).toHaveAttribute("data-alert-id", "payment");
+		// `Alert.Root` derives this documented variable from its `intent` prop.
+		expect(chrome.style.getPropertyValue("--alert-control-color")).toBe("var(--color-danger-700)");
 	});
 
 	test("announces the top alert's rendered title (CTA stripped) via a persistent polite live region", () => {
@@ -2054,6 +2081,46 @@ describe("AlertCenter reduced motion", () => {
 		render(<ThreeAlertHarness />);
 		expect(getBarWrapper()).toHaveClass("motion-reduce:transition-none");
 		expect(screen.getByTestId("content")).toHaveClass("motion-reduce:transition-none");
+	});
+});
+
+describe("AlertCenter server render", () => {
+	test("emits only the empty announcer: no bar, no expansion, no item DOM", () => {
+		// Items resolve their host and register from layout effects, so the server
+		// never reaches `createPortal` (which throws in `renderToString`). With no
+		// registrations, the bar and the expansion render nothing. The live region
+		// must already be in this HTML: a polite region announces reliably only
+		// when it exists in the accessibility tree before its text changes.
+		const html = renderToString(
+			<AlertCenter.Root defaultOpen>
+				<AlertCenter.Bar />
+				<AlertCenter.Content />
+				<AlertCenter.Item id="payment-failed" intent="danger">
+					<Alert.Content>
+						<Alert.Title>Payment failed</Alert.Title>
+						<AlertCenter.DismissIconButton onClick={() => {}} />
+					</Alert.Content>
+				</AlertCenter.Item>
+				<AlertCenter.Item id="transfer-limit" intent="warning">
+					<Alert.Title>Transfer limit</Alert.Title>
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+		const template = document.createElement("template");
+		template.innerHTML = html;
+		const announcerSelector = '[data-slot="alert-center-announcer"]';
+		expect(template.content.querySelectorAll(announcerSelector)).toHaveLength(1);
+		const announcer = template.content.querySelector(announcerSelector);
+		expect(announcer).toHaveAttribute("role", "status");
+		expect(announcer).toHaveAttribute("aria-live", "polite");
+		expect(announcer?.textContent).toBe("");
+
+		expect(html).not.toContain("alert-center-bar");
+		expect(html).not.toContain("alert-center-content");
+		expect(html).not.toContain("alert-center-item-host");
+		expect(html).not.toContain("data-alert-id");
+		expect(html).not.toContain("Payment failed");
+		expect(html).not.toContain("Transfer limit");
 	});
 });
 
