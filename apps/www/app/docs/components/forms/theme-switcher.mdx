@@ -161,13 +161,13 @@ import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
 
 `ThemeSwitcher.Content` accepts `asChild`, rendering your single child in place of the default menu panel while keeping the menu's open/close and radio-selection behavior. It is the escape hatch for owning the panel element, and it exists as a part precisely so the component never needed a `contentProps` prop bag (see [the decision record](https://github.com/ngrok/mantle/blob/main/decisions/2026-07-15-theme-switcher-compound-api.md)).
 
-`ThemeSwitcher.Trigger` deliberately does **not** accept `asChild`: it omits the prop along with `icon`, `label`, `appearance`, and `intent`, because the trigger owns the current-theme icon and its accessible name. To customize it, pass the props it does expose rather than swapping the element. `ThemeSwitcher.Root` is a state provider that renders no DOM, so it takes no `asChild` either.
+`ThemeSwitcher.Trigger` deliberately does **not** accept `asChild`: it omits the prop along with `icon`, `intent`, and `children`, because the trigger owns the current-theme icon and always renders only that icon. `appearance` and `label` stay, with theme-switcher defaults. To customize it, pass the props it does expose rather than swapping the element. `ThemeSwitcher.Root` is a state provider that renders no DOM, so it takes no `asChild` either.
 
 If you need a fully custom control, [Embedding in an existing menu](#embedding-in-an-existing-menu) shows how to drive theme selection from your own `DropdownMenu` instead.
 
 ## Accessibility
 
-- The theme options are `role="menuitemradio"` items from `DropdownMenu.RadioGroup`: the active theme is announced as checked (`aria-checked`), and choosing an item behaves like picking one of a set of mutually exclusive options.
+- The theme options are `role="menuitemradio"` items from `DropdownMenu.RadioGroup`: the active theme is announced as checked (`aria-checked`), and choosing an item behaves like picking one of a set of mutually exclusive options. The group is named "Theme" by default; `ThemeDropdownMenuRadioGroup` accepts `aria-label` to rename it and `aria-labelledby` to point at a visible heading.
 - `ThemeSwitcher.Trigger` has an accessible name (`"Change Theme"` by default, rendered as its `aria-label`), which you can override via the `label` prop (e.g. for localization).
 - The trigger icon is decorative: it mirrors the currently _applied_ theme (always a sun or moon, since `"system"` resolves to light or dark before the icon renders; the desktop glyph appears only on the "System Preference" menu item) and conveys no information beyond the accessible label.
 - The trigger icon is SSR-safe: the applied theme is unknowable server-side, so a `Skeleton` placeholder renders until hydration completes, then the themed icon appears.
@@ -205,7 +205,9 @@ All props from [`DropdownMenu.Content`](/components/overlays/dropdown-menu#dropd
 
 The theme-selection radio group: one `menuitemradio` item per theme, with the active theme checked. It must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent`, and requires a [`ThemeProvider`](/components/primitives/theme) ancestor.
 
-| Prop         | Type            | Default | Description                                |
-| ------------ | --------------- | ------- | ------------------------------------------ |
-| `className?` | `string`        |         | CSS class name applied to the radio group. |
-| `style?`     | `CSSProperties` |         | Inline styles applied to the radio group.  |
+| Prop               | Type            | Default   | Description                                                                              |
+| ------------------ | --------------- | --------- | ---------------------------------------------------------------------------------------- |
+| `aria-label?`      | `string`        | `"Theme"` | The accessible name of the radio group. Ignored when `aria-labelledby` is set.           |
+| `aria-labelledby?` | `string`        |           | The id of a visible heading, such as a `DropdownMenu.Label`, that names the radio group. |
+| `className?`       | `string`        |           | CSS class name applied to the radio group.                                               |
+| `style?`           | `CSSProperties` |           | Inline styles applied to the radio group.                                                |

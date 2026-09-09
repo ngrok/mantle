@@ -1,26 +1,32 @@
 import type { ComponentProps } from "react";
 import { Anchor } from "../anchor/anchor.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 
-type SkipToMainLinkProps = Omit<ComponentProps<"a">, "href"> & {
-	/**
-	 * The id of the target element to focus when the link is activated.
-	 * Must match the `id` on the `<Main>` (or any focusable landmark) you
-	 * want keyboard users to be sent to.
-	 *
-	 * @default "main"
-	 */
-	targetId?: string;
-};
+type SkipToMainLinkProps = Omit<ComponentProps<"a">, "href"> &
+	WithDataSlot & {
+		/**
+		 * The id of the target element to focus when the link is activated.
+		 * Must match the `id` on the `<Main>` (or any focusable landmark) you
+		 * want keyboard users to be sent to.
+		 *
+		 * @default "main"
+		 */
+		targetId?: string;
+	};
 
 /**
  * A visually-hidden-until-focused "skip link" that lets keyboard users jump
  * past repeated navigation and land directly on the page's main content
  * landmark. When activated, it updates the URL hash and focuses the element
- * identified by `targetId` (defaulting to `"main"`) without scrolling. It
- * still renders a plain anchor with `href="#${targetId}"` to preserve link
- * semantics, support copy-link / no-JavaScript fallback behavior, and avoid
- * any router dependency in React Router, Next.js, or plain HTML.
+ * identified by `targetId` (defaulting to `"main"`) without scrolling: the
+ * focus call passes `preventScroll: true`, so the page does not jump. The
+ * target must therefore start near the top of the viewport, as an app shell's
+ * main region does. It still renders a plain anchor with `href="#${targetId}"`
+ * to preserve link semantics, support copy-link / no-JavaScript fallback
+ * behavior, and avoid any router dependency in React Router, Next.js, or plain
+ * HTML.
  *
  * Pair with the `<Main>` component (or any element with a matching `id`
  * and `tabIndex={-1}`) so it can receive focus.
@@ -39,6 +45,7 @@ type SkipToMainLinkProps = Omit<ComponentProps<"a">, "href"> & {
 const SkipToMainLink = ({
 	children = "Skip to main content",
 	className,
+	"data-slot": dataSlot,
 	onClick,
 	targetId = "main",
 	...props
@@ -46,7 +53,7 @@ const SkipToMainLink = ({
 	return (
 		<Anchor
 			{...props}
-			data-slot="skip-to-main-link"
+			data-slot={joinDataSlot(dataSlot, "skip-to-main-link")}
 			href={`#${targetId}`}
 			onClick={(event) => {
 				event.preventDefault();

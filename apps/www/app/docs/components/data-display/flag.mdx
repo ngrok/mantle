@@ -52,6 +52,16 @@ The `Flag` accepts the following props in addition to the [standard HTML div att
 
 | Prop      | Type                    | Default  | Description                                                                                                                                                                                                              |
 | --------- | ----------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `code`    | `string`                |          | The country code of the flag to render.                                                                                                                                                                                  |
+| `code`    | `CountryCode`           |          | The country code of the flag to render: an ISO 3166-1 alpha-2 code (`"US"`), alpha-3 code (`"USA"`), or numeric code (`"840"`). A string that is not in the union is a type error.                                       |
 | `size`    | `"s"` \| `"m"` \| `"l"` | `"l"`    | The size of the flag to render. The default size is large.                                                                                                                                                               |
 | `loading` | `"eager"` \| `"lazy"`   | `"lazy"` | A string providing a hint to the user agent as to how to best schedule the loading of the image to optimize page performance. [See MDN docs.](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/loading) |
+
+### Country codes
+
+`@ngrok/mantle/flag` also exports the code list and its type guard.
+
+| Export          | Type                                       | Description                                                                                     |
+| --------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `countryCodes`  | `readonly CountryCode[]`                   | Every code `Flag` accepts, from the [flagpack index](https://www.flagpack.xyz/docs/flag-index). |
+| `isCountryCode` | `(value: unknown) => value is CountryCode` | Type guard that narrows an unknown value, such as an API response, to a `CountryCode`.          |
+| `CountryCode`   | type                                       | The union of every accepted code.                                                               |

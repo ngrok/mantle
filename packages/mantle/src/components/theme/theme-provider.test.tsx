@@ -1,4 +1,4 @@
-import { render, renderHook } from "@testing-library/react";
+import { act, render, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import {
@@ -6,6 +6,7 @@ import {
 	preventWrongThemeFlashScriptContent,
 	ThemeProvider,
 	useInitialHtmlThemeProps,
+	useTheme,
 } from "./theme-provider.js";
 import { resolvedThemes } from "./themes.js";
 
@@ -24,6 +25,27 @@ function resetRootTheme() {
 	html.removeAttribute("data-applied-theme");
 	document.cookie = `${THEME_COOKIE}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 }
+
+describe("useTheme", () => {
+	test("throws outside a ThemeProvider instead of returning a no-op setter", () => {
+		expect(() => renderHook(() => useTheme())).toThrow(
+			"useTheme must be used within a ThemeProvider",
+		);
+	});
+
+	test("returns the provider's theme tuple inside a ThemeProvider", () => {
+		mockMatchMedia({});
+		const { result } = renderHook(() => useTheme(), {
+			wrapper: ({ children }) => <ThemeProvider>{children}</ThemeProvider>,
+		});
+		expect(result.current[0]).toBe("system");
+
+		act(() => {
+			result.current[1]("light");
+		});
+		expect(result.current[0]).toBe("light");
+	});
+});
 
 describe("determineThemeFromMediaQuery", () => {
 	test("given prefersDarkMode=true and prefersHighContrast=false, returns dark", () => {

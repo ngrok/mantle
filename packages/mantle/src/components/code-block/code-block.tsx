@@ -5,7 +5,7 @@ import { CheckIcon } from "@phosphor-icons/react/Check";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { FileTextIcon } from "@phosphor-icons/react/FileText";
 import { TerminalIcon } from "@phosphor-icons/react/Terminal";
-import type { ComponentProps, Dispatch, MouseEvent, ReactNode, SetStateAction } from "react";
+import type { ComponentProps, Dispatch, ReactNode, SetStateAction } from "react";
 import {
 	createContext,
 	useCallback,
@@ -328,6 +328,26 @@ type CodeBlockCodeProps = Omit<ComponentProps<"pre">, "children" | "translate"> 
  * reader copies it anyway. The `translate` prop is omitted from the type, so no
  * call site can turn the guard off.
  *
+ * Line numbers render `aria-hidden`, so a screen reader hears the code, not
+ * "1 const x".
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-state` | `"collapsed"` \| `"expanded"` | Present when a `CodeBlock.ExpanderButton` is composed. Drives the collapsed max height. |
+ * | `data-highlighted` | `"true"` \| `"false"` | Whether the value carried pre-rendered Shiki HTML. |
+ * | `data-lang` | the language id | The value's language. |
+ * | `data-mantle-line-numbers` | `"true"` \| `"false"` | Whether the gutter shows line numbers. |
+ * | `data-mantle-line-number-start` | a number as a string | The first line number. |
+ * | `data-mantle-highlight-lines` | comma-separated line numbers | Present when lines are highlighted. |
+ *
+ * Inside the highlighted HTML, `data-slot="line-number"`, `"fold-toggle"`, and
+ * `"fold-ellipsis"` mark the gutter number, the fold button, and the folded
+ * marker.
+ *
+ * | CSS Variable | Default | Description |
+ * | --- | --- | --- |
+ * | `--mantle-line-number-start` | `1` | The CSS counter start for the line-number gutter. |
+ *
  * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockcode
  * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate
  *
@@ -421,13 +441,16 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 	return (
 		<pre
 			data-slot="code-block-code"
-			aria-expanded={hasCodeExpander ? isCodeExpanded : undefined}
+			// Why data-state and not aria-expanded: `aria-expanded` is not a global
+			// attribute and `<pre>` has no role that supports it. The expander
+			// button owns the ARIA state; this attribute only drives the styling.
+			data-state={hasCodeExpander ? (isCodeExpanded ? "expanded" : "collapsed") : undefined}
 			className={cx(
 				"scrollbar overflow-x-auto overscroll-x-none overflow-y-hidden py-4",
 				!isPreRendered && "pr-14",
 				"data-[mantle-line-numbers~='false']:pl-4",
 				"text-mono m-0 font-mono outline-hidden",
-				"aria-collapsed:max-h-[13.6rem]",
+				"data-[state=collapsed]:max-h-[13.6rem]",
 				className,
 			)}
 			data-highlighted={isPreRendered ? "true" : "false"}
@@ -624,6 +647,13 @@ const CopyButton = ({
 			data-slot="code-block-copy-button"
 			className="absolute right-3 top-3 z-10 inline-flex size-7 items-center justify-center rounded-[var(--icon-button-border-radius,0.375rem)] bg-base"
 		>
+			{/* Why always mounted: the icon swap is silent to a screen reader. A
+			    lone text child is written with textContent, which is safe under a
+			    browser translation engine, and a fresh live region is not
+			    announced on mount. */}
+			<span role="status" aria-live="polite" className="sr-only">
+				{wasCopied ? "Copied" : ""}
+			</span>
 			<IconButton
 				type="button"
 				appearance="ghost"
@@ -665,12 +695,15 @@ const CopyButton = ({
 type CodeBlockExpanderButtonProps = Omit<
 	ComponentProps<"button">,
 	"children" | "aria-controls" | "aria-expanded"
-> &
-	WithAsChild;
+>;
 
 /**
  * The (optional) expander button of the `CodeBlock`. Toggles the expanded
  * state of the code block. When present, the code block is collapsible.
+ *
+ * It carries `aria-expanded` and `aria-controls` that points at the `<pre>`.
+ * It does not take `asChild`: it renders its own label and caret, so there is
+ * no single child to clone. Style it with `className`.
  *
  * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockexpanderbutton
  *
@@ -689,13 +722,7 @@ type CodeBlockExpanderButtonProps = Omit<
  * </CodeBlock.Root>
  * ```
  */
-const ExpanderButton = ({
-	asChild = false,
-	className,
-	onClick,
-	ref,
-	...props
-}: CodeBlockExpanderButtonProps) => {
+const ExpanderButton = ({ className, onClick, ref, ...props }: CodeBlockExpanderButtonProps) => {
 	const { codeId, isCodeExpanded, setIsCodeExpanded, setHasCodeExpander } = useCodeBlockContext();
 
 	useEffect(() => {
@@ -705,10 +732,8 @@ const ExpanderButton = ({
 		};
 	}, [setHasCodeExpander]);
 
-	const Component = asChild ? Slot : "button";
-
 	return (
-		<Component
+		<button
 			{...props}
 			data-slot="code-block-expander-button"
 			aria-controls={codeId}
@@ -719,9 +744,7 @@ const ExpanderButton = ({
 			)}
 			ref={ref}
 			type="button"
-			// Why: the asChild union (Slot | "button") no longer infers a single
-			// event type; React event handlers are bivariant, so pin the param.
-			onClick={(event: MouseEvent<HTMLButtonElement>) => {
+			onClick={(event) => {
 				setIsCodeExpanded((prev) => !prev);
 				onClick?.(event);
 			}}
@@ -731,7 +754,7 @@ const ExpanderButton = ({
 				svg={<CaretDownIcon weight="bold" />}
 				className={cx("size-4", isCodeExpanded && "rotate-180", "transition-all duration-150")}
 			/>
-		</Component>
+		</button>
 	);
 };
 

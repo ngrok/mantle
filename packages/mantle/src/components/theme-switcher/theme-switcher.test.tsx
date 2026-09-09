@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { createRef } from "react";
+import type { ComponentProps } from "react";
 import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, test } from "vitest";
-import type { WithStyleProps } from "../../types/with-style-props.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { ThemeProvider, useTheme } from "../theme/theme-provider.js";
 import { ThemeDropdownMenuRadioGroup, ThemeSwitcher } from "./theme-switcher.js";
@@ -28,7 +28,7 @@ const themeLabels = [
  * Mount the radio group inside a controlled-open dropdown menu so the
  * portaled content is present without simulating trigger interaction.
  */
-const renderRadioGroup = (props: WithStyleProps = {}) =>
+const renderRadioGroup = (props: ComponentProps<typeof ThemeDropdownMenuRadioGroup> = {}) =>
 	render(
 		<ThemeProvider>
 			<CurrentThemeProbe />
@@ -49,7 +49,52 @@ beforeEach(() => {
 	document.cookie = "mantle-ui-theme=system; path=/";
 });
 
+describe("ThemeDropdownMenuRadioGroup naming", () => {
+	test('the radio group is named "Theme" by default', () => {
+		renderRadioGroup();
+		expect(screen.getByRole("group", { name: "Theme" })).toBeInTheDocument();
+	});
+
+	test("aria-label renames the group", () => {
+		renderRadioGroup({ "aria-label": "Appearance" });
+		expect(screen.getByRole("group", { name: "Appearance" })).toBeInTheDocument();
+	});
+
+	test("aria-labelledby names the group from a visible heading and drops the default aria-label", () => {
+		render(
+			<ThemeProvider>
+				<DropdownMenu.Root open>
+					<DropdownMenu.Trigger>t</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<DropdownMenu.Label id="appearance-heading">Appearance</DropdownMenu.Label>
+						<ThemeDropdownMenuRadioGroup aria-labelledby="appearance-heading" />
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+			</ThemeProvider>,
+		);
+		const group = screen.getByRole("group", { name: "Appearance" });
+		expect(group).not.toHaveAttribute("aria-label");
+	});
+});
+
 describe("ThemeSwitcher", () => {
+	test("the server render puts a <span> skeleton inside the trigger button, never a <div>", () => {
+		const html = renderToString(
+			<ThemeProvider>
+				<ThemeSwitcher.Root>
+					<ThemeSwitcher.Trigger />
+					<ThemeSwitcher.Content />
+				</ThemeSwitcher.Root>
+			</ThemeProvider>,
+		);
+		const template = document.createElement("template");
+		template.innerHTML = html;
+		const button = template.content.querySelector("button");
+		const skeleton = button?.querySelector('[data-slot="skeleton"]');
+		expect(skeleton?.tagName).toBe("SPAN");
+		expect(button?.querySelector("div")).toBeNull();
+	});
+
 	test("renders a trigger button with the default accessible name", () => {
 		render(
 			<ThemeProvider>

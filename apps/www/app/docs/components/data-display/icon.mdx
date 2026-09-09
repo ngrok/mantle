@@ -24,6 +24,16 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 <Icon className="text-danger-600" svg={<FireIcon weight="fill" />} />
 ```
 
+## Accessibility
+
+An `Icon` is decorative by default. It renders `aria-hidden="true"` unless you pass `aria-label`, `aria-labelledby`, `role`, or an explicit `aria-hidden`, on the `Icon` or on the svg element itself. Phosphor icons set none of these, so an icon next to a text label is hidden from assistive technology and the text carries the meaning.
+
+When the icon is the only thing that conveys its meaning, name it:
+
+```tsx
+<Icon role="img" aria-label="Warning" svg={<WarningIcon />} />
+```
+
 ## Examples
 
 ### Merging `className`s

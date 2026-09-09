@@ -58,9 +58,6 @@ describe("SkipToMainLink", () => {
 		expect(replaceStateSpy).toHaveBeenCalledWith(null, "", "#main");
 		expect(pushStateSpy).not.toHaveBeenCalled();
 		expect(window.location.hash).toBe("#main");
-
-		replaceStateSpy.mockRestore();
-		pushStateSpy.mockRestore();
 	});
 
 	test("invokes the consumer `onClick` after performing the core behavior", async () => {

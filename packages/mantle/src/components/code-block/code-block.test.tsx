@@ -242,6 +242,30 @@ describe("CodeBlock", () => {
 			expect(onCopy).toHaveBeenCalledWith(code);
 		});
 
+		test("announces 'Copied' through a live region after a copy", async () => {
+			const user = userEvent.setup();
+
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.CopyButton />
+						<CodeBlock.Code value={makeValue("const x = 1;")} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			// Why always mounted: a live region that appears with its text is not
+			// announced. The element must exist, empty, before the copy.
+			const status = screen.getByRole("status");
+			expect(status).toHaveTextContent("");
+
+			await user.click(screen.getByRole("button", { name: /copy code/i }));
+
+			await vi.waitFor(() => {
+				expect(status).toHaveTextContent("Copied");
+			});
+		});
+
 		test("fires onCopy with the code text after clicking", async () => {
 			const user = userEvent.setup();
 			const onCopy = vi.fn<() => void>();
@@ -336,6 +360,50 @@ describe("CodeBlock", () => {
 			for (const tab of screen.getAllByRole("tab")) {
 				expect(tab).toHaveClass("shrink-0", "whitespace-nowrap");
 			}
+		});
+	});
+
+	describe("ExpanderButton", () => {
+		test("owns the ARIA state and points at the <pre>, which carries data-state instead", async () => {
+			const user = userEvent.setup();
+
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code value={makeValue("const x = 1;")} />
+					</CodeBlock.Body>
+					<CodeBlock.ExpanderButton />
+				</CodeBlock.Root>,
+			);
+
+			const button = screen.getByRole("button", { name: "Show more" });
+			const pre = document.querySelector("pre");
+			expect(pre).not.toBeNull();
+			expect(button).toHaveAttribute("aria-expanded", "false");
+			expect(button).toHaveAttribute("aria-controls", pre?.getAttribute("id") ?? "");
+			// Why: `aria-expanded` is not valid on a `<pre>`; styling reads `data-state`.
+			expect(pre).not.toHaveAttribute("aria-expanded");
+			expect(pre).toHaveAttribute("data-state", "collapsed");
+
+			await user.click(button);
+
+			expect(screen.getByRole("button", { name: "Show less" })).toHaveAttribute(
+				"aria-expanded",
+				"true",
+			);
+			expect(pre).toHaveAttribute("data-state", "expanded");
+		});
+
+		test("without an expander the <pre> carries no data-state", () => {
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code value={makeValue("const x = 1;")} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			expect(document.querySelector("pre")).not.toHaveAttribute("data-state");
 		});
 	});
 });

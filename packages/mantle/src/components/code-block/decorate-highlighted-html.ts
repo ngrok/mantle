@@ -118,8 +118,10 @@ function decorateHighlightedHtml({
 			openerId != null && "mantle-code-line-opener",
 		);
 
+		// Why aria-hidden: without it a screen reader reads "1 const x" on every
+		// line. The gutter is a visual aid; the code is the content.
 		const lineNumberHtml = showLineNumbers
-			? `<span class="mantle-code-line-number" data-slot="line-number">${displayedLineNumber}</span>`
+			? `<span class="mantle-code-line-number" data-slot="line-number" aria-hidden="true">${displayedLineNumber}</span>`
 			: "";
 
 		let foldGutterHtml = "";

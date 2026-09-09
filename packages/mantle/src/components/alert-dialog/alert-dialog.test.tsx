@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps } from "react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import type { ButtonIntent } from "../button/intents.js";
 import { AlertDialog } from "./alert-dialog.js";
 
@@ -48,6 +49,69 @@ describe("AlertDialog", () => {
 		renderAlertDialog({ intent: "info" });
 		expect(screen.getByText("Are you sure?")).toBeInTheDocument();
 		expect(screen.getByText("This cannot be undone.")).toBeInTheDocument();
+	});
+
+	test("the content is an alertdialog named by its title and described by its description", () => {
+		renderAlertDialog({ intent: "danger" });
+		const dialog = screen.getByRole("alertdialog", { name: "Are you sure?" });
+		expect(dialog).toHaveAccessibleDescription("This cannot be undone.");
+	});
+
+	describe("dismissal", () => {
+		function renderDismissible() {
+			const handleOpenChange = vi.fn<(open: boolean) => void>();
+			render(
+				<AlertDialog.Root intent="danger" defaultOpen onOpenChange={handleOpenChange}>
+					<AlertDialog.Content>
+						<AlertDialog.Body>
+							<AlertDialog.Header>
+								<AlertDialog.Title>Delete this endpoint?</AlertDialog.Title>
+							</AlertDialog.Header>
+							<AlertDialog.Footer>
+								<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+								<AlertDialog.Action>Delete</AlertDialog.Action>
+							</AlertDialog.Footer>
+						</AlertDialog.Body>
+					</AlertDialog.Content>
+				</AlertDialog.Root>,
+			);
+			return { handleOpenChange };
+		}
+
+		test("a pointer down on the backdrop does not close the dialog", async () => {
+			const user = userEvent.setup();
+			const { handleOpenChange } = renderDismissible();
+			const overlay = document.querySelector('[data-slot="alert-dialog-overlay"]');
+			expect(overlay).not.toBeNull();
+			if (overlay == null) {
+				return;
+			}
+
+			await user.pointer({ keys: "[MouseLeft]", target: overlay });
+
+			expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+			expect(handleOpenChange).not.toHaveBeenCalled();
+		});
+
+		test("Escape still closes the dialog", async () => {
+			const user = userEvent.setup();
+			const { handleOpenChange } = renderDismissible();
+
+			await user.keyboard("{Escape}");
+
+			expect(handleOpenChange).toHaveBeenCalledTimes(1);
+			expect(handleOpenChange).toHaveBeenLastCalledWith(false);
+		});
+
+		test("Cancel still closes the dialog", async () => {
+			const user = userEvent.setup();
+			const { handleOpenChange } = renderDismissible();
+
+			await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+			expect(handleOpenChange).toHaveBeenCalledTimes(1);
+			expect(handleOpenChange).toHaveBeenLastCalledWith(false);
+		});
 	});
 
 	describe("intent", () => {

@@ -12,6 +12,7 @@ import type {
 	Ref,
 } from "react";
 import { createContext, useContext, useMemo, useRef } from "react";
+import { parseBooleanish } from "../../types/booleanish.js";
 import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -190,7 +191,9 @@ const InputContainer = ({
 			<div
 				role="none"
 				data-slot={dataSlot}
-				data-disabled={(disabled ?? _ariaDisabled) || undefined}
+				// Why parseBooleanish: `aria-disabled="false"` is a string, and the
+				// `data-disabled:` variant matches presence, so it must not stamp.
+				data-disabled={parseBooleanish(disabled ?? _ariaDisabled) || undefined}
 				data-validation={validation || undefined}
 				className={cx(
 					"pointer-coarse:text-base h-9 text-sm",

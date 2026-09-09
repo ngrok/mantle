@@ -73,7 +73,7 @@ const Trigger = (props: ComponentProps<typeof HoverCardPrimitive.Trigger>) => (
  * customize portal placement (e.g., pass a `container` prop) or wrap multiple
  * `HoverCard.Content` instances in a shared portal.
  *
- * When `container` is omitted, content mounts into the nearest layer container —
+ * When `container` is omitted, content mounts into the nearest layer container:
  * an enclosing overlay's positioner when one is open, else `document.body`.
  *
  * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardportal
@@ -345,7 +345,7 @@ const HoverCard = {
 	 */
 	Arrow,
 	/**
-	 * The content to render inside the hover card. Appears in a portal with rich styling and animations.
+	 * The content to render inside the hover card.
 	 *
 	 * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's float tier. When
 	 * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
@@ -353,6 +353,10 @@ const HoverCard = {
 	 * every overlay, it portals to `document.body`, below the overlay tier
 	 * (`z-60`). When sibling floats share a container, the most recently mounted
 	 * float paints on top.
+	 *
+	 * It sets `position: relative`, so `HoverCard.Arrow`'s absolutely-positioned
+	 * wrapper keeps one containing block through the open animation. An
+	 * absolutely-positioned child of the content therefore anchors to the content.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardcontent
 	 *
@@ -377,7 +381,11 @@ const HoverCard = {
 	 * The portal container for rendering hover card content outside the normal DOM tree.
 	 * `HoverCard.Content` already renders inside this portal internally, so you typically
 	 * do not need to use `HoverCard.Portal` directly. Use it only when you need to
-	 * customize portal placement or wrap multiple `HoverCard.Content` instances.
+	 * customize portal placement (e.g., pass a `container` prop) or wrap multiple
+	 * `HoverCard.Content` instances in a shared portal.
+	 *
+	 * When `container` is omitted, content mounts into the nearest layer container:
+	 * an enclosing overlay's positioner when one is open, else `document.body`.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardportal
 	 *

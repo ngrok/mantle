@@ -3,7 +3,7 @@ import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Slot } from "../slot/index.js";
 
-type Props = Exclude<ComponentProps<"div">, "children"> & SelfClosingWithAsChild;
+type Props = Omit<ComponentProps<"div">, "children"> & SelfClosingWithAsChild;
 
 /**
  * A skeleton is a placeholder for content that is loading. By rendering a
@@ -27,9 +27,10 @@ type Props = Exclude<ComponentProps<"div">, "children"> & SelfClosingWithAsChild
  * — the more closely the skeleton matches, the less layout shift on swap.
  *
  * **Accessibility.** Skeletons are decorative and convey no semantic
- * meaning to assistive tech. If the underlying region is loading, also
- * announce it to screen readers — e.g. wrap in an element with
- * `role="status"` and a visually-hidden "Loading…" label.
+ * meaning to assistive tech, so the element renders `aria-hidden="true"` by
+ * default; pass `aria-hidden={false}` to opt out. If the underlying region
+ * is loading, also announce it to screen readers, for example wrap it in an
+ * element with `role="status"` and a visually-hidden "Loading…" label.
  *
  * @see https://mantle.ngrok.com/components/feedback/skeleton
  *
@@ -56,6 +57,8 @@ const Skeleton = ({ asChild = false, className, ref, ...props }: Props) => {
 	return (
 		<Component
 			data-slot="skeleton"
+			// Why before the spread: a consumer `aria-hidden={false}` must win.
+			aria-hidden
 			className={cx(
 				"dark-high-contrast:bg-black/30 high-contrast:bg-black/30 h-4 animate-pulse rounded-md bg-gray-300/25 dark:bg-gray-950/10",
 				className,

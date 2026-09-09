@@ -50,7 +50,7 @@ describe("UserOverlayDemo", () => {
 
 		// The alert-dialog shell is distinguishable by its confirmation title and
 		// its gated destructive action (disabled while the query is pending).
-		expect(screen.getByRole("dialog", { name: "Remove this user?" })).toBeDefined();
+		expect(screen.getByRole("alertdialog", { name: "Remove this user?" })).toBeDefined();
 		expect(screen.getByRole("button", { name: "Remove user" }).hasAttribute("disabled")).toBe(true);
 	});
 

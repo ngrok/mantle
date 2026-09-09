@@ -937,6 +937,8 @@ const Dialog = {
 	Content,
 	/**
 	 * An accessible description to be announced when the dialog is opened.
+	 * Renders as a `div` by default, but can be changed to any other element using
+	 * the `asChild` prop.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/dialog#dialogdescription
 	 *

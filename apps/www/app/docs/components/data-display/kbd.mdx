@@ -24,10 +24,10 @@ A square, centered keyboard "key" chip for rendering shortcut hints — `K`, `�
 <Example>
 	<div className="flex items-center gap-2">
 		<Kbd>K</Kbd>
-		<Kbd>⌘</Kbd>
-		<Kbd>⌃</Kbd>
-		<Kbd>⇧</Kbd>
-		<Kbd>⌥</Kbd>
+		<Kbd aria-label="Command">⌘</Kbd>
+		<Kbd aria-label="Control">⌃</Kbd>
+		<Kbd aria-label="Shift">⇧</Kbd>
+		<Kbd aria-label="Option">⌥</Kbd>
 	</div>
 </Example>
 
@@ -36,10 +36,10 @@ import { Kbd } from "@ngrok/mantle/kbd";
 
 <div className="flex items-center gap-2">
 	<Kbd>K</Kbd>
-	<Kbd>⌘</Kbd>
-	<Kbd>⌃</Kbd>
-	<Kbd>⇧</Kbd>
-	<Kbd>⌥</Kbd>
+	<Kbd aria-label="Command">⌘</Kbd>
+	<Kbd aria-label="Control">⌃</Kbd>
+	<Kbd aria-label="Shift">⇧</Kbd>
+	<Kbd aria-label="Option">⌥</Kbd>
 </div>;
 ```
 
@@ -50,14 +50,14 @@ Combine multiple `Kbd` components to display keyboard shortcuts.
 <Example>
 	<div className="flex flex-col gap-4">
 		<div className="flex items-center gap-2">
-			<Kbd>⌘</Kbd>
+			<Kbd aria-label="Command">⌘</Kbd>
 			<span>+</span>
 			<Kbd>K</Kbd>
 		</div>
 		<div className="flex items-center gap-2">
-			<Kbd>⌃</Kbd>
+			<Kbd aria-label="Control">⌃</Kbd>
 			<span>+</span>
-			<Kbd>⇧</Kbd>
+			<Kbd aria-label="Shift">⇧</Kbd>
 			<span>+</span>
 			<Kbd>P</Kbd>
 		</div>
@@ -69,14 +69,14 @@ import { Kbd } from "@ngrok/mantle/kbd";
 
 <div className="flex flex-col gap-4">
 	<div className="flex items-center gap-2">
-		<Kbd>⌘</Kbd>
+		<Kbd aria-label="Command">⌘</Kbd>
 		<span>+</span>
 		<Kbd>K</Kbd>
 	</div>
 	<div className="flex items-center gap-2">
-		<Kbd>⌃</Kbd>
+		<Kbd aria-label="Control">⌃</Kbd>
 		<span>+</span>
-		<Kbd>⇧</Kbd>
+		<Kbd aria-label="Shift">⇧</Kbd>
 		<span>+</span>
 		<Kbd>P</Kbd>
 	</div>

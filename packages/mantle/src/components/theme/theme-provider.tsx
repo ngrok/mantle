@@ -39,13 +39,11 @@ const DEFAULT_THEME = "system" satisfies Theme;
 
 type ThemeProviderState = [theme: Theme, setTheme: (theme: Theme) => void];
 
-const initialState: ThemeProviderState = ["system", () => null];
-
 /**
  * The `[theme, setTheme]` tuple {@link ThemeProvider} provides. Read it with
- * {@link useTheme}.
+ * {@link useTheme}. `null` outside a provider, so `useTheme` can fail fast.
  */
-const ThemeProviderContext = createContext<ThemeProviderState | null>(initialState);
+const ThemeProviderContext = createContext<ThemeProviderState | null>(null);
 
 type ThemeProviderProps = PropsWithChildren<{
 	/**
@@ -349,8 +347,8 @@ export function determineThemeFromMediaQuery({
  *  2. Validate it against the configured `themes`; fall back to `defaultTheme` otherwise.
  *  3. If the preference is `"system"`, resolve against the OS media queries
  *     (`prefers-color-scheme`, `prefers-contrast`).
- *  4. Apply the resolved class to `<html>` and refresh the cookie so subsequent
- *     SSRs see the same value.
+ *  4. Apply the resolved class to `<html>`. When no valid cookie is stored yet,
+ *     seed it so subsequent SSRs see the same value.
  *
  * Why nested helpers: `preventWrongThemeFlashScriptContent` serializes this
  * function verbatim, so it must be hermetic — every helper it calls has to

@@ -509,6 +509,10 @@ const ChartRootPrimitive = ({
 			// consumer-passed aria-hidden/tabIndex.
 			aria-hidden={decorative ? true : ariaHidden}
 			tabIndex={decorative ? undefined : tabIndex}
+			// Why inert: `aria-hidden` alone leaves a composed DOM part such as
+			// `CopyButton` focusable inside a hidden subtree. `inert` takes the
+			// whole backdrop out of the tab order too.
+			inert={decorative ? true : undefined}
 			ref={composedRootRef}
 			{...props}
 		>
@@ -598,8 +602,9 @@ const ChartRootPrimitive = ({
 								}}
 							/>
 							<span id={instructionsId} className="sr-only">
-								Use the left and right arrow keys to move between data points, Home and End to jump
-								to the first and last, and Enter to activate the current point.
+								Use the left and right arrow keys to move between data points, Page Up and Page Down
+								to jump by a tenth of the data, Home and End to jump to the first and last, Enter or
+								Space to activate the current point, and Escape to dismiss the readout.
 							</span>
 						</>
 					)}
@@ -643,6 +648,7 @@ const ChartRootPrimitive = ({
 						<ChartDataTable
 							data={data}
 							label={ariaLabel}
+							labelledBy={ariaLabelledBy}
 							slotName={slotName}
 							store={store}
 							xHasTimeOfDay={xHasTimeOfDay}
@@ -1244,51 +1250,60 @@ const ChartCopyButtonPrimitive = ({
 	}, []);
 
 	return (
-		<IconButton
-			type="button"
-			appearance="ghost"
-			intent="neutral"
-			size="sm"
-			data-slot={`${slotName}-copy-button`}
-			label={label}
-			icon={wasCopied ? <CheckIcon /> : <CopyIcon />}
-			ref={ref}
-			onClick={async (event) => {
-				try {
-					onClick?.(event);
-					if (event.defaultPrevented) {
-						// The consumer took over the click — cancel any pending revert and
-						// return the icon to its idle copy state, rather than stranding the
-						// check icon left over from a prior copy.
+		<>
+			<IconButton
+				type="button"
+				appearance="ghost"
+				intent="neutral"
+				size="sm"
+				data-slot={`${slotName}-copy-button`}
+				label={label}
+				icon={wasCopied ? <CheckIcon /> : <CopyIcon />}
+				ref={ref}
+				onClick={async (event) => {
+					try {
+						onClick?.(event);
+						if (event.defaultPrevented) {
+							// The consumer took over the click, so cancel any pending revert and
+							// return the icon to its idle copy state, rather than stranding the
+							// check icon left over from a prior copy.
+							if (timeoutHandle.current != null) {
+								clearTimeout(timeoutHandle.current);
+								timeoutHandle.current = undefined;
+							}
+							setWasCopied(false);
+							return;
+						}
+						const { data, xKey, zKey } = context.dataRef.current;
+						const markdown = serializeChartMarkdown({
+							data,
+							xKey,
+							zKey,
+							series: context.store.getSnapshot().series,
+						});
+						await copyToClipboard(markdown);
+						onCopy?.(markdown);
+						setWasCopied(true);
 						if (timeoutHandle.current != null) {
 							clearTimeout(timeoutHandle.current);
-							timeoutHandle.current = undefined;
 						}
-						setWasCopied(false);
-						return;
+						timeoutHandle.current = setTimeout(() => {
+							setWasCopied(false);
+						}, 2000);
+					} catch (error) {
+						onCopyError?.(error);
 					}
-					const { data, xKey, zKey } = context.dataRef.current;
-					const markdown = serializeChartMarkdown({
-						data,
-						xKey,
-						zKey,
-						series: context.store.getSnapshot().series,
-					});
-					await copyToClipboard(markdown);
-					onCopy?.(markdown);
-					setWasCopied(true);
-					if (timeoutHandle.current != null) {
-						clearTimeout(timeoutHandle.current);
-					}
-					timeoutHandle.current = setTimeout(() => {
-						setWasCopied(false);
-					}, 2000);
-				} catch (error) {
-					onCopyError?.(error);
-				}
-			}}
-			{...props}
-		/>
+				}}
+				{...props}
+			/>
+			{/* Why always mounted: the icon swap is silent to a screen reader. A
+			    lone text child is written with textContent, which is safe under a
+			    browser translation engine, and a fresh live region is not
+			    announced on mount. */}
+			<span role="status" aria-live="polite" className="sr-only">
+				{wasCopied ? "Copied" : ""}
+			</span>
+		</>
 	);
 };
 
@@ -1340,6 +1355,29 @@ const ChartAnnouncer = ({
 };
 
 /**
+ * Resolves the chart's name for the data-table caption: the `aria-label` when
+ * set, else the text of the `aria-labelledby` element once it is in the DOM.
+ * The server render falls back to "Chart data" because the referenced element
+ * is not reachable there.
+ */
+const useResolvedChartLabel = (label: string | undefined, labelledBy: string | undefined) => {
+	const [referencedText, setReferencedText] = useState<string | undefined>(undefined);
+	useEffect(() => {
+		if (labelledBy == null) {
+			setReferencedText(undefined);
+			return;
+		}
+		const text = labelledBy
+			.split(/\s+/)
+			.map((id) => document.getElementById(id)?.textContent?.trim() ?? "")
+			.filter(Boolean)
+			.join(" ");
+		setReferencedText(text || undefined);
+	}, [labelledBy]);
+	return label ?? referencedText;
+};
+
+/**
  * The chart's structural twin: an sr-only table of the data, bounded to
  * {@link CHART_TABLE_ROW_LIMIT} rows with a caption stating the summarization.
  * Tooltips enhance, they never gate — every plotted value is reachable here
@@ -1348,6 +1386,7 @@ const ChartAnnouncer = ({
 const ChartDataTable = ({
 	data,
 	label,
+	labelledBy,
 	slotName,
 	store,
 	xHasTimeOfDay,
@@ -1355,8 +1394,14 @@ const ChartDataTable = ({
 	zKey,
 }: {
 	data: readonly ChartDatum[];
-	/** The chart's accessible name, so multi-chart pages get distinct captions. */
+	/** The chart's `aria-label`, so multi-chart pages get distinct captions. */
 	label: string | undefined;
+	/**
+	 * The chart's `aria-labelledby`. The caption reads the referenced element's
+	 * text after mount, so an `aria-labelledby` chart gets the same distinct
+	 * caption as an `aria-label` chart.
+	 */
+	labelledBy: string | undefined;
 	slotName: string;
 	store: ChartStore;
 	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
@@ -1365,6 +1410,7 @@ const ChartDataTable = ({
 	zKey: string | undefined;
 }) => {
 	const snapshot = useStoreSnapshot(store);
+	const resolvedLabel = useResolvedChartLabel(label, labelledBy);
 	if (data.length === 0 || snapshot.series.length === 0) {
 		return null;
 	}
@@ -1375,7 +1421,7 @@ const ChartDataTable = ({
 		<div className="sr-only" data-slot={`${slotName}-data-table`}>
 			<table>
 				<caption>
-					{`${label == null ? "Chart data" : `${label} — chart data`}${
+					{`${resolvedLabel == null ? "Chart data" : `${resolvedLabel} — chart data`}${
 						data.length > CHART_TABLE_ROW_LIMIT
 							? `. Showing the first ${CHART_TABLE_ROW_LIMIT} of ${data.length} rows.`
 							: "."

@@ -61,10 +61,14 @@ All custom icons are exported from `@ngrok/mantle/icons`.
 
 A sort direction indicator icon with different modes and directions.
 
-| Prop        | Type                                                          | Default | Description         |
-| :---------- | :------------------------------------------------------------ | :------ | :------------------ |
-| `mode`      | `"alphanumeric" \| "time"`                                    |         | The sorting mode.   |
-| `direction` | `"asc" \| "desc" \| "newest-to-oldest" \| "oldest-to-newest"` |         | The sort direction. |
+The props are a discriminated union on `mode`: each mode accepts its own `direction` values.
+
+| Prop        | Type                                                          | Default | Description                                                                                              |
+| :---------- | :------------------------------------------------------------ | :------ | :------------------------------------------------------------------------------------------------------- |
+| `mode`      | `"alphanumeric"`                                              |         | Sort by alphanumeric order.                                                                              |
+| `direction` | `"asc" \| "desc"`                                             |         | `"asc"` for A to Z and 0 to 9, `"desc"` for the reverse.                                                 |
+| `mode`      | `"time"`                                                      |         | Sort by time.                                                                                            |
+| `direction` | `"newest-to-oldest" \| "oldest-to-newest" \| "asc" \| "desc"` |         | `"newest-to-oldest"` (or `"desc"`) for newest first, `"oldest-to-newest"` (or `"asc"`) for oldest first. |
 
 ### TrafficPolicyFileIcon
 

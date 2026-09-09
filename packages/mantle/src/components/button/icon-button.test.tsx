@@ -1,6 +1,7 @@
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { userEvent } from "@testing-library/user-event";
+import { describe, expect, test, vi } from "vitest";
 import { Button } from "./button.js";
 import { IconButton } from "./icon-button.js";
 
@@ -170,6 +171,79 @@ describe("IconButton", () => {
 			const link = screen.getByRole("link");
 			expect(link).toHaveAttribute("data-size", "xl");
 			expect(link).toHaveClass("size-12");
+		});
+	});
+
+	describe("disabled", () => {
+		test("isLoading sets the native disabled attribute and aria-disabled", () => {
+			render(
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					isLoading
+					label="Save"
+					icon={<GlobeIcon />}
+				/>,
+			);
+			const button = screen.getByRole("button", { name: "Save" });
+			expect(button).toBeDisabled();
+			expect(button).toHaveAttribute("aria-disabled", "true");
+			expect(button).toHaveAttribute("data-disabled", "true");
+		});
+
+		test("aria-disabled={false} cannot re-enable a disabled button", () => {
+			render(
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					disabled
+					aria-disabled={false}
+					label="Save"
+					icon={<GlobeIcon />}
+				/>,
+			);
+			const button = screen.getByRole("button", { name: "Save" });
+			expect(button).toBeDisabled();
+			expect(button).toHaveAttribute("aria-disabled", "true");
+		});
+
+		test("a disabled asChild anchor is inert: aria-disabled, out of the tab order, click cancelled", async () => {
+			const user = userEvent.setup();
+			const handleClick = vi.fn<() => void>();
+			render(
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					asChild
+					disabled
+					label="Home"
+					icon={<GlobeIcon />}
+				>
+					<a href="#home" onClick={handleClick} />
+				</IconButton>,
+			);
+			const link = screen.getByRole("link", { name: "Home" });
+			expect(link).not.toHaveAttribute("disabled");
+			expect(link).toHaveAttribute("aria-disabled", "true");
+			expect(link).toHaveAttribute("tabindex", "-1");
+
+			await user.click(link);
+			expect(handleClick).toHaveBeenCalledTimes(0);
+			expect(window.location.hash).toBe("");
+		});
+
+		test("the loading spinner is hidden from assistive technology", () => {
+			render(
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					isLoading
+					label="Save"
+					icon={<GlobeIcon />}
+				/>,
+			);
+			const spinner = screen.getByRole("button").querySelector("svg");
+			expect(spinner).toHaveAttribute("aria-hidden", "true");
 		});
 	});
 

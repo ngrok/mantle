@@ -186,14 +186,19 @@ const Root = ({
 
 /**
  * Props for `QrCode.Frame`, the fixed SVG element that sizes the encoded QR
- * pattern with its `viewBox`.
+ * pattern with its `viewBox`. `role` is locked to `"img"`.
  */
-type QrCodeFrameProps = ComponentProps<"svg">;
+type QrCodeFrameProps = Omit<ComponentProps<"svg">, "role">;
 
 /**
  * The `svg` frame that holds the QR `Pattern`. Defaults to a square `size-48`
  * and scales the encoded pattern to fit via its `viewBox`, so resize the whole
  * code by passing a different size to `className` (e.g. `className="size-64"`).
+ *
+ * The frame is the image a screen reader meets: it always carries
+ * `role="img"`. Pass `aria-label` (or `aria-labelledby`) that says what the
+ * code encodes, such as "QR code for the ngrok dashboard". When neither is
+ * set, the name falls back to "QR code".
  *
  * Does not support `asChild`: the QR pattern must live inside an `svg`, so the
  * frame element is fixed and cannot be swapped.
@@ -212,13 +217,25 @@ type QrCodeFrameProps = ComponentProps<"svg">;
  * </QrCode.Root>
  * ```
  */
-const Frame = ({ className, children, ref, ...props }: QrCodeFrameProps) => {
+const Frame = ({
+	"aria-label": ariaLabel,
+	"aria-labelledby": ariaLabelledBy,
+	className,
+	children,
+	ref,
+	...props
+}: QrCodeFrameProps) => {
 	const { dimension } = useQrCodeContext();
 
 	return (
 		<svg
 			ref={ref}
 			{...props}
+			// Why after the spread: a wider props object can still carry `role`
+			// past the type, and an unnamed graphic is a gap for a screen reader.
+			role="img"
+			aria-label={ariaLabel ?? (ariaLabelledBy == null ? "QR code" : undefined)}
+			aria-labelledby={ariaLabelledBy}
 			data-slot="qr-code-frame"
 			xmlns="http://www.w3.org/2000/svg"
 			viewBox={`0 0 ${dimension} ${dimension}`}
@@ -239,7 +256,8 @@ type QrCodePatternProps = ComponentProps<"path">;
 /**
  * The encoded QR modules, rendered as a single `path` inside the `Frame`.
  * Defaults to black fill (`fill-static-black`) so the code stays scannable in
- * every theme.
+ * every theme. A consumer `className` can override the fill, but a light or
+ * inverted fill makes the code unreliable for many scanners.
  *
  * Does not support `asChild`: the modules are a fixed `path` and cannot be
  * swapped for another element.

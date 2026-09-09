@@ -57,7 +57,7 @@ describe("MultiSelect (browser)", () => {
 	/** Finds a tag's option element via its remove button's aria-label. */
 	const getTagOption = (value: string): HTMLElement => {
 		const removeBtn = screen.getByLabelText(`Remove ${value}`);
-		const tagEl = removeBtn.closest<HTMLElement>('[role="option"]');
+		const tagEl = removeBtn.closest<HTMLElement>('[role="listitem"]');
 		if (tagEl == null) {
 			throw new Error(`Tag option for "${value}" not found`);
 		}
@@ -476,14 +476,7 @@ describe("MultiSelect (browser)", () => {
 						<MultiSelect.Trigger>
 							<MultiSelect.TagValues lockedValues={lockedValues}>
 								{({ value, onRemove, ref, onKeyDown }) => (
-									<span
-										key={value}
-										role="option"
-										aria-selected
-										tabIndex={-1}
-										ref={ref}
-										onKeyDown={onKeyDown}
-									>
+									<span key={value} role="listitem" tabIndex={-1} ref={ref} onKeyDown={onKeyDown}>
 										{value}
 										<button
 											type="button"

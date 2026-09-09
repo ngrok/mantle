@@ -124,7 +124,7 @@ import { OtpInput } from "@ngrok/mantle/otp-input";
 Or render the control on its own:
 
 <Example>
-	<OtpInput.Root maxLength={6}>
+	<OtpInput.Root aria-label="Verification code" maxLength={6}>
 		<OtpInput.Group>
 			<OtpInput.Slot index={0} />
 			<OtpInput.Slot index={1} />
@@ -142,7 +142,7 @@ Or render the control on its own:
 ```tsx
 import { OtpInput } from "@ngrok/mantle/otp-input";
 
-<OtpInput.Root maxLength={6}>
+<OtpInput.Root aria-label="Verification code" maxLength={6}>
 	<OtpInput.Group>
 		<OtpInput.Slot index={0} />
 		<OtpInput.Slot index={1} />
@@ -236,7 +236,7 @@ function Example() {
 Render all slots in a single group with no separator.
 
 <Example>
-	<OtpInput.Root maxLength={4}>
+	<OtpInput.Root aria-label="Verification code" maxLength={4}>
 		<OtpInput.Group>
 			<OtpInput.Slot index={0} />
 			<OtpInput.Slot index={1} />
@@ -247,7 +247,7 @@ Render all slots in a single group with no separator.
 </Example>
 
 ```tsx
-<OtpInput.Root maxLength={4}>
+<OtpInput.Root aria-label="Verification code" maxLength={4}>
 	<OtpInput.Group>
 		<OtpInput.Slot index={0} />
 		<OtpInput.Slot index={1} />
@@ -263,7 +263,7 @@ Restrict input to numeric characters using the `pattern` prop and the
 `REGEXP_ONLY_DIGITS` helper.
 
 <Example>
-	<OtpInput.Root maxLength={6} pattern={REGEXP_ONLY_DIGITS}>
+	<OtpInput.Root aria-label="Verification code" maxLength={6} pattern={REGEXP_ONLY_DIGITS}>
 		<OtpInput.Group>
 			<OtpInput.Slot index={0} />
 			<OtpInput.Slot index={1} />
@@ -278,7 +278,7 @@ Restrict input to numeric characters using the `pattern` prop and the
 ```tsx
 import { OtpInput, REGEXP_ONLY_DIGITS } from "@ngrok/mantle/otp-input";
 
-<OtpInput.Root maxLength={6} pattern={REGEXP_ONLY_DIGITS}>
+<OtpInput.Root aria-label="Verification code" maxLength={6} pattern={REGEXP_ONLY_DIGITS}>
 	<OtpInput.Group>
 		<OtpInput.Slot index={0} />
 		<OtpInput.Slot index={1} />
@@ -295,7 +295,7 @@ import { OtpInput, REGEXP_ONLY_DIGITS } from "@ngrok/mantle/otp-input";
 Pass `disabled` to the root to disable the entire input.
 
 <Example>
-	<OtpInput.Root maxLength={6} disabled>
+	<OtpInput.Root aria-label="Verification code" maxLength={6} disabled>
 		<OtpInput.Group>
 			<OtpInput.Slot index={0} />
 			<OtpInput.Slot index={1} />
@@ -311,7 +311,7 @@ Pass `disabled` to the root to disable the entire input.
 </Example>
 
 ```tsx
-<OtpInput.Root maxLength={6} disabled>
+<OtpInput.Root aria-label="Verification code" maxLength={6} disabled>
 	<OtpInput.Group>
 		<OtpInput.Slot index={0} />
 		<OtpInput.Slot index={1} />
@@ -339,7 +339,7 @@ styling, e.g.
 `validation={field.state.meta.errors.length > 0 && "error"}`.
 
 <Example className="flex-col gap-4">
-	<OtpInput.Root maxLength={6} validation="error">
+	<OtpInput.Root aria-label="Verification code" maxLength={6} validation="error">
 		<OtpInput.Group>
 			<OtpInput.Slot index={0} />
 			<OtpInput.Slot index={1} />
@@ -352,7 +352,7 @@ styling, e.g.
 			<OtpInput.Slot index={5} />
 		</OtpInput.Group>
 	</OtpInput.Root>
-	<OtpInput.Root maxLength={6} validation="success">
+	<OtpInput.Root aria-label="Verification code" maxLength={6} validation="success">
 		<OtpInput.Group>
 			<OtpInput.Slot index={0} />
 			<OtpInput.Slot index={1} />
@@ -365,7 +365,7 @@ styling, e.g.
 			<OtpInput.Slot index={5} />
 		</OtpInput.Group>
 	</OtpInput.Root>
-	<OtpInput.Root maxLength={6} validation="warning">
+	<OtpInput.Root aria-label="Verification code" maxLength={6} validation="warning">
 		<OtpInput.Group>
 			<OtpInput.Slot index={0} />
 			<OtpInput.Slot index={1} />
@@ -382,7 +382,7 @@ styling, e.g.
 
 ```tsx
 // "success" and "warning" render the same structure with a different hue.
-<OtpInput.Root maxLength={6} validation="error">
+<OtpInput.Root aria-label="Verification code" maxLength={6} validation="error">
 	<OtpInput.Group>
 		<OtpInput.Slot index={0} />
 		<OtpInput.Slot index={1} />
@@ -419,7 +419,7 @@ need a different underlying element: for example, rendering the separator as a
 semantic span, or wrapping a group in a styled label.
 
 <Example>
-	<OtpInput.Root maxLength={6}>
+	<OtpInput.Root aria-label="Verification code" maxLength={6}>
 		<OtpInput.Group>
 			<OtpInput.Slot index={0} />
 			<OtpInput.Slot index={1} />
@@ -441,6 +441,10 @@ semantic span, or wrapping a group in a styled label.
 	<span aria-hidden>·</span>
 </OtpInput.Separator>
 ```
+
+## Accessibility
+
+The hidden `<input>` carries the value and the focus, so it needs an accessible name. Inside a `Field.Item`, `Field.Label` supplies it through the `Field.Item` id. On its own, pass `aria-label` to `OtpInput.Root`. Every example above that renders the control without a `Field.Label` does so.
 
 ## Translation
 

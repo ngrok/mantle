@@ -124,6 +124,8 @@ describe("Accordion (browser)", () => {
 		expect(region).not.toBeNull();
 		// Collapsed content stays in the DOM, kept findable via hidden="until-found".
 		await waitFor(() => expect(region).toHaveAttribute("hidden", "until-found"));
+		// `inert` would hide the text from find-in-page, so it must not coexist.
+		expect(region).not.toHaveAttribute("inert");
 
 		// The browser fires `beforematch` on the element right before it reveals a
 		// find-in-page match; that opens the section and clears the hidden attribute.

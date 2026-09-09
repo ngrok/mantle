@@ -3,7 +3,8 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { act, useState } from "react";
-import { describe, expect, test } from "vitest";
+import type { MouseEvent as ReactMouseEvent } from "react";
+import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Button } from "./button.js";
 
@@ -287,6 +288,106 @@ describe("Button", () => {
 		await act(() => userEvent.click(screen.getByRole("button")));
 		expect(screen.getByTestId("submit-state")).toHaveTextContent("submitting");
 		expect(screen.getByTestId("click-state")).toHaveTextContent("clicked");
+	});
+
+	describe("disabled", () => {
+		test("disabled={false} keeps a loading button enabled and focusable", () => {
+			render(
+				<Button appearance="filled" intent="neutral" disabled={false} isLoading>
+					Save
+				</Button>,
+			);
+			const button = screen.getByRole("button", { name: "Save" });
+			expect(button).not.toBeDisabled();
+			expect(button).toHaveAttribute("aria-disabled", "false");
+			expect(button).toHaveAttribute("data-loading", "true");
+		});
+
+		test("isLoading sets the native disabled attribute and aria-disabled", () => {
+			render(
+				<Button appearance="filled" intent="neutral" isLoading>
+					Save
+				</Button>,
+			);
+			const button = screen.getByRole("button", { name: "Save" });
+			expect(button).toBeDisabled();
+			expect(button).toHaveAttribute("aria-disabled", "true");
+			expect(button).toHaveAttribute("data-disabled", "true");
+		});
+
+		test("aria-disabled={false} cannot re-enable a disabled button", () => {
+			render(
+				<Button appearance="filled" intent="neutral" disabled aria-disabled={false}>
+					Save
+				</Button>,
+			);
+			const button = screen.getByRole("button", { name: "Save" });
+			expect(button).toBeDisabled();
+			expect(button).toHaveAttribute("aria-disabled", "true");
+		});
+
+		test("an enabled button carries no disabled attribute", () => {
+			render(
+				<Button appearance="filled" intent="neutral">
+					Save
+				</Button>,
+			);
+			const button = screen.getByRole("button", { name: "Save" });
+			expect(button).toBeEnabled();
+			expect(button).toHaveAttribute("aria-disabled", "false");
+		});
+
+		test("a disabled asChild anchor is inert: aria-disabled, out of the tab order, click cancelled", async () => {
+			const user = userEvent.setup();
+			const handleClick = vi.fn<() => void>();
+			render(
+				<Button appearance="filled" intent="neutral" asChild disabled>
+					<a href="#yolo" onClick={handleClick}>
+						Open
+					</a>
+				</Button>,
+			);
+			const link = screen.getByRole("link", { name: "Open" });
+			// The native attribute is inert on an anchor, so it must not leak.
+			expect(link).not.toHaveAttribute("disabled");
+			expect(link).toHaveAttribute("aria-disabled", "true");
+			expect(link).toHaveAttribute("tabindex", "-1");
+
+			await user.click(link);
+			expect(handleClick).toHaveBeenCalledTimes(0);
+			expect(window.location.hash).toBe("");
+		});
+
+		test("an enabled asChild anchor keeps its tab stop and runs its click handler", async () => {
+			const user = userEvent.setup();
+			const handleClick = vi.fn<(event: ReactMouseEvent<HTMLAnchorElement>) => void>((event) => {
+				event.preventDefault();
+			});
+			render(
+				<Button appearance="filled" intent="neutral" asChild>
+					<a href="#yolo" onClick={handleClick}>
+						Open
+					</a>
+				</Button>,
+			);
+			const link = screen.getByRole("link", { name: "Open" });
+			expect(link).not.toHaveAttribute("disabled");
+			expect(link).toHaveAttribute("aria-disabled", "false");
+			expect(link).not.toHaveAttribute("tabindex");
+
+			await user.click(link);
+			expect(handleClick).toHaveBeenCalledTimes(1);
+		});
+
+		test("the loading spinner is hidden from assistive technology", () => {
+			render(
+				<Button appearance="filled" intent="neutral" asChild isLoading>
+					<a href="#yolo">Open</a>
+				</Button>,
+			);
+			const spinner = screen.getByRole("link").querySelector("svg");
+			expect(spinner).toHaveAttribute("aria-hidden", "true");
+		});
 	});
 
 	test(`when isLoading={true}, doesn't allow click or submit events to propagate`, async () => {

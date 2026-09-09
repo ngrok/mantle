@@ -43,6 +43,9 @@ import { cx } from "../../utils/cx/cx.js";
  * </Table.Root>
  * ```
  *
+ * `ref` lands on the inner scroll container, so a consumer can read or set its
+ * scroll position. Every other prop lands on the outer element.
+ *
  * Data attributes it stamps on the outer element, for your own CSS to target:
  *
  * - `data-x-overflow="true" | "false"` — whether the content is wider than the
@@ -426,7 +429,8 @@ const Row = ({ children, ref, ...props }: ComponentProps<"tr">) => (
 /**
  * The `<Table.Header>` defines a cell as the header of a group of table cells
  * and may be used as a child of a `<Table.Row>`. The `scope` and `headers`
- * attributes define the exact nature of this group.
+ * attributes define the exact nature of this group. `scope` defaults to
+ * `"col"`; pass `scope="row"` for a header cell inside a body row.
  *
  * Must be used as a child of a `<Table.Row>`.
  *
@@ -469,10 +473,11 @@ const Row = ({ children, ref, ...props }: ComponentProps<"tr">) => (
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tableheader
  */
-const Header = ({ children, className, ref, ...props }: ComponentProps<"th">) => (
+const Header = ({ children, className, ref, scope = "col", ...props }: ComponentProps<"th">) => (
 	<th
 		data-slot="table-header"
 		ref={ref}
+		scope={scope}
 		className={cx(
 			"h-11 px-4 text-left align-middle text-sm font-medium [&:has([role=checkbox])]:pr-0",
 			className,
@@ -540,7 +545,7 @@ const Cell = ({ children, className, ref, ...props }: ComponentProps<"td">) => (
 
 /**
  * The optional `<Table.Caption>` specifies the caption (or title) of a table,
- * which gives the table an accessible description.
+ * which gives the table its accessible name.
  *
  * If used, must be the first child of a `<Table.Element>`.
  *
@@ -653,7 +658,8 @@ const Caption = ({ children, className, ref, ...props }: ComponentProps<"caption
  */
 const Table = {
 	/**
-	 * The body section of the table. Encapsulates a set of table rows comprising the body of a table's main data.
+	 * The `<Table.Body>` encapsulates a set of `<Table.Row>`s, indicating that they
+	 * comprise the body of a table's (main) data.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/table#tablebody
 	 *
@@ -692,7 +698,8 @@ const Table = {
 	 */
 	Body,
 	/**
-	 * An optional caption (or title) for a table, which gives the table an accessible description.
+	 * The optional `<Table.Caption>` specifies the caption (or title) of a table,
+	 * which gives the table its accessible name.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/table#tablecaption
 	 *
@@ -731,7 +738,8 @@ const Table = {
 	 */
 	Caption,
 	/**
-	 * A cell that contains data and may be used as a child of a table row.
+	 * The `<Table.Cell>` defines a cell of a table that contains data and may be
+	 * used as a child of a `<Table.Row>`.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/table#tablecell
 	 *
@@ -770,7 +778,8 @@ const Table = {
 	 */
 	Cell,
 	/**
-	 * A structured way to display data in rows and columns. The API matches the HTML table element 1:1.
+	 * The `<Table.Element>` is a structured way to display data in rows and columns. The API
+	 * matches the HTML `<table>` element 1:1.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/table#tableelement
 	 *
@@ -809,7 +818,8 @@ const Table = {
 	 */
 	Element,
 	/**
-	 * The foot section of a table. Encapsulates a set of table rows comprising the foot with summary information.
+	 * The `<Table.Foot>` encapsulates a set of `<Table.Row>`s, indicating that they
+	 * comprise the foot of a table with information about the table's columns.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/table#tablefoot
 	 *
@@ -848,7 +858,7 @@ const Table = {
 	 */
 	Foot,
 	/**
-	 * The head section of a table. Contains the table's column headers information.
+	 * The `<Table.Head>` is a container for the table's column headers.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/table#tablehead
 	 *
@@ -887,7 +897,8 @@ const Table = {
 	 */
 	Head,
 	/**
-	 * A cell that defines the header of a group of table cells as a child of a table row.
+	 * The `<Table.Header>` defines a cell as the header of a group of table cells
+	 * and may be used as a child of a `<Table.Row>`. `scope` defaults to `"col"`.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/table#tableheader
 	 *
@@ -926,7 +937,9 @@ const Table = {
 	 */
 	Header,
 	/**
-	 * The root container element for all tables. It draws the border and rounded corners, and scrolls wide content horizontally with a fading scroll edge.
+	 * The `<Table.Root>` is the root container element for all `Table`s.
+	 * It draws the border and rounded corners, and scrolls wide content
+	 * horizontally with a fading scroll edge.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/table#tableroot
 	 *
@@ -965,7 +978,8 @@ const Table = {
 	 */
 	Root,
 	/**
-	 * Defines a row of cells in a table. Contains a mix of table cells and table headers.
+	 * The `<Table.Row>` defines a row of cells in a table. The row's cells can then
+	 * be established using a mix of `<Table.Cell>` and `<Table.Header>` components.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/table#tablerow
 	 *

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
 import type { ToastIntent } from "./toast.js";
-import { Toast } from "./toast.js";
+import { resolveToastDuration, Toast } from "./toast.js";
 
 function getToastRoot(container: HTMLElement) {
 	return container.querySelector('[data-slot="toast"]');
@@ -64,6 +64,32 @@ describe("Toast", () => {
 			const icon = container.querySelector('[data-slot="toast-icon"]');
 			expect(icon).not.toBeNull();
 			expect(icon).toHaveClass(toneClass);
+		});
+
+		// Regression: the info branch rendered its default icon and ignored `svg`.
+		test.each(["danger", "warning", "success", "info"] as const)(
+			`renders a custom svg for intent="%s"`,
+			(intent) => {
+				render(
+					<Toast.Root intent={intent}>
+						<Toast.Icon svg={<svg data-testid="custom-icon" />} />
+						<Toast.Message>message</Toast.Message>
+					</Toast.Root>,
+				);
+				expect(screen.getByTestId("custom-icon")).toHaveAttribute("data-slot", "toast-icon");
+			},
+		);
+	});
+
+	describe("resolveToastDuration", () => {
+		test.each([
+			[0, Number.POSITIVE_INFINITY],
+			[-1, Number.POSITIVE_INFINITY],
+			[5000, 5000],
+			[Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY],
+			[undefined, undefined],
+		])("resolves %s to %s", (input, expected) => {
+			expect(resolveToastDuration(input)).toBe(expected);
 		});
 	});
 

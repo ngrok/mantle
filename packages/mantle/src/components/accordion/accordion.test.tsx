@@ -1,4 +1,6 @@
 import { render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
+import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import { isItemOpen, nextOpenValues, toOpenValues } from "./accordion-state.js";
 import { Accordion } from "./accordion.js";
@@ -126,6 +128,106 @@ describe("Accordion", () => {
 		// Section B is collapsed, but its body text must still exist in the DOM —
 		// this is the entire point of the component (browser find-in-page support).
 		expect(screen.getByText("Body of section B")).toBeInTheDocument();
+	});
+
+	test("trigger's aria-controls points at its item's content", () => {
+		renderExample("a");
+		const triggerA = screen.getByRole("button", { name: /Trigger A/ });
+		const contentA = screen
+			.getByText("Body of section A")
+			.closest('[data-slot="accordion-content"]');
+		const contentB = screen
+			.getByText("Body of section B")
+			.closest('[data-slot="accordion-content"]');
+		expect(contentA).toHaveAttribute("id");
+		expect(triggerA).toHaveAttribute("aria-controls", contentA?.getAttribute("id") ?? "");
+		expect(contentA?.getAttribute("id")).not.toBe(contentB?.getAttribute("id"));
+	});
+
+	test("Item owns the content id: a stray id on Content cannot break the aria-controls pair", () => {
+		render(
+			<Accordion.Root type="single" defaultValue="a">
+				<Accordion.Item value="a">
+					<Accordion.Trigger>Trigger A</Accordion.Trigger>
+					<Accordion.Content
+						// @ts-expect-error -- id is not an Accordion.Content prop; Accordion.Item owns it
+						id="elsewhere"
+					>
+						<Accordion.Body>Body of section A</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+			</Accordion.Root>,
+		);
+		const content = screen
+			.getByText("Body of section A")
+			.closest('[data-slot="accordion-content"]');
+		expect(content).not.toHaveAttribute("id", "elsewhere");
+		expect(screen.getByRole("button", { name: /Trigger A/ })).toHaveAttribute(
+			"aria-controls",
+			content?.getAttribute("id") ?? "",
+		);
+	});
+
+	// happy-dom has no `beforematch`, so this covers the fallback branch that a
+	// browser without `hidden="until-found"` takes.
+	test("without beforematch support, collapsed content is inert and open content is not", async () => {
+		const user = userEvent.setup();
+		renderExample("a");
+		const contentA = screen
+			.getByText("Body of section A")
+			.closest('[data-slot="accordion-content"]');
+		const contentB = screen
+			.getByText("Body of section B")
+			.closest('[data-slot="accordion-content"]');
+		expect(contentA).not.toHaveAttribute("inert");
+		expect(contentB).toHaveAttribute("inert");
+		expect(contentB).not.toHaveAttribute("hidden");
+
+		await user.click(screen.getByRole("button", { name: /Trigger B/ }));
+		expect(contentB).not.toHaveAttribute("inert");
+		expect(contentA).toHaveAttribute("inert");
+	});
+
+	test("server HTML marks collapsed content inert and pairs each trigger with its content", () => {
+		const html = renderToString(
+			<Accordion.Root type="single" defaultValue="a">
+				<Accordion.Item value="a">
+					<Accordion.Trigger>Trigger A</Accordion.Trigger>
+					<Accordion.Content>
+						<Accordion.Body>Body of section A</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+				<Accordion.Item value="b">
+					<Accordion.Trigger>Trigger B</Accordion.Trigger>
+					<Accordion.Content>
+						<Accordion.Body>Body of section B</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+			</Accordion.Root>,
+		);
+		const template = document.createElement("template");
+		template.innerHTML = html;
+		const root = template.content;
+		const contents = root.querySelectorAll('[data-slot="accordion-content"]');
+		const triggers = root.querySelectorAll('[data-slot="accordion-trigger"]');
+		expect(contents).toHaveLength(2);
+		expect(contents[0]).not.toHaveAttribute("inert");
+		expect(contents[1]).toHaveAttribute("inert");
+		expect(triggers[0]).toHaveAttribute("aria-controls", contents[0]?.getAttribute("id") ?? "");
+		expect(triggers[1]).toHaveAttribute("aria-controls", contents[1]?.getAttribute("id") ?? "");
+	});
+
+	test("Enter and Space toggle the focused section", async () => {
+		const user = userEvent.setup();
+		renderExample("");
+		const triggerA = screen.getByRole("button", { name: /Trigger A/ });
+		triggerA.focus();
+
+		await user.keyboard("{Enter}");
+		expect(triggerA).toHaveAttribute("aria-expanded", "true");
+
+		await user.keyboard(" ");
+		expect(triggerA).toHaveAttribute("aria-expanded", "false");
 	});
 
 	test("throws when an item part is rendered outside of Root", () => {

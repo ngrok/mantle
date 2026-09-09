@@ -205,6 +205,12 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `semantic?`    | `boolean`                      | `false`        | If `true`, the separator renders with all accessibility-related attributes and `role="separator"`. If `false`, the separator is purely decorative and all accessibility-related attributes are updated so that the rendered element is removed from the accessibility tree. |
 | `asChild?`     | `boolean`                      | `false`        | Use the `asChild` prop to compose the `Separator` styling and functionality onto alternative element types or your own React components.                                                                                                                                    |
 
+| Data Attribute     | Value                          | Description                                                        |
+| ------------------ | ------------------------------ | ------------------------------------------------------------------ |
+| `data-slot`        | `"separator"`                  | Names the part.                                                    |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The resolved orientation, after a `HorizontalSeparatorGroup` wins. |
+| `data-separator`   | present                        | Presence-only. Lets a group exempt separators from `shrink-0`.     |
+
 ### HorizontalSeparatorGroup
 
 A container to layout a group of horizontal separators and other children.
@@ -214,3 +220,8 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | Prop       | Type      | Default | Description                                                                                                                                             |
 | ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `HorizontalSeparatorGroup` styling and functionality onto alternative element types or your own React components. |
+
+| Data Attribute                    | Value                          | Description                                       |
+| --------------------------------- | ------------------------------ | ------------------------------------------------- |
+| `data-slot`                       | `"horizontal-separator-group"` | Names the part.                                   |
+| `data-horizontal-separator-group` | present                        | Presence-only. Child separators stretch under it. |

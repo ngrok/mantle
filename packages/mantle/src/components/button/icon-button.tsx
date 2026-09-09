@@ -7,6 +7,7 @@ import { parseBooleanish } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Icon } from "../icon/index.js";
 import { Slot } from "../slot/index.js";
+import { disabledSlotProps } from "./button.js";
 import type {
 	IconButtonAppearance,
 	IconButtonIntent,
@@ -64,8 +65,8 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
 		 */
 		label: string;
 		/**
-		 * An icon to render inside the button. If the `state` is `"pending"`, then
-		 * the icon will automatically be replaced with a spinner.
+		 * An icon to render inside the button. When `isLoading` is `true`, a
+		 * spinner replaces the icon.
 		 */
 		icon: ReactNode;
 		/**
@@ -105,6 +106,23 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
  * variable (default: `0.375rem`). Wrappers can set it to slot icon buttons
  * into their chrome — e.g. `ButtonGroup`'s panel appearance tightens it to
  * `0.125rem`.
+ *
+ * **Disabled and loading.** A native `<button>` gets the `disabled` attribute.
+ * Under `asChild`, the child gets no `disabled` attribute, because it is inert
+ * on an `<a>`: the child gets `aria-disabled="true"`, leaves the tab order
+ * with `tabIndex={-1}`, and a click on it is cancelled before any handler runs.
+ * An explicit `disabled` wins over `isLoading`, so `disabled={false}` keeps a
+ * loading button enabled. `aria-disabled={false}` cannot re-enable the button.
+ *
+ * | Data Attribute     | Value                                        | Description                                                            |
+ * | ------------------ | -------------------------------------------- | ---------------------------------------------------------------------- |
+ * | `data-slot`        | `"icon-button"`                              | On the button element, or on the `asChild` child.                      |
+ * | `data-icon-button` | `"true"`                                     | Always present. Lets a wrapper style every icon button it contains.    |
+ * | `data-appearance`  | `"filled"` \| `"ghost"` \| `"outlined"`       | The `appearance` prop.                                                 |
+ * | `data-intent`      | `"neutral"`                                  | The `intent` prop.                                                     |
+ * | `data-size`        | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`  | The `size` prop.                                                       |
+ * | `data-loading`     | `"true"` \| `"false"`                        | The `isLoading` prop.                                                  |
+ * | `data-disabled`    | `"true"` \| `"false"`                        | `true` when `disabled`, `isLoading`, or `aria-disabled="true"` is set. |
  *
  * @see https://mantle.ngrok.com/components/actions/icon-button
  *
@@ -148,7 +166,10 @@ const IconButton = ({
 	type,
 	...props
 }: IconButtonProps) => {
-	const disabled = parseBooleanish(_ariaDisabled ?? _disabled ?? isLoading);
+	// Why `??` then `||`: an explicit `disabled` wins over `isLoading`, so
+	// `disabled={false}` keeps a loading button enabled and focused (`Sandbar`
+	// relies on it), and `aria-disabled={false}` cannot re-enable a disabled button.
+	const disabled = parseBooleanish(_disabled ?? isLoading) || parseBooleanish(_ariaDisabled);
 	const icon = isLoading ? <CircleNotchIcon className="animate-spin" /> : propIcon;
 
 	const buttonProps = {
@@ -161,7 +182,6 @@ const IconButton = ({
 		"data-intent": intent,
 		"data-loading": isLoading,
 		"data-size": size,
-		disabled,
 		ref,
 		...props,
 		// Why after the spread: untyped JS can still put `aria-label` in props
@@ -177,12 +197,16 @@ const IconButton = ({
 			"When using `asChild`, IconButton must be passed a single child as a JSX tag.",
 		);
 
-		return <Slot {...buttonProps}>{cloneElement(children, {}, innerChildren)}</Slot>;
+		return (
+			<Slot {...buttonProps} {...(disabled && disabledSlotProps)}>
+				{cloneElement(children, {}, innerChildren)}
+			</Slot>
+		);
 	}
 
 	return (
 		// oxlint-disable-next-line react/button-has-type -- `type` defaults to "button" at runtime via the `?? "button"` fallback; the static analyzer can't resolve that expression.
-		<button {...buttonProps} type={type ?? "button"}>
+		<button {...buttonProps} disabled={disabled} type={type ?? "button"}>
 			{innerChildren}
 		</button>
 	);

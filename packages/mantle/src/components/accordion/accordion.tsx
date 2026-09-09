@@ -8,6 +8,7 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useId,
 	useMemo,
 	useRef,
 	useState,
@@ -74,6 +75,11 @@ function useAccordionContext(component: string): AccordionContextValue {
 type AccordionItemContextValue = {
 	open: boolean;
 	setOpen: (open: boolean) => void;
+	/**
+	 * The `id` of this item's `Content`, which `Trigger` references through
+	 * `aria-controls`. `Item` generates it, so the pair matches in the server HTML.
+	 */
+	contentId: string;
 };
 
 const AccordionItemContext = createContext<AccordionItemContextValue | null>(null);
@@ -288,6 +294,7 @@ const Item = ({
 }) => {
 	const { openValues, setItemOpen } = useAccordionContext("Accordion.Item");
 	const open = isItemOpen(openValues, value);
+	const contentId = useId();
 
 	const setOpen = useCallback(
 		(next: boolean) => {
@@ -297,8 +304,8 @@ const Item = ({
 	);
 
 	const itemContext = useMemo<AccordionItemContextValue>(
-		() => ({ open, setOpen }),
-		[open, setOpen],
+		() => ({ open, setOpen, contentId }),
+		[open, setOpen, contentId],
 	);
 
 	return (
@@ -320,8 +327,9 @@ const Item = ({
  * The interactive header that toggles its section, rendered as a `<button>` with
  * `aria-expanded` — the disclosure semantics a native `<summary>` carries, but
  * via a real button so the role is consistent across browsers (native summary's
- * role varies). Place the {@link TriggerIcon} as the last child so the default
- * `justify-between` layout pushes it to the trailing edge.
+ * role varies). Its `aria-controls` points at the item's {@link Content}, as the
+ * WAI-ARIA disclosure pattern requires. Place the {@link TriggerIcon} as the last
+ * child so the default `justify-between` layout pushes it to the trailing edge.
  *
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordiontrigger
  *
@@ -345,7 +353,7 @@ const Trigger = ({
 	ref,
 	...props
 }: Omit<ComponentProps<"button">, "type">) => {
-	const { open, setOpen } = useAccordionItemContext("Accordion.Trigger");
+	const { open, setOpen, contentId } = useAccordionItemContext("Accordion.Trigger");
 
 	return (
 		<button
@@ -355,6 +363,7 @@ const Trigger = ({
 			data-slot="accordion-trigger"
 			data-state={open ? "open" : "closed"}
 			aria-expanded={open}
+			aria-controls={contentId}
 			className={cx(
 				"group flex w-full cursor-pointer items-center justify-between gap-4 py-4 text-left font-medium outline-none",
 				// `-mx-2 px-2` gives the focus ring (and tap target) horizontal breathing room
@@ -449,12 +458,15 @@ const TriggerIcon = ({
  * The collapsible region of an {@link Item} — the zero-padding viewport that
  * slides open and closed. Wrap its children in {@link Body} for the standard
  * padding (text inherits the ambient size); `Content` itself stays unpadded so
- * its `h-0` collapse can reach zero height. Always rendered into the DOM; when
- * collapsed (in
- * supporting browsers) it carries `hidden="until-found"` so its text stays
- * discoverable by the browser's find-in-page, and a `beforematch` listener opens
- * the section when the browser reveals a match. It is flow content, so it may
- * contain anything — including interactive elements.
+ * its `h-0` collapse can reach zero height. Always rendered into the DOM. When
+ * collapsed, it leaves the accessibility tree and the tab order, like a closed
+ * `<details>`: in browsers that support `hidden="until-found"` it carries that
+ * attribute, so its text stays discoverable by find-in-page and a `beforematch`
+ * listener opens the section when the browser reveals a match; in other
+ * browsers, and in the server HTML, it carries `inert`. Its `id` is the target
+ * of the {@link Trigger}'s `aria-controls`; `Item` generates it, so `id` is not
+ * a prop here. It is flow content, so it may contain anything, including
+ * interactive elements.
  *
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordioncontent
  *
@@ -471,8 +483,8 @@ const TriggerIcon = ({
  *   </Accordion.Item>
  * </Accordion.Root>
  */
-const Content = ({ className, children, ref, ...props }: ComponentProps<"div">) => {
-	const { open, setOpen } = useAccordionItemContext("Accordion.Content");
+const Content = ({ className, children, ref, ...props }: Omit<ComponentProps<"div">, "id">) => {
+	const { open, setOpen, contentId } = useAccordionItemContext("Accordion.Content");
 	// Track the node ourselves (for the find-in-page reveal effects below) while
 	// still forwarding it to any ref the consumer passes.
 	const nodeRef = useRef<ComponentRef<"div">>(null);
@@ -516,7 +528,17 @@ const Content = ({ className, children, ref, ...props }: ComponentProps<"div">) 
 			return;
 		}
 
-		if (open || !supportsBeforeMatch()) {
+		if (!supportsBeforeMatch()) {
+			// Why: the JSX `inert` below already takes the collapsed region out of
+			// the accessibility tree and the tab order in this browser.
+			return;
+		}
+
+		// Why: `inert` also hides content from find-in-page, and `hidden="until-found"`
+		// already removes it from the accessibility tree, so the two never coexist.
+		node.removeAttribute("inert");
+
+		if (open) {
 			node.removeAttribute("hidden");
 		} else {
 			node.setAttribute("hidden", "until-found");
@@ -530,6 +552,14 @@ const Content = ({ className, children, ref, ...props }: ComponentProps<"div">) 
 		<div
 			ref={composedRef}
 			{...props}
+			// Why after the spread: `Trigger` is a sibling and reads the same id from
+			// `Item`, so a wider props object must not carry an `id` past the type.
+			id={contentId}
+			// Why: the server and browsers without `beforematch` need the collapsed
+			// region out of the accessibility tree and the tab order, and `inert`
+			// does that without stopping the height animation. The layout effect
+			// above removes it where `hidden="until-found"` takes over.
+			inert={!open}
 			data-slot="accordion-content"
 			data-state={open ? "open" : "closed"}
 			className={cx(

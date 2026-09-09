@@ -12,16 +12,18 @@ describe("Well", () => {
 		expect(well).toHaveTextContent("content");
 	});
 
-	test("merges custom className with its defaults", () => {
+	test("a consumer className wins over the default background", () => {
+		// tailwind-merge override contract: the consumer's utility replaces the
+		// conflicting default instead of sitting next to it.
 		render(
-			<Well data-testid="well" className="custom-class">
+			<Well data-testid="well" className="custom-class bg-red-500">
 				content
 			</Well>,
 		);
 		const well = screen.getByTestId("well");
 		expect(well.className).toContain("custom-class");
-		expect(well.className).toContain("bg-base");
-		expect(well.className).toContain("shadow-inner");
+		expect(well.className).toContain("bg-red-500");
+		expect(well.className).not.toContain("bg-base");
 	});
 
 	test("forwards ref to the underlying div", () => {

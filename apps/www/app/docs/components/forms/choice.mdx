@@ -218,7 +218,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Choice.Indicator
 
-The left control slot. Renders a one-line-tall (`h-lh`) `<span>` and clones its single element child with the shared `id` / `name` / `aria-describedby` / `aria-invalid` / `disabled`.
+The left control slot. Renders a one-line-tall (`h-lh`) `<span>` and clones its single element child with the shared `id` / `name` / `aria-describedby` / `aria-invalid` / `aria-errormessage` / `disabled`.
 
 All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/span#attributes).
 
@@ -252,7 +252,7 @@ All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#a
 
 The supplementary description, wired to the control via `aria-describedby`. Renders a `<p>`. A click on it forwards to the sibling `Choice.Label`, so the description extends the label's click target. The forward skips a click on a link or other interactive content inside the description. After it forwards, it marks the click handled with `preventDefault()`, so a click-to-activate ancestor (a `SelectableList` row) does not toggle the control a second time. When the choice uses `Choice.Title`, the description forwards nothing, because an ancestor owns that click.
 
-All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#attributes), plus:
+All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#attributes) except `id`, which `Choice.Root` owns so the control's `aria-describedby` always resolves, plus:
 
 | Prop       | Type      | Default | Description                                                    |
 | ---------- | --------- | ------- | -------------------------------------------------------------- |

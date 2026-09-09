@@ -574,7 +574,7 @@ Classifies a `paste` on a search trigger. A paste is unambiguous search intent, 
 
 ### MetaKey
 
-Renders the platform-appropriate meta key label (`⌘` for macOS/iOS or `Ctrl` for other platforms). It detects the platform on mount and is SSR-safe, defaulting to `Ctrl` to avoid hydration mismatches.
+Renders the platform-appropriate meta key glyph (`⌘` for macOS/iOS, `⌃` for other platforms) with a visually hidden "Command" or "Control" label. It detects the platform on mount and is SSR-safe, defaulting to `⌃` to avoid hydration mismatches.
 
 Use it in keyboard shortcut hints and `Command.Shortcut` labels so each platform shows its own modifier key.
 

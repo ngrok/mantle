@@ -1,4 +1,4 @@
-import type { ComponentProps, HTMLAttributes } from "react";
+import type { ComponentProps } from "react";
 import { createContext, useContext } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -21,6 +21,11 @@ const horizontalSeparatorGroupContextValue: SeparatorGroupContextShape = {
 /**
  * A container to layout a group of horizontal separators and other children.
  * Overrides all children `Separator`s to be `orientation="horizontal"`.
+ *
+ * | Data Attribute                     | Value                            | Description                                       |
+ * | ---------------------------------- | -------------------------------- | ------------------------------------------------- |
+ * | `data-slot`                        | `"horizontal-separator-group"`   | Names the part.                                   |
+ * | `data-horizontal-separator-group`  | present                          | Presence-only. Child separators stretch under it. |
  *
  * @see https://mantle.ngrok.com/components/structure/separator
  *
@@ -48,7 +53,7 @@ const HorizontalSeparatorGroup = ({
 	children,
 	asChild,
 	...props
-}: HTMLAttributes<HTMLDivElement> & WithAsChild) => {
+}: ComponentProps<"div"> & WithAsChild) => {
 	const Comp = asChild ? Slot : "div";
 
 	return (
@@ -93,6 +98,12 @@ type SeparatorProps = ComponentProps<"div"> &
  * `gray-600/20` in dark, `black` in high contrast). Reuse that exact color on
  * your own dividers with `bg-separator` / `border-separator` / `divide-separator`
  * so they stay consistent with separators across the system.
+ *
+ * | Data Attribute     | Value                          | Description                                                        |
+ * | ------------------ | ------------------------------ | ------------------------------------------------------------------ |
+ * | `data-slot`        | `"separator"`                  | Names the part.                                                    |
+ * | `data-orientation` | `"horizontal"` \| `"vertical"` | The resolved orientation, after a `HorizontalSeparatorGroup` wins. |
+ * | `data-separator`   | present                        | Presence-only. Lets a group exempt separators from `shrink-0`.     |
  *
  * @see https://mantle.ngrok.com/components/structure/separator
  *

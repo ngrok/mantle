@@ -14,7 +14,7 @@ A modal dialog that interrupts the user with important content and expects a res
 
 ## When to use
 
-Use `AlertDialog` for destructive or irreversible confirmations (delete, sign out, leave without saving) where the user must explicitly acknowledge. `AlertDialog` blocks all background interaction. For non-destructive input modals, use [`Dialog`](/components/overlays/dialog).
+Use `AlertDialog` for destructive or irreversible confirmations (delete, sign out, leave without saving) where the user must explicitly acknowledge. `AlertDialog` blocks all background interaction. The content carries `role="alertdialog"`, and a click on the backdrop does not close it: the user closes it through `AlertDialog.Cancel`, `AlertDialog.Close`, or the Escape key. For non-destructive input modals, use [`Dialog`](/components/overlays/dialog).
 
 <Example className="flex-col gap-6">
 	<AlertDialog.Root intent="info">
@@ -266,9 +266,11 @@ The popover Alert Dialog container. Renders on top of the overlay and is centere
 
 Radix [Dialog.Content](https://www.radix-ui.com/primitives/docs/components/dialog#content) props, plus:
 
-| Prop              | Type     | Default      | Description                                                                   |
-| ----------------- | -------- | ------------ | ----------------------------------------------------------------------------- |
-| `preferredWidth?` | `string` | `"max-w-md"` | The preferred width of the `AlertDialogContent` as a Tailwind `max-w-` class. |
+| Prop              | Type                    | Default      | Description                                                                   |
+| ----------------- | ----------------------- | ------------ | ----------------------------------------------------------------------------- |
+| `preferredWidth?` | `` `max-w-${string}` `` | `"max-w-md"` | The preferred width of the `AlertDialogContent` as a Tailwind `max-w-` class. |
+
+`onInteractOutside` still fires, but `AlertDialog.Content` calls `event.preventDefault()` after your handler, so an outside pointer interaction never closes the dialog.
 
 ### AlertDialog.Body
 
@@ -334,13 +336,13 @@ Composes around the mantle [Button](/components/actions/button) component. All [
 
 ### AlertDialog.Icon
 
-An icon displayed in the alert dialog, usually to indicate the type of alert.
+An icon that visually represents the intent of the AlertDialog. Defaults to a warning icon for danger intent and an info icon for info intent with the appropriate color. The icon is decorative and renders `aria-hidden="true"` unless you name it.
 
-All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+All props from [svg](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/svg#attributes) except `children`, plus:
 
-| Prop       | Type      | Default | Description                                                                                                                   |
-| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AlertDialog.Icon` styling onto alternative element types or your own React components. |
+| Prop   | Type        | Default                     | Description                                                          |
+| ------ | ----------- | --------------------------- | -------------------------------------------------------------------- |
+| `svg?` | `ReactNode` | An icon derived from intent | A single SVG icon element that renders in place of the default icon. |
 
 ### AlertDialog.Close
 

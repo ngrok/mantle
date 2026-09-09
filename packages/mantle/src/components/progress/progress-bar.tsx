@@ -38,6 +38,7 @@ type RootProps = ComponentProps<"div"> & {
 	 * This attribute specifies how much of the task is complete.
 	 * It must be a valid floating point number between 0 and `max`, or, when `max` is omitted, between 0 and 100.
 	 * If set to `"indeterminate"`, the progress bar is considered indeterminate. (for now there is no visual difference than 0)
+	 * A value outside `0..max` also renders as indeterminate.
 	 *
 	 * @default 0
 	 */
@@ -50,11 +51,23 @@ type RootProps = ComponentProps<"div"> & {
  * A horizontal progress bar that shows the completion progress of a task.
  * Use this component for linear progress indication.
  *
+ * **Accessibility.** Renders `role="progressbar"` with `aria-valuemin`,
+ * `aria-valuemax`, and `aria-valuenow` (omitted while indeterminate). The role
+ * needs a name: pass `aria-label`, or `aria-labelledby` that points at a visible
+ * label.
+ *
+ * | Data Attribute | Value                                                  | Description                                  |
+ * | -------------- | ------------------------------------------------------ | -------------------------------------------- |
+ * | `data-slot`    | `"progress-bar"`                                       | The root element.                            |
+ * | `data-state`   | `"complete"` \| `"indeterminate"` \| `"loading"`       | Set by Radix from `value` and `max`.         |
+ * | `data-value`   | the current value                                      | Absent while indeterminate.                  |
+ * | `data-max`     | the maximum                                            |                                              |
+ *
  * @see https://mantle.ngrok.com/components/feedback/progress-bar#progressbarroot
  *
  * @example
  * ```tsx
- * <ProgressBar.Root value={60}>
+ * <ProgressBar.Root aria-label="Upload progress" value={60}>
  *   <ProgressBar.Indicator />
  * </ProgressBar.Root>
  *
@@ -176,11 +189,16 @@ const ProgressBar = {
 	 * A horizontal progress bar that shows the completion progress of a task.
 	 * Use this component for linear progress indication.
 	 *
+	 * **Accessibility.** Renders `role="progressbar"` with `aria-valuemin`,
+	 * `aria-valuemax`, and `aria-valuenow` (omitted while indeterminate). The role
+	 * needs a name: pass `aria-label`, or `aria-labelledby` that points at a visible
+	 * label.
+	 *
 	 * @see https://mantle.ngrok.com/components/feedback/progress-bar#progressbarroot
 	 *
 	 * @example
 	 * ```tsx
-	 * <ProgressBar.Root value={60}>
+	 * <ProgressBar.Root aria-label="Upload progress" value={60}>
 	 *   <ProgressBar.Indicator />
 	 * </ProgressBar.Root>
 	 *

@@ -1,9 +1,37 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { userEvent } from "@testing-library/user-event";
+import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { Select } from "./select.js";
 
 describe("Select", () => {
+	test("Select.Root onBlur fires when the trigger blurs, after the trigger's own onBlur", async () => {
+		const user = userEvent.setup();
+		const calls: string[] = [];
+		const rootBlur = vi.fn<() => void>(() => {
+			calls.push("root");
+		});
+		const triggerBlur = vi.fn<() => void>(() => {
+			calls.push("trigger");
+		});
+		render(
+			<>
+				<Select.Root onBlur={rootBlur}>
+					<Select.Trigger onBlur={triggerBlur} />
+				</Select.Root>
+				<button type="button">Next</button>
+			</>,
+		);
+
+		await user.tab();
+		expect(screen.getByRole("combobox")).toHaveFocus();
+		await user.tab();
+		expect(screen.getByRole("button", { name: "Next" })).toHaveFocus();
+		expect(rootBlur).toHaveBeenCalledTimes(1);
+		expect(triggerBlur).toHaveBeenCalledTimes(1);
+		expect(calls).toEqual(["trigger", "root"]);
+	});
+
 	test('given validation={false}, renders a Select.Trigger with aria-invalid="false" and not have data-validation', () => {
 		render(
 			<Select.Root validation={false}>

@@ -1,4 +1,5 @@
 import type { ComponentProps } from "react";
+import { parseBooleanish } from "../../types/booleanish.js";
 import { cx } from "../../utils/cx/cx.js";
 
 type LabelProps = ComponentProps<"label"> & {
@@ -31,7 +32,9 @@ type LabelProps = ComponentProps<"label"> & {
  *
  * **Disabled state.** Pass `disabled` to render the label in a disabled
  * style. Typically you'll want this to mirror the underlying control's
- * disabled state so the visual treatment stays consistent.
+ * disabled state so the visual treatment stays consistent. The label stamps
+ * `data-disabled` for that style; it never sets `aria-disabled`, because a
+ * `<label>` has no role that supports it.
  *
  * **Font weight.** A `Label` automatically gets `font-medium` when it does
  * **not** contain a nested form control (`<input>`, `<textarea>`, `<select>`,
@@ -78,10 +81,12 @@ const Label = ({
 	...props
 }: LabelProps) => (
 	<label
-		aria-disabled={disabled ?? _ariaDisabled}
+		// Why data-disabled: `aria-disabled` is not valid on a `<label>`, so it
+		// conveyed nothing to assistive technology and only fed the cursor style.
+		data-disabled={parseBooleanish(disabled ?? _ariaDisabled) || undefined}
 		data-slot="label"
 		className={cx(
-			"text-strong cursor-pointer text-sm peer-disabled:cursor-default has-disabled:cursor-default aria-disabled:cursor-default font-sans",
+			"text-strong cursor-pointer text-sm peer-disabled:cursor-default has-disabled:cursor-default data-disabled:cursor-default font-sans",
 			// Default to font-medium when the label isn't wrapping a form control. The
 			// arbitrary variant wraps the *entire* matched selector — class + the
 			// `:not(:has(...))` check — in `:where()`, flattening total specificity to 0.

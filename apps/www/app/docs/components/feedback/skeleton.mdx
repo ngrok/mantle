@@ -28,7 +28,7 @@ Default height is `1rem`. Override `className` with `h-*`, `w-*`, and `rounded-*
 
 ## Accessibility
 
-Skeletons are decorative and convey no semantic meaning to assistive tech. If the underlying region is loading, also announce it to screen readers — e.g. wrap in an element with `role="status"` and a visually-hidden "Loading…" label.
+Skeletons are decorative and convey no semantic meaning to assistive tech, so `Skeleton` renders `aria-hidden="true"` by default. Pass `aria-hidden={false}` to opt out. If the underlying region is loading, also announce it to screen readers, for example wrap it in an element with `role="status"` and a visually-hidden "Loading…" label.
 
 <Example>
 	<div role="status" aria-live="polite">
@@ -95,7 +95,7 @@ import { Skeleton } from "@ngrok/mantle/skeleton";
 
 <Example>
 	<Skeleton asChild className="h-12 w-12 rounded-full">
-		<span aria-hidden="true" />
+		<span />
 	</Skeleton>
 </Example>
 
@@ -103,7 +103,7 @@ import { Skeleton } from "@ngrok/mantle/skeleton";
 import { Skeleton } from "@ngrok/mantle/skeleton";
 
 <Skeleton asChild className="h-12 w-12 rounded-full">
-	<span aria-hidden="true" />
+	<span />
 </Skeleton>;
 ```
 

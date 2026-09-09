@@ -1,4 +1,4 @@
-import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import { SvgOnly } from "../icon/svg-only.js";
@@ -95,12 +95,7 @@ const Icon = ({ className, svg, ...props }: EmptyIconProps) => {
  * </Empty.Title>
  * ```
  */
-const Title = ({
-	asChild,
-	children,
-	className,
-	...props
-}: HTMLAttributes<HTMLHeadingElement> & WithAsChild) => {
+const Title = ({ asChild, children, className, ...props }: ComponentProps<"h3"> & WithAsChild) => {
 	const Comp = asChild ? Slot : "h3";
 
 	return (
@@ -226,8 +221,8 @@ const Actions = ({
  */
 const Empty = {
 	/**
-	 * The root container for an empty state. Centers content vertically and
-	 * horizontally with consistent padding and max-width.
+	 * The root container for an empty state. Centers content horizontally
+	 * with consistent vertical padding and max-width.
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/empty
 	 *

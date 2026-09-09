@@ -17,6 +17,30 @@ describe("Badge", () => {
 		expect(badge.closest("[data-slot='badge']")).toBeInTheDocument();
 	});
 
+	test("renders the icon aria-hidden, so the label alone carries the meaning", () => {
+		render(
+			<Badge appearance="muted" color="success" icon={<CheckCircleIcon />}>
+				Succeeded
+			</Badge>,
+		);
+
+		const badge = screen.getByText("Succeeded", { selector: "[data-slot='badge-label']" });
+		expect(badge.closest("[data-slot='badge']")?.querySelector("svg")).toHaveAttribute(
+			"aria-hidden",
+			"true",
+		);
+	});
+
+	test(`stamps data-slot="badge" onto the asChild child`, () => {
+		render(
+			<Badge appearance="muted" color="info" asChild>
+				<a href="/status">Operational</a>
+			</Badge>,
+		);
+
+		expect(screen.getByRole("link", { name: "Operational" })).toHaveAttribute("data-slot", "badge");
+	});
+
 	test("lays out the label slot as contents so it adds no box of its own", () => {
 		render(
 			<Badge appearance="muted" color="success">

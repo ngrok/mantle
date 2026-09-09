@@ -46,23 +46,17 @@ window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
     						value={field.state.value}
     						onChange={field.handleChange}
     					>
-    						<RadioGroup.Item value="default" id="form-density-default">
+    						<RadioGroup.Item value="default">
     							<RadioGroup.Indicator />
-    							<RadioGroup.ItemContent asChild>
-    								<label htmlFor="form-density-default">Default</label>
-    							</RadioGroup.ItemContent>
+    							<RadioGroup.ItemContent>Default</RadioGroup.ItemContent>
     						</RadioGroup.Item>
-    						<RadioGroup.Item value="comfortable" id="form-density-comfortable">
+    						<RadioGroup.Item value="comfortable">
     							<RadioGroup.Indicator />
-    							<RadioGroup.ItemContent asChild>
-    								<label htmlFor="form-density-comfortable">Comfortable</label>
-    							</RadioGroup.ItemContent>
+    							<RadioGroup.ItemContent>Comfortable</RadioGroup.ItemContent>
     						</RadioGroup.Item>
-    						<RadioGroup.Item value="compact" id="form-density-compact">
+    						<RadioGroup.Item value="compact">
     							<RadioGroup.Indicator />
-    							<RadioGroup.ItemContent asChild>
-    								<label htmlFor="form-density-compact">Compact</label>
-    							</RadioGroup.ItemContent>
+    							<RadioGroup.ItemContent>Compact</RadioGroup.ItemContent>
     						</RadioGroup.Item>
     					</RadioGroup.Root>
     					<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
@@ -87,23 +81,17 @@ Pair with `Field.Set` and `Field.Legend` for grouped label/description/error wir
 	<Field.Set>
 		<Field.Legend>Density</Field.Legend>
 		<RadioGroup.Root name="density" defaultValue="compact">
-			<RadioGroup.Item value="default" id="density-default">
+			<RadioGroup.Item value="default">
 				<RadioGroup.Indicator />
-				<RadioGroup.ItemContent asChild>
-					<label htmlFor="density-default">Default</label>
-				</RadioGroup.ItemContent>
+				<RadioGroup.ItemContent>Default</RadioGroup.ItemContent>
 			</RadioGroup.Item>
-			<RadioGroup.Item value="comfortable" id="density-comfortable">
+			<RadioGroup.Item value="comfortable">
 				<RadioGroup.Indicator />
-				<RadioGroup.ItemContent asChild>
-					<label htmlFor="density-comfortable">Comfortable</label>
-				</RadioGroup.ItemContent>
+				<RadioGroup.ItemContent>Comfortable</RadioGroup.ItemContent>
 			</RadioGroup.Item>
-			<RadioGroup.Item value="compact" id="density-compact">
+			<RadioGroup.Item value="compact">
 				<RadioGroup.Indicator />
-				<RadioGroup.ItemContent asChild>
-					<label htmlFor="density-compact">Compact</label>
-				</RadioGroup.ItemContent>
+				<RadioGroup.ItemContent>Compact</RadioGroup.ItemContent>
 			</RadioGroup.Item>
 		</RadioGroup.Root>
 		<Field.Description>Choose the row spacing for tables.</Field.Description>
@@ -117,23 +105,17 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 <Field.Set>
 	<Field.Legend>Density</Field.Legend>
 	<RadioGroup.Root name="density" defaultValue="compact">
-		<RadioGroup.Item value="default" id="density-default">
+		<RadioGroup.Item value="default">
 			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent asChild>
-				<label htmlFor="density-default">Default</label>
-			</RadioGroup.ItemContent>
+			<RadioGroup.ItemContent>Default</RadioGroup.ItemContent>
 		</RadioGroup.Item>
-		<RadioGroup.Item value="comfortable" id="density-comfortable">
+		<RadioGroup.Item value="comfortable">
 			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent asChild>
-				<label htmlFor="density-comfortable">Comfortable</label>
-			</RadioGroup.ItemContent>
+			<RadioGroup.ItemContent>Comfortable</RadioGroup.ItemContent>
 		</RadioGroup.Item>
-		<RadioGroup.Item value="compact" id="density-compact">
+		<RadioGroup.Item value="compact">
 			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent asChild>
-				<label htmlFor="density-compact">Compact</label>
-			</RadioGroup.ItemContent>
+			<RadioGroup.ItemContent>Compact</RadioGroup.ItemContent>
 		</RadioGroup.Item>
 	</RadioGroup.Root>
 	<Field.Description>Choose the row spacing for tables.</Field.Description>
@@ -143,109 +125,88 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 Or render the control on its own:
 
 <Example className="mt-4 grid gap-6">
-	<RadioGroup.Root defaultValue="compact">
-		<RadioGroup.Item value="default" id="simple-1">
+	<RadioGroup.Root aria-label="Density" defaultValue="compact">
+		<RadioGroup.Item value="default">
 			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent asChild>
-				<label htmlFor="simple-1">Default</label>
-			</RadioGroup.ItemContent>
+			<RadioGroup.ItemContent>Default</RadioGroup.ItemContent>
 		</RadioGroup.Item>
-		<RadioGroup.Item value="comfortable" id="simple-2" disabled>
+		<RadioGroup.Item value="comfortable" disabled>
 			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent asChild>
-				<label htmlFor="simple-2">Comfortable</label>
-			</RadioGroup.ItemContent>
+			<RadioGroup.ItemContent>Comfortable</RadioGroup.ItemContent>
 		</RadioGroup.Item>
-		<RadioGroup.Item value="compact" id="simple-3">
+		<RadioGroup.Item value="compact">
 			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent asChild>
-				<label htmlFor="simple-3">Compact</label>
-			</RadioGroup.ItemContent>
+			<RadioGroup.ItemContent>Compact</RadioGroup.ItemContent>
 		</RadioGroup.Item>
-		<RadioGroup.Item value="roomy" id="simple-4">
+		<RadioGroup.Item value="roomy">
 			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent asChild>
-				<label htmlFor="simple-4">Roomy</label>
-			</RadioGroup.ItemContent>
+			<RadioGroup.ItemContent>Roomy</RadioGroup.ItemContent>
 		</RadioGroup.Item>
 	</RadioGroup.Root>
-	<RadioGroup.ButtonGroup defaultValue="production">
+	<RadioGroup.ButtonGroup aria-label="Environment" defaultValue="production">
 		<RadioGroup.Button value="development">Dev</RadioGroup.Button>
 		<RadioGroup.Button disabled value="staging">
 			Staging
 		</RadioGroup.Button>
 		<RadioGroup.Button value="production">Prod</RadioGroup.Button>
 	</RadioGroup.ButtonGroup>
-	<RadioGroup.List defaultValue="comfortable">
-		<RadioGroup.ListItem value="default" disabled id="rli1">
+	<RadioGroup.List aria-label="Density" defaultValue="comfortable">
+		<RadioGroup.ListItem value="default" disabled>
 			<RadioGroup.Indicator />
 			<RadioGroup.ItemContent>
-				<label className="text-strong font-medium" htmlFor="rli1">
-					Default
-				</label>
+				<p className="text-strong font-medium">Default</p>
 				<p className="text-body">Laborum esse cillum incididunt est dolore.</p>
 			</RadioGroup.ItemContent>
 		</RadioGroup.ListItem>
-		<RadioGroup.ListItem value="comfortable" id="rli2">
+		<RadioGroup.ListItem value="comfortable">
 			<RadioGroup.Indicator />
 			<RadioGroup.ItemContent>
-				<label className="text-strong font-medium" htmlFor="rli2">
-					Comfortable
-				</label>
+				<p className="text-strong font-medium">Comfortable</p>
 				<p className="text-body">Ea laboris tempor laborum officia ea adipisicing exercitation.</p>
 			</RadioGroup.ItemContent>
 		</RadioGroup.ListItem>
-		<RadioGroup.ListItem value="compact" id="rli3">
+		<RadioGroup.ListItem value="compact">
 			<RadioGroup.Indicator />
 			<RadioGroup.ItemContent>
-				<label className="text-strong font-medium" htmlFor="rli3">
-					Compact
-				</label>
+				<p className="text-strong font-medium">Compact</p>
 				<p className="text-body">Adipisicing est dolore velit magna dolor voluptate velit.</p>
 			</RadioGroup.ItemContent>
 		</RadioGroup.ListItem>
-		<RadioGroup.ListItem value="roomy" id="rli4">
+		<RadioGroup.ListItem value="roomy">
 			<RadioGroup.Indicator />
 			<RadioGroup.ItemContent>
-				<label className="text-strong font-medium" htmlFor="rli4">
-					Roomy
-				</label>
+				<p className="text-strong font-medium">Roomy</p>
 				<p className="text-body">Tempor dolore Lorem exercitation id nisi aliquip elit.</p>
 			</RadioGroup.ItemContent>
 		</RadioGroup.ListItem>
 	</RadioGroup.List>
-	<RadioGroup.List defaultValue="mixed">
-		<RadioGroup.ListItem value="mixed" disabled id="rld1">
+	<RadioGroup.List aria-label="SSO enforcement" defaultValue="mixed">
+		<RadioGroup.ListItem value="mixed" disabled>
 			<RadioGroup.Indicator />
 			<RadioGroup.ItemContent>
-				<label className="text-strong font-medium" htmlFor="rld1">
-					Mixed
-				</label>
+				<p className="text-strong font-medium">Mixed</p>
 				<p className="text-body">
 					Only new workspace members are required to use SSO. Existing members can still log in with
 					other methods.
 				</p>
 			</RadioGroup.ItemContent>
 		</RadioGroup.ListItem>
-		<RadioGroup.ListItem value="strict" id="rld2" disabled>
+		<RadioGroup.ListItem value="strict" disabled>
 			<RadioGroup.Indicator />
 			<RadioGroup.ItemContent>
-				<label className="text-strong font-medium" htmlFor="rld2">
-					Strict
-				</label>
+				<p className="text-strong font-medium">Strict</p>
 				<p className="text-body">All workspace members are required to log in with SSO.</p>
 			</RadioGroup.ItemContent>
 		</RadioGroup.ListItem>
 	</RadioGroup.List>
 	<RadioGroup.Root
+		aria-label="Audience"
 		className="grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:gap-x-4"
 		defaultValue="existing"
 	>
-		<RadioGroup.Card className="flex" value="newsletter" id="radiocard-1">
+		<RadioGroup.Card className="flex" value="newsletter">
 			<div className="flex-1">
-				<label htmlFor="radiocard-1" className="text-strong block text-sm font-medium">
-					Newsletter
-				</label>
+				<p className="text-strong block text-sm font-medium">Newsletter</p>
 				<p className="mt-1 flex items-center text-sm text-gray-500">
 					Last message sent an hour ago
 				</p>
@@ -253,11 +214,9 @@ Or render the control on its own:
 			</div>
 			<RadioGroup.Indicator />
 		</RadioGroup.Card>
-		<RadioGroup.Card className="flex" value="existing" id="radiocard-2">
+		<RadioGroup.Card className="flex" value="existing">
 			<div className="flex-1">
-				<label htmlFor="radiocard-2" className="text-strong block text-sm font-medium">
-					Existing Customers
-				</label>
+				<p className="text-strong block text-sm font-medium">Existing Customers</p>
 				<p className="mt-1 flex items-center text-sm text-gray-500">
 					Last message sent 2 weeks ago
 				</p>
@@ -265,11 +224,9 @@ Or render the control on its own:
 			</div>
 			<RadioGroup.Indicator />
 		</RadioGroup.Card>
-		<RadioGroup.Card className="flex" value="trial" id="radiocard-3">
+		<RadioGroup.Card className="flex" value="trial">
 			<div className="flex-1">
-				<label htmlFor="radiocard-3" className="text-strong block text-sm font-medium">
-					Trial Users
-				</label>
+				<p className="text-strong block text-sm font-medium">Trial Users</p>
 				<p className="mt-1 flex items-center text-sm text-gray-500">Last message sent 4 days ago</p>
 				<p className="mt-6 text-sm font-medium">2740 Users</p>
 			</div>
@@ -281,54 +238,48 @@ Or render the control on its own:
 ```tsx
 import { RadioGroup } from "@ngrok/mantle/radio-group";
 
-<RadioGroup.Root defaultValue="comfortable">
-	<RadioGroup.Item className="py-1" value="default" id="simple-1">
+<RadioGroup.Root aria-label="Density" defaultValue="comfortable">
+	<RadioGroup.Item className="py-1" value="default">
 		<RadioGroup.Indicator />
-		<RadioGroup.ItemContent asChild>
-			<label htmlFor="simple-1">Default</label>
-		</RadioGroup.ItemContent>
+		<RadioGroup.ItemContent>Default</RadioGroup.ItemContent>
 	</RadioGroup.Item>
-	<RadioGroup.Item className="py-1" value="comfortable" id="simple-2" disabled>
+	<RadioGroup.Item className="py-1" value="comfortable" disabled>
 		<RadioGroup.Indicator />
-		<RadioGroup.ItemContent asChild>
-			<label htmlFor="simple-2">Comfortable</label>
-		</RadioGroup.ItemContent>
+		<RadioGroup.ItemContent>Comfortable</RadioGroup.ItemContent>
 	</RadioGroup.Item>
-	<RadioGroup.Item className="py-1" value="compact" id="simple-3">
+	<RadioGroup.Item className="py-1" value="compact">
 		<RadioGroup.Indicator />
-		<RadioGroup.ItemContent asChild>
-			<label htmlFor="simple-3">Compact</label>
-		</RadioGroup.ItemContent>
+		<RadioGroup.ItemContent>Compact</RadioGroup.ItemContent>
 	</RadioGroup.Item>
 </RadioGroup.Root>
 
-<RadioGroup.ButtonGroup defaultValue="production">
+<RadioGroup.ButtonGroup aria-label="Environment" defaultValue="production">
 	<RadioGroup.Button value="development">Development</RadioGroup.Button>
 	<RadioGroup.Button value="staging">Staging</RadioGroup.Button>
 	<RadioGroup.Button value="production">Production</RadioGroup.Button>
 </RadioGroup.ButtonGroup>
 
-<RadioGroup.List defaultValue="comfortable">
-	<RadioGroup.ListItem value="default" disabled id="rli1">
+<RadioGroup.List aria-label="Density" defaultValue="comfortable">
+	<RadioGroup.ListItem value="default" disabled>
 		<RadioGroup.Indicator />
 		<RadioGroup.ItemContent>
-			<label className="font-medium text-strong" htmlFor="rli1">Default</label>
+			<p className="font-medium text-strong">Default</p>
 			<p className="text-body">Laborum esse cillum incididunt est dolore.</p>
 		</RadioGroup.ItemContent>
 	</RadioGroup.ListItem>
-	<RadioGroup.ListItem value="comfortable" id="rli2">
+	<RadioGroup.ListItem value="comfortable">
 		<RadioGroup.Indicator />
 		<RadioGroup.ItemContent>
-			<label className="font-medium text-strong" htmlFor="rli2">Comfortable</label>
+			<p className="font-medium text-strong">Comfortable</p>
 			<p className="text-body">Ea laboris tempor laborum officia ea adipisicing exercitation.</p>
 		</RadioGroup.ItemContent>
 	</RadioGroup.ListItem>
 </RadioGroup.List>
 
-<RadioGroup.Root className="grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:gap-x-4" defaultValue="existing">
-	<RadioGroup.Card className="flex" value="newsletter" id="radiocard-1">
+<RadioGroup.Root aria-label="Audience" className="grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:gap-x-4" defaultValue="existing">
+	<RadioGroup.Card className="flex" value="newsletter">
 		<div className="flex-1">
-			<label htmlFor="radiocard-1" className="block text-sm font-medium text-strong">Newsletter</label>
+			<p className="block text-sm font-medium text-strong">Newsletter</p>
 			<p className="mt-1 flex items-center text-sm text-gray-500">Last message sent an hour ago</p>
 			<p className="mt-6 text-sm font-medium">621 users</p>
 		</div>
@@ -497,23 +448,17 @@ function Example() {
 							value={field.state.value}
 							onChange={field.handleChange}
 						>
-							<RadioGroup.Item value="default" id="density-default">
+							<RadioGroup.Item value="default">
 								<RadioGroup.Indicator />
-								<RadioGroup.ItemContent asChild>
-									<label htmlFor="density-default">Default</label>
-								</RadioGroup.ItemContent>
+								<RadioGroup.ItemContent>Default</RadioGroup.ItemContent>
 							</RadioGroup.Item>
-							<RadioGroup.Item value="comfortable" id="density-comfortable">
+							<RadioGroup.Item value="comfortable">
 								<RadioGroup.Indicator />
-								<RadioGroup.ItemContent asChild>
-									<label htmlFor="density-comfortable">Comfortable</label>
-								</RadioGroup.ItemContent>
+								<RadioGroup.ItemContent>Comfortable</RadioGroup.ItemContent>
 							</RadioGroup.Item>
-							<RadioGroup.Item value="compact" id="density-compact">
+							<RadioGroup.Item value="compact">
 								<RadioGroup.Indicator />
-								<RadioGroup.ItemContent asChild>
-									<label htmlFor="density-compact">Compact</label>
-								</RadioGroup.ItemContent>
+								<RadioGroup.ItemContent>Compact</RadioGroup.ItemContent>
 							</RadioGroup.Item>
 						</RadioGroup.Root>
 						<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
@@ -567,9 +512,9 @@ RadioGroup.Root
 
 ## Polymorphism
 
-`RadioGroup.ItemContent` accepts `asChild`. When `true` it renders its single child instead of its default `<div>`, forwarding class names, `data-*` attributes, and `ref` onto that child. Reach for it when the label-and-description block beside a radio needs to be a specific element, such as a `<label>` you control or a link wrapping the whole content area.
+`RadioGroup.ItemContent` accepts `asChild`. When `true` it renders its single child instead of its default `<div>`, forwarding class names, `data-*` attributes, and `ref` onto that child. Reach for it when the title-and-description block beside a radio needs to be a specific element, such as a `<p>` or a link wrapping the whole content area. Do not reach for a `<label htmlFor>`: each item is a `div[role="radio"]`, which `for` cannot bind, and the item's text content is already its accessible name.
 
-The rest of the family deliberately does not take `asChild`. `RadioGroup.Root`, `List`, and `ButtonGroup` own the group's roving-focus and arrow-key contract; `Item`, `ListItem`, `Card`, and `Button` each render a real `<input type="radio">` plus its sandboxed hit target, and `Indicator` paints the control itself. For a richer option layout, compose [`Choice`](/components/forms/choice) inside `RadioGroup.Item` (see [Rich option layout with `Choice`](#rich-option-layout-with-choice)) rather than swapping these elements out.
+The rest of the family deliberately does not take `asChild`. `RadioGroup.Root`, `List`, and `ButtonGroup` own the group's roving-focus and arrow-key contract; `Item`, `ListItem`, `Card`, and `Button` each render a `div[role="radio"]` with its keyboard handling, and `Indicator` paints the control itself. When the group has a `name`, Headless UI renders one hidden `<input type="radio">` for form submission. For a richer option layout, compose [`Choice`](/components/forms/choice) inside `RadioGroup.Item` (see [Rich option layout with `Choice`](#rich-option-layout-with-choice)) rather than swapping these elements out.
 
 ## API Reference
 
@@ -653,7 +598,7 @@ A radio card item with enhanced styling for card-based radio options.
 
 ### RadioGroup.InputSandbox
 
-A sandbox container for input elements composed within radio group items. Prevents default radio selection behavior when interacting with the input.
+A sandbox container for input elements composed within radio group items. A click inside it still selects the radio, then focus returns to the input. Keys other than Enter and Tab stop here, so typing does not move the selection. When the item is disabled or unchecked, the input leaves the tab order.
 
 | Prop       | Type        | Default | Description                                          |
 | :--------- | :---------- | :------ | :--------------------------------------------------- |

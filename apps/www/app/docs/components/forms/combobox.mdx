@@ -133,11 +133,88 @@ import { Field } from "@ngrok/mantle/field";
 </Field.Item>;
 ```
 
-Or render the control on its own:
+Without helper or error text, a `Field.Item` with a `Field.Label` still gives the input its accessible name:
 
 <Example className="gap-2">
+	<Field.Item name="subdomain-standalone" className="max-w-96">
+		<Field.Label>Subdomain</Field.Label>
+		<Combobox.Root>
+			<Field.Control>
+				<Combobox.Input />
+			</Field.Control>
+			<Combobox.Content>
+				<Combobox.Group>
+					<Combobox.GroupLabel>Choose an ngrok subdomain</Combobox.GroupLabel>
+					<Combobox.Item value="https://" disabled>
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.app">
+						<CirclesThreePlusIcon weight="duotone" className="text-accent-600" />
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.dev">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.io">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.free">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.pizza">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.ninja">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.wtf">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.biz">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.online">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.space">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.tld0">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.tld1">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.tld2">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.tld3">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+					<Combobox.Item value="https://${random}.ngrok.tld4">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+				</Combobox.Group>
+				<Combobox.Separator />
+				<Combobox.Item>
+					Sit dolor enim eiusmod nulla nostrud officia in magna deserunt ut ex veniam cillum.
+				</Combobox.Item>
+			</Combobox.Content>
+		</Combobox.Root>
+	</Field.Item>
+</Example>
+
+```tsx
+import { Combobox } from "@ngrok/mantle/combobox";
+import { Field } from "@ngrok/mantle/field";
+import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
+
+<Field.Item name="subdomain">
+	<Field.Label>Subdomain</Field.Label>
 	<Combobox.Root>
-		<Combobox.Input />
+		<Field.Control>
+			<Combobox.Input />
+		</Field.Control>
 		<Combobox.Content>
 			<Combobox.Group>
 				<Combobox.GroupLabel>Choose an ngrok subdomain</Combobox.GroupLabel>
@@ -154,42 +231,6 @@ Or render the control on its own:
 				<Combobox.Item value="https://${random}.ngrok.io">
 					<Combobox.ItemValue />
 				</Combobox.Item>
-				<Combobox.Item value="https://${random}.ngrok.free">
-					<Combobox.ItemValue />
-				</Combobox.Item>
-				<Combobox.Item value="https://${random}.ngrok.pizza">
-					<Combobox.ItemValue />
-				</Combobox.Item>
-				<Combobox.Item value="https://${random}.ngrok.ninja">
-					<Combobox.ItemValue />
-				</Combobox.Item>
-				<Combobox.Item value="https://${random}.ngrok.wtf">
-					<Combobox.ItemValue />
-				</Combobox.Item>
-				<Combobox.Item value="https://${random}.ngrok.biz">
-					<Combobox.ItemValue />
-				</Combobox.Item>
-				<Combobox.Item value="https://${random}.ngrok.online">
-					<Combobox.ItemValue />
-				</Combobox.Item>
-				<Combobox.Item value="https://${random}.ngrok.space">
-					<Combobox.ItemValue />
-				</Combobox.Item>
-				<Combobox.Item value="https://${random}.ngrok.tld0">
-					<Combobox.ItemValue />
-				</Combobox.Item>
-				<Combobox.Item value="https://${random}.ngrok.tld1">
-					<Combobox.ItemValue />
-				</Combobox.Item>
-				<Combobox.Item value="https://${random}.ngrok.tld2">
-					<Combobox.ItemValue />
-				</Combobox.Item>
-				<Combobox.Item value="https://${random}.ngrok.tld3">
-					<Combobox.ItemValue />
-				</Combobox.Item>
-				<Combobox.Item value="https://${random}.ngrok.tld4">
-					<Combobox.ItemValue />
-				</Combobox.Item>
 			</Combobox.Group>
 			<Combobox.Separator />
 			<Combobox.Item>
@@ -197,37 +238,7 @@ Or render the control on its own:
 			</Combobox.Item>
 		</Combobox.Content>
 	</Combobox.Root>
-</Example>
-
-```tsx
-import { Combobox } from "@ngrok/mantle/combobox";
-import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
-
-<Combobox.Root>
-	<Combobox.Input />
-	<Combobox.Content>
-		<Combobox.Group>
-			<Combobox.GroupLabel>Choose an ngrok subdomain</Combobox.GroupLabel>
-			<Combobox.Item value="https://" disabled>
-				<Combobox.ItemValue />
-			</Combobox.Item>
-			<Combobox.Item value="https://${random}.ngrok.app">
-				<CirclesThreePlusIcon weight="duotone" className="text-accent-600" />
-				<Combobox.ItemValue />
-			</Combobox.Item>
-			<Combobox.Item value="https://${random}.ngrok.dev">
-				<Combobox.ItemValue />
-			</Combobox.Item>
-			<Combobox.Item value="https://${random}.ngrok.io">
-				<Combobox.ItemValue />
-			</Combobox.Item>
-		</Combobox.Group>
-		<Combobox.Separator />
-		<Combobox.Item>
-			Sit dolor enim eiusmod nulla nostrud officia in magna deserunt ut ex veniam cillum.
-		</Combobox.Item>
-	</Combobox.Content>
-</Combobox.Root>;
+</Field.Item>;
 ```
 
 ## Layering and z-index
@@ -379,7 +390,7 @@ All props from ariakit [Combobox](https://ariakit.org/reference/combobox), plus:
 | Prop            | Type                                                                                               | Default    | Description                                           |
 | :-------------- | :------------------------------------------------------------------------------------------------- | :--------- | :---------------------------------------------------- |
 | `autoComplete?` | `string`                                                                                           | `"list"`   | The autocomplete behavior of the input.               |
-| `autoSelect?`   | `"always" \| "inline" \| boolean`                                                                  | `"always"` | How the first item is automatically selected.         |
+| `autoSelect?`   | `boolean \| "always"`                                                                              | `"always"` | How the first item is automatically selected.         |
 | `validation?`   | `"error" \| "success" \| "warning" \| false \| (() => "error" \| "success" \| "warning" \| false)` |            | Validation state that changes the border and outline. |
 
 ### Combobox.Content

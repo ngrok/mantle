@@ -258,8 +258,7 @@ Reach for `Toast.Action asChild` when the action must be a link ("View logs" nav
 
 `Toast.Icon` takes its element through the `svg` prop and clones it, so it needs no `asChild`.
 
-> [!WARNING]
-> `Toast.Root` advertises `asChild` in its prop types but **throws at runtime** (`React.Children.only expected to receive a single React element child`). The root renders the intent accent bar alongside your children, so the slot receives two. Style the toast surface with `className` instead.
+`Toast.Root` does not take `asChild`. The root renders the intent accent bar alongside your children, so a slot would receive two elements. Style the toast surface with `className` instead.
 
 ## API Reference
 
@@ -280,10 +279,9 @@ The `Toast.Root` is the container for a toast message.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div), plus:
 
-| Prop       | Type                                           | Default | Description                                                                                                                               |
-| ---------- | ---------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `intent`   | `"info" \| "success" \| "warning" \| "danger"` |         | The tone of the toast. Determines the visual styling and default icon that communicate the status it reports.                             |
-| `asChild?` | `boolean`                                      | `false` | Use the `asChild` prop to compose the `Toast.Root` styling and functionality onto alternative element types or your own React components. |
+| Prop     | Type                                           | Default | Description                                                                                                   |
+| -------- | ---------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------- |
+| `intent` | `"info" \| "success" \| "warning" \| "danger"` |         | The tone of the toast. Determines the visual styling and default icon that communicate the status it reports. |
 
 ### Toast.Icon
 

@@ -24,7 +24,7 @@ type Props = ComponentProps<"div"> & WithAsChild;
  * </MediaObject.Root>
  * ```
  */
-const Root = ({ asChild = false, className, children, style, ref }: Props) => {
+const Root = ({ asChild = false, className, children, ref, ...props }: Props) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
@@ -32,7 +32,7 @@ const Root = ({ asChild = false, className, children, style, ref }: Props) => {
 			ref={ref}
 			data-slot="media-object"
 			className={cx("flex gap-4", className)}
-			style={style}
+			{...props}
 		>
 			{children}
 		</Component>
@@ -56,7 +56,7 @@ const Root = ({ asChild = false, className, children, style, ref }: Props) => {
  * </MediaObject.Root>
  * ```
  */
-const Media = ({ asChild = false, className, children, style, ref }: Props) => {
+const Media = ({ asChild = false, className, children, ref, ...props }: Props) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
@@ -64,7 +64,7 @@ const Media = ({ asChild = false, className, children, style, ref }: Props) => {
 			ref={ref}
 			data-slot="media-object-media"
 			className={cx("shrink-0 leading-none", className)}
-			style={style}
+			{...props}
 		>
 			{children}
 		</Component>
@@ -88,7 +88,7 @@ const Media = ({ asChild = false, className, children, style, ref }: Props) => {
  * </MediaObject.Root>
  * ```
  */
-const Content = ({ asChild = false, className, children, style, ref }: Props) => {
+const Content = ({ asChild = false, className, children, ref, ...props }: Props) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
@@ -96,7 +96,7 @@ const Content = ({ asChild = false, className, children, style, ref }: Props) =>
 			ref={ref}
 			data-slot="media-object-content"
 			className={cx("min-w-0 flex-1", className)}
-			style={style}
+			{...props}
 		>
 			{children}
 		</Component>
@@ -163,14 +163,6 @@ const MediaObject = {
 	 * The media object is an image/icon (media) to the left, with descriptive
 	 * content (title and subtitle/description) to the right. This is the root
 	 * component of the media object.
-	 *
-	 * Change the spacing between the media and content by passing a `gap-*` class.
-	 * The default gap is `gap-4`.
-	 *
-	 * Use flexbox utilities to change the alignment of the media and content.
-	 *
-	 * Compose the media object with the `MediaObject.Media` and `MediaObject.Content`
-	 * components as direct children.
 	 *
 	 * @see https://mantle.ngrok.com/components/structure/media-object#mediaobjectroot
 	 *

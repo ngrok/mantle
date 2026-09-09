@@ -27,7 +27,7 @@ export const DynamicColorsExample = () => {
 
     return (
     	<form className="space-y-4">
-    		<ProgressDonut.Root value={value} className="size-10" strokeWidth="0.375rem">
+    		<ProgressDonut.Root aria-label="Task progress" value={value} className="size-10" strokeWidth="0.375rem">
     			<ProgressDonut.Indicator className={computeColor()} />
     		</ProgressDonut.Root>
     		<label className="block space-y-1">
@@ -52,22 +52,37 @@ Displays an indicator showing the completion progress of a task as a circular pr
 The indicator color is inherited via `currentColor`. Override the default (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
 
 <Example className="flex-col gap-6">
-	<ProgressDonut.Root value={60} className="size-10" strokeWidth="0.375rem">
+	<ProgressDonut.Root
+		aria-label="Task progress"
+		value={60}
+		className="size-10"
+		strokeWidth="0.375rem"
+	>
 		<ProgressDonut.Indicator />
 	</ProgressDonut.Root>
-	<ProgressDonut.Root value={60} className="size-10" strokeWidth="0.375rem">
+	<ProgressDonut.Root
+		aria-label="Task progress"
+		value={60}
+		className="size-10"
+		strokeWidth="0.375rem"
+	>
 		<ProgressDonut.Indicator className="text-fuchsia-600" />
 	</ProgressDonut.Root>
 	<div className="flex flex-col gap-2">
 		<div className="flex items-center gap-1.5 text-sm">
-			<ProgressDonut.Root value={100} className="size-6">
+			<ProgressDonut.Root aria-label="Data transfer out" value={100} className="size-6">
 				<ProgressDonut.Indicator />
 			</ProgressDonut.Root>
 			Data transfer out
 		</div>
 		<div className="flex items-center gap-1.5 text-xs">
 			<div className="grid w-6 place-items-center">
-				<ProgressDonut.Root value={100} className="size-4" strokeWidth="0.1875rem">
+				<ProgressDonut.Root
+					aria-label="Included"
+					value={100}
+					className="size-4"
+					strokeWidth="0.1875rem"
+				>
 					<ProgressDonut.Indicator />
 				</ProgressDonut.Root>
 			</div>
@@ -75,7 +90,12 @@ The indicator color is inherited via `currentColor`. Override the default (`acce
 		</div>
 		<div className="flex items-center gap-1.5 text-xs">
 			<div className="grid w-6 place-items-center">
-				<ProgressDonut.Root className="size-4" value={25} strokeWidth="0.1875rem">
+				<ProgressDonut.Root
+					aria-label="Additional"
+					className="size-4"
+					value={25}
+					strokeWidth="0.1875rem"
+				>
 					<ProgressDonut.Indicator />
 				</ProgressDonut.Root>
 			</div>
@@ -87,17 +107,17 @@ The indicator color is inherited via `currentColor`. Override the default (`acce
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
 
-<ProgressDonut.Root value={60} className="size-10" strokeWidth="0.375rem">
+<ProgressDonut.Root aria-label="Task progress" value={60} className="size-10" strokeWidth="0.375rem">
 	<ProgressDonut.Indicator />
 </ProgressDonut.Root>
 
-<ProgressDonut.Root value={60} className="size-10" strokeWidth="0.375rem">
+<ProgressDonut.Root aria-label="Task progress" value={60} className="size-10" strokeWidth="0.375rem">
 	<ProgressDonut.Indicator className="text-fuchsia-600" />
 </ProgressDonut.Root>
 
 <div className="flex flex-col gap-2">
 	<div className="flex items-center gap-1.5 text-sm">
-		<ProgressDonut.Root value={100} className="size-6">
+		<ProgressDonut.Root aria-label="Data transfer out" value={100} className="size-6">
 			<ProgressDonut.Indicator />
 		</ProgressDonut.Root>
 		Data transfer out
@@ -105,7 +125,7 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 
 	<div className="flex items-center gap-1.5 text-xs">
 		<div className="grid w-6 place-items-center">
-			<ProgressDonut.Root value={100} className="size-4" strokeWidth="0.1875rem">
+			<ProgressDonut.Root aria-label="Included" value={100} className="size-4" strokeWidth="0.1875rem">
 				<ProgressDonut.Indicator />
 			</ProgressDonut.Root>
 		</div>
@@ -114,7 +134,7 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 
 	<div className="flex items-center gap-1.5 text-xs">
 		<div className="grid w-6 place-items-center">
-			<ProgressDonut.Root value={25} className="size-4" strokeWidth="0.1875rem">
+			<ProgressDonut.Root aria-label="Additional" value={25} className="size-4" strokeWidth="0.1875rem">
 				<ProgressDonut.Indicator className="text-success-600" />
 			</ProgressDonut.Root>
 		</div>
@@ -123,6 +143,10 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 </div>
 ```
 
+## Accessibility
+
+`ProgressDonut.Root` renders `role="progressbar"` with `aria-valuemin`, `aria-valuemax`, and `aria-valuenow`, and omits `aria-valuenow` while indeterminate. The role needs a name: pass `aria-label`, or `aria-labelledby` that points at a visible label, or a screen reader announces a bare "progress bar".
+
 ## Indeterminate value
 
 Set the `value` prop to `"indeterminate"` to show the donut in an indeterminate state.
@@ -130,10 +154,16 @@ Set the `value` prop to `"indeterminate"` to show the donut in an indeterminate 
 Control the rotation speed with the `indeterminateRotationSpeed` prop.
 
 <Example className="flex-col gap-6">
-	<ProgressDonut.Root className="size-10" value="indeterminate" strokeWidth="0.375rem">
+	<ProgressDonut.Root
+		aria-label="Task progress"
+		className="size-10"
+		value="indeterminate"
+		strokeWidth="0.375rem"
+	>
 		<ProgressDonut.Indicator />
 	</ProgressDonut.Root>
 	<ProgressDonut.Root
+		aria-label="Task progress"
 		className="size-10"
 		value="indeterminate"
 		indeterminateRotationSpeed="animation-duration-[2s]"
@@ -146,11 +176,12 @@ Control the rotation speed with the `indeterminateRotationSpeed` prop.
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
 
-<ProgressDonut.Root className="size-10" value="indeterminate" strokeWidth="0.375rem">
+<ProgressDonut.Root aria-label="Task progress" className="size-10" value="indeterminate" strokeWidth="0.375rem">
 	<ProgressDonut.Indicator />
 </ProgressDonut.Root>
 
 <ProgressDonut.Root
+	aria-label="Task progress"
 	className="size-10"
 	value="indeterminate"
 	indeterminateRotationSpeed="animation-duration-[2s]"
@@ -191,7 +222,12 @@ const Example = () => {
 
 	return (
 		<form className="space-y-4">
-			<ProgressDonut.Root value={value} className="size-10" strokeWidth="0.375rem">
+			<ProgressDonut.Root
+				aria-label="Task progress"
+				value={value}
+				className="size-10"
+				strokeWidth="0.375rem"
+			>
 				<ProgressDonut.Indicator className={computeColor()} />
 			</ProgressDonut.Root>
 			<label className="block space-y-1">
@@ -229,12 +265,19 @@ The indicator color is inherited via `currentColor`. Override the default (`acce
 
 The `ProgressDonut` accepts the following props in addition to the [standard HTML svg attributes](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/svg#attributes).
 
-| Prop                         | Type                                 | Default                      | Description                                                                                                                                                         |
-| ---------------------------- | ------------------------------------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `indeterminateRotationSpeed` | `` `animation-duration-${string}` `` | `"animation-duration-[15s]"` | Controls the rotation speed of the indeterminate spinner state, as a Tailwind `animation-duration-*` class.                                                         |
-| `max`                        | `number`                             | `100`                        | The maximum value of the progress bar. Must have a value greater than 0.                                                                                            |
-| `strokeWidth`                | `number` \| `` `${number}rem` ``     | `"0.25rem"`                  | The width of the progress bar stroke. Note, we clamp the stroke width to a minimum of 1px and max of 12px since it is proportional to the viewbox size (0 0 32 32). |
-| `value`                      | `number` \| `"indeterminate"`        | `0`                          | The current value of the progress bar. Must be between 0 and `max`. If set to `"indeterminate"`, the progress bar is considered indeterminate.                      |
+| Prop                         | Type                                 | Default                      | Description                                                                                                                                                                                         |
+| ---------------------------- | ------------------------------------ | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `indeterminateRotationSpeed` | `` `animation-duration-${string}` `` | `"animation-duration-[15s]"` | Controls the rotation speed of the indeterminate spinner state, as a Tailwind `animation-duration-*` class.                                                                                         |
+| `max`                        | `number`                             | `100`                        | The maximum value of the progress bar. Must have a value greater than 0.                                                                                                                            |
+| `strokeWidth`                | `number` \| `` `${number}rem` ``     | `"0.25rem"`                  | The width of the progress bar stroke, clamped between 1px and 12px.                                                                                                                                 |
+| `value`                      | `number` \| `"indeterminate"`        | `0`                          | The current value of the progress bar. Must be between 0 and `max`; a value outside that range renders as indeterminate. If set to `"indeterminate"`, the progress bar is considered indeterminate. |
+
+| Data Attribute | Value              | Description                 |
+| -------------- | ------------------ | --------------------------- |
+| `data-slot`    | `"progress-donut"` | The root `<svg>`.           |
+| `data-value`   | the current value  | Absent while indeterminate. |
+| `data-min`     | `0`                |                             |
+| `data-max`     | the maximum        |                             |
 
 ### ProgressDonut.Indicator
 

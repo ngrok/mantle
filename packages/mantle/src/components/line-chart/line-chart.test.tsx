@@ -216,6 +216,28 @@ describe("LineChart.CopyButton", () => {
 		expect(screen.getByRole("button", { name: "Copy latency data" })).toBeInTheDocument();
 	});
 
+	test("announces 'Copied' through an always-mounted live region after a copy", async () => {
+		const user = userEvent.setup();
+		render(
+			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
+				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.CopyButton />
+			</LineChart.Root>,
+		);
+		// The chart's keyboard announcer is a second status region; the copy
+		// region is the one that sits right after the button.
+		const button = screen.getByRole("button", { name: "Copy data as Markdown" });
+		const status = button.nextElementSibling;
+		expect(status).toHaveAttribute("role", "status");
+		expect(status).toHaveTextContent("");
+
+		await user.click(button);
+
+		await vi.waitFor(() => {
+			expect(status).toHaveTextContent("Copied");
+		});
+	});
+
 	test("rendered outside Root throws", () => {
 		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() => render(<LineChart.CopyButton />)).toThrow(

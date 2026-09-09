@@ -336,3 +336,16 @@ The `Input` accepts the following props in addition to the [standard HTML input 
 | Prop         | Type                                                                                                     | Default | Description                                                                                                                                                                                                                                                                                                             |
 | ------------ | -------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `validation` | `"error"` \| `"success"` \| `"warning"` \| `false` \| `() => "error" \| "success" \| "warning" \| false` |         | Use the `validation` prop to show if the input has a specific validation status. This will change the border and outline of the input. The `false` type is useful when using short-circuiting logic so that you don't need to use a ternary with `undefined`. Setting `validation` to `error` also sets `aria-invalid`. |
+
+Two standard attributes are narrowed to unions, so a typo is a type error: `type` accepts the native input type names, and `autoComplete` accepts the [HTML autocomplete tokens](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete).
+
+### InputCapture
+
+The `<input>` element itself. `Input` renders one for you unless you pass `children`; then you render it yourself among your adornments. It accepts the same props as `Input`, minus `children`, and reads any prop you set on the surrounding `Input` through context, so `id`, `name`, `type`, `validation`, and the `aria-*` attributes land on the element whichever of the two you set them on.
+
+| Data Attribute    | Value                                   | Description                                          |
+| ----------------- | --------------------------------------- | ---------------------------------------------------- |
+| `data-slot`       | `"input"`                               | The chrome around the input.                         |
+| `data-slot`       | `"input-capture"`                       | The `<input>` element.                               |
+| `data-disabled`   | present when disabled                   | On the chrome. Style with `data-disabled:`.          |
+| `data-validation` | `"error"` \| `"success"` \| `"warning"` | On the chrome and the `<input>`. Omitted when unset. |

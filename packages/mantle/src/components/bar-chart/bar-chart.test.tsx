@@ -32,6 +32,30 @@ describe("BarChart.Root", () => {
 		expect(document.querySelector("canvas")).toHaveAttribute("aria-hidden");
 	});
 
+	test("the keyboard instructions name every key the overlay handles", () => {
+		renderChart();
+		const overlay = screen.getByRole("application", { name: "Visitors by month" });
+		expect(overlay).toHaveAccessibleDescription(
+			/left and right arrow keys.*Page Up and Page Down.*Home and End.*Enter or Space.*Escape/s,
+		);
+	});
+
+	test("the data table caption reads the aria-labelledby element's text", async () => {
+		render(
+			<>
+				<h2 id="visitors-title">Visitors by month</h2>
+				<BarChart.Root data={data} xKey="month" aria-labelledby="visitors-title">
+					<BarChart.Bar dataKey="desktop" label="Desktop" />
+				</BarChart.Root>
+			</>,
+		);
+		await vi.waitFor(() => {
+			expect(
+				screen.getByRole("table", { name: "Visitors by month — chart data." }),
+			).toBeInTheDocument();
+		});
+	});
+
 	test("an xKey matching no row throws instead of rendering undefined categories", () => {
 		// Regression: a typo'd xKey used to coerce every category to the literal
 		// string "undefined" — a plausibly-rendered chart that ships the typo.
@@ -569,6 +593,16 @@ describe("BarChart decorative mode", () => {
 		renderDecorative();
 		expect(screen.queryByRole("table")).not.toBeInTheDocument();
 		expect(screen.queryByRole("status")).not.toBeInTheDocument();
+	});
+
+	test("is inert, so a composed CopyButton is not a tab stop inside the hidden backdrop", () => {
+		const { container } = render(
+			<BarChart.Root data={data} xKey="month" decorative>
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.CopyButton />
+			</BarChart.Root>,
+		);
+		expect(container.querySelector('[data-slot="bar-chart"]')).toHaveAttribute("inert");
 	});
 
 	test("pointer and keyboard never surface a tooltip readout", async () => {

@@ -77,7 +77,7 @@ Tooltip.Root
 `Tooltip.Root` is a state provider and renders no DOM, so it takes no `asChild`.
 
 > [!WARNING]
-> `Tooltip.Content` advertises `asChild` in its prop types but **throws at runtime** (`Primitive.div failed to slot onto its Slottable`). The content renders its own arrow alongside your children, so the slot receives more than the single element it requires. Style `Tooltip.Content` with `className` instead.
+> `Tooltip.Content` does not take `asChild`. The content renders its own arrow alongside your children, so a slot would receive more than the single element it requires. Style `Tooltip.Content` with `className` instead.
 
 ## API Reference
 

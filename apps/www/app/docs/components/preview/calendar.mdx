@@ -1,6 +1,6 @@
 ---
 title: Calendar
-description: A date field component that allows users to enter and edit date.
+description: A calendar component that allows users to select a date or a range of dates.
 ---
 
 import { Example } from "~/components/example";
@@ -18,7 +18,7 @@ import {
 	Calendar
 </PageHeader>
 
-A date field component that allows users to enter and edit date.
+A calendar component that allows users to select a date or a range of dates. It renders a month grid with previous/next navigation; it has no text entry.
 
 Use `mode="single"` to let a user select a single date.
 
@@ -206,6 +206,23 @@ function Example() {
 }
 ```
 
+## Accessibility
+
+The month grid, the day buttons, and the previous/next month buttons come from [React DayPicker](https://react-day-picker.js.org/), which names them and handles arrow-key navigation between days. The navigation buttons carry mantle's `IconButton` ghost styling, including its focus ring.
+
 ## API Reference
 
-The `Calendar` is built on top of [React DayPicker](https://react-day-picker.js.org/).
+The `Calendar` is built on top of [React DayPicker](https://react-day-picker.js.org/) and accepts every [`DayPicker` prop](https://daypicker.dev/api/type-aliases/DayPickerProps). Mantle changes these:
+
+| Prop               | Type                                | Default | Description                                                                                                                           |
+| ------------------ | ----------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `mode`             | `"single" \| "multiple" \| "range"` |         | Selection mode. `"range"` also rounds the ends of a selected range.                                                                   |
+| `showOutsideDays?` | `boolean`                           | `false` | Whether days from the previous and next month fill the first and last week. DayPicker defaults to `true`; mantle defaults to `false`. |
+| `className?`       | `string`                            |         | Classes for the calendar root, merged with `classNames.root`.                                                                         |
+| `classNames?`      | `Partial<ClassNames>`               |         | Per-element class overrides. Mantle sets its own defaults for every key; yours merge over them, and `root` merges with `className`.   |
+
+`@ngrok/mantle/calendar` also exports the `DateRange` type for `mode="range"`.
+
+| Data Attribute | Value        | Description        |
+| -------------- | ------------ | ------------------ |
+| `data-slot`    | `"calendar"` | The calendar root. |

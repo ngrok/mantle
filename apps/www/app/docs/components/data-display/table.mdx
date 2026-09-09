@@ -159,7 +159,7 @@ The `Table` is a structured way to display data in rows and columns. The API mat
 
 Root container for all `Table` sub-components. Should be the parent of all other table sub-components. It draws the border and rounded corners, and scrolls wide content horizontally with a fading scroll edge.
 
-All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes). `ref` lands on the inner scroll container, so you can read or set its scroll position; every other prop lands on the outer element.
 
 `Table.Root` stamps these data attributes on its outer element for your own CSS to target:
 
@@ -211,7 +211,7 @@ All props from [tr](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/tr
 
 ### Table.Header
 
-Defines a cell as the header of a group of table cells and may be used as a child of a `Table.Row`.
+Defines a cell as the header of a group of table cells and may be used as a child of a `Table.Row`. `scope` defaults to `"col"`; pass `scope="row"` for a header cell inside a body row.
 
 All props from [th](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/th#attributes).
 
@@ -223,6 +223,6 @@ All props from [td](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/td
 
 ### Table.Caption
 
-Specifies the caption (or title) of a table, which gives the table an accessible description.
+Specifies the caption (or title) of a table, which gives the table its accessible name.
 
 All props from [caption](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/caption#attributes).

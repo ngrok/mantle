@@ -30,8 +30,7 @@ type SelectContextType = WithValidation &
 		 */
 		ref?: Ref<HTMLButtonElement>;
 		/**
-		 * Event handler called when Select blurs.
-		 * @note this is a no-op for now until we can guarantee that it works identically to a native select onBlur
+		 * Event handler called when the trigger button blurs.
 		 */
 		onBlur?: (event: FocusEvent<HTMLButtonElement>) => void;
 	} & Pick<ComponentProps<"button">, "id">;
@@ -48,8 +47,8 @@ type SelectProps = PropsWithChildren & {
 	id?: string;
 	name?: string;
 	/**
-	 * Event handler called when Select blurs.
-	 * @note this is a no-op for now until we can guarantee that it works identically to a native select onBlur
+	 * Event handler called when the trigger button blurs. Runs after any
+	 * `onBlur` passed on `Select.Trigger`.
 	 */
 	onBlur?: (event: FocusEvent<HTMLButtonElement>) => void;
 	/**
@@ -81,7 +80,7 @@ type SelectProps = PropsWithChildren & {
  * ambient `validation` from `Field.Item`. Note: rendered `Field.Errors` /
  * `Field.ErrorList` set `aria-invalid="true"` on the trigger via
  * `Field.Control`'s wiring, which still forces the trigger into the error
- * state — suppress the inferred error by passing `validation` on `Field.Item`
+ * state; suppress the inferred error by passing `validation` on `Field.Item`
  * if a non-error `Select.Root` state needs to win in that case.
  *
  * `Select.Content` renders at Tailwind `z-50`, Mantle's float tier. When
@@ -263,6 +262,7 @@ const Trigger = ({
 	className,
 	children,
 	id: propId,
+	onBlur,
 	ref,
 	validation: propValidation,
 	...props
@@ -301,6 +301,10 @@ const Trigger = ({
 			id={id}
 			ref={composeRefs(ref, ctx.ref)}
 			{...props}
+			onBlur={(event) => {
+				onBlur?.(event);
+				ctx.onBlur?.(event);
+			}}
 			{...(fieldControl
 				? {
 						"aria-describedby": fieldControl["aria-describedby"],
@@ -364,7 +368,9 @@ type SelectContentProps = ComponentProps<typeof SelectPrimitive.Content> & {
 
 /**
  * The component that pops out when the select is open as a portal adjacent to the trigger button.
- * It contains a scrolling viewport of the select items.
+ * It contains a scrolling viewport of the select items. `position` defaults to
+ * `"popper"`, so the list opens below the trigger instead of over the selected
+ * item.
  *
  * `Select.Content` renders at Tailwind `z-50`, Mantle's float tier. When
  * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
@@ -477,6 +483,9 @@ const Label = ({ className, ref, ...props }: ComponentProps<typeof SelectPrimiti
 );
 
 type SelectItemProps = ComponentProps<typeof SelectPrimitive.Item> & {
+	/**
+	 * An optional icon rendered before the item text.
+	 */
 	icon?: ReactNode;
 };
 
@@ -484,7 +493,8 @@ type SelectItemProps = ComponentProps<typeof SelectPrimitive.Item> & {
  * An option within a select menu. Similar to an html `<option>` element.
  * Has a required `value` prop. When a user selects this item, `Select.Root`
  * passes that value to its `onValueChange` handler.
- * Displays the children as the option's text.
+ * Displays the children as the option's text. Pass `icon` to render an icon
+ * before the text.
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectitem
  *
@@ -634,6 +644,14 @@ const Select = {
 	 * and search/filtering is unnecessary. For larger lists or async/searchable data, use
 	 * Combobox. For picking multiple options, use MultiSelect.
 	 *
+	 * Pass `validation` here when the entire select has an explicit state. That
+	 * root state is forwarded to `Select.Trigger` and takes precedence over the
+	 * ambient `validation` from `Field.Item`. Note: rendered `Field.Errors` /
+	 * `Field.ErrorList` set `aria-invalid="true"` on the trigger via
+	 * `Field.Control`'s wiring, which still forces the trigger into the error
+	 * state; suppress the inferred error by passing `validation` on `Field.Item`
+	 * if a non-error `Select.Root` state needs to win in that case.
+	 *
 	 * `Select.Content` renders at Tailwind `z-50`, Mantle's float tier. When
 	 * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
 	 * that overlay's positioner and paints above the overlay that owns it. Outside
@@ -669,7 +687,9 @@ const Select = {
 	Root,
 	/**
 	 * The component that pops out when the select is open as a portal adjacent to the trigger button.
-	 * It contains a scrolling viewport of the select items.
+	 * It contains a scrolling viewport of the select items. `position` defaults to
+	 * `"popper"`, so the list opens below the trigger instead of over the selected
+	 * item.
 	 *
 	 * `Select.Content` renders at Tailwind `z-50`, Mantle's float tier. When
 	 * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
@@ -738,7 +758,8 @@ const Select = {
 	 * An option within a select menu. Similar to an html `<option>` element.
 	 * Has a required `value` prop. When a user selects this item, `Select.Root`
 	 * passes that value to its `onValueChange` handler.
-	 * Displays the children as the option's text.
+	 * Displays the children as the option's text. Pass `icon` to render an icon
+	 * before the text.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selectitem
 	 *
@@ -826,6 +847,10 @@ const Select = {
 	Separator: SelectSeparatorComponent,
 	/**
 	 * The button that toggles the select. The Select.Content will position itself adjacent to the trigger.
+	 * When composing with `Field.Item`, wrap `Select.Root` in `Field.Control`:
+	 * the generated `id`, `name`, and `aria-invalid` flow onto `Select.Root` (so
+	 * the hidden form input gets the field name), and the trigger reads
+	 * `aria-describedby` / `aria-errormessage` from `FieldControlContext`.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selecttrigger
 	 *

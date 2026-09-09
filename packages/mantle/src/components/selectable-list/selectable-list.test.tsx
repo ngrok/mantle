@@ -112,6 +112,20 @@ describe("summarizeSelection", () => {
 	});
 });
 
+describe("SelectableList.Filter", () => {
+	test('a bare Filter is named "Filter" by default, and the search icon is decorative', () => {
+		const { container } = render(
+			<SelectableList.Root options={[{ value: "apple", label: "Apple" }]}>
+				<SelectableList.Filter />
+				<SelectableList.Viewport aria-label="Fruit" />
+			</SelectableList.Root>,
+		);
+		expect(screen.getByRole("textbox", { name: "Filter" })).toBeInTheDocument();
+		const icon = container.querySelector('[data-slot="selectable-list-filter"] svg');
+		expect(icon).toHaveAttribute("aria-hidden", "true");
+	});
+});
+
 describe("SelectableList.SelectAll", () => {
 	test("is unchecked with no selection and selects every enabled option on toggle", async () => {
 		const user = userEvent.setup();

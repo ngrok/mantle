@@ -121,7 +121,7 @@ type CommandDialogRootProps = Omit<
 };
 
 /**
- * The state owner for a command palette. Renders no DOM of its own — it owns
+ * The state owner for a command palette. Renders no DOM of its own; it owns
  * the open state, the query text, and the `⌘K` shortcut, and carries them to
  * every part below through `useCommandDialog()`.
  *
@@ -450,7 +450,7 @@ const CommandInput = ({
 			data-slot="command-input-wrapper"
 			className="flex h-9 items-center gap-2 border-b border-popover px-3"
 		>
-			<MagnifyingGlassIcon className="size-5 shrink-0 opacity-50" />
+			<MagnifyingGlassIcon aria-hidden className="size-5 shrink-0 opacity-50" />
 			<CommandPrimitive.Input
 				className={cx(
 					"placeholder:text-muted flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
@@ -681,7 +681,8 @@ const CommandItem = ({ className, ...props }: ComponentProps<typeof CommandPrimi
 );
 
 /**
- * The keyboard hint for a `Command.Item`, aligned to the end of the row.
+ * The keyboard hint for a `Command.Item`, aligned to the end of the row. It
+ * locks `translate="no"`: a translated shortcut key names the wrong key.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commandshortcut
  *
@@ -712,11 +713,14 @@ const CommandItem = ({ className, ...props }: ComponentProps<typeof CommandPrimi
  * </Command.DialogRoot>
  * ```
  */
-const CommandShortcut = ({ className, ...props }: ComponentProps<"span">) => (
+const CommandShortcut = ({ className, ...props }: Omit<ComponentProps<"span">, "translate">) => (
 	<span
 		data-slot="command-shortcut"
 		className={cx("text-muted ml-auto text-xs tracking-widest", className)}
 		{...props}
+		// Why after the spread: a wider props object can still carry `translate`
+		// past the type, and a translated shortcut key names the wrong key.
+		translate="no"
 	/>
 );
 
@@ -814,8 +818,9 @@ const Command = {
 	 */
 	Root: CommandRoot,
 	/**
-	 * The state owner for the Command dialog. Owns the open state, the query
-	 * text, and the `⌘K` shortcut, and renders no DOM of its own.
+	 * The state owner for a command palette. Renders no DOM of its own; it owns
+	 * the open state, the query text, and the `⌘K` shortcut, and carries them to
+	 * every part below through `useCommandDialog()`.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/command#commanddialogroot
 	 *
@@ -848,8 +853,11 @@ const Command = {
 	 */
 	DialogRoot: CommandDialogRoot,
 	/**
-	 * A button shaped like an `Input` that opens the palette, with the `⌘K` hint
-	 * and keystroke/paste forwarding.
+	 * Makes any control behave like a search field that opens the command palette.
+	 * It renders no DOM of its own; it clones its child and gives it the wiring,
+	 * so **presentation belongs entirely to the child** and this part never has an
+	 * opinion about how the trigger looks or how it behaves in a collapsed sidebar
+	 * rail.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/command#commandsearchtrigger
 	 *
@@ -922,7 +930,8 @@ const Command = {
 	 */
 	DialogTrigger: Dialog.Trigger,
 	/**
-	 * The visible content of the Command dialog. Renders inside the dialog portal.
+	 * The content of the CommandDialog. Renders the accessible title/description,
+	 * the command palette UI, and an optional close button.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/command#commanddialogcontent
 	 *
@@ -1120,7 +1129,8 @@ const Command = {
 	 */
 	Item: CommandItem,
 	/**
-	 * The keyboard hint for a `Command.Item`, aligned to the end of the row.
+	 * The keyboard hint for a `Command.Item`, aligned to the end of the row. It
+	 * locks `translate="no"`: a translated shortcut key names the wrong key.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/command#commandshortcut
 	 *

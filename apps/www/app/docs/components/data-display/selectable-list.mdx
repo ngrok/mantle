@@ -383,7 +383,7 @@ function Example() {
 }
 ```
 
-> **Windowing trade-off.** Keyboard grid navigation still works across the **full** list: arrows move the active row and scroll it into view (`aria-activedescendant`, plus `aria-rowcount` on the grid and `aria-rowindex` on each windowed row, keep screen-reader counts true). What windowing does cost: browser find-in-page (Ctrl/⌘-F) only searches mounted rows, and there's no per-checkbox Tab stop. The right trade for a large enough list; prefer `Viewport` until a list is actually long.
+> **Windowing trade-off.** Keyboard grid navigation still works across the **full** list: arrows move the active row and scroll it into view (`aria-activedescendant`, plus `aria-rowcount` on the grid and `aria-rowindex` on each windowed row, keep screen-reader counts true). What windowing does cost: browser find-in-page (Ctrl/⌘-F) only searches mounted rows. The right trade for a large enough list; prefer `Viewport` until a list is actually long.
 
 ## Controlled
 
@@ -523,7 +523,7 @@ Unlike [`List`](/components/data-display/list), a selectable row is not a link: 
 
 The viewport is an APG **grid**: a `role="grid"` of `role="row"` rows, each with `role="gridcell"` cells holding a real `<input type="checkbox">` and the title + description. This is the pattern the [WAI-ARIA grid](https://www.w3.org/WAI/ARIA/apg/patterns/grid/) prescribes for selectable rows that carry their own interactive controls (a plain listbox forbids a real checkbox or nested controls inside an option). Set `aria-label` (or `aria-labelledby`) on the viewport so the grid has an accessible name. Each row's `aria-selected` conveys its selection alongside the checkbox's checked state; the title is a `Choice.Label`, so it names the checkbox, and the description is wired via `aria-describedby`. Disabled rows carry `aria-disabled`. `SelectableList.Empty` is an always-mounted polite `role="status"` live region, so an empty result is announced as the filter narrows rather than the grid silently vanishing.
 
-Keyboard: the grid is a **single tab stop**. Tab into it and `Arrow`↑/`Arrow`↓ / `Home` / `End` move an active row (tracked with `aria-activedescendant`, so focus never rides a row and survives virtualization), skipping disabled rows; `Space` / `Enter` toggles the active row. Keys pressed while a nested control inside a row (a link, an overflow-menu button, reached with Tab) has focus operate that control; the grid does not intercept them. The active row takes the hover tint (`bg-active-menu-item`, or `bg-active-selected-menu-item` when it's also selected), matching the [`MultiSelect`](/components/forms/multi-select) popover. This works identically under `VirtualViewport` (arrow keys move across the **full** option set, scrolling off-screen rows into view) because focus stays on the collection, not on a row that could unmount. The keyboard model deliberately deviates from the full APG grid pattern: there is no `Arrow`←/`Arrow`→ per-cell navigation; the row is the unit of interaction.
+Keyboard: the grid is a **single tab stop**; the checkboxes carry `tabIndex={-1}` in both viewports, so there is no per-checkbox Tab stop. Tab into it and `Arrow`↑/`Arrow`↓ / `Home` / `End` move an active row (tracked with `aria-activedescendant`, so focus never rides a row and survives virtualization), skipping disabled rows; `Space` / `Enter` toggles the active row. Keys pressed while a nested control inside a row (a link, an overflow-menu button, reached with Tab) has focus operate that control; the grid does not intercept them. The active row takes the hover tint (`bg-active-menu-item`, or `bg-active-selected-menu-item` when it's also selected), matching the [`MultiSelect`](/components/forms/multi-select) popover. This works identically under `VirtualViewport` (arrow keys move across the **full** option set, scrolling off-screen rows into view) because focus stays on the collection, not on a row that could unmount. The keyboard model deliberately deviates from the full APG grid pattern: there is no `Arrow`←/`Arrow`→ per-cell navigation; the row is the unit of interaction.
 
 ## Helpers
 
@@ -563,7 +563,7 @@ Accepts all `<div>` props, plus:
 
 ### SelectableList.Filter
 
-The optional filter/search box — the mantle [`Input`](/components/forms/input) with a leading magnifying-glass icon, wired to the list's filter query. Accepts all `Input` props except `value`, `onChange`, `type`, and `children`, plus:
+The optional filter/search box: the mantle [`Input`](/components/forms/input) with a leading magnifying-glass icon, wired to the list's filter query. Accepts all `Input` props except `value`, `defaultValue`, `onChange`, `type`, and `children`, plus:
 
 | Prop          | Type     | Default    | Description                                                                                        |
 | ------------- | -------- | ---------- | -------------------------------------------------------------------------------------------------- |
@@ -599,7 +599,7 @@ The windowed grid — same surface as `Viewport`, plus the virtualizer knobs:
 
 ### SelectableList.Item
 
-A selectable grid row (`role="row"`) for custom viewport rendering. Selection and disabled state are read from the list by `value` — the row has no `disabled` prop; disabled state comes exclusively from the matching option's `disabled` (`options[].disabled`). Accepts all `<div>` props, plus:
+A selectable grid row (`role="row"`) for custom viewport rendering. Selection and disabled state are read from the list by `value`. The row has no `disabled` prop; disabled state comes exclusively from the matching option's `disabled` (`options[].disabled`). Accepts all `<div>` props except `id` (reserved for the row's checkbox, which `aria-activedescendant` targets), plus:
 
 | Prop       | Type        | Default | Description                                                                                    |
 | ---------- | ----------- | ------- | ---------------------------------------------------------------------------------------------- |

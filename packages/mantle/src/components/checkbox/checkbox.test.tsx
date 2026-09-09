@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { Checkbox, selectAllChecked } from "./checkbox.js";
@@ -93,6 +94,32 @@ describe("Checkbox", () => {
 		} finally {
 			errorSpy.mockRestore();
 		}
+	});
+
+	describe("readOnly", () => {
+		test("exposes aria-readonly and does not toggle on click", async () => {
+			const user = userEvent.setup();
+			render(<Checkbox aria-label="Static" defaultChecked readOnly />);
+
+			const checkbox = screen.getByRole("checkbox", { name: "Static" });
+			expect(checkbox).toHaveAttribute("aria-readonly", "true");
+
+			// React still dispatches `onChange` for a prevented click; the checked
+			// state is the contract.
+			await user.click(checkbox);
+			expect(checkbox).toBeChecked();
+		});
+
+		test("omits aria-readonly when the checkbox is editable", async () => {
+			const user = userEvent.setup();
+			render(<Checkbox aria-label="Editable" />);
+
+			const checkbox = screen.getByRole("checkbox", { name: "Editable" });
+			expect(checkbox).not.toHaveAttribute("aria-readonly");
+
+			await user.click(checkbox);
+			expect(checkbox).toBeChecked();
+		});
 	});
 });
 

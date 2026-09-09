@@ -43,9 +43,7 @@ type Props = SvgAttributes & {
 	 */
 	max?: number | undefined;
 	/**
-	 * The width of the progress bar stroke.
-	 * Note, we clamp the stroke width to a minimum of 1px and max of 12px since
-	 * it is proportional to the viewbox size (0 0 32 32).
+	 * The width of the progress bar stroke, clamped between 1px and 12px.
 	 *
 	 * @default 0.25rem (4px)
 	 */
@@ -55,6 +53,7 @@ type Props = SvgAttributes & {
 	 * This attribute specifies how much of the task is complete.
 	 * It must be a valid floating point number between 0 and `max`, or, when `max` is omitted, between 0 and 100.
 	 * If set to `"indeterminate"`, the progress bar is considered indeterminate.
+	 * A value outside `0..max` also renders as indeterminate.
 	 *
 	 * @default 0
 	 */
@@ -76,16 +75,28 @@ type Props = SvgAttributes & {
  * The indicator color is inherited via `currentColor`. Override the default
  * (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
  *
+ * **Accessibility.** Renders `role="progressbar"` with `aria-valuemin`,
+ * `aria-valuemax`, and `aria-valuenow` (omitted while indeterminate). The role
+ * needs a name: pass `aria-label`, or `aria-labelledby` that points at a visible
+ * label.
+ *
+ * | Data Attribute | Value               | Description                 |
+ * | -------------- | ------------------- | --------------------------- |
+ * | `data-slot`    | `"progress-donut"`  | The root `<svg>`.           |
+ * | `data-value`   | the current value   | Absent while indeterminate. |
+ * | `data-min`     | `0`                 |                             |
+ * | `data-max`     | the maximum         |                             |
+ *
  * @see https://mantle.ngrok.com/components/feedback/progress-donut#progressdonutroot
  *
  * @example
  * ```tsx
- * <ProgressDonut.Root value={60}>
+ * <ProgressDonut.Root aria-label="Data transfer out" value={60}>
  *   <ProgressDonut.Indicator />
  * </ProgressDonut.Root>
  *
  * <ProgressDonut.Root value={60}>
- *   <ProgressDonut.Indicator color="text-danger-600" />
+ *   <ProgressDonut.Indicator className="text-danger-600" />
  * </ProgressDonut.Root>
  * ```
  */
@@ -177,7 +188,7 @@ type ProgressDonutIndicatorProps = Omit<ComponentProps<"g">, "children">;
  * </ProgressDonut.Root>
  *
  * <ProgressDonut.Root value={60}>
- *   <ProgressDonut.Indicator color="text-danger-600" />
+ *   <ProgressDonut.Indicator className="text-danger-600" />
  * </ProgressDonut.Root>
  * ```
  */
@@ -242,7 +253,7 @@ const Indicator = ({ className, ...props }: ProgressDonutIndicatorProps) => {
  * </ProgressDonut.Root>
  *
  * <ProgressDonut.Root value={60}>
- *   <ProgressDonut.Indicator color="text-danger-600" />
+ *   <ProgressDonut.Indicator className="text-danger-600" />
  * </ProgressDonut.Root>
  * ```
  */
@@ -253,16 +264,21 @@ const ProgressDonut = {
 	 * The indicator color is inherited via `currentColor`. Override the default
 	 * (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
 	 *
+	 * **Accessibility.** Renders `role="progressbar"` with `aria-valuemin`,
+	 * `aria-valuemax`, and `aria-valuenow` (omitted while indeterminate). The role
+	 * needs a name: pass `aria-label`, or `aria-labelledby` that points at a visible
+	 * label.
+	 *
 	 * @see https://mantle.ngrok.com/components/feedback/progress-donut#progressdonutroot
 	 *
 	 * @example
 	 * ```tsx
-	 * <ProgressDonut.Root value={60}>
+	 * <ProgressDonut.Root aria-label="Data transfer out" value={60}>
 	 *   <ProgressDonut.Indicator />
 	 * </ProgressDonut.Root>
 	 *
 	 * <ProgressDonut.Root value={60}>
-	 *   <ProgressDonut.Indicator color="text-danger-600" />
+	 *   <ProgressDonut.Indicator className="text-danger-600" />
 	 * </ProgressDonut.Root>
 	 * ```
 	 */
@@ -279,7 +295,7 @@ const ProgressDonut = {
 	 * </ProgressDonut.Root>
 	 *
 	 * <ProgressDonut.Root value={60}>
-	 *   <ProgressDonut.Indicator color="text-danger-600" />
+	 *   <ProgressDonut.Indicator className="text-danger-600" />
 	 * </ProgressDonut.Root>
 	 * ```
 	 */
@@ -293,8 +309,7 @@ export {
 
 /**
  * Derive the stroke width in pixels as a number value or pixels/rem from a string value.
- * Note, this function clamps the stroke width to a minimum of 1 and max of 12 since
- * it is proportional to the viewbox size (0 0 32 32).
+ * The result is clamped between 1 and 12.
  *
  * @example
  * ```tsx

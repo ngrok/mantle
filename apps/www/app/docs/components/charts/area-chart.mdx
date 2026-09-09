@@ -978,7 +978,7 @@ Value tick labels along the left of the plot. Renderless — painted on canvas. 
 | Prop         | Type                        | Default             | Description                                                                                             |
 | ------------ | --------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
 | `tickFormat` | `(value: number) => string` | thousands-separated | Format a tick label.                                                                                    |
-| `tickCount`  | `number`                    | density-derived     | Target tick count. Approximate: integer-valued data never renders fractional ticks, whatever the count. |
+| `tickCount`  | `number`                    | `5`                 | Target tick count. Approximate: integer-valued data never renders fractional ticks, whatever the count. |
 
 ### AreaChart.ReferenceLine
 
@@ -994,7 +994,7 @@ A dashed horizontal marker at a y value — an SLO threshold, a budget, a limit.
 
 Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `AreaChart.Root`'s interaction contract and renders even when this part is absent — compose it to format the label or values, append a footer, or replace the content entirely.
 
-All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded onto the tooltip element the Root renders), plus:
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded onto the tooltip element the Root renders) except `children`, plus:
 
 | Prop          | Type                                                  | Default  | Description                                                             |
 | ------------- | ----------------------------------------------------- | -------- | ----------------------------------------------------------------------- |
@@ -1010,7 +1010,7 @@ The `HoverSnapshot` passed to `footer` and `children` describes the active x pos
 
 The legend: series names keyed by swatches carrying each series' color and glyph, rendered as real DOM in flow below the plot. Always compose it on multi-series charts — identity must never rely on color-matching alone. It renders nothing for a single series (the chart's title already names it).
 
-All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) except `children`, plus:
 
 | Prop       | Type                                  | Default | Description                                                       |
 | ---------- | ------------------------------------- | ------- | ----------------------------------------------------------------- |
@@ -1037,6 +1037,12 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 | `onCopy?`      | `(value: string) => void`  |                           | Callback fired after a successful copy, passes the serialized markdown.        |
 | `onCopyError?` | `(error: unknown) => void` |                           | Callback fired when an error occurs during copying.                            |
 | `asChild?`     | `boolean`                  | `false`                   | Compose the copy behavior onto your own element instead of the default button. |
+
+While a copy is fresh, an always-mounted `role="status"` element beside the button announces "Copied" to a screen reader.
+
+| Data Attribute | Value                      | Description                  |
+| -------------- | -------------------------- | ---------------------------- |
+| `data-slot`    | `"area-chart-copy-button"` | The button the part renders. |
 
 ### Chart color tokens
 

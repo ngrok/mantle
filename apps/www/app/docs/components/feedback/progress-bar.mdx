@@ -27,7 +27,7 @@ export const DynamicColorsExample = () => {
 
     return (
     	<form className="space-y-4">
-    		<ProgressBar.Root value={value}>
+    		<ProgressBar.Root aria-label="Task progress" value={value}>
     			<ProgressBar.Indicator className={computeIndicatorColor()} />
     		</ProgressBar.Root>
     		<label className="block space-y-1">
@@ -52,30 +52,30 @@ Displays an indicator showing the completion progress of a task as a linear prog
 The progress bar consists of an indicator (filled portion) that shows the current progress value against a background container.
 
 <Example className="flex-col gap-6">
-	<ProgressBar.Root value={60}>
+	<ProgressBar.Root aria-label="Task progress" value={60}>
 		<ProgressBar.Indicator className="bg-warning-600" />
 	</ProgressBar.Root>
-	<ProgressBar.Root value={30}>
+	<ProgressBar.Root aria-label="Task progress" value={30}>
 		<ProgressBar.Indicator className="bg-accent-600" />
 	</ProgressBar.Root>
-	<ProgressBar.Root value={85}>
+	<ProgressBar.Root aria-label="Task progress" value={85}>
 		<ProgressBar.Indicator className="bg-emerald-600" />
 	</ProgressBar.Root>
 	<div className="flex flex-col gap-3">
 		<div className="flex items-center gap-3 text-sm">
-			<ProgressBar.Root value={100} className="w-24">
+			<ProgressBar.Root aria-label="Complete" value={100} className="w-24">
 				<ProgressBar.Indicator className="bg-success-600" />
 			</ProgressBar.Root>
 			Complete
 		</div>
 		<div className="flex items-center gap-3 text-sm">
-			<ProgressBar.Root value={45} className="w-24">
+			<ProgressBar.Root aria-label="In progress" value={45} className="w-24">
 				<ProgressBar.Indicator className="bg-warning-600" />
 			</ProgressBar.Root>
 			In Progress
 		</div>
 		<div className="flex items-center gap-3 text-sm">
-			<ProgressBar.Root value={10} className="w-24">
+			<ProgressBar.Root aria-label="Starting" value={10} className="w-24">
 				<ProgressBar.Indicator className="bg-danger-600" />
 			</ProgressBar.Root>
 			Starting
@@ -86,24 +86,24 @@ The progress bar consists of an indicator (filled portion) that shows the curren
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
 
-<ProgressBar.Root value={60}>
+<ProgressBar.Root aria-label="Task progress" value={60}>
 	<ProgressBar.Indicator className="bg-warning-600" />
 </ProgressBar.Root>
 
-<ProgressBar.Root value={30}>
+<ProgressBar.Root aria-label="Task progress" value={30}>
 	<ProgressBar.Indicator className="bg-accent-600" />
 </ProgressBar.Root>
 
 <div className="flex flex-col gap-3">
 	<div className="flex items-center gap-3 text-sm">
-		<ProgressBar.Root value={100} className="w-24">
+		<ProgressBar.Root aria-label="Complete" value={100} className="w-24">
 			<ProgressBar.Indicator className="bg-success-600" />
 		</ProgressBar.Root>
 		Complete
 	</div>
 
 	<div className="flex items-center gap-3 text-sm">
-		<ProgressBar.Root value={45} className="w-24">
+		<ProgressBar.Root aria-label="In progress" value={45} className="w-24">
 			<ProgressBar.Indicator className="bg-warning-600" />
 		</ProgressBar.Root>
 		In Progress
@@ -111,12 +111,16 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 </div>
 ```
 
+## Accessibility
+
+`ProgressBar.Root` renders `role="progressbar"` with `aria-valuemin`, `aria-valuemax`, and `aria-valuenow`, and omits `aria-valuenow` while indeterminate. The role needs a name: pass `aria-label`, or `aria-labelledby` that points at a visible label, or a screen reader announces a bare "progress bar".
+
 ## Custom maximum value
 
 Set a custom maximum value with the `max` prop. The progress bar renders the value as a percentage of that maximum.
 
 <Example>
-	<ProgressBar.Root value={150} max={200}>
+	<ProgressBar.Root aria-label="Task progress" value={150} max={200}>
 		<ProgressBar.Indicator className="bg-purple-600" />
 	</ProgressBar.Root>
 </Example>
@@ -124,7 +128,7 @@ Set a custom maximum value with the `max` prop. The progress bar renders the val
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
 
-<ProgressBar.Root value={150} max={200}>
+<ProgressBar.Root aria-label="Task progress" value={150} max={200}>
 	<ProgressBar.Indicator className="bg-purple-600" />
 </ProgressBar.Root>;
 ```
@@ -134,7 +138,7 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 Set the `value` prop to `"indeterminate"` to show the progress bar in an indeterminate state. Currently, this displays as a progress bar at 0% but keeps accessibility attributes for screen readers.
 
 <Example>
-	<ProgressBar.Root value="indeterminate">
+	<ProgressBar.Root aria-label="Task progress" value="indeterminate">
 		<ProgressBar.Indicator className="bg-accent-600" />
 	</ProgressBar.Root>
 </Example>
@@ -142,7 +146,7 @@ Set the `value` prop to `"indeterminate"` to show the progress bar in an indeter
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
 
-<ProgressBar.Root value="indeterminate">
+<ProgressBar.Root aria-label="Task progress" value="indeterminate">
 	<ProgressBar.Indicator className="bg-accent-600" />
 </ProgressBar.Root>;
 ```
@@ -178,7 +182,7 @@ const Example = () => {
 
 	return (
 		<form className="space-y-4">
-			<ProgressBar.Root value={value}>
+			<ProgressBar.Root aria-label="Task progress" value={value}>
 				<ProgressBar.Indicator className={computeIndicatorColor()} />
 			</ProgressBar.Root>
 			<label className="block space-y-1">
@@ -214,10 +218,17 @@ A linear progress bar that displays completion progress with customizable colors
 
 The `ProgressBar.Root` accepts the following props in addition to the [standard HTML div attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
 
-| Prop    | Type                          | Default | Description                                                                                                                                    |
-| ------- | ----------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `max`   | `number`                      | `100`   | The maximum value of the progress bar. Must have a value greater than 0.                                                                       |
-| `value` | `number` \| `"indeterminate"` | `0`     | The current value of the progress bar. Must be between 0 and `max`. If set to `"indeterminate"`, the progress bar is considered indeterminate. |
+| Prop    | Type                          | Default | Description                                                                                                                                                                                         |
+| ------- | ----------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `max`   | `number`                      | `100`   | The maximum value of the progress bar. Must have a value greater than 0.                                                                                                                            |
+| `value` | `number` \| `"indeterminate"` | `0`     | The current value of the progress bar. Must be between 0 and `max`; a value outside that range renders as indeterminate. If set to `"indeterminate"`, the progress bar is considered indeterminate. |
+
+| Data Attribute | Value                                            | Description                          |
+| -------------- | ------------------------------------------------ | ------------------------------------ |
+| `data-slot`    | `"progress-bar"`                                 | The root element.                    |
+| `data-state`   | `"complete"` \| `"indeterminate"` \| `"loading"` | Set by Radix from `value` and `max`. |
+| `data-value`   | the current value                                | Absent while indeterminate.          |
+| `data-max`     | the maximum                                      |                                      |
 
 ### ProgressBar.Indicator
 

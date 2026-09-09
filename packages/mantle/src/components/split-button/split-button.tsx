@@ -38,6 +38,11 @@ type RootProps = ComponentProps<typeof DropdownMenu.Root> &
  * of related alternatives. Best for when users typically want one action but
  * occasionally need variants.
  *
+ * | Data Attribute | Value                                       | Description                                        |
+ * | -------------- | ------------------------------------------- | -------------------------------------------------- |
+ * | `data-slot`    | `"split-button"`                            | On the wrapping `<div>`.                           |
+ * | `data-size`    | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop, which both halves render at.      |
+ *
  * @see https://mantle.ngrok.com/components/actions/split-button#splitbuttonroot
  *
  * @example

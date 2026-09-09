@@ -57,7 +57,7 @@ const columns = [
 	columnHelper.accessor("name", {
 		id: "name",
 		header: (props) => (
-			<DataTable.Header>
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					Name
 				</DataTable.HeaderSortButton>
@@ -121,7 +121,7 @@ const columns = [
 	columnHelper.accessor("id", {
 		id: "id",
 		header: (props) => (
-			<DataTable.Header>
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					ID
 				</DataTable.HeaderSortButton>
@@ -189,7 +189,7 @@ Compose the parts of a `DataTable` together to build your own:
 ```text showLineNumbers=false
 DataTable.Root
 ├── DataTable.Head
-│   └── DataTable.Row
+│   └── Table.Row
 │       ├── DataTable.ExpandHeader
 │       ├── DataTable.Header
 │       │   └── DataTable.HeaderSortButton
@@ -209,7 +209,7 @@ Follow these invariants for a correctly styled, accessible, and behaving `DataTa
 
 1. **Type columns with `createColumnHelper<TData>()`.** It threads `TData` through `header`, `cell`, and `row.original` so consumers get inference instead of `unknown`.
 2. **Wrap every body cell in `DataTable.Cell`.** A raw `<td>` skips the mantle typography, padding, and sticky-column styling.
-3. **Wrap every header in `DataTable.Header`.** For sortable columns, also wrap its contents in `DataTable.HeaderSortButton`: that button carries the icon, the cycling behavior, and the screen-reader announcements.
+3. **Wrap every header in `DataTable.Header`.** For sortable columns, also wrap its contents in `DataTable.HeaderSortButton` and pass the same `column` to `DataTable.Header`: the button carries the icon and the cycling behavior, and the header cell exposes the sort state through `aria-sort`.
 4. **Key rows with `row.id`.** TanStack Table tracks row identity across sort/filter/pagination; using array indexes will re-mount rows incorrectly.
 5. **Always branch on `rows.length > 0` and render `DataTable.EmptyRow`** for the empty case. The empty row spans all columns and preserves the table's frame; returning `null` leaves an empty `<tbody>` and collapses the frame.
 6. **Place an action column last, using `columnHelper.display({ ... })`.** Pair `DataTable.ActionHeader` (in `header`) with `DataTable.ActionCell` (in `cell`) so the pinned column aligns across header and body when scrolling horizontally.
@@ -237,7 +237,7 @@ cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 header: () => <button onClick={() => column.toggleSorting()}>Name</button>,
 // ✅
 header: (props) => (
-	<DataTable.Header>
+	<DataTable.Header column={props.column}>
 		<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 			Name
 		</DataTable.HeaderSortButton>
@@ -356,7 +356,7 @@ const columns = [
 	columnHelper.accessor("id", {
 		id: "id",
 		header: (props) => (
-			<DataTable.Header>
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					ID
 				</DataTable.HeaderSortButton>
@@ -453,7 +453,7 @@ import { DataTable } from "@ngrok/mantle/data-table";
 columnHelper.accessor("status", {
 	id: "status",
 	header: (props) => (
-		<DataTable.Header>
+		<DataTable.Header column={props.column}>
 			<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 				Status
 			</DataTable.HeaderSortButton>
@@ -477,7 +477,7 @@ columnHelper.accessor("status", {
 columnHelper.accessor("amount", {
 	id: "amount",
 	header: (props) => (
-		<DataTable.Header>
+		<DataTable.Header column={props.column}>
 			<DataTable.HeaderSortButton
 				className="justify-end"
 				column={props.column}
@@ -803,9 +803,13 @@ When `onClick` is set, the row automatically receives `cursor-pointer`. Pass a d
 
 Remaining props forward to the HTML `<tr>` element.
 
+| Data Attribute  | Value                 | Description                                    |
+| :-------------- | :-------------------- | :--------------------------------------------- |
+| `data-expanded` | present when expanded | Presence-only. The row's detail panel is open. |
+
 ### DataTable.EmptyRow
 
-An empty-state row that spans every column. Render this as the `else` branch when `rows.length === 0` to keep the table's frame intact.
+An empty-state row that spans every visible column. Render this as the `else` branch when `rows.length === 0` to keep the table's frame intact.
 
 | Prop         | Type        | Default | Description                                                                               |
 | :----------- | :---------- | :------ | :---------------------------------------------------------------------------------------- |
@@ -814,22 +818,23 @@ An empty-state row that spans every column. Render this as the `else` branch whe
 
 ### DataTable.Header
 
-A `<th>` cell optimized for header actions. Wrap sortable headers' contents in `DataTable.HeaderSortButton`.
+A `<th>` cell optimized for header actions. Wrap sortable headers' contents in `DataTable.HeaderSortButton` and pass the same `column` here, so the cell carries `aria-sort` while the column is sorted.
 
-| Prop         | Type        | Default | Description                                                                               |
-| :----------- | :---------- | :------ | :---------------------------------------------------------------------------------------- |
-| `children`   | `ReactNode` |         | Usually a `DataTable.HeaderSortButton`. For non-sortable columns, plain text is fine.     |
-| `className?` | `string`    |         | Extra classes merged onto the `<th>`. Remaining props forward to the HTML `<th>` element. |
+| Prop         | Type                    | Default | Description                                                                                         |
+| :----------- | :---------------------- | :------ | :-------------------------------------------------------------------------------------------------- |
+| `children`   | `ReactNode`             |         | Usually a `DataTable.HeaderSortButton`. For non-sortable columns, plain text is fine.               |
+| `column?`    | `Column<TData, TValue>` |         | The TanStack Table column this cell heads. When the column is sorted, the cell carries `aria-sort`. |
+| `className?` | `string`                |         | Extra classes merged onto the `<th>`. Remaining props forward to the HTML `<th>` element.           |
 
 ### DataTable.HeaderSortButton
 
-A sortable button toggle for column headers. Clicking cycles through sort directions: `unsorted → asc → desc → unsorted` for `"alphanumeric"`, and `unsorted → desc → asc → unsorted` (newest-first) for `"time"`. Renders a sort icon that reflects the current direction.
+A sortable button toggle for column headers. Clicking cycles through sort directions: `unsorted → asc → desc → unsorted` for `"alphanumeric"`, and `unsorted → desc → asc → unsorted` (newest-first) for `"time"`. Renders a sort icon that reflects the current direction. The button's accessible name is the column label and does not change with the sort state. When the column cannot sort, the part renders the label as plain text with no button.
 
 | Prop              | Type                                             | Default     | Description                                                                                                                                                        |
 | :---------------- | :----------------------------------------------- | :---------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `column`          | `Column<TData, TValue>`                          |             | The TanStack Table column instance (from `props.column` in `header`). **Required.**                                                                                |
 | `sortingMode`     | `"alphanumeric" \| "time"`                       |             | Which direction sequence to cycle through. **Required** unless `disableSorting` is `true`.                                                                         |
-| `disableSorting?` | `boolean`                                        | `false`     | Prevents sorting and hides the sort icon. Makes `sortingMode` unnecessary.                                                                                         |
+| `disableSorting?` | `boolean`                                        | `false`     | Renders the label as plain text with no button and no sort icon. Makes `sortingMode` unnecessary.                                                                  |
 | `sortIcon?`       | `(sortDirection: SortDirection) => ReactNode`    |             | Override the default sort icon. `sortDirection` is `"asc" \| "desc" \| "unsorted"`.                                                                                |
 | `iconPlacement?`  | `"start" \| "end"`                               | `"end"`     | The side the sort icon renders on. Use `"start"` for right-aligned numeric columns.                                                                                |
 | `appearance?`     | `"ghost" \| "filled" \| "outlined" \| "link"`    | `"ghost"`   | The visual style of the underlying [`Button`](/components/actions/button). Optional here — the sort button's design is a ghost button, so the wrapper defaults it. |
@@ -850,11 +855,11 @@ A `<td>` for rendering individual data cells. Applies mantle typography, padding
 
 ### DataTable.ActionHeader
 
-A sticky-right `<th>` that pairs with `DataTable.ActionCell`. Use as the `header` for your action column so the pinned column stays aligned across the header and every body row when the table scrolls horizontally. Automatically opts out of stickiness when the table is empty so the scroll-fade shows correctly.
+A sticky-right `<th>` that pairs with `DataTable.ActionCell`. Use as the `header` for your action column so the pinned column stays aligned across the header and every body row when the table scrolls horizontally. Automatically opts out of stickiness when the table is empty so the scroll-fade shows correctly. Renders a screen-reader-only "Actions" label by default, so the column has a name while it stays visually empty.
 
 | Prop         | Type        | Default | Description                                                                               |
 | :----------- | :---------- | :------ | :---------------------------------------------------------------------------------------- |
-| `children?`  | `ReactNode` |         | Header content. Usually empty for action columns.                                         |
+| `children?`  | `ReactNode` |         | Header content. When omitted, a screen-reader-only "Actions" label.                       |
 | `className?` | `string`    |         | Extra classes merged onto the `<th>`. Remaining props forward to the HTML `<th>` element. |
 
 ### DataTable.ActionCell

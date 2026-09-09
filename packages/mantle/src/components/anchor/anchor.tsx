@@ -3,6 +3,8 @@ import { Children, cloneElement, isValidElement } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
 import { Icon } from "../icon/icon.js";
 import { Slot } from "../slot/index.js";
 import type { Rel } from "./types.js";
@@ -20,7 +22,8 @@ const anchorClassNames = (className?: string) =>
  * The props for the `Anchor` component.
  */
 type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
-	WithAsChild & {
+	WithAsChild &
+	WithDataSlot & {
 		/**
 		 * An icon to render inside the anchor
 		 */
@@ -34,6 +37,7 @@ type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
 		 * The rel attribute defines the relationship between a linked resource and the current document.
 		 *
 		 * Every keyword within a space-separated value should be unique within that value.
+		 * When omitted and `target="_blank"`, the anchor renders `rel="noopener noreferrer"`.
 		 *
 		 * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel
 		 */
@@ -63,13 +67,14 @@ type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
  * icon — useful for "external link" or "download" affordances. Icons are
  * decorative; the link text must still describe the destination on its own.
  *
- * **Security.** When `target="_blank"`, `rel` should include
- * `"noopener noreferrer"`. The `rel` prop accepts an array — duplicates
- * are de-duped and sorted, so it's safe to merge token sets.
+ * **Security.** When `target="_blank"` and `rel` is omitted, the anchor
+ * renders `rel="noopener noreferrer"`. A `rel` you pass is used as-is. The
+ * `rel` prop accepts an array: duplicates are de-duped and sorted, so it's
+ * safe to merge token sets.
  *
- * **Accessibility.** Link text must be self-describing — avoid "click
- * here" / "read more". For purely decorative icons, no extra labeling is
- * needed; for icon-only links, pass an `aria-label`.
+ * **Accessibility.** Link text must be self-describing: avoid "click
+ * here" / "read more". The icon renders `aria-hidden`, so it needs no
+ * labeling; for icon-only links, pass an `aria-label`.
  *
  * **Structure.** `children` render inside an inline
  * `<span data-slot="anchor-label">`, between the two `icon` slots. Target that
@@ -90,13 +95,9 @@ type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
  * // Basic external link.
  * <Anchor href="https://ngrok.com/">ngrok.com</Anchor>
  *
- * // External link in a new tab with a leading icon.
- * <Anchor
- *   href="https://ngrok.com/docs"
- *   target="_blank"
- *   rel={["noopener", "noreferrer"]}
- *   icon={<BookIcon />}
- * >
+ * // External link in a new tab with a leading icon. `rel` defaults to
+ * // "noopener noreferrer" when `target="_blank"`.
+ * <Anchor href="https://ngrok.com/docs" target="_blank" icon={<BookIcon />}>
  *   ngrok docs
  * </Anchor>
  *
@@ -107,6 +108,7 @@ type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
  * ```
  */
 const Anchor = ({
+	"data-slot": dataSlot,
 	asChild,
 	children,
 	className,
@@ -116,14 +118,7 @@ const Anchor = ({
 	ref,
 	...props
 }: AnchorProps) => {
-	const rel = resolveRel(propRel);
-	const componentProps = {
-		"data-slot": "anchor",
-		className: anchorClassNames(className),
-		ref,
-		rel,
-		...props,
-	};
+	const resolvedRel = resolveRel(propRel);
 
 	if (asChild) {
 		const singleChild = Children.only(children);
@@ -132,9 +127,19 @@ const Anchor = ({
 			"When using `asChild`, Anchor must be passed a single child as a JSX tag.",
 		);
 		const grandchildren = singleChild.props?.children;
+		// Why read the child's target: under `asChild` the `<a>` or `<Link>` owns
+		// `target`, and the safe `rel` default must follow it. A `rel` on the
+		// child wins, because `Slot` merges child props over these.
+		const opensNewTab = props.target === "_blank" || singleChild.props?.target === "_blank";
 
 		return (
-			<Slot {...componentProps}>
+			<Slot
+				data-slot={joinDataSlot(dataSlot, "anchor")}
+				className={anchorClassNames(className)}
+				ref={ref}
+				rel={resolvedRel ?? defaultRel(opensNewTab)}
+				{...props}
+			>
 				{cloneElement(
 					singleChild,
 					{},
@@ -152,7 +157,13 @@ const Anchor = ({
 	}
 
 	return (
-		<a {...componentProps}>
+		<a
+			data-slot={joinDataSlot(dataSlot, "anchor")}
+			className={anchorClassNames(className)}
+			ref={ref}
+			rel={resolvedRel ?? defaultRel(props.target === "_blank")}
+			{...props}
+		>
 			{icon && iconPlacement === "start" && <Icon className="inline-block mr-1.5" svg={icon} />}
 			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
 			<span data-slot="anchor-label">{children}</span>
@@ -160,6 +171,15 @@ const Anchor = ({
 		</a>
 	);
 };
+
+/**
+ * The `rel` an anchor gets when the caller passes none. `_blank` hands the
+ * opener to the new page unless `rel` says otherwise, so a new-tab link gets
+ * the safe pair and every other link gets no attribute.
+ */
+function defaultRel(opensNewTab: boolean) {
+	return opensNewTab ? "noopener noreferrer" : undefined;
+}
 
 /**
  * Resolves the `rel` attribute to a string.

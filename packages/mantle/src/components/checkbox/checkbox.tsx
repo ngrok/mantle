@@ -106,6 +106,10 @@ const Checkbox = ({
 		<input
 			aria-checked={isIndeterminate(_checked) ? "mixed" : _checked}
 			aria-invalid={ariaInvalid}
+			// Why: the native `readonly` attribute is inert on a checkbox, so the
+			// click guard below is what blocks the toggle. Assistive technology
+			// needs the state announced, or the toggle fails in silence.
+			aria-readonly={readOnly || undefined}
 			data-slot="checkbox"
 			className={clsx(
 				"border-form bg-form shrink-0 cursor-pointer select-none appearance-none rounded border disabled:cursor-default disabled:opacity-50",

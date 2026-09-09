@@ -668,6 +668,14 @@ describe("Command.DialogRoot", () => {
 	});
 });
 
+describe("Command.Shortcut", () => {
+	test('locks translate="no" so a browser translator never renames the key', () => {
+		const wide: Record<string, string> = { translate: "yes" };
+		render(<Command.Shortcut {...wide}>⌘K</Command.Shortcut>);
+		expect(screen.getByText("⌘K")).toHaveAttribute("translate", "no");
+	});
+});
+
 describe("useCommandDialog", () => {
 	test("throws outside Command.DialogRoot", () => {
 		function Orphan() {

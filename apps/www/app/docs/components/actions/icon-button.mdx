@@ -306,6 +306,8 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 
 To render _something else_ as an `IconButton`, use the `asChild` prop to compose. This is useful when you want to splat the `IconButton` styling onto a `react-router` `Link`. When you use `asChild`, the `IconButton` does **NOT** pass its `type` prop to the child component.
 
+A disabled or loading `IconButton` under `asChild` gets no `disabled` attribute, because the attribute is inert on an `<a>`. The child gets `aria-disabled="true"`, leaves the tab order with `tabIndex={-1}`, and a click on it is cancelled before any handler or router navigation runs.
+
 <Example>
 	<IconButton
 		appearance="outlined"
@@ -348,6 +350,18 @@ The `IconButton` accepts the following props in addition to the [standard HTML b
 | `label`      | `string`                                       |            | The accessible name for the button, rendered as its `aria-label` (like the `alt` text on an `<img>`). Passing `aria-label` directly is a compile error, so this prop is the only way to name the button. Name the action, not the icon: `"Delete API key"`, not `"Trash"` or `"Trash icon"`. Keep it short (a voice-control user speaks the label to click the button) and specific (`"Delete"` alone cannot tell two delete buttons apart), and never include the word "button" (the role already announces it). |
 | `size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | `"md"`     | The size of the `IconButton`, controlling its box size. Shared scale with `Button` — the same size name renders the same box height. Only the box scales; the icon glyph stays the same size.                                                                                                                                                                                                                                                                                                                     |
 | `type`       | `"button"` \| `"reset"` \| `"submit"`          | `"button"` | The behavior of the `IconButton` when activated. Defaults to `"button"`, so an `IconButton` inside a `<form>` will **not** submit it — pass `type="submit"` to submit the form. When `asChild` is used, `type` has no effect and is not forwarded to the child.                                                                                                                                                                                                                                                   |
+
+#### Data attributes
+
+| Data Attribute     | Value                                          | Description                                                                                           |
+| ------------------ | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `data-slot`        | `"icon-button"`                                | On the button element. Stable styling hook that survives a `className` override or an `asChild` swap. |
+| `data-icon-button` | `"true"`                                       | Always present. Lets a wrapper style every icon button it contains.                                   |
+| `data-appearance`  | `"filled"` \| `"ghost"` \| `"outlined"`        | The `appearance` prop.                                                                                |
+| `data-intent`      | `"neutral"`                                    | The `intent` prop.                                                                                    |
+| `data-size`        | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop.                                                                                      |
+| `data-loading`     | `"true"` \| `"false"`                          | The `isLoading` prop.                                                                                 |
+| `data-disabled`    | `"true"` \| `"false"`                          | `"true"` when `disabled`, `isLoading`, or `aria-disabled="true"` is set.                              |
 
 The `IconButton` also exposes the following CSS variables as part of its API.
 
