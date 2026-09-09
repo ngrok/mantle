@@ -1,5 +1,5 @@
 import type { Ref, RefCallback } from "react";
-import { useCallback, useInsertionEffect, useRef } from "react";
+import { useCallback } from "react";
 
 type PossibleRef<T> = Ref<T> | undefined;
 
@@ -63,16 +63,16 @@ function composeRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T> {
 }
 
 /**
- * A custom hook that composes multiple refs into a single stable callback
- * ref. Accepts callback refs and RefObject(s). The callback keeps one
- * identity for the life of the component, so React attaches it once. A
- * consumer callback ref fires once per mount, not once per render. A later
- * attach or detach writes the refs passed on the latest render. Any cleanup
- * the composed ref returns targets the refs captured when React attached the
- * node (see {@link composeRefs} for the cleanup propagation contract).
- *
- * React runs the write before it attaches any ref in the commit, so a node
- * that remounts in the same commit that changes the refs writes the new refs.
+ * A custom hook that composes up to three refs into a single callback ref.
+ * Accepts callback refs and RefObject(s). The callback keeps one identity
+ * while the refs it composes keep theirs, so React attaches it once per
+ * mount. If you pass a new ref on a later render, React detaches the old
+ * callback and attaches the new one, so the new ref receives the node at
+ * once. A consumer callback ref fires once per mount when the consumer
+ * passes the same function each render, and on every render when the
+ * consumer passes a new function, as it does on a plain element. Any
+ * cleanup the composed ref returns targets the refs it composed (see
+ * {@link composeRefs} for the cleanup propagation contract).
  *
  * @example
  * function MyInput({ ref, ...props }: ComponentProps<"input">) {
@@ -81,17 +81,18 @@ function composeRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T> {
  *   return <input ref={composedRef} {...props} />;
  * }
  */
-function useComposedRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T> {
-	const latestRefs = useRef(refs);
-	// Why an insertion effect: React Compiler skips a hook that writes a ref
-	// during render. A render write also publishes the refs of a render that
-	// React discards. React runs insertion effects before it attaches any ref
-	// in the commit, so a node that remounts in the same commit that changes
-	// the refs reads the new refs. A layout effect runs after that attach.
-	useInsertionEffect(() => {
-		latestRefs.current = refs;
-	});
-	return useCallback((node: T | null) => composeRefs(...latestRefs.current)(node), []);
+function useComposedRefs<T>(
+	firstRef: PossibleRef<T>,
+	secondRef: PossibleRef<T>,
+	thirdRef?: PossibleRef<T>,
+): RefCallback<T> {
+	// Why three named parameters: React Compiler memoizes a `useCallback` only
+	// when its dependency list is an array literal, so the hook cannot spread a
+	// rest array into it. Three slots cover every call site.
+	return useCallback(
+		(node: T | null) => composeRefs(firstRef, secondRef, thirdRef)(node),
+		[firstRef, secondRef, thirdRef],
+	);
 }
 
 export { composeRefs, useComposedRefs };
