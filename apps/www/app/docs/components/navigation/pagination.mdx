@@ -562,14 +562,14 @@ function ControlledOffsetPagination() {
 
 ### Parameters
 
-| Parameter                    | Type                     | Default | Description                                                                                                         |
-| :--------------------------- | :----------------------- | :------ | :------------------------------------------------------------------------------------------------------------------ |
-| `listSize`                   | `number`                 |         | The total number of items in the list. A change resets the page to 1 unless `resetPageOnListSizeChange` is `false`. |
-| `pageSize`                   | `number`                 |         | The number of items per page. A change resets the page to 1.                                                        |
-| `defaultPage?`               | `number`                 | `1`     | The 1-indexed page to start on when uncontrolled.                                                                   |
-| `page?`                      | `number`                 |         | The controlled 1-indexed page. Pair it with `onPageChange`. A value past the last page clamps in `currentPage`.     |
-| `onPageChange?`              | `(page: number) => void` |         | Called with the next page when the hook changes it. Not called when the next page equals the current one.           |
-| `resetPageOnListSizeChange?` | `boolean`                | `true`  | Whether a `listSize` change resets the page to 1. Set `false` to keep the page, clamped to the new `totalPages`.    |
+| Parameter                    | Type                     | Default | Description                                                                                                                                                                                      |
+| :--------------------------- | :----------------------- | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `listSize`                   | `number`                 |         | The total number of items in the list. A change resets the page to 1 unless `resetPageOnListSizeChange` is `false`.                                                                              |
+| `pageSize`                   | `number`                 |         | The number of items per page. A change resets the page to 1.                                                                                                                                     |
+| `defaultPage?`               | `number`                 | `1`     | The 1-indexed page to start on when uncontrolled.                                                                                                                                                |
+| `page?`                      | `number`                 |         | The controlled 1-indexed page. Pair it with `onPageChange`. `currentPage` normalizes it: a page past the end clamps, a fraction rounds down, and `NaN` reads as 1.                               |
+| `onPageChange?`              | `(page: number) => void` |         | Called with the next page when the hook changes it. Not called when the next page equals the stored `page`. A move onto a normalized `currentPage` still calls it, so a stale `page` catches up. |
+| `resetPageOnListSizeChange?` | `boolean`                | `true`  | Whether a `listSize` change resets the page to 1. Set `false` to keep the page, clamped to the new `totalPages`.                                                                                 |
 
 ### Return value
 

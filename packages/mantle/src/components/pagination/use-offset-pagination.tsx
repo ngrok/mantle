@@ -21,14 +21,17 @@ type UseOffsetPaginationProps = {
 	defaultPage?: number;
 	/**
 	 * The controlled 1-indexed page. Pair it with `onPageChange`: the hook calls
-	 * that with the next page and reads the page back from this prop. A value
-	 * past the last page clamps in `currentPage` without a callback.
+	 * that with the next page and reads the page back from this prop. The hook
+	 * normalizes the value in `currentPage` without a callback: a page past the
+	 * end clamps to the last page, a fraction rounds down, and `NaN` reads as 1.
 	 */
 	page?: number;
 	/**
 	 * Called with the next 1-indexed page when the hook changes it: a navigation
 	 * call, `setPageSize`, a `pageSize` change, or a `listSize` reset. Not called
-	 * when the next page equals the current one.
+	 * when the next page equals the stored page (`page` or the internal page).
+	 * A move that lands on a normalized `currentPage` still calls it, so a stale
+	 * `page` catches up.
 	 */
 	onPageChange?: (page: number) => void;
 	/**
@@ -93,11 +96,15 @@ type OffsetPaginationState = {
 };
 
 /**
- * Clamp a 1-indexed page into `[1, totalPages]`. An empty list has zero pages
- * but still reports page 1, so the lower bound wins over `totalPages`.
+ * Normalize a 1-indexed page into a whole number in `[1, totalPages]`. An empty
+ * list has zero pages but still reports page 1, so the lower bound wins over
+ * `totalPages`.
  */
 function clampPage(page: number, totalPages: number): number {
-	return Math.max(1, Math.min(page, totalPages));
+	// Why: a URL param can carry `NaN` or a fraction, `Math.min` passes `NaN`
+	// through, and a fractional page makes `offset` fractional.
+	const wholePage = Number.isNaN(page) ? 1 : Math.floor(page);
+	return Math.max(1, Math.min(wholePage, totalPages));
 }
 
 /**

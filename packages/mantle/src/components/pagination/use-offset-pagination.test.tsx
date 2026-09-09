@@ -149,6 +149,32 @@ describe("useOffsetPagination", () => {
 			expect(result.current.offset).toBe(20);
 			expect(result.current.hasNextPage).toBe(false);
 		});
+
+		// Regression: `Math.min(NaN, totalPages)` is `NaN`, so a malformed URL
+		// param such as `?page=abc` made `currentPage` and `offset` `NaN`.
+		test("NaN reads as page 1", () => {
+			const { result } = renderHook(() =>
+				useOffsetPagination({ listSize: 50, pageSize: 10, defaultPage: Number.NaN }),
+			);
+			expect(result.current.currentPage).toBe(1);
+			expect(result.current.offset).toBe(0);
+			expect(result.current.hasPreviousPage).toBe(false);
+		});
+
+		test("a fraction rounds down", () => {
+			const { result } = renderHook(() =>
+				useOffsetPagination({ listSize: 50, pageSize: 10, defaultPage: 2.5 }),
+			);
+			expect(result.current.currentPage).toBe(2);
+			expect(result.current.offset).toBe(10);
+		});
+	});
+
+	test("goToPage rounds a fraction down", () => {
+		const { result } = renderHook(() => useOffsetPagination({ listSize: 50, pageSize: 10 }));
+		act(() => result.current.goToPage(3.9));
+		expect(result.current.currentPage).toBe(3);
+		expect(result.current.offset).toBe(20);
 	});
 
 	describe("controlled page", () => {

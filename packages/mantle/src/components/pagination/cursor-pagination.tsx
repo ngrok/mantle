@@ -90,8 +90,12 @@ type CursorPaginationProps = ComponentProps<"div"> &
  * @example
  * Controlled page size, kept in the URL:
  * ```tsx
+ * const pageSizes = [10, 20, 50, 100];
  * const [searchParams, setSearchParams] = useSearchParams();
- * const pageSize = Number(searchParams.get("pageSize") ?? 10);
+ * const requestedPageSize = Number(searchParams.get("pageSize"));
+ * // A hand-edited URL can carry a size the select does not list, and
+ * // `PageSizeSelect` throws for one. Fall back to the default.
+ * const pageSize = pageSizes.includes(requestedPageSize) ? requestedPageSize : 10;
  *
  * <CursorPagination.Root
  *   pageSize={pageSize}
@@ -108,7 +112,7 @@ type CursorPaginationProps = ComponentProps<"div"> &
  *     onNextPage={handleNext}
  *     onPreviousPage={handlePrevious}
  *   />
- *   <CursorPagination.PageSizeSelect />
+ *   <CursorPagination.PageSizeSelect pageSizes={pageSizes} />
  * </CursorPagination.Root>
  * ```
  */
@@ -415,8 +419,12 @@ const CursorPagination = {
 	 * @example
 	 * Controlled page size, kept in the URL:
 	 * ```tsx
+	 * const pageSizes = [10, 20, 50, 100];
 	 * const [searchParams, setSearchParams] = useSearchParams();
-	 * const pageSize = Number(searchParams.get("pageSize") ?? 10);
+	 * const requestedPageSize = Number(searchParams.get("pageSize"));
+	 * // A hand-edited URL can carry a size the select does not list, and
+	 * // `PageSizeSelect` throws for one. Fall back to the default.
+	 * const pageSize = pageSizes.includes(requestedPageSize) ? requestedPageSize : 10;
 	 *
 	 * <CursorPagination.Root
 	 *   pageSize={pageSize}
@@ -433,7 +441,7 @@ const CursorPagination = {
 	 *     onNextPage={handleNext}
 	 *     onPreviousPage={handlePrevious}
 	 *   />
-	 *   <CursorPagination.PageSizeSelect />
+	 *   <CursorPagination.PageSizeSelect pageSizes={pageSizes} />
 	 * </CursorPagination.Root>
 	 * ```
 	 */
