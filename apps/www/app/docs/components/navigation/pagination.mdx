@@ -257,7 +257,7 @@ function ControlledPageSize() {
 				<CursorPagination.Buttons hasNextPage hasPreviousPage={false} />
 			</CursorPagination.Root>
 			<div className="flex items-center gap-4">
-				<p>Page size in state: {pageSize}</p>
+				<p className="text-muted text-sm">Page size in state: {pageSize}</p>
 				<Button
 					type="button"
 					appearance="outlined"
@@ -524,7 +524,7 @@ function ControlledOffsetPagination() {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<p>
+			<p className="text-muted text-sm">
 				Page {pagination.currentPage} of {pagination.totalPages}, {listSize} items
 			</p>
 			<div className="flex flex-wrap gap-2">

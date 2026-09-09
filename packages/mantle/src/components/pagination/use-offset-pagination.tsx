@@ -133,7 +133,11 @@ function clampPage(page: number, totalPages: number): number {
  *   listSize: items.length,
  *   pageSize: 10,
  *   page: Number(searchParams.get("page") ?? 1),
- *   onPageChange: (page) => setSearchParams({ page: String(page) }),
+ *   onPageChange: (page) =>
+ *     setSearchParams((params) => {
+ *       params.set("page", String(page));
+ *       return params;
+ *     }),
  *   resetPageOnListSizeChange: false,
  * });
  * ```
@@ -177,28 +181,24 @@ function useOffsetPagination({
 
 	// Why the refs: an effect also runs on mount, and a mount must keep
 	// `defaultPage` and `page`. Only a real change resets.
+	// Why one effect: two effects each call `setPage(1)` when one render changes
+	// both props, and `onPageChange` then runs twice for one reset.
 	const previousPageSize = useRef(pageSize);
-	useEffect(() => {
-		if (previousPageSize.current === pageSize) {
-			return;
-		}
-		previousPageSize.current = pageSize;
-		setCurrentPageSize(pageSize);
-		// Why reset to page 1: the old index means something else against a new
-		// page size. A larger page size can also put it past the new last page.
-		setPage(1);
-	}, [pageSize, setPage]);
-
 	const previousListSize = useRef(listSize);
 	useEffect(() => {
-		if (previousListSize.current === listSize) {
-			return;
-		}
+		const pageSizeChanged = previousPageSize.current !== pageSize;
+		const listSizeChanged = previousListSize.current !== listSize;
+		previousPageSize.current = pageSize;
 		previousListSize.current = listSize;
-		if (resetPageOnListSizeChange) {
+		if (pageSizeChanged) {
+			setCurrentPageSize(pageSize);
+		}
+		// Why reset to page 1: the old index means something else against a new
+		// page size. A larger page size can also put it past the new last page.
+		if (pageSizeChanged || (listSizeChanged && resetPageOnListSizeChange)) {
 			setPage(1);
 		}
-	}, [listSize, resetPageOnListSizeChange, setPage]);
+	}, [listSize, pageSize, resetPageOnListSizeChange, setPage]);
 
 	function goToPage(page: number) {
 		setPage(clampPage(page, totalPages));

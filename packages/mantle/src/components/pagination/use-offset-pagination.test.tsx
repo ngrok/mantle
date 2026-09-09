@@ -210,6 +210,18 @@ describe("useOffsetPagination", () => {
 			expect(onPageChange).toHaveBeenLastCalledWith(1);
 		});
 
+		// Regression: separate effects for `pageSize` and `listSize` each called
+		// `setPage(1)`, so one render that changed both reported page 1 twice.
+		test("a pageSize and listSize change in one render reports page 1 once", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const { rerender } = renderHook((props) => useOffsetPagination(props), {
+				initialProps: { listSize: 500, pageSize: 10, page: 4, onPageChange },
+			});
+			rerender({ listSize: 400, pageSize: 50, page: 4, onPageChange });
+			expect(onPageChange).toHaveBeenCalledTimes(1);
+			expect(onPageChange).toHaveBeenLastCalledWith(1);
+		});
+
 		test("a listSize change reports page 1 by default", () => {
 			const onPageChange = vi.fn<(page: number) => void>();
 			const { rerender } = renderHook((props) => useOffsetPagination(props), {

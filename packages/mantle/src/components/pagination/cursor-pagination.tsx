@@ -95,7 +95,12 @@ type CursorPaginationProps = ComponentProps<"div"> &
  *
  * <CursorPagination.Root
  *   pageSize={pageSize}
- *   onChangePageSize={(size) => setSearchParams({ pageSize: String(size) })}
+ *   onChangePageSize={(size) =>
+ *     setSearchParams((params) => {
+ *       params.set("pageSize", String(size));
+ *       return params;
+ *     })
+ *   }
  * >
  *   <CursorPagination.Buttons
  *     hasNextPage={hasNext}
@@ -415,7 +420,12 @@ const CursorPagination = {
 	 *
 	 * <CursorPagination.Root
 	 *   pageSize={pageSize}
-	 *   onChangePageSize={(size) => setSearchParams({ pageSize: String(size) })}
+	 *   onChangePageSize={(size) =>
+	 *     setSearchParams((params) => {
+	 *       params.set("pageSize", String(size));
+	 *       return params;
+	 *     })
+	 *   }
 	 * >
 	 *   <CursorPagination.Buttons
 	 *     hasNextPage={hasNext}
