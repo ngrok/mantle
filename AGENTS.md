@@ -131,6 +131,7 @@ Run these from the workspace root once a coherent chunk of work is done and befo
 - **Type errors**: Build all packages before typechecking
 - **Hot reload issues**: Restart dev server or clear `.react-router/` cache
 - **Toolchain drift**: Run `mise run doctor` to verify Node and pnpm match committed pins. Re-run `./scripts/setup` if they don't.
+- **`mise install` fails on an Intel Mac with `unsupported env: darwin/amd64`**: mise has no pnpm build for macOS x64. Use the `mise.local.toml` override in [CONTRIBUTING.md → Manual Installation](./CONTRIBUTING.md#manual-installation).
 - **Lockfile drift** (CI flags `mise.lock` out of sync with `.nvmrc` / `package.json#packageManager`): bump the source pin in `.nvmrc` or `package.json#packageManager`, then `mise run relock && mise install` and commit `mise.lock` alongside the pin change.
 
 ## Publishing Changes
