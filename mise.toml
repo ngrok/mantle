@@ -5,11 +5,13 @@ lockfile = true
 idiomatic_version_file_enable_tools = ["node"]
 
 [tools]
-ast-grep = "0.45.2"
+ast-grep = "0.45.3"
 ripgrep = "15.2.0"
 # Keep pnpm's version single-sourced in root package.json#packageManager.
 # The helper avoids needing Node before mise has installed Node.
-"npm:pnpm" = "{{ exec(command='./scripts/package-manager-version') }}"
+# pnpm 12 ships a native binary that its install script links over the Node
+# launcher. mise skips npm scripts by default, so allow them here.
+"npm:pnpm" = { version = "{{ exec(command='./scripts/package-manager-version') }}", npm_args = "--ignore-scripts=false" }
 
 [env]
 # Make node_modules/.bin available to `mise x --` and to shells that activate mise.

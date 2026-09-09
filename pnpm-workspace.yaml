@@ -19,6 +19,13 @@ minimumReleaseAgeExclude:
   - "react-dom"
   - "typescript"
 
+# Don't let pnpm switch itself to package.json#packageManager or record its own
+# version in pnpm-lock.yaml. mise and pnpm/action-setup already pin the version.
+# With the default (download), pnpm 12 writes a second YAML document into the
+# lockfile, and single-document readers (the Vercel CLI, the GitHub dependency
+# graph) stop parsing it. see: pnpm/pnpm#13805
+pmOnFail: ignore
+
 catalog:
   "@phosphor-icons/react": "2.1.10"
   "@types/react": "19.2.18"

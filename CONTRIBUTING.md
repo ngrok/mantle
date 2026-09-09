@@ -72,7 +72,7 @@ These are merged with the committed `mise.toml [env]` whenever mise resolves the
 If you prefer to manage Node and pnpm yourself, match the committed pins:
 
 1. Install [Node](https://nodejs.org/en/download) at the version listed in `.nvmrc`.
-2. Enable pnpm at the version pinned in `package.json#packageManager`: `corepack enable pnpm && corepack install`.
+2. Install pnpm at the version pinned in `package.json#packageManager`: `npm install --global "pnpm@$(./scripts/package-manager-version)"`.
 3. Install workspace dependencies: `pnpm install --frozen-lockfile`.
 
 ### Bumping Node or pnpm
@@ -83,7 +83,7 @@ To bump a version:
 
 1. Update `.nvmrc` (Node) or `package.json#packageManager` (pnpm).
 2. Run `mise run relock` to refresh `mise.lock` for all platforms.
-3. Run `mise install` to materialize the new toolchain locally.
+3. Run `mise install` to materialize the new toolchain locally. mise runs pnpm's install scripts (`npm_args` in `mise.toml`) so the native pnpm binary replaces its Node launcher.
 4. Commit `.nvmrc` / `package.json` and `mise.lock` together.
 
 ## Local Development
