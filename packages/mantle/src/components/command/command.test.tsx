@@ -1,9 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { createRef, type ComponentProps } from "react";
+import { createRef, useEffect, type ComponentProps } from "react";
 import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { Command } from "./command.js";
+import type { CommandDialogState } from "./dialog-context.js";
 import { useCommandDialog } from "./dialog-context.js";
 
 /**
@@ -21,9 +22,10 @@ function SearchButton(props: ComponentProps<"button">) {
 
 /**
  * The palette used across this suite: a search trigger plus a dialog with an
- * input. `Command.List` is deliberately absent — cmdk's list installs a
- * `ResizeObserver` that happy-dom cannot drive, and nothing here needs
- * filtering. List behavior is covered in `command.browser.test.tsx`.
+ * input. `Command.List` is absent because nothing here needs filtering. The
+ * `Command.Empty` suite below mounts the list in happy-dom, where cmdk's
+ * `ResizeObserver` never fires. Query seeding, dismissal, and focus return
+ * live in `command.browser.test.tsx`.
  */
 function Palette(props: ComponentProps<typeof Command.DialogRoot>) {
 	return (
@@ -130,9 +132,9 @@ describe("Command.SearchTrigger", () => {
 
 	describe("aria-keyshortcuts", () => {
 		test("advertises Control+K in the server render", () => {
-			// The server cannot know the platform, so it renders the non-Apple
-			// answer and corrects itself in an effect. Asserting post-mount state
-			// cannot observe the render path.
+			// The server cannot know the platform, so the server snapshot is the
+			// non-Apple answer. Post-mount state cannot see this render path, so
+			// `renderToString` must.
 			const html = renderToString(<Palette />);
 			expect(html).toContain('aria-keyshortcuts="Control+K"');
 		});
@@ -665,6 +667,120 @@ describe("Command.DialogRoot", () => {
 			// `open={false}` is authoritative: the internal state must not win.
 			expect(queryInput()).not.toBeInTheDocument();
 		});
+
+		test("a parent rerender with a new inline onOpenChange keeps the context value's identity", () => {
+			// A `useCommandDialog()` consumer skips a parent render only while the
+			// context value keeps its identity. Catches listing `onOpenChange` as a
+			// `changeOpen` dependency again.
+			const values: CommandDialogState[] = [];
+			function Probe() {
+				values.push(useCommandDialog());
+				return null;
+			}
+			const { rerender } = render(
+				<Command.DialogRoot onOpenChange={vi.fn<(open: boolean) => void>()}>
+					<Probe />
+				</Command.DialogRoot>,
+			);
+			rerender(
+				<Command.DialogRoot onOpenChange={vi.fn<(open: boolean) => void>()}>
+					<Probe />
+				</Command.DialogRoot>,
+			);
+
+			expect(values).toHaveLength(2);
+			expect(values[1]).toBe(values[0]);
+		});
+
+		test("a rerender swaps in the latest onOpenChange before the next open", async () => {
+			// Catches dropping the layout effect that writes the latest callback into
+			// the ref, which pins the first render's callback forever.
+			const user = userEvent.setup();
+			const first = vi.fn<(open: boolean) => void>();
+			const latest = vi.fn<(open: boolean) => void>();
+			const { rerender } = render(<Palette onOpenChange={first} />);
+			rerender(<Palette onOpenChange={latest} />);
+
+			await user.click(trigger());
+
+			expect(first).toHaveBeenCalledTimes(0);
+			expect(latest).toHaveBeenCalledTimes(1);
+			expect(latest).toHaveBeenLastCalledWith(true);
+		});
+
+		test("a consumer effect in the rerender's own commit sees the latest onOpenChange", () => {
+			// Catches writing the ref in a passive effect, `useCallbackRef` included.
+			// A consumer's `useEffect` runs before `Command.DialogRoot`'s in the same
+			// commit, so a passive write would hand it the previous render's callback.
+			function Opener({ when }: { when: boolean }) {
+				const { setOpen } = useCommandDialog();
+				useEffect(() => {
+					if (when) {
+						setOpen(true);
+					}
+				}, [when, setOpen]);
+				return null;
+			}
+			const first = vi.fn<(open: boolean) => void>();
+			const latest = vi.fn<(open: boolean) => void>();
+			const { rerender } = render(
+				<Command.DialogRoot onOpenChange={first}>
+					<Opener when={false} />
+				</Command.DialogRoot>,
+			);
+			rerender(
+				<Command.DialogRoot onOpenChange={latest}>
+					<Opener when />
+				</Command.DialogRoot>,
+			);
+
+			expect(first).toHaveBeenCalledTimes(0);
+			expect(latest).toHaveBeenCalledTimes(1);
+			expect(latest).toHaveBeenLastCalledWith(true);
+		});
+	});
+});
+
+describe("Command.Empty", () => {
+	/**
+	 * The inline palette from the `Command.Root` docs: no dialog, so the list
+	 * reaches the server HTML. happy-dom's `ResizeObserver` never fires, which only costs
+	 * cmdk's list its measured height; the filtering these tests need runs
+	 * without it.
+	 */
+	function InlinePalette() {
+		return (
+			<Command.Root>
+				<Command.Input placeholder="Type a command or search..." />
+				<Command.List>
+					<Command.Empty>No results found.</Command.Empty>
+					<Command.Item>Calendar</Command.Item>
+					<Command.Item>Profile</Command.Item>
+				</Command.List>
+			</Command.Root>
+		);
+	}
+
+	test("is absent from the server HTML when items exist", () => {
+		// Items register with cmdk in a layout effect, which never runs on the
+		// server, so cmdk counts zero matches there and paints the empty state
+		// above the full list. Catches deleting the hydration guard.
+		const html = renderToString(<InlinePalette />);
+
+		expect(html).toContain('data-slot="command-item"');
+		expect(html).not.toContain('data-slot="command-empty"');
+	});
+
+	test("appears on the client once the query matches nothing", async () => {
+		// Catches widening the hydration guard into a permanent `return null`.
+		const user = userEvent.setup();
+		render(<InlinePalette />);
+		expect(screen.queryByText("No results found.")).not.toBeInTheDocument();
+
+		await user.type(input(), "zzz");
+
+		expect(screen.getByText("No results found.")).toHaveAttribute("data-slot", "command-empty");
+		expect(screen.queryByText("Calendar")).not.toBeInTheDocument();
 	});
 });
 

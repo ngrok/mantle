@@ -170,8 +170,8 @@ because assistive technology dispatches clicks without hit testing. Virtualized 
 announce `aria-posinset` and `aria-setsize`, so a windowed list still reads as the whole
 collection. [IconButton](/components/actions/icon-button) makes its screen-reader label a
 required prop. And motion defaults are conservative:
-[`usePrefersReducedMotion`](/hooks) returns `true` on the server and first paint, so
-nothing animates until the user's real preference is known.
+[`usePrefersReducedMotion`](/hooks) returns `true` on the server and in the hydration
+render, so nothing animates until the user's real preference is known.
 
 The per-component keyboard and ARIA contracts, required app setup, and testing checklists
 live on the [Accessibility](/accessibility) page. This page owns only the stance:

@@ -28,7 +28,10 @@ import { useEffect, useMemo, useRef } from "react";
  *
  * return <MemoizedList onSelect={onSelect} />;
  */
-function useCallbackRef<T extends (...args: unknown[]) => unknown>(callback: T | undefined): T {
+// Why `never[]`: a callback with typed parameters, such as `(values: string[]) => void`,
+// is not assignable to `(...args: unknown[]) => unknown` under `strictFunctionTypes`.
+// `never[]` accepts every parameter list. The hook returns `T` unchanged.
+function useCallbackRef<T extends (...args: never[]) => unknown>(callback: T | undefined): T {
 	const callbackRef = useRef(callback);
 
 	useEffect(() => {

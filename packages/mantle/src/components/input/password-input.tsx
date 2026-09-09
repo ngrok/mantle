@@ -2,7 +2,7 @@
 
 import { EyeIcon } from "@phosphor-icons/react/Eye";
 import { EyeClosedIcon } from "@phosphor-icons/react/EyeClosed";
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { ComponentProps } from "react";
 import { flushSync } from "react-dom";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
@@ -15,12 +15,14 @@ type PasswordInputProps = Omit<ComponentProps<"input">, "autoComplete" | "type">
 	WithValidation &
 	WithAutoComplete & {
 		/**
-		 * Callback for when the visibility of the password value changes.
+		 * Called with the next visibility when the user clicks the toggle. In
+		 * controlled mode, write the value back into `showValue`.
 		 */
 		onValueVisibilityChange?: (visible: boolean) => void;
 		/**
-		 * Show/hide the password value as a controlled state.
-		 * @default false
+		 * The controlled visibility of the value. When set, the input follows this
+		 * prop; a click on the toggle only calls `onValueVisibilityChange` with the
+		 * next value. When omitted, the toggle owns the visibility and starts hidden.
 		 */
 		showValue?: boolean;
 	};
@@ -99,20 +101,18 @@ const PasswordInput = ({
 	id: idProp,
 	onValueVisibilityChange,
 	ref,
-	showValue = false,
+	showValue,
 	...props
 }: PasswordInputProps) => {
 	const generatedId = useId();
 	const id = idProp ?? generatedId;
-	const [showPassword, setShowPassword] = useState<boolean>(showValue);
+	const isControlled = showValue != null;
+	const [internalShowValue, setInternalShowValue] = useState(false);
+	const showPassword = isControlled ? showValue : internalShowValue;
 	const type: PasswordInputType = showPassword ? "text" : "password";
 	const EyeCon = showPassword ? EyeIcon : EyeClosedIcon;
 	const iconRef = useRef<SVGSVGElement>(null);
 	const animationRef = useRef<Animation | null>(null);
-
-	useEffect(() => {
-		setShowPassword(showValue);
-	}, [showValue]);
 
 	return (
 		<Input data-slot="password-input" disabled={disabled} id={id} type={type} ref={ref} {...props}>
@@ -139,12 +139,16 @@ const PasswordInput = ({
 						animationRef.current = null;
 					}
 
-					// Flush synchronously so React commits the new icon to the DOM before we animate
 					const nextShowPassword = !showPassword;
+					// Why flushSync around both: `icon.animate` below needs the new icon in
+					// the DOM first. In controlled mode, the parent's setState inside the
+					// callback is the render that swaps it.
 					flushSync(() => {
-						setShowPassword(nextShowPassword);
+						if (!isControlled) {
+							setInternalShowValue(nextShowPassword);
+						}
+						onValueVisibilityChange?.(nextShowPassword);
 					});
-					onValueVisibilityChange?.(nextShowPassword);
 
 					const icon = iconRef.current;
 					if (icon && !getPrefersReducedMotion()) {

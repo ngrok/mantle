@@ -134,7 +134,7 @@ export const WithoutToErrorMessagesExample = () => {
 
 **Label-to-control association is automatic inside a `Field.Item`.** `Field.Item` generates a stable control id. `Field.Control` splats that id onto its focusable child, and `Field.Label` points `htmlFor` at it. The required `name` on `Field.Item` is the single source of truth for the control's form name. That lets you write `<Field.Label>Email</Field.Label>` next to `<Field.Control><Input /></Field.Control>` with no matching `htmlFor` / `id` pair and no separate `useId()` call. To set the id yourself, pass `id` on `Field.Item`, for example when a Playwright locator or an anchor link must find the control by id. `Field.Control` and `Field.Label` both follow it, and the wrapping `<div>` carries no id. `Field.Label` has no `htmlFor` prop and `Field.Control` has no `id` prop, so `Field.Item` is the one owner. Render the focusable element inside `Field.Control` so the id lands on it.
 
-Wrap the focusable control in `Field.Control` so `Field.Item` can associate descriptions and rendered errors via `aria-describedby` / `aria-errormessage`. A rendered `Field.Errors` or `Field.ErrorList` infers error state; pass `validation` on `Field.Item` only when you need to override that state.
+Wrap the focusable control in `Field.Control` so `Field.Item` can associate descriptions and rendered errors via `aria-describedby` / `aria-errormessage`. A rendered `Field.Errors` or `Field.ErrorList` infers error state once the page hydrates. When you need to override that state, or when the error must be in the server HTML, pass `validation` on `Field.Item` (see [Server-rendered errors](#server-rendered-errors)).
 
 **`Field.Item` owns the full control contract.** When a focusable control is wrapped in `Field.Control`, the surrounding `Field.Item` owns its `id`, `name`, `aria-describedby`, `aria-errormessage`, `aria-invalid`, and `validation`; anything supplied on the child element (or on `Field.Control`) is overwritten. There's one place to override: `Field.Item` itself, with `id`, `name`, or `validation`. To opt out of the contract entirely, render the control without `Field.Control`.
 
@@ -201,7 +201,7 @@ The canonical slot order inside a `Field.Item` is `Field.Label` → `Field.Contr
 
 ## Error messages
 
-Use `Field.Errors` below the control when validation fails. It accepts string messages, trims them, filters empty values, removes duplicates, and renders a semantic `<ul>` with `<li>` items so screen readers announce the errors as a list. When the list renders, `Field.Item` infers error state so the visual state and ARIA invalid state stay in sync.
+Use `Field.Errors` below the control when validation fails. It accepts string messages, trims them, filters empty values, removes duplicates, and renders a semantic `<ul>` with `<li>` items so screen readers announce the errors as a list. When the list renders, `Field.Item` infers error state after hydration so the visual state and ARIA invalid state stay in sync. For errors that render on the server, see [Server-rendered errors](#server-rendered-errors) below.
 
 For custom list markup or rich error content, compose the lower-level `Field.ErrorList` and `Field.ErrorItem` parts directly. A single error is still a list of one.
 
@@ -300,6 +300,24 @@ Prefer `Field.Errors` when you already have plain string messages. Compose `Fiel
 	<Field.Description>Pick something memorable.</Field.Description>
 </Field.Item>
 ```
+
+## Server-rendered errors
+
+`Field.Item` infers the `"error"` state on the client: a mounted `Field.Errors` or `Field.ErrorList` registers with `Field.Item` after hydration. On the server, nothing runs that registration. The server HTML carries the error list. Until the page hydrates, the control is not flagged `aria-invalid="true"` and has no `aria-errormessage`, and the item has no `data-validation="error"`. The control keeps its neutral border. A screen reader doesn't announce it as invalid.
+
+When errors come back from the server, for example from a React Router action, set `validation` on `Field.Item` from the same messages. An explicit `validation` is in the server HTML from the first paint:
+
+```tsx
+<Field.Item name="email" validation={messages.length > 0 && "error"}>
+	<Field.Label>Email</Field.Label>
+	<Field.Control>
+		<Input type="email" />
+	</Field.Control>
+	<Field.Errors messages={messages} />
+</Field.Item>
+```
+
+`validation` accepts `false`, so the short-circuit yields `false` with no messages and `"error"` with at least one. Client-only validators, such as the TanStack Form example below, don't need this: they run after hydration, where the inference already works.
 
 ## Optional fields
 
@@ -771,7 +789,7 @@ All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#a
 
 ### Field.Item
 
-A single form field. Renders a plain `<div>` with `flex flex-col gap-1.5` so `Field.Label`, control, and helper / error siblings stack tightly together. No implicit ARIA role — the `<label htmlFor>` ↔ control association already carries the right semantics for a single field. It owns the description/error IDs and validation state that `Field.Control` applies; rendered errors infer `"error"` unless `validation` is set.
+A single form field. Renders a plain `<div>` with `flex flex-col gap-1.5` so `Field.Label`, control, and helper / error siblings stack tightly together. No implicit ARIA role: the `<label htmlFor>` ↔ control association already carries the right semantics for a single field. It owns the description/error IDs and validation state that `Field.Control` applies; rendered errors infer `"error"` after hydration unless `validation` is set. For a server-rendered error, set `validation` (see [Server-rendered errors](#server-rendered-errors)).
 
 **Single-slot constraint.** A `Field.Item` owns one description ID and one errors ID, so render at most one `Field.Description` and one `Field.Errors` _or_ `Field.ErrorList` (not both) per item. A second instance would duplicate the slot `id` in the DOM — pass multiple messages to one `Field.Errors`, or multiple `Field.ErrorItem` children to one `Field.ErrorList`, instead.
 
@@ -784,7 +802,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `name`        | `string`                                     | —       | Form field name. Splats onto the focusable child rendered inside `Field.Control`; `Field.Item` also owns the generated id used by `Field.Control` and `Field.Label`'s default `htmlFor`.                         |
 | `asChild?`    | `boolean`                                    | `false` | Render as a different element by passing a child.                                                                                                                                                                |
 | `id?`         | `string`                                     | —       | DOM id for the focusable control, not for the wrapping `<div>`. `Field.Control` splats it onto the control and `Field.Label` uses it as the default `htmlFor`. When omitted, `Field.Item` generates a stable id. |
-| `validation?` | `"error" \| "success" \| "warning" \| false` | —       | Override the validation state inherited by `Field.Control`.                                                                                                                                                      |
+| `validation?` | `"error" \| "success" \| "warning" \| false` | —       | Validation state that `Field.Control` applies. Overrides the inferred `"error"` state; set it for a server-rendered error.                                                                                       |
 
 ### Field.Control
 
@@ -922,7 +940,7 @@ All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#a
 
 ### Field.Errors
 
-Convenience renderer for validation messages. Accepts an array of strings, trims each message, filters empty, nullish, and false values, then renders a `Field.ErrorList` with one `Field.ErrorItem` per remaining message. When rendered inside `Field.Item`, a non-empty list receives an automatic generated ID and infers `"error"` validation unless `Field.Item` overrides it. `Field.Control` merges that ID into the control's `aria-describedby` and `aria-errormessage` when the field is invalid. The ID is owned by `Field.Item` and is not consumer-overridable.
+Convenience renderer for validation messages. Accepts an array of strings, trims each message, filters empty, nullish, and false values, then renders a `Field.ErrorList` with one `Field.ErrorItem` per remaining message. When rendered inside `Field.Item`, a non-empty list receives an automatic generated ID and infers `"error"` validation after hydration unless `Field.Item` overrides it. `Field.Control` merges that ID into the control's `aria-describedby` and `aria-errormessage` when the field is invalid. The ID is owned by `Field.Item` and is not consumer-overridable. For a server-rendered error, set `validation` on `Field.Item` (see [Server-rendered errors](#server-rendered-errors)).
 
 Render at most one `Field.Errors` per `Field.Item`, and do not combine it with `Field.ErrorList` in the same item — both render a single shared errors slot. Pass multiple messages to one `Field.Errors` for the multi-error case.
 
@@ -942,7 +960,7 @@ All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li
 
 ### Field.ErrorList
 
-Wraps one or more `Field.ErrorItem` children in a semantic `<ul>` with `role="list"` so a list of validation errors is announced as a list by screen readers, including Safari/VoiceOver combinations that drop list semantics when list styling is removed. Renders nothing when given no renderable children. When rendered inside `Field.Item`, a non-empty list receives an automatic generated ID and infers `"error"` validation unless `Field.Item` overrides it. `Field.Control` merges that ID into the control's `aria-describedby` and `aria-errormessage` when the field is invalid. The ID is owned by `Field.Item` and is not consumer-overridable.
+Wraps one or more `Field.ErrorItem` children in a semantic `<ul>` with `role="list"` so a list of validation errors is announced as a list by screen readers, including Safari/VoiceOver combinations that drop list semantics when list styling is removed. Renders nothing when given no renderable children. When rendered inside `Field.Item`, a non-empty list receives an automatic generated ID and infers `"error"` validation after hydration unless `Field.Item` overrides it. `Field.Control` merges that ID into the control's `aria-describedby` and `aria-errormessage` when the field is invalid. The ID is owned by `Field.Item` and is not consumer-overridable. For a server-rendered error, set `validation` on `Field.Item` (see [Server-rendered errors](#server-rendered-errors)).
 
 Render at most one `Field.ErrorList` per `Field.Item`, and do not combine it with `Field.Errors` in the same item — both render a single shared errors slot. Put multiple `Field.ErrorItem` children inside one list for the multi-error case.
 

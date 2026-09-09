@@ -1,5 +1,5 @@
 import type { Ref, RefCallback } from "react";
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 
 type PossibleRef<T> = Ref<T> | undefined;
 
@@ -63,10 +63,15 @@ function composeRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T> {
 }
 
 /**
- * A custom hook that composes multiple refs into a single stable callback
- * ref. Accepts callback refs and RefObject(s); the latest refs passed on
- * each render are the ones written to, and any cleanup the composed ref
- * returns targets the refs captured when React attached the node (see
+ * A custom hook that composes up to three refs into a single callback ref.
+ * Accepts callback refs and RefObject(s). The callback keeps one identity
+ * while the refs it composes keep theirs, so React attaches it once per
+ * mount. If you pass a new ref on a later render, React detaches the old
+ * callback and attaches the new one, so the new ref receives the node at
+ * once. A consumer callback ref fires once per mount when the consumer
+ * passes the same function each render, and on every render when the
+ * consumer passes a new function, as it does on a plain element. Any
+ * cleanup the composed ref returns targets the refs it composed (see
  * {@link composeRefs} for the cleanup propagation contract).
  *
  * @example
@@ -76,10 +81,18 @@ function composeRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T> {
  *   return <input ref={composedRef} {...props} />;
  * }
  */
-function useComposedRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T> {
-	const latestRefs = useRef(refs);
-	latestRefs.current = refs;
-	return useCallback((node: T | null) => composeRefs(...latestRefs.current)(node), []);
+function useComposedRefs<T>(
+	firstRef: PossibleRef<T>,
+	secondRef: PossibleRef<T>,
+	thirdRef?: PossibleRef<T>,
+): RefCallback<T> {
+	// Why three named parameters: React Compiler memoizes a `useCallback` only
+	// when its dependency list is an array literal, so the hook cannot spread a
+	// rest array into it. Three slots cover every call site.
+	return useCallback(
+		(node: T | null) => composeRefs(firstRef, secondRef, thirdRef)(node),
+		[firstRef, secondRef, thirdRef],
+	);
 }
 
 export { composeRefs, useComposedRefs };

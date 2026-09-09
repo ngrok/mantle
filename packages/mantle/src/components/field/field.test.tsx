@@ -1,11 +1,12 @@
 import { render, screen } from "@testing-library/react";
-import { createRef } from "react";
-import type { ComponentProps, ReactNode } from "react";
-import { describe, expect, test } from "vitest";
+import { createRef, useContext } from "react";
+import type { ComponentProps, ReactElement, ReactNode } from "react";
+import { renderToString } from "react-dom/server";
+import { describe, expect, test, vi } from "vitest";
 import { Checkbox } from "../checkbox/checkbox.js";
 import { Input } from "../input/input.js";
 import { Select } from "../select/select.js";
-import type { FieldControlAriaProps } from "./field-context.js";
+import { FieldItemContext, type FieldControlAriaProps } from "./field-context.js";
 import { Field } from "./field.js";
 
 const MockControl = (props: ComponentProps<"input">) => <input {...props} />;
@@ -1136,6 +1137,113 @@ describe("Field", () => {
 			expect(screen.getByTestId("err")).toHaveTextContent("Email is required.");
 			expect(screen.getByTestId("desc")).toHaveTextContent("We'll never share your email.");
 		});
+	});
+});
+
+describe("Field server render", () => {
+	// Why a parsed container: `Field.Item` generates the slot ids, so the
+	// assertions read them back from the HTML instead of matching a literal.
+	const renderServerHtml = (element: ReactElement) => {
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(element);
+		return container;
+	};
+
+	test("an explicit validation puts the error state in the server HTML", () => {
+		const messages = ["Required"];
+		const container = renderServerHtml(
+			<Field.Item name="email" validation={messages.length > 0 && "error"}>
+				<Field.Control>
+					<input aria-label="Email" />
+				</Field.Control>
+				<Field.Errors messages={messages} />
+			</Field.Item>,
+		);
+
+		const errorListId = container.querySelector('[data-slot="field-error-list"]')?.id;
+		expect(errorListId).toEqual(expect.any(String));
+		expect(container.querySelector('[data-slot="field-item"]')).toHaveAttribute(
+			"data-validation",
+			"error",
+		);
+		const input = container.querySelector("input");
+		expect(input).toHaveAttribute("aria-invalid", "true");
+		expect(input).toHaveAttribute("aria-errormessage", errorListId);
+		expect(input?.getAttribute("aria-describedby")).toContain(errorListId);
+	});
+
+	test("the inferred error state is absent from the server HTML", () => {
+		// The inference runs after hydration, as the `Field.Item`, `Field.Errors`, and
+		// `Field.ErrorList` docs state. A change in this output is a documented
+		// contract change, not a side effect.
+		const container = renderServerHtml(
+			<Field.Item name="email">
+				<Field.Control>
+					<input aria-label="Email" />
+				</Field.Control>
+				<Field.Errors messages={["Required"]} />
+			</Field.Item>,
+		);
+
+		expect(container.querySelector('[data-slot="field-error-list"]')).toHaveTextContent("Required");
+		expect(container.querySelector('[data-slot="field-item"]')).not.toHaveAttribute(
+			"data-validation",
+		);
+		const input = container.querySelector("input");
+		expect(input).toHaveAttribute("aria-describedby");
+		expect(input).not.toHaveAttribute("aria-invalid");
+		expect(input).not.toHaveAttribute("aria-errormessage");
+	});
+
+	test("the documented validation idiom renders a neutral field on the server with no messages", () => {
+		const messages: string[] = [];
+		const container = renderServerHtml(
+			<Field.Item name="email" validation={messages.length > 0 && "error"}>
+				<Field.Control>
+					<input aria-label="Email" />
+				</Field.Control>
+				<Field.Errors messages={messages} />
+			</Field.Item>,
+		);
+
+		expect(container.querySelector('[data-slot="field-error-list"]')).toBeNull();
+		expect(container.querySelector('[data-slot="field-item"]')).not.toHaveAttribute(
+			"data-validation",
+		);
+		const input = container.querySelector("input");
+		expect(input).not.toHaveAttribute("aria-invalid");
+		expect(input).not.toHaveAttribute("aria-errormessage");
+	});
+});
+
+describe("Field.Item context identity", () => {
+	test("an explicit validation keeps the context stable while Field.Errors gains messages", () => {
+		const probeRender = vi.fn<() => void>();
+		const Probe = () => {
+			useContext(FieldItemContext);
+			probeRender();
+			return null;
+		};
+
+		const { rerender } = render(
+			<Field.Item name="email" validation="error">
+				<Probe />
+				<Field.Errors messages={[]} />
+			</Field.Item>,
+		);
+		expect(probeRender).toHaveBeenCalledTimes(1);
+
+		rerender(
+			<Field.Item name="email" validation="error">
+				<Probe />
+				<Field.Errors messages={["Required"]} />
+			</Field.Item>,
+		);
+
+		// One render for the parent update. A third would come from a new context
+		// identity after the error list registers, which an explicit `validation`
+		// cannot observe.
+		expect(probeRender).toHaveBeenCalledTimes(2);
 	});
 });
 

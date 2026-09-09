@@ -663,7 +663,7 @@ const Nav = ({
 				// Gate the transition on hydration so an SSR state correction
 				// (e.g. persisted-collapsed applied by a controlled `open`) snaps
 				// instead of animating shut on page load.
-				isHydrated && ["transition-[width] duration-200 ease-linear motion-reduce:transition-none"],
+				isHydrated && "transition-[width] duration-200 ease-linear motion-reduce:transition-none",
 				className,
 			)}
 			{...props}
@@ -781,9 +781,10 @@ const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNo
  * so the app-wide delay and hover settings stay app-wide.
  *
  * It also stamps `aria-keyshortcuts` for the `⌘B` / `Ctrl+B` chord the root
- * binds, resolved after hydration: the server cannot know the host, so the
- * first paint is the non-Apple answer. Both the attribute and the chips are
- * omitted under `Sidebar.Root keyboardShortcut={false}`.
+ * binds. The server cannot know the host, so the server HTML and the hydration
+ * render carry `Control+B`. React corrects it once after hydration. A trigger
+ * that mounts after hydration reads the platform in its first render. Both the
+ * attribute and the chips are omitted under `Sidebar.Root keyboardShortcut={false}`.
  *
  * **Data attributes:**
  *
@@ -885,9 +886,10 @@ const Trigger = ({
 
 	// Never name a chord this root does not bind.
 	const hint = keyboardShortcut ? shortcut : undefined;
-	// Announce the chord rather than only binding it. Resolved after hydration,
-	// like every platform-modifier read: the server cannot know the host, so it
-	// renders the non-Apple answer and the effect corrects it.
+	// Announce the chord rather than only binding it. The server cannot know
+	// the host, so it renders the non-Apple answer. The hydration render agrees
+	// with it, and React corrects it once after hydration. A client mount reads
+	// the real platform in its first render.
 	const platformChord = isApple ? "Meta+B" : "Control+B";
 
 	return (
@@ -1622,6 +1624,10 @@ const Item = ({
  * reads as a foreign control, and in the collapsed icon rail it has to be the
  * same 28px chip in the same column. Both parts add their own state styling on
  * top (`data-current` for a nav row, the revealed shortcut hint for search).
+ *
+ * Why one string: `cx` caches a call by the identity of its string arguments.
+ * An array argument skips that cache, and the call then joins and re-hashes a
+ * fresh class string on every row render.
  */
 const rowClassName = [
 	"ring-focus-accent flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-normal transition-none focus:outline-hidden focus-visible:ring-4",
@@ -1635,7 +1641,7 @@ const rowClassName = [
 	"group-data-[state=collapsed]/sidebar-nav:ml-1",
 	"group-data-[state=collapsed]/sidebar-nav:w-7",
 	"group-data-[state=collapsed]/sidebar-nav:p-1",
-];
+].join(" ");
 
 type SidebarItemButtonProps = ComponentProps<"button"> &
 	WithAsChild &

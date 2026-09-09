@@ -15,7 +15,7 @@ describe("agent manifests", () => {
 			importPath: "@ngrok/mantle/hooks",
 			summary: expect.stringContaining("largest Tailwind breakpoint"),
 		});
-		expect(useComposedRefs?.summary).toContain("composes multiple refs");
+		expect(useComposedRefs?.summary).toContain("composes up to three refs");
 	});
 
 	// Regression: summaries previously leaked raw JSDoc syntax like

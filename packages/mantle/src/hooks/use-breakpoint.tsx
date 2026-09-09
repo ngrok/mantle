@@ -255,7 +255,9 @@ function getMaxWidthMQL(breakpoint: TailwindBreakpoint): MediaQueryList {
 /**
  * Current breakpoint value used by the singleton store backing `useBreakpoint`.
  *
- * Initialized to `"default"` and updated on media-query change events.
+ * While the shared subscription is active, the `requestAnimationFrame` handler
+ * writes it on media-query change events. While it is inactive,
+ * `getCurrentBreakpointSnapshot` recomputes it on every read.
  *
  * @private
  */
@@ -325,8 +327,8 @@ function updateCurrentBreakpoint() {
  * Subscribe a component to breakpoint changes (singleton pattern).
  *
  * Only one set of `MediaQueryList` listeners exists app-wide. The callback also
- * runs once on mount, which reconciles the `useSyncExternalStore` initial
- * snapshot/subscribe race.
+ * runs once on subscribe, so a viewport change between the mount render and
+ * this passive effect still reaches React.
  *
  * @param callback - Listener invoked when the breakpoint value may have changed.
  * @returns Cleanup function to unsubscribe the listener.
@@ -340,7 +342,8 @@ function subscribeToBreakpointChanges(callback: () => void) {
 		breakpointSubscriptionActive = true;
 		const mqls = getMinWidthMQLs();
 
-		// Initialize current value synchronously
+		// Why recompute here: the render-time read predates this effect, and a
+		// change in between fires no listener.
 		currentBreakpointValue = getCurrentBreakpoint();
 
 		// Attach listeners to every breakpoint's `MediaQueryList`
@@ -349,7 +352,6 @@ function subscribeToBreakpointChanges(callback: () => void) {
 		}
 	}
 
-	// Reconcile initial getSnapshot vs subscribe ordering
 	callback();
 
 	// Cleanup
@@ -370,12 +372,20 @@ function subscribeToBreakpointChanges(callback: () => void) {
 /**
  * Return the current breakpoint value from the singleton store.
  *
- * Used as the `getSnapshot` for `useSyncExternalStore`.
+ * Used as the `getSnapshot` for `useSyncExternalStore`. While no component is
+ * subscribed, nothing writes the cached value, so this recomputes it from the
+ * cached `MediaQueryList`s. The mount render sees the real breakpoint
+ * instead of `"default"`, so the subscribe callback finds nothing changed.
+ * React can call `getSnapshot` more than once per render, so the read must
+ * be idempotent: seven `matches` booleans, which is cheap.
  *
  * @returns {Breakpoint} The latest computed breakpoint.
  * @private
  */
 function getCurrentBreakpointSnapshot(): Breakpoint {
+	if (!breakpointSubscriptionActive) {
+		currentBreakpointValue = getCurrentBreakpoint();
+	}
 	return currentBreakpointValue;
 }
 

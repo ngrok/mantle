@@ -58,11 +58,24 @@ type ThemeProviderProps = PropsWithChildren<{
 	 * theme switcher keeps working and unforced pages honor the user's choice.
 	 */
 	forceTheme?: ResolvedTheme;
+	/**
+	 * The theme cookie pair from the incoming request, read on the server only.
+	 * Pass the value `extractThemeCookie` returns. Pass the same value to
+	 * `MantleStyleSheets` and `useInitialHtmlThemeProps`. The server then seeds
+	 * the context with the stored theme, so the hydrated client agrees with the
+	 * server HTML. When omitted, the server renders `"system"`. A client with a
+	 * stored theme then reports a hydration mismatch. The client always reads
+	 * `document.cookie`.
+	 */
+	ssrCookie?: string;
 }>;
 
 /**
  * Tracks the theme preference and applies the resolved class to `<html>`. Stays
  * in sync with the OS media queries and with the other open tabs.
+ *
+ * On the server, pass `ssrCookie` so the context starts at the stored theme.
+ * The hydrated client then agrees with the server HTML.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme#themeprovider
  *
@@ -81,11 +94,13 @@ type ThemeProviderProps = PropsWithChildren<{
  * </ThemeProvider>
  * ```
  */
-function ThemeProvider({ children, forceTheme }: ThemeProviderProps) {
+function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) {
 	// Why apply during init: the resolved class must be on `<html>` before first paint.
+	// Why `ssrCookie` on the server only: the FOUC script can seed or migrate the
+	// cookie before hydration. The client reads that newer value from `document.cookie`.
 	const [theme, setTheme] = useState<Theme>(() => {
 		const storedTheme = getStoredTheme({
-			cookie: canUseDOM() ? document.cookie : null,
+			cookie: canUseDOM() ? document.cookie : ssrCookie,
 		});
 		applyThemeToHtml(storedTheme, { forceTheme });
 		return storedTheme;
@@ -157,11 +172,7 @@ function ThemeProvider({ children, forceTheme }: ThemeProviderProps) {
 			window.removeEventListener("pageshow", onChange);
 			document.removeEventListener("visibilitychange", onVisibilityChange);
 
-			try {
-				broadcastChannelRef.current?.close();
-			} catch {
-				// silently swallow errors
-			}
+			closeBroadcastChannel(broadcastChannelRef.current);
 			broadcastChannelRef.current = null;
 		};
 	}, [forceTheme]);
@@ -707,9 +718,10 @@ function getStoredTheme({ cookie }: GetStoredThemeOptions): Theme {
 /**
  * Extract only the mantle theme cookie from a raw `Cookie` header string.
  *
- * Use this in SSR loaders to safely pass the theme cookie to
- * {@link useInitialHtmlThemeProps} without exposing the full `Cookie` header
- * (which may contain HttpOnly/session cookies) in serialized loader data.
+ * Use this in SSR loaders to pass the theme cookie to {@link ThemeProvider},
+ * `MantleStyleSheets`, and {@link useInitialHtmlThemeProps} without exposing
+ * the full `Cookie` header (which may contain HttpOnly/session cookies) in
+ * serialized loader data.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme#extractthemecookie
  *
@@ -828,6 +840,28 @@ function setCookie(value: string) {
 
 	try {
 		document.cookie = buildThemeCookie(value);
+	} catch {
+		// silently swallow errors
+	}
+}
+
+/**
+ * Closes the cross-tab channel. Swallows the error a channel in a torn-down
+ * iframe throws, so the rest of the effect cleanup still runs.
+ *
+ * Why a module function: when a `try` inside a component holds a value block
+ * (optional chaining, a ternary, or `&&`/`??`), React Compiler skips the whole
+ * component. An `if` statement inside a `try` compiles, so the `BroadcastChannel`
+ * feature test stays in the effect. This `try` therefore lives outside
+ * `ThemeProvider`.
+ */
+function closeBroadcastChannel(channel: BroadcastChannel | null) {
+	if (channel == null) {
+		return;
+	}
+
+	try {
+		channel.close();
 	} catch {
 		// silently swallow errors
 	}

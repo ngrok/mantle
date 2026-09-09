@@ -82,6 +82,21 @@ describe("useMatchesMediaQuery", () => {
 		expect(result.current).toBe(true);
 	});
 
+	test("constructs one MediaQueryList per instance across re-renders", () => {
+		mockMatchMedia({ [query]: false });
+
+		const { rerender } = renderHook(() => useMatchesMediaQuery(query));
+		for (let renderCount = 0; renderCount < 5; renderCount += 1) {
+			rerender();
+		}
+
+		// The mount render constructs the list once; every later `getSnapshot` and
+		// the `subscribe` reuse it. A `getSnapshot` that calls `window.matchMedia`
+		// directly constructs one per call, at least six here.
+		expect(window.matchMedia).toHaveBeenCalledTimes(1);
+		expect(window.matchMedia).toHaveBeenLastCalledWith(query);
+	});
+
 	test("returns false during server rendering even when the client query matches", () => {
 		mockMatchMedia({ [query]: true });
 

@@ -1684,8 +1684,10 @@ The button is icon-only at every breakpoint, so it always renders a tooltip show
 requires a [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, like any
 `Tooltip.Root`, and throws without one** — mount a single provider at your app root, decoupled from the
 sidebar, so the app-wide delay and hover settings stay app-wide. It also stamps `aria-keyshortcuts`
-(`"Meta+B"` on Apple platforms, `"Control+B"` elsewhere, resolved after hydration), omitted along with the
-chips under `Sidebar.Root keyboardShortcut={false}`.
+(`"Meta+B"` on Apple platforms, `"Control+B"` elsewhere), omitted along with the chips under
+`Sidebar.Root keyboardShortcut={false}`. The server cannot know the host, so the server HTML and the
+hydration render carry `"Control+B"`. React corrects it once after hydration. A trigger that mounts
+after hydration reads the platform in its first render.
 
 **Data attributes**
 

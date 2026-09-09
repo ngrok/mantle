@@ -2,7 +2,9 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { useState } from "react";
+import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
+import type * as CheckboxModule from "../checkbox/checkbox.js";
 import {
 	filterSelectableOptions,
 	optionLabelText,
@@ -11,6 +13,21 @@ import {
 	toggleSelectionValue,
 } from "./selectable-list.js";
 import type { SelectableListOption } from "./selectable-list.js";
+
+const checkboxRenders = vi.hoisted(() => ({ count: 0 }));
+
+// Why wrap `Checkbox`: `Item` builds a fresh `<Checkbox>` element on every render,
+// and its other children keep their identity. The checkbox render count is
+// therefore the only observable trace of a row re-render. The wrapper forwards
+// every prop.
+vi.mock("../checkbox/checkbox.js", async (importOriginal) => {
+	const actual = await importOriginal<typeof CheckboxModule>();
+	const Checkbox = (props: ComponentProps<typeof actual.Checkbox>) => {
+		checkboxRenders.count += 1;
+		return <actual.Checkbox {...props} />;
+	};
+	return { ...actual, Checkbox };
+});
 
 const options = [
 	{ value: "a", label: "Apple" },
@@ -463,6 +480,105 @@ describe("SelectableList.Empty", () => {
 		// Clearing the filter empties the region again without unmounting it.
 		await user.clear(screen.getByRole("textbox", { name: "Filter fruit" }));
 		expect(screen.getByRole("status")).toBeEmptyDOMElement();
+	});
+});
+
+describe("SelectableList render stability", () => {
+	// Hoisted out of the harness, so the only thing that changes across its
+	// re-render is the identity of the inline callbacks.
+	const stableOptions = [
+		{ value: "a", label: "Apple" },
+		{ value: "b", label: "Banana" },
+		{ value: "c", label: "Cherry" },
+	];
+	const stableValue = ["a"];
+
+	function UnrelatedStateHarness() {
+		const [tick, setTick] = useState(0);
+		return (
+			<>
+				<button type="button" onClick={() => setTick((current) => current + 1)}>
+					tick {tick}
+				</button>
+				<SelectableList.Root
+					options={stableOptions}
+					value={stableValue}
+					// Fresh inline callbacks on every render: the common form-integration shape.
+					onValueChange={() => {}}
+					onQueryChange={() => {}}
+				>
+					<SelectableList.Viewport aria-label="Fruit" />
+				</SelectableList.Root>
+			</>
+		);
+	}
+
+	test("inline onValueChange/onQueryChange do not re-render the rows on an unrelated parent render", async () => {
+		// Regression: `commitSelection` and `setQuery` used to depend on the raw
+		// callback props, so a new inline callback rebuilt the context and every
+		// mounted `Item` re-rendered.
+		const user = userEvent.setup();
+		render(<UnrelatedStateHarness />);
+		const rendersAfterMount = checkboxRenders.count;
+		expect(rendersAfterMount).toBeGreaterThanOrEqual(stableOptions.length);
+
+		await user.click(screen.getByRole("button", { name: "tick 0" }));
+		expect(screen.getByRole("button", { name: "tick 1" })).toBeInTheDocument();
+
+		expect(checkboxRenders.count).toBe(rendersAfterMount);
+	});
+
+	test("the stable callbacks still reach the latest inline handler", async () => {
+		// The stable wrapper must call the callback from the most recent render,
+		// not the one captured on mount.
+		const user = userEvent.setup();
+		const first = vi.fn<(values: string[]) => void>();
+		const latest = vi.fn<(values: string[]) => void>();
+		const { rerender } = render(
+			<SelectableList.Root options={stableOptions} value={stableValue} onValueChange={first}>
+				<SelectableList.Viewport aria-label="Fruit" />
+			</SelectableList.Root>,
+		);
+		rerender(
+			<SelectableList.Root options={stableOptions} value={stableValue} onValueChange={latest}>
+				<SelectableList.Viewport aria-label="Fruit" />
+			</SelectableList.Root>,
+		);
+
+		await user.click(screen.getByRole("checkbox", { name: "Banana" }));
+
+		expect(first).not.toHaveBeenCalled();
+		expect(latest).toHaveBeenCalledTimes(1);
+		expect(latest).toHaveBeenLastCalledWith(["a", "b"]);
+	});
+});
+
+describe("SelectableList.VirtualViewport server render", () => {
+	const thirtyOptions = Array.from({ length: 30 }, (_, index) => ({
+		value: `key-${index}`,
+		label: `Key ${index}`,
+	}));
+
+	test("renders the first slice of rows, not an empty grid", () => {
+		// Regression: the virtualizer measured the viewport only in a layout
+		// effect, so the server HTML carried `aria-rowcount` and a tall empty
+		// grid with zero rows.
+		const html = renderToString(
+			<SelectableList.Root options={thirtyOptions}>
+				<SelectableList.VirtualViewport aria-label="Keys" />
+			</SelectableList.Root>,
+		);
+		const template = document.createElement("template");
+		template.innerHTML = html;
+
+		const grid = template.content.querySelector('[role="grid"]');
+		expect(grid).toHaveAttribute("aria-rowcount", "30");
+		const rows = template.content.querySelectorAll('[role="row"]');
+		expect(rows.length).toBeGreaterThan(0);
+		// Still windowed: the server does not fall back to rendering every row.
+		expect(rows.length).toBeLessThan(thirtyOptions.length);
+		expect(rows[0]).toHaveAttribute("aria-rowindex", "1");
+		expect(rows[0]?.querySelector('input[type="checkbox"]')).not.toBeNull();
 	});
 });
 

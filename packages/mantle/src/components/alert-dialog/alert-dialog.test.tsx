@@ -57,6 +57,48 @@ describe("AlertDialog", () => {
 		expect(dialog).toHaveAccessibleDescription("This cannot be undone.");
 	});
 
+	test("the content carries no aria-describedby when no Description is rendered", async () => {
+		const user = userEvent.setup();
+		render(
+			<AlertDialog.Root intent="danger">
+				<AlertDialog.Trigger>Delete</AlertDialog.Trigger>
+				<AlertDialog.Content>
+					<AlertDialog.Body>
+						<AlertDialog.Header>
+							<AlertDialog.Title>Delete this endpoint?</AlertDialog.Title>
+						</AlertDialog.Header>
+					</AlertDialog.Body>
+				</AlertDialog.Content>
+			</AlertDialog.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Delete" }));
+
+		const dialog = await screen.findByRole("alertdialog");
+		expect(dialog).not.toHaveAttribute("aria-describedby");
+	});
+
+	test("an explicit aria-describedby on the content wins over the Radix default", async () => {
+		const user = userEvent.setup();
+		render(
+			<AlertDialog.Root intent="danger">
+				<AlertDialog.Trigger>Delete</AlertDialog.Trigger>
+				<AlertDialog.Content aria-describedby="custom-description">
+					<AlertDialog.Body>
+						<AlertDialog.Header>
+							<AlertDialog.Title>Delete this endpoint?</AlertDialog.Title>
+							<p id="custom-description">Removes the endpoint for good.</p>
+						</AlertDialog.Header>
+					</AlertDialog.Body>
+				</AlertDialog.Content>
+			</AlertDialog.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Delete" }));
+
+		const dialog = await screen.findByRole("alertdialog");
+		expect(dialog).toHaveAttribute("aria-describedby", "custom-description");
+		expect(dialog).toHaveAccessibleDescription("Removes the endpoint for good.");
+	});
+
 	describe("dismissal", () => {
 		function renderDismissible() {
 			const handleOpenChange = vi.fn<(open: boolean) => void>();

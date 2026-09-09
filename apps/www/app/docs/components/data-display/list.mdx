@@ -299,6 +299,8 @@ List.Root   (or .VirtualRoot)
 
 `List.Root` renders every row: simplest, and right for the short lists most action/navigation menus are. For a long list (hundreds+ of rows), swap in `List.VirtualRoot`: it windows the same `Item` children via [`@tanstack/react-virtual`](https://tanstack.com/virtual), mounting only what's visible. The call site is otherwise identical: same children, same props. (`@tanstack/react-virtual` ships with every list entrypoint; it is small, a few kB gzipped, and does no windowing work until a `VirtualRoot` renders.)
 
+On the server, `VirtualRoot` renders the first slice of rows, sized by `estimateItemHeight` and `overscan`. The rest mount after hydration measures the viewport. `Root` renders every row in the server HTML. If the whole list must be in that HTML (for find-in-page, or for a reader without JavaScript), pick `Root`.
+
 <Example>
 	<ListVirtualExample />
 </Example>
@@ -386,11 +388,11 @@ Bound the height (e.g. `className="max-h-80"`) so long lists scroll.
 
 The windowed container — same surface as `Root` (compose the same `Item` children), plus the virtualizer knobs:
 
-| Prop                  | Type        | Default | Description                                                             |
-| --------------------- | ----------- | ------- | ----------------------------------------------------------------------- |
-| `children`            | `ReactNode` |         | `List.Item` rows (only the visible window is mounted).                  |
-| `estimateItemHeight?` | `number`    | `44`    | Estimated item height (px) used to seed the virtualizer before measure. |
-| `overscan?`           | `number`    | `8`     | Rows rendered beyond the visible window on each side.                   |
+| Prop                  | Type        | Default | Description                                                                                                                             |
+| --------------------- | ----------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `children`            | `ReactNode` |         | `List.Item` rows (only the visible window is mounted).                                                                                  |
+| `estimateItemHeight?` | `number`    | `44`    | Estimated item height (px) used to seed the virtualizer before measure. With `overscan`, it also sizes the server-rendered first slice. |
+| `overscan?`           | `number`    | `8`     | Rows rendered beyond the visible window on each side.                                                                                   |
 
 ### List.Item
 

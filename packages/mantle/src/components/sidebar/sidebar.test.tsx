@@ -255,9 +255,9 @@ describe("Sidebar.Nav (desktop)", () => {
 
 	describe("Trigger aria-keyshortcuts", () => {
 		test("advertises Control+B in the server render", () => {
-			// The server cannot know the platform, so it renders the non-Apple answer
-			// and corrects itself in an effect; post-mount state cannot observe the
-			// render path.
+			// The server cannot know the platform, so the server snapshot is the
+			// non-Apple answer. React corrects it once after hydration. Post-mount
+			// state cannot see this render path, so `renderToString` must.
 			const html = renderToString(
 				<TooltipProvider>
 					<Sidebar.Root>

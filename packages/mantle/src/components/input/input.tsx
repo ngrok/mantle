@@ -13,7 +13,7 @@ import type {
 } from "react";
 import { createContext, useContext, useMemo, useRef } from "react";
 import { parseBooleanish } from "../../types/booleanish.js";
-import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
@@ -105,6 +105,7 @@ const InputCapture = ({
 		...restProps,
 		type: restProps.type ?? ctx.type ?? "text",
 	};
+	const composedRef = useComposedRefs(ref, ctxForwardedRef, ctxInnerRef);
 
 	return (
 		<input
@@ -115,7 +116,7 @@ const InputCapture = ({
 				"placeholder:text-placeholder min-w-0 flex-1 bg-transparent text-left autofill:shadow-[inset_0_0_0px_1000px_var(--color-blue-50)] focus:outline-hidden",
 				className,
 			)}
-			ref={composeRefs(ref, ctxForwardedRef, ctxInnerRef)}
+			ref={composedRef}
 			{...props}
 		/>
 	);

@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { Sheet } from "../sheet/sheet.js";
 import { MultiSelect } from "./multi-select.js";
@@ -19,6 +19,20 @@ const restoreAttributes = (element: HTMLElement, attributes: Map<string, string>
 	for (const [name, value] of attributes) {
 		element.setAttribute(name, value);
 	}
+};
+
+/**
+ * Finds a tag's option span via its remove button's aria-label, which is
+ * the most reliable anchor since the span's own accessible name varies by
+ * ARIA implementation.
+ */
+const getTagOption = (value: string): HTMLElement => {
+	const removeBtn = screen.getByLabelText(`Remove ${value}`);
+	const tagElement = removeBtn.closest<HTMLElement>('[role="listitem"]');
+	if (tagElement == null) {
+		throw new Error(`Tag option for "${value}" not found`);
+	}
+	return tagElement;
 };
 
 describe("MultiSelect", () => {
@@ -214,20 +228,6 @@ describe("MultiSelect", () => {
 		};
 
 		/**
-		 * Finds a tag's option span via its remove button's aria-label, which is
-		 * the most reliable anchor since the span's own accessible name varies by
-		 * ARIA implementation.
-		 */
-		const getTagOption = (value: string): HTMLElement => {
-			const removeBtn = screen.getByLabelText(`Remove ${value}`);
-			const tagElement = removeBtn.closest<HTMLElement>('[role="listitem"]');
-			if (tagElement == null) {
-				throw new Error(`Tag option for "${value}" not found`);
-			}
-			return tagElement;
-		};
-
-		/**
 		 * Waits for one rAF tick after the component's rAF has already been
 		 * scheduled. Because the browser/happy-dom processes rAF callbacks
 		 * FIFO, this resolves only after the focusTag callback has fired.
@@ -357,6 +357,211 @@ describe("MultiSelect", () => {
 			await waitForRaf();
 			expect(screen.queryByLabelText("Remove cherry")).not.toBeInTheDocument();
 			expect(screen.getByRole("combobox")).toHaveFocus();
+		});
+	});
+
+	describe("locked values", () => {
+		// Why hoisted items: a memoized or compiled consumer keeps one element per `Item`
+		// across renders. React bails out of the render on that identity, so the lock must
+		// reach the `Item` through context, not through a parent re-render.
+		const hoistedItems = (
+			<>
+				<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+				<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
+			</>
+		);
+
+		const LockableSubject = ({
+			initialValues = ["apple"],
+			lockedValues = [],
+		}: {
+			initialValues?: string[];
+			lockedValues?: string[];
+		}) => {
+			const [values, setValues] = useState(initialValues);
+			return (
+				<MultiSelect.Root selectedValue={values} setSelectedValue={setValues}>
+					<MultiSelect.Trigger>
+						<MultiSelect.TagValues lockedValues={lockedValues} />
+						<MultiSelect.Input placeholder="Select items..." />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>{hoistedItems}</MultiSelect.Content>
+				</MultiSelect.Root>
+			);
+		};
+
+		const getAppleOption = () =>
+			within(screen.getByRole("listbox")).getByRole("option", { name: "Apple" });
+
+		test("locking a value while the popover is open keeps its item selected on click", async () => {
+			const user = userEvent.setup();
+			const { rerender } = render(<LockableSubject />);
+			await user.click(screen.getByRole("combobox"));
+			await screen.findByRole("listbox");
+			expect(getAppleOption()).toHaveAttribute("aria-selected", "true");
+
+			rerender(<LockableSubject lockedValues={["apple"]} />);
+
+			await user.click(getAppleOption());
+			expect(getAppleOption()).toHaveAttribute("aria-selected", "true");
+			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
+		});
+
+		test("unlocking a value while the popover is open lets a click deselect its item", async () => {
+			const user = userEvent.setup();
+			const { rerender } = render(<LockableSubject lockedValues={["apple"]} />);
+			await user.click(screen.getByRole("combobox"));
+			await screen.findByRole("listbox");
+			expect(getAppleOption()).toHaveAttribute("aria-selected", "true");
+
+			rerender(<LockableSubject lockedValues={[]} />);
+
+			await user.click(getAppleOption());
+			expect(getAppleOption()).toHaveAttribute("aria-selected", "false");
+			expect(screen.queryByLabelText("Remove apple")).not.toBeInTheDocument();
+		});
+
+		test("Backspace on an empty input removes the last tag once it is unlocked", async () => {
+			const user = userEvent.setup();
+			const { rerender } = render(<LockableSubject lockedValues={["apple"]} />);
+			await user.click(screen.getByRole("combobox"));
+			await user.keyboard("{Backspace}");
+			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
+
+			rerender(<LockableSubject lockedValues={[]} />);
+
+			await user.keyboard("{Backspace}");
+			expect(screen.queryByLabelText("Remove apple")).not.toBeInTheDocument();
+		});
+
+		test("unmounting TagValues releases its locks in the popover", async () => {
+			const user = userEvent.setup();
+			const Subject = ({ showTags }: { showTags: boolean }) => {
+				const [values, setValues] = useState(["apple"]);
+				return (
+					<MultiSelect.Root selectedValue={values} setSelectedValue={setValues}>
+						<MultiSelect.Trigger>
+							{showTags && <MultiSelect.TagValues lockedValues={["apple"]} />}
+							<MultiSelect.Input placeholder="Select items..." />
+						</MultiSelect.Trigger>
+						<MultiSelect.Content>{hoistedItems}</MultiSelect.Content>
+					</MultiSelect.Root>
+				);
+			};
+			const { rerender } = render(<Subject showTags />);
+			await user.click(screen.getByRole("combobox"));
+			await screen.findByRole("listbox");
+
+			rerender(<Subject showTags={false} />);
+
+			await user.click(getAppleOption());
+			expect(getAppleOption()).toHaveAttribute("aria-selected", "false");
+		});
+
+		test("a lock reaches an Item that renders before TagValues", async () => {
+			const user = userEvent.setup();
+			// Why `portal={false}` and `open`: Ariakit's portal mounts the popover children
+			// one commit later, after `TagValues` publishes its locks. Rendering in place
+			// with the popover open puts the `Item` ahead of `TagValues` in the first commit.
+			const Subject = () => {
+				const [values, setValues] = useState(["apple"]);
+				return (
+					<MultiSelect.Root open selectedValue={values} setSelectedValue={setValues}>
+						<MultiSelect.Content portal={false}>{hoistedItems}</MultiSelect.Content>
+						<MultiSelect.Trigger>
+							<MultiSelect.TagValues lockedValues={["apple"]} />
+							<MultiSelect.Input placeholder="Select items..." />
+						</MultiSelect.Trigger>
+					</MultiSelect.Root>
+				);
+			};
+			render(<Subject />);
+			await screen.findByRole("listbox");
+
+			await user.click(getAppleOption());
+			expect(getAppleOption()).toHaveAttribute("aria-selected", "true");
+			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
+		});
+	});
+
+	test("unmounting TagValues drops its Backspace handler from the input", async () => {
+		const user = userEvent.setup();
+		const setSelectedValue = vi.fn<(value: string[]) => void>();
+		const Subject = ({ showTags }: { showTags: boolean }) => (
+			<MultiSelect.Root
+				defaultSelectedValue={["apple", "banana"]}
+				setSelectedValue={setSelectedValue}
+			>
+				<MultiSelect.Trigger>
+					{showTags && <MultiSelect.TagValues />}
+					<MultiSelect.Input placeholder="Select items..." />
+				</MultiSelect.Trigger>
+			</MultiSelect.Root>
+		);
+		const { rerender } = render(<Subject showTags />);
+		expect(screen.getByLabelText("Remove banana")).toBeInTheDocument();
+
+		rerender(<Subject showTags={false} />);
+
+		await user.click(screen.getByRole("combobox"));
+		// Why the focus guard: the zero-call assertion below also passes when the
+		// keystroke never reaches the input.
+		expect(screen.getByRole("combobox")).toHaveFocus();
+		await user.keyboard("{Backspace}");
+		expect(setSelectedValue).toHaveBeenCalledTimes(0);
+	});
+
+	describe("custom tag renderer", () => {
+		const CustomSubject = ({
+			initialValues,
+			lockedValues = [],
+		}: {
+			initialValues: string[];
+			lockedValues?: string[];
+		}) => {
+			const [values, setValues] = useState(initialValues);
+			return (
+				<MultiSelect.Root selectedValue={values} setSelectedValue={setValues}>
+					<MultiSelect.Trigger>
+						<MultiSelect.TagValues lockedValues={lockedValues}>
+							{(props) => <MultiSelect.Tag key={props.value} {...props} />}
+						</MultiSelect.TagValues>
+						<MultiSelect.Input placeholder="Select items..." />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+						<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
+						<MultiSelect.Item value="cherry">Cherry</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>
+			);
+		};
+
+		test("the render props carry the lock, the focus registration, and both removal paths", async () => {
+			const user = userEvent.setup();
+			render(
+				<CustomSubject initialValues={["apple", "banana", "cherry"]} lockedValues={["apple"]} />,
+			);
+			// `locked` reaches the tag
+			expect(screen.getByLabelText("Remove apple")).toHaveAttribute("aria-disabled", "true");
+			expect(screen.getByLabelText("Remove cherry")).not.toHaveAttribute("aria-disabled");
+			// `ref` registers the tag, so ArrowLeft from the input can focus it
+			fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowLeft" });
+			expect(getTagOption("cherry")).toHaveFocus();
+			// `onKeyDown` removes the focused tag
+			await user.keyboard("{Backspace}");
+			expect(screen.queryByLabelText("Remove cherry")).not.toBeInTheDocument();
+			// `onRemove` removes the tag whose button the user clicked
+			await user.click(screen.getByLabelText("Remove banana"));
+			expect(screen.queryByLabelText("Remove banana")).not.toBeInTheDocument();
+			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
+		});
+
+		test("clicking a custom tag opens the popover", async () => {
+			const user = userEvent.setup();
+			render(<CustomSubject initialValues={["apple"]} />);
+			await user.click(getTagOption("apple"));
+			expect(await screen.findByRole("listbox")).toBeInTheDocument();
 		});
 	});
 

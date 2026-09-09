@@ -216,12 +216,28 @@ const Root = (props: AccordionRootProps) => {
 	const [internalOpenValues, setInternalOpenValues] = useState<readonly string[]>(() =>
 		toOpenValues(defaultValue),
 	);
-	const openValues = isControlled ? toOpenValues(value) : internalOpenValues;
+	// Why the memo: `toOpenValues` wraps a controlled single `value` in a fresh
+	// array, and a fresh array on every render misses the context memo below.
+	const openValues = useMemo(
+		() => (isControlled ? toOpenValues(value) : internalOpenValues),
+		[isControlled, value, internalOpenValues],
+	);
 
-	// `props` is intentionally a dependency: it carries the latest, correctly-typed
-	// `onValueChange` (see `emitValueChange`). The memo only exists to satisfy
-	// `react/jsx-no-constructed-context-values`; recomputing per render is fine at
-	// accordion scale.
+	// Why a ref: `emitValueChange` needs the whole discriminated `props` for its
+	// `onValueChange` typing. `props` is a new object on every render. As a memo
+	// dependency it re-creates `setItemOpen` on every parent render. Every
+	// `Content` then re-subscribes to `beforematch`. `setItemOpen` only runs
+	// from event handlers, which fire after the layout effect writes the ref, so
+	// it always reads the current `onValueChange`.
+	// Why not `useCallbackRef`: it writes its ref in a passive effect. A commit
+	// from a non-discrete update defers passive effects to a later task, and a
+	// click in that gap reads the previous render's `onValueChange`. The layout
+	// effect closes the gap.
+	const propsRef = useRef(props);
+	useIsomorphicLayoutEffect(() => {
+		propsRef.current = props;
+	});
+
 	const context = useMemo<AccordionContextValue>(() => {
 		const setItemOpen = (itemValue: string, open: boolean) => {
 			const next = nextOpenValues(openValues, itemValue, open, type);
@@ -231,10 +247,10 @@ const Root = (props: AccordionRootProps) => {
 			if (!isControlled) {
 				setInternalOpenValues(next);
 			}
-			emitValueChange(props, next);
+			emitValueChange(propsRef.current, next);
 		};
 		return { type, openValues, setItemOpen };
-	}, [type, openValues, isControlled, props]);
+	}, [type, openValues, isControlled]);
 
 	const containerProps = {
 		...domProps,

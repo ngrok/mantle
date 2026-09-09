@@ -2,6 +2,8 @@
 
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import { createRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { CodeBlock } from "./code-block.js";
 import { createMantleCodeBlockValue } from "./mantle-code.js";
@@ -149,6 +151,28 @@ describe("CodeBlock", () => {
 			);
 
 			expect(document.querySelector("pre")).toHaveAttribute("translate", "no");
+		});
+
+		test("calls a callback ref once for the mount, not once per re-render", async () => {
+			const user = userEvent.setup();
+			const refSpy = vi.fn<(node: HTMLPreElement | null) => void>();
+
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code ref={refSpy} value={makeValue("const x = 1;")} />
+					</CodeBlock.Body>
+					<CodeBlock.ExpanderButton />
+				</CodeBlock.Root>,
+			);
+
+			// The expander's registration re-renders `Code` once after mount, and the
+			// click re-renders it again. An inline `composeRefs` detaches and
+			// re-attaches the consumer's ref on each of those.
+			await user.click(screen.getByRole("button", { name: "Show more" }));
+
+			expect(refSpy).toHaveBeenCalledTimes(1);
+			expect(refSpy).toHaveBeenLastCalledWith(document.querySelector("pre"));
 		});
 	});
 
@@ -317,10 +341,10 @@ describe("CodeBlock", () => {
 		});
 
 		test("fires onCopyError when clipboard write fails", async () => {
-			const originalWriteText = navigator.clipboard.writeText;
-			navigator.clipboard.writeText = () => Promise.reject(new Error("clipboard denied"));
-
+			// Why after setup: when this test runs first, `userEvent.setup()` swaps in
+			// its own clipboard stub and drops a patch installed before it.
 			const user = userEvent.setup();
+			vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("clipboard denied"));
 			const onCopyError = vi.fn<(error: unknown) => void>();
 
 			render(
@@ -337,8 +361,33 @@ describe("CodeBlock", () => {
 
 			expect(onCopyError).toHaveBeenCalledOnce();
 			expect(onCopyError.mock.calls[0]?.[0]).toBeInstanceOf(Error);
+		});
 
-			navigator.clipboard.writeText = originalWriteText;
+		test("routes a throw from onClick into onCopyError and skips onCopy", async () => {
+			const user = userEvent.setup();
+			const onCopy = vi.fn<() => void>();
+			const onCopyError = vi.fn<(error: unknown) => void>();
+
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.CopyButton
+							onCopy={onCopy}
+							onCopyError={onCopyError}
+							onClick={() => {
+								throw new Error("boom");
+							}}
+						/>
+						<CodeBlock.Code value={makeValue("code")} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			await user.click(screen.getByRole("button", { name: /copy code/i }));
+
+			expect(onCopyError).toHaveBeenCalledOnce();
+			expect(onCopyError.mock.calls[0]?.[0]).toBeInstanceOf(Error);
+			expect(onCopy).not.toHaveBeenCalled();
 		});
 
 		test("does not fire onCopy when onClick calls preventDefault", async () => {
@@ -393,6 +442,41 @@ describe("CodeBlock", () => {
 		});
 	});
 
+	describe("TabContent", () => {
+		test("a tab switch remounts Code without tripping the single-Code guard", async () => {
+			const user = userEvent.setup();
+
+			render(
+				<CodeBlock.Root defaultTab="a">
+					<CodeBlock.Header>
+						<CodeBlock.TabList>
+							<CodeBlock.TabTrigger value="a">example.ts</CodeBlock.TabTrigger>
+							<CodeBlock.TabTrigger value="b">example.json</CodeBlock.TabTrigger>
+						</CodeBlock.TabList>
+					</CodeBlock.Header>
+					<CodeBlock.Body>
+						<CodeBlock.TabContent value="a">
+							<CodeBlock.Code value={makeValue("const a = 1;")} />
+						</CodeBlock.TabContent>
+						<CodeBlock.TabContent value="b">
+							<CodeBlock.Code value={makeValue("const b = 2;")} />
+						</CodeBlock.TabContent>
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			expect(document.querySelectorAll("pre")).toHaveLength(1);
+			expect(document.querySelector("code")).toHaveTextContent("const a = 1;");
+
+			await user.click(screen.getByRole("tab", { name: "example.json" }));
+
+			// Why this pins the guard: the inactive Code unregisters before the active
+			// one registers, so a lost decrement makes this mount throw.
+			expect(document.querySelectorAll("pre")).toHaveLength(1);
+			expect(document.querySelector("code")).toHaveTextContent("const b = 2;");
+		});
+	});
+
 	describe("ExpanderButton", () => {
 		test("owns the ARIA state and points at the <pre>, which carries data-state instead", async () => {
 			const user = userEvent.setup();
@@ -434,6 +518,64 @@ describe("CodeBlock", () => {
 			);
 
 			expect(document.querySelector("pre")).not.toHaveAttribute("data-state");
+		});
+
+		test("points aria-controls at the <pre> id in the server HTML", () => {
+			// Why renderToString: `render` runs every effect before the first assertion,
+			// so it cannot see an id that reaches the button only after mount.
+			const html = renderToString(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code value={makeValue("const x = 1;")} />
+					</CodeBlock.Body>
+					<CodeBlock.ExpanderButton />
+				</CodeBlock.Root>,
+			);
+			const template = document.createElement("template");
+			template.innerHTML = html;
+			const pre = template.content.querySelector("pre");
+			const button = template.content.querySelector('[data-slot="code-block-expander-button"]');
+			if (pre == null || button == null) {
+				throw new Error("expected the <pre> and the expander button in the server HTML");
+			}
+
+			const preId = pre.getAttribute("id") ?? "";
+			expect(preId).not.toBe("");
+			expect(button).toHaveAttribute("aria-controls", preId);
+		});
+
+		test("stamps data-state on the <pre> in the same task as the mount commit", async () => {
+			// Why not `render`: its `act()` flushes layout and passive effects together,
+			// so it cannot tell which one wrote the attribute. `MutationObserver`
+			// reports in the microtask right after the commit, before React runs a
+			// passive effect in a later task. A passive registration paints one frame
+			// at full height; a layout effect re-renders before paint.
+			vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", false);
+			const container = document.createElement("div");
+			document.body.appendChild(container);
+			const firstObservedState = new Promise<string | null>((resolve) => {
+				const observer = new MutationObserver(() => {
+					observer.disconnect();
+					resolve(container.querySelector("pre")?.getAttribute("data-state") ?? null);
+				});
+				observer.observe(container, { attributes: true, childList: true, subtree: true });
+			});
+			const root = createRoot(container);
+			root.render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code value={makeValue("const x = 1;")} />
+					</CodeBlock.Body>
+					<CodeBlock.ExpanderButton />
+				</CodeBlock.Root>,
+			);
+
+			try {
+				await expect(firstObservedState).resolves.toBe("collapsed");
+			} finally {
+				root.unmount();
+				container.remove();
+			}
 		});
 	});
 });

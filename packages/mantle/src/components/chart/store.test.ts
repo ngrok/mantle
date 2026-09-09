@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import type { SeriesSpec } from "./types.js";
 import { assignSeriesSlots, ChartStore, displayColor, displayShape } from "./store.js";
 
@@ -236,6 +236,37 @@ describe("ChartStore series presentation", () => {
 		expect(meta.map((series) => store.seriesShape(series.dataKey))).toStrictEqual(
 			meta.map((series) => series.shape),
 		);
+	});
+
+	test("seriesShape reads the published snapshot instead of resolving slots again", () => {
+		// The engine calls it per series on every painted frame, so it must not
+		// rebuild the sorted specs and the slot assignment each time.
+		const store = new ChartStore();
+		store.registerSeries(makeSeries("requests"));
+		store.registerSeries(makeSeries("errors", { shape: "star" }));
+		const seriesSpecs = vi.spyOn(store, "seriesSpecs");
+		expect(store.seriesShape("requests")).toBe("circle");
+		expect(store.seriesShape("errors")).toBe("star");
+		expect(seriesSpecs).toHaveBeenCalledTimes(0);
+	});
+
+	test("seriesShape follows a series that leaves", () => {
+		// The snapshot must be current when the engine paints: if a removal does
+		// not republish, the canvas keeps the old glyph.
+		const store = new ChartStore();
+		const unregisterRequests = store.registerSeries(makeSeries("requests"));
+		store.registerSeries(makeSeries("errors"));
+		expect(store.seriesShape("errors")).toBe("square");
+		unregisterRequests();
+		expect(store.seriesShape("errors")).toBe("circle");
+	});
+
+	test("seriesShape gives an unregistered key the shared other glyph", () => {
+		const store = new ChartStore();
+		// A glyph that differs from the fallback: a lookup that fell back to the
+		// first registered series returns "star" here.
+		store.registerSeries(makeSeries("requests", { shape: "star" }));
+		expect(store.seriesShape("missing")).toBe("circle");
 	});
 
 	test("a new series vocabulary starts at the first slot", () => {

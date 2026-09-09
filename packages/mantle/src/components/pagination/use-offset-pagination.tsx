@@ -192,6 +192,11 @@ function useOffsetPagination({
 	// both props, and `onPageChange` then runs twice for one reset.
 	const previousPageSize = useRef(pageSize);
 	const previousListSize = useRef(listSize);
+	// Why an effect and not derived state: `setPageSize` can override the prop, so
+	// `currentPageSize` is state. The reset calls `onPageChange`, an external
+	// callback that must not run during render. For a `pageSize` change alone,
+	// the transitional render repeats the last commit, so a consumer effect keyed
+	// on `offset` or `pageSize` fires once.
 	useEffect(() => {
 		const pageSizeChanged = previousPageSize.current !== pageSize;
 		const listSizeChanged = previousListSize.current !== listSize;

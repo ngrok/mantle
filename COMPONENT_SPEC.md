@@ -476,9 +476,9 @@ Errors are control flow. `console.error` is not error handling.
 - An icon-only control makes its screen-reader label a **required** prop.
 - A virtualized collection announces `aria-posinset` / `aria-setsize` so it still reads as the whole set.
 - Any animation or transition honors reduced motion — `usePrefersReducedMotion` (which returns `true` on the
-  server and first paint, so nothing animates before the real preference is known) or a `motion-reduce:`
-  variant. The library publishes this promise on the Accessibility page; it is untested unless you test it
-  ([§8](#8-tests)).
+  server and in the hydration render, so nothing animates before the real preference is known) or a
+  `motion-reduce:` variant. The library publishes this promise on the Accessibility page; it is untested
+  unless you test it ([§8](#8-tests)).
 - Interactive state is styled through the custom Tailwind variants that match the DOM the headless layer
   actually emits (`data-state-*`, `aria-*`), not through JS-toggled classes.
 

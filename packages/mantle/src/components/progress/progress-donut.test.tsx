@@ -60,6 +60,17 @@ describe("ProgressDonut.Root", () => {
 		expect(donut).toHaveAttribute("data-slot", "progress-donut");
 	});
 
+	test("the track circle carries --radius derived from strokeWidth", () => {
+		render(
+			<ProgressDonut.Root aria-label="Data transfer out" value={40} strokeWidth={4}>
+				<ProgressDonut.Indicator />
+			</ProgressDonut.Root>,
+		);
+		const track = screen.getByRole("progressbar").querySelector("circle");
+		expect(track).not.toBeNull();
+		expect(track?.style.getPropertyValue("--radius")).toBe("calc(50% - 2px)");
+	});
+
 	test("omits aria-valuenow and data-value while indeterminate", () => {
 		render(<ProgressDonut.Root aria-label="Data transfer out" value="indeterminate" />);
 		const donut = screen.getByRole("progressbar");

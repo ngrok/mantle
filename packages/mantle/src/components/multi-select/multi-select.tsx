@@ -4,7 +4,14 @@ import * as Primitive from "@ariakit/react";
 import { CheckIcon } from "@phosphor-icons/react/Check";
 import { LockIcon } from "@phosphor-icons/react/Lock";
 import { XIcon } from "@phosphor-icons/react/X";
-import type { ComponentProps, KeyboardEvent, ReactNode, RefObject } from "react";
+import type {
+	ComponentProps,
+	Dispatch,
+	KeyboardEvent,
+	ReactNode,
+	RefObject,
+	SetStateAction,
+} from "react";
 import {
 	createContext,
 	useCallback,
@@ -15,6 +22,7 @@ import {
 	useState,
 } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -33,30 +41,37 @@ const isStringArray = (value: unknown): value is string[] =>
 /** Stable empty array used as a fallback for `selectedValues` to avoid creating new arrays on every render. */
 const EMPTY_ARRAY: string[] = [];
 
+/** Whether two arrays hold the same items in the same order. */
+const haveSameItems = (first: readonly string[], second: readonly string[]): boolean =>
+	first.length === second.length && first.every((item, index) => item === second[index]);
+
 const TriggerRefContext = createContext<RefObject<HTMLDivElement | null>>({ current: null });
 
 /**
- * Shared ref for locked values. Written by `TagValues` during render so that `Item` can read
- * it synchronously and prevent deselection of locked values from the popover.
- * Using a ref (instead of state) avoids re-renders and keeps the write safe in render.
+ * The `lockedValues` that `TagValues` publishes, read by `Item` to keep a locked value
+ * selected when the user clicks it in the popover. `Root` owns the state, so a change
+ * re-renders every `Item`, even one whose element a memoized consumer keeps across renders.
  */
-const LockedValuesContext = createContext<{ current: string[] }>({ current: [] });
+const LockedValuesContext = createContext<string[]>(EMPTY_ARRAY);
 
 /**
- * Bridges keyboard-nav state between `TagValues` and `Input`, which are siblings in the tree
- * and cannot communicate via a context that either one provides — it must come from a shared
- * ancestor (`Root`). Both refs are written by one side and read by the other:
- *   - `onInputKeyDownRef`: written by `TagValues`, called by `Input` on keydown
- *   - `inputRef`: written by `Input` (registers its DOM node), read by `TagValues` (to focus it)
+ * Bridges `TagValues` with `Input` and `Item`. The three render in other branches of the
+ * tree, so none of them can provide the context: it must come from the shared ancestor
+ * (`Root`). One part writes each member, and another reads it:
+ *   - `onInputKeyDownRef`: `TagValues` writes it in a layout effect, `Input` calls it on keydown
+ *   - `inputRef`: `Input` registers its DOM node, `TagValues` reads it to focus the input
+ *   - `setLockedValues`: `TagValues` publishes its `lockedValues` prop into `LockedValuesContext`
  */
 type TagBridgeContextValue = {
 	onInputKeyDownRef: { current: ((event: KeyboardEvent<HTMLInputElement>) => void) | undefined };
 	inputRef: { current: HTMLInputElement | null };
+	setLockedValues: Dispatch<SetStateAction<string[]>>;
 };
 
 const TagBridgeContext = createContext<TagBridgeContextValue>({
 	onInputKeyDownRef: { current: undefined },
 	inputRef: { current: null },
+	setLockedValues: () => {},
 });
 
 type MultiSelectProps = Primitive.ComboboxProviderProps<string[]>;
@@ -105,13 +120,13 @@ const Root = ({ children, defaultSelectedValue = EMPTY_ARRAY, ...props }: MultiS
 		undefined,
 	);
 	const inputRef = useRef<HTMLInputElement | null>(null);
-	const lockedValuesRef = useRef<string[]>([]);
-	const tagBridge = useMemo(() => ({ onInputKeyDownRef, inputRef }), []);
+	const [lockedValues, setLockedValues] = useState<string[]>(EMPTY_ARRAY);
+	const tagBridge = useMemo(() => ({ onInputKeyDownRef, inputRef, setLockedValues }), []);
 
 	return (
 		<TriggerRefContext.Provider value={triggerRef}>
 			<TagBridgeContext.Provider value={tagBridge}>
-				<LockedValuesContext.Provider value={lockedValuesRef}>
+				<LockedValuesContext.Provider value={lockedValues}>
 					<Primitive.ComboboxProvider<string[]>
 						defaultSelectedValue={defaultSelectedValue}
 						{...props}
@@ -362,6 +377,19 @@ type TagRenderProps = TagProps & {
 	ref: (node: HTMLSpanElement | null) => void;
 };
 
+type TagRendererProps = TagRenderProps & {
+	/** The `TagValues` render function. */
+	render: (props: TagRenderProps) => ReactNode;
+};
+
+/**
+ * Calls the `TagValues` render function from a child component, so the ref callback and the
+ * handlers reach it as props. Why not a call inside `TagValues`: those closures read refs. A
+ * function that receives them during render could call them during render, so the React
+ * Compiler skips `TagValues` while the call is there.
+ */
+const TagRenderer = ({ render, ...props }: TagRendererProps) => render(props);
+
 type MultiSelectTagValuesProps = {
 	/**
 	 * The accessible name of the tag list.
@@ -428,18 +456,33 @@ const TagValues = ({
 	const rawSelectedValue = Primitive.useStoreState(store, "selectedValue");
 	const selectedValues = isStringArray(rawSelectedValue) ? rawSelectedValue : undefined;
 	const selectedArray = selectedValues ?? EMPTY_ARRAY;
-	// Keep refs in sync so requestAnimationFrame callbacks always read fresh state
-	// instead of closing over stale values from the render they were scheduled in.
+	// Why a layout effect: the `requestAnimationFrame` callbacks below run after the
+	// removal commits and must read the committed array, not the one from the render
+	// that scheduled them.
 	const selectedArrayRef = useRef<string[]>(selectedArray);
-	selectedArrayRef.current = selectedArray;
-	// Use the shared LockedValuesContext ref so Item can also read locked values
-	// without a separate prop. Writing a ref during render is safe here because
-	// refs are mutable and don't trigger re-renders.
-	const lockedValuesRef = useContext(LockedValuesContext);
-	lockedValuesRef.current = lockedValues;
+	useIsomorphicLayoutEffect(() => {
+		selectedArrayRef.current = selectedArray;
+	}, [selectedArray]);
 	const lockedValuesSet = useMemo(() => new Set(lockedValues), [lockedValues]);
 	const tagRefs = useRef<Map<string, HTMLSpanElement>>(new Map());
-	const { onInputKeyDownRef, inputRef } = useContext(TagBridgeContext);
+	const { onInputKeyDownRef, inputRef, setLockedValues } = useContext(TagBridgeContext);
+	// Why publish through `Root` state: `lockedValues` is a prop of this part. `Item`
+	// renders in another branch of the tree, so only shared state reaches it. The updater
+	// keeps the previous array when the items match, so an inline `lockedValues` literal
+	// does not re-render every `Item` on each consumer render.
+	useIsomorphicLayoutEffect(() => {
+		setLockedValues((previous) =>
+			haveSameItems(previous, lockedValues) ? previous : lockedValues,
+		);
+	}, [lockedValues, setLockedValues]);
+	// Why its own effect: the locks leave with the tag list that owns them. A cleanup on
+	// the publish effect resets the state on every change and defeats the bail-out.
+	useIsomorphicLayoutEffect(
+		() => () => {
+			setLockedValues(EMPTY_ARRAY);
+		},
+		[setLockedValues],
+	);
 	// Track pending rAF IDs so we can cancel them on unmount and avoid calling
 	// focus() on detached DOM nodes if the component unmounts mid-frame.
 	const pendingRafsRef = useRef<Set<number>>(new Set());
@@ -590,7 +633,7 @@ const TagValues = ({
 		if (event.key === "Backspace" && event.currentTarget.value === "" && selectedArray.length > 0) {
 			const lastValue = selectedArray[selectedArray.length - 1];
 			if (lastValue != null) {
-				if (lockedValuesRef.current.includes(lastValue)) {
+				if (lockedValuesSet.has(lastValue)) {
 					// The last tag is locked — shake it to signal that removal is blocked.
 					const tagElement = tagRefs.current.get(lastValue);
 					if (tagElement) {
@@ -603,9 +646,15 @@ const TagValues = ({
 		}
 	};
 
-	// Write the latest handler into the bridge ref so Input can call it via onKeyDown.
-	// Assigned directly during render (safe — refs are mutable and don't trigger re-renders).
-	onInputKeyDownRef.current = handleInputKeyDown;
+	// Why a layout effect with a cleanup: the bridge must hold the latest handler before
+	// the next keydown. It must drop the handler when this part unmounts, so `Input` never
+	// calls a closure over a stale selection.
+	useIsomorphicLayoutEffect(() => {
+		onInputKeyDownRef.current = handleInputKeyDown;
+		return () => {
+			onInputKeyDownRef.current = undefined;
+		};
+	});
 
 	if (selectedArray.length === 0) {
 		return null;
@@ -645,7 +694,7 @@ const TagValues = ({
 				};
 
 				if (children) {
-					return children(tagOptionProps);
+					return <TagRenderer key={value} render={children} {...tagOptionProps} />;
 				}
 
 				return <Tag key={value} {...tagOptionProps} />;
@@ -811,20 +860,14 @@ const Content = ({
 	const triggerRef = useContext(TriggerRefContext);
 	const layerContainer = useLayerContainer();
 
-	// When the trigger lives inside a mantle modal (Dialog/Sheet), the modal
-	// already scroll-locks the body. Ariakit's own body scroll lock must stay
-	// off in that case: it snapshots body's inline style (including the
-	// modal's transient `pointer-events: none`) and re-applies that stale
-	// snapshot on an animation frame after unmount, permanently freezing the
-	// page (see multi-select.browser.test.tsx regression test).
-	// A non-null layer container also means an overlay encloses the trigger —
-	// `closest` alone misses that when the trigger sits in a float portaled
-	// into the overlay's positioner.
-	const [isInsideModalContent, setIsInsideModalContent] = useState(false);
-	useEffect(() => {
-		setIsInsideModalContent(triggerRef.current?.closest("[data-mantle-modal-content]") != null);
-	}, [triggerRef]);
-	const isInsideModal = isInsideModalContent || layerContainer != null;
+	// Why the layer container decides: every mantle overlay (`Dialog`, `Sheet`,
+	// `AlertDialog`) renders its content inside a `LayerContainer` and already
+	// locks body scroll. Ariakit's own lock must stay off inside one. It snapshots
+	// body's inline style, including the overlay's transient `pointer-events: none`,
+	// and re-applies that stale snapshot on an animation frame after unmount. That
+	// re-apply freezes the page (see the regression test in
+	// `multi-select.browser.test.tsx`).
+	const isInsideModal = layerContainer != null;
 
 	const getAnchorRect = useCallback(() => {
 		return triggerRef.current?.getBoundingClientRect() ?? null;
@@ -920,8 +963,8 @@ const Item = ({
 	ref,
 	...props
 }: MultiSelectItemProps) => {
-	const lockedValuesRef = useContext(LockedValuesContext);
-	const isLocked = value != null && lockedValuesRef.current.includes(value);
+	const lockedValues = useContext(LockedValuesContext);
+	const isLocked = value != null && lockedValues.includes(value);
 
 	return (
 		<Primitive.ComboboxItem

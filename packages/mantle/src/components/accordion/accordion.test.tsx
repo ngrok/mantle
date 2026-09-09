@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { renderToString } from "react-dom/server";
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { isItemOpen, nextOpenValues, toOpenValues } from "./accordion-state.js";
 import { Accordion } from "./accordion.js";
 
@@ -352,5 +352,96 @@ describe("Accordion", () => {
 		const itemB = screen.getByText("Body of section B").closest('[data-slot="accordion-item"]');
 		expect(itemA).toHaveAttribute("data-state", "open");
 		expect(itemB).toHaveAttribute("data-state", "open");
+	});
+});
+
+describe("Accordion Root context", () => {
+	const Sections = ({
+		controlled,
+		onValueChange,
+	}: {
+		controlled: boolean;
+		onValueChange?: (value: string) => void;
+	}) => {
+		const items = (
+			<>
+				<Accordion.Item value="a">
+					<Accordion.Trigger>Trigger A</Accordion.Trigger>
+					<Accordion.Content>
+						<Accordion.Body>Body of section A</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+				<Accordion.Item value="b">
+					<Accordion.Trigger>Trigger B</Accordion.Trigger>
+					<Accordion.Content data-testid="content-b">
+						<Accordion.Body>Body of section B</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+			</>
+		);
+		if (controlled) {
+			return (
+				<Accordion.Root type="single" value="a" onValueChange={onValueChange}>
+					{items}
+				</Accordion.Root>
+			);
+		}
+		return (
+			<Accordion.Root type="single" defaultValue="a" onValueChange={onValueChange}>
+				{items}
+			</Accordion.Root>
+		);
+	};
+
+	test("onValueChange reads the callback from the latest render", async () => {
+		const user = userEvent.setup();
+		const first = vi.fn<(value: string) => void>();
+		const second = vi.fn<(value: string) => void>();
+		const { rerender } = render(<Sections controlled={false} onValueChange={first} />);
+		rerender(<Sections controlled={false} onValueChange={second} />);
+
+		await user.click(screen.getByRole("button", { name: /Trigger B/ }));
+		expect(first).toHaveBeenCalledTimes(0);
+		expect(second).toHaveBeenCalledTimes(1);
+		expect(second).toHaveBeenLastCalledWith("b");
+	});
+
+	// happy-dom has no `beforematch`, so `supportsBeforeMatch()` reads false in
+	// the tests above. An own `onbeforematch` property on `document.body` flips
+	// the detection, which routes `Content` through its `beforematch`
+	// subscription and `hidden="until-found"` branches.
+	describe("with beforematch support", () => {
+		beforeEach(() => {
+			Object.defineProperty(document.body, "onbeforematch", { value: null, configurable: true });
+		});
+
+		// Why: Testing Library's cleanup keeps `document.body`, so without this the
+		// property leaks into the fallback-branch tests above.
+		afterEach(() => {
+			Reflect.deleteProperty(document.body, "onbeforematch");
+		});
+
+		test.each([
+			{ mode: "uncontrolled", controlled: false },
+			{ mode: "controlled single", controlled: true },
+		])(
+			"$mode: a parent render with unchanged props does not re-subscribe Content to beforematch",
+			({ controlled }) => {
+				const { rerender } = render(<Sections controlled={controlled} />);
+				const contentB = screen.getByTestId("content-b");
+				// Precondition: the collapsed region took the `until-found` branch, so
+				// the subscription the spy watches is live.
+				expect(contentB).toHaveAttribute("hidden", "until-found");
+				const addEventListener = vi.spyOn(contentB, "addEventListener");
+
+				rerender(<Sections controlled={controlled} />);
+				rerender(<Sections controlled={controlled} />);
+
+				const beforeMatchSubscriptions = addEventListener.mock.calls.filter(
+					([eventType]) => eventType === "beforematch",
+				);
+				expect(beforeMatchSubscriptions).toHaveLength(0);
+			},
+		);
 	});
 });

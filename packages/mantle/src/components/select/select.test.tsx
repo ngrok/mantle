@@ -32,6 +32,28 @@ describe("Select", () => {
 		expect(calls).toEqual(["trigger", "root"]);
 	});
 
+	test("callback refs on Select.Root and Select.Trigger fire once with the trigger across a re-render", () => {
+		const rootRefSpy = vi.fn<(node: HTMLButtonElement | null) => void>();
+		const triggerRefSpy = vi.fn<(node: HTMLButtonElement | null) => void>();
+		// Why a factory: React bails out of a re-render when it receives the same
+		// element object, so each render needs fresh elements with the same props.
+		const renderTree = () => (
+			<Select.Root ref={rootRefSpy}>
+				<Select.Trigger ref={triggerRefSpy}>
+					<Select.Value placeholder="Pick" />
+				</Select.Trigger>
+			</Select.Root>
+		);
+		const { rerender } = render(renderTree());
+		rerender(renderTree());
+
+		const trigger = screen.getByRole("combobox");
+		expect(triggerRefSpy).toHaveBeenCalledTimes(1);
+		expect(triggerRefSpy).toHaveBeenLastCalledWith(trigger);
+		expect(rootRefSpy).toHaveBeenCalledTimes(1);
+		expect(rootRefSpy).toHaveBeenLastCalledWith(trigger);
+	});
+
 	test('given validation={false}, renders a Select.Trigger with aria-invalid="false" and not have data-validation', () => {
 		render(
 			<Select.Root validation={false}>

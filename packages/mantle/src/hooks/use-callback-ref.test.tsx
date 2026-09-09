@@ -4,9 +4,10 @@ import { useCallbackRef } from "./use-callback-ref.js";
 
 describe("useCallbackRef", () => {
 	test("returns a stable function identity across re-renders", () => {
-		const { result, rerender } = renderHook(({ callback }) => useCallbackRef(callback), {
-			initialProps: { callback: () => "first" },
-		});
+		const { result, rerender } = renderHook(
+			({ callback }: { callback: () => string }) => useCallbackRef(callback),
+			{ initialProps: { callback: () => "first" } },
+		);
 		const first = result.current;
 
 		rerender({ callback: () => "second" });
@@ -34,6 +35,18 @@ describe("useCallbackRef", () => {
 
 		expect(result.current("x")).toBe("got:x");
 		expect(callback).toHaveBeenCalledWith("x");
+	});
+
+	test("accepts a callback with typed parameters and forwards them", () => {
+		// Why this test: `pnpm typecheck` covers test files, so a constraint of
+		// `(...args: unknown[]) => unknown` rejects this call under `strictFunctionTypes`.
+		const onValueChange = vi.fn<(values: string[]) => void>();
+		const { result } = renderHook(() => useCallbackRef(onValueChange));
+
+		result.current(["a", "b"]);
+
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenLastCalledWith(["a", "b"]);
 	});
 
 	test("is a safe no-op when no callback is provided", () => {

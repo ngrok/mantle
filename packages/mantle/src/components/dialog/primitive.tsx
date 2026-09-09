@@ -1,16 +1,7 @@
 "use client";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import {
-	type ComponentProps,
-	type ComponentPropsWithoutRef,
-	createContext,
-	type Ref,
-	useContext,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
+import type { ComponentProps, ComponentPropsWithoutRef, Ref } from "react";
 import { Slot } from "../slot/index.js";
 import { preventCloseOnPromptInteraction } from "../toast/prevent-close-on-prompt-interaction.js";
 import { parseBooleanish } from "../../types/booleanish.js";
@@ -21,27 +12,7 @@ import {
 
 type DialogPrimitiveContentProps = ComponentProps<typeof DialogPrimitive.Content>;
 
-type InternalDialogContextValue = {
-	hasDescription: boolean;
-	setHasDescription: (value: boolean) => void;
-};
-
-const InternalDialogContext = createContext<InternalDialogContextValue>({
-	hasDescription: false,
-	setHasDescription: () => {},
-});
-
-function Root(props: ComponentPropsWithoutRef<typeof DialogPrimitive.Root>) {
-	const [hasDescription, setHasDescription] = useState(false);
-	const contextValue = useMemo(() => ({ hasDescription, setHasDescription }), [hasDescription]);
-
-	return (
-		<InternalDialogContext.Provider value={contextValue}>
-			<DialogPrimitive.Root {...props} />
-		</InternalDialogContext.Provider>
-	);
-}
-
+const Root = DialogPrimitive.Root;
 const Trigger = DialogPrimitive.Trigger;
 
 /**
@@ -82,30 +53,27 @@ const Content = ({
 	onPointerDownOutside,
 	ref,
 	...props
-}: DialogPrimitiveContentProps) => {
-	const ctx = useContext(InternalDialogContext);
-
-	return (
-		<DialogPrimitive.Content
-			ref={ref}
-			onEscapeKeyDown={(event) => {
-				preventCloseOnNestedPopupEscape(event);
-				onEscapeKeyDown?.(event);
-			}}
-			onInteractOutside={(event) => {
-				preventCloseOnPromptInteraction(event);
-				onInteractOutside?.(event);
-			}}
-			onPointerDownOutside={(event) => {
-				preventCloseOnPromptInteraction(event);
-				onPointerDownOutside?.(event);
-			}}
-			// If there's no description, we remove the default applied aria-describedby attribute from radix dialog
-			{...(!ctx.hasDescription ? { "aria-describedby": undefined } : {})}
-			{...props}
-		/>
-	);
-};
+}: DialogPrimitiveContentProps) => (
+	<DialogPrimitive.Content
+		ref={ref}
+		onEscapeKeyDown={(event) => {
+			preventCloseOnNestedPopupEscape(event);
+			onEscapeKeyDown?.(event);
+		}}
+		onInteractOutside={(event) => {
+			preventCloseOnPromptInteraction(event);
+			onInteractOutside?.(event);
+		}}
+		onPointerDownOutside={(event) => {
+			preventCloseOnPromptInteraction(event);
+			onPointerDownOutside?.(event);
+		}}
+		// Why no `aria-describedby` here: Radix sets it only while a `Description`
+		// is mounted. Radix spreads these props after that computed value, so a
+		// value set here, even `undefined`, replaces the Radix one.
+		{...props}
+	/>
+);
 
 const Title = DialogPrimitive.Title;
 
@@ -122,13 +90,6 @@ const Description = ({
 }: ComponentPropsWithoutRef<typeof DialogPrimitive.Description> & {
 	ref?: Ref<HTMLDivElement>;
 }) => {
-	const ctx = useContext(InternalDialogContext);
-
-	useEffect(() => {
-		ctx.setHasDescription(true);
-		return () => ctx.setHasDescription(false);
-	}, [ctx]);
-
 	const Component = asChild ? Slot : "div";
 
 	return (

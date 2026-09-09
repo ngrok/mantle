@@ -5,6 +5,8 @@ import { Command as CommandPrimitive, useCommandState } from "cmdk";
 
 import type { ComponentProps, ComponentPropsWithoutRef, ReactNode, Ref } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -181,6 +183,20 @@ const CommandDialogRoot = ({
 	const open = isOpenControlled ? openProp : internalOpen;
 	const [query, setQuery] = useState("");
 
+	// Why a ref: an inline `onOpenChange` has a new identity on every parent
+	// render. If it is a `changeOpen` dependency, the context value takes a new
+	// identity too, and every `useCommandDialog()` consumer re-renders. The
+	// layout effect writes the latest callback before any handler can fire
+	// after the commit.
+	// Why not `useCallbackRef`: it writes its ref in a passive effect. `setOpen`
+	// is public through `useCommandDialog()`, and a consumer's `useEffect` runs
+	// before this component's in the same commit, so it would call the previous
+	// render's callback.
+	const onOpenChangeRef = useRef(onOpenChange);
+	useIsomorphicLayoutEffect(() => {
+		onOpenChangeRef.current = onOpenChange;
+	});
+
 	const changeOpen = useCallback(
 		(nextOpen: boolean, nextQuery?: string) => {
 			// Seed at open time, never clear at close: the content animates out, and
@@ -191,9 +207,9 @@ const CommandDialogRoot = ({
 			if (!isOpenControlled) {
 				setInternalOpen(nextOpen);
 			}
-			onOpenChange?.(nextOpen);
+			onOpenChangeRef.current?.(nextOpen);
 		},
-		[isOpenControlled, onOpenChange],
+		[isOpenControlled],
 	);
 
 	const setOpen = useCallback(
@@ -516,6 +532,11 @@ const CommandList = ({ className, ...props }: ComponentProps<typeof CommandPrimi
 /**
  * The empty-state message; it renders only when no item matches the query.
  *
+ * It renders nothing in the server HTML and in the hydration pass. Items
+ * register with cmdk in a layout effect, which never runs on the server, so the
+ * server counts zero matches for every list. A palette with no items shows its
+ * empty state one render after hydration.
+ *
  * @see https://mantle.ngrok.com/components/navigation/command#commandempty
  *
  * @example
@@ -545,13 +566,21 @@ const CommandList = ({ className, ...props }: ComponentProps<typeof CommandPrimi
  * </Command.DialogRoot>
  * ```
  */
-const CommandEmpty = ({ className, ...props }: ComponentProps<typeof CommandPrimitive.Empty>) => (
-	<CommandPrimitive.Empty
-		data-slot="command-empty"
-		className={cx("py-6 text-center text-sm", className)}
-		{...props}
-	/>
-);
+const CommandEmpty = ({ className, ...props }: ComponentProps<typeof CommandPrimitive.Empty>) => {
+	const isHydrated = useIsHydrated();
+	// Why: items register with cmdk in a layout effect, which never runs on the
+	// server, so the server counts zero matches and paints this above a full list.
+	if (!isHydrated) {
+		return null;
+	}
+	return (
+		<CommandPrimitive.Empty
+			data-slot="command-empty"
+			className={cx("py-6 text-center text-sm", className)}
+			{...props}
+		/>
+	);
+};
 
 /**
  * A labeled section of items; the `heading` prop names it.
@@ -1031,6 +1060,11 @@ const Command = {
 	List: CommandList,
 	/**
 	 * The empty-state message; it renders only when no item matches the query.
+	 *
+	 * It renders nothing in the server HTML and in the hydration pass. Items
+	 * register with cmdk in a layout effect, which never runs on the server, so the
+	 * server counts zero matches for every list. A palette with no items shows its
+	 * empty state one render after hydration.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/command#commandempty
 	 *

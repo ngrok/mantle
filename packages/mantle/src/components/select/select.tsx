@@ -13,7 +13,7 @@ import type {
 	SelectHTMLAttributes,
 } from "react";
 import { createContext, useContext, useMemo } from "react";
-import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 import { FieldControlContext } from "../field/field-context.js";
@@ -269,6 +269,7 @@ const Trigger = ({
 }: SelectTriggerProps) => {
 	const ctx = useContext(SelectContext);
 	const fieldControl = useContext(FieldControlContext);
+	const triggerRef = useComposedRefs(ref, ctx.ref);
 	const fieldValidation = useFieldValidation();
 	const rawAriaInvalid = fieldControl
 		? fieldControl["aria-invalid"]
@@ -299,7 +300,7 @@ const Trigger = ({
 			)}
 			data-validation={validation || undefined}
 			id={id}
-			ref={composeRefs(ref, ctx.ref)}
+			ref={triggerRef}
 			{...props}
 			onBlur={(event) => {
 				onBlur?.(event);

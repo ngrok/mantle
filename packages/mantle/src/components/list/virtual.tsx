@@ -30,7 +30,7 @@ import type { ListRootProps, ListItemContextValue, ListItemPlacement } from "./p
  * ```
  */
 type VirtualRootProps = ListRootProps & {
-	/** Estimated item height in px, used to seed the virtualizer before items are measured. */
+	/** Estimated item height in px, used to seed the virtualizer before items are measured. With `overscan`, it also sizes the server-rendered first slice. */
 	estimateItemHeight?: number;
 	/** Rows rendered beyond the visible window on each side. The buffer keeps the active row mounted for `aria-activedescendant`. */
 	overscan?: number;
@@ -114,7 +114,9 @@ function WindowedItem({
  * mounted through nearby scrolling; if it is mouse-scrolled fully out of the
  * window, the `aria-activedescendant` reference is dropped until keyboard
  * navigation re-mounts it. **Bound the height** so the virtualizer has a
- * viewport to measure.
+ * viewport to measure. The server renders the first slice of rows, sized by
+ * `estimateItemHeight` and `overscan`. The rest mount after hydration
+ * measures the viewport.
  *
  * @see https://mantle.ngrok.com/components/data-display/list
  *
@@ -145,6 +147,14 @@ const VirtualRoot = ({
 	semantics = "list",
 	...props
 }: VirtualRootProps) => {
+	// Why "use no memo": `useVirtualizer` keeps one mutable `Virtualizer` and
+	// calls `setOptions` during render. `getVirtualItems()` and `getTotalSize()`
+	// below read that mutable state, so compiler memoization keyed on the stable
+	// instance would freeze the window. The React Compiler already skips any
+	// component that calls `useVirtualizer`; the directive records the decision.
+	// Only this component touches the instance: `WindowedItem` and `Item` receive
+	// plain values.
+	"use no memo";
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const composedViewportRef = useComposedRefs(scrollRef, ref);
 	// Memoized so a scroll or keyboard-nav re-render (`useVirtualizer` re-renders
@@ -152,19 +162,30 @@ const VirtualRoot = ({
 	// frame — only the windowed slice below needs to re-render.
 	const items = useMemo(() => Children.toArray(children).filter(isValidElement), [children]);
 	const count = items.length;
+	// Key windowed rows by the child's own key (assigned by `Children.toArray`).
+	// Row identity then follows the consumer's keys across a reorder or filter,
+	// as the plain `Root` does, instead of tracking position. Both React
+	// reconciliation (via `virtualItem.key` below) and the virtualizer's
+	// measurement cache read this key.
+	// Why useCallback: virtual-core memoizes its measurements on `getItemKey` by
+	// identity. A fresh closure per render rebuilds every measurement and hands
+	// each mounted row a new `virtualItem`, so every row re-renders on scroll.
+	const getItemKey = useCallback((index: number) => items[index]?.key ?? index, [items]);
 	const virtualizer = useVirtualizer({
 		count,
 		getScrollElement: () => scrollRef.current,
 		estimateSize: () => estimateItemHeight,
-		// Key windowed rows by the child's own key (assigned by `Children.toArray`)
-		// so row identity — React reconciliation via `virtualItem.key` below AND
-		// the virtualizer's measurement cache — follows the consumer's keys across
-		// reorder/filter, matching the plain `Root`, instead of tracking position.
-		getItemKey: (index) => items[index]?.key ?? index,
+		getItemKey,
 		overscan,
 		// Reproduce the plain collection's `gap-px` between windowed rows, which
 		// are out of flow and so can't inherit the flex gap.
 		gap: 1,
+		// Why initialRect: the virtualizer measures the viewport in a layout
+		// effect, which never runs on the server. A zero-height rect windows no
+		// rows. The seed is a viewport of `overscan + 1` estimated rows; with the
+		// overscan below it, the server HTML and the first client render carry
+		// `2 * overscan + 1` rows before hydration measures the real viewport.
+		initialRect: { width: 0, height: estimateItemHeight * (overscan + 1) },
 	});
 	const scrollToIndex = useCallback(
 		(index: number) => virtualizer.scrollToIndex(index, { align: "auto" }),

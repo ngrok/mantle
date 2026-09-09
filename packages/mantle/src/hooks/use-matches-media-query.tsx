@@ -1,4 +1,4 @@
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useRef, useSyncExternalStore } from "react";
 
 /**
  * React hook that subscribes to a CSS media query and returns whether it
@@ -29,23 +29,34 @@ import { useCallback, useSyncExternalStore } from "react";
  * return isPortrait ? <PortraitLayout /> : <LandscapeLayout />;
  */
 export function useMatchesMediaQuery(query: string) {
+	// Why one list per instance: `getSnapshot` runs on every render and on every
+	// store notification, and each `window.matchMedia` call parses the query and
+	// allocates a list. A module-level cache keyed on `query` grows with every
+	// distinct string a consumer passes, and it pins a stale list when a test
+	// swaps `window.matchMedia` between cases, so the cache lives on the instance.
+	const cache = useRef<{ query: string; list: MediaQueryList } | null>(null);
+
+	const getMediaQueryList = useCallback(() => {
+		if (cache.current == null || cache.current.query !== query) {
+			cache.current = { query, list: window.matchMedia(query) };
+		}
+		return cache.current.list;
+	}, [query]);
+
 	const subscribe = useCallback(
 		(callback: () => void) => {
-			const matchMedia = window.matchMedia(query);
-
-			matchMedia.addEventListener("change", callback);
+			// Why capture the list: the cleanup must remove from the list it added to,
+			// and the cache moves on when `query` changes.
+			const list = getMediaQueryList();
+			list.addEventListener("change", callback);
 			return () => {
-				matchMedia.removeEventListener("change", callback);
+				list.removeEventListener("change", callback);
 			};
 		},
-		[query],
+		[getMediaQueryList],
 	);
 
-	return useSyncExternalStore(
-		subscribe,
-		() => {
-			return window.matchMedia(query).matches;
-		},
-		() => false,
-	);
+	const getSnapshot = useCallback(() => getMediaQueryList().matches, [getMediaQueryList]);
+
+	return useSyncExternalStore(subscribe, getSnapshot, () => false);
 }

@@ -25,9 +25,10 @@ import {
 } from "@radix-ui/react-tabs";
 import assert from "tiny-invariant";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
 import { alternateAnnouncement } from "../../utils/alternate-announcement.js";
-import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Icon as MantleIcon } from "../icon/icon.js";
 import type { SvgAttributes } from "../icon/types.js";
@@ -41,14 +42,14 @@ import type { Mode } from "./resolve-pre-rendered-props.js";
 import type { MantleCodeBlockValue } from "./mantle-code.js";
 
 type CodeBlockContextType = {
-	codeId: string | undefined;
+	codeId: string;
 	copyTextRef: { current: string };
 	hasCodeExpander: boolean;
 	isCodeExpanded: boolean;
-	registerCodeId: (id: string) => void;
+	registerCode: () => void;
 	setHasCodeExpander: (value: boolean) => void;
 	setIsCodeExpanded: Dispatch<SetStateAction<boolean>>;
-	unregisterCodeId: (id: string) => void;
+	unregisterCode: () => void;
 };
 
 const CodeBlockContext = createContext<CodeBlockContextType | null>(null);
@@ -113,22 +114,23 @@ const Root = ({
 	...props
 }: CodeBlockRootProps) => {
 	const copyTextRef = useRef("");
+	// Why Root owns the id: `ExpanderButton` renders `aria-controls` from it, and
+	// an id that `Code` registers from a mount effect is absent in the server HTML.
+	const codeId = useId();
+	const mountedCodeCount = useRef(0);
 	const [hasCodeExpander, setHasCodeExpander] = useState(false);
 	const [isCodeExpanded, setIsCodeExpanded] = useState(false);
-	const [codeId, setCodeId] = useState<string | undefined>(undefined);
 
-	const registerCodeId = useCallback((id: string) => {
-		setCodeId((old) => {
-			assert(old == null, "You can only render a single CodeBlock.Code within a CodeBlock.");
-			return id;
-		});
+	const registerCode = useCallback(() => {
+		assert(
+			mountedCodeCount.current === 0,
+			"You can only render a single CodeBlock.Code within a CodeBlock.",
+		);
+		mountedCodeCount.current += 1;
 	}, []);
 
-	const unregisterCodeId = useCallback((id: string) => {
-		setCodeId((old) => {
-			assert(old === id, "You can only render a single CodeBlock.Code within a CodeBlock.");
-			return undefined;
-		});
+	const unregisterCode = useCallback(() => {
+		mountedCodeCount.current -= 1;
 	}, []);
 
 	const context: CodeBlockContextType = useMemo(
@@ -138,12 +140,12 @@ const Root = ({
 				copyTextRef,
 				hasCodeExpander,
 				isCodeExpanded,
-				registerCodeId,
+				registerCode,
 				setHasCodeExpander,
 				setIsCodeExpanded,
-				unregisterCodeId,
+				unregisterCode,
 			}) as const,
-		[codeId, hasCodeExpander, isCodeExpanded, registerCodeId, unregisterCodeId],
+		[codeId, hasCodeExpander, isCodeExpanded, registerCode, unregisterCode],
 	);
 
 	const hasTabs = defaultTab != null || activeTab != null;
@@ -369,9 +371,9 @@ type CodeBlockCodeProps = Omit<ComponentProps<"pre">, "children" | "translate"> 
  * ```
  */
 const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) => {
-	const id = useId();
 	const preRef = useRef<HTMLPreElement>(null);
-	const { copyTextRef, hasCodeExpander, isCodeExpanded, registerCodeId, unregisterCodeId } =
+	const composedRef = useComposedRefs(preRef, ref);
+	const { codeId, copyTextRef, hasCodeExpander, isCodeExpanded, registerCode, unregisterCode } =
 		useCodeBlockContext();
 	const {
 		language,
@@ -399,13 +401,15 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 		copyTextRef.current = copyText;
 	}, [copyTextRef, copyText]);
 
+	// Why count in an effect: React can discard a render, so only a commit proves
+	// that a second `CodeBlock.Code` is mounted.
 	useEffect(() => {
-		registerCodeId(id);
+		registerCode();
 
 		return () => {
-			unregisterCodeId(id);
+			unregisterCode();
 		};
-	}, [id, registerCodeId, unregisterCodeId]);
+	}, [registerCode, unregisterCode]);
 
 	const renderedHtml = useMemo(() => {
 		if (__preHtml == null) {
@@ -466,8 +470,8 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 				isPreRendered && effectiveShowLineNumbers ? String(effectiveLineNumberStart) : "1"
 			}
 			data-mantle-line-numbers={isPreRendered && effectiveShowLineNumbers ? "true" : "false"}
-			id={id}
-			ref={composeRefs(preRef, ref)}
+			id={codeId}
+			ref={composedRef}
 			style={
 				{
 					...style,
@@ -669,8 +673,12 @@ const CopyButton = ({
 				className={cx("bg-base not-disabled:hover:bg-neutral-500/15", className)}
 				ref={ref}
 				onClick={async (event) => {
+					// Why if-guards: the React Compiler cannot lower `?.()` inside a `try`
+					// body, and the bail-out ships `CopyButton` uncompiled.
 					try {
-						onClick?.(event);
+						if (onClick != null) {
+							onClick(event);
+						}
 						if (event.defaultPrevented) {
 							if (timeoutHandle.current != null) {
 								clearTimeout(timeoutHandle.current);
@@ -679,7 +687,9 @@ const CopyButton = ({
 						}
 						const text = copyTextRef.current;
 						await copyToClipboard(text);
-						onCopy?.(text);
+						if (onCopy != null) {
+							onCopy(text);
+						}
 						setAnnouncement(alternateAnnouncement("Copied", announceToggle));
 						if (timeoutHandle.current != null) {
 							clearTimeout(timeoutHandle.current);
@@ -730,7 +740,9 @@ type CodeBlockExpanderButtonProps = Omit<
 const ExpanderButton = ({ className, onClick, ref, ...props }: CodeBlockExpanderButtonProps) => {
 	const { codeId, isCodeExpanded, setIsCodeExpanded, setHasCodeExpander } = useCodeBlockContext();
 
-	useEffect(() => {
+	// Why a layout effect: `Code` stamps `data-state="collapsed"` from this flag,
+	// and a passive registration paints one frame at full height first.
+	useIsomorphicLayoutEffect(() => {
 		setHasCodeExpander(true);
 		return () => {
 			setHasCodeExpander(false);
