@@ -135,8 +135,10 @@ type AlertProps = ComponentProps<"div"> & {
  * Displays a callout for user attention. Root container for all Alert sub-components.
  *
  * It has no ARIA role of its own. When your code inserts the alert after an
- * action, pass `role="alert"` so a screen reader announces it; pass
- * `role="status"` for a less urgent message.
+ * action, pass `role="alert"` so a screen reader announces it. Assistive tech
+ * can miss a live region that mounts already populated, so also move focus to
+ * the alert with `tabIndex={-1}`. Pass `role="status"` on a region that is
+ * already mounted for a less urgent message.
  *
  * Trailing controls inherit these public CSS variables:
  *

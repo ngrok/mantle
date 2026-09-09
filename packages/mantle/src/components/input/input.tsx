@@ -216,12 +216,13 @@ const InputContainer = ({
 					if (input == null) {
 						return;
 					}
-					// Why: a keyboard user who activates an adornment button (Enter or
-					// Space) must keep focus on it. A pointer click never focuses the
-					// button, because `onMouseDown` prevents it, so this still moves a
-					// pointer click into the input.
-					const activeElement = document.activeElement;
-					if (activeElement !== input && event.currentTarget.contains(activeElement)) {
+					// Why `detail`: a keyboard user who activates an adornment button
+					// (Enter or Space) must keep focus on it. The browser sets `detail`
+					// to 0 on a keyboard or programmatic click and to the click count on
+					// a pointer click, so this moves only a pointer click into the input.
+					// The focused element cannot tell the two apart: a pointer click on
+					// a button that already has focus leaves focus there.
+					if (event.detail === 0) {
 						return;
 					}
 					input.focus();

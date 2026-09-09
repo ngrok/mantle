@@ -22,7 +22,7 @@ describe("Alert", () => {
 		expect(screen.getByText("Something happened.")).toBeInTheDocument();
 	});
 
-	test("passes role through so an inserted alert announces", () => {
+	test("passes role through to the root element", () => {
 		render(
 			<Alert.Root intent="danger" role="alert">
 				<Alert.Content>

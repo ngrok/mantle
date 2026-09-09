@@ -46,6 +46,24 @@ describe("Input", () => {
 		expect(screen.getByPlaceholderText("test")).toHaveFocus();
 	});
 
+	test("a pointer click on an adornment button that already has focus moves focus to the input", async () => {
+		const user = userEvent.setup();
+		render(
+			<Input placeholder="test">
+				<InputCapture />
+				<button type="button">Copy</button>
+			</Input>,
+		);
+
+		const button = screen.getByRole("button", { name: "Copy" });
+		await user.tab();
+		await user.tab();
+		expect(button).toHaveFocus();
+
+		await user.click(button);
+		expect(screen.getByPlaceholderText("test")).toHaveFocus();
+	});
+
 	test('without children or validation="error", renders an input with aria-invalid="false" and placeholder="Testy McTestface"', () => {
 		render(<Input placeholder="Testy McTestface" />);
 		expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "false");
