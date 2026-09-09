@@ -1,5 +1,15 @@
 # @ngrok/mantle-server-syntax-highlighter
 
+## 1.1.14
+
+### Patch Changes
+
+- [#1473](https://github.com/ngrok/mantle/pull/1473) [`fc58b80`](https://github.com/ngrok/mantle/commit/fc58b802e2960994c8836b9140d003a0bbf5e5f9) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump build and runtime dependencies: `tsdown` and `@tsdown/css` to 0.23.0, and `oxc-parser` to 0.149.0.
+
+  `tsdown` builds all three packages, so every published bundle and `.d.ts` file now comes from the new bundler. The public API does not change.
+
+  `oxc-parser` is a runtime dependency of `@ngrok/mantle-vite-plugins` and `@ngrok/mantle-server-syntax-highlighter`, so an install of either package resolves the new version.
+
 ## 1.1.13
 
 ### Patch Changes
