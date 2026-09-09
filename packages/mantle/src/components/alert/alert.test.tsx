@@ -22,6 +22,17 @@ describe("Alert", () => {
 		expect(screen.getByText("Something happened.")).toBeInTheDocument();
 	});
 
+	test("passes role through to the root element", () => {
+		render(
+			<Alert.Root intent="danger" role="alert">
+				<Alert.Content>
+					<Alert.Description>Invalid email or password.</Alert.Description>
+				</Alert.Content>
+			</Alert.Root>,
+		);
+		expect(screen.getByRole("alert")).toHaveTextContent("Invalid email or password.");
+	});
+
 	describe("intent", () => {
 		test.each([
 			["danger", "text-danger-700"],

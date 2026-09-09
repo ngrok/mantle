@@ -211,13 +211,21 @@ const InputContainer = ({
 						event.preventDefault();
 					}
 				}}
-				onClick={() => {
-					innerRef?.current?.focus();
-				}}
-				onKeyDown={() => {
-					if (innerRef?.current !== document.activeElement) {
-						innerRef?.current?.focus();
+				onClick={(event) => {
+					const input = innerRef.current;
+					if (input == null) {
+						return;
 					}
+					// Why `detail`: a keyboard user who activates an adornment button
+					// (Enter or Space) must keep focus on it. The browser sets `detail`
+					// to 0 on a keyboard or programmatic click and to the click count on
+					// a pointer click, so this moves only a pointer click into the input.
+					// The focused element cannot tell the two apart: a pointer click on
+					// a button that already has focus leaves focus there.
+					if (event.detail === 0) {
+						return;
+					}
+					input.focus();
 				}}
 				style={style}
 			>

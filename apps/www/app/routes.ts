@@ -150,6 +150,7 @@ const migrationsPages = [
 	"code-block-migration",
 	"data-table-action-header-migration",
 	"dialog-footer-dom-order-migration",
+	"field-item-owns-control-id-migration",
 	"priority-to-intent-migration",
 ];
 

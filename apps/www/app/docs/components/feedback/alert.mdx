@@ -8,6 +8,7 @@ import { Card } from "@ngrok/mantle/card";
 import { $cssProperties } from "@ngrok/mantle/types";
 import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 import { Example } from "~/components/example";
+import { DynamicAlertDemo } from "~/features/alert-demos";
 
 # Alert
 
@@ -411,11 +412,79 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 </Alert.Root>;
 ```
 
+## Announcing a dynamic alert
+
+`Alert.Root` renders a plain `<div>` with no ARIA role. A static alert that is on the page at load does not need one. When your code inserts an alert after an action, such as "Invalid email or password." after a submit, pass `role="alert"` so a screen reader announces it.
+
+The role alone is not reliable. Assistive tech can miss a live region that mounts already populated. For an error the user must act on, also move focus to the alert: set `tabIndex={-1}` and focus it on mount. Focus also puts a sighted user's attention on what went wrong. For a less urgent message, pass `role="status"` on a region that is already mounted, and write the message into it.
+
+The demo below rejects every sign-in, so the alert mounts after the action. The `key` remounts the alert on a repeated attempt, so it announces again.
+
+<Example className="w-full">
+	<DynamicAlertDemo />
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+import { Button } from "@ngrok/mantle/button";
+import { Field } from "@ngrok/mantle/field";
+import { Input, PasswordInput } from "@ngrok/mantle/input";
+import type { PropsWithChildren } from "react";
+import { useEffect, useRef, useState } from "react";
+
+function SignInError({ children }: PropsWithChildren) {
+	const alertRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		alertRef.current?.focus();
+	}, []);
+
+	return (
+		<Alert.Root intent="danger" ref={alertRef} role="alert" tabIndex={-1}>
+			<Alert.Icon />
+			<Alert.Content>
+				<Alert.Description>{children}</Alert.Description>
+			</Alert.Content>
+		</Alert.Root>
+	);
+}
+
+export function SignInForm() {
+	const [attempts, setAttempts] = useState(0);
+
+	return (
+		<form
+			className="flex w-full max-w-sm flex-col gap-4"
+			onSubmit={(event) => {
+				event.preventDefault();
+				setAttempts((count) => count + 1);
+			}}
+		>
+			{attempts > 0 && <SignInError key={attempts}>Invalid email or password.</SignInError>}
+			<Field.Item name="email">
+				<Field.Label>Email</Field.Label>
+				<Field.Control>
+					<Input type="email" autoComplete="username" />
+				</Field.Control>
+			</Field.Item>
+			<Field.Item name="password">
+				<Field.Label>Password</Field.Label>
+				<Field.Control>
+					<PasswordInput autoComplete="current-password" />
+				</Field.Control>
+			</Field.Item>
+			<Button type="submit" appearance="filled" intent="accent">
+				Sign in
+			</Button>
+		</form>
+	);
+}
+```
+
 ## API Reference
 
 ### Alert.Root
 
-Displays a callout for user attention. Root container for all `Alert` sub-components.
+Displays a callout for user attention. Root container for all `Alert` sub-components. It has no ARIA role of its own. When your code inserts the alert after an action, pass `role="alert"` and move focus to it; see [Announcing a dynamic alert](#announcing-a-dynamic-alert).
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 

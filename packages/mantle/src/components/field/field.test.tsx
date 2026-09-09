@@ -4,6 +4,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { describe, expect, test } from "vitest";
 import { Checkbox } from "../checkbox/checkbox.js";
 import { Input } from "../input/input.js";
+import { Select } from "../select/select.js";
 import type { FieldControlAriaProps } from "./field-context.js";
 import { Field } from "./field.js";
 
@@ -12,9 +13,32 @@ const MockControl = (props: ComponentProps<"input">) => <input {...props} />;
 const MockWrapper = ({ children }: { children: ReactNode }) => children;
 
 describe("Field", () => {
-	test("renders a label that defaults htmlFor from the surrounding Field.Item", () => {
-		render(<Field.Label htmlFor="email">Email</Field.Label>);
+	test("Field.Label outside a Field.Item renders a label with no for attribute", () => {
+		render(<Field.Label>Email</Field.Label>);
 		expect(screen.getByText("Email").tagName).toBe("LABEL");
+		expect(screen.getByText("Email")).not.toHaveAttribute("for");
+	});
+
+	test("Field.Item owns the control id: a stray htmlFor or id cannot override it", () => {
+		render(
+			<Field.Item name="email" id="email">
+				<Field.Label
+					// @ts-expect-error -- htmlFor is not a Field.Label prop; Field.Item owns the control id
+					htmlFor="elsewhere"
+				>
+					Email
+				</Field.Label>
+				<Field.Control
+					// @ts-expect-error -- id is not a Field.Control prop; Field.Item owns the control id
+					id="elsewhere"
+				>
+					<input />
+				</Field.Control>
+			</Field.Item>,
+		);
+
+		const input = screen.getByRole("textbox", { name: "Email" });
+		expect(input).toHaveAttribute("id", "email");
 		expect(screen.getByText("Email")).toHaveAttribute("for", "email");
 	});
 
@@ -398,6 +422,56 @@ describe("Field", () => {
 			expect(input).toHaveAttribute("name", "account.email");
 			expect(input.getAttribute("id")).not.toBe("ignored-by-context");
 			expect(input).toHaveAttribute("id");
+		});
+
+		test("id on Field.Item lands on the control, not the wrapper, and on Field.Label's htmlFor", () => {
+			render(
+				<Field.Item data-testid="item" name="password" id="login-password">
+					<Field.Label>Password</Field.Label>
+					<Field.Control>
+						<Input id="ignored-by-context" />
+					</Field.Control>
+				</Field.Item>,
+			);
+
+			const input = screen.getByRole("textbox", { name: "Password" });
+			expect(input).toHaveAttribute("id", "login-password");
+			expect(screen.getByTestId("item")).not.toHaveAttribute("id");
+			expect(screen.getByText("Password")).toHaveAttribute("for", "login-password");
+		});
+
+		test("id reaches the render-prop form of Field.Control", () => {
+			render(
+				<Field.Item name="acceptTerms" id="accept-terms">
+					<Field.Control>
+						{(controlProps) => (
+							<label>
+								Accept terms
+								<input type="checkbox" {...controlProps} />
+							</label>
+						)}
+					</Field.Control>
+				</Field.Item>,
+			);
+
+			const checkbox = screen.getByRole("checkbox", { name: "Accept terms" });
+			expect(checkbox).toHaveAttribute("id", "accept-terms");
+		});
+
+		test("id reaches a compound trigger through FieldControlContext", () => {
+			render(
+				<Field.Item name="region" id="region-select">
+					<Field.Label>Region</Field.Label>
+					<Select.Root>
+						<Field.Control>
+							<Select.Trigger />
+						</Field.Control>
+					</Select.Root>
+				</Field.Item>,
+			);
+
+			const trigger = screen.getByRole("combobox", { name: "Region" });
+			expect(trigger).toHaveAttribute("id", "region-select");
 		});
 
 		test("render-prop variant rejects extra DOM props at the type level", () => {
