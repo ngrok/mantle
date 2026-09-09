@@ -39,7 +39,7 @@ catalog:
   "@types/node": "24.13.3"
   "@vitest/browser-playwright": "5.0.0"
   "happy-dom": "20.14.0"
-  "oxc-parser": "0.147.0"
+  "oxc-parser": "0.148.0"
   "playwright-core": "1.62.1"
   "playwright": "1.62.1"
   "react-dom": "19.2.8"
