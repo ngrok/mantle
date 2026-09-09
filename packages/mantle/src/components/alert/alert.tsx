@@ -1,3 +1,5 @@
+"use client";
+
 import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { InfoIcon } from "@phosphor-icons/react/Info";
@@ -6,11 +8,13 @@ import { WarningIcon } from "@phosphor-icons/react/Warning";
 import { WarningDiamondIcon } from "@phosphor-icons/react/WarningDiamond";
 import { XIcon } from "@phosphor-icons/react/X";
 import { cva } from "class-variance-authority";
-import type { ComponentProps, ReactNode } from "react";
-import { createContext, useContext, useMemo } from "react";
+import type { ComponentProps, ReactNode, RefObject } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import invariant from "tiny-invariant";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { $cssProperties } from "../../types/css-properties.js";
 import type { WithAsChild } from "../../types/as-child.js";
+import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Button, type ButtonProps } from "../button/button.js";
 import {
@@ -21,6 +25,7 @@ import {
 import { SvgOnly } from "../icon/svg-only.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { Slot } from "../slot/index.js";
+import { findTabbableNeighbors, isTabbable } from "./tabbable-neighbors.js";
 
 const intents = [
 	//,
@@ -38,6 +43,12 @@ type Appearance = (typeof appearances)[number];
 
 type AlertContextValue = {
 	intent: AlertIntent;
+	/**
+	 * Whether `Alert.DismissIconButton` moves focus to a tabbable neighbor when
+	 * it unmounts while it holds focus. `AlertCenter` sets `false`: its bar
+	 * owns focus after a dismissal and lands it on the next alert's control.
+	 */
+	redirectDismissFocus: boolean;
 };
 
 const AlertContext = createContext<AlertContextValue | null>(null);
@@ -71,11 +82,23 @@ function useAlertContext() {
 const AlertContextProvider = ({
 	children,
 	intent,
+	redirectDismissFocus = true,
 }: {
 	intent: AlertIntent;
 	children?: ReactNode;
+	/**
+	 * Whether `Alert.DismissIconButton` moves focus to a tabbable neighbor when
+	 * it unmounts while it holds focus. Pass `false` when the composing
+	 * component owns focus after a dismissal, as `AlertCenter` does.
+	 *
+	 * @default true
+	 */
+	redirectDismissFocus?: boolean;
 }) => {
-	const context: AlertContextValue = useMemo(() => ({ intent }), [intent]);
+	const context: AlertContextValue = useMemo(
+		() => ({ intent, redirectDismissFocus }),
+		[intent, redirectDismissFocus],
+	);
 	return <AlertContext.Provider value={context}>{children}</AlertContext.Provider>;
 };
 
@@ -378,7 +401,91 @@ type AlertDismissIconButtonProps = Partial<
 };
 
 /**
+ * Moves keyboard focus to the alert's nearest tabbable neighbor when the
+ * dismiss button unmounts while it holds focus. Removing the focused element
+ * fires no blur and silently resets `document.activeElement` to `<body>`, so
+ * the next Tab restarts at the top of the page. A screen reader user also gets
+ * no confirmation that the alert left.
+ *
+ * Two cleanups split the work. The layout cleanup runs while the alert is
+ * still in the document, so it can read which element has focus and collect
+ * the neighbors. The passive cleanup runs after the whole commit, so a
+ * consumer layout effect that placed focus in the meantime wins. A consumer
+ * `useEffect` runs later still and overrides the move. The passive cleanup
+ * moves focus only when focus did fall to `<body>`, and only to a neighbor
+ * that the same commit left connected and tabbable. It tries the neighbors
+ * in order until one holds focus.
+ *
+ * @example
+ * ```tsx
+ * const buttonRef = useRef<HTMLButtonElement | null>(null);
+ * useDismissFocusRedirect({ buttonRef, enabled: true });
+ * return <IconButton ref={buttonRef} … />;
+ * ```
+ */
+function useDismissFocusRedirect({
+	buttonRef,
+	enabled,
+}: {
+	buttonRef: RefObject<HTMLButtonElement | null>;
+	/** `false` when the composing component owns focus after a dismissal. */
+	enabled: boolean;
+}): void {
+	const neighborsRef = useRef<HTMLElement[]>([]);
+
+	useIsomorphicLayoutEffect(() => {
+		if (!enabled) {
+			return;
+		}
+		return () => {
+			const button = buttonRef.current;
+			if (button == null || document.activeElement !== button) {
+				return;
+			}
+			// `~=` matches the token inside an `asChild` slot chain.
+			const anchor = button.closest('[data-slot~="alert"]') ?? button;
+			neighborsRef.current = findTabbableNeighbors(anchor);
+		};
+	}, [buttonRef, enabled]);
+
+	useEffect(() => {
+		if (!enabled) {
+			return;
+		}
+		return () => {
+			const neighbors = neighborsRef.current;
+			neighborsRef.current = [];
+			if (neighbors.length === 0) {
+				return;
+			}
+			const { activeElement } = document;
+			if (activeElement != null && activeElement !== document.body) {
+				return;
+			}
+			// The same commit can disable, hide, or detach a recorded neighbor, and
+			// an engine without `checkVisibility` can pass one that `focus()` then
+			// refuses, so each candidate has to confirm the move.
+			for (const element of neighbors) {
+				if (!element.isConnected || !isTabbable(element)) {
+					continue;
+				}
+				element.focus();
+				if (document.activeElement === element) {
+					return;
+				}
+			}
+		};
+	}, [enabled]);
+}
+
+/**
  * A compact, trailing control for dismissing an alert.
+ *
+ * It removes nothing itself: stop rendering the alert in its `onClick`
+ * handler. When that unmount happens while the button holds focus, focus
+ * moves to the nearest tabbable element outside the alert (the next one in
+ * document order, else the previous one) instead of falling to `<body>`. If
+ * your handler or a layout effect places focus first, that choice stands.
  *
  * It inherits `--alert-control-color`, `--alert-control-hover-color`, and
  * `--alert-control-hover-bg` from `Alert.Root`, shared with
@@ -405,10 +512,22 @@ const DismissIconButton = ({
 	appearance = "ghost",
 	className,
 	icon = defaultDismissIcon,
+	ref,
 	...props
 }: AlertDismissIconButtonProps) => {
+	// Read without the invariant: the button has no other need for the
+	// context, so a standalone render keeps working and takes the default.
+	const context = useContext(AlertContext);
+	const buttonRef = useRef<HTMLButtonElement | null>(null);
+	const composedRef = useComposedRefs(buttonRef, ref);
+	useDismissFocusRedirect({
+		buttonRef,
+		enabled: context?.redirectDismissFocus ?? true,
+	});
+
 	return (
 		<IconButton
+			ref={composedRef}
 			appearance={appearance}
 			icon={icon}
 			// not a public prop: the dismiss button's visible tone is dictated by
@@ -626,6 +745,9 @@ const Alert = {
 	Description,
 	/**
 	 * An optional, compact, trailing control for dismissing an alert.
+	 * Stop rendering the alert in its `onClick` handler. When that unmount
+	 * happens while the button holds focus, focus moves to the nearest tabbable
+	 * element outside the alert instead of falling to `<body>`.
 	 * It inherits the `--alert-control-color`, `--alert-control-hover-color`, and
 	 * `--alert-control-hover-bg` variables from `Alert.Root`, shared with the
 	 * expand control.

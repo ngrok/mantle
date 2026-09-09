@@ -29,6 +29,40 @@ function SignInError({ children }: PropsWithChildren) {
 }
 
 /**
+ * An alert whose dismiss button stops rendering it. When the alert leaves, the
+ * button after it receives focus, so a keyboard user's next Tab continues from
+ * where the alert was.
+ */
+export function DismissibleAlertDemo() {
+	const [dismissed, setDismissed] = useState(false);
+
+	return (
+		<div className="flex w-full flex-col gap-4">
+			{!dismissed && (
+				<Alert.Root intent="info">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>Your trial ends in 3 days</Alert.Title>
+						<Alert.Description>
+							Add a payment method to keep your endpoints online.
+						</Alert.Description>
+						<Alert.DismissIconButton onClick={() => setDismissed(true)} />
+					</Alert.Content>
+				</Alert.Root>
+			)}
+			<Button
+				type="button"
+				appearance="outlined"
+				intent="neutral"
+				onClick={() => setDismissed(false)}
+			>
+				Show the alert again
+			</Button>
+		</div>
+	);
+}
+
+/**
  * Sign-in form that rejects every submit, so the alert mounts after the action.
  * The `key` remounts the alert on a repeated attempt, so it announces again.
  */
