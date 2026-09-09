@@ -302,7 +302,10 @@ const PageSizeSelect = ({
 				className={cx("w-auto min-w-36", className)}
 				{...rest}
 			>
-				<Select.Value />
+				{/* Why children: Radix fills an empty `Select.Value` from the selected
+				    item on the client, after a layout effect, so the server HTML has
+				    no trigger text. The page size is known, so render it directly. */}
+				<Select.Value>{ctx.pageSize} per page</Select.Value>
 			</Select.Trigger>
 			<Select.Content width="trigger">
 				{pageSizes.map((size) => (

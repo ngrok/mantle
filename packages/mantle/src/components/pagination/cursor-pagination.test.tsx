@@ -1,9 +1,23 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { CursorPagination } from "./cursor-pagination.js";
 
 describe("CursorPagination", () => {
+	// Regression: `Select.Value` had no children, so Radix filled the trigger on
+	// the client after a layout effect and the server HTML had an empty trigger.
+	test("PageSizeSelect renders the page size in the server HTML", () => {
+		const html = renderToString(
+			<CursorPagination.Root pageSize={50}>
+				<CursorPagination.PageSizeSelect />
+			</CursorPagination.Root>,
+		);
+		const container = document.createElement("div");
+		container.innerHTML = html;
+		expect(container.querySelector('[role="combobox"]')).toHaveTextContent("50 per page");
+	});
+
 	// Regression: the page-size combobox had no name beyond its value, so a
 	// screen reader user heard "100 per page" with no hint of what it set.
 	test("PageSizeSelect names its combobox 'Items per page' by default", () => {
