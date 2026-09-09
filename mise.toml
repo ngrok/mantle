@@ -4,8 +4,8 @@ lockfile = true
 # Read Node from .nvmrc. pnpm is configured below via package.json#packageManager.
 idiomatic_version_file_enable_tools = ["node"]
 # Check aqua downloads against the sha256 in mise.lock only. Attestation lookups
-# need mise-versions.jdx.dev or the anonymous GitHub API, and a fresh install
-# fails when both are down or rate limited. Code review covers mise.lock changes.
+# need mise-versions.jdx.dev or the anonymous GitHub API. When both are down or
+# rate limited, a fresh install fails. Code review covers mise.lock changes.
 aqua.github_attestations = false
 
 [tools]
@@ -13,11 +13,12 @@ ast-grep = "0.45.3"
 ripgrep = "15.2.0"
 # Keep pnpm's version single-sourced in root package.json#packageManager.
 # The helper avoids needing Node before mise has installed Node.
-# The aqua backend downloads pnpm's native release archive from GitHub, so the
-# install needs no Node and runs no install script. The npm backend skips pnpm's
-# install script, and npm_args never reaches its installer, so that path leaves
-# a placeholder bin that fails under Node. The aqua registry lists no macOS x64
-# build; CONTRIBUTING.md → Manual Installation covers Intel Macs.
+# Why aqua: the backend downloads pnpm's native release archive from GitHub.
+# The install needs no Node and runs no install script.
+# Why not npm:pnpm: mise skips pnpm's install script, so the bin stays a
+# placeholder that fails under Node.
+# The aqua registry lists no macOS x64 build; CONTRIBUTING.md → Manual
+# Installation covers Intel Macs.
 "aqua:pnpm/pnpm" = "{{ exec(command='./scripts/package-manager-version') }}"
 
 [env]

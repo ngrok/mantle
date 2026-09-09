@@ -89,7 +89,9 @@ jobs:
 
       - name: Verify mise.lock is in sync 🔒
         # mise lock looks up release metadata on api.github.com. The token lifts
-        # the anonymous per-IP rate limit shared by the runner pool.
+        # the anonymous per-IP rate limit shared by the runner pool. mise lock
+        # runs the PR's exec helper, so the workflow-level permissions must stay
+        # contents: read.
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
