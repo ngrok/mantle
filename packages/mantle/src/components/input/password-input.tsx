@@ -52,7 +52,8 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  * name does not change with state, and it does not contain the word
  * "password", so a label query for the input matches one element. Its
  * `aria-controls` points at the input's `id`: the `id` you pass, else a
- * generated one. The input keeps `autocomplete="current-password"` /
+ * generated one. When `disabled` is set, the toggle is disabled too, so Tab
+ * skips the component. The input keeps `autocomplete="current-password"` /
  * `"new-password"` semantics. Set `autoComplete` explicitly per flow.
  *
  * | Data Attribute | Value | Description |
@@ -94,6 +95,7 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  * ```
  */
 const PasswordInput = ({
+	disabled,
 	id: idProp,
 	onValueVisibilityChange,
 	ref,
@@ -113,10 +115,13 @@ const PasswordInput = ({
 	}, [showValue]);
 
 	return (
-		<Input data-slot="password-input" id={id} type={type} ref={ref} {...props}>
+		<Input data-slot="password-input" disabled={disabled} id={id} type={type} ref={ref} {...props}>
 			<InputCapture />
 			<button
 				type="button"
+				// Why: a disabled input must not reveal its value, and a disabled
+				// button leaves the tab order, so Tab skips the whole component.
+				disabled={disabled}
 				data-slot="password-input-toggle"
 				// Why aria-label and not hidden text: voice-control tools treat DOM
 				// text as a visible label, so they skip a button that hides one.

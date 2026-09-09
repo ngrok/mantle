@@ -149,6 +149,32 @@ describe("PasswordInput", () => {
 		expect(handleChange).toHaveBeenLastCalledWith(false);
 	});
 
+	// Regression: the toggle left `tabIndex={-1}` without taking `disabled`, so
+	// Tab entered a disabled PasswordInput and Space revealed its value.
+	test("given disabled, the toggle is disabled, Tab skips it, and it cannot reveal the value", async () => {
+		const user = userEvent.setup();
+		const handleChange = vi.fn<(visible: boolean) => void>();
+		render(
+			<>
+				<PasswordInput placeholder="test" disabled onValueVisibilityChange={handleChange} />
+				<button type="button">after</button>
+			</>,
+		);
+
+		const input = screen.getByPlaceholderText("test");
+		const toggle = screen.getByRole("button", { name: "Show value" });
+		expect(toggle).toBeDisabled();
+
+		await user.tab();
+		expect(screen.getByRole("button", { name: "after" })).toHaveFocus();
+
+		await user.click(toggle);
+		await user.keyboard("[Space]{Enter}");
+		expect(input).toHaveAttribute("type", "password");
+		expect(toggle).toHaveAttribute("aria-pressed", "false");
+		expect(handleChange).toHaveBeenCalledTimes(0);
+	});
+
 	test("a pointer click on the toggle reveals the value and focuses the input", async () => {
 		const user = userEvent.setup();
 		render(<PasswordInput placeholder="test" />);
