@@ -27,11 +27,11 @@ catalog:
   "@testing-library/dom": "10.4.1"
   "@testing-library/jest-dom": "7.0.1"
   "@testing-library/react": "16.3.3"
-  "@testing-library/user-event": "14.6.6"
+  "@testing-library/user-event": "14.6.7"
   "@tsdown/css": "0.22.14"
   "@types/node": "24.13.3"
-  "@vitest/browser-playwright": "4.1.11"
-  "happy-dom": "20.12.0"
+  "@vitest/browser-playwright": "5.0.0"
+  "happy-dom": "20.14.0"
   "oxc-parser": "0.147.0"
   "playwright-core": "1.62.1"
   "playwright": "1.62.1"
@@ -49,11 +49,19 @@ overrides:
   "ajv": ">=8.20.0"
   "cookie": ">=1.1.1"
   "esbuild": ">=0.28.2"
-  # Clears GHSA-7p8r-x3mc-p8w7 (fast-uri host confusion). Capped to the major
-  # its only consumer declares: ajv wants fast-uri ^3.
-  "fast-uri": ">=3.1.5 <4"
+  # Clears GHSA-7p8r-x3mc-p8w7, GHSA-jqff-g426-hqxp, GHSA-f65p-4m7j-42xc,
+  # GHSA-fph4-wmhf-6fwf, and GHSA-5jgf-p345-68v8 (fast-uri host confusion and
+  # SSRF). Capped to the major its only consumer declares: ajv wants fast-uri ^3.
+  "fast-uri": ">=3.1.6 <4"
+  # Clears GHSA-jxfw-x594-9x9m (morgan log forging). Capped to the major its
+  # only consumer declares: @react-router/serve wants morgan ^1.
+  "morgan": ">=1.12.0 <2"
   "playwright": "catalog:"
   "playwright-core": "catalog:"
+  # Clears GHSA-4mjr-xmp4-gh2g and GHSA-x5fp-wj9c-mxmx (qs DoS and array-limit
+  # bypass). Capped to the major its consumers declare: express and body-parser
+  # want qs ^6.
+  "qs": ">=6.16.0 <7"
   "uuid": ">=14.0.2"
     
 allowBuilds:

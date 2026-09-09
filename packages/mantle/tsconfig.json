@@ -1,14 +1,8 @@
 {
   "extends": "@cfg/tsconfig/tsconfig.client-package.json",
   "compilerOptions": {
-    "types": [
-      "@cfg/tsconfig/css.d.ts",
-      "@cfg/tsconfig/reset.d.ts",
-      "@cfg/tsconfig/svg.d.ts",
-      "vitest/globals",
-      "@testing-library/jest-dom"
-    ]
+    "types": ["@cfg/tsconfig/css.d.ts", "@cfg/tsconfig/reset.d.ts", "@cfg/tsconfig/svg.d.ts"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "vitest.setup.ts"],
   "exclude": ["src/**/README.*"]
 }

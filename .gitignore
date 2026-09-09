@@ -24,6 +24,7 @@ dist-ssr
 *.sw?
 
 tsconfig.tsbuildinfo
+.vitest
 
 *.local
 .cache

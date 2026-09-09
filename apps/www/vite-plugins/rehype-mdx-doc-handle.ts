@@ -1,6 +1,6 @@
 import { valueToEstree } from "estree-util-value-to-estree";
 import type { ElementContent, Root } from "hast";
-import { ROUTE_MODULE_EXPORTS } from "./remark-mdx-demote-lowercase-exports";
+import { ROUTE_MODULE_EXPORTS } from "./remark-mdx-demote-lowercase-exports.ts";
 
 /** A heading entry collected for a doc page's table of contents. */
 export type TocEntry = {
