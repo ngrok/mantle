@@ -88,6 +88,10 @@ jobs:
           echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
 
       - name: Verify mise.lock is in sync 🔒
+        # mise lock looks up release metadata on api.github.com. The token lifts
+        # the anonymous per-IP rate limit shared by the runner pool.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           mise trust ./mise.toml
           mise lock
