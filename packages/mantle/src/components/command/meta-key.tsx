@@ -37,7 +37,7 @@ function MetaKey({ className, ...props }: Props) {
 			className={cx(glyph === "⌃" && "font-medium", className)}
 		>
 			<span className="sr-only">{label}</span>
-			{glyph}
+			<span aria-hidden>{glyph}</span>
 		</Kbd>
 	);
 }

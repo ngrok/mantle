@@ -17,11 +17,13 @@ import {
 import invariant from "tiny-invariant";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
 import type { SelfClosingWithAsChild } from "../../types/as-child.js";
+import { alternateAnnouncement } from "../../utils/alternate-announcement.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { IconButton } from "../button/icon-button.js";
+import { LiveRegion } from "../live-region/live-region.js";
 import { datumValue } from "./datum.js";
 import { ChartEngine, POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import { formatNumber, formatXValue, hasTimeOfDay } from "./format.js";
@@ -1238,8 +1240,12 @@ const ChartCopyButtonPrimitive = ({
 }: CopyButtonPrimitiveProps & { partName: string; slotName: string }) => {
 	const context = useChartContext(partName);
 	const copyToClipboard = useCopyToClipboard();
-	const [wasCopied, setWasCopied] = useState(false);
+	// Why one state: the check icon shows exactly while the region reads "Copied".
+	// `alternateAnnouncement` makes a repeat inside the reset window a real DOM
+	// change, so a second copy is announced again.
 	const [announcement, setAnnouncement] = useState("");
+	const wasCopied = announcement !== "";
+	const announceToggle = useRef(false);
 	const timeoutHandle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
 	useEffect(() => {
@@ -1249,21 +1255,6 @@ const ChartCopyButtonPrimitive = ({
 			}
 		};
 	}, []);
-
-	// Why the frame gap: a live region announces a change, not a value. Each copy
-	// clears the text, and this effect writes "Copied" one frame later, so a
-	// second copy inside the reset window is announced again.
-	useEffect(() => {
-		if (!wasCopied || announcement !== "") {
-			return;
-		}
-		const frame = requestAnimationFrame(() => {
-			setAnnouncement("Copied");
-		});
-		return () => {
-			cancelAnimationFrame(frame);
-		};
-	}, [announcement, wasCopied]);
 
 	return (
 		<>
@@ -1287,7 +1278,6 @@ const ChartCopyButtonPrimitive = ({
 								clearTimeout(timeoutHandle.current);
 								timeoutHandle.current = undefined;
 							}
-							setWasCopied(false);
 							setAnnouncement("");
 							return;
 						}
@@ -1300,13 +1290,11 @@ const ChartCopyButtonPrimitive = ({
 						});
 						await copyToClipboard(markdown);
 						onCopy?.(markdown);
-						setWasCopied(true);
-						setAnnouncement("");
+						setAnnouncement(alternateAnnouncement("Copied", announceToggle));
 						if (timeoutHandle.current != null) {
 							clearTimeout(timeoutHandle.current);
 						}
 						timeoutHandle.current = setTimeout(() => {
-							setWasCopied(false);
 							setAnnouncement("");
 						}, 2000);
 					} catch (error) {
@@ -1319,9 +1307,7 @@ const ChartCopyButtonPrimitive = ({
 			    lone text child is written with textContent, which is safe under a
 			    browser translation engine, and a fresh live region is not
 			    announced on mount. */}
-			<span role="status" aria-live="polite" className="sr-only">
-				{announcement}
-			</span>
+			<LiveRegion>{announcement}</LiveRegion>
 		</>
 	);
 };

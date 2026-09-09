@@ -762,25 +762,19 @@ describe("BarChart.CopyButton", () => {
 		const status = button.nextElementSibling;
 		invariant(status != null, "the copy button renders its live region as the next sibling");
 		expect(status).toHaveTextContent("");
-		// A live region announces a DOM change, so count how many times the text
-		// lands, not what it reads at the end.
-		const announcements: string[] = [];
-		const observer = new MutationObserver(() => {
-			if (status.textContent === "Copied") {
-				announcements.push(status.textContent);
-			}
-		});
-		observer.observe(status, { childList: true, characterData: true, subtree: true });
 
 		await user.click(button);
 		await vi.waitFor(() => {
-			expect(announcements).toHaveLength(1);
+			expect(status).toHaveTextContent("Copied");
 		});
+		const first = status.textContent;
 
 		await user.click(button);
+		// A live region announces a DOM change, so a repeat must differ from the
+		// text before it. The trailing no-break space reads the same.
 		await vi.waitFor(() => {
-			expect(announcements).toHaveLength(2);
+			expect(status.textContent).not.toBe(first);
 		});
-		observer.disconnect();
+		expect(status).toHaveTextContent("Copied");
 	});
 });

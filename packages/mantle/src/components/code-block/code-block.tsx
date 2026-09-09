@@ -26,12 +26,14 @@ import {
 import assert from "tiny-invariant";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
 import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
+import { alternateAnnouncement } from "../../utils/alternate-announcement.js";
 import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Icon as MantleIcon } from "../icon/icon.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { TrafficPolicyFileIcon } from "../icons/traffic-policy-file.js";
 import { IconButton } from "../button/icon-button.js";
+import { LiveRegion } from "../live-region/live-region.js";
 import { Slot } from "../slot/index.js";
 import { escapeHtml } from "./escape-html.js";
 import { attachFoldHandler, resetFoldState } from "./fold-runtime.js";
@@ -631,8 +633,12 @@ const CopyButton = ({
 }: CodeBlockCopyButtonProps) => {
 	const { copyTextRef } = useCodeBlockContext();
 	const copyToClipboard = useCopyToClipboard();
-	const [wasCopied, setWasCopied] = useState(false);
+	// Why one state: the check icon shows exactly while the region reads "Copied".
+	// `alternateAnnouncement` makes a repeat inside the reset window a real DOM
+	// change, so a second copy is announced again.
 	const [announcement, setAnnouncement] = useState("");
+	const wasCopied = announcement !== "";
+	const announceToggle = useRef(false);
 	const timeoutHandle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
 	useEffect(() => {
@@ -643,21 +649,6 @@ const CopyButton = ({
 		};
 	}, []);
 
-	// Why the frame gap: a live region announces a change, not a value. Each copy
-	// clears the text, and this effect writes "Copied" one frame later, so a
-	// second copy inside the reset window is announced again.
-	useEffect(() => {
-		if (!wasCopied || announcement !== "") {
-			return;
-		}
-		const frame = requestAnimationFrame(() => {
-			setAnnouncement("Copied");
-		});
-		return () => {
-			cancelAnimationFrame(frame);
-		};
-	}, [announcement, wasCopied]);
-
 	return (
 		<span
 			data-slot="code-block-copy-button"
@@ -667,9 +658,7 @@ const CopyButton = ({
 			    lone text child is written with textContent, which is safe under a
 			    browser translation engine, and a fresh live region is not
 			    announced on mount. */}
-			<span role="status" aria-live="polite" className="sr-only">
-				{announcement}
-			</span>
+			<LiveRegion>{announcement}</LiveRegion>
 			<IconButton
 				type="button"
 				appearance="ghost"
@@ -691,13 +680,11 @@ const CopyButton = ({
 						const text = copyTextRef.current;
 						await copyToClipboard(text);
 						onCopy?.(text);
-						setWasCopied(true);
-						setAnnouncement("");
+						setAnnouncement(alternateAnnouncement("Copied", announceToggle));
 						if (timeoutHandle.current != null) {
 							clearTimeout(timeoutHandle.current);
 						}
 						timeoutHandle.current = setTimeout(() => {
-							setWasCopied(false);
 							setAnnouncement("");
 						}, 2000);
 					} catch (error) {

@@ -343,7 +343,7 @@ const Button = ({
 
 	if (asChild) {
 		invariant(
-			isValidElement<{ children?: ReactNode; onClickCapture?: unknown }>(children) &&
+			isValidElement<{ children?: ReactNode } & Partial<typeof disabledChildProps>>(children) &&
 				Children.only(children),
 			"When using `asChild`, Button must be passed a single child as a JSX tag.",
 		);

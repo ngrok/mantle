@@ -193,7 +193,7 @@ const IconButton = ({
 
 	if (asChild) {
 		invariant(
-			isValidElement<{ onClickCapture?: unknown }>(children) && Children.only(children),
+			isValidElement(children) && Children.only(children),
 			"When using `asChild`, IconButton must be passed a single child as a JSX tag.",
 		);
 

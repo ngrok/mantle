@@ -23,6 +23,7 @@ type NamedSvgProps = SvgAttributes & {
  * Whether the children include a `<title>`, the SVG's own naming element.
  */
 const hasTitleChild = (children: ReactNode) =>
+	children != null &&
 	Children.toArray(children).some((child) => isValidElement(child) && child.type === "title");
 
 /**
@@ -42,8 +43,10 @@ const hasAccessibleNaming = (props: NamedSvgProps) =>
  * You probably want to use the `Icon` component instead.
  *
  * The icon is decorative by default: it renders `aria-hidden="true"` unless
- * the props or the svg element carry a name (`aria-label`, `aria-labelledby`, a `<title>` child, or Phosphor's `alt`), a `role`, or an explicit `aria-hidden`. A bare Phosphor icon sets none of these, so it is hidden
- * from assistive technology.
+ * the props or the svg element carry a name (`aria-label`, `aria-labelledby`,
+ * a `<title>` child, or Phosphor's `alt`), a `role`, or an explicit
+ * `aria-hidden`. A bare Phosphor icon sets none of these, so it is hidden from
+ * assistive technology.
  *
  * @see https://mantle.ngrok.com/components/data-display/icon
  *

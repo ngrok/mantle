@@ -375,34 +375,15 @@ describe("Button", () => {
 			expect(window.location.hash).toBe("");
 		});
 
-		test("an enabled asChild anchor keeps its own onClickCapture", async () => {
-			const user = userEvent.setup();
-			const handleClickCapture = vi.fn<(event: ReactMouseEvent<HTMLAnchorElement>) => void>(
-				(event) => {
-					event.preventDefault();
-				},
-			);
-			render(
-				<Button appearance="filled" intent="neutral" asChild>
-					<a href="#yolo" onClickCapture={handleClickCapture}>
-						Open
-					</a>
-				</Button>,
-			);
-
-			await user.click(screen.getByRole("link", { name: "Open" }));
-
-			expect(handleClickCapture).toHaveBeenCalledTimes(1);
-		});
-
-		test("an enabled asChild anchor keeps its tab stop and runs its click handler", async () => {
+		test("an enabled asChild anchor keeps its tab stop and runs its own click handlers", async () => {
 			const user = userEvent.setup();
 			const handleClick = vi.fn<(event: ReactMouseEvent<HTMLAnchorElement>) => void>((event) => {
 				event.preventDefault();
 			});
+			const handleClickCapture = vi.fn<() => void>();
 			render(
 				<Button appearance="filled" intent="neutral" asChild>
-					<a href="#yolo" onClick={handleClick}>
+					<a href="#yolo" onClick={handleClick} onClickCapture={handleClickCapture}>
 						Open
 					</a>
 				</Button>,
@@ -414,6 +395,7 @@ describe("Button", () => {
 
 			await user.click(link);
 			expect(handleClick).toHaveBeenCalledTimes(1);
+			expect(handleClickCapture).toHaveBeenCalledTimes(1);
 		});
 
 		test("the loading spinner is hidden from assistive technology", () => {

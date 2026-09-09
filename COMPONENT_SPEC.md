@@ -390,7 +390,8 @@ Every rendered root element carries a `data-slot`: `<component-name>` for a simp
 `Root`, `<component-name>-<part>` for every other part. It is a stable styling hook that survives `className`
 overrides and `asChild` swaps, so consumers and sibling components may target it.
 
-When a part wraps another mantle part that already stamps one, **join instead of clobbering**:
+An `asChild` ancestor passes its own chain down as a `data-slot` prop, so a part that spreads `props` after a
+literal `data-slot="…"` loses its slot. Every part **joins instead of clobbering**:
 
 ```tsx
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -407,10 +408,10 @@ Every component has an ideal default element, and consumers must be able to swap
 `../../types/as-child.js` and `Slot` from `../slot/index.js`:
 
 ```tsx
-type FooProps = ComponentProps<"div"> & WithAsChild;
+type FooProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 const Comp = asChild ? Slot : "div";
-return <Comp data-slot="foo" className={cx("…", className)} {...props} />;
+return <Comp data-slot={joinDataSlot(dataSlot, "foo")} className={cx("…", className)} {...props} />;
 ```
 
 **A part with no children of its own still takes `asChild`** — type it `SelfClosingWithAsChild` (same module),
