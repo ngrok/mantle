@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
+import { Choice } from "../choice/choice.js";
 import { Field } from "../field/field.js";
 import { RadioGroup } from "./radio-group.js";
 
@@ -38,5 +39,26 @@ describe("RadioGroup", () => {
 		// the values a caller passes), so `Field.Description` / `Field.Errors`
 		// IDREFs can't flow onto the radio. `aria-invalid` and
 		// `aria-errormessage` still wire through.
+	});
+
+	test("RadioGroup.Indicator inside Choice.Indicator drops the injected name", () => {
+		render(
+			<RadioGroup.Root aria-label="Plan" defaultValue="pro">
+				<RadioGroup.Item value="pro">
+					<Choice.Root name="plan">
+						<Choice.Indicator>
+							<RadioGroup.Indicator data-testid="indicator" />
+						</Choice.Indicator>
+						<Choice.Content>
+							<Choice.Title>Pro</Choice.Title>
+						</Choice.Content>
+					</Choice.Root>
+				</RadioGroup.Item>
+			</RadioGroup.Root>,
+		);
+
+		const indicator = screen.getByTestId("indicator");
+		expect(indicator.tagName).toBe("DIV");
+		expect(indicator).not.toHaveAttribute("name");
 	});
 });

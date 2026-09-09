@@ -10,7 +10,9 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  * a visible focus ring on the region itself (`focus:outline-hidden`).
  *
  * Pair with the `<SkipToMainLink>` component at the top of the document.
- * `ref` lands on the rendered `<main>`, so it also composes as an `asChild`
+ * `id` and `tabIndex` are not props: the skip link's default target is
+ * `#main`, and a focusable landmark needs `tabIndex={-1}`, so `Main` stamps
+ * both. `ref` lands on the rendered `<main>`, so it also composes as an `asChild`
  * child of layout parts — in an app shell, compose it onto `AppLayout.Body`
  * (`<AppLayout.Body asChild>`), never onto the `AppLayout.Content` card around
  * it. `AppLayout.Body` is the shell's only scroll container, and the skip link
@@ -59,11 +61,13 @@ const Main = ({
 	className,
 	"data-slot": dataSlot,
 	...props
-}: ComponentProps<"main"> & WithDataSlot) => {
+}: Omit<ComponentProps<"main">, "id" | "tabIndex"> & WithDataSlot) => {
 	return (
 		<main
 			{...props}
 			data-slot={joinDataSlot(dataSlot, "main")}
+			// Why after the spread: `SkipToMainLink` targets `#main` and focuses it,
+			// so a wider props object must not carry `id` or `tabIndex` past the type.
 			id="main"
 			tabIndex={-1}
 			className={cx("focus:outline-hidden", className)}

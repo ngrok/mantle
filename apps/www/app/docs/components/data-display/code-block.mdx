@@ -506,10 +506,7 @@ CodeBlock.Root
 
 Reach for it when `Root` should be a semantic `<figure>` or `<section>`, when `Title` needs a different heading level than the default `<h3>`, or when `Header` and `Body` should be `<header>` and `<section>`. `CopyButton` has no children of its own, so it is typed `SelfClosingWithAsChild`: `<CodeBlock.CopyButton asChild>` requires exactly one child to clone, and forbids children otherwise.
 
-The remaining parts do not accept `asChild`. `CodeBlock.Code` owns the highlighted markup it renders, and `CodeBlock.TabList`, `CodeBlock.TabTrigger`, and `CodeBlock.TabContent` each explicitly omit the prop because their behavior and mounting are driven by the active tab. `CodeBlock.Icon` takes its element through the `svg` prop instead.
-
-> [!WARNING]
-> `CodeBlock.ExpanderButton` advertises `asChild` in its prop types but **throws at runtime** (`React.Children.only expected to receive a single React element child`). It renders its own "Show more" / "Show less" label and caret icon, so the slot receives more than one child. Style it with `className` instead.
+The remaining parts do not accept `asChild`. `CodeBlock.Code` owns the highlighted markup it renders, and `CodeBlock.TabList`, `CodeBlock.TabTrigger`, and `CodeBlock.TabContent` each explicitly omit the prop because their behavior and mounting are driven by the active tab. `CodeBlock.Icon` takes its element through the `svg` prop instead. `CodeBlock.ExpanderButton` renders its own "Show more" / "Show less" label and caret icon, so there is no single child to clone; style it with `className`.
 
 ## Translation
 
@@ -518,6 +515,14 @@ The remaining parts do not accept `asChild`. `CodeBlock.Code` owns the highlight
 The attribute also protects the render itself: Google Translate replaces each text node with a `<font>` wrapper, which detaches the text nodes React holds, so React either writes updates into a node the DOM no longer shows, or throws `NotFoundError` from `removeChild` and tears down the root.
 
 The two parts differ on whether a call site may turn the guard off. `CodeBlock.Code` omits the `translate` prop from its type, because a block of code is never translatable. `CodeBlock.Title` keeps it, because the slot takes arbitrary children; pass `translate="yes"` for a title that is prose rather than a filename.
+
+## Accessibility
+
+- `CodeBlock.CopyButton` is an icon button named by `label` (default "Copy code"). After a copy, an always-mounted `role="status"` element beside the button announces "Copied", so a screen-reader user hears the result and not only the icon swap.
+- `CodeBlock.ExpanderButton` carries `aria-expanded` and `aria-controls` that points at the `<pre>`. The `<pre>` itself carries no ARIA state; `data-state="collapsed" | "expanded"` drives the styling.
+- Fold toggles are real `<button>` elements named "Toggle code folding" with `aria-expanded`. Enter and Space toggle them. The folded marker is `aria-hidden`.
+- Line numbers are `aria-hidden`, so a screen reader reads the code, not "1 const x".
+- `CodeBlock.Code` and `CodeBlock.Title` carry `translate="no"`; see [Translation](#translation).
 
 ## API Reference
 
@@ -558,6 +563,21 @@ All props from [standard HTML pre attributes](https://developer.mozilla.org/en-U
 | :------ | :--------------------- | :------ | :------------------------------------------------------------------------------------------------- |
 | `value` | `MantleCodeBlockValue` |         | The code value produced by `mantleCode("lang")` tagged template or `createMantleCodeBlockValue()`. |
 
+| Data Attribute                  | Value                         | Description                                                                             |
+| :------------------------------ | :---------------------------- | :-------------------------------------------------------------------------------------- |
+| `data-state`                    | `"collapsed"` \| `"expanded"` | Present when a `CodeBlock.ExpanderButton` is composed. Drives the collapsed max height. |
+| `data-highlighted`              | `"true"` \| `"false"`         | Whether the value carried pre-rendered Shiki HTML.                                      |
+| `data-lang`                     | the language id               | The value's language.                                                                   |
+| `data-mantle-line-numbers`      | `"true"` \| `"false"`         | Whether the gutter shows line numbers.                                                  |
+| `data-mantle-line-number-start` | a number as a string          | The first line number.                                                                  |
+| `data-mantle-highlight-lines`   | comma-separated line numbers  | Present when lines are highlighted.                                                     |
+
+Inside the highlighted HTML, `data-slot="line-number"`, `data-slot="fold-toggle"`, and `data-slot="fold-ellipsis"` mark the gutter number, the fold button, and the folded marker.
+
+| CSS Variable                 | Default | Description                                       |
+| :--------------------------- | :------ | :------------------------------------------------ |
+| `--mantle-line-number-start` | `1`     | The CSS counter start for the line-number gutter. |
+
 ### CodeBlock.Header
 
 An optional header slot of the `CodeBlock`. This is where things like the `CodeBlock.Icon` and `CodeBlock.Title` are rendered.
@@ -594,15 +614,13 @@ All props from [standard HTML button attributes](https://developer.mozilla.org/e
 | `onCopyError?` | `(error: unknown) => void` |               | Callback fired when an error occurs during copying.                                                                                                 |
 | `asChild?`     | `boolean`                  | `false`       | Use the `asChild` prop to compose the `CodeBlock.CopyButton` styling and functionality onto alternative element types or your own React components. |
 
+After a copy, an always-mounted `role="status"` element inside the part announces "Copied".
+
 ### CodeBlock.ExpanderButton
 
-The (optional) expander button of the `CodeBlock`. Render this as a child of the `CodeBlock.Root` to allow users to expand/collapse the code block contents.
+The (optional) expander button of the `CodeBlock`. Render this as a child of the `CodeBlock.Root` to allow users to expand/collapse the code block contents. It carries `aria-expanded` and `aria-controls` that points at the `<pre>`. It does not take `asChild`: it renders its own label and caret, so style it with `className`.
 
-All props from [standard HTML button attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
-
-| Prop       | Type      | Default | Description                                                                                                                                             |
-| :--------- | :-------- | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `CodeBlock.ExpanderButton` styling and functionality onto alternative element types or your own React components. |
+All props from [standard HTML button attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes) except `children`, `aria-controls`, and `aria-expanded`.
 
 ### CodeBlock.Icon
 

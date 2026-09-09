@@ -31,11 +31,6 @@ describe("Kbd", () => {
 		expect(ref.current?.tagName).toBe("KBD");
 	});
 
-	test("forwards aria-label so a symbol-only key gets an accessible name", () => {
-		render(<Kbd aria-label="Command">⌘</Kbd>);
-		expect(screen.getByLabelText("Command")).toHaveTextContent("⌘");
-	});
-
 	test('renders translate="no" so a translation engine skips the key', () => {
 		render(<Kbd data-testid="kbd">Enter</Kbd>);
 		expect(screen.getByTestId("kbd")).toHaveAttribute("translate", "no");

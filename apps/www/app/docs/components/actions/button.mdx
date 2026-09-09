@@ -3,11 +3,14 @@ title: Button
 description: Initiates an action, such as completing a task or submitting information.
 ---
 
-import { Button, IconButton } from "@ngrok/mantle/button";
+import { Button, ButtonGroup, IconButton } from "@ngrok/mantle/button";
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { FireIcon } from "@phosphor-icons/react/Fire";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
+import { TextBIcon } from "@phosphor-icons/react/TextB";
+import { TextItalicIcon } from "@phosphor-icons/react/TextItalic";
+import { TextUnderlineIcon } from "@phosphor-icons/react/TextUnderline";
 import { Link, href } from "react-router";
 import { Example } from "~/components/example";
 
@@ -201,7 +204,7 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 
 ## Common mistakes
 
-An icon-only button is not a `Button`: use [`IconButton`](/components/actions/icon-button) instead. `Button`'s `icon` prop places an icon _beside_ its text children; render it with no children and the button has no accessible name (screen readers announce nothing) and keeps its text-box horizontal padding, so it draws as an off-square lozenge instead of a square. `IconButton` requires an accessible `label` (visually hidden, announced to screen readers) and renders a square box on the same shared size scale.
+An icon-only button is not a `Button`: use [`IconButton`](/components/actions/icon-button) instead. `Button`'s `icon` prop places an icon _beside_ its text children; render it with no children and the button has no accessible name (screen readers announce nothing) and keeps its text-box horizontal padding, so it draws as an off-square lozenge instead of a square. `IconButton` requires an accessible `label`, rendered as its `aria-label`, and renders a square box on the same shared size scale.
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -390,9 +393,41 @@ Style the label by styling your own child, not the slot. A label that has to shr
 </Button>
 ```
 
+## Button group
+
+`ButtonGroup` is a contained group of related buttons. The `"panel"` appearance draws a bordered panel and sets `--icon-button-border-radius` to `0.125rem`, so nested icon buttons square up to fit the chrome. The `"ghost"` appearance only spaces the buttons.
+
+<Example>
+	<ButtonGroup appearance="panel">
+		<IconButton appearance="ghost" intent="neutral" icon={<TextBIcon />} label="Bold" />
+		<IconButton appearance="ghost" intent="neutral" icon={<TextItalicIcon />} label="Italic" />
+		<IconButton
+			appearance="ghost"
+			intent="neutral"
+			icon={<TextUnderlineIcon />}
+			label="Underline"
+		/>
+	</ButtonGroup>
+</Example>
+
+```tsx
+import { ButtonGroup, IconButton } from "@ngrok/mantle/button";
+import { TextBIcon } from "@phosphor-icons/react/TextB";
+import { TextItalicIcon } from "@phosphor-icons/react/TextItalic";
+import { TextUnderlineIcon } from "@phosphor-icons/react/TextUnderline";
+
+<ButtonGroup appearance="panel">
+	<IconButton appearance="ghost" intent="neutral" icon={<TextBIcon />} label="Bold" />
+	<IconButton appearance="ghost" intent="neutral" icon={<TextItalicIcon />} label="Italic" />
+	<IconButton appearance="ghost" intent="neutral" icon={<TextUnderlineIcon />} label="Underline" />
+</ButtonGroup>;
+```
+
 ## Polymorphism
 
 To render _something else_ as a `Button`, use the `asChild` prop to compose. This is useful when you want to splat the `Button` styling onto a `react-router` `Link`. When you use `asChild`, the `Button` does **NOT** pass its `type` prop to the child component.
+
+A disabled or loading `Button` under `asChild` gets no `disabled` attribute, because the attribute is inert on an `<a>`. The child gets `aria-disabled="true"`, leaves the tab order with `tabIndex={-1}`, and a click on it is cancelled before any handler or router navigation runs.
 
 <Example>
 	<Button appearance="filled" intent="neutral" icon={<FireIcon weight="fill" />} asChild>
@@ -429,7 +464,29 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 #### Data attributes
 
-| Data Attribute | Value            | Description                                                                                                                                                                                                                      |
-| -------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"button"`       | On the button element. Stable styling hook that survives a `className` override or an `asChild` swap.                                                                                                                            |
-| `data-slot`    | `"button-label"` | On the `<span>` wrapping `children`, beside the `icon` slot. `display: contents`, so every child stays a flex item of the button and the `gap` still falls between them. Style a label by styling your own child, not this slot. |
+| Data Attribute    | Value                                               | Description                                                                                                                                                                                                                      |
+| ----------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`       | `"button"`                                          | On the button element. Stable styling hook that survives a `className` override or an `asChild` swap.                                                                                                                            |
+| `data-slot`       | `"button-label"`                                    | On the `<span>` wrapping `children`, beside the `icon` slot. `display: contents`, so every child stays a flex item of the button and the `gap` still falls between them. Style a label by styling your own child, not this slot. |
+| `data-appearance` | `"filled"` \| `"ghost"` \| `"link"` \| `"outlined"` | The `appearance` prop.                                                                                                                                                                                                           |
+| `data-intent`     | `"accent"` \| `"danger"` \| `"neutral"`             | The `intent` prop.                                                                                                                                                                                                               |
+| `data-size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`      | The `size` prop. Omitted when `appearance="link"`, which has no box to size.                                                                                                                                                     |
+| `data-loading`    | `"true"` \| `"false"`                               | The `isLoading` prop.                                                                                                                                                                                                            |
+| `data-disabled`   | `"true"` \| `"false"`                               | `"true"` when `disabled`, `isLoading`, or `aria-disabled="true"` is set.                                                                                                                                                         |
+
+### ButtonGroup
+
+A contained group of related buttons.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop          | Type                                   | Default | Description                                                                                                                                                                                  |
+| ------------- | -------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance?` | `"panel"` \| `"ghost"` \| `"outlined"` |         | The visual style of the group. `"panel"` draws a bordered panel and tightens `--icon-button-border-radius` to `0.125rem`; `"ghost"` only spaces the buttons; `"outlined"` draws nothing yet. |
+| `asChild?`    | `boolean`                              | `false` | Use the `asChild` prop to compose the `ButtonGroup` styling onto alternative element types or your own React components.                                                                     |
+
+#### Data attributes
+
+| Data Attribute | Value            | Description                                                                                          |
+| -------------- | ---------------- | ---------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"button-group"` | On the group element. Stable styling hook that survives a `className` override or an `asChild` swap. |

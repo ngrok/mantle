@@ -135,7 +135,8 @@ function useOffsetPagination({
 	}
 
 	function goToLastPage() {
-		setCurrentPage(totalPages);
+		// Why the clamp: an empty list has zero pages, and `currentPage` is 1-indexed.
+		setCurrentPage(Math.max(1, totalPages));
 	}
 
 	function goToFirstPage() {

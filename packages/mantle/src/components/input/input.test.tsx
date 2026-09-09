@@ -287,4 +287,29 @@ describe("Input", () => {
 
 		expect(screen.getByRole("textbox")).toHaveValue("ello govna");
 	});
+
+	describe("data-disabled", () => {
+		test("stamps data-disabled when disabled", () => {
+			const { container } = render(<Input disabled placeholder="test" />);
+			expect(container.querySelector('[data-slot="input"]')).toHaveAttribute(
+				"data-disabled",
+				"true",
+			);
+		});
+
+		// The `data-disabled:` variant matches attribute presence, so a stamped
+		// "false" would dim an enabled control.
+		test('does not stamp data-disabled for aria-disabled="false"', () => {
+			const { container } = render(<Input aria-disabled="false" placeholder="test" />);
+			expect(container.querySelector('[data-slot="input"]')).not.toHaveAttribute("data-disabled");
+		});
+
+		test('stamps data-disabled for aria-disabled="true"', () => {
+			const { container } = render(<Input aria-disabled="true" placeholder="test" />);
+			expect(container.querySelector('[data-slot="input"]')).toHaveAttribute(
+				"data-disabled",
+				"true",
+			);
+		});
+	});
 });

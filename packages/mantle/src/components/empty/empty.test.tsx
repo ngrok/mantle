@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { createRef } from "react";
 import { describe, expect, test } from "vitest";
 import { Empty } from "./empty.js";
 
@@ -166,6 +167,28 @@ describe("Empty", () => {
 		);
 		const actions = screen.getByTestId("actions");
 		expect(actions.className).toContain("gap-4");
+	});
+
+	test("Icon is hidden from assistive technology and stamps its slot", () => {
+		render(
+			<Empty.Root>
+				<Empty.Icon svg={<svg data-testid="icon" />} />
+				<Empty.Title>No results</Empty.Title>
+			</Empty.Root>,
+		);
+		const icon = screen.getByTestId("icon");
+		expect(icon).toHaveAttribute("aria-hidden", "true");
+		expect(icon).toHaveAttribute("data-slot", "empty-icon");
+	});
+
+	test("Title forwards ref to the heading element", () => {
+		const ref = createRef<HTMLHeadingElement>();
+		render(
+			<Empty.Root>
+				<Empty.Title ref={ref}>Heading</Empty.Title>
+			</Empty.Root>,
+		);
+		expect(ref.current?.tagName).toBe("H3");
 	});
 
 	test("renders a full composition", () => {

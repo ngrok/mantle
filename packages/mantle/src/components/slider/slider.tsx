@@ -46,11 +46,13 @@ type SliderProps = SliderBaseProps &
 	SliderValueProps & {
 		/**
 		 * The color of the slider range. Accepts any Tailwind `bg-*` class.
-		 * @default "bg-accent-500"
+		 * @default "bg-accent-600"
 		 */
 		color?: `bg-${string}`;
 		/**
-		 * Whether to show tick marks along the track at each `step` interval.
+		 * Whether to show tick marks along the track: one per `step`, spread
+		 * evenly across the track. When the range is not a multiple of `step`,
+		 * the ticks do not land on the step values.
 		 * @default false
 		 */
 		showTicks?: boolean;
@@ -64,7 +66,9 @@ type SliderProps = SliderBaseProps &
  * `aria-errormessage` onto each thumb via `FieldControlContext`. Because
  * slider thumbs are ARIA slider widgets rather than native labelable controls,
  * pass `aria-label` or `aria-labelledby` to `Slider`; Mantle forwards those
- * labels to the rendered thumb(s).
+ * labels to the rendered thumb(s). `aria-label` derives a distinct name per
+ * thumb ("Minimum Price", "Maximum Price"). `aria-labelledby` names every
+ * thumb with the same text, so prefer `aria-label` for a range slider.
  *
  * @see https://mantle.ngrok.com/components/forms/slider
  *

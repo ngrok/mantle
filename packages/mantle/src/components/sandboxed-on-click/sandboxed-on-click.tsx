@@ -28,6 +28,9 @@ type EventProps = BaseProps & {
  * Props for the sandboxed onClick container. Spread this on the element you want
  * to prevent the click event from bubbling out of.
  *
+ * If the element already has a role, take only `onClick`: `role="presentation"`
+ * on a `<td>` removes the cell from the table.
+ *
  * @see https://mantle.ngrok.com/components/primitives/sandboxed-on-click
  */
 const sandboxedOnClickProps = ({ allowClickEventDefault = false, onClick }: EventProps = {}) =>
@@ -64,6 +67,11 @@ type Props = ComponentProps<"div"> & WithAsChild & BaseProps;
 /**
  * A container that prevents the click event from bubbling out of it.
  *
+ * The default `<div>` carries `role="presentation"`, because it exists only to
+ * catch bubbled clicks. With `asChild`, the child keeps its own role and gets
+ * only the sandboxed `onClick`: a presentational role on a link or button is a
+ * conflict that user agents ignore.
+ *
  * @see https://mantle.ngrok.com/components/primitives/sandboxed-on-click
  *
  * @example
@@ -89,9 +97,10 @@ const SandboxedOnClick = ({
 	...props
 }: Props) => {
 	const Component = asChild ? Slot : "div";
+	const { role, ...sandboxProps } = sandboxedOnClickProps({ allowClickEventDefault, onClick });
 
 	return (
-		<Component ref={ref} {...props} {...sandboxedOnClickProps({ allowClickEventDefault, onClick })}>
+		<Component ref={ref} {...props} {...sandboxProps} {...(!asChild && { role })}>
 			{children}
 		</Component>
 	);

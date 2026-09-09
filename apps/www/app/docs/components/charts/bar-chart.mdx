@@ -1962,15 +1962,15 @@ One bar series. Renders nothing itself — it registers the series with the char
 
 ### BarChart.Grid
 
-Horizontal hairline gridlines behind the bars (renderless; painted on canvas). Omit the part to omit the grid. Accepts no `className` or DOM props.
+Hairline value gridlines behind the bars (renderless; painted on canvas). The default runs perpendicular to the bars: horizontal lines for vertical bars, vertical lines for horizontal bars. Pass `lines` to force a direction. Omit the part to omit the grid. Accepts no `className` or DOM props.
 
-| Prop     | Type                                   | Default        | Description              |
-| -------- | -------------------------------------- | -------------- | ------------------------ |
-| `lines?` | `"horizontal" \| "vertical" \| "both"` | `"horizontal"` | Which gridlines to draw. |
+| Prop     | Type                                   | Default                   | Description              |
+| -------- | -------------------------------------- | ------------------------- | ------------------------ |
+| `lines?` | `"horizontal" \| "vertical" \| "both"` | perpendicular to the bars | Which gridlines to draw. |
 
 ### BarChart.XAxis
 
-Category labels along the bottom of the plot (renderless; painted on canvas). Labels that would collide are skipped, never rotated. Accepts no `className` or DOM props.
+Category labels for the bars (renderless; painted on canvas): along the bottom for vertical bars, down the left gutter for horizontal bars. Labels that would collide are skipped, never rotated. Accepts no `className` or DOM props.
 
 | Prop          | Type                                          | Default | Description                                                                                                                               |
 | ------------- | --------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1979,7 +1979,7 @@ Category labels along the bottom of the plot (renderless; painted on canvas). La
 
 ### BarChart.YAxis
 
-Value tick labels along the left of the plot (renderless; painted on canvas). Ticks land on clean thousands-separated numbers. Accepts no `className` or DOM props.
+Value tick labels (renderless; painted on canvas): along the left for vertical bars, across the bottom for horizontal bars. Ticks land on clean thousands-separated numbers. Accepts no `className` or DOM props.
 
 | Prop          | Type                        | Default                     | Description                                                                                             |
 | ------------- | --------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -1988,7 +1988,7 @@ Value tick labels along the left of the plot (renderless; painted on canvas). Ti
 
 ### BarChart.ReferenceLine
 
-A dashed horizontal marker at a y value — an SLO threshold, a budget, a limit (renderless; painted on canvas). Accepts no `className` or DOM props.
+A dashed marker at the value `y`, such as an SLO threshold, a budget, or a limit (renderless; painted on canvas). It crosses the value axis: a horizontal line for vertical bars, a vertical line for horizontal bars. Accepts no `className` or DOM props.
 
 | Prop     | Type          | Default                 | Description                                       |
 | -------- | ------------- | ----------------------- | ------------------------------------------------- |
@@ -2041,6 +2041,12 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 | `onCopy?`      | `(value: string) => void`  |                           | Callback fired after a successful copy, passes the serialized markdown.        |
 | `onCopyError?` | `(error: unknown) => void` |                           | Callback fired when an error occurs during copying.                            |
 | `asChild?`     | `boolean`                  | `false`                   | Compose the copy behavior onto your own element instead of the default button. |
+
+While a copy is fresh, an always-mounted `role="status"` element beside the button announces "Copied" to a screen reader.
+
+| Data Attribute | Value                     | Description                  |
+| -------------- | ------------------------- | ---------------------------- |
+| `data-slot`    | `"bar-chart-copy-button"` | The button the part renders. |
 
 ### Chart color tokens
 

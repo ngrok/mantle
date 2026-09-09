@@ -175,7 +175,7 @@ import { BookIcon } from "@phosphor-icons/react/Book";
 
 ## Polymorphism
 
-`SandboxedOnClick` accepts an `asChild` prop. When `true`, it renders its single child instead of its default `<div>`, forwarding the sandboxed `onClick` handler, `role="presentation"`, and the ref onto that child. Reach for this when the sandboxed click behavior should live directly on a semantic element such as an anchor, without an extra wrapper `<div>`.
+`SandboxedOnClick` accepts an `asChild` prop. When `true`, it renders its single child instead of its default `<div>`, forwarding the sandboxed `onClick` handler and the ref onto that child. The child keeps its own role: the default `<div>` carries `role="presentation"` because it exists only to catch bubbled clicks, but a presentational role on a link or button is a conflict that user agents ignore. Reach for this when the sandboxed click behavior should live directly on a semantic element such as an anchor, without an extra wrapper `<div>`.
 
 <Example>
 	<SandboxedOnClick asChild allowClickEventDefault>
@@ -206,4 +206,18 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | Prop                     | Type      | Default | Description                                                                                                                                                                                                                         |
 | ------------------------ | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `allowClickEventDefault` | `boolean` | `false` | Whether the click keeps its default behavior. When `false`, the `onClick` handler calls `event.preventDefault()`; propagation stops either way. Set it to `true` for links or buttons that must navigate or run an action on click. |
-| `asChild`                | `boolean` | `false` | Use the `asChild` prop to compose the `SandboxedOnClick` functionality onto alternative element types or your own React components.                                                                                                 |
+| `asChild`                | `boolean` | `false` | Use the `asChild` prop to compose the `SandboxedOnClick` functionality onto alternative element types or your own React components. The child keeps its own role.                                                                   |
+
+### sandboxedOnClickProps
+
+`sandboxedOnClickProps({ allowClickEventDefault?, onClick? })` returns the `role="presentation"` and `onClick` props the default `<div>` uses. When the component does not fit, apply them to your own element. If that element already has a role, take only `onClick`: `role="presentation"` on a `<td>` removes the cell from the table.
+
+```tsx
+import { sandboxedOnClickProps } from "@ngrok/mantle/sandboxed-on-click";
+
+const { onClick } = sandboxedOnClickProps({ allowClickEventDefault: true });
+
+<td onClick={onClick}>
+	<Anchor href="https://ngrok.com/docs">See ngrok docs</Anchor>
+</td>;
+```

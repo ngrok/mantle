@@ -154,7 +154,8 @@ const RadioGroup = ({
 );
 
 /**
- * A trigger for a dropdown menu sub-menu.
+ * A trigger for a dropdown menu sub-menu. It opens the submenu on hover, or on
+ * ArrowRight or Enter.
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenusubtrigger
  *
@@ -509,7 +510,8 @@ const DropdownSeparator = ({ className, ...props }: ComponentProps<typeof Separa
 );
 
 /**
- * A keyboard shortcut indicator for dropdown menu items.
+ * A keyboard shortcut indicator for dropdown menu items. It locks
+ * `translate="no"`, because a translated key name names the wrong key.
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenushortcut
  *
@@ -526,12 +528,15 @@ const DropdownSeparator = ({ className, ...props }: ComponentProps<typeof Separa
  * </DropdownMenu.Root>
  * ```
  */
-const Shortcut = ({ className, ...props }: ComponentProps<"span">) => {
+const Shortcut = ({ className, ...props }: Omit<ComponentProps<"span">, "translate">) => {
 	return (
 		<span
 			data-slot="dropdown-menu-shortcut"
 			className={cx("ml-auto text-xs tracking-widest opacity-60", className)}
 			{...props}
+			// Why after the spread: a wider props object can still carry `translate`
+			// past the type, and a translated shortcut key names the wrong key.
+			translate="no"
 		/>
 	);
 };
@@ -840,7 +845,8 @@ const DropdownMenu = {
 	 */
 	SubContent,
 	/**
-	 * The trigger item that opens a submenu when hovered or focused.
+	 * A trigger for a dropdown menu sub-menu. It opens the submenu on hover, or on
+	 * ArrowRight or Enter.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenusubtrigger
 	 *

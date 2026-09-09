@@ -229,6 +229,26 @@ const List = ({
 		}
 
 		const abortController = new AbortController();
+		const { signal } = abortController;
+
+		// Why: a pointer press focuses the trigger before `click` fires. If that
+		// focus scrolled the list, an off-center trigger would move out from under
+		// the pointer and the click, and with it a link's navigation, would never
+		// happen. So the scroll below runs for keyboard focus only.
+		let focusFromPointer = false;
+		element.addEventListener(
+			"pointerdown",
+			() => {
+				focusFromPointer = true;
+			},
+			{ signal },
+		);
+		const clearPointerFlag = () => {
+			focusFromPointer = false;
+		};
+		element.addEventListener("pointerup", clearPointerFlag, { signal });
+		element.addEventListener("pointercancel", clearPointerFlag, { signal });
+		element.addEventListener("keydown", clearPointerFlag, { signal });
 
 		// The edge fade is handled declaratively by the `scroll-fade-x` utility
 		// (a CSS scroll-driven animation), so the only thing left for JS here is
@@ -241,6 +261,9 @@ const List = ({
 		element.addEventListener(
 			"focusin",
 			(event) => {
+				if (focusFromPointer) {
+					return;
+				}
 				if (event.target instanceof Element && event.target !== element) {
 					const scrollBehavior: ScrollBehavior = getPrefersReducedMotion() ? "auto" : "smooth";
 					event.target.scrollIntoView({
@@ -252,7 +275,7 @@ const List = ({
 					});
 				}
 			},
-			{ signal: abortController.signal },
+			{ signal },
 		);
 
 		return () => {
@@ -378,21 +401,15 @@ const Trigger = ({
 		);
 		const grandchildren = singleChild.props?.children;
 
-		const cloneProps = disabled
-			? /**
-				 * When disabled, prevent anchor/link children from being clickable by
-				 * removing their href/to props!
-				 * This is necessary because `<a>` doesn't support the `disabled`
-				 * attribute and would be navigable. We could use `pointer-events-none`
-				 * instead, but don't by default because it would also prevent tooltip
-				 * interactions, which may be surprising.
-				 */
-				{ href: undefined, to: undefined }
-			: /**
-				 * when NOT disabled, allow keyboard navigation to the trigger,
-				 * even for asChild anchors/links
-				 */
-				{ tabIndex: 0 };
+		// When disabled, prevent anchor/link children from being clickable by
+		// removing their href/to props. `<a>` has no `disabled` attribute and
+		// would stay navigable. `pointer-events-none` would also block tooltip
+		// interactions, which may be surprising, so it is not the default.
+		//
+		// Why no `tabIndex` when enabled: Radix rotates `tabIndex` between the
+		// triggers so only the active tab is a Tab stop, and a cloned `tabIndex`
+		// would win over it and put every tab in the Tab order.
+		const cloneProps = disabled ? { href: undefined, to: undefined } : {};
 
 		return (
 			<TabsPrimitiveTrigger asChild data-slot="tabs-trigger" {...tabsTriggerProps} ref={ref}>

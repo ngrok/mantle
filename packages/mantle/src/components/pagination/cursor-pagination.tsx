@@ -216,9 +216,11 @@ const PageSizeSelect = ({
 		>
 			<Select.Trigger
 				ref={ref}
+				// Why: the trigger's only visible text is its value ("100 per page"),
+				// so without a label a screen reader has no stable name for it.
+				aria-label="Items per page"
 				data-slot="cursor-pagination-page-size-select"
 				className={cx("w-auto min-w-36", className)}
-				value={ctx.pageSize}
 				{...rest}
 			>
 				<Select.Value />

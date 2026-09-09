@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
+import invariant from "tiny-invariant";
 import { describe, expect, test, vi } from "vitest";
 import type { BarTexture } from "../chart/types.js";
 import { BarChart } from "./bar-chart.js";
@@ -30,6 +31,30 @@ describe("BarChart.Root", () => {
 		expect(screen.getByRole("application", { name: "Visitors by month" })).toBeInTheDocument();
 		// The canvas is decorative pixels; the overlay is the single named element.
 		expect(document.querySelector("canvas")).toHaveAttribute("aria-hidden");
+	});
+
+	test("the keyboard instructions name every key the overlay handles", () => {
+		renderChart();
+		const overlay = screen.getByRole("application", { name: "Visitors by month" });
+		expect(overlay).toHaveAccessibleDescription(
+			/left and right arrow keys.*Page Up and Page Down.*Home and End.*Enter or Space.*Escape/s,
+		);
+	});
+
+	test("the data table caption reads the aria-labelledby element's text", async () => {
+		render(
+			<>
+				<h2 id="visitors-title">Visitors by month</h2>
+				<BarChart.Root data={data} xKey="month" aria-labelledby="visitors-title">
+					<BarChart.Bar dataKey="desktop" label="Desktop" />
+				</BarChart.Root>
+			</>,
+		);
+		await vi.waitFor(() => {
+			expect(
+				screen.getByRole("table", { name: "Visitors by month — chart data." }),
+			).toBeInTheDocument();
+		});
 	});
 
 	test("an xKey matching no row throws instead of rendering undefined categories", () => {
@@ -571,6 +596,16 @@ describe("BarChart decorative mode", () => {
 		expect(screen.queryByRole("status")).not.toBeInTheDocument();
 	});
 
+	test("is inert, so a composed CopyButton is not a tab stop inside the hidden backdrop", () => {
+		const { container } = render(
+			<BarChart.Root data={data} xKey="month" decorative>
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.CopyButton />
+			</BarChart.Root>,
+		);
+		expect(container.querySelector('[data-slot="bar-chart"]')).toHaveAttribute("inert");
+	});
+
 	test("pointer and keyboard never surface a tooltip readout", async () => {
 		const user = userEvent.setup();
 		const { container } = renderDecorative();
@@ -709,5 +744,37 @@ describe("BarChart series slots", () => {
 		expect(swatches).toHaveLength(accessKeys.length);
 		expect(swatches).not.toContain("var(--color-chart-other)");
 		expect(new Set(swatches).size).toBe(accessKeys.length);
+	});
+});
+
+describe("BarChart.CopyButton", () => {
+	test("announces 'Copied' through a live region, and again for a second copy inside the reset window", async () => {
+		const user = userEvent.setup();
+		render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.CopyButton />
+			</BarChart.Root>,
+		);
+
+		const button = screen.getByRole("button", { name: "Copy data as Markdown" });
+		// Why the sibling: the chart's keyboard announcer is a second `role="status"`.
+		const status = button.nextElementSibling;
+		invariant(status != null, "the copy button renders its live region as the next sibling");
+		expect(status).toHaveTextContent("");
+
+		await user.click(button);
+		await vi.waitFor(() => {
+			expect(status).toHaveTextContent("Copied");
+		});
+		const first = status.textContent;
+
+		await user.click(button);
+		// A live region announces a DOM change, so a repeat must differ from the
+		// text before it. The trailing no-break space reads the same.
+		await vi.waitFor(() => {
+			expect(status.textContent).not.toBe(first);
+		});
+		expect(status).toHaveTextContent("Copied");
 	});
 });

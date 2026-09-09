@@ -70,6 +70,49 @@ describe("MultiSelect", () => {
 		expect(screen.getByRole("combobox")).not.toHaveAttribute("placeholder");
 	});
 
+	test("renders the tags as a named list of listitems, with no option outside a listbox", () => {
+		render(
+			<MultiSelect.Root selectedValue={["apple", "banana"]} setSelectedValue={() => {}}>
+				<MultiSelect.Trigger>
+					<MultiSelect.TagValues />
+					<MultiSelect.Input placeholder="Select items..." />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
+				</MultiSelect.Content>
+			</MultiSelect.Root>,
+		);
+		const list = screen.getByRole("list", { name: "Selected values" });
+		const tags = within(list).getAllByRole("listitem");
+		expect(tags).toHaveLength(2);
+		expect(within(list).getByRole("button", { name: "Remove apple" })).toBeInTheDocument();
+		expect(screen.queryAllByRole("option")).toHaveLength(0);
+		expect(screen.queryByRole("group")).not.toBeInTheDocument();
+	});
+
+	test("renders no tag list while nothing is selected, and honors a custom list name", () => {
+		const { rerender } = render(
+			<MultiSelect.Root selectedValue={[]} setSelectedValue={() => {}}>
+				<MultiSelect.Trigger>
+					<MultiSelect.TagValues aria-label="Chosen fruits" />
+					<MultiSelect.Input placeholder="Select items..." />
+				</MultiSelect.Trigger>
+			</MultiSelect.Root>,
+		);
+		expect(screen.queryByRole("list")).not.toBeInTheDocument();
+
+		rerender(
+			<MultiSelect.Root selectedValue={["apple"]} setSelectedValue={() => {}}>
+				<MultiSelect.Trigger>
+					<MultiSelect.TagValues aria-label="Chosen fruits" />
+					<MultiSelect.Input placeholder="Select items..." />
+				</MultiSelect.Trigger>
+			</MultiSelect.Root>,
+		);
+		expect(screen.getByRole("list", { name: "Chosen fruits" })).toBeInTheDocument();
+	});
+
 	test("renders remove buttons for each selected tag", () => {
 		render(
 			<MultiSelect.Root selectedValue={["apple", "banana"]} setSelectedValue={() => {}}>
@@ -177,7 +220,7 @@ describe("MultiSelect", () => {
 		 */
 		const getTagOption = (value: string): HTMLElement => {
 			const removeBtn = screen.getByLabelText(`Remove ${value}`);
-			const tagElement = removeBtn.closest<HTMLElement>('[role="option"]');
+			const tagElement = removeBtn.closest<HTMLElement>('[role="listitem"]');
 			if (tagElement == null) {
 				throw new Error(`Tag option for "${value}" not found`);
 			}
@@ -204,6 +247,26 @@ describe("MultiSelect", () => {
 			render(<Subject />);
 			fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowLeft" });
 			expect(getTagOption("cherry")).toHaveFocus();
+		});
+
+		test("the focused tag is marked data-active, never aria-current, and drops it on blur", async () => {
+			const user = userEvent.setup();
+			render(<Subject />);
+			const cherry = getTagOption("cherry");
+			expect(cherry).not.toHaveAttribute("data-active");
+
+			act(() => {
+				cherry.focus();
+			});
+			expect(cherry).toHaveFocus();
+			expect(cherry).toHaveAttribute("data-active");
+			// Why: `aria-current` names the current item in a set, not keyboard focus.
+			expect(cherry).not.toHaveAttribute("aria-current");
+			expect(getTagOption("banana")).not.toHaveAttribute("data-active");
+
+			await user.keyboard("{ArrowRight}");
+			expect(screen.getByRole("combobox")).toHaveFocus();
+			expect(cherry).not.toHaveAttribute("data-active");
 		});
 
 		test("ArrowLeft on a non-first tag focuses the previous tag", async () => {

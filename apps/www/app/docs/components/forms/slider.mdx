@@ -261,7 +261,7 @@ import { Slider } from "@ngrok/mantle/slider";
 
 ### Ticks
 
-Use the `showTicks` prop to show tick marks at each `step` interval along the track.
+Use the `showTicks` prop to show tick marks along the track, one per `step`, spread evenly. When the range is not a multiple of `step`, the ticks do not land on the step values.
 
 <Example className="flex-col gap-6">
 	<Slider aria-label="Volume" defaultValue={50} max={100} step={10} showTicks />
@@ -285,11 +285,11 @@ The `Slider` is built on top of [Radix Slider](https://www.radix-ui.com/primitiv
 
 | Prop                    | Type                           | Default           | Description                                                                                                   |
 | :---------------------- | :----------------------------- | :---------------- | :------------------------------------------------------------------------------------------------------------ |
-| `color`                 | `` `bg-${string}` ``           | `"bg-accent-500"` | The color of the slider range. Accepts any Tailwind `bg-*` class.                                             |
+| `color`                 | `` `bg-${string}` ``           | `"bg-accent-600"` | The color of the slider range. Accepts any Tailwind `bg-*` class.                                             |
 | `aria-label`            | `string`                       | —                 | Accessible name forwarded to the rendered thumb. Range sliders derive per-thumb labels from it.               |
-| `aria-labelledby`       | `string`                       | —                 | IDREF forwarded to the rendered thumb when another element provides the accessible name.                      |
+| `aria-labelledby`       | `string`                       | —                 | IDREF forwarded to every thumb, so a range slider names both thumbs with the same text. Prefer `aria-label`.  |
 | `defaultValue`          | `number` \| `number[]`         | —                 | The value of the slider when initially rendered. Use when you do not need to control the state of the slider. |
-| `showTicks`             | `boolean`                      | `false`           | Whether to show tick marks along the track at each `step` interval.                                           |
+| `showTicks`             | `boolean`                      | `false`           | Whether to show tick marks along the track, one per `step`, spread evenly.                                    |
 | `value`                 | `number` \| `number[]`         | —                 | The controlled value of the slider. Must be used with `onValueChange`.                                        |
 | `onValueChange`         | `(value: number[]) => void`    | —                 | Event handler called when the value changes.                                                                  |
 | `onValueCommit`         | `(value: number[]) => void`    | —                 | Event handler called when the value changes at the end of an interaction (e.g. on mouse up or on blur).       |
@@ -299,5 +299,5 @@ The `Slider` is built on top of [Radix Slider](https://www.radix-ui.com/primitiv
 | `min`                   | `number`                       | `0`               | The minimum value for the range.                                                                              |
 | `max`                   | `number`                       | `100`             | The maximum value for the range.                                                                              |
 | `step`                  | `number`                       | `1`               | The stepping interval.                                                                                        |
-| `minStepsBetweenThumbs` | `number`                       | `0`               | The minimum permitted steps between multiple thumbs.                                                          |
+| `minStepsBetweenThumbs` | `number`                       | `1`               | The minimum permitted steps between multiple thumbs.                                                          |
 | `inverted`              | `boolean`                      | `false`           | Whether the slider is visually inverted.                                                                      |

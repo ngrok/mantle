@@ -16,7 +16,9 @@ type BadgeProps = ComponentProps<"span"> &
 		 */
 		color?: Color;
 		/**
-		 * The icon to render inside the badge.
+		 * The icon to render inside the badge. Decorative by default: it renders
+		 * `aria-hidden` unless the SVG carries `aria-label`, `aria-labelledby`,
+		 * `role`, or an explicit `aria-hidden`.
 		 */
 		icon?: ReactNode;
 		/**

@@ -555,7 +555,9 @@ const BreadcrumbSkeleton = ({
 	ref,
 	...props
 }: BreadcrumbSkeletonProps & WithDataSlot) => (
-	<Skeleton asChild>
+	// Why aria-hidden={false}: `Skeleton` hides itself by default, and the
+	// `role="status"` announcer lives inside this bar.
+	<Skeleton asChild aria-hidden={false}>
 		<li
 			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "breadcrumb-skeleton")}

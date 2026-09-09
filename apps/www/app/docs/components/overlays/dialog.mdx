@@ -628,12 +628,13 @@ The container for the dialog content. Renders on top of the overlay and is cente
 
 `Dialog.Content` renders inside a positioner element (`data-slot="dialog-positioner"`) that lays out the content and receives floats portaled from inside the dialog. The full stacking contract lives at [Stacking Layers](/base/stacking-layers).
 
-| Prop                 | Type                                            | Default      | Description                                                                                                                                                |
-| -------------------- | ----------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `appearance?`        | `"centered"` \| `"full-page"` \| `"full-bleed"` | `"centered"` | How much of the viewport the dialog claims. See [Full-page dialog](#full-page-dialog).                                                                     |
-| `preferredWidth?`    | `` `max-w-${string}` ``                         | `"max-w-lg"` | The maximum width of a `"centered"` dialog, as a Tailwind `max-w-` class. Accepted for `appearance="centered"` only — a filled dialog has no width to cap. |
-| `onEscapeKeyDown?`   | `(event: KeyboardEvent) => void`                |              | Event handler called when the escape key is down. It can be prevented by calling `event.preventDefault`.                                                   |
-| `onInteractOutside?` | `(event: Event) => void`                        |              | Event handler called when the user interacts outside the component. It can be prevented by calling `event.preventDefault`.                                 |
+| Prop                    | Type                                            | Default      | Description                                                                                                                                                                                   |
+| ----------------------- | ----------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance?`           | `"centered"` \| `"full-page"` \| `"full-bleed"` | `"centered"` | How much of the viewport the dialog claims. See [Full-page dialog](#full-page-dialog).                                                                                                        |
+| `preferredWidth?`       | `` `max-w-${string}` ``                         | `"max-w-lg"` | The maximum width of a `"centered"` dialog, as a Tailwind `max-w-` class. Accepted for `appearance="centered"` only; a filled dialog has no width to cap.                                     |
+| `onEscapeKeyDown?`      | `(event: KeyboardEvent) => void`                |              | Event handler called when the escape key is down. It can be prevented by calling `event.preventDefault`.                                                                                      |
+| `onInteractOutside?`    | `(event: Event) => void`                        |              | Event handler called when the user interacts outside the component. It can be prevented by calling `event.preventDefault`.                                                                    |
+| `onPointerDownOutside?` | `(event: PointerDownOutsideEvent) => void`      |              | Event handler called when a pointer event starts outside the component. It can be prevented by calling `event.preventDefault`. See [Handling autofill overlays](#handling-autofill-overlays). |
 
 | Data Attribute    | Value                                           | Description                                            |
 | ----------------- | ----------------------------------------------- | ------------------------------------------------------ |
@@ -680,7 +681,7 @@ An accessible description to be announced when the dialog is opened.
 | Prop       | Type        | Default | Description                                                                                  |
 | ---------- | ----------- | ------- | -------------------------------------------------------------------------------------------- |
 | `children` | `ReactNode` |         | The description text for the dialog. Enhances accessibility by providing additional context. |
-| `asChild?` | `boolean`   | `false` | Use the `asChild` prop to render a custom element instead of the default paragraph.          |
+| `asChild?` | `boolean`   | `false` | Use the `asChild` prop to render a custom element instead of the default `div`.              |
 
 ### Dialog.Close
 

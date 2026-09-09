@@ -421,6 +421,7 @@ All props from Radix [Select.Root](https://www.radix-ui.com/primitives/docs/comp
 
 | Prop             | Type                                                                                               | Default | Description                                                                                                                                                                                                                                                                                                                               |
 | ---------------- | -------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `onBlur?`        | `(event: FocusEvent<HTMLButtonElement>) => void`                                                   |         | Event handler called when the trigger button blurs. Runs after any `onBlur` passed on `Select.Trigger`.                                                                                                                                                                                                                                   |
 | `onValueChange?` | `(value: string) => void`                                                                          |         | Event handler called when the value changes.                                                                                                                                                                                                                                                                                              |
 | `validation?`    | `"error" \| "success" \| "warning" \| false \| (() => "error" \| "success" \| "warning" \| false)` |         | Use the `validation` prop to show if the select trigger has a specific validation status. This will change the border and outline of the select trigger. The `false` type is useful when using short-circuiting logic so that you don't need to use a ternary with `undefined`. Setting `validation` to `error` also sets `aria-invalid`. |
 
@@ -444,15 +445,16 @@ Radix [Select.Value](https://www.radix-ui.com/primitives/docs/components/select#
 
 ### Select.Content
 
-The component that pops out when the `Select` is open as a portal adjacent to the `Select.Trigger` button. It contains a scrolling viewport of the select items.
+The component that pops out when the `Select` is open as a portal adjacent to the `Select.Trigger` button. It contains a scrolling viewport of the select items. `position` defaults to `"popper"`, so the list opens below the trigger instead of over the selected item.
 
 `Select.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
 All props from Radix [Select.Content](https://www.radix-ui.com/primitives/docs/components/select#content), plus:
 
-| Prop     | Type                     | Default     | Description                                                                                                                                                                     |
-| -------- | ------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `width?` | `"trigger" \| "content"` | `"trigger"` | `trigger` makes the content the same width as the trigger button. `content` makes it the intrinsic size of the content itself; it will be the width of the longest/widest item. |
+| Prop        | Type                         | Default     | Description                                                                                                                                                                     |
+| ----------- | ---------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `position?` | `"popper" \| "item-aligned"` | `"popper"`  | `popper` opens the list below the trigger. `item-aligned` is the Radix default: the list opens over the trigger with the selected item aligned to it.                           |
+| `width?`    | `"trigger" \| "content"`     | `"trigger"` | `trigger` makes the content the same width as the trigger button. `content` makes it the intrinsic size of the content itself; it will be the width of the longest/widest item. |
 
 ### Select.Group
 
@@ -466,9 +468,13 @@ Used to visually separate items in the select. Composed from [Mantle Separator](
 
 ### Select.Item
 
-An option within a select menu. Similar to an html `option` element. Has a required `value` prop. When a user selects this item, `Select.Root` passes that value to its `onValueChange` handler. Displays the children as the option's text.
+An option within a select menu. Similar to an html `option` element. Has a required `value` prop. When a user selects this item, `Select.Root` passes that value to its `onValueChange` handler. Displays the children as the option's text. Pass `icon` to render an icon before the text.
 
-Radix [Select.Item](https://www.radix-ui.com/primitives/docs/components/select#item) props.
+All props from Radix [Select.Item](https://www.radix-ui.com/primitives/docs/components/select#item), plus:
+
+| Prop    | Type        | Default | Description                                     |
+| ------- | ----------- | ------- | ----------------------------------------------- |
+| `icon?` | `ReactNode` |         | An optional icon rendered before the item text. |
 
 ### Select.Label
 

@@ -927,6 +927,26 @@ import { Tabs } from "@ngrok/mantle/tabs";
 </Tabs.Root>
 ```
 
+## Accessibility
+
+`Tabs` follows the [WAI-ARIA tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) through Radix: the list is a `role="tablist"`, each trigger is a `role="tab"` with `aria-selected` and `aria-controls`, and each content panel is a `role="tabpanel"` labelled by its tab.
+
+- **Tab** moves focus into the list and lands on the active tab. Only the active tab is a Tab stop, so the next **Tab** leaves the list. This holds for `asChild` triggers too, so a list of router links is one Tab stop, not one per link.
+- **ArrowLeft** / **ArrowRight** (or **ArrowUp** / **ArrowDown** when vertical) move focus between tabs and activate the focused tab. **Home** and **End** jump to the first and last tab.
+- When a horizontal list overflows, keyboard focus scrolls the focused tab to the center of the visible area. A pointer click never scrolls the list, so the tab you press stays under the pointer.
+- A `disabled` trigger carries `aria-disabled`. With `asChild`, it also drops the child's `href`, so a disabled link cannot navigate.
+
+### Data attributes
+
+| Data Attribute     | Value                                                                               | Description                                             |
+| ------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `data-slot`        | `"tabs"` \| `"tabs-list"` \| `"tabs-trigger"` \| `"tabs-badge"` \| `"tabs-content"` | Names each part.                                        |
+| `data-orientation` | `"horizontal"` \| `"vertical"`                                                      | On the root, list, triggers, and content. Set by Radix. |
+| `data-appearance`  | `"classic"` \| `"pill"`                                                             | On the root. Descendant parts style against it.         |
+| `data-hide-border` | present when `hideBorder`                                                           | Presence-only, on the list.                             |
+| `data-state`       | `"active"` \| `"inactive"`                                                          | On each trigger and content panel. Set by Radix.        |
+| `data-disabled`    | present when `disabled`                                                             | Presence-only, on a trigger. Set by Radix.              |
+
 ## Composition
 
 Compose the parts of `Tabs` together to build your own:

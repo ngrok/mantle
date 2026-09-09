@@ -3,21 +3,13 @@ title: Main
 description: A focusable `<main>` landmark for the page's primary content, designed to be paired with a skip link.
 ---
 
-import { Main } from "@ngrok/mantle/main";
-import { Example } from "~/components/example";
-
 # Main
 
 A focusable `<main>` landmark for the page's primary content. Renders with `id="main"` and `tabIndex={-1}` so a skip link (or any programmatic focus call) can send keyboard users directly to the main content without exposing a visible focus ring on the region itself.
 
 Pair with the [`SkipToMainLink`](/components/primitives/skip-to-main-link) component at the top of the document.
 
-<Example className="flex-col gap-4">
-	<Main>
-		<h1 className="text-lg font-medium">Page title</h1>
-		<p className="text-sm text-muted">Primary page content goes here.</p>
-	</Main>
-</Example>
+A page has one `main` landmark, and this docs page already renders it around the content you are reading. A live example here would render a second one, so the page shows the markup instead:
 
 ```tsx
 import { Main } from "@ngrok/mantle/main";
@@ -32,4 +24,8 @@ import { Main } from "@ngrok/mantle/main";
 
 ### Main
 
-Renders a `<main>` element with `id="main"`, `tabIndex={-1}`, and `focus:outline-hidden`. Accepts all standard `<main>` HTML attributes. Additional class names passed via `className` are merged with the defaults.
+Renders a `<main>` element with `id="main"`, `tabIndex={-1}`, and `focus:outline-hidden`. Accepts all standard `<main>` HTML attributes except `id` and `tabIndex`: `SkipToMainLink` targets `#main` and focuses it, so `Main` stamps both. Additional class names passed via `className` are merged with the defaults.
+
+| Data Attribute | Value    | Description                                                         |
+| -------------- | -------- | ------------------------------------------------------------------- |
+| `data-slot`    | `"main"` | Names the part, joined after any chain a composing ancestor passes. |

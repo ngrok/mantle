@@ -31,11 +31,11 @@ Pass `icon` (a phosphor or custom SVG) and optionally `iconPlacement` (`"start"`
 
 ## Security
 
-When `target="_blank"`, `rel` should include `"noopener noreferrer"`. The `rel` prop accepts an array — duplicates are de-duped and sorted, so it's safe to merge token sets.
+When `target="_blank"` and `rel` is omitted, the anchor renders `rel="noopener noreferrer"`. A `rel` you pass is used as-is. The `rel` prop accepts an array: duplicates are de-duped and sorted, so it's safe to merge token sets.
 
 ## Accessibility
 
-Link text must be self-describing — avoid "click here" / "read more". For purely decorative icons, no extra labeling is needed; for icon-only links, pass an `aria-label`.
+Link text must be self-describing: avoid "click here" / "read more". The icon is decorative by default: it renders `aria-hidden` unless the SVG carries `aria-label`, `aria-labelledby`, `role`, or an explicit `aria-hidden`. For icon-only links, pass an `aria-label`.
 
 <Example className="flex-col">
 	<p>
@@ -106,11 +106,12 @@ import { Link, href } from "react-router";
 
 All props from [a](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attributes), plus:
 
-| Prop             | Type                 | Default   | Description                                                                                                         |
-| ---------------- | -------------------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
-| `icon?`          | `ReactNode`          |           | An icon to render inside the anchor.                                                                                |
-| `iconPlacement?` | `"start"` \| `"end"` | `"start"` | The side that the icon will render on, if one is present.                                                           |
-| `asChild?`       | `boolean`            | `false`   | Use the `asChild` prop to compose the `Anchor` styling onto alternative element types or your own React components. |
+| Prop             | Type                                          | Default                                                   | Description                                                                                                                                             |
+| ---------------- | --------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `icon?`          | `ReactNode`                                   |                                                           | An icon to render inside the anchor. Decorative by default: rendered `aria-hidden` unless the SVG carries a name, a role, or an explicit `aria-hidden`. |
+| `iconPlacement?` | `"start"` \| `"end"`                          | `"start"`                                                 | The side that the icon will render on, if one is present.                                                                                               |
+| `rel?`           | `string` \| `(string \| null \| undefined)[]` | `"noopener noreferrer"` when `target="_blank"`, else none | The relationship between the linked resource and the current document. An array is trimmed, de-duplicated, sorted, and joined with a space.             |
+| `asChild?`       | `boolean`                                     | `false`                                                   | Use the `asChild` prop to compose the `Anchor` styling onto alternative element types or your own React components.                                     |
 
 #### Data attributes
 

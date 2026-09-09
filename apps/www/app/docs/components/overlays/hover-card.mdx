@@ -196,7 +196,7 @@ It takes no `asChild` — the shape is a filled polygon plus a polyline that str
 
 The portal container that renders hover card content outside the normal DOM tree. `HoverCard.Content` already renders inside this portal internally, so you rarely need this part directly — reach for it only to customize portal placement with `container`, or to wrap multiple `HoverCard.Content` instances in one shared portal.
 
-| Prop         | Type                                  | Default         | Description                                                                                               |
-| ------------ | ------------------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
-| `container`  | `Element \| DocumentFragment \| null` | `document.body` | The container element to portal the content into.                                                         |
-| `forceMount` | `true`                                |                 | Force mounting when more control is needed, such as animating the content with a React animation library. |
+| Prop         | Type                                  | Default                 | Description                                                                                                                                                       |
+| ------------ | ------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `container`  | `Element \| DocumentFragment \| null` | nearest layer container | The container element to portal the content into. When omitted, the content mounts into an enclosing overlay's positioner when one is open, else `document.body`. |
+| `forceMount` | `true`                                |                         | Force mounting when more control is needed, such as animating the content with a React animation library.                                                         |

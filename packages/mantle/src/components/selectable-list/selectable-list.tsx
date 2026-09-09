@@ -256,7 +256,7 @@ type SelectableListRootProps = Omit<ComponentProps<"div">, "onChange"> & {
 const EMPTY_SELECTION: readonly string[] = [];
 
 /**
- * Root of a `SelectableList` — a filterable, multi-select **grid** of checkbox
+ * Root of a `SelectableList`: a filterable, multi-select **grid** of checkbox
  * rows. Owns selection state (controlled via `value`/`onValueChange` or
  * uncontrolled via `defaultValue`), the filter query (likewise controlled via
  * `query`/`onQueryChange` or uncontrolled via `defaultQuery`), and the derived
@@ -422,7 +422,7 @@ const Filter = ({
 			onChange={(event) => setQuery(event.target.value)}
 			{...props}
 		>
-			<MagnifyingGlassIcon />
+			<MagnifyingGlassIcon aria-hidden />
 			<InputCapture />
 		</Input>
 	);
@@ -540,7 +540,7 @@ type SelectableListItemProps = Omit<ComponentProps<"div">, "children" | "id"> & 
 
 /**
  * A single selectable grid row. Renders a `role="row"` (via the `list`
- * primitive) laid out with `Choice` — a `role="gridcell"` holding a real
+ * primitive) laid out with `Choice`: a `role="gridcell"` holding a real
  * `Checkbox`, and a `role="gridcell"` holding the title + description. The whole
  * row is click-to-toggle: the enclosing grid forwards a bare click anywhere on
  * the row to activation, while clicks on the checkbox, the title label, or any
@@ -637,7 +637,7 @@ const ItemTitle = (props: ComponentProps<typeof Choice.Label>) => (
 
 /**
  * The de-emphasized sub-line of a `SelectableList.Item`, rendered as
- * `Choice.Description` — wired to the row's checkbox via `aria-describedby`
+ * `Choice.Description`, wired to the row's checkbox via `aria-describedby`
  * (never a second label).
  *
  * @see https://mantle.ngrok.com/components/data-display/selectable-list
@@ -787,9 +787,9 @@ type SelectableListViewportProps = Omit<ComponentProps<"div">, "children"> & {
 /**
  * The scrollable body of a `SelectableList`: a `role="grid"` of `role="row"`
  * checkbox rows inside the bordered, rounded `bg-popover` viewport. Renders
- * **every** filtered row — the non-virtualized default; for long lists, swap in
+ * **every** filtered row, the non-virtualized default. For long lists, swap in
  * `SelectableList.VirtualViewport`. Renders nothing when the filter matches
- * nothing — pair with `SelectableList.Empty`. Pass an `aria-label` (or
+ * nothing; pair with `SelectableList.Empty`. Pass an `aria-label` (or
  * `aria-labelledby`) and **bound the height** (`max-h-*`, `h-*`, or
  * `min-h-0 flex-1`).
  *
@@ -985,7 +985,17 @@ const Empty = ({ children, className, ref, ...props }: ComponentProps<"div">) =>
  */
 const SelectableList = {
 	/**
-	 * Root: owns selection + filter state and the derived filtered options.
+	 * Root of a `SelectableList`: a filterable, multi-select **grid** of checkbox
+	 * rows. Owns selection state (controlled via `value`/`onValueChange` or
+	 * uncontrolled via `defaultValue`), the filter query (likewise controlled via
+	 * `query`/`onQueryChange` or uncontrolled via `defaultQuery`), and the derived
+	 * filtered options (a case-insensitive `label` substring match by default, or
+	 * your own `filter` predicate), and shares them with the parts below it.
+	 *
+	 * Compose it with `SelectableList.Filter` (optional search box),
+	 * `SelectableList.SelectAll` (optional tri-state header), a viewport
+	 * (`SelectableList.Viewport`, or the windowed `SelectableList.VirtualViewport`),
+	 * and `SelectableList.Empty` (shown when the filter matches nothing).
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
@@ -1001,7 +1011,10 @@ const SelectableList = {
 	 */
 	Root,
 	/**
-	 * Optional filter/search box (mantle `Input` + magnifying-glass icon).
+	 * The filter/search box for a `SelectableList`. Renders the mantle `Input` with
+	 * a leading magnifying-glass icon and drives the list's filter query (a
+	 * case-insensitive substring match over each option's plain text: `labelText`,
+	 * or a string `label`). Optional; omit it for a non-filterable list.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
@@ -1017,7 +1030,10 @@ const SelectableList = {
 	 */
 	Filter,
 	/**
-	 * Optional tri-state "select all" header over the filtered options.
+	 * A tri-state "select all" header for a `SelectableList`. Reflects the selection
+	 * of the **currently filtered** options: checked when all are selected,
+	 * indeterminate when only some are, unchecked when none are. Toggling it
+	 * selects or clears that filtered set. Optional. Children are the visible label.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
@@ -1033,8 +1049,13 @@ const SelectableList = {
 	 */
 	SelectAll,
 	/**
-	 * The scrollable grid of rows (non-virtualized). Give it an `aria-label`;
-	 * pass a render-prop child for a custom row layout, or omit it for the default.
+	 * The scrollable body of a `SelectableList`: a `role="grid"` of `role="row"`
+	 * checkbox rows inside the bordered, rounded `bg-popover` viewport. Renders
+	 * **every** filtered row, the non-virtualized default. For long lists, swap in
+	 * `SelectableList.VirtualViewport`. Renders nothing when the filter matches
+	 * nothing; pair with `SelectableList.Empty`. Pass an `aria-label` (or
+	 * `aria-labelledby`) and **bound the height** (`max-h-*`, `h-*`, or
+	 * `min-h-0 flex-1`).
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
@@ -1050,7 +1071,11 @@ const SelectableList = {
 	 */
 	Viewport,
 	/**
-	 * The windowed grid of rows — same surface as `Viewport`, for long lists.
+	 * The windowed counterpart to `SelectableList.Viewport`: renders only the
+	 * visible slice of filtered rows via `@tanstack/react-virtual`, sharing the
+	 * same grid semantics and row layout. Authored identically to `Viewport` (same
+	 * `aria-label`, same optional render prop), so opting into virtualization never
+	 * changes the call site. **Bound the height** so the virtualizer has a viewport.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
@@ -1066,8 +1091,16 @@ const SelectableList = {
 	 */
 	VirtualViewport,
 	/**
-	 * A selectable grid row for custom viewport rendering. Reads its selection
-	 * and disabled state from the list by `value`.
+	 * A single selectable grid row. Renders a `role="row"` (via the `list`
+	 * primitive) laid out with `Choice`: a `role="gridcell"` holding a real
+	 * `Checkbox`, and a `role="gridcell"` holding the title + description. The whole
+	 * row is click-to-toggle: the enclosing grid forwards a bare click anywhere on
+	 * the row to activation, while clicks on the checkbox, the title label, or any
+	 * nested interactive content are left to those controls (no double-toggle).
+	 * Selection and disabled state are read from the list by `value`.
+	 *
+	 * Render it from a viewport's render-prop child for a custom row layout; the
+	 * default row (title + description) uses it under the hood.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
@@ -1090,7 +1123,9 @@ const SelectableList = {
 	 */
 	Item,
 	/**
-	 * Emphasized title (`Choice.Label`) for a `SelectableList.Item`.
+	 * The emphasized title of a `SelectableList.Item`, rendered as `Choice.Label`,
+	 * a real `<label>` wired to the row's checkbox, so clicking it toggles the row
+	 * and it supplies the checkbox's accessible name.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
@@ -1113,7 +1148,9 @@ const SelectableList = {
 	 */
 	ItemTitle,
 	/**
-	 * De-emphasized sub-line (`Choice.Description`) for a `SelectableList.Item`.
+	 * The de-emphasized sub-line of a `SelectableList.Item`, rendered as
+	 * `Choice.Description`, wired to the row's checkbox via `aria-describedby`
+	 * (never a second label).
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *
@@ -1136,8 +1173,11 @@ const SelectableList = {
 	 */
 	ItemDescription,
 	/**
-	 * Shown when the filter matches no options — a polite `role="status"` live
-	 * region, so the empty state is announced as the filter narrows.
+	 * Shown in place of the viewport when the active filter matches no options.
+	 * Renders its children (e.g. "No results found.") in muted, centered text.
+	 * It is a polite `role="status"` live region that stays mounted (visually
+	 * hidden while there are matches), so screen-reader users hear the message
+	 * when their filter empties the list instead of the grid silently vanishing.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *

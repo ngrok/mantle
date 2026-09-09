@@ -7,7 +7,7 @@ type CardProps = ComponentProps<"div"> & WithAsChild;
 
 /**
  * A container that displays content in a box resembling a physical card. The
- * outermost part — every other `Card` part nests inside it.
+ * outermost part. Every other `Card` part nests inside it.
  *
  * @see https://mantle.ngrok.com/components/structure/card#cardroot
  *
@@ -163,7 +163,7 @@ const Header = ({ asChild = false, className, children, ref, ...rest }: CardProp
 type CardTitleProps = ComponentProps<"h3"> & WithAsChild;
 
 /**
- * The heading inside `Card.Header`. Renders an `h3` by default — pass `asChild`
+ * The heading inside `Card.Header`. Renders an `h3` by default; pass `asChild`
  * to fit the surrounding document outline. Keep it a heading element
  * (`h1`-`h6`) for accessibility.
  *
@@ -234,7 +234,8 @@ const Title = ({ className, asChild, ref, ...props }: CardTitleProps) => {
  */
 const Card = {
 	/**
-	 * A container that displays content in a box resembling a physical card.
+	 * A container that displays content in a box resembling a physical card. The
+	 * outermost part. Every other `Card` part nests inside it.
 	 *
 	 * @see https://mantle.ngrok.com/components/structure/card#cardroot
 	 *
@@ -249,7 +250,7 @@ const Card = {
 	 */
 	Root,
 	/**
-	 * The main content of a card.
+	 * The main content of a card. Usually composed as a direct child of a `Card` component.
 	 *
 	 * @see https://mantle.ngrok.com/components/structure/card#cardbody
 	 *
@@ -286,7 +287,8 @@ const Card = {
 	 */
 	Footer,
 	/**
-	 * The band above `Card.Body` that holds `Card.Title`.
+	 * The band above `Card.Body` that holds `Card.Title`. Pass it as a direct child
+	 * of `Card.Root`.
 	 *
 	 * @see https://mantle.ngrok.com/components/structure/card#cardheader
 	 *
@@ -307,7 +309,9 @@ const Card = {
 	 */
 	Header,
 	/**
-	 * The heading inside `Card.Header`. Renders an `h3` by default.
+	 * The heading inside `Card.Header`. Renders an `h3` by default; pass `asChild`
+	 * to fit the surrounding document outline. Keep it a heading element
+	 * (`h1`-`h6`) for accessibility.
 	 *
 	 * @see https://mantle.ngrok.com/components/structure/card#cardtitle
 	 *

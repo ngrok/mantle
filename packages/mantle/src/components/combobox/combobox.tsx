@@ -471,6 +471,10 @@ const Combobox = {
 	/**
 	 * Renders a group for Combobox.Item elements.
 	 *
+	 * Optionally, render a Combobox.GroupLabel as a child to label the group.
+	 *
+	 * You should only reach for this component when it semantically makes sense to group items together, such as when a label is needed.
+	 *
 	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxgroup
 	 *
 	 * @example
@@ -490,6 +494,10 @@ const Combobox = {
 	Group,
 	/**
 	 * Renders a label in a combobox group.
+	 *
+	 * This component should be wrapped with Combobox.Group so the aria-labelledby is correctly set on the group element.
+	 *
+	 * You should only reach for this component when it semantically makes sense to group items together, such as when a label is needed.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxgrouplabel
 	 *
@@ -544,7 +552,16 @@ const Combobox = {
 	 */
 	Item,
 	/**
-	 * Highlights the match between the current Combobox.Input value and parent Combobox.Item value.
+	 * Highlights the match between the current Combobox.Input value (userValue) and parent Combobox.Item value.
+	 *
+	 * Renders a span element with the combobox item value as children.
+	 * The value is split into span elements.
+	 * Portions of the value matching the user input will have a data-user-value attribute, while the rest will have a data-autocomplete-value attribute.
+	 *
+	 * Should only be used as a child of Combobox.Item.
+	 * The item value is automatically set to the value of the closest Combobox.Item component's value prop.
+	 * The user input value is automatically set to the combobox store's value state.
+	 * Passing `value` or `userValue` overrides them, respectively.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxitemvalue
 	 *

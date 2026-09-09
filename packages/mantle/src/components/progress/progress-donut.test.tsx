@@ -1,5 +1,6 @@
+import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
-import { deriveStrokeWidthPx } from "./progress-donut.js";
+import { deriveStrokeWidthPx, ProgressDonut } from "./progress-donut.js";
 
 describe("deriveStrokeWidthPx", () => {
 	test("given null/undefined, returns 4", () => {
@@ -41,5 +42,33 @@ describe("deriveStrokeWidthPx", () => {
 
 	test("given 16, returns 12", () => {
 		expect(deriveStrokeWidthPx(16)).toBe(12);
+	});
+});
+
+describe("ProgressDonut.Root", () => {
+	test("renders a named progressbar with its value range", () => {
+		render(
+			<ProgressDonut.Root aria-label="Data transfer out" value={60}>
+				<ProgressDonut.Indicator />
+			</ProgressDonut.Root>,
+		);
+		const donut = screen.getByRole("progressbar", { name: "Data transfer out" });
+		expect(donut).toHaveAttribute("aria-valuemin", "0");
+		expect(donut).toHaveAttribute("aria-valuemax", "100");
+		expect(donut).toHaveAttribute("aria-valuenow", "60");
+		expect(donut).toHaveAttribute("data-value", "60");
+		expect(donut).toHaveAttribute("data-slot", "progress-donut");
+	});
+
+	test("omits aria-valuenow and data-value while indeterminate", () => {
+		render(<ProgressDonut.Root aria-label="Data transfer out" value="indeterminate" />);
+		const donut = screen.getByRole("progressbar");
+		expect(donut).not.toHaveAttribute("aria-valuenow");
+		expect(donut).not.toHaveAttribute("data-value");
+	});
+
+	test("a value outside 0..max renders as indeterminate", () => {
+		render(<ProgressDonut.Root aria-label="Data transfer out" value={150} />);
+		expect(screen.getByRole("progressbar")).not.toHaveAttribute("aria-valuenow");
 	});
 });

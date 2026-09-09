@@ -69,8 +69,9 @@ const Switch = ({
 			)}
 			onClick={(event) => {
 				if (readOnly) {
+					// Why only preventDefault: Radix reads `defaultPrevented` and skips
+					// the toggle, and the click still reaches an ancestor row handler.
 					event.preventDefault();
-					event.stopPropagation();
 					return;
 				}
 				onClick?.(event);

@@ -1,6 +1,6 @@
 import { CircleNotchIcon } from "@phosphor-icons/react/CircleNotch";
 import { cva } from "class-variance-authority";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, MouseEvent, ReactNode } from "react";
 import { Children, cloneElement, isValidElement } from "react";
 import invariant from "tiny-invariant";
 import { parseBooleanish } from "../../types/index.js";
@@ -187,8 +187,7 @@ type ButtonProps = ComponentProps<"button"> &
 		intent: ButtonIntent;
 		/**
 		 * An icon to render inside the button, beside the button's text
-		 * children. If the `state` is `"pending"`, then the icon will
-		 * automatically be replaced with a spinner.
+		 * children. When `isLoading` is `true`, a spinner replaces the icon.
 		 *
 		 * For an icon-only button, do not use `Button` — use `IconButton`
 		 * instead: it requires an accessible `label` and renders a square box
@@ -196,8 +195,8 @@ type ButtonProps = ComponentProps<"button"> &
 		 */
 		icon?: ReactNode;
 		/**
-		 * The side that the icon will render on, if one is present. If `state="pending"`,
-		 * then the loading icon will also render on this side.
+		 * The side that the icon will render on, if one is present. When
+		 * `isLoading` is `true`, the spinner renders on this side too.
 		 * @default "start"
 		 */
 		iconPlacement?: "start" | "end";
@@ -248,9 +247,22 @@ type ButtonProps = ComponentProps<"button"> &
  * `truncate` to clamp a long one — give the slot a display of its own first, with
  * `[&>[data-slot=button-label]]:block`.
  *
- * | Data Attribute | Value            | Description                                                                                   |
- * | -------------- | ---------------- | --------------------------------------------------------------------------------------------- |
- * | `data-slot`    | `"button-label"` | On the `<span>` wrapping `children`. `display: contents`, so it changes no layout by itself. |
+ * **Disabled and loading.** A native `<button>` gets the `disabled` attribute.
+ * Under `asChild`, the child gets no `disabled` attribute, because it is inert
+ * on an `<a>`: the child gets `aria-disabled="true"`, leaves the tab order
+ * with `tabIndex={-1}`, and a click on it is cancelled before any handler runs.
+ * An explicit `disabled` wins over `isLoading`, so `disabled={false}` keeps a
+ * loading button enabled. `aria-disabled={false}` cannot re-enable the button.
+ *
+ * | Data Attribute    | Value                                                  | Description                                                                                   |
+ * | ----------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+ * | `data-slot`       | `"button"`                                             | On the button element, or on the `asChild` child.                                             |
+ * | `data-slot`       | `"button-label"`                                       | On the `<span>` wrapping `children`. `display: contents`, so it changes no layout by itself. |
+ * | `data-appearance` | `"filled"` \| `"ghost"` \| `"link"` \| `"outlined"`     | The `appearance` prop.                                                                        |
+ * | `data-intent`     | `"accent"` \| `"danger"` \| `"neutral"`                 | The `intent` prop.                                                                            |
+ * | `data-size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`            | The `size` prop. Omitted when `appearance` is `"link"`, which has no box to size.             |
+ * | `data-loading`    | `"true"` \| `"false"`                                  | The `isLoading` prop.                                                                         |
+ * | `data-disabled`   | `"true"` \| `"false"`                                  | `true` when `disabled`, `isLoading`, or `aria-disabled="true"` is set.                        |
  *
  * @see https://mantle.ngrok.com/components/actions/button
  *
@@ -294,7 +306,10 @@ const Button = ({
 	type,
 	...props
 }: ButtonProps) => {
-	const disabled = parseBooleanish(_ariaDisabled ?? _disabled ?? isLoading);
+	// Why `??` then `||`: an explicit `disabled` wins over `isLoading`, so
+	// `disabled={false}` keeps a loading button enabled and focused (`Sandbar`
+	// relies on it), and `aria-disabled={false}` cannot re-enable a disabled button.
+	const disabled = parseBooleanish(_disabled ?? isLoading) || parseBooleanish(_ariaDisabled);
 	const icon = isLoading ? <CircleNotchIcon className="animate-spin" /> : propIcon;
 
 	/**
@@ -309,6 +324,7 @@ const Button = ({
 			"inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md",
 			"focus:outline-hidden focus-visible:ring-4",
 			"disabled:cursor-default disabled:opacity-50",
+			"aria-disabled:cursor-default aria-disabled:opacity-50",
 			"not-disabled:active:scale-97 ease-out transition-transform duration-150",
 			buttonVariants({ appearance, intent, isLoading, size }),
 			appearance !== "link" && "font-sans", // only enforce font-sans on non-link button appearances
@@ -321,14 +337,14 @@ const Button = ({
 		"data-intent": intent,
 		"data-loading": isLoading,
 		"data-size": appearance === "link" ? undefined : size,
-		disabled,
 		ref,
 		...props,
 	};
 
 	if (asChild) {
 		invariant(
-			isValidElement<{ children?: ReactNode }>(children) && Children.only(children),
+			isValidElement<{ children?: ReactNode } & Partial<typeof disabledChildProps>>(children) &&
+				Children.only(children),
 			"When using `asChild`, Button must be passed a single child as a JSX tag.",
 		);
 
@@ -336,7 +352,7 @@ const Button = ({
 			<Slot {...buttonProps}>
 				{cloneElement(
 					children,
-					{},
+					disabled ? disabledChildProps : {},
 					<>
 						{icon && <Icon svg={icon} className={clsx(iconPlacement === "end" && "order-last")} />}
 						{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
@@ -351,7 +367,7 @@ const Button = ({
 
 	return (
 		// oxlint-disable-next-line react/button-has-type -- `type` defaults to "button" at runtime via the `?? "button"` fallback; the static analyzer can't resolve that expression.
-		<button {...buttonProps} type={type ?? "button"}>
+		<button {...buttonProps} disabled={disabled} type={type ?? "button"}>
 			{icon && <Icon svg={icon} className={clsx(iconPlacement === "end" && "order-last")} />}
 			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
 			<span data-slot="button-label" className="contents">
@@ -361,9 +377,28 @@ const Button = ({
 	);
 };
 
+/**
+ * Props that make a disabled `asChild` child inert. The native `disabled`
+ * attribute does nothing on an `<a>`, so the child leaves the tab order and a
+ * click is cancelled in the capture phase, before the child's own `onClick` or
+ * a router's navigation runs.
+ *
+ * Why on the child through `cloneElement`, not on the `Slot`: Radix composes a
+ * child handler ahead of a slot handler, so a child's own `onClickCapture`
+ * would run before the blocker. Set on the child, these props replace it.
+ */
+const disabledChildProps = {
+	tabIndex: -1,
+	onClickCapture: (event: MouseEvent<HTMLElement>) => {
+		event.preventDefault();
+		event.stopPropagation();
+	},
+} as const;
+
 export {
 	//,
 	Button,
+	disabledChildProps,
 };
 
 export type {

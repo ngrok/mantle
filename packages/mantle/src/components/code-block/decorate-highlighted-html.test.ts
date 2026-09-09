@@ -33,16 +33,16 @@ describe("decorateHighlightedHtml", () => {
 		const result = decorateHighlightedHtml({ html, showLineNumbers: true });
 
 		expect(result).toContain('class="mantle-code-line-number"');
-		expect(result).toContain('data-slot="line-number">1</span>');
-		expect(result).toContain('data-slot="line-number">2</span>');
+		expect(result).toContain('data-slot="line-number" aria-hidden="true">1</span>');
+		expect(result).toContain('data-slot="line-number" aria-hidden="true">2</span>');
 	});
 
 	test("respects lineNumberStart offset", () => {
 		const html = shikiHtml(["a", "b"]);
 		const result = decorateHighlightedHtml({ html, showLineNumbers: true, lineNumberStart: 10 });
 
-		expect(result).toContain('data-slot="line-number">10</span>');
-		expect(result).toContain('data-slot="line-number">11</span>');
+		expect(result).toContain('data-slot="line-number" aria-hidden="true">10</span>');
+		expect(result).toContain('data-slot="line-number" aria-hidden="true">11</span>');
 		expect(result).toContain('data-line-number="10"');
 		expect(result).toContain('data-line-number="11"');
 	});

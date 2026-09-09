@@ -21,7 +21,7 @@ Compose `<DescriptionList.Root>` with `<DescriptionList.Item>`, `<DescriptionLis
 			</DescriptionList.Item>
 			<DescriptionList.Item>
 				<DescriptionList.Label>ID</DescriptionList.Label>
-				<DescriptionList.Value>aigk_2fKm9x8Hn3QpYT7zKlR0vW5</DescriptionList.Value>
+				<DescriptionList.Value translate="no">aigk_2fKm9x8Hn3QpYT7zKlR0vW5</DescriptionList.Value>
 			</DescriptionList.Item>
 			<DescriptionList.Item>
 				<DescriptionList.Label>Description</DescriptionList.Label>
@@ -55,7 +55,7 @@ import { DescriptionList } from "@ngrok/mantle/description-list";
 	</DescriptionList.Item>
 	<DescriptionList.Item>
 		<DescriptionList.Label>ID</DescriptionList.Label>
-		<DescriptionList.Value>aigk_2fKm9x8Hn3QpYT7zKlR0vW5</DescriptionList.Value>
+		<DescriptionList.Value translate="no">aigk_2fKm9x8Hn3QpYT7zKlR0vW5</DescriptionList.Value>
 	</DescriptionList.Item>
 	<DescriptionList.Item>
 		<DescriptionList.Label>Description</DescriptionList.Label>
@@ -132,6 +132,15 @@ All props from [dl](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dl
 | `children?`  | `ReactNode` |         | Compose `DescriptionList.Item` components as direct children.                                                                     |
 | `className?` | `string`    |         | Additional CSS class names to apply to the root element.                                                                          |
 | `asChild?`   | `boolean`   | `false` | Use the `asChild` prop to compose the `DescriptionList.Root` styling onto alternative element types or your own React components. |
+
+Every part stamps a `data-slot`. A `data-slot` passed to `DescriptionList.Root` joins in front of its own value instead of replacing it.
+
+| Data Attribute | Value                      | Description      |
+| -------------- | -------------------------- | ---------------- |
+| `data-slot`    | `"description-list"`       | The `<dl>`.      |
+| `data-slot`    | `"description-list-item"`  | The row wrapper. |
+| `data-slot`    | `"description-list-label"` | The `<dt>`.      |
+| `data-slot`    | `"description-list-value"` | The `<dd>`.      |
 
 ### DescriptionList.Item
 

@@ -12,7 +12,7 @@ import { Slot } from "../slot/index.js";
 /**
  * Props for `List.Root` — the internal list primitive's `Root` props, minus
  * `semantics` (a `List` is always a `role="list"`) and the grid-only
- * `onActivate` / `itemId` knobs (inert under list semantics).
+ * `onActivate` / `itemId` / `isItemDisabled` knobs (inert under list semantics).
  *
  * @see https://mantle.ngrok.com/components/data-display/list
  *
@@ -34,7 +34,7 @@ type ListRootProps = Omit<
 /**
  * The scrollable container for a `List`: a `role="list"` of clickable items
  * inside the bordered, rounded `bg-popover` viewport (styled after the
- * `MultiSelect` popover). Renders **every** item — the non-virtualized default.
+ * `MultiSelect` popover). Renders **every** item, the non-virtualized default.
  * Compose `List.Item` children directly. **Bound its height**
  * (`max-h-*`, `h-*`, or `min-h-0 flex-1`) so long lists scroll.
  *
@@ -43,7 +43,7 @@ type ListRootProps = Omit<
  * focused item lights up with the hover tint rather than a focus ring.
  *
  * For very long lists, swap in `List.VirtualRoot`, which windows the same
- * `Item` children — the call site is otherwise identical.
+ * `Item` children; the call site is otherwise identical.
  *
  * @see https://mantle.ngrok.com/components/data-display/list
  *
@@ -64,7 +64,8 @@ const Root = (props: ListRootProps) => <ListPrimitiveRoot semantics="list" {...p
 /**
  * Props for `List.VirtualRoot` — the internal list primitive's
  * `VirtualRoot` props (viewport props plus `estimateItemHeight` / `overscan`),
- * minus `semantics` and the grid-only `onActivate` / `itemId` knobs.
+ * minus `semantics` and the grid-only `onActivate` / `itemId` / `isItemDisabled`
+ * knobs.
  *
  * @see https://mantle.ngrok.com/components/data-display/list
  *
@@ -86,7 +87,7 @@ type ListVirtualRootProps = Omit<
 /**
  * The windowed counterpart to `List.Root`: renders only the visible slice
  * of its `List.Item` children via `@tanstack/react-virtual`. Authored
- * identically to `Root` — same `Item` children — so opting into
+ * identically to `Root` (same `Item` children), so opting into
  * virtualization never changes the call site. Reach for it only when a list is
  * long enough to need it; **bound its height** so the virtualizer has a
  * viewport to measure.
@@ -138,7 +139,7 @@ type ListItemProps = Omit<ComponentProps<"button">, "type"> &
 /**
  * A single clickable item in a `List`. Sits inside a `role="listitem"` pill
  * from the internal list primitive; renders a `<button>` by default (with
- * `onClick`), or your own element via `asChild` — e.g. an `<a>` for navigation
+ * `onClick`), or your own element via `asChild`, for example an `<a>` for navigation
  * (account switching, SSO selection). The button/link fills its pill, so
  * clicking anywhere on the item triggers it, and the enclosing listitem carries
  * the pill's hover / `current` accent.
@@ -335,8 +336,18 @@ const ItemDescription = ({ className, ref, ...props }: ComponentProps<"span">) =
  */
 const List = {
 	/**
-	 * The scrollable container (non-virtualized). Give it an `aria-label` and
-	 * bound its height. Compose `Item` children.
+	 * The scrollable container for a `List`: a `role="list"` of clickable items
+	 * inside the bordered, rounded `bg-popover` viewport (styled after the
+	 * `MultiSelect` popover). Renders **every** item, the non-virtualized default.
+	 * Compose `List.Item` children directly. **Bound its height**
+	 * (`max-h-*`, `h-*`, or `min-h-0 flex-1`) so long lists scroll.
+	 *
+	 * Keyboard: items keep their native tab order, and `ArrowUp` / `ArrowDown` /
+	 * `Home` / `End` also move focus between items (skipping disabled ones); the
+	 * focused item lights up with the hover tint rather than a focus ring.
+	 *
+	 * For very long lists, swap in `List.VirtualRoot`, which windows the same
+	 * `Item` children; the call site is otherwise identical.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/list
 	 *
@@ -354,8 +365,12 @@ const List = {
 	 */
 	Root,
 	/**
-	 * The virtualized container — windows the same `Item` children. Opt in for
-	 * long lists; authored identically to `Root`.
+	 * The windowed counterpart to `List.Root`: renders only the visible slice
+	 * of its `List.Item` children via `@tanstack/react-virtual`. Authored
+	 * identically to `Root` (same `Item` children), so opting into
+	 * virtualization never changes the call site. Reach for it only when a list is
+	 * long enough to need it; **bound its height** so the virtualizer has a
+	 * viewport to measure.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/list
 	 *
@@ -373,8 +388,12 @@ const List = {
 	 */
 	VirtualRoot,
 	/**
-	 * A clickable item — a `<button>` by default, or your own element via
-	 * `asChild` (e.g. an `<a>`). Optional `current` gives the accent treatment.
+	 * A single clickable item in a `List`. Sits inside a `role="listitem"` pill
+	 * from the internal list primitive; renders a `<button>` by default (with
+	 * `onClick`), or your own element via `asChild`, for example an `<a>` for navigation
+	 * (account switching, SSO selection). The button/link fills its pill, so
+	 * clicking anywhere on the item triggers it, and the enclosing listitem carries
+	 * the pill's hover / `current` accent.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/list
 	 *

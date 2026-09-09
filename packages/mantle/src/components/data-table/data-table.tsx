@@ -17,7 +17,7 @@ import {
 } from "react";
 import invariant from "tiny-invariant";
 import { cx } from "../../utils/cx/cx.js";
-import { $timeSortingDirection, type SortingMode } from "../../utils/sorting/direction.js";
+import type { SortingMode } from "../../utils/sorting/direction.js";
 import { Button, type ButtonAppearance } from "../button/button.js";
 import {
 	IconButton,
@@ -162,56 +162,21 @@ type DataTableHeaderSortButtonProps<TData, TValue> = Omit<
 		  }
 	);
 
-type SortStateAnnouncementOptions = {
-	/** Whether the column can sort at all. */
-	canSort: boolean;
-	/** The column's current sort direction. */
-	sortDirection: SortDirection;
-	/** The column's sorting mode, absent when sorting is disabled. */
-	sortingMode: SortingMode | undefined;
-};
-
-/**
- * The screen-reader announcement for a column's current sort state. Returns an
- * empty string for a column that cannot sort or sits unsorted, so the announcer
- * element stays mounted with nothing to read out.
- *
- * @example
- * ```ts
- * sortStateAnnouncement({ canSort: true, sortDirection: "asc", sortingMode: "alphanumeric" })
- * // => "Column sorted in ascending order"
- *
- * sortStateAnnouncement({ canSort: true, sortDirection: "asc", sortingMode: "time" })
- * // => "Column sorted in oldest-to-newest order"
- *
- * sortStateAnnouncement({ canSort: true, sortDirection: "unsorted", sortingMode: "alphanumeric" })
- * // => ""
- * ```
- */
-function sortStateAnnouncement({
-	canSort,
-	sortDirection,
-	sortingMode,
-}: SortStateAnnouncementOptions): string {
-	if (!canSort || sortDirection === "unsorted") {
-		return "";
-	}
-
-	if (sortingMode === "alphanumeric") {
-		return `Column sorted in ${sortDirection === "asc" ? "ascending" : "descending"} order`;
-	}
-
-	return `Column sorted in ${$timeSortingDirection(sortDirection)} order`;
-}
-
 /**
  * A sortable button toggle for a column header in a data table. Renders a sort
- * icon that reflects the current direction, handles ARIA announcements, and
- * cycles through sort states on click.
+ * icon that reflects the current direction and cycles through sort states on
+ * click. The button's accessible name is the column label and does not change
+ * with the sort state; pass `column` to the surrounding `DataTable.Header` so
+ * the header cell exposes the state through `aria-sort`.
  *
  * Each click cycles through:
  * - For `"alphanumeric"` sorting: `unsorted → ascending → descending → unsorted`
  * - For `"time"` sorting: `unsorted → newest-first → oldest-first → unsorted`
+ *
+ * When the column cannot sort (`disableSorting`, or `enableSorting: false` on
+ * the column), the part renders the label as plain text in a `<span>`: no
+ * button, no icon. The other props, `ref` included, land on that span.
+ * `onClick` does not, because plain text takes no click.
  *
  * For right-aligned numeric columns, pass `className="justify-end"` and
  * `iconPlacement="start"` so the sort icon stays paired with the label.
@@ -223,7 +188,7 @@ function sortStateAnnouncement({
  * columnHelper.accessor("email", {
  *   id: "email",
  *   header: (props) => (
- *     <DataTable.Header>
+ *     <DataTable.Header column={props.column}>
  *       <DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
  *         Email
  *       </DataTable.HeaderSortButton>
@@ -252,6 +217,25 @@ function HeaderSortButton<TData, TValue>({
 	const sortDirection: SortDirection =
 		canSort && typeof rawSortDirection === "string" ? rawSortDirection : "unsorted";
 
+	if (!canSort) {
+		// Why a span: a button that does nothing on click is a focusable dead end
+		// for a keyboard user. `justify-*` and text classes still apply.
+		return (
+			<span
+				data-slot="data-table-header-sort-button"
+				data-sort-direction="unsorted"
+				className={cx(
+					"flex w-full items-center justify-start",
+					appearance === "ghost" && intent === "neutral" && "text-muted",
+					className,
+				)}
+				{...props}
+			>
+				{children}
+			</span>
+		);
+	}
+
 	const sortIcon = propSortIcon?.(sortDirection) ?? (
 		<DefaultSortIcon mode={sortingMode} direction={sortDirection} />
 	);
@@ -277,7 +261,7 @@ function HeaderSortButton<TData, TValue>({
 				if (event.defaultPrevented) {
 					return;
 				}
-				if (!canSort || disableSorting || typeof sortingMode === "undefined") {
+				if (typeof sortingMode === "undefined") {
 					return;
 				}
 				toggleNextSortingDirection(column, sortingMode);
@@ -286,24 +270,43 @@ function HeaderSortButton<TData, TValue>({
 			type="button"
 			{...props}
 		>
-			{/* Always mounted, with one string child: mounting it only while sorted
-			    would aim an `insertBefore` at the label, which throws once a
-			    browser translation engine has reparented that text node. See
-			    decisions/2026-08-04-translation-safe-label-wrappers.md. */}
-			<span className="sr-only">
-				{sortStateAnnouncement({ canSort, sortDirection, sortingMode })}
-			</span>
 			{children}
 		</Button>
 	);
 }
 
-type DataTableHeaderProps = ComponentProps<typeof Table.Header>;
+type DataTableHeaderProps<TData, TValue> = ComponentProps<typeof Table.Header> &
+	Partial<Pick<HeaderContext<TData, TValue>, "column">>;
+
+/**
+ * The `aria-sort` value for a column's current sort state. `undefined` when the
+ * column is unsorted or absent, because WAI-ARIA asks authors to set
+ * `aria-sort` on one header at a time.
+ *
+ * @example
+ * ```ts
+ * resolveAriaSort(sortedAscendingColumn); // => "ascending"
+ * resolveAriaSort(unsortedColumn); // => undefined
+ * ```
+ */
+function resolveAriaSort<TData, TValue>(
+	column: HeaderContext<TData, TValue>["column"] | undefined,
+): "ascending" | "descending" | undefined {
+	const sorted = column?.getIsSorted();
+	if (sorted === "asc") {
+		return "ascending";
+	}
+	if (sorted === "desc") {
+		return "descending";
+	}
+	return undefined;
+}
 
 /**
  * A `<th>` optimized for header actions. Wrap each column's header content in
- * this; for sortable columns, nest a `DataTable.HeaderSortButton` inside.
- * Non-sortable columns can render plain text.
+ * this; for sortable columns, nest a `DataTable.HeaderSortButton` inside and
+ * pass the same `column` here, so the cell carries `aria-sort` while the column
+ * is sorted. Non-sortable columns can render plain text.
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableheader
  *
@@ -312,7 +315,7 @@ type DataTableHeaderProps = ComponentProps<typeof Table.Header>;
  * columnHelper.accessor("name", {
  *   id: "name",
  *   header: (props) => (
- *     <DataTable.Header>
+ *     <DataTable.Header column={props.column}>
  *       <DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
  *         Name
  *       </DataTable.HeaderSortButton>
@@ -322,9 +325,15 @@ type DataTableHeaderProps = ComponentProps<typeof Table.Header>;
  * });
  * ```
  */
-function Header({ children, className, ...props }: DataTableHeaderProps) {
+function Header<TData, TValue>({
+	children,
+	className,
+	column,
+	...props
+}: DataTableHeaderProps<TData, TValue>) {
 	return (
 		<Table.Header
+			aria-sort={resolveAriaSort(column)}
 			data-slot="data-table-header"
 			className={cx("has-data-table-header-action:px-0", className)}
 			{...props}
@@ -434,6 +443,10 @@ type DataTableRowProps<TData> = Omit<ComponentProps<typeof Table.Row>, "children
  * expanded the row renders its data `<tr>` plus a sibling `DataTable.ExpandedRow`
  * holding the returned content. Pair it with a `DataTable.RowExpandButton` toggle
  * and configure the table for expansion (`getExpandedRowModel`, `getRowCanExpand`).
+ *
+ * | Data Attribute  | Value                 | Description                                          |
+ * | --------------- | --------------------- | ---------------------------------------------------- |
+ * | `data-expanded` | present when expanded | Presence-only. The row's detail panel is open.       |
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatablerow
  *
@@ -567,7 +580,7 @@ type DataTableEmptyRowProps = ComponentProps<typeof Table.Row>;
  */
 function EmptyRow<TData>({ children, ...props }: DataTableEmptyRowProps) {
 	const { table } = useDataTableContext<TData>();
-	const numberOfColumns = table.getAllColumns().length;
+	const numberOfColumns = table.getVisibleLeafColumns().length;
 
 	return (
 		<Table.Row data-slot="data-table-empty-row" {...props}>
@@ -660,7 +673,9 @@ type DataTableActionHeaderProps = ComponentProps<typeof Table.Header>;
 /**
  * A sticky header cell that pairs with `DataTable.ActionCell`. Use this as the
  * header for the action column so the pinned column visually aligns across the
- * header and every body row when the table scrolls horizontally.
+ * header and every body row when the table scrolls horizontally. Renders a
+ * screen-reader-only "Actions" label by default, so the column has a name while
+ * it stays visually empty.
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactionheader
  *
@@ -690,7 +705,7 @@ function ActionHeader({ children, className, ...props }: DataTableActionHeaderPr
 			)}
 			{...props}
 		>
-			{children}
+			{children ?? <span className="sr-only">Actions</span>}
 			{/* Last, not first: the indicator is absolutely positioned outside the
 			    cell's content box, so DOM order costs nothing here — and mounting it
 			    before `children` would aim an `insertBefore` at header text that a
@@ -1037,7 +1052,7 @@ function ExpandedRow<TData>({
  *   columnHelper.accessor("name", {
  *     id: "name",
  *     header: (props) => (
- *       <DataTable.Header>
+ *       <DataTable.Header column={props.column}>
  *         <DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
  *           Name
  *         </DataTable.HeaderSortButton>
@@ -1098,7 +1113,7 @@ function ExpandedRow<TData>({
  *   columnHelper.accessor("status", {
  *     id: "status",
  *     header: (props) => (
- *       <DataTable.Header>
+ *       <DataTable.Header column={props.column}>
  *         <DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
  *           Status
  *         </DataTable.HeaderSortButton>
@@ -1109,7 +1124,7 @@ function ExpandedRow<TData>({
  *   columnHelper.accessor("email", {
  *     id: "email",
  *     header: (props) => (
- *       <DataTable.Header>
+ *       <DataTable.Header column={props.column}>
  *         <DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
  *           Email
  *         </DataTable.HeaderSortButton>
@@ -1352,9 +1367,11 @@ const DataTable = {
 	 */
 	ActionCell,
 	/**
-	 * A sticky header cell that pairs with `DataTable.ActionCell`, keeping the
-	 * action column aligned across the header and body when scrolling horizontally.
-	 * Use as the `header` for a `columnHelper.display` action column.
+	 * A sticky header cell that pairs with `DataTable.ActionCell`. Use this as the
+	 * header for the action column so the pinned column visually aligns across the
+	 * header and every body row when the table scrolls horizontally. Renders a
+	 * screen-reader-only "Actions" label by default, so the column has a name while
+	 * it stays visually empty.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactionheader
 	 *
@@ -1450,8 +1467,10 @@ const DataTable = {
 	 */
 	Head,
 	/**
-	 * A `<th>` optimized for header actions. Wrap each column's header content
-	 * in this; for sortable columns, nest a `DataTable.HeaderSortButton` inside.
+	 * A `<th>` optimized for header actions. Wrap each column's header content in
+	 * this; for sortable columns, nest a `DataTable.HeaderSortButton` inside and
+	 * pass the same `column` here, so the cell carries `aria-sort` while the column
+	 * is sorted. Non-sortable columns can render plain text.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableheader
 	 *
@@ -1460,7 +1479,7 @@ const DataTable = {
 	 * columnHelper.accessor("name", {
 	 *   id: "name",
 	 *   header: (props) => (
-	 *     <DataTable.Header>
+	 *     <DataTable.Header column={props.column}>
 	 *       <DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 	 *         Name
 	 *       </DataTable.HeaderSortButton>
@@ -1472,12 +1491,21 @@ const DataTable = {
 	 */
 	Header,
 	/**
-	 * A sortable button toggle for a column header. Clicks cycle through
-	 * sort directions: for `"alphanumeric"`, `unsorted → asc → desc → unsorted`;
-	 * for `"time"`, `unsorted → desc (newest-first) → asc → unsorted`.
+	 * A sortable button toggle for a column header in a data table. Renders a sort
+	 * icon that reflects the current direction and cycles through sort states on
+	 * click. The button's accessible name is the column label and does not change
+	 * with the sort state; pass `column` to the surrounding `DataTable.Header` so
+	 * the header cell exposes the state through `aria-sort`.
 	 *
-	 * Pass `className="justify-end"` and `iconPlacement="start"` for
-	 * right-aligned numeric columns so the sort icon stays paired with the label.
+	 * Each click cycles through:
+	 * - For `"alphanumeric"` sorting: `unsorted → ascending → descending → unsorted`
+	 * - For `"time"` sorting: `unsorted → newest-first → oldest-first → unsorted`
+	 *
+	 * When the column cannot sort (`disableSorting`, or `enableSorting: false` on
+	 * the column), the part renders the label as plain text: no button, no icon.
+	 *
+	 * For right-aligned numeric columns, pass `className="justify-end"` and
+	 * `iconPlacement="start"` so the sort icon stays paired with the label.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableheadersortbutton
 	 *
@@ -1486,7 +1514,7 @@ const DataTable = {
 	 * columnHelper.accessor("email", {
 	 *   id: "email",
 	 *   header: (props) => (
-	 *     <DataTable.Header>
+	 *     <DataTable.Header column={props.column}>
 	 *       <DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 	 *         Email
 	 *       </DataTable.HeaderSortButton>

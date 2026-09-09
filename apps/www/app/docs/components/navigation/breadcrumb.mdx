@@ -379,6 +379,12 @@ Breadcrumb follows the [APG breadcrumb pattern](https://www.w3.org/WAI/ARIA/apg/
 
 ## API Reference
 
+Every part stamps a `data-slot`, joined after any chain a composing ancestor passes:
+
+| Data Attribute | Value                                                                                                                                                                                     | Description      |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `data-slot`    | `"breadcrumb"` \| `"breadcrumb-list"` \| `"breadcrumb-item"` \| `"breadcrumb-link"` \| `"breadcrumb-label"` \| `"breadcrumb-page"` \| `"breadcrumb-separator"` \| `"breadcrumb-skeleton"` | Names each part. |
+
 ### Breadcrumb.Root
 
 The `<nav>` landmark containing the trail. It carries no visual styling; its one layout class is `min-w-0`, which lets the landmark shrink inside a flex row so `Breadcrumb.List` scrolls (see [Overflow](#overflow)).
@@ -402,7 +408,7 @@ All props from [ol](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol
 
 ### Breadcrumb.Item
 
-A single crumb wrapping a `Link` or the `Page`. The crumb never shrinks, so it keeps its label on one line and the trail scrolls instead.
+A single crumb wrapping a `Link`, a `Label`, or the `Page`. The crumb never shrinks, so it keeps its label on one line and the trail scrolls instead.
 
 All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes), plus:
 

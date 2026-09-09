@@ -117,7 +117,7 @@ When you want to render _something else_ as a `SplitButton.MenuItem`, you can us
 				Download as PDF
 			</SplitButton.MenuItem>
 			<SplitButton.MenuItem asChild>
-				<a href="https://example.com" target="_blank">
+				<a href="https://example.com" target="_blank" rel="noopener noreferrer">
 					<Icon svg={<FileTextIcon />} />
 					Open in new tab
 				</a>
@@ -140,7 +140,7 @@ import { SplitButton } from "@ngrok/mantle/split-button";
 			Download as PDF
 		</SplitButton.MenuItem>
 		<SplitButton.MenuItem asChild>
-			<a href="https://example.com" target="_blank">
+			<a href="https://example.com" target="_blank" rel="noopener noreferrer">
 				<Icon svg={<FileTextIcon />} />
 				Open in new tab
 			</a>
@@ -165,6 +165,13 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `onOpenChange?` | `(open: boolean) => void`                      |         | Event handler called when the open state of the dropdown changes.                                                                 |
 | `modal?`        | `boolean`                                      |         | Whether the dropdown menu is modal.                                                                                               |
 | `size?`         | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | `"md"`  | The size of the `SplitButton`. Applied to both the primary action and the menu trigger so the two halves always share one height. |
+
+#### Data attributes
+
+| Data Attribute | Value                                          | Description                                   |
+| -------------- | ---------------------------------------------- | --------------------------------------------- |
+| `data-slot`    | `"split-button"`                               | On the wrapping `<div>`.                      |
+| `data-size`    | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop, which both halves render at. |
 
 ### SplitButton.PrimaryAction
 

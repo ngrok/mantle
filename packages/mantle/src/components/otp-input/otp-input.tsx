@@ -140,6 +140,9 @@ type OtpInputRootProps = Omit<ComponentProps<typeof OTPInput>, "render" | "child
  * and `aria-errormessage` through to the underlying focusable input via
  * `FieldControlContext`.
  *
+ * **Accessibility.** The hidden input needs an accessible name. Inside a
+ * `Field.Item`, `Field.Label` supplies it. On its own, pass `aria-label`.
+ *
  * @see https://mantle.ngrok.com/components/forms/otp-input
  *
  * @example
@@ -481,9 +484,12 @@ const Separator = ({
  */
 const OtpInput = {
 	/**
-	 * The root of the OTP input. Wraps the hidden input that captures
-	 * keystrokes, paste, and autofill, and exposes per-slot state to
-	 * descendant `OtpInput.Slot` parts.
+	 * The root of the OTP input. Renders an accessible single hidden input that
+	 * captures keystrokes, paste events, and autofill, and exposes per-slot state
+	 * (active, char, fake caret) to descendant `OtpInput.Slot` parts via context.
+	 *
+	 * The hidden input needs an accessible name. Inside a `Field.Item`,
+	 * `Field.Label` supplies it. On its own, pass `aria-label`.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/otp-input
 	 *

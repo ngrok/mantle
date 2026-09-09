@@ -128,7 +128,10 @@ type MultiSelectTriggerProps = ComponentProps<"div"> & WithValidation;
 
 /**
  * The trigger container for the multi-select. Wraps the input and selected
- * value tags in a styled container that looks like a form input.
+ * value tags in a styled container that looks like a form input. It is
+ * `role="presentation"`: the `MultiSelect.Input` combobox and the
+ * `MultiSelect.TagValues` list carry the semantics, and the input's label
+ * (`Field.Label` or `aria-label`) names the whole control.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttrigger
  *
@@ -166,7 +169,10 @@ const Trigger = ({
 
 	return (
 		<div
-			role="group"
+			// Why presentation: the handlers below only forward focus to the input;
+			// the container itself is not a control, and the input and the tag list
+			// carry the semantics.
+			role="presentation"
 			data-slot="multi-select-trigger"
 			className={cx(
 				"cursor-text select-none font-sans text-sm",
@@ -192,7 +198,7 @@ const Trigger = ({
 				// input. Clicks on buttons, the input itself, or tag spans are handled by those elements.
 				if (
 					event.target instanceof HTMLElement &&
-					!event.target.closest("button, input, [role='option']")
+					!event.target.closest("button, input, [data-slot='multi-select-tag']")
 				) {
 					event.preventDefault();
 					inputRef.current?.focus();
@@ -213,7 +219,8 @@ type TagProps = Omit<ComponentProps<"span">, "children"> & {
 	 */
 	value: string;
 	/**
-	 * Called when the remove button is clicked.
+	 * Called when the remove button is clicked. `MultiSelect.TagValues` passes
+	 * one through its render props that removes the value from the selection.
 	 */
 	onRemove?: () => void;
 	/**
@@ -225,10 +232,21 @@ type TagProps = Omit<ComponentProps<"span">, "children"> & {
 
 /**
  * The default tag rendered inside `MultiSelect.TagValues` for each selected value.
- * Displays the value label with a remove button and full keyboard navigation support.
+ * Displays the value label with a remove button. Renders a `role="listitem"`
+ * inside the `role="list"` that `MultiSelect.TagValues` renders, and marks
+ * itself `data-active` while it has focus.
+ *
+ * Arrow-key navigation and Backspace/Delete removal come from the
+ * `MultiSelect.TagValues` render props; spread them onto the tag to get them.
+ * On its own, `Tag` only blocks Backspace and Delete on a locked tag.
  *
  * Use this when building a custom `TagValues`-like component and you want the
  * default tag chrome with consistent styling.
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-active` | present while focused | The tag that keyboard navigation is on. |
+ * | `data-locked` | present when `locked` | The tag cannot be removed. |
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttag
  *
@@ -252,25 +270,39 @@ const Tag = ({
 	value,
 	onRemove,
 	locked = false,
+	onBlur,
+	onFocus,
 	onKeyDown,
 	ref,
 	...props
 }: TagProps) => {
 	const internalRef = useRef<HTMLSpanElement | null>(null);
+	// Why local state: the tag list has no listbox, so `aria-selected` is not
+	// valid here, and `aria-current` names a current item, not focus. DOM focus
+	// exposes the active tag; `data-active` drives its styling.
+	const [isActive, setIsActive] = useState(false);
 
 	return (
 		<span
 			ref={composeRefs(internalRef, ref)}
-			role="option"
-			aria-selected
+			role="listitem"
 			tabIndex={-1}
 			data-slot="multi-select-tag"
+			data-active={isActive || undefined}
 			data-locked={locked || undefined}
 			className={cx(
 				"cursor-default bg-neutral-500/10 border border-neutral-500/20 rounded-xs text-strong inline-flex items-center gap-1 pl-2 pr-0.5 py-0.5 text-sm font-normal",
 				"focus-visible:outline-hidden focus-visible:border-accent-600/50 focus-visible:ring-3 focus-visible:ring-focus-accent",
 				className,
 			)}
+			onBlur={(event) => {
+				setIsActive(false);
+				onBlur?.(event);
+			}}
+			onFocus={(event) => {
+				setIsActive(true);
+				onFocus?.(event);
+			}}
 			onKeyDown={(event) => {
 				if (locked && (event.key === "Backspace" || event.key === "Delete")) {
 					event.preventDefault();
@@ -332,6 +364,12 @@ type TagRenderProps = TagProps & {
 
 type MultiSelectTagValuesProps = {
 	/**
+	 * The accessible name of the tag list.
+	 *
+	 * @default "Selected values"
+	 */
+	"aria-label"?: string;
+	/**
 	 * Values that cannot be removed. Locked tags have their remove button disabled,
 	 * respond to Backspace/Delete key presses with a shake animation, and shake when
 	 * Backspace is pressed on an empty input.
@@ -341,9 +379,10 @@ type MultiSelectTagValuesProps = {
 	 */
 	lockedValues?: string[];
 	/**
-	 * Optional render function for each tag. Receives `{ value, onRemove, locked, ref }` —
-	 * spread these onto `MultiSelect.Tag` (or your own element) for full keyboard-nav support.
+	 * Optional render function for each tag. Receives `{ value, onRemove, locked, ref, onKeyDown, onClick }`.
+	 * Spread these onto `MultiSelect.Tag` (or your own element) for full keyboard-nav support.
 	 * When omitted, the default `MultiSelect.Tag` is rendered for each selected value.
+	 * A custom tag must be a `role="listitem"`: the tags render inside a `role="list"`.
 	 *
 	 * @example
 	 * ```tsx
@@ -361,6 +400,10 @@ type MultiSelectTagValuesProps = {
  * Renders the selected values as removable tags. Place this inside
  * `MultiSelect.Trigger`, followed by `MultiSelect.Input`.
  *
+ * The tags render inside a `role="list"` named "Selected values" (override it
+ * with `aria-label`), and each default tag is a `role="listitem"`. The list
+ * uses `display: contents`, so the tags keep the trigger's flex layout.
+ *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttagvalues
  *
  * @example
@@ -376,7 +419,11 @@ type MultiSelectTagValuesProps = {
  * </MultiSelect.Root>
  * ```
  */
-const TagValues = ({ children, lockedValues = EMPTY_ARRAY }: MultiSelectTagValuesProps) => {
+const TagValues = ({
+	"aria-label": ariaLabel = "Selected values",
+	children,
+	lockedValues = EMPTY_ARRAY,
+}: MultiSelectTagValuesProps) => {
 	const store = Primitive.useComboboxContext();
 	const rawSelectedValue = Primitive.useStoreState(store, "selectedValue");
 	const selectedValues = isStringArray(rawSelectedValue) ? rawSelectedValue : undefined;
@@ -560,8 +607,14 @@ const TagValues = ({ children, lockedValues = EMPTY_ARRAY }: MultiSelectTagValue
 	// Assigned directly during render (safe — refs are mutable and don't trigger re-renders).
 	onInputKeyDownRef.current = handleInputKeyDown;
 
+	if (selectedArray.length === 0) {
+		return null;
+	}
+
 	return (
-		<>
+		// Why `contents`: the list must not take the tags out of the trigger's
+		// flex `gap`; the element exists for the `role="list"` alone.
+		<span role="list" aria-label={ariaLabel} data-slot="multi-select-tag-list" className="contents">
 			{selectedArray.map((value, index) => {
 				const tagOptionProps: TagRenderProps = {
 					value,
@@ -597,7 +650,7 @@ const TagValues = ({ children, lockedValues = EMPTY_ARRAY }: MultiSelectTagValue
 
 				return <Tag key={value} {...tagOptionProps} />;
 			})}
-		</>
+		</span>
 	);
 };
 
@@ -1228,8 +1281,11 @@ const MultiSelect = {
 	 */
 	Root,
 	/**
-	 * The trigger container for the multi-select. Wraps the tags and input
-	 * in a styled container.
+	 * The trigger container for the multi-select. Wraps the input and selected
+	 * value tags in a styled container that looks like a form input. It is
+	 * `role="presentation"`: the `MultiSelect.Input` combobox and the
+	 * `MultiSelect.TagValues` list carry the semantics, and the input's label
+	 * (`Field.Label` or `aria-label`) names the whole control.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttrigger
 	 *
@@ -1251,8 +1307,9 @@ const MultiSelect = {
 	 * Renders the selected values as removable tags. Place this inside
 	 * `MultiSelect.Trigger`, followed by `MultiSelect.Input`.
 	 *
-	 * Use `lockedValues` to prevent specific tags from being removed. Locked tags
-	 * have their remove button disabled and shake when Backspace is pressed.
+	 * The tags render inside a `role="list"` named "Selected values" (override it
+	 * with `aria-label`), and each default tag is a `role="listitem"`. The list
+	 * uses `display: contents`, so the tags keep the trigger's flex layout.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttagvalues
 	 *
@@ -1308,7 +1365,9 @@ const MultiSelect = {
 	Input,
 	/**
 	 * The default tag rendered inside `MultiSelect.TagValues` for each selected value.
-	 * Displays the value label with a remove button and keyboard navigation support.
+	 * Displays the value label with a remove button. Renders a `role="listitem"`
+	 * inside the `role="list"` that `MultiSelect.TagValues` renders, and marks
+	 * itself `data-active` while it has focus.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttag
 	 *

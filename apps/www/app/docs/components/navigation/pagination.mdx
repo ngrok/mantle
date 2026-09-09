@@ -323,12 +323,13 @@ A pair of previous/next buttons for navigating between pages.
 
 ### CursorPagination.PageSizeSelect
 
-A select input for changing the number of items per page.
+A select input for changing the number of items per page. Its combobox is named "Items per page" by default, because its visible text is only the current value. Accepts all `Select.Trigger` props, plus:
 
-| Prop                | Type                      | Default                | Description                                    |
-| :------------------ | :------------------------ | :--------------------- | :--------------------------------------------- |
-| `pageSizes?`        | `readonly number[]`       | `[5, 10, 20, 50, 100]` | A list of page sizes to choose from.           |
-| `onChangePageSize?` | `(value: number) => void` |                        | Callback called when the page size is changed. |
+| Prop                | Type                      | Default                | Description                                                        |
+| :------------------ | :------------------------ | :--------------------- | :----------------------------------------------------------------- |
+| `pageSizes?`        | `readonly number[]`       | `[5, 10, 20, 50, 100]` | A list of page sizes to choose from.                               |
+| `onChangePageSize?` | `(value: number) => void` |                        | Callback called when the page size is changed.                     |
+| `aria-label?`       | `string`                  | `"Items per page"`     | The accessible name of the combobox. Override it for localization. |
 
 ### CursorPagination.PageSizeValue
 

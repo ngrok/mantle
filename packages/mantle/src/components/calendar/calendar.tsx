@@ -8,6 +8,11 @@ import { cx } from "../../utils/cx/cx.js";
 import { iconButtonVariants } from "../button/icon-button-variants.js";
 import { Icon } from "../icon/icon.js";
 
+/**
+ * Props for `Calendar`: every `DayPicker` prop. `showOutsideDays` defaults to
+ * `false` here, and `className` lands on the calendar root alongside any
+ * `classNames.root` you pass.
+ */
 type CalendarProps = ComponentProps<typeof DayPicker>;
 
 /**
@@ -22,9 +27,14 @@ const calendarNavButtonClasses = iconButtonVariants({
 
 /**
  * A calendar component that allows users to select a date or a range of dates.
+ * Renders a month grid with previous/next navigation; it has no text entry.
  *
- * @preview The API is not stable and may change.
- * There may also be bugs! Please file an issue if you find any! <3
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"calendar"` | The calendar root. |
+ *
+ * @preview The API is not stable and may change. There may also be bugs.
+ * Please file an issue at https://github.com/ngrok/mantle/issues if you find any.
  *
  * @see https://mantle.ngrok.com/components/preview/calendar
  *
@@ -42,10 +52,10 @@ const calendarNavButtonClasses = iconButtonVariants({
  *   onSelect={setDateRange}
  * />
  * ```
- *
- * https://github.com/ngrok/mantle/issues
  */
 function Calendar({ className, classNames, showOutsideDays = false, ...props }: CalendarProps) {
+	const { root: rootClassName, ...restClassNames } = classNames ?? {};
+
 	return (
 		<DayPicker
 			data-slot="calendar"
@@ -58,7 +68,9 @@ function Calendar({ className, classNames, showOutsideDays = false, ...props }: 
 				},
 			}}
 			classNames={{
-				root: cx("isolate", className),
+				// Why both: DayPicker's own `className` contract targets the root, and
+				// a consumer `classNames.root` must add to it, not erase it.
+				root: cx("isolate", className, rootClassName),
 				button_next: cx(calendarNavButtonClasses, "absolute right-0"),
 				button_previous: cx(calendarNavButtonClasses, "absolute left-0"),
 				caption_label: "text-sm font-medium",
@@ -88,7 +100,7 @@ function Calendar({ className, classNames, showOutsideDays = false, ...props }: 
 				week: "flex w-full mt-1",
 				weekday: "text-body w-7 text-[0.8rem] text-center font-normal",
 				weekdays: "flex",
-				...classNames,
+				...restClassNames,
 			}}
 			showOutsideDays={showOutsideDays}
 			{...props}

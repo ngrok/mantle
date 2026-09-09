@@ -873,8 +873,8 @@ const Actions = ({ children, className, ref, ...props }: ComponentProps<"div">) 
  * A container that overlays the current view from the edge of the screen.
  * It is a lightweight way of allowing users to complete a task without losing
  * contextual information of the view beneath it. Use Sheet for side-panel
- * content that slides in from any edge — filter panels, detail/inspector
- * views, navigation drawers, mobile menus. For a centered modal that
+ * content that slides in from the left or right edge: filter panels,
+ * detail/inspector views, navigation drawers, mobile menus. For a centered modal that
  * interrupts the user, use `Dialog` (or `AlertDialog` for destructive
  * confirmations).
  *

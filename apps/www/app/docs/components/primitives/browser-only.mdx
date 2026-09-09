@@ -51,3 +51,15 @@ import { BrowserOnly } from "@ngrok/mantle/browser-only";
 | ----------- | ----------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `children`  | `() => ReactNode` |         | Children must be a render function so that evaluation is deferred until after hydration has occurred.                                                                                                     |
 | `fallback?` | `ReactNode`       | `null`  | Optional fallback to render on the server (and during hydration) before the client-only children are mounted. Ideally, this should be the same dimensions as the eventual children to avoid layout shift. |
+
+### canUseDOM
+
+`canUseDOM(): boolean` returns `true` when `window` and `document` exist. Use it to guard a DOM API call that runs outside a component, such as a `localStorage` read in a loader.
+
+```tsx
+import { canUseDOM } from "@ngrok/mantle/browser-only";
+
+if (canUseDOM()) {
+	localStorage.setItem("foo", "bar");
+}
+```

@@ -106,7 +106,7 @@ type ChoiceRootProps = Omit<ComponentProps<"div">, "id"> & {
 /**
  * Root of a `Choice`: the indicator-left / content-right layout for pairing a
  * checkbox or radio with a titled, multi-line label. Owns the control's `id` and the
- * description's `id`, and — when rendered inside a `Field.Control` — reads the
+ * description's `id`. When rendered inside a `Field.Control`, it reads the
  * field's `id` / `name` / `aria-*` from `FieldControlContext` and merges them
  * into the props `Indicator` injects onto the control (the field's
  * `aria-describedby` is concatenated with this `Choice`'s own description id).
@@ -209,7 +209,7 @@ const Root = ({
 type ChoiceIndicatorProps = ComponentProps<"span">;
 
 /**
- * The left control slot of a `Choice` — drop the control here (a `Checkbox`, a
+ * The left control slot of a `Choice`: drop the control here (a `Checkbox`, a
  * radio indicator, a `Switch`, …). Its single element child is cloned with the
  * shared `id` / `name` / `aria-*` / `disabled` from `Root`, so a control placed
  * here is wired to `Choice.Label` and the description without the caller
@@ -423,7 +423,8 @@ function shouldForwardDescriptionClick(event: MouseEvent<HTMLElement>): boolean 
 /**
  * The de-emphasized supplementary line of a `Choice`, in the muted body color
  * and wired to the control via `aria-describedby` (never a second label).
- * Renders a `<p>`; pass `asChild` to supply your own element.
+ * Renders a `<p>`; pass `asChild` to supply your own element. `Choice.Root`
+ * owns its `id`, so `id` is not a prop.
  *
  * A click on the description forwards to the sibling `Choice.Label`, so the
  * whole content column toggles the control while the accessible name stays the
@@ -455,14 +456,13 @@ const Description = ({
 	onClick,
 	ref,
 	...props
-}: ComponentProps<"p"> & WithAsChild) => {
+}: Omit<ComponentProps<"p">, "id"> & WithAsChild) => {
 	const { descriptionId, disabled, labelRef } = useChoiceContext("Description");
 	const Comp = asChild ? Slot : "p";
 
 	return (
 		<Comp
 			ref={ref}
-			id={descriptionId}
 			data-slot="choice-description"
 			className={cx(
 				"text-body text-sm leading-4",
@@ -485,6 +485,9 @@ const Description = ({
 				}
 			}}
 			{...props}
+			// Why after the spread: the control's `aria-describedby` points at this
+			// id, and a wider props object can still carry an `id` past the type.
+			id={descriptionId}
 		/>
 	);
 };
@@ -539,8 +542,14 @@ const Description = ({
  */
 const Choice = {
 	/**
-	 * Root: the layout + id/association owner. Reads `FieldControlContext` when
-	 * present so a `Field`'s id/name/aria flow onto the control.
+	 * Root of a `Choice`: the indicator-left / content-right layout for pairing a
+	 * checkbox or radio with a titled, multi-line label. Owns the control's `id` and the
+	 * description's `id`. When rendered inside a `Field.Control`, it reads the
+	 * field's `id` / `name` / `aria-*` from `FieldControlContext` and merges them
+	 * into the props `Indicator` injects onto the control (the field's
+	 * `aria-describedby` is concatenated with this `Choice`'s own description id).
+	 * Outside a `Field` it falls back to its own generated ids, so the two compose
+	 * but neither requires the other.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/choice
 	 *
@@ -559,8 +568,11 @@ const Choice = {
 	 */
 	Root,
 	/**
-	 * Indicator: the left control slot. Clones its element child with the shared
-	 * id/aria/name so the control is wired without threading ids.
+	 * The left control slot of a `Choice`: drop the control here (a `Checkbox`, a
+	 * radio indicator, a `Switch`, …). Its single element child is cloned with the
+	 * shared `id` / `name` / `aria-*` / `disabled` from `Root`, so a control placed
+	 * here is wired to `Choice.Label` and the description without the caller
+	 * threading ids. A non-element child (or none) is rendered untouched.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/choice
 	 *

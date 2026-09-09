@@ -38,7 +38,7 @@ The last row is the one to design toward. When `children` is the only child of a
 ## What mantle guarantees
 
 - [`Button`](/components/actions/button), [`Badge`](/components/data-display/badge), and [`Anchor`](/components/navigation/anchor) render `children` inside a label slot, so an appearing `icon` or `isLoading` spinner inserts before an **element** sibling. In `Button` and `Badge` that slot is `display: contents`, so it adds no box and changes no layout.
-- `DataTable.HeaderSortButton` keeps its screen-reader sort announcer mounted at all times, and takes a single computed string, so every sort change is a `textContent` write.
+- `DataTable.HeaderSortButton` renders its label through `Button`'s label slot, and the sort state lives in attributes (`aria-sort` on the header cell, `data-sort-direction` on the button), so a sort change inserts no node before text.
 - `DataTable.ActionHeader` renders its sticky indicator after `children`, which turns the mount into an append.
 - [`Code`](/components/data-display/code), [`Kbd`](/components/data-display/kbd), `CodeBlock.Code`, `CodeBlock.Title`, and `OtpInput.Slot` mark their content [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate), so the engine skips those subtrees entirely.
 

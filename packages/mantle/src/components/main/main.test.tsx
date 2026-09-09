@@ -21,8 +21,31 @@ describe("Main", () => {
 
 	test("merges custom className", () => {
 		render(<Main className="custom-class">content</Main>);
-		const main = screen.getByRole("main");
-		expect(main.className).toContain("custom-class");
-		expect(main.className).toContain("focus:outline-hidden");
+		expect(screen.getByRole("main")).toHaveClass("custom-class");
+	});
+
+	test("locks id and tabIndex so the skip-link target cannot drift", () => {
+		// Why two renders: TypeScript reports one excess attribute per element, so
+		// each stray prop needs its own `@ts-expect-error`.
+		const { unmount } = render(
+			<Main
+				// @ts-expect-error -- id is not a Main prop; the skip link targets #main
+				id="elsewhere"
+			>
+				content
+			</Main>,
+		);
+		expect(screen.getByRole("main")).toHaveAttribute("id", "main");
+		unmount();
+
+		render(
+			<Main
+				// @ts-expect-error -- tabIndex is not a Main prop; the landmark must stay focusable
+				tabIndex={0}
+			>
+				content
+			</Main>,
+		);
+		expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1");
 	});
 });

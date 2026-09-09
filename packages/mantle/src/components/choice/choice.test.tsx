@@ -91,6 +91,29 @@ describe("Choice", () => {
 		expect(control.getAttribute("aria-describedby")?.split(" ")).toContain(description.id);
 	});
 
+	test("Choice.Root owns the Description id: a stray id cannot break aria-describedby", () => {
+		render(
+			<Choice.Root>
+				<Choice.Indicator>
+					<input type="checkbox" aria-label="control" />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Label>Email</Choice.Label>
+					<Choice.Description
+						// @ts-expect-error -- id is not a Choice.Description prop; Choice.Root owns it
+						id="elsewhere"
+					>
+						Get notified by email.
+					</Choice.Description>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+		const control = screen.getByRole("checkbox");
+		const description = screen.getByText("Get notified by email.");
+		expect(description.id).not.toBe("elsewhere");
+		expect(control.getAttribute("aria-describedby")?.split(" ")).toContain(description.id);
+	});
+
 	test("disabled disables the control and dims the text", () => {
 		render(
 			<Choice.Root disabled>
@@ -154,7 +177,7 @@ describe("Choice", () => {
 		expect(label.tagName).toBe("LABEL");
 		expect(label).toHaveClass("cursor-pointer");
 		expect(label).toHaveAttribute("for", control.id);
-		expect(label).toHaveAttribute("aria-disabled", "true");
+		expect(label).toHaveAttribute("data-disabled", "true");
 		expect(label).toHaveClass("opacity-50");
 	});
 

@@ -83,6 +83,40 @@ describe("QrCode", () => {
 		expect(frame).toHaveAttribute("data-slot", "qr-code-frame");
 	});
 
+	test("Frame is an image named 'QR code' when no label is passed", () => {
+		renderQrCode();
+		const frame = screen.getByRole("img", { name: "QR code" });
+		expect(frame).toBe(screen.getByTestId("frame"));
+	});
+
+	test("Frame uses the aria-label you pass", () => {
+		render(
+			<QrCode.Root value="https://ngrok.com">
+				<QrCode.Frame aria-label="QR code for ngrok.com">
+					<QrCode.Pattern />
+				</QrCode.Frame>
+			</QrCode.Root>,
+		);
+		expect(screen.getByRole("img", { name: "QR code for ngrok.com" })).toBeInTheDocument();
+		expect(screen.queryByRole("img", { name: "QR code" })).not.toBeInTheDocument();
+	});
+
+	test("Frame drops the fallback aria-label when aria-labelledby names it", () => {
+		render(
+			<>
+				<p id="qr-title">Scan to open the dashboard</p>
+				<QrCode.Root value="https://ngrok.com">
+					<QrCode.Frame aria-labelledby="qr-title" data-testid="frame">
+						<QrCode.Pattern />
+					</QrCode.Frame>
+				</QrCode.Root>
+			</>,
+		);
+		const frame = screen.getByRole("img", { name: "Scan to open the dashboard" });
+		expect(frame).toBe(screen.getByTestId("frame"));
+		expect(frame).not.toHaveAttribute("aria-label");
+	});
+
 	test("Frame renders modules with crisp SVG edges", () => {
 		renderQrCode();
 		expect(screen.getByTestId("frame")).toHaveAttribute("shape-rendering", "crispEdges");

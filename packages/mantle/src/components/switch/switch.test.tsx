@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { userEvent } from "@testing-library/user-event";
+import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { Switch } from "./switch.js";
 
@@ -56,5 +57,48 @@ describe("Switch", () => {
 
 		expect(screen.getByRole("switch")).toHaveAttribute("aria-invalid", "true");
 		expect(screen.getByRole("switch")).toHaveAttribute("data-validation", "error");
+	});
+
+	describe("readOnly", () => {
+		test("exposes aria-readonly and does not toggle on click", async () => {
+			const user = userEvent.setup();
+			const onCheckedChange = vi.fn<(checked: boolean) => void>();
+			render(
+				<Switch aria-label="Static" defaultChecked readOnly onCheckedChange={onCheckedChange} />,
+			);
+
+			const toggle = screen.getByRole("switch", { name: "Static" });
+			expect(toggle).toHaveAttribute("aria-readonly", "true");
+
+			await user.click(toggle);
+			expect(toggle).toHaveAttribute("aria-checked", "true");
+			expect(onCheckedChange).toHaveBeenCalledTimes(0);
+		});
+
+		// Regression: the readOnly guard once called `stopPropagation`, so a
+		// clickable row around the switch never saw the click.
+		test("a click on a read-only switch still reaches an ancestor handler", async () => {
+			const user = userEvent.setup();
+			const onRowClick = vi.fn<() => void>();
+			render(
+				<div role="presentation" onClick={onRowClick}>
+					<Switch aria-label="Static" readOnly />
+				</div>,
+			);
+
+			await user.click(screen.getByRole("switch", { name: "Static" }));
+			expect(onRowClick).toHaveBeenCalledTimes(1);
+		});
+
+		test("toggles on click when editable", async () => {
+			const user = userEvent.setup();
+			render(<Switch aria-label="Editable" />);
+
+			const toggle = screen.getByRole("switch", { name: "Editable" });
+			expect(toggle).toHaveAttribute("aria-readonly", "false");
+
+			await user.click(toggle);
+			expect(toggle).toHaveAttribute("aria-checked", "true");
+		});
 	});
 });

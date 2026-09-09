@@ -1,6 +1,14 @@
 import { render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { type ComponentProps, Fragment, type MouseEvent, useMemo, useState } from "react";
+import {
+	type ComponentProps,
+	createRef,
+	Fragment,
+	type MouseEvent,
+	type Ref,
+	useMemo,
+	useState,
+} from "react";
 import invariant from "tiny-invariant";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
@@ -76,33 +84,56 @@ describe("DataTable.Row", () => {
 type SortableHarnessProps = {
 	appearance?: ButtonAppearance;
 	intent?: ButtonIntent;
+	disableSorting?: boolean;
+	/** The ref the `disableSorting` branch passes to `DataTable.HeaderSortButton`. */
+	disabledHeaderRef?: Ref<HTMLButtonElement>;
+	enableSorting?: boolean;
 };
 
 /**
  * Renders a table with a single sortable column so `DataTable.HeaderSortButton`'s
  * optional `appearance`/`intent` pass-through can be exercised.
  */
-function SortableHarness({ appearance, intent }: SortableHarnessProps) {
+function SortableHarness({
+	appearance,
+	intent,
+	disableSorting = false,
+	disabledHeaderRef,
+	enableSorting = true,
+}: SortableHarnessProps) {
 	const sortableColumns = useMemo(
 		() => [
 			columnHelper.accessor("name", {
 				id: "name",
+				enableSorting,
 				header: (props) => (
-					<DataTable.Header>
-						<DataTable.HeaderSortButton
-							column={props.column}
-							sortingMode="alphanumeric"
-							appearance={appearance}
-							intent={intent}
-						>
-							Name
-						</DataTable.HeaderSortButton>
+					<DataTable.Header column={props.column}>
+						{disableSorting ? (
+							<DataTable.HeaderSortButton
+								column={props.column}
+								disableSorting
+								id="name-label"
+								title="Customer name"
+								ref={disabledHeaderRef}
+							>
+								Name
+							</DataTable.HeaderSortButton>
+						) : (
+							<DataTable.HeaderSortButton
+								column={props.column}
+								sortingMode="alphanumeric"
+								appearance={appearance}
+								intent={intent}
+							>
+								Name
+							</DataTable.HeaderSortButton>
+						)}
 					</DataTable.Header>
 				),
 				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 			}),
 		],
-		[appearance, intent],
+		[appearance, disableSorting, disabledHeaderRef, enableSorting, intent],
 	);
 	const table = useReactTable({
 		data,
@@ -143,24 +174,49 @@ describe("DataTable.HeaderSortButton", () => {
 		expect(button).not.toHaveClass("text-muted");
 	});
 
-	test("announces the sort direction only once the column is sorted", async () => {
+	test("keeps the column label as its name and moves the sort state to aria-sort on the header cell", async () => {
 		const user = userEvent.setup();
 		render(<SortableHarness />);
+		const header = screen.getByRole("columnheader", { name: "Name" });
+		const button = screen.getByRole("button", { name: "Name" });
+		expect(button).toHaveAttribute("data-sort-direction", "unsorted");
+		expect(header).not.toHaveAttribute("aria-sort");
+
+		await user.click(button);
 		expect(screen.getByRole("button", { name: "Name" })).toHaveAttribute(
 			"data-sort-direction",
-			"unsorted",
+			"asc",
 		);
+		expect(header).toHaveAttribute("aria-sort", "ascending");
+		expect(button).toHaveAccessibleName("Name");
 
-		await user.click(screen.getByRole("button", { name: "Name" }));
+		await user.click(button);
+		expect(button).toHaveAttribute("data-sort-direction", "desc");
+		expect(header).toHaveAttribute("aria-sort", "descending");
+		expect(button).toHaveAccessibleName("Name");
 
-		const sorted = screen.getByRole("button", { name: /Column sorted in ascending order/ });
-		expect(sorted).toHaveAttribute("data-sort-direction", "asc");
+		await user.click(button);
+		expect(button).toHaveAttribute("data-sort-direction", "unsorted");
+		expect(header).not.toHaveAttribute("aria-sort");
+	});
 
-		await user.click(sorted);
+	test("disableSorting renders the label as plain text with no button and forwards the other props", () => {
+		const ref = createRef<HTMLButtonElement>();
+		render(<SortableHarness disableSorting disabledHeaderRef={ref} />);
+		expect(screen.queryByRole("button")).not.toBeInTheDocument();
+		const header = screen.getByRole("columnheader", { name: "Name" });
+		expect(header).not.toHaveAttribute("aria-sort");
+		const label = header.querySelector('[data-slot="data-table-header-sort-button"]');
+		expect(label).toHaveAttribute("data-sort-direction", "unsorted");
+		expect(label).toHaveAttribute("id", "name-label");
+		expect(label).toHaveAttribute("title", "Customer name");
+		expect(ref.current).toBe(label);
+	});
 
-		expect(
-			screen.getByRole("button", { name: /Column sorted in descending order/ }),
-		).toHaveAttribute("data-sort-direction", "desc");
+	test("a column with enableSorting: false renders the label as plain text with no button", () => {
+		render(<SortableHarness enableSorting={false} />);
+		expect(screen.queryByRole("button")).not.toBeInTheDocument();
+		expect(screen.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
 	});
 
 	test("keeps rendering when the first click sorts a browser-translated header", async () => {
@@ -173,9 +229,6 @@ describe("DataTable.HeaderSortButton", () => {
 
 		const sorted = screen.getByRole("button");
 		expect(sorted).toHaveAttribute("data-sort-direction", "asc");
-		// The announcer is always mounted, so the sort state arrives as a text
-		// rewrite rather than an insert aimed at the translated header text.
-		expect(sorted).toHaveTextContent("Column sorted in ascending order");
 		expect(sorted).toHaveTextContent("[Name-es]");
 	});
 });
@@ -218,6 +271,38 @@ function ActionHeaderHarness({ rows }: { rows: Row[] }) {
 }
 
 describe("DataTable.ActionHeader", () => {
+	test('names the column "Actions" by default', () => {
+		const columns = [
+			columnHelper.display({
+				id: "actions",
+				header: () => <DataTable.ActionHeader />,
+				cell: () => <DataTable.ActionCell>Edit</DataTable.ActionCell>,
+			}),
+		];
+		function DefaultLabelHarness() {
+			const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
+			return (
+				<DataTable.Root table={table}>
+					<DataTable.Head />
+				</DataTable.Root>
+			);
+		}
+		render(<DefaultLabelHarness />);
+		expect(screen.getByRole("columnheader", { name: "Actions" })).toBeInTheDocument();
+	});
+
+	test("stamps the sticky-right attribute that Table.Root's scroll container selects on", () => {
+		// Cross-file spelling pin: the `has-data-mantle-table-sticky-right:` selector in
+		// Table.Root must match the attribute ActionHeader stamps, or the right-side
+		// fade stays on under the pinned column with every test green.
+		render(<ActionHeaderHarness rows={data} />);
+		expect(screen.getByRole("columnheader", { name: "Actions" })).toHaveAttribute(
+			"data-mantle-table-sticky-right",
+		);
+		const scroller = screen.getByRole("table").parentElement;
+		expect(scroller?.className).toContain("has-data-mantle-table-sticky-right:");
+	});
+
 	test("keeps rendering when the first page of rows arrives on a browser-translated page", () => {
 		const { rerender } = render(<ActionHeaderHarness rows={[]} />);
 		const header = screen.getByRole("columnheader", { name: "Actions" });
@@ -592,5 +677,45 @@ describe("expandedRowId encoding", () => {
 		expect(ariaControls).not.toContain(" ");
 		// …and the panel cell carries the exact same id, so the association resolves.
 		expect(document.getElementById(ariaControls)).toBeInTheDocument();
+	});
+});
+
+describe("DataTable.EmptyRow", () => {
+	test("spans the visible leaf columns only, not hidden ones", () => {
+		const columns = [
+			columnHelper.accessor("id", {
+				id: "id",
+				header: () => <DataTable.Header>ID</DataTable.Header>,
+				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+			}),
+			columnHelper.accessor("name", {
+				id: "name",
+				header: () => <DataTable.Header>Name</DataTable.Header>,
+				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+			}),
+			columnHelper.display({
+				id: "actions",
+				header: () => <DataTable.ActionHeader />,
+				cell: () => <DataTable.ActionCell>Edit</DataTable.ActionCell>,
+			}),
+		];
+		function EmptyHarness() {
+			const table = useReactTable({
+				data: [],
+				columns,
+				state: { columnVisibility: { name: false } },
+				getCoreRowModel: getCoreRowModel(),
+			});
+			return (
+				<DataTable.Root table={table}>
+					<DataTable.Head />
+					<DataTable.Body>
+						<DataTable.EmptyRow>No results.</DataTable.EmptyRow>
+					</DataTable.Body>
+				</DataTable.Root>
+			);
+		}
+		render(<EmptyHarness />);
+		expect(screen.getByRole("cell", { name: "No results." })).toHaveAttribute("colspan", "2");
 	});
 });

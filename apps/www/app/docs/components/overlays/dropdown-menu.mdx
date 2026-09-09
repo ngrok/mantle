@@ -267,11 +267,11 @@ All props from Radix [DropdownMenu.Content](https://www.radix-ui.com/primitives/
 
 A standard item in the dropdown menu that can be selected or activated.
 
-| Prop        | Type         | Default | Description                                                            |
-| :---------- | :----------- | :------ | :--------------------------------------------------------------------- |
-| `inset?`    | `boolean`    |         | When `true`, adds left padding to align with items that have icons.    |
-| `disabled?` | `boolean`    |         | When `true`, prevents the user from interacting with the item.         |
-| `onSelect?` | `() => void` |         | Event handler called when the user selects an item (via mouse or key). |
+| Prop        | Type                     | Default | Description                                                                                                                 |
+| :---------- | :----------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------- |
+| `inset?`    | `boolean`                |         | When `true`, adds left padding to align with items that have icons.                                                         |
+| `disabled?` | `boolean`                |         | When `true`, prevents the user from interacting with the item.                                                              |
+| `onSelect?` | `(event: Event) => void` |         | Event handler called when the user selects an item (via mouse or key). Call `event.preventDefault()` to keep the menu open. |
 
 ### DropdownMenu.CheckboxItem
 
@@ -323,7 +323,7 @@ A visual separator for dividing sections within the dropdown menu. All props fro
 
 ### DropdownMenu.Shortcut
 
-A keyboard shortcut indicator for dropdown menu items. All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/span#attributes).
+A keyboard shortcut indicator for dropdown menu items. It locks `translate="no"`, because a translated key name names the wrong key. All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/span#attributes) except `translate`.
 
 ### DropdownMenu.Sub
 
@@ -337,7 +337,7 @@ A submenu container for creating nested dropdown menus. Accepts all props from R
 
 ### DropdownMenu.SubTrigger
 
-The trigger item that opens a submenu when hovered or focused.
+A trigger for a dropdown menu sub-menu. It opens the submenu on hover, or on ArrowRight or Enter.
 
 | Prop     | Type      | Default | Description                                                         |
 | :------- | :-------- | :------ | :------------------------------------------------------------------ |

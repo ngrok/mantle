@@ -20,7 +20,7 @@ describe("SkipToMainLink", () => {
 		expect(link).toHaveAttribute("href", "#content");
 	});
 
-	test("on click, focuses the target element without scrolling", async () => {
+	test("on click, focuses the target element and lets the browser scroll it into view", async () => {
 		const user = userEvent.setup();
 		render(
 			<>
@@ -35,7 +35,10 @@ describe("SkipToMainLink", () => {
 
 		await user.click(screen.getByRole("link", { name: "Skip to main content" }));
 
-		expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
+		// Why no options: `preventScroll` would leave an off-screen target focused
+		// but out of view.
+		expect(focusSpy).toHaveBeenCalledTimes(1);
+		expect(focusSpy).toHaveBeenCalledWith();
 		expect(main).toHaveFocus();
 	});
 
@@ -58,9 +61,6 @@ describe("SkipToMainLink", () => {
 		expect(replaceStateSpy).toHaveBeenCalledWith(null, "", "#main");
 		expect(pushStateSpy).not.toHaveBeenCalled();
 		expect(window.location.hash).toBe("#main");
-
-		replaceStateSpy.mockRestore();
-		pushStateSpy.mockRestore();
 	});
 
 	test("invokes the consumer `onClick` after performing the core behavior", async () => {

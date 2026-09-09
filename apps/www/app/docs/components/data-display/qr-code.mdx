@@ -202,6 +202,20 @@ import { QrCode } from "@ngrok/mantle/qr-code";
 </QrCode.Root>;
 ```
 
+## Accessibility
+
+`QrCode.Frame` is the image a screen reader meets. It always carries `role="img"`. Pass an `aria-label` (or `aria-labelledby`) that says what the code encodes, so the reader knows what a scan does. When neither is set, the name falls back to "QR code".
+
+```tsx
+<QrCode.Root value="https://ngrok.com">
+	<QrCode.Frame aria-label="QR code for ngrok.com">
+		<QrCode.Pattern />
+	</QrCode.Frame>
+</QrCode.Root>
+```
+
+An `Overlay` logo is decorative: the frame's name already describes the code.
+
 ## API Reference
 
 ### QrCode.Root
@@ -222,14 +236,18 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 ### QrCode.Frame
 
 The `svg` frame that holds the `Pattern`. Defaults to `size-48` and scales the
-pattern to fit via its `viewBox`. Renders an `svg`. Does not support `asChild`.
+pattern to fit via its `viewBox`. Renders an `svg` with `role="img"`. Pass
+`aria-label` or `aria-labelledby` to name it; the name falls back to "QR code".
+Does not support `asChild`.
 
-Accepts all props from [svg](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/svg#attributes).
+Accepts all props from [svg](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/svg#attributes) except `role`.
 
 ### QrCode.Pattern
 
-The encoded modules, rendered as a single `path` inside the `Frame`. Always
-filled black. Renders a `path`. Does not support `asChild`.
+The encoded modules, rendered as a single `path` inside the `Frame`. Defaults
+to a black fill; a `className` can override it, but a light or inverted fill
+makes the code unreliable for many scanners. Renders a `path`. Does not
+support `asChild`.
 
 Accepts all props from [path](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path#attributes).
 
@@ -243,3 +261,12 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | Prop       | Type      | Default | Description                                       |
 | ---------- | --------- | ------- | ------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |
+
+### Data attributes
+
+| Data Attribute | Value               | Description                   |
+| -------------- | ------------------- | ----------------------------- |
+| `data-slot`    | `"qr-code"`         | The `Root` tile.              |
+| `data-slot`    | `"qr-code-frame"`   | The `Frame` svg.              |
+| `data-slot`    | `"qr-code-pattern"` | The `Pattern` path.           |
+| `data-slot`    | `"qr-code-overlay"` | The `Overlay` logo container. |

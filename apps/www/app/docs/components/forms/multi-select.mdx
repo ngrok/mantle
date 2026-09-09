@@ -35,29 +35,34 @@ export function BasicDemo() {
 	const matches = useMemo(() => matchSorter(fruits, searchValue), [searchValue]);
 
     return (
-    	<MultiSelect.Root
-    		setOpen={() => {
-    			setSearchValue("");
-    		}}
-    	>
-    		<MultiSelect.Trigger className="max-w-96">
-    			<MultiSelect.TagValues />
-    			<MultiSelect.Input
-    				onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    				placeholder="Select fruits..."
-    			/>
-    		</MultiSelect.Trigger>
-    		<MultiSelect.Content aria-busy={isPending}>
-    			{matches.map((value) => (
-    				<MultiSelect.Item key={value} value={value}>
-    					{value}
-    				</MultiSelect.Item>
-    			))}
-    			{matches.length === 0 && (
-    				<MultiSelect.Empty>No results found</MultiSelect.Empty>
-    			)}
-    		</MultiSelect.Content>
-    	</MultiSelect.Root>
+    	<Field.Item name="fruits" className="max-w-96">
+    		<Field.Label>Fruits</Field.Label>
+    		<Field.Control>
+    			<MultiSelect.Root
+    				setOpen={() => {
+    					setSearchValue("");
+    				}}
+    			>
+    				<MultiSelect.Trigger>
+    					<MultiSelect.TagValues />
+    					<MultiSelect.Input
+    						onValueChange={(value) => startTransition(() => setSearchValue(value))}
+    						placeholder="Select fruits..."
+    					/>
+    				</MultiSelect.Trigger>
+    				<MultiSelect.Content aria-busy={isPending}>
+    					{matches.map((value) => (
+    						<MultiSelect.Item key={value} value={value}>
+    							{value}
+    						</MultiSelect.Item>
+    					))}
+    					{matches.length === 0 && (
+    						<MultiSelect.Empty>No results found</MultiSelect.Empty>
+    					)}
+    				</MultiSelect.Content>
+    			</MultiSelect.Root>
+    		</Field.Control>
+    	</Field.Item>
     );
 
 }
@@ -71,47 +76,52 @@ export function GroupedDemo() {
 	const filteredVeggies = useMemo(() => matchSorter(veggieList, searchValue), [searchValue]);
 
     return (
-    	<MultiSelect.Root
-    		setOpen={() => {
-    			setSearchValue("");
-    		}}
-    	>
-    		<MultiSelect.Trigger className="max-w-96">
-    			<MultiSelect.TagValues />
-    			<MultiSelect.Input
-    				onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    				placeholder="Select items..."
-    			/>
-    		</MultiSelect.Trigger>
-    		<MultiSelect.Content aria-busy={isPending}>
-    			{filteredFruits.length > 0 && (
-    				<MultiSelect.Group>
-    					<MultiSelect.GroupLabel>Fruits</MultiSelect.GroupLabel>
-    					{filteredFruits.map((value) => (
-    						<MultiSelect.Item key={value} value={value}>
-    							{value}
-    						</MultiSelect.Item>
-    					))}
-    				</MultiSelect.Group>
-    			)}
-    			{filteredFruits.length > 0 && filteredVeggies.length > 0 && (
-    				<MultiSelect.Separator />
-    			)}
-    			{filteredVeggies.length > 0 && (
-    				<MultiSelect.Group>
-    					<MultiSelect.GroupLabel>Vegetables</MultiSelect.GroupLabel>
-    					{filteredVeggies.map((value) => (
-    						<MultiSelect.Item key={value} value={value}>
-    							{value}
-    						</MultiSelect.Item>
-    					))}
-    				</MultiSelect.Group>
-    			)}
-    			{filteredFruits.length === 0 && filteredVeggies.length === 0 && (
-    				<MultiSelect.Empty>No results found</MultiSelect.Empty>
-    			)}
-    		</MultiSelect.Content>
-    	</MultiSelect.Root>
+    	<Field.Item name="produce" className="max-w-96">
+    		<Field.Label>Produce</Field.Label>
+    		<Field.Control>
+    			<MultiSelect.Root
+    				setOpen={() => {
+    					setSearchValue("");
+    				}}
+    			>
+    				<MultiSelect.Trigger>
+    					<MultiSelect.TagValues />
+    					<MultiSelect.Input
+    						onValueChange={(value) => startTransition(() => setSearchValue(value))}
+    						placeholder="Select items..."
+    					/>
+    				</MultiSelect.Trigger>
+    				<MultiSelect.Content aria-busy={isPending}>
+    					{filteredFruits.length > 0 && (
+    						<MultiSelect.Group>
+    							<MultiSelect.GroupLabel>Fruits</MultiSelect.GroupLabel>
+    							{filteredFruits.map((value) => (
+    								<MultiSelect.Item key={value} value={value}>
+    									{value}
+    								</MultiSelect.Item>
+    							))}
+    						</MultiSelect.Group>
+    					)}
+    					{filteredFruits.length > 0 && filteredVeggies.length > 0 && (
+    						<MultiSelect.Separator />
+    					)}
+    					{filteredVeggies.length > 0 && (
+    						<MultiSelect.Group>
+    							<MultiSelect.GroupLabel>Vegetables</MultiSelect.GroupLabel>
+    							{filteredVeggies.map((value) => (
+    								<MultiSelect.Item key={value} value={value}>
+    									{value}
+    								</MultiSelect.Item>
+    							))}
+    						</MultiSelect.Group>
+    					)}
+    					{filteredFruits.length === 0 && filteredVeggies.length === 0 && (
+    						<MultiSelect.Empty>No results found</MultiSelect.Empty>
+    					)}
+    				</MultiSelect.Content>
+    			</MultiSelect.Root>
+    		</Field.Control>
+    	</Field.Item>
     );
 
 }
@@ -123,31 +133,36 @@ export function ControlledDemo() {
 	const matches = useMemo(() => matchSorter(fruits, searchValue), [searchValue]);
 
     return (
-    	<MultiSelect.Root
-    		selectedValue={selected}
-    		setOpen={() => {
-    			setSearchValue("");
-    		}}
-    		setSelectedValue={setSelected}
-    	>
-    		<MultiSelect.Trigger className="max-w-96">
-    			<MultiSelect.TagValues />
-    			<MultiSelect.Input
-    				onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    				placeholder="Select fruits..."
-    			/>
-    		</MultiSelect.Trigger>
-    		<MultiSelect.Content aria-busy={isPending}>
-    			{matches.map((value) => (
-    				<MultiSelect.Item key={value} value={value}>
-    					{value}
-    				</MultiSelect.Item>
-    			))}
-    			{matches.length === 0 && (
-    				<MultiSelect.Empty>No results found</MultiSelect.Empty>
-    			)}
-    		</MultiSelect.Content>
-    	</MultiSelect.Root>
+    	<Field.Item name="fruits-controlled" className="max-w-96">
+    		<Field.Label>Fruits</Field.Label>
+    		<Field.Control>
+    			<MultiSelect.Root
+    				selectedValue={selected}
+    				setOpen={() => {
+    					setSearchValue("");
+    				}}
+    				setSelectedValue={setSelected}
+    			>
+    				<MultiSelect.Trigger>
+    					<MultiSelect.TagValues />
+    					<MultiSelect.Input
+    						onValueChange={(value) => startTransition(() => setSearchValue(value))}
+    						placeholder="Select fruits..."
+    					/>
+    				</MultiSelect.Trigger>
+    				<MultiSelect.Content aria-busy={isPending}>
+    					{matches.map((value) => (
+    						<MultiSelect.Item key={value} value={value}>
+    							{value}
+    						</MultiSelect.Item>
+    					))}
+    					{matches.length === 0 && (
+    						<MultiSelect.Empty>No results found</MultiSelect.Empty>
+    					)}
+    				</MultiSelect.Content>
+    			</MultiSelect.Root>
+    		</Field.Control>
+    	</Field.Item>
     );
 
 }
@@ -163,42 +178,47 @@ export function CreatableDemo() {
 		!options.some((o) => o.toLowerCase() === searchValue.trim().toLowerCase());
 
     return (
-    	<MultiSelect.Root
-    		selectedValue={selected}
-    		setOpen={() => {
-    			setSearchValue("");
-    		}}
-    		setSelectedValue={(values) => {
-    			setSelected(values);
-    			startTransition(() => setSearchValue(""));
-    		}}
-    	>
-    		<MultiSelect.Trigger className="max-w-96">
-    			<MultiSelect.TagValues />
-    			<MultiSelect.Input
-    				onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    				placeholder="Select or create fruits..."
-    			/>
-    		</MultiSelect.Trigger>
-    		<MultiSelect.Content aria-busy={isPending}>
-    			{matches.map((value) => (
-    				<MultiSelect.Item key={value} value={value}>
-    					{value}
-    				</MultiSelect.Item>
-    			))}
-    			{showCreate && (
-    				<MultiSelect.Item
-    					value={searchValue.trim()}
-    					onClick={() => setOptions((prev) => [...prev, searchValue.trim()])}
-    				>
-    					Create "{searchValue.trim()}"
-    				</MultiSelect.Item>
-    			)}
-    			{matches.length === 0 && !showCreate && (
-    				<MultiSelect.Empty>No results found</MultiSelect.Empty>
-    			)}
-    		</MultiSelect.Content>
-    	</MultiSelect.Root>
+    	<Field.Item name="fruits-creatable" className="max-w-96">
+    		<Field.Label>Fruits</Field.Label>
+    		<Field.Control>
+    			<MultiSelect.Root
+    				selectedValue={selected}
+    				setOpen={() => {
+    					setSearchValue("");
+    				}}
+    				setSelectedValue={(values) => {
+    					setSelected(values);
+    					startTransition(() => setSearchValue(""));
+    				}}
+    			>
+    				<MultiSelect.Trigger>
+    					<MultiSelect.TagValues />
+    					<MultiSelect.Input
+    						onValueChange={(value) => startTransition(() => setSearchValue(value))}
+    						placeholder="Select or create fruits..."
+    					/>
+    				</MultiSelect.Trigger>
+    				<MultiSelect.Content aria-busy={isPending}>
+    					{matches.map((value) => (
+    						<MultiSelect.Item key={value} value={value}>
+    							{value}
+    						</MultiSelect.Item>
+    					))}
+    					{showCreate && (
+    						<MultiSelect.Item
+    							value={searchValue.trim()}
+    							onClick={() => setOptions((prev) => [...prev, searchValue.trim()])}
+    						>
+    							Create "{searchValue.trim()}"
+    						</MultiSelect.Item>
+    					)}
+    					{matches.length === 0 && !showCreate && (
+    						<MultiSelect.Empty>No results found</MultiSelect.Empty>
+    					)}
+    				</MultiSelect.Content>
+    			</MultiSelect.Root>
+    		</Field.Control>
+    	</Field.Item>
     );
 
 }
@@ -216,29 +236,34 @@ export function LockedValuesDemo() {
 	);
 
     return (
-    	<MultiSelect.Root
-    		selectedValue={selected}
-    		setOpen={() => {
-    			setSearchValue("");
-    		}}
-    		setSelectedValue={setSelected}
-    	>
-    		<MultiSelect.Trigger className="max-w-96">
-    			<MultiSelect.TagValues lockedValues={["apple", "cherry"]} />
-    			<MultiSelect.Input
-    				onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    				placeholder="Select fruits..."
-    			/>
-    		</MultiSelect.Trigger>
-    		<MultiSelect.Content aria-busy={isPending}>
-    			{matches.map((value) => (
-    				<MultiSelect.Item key={value} value={value}>
-    					{value}
-    				</MultiSelect.Item>
-    			))}
-    			{matches.length === 0 && <MultiSelect.Empty>No results found</MultiSelect.Empty>}
-    		</MultiSelect.Content>
-    	</MultiSelect.Root>
+    	<Field.Item name="fruits-locked" className="max-w-96">
+    		<Field.Label>Fruits</Field.Label>
+    		<Field.Control>
+    			<MultiSelect.Root
+    				selectedValue={selected}
+    				setOpen={() => {
+    					setSearchValue("");
+    				}}
+    				setSelectedValue={setSelected}
+    			>
+    				<MultiSelect.Trigger>
+    					<MultiSelect.TagValues lockedValues={["apple", "cherry"]} />
+    					<MultiSelect.Input
+    						onValueChange={(value) => startTransition(() => setSearchValue(value))}
+    						placeholder="Select fruits..."
+    					/>
+    				</MultiSelect.Trigger>
+    				<MultiSelect.Content aria-busy={isPending}>
+    					{matches.map((value) => (
+    						<MultiSelect.Item key={value} value={value}>
+    							{value}
+    						</MultiSelect.Item>
+    					))}
+    					{matches.length === 0 && <MultiSelect.Empty>No results found</MultiSelect.Empty>}
+    				</MultiSelect.Content>
+    			</MultiSelect.Root>
+    		</Field.Control>
+    	</Field.Item>
     );
 
 }
@@ -250,66 +275,81 @@ export function ValidationDemo() {
 
     return (
     	<div className="flex w-full max-w-96 flex-col gap-4">
-    		<MultiSelect.Root
-    			setOpen={() => {
-    				setSearchValue("");
-    			}}
-    		>
-    			<MultiSelect.Trigger validation="error">
-    				<MultiSelect.TagValues />
-    				<MultiSelect.Input
-    					onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    					placeholder="Error state..."
-    				/>
-    			</MultiSelect.Trigger>
-    			<MultiSelect.Content aria-busy={isPending}>
-    				{matches.map((value) => (
-    					<MultiSelect.Item key={value} value={value}>
-    						{value}
-    					</MultiSelect.Item>
-    				))}
-    			</MultiSelect.Content>
-    		</MultiSelect.Root>
-    		<MultiSelect.Root
-    			setOpen={() => {
-    				setSearchValue("");
-    			}}
-    		>
-    			<MultiSelect.Trigger validation="success">
-    				<MultiSelect.TagValues />
-    				<MultiSelect.Input
-    					onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    					placeholder="Success state..."
-    				/>
-    			</MultiSelect.Trigger>
-    			<MultiSelect.Content aria-busy={isPending}>
-    				{matches.map((value) => (
-    					<MultiSelect.Item key={value} value={value}>
-    						{value}
-    					</MultiSelect.Item>
-    				))}
-    			</MultiSelect.Content>
-    		</MultiSelect.Root>
-    		<MultiSelect.Root
-    			setOpen={() => {
-    				setSearchValue("");
-    			}}
-    		>
-    			<MultiSelect.Trigger validation="warning">
-    				<MultiSelect.TagValues />
-    				<MultiSelect.Input
-    					onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    					placeholder="Warning state..."
-    				/>
-    			</MultiSelect.Trigger>
-    			<MultiSelect.Content aria-busy={isPending}>
-    				{matches.map((value) => (
-    					<MultiSelect.Item key={value} value={value}>
-    						{value}
-    					</MultiSelect.Item>
-    				))}
-    			</MultiSelect.Content>
-    		</MultiSelect.Root>
+    		<Field.Item name="fruits-error">
+    			<Field.Label>Fruits (error)</Field.Label>
+    			<Field.Control>
+    				<MultiSelect.Root
+    					setOpen={() => {
+    						setSearchValue("");
+    					}}
+    				>
+    					<MultiSelect.Trigger validation="error">
+    						<MultiSelect.TagValues />
+    						<MultiSelect.Input
+    							onValueChange={(value) => startTransition(() => setSearchValue(value))}
+    							placeholder="Error state..."
+    						/>
+    					</MultiSelect.Trigger>
+    					<MultiSelect.Content aria-busy={isPending}>
+    						{matches.map((value) => (
+    							<MultiSelect.Item key={value} value={value}>
+    								{value}
+    							</MultiSelect.Item>
+    						))}
+    					</MultiSelect.Content>
+    				</MultiSelect.Root>
+    			</Field.Control>
+    		</Field.Item>
+    		<Field.Item name="fruits-success">
+    			<Field.Label>Fruits (success)</Field.Label>
+    			<Field.Control>
+    				<MultiSelect.Root
+    					setOpen={() => {
+    						setSearchValue("");
+    					}}
+    				>
+    					<MultiSelect.Trigger validation="success">
+    						<MultiSelect.TagValues />
+    						<MultiSelect.Input
+    							onValueChange={(value) => startTransition(() => setSearchValue(value))}
+    							placeholder="Success state..."
+    						/>
+    					</MultiSelect.Trigger>
+    					<MultiSelect.Content aria-busy={isPending}>
+    						{matches.map((value) => (
+    							<MultiSelect.Item key={value} value={value}>
+    								{value}
+    							</MultiSelect.Item>
+    						))}
+    					</MultiSelect.Content>
+    				</MultiSelect.Root>
+    			</Field.Control>
+    		</Field.Item>
+    		<Field.Item name="fruits-warning">
+    			<Field.Label>Fruits (warning)</Field.Label>
+    			<Field.Control>
+    				<MultiSelect.Root
+    					setOpen={() => {
+    						setSearchValue("");
+    					}}
+    				>
+    					<MultiSelect.Trigger validation="warning">
+    						<MultiSelect.TagValues />
+    						<MultiSelect.Input
+    							onValueChange={(value) => startTransition(() => setSearchValue(value))}
+    							placeholder="Warning state..."
+    						/>
+    					</MultiSelect.Trigger>
+    					<MultiSelect.Content aria-busy={isPending}>
+    						{matches.map((value) => (
+    							<MultiSelect.Item key={value} value={value}>
+    								{value}
+    							</MultiSelect.Item>
+    						))}
+    					</MultiSelect.Content>
+    				</MultiSelect.Root>
+    			</Field.Control>
+    		</Field.Item>
     	</div>
     );
 
@@ -934,6 +974,7 @@ A real-world example with three groups (regional aliases, PoPs, dedicated IPs), 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
 import { Button } from "@ngrok/mantle/button";
+import { Field } from "@ngrok/mantle/field";
 import { MultiSelect } from "@ngrok/mantle/multi-select";
 import { matchSorter } from "match-sorter";
 import { useMemo, useState, useTransition } from "react";
@@ -980,104 +1021,106 @@ function Example() {
 	);
 
 	return (
-		<div className="flex w-full max-w-lg flex-col gap-1.5">
-			<p className="text-strong text-sm font-medium">Resolves to</p>
-			<MultiSelect.Root
-				selectedValue={selected}
-				setOpen={() => {
-					setSearchValue("");
-				}}
-				setSelectedValue={setSelected}
-			>
-				<MultiSelect.Trigger>
-					<MultiSelect.TagValues />
-					<MultiSelect.Input
-						onValueChange={(value) => startTransition(() => setSearchValue(value))}
-						placeholder="Select regions..."
-					/>
-					{/* Input is flex-1 so this sibling is pushed to the right */}
-					<Anchor className="shrink-0 whitespace-nowrap text-xs" href="#">
-						Requires Upgrade
-					</Anchor>
-				</MultiSelect.Trigger>
-				<MultiSelect.Content aria-busy={isPending}>
-					{filteredAliases.length > 0 && (
-						<MultiSelect.Group>
-							<MultiSelect.GroupLabel>Regional Aliases</MultiSelect.GroupLabel>
-							<MultiSelect.GroupDescription>
-								Include all points of presence that are geographically within the region.
-							</MultiSelect.GroupDescription>
-							{filteredAliases.map(({ value, popCount }) => (
-								<MultiSelect.Item key={value} value={value}>
-									<span className="flex min-w-0 flex-1 items-center justify-between gap-2">
-										<span className="font-mono">{value}</span>
-										<span className="text-muted font-sans text-xs font-normal">{popCount}</span>
-									</span>
-								</MultiSelect.Item>
-							))}
-						</MultiSelect.Group>
-					)}
-					{filteredAliases.length > 0 && filteredPops.length > 0 && <MultiSelect.Separator />}
-					{filteredPops.length > 0 && (
-						<MultiSelect.Group>
-							<MultiSelect.GroupLabel>Points of presence</MultiSelect.GroupLabel>
-							<MultiSelect.GroupDescription>
-								If you've included a region, you cannot include PoPs that are within it.
-							</MultiSelect.GroupDescription>
-							{filteredPops.map(({ value, location }) => (
-								<MultiSelect.Item key={value} value={value} disabled>
-									<span className="flex min-w-0 flex-1 items-center justify-between gap-2">
-										<span className="font-mono">{value}</span>
-										<span className="text-muted font-sans text-xs font-normal">{location}</span>
-									</span>
-								</MultiSelect.Item>
-							))}
-						</MultiSelect.Group>
-					)}
-					{(filteredAliases.length > 0 || filteredPops.length > 0) &&
-						filteredDedicatedIPs.length > 0 && <MultiSelect.Separator />}
-					{filteredDedicatedIPs.length > 0 && (
-						<MultiSelect.Group>
-							<MultiSelect.GroupLabel>Dedicated IPs</MultiSelect.GroupLabel>
-							{filteredDedicatedIPs.map(({ ip, description }) => (
-								<MultiSelect.Item key={ip} value={ip} disabled>
-									<span className="flex min-w-0 flex-1 flex-col">
-										<span className="font-mono">{ip}</span>
-										{description && (
-											<span className="text-muted font-sans text-xs font-normal">
-												{description}
-											</span>
-										)}
-									</span>
-								</MultiSelect.Item>
-							))}
-						</MultiSelect.Group>
-					)}
-					{filteredAliases.length === 0 &&
-						filteredPops.length === 0 &&
-						filteredDedicatedIPs.length === 0 && (
-							<MultiSelect.Empty>No results found</MultiSelect.Empty>
+		<Field.Item name="regions" className="max-w-lg">
+			<Field.Label>Resolves to</Field.Label>
+			<Field.Control>
+				<MultiSelect.Root
+					selectedValue={selected}
+					setOpen={() => {
+						setSearchValue("");
+					}}
+					setSelectedValue={setSelected}
+				>
+					<MultiSelect.Trigger>
+						<MultiSelect.TagValues />
+						<MultiSelect.Input
+							onValueChange={(value) => startTransition(() => setSearchValue(value))}
+							placeholder="Select regions..."
+						/>
+						{/* Input is flex-1 so this sibling is pushed to the right */}
+						<Anchor className="shrink-0 whitespace-nowrap text-xs" href="#">
+							Requires Upgrade
+						</Anchor>
+					</MultiSelect.Trigger>
+					<MultiSelect.Content aria-busy={isPending}>
+						{filteredAliases.length > 0 && (
+							<MultiSelect.Group>
+								<MultiSelect.GroupLabel>Regional Aliases</MultiSelect.GroupLabel>
+								<MultiSelect.GroupDescription>
+									Include all points of presence that are geographically within the region.
+								</MultiSelect.GroupDescription>
+								{filteredAliases.map(({ value, popCount }) => (
+									<MultiSelect.Item key={value} value={value}>
+										<span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+											<span className="font-mono">{value}</span>
+											<span className="text-muted font-sans text-xs font-normal">{popCount}</span>
+										</span>
+									</MultiSelect.Item>
+								))}
+							</MultiSelect.Group>
 						)}
-					<MultiSelect.ContentFooter>
-						<div className="flex items-center justify-between gap-3 bg-accent-600/10 px-3 py-3">
-							<p className="text-accent-600 text-sm font-medium">
-								Upgrade your plan to specify regions, PoPs, and dedicated IPs.
-							</p>
-							<Button appearance="filled" intent="neutral" className="shrink-0" asChild>
-								<Link
-									to={{
-										pathname: href("/billing/choose-a-plan"),
-										search: "?plan=paygo",
-									}}
-								>
-									Upgrade to Pay-as-you-go
-								</Link>
-							</Button>
-						</div>
-					</MultiSelect.ContentFooter>
-				</MultiSelect.Content>
-			</MultiSelect.Root>
-		</div>
+						{filteredAliases.length > 0 && filteredPops.length > 0 && <MultiSelect.Separator />}
+						{filteredPops.length > 0 && (
+							<MultiSelect.Group>
+								<MultiSelect.GroupLabel>Points of presence</MultiSelect.GroupLabel>
+								<MultiSelect.GroupDescription>
+									If you've included a region, you cannot include PoPs that are within it.
+								</MultiSelect.GroupDescription>
+								{filteredPops.map(({ value, location }) => (
+									<MultiSelect.Item key={value} value={value} disabled>
+										<span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+											<span className="font-mono">{value}</span>
+											<span className="text-muted font-sans text-xs font-normal">{location}</span>
+										</span>
+									</MultiSelect.Item>
+								))}
+							</MultiSelect.Group>
+						)}
+						{(filteredAliases.length > 0 || filteredPops.length > 0) &&
+							filteredDedicatedIPs.length > 0 && <MultiSelect.Separator />}
+						{filteredDedicatedIPs.length > 0 && (
+							<MultiSelect.Group>
+								<MultiSelect.GroupLabel>Dedicated IPs</MultiSelect.GroupLabel>
+								{filteredDedicatedIPs.map(({ ip, description }) => (
+									<MultiSelect.Item key={ip} value={ip} disabled>
+										<span className="flex min-w-0 flex-1 flex-col">
+											<span className="font-mono">{ip}</span>
+											{description && (
+												<span className="text-muted font-sans text-xs font-normal">
+													{description}
+												</span>
+											)}
+										</span>
+									</MultiSelect.Item>
+								))}
+							</MultiSelect.Group>
+						)}
+						{filteredAliases.length === 0 &&
+							filteredPops.length === 0 &&
+							filteredDedicatedIPs.length === 0 && (
+								<MultiSelect.Empty>No results found</MultiSelect.Empty>
+							)}
+						<MultiSelect.ContentFooter>
+							<div className="flex items-center justify-between gap-3 bg-accent-600/10 px-3 py-3">
+								<p className="text-accent-600 text-sm font-medium">
+									Upgrade your plan to specify regions, PoPs, and dedicated IPs.
+								</p>
+								<Button appearance="filled" intent="neutral" className="shrink-0" asChild>
+									<Link
+										to={{
+											pathname: href("/billing/choose-a-plan"),
+											search: "?plan=paygo",
+										}}
+									>
+										Upgrade to Pay-as-you-go
+									</Link>
+								</Button>
+							</div>
+						</MultiSelect.ContentFooter>
+					</MultiSelect.Content>
+				</MultiSelect.Root>
+			</Field.Control>
+		</Field.Item>
 	);
 }
 ```
@@ -1132,7 +1175,7 @@ All props from ariakit [ComboboxProvider](https://ariakit.org/reference/combobox
 
 ### MultiSelect.Trigger
 
-The trigger container for the multi-select. Wraps the input and selected value tags in a styled container that looks like a form input.
+The trigger container for the multi-select. Wraps the input and selected value tags in a styled container that looks like a form input. It is `role="presentation"`: the `MultiSelect.Input` combobox and the `MultiSelect.TagValues` list carry the semantics, and the input's label (`Field.Label` or `aria-label`) names the whole control. Give the input a label: the `placeholder` disappears after the first selection, so it cannot be the only name.
 
 | Prop          | Type                                                                                               | Default | Description                                           |
 | :------------ | :------------------------------------------------------------------------------------------------- | :------ | :---------------------------------------------------- |
@@ -1142,10 +1185,13 @@ The trigger container for the multi-select. Wraps the input and selected value t
 
 Renders the selected values as removable tags. Place this inside `MultiSelect.Trigger`, followed by `MultiSelect.Input`.
 
-| Prop            | Type                                         | Default | Description                                                                                                                                    |
-| :-------------- | :------------------------------------------- | :------ | :--------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lockedValues?` | `string[]`                                   | `[]`    | Values that cannot be removed. Locked tags show a lock icon, shake on Backspace/Delete, and shake when Backspace is pressed on an empty input. |
-| `children?`     | `(props: TagRenderProps) => React.ReactNode` |         | Render function for each tag. Receives `{ value, onRemove, locked, ref }` — spread onto `Tag` for full keyboard-nav support.                   |
+The tags render inside a `role="list"` named "Selected values" (override it with `aria-label`), and each default tag is a `role="listitem"`. The list uses `display: contents`, so the tags keep the trigger's flex layout. A custom tag from the `children` render function must be a `role="listitem"` too.
+
+| Prop            | Type                                         | Default             | Description                                                                                                                                      |
+| :-------------- | :------------------------------------------- | :------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `aria-label?`   | `string`                                     | `"Selected values"` | The accessible name of the tag list.                                                                                                             |
+| `lockedValues?` | `string[]`                                   | `[]`                | Values that cannot be removed. Locked tags show a lock icon, shake on Backspace/Delete, and shake when Backspace is pressed on an empty input.   |
+| `children?`     | `(props: TagRenderProps) => React.ReactNode` |                     | Render function for each tag. Receives `{ value, onRemove, locked, ref, onKeyDown, onClick }` — spread onto `Tag` for full keyboard-nav support. |
 
 `TagRenderProps`:
 
@@ -1172,17 +1218,24 @@ All props from ariakit [Combobox](https://ariakit.org/reference/combobox). Key p
 
 ### MultiSelect.Tag
 
-The default tag component rendered inside `MultiSelect.TagValues` for each selected value. Displays the value label with a remove button and full keyboard navigation support.
+The default tag component rendered inside `MultiSelect.TagValues` for each selected value. Displays the value label with a remove button. Renders a `role="listitem"` inside the `role="list"` that `MultiSelect.TagValues` renders, and marks itself `data-active` while it has focus.
+
+Arrow-key navigation and Backspace/Delete removal come from the `MultiSelect.TagValues` render props; spread them onto the tag to get them. On its own, `Tag` only blocks Backspace and Delete on a locked tag.
 
 Use this when building a custom `TagValues`-like component and you want the default tag chrome with consistent styling.
 
 Also accepts all standard `span` element props (except `children`). The `onKeyDown` prop is supported and is called after the internal locked-key handling.
 
-| Prop        | Type         | Default | Description                                                                                                               |
-| :---------- | :----------- | :------ | :------------------------------------------------------------------------------------------------------------------------ |
-| `value`     | `string`     |         | The value to display in the tag label.                                                                                    |
-| `onRemove?` | `() => void` |         | Called when the remove button is clicked. Defaults to removing the value via context when inside `MultiSelect.TagValues`. |
-| `locked?`   | `boolean`    | `false` | When true, shows a lock icon, disables the remove button, and shakes on Delete/Backspace key presses.                     |
+| Prop        | Type         | Default | Description                                                                                                                                      |
+| :---------- | :----------- | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`     | `string`     |         | The value to display in the tag label.                                                                                                           |
+| `onRemove?` | `() => void` |         | Called when the remove button is clicked. `MultiSelect.TagValues` passes one through its render props that removes the value from the selection. |
+| `locked?`   | `boolean`    | `false` | When true, shows a lock icon, disables the remove button, and shakes on Delete/Backspace key presses.                                            |
+
+| Data Attribute | Value                 | Description                             |
+| :------------- | :-------------------- | :-------------------------------------- |
+| `data-active`  | present while focused | The tag that keyboard navigation is on. |
+| `data-locked`  | present when `locked` | The tag cannot be removed.              |
 
 ### MultiSelect.Content
 
@@ -1192,13 +1245,13 @@ Renders a popover that contains multi-select content.
 
 All props from ariakit [ComboboxPopover](https://ariakit.org/reference/combobox-popover), plus:
 
-| Prop             | Type      | Default | Description                                                                                                              |
-| :--------------- | :-------- | :------ | :----------------------------------------------------------------------------------------------------------------------- |
-| `asChild?`       | `boolean` | `false` | Compose onto an alternative element type or your own React component.                                                    |
-| `backdrop?`      | `boolean` | `false` | Whether to render a backdrop behind the popover.                                                                         |
-| `modal?`         | `boolean` | `true`  | Enables a focus trap when the content is open. Tab stays inside the content, Escape and click outside close the popover. |
-| `sameWidth?`     | `boolean` | `true`  | Whether the popover should be the same width as the trigger.                                                             |
-| `unmountOnHide?` | `boolean` | `true`  | Whether the popover should unmount when hidden.                                                                          |
+| Prop             | Type      | Default | Description                                                                                                                 |
+| :--------------- | :-------- | :------ | :-------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?`       | `boolean` | `false` | Compose onto an alternative element type or your own React component.                                                       |
+| `backdrop?`      | `boolean` | `false` | Whether to render a backdrop behind the popover.                                                                            |
+| `modal?`         | `boolean` | `true`  | Renders the popover as a modal layer: Escape and a click outside close it. Focus stays on the input, so Tab is not trapped. |
+| `sameWidth?`     | `boolean` | `true`  | Whether the popover should be the same width as the trigger.                                                                |
+| `unmountOnHide?` | `boolean` | `true`  | Whether the popover should unmount when hidden.                                                                             |
 
 ### MultiSelect.Item
 

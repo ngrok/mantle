@@ -61,7 +61,7 @@ A container that overlays the current view from the edge of the screen. It is a 
 
 ## When to use
 
-Use `Sheet` for side-panel content that slides in from any edge — filter panels, detail/inspector views, navigation drawers, mobile menus. For a centered modal, use [`Dialog`](/components/overlays/dialog) or [`AlertDialog`](/components/overlays/alert-dialog) (for destructive confirmations).
+Use `Sheet` for side-panel content that slides in from the left or right edge: filter panels, detail/inspector views, navigation drawers, mobile menus. For a centered modal, use [`Dialog`](/components/overlays/dialog) or [`AlertDialog`](/components/overlays/alert-dialog) (for destructive confirmations).
 
 <Example>
 	<Sheet.Root>
@@ -550,10 +550,10 @@ The main container for a `Sheet`. Should be rendered as a child of the `Sheet` c
 
 All props from Radix [Dialog.Content](https://www.radix-ui.com/primitives/docs/components/dialog#content), plus:
 
-| Prop              | Type                                     | Default              | Description                                                                                                                                                                                                                                                                   |
-| ----------------- | ---------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `preferredWidth?` | `string`                                 | `"sm:max-w-[30rem]"` | The preferred width of the `Sheet.Content` as a tailwind `max-w-` class. By default, a `Sheet`'s content width is responsive with a default _preferred width_: the maximum width of the `Sheet.Content` when the window viewport is larger than the mobile breakpoint (`sm`). |
-| `side?`           | `"top" \| "bottom" \| "left" \| "right"` | `"right"`            | The side of the screen from which the sheet will animate in from.                                                                                                                                                                                                             |
+| Prop              | Type                       | Default              | Description                                                                                                                                                                                                                                                                   |
+| ----------------- | -------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `preferredWidth?` | `` `sm:max-w-${string}` `` | `"sm:max-w-[30rem]"` | The preferred width of the `Sheet.Content` as a tailwind `max-w-` class. By default, a `Sheet`'s content width is responsive with a default _preferred width_: the maximum width of the `Sheet.Content` when the window viewport is larger than the mobile breakpoint (`sm`). |
+| `side?`           | `"left" \| "right"`        | `"right"`            | The side of the screen the sheet slides in from.                                                                                                                                                                                                                              |
 
 ### Sheet.CloseIconButton
 

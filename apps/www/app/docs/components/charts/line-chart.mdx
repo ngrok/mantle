@@ -827,7 +827,7 @@ Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `Li
 
 The `footer` and `children` render props receive a `HoverSnapshot`: the active `index`, `xValue`, the original `datum`, `points` (every series' `dataKey`, `label`, `value`, and `color` at the active x, in registration order), and `viaKeyboard`. `labelFormat` receives the x value directly and `valueFormat` receives `(value, dataKey)` — not the snapshot.
 
-All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded to the tooltip element the `Root` renders), plus:
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) (forwarded to the tooltip element the `Root` renders) except `children`, plus:
 
 | Prop           | Type                                                    | Default  | Description                                                             |
 | -------------- | ------------------------------------------------------- | -------- | ----------------------------------------------------------------------- |
@@ -841,7 +841,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 The legend: series names keyed by swatches carrying each series' color and glyph, rendered as real DOM in flow below the plot. Always compose it on multi-series charts — identity must never rely on color-matching alone. It renders nothing for a single series (the chart's title already names it).
 
-All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) except `children`, plus:
 
 | Prop        | Type                                  | Default | Description                                                                                                                                     |
 | ----------- | ------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -866,6 +866,12 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 | `onCopy?`      | `(value: string) => void`  |                           | Callback fired after a successful copy, passes the serialized markdown.        |
 | `onCopyError?` | `(error: unknown) => void` |                           | Callback fired when an error occurs during copying.                            |
 | `asChild?`     | `boolean`                  | `false`                   | Compose the copy behavior onto your own element instead of the default button. |
+
+While a copy is fresh, an always-mounted `role="status"` element beside the button announces "Copied" to a screen reader.
+
+| Data Attribute | Value                      | Description                  |
+| -------------- | -------------------------- | ---------------------------- |
+| `data-slot`    | `"line-chart-copy-button"` | The button the part renders. |
 
 ### Chart color tokens
 

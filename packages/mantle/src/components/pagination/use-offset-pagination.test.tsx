@@ -16,6 +16,22 @@ describe("useOffsetPagination", () => {
 		expect(result.current.hasPreviousPage).toBe(false);
 	});
 
+	// Regression: `goToLastPage` set `currentPage` to `totalPages`, which is 0 for
+	// an empty list, so the 1-indexed page went to 0 and the offset went negative.
+	test("goToLastPage on an empty list stays on page 1", () => {
+		const { result } = renderHook(() =>
+			useOffsetPagination({
+				listSize: 0,
+				pageSize: 10,
+			}),
+		);
+		act(() => {
+			result.current.goToLastPage();
+		});
+		expect(result.current.currentPage).toBe(1);
+		expect(result.current.offset).toBe(0);
+	});
+
 	test("given a list size of 1", () => {
 		const { result } = renderHook(() =>
 			useOffsetPagination({

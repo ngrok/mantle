@@ -29,10 +29,30 @@ type ToasterProps = WithStyleProps &
 		/**
 		 * Time in milliseconds that should elapse before automatically dismissing toasts.
 		 * When set here, this will be the default duration for all toasts.
+		 * A value `<= 0` or `Number.POSITIVE_INFINITY` keeps toasts open until the user dismisses them.
 		 * @default 4000
 		 */
 		duration_ms?: number;
 	};
+
+/**
+ * Resolves a `duration_ms` option to the value sonner expects. A value `<= 0`
+ * keeps a toast open until the user dismisses it, so it becomes
+ * `Number.POSITIVE_INFINITY`; every other value passes through unchanged.
+ *
+ * @example
+ * ```ts
+ * resolveToastDuration(0); // Number.POSITIVE_INFINITY
+ * resolveToastDuration(5000); // 5000
+ * resolveToastDuration(undefined); // undefined
+ * ```
+ */
+function resolveToastDuration(duration_ms: number | undefined) {
+	if (typeof duration_ms === "number" && duration_ms <= 0) {
+		return Number.POSITIVE_INFINITY;
+	}
+	return duration_ms;
+}
 
 /**
  * A container for displaying all toasts.
@@ -67,7 +87,7 @@ const Toaster = ({
 			className={cx("toaster overlay-prompt pointer-events-auto *:duration-200", className)}
 			containerAriaLabel={containerAriaLabel}
 			dir={dir}
-			duration={duration_ms}
+			duration={resolveToastDuration(duration_ms)}
 			gap={12}
 			position={position ?? "top-center"}
 			style={style}
@@ -124,10 +144,7 @@ type MakeToastOptions = {
  * ```
  */
 function makeToast(children: ReactNode, options?: MakeToastOptions) {
-	let duration = options?.duration_ms;
-	if (typeof duration === "number" && duration <= 0) {
-		duration = Number.POSITIVE_INFINITY;
-	}
+	const duration = resolveToastDuration(options?.duration_ms);
 
 	return ToastPrimitive.toast.custom(
 		(toastId) => <ToastIdContext.Provider value={toastId}>{children}</ToastIdContext.Provider>,
@@ -163,13 +180,16 @@ const ToastStateContext = createContext<ToastState>({
 	intent: "info",
 });
 
-type ToastProps = ComponentProps<"div"> &
-	WithAsChild & {
-		/**
-		 * The intent of the toast: the tone or status that the toast's color communicates.
-		 */
-		intent: ToastIntent;
-	};
+/**
+ * Props for `Toast.Root`. `asChild` is omitted: the root renders the intent
+ * accent bar next to `children`, so a slot would receive two elements and throw.
+ */
+type ToastProps = ComponentProps<"div"> & {
+	/**
+	 * The intent of the toast: the tone or status that the toast's color communicates.
+	 */
+	intent: ToastIntent;
+};
 
 /**
  * A succinct message with an intent that appears temporarily. The intent
@@ -187,13 +207,12 @@ type ToastProps = ComponentProps<"div"> &
  * </Toast.Root>
  * ```
  */
-const Root = ({ asChild, children, className, intent, ref, ...props }: ToastProps) => {
-	const Component = asChild ? Slot : "div";
+const Root = ({ children, className, intent, ref, ...props }: ToastProps) => {
 	const contextValue = useMemo(() => ({ intent }), [intent]);
 
 	return (
 		<ToastStateContext.Provider value={contextValue}>
-			<Component
+			<div
 				data-slot="toast"
 				className={cx(
 					"relative flex items-start gap-2 text-sm font-sans",
@@ -211,7 +230,7 @@ const Root = ({ asChild, children, className, intent, ref, ...props }: ToastProp
 			>
 				<IntentBarAccent intent={intent} />
 				{children}
-			</Component>
+			</div>
 		</ToastStateContext.Provider>
 	);
 };
@@ -270,11 +289,10 @@ const Icon = ({ className, svg, ref, ...props }: ToastIconProps) => {
 		case "info":
 			return (
 				<IconComponent
-					//
 					data-slot="toast-icon"
 					className={cx("text-accent-600", className)}
 					ref={ref}
-					svg={<InfoIcon weight="fill" />}
+					svg={svg ?? <InfoIcon weight="fill" />}
 					{...props}
 				/>
 			);
@@ -452,6 +470,7 @@ const Toast = {
 export {
 	//,
 	makeToast,
+	resolveToastDuration,
 	Toast,
 	Toaster,
 };

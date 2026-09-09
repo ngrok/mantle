@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { userEvent } from "@testing-library/user-event";
+import { describe, expect, test, vi } from "vitest";
 import { Tabs } from "./tabs.js";
 
 describe("Tabs", () => {
@@ -141,6 +142,115 @@ describe("Tabs", () => {
 			const tablist = screen.getByRole("tablist");
 			expect(tablist).not.toHaveClass("border-r");
 			expect(tablist).toHaveAttribute("data-hide-border");
+		});
+
+		// Regression: a pointer press focused the trigger, the list scrolled it to
+		// the center, and the click landed on empty space, so an asChild link
+		// never navigated.
+		test("a pointer click on a trigger does not scroll it into view and still fires onClick", async () => {
+			const user = userEvent.setup();
+			const scrollIntoView = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
+			const onClick = vi.fn<() => void>();
+			render(
+				<Tabs.Root orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger value="b" onClick={onClick}>
+							Tab B
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			await user.click(screen.getByRole("tab", { name: "Tab B" }));
+
+			expect(onClick).toHaveBeenCalledTimes(1);
+			expect(screen.getByRole("tab", { name: "Tab B" })).toHaveAttribute("aria-selected", "true");
+			expect(scrollIntoView).not.toHaveBeenCalled();
+		});
+
+		test("keyboard focus scrolls the trigger into view", async () => {
+			const user = userEvent.setup();
+			const scrollIntoView = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
+			render(
+				<Tabs.Root orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			await user.tab();
+			expect(screen.getByRole("tab", { name: "Tab A" })).toHaveFocus();
+			expect(scrollIntoView).toHaveBeenCalledTimes(1);
+			expect(scrollIntoView).toHaveBeenLastCalledWith(
+				expect.objectContaining({ inline: "center", block: "nearest" }),
+			);
+
+			await user.keyboard("{ArrowRight}");
+			expect(screen.getByRole("tab", { name: "Tab B" })).toHaveFocus();
+			expect(screen.getByRole("tab", { name: "Tab B" })).toHaveAttribute("aria-selected", "true");
+			expect(scrollIntoView).toHaveBeenCalledTimes(2);
+		});
+	});
+
+	describe("Trigger", () => {
+		// Regression: a cloned `tabIndex: 0` won over Radix's roving `tabIndex`, so
+		// every asChild tab was a Tab stop instead of only the active one.
+		test("asChild keeps Radix's roving tabIndex so only the active tab is a Tab stop", async () => {
+			const user = userEvent.setup();
+			render(
+				<>
+					<Tabs.Root orientation="horizontal" defaultValue="a">
+						<Tabs.List>
+							<Tabs.Trigger value="a" asChild>
+								<a href="/a">Tab A</a>
+							</Tabs.Trigger>
+							<Tabs.Trigger value="b" asChild>
+								<a href="/b">Tab B</a>
+							</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>
+					<button type="button">After</button>
+				</>,
+			);
+
+			const tabA = screen.getByRole("tab", { name: "Tab A" });
+			const tabB = screen.getByRole("tab", { name: "Tab B" });
+			expect(tabA.tagName).toBe("A");
+			expect(tabB).toHaveAttribute("tabindex", "-1");
+
+			await user.tab();
+			expect(tabA).toHaveFocus();
+			expect(tabA).toHaveAttribute("tabindex", "0");
+			expect(tabB).toHaveAttribute("tabindex", "-1");
+
+			// The inactive tab is not a Tab stop, so Tab leaves the list.
+			await user.tab();
+			expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+		});
+
+		test("a disabled asChild link drops its href and cannot be activated", async () => {
+			const user = userEvent.setup();
+			const onClick = vi.fn<() => void>();
+			render(
+				<Tabs.Root orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger value="b" asChild disabled onClick={onClick}>
+							<a href="/b">Tab B</a>
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			const tabB = screen.getByRole("tab", { name: "Tab B" });
+			expect(tabB).not.toHaveAttribute("href");
+			expect(tabB).toHaveAttribute("aria-disabled", "true");
+			await user.click(tabB);
+			expect(onClick).not.toHaveBeenCalled();
+			expect(tabB).toHaveAttribute("aria-selected", "false");
 		});
 	});
 });

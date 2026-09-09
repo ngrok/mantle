@@ -345,7 +345,7 @@ const Popover = {
 	 */
 	Root,
 	/**
-	 * An optional element to position the PopoverContent against. If not used, content positions alongside the trigger.
+	 * An optional element to position the PopoverContent against. If this part is not used, the content will position alongside the PopoverTrigger.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/popover#popoveranchor
 	 *
@@ -396,7 +396,7 @@ const Popover = {
 	 */
 	Arrow,
 	/**
-	 * A button that closes an open popover. Can be placed anywhere within the popover content.
+	 * A button that closes an open popover.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/popover#popoverclose
 	 *
@@ -420,7 +420,7 @@ const Popover = {
 	 */
 	Close,
 	/**
-	 * The content to render inside the popover. Appears in a portal with rich styling and animations.
+	 * The content to render inside the popover.
 	 *
 	 * `Popover.Content` renders at Tailwind `z-50`, Mantle's float tier. When
 	 * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
@@ -428,6 +428,10 @@ const Popover = {
 	 * every overlay, it portals to `document.body`, below the overlay tier
 	 * (`z-60`). When sibling floats share a container, the most recently mounted
 	 * float paints on top.
+	 *
+	 * It sets `position: relative`, so `Popover.Arrow`'s absolutely-positioned
+	 * wrapper keeps one containing block through the open animation. An
+	 * absolutely-positioned child of the content therefore anchors to the content.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/popover#popovercontent
 	 *
@@ -449,7 +453,7 @@ const Popover = {
 	 */
 	Content,
 	/**
-	 * The trigger button that opens the popover when clicked or focused.
+	 * The trigger button that opens the popover.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/popover#popovertrigger
 	 *

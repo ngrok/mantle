@@ -72,7 +72,8 @@ const TooltipProvider = ({
  * ```
  */
 function Root(props: ComponentProps<typeof TooltipPrimitive.Root>) {
-	return <TooltipPrimitive.Root data-slot="tooltip" {...props} />;
+	// Why no data-slot: the Radix Root renders no DOM, so an attribute never lands.
+	return <TooltipPrimitive.Root {...props} />;
 }
 
 /**
@@ -124,13 +125,14 @@ function Trigger(props: ComponentProps<typeof TooltipPrimitive.Trigger>) {
  * </Tooltip.Root>
  * ```
  */
-const Content = ({
-	children,
-	className,
-	ref,
-	sideOffset = 4,
-	...props
-}: ComponentProps<typeof TooltipPrimitive.Content>) => {
+/**
+ * Props for `Tooltip.Content`. `asChild` is omitted: the content renders its own
+ * arrow next to `children`, so a slot would receive more than one element and
+ * throw.
+ */
+type TooltipContentProps = Omit<ComponentProps<typeof TooltipPrimitive.Content>, "asChild">;
+
+const Content = ({ children, className, ref, sideOffset = 4, ...props }: TooltipContentProps) => {
 	const layerContainer = useLayerContainer();
 
 	return (

@@ -46,7 +46,7 @@ const columns = [
 	columnHelper.accessor("id", {
 		id: "id",
 		header: (props) => (
-			<DataTable.Header>
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					ID
 				</DataTable.HeaderSortButton>
@@ -57,7 +57,7 @@ const columns = [
 	columnHelper.accessor("amount", {
 		id: "amount",
 		header: (props) => (
-			<DataTable.Header className="w-50">
+			<DataTable.Header className="w-50" column={props.column}>
 				<DataTable.HeaderSortButton
 					className="justify-end"
 					column={props.column}
@@ -77,7 +77,7 @@ const columns = [
 	columnHelper.accessor("status", {
 		id: "status",
 		header: (props) => (
-			<DataTable.Header>
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					Status
 				</DataTable.HeaderSortButton>
@@ -88,7 +88,7 @@ const columns = [
 	columnHelper.accessor("email", {
 		id: "email",
 		header: (props) => (
-			<DataTable.Header>
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					Email
 				</DataTable.HeaderSortButton>
@@ -264,7 +264,7 @@ const endpointColumns = [
 	endpointColumnHelper.accessor("region", {
 		id: "region",
 		header: (props) => (
-			<DataTable.Header className="min-w-28">
+			<DataTable.Header column={props.column} className="min-w-28">
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					Region
 				</DataTable.HeaderSortButton>
@@ -275,7 +275,7 @@ const endpointColumns = [
 	endpointColumnHelper.accessor("url", {
 		id: "url",
 		header: (props) => (
-			<DataTable.Header className="min-w-100">
+			<DataTable.Header column={props.column} className="min-w-100">
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					URL
 				</DataTable.HeaderSortButton>
@@ -290,7 +290,7 @@ const endpointColumns = [
 	endpointColumnHelper.accessor("type", {
 		id: "type",
 		header: (props) => (
-			<DataTable.Header className="min-w-20">
+			<DataTable.Header column={props.column} className="min-w-20">
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					Type
 				</DataTable.HeaderSortButton>
@@ -301,7 +301,7 @@ const endpointColumns = [
 	endpointColumnHelper.accessor("binding", {
 		id: "binding",
 		header: (props) => (
-			<DataTable.Header className="min-w-24">
+			<DataTable.Header column={props.column} className="min-w-24">
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					Binding
 				</DataTable.HeaderSortButton>
@@ -312,7 +312,7 @@ const endpointColumns = [
 	endpointColumnHelper.accessor("created", {
 		id: "created",
 		header: (props) => (
-			<DataTable.Header className="min-w-28">
+			<DataTable.Header column={props.column} className="min-w-28">
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					Created
 				</DataTable.HeaderSortButton>
@@ -323,7 +323,7 @@ const endpointColumns = [
 	endpointColumnHelper.accessor("updated", {
 		id: "updated",
 		header: (props) => (
-			<DataTable.Header className="min-w-28">
+			<DataTable.Header column={props.column} className="min-w-28">
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 					Updated
 				</DataTable.HeaderSortButton>

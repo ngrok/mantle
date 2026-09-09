@@ -34,7 +34,8 @@ const themeLabels: Record<Theme, string> = {
 /**
  * The props for the `ThemeDropdownMenuRadioGroup` component.
  */
-type ThemeDropdownMenuRadioGroupProps = WithStyleProps;
+type ThemeDropdownMenuRadioGroupProps = WithStyleProps &
+	Pick<ComponentProps<"div">, "aria-label" | "aria-labelledby">;
 
 /**
  * Must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent` —
@@ -47,6 +48,10 @@ type ThemeDropdownMenuRadioGroupProps = WithStyleProps;
  * (`useTheme` throws outside of one). Use it to embed theme selection in an
  * existing menu (e.g. an account menu submenu); for a standalone picker,
  * reach for `ThemeSwitcher` instead.
+ *
+ * The group is named "Theme" by default. Pass `aria-label` to rename it, or
+ * `aria-labelledby` to point at a visible heading such as a
+ * `DropdownMenu.Label`.
  *
  * @see https://mantle.ngrok.com/components/forms/theme-switcher
  *
@@ -82,11 +87,20 @@ type ThemeDropdownMenuRadioGroupProps = WithStyleProps;
  * </DropdownMenu.Root>
  * ```
  */
-const ThemeDropdownMenuRadioGroup = ({ className, style }: ThemeDropdownMenuRadioGroupProps) => {
+const ThemeDropdownMenuRadioGroup = ({
+	"aria-label": ariaLabel,
+	"aria-labelledby": ariaLabelledBy,
+	className,
+	style,
+}: ThemeDropdownMenuRadioGroupProps) => {
 	const [currentTheme, setTheme] = useTheme();
 
 	return (
 		<DropdownMenu.RadioGroup
+			// Why a default name: Radix renders the group as `role="group"`, and a
+			// group with no name is announced as nothing.
+			aria-label={ariaLabelledBy == null ? (ariaLabel ?? "Theme") : ariaLabel}
+			aria-labelledby={ariaLabelledBy}
 			data-slot="theme-dropdown-menu-radio-group"
 			className={className}
 			style={style}
@@ -198,7 +212,15 @@ const Trigger = ({
 			data-slot={joinDataSlot(dataSlot, "theme-switcher-trigger")}
 			intent="neutral"
 			icon={
-				<BrowserOnly fallback={<Skeleton className="rounded-full size-5" />}>
+				<BrowserOnly
+					fallback={
+						// Why a span: the fallback renders inside a <button>, whose content
+						// model forbids a <div>.
+						<Skeleton asChild className="rounded-full size-5">
+							<span />
+						</Skeleton>
+					}
+				>
 					{() => <AutoThemeIcon className="size-5" />}
 				</BrowserOnly>
 			}
@@ -219,11 +241,11 @@ type ThemeSwitcherContentProps = ComponentProps<typeof DropdownMenu.Content> & W
 /**
  * The popover the trigger opens: a thin forwarding wrapper over
  * `DropdownMenu.Content`. When `children` are omitted (or `null`/`undefined`)
- * it renders `ThemeDropdownMenuRadioGroup`, the five-theme radio group — pass
+ * it renders `ThemeDropdownMenuRadioGroup`, the five-theme radio group; pass
  * `children` to own the menu contents instead (compose
  * `ThemeDropdownMenuRadioGroup` yourself alongside extra items). Any
  * non-nullish children replace the default entirely, including render-nothing
- * values like `false` — a lone `{condition && <Item />}` child suppresses the
+ * values like `false`; a lone `{condition && <Item />}` child suppresses the
  * radio group when the condition is false.
  *
  * @see https://mantle.ngrok.com/components/forms/theme-switcher
@@ -303,8 +325,11 @@ const ThemeSwitcher = {
 	Root,
 	/**
 	 * The button that opens the theme menu: an `IconButton` (ghost by default)
-	 * with an SSR-safe themed icon. Forwards `IconButton` props; `label`
-	 * defaults to `"Change Theme"`.
+	 * wired up as the menu trigger. The trigger icon is SSR-safe: the applied
+	 * theme is unknowable server-side, so a `Skeleton` renders until hydration,
+	 * then the icon matching the applied theme. The icon is owned by the trigger;
+	 * to render a completely custom trigger, compose `DropdownMenu` +
+	 * `ThemeDropdownMenuRadioGroup` directly instead.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/theme-switcher
 	 *
@@ -318,9 +343,14 @@ const ThemeSwitcher = {
 	 */
 	Trigger,
 	/**
-	 * The popover the trigger opens: forwards `DropdownMenu.Content` props
-	 * (`align`, `side`, `collisionPadding`, `className`, …) and renders the
-	 * five-theme radio group when no `children` are given.
+	 * The popover the trigger opens: a thin forwarding wrapper over
+	 * `DropdownMenu.Content`. When `children` are omitted (or `null`/`undefined`)
+	 * it renders `ThemeDropdownMenuRadioGroup`, the five-theme radio group; pass
+	 * `children` to own the menu contents instead (compose
+	 * `ThemeDropdownMenuRadioGroup` yourself alongside extra items). Any
+	 * non-nullish children replace the default entirely, including render-nothing
+	 * values like `false`; a lone `{condition && <Item />}` child suppresses the
+	 * radio group when the condition is false.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/theme-switcher
 	 *

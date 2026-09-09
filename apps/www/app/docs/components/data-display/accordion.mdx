@@ -608,16 +608,17 @@ import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 ## Accessibility
 
 The accessibility mirrors a native `<details>`/`<summary>`: each `Accordion.Item` is a `role="group"`, and each
-`Accordion.Trigger` is a real `<button>` whose `aria-expanded` reflects its section's open state. Because the trigger
-is a genuine button, keyboard support is the browser's own; there is no custom key handling to get wrong:
+`Accordion.Trigger` is a real `<button>` whose `aria-expanded` reflects its section's open state and whose
+`aria-controls` points at its `Accordion.Content`. Because the trigger is a genuine button, keyboard support is the
+browser's own; there is no custom key handling to get wrong:
 
 - **Tab** / **Shift+Tab**: move focus between triggers (and any other focusable controls in a header).
 - **Enter** / **Space**: toggle the focused section.
 
-Collapsed content stays in the DOM but is hidden via `content-visibility`, so it leaves the accessibility tree exactly
-like a closed `<details>`, and the browser's find-in-page can still match and reveal it. The open/close slide respects
-`prefers-reduced-motion`, and the component is SSR-safe (the `hidden="until-found"` enhancement only activates in
-browsers that support it).
+Collapsed content stays in the DOM but leaves the accessibility tree and the tab order, like a closed `<details>`. In
+browsers that support `hidden="until-found"`, the content carries that attribute, so the browser's find-in-page can
+still match and reveal it. In other browsers, and in the server HTML, the content carries `inert` instead. The
+open/close slide respects `prefers-reduced-motion`.
 
 ## Composition
 
@@ -720,7 +721,8 @@ with the `Trigger` beside a separate, non-toggling action button. Accepts all `<
 ### Accordion.Trigger
 
 The clickable header that toggles its section, rendered as a `<button aria-expanded>` — the disclosure semantics a
-native `<summary>` carries, via a real button so the role is consistent across browsers. Defaults to full-width with
+native `<summary>` carries, via a real button so the role is consistent across browsers. Its `aria-controls` points at
+the item's `Accordion.Content`. Defaults to full-width with
 the `TriggerIcon` pushed to the trailing edge; set `w-auto` when placing it in a custom header row. A consumer `onClick`
 runs first and the section still toggles afterward (calling `preventDefault()` does not stop the toggle). Accepts all
 `<button>` props except `type`, which is always `"button"`.
@@ -737,11 +739,13 @@ The indicator icon. Defaults to a downward caret that rotates 180° when its sec
 ### Accordion.Content
 
 The collapsible region, rendered as a `<div>` that is always present in the DOM — the zero-padding viewport that slides
-open and closed. When collapsed (in supporting browsers) it carries `hidden="until-found"` so its text stays
-discoverable by find-in-page, and a `beforematch` listener opens the section when the browser reveals a match. It holds
-no padding of its own so its `h-0 ↔ h-auto` slide can collapse to zero height — put the section's content inside an
-`Accordion.Body`. It is flow content, so it may contain **anything** — including interactive elements (buttons, links,
-inputs) or a nested `Accordion`. Accepts all `<div>` props.
+open and closed. When collapsed, it leaves the accessibility tree and the tab order: in browsers that support
+`hidden="until-found"` it carries that attribute, so its text stays discoverable by find-in-page and a `beforematch`
+listener opens the section when the browser reveals a match; in other browsers, and in the server HTML, it carries
+`inert`. Its `id` is the target of the trigger's `aria-controls`; `Accordion.Item` generates it, so `id` is not a prop
+here. It holds no padding of its own so its `h-0 ↔ h-auto` slide can collapse to zero height: put the section's content
+inside an `Accordion.Body`. It is flow content, so it may contain **anything**, including interactive elements
+(buttons, links, inputs) or a nested `Accordion`. Accepts all `<div>` props except `id`.
 
 ### Accordion.Body
 

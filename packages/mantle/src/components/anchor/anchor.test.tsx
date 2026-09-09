@@ -13,6 +13,63 @@ describe("Anchor", () => {
 		expect(label).toHaveTextContent("ngrok.com");
 	});
 
+	test("renders the icon aria-hidden, so the link text alone names the link", () => {
+		render(
+			<Anchor href="https://ngrok.com/docs" icon={<BookIcon />}>
+				ngrok docs
+			</Anchor>,
+		);
+
+		const link = screen.getByRole("link", { name: "ngrok docs" });
+		expect(link.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+	});
+
+	describe("rel", () => {
+		test(`defaults to "noopener noreferrer" when target="_blank" and rel is omitted`, () => {
+			render(
+				<Anchor href="https://ngrok.com/" target="_blank">
+					ngrok.com
+				</Anchor>,
+			);
+			expect(screen.getByRole("link")).toHaveAttribute("rel", "noopener noreferrer");
+		});
+
+		test("renders no rel when target is not _blank and rel is omitted", () => {
+			render(<Anchor href="https://ngrok.com/">ngrok.com</Anchor>);
+			expect(screen.getByRole("link")).not.toHaveAttribute("rel");
+		});
+
+		test(`uses the rel you pass as-is, even with target="_blank"`, () => {
+			render(
+				<Anchor href="https://ngrok.com/" target="_blank" rel="nofollow">
+					ngrok.com
+				</Anchor>,
+			);
+			expect(screen.getByRole("link")).toHaveAttribute("rel", "nofollow");
+		});
+
+		test("resolves an array rel onto the element", () => {
+			render(
+				<Anchor href="https://ngrok.com/" rel={["noreferrer", "noopener"]}>
+					ngrok.com
+				</Anchor>,
+			);
+			expect(screen.getByRole("link")).toHaveAttribute("rel", "noopener noreferrer");
+		});
+
+		test(`the default reaches an asChild anchor with target="_blank"`, () => {
+			render(
+				<Anchor asChild>
+					{/* oxlint-disable-next-line react/jsx-no-target-blank -- Anchor supplies the rel; this test pins that default */}
+					<a href="https://ngrok.com/" target="_blank">
+						ngrok.com
+					</a>
+				</Anchor>,
+			);
+			expect(screen.getByRole("link")).toHaveAttribute("rel", "noopener noreferrer");
+		});
+	});
+
 	describe("on a browser-translated page", () => {
 		test("keeps rendering when a leading `icon` appears", () => {
 			const { rerender } = render(<Anchor href="https://ngrok.com/docs">ngrok docs</Anchor>);
@@ -82,5 +139,17 @@ describe("resolveRel", () => {
 
 	test("allows custom rels", () => {
 		expect(resolveRel(["noopener", "noreferrer", "custom"])).toBe("custom noopener noreferrer");
+	});
+
+	test("joins an incoming data-slot chain ahead of its own slot name", () => {
+		render(
+			<Anchor data-slot="skip-to-main-link" href="#main">
+				Skip
+			</Anchor>,
+		);
+		expect(screen.getByRole("link", { name: "Skip" })).toHaveAttribute(
+			"data-slot",
+			"skip-to-main-link anchor",
+		);
 	});
 });
