@@ -5,14 +5,25 @@ import type {
 	RadioGroupProps as HeadlessRadioGroupProps,
 	RadioProps as HeadlessRadioProps,
 } from "@headlessui/react";
-import { Children, cloneElement, createContext, isValidElement, useContext, useRef } from "react";
-import type { HTMLAttributes, PropsWithChildren, ReactNode, Ref } from "react";
+import {
+	Children,
+	cloneElement,
+	createContext,
+	isValidElement,
+	useCallback,
+	useContext,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+import type { ComponentProps, HTMLAttributes, PropsWithChildren, ReactNode, Ref } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { isInput } from "../input/is-input.js";
 import { Slot } from "../slot/index.js";
+import { RadioItemContext, type RadioItemContextValue } from "./radio-item-context.js";
 
 type RadioGroupProps = PropsWithChildren<Omit<HeadlessRadioGroupProps, "as" | "children">> & {
 	ref?: Ref<HTMLElement>;
@@ -25,10 +36,9 @@ type RadioGroupProps = PropsWithChildren<Omit<HeadlessRadioGroupProps, "as" | "c
  * The recommended Field composition is `Field.Set` + `Field.Legend` + `RadioGroup.Root`,
  * which uses fieldset semantics so all radios share a single accessible name from the
  * legend. As an alternative, when individual items render inside a `Field.Control`,
- * each item picks up `aria-invalid` and `aria-errormessage` from `FieldControlContext`.
- * Note: Headless UI's Radio primitive owns `aria-describedby` and strips the value a
- * caller passes, so the items do not forward it, and helper text wired via
- * `Field.Description` is not associated automatically in that alternative composition.
+ * each item picks up `aria-invalid`, `aria-errormessage`, and `aria-describedby` from
+ * `FieldControlContext`. Inside any item, a `Choice.Title` names the option through
+ * `aria-labelledby` and a `Choice.Description` describes it through `aria-describedby`.
  *
  * @see https://mantle.ngrok.com/components/forms/radio-group#radiogrouproot
  *
@@ -74,6 +84,69 @@ const RadioStateContext = createContext<RadioStateContextValue>({
 	hover: false,
 });
 
+/**
+ * Joins element ids into one IDREF list. Returns `undefined` when there are
+ * none, so the attribute is omitted.
+ */
+function joinIds(ids: readonly (string | undefined)[]): string | undefined {
+	const present = ids.filter((id): id is string => id != null && id !== "");
+	return present.length > 0 ? present.join(" ") : undefined;
+}
+
+/**
+ * A list of registered element ids and a stable callback that adds one and
+ * returns the cleanup that removes it.
+ */
+function useRegisteredIds(): [readonly string[], (id: string) => () => void] {
+	const [ids, setIds] = useState<readonly string[]>([]);
+	const register = useCallback((id: string) => {
+		setIds((current) => [...current, id]);
+		return () => {
+			setIds((current) => current.filter((candidate) => candidate !== id));
+		};
+	}, []);
+	return [ids, register];
+}
+
+/**
+ * The element every radio item variant renders through Headless UI's `as`.
+ * Headless UI's `Radio` owns `aria-labelledby` and `aria-describedby`. It reads
+ * them from its own `Label` / `Description` context, which mantle does not use.
+ * It then writes the result over the caller's props, `undefined` included.
+ * Because mantle renders the element, the item stamps these after that spread:
+ * - `aria-labelledby` and `aria-describedby`, from the ids its text registered
+ * - `aria-describedby`, `aria-invalid`, and `aria-errormessage`, from a
+ *   surrounding `Field.Control`
+ *
+ * It also publishes `RadioItemContext` to the children, so `Choice.Title` and
+ * `Choice.Description` can register.
+ */
+const RadioElement = ({ children, ref, ...props }: ComponentProps<"div">) => {
+	const fieldControl = useContext(FieldControlContext);
+	const [labelIds, registerLabelId] = useRegisteredIds();
+	const [descriptionIds, registerDescriptionId] = useRegisteredIds();
+	const context = useMemo<RadioItemContextValue>(
+		() => ({ registerLabelId, registerDescriptionId }),
+		[registerLabelId, registerDescriptionId],
+	);
+	return (
+		<div
+			{...props}
+			{...(fieldControl
+				? {
+						"aria-errormessage": fieldControl["aria-errormessage"],
+						"aria-invalid": fieldControl["aria-invalid"],
+					}
+				: undefined)}
+			aria-labelledby={joinIds(labelIds)}
+			aria-describedby={joinIds([fieldControl?.["aria-describedby"], ...descriptionIds])}
+			ref={ref}
+		>
+			<RadioItemContext.Provider value={context}>{children}</RadioItemContext.Provider>
+		</div>
+	);
+};
+
 type RadioItemProps = Omit<HeadlessRadioProps, "children"> &
 	PropsWithChildren & {
 		ref?: Ref<HTMLDivElement>;
@@ -84,9 +157,11 @@ type RadioItemProps = Omit<HeadlessRadioProps, "children"> &
  * Must be a child of `RadioGroup`.
  *
  * When rendered inside `Field.Control` (an alternative to the recommended
- * `Field.Set` / `Field.Legend` composition), picks up `aria-invalid` and
- * `aria-errormessage` from `FieldControlContext`. `aria-describedby` is owned
- * by Headless UI's Radio primitive and does not propagate.
+ * `Field.Set` / `Field.Legend` composition), picks up `aria-invalid`,
+ * `aria-errormessage`, and `aria-describedby` from `FieldControlContext`. A
+ * `Choice.Title` inside the item names it through `aria-labelledby`, and a
+ * `Choice.Description` describes it through `aria-describedby`. The option's
+ * accessible name is then the title alone.
  *
  * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupitem
  *
@@ -101,7 +176,6 @@ type RadioItemProps = Omit<HeadlessRadioProps, "children"> &
  * ```
  */
 const Item = ({ children, className, ref, ...props }: RadioItemProps) => {
-	const fieldControl = useContext(FieldControlContext);
 	return (
 		<HeadlessRadio
 			data-slot="radio-group-item"
@@ -112,14 +186,8 @@ const Item = ({ children, className, ref, ...props }: RadioItemProps) => {
 				"not-has-data-[radio-default-indicator]:focus-visible:ring-focus-accent not-has-data-[radio-default-indicator]:focus-visible:ring-4 not-has-data-[radio-default-indicator]:focus-visible:rounded-md",
 				className,
 			)}
-			as="div"
+			as={RadioElement}
 			{...props}
-			{...(fieldControl
-				? {
-						"aria-errormessage": fieldControl["aria-errormessage"],
-						"aria-invalid": fieldControl["aria-invalid"],
-					}
-				: undefined)}
 			ref={ref}
 		>
 			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
@@ -237,9 +305,11 @@ type RadioListItemProps = RadioItemProps;
  * A radio list item that is used inside a `RadioGroup.List`.
  *
  * When rendered inside `Field.Control` (an alternative to the recommended
- * `Field.Set` / `Field.Legend` composition), picks up `aria-invalid` and
- * `aria-errormessage` from `FieldControlContext`. `aria-describedby` is owned
- * by Headless UI's Radio primitive and does not propagate.
+ * `Field.Set` / `Field.Legend` composition), picks up `aria-invalid`,
+ * `aria-errormessage`, and `aria-describedby` from `FieldControlContext`. A
+ * `Choice.Title` inside the item names it through `aria-labelledby`, and a
+ * `Choice.Description` describes it through `aria-describedby`. The option's
+ * accessible name is then the title alone.
  *
  * @see https://mantle.ngrok.com/components/forms/radio-group#radiogrouplistitem
  *
@@ -264,10 +334,9 @@ type RadioListItemProps = RadioItemProps;
  * ```
  */
 const ListItem = ({ children, className, ref, ...props }: RadioListItemProps) => {
-	const fieldControl = useContext(FieldControlContext);
 	return (
 		<HeadlessRadio
-			as="div"
+			as={RadioElement}
 			data-slot="radio-group-list-item"
 			className={cx(
 				"group/radio border-form [&_label]:cursor-inherit relative flex select-none gap-2 border px-3 py-2 text-sm",
@@ -281,12 +350,6 @@ const ListItem = ({ children, className, ref, ...props }: RadioListItemProps) =>
 			)}
 			ref={ref}
 			{...props}
-			{...(fieldControl
-				? {
-						"aria-errormessage": fieldControl["aria-errormessage"],
-						"aria-invalid": fieldControl["aria-invalid"],
-					}
-				: undefined)}
 		>
 			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
 		</HeadlessRadio>
@@ -301,9 +364,11 @@ type RadioCardProps = RadioItemProps;
  * A radio card item. Use it as a child of `RadioGroup`
  *
  * When rendered inside `Field.Control` (an alternative to the recommended
- * `Field.Set` / `Field.Legend` composition), picks up `aria-invalid` and
- * `aria-errormessage` from `FieldControlContext`. `aria-describedby` is owned
- * by Headless UI's Radio primitive and does not propagate.
+ * `Field.Set` / `Field.Legend` composition), picks up `aria-invalid`,
+ * `aria-errormessage`, and `aria-describedby` from `FieldControlContext`. A
+ * `Choice.Title` inside the item names it through `aria-labelledby`, and a
+ * `Choice.Description` describes it through `aria-describedby`. The option's
+ * accessible name is then the title alone.
  *
  * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupcard
  *
@@ -328,10 +393,9 @@ type RadioCardProps = RadioItemProps;
  * ```
  */
 const Card = ({ children, className, ref, ...props }: RadioCardProps) => {
-	const fieldControl = useContext(FieldControlContext);
 	return (
 		<HeadlessRadio
-			as="div"
+			as={RadioElement}
 			data-slot="radio-group-card"
 			className={clsx(
 				"group/radio border-card bg-card [&_label]:cursor-inherit relative rounded-md border p-4 text-sm",
@@ -343,12 +407,6 @@ const Card = ({ children, className, ref, ...props }: RadioCardProps) => {
 				className,
 			)}
 			{...props}
-			{...(fieldControl
-				? {
-						"aria-errormessage": fieldControl["aria-errormessage"],
-						"aria-invalid": fieldControl["aria-invalid"],
-					}
-				: undefined)}
 			ref={ref}
 		>
 			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
@@ -425,9 +483,11 @@ type RadioButtonProps = RadioItemProps;
  * A radio button that is used inside a `RadioGroup.ButtonGroup`.
  *
  * When rendered inside `Field.Control` (an alternative to the recommended
- * `Field.Set` / `Field.Legend` composition), picks up `aria-invalid` and
- * `aria-errormessage` from `FieldControlContext`. `aria-describedby` is owned
- * by Headless UI's Radio primitive and does not propagate.
+ * `Field.Set` / `Field.Legend` composition), picks up `aria-invalid`,
+ * `aria-errormessage`, and `aria-describedby` from `FieldControlContext`. A
+ * `Choice.Title` inside the item names it through `aria-labelledby`, and a
+ * `Choice.Description` describes it through `aria-describedby`. The option's
+ * accessible name is then the title alone.
  *
  * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupbutton
  *
@@ -441,10 +501,9 @@ type RadioButtonProps = RadioItemProps;
  * ```
  */
 const Button = ({ children, className, ref, ...props }: RadioButtonProps) => {
-	const fieldControl = useContext(FieldControlContext);
 	return (
 		<HeadlessRadio
-			as="div"
+			as={RadioElement}
 			data-slot="radio-group-button"
 			className={cx(
 				"group/radio border-form [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 border px-3 text-sm",
@@ -459,12 +518,6 @@ const Button = ({ children, className, ref, ...props }: RadioButtonProps) => {
 			)}
 			ref={ref}
 			{...props}
-			{...(fieldControl
-				? {
-						"aria-errormessage": fieldControl["aria-errormessage"],
-						"aria-invalid": fieldControl["aria-invalid"],
-					}
-				: undefined)}
 		>
 			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
 		</HeadlessRadio>

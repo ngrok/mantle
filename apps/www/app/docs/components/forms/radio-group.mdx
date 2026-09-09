@@ -339,7 +339,7 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 </RadioGroup.Root>;
 ```
 
-Use **`Choice.Title`** here, not `Choice.Label`: the whole `RadioGroup.Item` is the click target, and a `<label htmlFor>` can't associate with the radio's `role="radio"` element; the option's accessible name comes from its content. Because `role="radio"` flattens its children, the `Choice.Title` **and** `Choice.Description` text both fold into that accessible name, so the description is announced as part of the option (not as a separate `aria-describedby`). For helper text that is **programmatically** associated as a description, prefer the `Field.Set` / `Field.Legend` composition above; Headless UI owns the radio's `aria-describedby`, so a `Choice.Description` inside a radio is presented visually rather than wired via `aria-describedby`.
+Use **`Choice.Title`** here, not `Choice.Label`: the whole `RadioGroup.Item` is the click target, and a `<label htmlFor>` can't associate with the radio's `role="radio"` element. Inside any radio item (`Item`, `ListItem`, `Card`, or `Button`), `Choice.Title` and `Choice.Description` register their ids with the radio. The radio's `aria-labelledby` points at the title, so the option's accessible name is the title alone, and its `aria-describedby` points at the description. Without that wiring, `role="radio"` would flatten both texts into one name. A plain `RadioGroup.ItemContent` has no title or description part to register, so its text still reads as one name; reach for `Choice` when the option carries helper text.
 
 Give the `RadioGroup` itself an accessible name (an `aria-label`, as above, or a `Field.Set` / `Field.Legend` wrapper) so the group is announced as a named set rather than an anonymous `radiogroup`.
 
@@ -534,7 +534,7 @@ All props from [Headless UI RadioGroup](https://headlessui.com/react/radio-group
 
 ### RadioGroup.Item
 
-A simple radio item. The conventional use-case for basic radio options. Must be a child of `RadioGroup.Root`.
+A simple radio item. The conventional use-case for basic radio options. Must be a child of `RadioGroup.Root`. Inside `Field.Control`, the item picks up `aria-invalid`, `aria-errormessage`, and `aria-describedby`. A `Choice.Title` inside names it through `aria-labelledby`, and a `Choice.Description` describes it through `aria-describedby`.
 
 | Prop        | Type      | Default | Description                                                    |
 | :---------- | :-------- | :------ | :------------------------------------------------------------- |
@@ -565,7 +565,7 @@ Same props as `RadioGroup.Root`.
 
 ### RadioGroup.Button
 
-A radio button used inside `RadioGroup.ButtonGroup` for inline grouped radio options.
+A radio button used inside `RadioGroup.ButtonGroup` for inline grouped radio options. Inside `Field.Control`, the item picks up `aria-invalid`, `aria-errormessage`, and `aria-describedby`. A `Choice.Title` inside names it through `aria-labelledby`, and a `Choice.Description` describes it through `aria-describedby`.
 
 | Prop        | Type      | Default | Description                                                      |
 | :---------- | :-------- | :------ | :--------------------------------------------------------------- |
@@ -580,7 +580,7 @@ Same props as `RadioGroup.Root`.
 
 ### RadioGroup.ListItem
 
-A radio list item used inside `RadioGroup.List` for connected list-style radio options with borders and padding.
+A radio list item used inside `RadioGroup.List` for connected list-style radio options with borders and padding. Inside `Field.Control`, the item picks up `aria-invalid`, `aria-errormessage`, and `aria-describedby`. A `Choice.Title` inside names it through `aria-labelledby`, and a `Choice.Description` describes it through `aria-describedby`.
 
 | Prop        | Type      | Default | Description                                                    |
 | :---------- | :-------- | :------ | :------------------------------------------------------------- |
@@ -589,7 +589,7 @@ A radio list item used inside `RadioGroup.List` for connected list-style radio o
 
 ### RadioGroup.Card
 
-A radio card item with enhanced styling for card-based radio options.
+A radio card item with enhanced styling for card-based radio options. Inside `Field.Control`, the item picks up `aria-invalid`, `aria-errormessage`, and `aria-describedby`. A `Choice.Title` inside names it through `aria-labelledby`, and a `Choice.Description` describes it through `aria-describedby`.
 
 | Prop        | Type      | Default | Description                                                    |
 | :---------- | :-------- | :------ | :------------------------------------------------------------- |

@@ -169,10 +169,11 @@ banner chrome, an `Alert.Root` whose parts you already author as that item's chi
   expansion row adopts (see [Projection](#projection)). You get real anchors, router links, stateful and
   context-aware JSX in every banner, while the count, the top alert, and the ordering stay derived and
   deterministic.
-- **Ranking is severity, then arrival.** `danger` › `warning` › `important` › `info` › `success`; within an
-  intent, alerts keep the order they first appeared: items mounting together rank in authored order, later
-  arrivals append after their same-intent peers, and a dismissed alert that returns resumes its original
-  position.
+- **Ranking is severity, then `order`, then arrival.** `danger` › `warning` › `important` › `info` ›
+  `success`; within an intent, alerts keep the order they first appeared: items mounting together rank in
+  authored order, later arrivals append after their same-intent peers, and a dismissed alert that returns
+  resumes its original position. When two same-intent alerts come from independent sources, arrival order
+  depends on which source answers first. Set `order` on each item to pin which one the bar shows.
 - **It collapses when empty.** With no items mounted the bar animates out and renders nothing, mirroring
   `AppLayout.Notice`, so `Root`, `Bar`, and `Content` can all stay mounted unconditionally.
 - **It announces politely.** A persistent, visually-hidden `role="status"` live region (mounted by
@@ -207,7 +208,7 @@ export function AccountAlerts() {
 		<AlertCenter.Root>
 			<AlertCenter.Bar />
 			<AlertCenter.Content />
-			{/* authored order is irrelevant — the center ranks by severity, then arrival */}
+			{/* authored order is irrelevant — the center ranks by severity, then `order`, then arrival */}
 			{!dismissed.has("new-region") && (
 				<AlertCenter.Item id="new-region" intent="info">
 					<Alert.Icon />
@@ -849,12 +850,13 @@ One authored alert: the coordination facts as props, the banner content as child
 place and registers with the center; mount to show, unmount to dismiss. Two items mounted at once may not
 share an `id` — the second registration throws, since both would project into that id's single host.
 
-| Prop        | Type                                                          | Default | Description                                                                                                                                                                                                                         |
-| ----------- | ------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`        | `string`                                                      | —       | Stable identity: keys the projection, pins arrival order (a returning id resumes its spot), and stamps `data-alert-id`. Unique among the items mounted under one `AlertCenter.Root`; unmounting and remounting the same id is fine. |
-| `intent`    | `"danger" \| "important" \| "info" \| "success" \| "warning"` | —       | The tone the alert communicates. Drives severity ranking and the banner chrome's intent.                                                                                                                                            |
-| `className` | `string`                                                      | —       | Optional classes for this item's chrome `Alert.Root`, in both placements.                                                                                                                                                           |
-| `children`  | `ReactNode`                                                   | —       | The banner content — `Alert` parts, not `Alert.Root`. Rendered at the Bar/Content position, not where the item is authored.                                                                                                         |
+| Prop        | Type                                                          | Default                   | Description                                                                                                                                                                                                                         |
+| ----------- | ------------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`        | `string`                                                      | —                         | Stable identity: keys the projection, pins arrival order (a returning id resumes its spot), and stamps `data-alert-id`. Unique among the items mounted under one `AlertCenter.Root`; unmounting and remounting the same id is fine. |
+| `intent`    | `"danger" \| "important" \| "info" \| "success" \| "warning"` | —                         | The tone the alert communicates. Drives severity ranking and the banner chrome's intent.                                                                                                                                            |
+| `className` | `string`                                                      | —                         | Optional classes for this item's chrome `Alert.Root`, in both placements.                                                                                                                                                           |
+| `order`     | `number`                                                      | `Number.MAX_SAFE_INTEGER` | The position among same-intent peers. Lower comes first. Items that share an order keep arrival order. An item with no order follows every item that declares one. `intent` still decides the tier.                                 |
+| `children`  | `ReactNode`                                                   | —                         | The banner content — `Alert` parts, not `Alert.Root`. Rendered at the Bar/Content position, not where the item is authored.                                                                                                         |
 
 | Data Attribute    | Value                    | Description                                                        |
 | ----------------- | ------------------------ | ------------------------------------------------------------------ |

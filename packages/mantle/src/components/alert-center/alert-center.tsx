@@ -64,6 +64,12 @@ type AlertCenterRegisteredAlert = {
 	/** Optional classes forwarded to the chrome `Alert.Root` in both placements. */
 	className: string | undefined;
 	/**
+	 * The author's position within an intent. Lower comes first. `Item` defaults
+	 * it to `Number.MAX_SAFE_INTEGER`, so an item with no declared order follows
+	 * every item that declares one.
+	 */
+	order: number;
+	/**
 	 * Arrival order: assigned at an id's FIRST registration and sticky for the
 	 * store's lifetime, so prop updates never reorder and a dismissed-then-
 	 * returning id resumes its original position.
@@ -156,25 +162,28 @@ function alertTitleText(banner: Element): string {
 }
 
 /**
- * Rank alerts highest-severity-first; ties within an intent break by
- * `sequence` (arrival order), so the result is a pure function of the
- * registered data. Alerts that arrive in the same commit register in tree
- * order; alerts whose conditions flip true later append after their
- * same-intent peers.
+ * Rank alerts highest-severity-first. Ties within an intent break by `order`
+ * (the author's declared position), then by `sequence` (arrival order). The
+ * result is a pure function of the registered data. Alerts that arrive in the
+ * same commit register in tree order; alerts whose conditions flip true later
+ * append after the same-intent peers that share their `order`.
  *
  * @example
  * ```ts
  * rankAlerts([
- *   { intent: "info", sequence: 0 },
- *   { intent: "danger", sequence: 1 },
+ *   { intent: "info", order: 0, sequence: 0 },
+ *   { intent: "danger", order: 0, sequence: 1 },
  * ]); // [{ intent: "danger", … }, { intent: "info", … }]
  * ```
  */
-function rankAlerts<T extends { intent: AlertCenterIntent; sequence: number }>(
+function rankAlerts<T extends { intent: AlertCenterIntent; order: number; sequence: number }>(
 	alerts: readonly T[],
 ): T[] {
 	return alerts.toSorted(
-		(a, b) => SEVERITY_RANK[b.intent] - SEVERITY_RANK[a.intent] || a.sequence - b.sequence,
+		(a, b) =>
+			SEVERITY_RANK[b.intent] - SEVERITY_RANK[a.intent] ||
+			a.order - b.order ||
+			a.sequence - b.sequence,
 	);
 }
 
@@ -219,8 +228,10 @@ const EMPTY_ALERTS: readonly AlertCenterRegisteredAlert[] = [];
  * Sequence numbers are sticky per id: an id keeps its first-seen arrival
  * position for the store's lifetime, so re-registrations (every re-render, as
  * `children` identity changes) never reorder, and a dismissed alert that
- * returns resumes its original spot. Two mounted items sharing an id throws —
- * see {@link AlertCenterStore.register}.
+ * returns resumes its original spot. An item's declared `order` ranks ahead of
+ * that arrival position, so a consumer can pin the bar's alert when two
+ * same-intent items arrive in either order. Two mounted items sharing an id
+ * throws; see {@link AlertCenterStore.register}.
  */
 class AlertCenterStore {
 	#listeners = new Set<() => void>();
@@ -295,7 +306,7 @@ class AlertCenterStore {
 		};
 	};
 
-	/** The ranked alerts (highest severity first, arrival order within an intent). */
+	/** The ranked alerts (highest severity first, then `order`, then arrival within an intent). */
 	getSnapshot = (): readonly AlertCenterRegisteredAlert[] => this.#snapshot;
 
 	/**
@@ -401,7 +412,7 @@ class AlertCenterStore {
 	/**
 	 * Item-side: add the registration for `alert.id` and return its cleanup. An
 	 * id's arrival `sequence` is assigned once and kept for the store's
-	 * lifetime, so re-registrations never reorder. Only the coordination facts
+	 * lifetime, so a re-registration reorders only when its `order` changes. Only the coordination facts
 	 * register — the authored children render through the item's own portal
 	 * into {@link AlertCenterStore.getHost}.
 	 *
@@ -669,6 +680,17 @@ type AlertCenterItemProps = {
 	/** Optional classes for this item's chrome `Alert.Root`, in both placements. */
 	className?: string;
 	/**
+	 * The position among same-intent peers. Lower comes first. Items that share
+	 * an order keep arrival order. An item with no order follows every item that
+	 * declares one. Set it when two same-intent alerts come from independent
+	 * sources, because arrival order then depends on which source answers first.
+	 * `intent` still decides the tier: a `warning` with `order={0}` never
+	 * outranks a `danger`.
+	 *
+	 * @default Number.MAX_SAFE_INTEGER
+	 */
+	order?: number;
+	/**
 	 * The banner content: compose `Alert.Icon`, `Alert.Content`, `Alert.Title`,
 	 * `Alert.Description`, and `AlertCenter.DismissIconButton`. Do NOT include
 	 * `Alert.Root` — the center renders the chrome (with this item's `intent`)
@@ -723,7 +745,16 @@ type AlertCenterItemProps = {
  * </AlertCenter.Root>
  * ```
  */
-const Item = ({ children, className, id, intent }: AlertCenterItemProps) => {
+const Item = ({
+	children,
+	className,
+	id,
+	intent,
+	// Why `MAX_SAFE_INTEGER` and not `Infinity`: the comparator subtracts, and
+	// `Infinity - Infinity` is `NaN`, which `toSorted` treats as "equal" in an
+	// engine-defined way.
+	order = Number.MAX_SAFE_INTEGER,
+}: AlertCenterItemProps) => {
 	const { store } = useAlertCenterContext("AlertCenter.Item");
 	// A nested item would register while its enclosing item renders, outrank
 	// or unrank its host, and loop the projection forever — fail fast instead.
@@ -737,8 +768,8 @@ const Item = ({ children, className, id, intent }: AlertCenterItemProps) => {
 		setHost(store.getHost(id));
 	}, [store, id]);
 	useIsomorphicLayoutEffect(
-		() => store.register({ id, intent, className }),
-		[store, id, intent, className],
+		() => store.register({ id, intent, className, order }),
+		[store, id, intent, className, order],
 	);
 	// No dependency array: children can change on any commit, and the bar's
 	// exit ghost must always hold the latest rendered content (the store
@@ -1675,10 +1706,10 @@ const Content = ({
  * the remaining items as full-width banners.
  *
  * Ranking is deterministic: severity first (`danger` › `warning` ›
- * `important` › `info` › `success`), then arrival order within an intent —
- * items mounting together rank in tree order, later arrivals append after
- * their same-intent peers, and a dismissed-then-returning id resumes its
- * original position.
+ * `important` › `info` › `success`), then each item's declared `order`, then
+ * arrival order within an intent: items mounting together rank in tree
+ * order, later arrivals append after their same-intent peers, and a
+ * dismissed-then-returning id resumes its original position.
  *
  * Compose `Bar` and `Content` into `AppLayout.Notice`, alongside any other
  * window-level notice. Items may be authored anywhere under `Root`: their
