@@ -11,12 +11,12 @@ import { defineConfig } from "vite";
 import devtoolsJson from "vite-plugin-devtools-json";
 
 import { remarkMdxNoParagraphWrap } from "@ngrok/remark-mdx-no-paragraph-wrap";
-import { mantleChangelogMdx } from "./vite-plugins/mantle-changelog-mdx";
-import { mdxDocComponentImports } from "./vite-plugins/mdx-doc-component-imports";
-import { rawMdxDocs } from "./vite-plugins/raw-mdx-docs";
-import { rehypeMdxDocHandle } from "./vite-plugins/rehype-mdx-doc-handle";
-import { remarkMdxDemoteLowercaseExports } from "./vite-plugins/remark-mdx-demote-lowercase-exports";
-import { remarkMdxFrontmatterData } from "./vite-plugins/remark-mdx-frontmatter-data";
+import { mantleChangelogMdx } from "./vite-plugins/mantle-changelog-mdx.ts";
+import { mdxDocComponentImports } from "./vite-plugins/mdx-doc-component-imports.ts";
+import { rawMdxDocs } from "./vite-plugins/raw-mdx-docs.ts";
+import { rehypeMdxDocHandle } from "./vite-plugins/rehype-mdx-doc-handle.ts";
+import { remarkMdxDemoteLowercaseExports } from "./vite-plugins/remark-mdx-demote-lowercase-exports.ts";
+import { remarkMdxFrontmatterData } from "./vite-plugins/remark-mdx-frontmatter-data.ts";
 
 const codeBlockPlugins = mantleCodeBlockPlugins();
 
