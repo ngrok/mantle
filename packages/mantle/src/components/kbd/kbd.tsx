@@ -18,9 +18,10 @@ import { cx } from "../../utils/cx/cx.js";
  *   `<Kbd>` elements separated by `+` text instead.
  *
  * **Accessibility.** Symbol-only glyphs (`⌘`, `⌃`, `↵`) are not announced
- * meaningfully by screen readers. Set an accessible name via
- * `aria-label` on the `<Kbd>` or include a visually-hidden label inside,
- * and mark the visible glyph `aria-hidden`.
+ * meaningfully by screen readers. Put a visually hidden label inside the
+ * `<Kbd>` and mark the visible glyph `aria-hidden`. Do not set `aria-label`
+ * on the `<Kbd>`: `<kbd>` has the `generic` role, which prohibits naming, so
+ * a screen reader does not read the label reliably.
  *
  * **Translation.** The `<kbd>` element always carries `translate="no"`, so a
  * browser translation engine skips the subtree. A translated shortcut names a
@@ -37,16 +38,21 @@ import { cx } from "../../utils/cx/cx.js";
  * // Letter key.
  * <Kbd>K</Kbd>
  *
- * // Chord — render each key separately.
- * <span>
- *   <Kbd aria-label="Command">⌘</Kbd> + <Kbd>K</Kbd>
- * </span>
- *
- * // Symbol with sr-only label.
+ * // Symbol: a visually hidden label names the key, and the glyph is hidden.
  * <Kbd>
  *   <span className="sr-only">Enter</span>
  *   <span aria-hidden>↵</span>
  * </Kbd>
+ *
+ * // Chord — render each key separately.
+ * <span className="inline-flex items-center gap-1">
+ *   <Kbd>
+ *     <span className="sr-only">Command</span>
+ *     <span aria-hidden>⌘</span>
+ *   </Kbd>
+ *   <span>+</span>
+ *   <Kbd>K</Kbd>
+ * </span>
  * ```
  */
 function Kbd({ children, className, ...props }: Omit<ComponentProps<"kbd">, "translate">) {

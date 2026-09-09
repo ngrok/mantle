@@ -11,24 +11,39 @@ type SvgOnlyProps = Omit<SvgAttributes, "children"> & {
 	svg: ReactNode;
 };
 
+type NamedSvgProps = SvgAttributes & {
+	/**
+	 * Phosphor's `alt` prop. `IconBase` renders it as a `<title>` child, so it
+	 * names the svg the same way an authored `<title>` does.
+	 */
+	alt?: string;
+};
+
+/**
+ * Whether the children include a `<title>`, the SVG's own naming element.
+ */
+const hasTitleChild = (children: ReactNode) =>
+	Children.toArray(children).some((child) => isValidElement(child) && child.type === "title");
+
 /**
  * Names that make an SVG meaningful to assistive technology. When the props or
  * the svg element carry one, the icon is not decorative.
  */
-const hasAccessibleNaming = (props: SvgAttributes) =>
+const hasAccessibleNaming = (props: NamedSvgProps) =>
 	props["aria-label"] != null ||
 	props["aria-labelledby"] != null ||
 	props["aria-hidden"] != null ||
-	props.role != null;
+	props.role != null ||
+	props.alt != null ||
+	hasTitleChild(props.children);
 
 /**
  * Accepts a single SVG icon element and decorates it with `shrink-0` class.
  * You probably want to use the `Icon` component instead.
  *
  * The icon is decorative by default: it renders `aria-hidden="true"` unless
- * the props or the svg element carry `aria-label`, `aria-labelledby`, `role`,
- * or an explicit `aria-hidden`. Phosphor icons set none of these, so a bare
- * icon next to text is hidden from assistive technology.
+ * the props or the svg element carry a name (`aria-label`, `aria-labelledby`, a `<title>` child, or Phosphor's `alt`), a `role`, or an explicit `aria-hidden`. A bare Phosphor icon sets none of these, so it is hidden
+ * from assistive technology.
  *
  * @see https://mantle.ngrok.com/components/data-display/icon
  *
@@ -45,7 +60,7 @@ const hasAccessibleNaming = (props: SvgAttributes) =>
  */
 const SvgOnly = ({ className, style, svg, ref, ...props }: SvgOnlyProps) => {
 	invariant(
-		isValidElement<SvgAttributes>(svg) && Children.only(svg),
+		isValidElement<NamedSvgProps>(svg) && Children.only(svg),
 		"SvgOnly must be passed a single SVG icon as a JSX tag.",
 	);
 

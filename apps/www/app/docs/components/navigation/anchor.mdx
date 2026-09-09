@@ -35,7 +35,7 @@ When `target="_blank"` and `rel` is omitted, the anchor renders `rel="noopener n
 
 ## Accessibility
 
-Link text must be self-describing: avoid "click here" / "read more". The icon renders `aria-hidden`, so it needs no labeling; for icon-only links, pass an `aria-label`.
+Link text must be self-describing: avoid "click here" / "read more". The icon is decorative by default: it renders `aria-hidden` unless the SVG carries `aria-label`, `aria-labelledby`, `role`, or an explicit `aria-hidden`. For icon-only links, pass an `aria-label`.
 
 <Example className="flex-col">
 	<p>

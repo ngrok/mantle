@@ -24,10 +24,22 @@ A square, centered keyboard "key" chip for rendering shortcut hints — `K`, `�
 <Example>
 	<div className="flex items-center gap-2">
 		<Kbd>K</Kbd>
-		<Kbd aria-label="Command">⌘</Kbd>
-		<Kbd aria-label="Control">⌃</Kbd>
-		<Kbd aria-label="Shift">⇧</Kbd>
-		<Kbd aria-label="Option">⌥</Kbd>
+		<Kbd>
+			<span className="sr-only">Command</span>
+			<span aria-hidden>⌘</span>
+		</Kbd>
+		<Kbd>
+			<span className="sr-only">Control</span>
+			<span aria-hidden>⌃</span>
+		</Kbd>
+		<Kbd>
+			<span className="sr-only">Shift</span>
+			<span aria-hidden>⇧</span>
+		</Kbd>
+		<Kbd>
+			<span className="sr-only">Option</span>
+			<span aria-hidden>⌥</span>
+		</Kbd>
 	</div>
 </Example>
 
@@ -36,10 +48,22 @@ import { Kbd } from "@ngrok/mantle/kbd";
 
 <div className="flex items-center gap-2">
 	<Kbd>K</Kbd>
-	<Kbd aria-label="Command">⌘</Kbd>
-	<Kbd aria-label="Control">⌃</Kbd>
-	<Kbd aria-label="Shift">⇧</Kbd>
-	<Kbd aria-label="Option">⌥</Kbd>
+	<Kbd>
+		<span className="sr-only">Command</span>
+		<span aria-hidden>⌘</span>
+	</Kbd>
+	<Kbd>
+		<span className="sr-only">Control</span>
+		<span aria-hidden>⌃</span>
+	</Kbd>
+	<Kbd>
+		<span className="sr-only">Shift</span>
+		<span aria-hidden>⇧</span>
+	</Kbd>
+	<Kbd>
+		<span className="sr-only">Option</span>
+		<span aria-hidden>⌥</span>
+	</Kbd>
 </div>;
 ```
 
@@ -50,14 +74,23 @@ Combine multiple `Kbd` components to display keyboard shortcuts.
 <Example>
 	<div className="flex flex-col gap-4">
 		<div className="flex items-center gap-2">
-			<Kbd aria-label="Command">⌘</Kbd>
+			<Kbd>
+				<span className="sr-only">Command</span>
+				<span aria-hidden>⌘</span>
+			</Kbd>
 			<span>+</span>
 			<Kbd>K</Kbd>
 		</div>
 		<div className="flex items-center gap-2">
-			<Kbd aria-label="Control">⌃</Kbd>
+			<Kbd>
+				<span className="sr-only">Control</span>
+				<span aria-hidden>⌃</span>
+			</Kbd>
 			<span>+</span>
-			<Kbd aria-label="Shift">⇧</Kbd>
+			<Kbd>
+				<span className="sr-only">Shift</span>
+				<span aria-hidden>⇧</span>
+			</Kbd>
 			<span>+</span>
 			<Kbd>P</Kbd>
 		</div>
@@ -69,14 +102,23 @@ import { Kbd } from "@ngrok/mantle/kbd";
 
 <div className="flex flex-col gap-4">
 	<div className="flex items-center gap-2">
-		<Kbd aria-label="Command">⌘</Kbd>
+		<Kbd>
+			<span className="sr-only">Command</span>
+			<span aria-hidden>⌘</span>
+		</Kbd>
 		<span>+</span>
 		<Kbd>K</Kbd>
 	</div>
 	<div className="flex items-center gap-2">
-		<Kbd aria-label="Control">⌃</Kbd>
+		<Kbd>
+			<span className="sr-only">Control</span>
+			<span aria-hidden>⌃</span>
+		</Kbd>
 		<span>+</span>
-		<Kbd aria-label="Shift">⇧</Kbd>
+		<Kbd>
+			<span className="sr-only">Shift</span>
+			<span aria-hidden>⇧</span>
+		</Kbd>
 		<span>+</span>
 		<Kbd>P</Kbd>
 	</div>
@@ -85,11 +127,14 @@ import { Kbd } from "@ngrok/mantle/kbd";
 
 ## Accessibility
 
-Screen readers do not announce symbol-only glyphs (`⌘`, `⌃`, `↵`) meaningfully. Set an accessible name with `aria-label` on the `<Kbd>` or include a visually-hidden label inside, and mark the visible glyph `aria-hidden`.
+Screen readers do not announce symbol-only glyphs (`⌘`, `⌃`, `↵`) meaningfully. Put a visually hidden label inside the `<Kbd>` and mark the visible glyph `aria-hidden`. Do not set `aria-label` on the `<Kbd>`: `<kbd>` has the `generic` role, which [prohibits naming](https://www.w3.org/TR/wai-aria-1.2/#generic), so a screen reader does not read the label reliably.
 
 <Example>
 	<div className="flex items-center gap-2">
-		<Kbd aria-label="Command">⌘</Kbd>
+		<Kbd>
+			<span className="sr-only">Command</span>
+			<span aria-hidden>⌘</span>
+		</Kbd>
 		<span>+</span>
 		<Kbd>K</Kbd>
 	</div>
@@ -99,7 +144,10 @@ Screen readers do not announce symbol-only glyphs (`⌘`, `⌃`, `↵`) meaningf
 import { Kbd } from "@ngrok/mantle/kbd";
 
 <div className="flex items-center gap-2">
-	<Kbd aria-label="Command">⌘</Kbd>
+	<Kbd>
+		<span className="sr-only">Command</span>
+		<span aria-hidden>⌘</span>
+	</Kbd>
 	<span>+</span>
 	<Kbd>K</Kbd>
 </div>;

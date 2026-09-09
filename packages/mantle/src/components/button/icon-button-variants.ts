@@ -28,7 +28,7 @@ const baseIconButtonClasses = cx(
 	"inline-flex shrink-0 items-center justify-center rounded-[var(--icon-button-border-radius,0.375rem)] border",
 	"focus:outline-hidden focus-visible:ring-4",
 	"disabled:cursor-default disabled:opacity-50",
-	"aria-disabled:pointer-events-none aria-disabled:cursor-default aria-disabled:opacity-50",
+	"aria-disabled:cursor-default aria-disabled:opacity-50",
 	"not-disabled:active:scale-97 ease-out transition-transform duration-150",
 );
 

@@ -26,7 +26,7 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 
 ## Accessibility
 
-An `Icon` is decorative by default. It renders `aria-hidden="true"` unless you pass `aria-label`, `aria-labelledby`, `role`, or an explicit `aria-hidden`, on the `Icon` or on the svg element itself. Phosphor icons set none of these, so an icon next to a text label is hidden from assistive technology and the text carries the meaning.
+An `Icon` is decorative by default. It renders `aria-hidden="true"` unless the `Icon` or the svg element itself carries a name (`aria-label`, `aria-labelledby`, a `<title>` child, or Phosphor's `alt`), a `role`, or an explicit `aria-hidden`. A bare Phosphor icon sets none of these, so an icon next to a text label is hidden from assistive technology and the text carries the meaning.
 
 When the icon is the only thing that conveys its meaning, name it:
 

@@ -28,6 +28,9 @@ type EventProps = BaseProps & {
  * Props for the sandboxed onClick container. Spread this on the element you want
  * to prevent the click event from bubbling out of.
  *
+ * If the element already has a role, take only `onClick`: `role="presentation"`
+ * on a `<td>` removes the cell from the table.
+ *
  * @see https://mantle.ngrok.com/components/primitives/sandboxed-on-click
  */
 const sandboxedOnClickProps = ({ allowClickEventDefault = false, onClick }: EventProps = {}) =>

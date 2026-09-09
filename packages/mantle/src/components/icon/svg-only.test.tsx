@@ -1,3 +1,4 @@
+import { WarningIcon } from "@phosphor-icons/react/Warning";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
 import { SvgOnly } from "./svg-only.js";
@@ -51,6 +52,26 @@ describe("SvgOnly", () => {
 			render(<SvgOnly svg={<svg role="img" aria-label="Shrimp" />} />);
 			const image = screen.getByRole("img", { name: "Shrimp" });
 			expect(image).not.toHaveAttribute("aria-hidden");
+		});
+
+		test("a <title> child names the svg and skips aria-hidden", () => {
+			const { container } = render(
+				<SvgOnly
+					svg={
+						<svg>
+							<title>Warning</title>
+						</svg>
+					}
+				/>,
+			);
+			expect(screen.getByTitle("Warning")).toBeInTheDocument();
+			expect(container.querySelector("svg")).not.toHaveAttribute("aria-hidden");
+		});
+
+		test("a Phosphor alt names the svg and skips aria-hidden", () => {
+			const { container } = render(<SvgOnly svg={<WarningIcon alt="Warning" />} />);
+			expect(screen.getByTitle("Warning")).toBeInTheDocument();
+			expect(container.querySelector("svg")).not.toHaveAttribute("aria-hidden");
 		});
 
 		test("aria-labelledby on the svg element skips aria-hidden", () => {

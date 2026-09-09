@@ -210,12 +210,14 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### sandboxedOnClickProps
 
-`sandboxedOnClickProps({ allowClickEventDefault?, onClick? })` returns the `role="presentation"` and `onClick` props the default `<div>` uses. Spread it on your own element when the component does not fit, for example a table cell that must stay a `<td>`.
+`sandboxedOnClickProps({ allowClickEventDefault?, onClick? })` returns the `role="presentation"` and `onClick` props the default `<div>` uses. When the component does not fit, apply them to your own element. If that element already has a role, take only `onClick`: `role="presentation"` on a `<td>` removes the cell from the table.
 
 ```tsx
 import { sandboxedOnClickProps } from "@ngrok/mantle/sandboxed-on-click";
 
-<td {...sandboxedOnClickProps({ allowClickEventDefault: true })}>
+const { onClick } = sandboxedOnClickProps({ allowClickEventDefault: true });
+
+<td onClick={onClick}>
 	<Anchor href="https://ngrok.com/docs">See ngrok docs</Anchor>
 </td>;
 ```

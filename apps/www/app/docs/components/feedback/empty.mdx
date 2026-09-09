@@ -246,7 +246,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Empty.Icon
 
-Renders a large icon for the empty state. Pass a single SVG icon element via the `svg` prop. The icon is automatically sized to `size-10` and is hidden from assistive technology, because the title carries the meaning.
+Renders a large icon for the empty state. Pass a single SVG icon element via the `svg` prop. The icon is sized to `size-10` and is decorative by default: it renders `aria-hidden` unless the SVG carries `aria-label`, `aria-labelledby`, `role`, or an explicit `aria-hidden`. The title carries the meaning.
 
 All props from [svg](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/svg#attributes), plus:
 

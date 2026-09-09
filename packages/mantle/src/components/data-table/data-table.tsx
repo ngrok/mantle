@@ -174,7 +174,9 @@ type DataTableHeaderSortButtonProps<TData, TValue> = Omit<
  * - For `"time"` sorting: `unsorted → newest-first → oldest-first → unsorted`
  *
  * When the column cannot sort (`disableSorting`, or `enableSorting: false` on
- * the column), the part renders the label as plain text: no button, no icon.
+ * the column), the part renders the label as plain text in a `<span>`: no
+ * button, no icon. The other props, `ref` included, land on that span.
+ * `onClick` does not, because plain text takes no click.
  *
  * For right-aligned numeric columns, pass `className="justify-end"` and
  * `iconPlacement="start"` so the sort icon stays paired with the label.
@@ -227,6 +229,7 @@ function HeaderSortButton<TData, TValue>({
 					appearance === "ghost" && intent === "neutral" && "text-muted",
 					className,
 				)}
+				{...props}
 			>
 				{children}
 			</span>

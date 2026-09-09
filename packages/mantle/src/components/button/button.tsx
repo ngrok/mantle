@@ -324,7 +324,7 @@ const Button = ({
 			"inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md",
 			"focus:outline-hidden focus-visible:ring-4",
 			"disabled:cursor-default disabled:opacity-50",
-			"aria-disabled:pointer-events-none aria-disabled:cursor-default aria-disabled:opacity-50",
+			"aria-disabled:cursor-default aria-disabled:opacity-50",
 			"not-disabled:active:scale-97 ease-out transition-transform duration-150",
 			buttonVariants({ appearance, intent, isLoading, size }),
 			appearance !== "link" && "font-sans", // only enforce font-sans on non-link button appearances

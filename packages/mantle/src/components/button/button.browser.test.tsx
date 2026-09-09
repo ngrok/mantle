@@ -3,7 +3,9 @@
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 import { render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { Tooltip, TooltipProvider } from "../tooltip/tooltip.js";
 import { Button } from "./button.js";
 
 /**
@@ -27,6 +29,14 @@ const STYLE = `
 	.min-w-0 { min-width: 0; }
 	.flex-1 { flex: 1 1 0%; }
 	.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	/*
+	 * Why these two rules: the button must NOT carry either utility. user-event
+	 * refuses to hover an element whose computed pointer-events is none, so if a
+	 * change adds the utility back, the rule below turns it on and the tooltip
+	 * tests fail.
+	 */
+	.disabled\\:pointer-events-none:disabled { pointer-events: none; }
+	.aria-disabled\\:pointer-events-none[aria-disabled="true"] { pointer-events: none; }
 }
 `;
 
@@ -133,5 +143,47 @@ describe("Button label slot layout", () => {
 		// The icons keep their size while the label absorbs the shrink.
 		expect(screen.getByTestId("lead").getBoundingClientRect().width).toBeCloseTo(20, 0);
 		expect(screen.getByTestId("trail").getBoundingClientRect().width).toBeGreaterThan(0);
+	});
+});
+
+describe("a disabled button keeps pointer events", () => {
+	test("a Tooltip on a disabled native button opens on hover", async () => {
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<Tooltip.Root>
+					<Tooltip.Trigger asChild>
+						<Button appearance="filled" intent="neutral" disabled>
+							Save
+						</Button>
+					</Tooltip.Trigger>
+					<Tooltip.Content>Fill in every field first</Tooltip.Content>
+				</Tooltip.Root>
+			</TooltipProvider>,
+		);
+
+		await user.hover(screen.getByRole("button", { name: "Save" }));
+
+		expect(await screen.findByRole("tooltip")).toHaveTextContent("Fill in every field first");
+	});
+
+	test("a Tooltip on a disabled asChild link opens on hover", async () => {
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<Tooltip.Root>
+					<Tooltip.Trigger asChild>
+						<Button appearance="filled" intent="neutral" asChild disabled>
+							<a href="/save">Save</a>
+						</Button>
+					</Tooltip.Trigger>
+					<Tooltip.Content>Fill in every field first</Tooltip.Content>
+				</Tooltip.Root>
+			</TooltipProvider>,
+		);
+
+		await user.hover(screen.getByRole("link", { name: "Save" }));
+
+		expect(await screen.findByRole("tooltip")).toHaveTextContent("Fill in every field first");
 	});
 });

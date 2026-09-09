@@ -73,8 +73,9 @@ type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
  * safe to merge token sets.
  *
  * **Accessibility.** Link text must be self-describing: avoid "click
- * here" / "read more". The icon renders `aria-hidden`, so it needs no
- * labeling; for icon-only links, pass an `aria-label`.
+ * here" / "read more". The icon is decorative by default: it renders
+ * `aria-hidden` unless the SVG carries `aria-label`, `aria-labelledby`, `role`,
+ * or an explicit `aria-hidden`. For icon-only links, pass an `aria-label`.
  *
  * **Structure.** `children` render inside an inline
  * `<span data-slot="anchor-label">`, between the two `icon` slots. Target that

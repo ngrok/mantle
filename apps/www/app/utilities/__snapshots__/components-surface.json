@@ -474,7 +474,7 @@
     "summary": "A square, centered keyboard \"key\" chip for rendering keyboard shortcut hints.",
     "jsdoc": "A square, centered keyboard \"key\" chip for rendering shortcut hints — \"K\", \"⌘\", \"⌃\", \"Enter\".",
     "examples": [
-      "```tsx\nimport { Kbd } from \"@ngrok/mantle/kbd\";\n\n// Letter key.\n<Kbd>K</Kbd>\n\n// Chord — render each key separately.\n<span>\n  <Kbd aria-label=\"Command\">⌘</Kbd> + <Kbd>K</Kbd>\n</span>\n\n// Symbol with sr-only label.\n<Kbd>\n  <span className=\"sr-only\">Enter</span>\n  <span aria-hidden>↵</span>\n</Kbd>\n```"
+      "```tsx\nimport { Kbd } from \"@ngrok/mantle/kbd\";\n\n// Letter key.\n<Kbd>K</Kbd>\n\n// Symbol: a visually hidden label names the key, and the glyph is hidden.\n<Kbd>\n  <span className=\"sr-only\">Enter</span>\n  <span aria-hidden>↵</span>\n</Kbd>\n\n// Chord — render each key separately.\n<span className=\"inline-flex items-center gap-1\">\n  <Kbd>\n    <span className=\"sr-only\">Command</span>\n    <span aria-hidden>⌘</span>\n  </Kbd>\n  <span>+</span>\n  <Kbd>K</Kbd>\n</span>\n```"
     ]
   },
   {

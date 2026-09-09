@@ -40,6 +40,22 @@ describe("MediaObject", () => {
 		},
 	);
 
+	test.each([
+		["Root", MediaObject.Root, "card media-object"],
+		["Media", MediaObject.Media, "card media-object-media"],
+		["Content", MediaObject.Content, "card media-object-content"],
+	] as const)(
+		"%s joins an incoming data-slot chain ahead of its own slot name",
+		(_name, Part, chain) => {
+			render(
+				<Part data-slot="card" data-testid="part">
+					child
+				</Part>,
+			);
+			expect(screen.getByTestId("part")).toHaveAttribute("data-slot", chain);
+		},
+	);
+
 	test("asChild renders the child element with the slot and the forwarded props", () => {
 		render(
 			<MediaObject.Root asChild id="row" aria-label="Row">

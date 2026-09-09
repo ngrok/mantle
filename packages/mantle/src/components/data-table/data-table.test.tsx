@@ -1,6 +1,14 @@
 import { render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { type ComponentProps, Fragment, type MouseEvent, useMemo, useState } from "react";
+import {
+	type ComponentProps,
+	createRef,
+	Fragment,
+	type MouseEvent,
+	type Ref,
+	useMemo,
+	useState,
+} from "react";
 import invariant from "tiny-invariant";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
@@ -77,6 +85,8 @@ type SortableHarnessProps = {
 	appearance?: ButtonAppearance;
 	intent?: ButtonIntent;
 	disableSorting?: boolean;
+	/** The ref the `disableSorting` branch passes to `DataTable.HeaderSortButton`. */
+	disabledHeaderRef?: Ref<HTMLButtonElement>;
 	enableSorting?: boolean;
 };
 
@@ -88,6 +98,7 @@ function SortableHarness({
 	appearance,
 	intent,
 	disableSorting = false,
+	disabledHeaderRef,
 	enableSorting = true,
 }: SortableHarnessProps) {
 	const sortableColumns = useMemo(
@@ -98,7 +109,13 @@ function SortableHarness({
 				header: (props) => (
 					<DataTable.Header column={props.column}>
 						{disableSorting ? (
-							<DataTable.HeaderSortButton column={props.column} disableSorting>
+							<DataTable.HeaderSortButton
+								column={props.column}
+								disableSorting
+								id="name-label"
+								title="Customer name"
+								ref={disabledHeaderRef}
+							>
 								Name
 							</DataTable.HeaderSortButton>
 						) : (
@@ -116,7 +133,7 @@ function SortableHarness({
 				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 			}),
 		],
-		[appearance, disableSorting, enableSorting, intent],
+		[appearance, disableSorting, disabledHeaderRef, enableSorting, intent],
 	);
 	const table = useReactTable({
 		data,
@@ -183,15 +200,17 @@ describe("DataTable.HeaderSortButton", () => {
 		expect(header).not.toHaveAttribute("aria-sort");
 	});
 
-	test("disableSorting renders the label as plain text with no button", () => {
-		render(<SortableHarness disableSorting />);
+	test("disableSorting renders the label as plain text with no button and forwards the other props", () => {
+		const ref = createRef<HTMLButtonElement>();
+		render(<SortableHarness disableSorting disabledHeaderRef={ref} />);
 		expect(screen.queryByRole("button")).not.toBeInTheDocument();
 		const header = screen.getByRole("columnheader", { name: "Name" });
 		expect(header).not.toHaveAttribute("aria-sort");
-		expect(header.querySelector('[data-slot="data-table-header-sort-button"]')).toHaveAttribute(
-			"data-sort-direction",
-			"unsorted",
-		);
+		const label = header.querySelector('[data-slot="data-table-header-sort-button"]');
+		expect(label).toHaveAttribute("data-sort-direction", "unsorted");
+		expect(label).toHaveAttribute("id", "name-label");
+		expect(label).toHaveAttribute("title", "Customer name");
+		expect(ref.current).toBe(label);
 	});
 
 	test("a column with enableSorting: false renders the label as plain text with no button", () => {
