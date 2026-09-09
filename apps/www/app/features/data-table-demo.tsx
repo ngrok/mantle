@@ -517,8 +517,8 @@ export function FilteredEmptyStateDemo() {
 	);
 }
 
-// `defaultPageSize` seeds an UNCONTROLLED <Select>, so keep it stable — a module
-// const (or the table's INITIAL page size), never the live page size.
+// The table's initial page size. It must be one of PageSizeSelect's pageSizes
+// (default 5 | 10 | 20 | 50 | 100).
 const DEFAULT_PAGE_SIZE = 10;
 
 const paginatedStatuses = ["success", "processing", "failed", "pending"];
@@ -565,13 +565,15 @@ export function PaginatedPaymentsDemo() {
 					)}
 				</DataTable.Body>
 			</DataTable.Root>
-			<CursorPagination.Root className="flex justify-end" defaultPageSize={DEFAULT_PAGE_SIZE}>
-				<CursorPagination.PageSizeSelect
-					onChangePageSize={(size) => {
-						table.setPageSize(size);
-						table.setPageIndex(0); // reset to the first page when the size changes
-					}}
-				/>
+			<CursorPagination.Root
+				className="flex justify-end"
+				pageSize={table.getState().pagination.pageSize}
+				onChangePageSize={(size) => {
+					table.setPageSize(size);
+					table.setPageIndex(0); // reset to the first page when the size changes
+				}}
+			>
+				<CursorPagination.PageSizeSelect />
 				<CursorPagination.Buttons
 					hasPreviousPage={table.getCanPreviousPage()}
 					hasNextPage={table.getCanNextPage()}
