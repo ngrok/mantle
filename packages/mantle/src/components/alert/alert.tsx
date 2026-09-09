@@ -413,7 +413,8 @@ type AlertDismissIconButtonProps = Partial<
  * consumer layout effect that placed focus in the meantime wins. A consumer
  * `useEffect` runs later still and overrides the move. The passive cleanup
  * moves focus only when focus did fall to `<body>`, and only to a neighbor
- * that the same commit left connected and tabbable.
+ * that the same commit left connected and tabbable. It tries the neighbors
+ * in order until one holds focus.
  *
  * @example
  * ```tsx
@@ -461,9 +462,18 @@ function useDismissFocusRedirect({
 			if (activeElement != null && activeElement !== document.body) {
 				return;
 			}
-			// The same commit can disable, hide, or detach a recorded neighbor.
-			const target = neighbors.find((element) => element.isConnected && isTabbable(element));
-			target?.focus();
+			// The same commit can disable, hide, or detach a recorded neighbor, and
+			// an engine without `checkVisibility` can pass one that `focus()` then
+			// refuses, so each candidate has to confirm the move.
+			for (const element of neighbors) {
+				if (!element.isConnected || !isTabbable(element)) {
+					continue;
+				}
+				element.focus();
+				if (document.activeElement === element) {
+					return;
+				}
+			}
 		};
 	}, [enabled]);
 }

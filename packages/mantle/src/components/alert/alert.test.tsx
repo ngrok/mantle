@@ -247,6 +247,27 @@ describe("Alert", () => {
 				expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
 			});
 
+			test("tries the next neighbor when the engine refuses to focus the first", async () => {
+				// An engine without `checkVisibility` can pass a CSS-hidden control
+				// that `focus()` then ignores. The refusal is simulated on a plain
+				// button, because happy-dom has no such gap of its own.
+				const user = userEvent.setup();
+				render(
+					<>
+						<DismissibleAlert />
+						<button type="button">Refuses</button>
+						<button type="button">After</button>
+					</>,
+				);
+				const refusing = screen.getByRole("button", { name: "Refuses" });
+				const refusedFocus = vi.spyOn(refusing, "focus").mockImplementation(() => {});
+
+				await user.click(screen.getByRole("button", { name: "Dismiss Alert" }));
+
+				expect(refusedFocus).toHaveBeenCalledTimes(1);
+				expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+			});
+
 			test("leaves focus alone when the button does not hold it", () => {
 				render(
 					<>

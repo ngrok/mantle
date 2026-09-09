@@ -10,13 +10,16 @@ const TABBABLE_CANDIDATE_SELECTOR =
  * one stop in sequential navigation: the checked radio, or the first enabled
  * radio when none is checked. A radio with no `name` is its own group. The
  * group is the radios with the same `name` and the same form owner.
+ *
+ * Why the document is the query scope: a `form` attribute can place a radio
+ * outside its owner form's subtree, and the `form` filter still keeps it in
+ * the group.
  */
 function isRadioTabStop(radio: HTMLInputElement): boolean {
 	if (radio.name === "") {
 		return true;
 	}
-	const scope = radio.form ?? radio.ownerDocument;
-	const group = Array.from(scope.querySelectorAll("input")).filter(
+	const group = Array.from(radio.ownerDocument.querySelectorAll("input")).filter(
 		(input) =>
 			input.type === "radio" &&
 			input.name === radio.name &&
@@ -31,10 +34,11 @@ function isRadioTabStop(radio: HTMLInputElement): boolean {
  * Whether a Tab press can reach `element`: it is an `HTMLElement` with a
  * non-negative `tabIndex`, not disabled, not a hidden input, not a radio
  * that its group skips, not inside a `hidden` or `inert` subtree, and
- * rendered.
+ * rendered with a `visibility` other than `hidden`.
  *
  * Why the `checkVisibility` guard: Safari added it in 17.4, so an older engine
- * counts the element as visible instead of throwing.
+ * counts the element as visible instead of throwing. The caller confirms the
+ * move with `document.activeElement`, which covers that gap.
  */
 function isTabbable(element: Element): element is HTMLElement {
 	if (!(element instanceof HTMLElement)) {
@@ -54,7 +58,10 @@ function isTabbable(element: Element): element is HTMLElement {
 	if (element.closest("[hidden], [inert]") != null) {
 		return false;
 	}
-	if (typeof element.checkVisibility === "function" && !element.checkVisibility()) {
+	if (
+		typeof element.checkVisibility === "function" &&
+		!element.checkVisibility({ visibilityProperty: true })
+	) {
 		return false;
 	}
 	return true;
@@ -67,9 +74,9 @@ function isTabbable(element: Element): element is HTMLElement {
  * Elements inside `anchor` leave with it, so they never count. Returns an
  * empty array when the document has no other tabbable.
  *
- * The caller focuses the first element that `isTabbable` still accepts,
- * because the commit that removes `anchor` can remove or disable its nearest
- * neighbor too.
+ * The caller tries each element that `isTabbable` still accepts until one
+ * takes focus, because the commit that removes `anchor` can remove or disable
+ * its nearest neighbor too.
  *
  * @example
  * ```ts

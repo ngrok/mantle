@@ -42,6 +42,7 @@ describe("findTabbableNeighbors", () => {
 		const anchor = mount(`
 			<div id="anchor"></div>
 			<button id="disabled" type="button" disabled>d</button>
+			<button id="invisible" type="button" style="visibility: hidden">v</button>
 			<div id="negative" tabindex="-1">n</div>
 			<a id="no-href">a</a>
 			<input id="hidden-input" type="hidden" />
@@ -75,6 +76,16 @@ describe("findTabbableNeighbors", () => {
 			`);
 
 			expect(ids(findTabbableNeighbors(anchor))).toEqual(["plan-pro"]);
+		});
+
+		test("groups a radio placed outside its form through the `form` attribute", () => {
+			const anchor = mount(`
+				<div id="anchor"></div>
+				<form id="plan-form"><input id="in-form" type="radio" name="plan" /></form>
+				<input id="via-attribute" type="radio" name="plan" form="plan-form" checked />
+			`);
+
+			expect(ids(findTabbableNeighbors(anchor))).toEqual(["via-attribute"]);
 		});
 
 		test("keeps separate groups, unnamed radios, and separate forms as their own stops", () => {
