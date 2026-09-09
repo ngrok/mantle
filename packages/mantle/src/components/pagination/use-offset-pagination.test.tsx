@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { getOffsetPaginatedSlice, useOffsetPagination } from "./use-offset-pagination.js";
 
 describe("useOffsetPagination", () => {
@@ -128,6 +128,149 @@ describe("useOffsetPagination", () => {
 
 		rerender({ listSize: 200, pageSize: 100 });
 		expect(result.current.currentPage).toBe(1);
+	});
+
+	describe("defaultPage", () => {
+		test("starts on the given page", () => {
+			const { result } = renderHook(() =>
+				useOffsetPagination({ listSize: 50, pageSize: 10, defaultPage: 3 }),
+			);
+			expect(result.current.currentPage).toBe(3);
+			expect(result.current.offset).toBe(20);
+			expect(result.current.hasPreviousPage).toBe(true);
+			expect(result.current.hasNextPage).toBe(true);
+		});
+
+		test("a page past the end clamps to the last page", () => {
+			const { result } = renderHook(() =>
+				useOffsetPagination({ listSize: 25, pageSize: 10, defaultPage: 9 }),
+			);
+			expect(result.current.currentPage).toBe(3);
+			expect(result.current.offset).toBe(20);
+			expect(result.current.hasNextPage).toBe(false);
+		});
+	});
+
+	describe("controlled page", () => {
+		test("mount does not call onPageChange", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const { result } = renderHook(() =>
+				useOffsetPagination({ listSize: 50, pageSize: 10, page: 4, onPageChange }),
+			);
+			expect(result.current.currentPage).toBe(4);
+			expect(onPageChange).not.toHaveBeenCalled();
+		});
+
+		test("navigation reports the next page and waits for the prop", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const { result, rerender } = renderHook((props) => useOffsetPagination(props), {
+				initialProps: { listSize: 50, pageSize: 10, page: 2, onPageChange },
+			});
+
+			act(() => result.current.nextPage());
+			expect(onPageChange).toHaveBeenCalledTimes(1);
+			expect(onPageChange).toHaveBeenLastCalledWith(3);
+			expect(result.current.currentPage).toBe(2);
+
+			rerender({ listSize: 50, pageSize: 10, page: 3, onPageChange });
+			expect(result.current.currentPage).toBe(3);
+			expect(result.current.offset).toBe(20);
+		});
+
+		test("a move to the current page does not call onPageChange", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const { result } = renderHook(() =>
+				useOffsetPagination({ listSize: 50, pageSize: 10, page: 2, onPageChange }),
+			);
+			act(() => result.current.goToPage(2));
+			expect(onPageChange).not.toHaveBeenCalled();
+		});
+
+		test("a stale page past the end clamps, and goToLastPage repairs it", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const { result } = renderHook(() =>
+				useOffsetPagination({ listSize: 25, pageSize: 10, page: 5, onPageChange }),
+			);
+			expect(result.current.currentPage).toBe(3);
+			expect(result.current.hasNextPage).toBe(false);
+			expect(onPageChange).not.toHaveBeenCalled();
+
+			act(() => result.current.goToLastPage());
+			expect(onPageChange).toHaveBeenCalledTimes(1);
+			expect(onPageChange).toHaveBeenLastCalledWith(3);
+		});
+
+		test("a pageSize change reports page 1", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const { rerender } = renderHook((props) => useOffsetPagination(props), {
+				initialProps: { listSize: 500, pageSize: 10, page: 4, onPageChange },
+			});
+			rerender({ listSize: 500, pageSize: 50, page: 4, onPageChange });
+			expect(onPageChange).toHaveBeenCalledTimes(1);
+			expect(onPageChange).toHaveBeenLastCalledWith(1);
+		});
+
+		test("a listSize change reports page 1 by default", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const { rerender } = renderHook((props) => useOffsetPagination(props), {
+				initialProps: { listSize: 500, pageSize: 10, page: 4, onPageChange },
+			});
+			rerender({ listSize: 400, pageSize: 10, page: 4, onPageChange });
+			expect(onPageChange).toHaveBeenCalledTimes(1);
+			expect(onPageChange).toHaveBeenLastCalledWith(1);
+		});
+	});
+
+	describe("resetPageOnListSizeChange: false", () => {
+		// Regression: a background refetch that changed the list length sent the
+		// user back to page 1.
+		test("a list that grows keeps the page", () => {
+			const { result, rerender } = renderHook((props) => useOffsetPagination(props), {
+				initialProps: { listSize: 500, pageSize: 10, resetPageOnListSizeChange: false },
+			});
+			act(() => result.current.goToPage(5));
+			expect(result.current.currentPage).toBe(5);
+
+			rerender({ listSize: 600, pageSize: 10, resetPageOnListSizeChange: false });
+			expect(result.current.currentPage).toBe(5);
+			expect(result.current.totalPages).toBe(60);
+		});
+
+		test("a list that shrinks clamps the page to the new last page", () => {
+			const { result, rerender } = renderHook((props) => useOffsetPagination(props), {
+				initialProps: { listSize: 500, pageSize: 10, resetPageOnListSizeChange: false },
+			});
+			act(() => result.current.goToPage(50));
+			expect(result.current.currentPage).toBe(50);
+
+			rerender({ listSize: 25, pageSize: 10, resetPageOnListSizeChange: false });
+			expect(result.current.currentPage).toBe(3);
+			expect(result.current.offset).toBe(20);
+			expect(result.current.hasNextPage).toBe(false);
+			expect(result.current.hasPreviousPage).toBe(true);
+		});
+
+		test("a listSize change does not call onPageChange", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const { result, rerender } = renderHook((props) => useOffsetPagination(props), {
+				initialProps: {
+					listSize: 500,
+					pageSize: 10,
+					page: 4,
+					onPageChange,
+					resetPageOnListSizeChange: false,
+				},
+			});
+			rerender({
+				listSize: 400,
+				pageSize: 10,
+				page: 4,
+				onPageChange,
+				resetPageOnListSizeChange: false,
+			});
+			expect(onPageChange).not.toHaveBeenCalled();
+			expect(result.current.currentPage).toBe(4);
+		});
 	});
 });
 

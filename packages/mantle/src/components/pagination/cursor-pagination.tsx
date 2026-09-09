@@ -11,36 +11,66 @@ import { Separator } from "../separator/separator.js";
 
 type CursorPaginationContextValue = {
 	/**
-	 * The default number of items per page.
-	 */
-	defaultPageSize: number;
-	/**
 	 * The current number of items per page.
 	 */
 	pageSize: number;
 	/**
-	 * A function to set the number of items per page.
+	 * Set the number of items per page. Calls `Root`'s `onChangePageSize` and,
+	 * when uncontrolled, updates the internal state.
 	 */
-	setPageSize: (value: number) => void;
+	setPageSize: (pageSize: number) => void;
 };
 
 const CursorPaginationContext = createContext<CursorPaginationContextValue | undefined>(undefined);
 
-type CursorPaginationProps = ComponentProps<"div"> & {
-	/**
-	 * The default number of items per page.
-	 */
-	defaultPageSize: number;
-};
+/**
+ * The page size owner: either the root, seeded by `defaultPageSize`, or the
+ * consumer, through `pageSize`. A union, so a call site passes exactly one.
+ */
+type CursorPaginationPageSizeProps =
+	| {
+			/**
+			 * The initial number of items per page. The root owns the value after
+			 * mount, and `PageSizeSelect` changes it. Read the changes back through
+			 * `onChangePageSize`.
+			 */
+			defaultPageSize: number;
+			pageSize?: never;
+	  }
+	| {
+			defaultPageSize?: never;
+			/**
+			 * The controlled number of items per page. Pair it with
+			 * `onChangePageSize`: `PageSizeSelect` calls that with the next value, and
+			 * the select shows this prop until you change it. An external change, such
+			 * as a browser history move that rewrites a URL param, updates the select.
+			 */
+			pageSize: number;
+	  };
+
+type CursorPaginationProps = ComponentProps<"div"> &
+	CursorPaginationPageSizeProps & {
+		/**
+		 * Called with the next number of items per page when `PageSizeSelect`
+		 * changes it. Required to change a controlled `pageSize`.
+		 */
+		onChangePageSize?: (pageSize: number) => void;
+	};
 
 /**
- * A pagination component for use with cursor-based pagination.
+ * The root container for cursor-based pagination. It owns the page size that
+ * `PageSizeSelect` and `PageSizeValue` read.
  *
- * Cursor-based pagination is a way of loading data in chunks by using a cursor
- * from the last item on the current page to know where to start the next set,
- * making sure nothing is missed or repeated. Like a linked list, but for chunks
- * of data. It doesn't let you jump to a specific page or know how many total pages
- * there are, but it's more efficient for large or real-time data sets.
+ * Pass `defaultPageSize` to let the root own the page size, or pass `pageSize`
+ * with `onChangePageSize` to own it yourself. The select shows the owner's
+ * value in both modes, so an external change to a controlled `pageSize` updates
+ * the select.
+ *
+ * Cursor-based pagination loads data in chunks. A cursor from the last item on
+ * the current page marks where the next chunk starts, so no item is missed or
+ * repeated. It cannot jump to a page or count the pages, but it stays efficient
+ * for large or real-time data sets. For a page count and jumps, use
+ * `useOffsetPagination`.
  *
  * @see https://mantle.ngrok.com/components/navigation/pagination#cursorpaginationroot
  *
@@ -56,12 +86,58 @@ type CursorPaginationProps = ComponentProps<"div"> & {
  *   <CursorPagination.PageSizeSelect />
  * </CursorPagination.Root>
  * ```
+ *
+ * @example
+ * Controlled page size, kept in the URL:
+ * ```tsx
+ * const [searchParams, setSearchParams] = useSearchParams();
+ * const pageSize = Number(searchParams.get("pageSize") ?? 10);
+ *
+ * <CursorPagination.Root
+ *   pageSize={pageSize}
+ *   onChangePageSize={(size) => setSearchParams({ pageSize: String(size) })}
+ * >
+ *   <CursorPagination.Buttons
+ *     hasNextPage={hasNext}
+ *     hasPreviousPage={hasPrevious}
+ *     onNextPage={handleNext}
+ *     onPreviousPage={handlePrevious}
+ *   />
+ *   <CursorPagination.PageSizeSelect />
+ * </CursorPagination.Root>
+ * ```
  */
-const Root = ({ className, children, defaultPageSize, ref, ...props }: CursorPaginationProps) => {
-	const [pageSize, setPageSize] = useState<number>(defaultPageSize);
-	const contextValue = useMemo(
-		() => ({ defaultPageSize, pageSize, setPageSize }),
-		[defaultPageSize, pageSize],
+const Root = ({
+	className,
+	children,
+	defaultPageSize,
+	onChangePageSize,
+	pageSize: pageSizeProp,
+	ref,
+	...props
+}: CursorPaginationProps) => {
+	const isControlled = pageSizeProp != null;
+	const [internalPageSize, setInternalPageSize] = useState(defaultPageSize);
+	const pageSize = isControlled ? pageSizeProp : internalPageSize;
+
+	// Why: the props union makes one of the two required, but a JavaScript
+	// caller can still omit both, and `PageSizeValue` would render "undefined".
+	invariant(
+		pageSize != null,
+		"CursorPagination.Root requires either `defaultPageSize` or `pageSize`",
+	);
+
+	const contextValue = useMemo<CursorPaginationContextValue>(
+		() => ({
+			pageSize,
+			setPageSize: (next) => {
+				if (!isControlled) {
+					setInternalPageSize(next);
+				}
+				onChangePageSize?.(next);
+			},
+		}),
+		[isControlled, onChangePageSize, pageSize],
 	);
 
 	return (
@@ -159,13 +235,16 @@ const defaultPageSizes = [5, 10, 20, 50, 100] as const;
 
 type CursorPageSizeSelectProps = Omit<ComponentProps<typeof Select.Trigger>, "children"> & {
 	/**
-	 * A list of page sizes to choose from. The default page size must be included in this list.
+	 * The page sizes to choose from. The current page size must be in this list.
+	 *
+	 * @default [5, 10, 20, 50, 100]
 	 */
 	pageSizes?: typeof defaultPageSizes | readonly number[];
 	/**
-	 * A callback that is called when the page size is changed.
+	 * Called with the next number of items per page when the user picks one.
+	 * `Root`'s `onChangePageSize` runs first with the same value.
 	 */
-	onChangePageSize?: (value: number) => void;
+	onChangePageSize?: (pageSize: number) => void;
 };
 
 /**
@@ -193,25 +272,25 @@ const PageSizeSelect = ({
 	invariant(ctx, "CursorPageSizeSelect must be used as a child of a CursorPagination component");
 
 	invariant(
-		pageSizes.includes(ctx.defaultPageSize),
-		"CursorPagination.defaultPageSize must be included in CursorPageSizeSelect.pageSizes",
-	);
-
-	invariant(
 		pageSizes.includes(ctx.pageSize),
 		"CursorPagination.pageSize must be included in CursorPageSizeSelect.pageSizes",
 	);
 
 	return (
 		<Select.Root
-			defaultValue={`${ctx.pageSize}`}
+			// Why controlled: the context owns the page size in both modes, so an
+			// external change to a controlled `pageSize` must update the select.
+			value={`${ctx.pageSize}`}
 			onValueChange={(value) => {
-				let newPageSize = Number.parseInt(value, 10);
-				if (Number.isNaN(newPageSize)) {
-					newPageSize = ctx.defaultPageSize;
-				}
-				ctx.setPageSize(newPageSize);
-				onChangePageSize?.(newPageSize);
+				const nextPageSize = Number.parseInt(value, 10);
+				// Why: every item value is a stringified entry of `pageSizes`, so a
+				// non-number means the list itself is broken.
+				invariant(
+					!Number.isNaN(nextPageSize),
+					"CursorPageSizeSelect.pageSizes must contain only numbers",
+				);
+				ctx.setPageSize(nextPageSize);
+				onChangePageSize?.(nextPageSize);
 			}}
 		>
 			<Select.Trigger
@@ -302,13 +381,39 @@ function PageSizeValue({ className, ...props }: CursorPageSizeValueProps) {
  */
 const CursorPagination = {
 	/**
-	 * The root container of the cursor pagination component.
+	 * The root container for cursor-based pagination. It owns the page size that
+	 * `PageSizeSelect` and `PageSizeValue` read.
+	 *
+	 * Pass `defaultPageSize` to let the root own the page size, or pass `pageSize`
+	 * with `onChangePageSize` to own it yourself. The select shows the owner's
+	 * value in both modes, so an external change to a controlled `pageSize` updates
+	 * the select.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/pagination#cursorpaginationroot
 	 *
 	 * @example
 	 * ```tsx
 	 * <CursorPagination.Root defaultPageSize={10}>
+	 *   <CursorPagination.Buttons
+	 *     hasNextPage={hasNext}
+	 *     hasPreviousPage={hasPrevious}
+	 *     onNextPage={handleNext}
+	 *     onPreviousPage={handlePrevious}
+	 *   />
+	 *   <CursorPagination.PageSizeSelect />
+	 * </CursorPagination.Root>
+	 * ```
+	 *
+	 * @example
+	 * Controlled page size, kept in the URL:
+	 * ```tsx
+	 * const [searchParams, setSearchParams] = useSearchParams();
+	 * const pageSize = Number(searchParams.get("pageSize") ?? 10);
+	 *
+	 * <CursorPagination.Root
+	 *   pageSize={pageSize}
+	 *   onChangePageSize={(size) => setSearchParams({ pageSize: String(size) })}
+	 * >
 	 *   <CursorPagination.Buttons
 	 *     hasNextPage={hasNext}
 	 *     hasPreviousPage={hasPrevious}

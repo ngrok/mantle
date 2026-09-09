@@ -524,9 +524,8 @@ import {
 } from "@ngrok/mantle/data-table";
 import { CursorPagination } from "@ngrok/mantle/pagination";
 
-// defaultPageSize seeds an UNCONTROLLED <Select>, so keep it stable — a module
-// const (or the table's INITIAL page size), never the live page size. It must be
-// one of CursorPagination's pageSizes (default 5 | 10 | 20 | 50 | 100).
+// The table's initial page size. It must be one of PageSizeSelect's pageSizes
+// (default 5 | 10 | 20 | 50 | 100).
 const DEFAULT_PAGE_SIZE = 10;
 
 function PaginatedTable({ data }: { data: Payment[] }) {
@@ -553,13 +552,15 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 				</DataTable.Body>
 			</DataTable.Root>
 
-			<CursorPagination.Root className="flex justify-end" defaultPageSize={DEFAULT_PAGE_SIZE}>
-				<CursorPagination.PageSizeSelect
-					onChangePageSize={(size) => {
-						table.setPageSize(size);
-						table.setPageIndex(0); // reset to the first page when the size changes
-					}}
-				/>
+			<CursorPagination.Root
+				className="flex justify-end"
+				pageSize={table.getState().pagination.pageSize}
+				onChangePageSize={(size) => {
+					table.setPageSize(size);
+					table.setPageIndex(0); // reset to the first page when the size changes
+				}}
+			>
+				<CursorPagination.PageSizeSelect />
 				<CursorPagination.Buttons
 					hasPreviousPage={table.getCanPreviousPage()}
 					hasNextPage={table.getCanNextPage()}
@@ -574,8 +575,8 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 
 **Rules:**
 
-- `defaultPageSize` must be present in `CursorPagination.PageSizeSelect`'s `pageSizes` (default `5 | 10 | 20 | 50 | 100`) or the select renders blank.
-- `defaultPageSize` is an _uncontrolled_ seed: derive it from the table's initial page size once; don't pass the live `table.getState().pagination.pageSize` (it changes and would thrash the select).
+- The page size must be one of `CursorPagination.PageSizeSelect`'s `pageSizes` (default `5 | 10 | 20 | 50 | 100`), or the select throws.
+- The table owns the page size: pass the live `table.getState().pagination.pageSize` as `pageSize`. The select then follows a `setPageSize()` call from anywhere, including table state you keep in the URL.
 - Reset to page 0 on a size change.
 - **Server/cursor data** (no `getPaginationRowModel`): wire `Buttons` to your fetch's has-next/has-prev + load callbacks, and use the read-only `CursorPagination.PageSizeValue` when the page size is fixed server-side rather than `PageSizeSelect`. See [Pagination → Within a data table](/components/navigation/pagination#within-a-data-table).
 

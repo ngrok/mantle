@@ -31,6 +31,31 @@ export function ServerCursorPaginationExample() {
 
 }
 
+export function ControlledPageSizeExample() {
+	const [pageSize, setPageSize] = useState(10);
+
+    return (
+    	<div className="flex flex-col gap-4">
+    		<CursorPagination.Root pageSize={pageSize} onChangePageSize={setPageSize}>
+    			<CursorPagination.PageSizeSelect />
+    			<CursorPagination.Buttons hasNextPage hasPreviousPage={false} />
+    		</CursorPagination.Root>
+    		<div className="flex items-center gap-4">
+    			<p className="text-muted text-sm">Page size in state: {pageSize}</p>
+    			<Button
+    				type="button"
+    				appearance="outlined"
+    				intent="neutral"
+    				onClick={() => setPageSize(100)}
+    			>
+    				Set 100 from outside
+    			</Button>
+    		</div>
+    	</div>
+    );
+
+}
+
 export const offsetSliceItems = [
 	"Alpha",
 	"Bravo",
@@ -69,6 +94,55 @@ export function OffsetPaginationExample() {
     				onClick={pagination.nextPage}
     			>
     				Next
+    			</Button>
+    		</div>
+    	</div>
+    );
+
+}
+
+export function ControlledOffsetPaginationExample() {
+	const [page, setPage] = useState(5);
+	const [listSize, setListSize] = useState(150);
+	const pagination = useOffsetPagination({
+		listSize,
+		pageSize: 10,
+		page,
+		onPageChange: setPage,
+		resetPageOnListSizeChange: false,
+	});
+
+    return (
+    	<div className="flex flex-col gap-4">
+    		<p className="text-muted text-sm">
+    			Page {pagination.currentPage} of {pagination.totalPages}, {listSize} items
+    		</p>
+    		<div className="flex flex-wrap gap-2">
+    			<Button
+    				type="button"
+    				appearance="outlined"
+    				intent="neutral"
+    				disabled={!pagination.hasPreviousPage}
+    				onClick={pagination.previousPage}
+    			>
+    				Previous
+    			</Button>
+    			<Button
+    				type="button"
+    				appearance="outlined"
+    				intent="neutral"
+    				disabled={!pagination.hasNextPage}
+    				onClick={pagination.nextPage}
+    			>
+    				Next
+    			</Button>
+    			<Button
+    				type="button"
+    				appearance="outlined"
+    				intent="neutral"
+    				onClick={() => setListSize((size) => (size === 150 ? 25 : 150))}
+    			>
+    				Refetch {listSize === 150 ? 25 : 150} items
     			</Button>
     		</div>
     	</div>
@@ -159,11 +233,50 @@ import { CursorPagination } from "@ngrok/mantle/pagination";
 </CursorPagination.Root>
 ```
 
+## Controlled page size
+
+`Root` owns the page size when you pass `defaultPageSize`. When the page size must survive navigation, browser history moves, or a refetch, own it yourself: pass `pageSize` with `onChangePageSize`. `PageSizeSelect` shows the value you pass, so a change from outside the component reaches the select. The demo holds the page size in React state and changes it from a button; a URL search param that a back button rewrites works the same way.
+
+<Example>
+	<ControlledPageSizeExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { CursorPagination } from "@ngrok/mantle/pagination";
+import { useState } from "react";
+
+function ControlledPageSize() {
+	// Swap useState for your router's search params to keep the page size in the URL.
+	const [pageSize, setPageSize] = useState(10);
+
+	return (
+		<div className="flex flex-col gap-4">
+			<CursorPagination.Root pageSize={pageSize} onChangePageSize={setPageSize}>
+				<CursorPagination.PageSizeSelect />
+				<CursorPagination.Buttons hasNextPage hasPreviousPage={false} />
+			</CursorPagination.Root>
+			<div className="flex items-center gap-4">
+				<p>Page size in state: {pageSize}</p>
+				<Button
+					type="button"
+					appearance="outlined"
+					intent="neutral"
+					onClick={() => setPageSize(100)}
+				>
+					Set 100 from outside
+				</Button>
+			</div>
+		</div>
+	);
+}
+```
+
 ## Within a data table
 
 `CursorPagination` pairs with a [`DataTable`](/components/data-display/data-table): drive its `Buttons` and `PageSizeSelect` from a TanStack Table instance.
 
-**Client-paginated:** the table holds every row and `getPaginationRowModel()` slices them. Read `getCanPreviousPage()` / `getCanNextPage()` for the buttons and call `setPageSize()` / `setPageIndex(0)` when the size changes:
+**Client-paginated:** the table holds every row and `getPaginationRowModel()` slices them. The table owns the page size, so pass `table.getState().pagination.pageSize` as `pageSize` and the select follows a `setPageSize()` call from anywhere. Read `getCanPreviousPage()` / `getCanNextPage()` for the buttons and call `setPageSize()` / `setPageIndex(0)` when the size changes:
 
 <Example>
 	<PaginatedPaymentsDemo />
@@ -179,8 +292,8 @@ import {
 } from "@ngrok/mantle/data-table";
 import { CursorPagination } from "@ngrok/mantle/pagination";
 
-// defaultPageSize seeds an UNCONTROLLED <Select>, so keep it stable — a module
-// const (or the table's INITIAL page size), never the live page size.
+// The table's initial page size. It must be one of PageSizeSelect's pageSizes
+// (default 5 | 10 | 20 | 50 | 100).
 const DEFAULT_PAGE_SIZE = 10;
 
 type Payment = {
@@ -233,13 +346,15 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 					)}
 				</DataTable.Body>
 			</DataTable.Root>
-			<CursorPagination.Root className="flex justify-end" defaultPageSize={DEFAULT_PAGE_SIZE}>
-				<CursorPagination.PageSizeSelect
-					onChangePageSize={(size) => {
-						table.setPageSize(size);
-						table.setPageIndex(0); // reset to the first page when the size changes
-					}}
-				/>
+			<CursorPagination.Root
+				className="flex justify-end"
+				pageSize={table.getState().pagination.pageSize}
+				onChangePageSize={(size) => {
+					table.setPageSize(size);
+					table.setPageIndex(0); // reset to the first page when the size changes
+				}}
+			>
+				<CursorPagination.PageSizeSelect />
 				<CursorPagination.Buttons
 					hasPreviousPage={table.getCanPreviousPage()}
 					hasNextPage={table.getCanNextPage()}
@@ -302,13 +417,15 @@ CursorPagination.Root
 
 ### CursorPagination.Root
 
-The root container for cursor-based pagination. Manages the page size state.
+The root container for cursor-based pagination. It owns the page size that `PageSizeSelect` and `PageSizeValue` read. Pass exactly one of `defaultPageSize` and `pageSize`.
 
 All props from the HTML `div` element, plus:
 
-| Prop              | Type     | Default | Description                           |
-| :---------------- | :------- | :------ | :------------------------------------ |
-| `defaultPageSize` | `number` |         | The default number of items per page. |
+| Prop                | Type                         | Default | Description                                                                                            |
+| :------------------ | :--------------------------- | :------ | :----------------------------------------------------------------------------------------------------- |
+| `defaultPageSize?`  | `number`                     |         | The initial number of items per page. The root owns the value after mount.                             |
+| `pageSize?`         | `number`                     |         | The controlled number of items per page. Pair it with `onChangePageSize`; the select shows this value. |
+| `onChangePageSize?` | `(pageSize: number) => void` |         | Called with the next number of items per page when `PageSizeSelect` changes it.                        |
 
 ### CursorPagination.Buttons
 
@@ -325,11 +442,11 @@ A pair of previous/next buttons for navigating between pages.
 
 A select input for changing the number of items per page. Its combobox is named "Items per page" by default, because its visible text is only the current value. Accepts all `Select.Trigger` props, plus:
 
-| Prop                | Type                      | Default                | Description                                                        |
-| :------------------ | :------------------------ | :--------------------- | :----------------------------------------------------------------- |
-| `pageSizes?`        | `readonly number[]`       | `[5, 10, 20, 50, 100]` | A list of page sizes to choose from.                               |
-| `onChangePageSize?` | `(value: number) => void` |                        | Callback called when the page size is changed.                     |
-| `aria-label?`       | `string`                  | `"Items per page"`     | The accessible name of the combobox. Override it for localization. |
+| Prop                | Type                         | Default                | Description                                                                                     |
+| :------------------ | :--------------------------- | :--------------------- | :---------------------------------------------------------------------------------------------- |
+| `pageSizes?`        | `readonly number[]`          | `[5, 10, 20, 50, 100]` | The page sizes to choose from. The current page size must be in this list.                      |
+| `onChangePageSize?` | `(pageSize: number) => void` |                        | Called with the next number of items per page when the user picks one, after `Root`'s callback. |
+| `aria-label?`       | `string`                     | `"Items per page"`     | The accessible name of the combobox. Override it for localization.                              |
 
 ### CursorPagination.PageSizeValue
 
@@ -380,10 +497,81 @@ function OffsetPaginationControls() {
 }
 ```
 
-| Parameter  | Type     | Description                            |
-| :--------- | :------- | :------------------------------------- |
-| `listSize` | `number` | The total number of items in the list. |
-| `pageSize` | `number` | The number of items per page.          |
+### Own the page
+
+The hook owns the page by default. When the page must survive navigation, browser history moves, or a refetch, own it yourself: pass `page` with `onPageChange`. Keep the value where you need it, such as a URL search param. Set `resetPageOnListSizeChange` to `false` when a refetch can change the list length. The hook then stays on the current page and clamps it to the new page count instead of returning to page 1. The demo holds the page in React state and starts on page 5; the refetch button shrinks the list to 25 items, and the page clamps to 3.
+
+<Example>
+	<ControlledOffsetPaginationExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { useOffsetPagination } from "@ngrok/mantle/pagination";
+import { useState } from "react";
+
+function ControlledOffsetPagination() {
+	// Swap useState for your router's search params to keep the page in the URL.
+	const [page, setPage] = useState(5);
+	const [listSize, setListSize] = useState(150);
+	const pagination = useOffsetPagination({
+		listSize,
+		pageSize: 10,
+		page,
+		onPageChange: setPage,
+		resetPageOnListSizeChange: false,
+	});
+
+	return (
+		<div className="flex flex-col gap-4">
+			<p>
+				Page {pagination.currentPage} of {pagination.totalPages}, {listSize} items
+			</p>
+			<div className="flex flex-wrap gap-2">
+				<Button
+					type="button"
+					appearance="outlined"
+					intent="neutral"
+					disabled={!pagination.hasPreviousPage}
+					onClick={pagination.previousPage}
+				>
+					Previous
+				</Button>
+				<Button
+					type="button"
+					appearance="outlined"
+					intent="neutral"
+					disabled={!pagination.hasNextPage}
+					onClick={pagination.nextPage}
+				>
+					Next
+				</Button>
+				<Button
+					type="button"
+					appearance="outlined"
+					intent="neutral"
+					onClick={() => setListSize((size) => (size === 150 ? 25 : 150))}
+				>
+					Refetch {listSize === 150 ? 25 : 150} items
+				</Button>
+			</div>
+		</div>
+	);
+}
+```
+
+### Parameters
+
+| Parameter                    | Type                     | Default | Description                                                                                                         |
+| :--------------------------- | :----------------------- | :------ | :------------------------------------------------------------------------------------------------------------------ |
+| `listSize`                   | `number`                 |         | The total number of items in the list. A change resets the page to 1 unless `resetPageOnListSizeChange` is `false`. |
+| `pageSize`                   | `number`                 |         | The number of items per page. A change resets the page to 1.                                                        |
+| `defaultPage?`               | `number`                 | `1`     | The 1-indexed page to start on when uncontrolled.                                                                   |
+| `page?`                      | `number`                 |         | The controlled 1-indexed page. Pair it with `onPageChange`. A value past the last page clamps in `currentPage`.     |
+| `onPageChange?`              | `(page: number) => void` |         | Called with the next page when the hook changes it. Not called when the next page equals the current one.           |
+| `resetPageOnListSizeChange?` | `boolean`                | `true`  | Whether a `listSize` change resets the page to 1. Set `false` to keep the page, clamped to the new `totalPages`.    |
+
+### Return value
 
 The hook returns an object with the current pagination state and navigation helpers:
 

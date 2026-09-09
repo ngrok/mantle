@@ -1,16 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type UseOffsetPaginationProps = {
 	/**
-	 * The total number of items in the list to be paginated.
+	 * The total number of items in the list to paginate. A change resets the
+	 * page to 1 unless `resetPageOnListSizeChange` is `false`.
 	 */
 	listSize: number;
 	/**
-	 * The number of items per page.
+	 * The number of items per page. A change resets the page to 1.
 	 */
 	pageSize: number;
+	/**
+	 * The 1-indexed page to start on when uncontrolled. The hook owns the page
+	 * after mount.
+	 *
+	 * @default 1
+	 */
+	defaultPage?: number;
+	/**
+	 * The controlled 1-indexed page. Pair it with `onPageChange`: the hook calls
+	 * that with the next page and reads the page back from this prop. A value
+	 * past the last page clamps in `currentPage` without a callback.
+	 */
+	page?: number;
+	/**
+	 * Called with the next 1-indexed page when the hook changes it: a navigation
+	 * call, `setPageSize`, a `pageSize` change, or a `listSize` reset. Not called
+	 * when the next page equals the current one.
+	 */
+	onPageChange?: (page: number) => void;
+	/**
+	 * Whether a `listSize` change resets the page to 1. Set `false` to stay on
+	 * the current page: `currentPage` clamps to the new `totalPages`, so a
+	 * refetch that shrinks the list lands on its last page instead of page 1.
+	 *
+	 * @default true
+	 */
+	resetPageOnListSizeChange?: boolean;
 };
 
 type OffsetPaginationState = {
@@ -65,7 +93,17 @@ type OffsetPaginationState = {
 };
 
 /**
- * A headless hook for managing offset-based pagination state
+ * Clamp a 1-indexed page into `[1, totalPages]`. An empty list has zero pages
+ * but still reports page 1, so the lower bound wins over `totalPages`.
+ */
+function clampPage(page: number, totalPages: number): number {
+	return Math.max(1, Math.min(page, totalPages));
+}
+
+/**
+ * A headless hook for offset-based pagination state. It owns the page by
+ * default; pass `page` with `onPageChange` to own it yourself, for example in
+ * the URL.
  *
  * @example
  * ```tsx
@@ -86,61 +124,109 @@ type OffsetPaginationState = {
  *   </div>
  * );
  * ```
+ *
+ * @example
+ * Controlled page, kept in the URL, that survives a refetch:
+ * ```tsx
+ * const [searchParams, setSearchParams] = useSearchParams();
+ * const pagination = useOffsetPagination({
+ *   listSize: items.length,
+ *   pageSize: 10,
+ *   page: Number(searchParams.get("page") ?? 1),
+ *   onPageChange: (page) => setSearchParams({ page: String(page) }),
+ *   resetPageOnListSizeChange: false,
+ * });
+ * ```
  */
 function useOffsetPagination({
+	defaultPage = 1,
 	listSize,
+	onPageChange,
+	page: pageProp,
 	pageSize,
+	resetPageOnListSizeChange = true,
 }: UseOffsetPaginationProps): OffsetPaginationState {
-	const [currentPage, setCurrentPage] = useState(1);
+	const isPageControlled = pageProp != null;
+	const [internalPage, setInternalPage] = useState(defaultPage);
 	const [currentPageSize, setCurrentPageSize] = useState(pageSize);
 
-	// Why reset to page 1: the old index means something else against a new page
-	// size. A larger page size can also put it past the new last page.
-	useEffect(() => {
-		setCurrentPageSize(pageSize);
-		setCurrentPage(1);
-	}, [pageSize]);
-
-	// Why reset to page 1: a shorter list can put the current index past the end.
-	useEffect(() => {
-		setCurrentPage(1);
-	}, [listSize]);
-
 	const totalPages = Math.ceil(listSize / currentPageSize);
+	// Why the clamp: `page` and `defaultPage` come from outside, and a shorter
+	// list can leave the stored page past the end.
+	const storedPage = isPageControlled ? pageProp : internalPage;
+	const currentPage = clampPage(storedPage, totalPages);
 	const offset = (currentPage - 1) * currentPageSize;
 
 	const hasPreviousPage = currentPage > 1;
 	const hasNextPage = currentPage < totalPages;
 
+	const setPage = useCallback(
+		(next: number) => {
+			// Why compare the stored page: a clamped `currentPage` hides a stale
+			// stored value, and a call that lands on the clamp must still repair it.
+			if (next === storedPage) {
+				return;
+			}
+			if (!isPageControlled) {
+				setInternalPage(next);
+			}
+			onPageChange?.(next);
+		},
+		[isPageControlled, onPageChange, storedPage],
+	);
+
+	// Why the refs: an effect also runs on mount, and a mount must keep
+	// `defaultPage` and `page`. Only a real change resets.
+	const previousPageSize = useRef(pageSize);
+	useEffect(() => {
+		if (previousPageSize.current === pageSize) {
+			return;
+		}
+		previousPageSize.current = pageSize;
+		setCurrentPageSize(pageSize);
+		// Why reset to page 1: the old index means something else against a new
+		// page size. A larger page size can also put it past the new last page.
+		setPage(1);
+	}, [pageSize, setPage]);
+
+	const previousListSize = useRef(listSize);
+	useEffect(() => {
+		if (previousListSize.current === listSize) {
+			return;
+		}
+		previousListSize.current = listSize;
+		if (resetPageOnListSizeChange) {
+			setPage(1);
+		}
+	}, [listSize, resetPageOnListSizeChange, setPage]);
+
 	function goToPage(page: number) {
-		const clampedPage = Math.max(1, Math.min(page, totalPages));
-		setCurrentPage(clampedPage);
+		setPage(clampPage(page, totalPages));
 	}
 
 	function nextPage() {
 		if (hasNextPage) {
-			setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+			setPage(currentPage + 1);
 		}
 	}
 
 	function previousPage() {
 		if (hasPreviousPage) {
-			setCurrentPage((prev) => Math.max(prev - 1, 1));
+			setPage(currentPage - 1);
 		}
 	}
 
 	function setPageSize(size: number) {
 		setCurrentPageSize(size);
-		setCurrentPage(1); // reset to the first page when page size changes
+		setPage(1);
 	}
 
 	function goToLastPage() {
-		// Why the clamp: an empty list has zero pages, and `currentPage` is 1-indexed.
-		setCurrentPage(Math.max(1, totalPages));
+		setPage(clampPage(totalPages, totalPages));
 	}
 
 	function goToFirstPage() {
-		setCurrentPage(1);
+		setPage(1);
 	}
 
 	return {
