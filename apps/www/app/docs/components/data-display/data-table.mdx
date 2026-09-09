@@ -244,18 +244,21 @@ header: (props) => (
 	</DataTable.Header>
 ),
 
-// ❌ Clickable row with a dropdown inside — trigger click fires the row onClick
-<DataTable.Row onClick={navigate} row={row}>
-	<DataTable.ActionCell>
-		<DropdownMenu.Root>...</DropdownMenu.Root>
-	</DataTable.ActionCell>
-</DataTable.Row>
-// ✅ Stop propagation at the action cell boundary
-<DataTable.Row onClick={navigate} row={row}>
-	<DataTable.ActionCell onClick={(event) => event.stopPropagation()}>
-		<DropdownMenu.Root>...</DropdownMenu.Root>
-	</DataTable.ActionCell>
-</DataTable.Row>
+// ❌ Bare link in a clickable row — the link click also runs the row onClick
+<DataTable.Cell>
+	<Link to={href("/payments/:id", { id: row.original.id })}>{row.original.id}</Link>
+</DataTable.Cell>
+// ✅ Sandbox the link's click; the link keeps its own navigation
+<DataTable.Cell>
+	<SandboxedOnClick asChild allowClickEventDefault>
+		<Link to={href("/payments/:id", { id: row.original.id })}>{row.original.id}</Link>
+	</SandboxedOnClick>
+</DataTable.Cell>
+
+// ❌ tabIndex or a widget role on the row — a focusable link inside a role="button" is nested interactive content
+<DataTable.Row tabIndex={0} role="button" onClick={navigate} row={row} />
+// ✅ Keep role="row"; the link inside the primary cell is the keyboard path
+<DataTable.Row onClick={navigate} row={row} />
 
 // ❌ Empty state returns null — collapses the table frame
 <DataTable.Body>{rows.map((row) => <DataTable.Row key={row.id} row={row} />)}</DataTable.Body>
@@ -346,10 +349,13 @@ const isFiltered = globalFilter.trim() !== ""; // or table.getState().columnFilt
 
 ### Navigating on row click
 
-Pass `onClick` to `DataTable.Row` and navigate with React Router's `href()` + `useNavigate()`. Render a `<Link>` inside the primary cell for keyboard and screen-reader users; the row `onClick` is a larger pointer target on top.
+Pass `onClick` to `DataTable.Row` and navigate with React Router's `href()` + `useNavigate()`. Render a `<Link>` inside the primary cell for keyboard and screen-reader users; the row `onClick` is a larger pointer target on top. Wrap the link in [`SandboxedOnClick`](/components/primitives/sandboxed-on-click) with `asChild` and `allowClickEventDefault`, so a click on the link navigates once and doesn't also run the row handler.
+
+The row runs `onClick` only for a plain primary click. A modified click (`⌘`, `Ctrl`, `Shift`, `Alt`), a non-primary button, and a click that ends a text selection inside the row all skip it. The link answers a modified click with a new tab, and a selection copies text, so neither is a request to navigate. The row keeps its structural `role="row"`, which is what makes a `<tr onClick>` around a link safe: the row has no widget role, so the link isn't nested interactive content. Don't add `tabIndex` or `role="button"` to the row, and don't reach for `role="grid"`, which commits the table to roving focus and arrow-key navigation.
 
 ```tsx
 import { DataTable } from "@ngrok/mantle/data-table";
+import { SandboxedOnClick } from "@ngrok/mantle/sandboxed-on-click";
 import { Link, href, useNavigate } from "react-router";
 
 const columns = [
@@ -364,7 +370,9 @@ const columns = [
 		),
 		cell: (props) => (
 			<DataTable.Cell>
-				<Link to={href("/payments/:id", { id: props.row.original.id })}>{props.getValue()}</Link>
+				<SandboxedOnClick asChild allowClickEventDefault>
+					<Link to={href("/payments/:id", { id: props.row.original.id })}>{props.getValue()}</Link>
+				</SandboxedOnClick>
 			</DataTable.Cell>
 		),
 	}),
@@ -397,7 +405,7 @@ function PaymentsTable({ data }: { data: Payment[] }) {
 
 ### Action column with a dropdown menu
 
-Define the action column with `columnHelper.display`, pair `DataTable.ActionHeader` with `DataTable.ActionCell`, and stop click propagation on the cell if the row is also clickable.
+Define the action column with `columnHelper.display` and pair `DataTable.ActionHeader` with `DataTable.ActionCell`. The cell stops its own clicks, so the menu opens without a clickable row navigating.
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -412,7 +420,7 @@ columnHelper.display({
 	id: "actions",
 	header: () => <DataTable.ActionHeader />,
 	cell: (props) => (
-		<DataTable.ActionCell onClick={(event) => event.stopPropagation()}>
+		<DataTable.ActionCell>
 			<DropdownMenu.Root>
 				<DropdownMenu.Trigger asChild>
 					<IconButton
@@ -793,20 +801,21 @@ The `<tbody>` container for rows of data. Typically wraps a map of `DataTable.Ro
 
 Renders a single body row using the column definitions from the table instance. Does not accept children — cells come from each column's `cell` definition.
 
-When `onClick` is set, the row automatically receives `cursor-pointer`. Pass a different `cursor-*` class via `className` (for example, `cursor-wait`) to override.
+When `onClick` is set, the row receives `cursor-pointer` and `data-clickable`. Pass a different `cursor-*` class via `className` (for example, `cursor-wait`) to override the cursor. The row runs `onClick` only for a plain primary click: a modified click, a non-primary button, and a click that ends a text selection inside the row all skip it. A `<tr>` isn't focusable, so also render a `<Link>` inside the primary cell as the keyboard and screen-reader path; see [Navigating on row click](#navigating-on-row-click).
 
 | Prop              | Type                                               | Default | Description                                                                                                                         |
 | :---------------- | :------------------------------------------------- | :------ | :---------------------------------------------------------------------------------------------------------------------------------- |
 | `row`             | `TableRow<TData>`                                  |         | The TanStack Table row instance to render. **Required.**                                                                            |
 | `renderExpanded?` | `(row: TableRow<TData>) => ReactNode`              |         | Renders an inline detail panel below the row, wrapped in a `DataTable.ExpandedRow`. Called lazily — only while the row is expanded. |
-| `onClick?`        | `(event: MouseEvent<HTMLTableRowElement>) => void` |         | Fires when the row is clicked. Applying this auto-adds `cursor-pointer`.                                                            |
+| `onClick?`        | `(event: MouseEvent<HTMLTableRowElement>) => void` |         | Runs on a plain primary click. Setting it adds `cursor-pointer` and `data-clickable`.                                               |
 | `className?`      | `string`                                           |         | Extra classes merged onto the `<tr>`. A `cursor-*` class here overrides the auto `cursor-pointer`.                                  |
 
 Remaining props forward to the HTML `<tr>` element.
 
-| Data Attribute  | Value                 | Description                                    |
-| :-------------- | :-------------------- | :--------------------------------------------- |
-| `data-expanded` | present when expanded | Presence-only. The row's detail panel is open. |
+| Data Attribute   | Value                         | Description                                             |
+| :--------------- | :---------------------------- | :------------------------------------------------------ |
+| `data-clickable` | present when `onClick` is set | Presence-only. The row runs a handler on a plain click. |
+| `data-expanded`  | present when expanded         | Presence-only. The row's detail panel is open.          |
 
 ### DataTable.EmptyRow
 
@@ -867,12 +876,12 @@ A sticky-right `<th>` that pairs with `DataTable.ActionCell`. Use as the `header
 
 A sticky-right `<td>` for per-row action buttons (typically an `IconButton` that opens a `DropdownMenu`).
 
-When the row has an `onClick`, pass `onClick={(event) => event.stopPropagation()}` on the action cell so clicks on controls inside do not bubble and trigger the row handler.
+A click inside the cell never reaches a clickable row: the cell stops propagation and keeps the click's default action, so an action menu opens without the row navigating. Your own `onClick` still runs, and the `<td>` keeps its `role="cell"`.
 
 | Prop         | Type                                                | Default | Description                                                                               |
 | :----------- | :-------------------------------------------------- | :------ | :---------------------------------------------------------------------------------------- |
 | `children`   | `ReactNode`                                         |         | The row's action controls.                                                                |
-| `onClick?`   | `(event: MouseEvent<HTMLTableCellElement>) => void` |         | Use with `event.stopPropagation()` to prevent bubbling to a clickable row.                |
+| `onClick?`   | `(event: MouseEvent<HTMLTableCellElement>) => void` |         | Runs after the cell stops propagation; the click never reaches the row.                   |
 | `className?` | `string`                                            |         | Extra classes merged onto the `<td>`. Remaining props forward to the HTML `<td>` element. |
 
 ### DataTable.ExpandHeader

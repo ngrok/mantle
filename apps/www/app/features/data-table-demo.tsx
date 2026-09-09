@@ -100,7 +100,7 @@ const columns = [
 		id: "actions",
 		header: () => <DataTable.ActionHeader />,
 		cell: () => (
-			<DataTable.ActionCell onClick={(event) => event.stopPropagation()}>
+			<DataTable.ActionCell>
 				<DropdownMenu.Root>
 					<DropdownMenu.Trigger asChild>
 						<IconButton

@@ -162,7 +162,7 @@ describe("Choice (browser) — clicking the description toggles the control", ()
 });
 
 describe("Choice (browser) — radio options", () => {
-	test("clicking an option selects that radio, and the description is part of its accessible name", async () => {
+	test("clicking an option selects that radio; the title is its name and the description its description", async () => {
 		const user = userEvent.setup();
 		render(
 			<RadioGroup.Root defaultValue="free" aria-label="Plan">
@@ -191,9 +191,11 @@ describe("Choice (browser) — radio options", () => {
 			</RadioGroup.Root>,
 		);
 
-		// role="radio" flattens its children, so the title + description text becomes
-		// the radio's accessible name (announced as the name, not a separate description).
-		const pro = screen.getByRole("radio", { name: /Pro.*Unlimited projects/ });
+		// `role="radio"` flattens its children, so without the registered ids the
+		// title and description would merge into one name. The item points
+		// `aria-labelledby` at the title and `aria-describedby` at the description.
+		const pro = screen.getByRole("radio", { name: "Pro" });
+		expect(pro).toHaveAccessibleDescription("Unlimited projects and up to 25 members.");
 		expect(pro).not.toBeChecked();
 		await user.click(screen.getByText("Pro"));
 		expect(pro).toBeChecked();
@@ -271,6 +273,49 @@ describe("Choice accessibility (axe) — no violations across the control matrix
 		);
 		expect(await axeViolations(container)).toEqual([]);
 	});
+
+	const radioVariants = [
+		{ variant: "Item", Group: RadioGroup.Root, Option: RadioGroup.Item },
+		{ variant: "ListItem", Group: RadioGroup.List, Option: RadioGroup.ListItem },
+		{ variant: "Card", Group: RadioGroup.Root, Option: RadioGroup.Card },
+		{ variant: "Button", Group: RadioGroup.ButtonGroup, Option: RadioGroup.Button },
+	] as const;
+
+	test.each(radioVariants)(
+		"RadioGroup.$variant with a title and description",
+		async ({ Group, Option }) => {
+			const { container } = render(
+				<Group aria-label="Plan" defaultValue="pro">
+					<Option value="free">
+						<Choice.Root>
+							<Choice.Indicator>
+								<RadioGroup.Indicator />
+							</Choice.Indicator>
+							<Choice.Content>
+								<Choice.Title>Free</Choice.Title>
+								<Choice.Description>Up to 3 projects and 1 member.</Choice.Description>
+							</Choice.Content>
+						</Choice.Root>
+					</Option>
+					<Option value="pro">
+						<Choice.Root>
+							<Choice.Indicator>
+								<RadioGroup.Indicator />
+							</Choice.Indicator>
+							<Choice.Content>
+								<Choice.Title>Pro</Choice.Title>
+								<Choice.Description>Unlimited projects and up to 25 members.</Choice.Description>
+							</Choice.Content>
+						</Choice.Root>
+					</Option>
+				</Group>,
+			);
+			expect(screen.getByRole("radio", { name: "Free" })).toHaveAccessibleDescription(
+				"Up to 3 projects and 1 member.",
+			);
+			expect(await axeViolations(container)).toEqual([]);
+		},
+	);
 
 	test("radio options inside a labeled RadioGroup", async () => {
 		const { container } = render(

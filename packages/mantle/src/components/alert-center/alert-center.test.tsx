@@ -82,26 +82,58 @@ function transitionEndEvent(propertyName: string): Event {
 describe("rankAlerts", () => {
 	test("ranks highest-severity first regardless of input order", () => {
 		const ranked = rankAlerts([
-			{ id: "region", intent: "info", sequence: 0 },
-			{ id: "transfer", intent: "warning", sequence: 1 },
-			{ id: "payment", intent: "danger", sequence: 2 },
+			{ id: "region", intent: "info", order: 0, sequence: 0 },
+			{ id: "transfer", intent: "warning", order: 0, sequence: 1 },
+			{ id: "payment", intent: "danger", order: 0, sequence: 2 },
 		] as const);
 		expect(ranked.map((alert) => alert.id)).toEqual(["payment", "transfer", "region"]);
 	});
 
 	test("breaks same-intent ties by sequence (arrival order)", () => {
 		const ranked = rankAlerts([
-			{ id: "b", intent: "warning", sequence: 1 },
-			{ id: "a", intent: "warning", sequence: 0 },
-			{ id: "c", intent: "warning", sequence: 2 },
+			{ id: "b", intent: "warning", order: 0, sequence: 1 },
+			{ id: "a", intent: "warning", order: 0, sequence: 0 },
+			{ id: "c", intent: "warning", order: 0, sequence: 2 },
 		] as const);
 		expect(ranked.map((alert) => alert.id)).toEqual(["a", "b", "c"]);
 	});
 
+	test("breaks a same-intent tie by order before sequence", () => {
+		const ranked = rankAlerts([
+			{ id: "arrived-first", intent: "danger", order: 3, sequence: 0 },
+			{ id: "declared-first", intent: "danger", order: 2, sequence: 1 },
+		] as const);
+		expect(ranked.map((alert) => alert.id)).toEqual(["declared-first", "arrived-first"]);
+	});
+
+	test("an undeclared order follows every declared one, Infinity included", () => {
+		const ranked = rankAlerts([
+			{ id: "undeclared", intent: "warning", order: undefined, sequence: 0 },
+			{ id: "declared", intent: "warning", order: Number.POSITIVE_INFINITY, sequence: 1 },
+		] as const);
+		expect(ranked.map((alert) => alert.id)).toEqual(["declared", "undeclared"]);
+	});
+
+	test("two equal infinite orders fall through to sequence", () => {
+		const ranked = rankAlerts([
+			{ id: "later", intent: "warning", order: Number.POSITIVE_INFINITY, sequence: 1 },
+			{ id: "earlier", intent: "warning", order: Number.POSITIVE_INFINITY, sequence: 0 },
+		] as const);
+		expect(ranked.map((alert) => alert.id)).toEqual(["earlier", "later"]);
+	});
+
+	test("intent outranks order", () => {
+		const ranked = rankAlerts([
+			{ id: "eager-warning", intent: "warning", order: -100, sequence: 0 },
+			{ id: "late-danger", intent: "danger", order: 100, sequence: 1 },
+		] as const);
+		expect(ranked.map((alert) => alert.id)).toEqual(["late-danger", "eager-warning"]);
+	});
+
 	test("does not mutate the input array", () => {
 		const input = [
-			{ id: "region", intent: "info", sequence: 0 },
-			{ id: "payment", intent: "danger", sequence: 1 },
+			{ id: "region", intent: "info", order: 0, sequence: 0 },
+			{ id: "payment", intent: "danger", order: 0, sequence: 1 },
 		] as const;
 		rankAlerts(input);
 		expect(input.map((alert) => alert.id)).toEqual(["region", "payment"]);
@@ -178,6 +210,7 @@ describe("AlertCenterStore", () => {
 		id,
 		intent,
 		className: undefined,
+		order: 0,
 		children: null,
 	});
 
@@ -974,6 +1007,103 @@ describe("AlertCenter ordering", () => {
 		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveAttribute(
 			"data-alert-id",
 			"early",
+		);
+	});
+
+	test("a declared order puts the higher-priority same-intent alert in the bar, whichever source answers first", () => {
+		// The first source answers and mounts its alert alone.
+		const { container, rerender } = render(
+			<AlertCenter.Root>
+				<AlertCenter.Bar />
+				<AlertCenter.Item id="credit-exhausted" intent="danger" order={3}>
+					<AlertBody title="Credit exhausted" />
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveAttribute(
+			"data-alert-id",
+			"credit-exhausted",
+		);
+
+		// The second source answers later with the alert the consumer ranks first.
+		rerender(
+			<AlertCenter.Root>
+				<AlertCenter.Bar />
+				<AlertCenter.Item id="limit-enforced" intent="danger" order={2}>
+					<AlertBody title="Limit enforced" />
+				</AlertCenter.Item>
+				<AlertCenter.Item id="credit-exhausted" intent="danger" order={3}>
+					<AlertBody title="Credit exhausted" />
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+
+		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveAttribute(
+			"data-alert-id",
+			"limit-enforced",
+		);
+	});
+
+	test("an item with no order follows a same-intent item that declares one, even when it arrived first", () => {
+		const { container, rerender } = render(
+			<AlertCenter.Root>
+				<AlertCenter.Bar />
+				<AlertCenter.Item id="unordered" intent="warning">
+					<AlertBody title="Unordered warning" />
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+
+		rerender(
+			<AlertCenter.Root>
+				<AlertCenter.Bar />
+				<AlertCenter.Item id="unordered" intent="warning">
+					<AlertBody title="Unordered warning" />
+				</AlertCenter.Item>
+				<AlertCenter.Item id="ordered" intent="warning" order={0}>
+					<AlertBody title="Ordered warning" />
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+
+		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveAttribute(
+			"data-alert-id",
+			"ordered",
+		);
+	});
+
+	test("changing an item's order re-sorts it", () => {
+		const { container, rerender } = render(
+			<AlertCenter.Root>
+				<AlertCenter.Bar />
+				<AlertCenter.Item id="first" intent="warning" order={1}>
+					<AlertBody title="First warning" />
+				</AlertCenter.Item>
+				<AlertCenter.Item id="second" intent="warning" order={2}>
+					<AlertBody title="Second warning" />
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveAttribute(
+			"data-alert-id",
+			"first",
+		);
+
+		rerender(
+			<AlertCenter.Root>
+				<AlertCenter.Bar />
+				<AlertCenter.Item id="first" intent="warning" order={1}>
+					<AlertBody title="First warning" />
+				</AlertCenter.Item>
+				<AlertCenter.Item id="second" intent="warning" order={0}>
+					<AlertBody title="Second warning" />
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+
+		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveAttribute(
+			"data-alert-id",
+			"second",
 		);
 	});
 });

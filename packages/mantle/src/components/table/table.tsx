@@ -299,7 +299,10 @@ const Body = ({ children, className, ref, ...props }: ComponentProps<"tbody">) =
 			// dividers directly to cells.
 			"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
 			"text-body",
-			"[&>tr]:bg-card [&>tr]:not-only:hover:bg-card-hover", // Body row styling
+			// Body row styling. The focus variant mirrors hover for a keyboard user:
+			// a row lights up when a link or button inside it has visible focus, as
+			// it does under the pointer.
+			"[&>tr]:bg-card [&>tr]:not-only:hover:bg-card-hover [&>tr]:not-only:has-focus-visible:bg-card-hover",
 			className,
 		)}
 		ref={ref}

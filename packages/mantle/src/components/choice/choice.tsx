@@ -11,12 +11,14 @@ import {
 } from "react";
 import type { ComponentProps, MouseEvent, ReactNode, RefObject } from "react";
 import invariant from "tiny-invariant";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { isInteractiveTarget } from "../../utils/interactive-target.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { Label } from "../label/label.js";
+import { RadioItemContext } from "../radio-group/radio-item-context.js";
 import { Slot } from "../slot/index.js";
 
 /**
@@ -370,6 +372,10 @@ const ChoiceLabel = ({ className, ref, ...props }: ChoiceLabelProps) => {
  * control — or inside a `Field` — where the title can be the label, use
  * `Choice.Label`.
  *
+ * Inside a `RadioGroup` item, the title registers its id with the radio, so the
+ * option's `aria-labelledby` names it by the title alone. The description stays
+ * out of the name. The `id` defaults to a generated one.
+ *
  * @see https://mantle.ngrok.com/components/forms/choice
  *
  * @example
@@ -385,8 +391,14 @@ const ChoiceLabel = ({ className, ref, ...props }: ChoiceLabelProps) => {
  * </Choice.Root>
  * ```
  */
-const Title = ({ asChild, className, ref, ...props }: ComponentProps<"p"> & WithAsChild) => {
+const Title = ({ asChild, className, id, ref, ...props }: ComponentProps<"p"> & WithAsChild) => {
 	const { disabled } = useChoiceContext("Title");
+	const radioItem = useContext(RadioItemContext);
+	const generatedId = useId();
+	const titleId = id ?? generatedId;
+	// Why a layout effect: the radio stamps `aria-labelledby` in the same commit,
+	// so no paint carries the flattened title-plus-description name.
+	useIsomorphicLayoutEffect(() => radioItem?.registerLabelId(titleId), [radioItem, titleId]);
 	const Comp = asChild ? Slot : "p";
 
 	return (
@@ -399,6 +411,7 @@ const Title = ({ asChild, className, ref, ...props }: ComponentProps<"p"> & With
 				className,
 			)}
 			{...props}
+			id={titleId}
 		/>
 	);
 };
@@ -435,6 +448,9 @@ function shouldForwardDescriptionClick(event: MouseEvent<HTMLElement>): boolean 
  * `Choice.Title`, the description forwards nothing, because an ancestor owns
  * that click.
  *
+ * Inside a `RadioGroup` item, the description registers its id with the radio,
+ * so the option's `aria-describedby` points here.
+ *
  * @see https://mantle.ngrok.com/components/forms/choice
  *
  * @example
@@ -458,6 +474,11 @@ const Description = ({
 	...props
 }: Omit<ComponentProps<"p">, "id"> & WithAsChild) => {
 	const { descriptionId, disabled, labelRef } = useChoiceContext("Description");
+	const radioItem = useContext(RadioItemContext);
+	useIsomorphicLayoutEffect(
+		() => radioItem?.registerDescriptionId(descriptionId),
+		[radioItem, descriptionId],
+	);
 	const Comp = asChild ? Slot : "p";
 
 	return (
@@ -514,6 +535,11 @@ const Description = ({
  * `id` / `name` / `aria-*` and merges its description into the control's
  * `aria-describedby`. Outside a `Field` it uses its own generated ids — the two
  * are aware of each other but neither is required.
+ *
+ * **Radio interop.** Inside a `RadioGroup` item, `Choice.Title` and
+ * `Choice.Description` register their ids with the radio, so the option's
+ * accessible name is the title alone and the description is its
+ * `aria-describedby`.
  *
  * @see https://mantle.ngrok.com/components/forms/choice
  *
@@ -631,7 +657,8 @@ const Choice = {
 	Label: ChoiceLabel,
 	/**
 	 * Title: the title as label-less text (`<p>`). Use when an ancestor (a
-	 * clickable row or a Headless radio item) owns labeling.
+	 * clickable row or a Headless radio item) owns labeling. Inside a
+	 * `RadioGroup` item it names the radio through `aria-labelledby`.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/choice
 	 *
@@ -651,7 +678,8 @@ const Choice = {
 	Title,
 	/**
 	 * Description: the supplementary line, wired via `aria-describedby`. A click
-	 * on it forwards to `Choice.Label`.
+	 * on it forwards to `Choice.Label`. Inside a `RadioGroup` item it describes
+	 * the radio through `aria-describedby`.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/choice
 	 *

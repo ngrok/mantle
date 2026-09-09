@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import {
 	type ComponentProps,
@@ -78,6 +78,127 @@ describe("DataTable.Row", () => {
 		const row = screen.getByTestId("row");
 		expect(row).toHaveClass("cursor-wait");
 		expect(row).not.toHaveClass("cursor-pointer");
+	});
+
+	test("stamps `data-clickable` only when `onClick` is set", () => {
+		const { rerender } = render(<Harness onClick={() => {}} />);
+		expect(screen.getByTestId("row")).toHaveAttribute("data-clickable", "");
+		rerender(<Harness />);
+		expect(screen.getByTestId("row")).not.toHaveAttribute("data-clickable");
+	});
+
+	test.each(["Meta", "Control", "Shift", "Alt"] as const)(
+		"skips `onClick` for a %s-modified click, so the row's link can answer it",
+		async (modifier) => {
+			const user = userEvent.setup();
+			const handleClick = vi.fn<() => void>();
+			render(<Harness onClick={handleClick} />);
+
+			await user.keyboard(`{${modifier}>}`);
+			await user.click(screen.getByTestId("row"));
+			await user.keyboard(`{/${modifier}}`);
+			expect(handleClick).not.toHaveBeenCalled();
+
+			await user.click(screen.getByTestId("row"));
+			expect(handleClick).toHaveBeenCalledTimes(1);
+		},
+	);
+
+	test("skips `onClick` for a non-primary button", () => {
+		const handleClick = vi.fn<() => void>();
+		render(<Harness onClick={handleClick} />);
+		// A browser dispatches `auxclick`, not `click`, for a middle or right
+		// button, and so does user-event, so only a synthesized event reaches
+		// this guard.
+		fireEvent.click(screen.getByTestId("row"), { button: 1 });
+		expect(handleClick).not.toHaveBeenCalled();
+	});
+});
+
+type ActionCellHarnessProps = {
+	onRowClick?: () => void;
+	onCellClick?: (event: MouseEvent<HTMLTableCellElement>) => void;
+	onButtonClick?: () => void;
+};
+
+/**
+ * Renders a clickable row with an action column, so the cell's click sandbox
+ * can be exercised against the row handler it must never reach.
+ */
+function ActionCellHarness({ onRowClick, onCellClick, onButtonClick }: ActionCellHarnessProps) {
+	const actionColumns = useMemo(
+		() => [
+			columnHelper.accessor("name", {
+				id: "name",
+				header: () => <DataTable.Header>Name</DataTable.Header>,
+				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+			}),
+			columnHelper.display({
+				id: "actions",
+				header: () => <DataTable.ActionHeader />,
+				cell: () => (
+					<DataTable.ActionCell onClick={onCellClick}>
+						<button type="button" onClick={onButtonClick}>
+							Open actions
+						</button>
+					</DataTable.ActionCell>
+				),
+			}),
+		],
+		[onCellClick, onButtonClick],
+	);
+	const table = useReactTable({
+		data,
+		columns: actionColumns,
+		getCoreRowModel: getCoreRowModel(),
+	});
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row key={row.id} row={row} onClick={onRowClick} />
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+describe("DataTable.ActionCell", () => {
+	test("a click on an action control never reaches a clickable row", async () => {
+		const user = userEvent.setup();
+		const handleRowClick = vi.fn<() => void>();
+		const handleButtonClick = vi.fn<() => void>();
+		render(<ActionCellHarness onRowClick={handleRowClick} onButtonClick={handleButtonClick} />);
+
+		await user.click(screen.getByRole("button", { name: "Open actions" }));
+
+		expect(handleButtonClick).toHaveBeenCalledTimes(1);
+		expect(handleRowClick).not.toHaveBeenCalled();
+	});
+
+	test("runs the consumer's cell `onClick` after stopping propagation, and keeps the default action", async () => {
+		const user = userEvent.setup();
+		let propagationStopped: boolean | undefined;
+		let defaultPrevented: boolean | undefined;
+		const handleCellClick = vi.fn<(event: MouseEvent<HTMLTableCellElement>) => void>((event) => {
+			propagationStopped = event.isPropagationStopped();
+			defaultPrevented = event.defaultPrevented;
+		});
+		render(<ActionCellHarness onRowClick={() => {}} onCellClick={handleCellClick} />);
+
+		await user.click(screen.getByRole("button", { name: "Open actions" }));
+
+		expect(handleCellClick).toHaveBeenCalledTimes(1);
+		expect(propagationStopped).toBe(true);
+		expect(defaultPrevented).toBe(false);
+	});
+
+	test("keeps the `<td>` in the table's accessibility tree", () => {
+		render(<ActionCellHarness />);
+		// `sandboxedOnClickProps` also returns `role="presentation"`; the cell must
+		// take only the handler, or it drops out of the table.
+		expect(screen.getByRole("cell", { name: "Open actions" })).not.toHaveAttribute("role");
 	});
 });
 

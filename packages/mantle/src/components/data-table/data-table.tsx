@@ -10,6 +10,7 @@ import {
 import {
 	type ComponentProps,
 	Fragment,
+	type MouseEvent,
 	type ReactNode,
 	createContext,
 	useContext,
@@ -27,6 +28,7 @@ import {
 import type { ButtonIntent } from "../button/intents.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { SortIcon } from "../icons/sort.js";
+import { sandboxedOnClickProps } from "../sandboxed-on-click/sandboxed-on-click.js";
 import { Table } from "../table/table.js";
 import { getNextSortDirection } from "./helpers.js";
 import type { SortDirection } from "./types.js";
@@ -431,22 +433,62 @@ type DataTableRowProps<TData> = Omit<ComponentProps<typeof Table.Row>, "children
 };
 
 /**
+ * Whether a click on a clickable row is a request to run its `onClick`. A
+ * modified click (`⌘`, `Ctrl`, `Shift`, `Alt`) or a non-primary button asks the
+ * browser for a new tab or a context menu. The link inside the row answers
+ * that. A click that ends a text selection inside the row copies text.
+ */
+function isRowActivationClick(event: MouseEvent<HTMLTableRowElement>): boolean {
+	if (event.button !== 0) {
+		return false;
+	}
+	if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+		return false;
+	}
+	// Why `ownerDocument`: a row inside an iframe (a framed docs preview) selects
+	// in its own document, not in the top window's.
+	const selection = event.currentTarget.ownerDocument.getSelection();
+	if (selection == null || selection.isCollapsed) {
+		return true;
+	}
+	// A stale selection elsewhere on the page survives a mousedown on
+	// non-selectable content, so only a selection anchored in this row counts.
+	return !event.currentTarget.contains(selection.anchorNode);
+}
+
+/**
  * A single data table body row rendered from a TanStack Table row instance.
  * Does not accept children — cells come from each column's `cell` definition.
  *
- * When `onClick` is set, the row automatically receives `cursor-pointer`.
+ * When `onClick` is set, the row receives `cursor-pointer` and `data-clickable`.
  * Pass a different `cursor-*` class via `className` (e.g. `cursor-default`,
- * `cursor-wait`) to override. For keyboard and screen-reader access, also
- * render a `<Link>` inside the primary cell — a `<tr>` is not focusable.
+ * `cursor-wait`) to override the cursor. The row runs `onClick` only for a
+ * plain primary click. A modified click (`⌘`, `Ctrl`, `Shift`, `Alt`), a
+ * non-primary button, and a click that ends a text selection inside the row
+ * all skip it. The link inside the row answers a modified click with a new
+ * tab, and a selection copies text, so neither is a request to navigate.
+ *
+ * A `<tr>` is not focusable, so also render a `<Link>` inside the primary cell.
+ * The link is the keyboard and screen-reader path to the same destination, not
+ * a redundancy. The row keeps its structural `role="row"`: a `<tr onClick>`
+ * around a link is not nested interactive content, because the row has no
+ * widget role. Never add `tabIndex` or `role="button"` to the row, because a
+ * widget role that contains a focusable link is nested interactive content.
+ * Never reach for `role="grid"`, because it commits the table to roving focus
+ * and arrow-key navigation. Wrap the link in
+ * `<SandboxedOnClick asChild allowClickEventDefault>` so its click does not
+ * also run the row handler. `DataTable.ActionCell` and
+ * `DataTable.RowExpandButton` stop their own clicks.
  *
  * Pass `renderExpanded` to give the row an inline detail panel: when the row is
  * expanded the row renders its data `<tr>` plus a sibling `DataTable.ExpandedRow`
  * holding the returned content. Pair it with a `DataTable.RowExpandButton` toggle
  * and configure the table for expansion (`getExpandedRowModel`, `getRowCanExpand`).
  *
- * | Data Attribute  | Value                 | Description                                          |
- * | --------------- | --------------------- | ---------------------------------------------------- |
- * | `data-expanded` | present when expanded | Presence-only. The row's detail panel is open.       |
+ * | Data Attribute   | Value                         | Description                                             |
+ * | ---------------- | ----------------------------- | ------------------------------------------------------- |
+ * | `data-clickable` | present when `onClick` is set | Presence-only. The row runs a handler on a plain click. |
+ * | `data-expanded`  | present when expanded         | Presence-only. The row's detail panel is open.          |
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatablerow
  *
@@ -485,7 +527,13 @@ type DataTableRowProps<TData> = Omit<ComponentProps<typeof Table.Row>, "children
  * ))}
  * ```
  */
-function Row<TData>({ className, renderExpanded, row, ...props }: DataTableRowProps<TData>) {
+function Row<TData>({
+	className,
+	onClick,
+	renderExpanded,
+	row,
+	...props
+}: DataTableRowProps<TData>) {
 	const dataRow = (
 		<Table.Row
 			data-slot="data-table-row"
@@ -493,7 +541,18 @@ function Row<TData>({ className, renderExpanded, row, ...props }: DataTableRowPr
 			// parent row visually with its `DataTable.ExpandedRow`). Absent when the
 			// row is collapsed or expansion is not configured.
 			data-expanded={row.getIsExpanded() || undefined}
-			className={cx(props.onClick && "cursor-pointer", className)}
+			// Styling and test hook for "this row runs a handler on click", so a
+			// consumer never has to read `cursor-pointer` off the class list.
+			data-clickable={onClick != null ? "" : undefined}
+			className={cx(onClick != null && "cursor-pointer", className)}
+			onClick={
+				onClick &&
+				((event) => {
+					if (isRowActivationClick(event)) {
+						onClick(event);
+					}
+				})
+			}
 			{...props}
 		>
 			{row.getVisibleCells().map((cell) => (
@@ -625,9 +684,10 @@ type DataTableActionCellProps = ComponentProps<typeof Table.Cell>;
  * A sticky-right `<td>` for per-row action buttons (typically an `IconButton`
  * that opens a `DropdownMenu`). Pair with `DataTable.ActionHeader`.
  *
- * If the row has `onClick`, pass `onClick={(event) => event.stopPropagation()}`
- * on this cell so clicks on action controls don't bubble and fire the row
- * handler.
+ * A click inside the cell never reaches a clickable row: the cell stops
+ * propagation and keeps the click's default action, so an action menu opens
+ * without the row navigating. Your own `onClick` still runs. The `<td>` keeps
+ * its `role="cell"`.
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactioncell
  *
@@ -637,14 +697,20 @@ type DataTableActionCellProps = ComponentProps<typeof Table.Cell>;
  *   id: "actions",
  *   header: () => <DataTable.ActionHeader />,
  *   cell: () => (
- *     <DataTable.ActionCell onClick={(event) => event.stopPropagation()}>
+ *     <DataTable.ActionCell>
  *       <DropdownMenu.Root>...</DropdownMenu.Root>
  *     </DataTable.ActionCell>
  *   ),
  * });
  * ```
  */
-function ActionCell({ children, className, ...props }: DataTableActionCellProps) {
+function ActionCell({ children, className, onClick, ...props }: DataTableActionCellProps) {
+	// Why only `onClick`: `sandboxedOnClickProps` also returns `role="presentation"`,
+	// which would drop this `<td>` out of the table's accessibility tree.
+	const { onClick: sandboxedOnClick } = sandboxedOnClickProps({
+		allowClickEventDefault: true,
+		onClick,
+	});
 	return (
 		<Table.Cell
 			// Marks this cell as a sticky right-edge column so Table.Root can suppress
@@ -660,6 +726,7 @@ function ActionCell({ children, className, ...props }: DataTableActionCellProps)
 				"sticky z-10 right-0 text-end align-middle bg-inherit p-2",
 				className,
 			)}
+			onClick={sandboxedOnClick}
 			{...props}
 		>
 			<StickyColIndicator />
@@ -1241,8 +1308,8 @@ function ExpandedRow<TData>({
  *
  * @example
  * Row action column — a sticky right-edge cell with a dropdown menu of actions.
- * If the row also has `onClick`, stop propagation on the action cell so clicks
- * don't bubble up and fire the row handler:
+ * The cell stops its own clicks, so the menu opens without a clickable row
+ * navigating:
  * ```tsx
  * import { DataTable, createColumnHelper } from "@ngrok/mantle/data-table";
  * import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
@@ -1257,7 +1324,7 @@ function ExpandedRow<TData>({
  *     id: "actions",
  *     header: () => <DataTable.ActionHeader />,
  *     cell: (props) => (
- *       <DataTable.ActionCell onClick={(event) => event.stopPropagation()}>
+ *       <DataTable.ActionCell>
  *         <DropdownMenu.Root>
  *           <DropdownMenu.Trigger asChild>
  *             <IconButton type="button" appearance="outlined" intent="neutral" label="Actions" icon={<DotsThreeVerticalIcon />} />
@@ -1278,11 +1345,12 @@ function ExpandedRow<TData>({
  * ```
  *
  * @example
- * Clickable row navigating to a detail page — also render a `<Link>` inside the
- * primary cell so the row is reachable by keyboard and screen readers (a `<tr>`
- * is not focusable):
+ * Clickable row navigating to a detail page. A `<tr>` is not focusable, so the
+ * primary cell also renders a `<Link>` as the keyboard and screen-reader path.
+ * `SandboxedOnClick` keeps the link's click from also running the row handler:
  * ```tsx
  * import { DataTable } from "@ngrok/mantle/data-table";
+ * import { SandboxedOnClick } from "@ngrok/mantle/sandboxed-on-click";
  * import { Link, href, useNavigate } from "react-router";
  *
  * function PaymentsTable({ data }: { data: Payment[] }) {
@@ -1312,9 +1380,11 @@ function ExpandedRow<TData>({
  *   header: (props) => <DataTable.Header>Email</DataTable.Header>,
  *   cell: (props) => (
  *     <DataTable.Cell>
- *       <Link to={href("/payments/:id", { id: props.row.original.id })}>
- *         {props.getValue()}
- *       </Link>
+ *       <SandboxedOnClick asChild allowClickEventDefault>
+ *         <Link to={href("/payments/:id", { id: props.row.original.id })}>
+ *           {props.getValue()}
+ *         </Link>
+ *       </SandboxedOnClick>
  *     </DataTable.Cell>
  *   ),
  * });
@@ -1349,8 +1419,9 @@ const DataTable = {
 	 * A sticky action cell positioned at the end of each row, typically holding
 	 * an `IconButton` that opens a `DropdownMenu`. Pair with `DataTable.ActionHeader`.
 	 *
-	 * If the row has `onClick`, stop propagation on this cell so clicks on action
-	 * controls don't bubble up and fire the row handler.
+	 * A click inside the cell never reaches a clickable row: the cell stops
+	 * propagation and keeps the click's default action, so an action menu opens
+	 * without the row navigating.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactioncell
 	 *
@@ -1360,7 +1431,7 @@ const DataTable = {
 	 *   id: "actions",
 	 *   header: () => <DataTable.ActionHeader />,
 	 *   cell: () => (
-	 *     <DataTable.ActionCell onClick={(event) => event.stopPropagation()}>
+	 *     <DataTable.ActionCell>
 	 *       <DropdownMenu.Root>...</DropdownMenu.Root>
 	 *     </DataTable.ActionCell>
 	 *   ),
@@ -1383,7 +1454,7 @@ const DataTable = {
 	 *   id: "actions",
 	 *   header: () => <DataTable.ActionHeader />,
 	 *   cell: () => (
-	 *     <DataTable.ActionCell onClick={(event) => event.stopPropagation()}>
+	 *     <DataTable.ActionCell>
 	 *       <DropdownMenu.Root>...</DropdownMenu.Root>
 	 *     </DataTable.ActionCell>
 	 *   ),
@@ -1531,9 +1602,12 @@ const DataTable = {
 	 * A single data table body row rendered from a TanStack Table row instance.
 	 * Does not accept children — cells come from each column's `cell` definition.
 	 *
-	 * When `onClick` is set, the row automatically receives `cursor-pointer`.
-	 * Pass a different `cursor-*` class via `className` to override. For keyboard
-	 * and screen-reader access, also render a `<Link>` inside the primary cell.
+	 * When `onClick` is set, the row receives `cursor-pointer` and `data-clickable`.
+	 * It runs the handler only for a plain primary click: a modified click, a
+	 * non-primary button, and a click that ends a text selection in the row skip
+	 * it. Pass a different `cursor-*` class via `className` to override the
+	 * cursor. A `<tr>` is not focusable, so also render a `<Link>` inside the
+	 * primary cell as the keyboard and screen-reader path.
 	 *
 	 * Pass `renderExpanded` to give the row an inline detail panel — the row then
 	 * renders a sibling `DataTable.ExpandedRow` (only while expanded) holding the
