@@ -1,11 +1,31 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import { useLayoutEffect, useRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { $cssProperties } from "../../types/index.js";
-import { Alert } from "./alert.js";
+import { Alert, AlertContextProvider } from "./alert.js";
 
 function getAlertRoot(container: HTMLElement) {
 	return container.querySelector('[data-slot="alert"]');
+}
+
+/**
+ * The documented dismissal pattern: the consumer's `onClick` stops rendering
+ * the alert, which unmounts the button that holds focus.
+ */
+function DismissibleAlert() {
+	const [dismissed, setDismissed] = useState(false);
+	if (dismissed) {
+		return null;
+	}
+	return (
+		<Alert.Root intent="info">
+			<Alert.Content>
+				<Alert.Title>Trial ends soon</Alert.Title>
+				<Alert.DismissIconButton onClick={() => setDismissed(true)} />
+			</Alert.Content>
+		</Alert.Root>
+	);
 }
 
 describe("Alert", () => {
@@ -106,6 +126,211 @@ describe("Alert", () => {
 			expect(button).toHaveAttribute("data-intent", "neutral");
 			await userEvent.click(button);
 			expect(onDismiss).toHaveBeenCalledOnce();
+		});
+
+		describe("focus after the dismissal unmounts the alert", () => {
+			test("moves focus to the next tabbable after the alert", async () => {
+				const user = userEvent.setup();
+				render(
+					<>
+						<button type="button">Before</button>
+						<DismissibleAlert />
+						<button type="button">After</button>
+					</>,
+				);
+
+				await user.tab();
+				await user.tab();
+				expect(screen.getByRole("button", { name: "Dismiss Alert" })).toHaveFocus();
+
+				await user.keyboard("{Enter}");
+
+				expect(screen.queryByRole("button", { name: "Dismiss Alert" })).not.toBeInTheDocument();
+				expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+			});
+
+			test("falls back to the previous tabbable when nothing follows the alert", async () => {
+				const user = userEvent.setup();
+				render(
+					<>
+						<button type="button">Before</button>
+						<DismissibleAlert />
+					</>,
+				);
+
+				await user.click(screen.getByRole("button", { name: "Dismiss Alert" }));
+
+				expect(screen.getByRole("button", { name: "Before" })).toHaveFocus();
+			});
+
+			test("skips a following element a Tab press cannot reach", async () => {
+				const user = userEvent.setup();
+				render(
+					<>
+						<button type="button">Before</button>
+						<DismissibleAlert />
+						<button type="button" disabled>
+							Disabled
+						</button>
+						<div tabIndex={-1}>Programmatic only</div>
+						<button type="button">After</button>
+					</>,
+				);
+
+				await user.click(screen.getByRole("button", { name: "Dismiss Alert" }));
+
+				expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+			});
+
+			test("lands on a neighbor that survives when the same unmount removes the nearest one", async () => {
+				function Card() {
+					const [open, setOpen] = useState(true);
+					if (!open) {
+						return null;
+					}
+					return (
+						<section>
+							<Alert.Root intent="info">
+								<Alert.Content>
+									<Alert.Title>Trial ends soon</Alert.Title>
+									<Alert.DismissIconButton onClick={() => setOpen(false)} />
+								</Alert.Content>
+							</Alert.Root>
+							<button type="button">Apply</button>
+						</section>
+					);
+				}
+				const user = userEvent.setup();
+				render(
+					<>
+						<button type="button">Before</button>
+						<Card />
+						<button type="button">After</button>
+					</>,
+				);
+
+				await user.click(screen.getByRole("button", { name: "Dismiss Alert" }));
+
+				expect(screen.queryByRole("button", { name: "Apply" })).not.toBeInTheDocument();
+				expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+			});
+
+			test("leaves focus alone when the button does not hold it", () => {
+				render(
+					<>
+						<button type="button">Before</button>
+						<DismissibleAlert />
+						<button type="button">After</button>
+					</>,
+				);
+				const before = screen.getByRole("button", { name: "Before" });
+				before.focus();
+
+				// A synthetic click moves no focus, unlike a pointer or keyboard activation.
+				fireEvent.click(screen.getByRole("button", { name: "Dismiss Alert" }));
+
+				expect(screen.queryByRole("button", { name: "Dismiss Alert" })).not.toBeInTheDocument();
+				expect(before).toHaveFocus();
+			});
+
+			test("keeps focus where the consumer's handler put it", async () => {
+				function Consumer() {
+					const [dismissed, setDismissed] = useState(false);
+					const headingRef = useRef<HTMLHeadingElement>(null);
+					return (
+						<>
+							<h2 ref={headingRef} tabIndex={-1}>
+								Settings
+							</h2>
+							{!dismissed && (
+								<Alert.Root intent="info">
+									<Alert.Content>
+										<Alert.Title>Trial ends soon</Alert.Title>
+										<Alert.DismissIconButton
+											onClick={() => {
+												setDismissed(true);
+												headingRef.current?.focus();
+											}}
+										/>
+									</Alert.Content>
+								</Alert.Root>
+							)}
+							<button type="button">After</button>
+						</>
+					);
+				}
+				const user = userEvent.setup();
+				render(<Consumer />);
+
+				await user.click(screen.getByRole("button", { name: "Dismiss Alert" }));
+
+				expect(screen.getByRole("heading", { name: "Settings" })).toHaveFocus();
+			});
+
+			test("keeps focus a consumer layout effect places after the unmount", async () => {
+				function Consumer() {
+					const [dismissed, setDismissed] = useState(false);
+					const statusRef = useRef<HTMLParagraphElement>(null);
+					useLayoutEffect(() => {
+						if (dismissed) {
+							statusRef.current?.focus();
+						}
+					}, [dismissed]);
+					return (
+						<>
+							{!dismissed && (
+								<Alert.Root intent="info">
+									<Alert.Content>
+										<Alert.Title>Trial ends soon</Alert.Title>
+										<Alert.DismissIconButton onClick={() => setDismissed(true)} />
+									</Alert.Content>
+								</Alert.Root>
+							)}
+							<p ref={statusRef} tabIndex={-1}>
+								Alert dismissed
+							</p>
+							<button type="button">After</button>
+						</>
+					);
+				}
+				const user = userEvent.setup();
+				render(<Consumer />);
+
+				await user.click(screen.getByRole("button", { name: "Dismiss Alert" }));
+
+				expect(screen.getByText("Alert dismissed")).toHaveFocus();
+				expect(screen.getByRole("button", { name: "After" })).not.toHaveFocus();
+			});
+
+			test("stays put when the composing context opts out", async () => {
+				// `AlertCenter` projects the button under its own `AlertContextProvider`
+				// and owns focus after a dismissal, so the button must not move it.
+				function Projected() {
+					const [dismissed, setDismissed] = useState(false);
+					if (dismissed) {
+						return null;
+					}
+					return (
+						<AlertContextProvider intent="info" redirectDismissFocus={false}>
+							<div data-slot="alert">
+								<Alert.DismissIconButton onClick={() => setDismissed(true)} />
+							</div>
+						</AlertContextProvider>
+					);
+				}
+				const user = userEvent.setup();
+				render(
+					<>
+						<Projected />
+						<button type="button">After</button>
+					</>,
+				);
+
+				await user.click(screen.getByRole("button", { name: "Dismiss Alert" }));
+
+				expect(screen.queryByRole("button", { name: "Dismiss Alert" })).not.toBeInTheDocument();
+				expect(document.body).toHaveFocus();
+			});
 		});
 	});
 

@@ -752,8 +752,13 @@ const Item = ({ children, className, id, intent }: AlertCenterItemProps) => {
 	// The chrome `Alert.Root` is only a DOM ancestor of the portaled children —
 	// React context can't cross a portal from the DOM side, so the item
 	// provides the same Alert context (same `intent`) the chrome renders with.
+	// Why `redirectDismissFocus={false}`: the bar's focus redirect owns focus
+	// after a dismissal and lands it on the next alert's control, or on the
+	// main landmark when none is left. `Alert.DismissIconButton`'s own move
+	// would run first and land on the bar's expand control; the focus tracker
+	// would read that as a deliberate move and skip the redirect.
 	return createPortal(
-		<AlertContextProvider intent={intent}>
+		<AlertContextProvider intent={intent} redirectDismissFocus={false}>
 			<AlertCenterItemContext.Provider value={true}>{children}</AlertCenterItemContext.Provider>
 		</AlertContextProvider>,
 		host,

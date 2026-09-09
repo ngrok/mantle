@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
-import { DynamicAlertDemo } from "./alert-demos";
+import { DismissibleAlertDemo, DynamicAlertDemo } from "./alert-demos";
 
 afterEach(() => {
 	cleanup();
@@ -38,5 +38,33 @@ describe("DynamicAlertDemo", () => {
 		const secondAlert = screen.getByRole("alert");
 		expect(secondAlert).not.toBe(firstAlert);
 		expect(document.activeElement).toBe(secondAlert);
+	});
+});
+
+describe("DismissibleAlertDemo", () => {
+	it("unmounts the alert and moves focus to the button after it", async () => {
+		const user = userEvent.setup();
+		render(<DismissibleAlertDemo />);
+
+		await user.tab();
+		expect(document.activeElement).toBe(screen.getByRole("button", { name: "Dismiss Alert" }));
+
+		await user.keyboard("{Enter}");
+
+		expect(screen.queryByRole("button", { name: "Dismiss Alert" })).toBeNull();
+		expect(document.activeElement).toBe(
+			screen.getByRole("button", { name: "Show the alert again" }),
+		);
+	});
+
+	it("shows the alert again from the button that received focus", async () => {
+		const user = userEvent.setup();
+		render(<DismissibleAlertDemo />);
+		await user.click(screen.getByRole("button", { name: "Dismiss Alert" }));
+		expect(screen.queryByRole("button", { name: "Dismiss Alert" })).toBeNull();
+
+		await user.keyboard("{Enter}");
+
+		expect(screen.queryByRole("button", { name: "Dismiss Alert" })).not.toBeNull();
 	});
 });

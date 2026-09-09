@@ -8,7 +8,7 @@ import { Card } from "@ngrok/mantle/card";
 import { $cssProperties } from "@ngrok/mantle/types";
 import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 import { Example } from "~/components/example";
-import { DynamicAlertDemo } from "~/features/alert-demos";
+import { DismissibleAlertDemo, DynamicAlertDemo } from "~/features/alert-demos";
 
 # Alert
 
@@ -271,6 +271,51 @@ import { Alert } from "@ngrok/mantle/alert";
 		<Alert.Title>This is an info Alert as a page banner</Alert.Title>
 	</Alert.Content>
 </Alert.Root>;
+```
+
+## Dismissal
+
+`Alert.DismissIconButton` removes nothing on its own. Your state does: stop rendering the alert in its `onClick` handler. When that unmount happens while the dismiss button holds focus, focus moves to the nearest tabbable element outside the alert: the next one in document order, or the previous one when nothing follows. Without that move, focus falls to `<body>` and the next Tab restarts at the top of the page. A screen reader user also gets no confirmation that the alert left. If your handler or a layout effect places focus first, the alert keeps that choice.
+
+In the demo below, Tab to the dismiss button and press Enter. Focus lands on the button that follows the alert.
+
+<Example className="w-full">
+	<DismissibleAlertDemo />
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+import { Button } from "@ngrok/mantle/button";
+import { useState } from "react";
+
+export function TrialAlert() {
+	const [dismissed, setDismissed] = useState(false);
+
+	return (
+		<div className="flex w-full flex-col gap-4">
+			{!dismissed && (
+				<Alert.Root intent="info">
+					<Alert.Icon />
+					<Alert.Content>
+						<Alert.Title>Your trial ends in 3 days</Alert.Title>
+						<Alert.Description>
+							Add a payment method to keep your endpoints online.
+						</Alert.Description>
+						<Alert.DismissIconButton onClick={() => setDismissed(true)} />
+					</Alert.Content>
+				</Alert.Root>
+			)}
+			<Button
+				type="button"
+				appearance="outlined"
+				intent="neutral"
+				onClick={() => setDismissed(false)}
+			>
+				Show the alert again
+			</Button>
+		</div>
+	);
+}
 ```
 
 ## Expand button
@@ -552,7 +597,7 @@ All props from [h5](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/He
 
 ### Alert.DismissIconButton
 
-A dismiss icon button that closes the alert when clicked. It shares the root-level trailing-control CSS variables with `Alert.ExpandButton`.
+A dismiss icon button. Your `onClick` handler removes the alert. When that unmount happens while the button holds focus, focus moves to the nearest tabbable element outside the alert; see [Dismissal](#dismissal). It shares the root-level trailing-control CSS variables with `Alert.ExpandButton`.
 
 All props from [IconButton](/components/actions/icon-button#api-reference), with the following overridden defaults:
 

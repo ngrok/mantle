@@ -648,6 +648,32 @@ describe("AlertCenter.Bar", () => {
 		).toHaveFocus();
 	});
 
+	test("moves focus exactly once when the focused top alert is dismissed", async () => {
+		// `Alert.DismissIconButton` moves focus to a tabbable neighbor when its
+		// dismissal unmounts it. Inside the center that would land on the expand
+		// control a tick before the bar's own redirect, so the item opts out.
+		// Every focus landing is recorded: an extra one is the opt-out missing.
+		const user = userEvent.setup();
+		render(<ThreeAlertHarness />);
+		const focusLandings: Array<string | null> = [];
+		const recordLanding = (event: FocusEvent) => {
+			if (event.target instanceof HTMLElement) {
+				focusLandings.push(event.target.getAttribute("aria-label"));
+			}
+		};
+		document.addEventListener("focusin", recordLanding);
+		try {
+			await user.click(screen.getByRole("button", { name: "Dismiss Payment failed" }));
+		} finally {
+			document.removeEventListener("focusin", recordLanding);
+		}
+
+		expect(focusLandings).toEqual([
+			"Dismiss Payment failed",
+			"Dismiss Approaching your data transfer limit",
+		]);
+	});
+
 	test("does not steal focus from a surviving control when a new top alert arrives", async () => {
 		const user = userEvent.setup();
 		const { rerender } = render(
