@@ -7,7 +7,7 @@ import { parseBooleanish } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Icon } from "../icon/index.js";
 import { Slot } from "../slot/index.js";
-import { disabledSlotProps } from "./button.js";
+import { disabledChildProps } from "./button.js";
 import type {
 	IconButtonAppearance,
 	IconButtonIntent,
@@ -193,13 +193,13 @@ const IconButton = ({
 
 	if (asChild) {
 		invariant(
-			isValidElement(children) && Children.only(children),
+			isValidElement<{ onClickCapture?: unknown }>(children) && Children.only(children),
 			"When using `asChild`, IconButton must be passed a single child as a JSX tag.",
 		);
 
 		return (
-			<Slot {...buttonProps} {...(disabled && disabledSlotProps)}>
-				{cloneElement(children, {}, innerChildren)}
+			<Slot {...buttonProps}>
+				{cloneElement(children, disabled ? disabledChildProps : {}, innerChildren)}
 			</Slot>
 		);
 	}

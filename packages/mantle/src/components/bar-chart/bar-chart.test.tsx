@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
+import invariant from "tiny-invariant";
 import { describe, expect, test, vi } from "vitest";
 import type { BarTexture } from "../chart/types.js";
 import { BarChart } from "./bar-chart.js";
@@ -743,5 +744,43 @@ describe("BarChart series slots", () => {
 		expect(swatches).toHaveLength(accessKeys.length);
 		expect(swatches).not.toContain("var(--color-chart-other)");
 		expect(new Set(swatches).size).toBe(accessKeys.length);
+	});
+});
+
+describe("BarChart.CopyButton", () => {
+	test("announces 'Copied' through a live region, and again for a second copy inside the reset window", async () => {
+		const user = userEvent.setup();
+		render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.CopyButton />
+			</BarChart.Root>,
+		);
+
+		const button = screen.getByRole("button", { name: "Copy data as Markdown" });
+		// Why the sibling: the chart's keyboard announcer is a second `role="status"`.
+		const status = button.nextElementSibling;
+		invariant(status != null, "the copy button renders its live region as the next sibling");
+		expect(status).toHaveTextContent("");
+		// A live region announces a DOM change, so count how many times the text
+		// lands, not what it reads at the end.
+		const announcements: string[] = [];
+		const observer = new MutationObserver(() => {
+			if (status.textContent === "Copied") {
+				announcements.push(status.textContent);
+			}
+		});
+		observer.observe(status, { childList: true, characterData: true, subtree: true });
+
+		await user.click(button);
+		await vi.waitFor(() => {
+			expect(announcements).toHaveLength(1);
+		});
+
+		await user.click(button);
+		await vi.waitFor(() => {
+			expect(announcements).toHaveLength(2);
+		});
+		observer.disconnect();
 	});
 });

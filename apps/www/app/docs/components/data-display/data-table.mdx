@@ -497,7 +497,7 @@ columnHelper.accessor("amount", {
 columnHelper.accessor("url", {
 	id: "url",
 	header: (props) => (
-		<DataTable.Header className="min-w-100">
+		<DataTable.Header column={props.column} className="min-w-100">
 			<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 				URL
 			</DataTable.HeaderSortButton>

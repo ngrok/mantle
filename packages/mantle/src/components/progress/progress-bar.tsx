@@ -71,12 +71,12 @@ type RootProps = ComponentProps<"div"> & {
  *   <ProgressBar.Indicator />
  * </ProgressBar.Root>
  *
- * <ProgressBar.Root value={75} max={100}>
+ * <ProgressBar.Root aria-label="Upload progress" value={75} max={100}>
  *   <ProgressBar.Indicator />
  * </ProgressBar.Root>
  *
  * // Indeterminate progress
- * <ProgressBar.Root value="indeterminate">
+ * <ProgressBar.Root aria-label="Upload progress" value="indeterminate">
  *   <ProgressBar.Indicator />
  * </ProgressBar.Root>
  * ```
@@ -126,12 +126,12 @@ type IndicatorProps = ComponentProps<typeof ProgressPrimitive.Indicator>;
  *
  * @example
  * ```tsx
- * <ProgressBar.Root value={60}>
+ * <ProgressBar.Root aria-label="Upload progress" value={60}>
  *   <ProgressBar.Indicator />
  * </ProgressBar.Root>
  *
  * // Custom styled indicator
- * <ProgressBar.Root value={60}>
+ * <ProgressBar.Root aria-label="Upload progress" value={60}>
  *   <ProgressBar.Indicator className="bg-success-600" />
  * </ProgressBar.Root>
  * ```
@@ -168,16 +168,16 @@ function Indicator({ className, style, ...props }: IndicatorProps) {
  *
  * @example
  * ```tsx
- * <ProgressBar.Root value={60}>
+ * <ProgressBar.Root aria-label="Upload progress" value={60}>
  *   <ProgressBar.Indicator />
  * </ProgressBar.Root>
  *
- * <ProgressBar.Root value={75} max={100}>
+ * <ProgressBar.Root aria-label="Upload progress" value={75} max={100}>
  *   <ProgressBar.Indicator />
  * </ProgressBar.Root>
  *
  * // Indeterminate progress
- * <ProgressBar.Root value="indeterminate">
+ * <ProgressBar.Root aria-label="Upload progress" value="indeterminate">
  *   <ProgressBar.Indicator />
  * </ProgressBar.Root>
  * ```
@@ -202,12 +202,12 @@ const ProgressBar = {
 	 *   <ProgressBar.Indicator />
 	 * </ProgressBar.Root>
 	 *
-	 * <ProgressBar.Root value={75} max={100}>
+	 * <ProgressBar.Root aria-label="Upload progress" value={75} max={100}>
 	 *   <ProgressBar.Indicator />
 	 * </ProgressBar.Root>
 	 *
 	 * // Indeterminate progress
-	 * <ProgressBar.Root value="indeterminate">
+	 * <ProgressBar.Root aria-label="Upload progress" value="indeterminate">
 	 *   <ProgressBar.Indicator />
 	 * </ProgressBar.Root>
 	 * ```
@@ -223,12 +223,12 @@ const ProgressBar = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <ProgressBar.Root value={60}>
+	 * <ProgressBar.Root aria-label="Upload progress" value={60}>
 	 *   <ProgressBar.Indicator />
 	 * </ProgressBar.Root>
 	 *
 	 * // Custom styled indicator
-	 * <ProgressBar.Root value={60}>
+	 * <ProgressBar.Root aria-label="Upload progress" value={60}>
 	 *   <ProgressBar.Indicator className="bg-success-600" />
 	 * </ProgressBar.Root>
 	 * ```

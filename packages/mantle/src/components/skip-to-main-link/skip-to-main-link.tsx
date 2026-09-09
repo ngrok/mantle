@@ -20,10 +20,9 @@ type SkipToMainLinkProps = Omit<ComponentProps<"a">, "href"> &
  * A visually-hidden-until-focused "skip link" that lets keyboard users jump
  * past repeated navigation and land directly on the page's main content
  * landmark. When activated, it updates the URL hash and focuses the element
- * identified by `targetId` (defaulting to `"main"`) without scrolling: the
- * focus call passes `preventScroll: true`, so the page does not jump. The
- * target must therefore start near the top of the viewport, as an app shell's
- * main region does. It still renders a plain anchor with `href="#${targetId}"`
+ * identified by `targetId` (defaulting to `"main"`). The focus call scrolls a
+ * target that sits off screen into view, so a sighted keyboard user sees where
+ * focus went. It still renders a plain anchor with `href="#${targetId}"`
  * to preserve link semantics, support copy-link / no-JavaScript fallback
  * behavior, and avoid any router dependency in React Router, Next.js, or plain
  * HTML.
@@ -58,7 +57,7 @@ const SkipToMainLink = ({
 			onClick={(event) => {
 				event.preventDefault();
 				window.history.replaceState(null, "", `#${targetId}`);
-				document.getElementById(targetId)?.focus({ preventScroll: true });
+				document.getElementById(targetId)?.focus();
 				onClick?.(event);
 			}}
 			className={cx(

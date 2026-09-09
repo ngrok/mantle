@@ -106,12 +106,12 @@ import { Link, href } from "react-router";
 
 All props from [a](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attributes), plus:
 
-| Prop             | Type                                          | Default                                                   | Description                                                                                                                                 |
-| ---------------- | --------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `icon?`          | `ReactNode`                                   |                                                           | An icon to render inside the anchor. Rendered `aria-hidden`.                                                                                |
-| `iconPlacement?` | `"start"` \| `"end"`                          | `"start"`                                                 | The side that the icon will render on, if one is present.                                                                                   |
-| `rel?`           | `string` \| `(string \| null \| undefined)[]` | `"noopener noreferrer"` when `target="_blank"`, else none | The relationship between the linked resource and the current document. An array is trimmed, de-duplicated, sorted, and joined with a space. |
-| `asChild?`       | `boolean`                                     | `false`                                                   | Use the `asChild` prop to compose the `Anchor` styling onto alternative element types or your own React components.                         |
+| Prop             | Type                                          | Default                                                   | Description                                                                                                                                             |
+| ---------------- | --------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `icon?`          | `ReactNode`                                   |                                                           | An icon to render inside the anchor. Decorative by default: rendered `aria-hidden` unless the SVG carries a name, a role, or an explicit `aria-hidden`. |
+| `iconPlacement?` | `"start"` \| `"end"`                          | `"start"`                                                 | The side that the icon will render on, if one is present.                                                                                               |
+| `rel?`           | `string` \| `(string \| null \| undefined)[]` | `"noopener noreferrer"` when `target="_blank"`, else none | The relationship between the linked resource and the current document. An array is trimmed, de-duplicated, sorted, and joined with a space.             |
+| `asChild?`       | `boolean`                                     | `false`                                                   | Use the `asChild` prop to compose the `Anchor` styling onto alternative element types or your own React components.                                     |
 
 #### Data attributes
 

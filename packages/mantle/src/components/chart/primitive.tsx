@@ -1239,6 +1239,7 @@ const ChartCopyButtonPrimitive = ({
 	const context = useChartContext(partName);
 	const copyToClipboard = useCopyToClipboard();
 	const [wasCopied, setWasCopied] = useState(false);
+	const [announcement, setAnnouncement] = useState("");
 	const timeoutHandle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
 	useEffect(() => {
@@ -1248,6 +1249,21 @@ const ChartCopyButtonPrimitive = ({
 			}
 		};
 	}, []);
+
+	// Why the frame gap: a live region announces a change, not a value. Each copy
+	// clears the text, and this effect writes "Copied" one frame later, so a
+	// second copy inside the reset window is announced again.
+	useEffect(() => {
+		if (!wasCopied || announcement !== "") {
+			return;
+		}
+		const frame = requestAnimationFrame(() => {
+			setAnnouncement("Copied");
+		});
+		return () => {
+			cancelAnimationFrame(frame);
+		};
+	}, [announcement, wasCopied]);
 
 	return (
 		<>
@@ -1272,6 +1288,7 @@ const ChartCopyButtonPrimitive = ({
 								timeoutHandle.current = undefined;
 							}
 							setWasCopied(false);
+							setAnnouncement("");
 							return;
 						}
 						const { data, xKey, zKey } = context.dataRef.current;
@@ -1284,11 +1301,13 @@ const ChartCopyButtonPrimitive = ({
 						await copyToClipboard(markdown);
 						onCopy?.(markdown);
 						setWasCopied(true);
+						setAnnouncement("");
 						if (timeoutHandle.current != null) {
 							clearTimeout(timeoutHandle.current);
 						}
 						timeoutHandle.current = setTimeout(() => {
 							setWasCopied(false);
+							setAnnouncement("");
 						}, 2000);
 					} catch (error) {
 						onCopyError?.(error);
@@ -1301,7 +1320,7 @@ const ChartCopyButtonPrimitive = ({
 			    browser translation engine, and a fresh live region is not
 			    announced on mount. */}
 			<span role="status" aria-live="polite" className="sr-only">
-				{wasCopied ? "Copied" : ""}
+				{announcement}
 			</span>
 		</>
 	);

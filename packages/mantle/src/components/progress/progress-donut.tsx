@@ -95,7 +95,7 @@ type Props = SvgAttributes & {
  *   <ProgressDonut.Indicator />
  * </ProgressDonut.Root>
  *
- * <ProgressDonut.Root value={60}>
+ * <ProgressDonut.Root aria-label="Data transfer out" value={60}>
  *   <ProgressDonut.Indicator className="text-danger-600" />
  * </ProgressDonut.Root>
  * ```
@@ -183,11 +183,11 @@ type ProgressDonutIndicatorProps = Omit<ComponentProps<"g">, "children">;
  *
  * @example
  * ```tsx
- * <ProgressDonut.Root value={60}>
+ * <ProgressDonut.Root aria-label="Data transfer out" value={60}>
  *   <ProgressDonut.Indicator />
  * </ProgressDonut.Root>
  *
- * <ProgressDonut.Root value={60}>
+ * <ProgressDonut.Root aria-label="Data transfer out" value={60}>
  *   <ProgressDonut.Indicator className="text-danger-600" />
  * </ProgressDonut.Root>
  * ```
@@ -248,11 +248,11 @@ const Indicator = ({ className, ...props }: ProgressDonutIndicatorProps) => {
  *
  * @example
  * ```tsx
- * <ProgressDonut.Root value={60}>
+ * <ProgressDonut.Root aria-label="Data transfer out" value={60}>
  *   <ProgressDonut.Indicator />
  * </ProgressDonut.Root>
  *
- * <ProgressDonut.Root value={60}>
+ * <ProgressDonut.Root aria-label="Data transfer out" value={60}>
  *   <ProgressDonut.Indicator className="text-danger-600" />
  * </ProgressDonut.Root>
  * ```
@@ -277,7 +277,7 @@ const ProgressDonut = {
 	 *   <ProgressDonut.Indicator />
 	 * </ProgressDonut.Root>
 	 *
-	 * <ProgressDonut.Root value={60}>
+	 * <ProgressDonut.Root aria-label="Data transfer out" value={60}>
 	 *   <ProgressDonut.Indicator className="text-danger-600" />
 	 * </ProgressDonut.Root>
 	 * ```
@@ -290,11 +290,11 @@ const ProgressDonut = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <ProgressDonut.Root value={60}>
+	 * <ProgressDonut.Root aria-label="Data transfer out" value={60}>
 	 *   <ProgressDonut.Indicator />
 	 * </ProgressDonut.Root>
 	 *
-	 * <ProgressDonut.Root value={60}>
+	 * <ProgressDonut.Root aria-label="Data transfer out" value={60}>
 	 *   <ProgressDonut.Indicator className="text-danger-600" />
 	 * </ProgressDonut.Root>
 	 * ```

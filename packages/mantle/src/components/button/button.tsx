@@ -343,15 +343,16 @@ const Button = ({
 
 	if (asChild) {
 		invariant(
-			isValidElement<{ children?: ReactNode }>(children) && Children.only(children),
+			isValidElement<{ children?: ReactNode; onClickCapture?: unknown }>(children) &&
+				Children.only(children),
 			"When using `asChild`, Button must be passed a single child as a JSX tag.",
 		);
 
 		return (
-			<Slot {...buttonProps} {...(disabled && disabledSlotProps)}>
+			<Slot {...buttonProps}>
 				{cloneElement(
 					children,
-					{},
+					disabled ? disabledChildProps : {},
 					<>
 						{icon && <Icon svg={icon} className={clsx(iconPlacement === "end" && "order-last")} />}
 						{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
@@ -381,8 +382,12 @@ const Button = ({
  * attribute does nothing on an `<a>`, so the child leaves the tab order and a
  * click is cancelled in the capture phase, before the child's own `onClick` or
  * a router's navigation runs.
+ *
+ * Why on the child through `cloneElement`, not on the `Slot`: Radix composes a
+ * child handler ahead of a slot handler, so a child's own `onClickCapture`
+ * would run before the blocker. Set on the child, these props replace it.
  */
-const disabledSlotProps = {
+const disabledChildProps = {
 	tabIndex: -1,
 	onClickCapture: (event: MouseEvent<HTMLElement>) => {
 		event.preventDefault();
@@ -393,7 +398,7 @@ const disabledSlotProps = {
 export {
 	//,
 	Button,
-	disabledSlotProps,
+	disabledChildProps,
 };
 
 export type {

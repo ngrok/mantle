@@ -8,11 +8,11 @@ import { Example } from "~/components/example";
 
 # SkipToMainLink
 
-A visually-hidden-until-focused "skip link" that lets keyboard users jump past repeated navigation and land directly on the page's main content landmark. When activated, it focuses the element identified by `targetId` (defaulting to `"main"`) without scrolling, and updates the URL hash using the browser History API, so it works in any framework, including React Router, Next.js, or plain HTML.
+A visually-hidden-until-focused "skip link" that lets keyboard users jump past repeated navigation and land directly on the page's main content landmark. When activated, it focuses the element identified by `targetId` (defaulting to `"main"`) and updates the URL hash using the browser History API, so it works in any framework, including React Router, Next.js, or plain HTML.
 
 Pair with the [`Main`](/components/primitives/main) component (or any element with a matching `id` and `tabIndex={-1}`) so it can receive focus.
 
-The focus call passes `preventScroll: true`, so the viewport does not move. Place the link at the top of the document and keep the target near the top of the viewport, as an app shell's main region is. A target below the fold takes focus without any visible change.
+The focus call scrolls a target that sits off screen into view, so a sighted keyboard user sees where focus went. A target already in view does not move. Place the link at the top of the document, before the navigation it skips.
 
 <Example className="flex-col gap-4">
 	<p className="text-sm text-muted">

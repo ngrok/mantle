@@ -1218,7 +1218,7 @@ All props from ariakit [Combobox](https://ariakit.org/reference/combobox). Key p
 
 ### MultiSelect.Tag
 
-The default tag component rendered inside `MultiSelect.TagValues` for each selected value. Displays the value label with a remove button. Renders a `role="listitem"` inside the `role="list"` that `MultiSelect.TagValues` renders, and marks itself `aria-current="true"` and `data-active` while it has focus.
+The default tag component rendered inside `MultiSelect.TagValues` for each selected value. Displays the value label with a remove button. Renders a `role="listitem"` inside the `role="list"` that `MultiSelect.TagValues` renders, and marks itself `data-active` while it has focus.
 
 Arrow-key navigation and Backspace/Delete removal come from the `MultiSelect.TagValues` render props; spread them onto the tag to get them. On its own, `Tag` only blocks Backspace and Delete on a locked tag.
 

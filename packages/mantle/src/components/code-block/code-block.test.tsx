@@ -266,6 +266,42 @@ describe("CodeBlock", () => {
 			});
 		});
 
+		test("announces again when a second copy lands inside the reset window", async () => {
+			const user = userEvent.setup();
+
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.CopyButton />
+						<CodeBlock.Code value={makeValue("const x = 1;")} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			const status = screen.getByRole("status");
+			// A live region announces a DOM change, so count how many times the text
+			// lands, not what it reads at the end.
+			const announcements: string[] = [];
+			const observer = new MutationObserver(() => {
+				if (status.textContent === "Copied") {
+					announcements.push(status.textContent);
+				}
+			});
+			observer.observe(status, { childList: true, characterData: true, subtree: true });
+			const button = screen.getByRole("button", { name: /copy code/i });
+
+			await user.click(button);
+			await vi.waitFor(() => {
+				expect(announcements).toHaveLength(1);
+			});
+
+			await user.click(button);
+			await vi.waitFor(() => {
+				expect(announcements).toHaveLength(2);
+			});
+			observer.disconnect();
+		});
+
 		test("fires onCopy with the code text after clicking", async () => {
 			const user = userEvent.setup();
 			const onCopy = vi.fn<() => void>();

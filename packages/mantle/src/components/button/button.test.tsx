@@ -358,6 +358,43 @@ describe("Button", () => {
 			expect(window.location.hash).toBe("");
 		});
 
+		test("a disabled asChild anchor drops its own onClickCapture, which Radix would run first", async () => {
+			const user = userEvent.setup();
+			const handleClickCapture = vi.fn<() => void>();
+			render(
+				<Button appearance="filled" intent="neutral" asChild disabled>
+					<a href="#yolo" onClickCapture={handleClickCapture}>
+						Open
+					</a>
+				</Button>,
+			);
+
+			await user.click(screen.getByRole("link", { name: "Open" }));
+
+			expect(handleClickCapture).toHaveBeenCalledTimes(0);
+			expect(window.location.hash).toBe("");
+		});
+
+		test("an enabled asChild anchor keeps its own onClickCapture", async () => {
+			const user = userEvent.setup();
+			const handleClickCapture = vi.fn<(event: ReactMouseEvent<HTMLAnchorElement>) => void>(
+				(event) => {
+					event.preventDefault();
+				},
+			);
+			render(
+				<Button appearance="filled" intent="neutral" asChild>
+					<a href="#yolo" onClickCapture={handleClickCapture}>
+						Open
+					</a>
+				</Button>,
+			);
+
+			await user.click(screen.getByRole("link", { name: "Open" }));
+
+			expect(handleClickCapture).toHaveBeenCalledTimes(1);
+		});
+
 		test("an enabled asChild anchor keeps its tab stop and runs its click handler", async () => {
 			const user = userEvent.setup();
 			const handleClick = vi.fn<(event: ReactMouseEvent<HTMLAnchorElement>) => void>((event) => {

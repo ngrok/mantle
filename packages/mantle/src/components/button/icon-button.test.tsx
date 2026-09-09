@@ -207,6 +207,30 @@ describe("IconButton", () => {
 			expect(button).toHaveAttribute("aria-disabled", "true");
 		});
 
+		test("a disabled asChild anchor drops its own onClickCapture, which Radix would run first", async () => {
+			const user = userEvent.setup();
+			const handleClickCapture = vi.fn<() => void>();
+			render(
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					asChild
+					disabled
+					label="Open"
+					icon={<GlobeIcon />}
+				>
+					<a href="#yolo" onClickCapture={handleClickCapture}>
+						Open
+					</a>
+				</IconButton>,
+			);
+
+			await user.click(screen.getByRole("link", { name: "Open" }));
+
+			expect(handleClickCapture).toHaveBeenCalledTimes(0);
+			expect(window.location.hash).toBe("");
+		});
+
 		test("a disabled asChild anchor is inert: aria-disabled, out of the tab order, click cancelled", async () => {
 			const user = userEvent.setup();
 			const handleClick = vi.fn<() => void>();

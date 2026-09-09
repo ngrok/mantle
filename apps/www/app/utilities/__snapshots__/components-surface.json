@@ -635,7 +635,7 @@
     "jsdoc": "Displays an indicator showing the completion progress of a task, typically displayed as a progress bar.",
     "examples": [
       "Composition:\n```\nProgressBar.Root\n└── ProgressBar.Indicator\n```",
-      "```tsx\n<ProgressBar.Root value={60}>\n  <ProgressBar.Indicator />\n</ProgressBar.Root>\n\n<ProgressBar.Root value={75} max={100}>\n  <ProgressBar.Indicator />\n</ProgressBar.Root>\n\n// Indeterminate progress\n<ProgressBar.Root value=\"indeterminate\">\n  <ProgressBar.Indicator />\n</ProgressBar.Root>\n```"
+      "```tsx\n<ProgressBar.Root aria-label=\"Upload progress\" value={60}>\n  <ProgressBar.Indicator />\n</ProgressBar.Root>\n\n<ProgressBar.Root aria-label=\"Upload progress\" value={75} max={100}>\n  <ProgressBar.Indicator />\n</ProgressBar.Root>\n\n// Indeterminate progress\n<ProgressBar.Root aria-label=\"Upload progress\" value=\"indeterminate\">\n  <ProgressBar.Indicator />\n</ProgressBar.Root>\n```"
     ]
   },
   {
@@ -649,7 +649,7 @@
     "jsdoc": "A simple circular progress bar which shows the completion progress of a task.",
     "examples": [
       "Composition:\n```\nProgressDonut.Root\n└── ProgressDonut.Indicator\n```",
-      "```tsx\n<ProgressDonut.Root value={60}>\n  <ProgressDonut.Indicator />\n</ProgressDonut.Root>\n\n<ProgressDonut.Root value={60}>\n  <ProgressDonut.Indicator className=\"text-danger-600\" />\n</ProgressDonut.Root>\n```"
+      "```tsx\n<ProgressDonut.Root aria-label=\"Data transfer out\" value={60}>\n  <ProgressDonut.Indicator />\n</ProgressDonut.Root>\n\n<ProgressDonut.Root aria-label=\"Data transfer out\" value={60}>\n  <ProgressDonut.Indicator className=\"text-danger-600\" />\n</ProgressDonut.Root>\n```"
     ]
   },
   {

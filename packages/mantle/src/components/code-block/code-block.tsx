@@ -632,6 +632,7 @@ const CopyButton = ({
 	const { copyTextRef } = useCodeBlockContext();
 	const copyToClipboard = useCopyToClipboard();
 	const [wasCopied, setWasCopied] = useState(false);
+	const [announcement, setAnnouncement] = useState("");
 	const timeoutHandle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
 	useEffect(() => {
@@ -641,6 +642,21 @@ const CopyButton = ({
 			}
 		};
 	}, []);
+
+	// Why the frame gap: a live region announces a change, not a value. Each copy
+	// clears the text, and this effect writes "Copied" one frame later, so a
+	// second copy inside the reset window is announced again.
+	useEffect(() => {
+		if (!wasCopied || announcement !== "") {
+			return;
+		}
+		const frame = requestAnimationFrame(() => {
+			setAnnouncement("Copied");
+		});
+		return () => {
+			cancelAnimationFrame(frame);
+		};
+	}, [announcement, wasCopied]);
 
 	return (
 		<span
@@ -652,7 +668,7 @@ const CopyButton = ({
 			    browser translation engine, and a fresh live region is not
 			    announced on mount. */}
 			<span role="status" aria-live="polite" className="sr-only">
-				{wasCopied ? "Copied" : ""}
+				{announcement}
 			</span>
 			<IconButton
 				type="button"
@@ -676,11 +692,13 @@ const CopyButton = ({
 						await copyToClipboard(text);
 						onCopy?.(text);
 						setWasCopied(true);
+						setAnnouncement("");
 						if (timeoutHandle.current != null) {
 							clearTimeout(timeoutHandle.current);
 						}
 						timeoutHandle.current = setTimeout(() => {
 							setWasCopied(false);
+							setAnnouncement("");
 						}, 2000);
 					} catch (error) {
 						onCopyError?.(error);

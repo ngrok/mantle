@@ -249,24 +249,23 @@ describe("MultiSelect", () => {
 			expect(getTagOption("cherry")).toHaveFocus();
 		});
 
-		test("the focused tag is marked aria-current and data-active, and drops both on blur", async () => {
+		test("the focused tag is marked data-active, never aria-current, and drops it on blur", async () => {
 			const user = userEvent.setup();
 			render(<Subject />);
 			const cherry = getTagOption("cherry");
-			expect(cherry).not.toHaveAttribute("aria-current");
 			expect(cherry).not.toHaveAttribute("data-active");
 
 			act(() => {
 				cherry.focus();
 			});
 			expect(cherry).toHaveFocus();
-			expect(cherry).toHaveAttribute("aria-current", "true");
 			expect(cherry).toHaveAttribute("data-active");
-			expect(getTagOption("banana")).not.toHaveAttribute("aria-current");
+			// Why: `aria-current` names the current item in a set, not keyboard focus.
+			expect(cherry).not.toHaveAttribute("aria-current");
+			expect(getTagOption("banana")).not.toHaveAttribute("data-active");
 
 			await user.keyboard("{ArrowRight}");
 			expect(screen.getByRole("combobox")).toHaveFocus();
-			expect(cherry).not.toHaveAttribute("aria-current");
 			expect(cherry).not.toHaveAttribute("data-active");
 		});
 

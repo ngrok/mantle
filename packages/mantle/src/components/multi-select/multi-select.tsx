@@ -234,7 +234,7 @@ type TagProps = Omit<ComponentProps<"span">, "children"> & {
  * The default tag rendered inside `MultiSelect.TagValues` for each selected value.
  * Displays the value label with a remove button. Renders a `role="listitem"`
  * inside the `role="list"` that `MultiSelect.TagValues` renders, and marks
- * itself `aria-current="true"` and `data-active` while it has focus.
+ * itself `data-active` while it has focus.
  *
  * Arrow-key navigation and Backspace/Delete removal come from the
  * `MultiSelect.TagValues` render props; spread them onto the tag to get them.
@@ -278,15 +278,14 @@ const Tag = ({
 }: TagProps) => {
 	const internalRef = useRef<HTMLSpanElement | null>(null);
 	// Why local state: the tag list has no listbox, so `aria-selected` is not
-	// valid here. The focused tag is the one keyboard navigation is on, and
-	// `aria-current` is the attribute that says so.
+	// valid here, and `aria-current` names a current item, not focus. DOM focus
+	// exposes the active tag; `data-active` drives its styling.
 	const [isActive, setIsActive] = useState(false);
 
 	return (
 		<span
 			ref={composeRefs(internalRef, ref)}
 			role="listitem"
-			aria-current={isActive || undefined}
 			tabIndex={-1}
 			data-slot="multi-select-tag"
 			data-active={isActive || undefined}
@@ -1368,7 +1367,7 @@ const MultiSelect = {
 	 * The default tag rendered inside `MultiSelect.TagValues` for each selected value.
 	 * Displays the value label with a remove button. Renders a `role="listitem"`
 	 * inside the `role="list"` that `MultiSelect.TagValues` renders, and marks
-	 * itself `aria-current="true"` and `data-active` while it has focus.
+	 * itself `data-active` while it has focus.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttag
 	 *
