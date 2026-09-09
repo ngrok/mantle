@@ -68,7 +68,9 @@ mise.toml
 
 # Docs and meta
 decisions
-scripts
+scripts/*
+# Keep the pnpm version helper; the Dockerfile base stage runs it.
+!scripts/package-manager-version
 LICENSE
 **/*.md
 # www bundles packages/mantle/CHANGELOG.md as build input (mantleChangelogMdx

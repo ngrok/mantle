@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-MISE_VERSION="${MISE_VERSION:-v2026.4.28}"
+MISE_VERSION="${MISE_VERSION:-v2026.9.3}"
 MISE_EXPECTED_VERSION="${MISE_VERSION#v}"
 
 require_command() {

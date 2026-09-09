@@ -14,15 +14,16 @@ RUN groupadd nodejs && useradd --gid nodejs --uid 1001 --create-home ngrok
 WORKDIR /app
 
 ENV CI=true
-ENV COREPACK_HOME=/tmp/corepack-cache
-ENV XDG_CACHE_HOME=$COREPACK_HOME
-ENV PNPM_HOME=/root/.pnpm-store
 
-RUN mkdir -p $COREPACK_HOME \
-    && chmod -R 777 $COREPACK_HOME
-
-# Enable corepack for pnpm
-RUN npm install --global corepack@latest && corepack enable pnpm
+# Install pnpm at the version pinned in root package.json#packageManager, the
+# same source mise reads. pnpm's install script must run: it links the native
+# binary over the Node launcher. The version check runs from / because pnpm
+# writes an env lockfile into any project directory it runs in.
+COPY package.json ./
+COPY scripts/package-manager-version scripts/
+RUN npm install --global "pnpm@$(scripts/package-manager-version)" \
+    && test "$(cd / && pnpm --version)" = "$(scripts/package-manager-version)" \
+    && rm -r package.json scripts
 
 # Pruner stage — generates a minimal workspace containing only @app/www and
 # the workspace packages it depends on (@ngrok/mantle, mantle-vite-plugins,
@@ -55,15 +56,15 @@ WORKDIR /app
 # Copy pruned package.json files first for better layer caching
 COPY --from=pruner /app/out/json/ ./
 
-# Enable and install pnpm via corepack (uses the root package.json#packageManager field)
-RUN yes | corepack enable pnpm \
-    && yes | corepack install
-
 # Install ALL dependencies (devDeps needed for build)
 # Note: turbo prune generates a subset lockfile — skip frozen-lockfile
-RUN --mount=type=cache,id=pnpm-store,target=/root/.pnpm-store \
-    pnpm store verify || true && \
-    pnpm install --no-frozen-lockfile
+#
+# The store lives on a BuildKit cache mount, which is a separate filesystem.
+# pnpm moves its default store onto the project's filesystem in that case, so
+# name the store dir explicitly. Imports across filesystems copy instead of
+# clone.
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --no-frozen-lockfile --store-dir /pnpm/store
 
 # Copy full pruned source
 COPY --from=pruner /app/out/full/ ./
