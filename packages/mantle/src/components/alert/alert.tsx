@@ -25,7 +25,7 @@ import {
 import { SvgOnly } from "../icon/svg-only.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { Slot } from "../slot/index.js";
-import { findTabbableNeighbors } from "./tabbable-neighbors.js";
+import { findTabbableNeighbors, isTabbable } from "./tabbable-neighbors.js";
 
 const intents = [
 	//,
@@ -410,9 +410,10 @@ type AlertDismissIconButtonProps = Partial<
  * Two cleanups split the work. The layout cleanup runs while the alert is
  * still in the document, so it can read which element has focus and collect
  * the neighbors. The passive cleanup runs after the whole commit, so a
- * consumer effect that placed focus in the meantime wins. It moves focus only
- * when focus did fall to `<body>`, and only to a neighbor the same unmount did
- * not remove.
+ * consumer layout effect that placed focus in the meantime wins. A consumer
+ * `useEffect` runs later still and overrides the move. The passive cleanup
+ * moves focus only when focus did fall to `<body>`, and only to a neighbor
+ * that the same commit left connected and tabbable.
  *
  * @example
  * ```tsx
@@ -460,7 +461,8 @@ function useDismissFocusRedirect({
 			if (activeElement != null && activeElement !== document.body) {
 				return;
 			}
-			const target = neighbors.find((element) => element.isConnected);
+			// The same commit can disable, hide, or detach a recorded neighbor.
+			const target = neighbors.find((element) => element.isConnected && isTabbable(element));
 			target?.focus();
 		};
 	}, [enabled]);
@@ -473,7 +475,7 @@ function useDismissFocusRedirect({
  * handler. When that unmount happens while the button holds focus, focus
  * moves to the nearest tabbable element outside the alert (the next one in
  * document order, else the previous one) instead of falling to `<body>`. If
- * your handler or an effect places focus first, that choice stands.
+ * your handler or a layout effect places focus first, that choice stands.
  *
  * It inherits `--alert-control-color`, `--alert-control-hover-color`, and
  * `--alert-control-hover-bg` from `Alert.Root`, shared with

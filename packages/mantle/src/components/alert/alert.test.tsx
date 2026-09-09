@@ -215,6 +215,38 @@ describe("Alert", () => {
 				expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
 			});
 
+			test("skips a neighbor the same commit disables", async () => {
+				// The layout cleanup records the neighbors before React commits the
+				// siblings' attribute updates, so a neighbor recorded as enabled can
+				// be disabled by the time the passive cleanup runs.
+				function Consumer() {
+					const [dismissed, setDismissed] = useState(false);
+					return (
+						<>
+							{!dismissed && (
+								<Alert.Root intent="info">
+									<Alert.Content>
+										<Alert.Title>Trial ends soon</Alert.Title>
+										<Alert.DismissIconButton onClick={() => setDismissed(true)} />
+									</Alert.Content>
+								</Alert.Root>
+							)}
+							<button type="button" disabled={dismissed}>
+								Apply
+							</button>
+							<button type="button">After</button>
+						</>
+					);
+				}
+				const user = userEvent.setup();
+				render(<Consumer />);
+
+				await user.click(screen.getByRole("button", { name: "Dismiss Alert" }));
+
+				expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
+				expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+			});
+
 			test("leaves focus alone when the button does not hold it", () => {
 				render(
 					<>

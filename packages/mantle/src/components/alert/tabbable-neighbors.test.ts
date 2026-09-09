@@ -53,6 +53,50 @@ describe("findTabbableNeighbors", () => {
 		expect(ids(findTabbableNeighbors(anchor))).toEqual(["positive"]);
 	});
 
+	describe("radio groups", () => {
+		test("counts only the checked radio of a named group", () => {
+			const anchor = mount(`
+				<div id="anchor"></div>
+				<input id="plan-free" type="radio" name="plan" />
+				<input id="plan-pro" type="radio" name="plan" checked />
+				<input id="plan-team" type="radio" name="plan" />
+				<button id="after" type="button">Continue</button>
+			`);
+
+			expect(ids(findTabbableNeighbors(anchor))).toEqual(["plan-pro", "after"]);
+		});
+
+		test("counts the first enabled radio when none in the group is checked", () => {
+			const anchor = mount(`
+				<div id="anchor"></div>
+				<input id="plan-free" type="radio" name="plan" disabled />
+				<input id="plan-pro" type="radio" name="plan" />
+				<input id="plan-team" type="radio" name="plan" />
+			`);
+
+			expect(ids(findTabbableNeighbors(anchor))).toEqual(["plan-pro"]);
+		});
+
+		test("keeps separate groups, unnamed radios, and separate forms as their own stops", () => {
+			const anchor = mount(`
+				<div id="anchor"></div>
+				<input id="plan-pro" type="radio" name="plan" checked />
+				<input id="plan-team" type="radio" name="plan" />
+				<input id="region-us" type="radio" name="region" />
+				<input id="region-eu" type="radio" name="region" />
+				<input id="lonely" type="radio" />
+				<form><input id="form-plan" type="radio" name="plan" /></form>
+			`);
+
+			expect(ids(findTabbableNeighbors(anchor))).toEqual([
+				"plan-pro",
+				"region-us",
+				"lonely",
+				"form-plan",
+			]);
+		});
+	});
+
 	test("counts a tabbable ancestor as a preceding neighbor", () => {
 		const anchor = mount(`
 			<div id="scroller" tabindex="0"><div id="anchor"></div></div>
