@@ -106,6 +106,22 @@ describe("rankAlerts", () => {
 		expect(ranked.map((alert) => alert.id)).toEqual(["declared-first", "arrived-first"]);
 	});
 
+	test("an undeclared order follows every declared one, Infinity included", () => {
+		const ranked = rankAlerts([
+			{ id: "undeclared", intent: "warning", order: undefined, sequence: 0 },
+			{ id: "declared", intent: "warning", order: Number.POSITIVE_INFINITY, sequence: 1 },
+		] as const);
+		expect(ranked.map((alert) => alert.id)).toEqual(["declared", "undeclared"]);
+	});
+
+	test("two equal infinite orders fall through to sequence", () => {
+		const ranked = rankAlerts([
+			{ id: "later", intent: "warning", order: Number.POSITIVE_INFINITY, sequence: 1 },
+			{ id: "earlier", intent: "warning", order: Number.POSITIVE_INFINITY, sequence: 0 },
+		] as const);
+		expect(ranked.map((alert) => alert.id)).toEqual(["earlier", "later"]);
+	});
+
 	test("intent outranks order", () => {
 		const ranked = rankAlerts([
 			{ id: "eager-warning", intent: "warning", order: -100, sequence: 0 },

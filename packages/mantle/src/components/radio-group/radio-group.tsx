@@ -16,7 +16,14 @@ import {
 	useRef,
 	useState,
 } from "react";
-import type { ComponentProps, HTMLAttributes, PropsWithChildren, ReactNode, Ref } from "react";
+import type {
+	ComponentProps,
+	ElementType,
+	HTMLAttributes,
+	PropsWithChildren,
+	ReactNode,
+	Ref,
+} from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -119,9 +126,15 @@ function useRegisteredIds(): [readonly string[], (id: string) => () => void] {
  *   surrounding `Field.Control`
  *
  * It also publishes `RadioItemContext` to the children, so `Choice.Title` and
- * `Choice.Description` can register.
+ * `Choice.Description` can register. The item's `as` arrives as `tag`, so a
+ * consumer's element choice keeps this wiring.
  */
-const RadioElement = ({ children, ref, ...props }: ComponentProps<"div">) => {
+type RadioElementProps = ComponentProps<"div"> & {
+	/** The element the item's `as` prop asked for. */
+	tag?: ElementType;
+};
+
+const RadioElement = ({ children, ref, tag: Tag = "div", ...props }: RadioElementProps) => {
 	const fieldControl = useContext(FieldControlContext);
 	const [labelIds, registerLabelId] = useRegisteredIds();
 	const [descriptionIds, registerDescriptionId] = useRegisteredIds();
@@ -130,7 +143,7 @@ const RadioElement = ({ children, ref, ...props }: ComponentProps<"div">) => {
 		[registerLabelId, registerDescriptionId],
 	);
 	return (
-		<div
+		<Tag
 			{...props}
 			{...(fieldControl
 				? {
@@ -143,7 +156,7 @@ const RadioElement = ({ children, ref, ...props }: ComponentProps<"div">) => {
 			ref={ref}
 		>
 			<RadioItemContext.Provider value={context}>{children}</RadioItemContext.Provider>
-		</div>
+		</Tag>
 	);
 };
 
@@ -175,7 +188,7 @@ type RadioItemProps = Omit<HeadlessRadioProps, "children"> &
  * </RadioGroup.Root>
  * ```
  */
-const Item = ({ children, className, ref, ...props }: RadioItemProps) => {
+const Item = ({ as: tag, children, className, ref, ...props }: RadioItemProps) => {
 	return (
 		<HeadlessRadio
 			data-slot="radio-group-item"
@@ -186,8 +199,9 @@ const Item = ({ children, className, ref, ...props }: RadioItemProps) => {
 				"not-has-data-[radio-default-indicator]:focus-visible:ring-focus-accent not-has-data-[radio-default-indicator]:focus-visible:ring-4 not-has-data-[radio-default-indicator]:focus-visible:rounded-md",
 				className,
 			)}
-			as={RadioElement}
 			{...props}
+			as={RadioElement}
+			tag={tag}
 			ref={ref}
 		>
 			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
@@ -333,10 +347,9 @@ type RadioListItemProps = RadioItemProps;
  * </RadioGroup.Root>
  * ```
  */
-const ListItem = ({ children, className, ref, ...props }: RadioListItemProps) => {
+const ListItem = ({ as: tag, children, className, ref, ...props }: RadioListItemProps) => {
 	return (
 		<HeadlessRadio
-			as={RadioElement}
 			data-slot="radio-group-list-item"
 			className={cx(
 				"group/radio border-form [&_label]:cursor-inherit relative flex select-none gap-2 border px-3 py-2 text-sm",
@@ -348,8 +361,10 @@ const ListItem = ({ children, className, ref, ...props }: RadioListItemProps) =>
 				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
 				className,
 			)}
-			ref={ref}
 			{...props}
+			as={RadioElement}
+			tag={tag}
+			ref={ref}
 		>
 			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
 		</HeadlessRadio>
@@ -392,10 +407,9 @@ type RadioCardProps = RadioItemProps;
  * </RadioGroup.Root>
  * ```
  */
-const Card = ({ children, className, ref, ...props }: RadioCardProps) => {
+const Card = ({ as: tag, children, className, ref, ...props }: RadioCardProps) => {
 	return (
 		<HeadlessRadio
-			as={RadioElement}
 			data-slot="radio-group-card"
 			className={clsx(
 				"group/radio border-card bg-card [&_label]:cursor-inherit relative rounded-md border p-4 text-sm",
@@ -407,6 +421,8 @@ const Card = ({ children, className, ref, ...props }: RadioCardProps) => {
 				className,
 			)}
 			{...props}
+			as={RadioElement}
+			tag={tag}
 			ref={ref}
 		>
 			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
@@ -500,10 +516,9 @@ type RadioButtonProps = RadioItemProps;
  * </RadioGroup.ButtonGroup>
  * ```
  */
-const Button = ({ children, className, ref, ...props }: RadioButtonProps) => {
+const Button = ({ as: tag, children, className, ref, ...props }: RadioButtonProps) => {
 	return (
 		<HeadlessRadio
-			as={RadioElement}
 			data-slot="radio-group-button"
 			className={cx(
 				"group/radio border-form [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 border px-3 text-sm",
@@ -516,8 +531,10 @@ const Button = ({ children, className, ref, ...props }: RadioButtonProps) => {
 				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
 				className,
 			)}
-			ref={ref}
 			{...props}
+			as={RadioElement}
+			tag={tag}
+			ref={ref}
 		>
 			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
 		</HeadlessRadio>

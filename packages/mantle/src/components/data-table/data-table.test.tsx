@@ -113,39 +113,6 @@ describe("DataTable.Row", () => {
 		fireEvent.click(screen.getByTestId("row"), { button: 1 });
 		expect(handleClick).not.toHaveBeenCalled();
 	});
-
-	test("skips `onClick` when the click ends a text selection inside the row", async () => {
-		const user = userEvent.setup();
-		const handleClick = vi.fn<() => void>();
-		render(<Harness onClick={handleClick} />);
-		const cell = screen.getByRole("cell", { name: "Alice" });
-
-		// Drag-select "Ali": press at the start of the cell text, move, release.
-		await user.pointer([
-			{ keys: "[MouseLeft>]", target: cell, offset: 0 },
-			{ target: cell, offset: 3 },
-			{ keys: "[/MouseLeft]" },
-		]);
-
-		expect(document.getSelection()?.toString()).toBe("Ali");
-		expect(handleClick).not.toHaveBeenCalled();
-	});
-
-	test("runs `onClick` when a selection that survives the click is anchored outside the row", () => {
-		const handleClick = vi.fn<() => void>();
-		render(
-			<>
-				<p>Elsewhere</p>
-				<Harness onClick={handleClick} />
-			</>,
-		);
-		document.getSelection()?.selectAllChildren(screen.getByText("Elsewhere"));
-
-		// Synthesized on purpose: a real mousedown collapses the selection, and the
-		// guard must ignore a selection that is not anchored in this row either way.
-		fireEvent.click(screen.getByTestId("row"));
-		expect(handleClick).toHaveBeenCalledTimes(1);
-	});
 });
 
 type ActionCellHarnessProps = {

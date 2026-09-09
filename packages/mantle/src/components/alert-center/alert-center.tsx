@@ -64,11 +64,12 @@ type AlertCenterRegisteredAlert = {
 	/** Optional classes forwarded to the chrome `Alert.Root` in both placements. */
 	className: string | undefined;
 	/**
-	 * The author's position within an intent. Lower comes first. `Item` defaults
-	 * it to `Number.MAX_SAFE_INTEGER`, so an item with no declared order follows
-	 * every item that declares one.
+	 * The author's position within an intent, or `undefined` when the item
+	 * declares none. Lower comes first. An undeclared order follows every
+	 * declared one, `Infinity` included, so omission stays distinct from any
+	 * number.
 	 */
-	order: number;
+	order: number | undefined;
 	/**
 	 * Arrival order: assigned at an id's FIRST registration and sticky for the
 	 * store's lifetime, so prop updates never reorder and a dismissed-then-
@@ -176,15 +177,33 @@ function alertTitleText(banner: Element): string {
  * ]); // [{ intent: "danger", … }, { intent: "info", … }]
  * ```
  */
-function rankAlerts<T extends { intent: AlertCenterIntent; order: number; sequence: number }>(
-	alerts: readonly T[],
-): T[] {
+function rankAlerts<
+	T extends { intent: AlertCenterIntent; order: number | undefined; sequence: number },
+>(alerts: readonly T[]): T[] {
 	return alerts.toSorted(
 		(a, b) =>
 			SEVERITY_RANK[b.intent] - SEVERITY_RANK[a.intent] ||
-			a.order - b.order ||
+			compareOrder(a.order, b.order) ||
 			a.sequence - b.sequence,
 	);
+}
+
+/**
+ * Orders two declared positions. An undeclared position (`undefined`) follows
+ * every declared one, and equal positions tie. Comparison, not subtraction,
+ * so two `Infinity` positions tie instead of producing `NaN`.
+ */
+function compareOrder(a: number | undefined, b: number | undefined): number {
+	if (a === b) {
+		return 0;
+	}
+	if (a == null) {
+		return 1;
+	}
+	if (b == null) {
+		return -1;
+	}
+	return a < b ? -1 : 1;
 }
 
 /**
@@ -682,12 +701,10 @@ type AlertCenterItemProps = {
 	/**
 	 * The position among same-intent peers. Lower comes first. Items that share
 	 * an order keep arrival order. An item with no order follows every item that
-	 * declares one. Set it when two same-intent alerts come from independent
-	 * sources, because arrival order then depends on which source answers first.
-	 * `intent` still decides the tier: a `warning` with `order={0}` never
-	 * outranks a `danger`.
-	 *
-	 * @default Number.MAX_SAFE_INTEGER
+	 * declares one, `Infinity` included. Set it when two same-intent alerts come
+	 * from independent sources, because arrival order then depends on which
+	 * source answers first. `intent` still decides the tier: a `warning` with
+	 * `order={0}` never outranks a `danger`.
 	 */
 	order?: number;
 	/**
@@ -745,16 +762,7 @@ type AlertCenterItemProps = {
  * </AlertCenter.Root>
  * ```
  */
-const Item = ({
-	children,
-	className,
-	id,
-	intent,
-	// Why `MAX_SAFE_INTEGER` and not `Infinity`: the comparator subtracts, and
-	// `Infinity - Infinity` is `NaN`, which `toSorted` treats as "equal" in an
-	// engine-defined way.
-	order = Number.MAX_SAFE_INTEGER,
-}: AlertCenterItemProps) => {
+const Item = ({ children, className, id, intent, order }: AlertCenterItemProps) => {
 	const { store } = useAlertCenterContext("AlertCenter.Item");
 	// A nested item would register while its enclosing item renders, outrank
 	// or unrank its host, and loop the projection forever — fail fast instead.
@@ -1708,8 +1716,8 @@ const Content = ({
  * Ranking is deterministic: severity first (`danger` › `warning` ›
  * `important` › `info` › `success`), then each item's declared `order`, then
  * arrival order within an intent: items mounting together rank in tree
- * order, later arrivals append after their same-intent peers, and a
- * dismissed-then-returning id resumes its original position.
+ * order, later arrivals append after the same-intent peers that share their
+ * `order`, and a dismissed-then-returning id resumes its original position.
  *
  * Compose `Bar` and `Content` into `AppLayout.Notice`, alongside any other
  * window-level notice. Items may be authored anywhere under `Root`: their

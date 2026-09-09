@@ -58,6 +58,27 @@ describe("RadioGroup", () => {
 		expect(radio).not.toHaveAttribute("aria-describedby");
 	});
 
+	test("`as` still picks the rendered element, with the Choice wiring intact", () => {
+		render(
+			<RadioGroup.Root aria-label="Plan" defaultValue="free">
+				<RadioGroup.Item as="span" value="free">
+					<Choice.Root>
+						<Choice.Indicator>
+							<RadioGroup.Indicator />
+						</Choice.Indicator>
+						<Choice.Content>
+							<Choice.Title>Free</Choice.Title>
+							<Choice.Description>Up to 3 projects and 1 member.</Choice.Description>
+						</Choice.Content>
+					</Choice.Root>
+				</RadioGroup.Item>
+			</RadioGroup.Root>,
+		);
+		const radio = screen.getByRole("radio", { name: "Free" });
+		expect(radio.tagName).toBe("SPAN");
+		expect(radio).toHaveAccessibleDescription("Up to 3 projects and 1 member.");
+	});
+
 	test("inside Field.Control, the radio lists the field's ids before the Choice description", () => {
 		render(
 			<Field.Item name="plan">
