@@ -41,7 +41,7 @@ describe("rankIcons", () => {
 		expect(idsFor("thme")).toContain("Theme-Icon-System");
 	});
 
-	test("finds an icon by a tag its name does not carry", () => {
+	test("finds an icon by a tag its name does not carry, and keeps browse order when the matched tags are equal", () => {
 		expect(idsFor("logo")).toEqual(["NgrokLettermarkIcon", "NgrokWordmarkIcon"]);
 	});
 

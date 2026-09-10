@@ -31,6 +31,10 @@ function preferShorterMatch(
  * almost any short query into a hit. Any name match outranks an id-or-tag-only
  * match.
  *
+ * Within one pass, a tie breaks toward the shorter matched string: the name in
+ * the first pass, the id or tag in the second. Equal strings keep browse order,
+ * so `logo` lists `NgrokLettermarkIcon` before `NgrokWordmarkIcon`.
+ *
  * The two signals run as separate passes rather than one call with a per-key
  * `threshold`, because match-sorter gates the whole item by whichever key
  * ranked highest: a weak id match would veto a qualifying fuzzy name match and
