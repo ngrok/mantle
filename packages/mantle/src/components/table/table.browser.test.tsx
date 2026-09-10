@@ -54,6 +54,26 @@ describe("Table.Root overflow observer", () => {
 		});
 	});
 
+	test("the overflow attributes update before the first frame paints", async () => {
+		// Why a second observer: the browser broadcasts every ResizeObserver's
+		// notifications in creation order, all before paint. This one is created
+		// after `Table.Root`'s, so it reads what the first painted frame will show.
+		// The regression it pins is a `setState` without `flushSync`, which would
+		// leave the attributes at their initial `"false"` until the next React task.
+		renderTable({ rootWidth: 200, tableWidth: 800 });
+		const root = screen.getByTestId("root");
+
+		const seenBeforePaint = await new Promise<string | null>((resolve) => {
+			const observer = new ResizeObserver(() => {
+				observer.disconnect();
+				resolve(root.getAttribute("data-x-overflow"));
+			});
+			observer.observe(root);
+		});
+
+		expect(seenBeforePaint).toBe("true");
+	});
+
 	test("an overflowing table flags overflow and the sticky column, then clears them at the end", async () => {
 		renderTable({ rootWidth: 200, tableWidth: 800 });
 		const root = screen.getByTestId("root");
