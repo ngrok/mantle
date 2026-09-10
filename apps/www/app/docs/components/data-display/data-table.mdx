@@ -23,7 +23,7 @@ Tables purposefully designed for dynamic, application data with features like so
 A `DataTable` is for **dynamic, application data**: anywhere users need to sort, filter, paginate, select, or click rows. It is built on top of [`Table`](/components/data-display/table) and wires up [TanStack Table](https://tanstack.com/table/latest/docs/introduction) so you get those behaviors out of the box.
 
 - Prefer [`Table`](/components/data-display/table) for **static, presentational** tabular content (pricing matrices, reference tables, invoice summaries).
-- `@ngrok/mantle/data-table` re-exports every TanStack Table export: `useTable`, `tableFeatures`, `createColumnHelper`, the `*Feature` objects (`rowSortingFeature`, `rowSelectionFeature`, `rowExpandingFeature`, and the rest), the `create*RowModel` factories, and the `sortFn_*` and `filterFn_*` comparators. You don't need to add `@tanstack/react-table` as a separate dependency.
+- `@ngrok/mantle/data-table` re-exports every TanStack Table export: `useTable`, `tableFeatures`, `createColumnHelper`, the `*Feature` objects (`rowSortingFeature`, `rowSelectionFeature`, `rowExpandingFeature`, and the rest), the `create*RowModel` factories, and the `sortFn_*`, `filterFn_*`, and `aggregationFn_*` functions. You don't need to add `@tanstack/react-table` as a separate dependency.
 
 <Example className="flex-col gap-6">
 	<div className="w-full">
@@ -299,19 +299,21 @@ The `DataTable` parts read only what the table registers:
 - `DataTable.HeaderSortButton` and `DataTable.RowExpandButton` need their feature. If you pass them a column or row from a table without it, the prop does not typecheck.
 - `DataTable.Row`, `DataTable.EmptyRow`, and `DataTable.ExpandedRow` work with or without `columnVisibilityFeature`. Without it, they render and span every column.
 
-| Part or behavior                                              | Register in `tableFeatures({ … })`                                                                                         |
-| :------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------- |
-| `DataTable.HeaderSortButton`                                  | `rowSortingFeature`, `sortedRowModel: createSortedRowModel()`, a `sortFns` registry                                        |
-| Row expansion (`DataTable.RowExpandButton`, `renderExpanded`) | `rowExpandingFeature`, plus `getRowCanExpand` on `useTable`; add `expandedRowModel: createExpandedRowModel()` for sub-rows |
-| Column hiding (`columnVisibility` state)                      | `columnVisibilityFeature`                                                                                                  |
-| Row selection (`rowSelection` state)                          | `rowSelectionFeature`                                                                                                      |
-| Pagination                                                    | `rowPaginationFeature`, `paginatedRowModel: createPaginatedRowModel()`                                                     |
-| Filtering                                                     | `columnFilteringFeature`, `filteredRowModel: createFilteredRowModel()`; add `globalFilteringFeature` for a global search   |
-| Grouping                                                      | `columnGroupingFeature`, `groupedRowModel: createGroupedRowModel()`                                                        |
+| Part or behavior                                              | Register in `tableFeatures({ … })`                                                                                                                                  |
+| :------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DataTable.HeaderSortButton`                                  | `rowSortingFeature`, `sortedRowModel: createSortedRowModel()`, a `sortFns` registry                                                                                 |
+| Row expansion (`DataTable.RowExpandButton`, `renderExpanded`) | `rowExpandingFeature`, plus `getRowCanExpand` on `useTable`; add `expandedRowModel: createExpandedRowModel()` for sub-rows                                          |
+| Column hiding (`columnVisibility` state)                      | `columnVisibilityFeature`                                                                                                                                           |
+| Row selection (`rowSelection` state)                          | `rowSelectionFeature`                                                                                                                                               |
+| Pagination                                                    | `rowPaginationFeature`, `paginatedRowModel: createPaginatedRowModel()`                                                                                              |
+| Filtering                                                     | `columnFilteringFeature`, `filteredRowModel: createFilteredRowModel()`, a `filterFns` registry for column filters; add `globalFilteringFeature` for a global search |
+| Grouping                                                      | `columnGroupingFeature`, `groupedRowModel: createGroupedRowModel()`; add `rowAggregationFeature` and an `aggregationFns` registry for totals on group rows          |
 
 `tableFeatures` checks the slots against each other: `sortedRowModel` needs `rowSortingFeature`, `globalFilteringFeature` needs `columnFilteringFeature`, and so on. A missing prerequisite is a type error.
 
 The `sortFns` slot is a registry of named comparators. Auto-sort (`sortFn: "auto"`, the default) resolves `alphanumeric`, `text`, and `datetime` by name and uses `sortFn_basic` for numbers with no entry, so register those three and every column sorts as it did in v8. A column's own `sortFn: "name"` resolves against the same slot, and a custom comparator joins the same object under its own key. Without a `sortFns` slot, auto-sort logs a warning in development and falls back to `sortFn_basic`. TanStack still exports a full `sortFns` registry, but v9 marks it deprecated, so import the `sortFn_*` functions you use.
+
+The `filterFns` and `aggregationFns` slots work the same way, with no fallback. A column's `filterFn: "auto"` (the default) resolves `includesString` for strings and `inNumberRange` for numbers against `filterFns`. With no entry, the column returns every row. The global filter's `"auto"` default is `filterFn_includesString` itself, so a search box alone needs no slot. A group row's value for a non-grouping column comes from `rowAggregationFeature`, whose `"auto"` default resolves `sum` for numbers and `extent` for dates against `aggregationFns`. Without the feature and the entry, the group row's `getValue()` is `undefined`. Both slots warn in development only. The [migration guide](/migrations/data-table-tanstack-v9-migration#register-filterfns) has the full mapping.
 
 ## Rules
 
@@ -973,7 +975,7 @@ import { Fragment } from "react";
 
 ## API Reference
 
-The `DataTable` components are built on top of [TanStack Table](https://tanstack.com/table/latest/docs/introduction). `@ngrok/mantle/data-table` re-exports every TanStack Table export (`useTable`, `tableFeatures`, `createColumnHelper`, the `*Feature` objects, the `create*RowModel` factories, the `sortFn_*` and `filterFn_*` comparators, and the types). The parts that take a `table`, `column`, or `row` prop are generic over `TFeatures`, the type of the `tableFeatures` object the table registers. The props infer it from the instance you pass, so you never write it by hand.
+The `DataTable` components are built on top of [TanStack Table](https://tanstack.com/table/latest/docs/introduction). `@ngrok/mantle/data-table` re-exports every TanStack Table export (`useTable`, `tableFeatures`, `createColumnHelper`, the `*Feature` objects, the `create*RowModel` factories, the `sortFn_*`, `filterFn_*`, and `aggregationFn_*` functions, and the types). The parts that take a `table`, `column`, or `row` prop are generic over `TFeatures`, the type of the `tableFeatures` object the table registers. The props infer it from the instance you pass, so you never write it by hand.
 
 ### DataTable.Root
 
