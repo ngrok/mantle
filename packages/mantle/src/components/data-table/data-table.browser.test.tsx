@@ -3,12 +3,13 @@ import type { ComponentProps } from "react";
 import invariant from "tiny-invariant";
 import { describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
-import { DataTable, createColumnHelper, getCoreRowModel, useReactTable } from "./index.js";
+import { DataTable, createColumnHelper, tableFeatures, useTable } from "./index.js";
 
 type Row = { id: string; name: string; email: string };
 
-const columnHelper = createColumnHelper<Row>();
-const columns = [
+const features = tableFeatures({});
+const columnHelper = createColumnHelper<typeof features, Row>();
+const columns = columnHelper.columns([
 	columnHelper.accessor("name", {
 		id: "name",
 		header: () => <DataTable.Header>Name</DataTable.Header>,
@@ -19,15 +20,14 @@ const columns = [
 		header: () => <DataTable.Header>Email</DataTable.Header>,
 		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
-];
+]);
 const data: Row[] = [{ id: "row-1", name: "Alice", email: "alice@example.com" }];
 
-function Harness(props: Omit<ComponentProps<typeof DataTable.Row>, "row">) {
-	const table = useReactTable({
-		data,
-		columns,
-		getCoreRowModel: getCoreRowModel(),
-	});
+// Why omit `renderExpanded`: its `row` parameter is typed against the generic
+// constraint, and v9 rows are invariant in their features, so the spread cannot
+// unify with the concrete row. This harness renders no detail panel.
+function Harness(props: Omit<ComponentProps<typeof DataTable.Row>, "row" | "renderExpanded">) {
+	const table = useTable({ features, data, columns });
 	const row = table.getRowModel().rows[0];
 	invariant(row, "Harness expected at least one row");
 	return (

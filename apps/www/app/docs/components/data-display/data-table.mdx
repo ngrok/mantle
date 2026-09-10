@@ -23,7 +23,7 @@ Tables purposefully designed for dynamic, application data with features like so
 A `DataTable` is for **dynamic, application data**: anywhere users need to sort, filter, paginate, select, or click rows. It is built on top of [`Table`](/components/data-display/table) and wires up [TanStack Table](https://tanstack.com/table/latest/docs/introduction) so you get those behaviors out of the box.
 
 - Prefer [`Table`](/components/data-display/table) for **static, presentational** tabular content (pricing matrices, reference tables, invoice summaries).
-- All TanStack Table utilities (`createColumnHelper`, `getCoreRowModel`, `getSortedRowModel`, `getPaginationRowModel`, `getFilteredRowModel`, `useReactTable`, etc.) are re-exported from `@ngrok/mantle/data-table`; you do not need to add `@tanstack/react-table` as a separate dependency.
+- `@ngrok/mantle/data-table` re-exports every TanStack Table export: `useTable`, `tableFeatures`, `createColumnHelper`, the `*Feature` objects (`rowSortingFeature`, `rowSelectionFeature`, `rowExpandingFeature`, and the rest), the `create*RowModel` factories, and the `sortFn_*` and `filterFn_*` comparators. You don't need to add `@tanstack/react-table` as a separate dependency.
 
 <Example className="flex-col gap-6">
 	<div className="w-full">
@@ -45,15 +45,32 @@ The minimum viable `DataTable`. Copy, paste, replace the type and data:
 import {
 	DataTable,
 	createColumnHelper,
-	getCoreRowModel,
-	useReactTable,
+	createSortedRowModel,
+	rowSortingFeature,
+	sortFn_alphanumeric,
+	sortFn_datetime,
+	sortFn_text,
+	tableFeatures,
+	useTable,
 } from "@ngrok/mantle/data-table";
 
 type Row = { id: string; name: string };
 
-const columnHelper = createColumnHelper<Row>();
+// Register only the features the table uses. Auto-sort resolves the
+// `alphanumeric`, `text`, and `datetime` comparators by name, so register those three.
+const features = tableFeatures({
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
 
-const columns = [
+const columnHelper = createColumnHelper<typeof features, Row>();
+
+const columns = columnHelper.columns([
 	columnHelper.accessor("name", {
 		id: "name",
 		header: (props) => (
@@ -63,17 +80,12 @@ const columns = [
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell key={props.cell.id}>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
-];
+]);
 
 function MyTable({ data }: { data: Row[] }) {
-	const table = useReactTable({
-		data,
-		columns,
-		getCoreRowModel: getCoreRowModel(),
-	});
-
+	const table = useTable({ features, data, columns });
 	const rows = table.getRowModel().rows;
 
 	return (
@@ -91,22 +103,29 @@ function MyTable({ data }: { data: Row[] }) {
 }
 ```
 
-A fuller example matching the demo above, with sortable columns, pagination, filtering, row-click navigation, and a sticky action column:
+A fuller example in the shape of the first demo above, with sortable columns, row-click navigation, and a sticky action column:
 
 ```tsx
+import { IconButton } from "@ngrok/mantle/button";
 import {
 	DataTable,
 	createColumnHelper,
-	getCoreRowModel,
-	getFilteredRowModel,
-	getPaginationRowModel,
-	getSortedRowModel,
-	useReactTable,
+	createSortedRowModel,
+	rowSortingFeature,
+	sortFn_alphanumeric,
+	sortFn_datetime,
+	sortFn_text,
+	tableFeatures,
+	useTable,
 } from "@ngrok/mantle/data-table";
+import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Empty } from "@ngrok/mantle/empty";
+import { Icon } from "@ngrok/mantle/icon";
+import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
+import { PencilSimpleIcon } from "@phosphor-icons/react/PencilSimple";
+import { TrashIcon } from "@phosphor-icons/react/Trash";
 import { TrayIcon } from "@phosphor-icons/react/Tray";
 import { href, useNavigate } from "react-router";
-import { useMemo } from "react";
 
 type Payment = {
 	id: string;
@@ -115,9 +134,19 @@ type Payment = {
 	email: string;
 };
 
-const columnHelper = createColumnHelper<Payment>();
+const features = tableFeatures({
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
 
-const columns = [
+const columnHelper = createColumnHelper<typeof features, Payment>();
+
+const columns = columnHelper.columns([
 	columnHelper.accessor("id", {
 		id: "id",
 		header: (props) => (
@@ -127,28 +156,86 @@ const columns = [
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell key={props.cell.id}>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
-	// ... more columns
-];
+	columnHelper.accessor("amount", {
+		id: "amount",
+		header: (props) => (
+			<DataTable.Header className="w-50" column={props.column}>
+				<DataTable.HeaderSortButton
+					className="justify-end"
+					column={props.column}
+					iconPlacement="start"
+					sortingMode="alphanumeric"
+				>
+					Amount
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell className="text-right">{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("status", {
+		id: "status",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					Status
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("email", {
+		id: "email",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					Email
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.display({
+		id: "actions",
+		header: () => <DataTable.ActionHeader />,
+		cell: () => (
+			<DataTable.ActionCell>
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger asChild>
+						<IconButton
+							appearance="ghost"
+							intent="neutral"
+							className="rounded"
+							type="button"
+							size="sm"
+							label="Open actions"
+							icon={<DotsThreeIcon weight="bold" />}
+						/>
+					</DropdownMenu.Trigger>
+					<DropdownMenu.Content align="end">
+						<DropdownMenu.Item className="flex items-center gap-2">
+							<Icon svg={<PencilSimpleIcon />} /> Edit
+						</DropdownMenu.Item>
+						<DropdownMenu.Item className="text-danger-600 flex items-center gap-2">
+							<Icon svg={<TrashIcon />} />
+							Delete
+						</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+			</DataTable.ActionCell>
+		),
+	}),
+]);
 
-function PaymentsExample() {
+function PaymentsTable({ data }: { data: Payment[] }) {
 	const navigate = useNavigate();
-	const data = useMemo(() => examplePayments, []);
-
-	const table = useReactTable({
+	const table = useTable({
+		features,
 		data,
 		columns,
-		getCoreRowModel: getCoreRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-		getFilteredRowModel: getFilteredRowModel(),
-		initialState: {
-			sorting: [{ id: "email", desc: false }],
-			pagination: { pageSize: 100 },
-		},
+		initialState: { sorting: [{ id: "email", desc: false }] },
 	});
-
 	const rows = table.getRowModel().rows;
 
 	return (
@@ -203,20 +290,44 @@ DataTable.Root
     └── DataTable.EmptyRow
 ```
 
+## Features
+
+TanStack Table v9 ships each behavior as a feature object. Register the ones a table uses with `tableFeatures` once, at module scope. Pass the result to `useTable` as `features`. Sorting, expansion, selection, pagination, filtering, and column hiding are all opt-in; the core row model is always on. A table with no interactive behavior registers none: `const features = tableFeatures({})`.
+
+The `DataTable` parts read only what the table registers:
+
+- `DataTable.HeaderSortButton` and `DataTable.RowExpandButton` need their feature. If you pass them a column or row from a table without it, the prop does not typecheck.
+- `DataTable.Row`, `DataTable.EmptyRow`, and `DataTable.ExpandedRow` work with or without `columnVisibilityFeature`. Without it, they render and span every column.
+
+| Part or behavior                                              | Register in `tableFeatures({ … })`                                                                                         |
+| :------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------- |
+| `DataTable.HeaderSortButton`                                  | `rowSortingFeature`, `sortedRowModel: createSortedRowModel()`, a `sortFns` registry                                        |
+| Row expansion (`DataTable.RowExpandButton`, `renderExpanded`) | `rowExpandingFeature`, plus `getRowCanExpand` on `useTable`; add `expandedRowModel: createExpandedRowModel()` for sub-rows |
+| Column hiding (`columnVisibility` state)                      | `columnVisibilityFeature`                                                                                                  |
+| Row selection (`rowSelection` state)                          | `rowSelectionFeature`                                                                                                      |
+| Pagination                                                    | `rowPaginationFeature`, `paginatedRowModel: createPaginatedRowModel()`                                                     |
+| Filtering                                                     | `columnFilteringFeature`, `filteredRowModel: createFilteredRowModel()`; add `globalFilteringFeature` for a global search   |
+| Grouping                                                      | `columnGroupingFeature`, `groupedRowModel: createGroupedRowModel()`                                                        |
+
+`tableFeatures` checks the slots against each other: `sortedRowModel` needs `rowSortingFeature`, `globalFilteringFeature` needs `columnFilteringFeature`, and so on. A missing prerequisite is a type error.
+
+The `sortFns` slot is a registry of named comparators. Auto-sort (`sortFn: "auto"`, the default) resolves `alphanumeric`, `text`, and `datetime` by name and uses `sortFn_basic` for numbers with no entry, so register those three and every column sorts as it did in v8. A column's own `sortFn: "name"` resolves against the same slot, and a custom comparator joins the same object under its own key. Without a `sortFns` slot, auto-sort logs a warning in development and falls back to `sortFn_basic`. TanStack still exports a full `sortFns` registry, but v9 marks it deprecated, so import the `sortFn_*` functions you use.
+
 ## Rules
 
 Follow these invariants for a correctly styled, accessible, and behaving `DataTable`.
 
-1. **Type columns with `createColumnHelper<TData>()`.** It threads `TData` through `header`, `cell`, and `row.original` so consumers get inference instead of `unknown`.
-2. **Wrap every body cell in `DataTable.Cell`.** A raw `<td>` skips the mantle typography, padding, and sticky-column styling.
-3. **Wrap every header in `DataTable.Header`.** For sortable columns, also wrap its contents in `DataTable.HeaderSortButton` and pass the same `column` to `DataTable.Header`: the button carries the icon and the cycling behavior, and the header cell exposes the sort state through `aria-sort`.
-4. **Key rows with `row.id`.** TanStack Table tracks row identity across sort/filter/pagination; using array indexes will re-mount rows incorrectly.
-5. **Always branch on `rows.length > 0` and render `DataTable.EmptyRow`** for the empty case. The empty row spans all columns and preserves the table's frame; returning `null` leaves an empty `<tbody>` and collapses the frame.
-6. **Place an action column last, using `columnHelper.display({ ... })`.** Pair `DataTable.ActionHeader` (in `header`) with `DataTable.ActionCell` (in `cell`) so the pinned column aligns across header and body when scrolling horizontally.
-7. **Pass `onClick` to `DataTable.Row` for row-click behavior.** The row auto-applies `cursor-pointer` when `onClick` is set; do not add it yourself. Override with another `cursor-*` class (for example, `cursor-wait`) via `className` if needed.
-8. **Stop click propagation inside `DataTable.ActionCell` when the row is clickable.** Without it, clicks on dropdown triggers, buttons, and links inside the action cell will bubble and fire the row `onClick`.
-9. **Add a keyboard-accessible equivalent for row navigation.** A `<tr>` is not focusable and is not announced as interactive to assistive tech. If clicking a row navigates, render a `<Link>` in the primary cell so keyboard and screen-reader users have a reachable equivalent.
-10. **Register the row models you use.** `useReactTable` only wires up what you pass in: `getSortedRowModel()` for sorting, `getPaginationRowModel()` for pagination, `getFilteredRowModel()` for filtering. Missing one and the corresponding feature silently no-ops.
+1. **Type columns with `createColumnHelper<typeof features, TData>()`.** It threads the registered features and `TData` through `header`, `cell`, and `row.original`. `props.column` then carries the sorting API only when the table registers `rowSortingFeature`. Consumers get inference instead of `unknown`.
+2. **Wrap the column list in `columnHelper.columns([...])`.** `useTable` types `columns` as `ColumnDef<TFeatures, TData, unknown>[]`. A column's `header` and `cell` take its `TValue` as input, so `TValue` is contravariant. A bare array of `string` and `number` accessors therefore doesn't typecheck against `unknown`. The helper returns a list `useTable` accepts. Each column keeps its own value type.
+3. **Wrap every body cell in `DataTable.Cell`.** A raw `<td>` skips the mantle typography, padding, and sticky-column styling.
+4. **Wrap every header in `DataTable.Header`.** For sortable columns, also wrap its contents in `DataTable.HeaderSortButton` and pass the same `column` to `DataTable.Header`: the button carries the icon and the cycling behavior, and the header cell exposes the sort state through `aria-sort`.
+5. **Key rows with `row.id`.** TanStack Table tracks row identity across sort/filter/pagination; using array indexes will re-mount rows incorrectly.
+6. **Always branch on `rows.length > 0` and render `DataTable.EmptyRow`** for the empty case. The empty row spans all columns and preserves the table's frame; returning `null` leaves an empty `<tbody>` and collapses the frame.
+7. **Place an action column last, using `columnHelper.display({ ... })`.** Pair `DataTable.ActionHeader` (in `header`) with `DataTable.ActionCell` (in `cell`) so the pinned column aligns across header and body when scrolling horizontally.
+8. **Pass `onClick` to `DataTable.Row` for row-click behavior.** The row auto-applies `cursor-pointer` when `onClick` is set; do not add it yourself. Override with another `cursor-*` class (for example, `cursor-wait`) via `className` if needed.
+9. **Stop click propagation inside `DataTable.ActionCell` when the row is clickable.** Without it, clicks on dropdown triggers, buttons, and links inside the action cell will bubble and fire the row `onClick`.
+10. **Add a keyboard-accessible equivalent for row navigation.** A `<tr>` is not focusable and is not announced as interactive to assistive tech. If clicking a row navigates, render a `<Link>` in the primary cell so keyboard and screen-reader users have a reachable equivalent.
+11. **Register features, not row models.** `useTable` wires up only what `tableFeatures` registers: `rowSortingFeature` with `sortedRowModel` for sorting, `rowPaginationFeature` with `paginatedRowModel` for pagination, `columnFilteringFeature` with `filteredRowModel` for filtering. A feature without its row model is a dead control: `rowSortingFeature` alone toggles the sort icon and never reorders a row.
 
 ## Anti-patterns
 
@@ -269,15 +380,28 @@ header: (props) => (
 		: <DataTable.EmptyRow>No results.</DataTable.EmptyRow>}
 </DataTable.Body>
 
-// ❌ Declared sorting but forgot the row model
-useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
-// ✅
-useReactTable({
-	data,
-	columns,
-	getCoreRowModel: getCoreRowModel(),
-	getSortedRowModel: getSortedRowModel(),
+// ❌ Registered the sorting feature without its row model: the icon toggles, the rows never reorder
+const features = tableFeatures({ rowSortingFeature });
+// ✅ Register the feature, its row model, and the comparators together
+const features = tableFeatures({
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
 });
+
+// ❌ Bare array: `useTable` rejects a column typed for `string` where it wants `unknown`
+const columns = [columnHelper.accessor("email", { id: "email" })];
+// ✅
+const columns = columnHelper.columns([columnHelper.accessor("email", { id: "email" })]);
+
+// ❌ v8 state getter: `getState()` no longer exists on the table
+pageSize={table.getState().pagination.pageSize}
+// ✅ State is a property
+pageSize={table.state.pagination.pageSize}
 ```
 
 ## Recipes
@@ -303,7 +427,7 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import { TrayIcon } from "@phosphor-icons/react/Tray";
 
 const rows = table.getRowModel().rows;
-const isFiltered = globalFilter.trim() !== ""; // or table.getState().columnFilters.length > 0
+const isFiltered = globalFilter.trim() !== ""; // or table.state.columnFilters.length > 0
 
 <DataTable.Body>
 	{rows.length > 0 ? (
@@ -354,11 +478,33 @@ Pass `onClick` to `DataTable.Row` and navigate with React Router's `href()` + `u
 The row runs `onClick` only for a plain primary click. A modified click (`⌘`, `Ctrl`, `Shift`, `Alt`), a non-primary button, and a click that ends a text selection inside the row all skip it. The link answers a modified click with a new tab, and a selection copies text, so neither is a request to navigate. The row keeps its structural `role="row"`, which is what makes a `<tr onClick>` around a link safe: the row has no widget role, so the link isn't nested interactive content. Don't add `tabIndex` or `role="button"` to the row, and don't reach for `role="grid"`, which commits the table to roving focus and arrow-key navigation.
 
 ```tsx
-import { DataTable } from "@ngrok/mantle/data-table";
+import {
+	DataTable,
+	createColumnHelper,
+	createSortedRowModel,
+	rowSortingFeature,
+	sortFn_alphanumeric,
+	sortFn_datetime,
+	sortFn_text,
+	tableFeatures,
+	useTable,
+} from "@ngrok/mantle/data-table";
 import { SandboxedOnClick } from "@ngrok/mantle/sandboxed-on-click";
 import { Link, href, useNavigate } from "react-router";
 
-const columns = [
+const features = tableFeatures({
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
+
+const columnHelper = createColumnHelper<typeof features, Payment>();
+
+const columns = columnHelper.columns([
 	columnHelper.accessor("id", {
 		id: "id",
 		header: (props) => (
@@ -377,11 +523,11 @@ const columns = [
 		),
 	}),
 	// ... more columns
-];
+]);
 
 function PaymentsTable({ data }: { data: Payment[] }) {
 	const navigate = useNavigate();
-	const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
+	const table = useTable({ features, data, columns });
 	const rows = table.getRowModel().rows;
 
 	return (
@@ -517,7 +663,7 @@ columnHelper.accessor("url", {
 
 ### Pagination controls
 
-Register `getPaginationRowModel()`, then wire [`CursorPagination`](/components/navigation/pagination) to the table instance for a page-size dropdown plus previous/next buttons: no hand-rolled `Button`s or `Page X of Y` span needed.
+Register `rowPaginationFeature` with `paginatedRowModel: createPaginatedRowModel()`, then wire [`CursorPagination`](/components/navigation/pagination) to the table instance for a page-size dropdown plus previous/next buttons: no hand-rolled `Button`s or `Page X of Y` span needed.
 
 <Example>
 	<PaginatedPaymentsDemo />
@@ -526,9 +672,15 @@ Register `getPaginationRowModel()`, then wire [`CursorPagination`](/components/n
 ```tsx
 import {
 	DataTable,
-	getCoreRowModel,
-	getPaginationRowModel,
-	useReactTable,
+	createPaginatedRowModel,
+	createSortedRowModel,
+	rowPaginationFeature,
+	rowSortingFeature,
+	sortFn_alphanumeric,
+	sortFn_datetime,
+	sortFn_text,
+	tableFeatures,
+	useTable,
 } from "@ngrok/mantle/data-table";
 import { CursorPagination } from "@ngrok/mantle/pagination";
 
@@ -536,13 +688,26 @@ import { CursorPagination } from "@ngrok/mantle/pagination";
 // (default 5 | 10 | 20 | 50 | 100).
 const DEFAULT_PAGE_SIZE = 10;
 
+// The headers still sort, so sorting stays registered next to pagination.
+const features = tableFeatures({
+	rowPaginationFeature,
+	rowSortingFeature,
+	paginatedRowModel: createPaginatedRowModel(),
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
+
 function PaginatedTable({ data }: { data: Payment[] }) {
-	const table = useReactTable({
+	const table = useTable({
+		features,
 		data,
 		columns,
-		getCoreRowModel: getCoreRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
-		initialState: { pagination: { pageSize: DEFAULT_PAGE_SIZE } },
+		// `initialState.pagination` takes a whole `PaginationState`, so set both fields.
+		initialState: { pagination: { pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE } },
 	});
 
 	const rows = table.getRowModel().rows;
@@ -562,7 +727,7 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 
 			<CursorPagination.Root
 				className="flex justify-end"
-				pageSize={table.getState().pagination.pageSize}
+				pageSize={table.state.pagination.pageSize}
 				onChangePageSize={(size) => {
 					table.setPageSize(size);
 					table.setPageIndex(0); // reset to the first page when the size changes
@@ -584,13 +749,13 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 **Rules:**
 
 - The page size must be one of `CursorPagination.PageSizeSelect`'s `pageSizes` (default `5 | 10 | 20 | 50 | 100`), or the select throws.
-- The table owns the page size: pass the live `table.getState().pagination.pageSize` as `pageSize`. The select then follows a `setPageSize()` call from anywhere, including table state you keep in the URL.
+- The table owns the page size: pass the live `table.state.pagination.pageSize` as `pageSize`. The select then follows a `setPageSize()` call from anywhere, including table state you keep in the URL.
 - Reset to page 0 on a size change.
-- **Server/cursor data** (no `getPaginationRowModel`): wire `Buttons` to your fetch's has-next/has-prev + load callbacks, and use the read-only `CursorPagination.PageSizeValue` when the page size is fixed server-side rather than `PageSizeSelect`. See [Pagination → Within a data table](/components/navigation/pagination#within-a-data-table).
+- **Server/cursor data** (no `rowPaginationFeature`): wire `Buttons` to your fetch's has-next/has-prev + load callbacks, and use the read-only `CursorPagination.PageSizeValue` when the page size is fixed server-side rather than `PageSizeSelect`. See [Pagination → Within a data table](/components/navigation/pagination#within-a-data-table).
 
 ### Row selection with checkboxes
 
-Add a `columnHelper.display` checkbox column: the header checkbox toggles every row (and goes indeterminate when only some are selected), each cell checkbox toggles its row. Drive `rowSelection` through `useReactTable` and read it back from the table instance. mantle's [`Checkbox`](/components/forms/checkbox) is a native input, so handle changes with `onChange` + `event.target.checked` (not `onCheckedChange`), and resolve the header's tri-state with the exported [`selectAllChecked`](/components/forms/checkbox#select-all-helper) helper.
+Add a `columnHelper.display` checkbox column: the header checkbox toggles every row (and goes indeterminate when only some are selected), each cell checkbox toggles its row. Register `rowSelectionFeature`, drive `rowSelection` through `useTable`, and read it back from the table instance. mantle's [`Checkbox`](/components/forms/checkbox) is a native input, so handle changes with `onChange` + `event.target.checked` (not `onCheckedChange`), and resolve the header's tri-state with the exported [`selectAllChecked`](/components/forms/checkbox#select-all-helper) helper.
 
 <Example>
 	<SelectablePaymentsDemo />
@@ -600,13 +765,34 @@ Add a `columnHelper.display` checkbox column: the header checkbox toggles every 
 import { Checkbox, selectAllChecked } from "@ngrok/mantle/checkbox";
 import {
 	DataTable,
-	getCoreRowModel,
 	type RowSelectionState,
-	useReactTable,
+	createColumnHelper,
+	createSortedRowModel,
+	rowSelectionFeature,
+	rowSortingFeature,
+	sortFn_alphanumeric,
+	sortFn_datetime,
+	sortFn_text,
+	tableFeatures,
+	useTable,
 } from "@ngrok/mantle/data-table";
 import { useState } from "react";
 
-const columns = [
+// The payment columns keep their sort buttons, so sorting registers alongside selection.
+const features = tableFeatures({
+	rowSelectionFeature,
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
+
+const columnHelper = createColumnHelper<typeof features, Payment>();
+
+const columns = columnHelper.columns([
 	columnHelper.display({
 		id: "select",
 		// `<th>` defaults to more horizontal padding (`px-4`) than `<td>` (`p-3`);
@@ -634,24 +820,23 @@ const columns = [
 		),
 	}),
 	// ... data columns
-];
+]);
 
 function SelectableTable({ data }: { data: Payment[] }) {
 	const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-	const table = useReactTable({
+	const table = useTable({
+		features,
 		data,
 		columns,
-		getCoreRowModel: getCoreRowModel(),
 		state: { rowSelection },
 		onRowSelectionChange: setRowSelection,
-		enableRowSelection: true,
 	});
 
 	const selectedCount = table.getSelectedRowModel().rows.length;
 
 	return (
 		<div className="flex flex-col gap-3">
-			<p className="text-muted text-sm">
+			<p className="text-muted text-sm" aria-live="polite">
 				{selectedCount} of {data.length} selected
 			</p>
 			<DataTable.Root table={table}>
@@ -669,7 +854,7 @@ function SelectableTable({ data }: { data: Payment[] }) {
 
 ### Expandable rows
 
-Expand a row into an inline detail panel with a `+`/`−` toggle, ideal for inspecting a row's underlying record without leaving the table. Expansion is driven entirely by [TanStack Table's expansion state](https://tanstack.com/table/latest/docs/guide/expanding) (mantle does not invent its own), so wire it up on `useReactTable` with `getExpandedRowModel()` and `getRowCanExpand: () => true` (required: without sub-rows, no row is expandable by default). A stable `getRowId` keeps both the expansion keys and the toggle's `aria-controls` association stable.
+Expand a row into an inline detail panel with a `+`/`−` toggle, ideal for inspecting a row's underlying record without leaving the table. Expansion is driven entirely by [TanStack Table's expansion state](https://tanstack.com/table/latest/docs/guide/expanding) (mantle does not invent its own). Register `rowExpandingFeature` with `expandedRowModel: createExpandedRowModel()`, and pass `getRowCanExpand: () => true` to `useTable` (required: without sub-rows, no row is expandable by default). A stable `getRowId` keeps both the expansion keys and the toggle's `aria-controls` association stable.
 
 Two parts cover the toggle: `DataTable.ExpandHeader` (the toggle column header) and `DataTable.RowExpandButton` (the accessible `+`/`−` toggle, dropped into a leading `columnHelper.display` cell). For the detail panel itself, pass `renderExpanded` to `DataTable.Row`: when the row is expanded it renders its data row plus a sibling detail row holding the returned content, so you never hand-write the extra `<tr>` or the expand conditional. `renderExpanded` is called lazily (only while the row is open), so collapsed rows never build their panel. The detail row spans every visible column and sits on an opaque surface, so it coexists with a sticky [action column](#action-column-with-a-dropdown-menu).
 
@@ -685,15 +870,36 @@ import {
 	DataTable,
 	type ExpandedState,
 	createColumnHelper,
-	getCoreRowModel,
-	getExpandedRowModel,
-	useReactTable,
+	createExpandedRowModel,
+	createSortedRowModel,
+	rowExpandingFeature,
+	rowSortingFeature,
+	sortFn_alphanumeric,
+	sortFn_datetime,
+	sortFn_text,
+	tableFeatures,
+	useTable,
 } from "@ngrok/mantle/data-table";
 import { useState } from "react";
 
-const columnHelper = createColumnHelper<Payment>();
+// The payment columns keep their sort buttons, so sorting registers alongside
+// expansion. A stable `getRowId` keeps each open panel with its row when the
+// order changes.
+const features = tableFeatures({
+	rowExpandingFeature,
+	expandedRowModel: createExpandedRowModel(), // flattens sub-rows into `getRowModel()`; a flat detail panel expands without it
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
 
-const columns = [
+const columnHelper = createColumnHelper<typeof features, Payment>();
+
+const columns = columnHelper.columns([
 	// Leading expand-toggle column.
 	columnHelper.display({
 		id: "expander",
@@ -705,21 +911,20 @@ const columns = [
 		),
 	}),
 	// ... your data columns (and an optional sticky action column)
-];
+]);
 
 function ExpandableTable({ data }: { data: Payment[] }) {
 	// Controlled expansion via native TanStack state. Multiple rows may be open;
 	// to enforce single-row expansion, reduce `next` down to one key in onExpandedChange.
 	const [expanded, setExpanded] = useState<ExpandedState>({});
 
-	const table = useReactTable({
+	const table = useTable({
+		features,
 		data,
 		columns,
 		state: { expanded },
 		onExpandedChange: setExpanded,
 		getRowCanExpand: () => true, // required: no sub-rows exist, so opt every row in
-		getCoreRowModel: getCoreRowModel(),
-		getExpandedRowModel: getExpandedRowModel(), // required, or nothing expands
 		getRowId: (row) => row.id, // stable expansion keys + aria-controls id
 	});
 
@@ -768,17 +973,17 @@ import { Fragment } from "react";
 
 ## API Reference
 
-The `DataTable` components are built on top of [TanStack Table](https://tanstack.com/table/latest/docs/introduction). All TanStack Table utilities (`createColumnHelper`, `getCoreRowModel`, `getSortedRowModel`, `getPaginationRowModel`, `getFilteredRowModel`, `useReactTable`, etc.) are re-exported from `@ngrok/mantle/data-table`.
+The `DataTable` components are built on top of [TanStack Table](https://tanstack.com/table/latest/docs/introduction). `@ngrok/mantle/data-table` re-exports every TanStack Table export (`useTable`, `tableFeatures`, `createColumnHelper`, the `*Feature` objects, the `create*RowModel` factories, the `sortFn_*` and `filterFn_*` comparators, and the types). The parts that take a `table`, `column`, or `row` prop are generic over `TFeatures`, the type of the `tableFeatures` object the table registers. The props infer it from the instance you pass, so you never write it by hand.
 
 ### DataTable.Root
 
 The root container for the data table. Wraps all other `DataTable` sub-components and provides the table context. Delegates rendering to [`Table.Root`](/components/data-display/table#tableroot).
 
-| Prop         | Type                   | Default | Description                                                                          |
-| :----------- | :--------------------- | :------ | :----------------------------------------------------------------------------------- |
-| `table`      | `TableInstance<TData>` |         | The TanStack Table instance returned from `useReactTable`. **Required.**             |
-| `children`   | `ReactNode`            |         | Typically `DataTable.Head` and `DataTable.Body`.                                     |
-| `className?` | `string`               |         | Extra classes merged onto the wrapper. Remaining props forward to the wrapper `div`. |
+| Prop         | Type                      | Default | Description                                                                          |
+| :----------- | :------------------------ | :------ | :----------------------------------------------------------------------------------- |
+| `table`      | `Table<TFeatures, TData>` |         | The TanStack Table instance from `useTable`. **Required.**                           |
+| `children`   | `ReactNode`               |         | Typically `DataTable.Head` and `DataTable.Body`.                                     |
+| `className?` | `string`                  |         | Extra classes merged onto the wrapper. Remaining props forward to the wrapper `div`. |
 
 ### DataTable.Head
 
@@ -803,12 +1008,14 @@ Renders a single body row using the column definitions from the table instance. 
 
 When `onClick` is set, the row receives `cursor-pointer` and `data-clickable`. Pass a different `cursor-*` class via `className` (for example, `cursor-wait`) to override the cursor. The row runs `onClick` only for a plain primary click: a modified click, a non-primary button, and a click that ends a text selection inside the row all skip it. A `<tr>` isn't focusable, so also render a `<Link>` inside the primary cell as the keyboard and screen-reader path; see [Navigating on row click](#navigating-on-row-click).
 
-| Prop              | Type                                               | Default | Description                                                                                                                         |
-| :---------------- | :------------------------------------------------- | :------ | :---------------------------------------------------------------------------------------------------------------------------------- |
-| `row`             | `TableRow<TData>`                                  |         | The TanStack Table row instance to render. **Required.**                                                                            |
-| `renderExpanded?` | `(row: TableRow<TData>) => ReactNode`              |         | Renders an inline detail panel below the row, wrapped in a `DataTable.ExpandedRow`. Called lazily — only while the row is expanded. |
-| `onClick?`        | `(event: MouseEvent<HTMLTableRowElement>) => void` |         | Runs on a plain primary click. Setting it adds `cursor-pointer` and `data-clickable`.                                               |
-| `className?`      | `string`                                           |         | Extra classes merged onto the `<tr>`. A `cursor-*` class here overrides the auto `cursor-pointer`.                                  |
+The row works with any features. It renders the visible cells when the table registers `columnVisibilityFeature`, and every cell otherwise. `renderExpanded` and `data-expanded` need `rowExpandingFeature`.
+
+| Prop              | Type                                               | Default | Description                                                                                                                        |
+| :---------------- | :------------------------------------------------- | :------ | :--------------------------------------------------------------------------------------------------------------------------------- |
+| `row`             | `Row<TFeatures, TData>`                            |         | The TanStack Table row instance to render. **Required.**                                                                           |
+| `renderExpanded?` | `(row: Row<TFeatures, TData>) => ReactNode`        |         | Renders an inline detail panel below the row, wrapped in a `DataTable.ExpandedRow`. Called lazily, only while the row is expanded. |
+| `onClick?`        | `(event: MouseEvent<HTMLTableRowElement>) => void` |         | Runs on a plain primary click. Setting it adds `cursor-pointer` and `data-clickable`.                                              |
+| `className?`      | `string`                                           |         | Extra classes merged onto the `<tr>`. A `cursor-*` class here overrides the auto `cursor-pointer`.                                 |
 
 Remaining props forward to the HTML `<tr>` element.
 
@@ -819,7 +1026,7 @@ Remaining props forward to the HTML `<tr>` element.
 
 ### DataTable.EmptyRow
 
-An empty-state row that spans every visible column. Render this as the `else` branch when `rows.length === 0` to keep the table's frame intact.
+An empty-state row that spans every visible column. Render this as the `else` branch when `rows.length === 0` to keep the table's frame intact. Without `columnVisibilityFeature`, it spans every column.
 
 | Prop         | Type        | Default | Description                                                                               |
 | :----------- | :---------- | :------ | :---------------------------------------------------------------------------------------- |
@@ -830,19 +1037,21 @@ An empty-state row that spans every visible column. Render this as the `else` br
 
 A `<th>` cell optimized for header actions. Wrap sortable headers' contents in `DataTable.HeaderSortButton` and pass the same `column` here, so the cell carries `aria-sort` while the column is sorted.
 
-| Prop         | Type                    | Default | Description                                                                                         |
-| :----------- | :---------------------- | :------ | :-------------------------------------------------------------------------------------------------- |
-| `children`   | `ReactNode`             |         | Usually a `DataTable.HeaderSortButton`. For non-sortable columns, plain text is fine.               |
-| `column?`    | `Column<TData, TValue>` |         | The TanStack Table column this cell heads. When the column is sorted, the cell carries `aria-sort`. |
-| `className?` | `string`                |         | Extra classes merged onto the `<th>`. Remaining props forward to the HTML `<th>` element.           |
+| Prop         | Type                               | Default | Description                                                                                         |
+| :----------- | :--------------------------------- | :------ | :-------------------------------------------------------------------------------------------------- |
+| `children`   | `ReactNode`                        |         | Usually a `DataTable.HeaderSortButton`. For non-sortable columns, plain text is fine.               |
+| `column?`    | `Column<TFeatures, TData, TValue>` |         | The TanStack Table column this cell heads. When the column is sorted, the cell carries `aria-sort`. |
+| `className?` | `string`                           |         | Extra classes merged onto the `<th>`. Remaining props forward to the HTML `<th>` element.           |
 
 ### DataTable.HeaderSortButton
 
 A sortable button toggle for column headers. Clicking cycles through sort directions: `unsorted → asc → desc → unsorted` for `"alphanumeric"`, and `unsorted → desc → asc → unsorted` (newest-first) for `"time"`. Renders a sort icon that reflects the current direction. The button's accessible name is the column label and does not change with the sort state. When the column cannot sort, the part renders the label as plain text with no button.
 
+The table must register `rowSortingFeature`; the `column` prop rejects a column from a table without it at compile time. Pair it with a `sortedRowModel` and a `sortFns` registry, or the button toggles the icon and never reorders a row (see [Anti-patterns](#anti-patterns)).
+
 | Prop              | Type                                             | Default     | Description                                                                                                                                                        |
 | :---------------- | :----------------------------------------------- | :---------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `column`          | `Column<TData, TValue>`                          |             | The TanStack Table column instance (from `props.column` in `header`). **Required.**                                                                                |
+| `column`          | `Column<TFeatures, TData, TValue>`               |             | The TanStack Table column instance (from `props.column` in `header`). `TFeatures` must include `rowSortingFeature`. **Required.**                                  |
 | `sortingMode`     | `"alphanumeric" \| "time"`                       |             | Which direction sequence to cycle through. **Required** unless `disableSorting` is `true`.                                                                         |
 | `disableSorting?` | `boolean`                                        | `false`     | Renders the label as plain text with no button and no sort icon. Makes `sortingMode` unnecessary.                                                                  |
 | `sortIcon?`       | `(sortDirection: SortDirection) => ReactNode`    |             | Override the default sort icon. `sortDirection` is `"asc" \| "desc" \| "unsorted"`.                                                                                |
@@ -853,6 +1062,11 @@ A sortable button toggle for column headers. Clicking cycles through sort direct
 | `className?`      | `string`                                         |             | Extra classes merged onto the underlying [`Button`](/components/actions/button) — for example, `justify-end` for right-aligned numeric columns.                    |
 
 All additional props from [`Button`](/components/actions/button). Unlike `Button` itself, `appearance` and `intent` are optional here — the wrapper defaults them to `"ghost"` and `"neutral"`.
+
+| Data Attribute             | Value                               | Description                                                                                                                 |
+| :------------------------- | :---------------------------------- | :-------------------------------------------------------------------------------------------------------------------------- |
+| `data-sort-direction`      | `"asc"` \| `"desc"` \| `"unsorted"` | The column's current sort direction. Always `"unsorted"` on the plain-text span.                                            |
+| `data-table-header-action` | present on the button               | Presence-only. `DataTable.Header` drops its horizontal padding when a descendant carries it. Absent on the plain-text span. |
 
 ### DataTable.Cell
 
@@ -897,9 +1111,11 @@ A narrow `<th>` for the leading expand-toggle column, mirroring `DataTable.Actio
 
 An accessible `+`/`−` toggle that expands or collapses a row's detail panel. Place it inside a `DataTable.Cell` in a leading `columnHelper.display` column and pair it with `DataTable.ExpandedRow`. Renders a real `<button>` that sets `aria-expanded` and (while expanded) `aria-controls`, stops click propagation so it never fires a row-level `onClick`, and renders nothing when `row.getCanExpand()` is `false`. Forwards [`IconButton`](/components/actions/icon-button) props — unlike `IconButton` itself, `appearance` and `intent` are optional here, defaulting to `"ghost"` and `"neutral"`.
 
+The table must register `rowExpandingFeature`; the `row` prop rejects a row from a table without it at compile time. Add `expandedRowModel: createExpandedRowModel()` when rows have sub-rows; a detail panel expands without it.
+
 | Prop            | Type                                | Default                      | Description                                                                                                                                                                          |
 | :-------------- | :---------------------------------- | :--------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `row`           | `Row<TData>`                        |                              | The TanStack Table row this button toggles. **Required.**                                                                                                                            |
+| `row`           | `Row<TFeatures, TData>`             |                              | The TanStack Table row this button toggles. `TFeatures` must include `rowExpandingFeature`. **Required.**                                                                            |
 | `label`         | `string`                            |                              | A human-readable row name, woven into the accessible label (`Show details for …` / `Hide details …`). **Required.**                                                                  |
 | `expandIcon?`   | `ReactNode`                         | `<PlusIcon weight="bold"/>`  | Icon shown while the row is collapsed.                                                                                                                                               |
 | `collapseIcon?` | `ReactNode`                         | `<MinusIcon weight="bold"/>` | Icon shown while the row is expanded.                                                                                                                                                |
@@ -909,11 +1125,11 @@ An accessible `+`/`−` toggle that expands or collapses a row's detail panel. P
 
 ### DataTable.ExpandedRow
 
-The sibling `<tr>` that renders a row's expanded detail panel. Render it directly after `DataTable.Row`, wrapped in a `Fragment` (never a DOM element), and only when `row.getIsExpanded()` is `true`. The single cell spans every visible column, carries the `id` that `DataTable.RowExpandButton` targets via `aria-controls`, and sits on an opaque card surface so it coexists with a sticky action column. Exposes `data-expanded-content` for styling.
+The sibling `<tr>` that renders a row's expanded detail panel. Render it directly after `DataTable.Row`, wrapped in a `Fragment` (never a DOM element), and only when `row.getIsExpanded()` is `true`. The single cell spans every visible column, carries the `id` that `DataTable.RowExpandButton` targets via `aria-controls`, and sits on an opaque card surface so it coexists with a sticky action column. Exposes `data-expanded-content` for styling. The part works with any features; without `columnVisibilityFeature`, it spans every column.
 
-| Prop         | Type         | Default                        | Description                                                                               |
-| :----------- | :----------- | :----------------------------- | :---------------------------------------------------------------------------------------- |
-| `row`        | `Row<TData>` |                                | The row whose detail panel this displays. **Required.**                                   |
-| `children`   | `ReactNode`  |                                | The detail content rendered inside the full-width panel. **Required.**                    |
-| `colSpan?`   | `number`     | `row.getVisibleCells().length` | Override the cell's `colSpan`. Defaults to the count of visible columns.                  |
-| `className?` | `string`     |                                | Extra classes merged onto the `<tr>`. Remaining props forward to the HTML `<tr>` element. |
+| Prop         | Type                    | Default                | Description                                                                                                          |
+| :----------- | :---------------------- | :--------------------- | :------------------------------------------------------------------------------------------------------------------- |
+| `row`        | `Row<TFeatures, TData>` |                        | The row whose detail panel this displays. **Required.**                                                              |
+| `children`   | `ReactNode`             |                        | The detail content rendered inside the full-width panel. **Required.**                                               |
+| `colSpan?`   | `number`                | the visible cell count | Override the cell's `colSpan`. Defaults to the row's visible cells, or every cell without `columnVisibilityFeature`. |
+| `className?` | `string`                |                        | Extra classes merged onto the `<tr>`. Remaining props forward to the HTML `<tr>` element.                            |

@@ -4,14 +4,23 @@ import { CodeBlock, jsonCodeBlockValue } from "@ngrok/mantle/code-block";
 import {
 	DataTable,
 	type ExpandedState,
-	createColumnHelper,
-	getCoreRowModel,
-	getExpandedRowModel,
-	getFilteredRowModel,
-	getPaginationRowModel,
-	getSortedRowModel,
 	type RowSelectionState,
-	useReactTable,
+	columnFilteringFeature,
+	createColumnHelper,
+	createExpandedRowModel,
+	createFilteredRowModel,
+	createPaginatedRowModel,
+	createSortedRowModel,
+	globalFilteringFeature,
+	rowExpandingFeature,
+	rowPaginationFeature,
+	rowSelectionFeature,
+	rowSortingFeature,
+	sortFn_alphanumeric,
+	sortFn_datetime,
+	sortFn_text,
+	tableFeatures,
+	useTable,
 } from "@ngrok/mantle/data-table";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Empty } from "@ngrok/mantle/empty";
@@ -40,10 +49,57 @@ const examplePayments: Payment[] = [
 	{ id: "bhqecj4p", amount: 721, status: "failed", email: "carmella@example.com" },
 ];
 
-const columnHelper = createColumnHelper<Payment>();
+/** The row actions menu each demo mounts in its sticky action column. */
+function RowActionsMenu() {
+	return (
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger asChild>
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					className="rounded"
+					type="button"
+					size="sm"
+					label="Open actions"
+					icon={<DotsThreeIcon weight="bold" />}
+				/>
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="end">
+				<DropdownMenu.Item className="flex items-center gap-2">
+					<Icon svg={<PencilSimpleIcon />} /> Edit
+				</DropdownMenu.Item>
+				<DropdownMenu.Item className="text-danger-600 flex items-center gap-2">
+					<Icon svg={<TrashIcon />} />
+					Delete
+				</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	);
+}
 
-const columns = [
-	columnHelper.accessor("id", {
+// Why one column list per features object: a column helper is bound to one
+// features type. The column defs it returns are invariant in that type. A list
+// built for `sortableFeatures` cannot feed a table that also registers
+// filtering, so each features object below owns a helper and a column list.
+
+// Register only the features a table uses. Auto-sort resolves the
+// `alphanumeric`, `text`, and `datetime` comparators by name, so register those
+// three. A features object is not bound to a row type, so the payments and
+// endpoints tables share this one.
+const sortableFeatures = tableFeatures({
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
+
+const paymentColumnHelper = createColumnHelper<typeof sortableFeatures, Payment>();
+
+const paymentColumns = paymentColumnHelper.columns([
+	paymentColumnHelper.accessor("id", {
 		id: "id",
 		header: (props) => (
 			<DataTable.Header column={props.column}>
@@ -52,9 +108,9 @@ const columns = [
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell key={props.cell.id}>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
-	columnHelper.accessor("amount", {
+	paymentColumnHelper.accessor("amount", {
 		id: "amount",
 		header: (props) => (
 			<DataTable.Header className="w-50" column={props.column}>
@@ -68,13 +124,9 @@ const columns = [
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => (
-			<DataTable.Cell key={props.cell.id} className="text-right">
-				{props.getValue()}
-			</DataTable.Cell>
-		),
+		cell: (props) => <DataTable.Cell className="text-right">{props.getValue()}</DataTable.Cell>,
 	}),
-	columnHelper.accessor("status", {
+	paymentColumnHelper.accessor("status", {
 		id: "status",
 		header: (props) => (
 			<DataTable.Header column={props.column}>
@@ -83,9 +135,9 @@ const columns = [
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell key={props.cell.id}>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
-	columnHelper.accessor("email", {
+	paymentColumnHelper.accessor("email", {
 		id: "email",
 		header: (props) => (
 			<DataTable.Header column={props.column}>
@@ -94,56 +146,29 @@ const columns = [
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell key={props.cell.id}>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
-	columnHelper.display({
+	paymentColumnHelper.display({
 		id: "actions",
 		header: () => <DataTable.ActionHeader />,
 		cell: () => (
 			<DataTable.ActionCell>
-				<DropdownMenu.Root>
-					<DropdownMenu.Trigger asChild>
-						<IconButton
-							appearance="ghost"
-							intent="neutral"
-							className="rounded"
-							type="button"
-							size="sm"
-							label="Open actions"
-							icon={<DotsThreeIcon weight="bold" />}
-						/>
-					</DropdownMenu.Trigger>
-					<DropdownMenu.Content align="end">
-						<DropdownMenu.Item className="flex items-center gap-2">
-							<Icon svg={<PencilSimpleIcon />} /> Edit
-						</DropdownMenu.Item>
-						<DropdownMenu.Item className="text-danger-600 flex items-center gap-2">
-							<Icon svg={<TrashIcon />} />
-							Delete
-						</DropdownMenu.Item>
-					</DropdownMenu.Content>
-				</DropdownMenu.Root>
+				<RowActionsMenu />
 			</DataTable.ActionCell>
 		),
 	}),
-];
+]);
 
 /**
  * Demo of a data table with sortable columns and row actions.
  */
 export function PaymentsDemo() {
 	const data = useMemo(() => examplePayments, []);
-	const table = useReactTable({
+	const table = useTable({
+		features: sortableFeatures,
 		data,
-		columns,
-		getCoreRowModel: getCoreRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-		getFilteredRowModel: getFilteredRowModel(),
-		initialState: {
-			sorting: [{ id: "email", desc: false }],
-			pagination: { pageSize: 100 },
-		},
+		columns: paymentColumns,
+		initialState: { sorting: [{ id: "email", desc: false }] },
 	});
 	const rows = table.getRowModel().rows;
 	return (
@@ -258,9 +283,9 @@ const exampleEndpoints: Endpoint[] = [
 	},
 ];
 
-const endpointColumnHelper = createColumnHelper<Endpoint>();
+const endpointColumnHelper = createColumnHelper<typeof sortableFeatures, Endpoint>();
 
-const endpointColumns = [
+const endpointColumns = endpointColumnHelper.columns([
 	endpointColumnHelper.accessor("region", {
 		id: "region",
 		header: (props) => (
@@ -270,7 +295,7 @@ const endpointColumns = [
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell key={props.cell.id}>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
 	endpointColumnHelper.accessor("url", {
 		id: "url",
@@ -282,9 +307,7 @@ const endpointColumns = [
 			</DataTable.Header>
 		),
 		cell: (props) => (
-			<DataTable.Cell key={props.cell.id} className="truncate max-w-100">
-				{props.getValue()}
-			</DataTable.Cell>
+			<DataTable.Cell className="truncate max-w-100">{props.getValue()}</DataTable.Cell>
 		),
 	}),
 	endpointColumnHelper.accessor("type", {
@@ -296,7 +319,7 @@ const endpointColumns = [
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell key={props.cell.id}>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
 	endpointColumnHelper.accessor("binding", {
 		id: "binding",
@@ -307,7 +330,7 @@ const endpointColumns = [
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell key={props.cell.id}>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
 	endpointColumnHelper.accessor("created", {
 		id: "created",
@@ -318,7 +341,7 @@ const endpointColumns = [
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell key={props.cell.id}>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
 	endpointColumnHelper.accessor("updated", {
 		id: "updated",
@@ -329,39 +352,18 @@ const endpointColumns = [
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell key={props.cell.id}>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
 	endpointColumnHelper.display({
 		id: "actions",
 		header: () => <DataTable.ActionHeader />,
 		cell: () => (
 			<DataTable.ActionCell>
-				<DropdownMenu.Root>
-					<DropdownMenu.Trigger asChild>
-						<IconButton
-							appearance="ghost"
-							intent="neutral"
-							className="rounded"
-							type="button"
-							size="sm"
-							label="Open actions"
-							icon={<DotsThreeIcon weight="bold" />}
-						/>
-					</DropdownMenu.Trigger>
-					<DropdownMenu.Content align="end">
-						<DropdownMenu.Item className="flex items-center gap-2">
-							<Icon svg={<PencilSimpleIcon />} /> Edit
-						</DropdownMenu.Item>
-						<DropdownMenu.Item className="text-danger-600 flex items-center gap-2">
-							<Icon svg={<TrashIcon />} />
-							Delete
-						</DropdownMenu.Item>
-					</DropdownMenu.Content>
-				</DropdownMenu.Root>
+				<RowActionsMenu />
 			</DataTable.ActionCell>
 		),
 	}),
-];
+]);
 
 /**
  * Demo of a wide data table with many columns to demonstrate horizontal overflow
@@ -369,17 +371,11 @@ const endpointColumns = [
  */
 export function EndpointsDemo() {
 	const data = useMemo(() => exampleEndpoints, []);
-	const table = useReactTable({
+	const table = useTable({
+		features: sortableFeatures,
 		data,
 		columns: endpointColumns,
-		getCoreRowModel: getCoreRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-		getFilteredRowModel: getFilteredRowModel(),
-		initialState: {
-			sorting: [{ id: "region", desc: false }],
-			pagination: { pageSize: 100 },
-		},
+		initialState: { sorting: [{ id: "region", desc: false }] },
 	});
 	const rows = table.getRowModel().rows;
 	return (
@@ -407,17 +403,11 @@ export function EndpointsDemo() {
  */
 export function EmptyPaymentsDemo() {
 	const data = useMemo<Payment[]>(() => [], []);
-	const table = useReactTable({
+	const table = useTable({
+		features: sortableFeatures,
 		data,
-		columns,
-		getCoreRowModel: getCoreRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-		getFilteredRowModel: getFilteredRowModel(),
-		initialState: {
-			sorting: [{ id: "email", desc: false }],
-			pagination: { pageSize: 100 },
-		},
+		columns: paymentColumns,
+		initialState: { sorting: [{ id: "email", desc: false }] },
 	});
 	const rows = table.getRowModel().rows;
 	return (
@@ -447,6 +437,84 @@ export function EmptyPaymentsDemo() {
 	);
 }
 
+// `globalFilteringFeature` builds on `columnFilteringFeature`, so register both.
+// The headers still sort, so sorting stays registered.
+const filterableFeatures = tableFeatures({
+	columnFilteringFeature,
+	globalFilteringFeature,
+	rowSortingFeature,
+	filteredRowModel: createFilteredRowModel(),
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
+
+const filterableColumnHelper = createColumnHelper<typeof filterableFeatures, Payment>();
+
+const filterableColumns = filterableColumnHelper.columns([
+	filterableColumnHelper.accessor("id", {
+		id: "id",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					ID
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	filterableColumnHelper.accessor("amount", {
+		id: "amount",
+		header: (props) => (
+			<DataTable.Header className="w-50" column={props.column}>
+				<DataTable.HeaderSortButton
+					className="justify-end"
+					column={props.column}
+					iconPlacement="start"
+					sortingMode="alphanumeric"
+				>
+					Amount
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell className="text-right">{props.getValue()}</DataTable.Cell>,
+	}),
+	filterableColumnHelper.accessor("status", {
+		id: "status",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					Status
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	filterableColumnHelper.accessor("email", {
+		id: "email",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					Email
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	filterableColumnHelper.display({
+		id: "actions",
+		header: () => <DataTable.ActionHeader />,
+		cell: () => (
+			<DataTable.ActionCell>
+				<RowActionsMenu />
+			</DataTable.ActionCell>
+		),
+	}),
+]);
+
 /**
  * Demo of the "no results for the active filter" empty state. Typing a query
  * that matches nothing swaps in a filtered `Empty` whose `Clear filters` action
@@ -455,16 +523,12 @@ export function EmptyPaymentsDemo() {
 export function FilteredEmptyStateDemo() {
 	const data = useMemo(() => examplePayments, []);
 	const [globalFilter, setGlobalFilter] = useState("");
-	const table = useReactTable({
+	const table = useTable({
+		features: filterableFeatures,
 		data,
-		columns,
+		columns: filterableColumns,
 		state: { globalFilter },
 		onGlobalFilterChange: setGlobalFilter,
-		getCoreRowModel: getCoreRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-		getFilteredRowModel: getFilteredRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
-		initialState: { pagination: { pageSize: 100 } },
 	});
 	const rows = table.getRowModel().rows;
 	const isFiltered = globalFilter.trim() !== "";
@@ -532,6 +596,81 @@ const paginatedPayments: Payment[] = Array.from({ length: 23 }, (_, index) => ({
 	email: `user${index + 1}@example.com`,
 }));
 
+const paginatedFeatures = tableFeatures({
+	rowPaginationFeature,
+	rowSortingFeature,
+	paginatedRowModel: createPaginatedRowModel(),
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
+
+const paginatedColumnHelper = createColumnHelper<typeof paginatedFeatures, Payment>();
+
+const paginatedColumns = paginatedColumnHelper.columns([
+	paginatedColumnHelper.accessor("id", {
+		id: "id",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					ID
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	paginatedColumnHelper.accessor("amount", {
+		id: "amount",
+		header: (props) => (
+			<DataTable.Header className="w-50" column={props.column}>
+				<DataTable.HeaderSortButton
+					className="justify-end"
+					column={props.column}
+					iconPlacement="start"
+					sortingMode="alphanumeric"
+				>
+					Amount
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell className="text-right">{props.getValue()}</DataTable.Cell>,
+	}),
+	paginatedColumnHelper.accessor("status", {
+		id: "status",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					Status
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	paginatedColumnHelper.accessor("email", {
+		id: "email",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					Email
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	paginatedColumnHelper.display({
+		id: "actions",
+		header: () => <DataTable.ActionHeader />,
+		cell: () => (
+			<DataTable.ActionCell>
+				<RowActionsMenu />
+			</DataTable.ActionCell>
+		),
+	}),
+]);
+
 /**
  * Demo of `CursorPagination` wired to a client-paginated TanStack table, with a
  * working page-size dropdown plus previous/next buttons driven by the table
@@ -539,13 +678,11 @@ const paginatedPayments: Payment[] = Array.from({ length: 23 }, (_, index) => ({
  */
 export function PaginatedPaymentsDemo() {
 	const data = useMemo(() => paginatedPayments, []);
-	const table = useReactTable({
+	const table = useTable({
+		features: paginatedFeatures,
 		data,
-		columns,
-		getCoreRowModel: getCoreRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-		initialState: { pagination: { pageSize: DEFAULT_PAGE_SIZE } },
+		columns: paginatedColumns,
+		initialState: { pagination: { pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE } },
 	});
 	const rows = table.getRowModel().rows;
 	return (
@@ -567,7 +704,7 @@ export function PaginatedPaymentsDemo() {
 			</DataTable.Root>
 			<CursorPagination.Root
 				className="flex justify-end"
-				pageSize={table.getState().pagination.pageSize}
+				pageSize={table.state.pagination.pageSize}
 				onChangePageSize={(size) => {
 					table.setPageSize(size);
 					table.setPageIndex(0); // reset to the first page when the size changes
@@ -585,8 +722,23 @@ export function PaginatedPaymentsDemo() {
 	);
 }
 
-const selectableColumns = [
-	columnHelper.display({
+// Selection alongside sorting: the payment columns keep their sort buttons, so
+// this table registers both.
+const selectableFeatures = tableFeatures({
+	rowSelectionFeature,
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
+
+const selectableColumnHelper = createColumnHelper<typeof selectableFeatures, Payment>();
+
+const selectableColumns = selectableColumnHelper.columns([
+	selectableColumnHelper.display({
 		id: "select",
 		// `<th>` defaults to more horizontal padding (`px-4`) than `<td>` (`p-3`);
 		// match the cell's padding so the header checkbox lines up with the column
@@ -613,8 +765,65 @@ const selectableColumns = [
 			</DataTable.Cell>
 		),
 	}),
-	...columns,
-];
+	selectableColumnHelper.accessor("id", {
+		id: "id",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					ID
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	selectableColumnHelper.accessor("amount", {
+		id: "amount",
+		header: (props) => (
+			<DataTable.Header className="w-50" column={props.column}>
+				<DataTable.HeaderSortButton
+					className="justify-end"
+					column={props.column}
+					iconPlacement="start"
+					sortingMode="alphanumeric"
+				>
+					Amount
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell className="text-right">{props.getValue()}</DataTable.Cell>,
+	}),
+	selectableColumnHelper.accessor("status", {
+		id: "status",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					Status
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	selectableColumnHelper.accessor("email", {
+		id: "email",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					Email
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	selectableColumnHelper.display({
+		id: "actions",
+		header: () => <DataTable.ActionHeader />,
+		cell: () => (
+			<DataTable.ActionCell>
+				<RowActionsMenu />
+			</DataTable.ActionCell>
+		),
+	}),
+]);
 
 /**
  * Demo of row selection with checkboxes. The header checkbox toggles every row
@@ -624,13 +833,12 @@ const selectableColumns = [
 export function SelectablePaymentsDemo() {
 	const data = useMemo(() => examplePayments, []);
 	const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-	const table = useReactTable({
+	const table = useTable({
+		features: selectableFeatures,
 		data,
 		columns: selectableColumns,
-		getCoreRowModel: getCoreRowModel(),
 		state: { rowSelection },
 		onRowSelectionChange: setRowSelection,
-		enableRowSelection: true,
 	});
 	const selectedCount = table.getSelectedRowModel().rows.length;
 	return (
@@ -650,11 +858,27 @@ export function SelectablePaymentsDemo() {
 	);
 }
 
-// A leading expand-toggle column in front of the existing payment columns (which
-// already end with a sticky action column) — so the +/- toggle on the left and
-// the pinned actions on the right coexist.
-const expandableColumns = [
-	columnHelper.display({
+// Expansion alongside sorting: a stable `getRowId` keeps each open panel with
+// its row when the sort order changes.
+const expandableFeatures = tableFeatures({
+	rowExpandingFeature,
+	expandedRowModel: createExpandedRowModel(),
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
+
+const expandableColumnHelper = createColumnHelper<typeof expandableFeatures, Payment>();
+
+// The leading expand-toggle column sits in front of the payment columns. The
+// payment columns end with a sticky action column, so the +/- toggle on the
+// left and the pinned actions on the right coexist.
+const expandableColumns = expandableColumnHelper.columns([
+	expandableColumnHelper.display({
 		id: "expander",
 		header: () => <DataTable.ExpandHeader />,
 		cell: (props) => (
@@ -663,8 +887,65 @@ const expandableColumns = [
 			</DataTable.Cell>
 		),
 	}),
-	...columns,
-];
+	expandableColumnHelper.accessor("id", {
+		id: "id",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					ID
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	expandableColumnHelper.accessor("amount", {
+		id: "amount",
+		header: (props) => (
+			<DataTable.Header className="w-50" column={props.column}>
+				<DataTable.HeaderSortButton
+					className="justify-end"
+					column={props.column}
+					iconPlacement="start"
+					sortingMode="alphanumeric"
+				>
+					Amount
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell className="text-right">{props.getValue()}</DataTable.Cell>,
+	}),
+	expandableColumnHelper.accessor("status", {
+		id: "status",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					Status
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	expandableColumnHelper.accessor("email", {
+		id: "email",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					Email
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	expandableColumnHelper.display({
+		id: "actions",
+		header: () => <DataTable.ActionHeader />,
+		cell: () => (
+			<DataTable.ActionCell>
+				<RowActionsMenu />
+			</DataTable.ActionCell>
+		),
+	}),
+]);
 
 /**
  * Demo of expandable rows. A `DataTable.RowExpandButton` in the leading column
@@ -676,14 +957,13 @@ const expandableColumns = [
 export function ExpandableRowsDemo() {
 	const data = useMemo(() => examplePayments, []);
 	const [expanded, setExpanded] = useState<ExpandedState>({});
-	const table = useReactTable({
+	const table = useTable({
+		features: expandableFeatures,
 		data,
 		columns: expandableColumns,
 		state: { expanded },
 		onExpandedChange: setExpanded,
 		getRowCanExpand: () => true,
-		getCoreRowModel: getCoreRowModel(),
-		getExpandedRowModel: getExpandedRowModel(),
 		getRowId: (row) => row.id,
 	});
 	const rows = table.getRowModel().rows;

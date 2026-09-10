@@ -129,33 +129,28 @@ Inside a [`DataTable`](/components/data-display/data-table), host `Empty` in `Da
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
-import {
-	DataTable,
-	createColumnHelper,
-	getCoreRowModel,
-	useReactTable,
-} from "@ngrok/mantle/data-table";
+import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/mantle/data-table";
 import { Empty } from "@ngrok/mantle/empty";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 
 type Row = { id: string; name: string };
 
-const columnHelper = createColumnHelper<Row>();
+// The filter in this example lives outside the table, so the table registers
+// no features.
+const features = tableFeatures({});
 
-const columns = [
+const columnHelper = createColumnHelper<typeof features, Row>();
+
+const columns = columnHelper.columns([
 	columnHelper.accessor("name", {
 		id: "name",
 		header: () => <DataTable.Header>Name</DataTable.Header>,
 		cell: (props) => <DataTable.Cell key={props.cell.id}>{props.getValue()}</DataTable.Cell>,
 	}),
-];
+]);
 
 function EmptyInTableExample({ data }: { data: Row[] }) {
-	const table = useReactTable({
-		data,
-		columns,
-		getCoreRowModel: getCoreRowModel(),
-	});
+	const table = useTable({ features, data, columns });
 
 	const rows = table.getRowModel().rows;
 

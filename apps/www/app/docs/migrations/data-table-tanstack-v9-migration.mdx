@@ -1,0 +1,1083 @@
+---
+title: DataTable TanStack Table v9 Migration
+description: Move a DataTable from TanStack Table v8 to v9 by registering features with tableFeatures, wrapping columns in columnHelper.columns, renaming sortingFn to sortFn, and reading table.state.
+---
+
+# DataTable TanStack Table v9 migration guide
+
+`@ngrok/mantle/data-table` now re-exports TanStack Table v9. The `DataTable` parts keep their names and props. What changes is how you build the table instance and its columns: v9 makes every feature opt-in, so each table registers the features it uses, and TypeScript knows which methods exist on that table.
+
+**TL;DR:** for each table that calls `useReactTable`:
+
+1. Build a `features` object with `tableFeatures({ … })` at module scope and call `useTable({ features, data, columns })`.
+2. Delete `getCoreRowModel`. Turn every other `get*RowModel()` option into a feature plus a row-model slot inside `tableFeatures`.
+3. Type the helper as `createColumnHelper<typeof features, T>()` and wrap the array in `columnHelper.columns([…])`.
+4. Rename `sortingFn` to `sortFn` and register the comparators you use in the `sortFns` slot.
+5. Read `table.state` instead of `table.getState()`.
+6. Type `table.options.meta` through the `tableMeta` slot instead of an `as` cast.
+
+The rest of this page covers each step with before/after code, the mantle parts that now need a feature, and a checklist.
+
+---
+
+## Why this change
+
+TanStack Table v8 shipped every feature on every table. Sorting, filtering, pinning, and selection code landed in your bundle whether the table used them or not, and `table.options.meta` was untyped unless you merged a global declaration.
+
+v9 flips that. A table registers the features it uses in a `features` object, and that object's type flows into the table, its rows, columns, and cells:
+
+- Only the registered features ship in the bundle.
+- `row.getIsSelected()` exists on the row type only when the table registers `rowSelectionFeature`. A call on a table that can't select is a compile error, not a runtime `undefined is not a function`.
+- `table.options.meta` and `columnDef.meta` take their types from the features object, with no global declaration merging and no `as` casts.
+
+Mantle's `DataTable` parts are generic over that features object. `DataTable.HeaderSortButton` rejects a column from a table without `rowSortingFeature`, and `DataTable.RowExpandButton` rejects a row from a table without `rowExpandingFeature`, both at compile time. No other mantle prop name changed.
+
+---
+
+## Before you start
+
+- `@tanstack/react-table` must not be a direct dependency of your app. `@ngrok/mantle/data-table` re-exports every v9 export: `useTable`, `tableFeatures`, `createColumnHelper`, every `*Feature` object, every `create*RowModel` factory, the `sortFn_*` and `filterFn_*` comparators, `metaHelper`, `flexRender`, and every type. If `package.json` lists `@tanstack/react-table`, remove it and point every import at `@ngrok/mantle/data-table`.
+- Do not reach for the compatibility layer. Mantle does not re-export `@tanstack/react-table/legacy`, `useLegacyTable`, `legacyCreateColumnHelper`, or the deprecated `get*RowModel` stubs. See [What not to do](#what-not-to-do).
+- Read the [DataTable docs](/components/data-display/data-table) for the current recipes. Every example there is already on v9.
+
+---
+
+## What to search for
+
+Every file that imports from `@ngrok/mantle/data-table` is a candidate. Run this from your app root to find the renamed calls and options:
+
+```bash
+grep -rnE "useReactTable|getCoreRowModel|get(Sorted|Filtered|Pagination|Expanded|Grouped|Faceted)RowModel|sortingFn|getSortingFn|getState\(\)|onStateChange|options\.meta|columnSizingInfo|enablePinning" --include='*.ts' --include='*.tsx' app
+```
+
+The grep covers the renames. The table below adds the type, state, and method names to check by hand in each candidate file, and maps each to a step:
+
+| Pattern                                                                                                                                | Step                                                           |
+| -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `useReactTable(`                                                                                                                       | [Step 1](#step-1-build-a-features-object)                      |
+| `getCoreRowModel`                                                                                                                      | [Step 2](#step-2-replace-the-row-models) (delete it)           |
+| `getSortedRowModel`, `getFilteredRowModel`, `getPaginationRowModel`, `getExpandedRowModel`, `getGroupedRowModel`, `getFacetedRowModel` | [Step 2](#step-2-replace-the-row-models)                       |
+| `createColumnHelper<`                                                                                                                  | [Step 3](#step-3-type-the-column-helper-and-wrap-the-columns)  |
+| `sortingFn:`, `sortingFns`, `getSortingFn(`                                                                                            | [Step 4](#step-4-rename-the-sort-options-and-register-sortfns) |
+| `getState()`, `onStateChange`                                                                                                          | [Step 5](#step-5-read-tablestate)                              |
+| `Column<`, `Row<`, `Table<`, `ColumnDef<`, `HeaderContext<`, `CellContext<`                                                            | [Step 6](#step-6-add-tfeatures-to-the-types)                   |
+| `TableOptions<`, `ComponentProps<typeof DataTable.Row>`                                                                                | [Step 6](#step-6-add-tfeatures-to-the-types)                   |
+| `options.meta`, `columnDef.meta`, `declare module "@tanstack/react-table"`                                                             | [Step 7](#step-7-type-the-meta-through-the-features-object)    |
+| `columnVisibility`, `getVisibleLeafColumns(`, `getVisibleCells(`                                                                       | [Step 8](#step-8-register-column-visibility)                   |
+| `getIsSelected(`, `toggleSelected(`, `getSelectedRowModel(`, `enableRowSelection`, `rowSelection`                                      | [Step 9](#step-9-register-row-selection)                       |
+| `columnPinning`, `.pin(`, `enablePinning`, `columnSizingInfo`, `getSize(`                                                              | [Step 10](#step-10-pinning-sizing-and-resizing)                |
+
+---
+
+## Step 1: build a features object
+
+`useReactTable` is now `useTable`, and it requires a `features` option. Build the object with `tableFeatures`, which infers the type that every other v9 generic reads.
+
+**Before:**
+
+```tsx
+import {
+	DataTable,
+	createColumnHelper,
+	getCoreRowModel,
+	getSortedRowModel,
+	useReactTable,
+} from "@ngrok/mantle/data-table";
+
+type Payment = { id: string; amount: number; email: string; status: string };
+
+const columnHelper = createColumnHelper<Payment>();
+
+const columns = [
+	// …
+];
+
+function PaymentsTable({ data }: { data: Payment[] }) {
+	const table = useReactTable({
+		data,
+		columns,
+		getCoreRowModel: getCoreRowModel(),
+		getSortedRowModel: getSortedRowModel(),
+	});
+	// …
+}
+```
+
+**After:**
+
+```tsx
+import {
+	DataTable,
+	createColumnHelper,
+	createSortedRowModel,
+	rowSortingFeature,
+	sortFn_alphanumeric,
+	sortFn_datetime,
+	sortFn_text,
+	tableFeatures,
+	useTable,
+} from "@ngrok/mantle/data-table";
+
+type Payment = { id: string; amount: number; email: string; status: string };
+
+// Register only the features this table uses. Auto-sort resolves the
+// `alphanumeric`, `text`, and `datetime` comparators by name, so register those three.
+const features = tableFeatures({
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
+
+const columnHelper = createColumnHelper<typeof features, Payment>();
+
+const columns = columnHelper.columns([
+	// …
+]);
+
+function PaymentsTable({ data }: { data: Payment[] }) {
+	const table = useTable({ features, data, columns });
+	// …
+}
+```
+
+A table with no sorting, filtering, expansion, or selection registers nothing:
+
+```tsx
+const features = tableFeatures({});
+```
+
+### Where to define features
+
+Define the features object at module scope, next to the column helper. `useTable` registers the features when it builds the table on the first render, and every later options merge keeps that first `features` object. A features object built inside the component is re-created each render but never applied again, so a conditional feature set has no effect after mount.
+
+Most apps have a handful of table shapes. Put those in one module and import the preset each table needs:
+
+```tsx
+// app/utilities/table-features.ts
+import {
+	columnFilteringFeature,
+	createFilteredRowModel,
+	createPaginatedRowModel,
+	createSortedRowModel,
+	globalFilteringFeature,
+	rowPaginationFeature,
+	rowSortingFeature,
+	sortFn_alphanumeric,
+	sortFn_datetime,
+	sortFn_text,
+	tableFeatures,
+} from "@ngrok/mantle/data-table";
+
+/** A read-only table that sorts on the client. */
+export const sortableTableFeatures = tableFeatures({
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
+
+/** A list page: sorting, a search box, and page controls. */
+export const listTableFeatures = tableFeatures({
+	columnFilteringFeature,
+	globalFilteringFeature,
+	rowPaginationFeature,
+	rowSortingFeature,
+	filteredRowModel: createFilteredRowModel(),
+	paginatedRowModel: createPaginatedRowModel(),
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
+```
+
+A table that needs its own `tableMeta` type (see [Step 7](#step-7-type-the-meta-through-the-features-object)) spreads a preset into its own `tableFeatures` call:
+
+```tsx
+const features = tableFeatures({
+	...sortableTableFeatures,
+	tableMeta: metaHelper<PaymentsTableMeta>(),
+});
+```
+
+Two other shapes exist. Neither is the default:
+
+- `createTableHook({ features })` returns a `useAppTable` hook, a `createAppColumnHelper` factory, and `useTableContext`, `useCellContext`, and `useHeaderContext` hooks, all bound to one features object. The table `useAppTable` returns carries context-bound `AppTable`, `AppCell`, `AppHeader`, and `AppFooter` components. Reach for it when an app wants one table hook with shared cell and header components. The `useAppTable` return value is a valid `table` prop for `DataTable.Root`.
+- `stockFeatures` registers every built-in feature at once: `tableFeatures({ ...stockFeatures, sortedRowModel: createSortedRowModel(), sortFns: { alphanumeric: sortFn_alphanumeric, datetime: sortFn_datetime, text: sortFn_text } })`. It skips tree-shaking, so every feature lands in the bundle, and it still needs the row-model slots. Treat it as a last resort for a table you can't audit, not as the recommendation.
+
+### A row model that a prop turns on or off
+
+`useTable` registers features once, so a features object cannot follow a prop. Register the feature and toggle its behavior through a table option instead. `manualPagination` hands the pre-paginated rows straight through, and the table re-reads it on every render:
+
+**Before:**
+
+```tsx
+const table = useReactTable({
+	...(preventPagination ? {} : { getPaginationRowModel: getPaginationRowModel() }),
+	getCoreRowModel: getCoreRowModel(),
+	data,
+	columns,
+});
+```
+
+**After:**
+
+```tsx
+const features = tableFeatures({
+	rowPaginationFeature,
+	paginatedRowModel: createPaginatedRowModel(),
+});
+
+const table = useTable({
+	features,
+	data,
+	columns,
+	// Every row renders while the prop is set; the page size no longer applies.
+	manualPagination: preventPagination,
+});
+```
+
+`manualSorting`, `manualFiltering`, `manualGrouping`, and `manualExpanding` work the same way for their row models.
+
+---
+
+## Step 2: replace the row models
+
+v8 turned a row model on by passing a `get*RowModel()` option. v9 pairs a feature (the state and methods) with a row-model slot (the client-side processing). Both go in `tableFeatures`. If a slot is present without its feature, `tableFeatures` fails to typecheck with a message that names the missing feature.
+
+| v8 `useReactTable` option                                                               | v9 `tableFeatures({ … })` entries                                                                                                                                       |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getCoreRowModel: getCoreRowModel()`                                                    | Delete it. The core row model is built in.                                                                                                                              |
+| `getSortedRowModel: getSortedRowModel()`                                                | `rowSortingFeature`, `sortedRowModel: createSortedRowModel()`, a `sortFns` registry                                                                                     |
+| `getFilteredRowModel: getFilteredRowModel()`                                            | `columnFilteringFeature`, `filteredRowModel: createFilteredRowModel()`                                                                                                  |
+| A global filter (`state.globalFilter`, `onGlobalFilterChange`, `table.setGlobalFilter`) | `globalFilteringFeature`, which requires `columnFilteringFeature` in the same call                                                                                      |
+| `getPaginationRowModel: getPaginationRowModel()`                                        | `rowPaginationFeature`, `paginatedRowModel: createPaginatedRowModel()`                                                                                                  |
+| `getExpandedRowModel: getExpandedRowModel()`                                            | `rowExpandingFeature`, `expandedRowModel: createExpandedRowModel()`                                                                                                     |
+| `getGroupedRowModel: getGroupedRowModel()`                                              | `columnGroupingFeature`, `groupedRowModel: createGroupedRowModel()`, plus `rowAggregationFeature` when a cell or column uses `aggregationFn` or `getAggregationValue()` |
+| `getFacetedRowModel: getFacetedRowModel()`                                              | `columnFacetingFeature`, `facetedRowModel: createFacetedRowModel()`                                                                                                     |
+
+Three rules that `tableFeatures` enforces at the type level:
+
+- `sortedRowModel` requires `rowSortingFeature`, `filteredRowModel` requires `columnFilteringFeature`, `paginatedRowModel` requires `rowPaginationFeature`, `expandedRowModel` requires `rowExpandingFeature`, and `groupedRowModel` requires `columnGroupingFeature`.
+- `globalFilteringFeature` requires `columnFilteringFeature`. The default global filter is `includesString`, and it needs no `filterFns` registration.
+- `sortFns` and `filterFns` require `rowSortingFeature` and `columnFilteringFeature`.
+
+A grouped usage table that also hides a column, a shape ngrok's dashboard uses today:
+
+**Before:**
+
+```tsx
+const table = useReactTable({
+	getCoreRowModel: getCoreRowModel(),
+	getGroupedRowModel: getGroupedRowModel(),
+	getExpandedRowModel: getExpandedRowModel(),
+	data,
+	columns,
+	initialState: { grouping: ["group"], expanded: true },
+	state: { columnVisibility: { group: false } },
+});
+```
+
+**After:**
+
+```tsx
+const features = tableFeatures({
+	columnGroupingFeature,
+	columnVisibilityFeature,
+	rowExpandingFeature,
+	expandedRowModel: createExpandedRowModel(),
+	groupedRowModel: createGroupedRowModel(),
+});
+
+const table = useTable({
+	features,
+	data,
+	columns,
+	initialState: { grouping: ["group"], expanded: true },
+	state: { columnVisibility: { group: false } },
+});
+```
+
+`row.getIsGrouped()`, `row.groupingValue`, `initialState.grouping`, and `initialState.expanded` are unchanged.
+
+---
+
+## Step 3: type the column helper and wrap the columns
+
+`createColumnHelper` takes the features type first, and the column array must go through `columnHelper.columns`.
+
+**Before:**
+
+```tsx
+const columnHelper = createColumnHelper<Payment>();
+
+const columns = [
+	columnHelper.accessor("email", {
+		id: "email",
+		header: () => <DataTable.Header>Email</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("amount", {
+		id: "amount",
+		header: () => <DataTable.Header>Amount</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+];
+```
+
+**After:**
+
+```tsx
+const columnHelper = createColumnHelper<typeof features, Payment>();
+
+const columns = columnHelper.columns([
+	columnHelper.accessor("email", {
+		id: "email",
+		header: () => <DataTable.Header>Email</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("amount", {
+		id: "amount",
+		header: () => <DataTable.Header>Amount</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+```
+
+The wrapper isn't cosmetic. Each accessor's `TValue` (`string` for `email`, `number` for `amount`) sits in a contravariant position, because the `cell` render prop receives it. A bare array of those definitions does not widen to the `ColumnDef<typeof features, Payment>[]` that `useTable`'s `columns` option expects, and the call fails to typecheck. `columnHelper.columns` infers each element's type as a tuple member first and returns an array that is assignable. At runtime it returns the same array.
+
+If a function builds the columns (a `useMemo` factory, or a function that takes a search string), return `columnHelper.columns([…])` from it. `columnHelper.display` and `columnHelper.group` definitions go inside the same array.
+
+---
+
+## Step 4: rename the sort options and register sortFns
+
+Three renames, one new requirement.
+
+| v8                                                                  | v9                                                                           |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `sortingFn: "datetime"`                                             | `sortFn: "datetime"`, with `datetime: sortFn_datetime` in the `sortFns` slot |
+| `sortingFn: (rowA, rowB) => …`                                      | `sortFn: (rowA, rowB) => …`                                                  |
+| `sortingFns` (the exported registry)                                | Deprecated in v9 as `sortFns`; import `sortFn_*` functions instead           |
+| `sortingFns: { … }` (the table option for custom named comparators) | Add them to the `sortFns` slot on `tableFeatures`                            |
+| `column.getSortingFn()`                                             | `column.getSortFn()`                                                         |
+
+Unchanged: `enableSorting`, `sortUndefined`, `sortDescFirst`, `manualSorting`, `onSortingChange`, `SortingState`, `column.getIsSorted()`, `column.getCanSort()`, `column.toggleSorting()`, `column.clearSorting()`.
+
+**Before:**
+
+```tsx
+columnHelper.accessor("createdAt", {
+	id: "createdAt",
+	sortingFn: "datetime",
+	// …
+}),
+columnHelper.accessor("amount", {
+	id: "amount",
+	sortingFn: (rowA, rowB) => rowA.original.amount - rowB.original.amount,
+	// …
+}),
+```
+
+**After:**
+
+```tsx
+columnHelper.accessor("createdAt", {
+	id: "createdAt",
+	sortFn: "datetime",
+	// …
+}),
+columnHelper.accessor("amount", {
+	id: "amount",
+	sortFn: (rowA, rowB) => rowA.original.amount - rowB.original.amount,
+	// …
+}),
+```
+
+### Register sortFns
+
+A column's `sortFn` defaults to `"auto"`, which picks a built-in comparator by the column's values. In v9, `"auto"` and every string name resolve against the `sortFns` slot on your features object. With no slot, auto-sort logs a dev warning and falls back to `sortFn_basic`, which loses the natural ordering that `alphanumeric` gives (`item2` before `item10`). `DataTable.HeaderSortButton`'s `sortingMode` prop picks the icon and the toggle order; it does not pick the comparator. So every sortable table registers its comparators in the `sortFns` slot.
+
+Register the three comparators auto-sort resolves by name. Numbers need no entry: auto-sort uses `sortFn_basic` for them directly. The registry keys become the only valid string values for `sortFn`:
+
+```tsx
+const features = tableFeatures({
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
+```
+
+`sortFn: "basic"` is a compile error until you add `basic: sortFn_basic`. A custom named comparator goes in the same object, and its key becomes a valid `sortFn` string:
+
+```tsx
+const features = tableFeatures({
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+		byAmountDesc: (rowA, rowB) => rowB.original.amount - rowA.original.amount,
+	},
+});
+```
+
+TanStack still exports the full `sortFns` and `filterFns` registries, but v9 marks them deprecated. Do not spread them into the slot; import the functions you use.
+
+---
+
+## Step 5: read table.state
+
+`table.getState()` is gone. The instance exposes `state` as a property, typed from the registered features: `table.state.sorting` exists only when the table registers `rowSortingFeature`.
+
+**Before:**
+
+```tsx
+<Pagination pageSize={table.getState().pagination.pageSize} />
+```
+
+**After:**
+
+```tsx
+<Pagination pageSize={table.state.pagination.pageSize} />
+```
+
+Controlled state is unchanged: pass each slice through `state` and its `on*Change` callback (`state: { sorting }` with `onSortingChange: setSorting`, `state: { globalFilter }` with `onGlobalFilterChange`, `state: { rowSelection }` with `onRowSelectionChange`, `state: { expanded }` with `onExpandedChange`). `initialState` is unchanged.
+
+v9 removed `onStateChange`. If a table used it to mirror the whole state, subscribe to the slices you need through their `on*Change` callbacks instead. For a subtree that should re-render on one slice, render `table.Subscribe` with a selector:
+
+```tsx
+<table.Subscribe selector={(state) => state.sorting}>
+	{(sorting) => <SortSummary sorting={sorting} />}
+</table.Subscribe>
+```
+
+`useTable(options)` without a second argument re-renders the owning component on every state change, the same as v8. Leave it that way unless a profile shows a problem.
+
+---
+
+## Step 6: add TFeatures to the types
+
+Every instance type gains a leading `TFeatures` parameter: `Column<TFeatures, TData, TValue>`, `Row<TFeatures, TData>`, `Table<TFeatures, TData>`, `ColumnDef<TFeatures, TData, TValue>`, `HeaderContext<TFeatures, TData, TValue>`, and `CellContext<TFeatures, TData, TValue>`. `TableOptions<TFeatures, TData>` gains the same parameter, and `features` is a required key on it. A shared partial config either carries `features` or adds it to the `Omit`: `Omit<TableOptions<typeof features, Payment>, "data" | "columns" | "features">`. The `tableOptions()` helper keeps inference for such a config without the `Omit`: `tableOptions({ features, autoResetPageIndex: false })`.
+
+For a helper that serves one table, pass `typeof features`:
+
+**Before:**
+
+```tsx
+function PaymentsColGroup({ columns }: { columns: Column<Payment, unknown>[] }) {
+	return (
+		<colgroup>
+			{columns.map((column) => (
+				<col key={column.id} style={{ width: column.id === "email" ? "auto" : "15%" }} />
+			))}
+		</colgroup>
+	);
+}
+```
+
+**After:**
+
+```tsx
+function PaymentsColGroup({ columns }: { columns: Column<typeof features, Payment, unknown>[] }) {
+	return (
+		<colgroup>
+			{columns.map((column) => (
+				<col key={column.id} style={{ width: column.id === "email" ? "auto" : "15%" }} />
+			))}
+		</colgroup>
+	);
+}
+```
+
+For a helper shared across tables, make it generic over `TFeatures extends TableFeatures`. Inside it, only the core API is available (`column.id`, `column.columnDef`, `row.original`, `table.getRowModel()`), because TypeScript can't know which features the caller registered:
+
+```tsx
+import type { Column, Row, RowData, Table, TableFeatures } from "@ngrok/mantle/data-table";
+
+function ColGroup<TFeatures extends TableFeatures, TData extends RowData>({
+	columns,
+}: {
+	columns: Column<TFeatures, TData, unknown>[];
+}) {
+	return (
+		<colgroup>
+			{columns.map((column) => (
+				<col key={column.id} />
+			))}
+		</colgroup>
+	);
+}
+
+function rowCount<TFeatures extends TableFeatures, TData extends RowData>(
+	table: Table<TFeatures, TData>,
+) {
+	return table.getRowModel().rows.length;
+}
+```
+
+A shared helper that needs a feature's API names the feature in its constraint and intersects the feature's column type. This is the shape mantle uses for `DataTable.HeaderSortButton`:
+
+```tsx
+import type {
+	CellData,
+	Column,
+	Column_RowSorting,
+	RowData,
+	StockFeatures,
+} from "@ngrok/mantle/data-table";
+
+type SortableFeatures = Pick<StockFeatures, "rowSortingFeature">;
+
+function sortLabel<
+	TFeatures extends SortableFeatures,
+	TData extends RowData,
+	TValue extends CellData,
+>(column: Column<TFeatures, TData, TValue> & Column_RowSorting<TFeatures, TData>) {
+	const sorted = column.getIsSorted();
+	return sorted === false ? "unsorted" : sorted;
+}
+```
+
+Do not intersect the alias with `TableFeatures`. Every key of `TableFeatures` is optional, so the bare `Pick` already satisfies `Column`'s constraint. With the intersection, `Column<SortableFeatures, …>` claims every feature, and a consumer's compile error names an unrelated feature instead of sorting.
+
+A wrapper that derives its props from `ComponentProps<typeof DataTable.Row>` needs one more change. `ComponentProps` erases the part's generics to their constraints, so `renderExpanded` comes out as `(row: Row<TableFeatures, RowData>) => ReactNode`. `Row` is invariant in `TFeatures`, so that callback cannot share a `TFeatures` with your concrete `row`. Omit both props and re-declare them against your features:
+
+```tsx
+type PaymentRowProps = Omit<ComponentProps<typeof DataTable.Row>, "row" | "renderExpanded"> & {
+	row: Row<typeof features, Payment>;
+	renderExpanded?: (row: Row<typeof features, Payment>) => ReactNode;
+};
+```
+
+Inside a column definition you rarely write these types by hand: `props.column`, `props.row`, and `props.table` in `header` and `cell` are already typed from the helper's `typeof features`.
+
+---
+
+## Step 7: type the meta through the features object
+
+ngrok's apps type `table.options.meta` today with an `as` cast or a runtime narrowing helper. v9 adds two type-only slots to `tableFeatures`: `tableMeta` types `table.options.meta`, and `columnMeta` types `columnDef.meta`. Pass `metaHelper<T>()` as the value. It returns a phantom value: TanStack strips it at runtime and reads only its type.
+
+**Before:**
+
+```tsx
+type PaymentsTableMeta = { onDelete: (id: string) => void };
+
+function getPaymentsTableMeta(meta: unknown): PaymentsTableMeta {
+	if (meta != null && typeof (meta as PaymentsTableMeta).onDelete === "function") {
+		return meta as PaymentsTableMeta;
+	}
+	throw new Error("Missing PaymentsTableMeta");
+}
+
+columnHelper.display({
+	id: "actions",
+	cell: (props) => (
+		<DataTable.ActionCell>
+			<IconButton
+				// …
+				onClick={() =>
+					getPaymentsTableMeta(props.table.options.meta).onDelete(props.row.original.id)
+				}
+			/>
+		</DataTable.ActionCell>
+	),
+});
+
+const table = useReactTable({
+	// …
+	meta: { onDelete } satisfies PaymentsTableMeta,
+});
+```
+
+**After:**
+
+```tsx
+type PaymentsTableMeta = { onDelete: (id: string) => void };
+
+const features = tableFeatures({
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+	tableMeta: metaHelper<PaymentsTableMeta>(),
+});
+
+const columnHelper = createColumnHelper<typeof features, Payment>();
+
+columnHelper.display({
+	id: "actions",
+	cell: (props) => (
+		<DataTable.ActionCell>
+			<IconButton
+				// …
+				onClick={() => props.table.options.meta?.onDelete(props.row.original.id)}
+			/>
+		</DataTable.ActionCell>
+	),
+});
+
+const table = useTable({
+	features,
+	// …
+	meta: { onDelete },
+});
+```
+
+`options.meta` stays optional on the type, so read it with `?.`. Delete the narrowing helper and the `satisfies` clause: `useTable` rejects a `meta` that doesn't match `PaymentsTableMeta`.
+
+`columnMeta` works the same way for per-column metadata:
+
+```tsx
+import { cx } from "@ngrok/mantle/cx";
+
+type PaymentsColumnMeta = { align?: "start" | "end" };
+
+const features = tableFeatures({
+	columnMeta: metaHelper<PaymentsColumnMeta>(),
+});
+
+const columnHelper = createColumnHelper<typeof features, Payment>();
+
+columnHelper.accessor("amount", {
+	id: "amount",
+	meta: { align: "end" },
+	header: (props) => (
+		<DataTable.Header className={cx(props.column.columnDef.meta?.align === "end" && "text-right")}>
+			Amount
+		</DataTable.Header>
+	),
+});
+```
+
+If the app merged `TableMeta` or `ColumnMeta` through `declare module "@tanstack/react-table"`, delete that declaration. The slot replaces it, and the global interface still applies to any table that has no slot.
+
+---
+
+## Step 8: register column visibility
+
+Column visibility was always on in v8. In v9 it's a feature: `columnVisibility` state, `table.getVisibleLeafColumns()`, `table.getVisibleFlatColumns()`, `row.getVisibleCells()`, `column.getIsVisible()`, and `column.toggleVisibility()` exist only when the table registers `columnVisibilityFeature`.
+
+**Before:**
+
+```tsx
+const table = useReactTable({
+	getCoreRowModel: getCoreRowModel(),
+	data,
+	columns,
+	state: { columnVisibility: { internalCost: showInternalColumns } },
+});
+
+<PaymentsColGroup columns={table.getVisibleLeafColumns()} />;
+```
+
+**After:**
+
+```tsx
+const features = tableFeatures({ columnVisibilityFeature });
+
+const table = useTable({
+	features,
+	data,
+	columns,
+	state: { columnVisibility: { internalCost: showInternalColumns } },
+});
+
+<PaymentsColGroup columns={table.getVisibleLeafColumns()} />;
+```
+
+If the table never hides a column, don't register the feature. Read `table.getAllLeafColumns()` and `row.getAllCells()` instead; both are core API. `DataTable.Row`, `DataTable.EmptyRow`, and `DataTable.ExpandedRow` work either way: they render visible cells when the table registers the feature and every cell when it doesn't.
+
+---
+
+## Step 9: register row selection
+
+Row selection was always on in v8. In v9, `row.getIsSelected()`, `row.toggleSelected()`, `row.getToggleSelectedHandler()`, `table.getSelectedRowModel()`, `table.getIsAllRowsSelected()`, `table.getIsSomeRowsSelected()`, `table.toggleAllRowsSelected()`, `table.getToggleAllRowsSelectedHandler()`, the `rowSelection` state slice, and the `enableRowSelection` option exist only when the table registers `rowSelectionFeature`.
+
+**Before:**
+
+```tsx
+const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
+const table = useReactTable({
+	getCoreRowModel: getCoreRowModel(),
+	data,
+	columns,
+	state: { rowSelection },
+	onRowSelectionChange: setRowSelection,
+	enableRowSelection: (row) => row.original.status !== "failed",
+	getRowId: (row) => row.id,
+});
+```
+
+**After:**
+
+```tsx
+const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
+const features = tableFeatures({ rowSelectionFeature });
+
+const table = useTable({
+	features,
+	data,
+	columns,
+	state: { rowSelection },
+	onRowSelectionChange: setRowSelection,
+	enableRowSelection: (row) => row.original.status !== "failed",
+	getRowId: (row) => row.id,
+});
+```
+
+`enableRowSelection` still defaults to `true`. `RowSelectionState` and every method above keep their v8 names; only the registration is new. See [Row selection with checkboxes](/components/data-display/data-table#row-selection-with-checkboxes) for the full recipe.
+
+---
+
+## Step 10: pinning, sizing, and resizing
+
+Mantle apps rarely use these. If yours does:
+
+| v8                                                                      | v9                                                                                                 |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `columnPinning: { left: […], right: […] }`                              | `columnPinning: { start: […], end: […] }`, and register `columnPinningFeature`                     |
+| `column.pin("left")`, `column.pin("right")`                             | `column.pin("start")`, `column.pin("end")`                                                         |
+| `row.getLeftVisibleCells()`, `row.getRightVisibleCells()`               | `row.getStartVisibleCells()`, `row.getEndVisibleCells()`                                           |
+| `table.getLeftLeafColumns()`, `table.getRightLeafColumns()`             | `table.getStartLeafColumns()`, `table.getEndLeafColumns()`                                         |
+| `enablePinning` (table option)                                          | `enableColumnPinning` and `enableRowPinning`; the column-level `enablePinning` stays               |
+| `column.getSize()`, `size`, `minSize`, `maxSize` on a column definition | Register `columnSizingFeature`                                                                     |
+| `columnSizingInfo` state                                                | `columnResizing` state, and register `columnResizingFeature`, which requires `columnSizingFeature` |
+| `onColumnSizingInfoChange`                                              | `onColumnResizingChange`                                                                           |
+
+`start` and `end` are logical: in a left-to-right layout `start` is left and `end` is right.
+
+---
+
+## Mantle parts and the features they need
+
+Every `DataTable` part infers its generics from the `table`, `column`, or `row` you pass. You never write `TFeatures` by hand. Two parts refuse an instance from a table that lacks the feature they call, and the prop does not typecheck.
+
+| Part                                                                                   | Needs                                                                       | Without it                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DataTable.HeaderSortButton`                                                           | `rowSortingFeature`; pair it with `sortedRowModel` and a `sortFns` registry | Compile error on the `column` prop without `rowSortingFeature`. Without `sortedRowModel` the rows never reorder; without `sortFns`, auto-sort falls back to `sortFn_basic`. |
+| `DataTable.RowExpandButton`                                                            | `rowExpandingFeature`                                                       | Compile error on the `row` prop without `rowExpandingFeature`. Without `expandedRowModel`, sub-rows never enter the row model; a detail panel still opens.                  |
+| `DataTable.Row` with `renderExpanded`                                                  | `rowExpandingFeature`                                                       | The panel never opens, and the row never carries `data-expanded`                                                                                                            |
+| `DataTable.Header` with `column`                                                       | `rowSortingFeature` for `aria-sort`                                         | Renders, but `aria-sort` is never set                                                                                                                                       |
+| `DataTable.Row`, `DataTable.EmptyRow`, `DataTable.ExpandedRow`                         | Nothing                                                                     | Render visible cells with `columnVisibilityFeature`, every cell without it. `colSpan` counts the same way.                                                                  |
+| `DataTable.Root`, `Head`, `Body`, `Cell`, `ActionHeader`, `ActionCell`, `ExpandHeader` | Nothing                                                                     | Unchanged                                                                                                                                                                   |
+
+`expandedRowId(row)` accepts a `Row<TFeatures, TData>` from any table.
+
+---
+
+## What not to do
+
+- Do not import from `@tanstack/react-table/legacy`, and do not call `useLegacyTable` or `legacyCreateColumnHelper`. Mantle does not re-export them, and a direct import would need `@tanstack/react-table` in your `package.json`, which the app must not carry. The legacy layer is a v8 emulation with v9 costs, so a table that lands there still needs this migration later.
+- Do not use the `get*RowModel` stubs (`getCoreRowModel`, `getSortedRowModel`, and the rest). They are deprecated markers for `useLegacyTable`, and the main entry does not export them. `import { getCoreRowModel } from "@ngrok/mantle/data-table"` is a compile error.
+- Do not spread `stockFeatures` into every table. It defeats tree-shaking and hides which features a table depends on.
+- Do not call `table.getState()`. It no longer exists.
+- Do not cast `table.options.meta`. Type it through `tableMeta`.
+- Do not add `@tanstack/react-table` as a direct dependency. Every export you need comes from `@ngrok/mantle/data-table`.
+
+---
+
+## Find/replace recipe
+
+Apply these in order. Each row is a mechanical edit; the notes call out the ones that need a second look.
+
+| Before                                                        | After                                                                 | Note                                                                                                                                       |
+| ------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `useReactTable(`                                              | `useTable(`                                                           | Add `features` to the options object.                                                                                                      |
+| `getCoreRowModel: getCoreRowModel(),`                         | (delete the line)                                                     | Also delete the import.                                                                                                                    |
+| `getSortedRowModel: getSortedRowModel(),`                     | (delete the line)                                                     | Add `rowSortingFeature`, `sortedRowModel: createSortedRowModel()`, a `sortFns` registry to `tableFeatures`.                                |
+| `getFilteredRowModel: getFilteredRowModel(),`                 | (delete the line)                                                     | Add `columnFilteringFeature`, `filteredRowModel: createFilteredRowModel()`. Add `globalFilteringFeature` if the table has a global filter. |
+| `getPaginationRowModel: getPaginationRowModel(),`             | (delete the line)                                                     | Add `rowPaginationFeature`, `paginatedRowModel: createPaginatedRowModel()`.                                                                |
+| `getExpandedRowModel: getExpandedRowModel(),`                 | (delete the line)                                                     | Add `rowExpandingFeature`, `expandedRowModel: createExpandedRowModel()`.                                                                   |
+| `getGroupedRowModel: getGroupedRowModel(),`                   | (delete the line)                                                     | Add `columnGroupingFeature`, `groupedRowModel: createGroupedRowModel()`.                                                                   |
+| `createColumnHelper<T>()`                                     | `createColumnHelper<typeof features, T>()`                            |                                                                                                                                            |
+| `TableOptions<T>`                                             | `TableOptions<typeof features, T>`                                    | `features` is required; add it to any `Omit<…, "data" \| "columns">`, or build the config with `tableOptions()`.                           |
+| `const columns = [`                                           | `const columns = columnHelper.columns([`                              | Close with `]);`.                                                                                                                          |
+| `sortingFn:`                                                  | `sortFn:`                                                             | Register the string names in `sortFns`.                                                                                                    |
+| `sortingFns`                                                  | `sortFns`                                                             |                                                                                                                                            |
+| `.getSortingFn()`                                             | `.getSortFn()`                                                        |                                                                                                                                            |
+| `table.getState()`                                            | `table.state`                                                         |                                                                                                                                            |
+| `onStateChange:`                                              | (delete)                                                              | Use the per-slice `on*Change` callbacks.                                                                                                   |
+| `Column<T, V>`                                                | `Column<typeof features, T, V>`                                       | Or a `TFeatures extends TableFeatures` generic.                                                                                            |
+| `Row<T>`, `Table<T>`                                          | `Row<typeof features, T>`, `Table<typeof features, T>`                |                                                                                                                                            |
+| `ColumnDef<T, V>`, `HeaderContext<T, V>`, `CellContext<T, V>` | `ColumnDef<typeof features, T, V>`, and the same for the two contexts |                                                                                                                                            |
+| `(table.options.meta as M)`                                   | `table.options.meta?`                                                 | Add `tableMeta: metaHelper<M>()` to `tableFeatures`.                                                                                       |
+| `declare module "@tanstack/react-table"`                      | (delete the block)                                                    | Use the `tableMeta` and `columnMeta` slots.                                                                                                |
+| `state: { columnVisibility`                                   | (keep)                                                                | Add `columnVisibilityFeature`.                                                                                                             |
+| `state: { rowSelection`                                       | (keep)                                                                | Add `rowSelectionFeature`.                                                                                                                 |
+| `columnPinning: { left`, `right`                              | `columnPinning: { start`, `end`                                       | Add `columnPinningFeature`.                                                                                                                |
+| `enablePinning:` (table option)                               | `enableColumnPinning:`                                                |                                                                                                                                            |
+| `columnSizingInfo`                                            | `columnResizing`                                                      | Add `columnSizingFeature` and `columnResizingFeature`.                                                                                     |
+
+---
+
+## Example: complete before/after
+
+A list page with sorting, a search box, page controls, and a delete action that reaches the page through `meta`.
+
+**Before:**
+
+```tsx
+import { IconButton } from "@ngrok/mantle/button";
+import {
+	DataTable,
+	createColumnHelper,
+	getCoreRowModel,
+	getFilteredRowModel,
+	getPaginationRowModel,
+	getSortedRowModel,
+	useReactTable,
+} from "@ngrok/mantle/data-table";
+import { TrashIcon } from "@phosphor-icons/react/Trash";
+import { useState } from "react";
+
+type Payment = { id: string; amount: number; email: string; createdAt: Date };
+type PaymentsTableMeta = { onDelete: (id: string) => void };
+
+const columnHelper = createColumnHelper<Payment>();
+
+const columns = [
+	columnHelper.accessor("email", {
+		id: "email",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					Email
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("createdAt", {
+		id: "createdAt",
+		sortingFn: "datetime",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="time">
+					Created
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue().toLocaleDateString()}</DataTable.Cell>,
+	}),
+	columnHelper.display({
+		id: "actions",
+		header: () => <DataTable.ActionHeader />,
+		cell: (props) => (
+			<DataTable.ActionCell>
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					type="button"
+					size="sm"
+					label="Delete payment"
+					icon={<TrashIcon />}
+					onClick={() =>
+						(props.table.options.meta as PaymentsTableMeta).onDelete(props.row.original.id)
+					}
+				/>
+			</DataTable.ActionCell>
+		),
+	}),
+];
+
+function PaymentsTable({ data, onDelete }: { data: Payment[]; onDelete: (id: string) => void }) {
+	const [globalFilter, setGlobalFilter] = useState("");
+	const table = useReactTable({
+		data,
+		columns,
+		getCoreRowModel: getCoreRowModel(),
+		getFilteredRowModel: getFilteredRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+		getSortedRowModel: getSortedRowModel(),
+		state: { globalFilter },
+		onGlobalFilterChange: setGlobalFilter,
+		initialState: { pagination: { pageIndex: 0, pageSize: 10 } },
+		meta: { onDelete } satisfies PaymentsTableMeta,
+	});
+	const rows = table.getRowModel().rows;
+	const pageSize = table.getState().pagination.pageSize;
+
+	return (
+		<>
+			<DataTable.Root table={table}>
+				<DataTable.Head />
+				<DataTable.Body>
+					{rows.length > 0 ? (
+						rows.map((row) => <DataTable.Row key={row.id} row={row} />)
+					) : (
+						<DataTable.EmptyRow>No payments.</DataTable.EmptyRow>
+					)}
+				</DataTable.Body>
+			</DataTable.Root>
+			<p>{pageSize} per page</p>
+		</>
+	);
+}
+```
+
+**After:**
+
+```tsx
+import { IconButton } from "@ngrok/mantle/button";
+import {
+	DataTable,
+	columnFilteringFeature,
+	createColumnHelper,
+	createFilteredRowModel,
+	createPaginatedRowModel,
+	createSortedRowModel,
+	globalFilteringFeature,
+	metaHelper,
+	rowPaginationFeature,
+	rowSortingFeature,
+	sortFn_alphanumeric,
+	sortFn_datetime,
+	sortFn_text,
+	tableFeatures,
+	useTable,
+} from "@ngrok/mantle/data-table";
+import { TrashIcon } from "@phosphor-icons/react/Trash";
+import { useState } from "react";
+
+type Payment = { id: string; amount: number; email: string; createdAt: Date };
+type PaymentsTableMeta = { onDelete: (id: string) => void };
+
+const features = tableFeatures({
+	columnFilteringFeature,
+	globalFilteringFeature,
+	rowPaginationFeature,
+	rowSortingFeature,
+	filteredRowModel: createFilteredRowModel(),
+	paginatedRowModel: createPaginatedRowModel(),
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+	tableMeta: metaHelper<PaymentsTableMeta>(),
+});
+
+const columnHelper = createColumnHelper<typeof features, Payment>();
+
+const columns = columnHelper.columns([
+	columnHelper.accessor("email", {
+		id: "email",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					Email
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("createdAt", {
+		id: "createdAt",
+		sortFn: "datetime",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="time">
+					Created
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue().toLocaleDateString()}</DataTable.Cell>,
+	}),
+	columnHelper.display({
+		id: "actions",
+		header: () => <DataTable.ActionHeader />,
+		cell: (props) => (
+			<DataTable.ActionCell>
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					type="button"
+					size="sm"
+					label="Delete payment"
+					icon={<TrashIcon />}
+					onClick={() => props.table.options.meta?.onDelete(props.row.original.id)}
+				/>
+			</DataTable.ActionCell>
+		),
+	}),
+]);
+
+function PaymentsTable({ data, onDelete }: { data: Payment[]; onDelete: (id: string) => void }) {
+	const [globalFilter, setGlobalFilter] = useState("");
+	const table = useTable({
+		features,
+		data,
+		columns,
+		state: { globalFilter },
+		onGlobalFilterChange: setGlobalFilter,
+		initialState: { pagination: { pageIndex: 0, pageSize: 10 } },
+		meta: { onDelete },
+	});
+	const rows = table.getRowModel().rows;
+	const pageSize = table.state.pagination.pageSize;
+
+	return (
+		<>
+			<DataTable.Root table={table}>
+				<DataTable.Head />
+				<DataTable.Body>
+					{rows.length > 0 ? (
+						rows.map((row) => <DataTable.Row key={row.id} row={row} />)
+					) : (
+						<DataTable.EmptyRow>No payments.</DataTable.EmptyRow>
+					)}
+				</DataTable.Body>
+			</DataTable.Root>
+			<p>{pageSize} per page</p>
+		</>
+	);
+}
+```
+
+The JSX is identical. The diff is the imports, the `features` object, the helper's type arguments, the `columnHelper.columns` wrapper, `sortFn`, the `meta` read, and `table.state`.
+
+---
+
+## Checklist
+
+Work through this for every file that imports from `@ngrok/mantle/data-table`:
+
+- `@tanstack/react-table` is not in the app's `package.json`, and no file imports from it or from `@tanstack/react-table/legacy`.
+- Every `useReactTable` is `useTable`, and every call passes `features`.
+- Every `features` object is built with `tableFeatures` at module scope.
+- No `getCoreRowModel` remains.
+- Every `get*RowModel()` option is now a feature plus a row-model slot inside `tableFeatures`.
+- A table with a global filter registers both `columnFilteringFeature` and `globalFilteringFeature`.
+- Every `createColumnHelper<T>()` is `createColumnHelper<typeof features, T>()`.
+- Every column array, including one a function returns, goes through `columnHelper.columns([…])`.
+- Every `sortingFn` is `sortFn`, and every sortable table registers its comparators in the `sortFns` slot.
+- No `table.getState()` or `onStateChange` remains.
+- Every `Column`, `Row`, `Table`, `ColumnDef`, `HeaderContext`, `CellContext`, and `TableOptions` type has its `TFeatures` argument.
+- Every wrapper typed from `ComponentProps<typeof DataTable.Row>` omits and re-declares `row` and `renderExpanded`.
+- Every table that reads `table.options.meta` types it through `tableMeta: metaHelper<T>()`, with no `as` cast and no `declare module`.
+- A table that reads `columnVisibility`, `getVisibleLeafColumns()`, or `getVisibleCells()` registers `columnVisibilityFeature`.
+- A table that selects rows registers `rowSelectionFeature`.
+- A table that pins, sizes, or resizes columns registers the matching feature and uses `start` and `end`.
+- Every `DataTable.HeaderSortButton` sits in a table with `rowSortingFeature`, and every `DataTable.RowExpandButton` sits in a table with `rowExpandingFeature`.
+- `tsc` passes, and the table sorts, filters, paginates, expands, and selects the way it did before.
