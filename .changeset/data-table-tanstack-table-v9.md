@@ -82,3 +82,15 @@ table can sort.
 **Not supported.** mantle does not re-export the deprecated `@tanstack/react-table/legacy` shim
 (`useLegacyTable`, `legacyCreateColumnHelper`, the `get*RowModel` stubs). Move each table to `useTable`
 instead.
+
+**Performance.** Measured against `main` (v8) with a 6-column sortable table built from the `DataTable` parts, in
+headless Chromium on production React 19.2.8, medians of 3 rounds:
+
+| Rows   | Mount                  | Parent re-render, same props | Sort toggle             | New `data` array, same length | Retained heap after mount |
+| ------ | ---------------------- | ---------------------------- | ----------------------- | ----------------------------- | ------------------------- |
+| 1,000  | 33.6 → 31.1 ms (−7%)   | 8.2 → 7.4 ms (−10%)          | 14.5 → 11.7 ms (−19%)   | 14.3 → 11.9 ms (−17%)         | 9.8 → 7.4 MiB (−24%)      |
+| 10,000 | 378.6 → 344.1 ms (−9%) | 78.4 → 73.6 ms (−6%)         | 263.5 → 238.9 ms (−9%)  | 143.3 → 121.4 ms (−15%)       | 105.8 → 82.0 MiB (−23%)   |
+
+A consumer bundle that registers only `rowSortingFeature` is 0.8 kB gzip smaller than its v8 equivalent
+(35.4 → 34.6 kB). A bundle that registers every stock feature is 5.5 kB larger (36.8 → 42.3 kB), because v9
+features carry code that v8 shipped inside core. Register only the features a table uses.
